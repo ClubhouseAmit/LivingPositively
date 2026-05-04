@@ -1,3 +1,4 @@
+import 'package:flutter/material.dart';
 import 'package:get_it/get_it.dart';
 import 'package:mazilon/AnalyticsService.dart';
 import 'package:mazilon/Locale/locale_service.dart';
@@ -24,4 +25,6 @@ void setupLocator() {
   getIt.registerLazySingleton<AnalyticsService>(() => MixPanelService());
   getIt.registerLazySingleton<PersistentMemoryService>(
       () => SharedPreferencesService());
+  getIt.registerLazySingleton<GlobalKey<NavigatorState>>(
+      () => GlobalKey<NavigatorState>());
 }
