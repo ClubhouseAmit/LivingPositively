@@ -12,8 +12,27 @@ List<Widget> extractChildrenFromRow(Row row) {
   return row.children;
 }
 
+List<Map<String, dynamic>> _hebrewIsraelEmergencyOrder(
+    List<Map<String, dynamic>> numbers) {
+  final orderedNumbers = List<Map<String, dynamic>>.of(numbers);
+  final index105 =
+      orderedNumbers.indexWhere((number) => number['number'] == '105');
+  final saharIndex =
+      orderedNumbers.indexWhere((number) => number['number'] == '0559571399');
+
+  if (index105 != -1 && saharIndex != -1) {
+    final number105 = orderedNumbers[index105];
+    orderedNumbers[index105] = orderedNumbers[saharIndex];
+    orderedNumbers[saharIndex] = number105;
+  }
+
+  return orderedNumbers;
+}
+
 // A stateless widget that displays a grid of emergency phone items
 class EmergencyPhonesGrid extends StatelessWidget {
+  const EmergencyPhonesGrid({super.key});
+
   @override
   Widget build(BuildContext context) {
     final userInfo = Provider.of<UserInformation>(context, listen: true);
@@ -28,27 +47,33 @@ class EmergencyPhonesGrid extends StatelessWidget {
       debugPrint(
           'No emergency mapping for countryCode="$countryCode". Using default "${defaultEmergencyCountry.id}".');
     }
-    final localNumbers = (country ?? defaultEmergencyCountry).emergencyNumbers;
+    final activeCountry = country ?? defaultEmergencyCountry;
+    final localNumbers = activeCountry.emergencyNumbers;
+    final appLocale = AppLocalizations.of(context);
+    final displayedNumbers =
+        appLocale?.localeName == 'he' && activeCountry.id == 'israel'
+            ? _hebrewIsraelEmergencyOrder(localNumbers)
+            : localNumbers;
     return Padding(
       padding: const EdgeInsets.all(8.0),
       child: LayoutBuilder(
         builder: (context, constraints) {
           const spacing = 10.0;
-          final crossAxisCount = constraints.maxWidth < 600 ? 1 : 2;
-          final itemWidth = crossAxisCount == 1
-              ? constraints.maxWidth
-              : (constraints.maxWidth - spacing) / crossAxisCount;
+          final crossAxisCount = constraints.maxWidth < 300 ? 1 : 2;
+          final itemWidth =
+              (constraints.maxWidth - spacing * (crossAxisCount - 1)) /
+                  crossAxisCount;
 
           return Wrap(
             spacing: spacing,
             runSpacing: spacing,
             children: [
-              for (int index = 0; index < localNumbers.length; index++)
+              for (int index = 0; index < displayedNumbers.length; index++)
                 SizedBox(
                   width: itemWidth,
                   child: EmergencyPhoneItem(
                     i: index,
-                    number: localNumbers[index],
+                    number: displayedNumbers[index],
                   ),
                 ),
             ],
