@@ -9,6 +9,7 @@ import 'package:mazilon/Locale/locale_service.dart';
 import 'package:mazilon/iFx/service_locator.dart';
 import 'package:mazilon/AnalyticsService.dart';
 import 'package:mazilon/pages/notifications/notification_service.dart';
+import 'package:mazilon/pages/notifications/reminder_debug_recorder.dart';
 import 'package:mazilon/util/logger_service.dart';
 import 'package:mazilon/util/persistent_memory_service.dart';
 import 'package:provider/provider.dart';
@@ -64,6 +65,10 @@ void callbackDispatcher() {
         inputData["id"],
         inputData["text"][number],
       );
+      await recordReminderDebugEvent(
+        status: reminderDebugStatusSuccess,
+        task: task,
+      );
       return Future.value(true);
     } catch (error, stackTrace) {
       try {
@@ -73,6 +78,11 @@ void callbackDispatcher() {
           withScope: (scope) => scope.setContexts('inputData', inputData),
         );
       } catch (_) {}
+      await recordReminderDebugEvent(
+        status: reminderDebugStatusFailure,
+        task: task,
+        error: error.toString(),
+      );
       return Future.value(false);
     }
   });

@@ -2,6 +2,7 @@
 
 import 'package:flutter/material.dart';
 
+import 'package:mazilon/pages/notifications/reminder_debug_recorder.dart';
 import 'package:mazilon/pages/notifications/set_notification_widget.dart';
 import 'package:mazilon/l10n/app_localizations.dart';
 import 'package:mazilon/util/LP_extended_state.dart';
@@ -19,6 +20,22 @@ class _NotificationPageState extends LPExtendedState<NotificationPage> {
   @override
   void initState() {
     super.initState();
+    loadReminderDebugPanelUnlocked();
+  }
+
+  Future<void> _toggleDebugUnlock() async {
+    final unlocked = await toggleReminderDebugPanelUnlocked();
+    if (!mounted) return;
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(
+          unlocked
+              ? 'Reminder debug panel enabled'
+              : 'Reminder debug panel hidden',
+        ),
+        duration: const Duration(seconds: 2),
+      ),
+    );
   }
 
   @override
@@ -36,8 +53,12 @@ class _NotificationPageState extends LPExtendedState<NotificationPage> {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: <Widget>[
                 SizedBox(height: 100),
-                Text(
-                  appLocale!.notificationPageHeader(gender),
+                GestureDetector(
+                  behavior: HitTestBehavior.opaque,
+                  onLongPress: _toggleDebugUnlock,
+                  child: Text(
+                    appLocale!.notificationPageHeader(gender),
+                  ),
                 ),
                 SizedBox(height: 20),
                 SetNotificationWidget()

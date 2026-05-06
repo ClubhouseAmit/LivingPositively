@@ -2,11 +2,14 @@
 
 import 'dart:math';
 
+import 'package:flutter/foundation.dart' show kDebugMode;
 import 'package:flutter/material.dart';
 import 'package:get_it/get_it.dart';
 import 'package:mazilon/global_enums.dart';
 import 'package:mazilon/l10n/app_localizations.dart';
 import 'package:mazilon/pages/notifications/notification_service.dart';
+import 'package:mazilon/pages/notifications/reminder_debug_panel.dart';
+import 'package:mazilon/pages/notifications/reminder_debug_recorder.dart';
 import 'package:mazilon/pages/notifications/time_picker.dart';
 import 'package:mazilon/util/Form/retrieveInformation.dart';
 import 'package:mazilon/util/LP_extended_state.dart';
@@ -150,6 +153,21 @@ class _SetNotificationWidgetState
             ),
           ),
         ),
+        if (NotificationsService.supportsReminderSettings())
+          ValueListenableBuilder<bool>(
+            valueListenable: reminderDebugPanelUnlocked,
+            builder: (context, unlocked, _) {
+              if (!kDebugMode && !unlocked) return const SizedBox.shrink();
+              return Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  SizedBox(height: 25),
+                  Divider(color: Colors.black, height: 5),
+                  ReminderDebugPanel(),
+                ],
+              );
+            },
+          ),
       ],
     );
   }
