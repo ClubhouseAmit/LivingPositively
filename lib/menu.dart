@@ -1,5 +1,6 @@
 //import 'package:mazilon/pages/schedule.dart';
 
+import 'package:auto_size_text/auto_size_text.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:get_it/get_it.dart';
@@ -48,6 +49,10 @@ class Menu extends StatefulWidget {
 }
 
 class _MenuState extends LPExtendedState<Menu> {
+  static const double _bottomNavigationCenterGap = 72.0;
+
+  final AutoSizeGroup _bottomNavigationLabelGroup = AutoSizeGroup();
+
   PagesCode current = PagesCode.Home;
   String version = "1.0.0";
   bool isFullScreen = false;
@@ -219,6 +224,32 @@ class _MenuState extends LPExtendedState<Menu> {
     );
   }
 
+  Widget _bottomNavigationButton({
+    required Key key,
+    required VoidCallback onPressed,
+    required bool selected,
+    required IconData icon,
+    required String label,
+  }) {
+    return SizedBox.expand(
+      key: key,
+      child: TextButton(
+        style: TextButton.styleFrom(
+          padding: EdgeInsets.zero,
+          minimumSize: Size.zero,
+          tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+        ),
+        onPressed: onPressed,
+        child: bottomNavigationItem(
+          selected,
+          icon,
+          label,
+          textGroup: _bottomNavigationLabelGroup,
+        ),
+      ),
+    );
+  }
+
   @override
   void initState() {
     loadFirstTime();
@@ -296,107 +327,71 @@ class _MenuState extends LPExtendedState<Menu> {
                 child: Container(
                   color: appWhite,
                   height: 60,
-                  child: LayoutBuilder(
-                    builder: (context, constraints) {
-                      final navWidth = constraints.maxWidth;
-
-                      return Row(
-                        // mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                        children: [
-                          Container(
-                            width: appLocale.localeName == 'en'
-                                ? navWidth / 6
-                                : navWidth / 8,
-                            alignment: appLocale.textDirection == "rtl"
-                                ? Alignment.centerLeft
-                                : Alignment.centerRight,
-                            child: TextButton(
-                                onPressed: () {
-                                  setState(() {
-                                    currentScreen = _buildHomeScreen();
-                                    current = PagesCode.Home;
-                                  });
-                                },
-                                child: bottomNavigationItem(
-                                    current == PagesCode.Home,
-                                    Icons.home,
-                                    appLocale.home(gender))),
-                          ),
-                          Container(
-                            alignment: appLocale.textDirection == "rtl"
-                                ? Alignment.centerLeft
-                                : Alignment.centerRight,
-                            width: appLocale.localeName == 'en'
-                                ? navWidth / 5
-                                : navWidth / 4,
-                            child: TextButton(
-                                onPressed: () {
-                                  setState(() {
-                                    currentScreen = MyPlanPageFull(
-                                      phonePageData: widget.phonePageData,
-                                      hasFilled: widget.hasFilled,
-                                      changeLocale: widget.changeLocale,
-                                    );
-                                    current = PagesCode.FullPlan;
-                                  });
-                                },
-                                child: bottomNavigationItem(
-                                    current == PagesCode.FullPlan,
-                                    Icons.assignment,
-                                    appLocale.personalPlanPageMyPlan(gender))),
-                          ),
-                          SizedBox(
-                            width: navWidth / 9,
-                          ),
-                          Container(
-                            alignment: appLocale.textDirection == "rtl"
-                                ? Alignment.centerLeft
-                                : Alignment.centerRight,
-                            width: navWidth / 4,
-                            child: TextButton(
-                                onPressed: () {
-                                  setState(() {
-                                    mixPanelService.trackEvent(
-                                      "Viewed Feel Good Page",
-                                    );
-                                    currentScreen = FeelGood();
-                                    current = PagesCode.FeelGoodPage;
-                                  });
-                                },
-                                child: bottomNavigationItem(
-                                    current == PagesCode.FeelGoodPage,
-                                    Icons.emoji_emotions_outlined,
-                                    AppLocalizations.of(context)!
-                                        .homePageFeelGood(gender))),
-                          ),
-                          SizedBox(
-                            width: appLocale.localeName == 'en'
-                                ? navWidth / 4
-                                : navWidth / 4.5,
-                            child: Align(
-                              alignment: appLocale.textDirection == "rtl"
-                                  ? Alignment.centerLeft
-                                  : Alignment.centerRight,
-                              child: TextButton(
-                                style: TextButton.styleFrom(
-                                  padding: EdgeInsets.zero,
-                                  minimumSize: Size.zero,
-                                  tapTargetSize:
-                                      MaterialTapTargetSize.shrinkWrap,
-                                ),
-                                onPressed: () {
-                                  _showWellnessTools(appInfoProvider);
-                                },
-                                child: bottomNavigationItem(
-                                    current == PagesCode.WellnessToolsPage,
-                                    Icons.local_florist_outlined,
-                                    appLocale.homePageWellnessTools(gender)),
-                              ),
-                            ),
-                          ),
-                        ],
-                      );
-                    },
+                  child: Row(
+                    children: [
+                      Expanded(
+                        child: _bottomNavigationButton(
+                          key: const Key('bottomNavHome'),
+                          onPressed: () {
+                            setState(() {
+                              currentScreen = _buildHomeScreen();
+                              current = PagesCode.Home;
+                            });
+                          },
+                          selected: current == PagesCode.Home,
+                          icon: Icons.home,
+                          label: appLocale.home(gender),
+                        ),
+                      ),
+                      Expanded(
+                        child: _bottomNavigationButton(
+                          key: const Key('bottomNavMyPlan'),
+                          onPressed: () {
+                            setState(() {
+                              currentScreen = MyPlanPageFull(
+                                phonePageData: widget.phonePageData,
+                                hasFilled: widget.hasFilled,
+                                changeLocale: widget.changeLocale,
+                              );
+                              current = PagesCode.FullPlan;
+                            });
+                          },
+                          selected: current == PagesCode.FullPlan,
+                          icon: Icons.assignment,
+                          label: appLocale.personalPlanPageMyPlan(gender),
+                        ),
+                      ),
+                      const SizedBox(width: _bottomNavigationCenterGap),
+                      Expanded(
+                        child: _bottomNavigationButton(
+                          key: const Key('bottomNavFeelGood'),
+                          onPressed: () {
+                            setState(() {
+                              mixPanelService.trackEvent(
+                                "Viewed Feel Good Page",
+                              );
+                              currentScreen = FeelGood();
+                              current = PagesCode.FeelGoodPage;
+                            });
+                          },
+                          selected: current == PagesCode.FeelGoodPage,
+                          icon: Icons.emoji_emotions_outlined,
+                          label: AppLocalizations.of(context)!
+                              .homePageFeelGood(gender),
+                        ),
+                      ),
+                      Expanded(
+                        child: _bottomNavigationButton(
+                          key: const Key('bottomNavSupportTools'),
+                          onPressed: () {
+                            _showWellnessTools(appInfoProvider);
+                          },
+                          selected: current == PagesCode.WellnessToolsPage,
+                          icon: Icons.local_florist_outlined,
+                          label: appLocale.homePageWellnessTools(gender),
+                        ),
+                      ),
+                    ],
                   ),
                 ),
               ),

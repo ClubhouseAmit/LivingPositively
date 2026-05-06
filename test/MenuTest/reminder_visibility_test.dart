@@ -1,3 +1,4 @@
+import 'package:auto_size_text/auto_size_text.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -85,6 +86,8 @@ class _FakeFileService implements FileService {
 void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
 
+  final hebrewHome = String.fromCharCodes([0x05D1, 0x05D9, 0x05EA]);
+
   test('fake persistent memory requires explicit values for reads', () async {
     final service = _FakePersistentMemoryService();
 
@@ -99,7 +102,8 @@ void main() {
 
   setUp(() async {
     await GetIt.instance.reset();
-    getIt.registerLazySingleton<AnalyticsService>(() => _FakeAnalyticsService());
+    getIt
+        .registerLazySingleton<AnalyticsService>(() => _FakeAnalyticsService());
     getIt.registerLazySingleton<FileService>(() => _FakeFileService());
     getIt.registerLazySingleton<PersistentMemoryService>(
       () => _FakePersistentMemoryService(
@@ -135,6 +139,63 @@ void main() {
     await tester.pumpAndSettle();
   }
 
+  Future<void> pumpMenu(
+    WidgetTester tester, {
+    Locale locale = const Locale('he'),
+    Size? physicalSize,
+  }) async {
+    if (physicalSize != null) {
+      tester.view.physicalSize = physicalSize;
+      tester.view.devicePixelRatio = 1;
+      addTearDown(() {
+        tester.view.resetPhysicalSize();
+        tester.view.resetDevicePixelRatio();
+      });
+    }
+
+    await tester.pumpWidget(
+      getMenuForTests(
+        mockUserInformation,
+        mockAppInformation,
+        locale: locale,
+      ),
+    );
+    await tester.pumpAndSettle();
+  }
+
+  List<Finder> bottomNavButtons() {
+    return [
+      find.byKey(const Key('bottomNavHome')),
+      find.byKey(const Key('bottomNavMyPlan')),
+      find.byKey(const Key('bottomNavFeelGood')),
+      find.byKey(const Key('bottomNavSupportTools')),
+    ];
+  }
+
+  void expectSymmetricBottomNav(WidgetTester tester) {
+    final buttons = bottomNavButtons();
+    for (final button in buttons) {
+      expect(button, findsOneWidget);
+    }
+
+    final widths = buttons.map((button) => tester.getSize(button).width);
+    for (final width in widths.skip(1)) {
+      expect(width, closeTo(widths.first, 0.1));
+    }
+
+    final homeCenter = tester.getCenter(buttons[0]).dx;
+    final planCenter = tester.getCenter(buttons[1]).dx;
+    final feelGoodCenter = tester.getCenter(buttons[2]).dx;
+    final supportToolsCenter = tester.getCenter(buttons[3]).dx;
+
+    final outerLeftGap = (homeCenter - planCenter).abs();
+    final outerRightGap = (supportToolsCenter - feelGoodCenter).abs();
+    final centerGap = (planCenter - feelGoodCenter).abs();
+
+    expect(outerRightGap, closeTo(outerLeftGap, 0.1));
+    expect(centerGap - outerLeftGap, closeTo(72, 0.1));
+  }
+
   testWidgets('hides the reminders menu entry on iOS', (
     WidgetTester tester,
   ) async {
@@ -159,5 +220,48 @@ void main() {
     } finally {
       debugDefaultTargetPlatformOverride = null;
     }
+  });
+
+  testWidgets('keeps Hebrew bottom navigation labels visible and symmetric', (
+    WidgetTester tester,
+  ) async {
+    await pumpMenu(tester);
+
+    expect(find.text(hebrewHome), findsOneWidget);
+    expectSymmetricBottomNav(tester);
+  });
+
+  testWidgets('keeps Hebrew bottom navigation labels in one sizing group', (
+    WidgetTester tester,
+  ) async {
+    await pumpMenu(tester);
+
+    final groups = <AutoSizeGroup?>[];
+    for (final button in bottomNavButtons()) {
+      final label = find.descendant(
+        of: button,
+        matching: find.byType(AutoSizeText),
+      );
+      expect(label, findsOneWidget);
+      groups.add(tester.widget<AutoSizeText>(label).group);
+    }
+
+    expect(groups.first, isNotNull);
+    for (final group in groups.skip(1)) {
+      expect(group, same(groups.first));
+    }
+  });
+
+  testWidgets('keeps English bottom navigation slots symmetric', (
+    WidgetTester tester,
+  ) async {
+    await pumpMenu(
+      tester,
+      locale: const Locale('en'),
+      physicalSize: const Size(1200, 1000),
+    );
+
+    expect(find.text('Home'), findsOneWidget);
+    expectSymmetricBottomNav(tester);
   });
 }
