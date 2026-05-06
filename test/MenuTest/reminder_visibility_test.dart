@@ -27,16 +27,21 @@ class _FakeAnalyticsService implements AnalyticsService {
 }
 
 class _FakePersistentMemoryService implements PersistentMemoryService {
+  _FakePersistentMemoryService({
+    Map<String, dynamic>? initialValues,
+  }) : _values = {...?initialValues};
+
+  final Map<String, dynamic> _values;
+
   @override
   Future<dynamic> getItem(String key, PersistentMemoryType type) async {
-    switch (type) {
-      case PersistentMemoryType.Bool:
-        return true;
-      case PersistentMemoryType.String:
-        return '';
-      default:
-        return null;
+    if (_values.containsKey(key)) {
+      return _values[key];
     }
+
+    throw StateError(
+      'Unexpected persistent memory read for key "$key" with type $type',
+    );
   }
 
   @override
@@ -44,7 +49,12 @@ class _FakePersistentMemoryService implements PersistentMemoryService {
 
   @override
   Future<void> setItem(
-      String key, PersistentMemoryType type, dynamic value) async {}
+    String key,
+    PersistentMemoryType type,
+    dynamic value,
+  ) async {
+    _values[key] = value;
+  }
 }
 
 class _FakeFileService implements FileService {
@@ -78,6 +88,15 @@ void main() {
 
   final hebrewHome = String.fromCharCodes([0x05D1, 0x05D9, 0x05EA]);
 
+  test('fake persistent memory requires explicit values for reads', () async {
+    final service = _FakePersistentMemoryService();
+
+    expect(
+      service.getItem('unexpectedKey', PersistentMemoryType.Bool),
+      throwsA(isA<StateError>()),
+    );
+  });
+
   late UserInformation mockUserInformation;
   late AppInformation mockAppInformation;
 
@@ -87,7 +106,14 @@ void main() {
         .registerLazySingleton<AnalyticsService>(() => _FakeAnalyticsService());
     getIt.registerLazySingleton<FileService>(() => _FakeFileService());
     getIt.registerLazySingleton<PersistentMemoryService>(
-      () => _FakePersistentMemoryService(),
+      () => _FakePersistentMemoryService(
+        initialValues: {
+          'hasFilled': false,
+          'location': '',
+          'phonePageDataSavedPhoneNames': <String>[],
+          'phonePageDataSavedPhoneNumbers': <String>[],
+        },
+      ),
     );
     PackageInfo.setMockInitialValues(
       appName: 'Mazilon',

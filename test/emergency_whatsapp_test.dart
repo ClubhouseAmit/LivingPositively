@@ -2,9 +2,12 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:get_it/get_it.dart';
 import 'package:mazilon/EmergencyNumbers.dart';
 import 'package:mazilon/global_enums.dart';
 import 'package:mazilon/l10n/app_localizations.dart';
+import 'package:mazilon/pages/phone.dart';
+import 'package:mazilon/util/Form/formPagePhoneModel.dart';
 import 'package:mazilon/util/Phone/EmergencyPhones.dart';
 import 'package:mazilon/util/Phone/emergencyDialogBox.dart';
 import 'package:mazilon/util/Phone/phoneTextAndIcon.dart';
@@ -95,6 +98,30 @@ Widget buildEmergencyGridTestApp({
         child: Scaffold(
           body: EmergencyPhonesGrid(),
         ),
+      ),
+    ),
+  );
+}
+
+Widget buildPhonePageTestApp({
+  required UserInformation userInformation,
+  required AppInformation appInformation,
+  required PhonePageData phonePageData,
+  Locale locale = const Locale('en', 'US'),
+}) {
+  return MultiProvider(
+    providers: [
+      ChangeNotifierProvider<UserInformation>.value(value: userInformation),
+      ChangeNotifierProvider<AppInformation>.value(value: appInformation),
+      ChangeNotifierProvider<PhonePageData>.value(value: phonePageData),
+    ],
+    child: MaterialApp(
+      supportedLocales: AppLocalizations.supportedLocales,
+      localizationsDelegates: AppLocalizations.localizationsDelegates,
+      locale: locale,
+      home: ScreenUtilInit(
+        designSize: const Size(360, 690),
+        child: PhonePage(phonePageData: phonePageData),
       ),
     ),
   );
@@ -404,6 +431,67 @@ void main() {
 
     await tester.pumpWidget(
       buildEmergencyGridTestApp(userInformation: userInfo),
+    );
+
+    await tester.pumpAndSettle();
+
+    final emergency = find.text('Emergency');
+    final veterans = find.text('Veterans Crisis Line');
+    expect(emergency, findsOneWidget);
+    expect(veterans, findsOneWidget);
+
+    final emergencyTop = tester.getTopLeft(emergency).dy;
+    final veteransTop = tester.getTopLeft(veterans).dy;
+    final emergencyLeft = tester.getTopLeft(emergency).dx;
+    final veteransLeft = tester.getTopLeft(veterans).dx;
+
+    expect(veteransTop, closeTo(emergencyTop, 1));
+    expect(veteransLeft, greaterThan(emergencyLeft));
+  });
+
+  testWidgets('PhonePage keeps emergency numbers in two columns at 360dp width',
+      (tester) async {
+    tester.view.physicalSize = const Size(360, 690);
+    tester.view.devicePixelRatio = 1;
+    addTearDown(() {
+      tester.view.resetPhysicalSize();
+      tester.view.resetDevicePixelRatio();
+    });
+
+    await GetIt.instance.reset();
+    GetIt.instance.registerSingleton<PersistentMemoryService>(
+      FakePersistentMemoryService(),
+    );
+    addTearDown(() async {
+      await GetIt.instance.reset();
+    });
+
+    final userInfo = UserInformation(
+      gender: 'male',
+      location: 'US',
+      service: FakePersistentMemoryService(),
+    );
+    final appInfo = AppInformation();
+    final phonePageData = PhonePageData(
+      key: 'phonePageData',
+      header: 'header',
+      subTitle: 'subTitle',
+      midTitle: 'midTitle',
+      phoneNameTitle: 'phoneNameTitle',
+      phoneNumberTitle: 'phoneNumberTitle',
+      phoneNames: [],
+      phoneNumbers: [],
+      savedPhoneNames: [],
+      savedPhoneNumbers: [],
+      phoneDescription: [],
+    );
+
+    await tester.pumpWidget(
+      buildPhonePageTestApp(
+        userInformation: userInfo,
+        appInformation: appInfo,
+        phonePageData: phonePageData,
+      ),
     );
 
     await tester.pumpAndSettle();

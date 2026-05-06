@@ -59,7 +59,7 @@ class EmergencyPhonesGrid extends StatelessWidget {
       child: LayoutBuilder(
         builder: (context, constraints) {
           const spacing = 10.0;
-          final crossAxisCount = constraints.maxWidth < 320 ? 1 : 2;
+          final crossAxisCount = constraints.maxWidth < 300 ? 1 : 2;
           final itemWidth =
               (constraints.maxWidth - spacing * (crossAxisCount - 1)) /
                   crossAxisCount;
