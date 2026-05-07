@@ -1,14 +1,12 @@
 import 'dart:io';
 
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 import 'package:get_it/get_it.dart';
-import 'package:mazilon/global_enums.dart';
 import 'package:mazilon/util/logger_service.dart';
-import 'package:mazilon/util/persistent_memory_service.dart';
-import 'package:uuid/uuid.dart';
 
 class FcmService {
   static bool _isInitialized = false;
@@ -57,38 +55,47 @@ class FcmService {
     );
     _log('Local notifications initialized.');
 
-    final deviceId = await _getOrCreateDeviceId();
-    _log('Device ID: $deviceId');
-
+    final uid = await _getOrCreateUid();
     final token = await FirebaseMessaging.instance.getToken();
-    _log('FCM token: $token');
-    if (token != null) await _saveTokenToFirestore(deviceId, token);
+
+    final idToken = await GetIt.instance<FirebaseAuth>().currentUser?.getIdToken();
+
+    _log('=== FCM Ready ===');
+    _log('UID       : $uid');
+    _log('FCM Token : $token');
+    _log('ID Token  : $idToken');
+    _log('=================');
+
+    if (uid != null && token != null) await _saveTokenToFirestore(uid, token);
 
     _setupForegroundHandler();
     _setupOnMessageOpenedApp();
 
     FirebaseMessaging.instance.onTokenRefresh.listen((newToken) {
-      _log('FCM token refreshed: $newToken');
-      _saveTokenToFirestore(deviceId, newToken);
+      final uid = GetIt.instance<FirebaseAuth>().currentUser?.uid;
+      if (uid != null) {
+        _log('FCM token refreshed: $newToken');
+        _saveTokenToFirestore(uid, newToken);
+      }
     });
 
     _log('Initialization complete.');
   }
 
-  static Future<String> _getOrCreateDeviceId() async {
-    final prefs = GetIt.instance<PersistentMemoryService>();
-    final existing =
-        await prefs.getItem('deviceId', PersistentMemoryType.String) as String;
-    if (existing.isNotEmpty) {
-      _log('Found existing device ID: $existing');
-      debugPrint('[FcmService] Device already has a unique ID: $existing');
-      return existing;
+  static Future<String?> _getOrCreateUid() async {
+    try {
+      final auth = GetIt.instance<FirebaseAuth>();
+      if (auth.currentUser == null) {
+        _log('No existing auth user — signing in anonymously...');
+        await auth.signInAnonymously();
+      } else {
+        _log('Existing anonymous user: ${auth.currentUser!.uid}');
+      }
+      return auth.currentUser?.uid;
+    } catch (e) {
+      _log('Anonymous sign-in failed (offline?): $e');
+      return null;
     }
-
-    final id = const Uuid().v4();
-    _log('Created new device ID: $id');
-    await prefs.setItem('deviceId', PersistentMemoryType.String, id);
-    return id;
   }
 
   static Future<void> _saveTokenToFirestore(

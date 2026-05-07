@@ -1,6 +1,9 @@
+import 'dart:convert';
+
 import 'package:flutter/foundation.dart';
 import 'package:get_it/get_it.dart';
 import 'package:mazilon/global_enums.dart';
+import 'package:mazilon/util/notification_preference.dart';
 import 'package:mazilon/util/persistent_memory_service.dart';
 
 enum DarkModePreference { alwaysLight, alwaysDark, scheduled }
@@ -21,8 +24,7 @@ class UserInformation with ChangeNotifier {
   List<String> distractions;
   bool loggedIn;
   String userId;
-  int notificationMinute;
-  int notificationHour;
+  Map<String, NotificationPreference> notificationPreferences;
   DarkModePreference darkModePreference;
   int darkModeStartHour;
   int darkModeStartMinute;
@@ -36,8 +38,7 @@ class UserInformation with ChangeNotifier {
     this.thanks = const <String, List<String>>{},
     this.positiveTraits = const [],
     this.localeName = '',
-    this.notificationHour = 12,
-    this.notificationMinute = 0,
+    this.notificationPreferences = const {},
     this.darkModePreference = DarkModePreference.alwaysLight,
     this.darkModeStartHour = 22,
     this.darkModeStartMinute = 0,
@@ -59,8 +60,7 @@ class UserInformation with ChangeNotifier {
 
   void reset(String locale) {
     location = '';
-    notificationHour = 12;
-    notificationMinute = 0;
+    notificationPreferences = {};
     darkModePreference = DarkModePreference.alwaysLight;
     darkModeStartHour = 22;
     darkModeStartMinute = 0;
@@ -159,27 +159,18 @@ class UserInformation with ChangeNotifier {
     notifyListeners();
   }
 
-  void updateNotificationHour(int value) {
-    Future<void> saveNotificationHour(int hour) async {
-      await service.setItem('notificationHour', PersistentMemoryType.Int, hour);
-    }
+  NotificationPreference? getNotificationPreference(String typeId) =>
+      notificationPreferences[typeId];
 
-    notificationHour = value;
-    saveNotificationHour(value);
+  void setNotificationPreference(String typeId, NotificationPreference pref) {
+    notificationPreferences = {...notificationPreferences, typeId: pref};
+    _saveNotificationPreferences();
     notifyListeners();
   }
 
-  void updateNotificationMinute(int value) {
-    Future<void> saveNotificationMinute(int minute) async {
-      await service.setItem(
-        'notificationMinute',
-        PersistentMemoryType.Int,
-        minute,
-      );
-    }
-
-    notificationMinute = value;
-    saveNotificationMinute(value);
+  void clearNotificationPreference(String typeId) {
+    notificationPreferences = Map.from(notificationPreferences)..remove(typeId);
+    _saveNotificationPreferences();
     notifyListeners();
   }
 
@@ -360,6 +351,19 @@ class UserInformation with ChangeNotifier {
 
   static int _validMinuteOrDefault(int? value, int defaultValue) {
     return value != null && _isValidMinute(value) ? value : defaultValue;
+  }
+
+  void _saveNotificationPreferences() async {
+    final encoded = jsonEncode(
+      notificationPreferences.map(
+        (key, value) => MapEntry(key, value.toJson()),
+      ),
+    );
+    await service.setItem(
+      'notificationPreferences',
+      PersistentMemoryType.String,
+      encoded,
+    );
   }
 
   void updateLocaleName(String value) {

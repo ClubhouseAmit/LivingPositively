@@ -5,6 +5,7 @@ import 'package:get_it/get_it.dart';
 import 'package:mazilon/global_enums.dart';
 import 'package:mazilon/util/logger_service.dart';
 import 'package:mazilon/util/persistent_memory_service.dart';
+import 'package:mazilon/util/notification_preference.dart';
 import 'package:mazilon/util/type_utils.dart';
 import 'dart:math';
 import 'package:firebase_auth/firebase_auth.dart';
@@ -127,13 +128,9 @@ Future<void> loadUserInformation(
       "disclaimerConfirmed",
       PersistentMemoryType.Bool,
     ),
-    'notificationMinute': service.getItem(
-      "notificationMinute",
-      PersistentMemoryType.Int,
-    ),
-    'notificationHour': service.getItem(
-      "notificationHour",
-      PersistentMemoryType.Int,
+    'notificationPreferences': service.getItem(
+      "notificationPreferences",
+      PersistentMemoryType.String,
     ),
     'darkModePreference': service.getItem(
       'darkModePreference',
@@ -184,8 +181,16 @@ Future<void> loadUserInformation(
   );
   userInfo.updateLocation(data['location'] ?? "");
   userInfo.updateDisclaimerSigned(data['disclaimerConfirmed'] ?? false);
-  userInfo.updateNotificationMinute(data['notificationMinute'] ?? 0);
-  userInfo.updateNotificationHour(data['notificationHour'] ?? 12);
+  final prefsJson = data['notificationPreferences'] as String?;
+  if (prefsJson != null && prefsJson.isNotEmpty) {
+    final decoded = jsonDecode(prefsJson) as Map<String, dynamic>;
+    userInfo.notificationPreferences = decoded.map(
+      (key, value) => MapEntry(
+        key,
+        NotificationPreference.fromJson(value as Map<String, dynamic>),
+      ),
+    );
+  }
   final darkModePreference = UserInformation.parseDarkModePreference(
     data['darkModePreference'] as String?,
   );
