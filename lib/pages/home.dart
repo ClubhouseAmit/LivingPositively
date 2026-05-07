@@ -16,7 +16,6 @@ import 'package:mazilon/util/Form/retrieveInformation.dart';
 import 'package:mazilon/util/LP_extended_state.dart';
 import 'package:mazilon/util/persistent_memory_service.dart';
 
-import 'package:mazilon/pages/UserSettings.dart';
 import 'package:mazilon/MainPageHelpers/personalPlanWidget.dart';
 
 import 'package:mazilon/util/HomePage/inspirationalQuote.dart';
@@ -129,7 +128,6 @@ class _HomeState extends LPExtendedState<Home> {
     final userInfoProvider =
         Provider.of<UserInformation>(context, listen: true);
     final gender = userInfoProvider.gender;
-    final age = userInfoProvider.age;
 
     //add random header and user-selected info from personal plan:
     setRandomPersonalWidgetText(userInfoProvider, appLocale);
@@ -148,20 +146,6 @@ class _HomeState extends LPExtendedState<Home> {
               NameBar(
                   greetingString: appLocale.homePageGreetings(gender),
                   icons: [
-                    //settings button:
-                    myTextButton(() {
-                      Navigator.push(
-                        context,
-                        MaterialPageRoute(
-                            builder: (context) => UserSettings(
-                                  phonePageData: widget.phonePageData,
-                                  username: userInfoProvider.name,
-                                  age: age,
-                                  gender: gender,
-                                  changeLocale: widget.changeLocale,
-                                )),
-                      );
-                    }, Icons.settings_outlined, primaryPurple),
                     Builder(
                       builder: (menuButtonContext) => myTextButton(
                           () => widget.openMainMenu(menuButtonContext),
