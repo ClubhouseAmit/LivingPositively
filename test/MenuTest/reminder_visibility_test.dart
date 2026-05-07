@@ -7,6 +7,8 @@ import 'package:mazilon/AnalyticsService.dart';
 import 'package:mazilon/global_enums.dart';
 import 'package:mazilon/iFx/service_locator.dart';
 import 'package:mazilon/file_service.dart';
+import 'package:mazilon/pages/UserSettings.dart';
+import 'package:mazilon/pages/notifications/notification_page.dart';
 import 'package:mazilon/util/appInformation.dart';
 import 'package:mazilon/util/persistent_memory_service.dart';
 import 'package:mazilon/util/userInformation.dart';
@@ -191,6 +193,23 @@ void main() {
       await openMenu(tester);
 
       expect(find.byIcon(Icons.notification_add), findsOneWidget);
+    } finally {
+      debugDefaultTargetPlatformOverride = null;
+    }
+  });
+
+  testWidgets('opens reminder settings from the Hebrew main menu on Android', (
+    WidgetTester tester,
+  ) async {
+    debugDefaultTargetPlatformOverride = TargetPlatform.android;
+    try {
+      await openMenu(tester);
+
+      await tester.tap(find.text('תזכורות'));
+      await tester.pumpAndSettle();
+
+      expect(find.byType(NotificationPage), findsOneWidget);
+      expect(find.byType(UserSettings), findsNothing);
     } finally {
       debugDefaultTargetPlatformOverride = null;
     }
