@@ -2,9 +2,11 @@
 
 import 'package:flutter/material.dart';
 
-import 'package:mazilon/pages/notifications/reminder_debug_recorder.dart';
-import 'package:mazilon/pages/notifications/set_notification_widget.dart';
+import 'package:mazilon/l10n/app_localizations.dart';
+import 'package:mazilon/pages/notifications/notification_toggle_card.dart';
+import 'package:mazilon/util/Firebase/fcm_scheduled_notification_service.dart';
 import 'package:mazilon/util/LP_extended_state.dart';
+import 'package:mazilon/util/styles.dart';
 import 'package:mazilon/util/userInformation.dart';
 import 'package:provider/provider.dart';
 
@@ -16,24 +18,25 @@ class NotificationPage extends StatefulWidget {
 }
 
 class _NotificationPageState extends LPExtendedState<NotificationPage> {
-  @override
-  void initState() {
-    super.initState();
-    loadReminderDebugPanelUnlocked();
+  void _onToggle(bool value, UserInformation userInfo) {
+    if (!value) {
+      FcmScheduledNotificationService.cancelNotification(
+        context: context,
+        typeId: 'default',
+      );
+    }
   }
 
-  Future<void> _toggleDebugUnlock() async {
-    final unlocked = await toggleReminderDebugPanelUnlocked();
-    if (!mounted) return;
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Text(
-          unlocked
-              ? 'Reminder debug panel enabled'
-              : 'Reminder debug panel hidden',
-        ),
-        duration: const Duration(seconds: 2),
-      ),
+  void _onPickedTime(
+    TimeOfDay picked,
+    AppLocalizations appLocale,
+    UserInformation userInfo,
+  ) {
+    FcmScheduledNotificationService.registerNotification(
+      context: context,
+      typeId: 'default',
+      hour: picked.hour,
+      minute: picked.minute,
     );
   }
 
@@ -54,13 +57,42 @@ class _NotificationPageState extends LPExtendedState<NotificationPage> {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: <Widget>[
                 SizedBox(height: 100),
-                GestureDetector(
-                  behavior: HitTestBehavior.opaque,
-                  onLongPress: _toggleDebugUnlock,
-                  child: Text(appLocale.notificationPageHeader(gender)),
+                Container(
+                  alignment: Alignment.topLeft,
+                  child: RichText(
+                    text: TextSpan(
+                      style: TextStyle(
+                        fontSize: 32,
+                        fontWeight: FontWeight.bold,
+                      ),
+                      children: [
+                        TextSpan(
+                            text: 'Remind ',
+                            style: TextStyle(color: primaryPurple)),
+                        TextSpan(text: 'Me', style: TextStyle(color: appGreen)),
+                      ],
+                    ),
+                  ),
                 ),
-                SizedBox(height: 20),
-                SetNotificationWidget(),
+                NotificationToggleCard(
+                  emoji: "✨",
+                  badgeText: "LP",
+                  title: "מסר חיזוק יומי",
+                  subtitle: "ניצוץ יומי עדין של תקווה ונחמה, להאיר את הדרך",
+                  initialEnabled: userInfoProvider.getNotificationPreference('default') != null,
+                  initialTime: userInfoProvider.getNotificationPreference('default') == null
+                      ? null
+                      : TimeOfDay(
+                          hour: userInfoProvider.getNotificationPreference('default')!.hour,
+                          minute: userInfoProvider.getNotificationPreference('default')!.minute,
+                        ),
+                  onTimeSelected: (time) =>
+                      _onPickedTime(time, appLocale, userInfoProvider),
+                  onToggle: (value) => _onToggle(value, userInfoProvider),
+                ),
+                Text(
+                  appLocale!.notificationPageHeader(gender),
+                ),
               ],
             ),
           ),

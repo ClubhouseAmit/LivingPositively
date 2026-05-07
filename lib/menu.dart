@@ -12,7 +12,6 @@ import 'package:mazilon/pages/about.dart';
 import 'package:mazilon/pages/FeelGood/feelGood.dart';
 import 'package:mazilon/pages/WellnessTools/wellnessTools.dart';
 import 'package:mazilon/pages/notifications/notification_page.dart';
-import 'package:mazilon/pages/notifications/notification_service.dart';
 import 'package:mazilon/util/Form/retrieveInformation.dart';
 import 'package:flutter/services.dart';
 import 'package:mazilon/util/LP_extended_state.dart';
@@ -108,11 +107,6 @@ class _MenuState extends LPExtendedState<Menu> {
     final gender = userInformation.gender;
     AnalyticsService mixPanelService = GetIt.instance<AnalyticsService>();
 
-    if (index == PagesCode.NotificationPage &&
-        !NotificationsService.supportsReminderSettings()) {
-      return;
-    }
-
     setState(() {
       current = index;
       //adding pages to menu here:
@@ -156,6 +150,27 @@ class _MenuState extends LPExtendedState<Menu> {
   void getVersion() async {
     PackageInfo packageInfo = await PackageInfo.fromPlatform();
     version = packageInfo.version;
+  }
+
+  Widget displayNotificationButton(gender) {
+    return TextButton(
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.start,
+        children: [
+          Icon(Icons.notification_add),
+          SizedBox(width: 20),
+          Text(AppLocalizations.of(context)!.notifications(gender)),
+        ],
+      ),
+      onPressed: () {
+        setState(() {
+          currentScreen = NotificationPage();
+
+          current = PagesCode.NotificationPage;
+        });
+        Navigator.of(context).pop();
+      },
+    );
   }
 
   Map<String, List<String>> _filterVideoByLocal(
