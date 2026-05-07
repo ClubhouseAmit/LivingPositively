@@ -1,8 +1,6 @@
 // ignore_for_file: prefer_const_constructors
 
 import 'package:flutter/material.dart';
-import 'package:mazilon/pages/notifications/notification_service.dart'; // Assuming this now refers to NotificationsHelper
-
 import 'package:numberpicker/numberpicker.dart';
 
 class TimePicker extends StatefulWidget {
@@ -23,12 +21,6 @@ class TimePicker extends StatefulWidget {
 class _TimePickerState extends State<TimePicker> {
   TimeOfDay calculateTime() {
     return TimeOfDay(hour: widget.currentHour, minute: widget.currentMinute);
-  }
-
-  @override
-  void initState() {
-    super.initState();
-    NotificationsService.init(); // Initialize NotificationsHelper
   }
 
   @override

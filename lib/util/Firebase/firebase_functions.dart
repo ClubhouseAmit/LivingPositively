@@ -5,74 +5,15 @@ import 'package:get_it/get_it.dart';
 import 'package:mazilon/global_enums.dart';
 import 'package:mazilon/util/logger_service.dart';
 import 'package:mazilon/util/persistent_memory_service.dart';
+import 'package:mazilon/util/notification_preference.dart';
 import 'package:mazilon/util/type_utils.dart';
 import 'dart:math';
-import 'package:shared_preferences/shared_preferences.dart';
-import 'package:firebase_auth/firebase_auth.dart';
-
-import 'package:mazilon/util/SignIn/popup_toast.dart';
 import 'package:mazilon/util/appInformation.dart';
 import 'package:mazilon/util/userInformation.dart';
 import 'dart:convert';
 import 'dart:io';
 import 'package:path_provider/path_provider.dart';
 import 'package:flutter/foundation.dart' show kIsWeb;
-
-import 'package:firebase_core/firebase_core.dart';
-
-//This is where we handle all of the data fetching for the app
-//be it from the server or from the local storage
-class FirebaseAuthService {
-  final FirebaseAuth _auth;
-
-  FirebaseAuthService(FirebaseApp app)
-      : _auth = FirebaseAuth.instanceFor(app: app);
-
-  Future<User?> signUpWithEmailAndPassword(
-      String email, String password) async {
-    try {
-      UserCredential credential = await _auth.createUserWithEmailAndPassword(
-          email: email, password: password);
-      return credential.user;
-    } on FirebaseAuthException catch (error, stackTrace) {
-      if (error.code == 'email-already-in-use') {
-        showToast(message: 'The email address is already in use.');
-      } else {
-        IncidentLoggerService loggerService =
-            GetIt.instance<IncidentLoggerService>();
-        await loggerService.captureLog(
-          error,
-          stackTrace: stackTrace,
-        );
-        showToast(message: 'An error occurred');
-      }
-    }
-    return null;
-  }
-
-  Future<User?> signInWithEmailAndPassword(
-      String email, String password) async {
-    try {
-      UserCredential credential = await _auth.signInWithEmailAndPassword(
-          email: email, password: password);
-
-      return credential.user;
-    } on FirebaseAuthException catch (error, stackTrace) {
-      if (error.code == 'user-not-found' || error.code == 'wrong-password') {
-        showToast(message: 'Invalid email or password.');
-      } else {
-        showToast(message: 'An error occurred');
-        IncidentLoggerService loggerService =
-            GetIt.instance<IncidentLoggerService>();
-        await loggerService.captureLog(
-          error,
-          stackTrace: stackTrace,
-        );
-      }
-    }
-    return null;
-  }
-}
 
 class Warning {
   final String text;
@@ -105,10 +46,8 @@ Future<void> loadUserInformation(
     'location': service.getItem("location", PersistentMemoryType.String),
     'disclaimerConfirmed':
         service.getItem("disclaimerConfirmed", PersistentMemoryType.Bool),
-    'notificationMinute':
-        service.getItem("notificationMinute", PersistentMemoryType.Int),
-    'notificationHour':
-        service.getItem("notificationHour", PersistentMemoryType.Int),
+    'notificationPreferences':
+        service.getItem("notificationPreferences", PersistentMemoryType.String),
     'localeName': service.getItem("localeName", PersistentMemoryType.String),
     'positiveTraits':
         service.getItem("positiveTraits", PersistentMemoryType.StringList),
@@ -134,8 +73,12 @@ Future<void> loadUserInformation(
       .updateDistractions((TypeUtils.castToStringList(data['distractions'])));
   userInfo.updateLocation(data['location'] ?? "");
   userInfo.updateDisclaimerSigned(data['disclaimerConfirmed'] ?? false);
-  userInfo.updateNotificationMinute(data['notificationMinute'] ?? 0);
-  userInfo.updateNotificationHour(data['notificationHour'] ?? 12);
+  final prefsJson = data['notificationPreferences'] as String?;
+  if (prefsJson != null && prefsJson.isNotEmpty) {
+    final decoded = jsonDecode(prefsJson) as Map<String, dynamic>;
+    userInfo.notificationPreferences = decoded.map((key, value) =>
+        MapEntry(key, NotificationPreference.fromJson(value as Map<String, dynamic>)));
+  }
   userInfo.updateLocaleName(data['localeName'] ?? "en");
   userInfo.updatePositiveTraits(
       (TypeUtils.castToStringList(data['positiveTraits'])));

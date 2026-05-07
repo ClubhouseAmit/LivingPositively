@@ -1,8 +1,10 @@
+import 'dart:convert';
+
 import 'package:flutter/foundation.dart';
 import 'package:get_it/get_it.dart';
 import 'package:mazilon/global_enums.dart';
+import 'package:mazilon/util/notification_preference.dart';
 import 'package:mazilon/util/persistent_memory_service.dart';
-import 'package:shared_preferences/shared_preferences.dart';
 
 //this it the user's information class, with it we store and display it across the app
 class UserInformation with ChangeNotifier {
@@ -20,8 +22,7 @@ class UserInformation with ChangeNotifier {
   List<String> distractions;
   bool loggedIn;
   String userId;
-  int notificationMinute;
-  int notificationHour;
+  Map<String, NotificationPreference> notificationPreferences;
   Map<String, List<String>> thanks;
   PersistentMemoryService service; // Get the persistent memory service instance
 
@@ -30,8 +31,7 @@ class UserInformation with ChangeNotifier {
     this.thanks = const <String, List<String>>{},
     this.positiveTraits = const [],
     this.localeName = '',
-    this.notificationHour = 12,
-    this.notificationMinute = 0,
+    this.notificationPreferences = const {},
     this.gender = '',
     this.name = '',
     this.age = '',
@@ -48,8 +48,7 @@ class UserInformation with ChangeNotifier {
 
   void reset(String locale) {
     location = '';
-    notificationHour = 12;
-    notificationMinute = 0;
+    notificationPreferences = {};
     gender = '';
     name = '';
     age = '';
@@ -143,25 +142,26 @@ class UserInformation with ChangeNotifier {
     notifyListeners();
   }
 
-  void updateNotificationHour(int value) {
-    Future<void> saveNotificationHour(int hour) async {
-      await service.setItem('notificationHour', PersistentMemoryType.Int, hour);
-    }
+  NotificationPreference? getNotificationPreference(String typeId) =>
+      notificationPreferences[typeId];
 
-    notificationHour = value;
-    saveNotificationHour(value);
+  void setNotificationPreference(String typeId, NotificationPreference pref) {
+    notificationPreferences = {...notificationPreferences, typeId: pref};
+    _saveNotificationPreferences();
     notifyListeners();
   }
 
-  void updateNotificationMinute(int value) {
-    Future<void> saveNotificationMinute(int minute) async {
-      await service.setItem(
-          'notificationMinute', PersistentMemoryType.Int, minute);
-    }
-
-    notificationMinute = value;
-    saveNotificationMinute(value);
+  void clearNotificationPreference(String typeId) {
+    notificationPreferences = Map.from(notificationPreferences)..remove(typeId);
+    _saveNotificationPreferences();
     notifyListeners();
+  }
+
+  void _saveNotificationPreferences() async {
+    final encoded = jsonEncode(notificationPreferences
+        .map((key, value) => MapEntry(key, value.toJson())));
+    await service.setItem(
+        'notificationPreferences', PersistentMemoryType.String, encoded);
   }
 
   void updateLocaleName(String value) {

@@ -108,14 +108,14 @@ void main() {
     await tester.pumpAndSettle();
   }
 
-  testWidgets('hides the reminders menu entry on iOS', (
+  testWidgets('shows the reminders menu entry on iOS', (
     WidgetTester tester,
   ) async {
     debugDefaultTargetPlatformOverride = TargetPlatform.iOS;
     try {
       await openMenu(tester);
 
-      expect(find.byIcon(Icons.notification_add), findsNothing);
+      expect(find.byIcon(Icons.notification_add), findsOneWidget);
     } finally {
       debugDefaultTargetPlatformOverride = null;
     }
