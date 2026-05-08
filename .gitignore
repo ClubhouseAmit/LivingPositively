@@ -80,4 +80,5 @@ lib/util/Firebase/firebase_options.dart
 # local agent/swarm state
 .swarm/
 ruvector.db
+*.local.json
 
