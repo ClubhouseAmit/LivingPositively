@@ -44,8 +44,16 @@ jobs:
           cache: true
       - name: Install dependencies
         run: flutter pub get
-      - name: Run tests
-        run: flutter test --reporter=expanded
+      - name: Run tests with coverage
+        run: flutter test --coverage --reporter=expanded
+      - name: Enforce coverage gate
+        run: dart run scripts/check_coverage.dart
+      - name: Upload coverage report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: coverage-lcov
+          path: coverage/lcov.info
 
       - name: Get version from pubspec.yaml
         id: get_version
