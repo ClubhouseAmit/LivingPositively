@@ -2,12 +2,16 @@
 
 import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
+import 'package:get_it/get_it.dart';
 
+import 'package:mazilon/global_enums.dart';
 import 'package:mazilon/pages/PersonalPlan/myPlan.dart';
 import 'package:mazilon/util/Form/retrieveInformation.dart';
 import 'package:mazilon/util/LP_extended_state.dart';
 import 'package:mazilon/util/styles.dart';
 import 'package:mazilon/util/appInformation.dart';
+import 'package:mazilon/util/persistent_memory_service.dart';
+import 'package:mazilon/util/type_utils.dart';
 import 'package:provider/provider.dart';
 import 'package:mazilon/form/form.dart';
 import 'package:mazilon/util/userInformation.dart';
@@ -16,6 +20,9 @@ import 'package:mazilon/util/Form/formPagePhoneModel.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:url_launcher/url_launcher.dart';
 import 'package:mazilon/l10n/app_localizations.dart';
+
+const String _customCategoryTitlesKey = 'customCategoryTitles';
+const String _customCategoryDescriptionsKey = 'customCategoryDescriptions';
 
 // This widget displays the user's personalized plan with sections for various topics.
 // It allows the user to view their selected answers and navigate to additional forms or options.
@@ -37,6 +44,7 @@ class MyPlanPageFull extends StatefulWidget {
 class _MyPlanPageFullState extends LPExtendedState<MyPlanPageFull> {
   List<List<String>> userAnswers = []; // User's answers for each section
   List<String> phoneInformation = []; // User's phone-related information
+  final List<MapEntry<String, String>> customCategories = [];
 
   // Field names for different sections of the personal plan
   List<String> fieldNames = [
@@ -90,6 +98,38 @@ class _MyPlanPageFullState extends LPExtendedState<MyPlanPageFull> {
   @override
   initState() {
     super.initState();
+    loadCustomCategories();
+  }
+
+  Future<void> loadCustomCategories() async {
+    if (!GetIt.instance.isRegistered<PersistentMemoryService>()) {
+      return;
+    }
+
+    PersistentMemoryService service = GetIt.instance<PersistentMemoryService>();
+    final titles = TypeUtils.castToStringList(await service.getItem(
+        _customCategoryTitlesKey, PersistentMemoryType.StringList));
+    final descriptions = TypeUtils.castToStringList(await service.getItem(
+        _customCategoryDescriptionsKey, PersistentMemoryType.StringList));
+    final loadedCategories = <MapEntry<String, String>>[];
+
+    for (var i = 0; i < titles.length && i < descriptions.length; i++) {
+      final title = titles[i].trim();
+      final description = descriptions[i].trim();
+      if (title.isEmpty || description.isEmpty) {
+        continue;
+      }
+      loadedCategories.add(MapEntry(title, description));
+    }
+
+    if (!mounted) {
+      return;
+    }
+    setState(() {
+      customCategories
+        ..clear()
+        ..addAll(loadedCategories);
+    });
   }
 
   @override
@@ -161,6 +201,13 @@ class _MyPlanPageFullState extends LPExtendedState<MyPlanPageFull> {
               title: appLocale!.phonesPageHeader(gender),
               subTitle: appLocale!.phonesPageSubTitle(gender),
               answers: phoneInformation,
+            ),
+            ...customCategories.map(
+              (category) => MyPlanSection(
+                title: category.key,
+                subTitle: '',
+                answers: [category.value],
+              ),
             ),
             SizedBox(
               height: 30,

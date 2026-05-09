@@ -53,6 +53,14 @@
      "sharePageSubTitle": "{gender,select,male{יצרת לך מדריך שיעזור לך ברגעי משבר! בוא ונכיר כלים נוספים לעזרה עצמית ולחוסן נפשי} female{יצרת לך מדריך שיעזור לך ברגעי משבר! בואי ונכיר כלים נוספים לעזרה עצמית ולחוסן נפשי} other{יצרת לך מדריך שיעזור לך ברגעי משבר! הבה ונכיר כלים נוספים לעזרה עצמית ולחוסן נפשי}}",
      "sharePageMidTitle": "{gender,select,male{עכשיו אתה יכול לשתף את התוכנית עם הקרובים אליך או להוריד אותה כקובץ} female{עכשיו את יכולה לשתף את התוכנית עם הקרובים אלייך או להוריד אותה כקובץ} other{עכשיו ניתן לשתף את התוכנית עם הקרובים לך או להוריד אותה כקובץ}}",
      "sharePageFinishButton": "{gender,select,male{סיימתי!} female{סיימתי!} other{סיימתי!}}",
+     "sharePageAddCustomCategory": "+ הוספת קטגוריה",
+     "sharePageCustomCategoryTitle": "כותרת הקטגוריה",
+     "sharePageCustomCategoryDescription": "תיאור",
+     "sharePageSaveCustomCategory": "הוספת קטגוריה",
+     "customCategoryOptionEmpoweringQuotes": "משפטים מחזקים שחשוב לי לזכור",
+     "customCategoryOptionPastEvents": "אירועים מהעבר לתזכורת",
+     "customCategoryOptionAboutMe": "דברים עלי שחשוב לי שנזכור",
+     "customCategoryOptionCustomInput": "אפשרות לכתוב משהו מקורי משלי",
      "sharePageShareTitle": "{gender,select,male{איך תרצה לשתף את התוכנית?} female{איך תרצי לשתף את התוכנית?} other{איך תרצו לשתף את התוכנית?}}",
 
 
