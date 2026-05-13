@@ -1529,6 +1529,10 @@
   "@shareButtonText": {
     "description": ""
   },
+  "contactUs": "Contact Us",
+  "@contactUs": {
+    "description": "Main menu item that opens the external support/contact page."
+  },
   "shareAppMessage": "Here is the app LP (Living Positively). I use it and recommend it, maybe it will be helpful for you too.",
   "@shareAppMessage": {
     "description": ""

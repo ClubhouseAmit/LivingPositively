@@ -6,6 +6,30 @@ import 'package:mazilon/util/Form/formPagePhoneModel.dart';
 import 'package:mazilon/util/styles.dart';
 import 'package:mazilon/util/userInformation.dart';
 import 'package:share_plus/share_plus.dart';
+import 'package:url_launcher/url_launcher.dart';
+
+const _hebrewContactUsUrl =
+    'https://sites.google.com/mishol.org/matzilon/%D7%AA%D7%9E%D7%99%D7%9B%D7%94';
+const _englishContactUsUrl =
+    'https://sites.google.com/mishol.org/living-positively/support';
+
+String _contactUsUrl(AppLocalizations appLocale) {
+  return appLocale.localeName.startsWith('he')
+      ? _hebrewContactUsUrl
+      : _englishContactUsUrl;
+}
+
+Future<void> _openContactUs(AppLocalizations appLocale) async {
+  final uri = Uri.parse(_contactUsUrl(appLocale));
+  final launched = await launchUrl(
+    uri,
+    mode: LaunchMode.externalApplication,
+    webOnlyWindowName: '_blank',
+  );
+  if (!launched) {
+    debugPrint('Could not launch $uri');
+  }
+}
 
 void showMainMenuDialog({
   required BuildContext context,
@@ -152,6 +176,20 @@ void showMainMenuDialog({
                           subject: 'Living Positively App',
                         ),
                       );
+                    },
+                  ),
+                  TextButton(
+                    key: const Key('mainMenuContactUsButton'),
+                    child: Row(
+                      mainAxisAlignment: MainAxisAlignment.start,
+                      children: [
+                        const Icon(Icons.email),
+                        const SizedBox(width: 20),
+                        Text(appLocale.contactUs),
+                      ],
+                    ),
+                    onPressed: () async {
+                      await _openContactUs(appLocale);
                     },
                   ),
                 ],

@@ -11,6 +11,8 @@ import 'package:mazilon/util/appInformation.dart';
 import 'package:mazilon/util/persistent_memory_service.dart';
 import 'package:mazilon/util/userInformation.dart';
 import 'package:package_info_plus/package_info_plus.dart';
+import 'package:url_launcher_platform_interface/link.dart';
+import 'package:url_launcher_platform_interface/url_launcher_platform_interface.dart';
 
 import 'TestMenu.dart';
 import 'test_data.dart';
@@ -83,6 +85,42 @@ class _FakeFileService implements FileService {
   Future<void> shareTextOnly(String message) async {}
 }
 
+class _FakeUrlLauncherPlatform extends UrlLauncherPlatform {
+  String? lastLaunchedUrl;
+  LaunchOptions? lastLaunchOptions;
+
+  @override
+  LinkDelegate? get linkDelegate => null;
+
+  @override
+  Future<bool> canLaunch(String url) async => true;
+
+  @override
+  Future<bool> launch(
+    String url, {
+    required bool useSafariVC,
+    required bool useWebView,
+    required bool enableJavaScript,
+    required bool enableDomStorage,
+    required bool universalLinksOnly,
+    required Map<String, String> headers,
+    String? webOnlyWindowName,
+  }) async {
+    lastLaunchedUrl = url;
+    return true;
+  }
+
+  @override
+  Future<bool> launchUrl(String url, LaunchOptions options) async {
+    lastLaunchedUrl = url;
+    lastLaunchOptions = options;
+    return true;
+  }
+
+  @override
+  Future<bool> supportsMode(PreferredLaunchMode mode) async => true;
+}
+
 void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
 
@@ -137,6 +175,31 @@ void main() {
     await tester.pumpAndSettle();
     await tester.tap(find.byIcon(Icons.menu));
     await tester.pumpAndSettle();
+  }
+
+  Future<_FakeUrlLauncherPlatform> openMenuWithFakeUrlLauncher(
+    WidgetTester tester, {
+    Locale locale = const Locale('he'),
+  }) async {
+    final originalPlatform = UrlLauncherPlatform.instance;
+    final fakePlatform = _FakeUrlLauncherPlatform();
+    UrlLauncherPlatform.instance = fakePlatform;
+    addTearDown(() {
+      UrlLauncherPlatform.instance = originalPlatform;
+    });
+
+    await tester.pumpWidget(
+      getMenuForTests(
+        mockUserInformation,
+        mockAppInformation,
+        locale: locale,
+      ),
+    );
+    await tester.pumpAndSettle();
+    await tester.tap(find.byIcon(Icons.menu));
+    await tester.pumpAndSettle();
+
+    return fakePlatform;
   }
 
   Future<void> pumpMenu(
@@ -220,6 +283,78 @@ void main() {
     } finally {
       debugDefaultTargetPlatformOverride = null;
     }
+  });
+
+  testWidgets('pins Hebrew contact us entry to the bottom of the menu', (
+    WidgetTester tester,
+  ) async {
+    await openMenuWithFakeUrlLauncher(tester);
+
+    final menuDialog = find.byKey(const Key('mainMenuDialog'));
+    final contactButton = find.byKey(const Key('mainMenuContactUsButton'));
+    final shareIcon = find.byIcon(Icons.share);
+
+    expect(find.text('יצירת קשר'), findsOneWidget);
+    expect(contactButton, findsOneWidget);
+    expect(shareIcon, findsOneWidget);
+
+    final contactTop = tester.getTopLeft(contactButton).dy;
+    final shareCenter = tester.getCenter(shareIcon).dy;
+    final contactBottom = tester.getBottomLeft(contactButton).dy;
+    final menuBottom = tester.getBottomLeft(menuDialog).dy;
+
+    expect(contactTop, greaterThan(shareCenter));
+    expect(contactBottom, closeTo(menuBottom, 1));
+  });
+
+  testWidgets('launches Hebrew contact us URL externally', (
+    WidgetTester tester,
+  ) async {
+    final fakePlatform = await openMenuWithFakeUrlLauncher(tester);
+
+    await tester.tap(find.byKey(const Key('mainMenuContactUsButton')));
+    await tester.pumpAndSettle();
+
+    expect(
+      fakePlatform.lastLaunchedUrl,
+      'https://sites.google.com/mishol.org/matzilon/%D7%AA%D7%9E%D7%99%D7%9B%D7%94',
+    );
+    expect(
+      fakePlatform.lastLaunchOptions?.mode,
+      PreferredLaunchMode.externalApplication,
+    );
+    expect(fakePlatform.lastLaunchOptions?.webOnlyWindowName, '_blank');
+  });
+
+  testWidgets('launches English contact us URL externally', (
+    WidgetTester tester,
+  ) async {
+    tester.view.physicalSize = const Size(1200, 1000);
+    tester.view.devicePixelRatio = 1;
+    addTearDown(() {
+      tester.view.resetPhysicalSize();
+      tester.view.resetDevicePixelRatio();
+    });
+
+    final fakePlatform = await openMenuWithFakeUrlLauncher(
+      tester,
+      locale: const Locale('en'),
+    );
+
+    expect(find.text('Contact Us'), findsOneWidget);
+
+    await tester.tap(find.byKey(const Key('mainMenuContactUsButton')));
+    await tester.pumpAndSettle();
+
+    expect(
+      fakePlatform.lastLaunchedUrl,
+      'https://sites.google.com/mishol.org/living-positively/support',
+    );
+    expect(
+      fakePlatform.lastLaunchOptions?.mode,
+      PreferredLaunchMode.externalApplication,
+    );
+    expect(fakePlatform.lastLaunchOptions?.webOnlyWindowName, '_blank');
   });
 
   testWidgets('keeps Hebrew bottom navigation labels visible and symmetric', (
