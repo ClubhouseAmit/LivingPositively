@@ -20,7 +20,7 @@ import 'package:mazilon/initialForm/form.dart';
 import 'package:mazilon/l10n/app_localizations.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 
-import 'form_Test.mocks.dart';
+import 'form_test.mocks.dart';
 
 @GenerateNiceMocks([
   MockSpec<UserInformation>(),

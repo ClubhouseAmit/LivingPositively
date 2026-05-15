@@ -139,6 +139,68 @@ None. Round 2 is test-only; no library code modified.
 
 No new skips. The 8 pre-existing skips from round 1 (3 in `Journal_test.dart`, 5 in `menu_test.dart` for PhonePageData provider/dialog scaffolding) remain untouched.
 
+## Round 3 — initialForm rename + double-registration fix
+
+Generated: 2026-05-15 — clears the round-2 "punted" list.
+
+### Headline
+
+| Metric | Round 2 | Round 3 | Change |
+|---|---|---|---|
+| Tests | 441 + 8 skipped | 454 + 8 skipped | +13 |
+| Filtered global coverage (excl codegen) | 69.74% | **74.15%** | +4.41 pts |
+| Files in tier 2 | 14 | 18 (+ initialForm/*) | +4 |
+| Global floor | 65% | 70% | +5 pts |
+
+### What landed
+
+#### Test rename — `_Test.dart` → `_test.dart`
+
+Flutter's test discovery glob is `*_test.dart` (lowercase); the capital-T files were silently skipped in CI. `git mv`'d to preserve history:
+
+- `test/initialForm/form_Test.dart` + `.mocks.dart` → `_test.dart`
+- `test/initialForm/initialFormPage1_Test.dart` + `.mocks.dart` → `_test.dart`
+- `test/initialForm/initialFormPage2_Test.dart` + `.mocks.dart` → `_test.dart`
+- `test/initialForm/toFormPage_Test.dart` → `_test.dart` (no mocks; body is commented out, kept as placeholder)
+- `test/form/formpagetemplate_Test.dart` + `.mocks.dart` → `_test.dart`
+- `test/form/shareform_Test.dart` + `.mocks.dart` → `_test.dart`
+
+Inside each renamed file, the `import 'X_Test.mocks.dart'` line was updated to `_test.mocks.dart`. The Mockito-generated `.mocks.dart` files reference the source-file path only in a leading comment (no `part of`), so they keep working without regeneration.
+
+#### Double-registration bug fix
+
+`test/form/formpagetemplate_test.dart` registered `PersistentMemoryService` twice: once in `setUp()` and again in the body of the single `testWidgets` block — the second registration would have thrown `Object/factory with type PersistentMemoryService is already registered` had the test ever run under the lowercase discovery name. Removed the redundant registration; the setUp version is sufficient (and uses the same `MockPersistentMemoryService` from `share_and_download_test.mocks.dart`). No other test in the renamed set has the same bug (form_Test.dart and the initialForm files all call `GetIt.instance.reset()` inside setUp before registering, so they're idempotent).
+
+### Per-file deltas (vs round 2)
+
+| File | R2 | R3 |
+|---|---|---|
+| `lib/initialForm/initialFormPage1.dart` | 0% | **98.0%** |
+| `lib/initialForm/initialFormPage2.dart` | 0% | **84.7%** |
+| `lib/initialForm/form.dart` | 0% | **65.2%** |
+| `lib/initialForm/toFormPage.dart` | 0% | **70.5%** |
+| `lib/initialForm/CountrySelectorWidget.dart` | n/a | **85.9%** (pulled in transitively) |
+| `lib/form/formpagetemplate.dart` | ~40% | **61.1%** |
+| `lib/form/shareform.dart` | ~40% | **73.2%** |
+| `lib/util/Firebase/firebase_functions.dart` | 62.4% | **64.4%** (transitive) |
+| Global filtered coverage | 69.74% | **74.15%** |
+
+The `initialForm/*.dart` files are now formal tier-2 entries in `scripts/check_coverage.dart`; the old TODO comment block in that file is removed. The global floor moves from 65% → 70% to lock in the new headroom.
+
+### Production code changes
+
+None. Round 3 is purely test rename + one stale duplicate-registration removal. `lib/` is untouched.
+
+### Still deferred
+
+- **`lib/main.dart`** — bootstrap/route generation (~1.7% covered). Integration-test territory; not addressable via `flutter test` unit suite.
+- **`lib/pages/notifications/notification_service.dart` `initializeNotification` / `scheduleNotification` branches** — direct `flutter_local_notifications` + `workmanager` plugin calls that require a real platform binding. The pure-Dart sub-methods (`calculateTime`, `supportsReminderSettings`, top-level `cancel*`) are covered; the platform-bound branches stay at ~12% and are tracked as integration tests, not unit tests.
+- **FirebaseAuthService.signUp/signIn** — already landed via Mockito codegen in `test/Firebase/firebase_auth_service_test.dart` (7 tests). Not actually deferred any more; the round-2 doc listed it but the tests were authored after that doc was written. Listed here for accuracy.
+
+### `skip: true` tests
+
+No new skips. The 8 pre-existing skips from round 1 (3 in `Journal_test.dart`, 5 in `menu_test.dart`) remain untouched.
+
 ## Pattern established for future contributors
 
 1. **Real production widgets only.** Never duplicate a `lib/...dart` widget into `test/...dart` and test the duplicate. The pattern in `test/helpers/widget_test_scaffold.dart` is the only sanctioned shape: register fakes on GetIt, wrap in MultiProvider + MaterialApp + ScreenUtilInit.

@@ -55,17 +55,8 @@ void main() {
       // Set the screen size to match your design size
       await tester.binding.setSurfaceSize(const Size(360, 690));
 
-      // Mocking providers and dependencies
-
-      // Providing mock data to displayInformation
-      final mockPersistentMemoryService =
-          ShareMocks.MockPersistentMemoryService();
-      when(mockPersistentMemoryService.getItem(any, any))
-          .thenAnswer((_) async => null);
-      when(mockPersistentMemoryService.setItem(any, any, any))
-          .thenAnswer((_) async {});
-      GetIt.instance.registerLazySingleton<PersistentMemoryService>(
-          () => mockPersistentMemoryService);
+      // PersistentMemoryService is already registered in setUp(); do NOT
+      // re-register here — GetIt throws on duplicate registrations.
 
       await tester.pumpWidget(
         MultiProvider(

@@ -12,7 +12,7 @@ import 'package:mazilon/initialForm/initialFormPage2.dart';
 import 'package:mazilon/l10n/app_localizations.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:mockito/mockito.dart';
-import 'initialFormPage2_Test.mocks.dart';
+import 'initialFormPage2_test.mocks.dart';
 
 @GenerateNiceMocks([
   MockSpec<UserInformation>(),

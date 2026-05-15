@@ -18,7 +18,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 import 'package:mazilon/form/ShareForm.dart';
 import 'package:mockito/mockito.dart';
 import 'package:mazilon/l10n/app_localizations.dart';
-import 'shareform_Test.mocks.dart';
+import 'shareform_test.mocks.dart';
 
 @GenerateNiceMocks([
   MockSpec<UserInformation>(),
