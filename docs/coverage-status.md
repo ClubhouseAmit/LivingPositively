@@ -201,6 +201,96 @@ None. Round 3 is purely test rename + one stale duplicate-registration removal. 
 
 No new skips. The 8 pre-existing skips from round 1 (3 in `Journal_test.dart`, 5 in `menu_test.dart`) remain untouched.
 
+## Round 4 — deferred items closed (notifications plugin paths, FormAnswer, FeelGood image picker, sign-in pages, interaction coverage)
+
+Generated: 2026-05-16 — picks up the residual deferred items from round 3 and pushes filtered coverage past 79%.
+
+### Headline
+
+| Metric | Round 3 | Round 4 | Change |
+|---|---|---|---|
+| Tests | 454 + 8 skipped | 509 + 8 skipped | +55 |
+| Filtered global coverage (excl codegen) | 74.15% | **79.31%** | +5.16 pts |
+| Files at 0% (filtered) | 4 | **0** | −4 |
+| Global floor | 70% | 75% | +5 pts |
+
+### What landed
+
+#### Notifications — initialize/cancel + notification page
+
+- `test/notifications/notification_service_initialize_test.dart` (~295 LOC). Exercises the `NotificationsService.initializeNotification` and `cancelNotifications` static entry-points directly — the platform-bound branches that were marked "integration-test territory" in round 3. Reuses the round-2 plugin-stub pattern: registers a real `IOSFlutterLocalNotificationsPlugin` / `AndroidFlutterLocalNotificationsPlugin` implementation via `registerWith()` to avoid the `LateInitializationError`, installs a recording `WorkmanagerPlatform` subclass, and stubs the local-notifications `MethodChannel`. Covers iOS init permission-request branch, Android channel-create branch, and the cross-platform `cancelAll`. `lib/pages/notifications/notification_service.dart`: **12.7% → 66.7%**.
+- `test/notifications/notification_page_test.dart`. Real `NotificationPage` widget pumped via scaffold. `lib/pages/notifications/notification_page.dart`: **~0% → 96.4%**.
+- `test/notifications/reminder_debug_panel_test.dart` (extended). Two new tests: clipboard `Copy diagnostics` (mocks `SystemChannels.platform` for `Clipboard.setData`, verifies JSON payload contains `capturedAt` / `lastFireAt` / `notificationPermission` and a `SnackBar` surfaces) and `Clear history` button rebuilds without throwing. `lib/pages/notifications/reminder_debug_panel.dart`: **69.3% → 82.7%**.
+
+#### Sign-in flow — disclaimer wrapper + introduction
+
+- `test/SignIn/firstPage_test.dart`. Real `firstPage` widget; `disclaimerSigned=false` branch renders `DisclaimerPage`, `true` branch renders the post-disclaimer entry. `lib/pages/SignIn_Pages/firstPage.dart`: **0% → 100%**.
+- `test/SignIn/introduction_test.dart`. Real `Introduction` widget; Scaffold + CircularProgressIndicator + greeting render. `lib/pages/SignIn_Pages/introduction.dart`: **0% → 100%**.
+
+#### Thanks / FormAnswer — real-widget rewrites + interactions
+
+- `test/Thanks/AddForm_real_test.dart`. Real `AddForm` dialog; renders TextFormField + close/save buttons, exercises both submit and cancel paths. `lib/util/Thanks/AddForm.dart`: **partial → 100%**.
+- `test/Thanks/journal_interactions_test.dart`. Real `Journal` widget — tap-delete flow (`removeThankYou`) and `editThankYou` closure (routes through `AddForm` seeded with existing text). `lib/pages/journal.dart`: → **73.0%**.
+- `test/FormAnswer/FormAnswer_real_test.dart`. Real production `FormAnswer` page + `addFormAnswer` helper. `lib/pages/FormAnswer.dart`: → **100%**. `lib/util/FormAnswer/addFormAnswer.dart`: → **100%**.
+
+#### FeelGood / image picker service
+
+- `test/FeelGood/image_picker_service_impl_test.dart`. Image-picker plugin stubbed via `setMockMethodCallHandler`; pick-image success, pick-image cancellation (null), and gallery error path. `lib/pages/FeelGood/image_picker_service_impl.dart`: **0% → 66.7%**.
+
+#### Firebase load branches
+
+- `test/Firebase/firebase_functions_load_firebase_branches_test.dart` (~378 LOC). Targets the residual branches in `loadAppFromFirebase` switch + nested helpers that weren't reached by the round-1 Firebase batch — additional doc-shape edge cases via `FakeFirebaseFirestore`. `lib/util/Firebase/firebase_functions.dart`: **64.4% → 68.0%**.
+
+#### MainPageHelpers — interactions
+
+- `test/MainPageHelpers/mainpage_list_widget_interactions_test.dart`. Real `MainPageListWidget` — add/edit/delete row interactions, drag-reorder gesture, empty-state callback wiring. `lib/MainPageHelpers/MainPageList/mainpage_list_widget.dart`: prior partial → **60.3%**.
+
+#### Form template branches
+
+- `test/form/formpagetemplate_branches_test.dart`. Real `FormPageTemplate` with multiple page-type branches (text/phone/list) and the back-button + share-completion branches not previously reached. `lib/form/formpagetemplate.dart`: **61.1% → 65.9%**.
+
+#### Tooling
+
+- `scripts/file_coverage.dart` — small helper that dumps per-file `pct  hit/total  path` sorted ascending, with an optional path-substring filter. Useful for quickly identifying the next coverage gap. Not part of CI; ad-hoc dev tool.
+
+### Per-file deltas (vs round 3)
+
+| File | R3 | R4 |
+|---|---|---|
+| `lib/pages/notifications/notification_service.dart` | 12.7% | **66.7%** |
+| `lib/pages/notifications/notification_page.dart` | ~0% | **96.4%** |
+| `lib/pages/notifications/reminder_debug_panel.dart` | 69.3% | **82.7%** |
+| `lib/pages/SignIn_Pages/firstPage.dart` | 0% | **100%** |
+| `lib/pages/SignIn_Pages/introduction.dart` | 0% | **100%** |
+| `lib/pages/FeelGood/image_picker_service_impl.dart` | 0% | **66.7%** |
+| `lib/pages/FormAnswer.dart` | partial | **100%** |
+| `lib/util/Thanks/AddForm.dart` | partial | **100%** |
+| `lib/util/FormAnswer/addFormAnswer.dart` | partial | **100%** |
+| `lib/pages/journal.dart` | ~40% | **73.0%** |
+| `lib/MainPageHelpers/MainPageList/mainpage_list_widget.dart` | ~25% | **60.3%** |
+| `lib/util/Firebase/firebase_functions.dart` | 64.4% | **68.0%** |
+| `lib/form/formpagetemplate.dart` | 61.1% | **65.9%** |
+| Global filtered coverage | 74.15% | **79.31%** |
+
+### Production code changes
+
+None. Round 4 is test-only; `git diff` against `lib/` shows zero changes. The round-1 `firestore` injection-param refactor in `firebase_functions.dart` is the only `lib/` modification across the whole coverage initiative, and that hasn't been touched since.
+
+### `skip: true` tests
+
+No new skips. The 8 pre-existing skips from round 1 (3 in `Journal_test.dart`, 5 in `menu_test.dart`) remain untouched.
+
+### Still deferred
+
+- **`lib/main.dart`** (1.7%). Bootstrap, runApp wiring, generated route table — integration-test territory only, out of unit-test scope.
+- **`lib/pages/WellnessTools/player.dart`** (5.3%). Wraps `YoutubePlayerController` + native player view; the controller's `addListener` callback and `metadata.videoId` getters require the platform view to be live. Integration-test territory.
+- **`lib/util/logger_service.dart`** (10.5%). `initializeSentry` calls `runApp` and `SentryFlutter.init` — cannot exercise without bootstrapping a real Flutter binding. The `captureLog` branch is gated on the static `Sentry.isEnabled` flag which is false in `flutter test` (no init), so the inner branch is also platform-bound.
+- **`lib/AnalyticsService.dart`** (36.4%). The `MixPanelService.init` body and `trackEvent` post-init are gated on a non-empty `String.fromEnvironment('MIXPANEL_PROJECT_TOKEN')`, which is empty under `flutter test`. The empty-token short-circuit branches are covered.
+
+### CI floor
+
+Raised from 70% → **75%** in `scripts/check_coverage.dart`. Current 79.31% leaves ~4 pts of headroom — enough to absorb test churn from new features without breaking the gate, while still ratcheting on every round.
+
 ## Pattern established for future contributors
 
 1. **Real production widgets only.** Never duplicate a `lib/...dart` widget into `test/...dart` and test the duplicate. The pattern in `test/helpers/widget_test_scaffold.dart` is the only sanctioned shape: register fakes on GetIt, wrap in MultiProvider + MaterialApp + ScreenUtilInit.

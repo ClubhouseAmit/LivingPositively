@@ -174,4 +174,65 @@ void main() {
       expect(find.text('Refresh'), findsOneWidget);
     });
   });
+
+  testWidgets('Copy diagnostics writes JSON payload to clipboard',
+      (tester) async {
+    final clipboardCalls = <MethodCall>[];
+    TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger
+        .setMockMethodCallHandler(SystemChannels.platform, (call) async {
+      clipboardCalls.add(call);
+      if (call.method == 'Clipboard.getData') {
+        return <String, dynamic>{'text': ''};
+      }
+      return null;
+    });
+    addTearDown(() {
+      TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger
+          .setMockMethodCallHandler(SystemChannels.platform, null);
+    });
+
+    await _onIos(() async {
+      await pumpWithProviders(
+        tester,
+        const Scaffold(body: ReminderDebugPanel()),
+        userInformation: UserInformation(gender: 'male'),
+        surfaceSize: const Size(800, 1400),
+      );
+      await tester.pumpAndSettle(const Duration(milliseconds: 200));
+      await tester.tap(find.byType(ExpansionTile));
+      await tester.pumpAndSettle(const Duration(milliseconds: 400));
+
+      await tester.tap(find.text('Copy diagnostics'), warnIfMissed: false);
+      await tester.pumpAndSettle(const Duration(milliseconds: 200));
+
+      final setDataCalls =
+          clipboardCalls.where((c) => c.method == 'Clipboard.setData').toList();
+      expect(setDataCalls, isNotEmpty);
+      // Payload must contain expected diagnostic keys.
+      final payload = setDataCalls.first.arguments['text'] as String;
+      expect(payload, contains('capturedAt'));
+      expect(payload, contains('lastFireAt'));
+      expect(payload, contains('notificationPermission'));
+      // SnackBar should have surfaced.
+      expect(find.byType(SnackBar), findsOneWidget);
+    });
+  });
+
+  testWidgets('Clear history button rebuilds without throwing', (tester) async {
+    await _onIos(() async {
+      await pumpWithProviders(
+        tester,
+        const Scaffold(body: ReminderDebugPanel()),
+        userInformation: UserInformation(gender: 'male'),
+        surfaceSize: const Size(800, 1400),
+      );
+      await tester.pumpAndSettle(const Duration(milliseconds: 200));
+      await tester.tap(find.byType(ExpansionTile));
+      await tester.pumpAndSettle(const Duration(milliseconds: 400));
+
+      await tester.tap(find.text('Clear history'), warnIfMissed: false);
+      await tester.pumpAndSettle(const Duration(milliseconds: 200));
+      expect(find.text('Clear history'), findsOneWidget);
+    });
+  });
 }
