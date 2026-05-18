@@ -68,7 +68,7 @@ const _tier2 = <String>{
   'lib/initialForm/toFormPage.dart',
 };
 
-const double _globalThreshold = 75.0; // ~79% as of round 4
+const double _globalThreshold = 80.0; // ~85% as of round 5
 const double _tier1Threshold = 50.0;
 const double _tier2Threshold = 40.0;
 

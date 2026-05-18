@@ -291,6 +291,176 @@ No new skips. The 8 pre-existing skips from round 1 (3 in `Journal_test.dart`, 5
 
 Raised from 70% → **75%** in `scripts/check_coverage.dart`. Current 79.31% leaves ~4 pts of headroom — enough to absorb test churn from new features without breaking the gate, while still ratcheting on every round.
 
+## Round 5 — tier-3 polish (interaction tests for previously-rendered widgets)
+
+Generated: 2026-05-16 — squeezes the remaining tier-3/4 interaction surfaces.
+
+### Headline
+
+| Metric | Round 4 | Round 5 | Change |
+|---|---|---|---|
+| Tests | 509 + 8 skipped | 564 + 8 skipped | +55 |
+| Filtered global coverage (excl codegen) | 79.31% | **85.21%** | +5.90 pts |
+| Files at 100% (filtered) | 22 | **25** | +3 |
+| Global floor | 75% | 80% | +5 pts |
+
+### What landed
+
+Round 5 is exclusively new test files — `git diff lib/` is empty. Every gain
+comes from driving interaction paths through the same production widgets that
+rounds 1–4 only rendered around.
+
+#### Suggestion-widget interactions — `thanksItemSug` / `positiveTraitItemSug` to 100%
+
+- `test/Thanks/thanksItemSug_test.dart` (4 tests). Drives the tap-add
+  GestureDetector, the inputText-override branch, and the `show == false`
+  branch (`stopShowing` > available suggestions makes `build()` return an
+  empty `Container()`).
+- `test/util/positiveTraitItemSug_test.dart` (4 tests). Same pattern for the
+  positive-traits sibling, plus a `FakePersistentMemoryService`-backed read
+  in the on-tap path to exercise the `service.getItem('positiveTraits', …)`
+  await branch.
+- `lib/util/Thanks/thanksItemSug.dart`: 75.6% → **100%**.
+- `lib/util/Traits/positiveTraitItemSug.dart`: 69.6% → **100%**.
+
+#### Journal `addThankYou` + first-of-day popup
+
+- `test/Thanks/journal_add_via_suggestion_test.dart` (2 tests). Taps the
+  add button on a rendered `ThanksItemSuggested` to invoke
+  `Journal.addThankYou`, then drives the `Future.delayed(0)` post-tap
+  popup. Covers the "1st entry of the day → AlertDialog" branch
+  (lines 116–170 of `lib/pages/journal.dart`).
+- `lib/pages/journal.dart`: 73.0% → **96.6%**.
+
+#### Positive page — add/remove/edit interactions
+
+- `test/POSITIVE/positive_interactions_test.dart` (4 tests). Suggestion-tap
+  invokes `addPositiveTrait`; the row's trash icon invokes
+  `removePositiveTrait`; the header IconButton + per-row edit icon open
+  AddForm via `editNotification`. `lib/pages/positive.dart`: 73.5% → **95.3%**.
+
+#### Home `MainPageList/ListWidget` — every closure on both pageCodes
+
+- `test/MainPageHelpers/mainpage_list_widget_full_interactions_test.dart`
+  (5 tests). Covers `buildThanksItemSug` / `buildPositiveTraitItemSug`,
+  `showThankYouPopup`, both `editItemFunction` arms, both
+  `removeItemFunction` arms, and the dialog seeded-text branch.
+  `lib/MainPageHelpers/MainPageList/mainpage_list_widget.dart`:
+  60.3% → **90.9%**.
+
+#### Form-wizard interactions — `formpagetemplate` + form/initialForm progress indicators
+
+- `test/form/formpagetemplate_interactions_test.dart` (6 tests). Empty-text
+  validate branch, non-empty add path, CheckboxListTile toggle (both add-
+  and remove-by-index branches), show-more button, every `collectionName`
+  arm of `createSelection` (DifficultEvents, MakeSafer, FeelBetter,
+  Distractions), and `editItem`/`removeItem` via the row's trash icon.
+  `lib/form/formpagetemplate.dart`: 65.9% → **92.3%**.
+- `test/form/form_navigation_test.dart` (3 tests). Drives next/prev/skip on
+  `FormProgressIndicator` (the personal-plan wizard host), plus the
+  save-and-quit header IconButton which navigates to Menu via
+  `pushAndRemoveUntil`. `lib/form/form.dart`: 65.4% → **82.7%**.
+- `test/form/shareform_interactions_test.dart` (3 tests). Share/download
+  IconButton handlers plus the bottom Continue button. Uses the test
+  scaffold's `NoopFileService` to assert `download()` was called.
+  `lib/form/shareform.dart`: 73.2% → **85.4%**.
+- `test/form/phonePageform_interactions_test.dart` (1 test). Continue
+  button — drives `loadItemsFromPrefs → saveItemsToPrefs → update → next`.
+  `lib/form/phonePageform.dart`: 73.4% → **77.7%**.
+- `test/initialForm/form_navigation_test.dart` (5 tests). disclaimerSigned
+  false branch renders DisclaimerPage; skip/next/prev jumps between
+  InitialFormPage1, InitialFormPage2 and ToFormPage via the parent state's
+  callbacks. `lib/initialForm/form.dart`: 65.2% → **76.4%**.
+- `test/initialForm/toFormPage_interactions_test.dart` (2 tests). Both
+  TextButton onPressed handlers — push FormProgressIndicator and push Menu.
+  `lib/initialForm/toFormPage.dart`: 70.5% → **100%**.
+
+#### Menu — `changeCurrentIndex` every PagesCode branch
+
+- `test/menu_change_index_test.dart` (6 tests). Reaches into the rendered
+  Home widget and invokes its captured `changeCurrentIndex` closure for
+  each `PagesCode` — exercises the FullPlan/QualitiesList/GratitudeJournal/
+  EmergencyPhones/About/NotificationPage/FeelGoodPage switch arms
+  (lines 91–136 of `lib/menu.dart`). Drains Positive's 10s `initState`
+  timer with `tester.pump(Duration(seconds: 11))` and registers a
+  `NoopImagePickerService` for the FeelGood arm. `lib/menu.dart`:
+  69.0% → **86.0%**.
+
+#### Main menu dialog — every drawer button
+
+- `test/main_menu_dialog_test.dart` (6 tests). Opens the dialog via a
+  helper Scaffold, then invokes each TextButton's `onPressed` directly
+  (tap-routing through showGeneralDialog's `Stack/Positioned/Material`
+  tree is flaky in flutter_test, but invoking the captured closure is
+  equivalent and exercises the same production lines). Covers close (X),
+  About, Settings (pushes UserSettings), Notifications (with platform
+  override), Share (channel stubbed), and the isWeb → hide-notifications
+  branch. `lib/main_menu_dialog.dart`: 75.7% → **97.3%**.
+
+#### UserSettings — reset dialog + extra gender branches
+
+- `test/UserSettings/UserSettings_interactions_test.dart` (4 tests).
+  Confirm/Close on the reset confirmation dialog drives `resetData` →
+  `Navigator.pushAndRemoveUntil(FirstPage)`. Plus render-only tests for
+  female user (gender-specific dropdown initial value) and nonBinary user
+  (`binary=true` branch). `lib/pages/UserSettings.dart`: 75.0% → **86.2%**.
+
+### Per-file deltas (vs round 4)
+
+| File | R4 | R5 |
+|---|---|---|
+| `lib/util/Thanks/thanksItemSug.dart` | 75.6% | **100%** |
+| `lib/util/Traits/positiveTraitItemSug.dart` | 69.6% | **100%** |
+| `lib/initialForm/toFormPage.dart` | 70.5% | **100%** |
+| `lib/main_menu_dialog.dart` | 75.7% | **97.3%** |
+| `lib/pages/journal.dart` | 73.0% | **96.6%** |
+| `lib/pages/positive.dart` | 73.5% | **95.3%** |
+| `lib/form/formpagetemplate.dart` | 65.9% | **92.3%** |
+| `lib/MainPageHelpers/MainPageList/mainpage_list_widget.dart` | 60.3% | **90.9%** |
+| `lib/pages/UserSettings.dart` | 75.0% | **86.2%** |
+| `lib/menu.dart` | 69.0% | **86.0%** |
+| `lib/form/shareform.dart` | 73.2% | **85.4%** |
+| `lib/form/form.dart` | 65.4% | **82.7%** |
+| `lib/form/phonePageform.dart` | 73.4% | **77.7%** |
+| `lib/initialForm/form.dart` | 65.2% | **76.4%** |
+| Global filtered coverage | 79.31% | **85.21%** |
+
+### Production code changes
+
+None. `git diff lib/` is empty. Round 5 is test-only.
+
+### `skip: true` tests
+
+No new skips. The 8 pre-existing skips (3 in `Journal_test.dart`, 5 in
+`menu_test.dart`) remain untouched — they covered scenarios that are now
+exercised by the new round-5 interaction tests via different (more
+deterministic) paths, so the skipped tests are redundant but kept for
+historical record.
+
+### Still deferred (unchanged from round 4)
+
+- **`lib/main.dart`** (1.7%). Bootstrap and route generation — integration-
+  test territory.
+- **`lib/pages/WellnessTools/player.dart`** (5.3%). `YoutubePlayerController`
+  callbacks require a real platform view.
+- **`lib/util/logger_service.dart`** (10.5%). `initializeSentry` calls
+  `runApp` + `SentryFlutter.init` — requires a real Flutter binding.
+- **`lib/AnalyticsService.dart`** (36.4%). `MixPanelService.init` gated on a
+  non-empty `String.fromEnvironment` token which is empty under
+  `flutter test`.
+- **`lib/util/Firebase/firebase_functions.dart`** (68.0%, 612/900 covered).
+  Round 1's Firebase batch + round 4's load-branches test cover the
+  high-traffic paths; the remaining ~290 uncovered lines are mostly
+  defensive/error branches in obscure read paths that are not worth
+  enumerating without a redesign of the file (which would violate the
+  no-production-changes rule).
+
+### CI floor
+
+Raised from 75% → **80%** in `scripts/check_coverage.dart`. Current 85.21%
+leaves ~5 pts of headroom — enough to absorb test churn while continuing to
+ratchet on every round.
+
 ## Pattern established for future contributors
 
 1. **Real production widgets only.** Never duplicate a `lib/...dart` widget into `test/...dart` and test the duplicate. The pattern in `test/helpers/widget_test_scaffold.dart` is the only sanctioned shape: register fakes on GetIt, wrap in MultiProvider + MaterialApp + ScreenUtilInit.
