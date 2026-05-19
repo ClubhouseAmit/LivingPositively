@@ -68,9 +68,22 @@ const _tier2 = <String>{
   'lib/initialForm/toFormPage.dart',
 };
 
-const double _globalThreshold = 80.0; // ~85% as of round 5
+const double _globalThreshold = 82.0; // ~85.9% as of round 6 (ADR-001)
 const double _tier1Threshold = 50.0;
 const double _tier2Threshold = 40.0;
+
+// Per-file floors that exist to make ADR-001's hybrid Phase-6 mechanism
+// load-bearing. `lib/AnalyticsService.dart` reaches ~90% only because the
+// CI workflow re-runs MixPanelService_token_test.dart with
+// `--dart-define=MIXPANEL_PROJECT_TOKEN=test-token` and merges the lcov
+// output. If that step is ever removed, or merge_lcov.dart silently fails,
+// the file drops back to its pre-Phase-6 baseline (~36%) — without this
+// per-file gate the global floor would still be met and the regression
+// would land unnoticed. The floor sits below the achieved 90.9% with a
+// small cushion for future trivial-line drift.
+const _perFileFloors = <String, double>{
+  'lib/AnalyticsService.dart': 85.0,
+};
 
 void main(List<String> args) {
   final lcovFile = File('coverage/lcov.info');
@@ -151,6 +164,20 @@ void main(List<String> args) {
     if (s.pct < _tier2Threshold) {
       failures.add(
           'TIER2 $f: ${s.pct.toStringAsFixed(1)}% < ${_tier2Threshold.toStringAsFixed(1)}%');
+    }
+  }
+
+  for (final entry in _perFileFloors.entries) {
+    final f = entry.key;
+    final floor = entry.value;
+    final s = filtered[f];
+    if (s == null) {
+      failures.add('PER-FILE MISSING from lcov: $f');
+      continue;
+    }
+    if (s.pct < floor) {
+      failures.add(
+          'PER-FILE $f: ${s.pct.toStringAsFixed(1)}% < ${floor.toStringAsFixed(1)}%');
     }
   }
 

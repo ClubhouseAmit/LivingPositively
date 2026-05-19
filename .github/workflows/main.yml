@@ -46,6 +46,26 @@ jobs:
         run: flutter pub get
       - name: Run tests with coverage
         run: flutter test --coverage --reporter=expanded
+      - name: Snapshot base lcov before dart-define run
+        # The next `flutter test` invocation overwrites coverage/lcov.info;
+        # snapshot the full-suite lcov so we can merge the dart-define
+        # variant on top of it via scripts/merge_lcov.dart. See
+        # docs/adr/ADR-001-phase-6-test-coverage-integration-tests.md.
+        run: cp coverage/lcov.info coverage/lcov.base.info
+      - name: Run AnalyticsService tests with MIXPANEL_PROJECT_TOKEN dart-define
+        # Phase 6 (ADR-001): MixPanelService.init / trackEvent post-init
+        # branches are gated on a non-empty
+        # String.fromEnvironment('MIXPANEL_PROJECT_TOKEN'). This second test
+        # invocation exercises only the AnalyticsService token-present
+        # branches with the env var set; the standard suite already covered
+        # the empty-token short-circuit branches in the run above.
+        run: |
+          flutter test --coverage \
+            --dart-define=MIXPANEL_PROJECT_TOKEN=test-token \
+            test/AnalyticsService/MixPanelService_token_test.dart
+          cp coverage/lcov.info coverage/lcov.token.info
+      - name: Merge lcov artifacts
+        run: dart run scripts/merge_lcov.dart coverage/lcov.info coverage/lcov.base.info coverage/lcov.token.info
       - name: Enforce coverage gate
         run: dart run scripts/check_coverage.dart
       - name: Upload coverage report

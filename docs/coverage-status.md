@@ -461,6 +461,152 @@ Raised from 75% → **80%** in `scripts/check_coverage.dart`. Current 85.21%
 leaves ~5 pts of headroom — enough to absorb test churn while continuing to
 ratchet on every round.
 
+## Round 6 — Phase 6 ADR-001 execution (last dedicated unit-coverage round)
+
+Generated: 2026-05-19 — executes the hybrid path adopted in
+[`docs/adr/ADR-001-phase-6-test-coverage-integration-tests.md`](adr/ADR-001-phase-6-test-coverage-integration-tests.md).
+The ADR designates this as the **final dedicated unit-coverage round**;
+future coverage growth comes from tests written alongside new features,
+or from a separate integration-test ADR if one is justified.
+
+### Headline
+
+| Metric | Round 5 | Round 6 | Change |
+|---|---|---|---|
+| Tests | 564 + 8 skipped | 586 + 8 skipped | +22 |
+| Filtered global coverage (excl codegen) | 85.21% | **85.88%** | +0.67 pts |
+| `lib/AnalyticsService.dart` | 36.4% | **90.9%** | +54.5 pts |
+| Global floor | 80% | **82%** | +2 pts |
+
+### What landed
+
+#### AnalyticsService dart-define test run (the headline ADR-001 work)
+
+- `test/AnalyticsService/MixPanelService_token_test.dart` (6 tests). Pumps
+  the real `MixPanelService.init` and `trackEvent` against a
+  `setMockMethodCallHandler`-stubbed `mixpanel_flutter` MethodChannel (with
+  the custom `MixpanelMessageCodec` Mixpanel ships) so the platform-bound
+  init/track calls never reach native code. The file is gated on a
+  top-level `String.fromEnvironment('MIXPANEL_PROJECT_TOKEN')`: when
+  non-empty (the dart-define CI run) the token-present branches execute;
+  when empty (the default `flutter test` run) the four token-present tests
+  return early and the file still passes, exercising the existing
+  empty-token short-circuit branches. Net result: `lib/AnalyticsService.dart`
+  **36.4% → 90.9%**. The one remaining uncovered line is the `mixpanel`
+  getter under the empty-token branch (never read because nothing assigned
+  to it).
+- `scripts/merge_lcov.dart` (new helper, ~60 LOC). Standalone pure-Dart
+  utility that merges two or more LCOV files by taking the max hit-count
+  per `(file, line)` and rewriting the LF/LH counters. Pure Dart so it
+  works on every CI runner without an extra apt install. Not part of the
+  gate itself — purely a build step.
+
+#### CI workflow — second test invocation + lcov merge
+
+`.github/workflows/main.yml` (the `build-android` job, which is the one that
+runs the test suite) gains four new steps between the existing
+`flutter test --coverage` and `dart run scripts/check_coverage.dart`:
+
+1. `cp coverage/lcov.info coverage/lcov.base.info` — snapshot the base
+   suite's lcov before the second invocation overwrites it.
+2. `flutter test --coverage --dart-define=MIXPANEL_PROJECT_TOKEN=test-token
+   test/AnalyticsService/MixPanelService_token_test.dart` — re-runs just
+   that one file with the env var injected.
+3. `cp coverage/lcov.info coverage/lcov.token.info` — snapshot the
+   dart-define lcov.
+4. `dart run scripts/merge_lcov.dart coverage/lcov.info
+   coverage/lcov.base.info coverage/lcov.token.info` — merges them back
+   into `coverage/lcov.info` so the gate sees the union.
+
+Chose this **pattern-1 (target file only) variant** rather than re-running
+the entire suite twice with dart-define because:
+
+- It's roughly 5 seconds extra in CI vs. ~45 seconds for a full re-run.
+- It avoids re-running the empty-token assertions in
+  `AnalyticsService_test.dart` under the wrong env var (they'd fail since
+  they assert `svc.key == ''`).
+- Coverage gain from running other tests under the dart-define is zero —
+  no other production code reads `MIXPANEL_PROJECT_TOKEN`.
+
+#### Firebase `Warning` data-class
+
+- `test/Firebase/firebase_functions_warning_class_test.dart` (2 tests).
+  Plain-Dart constructor coverage for the `Warning` data class in
+  `lib/util/Firebase/firebase_functions.dart`. The class is only used by
+  `fetchWarnings()`, which calls `FirebaseFirestore.instance` directly
+  (no optional `firestore` named param) and so is unreachable from a
+  unit test under ADR-001's no-production-changes rule. Constructing the
+  class directly closes 1 of the 288 uncovered lines (line 89, the
+  constructor itself); the `fetchWarnings()` body remains uncovered as
+  documented below.
+
+### Per-file deltas (vs round 5)
+
+| File | R5 | R6 |
+|---|---|---|
+| `lib/AnalyticsService.dart` | 36.4% | **90.9%** |
+| `lib/util/Firebase/firebase_functions.dart` | 68.0% | 68.1% (+1 line) |
+| Global filtered coverage | 85.21% | **85.88%** |
+
+### Production code changes
+
+None. `git diff lib/` against the round-5 tip is empty. Round 6 adds only
+test files, a CI workflow step, the merge_lcov.dart helper, and a 2-line
+threshold bump in `scripts/check_coverage.dart`.
+
+### `skip: true` tests
+
+No new skips. The 8 pre-existing skips (3 in `Journal_test.dart`, 5 in
+`menu_test.dart`) remain untouched.
+
+### Still deferred (as designated by ADR-001)
+
+The four files below are **explicitly out of scope** for the unit-test
+initiative per ADR-001 § Decision. They will be addressed only when an
+integration-test harness (`flutter integration_test` on emulator runners
+or Firebase Test Lab, Patrol, or Maestro) is justified by an independent
+need — a smoke test, an e2e flow, etc. Coverage gains there will be a
+side-effect, not the goal.
+
+- **`lib/main.dart`** (1.7%). Bootstrap + generated route table — cannot
+  `runApp` inside `flutter test`.
+- **`lib/pages/WellnessTools/player.dart`** (5.3%). `YoutubePlayerController`
+  callbacks require a live platform view.
+- **`lib/util/logger_service.dart`** (10.5%). `initializeSentry` calls
+  `runApp` + `SentryFlutter.init`; cannot bootstrap without a real
+  Flutter binding.
+- **`lib/pages/notifications/notification_service.dart`** scheduling
+  catch-branches. Already at 66.7% via Round 4; the residual catch-arms
+  need a real `flutter_local_notifications` + `workmanager` plugin on
+  a device.
+
+The bulk of the remaining 287 uncovered lines in
+`lib/util/Firebase/firebase_functions.dart` (e.g. `getJournalMainTitle`,
+`getPersonalInfo`, `getIntroductionFormFirstPage`, `fetchWarnings`,
+`updateTest1`, `updatePhoneFormTitles`, `updateFormDifficultEventsTitles`,
+`updateFormDistractionsTitles`, `updateFormFeelBetterTitles`,
+`updateFormMakeSaferTitles`, `updateFormSharePageTitles`,
+`updatePhonePersonalPlanText`) call `FirebaseFirestore.instance` directly
+and have no `firestore` named param. Adding one would close them — but
+ADR-001 explicitly preserves the no-production-changes rule for Phase 6
+("If a branch genuinely requires a production param refactor to reach,
+skip it and document — that's an integration-test concern for a future
+ADR.").
+
+A handful of single-line `final _fs = firestore ?? FirebaseFirestore.instance;`
+fallbacks across helpers that DO have the param (lines 234, 384, 843, 858,
+903, 916, 975, 1040, 1060, 1086, 1097, 1145, 1379, 1393, 1413) are also
+unreachable in a unit test: the only way to hit the right-hand-side of
+the `??` is to call the helper without `firestore=`, which then trips
+`FirebaseFirestore.instance` and fails before the line is recorded.
+
+### CI floor
+
+Raised from 80% → **82%** in `scripts/check_coverage.dart` per ADR-001.
+Current 85.88% leaves ~4 pts of headroom — preserved deliberately to
+absorb new-feature churn (pattern 5 below: tests-with-features) without
+breaking the gate.
+
 ## Pattern established for future contributors
 
 1. **Real production widgets only.** Never duplicate a `lib/...dart` widget into `test/...dart` and test the duplicate. The pattern in `test/helpers/widget_test_scaffold.dart` is the only sanctioned shape: register fakes on GetIt, wrap in MultiProvider + MaterialApp + ScreenUtilInit.
