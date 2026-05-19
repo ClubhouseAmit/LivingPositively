@@ -3872,6 +3872,9 @@ class AppLocalizationsAr extends AppLocalizations {
   String get shareButtonText => 'مشاركة';
 
   @override
+  String get contactUs => 'تواصل معنا';
+
+  @override
   String get shareAppMessage =>
       'هذا تطبيق LP (Living Positively). أستخدمه وأنصح به، ربما سيكون مفيدًا لك أيضًا.';
 

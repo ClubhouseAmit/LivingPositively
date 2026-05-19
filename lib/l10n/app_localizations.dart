@@ -2050,6 +2050,12 @@ abstract class AppLocalizations {
   /// **'Share'**
   String get shareButtonText;
 
+  /// Main menu item that opens the external support/contact page.
+  ///
+  /// In en, this message translates to:
+  /// **'Contact Us'**
+  String get contactUs;
+
   ///
   ///
   /// In en, this message translates to:
