@@ -73,4 +73,7 @@ Mezilon is a Flutter-based mobile application designed to provide mental health 
 
 This project is tested with BrowserStack
 
+## Acknowledgements
+We appreciate [Baz](https://baz.co) for supporting the Living Positively app through their automatic code review system. Their review automation helps keep the project maintainable, reliable, and ready for thoughtful iteration.
+
 This documentation provides an overview of the Mezilon app's structure and key components. For detailed implementation specifics, refer to the individual files and comments within the codebase.
