@@ -43,9 +43,10 @@ const _tier1 = <String>{
 // branches keep some sublines uncovered; the 40% floor is the sustainable
 // minimum across the lot, the global gate enforces the higher real number.
 //
-// initialForm/*.dart pages still have capital-T `_Test.dart` files that
-// flutter test does not auto-discover — they are tracked but not yet
-// included in CI lcov, so they remain absent from this tier.
+// Round 3: the initialForm/*.dart wizard pages joined the tier after the
+// `_Test.dart` → `_test.dart` rename made flutter test pick up their
+// existing Mockito-based suites; the same rename also unblocked
+// form/formpagetemplate.dart and form/shareform.dart.
 const _tier2 = <String>{
   'lib/pages/UserSettings.dart',
   'lib/pages/journal.dart',
@@ -61,13 +62,13 @@ const _tier2 = <String>{
   'lib/pages/notifications/reminder_debug_panel.dart',
   'lib/pages/notifications/reminder_debug_recorder.dart',
   'lib/pages/notifications/time_picker.dart',
-  // TODO: include once the `_Test.dart` → `_test.dart` rename also fixes
-  // the latent setUp/test-body double-registration bugs they expose:
-  //   - lib/initialForm/initialFormPage1.dart, initialFormPage2.dart,
-  //     toFormPage.dart, form.dart
+  'lib/initialForm/form.dart',
+  'lib/initialForm/initialFormPage1.dart',
+  'lib/initialForm/initialFormPage2.dart',
+  'lib/initialForm/toFormPage.dart',
 };
 
-const double _globalThreshold = 65.0; // ~70% as of round 2
+const double _globalThreshold = 80.0; // ~85% as of round 5
 const double _tier1Threshold = 50.0;
 const double _tier2Threshold = 40.0;
 
