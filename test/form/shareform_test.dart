@@ -15,7 +15,7 @@ import 'package:mockito/annotations.dart';
 import 'package:provider/provider.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
-import 'package:mazilon/form/ShareForm.dart';
+import 'package:mazilon/form/shareform.dart';
 import 'package:mockito/mockito.dart';
 import 'package:mazilon/l10n/app_localizations.dart';
 import 'shareform_test.mocks.dart';
