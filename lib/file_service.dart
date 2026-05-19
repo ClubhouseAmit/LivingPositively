@@ -12,6 +12,9 @@ import 'package:mazilon/util/type_utils.dart';
 import 'package:share_plus/share_plus.dart';
 import 'package:mazilon/AnalyticsService.dart';
 
+const String _customCategoryTitlesKey = 'customCategoryTitles';
+const String _customCategoryDescriptionsKey = 'customCategoryDescriptions';
+
 abstract class FileService {
   Future<void> share(
       String message,
@@ -49,6 +52,10 @@ class FileServiceImpl implements FileService {
       'phoneNumbers': service.getItem(
           "PhonePageSavedPhoneNumbers", PersistentMemoryType.StringList),
       'username': service.getItem("name", PersistentMemoryType.String),
+      'customCategoryTitles': service.getItem(
+          _customCategoryTitlesKey, PersistentMemoryType.StringList),
+      'customCategoryDescriptions': service.getItem(
+          _customCategoryDescriptionsKey, PersistentMemoryType.StringList),
     };
 
     final results = await Future.wait(futures.values);
@@ -61,7 +68,11 @@ class FileServiceImpl implements FileService {
       'Distractions': TypeUtils.castToStringList(data['distractions']),
       'phoneNames': TypeUtils.castToStringList(data['phoneNames']),
       'phoneNumbers': TypeUtils.castToStringList(data['phoneNumbers']),
-      'username': data['username'] ?? ''
+      'username': data['username'] ?? '',
+      'customCategoryTitles':
+          TypeUtils.castToStringList(data['customCategoryTitles']),
+      'customCategoryDescriptions':
+          TypeUtils.castToStringList(data['customCategoryDescriptions']),
     };
   }
 
@@ -100,16 +111,48 @@ class FileServiceImpl implements FileService {
     List<String> phoneNames = dataForPDF['phoneNames'];
     List<String> phoneNumbers = dataForPDF['phoneNumbers'];
     String username = dataForPDF['username'];
+    List<String> customCategoryTitles = dataForPDF['customCategoryTitles'];
+    List<String> customCategoryDescriptions =
+        dataForPDF['customCategoryDescriptions'];
     List<String> phoneDescription = formatPhonesText(phoneNames, phoneNumbers);
 
-    List<List<String>> realData = [];
-    realData = filterEmptyData([
+    List<dynamic> allTitles = [...titles];
+    List<dynamic> allSubTitles = [...subTitles];
+    List<List<String>> allData = [
       difficultEvents,
       makeSafer,
       feelBetter,
       distractions,
       phoneDescription
-    ]);
+    ];
+
+    for (var i = 0;
+        i < customCategoryTitles.length &&
+            i < customCategoryDescriptions.length;
+        i++) {
+      final title = customCategoryTitles[i].trim();
+      final description = customCategoryDescriptions[i].trim();
+      if (title.isEmpty || description.isEmpty) {
+        continue;
+      }
+      allTitles.add(title);
+      allSubTitles.add('');
+      allData.add([description]);
+    }
+
+    List<dynamic> realTitles = [];
+    List<dynamic> realSubTitles = [];
+    List<List<String>> realData = [];
+    for (var i = 0;
+        i < allData.length && i < allTitles.length && i < allSubTitles.length;
+        i++) {
+      if (allData[i].isEmpty) {
+        continue;
+      }
+      realTitles.add(allTitles[i]);
+      realSubTitles.add(allSubTitles[i]);
+      realData.add(allData[i]);
+    }
     // Create the main title for the PDF
     String mainTitle =
         username == '' ? 'התוכנית המשולבת שלי' : 'התוכנית המשולבת של $username';
@@ -131,6 +174,8 @@ class FileServiceImpl implements FileService {
     // Create widgets for the PDF content
     return {
       "mainTitle": mainTitle,
+      "titles": realTitles,
+      "subTitles": realSubTitles,
       "realData": realData,
       "texts": {
         "text1": text1,
@@ -165,8 +210,8 @@ class FileServiceImpl implements FileService {
       switch (saveFormat) {
         case ShareFileType.PDF:
           file = await createPDF(
-              titles,
-              subTitles,
+              dataForFile["titles"]!,
+              dataForFile["subTitles"]!,
               dataForFile["texts"]!,
               dataForFile["mainTitle"]!,
               dataForFile["realData"]!,
@@ -251,8 +296,13 @@ class FileServiceImpl implements FileService {
     Uint8List data = Uint8List(0);
     switch (saveFormat) {
       case ShareFileType.PDF:
-        file = await createPDF(titles, subTitles, dataForFile["texts"]!,
-            dataForFile["mainTitle"]!, dataForFile["realData"]!, textDirection);
+        file = await createPDF(
+            dataForFile["titles"]!,
+            dataForFile["subTitles"]!,
+            dataForFile["texts"]!,
+            dataForFile["mainTitle"]!,
+            dataForFile["realData"]!,
+            textDirection);
         // Save the PDF and share it
 
         // Save the PDF for download

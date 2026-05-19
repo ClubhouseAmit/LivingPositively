@@ -578,6 +578,31 @@ class AppLocalizationsAr extends AppLocalizations {
   }
 
   @override
+  String get sharePageAddCustomCategory => '+ إضافة فئة مخصصة';
+
+  @override
+  String get sharePageCustomCategoryTitle => 'عنوان الفئة';
+
+  @override
+  String get sharePageCustomCategoryDescription => 'الوصف';
+
+  @override
+  String get sharePageSaveCustomCategory => 'إضافة فئة';
+
+  @override
+  String get customCategoryOptionEmpoweringQuotes =>
+      'اقتباسات مقوية من المهم أن أتذكرها';
+
+  @override
+  String get customCategoryOptionPastEvents => 'أحداث من الماضي للتذكير';
+
+  @override
+  String get customCategoryOptionAboutMe => 'أشياء عني من المهم أن نتذكرها';
+
+  @override
+  String get customCategoryOptionCustomInput => 'إمكانية كتابة شيء أصلي خاص بي';
+
+  @override
   String sharePageShareTitle(String gender) {
     String _temp0 = intl.Intl.selectLogic(
       gender,
@@ -3845,6 +3870,9 @@ class AppLocalizationsAr extends AppLocalizations {
 
   @override
   String get shareButtonText => 'مشاركة';
+
+  @override
+  String get contactUs => 'تواصل معنا';
 
   @override
   String get shareAppMessage =>

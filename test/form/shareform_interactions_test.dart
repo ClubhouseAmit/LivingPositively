@@ -2,7 +2,7 @@
 //   - share icon → invokes showShareDialog (lines 103-104)
 //   - download icon → invokes fileService.download with the localized
 //     headers, then dispatches a toast (lines 123-147)
-//   - the Continue button at the bottom → calls widget.submit (line 171)
+//   - the finish button calls widget.submit
 //
 // We register a recording FileService fake via the shared scaffold to assert
 // download() was called and to drive both the null-return (failure) and
@@ -75,7 +75,7 @@ void main() {
   });
 
   testWidgets(
-      'tapping the bottom Continue button calls widget.submit with context',
+      'tapping the finish button calls widget.submit with context',
       (tester) async {
     var submitCalls = 0;
     await pumpWithProviders(
@@ -85,11 +85,13 @@ void main() {
       surfaceSize: const Size(1024, 1800),
     );
 
-    // The ConfirmationButton is the last TextButton in the body.
-    final buttons = find.byType(TextButton);
-    expect(buttons, findsWidgets);
-    await tester.ensureVisible(buttons.last);
-    await tester.tap(buttons.last, warnIfMissed: false);
+    final finishButton = find.ancestor(
+      of: find.text("I'm Done!"),
+      matching: find.byType(TextButton),
+    );
+    expect(finishButton, findsOneWidget);
+    await tester.ensureVisible(finishButton);
+    await tester.tap(finishButton);
     await tester.pumpAndSettle();
 
     expect(submitCalls, 1);

@@ -578,6 +578,32 @@ class AppLocalizationsEn extends AppLocalizations {
   }
 
   @override
+  String get sharePageAddCustomCategory => '+ Add a custom category';
+
+  @override
+  String get sharePageCustomCategoryTitle => 'Category Title';
+
+  @override
+  String get sharePageCustomCategoryDescription => 'Description';
+
+  @override
+  String get sharePageSaveCustomCategory => 'Add category';
+
+  @override
+  String get customCategoryOptionEmpoweringQuotes =>
+      'Empowering quotes important to remember';
+
+  @override
+  String get customCategoryOptionPastEvents => 'Past events to remember';
+
+  @override
+  String get customCategoryOptionAboutMe =>
+      'Things about me important to remember';
+
+  @override
+  String get customCategoryOptionCustomInput => 'Custom Input...';
+
+  @override
   String sharePageShareTitle(String gender) {
     String _temp0 = intl.Intl.selectLogic(
       gender,
@@ -3863,6 +3889,9 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get shareButtonText => 'Share';
+
+  @override
+  String get contactUs => 'Contact Us';
 
   @override
   String get shareAppMessage =>
