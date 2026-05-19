@@ -123,6 +123,70 @@ jobs:
       #     name: app-release-apk
       #     path: ${{ env.APK_PATH }}
 
+  integration-test:
+    # Phase 7 (ADR-002): per-file coverage gate for the integration_test/
+    # suite. Runs on an Android emulator via reactivecircus/android-emulator-runner.
+    # Decoupled from build-android — emulator-class flake here cannot pull
+    # the unit pipeline's 82% global floor below threshold.
+    runs-on: ubuntu-latest
+    env:
+      FIREBASE_OPTIONS_PATH: lib/util/Firebase/firebase_options.dart
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Export secrets as env vars
+        uses: oNaiPs/secrets-to-env-action@v1
+        with:
+          secrets: ${{ toJSON(secrets) }}
+
+      - name: Write firebase options file
+        run: |
+          echo "$FIREBASE_OPTIONS" | base64 --decode > "${{ env.FIREBASE_OPTIONS_PATH }}"
+
+      - name: Set up JDK
+        uses: actions/setup-java@v5
+        with:
+          distribution: "adopt"
+          java-version: "17.x"
+
+      - name: Set up Flutter
+        uses: subosito/flutter-action@v2
+        with:
+          flutter-version: "3.41.6"
+          cache: true
+
+      - name: Install dependencies
+        run: flutter pub get
+
+      - name: Enable KVM
+        run: |
+          echo 'KERNEL=="kvm", GROUP="kvm", MODE="0666"' | \
+            sudo tee /etc/udev/rules.d/99-kvm4all.rules
+          sudo udevadm control --reload-rules && sudo udevadm trigger --name-match=kvm
+
+      - name: Run integration tests on Android emulator
+        uses: reactivecircus/android-emulator-runner@v2
+        with:
+          api-level: 34
+          target: google_apis
+          arch: x86_64
+          profile: pixel_6
+          script: |
+            flutter test integration_test \
+              --coverage \
+              --coverage-path coverage/integration.info
+
+      - name: Enforce integration-test per-file coverage floors
+        run: dart run scripts/check_integration_coverage.dart
+
+      - name: Upload integration coverage report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: coverage-integration-lcov
+          path: coverage/integration.info
+
   build-web:
     runs-on: ubuntu-latest
     if: github.ref == 'refs/heads/main'
