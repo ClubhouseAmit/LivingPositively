@@ -578,6 +578,31 @@ class AppLocalizationsHe extends AppLocalizations {
   }
 
   @override
+  String get sharePageAddCustomCategory => '+ הוספת קטגוריה';
+
+  @override
+  String get sharePageCustomCategoryTitle => 'כותרת הקטגוריה';
+
+  @override
+  String get sharePageCustomCategoryDescription => 'תיאור';
+
+  @override
+  String get sharePageSaveCustomCategory => 'הוספת קטגוריה';
+
+  @override
+  String get customCategoryOptionEmpoweringQuotes =>
+      'משפטים מחזקים שחשוב לי לזכור';
+
+  @override
+  String get customCategoryOptionPastEvents => 'אירועים מהעבר לתזכורת';
+
+  @override
+  String get customCategoryOptionAboutMe => 'דברים עלי שחשוב לי שנזכור';
+
+  @override
+  String get customCategoryOptionCustomInput => 'אפשרות לכתוב משהו מקורי משלי';
+
+  @override
   String sharePageShareTitle(String gender) {
     String _temp0 = intl.Intl.selectLogic(
       gender,

@@ -373,6 +373,54 @@ abstract class AppLocalizations {
   ///
   ///
   /// In en, this message translates to:
+  /// **'+ Add a custom category'**
+  String get sharePageAddCustomCategory;
+
+  ///
+  ///
+  /// In en, this message translates to:
+  /// **'Category Title'**
+  String get sharePageCustomCategoryTitle;
+
+  ///
+  ///
+  /// In en, this message translates to:
+  /// **'Description'**
+  String get sharePageCustomCategoryDescription;
+
+  ///
+  ///
+  /// In en, this message translates to:
+  /// **'Add category'**
+  String get sharePageSaveCustomCategory;
+
+  ///
+  ///
+  /// In en, this message translates to:
+  /// **'Empowering quotes important to remember'**
+  String get customCategoryOptionEmpoweringQuotes;
+
+  ///
+  ///
+  /// In en, this message translates to:
+  /// **'Past events to remember'**
+  String get customCategoryOptionPastEvents;
+
+  ///
+  ///
+  /// In en, this message translates to:
+  /// **'Things about me important to remember'**
+  String get customCategoryOptionAboutMe;
+
+  ///
+  ///
+  /// In en, this message translates to:
+  /// **'Custom Input...'**
+  String get customCategoryOptionCustomInput;
+
+  ///
+  ///
+  /// In en, this message translates to:
   /// **'{gender,select,male{How would you like to share your plan?} female{How would you like to share your plan?} other{How would you like to share your plan?}}'**
   String sharePageShareTitle(String gender);
 
