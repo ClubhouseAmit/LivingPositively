@@ -16,7 +16,7 @@ import 'package:mazilon/util/userInformation.dart';
 import 'dart:convert';
 import 'dart:io';
 import 'package:path_provider/path_provider.dart';
-import 'package:flutter/foundation.dart' show kIsWeb;
+import 'package:flutter/foundation.dart' show kIsWeb, visibleForTesting;
 
 import 'package:firebase_core/firebase_core.dart';
 
@@ -25,8 +25,16 @@ import 'package:firebase_core/firebase_core.dart';
 class FirebaseAuthService {
   final FirebaseAuth _auth;
 
-  FirebaseAuthService(FirebaseApp app)
-      : _auth = FirebaseAuth.instanceFor(app: app);
+  FirebaseAuthService(FirebaseApp app, {FirebaseAuth? auth})
+      : _auth = auth ?? FirebaseAuth.instanceFor(app: app);
+
+  /// Test-only constructor that accepts a [FirebaseAuth] directly without
+  /// going through a [FirebaseApp]. Production code should use the primary
+  /// constructor; this is here purely so unit tests can inject a Mockito
+  /// double for [FirebaseAuth.createUserWithEmailAndPassword] and
+  /// [FirebaseAuth.signInWithEmailAndPassword].
+  @visibleForTesting
+  FirebaseAuthService.withAuth(FirebaseAuth auth) : _auth = auth;
 
   Future<User?> signUpWithEmailAndPassword(
       String email, String password) async {
