@@ -35,23 +35,39 @@ const _tier1 = <String>{
   'lib/Locale/locale_service.dart',
 };
 
-// Tier 2: large or complex pages with high blast radius. The full suite is
-// still being built out for these — initial floor reflects current state,
-// raise the floor to 40% as the form/initialForm batches land.
+// Tier 2: large or complex pages with high blast radius.
+//
+// Updated in round 2: positive.dart (73%), myPlanPageFull.dart (82%), the
+// form/*.dart wizard pages, set_notification_widget.dart and the reminder
+// debug stack all have smoke tests landed. NumberPicker + WorkManager-bound
+// branches keep some sublines uncovered; the 40% floor is the sustainable
+// minimum across the lot, the global gate enforces the higher real number.
+//
+// initialForm/*.dart pages still have capital-T `_Test.dart` files that
+// flutter test does not auto-discover — they are tracked but not yet
+// included in CI lcov, so they remain absent from this tier.
 const _tier2 = <String>{
   'lib/pages/UserSettings.dart',
   'lib/pages/journal.dart',
   'lib/pages/PersonalPlan/myPlan.dart',
-  // TODO: bring these into Tier 2 once smoke tests land:
-  //   - lib/pages/positive.dart
-  //   - lib/pages/PersonalPlan/myPlanPageFull.dart
-  //   - lib/form/form.dart, phonePageform.dart, phonePageListItem.dart,
-  //     shareform.dart
+  'lib/pages/positive.dart',
+  'lib/pages/PersonalPlan/myPlanPageFull.dart',
+  'lib/form/form.dart',
+  'lib/form/phonePageform.dart',
+  'lib/form/phonePageListItem.dart',
+  'lib/form/shareform.dart',
+  'lib/form/formpagetemplate.dart',
+  'lib/pages/notifications/set_notification_widget.dart',
+  'lib/pages/notifications/reminder_debug_panel.dart',
+  'lib/pages/notifications/reminder_debug_recorder.dart',
+  'lib/pages/notifications/time_picker.dart',
+  // TODO: include once the `_Test.dart` → `_test.dart` rename also fixes
+  // the latent setUp/test-body double-registration bugs they expose:
   //   - lib/initialForm/initialFormPage1.dart, initialFormPage2.dart,
   //     toFormPage.dart, form.dart
 };
 
-const double _globalThreshold = 55.0; // global suite at ~60% as of writing
+const double _globalThreshold = 65.0; // ~70% as of round 2
 const double _tier1Threshold = 50.0;
 const double _tier2Threshold = 40.0;
 
