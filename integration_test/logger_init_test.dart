@@ -60,7 +60,17 @@ void main() {
     });
   });
 
-  tearDown(() {
+  tearDown(() async {
+    // Reset Sentry between tests so `Sentry.isEnabled` returns to false.
+    // Under the CI dart-define (SENTRY_DSN non-empty), the first test
+    // successfully initializes the SDK via the permissive channel mock —
+    // without `close()` here, every later test sees `isEnabled == true`
+    // and the "captureLog short-circuits when disabled" assertion would
+    // fail. Close is idempotent and a no-op when the SDK was never
+    // initialized (local `flutter test` without the dart-define).
+    if (Sentry.isEnabled) {
+      await Sentry.close();
+    }
     TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger
         .setMockMethodCallHandler(sentryChannel, null);
   });

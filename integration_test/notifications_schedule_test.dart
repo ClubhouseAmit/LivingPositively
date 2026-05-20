@@ -34,9 +34,21 @@ import 'package:mazilon/l10n/app_localizations.dart';
 import 'package:mazilon/pages/notifications/notification_service.dart';
 import 'package:mazilon/util/logger_service.dart';
 // ignore: depend_on_referenced_packages
+import 'package:workmanager_android/workmanager_android.dart';
+// ignore: depend_on_referenced_packages
 import 'package:workmanager_platform_interface/workmanager_platform_interface.dart';
 
-class _RecordingWorkmanager extends WorkmanagerPlatform {
+// IMPORTANT: extends WorkmanagerAndroid (not just WorkmanagerPlatform).
+// On a real Android binding the first `Workmanager()` call triggers
+// `_ensurePlatformImplementation()`, which sees
+// `WorkmanagerPlatform.instance is! WorkmanagerAndroid` and **overwrites**
+// our fake back to the real `WorkmanagerAndroid()`. Inheriting from
+// WorkmanagerAndroid satisfies the `is WorkmanagerAndroid` check so our
+// override survives and the production code never reaches the real plugin
+// (which would throw "You have not properly initialized the Flutter
+// WorkManager Package."). See workmanager-0.9.0+3/lib/src/workmanager_impl.dart
+// lines 83-92.
+class _RecordingWorkmanager extends WorkmanagerAndroid {
   _RecordingWorkmanager._() : super();
   static final _RecordingWorkmanager _shared = _RecordingWorkmanager._();
   final List<String> calls = [];
@@ -175,7 +187,23 @@ void main() {
         if (call.method == 'requestNotificationsPermission') {
           return requestPermissionResult;
         }
-        return null;
+        // The Android impl of `FlutterLocalNotificationsPlugin.initialize`
+        // returns `bool` — returning null causes a `_TypeError: type 'Null'
+        // is not a subtype of type 'FutureOr<bool>'` on the real binding.
+        // Methods like requestPermission, requestExactAlarmsPermission,
+        // canScheduleExactAlarms also expect bool. Defaulting bool-returning
+        // methods to `true` (success) matches the test expectation that
+        // these calls succeed.
+        switch (call.method) {
+          case 'initialize':
+          case 'requestPermission':
+          case 'requestExactAlarmsPermission':
+          case 'canScheduleExactAlarms':
+          case 'areNotificationsEnabled':
+            return true;
+          default:
+            return null;
+        }
       })
       ..setMockMethodCallHandler(toastChannel, (call) async => true);
   });
