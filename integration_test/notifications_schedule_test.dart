@@ -144,6 +144,11 @@ void main() {
     await GetIt.instance.reset();
     GetIt.instance.registerSingleton<IncidentLoggerService>(_RecordingLogger());
 
+    // Clear the static `_isInitialized` flag so init() runs its body each
+    // test — without this, any test order causes later init() calls to
+    // short-circuit (PR #266 review: baz-reviewer finding 3/4).
+    NotificationsService.resetForTest();
+
     // Register the Android platform implementation so the
     // `resolvePlatformSpecificImplementation` chain works inside
     // initializeNotification. iOS would use IOSFlutterLocalNotificationsPlugin
@@ -243,19 +248,32 @@ void main() {
     testWidgets(
         'init() falls back to Asia/Jerusalem when getLocalTimezone throws',
         (tester) async {
-      timezoneError = PlatformException(code: 'TZ_FAIL', message: 'simulated');
+      // setUp already called NotificationsService.resetForTest() so
+      // _isInitialized is guaranteed false here — the init() body WILL run
+      // and the timezoneError will reach the catch branch.
+      final simulatedError =
+          PlatformException(code: 'TZ_FAIL', message: 'simulated');
+      timezoneError = simulatedError;
 
-      // Should not throw — the catch branch must swallow the timezone error
-      // and still init the plugin + log to the IncidentLogger.
       await NotificationsService.init();
 
+      // The catch branch must:
+      //   1. Swallow the timezone error (no rethrow).
+      //   2. Still call the local-notifications plugin's `initialize` so
+      //      the service is usable on the fallback timezone.
+      //   3. Forward the original PlatformException to the IncidentLogger.
       final logger = GetIt.instance<IncidentLoggerService>() as _RecordingLogger;
-      // Logger may or may not be called depending on whether _isInitialized
-      // was already true from a previous test in the binding. Either way the
-      // init must complete without throwing — that is the contract.
-      // (If captured is non-empty we additionally know the catch branch
-      // executed in *this* test.)
-      expect(logger.captured.length, greaterThanOrEqualTo(0));
+      expect(
+        logger.captured,
+        contains(simulatedError),
+        reason:
+            'catch branch must forward the PlatformException to IncidentLogger',
+      );
+      expect(
+        localNotifCalls.any((c) => c.method == 'initialize'),
+        isTrue,
+        reason: 'catch branch must still call plugin.initialize on the fallback',
+      );
     });
   });
 

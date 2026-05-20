@@ -24,6 +24,8 @@
 
 import 'dart:io';
 
+import '_lcov_parser.dart';
+
 const _floors = <String, double>{
   'lib/main.dart': 50.0,
   'lib/pages/WellnessTools/player.dart': 60.0,
@@ -47,25 +49,7 @@ void main(List<String> args) {
     exit(2);
   }
 
-  final stats = <String, _FileStats>{};
-  String? cur;
-  for (final raw in lcovFile.readAsLinesSync()) {
-    final line = raw.trim();
-    if (line.startsWith('SF:')) {
-      cur = line.substring(3).replaceAll(r'\\', '/').replaceAll(r'\', '/');
-      stats.putIfAbsent(cur, () => _FileStats(cur!));
-    } else if (line.startsWith('DA:')) {
-      final c = cur;
-      if (c == null) continue;
-      final csv = line.substring(3);
-      final comma = csv.indexOf(',');
-      if (comma == -1) continue;
-      final hits = int.tryParse(csv.substring(comma + 1)) ?? 0;
-      final s = stats[c]!;
-      s.total++;
-      if (hits > 0) s.hit++;
-    }
-  }
+  final stats = parseLcov(lcovFile);
 
   final failures = <String>[];
   final report = <String>[];
@@ -103,12 +87,4 @@ void main(List<String> args) {
     }
     exit(1);
   }
-}
-
-class _FileStats {
-  _FileStats(this.path);
-  final String path;
-  int hit = 0;
-  int total = 0;
-  double get pct => total == 0 ? 0.0 : 100.0 * hit / total;
 }

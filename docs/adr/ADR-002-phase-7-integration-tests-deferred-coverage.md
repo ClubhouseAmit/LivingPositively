@@ -338,12 +338,43 @@ ADR can pick it up without re-discovering the trade-off:
 
 ### Production code changes
 
-**Zero.** `git diff lib/` against the round-6 tip is empty. ADR-002 hard
-rule #1 was honoured by accepting the `main()`-extraction trade-off
-documented above rather than landing a second sanctioned exception. The
-only production-code change in the entire coverage initiative
-(rounds 1-7) remains ADR-001's Round-1 `FirebaseFirestore? firestore`
-injection across 14 helpers in `firebase_functions.dart`.
+**One single-line addition during PR #266 review** (originally zero).
+`git diff lib/` against the round-6 tip shows one change:
+`lib/pages/notifications/notification_service.dart` gains a
+`@visibleForTesting static void resetForTest()` hook that clears the
+static `_isInitialized` flag so the integration test's catch-branch
+case actually runs the `init()` body (instead of short-circuiting after
+a prior test had already set the flag). This is the **second sanctioned
+production-code exception** in the coverage initiative, alongside
+ADR-001's Round-1 `FirebaseFirestore? firestore` injection. The
+`@visibleForTesting` annotation makes the exception self-documenting
+at the call site, and the body is a single `_isInitialized = false`
+assignment — no behavior change for production code paths.
+
+### Post-merge revision (PR #266 review)
+
+The `baz-reviewer[bot]` review flagged four low-severity issues. All
+four were addressed in the same PR before merge:
+
+1. **`SENTRY_DSN` missing in CI** — `logger_init_test.dart`'s
+   catch-branch case never reached `SentryFlutter.init` under CI because
+   `_sentryDsn` was empty. Fixed by adding
+   `--dart-define=SENTRY_DSN=https://test@dsn.example.local/0` (synthetic
+   non-routable test value; Sentry native SDK is channel-mocked so no
+   real network traffic) to the integration-test step.
+2. **LCOV parsing duplicated across three scripts** — Extracted
+   `scripts/_lcov_parser.dart` (shared `parseLcov` + `parseLcovInputs`
+   helpers). `check_coverage.dart`, `check_integration_coverage.dart`,
+   and `merge_lcov.dart` now all delegate to it.
+3 & 4. **`NotificationsService._isInitialized` static-state leak** —
+   The integration test's catch-branch case was tautological because
+   prior tests had set the static flag. Added the
+   `@visibleForTesting resetForTest()` hook (documented above as the
+   second sanctioned production-code exception), called from the test's
+   `setUp`. The test's assertion is now strict — it requires the
+   simulated `PlatformException` to appear in `IncidentLogger.captured`
+   AND the local-notifications plugin's `initialize` to have been
+   called on the fallback timezone.
 
 ### Status note
 

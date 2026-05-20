@@ -66,16 +66,24 @@ void main() {
   });
 
   testWidgets(
-      'initializeSentry with empty DSN runs the appRunner directly (no SentryFlutter.init)',
+      'initializeSentry mounts the appRunner widget (both empty-DSN and with-DSN modes)',
       (tester) async {
-    // The SENTRY_DSN String.fromEnvironment is a compile-time constant, so
-    // under `flutter test` it is empty by default — this drives the
-    // `_sentryDsn.isEmpty` branch (lines 16-18 of logger_service.dart):
-    //   debugPrint("sentry will not be initialized");
-    //   runApp(MyApp);
+    // Dual-mode test (PR #266 review: baz-reviewer finding 1):
+    //   * Local `flutter test integration_test/logger_init_test.dart` (no
+    //     --dart-define): `_sentryDsn` is empty, so the if-branch runs and
+    //     `runApp(MyApp)` is invoked directly (lines 16-18 of
+    //     logger_service.dart).
+    //   * CI integration-test job
+    //     (--dart-define=SENTRY_DSN=https://test@dsn.example.local/0):
+    //     `_sentryDsn` is non-empty, so the else-branch runs and
+    //     SentryFlutter.init's appRunner callback eventually calls
+    //     runApp(MyApp). The permissive channel mock above lets init
+    //     complete cleanly (lines 20-26).
     //
-    // We pass a tiny placeholder widget to runApp via the service to avoid
-    // pulling MyApp's full provider tree into this test.
+    // The assertion holds in both modes — what matters is that the
+    // placeholder widget ends up mounted. The empty-DSN branch's coverage
+    // contribution under `flutter test` is preserved; the with-DSN branch
+    // is contributed by the CI dart-define run.
     final svc = SentryServiceImpl();
     await svc.initializeSentry(
       const MaterialApp(
@@ -121,13 +129,13 @@ void main() {
     // catch branch (lines 28-32). The fallback still calls runApp(MyApp),
     // so the placeholder widget should mount.
     //
-    // NOTE: this branch only executes when _sentryDsn is non-empty, which it
-    // is NOT in the default test environment (no --dart-define for SENTRY_DSN).
-    // We assert the call returns cleanly either way — the empty-DSN path is
-    // also a valid completion (and is covered by the first test). On the
-    // emulator CI run if SENTRY_DSN is injected via --dart-define this would
-    // additionally cover the catch branch; locally it covers the empty-DSN
-    // path again, which is harmless.
+    // The CI integration-test job passes
+    // `--dart-define=SENTRY_DSN=https://test@dsn.example.local/0` so this
+    // test deterministically exercises the catch branch there (PR #266
+    // review: baz-reviewer finding 1). Locally, without the dart-define,
+    // `_sentryDsn` is empty and the if-branch runs instead — the assertion
+    // still holds either way (placeholder mounts), and the catch-branch
+    // coverage contribution comes from the CI run.
     TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger
         .setMockMethodCallHandler(sentryChannel, (call) async {
       if (call.method == 'initNativeSdk') {

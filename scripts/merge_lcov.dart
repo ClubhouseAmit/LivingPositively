@@ -11,11 +11,16 @@
 //
 // Other record types (LF, LH, BRDA, BRF, BRH, FN*, FNDA*) are not strictly
 // needed by `scripts/check_coverage.dart` (which only inspects SF + DA), so
-// we emit only SF + DA + end_of_record. The gate tolerates the absence of
-// the function/branch records; the output is still valid LCOV for tools
-// that inspect more aggressively.
+// we emit only SF + DA + LF + LH + end_of_record. The gate tolerates the
+// absence of the function/branch records; the output is still valid LCOV for
+// tools that inspect more aggressively.
+//
+// LCOV parsing is shared with the gate scripts via `_lcov_parser.dart` (PR
+// #266 review: extracted to eliminate triple-duplication of the SF/DA loop).
 
 import 'dart:io';
+
+import '_lcov_parser.dart';
 
 void main(List<String> args) {
   if (args.length < 3) {
@@ -25,64 +30,24 @@ void main(List<String> args) {
   final outPath = args.first;
   final inputs = args.skip(1).toList();
 
-  // file -> line -> hits
-  final accumulated = <String, Map<int, int>>{};
-
-  for (final path in inputs) {
-    final file = File(path);
-    if (!file.existsSync()) {
-      // A coverage-gate helper must not silently produce a partial report
-      // when an expected input is missing. CI orchestration relies on every
-      // listed input being present — a typo or skipped step would otherwise
-      // yield a plausible-but-incomplete merged report and could mask a
-      // regression.
-      stderr.writeln('FATAL: lcov input not found: $path');
-      exit(2);
-    }
-    String? cur;
-    for (final raw in file.readAsLinesSync()) {
-      final line = raw.trim();
-      if (line.startsWith('SF:')) {
-        cur = line.substring(3).replaceAll(r'\\', '/').replaceAll(r'\', '/');
-        accumulated.putIfAbsent(cur, () => <int, int>{});
-      } else if (line.startsWith('DA:')) {
-        final c = cur;
-        if (c == null) continue;
-        final csv = line.substring(3);
-        final comma = csv.indexOf(',');
-        if (comma == -1) continue;
-        final ln = int.tryParse(csv.substring(0, comma));
-        final hits = int.tryParse(csv.substring(comma + 1));
-        if (ln == null || hits == null) continue;
-        final map = accumulated[c]!;
-        final prev = map[ln] ?? 0;
-        // Take the max so a line covered in either run is reported as
-        // covered. (Sum would also work for the gate, but max keeps numbers
-        // stable when re-running tests on top of an existing artifact.)
-        map[ln] = hits > prev ? hits : prev;
-      }
-    }
-  }
+  // parseLcovInputs is fatal on missing files — that intentional behavior
+  // landed during the PR #266 review (finding 2 in the broader cleanup:
+  // missing inputs must not silently produce a partial merge report).
+  final merged = parseLcovInputs(inputs);
 
   final buf = StringBuffer();
-  for (final entry in accumulated.entries) {
+  for (final entry in merged.entries) {
     buf.writeln('SF:${entry.key}');
-    final lines = entry.value.keys.toList()..sort();
-    var lf = 0;
-    var lh = 0;
-    for (final ln in lines) {
-      final hits = entry.value[ln]!;
-      buf.writeln('DA:$ln,$hits');
-      lf++;
-      if (hits > 0) lh++;
+    final lineNumbers = entry.value.lineHits.keys.toList()..sort();
+    for (final ln in lineNumbers) {
+      buf.writeln('DA:$ln,${entry.value.lineHits[ln]}');
     }
-    buf.writeln('LF:$lf');
-    buf.writeln('LH:$lh');
+    buf.writeln('LF:${entry.value.total}');
+    buf.writeln('LH:${entry.value.hit}');
     buf.writeln('end_of_record');
   }
 
   File(outPath).writeAsStringSync(buf.toString());
   stdout.writeln(
-      'wrote $outPath: ${accumulated.length} files, '
-      '${inputs.length} inputs merged');
+      'wrote $outPath: ${merged.length} files, ${inputs.length} inputs merged');
 }

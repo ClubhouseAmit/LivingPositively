@@ -172,10 +172,17 @@ jobs:
           target: google_apis
           arch: x86_64
           profile: pixel_6
+          # SENTRY_DSN is a synthetic, non-routable test value — it makes
+          # `_sentryDsn.isEmpty` false in logger_service.dart so
+          # integration_test/logger_init_test.dart exercises the
+          # `SentryFlutter.init` path + its catch branch. The Sentry native
+          # SDK is channel-mocked in the test so no real network traffic
+          # leaves the runner. Per PR #266 review (baz-reviewer finding 1).
           script: |
             flutter test integration_test \
               --coverage \
-              --coverage-path coverage/integration.info
+              --coverage-path coverage/integration.info \
+              --dart-define=SENTRY_DSN=https://test@dsn.example.local/0
 
       - name: Enforce integration-test per-file coverage floors
         run: dart run scripts/check_integration_coverage.dart

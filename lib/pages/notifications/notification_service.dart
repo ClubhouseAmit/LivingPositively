@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/foundation.dart'
-    show defaultTargetPlatform, kIsWeb, TargetPlatform;
+    show defaultTargetPlatform, kIsWeb, TargetPlatform, visibleForTesting;
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 import 'package:flutter_timezone/flutter_timezone.dart';
 import 'package:get_it/get_it.dart';
@@ -17,6 +17,17 @@ class NotificationsService {
   static bool _isInitialized = false;
   static final FlutterLocalNotificationsPlugin
       _flutterLocalNotificationsPlugin = FlutterLocalNotificationsPlugin();
+
+  /// Test-only hook: clears the `_isInitialized` guard so `init()` will run
+  /// its body again on the next call. Required by integration tests that
+  /// exercise the timezone-error catch branch — the static flag is set by
+  /// any prior `init()` call in the same isolate and would otherwise cause
+  /// subsequent `init()` invocations to short-circuit and skip the branch
+  /// under test. Per PR #266 review (baz-reviewer finding 3/4).
+  @visibleForTesting
+  static void resetForTest() {
+    _isInitialized = false;
+  }
 
   static const InitializationSettings _initializationSettings =
       InitializationSettings(

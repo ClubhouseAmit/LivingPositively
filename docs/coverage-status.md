@@ -730,13 +730,49 @@ cannot pull the unit pipeline's 82% global floor below threshold.
 
 ### Production code changes
 
-**None.** `git diff lib/` against the round-6 tip is empty. We deliberately
-chose NOT to extract a `bootstrapApp()` helper from `main.dart`; the
-trade-off (callbackDispatcher / initializeApp / main stay outside the
-test's reach) is documented above and in the ADR-002 Outcome. The only
-production-code change in the entire coverage initiative remains
-ADR-001's Round-1 `FirebaseFirestore? firestore` injection across 14
-helpers in `firebase_functions.dart`.
+**One single-line addition during PR #266 review** (originally zero).
+`git diff lib/` shows one change:
+`lib/pages/notifications/notification_service.dart` gains a
+`@visibleForTesting static void resetForTest()` hook (single-line body:
+`_isInitialized = false`). Required to make the integration test's
+catch-branch case actually run the `init()` body — without it, the
+static `_isInitialized` flag set by an earlier test caused the
+catch-branch case to short-circuit, making the assertion tautological
+(baz-reviewer finding 3/4 on PR #266). This is the **second sanctioned
+production-code exception** in the coverage initiative alongside
+ADR-001's Round-1 `FirebaseFirestore? firestore` injection — both are
+narrow, self-documenting, and behavior-preserving for production paths.
+
+We still deliberately chose NOT to extract a `bootstrapApp()` helper
+from `main.dart`; the trade-off (callbackDispatcher / initializeApp /
+main stay outside the test's reach) is documented above and in the
+ADR-002 Outcome.
+
+### Post-merge revision (PR #266 review)
+
+`baz-reviewer[bot]` flagged four low-severity issues on the original
+PR. All four were addressed in the same PR before merge:
+
+1. **`SENTRY_DSN` missing in CI** — Added
+   `--dart-define=SENTRY_DSN=https://test@dsn.example.local/0` (synthetic
+   non-routable test value; native Sentry SDK is channel-mocked) to the
+   integration-test step in `.github/workflows/main.yml`. The
+   `logger_init_test.dart` catch-branch case now deterministically
+   exercises the `SentryFlutter.init` failure path under CI.
+2. **LCOV parsing duplicated across three scripts** — Extracted
+   `scripts/_lcov_parser.dart` (shared `parseLcov` + `parseLcovInputs`
+   helpers with `LcovFileStats`). `check_coverage.dart`,
+   `check_integration_coverage.dart`, and `merge_lcov.dart` all delegate
+   to it now. Behavior-preserving (verified by re-running
+   `check_coverage.dart` — still 85.88% / PASS).
+3 & 4. **`NotificationsService._isInitialized` static-state leak** —
+   Added the `@visibleForTesting resetForTest()` hook (see Production
+   code changes above) and a `NotificationsService.resetForTest()` call
+   in the integration test's `setUp`. Tightened the test's assertion:
+   it now strictly requires the simulated `PlatformException` to appear
+   in `IncidentLogger.captured` AND `plugin.initialize` to have been
+   called on the fallback timezone. The catch branch is now
+   deterministically exercised on every test run.
 
 ### Deferred during execution
 

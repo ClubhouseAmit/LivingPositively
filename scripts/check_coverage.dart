@@ -12,6 +12,8 @@
 
 import 'dart:io';
 
+import '_lcov_parser.dart';
+
 const _excludePatterns = <String>[
   r'lib/l10n/app_localizations.*\.dart$',
   r'lib/l10n/l10n\.dart$',
@@ -96,27 +98,9 @@ void main(List<String> args) {
   final excludes =
       _excludePatterns.map((p) => RegExp(p, caseSensitive: false)).toList();
 
-  final stats = <String, _FileStats>{};
-  String? cur;
-  for (final raw in lcovFile.readAsLinesSync()) {
-    final line = raw.trim();
-    if (line.startsWith('SF:')) {
-      cur = line.substring(3).replaceAll(r'\\', '/').replaceAll(r'\', '/');
-      stats.putIfAbsent(cur, () => _FileStats(cur!));
-    } else if (line.startsWith('DA:')) {
-      final c = cur;
-      if (c == null) continue;
-      final csv = line.substring(3);
-      final comma = csv.indexOf(',');
-      if (comma == -1) continue;
-      final hits = int.tryParse(csv.substring(comma + 1)) ?? 0;
-      final s = stats[c]!;
-      s.total++;
-      if (hits > 0) s.hit++;
-    }
-  }
+  final stats = parseLcov(lcovFile);
 
-  final filtered = <String, _FileStats>{};
+  final filtered = <String, LcovFileStats>{};
   final excluded = <String>[];
   for (final entry in stats.entries) {
     final f = entry.key;
@@ -202,12 +186,4 @@ void main(List<String> args) {
     }
     exit(1);
   }
-}
-
-class _FileStats {
-  _FileStats(this.path);
-  final String path;
-  int hit = 0;
-  int total = 0;
-  double get pct => total == 0 ? 0.0 : 100.0 * hit / total;
 }
