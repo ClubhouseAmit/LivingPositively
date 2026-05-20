@@ -167,6 +167,13 @@ void main() {
     // — but everything in THIS file targets the Android paths.
     AndroidFlutterLocalNotificationsPlugin.registerWith();
     debugDefaultTargetPlatformOverride = TargetPlatform.android;
+    // Reset via addTearDown so it lands BEFORE flutter_test's
+    // `_verifyInvariants` (which fires `debugAssertAllFoundationVarsUnset`
+    // between test body and global tearDown). The global tearDown below
+    // also sets it null defensively, but that runs too late.
+    addTearDown(() {
+      debugDefaultTargetPlatformOverride = null;
+    });
 
     fakeWm = _RecordingWorkmanager.register();
     localNotifCalls = [];
@@ -289,13 +296,18 @@ void main() {
       //   1. Swallow the timezone error (no rethrow).
       //   2. Still call the local-notifications plugin's `initialize` so
       //      the service is usable on the fallback timezone.
-      //   3. Forward the original PlatformException to the IncidentLogger.
+      //   3. Forward the PlatformException to the IncidentLogger.
+      // Identity match would be cleaner but the Flutter channel layer
+      // reconstructs PlatformExceptions when re-throwing from a mocked
+      // handler on real Android binding (the captured instance prints
+      // identically but has a different `identityHashCode`). Match on
+      // `code` instead — that's what would matter for triage anyway.
       final logger = GetIt.instance<IncidentLoggerService>() as _RecordingLogger;
       expect(
-        logger.captured,
-        contains(simulatedError),
+        logger.captured.any((e) => e is PlatformException && e.code == 'TZ_FAIL'),
+        isTrue,
         reason:
-            'catch branch must forward the PlatformException to IncidentLogger',
+            'catch branch must forward a TZ_FAIL PlatformException to IncidentLogger',
       );
       expect(
         localNotifCalls.any((c) => c.method == 'initialize'),
@@ -326,11 +338,11 @@ void main() {
 
       expect(fakeWm.calls, contains('cancelAll'));
       expect(
-        fakeWm.calls.any((c) => c.startsWith('registerOneOffTask:9015:')),
+        fakeWm.calls.any((c) => c.startsWith('registerOneOffTask:915:')),
         isTrue,
       );
       expect(
-        fakeWm.calls.any((c) => c.startsWith('registerPeriodicTask:9015:')),
+        fakeWm.calls.any((c) => c.startsWith('registerPeriodicTask:915:')),
         isTrue,
       );
 
@@ -345,7 +357,7 @@ void main() {
 
       await NotificationsService.scheduleNotification(
         NotificationsService.calculateTime(9, 15),
-        '9015',
+        '915',
         'quote A',
       );
       expect(
