@@ -376,6 +376,21 @@ four were addressed in the same PR before merge:
    AND the local-notifications plugin's `initialize` to have been
    called on the fallback timezone.
 
+**Additional CI runtime fix (post-PR push, emulator-runner first run):**
+The first CI run after the original push reported Flutter's
+**"Integration tests and unit tests cannot be run in a single
+invocation."** error. The emulator booted cleanly (43.3s); the bug was
+in the workflow `script: |` block — bash `\<newline>` continuations
+were re-interpreted by the action's `sh -c` invocation such that
+`flutter test` ran without a properly-attached path argument and tried
+to walk both `test/` (unit) and `integration_test/` (integration),
+producing the test-type mix Flutter rejects. Fix: collapsed to a
+single-line `flutter test` invocation, added explicit
+`-d emulator-5554` to remove auto-detection ambiguity, and added a
+`flutter devices` diagnostic line so emulator-visibility evidence
+lands above any subsequent failure in CI logs. This is the canonical
+pattern in reactivecircus's own Flutter examples.
+
 ### Status note
 
 ADR-002 stays `accepted`. The decision is in force and has been executed;

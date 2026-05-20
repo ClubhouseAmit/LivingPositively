@@ -774,6 +774,31 @@ PR. All four were addressed in the same PR before merge:
    called on the fallback timezone. The catch branch is now
    deterministically exercised on every test run.
 
+### CI runtime fix (post-PR push, emulator-runner first run)
+
+The first CI run after the original push surfaced an integration-test
+job failure with Flutter's diagnostic
+**"Integration tests and unit tests cannot be run in a single
+invocation."** Root cause was the multi-line `script: |` block using
+bash `\<newline>` continuations — the action's `sh -c` invocation
+re-interpreted the continuations such that `flutter test` ran without
+a properly-attached path argument and tried to walk both `test/` and
+`integration_test/`, producing the test-type mix Flutter rejects. The
+emulator itself booted cleanly (43.3s) and was reachable; only the
+script form was broken. Fix (collapsed in the same workflow file):
+
+- **Single-line `flutter test` invocation** — no `\` continuations.
+  Matches the canonical pattern in reactivecircus's own Flutter
+  examples.
+- **Explicit `-d emulator-5554`** — the default emulator port used by
+  `android-emulator-runner@v2`. Without `-d`, Flutter occasionally
+  falls back to host-VM unit-test mode for the integration_test
+  files, which triggers the same mix-error. Belt-and-suspenders next
+  to the single-line form.
+- **`flutter devices` diagnostic** — runs before `flutter test` so
+  emulator-visibility evidence appears above any subsequent failure
+  in CI logs.
+
 ### Deferred during execution
 
 These items were scoped within Phase 7 but deliberately not closed in this
@@ -785,7 +810,7 @@ round, each with a clear unblock-criterion:
 | Sentry-enabled `captureLog` branch (with `Sentry.isEnabled == true`) | `_sentryDsn` is a compile-time `String.fromEnvironment` constant, empty under `flutter test`. Channel-mocking `SentryFlutter.init` does not flip `Sentry.isEnabled` because the constant gate short-circuits before the SDK is reached | `lib/util/logger_service.dart` 10.5% → floor met by initializeSentry empty-DSN + catch coverage; the inner Sentry.captureException line stays uncovered | ADR-003 if observability QA on Sentry init is justified, OR a runtime-readable `_sentryDsn` (production change) |
 | iOS-specific `notification_service.dart` paths | Out of ADR-002 scope (Sub-decision B explicitly excludes iOS sim) | iOS branches stay at their existing unit-test coverage levels | A new ADR that justifies a macOS-runner integration job (which costs 10× Linux CI minutes) |
 | `callbackDispatcher` (Workmanager background entry-point, lines 42-89 of `main.dart`) | Foreground integration tests cannot trigger a background `Workmanager().executeTask` callback. Requires a real Workmanager-driven worker run, which the emulator-runner action does not orchestrate by default | Lines stay uncovered; `main.dart` floor met by `MyApp` coverage alone | Background-worker test harness (e.g. Patrol's background task driver, or a custom test app that schedules + waits for callback) — explicitly out of scope per ADR-002 Sub-decision A |
-| Local-execution proof of the four new integration tests on a real emulator | The user has no Android emulator running locally; the Windows desktop fallback fails to build due to an unrelated `flutter_inappwebview_windows` Nuget setup issue (independent of this work) | All four files compile clean (`dart analyze` clean) and load under `flutter test` (file-level docstring documents the device requirement) | First green CI run of the new `integration-test` job |
+| Local-execution proof of the four new integration tests on a real emulator | The user has no Android emulator running locally; the Windows desktop fallback fails to build due to an unrelated `flutter_inappwebview_windows` Nuget setup issue (independent of this work) | All four files compile clean (`dart analyze` clean) and load under `flutter test` (file-level docstring documents the device requirement). The first CI emulator-runner job did boot a real emulator and reach the `flutter test` step, but the script-form bug (see "CI runtime fix" above) blocked the actual test run. Pending re-run after the script fix lands. | Next CI run of the new `integration-test` job with the fixed script form |
 | `integration_test/custom_categories_e2e_test.dart` (pre-existing) | This file was authored before ADR-002 and was not under CI enforcement. Verified it still analyses clean and is in the integration_test/ folder so the new CI job WILL run it — it becomes the fifth tenant of the integration pipeline | N/A — no new floor; this file targets `shareform.dart` which is already 85.4% via unit tests | N/A — picked up automatically |
 
 ### Skipped tests

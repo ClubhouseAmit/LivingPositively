@@ -172,17 +172,37 @@ jobs:
           target: google_apis
           arch: x86_64
           profile: pixel_6
-          # SENTRY_DSN is a synthetic, non-routable test value — it makes
-          # `_sentryDsn.isEmpty` false in logger_service.dart so
-          # integration_test/logger_init_test.dart exercises the
-          # `SentryFlutter.init` path + its catch branch. The Sentry native
-          # SDK is channel-mocked in the test so no real network traffic
-          # leaves the runner. Per PR #266 review (baz-reviewer finding 1).
+          # Notes on the script below:
+          #
+          # 1. Single-line `flutter test` invocation — earlier attempts used
+          #    YAML `|` block + bash `\<newline>` continuations, which got
+          #    re-interpreted by the action's `sh -c` invocation and produced
+          #    "Integration tests and unit tests cannot be run in a single
+          #    invocation." The single-line form is the canonical pattern
+          #    used by reactivecircus's own Flutter examples.
+          #
+          # 2. `-d emulator-5554` explicitly targets the emulator the action
+          #    booted (port 5554 is the default; matches the action's
+          #    `emulator-port: 5554` default). Without `-d`, Flutter
+          #    occasionally fails to auto-detect the device, leaving
+          #    `flutter test` to walk the path as host-VM unit tests, which
+          #    triggers the same mix-error because integration_test files
+          #    use IntegrationTestWidgetsFlutterBinding.
+          #
+          # 3. `flutter devices` runs first as a diagnostic — its output
+          #    appears in CI logs above any subsequent failure, so the
+          #    emulator-visibility question is answered without re-running.
+          #
+          # 4. SENTRY_DSN is a synthetic, non-routable test value — it makes
+          #    `_sentryDsn.isEmpty` false in logger_service.dart so
+          #    integration_test/logger_init_test.dart exercises the
+          #    `SentryFlutter.init` path + its catch branch. The Sentry
+          #    native SDK is channel-mocked in the test so no real network
+          #    traffic leaves the runner (PR #266 review, baz-reviewer
+          #    finding 1).
           script: |
-            flutter test integration_test \
-              --coverage \
-              --coverage-path coverage/integration.info \
-              --dart-define=SENTRY_DSN=https://test@dsn.example.local/0
+            flutter devices
+            flutter test integration_test --coverage --coverage-path coverage/integration.info --dart-define=SENTRY_DSN=https://test@dsn.example.local/0 -d emulator-5554
 
       - name: Enforce integration-test per-file coverage floors
         run: dart run scripts/check_integration_coverage.dart
