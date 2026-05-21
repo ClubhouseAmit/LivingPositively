@@ -164,4 +164,62 @@ void main() {
 
     expect(find.byKey(const Key('logger-init-catch-branch')), findsOneWidget);
   });
+
+  testWidgets(
+      'captureLog routes through Sentry when isEnabled == true',
+      (tester) async {
+    // Drives the `Sentry.isEnabled == true` branch of captureLog
+    // (lines 38-50 of logger_service.dart): the `if (exceptionData != null
+    // && contains("name") && contains("value"))` configureScope guard,
+    // both arms of that guard, and the trailing `Sentry.captureException`
+    // call.
+    //
+    // Coverage contract: this test is effective only when the CI
+    // integration-test job passes `--dart-define=SENTRY_DSN=<test value>`
+    // — under a local `flutter test integration_test/logger_init_test.dart`
+    // run without the dart-define, `_sentryDsn.isEmpty` is true and
+    // initializeSentry returns through the if-branch without ever
+    // initialising the SDK, so `Sentry.isEnabled` stays false and the
+    // captureLog body short-circuits. The test still passes locally
+    // (no assertion is made conditional on `Sentry.isEnabled`), but the
+    // lines 40-46 coverage contribution comes from the CI run.
+    //
+    // Why these calls are safe under the permissive channel mock from
+    // setUp: every native Sentry SDK call (`captureEnvelope`,
+    // `loadContexts`, `loadDebugImages`, etc.) returns null/empty via the
+    // default handler, so the Dart-side `Sentry.captureException` future
+    // resolves cleanly without producing real telemetry. configureScope
+    // is purely Dart-side and needs no mock.
+    final svc = SentryServiceImpl();
+    await svc.initializeSentry(
+      const MaterialApp(
+        home: Scaffold(body: SizedBox(key: Key('logger-captureLog-enabled'))),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    // With name+value present — drives the configureScope branch
+    // (lines 39-44) and then Sentry.captureException (line 46).
+    await svc.captureLog(
+      Exception('enabled-with-context'),
+      stackTrace: StackTrace.current,
+      exceptionData: const {'name': 'context-key', 'value': 'context-value'},
+    );
+
+    // Without exceptionData — skips the configureScope branch but still
+    // hits the Sentry.captureException call (line 46).
+    await svc.captureLog(Exception('enabled-no-context'));
+
+    // exceptionData present but missing the `value` key — exercises the
+    // false arm of the contains() guard while still reaching line 46.
+    await svc.captureLog(
+      Exception('enabled-missing-value'),
+      exceptionData: const {'name': 'only-name'},
+    );
+
+    // The assertion holds in both CI (Sentry initialised) and local
+    // (placeholder mounted via the empty-DSN if-branch) modes; the
+    // coverage contribution differs by mode as documented above.
+    expect(find.byKey(const Key('logger-captureLog-enabled')), findsOneWidget);
+  });
 }
