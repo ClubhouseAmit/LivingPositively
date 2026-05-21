@@ -66,6 +66,79 @@ Map<String, LcovFileStats> parseLcov(
   return stats;
 }
 
+/// Result of [enforceFloors]: the [failures] list (empty == pass), the
+/// [reportLines] list (one human-readable line per inspected file, suitable
+/// for echoing to stdout above the verdict), and the [warnings] list (only
+/// populated when [enforceFloors] is invoked with `missingIsWarning: true`).
+class FloorCheckResult {
+  FloorCheckResult({
+    required this.failures,
+    required this.reportLines,
+    required this.warnings,
+  });
+  final List<String> failures;
+  final List<String> reportLines;
+  final List<String> warnings;
+}
+
+/// Iterate [floors] (path → percentage floor), look each path up in [stats],
+/// and collect failures + a per-file report line.
+///
+/// Behavior:
+///   - If [stats] has no entry for a floor path and [missingIsWarning] is
+///     false: emits `'$label MISSING from lcov: $path'` as a failure.
+///   - If [missingIsWarning] is true: emits the same message as a warning
+///     instead — used by tier-2 in `check_coverage.dart` where a missing
+///     file is expected when one is moved/renamed mid-PR and is not a gate
+///     blocker.
+///   - If the file is present but below its floor: emits `'$label $path:
+///     X% < Y%'` as a failure.
+///   - Always emits a report line in the standard
+///     `'  $path: X% (floor Y%)'` shape so the consolidated stdout report
+///     looks identical across gate scripts.
+///
+/// Extracted from `check_coverage.dart` + `check_integration_coverage.dart`
+/// during PR #266 review (baz-reviewer finding on
+/// `check_integration_coverage.dart:61`: the per-file floor loop +
+/// failure-collection + report block duplicated across both scripts).
+FloorCheckResult enforceFloors({
+  required Map<String, LcovFileStats> stats,
+  required Map<String, double> floors,
+  required String label,
+  bool missingIsWarning = false,
+}) {
+  final failures = <String>[];
+  final reportLines = <String>[];
+  final warnings = <String>[];
+
+  for (final entry in floors.entries) {
+    final path = entry.key;
+    final floor = entry.value;
+    final s = stats[path];
+    if (s == null) {
+      final msg = '$label MISSING from lcov: $path';
+      if (missingIsWarning) {
+        warnings.add(msg);
+      } else {
+        failures.add(msg);
+      }
+      continue;
+    }
+    reportLines.add(
+        '  $path: ${s.pct.toStringAsFixed(1)}% (floor ${floor.toStringAsFixed(1)}%)');
+    if (s.pct < floor) {
+      failures.add(
+          '$label $path: ${s.pct.toStringAsFixed(1)}% < ${floor.toStringAsFixed(1)}%');
+    }
+  }
+
+  return FloorCheckResult(
+    failures: failures,
+    reportLines: reportLines,
+    warnings: warnings,
+  );
+}
+
 /// Parse and merge multiple LCOV files via [parseLcov] in mergeMode. Returns
 /// the combined map. Missing input files are fatal — the caller is expected
 /// to validate paths first or accept this helper's exit-2 behavior.

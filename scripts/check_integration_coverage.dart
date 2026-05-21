@@ -51,38 +51,24 @@ void main(List<String> args) {
 
   final stats = parseLcov(lcovFile);
 
-  final failures = <String>[];
-  final report = <String>[];
-
-  for (final entry in _floors.entries) {
-    final f = entry.key;
-    final floor = entry.value;
-    final s = stats[f];
-    if (s == null) {
-      failures.add('PER-FILE MISSING from integration lcov: $f');
-      continue;
-    }
-    final pct = s.pct;
-    report.add(
-        '  $f: ${pct.toStringAsFixed(1)}% (floor ${floor.toStringAsFixed(1)}%)');
-    if (pct < floor) {
-      failures.add(
-          'PER-FILE $f: ${pct.toStringAsFixed(1)}% < ${floor.toStringAsFixed(1)}%');
-    }
-  }
+  final result = enforceFloors(
+    stats: stats,
+    floors: _floors,
+    label: 'PER-FILE',
+  );
 
   stdout
     ..writeln('===== Mazilon Integration Coverage Gate (ADR-002) =====')
     ..writeln('Files inspected: ${_floors.length}')
-    ..writeln(report.join('\n'))
+    ..writeln(result.reportLines.join('\n'))
     ..writeln('=======================================================');
 
-  if (failures.isEmpty) {
+  if (result.failures.isEmpty) {
     stdout.writeln('PASS: all integration-test per-file floors met.');
     exit(0);
   } else {
     stderr.writeln('FAIL: integration-test per-file floors not met:');
-    for (final f in failures) {
+    for (final f in result.failures) {
       stderr.writeln('  - $f');
     }
     exit(1);

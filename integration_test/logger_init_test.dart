@@ -198,6 +198,26 @@ void main() {
     );
     await tester.pumpAndSettle();
 
+    // Coverage-effectiveness assertion (PR #266 review, baz-reviewer
+    // finding on `logger_init_test.dart:199`): the captureLog calls below
+    // are only useful if Sentry actually got enabled. Without this guard
+    // a silent SDK init failure — e.g. a future SDK version that swallows
+    // a different channel error, or a CI mis-configuration that drops the
+    // dart-define — would let the captureLog calls short-circuit through
+    // the `isEnabled == false` branch and the coverage gate would
+    // regress with no clear signal. Gate on the dart-define so local
+    // runs (where _sentryDsn is empty and the if-branch wins) still
+    // pass.
+    const sentryDsn = String.fromEnvironment('SENTRY_DSN');
+    if (sentryDsn.isNotEmpty) {
+      expect(Sentry.isEnabled, isTrue,
+          reason:
+              'SENTRY_DSN is set via --dart-define in CI but Sentry.isEnabled '
+              'is still false after initializeSentry. The captureLog calls '
+              'below would short-circuit and lines 40-46 of logger_service.dart '
+              'would stay uncovered — investigate before re-pushing.');
+    }
+
     // With name+value present — drives the configureScope branch
     // (lines 39-44) and then Sentry.captureException (line 46).
     await svc.captureLog(

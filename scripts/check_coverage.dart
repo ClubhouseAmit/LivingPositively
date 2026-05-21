@@ -126,44 +126,30 @@ void main(List<String> args) {
         'GLOBAL: ${globalPct.toStringAsFixed(1)}% < ${_globalThreshold.toStringAsFixed(1)}%');
   }
 
-  for (final f in _tier1) {
-    final s = filtered[f];
-    if (s == null) {
-      failures.add('TIER1 MISSING from lcov: $f');
-      continue;
-    }
-    if (s.pct < _tier1Threshold) {
-      failures.add(
-          'TIER1 $f: ${s.pct.toStringAsFixed(1)}% < ${_tier1Threshold.toStringAsFixed(1)}%');
-    }
+  final tier1Result = enforceFloors(
+    stats: filtered,
+    floors: {for (final f in _tier1) f: _tier1Threshold},
+    label: 'TIER1',
+  );
+  failures.addAll(tier1Result.failures);
+
+  final tier2Result = enforceFloors(
+    stats: filtered,
+    floors: {for (final f in _tier2) f: _tier2Threshold},
+    label: 'TIER2',
+    missingIsWarning: true,
+  );
+  failures.addAll(tier2Result.failures);
+  for (final w in tier2Result.warnings) {
+    stdout.writeln('  WARN $w');
   }
 
-  for (final f in _tier2) {
-    final s = filtered[f];
-    if (s == null) {
-      // Tier 2 missing is a warning, not a fail (file may have been moved)
-      stdout.writeln('  WARN tier2 not in lcov: $f');
-      continue;
-    }
-    if (s.pct < _tier2Threshold) {
-      failures.add(
-          'TIER2 $f: ${s.pct.toStringAsFixed(1)}% < ${_tier2Threshold.toStringAsFixed(1)}%');
-    }
-  }
-
-  for (final entry in _perFileFloors.entries) {
-    final f = entry.key;
-    final floor = entry.value;
-    final s = filtered[f];
-    if (s == null) {
-      failures.add('PER-FILE MISSING from lcov: $f');
-      continue;
-    }
-    if (s.pct < floor) {
-      failures.add(
-          'PER-FILE $f: ${s.pct.toStringAsFixed(1)}% < ${floor.toStringAsFixed(1)}%');
-    }
-  }
+  final perFileResult = enforceFloors(
+    stats: filtered,
+    floors: _perFileFloors,
+    label: 'PER-FILE',
+  );
+  failures.addAll(perFileResult.failures);
 
   stdout
     ..writeln('========== Mazilon Coverage Gate ==========')

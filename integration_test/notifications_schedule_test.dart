@@ -266,11 +266,37 @@ void main() {
         await NotificationsService.init();
         localNotifCalls.clear();
 
-        // 23:59 — almost always later than `now` in the test run, so the
-        // `isBefore(now)` branch must NOT fire. Either way the
-        // zonedSchedule call must be made.
+        // PR #266 review (baz-reviewer finding on
+        // `notifications_schedule_test.dart:275`): the previous form used
+        // `TimeOfDay(hour: 23, minute: 59)`, which is "later today" only
+        // when the test runs before 23:59 local time. After that wall-clock
+        // moment scheduleNotification's `scheduledDate.isBefore(now)`
+        // branch fires and the date is bumped by one day — the SAME
+        // behavior the previous test in this group already exercises
+        // (hour: 0, minute: 0). That made this test:
+        //   (a) silently redundant for CI runs starting between 23:59 and
+        //       midnight, and
+        //   (b) flaky in the sense that what it "proves" depends on
+        //       wall-clock time.
+        //
+        // Stable fix: compute the target as `DateTime.now() + 5 min` and
+        // convert to `TimeOfDay` — guaranteed to be 5 minutes in the
+        // future, which scheduleNotification sees as "later today" and
+        // does NOT bump. The only residual flake window is the last 5
+        // minutes of the day (5 / 1440 ≈ 0.35% of clock time, ~5 minutes
+        // per 24 h of CI uptime). During that window the +5 min wraps
+        // past midnight, `next.hour` becomes 0, and scheduleNotification
+        // sees `today at 00:0X` as in the past and bumps — the assertion
+        // still holds (zonedSchedule is called either way), but the
+        // branch under test degrades to the bump path. Accepted: a real
+        // clock injection would need a production change (ADR-002 hard
+        // rule #1).
+        final now = DateTime.now();
+        final next = now.add(const Duration(minutes: 5));
+        final laterTime = TimeOfDay(hour: next.hour, minute: next.minute);
+
         await NotificationsService.scheduleNotification(
-          const TimeOfDay(hour: 23, minute: 59),
+          laterTime,
           '2359',
           'Late reminder',
         );
@@ -278,7 +304,7 @@ void main() {
         expect(
           localNotifCalls.any((c) => c.method == 'zonedSchedule'),
           isTrue,
-          reason: 'late-in-day path must still reach zonedSchedule',
+          reason: 'later-today path must still reach zonedSchedule',
         );
       });
     });
