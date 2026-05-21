@@ -136,6 +136,15 @@ class _RecordingLogger implements IncidentLoggerService {
   Future<void> initializeSentry(Widget app) async {}
 }
 
+Future<void> _runWithAndroidTarget(Future<void> Function() body) async {
+  debugDefaultTargetPlatformOverride = TargetPlatform.android;
+  try {
+    await body();
+  } finally {
+    debugDefaultTargetPlatformOverride = null;
+  }
+}
+
 void main() {
   IntegrationTestWidgetsFlutterBinding.ensureInitialized();
 
@@ -166,14 +175,6 @@ void main() {
     // initializeNotification. iOS would use IOSFlutterLocalNotificationsPlugin
     // — but everything in THIS file targets the Android paths.
     AndroidFlutterLocalNotificationsPlugin.registerWith();
-    debugDefaultTargetPlatformOverride = TargetPlatform.android;
-    // Reset via addTearDown so it lands BEFORE flutter_test's
-    // `_verifyInvariants` (which fires `debugAssertAllFoundationVarsUnset`
-    // between test body and global tearDown). The global tearDown below
-    // also sets it null defensively, but that runs too late.
-    addTearDown(() {
-      debugDefaultTargetPlatformOverride = null;
-    });
 
     fakeWm = _RecordingWorkmanager.register();
     localNotifCalls = [];
@@ -227,55 +228,59 @@ void main() {
   group('scheduleNotification (Android scheduling paths)', () {
     testWidgets('zonedSchedule is invoked with parsed id + scheduled date',
         (tester) async {
-      // Force init() so tz.local is set before scheduleNotification reads it.
-      await NotificationsService.init();
-      localNotifCalls.clear();
+      await _runWithAndroidTarget(() async {
+        // Force init() so tz.local is set before scheduleNotification reads it.
+        await NotificationsService.init();
+        localNotifCalls.clear();
 
-      // Pick a time well in the past for "today" so the
-      // `scheduledDate.isBefore(now)` branch triggers and the date is bumped
-      // by one day.
-      await NotificationsService.scheduleNotification(
-        const TimeOfDay(hour: 0, minute: 0),
-        '90',
-        'Living Positively reminder',
-      );
+        // Pick a time well in the past for "today" so the
+        // `scheduledDate.isBefore(now)` branch triggers and the date is bumped
+        // by one day.
+        await NotificationsService.scheduleNotification(
+          const TimeOfDay(hour: 0, minute: 0),
+          '90',
+          'Living Positively reminder',
+        );
 
-      final zonedCalls =
-          localNotifCalls.where((c) => c.method == 'zonedSchedule').toList();
-      expect(zonedCalls, hasLength(1),
-          reason:
-              'scheduleNotification must reach _flutterLocalNotificationsPlugin.zonedSchedule');
-      // Best-effort assertions on the payload — different platform impl
-      // versions wrap arguments slightly differently, so we tolerate both
-      // shapes.
-      final args = zonedCalls.single.arguments;
-      if (args is Map) {
-        expect(args['id'], 90);
-        expect(args['title'], 'Living Positively');
-        expect(args['body'], 'Living Positively reminder');
-      }
+        final zonedCalls =
+            localNotifCalls.where((c) => c.method == 'zonedSchedule').toList();
+        expect(zonedCalls, hasLength(1),
+            reason:
+                'scheduleNotification must reach _flutterLocalNotificationsPlugin.zonedSchedule');
+        // Best-effort assertions on the payload — different platform impl
+        // versions wrap arguments slightly differently, so we tolerate both
+        // shapes.
+        final args = zonedCalls.single.arguments;
+        if (args is Map) {
+          expect(args['id'], 90);
+          expect(args['title'], 'Living Positively');
+          expect(args['body'], 'Living Positively reminder');
+        }
+      });
     });
 
     testWidgets(
         'scheduleNotification for a time later today schedules without bumping the day',
         (tester) async {
-      await NotificationsService.init();
-      localNotifCalls.clear();
+      await _runWithAndroidTarget(() async {
+        await NotificationsService.init();
+        localNotifCalls.clear();
 
-      // 23:59 — almost always later than `now` in the test run, so the
-      // `isBefore(now)` branch must NOT fire. Either way the
-      // zonedSchedule call must be made.
-      await NotificationsService.scheduleNotification(
-        const TimeOfDay(hour: 23, minute: 59),
-        '2359',
-        'Late reminder',
-      );
+        // 23:59 — almost always later than `now` in the test run, so the
+        // `isBefore(now)` branch must NOT fire. Either way the
+        // zonedSchedule call must be made.
+        await NotificationsService.scheduleNotification(
+          const TimeOfDay(hour: 23, minute: 59),
+          '2359',
+          'Late reminder',
+        );
 
-      expect(
-        localNotifCalls.any((c) => c.method == 'zonedSchedule'),
-        isTrue,
-        reason: 'late-in-day path must still reach zonedSchedule',
-      );
+        expect(
+          localNotifCalls.any((c) => c.method == 'zonedSchedule'),
+          isTrue,
+          reason: 'late-in-day path must still reach zonedSchedule',
+        );
+      });
     });
   });
 
@@ -283,37 +288,42 @@ void main() {
     testWidgets(
         'init() falls back to Asia/Jerusalem when getLocalTimezone throws',
         (tester) async {
-      // setUp already called NotificationsService.resetForTest() so
-      // _isInitialized is guaranteed false here — the init() body WILL run
-      // and the timezoneError will reach the catch branch.
-      final simulatedError =
-          PlatformException(code: 'TZ_FAIL', message: 'simulated');
-      timezoneError = simulatedError;
+      await _runWithAndroidTarget(() async {
+        // setUp already called NotificationsService.resetForTest() so
+        // _isInitialized is guaranteed false here — the init() body WILL run
+        // and the timezoneError will reach the catch branch.
+        final simulatedError =
+            PlatformException(code: 'TZ_FAIL', message: 'simulated');
+        timezoneError = simulatedError;
 
-      await NotificationsService.init();
+        await NotificationsService.init();
 
-      // The catch branch must:
-      //   1. Swallow the timezone error (no rethrow).
-      //   2. Still call the local-notifications plugin's `initialize` so
-      //      the service is usable on the fallback timezone.
-      //   3. Forward the PlatformException to the IncidentLogger.
-      // Identity match would be cleaner but the Flutter channel layer
-      // reconstructs PlatformExceptions when re-throwing from a mocked
-      // handler on real Android binding (the captured instance prints
-      // identically but has a different `identityHashCode`). Match on
-      // `code` instead — that's what would matter for triage anyway.
-      final logger = GetIt.instance<IncidentLoggerService>() as _RecordingLogger;
-      expect(
-        logger.captured.any((e) => e is PlatformException && e.code == 'TZ_FAIL'),
-        isTrue,
-        reason:
-            'catch branch must forward a TZ_FAIL PlatformException to IncidentLogger',
-      );
-      expect(
-        localNotifCalls.any((c) => c.method == 'initialize'),
-        isTrue,
-        reason: 'catch branch must still call plugin.initialize on the fallback',
-      );
+        // The catch branch must:
+        //   1. Swallow the timezone error (no rethrow).
+        //   2. Still call the local-notifications plugin's `initialize` so
+        //      the service is usable on the fallback timezone.
+        //   3. Forward the PlatformException to the IncidentLogger.
+        // Identity match would be cleaner but the Flutter channel layer
+        // reconstructs PlatformExceptions when re-throwing from a mocked
+        // handler on real Android binding (the captured instance prints
+        // identically but has a different `identityHashCode`). Match on
+        // `code` instead — that's what would matter for triage anyway.
+        final logger =
+            GetIt.instance<IncidentLoggerService>() as _RecordingLogger;
+        expect(
+          logger.captured
+              .any((e) => e is PlatformException && e.code == 'TZ_FAIL'),
+          isTrue,
+          reason:
+              'catch branch must forward a TZ_FAIL PlatformException to IncidentLogger',
+        );
+        expect(
+          localNotifCalls.any((c) => c.method == 'initialize'),
+          isTrue,
+          reason:
+              'catch branch must still call plugin.initialize on the fallback',
+        );
+      });
     });
   });
 
@@ -322,48 +332,51 @@ void main() {
     testWidgets(
         'Android permission grant fires workmanager registrations + zonedSchedule on the periodic worker callback path',
         (tester) async {
-      requestPermissionResult = true;
-      fakeWm.calls.clear();
-      localNotifCalls.clear();
+      await _runWithAndroidTarget(() async {
+        requestPermissionResult = true;
+        fakeWm.calls.clear();
+        localNotifCalls.clear();
 
-      await NotificationsService.initializeNotification(
-        const ['quote A', 'quote B'],
-        9,
-        15,
-        (s) => 'msg $s',
-        _DummyLocale(),
-      );
-      // Drain the showToast timer.
-      await tester.pump(const Duration(seconds: 2));
+        await NotificationsService.initializeNotification(
+          const ['quote A', 'quote B'],
+          9,
+          15,
+          (s) => 'msg $s',
+          _DummyLocale(),
+        );
+        // Drain the showToast timer.
+        await tester.pump(const Duration(seconds: 2));
 
-      expect(fakeWm.calls, contains('cancelAll'));
-      expect(
-        fakeWm.calls.any((c) => c.startsWith('registerOneOffTask:915:')),
-        isTrue,
-      );
-      expect(
-        fakeWm.calls.any((c) => c.startsWith('registerPeriodicTask:915:')),
-        isTrue,
-      );
+        expect(fakeWm.calls, contains('cancelAll'));
+        expect(
+          fakeWm.calls.any((c) => c.startsWith('registerOneOffTask:915:')),
+          isTrue,
+        );
+        expect(
+          fakeWm.calls.any((c) => c.startsWith('registerPeriodicTask:915:')),
+          isTrue,
+        );
 
-      // Now exercise the cancel-all and scheduleNotification paths the
-      // worker callback would invoke.
-      await NotificationsService.cancelNotifications(null, cancelWorker: true);
-      expect(fakeWm.calls, contains('cancelAll'));
-      expect(
-        localNotifCalls.map((c) => c.method).toList(),
-        contains('cancelAll'),
-      );
+        // Now exercise the cancel-all and scheduleNotification paths the
+        // worker callback would invoke.
+        await NotificationsService.cancelNotifications(null,
+            cancelWorker: true);
+        expect(fakeWm.calls, contains('cancelAll'));
+        expect(
+          localNotifCalls.map((c) => c.method).toList(),
+          contains('cancelAll'),
+        );
 
-      await NotificationsService.scheduleNotification(
-        NotificationsService.calculateTime(9, 15),
-        '915',
-        'quote A',
-      );
-      expect(
-        localNotifCalls.where((c) => c.method == 'zonedSchedule').isNotEmpty,
-        isTrue,
-      );
+        await NotificationsService.scheduleNotification(
+          NotificationsService.calculateTime(9, 15),
+          '915',
+          'quote A',
+        );
+        expect(
+          localNotifCalls.where((c) => c.method == 'zonedSchedule').isNotEmpty,
+          isTrue,
+        );
+      });
     });
   });
 }
