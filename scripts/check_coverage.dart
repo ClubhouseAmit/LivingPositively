@@ -12,6 +12,8 @@
 
 import 'dart:io';
 
+import '_lcov_parser.dart';
+
 const _excludePatterns = <String>[
   r'lib/l10n/app_localizations.*\.dart$',
   r'lib/l10n/l10n\.dart$',
@@ -96,27 +98,9 @@ void main(List<String> args) {
   final excludes =
       _excludePatterns.map((p) => RegExp(p, caseSensitive: false)).toList();
 
-  final stats = <String, _FileStats>{};
-  String? cur;
-  for (final raw in lcovFile.readAsLinesSync()) {
-    final line = raw.trim();
-    if (line.startsWith('SF:')) {
-      cur = line.substring(3).replaceAll(r'\\', '/').replaceAll(r'\', '/');
-      stats.putIfAbsent(cur, () => _FileStats(cur!));
-    } else if (line.startsWith('DA:')) {
-      final c = cur;
-      if (c == null) continue;
-      final csv = line.substring(3);
-      final comma = csv.indexOf(',');
-      if (comma == -1) continue;
-      final hits = int.tryParse(csv.substring(comma + 1)) ?? 0;
-      final s = stats[c]!;
-      s.total++;
-      if (hits > 0) s.hit++;
-    }
-  }
+  final stats = parseLcov(lcovFile);
 
-  final filtered = <String, _FileStats>{};
+  final filtered = <String, LcovFileStats>{};
   final excluded = <String>[];
   for (final entry in stats.entries) {
     final f = entry.key;
@@ -142,44 +126,30 @@ void main(List<String> args) {
         'GLOBAL: ${globalPct.toStringAsFixed(1)}% < ${_globalThreshold.toStringAsFixed(1)}%');
   }
 
-  for (final f in _tier1) {
-    final s = filtered[f];
-    if (s == null) {
-      failures.add('TIER1 MISSING from lcov: $f');
-      continue;
-    }
-    if (s.pct < _tier1Threshold) {
-      failures.add(
-          'TIER1 $f: ${s.pct.toStringAsFixed(1)}% < ${_tier1Threshold.toStringAsFixed(1)}%');
-    }
+  final tier1Result = enforceFloors(
+    stats: filtered,
+    floors: {for (final f in _tier1) f: _tier1Threshold},
+    label: 'TIER1',
+  );
+  failures.addAll(tier1Result.failures);
+
+  final tier2Result = enforceFloors(
+    stats: filtered,
+    floors: {for (final f in _tier2) f: _tier2Threshold},
+    label: 'TIER2',
+    missingIsWarning: true,
+  );
+  failures.addAll(tier2Result.failures);
+  for (final w in tier2Result.warnings) {
+    stdout.writeln('  WARN $w');
   }
 
-  for (final f in _tier2) {
-    final s = filtered[f];
-    if (s == null) {
-      // Tier 2 missing is a warning, not a fail (file may have been moved)
-      stdout.writeln('  WARN tier2 not in lcov: $f');
-      continue;
-    }
-    if (s.pct < _tier2Threshold) {
-      failures.add(
-          'TIER2 $f: ${s.pct.toStringAsFixed(1)}% < ${_tier2Threshold.toStringAsFixed(1)}%');
-    }
-  }
-
-  for (final entry in _perFileFloors.entries) {
-    final f = entry.key;
-    final floor = entry.value;
-    final s = filtered[f];
-    if (s == null) {
-      failures.add('PER-FILE MISSING from lcov: $f');
-      continue;
-    }
-    if (s.pct < floor) {
-      failures.add(
-          'PER-FILE $f: ${s.pct.toStringAsFixed(1)}% < ${floor.toStringAsFixed(1)}%');
-    }
-  }
+  final perFileResult = enforceFloors(
+    stats: filtered,
+    floors: _perFileFloors,
+    label: 'PER-FILE',
+  );
+  failures.addAll(perFileResult.failures);
 
   stdout
     ..writeln('========== Mazilon Coverage Gate ==========')
@@ -202,12 +172,4 @@ void main(List<String> args) {
     }
     exit(1);
   }
-}
-
-class _FileStats {
-  _FileStats(this.path);
-  final String path;
-  int hit = 0;
-  int total = 0;
-  double get pct => total == 0 ? 0.0 : 100.0 * hit / total;
 }

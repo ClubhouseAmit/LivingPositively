@@ -123,6 +123,97 @@ jobs:
       #     name: app-release-apk
       #     path: ${{ env.APK_PATH }}
 
+  integration-test:
+    # Phase 7 (ADR-002): per-file coverage gate for the integration_test/
+    # suite. Runs on an Android emulator via reactivecircus/android-emulator-runner.
+    # Decoupled from build-android — emulator-class flake here cannot pull
+    # the unit pipeline's 82% global floor below threshold.
+    runs-on: ubuntu-latest
+    env:
+      FIREBASE_OPTIONS_PATH: lib/util/Firebase/firebase_options.dart
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Export secrets as env vars
+        uses: oNaiPs/secrets-to-env-action@v1
+        with:
+          secrets: ${{ toJSON(secrets) }}
+
+      - name: Write firebase options file
+        run: |
+          echo "$FIREBASE_OPTIONS" | base64 --decode > "${{ env.FIREBASE_OPTIONS_PATH }}"
+
+      - name: Set up JDK
+        uses: actions/setup-java@v5
+        with:
+          distribution: "adopt"
+          java-version: "17.x"
+
+      - name: Set up Flutter
+        uses: subosito/flutter-action@v2
+        with:
+          flutter-version: "3.41.6"
+          cache: true
+
+      - name: Install dependencies
+        run: flutter pub get
+
+      - name: Enable KVM
+        run: |
+          echo 'KERNEL=="kvm", GROUP="kvm", MODE="0666"' | \
+            sudo tee /etc/udev/rules.d/99-kvm4all.rules
+          sudo udevadm control --reload-rules && sudo udevadm trigger --name-match=kvm
+
+      - name: Run integration tests on Android emulator
+        uses: reactivecircus/android-emulator-runner@v2
+        with:
+          api-level: 34
+          target: google_apis
+          arch: x86_64
+          profile: pixel_6
+          # Notes on the script below:
+          #
+          # 1. Single-line `flutter test` invocation — earlier attempts used
+          #    YAML `|` block + bash `\<newline>` continuations, which got
+          #    re-interpreted by the action's `sh -c` invocation and produced
+          #    "Integration tests and unit tests cannot be run in a single
+          #    invocation." The single-line form is the canonical pattern
+          #    used by reactivecircus's own Flutter examples.
+          #
+          # 2. `-d emulator-5554` explicitly targets the emulator the action
+          #    booted (port 5554 is the default; matches the action's
+          #    `emulator-port: 5554` default). Without `-d`, Flutter
+          #    occasionally fails to auto-detect the device, leaving
+          #    `flutter test` to walk the path as host-VM unit tests, which
+          #    triggers the same mix-error because integration_test files
+          #    use IntegrationTestWidgetsFlutterBinding.
+          #
+          # 3. `flutter devices` runs first as a diagnostic — its output
+          #    appears in CI logs above any subsequent failure, so the
+          #    emulator-visibility question is answered without re-running.
+          #
+          # 4. SENTRY_DSN is a synthetic, non-routable test value — it makes
+          #    `_sentryDsn.isEmpty` false in logger_service.dart so
+          #    integration_test/logger_init_test.dart exercises the
+          #    `SentryFlutter.init` path + its catch branch. The Sentry
+          #    native SDK is channel-mocked in the test so no real network
+          #    traffic leaves the runner (PR #266 review, baz-reviewer
+          #    finding 1).
+          script: |
+            flutter devices
+            flutter test integration_test --coverage --coverage-path coverage/integration.info --dart-define=SENTRY_DSN=https://test@dsn.example.local/0 -d emulator-5554
+
+      - name: Enforce integration-test per-file coverage floors
+        run: dart run scripts/check_integration_coverage.dart
+
+      - name: Upload integration coverage report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: coverage-integration-lcov
+          path: coverage/integration.info
+
   build-web:
     runs-on: ubuntu-latest
     if: github.ref == 'refs/heads/main'

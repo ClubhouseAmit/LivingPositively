@@ -67,7 +67,15 @@ void main() {
     getIt.registerSingleton<AnalyticsService>(_NoopAnalytics());
   });
 
-  tearDown(() {
+  tearDown(() async {
+    // Drain any unawaited `saveImagePaths` futures spawned by deleteImage /
+    // deleteImages / getImage. The production code fires those without
+    // `await` (see lib/pages/FeelGood/image_picker_service_impl.dart lines
+    // 38, 61, 80), so they race against the tempDir cleanup below. Without
+    // this delay the post-test write would land in a now-deleted directory
+    // and the test framework reports it as an "after-test" failure on CI
+    // (where I/O timing is tighter than on the dev machine).
+    await Future<void>.delayed(const Duration(milliseconds: 50));
     TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger
         .setMockMethodCallHandler(channel, null);
     // Best-effort cleanup. Windows may still hold a handle on freshly-written
