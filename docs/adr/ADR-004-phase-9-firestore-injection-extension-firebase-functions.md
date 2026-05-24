@@ -217,26 +217,48 @@ Aggregate floor proposal: 92.24% − 3 pt cushion = 89% (up from 85%)
 
 ## Outcome
 
-(To be filled in once Phase 9 executes; mirrors the ADR-002 / ADR-003 § Outcome shape.)
+(Executed 2026-05-24 under PR #268. See `docs/coverage-status.md § Round 9`
+for the full execution record + post-review correction.)
 
-### What will change
+### What changed
 
-| Surface | Before (R8) | After (R9, projected) |
+| Surface | Before (R8) | After (R9, post-review) |
 |---|---|---|
-| `firebase_functions.dart` coverage | 68.1% | ~90% |
-| Unit global filtered | 85.88% | ~89.7% |
-| Aggregate global filtered | ~88.4% | ~92.2% |
+| `firebase_functions.dart` coverage | 68.1% (612/900) | **93.8%** (797/850) |
+| Unit global filtered | 85.88% (5576/6493) | **89.29%** (5754/6444) |
+| Aggregate global filtered | ~88.4% | ~91.8% (est.) |
 | Unit floor | 82% | **85%** |
 | Aggregate floor | 85% | **89%** |
-| Helpers with `firestore` named param | 14 | ~44 |
-| Test files in `test/Firebase/` | 6 | ~8–10 |
+| Helpers with `firestore` named param | 14 | 43 |
+| Test files in `test/Firebase/` | 6 | 7 (one new: `firebase_functions_phase9_test.dart`, 48 tests) |
 
 ### What stays unchanged
 
 - `integration_test/` pipeline and per-file floors.
 - `scripts/check_integration_coverage.dart`.
 - `coverage-aggregate` CI job shape.
-- All `lib/` files outside `firebase_functions.dart`. `git diff lib/` for Phase 9 should touch one file only.
+- All `lib/` files outside `firebase_functions.dart`. `git diff lib/` for
+  Phase 9 touches one file only.
+
+### Production-code exceptions sanctioned by this ADR
+
+Phase 9 added two narrow production-code touches in
+`lib/util/Firebase/firebase_functions.dart`:
+
+1. **Sub-decision A signature extension** — 29 helpers gained
+   `{FirebaseFirestore? firestore}` named param + `_fs ??` body
+   fallback, mirroring ADR-001's Round-1 precedent.
+2. **Post-review dead-code correction** — 9 raw lines removed (3 helpers
+   × 1 redundant `if (snapshot.docs.isEmpty) throw` block each) after
+   `baz-reviewer[bot]` flagged the duplicate-check pattern on PR #268.
+   The blocks were structurally dead (upstream guard already throws),
+   so removal is behaviour-preserving. Documented in
+   `coverage-status.md § Round 9 § "Post-review correction"`.
+
+Both touches share the established discipline shape: narrow, mechanical,
+behaviour-preserving. The dead-code removal was authorised inline rather
+than via a new ADR because it is strictly a *reduction* in the
+production diff — the opposite of scope expansion.
 
 ## Links
 

@@ -1115,24 +1115,75 @@ helpers' tests.
 
 ### Per-file deltas (vs Round 8)
 
-| File | R8 | R9 |
+| File | R8 | R9 (post-review) |
 |---|---|---|
-| `lib/util/Firebase/firebase_functions.dart` | 68.0% | **93.8%** (843/899) |
-| Global filtered coverage (unit) | 85.88% | **89.33%** (5800/6493) |
+| `lib/util/Firebase/firebase_functions.dart` | 68.0% (612/900) | **93.8%** (797/850) |
+| Global filtered coverage (unit) | 85.88% (5576/6493) | **89.29%** (5754/6444) |
 
-The 56 residual uncovered lines in `firebase_functions.dart` (899 − 843)
+The 53 residual uncovered lines in `firebase_functions.dart` (850 − 797)
 are concentrated in:
 
 - The unreachable `?? FirebaseFirestore.instance` right-hand sides on
   the helpers that have the named param (enumerated in Round 6, now
   applies to all 43 helpers).
-- Defensive `if (snapshot.docs.isEmpty) throw` branches in the multi-collection
-  `update*` helpers that don't have a third symmetric check path (some
-  helpers have 2 empty-checks for 2 collections; the third check on the
-  same collection variable is structurally dead — same code pattern
-  flagged in Round 6).
 - The `loadAppFromFirebase` switch arms that were already 100% in Round 4 — those
   are already covered, not residuals.
+
+(The previously-flagged "third symmetric check path" defensive-throw
+pattern was removed during the post-review correction below — those
+lines no longer exist.)
+
+### Post-review correction (PR #268 review, baz-reviewer 🔴 High finding)
+
+`baz-reviewer[bot]` flagged a 🔴 High-severity finding on PR #268 line 1108
+of `firebase_functions.dart`: `snapshot2.docs.isEmpty` is unguarded, can
+cause a `RangeError` if `FormPage-PhonesPage` is empty. Validation:
+
+- **Real defect (dead code in 3 helpers — fixed):** The duplicate
+  `if (snapshot.docs.isEmpty)` block IS a copy/paste artifact, in three
+  helpers, not just one:
+  - `updatePhoneFormTitles` (was line 1107)
+  - `updateFormDistractionsTitles` (was line 1245)
+  - `updateFormFeelBetterTitles` (was line 1270)
+
+  Each had a redundant second `snapshot.docs.isEmpty` check inserted
+  between fetching `snapshot2` and the real `snapshot2.docs.isEmpty`
+  guard. The blocks were structurally dead — the original
+  `snapshot.docs.isEmpty` guard upstream already throws, so the
+  duplicate could never fire. Removed (9 raw lines / 3 LF per helper).
+
+- **Consequence claim (RangeError) was NOT real:** Each of the 3 helpers
+  DOES already have a correct `snapshot2.docs.isEmpty` guard immediately
+  after the dead block. If `FormPage-*` is empty, that real guard throws
+  before any iteration — no `RangeError` path exists. The bot's severity
+  rating was misleading.
+
+- **Other `update*` helpers verified clean:** `updateFormDifficultEventsTitles`,
+  `updateFormMakeSaferTitles`, `updateFormSharePageTitles`,
+  `updatePhonePersonalPlanText`, and `updatePhonePageTitles` were each
+  scanned and confirmed to have no duplicate-check pattern.
+
+- **Fix narrative — fourth narrow ADR-004 exception:** This is the
+  fourth sanctioned production-code touch in the coverage initiative,
+  alongside ADR-001's `firestore` injection (Round 1, 14 helpers),
+  ADR-002 PR #266's `@visibleForTesting resetForTest()` (Round 7),
+  and ADR-004 Sub-decision A's named-param extension to 29 helpers
+  (Round 9 initial). The shape matches the established discipline:
+  narrow, mechanical, behaviour-preserving (dead-code removal IS
+  behaviour-preserving by definition). No new ADR needed; tracked
+  here as a post-review correction to Round 9.
+
+- **Dedup ask (`_fetchFormFieldMap` extraction) — deferred:** Same
+  disposition as PR #268 inline-comments #1 and #3 above. The dead-code
+  cleanup is the narrow correctness fix; the structural dedup is a
+  broader maintenance ask that deserves its own ADR.
+
+**Coverage impact:** `firebase_functions.dart` pct holds steady at 93.8%
+(797/850 vs 843/899 — same ratio, dead lines drop out of both numerator
+and denominator). Global unit pct: 89.33% → 89.29% (−0.04 pt, within
+noise; ~4.3 pt above the 85% floor). All 634 tests still pass without
+modification (the test suite never relied on the dead-code throws since
+they were unreachable).
 
 ### Floor ratchets
 

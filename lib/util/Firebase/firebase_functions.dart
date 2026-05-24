@@ -1103,10 +1103,6 @@ Future<Map<String, String>> updatePhoneFormTitles(
     throw Exception('No documents found in collection');
   }
   final snapshot2 = await _fs.collection('FormPage-PhonesPage').get();
-
-  if (snapshot.docs.isEmpty) {
-    throw Exception('No documents found in collection');
-  }
   if (snapshot2.docs.isEmpty) {
     throw Exception('No documents found in collection');
   }
@@ -1241,10 +1237,6 @@ Future<Map<String, String>> updateFormDistractionsTitles(
     throw Exception('No documents found in collection');
   }
   final snapshot2 = await _fs.collection('FormPage-Distractions').get();
-
-  if (snapshot.docs.isEmpty) {
-    throw Exception('No documents found in collection');
-  }
   if (snapshot2.docs.isEmpty) {
     throw Exception('No documents found in collection');
   }
@@ -1266,10 +1258,6 @@ Future<Map<String, String>> updateFormFeelBetterTitles(
     throw Exception('No documents found in collection');
   }
   final snapshot2 = await _fs.collection('FormPage-FeelBetter').get();
-
-  if (snapshot.docs.isEmpty) {
-    throw Exception('No documents found in collection');
-  }
   if (snapshot2.docs.isEmpty) {
     throw Exception('No documents found in collection');
   }
