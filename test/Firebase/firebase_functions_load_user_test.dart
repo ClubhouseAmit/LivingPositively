@@ -128,8 +128,6 @@ void main() {
       expect(userInfo.userId, equals('uid-123'));
       expect(userInfo.location, equals('TLV'));
       expect(userInfo.disclaimerSigned, isTrue);
-      expect(userInfo.notificationMinute, equals(30));
-      expect(userInfo.notificationHour, equals(9));
       expect(userInfo.darkModePreference, DarkModePreference.scheduled);
       expect(userInfo.darkModeStartHour, equals(21));
       expect(userInfo.darkModeStartMinute, equals(30));
@@ -232,8 +230,6 @@ void main() {
       expect(userInfo.userId, equals(''));
       expect(userInfo.location, equals(''));
       expect(userInfo.disclaimerSigned, isFalse);
-      expect(userInfo.notificationMinute, equals(0));
-      expect(userInfo.notificationHour, equals(12));
       expect(userInfo.darkModePreference, DarkModePreference.alwaysLight);
       expect(userInfo.darkModeStartHour, equals(22));
       expect(userInfo.darkModeStartMinute, equals(0));

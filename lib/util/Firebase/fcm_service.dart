@@ -1,7 +1,8 @@
 import 'dart:io';
 
 import 'package:flutter/foundation.dart' show kIsWeb;
-
+import 'package:flutter/foundation.dart'
+    show defaultTargetPlatform, kIsWeb, TargetPlatform, visibleForTesting;
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:firebase_messaging/firebase_messaging.dart';
@@ -30,9 +31,20 @@ class FcmService {
     debugPrint('[FcmService] $message');
   }
 
+  static bool supportsReminderSettings({
+    bool? isWebOverride,
+    TargetPlatform? platformOverride,
+  }) {
+    final isWeb = isWebOverride ?? kIsWeb;
+    if (isWeb) {
+      return false;
+    }
+    final platform = platformOverride ?? defaultTargetPlatform;
+    return platform == TargetPlatform.android;
+  }
+
   static Future<bool> hasPermission() async {
-    final settings =
-        await FirebaseMessaging.instance.getNotificationSettings();
+    final settings = await FirebaseMessaging.instance.getNotificationSettings();
     return settings.authorizationStatus == AuthorizationStatus.authorized ||
         settings.authorizationStatus == AuthorizationStatus.provisional;
   }

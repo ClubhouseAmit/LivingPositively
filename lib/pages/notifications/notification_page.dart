@@ -1,4 +1,4 @@
-// ignore_for_file: prefer_const_constructors
+﻿// ignore_for_file: prefer_const_constructors
 
 import 'package:flutter/material.dart';
 import 'package:permission_handler/permission_handler.dart';
@@ -6,6 +6,7 @@ import 'package:permission_handler/permission_handler.dart';
 import 'package:mazilon/l10n/app_localizations.dart';
 import 'package:mazilon/pages/auth/auth_page.dart';
 import 'package:mazilon/pages/notifications/notification_toggle_card.dart';
+import 'package:mazilon/pages/notifications/reminder_debug_recorder.dart';
 import 'package:mazilon/util/Firebase/fcm_scheduled_notification_service.dart';
 import 'package:mazilon/util/Firebase/fcm_service.dart';
 import 'package:mazilon/util/LP_extended_state.dart';
@@ -29,6 +30,7 @@ class _NotificationPageState extends LPExtendedState<NotificationPage>
     super.initState();
     WidgetsBinding.instance.addObserver(this);
     _checkPermission();
+    loadReminderDebugPanelUnlocked();
   }
 
   @override
@@ -66,6 +68,21 @@ class _NotificationPageState extends LPExtendedState<NotificationPage>
       typeId: 'default',
       hour: picked.hour,
       minute: picked.minute,
+    );
+  }
+
+  Future<void> _toggleDebugUnlock() async {
+    final unlocked = await toggleReminderDebugPanelUnlocked();
+    if (!mounted) return;
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(
+          unlocked
+              ? 'Reminder debug panel enabled'
+              : 'Reminder debug panel hidden',
+        ),
+        duration: const Duration(seconds: 2),
+      ),
     );
   }
 
@@ -112,25 +129,35 @@ class _NotificationPageState extends LPExtendedState<NotificationPage>
                       return _PermissionDeniedCard();
                     }
                     return NotificationToggleCard(
-                      emoji: "✨",
+                      emoji: "âœ¨",
                       badgeText: "LP",
-                      title: "מסר חיזוק יומי",
-                      subtitle: "ניצוץ יומי עדין של תקווה ונחמה, להאיר את הדרך",
-                      initialEnabled: userInfo.getNotificationPreference('default') != null,
-                      initialTime: userInfo.getNotificationPreference('default') == null
-                          ? null
-                          : TimeOfDay(
-                              hour: userInfo.getNotificationPreference('default')!.hour,
-                              minute: userInfo.getNotificationPreference('default')!.minute,
-                            ),
+                      title: "×ž×¡×¨ ×—×™×–×•×§ ×™×•×ž×™",
+                      subtitle: "× ×™×¦×•×¥ ×™×•×ž×™ ×¢×“×™×Ÿ ×©×œ ×ª×§×•×•×” ×•× ×—×ž×”, ×œ×”××™×¨ ××ª ×”×“×¨×š",
+                      initialEnabled:
+                          userInfo.getNotificationPreference('default') != null,
+                      initialTime:
+                          userInfo.getNotificationPreference('default') == null
+                              ? null
+                              : TimeOfDay(
+                                  hour: userInfo
+                                      .getNotificationPreference('default')!
+                                      .hour,
+                                  minute: userInfo
+                                      .getNotificationPreference('default')!
+                                      .minute,
+                                ),
                       onTimeSelected: (time) =>
                           _onPickedTime(time, appLocale, userInfo),
                       onToggle: (value) => _onToggle(value, userInfo),
                     );
                   },
                 ),
-                Text(
-                  appLocale!.notificationPageHeader(gender),
+                GestureDetector(
+                  behavior: HitTestBehavior.opaque,
+                  onLongPress: _toggleDebugUnlock,
+                  child: Text(
+                    appLocale!.notificationPageHeader(gender),
+                  ),
                 ),
               ],
             ),
@@ -197,7 +224,8 @@ class _PermissionDeniedCard extends StatefulWidget {
   State<_PermissionDeniedCard> createState() => _PermissionDeniedCardState();
 }
 
-class _PermissionDeniedCardState extends LPExtendedState<_PermissionDeniedCard> {
+class _PermissionDeniedCardState
+    extends LPExtendedState<_PermissionDeniedCard> {
   @override
   Widget build(BuildContext context) {
     return Container(
@@ -210,7 +238,8 @@ class _PermissionDeniedCardState extends LPExtendedState<_PermissionDeniedCard> 
       ),
       child: Column(
         children: [
-          const Icon(Icons.notifications_off_outlined, size: 40, color: Colors.grey),
+          const Icon(Icons.notifications_off_outlined,
+              size: 40, color: Colors.grey),
           const SizedBox(height: 12),
           Text(
             appLocale.notificationsPermissionDeniedTitle,
