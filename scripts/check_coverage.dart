@@ -70,7 +70,7 @@ const _tier2 = <String>{
   'lib/initialForm/toFormPage.dart',
 };
 
-const double _globalThreshold = 82.0; // ~85.9% as of round 6 (ADR-001)
+const double _globalThreshold = 85.0; // ~89.3% as of round 9 (ADR-004)
 const double _tier1Threshold = 50.0;
 const double _tier2Threshold = 40.0;
 
@@ -156,8 +156,7 @@ void main(List<String> args) {
     ..writeln('Files:    ${filtered.length} (excluded: ${excluded.length})')
     ..writeln(
         'Lines:    $totalHit / $totalLines = ${globalPct.toStringAsFixed(2)}%')
-    ..writeln(
-        'Tier 1 floor: ${_tier1Threshold.toStringAsFixed(0)}%   '
+    ..writeln('Tier 1 floor: ${_tier1Threshold.toStringAsFixed(0)}%   '
         'Tier 2 floor: ${_tier2Threshold.toStringAsFixed(0)}%   '
         'Global floor: ${_globalThreshold.toStringAsFixed(0)}%')
     ..writeln('===========================================');
