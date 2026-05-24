@@ -1,9 +1,10 @@
-// ignore_for_file: non_constant_identifier_names, avoid_print
+﻿// ignore_for_file: non_constant_identifier_names, avoid_print
 
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:get_it/get_it.dart';
 import 'package:mazilon/global_enums.dart';
+import 'package:mazilon/util/SignIn/popup_toast.dart';
 import 'package:mazilon/util/logger_service.dart';
 import 'package:mazilon/util/persistent_memory_service.dart';
 import 'package:mazilon/util/notification_preference.dart';
@@ -29,7 +30,7 @@ class FirebaseAuthService {
   final FirebaseAuth _auth;
 
   FirebaseAuthService(FirebaseApp app, {FirebaseAuth? auth})
-    : _auth = auth ?? FirebaseAuth.instanceFor(app: app);
+      : _auth = auth ?? FirebaseAuth.instanceFor(app: app);
 
   /// Test-only constructor that accepts a [FirebaseAuth] directly without
   /// going through a [FirebaseApp]. Production code should use the primary
@@ -439,8 +440,8 @@ Future<bool> loadAppInfoFromJson(
 
       Map<String, List<String>> wellnessVideos =
           (json['wellnessVideos'] as Map<String, dynamic>).map(
-            (key, value) => MapEntry(key, List<String>.from(value)),
-          );
+        (key, value) => MapEntry(key, List<String>.from(value)),
+      );
       /*List<Map<String, String>> wellnessVideos = (json['welnessVideos'] as List)
           .map((item) => Map<String, String>.from(item))
           .toList();*/

@@ -1,4 +1,4 @@
-// ignore_for_file: prefer_const_constructors
+﻿// ignore_for_file: prefer_const_constructors
 
 import 'package:flutter/material.dart';
 import 'package:mazilon/pages/notifications/time_picker.dart';
@@ -129,7 +129,7 @@ class _SetNotificationWidgetState
             ),
           ),
         ),
-        if (NotificationsService.supportsReminderSettings())
+        if (FcmService.supportsReminderSettings())
           ValueListenableBuilder<bool>(
             valueListenable: reminderDebugPanelUnlocked,
             builder: (context, unlocked, _) {
