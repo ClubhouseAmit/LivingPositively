@@ -1005,7 +1005,190 @@ None. `git diff lib/` is empty. Round 8 adds only:
 | `callbackDispatcher` / background Workmanager entry-point | Foreground integration tests cannot trigger background Workmanager callbacks | Background-worker test harness (e.g. Patrol background task driver) — explicitly out of ADR-002 scope |
 | `lib/util/Firebase/firebase_functions.dart` ~287 uncovered lines | Defensive/error branches in helpers without `firestore` named param; adding the param violates the no-production-change rule | Production refactor to extend the `firestore` injection pattern to ~30 more helpers — separate ADR |
 
-## Pattern established for future contributors
+## Round 9 — Phase 9 ADR-004 execution (firestore injection extension + qe-test-architect)
+
+Generated: 2026-05-24 — executes the path adopted in
+[`docs/adr/ADR-004-phase-9-firestore-injection-extension-firebase-functions.md`](adr/ADR-004-phase-9-firestore-injection-extension-firebase-functions.md).
+This round closes the largest remaining unit-pipeline gap from Round 8's
+still-deferred table (`firebase_functions.dart` ~287 uncovered lines) by
+extending the existing ADR-001 `firestore` named-param injection pattern
+to 29 additional helpers and dispatching `qe-test-architect` to author
+the corresponding unit tests against `FakeFirebaseFirestore`.
+
+### Headline
+
+| Metric | Round 8 | Round 9 | Change |
+|---|---|---|---|
+| Unit tests | 586 + 8 skipped | **634 + 8 skipped** | +48 |
+| Filtered global coverage (unit) | 85.88% | **89.33%** | +3.45 pts |
+| `lib/util/Firebase/firebase_functions.dart` | 68.0% | **93.8%** (843/899) | +25.8 pts |
+| Helpers with `firestore` named param | 14 | **43** | +29 |
+| Unit global floor | 82% | **85%** | +3 pts |
+| Aggregate global floor | 85% | **89%** | +4 pts |
+
+### What landed
+
+#### Production-code change — extend `firestore` injection pattern
+
+`lib/util/Firebase/firebase_functions.dart` — 29 helpers gained the
+optional `FirebaseFirestore? firestore` named param + the
+`final _fs = firestore ?? FirebaseFirestore.instance;` body fallback,
+mirroring the 14 helpers ADR-001 sanctioned in Round 1. **This is the
+third sanctioned production-code exception to the no-production-changes
+rule of the coverage initiative**, alongside ADR-001's Round-1
+`firestore` injection (14 helpers) and ADR-002 PR #266's
+`@visibleForTesting NotificationsService.resetForTest()` (1 method).
+All three exceptions share the same shape: narrow, mechanical,
+behavior-preserving for production paths, and necessary to reach a
+genuinely-unreachable test seam without rewriting the file.
+
+Helpers migrated (alphabetical within group):
+
+- **Single-doc reads from `homePage-titles`** (8 helpers):
+  `getJournalMainTitle`, `getJournalSeocndaryTitle`, `getTraitMainTitle`,
+  `getTraitSeocndaryTitle`, `getPersonalPlanMainTitle`,
+  `getPersonalPlanSecondaryTitle`, `getReminderMainTitle`,
+  `getReminderSeocndaryTitle`.
+- **Single-doc reads from other collections** (10 helpers):
+  `getPersonalInfo`, `getIntroductionFormFirstPage`,
+  `getIntroductionFormSecondPage`, `getIntroductionFormLastPage`,
+  `getJournalTitle`, `getGreetingString`, `getReturnToPlan`,
+  `getJournalPopUpText`, `getPositiveTraitsPopUpText`, `updateTest1`.
+- **`bool male`-parameterised reads** (3 helpers, signature becomes
+  `helperName(bool male, {FirebaseFirestore? firestore})`):
+  `getMainTitle`, `getContactsTitle`, `getEmergancyTitle`.
+- **`Warning` data-class returner** (1): `fetchWarnings`.
+- **Multi-collection `update*` queries** (7 helpers):
+  `updatePhoneFormTitles`, `updateFormDifficultEventsTitles`,
+  `updateFormDistractionsTitles`, `updateFormFeelBetterTitles`,
+  `updateFormMakeSaferTitles`, `updateFormSharePageTitles`,
+  `updatePhonePersonalPlanText`.
+
+`git diff lib/` for Phase 9 touches exactly one file. `dart analyze` is
+clean (the 48 info-level `no_leading_underscores_for_local_identifiers`
+messages on `_fs` are the same shape as the pre-existing 14 helpers and
+are accepted as part of the pattern).
+
+#### Test code — `test/Firebase/firebase_functions_phase9_test.dart` (48 tests)
+
+Authored end-to-end by `qe-test-architect` against the ADR-004 brief.
+Pure-Dart unit tests using `package:fake_cloud_firestore/fake_cloud_firestore.dart`
+as the seam — no platform channels, no widget scaffolding. Six `group(...)`
+blocks organize the tests by helper shape:
+
+1. **`homePage-titles` single-doc reads** (8 helpers × 1 happy-path test each).
+2. **Introduction-form helpers** (3 helpers — first/second/last page, each
+   asserting every keyed return field).
+3. **Other single-doc reads** (`getPersonalInfo`, `getJournalTitle`,
+   `getGreetingString`, `getReturnToPlan`, `getJournalPopUpText`,
+   `getPositiveTraitsPopUpText`, `updateTest1` — 7 helpers).
+4. **Gender-parameterised `PhonePage-titles` reads** (3 helpers × 2 cases
+   each for `male=true`/`male=false` ⇒ 6 tests).
+5. **`fetchWarnings`** (2 cases — multi-doc randomized selection + single-doc).
+6. **Multi-collection `update*` helpers** (7 helpers, each with a
+   happy-path test + 1-2 empty-collection throw-path tests asserting
+   `Exception('No documents found in collection')`).
+
+`flutter test test/Firebase/firebase_functions_phase9_test.dart` ⇒ all
+48 pass. `dart analyze` on the new file ⇒ `No issues found!`.
+
+The agent did NOT exercise the implicit `?? FirebaseFirestore.instance`
+fallback (doing so would hit the real Firestore SDK and fail with "no
+Firebase app") — the injection seam is validated by the happy-path test
+using the fake, which is the same convention used by the 14 pre-existing
+helpers' tests.
+
+### Per-file deltas (vs Round 8)
+
+| File | R8 | R9 |
+|---|---|---|
+| `lib/util/Firebase/firebase_functions.dart` | 68.0% | **93.8%** (843/899) |
+| Global filtered coverage (unit) | 85.88% | **89.33%** (5800/6493) |
+
+The 56 residual uncovered lines in `firebase_functions.dart` (899 − 843)
+are concentrated in:
+
+- The unreachable `?? FirebaseFirestore.instance` right-hand sides on
+  the helpers that have the named param (enumerated in Round 6, now
+  applies to all 43 helpers).
+- Defensive `if (snapshot.docs.isEmpty) throw` branches in the multi-collection
+  `update*` helpers that don't have a third symmetric check path (some
+  helpers have 2 empty-checks for 2 collections; the third check on the
+  same collection variable is structurally dead — same code pattern
+  flagged in Round 6).
+- The `loadAppFromFirebase` switch arms that were already 100% in Round 4 — those
+  are already covered, not residuals.
+
+### Floor ratchets
+
+- `scripts/check_coverage.dart` `_globalThreshold`: **82.0 → 85.0**
+  with updated comment noting "~89.3% as of round 9 (ADR-004)".
+- `scripts/check_aggregate_coverage.dart` `_aggregateFloor`: **85.0 →
+  89.0** with updated comment noting ADR-004 Phase 9 ratchet.
+
+Per-file `_perFileFloors` and tier-1/tier-2 thresholds in
+`check_coverage.dart` are **unchanged** — Phase 9 is global-floor-only.
+The `lib/AnalyticsService.dart` 85% per-file floor continues to depend
+on the CI dart-define merge step landed in Phase 6 (a local
+`flutter test --coverage` without the merge shows 36.4% for that file,
+documented as expected).
+
+### Aggregate floor — estimated post-merge
+
+Phase 9 only adds unit-pipeline tests; the integration pipeline is
+unchanged. The aggregate estimate:
+
+```
+Unit hits (R9):            5800 / 6493 = 89.33%
+Integration delta (R8):    +163 lines  (unchanged — same 4 files)
+Aggregate (R9 est):        5963 / 6493 = 91.84%
+Aggregate floor proposal:  91.84% − 3 pt headroom = 88.84% → 89%
+```
+
+The 3 pt headroom matches every prior ADR-001/002/003 ratchet step.
+First CI run on `tests/phase9-2026` will reveal the actual aggregate %
+once the merged lcov is built; if it differs from 91.84% by more than
+2 pts in either direction the floor will be revisited.
+
+### Production code changes — summary
+
+| Change | LOC | Justification |
+|---|---|---|
+| 29 helper signatures + body fallbacks in `firebase_functions.dart` | ~60 LOC across the helpers | ADR-004 § Decision; extends ADR-001's narrowly-sanctioned pattern; behaviour-preserving for production paths |
+| **No other `lib/` files modified** | 0 | `git diff lib/` outside `firebase_functions.dart` is empty |
+
+### `skip: true` tests
+
+No new skips. The 8 pre-existing skips from Round 1 (3 in
+`Journal_test.dart`, 5 in `menu_test.dart`) remain untouched.
+
+### Still deferred (post Phase 9)
+
+The list shrinks by one (the `firebase_functions.dart` ~287-line item is
+closed). The remaining accepted-risk items are unchanged from Round 8:
+
+| Item | Why still deferred | Unblock criterion |
+|---|---|---|
+| `main()` / `callbackDispatcher` / `initializeApp` direct coverage | Production-code `bootstrapApp()` extraction required (ADR-002 hard rule prohibits it without a new ADR) | Future ADR sanctioning `bootstrapApp()` extraction parallel to ADR-001's `firestore` injection precedent and ADR-004's extension of it |
+| Empty-DSN if-branch in `logger_service.dart` (lines 17-18) | Structurally dead in CI under `--dart-define=SENTRY_DSN=...` | Dual-invocation pattern-2 of ADR-001; benefit is ~1 line — revisit only if the aggregate floor strains the 3 pt headroom |
+| Outer catch branch in `logger_service.dart` (lines 29-31) | Sentry SDK swallows the channel `PlatformException` internally | Runtime-readable `_sentryDsn` (production change) — would require a new ADR |
+| iOS-specific notification paths | macOS runner costs 10× Linux CI minutes; no iOS-specific bug has motivated it | A new ADR justifying a macOS runner integration job |
+| `callbackDispatcher` / background Workmanager entry-point | Foreground integration tests cannot trigger background Workmanager callbacks | Background-worker test harness (e.g. Patrol background task driver) — explicitly out of ADR-002 scope |
+| `firebase_functions.dart` residual ~56 lines | Unreachable `?? FirebaseFirestore.instance` fallbacks (43 lines × 1 line each) + defensive triple-empty-checks (the third check is structurally dead in 4 update* helpers) | Test-side approach exhausted; would require either accepting those as dead lines or rewriting the helpers to not use the fallback shape (production rewrite — separate ADR) |
+
+### Tooling used
+
+- `qe-test-architect` (Agentic QE Fleet plugin) — sole tool used to
+  author the 48 new tests. Per its self-reported summary: pure-Dart
+  tests against `FakeFirebaseFirestore`, six logical groups, all
+  passing, `dart analyze` clean.
+
+This is the first round in the coverage initiative authored by an agent
+rather than by hand. The agent's output was reviewed against the ADR-004
+hard constraints (no `lib/` modifications, no platform-channel mocks,
+no skipped tests, analyzer clean) — all four held without iteration.
+
+
 
 1. **Real production widgets only.** Never duplicate a `lib/...dart` widget into `test/...dart` and test the duplicate. The pattern in `test/helpers/widget_test_scaffold.dart` is the only sanctioned shape: register fakes on GetIt, wrap in MultiProvider + MaterialApp + ScreenUtilInit.
 2. **Service layer fakes over mocks.** Implement the abstract `PersistentMemoryService` / `IncidentLoggerService` / `AnalyticsService` interfaces with simple in-memory recorders rather than reach for Mockito for these.

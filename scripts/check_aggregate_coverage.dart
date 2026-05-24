@@ -40,7 +40,7 @@ import '_lcov_parser.dart';
 const _unitLcovPath = 'coverage/lcov.info';
 const _integrationLcovPath = 'coverage/integration.info';
 
-const double _aggregateFloor = 85.0; // ADR-003
+const double _aggregateFloor = 89.0; // ADR-004 (Phase 9 ratchet)
 
 const _excludePatterns = <String>[
   r'lib/l10n/app_localizations.*\.dart$',
