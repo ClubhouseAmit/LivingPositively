@@ -15,7 +15,7 @@ import 'package:mazilon/util/Form/retrieveInformation.dart';
 import 'package:flutter/services.dart';
 import 'package:mazilon/util/LP_extended_state.dart';
 import 'package:mazilon/util/persistent_memory_service.dart';
-
+import "package:mazilon/util/Firebase/fcm_service.dart";
 import 'package:mazilon/pages/home.dart';
 import 'package:mazilon/pages/journal.dart';
 import 'package:mazilon/pages/phone.dart';
@@ -207,7 +207,7 @@ class _MenuState extends LPExtendedState<Menu> {
         });
       },
       onNotificationsPressed: () {
-        if (!NotificationsService.supportsReminderSettings()) {
+        if (!FcmService.supportsReminderSettings()) {
           return;
         }
         setState(() {

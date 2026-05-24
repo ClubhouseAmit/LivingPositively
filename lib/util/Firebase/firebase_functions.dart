@@ -4,6 +4,7 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:get_it/get_it.dart';
 import 'package:mazilon/global_enums.dart';
+import 'package:mazilon/util/SignIn/popup_toast.dart';
 import 'package:mazilon/util/logger_service.dart';
 import 'package:mazilon/util/persistent_memory_service.dart';
 import 'package:mazilon/util/notification_preference.dart';
@@ -24,7 +25,7 @@ class FirebaseAuthService {
   final FirebaseAuth _auth;
 
   FirebaseAuthService(FirebaseApp app, {FirebaseAuth? auth})
-    : _auth = auth ?? FirebaseAuth.instanceFor(app: app);
+      : _auth = auth ?? FirebaseAuth.instanceFor(app: app);
 
   /// Test-only constructor that accepts a [FirebaseAuth] directly without
   /// going through a [FirebaseApp]. Production code should use the primary
@@ -402,8 +403,8 @@ Future<bool> loadAppInfoFromJson(
 
       Map<String, List<String>> wellnessVideos =
           (json['wellnessVideos'] as Map<String, dynamic>).map(
-            (key, value) => MapEntry(key, List<String>.from(value)),
-          );
+        (key, value) => MapEntry(key, List<String>.from(value)),
+      );
       /*List<Map<String, String>> wellnessVideos = (json['welnessVideos'] as List)
           .map((item) => Map<String, String>.from(item))
           .toList();*/
@@ -817,28 +818,22 @@ Future<void> loadAppInformation(AppInformation appInfo) async {
 
 Future<String> getJournalMainTitle({FirebaseFirestore? firestore}) async {
   final _fs = firestore ?? FirebaseFirestore.instance;
-  DocumentSnapshot doc = await _fs
-      .collection('homePage-titles')
-      .doc('zzzzzzzzzzzzzzzzzzzy')
-      .get();
+  DocumentSnapshot doc =
+      await _fs.collection('homePage-titles').doc('zzzzzzzzzzzzzzzzzzzy').get();
   return doc.get('mainTitles');
 }
 
 Future<String> getJournalSeocndaryTitle({FirebaseFirestore? firestore}) async {
   final _fs = firestore ?? FirebaseFirestore.instance;
-  DocumentSnapshot doc = await _fs
-      .collection('homePage-titles')
-      .doc('zzzzzzzzzzzzzzzzzzzy')
-      .get();
+  DocumentSnapshot doc =
+      await _fs.collection('homePage-titles').doc('zzzzzzzzzzzzzzzzzzzy').get();
   return doc.get('secondaryTitle');
 }
 
 Future<String> getTraitMainTitle({FirebaseFirestore? firestore}) async {
   final _fs = firestore ?? FirebaseFirestore.instance;
-  DocumentSnapshot doc = await _fs
-      .collection('homePage-titles')
-      .doc('zzzzzzzzzzzzzzzzzzzx')
-      .get();
+  DocumentSnapshot doc =
+      await _fs.collection('homePage-titles').doc('zzzzzzzzzzzzzzzzzzzx').get();
   return doc.get('mainTitles');
 }
 
@@ -905,10 +900,8 @@ Future<Map<String, String>> getIntroductionFormLastPage({
 
 Future<String> getTraitSeocndaryTitle({FirebaseFirestore? firestore}) async {
   final _fs = firestore ?? FirebaseFirestore.instance;
-  DocumentSnapshot doc = await _fs
-      .collection('homePage-titles')
-      .doc('zzzzzzzzzzzzzzzzzzzx')
-      .get();
+  DocumentSnapshot doc =
+      await _fs.collection('homePage-titles').doc('zzzzzzzzzzzzzzzzzzzx').get();
   return doc.get('secondaryTitle');
 }
 
@@ -916,10 +909,8 @@ Future<Map<String, String>> getAllTraitsData({
   FirebaseFirestore? firestore,
 }) async {
   final _fs = firestore ?? FirebaseFirestore.instance;
-  DocumentSnapshot doc = await _fs
-      .collection('homePage-titles')
-      .doc('zzzzzzzzzzzzzzzzzzzx')
-      .get();
+  DocumentSnapshot doc =
+      await _fs.collection('homePage-titles').doc('zzzzzzzzzzzzzzzzzzzx').get();
   return {
     'mainTitle': doc.get('mainTitles'),
     'secondaryTitle-': doc.get('secondaryTitle'),
@@ -932,10 +923,8 @@ Future<Map<String, String>> getAllWarningData({
   FirebaseFirestore? firestore,
 }) async {
   final _fs = firestore ?? FirebaseFirestore.instance;
-  DocumentSnapshot doc = await _fs
-      .collection('homePage-titles')
-      .doc('zzzzzzzzzzzzzzzzzzzw')
-      .get();
+  DocumentSnapshot doc =
+      await _fs.collection('homePage-titles').doc('zzzzzzzzzzzzzzzzzzzw').get();
   return {
     'mainTitle': doc.get('mainTitles'),
     'secondaryTitle-': doc.get('secondaryTitle'),
@@ -946,10 +935,8 @@ Future<Map<String, String>> getAllWarningData({
 
 Future<String> getPersonalPlanMainTitle({FirebaseFirestore? firestore}) async {
   final _fs = firestore ?? FirebaseFirestore.instance;
-  DocumentSnapshot doc = await _fs
-      .collection('homePage-titles')
-      .doc('zzzzzzzzzzzzzzzzzzzv')
-      .get();
+  DocumentSnapshot doc =
+      await _fs.collection('homePage-titles').doc('zzzzzzzzzzzzzzzzzzzv').get();
   return doc.get('mainTitles');
 }
 
@@ -957,22 +944,18 @@ Future<String> getPersonalPlanSecondaryTitle({
   FirebaseFirestore? firestore,
 }) async {
   final _fs = firestore ?? FirebaseFirestore.instance;
-  DocumentSnapshot doc = await _fs
-      .collection('homePage-titles')
-      .doc('zzzzzzzzzzzzzzzzzzzv')
-      .get();
+  DocumentSnapshot doc =
+      await _fs.collection('homePage-titles').doc('zzzzzzzzzzzzzzzzzzzv').get();
   return doc.get('secondaryTitle');
 }
 
 Future<Warning> fetchWarnings({FirebaseFirestore? firestore}) async {
   final _fs = firestore ?? FirebaseFirestore.instance;
-  final QuerySnapshot result = await _fs
-      .collection('warning-suggestions')
-      .get();
+  final QuerySnapshot result =
+      await _fs.collection('warning-suggestions').get();
   final List<DocumentSnapshot> documents = result.docs;
-  List<String> warnings = documents
-      .map((doc) => doc.get('suggestions') as String)
-      .toList();
+  List<String> warnings =
+      documents.map((doc) => doc.get('suggestions') as String).toList();
   var rng = new Random();
   var randomNumber = rng.nextInt(warnings.length);
   String text = warnings[randomNumber];
@@ -1015,10 +998,8 @@ Future<String> getMainTitle(bool male, {FirebaseFirestore? firestore}) async {
   String docIdFemale = 'zzzzzzzzzzzzzzzzzzzx';
   String docId = male ? docIdMale : docIdFemale;
 
-  DocumentSnapshot doc = await _fs
-      .collection('PhonePage-titles')
-      .doc(docId)
-      .get();
+  DocumentSnapshot doc =
+      await _fs.collection('PhonePage-titles').doc(docId).get();
   return doc.get('mainTitle');
 }
 
@@ -1030,10 +1011,8 @@ Future<String> getContactsTitle(
   String docIdMale = 'zzzzzzzzzzzzzzzzzzzy';
   String docIdFemale = 'zzzzzzzzzzzzzzzzzzzx';
   String docId = male ? docIdMale : docIdFemale;
-  DocumentSnapshot doc = await _fs
-      .collection('PhonePage-titles')
-      .doc(docId)
-      .get();
+  DocumentSnapshot doc =
+      await _fs.collection('PhonePage-titles').doc(docId).get();
   return doc.get('contactsTitle');
 }
 
@@ -1045,19 +1024,15 @@ Future<String> getEmergancyTitle(
   String docIdMale = 'zzzzzzzzzzzzzzzzzzzy';
   String docIdFemale = 'zzzzzzzzzzzzzzzzzzzx';
   String docId = male ? docIdMale : docIdFemale;
-  DocumentSnapshot doc = await _fs
-      .collection('PhonePage-titles')
-      .doc(docId)
-      .get();
+  DocumentSnapshot doc =
+      await _fs.collection('PhonePage-titles').doc(docId).get();
   return doc.get('emergencyNumbersTitle');
 }
 
 Future<String> getJournalTitle({FirebaseFirestore? firestore}) async {
   final _fs = firestore ?? FirebaseFirestore.instance;
-  DocumentSnapshot doc = await _fs
-      .collection('Journal-title')
-      .doc('zzzzzzzzzzzzzzzzzzzy')
-      .get();
+  DocumentSnapshot doc =
+      await _fs.collection('Journal-title').doc('zzzzzzzzzzzzzzzzzzzy').get();
   return doc.get('title');
 }
 
@@ -1099,28 +1074,22 @@ Future<Map<String, String>> getReturnToPlan({
 
 Future<String> getReminderMainTitle({FirebaseFirestore? firestore}) async {
   final _fs = firestore ?? FirebaseFirestore.instance;
-  DocumentSnapshot doc = await _fs
-      .collection('homePage-titles')
-      .doc('zzzzzzzzzzzzzzzzzzzu')
-      .get();
+  DocumentSnapshot doc =
+      await _fs.collection('homePage-titles').doc('zzzzzzzzzzzzzzzzzzzu').get();
   return doc.get('mainTitles');
 }
 
 Future<String> getReminderSeocndaryTitle({FirebaseFirestore? firestore}) async {
   final _fs = firestore ?? FirebaseFirestore.instance;
-  DocumentSnapshot doc = await _fs
-      .collection('homePage-titles')
-      .doc('zzzzzzzzzzzzzzzzzzzu')
-      .get();
+  DocumentSnapshot doc =
+      await _fs.collection('homePage-titles').doc('zzzzzzzzzzzzzzzzzzzu').get();
   return doc.get('secondaryTitle');
 }
 
 Future<String> getJournalPopUpText({FirebaseFirestore? firestore}) async {
   final _fs = firestore ?? FirebaseFirestore.instance;
-  DocumentSnapshot doc = await _fs
-      .collection('Popups-texts')
-      .doc('zzzzzzzzzzzzzzzzzzzy')
-      .get();
+  DocumentSnapshot doc =
+      await _fs.collection('Popups-texts').doc('zzzzzzzzzzzzzzzzzzzy').get();
   return doc.get('thankYouPopupText');
 }
 
@@ -1128,10 +1097,8 @@ Future<String> getPositiveTraitsPopUpText({
   FirebaseFirestore? firestore,
 }) async {
   final _fs = firestore ?? FirebaseFirestore.instance;
-  DocumentSnapshot doc = await _fs
-      .collection('Popups-texts')
-      .doc('zzzzzzzzzzzzzzzzzzzy')
-      .get();
+  DocumentSnapshot doc =
+      await _fs.collection('Popups-texts').doc('zzzzzzzzzzzzzzzzzzzy').get();
   return doc.get('thankYouPopupText');
 }
 
@@ -1184,10 +1151,8 @@ Future<Map<String, String>> updateShareTexts({
   FirebaseFirestore? firestore,
 }) async {
   final _fs = firestore ?? FirebaseFirestore.instance;
-  final doc2 = await _fs
-      .collection('ShareTexts')
-      .doc('zzzzzzzzzzzzzzzzzzzy')
-      .get();
+  final doc2 =
+      await _fs.collection('ShareTexts').doc('zzzzzzzzzzzzzzzzzzzy').get();
 
   return {"emergency": doc2.get("emergency"), "regular": doc2.get("regular")};
 }

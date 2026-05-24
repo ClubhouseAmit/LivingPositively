@@ -2,11 +2,12 @@
 
 import 'dart:convert';
 
-import 'package:flutter/foundation.dart' show kIsWeb, defaultTargetPlatform, TargetPlatform;
+import 'package:flutter/foundation.dart'
+    show kIsWeb, defaultTargetPlatform, TargetPlatform;
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:mazilon/l10n/app_localizations.dart';
-import 'package:mazilon/pages/notifications/notification_service.dart';
+import 'package:mazilon/util/Firebase/fcm_service.dart';
 import 'package:mazilon/pages/notifications/reminder_debug_recorder.dart';
 import 'package:mazilon/util/Form/retrieveInformation.dart';
 import 'package:mazilon/util/userInformation.dart';
@@ -73,13 +74,13 @@ class _ReminderDebugPanelState extends State<ReminderDebugPanel> {
       final appLocale = AppLocalizations.of(context);
       if (appLocale == null) return;
       final quotes = retrieveInspirationalQuotes(appLocale, userInfo.gender);
-      await NotificationsService.initializeNotification(
+      /*  await NotificationsService.initializeNotification(
         quotes,
         userInfo.notificationHour,
         userInfo.notificationMinute,
         appLocale.notifyOnscheduledNotification,
         appLocale,
-      );
+      );*/
       await _refresh();
     } finally {
       if (mounted) setState(() => _busy = false);
@@ -118,8 +119,8 @@ class _ReminderDebugPanelState extends State<ReminderDebugPanel> {
   @override
   Widget build(BuildContext context) {
     final userInfo = context.watch<UserInformation>();
-    final scheduledTime =
-        '${userInfo.notificationHour.toString().padLeft(2, '0')}:${userInfo.notificationMinute.toString().padLeft(2, '0')}';
+    final scheduledTime = "9:30";
+    // '${userInfo.notificationHour.toString().padLeft(2, '0')}:${userInfo.notificationMinute.toString().padLeft(2, '0')}';
 
     return Theme(
       data: Theme.of(context).copyWith(dividerColor: Colors.transparent),

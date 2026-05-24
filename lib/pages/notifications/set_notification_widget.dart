@@ -8,7 +8,7 @@ import 'package:flutter/material.dart';
 import 'package:get_it/get_it.dart';
 import 'package:mazilon/global_enums.dart';
 import 'package:mazilon/l10n/app_localizations.dart';
-import 'package:mazilon/pages/notifications/notification_service.dart';
+import 'package:mazilon/util/Firebase/fcm_service.dart';
 import 'package:mazilon/pages/notifications/reminder_debug_panel.dart';
 import 'package:mazilon/pages/notifications/reminder_debug_recorder.dart';
 import 'package:mazilon/pages/notifications/time_picker.dart';
@@ -41,8 +41,8 @@ class _SetNotificationWidgetState
     super.initState();
     WidgetsBinding.instance.addPostFrameCallback((_) {
       final pref = context.read<UserInformation>().getNotificationPreference(
-        'default',
-      );
+            'default',
+          );
       if (pref != null) {
         setState(() {
           _currentHour = pref.hour;
@@ -79,11 +79,11 @@ class _SetNotificationWidgetState
             child: TextButton(
               onPressed: () =>
                   FcmScheduledNotificationService.registerNotification(
-                    context: context,
-                    typeId: 'default',
-                    hour: _currentHour,
-                    minute: _currentMinute,
-                  ),
+                context: context,
+                typeId: 'default',
+                hour: _currentHour,
+                minute: _currentMinute,
+              ),
               child: Text(
                 appLocale!.notificationSetTimeText(gender),
                 textAlign: TextAlign.center,
@@ -123,9 +123,9 @@ class _SetNotificationWidgetState
             child: TextButton(
               onPressed: () =>
                   FcmScheduledNotificationService.cancelNotification(
-                    context: context,
-                    typeId: 'default',
-                  ),
+                context: context,
+                typeId: 'default',
+              ),
               child: Text(
                 appLocale!.notificationCancelNotification(gender),
                 textAlign: TextAlign.center,
@@ -134,7 +134,7 @@ class _SetNotificationWidgetState
             ),
           ),
         ),
-        if (NotificationsService.supportsReminderSettings())
+        if (FcmService.supportsReminderSettings())
           ValueListenableBuilder<bool>(
             valueListenable: reminderDebugPanelUnlocked,
             builder: (context, unlocked, _) {

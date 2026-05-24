@@ -64,10 +64,10 @@ class _NotificationPageState extends LPExtendedState<NotificationPage>
     UserInformation userInfo,
   ) {
     FcmScheduledNotificationService.registerNotification(
-      context: context,
-      typeId: 'default',
-      hour: picked.hour,
-      minute: picked.minute,
+        context: context,
+        typeId: 'default',
+        hour: picked.hour,
+        minute: picked.minute);
     loadReminderDebugPanelUnlocked();
   }
 
@@ -131,21 +131,25 @@ class _NotificationPageState extends LPExtendedState<NotificationPage>
                       badgeText: "LP",
                       title: "מסר חיזוק יומי",
                       subtitle: "ניצוץ יומי עדין של תקווה ונחמה, להאיר את הדרך",
-                      initialEnabled: userInfo.getNotificationPreference('default') != null,
-                      initialTime: userInfo.getNotificationPreference('default') == null
-                          ? null
-                          : TimeOfDay(
-                              hour: userInfo.getNotificationPreference('default')!.hour,
-                              minute: userInfo.getNotificationPreference('default')!.minute,
-                            ),
+                      initialEnabled:
+                          userInfo.getNotificationPreference('default') != null,
+                      initialTime:
+                          userInfo.getNotificationPreference('default') == null
+                              ? null
+                              : TimeOfDay(
+                                  hour: userInfo
+                                      .getNotificationPreference('default')!
+                                      .hour,
+                                  minute: userInfo
+                                      .getNotificationPreference('default')!
+                                      .minute,
+                                ),
                       onTimeSelected: (time) =>
                           _onPickedTime(time, appLocale, userInfo),
                       onToggle: (value) => _onToggle(value, userInfo),
                     );
                   },
                 ),
-                Text(
-                  appLocale!.notificationPageHeader(gender),
                 GestureDetector(
                   behavior: HitTestBehavior.opaque,
                   onLongPress: _toggleDebugUnlock,
@@ -218,7 +222,8 @@ class _PermissionDeniedCard extends StatefulWidget {
   State<_PermissionDeniedCard> createState() => _PermissionDeniedCardState();
 }
 
-class _PermissionDeniedCardState extends LPExtendedState<_PermissionDeniedCard> {
+class _PermissionDeniedCardState
+    extends LPExtendedState<_PermissionDeniedCard> {
   @override
   Widget build(BuildContext context) {
     return Container(
@@ -231,7 +236,8 @@ class _PermissionDeniedCardState extends LPExtendedState<_PermissionDeniedCard> 
       ),
       child: Column(
         children: [
-          const Icon(Icons.notifications_off_outlined, size: 40, color: Colors.grey),
+          const Icon(Icons.notifications_off_outlined,
+              size: 40, color: Colors.grey),
           const SizedBox(height: 12),
           Text(
             appLocale.notificationsPermissionDeniedTitle,
