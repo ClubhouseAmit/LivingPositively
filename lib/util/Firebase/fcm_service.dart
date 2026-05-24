@@ -1,5 +1,7 @@
 import 'dart:io';
 
+import 'package:flutter/foundation.dart' show kIsWeb;
+
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:firebase_messaging/firebase_messaging.dart';
@@ -28,19 +30,28 @@ class FcmService {
     debugPrint('[FcmService] $message');
   }
 
+  static Future<bool> hasPermission() async {
+    final settings =
+        await FirebaseMessaging.instance.getNotificationSettings();
+    return settings.authorizationStatus == AuthorizationStatus.authorized ||
+        settings.authorizationStatus == AuthorizationStatus.provisional;
+  }
+
   static Future<void> initialize() async {
+    if (kIsWeb) return;
     if (_isInitialized) {
       _log('Already initialized, skipping.');
       return;
     }
     _isInitialized = true;
     _log('Initializing...');
-
+    _log("Asking permission");
     final settings = await FirebaseMessaging.instance.requestPermission(
       alert: true,
       badge: true,
       sound: true,
     );
+    _log("finished Asking permission");
     _log('Permission status: ${settings.authorizationStatus}');
     if (settings.authorizationStatus == AuthorizationStatus.denied) {
       _log('Permission denied — aborting initialization.');
@@ -55,15 +66,12 @@ class FcmService {
     );
     _log('Local notifications initialized.');
 
-    final uid = await _getOrCreateUid();
+    final uid = GetIt.instance<FirebaseAuth>().currentUser?.uid;
     final token = await FirebaseMessaging.instance.getToken();
-
-    final idToken = await GetIt.instance<FirebaseAuth>().currentUser?.getIdToken();
 
     _log('=== FCM Ready ===');
     _log('UID       : $uid');
     _log('FCM Token : $token');
-    _log('ID Token  : $idToken');
     _log('=================');
 
     if (uid != null && token != null) await _saveTokenToFirestore(uid, token);
@@ -82,19 +90,14 @@ class FcmService {
     _log('Initialization complete.');
   }
 
-  static Future<String?> _getOrCreateUid() async {
-    try {
-      final auth = GetIt.instance<FirebaseAuth>();
-      if (auth.currentUser == null) {
-        _log('No existing auth user — signing in anonymously...');
-        await auth.signInAnonymously();
-      } else {
-        _log('Existing anonymous user: ${auth.currentUser!.uid}');
-      }
-      return auth.currentUser?.uid;
-    } catch (e) {
-      _log('Anonymous sign-in failed (offline?): $e');
-      return null;
+  // Called after a successful sign-in so the new UID is stored with its FCM token.
+  static Future<void> onUserSignedIn() async {
+    if (kIsWeb) return;
+    final uid = GetIt.instance<FirebaseAuth>().currentUser?.uid;
+    final token = await FirebaseMessaging.instance.getToken();
+    if (uid != null && token != null) {
+      _log('Saving token after sign-in for $uid');
+      await _saveTokenToFirestore(uid, token);
     }
   }
 
@@ -102,10 +105,7 @@ class FcmService {
       String deviceId, String token) async {
     _log('Saving token to Firestore for device $deviceId...');
     try {
-      await FirebaseFirestore.instance
-          .collection('devices')
-          .doc(deviceId)
-          .set({
+      await FirebaseFirestore.instance.collection('devices').doc(deviceId).set({
         'fcmToken': token,
         'platform': Platform.isAndroid ? 'android' : 'ios',
         'updatedAt': FieldValue.serverTimestamp(),
@@ -125,7 +125,8 @@ class FcmService {
     FirebaseMessaging.onMessage.listen((RemoteMessage message) async {
       final title = message.notification?.title ?? 'Living Positively';
       final body = message.notification?.body ?? '';
-      _log('Foreground message received — title: "$title", body: "$body", data: ${message.data}');
+      _log(
+          'Foreground message received — title: "$title", body: "$body", data: ${message.data}');
       await _localNotifications.show(
         id: 1,
         title: title,
@@ -145,7 +146,8 @@ class FcmService {
   }
 
   static void handleInitialMessage(RemoteMessage message) {
-    _log('App launched from terminated state via notification — data: ${message.data}');
+    _log(
+        'App launched from terminated state via notification — data: ${message.data}');
     _handleNotificationTap(message);
   }
 

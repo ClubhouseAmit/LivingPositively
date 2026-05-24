@@ -87,6 +87,8 @@ dependencies:
   upgrader: ^13.4.0
   country_code_picker: ^3.4.1
   flutter_svg: ^2.0.10+1
+  google_sign_in: ^6.2.1
+  sign_in_with_apple: ^6.1.1
 dev_dependencies:
   flutter_test:
     sdk: flutter
