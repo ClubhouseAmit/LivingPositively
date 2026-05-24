@@ -21,7 +21,10 @@ class UserInformation with ChangeNotifier {
   List<String> feelBetter;
   List<String> distractions;
   bool loggedIn;
+  bool authDecisionMade;
   String userId;
+  String email;
+  String displayName;
   Map<String, NotificationPreference> notificationPreferences;
   Map<String, List<String>> thanks;
   PersistentMemoryService service; // Get the persistent memory service instance
@@ -42,7 +45,10 @@ class UserInformation with ChangeNotifier {
     this.distractions = const [],
     this.disclaimerSigned = false,
     this.loggedIn = false,
+    this.authDecisionMade = false,
     this.userId = '',
+    this.email = '',
+    this.displayName = '',
     PersistentMemoryService? service,
   }) : service = service ?? GetIt.instance<PersistentMemoryService>();
 
@@ -59,7 +65,10 @@ class UserInformation with ChangeNotifier {
     feelBetter = [];
     distractions = [];
     loggedIn = false;
+    authDecisionMade = false;
     userId = '';
+    email = '';
+    displayName = '';
     thanks = {};
     positiveTraits = [];
     localeName = locale;
@@ -134,6 +143,22 @@ class UserInformation with ChangeNotifier {
 
   void updateLoggedIn(bool value) {
     loggedIn = value;
+    notifyListeners();
+  }
+
+  void updateAuthDecisionMade(bool value) {
+    authDecisionMade = value;
+    service.setItem('authDecisionMade', PersistentMemoryType.Bool, value);
+    notifyListeners();
+  }
+
+  void updateEmail(String value) {
+    email = value;
+    notifyListeners();
+  }
+
+  void updateDisplayName(String value) {
+    displayName = value;
     notifyListeners();
   }
 

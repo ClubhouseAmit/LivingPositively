@@ -3862,4 +3862,112 @@ class AppLocalizationsAr extends AppLocalizations {
     );
     return '$_temp0';
   }
+
+  @override
+  String get notificationsPermissionDeniedTitle => 'الإشعارات محظورة';
+
+  @override
+  String get notificationsPermissionDeniedBody =>
+      'لتلقي التذكيرات، يرجى السماح بالإشعارات في إعدادات جهازك';
+
+  @override
+  String get notificationsOpenSettings => 'فتح الإعدادات';
+
+  @override
+  String get authWelcomeTitle => 'أهلاً وسهلاً';
+
+  @override
+  String get authLoginTab => 'تسجيل الدخول';
+
+  @override
+  String get authSignupTab => 'إنشاء حساب';
+
+  @override
+  String get authSkip => 'تخطي في الوقت الحالي';
+
+  @override
+  String get authEmailHint => 'عنوان البريد الإلكتروني';
+
+  @override
+  String get authPasswordHint => 'كلمة المرور';
+
+  @override
+  String get authConfirmPasswordHint => 'تأكيد كلمة المرور';
+
+  @override
+  String get authNameHint => 'الاسم الكامل';
+
+  @override
+  String get authLoginButton => 'تسجيل الدخول';
+
+  @override
+  String get authSignupButton => 'إنشاء حساب';
+
+  @override
+  String get authForgotPassword => 'هل نسيت كلمة المرور؟';
+
+  @override
+  String get authOr => 'أو';
+
+  @override
+  String get authGoogleButton => 'المتابعة مع Google';
+
+  @override
+  String get authAppleButton => 'المتابعة مع Apple';
+
+  @override
+  String get authErrorInvalidEmail => 'عنوان البريد الإلكتروني غير صالح';
+
+  @override
+  String get authErrorWeakPassword =>
+      'يجب أن تحتوي كلمة المرور على 6 أحرف على الأقل';
+
+  @override
+  String get authErrorPasswordMismatch => 'كلمتا المرور غير متطابقتين';
+
+  @override
+  String get authErrorUserNotFound =>
+      'لم يتم العثور على حساب بهذا البريد الإلكتروني';
+
+  @override
+  String get authErrorWrongPassword => 'كلمة المرور غير صحيحة';
+
+  @override
+  String get authErrorEmailInUse => 'يوجد حساب بالفعل بهذا البريد الإلكتروني';
+
+  @override
+  String get authErrorGeneric => 'حدث خطأ. يرجى المحاولة مرة أخرى.';
+
+  @override
+  String get authForgotPasswordTitle => 'إعادة تعيين كلمة المرور';
+
+  @override
+  String get authForgotPasswordHint => 'أدخل عنوان بريدك الإلكتروني';
+
+  @override
+  String get authForgotPasswordButton => 'إرسال رابط إعادة التعيين';
+
+  @override
+  String get authForgotPasswordSuccess =>
+      'تحقق من بريدك الإلكتروني للحصول على رابط إعادة التعيين';
+
+  @override
+  String get authSignOut => 'تسجيل الخروج';
+
+  @override
+  String get authSignOutConfirmTitle => 'تسجيل الخروج؟';
+
+  @override
+  String get authSignOutConfirmBody =>
+      'ستحتاج إلى تسجيل الدخول مرة أخرى للوصول إلى جميع الميزات.';
+
+  @override
+  String get authNotSignedInTitle => 'سجّل دخولك لتفعيل الإشعارات';
+
+  @override
+  String get authNotSignedInBody =>
+      'أنشئ حساباً أو سجّل دخولك لإعداد تذكيرات يومية.';
+
+  @override
+  String get authNotSignedInButton => 'تسجيل الدخول';
 }

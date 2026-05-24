@@ -4,6 +4,7 @@ import 'package:get_it/get_it.dart';
 import 'package:mazilon/Locale/locale_service.dart';
 import 'package:mazilon/global_enums.dart';
 import 'package:mazilon/pages/SignIn_Pages/firstPage.dart';
+import 'package:mazilon/util/Firebase/auth_service.dart';
 import 'package:mazilon/util/Form/formPagePhoneModel.dart';
 
 import 'package:mazilon/pages/FeelGood/image_picker_service_impl.dart';
@@ -82,12 +83,41 @@ class _UserSettingsState extends LPExtendedState<UserSettings> {
     }
   }
 
+  Future<void> _signOut(UserInformation userInfo) async {
+    await AuthService.signOut();
+    userInfo.updateLoggedIn(false);
+    userInfo.updateAuthDecisionMade(false);
+    userInfo.updateEmail('');
+    userInfo.updateDisplayName('');
+
+    PersistentMemoryService service = GetIt.instance<PersistentMemoryService>();
+    final enteredBeforeValue =
+        await service.getItem("enteredBefore", PersistentMemoryType.Bool) ??
+            false;
+    final hasFilledValue =
+        await service.getItem("hasFilled", PersistentMemoryType.Bool) ?? false;
+
+    if (mounted) {
+      Navigator.of(context).pushAndRemoveUntil(
+        MaterialPageRoute(
+          builder: (context) => FirstPage(
+            phonePageData: widget.phonePageData,
+            firsttime: !enteredBeforeValue,
+            hasFilled: hasFilledValue,
+            changeLocale: widget.changeLocale,
+          ),
+        ),
+        (Route<dynamic> route) => false,
+      );
+    }
+  }
+
   //remove log-in data and reset all data that user has filled in the app:
   Future<void> resetData(UserInformation userInfo) async {
     LocaleService localeService = GetIt.instance<LocaleService>();
     PersistentMemoryService service = GetIt.instance<
         PersistentMemoryService>(); // Get the persistent memory service instance
-
+    _signOut(userInfo);
     await service.reset(); // Reset the persistent memory service
     var enteredBeforeValue =
         await service.getItem("enteredBefore", PersistentMemoryType.Bool);
@@ -216,7 +246,7 @@ class _UserSettingsState extends LPExtendedState<UserSettings> {
                     null,
                     60),
                 SizedBox(
-                  height: MediaQuery.of(context).size.height * 0.05,
+                  height: MediaQuery.of(context).size.height * 0.02,
                 ),
                 Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
@@ -371,7 +401,7 @@ class _UserSettingsState extends LPExtendedState<UserSettings> {
                   ],
                 ),
                 SizedBox(
-                  height: MediaQuery.of(context).size.height * 0.1,
+                  height: MediaQuery.of(context).size.height * 0.04,
                 ),
                 ConfirmationButton(context, () {
                   FocusScope.of(context).unfocus();
@@ -412,7 +442,7 @@ class _UserSettingsState extends LPExtendedState<UserSettings> {
                               child: Column(
                                 children: [
                                   SizedBox(
-                                    height: 10,
+                                    height: 8,
                                   ),
                                   // text on the top of the form
                                   myAutoSizedText(
@@ -473,6 +503,35 @@ class _UserSettingsState extends LPExtendedState<UserSettings> {
                       });
                 }, appLocale!.userSettingsReset(gender),
                     myTextStyle.copyWith(fontSize: 15.sp)),
+                if (userInfoProvider.loggedIn) ...[
+                  const SizedBox(height: 8),
+                  TextButton(
+                    onPressed: () => showDialog(
+                      context: context,
+                      builder: (ctx) => AlertDialog(
+                        title: Text(appLocale!.authSignOutConfirmTitle),
+                        content: Text(appLocale!.authSignOutConfirmBody),
+                        actions: [
+                          TextButton(
+                            onPressed: () => Navigator.pop(ctx),
+                            child: Text(appLocale!.closeButton(gender)),
+                          ),
+                          TextButton(
+                            onPressed: () {
+                              Navigator.pop(ctx);
+                              _signOut(userInfoProvider);
+                            },
+                            child: Text(appLocale!.authSignOut,
+                                style: const TextStyle(color: Colors.red)),
+                          ),
+                        ],
+                      ),
+                    ),
+                    child: Text(appLocale!.authSignOut,
+                        style: TextStyle(
+                            color: Colors.red.shade400, fontSize: 15.sp)),
+                  ),
+                ],
                 const SizedBox(height: 20)
               ],
             ),

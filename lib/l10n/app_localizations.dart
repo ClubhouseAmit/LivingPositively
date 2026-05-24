@@ -2013,6 +2013,210 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'{gender,select,male{Your location is only used in order to tailor the SOS numbers to your country.} female{Your location is only used in order to tailor the SOS numbers to your country.} other{Your location is only used in order to tailor the SOS numbers to your country.}}'**
   String locationDisclaimer(String gender);
+
+  ///
+  ///
+  /// In en, this message translates to:
+  /// **'Notifications Blocked'**
+  String get notificationsPermissionDeniedTitle;
+
+  ///
+  ///
+  /// In en, this message translates to:
+  /// **'To receive reminders, allow notifications in your device settings'**
+  String get notificationsPermissionDeniedBody;
+
+  ///
+  ///
+  /// In en, this message translates to:
+  /// **'Open Settings'**
+  String get notificationsOpenSettings;
+
+  ///
+  ///
+  /// In en, this message translates to:
+  /// **'Welcome'**
+  String get authWelcomeTitle;
+
+  ///
+  ///
+  /// In en, this message translates to:
+  /// **'Sign In'**
+  String get authLoginTab;
+
+  ///
+  ///
+  /// In en, this message translates to:
+  /// **'Sign Up'**
+  String get authSignupTab;
+
+  ///
+  ///
+  /// In en, this message translates to:
+  /// **'Skip for now'**
+  String get authSkip;
+
+  ///
+  ///
+  /// In en, this message translates to:
+  /// **'Email address'**
+  String get authEmailHint;
+
+  ///
+  ///
+  /// In en, this message translates to:
+  /// **'Password'**
+  String get authPasswordHint;
+
+  ///
+  ///
+  /// In en, this message translates to:
+  /// **'Confirm password'**
+  String get authConfirmPasswordHint;
+
+  ///
+  ///
+  /// In en, this message translates to:
+  /// **'Full name'**
+  String get authNameHint;
+
+  ///
+  ///
+  /// In en, this message translates to:
+  /// **'Sign In'**
+  String get authLoginButton;
+
+  ///
+  ///
+  /// In en, this message translates to:
+  /// **'Create Account'**
+  String get authSignupButton;
+
+  ///
+  ///
+  /// In en, this message translates to:
+  /// **'Forgot password?'**
+  String get authForgotPassword;
+
+  ///
+  ///
+  /// In en, this message translates to:
+  /// **'or'**
+  String get authOr;
+
+  ///
+  ///
+  /// In en, this message translates to:
+  /// **'Continue with Google'**
+  String get authGoogleButton;
+
+  ///
+  ///
+  /// In en, this message translates to:
+  /// **'Continue with Apple'**
+  String get authAppleButton;
+
+  ///
+  ///
+  /// In en, this message translates to:
+  /// **'Invalid email address'**
+  String get authErrorInvalidEmail;
+
+  ///
+  ///
+  /// In en, this message translates to:
+  /// **'Password must be at least 6 characters'**
+  String get authErrorWeakPassword;
+
+  ///
+  ///
+  /// In en, this message translates to:
+  /// **'Passwords don\'t match'**
+  String get authErrorPasswordMismatch;
+
+  ///
+  ///
+  /// In en, this message translates to:
+  /// **'No account found with this email'**
+  String get authErrorUserNotFound;
+
+  ///
+  ///
+  /// In en, this message translates to:
+  /// **'Incorrect password'**
+  String get authErrorWrongPassword;
+
+  ///
+  ///
+  /// In en, this message translates to:
+  /// **'An account with this email already exists'**
+  String get authErrorEmailInUse;
+
+  ///
+  ///
+  /// In en, this message translates to:
+  /// **'An error occurred. Please try again.'**
+  String get authErrorGeneric;
+
+  ///
+  ///
+  /// In en, this message translates to:
+  /// **'Reset Password'**
+  String get authForgotPasswordTitle;
+
+  ///
+  ///
+  /// In en, this message translates to:
+  /// **'Enter your email address'**
+  String get authForgotPasswordHint;
+
+  ///
+  ///
+  /// In en, this message translates to:
+  /// **'Send Reset Link'**
+  String get authForgotPasswordButton;
+
+  ///
+  ///
+  /// In en, this message translates to:
+  /// **'Check your email for a reset link'**
+  String get authForgotPasswordSuccess;
+
+  ///
+  ///
+  /// In en, this message translates to:
+  /// **'Sign Out'**
+  String get authSignOut;
+
+  ///
+  ///
+  /// In en, this message translates to:
+  /// **'Sign Out?'**
+  String get authSignOutConfirmTitle;
+
+  ///
+  ///
+  /// In en, this message translates to:
+  /// **'You will need to sign in again to access all features.'**
+  String get authSignOutConfirmBody;
+
+  ///
+  ///
+  /// In en, this message translates to:
+  /// **'Sign In to Enable Notifications'**
+  String get authNotSignedInTitle;
+
+  ///
+  ///
+  /// In en, this message translates to:
+  /// **'Create an account or sign in to set up daily reminders.'**
+  String get authNotSignedInBody;
+
+  ///
+  ///
+  /// In en, this message translates to:
+  /// **'Sign In'**
+  String get authNotSignedInButton;
 }
 
 class _AppLocalizationsDelegate

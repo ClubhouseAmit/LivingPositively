@@ -3855,4 +3855,109 @@ class AppLocalizationsHe extends AppLocalizations {
     );
     return '$_temp0';
   }
+
+  @override
+  String get notificationsPermissionDeniedTitle => 'תזכורות חסומות';
+
+  @override
+  String get notificationsPermissionDeniedBody =>
+      'כדי לקבל תזכורות, יש לאפשר תזכורות בהגדרות המכשיר';
+
+  @override
+  String get notificationsOpenSettings => 'הגדרות';
+
+  @override
+  String get authWelcomeTitle => 'ברוכים הבאים';
+
+  @override
+  String get authLoginTab => 'התחברות';
+
+  @override
+  String get authSignupTab => 'הרשמה';
+
+  @override
+  String get authSkip => 'דילוג לעת עתה';
+
+  @override
+  String get authEmailHint => 'כתובת אימייל';
+
+  @override
+  String get authPasswordHint => 'Password';
+
+  @override
+  String get authConfirmPasswordHint => 'אימות סיסמה';
+
+  @override
+  String get authNameHint => 'שם מלא';
+
+  @override
+  String get authLoginButton => 'התחברות';
+
+  @override
+  String get authSignupButton => 'יצירת חשבון';
+
+  @override
+  String get authForgotPassword => 'שכחת סיסמה?';
+
+  @override
+  String get authOr => 'או';
+
+  @override
+  String get authGoogleButton => 'המשך עם Google';
+
+  @override
+  String get authAppleButton => 'המשך עם Apple';
+
+  @override
+  String get authErrorInvalidEmail => 'כתובת אימייל לא תקינה';
+
+  @override
+  String get authErrorWeakPassword => 'הסיסמה חייבת להכיל לפחות 6 תווים';
+
+  @override
+  String get authErrorPasswordMismatch => 'הסיסמאות אינן תואמות';
+
+  @override
+  String get authErrorUserNotFound => 'לא נמצא חשבון עם כתובת אימייל זו';
+
+  @override
+  String get authErrorWrongPassword => 'סיסמה שגויה';
+
+  @override
+  String get authErrorEmailInUse => 'כבר קיים חשבון עם כתובת אימייל זו';
+
+  @override
+  String get authErrorGeneric => 'אירעה שגיאה. נסו שנית.';
+
+  @override
+  String get authForgotPasswordTitle => 'איפוס סיסמה';
+
+  @override
+  String get authForgotPasswordHint => 'הכניסו כתובת אימייל';
+
+  @override
+  String get authForgotPasswordButton => 'לקבלת קישור לאיפוס';
+
+  @override
+  String get authForgotPasswordSuccess => 'בידקו את תיבת הדואר לקישור איפוס';
+
+  @override
+  String get authSignOut => 'התנתקות';
+
+  @override
+  String get authSignOutConfirmTitle => 'להתנתק?';
+
+  @override
+  String get authSignOutConfirmBody =>
+      'יהיה עליך להתחבר שוב כדי לגשת לכל התכונות.';
+
+  @override
+  String get authNotSignedInTitle => 'יש להתחבר כדי להפעיל תזכורות';
+
+  @override
+  String get authNotSignedInBody =>
+      'בכדי להפעיל את התזכורות, יש להתחבר לחשבון.';
+
+  @override
+  String get authNotSignedInButton => 'התחברות';
 }

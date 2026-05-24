@@ -1,6 +1,7 @@
 // ignore_for_file: non_constant_identifier_names, avoid_print
 
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:get_it/get_it.dart';
 import 'package:mazilon/global_enums.dart';
 import 'package:mazilon/util/logger_service.dart';
@@ -32,6 +33,7 @@ Future<void> loadUserInformation(
     'gender': service.getItem("gender", PersistentMemoryType.String),
     'binary': service.getItem("binary", PersistentMemoryType.Bool),
     'loggedIn': service.getItem("loggedIn", PersistentMemoryType.Bool),
+    'authDecisionMade': service.getItem("authDecisionMade", PersistentMemoryType.Bool),
     'age': service.getItem("age", PersistentMemoryType.String),
     'userId': service.getItem("userId", PersistentMemoryType.String),
     'difficultEvents': service.getItem(
@@ -62,8 +64,13 @@ Future<void> loadUserInformation(
   userInfo.updateGender(data['gender'] ?? '');
   userInfo.updateBinary(data['binary'] ?? false);
   userInfo.updateLoggedIn(data['loggedIn'] ?? false);
+  userInfo.updateAuthDecisionMade(data['authDecisionMade'] ?? false);
   userInfo.updateAge(data['age'] ?? '');
   userInfo.updateUserId(data['userId'] ?? '');
+
+  final currentUser = FirebaseAuth.instance.currentUser;
+  userInfo.updateEmail(currentUser?.email ?? '');
+  userInfo.updateDisplayName(currentUser?.displayName ?? '');
 
   userInfo.updateDifficultEvents(
       (TypeUtils.castToStringList(data['difficultEvents'])));
