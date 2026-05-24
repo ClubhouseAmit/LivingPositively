@@ -214,6 +214,67 @@ jobs:
           name: coverage-integration-lcov
           path: coverage/integration.info
 
+  coverage-aggregate:
+    # Phase 8 (ADR-003): aggregate coverage gate — merges unit lcov and
+    # integration lcov, enforces 85% global floor on the union.
+    #
+    # Runs AFTER both build-android and integration-test succeed.  If either
+    # upstream job fails, GitHub Actions skips this job automatically via the
+    # needs: dependency — correct behaviour, because a failing upstream gate
+    # means the aggregate merge would operate on a stale or absent artifact.
+    #
+    # The existing gates are UNCHANGED:
+    #   build-android → check_coverage.dart          (82% unit floor)
+    #   integration-test → check_integration_coverage.dart  (per-file floors)
+    # This job is purely additive; removing it restores the Phase 7 state.
+    runs-on: ubuntu-latest
+    needs: [build-android, integration-test]
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Flutter
+        uses: subosito/flutter-action@v2
+        with:
+          flutter-version: "3.41.6"
+          cache: true
+
+      - name: Install dependencies
+        run: flutter pub get
+
+      - name: Download unit coverage artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: coverage-lcov
+          path: coverage
+
+      - name: Download integration coverage artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: coverage-integration-lcov
+          path: coverage
+
+      - name: Merge unit and integration lcov files
+        # Merges coverage/lcov.info (unit) and coverage/integration.info (intg)
+        # into coverage/aggregate.info by taking the max hit-count per line —
+        # same semantics as the ADR-001 Phase-6 merge step.  Output path is
+        # distinct from both inputs so neither upstream gate is clobbered.
+        run: dart run scripts/merge_lcov.dart coverage/aggregate.info coverage/lcov.info coverage/integration.info
+
+      - name: Enforce aggregate coverage gate
+        # check_aggregate_coverage.dart reads coverage/lcov.info AND
+        # coverage/integration.info directly (parseLcovInputs), applies the
+        # same exclude list as check_coverage.dart, and enforces the 85%
+        # aggregate global floor (ADR-003 § Floor-value derivation).
+        run: dart run scripts/check_aggregate_coverage.dart
+
+      - name: Upload aggregate coverage report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: coverage-aggregate-lcov
+          path: coverage/aggregate.info
+
   build-web:
     runs-on: ubuntu-latest
     if: github.ref == 'refs/heads/main'

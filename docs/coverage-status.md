@@ -876,6 +876,122 @@ deferred — they have no execution outcome to record:
 - Patrol or other native-dialog frameworks.
 - Increasing the existing 82% unit-pipeline global floor.
 
+## Round 8 — Phase 8 ADR-003 execution (aggregate-gate landed)
+
+Generated: 2026-05-24 — executes the aggregate-coverage-gate path adopted in
+[`docs/adr/ADR-003-phase-8-aggregate-coverage-gate.md`](adr/ADR-003-phase-8-aggregate-coverage-gate.md).
+This round adds a third CI job (`coverage-aggregate`) that runs after both
+`build-android` and `integration-test` succeed, merges their lcov outputs, and
+enforces a new 85% aggregate global floor. No tests are added; no production
+code is changed.
+
+### Headline
+
+| Metric | R7 (unit pipeline) | R7 (intg pipeline) | R8 aggregate |
+|---|---|---|---|
+| Filtered global coverage | 85.88% | n/a (per-file only) | **~88.4% (est.)** |
+| Global floor | 82% | n/a | **85% (new)** |
+| CI gate scripts | 2 | | **3 (+1)** |
+| CI jobs | 2 | | **3 (+1)** |
+
+The unit-pipeline figure (85.88%) and integration per-file floors (50/60/60/85)
+are **unchanged**. The aggregate gate is purely additive.
+
+### What landed
+
+#### `scripts/check_aggregate_coverage.dart` (new)
+
+Reads `coverage/lcov.info` (unit) and `coverage/integration.info` (integration)
+via `parseLcovInputs` from `_lcov_parser.dart`, merges them (max hit-count per
+line), applies the same exclude list as `check_coverage.dart`
+(`app_localizations*`, `firebase_options`, `global_enums`, `l10n.dart`), and
+enforces a single **85% aggregate global floor**. Does NOT re-enforce
+tier-1/tier-2/per-file floors — those are already enforced upstream.
+
+Exit codes: 0 = pass, 1 = floor miss, 2 = either input file absent (same
+pattern as `check_integration_coverage.dart`).
+
+#### `.github/workflows/main.yml` — new `coverage-aggregate` job
+
+Runs after `needs: [build-android, integration-test]`. Steps:
+
+1. Checkout + Flutter setup (Dart needed for `dart run`).
+2. `actions/download-artifact@v4` — downloads `coverage-lcov` artifact into
+   `coverage/lcov.info`.
+3. `actions/download-artifact@v4` — downloads `coverage-integration-lcov`
+   artifact into `coverage/integration.info`.
+4. `dart run scripts/merge_lcov.dart coverage/aggregate.info coverage/lcov.info
+   coverage/integration.info` — merges into a separate `coverage/aggregate.info`
+   (neither upstream lcov is clobbered).
+5. `dart run scripts/check_aggregate_coverage.dart` — enforces 85% floor.
+6. Upload `coverage/aggregate.info` as `coverage-aggregate-lcov` artifact
+   (`if: always()` so it is available for debugging even on floor failures).
+
+#### `docs/adr/ADR-003-phase-8-aggregate-coverage-gate.md` (new)
+
+Documents all five sub-decisions (job location, floor value, blocking behaviour,
+what the script enforces, skip/fail behaviour), the floor derivation arithmetic,
+and the "what changes / what stays" table.
+
+### Floor-value derivation
+
+Unit baseline: 5576 / 6493 = **85.88%** (confirmed by
+`dart run scripts/check_coverage.dart` on the R7 tip).
+
+Integration contribution (modelled from R7 per-file post-merge %s and LF
+counts in `coverage/lcov.info`):
+
+| File | LF | Unit hits | Intg post-merge % | Intg hit est. | Delta |
+|---|---|---|---|---|---|
+| `lib/main.dart` | 177 | 3 | 59.3% | 105 | +102 |
+| `lib/pages/WellnessTools/player.dart` | 38 | 2 | 94.7% | 36 | +34 |
+| `lib/util/logger_service.dart` | 19 | 2 | 73.7% | 14 | +12 |
+| `lib/pages/notifications/notification_service.dart` | 63 | 42 | 90.6% | 57 | +15 |
+| **Total** | — | — | — | — | **+163** |
+
+Post-merge estimate: (5576 + 163) / 6493 = **88.39%**
+Floor = 88.39% − 3.0 pt headroom = 85.39% → **85%**
+
+The 3 pt cushion is consistent with every prior ratchet step and absorbs
+integration-test run-to-run variance.
+
+### ADR-002 deferred items — status update
+
+The four files previously listed as "out of scope" in ADR-002 § "Out of scope
+for Phase 7" are now included in the aggregate gate. Their per-file floors
+remain in `check_integration_coverage.dart`; the aggregate gate provides an
+additional combined ratchet.
+
+| File | R6 unit% | R7 intg% (est) | Aggregate status | Still-uncovered branches |
+|---|---|---|---|---|
+| `lib/main.dart` | 1.7% | ~59.3% | PARTIALLY CLOSED — `MyApp` StatefulWidget covered | `callbackDispatcher` (lines 42-89), `initializeApp` + `main()` body (lines 104-156): Firebase.initializeApp blocked in CI; background Workmanager entry-point unreachable from foreground test |
+| `lib/pages/WellnessTools/player.dart` | 5.3% | ~94.7% | SUBSTANTIALLY CLOSED — all controller listener + lifecycle paths | Residual ~2 lines: race-condition edge in `dispose` under webview teardown |
+| `lib/util/logger_service.dart` | 10.5% | ~73.7% | SUBSTANTIALLY CLOSED — captureLog happy path + init paths | Empty-DSN if-branch (lines 17-18, structurally dead in CI); outer catch branch (lines 29-31, swallowed by Sentry SDK internals) |
+| `lib/pages/notifications/notification_service.dart` | 66.7% | ~90.6% | SUBSTANTIALLY CLOSED — scheduleNotification + init catch covered | iOS-specific notification paths; Android residual edge: background periodic-worker `executeTask` callback not reachable from foreground test |
+
+The "still-uncovered branches" column lists only the branches that remain
+documented as accepted risk after Phase 7 + Phase 8. None of them are
+closeable under the no-production-change rule without a new ADR.
+
+### Production code changes
+
+None. `git diff lib/` is empty. Round 8 adds only:
+- `scripts/check_aggregate_coverage.dart` (new gate script)
+- `docs/adr/ADR-003-phase-8-aggregate-coverage-gate.md` (ADR)
+- `.github/workflows/main.yml` (new `coverage-aggregate` job)
+- `docs/coverage-status.md` (this section)
+
+### Still deferred (post Phase 8)
+
+| Item | Why still deferred | Unblock criterion |
+|---|---|---|
+| `main()` / `callbackDispatcher` / `initializeApp` direct coverage | Production-code `bootstrapApp()` extraction required (ADR-002 hard rule prohibits it without a new ADR) OR Firebase.initializeApp made available in CI integration-test context | Future ADR explicitly sanctioning the `bootstrapApp()` extraction, parallel to ADR-001's `firestore` injection precedent |
+| Empty-DSN if-branch in `logger_service.dart` (lines 17-18) | Structurally dead in CI because `--dart-define=SENTRY_DSN=...` is always provided; dual-invocation integration-test variant (with and without dart-define) + lcov merge — pattern-2 of ADR-001 | Worth revisiting only if the aggregate floor benefit (estimated ~1 line) ever strains the 3 pt headroom |
+| Outer catch branch in `logger_service.dart` (lines 29-31) | Sentry SDK swallows the channel `PlatformException` internally | Runtime-readable `_sentryDsn` (production change) OR different exception injection strategy — would require a new ADR |
+| iOS-specific notification paths | macOS runner costs 10× Linux CI minutes; no iOS-specific bug has motivated it | A new ADR justifying a macOS runner integration job |
+| `callbackDispatcher` / background Workmanager entry-point | Foreground integration tests cannot trigger background Workmanager callbacks | Background-worker test harness (e.g. Patrol background task driver) — explicitly out of ADR-002 scope |
+| `lib/util/Firebase/firebase_functions.dart` ~287 uncovered lines | Defensive/error branches in helpers without `firestore` named param; adding the param violates the no-production-change rule | Production refactor to extend the `firestore` injection pattern to ~30 more helpers — separate ADR |
+
 ## Pattern established for future contributors
 
 1. **Real production widgets only.** Never duplicate a `lib/...dart` widget into `test/...dart` and test the duplicate. The pattern in `test/helpers/widget_test_scaffold.dart` is the only sanctioned shape: register fakes on GetIt, wrap in MultiProvider + MaterialApp + ScreenUtilInit.
