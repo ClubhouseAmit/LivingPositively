@@ -174,7 +174,8 @@ void main() {
 
       final result = await getIntroductionFormFirstPage(firestore: fake);
 
-      expect(result, {'mainTitle': 'mT', 'subTitle1': 'sT1', 'subTitle2': 'sT2'});
+      expect(
+          result, {'mainTitle': 'mT', 'subTitle1': 'sT1', 'subTitle2': 'sT2'});
     });
 
     test('getIntroductionFormSecondPage returns main + sub', () async {
@@ -319,8 +320,7 @@ void main() {
       expect(result, 'maleContacts');
     });
 
-    test('getContactsTitle(false) reads contactsTitle on female doc',
-        () async {
+    test('getContactsTitle(false) reads contactsTitle on female doc', () async {
       final fake = FakeFirebaseFirestore();
       await _seedPhonePageTitles(fake);
 
@@ -678,12 +678,8 @@ void main() {
         'updatePhonePersonalPlanText returns data fields from primary collection',
         () async {
       final fake = FakeFirebaseFirestore();
-      await fake
-          .collection('Phone-PersonalPlanText')
-          .add({'data': 'first'});
-      await fake
-          .collection('Phone-PersonalPlanText')
-          .add({'data': 'second'});
+      await fake.collection('Phone-PersonalPlanText').add({'data': 'first'});
+      await fake.collection('Phone-PersonalPlanText').add({'data': 'second'});
       // Secondary collection must also be non-empty to pass guard.
       await fake.collection('FormPage-MakeSafer').add({'placeholder': 1});
 
@@ -708,9 +704,7 @@ void main() {
     test('updatePhonePersonalPlanText throws when FormPage-MakeSafer is empty',
         () async {
       final fake = FakeFirebaseFirestore();
-      await fake
-          .collection('Phone-PersonalPlanText')
-          .add({'data': 'first'});
+      await fake.collection('Phone-PersonalPlanText').add({'data': 'first'});
 
       await expectLater(
         updatePhonePersonalPlanText(firestore: fake),

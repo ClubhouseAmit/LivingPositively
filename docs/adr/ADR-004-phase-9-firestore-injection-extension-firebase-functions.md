@@ -74,18 +74,45 @@ The pattern is **identical** to the 14 helpers ADR-001 sanctioned in Round 1. No
 
 **Chosen: dispatch qe-test-architect to author `test/Firebase/firebase_functions_phase9_*.dart` files covering the newly-injectable helpers.**
 
-The agent's responsibilities:
+The agent's responsibilities scope the test cases to what the helpers
+actually do under the **no-production-change rule** of this ADR. The
+helpers in scope have no documented missing-doc or malformed-doc
+fallback — they call `doc.get(field)` directly, which throws
+`StateError` on absent fields. The behavior-preserving test contract
+is therefore:
 
-1. For each helper that gains a `firestore` named param under Sub-decision A, generate a test file (or extend an existing one) that exercises:
-   - **Happy path** — `FakeFirebaseFirestore` seeded with the expected document shape, helper returns the expected value.
-   - **Missing doc** — collection/doc absent, helper returns its documented fallback.
-   - **Malformed doc** — present but missing required fields or wrong types, helper returns fallback without throwing.
-   - **`firestore` parameter wiring** — confirm the injected fake is actually used (the body's `FirebaseFirestore.instance` fallback is unreachable, validating the seam).
-2. Use the existing helpers from `test/helpers/widget_test_scaffold.dart` and the `FakeFirebaseFirestore` pattern from `test/Firebase/firebase_functions_load_firebase_branches_test.dart` (Round 4 reference).
-3. **Do not** generate tests for branches that are still genuinely unreachable post-Phase-9 (e.g. lines 234/384/843/858/903/916/975/1040/1060/1086/1097/1145/1379/1393/1413 — the `?? FirebaseFirestore.instance` right-hand sides identified in Round 6 are unreachable by construction; they should remain documented as accepted dead lines).
-4. **Do not** modify `lib/` beyond the signature changes in Sub-decision A. Test-side helpers, fakes, and scaffolds may be added under `test/helpers/`.
+1. For each helper that gains a `firestore` named param under Sub-decision A:
+   - **Happy path (required)** — `FakeFirebaseFirestore` seeded with the
+     expected document shape, helper called with `firestore: fake`,
+     return value asserted field-by-field. This single test simultaneously
+     validates the **firestore parameter wiring**: if the injected fake
+     were ignored, the helper would throw "no Firebase app" instead of
+     returning the seeded data.
+   - **Empty-collection throw path (where applicable)** — for the seven
+     `update*` multi-collection helpers that explicitly throw
+     `Exception('No documents found in collection')` when a queried
+     collection is empty, seed only one collection (or none) and assert
+     the throw. This is the **only** documented branch the helpers have
+     beyond the happy path.
+   - **Missing-field / malformed-doc tests are out of scope.** No helper
+     has a documented fallback; adding one would be a behaviour change
+     beyond ADR-004's no-production-change rule. If the missing-field
+     contract is ever made deterministic (e.g. via a defensive
+     `doc.data() as Map?` + fallback), a follow-up ADR can sanction
+     those tests.
+2. Use the `FakeFirebaseFirestore` pattern from
+   `test/Firebase/firebase_functions_load_firebase_branches_test.dart`
+   (Round 4 reference). No widget-scaffold dependency is needed (these
+   are pure-Dart unit tests, not widget tests).
+3. **Do not** generate tests for branches that are still genuinely
+   unreachable post-Phase-9 (the `?? FirebaseFirestore.instance`
+   right-hand sides identified in Round 6 are unreachable by
+   construction; they remain documented as accepted dead lines).
+4. **Do not** modify `lib/` beyond the signature changes in Sub-decision A.
 
-The expected fan-out is ~30 helpers × ~3 test cases each ≈ 90 new tests. qe-test-architect's sublinear optimization should let it dedupe boilerplate scaffolding across helpers.
+The expected fan-out is ~29 helpers × ~1–3 test cases each ≈ 30–60 new
+tests. qe-test-architect's sublinear optimization should let it dedupe
+boilerplate scaffolding across helpers.
 
 ### Rejected alternatives
 

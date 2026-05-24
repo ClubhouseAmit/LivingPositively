@@ -156,8 +156,7 @@ void main(List<String> args) {
     ..writeln('Files:    ${filtered.length} (excluded: ${excluded.length})')
     ..writeln(
         'Lines:    $totalHit / $totalLines = ${globalPct.toStringAsFixed(2)}%')
-    ..writeln(
-        'Tier 1 floor: ${_tier1Threshold.toStringAsFixed(0)}%   '
+    ..writeln('Tier 1 floor: ${_tier1Threshold.toStringAsFixed(0)}%   '
         'Tier 2 floor: ${_tier2Threshold.toStringAsFixed(0)}%   '
         'Global floor: ${_globalThreshold.toStringAsFixed(0)}%')
     ..writeln('===========================================');

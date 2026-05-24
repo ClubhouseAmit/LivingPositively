@@ -232,8 +232,7 @@ Future<bool> loadAppInfoFromJson(
 }) async {
   //Get app version from firestore
   final _fs = firestore ?? FirebaseFirestore.instance;
-  QuerySnapshot snapshot =
-      await _fs.collection('VersionManager').get();
+  QuerySnapshot snapshot = await _fs.collection('VersionManager').get();
   String appVersion = '';
   for (var doc in snapshot.docs) {
     Map<String, dynamic> d = doc.data() as Map<String, dynamic>? ?? {};
@@ -634,8 +633,7 @@ Future<void> loadAppFromFirebase(AppInformation appInfo,
     }
   });
 
-  QuerySnapshot snapshot =
-      await _fs.collection('VersionManager').get();
+  QuerySnapshot snapshot = await _fs.collection('VersionManager').get();
 
   for (var doc in snapshot.docs) {
     Map<String, dynamic> d = doc.data() as Map<String, dynamic>? ?? {};
@@ -690,8 +688,7 @@ Future<void> loadAppFromFirebase(AppInformation appInfo,
   Map<String, List<String>> wellnessVideos =
       await getWellnessVideos(firestore: _fs);
 
-  List<String> disclaimerPageText =
-      await getDisclaimerPageText(firestore: _fs);
+  List<String> disclaimerPageText = await getDisclaimerPageText(firestore: _fs);
   Map<String, String> formSkipButtonText =
       await getPersonalPlanSaveButtonText(firestore: _fs);
   Map<String, String> feelGoodPageTitles =
@@ -749,32 +746,27 @@ Future<void> loadAppInformation(
 
 Future<String> getJournalMainTitle({FirebaseFirestore? firestore}) async {
   final _fs = firestore ?? FirebaseFirestore.instance;
-  DocumentSnapshot doc = await _fs
-      .collection('homePage-titles')
-      .doc('zzzzzzzzzzzzzzzzzzzy')
-      .get();
+  DocumentSnapshot doc =
+      await _fs.collection('homePage-titles').doc('zzzzzzzzzzzzzzzzzzzy').get();
   return doc.get('mainTitles');
 }
 
 Future<String> getJournalSeocndaryTitle({FirebaseFirestore? firestore}) async {
   final _fs = firestore ?? FirebaseFirestore.instance;
-  DocumentSnapshot doc = await _fs
-      .collection('homePage-titles')
-      .doc('zzzzzzzzzzzzzzzzzzzy')
-      .get();
+  DocumentSnapshot doc =
+      await _fs.collection('homePage-titles').doc('zzzzzzzzzzzzzzzzzzzy').get();
   return doc.get('secondaryTitle');
 }
 
 Future<String> getTraitMainTitle({FirebaseFirestore? firestore}) async {
   final _fs = firestore ?? FirebaseFirestore.instance;
-  DocumentSnapshot doc = await _fs
-      .collection('homePage-titles')
-      .doc('zzzzzzzzzzzzzzzzzzzx')
-      .get();
+  DocumentSnapshot doc =
+      await _fs.collection('homePage-titles').doc('zzzzzzzzzzzzzzzzzzzx').get();
   return doc.get('mainTitles');
 }
 
-Future<Map<String, String>> getPersonalInfo({FirebaseFirestore? firestore}) async {
+Future<Map<String, String>> getPersonalInfo(
+    {FirebaseFirestore? firestore}) async {
   final _fs = firestore ?? FirebaseFirestore.instance;
   DocumentSnapshot doc = await _fs
       .collection('PersonalInformation-Form')
@@ -787,7 +779,8 @@ Future<Map<String, String>> getPersonalInfo({FirebaseFirestore? firestore}) asyn
   };
 }
 
-Future<Map<String, String>> getIntroductionFormFirstPage({FirebaseFirestore? firestore}) async {
+Future<Map<String, String>> getIntroductionFormFirstPage(
+    {FirebaseFirestore? firestore}) async {
   final _fs = firestore ?? FirebaseFirestore.instance;
   DocumentSnapshot doc = await _fs
       .collection('IntroductionForm_FirstPage')
@@ -800,7 +793,8 @@ Future<Map<String, String>> getIntroductionFormFirstPage({FirebaseFirestore? fir
   };
 }
 
-Future<Map<String, String>> getIntroductionFormSecondPage({FirebaseFirestore? firestore}) async {
+Future<Map<String, String>> getIntroductionFormSecondPage(
+    {FirebaseFirestore? firestore}) async {
   final _fs = firestore ?? FirebaseFirestore.instance;
   DocumentSnapshot doc = await _fs
       .collection('IntroductionForm_SecondPage')
@@ -812,7 +806,8 @@ Future<Map<String, String>> getIntroductionFormSecondPage({FirebaseFirestore? fi
   };
 }
 
-Future<Map<String, String>> getIntroductionFormLastPage({FirebaseFirestore? firestore}) async {
+Future<Map<String, String>> getIntroductionFormLastPage(
+    {FirebaseFirestore? firestore}) async {
   final _fs = firestore ?? FirebaseFirestore.instance;
   DocumentSnapshot doc = await _fs
       .collection('IntroductionForm_LastPage')
@@ -832,20 +827,16 @@ Future<Map<String, String>> getIntroductionFormLastPage({FirebaseFirestore? fire
 
 Future<String> getTraitSeocndaryTitle({FirebaseFirestore? firestore}) async {
   final _fs = firestore ?? FirebaseFirestore.instance;
-  DocumentSnapshot doc = await _fs
-      .collection('homePage-titles')
-      .doc('zzzzzzzzzzzzzzzzzzzx')
-      .get();
+  DocumentSnapshot doc =
+      await _fs.collection('homePage-titles').doc('zzzzzzzzzzzzzzzzzzzx').get();
   return doc.get('secondaryTitle');
 }
 
 Future<Map<String, String>> getAllTraitsData(
     {FirebaseFirestore? firestore}) async {
   final _fs = firestore ?? FirebaseFirestore.instance;
-  DocumentSnapshot doc = await _fs
-      .collection('homePage-titles')
-      .doc('zzzzzzzzzzzzzzzzzzzx')
-      .get();
+  DocumentSnapshot doc =
+      await _fs.collection('homePage-titles').doc('zzzzzzzzzzzzzzzzzzzx').get();
   return {
     'mainTitle': doc.get('mainTitles'),
     'secondaryTitle-': doc.get('secondaryTitle'),
@@ -857,10 +848,8 @@ Future<Map<String, String>> getAllTraitsData(
 Future<Map<String, String>> getAllWarningData(
     {FirebaseFirestore? firestore}) async {
   final _fs = firestore ?? FirebaseFirestore.instance;
-  DocumentSnapshot doc = await _fs
-      .collection('homePage-titles')
-      .doc('zzzzzzzzzzzzzzzzzzzw')
-      .get();
+  DocumentSnapshot doc =
+      await _fs.collection('homePage-titles').doc('zzzzzzzzzzzzzzzzzzzw').get();
   return {
     'mainTitle': doc.get('mainTitles'),
     'secondaryTitle-': doc.get('secondaryTitle'),
@@ -871,19 +860,16 @@ Future<Map<String, String>> getAllWarningData(
 
 Future<String> getPersonalPlanMainTitle({FirebaseFirestore? firestore}) async {
   final _fs = firestore ?? FirebaseFirestore.instance;
-  DocumentSnapshot doc = await _fs
-      .collection('homePage-titles')
-      .doc('zzzzzzzzzzzzzzzzzzzv')
-      .get();
+  DocumentSnapshot doc =
+      await _fs.collection('homePage-titles').doc('zzzzzzzzzzzzzzzzzzzv').get();
   return doc.get('mainTitles');
 }
 
-Future<String> getPersonalPlanSecondaryTitle({FirebaseFirestore? firestore}) async {
+Future<String> getPersonalPlanSecondaryTitle(
+    {FirebaseFirestore? firestore}) async {
   final _fs = firestore ?? FirebaseFirestore.instance;
-  DocumentSnapshot doc = await _fs
-      .collection('homePage-titles')
-      .doc('zzzzzzzzzzzzzzzzzzzv')
-      .get();
+  DocumentSnapshot doc =
+      await _fs.collection('homePage-titles').doc('zzzzzzzzzzzzzzzzzzzv').get();
   return doc.get('secondaryTitle');
 }
 
@@ -903,8 +889,7 @@ Future<Warning> fetchWarnings({FirebaseFirestore? firestore}) async {
 Future<List<String>> getThanksSuggestionsList(
     {FirebaseFirestore? firestore}) async {
   final _fs = firestore ?? FirebaseFirestore.instance;
-  CollectionReference thanksSuggestions =
-      _fs.collection('Thanks-suggestions');
+  CollectionReference thanksSuggestions = _fs.collection('Thanks-suggestions');
   QuerySnapshot snapshot = await thanksSuggestions.get();
   List<String> suggestionsList = snapshot.docs
       .map((doc) => doc.get('suggestions'))
@@ -935,43 +920,37 @@ Future<String> getMainTitle(bool male, {FirebaseFirestore? firestore}) async {
   String docIdFemale = 'zzzzzzzzzzzzzzzzzzzx';
   String docId = male ? docIdMale : docIdFemale;
 
-  DocumentSnapshot doc = await _fs
-      .collection('PhonePage-titles')
-      .doc(docId)
-      .get();
+  DocumentSnapshot doc =
+      await _fs.collection('PhonePage-titles').doc(docId).get();
   return doc.get('mainTitle');
 }
 
-Future<String> getContactsTitle(bool male, {FirebaseFirestore? firestore}) async {
+Future<String> getContactsTitle(bool male,
+    {FirebaseFirestore? firestore}) async {
   final _fs = firestore ?? FirebaseFirestore.instance;
   String docIdMale = 'zzzzzzzzzzzzzzzzzzzy';
   String docIdFemale = 'zzzzzzzzzzzzzzzzzzzx';
   String docId = male ? docIdMale : docIdFemale;
-  DocumentSnapshot doc = await _fs
-      .collection('PhonePage-titles')
-      .doc(docId)
-      .get();
+  DocumentSnapshot doc =
+      await _fs.collection('PhonePage-titles').doc(docId).get();
   return doc.get('contactsTitle');
 }
 
-Future<String> getEmergancyTitle(bool male, {FirebaseFirestore? firestore}) async {
+Future<String> getEmergancyTitle(bool male,
+    {FirebaseFirestore? firestore}) async {
   final _fs = firestore ?? FirebaseFirestore.instance;
   String docIdMale = 'zzzzzzzzzzzzzzzzzzzy';
   String docIdFemale = 'zzzzzzzzzzzzzzzzzzzx';
   String docId = male ? docIdMale : docIdFemale;
-  DocumentSnapshot doc = await _fs
-      .collection('PhonePage-titles')
-      .doc(docId)
-      .get();
+  DocumentSnapshot doc =
+      await _fs.collection('PhonePage-titles').doc(docId).get();
   return doc.get('emergencyNumbersTitle');
 }
 
 Future<String> getJournalTitle({FirebaseFirestore? firestore}) async {
   final _fs = firestore ?? FirebaseFirestore.instance;
-  DocumentSnapshot doc = await _fs
-      .collection('Journal-title')
-      .doc('zzzzzzzzzzzzzzzzzzzy')
-      .get();
+  DocumentSnapshot doc =
+      await _fs.collection('Journal-title').doc('zzzzzzzzzzzzzzzzzzzy').get();
   return doc.get('title');
 }
 
@@ -995,7 +974,8 @@ Future<String> getGreetingString({FirebaseFirestore? firestore}) async {
   return doc.get('homePageGreeting');
 }
 
-Future<Map<String, String>> getReturnToPlan({FirebaseFirestore? firestore}) async {
+Future<Map<String, String>> getReturnToPlan(
+    {FirebaseFirestore? firestore}) async {
   final _fs = firestore ?? FirebaseFirestore.instance;
   DocumentSnapshot doc = await _fs
       .collection('PersonalPlan_FullPage')
@@ -1010,37 +990,30 @@ Future<Map<String, String>> getReturnToPlan({FirebaseFirestore? firestore}) asyn
 
 Future<String> getReminderMainTitle({FirebaseFirestore? firestore}) async {
   final _fs = firestore ?? FirebaseFirestore.instance;
-  DocumentSnapshot doc = await _fs
-      .collection('homePage-titles')
-      .doc('zzzzzzzzzzzzzzzzzzzu')
-      .get();
+  DocumentSnapshot doc =
+      await _fs.collection('homePage-titles').doc('zzzzzzzzzzzzzzzzzzzu').get();
   return doc.get('mainTitles');
 }
 
 Future<String> getReminderSeocndaryTitle({FirebaseFirestore? firestore}) async {
   final _fs = firestore ?? FirebaseFirestore.instance;
-  DocumentSnapshot doc = await _fs
-      .collection('homePage-titles')
-      .doc('zzzzzzzzzzzzzzzzzzzu')
-      .get();
+  DocumentSnapshot doc =
+      await _fs.collection('homePage-titles').doc('zzzzzzzzzzzzzzzzzzzu').get();
   return doc.get('secondaryTitle');
 }
 
 Future<String> getJournalPopUpText({FirebaseFirestore? firestore}) async {
   final _fs = firestore ?? FirebaseFirestore.instance;
-  DocumentSnapshot doc = await _fs
-      .collection('Popups-texts')
-      .doc('zzzzzzzzzzzzzzzzzzzy')
-      .get();
+  DocumentSnapshot doc =
+      await _fs.collection('Popups-texts').doc('zzzzzzzzzzzzzzzzzzzy').get();
   return doc.get('thankYouPopupText');
 }
 
-Future<String> getPositiveTraitsPopUpText({FirebaseFirestore? firestore}) async {
+Future<String> getPositiveTraitsPopUpText(
+    {FirebaseFirestore? firestore}) async {
   final _fs = firestore ?? FirebaseFirestore.instance;
-  DocumentSnapshot doc = await _fs
-      .collection('Popups-texts')
-      .doc('zzzzzzzzzzzzzzzzzzzy')
-      .get();
+  DocumentSnapshot doc =
+      await _fs.collection('Popups-texts').doc('zzzzzzzzzzzzzzzzzzzy').get();
   return doc.get('thankYouPopupText');
 }
 
@@ -1094,10 +1067,8 @@ Future<List<String>> updateTest1({FirebaseFirestore? firestore}) async {
 Future<Map<String, String>> updateShareTexts(
     {FirebaseFirestore? firestore}) async {
   final _fs = firestore ?? FirebaseFirestore.instance;
-  final doc2 = await _fs
-      .collection('ShareTexts')
-      .doc('zzzzzzzzzzzzzzzzzzzy')
-      .get();
+  final doc2 =
+      await _fs.collection('ShareTexts').doc('zzzzzzzzzzzzzzzzzzzy').get();
 
   return {"emergency": doc2.get("emergency"), "regular": doc2.get("regular")};
 }
@@ -1124,16 +1095,14 @@ Future<Map<String, String>> getFeelGoodPageTitles(
   };
 }
 
-Future<Map<String, String>> updatePhoneFormTitles({FirebaseFirestore? firestore}) async {
+Future<Map<String, String>> updatePhoneFormTitles(
+    {FirebaseFirestore? firestore}) async {
   final _fs = firestore ?? FirebaseFirestore.instance;
-  final snapshot = await _fs
-      .collection('PersonalPlan-PhonesPage')
-      .get();
+  final snapshot = await _fs.collection('PersonalPlan-PhonesPage').get();
   if (snapshot.docs.isEmpty) {
     throw Exception('No documents found in collection');
   }
-  final snapshot2 =
-      await _fs.collection('FormPage-PhonesPage').get();
+  final snapshot2 = await _fs.collection('FormPage-PhonesPage').get();
 
   if (snapshot.docs.isEmpty) {
     throw Exception('No documents found in collection');
@@ -1241,15 +1210,12 @@ Future<Map<String, List<String>>> updatePhonePageTitles(
   };
 }
 
-Future<Map<String, String>> updateFormDifficultEventsTitles({FirebaseFirestore? firestore}) async {
+Future<Map<String, String>> updateFormDifficultEventsTitles(
+    {FirebaseFirestore? firestore}) async {
   final _fs = firestore ?? FirebaseFirestore.instance;
-  final snapshot = await _fs
-      .collection('PersonalPlan-DifficultEvents')
-      .get();
+  final snapshot = await _fs.collection('PersonalPlan-DifficultEvents').get();
 
-  final snapshot2 = await _fs
-      .collection('FormPage-DifficultEvents')
-      .get();
+  final snapshot2 = await _fs.collection('FormPage-DifficultEvents').get();
 
   if (snapshot.docs.isEmpty) {
     throw Exception('No documents found in collection');
@@ -1267,17 +1233,14 @@ Future<Map<String, String>> updateFormDifficultEventsTitles({FirebaseFirestore? 
   return result;
 }
 
-Future<Map<String, String>> updateFormDistractionsTitles({FirebaseFirestore? firestore}) async {
+Future<Map<String, String>> updateFormDistractionsTitles(
+    {FirebaseFirestore? firestore}) async {
   final _fs = firestore ?? FirebaseFirestore.instance;
-  final snapshot = await _fs
-      .collection('PersonalPlan-Distractions')
-      .get();
+  final snapshot = await _fs.collection('PersonalPlan-Distractions').get();
   if (snapshot.docs.isEmpty) {
     throw Exception('No documents found in collection');
   }
-  final snapshot2 = await _fs
-      .collection('FormPage-Distractions')
-      .get();
+  final snapshot2 = await _fs.collection('FormPage-Distractions').get();
 
   if (snapshot.docs.isEmpty) {
     throw Exception('No documents found in collection');
@@ -1295,39 +1258,14 @@ Future<Map<String, String>> updateFormDistractionsTitles({FirebaseFirestore? fir
   return result;
 }
 
-Future<Map<String, String>> updateFormFeelBetterTitles({FirebaseFirestore? firestore}) async {
+Future<Map<String, String>> updateFormFeelBetterTitles(
+    {FirebaseFirestore? firestore}) async {
   final _fs = firestore ?? FirebaseFirestore.instance;
-  final snapshot = await _fs
-      .collection('PersonalPlan-FeelBetter')
-      .get();
+  final snapshot = await _fs.collection('PersonalPlan-FeelBetter').get();
   if (snapshot.docs.isEmpty) {
     throw Exception('No documents found in collection');
   }
-  final snapshot2 =
-      await _fs.collection('FormPage-FeelBetter').get();
-
-  if (snapshot.docs.isEmpty) {
-    throw Exception('No documents found in collection');
-  }
-  if (snapshot2.docs.isEmpty) {
-    throw Exception('No documents found in collection');
-  }
-  Map<String, String> result = {};
-  for (var doc in snapshot2.docs) {
-    result[doc.data()['fieldName']] = doc.data()['general'];
-    result[doc.data()['fieldName'] + 'female'] = doc.data()['female'];
-    result[doc.data()['fieldName'] + 'male'] = doc.data()['male'];
-  }
-  return result;
-}
-
-Future<Map<String, String>> updateFormMakeSaferTitles({FirebaseFirestore? firestore}) async {
-  final _fs = firestore ?? FirebaseFirestore.instance;
-  final snapshot = await _fs
-      .collection('PersonalPlan-MakeSafer')
-      .get();
-  final snapshot2 =
-      await _fs.collection('FormPage-MakeSafer').get();
+  final snapshot2 = await _fs.collection('FormPage-FeelBetter').get();
 
   if (snapshot.docs.isEmpty) {
     throw Exception('No documents found in collection');
@@ -1344,11 +1282,31 @@ Future<Map<String, String>> updateFormMakeSaferTitles({FirebaseFirestore? firest
   return result;
 }
 
-Future<Map<String, String>> updateFormSharePageTitles({FirebaseFirestore? firestore}) async {
+Future<Map<String, String>> updateFormMakeSaferTitles(
+    {FirebaseFirestore? firestore}) async {
   final _fs = firestore ?? FirebaseFirestore.instance;
-  final snapshot = await _fs
-      .collection('PersonalPlan-SharePage')
-      .get();
+  final snapshot = await _fs.collection('PersonalPlan-MakeSafer').get();
+  final snapshot2 = await _fs.collection('FormPage-MakeSafer').get();
+
+  if (snapshot.docs.isEmpty) {
+    throw Exception('No documents found in collection');
+  }
+  if (snapshot2.docs.isEmpty) {
+    throw Exception('No documents found in collection');
+  }
+  Map<String, String> result = {};
+  for (var doc in snapshot2.docs) {
+    result[doc.data()['fieldName']] = doc.data()['general'];
+    result[doc.data()['fieldName'] + 'female'] = doc.data()['female'];
+    result[doc.data()['fieldName'] + 'male'] = doc.data()['male'];
+  }
+  return result;
+}
+
+Future<Map<String, String>> updateFormSharePageTitles(
+    {FirebaseFirestore? firestore}) async {
+  final _fs = firestore ?? FirebaseFirestore.instance;
+  final snapshot = await _fs.collection('PersonalPlan-SharePage').get();
   if (snapshot.docs.isEmpty) {
     throw Exception('No documents found in collection');
   }
@@ -1369,13 +1327,11 @@ Future<Map<String, String>> updateFormSharePageTitles({FirebaseFirestore? firest
   };
 }
 
-Future<List<String>> updatePhonePersonalPlanText({FirebaseFirestore? firestore}) async {
+Future<List<String>> updatePhonePersonalPlanText(
+    {FirebaseFirestore? firestore}) async {
   final _fs = firestore ?? FirebaseFirestore.instance;
-  final snapshot = await _fs
-      .collection('Phone-PersonalPlanText')
-      .get();
-  final snapshot2 =
-      await _fs.collection('FormPage-MakeSafer').get();
+  final snapshot = await _fs.collection('Phone-PersonalPlanText').get();
+  final snapshot2 = await _fs.collection('FormPage-MakeSafer').get();
 
   if (snapshot.docs.isEmpty) {
     throw Exception('No documents found in collection');
@@ -1425,8 +1381,7 @@ Future<Map<String, List<String>>> getWellnessVideos(
   return data;
 }
 
-Future<Map<String, String>> getSyncPages(
-    {FirebaseFirestore? firestore}) async {
+Future<Map<String, String>> getSyncPages({FirebaseFirestore? firestore}) async {
   final _fs = firestore ?? FirebaseFirestore.instance;
   Map<String, String> data = {};
   final snapshot = await _fs.collection('SyncPages').get();

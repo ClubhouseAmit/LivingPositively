@@ -1064,10 +1064,25 @@ Helpers migrated (alphabetical within group):
   `updateFormMakeSaferTitles`, `updateFormSharePageTitles`,
   `updatePhonePersonalPlanText`.
 
-`git diff lib/` for Phase 9 touches exactly one file. `dart analyze` is
-clean (the 48 info-level `no_leading_underscores_for_local_identifiers`
-messages on `_fs` are the same shape as the pre-existing 14 helpers and
-are accepted as part of the pattern).
+`git diff lib/` for Phase 9 touches exactly one file.
+
+**Analyzer state, precisely:**
+
+- `dart analyze test/Firebase/firebase_functions_phase9_test.dart` ⇒
+  `No issues found!` — the new test file is fully clean.
+- `dart analyze lib/util/Firebase/firebase_functions.dart` ⇒ 48 issues:
+  - **46 info-level** `no_leading_underscores_for_local_identifiers`
+    messages on the `_fs` locals — these are the same shape as the
+    pre-existing 14 helpers' `_fs` usage from Round 1 (ADR-001 sanctioned
+    pattern); they are accepted as part of that pattern.
+  - **2 pre-existing warnings unrelated to Phase 9**: an `unused_import`
+    on `package:shared_preferences/shared_preferences.dart` (line 10)
+    and an `unused_catch_stack` on `stackTrace` (line 360). Both
+    predate this round; `git blame` confirms neither was touched by
+    the Phase 9 edits. They are tracked for a separate cleanup PR.
+
+In short: Phase 9 added **zero new analyzer warnings**. The new infos
+are the existing pattern; the two warnings predate the round.
 
 #### Test code — `test/Firebase/firebase_functions_phase9_test.dart` (48 tests)
 
