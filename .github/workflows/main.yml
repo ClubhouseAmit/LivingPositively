@@ -218,10 +218,15 @@ jobs:
     # Phase 8 (ADR-003): aggregate coverage gate — merges unit lcov and
     # integration lcov, enforces 85% global floor on the union.
     #
-    # Runs AFTER both build-android and integration-test succeed.  If either
-    # upstream job fails, GitHub Actions skips this job automatically via the
-    # needs: dependency — correct behaviour, because a failing upstream gate
-    # means the aggregate merge would operate on a stale or absent artifact.
+    # `if: ${{ always() }}` + explicit dependency-result check (first step
+    # below) is deliberate: with bare `needs:` alone, GitHub Actions skips
+    # this job when either upstream fails, and a SKIPPED required check
+    # can be treated as "success" by branch protection rules, allowing a
+    # PR with a failed upstream to merge with the aggregate gate looking
+    # green. The `always()` pattern forces this job to run on every PR;
+    # the first step then fails fast when either dependency did not
+    # succeed, so the job's status is ALWAYS one of {success, failure} —
+    # never "skipped" — and branch protection treats it correctly.
     #
     # The existing gates are UNCHANGED:
     #   build-android → check_coverage.dart          (82% unit floor)
@@ -229,7 +234,28 @@ jobs:
     # This job is purely additive; removing it restores the Phase 7 state.
     runs-on: ubuntu-latest
     needs: [build-android, integration-test]
+    if: ${{ always() }}
     steps:
+      - name: Verify both upstream jobs succeeded
+        # Fail fast if either dependency did not succeed. We check the
+        # `result` outputs explicitly rather than relying on `needs:` to
+        # skip — see job-level comment above for why a skipped required
+        # check is unsafe under branch protection.
+        run: |
+          build_result="${{ needs.build-android.result }}"
+          intg_result="${{ needs.integration-test.result }}"
+          echo "build-android result:    $build_result"
+          echo "integration-test result: $intg_result"
+          if [ "$build_result" != "success" ]; then
+            echo "::error::Upstream job build-android did not succeed (result=$build_result); cannot compute aggregate coverage." >&2
+            exit 1
+          fi
+          if [ "$intg_result" != "success" ]; then
+            echo "::error::Upstream job integration-test did not succeed (result=$intg_result); cannot compute aggregate coverage." >&2
+            exit 1
+          fi
+          echo "Both upstream jobs succeeded — proceeding with aggregate merge."
+
       - name: Checkout repository
         uses: actions/checkout@v4
 

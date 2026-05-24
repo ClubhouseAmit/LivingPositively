@@ -157,27 +157,65 @@ the aggregate global %:
 
 ## Sub-decision E — Behaviour when integration-test job is skipped or fails
 
-The `integration-test` job currently has no `if:` guard — it runs on every
-push/PR. `coverage-aggregate` uses `needs: [build-android, integration-test]`
-without an `if:` override. This means:
+**Chosen: `if: ${{ always() }}` on the aggregate job + explicit
+dependency-result check as its first step.**
 
-- If `integration-test` fails, `coverage-aggregate` is skipped automatically
-  by GitHub Actions (`needs:` is not met). The PR sees two red checks
-  (`integration-test` + `coverage-aggregate`) — which is correct and
-  informative.
-- If `integration-test` is cancelled (e.g., workflow cancelled mid-run),
-  `coverage-aggregate` is also cancelled — correct.
-- There is no scenario where `integration-test` is intentionally skipped
-  today (unlike `build-web` which has `if: github.ref == 'refs/heads/main'`).
-  If a future ADR adds a skip condition to `integration-test`, it should
-  also add a matching skip (or `continue-on-error: true`) to
-  `coverage-aggregate` at that time.
+A naive `needs: [build-android, integration-test]` without `always()` is
+**unsafe under branch protection**. The GitHub Actions semantics:
 
-The current implementation does NOT add `continue-on-error: true` to
-`coverage-aggregate`. If the aggregate floor proves chronically missed due
-to integration-test run variance, set `continue-on-error: true` in the
-workflow while investigating — the same escape hatch ADR-002 documented for
-the integration job itself.
+- `needs:` alone causes a downstream job to be **skipped** when an upstream
+  job fails or is itself skipped.
+- A required check that resolves to "skipped" in branch protection can be
+  treated as a successful check by GitHub's protected-branch evaluator —
+  meaning a PR with a failed upstream can merge with the aggregate gate
+  appearing green in the merge UI even though it never ran. This was
+  flagged during PR review (`tests/phase8-2026`, first review pass).
+
+The correct pattern is the `always()` + explicit-result-check shape used
+elsewhere in the GitHub Actions ecosystem (e.g. the canonical
+[reusable-workflow gate pattern](https://docs.github.com/en/actions/using-jobs/using-conditions-to-control-job-execution#using-the-status-of-previous-jobs)).
+
+The implementation:
+
+```yaml
+coverage-aggregate:
+  needs: [build-android, integration-test]
+  if: ${{ always() }}
+  steps:
+    - name: Verify both upstream jobs succeeded
+      run: |
+        build_result="${{ needs.build-android.result }}"
+        intg_result="${{ needs.integration-test.result }}"
+        if [ "$build_result" != "success" ]; then
+          echo "::error::Upstream job build-android did not succeed (result=$build_result); cannot compute aggregate coverage." >&2
+          exit 1
+        fi
+        if [ "$intg_result" != "success" ]; then
+          echo "::error::Upstream job integration-test did not succeed (result=$intg_result); cannot compute aggregate coverage." >&2
+          exit 1
+        fi
+```
+
+Outcome by upstream state:
+
+| `build-android` | `integration-test` | `coverage-aggregate` status |
+|---|---|---|
+| success | success | **runs** → success/failure based on aggregate floor |
+| failure | * | **runs** → fails fast in the result-check step (does NOT skip) |
+| * | failure | **runs** → fails fast in the result-check step (does NOT skip) |
+| cancelled | * | runs → fails fast (treats cancellation as not-success) |
+| skipped | * | runs → fails fast (treats skipped as not-success) |
+
+The job's GitHub-reported status is therefore ALWAYS one of `{success,
+failure}` — never `skipped`. Branch protection treats it correctly as a
+genuine required check.
+
+If a future ADR adds an `if:` skip condition to either upstream job,
+update the result-check logic here to treat that specific skip as
+not-blocking (rather than as a failure) — but only with explicit
+documentation of why the aggregate gate is safe to bypass in that
+condition. The current implementation does NOT special-case any skip
+scenario.
 
 ## Decision
 

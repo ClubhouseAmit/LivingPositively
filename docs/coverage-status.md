@@ -913,18 +913,31 @@ pattern as `check_integration_coverage.dart`).
 
 #### `.github/workflows/main.yml` — new `coverage-aggregate` job
 
-Runs after `needs: [build-android, integration-test]`. Steps:
+Runs with `needs: [build-android, integration-test]` AND
+`if: ${{ always() }}` — the `always()` is deliberate: with bare `needs:`
+alone, GitHub Actions skips this job when either upstream fails, and a
+skipped required check can be treated as success by branch protection
+(a failed-upstream PR could merge with the aggregate gate looking
+green). With `always()`, the job runs on every PR and the first step
+below fails fast if either dependency result is not `success`. Job
+status is therefore always one of `{success, failure}` — never
+`skipped`. See ADR-003 § Sub-decision E for the outcome table. Steps:
 
-1. Checkout + Flutter setup (Dart needed for `dart run`).
-2. `actions/download-artifact@v4` — downloads `coverage-lcov` artifact into
+1. **Verify both upstream jobs succeeded** — reads
+   `needs.build-android.result` and `needs.integration-test.result`,
+   exits 1 with a clear `::error::` annotation if either is not
+   `success` (covers failure, cancelled, skipped — all treated as
+   not-success).
+2. Checkout + Flutter setup (Dart needed for `dart run`).
+3. `actions/download-artifact@v4` — downloads `coverage-lcov` artifact into
    `coverage/lcov.info`.
-3. `actions/download-artifact@v4` — downloads `coverage-integration-lcov`
+4. `actions/download-artifact@v4` — downloads `coverage-integration-lcov`
    artifact into `coverage/integration.info`.
-4. `dart run scripts/merge_lcov.dart coverage/aggregate.info coverage/lcov.info
+5. `dart run scripts/merge_lcov.dart coverage/aggregate.info coverage/lcov.info
    coverage/integration.info` — merges into a separate `coverage/aggregate.info`
    (neither upstream lcov is clobbered).
-5. `dart run scripts/check_aggregate_coverage.dart` — enforces 85% floor.
-6. Upload `coverage/aggregate.info` as `coverage-aggregate-lcov` artifact
+6. `dart run scripts/check_aggregate_coverage.dart` — enforces 85% floor.
+7. Upload `coverage/aggregate.info` as `coverage-aggregate-lcov` artifact
    (`if: always()` so it is available for debugging even on floor failures).
 
 #### `docs/adr/ADR-003-phase-8-aggregate-coverage-gate.md` (new)
