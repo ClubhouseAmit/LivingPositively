@@ -2,14 +2,19 @@ import 'package:flutter/material.dart';
 
 import 'package:mazilon/disclaimerPage.dart';
 import 'package:mazilon/initialForm/form.dart';
+import 'package:mazilon/pages/auth/auth_page.dart';
 
 import 'package:mazilon/util/Form/formPagePhoneModel.dart';
 import 'package:mazilon/util/userInformation.dart';
 import 'package:provider/provider.dart';
 import 'package:mazilon/menu.dart';
 
-// FirstPage widget determines the correct page
-// to navigate to based on the user's status (e.g., disclaimer signed, logged in, first time using the app).
+// FirstPage widget determines the correct page to show based on user state.
+// Routing order:
+//   1. !disclaimerSigned  → DisclaimerPage
+//   2. !authDecisionMade  → AuthPage  (login / sign up / skip)
+//   3. firsttime          → InitialFormProgressIndicator
+//   4. else               → Menu
 class FirstPage extends StatefulWidget {
   final PhonePageData phonePageData; // Data related to phone page
   final bool
@@ -36,29 +41,26 @@ class _FirstPageState extends State<FirstPage> {
       context,
       listen: true,
     );
-    final Widget renderedWidget;
 
-    // If the user has not signed the disclaimer, show the DisclaimerPage.
     if (!userInfoProvider.disclaimerSigned) {
-      renderedWidget = DisclaimerPage(changeLocale: widget.changeLocale);
-    } else
-    // If the user is not logged in, navigate to the LoginPage.
-    // If this is the user's first time using the app, show the initial form progress indicator.
+      return DisclaimerPage(changeLocale: widget.changeLocale);
+    }
+
+    if (!userInfoProvider.authDecisionMade) {
+      return const AuthPage();
+    }
+
     if (widget.firsttime) {
-      renderedWidget = InitialFormProgressIndicator(
+      return InitialFormProgressIndicator(
         phonePageData: widget.phonePageData,
-        changeLocale: widget.changeLocale,
-      );
-    } else {
-      renderedWidget = Menu(
-        phonePageData: widget.phonePageData,
-        hasFilled: widget.hasFilled,
         changeLocale: widget.changeLocale,
       );
     }
 
-    return (renderedWidget);
-
-    // If none of the above, show the main menu of the app.
+    return Menu(
+      phonePageData: widget.phonePageData,
+      hasFilled: widget.hasFilled,
+      changeLocale: widget.changeLocale,
+    );
   }
 }
