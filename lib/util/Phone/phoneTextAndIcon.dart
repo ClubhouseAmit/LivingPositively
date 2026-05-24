@@ -1,9 +1,11 @@
+import 'package:flutter/foundation.dart'
+    show TargetPlatform, defaultTargetPlatform;
 import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:mazilon/util/styles.dart';
 import 'package:url_launcher/url_launcher.dart';
 
-Widget phoneContact(phone, contact) {
+Widget phoneContact(String phone, String contact) {
   return Row(
     children: <Widget>[
       InkWell(
@@ -35,10 +37,19 @@ Widget phoneContact(phone, contact) {
 }
 
 Future<void> dialPhone(String number) async {
-  final uri = Uri.parse('tel:$number');
+  final uri = _dialPhoneUri(number);
   if (!await launchUrl(uri)) {
     debugPrint('Could not launch $uri');
   }
+}
+
+Uri _dialPhoneUri(String number) {
+  final trimmedNumber = number.trim();
+  if (defaultTargetPlatform == TargetPlatform.android &&
+      RegExp(r'^\d{4}$').hasMatch(trimmedNumber)) {
+    return Uri.parse('tel:${Uri.encodeComponent('$trimmedNumber ')}');
+  }
+  return Uri.parse('tel:$trimmedNumber');
 }
 
 Future<void> openWhatsApp(String number) async {

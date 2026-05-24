@@ -44,8 +44,36 @@ jobs:
           cache: true
       - name: Install dependencies
         run: flutter pub get
-      - name: Run tests
-        run: flutter test --reporter=expanded
+      - name: Run tests with coverage
+        run: flutter test --coverage --reporter=expanded
+      - name: Snapshot base lcov before dart-define run
+        # The next `flutter test` invocation overwrites coverage/lcov.info;
+        # snapshot the full-suite lcov so we can merge the dart-define
+        # variant on top of it via scripts/merge_lcov.dart. See
+        # docs/adr/ADR-001-phase-6-test-coverage-integration-tests.md.
+        run: cp coverage/lcov.info coverage/lcov.base.info
+      - name: Run AnalyticsService tests with MIXPANEL_PROJECT_TOKEN dart-define
+        # Phase 6 (ADR-001): MixPanelService.init / trackEvent post-init
+        # branches are gated on a non-empty
+        # String.fromEnvironment('MIXPANEL_PROJECT_TOKEN'). This second test
+        # invocation exercises only the AnalyticsService token-present
+        # branches with the env var set; the standard suite already covered
+        # the empty-token short-circuit branches in the run above.
+        run: |
+          flutter test --coverage \
+            --dart-define=MIXPANEL_PROJECT_TOKEN=test-token \
+            test/AnalyticsService/MixPanelService_token_test.dart
+          cp coverage/lcov.info coverage/lcov.token.info
+      - name: Merge lcov artifacts
+        run: dart run scripts/merge_lcov.dart coverage/lcov.info coverage/lcov.base.info coverage/lcov.token.info
+      - name: Enforce coverage gate
+        run: dart run scripts/check_coverage.dart
+      - name: Upload coverage report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: coverage-lcov
+          path: coverage/lcov.info
 
       - name: Get version from pubspec.yaml
         id: get_version
@@ -94,6 +122,187 @@ jobs:
       #   with:
       #     name: app-release-apk
       #     path: ${{ env.APK_PATH }}
+
+  integration-test:
+    # Phase 7 (ADR-002): per-file coverage gate for the integration_test/
+    # suite. Runs on an Android emulator via reactivecircus/android-emulator-runner.
+    # Decoupled from build-android — emulator-class flake here cannot pull
+    # the unit pipeline's 82% global floor below threshold.
+    runs-on: ubuntu-latest
+    env:
+      FIREBASE_OPTIONS_PATH: lib/util/Firebase/firebase_options.dart
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Export secrets as env vars
+        uses: oNaiPs/secrets-to-env-action@v1
+        with:
+          secrets: ${{ toJSON(secrets) }}
+
+      - name: Write firebase options file
+        run: |
+          echo "$FIREBASE_OPTIONS" | base64 --decode > "${{ env.FIREBASE_OPTIONS_PATH }}"
+
+      - name: Set up JDK
+        uses: actions/setup-java@v5
+        with:
+          distribution: "adopt"
+          java-version: "17.x"
+
+      - name: Set up Flutter
+        uses: subosito/flutter-action@v2
+        with:
+          flutter-version: "3.41.6"
+          cache: true
+
+      - name: Install dependencies
+        run: flutter pub get
+
+      - name: Enable KVM
+        run: |
+          echo 'KERNEL=="kvm", GROUP="kvm", MODE="0666"' | \
+            sudo tee /etc/udev/rules.d/99-kvm4all.rules
+          sudo udevadm control --reload-rules && sudo udevadm trigger --name-match=kvm
+
+      - name: Run integration tests on Android emulator
+        uses: reactivecircus/android-emulator-runner@v2
+        with:
+          api-level: 34
+          target: google_apis
+          arch: x86_64
+          profile: pixel_6
+          # Notes on the script below:
+          #
+          # 1. Single-line `flutter test` invocation — earlier attempts used
+          #    YAML `|` block + bash `\<newline>` continuations, which got
+          #    re-interpreted by the action's `sh -c` invocation and produced
+          #    "Integration tests and unit tests cannot be run in a single
+          #    invocation." The single-line form is the canonical pattern
+          #    used by reactivecircus's own Flutter examples.
+          #
+          # 2. `-d emulator-5554` explicitly targets the emulator the action
+          #    booted (port 5554 is the default; matches the action's
+          #    `emulator-port: 5554` default). Without `-d`, Flutter
+          #    occasionally fails to auto-detect the device, leaving
+          #    `flutter test` to walk the path as host-VM unit tests, which
+          #    triggers the same mix-error because integration_test files
+          #    use IntegrationTestWidgetsFlutterBinding.
+          #
+          # 3. `flutter devices` runs first as a diagnostic — its output
+          #    appears in CI logs above any subsequent failure, so the
+          #    emulator-visibility question is answered without re-running.
+          #
+          # 4. SENTRY_DSN is a synthetic, non-routable test value — it makes
+          #    `_sentryDsn.isEmpty` false in logger_service.dart so
+          #    integration_test/logger_init_test.dart exercises the
+          #    `SentryFlutter.init` path + its catch branch. The Sentry
+          #    native SDK is channel-mocked in the test so no real network
+          #    traffic leaves the runner (PR #266 review, baz-reviewer
+          #    finding 1).
+          script: |
+            flutter devices
+            flutter test integration_test --coverage --coverage-path coverage/integration.info --dart-define=SENTRY_DSN=https://test@dsn.example.local/0 -d emulator-5554
+
+      - name: Enforce integration-test per-file coverage floors
+        run: dart run scripts/check_integration_coverage.dart
+
+      - name: Upload integration coverage report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: coverage-integration-lcov
+          path: coverage/integration.info
+
+  coverage-aggregate:
+    # Phase 8 (ADR-003): aggregate coverage gate — merges unit lcov and
+    # integration lcov, enforces 85% global floor on the union.
+    #
+    # `if: ${{ always() }}` + explicit dependency-result check (first step
+    # below) is deliberate: with bare `needs:` alone, GitHub Actions skips
+    # this job when either upstream fails, and a SKIPPED required check
+    # can be treated as "success" by branch protection rules, allowing a
+    # PR with a failed upstream to merge with the aggregate gate looking
+    # green. The `always()` pattern forces this job to run on every PR;
+    # the first step then fails fast when either dependency did not
+    # succeed, so the job's status is ALWAYS one of {success, failure} —
+    # never "skipped" — and branch protection treats it correctly.
+    #
+    # The existing gates are UNCHANGED:
+    #   build-android → check_coverage.dart          (82% unit floor)
+    #   integration-test → check_integration_coverage.dart  (per-file floors)
+    # This job is purely additive; removing it restores the Phase 7 state.
+    runs-on: ubuntu-latest
+    needs: [build-android, integration-test]
+    if: ${{ always() }}
+    steps:
+      - name: Verify both upstream jobs succeeded
+        # Fail fast if either dependency did not succeed. We check the
+        # `result` outputs explicitly rather than relying on `needs:` to
+        # skip — see job-level comment above for why a skipped required
+        # check is unsafe under branch protection.
+        run: |
+          build_result="${{ needs.build-android.result }}"
+          intg_result="${{ needs.integration-test.result }}"
+          echo "build-android result:    $build_result"
+          echo "integration-test result: $intg_result"
+          if [ "$build_result" != "success" ]; then
+            echo "::error::Upstream job build-android did not succeed (result=$build_result); cannot compute aggregate coverage." >&2
+            exit 1
+          fi
+          if [ "$intg_result" != "success" ]; then
+            echo "::error::Upstream job integration-test did not succeed (result=$intg_result); cannot compute aggregate coverage." >&2
+            exit 1
+          fi
+          echo "Both upstream jobs succeeded — proceeding with aggregate merge."
+
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Flutter
+        uses: subosito/flutter-action@v2
+        with:
+          flutter-version: "3.41.6"
+          cache: true
+
+      - name: Install dependencies
+        run: flutter pub get
+
+      - name: Download unit coverage artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: coverage-lcov
+          path: coverage
+
+      - name: Download integration coverage artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: coverage-integration-lcov
+          path: coverage
+
+      - name: Merge unit and integration lcov files
+        # Merges coverage/lcov.info (unit) and coverage/integration.info (intg)
+        # into coverage/aggregate.info by taking the max hit-count per line —
+        # same semantics as the ADR-001 Phase-6 merge step.  Output path is
+        # distinct from both inputs so neither upstream gate is clobbered.
+        run: dart run scripts/merge_lcov.dart coverage/aggregate.info coverage/lcov.info coverage/integration.info
+
+      - name: Enforce aggregate coverage gate
+        # check_aggregate_coverage.dart reads coverage/lcov.info AND
+        # coverage/integration.info directly (parseLcovInputs), applies the
+        # same exclude list as check_coverage.dart, and enforces the 89%
+        # aggregate global floor (originally 85% under ADR-003 Phase 8;
+        # ratcheted to 89% by ADR-004 Phase 9 after the firestore-injection
+        # extension in firebase_functions.dart pushed unit-only coverage to
+        # 89.33% — see docs/coverage-status.md § Round 9).
+        run: dart run scripts/check_aggregate_coverage.dart
+
+      - name: Upload aggregate coverage report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: coverage-aggregate-lcov
+          path: coverage/aggregate.info
 
   build-web:
     runs-on: ubuntu-latest

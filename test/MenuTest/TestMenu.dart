@@ -8,7 +8,8 @@ import 'package:provider/provider.dart';
 import 'package:mazilon/l10n/app_localizations.dart';
 
 Widget getMenuForTests(
-    UserInformation mockUserInformation, AppInformation mockAppInformation) {
+    UserInformation mockUserInformation, AppInformation mockAppInformation,
+    {Locale locale = const Locale('he')}) {
   return MultiProvider(
     providers: [
       ChangeNotifierProvider<UserInformation>.value(value: mockUserInformation),
@@ -16,7 +17,7 @@ Widget getMenuForTests(
     ],
     child: MaterialApp(
       supportedLocales: AppLocalizations.supportedLocales,
-      locale: Locale('he'),
+      locale: locale,
       localizationsDelegates: AppLocalizations.localizationsDelegates,
       home: ScreenUtilInit(
         designSize: const Size(360, 690),

@@ -3,6 +3,8 @@
 import 'package:flutter/material.dart';
 import 'package:permission_handler/permission_handler.dart';
 
+import 'package:mazilon/pages/notifications/reminder_debug_recorder.dart';
+import 'package:mazilon/pages/notifications/set_notification_widget.dart';
 import 'package:mazilon/l10n/app_localizations.dart';
 import 'package:mazilon/pages/auth/auth_page.dart';
 import 'package:mazilon/pages/notifications/notification_toggle_card.dart';
@@ -66,6 +68,21 @@ class _NotificationPageState extends LPExtendedState<NotificationPage>
       typeId: 'default',
       hour: picked.hour,
       minute: picked.minute,
+    loadReminderDebugPanelUnlocked();
+  }
+
+  Future<void> _toggleDebugUnlock() async {
+    final unlocked = await toggleReminderDebugPanelUnlocked();
+    if (!mounted) return;
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(
+          unlocked
+              ? 'Reminder debug panel enabled'
+              : 'Reminder debug panel hidden',
+        ),
+        duration: const Duration(seconds: 2),
+      ),
     );
   }
 
@@ -129,6 +146,12 @@ class _NotificationPageState extends LPExtendedState<NotificationPage>
                 ),
                 Text(
                   appLocale!.notificationPageHeader(gender),
+                GestureDetector(
+                  behavior: HitTestBehavior.opaque,
+                  onLongPress: _toggleDebugUnlock,
+                  child: Text(
+                    appLocale!.notificationPageHeader(gender),
+                  ),
                 ),
               ],
             ),

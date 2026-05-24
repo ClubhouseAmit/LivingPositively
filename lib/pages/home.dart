@@ -10,12 +10,12 @@ import 'package:flutter/material.dart';
 import 'package:get_it/get_it.dart';
 import 'package:mazilon/MainPageHelpers/MainPageList/mainpage_list_widget.dart';
 import 'package:mazilon/global_enums.dart';
+import 'package:mazilon/l10n/app_localizations.dart';
 
 import 'package:mazilon/util/Form/retrieveInformation.dart';
 import 'package:mazilon/util/LP_extended_state.dart';
 import 'package:mazilon/util/persistent_memory_service.dart';
 
-import 'package:mazilon/pages/UserSettings.dart';
 import 'package:mazilon/MainPageHelpers/personalPlanWidget.dart';
 
 import 'package:mazilon/util/HomePage/inspirationalQuote.dart';
@@ -30,15 +30,17 @@ import 'package:provider/provider.dart';
 //the main page of the app
 //allows navigation to all other pages
 class Home extends StatefulWidget {
-  PhonePageData phonePageData;
+  final PhonePageData phonePageData;
   final Function(BuildContext, PagesCode) changeCurrentIndex;
   final Function changeLocale;
+  final void Function(BuildContext) openMainMenu;
 
-  Home({
+  const Home({
     super.key,
     required this.phonePageData,
     required this.changeCurrentIndex,
     required this.changeLocale,
+    required this.openMainMenu,
   });
 
   @override
@@ -76,7 +78,8 @@ class _HomeState extends LPExtendedState<Home> {
 //fuction to handle the removal of a thank you
 
 //this selects what information to show in the personal plan widget boxes
-  void setRandomPersonalWidgetText(userInfo, appLocale) {
+  void setRandomPersonalWidgetText(
+      UserInformation userInfo, AppLocalizations appLocale) {
     var random = Random();
     var randomHeader = random.nextInt(4);
 
@@ -125,7 +128,6 @@ class _HomeState extends LPExtendedState<Home> {
     final userInfoProvider =
         Provider.of<UserInformation>(context, listen: true);
     final gender = userInfoProvider.gender;
-    final age = userInfoProvider.age;
 
     //add random header and user-selected info from personal plan:
     setRandomPersonalWidgetText(userInfoProvider, appLocale);
@@ -140,24 +142,16 @@ class _HomeState extends LPExtendedState<Home> {
         child: SingleChildScrollView(
           child: Column(
             children: [
-              //This shows the "hello <username>" banner and settings button
+              //This shows the "hello <username>" banner and header buttons
               NameBar(
-                  greetingString: appLocale!.homePageGreetings(gender),
+                  greetingString: appLocale.homePageGreetings(gender),
                   icons: [
-                    //settings button:
-                    myTextButton(() {
-                      Navigator.push(
-                        context,
-                        MaterialPageRoute(
-                            builder: (context) => UserSettings(
-                                  phonePageData: widget.phonePageData,
-                                  username: userInfoProvider.name,
-                                  age: age,
-                                  gender: gender,
-                                  changeLocale: widget.changeLocale,
-                                )),
-                      );
-                    }, Icons.settings_outlined, primaryPurple)
+                    Builder(
+                      builder: (menuButtonContext) => myTextButton(
+                          () => widget.openMainMenu(menuButtonContext),
+                          Icons.menu,
+                          primaryPurple),
+                    )
                   ]),
 
               Padding(

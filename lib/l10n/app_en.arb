@@ -186,6 +186,38 @@
   "@sharePageFinishButton": {
     "description": ""
   },
+  "sharePageAddCustomCategory": "+ Add a custom category",
+  "@sharePageAddCustomCategory": {
+    "description": ""
+  },
+  "sharePageCustomCategoryTitle": "Category Title",
+  "@sharePageCustomCategoryTitle": {
+    "description": ""
+  },
+  "sharePageCustomCategoryDescription": "Description",
+  "@sharePageCustomCategoryDescription": {
+    "description": ""
+  },
+  "sharePageSaveCustomCategory": "Add category",
+  "@sharePageSaveCustomCategory": {
+    "description": ""
+  },
+  "customCategoryOptionEmpoweringQuotes": "Empowering quotes important to remember",
+  "@customCategoryOptionEmpoweringQuotes": {
+    "description": ""
+  },
+  "customCategoryOptionPastEvents": "Past events to remember",
+  "@customCategoryOptionPastEvents": {
+    "description": ""
+  },
+  "customCategoryOptionAboutMe": "Things about me important to remember",
+  "@customCategoryOptionAboutMe": {
+    "description": ""
+  },
+  "customCategoryOptionCustomInput": "Custom Input...",
+  "@customCategoryOptionCustomInput": {
+    "description": ""
+  },
   "sharePageShareTitle": "{gender,select,male{How would you like to share your plan?} female{How would you like to share your plan?} other{How would you like to share your plan?}}",
   "@sharePageShareTitle": {
     "description": ""
@@ -1528,6 +1560,10 @@
   "shareButtonText": "Share",
   "@shareButtonText": {
     "description": ""
+  },
+  "contactUs": "Contact Us",
+  "@contactUs": {
+    "description": "Main menu item that opens the external support/contact page."
   },
   "shareAppMessage": "Here is the app LP (Living Positively). I use it and recommend it, maybe it will be helpful for you too.",
   "@shareAppMessage": {
