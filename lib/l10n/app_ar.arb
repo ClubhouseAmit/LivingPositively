@@ -359,5 +359,24 @@
   "shareButtonText": "مشاركة",
   "contactUs": "تواصل معنا",
   "shareAppMessage": "هذا تطبيق LP (Living Positively). أستخدمه وأنصح به، ربما سيكون مفيدًا لك أيضًا.",
-  "locationDisclaimer": "{gender,select,male{يتم استخدام موقعك فقط لتخصيص أرقام SOS لبلدك.} female{يتم استخدام موقعكِ فقط لتخصيص أرقام SOS لبلدكِ.} other{يتم استخدام موقعك فقط لتخصيص أرقام SOS لبلدك.}}"
+  "locationDisclaimer": "{gender,select,male{يتم استخدام موقعك فقط لتخصيص أرقام SOS لبلدك.} female{يتم استخدام موقعكِ فقط لتخصيص أرقام SOS لبلدكِ.} other{يتم استخدام موقعك فقط لتخصيص أرقام SOS لبلدك.}}",
+  "callFailedMessage": "تعذّر فتح المتصل لـ {number}",
+  "@callFailedMessage": {
+    "placeholders": {
+      "number": {
+        "type": "String"
+      }
+    }
+  },
+  "couldNotOpenApp": "تعذّر فتح التطبيق",
+  "copyNumberAction": "نسخ الرقم",
+  "numberCopiedToast": "تم نسخ الرقم",
+  "emergencyCountryFallback": "تُعرض أرقام الطوارئ الافتراضية ({country}). قد لا تعمل من موقعك الحالي.",
+  "@emergencyCountryFallback": {
+    "placeholders": {
+      "country": {
+        "type": "String"
+      }
+    }
+  }
 }

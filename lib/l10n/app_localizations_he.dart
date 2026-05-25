@@ -3883,4 +3883,20 @@ class AppLocalizationsHe extends AppLocalizations {
     );
     return '$_temp0';
   }
+
+  @override
+  String callFailedMessage(String number) => 'לא ניתן לחייג את $number';
+
+  @override
+  String get couldNotOpenApp => 'לא ניתן לפתוח את האפליקציה';
+
+  @override
+  String get copyNumberAction => 'העתק מספר';
+
+  @override
+  String get numberCopiedToast => 'המספר הועתק';
+
+  @override
+  String emergencyCountryFallback(String country) =>
+      'מוצגים מספרי חירום ברירת מחדל ($country). ייתכן שלא יפעלו ממיקומך הנוכחי.';
 }

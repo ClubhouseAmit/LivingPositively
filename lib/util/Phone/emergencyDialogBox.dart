@@ -1,6 +1,7 @@
 // ignore_for_file: avoid_print
 
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:mazilon/util/Phone/phoneTextAndIcon.dart';
 import 'package:mazilon/util/styles.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
@@ -59,7 +60,18 @@ class EmergencyDialogBox extends StatelessWidget {
                   getTextIconWidget(
                     appLocale!.dialButton(gender),
                     () async {
-                      await dialPhone(number);
+                      // Capture messenger before await to avoid mounted/race issues (strategy b).
+                      final messenger = ScaffoldMessenger.maybeOf(context);
+                      final locale = AppLocalizations.of(context);
+                      final ok = await dialPhone(number);
+                      if (!ok) {
+                        _showLaunchFailureSnackBar(
+                          messenger,
+                          locale,
+                          number,
+                          isCallFailure: true,
+                        );
+                      }
                     },
                     Icons.phone,
                   ),
@@ -67,23 +79,56 @@ class EmergencyDialogBox extends StatelessWidget {
                   getTextIconWidget(
                     'Text',
                     () async {
-                      await openTextMessage(
+                      // Capture messenger before await to avoid mounted/race issues (strategy b).
+                      final messenger = ScaffoldMessenger.maybeOf(context);
+                      final locale = AppLocalizations.of(context);
+                      final ok = await openTextMessage(
                         textNumber,
                         body: textMessage,
                       );
+                      if (!ok) {
+                        _showLaunchFailureSnackBar(
+                          messenger,
+                          locale,
+                          textNumber,
+                          isCallFailure: false,
+                        );
+                      }
                     },
                     Icons.sms,
                   ),
                 if (hasWhatsApp)
                   getTextIconWidget(appLocale!.whatsApp, () async {
-                    await openWhatsApp(whatsappNumber);
+                    // Capture messenger before await to avoid mounted/race issues (strategy b).
+                    final messenger = ScaffoldMessenger.maybeOf(context);
+                    final locale = AppLocalizations.of(context);
+                    final ok = await openWhatsApp(whatsappNumber);
+                    if (!ok) {
+                      _showLaunchFailureSnackBar(
+                        messenger,
+                        locale,
+                        whatsappNumber,
+                        isCallFailure: false,
+                      );
+                    }
                   }, Icons.chat),
 
                 if (hasLink)
                   getTextIconWidget(
                     isChatLink ? 'Chat' : appLocale.link,
                     () async {
-                      await openSite(link);
+                      // Capture messenger before await to avoid mounted/race issues (strategy b).
+                      final messenger = ScaffoldMessenger.maybeOf(context);
+                      final locale = AppLocalizations.of(context);
+                      final ok = await openSite(link);
+                      if (!ok) {
+                        _showLaunchFailureSnackBar(
+                          messenger,
+                          locale,
+                          '',
+                          isCallFailure: false,
+                        );
+                      }
                     },
                     isChatLink ? Icons.chat_bubble_outline : Icons.language,
                   ),
@@ -110,4 +155,40 @@ class EmergencyDialogBox extends StatelessWidget {
       ],
     );
   }
+}
+
+/// Shows a snackbar outside the AlertDialog by using a pre-captured [messenger]
+/// and [appLocale] (captured before the async gap — strategy b from ADR-005 §A.1).
+void _showLaunchFailureSnackBar(
+  ScaffoldMessengerState? messenger,
+  AppLocalizations? appLocale,
+  String number, {
+  required bool isCallFailure,
+}) {
+  if (messenger == null || appLocale == null) return;
+  HapticFeedback.heavyImpact();
+  messenger.hideCurrentSnackBar();
+  messenger.showSnackBar(
+    SnackBar(
+      content: Text(
+        isCallFailure
+            ? appLocale.callFailedMessage(number)
+            : appLocale.couldNotOpenApp,
+      ),
+      action: number.isEmpty
+          ? null
+          : SnackBarAction(
+              label: appLocale.copyNumberAction,
+              onPressed: () async {
+                await Clipboard.setData(ClipboardData(text: number));
+                messenger.hideCurrentSnackBar();
+                messenger.showSnackBar(SnackBar(
+                  content: Text(appLocale.numberCopiedToast),
+                  duration: const Duration(seconds: 2),
+                ));
+              },
+            ),
+      duration: const Duration(seconds: 6),
+    ),
+  );
 }

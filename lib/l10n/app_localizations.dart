@@ -2067,6 +2067,36 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'{gender,select,male{Your location is only used in order to tailor the SOS numbers to your country.} female{Your location is only used in order to tailor the SOS numbers to your country.} other{Your location is only used in order to tailor the SOS numbers to your country.}}'**
   String locationDisclaimer(String gender);
+
+  /// Message shown when a phone/dialer launch fails.
+  ///
+  /// In en, this message translates to:
+  /// **'Couldn\'t open the dialer for {number}'**
+  String callFailedMessage(String number);
+
+  /// Message shown when a non-call app (WhatsApp, site, SMS) fails to open.
+  ///
+  /// In en, this message translates to:
+  /// **'Couldn\'t open the app'**
+  String get couldNotOpenApp;
+
+  /// Label for the snackbar action that copies the phone number to clipboard.
+  ///
+  /// In en, this message translates to:
+  /// **'Copy number'**
+  String get copyNumberAction;
+
+  /// Toast shown after the number is copied to clipboard.
+  ///
+  /// In en, this message translates to:
+  /// **'Number copied'**
+  String get numberCopiedToast;
+
+  /// Banner shown when country detection fails and the emergency grid falls back to the default country.
+  ///
+  /// In en, this message translates to:
+  /// **'Showing default emergency numbers ({country}). They may not connect from your current location.'**
+  String emergencyCountryFallback(String country);
 }
 
 class _AppLocalizationsDelegate

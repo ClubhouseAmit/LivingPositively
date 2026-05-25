@@ -1572,5 +1572,35 @@
   "locationDisclaimer": "{gender,select,male{Your location is only used in order to tailor the SOS numbers to your country.} female{Your location is only used in order to tailor the SOS numbers to your country.} other{Your location is only used in order to tailor the SOS numbers to your country.}}",
   "@locationDisclaimer": {
     "description": ""
+  },
+  "callFailedMessage": "Couldn't open the dialer for {number}",
+  "@callFailedMessage": {
+    "description": "Snackbar shown when launching the system dialer fails",
+    "placeholders": {
+      "number": {
+        "type": "String"
+      }
+    }
+  },
+  "couldNotOpenApp": "Couldn't open the app",
+  "@couldNotOpenApp": {
+    "description": "Generic snackbar for WhatsApp/SMS/web launch failures"
+  },
+  "copyNumberAction": "Copy number",
+  "@copyNumberAction": {
+    "description": "Snackbar action label that copies the failed number to clipboard"
+  },
+  "numberCopiedToast": "Number copied",
+  "@numberCopiedToast": {
+    "description": "Confirmation toast after copying a phone number to clipboard"
+  },
+  "emergencyCountryFallback": "Showing default emergency numbers ({country}). They may not connect from your current location.",
+  "@emergencyCountryFallback": {
+    "description": "Banner shown when country detection fails and the grid falls back to the default country",
+    "placeholders": {
+      "country": {
+        "type": "String"
+      }
+    }
   }
 }

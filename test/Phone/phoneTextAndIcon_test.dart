@@ -104,13 +104,26 @@ void main() {
       expect(fake.lastLaunchedUrl, 'tel:1201');
     });
 
-    test('failed launch is handled silently (no throw)', () async {
+    test('failed launch returns false', () async {
       final originalPlatform = UrlLauncherPlatform.instance;
       final fake = _FakeUrlLauncherPlatform()..shouldSucceed = false;
       UrlLauncherPlatform.instance = fake;
       addTearDown(() => UrlLauncherPlatform.instance = originalPlatform);
 
-      await expectLater(dialPhone('555'), completes);
+      expect(await dialPhone('555'), isFalse);
+    });
+
+    test('successful launch returns true', () async {
+      final originalPlatform = UrlLauncherPlatform.instance;
+      final fake = _FakeUrlLauncherPlatform();
+      UrlLauncherPlatform.instance = fake;
+      debugDefaultTargetPlatformOverride = TargetPlatform.iOS;
+      addTearDown(() {
+        debugDefaultTargetPlatformOverride = null;
+        UrlLauncherPlatform.instance = originalPlatform;
+      });
+
+      expect(await dialPhone('1201'), isTrue);
     });
   });
 
@@ -125,13 +138,22 @@ void main() {
       expect(fake.lastLaunchedUrl, 'https://wa.me/972501234567');
     });
 
-    test('failure does not throw', () async {
+    test('failed launch returns false', () async {
       final originalPlatform = UrlLauncherPlatform.instance;
       final fake = _FakeUrlLauncherPlatform()..shouldSucceed = false;
       UrlLauncherPlatform.instance = fake;
       addTearDown(() => UrlLauncherPlatform.instance = originalPlatform);
 
-      await expectLater(openWhatsApp('1'), completes);
+      expect(await openWhatsApp('1'), isFalse);
+    });
+
+    test('successful launch returns true', () async {
+      final originalPlatform = UrlLauncherPlatform.instance;
+      final fake = _FakeUrlLauncherPlatform();
+      UrlLauncherPlatform.instance = fake;
+      addTearDown(() => UrlLauncherPlatform.instance = originalPlatform);
+
+      expect(await openWhatsApp('972501234567'), isTrue);
     });
   });
 
@@ -146,13 +168,22 @@ void main() {
       expect(fake.lastLaunchedUrl, 'https://example.com/help');
     });
 
-    test('failure does not throw', () async {
+    test('failed launch returns false', () async {
       final originalPlatform = UrlLauncherPlatform.instance;
       final fake = _FakeUrlLauncherPlatform()..shouldSucceed = false;
       UrlLauncherPlatform.instance = fake;
       addTearDown(() => UrlLauncherPlatform.instance = originalPlatform);
 
-      await expectLater(openSite('https://example.com'), completes);
+      expect(await openSite('https://example.com'), isFalse);
+    });
+
+    test('successful launch returns true', () async {
+      final originalPlatform = UrlLauncherPlatform.instance;
+      final fake = _FakeUrlLauncherPlatform();
+      UrlLauncherPlatform.instance = fake;
+      addTearDown(() => UrlLauncherPlatform.instance = originalPlatform);
+
+      expect(await openSite('https://example.com/help'), isTrue);
     });
   });
 
@@ -187,13 +218,22 @@ void main() {
       expect(fake.lastLaunchedUrl, 'sms:555');
     });
 
-    test('failure does not throw', () async {
+    test('failed launch returns false', () async {
       final originalPlatform = UrlLauncherPlatform.instance;
       final fake = _FakeUrlLauncherPlatform()..shouldSucceed = false;
       UrlLauncherPlatform.instance = fake;
       addTearDown(() => UrlLauncherPlatform.instance = originalPlatform);
 
-      await expectLater(openTextMessage('1', body: 'x'), completes);
+      expect(await openTextMessage('1', body: 'x'), isFalse);
+    });
+
+    test('successful launch returns true', () async {
+      final originalPlatform = UrlLauncherPlatform.instance;
+      final fake = _FakeUrlLauncherPlatform();
+      UrlLauncherPlatform.instance = fake;
+      addTearDown(() => UrlLauncherPlatform.instance = originalPlatform);
+
+      expect(await openTextMessage('741741', body: 'HOME'), isTrue);
     });
   });
 }

@@ -3912,4 +3912,21 @@ class AppLocalizationsEn extends AppLocalizations {
     );
     return '$_temp0';
   }
+
+  @override
+  String callFailedMessage(String number) =>
+      "Couldn't open the dialer for $number";
+
+  @override
+  String get couldNotOpenApp => "Couldn't open the app";
+
+  @override
+  String get copyNumberAction => 'Copy number';
+
+  @override
+  String get numberCopiedToast => 'Number copied';
+
+  @override
+  String emergencyCountryFallback(String country) =>
+      'Showing default emergency numbers ($country). They may not connect from your current location.';
 }

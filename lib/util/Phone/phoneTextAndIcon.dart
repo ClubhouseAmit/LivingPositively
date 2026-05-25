@@ -36,11 +36,13 @@ Widget phoneContact(String phone, String contact) {
   );
 }
 
-Future<void> dialPhone(String number) async {
+Future<bool> dialPhone(String number) async {
   final uri = _dialPhoneUri(number);
-  if (!await launchUrl(uri)) {
+  final launched = await launchUrl(uri);
+  if (!launched) {
     debugPrint('Could not launch $uri');
   }
+  return launched;
 }
 
 Uri _dialPhoneUri(String number) {
@@ -52,23 +54,25 @@ Uri _dialPhoneUri(String number) {
   return Uri.parse('tel:$trimmedNumber');
 }
 
-Future<void> openWhatsApp(String number) async {
+Future<bool> openWhatsApp(String number) async {
   final uri = Uri.parse('https://wa.me/$number');
   final launched = await launchUrl(uri, mode: LaunchMode.externalApplication);
   if (!launched) {
     debugPrint('Could not launch $uri');
   }
+  return launched;
 }
 
-Future<void> openSite(String url) async {
+Future<bool> openSite(String url) async {
   final uri = Uri.parse(url);
   final launched = await launchUrl(uri, mode: LaunchMode.externalApplication);
   if (!launched) {
     debugPrint('Could not launch $uri');
   }
+  return launched;
 }
 
-Future<void> openTextMessage(String number, {String body = ''}) async {
+Future<bool> openTextMessage(String number, {String body = ''}) async {
   final trimmedBody = body.trim();
   final uri = trimmedBody.isEmpty
       ? Uri(scheme: 'sms', path: number)
@@ -81,6 +85,7 @@ Future<void> openTextMessage(String number, {String body = ''}) async {
   if (!launched) {
     debugPrint('Could not launch $uri');
   }
+  return launched;
 }
 
 Widget getTextIconWidget(
