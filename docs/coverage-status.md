@@ -1205,11 +1205,16 @@ Phase 9 only adds unit-pipeline tests; the integration pipeline is
 unchanged. The aggregate estimate:
 
 ```
-Unit hits (R9):            5800 / 6493 = 89.33%
-Integration delta (R8):    +163 lines  (unchanged — same 4 files)
-Aggregate (R9 est):        5963 / 6493 = 91.84%
-Aggregate floor proposal:  91.84% − 3 pt headroom = 88.84% → 89%
+Unit hits (R9, post-correction):  5754 / 6444 = 89.29%
+Integration delta (R8):           +163 lines  (unchanged — same 4 files)
+Aggregate (R9 est):               5917 / 6444 = 91.83%
+Aggregate floor proposal:         91.83% − 3 pt headroom = 88.83% → 89%
 ```
+
+(The original Phase 9 proposal targeted 5800/6493 = 89.33% with aggregate
+5963/6493 = 91.84%; the post-review dead-code removal — see § "Post-review
+correction" above — dropped 9 raw lines from both numerator and denominator,
+landing at 5754/6444. The 89% aggregate floor proposal holds either way.)
 
 The 3 pt headroom matches every prior ADR-001/002/003 ratchet step.
 First CI run on `tests/phase9-2026` will reveal the actual aggregate %
