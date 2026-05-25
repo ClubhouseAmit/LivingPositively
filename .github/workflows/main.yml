@@ -313,6 +313,82 @@ jobs:
           name: coverage-integration-ios-lcov
           path: coverage/integration_ios.info
 
+  unit-test-web-telemetry:
+    # Phase 10C (ADR-005 § C): TELEMETRY-ONLY web-test job — NOT YET A GATE.
+    #
+    # This job exists to surface the failure modes of running the unit
+    # suite under `flutter test --platform chrome`. Once those failures
+    # are triaged and the suite is green under Chrome, this job will be
+    # renamed to `unit-test-web`, lose `continue-on-error: true` and the
+    # `if: always()` upload, gain a real gate step (e.g. a
+    # `scripts/check_web_coverage.dart`), and be wired into the
+    # `coverage-aggregate` job's `needs:` list so its lcov merges into
+    # the aggregate floor.
+    #
+    # Until that flip happens, this job is **deliberately green-on-failure**:
+    #   1. `continue-on-error: true` on the test step makes a `flutter test`
+    #      crash report job-success.
+    #   2. The job is NOT in `coverage-aggregate`'s `needs:` list, so a
+    #      missing/empty `coverage/lcov.info` cannot block the aggregate.
+    #
+    # This is intentional. Adding web to the aggregate before the suite is
+    # green would either skip-on-failure (unsafe under branch protection)
+    # or block all PRs on web flakes. The job's value during this phase is
+    # the `coverage-web-lcov` artifact + the test-step log, both of which
+    # PR reviewers can inspect to file triage issues.
+    #
+    # Tracking issue: see § "Still deferred (post Phase 10)" in
+    # docs/coverage-status.md.
+    runs-on: ubuntu-latest
+    env:
+      FIREBASE_OPTIONS_PATH: lib/util/Firebase/firebase_options.dart
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Export secrets as env vars
+        uses: oNaiPs/secrets-to-env-action@v1
+        with:
+          secrets: ${{ toJSON(secrets) }}
+
+      - name: Write firebase options file
+        run: |
+          echo "$FIREBASE_OPTIONS" | base64 --decode > "${{ env.FIREBASE_OPTIONS_PATH }}"
+
+      - name: Set up Flutter
+        uses: subosito/flutter-action@v2
+        with:
+          flutter-version: "3.41.6"
+          cache: true
+
+      - name: Install dependencies
+        run: flutter pub get
+
+      - name: Run unit tests on Chrome (telemetry — failures do NOT fail this job)
+        # `--platform chrome` compiles the test/ suite via dart2js and runs
+        # under headless Chrome. SENTRY_DSN dart-define is the same synthetic
+        # value the other jobs use; the AnalyticsService dart-define-merge
+        # variant (Phase 6 / ADR-001) is NOT re-run here — that file is
+        # already covered by the Android unit job's lcov.
+        #
+        # `continue-on-error: true` is INTENTIONAL during the triage phase
+        # (see job-level comment). Do not remove it without also wiring
+        # this job into coverage-aggregate's needs: list and adding a real
+        # gate step below.
+        continue-on-error: true
+        run: |
+          flutter test --platform chrome --coverage --dart-define=SENTRY_DSN=https://test@dsn.example.local/0
+
+      - name: Upload web coverage report (telemetry — may be missing or stale)
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: coverage-web-lcov
+          path: coverage/lcov.info
+          # Do not fail the upload if the file is missing (it will be when
+          # `flutter test --platform chrome` crashes before emitting lcov).
+          if-no-files-found: warn
+
   coverage-aggregate:
     # Phase 8 (ADR-003): aggregate coverage gate — merges unit lcov and
     # integration lcov, enforces 85% global floor on the union.
