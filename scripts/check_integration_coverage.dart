@@ -2,8 +2,9 @@
 // `lib/main.dart` floor raised under ADR-005 § B, Phase 10B).
 //
 // Sibling of scripts/check_coverage.dart. Reads coverage/integration.info
-// (produced by `flutter test integration_test --coverage --coverage-path
-// coverage/integration.info`) and enforces ONLY the per-file floors below.
+// (produced by the Android integration-test job's explicit test-file list with
+// `--coverage --coverage-path coverage/integration.info`) and enforces ONLY
+// the per-file floors below.
 // Global coverage is owned by the unit pipeline (`scripts/check_coverage.dart`)
 // and the aggregate gate (`scripts/check_aggregate_coverage.dart`); this gate
 // intentionally does NOT check global so that emulator-class flakes in the
@@ -52,10 +53,9 @@ void main(List<String> args) {
   if (!lcovFile.existsSync()) {
     stderr
       ..writeln('FATAL: coverage/integration.info not found.')
+      ..writeln('  Expected the integration-test job to have produced it via:')
       ..writeln(
-          '  Expected the integration-test job to have produced it via:')
-      ..writeln(
-          '    flutter test integration_test --coverage --coverage-path coverage/integration.info')
+          '    flutter test <Android integration files> --coverage --coverage-path coverage/integration.info')
       ..writeln(
           '  If you are running locally and have no emulator attached, this is')
       ..writeln(

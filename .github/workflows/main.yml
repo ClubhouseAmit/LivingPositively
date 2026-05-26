@@ -200,9 +200,14 @@ jobs:
           #    native SDK is channel-mocked in the test so no real network
           #    traffic leaves the runner (PR #266 review, baz-reviewer
           #    finding 1).
+          #
+          # 5. The iOS-only notifications_schedule_ios_test.dart is excluded
+          #    here. The macOS integration-test-ios job owns that file; running
+          #    the whole integration_test/ directory on Android mixes iOS
+          #    method-channel assumptions with the Android plugin stack.
           script: |
             flutter devices
-            flutter test integration_test --coverage --coverage-path coverage/integration.info --dart-define=SENTRY_DSN=https://test@dsn.example.local/0 -d emulator-5554
+            flutter test integration_test/custom_categories_e2e_test.dart integration_test/bootstrap_smoke_test.dart integration_test/bootstrap_full_test.dart integration_test/wellness_player_test.dart integration_test/logger_init_test.dart integration_test/notifications_schedule_test.dart --coverage --coverage-path coverage/integration.info --dart-define=SENTRY_DSN=https://test@dsn.example.local/0 -d emulator-5554
 
       - name: Enforce integration-test per-file coverage floors
         run: dart run scripts/check_integration_coverage.dart
@@ -216,10 +221,11 @@ jobs:
 
   integration-test-ios:
     # Phase 10A (ADR-005 § A): per-file coverage gate for the iOS arms of
-    # NotificationsService. Runs on macos-14 + iOS simulator. macOS runners
-    # are free for public repositories under GitHub's open-source billing,
-    # so the ADR-002 / Round-9 macOS-cost framing that previously deferred
-    # iOS coverage no longer applies.
+    # NotificationsService. Runs on macos-15 + iOS simulator so the job has
+    # Xcode 16 / iOS 18 SDK symbols required by flutter_contacts' iOS Contacts
+    # limited-permission support. macOS runners are free for public repositories
+    # under GitHub's open-source billing, so the ADR-002 / Round-9 macOS-cost
+    # framing that previously deferred iOS coverage no longer applies.
     #
     # Decoupled from build-android / integration-test: emulator- or
     # simulator-class flakes here cannot pull the unit pipeline's 85%
@@ -229,7 +235,7 @@ jobs:
     # invocation alone. The aggregate gate downstream merges this lcov with
     # the unit + Android-integration lcovs and enforces the 90% combined
     # floor.
-    runs-on: macos-14
+    runs-on: macos-15
     env:
       FIREBASE_OPTIONS_PATH: lib/util/Firebase/firebase_options.dart
     steps:
@@ -256,12 +262,12 @@ jobs:
 
       - name: List available iOS simulators
         # Diagnostic: surfaces the runtime + device names available on the
-        # macos-14 image. If the next step fails to find an iPhone, the
+        # macos-15 image. If the next step fails to find an iPhone, the
         # output here is the first place to look.
         run: xcrun simctl list devices available
 
       - name: Boot iPhone simulator
-        # macos-14 images ship with multiple iPhone simulators (16, 15, 14)
+        # macos-15 images ship with multiple iPhone simulators.
         # — pick the first "iPhone " device that is available. Avoid pinning
         # to a specific model so the job survives when GitHub rotates the
         # default Xcode/iOS-runtime bundle.
@@ -270,7 +276,7 @@ jobs:
           DEVICE_ID=$(echo "$DEVICE_LINE" | awk -F '[()]' '{print $2}')
           DEVICE_NAME=$(echo "$DEVICE_LINE" | sed -E 's/^\s+//; s/ \(.*//')
           if [ -z "$DEVICE_ID" ]; then
-            echo "::error::No iPhone simulator found on this macos-14 runner."
+            echo "::error::No iPhone simulator found on this macos-15 runner."
             xcrun simctl list devices available
             exit 1
           fi
@@ -463,7 +469,7 @@ jobs:
           path: coverage
 
       - name: Download iOS integration coverage artifact
-        # Phase 10A (ADR-005 § A): iOS integration lcov from the macos-14
+        # Phase 10A (ADR-005 § A): iOS integration lcov from the macos-15
         # integration-test-ios job. Merged in below as a third input.
         uses: actions/download-artifact@v4
         with:

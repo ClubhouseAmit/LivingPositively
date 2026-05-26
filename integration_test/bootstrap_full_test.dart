@@ -44,13 +44,11 @@ import 'package:get_it/get_it.dart';
 import 'package:integration_test/integration_test.dart';
 import 'package:mazilon/AnalyticsService.dart';
 import 'package:mazilon/Locale/locale_service.dart';
-import 'package:mazilon/main.dart'
-    show MyApp, bootstrapApp, initializeApp;
+import 'package:mazilon/main.dart' show MyApp, bootstrapApp, initializeApp;
 import 'package:mazilon/pages/SignIn_Pages/firstPage.dart';
 import 'package:mazilon/pages/SignIn_Pages/introduction.dart';
 import 'package:provider/provider.dart';
-// ignore: depend_on_referenced_packages
-import 'package:workmanager_platform_interface/workmanager_platform_interface.dart';
+import 'package:workmanager/workmanager.dart';
 
 import '../test/helpers/widget_test_scaffold.dart';
 
@@ -60,6 +58,11 @@ class _SilentWorkmanager extends WorkmanagerPlatform {
   final List<String> calls = [];
 
   static _SilentWorkmanager register() {
+    // Workmanager() lazily constructs a singleton whose constructor installs
+    // the real Android/iOS platform if the current platform is only a test
+    // fake. Prime that singleton first, then replace the platform with this
+    // recorder so the default fallback remains observable.
+    Workmanager();
     WorkmanagerPlatform.instance = _shared;
     _shared.calls.clear();
     return _shared;
@@ -109,8 +112,7 @@ class _SilentWorkmanager extends WorkmanagerPlatform {
 void main() {
   IntegrationTestWidgetsFlutterBinding.ensureInitialized();
 
-  const pathProviderChannel =
-      MethodChannel('plugins.flutter.io/path_provider');
+  const pathProviderChannel = MethodChannel('plugins.flutter.io/path_provider');
   const sharedPrefsChannel =
       MethodChannel('plugins.flutter.io/shared_preferences');
 
@@ -255,8 +257,7 @@ void main() {
       expect(
         hasFirstPage || hasIntroduction,
         isTrue,
-        reason:
-            'After 2s of async pumps MyApp must have left the loading '
+        reason: 'After 2s of async pumps MyApp must have left the loading '
             'placeholder and rendered FirstPage (success path) or '
             'Introduction (catchError fallback path). If neither is found, '
             'the bootstrap is stuck on the CircularProgressIndicator '

@@ -4,7 +4,7 @@
 // Sibling of scripts/check_integration_coverage.dart. Reads
 // coverage/integration_ios.info (produced by `flutter test integration_test/
 // notifications_schedule_ios_test.dart --coverage --coverage-path
-// coverage/integration_ios.info` in the macos-14 `integration-test-ios` job)
+// coverage/integration_ios.info` in the macos-15 `integration-test-ios` job)
 // and enforces ONLY the per-file floors below.
 //
 // Global coverage is owned by the unit pipeline (`scripts/check_coverage.dart`)
@@ -49,7 +49,7 @@ void main(List<String> args) {
       ..writeln('      -d "<iPhone simulator UDID>"')
       ..writeln('  If you are running locally without an iOS simulator '
           'attached, this is expected — the file is generated only by the '
-          'macos-14 CI integration-test-ios job.');
+          'macos-15 CI integration-test-ios job.');
     exit(2);
   }
 
@@ -62,8 +62,7 @@ void main(List<String> args) {
   );
 
   stdout
-    ..writeln(
-        '===== Mazilon iOS Integration Coverage Gate (ADR-005 § A) =====')
+    ..writeln('===== Mazilon iOS Integration Coverage Gate (ADR-005 § A) =====')
     ..writeln('Files inspected: ${_floors.length}')
     ..writeln(result.reportLines.join('\n'))
     ..writeln(
