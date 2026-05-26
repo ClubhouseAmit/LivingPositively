@@ -126,14 +126,27 @@ void showLaunchFailureSnackBar(
   );
 }
 
-Future<bool> dialPhone(String number) async {
-  final uri = _dialPhoneUri(number);
-  final launched = await launchUrl(uri);
+/// Wraps `launchUrl` so the four public action helpers share one
+/// "launch + log on false + return launched" shape.
+///
+/// [mode] is forwarded to `launchUrl`; pass `LaunchMode.externalApplication`
+/// for app handoffs (WhatsApp, browser). The default
+/// `LaunchMode.platformDefault` matches `launchUrl(uri)`'s historical
+/// behavior for `tel:` and `sms:`.
+Future<bool> _launchUriWithLogging(
+  Uri uri, {
+  LaunchMode mode = LaunchMode.platformDefault,
+}) async {
+  final launched = await launchUrl(uri, mode: mode);
   if (!launched) {
     debugPrint('Could not launch $uri');
   }
   return launched;
 }
+
+Future<bool> dialPhone(String number) => _launchUriWithLogging(
+      _dialPhoneUri(number),
+    );
 
 Uri _dialPhoneUri(String number) {
   final trimmedNumber = number.trim();
@@ -144,25 +157,17 @@ Uri _dialPhoneUri(String number) {
   return Uri.parse('tel:$trimmedNumber');
 }
 
-Future<bool> openWhatsApp(String number) async {
-  final uri = Uri.parse('https://wa.me/$number');
-  final launched = await launchUrl(uri, mode: LaunchMode.externalApplication);
-  if (!launched) {
-    debugPrint('Could not launch $uri');
-  }
-  return launched;
-}
+Future<bool> openWhatsApp(String number) => _launchUriWithLogging(
+      Uri.parse('https://wa.me/$number'),
+      mode: LaunchMode.externalApplication,
+    );
 
-Future<bool> openSite(String url) async {
-  final uri = Uri.parse(url);
-  final launched = await launchUrl(uri, mode: LaunchMode.externalApplication);
-  if (!launched) {
-    debugPrint('Could not launch $uri');
-  }
-  return launched;
-}
+Future<bool> openSite(String url) => _launchUriWithLogging(
+      Uri.parse(url),
+      mode: LaunchMode.externalApplication,
+    );
 
-Future<bool> openTextMessage(String number, {String body = ''}) async {
+Future<bool> openTextMessage(String number, {String body = ''}) {
   final trimmedBody = body.trim();
   final uri = trimmedBody.isEmpty
       ? Uri(scheme: 'sms', path: number)
@@ -171,11 +176,7 @@ Future<bool> openTextMessage(String number, {String body = ''}) async {
           path: number,
           queryParameters: {'body': trimmedBody},
         );
-  final launched = await launchUrl(uri);
-  if (!launched) {
-    debugPrint('Could not launch $uri');
-  }
-  return launched;
+  return _launchUriWithLogging(uri);
 }
 
 Widget getTextIconWidget(
