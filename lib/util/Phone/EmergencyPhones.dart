@@ -48,12 +48,50 @@ class EmergencyPhonesGrid extends StatelessWidget {
           'No emergency mapping for countryCode="$countryCode". Using default "${defaultEmergencyCountry.id}".');
     }
     final activeCountry = country ?? defaultEmergencyCountry;
+    final bool isFallback = country == null;
     final localNumbers = activeCountry.emergencyNumbers;
     final appLocale = AppLocalizations.of(context);
     final displayedNumbers =
         appLocale?.localeName == 'he' && activeCountry.id == 'israel'
             ? _hebrewIsraelEmergencyOrder(localNumbers)
             : localNumbers;
+
+    Widget? fallbackBanner;
+    if (isFallback) {
+      final localizedCountry = activeCountry.id;
+      fallbackBanner = Semantics(
+        liveRegion: true,
+        container: true,
+        child: Container(
+          margin: const EdgeInsets.fromLTRB(0, 0, 0, 8),
+          padding: const EdgeInsets.all(12),
+          decoration: BoxDecoration(
+            color: const Color(0xFFFFF4E5),
+            border: Border.all(color: const Color(0xFFE0A82E), width: 1),
+            borderRadius: BorderRadius.circular(8),
+          ),
+          child: Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              const Icon(Icons.info_outline,
+                  color: Color(0xFFB76E00), size: 20),
+              const SizedBox(width: 8),
+              Expanded(
+                child: Text(
+                  appLocale?.emergencyCountryFallback(localizedCountry) ??
+                      'Showing default emergency numbers ($localizedCountry). They may not connect from your current location.',
+                  style: const TextStyle(
+                    color: Color(0xFF7A4B00),
+                    fontSize: 13,
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ),
+      );
+    }
+
     return Padding(
       padding: const EdgeInsets.all(8.0),
       child: LayoutBuilder(
@@ -64,7 +102,7 @@ class EmergencyPhonesGrid extends StatelessWidget {
               (constraints.maxWidth - spacing * (crossAxisCount - 1)) /
                   crossAxisCount;
 
-          return Wrap(
+          final grid = Wrap(
             spacing: spacing,
             runSpacing: spacing,
             children: [
@@ -77,6 +115,15 @@ class EmergencyPhonesGrid extends StatelessWidget {
                   ),
                 ),
             ],
+          );
+
+          if (fallbackBanner == null) {
+            return grid;
+          }
+          return Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [fallbackBanner, grid],
           );
         },
       ),

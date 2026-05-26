@@ -3890,4 +3890,20 @@ class AppLocalizationsAr extends AppLocalizations {
     );
     return '$_temp0';
   }
+
+  @override
+  String callFailedMessage(String number) => 'تعذّر فتح المتصل لـ $number';
+
+  @override
+  String get couldNotOpenApp => 'تعذّر فتح التطبيق';
+
+  @override
+  String get copyNumberAction => 'نسخ الرقم';
+
+  @override
+  String get numberCopiedToast => 'تم نسخ الرقم';
+
+  @override
+  String emergencyCountryFallback(String country) =>
+      'تُعرض أرقام الطوارئ الافتراضية ($country). قد لا تعمل من موقعك الحالي.';
 }
