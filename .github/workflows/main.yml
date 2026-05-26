@@ -481,13 +481,16 @@ jobs:
         run: dart run scripts/merge_lcov.dart coverage/aggregate.info coverage/lcov.info coverage/integration.info coverage/integration_ios.info
 
       - name: Enforce aggregate coverage gate
-        # check_aggregate_coverage.dart reads coverage/lcov.info AND
-        # coverage/integration.info directly (parseLcovInputs), applies the
-        # same exclude list as check_coverage.dart, and enforces the 89%
-        # aggregate global floor (originally 85% under ADR-003 Phase 8;
-        # ratcheted to 89% by ADR-004 Phase 9 after the firestore-injection
-        # extension in firebase_functions.dart pushed unit-only coverage to
-        # 89.33% — see docs/coverage-status.md § Round 9).
+        # check_aggregate_coverage.dart reads coverage/lcov.info,
+        # coverage/integration.info, AND coverage/integration_ios.info directly
+        # (parseLcovInputs), applies the same exclude list as
+        # check_coverage.dart, and enforces the 89% aggregate global floor
+        # (originally 85% under ADR-003 Phase 8; ratcheted to 89% by ADR-004
+        # Phase 9 after the firestore-injection extension in
+        # firebase_functions.dart pushed unit-only coverage to 89.33% — see
+        # docs/coverage-status.md § Round 9). The iOS lcov was added as a
+        # third input under ADR-005 § A (Phase 10A) without ratcheting the
+        # floor, since adding an input can only raise the union.
         run: dart run scripts/check_aggregate_coverage.dart
 
       - name: Upload aggregate coverage report
