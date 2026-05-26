@@ -45,6 +45,38 @@ class _FailingUrlLauncherPlatform extends UrlLauncherPlatform {
   }
 }
 
+/// Throws on every launch — models the `PlatformException` / `ArgumentError`
+/// paths from `url_launcher` that can fire on unsupported schemes or
+/// malformed URIs.
+class _ThrowingUrlLauncherPlatform extends UrlLauncherPlatform {
+  String? lastLaunchedUrl;
+
+  @override
+  LinkDelegate? get linkDelegate => null;
+
+  @override
+  Future<bool> canLaunch(String url) async => true;
+
+  @override
+  Future<bool> launch(
+    String url, {
+    required bool useSafariVC,
+    required bool useWebView,
+    required bool enableJavaScript,
+    required bool enableDomStorage,
+    required bool universalLinksOnly,
+    required Map<String, String> headers,
+    String? webOnlyWindowName,
+  }) async {
+    lastLaunchedUrl = url;
+    throw PlatformException(
+      code: 'CHANNEL-ERROR',
+      message:
+          'No Activity found to handle Intent { act=android.intent.action.DIAL }',
+    );
+  }
+}
+
 class _FakePersistentMemoryService implements PersistentMemoryService {
   @override
   Future<dynamic> getItem(String key, PersistentMemoryType type) async => null;
@@ -269,6 +301,68 @@ void main() {
       expect(find.byType(SnackBar), findsOneWidget);
       expect(find.text("Couldn't open the app"), findsOneWidget);
       expect(find.byType(SnackBarAction), findsNothing);
+    });
+  });
+
+  // url_launcher can throw (PlatformException / ArgumentError) in addition
+  // to returning false. launchWithFeedback must route both paths through
+  // the same snackbar so the user never sees a silent failure.
+  group('thrown launcher exceptions route through the snackbar', () {
+    testWidgets('phoneContact: dial that throws still shows snackbar',
+        (tester) async {
+      final originalPlatform = UrlLauncherPlatform.instance;
+      final fake = _ThrowingUrlLauncherPlatform();
+      UrlLauncherPlatform.instance = fake;
+      addTearDown(() => UrlLauncherPlatform.instance = originalPlatform);
+
+      await tester.pumpWidget(
+        _wrapForPhoneContact((_) => phoneContact('555-9999', 'Therapist')),
+      );
+      await tester.pumpAndSettle();
+
+      await tester.tap(find.byIcon(Icons.phone));
+      await tester.pump();
+      await tester.pump(const Duration(milliseconds: 50));
+
+      expect(fake.lastLaunchedUrl, 'tel:555-9999');
+      expect(find.byType(SnackBar), findsOneWidget);
+      expect(
+          find.text("Couldn't open the dialer for 555-9999"), findsOneWidget);
+      expect(
+          find.widgetWithText(SnackBarAction, 'Copy number'), findsOneWidget);
+    });
+
+    testWidgets(
+        'EmergencyDialogBox: WhatsApp that throws still shows the non-call snackbar',
+        (tester) async {
+      final originalPlatform = UrlLauncherPlatform.instance;
+      final fake = _ThrowingUrlLauncherPlatform();
+      UrlLauncherPlatform.instance = fake;
+      addTearDown(() => UrlLauncherPlatform.instance = originalPlatform);
+
+      await tester.pumpWidget(
+        _wrapForEmergencyDialog(
+          const EmergencyDialogBox(
+            number: '',
+            whatsappNumber: '972501234567',
+            link: '',
+            hasWhatsApp: true,
+            hasLink: false,
+            canCall: false,
+          ),
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      await tester.tap(find.byIcon(Icons.chat));
+      await tester.pump();
+      await tester.pump(const Duration(milliseconds: 50));
+
+      expect(fake.lastLaunchedUrl, 'https://wa.me/972501234567');
+      expect(find.byType(SnackBar), findsOneWidget);
+      expect(find.text("Couldn't open the app"), findsOneWidget);
+      expect(
+          find.widgetWithText(SnackBarAction, 'Copy number'), findsOneWidget);
     });
   });
 }

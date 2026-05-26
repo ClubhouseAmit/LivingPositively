@@ -52,6 +52,11 @@ Widget phoneContact(String phone, String contact) {
 /// reach for a stale context after an `await` (the bug that motivated
 /// ADR-005 §A.1).
 ///
+/// "Failure" covers both a `false` return value AND a thrown exception
+/// (e.g. `PlatformException` for unsupported schemes, `ArgumentError`
+/// for malformed URIs) from `url_launcher` — both paths reach the user
+/// as the same recoverable snackbar.
+///
 /// [number] is the value offered to the snackbar's "Copy number" action;
 /// pass an empty string for launches that have no number worth copying
 /// (e.g. opening a web link).
@@ -63,7 +68,13 @@ Future<void> launchWithFeedback(
 }) async {
   final messenger = ScaffoldMessenger.maybeOf(context);
   final locale = AppLocalizations.of(context);
-  final ok = await launch();
+  bool ok;
+  try {
+    ok = await launch();
+  } catch (error, stackTrace) {
+    debugPrint('launchWithFeedback caught $error\n$stackTrace');
+    ok = false;
+  }
   if (!ok) {
     showLaunchFailureSnackBar(
       messenger,
