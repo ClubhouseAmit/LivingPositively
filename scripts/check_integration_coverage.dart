@@ -1,19 +1,24 @@
-// Coverage gate for the Mazilon integration_test/ pipeline (ADR-002, Phase 7).
+// Coverage gate for the Mazilon integration_test/ pipeline (ADR-002, Phase 7;
+// `lib/main.dart` floor raised under ADR-005 § B, Phase 10B).
 //
 // Sibling of scripts/check_coverage.dart. Reads coverage/integration.info
-// (produced by `flutter test integration_test --coverage --coverage-path
-// coverage/integration.info`) and enforces ONLY the per-file floors below.
-// Global coverage is owned by the unit pipeline (`scripts/check_coverage.dart`);
-// this gate intentionally does NOT check it so that emulator-class flakes in
-// the integration job cannot pull the global gate below 82%.
+// (produced by the Android integration-test job's explicit test-file list with
+// `--coverage --coverage-path coverage/integration.info`) and enforces ONLY
+// the per-file floors below.
+// Global coverage is owned by the unit pipeline (`scripts/check_coverage.dart`)
+// and the aggregate gate (`scripts/check_aggregate_coverage.dart`); this gate
+// intentionally does NOT check global so that emulator-class flakes in the
+// integration job cannot pull the unit pipeline's 85% global floor below
+// threshold.
 //
-// Per ADR-002 § "Per-file floors in scripts/check_integration_coverage.dart":
+// **Current floors** (see `_floors` map below for the authoritative values —
+// this comment is illustrative and is updated when the map changes):
 //
 //   const _floors = <String, double>{
-//     'lib/main.dart': 50.0,
-//     'lib/pages/WellnessTools/player.dart': 60.0,
-//     'lib/util/logger_service.dart': 60.0,
-//     'lib/pages/notifications/notification_service.dart': 85.0,
+//     'lib/main.dart': 65.0,                                         // ADR-005 § B (was 50.0 under ADR-002)
+//     'lib/pages/WellnessTools/player.dart': 60.0,                   // ADR-002
+//     'lib/util/logger_service.dart': 60.0,                          // ADR-002
+//     'lib/pages/notifications/notification_service.dart': 85.0,     // ADR-002
 //   };
 //
 // Exit codes:
@@ -26,8 +31,18 @@ import 'dart:io';
 
 import '_lcov_parser.dart';
 
+// Phase 10B (ADR-005 § B) raised `lib/main.dart` from 50.0 → 65.0 after the
+// `bootstrapApp()` extraction made the bootstrap path reachable from the
+// new `integration_test/bootstrap_full_test.dart`. The smoke test already
+// covered MyApp; the full test additionally exercises the lines that
+// build the widget tree (the MultiProvider construction + the optional
+// dependency-injection branches) plus the extracted `initializeApp` body.
+// callbackDispatcher (lines 42-89) stays uncovered — foreground integration
+// tests cannot trigger a Workmanager background entry-point. The 65% floor
+// is set below the expected ~75% so the gate tolerates incidental drift
+// from new lines added to MyApp in future feature work.
 const _floors = <String, double>{
-  'lib/main.dart': 50.0,
+  'lib/main.dart': 65.0,
   'lib/pages/WellnessTools/player.dart': 60.0,
   'lib/util/logger_service.dart': 60.0,
   'lib/pages/notifications/notification_service.dart': 85.0,
@@ -38,10 +53,9 @@ void main(List<String> args) {
   if (!lcovFile.existsSync()) {
     stderr
       ..writeln('FATAL: coverage/integration.info not found.')
+      ..writeln('  Expected the integration-test job to have produced it via:')
       ..writeln(
-          '  Expected the integration-test job to have produced it via:')
-      ..writeln(
-          '    flutter test integration_test --coverage --coverage-path coverage/integration.info')
+          '    flutter test <Android integration files> --coverage --coverage-path coverage/integration.info')
       ..writeln(
           '  If you are running locally and have no emulator attached, this is')
       ..writeln(

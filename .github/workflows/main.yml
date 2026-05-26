@@ -200,9 +200,14 @@ jobs:
           #    native SDK is channel-mocked in the test so no real network
           #    traffic leaves the runner (PR #266 review, baz-reviewer
           #    finding 1).
+          #
+          # 5. The iOS-only notifications_schedule_ios_test.dart is excluded
+          #    here. The macOS integration-test-ios job owns that file; running
+          #    the whole integration_test/ directory on Android mixes iOS
+          #    method-channel assumptions with the Android plugin stack.
           script: |
             flutter devices
-            flutter test integration_test --coverage --coverage-path coverage/integration.info --dart-define=SENTRY_DSN=https://test@dsn.example.local/0 -d emulator-5554
+            flutter test integration_test/custom_categories_e2e_test.dart integration_test/bootstrap_smoke_test.dart integration_test/bootstrap_full_test.dart integration_test/wellness_player_test.dart integration_test/logger_init_test.dart integration_test/notifications_schedule_test.dart --coverage --coverage-path coverage/integration.info --dart-define=SENTRY_DSN=https://test@dsn.example.local/0 -d emulator-5554
 
       - name: Enforce integration-test per-file coverage floors
         run: dart run scripts/check_integration_coverage.dart
@@ -213,6 +218,182 @@ jobs:
         with:
           name: coverage-integration-lcov
           path: coverage/integration.info
+
+  integration-test-ios:
+    # Phase 10A (ADR-005 § A): per-file coverage gate for the iOS arms of
+    # NotificationsService. Runs on macos-26 + iOS simulator so the job has
+    # Xcode 16 / iOS 18 SDK symbols required by flutter_contacts' iOS Contacts
+    # limited-permission support. macOS runners are free for public repositories
+    # under GitHub's open-source billing, so the ADR-002 / Round-9 macOS-cost
+    # framing that previously deferred iOS coverage no longer applies.
+    #
+    # Decoupled from build-android / integration-test: emulator- or
+    # simulator-class flakes here cannot pull the unit pipeline's 85%
+    # global floor below threshold. Sibling per-file gate
+    # (scripts/check_ios_integration_coverage.dart) enforces a 60% floor on
+    # lib/pages/notifications/notification_service.dart under the iOS
+    # invocation alone. The aggregate gate downstream merges this lcov with
+    # the unit + Android-integration lcovs and enforces the 90% combined
+    # floor.
+    runs-on: macos-26
+    env:
+      FIREBASE_OPTIONS_PATH: lib/util/Firebase/firebase_options.dart
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Export secrets as env vars
+        uses: oNaiPs/secrets-to-env-action@v1
+        with:
+          secrets: ${{ toJSON(secrets) }}
+
+      - name: Write firebase options file
+        run: |
+          echo "$FIREBASE_OPTIONS" | base64 --decode > "${{ env.FIREBASE_OPTIONS_PATH }}"
+
+      - name: Set up Flutter
+        uses: subosito/flutter-action@v2
+        with:
+          flutter-version: "3.41.6"
+          cache: true
+
+      - name: Install dependencies
+        run: flutter pub get
+
+      - name: List available iOS simulators
+        # Diagnostic: surfaces the runtime + device names available on the
+        # macos-26 image. If the next step fails to find an iPhone, the
+        # output here is the first place to look.
+        run: xcrun simctl list devices available
+
+      - name: Boot iPhone simulator
+        # macos-26 images ship with multiple iPhone simulators.
+        # — pick the first "iPhone " device that is available. Avoid pinning
+        # to a specific model so the job survives when GitHub rotates the
+        # default Xcode/iOS-runtime bundle.
+        run: |
+          DEVICE_LINE=$(xcrun simctl list devices available | grep -E '^\s+iPhone ' | head -n 1)
+          DEVICE_ID=$(echo "$DEVICE_LINE" | awk -F '[()]' '{print $2}')
+          DEVICE_NAME=$(echo "$DEVICE_LINE" | sed -E 's/^\s+//; s/ \(.*//')
+          if [ -z "$DEVICE_ID" ]; then
+            echo "::error::No iPhone simulator found on this macos-26 runner."
+            xcrun simctl list devices available
+            exit 1
+          fi
+          echo "Using simulator: $DEVICE_NAME ($DEVICE_ID)"
+          echo "DEVICE_ID=$DEVICE_ID" >> $GITHUB_ENV
+          xcrun simctl boot "$DEVICE_ID"
+          # bootstatus blocks until the sim is fully booted (springboard up).
+          xcrun simctl bootstatus "$DEVICE_ID" -b
+
+      - name: Run iOS integration test
+        # Notes on the invocation below (mirrors the Android job's design
+        # rationale in the integration-test job above):
+        #
+        # 1. Single-line `flutter test` — no `\<newline>` continuations.
+        # 2. `-d "$DEVICE_ID"` explicitly targets the booted simulator. Without
+        #    `-d`, Flutter sometimes falls back to host-VM mode which
+        #    re-triggers "Integration tests and unit tests cannot be run in a
+        #    single invocation."
+        # 3. SENTRY_DSN dart-define is a synthetic test value — Sentry's
+        #    native SDK never reaches the network because the channel is
+        #    mocked inside the test setUp. Symmetric with the Android job.
+        # 4. We run ONLY `notifications_schedule_ios_test.dart` here, not the
+        #    whole `integration_test/` directory. The other integration tests
+        #    (bootstrap_smoke, wellness_player, logger_init,
+        #    notifications_schedule) are Android-targeted and have no value
+        #    on iOS. Running them on iOS would either pass tautologically
+        #    (because they use debugDefaultTargetPlatformOverride) or fail
+        #    due to Android-specific channel-mock assumptions.
+        run: |
+          flutter devices
+          flutter test integration_test/notifications_schedule_ios_test.dart --coverage --coverage-path coverage/integration_ios.info --dart-define=SENTRY_DSN=https://test@dsn.example.local/0 -d "$DEVICE_ID"
+
+      - name: Enforce iOS per-file coverage floor
+        run: dart run scripts/check_ios_integration_coverage.dart
+
+      - name: Upload iOS integration coverage report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: coverage-integration-ios-lcov
+          path: coverage/integration_ios.info
+
+  unit-test-web-telemetry:
+    # Phase 10C (ADR-005 § C): TELEMETRY-ONLY web-test job — NOT YET A GATE.
+    #
+    # This job exists to surface the failure modes of running the unit
+    # suite under `flutter test --platform chrome`. Once those failures
+    # are triaged and the suite is green under Chrome, this job will be
+    # renamed to `unit-test-web`, lose `continue-on-error: true` and the
+    # `if: always()` upload, gain a real gate step (e.g. a
+    # `scripts/check_web_coverage.dart`), and be wired into the
+    # `coverage-aggregate` job's `needs:` list so its lcov merges into
+    # the aggregate floor.
+    #
+    # Until that flip happens, this job is **deliberately green-on-failure**:
+    #   1. `continue-on-error: true` on the test step makes a `flutter test`
+    #      crash report job-success.
+    #   2. The job is NOT in `coverage-aggregate`'s `needs:` list, so a
+    #      missing/empty `coverage/lcov.info` cannot block the aggregate.
+    #
+    # This is intentional. Adding web to the aggregate before the suite is
+    # green would either skip-on-failure (unsafe under branch protection)
+    # or block all PRs on web flakes. The job's value during this phase is
+    # the `coverage-web-lcov` artifact + the test-step log, both of which
+    # PR reviewers can inspect to file triage issues.
+    #
+    # Tracking issue: see § "Still deferred (post Phase 10)" in
+    # docs/coverage-status.md.
+    runs-on: ubuntu-latest
+    env:
+      FIREBASE_OPTIONS_PATH: lib/util/Firebase/firebase_options.dart
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Export secrets as env vars
+        uses: oNaiPs/secrets-to-env-action@v1
+        with:
+          secrets: ${{ toJSON(secrets) }}
+
+      - name: Write firebase options file
+        run: |
+          echo "$FIREBASE_OPTIONS" | base64 --decode > "${{ env.FIREBASE_OPTIONS_PATH }}"
+
+      - name: Set up Flutter
+        uses: subosito/flutter-action@v2
+        with:
+          flutter-version: "3.41.6"
+          cache: true
+
+      - name: Install dependencies
+        run: flutter pub get
+
+      - name: Run unit tests on Chrome (telemetry — failures do NOT fail this job)
+        # `--platform chrome` compiles the test/ suite via dart2js and runs
+        # under headless Chrome. SENTRY_DSN dart-define is the same synthetic
+        # value the other jobs use; the AnalyticsService dart-define-merge
+        # variant (Phase 6 / ADR-001) is NOT re-run here — that file is
+        # already covered by the Android unit job's lcov.
+        #
+        # `continue-on-error: true` is INTENTIONAL during the triage phase
+        # (see job-level comment). Do not remove it without also wiring
+        # this job into coverage-aggregate's needs: list and adding a real
+        # gate step below.
+        continue-on-error: true
+        run: |
+          flutter test --platform chrome --coverage --dart-define=SENTRY_DSN=https://test@dsn.example.local/0
+
+      - name: Upload web coverage report (telemetry — may be missing or stale)
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: coverage-web-lcov
+          path: coverage/lcov.info
+          # Do not fail the upload if the file is missing (it will be when
+          # `flutter test --platform chrome` crashes before emitting lcov).
+          if-no-files-found: warn
 
   coverage-aggregate:
     # Phase 8 (ADR-003): aggregate coverage gate — merges unit lcov and
@@ -233,19 +414,22 @@ jobs:
     #   integration-test → check_integration_coverage.dart  (per-file floors)
     # This job is purely additive; removing it restores the Phase 7 state.
     runs-on: ubuntu-latest
-    needs: [build-android, integration-test]
+    needs: [build-android, integration-test, integration-test-ios]
     if: ${{ always() }}
     steps:
-      - name: Verify both upstream jobs succeeded
-        # Fail fast if either dependency did not succeed. We check the
+      - name: Verify all upstream jobs succeeded
+        # Fail fast if any dependency did not succeed. We check the
         # `result` outputs explicitly rather than relying on `needs:` to
         # skip — see job-level comment above for why a skipped required
-        # check is unsafe under branch protection.
+        # check is unsafe under branch protection. Phase 10A (ADR-005 § A)
+        # added integration-test-ios to the upstream set.
         run: |
           build_result="${{ needs.build-android.result }}"
           intg_result="${{ needs.integration-test.result }}"
-          echo "build-android result:    $build_result"
-          echo "integration-test result: $intg_result"
+          ios_result="${{ needs.integration-test-ios.result }}"
+          echo "build-android result:        $build_result"
+          echo "integration-test result:     $intg_result"
+          echo "integration-test-ios result: $ios_result"
           if [ "$build_result" != "success" ]; then
             echo "::error::Upstream job build-android did not succeed (result=$build_result); cannot compute aggregate coverage." >&2
             exit 1
@@ -254,7 +438,11 @@ jobs:
             echo "::error::Upstream job integration-test did not succeed (result=$intg_result); cannot compute aggregate coverage." >&2
             exit 1
           fi
-          echo "Both upstream jobs succeeded — proceeding with aggregate merge."
+          if [ "$ios_result" != "success" ]; then
+            echo "::error::Upstream job integration-test-ios did not succeed (result=$ios_result); cannot compute aggregate coverage." >&2
+            exit 1
+          fi
+          echo "All upstream jobs succeeded — proceeding with aggregate merge."
 
       - name: Checkout repository
         uses: actions/checkout@v4
@@ -280,21 +468,35 @@ jobs:
           name: coverage-integration-lcov
           path: coverage
 
-      - name: Merge unit and integration lcov files
-        # Merges coverage/lcov.info (unit) and coverage/integration.info (intg)
-        # into coverage/aggregate.info by taking the max hit-count per line —
-        # same semantics as the ADR-001 Phase-6 merge step.  Output path is
-        # distinct from both inputs so neither upstream gate is clobbered.
-        run: dart run scripts/merge_lcov.dart coverage/aggregate.info coverage/lcov.info coverage/integration.info
+      - name: Download iOS integration coverage artifact
+        # Phase 10A (ADR-005 § A): iOS integration lcov from the macos-26
+        # integration-test-ios job. Merged in below as a third input.
+        uses: actions/download-artifact@v4
+        with:
+          name: coverage-integration-ios-lcov
+          path: coverage
+
+      - name: Merge unit, Android-integration, and iOS-integration lcov files
+        # Merges coverage/lcov.info (unit), coverage/integration.info (Android
+        # intg), and coverage/integration_ios.info (iOS intg) into
+        # coverage/aggregate.info by taking the max hit-count per line — same
+        # semantics as the ADR-001 Phase-6 merge step. Output path is distinct
+        # from all inputs so no upstream gate is clobbered.
+        # `merge_lcov.dart` accepts N positional inputs (PR #266 cleanup);
+        # adding the iOS lcov needs no script change.
+        run: dart run scripts/merge_lcov.dart coverage/aggregate.info coverage/lcov.info coverage/integration.info coverage/integration_ios.info
 
       - name: Enforce aggregate coverage gate
-        # check_aggregate_coverage.dart reads coverage/lcov.info AND
-        # coverage/integration.info directly (parseLcovInputs), applies the
-        # same exclude list as check_coverage.dart, and enforces the 89%
-        # aggregate global floor (originally 85% under ADR-003 Phase 8;
-        # ratcheted to 89% by ADR-004 Phase 9 after the firestore-injection
-        # extension in firebase_functions.dart pushed unit-only coverage to
-        # 89.33% — see docs/coverage-status.md § Round 9).
+        # check_aggregate_coverage.dart reads coverage/lcov.info,
+        # coverage/integration.info, AND coverage/integration_ios.info directly
+        # (parseLcovInputs), applies the same exclude list as
+        # check_coverage.dart, and enforces the 89% aggregate global floor
+        # (originally 85% under ADR-003 Phase 8; ratcheted to 89% by ADR-004
+        # Phase 9 after the firestore-injection extension in
+        # firebase_functions.dart pushed unit-only coverage to 89.33% — see
+        # docs/coverage-status.md § Round 9). The iOS lcov was added as a
+        # third input under ADR-005 § A (Phase 10A) without ratcheting the
+        # floor, since adding an input can only raise the union.
         run: dart run scripts/check_aggregate_coverage.dart
 
       - name: Upload aggregate coverage report

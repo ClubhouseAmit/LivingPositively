@@ -1205,11 +1205,16 @@ Phase 9 only adds unit-pipeline tests; the integration pipeline is
 unchanged. The aggregate estimate:
 
 ```
-Unit hits (R9):            5800 / 6493 = 89.33%
-Integration delta (R8):    +163 lines  (unchanged — same 4 files)
-Aggregate (R9 est):        5963 / 6493 = 91.84%
-Aggregate floor proposal:  91.84% − 3 pt headroom = 88.84% → 89%
+Unit hits (R9, post-correction):  5754 / 6444 = 89.29%
+Integration delta (R8):           +163 lines  (unchanged — same 4 files)
+Aggregate (R9 est):               5917 / 6444 = 91.83%
+Aggregate floor proposal:         91.83% − 3 pt headroom = 88.83% → 89%
 ```
+
+(The original Phase 9 proposal targeted 5800/6493 = 89.33% with aggregate
+5963/6493 = 91.84%; the post-review dead-code removal — see § "Post-review
+correction" above — dropped 9 raw lines from both numerator and denominator,
+landing at 5754/6444. The 89% aggregate floor proposal holds either way.)
 
 The 3 pt headroom matches every prior ADR-001/002/003 ratchet step.
 First CI run on `tests/phase9-2026` will reveal the actual aggregate %
@@ -1253,6 +1258,245 @@ This is the first round in the coverage initiative authored by an agent
 rather than by hand. The agent's output was reviewed against the ADR-004
 hard constraints (no `lib/` modifications, no platform-channel mocks,
 no skipped tests, analyzer clean) — all four held without iteration.
+
+## Round 10 — Phase 10 ADR-005 execution (macOS-runner iOS coverage, bootstrapApp extraction, web test gate)
+
+Generated: 2026-05-25 — executes the three sub-decisions adopted in
+[`docs/adr/ADR-005-phase-10-macos-runner-ios-and-web-coverage.md`](adr/ADR-005-phase-10-macos-runner-ios-and-web-coverage.md).
+This round is anchored on the constraint shift that open-source macOS
+runners are free on GitHub Actions, which unblocks the iOS coverage items
+ADR-002 / Round 9 deferred under a 10× cost framing. Round 10 also closes
+one gap prior phases missed (the `main.dart` foreground bootstrap, stuck
+at ~60% post-Round-7) and lands a **telemetry-only** web-platform job —
+`unit-test-web-telemetry` — that surfaces failure modes of running the
+unit suite under Chrome but does NOT yet gate anything. A strict web
+gate (rename to `unit-test-web`, drop `continue-on-error: true`, wire
+into `coverage-aggregate` needs, add a `scripts/check_web_coverage.dart`
+sibling, merge web lcov into the aggregate) remains deferred until the
+first telemetry runs surface their failure modes — tracked in the
+"Still deferred (post Phase 10)" table below.
+
+### Headline (estimated — first CI run will confirm)
+
+| Metric | Round 9 | Round 10 (est) | Change |
+|---|---|---|---|
+| Unit tests | 634 + 8 skipped | unchanged | 0 |
+| Integration tests (Android emulator) | 5 | unchanged | 0 |
+| Integration tests (iOS simulator) | 0 | **9** (1 new file, 5 groups) | +9 |
+| Integration tests (bootstrap, full) | 0 (smoke only) | **5** (1 new file, 4 groups) | +5 |
+| `lib/main.dart` aggregate % | ~59.3% | ~75-85% (est) | +15-25 pts |
+| `lib/pages/notifications/notification_service.dart` aggregate % | ~90.6% | ~97% (est) | +6 pts |
+| CI jobs | 3 | **5** (+integration-test-ios as gate, +unit-test-web-telemetry as non-gating telemetry) | +2 |
+| Unit-pipeline global floor | 85% | unchanged | 0 |
+| Integration-pipeline `lib/main.dart` per-file floor | 50% | **65%** | +15 pts |
+| Aggregate global floor | 89% | **90%** (post-merge) | +1 pt |
+
+### What landed
+
+#### PR 10A — iOS notification paths via macOS-14 runner (ADR-005 § A)
+
+- **`integration_test/notifications_schedule_ios_test.dart`** (~250 LOC,
+  9 testWidgets in 5 groups). Mirrors the Android sibling but exercises
+  iOS-specific arms on a real iOS Simulator under
+  `IntegrationTestWidgetsFlutterBinding`:
+  - `supportsReminderSettings()` returns false on real iOS binding (no
+    `debugDefaultTargetPlatformOverride` needed — the macos-14 + iOS sim
+    sets `defaultTargetPlatform = iOS` naturally).
+  - `init()` happy path reaches `plugin.initialize` via the iOS plugin
+    variant (`DarwinInitializationSettings`).
+  - `init()` is idempotent on iOS (second call short-circuits via
+    `_isInitialized`).
+  - `init()` catch branch on iOS forwards `IOS_TZ_FAIL` PlatformException
+    to `IncidentLogger` and still calls `plugin.initialize` on the
+    Asia/Jerusalem fallback.
+  - `initializeNotification()` early-returns on iOS without reaching
+    permission / schedule / toast calls.
+  - `scheduleNotification()` direct call reaches `plugin.zonedSchedule`
+    on iOS (bypasses the `supportsReminderSettings` gate to exercise
+    cross-platform scheduling on the real iOS plugin).
+  - `cancelNotifications(id)` and `cancelNotifications(null)` reach
+    `plugin.cancel` / `plugin.cancelAll` on iOS.
+  - Explicitly skips `cancelNotifications(null, cancelWorker: true)` —
+    Workmanager has no iOS implementation; documented in the file
+    header.
+- **`scripts/check_ios_integration_coverage.dart`** (new gate). Sibling
+  of `check_integration_coverage.dart`. Reads `coverage/integration_ios.info`
+  produced by the new `integration-test-ios` CI job, enforces a 60%
+  per-file floor on `lib/pages/notifications/notification_service.dart`
+  under the iOS invocation alone. Floor sized below the expected ~70-80%
+  to absorb iOS surface differences vs Android (no Workmanager arm).
+- **`.github/workflows/main.yml`** — new `integration-test-ios` job on
+  `macos-14`. Boots the first available iPhone simulator via
+  `xcrun simctl` (no third-party action — macos-14 ships with Xcode +
+  iOS sim pre-installed), runs only the iOS test file with
+  `-d "$DEVICE_ID"`. Uploads `coverage-integration-ios-lcov` artifact.
+- **`coverage-aggregate` job updated** — `needs:` extended to
+  `[build-android, integration-test, integration-test-ios]`; the
+  upstream-result check covers all three; downloads the iOS lcov as a
+  third artifact and passes it as a third input to
+  `scripts/merge_lcov.dart` (which already accepts N positional args from
+  PR #266's refactor).
+
+#### PR 10B — `bootstrapApp()` extraction (ADR-005 § B, 4th sanctioned production exception)
+
+- **`lib/main.dart`** — extracted
+  `Future<Widget> bootstrapApp({firebaseInitializer, locatorSetup,
+  workmanagerInitializer})` from the previous `main()` body. The helper
+  performs `WidgetsFlutterBinding.ensureInitialized()` + Firebase init +
+  service-locator setup + (on non-web) Workmanager init, then returns
+  the `MultiProvider(... MyApp ...)` widget tree. Production `main()`
+  reduced to:
+  ```dart
+  void main() async {
+    final app = await bootstrapApp();
+    final IncidentLoggerService sentryService =
+        GetIt.instance<IncidentLoggerService>();
+    await sentryService.initializeSentry(app);
+  }
+  ```
+  `initializeApp(...)` also gained matching `firebaseInitializer` +
+  `locatorSetup` injection seams (its only caller, `bootstrapApp`,
+  forwards them through). All three named parameters default to the
+  exact pre-extraction calls — behavior-preserving for production by
+  construction. The CI `build-android` + `build-web` jobs build the app
+  starting from `main()` and surface any regression.
+  - **Fourth sanctioned production-code exception** to the no-production-
+    changes guard rail, alongside:
+    1. ADR-001 Round 1 — `firestore` named-param injection on 14 helpers
+       in `firebase_functions.dart`.
+    2. ADR-002 PR #266 — `@visibleForTesting
+       NotificationsService.resetForTest()`.
+    3. ADR-004 Round 9 — `firestore` injection extended to 29 more
+       helpers in `firebase_functions.dart`.
+- **`integration_test/bootstrap_full_test.dart`** (~250 LOC, 5
+  testWidgets in 4 groups). Calls `bootstrapApp(...)` directly with
+  fakes:
+  - Group 1 — return shape: asserts all three injection seams fire
+    (firebase, locator, workmanager), that the returned `MultiProvider`
+    pumps to a tree containing exactly one `MyApp`.
+  - Group 2 — pumps the returned widget: first frame renders the
+    `CircularProgressIndicator` placeholder (locale='') branch;
+    second-pass after async pumps settles to one of `FirstPage` /
+    `Introduction` / progress (identical settle shape to the Phase-7
+    `bootstrap_smoke_test.dart`).
+  - Group 3 — default-fallback branch: omits `workmanagerInitializer`
+    and asserts the fallback closure calls `Workmanager().initialize`
+    via the `_SilentWorkmanager.register()` recorder.
+  - Group 4 — `initializeApp(...)` standalone: asserts both injection
+    seams fire and that fake services are registered post-call.
+- **`scripts/check_integration_coverage.dart`** — `lib/main.dart`
+  per-file floor raised 50.0 → 65.0 with a comment explaining the
+  ratchet rationale (bootstrap-path now reachable; `callbackDispatcher`
+  lines 42-89 stay uncovered).
+
+#### PR 10C — web test telemetry job (ADR-005 § C — landed as TELEMETRY, not yet a gate)
+
+- **`.github/workflows/main.yml`** — new `unit-test-web-telemetry` job
+  on `ubuntu-latest` (renamed from the originally-planned
+  `unit-test-web` to make its non-gating role obvious in CI logs and PR
+  review). Runs `flutter test --platform chrome --coverage` with the
+  same synthetic `SENTRY_DSN` dart-define the other jobs use.
+  Uploads `coverage-web-lcov` artifact (`if-no-files-found: warn` so
+  the upload succeeds when `flutter test` crashes before emitting lcov).
+- **Deliberately green-on-failure during the triage phase:**
+  - `continue-on-error: true` on the test step makes a `flutter test`
+    crash report job-success — failures DO NOT fail this job.
+  - The job is NOT in `coverage-aggregate`'s `needs:` list, so a
+    missing/empty `coverage/lcov.info` cannot block the aggregate.
+  - Step name explicitly says "telemetry — failures do NOT fail this
+    job" so reviewers reading CI logs cannot mistake a green tick for
+    a working gate.
+- **Flip-to-gate criteria** (tracked as "still deferred (post Phase 10)"
+  below): once the suite is green under `--platform chrome`, rename
+  the job to `unit-test-web`, remove `continue-on-error: true`,
+  introduce `scripts/check_web_coverage.dart` (sibling pattern), wire
+  the job into `coverage-aggregate`'s `needs:` list, and add the web
+  lcov as a fourth input to `scripts/merge_lcov.dart`. None of this
+  happens until the first telemetry runs surface their failure modes.
+
+This deliberate split — landing telemetry NOT a gate — surfaced during
+PR 10B review (P2 finding): the original framing as "closes the web
+gate" was misleading because `continue-on-error: true` + not-in-needs
+meant Chrome test failures still produced a green workflow job. The
+rename + explicit step-name warning + `if-no-files-found: warn` on the
+upload make the non-gating role unambiguous; the flip to a real gate
+is a future ADR-005 § C follow-up, not part of this round.
+
+### Per-file deltas (estimated; first CI run will confirm)
+
+| File | R9 | R10 (est) |
+|---|---|---|
+| `lib/main.dart` (aggregate) | ~59.3% | ~75-85% |
+| `lib/pages/notifications/notification_service.dart` (aggregate) | ~90.6% | ~97% |
+| Aggregate global coverage | ~91.83% | ~92.8% |
+
+### Production code changes — summary
+
+| Change | LOC | Justification |
+|---|---|---|
+| `bootstrapApp()` extraction + `initializeApp(...)` injection seams in `lib/main.dart` | ~30 LOC added, ~45 LOC reshuffled | ADR-005 § B; 4th sanctioned exception; defaults exactly match pre-extraction behavior; CI `build-android` + `build-web` surface any production regression |
+| **No other `lib/` files modified** | 0 | `git diff lib/` outside `main.dart` is empty for Round 10 |
+
+### `skip: true` tests
+
+No new skips. The 8 pre-existing skips from Round 1 (3 in
+`Journal_test.dart`, 5 in `menu_test.dart`) remain untouched.
+
+### Still deferred (post Phase 10)
+
+The list shrinks by two items (iOS-notification paths closed via the
+new `integration-test-ios` gate; `main.dart` foreground bootstrap
+closed via the `bootstrapApp()` extraction + `bootstrap_full_test.dart`).
+The web-platform gate hole is **partially addressed** — telemetry
+lands (`unit-test-web-telemetry`), but the strict gate stays deferred
+(see entry below). Remaining accepted-risk items:
+
+| Item | Why still deferred | Unblock criterion |
+|---|---|---|
+| `callbackDispatcher` (Workmanager background entry-point, `main.dart` lines 42-89) | Foreground integration tests cannot trigger a background `Workmanager().executeTask` callback | Background-worker test harness (e.g. Patrol's background task driver) — explicitly out of ADR-005 scope; needs its own ADR with motivation beyond coverage |
+| `logger_service.dart` lines 17-18 (empty-DSN if-branch) | Structurally dead in CI under `--dart-define=SENTRY_DSN=...` | Dual-invocation pattern-2 of ADR-001; benefit is ~0.03 pt aggregate — revisit only if the 90% floor strains the 3 pt headroom |
+| `logger_service.dart` lines 29-31 (outer catch) | Sentry SDK swallows the channel `PlatformException` internally | Runtime-readable `_sentryDsn` (5th production exception) — would require a new ADR |
+| `firebase_functions.dart` residual ~43 `?? FirebaseFirestore.instance` fallback lines | Structurally unreachable under the injection pattern | Accept as dead under the existing tier-1 50% floor (file at 93.8%) or rewrite helpers to not use the fallback shape — separate refactor ADR |
+| Web-platform `unit-test-web-telemetry` → `unit-test-web` strict gate flip | Initial landing is `continue-on-error: true` + not in `coverage-aggregate` needs (deliberately green-on-failure during triage) | Triage follow-up issues from first telemetry runs; rename job, drop `continue-on-error`, add `scripts/check_web_coverage.dart`, wire into aggregate `needs:` + `merge_lcov.dart` |
+| iOS-specific arms that need `cancelWorker: true` | Workmanager has no iOS implementation | Future ADR if iOS background-fetch substitute is ever wired |
+
+### CI floor ratchets (proposed — confirm after first CI run)
+
+- `scripts/check_integration_coverage.dart` `lib/main.dart` per-file:
+  **50.0 → 65.0** (landed in PR 10B).
+- `scripts/check_aggregate_coverage.dart` aggregate global floor: **89%
+  → 90%** (proposed; land in a follow-up after first three CI runs
+  confirm the aggregate %).
+
+### Doc bundling note
+
+This round also commits the post-correction numbers polish in the
+Round 9 § "Aggregate floor — estimated post-merge" section
+(`5800/6493 → 5754/6444` etc.) that had been sitting uncommitted on the
+working tree since the Round 9 PR-268 review.
+
+### Tooling used
+
+- All test files authored by hand. The `qe-test-architect` agent (used
+  in Round 9) was not engaged: the Round 10 work is integration-test +
+  CI-workflow + platform-channel-mocking heavy, where the agent's
+  pure-Dart-against-fakes specialty doesn't apply.
+
+### Open questions (still unresolved at landing)
+
+Carried over from the Phase 10 plan; each will be answered by the first
+CI run on this branch:
+
+1. **Is the GitHub org opted into the open-source macOS-runner billing
+   program?** First `integration-test-ios` job run will surface a billing
+   error if not. If blocked, the job can be marked `continue-on-error: true`
+   while the org opts in.
+2. **Does `flutter test --platform chrome` work with the current Flutter
+   3.41.6 pin given the project's dependency graph?** Triaged after the
+   first `unit-test-web` job run; that's exactly what `continue-on-error:
+   true` is there for.
+3. **`bootstrapApp()` extraction reviewer signoff** — landed; ADR-005 § B
+   makes the case explicitly. PR review will confirm or push back.
 
 
 

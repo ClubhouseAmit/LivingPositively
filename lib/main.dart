@@ -101,58 +101,106 @@ Future<void> refreshReminderForLocaleChange({
   await updateNotifications();
 }
 
-Future<void> initializeApp() async {
+// Phase 10B (ADR-005 § B): `firebaseInitializer` is a dependency-injection
+// seam used only by tests (`integration_test/bootstrap_full_test.dart`).
+// Production callers (`bootstrapApp` below) omit it and accept the default
+// `Firebase.initializeApp(options: DefaultFirebaseOptions.currentPlatform)`
+// — behavior-preserving by construction.
+Future<void> initializeApp({
+  Future<void> Function()? firebaseInitializer,
+  void Function()? locatorSetup,
+}) async {
   WidgetsFlutterBinding.ensureInitialized();
-  await Firebase.initializeApp(options: DefaultFirebaseOptions.currentPlatform);
+  await (firebaseInitializer ??
+      () => Firebase.initializeApp(
+          options: DefaultFirebaseOptions.currentPlatform))();
 
-  setupLocator();
+  (locatorSetup ?? setupLocator)();
+}
+
+/// Test seam for `main()`. Performs platform binding + Firebase init +
+/// service-locator setup + (on non-web) Workmanager init, then returns the
+/// root widget tree. `main()` only adds the `IncidentLoggerService.
+/// initializeSentry(...)` call (which itself calls `runApp`); a test that
+/// calls `bootstrapApp()` directly can pump the returned widget through the
+/// test binding without going through `runApp`.
+///
+/// Named parameters are dependency-injection seams used by
+/// `integration_test/bootstrap_full_test.dart`. Production callers (`main()`
+/// below) omit them and accept defaults that exactly match the previous
+/// pre-extraction body — behavior-preserving by construction.
+///
+/// Per ADR-005 § B, this extraction is the **fourth sanctioned production-
+/// code exception** to the no-production-changes guard rail of the coverage
+/// initiative, alongside:
+///   1. ADR-001 Round 1 — `firestore` named-param injection on 14 helpers
+///      in `firebase_functions.dart`.
+///   2. ADR-002 PR #266 — `@visibleForTesting
+///      NotificationsService.resetForTest()`.
+///   3. ADR-004 Round 9 — `firestore` injection extended to 29 more helpers.
+/// All four share the same shape: narrow, mechanical, behaviour-preserving
+/// for production paths.
+Future<Widget> bootstrapApp({
+  Future<void> Function()? firebaseInitializer,
+  void Function()? locatorSetup,
+  void Function()? workmanagerInitializer,
+}) async {
+  await initializeApp(
+    firebaseInitializer: firebaseInitializer,
+    locatorSetup: locatorSetup,
+  );
+
+  // Initialize Workmanager only on mobile platforms (not web). Preserves the
+  // fire-and-forget shape of the original `main()` — `Workmanager().initialize`
+  // returns `Future<void>` but is intentionally not awaited so the rest of
+  // bootstrap can proceed in parallel.
+  if (!kIsWeb) {
+    (workmanagerInitializer ??
+        () {
+          Workmanager().initialize(
+            callbackDispatcher,
+            isInDebugMode: false,
+          );
+        })();
+  }
+
+  return MultiProvider(
+    providers: [
+      for (int i = 0; i < checkboxCollectionNames.length; i++)
+        // Initialize the checkbox models
+
+        // Initialize the phonePageData provider
+        ChangeNotifierProvider(
+          create: (context) => PhonePageData(
+              key: "PhonePage",
+              phoneNames: [],
+              phoneNumbers: [],
+              header: "", // Blank for unknown field
+              subTitle: "", // Blank for unknown field
+              midTitle: "", // Blank for unknown field
+              phoneNameTitle: "", // Blank for unknown field
+              phoneNumberTitle: "", // Blank for unknown field
+              savedPhoneNames: [], // Assuming empty list for unknown
+              savedPhoneNumbers: [], // Assuming empty list for unknown
+              phoneDescription: [] // Assuming empty list for unknown
+              )
+            ..loadItemsFromPrefs(), // Initialize phonePageData
+        ),
+
+      // Initialize the APP information provider
+      ChangeNotifierProvider(create: (context) => AppInformation()),
+      // Initialize the User information provider
+      ChangeNotifierProvider(create: (context) => UserInformation()),
+    ],
+    child: MyApp(),
+  );
 }
 
 void main() async {
-  await initializeApp();
-
-  IncidentLoggerService sentryService = GetIt.instance<IncidentLoggerService>();
-
-  // Initialize Workmanager only on mobile platforms (not web)
-  if (!kIsWeb) {
-    Workmanager().initialize(
-      callbackDispatcher,
-      isInDebugMode: false,
-    );
-  }
-
-  await sentryService.initializeSentry(
-    MultiProvider(
-      providers: [
-        for (int i = 0; i < checkboxCollectionNames.length; i++)
-          // Initialize the checkbox models
-
-          // Initialize the phonePageData provider
-          ChangeNotifierProvider(
-            create: (context) => PhonePageData(
-                key: "PhonePage",
-                phoneNames: [],
-                phoneNumbers: [],
-                header: "", // Blank for unknown field
-                subTitle: "", // Blank for unknown field
-                midTitle: "", // Blank for unknown field
-                phoneNameTitle: "", // Blank for unknown field
-                phoneNumberTitle: "", // Blank for unknown field
-                savedPhoneNames: [], // Assuming empty list for unknown
-                savedPhoneNumbers: [], // Assuming empty list for unknown
-                phoneDescription: [] // Assuming empty list for unknown
-                )
-              ..loadItemsFromPrefs(), // Initialize phonePageData
-          ),
-
-        // Initialize the APP information provider
-        ChangeNotifierProvider(create: (context) => AppInformation()),
-        // Initialize the User information provider
-        ChangeNotifierProvider(create: (context) => UserInformation()),
-      ],
-      child: MyApp(),
-    ),
-  );
+  final app = await bootstrapApp();
+  final IncidentLoggerService sentryService =
+      GetIt.instance<IncidentLoggerService>();
+  await sentryService.initializeSentry(app);
 }
 
 class MyApp extends StatefulWidget {
