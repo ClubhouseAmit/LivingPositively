@@ -58,77 +58,48 @@ class EmergencyDialogBox extends StatelessWidget {
                 if (canCall)
                   getTextIconWidget(
                     appLocale!.dialButton(gender),
-                    () async {
-                      // Capture messenger before await to avoid mounted/race issues (strategy b).
-                      final messenger = ScaffoldMessenger.maybeOf(context);
-                      final locale = AppLocalizations.of(context);
-                      final ok = await dialPhone(number);
-                      if (!ok) {
-                        showLaunchFailureSnackBar(
-                          messenger,
-                          locale,
-                          number,
-                          isCallFailure: true,
-                        );
-                      }
-                    },
+                    () => launchWithFeedback(
+                      context,
+                      number,
+                      isCallFailure: true,
+                      launch: () => dialPhone(number),
+                    ),
                     Icons.phone,
                   ),
                 if (hasText)
                   getTextIconWidget(
                     'Text',
-                    () async {
-                      // Capture messenger before await to avoid mounted/race issues (strategy b).
-                      final messenger = ScaffoldMessenger.maybeOf(context);
-                      final locale = AppLocalizations.of(context);
-                      final ok = await openTextMessage(
+                    () => launchWithFeedback(
+                      context,
+                      textNumber,
+                      isCallFailure: false,
+                      launch: () => openTextMessage(
                         textNumber,
                         body: textMessage,
-                      );
-                      if (!ok) {
-                        showLaunchFailureSnackBar(
-                          messenger,
-                          locale,
-                          textNumber,
-                          isCallFailure: false,
-                        );
-                      }
-                    },
+                      ),
+                    ),
                     Icons.sms,
                   ),
                 if (hasWhatsApp)
-                  getTextIconWidget(appLocale!.whatsApp, () async {
-                    // Capture messenger before await to avoid mounted/race issues (strategy b).
-                    final messenger = ScaffoldMessenger.maybeOf(context);
-                    final locale = AppLocalizations.of(context);
-                    final ok = await openWhatsApp(whatsappNumber);
-                    if (!ok) {
-                      showLaunchFailureSnackBar(
-                        messenger,
-                        locale,
-                        whatsappNumber,
-                        isCallFailure: false,
-                      );
-                    }
-                  }, Icons.chat),
-
+                  getTextIconWidget(
+                    appLocale!.whatsApp,
+                    () => launchWithFeedback(
+                      context,
+                      whatsappNumber,
+                      isCallFailure: false,
+                      launch: () => openWhatsApp(whatsappNumber),
+                    ),
+                    Icons.chat,
+                  ),
                 if (hasLink)
                   getTextIconWidget(
                     isChatLink ? 'Chat' : appLocale.link,
-                    () async {
-                      // Capture messenger before await to avoid mounted/race issues (strategy b).
-                      final messenger = ScaffoldMessenger.maybeOf(context);
-                      final locale = AppLocalizations.of(context);
-                      final ok = await openSite(link);
-                      if (!ok) {
-                        showLaunchFailureSnackBar(
-                          messenger,
-                          locale,
-                          '',
-                          isCallFailure: false,
-                        );
-                      }
-                    },
+                    () => launchWithFeedback(
+                      context,
+                      '',
+                      isCallFailure: false,
+                      launch: () => openSite(link),
+                    ),
                     isChatLink ? Icons.chat_bubble_outline : Icons.language,
                   ),
 

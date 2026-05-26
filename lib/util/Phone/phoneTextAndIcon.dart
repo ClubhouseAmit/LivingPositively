@@ -14,21 +14,12 @@ Widget phoneContact(String phone, String contact) {
       // subtree, so ScaffoldMessenger.maybeOf works in the tap callback.
       Builder(
         builder: (innerContext) => InkWell(
-          onTap: () async {
-            // Capture messenger + locale BEFORE the await to avoid mounted/race
-            // (same strategy as emergencyDialogBox.dart per ADR-005 §A.1).
-            final messenger = ScaffoldMessenger.maybeOf(innerContext);
-            final locale = AppLocalizations.of(innerContext);
-            final ok = await dialPhone(phone);
-            if (!ok) {
-              showLaunchFailureSnackBar(
-                messenger,
-                locale,
-                phone,
-                isCallFailure: true,
-              );
-            }
-          },
+          onTap: () => launchWithFeedback(
+            innerContext,
+            phone,
+            isCallFailure: true,
+            launch: () => dialPhone(phone),
+          ),
           child: CircleAvatar(
             radius: 20, // adjust as needed
             backgroundColor: primaryPurple,
@@ -52,6 +43,35 @@ Widget phoneContact(String phone, String contact) {
       ),
     ],
   );
+}
+
+/// Captures `ScaffoldMessenger` and `AppLocalizations` from [context]
+/// *before* awaiting [launch], then routes a failed launch to
+/// [showLaunchFailureSnackBar]. Centralizing the capture-before-await
+/// pattern keeps the invariant in one place — callers can't accidentally
+/// reach for a stale context after an `await` (the bug that motivated
+/// ADR-005 §A.1).
+///
+/// [number] is the value offered to the snackbar's "Copy number" action;
+/// pass an empty string for launches that have no number worth copying
+/// (e.g. opening a web link).
+Future<void> launchWithFeedback(
+  BuildContext context,
+  String number, {
+  required bool isCallFailure,
+  required Future<bool> Function() launch,
+}) async {
+  final messenger = ScaffoldMessenger.maybeOf(context);
+  final locale = AppLocalizations.of(context);
+  final ok = await launch();
+  if (!ok) {
+    showLaunchFailureSnackBar(
+      messenger,
+      locale,
+      number,
+      isCallFailure: isCallFailure,
+    );
+  }
 }
 
 /// Shows a snackbar describing a [launchUrl] failure, with an optional
