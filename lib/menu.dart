@@ -285,14 +285,19 @@ class _MenuState extends LPExtendedState<Menu> {
         backgroundColor: appWhite,
         resizeToAvoidBottomInset: false,
         body: currentScreen,
-        //when full screen don't show the SOS button
-        floatingActionButton: isFullScreen
-            ? null
-            : FloatingActionButton(
-                shape: const CircleBorder(),
-                backgroundColor: const Color.fromARGB(255, 33, 1, 101),
-                foregroundColor: appWhite,
-                child: Column(
+        // SOS FAB is always visible — ADR-005 §A.2: emergency access must be
+        // reachable in every app state, including fullscreen video playback.
+        floatingActionButton: FloatingActionButton(
+          shape: const CircleBorder(),
+          backgroundColor: isFullScreen
+              ? const Color.fromARGB(200, 33, 1, 101) // ~78% opaque in fullscreen
+              : const Color.fromARGB(255, 33, 1, 101),
+          foregroundColor: appWhite,
+          mini: isFullScreen,
+          tooltip: 'SOS', // announces to TalkBack/VoiceOver
+          child: isFullScreen
+              ? const Icon(Icons.phone)
+              : Column(
                   mainAxisAlignment: MainAxisAlignment.center,
                   children: <Widget>[
                     const Icon(Icons.phone),
@@ -307,15 +312,19 @@ class _MenuState extends LPExtendedState<Menu> {
                         20),
                   ],
                 ),
-                onPressed: () {
-                  setState(() {
-                    currentScreen =
-                        PhonePage(phonePageData: widget.phonePageData);
-                    current = PagesCode.EmergencyPhones;
-                  });
-                },
-              ),
-        floatingActionButtonLocation: FloatingActionButtonLocation.centerDocked,
+          onPressed: () {
+            setState(() {
+              currentScreen =
+                  PhonePage(phonePageData: widget.phonePageData);
+              current = PagesCode.EmergencyPhones;
+              // Exit fullscreen so emergency page renders with full chrome
+              isFullScreen = false;
+            });
+          },
+        ),
+        floatingActionButtonLocation: isFullScreen
+            ? FloatingActionButtonLocation.endFloat
+            : FloatingActionButtonLocation.centerDocked,
         //when full screen don't show the bottom navigation bar
         bottomNavigationBar: isFullScreen
             ? null

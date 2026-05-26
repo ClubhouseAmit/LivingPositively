@@ -1,0 +1,64 @@
+{
+  "agents": {
+    "agent-1779652135585-o9b2sk": {
+      "agentId": "agent-1779652135585-o9b2sk",
+      "agentType": "coder",
+      "status": "idle",
+      "health": 1,
+      "taskCount": 0,
+      "config": {
+        "adr": "ADR-005",
+        "phase": "A.1",
+        "files": [
+          "lib/util/Phone/phoneTextAndIcon.dart",
+          "lib/util/Phone/emergencyDialogBox.dart",
+          "test/Phone/phoneTextAndIcon_test.dart"
+        ],
+        "model": "sonnet"
+      },
+      "createdAt": "2026-05-24T19:48:55.585Z",
+      "domain": "flutter-ux",
+      "model": "sonnet",
+      "modelRoutedBy": "explicit"
+    },
+    "agent-1779652140959-hzkkjv": {
+      "agentId": "agent-1779652140959-hzkkjv",
+      "agentType": "coder",
+      "status": "idle",
+      "health": 1,
+      "taskCount": 0,
+      "config": {
+        "adr": "ADR-005",
+        "phase": "A.2",
+        "files": [
+          "lib/menu.dart"
+        ],
+        "model": "sonnet"
+      },
+      "createdAt": "2026-05-24T19:49:00.959Z",
+      "domain": "flutter-ux",
+      "model": "sonnet",
+      "modelRoutedBy": "explicit"
+    },
+    "agent-1779652145837-xu49zj": {
+      "agentId": "agent-1779652145837-xu49zj",
+      "agentType": "coder",
+      "status": "idle",
+      "health": 1,
+      "taskCount": 0,
+      "config": {
+        "adr": "ADR-005",
+        "phase": "A.3",
+        "files": [
+          "lib/util/Phone/EmergencyPhones.dart"
+        ],
+        "model": "sonnet"
+      },
+      "createdAt": "2026-05-24T19:49:05.837Z",
+      "domain": "flutter-ux",
+      "model": "sonnet",
+      "modelRoutedBy": "explicit"
+    }
+  },
+  "version": "3.0.0"
+}

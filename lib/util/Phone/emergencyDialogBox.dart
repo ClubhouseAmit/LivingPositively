@@ -58,33 +58,48 @@ class EmergencyDialogBox extends StatelessWidget {
                 if (canCall)
                   getTextIconWidget(
                     appLocale!.dialButton(gender),
-                    () async {
-                      await dialPhone(number);
-                    },
+                    () => launchWithFeedback(
+                      context,
+                      number,
+                      isCallFailure: true,
+                      launch: () => dialPhone(number),
+                    ),
                     Icons.phone,
                   ),
                 if (hasText)
                   getTextIconWidget(
                     'Text',
-                    () async {
-                      await openTextMessage(
+                    () => launchWithFeedback(
+                      context,
+                      textNumber,
+                      isCallFailure: false,
+                      launch: () => openTextMessage(
                         textNumber,
                         body: textMessage,
-                      );
-                    },
+                      ),
+                    ),
                     Icons.sms,
                   ),
                 if (hasWhatsApp)
-                  getTextIconWidget(appLocale!.whatsApp, () async {
-                    await openWhatsApp(whatsappNumber);
-                  }, Icons.chat),
-
+                  getTextIconWidget(
+                    appLocale!.whatsApp,
+                    () => launchWithFeedback(
+                      context,
+                      whatsappNumber,
+                      isCallFailure: false,
+                      launch: () => openWhatsApp(whatsappNumber),
+                    ),
+                    Icons.chat,
+                  ),
                 if (hasLink)
                   getTextIconWidget(
                     isChatLink ? 'Chat' : appLocale.link,
-                    () async {
-                      await openSite(link);
-                    },
+                    () => launchWithFeedback(
+                      context,
+                      '',
+                      isCallFailure: false,
+                      launch: () => openSite(link),
+                    ),
                     isChatLink ? Icons.chat_bubble_outline : Icons.language,
                   ),
 

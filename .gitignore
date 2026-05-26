@@ -80,3 +80,6 @@ lib/util/Firebase/firebase_options.dart
 ruvector.db
 *.local.json
 
+.claude/
+.codex/
+.claude-flow/
