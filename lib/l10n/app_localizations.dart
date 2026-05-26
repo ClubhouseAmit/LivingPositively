@@ -64,7 +64,7 @@ import 'app_localizations_he.dart';
 /// property.
 abstract class AppLocalizations {
   AppLocalizations(String locale)
-      : localeName = intl.Intl.canonicalizedLocale(locale.toString());
+    : localeName = intl.Intl.canonicalizedLocale(locale.toString());
 
   final String localeName;
 
@@ -87,17 +87,17 @@ abstract class AppLocalizations {
   /// of delegates is preferred or required.
   static const List<LocalizationsDelegate<dynamic>> localizationsDelegates =
       <LocalizationsDelegate<dynamic>>[
-    delegate,
-    GlobalMaterialLocalizations.delegate,
-    GlobalCupertinoLocalizations.delegate,
-    GlobalWidgetsLocalizations.delegate,
-  ];
+        delegate,
+        GlobalMaterialLocalizations.delegate,
+        GlobalCupertinoLocalizations.delegate,
+        GlobalWidgetsLocalizations.delegate,
+      ];
 
   /// A list of this localizations delegate's supported locales.
   static const List<Locale> supportedLocales = <Locale>[
     Locale('ar'),
     Locale('en'),
-    Locale('he')
+    Locale('he'),
   ];
 
   /// The Current Language
@@ -2068,31 +2068,31 @@ abstract class AppLocalizations {
   /// **'{gender,select,male{Your location is only used in order to tailor the SOS numbers to your country.} female{Your location is only used in order to tailor the SOS numbers to your country.} other{Your location is only used in order to tailor the SOS numbers to your country.}}'**
   String locationDisclaimer(String gender);
 
-  /// Message shown when a phone/dialer launch fails.
+  /// Snackbar shown when launching the system dialer fails
   ///
   /// In en, this message translates to:
   /// **'Couldn\'t open the dialer for {number}'**
   String callFailedMessage(String number);
 
-  /// Message shown when a non-call app (WhatsApp, site, SMS) fails to open.
+  /// Generic snackbar for WhatsApp/SMS/web launch failures
   ///
   /// In en, this message translates to:
   /// **'Couldn\'t open the app'**
   String get couldNotOpenApp;
 
-  /// Label for the snackbar action that copies the phone number to clipboard.
+  /// Snackbar action label that copies the failed number to clipboard
   ///
   /// In en, this message translates to:
   /// **'Copy number'**
   String get copyNumberAction;
 
-  /// Toast shown after the number is copied to clipboard.
+  /// Confirmation toast after copying a phone number to clipboard
   ///
   /// In en, this message translates to:
   /// **'Number copied'**
   String get numberCopiedToast;
 
-  /// Banner shown when country detection fails and the emergency grid falls back to the default country.
+  /// Banner shown when country detection fails and the grid falls back to the default country
   ///
   /// In en, this message translates to:
   /// **'Showing default emergency numbers ({country}). They may not connect from your current location.'**
@@ -2128,8 +2128,9 @@ AppLocalizations lookupAppLocalizations(Locale locale) {
   }
 
   throw FlutterError(
-      'AppLocalizations.delegate failed to load unsupported locale "$locale". This is likely '
-      'an issue with the localizations generation tool. Please file an issue '
-      'on GitHub with a reproducible sample app and the gen-l10n configuration '
-      'that was used.');
+    'AppLocalizations.delegate failed to load unsupported locale "$locale". This is likely '
+    'an issue with the localizations generation tool. Please file an issue '
+    'on GitHub with a reproducible sample app and the gen-l10n configuration '
+    'that was used.',
+  );
 }

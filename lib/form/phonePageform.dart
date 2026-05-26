@@ -59,13 +59,11 @@ class _PhonePageFormState extends LPExtendedState<PhonePageForm> {
     PermissionStatus status = await Permission.contacts.status;
 
     if (await FlutterContacts.permissions.has(PermissionType.read)) {
-      final contactId = await FlutterContacts.native.showPicker();
-      if (contactId != null) {
-        final contact = await FlutterContacts.get(contactId,
-            properties: {ContactProperty.phone, ContactProperty.name});
-        if (contact != null) {
-          addItem(contact);
-        }
+      final contact = await FlutterContacts.native.showPicker(
+        properties: {ContactProperty.phone, ContactProperty.name},
+      );
+      if (contact != null) {
+        addItem(contact);
       }
       setState(() {});
     } else {
