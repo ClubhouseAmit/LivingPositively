@@ -238,6 +238,11 @@ jobs:
     runs-on: macos-26
     env:
       FIREBASE_OPTIONS_PATH: lib/util/Firebase/firebase_options.dart
+      # cloud_firestore 6.4.1's SwiftPM manifest allows firebase-ios-sdk
+      # 12.14.0, whose Firestore pipeline bridge changed initializer
+      # signatures. Keep this iOS coverage job on the CocoaPods path until
+      # FlutterFire updates cloud_firestore's iOS parser for that API.
+      FLUTTER_SWIFT_PACKAGE_MANAGER: "false"
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
@@ -254,7 +259,7 @@ jobs:
       - name: Set up Flutter
         uses: subosito/flutter-action@v2
         with:
-          flutter-version: "3.41.6"
+          flutter-version: "3.44.0"
           cache: true
 
       - name: Install dependencies
@@ -364,7 +369,7 @@ jobs:
       - name: Set up Flutter
         uses: subosito/flutter-action@v2
         with:
-          flutter-version: "3.41.6"
+          flutter-version: "3.44.0"
           cache: true
 
       - name: Install dependencies

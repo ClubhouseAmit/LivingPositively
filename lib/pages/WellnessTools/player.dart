@@ -7,11 +7,13 @@ import 'package:youtube_player_flutter/youtube_player_flutter.dart';
 class VideoPlayerPage extends StatefulWidget {
   final Function(bool isFullScreen) onFullScreenChanged;
   final Map<String, List<String>> videoData;
-  const VideoPlayerPage(
-      {Key? key, required this.onFullScreenChanged, required this.videoData})
-      : super(key: key);
+  const VideoPlayerPage({
+    super.key,
+    required this.onFullScreenChanged,
+    required this.videoData,
+  });
   @override
-  _VideoPlayerPageState createState() => _VideoPlayerPageState();
+  State<VideoPlayerPage> createState() => _VideoPlayerPageState();
 }
 
 class _VideoPlayerPageState extends State<VideoPlayerPage> {
@@ -39,7 +41,10 @@ class _VideoPlayerPageState extends State<VideoPlayerPage> {
     if (_isPlaying != controller.value.isPlaying) {
       _isPlaying = controller.value.isPlaying;
       _logEvent(
-          _isPlaying!, controller.metadata.title, controller.metadata.videoId);
+        _isPlaying!,
+        controller.metadata.title,
+        controller.metadata.videoId,
+      );
     }
   }
 
@@ -55,16 +60,28 @@ class _VideoPlayerPageState extends State<VideoPlayerPage> {
 
   @override
   void dispose() {
-    super.dispose();
+    controller.removeListener(listener);
+    // CI run 26463427363 reproduced youtube_player_flutter#1143 on Android:
+    // YoutubePlayerController.dispose() calls value.webViewController?.dispose()
+    // after the child InAppWebView has already disposed the same platform
+    // controller. Flutter unmounts children before State.dispose(), so the
+    // YoutubePlayer widget listener is gone here; after removing our listener,
+    // this reset only detaches the stale WebView reference before disposing
+    // the ValueNotifier. Recheck when upgrading youtube_player_flutter.
+    // https://github.com/sarbagyastha/youtube_player_flutter/issues/1143
+    controller.updateValue(YoutubePlayerValue());
     controller.dispose();
+    super.dispose();
   }
 
   void _logEvent(bool isPlaying, title, String url) {
     AnalyticsService mixPanelService = GetIt.instance<AnalyticsService>();
     debugPrint("logging");
     if (isPlaying) {
-      mixPanelService
-          .trackEvent("Video unpaused", {"title": title, "url": url});
+      mixPanelService.trackEvent("Video unpaused", {
+        "title": title,
+        "url": url,
+      });
     } else {
       mixPanelService.trackEvent("Video paused", {"title": title, "url": url});
     }
@@ -73,14 +90,12 @@ class _VideoPlayerPageState extends State<VideoPlayerPage> {
   @override
   Widget build(BuildContext context) {
     debugPrint(controller.metadata.videoId);
-    return Container(
-      child: YoutubePlayer(
-        controller: controller,
-        showVideoProgressIndicator: true,
-        onReady: () {
-          debugPrint('Player is ready.');
-        },
-      ),
+    return YoutubePlayer(
+      controller: controller,
+      showVideoProgressIndicator: true,
+      onReady: () {
+        debugPrint('Player is ready.');
+      },
     );
   }
 }

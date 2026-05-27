@@ -20,12 +20,15 @@
 // Scope on iOS:
 //   * supportsReminderSettings() returns false on iOS — exercised against
 //     the real iOS defaultTargetPlatform (no override).
+//   * calculateTime() — pure helper used by notification scheduling.
 //   * init() happy path — DarwinInitializationSettings reaches the iOS
 //     plugin's initialize via the dexterous.com/flutter/local_notifications
 //     MethodChannel.
 //   * init() catch branch — flutter_timezone throws, the fallback path
 //     forwards the PlatformException to IncidentLogger and still calls
 //     plugin.initialize on the Asia/Jerusalem fallback.
+//   * showNotification() — direct notification display path reaches the
+//     iOS plugin's show method.
 //   * initializeNotification() / updateNotification() — early-return
 //     when supportsReminderSettings() is false; assert no scheduling
 //     calls reach the plugin.
@@ -35,11 +38,10 @@
 //     plugin.cancel / plugin.cancelAll on iOS.
 //
 // Explicitly NOT exercised (out of scope for Phase 10A):
-//   * cancelNotifications(null, cancelWorker: true) — Workmanager has no
-//     iOS implementation; the unit test stubs WorkmanagerPlatform.instance
-//     to verify the call, but exercising it through the real iOS binding
-//     surfaces no additional behavior. Reserved for a future ADR if
-//     iOS Workmanager substitute (e.g. background-fetch) is ever wired.
+//   * cancelNotifications(null, cancelWorker: true) — Workmanager's iOS
+//     implementation does not route through the test WorkmanagerPlatform fake
+//     on a real simulator. The Android integration test owns that worker path;
+//     iOS coverage remains above the per-file floor without asserting it here.
 
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
@@ -48,9 +50,12 @@ import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:get_it/get_it.dart';
 import 'package:integration_test/integration_test.dart';
+import 'package:mazilon/global_enums.dart';
 import 'package:mazilon/l10n/app_localizations.dart';
 import 'package:mazilon/pages/notifications/notification_service.dart';
 import 'package:mazilon/util/logger_service.dart';
+import 'package:mazilon/util/persistent_memory_service.dart';
+import 'package:mazilon/util/userInformation.dart';
 // ignore: depend_on_referenced_packages
 import 'package:workmanager_platform_interface/workmanager_platform_interface.dart';
 
@@ -96,8 +101,11 @@ class _RecordingLogger implements IncidentLoggerService {
   final List<Object?> captured = [];
 
   @override
-  Future<void> captureLog(dynamic exception,
-      {StackTrace? stackTrace, dynamic exceptionData}) async {
+  Future<void> captureLog(
+    dynamic exception, {
+    StackTrace? stackTrace,
+    dynamic exceptionData,
+  }) async {
     captured.add(exception);
   }
 
@@ -105,11 +113,27 @@ class _RecordingLogger implements IncidentLoggerService {
   Future<void> initializeSentry(Widget app) async {}
 }
 
+class _NoopPersistentMemoryService implements PersistentMemoryService {
+  @override
+  Future<dynamic> getItem(String key, PersistentMemoryType type) async => null;
+
+  @override
+  Future<void> reset() async {}
+
+  @override
+  Future<void> setItem(
+    String key,
+    PersistentMemoryType type,
+    dynamic value,
+  ) async {}
+}
+
 void main() {
   IntegrationTestWidgetsFlutterBinding.ensureInitialized();
 
-  const localNotifChannel =
-      MethodChannel('dexterous.com/flutter/local_notifications');
+  const localNotifChannel = MethodChannel(
+    'dexterous.com/flutter/local_notifications',
+  );
   const timezoneChannel = MethodChannel('flutter_timezone');
   const toastChannel = MethodChannel('PonnamKarthik/fluttertoast');
 
@@ -132,10 +156,8 @@ void main() {
     // analogous `AndroidFlutterLocalNotificationsPlugin.registerWith()`.
     IOSFlutterLocalNotificationsPlugin.registerWith();
 
-    // Install the iOS workmanager safety net. None of the iOS-arm tests in
-    // this file call `cancelNotifications(..., cancelWorker: true)`, but a
-    // future maintainer who adds one should get a recorded call rather than
-    // an `UnimplementedError`.
+    // Install the iOS workmanager safety net. This keeps accidental future
+    // worker calls from throwing `UnimplementedError` in this file.
     _NoopWorkmanagerIOS.register();
 
     localNotifCalls = [];
@@ -180,109 +202,214 @@ void main() {
   });
 
   group('supportsReminderSettings on real iOS binding', () {
-    testWidgets('defaultTargetPlatform is iOS under macos-14 + iOS sim',
-        (tester) async {
-      expect(defaultTargetPlatform, TargetPlatform.iOS,
-          reason:
-              'this file is expected to run on an iOS simulator; if defaultTargetPlatform is not iOS, the CI job targeted the wrong device');
+    testWidgets('defaultTargetPlatform is iOS under macos-14 + iOS sim', (
+      tester,
+    ) async {
+      expect(
+        defaultTargetPlatform,
+        TargetPlatform.iOS,
+        reason:
+            'this file is expected to run on an iOS simulator; if defaultTargetPlatform is not iOS, the CI job targeted the wrong device',
+      );
     });
 
     testWidgets('returns false on iOS (no override)', (tester) async {
-      expect(NotificationsService.supportsReminderSettings(), isFalse,
-          reason: 'iOS is intentionally not a reminder-settings platform — '
-              'the function gates initializeNotification/updateNotification');
+      expect(
+        NotificationsService.supportsReminderSettings(),
+        isFalse,
+        reason:
+            'iOS is intentionally not a reminder-settings platform — '
+            'the function gates initializeNotification/updateNotification',
+      );
     });
 
-    testWidgets('returns false when isWebOverride=true regardless of platform',
-        (tester) async {
-      expect(
+    testWidgets(
+      'returns false when isWebOverride=true regardless of platform',
+      (tester) async {
+        expect(
           NotificationsService.supportsReminderSettings(isWebOverride: true),
-          isFalse);
-    });
+          isFalse,
+        );
+      },
+    );
   });
 
   group('init() on iOS', () {
-    testWidgets('happy path reaches plugin.initialize via Darwin settings',
-        (tester) async {
+    testWidgets('happy path reaches plugin.initialize via Darwin settings', (
+      tester,
+    ) async {
       await NotificationsService.init();
-      expect(localNotifCalls.any((c) => c.method == 'initialize'), isTrue,
-          reason: 'init() must reach plugin.initialize on iOS');
+      expect(
+        localNotifCalls.any((c) => c.method == 'initialize'),
+        isTrue,
+        reason: 'init() must reach plugin.initialize on iOS',
+      );
     });
 
-    testWidgets('second call short-circuits via _isInitialized',
-        (tester) async {
+    testWidgets('second call short-circuits via _isInitialized', (
+      tester,
+    ) async {
       await NotificationsService.init();
       localNotifCalls.clear();
       await NotificationsService.init();
       expect(
-          localNotifCalls.where((c) => c.method == 'initialize').toList(),
-          isEmpty,
-          reason:
-              'idempotency: second init() should not reach plugin.initialize');
+        localNotifCalls.where((c) => c.method == 'initialize').toList(),
+        isEmpty,
+        reason: 'idempotency: second init() should not reach plugin.initialize',
+      );
     });
 
     testWidgets(
-        'catch branch on iOS forwards PlatformException to IncidentLogger and still initializes plugin',
-        (tester) async {
-      // setUp already called resetForTest() so _isInitialized is false here —
-      // the init() body WILL run and the timezone throw will reach the
-      // catch branch.
-      timezoneError =
-          PlatformException(code: 'IOS_TZ_FAIL', message: 'simulated');
+      'catch branch on iOS forwards PlatformException to IncidentLogger and still initializes plugin',
+      (tester) async {
+        // setUp already called resetForTest() so _isInitialized is false here —
+        // the init() body WILL run and the timezone throw will reach the
+        // catch branch.
+        timezoneError = PlatformException(
+          code: 'IOS_TZ_FAIL',
+          message: 'simulated',
+        );
 
-      await NotificationsService.init();
+        await NotificationsService.init();
 
-      final logger =
-          GetIt.instance<IncidentLoggerService>() as _RecordingLogger;
+        final logger =
+            GetIt.instance<IncidentLoggerService>() as _RecordingLogger;
+        expect(
+          logger.captured.any(
+            (e) => e is PlatformException && e.code == 'IOS_TZ_FAIL',
+          ),
+          isTrue,
+          reason:
+              'iOS catch branch must forward IOS_TZ_FAIL PlatformException to IncidentLogger',
+        );
+        expect(
+          localNotifCalls.any((c) => c.method == 'initialize'),
+          isTrue,
+          reason:
+              'iOS catch branch must still call plugin.initialize on the Asia/Jerusalem fallback',
+        );
+      },
+    );
+
+    testWidgets(
+      'catch branch on iOS still initializes plugin when IncidentLogger is unavailable',
+      (tester) async {
+        await GetIt.instance.reset();
+        timezoneError = PlatformException(
+          code: 'IOS_TZ_LOGGER_FAIL',
+          message: 'simulated',
+        );
+
+        await NotificationsService.init();
+
+        expect(
+          localNotifCalls.any((c) => c.method == 'initialize'),
+          isTrue,
+          reason:
+              'init() must still initialize notifications when error logging is unavailable',
+        );
+      },
+    );
+  });
+
+  group('simple notification service helpers on iOS', () {
+    testWidgets('calculateTime returns the requested hour and minute', (
+      tester,
+    ) async {
       expect(
-        logger.captured
-            .any((e) => e is PlatformException && e.code == 'IOS_TZ_FAIL'),
-        isTrue,
-        reason:
-            'iOS catch branch must forward IOS_TZ_FAIL PlatformException to IncidentLogger',
-      );
-      expect(
-        localNotifCalls.any((c) => c.method == 'initialize'),
-        isTrue,
-        reason:
-            'iOS catch branch must still call plugin.initialize on the Asia/Jerusalem fallback',
+        NotificationsService.calculateTime(7, 5),
+        const TimeOfDay(hour: 7, minute: 5),
       );
     });
+
+    testWidgets(
+      'showNotification reaches plugin.show against the iOS binding',
+      (tester) async {
+        await NotificationsService.init();
+        localNotifCalls.clear();
+
+        await NotificationsService.showNotification('Title', 'Body');
+
+        final showCalls = localNotifCalls
+            .where((c) => c.method == 'show')
+            .toList();
+        expect(showCalls, hasLength(1));
+        final args = showCalls.single.arguments;
+        if (args is Map) {
+          expect(args['id'], 0);
+          expect(args['title'], 'Title');
+          expect(args['body'], 'Body');
+          expect(args['payload'], 'item x');
+        }
+      },
+    );
   });
 
   group('initializeNotification / updateNotification iOS early-return', () {
     testWidgets(
-        'initializeNotification() early-returns on iOS — no scheduling reaches the plugin',
-        (tester) async {
-      await NotificationsService.init();
-      localNotifCalls.clear();
+      'initializeNotification() early-returns on iOS — no scheduling reaches the plugin',
+      (tester) async {
+        await NotificationsService.init();
+        localNotifCalls.clear();
 
-      await NotificationsService.initializeNotification(
-        const ['quote A'],
-        9,
-        15,
-        (s) => 'msg $s',
-        _DummyLocale(),
-      );
-      // The early-return path must not reach permission, schedule, or toast.
-      // (showToast itself goes via the fluttertoast channel which we mock
-      // separately; the assertion here is specifically about the plugin
-      // channel.)
-      expect(
-        localNotifCalls.any((c) =>
-            c.method == 'requestNotificationsPermission' ||
-            c.method == 'requestPermissions' ||
-            c.method == 'zonedSchedule'),
-        isFalse,
-        reason:
-            'iOS path must early-return before any plugin scheduling call',
-      );
-    });
+        await NotificationsService.initializeNotification(
+          const ['quote A'],
+          9,
+          15,
+          (s) => 'msg $s',
+          _DummyLocale(),
+        );
+        // The early-return path must not reach permission, schedule, or toast.
+        // (showToast itself goes via the fluttertoast channel which we mock
+        // separately; the assertion here is specifically about the plugin
+        // channel.)
+        expect(
+          localNotifCalls.any(
+            (c) =>
+                c.method == 'requestNotificationsPermission' ||
+                c.method == 'requestPermissions' ||
+                c.method == 'zonedSchedule',
+          ),
+          isFalse,
+          reason:
+              'iOS path must early-return before any plugin scheduling call',
+        );
+      },
+    );
+
+    testWidgets(
+      'updateNotification() early-returns on iOS before scheduling work',
+      (tester) async {
+        await NotificationsService.init();
+        localNotifCalls.clear();
+
+        final userInfo = UserInformation(
+          notificationHour: 7,
+          notificationMinute: 5,
+          gender: 'male',
+          service: _NoopPersistentMemoryService(),
+        );
+
+        await NotificationsService.updateNotification(userInfo, _DummyLocale());
+
+        expect(
+          localNotifCalls.any(
+            (c) =>
+                c.method == 'requestNotificationsPermission' ||
+                c.method == 'requestPermissions' ||
+                c.method == 'zonedSchedule',
+          ),
+          isFalse,
+          reason: 'iOS path must return before quote retrieval or scheduling',
+        );
+      },
+    );
   });
 
   group('scheduleNotification on iOS (direct call, bypasses guard)', () {
-    testWidgets('reaches plugin.zonedSchedule against the iOS binding',
-        (tester) async {
+    testWidgets('reaches plugin.zonedSchedule against the iOS binding', (
+      tester,
+    ) async {
       await NotificationsService.init();
       localNotifCalls.clear();
 
@@ -303,8 +430,9 @@ void main() {
   });
 
   group('cancelNotifications on iOS', () {
-    testWidgets('cancelNotifications(id) reaches plugin.cancel',
-        (tester) async {
+    testWidgets('cancelNotifications(id) reaches plugin.cancel', (
+      tester,
+    ) async {
       await NotificationsService.init();
       localNotifCalls.clear();
       await NotificationsService.cancelNotifications(42);
@@ -312,14 +440,15 @@ void main() {
     });
 
     testWidgets(
-        'cancelNotifications(null) reaches plugin.cancelAll without touching workmanager',
-        (tester) async {
-      await NotificationsService.init();
-      localNotifCalls.clear();
+      'cancelNotifications(null) reaches plugin.cancelAll without touching workmanager',
+      (tester) async {
+        await NotificationsService.init();
+        localNotifCalls.clear();
 
-      await NotificationsService.cancelNotifications(null);
+        await NotificationsService.cancelNotifications(null);
 
-      expect(localNotifCalls.any((c) => c.method == 'cancelAll'), isTrue);
-    });
+        expect(localNotifCalls.any((c) => c.method == 'cancelAll'), isTrue);
+      },
+    );
   });
 }
