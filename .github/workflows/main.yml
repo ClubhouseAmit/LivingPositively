@@ -221,11 +221,13 @@ jobs:
 
   integration-test-ios:
     # Phase 10A (ADR-005 § A): per-file coverage gate for the iOS arms of
-    # NotificationsService. Runs on macos-26 + iOS simulator so the job has
-    # Xcode 16 / iOS 18 SDK symbols required by flutter_contacts' iOS Contacts
-    # limited-permission support. macOS runners are free for public repositories
-    # under GitHub's open-source billing, so the ADR-002 / Round-9 macOS-cost
-    # framing that previously deferred iOS coverage no longer applies.
+    # NotificationsService. ADR-006 benchmarks this job on macos-15 arm64:
+    # it still provides Xcode 16 / iOS 18 SDK symbols required by
+    # flutter_contacts' iOS Contacts limited-permission support without
+    # forcing the newer macOS 26 / Xcode 26 toolchain onto this coverage job.
+    # macOS runners are free for public repositories under GitHub's open-source
+    # billing, so the ADR-002 / Round-9 macOS-cost framing that previously
+    # deferred iOS coverage no longer applies.
     #
     # Decoupled from build-android / integration-test: emulator- or
     # simulator-class flakes here cannot pull the unit pipeline's 85%
@@ -235,9 +237,11 @@ jobs:
     # invocation alone. The aggregate gate downstream merges this lcov with
     # the unit + Android-integration lcovs and enforces the 90% combined
     # floor.
-    runs-on: macos-26
+    runs-on: macos-15
     env:
       FIREBASE_OPTIONS_PATH: lib/util/Firebase/firebase_options.dart
+      IOS_PODS_CACHE_VERSION: v1
+      IOS_DERIVED_DATA_CACHE_VERSION: v1
       # cloud_firestore 6.4.1's SwiftPM manifest allows firebase-ios-sdk
       # 12.14.0, whose Firestore pipeline bridge changed initializer
       # signatures. Keep this iOS coverage job on the CocoaPods path until
@@ -265,14 +269,40 @@ jobs:
       - name: Install dependencies
         run: flutter pub get
 
+      - name: Capture Xcode version for cache keys
+        id: xcode
+        run: |
+          xcodebuild -version
+          XCODE_CACHE_KEY=$(xcodebuild -version | tr '\n' '-' | sed -E 's/-$//' | tr ' ' '_')
+          echo "cache_key=$XCODE_CACHE_KEY" >> "$GITHUB_OUTPUT"
+
+      - name: Cache CocoaPods
+        uses: actions/cache@v5
+        with:
+          path: |
+            ios/Pods
+            ~/Library/Caches/CocoaPods
+            ~/.cocoapods/repos
+          key: ${{ runner.os }}-${{ runner.arch }}-${{ steps.xcode.outputs.cache_key }}-ios-pods-${{ env.IOS_PODS_CACHE_VERSION }}-${{ hashFiles('pubspec.lock', 'ios/Podfile', 'ios/Podfile.lock', '.flutter-plugins-dependencies') }}
+          restore-keys: |
+            ${{ runner.os }}-${{ runner.arch }}-${{ steps.xcode.outputs.cache_key }}-ios-pods-${{ env.IOS_PODS_CACHE_VERSION }}-
+
+      - name: Cache Xcode DerivedData
+        uses: actions/cache@v5
+        with:
+          path: ~/Library/Developer/Xcode/DerivedData
+          key: ${{ runner.os }}-${{ runner.arch }}-${{ steps.xcode.outputs.cache_key }}-ios-deriveddata-${{ env.IOS_DERIVED_DATA_CACHE_VERSION }}-${{ hashFiles('pubspec.lock', 'ios/Podfile', 'ios/Podfile.lock', '.flutter-plugins-dependencies', 'ios/Runner.xcodeproj/project.pbxproj', 'ios/Runner.xcworkspace/contents.xcworkspacedata') }}
+          restore-keys: |
+            ${{ runner.os }}-${{ runner.arch }}-${{ steps.xcode.outputs.cache_key }}-ios-deriveddata-${{ env.IOS_DERIVED_DATA_CACHE_VERSION }}-
+
       - name: List available iOS simulators
         # Diagnostic: surfaces the runtime + device names available on the
-        # macos-26 image. If the next step fails to find an iPhone, the
+        # macos-15 image. If the next step fails to find an iPhone, the
         # output here is the first place to look.
         run: xcrun simctl list devices available
 
       - name: Boot iPhone simulator
-        # macos-26 images ship with multiple iPhone simulators.
+        # macos-15 images ship with multiple iPhone simulators.
         # — pick the first "iPhone " device that is available. Avoid pinning
         # to a specific model so the job survives when GitHub rotates the
         # default Xcode/iOS-runtime bundle.
@@ -281,7 +311,7 @@ jobs:
           DEVICE_ID=$(echo "$DEVICE_LINE" | awk -F '[()]' '{print $2}')
           DEVICE_NAME=$(echo "$DEVICE_LINE" | sed -E 's/^\s+//; s/ \(.*//')
           if [ -z "$DEVICE_ID" ]; then
-            echo "::error::No iPhone simulator found on this macos-26 runner."
+            echo "::error::No iPhone simulator found on this macos-15 runner."
             xcrun simctl list devices available
             exit 1
           fi
@@ -312,7 +342,15 @@ jobs:
         #    due to Android-specific channel-mock assumptions.
         run: |
           flutter devices
-          flutter test integration_test/notifications_schedule_ios_test.dart --coverage --coverage-path coverage/integration_ios.info --dart-define=SENTRY_DSN=https://test@dsn.example.local/0 -d "$DEVICE_ID"
+          flutter test integration_test/notifications_schedule_ios_test.dart --no-pub --coverage --coverage-path coverage/integration_ios.info --dart-define=SENTRY_DSN=https://test@dsn.example.local/0 -d "$DEVICE_ID"
+
+      - name: Upload iOS Podfile lockfile
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: ios-podfile-lock
+          path: ios/Podfile.lock
+          if-no-files-found: warn
 
       - name: Enforce iOS per-file coverage floor
         run: dart run scripts/check_ios_integration_coverage.dart
@@ -474,7 +512,7 @@ jobs:
           path: coverage
 
       - name: Download iOS integration coverage artifact
-        # Phase 10A (ADR-005 § A): iOS integration lcov from the macos-26
+        # Phase 10A (ADR-005 § A): iOS integration lcov from the macos-15
         # integration-test-ios job. Merged in below as a third input.
         uses: actions/download-artifact@v4
         with:
