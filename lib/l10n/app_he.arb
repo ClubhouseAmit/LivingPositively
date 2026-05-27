@@ -401,5 +401,22 @@
   "couldNotOpenApp": "לא ניתן לפתוח את האפליקציה",
   "copyNumberAction": "העתק מספר",
   "numberCopiedToast": "המספר הועתק",
-  "emergencyCountryFallback": "מוצגים מספרי חירום ברירת מחדל ({country}). ייתכן שלא יפעלו ממיקומך."
-} 
+  "emergencyCountryFallback": "מוצגים מספרי חירום ברירת מחדל ({country}). ייתכן שלא יפעלו ממיקומך.",
+  "menuTooltip": "תפריט",
+  "addItemTooltip": "הוספה",
+  "downloadPlanTooltip": "הורדת התוכנית",
+  "sharePlanTooltip": "שיתוף התוכנית",
+  "refreshQuoteTooltip": "ציטוט חדש",
+  "dismissQuoteTooltip": "סגירת הציטוט",
+  "callContactTooltip": "התקשרות אל {contact}",
+  "@callContactTooltip": {
+    "placeholders": {
+      "contact": {
+        "type": "String"
+      }
+    }
+  },
+  "editEntryTooltip": "עריכת רשומה",
+  "deleteEntryTooltip": "מחיקת רשומה",
+  "sosTooltip": "SOS – אנשי קשר בשעת חירום"
+}

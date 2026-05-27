@@ -3053,4 +3053,36 @@ class AppLocalizationsAr extends AppLocalizations {
   String emergencyCountryFallback(String country) {
     return 'تُعرض أرقام الطوارئ الافتراضية ($country). قد لا تعمل من موقعك الحالي.';
   }
+
+  @override
+  String get menuTooltip => 'القائمة';
+
+  @override
+  String get addItemTooltip => 'إضافة';
+
+  @override
+  String get downloadPlanTooltip => 'تنزيل الخطة';
+
+  @override
+  String get sharePlanTooltip => 'مشاركة الخطة';
+
+  @override
+  String get refreshQuoteTooltip => 'اقتباس جديد';
+
+  @override
+  String get dismissQuoteTooltip => 'إغلاق الاقتباس';
+
+  @override
+  String callContactTooltip(String contact) {
+    return 'الاتصال بـ $contact';
+  }
+
+  @override
+  String get editEntryTooltip => 'تعديل الإدخال';
+
+  @override
+  String get deleteEntryTooltip => 'حذف الإدخال';
+
+  @override
+  String get sosTooltip => 'SOS — جهات اتصال الطوارئ';
 }

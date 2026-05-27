@@ -56,13 +56,17 @@ class _HomeState extends LPExtendedState<Home> {
   bool hasFilled = false;
   Map<String, dynamic> homeTitles = {};
 
-//load information about the user from shared preferences
+  //load information about the user from shared preferences
   void loadData() async {
-    PersistentMemoryService service = GetIt.instance<
-        PersistentMemoryService>(); // Get the persistent memory service instance
+    PersistentMemoryService service =
+        GetIt.instance<
+          PersistentMemoryService
+        >(); // Get the persistent memory service instance
 
-    var hasFilledValue =
-        await service.getItem("hasFilled", PersistentMemoryType.Bool);
+    var hasFilledValue = await service.getItem(
+      "hasFilled",
+      PersistentMemoryType.Bool,
+    );
 
     setState(() {
       hasFilled = hasFilledValue;
@@ -75,11 +79,13 @@ class _HomeState extends LPExtendedState<Home> {
     super.initState();
   }
 
-//fuction to handle the removal of a thank you
+  //fuction to handle the removal of a thank you
 
-//this selects what information to show in the personal plan widget boxes
+  //this selects what information to show in the personal plan widget boxes
   void setRandomPersonalWidgetText(
-      UserInformation userInfo, AppLocalizations appLocale) {
+    UserInformation userInfo,
+    AppLocalizations appLocale,
+  ) {
     var random = Random();
     var randomHeader = random.nextInt(4);
 
@@ -88,7 +94,7 @@ class _HomeState extends LPExtendedState<Home> {
         setState(() {
           homeTitles = {
             'SubTitle': appLocale.makeSaferSubTitle(userInfo.gender),
-            'list': userInfo.makeSafer
+            'list': userInfo.makeSafer,
           };
         });
         break;
@@ -96,7 +102,7 @@ class _HomeState extends LPExtendedState<Home> {
         setState(() {
           homeTitles = {
             'SubTitle': appLocale.difficultEventsSubTitle(userInfo.gender),
-            'list': userInfo.difficultEvents
+            'list': userInfo.difficultEvents,
           };
         });
         break;
@@ -104,7 +110,7 @@ class _HomeState extends LPExtendedState<Home> {
         setState(() {
           homeTitles = {
             'SubTitle': appLocale.feelBetterSubTitle(userInfo.gender),
-            'list': userInfo.feelBetter
+            'list': userInfo.feelBetter,
           };
         });
         break;
@@ -112,7 +118,7 @@ class _HomeState extends LPExtendedState<Home> {
         setState(() {
           homeTitles = {
             'SubTitle': appLocale.distractionsSubTitle(userInfo.gender),
-            'list': userInfo.distractions
+            'list': userInfo.distractions,
           };
         });
         break;
@@ -125,18 +131,17 @@ class _HomeState extends LPExtendedState<Home> {
 
   @override
   Widget build(BuildContext context) {
-    final userInfoProvider =
-        Provider.of<UserInformation>(context, listen: true);
+    final userInfoProvider = Provider.of<UserInformation>(
+      context,
+      listen: true,
+    );
     final gender = userInfoProvider.gender;
 
     //add random header and user-selected info from personal plan:
     setRandomPersonalWidgetText(userInfoProvider, appLocale);
 
     return Scaffold(
-      appBar: AppBar(
-        scrolledUnderElevation: 0,
-        backgroundColor: lightGray,
-      ),
+      appBar: AppBar(scrolledUnderElevation: 0, backgroundColor: lightGray),
       backgroundColor: lightGray,
       body: Center(
         child: SingleChildScrollView(
@@ -144,15 +149,18 @@ class _HomeState extends LPExtendedState<Home> {
             children: [
               //This shows the "hello <username>" banner and header buttons
               NameBar(
-                  greetingString: appLocale.homePageGreetings(gender),
-                  icons: [
-                    Builder(
-                      builder: (menuButtonContext) => myTextButton(
-                          () => widget.openMainMenu(menuButtonContext),
-                          Icons.menu,
-                          primaryPurple),
-                    )
-                  ]),
+                greetingString: appLocale.homePageGreetings(gender),
+                icons: [
+                  Builder(
+                    builder: (menuButtonContext) => myTextButton(
+                      () => widget.openMainMenu(menuButtonContext),
+                      Icons.menu,
+                      primaryPurple,
+                      tooltip: appLocale.menuTooltip,
+                    ),
+                  ),
+                ],
+              ),
 
               Padding(
                 padding: const EdgeInsets.only(right: 10, left: 10),
@@ -160,30 +168,33 @@ class _HomeState extends LPExtendedState<Home> {
                   children: [
                     //this is the Personal Plan widget section
                     PersonalPlanWidget(
-                        text: homeTitles,
-                        changeCurrentIndex: widget.changeCurrentIndex),
-                    const SizedBox(
-                      height: 20.0,
+                      text: homeTitles,
+                      changeCurrentIndex: widget.changeCurrentIndex,
                     ),
+                    const SizedBox(height: 20.0),
 
                     //inspirational quote widget:
-
                     InspirationalQuote(
-                        quotes: retrieveInspirationalQuotes(
-                            appLocale, gender == "" ? "other" : gender)),
+                      quotes: retrieveInspirationalQuotes(
+                        appLocale,
+                        gender == "" ? "other" : gender,
+                      ),
+                    ),
 
                     const SizedBox(height: 20),
                     //This is the main widget for the positive traits list
                     ListWidget(
-                        onTabTapped: widget.changeCurrentIndex,
-                        pageCode: PagesCode.QualitiesList),
+                      onTabTapped: widget.changeCurrentIndex,
+                      pageCode: PagesCode.QualitiesList,
+                    ),
                     //  TraitListWidget(
                     //   onTabTapped: widget.changeCurrentIndex,
                     // ),
                     const SizedBox(height: 20),
                     ListWidget(
-                        onTabTapped: widget.changeCurrentIndex,
-                        pageCode: PagesCode.GratitudeJournal),
+                      onTabTapped: widget.changeCurrentIndex,
+                      pageCode: PagesCode.GratitudeJournal,
+                    ),
                     //This is the main widget for the thank yous list
                     //  ThanksListWidget(onTabTapped: widget.changeCurrentIndex),
                   ],

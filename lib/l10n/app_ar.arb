@@ -378,5 +378,22 @@
         "type": "String"
       }
     }
-  }
+  },
+  "menuTooltip": "القائمة",
+  "addItemTooltip": "إضافة",
+  "downloadPlanTooltip": "تنزيل الخطة",
+  "sharePlanTooltip": "مشاركة الخطة",
+  "refreshQuoteTooltip": "اقتباس جديد",
+  "dismissQuoteTooltip": "إغلاق الاقتباس",
+  "callContactTooltip": "الاتصال بـ {contact}",
+  "@callContactTooltip": {
+    "placeholders": {
+      "contact": {
+        "type": "String"
+      }
+    }
+  },
+  "editEntryTooltip": "تعديل الإدخال",
+  "deleteEntryTooltip": "حذف الإدخال",
+  "sosTooltip": "SOS — جهات اتصال الطوارئ"
 }

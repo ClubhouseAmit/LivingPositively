@@ -42,8 +42,10 @@ class _FeelGoodPageState extends LPExtendedState<FeelGood> {
 
   @override
   Widget build(BuildContext context) {
-    final userInfoProvider =
-        Provider.of<UserInformation>(context, listen: false);
+    final userInfoProvider = Provider.of<UserInformation>(
+      context,
+      listen: false,
+    );
     final gender = userInfoProvider.gender;
 
     return FeelGoodInheritedWidget(
@@ -84,61 +86,69 @@ class _FeelGoodPageState extends LPExtendedState<FeelGood> {
                   alignment: Alignment.topCenter,
                   margin: const EdgeInsets.symmetric(horizontal: 15),
                   child: myAutoSizedText(
-                      appLocale!.feelGoodTitle(gender),
-                      const TextStyle(
-                        fontWeight: FontWeight.bold,
-                        fontSize: 30,
-                      ),
-                      TextAlign.center,
-                      60),
+                    appLocale!.feelGoodTitle(gender),
+                    TextStyle(
+                      fontWeight: FontWeight.bold,
+                      // .sp so the heading scales with system text-scale.
+                      fontSize: 30.sp,
+                    ),
+                    TextAlign.center,
+                    60,
+                  ),
                 ),
                 const SizedBox(height: 5),
                 Padding(
                   padding: const EdgeInsets.all(8.0),
-                  child: myAutoSizedText(appLocale!.feelGoodSubTitle(gender),
-                      TextStyle(fontSize: 18.sp), null, 18),
+                  child: myAutoSizedText(
+                    appLocale!.feelGoodSubTitle(gender),
+                    TextStyle(fontSize: 18.sp),
+                    null,
+                    18,
+                  ),
                 ),
                 Padding(
                   padding: const EdgeInsets.symmetric(horizontal: 8.0),
                   child: Scrollbar(
                     //images uploaded from phone grid view:
                     child: FutureBuilder<void>(
-                        future: _loadImagesFuture,
-                        builder: (context, snapshot) {
-                          if (snapshot.connectionState ==
-                              ConnectionState.waiting) {
-                            return const Center(
-                              child: CircularProgressIndicator(),
-                            );
-                          }
-
-                          return GridView.builder(
-                            shrinkWrap:
-                                true, // Ensures GridView works inside SingleChildScrollView
-                            physics: const NeverScrollableScrollPhysics(),
-                            itemCount: imagePaths.length +
-                                1, // +1 for the camera/upload icon
-                            gridDelegate:
-                                const SliverGridDelegateWithFixedCrossAxisCount(
-                              crossAxisCount: 2, // 2 items per row
-                              crossAxisSpacing: 10, // horizontal spacing
-                              mainAxisSpacing: 10, // vertical spacing
-                            ),
-                            itemBuilder: (context, index) {
-                              // If this is the last item, return a grid item with the camera and upload icons
-                              if (index == imagePaths.length) {
-                                return ImageAddItem();
-                              }
-                              return ImageDisplay(
-                                imagePath: imagePaths[index],
-                                index: index,
-                                imagePaths: imagePaths,
-                              );
-                            },
+                      future: _loadImagesFuture,
+                      builder: (context, snapshot) {
+                        if (snapshot.connectionState ==
+                            ConnectionState.waiting) {
+                          return const Center(
+                            child: CircularProgressIndicator(),
                           );
-                        }),
+                        }
+
+                        return GridView.builder(
+                          shrinkWrap:
+                              true, // Ensures GridView works inside SingleChildScrollView
+                          physics: const NeverScrollableScrollPhysics(),
+                          itemCount:
+                              imagePaths.length +
+                              1, // +1 for the camera/upload icon
+                          gridDelegate:
+                              const SliverGridDelegateWithFixedCrossAxisCount(
+                                crossAxisCount: 2, // 2 items per row
+                                crossAxisSpacing: 10, // horizontal spacing
+                                mainAxisSpacing: 10, // vertical spacing
+                              ),
+                          itemBuilder: (context, index) {
+                            // If this is the last item, return a grid item with the camera and upload icons
+                            if (index == imagePaths.length) {
+                              return ImageAddItem();
+                            }
+                            return ImageDisplay(
+                              imagePath: imagePaths[index],
+                              index: index,
+                              imagePaths: imagePaths,
+                            );
+                          },
+                        );
+                      },
+                    ),
                   ),
-                )
+                ),
               ],
             ),
           ),

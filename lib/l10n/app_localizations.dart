@@ -2097,6 +2097,66 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Showing default emergency numbers ({country}). They may not connect from your current location.'**
   String emergencyCountryFallback(String country);
+
+  /// Tooltip / TalkBack label for the icon-only hamburger menu button
+  ///
+  /// In en, this message translates to:
+  /// **'Menu'**
+  String get menuTooltip;
+
+  /// Tooltip / TalkBack label for icon-only add buttons (journal entry, list item)
+  ///
+  /// In en, this message translates to:
+  /// **'Add'**
+  String get addItemTooltip;
+
+  /// Tooltip / TalkBack label for the icon-only download button on the personal plan widget
+  ///
+  /// In en, this message translates to:
+  /// **'Download plan'**
+  String get downloadPlanTooltip;
+
+  /// Tooltip / TalkBack label for the icon-only share button on the personal plan widget
+  ///
+  /// In en, this message translates to:
+  /// **'Share plan'**
+  String get sharePlanTooltip;
+
+  /// Tooltip / TalkBack label for the icon-only refresh button on the inspirational quote widget
+  ///
+  /// In en, this message translates to:
+  /// **'New quote'**
+  String get refreshQuoteTooltip;
+
+  /// Tooltip / TalkBack label for the icon-only close (X) button on the inspirational quote widget
+  ///
+  /// In en, this message translates to:
+  /// **'Dismiss quote'**
+  String get dismissQuoteTooltip;
+
+  /// Tooltip / TalkBack label for the icon-only dialer affordance next to a personal emergency contact name
+  ///
+  /// In en, this message translates to:
+  /// **'Call {contact}'**
+  String callContactTooltip(String contact);
+
+  /// Tooltip / TalkBack label for the icon-only edit button on a thank-you / trait entry
+  ///
+  /// In en, this message translates to:
+  /// **'Edit entry'**
+  String get editEntryTooltip;
+
+  /// Tooltip / TalkBack label for the icon-only delete button on a thank-you / trait entry
+  ///
+  /// In en, this message translates to:
+  /// **'Delete entry'**
+  String get deleteEntryTooltip;
+
+  /// Tooltip / TalkBack label for the floating SOS button
+  ///
+  /// In en, this message translates to:
+  /// **'SOS — emergency contacts'**
+  String get sosTooltip;
 }
 
 class _AppLocalizationsDelegate

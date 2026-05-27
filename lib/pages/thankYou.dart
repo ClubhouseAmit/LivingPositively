@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:auto_size_text/auto_size_text.dart';
+import 'package:mazilon/l10n/app_localizations.dart';
 import 'package:mazilon/util/styles.dart';
 import 'package:mazilon/util/userInformation.dart';
 import 'package:provider/provider.dart';
@@ -40,11 +41,14 @@ class _ThankYouState extends State<ThankYou> {
     super.initState();
   }
 
-// build the thank you widget
+  // build the thank you widget
   @override
   Widget build(BuildContext context) {
-    final userInfoProvider =
-        Provider.of<UserInformation>(context, listen: false);
+    final userInfoProvider = Provider.of<UserInformation>(
+      context,
+      listen: false,
+    );
+    final locale = AppLocalizations.of(context);
     return Container(
       padding: const EdgeInsets.fromLTRB(10, 5, 10, 5),
       child: Row(
@@ -57,21 +61,21 @@ class _ThankYouState extends State<ThankYou> {
               padding: const EdgeInsets.symmetric(horizontal: 15, vertical: 10),
               color: primaryPurple, // the color of the circle
               child: myAutoSizedText(
-                  // the number of the thank you/trait
-                  widget.number.toString(),
-                  TextStyle(
-                      // the style of the number
-                      color: appWhite,
-                      fontSize: widget.number < 10 ? 14.sp : 10.sp,
-                      fontWeight: FontWeight.bold),
-                  null,
-                  30),
+                // the number of the thank you/trait
+                widget.number.toString(),
+                TextStyle(
+                  // the style of the number
+                  color: appWhite,
+                  fontSize: widget.number < 10 ? 14.sp : 10.sp,
+                  fontWeight: FontWeight.bold,
+                ),
+                null,
+                30,
+              ),
             ),
           ),
           // gap between the text and the number
-          const SizedBox(
-            width: 10,
-          ),
+          const SizedBox(width: 10),
 
           Container(
             constraints: BoxConstraints(
@@ -80,14 +84,14 @@ class _ThankYouState extends State<ThankYou> {
             ),
             // height: 40,
             decoration: BoxDecoration(
-                color: Colors.white, borderRadius: BorderRadius.circular(95)),
+              color: Colors.white,
+              borderRadius: BorderRadius.circular(95),
+            ),
             child: Padding(
               padding: const EdgeInsets.all(8.0),
               child: Row(
                 children: [
-                  const SizedBox(
-                    width: 15,
-                  ),
+                  const SizedBox(width: 15),
 
                   // the text of the thank you/trait
                   Expanded(
@@ -98,29 +102,30 @@ class _ThankYouState extends State<ThankYou> {
                         minFontSize: 14,
                         overflow: TextOverflow.ellipsis,
                         style: TextStyle(
-                            fontSize: 20, // the size of the text
-                            fontWeight: FontWeight.normal,
-                            color: widget.color // the color of the text
-                            ),
+                          // .sp so system text-scale enlarges the entry
+                          // copy alongside the rest of the journal.
+                          fontSize: 20.sp,
+                          fontWeight: FontWeight.normal,
+                          color: widget.color, // the color of the text
+                        ),
                       ),
                     ),
                   ),
 
                   // gap between the buttons and the text
-                  const SizedBox(
-                    width: 15,
-                  ),
+                  const SizedBox(width: 15),
                   // the edit button
                   Container(
                     width: 50,
-                    child: MaterialButton(
-                      onPressed: () {
-                        widget.edit(widget.text, widget.number - 1);
-                      },
-                      splashColor: Colors.transparent,
-                      enableFeedback: false,
-                      child: const Icon(
-                        Icons.edit,
+                    child: Tooltip(
+                      message: locale?.editEntryTooltip ?? 'Edit entry',
+                      child: MaterialButton(
+                        onPressed: () {
+                          widget.edit(widget.text, widget.number - 1);
+                        },
+                        splashColor: Colors.transparent,
+                        enableFeedback: false,
+                        child: const Icon(Icons.edit),
                       ),
                     ),
                   ),
@@ -128,17 +133,18 @@ class _ThankYouState extends State<ThankYou> {
                   // the delete button
                   Container(
                     width: 50,
-                    child: MaterialButton(
-                      onPressed: () {
-                        widget.remove(widget.number - 1);
-                        setState(() {
-                          editable = false;
-                        });
-                      },
-                      splashColor: Colors.transparent,
-                      enableFeedback: false,
-                      child: const Icon(
-                        Icons.delete,
+                    child: Tooltip(
+                      message: locale?.deleteEntryTooltip ?? 'Delete entry',
+                      child: MaterialButton(
+                        onPressed: () {
+                          widget.remove(widget.number - 1);
+                          setState(() {
+                            editable = false;
+                          });
+                        },
+                        splashColor: Colors.transparent,
+                        enableFeedback: false,
+                        child: const Icon(Icons.delete),
                       ),
                     ),
                   ),

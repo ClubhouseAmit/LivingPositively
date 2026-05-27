@@ -67,11 +67,19 @@ class _InspirationalQuoteState extends LPExtendedState<InspirationalQuote> {
               left: appLocale.textDirection == "rtl" ? 5 : null,
               right: appLocale.textDirection == "rtl" ? null : 5,
 
-              child: GestureDetector(
-                onTap: setShow,
-                child: const Padding(
-                  padding: EdgeInsets.fromLTRB(4, 4, 0, 4),
-                  child: Icon(Icons.close),
+              // Tooltip owns the announced label; Semantics only adds the
+              // `button` role so GestureDetector doesn't read as plain text.
+              child: Semantics(
+                button: true,
+                child: GestureDetector(
+                  onTap: setShow,
+                  child: Tooltip(
+                    message: appLocale.dismissQuoteTooltip,
+                    child: const Padding(
+                      padding: EdgeInsets.fromLTRB(4, 4, 0, 4),
+                      child: Icon(Icons.close),
+                    ),
+                  ),
                 ),
               ),
             ),
@@ -87,30 +95,32 @@ class _InspirationalQuoteState extends LPExtendedState<InspirationalQuote> {
                       size: min(35.sp, 40),
                       color: appWhite,
                     ),
+                    tooltip: appLocale.refreshQuoteTooltip,
                     //"refresh" button to change the quote
                     onPressed: _refreshQuote,
                   ),
-                  const SizedBox(
-                    width: 10,
-                  ),
+                  const SizedBox(width: 10),
                   Expanded(
                     child: Padding(
                       padding: EdgeInsets.fromLTRB(
-                          (appLocale.textDirection == "rtl" ? 30.0 : 0),
-                          0,
-                          (appLocale.textDirection == "rtl" ? 0.0 : 30.0),
-                          0),
+                        (appLocale.textDirection == "rtl" ? 30.0 : 0),
+                        0,
+                        (appLocale.textDirection == "rtl" ? 0.0 : 30.0),
+                        0,
+                      ),
                       child: myAutoSizedText(
-                          widget.quotes[number],
-                          TextStyle(
-                              fontWeight: FontWeight.normal,
-                              color: appWhite,
-                              fontSize: 24.sp),
-                          appLocale!.textDirection == "rtl"
-                              ? TextAlign.right
-                              : TextAlign.left,
-                          24,
-                          4),
+                        widget.quotes[number],
+                        TextStyle(
+                          fontWeight: FontWeight.normal,
+                          color: appWhite,
+                          fontSize: 24.sp,
+                        ),
+                        appLocale!.textDirection == "rtl"
+                            ? TextAlign.right
+                            : TextAlign.left,
+                        24,
+                        4,
+                      ),
                     ),
                   ),
                 ],
