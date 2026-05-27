@@ -13,20 +13,45 @@ Widget phoneContact(String phone, String contact) {
       // Builder gives us a context that's inside the surrounding Scaffold's
       // subtree, so ScaffoldMessenger.maybeOf works in the tap callback.
       Builder(
-        builder: (innerContext) => InkWell(
-          onTap: () => launchWithFeedback(
-            innerContext,
-            phone,
-            isCallFailure: true,
-            launch: () => dialPhone(phone),
-          ),
-          child: CircleAvatar(
-            radius: 20, // adjust as needed
-            backgroundColor: primaryPurple,
-            foregroundColor: appWhite,
-            child: const Icon(Icons.phone, size: 20), // adjust as needed
-          ),
-        ),
+        builder: (innerContext) {
+          final locale = AppLocalizations.of(innerContext);
+          final tooltip = locale?.callContactTooltip(contact) ?? contact;
+          // Tooltip wires `message` into both the visible long-press hint
+          // and the Semantics label, so TalkBack/VoiceOver announce
+          // "Call <contact> button" instead of an unlabeled icon. The 48dp
+          // SizedBox is the minimum Material tap target — the CircleAvatar
+          // (radius 20 → 40dp visual) keeps the same look but the hit area
+          // grows to the WCAG-recommended size (UX_GAPS §1.6).
+          return Tooltip(
+            message: tooltip,
+            child: Semantics(
+              button: true,
+              child: SizedBox(
+                width: 48,
+                height: 48,
+                child: InkWell(
+                  onTap: () => launchWithFeedback(
+                    innerContext,
+                    phone,
+                    isCallFailure: true,
+                    launch: () => dialPhone(phone),
+                  ),
+                  child: Center(
+                    child: CircleAvatar(
+                      radius: 20, // adjust as needed
+                      backgroundColor: primaryPurple,
+                      foregroundColor: appWhite,
+                      child: const Icon(
+                        Icons.phone,
+                        size: 20,
+                      ), // adjust as needed
+                    ),
+                  ),
+                ),
+              ),
+            ),
+          );
+        },
       ),
       const SizedBox(width: 10.0), // adjust as needed
       Expanded(
@@ -34,10 +59,11 @@ Widget phoneContact(String phone, String contact) {
           child: Padding(
             padding: const EdgeInsets.all(10.0),
             child: myAutoSizedText(
-                contact,
-                TextStyle(fontWeight: FontWeight.normal, fontSize: 20.sp),
-                null,
-                30), // present the contacts from myContacts list
+              contact,
+              TextStyle(fontWeight: FontWeight.normal, fontSize: 20.sp),
+              null,
+              30,
+            ), // present the contacts from myContacts list
           ),
         ),
       ),
@@ -115,10 +141,12 @@ void showLaunchFailureSnackBar(
               onPressed: () async {
                 await Clipboard.setData(ClipboardData(text: number));
                 messenger.hideCurrentSnackBar();
-                messenger.showSnackBar(SnackBar(
-                  content: Text(appLocale.numberCopiedToast),
-                  duration: const Duration(seconds: 2),
-                ));
+                messenger.showSnackBar(
+                  SnackBar(
+                    content: Text(appLocale.numberCopiedToast),
+                    duration: const Duration(seconds: 2),
+                  ),
+                );
               },
             ),
       duration: const Duration(seconds: 6),
@@ -144,9 +172,8 @@ Future<bool> _launchUriWithLogging(
   return launched;
 }
 
-Future<bool> dialPhone(String number) => _launchUriWithLogging(
-      _dialPhoneUri(number),
-    );
+Future<bool> dialPhone(String number) =>
+    _launchUriWithLogging(_dialPhoneUri(number));
 
 Uri _dialPhoneUri(String number) {
   final trimmedNumber = number.trim();
@@ -158,14 +185,12 @@ Uri _dialPhoneUri(String number) {
 }
 
 Future<bool> openWhatsApp(String number) => _launchUriWithLogging(
-      Uri.parse('https://wa.me/$number'),
-      mode: LaunchMode.externalApplication,
-    );
+  Uri.parse('https://wa.me/$number'),
+  mode: LaunchMode.externalApplication,
+);
 
-Future<bool> openSite(String url) => _launchUriWithLogging(
-      Uri.parse(url),
-      mode: LaunchMode.externalApplication,
-    );
+Future<bool> openSite(String url) =>
+    _launchUriWithLogging(Uri.parse(url), mode: LaunchMode.externalApplication);
 
 Future<bool> openTextMessage(String number, {String body = ''}) {
   final trimmedBody = body.trim();
@@ -179,33 +204,48 @@ Future<bool> openTextMessage(String number, {String body = ''}) {
   return _launchUriWithLogging(uri);
 }
 
-Widget getTextIconWidget(
-  String text,
-  Function onClick,
-  IconData icon,
-) {
+Widget getTextIconWidget(String text, Function onClick, IconData icon) {
   return SizedBox(
-      child: Row(
-    children: [
-      myText(
+    child: Row(
+      children: [
+        myText(
           text,
           TextStyle(
-              fontWeight: FontWeight.normal, fontSize: 18.sp > 35 ? 35 : 20.sp),
-          null),
-      SizedBox(width: 5.0),
-      // Button to make a phone call
-      GestureDetector(
-        child: CircleAvatar(
-          radius: 20, // adjust as needed
-          backgroundColor: primaryPurple,
-          foregroundColor: Colors.white,
-          child: Icon(icon, size: 20), // adjust as needed
+            fontWeight: FontWeight.normal,
+            fontSize: 18.sp > 35 ? 35 : 20.sp,
+          ),
+          null,
         ),
-        onTap: () async {
-          onClick();
-        },
-      ),
-      SizedBox(width: 10.0),
-    ],
-  ));
+        SizedBox(width: 5.0),
+        // Button to make a phone call. Tooltip carries the visible long-press
+        // hint and the announced label; Semantics(button: true) ensures the
+        // GestureDetector reads as a button rather than plain text.
+        // 48dp tap target per UX_GAPS §1.6.
+        Tooltip(
+          message: text,
+          child: Semantics(
+            button: true,
+            child: SizedBox(
+              width: 48,
+              height: 48,
+              child: GestureDetector(
+                onTap: () async {
+                  onClick();
+                },
+                child: Center(
+                  child: CircleAvatar(
+                    radius: 20, // adjust as needed
+                    backgroundColor: primaryPurple,
+                    foregroundColor: Colors.white,
+                    child: Icon(icon, size: 20), // adjust as needed
+                  ),
+                ),
+              ),
+            ),
+          ),
+        ),
+        SizedBox(width: 10.0),
+      ],
+    ),
+  );
 }

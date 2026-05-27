@@ -1602,5 +1602,50 @@
         "type": "String"
       }
     }
+  },
+  "menuTooltip": "Menu",
+  "@menuTooltip": {
+    "description": "Tooltip / TalkBack label for the icon-only hamburger menu button"
+  },
+  "addItemTooltip": "Add",
+  "@addItemTooltip": {
+    "description": "Tooltip / TalkBack label for icon-only add buttons (journal entry, list item)"
+  },
+  "downloadPlanTooltip": "Download plan",
+  "@downloadPlanTooltip": {
+    "description": "Tooltip / TalkBack label for the icon-only download button on the personal plan widget"
+  },
+  "sharePlanTooltip": "Share plan",
+  "@sharePlanTooltip": {
+    "description": "Tooltip / TalkBack label for the icon-only share button on the personal plan widget"
+  },
+  "refreshQuoteTooltip": "New quote",
+  "@refreshQuoteTooltip": {
+    "description": "Tooltip / TalkBack label for the icon-only refresh button on the inspirational quote widget"
+  },
+  "dismissQuoteTooltip": "Dismiss quote",
+  "@dismissQuoteTooltip": {
+    "description": "Tooltip / TalkBack label for the icon-only close (X) button on the inspirational quote widget"
+  },
+  "callContactTooltip": "Call {contact}",
+  "@callContactTooltip": {
+    "description": "Tooltip / TalkBack label for the icon-only dialer affordance next to a personal emergency contact name",
+    "placeholders": {
+      "contact": {
+        "type": "String"
+      }
+    }
+  },
+  "editEntryTooltip": "Edit entry",
+  "@editEntryTooltip": {
+    "description": "Tooltip / TalkBack label for the icon-only edit button on a thank-you / trait entry"
+  },
+  "deleteEntryTooltip": "Delete entry",
+  "@deleteEntryTooltip": {
+    "description": "Tooltip / TalkBack label for the icon-only delete button on a thank-you / trait entry"
+  },
+  "sosTooltip": "SOS — emergency contacts",
+  "@sosTooltip": {
+    "description": "Tooltip / TalkBack label for the floating SOS button"
   }
 }

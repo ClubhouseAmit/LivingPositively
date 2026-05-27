@@ -38,8 +38,10 @@ ButtonStyle myButtonStyle3 = TextButton.styleFrom(
     borderRadius: BorderRadius.all(Radius.circular(20)),
   ),
 );
-TextStyle myTextStyle =
-    TextStyle(fontWeight: FontWeight.bold, color: Colors.white);
+TextStyle myTextStyle = TextStyle(
+  fontWeight: FontWeight.bold,
+  color: Colors.white,
+);
 
 ButtonStyle myButtonStyle2 = TextButton.styleFrom(
   backgroundColor: Colors.blue,
@@ -56,11 +58,12 @@ Container ConfirmationButton(context, function, text, buttonTextStyle) {
         ? 600
         : MediaQuery.of(context).size.width * 0.6,
     child: TextButton(
-        onPressed: () {
-          function();
-        },
-        style: myButtonStyle,
-        child: myAutoSizedText(text, buttonTextStyle, null, 50)),
+      onPressed: () {
+        function();
+      },
+      style: myButtonStyle,
+      child: myAutoSizedText(text, buttonTextStyle, null, 50),
+    ),
   );
 }
 
@@ -70,11 +73,12 @@ Container CancelButton(context, function, text, buttonTextStyle) {
         ? 600
         : MediaQuery.of(context).size.width * 0.6,
     child: TextButton(
-        onPressed: () {
-          function();
-        },
-        style: myButtonStyle3,
-        child: myAutoSizedText(text, buttonTextStyle, null, 50)),
+      onPressed: () {
+        function();
+      },
+      style: myButtonStyle3,
+      child: myAutoSizedText(text, buttonTextStyle, null, 50),
+    ),
   );
 }
 
@@ -84,11 +88,12 @@ Container ResetButton(context, function, text, buttonTextStyle) {
         ? 400
         : MediaQuery.of(context).size.width * 0.3,
     child: TextButton(
-        onPressed: () {
-          function();
-        },
-        style: myButtonStyle3,
-        child: myAutoSizedText(text, buttonTextStyle, null, 50)),
+      onPressed: () {
+        function();
+      },
+      style: myButtonStyle3,
+      child: myAutoSizedText(text, buttonTextStyle, null, 50),
+    ),
   );
 }
 
@@ -102,8 +107,13 @@ Text myText(content, style, align) {
   );
 }
 
-AutoSizeText myAutoSizedText(content, style, align, double maxFontSize,
-    [int maxLines = 20]) {
+AutoSizeText myAutoSizedText(
+  content,
+  style,
+  align,
+  double maxFontSize, [
+  int maxLines = 20,
+]) {
   style ??= emptyStyle;
   align ??= TextAlign.center;
   return AutoSizeText(
@@ -125,17 +135,20 @@ Image myImage(String path, BuildContext context, double width, double height) {
   );
 }
 
-Widget myTextButton(Function function, IconData icon, Color color) {
-  return TextButton(
+Widget myTextButton(
+  Function function,
+  IconData icon,
+  Color color, {
+  String? tooltip,
+}) {
+  final button = TextButton(
     onPressed: () {
       function();
     },
-    child: Icon(
-      icon,
-      color: color,
-      size: 30,
-    ),
+    child: Icon(icon, color: color, size: 30),
   );
+  if (tooltip == null || tooltip.isEmpty) return button;
+  return Tooltip(message: tooltip, child: button);
 }
 
 Icon mainpageListsAddIcon = Icon(

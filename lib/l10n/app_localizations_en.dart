@@ -3081,4 +3081,36 @@ class AppLocalizationsEn extends AppLocalizations {
   String emergencyCountryFallback(String country) {
     return 'Showing default emergency numbers ($country). They may not connect from your current location.';
   }
+
+  @override
+  String get menuTooltip => 'Menu';
+
+  @override
+  String get addItemTooltip => 'Add';
+
+  @override
+  String get downloadPlanTooltip => 'Download plan';
+
+  @override
+  String get sharePlanTooltip => 'Share plan';
+
+  @override
+  String get refreshQuoteTooltip => 'New quote';
+
+  @override
+  String get dismissQuoteTooltip => 'Dismiss quote';
+
+  @override
+  String callContactTooltip(String contact) {
+    return 'Call $contact';
+  }
+
+  @override
+  String get editEntryTooltip => 'Edit entry';
+
+  @override
+  String get deleteEntryTooltip => 'Delete entry';
+
+  @override
+  String get sosTooltip => 'SOS — emergency contacts';
 }

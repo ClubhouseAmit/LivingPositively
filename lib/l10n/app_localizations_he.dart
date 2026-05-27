@@ -3044,4 +3044,36 @@ class AppLocalizationsHe extends AppLocalizations {
   String emergencyCountryFallback(String country) {
     return 'מוצגים מספרי חירום ברירת מחדל ($country). ייתכן שלא יפעלו ממיקומך.';
   }
+
+  @override
+  String get menuTooltip => 'תפריט';
+
+  @override
+  String get addItemTooltip => 'הוספה';
+
+  @override
+  String get downloadPlanTooltip => 'הורדת התוכנית';
+
+  @override
+  String get sharePlanTooltip => 'שיתוף התוכנית';
+
+  @override
+  String get refreshQuoteTooltip => 'ציטוט חדש';
+
+  @override
+  String get dismissQuoteTooltip => 'סגירת הציטוט';
+
+  @override
+  String callContactTooltip(String contact) {
+    return 'התקשרות אל $contact';
+  }
+
+  @override
+  String get editEntryTooltip => 'עריכת רשומה';
+
+  @override
+  String get deleteEntryTooltip => 'מחיקת רשומה';
+
+  @override
+  String get sosTooltip => 'SOS – אנשי קשר בשעת חירום';
 }
