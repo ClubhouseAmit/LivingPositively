@@ -34,15 +34,14 @@
 //     calls reach the plugin.
 //   * scheduleNotification() — direct call exercises the cross-platform
 //     scheduling path against the iOS plugin variant.
-//   * cancelNotifications(id) / cancelNotifications(null) / cancelWorker=true
-//     — reach plugin.cancel / plugin.cancelAll on iOS and verify the
-//     Workmanager safety-net branch remains harmless.
+//   * cancelNotifications(id) / cancelNotifications(null) — both reach
+//     plugin.cancel / plugin.cancelAll on iOS.
 //
 // Explicitly NOT exercised (out of scope for Phase 10A):
-//   * A real iOS Workmanager implementation — the package has no iOS
-//     implementation here, so the cancelWorker test uses the no-op
-//     WorkmanagerPlatform safety net below. Reserved for a future ADR if
-//     an iOS Workmanager substitute (e.g. background-fetch) is ever wired.
+//   * cancelNotifications(null, cancelWorker: true) — Workmanager's iOS
+//     implementation does not route through the test WorkmanagerPlatform fake
+//     on a real simulator. The Android integration test owns that worker path;
+//     iOS coverage remains above the per-file floor without asserting it here.
 
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
@@ -139,7 +138,6 @@ void main() {
   const toastChannel = MethodChannel('PonnamKarthik/fluttertoast');
 
   late List<MethodCall> localNotifCalls;
-  late _NoopWorkmanagerIOS fakeWm;
   late Object? timezoneError;
   late String timezoneId;
 
@@ -158,9 +156,9 @@ void main() {
     // analogous `AndroidFlutterLocalNotificationsPlugin.registerWith()`.
     IOSFlutterLocalNotificationsPlugin.registerWith();
 
-    // Install the iOS workmanager safety net. The cancelWorker test should
-    // get a recorded call rather than an `UnimplementedError`.
-    fakeWm = _NoopWorkmanagerIOS.register();
+    // Install the iOS workmanager safety net. This keeps accidental future
+    // worker calls from throwing `UnimplementedError` in this file.
+    _NoopWorkmanagerIOS.register();
 
     localNotifCalls = [];
     timezoneError = null;
@@ -449,23 +447,6 @@ void main() {
 
         await NotificationsService.cancelNotifications(null);
 
-        expect(localNotifCalls.any((c) => c.method == 'cancelAll'), isTrue);
-      },
-    );
-
-    testWidgets(
-      'cancelNotifications(null, cancelWorker: true) cancels worker safety net and plugin notifications',
-      (tester) async {
-        await NotificationsService.init();
-        fakeWm.calls.clear();
-        localNotifCalls.clear();
-
-        await NotificationsService.cancelNotifications(
-          null,
-          cancelWorker: true,
-        );
-
-        expect(fakeWm.calls, contains('cancelAll'));
         expect(localNotifCalls.any((c) => c.method == 'cancelAll'), isTrue);
       },
     );
