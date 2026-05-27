@@ -83,9 +83,6 @@ dependencies:
   devicelocale: ^0.8.2
   upgrader: ^13.4.0
   country_code_picker: ^3.4.1
-  # Directly used by lib/menu.dart and test/menu_test.dart for version reads
-  # and mock setup; declared explicitly to satisfy depend_on_referenced_packages.
-  package_info_plus: ^9.0.0
 dev_dependencies:
   flutter_test:
     sdk: flutter
