@@ -110,6 +110,17 @@ Effective with this ADR, `integration-test-ios` is **non-blocking telemetry**:
    upload on `if: always()` so PR reviewers retain the iOS coverage trace and
    the generated `Podfile.lock` needed for the deferred commit follow-up.
 
+Telemetry is still explicitly time-bounded. The job has a 60-minute ceiling,
+the simulator boot wait has a 10-minute ceiling, and the `flutter test` step
+has a 45-minute ceiling. `continue-on-error: true` only changes the result after
+a command exits or is timed out; it does not by itself interrupt a hung process.
+The iOS test step also runs Flutter in verbose mode, streams filtered simulator
+logs into `ci-ios-diagnostics/simulator.log`, starts a 40-minute watchdog that
+captures process/simulator state before the 45-minute step ceiling, and uploads
+`ios-integration-diagnostics` on `if: always()`. The iOS-only integration test
+emits `IOS_TEST_MARK` lifecycle markers so logs can distinguish "Dart test
+never started" from "test setup or teardown started and then hung".
+
 This mirrors the `unit-test-web-telemetry` treatment in the same workflow and
 applies the "revisit the quality gate shape" fallback proactively, rather than
 waiting for the runtime optimization to prove insufficient. Reasons:

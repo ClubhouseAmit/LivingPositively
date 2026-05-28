@@ -257,6 +257,10 @@ jobs:
     # `coverage-aggregate.needs` AND restore the iOS branch in
     # check_aggregate_coverage.dart.
     runs-on: macos-15
+    # Telemetry must still be time-bounded. GitHub's default job timeout is
+    # 360 minutes, which lets a stuck `flutter test` monopolize the macOS
+    # runner long after the blocking gates have completed.
+    timeout-minutes: 60
     env:
       FIREBASE_OPTIONS_PATH: lib/util/Firebase/firebase_options.dart
       IOS_PODS_CACHE_VERSION: v1
@@ -325,6 +329,7 @@ jobs:
         # — pick the first "iPhone " device that is available. Avoid pinning
         # to a specific model so the job survives when GitHub rotates the
         # default Xcode/iOS-runtime bundle.
+        timeout-minutes: 10
         run: |
           DEVICE_LINE=$(xcrun simctl list devices available | grep -E '^\s+iPhone ' | head -n 1)
           DEVICE_ID=$(echo "$DEVICE_LINE" | awk -F '[()]' '{print $2}')
@@ -340,7 +345,7 @@ jobs:
           # bootstatus blocks until the sim is fully booted (springboard up).
           xcrun simctl bootstatus "$DEVICE_ID" -b
 
-      - name: Run iOS integration test
+      - name: Run iOS integration test with diagnostics
         # Notes on the invocation below (mirrors the Android job's design
         # rationale in the integration-test job above):
         #
@@ -364,9 +369,82 @@ jobs:
         # also re-adding integration-test-ios to coverage-aggregate.needs
         # and restoring the iOS branch in check_aggregate_coverage.dart.
         continue-on-error: true
+        timeout-minutes: 45
         run: |
-          flutter devices
-          flutter test integration_test/notifications_schedule_ios_test.dart --no-pub --coverage --coverage-path coverage/integration_ios.info --dart-define=SENTRY_DSN=https://test@dsn.example.local/0 -d "$DEVICE_ID"
+          mkdir -p ci-ios-diagnostics
+          {
+            echo "=== date ==="
+            date -u
+            echo
+            echo "=== selected simulator ==="
+            echo "$DEVICE_ID"
+            xcrun simctl list "$DEVICE_ID"
+            echo
+            echo "=== flutter devices -v ==="
+            flutter devices -v
+          } > ci-ios-diagnostics/preflight.txt 2>&1 || true
+
+          xcrun simctl spawn "$DEVICE_ID" log stream \
+            --style compact \
+            --level debug \
+            --predicate 'process == "Runner" OR process == "SpringBoard" OR eventMessage CONTAINS "Flutter" OR eventMessage CONTAINS "Observatory" OR eventMessage CONTAINS "VMService"' \
+            > ci-ios-diagnostics/simulator.log 2>&1 &
+          SIM_LOG_PID=$!
+
+          (
+            sleep 2400
+            {
+              echo "=== iOS test watchdog fired at 40 minutes ==="
+              date -u
+              echo
+              echo "=== process snapshot ==="
+              ps -axo pid,ppid,etime,command | grep -E 'flutter|dart|xcodebuild|simctl|Runner|ios-deploy' | grep -v grep || true
+              echo
+              echo "=== simulator state ==="
+              xcrun simctl list "$DEVICE_ID"
+            } > ci-ios-diagnostics/watchdog.txt 2>&1
+            xcrun simctl io "$DEVICE_ID" screenshot ci-ios-diagnostics/watchdog-screenshot.png > ci-ios-diagnostics/watchdog-screenshot.txt 2>&1 || true
+            mkdir -p ci-ios-diagnostics/DiagnosticReports
+            find ~/Library/Logs/DiagnosticReports -type f -mtime -1 -exec cp {} ci-ios-diagnostics/DiagnosticReports/ \; 2>/dev/null || true
+          ) &
+          WATCHDOG_PID=$!
+
+          cleanup_ios_diagnostics() {
+            kill "$SIM_LOG_PID" "$WATCHDOG_PID" 2>/dev/null || true
+          }
+          trap cleanup_ios_diagnostics EXIT
+
+          set +e
+          flutter --verbose test integration_test/notifications_schedule_ios_test.dart --no-pub --coverage --coverage-path coverage/integration_ios.info --dart-define=SENTRY_DSN=https://test@dsn.example.local/0 -d "$DEVICE_ID" 2>&1 | tee ci-ios-diagnostics/flutter-test.log
+          TEST_EXIT=${PIPESTATUS[0]}
+          set -e
+
+          {
+            echo "=== flutter test exit ==="
+            echo "$TEST_EXIT"
+            echo
+            echo "=== date ==="
+            date -u
+            echo
+            echo "=== process snapshot ==="
+            ps -axo pid,ppid,etime,command | grep -E 'flutter|dart|xcodebuild|simctl|Runner|ios-deploy' | grep -v grep || true
+            echo
+            echo "=== simulator state ==="
+            xcrun simctl list "$DEVICE_ID"
+          } > ci-ios-diagnostics/post-test.txt 2>&1 || true
+          xcrun simctl io "$DEVICE_ID" screenshot ci-ios-diagnostics/post-test-screenshot.png > ci-ios-diagnostics/post-test-screenshot.txt 2>&1 || true
+          mkdir -p ci-ios-diagnostics/DiagnosticReports
+          find ~/Library/Logs/DiagnosticReports -type f -mtime -1 -exec cp {} ci-ios-diagnostics/DiagnosticReports/ \; 2>/dev/null || true
+
+          exit "$TEST_EXIT"
+
+      - name: Upload iOS integration diagnostics
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: ios-integration-diagnostics
+          path: ci-ios-diagnostics
+          if-no-files-found: warn
 
       - name: Upload iOS Podfile lockfile
         if: always()
