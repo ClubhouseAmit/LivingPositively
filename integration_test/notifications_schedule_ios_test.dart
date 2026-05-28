@@ -129,7 +129,9 @@ class _NoopPersistentMemoryService implements PersistentMemoryService {
 }
 
 void main() {
+  debugPrint('IOS_TEST_MARK: notifications_schedule_ios_test main entered');
   IntegrationTestWidgetsFlutterBinding.ensureInitialized();
+  debugPrint('IOS_TEST_MARK: integration binding initialized');
 
   const localNotifChannel = MethodChannel(
     'dexterous.com/flutter/local_notifications',
@@ -142,6 +144,7 @@ void main() {
   late String timezoneId;
 
   setUp(() async {
+    debugPrint('IOS_TEST_MARK: setUp start');
     await GetIt.instance.reset();
     GetIt.instance.registerSingleton<IncidentLoggerService>(_RecordingLogger());
 
@@ -191,14 +194,17 @@ void main() {
         }
       })
       ..setMockMethodCallHandler(toastChannel, (call) async => true);
+    debugPrint('IOS_TEST_MARK: setUp complete');
   });
 
   tearDown(() async {
+    debugPrint('IOS_TEST_MARK: tearDown start');
     TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger
       ..setMockMethodCallHandler(timezoneChannel, null)
       ..setMockMethodCallHandler(localNotifChannel, null)
       ..setMockMethodCallHandler(toastChannel, null);
     await GetIt.instance.reset();
+    debugPrint('IOS_TEST_MARK: tearDown complete');
   });
 
   group('supportsReminderSettings on real iOS binding', () {
