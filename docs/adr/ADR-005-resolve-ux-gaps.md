@@ -1,6 +1,6 @@
 # ADR-005: Resolve UX Gaps Identified in UX_GAPS Audit
 
-- **Status**: proposed
+- **Status**: in-progress (Phases A, B, C, D shipped; E pending)
 - **Date**: 2026-05-24
 - **Deciders**: <leave blank for author to fill>
 - **Tags**: ux, accessibility, rtl, theming, crisis-safety, mental-health
@@ -32,6 +32,8 @@ Adopt the five-phase remediation order proposed in `UX_GAPS.md` §4, with each p
 2. **Phase B — Accessibility pass (S1).** Add `Semantics(label:)` / `tooltip:` to every icon-only control on the home → plan → phone route. Replace fixed `fontSize:` with `.sp` in the four hotspots listed in §1.7. Add `selected:` semantics to the bottom-nav buttons.
 3. **Phase C — RTL pass (S1).** Stop branching on `isRtl` for `textDirection` and padding. Lean on `Directionality.of(context)` and `EdgeInsetsDirectional` start/end. Fix the inverted `textDirection` in `lib/main_menu_dialog.dart:97-99`.
 4. **Phase D — Theme + tokens (S3, unlocks S2).** Define `ThemeData` (light + initially light-only `darkTheme` stub). Move the nine palette colors in `styles.dart:5-13` to a `ColorScheme`-backed token layer. Replace `Colors.red` destructive buttons (`myButtonStyle3`) with `colorScheme.error`.
+
+   *Shipped 2026-05-28.* `lib/util/theme/app_theme.dart` introduces an `AppColors` semantic token layer (`primary`, `secondary`, `surface`, `onSurface`, `error`, `onError`, `success`, plus non-`ColorScheme` `neutralLight`/`neutralDark`/`pdfTint`) and `buildLightTheme()` / `buildDarkThemeStub()`. `lib/main.dart` wires both onto `MaterialApp` (the unstyled `MaterialApp` flagged at `lib/main.dart:410-428`). The nine palette variables in `lib/util/styles.dart:5-13` are now `const` forwarders to `AppColors` tokens, preserving every call site. `myButtonStyle3` no longer takes raw `Colors.red`; it reads `AppColors.error` (same hex as Material red 500, so visually a no-op). Regression suite: `test/util/theme/app_theme_test.dart`. Material 3 flip is deferred — Material 2 is pinned (`useMaterial3: false`) because the brand button styles target M2 token names.
 5. **Phase E — Loading / error contract (S2).** Introduce one shared async widget (loading / error-with-retry / empty / data) and route every `FutureBuilder` through it. Remove the unconditional "finished" toast in `personalPlanWidget.dart:127`.
 
 Each phase ships behind its own PR with a regression test where feasible. Phase A is the only phase blocked from being deferred — the others may be reordered post-A based on capacity.
