@@ -1,14 +1,22 @@
 // Aggregate coverage gate for Mazilon (ADR-003 Phase 8, ratcheted by
-// ADR-004 Phase 9; iOS input added under ADR-005 § A, Phase 10A).
+// ADR-004 Phase 9; iOS input added under ADR-005 § A, Phase 10A; iOS input
+// REMOVED under ADR-006 when integration-test-ios was downgraded to
+// telemetry).
 //
-// Reads THREE pre-merged lcov inputs:
+// Reads TWO pre-merged lcov inputs:
 //   coverage/lcov.info            — produced by the build-android job (unit
 //                                   tests + dart-define MixPanel merge; see
 //                                   ADR-001)
 //   coverage/integration.info     — produced by the integration-test job
 //                                   (ADR-002)
-//   coverage/integration_ios.info — produced by the integration-test-ios job
-//                                   (ADR-005 § A, Phase 10A)
+//
+// ADR-006 §"Quality gate shape": coverage/integration_ios.info is NO
+// LONGER a required input. The iOS job is non-blocking telemetry, so its
+// artifact may be absent or stale. Adding an input to a max-hit-count
+// union can only RAISE coverage, so removing iOS cannot lower the 89%
+// floor's safety margin. To re-promote: add _iosIntegrationLcovPath to
+// the required-input list AND re-add integration-test-ios to
+// coverage-aggregate.needs in .github/workflows/main.yml.
 //
 // Merges them via parseLcovInputs (max hit-count per line, same semantics as
 // scripts/merge_lcov.dart) and enforces a single GLOBAL floor on the union
@@ -30,11 +38,10 @@
 // Exit codes:
 //   0  aggregate global floor met
 //   1  aggregate global floor not met
-//   2  any of coverage/lcov.info, coverage/integration.info, or
-//      coverage/integration_ios.info is absent — treated as a CI-configuration
-//      error rather than a coverage regression so the message is unambiguous
-//      (same pattern as check_integration_coverage.dart exit-2 for the
-//      integration lcov).
+//   2  coverage/lcov.info or coverage/integration.info is absent — treated
+//      as a CI-configuration error rather than a coverage regression so the
+//      message is unambiguous (same pattern as check_integration_coverage.dart
+//      exit-2 for the integration lcov).
 //
 // Floor derivation:
 //   ADR-003 (Phase 8) — original 85% floor:
@@ -64,7 +71,7 @@ import '_lcov_parser.dart';
 
 const _unitLcovPath = 'coverage/lcov.info';
 const _integrationLcovPath = 'coverage/integration.info';
-const _iosIntegrationLcovPath = 'coverage/integration_ios.info';
+// _iosIntegrationLcovPath retired under ADR-006 — see header comment.
 
 const double _aggregateFloor = 89.0; // ADR-004 (Phase 9 ratchet)
 
@@ -77,39 +84,32 @@ const _excludePatterns = <String>[
 
 void main(List<String> args) {
   // Exit 2 if any input is absent — CI-configuration error, not a coverage
-  // regression. Check all three before emitting any output so the diagnostic
-  // is unambiguous.
+  // regression. Check both before emitting any output so the diagnostic is
+  // unambiguous.
   final missing = <String>[];
   if (!File(_unitLcovPath).existsSync()) missing.add(_unitLcovPath);
   if (!File(_integrationLcovPath).existsSync())
     missing.add(_integrationLcovPath);
-  if (!File(_iosIntegrationLcovPath).existsSync())
-    missing.add(_iosIntegrationLcovPath);
 
   if (missing.isNotEmpty) {
     stderr
       ..writeln('FATAL: the following lcov inputs are missing:')
       ..writeln('  ${missing.join('\n  ')}')
       ..writeln('')
-      ..writeln('Expected all three files to be present in the')
-      ..writeln('coverage-aggregate job — did the artifact-download steps')
-      ..writeln('succeed?')
+      ..writeln('Expected both files to be present in the coverage-aggregate')
+      ..writeln('job — did the artifact-download steps succeed?')
       ..writeln('')
       ..writeln('  $_unitLcovPath is produced by the build-android job')
       ..writeln('    (artifact: coverage-lcov)')
       ..writeln(
           '  $_integrationLcovPath is produced by the integration-test job')
-      ..writeln('    (artifact: coverage-integration-lcov)')
-      ..writeln('  $_iosIntegrationLcovPath is produced by the')
-      ..writeln('    integration-test-ios job')
-      ..writeln('    (artifact: coverage-integration-ios-lcov)');
+      ..writeln('    (artifact: coverage-integration-lcov)');
     exit(2);
   }
 
-  // Merge all three lcovs (max hit-count per line, same semantics as
+  // Merge both lcovs (max hit-count per line, same semantics as
   // merge_lcov.dart).
-  final merged = parseLcovInputs(
-      [_unitLcovPath, _integrationLcovPath, _iosIntegrationLcovPath]);
+  final merged = parseLcovInputs([_unitLcovPath, _integrationLcovPath]);
 
   // Apply exclude list (identical to check_coverage.dart).
   final excludes =
@@ -137,8 +137,7 @@ void main(List<String> args) {
     ..writeln(
         '======= Mazilon Aggregate Coverage Gate (ADR-003/ADR-004) =======')
     ..writeln('Inputs:   $_unitLcovPath (unit) + '
-        '$_integrationLcovPath (intg) + '
-        '$_iosIntegrationLcovPath (iOS intg)')
+        '$_integrationLcovPath (intg)')
     ..writeln('Files:    ${filtered.length} (excluded: ${excluded.length})')
     ..writeln('Lines:    $totalHit / $totalLines = '
         '${aggregatePct.toStringAsFixed(2)}%')
