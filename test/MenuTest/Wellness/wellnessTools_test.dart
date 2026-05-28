@@ -131,10 +131,14 @@ void main() {
       expect(menuDialogTop, greaterThanOrEqualTo(menuButtonBottom));
       expect(menuDialogTop - menuButtonBottom, lessThan(20));
       expect(menuDialogWidth, lessThanOrEqualTo(260));
-      expect(closeButtonLeft, lessThan(menuDialogLeft + menuDialogWidth / 2));
+      expect(
+        closeButtonLeft,
+        greaterThan(menuDialogLeft + menuDialogWidth / 2),
+        reason: 'RTL header controls should start from the right edge.',
+      );
       expect((closeButtonCenterY - aboutIconCenterY).abs(), lessThan(8));
     });
-    testWidgets('Header menu puts close button on the right in English',
+    testWidgets('Header menu puts close button on the left in English',
         (WidgetTester tester) async {
       tester.view.physicalSize = const Size(1200, 900);
       tester.view.devicePixelRatio = 1;
@@ -161,7 +165,10 @@ void main() {
       expect(menuDialogTop, greaterThanOrEqualTo(menuButtonBottom));
       expect(menuDialogTop - menuButtonBottom, lessThan(20));
       expect(
-          closeButtonLeft, greaterThan(menuDialogLeft + menuDialogWidth / 2));
+        closeButtonLeft,
+        lessThan(menuDialogLeft + menuDialogWidth / 2),
+        reason: 'LTR header controls should start from the left edge.',
+      );
     });
     testWidgets('Navigate from WellnessTools screen',
         (WidgetTester tester) async {
