@@ -95,8 +95,6 @@ void showMainMenuDialog({
                 mainAxisSize: MainAxisSize.min,
                 children: <Widget>[
                   Row(
-                    textDirection:
-                        isRtl ? TextDirection.ltr : TextDirection.rtl,
                     children: [
                       IconButton(
                         key: const Key('mainMenuCloseButton'),
@@ -107,9 +105,7 @@ void showMainMenuDialog({
                       ),
                       Expanded(
                         child: Align(
-                          alignment: isRtl
-                              ? Alignment.centerRight
-                              : Alignment.centerLeft,
+                          alignment: AlignmentDirectional.centerStart,
                           child: TextButton(
                             child: Row(
                               mainAxisSize: MainAxisSize.min,

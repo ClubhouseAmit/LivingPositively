@@ -232,9 +232,7 @@ class _PositiveState extends LPExtendedState<Positive> {
                                 fontSize: 16.sp,
                                 fontWeight: FontWeight.bold,
                               ),
-                              appLocale!.textDirection == "rtl"
-                                  ? TextAlign.right
-                                  : TextAlign.left,
+                              TextAlign.start,
                               30,
                               3),
                         ),

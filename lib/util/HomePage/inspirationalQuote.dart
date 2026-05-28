@@ -62,11 +62,9 @@ class _InspirationalQuoteState extends LPExtendedState<InspirationalQuote> {
         height: 120,
         child: Stack(
           children: [
-            Positioned(
-              top: 5, // Adjust the position as needed
-              left: appLocale.textDirection == "rtl" ? 5 : null,
-              right: appLocale.textDirection == "rtl" ? null : 5,
-
+            PositionedDirectional(
+              top: 5,
+              end: 5,
               // Tooltip owns the announced label; Semantics only adds the
               // `button` role so GestureDetector doesn't read as plain text.
               child: Semantics(
@@ -102,10 +100,10 @@ class _InspirationalQuoteState extends LPExtendedState<InspirationalQuote> {
                   const SizedBox(width: 10),
                   Expanded(
                     child: Padding(
-                      padding: EdgeInsets.fromLTRB(
-                        (appLocale.textDirection == "rtl" ? 30.0 : 0),
+                      padding: const EdgeInsetsDirectional.fromSTEB(
                         0,
-                        (appLocale.textDirection == "rtl" ? 0.0 : 30.0),
+                        0,
+                        30,
                         0,
                       ),
                       child: myAutoSizedText(
@@ -115,9 +113,7 @@ class _InspirationalQuoteState extends LPExtendedState<InspirationalQuote> {
                           color: appWhite,
                           fontSize: 24.sp,
                         ),
-                        appLocale!.textDirection == "rtl"
-                            ? TextAlign.right
-                            : TextAlign.left,
+                        TextAlign.start,
                         24,
                         4,
                       ),
