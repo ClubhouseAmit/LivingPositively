@@ -3113,4 +3113,13 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get sosTooltip => 'SOS — emergency contacts';
+
+  @override
+  String get asyncLoadingLabel => 'Loading';
+
+  @override
+  String get asyncErrorMessage => 'Something went wrong.';
+
+  @override
+  String get asyncRetryButton => 'Try again';
 }

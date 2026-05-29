@@ -9,8 +9,10 @@
 //   - `deleteImage(index, paths)` deletes the file + removes from the list
 //   - `loadImagePaths` reads back what `saveImagePaths` wrote (using a
 //     `path_provider` mock that returns a real OS temp dir)
-//   - `loadImagePaths` error path captures via the registered
-//     IncidentLoggerService when the persisted file is absent
+//   - `loadImagePaths` treats a missing manifest as the empty first-run
+//     state: returns normally, leaves the list empty, logs nothing
+//     (genuine read failures are covered by the widget test in
+//     test/pages/FeelGood/feel_good_async_error_test.dart)
 //
 // The actual ImagePicker.pickImage path requires native code so we don't
 // drive it.
@@ -111,12 +113,19 @@ void main() {
     expect(loaded, equals(paths));
   });
 
-  test('loadImagePaths on missing file captures error via logger', () async {
+  test('loadImagePaths on missing file returns empty without logging an error',
+      () async {
     final svc = ImagePickerServiceImpl();
     final loaded = <String>[];
-    // No file written yet; readAsString will throw.
+    // No file written yet. Phase E (ADR-005 §Decision step 5): a missing
+    // manifest is the empty first-run state, NOT an error — loadImagePaths
+    // must return normally, leave the list empty, and log nothing, so
+    // AsyncStateView stays out of its error branch and the Feel Good grid
+    // shows its add affordance. Genuine read failures (manifest present but
+    // unreadable) are logged + rethrown and covered by the widget test.
     await svc.loadImagePaths(loaded);
-    expect(logger.captured, isNotEmpty);
+    expect(loaded, isEmpty);
+    expect(logger.captured, isEmpty);
   });
 
   test('deleteImage removes entry at index and the file on disk', () async {

@@ -1647,5 +1647,17 @@
   "sosTooltip": "SOS — emergency contacts",
   "@sosTooltip": {
     "description": "Tooltip / TalkBack label for the floating SOS button"
+  },
+  "asyncLoadingLabel": "Loading",
+  "@asyncLoadingLabel": {
+    "description": "Phase E (ADR-005 §Decision step 5): Semantics/TalkBack label announced while a shared async view is in its loading state. Gender-neutral on purpose so the shared widget needs no gender plumbing."
+  },
+  "asyncErrorMessage": "Something went wrong.",
+  "@asyncErrorMessage": {
+    "description": "Phase E (ADR-005 §Decision step 5): generic message shown in the shared async view's error state, paired with a retry action."
+  },
+  "asyncRetryButton": "Try again",
+  "@asyncRetryButton": {
+    "description": "Phase E (ADR-005 §Decision step 5): label for the retry button in the shared async view's error state."
   }
 }

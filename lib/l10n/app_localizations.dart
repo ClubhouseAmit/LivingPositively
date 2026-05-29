@@ -2157,6 +2157,24 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'SOS — emergency contacts'**
   String get sosTooltip;
+
+  /// Phase E (ADR-005 §Decision step 5): Semantics/TalkBack label announced while a shared async view is in its loading state. Gender-neutral on purpose so the shared widget needs no gender plumbing.
+  ///
+  /// In en, this message translates to:
+  /// **'Loading'**
+  String get asyncLoadingLabel;
+
+  /// Phase E (ADR-005 §Decision step 5): generic message shown in the shared async view's error state, paired with a retry action.
+  ///
+  /// In en, this message translates to:
+  /// **'Something went wrong.'**
+  String get asyncErrorMessage;
+
+  /// Phase E (ADR-005 §Decision step 5): label for the retry button in the shared async view's error state.
+  ///
+  /// In en, this message translates to:
+  /// **'Try again'**
+  String get asyncRetryButton;
 }
 
 class _AppLocalizationsDelegate

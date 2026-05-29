@@ -3076,4 +3076,13 @@ class AppLocalizationsHe extends AppLocalizations {
 
   @override
   String get sosTooltip => 'SOS – אנשי קשר בשעת חירום';
+
+  @override
+  String get asyncLoadingLabel => 'טוען';
+
+  @override
+  String get asyncErrorMessage => 'משהו השתבש';
+
+  @override
+  String get asyncRetryButton => 'ניסיון חוזר';
 }

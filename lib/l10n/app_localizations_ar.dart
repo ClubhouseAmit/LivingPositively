@@ -3085,4 +3085,13 @@ class AppLocalizationsAr extends AppLocalizations {
 
   @override
   String get sosTooltip => 'SOS — جهات اتصال الطوارئ';
+
+  @override
+  String get asyncLoadingLabel => 'جارٍ التحميل';
+
+  @override
+  String get asyncErrorMessage => 'حدث خطأ ما';
+
+  @override
+  String get asyncRetryButton => 'إعادة المحاولة';
 }
