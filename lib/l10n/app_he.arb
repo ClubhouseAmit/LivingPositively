@@ -418,5 +418,8 @@
   },
   "editEntryTooltip": "עריכת רשומה",
   "deleteEntryTooltip": "מחיקת רשומה",
-  "sosTooltip": "SOS – אנשי קשר בשעת חירום"
+  "sosTooltip": "SOS – אנשי קשר בשעת חירום",
+  "asyncLoadingLabel": "טוען",
+  "asyncErrorMessage": "משהו השתבש",
+  "asyncRetryButton": "ניסיון חוזר"
 }

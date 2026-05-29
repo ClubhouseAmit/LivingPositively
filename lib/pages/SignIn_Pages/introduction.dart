@@ -41,11 +41,19 @@ class _IntroductionState extends LPExtendedState<Introduction> {
                 null,
                 100),
             const SizedBox(height: 20.0),
-            // Displaying a large circular progress indicator (spinner)
-            const SizedBox(
-              height: 300,
-              width: 300,
-              child: CircularProgressIndicator(),
+            // Displaying a large circular progress indicator (spinner).
+            // Phase E (ADR-005 §Decision step 5): the spinner carried no
+            // screen-reader label (UX_GAPS.md §1.5). Announce it via the
+            // shared async loading label so TalkBack/VoiceOver users know the
+            // restart is in progress.
+            Semantics(
+              label: appLocale.asyncLoadingLabel,
+              liveRegion: true,
+              child: const SizedBox(
+                height: 300,
+                width: 300,
+                child: CircularProgressIndicator(),
+              ),
             ),
           ],
         ),

@@ -30,7 +30,15 @@ class ImagePickerServiceImpl implements ImagePickerService {
   @override
   Future<void> deleteImages() async {
     List<String> tempPath = [];
-    await loadImagePaths(tempPath);
+    try {
+      await loadImagePaths(tempPath);
+    } catch (_) {
+      // Best-effort cleanup during the Settings reset flow. loadImagePaths
+      // now rethrows genuine read failures (and has already logged them); if
+      // the manifest cannot be read we cannot enumerate files to delete, so
+      // skip rather than abort the surrounding reset.
+      return;
+    }
 
     while (tempPath.isNotEmpty) {
       File(tempPath[0]).deleteSync();
@@ -84,6 +92,14 @@ class ImagePickerServiceImpl implements ImagePickerService {
   Future<void> loadImagePaths(List<String> imagePaths) async {
     try {
       final file = await getImagePathFile();
+      // First run / nothing saved yet is the EMPTY state, not an error: the
+      // manifest file simply does not exist. Return normally so the Feel Good
+      // grid renders its add affordance and AsyncStateView stays out of its
+      // error branch.
+      if (!await file.exists()) {
+        return;
+      }
+
       String contents = await file.readAsString();
 
       imagePaths.addAll(
@@ -95,9 +111,14 @@ class ImagePickerServiceImpl implements ImagePickerService {
         error,
         stackTrace: stackTrace,
       );
-      imagePaths = [];
+      // A manifest that exists but cannot be read (corruption, permission,
+      // decode failure) is a genuine failure. Phase E (ADR-005 §Decision
+      // step 5): rethrow so the caller's error UI surfaces it with a retry,
+      // instead of swallowing it and rendering an empty grid (UX_GAPS.md
+      // §3.10). The previous `imagePaths = []` reassigned the local parameter
+      // and was a no-op.
+      rethrow;
     }
-    // If encountering an error, return an empty list
   }
 
   Future<File> getImagePathFile() async {

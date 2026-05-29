@@ -8,6 +8,7 @@ import 'package:mazilon/pages/FeelGood/image_display_item.dart';
 import 'package:mazilon/pages/FeelGood/image_picker_service_impl.dart';
 import 'package:mazilon/util/LP_extended_state.dart';
 import 'package:mazilon/util/appInformation.dart';
+import 'package:mazilon/util/async/async_state_view.dart';
 import 'package:mazilon/util/styles.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:mazilon/util/userInformation.dart';
@@ -24,7 +25,7 @@ class FeelGood extends StatefulWidget {
 class _FeelGoodPageState extends LPExtendedState<FeelGood> {
   late ImagePickerService pickerService;
   List<String> imagePaths = [];
-  late Future<void> _loadImagesFuture;
+  late Future<List<String>> _loadImagesFuture;
   //final picker = ImagePicker();
   AnalyticsService mixPanelService = GetIt.instance<AnalyticsService>();
   @override
@@ -35,9 +36,21 @@ class _FeelGoodPageState extends LPExtendedState<FeelGood> {
     _loadImagesFuture = _loadImagePaths();
   }
 
-  Future<void> _loadImagePaths() async {
+  // Phase E (ADR-005 §Decision step 5): returns the loaded paths so the
+  // shared [AsyncStateView] can drive loading/error/data states. Clears
+  // first so a retry does not append duplicates onto a partial load.
+  Future<List<String>> _loadImagePaths() async {
+    imagePaths.clear();
     await pickerService.loadImagePaths(imagePaths);
-    setState(() {});
+    return imagePaths;
+  }
+
+  // Phase E: retry hook for the shared error state — re-arms the future so
+  // the FutureBuilder re-runs the load.
+  void _retryLoadImages() {
+    setState(() {
+      _loadImagesFuture = _loadImagePaths();
+    });
   }
 
   @override
@@ -110,16 +123,19 @@ class _FeelGoodPageState extends LPExtendedState<FeelGood> {
                   padding: const EdgeInsets.symmetric(horizontal: 8.0),
                   child: Scrollbar(
                     //images uploaded from phone grid view:
-                    child: FutureBuilder<void>(
+                    // Phase E (ADR-005 §Decision step 5): the bare
+                    // FutureBuilder here showed a spinner only while waiting
+                    // and rendered an empty grid on failure with no recovery
+                    // (UX_GAPS.md §3.10). Routed through the shared
+                    // AsyncStateView so loading is screen-reader announced and
+                    // a failed load surfaces a retry affordance.
+                    child: AsyncStateView<List<String>>(
                       future: _loadImagesFuture,
-                      builder: (context, snapshot) {
-                        if (snapshot.connectionState ==
-                            ConnectionState.waiting) {
-                          return const Center(
-                            child: CircularProgressIndicator(),
-                          );
-                        }
-
+                      onRetry: _retryLoadImages,
+                      // The data builder reads the live `imagePaths` field
+                      // (mutated by add/delete) rather than the resolved
+                      // snapshot, so the grid stays in sync after edits.
+                      onData: (context, _) {
                         return GridView.builder(
                           shrinkWrap:
                               true, // Ensures GridView works inside SingleChildScrollView

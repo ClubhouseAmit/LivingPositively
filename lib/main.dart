@@ -11,6 +11,7 @@ import 'package:mazilon/AnalyticsService.dart';
 import 'package:mazilon/pages/notifications/notification_service.dart';
 import 'package:mazilon/pages/notifications/reminder_debug_recorder.dart';
 import 'package:mazilon/util/logger_service.dart';
+import 'package:mazilon/util/async/async_state_view.dart';
 import 'package:mazilon/util/persistent_memory_service.dart';
 import 'package:mazilon/util/theme/app_theme.dart';
 import 'package:provider/provider.dart';
@@ -450,8 +451,11 @@ class _MyAppState extends State<MyApp> with WidgetsBindingObserver {
         debugShowCheckedModeBanner: false,
         theme: buildLightTheme(),
         darkTheme: buildDarkThemeStub(),
+        // Phase E (ADR-005 §Decision step 5): this boot spinner renders
+        // before the localization delegates are wired, so it passes an
+        // explicit English label rather than reading AppLocalizations.
         home: const Scaffold(
-          body: Center(child: CircularProgressIndicator()),
+          body: AsyncLoadingIndicator(semanticLabel: 'Loading'),
         ),
       );
     }

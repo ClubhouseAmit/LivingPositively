@@ -1,6 +1,6 @@
 # ADR-005: Resolve UX Gaps Identified in UX_GAPS Audit
 
-- **Status**: in-progress (Phases A, B, C, D shipped; E pending)
+- **Status**: accepted (Phases A, B, C, D, E shipped)
 - **Date**: 2026-05-24
 - **Deciders**: <leave blank for author to fill>
 - **Tags**: ux, accessibility, rtl, theming, crisis-safety, mental-health
@@ -35,6 +35,16 @@ Adopt the five-phase remediation order proposed in `UX_GAPS.md` §4, with each p
 
    *Shipped 2026-05-28.* `lib/util/theme/app_theme.dart` introduces an `AppColors` semantic token layer (`primary`, `secondary`, `surface`, `onSurface`, `error`, `onError`, `success`, plus non-`ColorScheme` `neutralLight`/`neutralDark`/`pdfTint`) and `buildLightTheme()` / `buildDarkThemeStub()`. `lib/main.dart` wires both onto `MaterialApp` (the unstyled `MaterialApp` flagged at `lib/main.dart:410-428`). The nine palette variables in `lib/util/styles.dart:5-13` are now `const` forwarders to `AppColors` tokens, preserving every call site. `myButtonStyle3` no longer takes raw `Colors.red`; it reads `AppColors.error` (same hex as Material red 500, so visually a no-op). Regression suite: `test/util/theme/app_theme_test.dart`. Material 3 flip is deferred — Material 2 is pinned (`useMaterial3: false`) because the brand button styles target M2 token names.
 5. **Phase E — Loading / error contract (S2).** Introduce one shared async widget (loading / error-with-retry / empty / data) and route every `FutureBuilder` through it. Remove the unconditional "finished" toast in `personalPlanWidget.dart:127`.
+
+   *Shipped 2026-05-29.* `lib/util/async/async_state_view.dart` introduces the shared contract the audit asked for (`UX_GAPS.md §1.5, §3.10`):
+   - `AsyncStateView<T>` wraps `FutureBuilder<T>` and routes the four states through one place — **loading** (`AsyncLoadingIndicator`), **error-with-retry** (`AsyncErrorRetry`, the previously-missing branch), **empty** (optional `emptyBuilder`), and **data** (`onData`). A future that rejects *or* resolves to `null` for a non-nullable `T` lands in the error state instead of silently rendering nothing.
+   - `AsyncLoadingIndicator` is a `Semantics`-labelled centred spinner (closing the "spinner has no screen-reader label" gap). It reads `AppLocalizations.asyncLoadingLabel`, falling back to a literal when no delegate is in scope.
+   - `AsyncErrorRetry` shows a localized message plus a retry button; colours read from `AppColors` (Phase D) and font sizes use `.sp` (Phase B).
+   - The only production `FutureBuilder` — the image grid in `lib/pages/FeelGood/feelGood.dart` — now routes through `AsyncStateView`; its loader is screen-reader announced and a failed load surfaces a retry instead of an empty grid. The bare boot spinners in `lib/main.dart` and `lib/pages/SignIn_Pages/introduction.dart` now carry the shared loading label.
+   - **Service fix (required for the above to be real):** `ImagePickerServiceImpl.loadImagePaths` previously caught *every* exception, logged it, and resolved normally — so the Feel Good future never rejected and the error-with-retry branch was dead code. It now distinguishes the two cases the audit implies: a **missing manifest** (first run / nothing saved) returns empty so the grid shows its add affordance, while a manifest that **exists but cannot be read** (corruption, permission, decode failure) is logged *and rethrown* so `AsyncStateView` actually reaches its error branch. `deleteImages` (used by the Settings reset flow in `UserSettings.dart`) was wrapped to stay best-effort so the rethrow does not abort a reset. Covered by `test/pages/FeelGood/feel_good_async_error_test.dart`, which drives the real `FeelGood` widget with a throwing picker and asserts the retry appears and then recovers.
+   - Three non-gendered strings (`asyncLoadingLabel`, `asyncErrorMessage`, `asyncRetryButton`) were added to `app_en/he/ar.arb` and regenerated. Non-gendered is deliberate so the shared widget needs no gender plumbing.
+   - The "finished downloading" toast in `personalPlanWidget.dart` was already made conditional in an earlier phase (it now shows `downloadFailed` when `fileService.download` returns `null`), so no further change was needed there.
+   - Regression suite: `test/util/async/async_state_view_test.dart` (real-widget tests across all four states + the no-localizations fallback).
 
 Each phase ships behind its own PR with a regression test where feasible. Phase A is the only phase blocked from being deferred — the others may be reordered post-A based on capacity.
 
