@@ -12,6 +12,7 @@ import 'package:mazilon/pages/notifications/notification_service.dart';
 import 'package:mazilon/pages/notifications/reminder_debug_recorder.dart';
 import 'package:mazilon/util/logger_service.dart';
 import 'package:mazilon/util/persistent_memory_service.dart';
+import 'package:mazilon/util/theme/app_theme.dart';
 import 'package:provider/provider.dart';
 import 'util/Firebase/firebase_options.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
@@ -447,6 +448,8 @@ class _MyAppState extends State<MyApp> with WidgetsBindingObserver {
     if (localeName == '') {
       return MaterialApp(
         debugShowCheckedModeBanner: false,
+        theme: buildLightTheme(),
+        darkTheme: buildDarkThemeStub(),
         home: const Scaffold(
           body: Center(child: CircularProgressIndicator()),
         ),
@@ -461,6 +464,12 @@ class _MyAppState extends State<MyApp> with WidgetsBindingObserver {
         locale: Locale(localeService.getLocale()),
         localizationsDelegates: AppLocalizations.localizationsDelegates,
         debugShowCheckedModeBanner: false,
+        // Phase D (ADR-005 §Decision step 4): semantic tokens layered
+        // onto Material 2. Previously this MaterialApp passed no theme
+        // at all, so every page composed its own colour decisions
+        // (`docs/UX_GAPS.md §1.2`).
+        theme: buildLightTheme(),
+        darkTheme: buildDarkThemeStub(),
         home: UpgradeAlert(
           child: Scaffold(
             resizeToAvoidBottomInset: false,

@@ -1,16 +1,23 @@
 import 'package:flutter/material.dart';
 import 'package:auto_size_text/auto_size_text.dart';
+import 'package:mazilon/util/theme/app_theme.dart';
 
-//miscaleanous styles and functions
-Color pdfpurple = const Color(0xfaf6fd);
-Color primaryPurple = const Color(0xFFA688F8);
-Color lightGray = const Color.fromARGB(255, 231, 231, 231);
-Color backgroundGray = const Color(0xFFfaf8f8);
-Color darkGray = const Color(0xFF9A9EB6);
-Color appGreen = const Color(0xFF01B91E);
-Color appBlue = const Color(0xFF0F2851);
-Color lightPurple = const Color(0xFFE3C6FF);
-Color appWhite = const Color(0xFFFAF8F8);
+// Phase D (ADR-005 §Decision step 4): the nine palette variables below
+// previously held literal `Color(...)` values and were mutated by hand
+// per page. They now forward to `AppColors` semantic tokens defined in
+// `lib/util/theme/app_theme.dart` so the source of truth is one layer.
+// The variables are kept (rather than deleted) because ~30 files in
+// `lib/` reference them by name — the ADR explicitly calls for legacy
+// forwarders during the migration window.
+const Color pdfpurple = AppColors.pdfTint;
+const Color primaryPurple = AppColors.primary;
+const Color lightGray = AppColors.neutralLight;
+const Color backgroundGray = AppColors.surface;
+const Color darkGray = AppColors.neutralDark;
+const Color appGreen = AppColors.success;
+const Color appBlue = AppColors.onSurface;
+const Color lightPurple = AppColors.secondary;
+const Color appWhite = AppColors.surface;
 
 double returnSizedBox(context, int size) {
   if (MediaQuery.of(context).size.width < 400) {
@@ -32,8 +39,13 @@ ButtonStyle myButtonStyle = TextButton.styleFrom(
     borderRadius: BorderRadius.all(Radius.circular(20)),
   ),
 );
+// Phase D (ADR-005 §Decision step 4): destructive-action button. The
+// background was previously `Colors.red` — a raw Material colour with
+// no semantic meaning. It now points at `AppColors.error`, the same
+// hex value as `Colors.red` (Material red 500) so this PR is visually
+// a no-op while moving the call site behind a semantic token.
 ButtonStyle myButtonStyle3 = TextButton.styleFrom(
-  backgroundColor: Colors.red,
+  backgroundColor: AppColors.error,
   shape: const RoundedRectangleBorder(
     borderRadius: BorderRadius.all(Radius.circular(20)),
   ),
