@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:mazilon/util/LP_extended_state.dart';
 
+import 'package:mazilon/util/async/async_state_view.dart';
 import 'package:mazilon/util/styles.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:provider/provider.dart';
@@ -44,15 +45,13 @@ class _IntroductionState extends LPExtendedState<Introduction> {
             // Displaying a large circular progress indicator (spinner).
             // Phase E (ADR-005 §Decision step 5): the spinner carried no
             // screen-reader label (UX_GAPS.md §1.5). Announce it via the
-            // shared async loading label so TalkBack/VoiceOver users know the
-            // restart is in progress.
-            Semantics(
-              label: appLocale.asyncLoadingLabel,
-              liveRegion: true,
-              child: const SizedBox(
-                height: 300,
-                width: 300,
-                child: CircularProgressIndicator(),
+            // shared async loading indicator so TalkBack/VoiceOver users know
+            // the restart is in progress.
+            SizedBox(
+              height: 300,
+              width: 300,
+              child: AsyncLoadingIndicator(
+                semanticLabel: appLocale.asyncLoadingLabel,
               ),
             ),
           ],
