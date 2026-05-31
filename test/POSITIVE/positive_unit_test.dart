@@ -5,7 +5,6 @@
 
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:mazilon/global_enums.dart';
 import 'package:mazilon/pages/positive.dart';
 import 'package:mazilon/pages/thankYou.dart';
 import 'package:mazilon/util/Traits/positiveTraitItemSug.dart';
@@ -40,11 +39,10 @@ Future<void> _advancePastInitDelayAndDismiss(WidgetTester tester) async {
 void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
 
-  late TestServiceLocators services;
   late UserInformation userInformation;
 
   setUp(() {
-    services = registerTestServices(locale: 'en');
+    registerTestServices(locale: 'en');
     userInformation = UserInformation();
     userInformation.gender = 'other';
     userInformation.localeName = 'en';
@@ -55,8 +53,9 @@ void main() {
   });
 
   group('Positive (real production widget)', () {
-    testWidgets('renders empty positive page with suggestions and add icon',
-        (tester) async {
+    testWidgets('renders empty positive page with suggestions and add icon', (
+      tester,
+    ) async {
       await pumpWithProviders(
         tester,
         const Positive(),
@@ -75,8 +74,9 @@ void main() {
       await _advancePastInitDelayAndDismiss(tester);
     });
 
-    testWidgets('refresh button rebuilds suggestions without error',
-        (tester) async {
+    testWidgets('refresh button rebuilds suggestions without error', (
+      tester,
+    ) async {
       await pumpWithProviders(
         tester,
         const Positive(),
@@ -99,8 +99,9 @@ void main() {
       await _advancePastInitDelayAndDismiss(tester);
     });
 
-    testWidgets('existing positive traits render as ThankYou rows',
-        (tester) async {
+    testWidgets('existing positive traits render as ThankYou rows', (
+      tester,
+    ) async {
       userInformation.updatePositiveTraits(['Kind', 'Patient']);
 
       await pumpWithProviders(
@@ -118,43 +119,45 @@ void main() {
     });
 
     testWidgets(
-        'divider only shows when there is at least one positive trait',
-        (tester) async {
-      userInformation.updatePositiveTraits(['Brave']);
-      await pumpWithProviders(
-        tester,
-        const Positive(),
-        userInformation: userInformation,
-        surfaceSize: const Size(1024, 1800),
-      );
-      expect(find.byType(Divider), findsOneWidget);
-      await _advancePastInitDelayAndDismiss(tester);
-    });
+      'divider only shows when there is at least one positive trait',
+      (tester) async {
+        userInformation.updatePositiveTraits(['Brave']);
+        await pumpWithProviders(
+          tester,
+          const Positive(),
+          userInformation: userInformation,
+          surfaceSize: const Size(1024, 1800),
+        );
+        expect(find.byType(Divider), findsOneWidget);
+        await _advancePastInitDelayAndDismiss(tester);
+      },
+    );
 
     testWidgets(
-        'after init delay an AlertDialog popup appears with a close button',
-        (tester) async {
-      await pumpWithProviders(
-        tester,
-        const Positive(),
-        userInformation: userInformation,
-        surfaceSize: const Size(1024, 1800),
-      );
-      // Before the delay fires, no dialog yet.
-      expect(find.byType(AlertDialog), findsNothing);
-      // Advance the fake clock past 10s — initState's Future.delayed fires.
-      await tester.pump(const Duration(seconds: 11));
-      await tester.pump();
-      expect(find.byType(AlertDialog), findsOneWidget);
-      // Close button is rendered via TextButton inside the dialog.
-      final closeButton = find.descendant(
-        of: find.byType(AlertDialog),
-        matching: find.byType(TextButton),
-      );
-      expect(closeButton, findsOneWidget);
-      await tester.tap(closeButton, warnIfMissed: false);
-      await tester.pumpAndSettle();
-      expect(find.byType(AlertDialog), findsNothing);
-    });
+      'after init delay an AlertDialog popup appears with a close button',
+      (tester) async {
+        await pumpWithProviders(
+          tester,
+          const Positive(),
+          userInformation: userInformation,
+          surfaceSize: const Size(1024, 1800),
+        );
+        // Before the delay fires, no dialog yet.
+        expect(find.byType(AlertDialog), findsNothing);
+        // Advance the fake clock past 10s — initState's Future.delayed fires.
+        await tester.pump(const Duration(seconds: 11));
+        await tester.pump();
+        expect(find.byType(AlertDialog), findsOneWidget);
+        // Close button is rendered via TextButton inside the dialog.
+        final closeButton = find.descendant(
+          of: find.byType(AlertDialog),
+          matching: find.byType(TextButton),
+        );
+        expect(closeButton, findsOneWidget);
+        await tester.tap(closeButton, warnIfMissed: false);
+        await tester.pumpAndSettle();
+        expect(find.byType(AlertDialog), findsNothing);
+      },
+    );
   });
 }

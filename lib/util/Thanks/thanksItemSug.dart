@@ -11,7 +11,6 @@ import 'package:mazilon/util/userInformation.dart';
 import 'package:provider/provider.dart';
 
 import 'package:intl/intl.dart';
-import 'package:mazilon/l10n/app_localizations.dart';
 
 // the thanks item suggested widget, it shows a suggested thank you text and an add button
 //its used in journal/homepage in todo list section to suggest a thank you to the user
@@ -22,12 +21,13 @@ class ThanksItemSuggested extends StatefulWidget {
   final String inputText; // the input text of the thank you
   final List<String> fullSuggestionList;
   final int stopShowing;
-  const ThanksItemSuggested(
-      {super.key,
-      required this.add,
-      required this.inputText,
-      required this.stopShowing,
-      required this.fullSuggestionList});
+  const ThanksItemSuggested({
+    super.key,
+    required this.add,
+    required this.inputText,
+    required this.stopShowing,
+    required this.fullSuggestionList,
+  });
 
   @override
   State<ThanksItemSuggested> createState() => _ThanksItemSuggestedState();
@@ -39,7 +39,7 @@ class _ThanksItemSuggestedState extends LPExtendedState<ThanksItemSuggested> {
   List<String> thanksSuggestionList =
       []; // the list of the suggested thank yous
   bool show = true;
-// function to get the thank yous written today (the date of the thank you is today)
+  // function to get the thank yous written today (the date of the thank you is today)
   List<String> todayThankYousFunc(List<String> thankYous, List<String> dates) {
     List<String> todayThankYous = [];
     DateTime now = DateTime.now();
@@ -55,15 +55,18 @@ class _ThanksItemSuggestedState extends LPExtendedState<ThanksItemSuggested> {
   void loadData(BuildContext context) {
     // get the shared preferences
 
-    final userInfoProvider =
-        Provider.of<UserInformation>(context, listen: true);
+    final userInfoProvider = Provider.of<UserInformation>(
+      context,
+      listen: true,
+    );
     setState(() {
       List<String> thankYous = userInfoProvider.thanks['thanks'] ?? [];
       List<String> dates = userInfoProvider.thanks['dates'] ?? [];
 
       myThanks = todayThankYousFunc(thankYous, dates);
-      List<String> tempThanksSuggestionList =
-          List.from(widget.fullSuggestionList);
+      List<String> tempThanksSuggestionList = List.from(
+        widget.fullSuggestionList,
+      );
 
       thanksSuggestionList = List.from(tempThanksSuggestionList);
       // remove the thank yous that are already written today from the suggested thank yous
@@ -110,15 +113,18 @@ class _ThanksItemSuggestedState extends LPExtendedState<ThanksItemSuggested> {
             // add the thank you to the list of thank yous and update the suggested thank you to a new one
             onTap: () {
               setState(() {
-                widget.add(widget.inputText == '' ? text : widget.inputText,
-                    userInfoProvider);
+                widget.add(
+                  widget.inputText == '' ? text : widget.inputText,
+                  userInfoProvider,
+                );
                 List<String> thankYous =
                     userInfoProvider.thanks['thanks'] ?? [];
                 List<String> dates = userInfoProvider.thanks['dates'] ?? [];
                 myThanks = todayThankYousFunc(thankYous, dates);
                 myThanks.add(widget.inputText == '' ? text : widget.inputText);
-                List<String> tempThanksSuggestionList =
-                    List.from(widget.fullSuggestionList);
+                List<String> tempThanksSuggestionList = List.from(
+                  widget.fullSuggestionList,
+                );
                 thanksSuggestionList = List.from(tempThanksSuggestionList);
                 for (String suggestion in tempThanksSuggestionList) {
                   if (thanksSuggestionList.length > 1 &&
@@ -127,8 +133,10 @@ class _ThanksItemSuggestedState extends LPExtendedState<ThanksItemSuggested> {
                   }
                 }
                 if (thanksSuggestionList.isNotEmpty) {
-                  text = thanksSuggestionList[
-                      Random().nextInt(thanksSuggestionList.length)];
+                  text =
+                      thanksSuggestionList[Random().nextInt(
+                        thanksSuggestionList.length,
+                      )];
                 }
               });
             },
@@ -168,9 +176,7 @@ class _ThanksItemSuggestedState extends LPExtendedState<ThanksItemSuggested> {
             ),
           ),
 
-          const SizedBox(
-            width: 10,
-          ),
+          const SizedBox(width: 10),
           // the design of the suggested thank you (a dotted border with the text of the thank you)
           DottedBorder(
             options: RoundedRectDottedBorderOptions(
@@ -182,14 +188,15 @@ class _ThanksItemSuggestedState extends LPExtendedState<ThanksItemSuggested> {
             child: Container(
               height: 50,
               decoration: BoxDecoration(
-                  color: Colors.transparent,
-                  borderRadius: BorderRadius.circular(20)),
+                color: Colors.transparent,
+                borderRadius: BorderRadius.circular(20),
+              ),
               child: Padding(
                 padding: const EdgeInsets.all(7.0),
                 child: Row(
                   children: [
                     Container(
-                      alignment: appLocale!.textDirection == "rtl"
+                      alignment: appLocale.textDirection == "rtl"
                           ? Alignment.centerRight
                           : Alignment.centerLeft,
                       width: MediaQuery.of(context).size.width > 1000
@@ -201,11 +208,10 @@ class _ThanksItemSuggestedState extends LPExtendedState<ThanksItemSuggested> {
                         widget.inputText == ''
                             ? text
                             : widget
-                                .inputText, // if the input text is empty, show the suggested thank you text
+                                  .inputText, // if the input text is empty, show the suggested thank you text
                         maxLines:
                             3, // the maximum number of lines of the text, if the text is more than 3 lines,
                         // it will be ellipsized , adjust as needed
-
                         minFontSize: 14,
                         overflow: TextOverflow.ellipsis,
                         style: TextStyle(

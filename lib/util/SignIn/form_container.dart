@@ -9,12 +9,12 @@ class FormContainer extends StatefulWidget {
   final String? labelText; // Label text displayed above the form field
   final String? helperText; // Helper text displayed below the form field
   final FormFieldSetter<String>?
-      onSaved; // Callback when the form field is saved
+  onSaved; // Callback when the form field is saved
   final FormFieldValidator<String>? validator; // Validator for the form field
   final ValueChanged<String>?
-      onFieldSubmitted; // Callback when the form field is submitted
+  onFieldSubmitted; // Callback when the form field is submitted
   final TextInputType?
-      inputType; // Input type for the form field (e.g., text, number)
+  inputType; // Input type for the form field (e.g., text, number)
 
   const FormContainer({
     super.key,
@@ -44,18 +44,21 @@ class FormContainerState extends State<FormContainer> {
     return Container(
       width: MediaQuery.of(context).size.width > 1000
           ? 600
-          : MediaQuery.of(context)
-              .size
-              .width, // Adjusts the width of the container
+          : MediaQuery.of(
+              context,
+            ).size.width, // Adjusts the width of the container
       clipBehavior: Clip.hardEdge,
       decoration: BoxDecoration(
-        color: Colors.grey.withOpacity(.35), // Background color with opacity
+        color: Colors.grey.withValues(
+          alpha: .35,
+        ), // Background color with opacity
         borderRadius: BorderRadius.circular(10), // Rounded corners
       ),
       child: TextFormField(
         style: const TextStyle(
-            fontWeight: FontWeight.normal,
-            color: Colors.black), // Text style for input
+          fontWeight: FontWeight.normal,
+          color: Colors.black,
+        ), // Text style for input
         controller: widget.controller, // Controller for managing text input
         keyboardType: widget.inputType, // Input type (e.g., text, number)
         key: widget.fieldKey, // Unique key for the form field
@@ -71,8 +74,9 @@ class FormContainerState extends State<FormContainer> {
           filled: true,
           hintText: widget.hintText, // Hint text inside the field
           hintStyle: const TextStyle(
-              fontWeight: FontWeight.normal,
-              color: Colors.black45), // Style for hint text
+            fontWeight: FontWeight.normal,
+            color: Colors.black45,
+          ), // Style for hint text
           suffixIcon: GestureDetector(
             onTap: () {
               setState(() {

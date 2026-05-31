@@ -3,9 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:get_it/get_it.dart';
 import 'package:mazilon/global_enums.dart';
 import 'package:mazilon/util/LP_extended_state.dart';
-import 'package:mazilon/util/appInformation.dart';
 import 'package:mazilon/util/persistent_memory_service.dart';
-import 'package:shared_preferences/shared_preferences.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 
 import 'package:mazilon/form/phonePageform.dart';
@@ -20,20 +18,18 @@ import 'package:provider/provider.dart';
 
 import 'package:mazilon/util/userInformation.dart';
 
-import 'package:mazilon/l10n/app_localizations.dart';
-
 List<String> pages = [
   'PersonalPlan-DifficultEvents',
   'PersonalPlan-MakeSafer',
   'PersonalPlan-FeelBetter',
-  'PersonalPlan-Distractions'
+  'PersonalPlan-Distractions',
 ];
 
 class FormProgressIndicator extends StatefulWidget {
-  PhonePageData phonePageData;
+  final PhonePageData phonePageData;
   final Function changeLocale;
 
-  FormProgressIndicator({
+  const FormProgressIndicator({
     super.key,
     required this.phonePageData,
     required this.changeLocale,
@@ -67,8 +63,10 @@ class FormProgressIndicatorState
   }
 
   void submitForm(mycontext) async {
-    PersistentMemoryService service = GetIt.instance<
-        PersistentMemoryService>(); // Get the persistent memory service instance
+    PersistentMemoryService service =
+        GetIt.instance<
+          PersistentMemoryService
+        >(); // Get the persistent memory service instance
 
     if (name.isNotEmpty) {
       await service.setItem("name", PersistentMemoryType.String, name);
@@ -80,10 +78,7 @@ class FormProgressIndicatorState
     Navigator.pushAndRemoveUntil(
       context,
       MaterialPageRoute(
-        builder: (context) => ShareForm(
-          prev: prev,
-          submit: submitForm,
-        ),
+        builder: (context) => ShareForm(prev: prev, submit: submitForm),
       ),
       (Route<dynamic> route) => false,
     );
@@ -151,14 +146,16 @@ class FormProgressIndicatorState
 
   @override
   Widget build(BuildContext context) {
-    final userInfoProvider =
-        Provider.of<UserInformation>(context, listen: true);
+    final userInfoProvider = Provider.of<UserInformation>(
+      context,
+      listen: true,
+    );
 
     final gender = userInfoProvider.gender;
     return PopScope(
       canPop: false,
-      onPopInvoked: (didpop) async {
-        if (didpop) {
+      onPopInvokedWithResult: (didPop, result) async {
+        if (didPop) {
           return;
         } else {
           prev();
@@ -191,10 +188,11 @@ class FormProgressIndicatorState
                             ),
                           IconButton(
                             icon: myAutoSizedText(
-                                appLocale!.saveAndQuitButton(gender),
-                                TextStyle(fontSize: 23.sp),
-                                null,
-                                23),
+                              appLocale.saveAndQuitButton(gender),
+                              TextStyle(fontSize: 23.sp),
+                              null,
+                              23,
+                            ),
                             onPressed: () {
                               //clicked next button:
 
@@ -234,7 +232,8 @@ class FormProgressIndicatorState
         //animation for switching between pages:
         body: AnimatedSwitcher(
           duration: const Duration(
-              milliseconds: 300), // Specify the duration of the animation
+            milliseconds: 300,
+          ), // Specify the duration of the animation
           transitionBuilder: (Widget child, Animation<double> animation) {
             var begin = const Offset(1.0, 0.0);
             var end = Offset.zero;

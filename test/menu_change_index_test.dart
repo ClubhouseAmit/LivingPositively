@@ -6,12 +6,10 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:get_it/get_it.dart';
-import 'package:image_picker/image_picker.dart';
 import 'package:mazilon/AnalyticsService.dart';
 import 'package:mazilon/file_service.dart';
 import 'package:mazilon/global_enums.dart';
 import 'package:mazilon/iFx/service_locator.dart';
-import 'package:mazilon/menu.dart';
 import 'package:mazilon/pages/FeelGood/feelGood.dart';
 import 'package:mazilon/pages/FeelGood/image_picker_service_impl.dart';
 import 'package:mazilon/pages/PersonalPlan/myPlanPageFull.dart';
@@ -19,7 +17,6 @@ import 'package:mazilon/pages/about.dart';
 import 'package:mazilon/pages/home.dart';
 import 'package:mazilon/pages/journal.dart';
 import 'package:mazilon/pages/notifications/notification_page.dart';
-import 'package:mazilon/pages/phone.dart';
 import 'package:mazilon/pages/positive.dart';
 import 'package:mazilon/util/appInformation.dart';
 import 'package:mazilon/util/persistent_memory_service.dart';
@@ -63,8 +60,7 @@ class _FakeAnalytics implements AnalyticsService {
   @override
   Future<void> init() async {}
   @override
-  Future<void> trackEvent(String name,
-      [Map<String, dynamic>? props]) async =>
+  Future<void> trackEvent(String name, [Map<String, dynamic>? props]) async =>
       events.add(name);
 }
 
@@ -92,15 +88,18 @@ void main() {
     getIt.registerLazySingleton<AnalyticsService>(() => analytics);
     getIt.registerLazySingleton<FileService>(() => _FakeFiles());
     getIt.registerLazySingleton<PersistentMemoryService>(
-      () => _FakePm(init: {
-        'hasFilled': false,
-        'location': '',
-        'phonePageDataSavedPhoneNames': <String>[],
-        'phonePageDataSavedPhoneNumbers': <String>[],
-      }),
+      () => _FakePm(
+        init: {
+          'hasFilled': false,
+          'location': '',
+          'phonePageDataSavedPhoneNames': <String>[],
+          'phonePageDataSavedPhoneNumbers': <String>[],
+        },
+      ),
     );
     getIt.registerLazySingleton<ImagePickerService>(
-        () => NoopImagePickerService());
+      () => NoopImagePickerService(),
+    );
     PackageInfo.setMockInitialValues(
       appName: 'Mazilon',
       packageName: 'mazilon',
@@ -116,7 +115,7 @@ void main() {
     getData(app);
   });
 
-  Future<void> _drive(WidgetTester tester, PagesCode code) async {
+  Future<void> drive(WidgetTester tester, PagesCode code) async {
     await tester.pumpWidget(getMenuForTests(user, app));
     await tester.pumpAndSettle();
     final homeWidget = tester.widget<Home>(find.byType(Home));
@@ -125,15 +124,17 @@ void main() {
     await tester.pump();
   }
 
-  testWidgets('changeCurrentIndex FullPlan branch swaps to MyPlanPageFull',
-      (tester) async {
-    await _drive(tester, PagesCode.FullPlan);
+  testWidgets('changeCurrentIndex FullPlan branch swaps to MyPlanPageFull', (
+    tester,
+  ) async {
+    await drive(tester, PagesCode.FullPlan);
     expect(find.byType(MyPlanPageFull), findsOneWidget);
   });
 
-  testWidgets('changeCurrentIndex QualitiesList branch swaps to Positive',
-      (tester) async {
-    await _drive(tester, PagesCode.QualitiesList);
+  testWidgets('changeCurrentIndex QualitiesList branch swaps to Positive', (
+    tester,
+  ) async {
+    await drive(tester, PagesCode.QualitiesList);
     expect(find.byType(Positive), findsOneWidget);
     // Positive.initState schedules Future.delayed(10s); drain it so the
     // test does not fail on "Timer is still pending".
@@ -147,29 +148,31 @@ void main() {
     }
   });
 
-  testWidgets('changeCurrentIndex GratitudeJournal branch swaps to Journal',
-      (tester) async {
-    await _drive(tester, PagesCode.GratitudeJournal);
+  testWidgets('changeCurrentIndex GratitudeJournal branch swaps to Journal', (
+    tester,
+  ) async {
+    await drive(tester, PagesCode.GratitudeJournal);
     expect(find.byType(Journal), findsOneWidget);
   });
 
-  testWidgets('changeCurrentIndex About branch swaps to About',
-      (tester) async {
-    await _drive(tester, PagesCode.About);
+  testWidgets('changeCurrentIndex About branch swaps to About', (tester) async {
+    await drive(tester, PagesCode.About);
     expect(find.byType(About), findsOneWidget);
   });
 
-  testWidgets('changeCurrentIndex FeelGoodPage branch swaps to FeelGood',
-      (tester) async {
-    await _drive(tester, PagesCode.FeelGoodPage);
+  testWidgets('changeCurrentIndex FeelGoodPage branch swaps to FeelGood', (
+    tester,
+  ) async {
+    await drive(tester, PagesCode.FeelGoodPage);
     expect(find.byType(FeelGood), findsOneWidget);
   });
 
   testWidgets(
-      'changeCurrentIndex NotificationPage branch swaps to NotificationPage '
-      '(supportsReminderSettings is true on the default test platform)',
-      (tester) async {
-    await _drive(tester, PagesCode.NotificationPage);
-    expect(find.byType(NotificationPage), findsOneWidget);
-  });
+    'changeCurrentIndex NotificationPage branch swaps to NotificationPage '
+    '(supportsReminderSettings is true on the default test platform)',
+    (tester) async {
+      await drive(tester, PagesCode.NotificationPage);
+      expect(find.byType(NotificationPage), findsOneWidget);
+    },
+  );
 }

@@ -15,10 +15,16 @@ void main() {
         tester.view.resetDevicePixelRatio();
       });
       double? out;
-      await tester.pumpWidget(wrap(Builder(builder: (ctx) {
-        out = returnSizedBox(ctx, 20);
-        return const SizedBox.shrink();
-      })));
+      await tester.pumpWidget(
+        wrap(
+          Builder(
+            builder: (ctx) {
+              out = returnSizedBox(ctx, 20);
+              return const SizedBox.shrink();
+            },
+          ),
+        ),
+      );
       expect(out, 10);
     });
 
@@ -30,10 +36,16 @@ void main() {
         tester.view.resetDevicePixelRatio();
       });
       double? out;
-      await tester.pumpWidget(wrap(Builder(builder: (ctx) {
-        out = returnSizedBox(ctx, 20);
-        return const SizedBox.shrink();
-      })));
+      await tester.pumpWidget(
+        wrap(
+          Builder(
+            builder: (ctx) {
+              out = returnSizedBox(ctx, 20);
+              return const SizedBox.shrink();
+            },
+          ),
+        ),
+      );
       expect(out, closeTo(20.1, 0.0001));
     });
 
@@ -45,10 +57,16 @@ void main() {
         tester.view.resetDevicePixelRatio();
       });
       double? out;
-      await tester.pumpWidget(wrap(Builder(builder: (ctx) {
-        out = returnSizedBox(ctx, 20);
-        return const SizedBox.shrink();
-      })));
+      await tester.pumpWidget(
+        wrap(
+          Builder(
+            builder: (ctx) {
+              out = returnSizedBox(ctx, 20);
+              return const SizedBox.shrink();
+            },
+          ),
+        ),
+      );
       expect(out, 30);
     });
 
@@ -60,10 +78,16 @@ void main() {
         tester.view.resetDevicePixelRatio();
       });
       double? out;
-      await tester.pumpWidget(wrap(Builder(builder: (ctx) {
-        out = returnSizedBox(ctx, 20);
-        return const SizedBox.shrink();
-      })));
+      await tester.pumpWidget(
+        wrap(
+          Builder(
+            builder: (ctx) {
+              out = returnSizedBox(ctx, 20);
+              return const SizedBox.shrink();
+            },
+          ),
+        ),
+      );
       expect(out, 40);
     });
   });
@@ -104,10 +128,20 @@ void main() {
   group('button factories', () {
     testWidgets('ConfirmationButton invokes function on tap', (tester) async {
       var taps = 0;
-      await tester.pumpWidget(wrap(Builder(builder: (ctx) {
-        return ConfirmationButton(ctx, () => taps++, 'go',
-            const TextStyle(fontSize: 20));
-      })));
+      await tester.pumpWidget(
+        wrap(
+          Builder(
+            builder: (ctx) {
+              return ConfirmationButton(
+                ctx,
+                () => taps++,
+                'go',
+                const TextStyle(fontSize: 20),
+              );
+            },
+          ),
+        ),
+      );
       await tester.tap(find.byType(TextButton));
       await tester.pump();
       expect(taps, 1);
@@ -115,10 +149,20 @@ void main() {
 
     testWidgets('CancelButton invokes function on tap', (tester) async {
       var taps = 0;
-      await tester.pumpWidget(wrap(Builder(builder: (ctx) {
-        return CancelButton(ctx, () => taps++, 'cancel',
-            const TextStyle(fontSize: 20));
-      })));
+      await tester.pumpWidget(
+        wrap(
+          Builder(
+            builder: (ctx) {
+              return CancelButton(
+                ctx,
+                () => taps++,
+                'cancel',
+                const TextStyle(fontSize: 20),
+              );
+            },
+          ),
+        ),
+      );
       await tester.tap(find.byType(TextButton));
       await tester.pump();
       expect(taps, 1);
@@ -126,22 +170,32 @@ void main() {
 
     testWidgets('ResetButton invokes function on tap', (tester) async {
       var taps = 0;
-      await tester.pumpWidget(wrap(Builder(builder: (ctx) {
-        return ResetButton(ctx, () => taps++, 'reset',
-            const TextStyle(fontSize: 20));
-      })));
+      await tester.pumpWidget(
+        wrap(
+          Builder(
+            builder: (ctx) {
+              return ResetButton(
+                ctx,
+                () => taps++,
+                'reset',
+                const TextStyle(fontSize: 20),
+              );
+            },
+          ),
+        ),
+      );
       await tester.tap(find.byType(TextButton));
       await tester.pump();
       expect(taps, 1);
     });
 
-    testWidgets('myTextButton renders icon and invokes callback', (tester) async {
+    testWidgets('myTextButton renders icon and invokes callback', (
+      tester,
+    ) async {
       var taps = 0;
-      await tester.pumpWidget(wrap(myTextButton(
-        () => taps++,
-        Icons.star,
-        Colors.blue,
-      )));
+      await tester.pumpWidget(
+        wrap(myTextButton(() => taps++, Icons.star, Colors.blue)),
+      );
       expect(find.byIcon(Icons.star), findsOneWidget);
       await tester.tap(find.byType(TextButton));
       await tester.pump();
@@ -150,42 +204,63 @@ void main() {
   });
 
   group('button width breakpoints', () {
-    testWidgets('ConfirmationButton uses 0.6 of width when <= 1000',
-        (tester) async {
+    testWidgets('ConfirmationButton uses 0.6 of width when <= 1000', (
+      tester,
+    ) async {
       tester.view.physicalSize = const Size(400, 800);
       tester.view.devicePixelRatio = 1;
       addTearDown(() {
         tester.view.resetPhysicalSize();
         tester.view.resetDevicePixelRatio();
       });
-      Container? container;
-      await tester.pumpWidget(wrap(Builder(builder: (ctx) {
-        container = ConfirmationButton(
-            ctx, () {}, 'x', const TextStyle(fontSize: 18));
-        return container!;
-      })));
-      expect(container, isNotNull);
+      Widget? button;
+      await tester.pumpWidget(
+        wrap(
+          Builder(
+            builder: (ctx) {
+              button = ConfirmationButton(
+                ctx,
+                () {},
+                'x',
+                const TextStyle(fontSize: 18),
+              );
+              return button!;
+            },
+          ),
+        ),
+      );
+      expect(button, isNotNull);
       // 400 * 0.6 = 240
-      final width = (container!.constraints?.maxWidth) ??
-          tester.getSize(find.byType(Container)).width;
+      final width = (button! as SizedBox).width;
       expect(width, closeTo(240, 0.01));
     });
 
-    testWidgets('ConfirmationButton uses fixed 600 when width > 1000',
-        (tester) async {
+    testWidgets('ConfirmationButton uses fixed 600 when width > 1000', (
+      tester,
+    ) async {
       tester.view.physicalSize = const Size(1200, 1000);
       tester.view.devicePixelRatio = 1;
       addTearDown(() {
         tester.view.resetPhysicalSize();
         tester.view.resetDevicePixelRatio();
       });
-      Container? container;
-      await tester.pumpWidget(wrap(Builder(builder: (ctx) {
-        container = ConfirmationButton(
-            ctx, () {}, 'x', const TextStyle(fontSize: 18));
-        return container!;
-      })));
-      final width = container!.constraints?.maxWidth ?? 0;
+      Widget? button;
+      await tester.pumpWidget(
+        wrap(
+          Builder(
+            builder: (ctx) {
+              button = ConfirmationButton(
+                ctx,
+                () {},
+                'x',
+                const TextStyle(fontSize: 18),
+              );
+              return button!;
+            },
+          ),
+        ),
+      );
+      final width = (button! as SizedBox).width;
       expect(width, 600);
     });
   });
@@ -199,10 +274,16 @@ void main() {
         tester.view.resetDevicePixelRatio();
       });
       Image? img;
-      await tester.pumpWidget(wrap(Builder(builder: (ctx) {
-        img = myImage('assets/does_not_exist.png', ctx, 0.5, 0.25);
-        return const SizedBox.shrink();
-      })));
+      await tester.pumpWidget(
+        wrap(
+          Builder(
+            builder: (ctx) {
+              img = myImage('assets/does_not_exist.png', ctx, 0.5, 0.25);
+              return const SizedBox.shrink();
+            },
+          ),
+        ),
+      );
       expect(img, isNotNull);
       expect(img!.width, 200);
       expect(img!.height, 200);

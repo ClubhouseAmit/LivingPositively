@@ -21,16 +21,21 @@ class _NoOpLogger implements IncidentLoggerService {
   @override
   Future<void> initializeSentry(_) async {}
   @override
-  Future<void> captureLog(dynamic exception,
-      {StackTrace? stackTrace, dynamic exceptionData}) async {}
+  Future<void> captureLog(
+    dynamic exception, {
+    StackTrace? stackTrace,
+    dynamic exceptionData,
+  }) async {}
 }
 
 class _NoOpAnalytics implements AnalyticsService {
   @override
   Future<void> init() async {}
   @override
-  Future<void> trackEvent(String name,
-      [Map<String, dynamic>? properties]) async {}
+  Future<void> trackEvent(
+    String name, [
+    Map<String, dynamic>? properties,
+  ]) async {}
 }
 
 class _FakePersistentMemoryService implements PersistentMemoryService {
@@ -48,9 +53,7 @@ Widget _hostListWidget({
   void Function(BuildContext, PagesCode)? onTabTapped,
 }) {
   return MultiProvider(
-    providers: [
-      ChangeNotifierProvider<UserInformation>.value(value: userInfo),
-    ],
+    providers: [ChangeNotifierProvider<UserInformation>.value(value: userInfo)],
     child: MaterialApp(
       supportedLocales: AppLocalizations.supportedLocales,
       localizationsDelegates: AppLocalizations.localizationsDelegates,
@@ -60,7 +63,7 @@ Widget _hostListWidget({
         builder: (context, _) => Scaffold(
           body: SingleChildScrollView(
             child: ListWidget(
-              onTabTapped: onTabTapped ?? (_, __) {},
+              onTabTapped: onTabTapped ?? (_, _) {},
               pageCode: pageCode,
             ),
           ),
@@ -83,8 +86,9 @@ void main() {
     await GetIt.instance.reset();
   });
 
-  testWidgets('section-bar title tap fires onTabTapped with the page code',
-      (tester) async {
+  testWidgets('section-bar title tap fires onTabTapped with the page code', (
+    tester,
+  ) async {
     PagesCode? captured;
     final user = UserInformation(
       service: _FakePersistentMemoryService(),
@@ -93,11 +97,13 @@ void main() {
     );
 
     await tester.binding.setSurfaceSize(const Size(800, 2000));
-    await tester.pumpWidget(_hostListWidget(
-      userInfo: user,
-      pageCode: PagesCode.QualitiesList,
-      onTabTapped: (_, p) => captured = p,
-    ));
+    await tester.pumpWidget(
+      _hostListWidget(
+        userInfo: user,
+        pageCode: PagesCode.QualitiesList,
+        onTabTapped: (_, p) => captured = p,
+      ),
+    );
     await tester.pumpAndSettle();
 
     // The section-bar title is wrapped in a TextButton that calls
@@ -110,8 +116,9 @@ void main() {
     expect(captured, PagesCode.QualitiesList);
   });
 
-  testWidgets('add-button on QualitiesList opens the AddForm dialog',
-      (tester) async {
+  testWidgets('add-button on QualitiesList opens the AddForm dialog', (
+    tester,
+  ) async {
     final user = UserInformation(
       service: _FakePersistentMemoryService(),
       gender: 'male',
@@ -119,10 +126,9 @@ void main() {
     );
 
     await tester.binding.setSurfaceSize(const Size(800, 2000));
-    await tester.pumpWidget(_hostListWidget(
-      userInfo: user,
-      pageCode: PagesCode.QualitiesList,
-    ));
+    await tester.pumpWidget(
+      _hostListWidget(userInfo: user, pageCode: PagesCode.QualitiesList),
+    );
     await tester.pumpAndSettle();
 
     // The page-level add IconButton is inside the SectionBarHome row. The
@@ -140,8 +146,9 @@ void main() {
     expect(find.byType(AddForm), findsOneWidget);
   });
 
-  testWidgets('add-button on GratitudeJournal opens the AddForm dialog',
-      (tester) async {
+  testWidgets('add-button on GratitudeJournal opens the AddForm dialog', (
+    tester,
+  ) async {
     final user = UserInformation(
       service: _FakePersistentMemoryService(),
       gender: 'female',
@@ -149,10 +156,9 @@ void main() {
     );
 
     await tester.binding.setSurfaceSize(const Size(800, 2000));
-    await tester.pumpWidget(_hostListWidget(
-      userInfo: user,
-      pageCode: PagesCode.GratitudeJournal,
-    ));
+    await tester.pumpWidget(
+      _hostListWidget(userInfo: user, pageCode: PagesCode.GratitudeJournal),
+    );
     await tester.pumpAndSettle();
 
     final pageAddIcon = find.descendant(

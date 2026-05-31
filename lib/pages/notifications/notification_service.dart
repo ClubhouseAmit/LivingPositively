@@ -16,7 +16,7 @@ import 'package:workmanager/workmanager.dart';
 class NotificationsService {
   static bool _isInitialized = false;
   static final FlutterLocalNotificationsPlugin
-      _flutterLocalNotificationsPlugin = FlutterLocalNotificationsPlugin();
+  _flutterLocalNotificationsPlugin = FlutterLocalNotificationsPlugin();
 
   /// Test-only hook: clears the `_isInitialized` guard so `init()` will run
   /// its body again on the next call. Required by integration tests that
@@ -31,10 +31,11 @@ class NotificationsService {
 
   static const InitializationSettings _initializationSettings =
       InitializationSettings(
-    android: AndroidInitializationSettings(
-        '@mipmap/ic_launcher'), // Replace with your actual icon name
-    iOS: DarwinInitializationSettings(),
-  );
+        android: AndroidInitializationSettings(
+          '@mipmap/ic_launcher',
+        ), // Replace with your actual icon name
+        iOS: DarwinInitializationSettings(),
+      );
 
   static bool supportsReminderSettings({
     bool? isWebOverride,
@@ -64,23 +65,21 @@ class NotificationsService {
 
       // Set the local time zone
 
-      tz.setLocalLocation(
-          tz.getLocation(timeZoneName.identifier ?? "Asia/Jerusalem"));
-      await _flutterLocalNotificationsPlugin
-          .initialize(settings: _initializationSettings);
+      tz.setLocalLocation(tz.getLocation(timeZoneName.identifier));
+      await _flutterLocalNotificationsPlugin.initialize(
+        settings: _initializationSettings,
+      );
       _isInitialized = true;
     } catch (error, stackTrace) {
       tz.setLocalLocation(tz.getLocation('Asia/Jerusalem'));
-      await _flutterLocalNotificationsPlugin
-          .initialize(settings: _initializationSettings);
+      await _flutterLocalNotificationsPlugin.initialize(
+        settings: _initializationSettings,
+      );
       _isInitialized = true;
       try {
         IncidentLoggerService loggerService =
             GetIt.instance<IncidentLoggerService>();
-        await loggerService.captureLog(
-          error,
-          stackTrace: stackTrace,
-        );
+        await loggerService.captureLog(error, stackTrace: stackTrace);
       } catch (e) {
         debugPrint("Failed to log the error: $e");
       }
@@ -91,28 +90,38 @@ class NotificationsService {
     debugPrint("trying to show notification");
 
     const AndroidNotificationDetails androidNotificationDetails =
-        AndroidNotificationDetails('exampleID', 'ShowExampleChannelTitle',
-            channelDescription:
-                'This is a channel for the user to show an example notification',
-            importance: Importance.max,
-            priority: Priority.high,
-            ticker: 'ticker');
-    const NotificationDetails notificationDetails =
-        NotificationDetails(android: androidNotificationDetails);
+        AndroidNotificationDetails(
+          'exampleID',
+          'ShowExampleChannelTitle',
+          channelDescription:
+              'This is a channel for the user to show an example notification',
+          importance: Importance.max,
+          priority: Priority.high,
+          ticker: 'ticker',
+        );
+    const NotificationDetails notificationDetails = NotificationDetails(
+      android: androidNotificationDetails,
+    );
     await _flutterLocalNotificationsPlugin.show(
-        id: 0,
-        title: title,
-        body: body,
-        notificationDetails: notificationDetails,
-        payload: 'item x');
+      id: 0,
+      title: title,
+      body: body,
+      notificationDetails: notificationDetails,
+      payload: 'item x',
+    );
   }
 
   static TimeOfDay calculateTime(int h, int m) {
     return TimeOfDay(hour: h, minute: m);
   }
 
-  static Future<void> initializeNotification(List<String> quotes, int hour,
-      int minute, Function createText, AppLocalizations appLocale) async {
+  static Future<void> initializeNotification(
+    List<String> quotes,
+    int hour,
+    int minute,
+    Function createText,
+    AppLocalizations appLocale,
+  ) async {
     if (!supportsReminderSettings()) {
       return;
     }
@@ -122,10 +131,11 @@ class NotificationsService {
       final AndroidFlutterLocalNotificationsPlugin? androidImplementation =
           _flutterLocalNotificationsPlugin
               .resolvePlatformSpecificImplementation<
-                  AndroidFlutterLocalNotificationsPlugin>();
+                AndroidFlutterLocalNotificationsPlugin
+              >();
 
-      grantedNotificationPermission =
-          await androidImplementation?.requestNotificationsPermission();
+      grantedNotificationPermission = await androidImplementation
+          ?.requestNotificationsPermission();
     } else {
       grantedNotificationPermission = false;
     }
@@ -146,7 +156,7 @@ class NotificationsService {
         "text": quotes,
         "timeHour": hour,
         "timeMinute": minute,
-        "id": id
+        "id": id,
       },
     );
     Workmanager().registerPeriodicTask(
@@ -156,18 +166,21 @@ class NotificationsService {
         "text": quotes,
         "timeHour": hour,
         "timeMinute": minute,
-        "id": id
+        "id": id,
       },
       frequency: Duration(days: 1),
     );
 
     var message = createText(
-        '${hour < 10 ? "0$hour" : hour}:${minute < 10 ? "0$minute" : minute}');
+      '${hour < 10 ? "0$hour" : hour}:${minute < 10 ? "0$minute" : minute}',
+    );
     showToast(message: message);
   }
 
   static Future<void> updateNotification(
-      UserInformation userInfo, AppLocalizations appLocale) async {
+    UserInformation userInfo,
+    AppLocalizations appLocale,
+  ) async {
     if (!supportsReminderSettings()) {
       return;
     }
@@ -175,16 +188,30 @@ class NotificationsService {
     var hour = userInfo.notificationHour;
     var minute = userInfo.notificationMinute;
     var newQuotes = retrieveInspirationalQuotes(appLocale, userInfo.gender);
-    await initializeNotification(newQuotes, hour, minute,
-        appLocale.notifyOnscheduledNotification, appLocale);
+    await initializeNotification(
+      newQuotes,
+      hour,
+      minute,
+      appLocale.notifyOnscheduledNotification,
+      appLocale,
+    );
   }
 
   static Future<void> scheduleNotification(
-      TimeOfDay timeOfDay, String id, String text) async {
+    TimeOfDay timeOfDay,
+    String id,
+    String text,
+  ) async {
     final tz.TZDateTime now = tz.TZDateTime.now(tz.local);
 
-    tz.TZDateTime scheduledDate = tz.TZDateTime(tz.local, now.year, now.month,
-        now.day, timeOfDay.hour, timeOfDay.minute);
+    tz.TZDateTime scheduledDate = tz.TZDateTime(
+      tz.local,
+      now.year,
+      now.month,
+      now.day,
+      timeOfDay.hour,
+      timeOfDay.minute,
+    );
     if (scheduledDate.isBefore(now)) {
       scheduledDate = scheduledDate.add(const Duration(days: 1));
     }
@@ -194,18 +221,23 @@ class NotificationsService {
       body: text,
       scheduledDate: scheduledDate,
       notificationDetails: const NotificationDetails(
-          android: AndroidNotificationDetails(
-              'LPNotificationServiceID', 'LP Notifications',
-              channelDescription:
-                  'LP Notifications allows you to receive daily reminders from the Mazilon app to keep track of your mental health')),
+        android: AndroidNotificationDetails(
+          'LPNotificationServiceID',
+          'LP Notifications',
+          channelDescription:
+              'LP Notifications allows you to receive daily reminders from the Mazilon app to keep track of your mental health',
+        ),
+      ),
       androidScheduleMode: AndroidScheduleMode.inexactAllowWhileIdle,
       matchDateTimeComponents: DateTimeComponents.time,
     );
   }
 
   // Cancel a specific notification
-  static Future<void> cancelNotifications(int? id,
-      {bool cancelWorker = false}) async {
+  static Future<void> cancelNotifications(
+    int? id, {
+    bool cancelWorker = false,
+  }) async {
     if (cancelWorker && !kIsWeb) {
       await Workmanager().cancelAll();
     }

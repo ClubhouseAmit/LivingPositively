@@ -2,12 +2,8 @@
 
 import 'package:flutter/material.dart';
 
-import 'package:mazilon/util/Form/myDropdownMenuEntry.dart';
-
 class TextWidget extends StatefulWidget {
-  const TextWidget({
-    super.key,
-  });
+  const TextWidget({super.key});
   @override
   State<TextWidget> createState() => _TextWidgetState();
 }
@@ -57,7 +53,8 @@ class _TextWidgetState extends State<TextWidget> {
                     initialSelection: "18-30",
                     dropdownMenuEntries: [
                       ...ages.map(
-                          (age) => DropdownMenuEntry(value: age, label: age))
+                        (age) => DropdownMenuEntry(value: age, label: age),
+                      ),
                     ],
                     onSelected: (String? newValue) {
                       setState(() {
@@ -79,10 +76,10 @@ class _TextWidgetState extends State<TextWidget> {
                     width: 300,
                     initialSelection: 'אתה',
                     dropdownMenuEntries: [
-                      ...genders
-                          .map((gender) =>
-                              DropdownMenuEntry(value: gender, label: gender))
-                          .toList()
+                      ...genders.map(
+                        (gender) =>
+                            DropdownMenuEntry(value: gender, label: gender),
+                      ),
                     ],
                     onSelected: (String? newValue) {
                       setState(() {

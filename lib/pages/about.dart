@@ -15,9 +15,7 @@ Technion.''';
 
 class About extends StatelessWidget {
   final String version;
-  About({
-    required this.version,
-  });
+  const About({super.key, required this.version});
   @override
   Widget build(BuildContext context) {
     final appLocale = AppLocalizations.of(context);
@@ -26,7 +24,7 @@ class About extends StatelessWidget {
       appBar: PreferredSize(
         preferredSize: Size.fromHeight(150.0),
         child: SafeArea(
-          child: Container(
+          child: SizedBox(
             height: 130.0,
             // Mazilon Logo in the app bar
             child: Image.asset(
@@ -46,25 +44,24 @@ class About extends StatelessWidget {
                 alignment: Alignment.topCenter,
                 margin: EdgeInsets.symmetric(horizontal: 15),
                 child: myAutoSizedText(
-                    appLocale!.aboutTitle1,
-                    TextStyle(
-                      fontWeight: FontWeight.bold,
-                      fontSize: 30,
-                    ),
-                    TextAlign.center,
-                    60),
+                  appLocale!.aboutTitle1,
+                  TextStyle(fontWeight: FontWeight.bold, fontSize: 30),
+                  TextAlign.center,
+                  60,
+                ),
               ),
               const SizedBox(height: 5),
               Container(
                 alignment: Alignment.topCenter,
                 margin: EdgeInsets.symmetric(horizontal: 20),
                 child: myAutoSizedText(
-                    appLocale!.aboutPage1,
-                    TextStyle(fontWeight: FontWeight.normal, fontSize: 20),
-                    appLocale.textDirection == "rtl"
-                        ? TextAlign.right
-                        : TextAlign.left,
-                    35),
+                  appLocale.aboutPage1,
+                  TextStyle(fontWeight: FontWeight.normal, fontSize: 20),
+                  appLocale.textDirection == "rtl"
+                      ? TextAlign.right
+                      : TextAlign.left,
+                  35,
+                ),
               ),
               const SizedBox(height: 20),
               Container(
@@ -73,10 +70,11 @@ class About extends StatelessWidget {
                 child: Directionality(
                   textDirection: TextDirection.ltr,
                   child: myAutoSizedText(
-                      englishText,
-                      TextStyle(fontWeight: FontWeight.normal, fontSize: 20),
-                      TextAlign.left,
-                      35),
+                    englishText,
+                    TextStyle(fontWeight: FontWeight.normal, fontSize: 20),
+                    TextAlign.left,
+                    35,
+                  ),
                 ),
               ),
               const SizedBox(height: 20),
@@ -84,50 +82,57 @@ class About extends StatelessWidget {
                 alignment: Alignment.topCenter,
                 margin: EdgeInsets.symmetric(horizontal: 15),
                 child: myAutoSizedText(
-                    appLocale.aboutTitle2,
-                    TextStyle(fontWeight: FontWeight.bold, fontSize: 30),
-                    TextAlign.center,
-                    60),
+                  appLocale.aboutTitle2,
+                  TextStyle(fontWeight: FontWeight.bold, fontSize: 30),
+                  TextAlign.center,
+                  60,
+                ),
               ),
               const SizedBox(height: 5),
               Container(
                 alignment: Alignment.topCenter,
                 margin: EdgeInsets.symmetric(horizontal: 20),
                 child: myAutoSizedText(
-                    appLocale.aboutPage2,
-                    TextStyle(fontWeight: FontWeight.normal, fontSize: 20),
-                    appLocale!.textDirection == "rtl"
-                        ? TextAlign.right
-                        : TextAlign.left,
-                    35),
+                  appLocale.aboutPage2,
+                  TextStyle(fontWeight: FontWeight.normal, fontSize: 20),
+                  appLocale.textDirection == "rtl"
+                      ? TextAlign.right
+                      : TextAlign.left,
+                  35,
+                ),
               ),
               Padding(
                 padding: const EdgeInsets.fromLTRB(20, 0, 20, 10),
                 child: myAutoSizedText(
-                    appLocale
-                        .informationCollectionDisclaimer, //disclaimer text from CMS(Saved in appinfo)
-                    TextStyle(
-                      fontSize: 20, //text size
-                      fontWeight: FontWeight.normal,
-                    ),
-                    appLocale.textDirection == 'rtl'
-                        ? TextAlign.right
-                        : TextAlign.left,
-                    40),
+                  appLocale
+                      .informationCollectionDisclaimer, //disclaimer text from CMS(Saved in appinfo)
+                  TextStyle(
+                    fontSize: 20, //text size
+                    fontWeight: FontWeight.normal,
+                  ),
+                  appLocale.textDirection == 'rtl'
+                      ? TextAlign.right
+                      : TextAlign.left,
+                  40,
+                ),
               ),
               Container(
-                  margin: EdgeInsets.symmetric(horizontal: 20, vertical: 20),
-                  child: Align(
-                    alignment: Alignment.centerLeft,
-                    child: Directionality(
-                        textDirection: TextDirection.ltr,
-                        child: Text(
-                          appLocale.aboutVersionLabel(version),
-                          textAlign: TextAlign.left,
-                          style: TextStyle(
-                              fontWeight: FontWeight.normal, fontSize: 20),
-                        )),
-                  )),
+                margin: EdgeInsets.symmetric(horizontal: 20, vertical: 20),
+                child: Align(
+                  alignment: Alignment.centerLeft,
+                  child: Directionality(
+                    textDirection: TextDirection.ltr,
+                    child: Text(
+                      appLocale.aboutVersionLabel(version),
+                      textAlign: TextAlign.left,
+                      style: TextStyle(
+                        fontWeight: FontWeight.normal,
+                        fontSize: 20,
+                      ),
+                    ),
+                  ),
+                ),
+              ),
               Row(
                 mainAxisAlignment:
                     MainAxisAlignment.spaceEvenly, // Adjust alignment as needed
@@ -135,18 +140,21 @@ class About extends StatelessWidget {
                   Flexible(
                     child: Image.asset(
                       'assets/images/SocialHub-Logo.png',
-                      width: MediaQuery.of(context).size.width *
+                      width:
+                          MediaQuery.of(context).size.width *
                           0.4, // Adjust as needed
                       // Optional: if you want to specify the height
                       // height: MediaQuery.of(context).size.height * 0.2, // Adjust as needed
                     ),
                   ),
                   const SizedBox(
-                      width: 20), // Adds space between the two images
+                    width: 20,
+                  ), // Adds space between the two images
                   Flexible(
                     child: Image.asset(
                       'assets/images/clubhouse-Logo.png',
-                      width: MediaQuery.of(context).size.width *
+                      width:
+                          MediaQuery.of(context).size.width *
                           0.4, // Adjust as needed
                       // Optional: if you want to specify the height
                       // height: MediaQuery.of(context).size.height * 0.2, // Adjust as needed

@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 
 class About extends StatelessWidget {
+  const About({super.key});
+
   @override
   Widget build(BuildContext context) {
     // final appInfoProvider = Provider.of<AppInformation>(context, listen: true);
@@ -35,11 +37,13 @@ class About extends StatelessWidget {
                   SizedBox(height: 5),
                   Text('text2'),
                   SizedBox(
-                      height: 20), // Adds space between the text and the image
+                    height: 20,
+                  ), // Adds space between the text and the image
                   Image.asset(
                     key: Key('aboutPageSocialHubLogo'),
                     'assets/images/SocialHub-Logo.png',
-                    width: MediaQuery.of(context).size.width *
+                    width:
+                        MediaQuery.of(context).size.width *
                         0.8, // Adjust as needed
                     // Optional: if you want to specify the height
                     // height: MediaQuery.of(context).size.height * 0.2, // Adjust as needed

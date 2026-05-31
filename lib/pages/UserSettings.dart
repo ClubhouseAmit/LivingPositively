@@ -13,7 +13,6 @@ import 'package:mazilon/util/styles.dart';
 import 'package:mazilon/util/Form/myDropdownMenuEntry.dart';
 import 'package:mazilon/util/userInformation.dart';
 import 'package:provider/provider.dart';
-import 'package:shared_preferences/shared_preferences.dart';
 
 import 'package:mazilon/util/languages_util_functions.dart';
 import 'package:mazilon/initialForm/CountrySelectorWidget.dart';
@@ -26,9 +25,9 @@ class UserSettings extends StatefulWidget {
   final String gender;
 
   final Function changeLocale;
-  PhonePageData phonePageData;
+  final PhonePageData phonePageData;
 
-  UserSettings({
+  const UserSettings({
     super.key,
     required this.username,
     required this.age,
@@ -51,15 +50,20 @@ class _UserSettingsState extends LPExtendedState<UserSettings> {
   String? name = '';
   List<String> ages = ['18-', '18-30', '30-40', '40-55', '55+'];
   List<String> genders = [];
-  List<String> locales =
-      AppLocalizations.supportedLocales.map((e) => e.languageCode).toList();
+  List<String> locales = AppLocalizations.supportedLocales
+      .map((e) => e.languageCode)
+      .toList();
   List<String> localesNames = AppLocalizations.supportedLocales
       .map((e) => languageName(e.languageCode))
       .toList();
   Future<void> updateLocale(
-      String locale, UserInformation userInfoProvider) async {
-    PersistentMemoryService service = GetIt.instance<
-        PersistentMemoryService>(); // Get the persistent memory service instance
+    String locale,
+    UserInformation userInfoProvider,
+  ) async {
+    PersistentMemoryService service =
+        GetIt.instance<
+          PersistentMemoryService
+        >(); // Get the persistent memory service instance
 
     await service.setItem("localeName", PersistentMemoryType.String, locale);
 
@@ -85,15 +89,24 @@ class _UserSettingsState extends LPExtendedState<UserSettings> {
   //remove log-in data and reset all data that user has filled in the app:
   Future<void> resetData(UserInformation userInfo) async {
     LocaleService localeService = GetIt.instance<LocaleService>();
-    PersistentMemoryService service = GetIt.instance<
-        PersistentMemoryService>(); // Get the persistent memory service instance
+    PersistentMemoryService service =
+        GetIt.instance<
+          PersistentMemoryService
+        >(); // Get the persistent memory service instance
 
     await service.reset(); // Reset the persistent memory service
-    var enteredBeforeValue =
-        await service.getItem("enteredBefore", PersistentMemoryType.Bool);
-    var hasFilledValue =
-        await service.getItem("hasFilled", PersistentMemoryType.Bool);
+    var enteredBeforeValue = await service.getItem(
+      "enteredBefore",
+      PersistentMemoryType.Bool,
+    );
+    var hasFilledValue = await service.getItem(
+      "hasFilled",
+      PersistentMemoryType.Bool,
+    );
 
+    if (!mounted) {
+      return;
+    }
     widget.phonePageData.reset();
     setState(() {
       enteredBefore = enteredBeforeValue;
@@ -103,14 +116,20 @@ class _UserSettingsState extends LPExtendedState<UserSettings> {
     userInfo.reset(localeService.getLocale());
     await pickerService.deleteImages();
 
+    if (!mounted) {
+      return;
+    }
     Navigator.of(context).pushAndRemoveUntil(
-        MaterialPageRoute(
-            builder: (context) => FirstPage(
-                phonePageData: widget.phonePageData,
-                firsttime: !enteredBefore,
-                changeLocale: widget.changeLocale,
-                hasFilled: hasFilled)),
-        (Route<dynamic> route) => false);
+      MaterialPageRoute(
+        builder: (context) => FirstPage(
+          phonePageData: widget.phonePageData,
+          firsttime: !enteredBefore,
+          changeLocale: widget.changeLocale,
+          hasFilled: hasFilled,
+        ),
+      ),
+      (Route<dynamic> route) => false,
+    );
   }
 
   // create the "what's your name?" title
@@ -121,15 +140,17 @@ class _UserSettingsState extends LPExtendedState<UserSettings> {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           myAutoSizedText(
-              text,
-              TextStyle(
-                  fontSize: 18.sp,
-                  fontWeight: FontWeight.normal,
-                  color: Colors.black),
-              appLocale!.textDirection == "rtl"
-                  ? TextAlign.right
-                  : TextAlign.left,
-              24),
+            text,
+            TextStyle(
+              fontSize: 18.sp,
+              fontWeight: FontWeight.normal,
+              color: Colors.black,
+            ),
+            appLocale!.textDirection == "rtl"
+                ? TextAlign.right
+                : TextAlign.left,
+            24,
+          ),
         ],
       );
     }
@@ -140,25 +161,25 @@ class _UserSettingsState extends LPExtendedState<UserSettings> {
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         myAutoSizedText(
-            sep[0],
-            TextStyle(
-                fontSize: 18.sp,
-                fontWeight: FontWeight.normal,
-                color: Colors.black),
-            appLocale!.textDirection == "rtl"
-                ? TextAlign.right
-                : TextAlign.left,
-            24),
+          sep[0],
+          TextStyle(
+            fontSize: 18.sp,
+            fontWeight: FontWeight.normal,
+            color: Colors.black,
+          ),
+          appLocale!.textDirection == "rtl" ? TextAlign.right : TextAlign.left,
+          24,
+        ),
         myAutoSizedText(
-            sep[1],
-            TextStyle(
-                fontSize: 16.sp,
-                fontWeight: FontWeight.normal,
-                color: Colors.black),
-            appLocale!.textDirection == "rtl"
-                ? TextAlign.right
-                : TextAlign.left,
-            22),
+          sep[1],
+          TextStyle(
+            fontSize: 16.sp,
+            fontWeight: FontWeight.normal,
+            color: Colors.black,
+          ),
+          appLocale.textDirection == "rtl" ? TextAlign.right : TextAlign.left,
+          22,
+        ),
       ],
     );
   }
@@ -186,10 +207,12 @@ class _UserSettingsState extends LPExtendedState<UserSettings> {
       appLocale.male,
       appLocale.female,
       appLocale.nonBinary,
-      appLocale.notWillingToSay
+      appLocale.notWillingToSay,
     ];
-    final userInfoProvider =
-        Provider.of<UserInformation>(context, listen: false);
+    final userInfoProvider = Provider.of<UserInformation>(
+      context,
+      listen: false,
+    );
 
     final gender = userInfoProvider.gender;
 
@@ -200,33 +223,31 @@ class _UserSettingsState extends LPExtendedState<UserSettings> {
       child: Scaffold(
         backgroundColor: appWhite,
         appBar: AppBar(
-          title: myAutoSizedText(appLocale!.userSettingsTitle(gender),
-              TextStyle(fontSize: 20.sp), null, 40),
+          title: myAutoSizedText(
+            appLocale.userSettingsTitle(gender),
+            TextStyle(fontSize: 20.sp),
+            null,
+            40,
+          ),
         ),
         body: SingleChildScrollView(
           child: Center(
             child: Column(
               children: [
                 myAutoSizedText(
-                    appLocale!.userSettingsTitle(gender),
-                    TextStyle(
-                      fontWeight: FontWeight.bold,
-                      fontSize: 40.sp,
-                    ),
-                    null,
-                    60),
-                SizedBox(
-                  height: MediaQuery.of(context).size.height * 0.05,
+                  appLocale.userSettingsTitle(gender),
+                  TextStyle(fontWeight: FontWeight.bold, fontSize: 40.sp),
+                  null,
+                  60,
                 ),
+                SizedBox(height: MediaQuery.of(context).size.height * 0.05),
                 Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    resizeText(
-                      appLocale!.userSettingsName(gender),
-                    ),
-                    Container(
+                    resizeText(appLocale.userSettingsName(gender)),
+                    SizedBox(
                       width: 300,
-                      child: Container(
+                      child: SizedBox(
                         height: 35,
                         child: TextField(
                           controller: _namecontroller,
@@ -242,32 +263,32 @@ class _UserSettingsState extends LPExtendedState<UserSettings> {
                         ),
                       ),
                     ),
-                    SizedBox(
-                      height: MediaQuery.of(context).size.height * 0.02,
-                    ),
+                    SizedBox(height: MediaQuery.of(context).size.height * 0.02),
                     myAutoSizedText(
-                        appLocale!.userSettingsAge(gender),
-                        TextStyle(
-                            fontSize: 18.sp,
-                            fontWeight: FontWeight.normal,
-                            color: Colors.black),
-                        null,
-                        30),
+                      appLocale.userSettingsAge(gender),
+                      TextStyle(
+                        fontSize: 18.sp,
+                        fontWeight: FontWeight.normal,
+                        color: Colors.black,
+                      ),
+                      null,
+                      30,
+                    ),
                     //AGE:
-                    Container(
+                    SizedBox(
                       width: 300,
                       child: DropdownMenu<String>(
                         width: 300,
                         initialSelection: dropdownValueAge,
                         dropdownMenuEntries: [
-                          ...ages
-                              .map((age) => buildDropdownMenuEntry(
-                                    age,
-                                    dropdownValueAge == age
-                                        ? const Color.fromARGB(255, 68, 0, 255)
-                                        : Colors.black,
-                                  ))
-                              .toList()
+                          ...ages.map(
+                            (age) => buildDropdownMenuEntry(
+                              age,
+                              dropdownValueAge == age
+                                  ? const Color.fromARGB(255, 68, 0, 255)
+                                  : Colors.black,
+                            ),
+                          ),
                         ],
                         onSelected: (String? newValue) {
                           setState(() {
@@ -279,38 +300,38 @@ class _UserSettingsState extends LPExtendedState<UserSettings> {
                         },
                       ),
                     ),
-                    SizedBox(
-                      height: MediaQuery.of(context).size.height * 0.02,
-                    ),
+                    SizedBox(height: MediaQuery.of(context).size.height * 0.02),
                     myAutoSizedText(
-                        appLocale!.userSettingsGender(gender),
-                        TextStyle(
-                            fontSize: getSizeOfTextGender(appLocale),
-                            fontWeight: FontWeight.normal,
-                            color: Colors.black),
-                        null,
-                        35),
+                      appLocale.userSettingsGender(gender),
+                      TextStyle(
+                        fontSize: getSizeOfTextGender(appLocale),
+                        fontWeight: FontWeight.normal,
+                        color: Colors.black,
+                      ),
+                      null,
+                      35,
+                    ),
                     //GENDER:
-                    Container(
+                    SizedBox(
                       width: 300,
                       child: DropdownMenu<String>(
                         initialSelection: (userInfoProvider.binary)
-                            ? appLocale!.nonBinary
+                            ? appLocale.nonBinary
                             : (userInfoProvider.gender == 'male'
-                                ? appLocale.male
-                                : userInfoProvider.gender == 'female'
-                                    ? appLocale.female
-                                    : appLocale.notWillingToSay),
+                                  ? appLocale.male
+                                  : userInfoProvider.gender == 'female'
+                                  ? appLocale.female
+                                  : appLocale.notWillingToSay),
                         width: 300,
                         dropdownMenuEntries: [
-                          ...genders
-                              .map((gender) => buildDropdownMenuEntry(
-                                    gender,
-                                    dropdownValueGender == gender
-                                        ? const Color.fromARGB(255, 68, 0, 255)
-                                        : Colors.black,
-                                  ))
-                              .toList()
+                          ...genders.map(
+                            (gender) => buildDropdownMenuEntry(
+                              gender,
+                              dropdownValueGender == gender
+                                  ? const Color.fromARGB(255, 68, 0, 255)
+                                  : Colors.black,
+                            ),
+                          ),
                         ],
                         onSelected: (String? newValue) {
                           setState(() {
@@ -324,32 +345,34 @@ class _UserSettingsState extends LPExtendedState<UserSettings> {
                         },
                       ),
                     ),
-                    SizedBox(
-                      height: MediaQuery.of(context).size.height * 0.02,
-                    ),
+                    SizedBox(height: MediaQuery.of(context).size.height * 0.02),
                     myAutoSizedText(
-                        appLocale!.selectLanguage(gender),
-                        TextStyle(
-                            fontSize: 18.sp,
-                            fontWeight: FontWeight.normal,
-                            color: Colors.black),
-                        null,
-                        30),
-                    Container(
+                      appLocale.selectLanguage(gender),
+                      TextStyle(
+                        fontSize: 18.sp,
+                        fontWeight: FontWeight.normal,
+                        color: Colors.black,
+                      ),
+                      null,
+                      30,
+                    ),
+                    SizedBox(
                       width: 300,
                       child: DropdownMenu<String>(
-                        initialSelection: localesNames[
-                            locales.indexOf(userInfoProvider.localeName)],
+                        initialSelection:
+                            localesNames[locales.indexOf(
+                              userInfoProvider.localeName,
+                            )],
                         width: 300,
                         dropdownMenuEntries: [
-                          ...localesNames
-                              .map((locale) => buildDropdownMenuEntry(
-                                    locale,
-                                    locale == 'en'
-                                        ? const Color.fromARGB(255, 68, 0, 255)
-                                        : Colors.black,
-                                  ))
-                              .toList()
+                          ...localesNames.map(
+                            (locale) => buildDropdownMenuEntry(
+                              locale,
+                              locale == 'en'
+                                  ? const Color.fromARGB(255, 68, 0, 255)
+                                  : Colors.black,
+                            ),
+                          ),
                         ],
                         onSelected: (String? newValue) {
                           setState(() {
@@ -367,42 +390,49 @@ class _UserSettingsState extends LPExtendedState<UserSettings> {
                     CountrySelectorWidget(
                       text: appLocale.locationSelect(gender),
                       disclaimerText: appLocale.locationDisclaimer(gender),
-                    )
+                    ),
                   ],
                 ),
-                SizedBox(
-                  height: MediaQuery.of(context).size.height * 0.1,
-                ),
-                ConfirmationButton(context, () {
-                  FocusScope.of(context).unfocus();
+                SizedBox(height: MediaQuery.of(context).size.height * 0.1),
+                ConfirmationButton(
+                  context,
+                  () {
+                    FocusScope.of(context).unfocus();
 
-                  userInfoProvider.updateName(_namecontroller.text);
-                  userInfoProvider.updateBinary(
-                      dropdownValueGender! == appLocale.nonBinary);
-                  userInfoProvider.updateAge(dropdownValueAge == ""
-                      ? userInfoProvider.age
-                      : dropdownValueAge!);
-                  if (dropdownValueGender != null) {
-                    if (dropdownValueGender == appLocale.male) {
-                      userInfoProvider.updateGender('male');
-                    } else if (dropdownValueGender == appLocale.female) {
-                      userInfoProvider.updateGender('female');
-                    } else {
-                      userInfoProvider.updateGender('');
+                    userInfoProvider.updateName(_namecontroller.text);
+                    userInfoProvider.updateBinary(
+                      dropdownValueGender! == appLocale.nonBinary,
+                    );
+                    userInfoProvider.updateAge(
+                      dropdownValueAge == ""
+                          ? userInfoProvider.age
+                          : dropdownValueAge!,
+                    );
+                    if (dropdownValueGender != null) {
+                      if (dropdownValueGender == appLocale.male) {
+                        userInfoProvider.updateGender('male');
+                      } else if (dropdownValueGender == appLocale.female) {
+                        userInfoProvider.updateGender('female');
+                      } else {
+                        userInfoProvider.updateGender('');
+                      }
                     }
-                  }
-                  Navigator.pop(context);
+                    Navigator.pop(context);
 
-                  //savePage(dropdownValueAge!, dropdownValueGender!);
-                }, appLocale!.confirmButton(gender),
-                    myTextStyle.copyWith(fontSize: 20.sp)),
+                    //savePage(dropdownValueAge!, dropdownValueGender!);
+                  },
+                  appLocale.confirmButton(gender),
+                  myTextStyle.copyWith(fontSize: 20.sp),
+                ),
                 const SizedBox(height: 20),
-                ResetButton(context, () {
-                  showDialog(
+                ResetButton(
+                  context,
+                  () {
+                    showDialog(
                       context: context,
                       builder: (BuildContext context) {
                         return Dialog(
-                          child: Container(
+                          child: SizedBox(
                             // set the width of the dialog to 800 if the screen width is more than 1000, else set it to the screen width
                             width: MediaQuery.of(context).size.width > 1000
                                 ? 800
@@ -411,22 +441,25 @@ class _UserSettingsState extends LPExtendedState<UserSettings> {
                               // Wrap Column with SingleChildScrollView
                               child: Column(
                                 children: [
-                                  SizedBox(
-                                    height: 10,
-                                  ),
+                                  SizedBox(height: 10),
                                   // text on the top of the form
                                   myAutoSizedText(
-                                      appLocale.confirmResetTitle,
-                                      TextStyle(
-                                          fontWeight: FontWeight.bold,
-                                          fontSize: 20.sp // text size
-                                          ),
-                                      null,
-                                      40),
+                                    appLocale.confirmResetTitle,
+                                    TextStyle(
+                                      fontWeight: FontWeight.bold,
+                                      fontSize: 20.sp, // text size
+                                    ),
+                                    null,
+                                    40,
+                                  ),
 
                                   Padding(
-                                    padding:
-                                        const EdgeInsets.fromLTRB(50, 0, 50, 0),
+                                    padding: const EdgeInsets.fromLTRB(
+                                      50,
+                                      0,
+                                      50,
+                                      0,
+                                    ),
                                     child: Row(
                                       mainAxisAlignment:
                                           MainAxisAlignment.spaceBetween,
@@ -434,14 +467,15 @@ class _UserSettingsState extends LPExtendedState<UserSettings> {
                                         // the close button
                                         TextButton(
                                           child: myAutoSizedText(
-                                              appLocale!.closeButton(gender),
-                                              TextStyle(
-                                                  fontWeight: FontWeight.bold,
-                                                  fontSize:
-                                                      20.sp // button text size
-                                                  ),
-                                              null,
-                                              30),
+                                            appLocale.closeButton(gender),
+                                            TextStyle(
+                                              fontWeight: FontWeight.bold,
+                                              fontSize:
+                                                  20.sp, // button text size
+                                            ),
+                                            null,
+                                            30,
+                                          ),
                                           onPressed: () {
                                             Navigator.of(context).pop();
                                           },
@@ -449,14 +483,15 @@ class _UserSettingsState extends LPExtendedState<UserSettings> {
                                         // the save button
                                         TextButton(
                                           child: myAutoSizedText(
-                                              appLocale!.confirmButton(gender),
-                                              TextStyle(
-                                                  fontWeight: FontWeight.bold,
-                                                  fontSize:
-                                                      20.sp // button text size
-                                                  ),
-                                              null,
-                                              30),
+                                            appLocale.confirmButton(gender),
+                                            TextStyle(
+                                              fontWeight: FontWeight.bold,
+                                              fontSize:
+                                                  20.sp, // button text size
+                                            ),
+                                            null,
+                                            30,
+                                          ),
                                           onPressed: () {
                                             resetData(userInfoProvider);
                                             // Save the item (add or edit) to the list
@@ -470,10 +505,13 @@ class _UserSettingsState extends LPExtendedState<UserSettings> {
                             ),
                           ),
                         );
-                      });
-                }, appLocale!.userSettingsReset(gender),
-                    myTextStyle.copyWith(fontSize: 15.sp)),
-                const SizedBox(height: 20)
+                      },
+                    );
+                  },
+                  appLocale.userSettingsReset(gender),
+                  myTextStyle.copyWith(fontSize: 15.sp),
+                ),
+                const SizedBox(height: 20),
               ],
             ),
           ),

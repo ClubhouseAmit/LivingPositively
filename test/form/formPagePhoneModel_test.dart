@@ -1,6 +1,5 @@
 import 'package:flutter_test/flutter_test.dart';
 import 'package:get_it/get_it.dart';
-import 'package:mazilon/global_enums.dart';
 import 'package:mazilon/util/Form/formPagePhoneModel.dart';
 import 'package:mazilon/util/logger_service.dart';
 import 'package:mazilon/util/persistent_memory_service.dart';
@@ -10,23 +9,26 @@ class _NoopLogger implements IncidentLoggerService {
   @override
   Future<void> initializeSentry(_) async {}
   @override
-  Future<void> captureLog(dynamic _,
-      {StackTrace? stackTrace, dynamic exceptionData}) async {}
+  Future<void> captureLog(
+    dynamic _, {
+    StackTrace? stackTrace,
+    dynamic exceptionData,
+  }) async {}
 }
 
 PhonePageData _make({String key = 'TestPhones'}) => PhonePageData(
-      key: key,
-      phoneNames: ['Mom', 'Dad'],
-      phoneNumbers: ['111', '222'],
-      header: 'h',
-      subTitle: 's',
-      midTitle: 'm',
-      phoneNameTitle: 'name',
-      phoneNumberTitle: 'number',
-      savedPhoneNames: <String>[],
-      savedPhoneNumbers: <String>[],
-      phoneDescription: <String>[],
-    );
+  key: key,
+  phoneNames: ['Mom', 'Dad'],
+  phoneNumbers: ['111', '222'],
+  header: 'h',
+  subTitle: 's',
+  midTitle: 'm',
+  phoneNameTitle: 'name',
+  phoneNumberTitle: 'number',
+  savedPhoneNames: <String>[],
+  savedPhoneNumbers: <String>[],
+  phoneDescription: <String>[],
+);
 
 void main() {
   setUp(() async {
@@ -38,8 +40,9 @@ void main() {
       GetIt.instance.unregister<PersistentMemoryService>();
     }
     GetIt.instance.registerSingleton<IncidentLoggerService>(_NoopLogger());
-    GetIt.instance
-        .registerSingleton<PersistentMemoryService>(SharedPreferencesService());
+    GetIt.instance.registerSingleton<PersistentMemoryService>(
+      SharedPreferencesService(),
+    );
   });
 
   tearDown(() async {

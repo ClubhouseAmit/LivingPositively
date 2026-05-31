@@ -22,12 +22,12 @@ class FormPageTemplate extends StatefulWidget {
 
   final String collectionName;
 
-  FormPageTemplate(
-      {Key? key,
-      required this.next,
-      required this.prev,
-      required this.collectionName})
-      : super(key: key);
+  const FormPageTemplate({
+    super.key,
+    required this.next,
+    required this.prev,
+    required this.collectionName,
+  });
 
   @override
   State<FormPageTemplate> createState() => _FormPageTemplateState();
@@ -83,8 +83,10 @@ class _FormPageTemplateState extends LPExtendedState<FormPageTemplate> {
   }
 
   void createSelection(userInfo) async {
-    PersistentMemoryService service = GetIt.instance<
-        PersistentMemoryService>(); // Get the persistent memory service instance
+    PersistentMemoryService service =
+        GetIt.instance<
+          PersistentMemoryService
+        >(); // Get the persistent memory service instance
 
     switch (widget.collectionName) {
       case 'PersonalPlan-DifficultEvents':
@@ -102,11 +104,20 @@ class _FormPageTemplateState extends LPExtendedState<FormPageTemplate> {
       default:
     }
     await service.setItem(
-        "disclaimerConfirmed", PersistentMemoryType.Bool, true);
-    await service.setItem('userSelection${widget.collectionName}',
-        PersistentMemoryType.StringList, [...selectedItems]);
-    await service.setItem('addedStrings${widget.collectionName}',
-        PersistentMemoryType.StringList, [...selectedItems]);
+      "disclaimerConfirmed",
+      PersistentMemoryType.Bool,
+      true,
+    );
+    await service.setItem(
+      'userSelection${widget.collectionName}',
+      PersistentMemoryType.StringList,
+      [...selectedItems],
+    );
+    await service.setItem(
+      'addedStrings${widget.collectionName}',
+      PersistentMemoryType.StringList,
+      [...selectedItems],
+    );
   }
 
   void loadItems(userInfo) {
@@ -129,12 +140,17 @@ class _FormPageTemplateState extends LPExtendedState<FormPageTemplate> {
 
   @override
   Widget build(BuildContext context) {
-    final userInfoProvider =
-        Provider.of<UserInformation>(context, listen: true);
+    final userInfoProvider = Provider.of<UserInformation>(
+      context,
+      listen: true,
+    );
     final gender = userInfoProvider.gender;
 
-    Map<String, dynamic> displayInformation =
-        retrieveInformation(widget.collectionName, gender, appLocale);
+    Map<String, dynamic> displayInformation = retrieveInformation(
+      widget.collectionName,
+      gender,
+      appLocale,
+    );
     length = displayInformation['list'].length;
     loadItems(userInfoProvider);
     bool validate = false;
@@ -147,44 +163,42 @@ class _FormPageTemplateState extends LPExtendedState<FormPageTemplate> {
             child: Column(
               mainAxisSize: MainAxisSize.min,
               children: [
-                const SizedBox(
-                  height: 20,
-                ),
+                const SizedBox(height: 20),
                 Column(
                   children: [
                     Container(
                       alignment: Alignment.topCenter,
                       margin: EdgeInsets.symmetric(horizontal: 15),
                       child: myAutoSizedText(
-                          displayInformation['header'],
-                          TextStyle(
-                              fontWeight: FontWeight.bold,
-                              fontSize: 20.sp,
-                              height: 1.5),
-                          TextAlign.center,
-                          40),
+                        displayInformation['header'],
+                        TextStyle(
+                          fontWeight: FontWeight.bold,
+                          fontSize: 20.sp,
+                          height: 1.5,
+                        ),
+                        TextAlign.center,
+                        40,
+                      ),
                     ),
-                    SizedBox(
-                      height: 5.h,
-                    ),
+                    SizedBox(height: 5.h),
                     Container(
                       alignment: Alignment.topCenter,
                       margin: EdgeInsets.symmetric(horizontal: 15),
                       child: myAutoSizedText(
-                          displayInformation['subTitle'],
-                          TextStyle(
-                              fontWeight: FontWeight.bold,
-                              color: darkGray,
-                              fontSize: 14.sp,
-                              height: 1.3),
-                          TextAlign.center,
-                          25),
+                        displayInformation['subTitle'],
+                        TextStyle(
+                          fontWeight: FontWeight.bold,
+                          color: darkGray,
+                          fontSize: 14.sp,
+                          height: 1.3,
+                        ),
+                        TextAlign.center,
+                        25,
+                      ),
                     ),
                   ],
                 ),
-                SizedBox(
-                  height: 20.h,
-                ),
+                SizedBox(height: 20.h),
                 Flexible(
                   fit: FlexFit.loose,
                   //generate list based on added strings(strings the user chose to manually add
@@ -238,75 +252,76 @@ class _FormPageTemplateState extends LPExtendedState<FormPageTemplate> {
                           shape: RoundedRectangleBorder(
                             // This is the shape of the button
                             borderRadius: BorderRadius.circular(
-                                20), // This is the border radius
+                              20,
+                            ), // This is the border radius
                             side: const BorderSide(
-                                color:
-                                    Colors.black), // This is the border color
+                              color: Colors.black,
+                            ), // This is the border color
                           ),
                           padding: const EdgeInsets.all(
-                              10), // This is the padding inside the button
+                            10,
+                          ), // This is the padding inside the button
                         ),
                         child: myAutoSizedText(
-                            appLocale.addFormPageTemplateAdd(gender),
-                            TextStyle(
-                                fontWeight: FontWeight.bold, fontSize: 14.sp),
-                            null,
-                            20),
+                          appLocale.addFormPageTemplateAdd(gender),
+                          TextStyle(
+                            fontWeight: FontWeight.bold,
+                            fontSize: 14.sp,
+                          ),
+                          null,
+                          20,
+                        ),
                       ),
-                      const SizedBox(
-                        width: 20,
-                      ),
+                      const SizedBox(width: 20),
                       Expanded(
                         child: TextField(
                           style: TextStyle(
-                              fontWeight: FontWeight.normal,
-                              fontSize: 14.sp > 40 ? 40 : 14.sp),
+                            fontWeight: FontWeight.normal,
+                            fontSize: 14.sp > 40 ? 40 : 14.sp,
+                          ),
                           controller: _controller,
                           decoration: InputDecoration(
-                            errorText:
-                                validate ? appLocale.validateEmpty : null,
+                            errorText: validate
+                                ? appLocale.validateEmpty
+                                : null,
                           ),
                         ),
                       ),
                     ],
                   ),
                 ),
-                SizedBox(
-                  height: 20.h,
-                ),
+                SizedBox(height: 20.h),
                 Column(
                   children: [
                     Container(
                       alignment: Alignment.topCenter,
                       margin: EdgeInsets.symmetric(horizontal: 15),
                       child: myAutoSizedText(
-                          displayInformation['midTitle'],
-                          TextStyle(
-                              fontWeight: FontWeight.bold, fontSize: 20.sp),
-                          TextAlign.center,
-                          40),
+                        displayInformation['midTitle'],
+                        TextStyle(fontWeight: FontWeight.bold, fontSize: 20.sp),
+                        TextAlign.center,
+                        40,
+                      ),
                     ),
-                    SizedBox(
-                      height: 5.h,
-                    ),
+                    SizedBox(height: 5.h),
                     Container(
                       alignment: Alignment.topCenter,
                       margin: EdgeInsets.symmetric(horizontal: 15),
                       child: myAutoSizedText(
-                          displayInformation['midSubTitle'],
-                          TextStyle(
-                              fontWeight: FontWeight.bold,
-                              color: darkGray,
-                              fontSize: 14.sp,
-                              height: 1.5),
-                          TextAlign.center,
-                          25),
+                        displayInformation['midSubTitle'],
+                        TextStyle(
+                          fontWeight: FontWeight.bold,
+                          color: darkGray,
+                          fontSize: 14.sp,
+                          height: 1.5,
+                        ),
+                        TextAlign.center,
+                        25,
+                      ),
                     ),
                   ],
                 ),
-                SizedBox(
-                  height: 10.h,
-                ),
+                SizedBox(height: 10.h),
                 Flexible(
                   fit: FlexFit.loose,
                   //database items(rowy) check box list:
@@ -318,8 +333,9 @@ class _FormPageTemplateState extends LPExtendedState<FormPageTemplate> {
                       String item = displayInformation["list"][index];
                       return CheckboxListTile(
                         controlAffinity: ListTileControlAffinity.leading,
-                        contentPadding:
-                            const EdgeInsetsDirectional.only(start: 15.0),
+                        contentPadding: const EdgeInsetsDirectional.only(
+                          start: 15.0,
+                        ),
                         activeColor: appGreen,
                         checkboxShape: CircleBorder(),
                         visualDensity: VisualDensity.compact,
@@ -332,13 +348,15 @@ class _FormPageTemplateState extends LPExtendedState<FormPageTemplate> {
                                   strokeWidth: 2,
                                 ),
                                 child: Container(
-                                  alignment: appLocale!.textDirection == "rtl"
+                                  alignment: appLocale.textDirection == "rtl"
                                       ? Alignment.centerRight
                                       : Alignment.centerLeft,
                                   constraints: BoxConstraints(minHeight: 55),
                                   width: double.infinity,
                                   padding: EdgeInsets.symmetric(
-                                      horizontal: 5, vertical: 5),
+                                    horizontal: 5,
+                                    vertical: 5,
+                                  ),
                                   decoration: BoxDecoration(
                                     color: Colors.white,
                                     borderRadius: BorderRadius.circular(20),
@@ -346,9 +364,10 @@ class _FormPageTemplateState extends LPExtendedState<FormPageTemplate> {
                                   child: Text(
                                     item,
                                     style: TextStyle(
-                                        fontFamily: "Rubix",
-                                        fontSize: 16.sp,
-                                        fontWeight: FontWeight.normal),
+                                      fontFamily: "Rubix",
+                                      fontSize: 16.sp,
+                                      fontWeight: FontWeight.normal,
+                                    ),
                                   ),
                                 ),
                               )
@@ -360,14 +379,16 @@ class _FormPageTemplateState extends LPExtendedState<FormPageTemplate> {
                                   strokeWidth: 2,
                                 ),
                                 child: Container(
-                                  alignment: appLocale!.textDirection == "rtl"
+                                  alignment: appLocale.textDirection == "rtl"
                                       ? Alignment.centerRight
                                       : Alignment.centerLeft,
                                   //height: returnSizedBox(context, 70),
                                   constraints: BoxConstraints(minHeight: 55),
                                   width: double.infinity,
                                   padding: EdgeInsets.symmetric(
-                                      horizontal: 5, vertical: 5),
+                                    horizontal: 5,
+                                    vertical: 5,
+                                  ),
                                   decoration: BoxDecoration(
                                     color: Colors.white,
                                     borderRadius: BorderRadius.circular(20),
@@ -379,9 +400,10 @@ class _FormPageTemplateState extends LPExtendedState<FormPageTemplate> {
 
                                     //overflow: TextOverflow.ellipsis,
                                     style: TextStyle(
-                                        fontFamily: "Rubix",
-                                        fontSize: 16.sp,
-                                        fontWeight: FontWeight.normal),
+                                      fontFamily: "Rubix",
+                                      fontSize: 16.sp,
+                                      fontWeight: FontWeight.normal,
+                                    ),
                                   ),
                                 ),
                               ),
@@ -416,44 +438,51 @@ class _FormPageTemplateState extends LPExtendedState<FormPageTemplate> {
                           shape: RoundedRectangleBorder(
                             // This is the shape of the button
                             borderRadius: BorderRadius.circular(
-                                20), // This is the border radius
+                              20,
+                            ), // This is the border radius
                             side: const BorderSide(
-                                color:
-                                    Colors.black), // This is the border color
+                              color: Colors.black,
+                            ), // This is the border color
                           ),
                           padding: const EdgeInsets.all(
-                              0), // This is the padding inside the button
+                            0,
+                          ), // This is the padding inside the button
                         ),
                         child: Padding(
                           padding: const EdgeInsets.all(8.0),
                           child: myAutoSizedText(
-                              displayInformation['showMoreButtonText'],
-                              TextStyle(
-                                  fontWeight: FontWeight.bold, fontSize: 14.sp),
-                              null,
-                              40),
+                            displayInformation['showMoreButtonText'],
+                            TextStyle(
+                              fontWeight: FontWeight.bold,
+                              fontSize: 14.sp,
+                            ),
+                            null,
+                            40,
+                          ),
                         ),
                       )
                     //nothing to add:
-                    : SizedBox(
-                        height: returnSizedBox(context, 10),
-                      ),
+                    : SizedBox(height: returnSizedBox(context, 10)),
                 //spacing between add more and next button:
-                SizedBox(
-                  height: returnSizedBox(context, 10),
-                ),
+                SizedBox(height: returnSizedBox(context, 10)),
                 //next button:
-                ConfirmationButton(context, () {
-                  AnalyticsService mixPanelService =
-                      GetIt.instance<AnalyticsService>();
-                  mixPanelService.trackEvent(
-                      "Plan edited", {'page': widget.collectionName});
-                  createSelection(userInfoProvider);
-                  widget.next();
-                },
-                    displayInformation['nextButtonText'],
-                    myTextStyle.copyWith(
-                        fontWeight: FontWeight.bold, fontSize: 22.sp)),
+                ConfirmationButton(
+                  context,
+                  () {
+                    AnalyticsService mixPanelService =
+                        GetIt.instance<AnalyticsService>();
+                    mixPanelService.trackEvent("Plan edited", {
+                      'page': widget.collectionName,
+                    });
+                    createSelection(userInfoProvider);
+                    widget.next();
+                  },
+                  displayInformation['nextButtonText'],
+                  myTextStyle.copyWith(
+                    fontWeight: FontWeight.bold,
+                    fontSize: 22.sp,
+                  ),
+                ),
                 const SizedBox(height: 20),
               ],
             ),

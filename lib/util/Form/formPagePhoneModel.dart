@@ -5,7 +5,6 @@ import 'package:get_it/get_it.dart';
 import 'package:mazilon/global_enums.dart';
 import 'package:mazilon/util/persistent_memory_service.dart';
 import 'package:mazilon/util/type_utils.dart';
-import 'package:shared_preferences/shared_preferences.dart';
 
 class PhonePageData extends ChangeNotifier {
   final String key;
@@ -76,12 +75,15 @@ class PhonePageData extends ChangeNotifier {
     phoneNumberTitle = json['phoneNumberTitle'] ?? phoneNumberTitle;
     phoneNames = List<String>.from(json['phoneNames'] ?? phoneNames);
     phoneNumbers = List<String>.from(json['phoneNumbers'] ?? phoneNumbers);
-    savedPhoneNames =
-        List<String>.from(json['savedPhoneNames'] ?? savedPhoneNames);
-    savedPhoneNumbers =
-        List<String>.from(json['savedPhoneNumbers'] ?? savedPhoneNumbers);
-    phoneDescription =
-        List<String>.from(json['phoneDescription'] ?? phoneDescription);
+    savedPhoneNames = List<String>.from(
+      json['savedPhoneNames'] ?? savedPhoneNames,
+    );
+    savedPhoneNumbers = List<String>.from(
+      json['savedPhoneNumbers'] ?? savedPhoneNumbers,
+    );
+    phoneDescription = List<String>.from(
+      json['phoneDescription'] ?? phoneDescription,
+    );
 
     // Notify listeners about the update
     notifyListeners();
@@ -108,13 +110,23 @@ class PhonePageData extends ChangeNotifier {
   }
 
   Future<void> loadItemsFromPrefs() async {
-    PersistentMemoryService service = GetIt.instance<
-        PersistentMemoryService>(); // Get the persistent memory service instance
+    PersistentMemoryService service =
+        GetIt.instance<
+          PersistentMemoryService
+        >(); // Get the persistent memory service instance
 
-    savedPhoneNames = TypeUtils.castToStringList(await service.getItem(
-        '${key}SavedPhoneNames', PersistentMemoryType.StringList));
-    savedPhoneNumbers = TypeUtils.castToStringList(await service.getItem(
-        '${key}SavedPhoneNumbers', PersistentMemoryType.StringList));
+    savedPhoneNames = TypeUtils.castToStringList(
+      await service.getItem(
+        '${key}SavedPhoneNames',
+        PersistentMemoryType.StringList,
+      ),
+    );
+    savedPhoneNumbers = TypeUtils.castToStringList(
+      await service.getItem(
+        '${key}SavedPhoneNumbers',
+        PersistentMemoryType.StringList,
+      ),
+    );
     notifyListeners();
   }
 
@@ -142,11 +154,19 @@ class PhonePageData extends ChangeNotifier {
   }
 
   Future<void> saveItemsToPrefs() async {
-    PersistentMemoryService service = GetIt.instance<
-        PersistentMemoryService>(); // Get the persistent memory service instance
-    await service.setItem('${key}SavedPhoneNames',
-        PersistentMemoryType.StringList, savedPhoneNames);
-    await service.setItem('${key}SavedPhoneNumbers',
-        PersistentMemoryType.StringList, savedPhoneNumbers);
+    PersistentMemoryService service =
+        GetIt.instance<
+          PersistentMemoryService
+        >(); // Get the persistent memory service instance
+    await service.setItem(
+      '${key}SavedPhoneNames',
+      PersistentMemoryType.StringList,
+      savedPhoneNames,
+    );
+    await service.setItem(
+      '${key}SavedPhoneNumbers',
+      PersistentMemoryType.StringList,
+      savedPhoneNumbers,
+    );
   }
 }

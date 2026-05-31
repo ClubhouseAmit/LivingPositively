@@ -32,16 +32,21 @@ class _NoOpLogger implements IncidentLoggerService {
   @override
   Future<void> initializeSentry(_) async {}
   @override
-  Future<void> captureLog(dynamic exception,
-      {StackTrace? stackTrace, dynamic exceptionData}) async {}
+  Future<void> captureLog(
+    dynamic exception, {
+    StackTrace? stackTrace,
+    dynamic exceptionData,
+  }) async {}
 }
 
 class _NoOpAnalytics implements AnalyticsService {
   @override
   Future<void> init() async {}
   @override
-  Future<void> trackEvent(String name,
-      [Map<String, dynamic>? properties]) async {}
+  Future<void> trackEvent(
+    String name, [
+    Map<String, dynamic>? properties,
+  ]) async {}
 }
 
 class _FakePersistentMemoryService implements PersistentMemoryService {
@@ -80,9 +85,7 @@ Widget _hostListWidget({
   required PagesCode pageCode,
 }) {
   return MultiProvider(
-    providers: [
-      ChangeNotifierProvider<UserInformation>.value(value: userInfo),
-    ],
+    providers: [ChangeNotifierProvider<UserInformation>.value(value: userInfo)],
     child: MaterialApp(
       supportedLocales: AppLocalizations.supportedLocales,
       localizationsDelegates: AppLocalizations.localizationsDelegates,
@@ -91,10 +94,7 @@ Widget _hostListWidget({
         designSize: const Size(360, 690),
         builder: (context, _) => Scaffold(
           body: SingleChildScrollView(
-            child: ListWidget(
-              onTabTapped: (_, __) {},
-              pageCode: pageCode,
-            ),
+            child: ListWidget(onTabTapped: (_, _) {}, pageCode: pageCode),
           ),
         ),
       ),
@@ -127,162 +127,162 @@ void main() {
   });
 
   testWidgets(
-      'tapping a ThanksItemSuggested add button inside a GratitudeJournal '
-      'ListWidget appends an entry and shows the AlertDialog popup',
-      (tester) async {
-    final user = UserInformation(
-      service: _FakePersistentMemoryService(),
-      gender: 'other',
-      thanks: const <String, List<String>>{},
-    );
+    'tapping a ThanksItemSuggested add button inside a GratitudeJournal '
+    'ListWidget appends an entry and shows the AlertDialog popup',
+    (tester) async {
+      final user = UserInformation(
+        service: _FakePersistentMemoryService(),
+        gender: 'other',
+        thanks: const <String, List<String>>{},
+      );
 
-    await tester.binding.setSurfaceSize(const Size(800, 2400));
-    await tester.pumpWidget(_hostListWidget(
-      userInfo: user,
-      pageCode: PagesCode.GratitudeJournal,
-    ));
-    await tester.pumpAndSettle();
+      await tester.binding.setSurfaceSize(const Size(800, 2400));
+      await tester.pumpWidget(
+        _hostListWidget(userInfo: user, pageCode: PagesCode.GratitudeJournal),
+      );
+      await tester.pumpAndSettle();
 
-    final firstSug = find.byType(ThanksItemSuggested).first;
-    final addGesture = find
-        .descendant(of: firstSug, matching: find.byType(GestureDetector))
-        .first;
-    await tester.ensureVisible(addGesture);
-    await tester.tap(addGesture, warnIfMissed: false);
-    await tester.pump();
-    await tester.pump(const Duration(milliseconds: 50));
+      final firstSug = find.byType(ThanksItemSuggested).first;
+      final addGesture = find
+          .descendant(of: firstSug, matching: find.byType(GestureDetector))
+          .first;
+      await tester.ensureVisible(addGesture);
+      await tester.tap(addGesture, warnIfMissed: false);
+      await tester.pump();
+      await tester.pump(const Duration(milliseconds: 50));
 
-    expect(user.thanks['thanks']?.length, 1);
-    // First-of-day popup branch (showThankYouPopup).
-    expect(find.byType(AlertDialog), findsOneWidget);
-  });
-
-  testWidgets(
-      'tapping a PositiveTraitItemSug add button inside a QualitiesList '
-      'ListWidget appends a trait',
-      (tester) async {
-    final user = UserInformation(
-      service: _FakePersistentMemoryService(),
-      gender: 'other',
-      positiveTraits: <String>[],
-    );
-
-    await tester.binding.setSurfaceSize(const Size(800, 2400));
-    await tester.pumpWidget(_hostListWidget(
-      userInfo: user,
-      pageCode: PagesCode.QualitiesList,
-    ));
-    await tester.pumpAndSettle();
-
-    final firstSug = find.byType(PositiveTraitItemSug).first;
-    final addGesture = find
-        .descendant(of: firstSug, matching: find.byType(GestureDetector))
-        .first;
-    await tester.ensureVisible(addGesture);
-    await tester.tap(addGesture, warnIfMissed: false);
-    await tester.pumpAndSettle();
-
-    expect(user.positiveTraits.length, greaterThanOrEqualTo(1));
-  });
+      expect(user.thanks['thanks']?.length, 1);
+      // First-of-day popup branch (showThankYouPopup).
+      expect(find.byType(AlertDialog), findsOneWidget);
+    },
+  );
 
   testWidgets(
-      'tapping the edit button on a Gratitude row opens an AddForm seeded '
-      'with the existing text',
-      (tester) async {
-    final user = UserInformation(
-      service: _FakePersistentMemoryService(),
-      gender: 'other',
-    );
-    user.updateThanks({
-      'thanks': ['Existing thank'],
-      'dates': [_todayDate()],
-    });
+    'tapping a PositiveTraitItemSug add button inside a QualitiesList '
+    'ListWidget appends a trait',
+    (tester) async {
+      final user = UserInformation(
+        service: _FakePersistentMemoryService(),
+        gender: 'other',
+        positiveTraits: <String>[],
+      );
 
-    await tester.binding.setSurfaceSize(const Size(800, 2400));
-    await tester.pumpWidget(_hostListWidget(
-      userInfo: user,
-      pageCode: PagesCode.GratitudeJournal,
-    ));
-    await tester.pumpAndSettle();
+      await tester.binding.setSurfaceSize(const Size(800, 2400));
+      await tester.pumpWidget(
+        _hostListWidget(userInfo: user, pageCode: PagesCode.QualitiesList),
+      );
+      await tester.pumpAndSettle();
 
-    // The row renders an edit icon — find the first MainpageListItemWidget.
-    expect(find.byType(MainpageListItemWidget), findsOneWidget);
-    final editIcon = find.byIcon(Icons.edit).first;
-    await tester.tap(editIcon, warnIfMissed: false);
-    await tester.pumpAndSettle();
+      final firstSug = find.byType(PositiveTraitItemSug).first;
+      final addGesture = find
+          .descendant(of: firstSug, matching: find.byType(GestureDetector))
+          .first;
+      await tester.ensureVisible(addGesture);
+      await tester.tap(addGesture, warnIfMissed: false);
+      await tester.pumpAndSettle();
 
-    expect(find.byType(AddForm), findsOneWidget);
-    final tf = tester.widget<TextFormField>(find.byType(TextFormField));
-    expect(tf.controller?.text, 'Existing thank');
-
-    // Close the dialog so the test does not leak the open route.
-    final closeBtn = find
-        .descendant(
-          of: find.byType(AddForm),
-          matching: find.byType(TextButton),
-        )
-        .first;
-    await tester.tap(closeBtn, warnIfMissed: false);
-    await tester.pumpAndSettle();
-  });
+      expect(user.positiveTraits.length, greaterThanOrEqualTo(1));
+    },
+  );
 
   testWidgets(
-      'tapping the delete button on a Qualities row removes the trait',
-      (tester) async {
-    final user = UserInformation(
-      service: _FakePersistentMemoryService(),
-      gender: 'other',
-      positiveTraits: <String>['Brave', 'Kind'],
-    );
+    'tapping the edit button on a Gratitude row opens an AddForm seeded '
+    'with the existing text',
+    (tester) async {
+      final user = UserInformation(
+        service: _FakePersistentMemoryService(),
+        gender: 'other',
+      );
+      user.updateThanks({
+        'thanks': ['Existing thank'],
+        'dates': [_todayDate()],
+      });
 
-    await tester.binding.setSurfaceSize(const Size(800, 2400));
-    await tester.pumpWidget(_hostListWidget(
-      userInfo: user,
-      pageCode: PagesCode.QualitiesList,
-    ));
-    await tester.pumpAndSettle();
+      await tester.binding.setSurfaceSize(const Size(800, 2400));
+      await tester.pumpWidget(
+        _hostListWidget(userInfo: user, pageCode: PagesCode.GratitudeJournal),
+      );
+      await tester.pumpAndSettle();
 
-    expect(find.byType(MainpageListItemWidget), findsNWidgets(2));
-    final deleteIcon = find.byIcon(Icons.delete).first;
-    await tester.tap(deleteIcon, warnIfMissed: false);
-    await tester.pumpAndSettle();
+      // The row renders an edit icon — find the first MainpageListItemWidget.
+      expect(find.byType(MainpageListItemWidget), findsOneWidget);
+      final editIcon = find.byIcon(Icons.edit).first;
+      await tester.tap(editIcon, warnIfMissed: false);
+      await tester.pumpAndSettle();
 
-    expect(user.positiveTraits.length, 1);
-  });
+      expect(find.byType(AddForm), findsOneWidget);
+      final tf = tester.widget<TextFormField>(find.byType(TextFormField));
+      expect(tf.controller?.text, 'Existing thank');
+
+      // Close the dialog so the test does not leak the open route.
+      final closeBtn = find
+          .descendant(
+            of: find.byType(AddForm),
+            matching: find.byType(TextButton),
+          )
+          .first;
+      await tester.tap(closeBtn, warnIfMissed: false);
+      await tester.pumpAndSettle();
+    },
+  );
 
   testWidgets(
-      'tapping the edit button on a Qualities row opens an AddForm seeded '
-      'with the trait text',
-      (tester) async {
-    final user = UserInformation(
-      service: _FakePersistentMemoryService(),
-      gender: 'other',
-      positiveTraits: <String>['Patient'],
-    );
+    'tapping the delete button on a Qualities row removes the trait',
+    (tester) async {
+      final user = UserInformation(
+        service: _FakePersistentMemoryService(),
+        gender: 'other',
+        positiveTraits: <String>['Brave', 'Kind'],
+      );
 
-    await tester.binding.setSurfaceSize(const Size(800, 2400));
-    await tester.pumpWidget(_hostListWidget(
-      userInfo: user,
-      pageCode: PagesCode.QualitiesList,
-    ));
-    await tester.pumpAndSettle();
+      await tester.binding.setSurfaceSize(const Size(800, 2400));
+      await tester.pumpWidget(
+        _hostListWidget(userInfo: user, pageCode: PagesCode.QualitiesList),
+      );
+      await tester.pumpAndSettle();
 
-    expect(find.byType(MainpageListItemWidget), findsOneWidget);
-    final editIcon = find.byIcon(Icons.edit).first;
-    await tester.tap(editIcon, warnIfMissed: false);
-    await tester.pumpAndSettle();
+      expect(find.byType(MainpageListItemWidget), findsNWidgets(2));
+      final deleteIcon = find.byIcon(Icons.delete).first;
+      await tester.tap(deleteIcon, warnIfMissed: false);
+      await tester.pumpAndSettle();
 
-    expect(find.byType(AddForm), findsOneWidget);
-    final tf = tester.widget<TextFormField>(find.byType(TextFormField));
-    expect(tf.controller?.text, 'Patient');
+      expect(user.positiveTraits.length, 1);
+    },
+  );
 
-    final closeBtn = find
-        .descendant(
-          of: find.byType(AddForm),
-          matching: find.byType(TextButton),
-        )
-        .first;
-    await tester.tap(closeBtn, warnIfMissed: false);
-    await tester.pumpAndSettle();
-  });
+  testWidgets(
+    'tapping the edit button on a Qualities row opens an AddForm seeded '
+    'with the trait text',
+    (tester) async {
+      final user = UserInformation(
+        service: _FakePersistentMemoryService(),
+        gender: 'other',
+        positiveTraits: <String>['Patient'],
+      );
+
+      await tester.binding.setSurfaceSize(const Size(800, 2400));
+      await tester.pumpWidget(
+        _hostListWidget(userInfo: user, pageCode: PagesCode.QualitiesList),
+      );
+      await tester.pumpAndSettle();
+
+      expect(find.byType(MainpageListItemWidget), findsOneWidget);
+      final editIcon = find.byIcon(Icons.edit).first;
+      await tester.tap(editIcon, warnIfMissed: false);
+      await tester.pumpAndSettle();
+
+      expect(find.byType(AddForm), findsOneWidget);
+      final tf = tester.widget<TextFormField>(find.byType(TextFormField));
+      expect(tf.controller?.text, 'Patient');
+
+      final closeBtn = find
+          .descendant(
+            of: find.byType(AddForm),
+            matching: find.byType(TextButton),
+          )
+          .first;
+      await tester.tap(closeBtn, warnIfMissed: false);
+      await tester.pumpAndSettle();
+    },
+  );
 }

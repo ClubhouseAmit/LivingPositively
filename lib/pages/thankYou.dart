@@ -3,8 +3,6 @@ import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:auto_size_text/auto_size_text.dart';
 import 'package:mazilon/l10n/app_localizations.dart';
 import 'package:mazilon/util/styles.dart';
-import 'package:mazilon/util/userInformation.dart';
-import 'package:provider/provider.dart';
 
 // the thank you widget, it shows the thank you text and the number of the thank you
 //although its name is thank you, it can be used for any trait , we used it for the positive trait also.
@@ -44,10 +42,6 @@ class _ThankYouState extends State<ThankYou> {
   // build the thank you widget
   @override
   Widget build(BuildContext context) {
-    final userInfoProvider = Provider.of<UserInformation>(
-      context,
-      listen: false,
-    );
     final locale = AppLocalizations.of(context);
     return Container(
       padding: const EdgeInsets.fromLTRB(10, 5, 10, 5),
@@ -115,7 +109,7 @@ class _ThankYouState extends State<ThankYou> {
                   // gap between the buttons and the text
                   const SizedBox(width: 15),
                   // the edit button
-                  Container(
+                  SizedBox(
                     width: 50,
                     child: Tooltip(
                       message: locale?.editEntryTooltip ?? 'Edit entry',
@@ -131,7 +125,7 @@ class _ThankYouState extends State<ThankYou> {
                   ),
 
                   // the delete button
-                  Container(
+                  SizedBox(
                     width: 50,
                     child: Tooltip(
                       message: locale?.deleteEntryTooltip ?? 'Delete entry',

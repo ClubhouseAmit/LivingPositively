@@ -26,7 +26,6 @@ void main() {
   late MockAppInformation mockAppInformation;
   late MockPersistentMemoryService mockPersistentMemoryService;
   bool nextTapped = false;
-  void mockNext() {}
   void mockPrev() {}
   void mockUpdateName(String name) {}
   setUp(() async {
@@ -41,10 +40,12 @@ void main() {
     when(mockAppInformation.traitMainTitle).thenReturn({"he": "כותרת ראשית"});
     when(mockAppInformation.traitSubTitle).thenReturn({"he": "כותרת משנה"});
     when(mockAppInformation.positiveTraitsPopUpText).thenReturn({"he": "טקסט"});
-    when(mockAppInformation.personalPlanMainTitle)
-        .thenReturn({"he": "תוכנית אישית"});
-    when(mockAppInformation.personalPlanSubTitle)
-        .thenReturn({"he": "כותרת משנה"});
+    when(
+      mockAppInformation.personalPlanMainTitle,
+    ).thenReturn({"he": "תוכנית אישית"});
+    when(
+      mockAppInformation.personalPlanSubTitle,
+    ).thenReturn({"he": "כותרת משנה"});
     when(mockAppInformation.popupBack).thenReturn({"he": "חזור"});
     when(mockAppInformation.othersuggestions).thenReturn({"he": "הצעות אחרות"});
     SharedPreferences.setMockInitialValues({'hasFilled': false});
@@ -52,16 +53,20 @@ void main() {
     mockPersistentMemoryService = MockPersistentMemoryService();
 
     // Setup specific mock behavior for hasFilled
-    when(mockPersistentMemoryService.getItem('hasFilled', any))
-        .thenAnswer((_) async => false);
-    when(mockPersistentMemoryService.getItem(any, any))
-        .thenAnswer((_) async => null);
-    when(mockPersistentMemoryService.setItem(any, any, any))
-        .thenAnswer((_) async => null);
-    when(mockPersistentMemoryService.reset()).thenAnswer((_) async => null);
+    when(
+      mockPersistentMemoryService.getItem('hasFilled', any),
+    ).thenAnswer((_) async => false);
+    when(
+      mockPersistentMemoryService.getItem(any, any),
+    ).thenAnswer((_) async => null);
+    when(
+      mockPersistentMemoryService.setItem(any, any, any),
+    ).thenAnswer((_) async {});
+    when(mockPersistentMemoryService.reset()).thenAnswer((_) async {});
 
     GetIt.instance.registerSingleton<PersistentMemoryService>(
-        mockPersistentMemoryService);
+      mockPersistentMemoryService,
+    );
   });
 
   tearDown(() async {
@@ -77,7 +82,8 @@ void main() {
       providers: [
         ChangeNotifierProvider<AppInformation>.value(value: mockAppInformation),
         ChangeNotifierProvider<UserInformation>.value(
-            value: mockUserInformation),
+          value: mockUserInformation,
+        ),
       ],
       child: MaterialApp(
         supportedLocales: AppLocalizations.supportedLocales,
@@ -96,16 +102,19 @@ void main() {
     );
   }
 
-  testWidgets('InitialFormPage2 renders correctly',
-      (WidgetTester tester) async {
+  testWidgets('InitialFormPage2 renders correctly', (
+    WidgetTester tester,
+  ) async {
     await tester.pumpWidget(createTestWidget());
 
     // Verify the presence of the main title and subtitle
     expect(find.text('בוא נכיר'), findsOneWidget);
     expect(
-        find.text(
-            'היי, שמחים שהגעת! נשמח להכיר אותך קצת כדי שנוכל לדעת איך לפנות אליך'),
-        findsOneWidget);
+      find.text(
+        'היי, שמחים שהגעת! נשמח להכיר אותך קצת כדי שנוכל לדעת איך לפנות אליך',
+      ),
+      findsOneWidget,
+    );
 
     // Verify the presence of the form labels
     expect(find.text('כיצד הייתי רוצה שיפנו אלי?'), findsOneWidget);
@@ -128,8 +137,9 @@ void main() {
     expect(find.text('Test Name'), findsOneWidget);
   });
 
-  testWidgets('InitialFormPage2 dropdown menu selection',
-      (WidgetTester tester) async {
+  testWidgets('InitialFormPage2 dropdown menu selection', (
+    WidgetTester tester,
+  ) async {
     await tester.pumpWidget(createTestWidget());
 
     // Tap on the age dropdown menu and select an option

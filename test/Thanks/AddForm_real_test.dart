@@ -24,19 +24,18 @@ import '../helpers/widget_test_scaffold.dart';
 Future<void> _openDialog(WidgetTester tester, Widget dialog) async {
   await pumpWithProviders(
     tester,
-    Builder(builder: (ctx) {
-      return Scaffold(
-        body: Center(
-          child: ElevatedButton(
-            onPressed: () => showDialog(
-              context: ctx,
-              builder: (_) => dialog,
+    Builder(
+      builder: (ctx) {
+        return Scaffold(
+          body: Center(
+            child: ElevatedButton(
+              onPressed: () => showDialog(context: ctx, builder: (_) => dialog),
+              child: const Text('open'),
             ),
-            child: const Text('open'),
           ),
-        ),
-      );
-    }),
+        );
+      },
+    ),
     surfaceSize: const Size(1200, 1800),
   );
   await tester.tap(find.text('open'));
@@ -55,13 +54,14 @@ void main() {
   });
 
   group('AddForm (real production widget)', () {
-    testWidgets('renders Dialog with TextFormField + close/save buttons',
-        (tester) async {
+    testWidgets('renders Dialog with TextFormField + close/save buttons', (
+      tester,
+    ) async {
       await _openDialog(
         tester,
         real.AddForm(
-          add: (_, __) {},
-          edit: (_, __, ___) {},
+          add: (_, _) {},
+          edit: (_, _, _) {},
           index: 0,
           text: '',
           formTitle: 'Trait',
@@ -74,13 +74,14 @@ void main() {
       expect(find.byType(TextButton), findsNWidgets(2));
     });
 
-    testWidgets('seeds TextFormField controller with widget.text',
-        (tester) async {
+    testWidgets('seeds TextFormField controller with widget.text', (
+      tester,
+    ) async {
       await _openDialog(
         tester,
         real.AddForm(
-          add: (_, __) {},
-          edit: (_, __, ___) {},
+          add: (_, _) {},
+          edit: (_, _, _) {},
           index: 2,
           text: 'Existing trait',
           formTitle: 'Trait',
@@ -91,15 +92,16 @@ void main() {
       expect(tf.controller?.text, 'Existing trait');
     });
 
-    testWidgets('empty submit triggers validator and does not pop',
-        (tester) async {
+    testWidgets('empty submit triggers validator and does not pop', (
+      tester,
+    ) async {
       var addCalls = 0;
       var editCalls = 0;
       await _openDialog(
         tester,
         real.AddForm(
-          add: (_, __) => addCalls++,
-          edit: (_, __, ___) => editCalls++,
+          add: (_, _) => addCalls++,
+          edit: (_, _, _) => editCalls++,
           index: 0,
           text: '',
           formTitle: 'Trait',
@@ -116,8 +118,9 @@ void main() {
       expect(editCalls, 0);
     });
 
-    testWidgets('non-empty submit on a NEW entry fires add() and pops',
-        (tester) async {
+    testWidgets('non-empty submit on a NEW entry fires add() and pops', (
+      tester,
+    ) async {
       var addCalls = 0;
       var editCalls = 0;
       UserInformation? capturedUser;
@@ -131,7 +134,7 @@ void main() {
             capturedText = t;
             capturedUser = u;
           },
-          edit: (_, __, ___) => editCalls++,
+          edit: (_, _, _) => editCalls++,
           index: 0,
           text: '',
           formTitle: 'Trait',
@@ -150,8 +153,9 @@ void main() {
       expect(capturedUser, isNotNull);
     });
 
-    testWidgets('non-empty submit on a SEEDED entry fires edit() and pops',
-        (tester) async {
+    testWidgets('non-empty submit on a SEEDED entry fires edit() and pops', (
+      tester,
+    ) async {
       var addCalls = 0;
       var editCalls = 0;
       int? capturedIndex;
@@ -160,7 +164,7 @@ void main() {
       await _openDialog(
         tester,
         real.AddForm(
-          add: (_, __) => addCalls++,
+          add: (_, _) => addCalls++,
           edit: (String t, int i, UserInformation u) {
             editCalls++;
             capturedText = t;
@@ -183,38 +187,41 @@ void main() {
       expect(capturedIndex, 4);
     });
 
-    testWidgets('tap save button (not Enter) routes through onPressed → submit',
-        (tester) async {
-      var addCalls = 0;
-      await _openDialog(
-        tester,
-        real.AddForm(
-          add: (_, __) => addCalls++,
-          edit: (_, __, ___) {},
-          index: 0,
-          text: '',
-          formTitle: 'Trait',
-        ),
-      );
-      await tester.enterText(find.byType(TextFormField), 'Calm');
-      // The "save" button is the second TextButton — first is close.
-      final buttons = find.byType(TextButton);
-      await tester.tap(buttons.last, warnIfMissed: false);
-      await tester.pumpAndSettle();
+    testWidgets(
+      'tap save button (not Enter) routes through onPressed → submit',
+      (tester) async {
+        var addCalls = 0;
+        await _openDialog(
+          tester,
+          real.AddForm(
+            add: (_, _) => addCalls++,
+            edit: (_, _, _) {},
+            index: 0,
+            text: '',
+            formTitle: 'Trait',
+          ),
+        );
+        await tester.enterText(find.byType(TextFormField), 'Calm');
+        // The "save" button is the second TextButton — first is close.
+        final buttons = find.byType(TextButton);
+        await tester.tap(buttons.last, warnIfMissed: false);
+        await tester.pumpAndSettle();
 
-      expect(addCalls, 1);
-      expect(find.byType(Dialog), findsNothing);
-    });
+        expect(addCalls, 1);
+        expect(find.byType(Dialog), findsNothing);
+      },
+    );
 
-    testWidgets('tap close button pops without firing add/edit',
-        (tester) async {
+    testWidgets('tap close button pops without firing add/edit', (
+      tester,
+    ) async {
       var addCalls = 0;
       var editCalls = 0;
       await _openDialog(
         tester,
         real.AddForm(
-          add: (_, __) => addCalls++,
-          edit: (_, __, ___) => editCalls++,
+          add: (_, _) => addCalls++,
+          edit: (_, _, _) => editCalls++,
           index: 0,
           text: 'Something',
           formTitle: 'Trait',

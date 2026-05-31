@@ -5,7 +5,6 @@ import 'package:mazilon/util/LP_extended_state.dart';
 import 'dart:math';
 import 'package:mazilon/util/styles.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
-import 'package:mazilon/l10n/app_localizations.dart';
 
 //Display a random Inspirational Quote
 class InspirationalQuote extends StatefulWidget {

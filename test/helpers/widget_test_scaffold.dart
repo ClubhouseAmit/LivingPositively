@@ -56,7 +56,10 @@ class FakePersistentMemoryService implements PersistentMemoryService {
 
   @override
   Future<void> setItem(
-      String key, PersistentMemoryType type, dynamic value) async {
+    String key,
+    PersistentMemoryType type,
+    dynamic value,
+  ) async {
     if (key.isEmpty || value == null) return;
     if (type == PersistentMemoryType.StringList) {
       store[key] = List<String>.from(value as Iterable);
@@ -79,8 +82,11 @@ class NoopIncidentLoggerService implements IncidentLoggerService {
   Future<void> initializeSentry(Widget myApp) async {}
 
   @override
-  Future<void> captureLog(dynamic exception,
-      {StackTrace? stackTrace, dynamic exceptionData}) async {
+  Future<void> captureLog(
+    dynamic exception, {
+    StackTrace? stackTrace,
+    dynamic exceptionData,
+  }) async {
     captured.add(exception);
   }
 }
@@ -93,8 +99,10 @@ class NoopAnalyticsService implements AnalyticsService {
   Future<void> init() async {}
 
   @override
-  Future<void> trackEvent(String eventName,
-      [Map<String, dynamic>? properties]) async {
+  Future<void> trackEvent(
+    String eventName, [
+    Map<String, dynamic>? properties,
+  ]) async {
     events.add(MapEntry(eventName, properties));
   }
 }
@@ -107,23 +115,25 @@ class NoopFileService implements FileService {
 
   @override
   Future<String?> download(
-      List<dynamic> titles,
-      List<dynamic> subTitles,
-      Map<String, String> texts,
-      ShareFileType saveFormat,
-      String textDirection) async {
+    List<dynamic> titles,
+    List<dynamic> subTitles,
+    Map<String, String> texts,
+    ShareFileType saveFormat,
+    String textDirection,
+  ) async {
     downloadCalls++;
     return null;
   }
 
   @override
   Future<void> share(
-      String message,
-      List<dynamic> titles,
-      List<dynamic> subTitles,
-      Map<String, String> texts,
-      ShareFileType saveFormat,
-      String textDirection) async {
+    String message,
+    List<dynamic> titles,
+    List<dynamic> subTitles,
+    Map<String, String> texts,
+    ShareFileType saveFormat,
+    String textDirection,
+  ) async {
     shareCalls++;
   }
 
@@ -160,9 +170,13 @@ class NoopImagePickerService implements ImagePickerService {
 
   @override
   displayImage(String path, {BoxFit fit = BoxFit.none}) {
-    return Image.memory(Uint8List(0), fit: fit, errorBuilder: (_, __, ___) {
-      return SizedBox.shrink(key: Key('test-image-$path'));
-    });
+    return Image.memory(
+      Uint8List(0),
+      fit: fit,
+      errorBuilder: (_, _, _) {
+        return SizedBox.shrink(key: Key('test-image-$path'));
+      },
+    );
   }
 
   @override
@@ -316,9 +330,7 @@ Future<void> pumpWithProviders(
         localizationsDelegates: AppLocalizations.localizationsDelegates,
         home: ScreenUtilInit(
           designSize: designSize,
-          child: Builder(
-            builder: (context) => child,
-          ),
+          child: Builder(builder: (context) => child),
         ),
       ),
     ),

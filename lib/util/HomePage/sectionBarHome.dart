@@ -11,7 +11,7 @@ class SectionBarHome extends StatefulWidget {
   final Widget textWidget; // what's the title
   final IconData icon; // the icon next to the title
   final List<Widget>
-      icons; //icons to interact with on the left side of the section
+  icons; //icons to interact with on the left side of the section
   final String subHeader; //what's the subtitle
   const SectionBarHome({
     super.key,
@@ -37,11 +37,7 @@ class SectionBarHomeState extends LPExtendedState<SectionBarHome> {
             Row(
               children: [
                 widget.textWidget,
-                Icon(
-                  widget.icon,
-                  color: Colors.black,
-                  size: 30,
-                ),
+                Icon(widget.icon, color: Colors.black, size: 30),
               ],
             ),
             Row(children: widget.icons),
@@ -49,19 +45,19 @@ class SectionBarHomeState extends LPExtendedState<SectionBarHome> {
         ),
         widget.subHeader.isNotEmpty
             ? Padding(
-                padding:
-                    const EdgeInsetsDirectional.only(start: 5, end: 18.0),
+                padding: const EdgeInsetsDirectional.only(start: 5, end: 18.0),
                 child: myAutoSizedText(
-                    widget.subHeader,
-                    TextStyle(
-                      fontWeight: FontWeight.bold,
-                      fontSize: 14.sp,
-                      color: darkGray,
-                    ),
-                    appLocale!.textDirection == "rtl"
-                        ? TextAlign.right
-                        : TextAlign.left,
-                    30),
+                  widget.subHeader,
+                  TextStyle(
+                    fontWeight: FontWeight.bold,
+                    fontSize: 14.sp,
+                    color: darkGray,
+                  ),
+                  appLocale.textDirection == "rtl"
+                      ? TextAlign.right
+                      : TextAlign.left,
+                  30,
+                ),
               )
             : Container(),
       ],

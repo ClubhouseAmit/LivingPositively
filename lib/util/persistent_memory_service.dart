@@ -5,17 +5,17 @@ import 'package:shared_preferences/shared_preferences.dart';
 
 abstract class PersistentMemoryService {
   Future<void> setItem(String key, PersistentMemoryType type, dynamic value);
-  Future<dynamic> getItem(
-    String key,
-    PersistentMemoryType type,
-  );
+  Future<dynamic> getItem(String key, PersistentMemoryType type);
   Future<void> reset();
 }
 
 class SharedPreferencesService implements PersistentMemoryService {
   @override
   Future<void> setItem(
-      String key, PersistentMemoryType type, dynamic value) async {
+    String key,
+    PersistentMemoryType type,
+    dynamic value,
+  ) async {
     IncidentLoggerService loggerService =
         GetIt.instance<IncidentLoggerService>();
     if (key == "" || value == null) {
@@ -38,16 +38,9 @@ class SharedPreferencesService implements PersistentMemoryService {
           prefs.setBool(key, value);
         case PersistentMemoryType.StringList:
           prefs.setStringList(key, List<String>.from(value));
-        default:
-          throw Exception(
-            'Unsupported type for persistent memory service: $type',
-          );
       }
     } catch (error, stackTrace) {
-      loggerService.captureLog(
-        error,
-        stackTrace: stackTrace,
-      );
+      loggerService.captureLog(error, stackTrace: stackTrace);
     }
   }
 
@@ -68,16 +61,9 @@ class SharedPreferencesService implements PersistentMemoryService {
           return prefs.getBool(key) ?? false;
         case PersistentMemoryType.StringList:
           return prefs.getStringList(key) ?? [];
-        default:
-          throw Exception(
-            'Unsupported type for persistent memory service: $type',
-          );
       }
     } catch (error, stackTrace) {
-      loggerService.captureLog(
-        error,
-        stackTrace: stackTrace,
-      );
+      loggerService.captureLog(error, stackTrace: stackTrace);
     }
   }
 
@@ -89,10 +75,7 @@ class SharedPreferencesService implements PersistentMemoryService {
       var prefs = await SharedPreferences.getInstance();
       await prefs.clear();
     } catch (error, stackTrace) {
-      loggerService.captureLog(
-        error,
-        stackTrace: stackTrace,
-      );
+      loggerService.captureLog(error, stackTrace: stackTrace);
     }
   }
 }

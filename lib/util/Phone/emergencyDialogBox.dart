@@ -19,17 +19,18 @@ class EmergencyDialogBox extends StatelessWidget {
   final bool hasWhatsApp;
   final bool hasLink;
   final bool canCall;
-  const EmergencyDialogBox(
-      {super.key,
-      required this.number,
-      required this.whatsappNumber,
-      required this.link,
-      this.textNumber = '',
-      this.textMessage = '',
-      this.linkType = 'website',
-      required this.hasWhatsApp,
-      required this.canCall,
-      required this.hasLink});
+  const EmergencyDialogBox({
+    super.key,
+    required this.number,
+    required this.whatsappNumber,
+    required this.link,
+    this.textNumber = '',
+    this.textMessage = '',
+    this.linkType = 'website',
+    required this.hasWhatsApp,
+    required this.canCall,
+    required this.hasLink,
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -41,10 +42,13 @@ class EmergencyDialogBox extends StatelessWidget {
     return AlertDialog(
       // Title of the dialog box
       title: myText(
-          appLocale!.select(gender),
-          TextStyle(
-              fontWeight: FontWeight.normal, fontSize: 18.sp > 40 ? 40 : 20.sp),
-          null),
+        appLocale!.select(gender),
+        TextStyle(
+          fontWeight: FontWeight.normal,
+          fontSize: 18.sp > 40 ? 40 : 20.sp,
+        ),
+        null,
+      ),
       // Content of the dialog box, which includes options to make a call or send a WhatsApp message
       content: SingleChildScrollView(
         child: ListBody(
@@ -57,7 +61,7 @@ class EmergencyDialogBox extends StatelessWidget {
               children: <Widget>[
                 if (canCall)
                   getTextIconWidget(
-                    appLocale!.dialButton(gender),
+                    appLocale.dialButton(gender),
                     () => launchWithFeedback(
                       context,
                       number,
@@ -73,16 +77,14 @@ class EmergencyDialogBox extends StatelessWidget {
                       context,
                       textNumber,
                       isCallFailure: false,
-                      launch: () => openTextMessage(
-                        textNumber,
-                        body: textMessage,
-                      ),
+                      launch: () =>
+                          openTextMessage(textNumber, body: textMessage),
                     ),
                     Icons.sms,
                   ),
                 if (hasWhatsApp)
                   getTextIconWidget(
-                    appLocale!.whatsApp,
+                    appLocale.whatsApp,
                     () => launchWithFeedback(
                       context,
                       whatsappNumber,
@@ -113,11 +115,13 @@ class EmergencyDialogBox extends StatelessWidget {
       actions: <Widget>[
         TextButton(
           child: myText(
-              appLocale!.backButton(gender),
-              TextStyle(
-                  fontWeight: FontWeight.bold,
-                  fontSize: 20.sp > 30 ? 30 : 20.sp),
-              null),
+            appLocale.backButton(gender),
+            TextStyle(
+              fontWeight: FontWeight.bold,
+              fontSize: 20.sp > 30 ? 30 : 20.sp,
+            ),
+            null,
+          ),
           onPressed: () {
             Navigator.of(context).pop();
           },

@@ -1,13 +1,15 @@
 import 'package:flutter/material.dart';
-import 'dart:math';
 
 import 'package:dotted_border/dotted_border.dart';
 
 class ThanksItemSuggested extends StatefulWidget {
   final Function add;
   final String inputText;
-  const ThanksItemSuggested(
-      {super.key, required this.add, required this.inputText});
+  const ThanksItemSuggested({
+    super.key,
+    required this.add,
+    required this.inputText,
+  });
 
   @override
   State<ThanksItemSuggested> createState() => _ThanksItemSuggestedState();
@@ -38,13 +40,14 @@ class _ThanksItemSuggestedState extends State<ThanksItemSuggested> {
             child: Container(
               height: 50,
               decoration: BoxDecoration(
-                  color: Colors.transparent,
-                  borderRadius: BorderRadius.circular(20)),
+                color: Colors.transparent,
+                borderRadius: BorderRadius.circular(20),
+              ),
               child: Padding(
                 padding: const EdgeInsets.all(7.0),
                 child: Row(
                   children: [
-                    Container(
+                    SizedBox(
                       width: MediaQuery.of(context).size.width > 1000
                           ? 600
                           : MediaQuery.of(context).size.width * 0.6 + 36,
@@ -58,15 +61,13 @@ class _ThanksItemSuggestedState extends State<ThanksItemSuggested> {
               ),
             ),
           ),
-          SizedBox(
-            width: 10,
-          ),
+          SizedBox(width: 10),
           GestureDetector(
             key: Key('addSuggesstion'),
             onTap: () => {
               setState(() {
                 widget.add();
-              })
+              }),
             },
             child: DottedBorder(
               options: RoundedRectDottedBorderOptions(
@@ -84,18 +85,10 @@ class _ThanksItemSuggestedState extends State<ThanksItemSuggested> {
                 child: Stack(
                   alignment: Alignment.center,
                   children: <Widget>[
-                    Icon(
-                      Icons.add,
-                      color: Colors.green,
-                      size: 20,
-                    ),
+                    Icon(Icons.add, color: Colors.green, size: 20),
                     Transform.translate(
                       offset: Offset(0.5, 0.5),
-                      child: Icon(
-                        Icons.add,
-                        color: Colors.green,
-                        size: 20,
-                      ),
+                      child: Icon(Icons.add, color: Colors.green, size: 20),
                     ),
                   ],
                 ),

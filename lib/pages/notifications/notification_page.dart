@@ -4,7 +4,6 @@ import 'package:flutter/material.dart';
 
 import 'package:mazilon/pages/notifications/reminder_debug_recorder.dart';
 import 'package:mazilon/pages/notifications/set_notification_widget.dart';
-import 'package:mazilon/l10n/app_localizations.dart';
 import 'package:mazilon/util/LP_extended_state.dart';
 import 'package:mazilon/util/userInformation.dart';
 import 'package:provider/provider.dart';
@@ -40,8 +39,10 @@ class _NotificationPageState extends LPExtendedState<NotificationPage> {
 
   @override
   Widget build(BuildContext context) {
-    final userInfoProvider =
-        Provider.of<UserInformation>(context, listen: false);
+    final userInfoProvider = Provider.of<UserInformation>(
+      context,
+      listen: false,
+    );
 
     final gender = userInfoProvider.gender;
     return Scaffold(
@@ -56,12 +57,10 @@ class _NotificationPageState extends LPExtendedState<NotificationPage> {
                 GestureDetector(
                   behavior: HitTestBehavior.opaque,
                   onLongPress: _toggleDebugUnlock,
-                  child: Text(
-                    appLocale!.notificationPageHeader(gender),
-                  ),
+                  child: Text(appLocale.notificationPageHeader(gender)),
                 ),
                 SizedBox(height: 20),
-                SetNotificationWidget()
+                SetNotificationWidget(),
               ],
             ),
           ),

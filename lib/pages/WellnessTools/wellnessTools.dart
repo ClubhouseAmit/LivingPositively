@@ -7,7 +7,6 @@ import 'package:mazilon/pages/WellnessTools/VideoPlayerPageFactory.dart';
 import 'package:mazilon/pages/WellnessTools/more_videos_item.dart';
 import 'package:mazilon/util/LP_extended_state.dart';
 import 'package:mazilon/util/styles.dart';
-import 'package:mazilon/l10n/app_localizations.dart';
 
 class WellnessTools extends StatefulWidget {
   final Function setBool;
@@ -72,129 +71,122 @@ class _WellnessToolsState extends LPExtendedState<WellnessTools> {
       );
     }
     return VideoPlayerInheritedWidget(
-        videoId: selectedVideoId,
-        changeVideo: changeVideo,
-        child: SafeArea(
-          child: Scaffold(
-            body: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Visibility(
-                  visible: !isFullScreen,
-                  child: Center(
-                    child: Container(
-                      //color: Colors.white,
-                      height: 130.0,
-                      //margin: EdgeInsets.only(top: 15),
-                      child: Image.asset(
-                        'assets/images/Logo.png',
-                        width: MediaQuery.sizeOf(context).width * 0.4 > 1000
-                            ? 500
-                            : MediaQuery.sizeOf(context)
-                                .width, // Adjust as needed
-                      ),
+      videoId: selectedVideoId,
+      changeVideo: changeVideo,
+      child: SafeArea(
+        child: Scaffold(
+          body: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Visibility(
+                visible: !isFullScreen,
+                child: Center(
+                  child: SizedBox(
+                    //color: Colors.white,
+                    height: 130.0,
+                    //margin: EdgeInsets.only(top: 15),
+                    child: Image.asset(
+                      'assets/images/Logo.png',
+                      width: MediaQuery.sizeOf(context).width * 0.4 > 1000
+                          ? 500
+                          : MediaQuery.sizeOf(
+                              context,
+                            ).width, // Adjust as needed
                     ),
                   ),
                 ),
-                Visibility(
-                  visible: !isFullScreen,
-                  child: Padding(
-                    padding: const EdgeInsets.fromLTRB(8.0, 10.0, 8, 10),
-                    child: myAutoSizedText(
-                        widget
-                            .videoData['videoHeadline']![selectedVideoIdIndex],
-                        TextStyle(
-                          fontSize: 24.sp,
-                          fontWeight: FontWeight.bold,
-                        ),
-                        appLocale!.textDirection == "rtl"
-                            ? TextAlign.right
-                            : TextAlign.left,
-                        28,
-                        3),
+              ),
+              Visibility(
+                visible: !isFullScreen,
+                child: Padding(
+                  padding: const EdgeInsets.fromLTRB(8.0, 10.0, 8, 10),
+                  child: myAutoSizedText(
+                    widget.videoData['videoHeadline']![selectedVideoIdIndex],
+                    TextStyle(fontSize: 24.sp, fontWeight: FontWeight.bold),
+                    appLocale.textDirection == "rtl"
+                        ? TextAlign.right
+                        : TextAlign.left,
+                    28,
+                    3,
                   ),
                 ),
-                Expanded(
-                  child: _videoPlayerPageFactory.create(
-                    onFullScreenChanged: setIsFullScreen,
-                    videoData: widget.videoData,
+              ),
+              Expanded(
+                child: _videoPlayerPageFactory.create(
+                  onFullScreenChanged: setIsFullScreen,
+                  videoData: widget.videoData,
+                ),
+              ),
+              SizedBox(height: 10),
+              Visibility(
+                visible: !isFullScreen,
+                child: Padding(
+                  padding: const EdgeInsets.fromLTRB(0, 4.0, 4, 20),
+                  child: myAutoSizedText(
+                    widget.videoData['videoDescription']![selectedVideoIdIndex],
+                    TextStyle(fontSize: 18.sp, fontWeight: FontWeight.normal),
+                    appLocale.textDirection == "rtl"
+                        ? TextAlign.right
+                        : TextAlign.left,
+                    20,
+                    3,
                   ),
                 ),
-                SizedBox(
-                  height: 10,
-                ),
-                Visibility(
-                  visible: !isFullScreen,
-                  child: Padding(
-                    padding: const EdgeInsets.fromLTRB(0, 4.0, 4, 20),
-                    child: myAutoSizedText(
-                        widget.videoData['videoDescription']![
-                            selectedVideoIdIndex],
-                        TextStyle(
-                          fontSize: 18.sp,
-                          fontWeight: FontWeight.normal,
-                        ),
-                        appLocale!.textDirection == "rtl"
-                            ? TextAlign.right
-                            : TextAlign.left,
-                        20,
-                        3),
+              ),
+              Visibility(
+                visible: !isFullScreen,
+                child: Padding(
+                  padding: const EdgeInsets.fromLTRB(0, 4.0, 4, 20),
+                  child: myAutoSizedText(
+                    appLocale.moreVideos,
+                    TextStyle(fontSize: 18.sp, fontWeight: FontWeight.bold),
+                    appLocale.textDirection == "rtl"
+                        ? TextAlign.right
+                        : TextAlign.left,
+                    20,
+                    3,
                   ),
                 ),
-                Visibility(
-                  visible: !isFullScreen,
-                  child: Padding(
-                    padding: const EdgeInsets.fromLTRB(0, 4.0, 4, 20),
-                    child: myAutoSizedText(
-                        appLocale!.moreVideos,
-                        TextStyle(
-                          fontSize: 18.sp,
-                          fontWeight: FontWeight.bold,
-                        ),
-                        appLocale!.textDirection == "rtl"
-                            ? TextAlign.right
-                            : TextAlign.left,
-                        20,
-                        3),
+              ),
+              Visibility(
+                visible: !isFullScreen,
+                child: Expanded(
+                  child: ListView.separated(
+                    itemBuilder: (context, index) {
+                      if (index == selectedVideoIdIndex) {
+                        return Container();
+                      }
+                      var videoId = widget.videoData['videoId']![index];
+                      var thumbnailUrl = getThumbnailUrl(videoId);
+                      return MoreVideosItem(
+                        videoData: widget.videoData,
+                        index: index,
+                        thumbnailUrl: thumbnailUrl,
+                        changeVidoeIdIndex: () {
+                          return () {
+                            setState(() {
+                              selectedVideoIdIndex = index;
+                              VideoPlayerInheritedWidget.of(
+                                context,
+                              )?.changeVideo(
+                                widget
+                                    .videoData['videoId']![selectedVideoIdIndex],
+                              );
+                            });
+                          };
+                        },
+                      );
+                    },
+                    itemCount: widget.videoData['videoId']!.length,
+                    separatorBuilder: (context, _) =>
+                        const SizedBox(height: 10.0),
                   ),
                 ),
-                Visibility(
-                  visible: !isFullScreen,
-                  child: Expanded(
-                    child: ListView.separated(
-                      itemBuilder: (context, index) {
-                        if (index == selectedVideoIdIndex) {
-                          return Container();
-                        }
-                        var videoId = widget.videoData['videoId']![index];
-                        var thumbnailUrl = getThumbnailUrl(videoId);
-                        return MoreVideosItem(
-                          videoData: widget.videoData,
-                          index: index,
-                          thumbnailUrl: thumbnailUrl,
-                          changeVidoeIdIndex: () {
-                            return () {
-                              setState(() {
-                                selectedVideoIdIndex = index;
-                                VideoPlayerInheritedWidget.of(context)
-                                    ?.changeVideo(
-                                  widget.videoData['videoId']![
-                                      selectedVideoIdIndex],
-                                );
-                              });
-                            };
-                          },
-                        );
-                      },
-                      itemCount: widget.videoData['videoId']!.length,
-                      separatorBuilder: (context, _) =>
-                          const SizedBox(height: 10.0),
-                    ),
-                  ),
-                ),
-              ],
-            ),
+              ),
+            ],
           ),
-        ));
+        ),
+      ),
+    );
   }
 }

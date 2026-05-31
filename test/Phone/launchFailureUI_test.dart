@@ -86,7 +86,10 @@ class _FakePersistentMemoryService implements PersistentMemoryService {
 
   @override
   Future<void> setItem(
-      String key, PersistentMemoryType type, dynamic value) async {}
+    String key,
+    PersistentMemoryType type,
+    dynamic value,
+  ) async {}
 }
 
 Widget _wrapForPhoneContact(Widget Function(BuildContext) build) {
@@ -120,7 +123,7 @@ Widget _wrapForEmergencyDialog(EmergencyDialogBox dialog) {
       // Scaffold ancestor so the dialog's snackbar has a ScaffoldMessenger.
       home: ScreenUtilInit(
         designSize: const Size(360, 690),
-        builder: (_, __) => Scaffold(body: dialog),
+        builder: (_, _) => Scaffold(body: dialog),
       ),
     ),
   );
@@ -131,82 +134,89 @@ void main() {
 
   group('phoneContact failure UI', () {
     testWidgets(
-        'on dial failure shows snackbar with localized message + Copy number action',
-        (tester) async {
-      final originalPlatform = UrlLauncherPlatform.instance;
-      final fake = _FailingUrlLauncherPlatform();
-      UrlLauncherPlatform.instance = fake;
-      addTearDown(() => UrlLauncherPlatform.instance = originalPlatform);
+      'on dial failure shows snackbar with localized message + Copy number action',
+      (tester) async {
+        final originalPlatform = UrlLauncherPlatform.instance;
+        final fake = _FailingUrlLauncherPlatform();
+        UrlLauncherPlatform.instance = fake;
+        addTearDown(() => UrlLauncherPlatform.instance = originalPlatform);
 
-      await tester.pumpWidget(
-        _wrapForPhoneContact((_) => phoneContact('555-1234', 'Mom')),
-      );
-      await tester.pumpAndSettle();
+        await tester.pumpWidget(
+          _wrapForPhoneContact((_) => phoneContact('555-1234', 'Mom')),
+        );
+        await tester.pumpAndSettle();
 
-      await tester.tap(find.byIcon(Icons.phone));
-      // The async dial completes on the next microtask; pump once for the
-      // SnackBar transition, then settle.
-      await tester.pump();
-      await tester.pump(const Duration(milliseconds: 50));
+        await tester.tap(find.byIcon(Icons.phone));
+        // The async dial completes on the next microtask; pump once for the
+        // SnackBar transition, then settle.
+        await tester.pump();
+        await tester.pump(const Duration(milliseconds: 50));
 
-      expect(fake.lastLaunchedUrl, 'tel:555-1234');
-      expect(find.byType(SnackBar), findsOneWidget);
-      expect(
-          find.text("Couldn't open the dialer for 555-1234"), findsOneWidget);
-      expect(
-          find.widgetWithText(SnackBarAction, 'Copy number'), findsOneWidget);
-    });
+        expect(fake.lastLaunchedUrl, 'tel:555-1234');
+        expect(find.byType(SnackBar), findsOneWidget);
+        expect(
+          find.text("Couldn't open the dialer for 555-1234"),
+          findsOneWidget,
+        );
+        expect(
+          find.widgetWithText(SnackBarAction, 'Copy number'),
+          findsOneWidget,
+        );
+      },
+    );
 
     testWidgets(
-        'tapping Copy number writes to clipboard and shows confirmation toast',
-        (tester) async {
-      final originalPlatform = UrlLauncherPlatform.instance;
-      final fake = _FailingUrlLauncherPlatform();
-      UrlLauncherPlatform.instance = fake;
-      addTearDown(() => UrlLauncherPlatform.instance = originalPlatform);
+      'tapping Copy number writes to clipboard and shows confirmation toast',
+      (tester) async {
+        final originalPlatform = UrlLauncherPlatform.instance;
+        final fake = _FailingUrlLauncherPlatform();
+        UrlLauncherPlatform.instance = fake;
+        addTearDown(() => UrlLauncherPlatform.instance = originalPlatform);
 
-      // Intercept Clipboard.setData so we don't need a platform channel.
-      String? clipboardWrite;
-      TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger
-          .setMockMethodCallHandler(SystemChannels.platform, (call) async {
-        if (call.method == 'Clipboard.setData') {
-          clipboardWrite = (call.arguments as Map)['text'] as String?;
-        }
-        return null;
-      });
-      addTearDown(() {
+        // Intercept Clipboard.setData so we don't need a platform channel.
+        String? clipboardWrite;
         TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger
-            .setMockMethodCallHandler(SystemChannels.platform, null);
-      });
+            .setMockMethodCallHandler(SystemChannels.platform, (call) async {
+              if (call.method == 'Clipboard.setData') {
+                clipboardWrite = (call.arguments as Map)['text'] as String?;
+              }
+              return null;
+            });
+        addTearDown(() {
+          TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger
+              .setMockMethodCallHandler(SystemChannels.platform, null);
+        });
 
-      await tester.pumpWidget(
-        _wrapForPhoneContact((_) => phoneContact('555-7890', 'Crisis line')),
-      );
-      await tester.pumpAndSettle();
+        await tester.pumpWidget(
+          _wrapForPhoneContact((_) => phoneContact('555-7890', 'Crisis line')),
+        );
+        await tester.pumpAndSettle();
 
-      await tester.tap(find.byIcon(Icons.phone));
-      await tester.pump();
-      await tester.pump(const Duration(milliseconds: 50));
+        await tester.tap(find.byIcon(Icons.phone));
+        await tester.pump();
+        await tester.pump(const Duration(milliseconds: 50));
 
-      // SnackBar floats below the visible viewport in test mode; tap by
-      // finder fails hit-testing. Invoke the action's onPressed callback
-      // directly — same code path, no gesture machinery.
-      final actionFinder = find.widgetWithText(SnackBarAction, 'Copy number');
-      expect(actionFinder, findsOneWidget);
-      final action = tester.widget<SnackBarAction>(actionFinder);
-      action.onPressed();
-      // Flush the async chain inside onPressed (Clipboard write + second
-      // showSnackBar) before asserting the follow-up toast renders.
-      await tester.pumpAndSettle();
+        // SnackBar floats below the visible viewport in test mode; tap by
+        // finder fails hit-testing. Invoke the action's onPressed callback
+        // directly — same code path, no gesture machinery.
+        final actionFinder = find.widgetWithText(SnackBarAction, 'Copy number');
+        expect(actionFinder, findsOneWidget);
+        final action = tester.widget<SnackBarAction>(actionFinder);
+        action.onPressed();
+        // Flush the async chain inside onPressed (Clipboard write + second
+        // showSnackBar) before asserting the follow-up toast renders.
+        await tester.pumpAndSettle();
 
-      expect(clipboardWrite, '555-7890');
-      expect(find.text('Number copied'), findsOneWidget);
-    });
+        expect(clipboardWrite, '555-7890');
+        expect(find.text('Number copied'), findsOneWidget);
+      },
+    );
   });
 
   group('EmergencyDialogBox failure UI', () {
-    testWidgets('dial failure surfaces the same snackbar as phoneContact',
-        (tester) async {
+    testWidgets('dial failure surfaces the same snackbar as phoneContact', (
+      tester,
+    ) async {
       final originalPlatform = UrlLauncherPlatform.instance;
       final fake = _FailingUrlLauncherPlatform();
       UrlLauncherPlatform.instance = fake;
@@ -234,46 +244,52 @@ void main() {
       expect(find.byType(SnackBar), findsOneWidget);
       expect(find.text("Couldn't open the dialer for 988"), findsOneWidget);
       expect(
-          find.widgetWithText(SnackBarAction, 'Copy number'), findsOneWidget);
+        find.widgetWithText(SnackBarAction, 'Copy number'),
+        findsOneWidget,
+      );
     });
 
     testWidgets(
-        'WhatsApp failure shows non-call message and still offers Copy number for the WhatsApp number',
-        (tester) async {
-      final originalPlatform = UrlLauncherPlatform.instance;
-      final fake = _FailingUrlLauncherPlatform();
-      UrlLauncherPlatform.instance = fake;
-      addTearDown(() => UrlLauncherPlatform.instance = originalPlatform);
+      'WhatsApp failure shows non-call message and still offers Copy number for the WhatsApp number',
+      (tester) async {
+        final originalPlatform = UrlLauncherPlatform.instance;
+        final fake = _FailingUrlLauncherPlatform();
+        UrlLauncherPlatform.instance = fake;
+        addTearDown(() => UrlLauncherPlatform.instance = originalPlatform);
 
-      await tester.pumpWidget(
-        _wrapForEmergencyDialog(
-          const EmergencyDialogBox(
-            number: '',
-            whatsappNumber: '972501234567',
-            link: '',
-            hasWhatsApp: true,
-            hasLink: false,
-            canCall: false,
+        await tester.pumpWidget(
+          _wrapForEmergencyDialog(
+            const EmergencyDialogBox(
+              number: '',
+              whatsappNumber: '972501234567',
+              link: '',
+              hasWhatsApp: true,
+              hasLink: false,
+              canCall: false,
+            ),
           ),
-        ),
-      );
-      await tester.pumpAndSettle();
+        );
+        await tester.pumpAndSettle();
 
-      await tester.tap(find.byIcon(Icons.chat));
-      await tester.pump();
-      await tester.pump(const Duration(milliseconds: 50));
+        await tester.tap(find.byIcon(Icons.chat));
+        await tester.pump();
+        await tester.pump(const Duration(milliseconds: 50));
 
-      expect(fake.lastLaunchedUrl, 'https://wa.me/972501234567');
-      expect(find.byType(SnackBar), findsOneWidget);
-      expect(find.text("Couldn't open the app"), findsOneWidget);
-      // WhatsApp uses the non-call message; Copy number IS still offered
-      // because the whatsappNumber is non-empty.
-      expect(
-          find.widgetWithText(SnackBarAction, 'Copy number'), findsOneWidget);
-    });
+        expect(fake.lastLaunchedUrl, 'https://wa.me/972501234567');
+        expect(find.byType(SnackBar), findsOneWidget);
+        expect(find.text("Couldn't open the app"), findsOneWidget);
+        // WhatsApp uses the non-call message; Copy number IS still offered
+        // because the whatsappNumber is non-empty.
+        expect(
+          find.widgetWithText(SnackBarAction, 'Copy number'),
+          findsOneWidget,
+        );
+      },
+    );
 
-    testWidgets('link failure has no Copy number action (no number to copy)',
-        (tester) async {
+    testWidgets('link failure has no Copy number action (no number to copy)', (
+      tester,
+    ) async {
       final originalPlatform = UrlLauncherPlatform.instance;
       final fake = _FailingUrlLauncherPlatform();
       UrlLauncherPlatform.instance = fake;
@@ -308,8 +324,9 @@ void main() {
   // to returning false. launchWithFeedback must route both paths through
   // the same snackbar so the user never sees a silent failure.
   group('thrown launcher exceptions route through the snackbar', () {
-    testWidgets('phoneContact: dial that throws still shows snackbar',
-        (tester) async {
+    testWidgets('phoneContact: dial that throws still shows snackbar', (
+      tester,
+    ) async {
       final originalPlatform = UrlLauncherPlatform.instance;
       final fake = _ThrowingUrlLauncherPlatform();
       UrlLauncherPlatform.instance = fake;
@@ -327,42 +344,49 @@ void main() {
       expect(fake.lastLaunchedUrl, 'tel:555-9999');
       expect(find.byType(SnackBar), findsOneWidget);
       expect(
-          find.text("Couldn't open the dialer for 555-9999"), findsOneWidget);
+        find.text("Couldn't open the dialer for 555-9999"),
+        findsOneWidget,
+      );
       expect(
-          find.widgetWithText(SnackBarAction, 'Copy number'), findsOneWidget);
+        find.widgetWithText(SnackBarAction, 'Copy number'),
+        findsOneWidget,
+      );
     });
 
     testWidgets(
-        'EmergencyDialogBox: WhatsApp that throws still shows the non-call snackbar',
-        (tester) async {
-      final originalPlatform = UrlLauncherPlatform.instance;
-      final fake = _ThrowingUrlLauncherPlatform();
-      UrlLauncherPlatform.instance = fake;
-      addTearDown(() => UrlLauncherPlatform.instance = originalPlatform);
+      'EmergencyDialogBox: WhatsApp that throws still shows the non-call snackbar',
+      (tester) async {
+        final originalPlatform = UrlLauncherPlatform.instance;
+        final fake = _ThrowingUrlLauncherPlatform();
+        UrlLauncherPlatform.instance = fake;
+        addTearDown(() => UrlLauncherPlatform.instance = originalPlatform);
 
-      await tester.pumpWidget(
-        _wrapForEmergencyDialog(
-          const EmergencyDialogBox(
-            number: '',
-            whatsappNumber: '972501234567',
-            link: '',
-            hasWhatsApp: true,
-            hasLink: false,
-            canCall: false,
+        await tester.pumpWidget(
+          _wrapForEmergencyDialog(
+            const EmergencyDialogBox(
+              number: '',
+              whatsappNumber: '972501234567',
+              link: '',
+              hasWhatsApp: true,
+              hasLink: false,
+              canCall: false,
+            ),
           ),
-        ),
-      );
-      await tester.pumpAndSettle();
+        );
+        await tester.pumpAndSettle();
 
-      await tester.tap(find.byIcon(Icons.chat));
-      await tester.pump();
-      await tester.pump(const Duration(milliseconds: 50));
+        await tester.tap(find.byIcon(Icons.chat));
+        await tester.pump();
+        await tester.pump(const Duration(milliseconds: 50));
 
-      expect(fake.lastLaunchedUrl, 'https://wa.me/972501234567');
-      expect(find.byType(SnackBar), findsOneWidget);
-      expect(find.text("Couldn't open the app"), findsOneWidget);
-      expect(
-          find.widgetWithText(SnackBarAction, 'Copy number'), findsOneWidget);
-    });
+        expect(fake.lastLaunchedUrl, 'https://wa.me/972501234567');
+        expect(find.byType(SnackBar), findsOneWidget);
+        expect(find.text("Couldn't open the app"), findsOneWidget);
+        expect(
+          find.widgetWithText(SnackBarAction, 'Copy number'),
+          findsOneWidget,
+        );
+      },
+    );
   });
 }

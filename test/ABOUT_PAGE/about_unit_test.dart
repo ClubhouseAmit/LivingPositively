@@ -1,5 +1,4 @@
 import 'package:flutter_test/flutter_test.dart';
-import 'package:mockito/mockito.dart';
 import 'aboutTest.dart';
 import 'package:flutter/material.dart';
 
@@ -9,8 +8,9 @@ void main() {
     expect(find.byKey(Key('MatzilonLogo')), findsOneWidget);
   });
 
-  testWidgets('Test social Hub logo widget exists',
-      (WidgetTester tester) async {
+  testWidgets('Test social Hub logo widget exists', (
+    WidgetTester tester,
+  ) async {
     await tester.pumpWidget(About());
     expect(find.byKey(Key('aboutPageSocialHubLogo')), findsOneWidget);
   });

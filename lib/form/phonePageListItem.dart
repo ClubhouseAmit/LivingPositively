@@ -7,18 +7,12 @@ import 'package:mazilon/util/styles.dart';
 import 'package:mazilon/util/Form/formPagePhoneModel.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:mazilon/util/userInformation.dart';
-import 'package:mazilon/util/appInformation.dart';
-
-import 'package:mazilon/l10n/app_localizations.dart';
 
 class PhonePageList extends StatefulWidget {
-  PhonePageData phonePageData;
+  final PhonePageData phonePageData;
   @override
   _PhonePageListState createState() => _PhonePageListState();
-  PhonePageList({
-    Key? key,
-    required this.phonePageData,
-  }) : super(key: key);
+  const PhonePageList({super.key, required this.phonePageData});
 }
 
 class _PhonePageListState extends LPExtendedState<PhonePageList> {
@@ -32,10 +26,12 @@ class _PhonePageListState extends LPExtendedState<PhonePageList> {
     final phonePageData = Provider.of<PhonePageData>(context, listen: false);
     // Initialize the controllers with the existing phone names and numbers
     for (int i = 0; i < phonePageData.savedPhoneNames.length; i++) {
-      nameControllers
-          .add(TextEditingController(text: phonePageData.savedPhoneNames[i]));
-      numberControllers
-          .add(TextEditingController(text: phonePageData.savedPhoneNumbers[i]));
+      nameControllers.add(
+        TextEditingController(text: phonePageData.savedPhoneNames[i]),
+      );
+      numberControllers.add(
+        TextEditingController(text: phonePageData.savedPhoneNumbers[i]),
+      );
     }
   }
 
@@ -55,14 +51,17 @@ class _PhonePageListState extends LPExtendedState<PhonePageList> {
               children: [
                 if (isEditing)
                   myText(
-                      appLocale!.phonesPageName(gender),
-                      TextStyle(fontWeight: FontWeight.bold, fontSize: 14.sp),
-                      null),
+                    appLocale.phonesPageName(gender),
+                    TextStyle(fontWeight: FontWeight.bold, fontSize: 14.sp),
+                    null,
+                  ),
                 if (isEditing)
                   Expanded(
                     child: TextField(
                       style: TextStyle(
-                          fontWeight: FontWeight.normal, fontSize: 14.sp),
+                        fontWeight: FontWeight.normal,
+                        fontSize: 14.sp,
+                      ),
                       controller: nameControllers[index],
                     ),
                   ),
@@ -82,21 +81,26 @@ class _PhonePageListState extends LPExtendedState<PhonePageList> {
                       radius: returnSizedBox(context, 20),
                       backgroundColor: primaryPurple,
                       foregroundColor: Colors.white,
-                      child:
-                          Icon(Icons.phone, size: returnSizedBox(context, 30)),
+                      child: Icon(
+                        Icons.phone,
+                        size: returnSizedBox(context, 30),
+                      ),
                     ),
                   ),
                 const SizedBox(width: 10),
                 if (isEditing)
                   myText(
-                      appLocale!.phonesPagePhone(gender),
-                      TextStyle(fontWeight: FontWeight.bold, fontSize: 12.sp),
-                      null),
+                    appLocale.phonesPagePhone(gender),
+                    TextStyle(fontWeight: FontWeight.bold, fontSize: 12.sp),
+                    null,
+                  ),
                 Expanded(
                   child: isEditing
                       ? TextField(
                           style: TextStyle(
-                              fontWeight: FontWeight.normal, fontSize: 12.sp),
+                            fontWeight: FontWeight.normal,
+                            fontSize: 12.sp,
+                          ),
                           controller: numberControllers[index],
                         )
                       : InkWell(
@@ -107,15 +111,17 @@ class _PhonePageListState extends LPExtendedState<PhonePageList> {
                           },
                           child: Card(
                             child: Padding(
-                              padding:
-                                  EdgeInsets.all(returnSizedBox(context, 10)),
+                              padding: EdgeInsets.all(
+                                returnSizedBox(context, 10),
+                              ),
                               child: myText(
-                                  phonePageData.savedPhoneNames[index],
-                                  TextStyle(
-                                    fontWeight: FontWeight.normal,
-                                    fontSize: 14.sp,
-                                  ),
-                                  null),
+                                phonePageData.savedPhoneNames[index],
+                                TextStyle(
+                                  fontWeight: FontWeight.normal,
+                                  fontSize: 14.sp,
+                                ),
+                                null,
+                              ),
                             ),
                           ),
                         ),
@@ -132,7 +138,10 @@ class _PhonePageListState extends LPExtendedState<PhonePageList> {
                       String newPhoneNumber = numberControllers[index].text;
                       //save it in the phones lists (for names and numbers) in phonePageData:
                       phonePageData.replaceItem(
-                          index, newPhoneName, newPhoneNumber);
+                        index,
+                        newPhoneName,
+                        newPhoneNumber,
+                      );
                       editingIndex = -1;
                       //call the update method to update the UI and commit changes:
                       phonePageData.update();
@@ -161,7 +170,7 @@ class _PhonePageListState extends LPExtendedState<PhonePageList> {
               ],
             ),
           );
-        }).toList(),
+        }),
         const SizedBox(width: 10), // Add some space between the buttons
         //add contact manually button:
         TextButton(
@@ -191,12 +200,14 @@ class _PhonePageListState extends LPExtendedState<PhonePageList> {
             padding: const EdgeInsets.all(6),
           ),
           child: myText(
-              appLocale!.phonesPageManualTitle(gender),
-              TextStyle(
-                  fontWeight: FontWeight.bold,
-                  color: primaryPurple,
-                  fontSize: 16.sp),
-              TextAlign.center),
+            appLocale.phonesPageManualTitle(gender),
+            TextStyle(
+              fontWeight: FontWeight.bold,
+              color: primaryPurple,
+              fontSize: 16.sp,
+            ),
+            TextAlign.center,
+          ),
         ),
       ],
     );

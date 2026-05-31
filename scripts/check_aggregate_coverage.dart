@@ -88,8 +88,9 @@ void main(List<String> args) {
   // unambiguous.
   final missing = <String>[];
   if (!File(_unitLcovPath).existsSync()) missing.add(_unitLcovPath);
-  if (!File(_integrationLcovPath).existsSync())
+  if (!File(_integrationLcovPath).existsSync()) {
     missing.add(_integrationLcovPath);
+  }
 
   if (missing.isNotEmpty) {
     stderr
@@ -102,7 +103,8 @@ void main(List<String> args) {
       ..writeln('  $_unitLcovPath is produced by the build-android job')
       ..writeln('    (artifact: coverage-lcov)')
       ..writeln(
-          '  $_integrationLcovPath is produced by the integration-test job')
+        '  $_integrationLcovPath is produced by the integration-test job',
+      )
       ..writeln('    (artifact: coverage-integration-lcov)');
     exit(2);
   }
@@ -112,8 +114,9 @@ void main(List<String> args) {
   final merged = parseLcovInputs([_unitLcovPath, _integrationLcovPath]);
 
   // Apply exclude list (identical to check_coverage.dart).
-  final excludes =
-      _excludePatterns.map((p) => RegExp(p, caseSensitive: false)).toList();
+  final excludes = _excludePatterns
+      .map((p) => RegExp(p, caseSensitive: false))
+      .toList();
 
   final filtered = <String, LcovFileStats>{};
   final excluded = <String>[];
@@ -135,12 +138,17 @@ void main(List<String> args) {
 
   stdout
     ..writeln(
-        '======= Mazilon Aggregate Coverage Gate (ADR-003/ADR-004) =======')
-    ..writeln('Inputs:   $_unitLcovPath (unit) + '
-        '$_integrationLcovPath (intg)')
+      '======= Mazilon Aggregate Coverage Gate (ADR-003/ADR-004) =======',
+    )
+    ..writeln(
+      'Inputs:   $_unitLcovPath (unit) + '
+      '$_integrationLcovPath (intg)',
+    )
     ..writeln('Files:    ${filtered.length} (excluded: ${excluded.length})')
-    ..writeln('Lines:    $totalHit / $totalLines = '
-        '${aggregatePct.toStringAsFixed(2)}%')
+    ..writeln(
+      'Lines:    $totalHit / $totalLines = '
+      '${aggregatePct.toStringAsFixed(2)}%',
+    )
     ..writeln('Global aggregate floor: ${_aggregateFloor.toStringAsFixed(0)}%')
     ..writeln('=========================================================');
 
@@ -149,8 +157,10 @@ void main(List<String> args) {
     exit(0);
   } else {
     stderr.writeln('FAIL: aggregate coverage floor not met:');
-    stderr.writeln('  AGGREGATE: ${aggregatePct.toStringAsFixed(1)}% < '
-        '${_aggregateFloor.toStringAsFixed(1)}%');
+    stderr.writeln(
+      '  AGGREGATE: ${aggregatePct.toStringAsFixed(1)}% < '
+      '${_aggregateFloor.toStringAsFixed(1)}%',
+    );
     exit(1);
   }
 }

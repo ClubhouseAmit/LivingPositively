@@ -12,11 +12,7 @@ class NameBar extends StatefulWidget {
   final List<Widget> icons;
 
   final String greetingString;
-  const NameBar({
-    super.key,
-    required this.icons,
-    required this.greetingString,
-  });
+  const NameBar({super.key, required this.icons, required this.greetingString});
 
   @override
   State<NameBar> createState() => NameBarState();
@@ -42,16 +38,17 @@ class NameBarState extends LPExtendedState<NameBar> {
                 Container(
                   child: Expanded(
                     child: AutoSizeText(
-                      appLocale!.greetings(userInfoProvider.name),
+                      appLocale.greetings(userInfoProvider.name),
                       overflow: TextOverflow.ellipsis,
                       minFontSize: 12,
                       maxFontSize: 30,
                       maxLines: 1,
                       style: TextStyle(
-                          fontSize: 30.sp,
-                          fontWeight: FontWeight.bold,
-                          color: Colors.black,
-                          fontFamily: 'Rubix'),
+                        fontSize: 30.sp,
+                        fontWeight: FontWeight.bold,
+                        color: Colors.black,
+                        fontFamily: 'Rubix',
+                      ),
                     ),
                   ),
                   /* myAutoSizedText(
@@ -67,16 +64,16 @@ class NameBarState extends LPExtendedState<NameBar> {
               ],
             ),
             myAutoSizedText(
-                widget.greetingString,
-                TextStyle(
-                    fontSize: 18.sp,
-                    fontWeight: FontWeight.bold,
-                    color: darkGray),
-                null,
-                30),
-            SizedBox(
-              height: 20.h,
-            )
+              widget.greetingString,
+              TextStyle(
+                fontSize: 18.sp,
+                fontWeight: FontWeight.bold,
+                color: darkGray,
+              ),
+              null,
+              30,
+            ),
+            SizedBox(height: 20.h),
           ],
         ),
       ),

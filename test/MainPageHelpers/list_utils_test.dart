@@ -14,8 +14,11 @@ class _RecordingLogger implements IncidentLoggerService {
   @override
   Future<void> initializeSentry(_) async {}
   @override
-  Future<void> captureLog(dynamic exception,
-      {StackTrace? stackTrace, dynamic exceptionData}) async {
+  Future<void> captureLog(
+    dynamic exception, {
+    StackTrace? stackTrace,
+    dynamic exceptionData,
+  }) async {
     logs.add(exception);
   }
 }
@@ -25,8 +28,10 @@ class _FakeAnalytics implements AnalyticsService {
   @override
   Future<void> init() async {}
   @override
-  Future<void> trackEvent(String name,
-      [Map<String, dynamic>? properties]) async {
+  Future<void> trackEvent(
+    String name, [
+    Map<String, dynamic>? properties,
+  ]) async {
     events.add(name);
   }
 }
@@ -44,6 +49,7 @@ class _FakePersistentMemoryService implements PersistentMemoryService {
 /// deterministic value for any method invocation, so we can assert the right
 /// method was called for each PagesCode case.
 class _FakeLocalization {
+  @override
   dynamic noSuchMethod(Invocation invocation) {
     final raw = invocation.memberName.toString();
     final clean = raw.replaceAll('Symbol("', '').replaceAll('")', '');
@@ -73,7 +79,10 @@ void main() {
   group('getLocalizedTextForLists', () {
     test('GratitudeJournal returns thanks titles + praying_hands icon', () {
       final result = getLocalizedTextForLists(
-          _FakeLocalization(), 'male', PagesCode.GratitudeJournal);
+        _FakeLocalization(),
+        'male',
+        PagesCode.GratitudeJournal,
+      );
       expect(result['mainTitle'], 'homePageThanksMainTitle(male)');
       expect(result['secondaryTitle'], 'homePageThanksSecondaryTitle(male)');
       expect(result['icon'], FontAwesome5.praying_hands);
@@ -81,7 +90,10 @@ void main() {
 
     test('QualitiesList returns traits titles + diamond icon', () {
       final result = getLocalizedTextForLists(
-          _FakeLocalization(), 'female', PagesCode.QualitiesList);
+        _FakeLocalization(),
+        'female',
+        PagesCode.QualitiesList,
+      );
       expect(result['mainTitle'], 'homePageTraitsMainTitle(female)');
       expect(result['secondaryTitle'], 'homePageTraitsSecondaryTitle(female)');
       expect(result['icon'], Icons.diamond);
@@ -89,7 +101,10 @@ void main() {
 
     test('unsupported PagesCode logs the error and returns empty fallback', () {
       final result = getLocalizedTextForLists(
-          _FakeLocalization(), 'male', PagesCode.Home);
+        _FakeLocalization(),
+        'male',
+        PagesCode.Home,
+      );
       expect(result['mainTitle'], '');
       expect(result['secondaryTitle'], '');
       expect(result['icon'], Icons.diamond);
@@ -123,8 +138,7 @@ void main() {
   group('getListItems', () {
     test('GratitudeJournal returns todayThankYous parameter', () {
       final user = UserInformation(service: _FakePersistentMemoryService());
-      final out = getListItems(
-          PagesCode.GratitudeJournal, user, ['a', 'b']);
+      final out = getListItems(PagesCode.GratitudeJournal, user, ['a', 'b']);
       expect(out, ['a', 'b']);
     });
 
@@ -139,41 +153,41 @@ void main() {
   });
 
   group('addThankYou / editThankYou / removeThankYou', () {
-    test('addThankYou appends to thanks + dates and tracks analytics event',
-        () async {
-      final user = UserInformation(
-        service: _FakePersistentMemoryService(),
-        thanks: {
-          'thanks': <String>['old'],
-          'dates': <String>['2000-01-01 – 09:00'],
-        },
-      );
+    test(
+      'addThankYou appends to thanks + dates and tracks analytics event',
+      () async {
+        final user = UserInformation(
+          service: _FakePersistentMemoryService(),
+          thanks: {
+            'thanks': <String>['old'],
+            'dates': <String>['2000-01-01 – 09:00'],
+          },
+        );
 
-      final stateCalls = <Map<String, dynamic>>[];
-      var popupCalls = 0;
+        final stateCalls = <Map<String, dynamic>>[];
+        var popupCalls = 0;
 
-      addThankYou(
-        'new-thank',
-        user,
-        (List<String> t, List<String> d, u) {
-          stateCalls.add({'t': List<String>.from(t), 'd': List<String>.from(d)});
-        },
-        (u) => popupCalls++,
-      );
+        addThankYou('new-thank', user, (List<String> t, List<String> d, u) {
+          stateCalls.add({
+            't': List<String>.from(t),
+            'd': List<String>.from(d),
+          });
+        }, (u) => popupCalls++);
 
-      // Allow microtasks to settle (analytics is async fire-and-forget).
-      await Future<void>.delayed(Duration.zero);
+        // Allow microtasks to settle (analytics is async fire-and-forget).
+        await Future<void>.delayed(Duration.zero);
 
-      expect(stateCalls, hasLength(1));
-      expect(stateCalls.first['t'], ['old', 'new-thank']);
-      expect((stateCalls.first['d'] as List).length, 2);
-      expect(analytics.events, contains('Item added to Gratitude Journal'));
-      // popup is only called when today's thanks count is exactly 1; the
-      // existing entry is dated 2000-01-01 so today's count is 0 before the
-      // state mutation runs.  popupFunction is gated by the in-memory map at
-      // the moment of invocation, so this assertion accepts either 0 or 1.
-      expect(popupCalls, anyOf(0, 1));
-    });
+        expect(stateCalls, hasLength(1));
+        expect(stateCalls.first['t'], ['old', 'new-thank']);
+        expect((stateCalls.first['d'] as List).length, 2);
+        expect(analytics.events, contains('Item added to Gratitude Journal'));
+        // popup is only called when today's thanks count is exactly 1; the
+        // existing entry is dated 2000-01-01 so today's count is 0 before the
+        // state mutation runs.  popupFunction is gated by the in-memory map at
+        // the moment of invocation, so this assertion accepts either 0 or 1.
+        expect(popupCalls, anyOf(0, 1));
+      },
+    );
 
     test('editThankYou replaces text at index without touching dates', () {
       final user = UserInformation(
@@ -186,15 +200,10 @@ void main() {
 
       List<String>? capturedThanks;
       List<String>? capturedDates;
-      editThankYou(
-        'A!',
-        0,
-        user,
-        (List<String> t, List<String> d, u) {
-          capturedThanks = t;
-          capturedDates = d;
-        },
-      );
+      editThankYou('A!', 0, user, (List<String> t, List<String> d, u) {
+        capturedThanks = t;
+        capturedDates = d;
+      });
       expect(capturedThanks, ['A!', 'b']);
       expect(capturedDates, ['d1', 'd2']);
     });
@@ -210,14 +219,10 @@ void main() {
 
       List<String>? capturedThanks;
       List<String>? capturedDates;
-      removeThankYou(
-        0,
-        user,
-        (List<String> t, List<String> d, u) {
-          capturedThanks = t;
-          capturedDates = d;
-        },
-      );
+      removeThankYou(0, user, (List<String> t, List<String> d, u) {
+        capturedThanks = t;
+        capturedDates = d;
+      });
       expect(capturedThanks, ['b']);
       expect(capturedDates, ['d2']);
     });

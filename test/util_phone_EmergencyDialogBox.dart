@@ -1,21 +1,20 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:mazilon/util/Phone/emergencyDialogBox.dart'; // Update with the correct path
+// Update with the correct path
 import 'package:mockito/mockito.dart';
-import 'package:url_launcher/url_launcher.dart';
 
 class MockUrlLauncher extends Mock {
   Future<bool> canLaunchUrl(Uri url) => super.noSuchMethod(
-        Invocation.method(#canLaunchUrl, [url]),
-        returnValue: Future.value(true),
-        returnValueForMissingStub: Future.value(false),
-      );
+    Invocation.method(#canLaunchUrl, [url]),
+    returnValue: Future.value(true),
+    returnValueForMissingStub: Future.value(false),
+  );
 
   Future<void> launchUrl(Uri url) => super.noSuchMethod(
-        Invocation.method(#launchUrl, [url]),
-        returnValue: Future.value(),
-        returnValueForMissingStub: Future.value(),
-      );
+    Invocation.method(#launchUrl, [url]),
+    returnValue: Future.value(),
+    returnValueForMissingStub: Future.value(),
+  );
 }
 
 class SimpleEmergencyDialogBox extends StatelessWidget {
@@ -24,11 +23,11 @@ class SimpleEmergencyDialogBox extends StatelessWidget {
   final Future<void> Function(Uri url) launchUrl;
 
   const SimpleEmergencyDialogBox({
-    Key? key,
+    super.key,
     required this.number,
     required this.canLaunchUrl,
     required this.launchUrl,
-  }) : super(key: key);
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -94,11 +93,11 @@ class EmergencyDialogBoxNoWhatsapp extends StatelessWidget {
   final Future<void> Function(Uri url) launchUrl;
 
   const EmergencyDialogBoxNoWhatsapp({
-    Key? key,
+    super.key,
     required this.number,
     required this.canLaunchUrl,
     required this.launchUrl,
-  }) : super(key: key);
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -153,11 +152,11 @@ class EmergencyDialogBoxWithLink extends StatelessWidget {
   final Future<void> Function(Uri url) launchUrl;
 
   const EmergencyDialogBoxWithLink({
-    Key? key,
+    super.key,
     required this.number,
     required this.canLaunchUrl,
     required this.launchUrl,
-  }) : super(key: key);
+  });
 
   void _launchURL(String url) async {
     if (await canLaunchUrl(Uri.parse(url))) {
@@ -170,8 +169,10 @@ class EmergencyDialogBoxWithLink extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return AlertDialog(
-      title: Text('בחר/י:',
-          style: TextStyle(fontWeight: FontWeight.normal, fontSize: 20)),
+      title: Text(
+        'בחר/י:',
+        style: TextStyle(fontWeight: FontWeight.normal, fontSize: 20),
+      ),
       content: SingleChildScrollView(
         child: ListBody(
           children: <Widget>[
@@ -186,9 +187,10 @@ class EmergencyDialogBoxWithLink extends StatelessWidget {
                     child: Icon(Icons.phone, size: 20),
                   ),
                 ),
-                Text('חיוג',
-                    style:
-                        TextStyle(fontWeight: FontWeight.normal, fontSize: 20)),
+                Text(
+                  'חיוג',
+                  style: TextStyle(fontWeight: FontWeight.normal, fontSize: 20),
+                ),
               ],
             ),
             SizedBox(height: 10), // Add some spacing
@@ -197,16 +199,18 @@ class EmergencyDialogBoxWithLink extends StatelessWidget {
               children: [
                 GestureDetector(
                   onTap: () => _launchURL(
-                      'https://govforms.gov.il/mw/forms/moked105@police.gov.il'),
+                    'https://govforms.gov.il/mw/forms/moked105@police.gov.il',
+                  ),
                   child: CircleAvatar(
                     radius: 20,
                     foregroundColor: Colors.white,
                     child: Icon(Icons.search, size: 20),
                   ),
                 ),
-                Text('קישור לאתר',
-                    style:
-                        TextStyle(fontWeight: FontWeight.normal, fontSize: 20)),
+                Text(
+                  'קישור לאתר',
+                  style: TextStyle(fontWeight: FontWeight.normal, fontSize: 20),
+                ),
               ],
             ),
           ],
@@ -214,8 +218,10 @@ class EmergencyDialogBoxWithLink extends StatelessWidget {
       ),
       actions: <Widget>[
         TextButton(
-          child: Text('חזרה',
-              style: TextStyle(fontWeight: FontWeight.bold, fontSize: 20)),
+          child: Text(
+            'חזרה',
+            style: TextStyle(fontWeight: FontWeight.bold, fontSize: 20),
+          ),
           onPressed: () => Navigator.of(context).pop(),
         ),
       ],

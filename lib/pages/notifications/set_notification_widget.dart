@@ -4,8 +4,6 @@ import 'dart:math';
 
 import 'package:flutter/foundation.dart' show kDebugMode;
 import 'package:flutter/material.dart';
-import 'package:get_it/get_it.dart';
-import 'package:mazilon/global_enums.dart';
 import 'package:mazilon/l10n/app_localizations.dart';
 import 'package:mazilon/pages/notifications/notification_service.dart';
 import 'package:mazilon/pages/notifications/reminder_debug_panel.dart';
@@ -14,7 +12,6 @@ import 'package:mazilon/pages/notifications/time_picker.dart';
 import 'package:mazilon/util/Form/retrieveInformation.dart';
 import 'package:mazilon/util/LP_extended_state.dart';
 
-import 'package:mazilon/util/persistent_memory_service.dart';
 import 'package:mazilon/util/userInformation.dart';
 import 'package:provider/provider.dart';
 
@@ -37,7 +34,10 @@ class _SetNotificationWidgetState
   }
 
   void saveNotificationTime(
-      int hour, int minute, UserInformation userInfo) async {
+    int hour,
+    int minute,
+    UserInformation userInfo,
+  ) async {
     userInfo.updateNotificationHour(hour);
     userInfo.updateNotificationMinute(minute);
     setState(() {
@@ -46,10 +46,19 @@ class _SetNotificationWidgetState
     });
   }
 
-  void initializeNotification(List<String> quotes, UserInformation userInfo,
-      Function createText, AppLocalizations appLocale) {
+  void initializeNotification(
+    List<String> quotes,
+    UserInformation userInfo,
+    Function createText,
+    AppLocalizations appLocale,
+  ) {
     NotificationsService.initializeNotification(
-        quotes, _currentHour, _currentMinute, createText, appLocale);
+      quotes,
+      _currentHour,
+      _currentMinute,
+      createText,
+      appLocale,
+    );
     saveNotificationTime(_currentHour, _currentMinute, userInfo);
   }
 
@@ -95,16 +104,25 @@ class _SetNotificationWidgetState
           child: Container(
             width: double.infinity,
             decoration: BoxDecoration(
-              color: const Color.fromARGB(255, 96, 139, 103).withOpacity(0.7),
+              color: const Color.fromARGB(
+                255,
+                96,
+                139,
+                103,
+              ).withValues(alpha: 0.7),
               borderRadius: BorderRadius.circular(7),
             ),
             child: TextButton(
               onPressed: () => {
-                initializeNotification(quotes, userInfoProvider,
-                    appLocale!.notifyOnscheduledNotification, appLocale)
+                initializeNotification(
+                  quotes,
+                  userInfoProvider,
+                  appLocale.notifyOnscheduledNotification,
+                  appLocale,
+                ),
               },
               child: Text(
-                appLocale!.notificationSetTimeText(gender),
+                appLocale.notificationSetTimeText(gender),
                 textAlign: TextAlign.center,
                 style: TextStyle(color: Colors.white),
               ),
@@ -116,16 +134,23 @@ class _SetNotificationWidgetState
           child: Container(
             width: double.infinity,
             decoration: BoxDecoration(
-              color: const Color.fromARGB(255, 138, 139, 96).withOpacity(0.7),
+              color: const Color.fromARGB(
+                255,
+                138,
+                139,
+                96,
+              ).withValues(alpha: 0.7),
               borderRadius: BorderRadius.circular(7),
             ),
             child: TextButton(
               onPressed: () => {
-                NotificationsService.showNotification('Living Positively',
-                    quotes[Random().nextInt(quotes.length)]),
+                NotificationsService.showNotification(
+                  'Living Positively',
+                  quotes[Random().nextInt(quotes.length)],
+                ),
               },
               child: Text(
-                appLocale!.notificationShowExampleNotification(gender),
+                appLocale.notificationShowExampleNotification(gender),
                 textAlign: TextAlign.center,
                 style: TextStyle(color: Colors.white),
               ),
@@ -137,16 +162,23 @@ class _SetNotificationWidgetState
           child: Container(
             width: double.infinity,
             decoration: BoxDecoration(
-              color: const Color.fromARGB(255, 139, 96, 96).withOpacity(0.7),
+              color: const Color.fromARGB(
+                255,
+                139,
+                96,
+                96,
+              ).withValues(alpha: 0.7),
               borderRadius: BorderRadius.circular(7),
             ),
             child: TextButton(
               onPressed: () => {
-                NotificationsService.cancelNotifications(null,
-                    cancelWorker: true)
+                NotificationsService.cancelNotifications(
+                  null,
+                  cancelWorker: true,
+                ),
               },
               child: Text(
-                appLocale!.notificationCancelNotification(gender),
+                appLocale.notificationCancelNotification(gender),
                 textAlign: TextAlign.center,
                 style: TextStyle(color: Colors.white),
               ),

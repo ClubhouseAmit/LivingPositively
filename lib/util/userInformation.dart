@@ -2,7 +2,6 @@ import 'package:flutter/foundation.dart';
 import 'package:get_it/get_it.dart';
 import 'package:mazilon/global_enums.dart';
 import 'package:mazilon/util/persistent_memory_service.dart';
-import 'package:shared_preferences/shared_preferences.dart';
 
 //this it the user's information class, with it we store and display it across the app
 class UserInformation with ChangeNotifier {
@@ -156,7 +155,10 @@ class UserInformation with ChangeNotifier {
   void updateNotificationMinute(int value) {
     Future<void> saveNotificationMinute(int minute) async {
       await service.setItem(
-          'notificationMinute', PersistentMemoryType.Int, minute);
+        'notificationMinute',
+        PersistentMemoryType.Int,
+        minute,
+      );
     }
 
     notificationMinute = value;
@@ -172,7 +174,10 @@ class UserInformation with ChangeNotifier {
   void updatePositiveTraits(List<String> value) {
     Future<void> savePositiveTraits(List<String> traits) async {
       await service.setItem(
-          'positiveTraits', PersistentMemoryType.StringList, traits);
+        'positiveTraits',
+        PersistentMemoryType.StringList,
+        traits,
+      );
     }
 
     positiveTraits = [...value];
@@ -183,7 +188,10 @@ class UserInformation with ChangeNotifier {
   void updateThanks(Map<String, List<String>> value) {
     Future<void> saveThanks(List<String> thanks, List<String> dates) async {
       await service.setItem(
-          'thankYous', PersistentMemoryType.StringList, thanks);
+        'thankYous',
+        PersistentMemoryType.StringList,
+        thanks,
+      );
       await service.setItem('dates', PersistentMemoryType.StringList, dates);
     }
 

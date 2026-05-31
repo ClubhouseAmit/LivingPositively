@@ -6,7 +6,6 @@ import 'package:mazilon/AnalyticsService.dart';
 import 'package:mazilon/util/logger_service.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:flutter/material.dart';
-import 'package:sentry_flutter/sentry_flutter.dart';
 
 abstract class ImagePickerService {
   Future<XFile?> pickImage({required ImageSource source});
@@ -55,16 +54,18 @@ class ImagePickerServiceImpl implements ImagePickerService {
 
   @override
   Future<void> getImage(String source, List<String> imagePaths) async {
-    ImageSource imageSource =
-        source == 'camera' ? ImageSource.camera : ImageSource.gallery;
+    ImageSource imageSource = source == 'camera'
+        ? ImageSource.camera
+        : ImageSource.gallery;
     try {
       final pickedFile = await _picker.pickImage(source: imageSource);
 
       if (pickedFile != null) {
         final appDir = await getApplicationDocumentsDirectory();
         final fileName = DateTime.now().millisecondsSinceEpoch.toString();
-        final savedImage =
-            await File(pickedFile.path).copy('${appDir.path}/$fileName');
+        final savedImage = await File(
+          pickedFile.path,
+        ).copy('${appDir.path}/$fileName');
         imagePaths.add(savedImage.path);
         saveImagePaths(imagePaths);
         AnalyticsService mixPanelService = GetIt.instance<AnalyticsService>();
@@ -74,10 +75,7 @@ class ImagePickerServiceImpl implements ImagePickerService {
       debugPrint("errored");
       IncidentLoggerService loggerService =
           GetIt.instance<IncidentLoggerService>();
-      await loggerService.captureLog(
-        error,
-        stackTrace: stackTrace,
-      );
+      await loggerService.captureLog(error, stackTrace: stackTrace);
     }
   }
 
@@ -103,14 +101,12 @@ class ImagePickerServiceImpl implements ImagePickerService {
       String contents = await file.readAsString();
 
       imagePaths.addAll(
-          contents.split('\n').where((path) => path.isNotEmpty).toList());
+        contents.split('\n').where((path) => path.isNotEmpty).toList(),
+      );
     } catch (error, stackTrace) {
       IncidentLoggerService loggerService =
           GetIt.instance<IncidentLoggerService>();
-      await loggerService.captureLog(
-        error,
-        stackTrace: stackTrace,
-      );
+      await loggerService.captureLog(error, stackTrace: stackTrace);
       // A manifest that exists but cannot be read (corruption, permission,
       // decode failure) is a genuine failure. Phase E (ADR-005 §Decision
       // step 5): rethrow so the caller's error UI surfaces it with a retry,
@@ -128,10 +124,7 @@ class ImagePickerServiceImpl implements ImagePickerService {
 
   @override
   Image displayImage(String path, {BoxFit fit = BoxFit.none}) {
-    return Image.file(
-      File(path),
-      fit: fit,
-    );
+    return Image.file(File(path), fit: fit);
   }
 
   @override

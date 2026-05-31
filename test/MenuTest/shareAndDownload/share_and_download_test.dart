@@ -70,17 +70,22 @@ void main() {
       final imageFactory = MockImagePickerService();
       final mockPersistentMemoryService = MockPersistentMemoryService();
       getIt.registerLazySingleton<PersistentMemoryService>(
-          () => mockPersistentMemoryService);
-      when(mockPersistentMemoryService.getItem(any, PersistentMemoryType.Bool))
-          .thenAnswer((_) async => true);
+        () => mockPersistentMemoryService,
+      );
+      when(
+        mockPersistentMemoryService.getItem(any, PersistentMemoryType.Bool),
+      ).thenAnswer((_) async => true);
       getIt.registerLazySingleton<ImagePickerService>(() => imageFactory);
-      when(mockFileServiceImpl.share(any, any, any, any, any, any))
-          .thenAnswer(((Invocation invocation) async {
-        counterShare = counterShare + 1;
-      }));
-      when(mockFileServiceImpl.download(any, any, any, any, any))
-          .thenAnswer(((Invocation invocation) async {
+      when(mockFileServiceImpl.share(any, any, any, any, any, any)).thenAnswer(
+        ((Invocation invocation) async {
+          counterShare = counterShare + 1;
+        }),
+      );
+      when(mockFileServiceImpl.download(any, any, any, any, any)).thenAnswer(((
+        Invocation invocation,
+      ) async {
         counterDownload = counterDownload + 1;
+        return null;
       }));
       mockSharedPreferences = MockSharedPreferences();
       mockUserInformation = UserInformation();
@@ -96,9 +101,11 @@ void main() {
       await tester.tap(finder);
       await tester.pumpAndSettle(const Duration(milliseconds: 200));
     }
+
     testWidgets('Display exists', (WidgetTester tester) async {
-      await tester
-          .pumpWidget(getMenuForTests(mockUserInformation, mockAppInformation));
+      await tester.pumpWidget(
+        getMenuForTests(mockUserInformation, mockAppInformation),
+      );
       expect(find.byType(Home), findsOneWidget);
       expect(find.byType(PersonalPlanWidget), findsOneWidget);
 
@@ -107,8 +114,9 @@ void main() {
       expect(find.byIcon(Icons.download), findsOneWidget);
     });
     testWidgets('Buttons Clickable', (WidgetTester tester) async {
-      await tester
-          .pumpWidget(getMenuForTests(mockUserInformation, mockAppInformation));
+      await tester.pumpWidget(
+        getMenuForTests(mockUserInformation, mockAppInformation),
+      );
       expect(find.byType(Home), findsOneWidget);
       expect(find.byType(PersonalPlanWidget), findsOneWidget);
 
@@ -122,8 +130,7 @@ void main() {
       await tapAndSettle(tester, find.byIcon(Elusive.share));
       expect(find.byType(LPShareAlertDialog), findsWidgets);
       expect(find.byIcon(Icons.insert_drive_file_outlined), findsWidgets);
-      await tapAndSettle(
-          tester, find.text("שיתוף קובץ של התוכנית האישית"));
+      await tapAndSettle(tester, find.text("שיתוף קובץ של התוכנית האישית"));
       expect(counterShare, 1);
     });
   });

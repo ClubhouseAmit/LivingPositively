@@ -4,8 +4,9 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:mazilon/pages/notifications/time_picker.dart';
 
 void main() {
-  testWidgets('TimePicker renders two NumberPickers and triggers setTime',
-      (tester) async {
+  testWidgets('TimePicker renders two NumberPickers and triggers setTime', (
+    tester,
+  ) async {
     int reportedHour = -1;
     int reportedMinute = -1;
     void setTime(int a, int b) {
@@ -18,11 +19,7 @@ void main() {
     await tester.pumpWidget(
       MaterialApp(
         home: Scaffold(
-          body: TimePicker(
-            currentHour: 9,
-            currentMinute: 30,
-            setTime: setTime,
-          ),
+          body: TimePicker(currentHour: 9, currentMinute: 30, setTime: setTime),
         ),
       ),
     );
@@ -46,7 +43,7 @@ void main() {
           body: TimePicker(
             currentHour: 0,
             currentMinute: 0,
-            setTime: (_, __) {},
+            setTime: (_, _) {},
           ),
         ),
       ),
@@ -62,7 +59,7 @@ void main() {
           body: TimePicker(
             currentHour: 23,
             currentMinute: 59,
-            setTime: (_, __) {},
+            setTime: (_, _) {},
           ),
         ),
       ),
