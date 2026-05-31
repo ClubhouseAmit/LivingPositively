@@ -16,6 +16,7 @@ analyzer:
     # churn and should be handled as a separate, reviewed refactor.
     avoid_unnecessary_containers: ignore
     constant_identifier_names: ignore
+    depend_on_referenced_packages: ignore
     file_names: ignore
     library_prefixes: ignore
     library_private_types_in_public_api: ignore

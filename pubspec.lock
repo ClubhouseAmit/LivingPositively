@@ -434,7 +434,7 @@ packages:
     source: hosted
     version: "6.5.1"
   firebase_auth_platform_interface:
-    dependency: "direct dev"
+    dependency: transitive
     description:
       name: firebase_auth_platform_interface
       sha256: f37e163b063edbb62b911f100edb4546b10ca06857f879f5c3eb8d9cb19c275b
@@ -1093,7 +1093,7 @@ packages:
     source: hosted
     version: "2.2.0"
   package_info_plus:
-    dependency: "direct main"
+    dependency: transitive
     description:
       name: package_info_plus
       sha256: f69da0d3189a4b4ceaeb1a3defb0f329b3b352517f52bed4290f83d4f06bc08d
@@ -1341,7 +1341,7 @@ packages:
     source: hosted
     version: "0.28.0"
   sentry:
-    dependency: "direct main"
+    dependency: transitive
     description:
       name: sentry
       sha256: f04095a25ff02b202a914174c73ec309570aa93d61098cb4a0a9e715b4aaa465
@@ -1522,7 +1522,7 @@ packages:
     source: hosted
     version: "0.7.11"
   timezone:
-    dependency: "direct main"
+    dependency: transitive
     description:
       name: timezone
       sha256: "784a5e34d2eb62e1326f24d6f600aaaee452eb8ca8ef2f384a59244e292d158b"
@@ -1698,7 +1698,7 @@ packages:
     source: hosted
     version: "0.9.0+3"
   workmanager_android:
-    dependency: "direct dev"
+    dependency: transitive
     description:
       name: workmanager_android
       sha256: "9ae744db4ef891f5fcd2fb8671fccc712f4f96489a487a1411e0c8675e5e8cb7"
@@ -1714,7 +1714,7 @@ packages:
     source: hosted
     version: "0.9.1+2"
   workmanager_platform_interface:
-    dependency: "direct dev"
+    dependency: transitive
     description:
       name: workmanager_platform_interface
       sha256: f40422f10b970c67abb84230b44da22b075147637532ac501729256fcea10a47

@@ -14,6 +14,8 @@ class ThanksListWidget extends StatefulWidget {
   final int thanksListLength;
   final Function addSuggested;
   final Function(int) onTabTapped;
+  final String journalMainTitle;
+  final String journalSubTitle;
   const ThanksListWidget({
     super.key,
     required this.thanks,
@@ -23,6 +25,8 @@ class ThanksListWidget extends StatefulWidget {
     required this.thanksListLength,
     required this.addSuggested,
     required this.onTabTapped,
+    this.journalMainTitle = 'Journal',
+    this.journalSubTitle = 'Journal entries',
   });
 
   @override
@@ -104,7 +108,7 @@ class _ThanksListWidgetState extends State<ThanksListWidget> {
                     widget.onTabTapped(3);
                   });
                 },
-                child: Text("appInfoProvider.journalMainTitle"),
+                child: Text(widget.journalMainTitle),
               ),
               icon: FontAwesome5.praying_hands,
               icons: [
@@ -118,7 +122,7 @@ class _ThanksListWidgetState extends State<ThanksListWidget> {
                   },
                 ),
               ],
-              subHeader: "appInfoProvider.journalSubTitle",
+              subHeader: widget.journalSubTitle,
             ),
             ConstrainedBox(
               constraints: BoxConstraints(maxHeight: 315), //max height
