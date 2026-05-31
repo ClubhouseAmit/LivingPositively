@@ -14,8 +14,6 @@ import 'package:mazilon/util/type_utils.dart';
 
 import 'package:provider/provider.dart';
 import 'package:mazilon/util/userInformation.dart';
-import 'package:shared_preferences/shared_preferences.dart';
-import 'package:mazilon/l10n/app_localizations.dart';
 // the positive trait item suggested widget, it shows a suggested positive trait text and an add button
 //its used in positive trait page/homepage in todo list section to suggest a trait to the user
 // we use this in 2 ways , if the input text is not empty, it will show the input text in the suggestion
@@ -28,12 +26,13 @@ class PositiveTraitItemSug extends StatefulWidget {
   final String inputText; // the input text of the suggested trait
   final List<String> fullSuggestionList;
   final int stopShowing;
-  const PositiveTraitItemSug(
-      {super.key,
-      required this.stopShowing,
-      required this.add,
-      required this.inputText,
-      required this.fullSuggestionList});
+  const PositiveTraitItemSug({
+    super.key,
+    required this.stopShowing,
+    required this.add,
+    required this.inputText,
+    required this.fullSuggestionList,
+  });
 
   @override
   State<PositiveTraitItemSug> createState() => _PositiveTraitItemSugState();
@@ -49,15 +48,17 @@ class _PositiveTraitItemSugState extends LPExtendedState<PositiveTraitItemSug> {
     if (widget.inputText != "") {
       return;
     }
-    final userInfoProvider =
-        Provider.of<UserInformation>(context, listen: true);
+    final userInfoProvider = Provider.of<UserInformation>(
+      context,
+      listen: true,
+    );
 
     setState(() {
       myPositiveTraits = userInfoProvider.positiveTraits;
 
-      List<String> tempTraitSuggestionList = widget.fullSuggestionList ?? [];
+      List<String> tempTraitSuggestionList = widget.fullSuggestionList;
 
-      positiveTraitsSuggestionList = List.from(widget.fullSuggestionList ?? []);
+      positiveTraitsSuggestionList = List.from(widget.fullSuggestionList);
       // remove the traits that are already written by the user
       for (String suggestion in tempTraitSuggestionList) {
         if (positiveTraitsSuggestionList.length > 1 &&
@@ -71,8 +72,10 @@ class _PositiveTraitItemSugState extends LPExtendedState<PositiveTraitItemSug> {
       } else {
         show = true;
       }
-      text = positiveTraitsSuggestionList[
-          Random().nextInt(positiveTraitsSuggestionList.length)];
+      text =
+          positiveTraitsSuggestionList[Random().nextInt(
+            positiveTraitsSuggestionList.length,
+          )];
     });
   }
 
@@ -81,7 +84,7 @@ class _PositiveTraitItemSugState extends LPExtendedState<PositiveTraitItemSug> {
     super.initState();
   }
 
-// build the positive trait item suggested widget
+  // build the positive trait item suggested widget
   @override
   Widget build(BuildContext context) {
     // get the appInformation and userInformation providers
@@ -101,27 +104,37 @@ class _PositiveTraitItemSugState extends LPExtendedState<PositiveTraitItemSug> {
             // when the add button is clicked ,
             // add the trait to the list of traits and show a new suggested trait
             onTap: () async {
-              PersistentMemoryService service = GetIt.instance<
-                  PersistentMemoryService>(); // Get the persistent memory service instance
+              PersistentMemoryService service =
+                  GetIt.instance<
+                    PersistentMemoryService
+                  >(); // Get the persistent memory service instance
 
-              final userInfoProvider =
-                  Provider.of<UserInformation>(context, listen: false);
+              final userInfoProvider = Provider.of<UserInformation>(
+                context,
+                listen: false,
+              );
               var myPositiveTraitsValue = TypeUtils.castToStringList(
-                  await service.getItem(
-                      "positiveTraits", PersistentMemoryType.StringList));
+                await service.getItem(
+                  "positiveTraits",
+                  PersistentMemoryType.StringList,
+                ),
+              );
               setState(() {
-                widget.add(widget.inputText == '' ? text : widget.inputText,
-                    userInfoProvider);
+                widget.add(
+                  widget.inputText == '' ? text : widget.inputText,
+                  userInfoProvider,
+                );
                 myPositiveTraits = myPositiveTraitsValue;
-                myPositiveTraits
-                    .add(widget.inputText == '' ? text : widget.inputText);
+                myPositiveTraits.add(
+                  widget.inputText == '' ? text : widget.inputText,
+                );
 
-                String gender = userInfoProvider.gender;
                 List<String> tempTraitSuggestionList =
                     widget.fullSuggestionList;
 
-                positiveTraitsSuggestionList =
-                    List.from(widget.fullSuggestionList);
+                positiveTraitsSuggestionList = List.from(
+                  widget.fullSuggestionList,
+                );
 
                 for (String suggestion in tempTraitSuggestionList) {
                   if (positiveTraitsSuggestionList.length > 1 &&
@@ -132,8 +145,10 @@ class _PositiveTraitItemSugState extends LPExtendedState<PositiveTraitItemSug> {
 
                 // positiveTraitsSuggestionList.remove(text);
                 if (positiveTraitsSuggestionList.isNotEmpty) {
-                  text = positiveTraitsSuggestionList[
-                      Random().nextInt(positiveTraitsSuggestionList.length)];
+                  text =
+                      positiveTraitsSuggestionList[Random().nextInt(
+                        positiveTraitsSuggestionList.length,
+                      )];
                 }
               });
             },
@@ -155,11 +170,7 @@ class _PositiveTraitItemSugState extends LPExtendedState<PositiveTraitItemSug> {
                 child: Stack(
                   alignment: Alignment.center,
                   children: <Widget>[
-                    const Icon(
-                      Icons.add,
-                      color: Colors.green,
-                      size: 20,
-                    ),
+                    const Icon(Icons.add, color: Colors.green, size: 20),
                     Transform.translate(
                       offset: const Offset(0.5, 0.5),
                       child: const Icon(
@@ -175,9 +186,7 @@ class _PositiveTraitItemSugState extends LPExtendedState<PositiveTraitItemSug> {
           ),
 
           // gap between the text and the add button
-          const SizedBox(
-            width: 10,
-          ),
+          const SizedBox(width: 10),
 
           // the design of the suggested trait (a dotted border with the trait text)
           DottedBorder(
@@ -190,14 +199,15 @@ class _PositiveTraitItemSugState extends LPExtendedState<PositiveTraitItemSug> {
             child: Container(
               height: 50,
               decoration: BoxDecoration(
-                  color: Colors.transparent,
-                  borderRadius: BorderRadius.circular(20)),
+                color: Colors.transparent,
+                borderRadius: BorderRadius.circular(20),
+              ),
               child: Padding(
                 padding: const EdgeInsets.all(7.0),
                 child: Row(
                   children: [
                     Container(
-                      alignment: appLocale!.textDirection == "rtl"
+                      alignment: appLocale.textDirection == "rtl"
                           ? Alignment.centerRight
                           : Alignment.centerLeft,
                       width: MediaQuery.of(context).size.width > 1000
@@ -208,7 +218,7 @@ class _PositiveTraitItemSugState extends LPExtendedState<PositiveTraitItemSug> {
                         widget.inputText == ''
                             ? text
                             : widget
-                                .inputText, // if the input text is empty, show the suggested trait text
+                                  .inputText, // if the input text is empty, show the suggested trait text
                         maxLines: 3,
                         minFontSize: 14,
                         overflow: TextOverflow.ellipsis,

@@ -11,17 +11,19 @@ import 'package:mazilon/menu.dart';
 // FirstPage widget determines the correct page
 // to navigate to based on the user's status (e.g., disclaimer signed, logged in, first time using the app).
 class FirstPage extends StatefulWidget {
-  PhonePageData phonePageData; // Data related to phone page
-  bool
-      firsttime; // Flag indicating if this is the first time the user is using the app
-  bool hasFilled; // Flag indicating if the user has filled out required forms
+  final PhonePageData phonePageData; // Data related to phone page
+  final bool
+  firsttime; // Flag indicating if this is the first time the user is using the app
+  final bool
+  hasFilled; // Flag indicating if the user has filled out required forms
   final Function changeLocale;
-  FirstPage(
-      {super.key,
-      required this.firsttime,
-      required this.hasFilled,
-      required this.changeLocale,
-      required this.phonePageData});
+  const FirstPage({
+    super.key,
+    required this.firsttime,
+    required this.hasFilled,
+    required this.changeLocale,
+    required this.phonePageData,
+  });
 
   @override
   State<FirstPage> createState() => _FirstPageState();
@@ -30,27 +32,29 @@ class FirstPage extends StatefulWidget {
 class _FirstPageState extends State<FirstPage> {
   @override
   Widget build(BuildContext context) {
-    final userInfoProvider =
-        Provider.of<UserInformation>(context, listen: true);
+    final userInfoProvider = Provider.of<UserInformation>(
+      context,
+      listen: true,
+    );
     final Widget renderedWidget;
 
     // If the user has not signed the disclaimer, show the DisclaimerPage.
     if (!userInfoProvider.disclaimerSigned) {
       renderedWidget = DisclaimerPage(changeLocale: widget.changeLocale);
     } else
-
     // If the user is not logged in, navigate to the LoginPage.
-
     // If this is the user's first time using the app, show the initial form progress indicator.
     if (widget.firsttime) {
       renderedWidget = InitialFormProgressIndicator(
-          phonePageData: widget.phonePageData,
-          changeLocale: widget.changeLocale);
+        phonePageData: widget.phonePageData,
+        changeLocale: widget.changeLocale,
+      );
     } else {
       renderedWidget = Menu(
-          phonePageData: widget.phonePageData,
-          hasFilled: widget.hasFilled,
-          changeLocale: widget.changeLocale);
+        phonePageData: widget.phonePageData,
+        hasFilled: widget.hasFilled,
+        changeLocale: widget.changeLocale,
+      );
     }
 
     return (renderedWidget);

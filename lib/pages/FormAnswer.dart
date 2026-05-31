@@ -5,8 +5,6 @@ import 'package:mazilon/util/LP_extended_state.dart';
 import 'package:mazilon/util/styles.dart';
 import 'package:mazilon/util/FormAnswer/addFormAnswer.dart';
 
-import 'package:mazilon/l10n/app_localizations.dart';
-
 //the template for the answers in the personal plan questionnaire
 //this is used in the formpagetemplate to display(remove/edit) the selected/inserted user promptss
 class FormAnswer extends StatefulWidget {
@@ -33,10 +31,11 @@ class _FormAnswerState extends LPExtendedState<FormAnswer> {
   Widget build(BuildContext context) {
     void editAnswer(String text, int index) {
       showDialog(
-          context: context,
-          builder: (BuildContext context) {
-            return AddFormAnswer(index: index, edit: widget.edit, text: text);
-          });
+        context: context,
+        builder: (BuildContext context) {
+          return AddFormAnswer(index: index, edit: widget.edit, text: text);
+        },
+      );
     }
 
     return SizedBox(
@@ -56,26 +55,29 @@ class _FormAnswerState extends LPExtendedState<FormAnswer> {
                       children: [
                         SizedBox(
                           width: 20,
-                          child: Icon(Icons.circle,
-                              color: primaryPurple, size: 10),
+                          child: Icon(
+                            Icons.circle,
+                            color: primaryPurple,
+                            size: 10,
+                          ),
                         ),
-                        const SizedBox(
-                          width: 10,
-                        ),
+                        const SizedBox(width: 10),
                         Expanded(
                           child: SizedBox(
-                              width: MediaQuery.of(context).size.width > 1000
-                                  ? 600
-                                  : MediaQuery.of(context).size.width - 150,
-                              child: myAutoSizedText(
-                                  widget.text,
-                                  //maxLines: 10,
+                            width: MediaQuery.of(context).size.width > 1000
+                                ? 600
+                                : MediaQuery.of(context).size.width - 150,
+                            child: myAutoSizedText(
+                              widget.text,
 
-                                  TextStyle(fontSize: 16.sp),
-                                  appLocale!.textDirection == "rtl"
-                                      ? TextAlign.right
-                                      : TextAlign.left,
-                                  28)),
+                              //maxLines: 10,
+                              TextStyle(fontSize: 16.sp),
+                              appLocale.textDirection == "rtl"
+                                  ? TextAlign.right
+                                  : TextAlign.left,
+                              28,
+                            ),
+                          ),
                         ),
                       ],
                     ),
@@ -92,8 +94,11 @@ class _FormAnswerState extends LPExtendedState<FormAnswer> {
                             editAnswer(widget.text, widget.num - 1);
                             return;
                           },
-                          child: const Icon(Icons.edit,
-                              color: Colors.black, size: 20),
+                          child: const Icon(
+                            Icons.edit,
+                            color: Colors.black,
+                            size: 20,
+                          ),
                         ),
                       ),
                     ),
@@ -106,8 +111,11 @@ class _FormAnswerState extends LPExtendedState<FormAnswer> {
                             widget.remove(widget.num - 1);
                             setState(() {});
                           },
-                          child: const Icon(Icons.delete,
-                              color: Colors.black, size: 20),
+                          child: const Icon(
+                            Icons.delete,
+                            color: Colors.black,
+                            size: 20,
+                          ),
                         ),
                       ),
                     ),

@@ -1,9 +1,7 @@
 import 'package:flutter/material.dart';
 
 class PhoneWidget extends StatefulWidget {
-  PhoneWidget({
-    Key? key,
-  }) : super(key: key);
+  const PhoneWidget({super.key});
 
   @override
   State<PhoneWidget> createState() => _PhoneWidgetState();
@@ -20,8 +18,12 @@ class _PhoneWidgetState extends State<PhoneWidget> {
 
   @override
   void dispose() {
-    nameControllers.forEach((controller) => controller.dispose());
-    numberControllers.forEach((controller) => controller.dispose());
+    for (var controller in nameControllers) {
+      controller.dispose();
+    }
+    for (var controller in numberControllers) {
+      controller.dispose();
+    }
     controller1.dispose();
     controller2.dispose();
     super.dispose();
@@ -100,7 +102,10 @@ class _PhoneWidgetState extends State<PhoneWidget> {
                                     String newPhoneNumber =
                                         numberControllers[index].text;
                                     updateItemAt(
-                                        index, newPhoneName, newPhoneNumber);
+                                      index,
+                                      newPhoneName,
+                                      newPhoneNumber,
+                                    );
                                     editingIndex = -1;
                                   },
                                 ),
@@ -111,8 +116,9 @@ class _PhoneWidgetState extends State<PhoneWidget> {
                                     ? TextField(
                                         key: Key("numberField"),
                                         style: TextStyle(
-                                            fontWeight: FontWeight.normal,
-                                            fontSize: 12),
+                                          fontWeight: FontWeight.normal,
+                                          fontSize: 12,
+                                        ),
                                         controller: numberControllers[index],
                                       )
                                     : InkWell(
@@ -137,10 +143,7 @@ class _PhoneWidgetState extends State<PhoneWidget> {
                                         ),
                                       ),
                               ),
-                              if (isEditing)
-                                Text(
-                                  "טלפון",
-                                ),
+                              if (isEditing) Text("טלפון"),
                               if (!isEditing)
                                 InkWell(
                                   child: CircleAvatar(
@@ -156,8 +159,9 @@ class _PhoneWidgetState extends State<PhoneWidget> {
                                     child: TextField(
                                       key: Key("nameField"),
                                       style: TextStyle(
-                                          fontWeight: FontWeight.normal,
-                                          fontSize: 12),
+                                        fontWeight: FontWeight.normal,
+                                        fontSize: 12,
+                                      ),
                                       controller: nameControllers[index],
                                     ),
                                   ),
@@ -166,7 +170,7 @@ class _PhoneWidgetState extends State<PhoneWidget> {
                             ],
                           ),
                         );
-                      }).toList(),
+                      }),
 
                       SizedBox(width: 10), // Add some space between the buttons
                       TextButton(
@@ -174,10 +178,12 @@ class _PhoneWidgetState extends State<PhoneWidget> {
                         onPressed: () {
                           setState(() {
                             // Create new controllers with empty text
-                            var nameController =
-                                TextEditingController(text: '');
-                            var numberController =
-                                TextEditingController(text: '');
+                            var nameController = TextEditingController(
+                              text: '',
+                            );
+                            var numberController = TextEditingController(
+                              text: '',
+                            );
 
                             // Add the controllers to the lists
                             nameControllers.add(nameController);
@@ -194,7 +200,7 @@ class _PhoneWidgetState extends State<PhoneWidget> {
                     ],
                   ),
                 ],
-              )
+              ),
             ],
           ),
         ),

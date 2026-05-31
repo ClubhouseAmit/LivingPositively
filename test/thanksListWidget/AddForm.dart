@@ -7,7 +7,6 @@ class AddForm extends StatefulWidget {
   final Function edit;
   final String text;
   final String formTitle;
-  @override
   const AddForm({
     super.key,
     required this.add,
@@ -16,6 +15,7 @@ class AddForm extends StatefulWidget {
     required this.text,
     required this.formTitle,
   });
+  @override
   State<AddForm> createState() => _AddFormState();
 }
 
@@ -37,7 +37,7 @@ class _AddFormState extends State<AddForm> {
   @override
   Widget build(BuildContext context) {
     return Dialog(
-      child: Container(
+      child: SizedBox(
         width: MediaQuery.of(context).size.width > 1000
             ? 800
             : MediaQuery.of(context).size.width,
@@ -47,14 +47,13 @@ class _AddFormState extends State<AddForm> {
           // Wrap Column with SingleChildScrollView
           child: Column(
             children: [
-              SizedBox(
-                height: 10,
-              ),
+              SizedBox(height: 10),
               myAutoSizedText(
-                  '${widget.formTitle} חדשה',
-                  TextStyle(fontWeight: FontWeight.bold, fontSize: 20),
-                  null,
-                  40),
+                '${widget.formTitle} חדשה',
+                TextStyle(fontWeight: FontWeight.bold, fontSize: 20),
+                null,
+                40,
+              ),
               Padding(
                 padding: const EdgeInsets.all(8.0),
                 child: Form(
@@ -74,13 +73,14 @@ class _AddFormState extends State<AddForm> {
                                   controller: _controller,
                                   autofocus: true,
                                   decoration: InputDecoration(
-                                    labelText: '${widget.formTitle}',
+                                    labelText: widget.formTitle,
                                     contentPadding: EdgeInsets.only(right: 1.0),
                                     labelStyle: TextStyle(
-                                        fontWeight: FontWeight.normal,
-                                        fontFamily: 'Rubix',
-                                        height: 0,
-                                        fontSize: 20),
+                                      fontWeight: FontWeight.normal,
+                                      fontFamily: 'Rubix',
+                                      height: 0,
+                                      fontSize: 20,
+                                    ),
                                   ),
                                   validator: (value) {
                                     if (value == null || value.isEmpty) {
@@ -104,10 +104,11 @@ class _AddFormState extends State<AddForm> {
                   TextButton(
                     key: Key('cancelButton'),
                     child: myAutoSizedText(
-                        'בטל',
-                        TextStyle(fontWeight: FontWeight.bold, fontSize: 18),
-                        null,
-                        30),
+                      'בטל',
+                      TextStyle(fontWeight: FontWeight.bold, fontSize: 18),
+                      null,
+                      30,
+                    ),
                     onPressed: () {
                       Navigator.of(context).pop();
                     },
@@ -115,10 +116,11 @@ class _AddFormState extends State<AddForm> {
                   TextButton(
                     key: Key('saveButton'),
                     child: myAutoSizedText(
-                        'שמור',
-                        TextStyle(fontWeight: FontWeight.bold, fontSize: 18),
-                        null,
-                        30),
+                      'שמור',
+                      TextStyle(fontWeight: FontWeight.bold, fontSize: 18),
+                      null,
+                      30,
+                    ),
                     onPressed: () {
                       // Save the reminder
                       setState(() {

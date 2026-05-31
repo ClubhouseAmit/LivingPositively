@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:flutter_screenutil/flutter_screenutil.dart';
 
 class ThankYou extends StatefulWidget {
   final String text;
@@ -48,15 +47,17 @@ class _ThankYouState extends State<ThankYou> {
               minHeight: 20,
               maxWidth: MediaQuery.sizeOf(context).width * 0.8,
             ),
-            // height: 40,
 
+            // height: 40,
             decoration: BoxDecoration(
-                color: Colors.white, borderRadius: BorderRadius.circular(95)),
+              color: Colors.white,
+              borderRadius: BorderRadius.circular(95),
+            ),
             child: Padding(
               padding: const EdgeInsets.all(8.0),
               child: Row(
                 children: [
-                  Container(
+                  SizedBox(
                     width: 50,
                     child: MaterialButton(
                       key: Key('deleteThankYou${widget.number}'),
@@ -68,12 +69,10 @@ class _ThankYouState extends State<ThankYou> {
                       },
                       splashColor: Colors.transparent,
                       enableFeedback: false,
-                      child: Icon(
-                        Icons.delete,
-                      ),
+                      child: Icon(Icons.delete),
                     ),
                   ),
-                  Container(
+                  SizedBox(
                     width: 50,
                     child: MaterialButton(
                       key: Key('editThankYou${widget.number}'),
@@ -82,42 +81,30 @@ class _ThankYouState extends State<ThankYou> {
                       },
                       splashColor: Colors.transparent,
                       enableFeedback: false,
-                      child: Icon(
-                        Icons.edit,
-                      ),
+                      child: Icon(Icons.edit),
                     ),
                   ),
-                  SizedBox(
-                    width: 15,
-                  ),
+                  SizedBox(width: 15),
                   Expanded(
                     child: Container(
                       child: Directionality(
                         textDirection: TextDirection.rtl,
-                        child: Text(
-                          widget.text,
-                        ),
+                        child: Text(widget.text),
                       ),
                     ),
                   ),
-                  SizedBox(
-                    width: 15,
-                  ),
+                  SizedBox(width: 15),
                 ],
               ),
             ),
           ),
-          SizedBox(
-            width: 10,
-          ),
+          SizedBox(width: 10),
           ClipRRect(
             borderRadius: BorderRadius.circular(20),
             child: Container(
               padding: EdgeInsets.symmetric(horizontal: 15, vertical: 10),
               color: Colors.purple,
-              child: Text(
-                widget.number.toString(),
-              ),
+              child: Text(widget.number.toString()),
             ),
           ),
         ],

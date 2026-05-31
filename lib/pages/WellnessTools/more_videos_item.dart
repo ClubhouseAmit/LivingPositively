@@ -12,7 +12,8 @@ class MoreVideosItem extends StatelessWidget {
   final String thumbnailUrl;
   final Function changeVidoeIdIndex;
 
-  MoreVideosItem({
+  const MoreVideosItem({
+    super.key,
     required this.videoData,
     required this.index,
     required this.thumbnailUrl,
@@ -24,7 +25,7 @@ class MoreVideosItem extends StatelessWidget {
     final ImagePickerService imageService =
         GetIt.instance<ImagePickerService>();
     final appLocale = AppLocalizations.of(context);
-    return Container(
+    return SizedBox(
       width: 150,
       height: 100,
       child: GestureDetector(
@@ -32,12 +33,12 @@ class MoreVideosItem extends StatelessWidget {
         child: Row(
           mainAxisAlignment: MainAxisAlignment.start,
           children: [
-            Container(
+            SizedBox(
               width: 150,
               height: 150,
               child: imageService.getOnlineImage(thumbnailUrl),
             ),
-            Container(
+            SizedBox(
               width: MediaQuery.of(context).size.width - 150,
               child: Column(
                 mainAxisAlignment: MainAxisAlignment.start,
@@ -45,10 +46,7 @@ class MoreVideosItem extends StatelessWidget {
                 children: [
                   myAutoSizedText(
                     videoData['videoHeadline']![index],
-                    TextStyle(
-                      fontSize: 18.sp,
-                      fontWeight: FontWeight.normal,
-                    ),
+                    TextStyle(fontSize: 18.sp, fontWeight: FontWeight.normal),
                     appLocale!.textDirection == "rtl"
                         ? TextAlign.right
                         : TextAlign.left,

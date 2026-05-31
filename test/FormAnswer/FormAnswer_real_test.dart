@@ -33,13 +33,14 @@ void main() {
     resetTestServices();
   });
 
-  testWidgets('renders bullet icon, edit + delete buttons, and label text',
-      (tester) async {
+  testWidgets('renders bullet icon, edit + delete buttons, and label text', (
+    tester,
+  ) async {
     await pumpWithProviders(
       tester,
       FormAnswer(
         text: 'Take a walk',
-        edit: (_, __, ___) {},
+        edit: (_, _, _) {},
         remove: (_) {},
         num: 1,
       ),
@@ -62,7 +63,7 @@ void main() {
       tester,
       FormAnswer(
         text: 'Cleaning',
-        edit: (_, __, ___) {},
+        edit: (_, _, _) {},
         remove: (int i) => removedIndex = i,
         num: 3,
       ),
@@ -83,12 +84,7 @@ void main() {
   testWidgets('tap edit button opens AddFormAnswer dialog', (tester) async {
     await pumpWithProviders(
       tester,
-      FormAnswer(
-        text: 'Cleaning',
-        edit: (_, __, ___) {},
-        remove: (_) {},
-        num: 2,
-      ),
+      FormAnswer(text: 'Cleaning', edit: (_, _, _) {}, remove: (_) {}, num: 2),
       userInformation: userInformation,
       surfaceSize: const Size(1200, 1800),
     );

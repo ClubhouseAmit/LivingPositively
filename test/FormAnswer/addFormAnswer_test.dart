@@ -25,9 +25,7 @@ Widget _hostDialog({
   Size size = const Size(800, 1200),
 }) {
   return MultiProvider(
-    providers: [
-      ChangeNotifierProvider<UserInformation>.value(value: userInfo),
-    ],
+    providers: [ChangeNotifierProvider<UserInformation>.value(value: userInfo)],
     child: MaterialApp(
       supportedLocales: AppLocalizations.supportedLocales,
       localizationsDelegates: AppLocalizations.localizationsDelegates,
@@ -55,48 +53,49 @@ void main() {
   });
 
   testWidgets('renders the initial text in the editor', (tester) async {
-    await tester.pumpWidget(_hostDialog(
-      userInfo: userInfo,
-      edit: (_, __) {},
-      text: 'hello',
-    ));
+    await tester.pumpWidget(
+      _hostDialog(userInfo: userInfo, edit: (_, _) {}, text: 'hello'),
+    );
     await tester.pumpAndSettle();
 
     expect(find.text('hello'), findsOneWidget);
   });
 
-  testWidgets('cancel button closes the dialog without invoking edit',
-      (tester) async {
+  testWidgets('cancel button closes the dialog without invoking edit', (
+    tester,
+  ) async {
     var calls = 0;
 
-    await tester.pumpWidget(MultiProvider(
-      providers: [
-        ChangeNotifierProvider<UserInformation>.value(value: userInfo),
-      ],
-      child: MaterialApp(
-        supportedLocales: AppLocalizations.supportedLocales,
-        localizationsDelegates: AppLocalizations.localizationsDelegates,
-        locale: const Locale('en'),
-        home: ScreenUtilInit(
-          designSize: const Size(800, 1200),
-          builder: (context, _) => Scaffold(
-            body: Builder(
-              builder: (ctx) => ElevatedButton(
-                onPressed: () => showDialog(
-                  context: ctx,
-                  builder: (_) => AddFormAnswer(
-                    index: 0,
-                    edit: (i, t) => calls++,
-                    text: 'initial',
+    await tester.pumpWidget(
+      MultiProvider(
+        providers: [
+          ChangeNotifierProvider<UserInformation>.value(value: userInfo),
+        ],
+        child: MaterialApp(
+          supportedLocales: AppLocalizations.supportedLocales,
+          localizationsDelegates: AppLocalizations.localizationsDelegates,
+          locale: const Locale('en'),
+          home: ScreenUtilInit(
+            designSize: const Size(800, 1200),
+            builder: (context, _) => Scaffold(
+              body: Builder(
+                builder: (ctx) => ElevatedButton(
+                  onPressed: () => showDialog(
+                    context: ctx,
+                    builder: (_) => AddFormAnswer(
+                      index: 0,
+                      edit: (i, t) => calls++,
+                      text: 'initial',
+                    ),
                   ),
+                  child: const Text('open'),
                 ),
-                child: const Text('open'),
               ),
             ),
           ),
         ),
       ),
-    ));
+    );
     await tester.pumpAndSettle();
 
     await tester.tap(find.text('open'));
@@ -112,41 +111,45 @@ void main() {
   });
 
   testWidgets(
-      'save with empty text fails validation; save with non-empty calls edit',
-      (tester) async {
-    int? capturedIndex;
-    String? capturedText;
+    'save with empty text fails validation; save with non-empty calls edit',
+    (tester) async {
+      int? capturedIndex;
+      String? capturedText;
 
-    await tester.pumpWidget(_hostDialog(
-      userInfo: userInfo,
-      edit: (i, t) {
-        capturedIndex = i;
-        capturedText = t;
-      },
-      text: '',
-    ));
-    await tester.pumpAndSettle();
+      await tester.pumpWidget(
+        _hostDialog(
+          userInfo: userInfo,
+          edit: (i, t) {
+            capturedIndex = i;
+            capturedText = t;
+          },
+          text: '',
+        ),
+      );
+      await tester.pumpAndSettle();
 
-    // Press save while empty -> validator returns the error string and edit
-    // is NOT called.
-    final saveButton = find.byType(TextButton).last;
-    await tester.tap(saveButton);
-    await tester.pumpAndSettle();
-    expect(capturedIndex, isNull);
-    expect(capturedText, isNull);
+      // Press save while empty -> validator returns the error string and edit
+      // is NOT called.
+      final saveButton = find.byType(TextButton).last;
+      await tester.tap(saveButton);
+      await tester.pumpAndSettle();
+      expect(capturedIndex, isNull);
+      expect(capturedText, isNull);
 
-    // Enter text and try again.
-    await tester.enterText(find.byType(TextFormField), 'updated value');
-    await tester.pumpAndSettle();
-    await tester.tap(saveButton);
-    await tester.pumpAndSettle();
+      // Enter text and try again.
+      await tester.enterText(find.byType(TextFormField), 'updated value');
+      await tester.pumpAndSettle();
+      await tester.tap(saveButton);
+      await tester.pumpAndSettle();
 
-    expect(capturedIndex, 3);
-    expect(capturedText, 'updated value');
-  });
+      expect(capturedIndex, 3);
+      expect(capturedText, 'updated value');
+    },
+  );
 
-  testWidgets('renders on small screens (height adapts to width <= 400)',
-      (tester) async {
+  testWidgets('renders on small screens (height adapts to width <= 400)', (
+    tester,
+  ) async {
     tester.view.physicalSize = const Size(380, 700);
     tester.view.devicePixelRatio = 1;
     addTearDown(() {
@@ -154,12 +157,14 @@ void main() {
       tester.view.resetDevicePixelRatio();
     });
 
-    await tester.pumpWidget(_hostDialog(
-      userInfo: userInfo,
-      edit: (_, __) {},
-      text: 'small',
-      size: const Size(380, 700),
-    ));
+    await tester.pumpWidget(
+      _hostDialog(
+        userInfo: userInfo,
+        edit: (_, _) {},
+        text: 'small',
+        size: const Size(380, 700),
+      ),
+    );
     await tester.pumpAndSettle();
 
     expect(find.byType(AddFormAnswer), findsOneWidget);

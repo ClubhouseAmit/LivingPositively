@@ -5,16 +5,13 @@ import 'package:mazilon/AnalyticsService.dart';
 import 'package:mazilon/util/Form/retrieveInformation.dart';
 import 'package:mazilon/util/LP_extended_state.dart';
 import 'package:mazilon/util/userInformation.dart';
-import 'package:shared_preferences/shared_preferences.dart';
 import 'package:keyboard_dismisser/keyboard_dismisser.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:mazilon/pages/thankYou.dart';
 import 'package:mazilon/util/Thanks/thanksItemSug.dart';
 import 'package:mazilon/util/styles.dart';
 import 'package:mazilon/util/Thanks/AddForm.dart';
-import 'package:mazilon/util/appInformation.dart';
 import 'package:provider/provider.dart';
-import 'package:mazilon/l10n/app_localizations.dart';
 import 'package:intl/intl.dart' as intl;
 
 //Journal page, where the user can write thank you notes (add , edit, remove notes)
@@ -106,39 +103,39 @@ class _JournalState extends LPExtendedState<Journal> {
 
   // remove the thank you note at the index
   void removeThankYou(int removeIndex, UserInformation userInfoProvider) {
-    List<String> thankYous_temp = userInfoProvider.thanks['thanks'] ?? [];
-    List<String> dates_temp = userInfoProvider.thanks['dates'] ?? [];
-    thankYous_temp.removeAt(removeIndex);
-    dates_temp.removeAt(removeIndex);
+    List<String> thankyousTemp = userInfoProvider.thanks['thanks'] ?? [];
+    List<String> datesTemp = userInfoProvider.thanks['dates'] ?? [];
+    thankyousTemp.removeAt(removeIndex);
+    datesTemp.removeAt(removeIndex);
     setState(() {
       userInfoProvider.updateThanks({
-        'thanks': thankYous_temp,
-        'dates': dates_temp,
+        'thanks': thankyousTemp,
+        'dates': datesTemp,
       });
-      thankYous = thankYous_temp;
+      thankYous = thankyousTemp;
       focusNodes.removeAt(removeIndex);
-      dates = dates_temp;
+      dates = datesTemp;
     });
   }
 
   // add the thank you note to the list
   void addThankYou(String thankYou, UserInformation userInfoProvider) {
     counter = counter < 6 ? counter + 1 : counter;
-    List<String> thankYous_temp = userInfoProvider.thanks['thanks'] ?? [];
-    List<String> dates_temp = userInfoProvider.thanks['dates'] ?? [];
-    thankYous_temp.add(thankYou);
+    List<String> thankyousTemp = userInfoProvider.thanks['thanks'] ?? [];
+    List<String> datesTemp = userInfoProvider.thanks['dates'] ?? [];
+    thankyousTemp.add(thankYou);
     DateTime now = DateTime.now();
     String formattedDate = DateFormat('yyyy-MM-dd – kk:mm').format(now);
-    dates_temp.add(formattedDate);
+    datesTemp.add(formattedDate);
     setState(() {
       userInfoProvider.updateThanks({
-        'thanks': thankYous_temp,
-        'dates': dates_temp,
+        'thanks': thankyousTemp,
+        'dates': datesTemp,
       });
-      thankYous = thankYous_temp;
+      thankYous = thankyousTemp;
       focusNodes.add(FocusNode());
 
-      dates = dates_temp;
+      dates = datesTemp;
     });
     //show the popup after adding the first thank you note (every time you enter the journal page)
     if (todayThankYousFunc(
@@ -159,6 +156,9 @@ class _JournalState extends LPExtendedState<Journal> {
   //show the popup with the text from the shared preferences
   void showThankYouPopup(UserInformation userInfoProvider) {
     Future.delayed(const Duration(seconds: 0), () {
+      if (!mounted) {
+        return;
+      }
       final gender = userInfoProvider.gender;
       showDialog(
         context: context,
@@ -166,14 +166,14 @@ class _JournalState extends LPExtendedState<Journal> {
           return AlertDialog(
             title: const Text(''),
             content: Text(
-              appLocale!.homePageThankyouPopup(gender),
+              appLocale.homePageThankyouPopup(gender),
               style: TextStyle(fontWeight: FontWeight.normal, fontSize: 15.sp),
               textAlign: TextAlign.center,
             ),
             actions: <Widget>[
               TextButton(
                 child: Text(
-                  appLocale!.confirmButton(gender),
+                  appLocale.confirmButton(gender),
                   style: TextStyle(fontWeight: FontWeight.normal),
                 ),
                 onPressed: () {
@@ -237,7 +237,7 @@ class _JournalState extends LPExtendedState<Journal> {
                       Padding(
                         padding: const EdgeInsets.fromLTRB(10, 0, 10, 0),
                         child: myAutoSizedText(
-                          appLocale!.homePageThanksMainTitle(gender),
+                          appLocale.homePageThanksMainTitle(gender),
                           TextStyle(
                             fontWeight: FontWeight.bold,
                             fontSize: 30.sp,
@@ -251,9 +251,9 @@ class _JournalState extends LPExtendedState<Journal> {
                       IconButton(
                         //when the button is pressed, open the popup with empty text field to write a new thank you note
                         onPressed: () {
-                          editThanks(appLocale!.thanks);
+                          editThanks(appLocale.thanks);
                         },
-                        tooltip: appLocale!.addItemTooltip,
+                        tooltip: appLocale.addItemTooltip,
                         icon: Icon(Icons.add, size: 50.0, color: primaryPurple),
                       ),
                     ],
@@ -264,7 +264,7 @@ class _JournalState extends LPExtendedState<Journal> {
                       Padding(
                         padding: const EdgeInsets.fromLTRB(10, 0, 10, 0),
                         child: myAutoSizedText(
-                          appLocale!.homePageThanksSecondaryTitle(gender),
+                          appLocale.homePageThanksSecondaryTitle(gender),
                           TextStyle(
                             color: darkGray,
                             fontSize: 16.sp,
@@ -287,7 +287,7 @@ class _JournalState extends LPExtendedState<Journal> {
                 text: thankYous[index],
                 number: (index + 1),
                 edit: (String text, int index) {
-                  editThanks(appLocale!.thanks, text, index);
+                  editThanks(appLocale.thanks, text, index);
                 },
                 remove: (int index) => removeThankYou(index, userInfoProvider),
                 myFocusNode: focusNodes[index],
@@ -365,7 +365,7 @@ class _JournalState extends LPExtendedState<Journal> {
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: <Widget>[
                   Text(
-                    appLocale!.otherSuggestions(gender),
+                    appLocale.otherSuggestions(gender),
                     style: TextStyle(
                       fontWeight: FontWeight.bold,
                       color: appGreen,

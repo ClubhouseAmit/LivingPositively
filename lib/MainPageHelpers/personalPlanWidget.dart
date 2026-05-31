@@ -83,7 +83,7 @@ class _PersonalPlanWidgetState extends LPExtendedState<PersonalPlanWidget> {
       listen: true,
     );
     final gender = userInfoProvider.gender;
-    return Container(
+    return SizedBox(
       width: double.infinity,
       child: Padding(
         padding: const EdgeInsets.only(bottom: 8.0),
@@ -100,7 +100,7 @@ class _PersonalPlanWidgetState extends LPExtendedState<PersonalPlanWidget> {
                 },
                 // the title of the personal plan section in the home page
                 child: myAutoSizedText(
-                  appLocale!.personalPlanPageMyPlan(gender),
+                  appLocale.personalPlanPageMyPlan(gender),
                   TextStyle(
                     fontSize: 24.sp, // the font size of the title
                     fontWeight: FontWeight.bold,
@@ -120,7 +120,7 @@ class _PersonalPlanWidgetState extends LPExtendedState<PersonalPlanWidget> {
                   },
                   Elusive.share,
                   Colors.black,
-                  tooltip: appLocale!.sharePlanTooltip,
+                  tooltip: appLocale.sharePlanTooltip,
                 ),
                 myTextButton(
                   () async {
@@ -146,15 +146,15 @@ class _PersonalPlanWidgetState extends LPExtendedState<PersonalPlanWidget> {
                     );
                     if (result == null) {
                       // Show him a message
-                      showToast(message: appLocale!.downloadFailed(gender));
+                      showToast(message: appLocale.downloadFailed(gender));
                       return;
                     }
                     // Show a toast message to the user
-                    showToast(message: appLocale!.finishedDownloading(gender));
+                    showToast(message: appLocale.finishedDownloading(gender));
                   },
                   Icons.download,
                   Colors.black,
-                  tooltip: appLocale!.downloadPlanTooltip,
+                  tooltip: appLocale.downloadPlanTooltip,
                 ), // the download icon
               ],
               // the sub title of the personal plan section in the home page
@@ -195,7 +195,7 @@ class _PersonalPlanWidgetState extends LPExtendedState<PersonalPlanWidget> {
                 child: Row(
                   children: [
                     myAutoSizedText(
-                      appLocale!.personalPlanPageAllPlan(gender),
+                      appLocale.personalPlanPageAllPlan(gender),
                       TextStyle(
                         fontWeight: FontWeight.bold,
                         fontSize: 12.sp, // the font size of the text
@@ -204,7 +204,7 @@ class _PersonalPlanWidgetState extends LPExtendedState<PersonalPlanWidget> {
                       20,
                     ),
                     Icon(
-                      appLocale!.textDirection == "rtl"
+                      appLocale.textDirection == "rtl"
                           ? Icons.arrow_left
                           : Icons.arrow_right,
                     ),

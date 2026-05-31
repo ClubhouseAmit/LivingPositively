@@ -6,10 +6,7 @@ import 'dart:math';
 class ListItemNumberWidget extends StatelessWidget {
   final int index;
 
-  const ListItemNumberWidget({
-    Key? key,
-    required this.index,
-  }) : super(key: key);
+  const ListItemNumberWidget({super.key, required this.index});
 
   @override
   Widget build(BuildContext context) {

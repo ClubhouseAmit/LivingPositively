@@ -1,0 +1,15 @@
+lockfile_version: '1'
+generated_at: '2026-05-31T10:28:30.346353+00:00'
+apm_version: 0.16.0
+dependencies:
+- repo_url: ruvnet/ruflo
+  host: github.com
+  resolved_commit: a042ded01d789efb499789bcacbbde117bffd402
+  resolved_ref: v3.10.4
+  virtual_path: plugins/ruflo-adr/skills/adr-create
+  is_virtual: true
+  package_type: claude_skill
+  deployed_files:
+  - .agents/skills/adr-create
+  - .claude/skills/adr-create
+  content_hash: sha256:05eebe4e936e6abb07eab5e18a75864c7cb6d41c6ec54bf850383edf7d0d35cd

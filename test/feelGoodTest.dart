@@ -1,7 +1,8 @@
 import 'package:flutter/material.dart';
-import 'dart:io';
 
 class SimplifiedFeelGood extends StatefulWidget {
+  const SimplifiedFeelGood({super.key});
+
   @override
   _SimplifiedFeelGoodState createState() => _SimplifiedFeelGoodState();
 }

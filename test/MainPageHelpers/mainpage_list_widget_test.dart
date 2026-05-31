@@ -15,16 +15,21 @@ class _NoOpLogger implements IncidentLoggerService {
   @override
   Future<void> initializeSentry(_) async {}
   @override
-  Future<void> captureLog(dynamic exception,
-      {StackTrace? stackTrace, dynamic exceptionData}) async {}
+  Future<void> captureLog(
+    dynamic exception, {
+    StackTrace? stackTrace,
+    dynamic exceptionData,
+  }) async {}
 }
 
 class _NoOpAnalytics implements AnalyticsService {
   @override
   Future<void> init() async {}
   @override
-  Future<void> trackEvent(String name,
-      [Map<String, dynamic>? properties]) async {}
+  Future<void> trackEvent(
+    String name, [
+    Map<String, dynamic>? properties,
+  ]) async {}
 }
 
 class _FakePersistentMemoryService implements PersistentMemoryService {
@@ -42,9 +47,7 @@ Widget _hostListWidget({
   Locale locale = const Locale('en'),
 }) {
   return MultiProvider(
-    providers: [
-      ChangeNotifierProvider<UserInformation>.value(value: userInfo),
-    ],
+    providers: [ChangeNotifierProvider<UserInformation>.value(value: userInfo)],
     child: MaterialApp(
       supportedLocales: AppLocalizations.supportedLocales,
       localizationsDelegates: AppLocalizations.localizationsDelegates,
@@ -53,10 +56,7 @@ Widget _hostListWidget({
         designSize: const Size(360, 690),
         builder: (context, _) => Scaffold(
           body: SingleChildScrollView(
-            child: ListWidget(
-              onTabTapped: (_, __) {},
-              pageCode: pageCode,
-            ),
+            child: ListWidget(onTabTapped: (_, _) {}, pageCode: pageCode),
           ),
         ),
       ),
@@ -78,59 +78,58 @@ void main() {
   });
 
   testWidgets(
-      'renders QualitiesList with empty positiveTraits (empty state branch)',
-      (tester) async {
-    final user = UserInformation(
-      service: _FakePersistentMemoryService(),
-      gender: 'male',
-      positiveTraits: const [],
-    );
+    'renders QualitiesList with empty positiveTraits (empty state branch)',
+    (tester) async {
+      final user = UserInformation(
+        service: _FakePersistentMemoryService(),
+        gender: 'male',
+        positiveTraits: const [],
+      );
 
-    await tester.pumpWidget(_hostListWidget(
-      userInfo: user,
-      pageCode: PagesCode.QualitiesList,
-    ));
-    await tester.pumpAndSettle();
+      await tester.pumpWidget(
+        _hostListWidget(userInfo: user, pageCode: PagesCode.QualitiesList),
+      );
+      await tester.pumpAndSettle();
 
-    // The widget mounts without errors and shows the section bar with the
-    // configured icon for the QualitiesList page.
-    expect(find.byType(ListWidget), findsOneWidget);
-    expect(find.byIcon(Icons.diamond), findsOneWidget);
-    expect(find.byIcon(Icons.add), findsWidgets);
-  });
-
-  testWidgets(
-      'renders GratitudeJournal with empty thanks (empty state branch)',
-      (tester) async {
-    final user = UserInformation(
-      service: _FakePersistentMemoryService(),
-      gender: 'female',
-      thanks: const <String, List<String>>{},
-    );
-
-    await tester.pumpWidget(_hostListWidget(
-      userInfo: user,
-      pageCode: PagesCode.GratitudeJournal,
-    ));
-    await tester.pumpAndSettle();
-
-    expect(find.byType(ListWidget), findsOneWidget);
-    expect(find.byIcon(Icons.add), findsWidgets);
-  });
+      // The widget mounts without errors and shows the section bar with the
+      // configured icon for the QualitiesList page.
+      expect(find.byType(ListWidget), findsOneWidget);
+      expect(find.byIcon(Icons.diamond), findsOneWidget);
+      expect(find.byIcon(Icons.add), findsWidgets);
+    },
+  );
 
   testWidgets(
-      'renders QualitiesList with non-empty positiveTraits',
-      (tester) async {
+    'renders GratitudeJournal with empty thanks (empty state branch)',
+    (tester) async {
+      final user = UserInformation(
+        service: _FakePersistentMemoryService(),
+        gender: 'female',
+        thanks: const <String, List<String>>{},
+      );
+
+      await tester.pumpWidget(
+        _hostListWidget(userInfo: user, pageCode: PagesCode.GratitudeJournal),
+      );
+      await tester.pumpAndSettle();
+
+      expect(find.byType(ListWidget), findsOneWidget);
+      expect(find.byIcon(Icons.add), findsWidgets);
+    },
+  );
+
+  testWidgets('renders QualitiesList with non-empty positiveTraits', (
+    tester,
+  ) async {
     final user = UserInformation(
       service: _FakePersistentMemoryService(),
       gender: 'male',
       positiveTraits: <String>['kind', 'curious'],
     );
 
-    await tester.pumpWidget(_hostListWidget(
-      userInfo: user,
-      pageCode: PagesCode.QualitiesList,
-    ));
+    await tester.pumpWidget(
+      _hostListWidget(userInfo: user, pageCode: PagesCode.QualitiesList),
+    );
     await tester.pumpAndSettle();
 
     expect(find.text('kind'), findsOneWidget);

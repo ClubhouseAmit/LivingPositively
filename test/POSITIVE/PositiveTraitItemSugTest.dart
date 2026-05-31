@@ -6,8 +6,11 @@ import 'package:dotted_border/dotted_border.dart';
 class PositiveTraitItemSug extends StatefulWidget {
   final Function add;
   final String inputText;
-  const PositiveTraitItemSug(
-      {super.key, required this.add, required this.inputText});
+  const PositiveTraitItemSug({
+    super.key,
+    required this.add,
+    required this.inputText,
+  });
 
   @override
   State<PositiveTraitItemSug> createState() => _PositiveTraitItemSugState();
@@ -26,7 +29,7 @@ class _PositiveTraitItemSugState extends State<PositiveTraitItemSug> {
     "7",
     "8",
     "9",
-    "10"
+    "10",
   ];
 
   // void loadData() async {}
@@ -35,8 +38,10 @@ class _PositiveTraitItemSugState extends State<PositiveTraitItemSug> {
   void initState() {
     super.initState();
     //loadData();
-    text = positiveTraitsSuggestionsList[
-        Random().nextInt(positiveTraitsSuggestionsList.length)];
+    text =
+        positiveTraitsSuggestionsList[Random().nextInt(
+          positiveTraitsSuggestionsList.length,
+        )];
   }
 
   @override
@@ -56,13 +61,14 @@ class _PositiveTraitItemSugState extends State<PositiveTraitItemSug> {
             child: Container(
               height: 50,
               decoration: BoxDecoration(
-                  color: Colors.transparent,
-                  borderRadius: BorderRadius.circular(20)),
+                color: Colors.transparent,
+                borderRadius: BorderRadius.circular(20),
+              ),
               child: Padding(
                 padding: const EdgeInsets.all(7.0),
                 child: Row(
                   children: [
-                    Container(
+                    SizedBox(
                       width: MediaQuery.of(context).size.width > 1000
                           ? 600
                           : MediaQuery.of(context).size.width * 0.6 + 36,
@@ -79,15 +85,15 @@ class _PositiveTraitItemSugState extends State<PositiveTraitItemSug> {
               ),
             ),
           ),
-          SizedBox(
-            width: 10,
-          ),
+          SizedBox(width: 10),
           GestureDetector(
             key: Key((widget.key as ValueKey).value + "Add"),
             onTap: () => {
               widget.add(widget.inputText == '' ? text : widget.inputText),
-              text = positiveTraitsSuggestionsList[
-                  Random().nextInt(positiveTraitsSuggestionsList.length)]
+              text =
+                  positiveTraitsSuggestionsList[Random().nextInt(
+                    positiveTraitsSuggestionsList.length,
+                  )],
             },
             child: DottedBorder(
               options: RoundedRectDottedBorderOptions(
@@ -105,18 +111,10 @@ class _PositiveTraitItemSugState extends State<PositiveTraitItemSug> {
                 child: Stack(
                   alignment: Alignment.center,
                   children: <Widget>[
-                    Icon(
-                      Icons.add,
-                      color: Colors.green,
-                      size: 20,
-                    ),
+                    Icon(Icons.add, color: Colors.green, size: 20),
                     Transform.translate(
                       offset: Offset(0.5, 0.5),
-                      child: Icon(
-                        Icons.add,
-                        color: Colors.green,
-                        size: 20,
-                      ),
+                      child: Icon(Icons.add, color: Colors.green, size: 20),
                     ),
                   ],
                 ),

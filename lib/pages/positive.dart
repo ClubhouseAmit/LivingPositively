@@ -6,7 +6,6 @@ import 'package:mazilon/util/Form/retrieveInformation.dart';
 import 'package:mazilon/util/LP_extended_state.dart';
 import 'package:mazilon/util/persistent_memory_service.dart';
 import 'package:mazilon/util/type_utils.dart';
-import 'package:shared_preferences/shared_preferences.dart';
 import 'package:keyboard_dismisser/keyboard_dismisser.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:mazilon/pages/thankYou.dart';
@@ -42,8 +41,10 @@ class _PositiveState extends LPExtendedState<Positive> {
 
   //load the data from the shared preferences
   void loadData(BuildContext context) {
-    final userInfoProvider =
-        Provider.of<UserInformation>(context, listen: false);
+    final userInfoProvider = Provider.of<UserInformation>(
+      context,
+      listen: false,
+    );
     setState(() {
       positiveTraits = userInfoProvider.positiveTraits;
 
@@ -51,8 +52,10 @@ class _PositiveState extends LPExtendedState<Positive> {
         focusNodes.add(FocusNode());
       }
       String gender = userInfoProvider.gender;
-      List<String> tempPositiveSuggestionList =
-          retrieveTraitsList(appLocale, gender == "" ? "other" : gender);
+      List<String> tempPositiveSuggestionList = retrieveTraitsList(
+        appLocale,
+        gender == "" ? "other" : gender,
+      );
 
       //  List<String> tempPositiveSuggestionList =
 
@@ -69,16 +72,23 @@ class _PositiveState extends LPExtendedState<Positive> {
       var indices = List<int>.generate(positiveSuggestionList.length, (i) => i);
       indices.shuffle();
       sug1 = positiveSuggestionList[indices[0]];
-      sug2 = positiveSuggestionList[
-          indices[positiveSuggestionList.length > 1 ? 1 : 0]];
-      sug3 = positiveSuggestionList[
-          indices[positiveSuggestionList.length > 2 ? 2 : 0]];
+      sug2 =
+          positiveSuggestionList[indices[positiveSuggestionList.length > 1
+              ? 1
+              : 0]];
+      sug3 =
+          positiveSuggestionList[indices[positiveSuggestionList.length > 2
+              ? 2
+              : 0]];
     });
   }
 
   //change the positive trait at the given index to the given text
   void editPositiveTrait(
-      String text, int index, UserInformation userInfoProvider) async {
+    String text,
+    int index,
+    UserInformation userInfoProvider,
+  ) async {
     List<String> positiveTraits = userInfoProvider.positiveTraits;
     setState(() {
       positiveTraits[index] = text;
@@ -88,16 +98,22 @@ class _PositiveState extends LPExtendedState<Positive> {
 
   //remove the positive trait at the given index
   void removePositiveTrait(int removeIndex, UserInformation userInfo) async {
-    PersistentMemoryService service = GetIt.instance<
-        PersistentMemoryService>(); // Get the persistent memory service instance
+    PersistentMemoryService service =
+        GetIt.instance<
+          PersistentMemoryService
+        >(); // Get the persistent memory service instance
 
-    List<String> positiveTraitsTemp = TypeUtils.castToStringList(await service
-        .getItem("positiveTraits", PersistentMemoryType.StringList));
+    List<String> positiveTraitsTemp = TypeUtils.castToStringList(
+      await service.getItem("positiveTraits", PersistentMemoryType.StringList),
+    );
 
     positiveTraitsTemp.removeAt(removeIndex);
     debugPrint("got here");
     await service.setItem(
-        "positiveTraits", PersistentMemoryType.StringList, positiveTraitsTemp);
+      "positiveTraits",
+      PersistentMemoryType.StringList,
+      positiveTraitsTemp,
+    );
     setState(() {
       positiveTraits = positiveTraitsTemp;
       focusNodes.removeAt(removeIndex);
@@ -107,27 +123,32 @@ class _PositiveState extends LPExtendedState<Positive> {
 
   //add the given positive trait to the list
   void addPositiveTrait(
-      String positiveTrait, UserInformation userInfoProvider) async {
-    List<String> positiveTraits_temp = userInfoProvider.positiveTraits;
-    positiveTraits_temp.add(positiveTrait);
+    String positiveTrait,
+    UserInformation userInfoProvider,
+  ) async {
+    List<String> positivetraitsTemp = userInfoProvider.positiveTraits;
+    positivetraitsTemp.add(positiveTrait);
 
     setState(() {
-      userInfoProvider.updatePositiveTraits(positiveTraits_temp);
-      positiveTraits = positiveTraits_temp;
+      userInfoProvider.updatePositiveTraits(positivetraitsTemp);
+      positiveTraits = positivetraitsTemp;
       focusNodes.add(FocusNode());
     });
     AnalyticsService mixPanelService = GetIt.instance<AnalyticsService>();
-    mixPanelService.trackEvent(
-      "Item added to Qualities List",
-    );
+    mixPanelService.trackEvent("Item added to Qualities List");
   }
 
   @override
   void initState() {
     super.initState();
     Future.delayed(Duration(seconds: 10), () {
-      final userInfoProvider =
-          Provider.of<UserInformation>(context, listen: false);
+      if (!mounted) {
+        return;
+      }
+      final userInfoProvider = Provider.of<UserInformation>(
+        context,
+        listen: false,
+      );
       final gender = userInfoProvider.gender;
       // show the popup every time the user enters the positive traits page (after 10 seconds)
       showDialog(
@@ -137,14 +158,15 @@ class _PositiveState extends LPExtendedState<Positive> {
           return AlertDialog(
             title: Text(''),
             //popup text
-            content: Text(appLocale!.homePagePositiveTraitPopup(gender),
-                style:
-                    TextStyle(fontWeight: FontWeight.normal, fontSize: 15.sp),
-                textAlign: TextAlign.center),
+            content: Text(
+              appLocale!.homePagePositiveTraitPopup(gender),
+              style: TextStyle(fontWeight: FontWeight.normal, fontSize: 15.sp),
+              textAlign: TextAlign.center,
+            ),
             actions: <Widget>[
               // close button
               TextButton(
-                child: Text(appLocale!.backButton(gender)),
+                child: Text(appLocale.backButton(gender)),
                 onPressed: () {
                   Navigator.of(context).pop();
                 },
@@ -158,18 +180,23 @@ class _PositiveState extends LPExtendedState<Positive> {
 
   //the function we call when we want to add/edit a positive trait,(it opens a popup with a text field and a save button)
   void editNotification(
-      String text, int index, String trait, UserInformation userInfoProvider) {
+    String text,
+    int index,
+    String trait,
+    UserInformation userInfoProvider,
+  ) {
     showDialog(
-        context: context,
-        builder: (BuildContext context) {
-          return AddForm(
-            add: addPositiveTrait,
-            index: index,
-            edit: editPositiveTrait,
-            text: text,
-            formTitle: trait,
-          );
-        });
+      context: context,
+      builder: (BuildContext context) {
+        return AddForm(
+          add: addPositiveTrait,
+          index: index,
+          edit: editPositiveTrait,
+          text: text,
+          formTitle: trait,
+        );
+      },
+    );
   }
 
   //build the positive traits page
@@ -177,8 +204,10 @@ class _PositiveState extends LPExtendedState<Positive> {
   Widget build(BuildContext context) {
     //get the app information and user information providers
 
-    final userInfoProvider =
-        Provider.of<UserInformation>(context, listen: false);
+    final userInfoProvider = Provider.of<UserInformation>(
+      context,
+      listen: false,
+    );
     final gender = userInfoProvider.gender;
     final appLocale = AppLocalizations.of(context);
     loadData(context);
@@ -198,25 +227,27 @@ class _PositiveState extends LPExtendedState<Positive> {
                       Padding(
                         padding: const EdgeInsets.fromLTRB(10, 0, 10, 0),
                         child: myAutoSizedText(
-                            appLocale!.homePageTraitsMainTitle(gender),
-                            TextStyle(
-                              fontWeight: FontWeight.bold,
-                              fontSize: 30.sp,
-                            ),
-                            null,
-                            60),
+                          appLocale!.homePageTraitsMainTitle(gender),
+                          TextStyle(
+                            fontWeight: FontWeight.bold,
+                            fontSize: 30.sp,
+                          ),
+                          null,
+                          60,
+                        ),
                       ),
                       //add button
                       IconButton(
-                          onPressed: () {
-                            editNotification(
-                                "", 0, appLocale!.trait, userInfoProvider);
-                          },
-                          icon: Icon(
-                            Icons.add,
-                            size: 50.0,
-                            color: primaryPurple,
-                          )),
+                        onPressed: () {
+                          editNotification(
+                            "",
+                            0,
+                            appLocale.trait,
+                            userInfoProvider,
+                          );
+                        },
+                        icon: Icon(Icons.add, size: 50.0, color: primaryPurple),
+                      ),
                     ],
                   ),
                   Row(
@@ -226,15 +257,16 @@ class _PositiveState extends LPExtendedState<Positive> {
                         child: Padding(
                           padding: const EdgeInsets.fromLTRB(10, 0, 10, 0),
                           child: myAutoSizedText(
-                              appLocale!.homePageTraitsSecondaryTitle(gender),
-                              TextStyle(
-                                color: darkGray,
-                                fontSize: 16.sp,
-                                fontWeight: FontWeight.bold,
-                              ),
-                              TextAlign.start,
-                              30,
-                              3),
+                            appLocale.homePageTraitsSecondaryTitle(gender),
+                            TextStyle(
+                              color: darkGray,
+                              fontSize: 16.sp,
+                              fontWeight: FontWeight.bold,
+                            ),
+                            TextAlign.start,
+                            30,
+                            3,
+                          ),
                         ),
                       ),
                     ],
@@ -252,7 +284,11 @@ class _PositiveState extends LPExtendedState<Positive> {
                 number: (index + 1),
                 edit: (String text, int index) {
                   editNotification(
-                      text, index, appLocale!.trait, userInfoProvider);
+                    text,
+                    index,
+                    appLocale.trait,
+                    userInfoProvider,
+                  );
                 },
                 remove: (int index) {
                   removePositiveTrait(index, userInfoProvider);
@@ -264,18 +300,16 @@ class _PositiveState extends LPExtendedState<Positive> {
             ),
             positiveTraits.isEmpty
                 ? Container()
-                : Divider(
-                    color: darkGray,
-                    indent: 30,
-                    endIndent: 30,
-                  ),
+                : Divider(color: darkGray, indent: 30, endIndent: 30),
             //suggestions
             PositiveTraitItemSug(
               stopShowing: 0,
               add: addPositiveTrait,
               inputText: sug1,
               fullSuggestionList: retrieveTraitsList(
-                  appLocale, gender == "" ? "other" : gender),
+                appLocale,
+                gender == "" ? "other" : gender,
+              ),
             ),
             sug1 != sug2
                 ? PositiveTraitItemSug(
@@ -283,7 +317,9 @@ class _PositiveState extends LPExtendedState<Positive> {
                     add: addPositiveTrait,
                     inputText: sug2,
                     fullSuggestionList: retrieveTraitsList(
-                        appLocale, gender == "" ? "other" : gender),
+                      appLocale,
+                      gender == "" ? "other" : gender,
+                    ),
                   )
                 : Container(),
             sug1 != sug3
@@ -292,7 +328,9 @@ class _PositiveState extends LPExtendedState<Positive> {
                     add: addPositiveTrait,
                     inputText: sug3,
                     fullSuggestionList: retrieveTraitsList(
-                        appLocale, gender == "" ? "other" : gender),
+                      appLocale,
+                      gender == "" ? "other" : gender,
+                    ),
                   )
                 : Container(),
             //refresh button
@@ -300,7 +338,9 @@ class _PositiveState extends LPExtendedState<Positive> {
               onPressed: () async {
                 String gender = userInfoProvider.gender;
                 List<String> tempPositiveSuggestionList = retrieveTraitsList(
-                    appLocale, gender == '' ? 'other' : gender);
+                  appLocale,
+                  gender == '' ? 'other' : gender,
+                );
                 positiveSuggestionList = List.from(tempPositiveSuggestionList);
                 for (String suggestion in tempPositiveSuggestionList) {
                   if (positiveSuggestionList.length > 3 &&
@@ -310,13 +350,23 @@ class _PositiveState extends LPExtendedState<Positive> {
                 }
                 setState(() {
                   var indices = List<int>.generate(
-                      positiveSuggestionList.length, (i) => i);
+                    positiveSuggestionList.length,
+                    (i) => i,
+                  );
                   indices.shuffle();
                   sug1 = positiveSuggestionList[indices[0]];
-                  sug2 = positiveSuggestionList[
-                      indices[positiveSuggestionList.length > 1 ? 1 : 0]];
-                  sug3 = positiveSuggestionList[
-                      indices[positiveSuggestionList.length > 2 ? 2 : 0]];
+                  sug2 =
+                      positiveSuggestionList[indices[positiveSuggestionList
+                                  .length >
+                              1
+                          ? 1
+                          : 0]];
+                  sug3 =
+                      positiveSuggestionList[indices[positiveSuggestionList
+                                  .length >
+                              2
+                          ? 2
+                          : 0]];
                 });
               },
               //refresh button
@@ -325,9 +375,11 @@ class _PositiveState extends LPExtendedState<Positive> {
                 children: <Widget>[
                   //refresh button text
                   Text(
-                    appLocale!.otherSuggestions(gender),
-                    style:
-                        TextStyle(fontWeight: FontWeight.bold, color: appGreen),
+                    appLocale.otherSuggestions(gender),
+                    style: TextStyle(
+                      fontWeight: FontWeight.bold,
+                      color: appGreen,
+                    ),
                   ),
                   const SizedBox(width: 1.0),
                   Icon(

@@ -32,8 +32,11 @@ class _CapturingLogger implements IncidentLoggerService {
   @override
   Future<void> initializeSentry(Widget myApp) async {}
   @override
-  Future<void> captureLog(dynamic exception,
-      {StackTrace? stackTrace, dynamic exceptionData}) async {
+  Future<void> captureLog(
+    dynamic exception, {
+    StackTrace? stackTrace,
+    dynamic exceptionData,
+  }) async {
     captured.add(exception);
   }
 }
@@ -42,8 +45,10 @@ class _NoopAnalytics implements AnalyticsService {
   @override
   Future<void> init() async {}
   @override
-  Future<void> trackEvent(String eventName,
-      [Map<String, dynamic>? properties]) async {}
+  Future<void> trackEvent(
+    String eventName, [
+    Map<String, dynamic>? properties,
+  ]) async {}
 }
 
 void main() {
@@ -92,7 +97,7 @@ void main() {
     final svc = ImagePickerServiceImpl();
     final img = svc.displayImage('/some/where.png', fit: BoxFit.cover);
     expect(img, isA<Image>());
-    expect((img as Image).fit, BoxFit.cover);
+    expect((img).fit, BoxFit.cover);
   });
 
   test('getOnlineImage returns Image.network for url', () {
@@ -101,8 +106,7 @@ void main() {
     expect(img, isA<Image>());
   });
 
-  test('saveImagePaths persists list, loadImagePaths reads it back',
-      () async {
+  test('saveImagePaths persists list, loadImagePaths reads it back', () async {
     final svc = ImagePickerServiceImpl();
     final paths = ['/a/b.png', '/c/d.png'];
     final file = await svc.saveImagePaths(paths);
@@ -113,20 +117,22 @@ void main() {
     expect(loaded, equals(paths));
   });
 
-  test('loadImagePaths on missing file returns empty without logging an error',
-      () async {
-    final svc = ImagePickerServiceImpl();
-    final loaded = <String>[];
-    // No file written yet. Phase E (ADR-005 §Decision step 5): a missing
-    // manifest is the empty first-run state, NOT an error — loadImagePaths
-    // must return normally, leave the list empty, and log nothing, so
-    // AsyncStateView stays out of its error branch and the Feel Good grid
-    // shows its add affordance. Genuine read failures (manifest present but
-    // unreadable) are logged + rethrown and covered by the widget test.
-    await svc.loadImagePaths(loaded);
-    expect(loaded, isEmpty);
-    expect(logger.captured, isEmpty);
-  });
+  test(
+    'loadImagePaths on missing file returns empty without logging an error',
+    () async {
+      final svc = ImagePickerServiceImpl();
+      final loaded = <String>[];
+      // No file written yet. Phase E (ADR-005 §Decision step 5): a missing
+      // manifest is the empty first-run state, NOT an error — loadImagePaths
+      // must return normally, leave the list empty, and log nothing, so
+      // AsyncStateView stays out of its error branch and the Feel Good grid
+      // shows its add affordance. Genuine read failures (manifest present but
+      // unreadable) are logged + rethrown and covered by the widget test.
+      await svc.loadImagePaths(loaded);
+      expect(loaded, isEmpty);
+      expect(logger.captured, isEmpty);
+    },
+  );
 
   test('deleteImage removes entry at index and the file on disk', () async {
     final svc = ImagePickerServiceImpl();
