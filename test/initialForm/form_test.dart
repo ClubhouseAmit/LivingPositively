@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:get_it/get_it.dart';
-import 'package:mazilon/iFx/service_locator.dart';
 import 'package:mazilon/util/persistent_memory_service.dart';
 import 'package:mockito/annotations.dart';
 import 'package:mockito/mockito.dart';
@@ -45,18 +44,24 @@ void main() {
       mockPersistentMemoryService = MockPersistentMemoryService();
 
       // Setup specific mock behavior for hasFilled
-      when(mockPersistentMemoryService.getItem('hasFilled', any))
-          .thenAnswer((_) async => false);
+      when(
+        mockPersistentMemoryService.getItem('hasFilled', any),
+      ).thenAnswer((_) async => false);
       // Default behavior for other keys
-      when(mockPersistentMemoryService.getItem(
-              argThat(isNot(equals('hasFilled'))), any))
-          .thenAnswer((_) async => null);
-      when(mockPersistentMemoryService.setItem(any, any, any))
-          .thenAnswer((_) async {});
+      when(
+        mockPersistentMemoryService.getItem(
+          argThat(isNot(equals('hasFilled'))),
+          any,
+        ),
+      ).thenAnswer((_) async => null);
+      when(
+        mockPersistentMemoryService.setItem(any, any, any),
+      ).thenAnswer((_) async {});
       when(mockPersistentMemoryService.reset()).thenAnswer((_) async {});
 
       GetIt.instance.registerSingleton<PersistentMemoryService>(
-          mockPersistentMemoryService);
+        mockPersistentMemoryService,
+      );
 
       // Setup other mocks
       mockUserInformation = MockUserInformation();
@@ -68,23 +73,26 @@ void main() {
       SharedPreferences.setMockInitialValues({'hasFilled': false});
 
       phonePageData = PhonePageData(
-          header: '',
-          phoneNames: [],
-          phoneNumbers: [],
-          subTitle: '',
-          midTitle: '',
-          phoneNameTitle: '',
-          phoneNumberTitle: '',
-          key: '',
-          savedPhoneNames: [],
-          savedPhoneNumbers: [],
-          phoneDescription: []);
+        header: '',
+        phoneNames: [],
+        phoneNumbers: [],
+        subTitle: '',
+        midTitle: '',
+        phoneNameTitle: '',
+        phoneNumberTitle: '',
+        key: '',
+        savedPhoneNames: [],
+        savedPhoneNumbers: [],
+        phoneDescription: [],
+      );
 
       mockSharedPreferences = MockSharedPreferences();
-      when(mockSharedPreferences.getStringList('SavedPhoneNames'))
-          .thenReturn([]);
-      when(mockSharedPreferences.getStringList('SavedPhoneNumbers'))
-          .thenReturn([]);
+      when(
+        mockSharedPreferences.getStringList('SavedPhoneNames'),
+      ).thenReturn([]);
+      when(
+        mockSharedPreferences.getStringList('SavedPhoneNumbers'),
+      ).thenReturn([]);
     });
     tearDown(() {
       GetIt.I.reset();
@@ -93,26 +101,30 @@ void main() {
     // SharedPreferences.setMockInitialValues({'hasFilled': false});
 
     testWidgets('FormPageTemplate widget test', (WidgetTester tester) async {
-      await tester.pumpWidget(MultiProvider(
-        providers: [
-          ChangeNotifierProvider<AppInformation>.value(
-              value: mockAppInformation),
-          ChangeNotifierProvider<UserInformation>.value(
-              value: mockUserInformation),
-        ],
-        child: MaterialApp(
-          supportedLocales: AppLocalizations.supportedLocales,
-          locale: Locale('he'),
-          localizationsDelegates: AppLocalizations.localizationsDelegates,
-          home: ScreenUtilInit(
-            designSize: const Size(360, 690),
-            child: InitialFormProgressIndicator(
-              phonePageData: phonePageData,
-              changeLocale: (String locale) {},
+      await tester.pumpWidget(
+        MultiProvider(
+          providers: [
+            ChangeNotifierProvider<AppInformation>.value(
+              value: mockAppInformation,
+            ),
+            ChangeNotifierProvider<UserInformation>.value(
+              value: mockUserInformation,
+            ),
+          ],
+          child: MaterialApp(
+            supportedLocales: AppLocalizations.supportedLocales,
+            locale: Locale('he'),
+            localizationsDelegates: AppLocalizations.localizationsDelegates,
+            home: ScreenUtilInit(
+              designSize: const Size(360, 690),
+              child: InitialFormProgressIndicator(
+                phonePageData: phonePageData,
+                changeLocale: (String locale) {},
+              ),
             ),
           ),
         ),
-      ));
+      );
       await tester.pumpAndSettle();
 
       // Verify the initial state

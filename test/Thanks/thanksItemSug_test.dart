@@ -44,8 +44,9 @@ void main() {
     resetTestServices();
   });
 
-  testWidgets('renders suggestion row with add button when show is true',
-      (tester) async {
+  testWidgets('renders suggestion row with add button when show is true', (
+    tester,
+  ) async {
     await pumpWithProviders(
       tester,
       const ThanksItemSuggested(
@@ -68,8 +69,7 @@ void main() {
     // already-thanked today forces _show = false (lines 75-77 + 99).
     user.updateThanks({
       'thanks': [..._suggestions],
-      'dates':
-          List<String>.generate(_suggestions.length, (_) => _todayDate()),
+      'dates': List<String>.generate(_suggestions.length, (_) => _todayDate()),
     });
 
     await pumpWithProviders(
@@ -90,73 +90,75 @@ void main() {
   });
 
   testWidgets(
-      'tap on add button invokes add() and rebuilds the suggestion text',
-      (tester) async {
-    final captured = <String>[];
+    'tap on add button invokes add() and rebuilds the suggestion text',
+    (tester) async {
+      final captured = <String>[];
 
-    await pumpWithProviders(
-      tester,
-      ThanksItemSuggested(
-        add: (String suggestion, UserInformation u) {
-          captured.add(suggestion);
-        },
-        inputText: '',
-        stopShowing: 1,
-        fullSuggestionList: _suggestions,
-      ),
-      userInformation: user,
-      surfaceSize: const Size(1024, 800),
-    );
+      await pumpWithProviders(
+        tester,
+        ThanksItemSuggested(
+          add: (String suggestion, UserInformation u) {
+            captured.add(suggestion);
+          },
+          inputText: '',
+          stopShowing: 1,
+          fullSuggestionList: _suggestions,
+        ),
+        userInformation: user,
+        surfaceSize: const Size(1024, 800),
+      );
 
-    // Two GestureDetectors render — the outer one for the dotted-border
-    // add button is the first GestureDetector child of the ThanksItemSuggested.
-    final gestureDetector = find
-        .descendant(
-          of: find.byType(ThanksItemSuggested),
-          matching: find.byType(GestureDetector),
-        )
-        .first;
-    await tester.tap(gestureDetector, warnIfMissed: false);
-    await tester.pump();
+      // Two GestureDetectors render — the outer one for the dotted-border
+      // add button is the first GestureDetector child of the ThanksItemSuggested.
+      final gestureDetector = find
+          .descendant(
+            of: find.byType(ThanksItemSuggested),
+            matching: find.byType(GestureDetector),
+          )
+          .first;
+      await tester.tap(gestureDetector, warnIfMissed: false);
+      await tester.pump();
 
-    expect(captured, isNotEmpty);
-    // After tap the widget rebuilds; the GestureDetector still exists.
-    expect(find.byType(GestureDetector), findsWidgets);
-  });
+      expect(captured, isNotEmpty);
+      // After tap the widget rebuilds; the GestureDetector still exists.
+      expect(find.byType(GestureDetector), findsWidgets);
+    },
+  );
 
   testWidgets(
-      'tap with inputText override passes the override into add() callback',
-      (tester) async {
-    final captured = <String>[];
+    'tap with inputText override passes the override into add() callback',
+    (tester) async {
+      final captured = <String>[];
 
-    await pumpWithProviders(
-      tester,
-      ThanksItemSuggested(
-        add: (String suggestion, UserInformation u) {
-          captured.add(suggestion);
-        },
-        inputText: 'override-text',
-        stopShowing: 1,
-        fullSuggestionList: _suggestions,
-      ),
-      userInformation: user,
-      surfaceSize: const Size(1024, 800),
-    );
+      await pumpWithProviders(
+        tester,
+        ThanksItemSuggested(
+          add: (String suggestion, UserInformation u) {
+            captured.add(suggestion);
+          },
+          inputText: 'override-text',
+          stopShowing: 1,
+          fullSuggestionList: _suggestions,
+        ),
+        userInformation: user,
+        surfaceSize: const Size(1024, 800),
+      );
 
-    final gestureDetector = find
-        .descendant(
-          of: find.byType(ThanksItemSuggested),
-          matching: find.byType(GestureDetector),
-        )
-        .first;
-    await tester.tap(gestureDetector, warnIfMissed: false);
-    await tester.pump();
+      final gestureDetector = find
+          .descendant(
+            of: find.byType(ThanksItemSuggested),
+            matching: find.byType(GestureDetector),
+          )
+          .first;
+      await tester.tap(gestureDetector, warnIfMissed: false);
+      await tester.pump();
 
-    expect(captured.last, 'override-text');
-  });
+      expect(captured.last, 'override-text');
+    },
+  );
 }
 
-void _noopAdd(String _, UserInformation __) {}
+void _noopAdd(String _, UserInformation _) {}
 
 String _todayDate() {
   final now = DateTime.now();

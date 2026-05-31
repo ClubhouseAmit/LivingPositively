@@ -41,6 +41,9 @@ class _ListWidgetState extends LPExtendedState<ListWidget> {
 
   void showThankYouPopup(UserInformation userInfoProvider) {
     Future.delayed(const Duration(seconds: 0), () {
+      if (!mounted) {
+        return;
+      }
       final gender = userInfoProvider.gender;
       showDialog(
         context: context,
@@ -72,23 +75,23 @@ class _ListWidgetState extends LPExtendedState<ListWidget> {
   }
 
   void editThanksState(
-    List<String> thankYous_temp,
-    List<String> dates_temp,
+    List<String> thankyousTemp,
+    List<String> datesTemp,
     userInfoProvider,
   ) {
     setState(() {
       userInfoProvider.updateThanks({
-        'thanks': thankYous_temp,
-        'dates': dates_temp,
+        'thanks': thankyousTemp,
+        'dates': datesTemp,
       });
 
-      todayThankYous = todayThankYousFunc(thankYous_temp, dates_temp);
+      todayThankYous = todayThankYousFunc(thankyousTemp, datesTemp);
     });
   }
 
-  void editTraitsState(positiveTraits_temp, userInfoProvider) {
+  void editTraitsState(positivetraitsTemp, userInfoProvider) {
     setState(() {
-      userInfoProvider.updatePositiveTraits(positiveTraits_temp);
+      userInfoProvider.updatePositiveTraits(positivetraitsTemp);
     });
   }
 

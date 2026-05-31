@@ -14,8 +14,6 @@
 // assert on widget types and on state recorded back into the shared
 // PhonePageData ChangeNotifier — that's where the value lives.
 
-import 'dart:async';
-
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:mazilon/global_enums.dart';
@@ -32,20 +30,19 @@ import '../helpers/widget_test_scaffold.dart';
 PhonePageData _makePhonePageData({
   List<String> names = const <String>[],
   List<String> numbers = const <String>[],
-}) =>
-    PhonePageData(
-      key: 'phonePage',
-      header: 'Phones',
-      subTitle: 'Sub',
-      midTitle: 'Mid',
-      phoneNameTitle: 'Name',
-      phoneNumberTitle: 'Phone',
-      phoneNames: const <String>[],
-      phoneNumbers: const <String>[],
-      savedPhoneNames: List<String>.from(names),
-      savedPhoneNumbers: List<String>.from(numbers),
-      phoneDescription: const <String>[],
-    );
+}) => PhonePageData(
+  key: 'phonePage',
+  header: 'Phones',
+  subTitle: 'Sub',
+  midTitle: 'Mid',
+  phoneNameTitle: 'Name',
+  phoneNumberTitle: 'Phone',
+  phoneNames: const <String>[],
+  phoneNumbers: const <String>[],
+  savedPhoneNames: List<String>.from(names),
+  savedPhoneNumbers: List<String>.from(numbers),
+  phoneDescription: const <String>[],
+);
 
 /// Allow the post-frame loadItemsFromPrefs in PhonePageData's constructor
 /// to settle without producing visible-overflow noise that aborts the test.
@@ -87,8 +84,9 @@ void main() {
   });
 
   group('PhonePageList (real production widget)', () {
-    testWidgets('renders the manual-add TextButton with empty data',
-        (tester) async {
+    testWidgets('renders the manual-add TextButton with empty data', (
+      tester,
+    ) async {
       final phoneData = _makePhonePageData();
 
       await pumpWithProviders(
@@ -111,8 +109,9 @@ void main() {
       expect(find.byType(TextButton), findsWidgets);
     });
 
-    testWidgets('manual-add TextButton appends an empty phone row',
-        (tester) async {
+    testWidgets('manual-add TextButton appends an empty phone row', (
+      tester,
+    ) async {
       final phoneData = _makePhonePageData();
 
       await pumpWithProviders(
@@ -146,8 +145,9 @@ void main() {
       expect(phoneData.savedPhoneNames.last, '');
     });
 
-    testWidgets('PhonePageData seeded with two entries renders Card widgets',
-        (tester) async {
+    testWidgets('PhonePageData seeded with two entries renders Card widgets', (
+      tester,
+    ) async {
       // PhonePageData's constructor calls loadItemsFromPrefs() which
       // overwrites our seeded lists with whatever is in
       // PersistentMemoryService. To keep the two seeded entries visible we
@@ -189,39 +189,42 @@ void main() {
   });
 
   group('PhonePageForm (real production widget)', () {
-    testWidgets('renders header, import button, list, and confirmation button',
-        (tester) async {
-      final phoneData = _makePhonePageData();
-      bool nextCalled = false;
+    testWidgets(
+      'renders header, import button, list, and confirmation button',
+      (tester) async {
+        final phoneData = _makePhonePageData();
+        bool nextCalled = false;
 
-      await pumpWithProviders(
-        tester,
-        ChangeNotifierProvider<PhonePageData>.value(
-          value: phoneData,
-          child: PhonePageForm(
-            next: () => nextCalled = true,
-            prev: () {},
-            phonePageData: phoneData,
+        await pumpWithProviders(
+          tester,
+          ChangeNotifierProvider<PhonePageData>.value(
+            value: phoneData,
+            child: PhonePageForm(
+              next: () => nextCalled = true,
+              prev: () {},
+              phonePageData: phoneData,
+            ),
           ),
-        ),
-        userInformation: userInformation,
-        surfaceSize: const Size(1024, 2000),
-      );
-      await _settle(tester);
+          userInformation: userInformation,
+          surfaceSize: const Size(1024, 2000),
+        );
+        await _settle(tester);
 
-      expect(find.byType(PhonePageForm), findsOneWidget);
-      // Embedded PhonePageList is built via Consumer<PhonePageData>.
-      expect(find.byType(PhonePageList), findsOneWidget);
-      // Next/import buttons render — exact tap is platform-channel
-      // sensitive (FlutterContacts), so we only assert presence here.
-      expect(find.byType(TextButton), findsWidgets);
-      expect(nextCalled, isFalse);
-    });
+        expect(find.byType(PhonePageForm), findsOneWidget);
+        // Embedded PhonePageList is built via Consumer<PhonePageData>.
+        expect(find.byType(PhonePageList), findsOneWidget);
+        // Next/import buttons render — exact tap is platform-channel
+        // sensitive (FlutterContacts), so we only assert presence here.
+        expect(find.byType(TextButton), findsWidgets);
+        expect(nextCalled, isFalse);
+      },
+    );
   });
 
   group('FormProgressIndicator (real production widget)', () {
-    testWidgets('renders the first step and progress indicator dots',
-        (tester) async {
+    testWidgets('renders the first step and progress indicator dots', (
+      tester,
+    ) async {
       final phoneData = _makePhonePageData();
 
       await pumpWithProviders(

@@ -64,8 +64,8 @@ ButtonStyle myButtonStyle2 = TextButton.styleFrom(
   ),
 );
 
-Container ConfirmationButton(context, function, text, buttonTextStyle) {
-  return Container(
+Widget ConfirmationButton(context, function, text, buttonTextStyle) {
+  return SizedBox(
     width: MediaQuery.of(context).size.width > 1000
         ? 600
         : MediaQuery.of(context).size.width * 0.6,
@@ -79,8 +79,8 @@ Container ConfirmationButton(context, function, text, buttonTextStyle) {
   );
 }
 
-Container CancelButton(context, function, text, buttonTextStyle) {
-  return Container(
+Widget CancelButton(context, function, text, buttonTextStyle) {
+  return SizedBox(
     width: MediaQuery.of(context).size.width > 1000
         ? 600
         : MediaQuery.of(context).size.width * 0.6,
@@ -94,8 +94,8 @@ Container CancelButton(context, function, text, buttonTextStyle) {
   );
 }
 
-Container ResetButton(context, function, text, buttonTextStyle) {
-  return Container(
+Widget ResetButton(context, function, text, buttonTextStyle) {
+  return SizedBox(
     width: MediaQuery.of(context).size.width > 1000
         ? 400
         : MediaQuery.of(context).size.width * 0.3,

@@ -25,7 +25,7 @@ class _JournalState extends State<Journal> {
     "7",
     "8",
     "9",
-    "10"
+    "10",
   ];
   List<String> thankYous = [];
   List<FocusNode> focusNodes = [];
@@ -60,44 +60,42 @@ class _JournalState extends State<Journal> {
   }
 
   void removeThankYou(int removeIndex) async {
-    List<String> thankYous_temp =
+    List<String> thankyousTemp =
         widget.fakeSharedPreferencesStorage['thankYous'] ?? [];
-    List<String> dates_temp =
-        widget.fakeSharedPreferencesStorage['dates'] ?? [];
-    thankYous_temp.removeAt(removeIndex);
-    dates_temp.removeAt(removeIndex);
+    List<String> datesTemp = widget.fakeSharedPreferencesStorage['dates'] ?? [];
+    thankyousTemp.removeAt(removeIndex);
+    datesTemp.removeAt(removeIndex);
     setState(() {
-      widget.fakeSharedPreferencesStorage['thankYous'] = thankYous_temp;
+      widget.fakeSharedPreferencesStorage['thankYous'] = thankyousTemp;
 
-      thankYous = thankYous_temp;
+      thankYous = thankyousTemp;
       focusNodes.removeAt(removeIndex);
-      widget.fakeSharedPreferencesStorage['dates'] = dates_temp;
-      dates = dates_temp;
+      widget.fakeSharedPreferencesStorage['dates'] = datesTemp;
+      dates = datesTemp;
     });
   }
 
   void addThankYou(String thankYou) async {
     counter = counter < 6 ? counter + 1 : counter;
 
-    List<String> thankYous_temp =
+    List<String> thankyousTemp =
         widget.fakeSharedPreferencesStorage['thankYous'] ?? [];
-    List<String> dates_temp =
-        widget.fakeSharedPreferencesStorage['dates'] ?? [];
+    List<String> datesTemp = widget.fakeSharedPreferencesStorage['dates'] ?? [];
 
-    thankYous_temp.add(thankYou);
+    thankyousTemp.add(thankYou);
 
     DateTime now = DateTime.now();
     String formattedDate = DateFormat('yyyy-MM-dd – kk:mm').format(now);
-    dates_temp.add(formattedDate);
+    datesTemp.add(formattedDate);
 
     setState(() {
-      widget.fakeSharedPreferencesStorage['thankYous'] = thankYous_temp;
+      widget.fakeSharedPreferencesStorage['thankYous'] = thankyousTemp;
 
-      thankYous = thankYous_temp;
+      thankYous = thankyousTemp;
       focusNodes.add(FocusNode());
-      widget.fakeSharedPreferencesStorage['dates'] = dates_temp;
+      widget.fakeSharedPreferencesStorage['dates'] = datesTemp;
 
-      dates = dates_temp;
+      dates = datesTemp;
     });
     if (counter == 1) {
       showPopup();
@@ -149,16 +147,17 @@ class _JournalState extends State<Journal> {
 
   void editNotification(String text, int index) {
     showDialog(
-        context: context,
-        builder: (BuildContext context) {
-          return AddForm(
-            add: addThankYou,
-            index: index,
-            edit: changeThankYou,
-            text: text,
-            formTitle: 'תודה',
-          );
-        });
+      context: context,
+      builder: (BuildContext context) {
+        return AddForm(
+          add: addThankYou,
+          index: index,
+          edit: changeThankYou,
+          text: text,
+          formTitle: 'תודה',
+        );
+      },
+    );
   }
 
   @override
@@ -167,7 +166,7 @@ class _JournalState extends State<Journal> {
       body: KeyboardDismisser(
         gestures: const [
           GestureType.onTap,
-          GestureType.onPanUpdateAnyDirection
+          GestureType.onPanUpdateAnyDirection,
         ],
         child: Scaffold(
           backgroundColor: Colors.white,
@@ -181,48 +180,44 @@ class _JournalState extends State<Journal> {
                       mainAxisAlignment: MainAxisAlignment.spaceBetween,
                       children: [
                         IconButton(
-                            key: Key('addThankYouPlus'),
-                            onPressed: () {
-                              editNotification("", 0);
-                            },
-                            icon: const Icon(
-                              Icons.add,
-                              size: 50.0,
-                              color: Colors.purple,
-                            )),
+                          key: Key('addThankYouPlus'),
+                          onPressed: () {
+                            editNotification("", 0);
+                          },
+                          icon: const Icon(
+                            Icons.add,
+                            size: 50.0,
+                            color: Colors.purple,
+                          ),
+                        ),
                         const Padding(
                           padding: EdgeInsets.fromLTRB(0, 0, 0, 0),
-                          child: Text(
-                            'תודו ליסט',
-                          ),
+                          child: Text('תודו ליסט'),
                         ),
                       ],
                     ),
                     const Row(
                       mainAxisAlignment: MainAxisAlignment.end,
-                      children: [
-                        Text(
-                          'על מה אני מודה היום',
-                        ),
-                      ],
+                      children: [Text('על מה אני מודה היום')],
                     ),
                   ],
                 ),
               ),
               ListView.builder(
-                  shrinkWrap: true,
-                  physics: const NeverScrollableScrollPhysics(),
-                  itemBuilder: (context, index) => ThankYou(
-                        key: Key('ThankYou$index'),
-                        text: thankYous[index],
-                        number: (index + 1),
-                        edit: editNotification,
-                        remove: removeThankYou,
-                        myFocusNode: focusNodes[index],
-                        date: dates[index],
-                        color: Colors.black,
-                      ),
-                  itemCount: thankYous.length),
+                shrinkWrap: true,
+                physics: const NeverScrollableScrollPhysics(),
+                itemBuilder: (context, index) => ThankYou(
+                  key: Key('ThankYou$index'),
+                  text: thankYous[index],
+                  number: (index + 1),
+                  edit: editNotification,
+                  remove: removeThankYou,
+                  myFocusNode: focusNodes[index],
+                  date: dates[index],
+                  color: Colors.black,
+                ),
+                itemCount: thankYous.length,
+              ),
               thankYous.isEmpty
                   ? Container()
                   : const Divider(
@@ -249,13 +244,23 @@ class _JournalState extends State<Journal> {
                 onPressed: () async {
                   setState(() {
                     var indices = List<int>.generate(
-                        thanksSuggestionsList.length, (i) => i);
+                      thanksSuggestionsList.length,
+                      (i) => i,
+                    );
                     indices.shuffle();
                     sug1 = thanksSuggestionsList[indices[0]];
-                    sug2 = thanksSuggestionsList[
-                        indices[thanksSuggestionsList.length > 1 ? 1 : 0]];
-                    sug3 = thanksSuggestionsList[
-                        indices[thanksSuggestionsList.length > 2 ? 2 : 0]];
+                    sug2 =
+                        thanksSuggestionsList[indices[thanksSuggestionsList
+                                    .length >
+                                1
+                            ? 1
+                            : 0]];
+                    sug3 =
+                        thanksSuggestionsList[indices[thanksSuggestionsList
+                                    .length >
+                                2
+                            ? 2
+                            : 0]];
                   });
                 },
                 child: const Row(
@@ -264,13 +269,12 @@ class _JournalState extends State<Journal> {
                     Text(
                       'הצעות אחרות',
                       style: TextStyle(
-                          fontWeight: FontWeight.bold, color: Colors.green),
+                        fontWeight: FontWeight.bold,
+                        color: Colors.green,
+                      ),
                     ),
                     SizedBox(width: 1.0),
-                    Icon(
-                      Icons.refresh,
-                      color: Colors.green,
-                    ),
+                    Icon(Icons.refresh, color: Colors.green),
                   ],
                 ),
               ),

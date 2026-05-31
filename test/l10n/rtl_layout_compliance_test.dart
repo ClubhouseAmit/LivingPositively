@@ -29,15 +29,14 @@ Future<void> pumpArabicHarness(
   await getIt.reset();
 
   final fileService = share_mocks.MockFileService();
-  when(fileService.download(any, any, any, any, any))
-      .thenAnswer((_) async => null);
+  when(
+    fileService.download(any, any, any, any, any),
+  ).thenAnswer((_) async => null);
   getIt.registerLazySingleton<FileService>(() => fileService);
 
   final persistentMemoryService = share_mocks.MockPersistentMemoryService();
-  when(persistentMemoryService.getItem(any, any))
-      .thenAnswer((_) async => null);
-  when(persistentMemoryService.setItem(any, any, any))
-      .thenAnswer((_) async {});
+  when(persistentMemoryService.getItem(any, any)).thenAnswer((_) async => null);
+  when(persistentMemoryService.setItem(any, any, any)).thenAnswer((_) async {});
 
   final userInformation = UserInformation(service: persistentMemoryService)
     ..gender = gender
@@ -56,9 +55,7 @@ Future<void> pumpArabicHarness(
         locale: const Locale('ar'),
         home: ScreenUtilInit(
           designSize: const Size(360, 690),
-          child: wrapInScaffold
-              ? Scaffold(body: Center(child: child))
-              : child,
+          child: wrapInScaffold ? Scaffold(body: Center(child: child)) : child,
         ),
       ),
     ),
@@ -71,14 +68,12 @@ void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
 
   group('RTL layout compliance', () {
-    testWidgets('NameBar uses directional outer padding',
-        (WidgetTester tester) async {
+    testWidgets('NameBar uses directional outer padding', (
+      WidgetTester tester,
+    ) async {
       await pumpArabicHarness(
         tester,
-        NameBar(
-          icons: const [SizedBox()],
-          greetingString: 'Greeting',
-        ),
+        NameBar(icons: const [SizedBox()], greetingString: 'Greeting'),
       );
 
       final padding = tester.widget<Padding>(
@@ -90,8 +85,9 @@ void main() {
       expect(padding.padding, isA<EdgeInsetsDirectional>());
     });
 
-    testWidgets('SectionBarHome subtitle padding is directional',
-        (WidgetTester tester) async {
+    testWidgets('SectionBarHome subtitle padding is directional', (
+      WidgetTester tester,
+    ) async {
       await pumpArabicHarness(
         tester,
         SectionBarHome(
@@ -111,8 +107,9 @@ void main() {
       expect(subtitlePadding.padding, isA<EdgeInsetsDirectional>());
     });
 
-    testWidgets('PagePhoneItem description spacing is directional',
-        (WidgetTester tester) async {
+    testWidgets('PagePhoneItem description spacing is directional', (
+      WidgetTester tester,
+    ) async {
       await pumpArabicHarness(
         tester,
         PagePhoneItem(
@@ -132,20 +129,15 @@ void main() {
       expect(descriptionPadding.padding, isA<EdgeInsetsDirectional>());
     });
 
-    testWidgets('AddFormAnswer text-field padding is directional',
-        (WidgetTester tester) async {
+    testWidgets('AddFormAnswer text-field padding is directional', (
+      WidgetTester tester,
+    ) async {
       await pumpArabicHarness(
         tester,
-        AddFormAnswer(
-          index: 0,
-          edit: (_, __) {},
-          text: 'Initial value',
-        ),
+        AddFormAnswer(index: 0, edit: (_, _) {}, text: 'Initial value'),
       );
 
-      final textField = tester.widget<TextField>(
-        find.byType(TextField),
-      );
+      final textField = tester.widget<TextField>(find.byType(TextField));
 
       expect(
         textField.decoration?.contentPadding,
@@ -153,8 +145,9 @@ void main() {
       );
     });
 
-    testWidgets('FormPageTemplate checkbox tile padding is directional',
-        (WidgetTester tester) async {
+    testWidgets('FormPageTemplate checkbox tile padding is directional', (
+      WidgetTester tester,
+    ) async {
       await pumpArabicHarness(
         tester,
         FormPageTemplate(
@@ -175,26 +168,28 @@ void main() {
       }
     });
 
-    testWidgets('PersonalPlanWidget does not use a physical right arrow under RTL',
-        (WidgetTester tester) async {
-      await pumpArabicHarness(
-        tester,
-        PersonalPlanWidget(
-          text: const {
-            'list': ['One', 'Two'],
-            'SubTitle': 'Subtitle',
-          },
-          changeCurrentIndex: (_, __) {},
-        ),
-      );
+    testWidgets(
+      'PersonalPlanWidget does not use a physical right arrow under RTL',
+      (WidgetTester tester) async {
+        await pumpArabicHarness(
+          tester,
+          PersonalPlanWidget(
+            text: const {
+              'list': ['One', 'Two'],
+              'SubTitle': 'Subtitle',
+            },
+            changeCurrentIndex: (_, _) {},
+          ),
+        );
 
-      expect(
-        find.descendant(
-          of: find.byType(PersonalPlanWidget),
-          matching: find.byIcon(Icons.arrow_right),
-        ),
-        findsNothing,
-      );
-    });
+        expect(
+          find.descendant(
+            of: find.byType(PersonalPlanWidget),
+            matching: find.byIcon(Icons.arrow_right),
+          ),
+          findsNothing,
+        );
+      },
+    );
   });
 }

@@ -1,30 +1,30 @@
 import 'package:flutter_test/flutter_test.dart';
-import 'package:mockito/mockito.dart';
 import 'TraitListWidgetTest.dart';
-import 'dart:math';
 import 'package:flutter/material.dart';
 
 void main() {
   testWidgets('test the positive trait list', (WidgetTester tester) async {
-    List<String> positive_traits = ["smart", "beautifull", "kind"];
+    List<String> positiveTraits = ["smart", "beautifull", "kind"];
     add(text) {
-      positive_traits.add(text);
+      positiveTraits.add(text);
     }
 
-    edit(text, index) => {positive_traits[index] = text};
-    remove(index) => {positive_traits.removeAt(index)};
-    addSuggested() => positive_traits.add("Suggested");
+    edit(text, index) => {positiveTraits[index] = text};
+    remove(index) => {positiveTraits.removeAt(index)};
+    addSuggested() => positiveTraits.add("Suggested");
     onTabTapped(index) => debugPrint(index);
 
-    await tester.pumpWidget(TraitListWidget(
-      traits: positive_traits,
-      add: add,
-      edit: edit,
-      remove: remove,
-      traitListLength: positive_traits.length,
-      addSuggested: addSuggested,
-      onTabTapped: onTabTapped,
-    ));
+    await tester.pumpWidget(
+      TraitListWidget(
+        traits: positiveTraits,
+        add: add,
+        edit: edit,
+        remove: remove,
+        traitListLength: positiveTraits.length,
+        addSuggested: addSuggested,
+        onTabTapped: onTabTapped,
+      ),
+    );
     final addButton = find.byKey(Key('addButton'));
     expect(addButton, findsWidgets);
     await tester.tap(addButton);

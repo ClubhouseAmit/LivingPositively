@@ -40,13 +40,15 @@ List<String> checkboxCollectionNames = [
 ];
 
 @pragma(
-    'vm:entry-point') // Mandatory if the App is obfuscated or using Flutter 3.1+
+  'vm:entry-point',
+) // Mandatory if the App is obfuscated or using Flutter 3.1+
 void callbackDispatcher() {
   Workmanager().executeTask((task, inputData) async {
     try {
       if (_backgroundWorkerSentryDsn.isNotEmpty && !Sentry.isEnabled) {
         await Sentry.init(
-            (options) => options.dsn = _backgroundWorkerSentryDsn);
+          (options) => options.dsn = _backgroundWorkerSentryDsn,
+        );
       }
       if (inputData == null ||
           !inputData.containsKey("text") ||
@@ -115,7 +117,8 @@ Future<void> initializeApp({
   WidgetsFlutterBinding.ensureInitialized();
   await (firebaseInitializer ??
       () => Firebase.initializeApp(
-          options: DefaultFirebaseOptions.currentPlatform))();
+        options: DefaultFirebaseOptions.currentPlatform,
+      ))();
 
   (locatorSetup ?? setupLocator)();
 }
@@ -159,10 +162,7 @@ Future<Widget> bootstrapApp({
   if (!kIsWeb) {
     (workmanagerInitializer ??
         () {
-          Workmanager().initialize(
-            callbackDispatcher,
-            isInDebugMode: false,
-          );
+          Workmanager().initialize(callbackDispatcher);
         })();
   }
 
@@ -170,23 +170,21 @@ Future<Widget> bootstrapApp({
     providers: [
       for (int i = 0; i < checkboxCollectionNames.length; i++)
         // Initialize the checkbox models
-
         // Initialize the phonePageData provider
         ChangeNotifierProvider(
           create: (context) => PhonePageData(
-              key: "PhonePage",
-              phoneNames: [],
-              phoneNumbers: [],
-              header: "", // Blank for unknown field
-              subTitle: "", // Blank for unknown field
-              midTitle: "", // Blank for unknown field
-              phoneNameTitle: "", // Blank for unknown field
-              phoneNumberTitle: "", // Blank for unknown field
-              savedPhoneNames: [], // Assuming empty list for unknown
-              savedPhoneNumbers: [], // Assuming empty list for unknown
-              phoneDescription: [] // Assuming empty list for unknown
-              )
-            ..loadItemsFromPrefs(), // Initialize phonePageData
+            key: "PhonePage",
+            phoneNames: [],
+            phoneNumbers: [],
+            header: "", // Blank for unknown field
+            subTitle: "", // Blank for unknown field
+            midTitle: "", // Blank for unknown field
+            phoneNameTitle: "", // Blank for unknown field
+            phoneNumberTitle: "", // Blank for unknown field
+            savedPhoneNames: [], // Assuming empty list for unknown
+            savedPhoneNumbers: [], // Assuming empty list for unknown
+            phoneDescription: [], // Assuming empty list for unknown
+          )..loadItemsFromPrefs(), // Initialize phonePageData
         ),
 
       // Initialize the APP information provider
@@ -206,6 +204,8 @@ void main() async {
 }
 
 class MyApp extends StatefulWidget {
+  const MyApp({super.key});
+
   @override
   _MyAppState createState() => _MyAppState();
 }
@@ -218,12 +218,10 @@ class _MyAppState extends State<MyApp> with WidgetsBindingObserver {
   bool _initializationStarted = false; // Add this flag
 
   bool _isInitialized = false;
-  List<String> phonePageCollectionNames = [
-    'PersonalPlan-PhonesPage',
-  ];
+  List<String> phonePageCollectionNames = ['PersonalPlan-PhonesPage'];
   List<String> textCollectionNames = [];
   late Map<String, dynamic>
-      personalPlanPhonesPageData; // Store the new table data
+  personalPlanPhonesPageData; // Store the new table data
   late PhonePageData phonePageData;
   late Future<void> loadCollectionsFuture;
   late Future<Widget> futureWidget;
@@ -250,28 +248,12 @@ class _MyAppState extends State<MyApp> with WidgetsBindingObserver {
     if (_startTime == null) return;
 
     final endTime = DateTime.now();
-    final duration =
-        endTime.difference(_startTime!).inSeconds; // Calculate session length
+    final duration = endTime
+        .difference(_startTime!)
+        .inSeconds; // Calculate session length
 
     AnalyticsService mixPanelService = GetIt.instance<AnalyticsService>();
-    mixPanelService.trackEvent("Session Ended", {
-      "duration_seconds": duration,
-    });
-
-    _startTime = null; // Reset for next session
-  }
-
-  void _pauseSession() {
-    if (_startTime == null) return;
-
-    final endTime = DateTime.now();
-    final duration =
-        endTime.difference(_startTime!).inSeconds; // Calculate session length
-
-    AnalyticsService mixPanelService = GetIt.instance<AnalyticsService>();
-    mixPanelService.trackEvent("Session Paused", {
-      "duration_seconds": duration,
-    });
+    mixPanelService.trackEvent("Session Ended", {"duration_seconds": duration});
 
     _startTime = null; // Reset for next session
   }
@@ -288,12 +270,14 @@ class _MyAppState extends State<MyApp> with WidgetsBindingObserver {
 
   void getHasFilled() async {
     try {
-      PersistentMemoryService service = GetIt.instance<
-          PersistentMemoryService>(); // Get the persistent memory service instance
+      PersistentMemoryService service =
+          GetIt.instance<
+            PersistentMemoryService
+          >(); // Get the persistent memory service instance
 
       var hasFilledValue =
           await service.getItem("hasFilled", PersistentMemoryType.Bool) ??
-              false;
+          false;
       setState(() {
         hasFilled = hasFilledValue;
       });
@@ -309,11 +293,15 @@ class _MyAppState extends State<MyApp> with WidgetsBindingObserver {
     try {
       LocaleService localeService = GetIt.instance<LocaleService>();
 
-      PersistentMemoryService service = GetIt.instance<
-          PersistentMemoryService>(); // Get the persistent memory service instance
+      PersistentMemoryService service =
+          GetIt.instance<
+            PersistentMemoryService
+          >(); // Get the persistent memory service instance
 
-      String? prefsLocale =
-          await service.getItem('localeName', PersistentMemoryType.String);
+      String? prefsLocale = await service.getItem(
+        'localeName',
+        PersistentMemoryType.String,
+      );
 
       setState(() {
         localeService.setLocale(prefsLocale != "" ? prefsLocale! : 'en');
@@ -331,12 +319,14 @@ class _MyAppState extends State<MyApp> with WidgetsBindingObserver {
 
   void loadFirstTime() async {
     try {
-      PersistentMemoryService service = GetIt.instance<
-          PersistentMemoryService>(); // Get the persistent memory service instance
+      PersistentMemoryService service =
+          GetIt.instance<
+            PersistentMemoryService
+          >(); // Get the persistent memory service instance
 
       var enteredBeforeValue =
           await service.getItem('enteredBefore', PersistentMemoryType.Bool) ??
-              true;
+          true;
 
       setState(() {
         enteredBefore = enteredBeforeValue;
@@ -362,14 +352,16 @@ class _MyAppState extends State<MyApp> with WidgetsBindingObserver {
     personalPlanPhonesPageData = {
       'phoneName': <String>[],
       'emergencyPhones': <String>[],
-      'phoneDescription': <String>[]
+      'phoneDescription': <String>[],
     }; // Initialize personalPlanPhonesPageData
   }
 
   Future<void> initMixpanel() async {
     // Once you've called this method once, you can access `mixpanel` throughout the rest of your application.
-    mixpanel = await Mixpanel.init("e38d39b73bc076129d0a5390af41fc24",
-        trackAutomaticEvents: false);
+    mixpanel = await Mixpanel.init(
+      "e38d39b73bc076129d0a5390af41fc24",
+      trackAutomaticEvents: false,
+    );
   }
 
   @override
@@ -390,16 +382,20 @@ class _MyAppState extends State<MyApp> with WidgetsBindingObserver {
       localeName = localeService.getLocale();
     });
     service.setItem("localeName", PersistentMemoryType.String, locale);
-    Provider.of<UserInformation>(context, listen: false)
-        .updateLocaleName(locale);
+    Provider.of<UserInformation>(
+      context,
+      listen: false,
+    ).updateLocaleName(locale);
     WidgetsBinding.instance.addPostFrameCallback((_) async {
       final currentContext = _navigatorKey.currentContext;
       if (currentContext == null) return;
       final appLocale = AppLocalizations.of(currentContext);
       if (appLocale == null) return;
 
-      final userInfo =
-          Provider.of<UserInformation>(currentContext, listen: false);
+      final userInfo = Provider.of<UserInformation>(
+        currentContext,
+        listen: false,
+      );
       await refreshReminderForLocaleChange(
         remindersSupported: NotificationsService.supportsReminderSettings(),
         initializeNotifications: () => NotificationsService.init(),
@@ -416,34 +412,39 @@ class _MyAppState extends State<MyApp> with WidgetsBindingObserver {
   Widget build(BuildContext context) {
     LocaleService localeService = GetIt.instance<LocaleService>();
     final appInfoProvider = Provider.of<AppInformation>(context, listen: false);
-    final userInfoProvider =
-        Provider.of<UserInformation>(context, listen: false);
+    final userInfoProvider = Provider.of<UserInformation>(
+      context,
+      listen: false,
+    );
 
     if (widgetNotifier.value == null && !_initializationStarted) {
       _initializationStarted = true; // Prevent multiple initialization attempts
 
       Future.wait([
-        //load from DB or from json:
-        loadAppInformation(appInfoProvider),
-        loadUserInformation(userInfoProvider, localeService.getLocale()),
-        setLocale()
-      ]).then((_) {
-        //initialize which widget will run first:
-        widgetNotifier.value = FirstPage(
-            firsttime: !enteredBefore,
-            hasFilled: hasFilled,
-            changeLocale: changeLocale,
-            phonePageData: phonePageData);
-      }).catchError((error, stackTrace) {
-        // Handle errors and provide a fallback widget
+            //load from DB or from json:
+            loadAppInformation(appInfoProvider),
+            loadUserInformation(userInfoProvider, localeService.getLocale()),
+            setLocale(),
+          ])
+          .then((_) {
+            //initialize which widget will run first:
+            widgetNotifier.value = FirstPage(
+              firsttime: !enteredBefore,
+              hasFilled: hasFilled,
+              changeLocale: changeLocale,
+              phonePageData: phonePageData,
+            );
+          })
+          .catchError((error, stackTrace) {
+            // Handle errors and provide a fallback widget
 
-        IncidentLoggerService loggerService =
-            GetIt.instance<IncidentLoggerService>();
-        loggerService.captureLog(error, stackTrace: stackTrace);
+            IncidentLoggerService loggerService =
+                GetIt.instance<IncidentLoggerService>();
+            loggerService.captureLog(error, stackTrace: stackTrace);
 
-        // Fallback to Introduction page on error
-        widgetNotifier.value = const Center(child: Introduction());
-      });
+            // Fallback to Introduction page on error
+            widgetNotifier.value = const Center(child: Introduction());
+          });
     }
 
     if (localeName == '') {

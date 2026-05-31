@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 
 class StepsWidget extends StatefulWidget {
+  const StepsWidget({super.key});
+
   @override
   _StepsWidgetState createState() => _StepsWidgetState();
 }
@@ -8,18 +10,9 @@ class StepsWidget extends StatefulWidget {
 class _StepsWidgetState extends State<StepsWidget> {
   int currentStep = 0;
   final List<Step> steps = [
-    Step(
-      title: Text('Step 0'),
-      content: Text('This is the first step.'),
-    ),
-    Step(
-      title: Text('Step 1'),
-      content: Text('This is the second step.'),
-    ),
-    Step(
-      title: Text('Step 2'),
-      content: Text('This is the third step.'),
-    ),
+    Step(title: Text('Step 0'), content: Text('This is the first step.')),
+    Step(title: Text('Step 1'), content: Text('This is the second step.')),
+    Step(title: Text('Step 2'), content: Text('This is the third step.')),
   ];
 
   void next() {
@@ -46,29 +39,28 @@ class _StepsWidgetState extends State<StepsWidget> {
   Widget build(BuildContext context) {
     return MaterialApp(
       home: Scaffold(
-          appBar: AppBar(
-            title: Text('Your Widget'),
-          ),
-          body: Column(
-            children: [
-              Text('Step ' + currentStep.toString()),
-              ElevatedButton(
-                key: Key('Next'),
-                onPressed: next,
-                child: Text('Next'),
-              ),
-              ElevatedButton(
-                key: Key('Prev'),
-                onPressed: prev,
-                child: Text('Prev'),
-              ),
-              ElevatedButton(
-                key: Key('Skip'),
-                onPressed: skip,
-                child: Text('Skip'),
-              ),
-            ],
-          )),
+        appBar: AppBar(title: Text('Your Widget')),
+        body: Column(
+          children: [
+            Text('Step $currentStep'),
+            ElevatedButton(
+              key: Key('Next'),
+              onPressed: next,
+              child: Text('Next'),
+            ),
+            ElevatedButton(
+              key: Key('Prev'),
+              onPressed: prev,
+              child: Text('Prev'),
+            ),
+            ElevatedButton(
+              key: Key('Skip'),
+              onPressed: skip,
+              child: Text('Skip'),
+            ),
+          ],
+        ),
+      ),
     );
   }
 }

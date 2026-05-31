@@ -3,9 +3,7 @@ import 'package:get_it/get_it.dart';
 import 'package:mazilon/global_enums.dart';
 import 'package:mazilon/util/LP_extended_state.dart';
 import 'package:mazilon/util/persistent_memory_service.dart';
-import 'package:shared_preferences/shared_preferences.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
-import 'package:mazilon/l10n/app_localizations.dart';
 import 'package:mazilon/util/Form/formPagePhoneModel.dart';
 
 import 'package:mazilon/util/styles.dart';
@@ -14,15 +12,14 @@ import 'package:mazilon/initialForm/toFormPage.dart';
 import 'package:mazilon/initialForm/initialFormPage2.dart';
 import 'package:mazilon/initialForm/initialFormPage1.dart';
 import 'package:mazilon/menu.dart';
-import 'package:mazilon/util/appInformation.dart';
 import 'package:mazilon/util/userInformation.dart';
 import 'package:mazilon/disclaimerPage.dart';
 
 class InitialFormProgressIndicator extends StatefulWidget {
-  PhonePageData phonePageData;
+  final PhonePageData phonePageData;
   final Function changeLocale;
 
-  InitialFormProgressIndicator({
+  const InitialFormProgressIndicator({
     super.key,
     required this.phonePageData,
     required this.changeLocale,
@@ -42,11 +39,15 @@ class InitialFormProgressIndicatorState
   bool hasFilled = false;
   List<Widget> steps = [];
   void getHasFilled() async {
-    PersistentMemoryService service = GetIt.instance<
-        PersistentMemoryService>(); // Get the persistent memory service instance
+    PersistentMemoryService service =
+        GetIt.instance<
+          PersistentMemoryService
+        >(); // Get the persistent memory service instance
 
-    var hasFilledValue =
-        await service.getItem("hasFilled", PersistentMemoryType.Bool);
+    var hasFilledValue = await service.getItem(
+      "hasFilled",
+      PersistentMemoryType.Bool,
+    );
     setState(() {
       hasFilled = hasFilledValue ?? false;
     });
@@ -81,8 +82,10 @@ class InitialFormProgressIndicatorState
   }
 
   void submitForm() async {
-    PersistentMemoryService service = GetIt.instance<
-        PersistentMemoryService>(); // Get the persistent memory service instance
+    PersistentMemoryService service =
+        GetIt.instance<
+          PersistentMemoryService
+        >(); // Get the persistent memory service instance
 
     if (name.isNotEmpty) {
       await service.setItem("name", PersistentMemoryType.String, name);
@@ -94,11 +97,12 @@ class InitialFormProgressIndicatorState
     Navigator.pushAndRemoveUntil(
       context,
       MaterialPageRoute(
-          builder: (context) => Menu(
-                phonePageData: widget.phonePageData,
-                hasFilled: hasFilled,
-                changeLocale: widget.changeLocale,
-              )),
+        builder: (context) => Menu(
+          phonePageData: widget.phonePageData,
+          hasFilled: hasFilled,
+          changeLocale: widget.changeLocale,
+        ),
+      ),
       (Route<dynamic> route) => false,
     );
   }
@@ -112,8 +116,10 @@ class InitialFormProgressIndicatorState
 
   @override
   Widget build(BuildContext context) {
-    final userInfoProvider =
-        Provider.of<UserInformation>(context, listen: true);
+    final userInfoProvider = Provider.of<UserInformation>(
+      context,
+      listen: true,
+    );
 
     final gender = userInfoProvider.gender;
     if (!userInfoProvider.disclaimerSigned) {
@@ -128,21 +134,18 @@ class InitialFormProgressIndicatorState
         skip: skip,
         updateName: updateName,
       ),
-      InitialFormPage2(
-        next: next,
-        prev: prev,
-        updateName: updateName,
-      ),
+      InitialFormPage2(next: next, prev: prev, updateName: updateName),
       ToFormPage(
-          phonePageData: widget.phonePageData,
-          changeLocale: widget.changeLocale),
+        phonePageData: widget.phonePageData,
+        changeLocale: widget.changeLocale,
+      ),
 
       //<<<<<<<<<<<PAGES END HERE
     ];
     return PopScope(
       canPop: false,
-      onPopInvoked: (didpop) async {
-        if (didpop) {
+      onPopInvokedWithResult: (didPop, result) async {
+        if (didPop) {
           return;
         } else {
           prev();
@@ -158,10 +161,11 @@ class InitialFormProgressIndicatorState
             leading: currentStep != (steps.length - 1)
                 ? IconButton(
                     icon: myAutoSizedText(
-                        appLocale!.skipButton(gender),
-                        TextStyle(fontWeight: FontWeight.bold, fontSize: 12.sp),
-                        null,
-                        25),
+                      appLocale.skipButton(gender),
+                      TextStyle(fontWeight: FontWeight.bold, fontSize: 12.sp),
+                      null,
+                      25,
+                    ),
                     onPressed: () {
                       //## this is the part that skips BOTH forms from the initial screen.##//
                       debugPrint('skipping');
@@ -178,7 +182,8 @@ class InitialFormProgressIndicatorState
         ),
         body: AnimatedSwitcher(
           duration: const Duration(
-              milliseconds: 300), // Specify the duration of the animation
+            milliseconds: 300,
+          ), // Specify the duration of the animation
           transitionBuilder: (Widget child, Animation<double> animation) {
             var begin = const Offset(1.0, 0.0);
             var end = Offset.zero;

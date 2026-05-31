@@ -2,7 +2,8 @@
 
 import 'dart:convert';
 
-import 'package:flutter/foundation.dart' show kIsWeb, defaultTargetPlatform, TargetPlatform;
+import 'package:flutter/foundation.dart'
+    show kIsWeb, defaultTargetPlatform, TargetPlatform;
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:mazilon/l10n/app_localizations.dart';
@@ -143,8 +144,11 @@ class _ReminderDebugPanelState extends State<ReminderDebugPanel> {
             ),
           _row('Scheduled time', scheduledTime),
           _row('Last fire at', _lastFireAt ?? '—'),
-          _row('Last status', _lastStatus ?? '—',
-              valueColor: _statusColor(_lastStatus)),
+          _row(
+            'Last status',
+            _lastStatus ?? '—',
+            valueColor: _statusColor(_lastStatus),
+          ),
           _row('Last task', _lastTask ?? '—'),
           if ((_lastError ?? '').isNotEmpty)
             _row('Last error', _lastError!, valueColor: Colors.red.shade700),
@@ -152,10 +156,16 @@ class _ReminderDebugPanelState extends State<ReminderDebugPanel> {
             padding: EdgeInsets.symmetric(vertical: 6),
             child: Divider(height: 1),
           ),
-          _row('Notification permission', _permLabel(_notificationStatus),
-              valueColor: _permColor(_notificationStatus)),
-          _row('Battery optimization exempt', _permLabel(_batteryOptStatus),
-              valueColor: _permColor(_batteryOptStatus)),
+          _row(
+            'Notification permission',
+            _permLabel(_notificationStatus),
+            valueColor: _permColor(_notificationStatus),
+          ),
+          _row(
+            'Battery optimization exempt',
+            _permLabel(_batteryOptStatus),
+            valueColor: _permColor(_batteryOptStatus),
+          ),
           if (!_isAndroid)
             const Padding(
               padding: EdgeInsets.only(top: 4),
@@ -204,7 +214,7 @@ class _ReminderDebugPanelState extends State<ReminderDebugPanel> {
             width: double.infinity,
             padding: const EdgeInsets.all(8),
             decoration: BoxDecoration(
-              color: Colors.black.withOpacity(0.05),
+              color: Colors.black.withValues(alpha: 0.05),
               borderRadius: BorderRadius.circular(6),
             ),
             child: _recentEvents.isEmpty

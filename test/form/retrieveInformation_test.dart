@@ -42,18 +42,17 @@ class _FakeLocalization {
 
   // List item entries (only first one needed for sanity check; the rest just
   // need to be defined so the noSuchMethod fallback is not triggered.)
-  String _listEntry(String list, int index, String g) =>
-      _record('${list}No$index', g);
-
   // The lists used by retrieveDifficultEventsList, retrieveMakeSaferList,
   // retrieveFeelBetterList, retrieveDistractionsList, retrieveThanksList,
   // retrieveTraitsList, retrieveInspirationalQuotes are all referenced
   // dynamically; we use noSuchMethod to handle them all.
+  @override
   dynamic noSuchMethod(Invocation invocation) {
     final name = invocation.memberName.toString();
     final clean = name.replaceAll('Symbol("', '').replaceAll('")', '');
-    final gender =
-        invocation.positionalArguments.isNotEmpty ? invocation.positionalArguments[0] : '';
+    final gender = invocation.positionalArguments.isNotEmpty
+        ? invocation.positionalArguments[0]
+        : '';
     calls.add('$clean:$gender');
     return '$clean($gender)';
   }
@@ -67,22 +66,31 @@ void main() {
   });
 
   group('retrieveInformation switch cases', () {
-    test('PersonalPlan-DifficultEvents returns the difficult events bundle',
-        () {
-      final result = retrieveInformation(
-          'PersonalPlan-DifficultEvents', 'male', loc);
-      expect(result['header'], 'difficultEventsHeader(male)');
-      expect(result['subTitle'], 'difficultEventsSubTitle(male)');
-      expect(result['midTitle'], 'difficultEventsMidTitle(male)');
-      expect(result['midSubTitle'], 'difficultEventsMidSubTitle(male)');
-      expect(result['nextButtonText'], 'nextButton(male)');
-      expect(result['showMoreButtonText'], 'showMoreButton(male)');
-      expect(result['list'], isA<List<String>>());
-      expect((result['list'] as List).isNotEmpty, isTrue);
-    });
+    test(
+      'PersonalPlan-DifficultEvents returns the difficult events bundle',
+      () {
+        final result = retrieveInformation(
+          'PersonalPlan-DifficultEvents',
+          'male',
+          loc,
+        );
+        expect(result['header'], 'difficultEventsHeader(male)');
+        expect(result['subTitle'], 'difficultEventsSubTitle(male)');
+        expect(result['midTitle'], 'difficultEventsMidTitle(male)');
+        expect(result['midSubTitle'], 'difficultEventsMidSubTitle(male)');
+        expect(result['nextButtonText'], 'nextButton(male)');
+        expect(result['showMoreButtonText'], 'showMoreButton(male)');
+        expect(result['list'], isA<List<String>>());
+        expect((result['list'] as List).isNotEmpty, isTrue);
+      },
+    );
 
     test('PersonalPlan-MakeSafer returns the make safer bundle', () {
-      final result = retrieveInformation('PersonalPlan-MakeSafer', 'female', loc);
+      final result = retrieveInformation(
+        'PersonalPlan-MakeSafer',
+        'female',
+        loc,
+      );
       expect(result['header'], 'makeSaferHeader(female)');
       expect(result['subTitle'], 'makeSaferSubTitle(female)');
       expect(result['midTitle'], 'makeSaferMidTitle(female)');
@@ -90,8 +98,11 @@ void main() {
     });
 
     test('PersonalPlan-FeelBetter returns the feel better bundle', () {
-      final result =
-          retrieveInformation('PersonalPlan-FeelBetter', 'other', loc);
+      final result = retrieveInformation(
+        'PersonalPlan-FeelBetter',
+        'other',
+        loc,
+      );
       expect(result['header'], 'feelBetterHeader(other)');
       expect(result['subTitle'], 'feelBetterSubTitle(other)');
       expect(result['midTitle'], 'feelBetterMidTitle(other)');
@@ -99,8 +110,11 @@ void main() {
     });
 
     test('PersonalPlan-Distractions returns the distractions bundle', () {
-      final result =
-          retrieveInformation('PersonalPlan-Distractions', 'male', loc);
+      final result = retrieveInformation(
+        'PersonalPlan-Distractions',
+        'male',
+        loc,
+      );
       expect(result['header'], 'distractionsHeader(male)');
       expect(result['subTitle'], 'distractionsSubTitle(male)');
       expect(result['midTitle'], 'distractionsMidTitle(male)');
@@ -111,8 +125,9 @@ void main() {
       retrieveInformation('PersonalPlan-DifficultEvents', '', loc);
       // The list helper is invoked with "other" rather than the empty string.
       expect(
-          loc.calls.any((c) => c.startsWith('difficultEventsListNo0:other')),
-          isTrue);
+        loc.calls.any((c) => c.startsWith('difficultEventsListNo0:other')),
+        isTrue,
+      );
     });
 
     test('unknown collection name throws an Exception', () {

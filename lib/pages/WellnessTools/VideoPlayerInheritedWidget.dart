@@ -6,11 +6,11 @@ class VideoPlayerInheritedWidget extends InheritedWidget {
   final Function(String newVideoId) changeVideo; // Method to change video
 
   const VideoPlayerInheritedWidget({
-    Key? key,
+    super.key,
     required this.videoId,
     required this.changeVideo,
-    required Widget child,
-  }) : super(key: key, child: child);
+    required super.child,
+  });
 
   // Convenience method to access the nearest instance of VideoPlayerInheritedWidget
   static VideoPlayerInheritedWidget? of(BuildContext context) {

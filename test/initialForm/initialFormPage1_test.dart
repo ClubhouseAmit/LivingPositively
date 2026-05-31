@@ -37,10 +37,12 @@ void main() {
     when(mockAppInformation.traitMainTitle).thenReturn({"he": "כותרת ראשית"});
     when(mockAppInformation.traitSubTitle).thenReturn({"he": "כותרת משנה"});
     when(mockAppInformation.positiveTraitsPopUpText).thenReturn({"he": "טקסט"});
-    when(mockAppInformation.personalPlanMainTitle)
-        .thenReturn({"he": "תוכנית אישית"});
-    when(mockAppInformation.personalPlanSubTitle)
-        .thenReturn({"he": "כותרת משנה"});
+    when(
+      mockAppInformation.personalPlanMainTitle,
+    ).thenReturn({"he": "תוכנית אישית"});
+    when(
+      mockAppInformation.personalPlanSubTitle,
+    ).thenReturn({"he": "כותרת משנה"});
     when(mockAppInformation.popupBack).thenReturn({"he": "חזור"});
     when(mockAppInformation.othersuggestions).thenReturn({"he": "הצעות אחרות"});
     SharedPreferences.setMockInitialValues({'hasFilled': false});
@@ -48,18 +50,24 @@ void main() {
     mockPersistentMemoryService = MockPersistentMemoryService();
 
     // Setup specific mock behavior for hasFilled
-    when(mockPersistentMemoryService.getItem('hasFilled', any))
-        .thenAnswer((_) async => false);
+    when(
+      mockPersistentMemoryService.getItem('hasFilled', any),
+    ).thenAnswer((_) async => false);
     // Default behavior for other keys
-    when(mockPersistentMemoryService.getItem(
-            argThat(isNot(equals('hasFilled'))), any))
-        .thenAnswer((_) async => null);
-    when(mockPersistentMemoryService.setItem(any, any, any))
-        .thenAnswer((_) async {});
+    when(
+      mockPersistentMemoryService.getItem(
+        argThat(isNot(equals('hasFilled'))),
+        any,
+      ),
+    ).thenAnswer((_) async => null);
+    when(
+      mockPersistentMemoryService.setItem(any, any, any),
+    ).thenAnswer((_) async {});
     when(mockPersistentMemoryService.reset()).thenAnswer((_) async {});
 
     GetIt.instance.registerSingleton<PersistentMemoryService>(
-        mockPersistentMemoryService);
+      mockPersistentMemoryService,
+    );
   });
 
   tearDown(() async {
@@ -67,7 +75,6 @@ void main() {
   });
 
   testWidgets('test the positive trait list', (WidgetTester tester) async {
-    String name = '';
     bool tapnext = false;
     bool tapskip = false;
     bool tapprev = false;
@@ -76,36 +83,34 @@ void main() {
     mockNext() => {tapnext = !tapnext};
     mockSkip() => {tapskip = !tapskip};
     mockPrev() => {tapprev = !tapprev};
-    mockUpdateName(String n) => {name = n};
+    mockUpdateName(String n) {}
 
-    // Mock titles
-    final Map<String, String> mockTitles = {
-      'mainTitle': 'Main Title',
-      'subTitle1': 'Subtitle 1',
-      'subTitle2': 'Subtitle 2'
-    };
-
-    await tester.pumpWidget(MultiProvider(
-      providers: [
-        ChangeNotifierProvider<AppInformation>.value(value: mockAppInformation),
-        ChangeNotifierProvider<UserInformation>.value(
-            value: mockUserInformation),
-      ],
-      child: MaterialApp(
-        supportedLocales: AppLocalizations.supportedLocales,
-        locale: Locale('he'),
-        localizationsDelegates: AppLocalizations.localizationsDelegates,
-        home: ScreenUtilInit(
-          designSize: const Size(360, 690),
-          child: InitialFormPage1(
-            next: mockNext,
-            skip: mockSkip,
-            prev: mockPrev,
-            updateName: mockUpdateName,
+    await tester.pumpWidget(
+      MultiProvider(
+        providers: [
+          ChangeNotifierProvider<AppInformation>.value(
+            value: mockAppInformation,
+          ),
+          ChangeNotifierProvider<UserInformation>.value(
+            value: mockUserInformation,
+          ),
+        ],
+        child: MaterialApp(
+          supportedLocales: AppLocalizations.supportedLocales,
+          locale: Locale('he'),
+          localizationsDelegates: AppLocalizations.localizationsDelegates,
+          home: ScreenUtilInit(
+            designSize: const Size(360, 690),
+            child: InitialFormPage1(
+              next: mockNext,
+              skip: mockSkip,
+              prev: mockPrev,
+              updateName: mockUpdateName,
+            ),
           ),
         ),
       ),
-    ));
+    );
 
     final nextButton = find.text('המשך');
     expect(nextButton, findsWidgets);

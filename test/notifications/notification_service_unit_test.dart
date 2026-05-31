@@ -1,4 +1,3 @@
-import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:mazilon/pages/notifications/notification_service.dart';
@@ -25,16 +24,18 @@ void main() {
   });
 
   group('NotificationsService.supportsReminderSettings (additional cases)', () {
-    test('explicit isWebOverride=true short-circuits before platform check',
-        () {
-      expect(
-        NotificationsService.supportsReminderSettings(
-          isWebOverride: true,
-          platformOverride: TargetPlatform.android,
-        ),
-        isFalse,
-      );
-    });
+    test(
+      'explicit isWebOverride=true short-circuits before platform check',
+      () {
+        expect(
+          NotificationsService.supportsReminderSettings(
+            isWebOverride: true,
+            platformOverride: TargetPlatform.android,
+          ),
+          isFalse,
+        );
+      },
+    );
 
     test('android non-web returns true', () {
       expect(

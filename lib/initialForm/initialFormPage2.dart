@@ -3,7 +3,6 @@
 import 'package:flutter/material.dart';
 import 'package:mazilon/initialForm/CountrySelectorWidget.dart';
 import 'package:mazilon/util/LP_extended_state.dart';
-import 'package:mazilon/util/appInformation.dart';
 
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:mazilon/l10n/app_localizations.dart';
@@ -45,25 +44,25 @@ class _InitialFormPage2State extends LPExtendedState<InitialFormPage2> {
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         myAutoSizedText(
-            sep[0],
-            TextStyle(
-                fontSize: 18.sp,
-                fontWeight: FontWeight.normal,
-                color: Colors.black),
-            appLocale!.textDirection == "rtl"
-                ? TextAlign.right
-                : TextAlign.left,
-            24),
+          sep[0],
+          TextStyle(
+            fontSize: 18.sp,
+            fontWeight: FontWeight.normal,
+            color: Colors.black,
+          ),
+          appLocale!.textDirection == "rtl" ? TextAlign.right : TextAlign.left,
+          24,
+        ),
         myAutoSizedText(
-            sep[1],
-            TextStyle(
-                fontSize: 16.sp,
-                fontWeight: FontWeight.normal,
-                color: Colors.black),
-            appLocale!.textDirection == "rtl"
-                ? TextAlign.right
-                : TextAlign.left,
-            22),
+          sep[1],
+          TextStyle(
+            fontSize: 16.sp,
+            fontWeight: FontWeight.normal,
+            color: Colors.black,
+          ),
+          appLocale.textDirection == "rtl" ? TextAlign.right : TextAlign.left,
+          22,
+        ),
       ],
     );
   }
@@ -73,10 +72,10 @@ class _InitialFormPage2State extends LPExtendedState<InitialFormPage2> {
     final userInfoProvider = Provider.of<UserInformation>(context);
 
     genders = [
-      appLocale!.male,
-      appLocale!.female,
-      appLocale!.nonBinary,
-      appLocale.notWillingToSay
+      appLocale.male,
+      appLocale.female,
+      appLocale.nonBinary,
+      appLocale.notWillingToSay,
     ];
     var gender = userInfoProvider.gender;
     dropdownValueAge = userInfoProvider.age;
@@ -85,10 +84,10 @@ class _InitialFormPage2State extends LPExtendedState<InitialFormPage2> {
     dropdownValueGender = (userInfoProvider.binary)
         ? appLocale.nonBinary
         : (userInfoProvider.gender == 'male'
-            ? appLocale.male
-            : userInfoProvider.gender == 'female'
-                ? appLocale.female
-                : appLocale.notWillingToSay);
+              ? appLocale.male
+              : userInfoProvider.gender == 'female'
+              ? appLocale.female
+              : appLocale.notWillingToSay);
     return GestureDetector(
       onTap: () {
         FocusScope.of(context).unfocus();
@@ -101,34 +100,30 @@ class _InitialFormPage2State extends LPExtendedState<InitialFormPage2> {
                 Padding(
                   padding: const EdgeInsets.fromLTRB(20, 0, 20, 0),
                   child: myAutoSizedText(
-                      appLocale!.introductionFormSecondPageMainTitle(gender),
-                      TextStyle(
-                        fontSize: 40.sp,
-                        fontWeight: FontWeight.bold,
-                      ),
-                      null,
-                      60),
+                    appLocale.introductionFormSecondPageMainTitle(gender),
+                    TextStyle(fontSize: 40.sp, fontWeight: FontWeight.bold),
+                    null,
+                    60,
+                  ),
                 ),
                 Padding(
                   padding: const EdgeInsets.fromLTRB(40, 0, 40, 0),
                   child: myAutoSizedText(
-                      appLocale!.introductionFormSecondPageSubTitle(gender),
-                      TextStyle(
-                          fontSize: 14.sp,
-                          fontWeight: FontWeight.bold,
-                          color: darkGray),
-                      TextAlign.center,
-                      40),
+                    appLocale.introductionFormSecondPageSubTitle(gender),
+                    TextStyle(
+                      fontSize: 14.sp,
+                      fontWeight: FontWeight.bold,
+                      color: darkGray,
+                    ),
+                    TextAlign.center,
+                    40,
+                  ),
                 ),
-                SizedBox(
-                  height: returnSizedBox(context, 25),
-                ),
+                SizedBox(height: returnSizedBox(context, 25)),
                 Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    resizeText(
-                      appLocale!.userSettingsName(gender),
-                    ),
+                    resizeText(appLocale.userSettingsName(gender)),
                     Container(
                       width: 300,
                       child: Container(
@@ -147,13 +142,15 @@ class _InitialFormPage2State extends LPExtendedState<InitialFormPage2> {
                       ),
                     ),
                     myAutoSizedText(
-                        appLocale!.userSettingsAge(gender),
-                        TextStyle(
-                            fontSize: 18.sp,
-                            fontWeight: FontWeight.normal,
-                            color: Colors.black),
-                        null,
-                        24),
+                      appLocale.userSettingsAge(gender),
+                      TextStyle(
+                        fontSize: 18.sp,
+                        fontWeight: FontWeight.normal,
+                        color: Colors.black,
+                      ),
+                      null,
+                      24,
+                    ),
                     //ages drop down select:
                     Container(
                       width: 300,
@@ -161,14 +158,14 @@ class _InitialFormPage2State extends LPExtendedState<InitialFormPage2> {
                         width: 300,
                         initialSelection: userInfoProvider.age,
                         dropdownMenuEntries: [
-                          ...ages
-                              .map((age) => buildDropdownMenuEntry(
-                                    age,
-                                    dropdownValueAge == age
-                                        ? Color.fromARGB(255, 68, 0, 255)
-                                        : Colors.black,
-                                  ))
-                              .toList()
+                          ...ages.map(
+                            (age) => buildDropdownMenuEntry(
+                              age,
+                              dropdownValueAge == age
+                                  ? Color.fromARGB(255, 68, 0, 255)
+                                  : Colors.black,
+                            ),
+                          ),
                         ],
                         onSelected: (String? newValue) {
                           setState(() {
@@ -183,34 +180,36 @@ class _InitialFormPage2State extends LPExtendedState<InitialFormPage2> {
                     ),
 
                     myAutoSizedText(
-                        appLocale!.userSettingsGender(gender),
-                        TextStyle(
-                            fontSize: 18.sp,
-                            fontWeight: FontWeight.normal,
-                            color: Colors.black),
-                        null,
-                        24),
+                      appLocale.userSettingsGender(gender),
+                      TextStyle(
+                        fontSize: 18.sp,
+                        fontWeight: FontWeight.normal,
+                        color: Colors.black,
+                      ),
+                      null,
+                      24,
+                    ),
                     //gender drop down select
                     Container(
                       width: 300,
                       child: DropdownMenu<String>(
                         width: 300,
                         initialSelection: (userInfoProvider.binary)
-                            ? appLocale!.nonBinary
+                            ? appLocale.nonBinary
                             : (userInfoProvider.gender == 'male'
-                                ? appLocale.male
-                                : userInfoProvider.gender == 'female'
-                                    ? appLocale.female
-                                    : appLocale.notWillingToSay),
+                                  ? appLocale.male
+                                  : userInfoProvider.gender == 'female'
+                                  ? appLocale.female
+                                  : appLocale.notWillingToSay),
                         dropdownMenuEntries: [
-                          ...genders
-                              .map((gender) => buildDropdownMenuEntry(
-                                    gender,
-                                    dropdownValueGender == gender
-                                        ? Color.fromARGB(255, 68, 0, 255)
-                                        : Colors.black,
-                                  ))
-                              .toList()
+                          ...genders.map(
+                            (gender) => buildDropdownMenuEntry(
+                              gender,
+                              dropdownValueGender == gender
+                                  ? Color.fromARGB(255, 68, 0, 255)
+                                  : Colors.black,
+                            ),
+                          ),
                         ],
                         //update user info accordingly:
                         onSelected: (String? newValue) {
@@ -239,32 +238,35 @@ class _InitialFormPage2State extends LPExtendedState<InitialFormPage2> {
                     CountrySelectorWidget(
                       text: appLocale.locationSelect(gender),
                       disclaimerText: appLocale.locationDisclaimer(gender),
-                    )
+                    ),
                   ],
                 ),
-                SizedBox(
-                  height: returnSizedBox(context, 100),
-                ),
-                ConfirmationButton(context, () {
-                  FocusScope.of(context).unfocus();
+                SizedBox(height: returnSizedBox(context, 100)),
+                ConfirmationButton(
+                  context,
+                  () {
+                    FocusScope.of(context).unfocus();
 
-                  userInfoProvider.updateAge(dropdownValueAge ?? '');
-                  userInfoProvider.updateName(name!);
-                  userInfoProvider
-                      .updateBinary(dropdownValueGender == appLocale.nonBinary);
+                    userInfoProvider.updateAge(dropdownValueAge ?? '');
+                    userInfoProvider.updateName(name!);
+                    userInfoProvider.updateBinary(
+                      dropdownValueGender == appLocale.nonBinary,
+                    );
 
-                  if (dropdownValueGender != null) {
-                    if (dropdownValueGender == appLocale.male) {
-                      userInfoProvider.updateGender('male');
-                    } else if (dropdownValueGender == appLocale.female) {
-                      userInfoProvider.updateGender('female');
-                    } else {
-                      userInfoProvider.updateGender('');
+                    if (dropdownValueGender != null) {
+                      if (dropdownValueGender == appLocale.male) {
+                        userInfoProvider.updateGender('male');
+                      } else if (dropdownValueGender == appLocale.female) {
+                        userInfoProvider.updateGender('female');
+                      } else {
+                        userInfoProvider.updateGender('');
+                      }
                     }
-                  }
-                  widget.next();
-                }, appLocale!.nextButton(gender),
-                    myTextStyle.copyWith(fontSize: 20.sp)),
+                    widget.next();
+                  },
+                  appLocale.nextButton(gender),
+                  myTextStyle.copyWith(fontSize: 20.sp),
+                ),
               ],
             ),
           ),
