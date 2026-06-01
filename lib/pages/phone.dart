@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:mazilon/form/phonePageform.dart';
 import 'package:mazilon/util/LP_extended_state.dart';
 import 'package:mazilon/util/Phone/phoneTextAndIcon.dart';
 import 'package:provider/provider.dart';
@@ -20,24 +21,20 @@ class _PhonePageState extends LPExtendedState<PhonePage> {
   String mainTitle = '';
   String contactsTitle = '';
   String emergencyNumbersTitle = '';
-  //myPhones: list of phone NUMBERS added in form Phone Page:
-  List<String> myPhones = [];
-  //myContacts: list of contact NAMES added in form Phone Page:
-  List<String> myContacts = [];
 
-  void loadData() async {
-    setState(() {
-      //numbers:
-      myPhones = widget.phonePageData.savedPhoneNumbers;
-      //names:
-      myContacts = widget.phonePageData.savedPhoneNames;
-    });
-  }
-
-  @override
-  void initState() {
-    super.initState();
-    loadData();
+  void _openContactsEditor() {
+    Navigator.of(context).push(
+      MaterialPageRoute(
+        builder: (routeContext) => ChangeNotifierProvider<PhonePageData>.value(
+          value: widget.phonePageData,
+          child: PhonePageForm(
+            phonePageData: widget.phonePageData,
+            next: () => Navigator.of(context).pop(),
+            prev: () => Navigator.of(context).pop(),
+          ),
+        ),
+      ),
+    );
   }
 
   @override
@@ -87,41 +84,68 @@ class _PhonePageState extends LPExtendedState<PhonePage> {
                     ),
                   ),
                   const SizedBox(height: 30.0),
-                  Align(
-                    alignment: appLocale.textDirection == "rtl"
-                        ? Alignment.centerRight
-                        : Alignment.centerLeft,
-                    child: Padding(
-                      padding: const EdgeInsets.only(
-                        right: 30.0,
-                      ), // adjust the value as needed
-                      child: myAutoSizedText(
-                        appLocale.yourContacts(gender),
-                        TextStyle(
-                          fontSize: 18.sp,
-                          fontWeight: FontWeight.normal,
+                  Padding(
+                    padding: const EdgeInsets.symmetric(horizontal: 30.0),
+                    child: Row(
+                      children: [
+                        Expanded(
+                          child: Align(
+                            alignment: AlignmentDirectional.centerStart,
+                            child: myAutoSizedText(
+                              appLocale.yourContacts(gender),
+                              TextStyle(
+                                fontSize: 18.sp,
+                                fontWeight: FontWeight.normal,
+                              ),
+                              null,
+                              30,
+                            ),
+                          ),
                         ),
-                        null,
-                        30,
-                      ),
+                        IconButton(
+                          key: const Key('phonePageManageContactsButton'),
+                          tooltip: appLocale.addFormEdit(gender),
+                          onPressed: _openContactsEditor,
+                          icon: Icon(
+                            Icons.edit,
+                            color: primaryPurple,
+                            size: 28.sp,
+                          ),
+                        ),
+                      ],
                     ),
                   ),
 
                   const SizedBox(height: 10.0),
                   //list of phones added in form Phone Page:
-                  ...List.generate(
-                    myPhones.length,
-                    (index) => Container(
-                      margin: const EdgeInsets.only(
-                        bottom: 10.0,
-                      ), // adjust as needed
-                      child: Padding(
-                        padding: const EdgeInsets.symmetric(
-                          horizontal: 30.0,
-                        ), // adjust as needed
-                        child: phoneContact(myPhones[index], myContacts[index]),
-                      ),
-                    ),
+                  Consumer<PhonePageData>(
+                    builder: (context, phonePageData, child) {
+                      final contactCount =
+                          phonePageData.savedPhoneNumbers.length <
+                              phonePageData.savedPhoneNames.length
+                          ? phonePageData.savedPhoneNumbers.length
+                          : phonePageData.savedPhoneNames.length;
+
+                      return Column(
+                        children: List.generate(
+                          contactCount,
+                          (index) => Container(
+                            margin: const EdgeInsets.only(
+                              bottom: 10.0,
+                            ), // adjust as needed
+                            child: Padding(
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 30.0,
+                              ), // adjust as needed
+                              child: phoneContact(
+                                phonePageData.savedPhoneNumbers[index],
+                                phonePageData.savedPhoneNames[index],
+                              ),
+                            ),
+                          ),
+                        ),
+                      );
+                    },
                   ),
                   const SizedBox(height: 10.0),
                   Align(

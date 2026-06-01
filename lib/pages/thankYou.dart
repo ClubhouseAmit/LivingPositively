@@ -3,6 +3,8 @@ import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:auto_size_text/auto_size_text.dart';
 import 'package:mazilon/l10n/app_localizations.dart';
 import 'package:mazilon/util/styles.dart';
+import 'package:mazilon/util/userInformation.dart';
+import 'package:provider/provider.dart';
 
 // the thank you widget, it shows the thank you text and the number of the thank you
 //although its name is thank you, it can be used for any trait , we used it for the positive trait also.
@@ -30,6 +32,38 @@ class ThankYou extends StatefulWidget {
 
 class _ThankYouState extends State<ThankYou> {
   bool editable = false;
+
+  Future<void> _confirmDelete(AppLocalizations? locale, String gender) async {
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: Text(locale?.confirmDeleteEntryTitle ?? 'Delete this entry?'),
+        content: Text(
+          locale?.confirmDeleteEntryMessage ?? 'This cannot be undone.',
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(context).pop(false),
+            child: Text(locale?.closeButton(gender) ?? 'Close'),
+          ),
+          TextButton(
+            onPressed: () => Navigator.of(context).pop(true),
+            child: Text(locale?.deleteButton(gender) ?? 'Delete'),
+          ),
+        ],
+      ),
+    );
+
+    if (confirmed != true || !mounted) {
+      return;
+    }
+
+    widget.remove(widget.number - 1);
+    setState(() {
+      editable = false;
+    });
+  }
+
   @override
   void initState() {
     editable = widget.text.isEmpty;
@@ -43,6 +77,7 @@ class _ThankYouState extends State<ThankYou> {
   @override
   Widget build(BuildContext context) {
     final locale = AppLocalizations.of(context);
+    final gender = Provider.of<UserInformation>(context, listen: false).gender;
     return Container(
       padding: const EdgeInsets.fromLTRB(10, 5, 10, 5),
       child: Row(
@@ -131,10 +166,7 @@ class _ThankYouState extends State<ThankYou> {
                       message: locale?.deleteEntryTooltip ?? 'Delete entry',
                       child: MaterialButton(
                         onPressed: () {
-                          widget.remove(widget.number - 1);
-                          setState(() {
-                            editable = false;
-                          });
+                          _confirmDelete(locale, gender);
                         },
                         splashColor: Colors.transparent,
                         enableFeedback: false,

@@ -38,6 +38,44 @@ class _JournalState extends LPExtendedState<Journal> {
   int counter =
       0; //counter for the number of thank you notes you added (reset to 0 every time you enter the journal page again)
   List<String> thanksSuggestionList = []; //list of thank you notes suggestions
+
+  void _syncFocusNodes(int count) {
+    while (focusNodes.length < count) {
+      focusNodes.add(FocusNode());
+    }
+    while (focusNodes.length > count) {
+      focusNodes.removeLast().dispose();
+    }
+  }
+
+  void _refreshSuggestions() {
+    final tempThanksSuggestionList = List<String>.from(
+      widget.fullSuggestionList,
+    );
+    thanksSuggestionList = List<String>.from(tempThanksSuggestionList);
+
+    for (String suggestion in tempThanksSuggestionList) {
+      if (thanksSuggestionList.length > 3 && thankYous.contains(suggestion)) {
+        thanksSuggestionList.remove(suggestion);
+      }
+    }
+
+    if (thanksSuggestionList.isEmpty) {
+      sug1 = '';
+      sug2 = '';
+      sug3 = '';
+      return;
+    }
+
+    final indices = List<int>.generate(thanksSuggestionList.length, (i) => i);
+    indices.shuffle();
+    sug1 = thanksSuggestionList[indices[0]];
+    sug2 =
+        thanksSuggestionList[indices[thanksSuggestionList.length > 1 ? 1 : 0]];
+    sug3 =
+        thanksSuggestionList[indices[thanksSuggestionList.length > 2 ? 2 : 0]];
+  }
+
   List<String> todayThankYousFunc(List<String> thankYous, List<String> dates) {
     List<String> todayThankYous = [];
     DateTime now = DateTime.now();
@@ -59,35 +97,10 @@ class _JournalState extends LPExtendedState<Journal> {
       listen: true,
     );
 
-    setState(() {
-      thankYous = userInfoProvider.thanks['thanks'] ?? [];
-      dates = dates = userInfoProvider.thanks['dates'] ?? [];
-      for (var _ in thankYous) {
-        focusNodes.add(FocusNode());
-      }
-      List<String> tempThanksSuggestionList = List.from(
-        widget.fullSuggestionList,
-      );
-      thanksSuggestionList = List.from(tempThanksSuggestionList);
-
-      // remove the thank you notes suggestions that are already in the thank you notes list
-      for (String suggestion in tempThanksSuggestionList) {
-        if (thanksSuggestionList.length > 3 && thankYous.contains(suggestion)) {
-          thanksSuggestionList.remove(suggestion);
-        }
-      }
-      var indices = List<int>.generate(thanksSuggestionList.length, (i) => i);
-      indices.shuffle();
-      sug1 = thanksSuggestionList[indices[0]];
-      sug2 =
-          thanksSuggestionList[indices[thanksSuggestionList.length > 1
-              ? 1
-              : 0]];
-      sug3 =
-          thanksSuggestionList[indices[thanksSuggestionList.length > 2
-              ? 2
-              : 0]];
-    });
+    thankYous = List<String>.from(userInfoProvider.thanks['thanks'] ?? []);
+    dates = List<String>.from(userInfoProvider.thanks['dates'] ?? []);
+    _syncFocusNodes(thankYous.length);
+    _refreshSuggestions();
   }
 
   // change the thank you note text at the index to the new text
@@ -193,6 +206,21 @@ class _JournalState extends LPExtendedState<Journal> {
     super.initState();
   }
 
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    loadData(context);
+  }
+
+  @override
+  void dispose() {
+    for (final focusNode in focusNodes) {
+      focusNode.dispose();
+    }
+    myFocusNode.dispose();
+    super.dispose();
+  }
+
   // function we call when we want to add/edit a thank you note (to open the popup with the text field which is AddForm widget)
   void editThanks(String title, [String text = '', int index = 0]) {
     showDialog(
@@ -219,8 +247,6 @@ class _JournalState extends LPExtendedState<Journal> {
       listen: false,
     );
     final gender = userInfoProvider.gender;
-    debugPrint("loading journal");
-    loadData(context);
     return KeyboardDismisser(
       gestures: const [GestureType.onTap, GestureType.onPanUpdateAnyDirection],
       child: Scaffold(
@@ -297,67 +323,56 @@ class _JournalState extends LPExtendedState<Journal> {
               itemCount: thankYous.length,
             ),
             thankYous.isEmpty
-                ? Container()
+                ? Padding(
+                    padding: const EdgeInsets.fromLTRB(24, 8, 24, 16),
+                    child: myAutoSizedText(
+                      appLocale.journalEmptyGuidance,
+                      TextStyle(
+                        color: darkGray,
+                        fontSize: 16.sp,
+                        fontWeight: FontWeight.normal,
+                      ),
+                      TextAlign.center,
+                      40,
+                    ),
+                  )
                 : Divider(color: darkGray, indent: 30, endIndent: 30),
             //the suggested thank you notes
-            ThanksItemSuggested(
-              stopShowing: 3,
-              add: addThankYou,
-              inputText: sug1,
-              fullSuggestionList: retrieveThanksList(
-                appLocale,
-                gender == "" ? "other" : gender,
+            if (sug1.isNotEmpty)
+              ThanksItemSuggested(
+                stopShowing: 3,
+                add: addThankYou,
+                inputText: sug1,
+                fullSuggestionList: retrieveThanksList(
+                  appLocale,
+                  gender == "" ? "other" : gender,
+                ),
               ),
-            ),
-            ThanksItemSuggested(
-              stopShowing: 2,
-              add: addThankYou,
-              inputText: sug2,
-              fullSuggestionList: retrieveThanksList(
-                appLocale,
-                gender == "" ? "other" : gender,
+            if (sug2.isNotEmpty)
+              ThanksItemSuggested(
+                stopShowing: 2,
+                add: addThankYou,
+                inputText: sug2,
+                fullSuggestionList: retrieveThanksList(
+                  appLocale,
+                  gender == "" ? "other" : gender,
+                ),
               ),
-            ),
-            ThanksItemSuggested(
-              stopShowing: 1,
-              add: addThankYou,
-              inputText: sug3,
-              fullSuggestionList: retrieveThanksList(
-                appLocale,
-                gender == "" ? "other" : gender,
+            if (sug3.isNotEmpty)
+              ThanksItemSuggested(
+                stopShowing: 1,
+                add: addThankYou,
+                inputText: sug3,
+                fullSuggestionList: retrieveThanksList(
+                  appLocale,
+                  gender == "" ? "other" : gender,
+                ),
               ),
-            ),
             //the button to refresh the suggested thank you notes and get 3 new suggestions
             TextButton(
               onPressed: () async {
                 setState(() {
-                  //remove the thank you notes suggestions that are already in the thank you notes list (a.k.a chosen by the user already)
-                  List<String> tempThanksSuggestionList = List.from(
-                    widget.fullSuggestionList,
-                  );
-                  thanksSuggestionList = List.from(tempThanksSuggestionList);
-                  for (String suggestion in tempThanksSuggestionList) {
-                    if (thanksSuggestionList.length > 3 &&
-                        thankYous.contains(suggestion)) {
-                      thanksSuggestionList.remove(suggestion);
-                    }
-                  }
-                  var indices = List<int>.generate(
-                    thanksSuggestionList.length,
-                    (i) => i,
-                  );
-                  indices.shuffle();
-                  sug1 = thanksSuggestionList[indices[0]];
-                  sug2 =
-                      thanksSuggestionList[indices[thanksSuggestionList.length >
-                              1
-                          ? 1
-                          : 0]];
-                  sug3 =
-                      thanksSuggestionList[indices[thanksSuggestionList.length >
-                              2
-                          ? 2
-                          : 0]];
+                  _refreshSuggestions();
                 });
               },
               //the text of the refresh button

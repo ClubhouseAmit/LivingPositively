@@ -3085,4 +3085,16 @@ class AppLocalizationsHe extends AppLocalizations {
 
   @override
   String get asyncRetryButton => 'ניסיון חוזר';
+
+  @override
+  String get journalEmptyGuidance => 'הוסיפו רשומת תודה ראשונה כשתהיו מוכנים.';
+
+  @override
+  String get positiveEmptyGuidance => 'הוסיפו איכות אחת שתרצו לזכור היום.';
+
+  @override
+  String get confirmDeleteEntryTitle => 'למחוק את הרשומה?';
+
+  @override
+  String get confirmDeleteEntryMessage => 'אי אפשר לבטל את הפעולה הזו.';
 }

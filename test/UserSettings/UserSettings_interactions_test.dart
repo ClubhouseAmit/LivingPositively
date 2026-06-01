@@ -164,4 +164,25 @@ void main() {
       expect(find.byType(DropdownMenu<String>), findsNWidgets(3));
     },
   );
+
+  testWidgets('name text field keeps a Material-sized tap target', (
+    tester,
+  ) async {
+    await pumpWithProviders(
+      tester,
+      UserSettings(
+        username: 'Sized',
+        age: '18-30',
+        gender: 'male',
+        phonePageData: _phone(),
+        changeLocale: (_) {},
+      ),
+      userInformation: user,
+      surfaceSize: const Size(320, 900),
+    );
+
+    final textFieldSize = tester.getSize(find.byType(TextField).first);
+    expect(textFieldSize.height, greaterThanOrEqualTo(48));
+    expect(textFieldSize.width, lessThanOrEqualTo(320));
+  });
 }

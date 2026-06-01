@@ -37,35 +37,48 @@ void main() {
   });
 
   testWidgets(
-      'tap delete on an existing ThankYou row triggers removeThankYou flow',
-      (tester) async {
-    userInformation.updateThanks({
-      'thanks': ['First', 'Second'],
-      'dates': ['2024-01-01 – 09:00', '2024-01-01 – 10:00'],
-    });
+    'tap delete on an existing ThankYou row asks before removing the entry',
+    (tester) async {
+      userInformation.updateThanks({
+        'thanks': ['First', 'Second'],
+        'dates': ['2024-01-01 – 09:00', '2024-01-01 – 10:00'],
+      });
 
-    await pumpWithProviders(
-      tester,
-      const Journal(fullSuggestionList: _suggestions),
-      userInformation: userInformation,
-      surfaceSize: const Size(1024, 2400),
-    );
+      await pumpWithProviders(
+        tester,
+        const Journal(fullSuggestionList: _suggestions),
+        userInformation: userInformation,
+        surfaceSize: const Size(1024, 2400),
+      );
 
-    // Find a ThankYou row's delete (trash) icon.
-    expect(find.byType(ThankYou), findsNWidgets(2));
-    final trashIcon = find.byIcon(Icons.delete).first;
-    final trashTap = find
-        .ancestor(of: trashIcon, matching: find.byType(MaterialButton))
-        .first;
-    await tester.tap(trashTap, warnIfMissed: false);
-    await tester.pumpAndSettle();
+      // Find a ThankYou row's delete (trash) icon.
+      expect(find.byType(ThankYou), findsNWidgets(2));
+      final trashIcon = find.byIcon(Icons.delete).first;
+      final trashTap = find
+          .ancestor(of: trashIcon, matching: find.byType(MaterialButton))
+          .first;
+      await tester.tap(trashTap, warnIfMissed: false);
+      await tester.pumpAndSettle();
 
-    // List shrunk by one.
-    expect(userInformation.thanks['thanks']?.length, 1);
-  });
+      expect(find.byType(AlertDialog), findsOneWidget);
+      expect(userInformation.thanks['thanks']?.length, 2);
 
-  testWidgets('editThankYou closure routes through AddForm seeded with text',
-      (tester) async {
+      await tester.tap(find.text('Cancel'), warnIfMissed: false);
+      await tester.pumpAndSettle();
+      expect(userInformation.thanks['thanks']?.length, 2);
+
+      await tester.tap(trashTap, warnIfMissed: false);
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('Delete'), warnIfMissed: false);
+      await tester.pumpAndSettle();
+
+      expect(userInformation.thanks['thanks']?.length, 1);
+    },
+  );
+
+  testWidgets('editThankYou closure routes through AddForm seeded with text', (
+    tester,
+  ) async {
     userInformation.updateThanks({
       'thanks': ['Original entry'],
       'dates': ['2024-01-01 – 09:00'],
@@ -94,5 +107,23 @@ void main() {
 
     expect(userInformation.thanks['thanks'], contains('Updated entry'));
     expect(userInformation.thanks['thanks'], isNot(contains('Original entry')));
+  });
+
+  testWidgets('empty suggestion list does not crash and shows guidance', (
+    tester,
+  ) async {
+    await pumpWithProviders(
+      tester,
+      const Journal(fullSuggestionList: []),
+      userInformation: userInformation,
+      surfaceSize: const Size(1024, 2400),
+    );
+
+    expect(find.byType(Journal), findsOneWidget);
+    expect(
+      find.text('Add your first gratitude note when you are ready.'),
+      findsOneWidget,
+    );
+    expect(tester.takeException(), isNull);
   });
 }

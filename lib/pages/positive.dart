@@ -39,48 +39,58 @@ class _PositiveState extends LPExtendedState<Positive> {
   String sug3 = ''; //suggestion 3
   List<String> positiveSuggestionList = []; //list of suggestions
 
+  void _syncFocusNodes(int count) {
+    while (focusNodes.length < count) {
+      focusNodes.add(FocusNode());
+    }
+    while (focusNodes.length > count) {
+      focusNodes.removeLast().dispose();
+    }
+  }
+
+  void _refreshSuggestions(List<String> sourceSuggestions) {
+    final tempPositiveSuggestionList = List<String>.from(sourceSuggestions);
+    positiveSuggestionList = List<String>.from(tempPositiveSuggestionList);
+
+    for (String suggestion in tempPositiveSuggestionList) {
+      if (positiveSuggestionList.length > 1 &&
+          positiveTraits.contains(suggestion)) {
+        positiveSuggestionList.remove(suggestion);
+      }
+    }
+
+    if (positiveSuggestionList.isEmpty) {
+      sug1 = '';
+      sug2 = '';
+      sug3 = '';
+      return;
+    }
+
+    final indices = List<int>.generate(positiveSuggestionList.length, (i) => i);
+    indices.shuffle();
+    sug1 = positiveSuggestionList[indices[0]];
+    sug2 =
+        positiveSuggestionList[indices[positiveSuggestionList.length > 1
+            ? 1
+            : 0]];
+    sug3 =
+        positiveSuggestionList[indices[positiveSuggestionList.length > 2
+            ? 2
+            : 0]];
+  }
+
   //load the data from the shared preferences
   void loadData(BuildContext context) {
     final userInfoProvider = Provider.of<UserInformation>(
       context,
       listen: false,
     );
-    setState(() {
-      positiveTraits = userInfoProvider.positiveTraits;
-
-      for (var _ in positiveTraits) {
-        focusNodes.add(FocusNode());
-      }
-      String gender = userInfoProvider.gender;
-      List<String> tempPositiveSuggestionList = retrieveTraitsList(
-        appLocale,
-        gender == "" ? "other" : gender,
-      );
-
-      //  List<String> tempPositiveSuggestionList =
-
-      positiveSuggestionList = List.from(tempPositiveSuggestionList);
-
-      //remove the suggestions that are already in the positive traits list
-
-      for (String suggestion in tempPositiveSuggestionList) {
-        if (positiveSuggestionList.length > 1 &&
-            positiveTraits.contains(suggestion)) {
-          positiveSuggestionList.remove(suggestion);
-        }
-      }
-      var indices = List<int>.generate(positiveSuggestionList.length, (i) => i);
-      indices.shuffle();
-      sug1 = positiveSuggestionList[indices[0]];
-      sug2 =
-          positiveSuggestionList[indices[positiveSuggestionList.length > 1
-              ? 1
-              : 0]];
-      sug3 =
-          positiveSuggestionList[indices[positiveSuggestionList.length > 2
-              ? 2
-              : 0]];
-    });
+    positiveTraits = List<String>.from(userInfoProvider.positiveTraits);
+    _syncFocusNodes(positiveTraits.length);
+    String gender = userInfoProvider.gender;
+    _refreshSuggestions(
+      retrieveTraitsList(appLocale, gender == "" ? "other" : gender),
+    );
   }
 
   //change the positive trait at the given index to the given text
@@ -141,41 +151,21 @@ class _PositiveState extends LPExtendedState<Positive> {
   @override
   void initState() {
     super.initState();
-    Future.delayed(Duration(seconds: 10), () {
-      if (!mounted) {
-        return;
-      }
-      final userInfoProvider = Provider.of<UserInformation>(
-        context,
-        listen: false,
-      );
-      final gender = userInfoProvider.gender;
-      // show the popup every time the user enters the positive traits page (after 10 seconds)
-      showDialog(
-        context: context,
-        builder: (BuildContext context) {
-          final appLocale = AppLocalizations.of(context);
-          return AlertDialog(
-            title: Text(''),
-            //popup text
-            content: Text(
-              appLocale!.homePagePositiveTraitPopup(gender),
-              style: TextStyle(fontWeight: FontWeight.normal, fontSize: 15.sp),
-              textAlign: TextAlign.center,
-            ),
-            actions: <Widget>[
-              // close button
-              TextButton(
-                child: Text(appLocale.backButton(gender)),
-                onPressed: () {
-                  Navigator.of(context).pop();
-                },
-              ),
-            ],
-          );
-        },
-      );
-    });
+  }
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    loadData(context);
+  }
+
+  @override
+  void dispose() {
+    for (final focusNode in focusNodes) {
+      focusNode.dispose();
+    }
+    myFocusNode.dispose();
+    super.dispose();
   }
 
   //the function we call when we want to add/edit a positive trait,(it opens a popup with a text field and a save button)
@@ -210,7 +200,6 @@ class _PositiveState extends LPExtendedState<Positive> {
     );
     final gender = userInfoProvider.gender;
     final appLocale = AppLocalizations.of(context);
-    loadData(context);
     return KeyboardDismisser(
       gestures: const [GestureType.onTap, GestureType.onPanUpdateAnyDirection],
       child: Scaffold(
@@ -299,74 +288,62 @@ class _PositiveState extends LPExtendedState<Positive> {
               ),
             ),
             positiveTraits.isEmpty
-                ? Container()
+                ? Padding(
+                    padding: const EdgeInsets.fromLTRB(24, 8, 24, 16),
+                    child: myAutoSizedText(
+                      appLocale.positiveEmptyGuidance,
+                      TextStyle(
+                        color: darkGray,
+                        fontSize: 16.sp,
+                        fontWeight: FontWeight.normal,
+                      ),
+                      TextAlign.center,
+                      40,
+                    ),
+                  )
                 : Divider(color: darkGray, indent: 30, endIndent: 30),
             //suggestions
-            PositiveTraitItemSug(
-              stopShowing: 0,
-              add: addPositiveTrait,
-              inputText: sug1,
-              fullSuggestionList: retrieveTraitsList(
-                appLocale,
-                gender == "" ? "other" : gender,
+            if (sug1.isNotEmpty)
+              PositiveTraitItemSug(
+                stopShowing: 0,
+                add: addPositiveTrait,
+                inputText: sug1,
+                fullSuggestionList: retrieveTraitsList(
+                  appLocale,
+                  gender == "" ? "other" : gender,
+                ),
               ),
-            ),
-            sug1 != sug2
-                ? PositiveTraitItemSug(
-                    stopShowing: 2,
-                    add: addPositiveTrait,
-                    inputText: sug2,
-                    fullSuggestionList: retrieveTraitsList(
-                      appLocale,
-                      gender == "" ? "other" : gender,
-                    ),
-                  )
-                : Container(),
-            sug1 != sug3
-                ? PositiveTraitItemSug(
-                    stopShowing: 3,
-                    add: addPositiveTrait,
-                    inputText: sug3,
-                    fullSuggestionList: retrieveTraitsList(
-                      appLocale,
-                      gender == "" ? "other" : gender,
-                    ),
-                  )
-                : Container(),
+            if (sug2.isNotEmpty && sug1 != sug2)
+              PositiveTraitItemSug(
+                stopShowing: 2,
+                add: addPositiveTrait,
+                inputText: sug2,
+                fullSuggestionList: retrieveTraitsList(
+                  appLocale,
+                  gender == "" ? "other" : gender,
+                ),
+              ),
+            if (sug3.isNotEmpty && sug1 != sug3)
+              PositiveTraitItemSug(
+                stopShowing: 3,
+                add: addPositiveTrait,
+                inputText: sug3,
+                fullSuggestionList: retrieveTraitsList(
+                  appLocale,
+                  gender == "" ? "other" : gender,
+                ),
+              ),
             //refresh button
             TextButton(
               onPressed: () async {
                 String gender = userInfoProvider.gender;
-                List<String> tempPositiveSuggestionList = retrieveTraitsList(
-                  appLocale,
-                  gender == '' ? 'other' : gender,
-                );
-                positiveSuggestionList = List.from(tempPositiveSuggestionList);
-                for (String suggestion in tempPositiveSuggestionList) {
-                  if (positiveSuggestionList.length > 3 &&
-                      positiveTraits.contains(suggestion)) {
-                    positiveSuggestionList.remove(suggestion);
-                  }
-                }
                 setState(() {
-                  var indices = List<int>.generate(
-                    positiveSuggestionList.length,
-                    (i) => i,
+                  _refreshSuggestions(
+                    retrieveTraitsList(
+                      appLocale,
+                      gender == '' ? 'other' : gender,
+                    ),
                   );
-                  indices.shuffle();
-                  sug1 = positiveSuggestionList[indices[0]];
-                  sug2 =
-                      positiveSuggestionList[indices[positiveSuggestionList
-                                  .length >
-                              1
-                          ? 1
-                          : 0]];
-                  sug3 =
-                      positiveSuggestionList[indices[positiveSuggestionList
-                                  .length >
-                              2
-                          ? 2
-                          : 0]];
                 });
               },
               //refresh button

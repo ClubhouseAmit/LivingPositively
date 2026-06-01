@@ -398,5 +398,9 @@
   "sosTooltip": "SOS — جهات اتصال الطوارئ",
   "asyncLoadingLabel": "جارٍ التحميل",
   "asyncErrorMessage": "حدث خطأ ما",
-  "asyncRetryButton": "إعادة المحاولة"
+  "asyncRetryButton": "إعادة المحاولة",
+  "journalEmptyGuidance": "أضف أول ملاحظة امتنان عندما تكون جاهزًا.",
+  "positiveEmptyGuidance": "أضف صفة واحدة تريد تذكرها اليوم.",
+  "confirmDeleteEntryTitle": "هل تريد حذف هذا الإدخال؟",
+  "confirmDeleteEntryMessage": "لا يمكن التراجع عن هذا الإجراء."
 }

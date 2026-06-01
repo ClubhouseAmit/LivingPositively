@@ -4,6 +4,7 @@ import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:get_it/get_it.dart';
 import 'package:mazilon/EmergencyNumbers.dart';
+import 'package:mazilon/form/phonePageform.dart';
 import 'package:mazilon/global_enums.dart';
 import 'package:mazilon/l10n/app_localizations.dart';
 import 'package:mazilon/pages/phone.dart';
@@ -29,7 +30,10 @@ class FakePersistentMemoryService implements PersistentMemoryService {
 
   @override
   Future<void> setItem(
-      String key, PersistentMemoryType type, dynamic value) async {}
+    String key,
+    PersistentMemoryType type,
+    dynamic value,
+  ) async {}
 }
 
 class FakeUrlLauncherPlatform extends UrlLauncherPlatform {
@@ -73,10 +77,7 @@ Widget buildEmergencyDialogTestApp({
       supportedLocales: AppLocalizations.supportedLocales,
       localizationsDelegates: AppLocalizations.localizationsDelegates,
       locale: const Locale('en'),
-      home: ScreenUtilInit(
-        designSize: const Size(360, 690),
-        child: dialog,
-      ),
+      home: ScreenUtilInit(designSize: const Size(360, 690), child: dialog),
     ),
   );
 }
@@ -95,9 +96,7 @@ Widget buildEmergencyGridTestApp({
       locale: locale,
       home: ScreenUtilInit(
         designSize: const Size(360, 690),
-        child: Scaffold(
-          body: EmergencyPhonesGrid(),
-        ),
+        child: Scaffold(body: EmergencyPhonesGrid()),
       ),
     ),
   );
@@ -137,8 +136,9 @@ void main() {
     final israel = countries['israel'];
     expect(israel, isNotNull);
 
-    final eran =
-        israel!.emergencyNumbers.firstWhere((entry) => entry['name'] == 'ער"ן');
+    final eran = israel!.emergencyNumbers.firstWhere(
+      (entry) => entry['name'] == 'ער"ן',
+    );
 
     expect(eran['number'], '1201');
     expect(eran['whatsapp'], true);
@@ -149,8 +149,9 @@ void main() {
     final israel = countries['israel'];
     expect(israel, isNotNull);
 
-    final entry105 =
-        israel!.emergencyNumbers.firstWhere((entry) => entry['name'] == '105');
+    final entry105 = israel!.emergencyNumbers.firstWhere(
+      (entry) => entry['name'] == '105',
+    );
 
     expect(entry105['number'], '105');
     expect(entry105['whatsapp'], true);
@@ -168,12 +169,14 @@ void main() {
     expect(eu, isNotNull);
     expect(australia, isNotNull);
 
-    final usaEmergency = usa!.emergencyNumbers
-        .firstWhere((entry) => entry['name'] == 'Emergency');
+    final usaEmergency = usa!.emergencyNumbers.firstWhere(
+      (entry) => entry['name'] == 'Emergency',
+    );
     expect(usaEmergency['number'], '911');
 
-    final veterans = usa.emergencyNumbers
-        .firstWhere((entry) => entry['name'] == 'Veterans Crisis Line');
+    final veterans = usa.emergencyNumbers.firstWhere(
+      (entry) => entry['name'] == 'Veterans Crisis Line',
+    );
     expect(veterans['number'], '988');
     expect(veterans['textNumber'], '838255');
     expect(
@@ -182,66 +185,80 @@ void main() {
     );
 
     final trevor = usa.emergencyNumbers.firstWhere(
-        (entry) => entry['name'] == 'The Trevor Project (for LGBTQ+ youth)');
+      (entry) => entry['name'] == 'The Trevor Project (for LGBTQ+ youth)',
+    );
     expect(trevor['number'], '18664887386');
     expect(trevor['textNumber'], '678678');
     expect(trevor['textMessage'], 'START');
 
     final lifeline = usa.emergencyNumbers.firstWhere(
-        (entry) => entry['name'] == '988 Suicide & Crisis Lifeline');
+      (entry) => entry['name'] == '988 Suicide & Crisis Lifeline',
+    );
     expect(lifeline['number'], '988');
     expect(lifeline['textNumber'], '988');
     expect(lifeline['link'], 'https://988lifeline.org/chat/');
 
-    final crisisTextLine = usa.emergencyNumbers
-        .firstWhere((entry) => entry['name'] == 'Crisis Text Line');
+    final crisisTextLine = usa.emergencyNumbers.firstWhere(
+      (entry) => entry['name'] == 'Crisis Text Line',
+    );
     expect(crisisTextLine['textNumber'], '741741');
     expect(crisisTextLine['textMessage'], 'HOME');
 
-    final ukEmergency = uk!.emergencyNumbers
-        .firstWhere((entry) => entry['name'] == 'Emergency');
+    final ukEmergency = uk!.emergencyNumbers.firstWhere(
+      (entry) => entry['name'] == 'Emergency',
+    );
     expect(ukEmergency['number'], '999');
 
-    final samaritans = uk.emergencyNumbers
-        .firstWhere((entry) => entry['name'] == 'Samaritans');
+    final samaritans = uk.emergencyNumbers.firstWhere(
+      (entry) => entry['name'] == 'Samaritans',
+    );
     expect(samaritans['number'], '116123');
 
-    final shout =
-        uk.emergencyNumbers.firstWhere((entry) => entry['name'] == 'Shout');
+    final shout = uk.emergencyNumbers.firstWhere(
+      (entry) => entry['name'] == 'Shout',
+    );
     expect(shout['textNumber'], '85258');
     expect(shout['textMessage'], 'SHOUT');
 
-    final calm = uk.emergencyNumbers.firstWhere((entry) =>
-        entry['name'] == 'CALM (Campaign Against Living Miserably, for men)');
+    final calm = uk.emergencyNumbers.firstWhere(
+      (entry) =>
+          entry['name'] == 'CALM (Campaign Against Living Miserably, for men)',
+    );
     expect(calm['number'], '0800585858');
 
     final papyrus = uk.emergencyNumbers.firstWhere(
-        (entry) => entry['name'] == 'Papyrus (for people under 35)');
+      (entry) => entry['name'] == 'Papyrus (for people under 35)',
+    );
     expect(papyrus['number'], '08000684141');
     expect(papyrus['textNumber'], '88247');
     expect(papyrus['link'], '');
 
-    final euEmergency = eu!.emergencyNumbers
-        .firstWhere((entry) => entry['name'] == 'European Emergency Number');
+    final euEmergency = eu!.emergencyNumbers.firstWhere(
+      (entry) => entry['name'] == 'European Emergency Number',
+    );
     expect(euEmergency['number'], '112');
     expect(euEmergency['canCall'], true);
 
-    final mentalHealthEurope = eu.emergencyNumbers
-        .firstWhere((entry) => entry['name'] == 'Mental Health Europe');
+    final mentalHealthEurope = eu.emergencyNumbers.firstWhere(
+      (entry) => entry['name'] == 'Mental Health Europe',
+    );
     expect(mentalHealthEurope['link'], 'https://mhe-sme.org/');
 
-    final auEmergency = australia!.emergencyNumbers
-        .firstWhere((entry) => entry['name'] == 'Emergency');
+    final auEmergency = australia!.emergencyNumbers.firstWhere(
+      (entry) => entry['name'] == 'Emergency',
+    );
     expect(auEmergency['number'], '000');
 
-    final lifelineAu = australia.emergencyNumbers
-        .firstWhere((entry) => entry['name'] == 'Lifeline Australia');
+    final lifelineAu = australia.emergencyNumbers.firstWhere(
+      (entry) => entry['name'] == 'Lifeline Australia',
+    );
     expect(lifelineAu['number'], '131114');
     expect(lifelineAu['textNumber'], '0477131114');
     expect(lifelineAu['linkType'], 'chat');
 
-    final beyondBlue = australia.emergencyNumbers
-        .firstWhere((entry) => entry['name'] == 'Beyond Blue');
+    final beyondBlue = australia.emergencyNumbers.firstWhere(
+      (entry) => entry['name'] == 'Beyond Blue',
+    );
     expect(beyondBlue['number'], '1300224636');
     expect(
       beyondBlue['link'],
@@ -249,18 +266,21 @@ void main() {
     );
 
     final kidsHelpline = australia.emergencyNumbers.firstWhere(
-        (entry) => entry['name'] == 'Kids Helpline (for people aged 5-25)');
+      (entry) => entry['name'] == 'Kids Helpline (for people aged 5-25)',
+    );
     expect(kidsHelpline['number'], '1800551800');
     expect(kidsHelpline['link'], 'https://kidshelpline.com.au/');
 
-    final mensLine = australia.emergencyNumbers
-        .firstWhere((entry) => entry['name'] == 'MensLine Australia');
+    final mensLine = australia.emergencyNumbers.firstWhere(
+      (entry) => entry['name'] == 'MensLine Australia',
+    );
     expect(mensLine['number'], '1300789978');
     expect(mensLine['link'], 'https://mensline.org.au/');
   });
 
-  testWidgets('EmergencyDialogBox uses whatsappNumber for WhatsApp action',
-      (tester) async {
+  testWidgets('EmergencyDialogBox uses whatsappNumber for WhatsApp action', (
+    tester,
+  ) async {
     final originalPlatform = UrlLauncherPlatform.instance;
     final fakePlatform = FakeUrlLauncherPlatform();
     UrlLauncherPlatform.instance = fakePlatform;
@@ -295,8 +315,9 @@ void main() {
     expect(fakePlatform.lastLaunchedUrl, 'https://wa.me/0521210105');
   });
 
-  testWidgets('EmergencyDialogBox uses sms number and body for text action',
-      (tester) async {
+  testWidgets('EmergencyDialogBox uses sms number and body for text action', (
+    tester,
+  ) async {
     final originalPlatform = UrlLauncherPlatform.instance;
     final fakePlatform = FakeUrlLauncherPlatform();
     UrlLauncherPlatform.instance = fakePlatform;
@@ -348,21 +369,23 @@ void main() {
     expect(fakePlatform.lastLaunchedUrl, 'tel:1201%20');
   });
 
-  test('dialPhone does not add Android display hints to regular numbers',
-      () async {
-    final originalPlatform = UrlLauncherPlatform.instance;
-    final fakePlatform = FakeUrlLauncherPlatform();
-    UrlLauncherPlatform.instance = fakePlatform;
-    debugDefaultTargetPlatformOverride = TargetPlatform.android;
-    addTearDown(() {
-      debugDefaultTargetPlatformOverride = null;
-      UrlLauncherPlatform.instance = originalPlatform;
-    });
+  test(
+    'dialPhone does not add Android display hints to regular numbers',
+    () async {
+      final originalPlatform = UrlLauncherPlatform.instance;
+      final fakePlatform = FakeUrlLauncherPlatform();
+      UrlLauncherPlatform.instance = fakePlatform;
+      debugDefaultTargetPlatformOverride = TargetPlatform.android;
+      addTearDown(() {
+        debugDefaultTargetPlatformOverride = null;
+        UrlLauncherPlatform.instance = originalPlatform;
+      });
 
-    await dialPhone('+9721201');
+      await dialPhone('+9721201');
 
-    expect(fakePlatform.lastLaunchedUrl, 'tel:+9721201');
-  });
+      expect(fakePlatform.lastLaunchedUrl, 'tel:+9721201');
+    },
+  );
 
   testWidgets('EmergencyDialogBox labels chat links as Chat', (tester) async {
     final userInfo = UserInformation(
@@ -392,30 +415,32 @@ void main() {
   });
 
   testWidgets(
-      'EmergencyPhonesGrid uses saved country over locale fallback for SOS data',
-      (tester) async {
-    final userInfo = UserInformation(
-      gender: 'male',
-      location: 'GB',
-      service: FakePersistentMemoryService(),
-    );
+    'EmergencyPhonesGrid uses saved country over locale fallback for SOS data',
+    (tester) async {
+      final userInfo = UserInformation(
+        gender: 'male',
+        location: 'GB',
+        service: FakePersistentMemoryService(),
+      );
 
-    await tester.pumpWidget(
-      buildEmergencyGridTestApp(
-        userInformation: userInfo,
-        locale: const Locale('en', 'US'),
-      ),
-    );
+      await tester.pumpWidget(
+        buildEmergencyGridTestApp(
+          userInformation: userInfo,
+          locale: const Locale('en', 'US'),
+        ),
+      );
 
-    await tester.pumpAndSettle();
+      await tester.pumpAndSettle();
 
-    expect(find.text('Samaritans'), findsOneWidget);
-    expect(find.text('Shout'), findsOneWidget);
-    expect(find.text('Veterans Crisis Line'), findsNothing);
-  });
+      expect(find.text('Samaritans'), findsOneWidget);
+      expect(find.text('Shout'), findsOneWidget);
+      expect(find.text('Veterans Crisis Line'), findsNothing);
+    },
+  );
 
-  testWidgets('EmergencyPhonesGrid uses two columns on phone width',
-      (tester) async {
+  testWidgets('EmergencyPhonesGrid uses two columns on phone width', (
+    tester,
+  ) async {
     tester.view.physicalSize = const Size(390, 844);
     tester.view.devicePixelRatio = 1;
     addTearDown(() {
@@ -449,15 +474,72 @@ void main() {
     expect(veteransLeft, greaterThan(emergencyLeft));
   });
 
-  testWidgets('PhonePage keeps emergency numbers in two columns at 360dp width',
-      (tester) async {
-    tester.view.physicalSize = const Size(360, 690);
-    tester.view.devicePixelRatio = 1;
-    addTearDown(() {
-      tester.view.resetPhysicalSize();
-      tester.view.resetDevicePixelRatio();
-    });
+  testWidgets(
+    'PhonePage keeps emergency numbers in two columns at 360dp width',
+    (tester) async {
+      tester.view.physicalSize = const Size(360, 690);
+      tester.view.devicePixelRatio = 1;
+      addTearDown(() {
+        tester.view.resetPhysicalSize();
+        tester.view.resetDevicePixelRatio();
+      });
 
+      await GetIt.instance.reset();
+      GetIt.instance.registerSingleton<PersistentMemoryService>(
+        FakePersistentMemoryService(),
+      );
+      addTearDown(() async {
+        await GetIt.instance.reset();
+      });
+
+      final userInfo = UserInformation(
+        gender: 'male',
+        location: 'US',
+        service: FakePersistentMemoryService(),
+      );
+      final appInfo = AppInformation();
+      final phonePageData = PhonePageData(
+        key: 'phonePageData',
+        header: 'header',
+        subTitle: 'subTitle',
+        midTitle: 'midTitle',
+        phoneNameTitle: 'phoneNameTitle',
+        phoneNumberTitle: 'phoneNumberTitle',
+        phoneNames: [],
+        phoneNumbers: [],
+        savedPhoneNames: [],
+        savedPhoneNumbers: [],
+        phoneDescription: [],
+      );
+
+      await tester.pumpWidget(
+        buildPhonePageTestApp(
+          userInformation: userInfo,
+          appInformation: appInfo,
+          phonePageData: phonePageData,
+        ),
+      );
+
+      await tester.pumpAndSettle();
+
+      final emergency = find.text('Emergency');
+      final veterans = find.text('Veterans Crisis Line');
+      expect(emergency, findsOneWidget);
+      expect(veterans, findsOneWidget);
+
+      final emergencyTop = tester.getTopLeft(emergency).dy;
+      final veteransTop = tester.getTopLeft(veterans).dy;
+      final emergencyLeft = tester.getTopLeft(emergency).dx;
+      final veteransLeft = tester.getTopLeft(veterans).dx;
+
+      expect(veteransTop, closeTo(emergencyTop, 1));
+      expect(veteransLeft, greaterThan(emergencyLeft));
+    },
+  );
+
+  testWidgets('PhonePage opens the existing contact editor from contacts', (
+    tester,
+  ) async {
     await GetIt.instance.reset();
     GetIt.instance.registerSingleton<PersistentMemoryService>(
       FakePersistentMemoryService(),
@@ -493,25 +575,67 @@ void main() {
         phonePageData: phonePageData,
       ),
     );
-
     await tester.pumpAndSettle();
 
-    final emergency = find.text('Emergency');
-    final veterans = find.text('Veterans Crisis Line');
-    expect(emergency, findsOneWidget);
-    expect(veterans, findsOneWidget);
+    final manageButton = find.byKey(const Key('phonePageManageContactsButton'));
+    expect(manageButton, findsOneWidget);
 
-    final emergencyTop = tester.getTopLeft(emergency).dy;
-    final veteransTop = tester.getTopLeft(veterans).dy;
-    final emergencyLeft = tester.getTopLeft(emergency).dx;
-    final veteransLeft = tester.getTopLeft(veterans).dx;
+    await tester.ensureVisible(manageButton);
+    await tester.tap(manageButton, warnIfMissed: false);
+    await tester.pumpAndSettle();
 
-    expect(veteransTop, closeTo(emergencyTop, 1));
-    expect(veteransLeft, greaterThan(emergencyLeft));
+    expect(find.byType(PhonePageForm), findsOneWidget);
   });
 
-  testWidgets('Hebrew Israel emergency grid puts Sahar beside Eran',
-      (tester) async {
+  testWidgets('PhonePage reflects PhonePageData contact changes', (
+    tester,
+  ) async {
+    await GetIt.instance.reset();
+    GetIt.instance.registerSingleton<PersistentMemoryService>(
+      FakePersistentMemoryService(),
+    );
+    addTearDown(() async {
+      await GetIt.instance.reset();
+    });
+
+    final userInfo = UserInformation(
+      gender: 'male',
+      location: 'US',
+      service: FakePersistentMemoryService(),
+    );
+    final appInfo = AppInformation();
+    final phonePageData = PhonePageData(
+      key: 'phonePageData',
+      header: 'header',
+      subTitle: 'subTitle',
+      midTitle: 'midTitle',
+      phoneNameTitle: 'phoneNameTitle',
+      phoneNumberTitle: 'phoneNumberTitle',
+      phoneNames: [],
+      phoneNumbers: [],
+      savedPhoneNames: [],
+      savedPhoneNumbers: [],
+      phoneDescription: [],
+    );
+
+    await tester.pumpWidget(
+      buildPhonePageTestApp(
+        userInformation: userInfo,
+        appInformation: appInfo,
+        phonePageData: phonePageData,
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    phonePageData.addItem('Alex', '123456');
+    await tester.pump();
+
+    expect(find.text('Alex'), findsOneWidget);
+  });
+
+  testWidgets('Hebrew Israel emergency grid puts Sahar beside Eran', (
+    tester,
+  ) async {
     tester.view.physicalSize = const Size(390, 844);
     tester.view.devicePixelRatio = 1;
     addTearDown(() {

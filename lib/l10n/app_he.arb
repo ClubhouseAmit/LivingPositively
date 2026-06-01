@@ -421,5 +421,9 @@
   "sosTooltip": "SOS – אנשי קשר בשעת חירום",
   "asyncLoadingLabel": "טוען",
   "asyncErrorMessage": "משהו השתבש",
-  "asyncRetryButton": "ניסיון חוזר"
+  "asyncRetryButton": "ניסיון חוזר",
+  "journalEmptyGuidance": "הוסיפו רשומת תודה ראשונה כשתהיו מוכנים.",
+  "positiveEmptyGuidance": "הוסיפו איכות אחת שתרצו לזכור היום.",
+  "confirmDeleteEntryTitle": "למחוק את הרשומה?",
+  "confirmDeleteEntryMessage": "אי אפשר לבטל את הפעולה הזו."
 }

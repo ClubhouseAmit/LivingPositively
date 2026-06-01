@@ -86,6 +86,17 @@ class _UserSettingsState extends LPExtendedState<UserSettings> {
     }
   }
 
+  double _settingsFieldWidth(BuildContext context) {
+    final availableWidth = MediaQuery.sizeOf(context).width - 48;
+    if (availableWidth <= 0) {
+      return MediaQuery.sizeOf(context).width;
+    }
+    if (availableWidth > 360) {
+      return 360;
+    }
+    return availableWidth;
+  }
+
   //remove log-in data and reset all data that user has filled in the app:
   Future<void> resetData(UserInformation userInfo) async {
     LocaleService localeService = GetIt.instance<LocaleService>();
@@ -215,6 +226,7 @@ class _UserSettingsState extends LPExtendedState<UserSettings> {
     );
 
     final gender = userInfoProvider.gender;
+    final settingsFieldWidth = _settingsFieldWidth(context);
 
     return GestureDetector(
       onTap: () {
@@ -246,21 +258,21 @@ class _UserSettingsState extends LPExtendedState<UserSettings> {
                   children: [
                     resizeText(appLocale.userSettingsName(gender)),
                     SizedBox(
-                      width: 300,
-                      child: SizedBox(
-                        height: 35,
-                        child: TextField(
-                          controller: _namecontroller,
-                          decoration: const InputDecoration(
-                            border: OutlineInputBorder(),
-                            contentPadding: EdgeInsets.symmetric(vertical: 6.0),
+                      width: settingsFieldWidth,
+                      child: TextField(
+                        controller: _namecontroller,
+                        decoration: const InputDecoration(
+                          border: OutlineInputBorder(),
+                          contentPadding: EdgeInsets.symmetric(
+                            horizontal: 12,
+                            vertical: 14,
                           ),
-                          onChanged: (text) {
-                            // Do something with the text
-                            name = text;
-                            userInfoProvider.updateName(text);
-                          },
                         ),
+                        onChanged: (text) {
+                          // Do something with the text
+                          name = text;
+                          userInfoProvider.updateName(text);
+                        },
                       ),
                     ),
                     SizedBox(height: MediaQuery.of(context).size.height * 0.02),
@@ -276,16 +288,16 @@ class _UserSettingsState extends LPExtendedState<UserSettings> {
                     ),
                     //AGE:
                     SizedBox(
-                      width: 300,
+                      width: settingsFieldWidth,
                       child: DropdownMenu<String>(
-                        width: 300,
+                        width: settingsFieldWidth,
                         initialSelection: dropdownValueAge,
                         dropdownMenuEntries: [
                           ...ages.map(
                             (age) => buildDropdownMenuEntry(
                               age,
                               dropdownValueAge == age
-                                  ? const Color.fromARGB(255, 68, 0, 255)
+                                  ? primaryPurple
                                   : Colors.black,
                             ),
                           ),
@@ -313,7 +325,7 @@ class _UserSettingsState extends LPExtendedState<UserSettings> {
                     ),
                     //GENDER:
                     SizedBox(
-                      width: 300,
+                      width: settingsFieldWidth,
                       child: DropdownMenu<String>(
                         initialSelection: (userInfoProvider.binary)
                             ? appLocale.nonBinary
@@ -322,13 +334,13 @@ class _UserSettingsState extends LPExtendedState<UserSettings> {
                                   : userInfoProvider.gender == 'female'
                                   ? appLocale.female
                                   : appLocale.notWillingToSay),
-                        width: 300,
+                        width: settingsFieldWidth,
                         dropdownMenuEntries: [
                           ...genders.map(
                             (gender) => buildDropdownMenuEntry(
                               gender,
                               dropdownValueGender == gender
-                                  ? const Color.fromARGB(255, 68, 0, 255)
+                                  ? primaryPurple
                                   : Colors.black,
                             ),
                           ),
@@ -357,20 +369,18 @@ class _UserSettingsState extends LPExtendedState<UserSettings> {
                       30,
                     ),
                     SizedBox(
-                      width: 300,
+                      width: settingsFieldWidth,
                       child: DropdownMenu<String>(
                         initialSelection:
                             localesNames[locales.indexOf(
                               userInfoProvider.localeName,
                             )],
-                        width: 300,
+                        width: settingsFieldWidth,
                         dropdownMenuEntries: [
                           ...localesNames.map(
                             (locale) => buildDropdownMenuEntry(
                               locale,
-                              locale == 'en'
-                                  ? const Color.fromARGB(255, 68, 0, 255)
-                                  : Colors.black,
+                              locale == 'en' ? primaryPurple : Colors.black,
                             ),
                           ),
                         ],
