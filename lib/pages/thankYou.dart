@@ -33,7 +33,11 @@ class ThankYou extends StatefulWidget {
 class _ThankYouState extends State<ThankYou> {
   bool editable = false;
 
-  Future<void> _confirmDelete(AppLocalizations? locale, String gender) async {
+  Future<void> _confirmDelete(
+    AppLocalizations? locale,
+    String gender,
+    int removeIndex,
+  ) async {
     final confirmed = await showDialog<bool>(
       context: context,
       builder: (context) => AlertDialog(
@@ -58,7 +62,7 @@ class _ThankYouState extends State<ThankYou> {
       return;
     }
 
-    widget.remove(widget.number - 1);
+    widget.remove(removeIndex);
     setState(() {
       editable = false;
     });
@@ -166,7 +170,7 @@ class _ThankYouState extends State<ThankYou> {
                       message: locale?.deleteEntryTooltip ?? 'Delete entry',
                       child: MaterialButton(
                         onPressed: () {
-                          _confirmDelete(locale, gender);
+                          _confirmDelete(locale, gender, widget.number - 1);
                         },
                         splashColor: Colors.transparent,
                         enableFeedback: false,

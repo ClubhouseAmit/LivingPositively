@@ -83,7 +83,7 @@ class _PositiveState extends LPExtendedState<Positive> {
   void loadData(BuildContext context) {
     final userInfoProvider = Provider.of<UserInformation>(
       context,
-      listen: false,
+      listen: true,
     );
     positiveTraits = List<String>.from(userInfoProvider.positiveTraits);
     _syncFocusNodes(positiveTraits.length);

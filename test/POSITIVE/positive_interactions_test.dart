@@ -257,4 +257,34 @@ void main() {
       findsOneWidget,
     );
   });
+
+  testWidgets('mounted page refreshes rendered traits when user info changes', (
+    tester,
+  ) async {
+    await memory.setItem(
+      'positiveTraits',
+      PersistentMemoryType.StringList,
+      <String>[],
+    );
+    user.updatePositiveTraits(<String>[]);
+
+    await pumpWithProviders(
+      tester,
+      const Positive(),
+      userInformation: user,
+      surfaceSize: const Size(1024, 2400),
+    );
+
+    expect(find.byType(ThankYou), findsNothing);
+    expect(
+      find.text('Add one quality you want to remember today.'),
+      findsOneWidget,
+    );
+
+    user.updatePositiveTraits(<String>['Resilient']);
+    await tester.pump();
+
+    expect(find.byType(ThankYou), findsOneWidget);
+    expect(find.text('Resilient'), findsOneWidget);
+  });
 }
