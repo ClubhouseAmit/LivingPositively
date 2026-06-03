@@ -12,10 +12,11 @@ import 'package:mazilon/util/userInformation.dart';
 
 import '../helpers/widget_test_scaffold.dart';
 
-/// The production [Positive.initState] schedules a [Future.delayed] of 10
-/// seconds that shows an AlertDialog. We must advance the fake clock past it
-/// and dismiss the dialog before the test ends, otherwise the binding fails
-/// the test with "A Timer is still pending".
+/// Advance the fake clock past the legacy delayed-popup window.
+///
+/// PR #282 intentionally removed the old 10-second modal nag from [Positive],
+/// but this helper still gives older queued dialog work a chance to settle and
+/// dismisses any dialog opened by an interaction under test.
 Future<void> _advancePastInitDelayAndDismiss(WidgetTester tester) async {
   await tester.pump(const Duration(seconds: 11));
   // pumpAndSettle would also drain animations.
@@ -134,7 +135,7 @@ void main() {
     );
 
     testWidgets(
-      'after init delay an AlertDialog popup appears with a close button',
+      'after init delay the page does not show the removed modal nag',
       (tester) async {
         await pumpWithProviders(
           tester,
@@ -144,18 +145,10 @@ void main() {
         );
         // Before the delay fires, no dialog yet.
         expect(find.byType(AlertDialog), findsNothing);
-        // Advance the fake clock past 10s — initState's Future.delayed fires.
+        // Advance past the old 10s popup window. The UX-gap fix removed that
+        // delayed modal, so the page should remain usable without interruption.
         await tester.pump(const Duration(seconds: 11));
         await tester.pump();
-        expect(find.byType(AlertDialog), findsOneWidget);
-        // Close button is rendered via TextButton inside the dialog.
-        final closeButton = find.descendant(
-          of: find.byType(AlertDialog),
-          matching: find.byType(TextButton),
-        );
-        expect(closeButton, findsOneWidget);
-        await tester.tap(closeButton, warnIfMissed: false);
-        await tester.pumpAndSettle();
         expect(find.byType(AlertDialog), findsNothing);
       },
     );
