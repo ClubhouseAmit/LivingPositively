@@ -36,8 +36,9 @@ void main() {
   });
 
   group('DisclaimerPage (real production widget)', () {
-    testWidgets('renders disclaimer scaffold with language dropdown',
-        (tester) async {
+    testWidgets('renders disclaimer scaffold with language dropdown', (
+      tester,
+    ) async {
       await pumpWithProviders(
         tester,
         DisclaimerPage(changeLocale: (_) {}),
@@ -62,8 +63,9 @@ void main() {
       expect(pop.canPop, isFalse);
     });
 
-    testWidgets('confirm button updates UserInformation.disclaimerSigned',
-        (tester) async {
+    testWidgets('confirm button updates UserInformation.disclaimerSigned', (
+      tester,
+    ) async {
       expect(userInformation.disclaimerSigned, isFalse);
 
       await pumpWithProviders(
@@ -91,8 +93,9 @@ void main() {
       expect(userInformation.disclaimerSigned, isTrue);
     });
 
-    testWidgets('confirm button persists disclaimerConfirmed via service',
-        (tester) async {
+    testWidgets('confirm button persists disclaimerConfirmed via service', (
+      tester,
+    ) async {
       await pumpWithProviders(
         tester,
         DisclaimerPage(changeLocale: (_) {}),
@@ -110,37 +113,43 @@ void main() {
       await tester.pump();
       await tester.pump(const Duration(milliseconds: 50));
 
-      final stored = await services.memory
-          .getItem('disclaimerConfirmed', PersistentMemoryType.Bool);
+      final stored = await services.memory.getItem(
+        'disclaimerConfirmed',
+        PersistentMemoryType.Bool,
+      );
       expect(stored, isTrue);
     });
 
     testWidgets(
-        'updateDisclaimers helper writes to persistent memory and provider',
-        (tester) async {
-      // Exercise the top-level helper directly to cover its branches without
-      // pumping the whole widget tree twice.
-      await pumpWithProviders(
-        tester,
-        DisclaimerPage(changeLocale: (_) {}),
-        userInformation: userInformation,
-      );
+      'updateDisclaimers helper writes to persistent memory and provider',
+      (tester) async {
+        // Exercise the top-level helper directly to cover its branches without
+        // pumping the whole widget tree twice.
+        await pumpWithProviders(
+          tester,
+          DisclaimerPage(changeLocale: (_) {}),
+          userInformation: userInformation,
+        );
 
-      updateDisclaimers(userInformation);
-      // updateDisclaimers is fire-and-forget; let the microtask drain.
-      await tester.pump();
-      await tester.pump(const Duration(milliseconds: 50));
+        updateDisclaimers(userInformation);
+        // updateDisclaimers is fire-and-forget; let the microtask drain.
+        await tester.pump();
+        await tester.pump(const Duration(milliseconds: 50));
 
-      expect(userInformation.disclaimerSigned, isTrue);
-      expect(
-        await services.memory
-            .getItem('disclaimerConfirmed', PersistentMemoryType.Bool),
-        isTrue,
-      );
-    });
+        expect(userInformation.disclaimerSigned, isTrue);
+        expect(
+          await services.memory.getItem(
+            'disclaimerConfirmed',
+            PersistentMemoryType.Bool,
+          ),
+          isTrue,
+        );
+      },
+    );
 
-    testWidgets('changeLocale callback fires when language changes',
-        (tester) async {
+    testWidgets('changeLocale callback fires when language changes', (
+      tester,
+    ) async {
       String? selected;
       await pumpWithProviders(
         tester,
@@ -161,8 +170,33 @@ void main() {
       expect(selected, 'he');
     });
 
-    testWidgets('still renders correctly under Hebrew (RTL) locale',
-        (tester) async {
+    testWidgets('language selector looks like a dropdown primary control', (
+      tester,
+    ) async {
+      await pumpWithProviders(
+        tester,
+        DisclaimerPage(changeLocale: (_) {}),
+        userInformation: userInformation,
+      );
+
+      final dropdown = tester.widget<DropdownButton<String>>(
+        find.byType(DropdownButton<String>),
+      );
+      expect(dropdown.icon, isA<Icon>());
+
+      final icon = dropdown.icon! as Icon;
+      expect(icon.icon, Icons.keyboard_arrow_down_rounded);
+      expect(icon.color, Colors.white);
+
+      expect(dropdown.style?.color, Colors.white);
+
+      final languageIcon = tester.widget<Icon>(find.byIcon(Icons.language));
+      expect(languageIcon.color, Colors.white);
+    });
+
+    testWidgets('still renders correctly under Hebrew (RTL) locale', (
+      tester,
+    ) async {
       await pumpWithProviders(
         tester,
         DisclaimerPage(changeLocale: (_) {}),
@@ -190,8 +224,9 @@ void main() {
       await tester.tap(find.text('Confirm'), warnIfMissed: false);
       await tester.pump();
       // Re-register so the global tearDown runs cleanly.
-      GetIt.instance
-          .registerSingleton<PersistentMemoryService>(services.memory);
+      GetIt.instance.registerSingleton<PersistentMemoryService>(
+        services.memory,
+      );
     });
   });
 

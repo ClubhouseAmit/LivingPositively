@@ -73,6 +73,16 @@ class _CountrySelectorWidgetState
     });
   }
 
+  double _fieldWidth(BuildContext context) {
+    final availableWidth = MediaQuery.sizeOf(context).width - 48;
+    if (availableWidth > 360) {
+      return 360;
+    }
+    return availableWidth > 0
+        ? availableWidth
+        : MediaQuery.sizeOf(context).width;
+  }
+
   @override
   void didChangeDependencies() {
     super.didChangeDependencies();
@@ -97,43 +107,50 @@ class _CountrySelectorWidgetState
       userInfoProvider.location,
       context,
     );
-    final rightPadding = appLocale.textDirection == "rtl" ? 10.0 : 0.0;
-    final leftPadding = appLocale.textDirection == "rtl" ? 0.0 : 10.0;
+    final fieldWidth = _fieldWidth(context);
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        ConstrainedBox(
-          constraints: BoxConstraints(maxWidth: 300.w),
+        SizedBox(
+          width: fieldWidth,
           child: Row(
             children: [
-              myAutoSizedText(
-                widget.text,
-                TextStyle(
-                  fontSize: 18.sp,
-                  fontWeight: FontWeight.normal,
-                  color: Colors.black,
-                ),
-                null,
-                24,
-              ),
-              TextButton(
-                style: ButtonStyle(
-                  padding: WidgetStatePropertyAll(
-                    EdgeInsets.symmetric(horizontal: 8.w),
+              Expanded(
+                child: Text(
+                  widget.text,
+                  style: const TextStyle(
+                    fontSize: 20,
+                    height: 1.2,
+                    fontWeight: FontWeight.normal,
+                    color: Colors.black,
+                    fontFamily: 'Rubix',
                   ),
-                  iconColor: WidgetStatePropertyAll(Colors.black),
-                  overlayColor: WidgetStatePropertyAll(backgroundGray),
+                  maxLines: 2,
+                  overflow: TextOverflow.ellipsis,
+                  textAlign: TextAlign.start,
                 ),
-                onPressed: changeVisible,
-                child: Icon(Icons.question_mark, size: 12.sp),
+              ),
+              SizedBox(
+                width: 44,
+                height: 44,
+                child: TextButton(
+                  style: ButtonStyle(
+                    padding: const WidgetStatePropertyAll(EdgeInsets.zero),
+                    iconColor: WidgetStatePropertyAll(Colors.black),
+                    overlayColor: WidgetStatePropertyAll(backgroundGray),
+                  ),
+                  onPressed: changeVisible,
+                  child: const Icon(Icons.question_mark, size: 12),
+                ),
               ),
             ],
           ),
         ),
+        const SizedBox(height: 6),
         Container(
-          width: 300,
-          height: 70,
-          padding: EdgeInsets.fromLTRB(rightPadding, 12, leftPadding, 12),
+          width: fieldWidth,
+          height: 56,
+          padding: const EdgeInsetsDirectional.fromSTEB(10, 8, 10, 8),
           decoration: BoxDecoration(
             border: Border.all(color: Colors.grey, width: 1),
             boxShadow: [
@@ -177,6 +194,7 @@ class _CountrySelectorWidgetState
             ],
           ),
         ),
+        const SizedBox(height: 12),
         Visibility(
           visible: isVisible,
           child: GestureDetector(
@@ -201,8 +219,8 @@ class _CountrySelectorWidgetState
                   ),
                 ],
               ),
-              width: 300.w,
-              height: 50.h,
+              width: fieldWidth,
+              constraints: BoxConstraints(minHeight: 50.h),
               child: Text(widget.disclaimerText),
             ),
           ),

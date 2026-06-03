@@ -3,18 +3,9 @@ import 'package:mazilon/util/styles.dart';
 
 class LanguageDropDown extends StatefulWidget {
   final List<Map<String, String>> list = [
-    {
-      'locale': 'en',
-      'label': 'English',
-    },
-    {
-      'locale': 'he',
-      'label': 'עברית',
-    },
-    {
-      'locale': 'ar',
-      'label': 'العربية',
-    },
+    {'locale': 'en', 'label': 'English'},
+    {'locale': 'he', 'label': 'עברית'},
+    {'locale': 'ar', 'label': 'العربية'},
   ];
 
   final Function changeLocale;
@@ -26,6 +17,20 @@ class LanguageDropDown extends StatefulWidget {
 
 class _LanguageDropDownState extends State<LanguageDropDown> {
   late String? dropdownValue;
+
+  Widget _languageOption(Map<String, String> item, Color foregroundColor) {
+    return Row(
+      mainAxisAlignment: MainAxisAlignment.center,
+      children: [
+        Icon(Icons.language, size: 20, color: foregroundColor),
+        const SizedBox(width: 10),
+        Text(
+          item['label'] ?? item['locale']!,
+          style: TextStyle(color: foregroundColor, fontWeight: FontWeight.w600),
+        ),
+      ],
+    );
+  }
 
   @override
   void initState() {
@@ -55,10 +60,7 @@ class _LanguageDropDownState extends State<LanguageDropDown> {
                 .map(
                   (item) => Text(
                     item['label'] ?? item['locale']!,
-                    style: const TextStyle(
-                      color: Colors.black87,
-                      fontSize: 12,
-                    ),
+                    style: const TextStyle(color: Colors.black87, fontSize: 12),
                   ),
                 )
                 .toList(),
@@ -74,8 +76,14 @@ class _LanguageDropDownState extends State<LanguageDropDown> {
           ),
           child: DropdownButton<String>(
             value: dropdownValue,
-            icon: SizedBox.shrink(),
+            icon: const Icon(
+              Icons.keyboard_arrow_down_rounded,
+              color: Colors.white,
+            ),
+            iconSize: 24,
             isExpanded: true,
+            dropdownColor: appWhite,
+            style: const TextStyle(color: Colors.white),
             underline: SizedBox.shrink(),
             onChanged: (String? value) {
               if (value != null) {
@@ -85,18 +93,17 @@ class _LanguageDropDownState extends State<LanguageDropDown> {
                 });
               }
             },
-            items: widget.list
-                .map<DropdownMenuItem<String>>((Map<String, String> item) {
+            selectedItemBuilder: (context) {
+              return widget.list
+                  .map<Widget>((item) => _languageOption(item, Colors.white))
+                  .toList();
+            },
+            items: widget.list.map<DropdownMenuItem<String>>((
+              Map<String, String> item,
+            ) {
               return DropdownMenuItem<String>(
                 value: item['locale']!,
-                child: Row(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: [
-                    const Icon(Icons.language, size: 20),
-                    const SizedBox(width: 10),
-                    Text(item['label'] ?? item['locale']!),
-                  ],
-                ),
+                child: _languageOption(item, Colors.black87),
               );
             }).toList(),
           ),

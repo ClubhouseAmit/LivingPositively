@@ -35,35 +35,96 @@ class _InitialFormPage2State extends LPExtendedState<InitialFormPage2> {
   List<String> ages = ['18-', '18-30', '30-40', '40-55', '55+'];
   List<String> genders = [];
 
-  Column resizeText(text) {
+  double _fieldWidth(BuildContext context) {
+    final availableWidth = MediaQuery.sizeOf(context).width - 48;
+    if (availableWidth > 360) {
+      return 360;
+    }
+    return availableWidth > 0
+        ? availableWidth
+        : MediaQuery.sizeOf(context).width;
+  }
+
+  Widget resizeText(String text, double fieldWidth) {
     List<String> sep = text.split("(");
     final appLocale = AppLocalizations.of(context);
 
     sep[1] = "(${sep[1]}";
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        myAutoSizedText(
-          sep[0],
-          TextStyle(
-            fontSize: 18.sp,
-            fontWeight: FontWeight.normal,
-            color: Colors.black,
+    return SizedBox(
+      width: fieldWidth,
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            sep[0],
+            style: const TextStyle(
+              fontSize: 20,
+              height: 1.2,
+              fontWeight: FontWeight.normal,
+              color: Colors.black,
+              fontFamily: 'Rubix',
+            ),
+            textAlign: appLocale!.textDirection == "rtl"
+                ? TextAlign.right
+                : TextAlign.left,
+            maxLines: 2,
           ),
-          appLocale!.textDirection == "rtl" ? TextAlign.right : TextAlign.left,
-          24,
-        ),
-        myAutoSizedText(
-          sep[1],
-          TextStyle(
-            fontSize: 16.sp,
-            fontWeight: FontWeight.normal,
-            color: Colors.black,
+          Text(
+            sep[1],
+            style: const TextStyle(
+              fontSize: 18,
+              height: 1.2,
+              fontWeight: FontWeight.normal,
+              color: Colors.black,
+              fontFamily: 'Rubix',
+            ),
+            textAlign: appLocale.textDirection == "rtl"
+                ? TextAlign.right
+                : TextAlign.left,
+            maxLines: 2,
           ),
-          appLocale.textDirection == "rtl" ? TextAlign.right : TextAlign.left,
-          22,
+        ],
+      ),
+    );
+  }
+
+  Widget _formLabel(String text, double fieldWidth) {
+    return SizedBox(
+      width: fieldWidth,
+      child: Text(
+        text,
+        style: const TextStyle(
+          fontSize: 20,
+          height: 1.2,
+          fontWeight: FontWeight.normal,
+          color: Colors.black,
+          fontFamily: 'Rubix',
         ),
-      ],
+        maxLines: 2,
+        overflow: TextOverflow.ellipsis,
+        textAlign: appLocale.textDirection == "rtl"
+            ? TextAlign.right
+            : TextAlign.left,
+      ),
+    );
+  }
+
+  Widget _primaryActionButton({
+    required double width,
+    required String text,
+    required VoidCallback onPressed,
+  }) {
+    return SizedBox(
+      width: width,
+      height: 52,
+      child: TextButton(
+        onPressed: onPressed,
+        style: myButtonStyle,
+        child: Text(
+          text,
+          style: myTextStyle.copyWith(fontSize: 20, fontFamily: 'Rubix'),
+        ),
+      ),
     );
   }
 
@@ -78,6 +139,7 @@ class _InitialFormPage2State extends LPExtendedState<InitialFormPage2> {
       appLocale.notWillingToSay,
     ];
     var gender = userInfoProvider.gender;
+    final fieldWidth = _fieldWidth(context);
     dropdownValueAge = userInfoProvider.age;
     //add genders here
 
@@ -94,44 +156,54 @@ class _InitialFormPage2State extends LPExtendedState<InitialFormPage2> {
       },
       child: Scaffold(
         body: SingleChildScrollView(
+          padding: EdgeInsets.fromLTRB(24, 8, 24, 24.h),
           child: Center(
-            child: Column(
-              children: [
-                Padding(
-                  padding: const EdgeInsets.fromLTRB(20, 0, 20, 0),
-                  child: myAutoSizedText(
+            child: ConstrainedBox(
+              constraints: const BoxConstraints(maxWidth: 360),
+              child: Column(
+                children: [
+                  myAutoSizedText(
                     appLocale.introductionFormSecondPageMainTitle(gender),
-                    TextStyle(fontSize: 40.sp, fontWeight: FontWeight.bold),
-                    null,
-                    60,
+                    const TextStyle(
+                      fontSize: 30,
+                      height: 1.15,
+                      fontWeight: FontWeight.bold,
+                    ),
+                    TextAlign.center,
+                    30,
+                    2,
                   ),
-                ),
-                Padding(
-                  padding: const EdgeInsets.fromLTRB(40, 0, 40, 0),
-                  child: myAutoSizedText(
+                  SizedBox(height: 8.h),
+                  myAutoSizedText(
                     appLocale.introductionFormSecondPageSubTitle(gender),
-                    TextStyle(
-                      fontSize: 14.sp,
+                    const TextStyle(
+                      fontSize: 15,
+                      height: 1.25,
                       fontWeight: FontWeight.bold,
                       color: darkGray,
                     ),
                     TextAlign.center,
-                    40,
+                    15,
+                    3,
                   ),
-                ),
-                SizedBox(height: returnSizedBox(context, 25)),
-                Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    resizeText(appLocale.userSettingsName(gender)),
-                    Container(
-                      width: 300,
-                      child: Container(
-                        height: 35,
+                  SizedBox(height: 16.h),
+                  Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      resizeText(
+                        appLocale.userSettingsName(gender),
+                        fieldWidth,
+                      ),
+                      const SizedBox(height: 6),
+                      SizedBox(
+                        width: fieldWidth,
                         child: TextField(
-                          decoration: InputDecoration(
+                          decoration: const InputDecoration(
                             border: OutlineInputBorder(),
-                            contentPadding: EdgeInsets.symmetric(vertical: 6.0),
+                            contentPadding: EdgeInsets.symmetric(
+                              horizontal: 12,
+                              vertical: 14,
+                            ),
                           ),
                           onChanged: (text) {
                             // Do something with the text
@@ -140,134 +212,123 @@ class _InitialFormPage2State extends LPExtendedState<InitialFormPage2> {
                           textAlignVertical: TextAlignVertical.center,
                         ),
                       ),
-                    ),
-                    myAutoSizedText(
-                      appLocale.userSettingsAge(gender),
-                      TextStyle(
-                        fontSize: 18.sp,
-                        fontWeight: FontWeight.normal,
-                        color: Colors.black,
-                      ),
-                      null,
-                      24,
-                    ),
-                    //ages drop down select:
-                    Container(
-                      width: 300,
-                      child: DropdownMenu<String>(
-                        width: 300,
-                        initialSelection: userInfoProvider.age,
-                        dropdownMenuEntries: [
-                          ...ages.map(
-                            (age) => buildDropdownMenuEntry(
-                              age,
-                              dropdownValueAge == age
-                                  ? Color.fromARGB(255, 68, 0, 255)
-                                  : Colors.black,
+                      const SizedBox(height: 12),
+                      _formLabel(appLocale.userSettingsAge(gender), fieldWidth),
+                      const SizedBox(height: 6),
+                      //ages drop down select:
+                      SizedBox(
+                        width: fieldWidth,
+                        child: DropdownMenu<String>(
+                          width: fieldWidth,
+                          initialSelection: userInfoProvider.age,
+                          dropdownMenuEntries: [
+                            ...ages.map(
+                              (age) => buildDropdownMenuEntry(
+                                age,
+                                dropdownValueAge == age
+                                    ? primaryPurple
+                                    : Colors.black,
+                              ),
                             ),
-                          ),
-                        ],
-                        onSelected: (String? newValue) {
-                          setState(() {
-                            if (newValue != null) {
-                              dropdownValueAge = newValue;
-                              userInfoProvider.updateAge(newValue);
-                            }
-                          });
-                          // Do something with the selected value
-                        },
-                      ),
-                    ),
-
-                    myAutoSizedText(
-                      appLocale.userSettingsGender(gender),
-                      TextStyle(
-                        fontSize: 18.sp,
-                        fontWeight: FontWeight.normal,
-                        color: Colors.black,
-                      ),
-                      null,
-                      24,
-                    ),
-                    //gender drop down select
-                    Container(
-                      width: 300,
-                      child: DropdownMenu<String>(
-                        width: 300,
-                        initialSelection: (userInfoProvider.binary)
-                            ? appLocale.nonBinary
-                            : (userInfoProvider.gender == 'male'
-                                  ? appLocale.male
-                                  : userInfoProvider.gender == 'female'
-                                  ? appLocale.female
-                                  : appLocale.notWillingToSay),
-                        dropdownMenuEntries: [
-                          ...genders.map(
-                            (gender) => buildDropdownMenuEntry(
-                              gender,
-                              dropdownValueGender == gender
-                                  ? Color.fromARGB(255, 68, 0, 255)
-                                  : Colors.black,
-                            ),
-                          ),
-                        ],
-                        //update user info accordingly:
-                        onSelected: (String? newValue) {
-                          setState(() {
-                            if (newValue != null) {
-                              dropdownValueGender = newValue;
-                              if (newValue == appLocale.male) {
-                                userInfoProvider.updateGender('male');
-                                userInfoProvider.updateBinary(false);
-                              } else if (newValue == appLocale.female) {
-                                userInfoProvider.updateGender('female');
-                                userInfoProvider.updateBinary(false);
-                              } else if (newValue == appLocale.nonBinary) {
-                                userInfoProvider.updateGender('');
-                                userInfoProvider.updateBinary(true);
-                              } else {
-                                userInfoProvider.updateGender('');
-                                userInfoProvider.updateBinary(false);
+                          ],
+                          onSelected: (String? newValue) {
+                            setState(() {
+                              if (newValue != null) {
+                                dropdownValueAge = newValue;
+                                userInfoProvider.updateAge(newValue);
                               }
-                            }
-                          });
-                          // Do something with the selected value
-                        },
+                            });
+                            // Do something with the selected value
+                          },
+                        ),
                       ),
-                    ),
-                    CountrySelectorWidget(
-                      text: appLocale.locationSelect(gender),
-                      disclaimerText: appLocale.locationDisclaimer(gender),
-                    ),
-                  ],
-                ),
-                SizedBox(height: returnSizedBox(context, 100)),
-                ConfirmationButton(
-                  context,
-                  () {
-                    FocusScope.of(context).unfocus();
+                      const SizedBox(height: 12),
 
-                    userInfoProvider.updateAge(dropdownValueAge ?? '');
-                    userInfoProvider.updateName(name!);
-                    userInfoProvider.updateBinary(
-                      dropdownValueGender == appLocale.nonBinary,
-                    );
+                      _formLabel(
+                        appLocale.userSettingsGender(gender),
+                        fieldWidth,
+                      ),
+                      const SizedBox(height: 6),
+                      //gender drop down select
+                      SizedBox(
+                        width: fieldWidth,
+                        child: DropdownMenu<String>(
+                          width: fieldWidth,
+                          initialSelection: (userInfoProvider.binary)
+                              ? appLocale.nonBinary
+                              : (userInfoProvider.gender == 'male'
+                                    ? appLocale.male
+                                    : userInfoProvider.gender == 'female'
+                                    ? appLocale.female
+                                    : appLocale.notWillingToSay),
+                          dropdownMenuEntries: [
+                            ...genders.map(
+                              (gender) => buildDropdownMenuEntry(
+                                gender,
+                                dropdownValueGender == gender
+                                    ? primaryPurple
+                                    : Colors.black,
+                              ),
+                            ),
+                          ],
+                          //update user info accordingly:
+                          onSelected: (String? newValue) {
+                            setState(() {
+                              if (newValue != null) {
+                                dropdownValueGender = newValue;
+                                if (newValue == appLocale.male) {
+                                  userInfoProvider.updateGender('male');
+                                  userInfoProvider.updateBinary(false);
+                                } else if (newValue == appLocale.female) {
+                                  userInfoProvider.updateGender('female');
+                                  userInfoProvider.updateBinary(false);
+                                } else if (newValue == appLocale.nonBinary) {
+                                  userInfoProvider.updateGender('');
+                                  userInfoProvider.updateBinary(true);
+                                } else {
+                                  userInfoProvider.updateGender('');
+                                  userInfoProvider.updateBinary(false);
+                                }
+                              }
+                            });
+                            // Do something with the selected value
+                          },
+                        ),
+                      ),
+                      const SizedBox(height: 12),
+                      CountrySelectorWidget(
+                        text: appLocale.locationSelect(gender),
+                        disclaimerText: appLocale.locationDisclaimer(gender),
+                      ),
+                    ],
+                  ),
+                  SizedBox(height: 16.h),
+                  _primaryActionButton(
+                    width: fieldWidth,
+                    text: appLocale.nextButton(gender),
+                    onPressed: () {
+                      FocusScope.of(context).unfocus();
 
-                    if (dropdownValueGender != null) {
-                      if (dropdownValueGender == appLocale.male) {
-                        userInfoProvider.updateGender('male');
-                      } else if (dropdownValueGender == appLocale.female) {
-                        userInfoProvider.updateGender('female');
-                      } else {
-                        userInfoProvider.updateGender('');
+                      userInfoProvider.updateAge(dropdownValueAge ?? '');
+                      userInfoProvider.updateName(name!);
+                      userInfoProvider.updateBinary(
+                        dropdownValueGender == appLocale.nonBinary,
+                      );
+
+                      if (dropdownValueGender != null) {
+                        if (dropdownValueGender == appLocale.male) {
+                          userInfoProvider.updateGender('male');
+                        } else if (dropdownValueGender == appLocale.female) {
+                          userInfoProvider.updateGender('female');
+                        } else {
+                          userInfoProvider.updateGender('');
+                        }
                       }
-                    }
-                    widget.next();
-                  },
-                  appLocale.nextButton(gender),
-                  myTextStyle.copyWith(fontSize: 20.sp),
-                ),
-              ],
+                      widget.next();
+                    },
+                  ),
+                ],
+              ),
             ),
           ),
         ),
