@@ -35,16 +35,6 @@ class _InitialFormPage2State extends LPExtendedState<InitialFormPage2> {
   List<String> ages = ['18-', '18-30', '30-40', '40-55', '55+'];
   List<String> genders = [];
 
-  double _fieldWidth(BuildContext context) {
-    final availableWidth = MediaQuery.sizeOf(context).width - 48;
-    if (availableWidth > 360) {
-      return 360;
-    }
-    return availableWidth > 0
-        ? availableWidth
-        : MediaQuery.sizeOf(context).width;
-  }
-
   Widget resizeText(String text, double fieldWidth) {
     List<String> sep = text.split("(");
     final appLocale = AppLocalizations.of(context);
@@ -139,7 +129,7 @@ class _InitialFormPage2State extends LPExtendedState<InitialFormPage2> {
       appLocale.notWillingToSay,
     ];
     var gender = userInfoProvider.gender;
-    final fieldWidth = _fieldWidth(context);
+    final fieldWidth = formFieldWidth(context);
     dropdownValueAge = userInfoProvider.age;
     //add genders here
 

@@ -86,17 +86,6 @@ class _UserSettingsState extends LPExtendedState<UserSettings> {
     }
   }
 
-  double _settingsFieldWidth(BuildContext context) {
-    final availableWidth = MediaQuery.sizeOf(context).width - 48;
-    if (availableWidth <= 0) {
-      return MediaQuery.sizeOf(context).width;
-    }
-    if (availableWidth > 360) {
-      return 360;
-    }
-    return availableWidth;
-  }
-
   //remove log-in data and reset all data that user has filled in the app:
   Future<void> resetData(UserInformation userInfo) async {
     LocaleService localeService = GetIt.instance<LocaleService>();
@@ -226,7 +215,7 @@ class _UserSettingsState extends LPExtendedState<UserSettings> {
     );
 
     final gender = userInfoProvider.gender;
-    final settingsFieldWidth = _settingsFieldWidth(context);
+    final settingsFieldWidth = formFieldWidth(context);
 
     return GestureDetector(
       onTap: () {

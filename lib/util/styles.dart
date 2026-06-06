@@ -33,6 +33,14 @@ double returnSizedBox(context, int size) {
   return size + 20;
 }
 
+double formFieldWidth(BuildContext context) {
+  final availableWidth = MediaQuery.sizeOf(context).width - 48;
+  if (availableWidth > 360) {
+    return 360;
+  }
+  return availableWidth > 0 ? availableWidth : MediaQuery.sizeOf(context).width;
+}
+
 ButtonStyle myButtonStyle = TextButton.styleFrom(
   backgroundColor: primaryPurple,
   shape: const RoundedRectangleBorder(
