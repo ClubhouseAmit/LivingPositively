@@ -83,3 +83,7 @@ ruvector.db
 .claude/
 .codex/
 .claude-flow/
+
+
+# APM dependencies
+apm_modules/

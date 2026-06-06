@@ -58,7 +58,7 @@ class _InspirationalQuoteState extends LPExtendedState<InspirationalQuote> {
         width: MediaQuery.of(context).size.width > 1000
             ? 800
             : MediaQuery.of(context).size.width,
-        height: 120,
+        constraints: const BoxConstraints(minHeight: 120),
         child: Stack(
           children: [
             PositionedDirectional(

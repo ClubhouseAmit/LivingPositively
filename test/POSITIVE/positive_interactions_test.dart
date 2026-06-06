@@ -88,7 +88,7 @@ void main() {
   );
 
   testWidgets(
-    'tapping the delete icon on an existing ThankYou row removes a trait',
+    'tapping the delete icon on an existing ThankYou row asks before removing a trait',
     (tester) async {
       user.updatePositiveTraits(['Kind', 'Brave']);
       await memory.setItem(
@@ -110,6 +110,18 @@ void main() {
           .ancestor(of: trashIcon, matching: find.byType(MaterialButton))
           .first;
       await tester.tap(trashButton, warnIfMissed: false);
+      await tester.pumpAndSettle();
+
+      expect(find.byType(AlertDialog), findsOneWidget);
+      expect(user.positiveTraits.length, 2);
+
+      await tester.tap(find.text('Cancel'), warnIfMissed: false);
+      await tester.pumpAndSettle();
+      expect(user.positiveTraits.length, 2);
+
+      await tester.tap(trashButton, warnIfMissed: false);
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('Delete'), warnIfMissed: false);
       await tester.pumpAndSettle();
 
       expect(user.positiveTraits.length, 1);
@@ -208,4 +220,71 @@ void main() {
       await _advancePastInitDelayAndDismiss(tester);
     },
   );
+
+  testWidgets('positive page does not show a delayed popup on every visit', (
+    tester,
+  ) async {
+    await pumpWithProviders(
+      tester,
+      const Positive(),
+      userInformation: user,
+      surfaceSize: const Size(1024, 2400),
+    );
+
+    await tester.pump(const Duration(seconds: 11));
+    await tester.pump();
+
+    expect(find.byType(AlertDialog), findsNothing);
+  });
+
+  testWidgets('empty positive traits list shows guidance', (tester) async {
+    await memory.setItem(
+      'positiveTraits',
+      PersistentMemoryType.StringList,
+      <String>[],
+    );
+    user.updatePositiveTraits(<String>[]);
+
+    await pumpWithProviders(
+      tester,
+      const Positive(),
+      userInformation: user,
+      surfaceSize: const Size(1024, 2400),
+    );
+
+    expect(
+      find.text('Add one quality you want to remember today.'),
+      findsOneWidget,
+    );
+  });
+
+  testWidgets('mounted page refreshes rendered traits when user info changes', (
+    tester,
+  ) async {
+    await memory.setItem(
+      'positiveTraits',
+      PersistentMemoryType.StringList,
+      <String>[],
+    );
+    user.updatePositiveTraits(<String>[]);
+
+    await pumpWithProviders(
+      tester,
+      const Positive(),
+      userInformation: user,
+      surfaceSize: const Size(1024, 2400),
+    );
+
+    expect(find.byType(ThankYou), findsNothing);
+    expect(
+      find.text('Add one quality you want to remember today.'),
+      findsOneWidget,
+    );
+
+    user.updatePositiveTraits(<String>['Resilient']);
+    await tester.pump();
+
+    expect(find.byType(ThankYou), findsOneWidget);
+    expect(find.text('Resilient'), findsOneWidget);
+  });
 }

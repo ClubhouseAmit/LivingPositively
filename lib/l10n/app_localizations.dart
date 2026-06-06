@@ -2175,6 +2175,30 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Try again'**
   String get asyncRetryButton;
+
+  /// Empty-state guidance on the gratitude journal page.
+  ///
+  /// In en, this message translates to:
+  /// **'Add your first gratitude note when you are ready.'**
+  String get journalEmptyGuidance;
+
+  /// Empty-state guidance on the positive traits page.
+  ///
+  /// In en, this message translates to:
+  /// **'Add one quality you want to remember today.'**
+  String get positiveEmptyGuidance;
+
+  /// Confirmation dialog title before deleting a journal or positive-trait entry.
+  ///
+  /// In en, this message translates to:
+  /// **'Delete this entry?'**
+  String get confirmDeleteEntryTitle;
+
+  /// Confirmation dialog message before deleting a journal or positive-trait entry.
+  ///
+  /// In en, this message translates to:
+  /// **'This cannot be undone.'**
+  String get confirmDeleteEntryMessage;
 }
 
 class _AppLocalizationsDelegate

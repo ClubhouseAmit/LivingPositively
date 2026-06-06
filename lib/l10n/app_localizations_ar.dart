@@ -3094,4 +3094,16 @@ class AppLocalizationsAr extends AppLocalizations {
 
   @override
   String get asyncRetryButton => 'إعادة المحاولة';
+
+  @override
+  String get journalEmptyGuidance => 'أضف أول ملاحظة امتنان عندما تكون جاهزًا.';
+
+  @override
+  String get positiveEmptyGuidance => 'أضف صفة واحدة تريد تذكرها اليوم.';
+
+  @override
+  String get confirmDeleteEntryTitle => 'هل تريد حذف هذا الإدخال؟';
+
+  @override
+  String get confirmDeleteEntryMessage => 'لا يمكن التراجع عن هذا الإجراء.';
 }

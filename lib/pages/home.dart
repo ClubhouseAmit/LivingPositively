@@ -55,6 +55,7 @@ class _HomeState extends LPExtendedState<Home> {
 
   bool hasFilled = false;
   Map<String, dynamic> homeTitles = {};
+  int? _selectedPersonalPlanIndex;
 
   //load information about the user from shared preferences
   void loadData() async {
@@ -68,6 +69,9 @@ class _HomeState extends LPExtendedState<Home> {
       PersistentMemoryType.Bool,
     );
 
+    if (!mounted) {
+      return;
+    }
     setState(() {
       hasFilled = hasFilledValue;
     });
@@ -75,8 +79,8 @@ class _HomeState extends LPExtendedState<Home> {
 
   @override
   void initState() {
-    loadData();
     super.initState();
+    loadData();
   }
 
   //fuction to handle the removal of a thank you
@@ -86,47 +90,46 @@ class _HomeState extends LPExtendedState<Home> {
     UserInformation userInfo,
     AppLocalizations appLocale,
   ) {
-    var random = Random();
-    var randomHeader = random.nextInt(4);
+    _selectedPersonalPlanIndex ??= Random().nextInt(4);
 
-    switch (randomHeader) {
+    switch (_selectedPersonalPlanIndex) {
       case 0:
-        setState(() {
-          homeTitles = {
-            'SubTitle': appLocale.makeSaferSubTitle(userInfo.gender),
-            'list': userInfo.makeSafer,
-          };
-        });
+        homeTitles = {
+          'SubTitle': appLocale.makeSaferSubTitle(userInfo.gender),
+          'list': userInfo.makeSafer,
+        };
         break;
       case 1:
-        setState(() {
-          homeTitles = {
-            'SubTitle': appLocale.difficultEventsSubTitle(userInfo.gender),
-            'list': userInfo.difficultEvents,
-          };
-        });
+        homeTitles = {
+          'SubTitle': appLocale.difficultEventsSubTitle(userInfo.gender),
+          'list': userInfo.difficultEvents,
+        };
         break;
       case 2:
-        setState(() {
-          homeTitles = {
-            'SubTitle': appLocale.feelBetterSubTitle(userInfo.gender),
-            'list': userInfo.feelBetter,
-          };
-        });
+        homeTitles = {
+          'SubTitle': appLocale.feelBetterSubTitle(userInfo.gender),
+          'list': userInfo.feelBetter,
+        };
         break;
       case 3:
-        setState(() {
-          homeTitles = {
-            'SubTitle': appLocale.distractionsSubTitle(userInfo.gender),
-            'list': userInfo.distractions,
-          };
-        });
+        homeTitles = {
+          'SubTitle': appLocale.distractionsSubTitle(userInfo.gender),
+          'list': userInfo.distractions,
+        };
         break;
       default:
-        setState(() {
-          homeTitles = {'SubTitle': '', 'list': []};
-        });
+        homeTitles = {'SubTitle': '', 'list': []};
     }
+  }
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    final userInfoProvider = Provider.of<UserInformation>(
+      context,
+      listen: true,
+    );
+    setRandomPersonalWidgetText(userInfoProvider, appLocale);
   }
 
   @override
@@ -136,9 +139,6 @@ class _HomeState extends LPExtendedState<Home> {
       listen: true,
     );
     final gender = userInfoProvider.gender;
-
-    //add random header and user-selected info from personal plan:
-    setRandomPersonalWidgetText(userInfoProvider, appLocale);
 
     return Scaffold(
       appBar: AppBar(scrolledUnderElevation: 0, backgroundColor: lightGray),

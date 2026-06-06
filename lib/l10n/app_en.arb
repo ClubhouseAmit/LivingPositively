@@ -1659,5 +1659,21 @@
   "asyncRetryButton": "Try again",
   "@asyncRetryButton": {
     "description": "Phase E (ADR-005 §Decision step 5): label for the retry button in the shared async view's error state."
+  },
+  "journalEmptyGuidance": "Add your first gratitude note when you are ready.",
+  "@journalEmptyGuidance": {
+    "description": "Empty-state guidance on the gratitude journal page."
+  },
+  "positiveEmptyGuidance": "Add one quality you want to remember today.",
+  "@positiveEmptyGuidance": {
+    "description": "Empty-state guidance on the positive traits page."
+  },
+  "confirmDeleteEntryTitle": "Delete this entry?",
+  "@confirmDeleteEntryTitle": {
+    "description": "Confirmation dialog title before deleting a journal or positive-trait entry."
+  },
+  "confirmDeleteEntryMessage": "This cannot be undone.",
+  "@confirmDeleteEntryMessage": {
+    "description": "Confirmation dialog message before deleting a journal or positive-trait entry."
   }
 }

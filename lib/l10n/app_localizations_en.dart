@@ -3122,4 +3122,18 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get asyncRetryButton => 'Try again';
+
+  @override
+  String get journalEmptyGuidance =>
+      'Add your first gratitude note when you are ready.';
+
+  @override
+  String get positiveEmptyGuidance =>
+      'Add one quality you want to remember today.';
+
+  @override
+  String get confirmDeleteEntryTitle => 'Delete this entry?';
+
+  @override
+  String get confirmDeleteEntryMessage => 'This cannot be undone.';
 }

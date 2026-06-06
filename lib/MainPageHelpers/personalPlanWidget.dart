@@ -40,42 +40,41 @@ class _PersonalPlanWidgetState extends LPExtendedState<PersonalPlanWidget> {
     var random = Random();
     var index1 = 0;
     var index2 = 0;
+    final items = List<String>.from(widget.text['list'] ?? const <String>[]);
     // taking two random items from the list of the feel better answers or other question
     // that user filled in the form
-    if (widget.text['list'].length >= 2) {
-      index1 = random.nextInt(widget.text['list'].length);
+    if (items.length >= 2) {
+      index1 = random.nextInt(items.length);
       do {
-        index2 = random.nextInt(widget.text['list'].length);
+        index2 = random.nextInt(items.length);
       } while (index1 == index2);
-      setState(() {
-        randomItems = [
-          widget.text['list'][index1],
-          widget.text['list'][index2],
-        ];
-      });
-    } else if (widget.text['list'].length == 1) {
+      randomItems = [items[index1], items[index2]];
+    } else if (items.length == 1) {
       index1 = 0;
-      setState(() {
-        randomItems = [widget.text['list'][index1]];
-      });
+      randomItems = [items[index1]];
     } else {
-      setState(() {
-        randomItems = [];
-      });
+      randomItems = [];
     }
   }
 
   @override
   void initState() {
+    super.initState();
     fileService = GetIt.instance<FileService>();
     loadFeelBetter();
-    super.initState();
+  }
+
+  @override
+  void didUpdateWidget(PersonalPlanWidget oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (oldWidget.text != widget.text) {
+      loadFeelBetter();
+    }
   }
 
   // the build function of the personal plan widget
   @override
   Widget build(BuildContext context) {
-    loadFeelBetter();
     // the providers of the app information and the user information
     final appInfoProvider = Provider.of<AppInformation>(context, listen: true);
     final userInfoProvider = Provider.of<UserInformation>(
