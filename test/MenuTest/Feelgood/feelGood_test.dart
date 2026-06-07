@@ -61,45 +61,49 @@ void main() {
       final mockPersistentMemoryService = MockPersistentMemoryService();
 
       // Set up mock behaviors for PersistentMemoryService
-      when(mockPersistentMemoryService.getItem(any, any))
-          .thenAnswer((_) async => null);
-      when(mockPersistentMemoryService.getItem(any, PersistentMemoryType.Bool))
-          .thenAnswer((_) async => true);
-      when(mockPersistentMemoryService.setItem(any, any, any))
-          .thenAnswer((_) async {});
+      when(
+        mockPersistentMemoryService.getItem(any, any),
+      ).thenAnswer((_) async => null);
+      when(
+        mockPersistentMemoryService.getItem(any, PersistentMemoryType.Bool),
+      ).thenAnswer((_) async => true);
+      when(
+        mockPersistentMemoryService.setItem(any, any, any),
+      ).thenAnswer((_) async {});
       when(mockPersistentMemoryService.reset()).thenAnswer((_) async {});
 
       // Register PersistentMemoryService with GetIt
       getIt.registerLazySingleton<PersistentMemoryService>(
-          () => mockPersistentMemoryService);
+        () => mockPersistentMemoryService,
+      );
 
       final mockFactory = MockVideoPlayerPageFactory();
       getIt.registerSingleton<VideoPlayerPageFactory>(mockFactory);
       final imageFactory = MockImagePickerService();
       getIt.registerLazySingleton<ImagePickerService>(() => imageFactory);
-      when(imageFactory.displayImage(any, fit: anyNamed('fit')))
-          .thenAnswer((Invocation invocation) {
+      when(imageFactory.displayImage(any, fit: anyNamed('fit'))).thenAnswer((
+        Invocation invocation,
+      ) {
         final String path = invocation.positionalArguments[0] as String;
-        return Container(
-            key: Key(path),
-            child: Text(
-              path,
-            ));
+        return Container(key: Key(path), child: Text(path));
       });
-      when(imageFactory.loadImagePaths(any))
-          .thenAnswer((Invocation invocation) async {
+      when(imageFactory.loadImagePaths(any)).thenAnswer((
+        Invocation invocation,
+      ) async {
         List<String> list = invocation.positionalArguments[0] as List<String>;
         list.addAll([]);
       });
-      when(imageFactory.deleteImage(any, any))
-          .thenAnswer((Invocation invocation) async {
+      when(imageFactory.deleteImage(any, any)).thenAnswer((
+        Invocation invocation,
+      ) async {
         final index = invocation.positionalArguments[0] as int;
         List<String> list = invocation.positionalArguments[1] as List<String>;
         list.removeAt(index);
         //list.addAll(['test1', 'test2']);
       });
-      when(imageFactory.getImage(any, any))
-          .thenAnswer((Invocation invocation) async {
+      when(imageFactory.getImage(any, any)).thenAnswer((
+        Invocation invocation,
+      ) async {
         List<String> list = invocation.positionalArguments[1] as List<String>;
 
         list.addAll(['added']);
@@ -122,26 +126,30 @@ void main() {
     }
 
     testWidgets('Navigate to FeelGood screen', (WidgetTester tester) async {
-      await tester
-          .pumpWidget(getMenuForTests(mockUserInformation, mockAppInformation));
+      await tester.pumpWidget(
+        getMenuForTests(mockUserInformation, mockAppInformation),
+      );
 
       await tapAndSettle(tester, find.text('להרגיש טוב'));
       expect(find.byType(FeelGood), findsOneWidget);
       expect(find.byType(ImageAddItem), findsWidgets);
       expect(find.byType(ImageDisplay), findsNothing);
     });
-    testWidgets('Navigate back from FeelGood screen',
-        (WidgetTester tester) async {
-      await tester
-          .pumpWidget(getMenuForTests(mockUserInformation, mockAppInformation));
+    testWidgets('Navigate back from FeelGood screen', (
+      WidgetTester tester,
+    ) async {
+      await tester.pumpWidget(
+        getMenuForTests(mockUserInformation, mockAppInformation),
+      );
 
       await tapAndSettle(tester, find.text('להרגיש טוב'));
       await tapAndSettle(tester, find.text('בית'));
       expect(find.byType(Home), findsOneWidget);
     });
     testWidgets('Test adding photo from Camera', (WidgetTester tester) async {
-      await tester
-          .pumpWidget(getMenuForTests(mockUserInformation, mockAppInformation));
+      await tester.pumpWidget(
+        getMenuForTests(mockUserInformation, mockAppInformation),
+      );
 
       await tapAndSettle(tester, find.text('להרגיש טוב'));
       expect(find.byKey(const Key("addImgButtonText")), findsOneWidget);
@@ -153,8 +161,9 @@ void main() {
       expect(find.byType(ImageAddItem), findsOneWidget);
     });
     testWidgets('Test Adding Photo Gallery', (WidgetTester tester) async {
-      await tester
-          .pumpWidget(getMenuForTests(mockUserInformation, mockAppInformation));
+      await tester.pumpWidget(
+        getMenuForTests(mockUserInformation, mockAppInformation),
+      );
 
       await tapAndSettle(tester, find.text('להרגיש טוב'));
       await tapAndSettle(tester, find.byKey(const Key("addImgButtonText")));
@@ -165,15 +174,35 @@ void main() {
       expect(find.byType(ImageAddItem), findsOneWidget);
     });
     testWidgets('Delete photos', (WidgetTester tester) async {
-      await tester
-          .pumpWidget(getMenuForTests(mockUserInformation, mockAppInformation));
+      await tester.pumpWidget(
+        getMenuForTests(mockUserInformation, mockAppInformation),
+      );
 
       await tapAndSettle(tester, find.text('להרגיש טוב'));
       await tapAndSettle(tester, find.byKey(const Key("addImgButtonText")));
       await tapAndSettle(tester, find.byKey(const Key("cameraButtonText")));
       await tapAndSettle(tester, find.text('added'));
       expect(find.byKey(const Key('deleteButtonIcon')), findsOneWidget);
+      expect(find.byTooltip('חזרה לתמונות'), findsOneWidget);
+      expect(find.byTooltip('מחיקת תמונה'), findsOneWidget);
+      final backIcon = tester.widget<Icon>(
+        find.descendant(
+          of: find.byKey(const Key('backButtonIcon')),
+          matching: find.byIcon(Icons.arrow_back),
+        ),
+      );
+      final deleteIcon = tester.widget<Icon>(
+        find.descendant(
+          of: find.byKey(const Key('deleteButtonIcon')),
+          matching: find.byIcon(Icons.delete),
+        ),
+      );
+      expect(backIcon.semanticLabel, isNull);
+      expect(deleteIcon.semanticLabel, isNull);
+
       await tapAndSettle(tester, find.byKey(const Key('deleteButtonIcon')));
+      expect(find.text('למחוק את התמונה?'), findsOneWidget);
+      expect(find.text('התמונה תוסר מאזור להרגיש טוב.'), findsOneWidget);
       expect(find.byKey(const Key('deleteButtonText')), findsOneWidget);
       await tapAndSettle(tester, find.byKey(const Key('deleteButtonText')));
       expect(find.text('added'), findsNothing);

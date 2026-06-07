@@ -94,6 +94,10 @@ class _PersonalPlanWidgetState extends LPExtendedState<PersonalPlanWidget> {
             // it will take him to the personal plan page
             SectionBarHome(
               textWidget: TextButton(
+                style: TextButton.styleFrom(
+                  padding: const EdgeInsets.symmetric(horizontal: 4),
+                  minimumSize: Size.zero,
+                ),
                 onPressed: () {
                   widget.changeCurrentIndex(context, PagesCode.FullPlan);
                 },
@@ -159,57 +163,68 @@ class _PersonalPlanWidgetState extends LPExtendedState<PersonalPlanWidget> {
               // the sub title of the personal plan section in the home page
               subHeader: widget.text['SubTitle'],
             ),
-            GridView.count(
-              crossAxisCount: 2, // Set the number of items in each row
-              crossAxisSpacing: 5,
-              childAspectRatio: 12 / 4,
-              shrinkWrap:
-                  true, // Use this if the GridView is inside another scrolling widget
-              physics:
-                  const NeverScrollableScrollPhysics(), // Adjust this value as needed to change the aspect ratio of the items
-              // the personal plan items that the user filled in the form
-              children: randomItems
-                  .map(
-                    (pPlan) => Padding(
-                      padding: const EdgeInsetsDirectional.only(
-                        top: 2.0,
-                        start: 5,
-                      ),
-                      child: PersonalPlanItem(text: pPlan),
-                    ),
-                  )
-                  .toList(),
-              // Use this if the GridView is inside another scrolling widget
+            LayoutBuilder(
+              builder: (context, constraints) {
+                final twoColumn = constraints.maxWidth >= 520;
+                final itemWidth = twoColumn
+                    ? (constraints.maxWidth - 8) / 2
+                    : constraints.maxWidth;
+                return Wrap(
+                  spacing: 8,
+                  runSpacing: 8,
+                  children: randomItems
+                      .map(
+                        (pPlan) => SizedBox(
+                          width: itemWidth,
+                          child: PersonalPlanItem(text: pPlan),
+                        ),
+                      )
+                      .toList(),
+                );
+              },
             ),
             // the button to take the user to the personal plan page.
-            // `button: true` adds the role; the visible text inside is left
-            // as the announced label so we don't double-announce.
-            Semantics(
-              button: true,
-              child: GestureDetector(
-                onTap: () {
-                  widget.changeCurrentIndex(context, PagesCode.FullPlan);
-                  // Handle the button tap here
-                },
-                child: Row(
-                  children: [
-                    myAutoSizedText(
-                      appLocale.personalPlanPageAllPlan(gender),
-                      TextStyle(
-                        fontWeight: FontWeight.bold,
-                        fontSize: 12.sp, // the font size of the text
+            LayoutBuilder(
+              builder: (context, constraints) {
+                return Align(
+                  alignment: AlignmentDirectional.centerStart,
+                  child: ConstrainedBox(
+                    constraints: BoxConstraints(maxWidth: constraints.maxWidth),
+                    child: TextButton(
+                      key: const Key('personalPlanViewAllButton'),
+                      style: TextButton.styleFrom(
+                        padding: const EdgeInsets.symmetric(horizontal: 8),
+                        minimumSize: Size.zero,
                       ),
-                      null,
-                      20,
+                      onPressed: () {
+                        widget.changeCurrentIndex(context, PagesCode.FullPlan);
+                      },
+                      child: Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Flexible(
+                            child: myAutoSizedText(
+                              appLocale.personalPlanPageAllPlan(gender),
+                              TextStyle(
+                                fontWeight: FontWeight.bold,
+                                fontSize: 12.sp, // the font size of the text
+                              ),
+                              TextAlign.start,
+                              20,
+                              2,
+                            ),
+                          ),
+                          Icon(
+                            appLocale.textDirection == "rtl"
+                                ? Icons.arrow_left
+                                : Icons.arrow_right,
+                          ),
+                        ],
+                      ),
                     ),
-                    Icon(
-                      appLocale.textDirection == "rtl"
-                          ? Icons.arrow_left
-                          : Icons.arrow_right,
-                    ),
-                  ],
-                ),
-              ),
+                  ),
+                );
+              },
             ),
           ],
         ),

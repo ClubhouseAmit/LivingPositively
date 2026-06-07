@@ -147,6 +147,9 @@ void main() {
       expect(find.byType(InitialFormPage2), findsOneWidget);
       expect(find.byType(ToFormPage), findsNothing);
 
+      await tester.enterText(find.byType(TextFormField), 'Tester');
+      await tester.pumpAndSettle();
+
       // Tap the next button again
       await tester.scrollUntilVisible(
         find.text('המשך'),

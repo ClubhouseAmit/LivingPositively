@@ -1,12 +1,11 @@
 import 'package:flutter/material.dart';
-import 'package:mazilon/util/LP_extended_state.dart';
-import 'package:provider/provider.dart';
-import 'package:url_launcher/url_launcher.dart';
-
-import 'package:mazilon/util/styles.dart';
-import 'package:mazilon/util/Form/formPagePhoneModel.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
+import 'package:mazilon/util/Form/formPagePhoneModel.dart';
+import 'package:mazilon/util/LP_extended_state.dart';
+import 'package:mazilon/util/Phone/phoneTextAndIcon.dart';
+import 'package:mazilon/util/styles.dart';
 import 'package:mazilon/util/userInformation.dart';
+import 'package:provider/provider.dart';
 
 class PhonePageList extends StatefulWidget {
   final PhonePageData phonePageData;
@@ -17,22 +16,321 @@ class PhonePageList extends StatefulWidget {
 
 class _PhonePageListState extends LPExtendedState<PhonePageList> {
   int editingIndex = -1;
-  List<TextEditingController> nameControllers = [];
-  List<TextEditingController> numberControllers = [];
+  final Map<int, GlobalKey<FormState>> _formKeys = {};
+  final GlobalKey<FormState> _draftFormKey = GlobalKey<FormState>();
+  final List<TextEditingController> nameControllers = [];
+  final List<TextEditingController> numberControllers = [];
+  TextEditingController? _draftNameController;
+  TextEditingController? _draftNumberController;
 
   @override
   void initState() {
     super.initState();
     final phonePageData = Provider.of<PhonePageData>(context, listen: false);
-    // Initialize the controllers with the existing phone names and numbers
-    for (int i = 0; i < phonePageData.savedPhoneNames.length; i++) {
+    _syncControllers(phonePageData);
+  }
+
+  @override
+  void dispose() {
+    for (final controller in nameControllers) {
+      controller.dispose();
+    }
+    for (final controller in numberControllers) {
+      controller.dispose();
+    }
+    _draftNameController?.dispose();
+    _draftNumberController?.dispose();
+    super.dispose();
+  }
+
+  int _contactCount(PhonePageData phonePageData) {
+    return phonePageData.savedPhoneNames.length <
+            phonePageData.savedPhoneNumbers.length
+        ? phonePageData.savedPhoneNames.length
+        : phonePageData.savedPhoneNumbers.length;
+  }
+
+  void _syncControllers(PhonePageData phonePageData) {
+    final count = _contactCount(phonePageData);
+    while (nameControllers.length < count) {
+      final index = nameControllers.length;
       nameControllers.add(
-        TextEditingController(text: phonePageData.savedPhoneNames[i]),
+        TextEditingController(text: phonePageData.savedPhoneNames[index]),
       );
       numberControllers.add(
-        TextEditingController(text: phonePageData.savedPhoneNumbers[i]),
+        TextEditingController(text: phonePageData.savedPhoneNumbers[index]),
       );
     }
+    for (var index = 0; index < count; index++) {
+      if (index == editingIndex) {
+        continue;
+      }
+      if (nameControllers[index].text != phonePageData.savedPhoneNames[index]) {
+        nameControllers[index].text = phonePageData.savedPhoneNames[index];
+      }
+      if (numberControllers[index].text !=
+          phonePageData.savedPhoneNumbers[index]) {
+        numberControllers[index].text = phonePageData.savedPhoneNumbers[index];
+      }
+    }
+    while (nameControllers.length > count) {
+      nameControllers.removeLast().dispose();
+      numberControllers.removeLast().dispose();
+    }
+    _formKeys.removeWhere((index, _) => index >= count);
+    if (editingIndex >= count) {
+      editingIndex = -1;
+    }
+  }
+
+  String? _validateName(String? value) {
+    if ((value ?? '').trim().isEmpty) {
+      return appLocale.contactNameRequiredError;
+    }
+    return null;
+  }
+
+  String? _validateNumber(String? value) {
+    final trimmed = (value ?? '').trim();
+    if (trimmed.isEmpty) {
+      return appLocale.contactPhoneRequiredError;
+    }
+    final normalized = trimmed.replaceAll(RegExp(r'[\s().-]'), '');
+    if (!RegExp(r'^\+?\d{2,}$').hasMatch(normalized)) {
+      return appLocale.contactPhoneInvalidError;
+    }
+    return null;
+  }
+
+  void _startDraft() {
+    if (_draftNameController != null || _draftNumberController != null) {
+      return;
+    }
+    setState(() {
+      editingIndex = -1;
+      _draftNameController = TextEditingController();
+      _draftNumberController = TextEditingController();
+    });
+  }
+
+  void _cancelDraft() {
+    setState(() {
+      _draftNameController?.dispose();
+      _draftNumberController?.dispose();
+      _draftNameController = null;
+      _draftNumberController = null;
+    });
+  }
+
+  void _cancelExistingEdit(PhonePageData phonePageData, int index) {
+    setState(() {
+      if (index < _contactCount(phonePageData)) {
+        nameControllers[index].text = phonePageData.savedPhoneNames[index];
+        numberControllers[index].text = phonePageData.savedPhoneNumbers[index];
+      }
+      editingIndex = -1;
+    });
+  }
+
+  void _saveDraft(PhonePageData phonePageData) {
+    if (!_draftFormKey.currentState!.validate()) {
+      return;
+    }
+    phonePageData.addItem(
+      _draftNameController!.text,
+      _draftNumberController!.text,
+    );
+    _cancelDraft();
+  }
+
+  void _saveExisting(PhonePageData phonePageData, int index) {
+    if (!_formKeys[index]!.currentState!.validate()) {
+      return;
+    }
+    phonePageData.replaceItem(
+      index,
+      nameControllers[index].text,
+      numberControllers[index].text,
+    );
+    setState(() {
+      editingIndex = -1;
+    });
+  }
+
+  Future<void> _confirmDelete(PhonePageData phonePageData, int index) async {
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (dialogContext) => AlertDialog(
+        title: Text(appLocale.confirmDeleteContactTitle),
+        content: Text(appLocale.confirmDeleteContactMessage),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(dialogContext).pop(false),
+            child: Text(
+              appLocale.closeButton(
+                Provider.of<UserInformation>(context, listen: false).gender,
+              ),
+            ),
+          ),
+          TextButton(
+            onPressed: () => Navigator.of(dialogContext).pop(true),
+            child: Text(
+              appLocale.deleteButton(
+                Provider.of<UserInformation>(context, listen: false).gender,
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+    if (confirmed != true) {
+      return;
+    }
+    if (!mounted) {
+      return;
+    }
+    phonePageData.removeItemAt(index);
+    setState(() {
+      editingIndex = -1;
+      _formKeys.clear();
+      if (index < nameControllers.length) {
+        nameControllers.removeAt(index).dispose();
+        numberControllers.removeAt(index).dispose();
+      }
+    });
+  }
+
+  Widget _callButton(String name, String number) {
+    return Tooltip(
+      message: appLocale.callContactTooltip(name),
+      child: Semantics(
+        button: true,
+        child: SizedBox(
+          width: 48,
+          height: 48,
+          child: InkWell(
+            onTap: () => launchWithFeedback(
+              context,
+              number,
+              isCallFailure: true,
+              launch: () => dialPhone(number),
+            ),
+            child: Center(
+              child: CircleAvatar(
+                radius: returnSizedBox(context, 20),
+                backgroundColor: primaryPurple,
+                foregroundColor: appWhite,
+                child: Icon(Icons.phone, size: returnSizedBox(context, 24)),
+              ),
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _displayRow(PhonePageData phonePageData, int index, String gender) {
+    final name = phonePageData.savedPhoneNames[index];
+    final number = phonePageData.savedPhoneNumbers[index];
+    return Padding(
+      padding: EdgeInsets.all(returnSizedBox(context, 8)),
+      child: Row(
+        children: [
+          _callButton(name, number),
+          const SizedBox(width: 10),
+          Expanded(
+            child: Card(
+              child: Padding(
+                padding: EdgeInsets.all(returnSizedBox(context, 10)),
+                child: myText(
+                  name,
+                  TextStyle(fontWeight: FontWeight.normal, fontSize: 14.sp),
+                  null,
+                ),
+              ),
+            ),
+          ),
+          IconButton(
+            tooltip: appLocale.contactEditTooltip,
+            icon: Icon(Icons.edit, size: returnSizedBox(context, 32)),
+            onPressed: () {
+              setState(() {
+                editingIndex = index;
+              });
+            },
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _editingRow({
+    required GlobalKey<FormState> formKey,
+    required TextEditingController nameController,
+    required TextEditingController numberController,
+    required String gender,
+    required VoidCallback onSave,
+    required VoidCallback onCancel,
+    VoidCallback? onDelete,
+  }) {
+    return Padding(
+      padding: EdgeInsets.all(returnSizedBox(context, 8)),
+      child: Form(
+        key: formKey,
+        child: Column(
+          children: [
+            Row(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Expanded(
+                  child: TextFormField(
+                    controller: nameController,
+                    decoration: InputDecoration(
+                      border: const OutlineInputBorder(),
+                      labelText: appLocale.phonesPageName(gender),
+                    ),
+                    validator: _validateName,
+                  ),
+                ),
+                const SizedBox(width: 8),
+                Expanded(
+                  child: TextFormField(
+                    controller: numberController,
+                    keyboardType: TextInputType.phone,
+                    decoration: InputDecoration(
+                      border: const OutlineInputBorder(),
+                      labelText: appLocale.phonesPagePhone(gender),
+                    ),
+                    validator: _validateNumber,
+                  ),
+                ),
+              ],
+            ),
+            Row(
+              mainAxisAlignment: MainAxisAlignment.end,
+              children: [
+                IconButton(
+                  tooltip: appLocale.contactSaveTooltip,
+                  icon: Icon(Icons.check, size: returnSizedBox(context, 32)),
+                  onPressed: onSave,
+                ),
+                IconButton(
+                  tooltip: appLocale.contactCancelTooltip,
+                  icon: Icon(Icons.close, size: returnSizedBox(context, 32)),
+                  onPressed: onCancel,
+                ),
+                if (onDelete != null)
+                  IconButton(
+                    tooltip: appLocale.contactDeleteTooltip,
+                    icon: Icon(Icons.delete, size: returnSizedBox(context, 32)),
+                    onPressed: onDelete,
+                  ),
+              ],
+            ),
+          ],
+        ),
+      ),
+    );
   }
 
   @override
@@ -40,158 +338,39 @@ class _PhonePageListState extends LPExtendedState<PhonePageList> {
     final userInfoProvider = Provider.of<UserInformation>(context);
     final phonePageData = Provider.of<PhonePageData>(context);
     final gender = userInfoProvider.gender;
+    _syncControllers(phonePageData);
+    final contactCount = _contactCount(phonePageData);
     return Column(
       children: [
-        ...phonePageData.savedPhoneNames.asMap().entries.map((entry) {
-          int index = entry.key;
-          bool isEditing = index == editingIndex;
-          return Padding(
-            padding: EdgeInsets.all(returnSizedBox(context, 8)),
-            child: Row(
-              children: [
-                if (isEditing)
-                  myText(
-                    appLocale.phonesPageName(gender),
-                    TextStyle(fontWeight: FontWeight.bold, fontSize: 14.sp),
-                    null,
-                  ),
-                if (isEditing)
-                  Expanded(
-                    child: TextField(
-                      style: TextStyle(
-                        fontWeight: FontWeight.normal,
-                        fontSize: 14.sp,
-                      ),
-                      controller: nameControllers[index],
-                    ),
-                  ),
-                if (!isEditing)
-                  InkWell(
-                    onTap: () async {
-                      String url =
-                          'tel:${phonePageData.savedPhoneNumbers[index]}';
-                      if (await canLaunchUrl(Uri.parse(url))) {
-                        await launchUrl(Uri.parse(url));
-                      } else {
-                        throw 'Could not launch $url';
-                      }
-                    },
-                    //phone icon button:
-                    child: CircleAvatar(
-                      radius: returnSizedBox(context, 20),
-                      backgroundColor: primaryPurple,
-                      foregroundColor: Colors.white,
-                      child: Icon(
-                        Icons.phone,
-                        size: returnSizedBox(context, 30),
-                      ),
-                    ),
-                  ),
-                const SizedBox(width: 10),
-                if (isEditing)
-                  myText(
-                    appLocale.phonesPagePhone(gender),
-                    TextStyle(fontWeight: FontWeight.bold, fontSize: 12.sp),
-                    null,
-                  ),
-                Expanded(
-                  child: isEditing
-                      ? TextField(
-                          style: TextStyle(
-                            fontWeight: FontWeight.normal,
-                            fontSize: 12.sp,
-                          ),
-                          controller: numberControllers[index],
-                        )
-                      : InkWell(
-                          onTap: () {
-                            // Enter editing mode
-                            editingIndex = index;
-                            phonePageData.update();
-                          },
-                          child: Card(
-                            child: Padding(
-                              padding: EdgeInsets.all(
-                                returnSizedBox(context, 10),
-                              ),
-                              child: myText(
-                                phonePageData.savedPhoneNames[index],
-                                TextStyle(
-                                  fontWeight: FontWeight.normal,
-                                  fontSize: 14.sp,
-                                ),
-                                null,
-                              ),
-                            ),
-                          ),
-                        ),
-                ),
-                const SizedBox(width: 10),
-                //FINISH EDITING BUTTON:(second button from the left)
-                Offstage(
-                  offstage: !isEditing,
-                  child: IconButton(
-                    icon: Icon(Icons.check, size: returnSizedBox(context, 40)),
-                    onPressed: () {
-                      // Update the item with the new data from the text fields
-                      String newPhoneName = nameControllers[index].text;
-                      String newPhoneNumber = numberControllers[index].text;
-                      //save it in the phones lists (for names and numbers) in phonePageData:
-                      phonePageData.replaceItem(
-                        index,
-                        newPhoneName,
-                        newPhoneNumber,
-                      );
-                      editingIndex = -1;
-                      //call the update method to update the UI and commit changes:
-                      phonePageData.update();
-                    },
-                  ),
-                ),
-                //buttons only shown if the user chose to start editing:
-                if (isEditing)
-                  //DELETE BUTTON:(mostleft button)
-                  IconButton(
-                    icon: Icon(Icons.delete, size: returnSizedBox(context, 40)),
-                    onPressed: () {
-                      // Remove the item from phonePageData
-                      phonePageData.removeItemAt(index);
-
-                      // Remove the corresponding TextEditingController from the lists
-                      nameControllers.removeAt(index);
-                      numberControllers.removeAt(index);
-
-                      if (editingIndex == index) {
-                        editingIndex = -1;
-                      }
-                      phonePageData.update();
-                    },
-                  ),
-              ],
-            ),
-          );
+        ...List.generate(contactCount, (index) {
+          if (index == editingIndex) {
+            return _editingRow(
+              formKey: _formKeys.putIfAbsent(
+                index,
+                () => GlobalKey<FormState>(),
+              ),
+              nameController: nameControllers[index],
+              numberController: numberControllers[index],
+              gender: gender,
+              onSave: () => _saveExisting(phonePageData, index),
+              onCancel: () => _cancelExistingEdit(phonePageData, index),
+              onDelete: () => _confirmDelete(phonePageData, index),
+            );
+          }
+          return _displayRow(phonePageData, index, gender);
         }),
-        const SizedBox(width: 10), // Add some space between the buttons
-        //add contact manually button:
+        if (_draftNameController != null && _draftNumberController != null)
+          _editingRow(
+            formKey: _draftFormKey,
+            nameController: _draftNameController!,
+            numberController: _draftNumberController!,
+            gender: gender,
+            onSave: () => _saveDraft(phonePageData),
+            onCancel: _cancelDraft,
+          ),
+        const SizedBox(width: 10),
         TextButton(
-          onPressed: () {
-            setState(() {
-              // Create new controllers with empty text
-              var nameController = TextEditingController(text: '');
-              var numberController = TextEditingController(text: '');
-
-              // Add the controllers to the lists
-              nameControllers.add(nameController);
-              numberControllers.add(numberController);
-
-              // Add a new item to phonePageData
-              phonePageData.savedPhoneNames.add('');
-              phonePageData.savedPhoneNumbers.add('');
-
-              editingIndex = phonePageData.savedPhoneNames.length - 1;
-              phonePageData.update();
-            });
-          },
+          onPressed: _startDraft,
           style: TextButton.styleFrom(
             backgroundColor: Colors.white,
             shape: RoundedRectangleBorder(

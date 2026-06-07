@@ -3097,4 +3097,97 @@ class AppLocalizationsHe extends AppLocalizations {
 
   @override
   String get confirmDeleteEntryMessage => 'אי אפשר לבטל את הפעולה הזו.';
+
+  @override
+  String get nameRequiredError => 'נא להזין שם.';
+
+  @override
+  String get contactNameRequiredError => 'נא להזין שם איש קשר.';
+
+  @override
+  String get contactPhoneRequiredError => 'נא להזין מספר טלפון.';
+
+  @override
+  String get contactPhoneInvalidError => 'נא להזין מספר שניתן לחייג אליו.';
+
+  @override
+  String get contactEditTooltip => 'עריכת איש קשר';
+
+  @override
+  String get contactSaveTooltip => 'שמירת איש קשר';
+
+  @override
+  String get contactCancelTooltip => 'ביטול עריכה';
+
+  @override
+  String get contactDeleteTooltip => 'מחיקת איש קשר';
+
+  @override
+  String get confirmDeleteContactTitle => 'למחוק את איש הקשר?';
+
+  @override
+  String get confirmDeleteContactMessage =>
+      'הפרטים יוסרו מרשימת אנשי הקשר לשעת חירום.';
+
+  @override
+  String get quoteDismissedMessage => 'הציטוט נסגר.';
+
+  @override
+  String get quoteUndoAction => 'ביטול';
+
+  @override
+  String get quotesUnavailableMessage => 'אין ציטוט זמין כרגע.';
+
+  @override
+  String get wellnessTranscriptTitle => 'תמלול';
+
+  @override
+  String get wellnessVideoUnavailableMessage => 'הסרטון הזה אינו זמין כרגע.';
+
+  @override
+  String get wellnessVideoDataUnavailableMessage =>
+      'לא ניתן להציג את הסרטונים כרגע.';
+
+  @override
+  String get disclaimerSummary =>
+      'קראו את העיקר, ולאחר מכן אשרו אם תנאי השימוש מתאימים לכם.';
+
+  @override
+  String get disclaimerPurposeTitle => 'מטרת האפליקציה';
+
+  @override
+  String get disclaimerInformationTitle => 'מידע ופרטיות';
+
+  @override
+  String get disclaimerConsentTitle => 'הסכמה';
+
+  @override
+  String get disclaimerConsentMessage =>
+      'אם תנאי השימוש מקובלים עליך, יש ללחוץ על אישור כדי להמשיך.';
+
+  @override
+  String get phoneContactDisclaimerSummary =>
+      'אנשי הקשר נשמרים לשימושכם האישי.';
+
+  @override
+  String get phoneContactDisclaimerMoreTooltip => 'מידע על שמירת אנשי קשר';
+
+  @override
+  String get feelGoodDeleteTitle => 'למחוק את התמונה?';
+
+  @override
+  String get feelGoodDeleteMessage => 'התמונה תוסר מאזור להרגיש טוב.';
+
+  @override
+  String get feelGoodBackTooltip => 'חזרה לתמונות';
+
+  @override
+  String get feelGoodDeleteTooltip => 'מחיקת תמונה';
+
+  @override
+  String get confirmDeletePlanAnswerTitle => 'למחוק את התשובה?';
+
+  @override
+  String get confirmDeletePlanAnswerMessage =>
+      'התשובה תוסר מהתוכנית האישית שלך.';
 }

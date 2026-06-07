@@ -537,6 +537,50 @@ void main() {
     },
   );
 
+  testWidgets('PhonePage contact disclaimer info icon is labelled', (
+    tester,
+  ) async {
+    await GetIt.instance.reset();
+    GetIt.instance.registerSingleton<PersistentMemoryService>(
+      FakePersistentMemoryService(),
+    );
+    addTearDown(() async {
+      await GetIt.instance.reset();
+    });
+
+    final userInfo = UserInformation(
+      gender: 'male',
+      location: 'US',
+      service: FakePersistentMemoryService(),
+    );
+    final phonePageData = PhonePageData(
+      key: 'phonePageData',
+      header: 'header',
+      subTitle: 'subTitle',
+      midTitle: 'midTitle',
+      phoneNameTitle: 'phoneNameTitle',
+      phoneNumberTitle: 'phoneNumberTitle',
+      phoneNames: [],
+      phoneNumbers: [],
+      savedPhoneNames: [],
+      savedPhoneNumbers: [],
+      phoneDescription: [],
+    );
+
+    await tester.pumpWidget(
+      buildPhonePageTestApp(
+        userInformation: userInfo,
+        appInformation: AppInformation(),
+        phonePageData: phonePageData,
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    expect(find.byTooltip('Contact storage information'), findsOneWidget);
+    final infoIcon = tester.widget<Icon>(find.byIcon(Icons.info_outline));
+    expect(infoIcon.semanticLabel, 'Contact storage information');
+  });
+
   testWidgets('PhonePage opens the existing contact editor from contacts', (
     tester,
   ) async {

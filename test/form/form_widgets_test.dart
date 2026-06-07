@@ -55,9 +55,10 @@ void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
 
   late UserInformation userInformation;
+  late TestServiceLocators services;
 
   setUp(() {
-    registerTestServices(locale: 'en');
+    services = registerTestServices(locale: 'en');
     userInformation = UserInformation();
     userInformation.gender = 'other';
     userInformation.localeName = 'en';
@@ -109,9 +110,49 @@ void main() {
       expect(find.byType(TextButton), findsWidgets);
     });
 
-    testWidgets('manual-add TextButton appends an empty phone row', (
-      tester,
-    ) async {
+    testWidgets(
+      'manual-add TextButton opens a draft without persisting blank',
+      (tester) async {
+        final phoneData = _makePhonePageData();
+
+        await pumpWithProviders(
+          tester,
+          ChangeNotifierProvider<PhonePageData>.value(
+            value: phoneData,
+            child: Scaffold(
+              body: SingleChildScrollView(
+                child: PhonePageList(phonePageData: phoneData),
+              ),
+            ),
+          ),
+          userInformation: userInformation,
+          surfaceSize: const Size(1024, 2000),
+        );
+        await _settle(tester);
+
+        // Wait for the loadItemsFromPrefs Future scheduled in the
+        // PhonePageData constructor to finish.
+        await tester.pump(const Duration(milliseconds: 50));
+        drainOverflowExceptions(tester);
+
+        final beforeNames = List<String>.from(phoneData.savedPhoneNames);
+        final manualAdd = find.byType(TextButton).last;
+        await tester.tap(manualAdd, warnIfMissed: false);
+        await tester.pump();
+        drainOverflowExceptions(tester);
+
+        expect(phoneData.savedPhoneNames.length, beforeNames.length);
+        expect(find.byType(TextFormField), findsNWidgets(2));
+
+        await tester.tap(find.byIcon(Icons.check), warnIfMissed: false);
+        await tester.pump();
+        expect(phoneData.savedPhoneNames.length, beforeNames.length);
+        expect(find.text('Please enter a contact name.'), findsOneWidget);
+        expect(find.text('Please enter a phone number.'), findsOneWidget);
+      },
+    );
+
+    testWidgets('valid manual draft saves as a contact', (tester) async {
       final phoneData = _makePhonePageData();
 
       await pumpWithProviders(
@@ -128,21 +169,160 @@ void main() {
         surfaceSize: const Size(1024, 2000),
       );
       await _settle(tester);
-
-      // Wait for the loadItemsFromPrefs Future scheduled in the
-      // PhonePageData constructor to finish.
       await tester.pump(const Duration(milliseconds: 50));
       drainOverflowExceptions(tester);
 
-      final beforeNames = List<String>.from(phoneData.savedPhoneNames);
-      final manualAdd = find.byType(TextButton).last;
-      await tester.tap(manualAdd, warnIfMissed: false);
+      await tester.tap(find.byType(TextButton).last, warnIfMissed: false);
+      await tester.pump();
+      await tester.enterText(find.byType(TextFormField).at(0), 'Alice');
+      await tester.enterText(find.byType(TextFormField).at(1), '+972501234567');
+      await tester.tap(find.byIcon(Icons.check), warnIfMissed: false);
       await tester.pump();
       drainOverflowExceptions(tester);
 
-      // A new (empty) entry should be appended.
-      expect(phoneData.savedPhoneNames.length, beforeNames.length + 1);
-      expect(phoneData.savedPhoneNames.last, '');
+      expect(phoneData.savedPhoneNames, contains('Alice'));
+      expect(phoneData.savedPhoneNumbers, contains('+972501234567'));
+    });
+
+    testWidgets('editing an existing contact replaces it', (tester) async {
+      await services.memory.setItem(
+        'phonePageSavedPhoneNames',
+        PersistentMemoryType.StringList,
+        <String>['Alice'],
+      );
+      await services.memory.setItem(
+        'phonePageSavedPhoneNumbers',
+        PersistentMemoryType.StringList,
+        <String>['111'],
+      );
+      final phoneData = _makePhonePageData(
+        names: const <String>['Alice'],
+        numbers: const <String>['111'],
+      );
+
+      await pumpWithProviders(
+        tester,
+        ChangeNotifierProvider<PhonePageData>.value(
+          value: phoneData,
+          child: Scaffold(
+            body: SingleChildScrollView(
+              child: PhonePageList(phonePageData: phoneData),
+            ),
+          ),
+        ),
+        userInformation: userInformation,
+        surfaceSize: const Size(1024, 2000),
+      );
+      await _settle(tester);
+
+      await tester.tap(find.byIcon(Icons.edit), warnIfMissed: false);
+      await tester.pump();
+      await tester.enterText(find.byType(TextFormField).at(0), 'Alice updated');
+      await tester.enterText(find.byType(TextFormField).at(1), '222');
+      await tester.tap(find.byIcon(Icons.check), warnIfMissed: false);
+      await tester.pump();
+      drainOverflowExceptions(tester);
+
+      expect(phoneData.savedPhoneNames, ['Alice updated']);
+      expect(phoneData.savedPhoneNumbers, ['222']);
+    });
+
+    testWidgets('canceling an existing edit restores provider values', (
+      tester,
+    ) async {
+      await services.memory.setItem(
+        'phonePageSavedPhoneNames',
+        PersistentMemoryType.StringList,
+        <String>['Alice'],
+      );
+      await services.memory.setItem(
+        'phonePageSavedPhoneNumbers',
+        PersistentMemoryType.StringList,
+        <String>['111'],
+      );
+      final phoneData = _makePhonePageData(
+        names: const <String>['Alice'],
+        numbers: const <String>['111'],
+      );
+
+      await pumpWithProviders(
+        tester,
+        ChangeNotifierProvider<PhonePageData>.value(
+          value: phoneData,
+          child: Scaffold(
+            body: SingleChildScrollView(
+              child: PhonePageList(phonePageData: phoneData),
+            ),
+          ),
+        ),
+        userInformation: userInformation,
+        surfaceSize: const Size(1024, 2000),
+      );
+      await _settle(tester);
+
+      await tester.tap(find.byIcon(Icons.edit), warnIfMissed: false);
+      await tester.pump();
+      await tester.enterText(find.byType(TextFormField).first, 'Changed');
+      await tester.tap(find.byIcon(Icons.close), warnIfMissed: false);
+      await tester.pump();
+      drainOverflowExceptions(tester);
+
+      expect(phoneData.savedPhoneNames, ['Alice']);
+      expect(phoneData.savedPhoneNumbers, ['111']);
+      expect(find.text('Alice'), findsOneWidget);
+      expect(find.text('Changed'), findsNothing);
+    });
+
+    testWidgets('delete existing contact requires confirmation', (
+      tester,
+    ) async {
+      await services.memory.setItem(
+        'phonePageSavedPhoneNames',
+        PersistentMemoryType.StringList,
+        <String>['Alice'],
+      );
+      await services.memory.setItem(
+        'phonePageSavedPhoneNumbers',
+        PersistentMemoryType.StringList,
+        <String>['111'],
+      );
+      final phoneData = _makePhonePageData(
+        names: const <String>['Alice'],
+        numbers: const <String>['111'],
+      );
+
+      await pumpWithProviders(
+        tester,
+        ChangeNotifierProvider<PhonePageData>.value(
+          value: phoneData,
+          child: Scaffold(
+            body: SingleChildScrollView(
+              child: PhonePageList(phonePageData: phoneData),
+            ),
+          ),
+        ),
+        userInformation: userInformation,
+        surfaceSize: const Size(1024, 2000),
+      );
+      await _settle(tester);
+
+      await tester.tap(find.byIcon(Icons.edit), warnIfMissed: false);
+      await tester.pump();
+      await tester.tap(find.byIcon(Icons.delete), warnIfMissed: false);
+      await tester.pumpAndSettle();
+
+      expect(find.text('Delete this contact?'), findsOneWidget);
+      await tester.tap(find.text('Cancel'));
+      await tester.pumpAndSettle();
+      expect(phoneData.savedPhoneNames, ['Alice']);
+
+      await tester.tap(find.byIcon(Icons.delete), warnIfMissed: false);
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('Delete'));
+      await tester.pumpAndSettle();
+
+      expect(phoneData.savedPhoneNames, isEmpty);
+      expect(phoneData.savedPhoneNumbers, isEmpty);
     });
 
     testWidgets('PhonePageData seeded with two entries renders Card widgets', (
@@ -213,6 +393,9 @@ void main() {
         expect(find.byType(PhonePageForm), findsOneWidget);
         // Embedded PhonePageList is built via Consumer<PhonePageData>.
         expect(find.byType(PhonePageList), findsOneWidget);
+        expect(find.byTooltip('Contact storage information'), findsOneWidget);
+        final infoIcon = tester.widget<Icon>(find.byIcon(Icons.info_outline));
+        expect(infoIcon.semanticLabel, 'Contact storage information');
         // Next/import buttons render — exact tap is platform-channel
         // sensitive (FlutterContacts), so we only assert presence here.
         expect(find.byType(TextButton), findsWidgets);

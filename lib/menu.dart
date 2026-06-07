@@ -165,6 +165,7 @@ class _MenuState extends LPExtendedState<Menu> {
       'videoId': <String>[],
       'videoHeadline': <String>[],
       'videoDescription': <String>[],
+      'videoTranscript': <String>[],
       'videoLocale': <String>[],
     };
 
@@ -179,6 +180,11 @@ class _MenuState extends LPExtendedState<Menu> {
         localizedVideos['videoHeadline']?.add(videos["videoHeadline"]![i]);
         localizedVideos['videoDescription']?.add(
           videos["videoDescription"]![i],
+        );
+        localizedVideos['videoTranscript']?.add(
+          i < (videos["videoTranscript"]?.length ?? 0)
+              ? videos["videoTranscript"]![i]
+              : '',
         );
         localizedVideos['videoLocale']?.add(videos["videoLocale"]![i]);
       }

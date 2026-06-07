@@ -8,12 +8,12 @@ void main() {
   group('getThanksSuggestionsList', () {
     test('returns list of suggestions from collection', () async {
       final fake = FakeFirebaseFirestore();
-      await fake
-          .collection('Thanks-suggestions')
-          .add({'suggestions': 'Be grateful'});
-      await fake
-          .collection('Thanks-suggestions')
-          .add({'suggestions': 'Smile more'});
+      await fake.collection('Thanks-suggestions').add({
+        'suggestions': 'Be grateful',
+      });
+      await fake.collection('Thanks-suggestions').add({
+        'suggestions': 'Smile more',
+      });
 
       final result = await getThanksSuggestionsList(firestore: fake);
 
@@ -61,10 +61,7 @@ void main() {
   group('getAllTraitsData', () {
     test('returns correct map structure', () async {
       final fake = FakeFirebaseFirestore();
-      await fake
-          .collection('homePage-titles')
-          .doc('zzzzzzzzzzzzzzzzzzzx')
-          .set({
+      await fake.collection('homePage-titles').doc('zzzzzzzzzzzzzzzzzzzx').set({
         'mainTitles': 'Traits',
         'secondaryTitle': 'Sub',
         'secondaryTitleMale': 'SubM',
@@ -83,10 +80,7 @@ void main() {
   group('getAllWarningData', () {
     test('returns correct map structure', () async {
       final fake = FakeFirebaseFirestore();
-      await fake
-          .collection('homePage-titles')
-          .doc('zzzzzzzzzzzzzzzzzzzw')
-          .set({
+      await fake.collection('homePage-titles').doc('zzzzzzzzzzzzzzzzzzzw').set({
         'mainTitles': 'Warning',
         'secondaryTitle': 'WarnSub',
         'secondaryTitleMale': 'WarnSubM',
@@ -128,10 +122,10 @@ void main() {
   group('updateShareTexts', () {
     test('returns emergency and regular texts', () async {
       final fake = FakeFirebaseFirestore();
-      await fake
-          .collection('ShareTexts')
-          .doc('zzzzzzzzzzzzzzzzzzzy')
-          .set({'emergency': 'HELP', 'regular': 'Hi there'});
+      await fake.collection('ShareTexts').doc('zzzzzzzzzzzzzzzzzzzy').set({
+        'emergency': 'HELP',
+        'regular': 'Hi there',
+      });
 
       final result = await updateShareTexts(firestore: fake);
 
@@ -143,12 +137,14 @@ void main() {
   group('updateSharePDFtexts', () {
     test('returns map of fieldName -> content', () async {
       final fake = FakeFirebaseFirestore();
-      await fake
-          .collection('SharePDFtexts')
-          .add({'fieldName': 'title', 'content': 'My Title'});
-      await fake
-          .collection('SharePDFtexts')
-          .add({'fieldName': 'body', 'content': 'My Body'});
+      await fake.collection('SharePDFtexts').add({
+        'fieldName': 'title',
+        'content': 'My Title',
+      });
+      await fake.collection('SharePDFtexts').add({
+        'fieldName': 'body',
+        'content': 'My Body',
+      });
 
       final result = await updateSharePDFtexts(firestore: fake);
 
@@ -170,6 +166,7 @@ void main() {
         'videoId': 'abc123',
         'videoHeadline': 'Breathe',
         'videoDescription': 'A breathing exercise',
+        'videoTranscript': 'Inhale. Exhale.',
         'videoLocal': 'en',
       });
 
@@ -178,13 +175,29 @@ void main() {
       expect(result['videoId'], equals(['abc123']));
       expect(result['videoHeadline'], equals(['Breathe']));
       expect(result['videoDescription'], equals(['A breathing exercise']));
+      expect(result['videoTranscript'], equals(['Inhale. Exhale.']));
       expect(result['videoLocale'], equals(['en']));
+    });
+
+    test('returns empty transcript when optional field is missing', () async {
+      final fake = FakeFirebaseFirestore();
+      await fake.collection('Wellness-Videos').add({
+        'videoId': 'abc123',
+        'videoHeadline': 'Breathe',
+        'videoDescription': 'A breathing exercise',
+        'videoLocal': 'en',
+      });
+
+      final result = await getWellnessVideos(firestore: fake);
+
+      expect(result['videoTranscript'], equals(['']));
     });
 
     test('returns empty lists when collection is empty', () async {
       final fake = FakeFirebaseFirestore();
       final result = await getWellnessVideos(firestore: fake);
       expect(result['videoId'], isEmpty);
+      expect(result['videoTranscript'], isEmpty);
     });
   });
 
@@ -250,15 +263,15 @@ void main() {
           .collection('feelGoodPageTitles')
           .doc('zzzzzzzzzzzzzzzzzzzy')
           .set({
-        'header': 'Feel Good',
-        'subHeader': 'Sub',
-        'alertButtonTitle': 'Alert',
-        'addImgButtonText': 'Add Image',
-        'cameraButtonText': 'Camera',
-        'cancelDeleteButtonText': 'Cancel',
-        'deleteButtonText': 'Delete',
-        'galleryButtonText': 'Gallery',
-      });
+            'header': 'Feel Good',
+            'subHeader': 'Sub',
+            'alertButtonTitle': 'Alert',
+            'addImgButtonText': 'Add Image',
+            'cameraButtonText': 'Camera',
+            'cancelDeleteButtonText': 'Cancel',
+            'deleteButtonText': 'Delete',
+            'galleryButtonText': 'Gallery',
+          });
 
       final result = await getFeelGoodPageTitles(firestore: fake);
 
@@ -272,10 +285,7 @@ void main() {
   group('updatePhonePageTitles', () {
     test('throws when collection is empty', () async {
       final fake = FakeFirebaseFirestore();
-      expect(
-        () => updatePhonePageTitles(firestore: fake),
-        throwsException,
-      );
+      expect(() => updatePhonePageTitles(firestore: fake), throwsException);
     });
 
     test('returns structured map when 4 docs present', () async {

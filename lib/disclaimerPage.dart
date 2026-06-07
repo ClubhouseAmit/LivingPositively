@@ -8,7 +8,6 @@ import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:provider/provider.dart';
 import 'package:mazilon/util/styles.dart';
 import 'package:mazilon/util/userInformation.dart';
-import 'package:mazilon/l10n/app_localizations.dart';
 import 'package:mazilon/util/disclaimerLanguageSelect.dart';
 
 // the disclaimer page widget,
@@ -35,11 +34,32 @@ void updateDisclaimers(userInfo) async {
   ); //update the disclaimer signed in the user information provider
 }
 
-String _formatDisclaimerText(AppLocalizations appLocale) {
-  return '${appLocale.disclaimerText}\n\n${appLocale.informationCollectionDisclaimer}';
-}
-
 class _DisclaimerPageState extends LPExtendedState<DisclaimerPage> {
+  Widget _section({required String title, required String body}) {
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(20, 0, 20, 18),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          myAutoSizedText(
+            title,
+            TextStyle(fontSize: 18.sp, fontWeight: FontWeight.bold),
+            TextAlign.start,
+            30,
+            2,
+          ),
+          const SizedBox(height: 8),
+          myAutoSizedText(
+            body,
+            TextStyle(fontSize: 16.sp, fontWeight: FontWeight.normal),
+            TextAlign.start,
+            40,
+          ),
+        ],
+      ),
+    );
+  }
+
   // build the disclaimer page widget
   @override
   Widget build(BuildContext context) {
@@ -58,55 +78,51 @@ class _DisclaimerPageState extends LPExtendedState<DisclaimerPage> {
         body: SafeArea(
           child: SingleChildScrollView(
             child: Center(
-              child: Column(
-                children: [
-                  LanguageDropDown(changeLocale: widget.changeLocale),
-                  Padding(
-                    padding: const EdgeInsets.fromLTRB(20, 0, 20, 10),
-                    child: myAutoSizedText(
-                      _formatDisclaimerText(appLocale),
-                      TextStyle(
-                        fontSize: 16.sp, //text size
-                        fontWeight: FontWeight.normal,
+              child: ConstrainedBox(
+                constraints: const BoxConstraints(maxWidth: 720),
+                child: Column(
+                  children: [
+                    LanguageDropDown(changeLocale: widget.changeLocale),
+                    Padding(
+                      padding: const EdgeInsets.fromLTRB(20, 0, 20, 18),
+                      child: myAutoSizedText(
+                        appLocale.disclaimerSummary,
+                        TextStyle(fontSize: 16.sp, fontWeight: FontWeight.bold),
+                        TextAlign.start,
+                        24,
+                        3,
                       ),
-                      appLocale.textDirection == 'rtl'
-                          ? TextAlign.right
-                          : TextAlign.left,
-                      40,
                     ),
-                  ),
-                  Padding(
-                    padding: const EdgeInsets.fromLTRB(20, 0, 20, 10),
-                    child: myAutoSizedText(
-                      appLocale
-                          .informationCollectionDisclaimer, //disclaimer text from CMS(Saved in appinfo)
-                      TextStyle(
-                        fontSize: 16.sp, //text size
-                        fontWeight: FontWeight.normal,
-                      ),
-                      appLocale.textDirection == 'rtl'
-                          ? TextAlign.right
-                          : TextAlign.left,
-                      40,
+                    _section(
+                      title: appLocale.disclaimerPurposeTitle,
+                      body: appLocale.disclaimerText,
                     ),
-                  ),
-                  // the confirm disclaimer button
-                  ConfirmationButton(
-                    context,
-                    () {
-                      setState(() {
-                        updateDisclaimers(
-                          userInfoProvider,
-                        ); //if button is clicked,
-                        //update the disclaimer signed in the shared preferences (call the updateDisclaimers function)
-                      });
-                    },
-                    //disclaimer next button text from CMS(Saved in appinfo)
-                    appLocale.confirmButton(gender),
-                    myTextStyle.copyWith(fontSize: 20.sp),
-                  ),
-                  SizedBox(height: 20.0),
-                ],
+                    _section(
+                      title: appLocale.disclaimerInformationTitle,
+                      body: appLocale.informationCollectionDisclaimer,
+                    ),
+                    _section(
+                      title: appLocale.disclaimerConsentTitle,
+                      body: appLocale.disclaimerConsentMessage,
+                    ),
+                    // the confirm disclaimer button
+                    ConfirmationButton(
+                      context,
+                      () {
+                        setState(() {
+                          updateDisclaimers(
+                            userInfoProvider,
+                          ); //if button is clicked,
+                          //update the disclaimer signed in the shared preferences (call the updateDisclaimers function)
+                        });
+                      },
+                      //disclaimer next button text from CMS(Saved in appinfo)
+                      appLocale.confirmButton(gender),
+                      myTextStyle.copyWith(fontSize: 20.sp),
+                    ),
+                    SizedBox(height: 20.0),
+                  ],
+                ),
               ),
             ),
           ),

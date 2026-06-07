@@ -3136,4 +3136,99 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get confirmDeleteEntryMessage => 'This cannot be undone.';
+
+  @override
+  String get nameRequiredError => 'Please enter a name.';
+
+  @override
+  String get contactNameRequiredError => 'Please enter a contact name.';
+
+  @override
+  String get contactPhoneRequiredError => 'Please enter a phone number.';
+
+  @override
+  String get contactPhoneInvalidError =>
+      'Please enter a dialable phone number.';
+
+  @override
+  String get contactEditTooltip => 'Edit contact';
+
+  @override
+  String get contactSaveTooltip => 'Save contact';
+
+  @override
+  String get contactCancelTooltip => 'Cancel editing';
+
+  @override
+  String get contactDeleteTooltip => 'Delete contact';
+
+  @override
+  String get confirmDeleteContactTitle => 'Delete this contact?';
+
+  @override
+  String get confirmDeleteContactMessage =>
+      'This removes the contact from your emergency contact list.';
+
+  @override
+  String get quoteDismissedMessage => 'Quote dismissed.';
+
+  @override
+  String get quoteUndoAction => 'Undo';
+
+  @override
+  String get quotesUnavailableMessage => 'No quote is available right now.';
+
+  @override
+  String get wellnessTranscriptTitle => 'Transcript';
+
+  @override
+  String get wellnessVideoUnavailableMessage =>
+      'This video is unavailable right now.';
+
+  @override
+  String get wellnessVideoDataUnavailableMessage =>
+      'Videos cannot be shown right now.';
+
+  @override
+  String get disclaimerSummary =>
+      'Read the key points, then accept if these terms work for you.';
+
+  @override
+  String get disclaimerPurposeTitle => 'App purpose';
+
+  @override
+  String get disclaimerInformationTitle => 'Information and privacy';
+
+  @override
+  String get disclaimerConsentTitle => 'Consent';
+
+  @override
+  String get disclaimerConsentMessage =>
+      'If you accept these terms, press Confirm to continue.';
+
+  @override
+  String get phoneContactDisclaimerSummary =>
+      'Contacts are saved for your personal use.';
+
+  @override
+  String get phoneContactDisclaimerMoreTooltip => 'Contact storage information';
+
+  @override
+  String get feelGoodDeleteTitle => 'Delete this photo?';
+
+  @override
+  String get feelGoodDeleteMessage => 'This removes the photo from Feel Good.';
+
+  @override
+  String get feelGoodBackTooltip => 'Back to photos';
+
+  @override
+  String get feelGoodDeleteTooltip => 'Delete photo';
+
+  @override
+  String get confirmDeletePlanAnswerTitle => 'Delete this answer?';
+
+  @override
+  String get confirmDeletePlanAnswerMessage =>
+      'This removes the answer from your personal plan.';
 }

@@ -2199,6 +2199,180 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'This cannot be undone.'**
   String get confirmDeleteEntryMessage;
+
+  /// No description provided for @nameRequiredError.
+  ///
+  /// In en, this message translates to:
+  /// **'Please enter a name.'**
+  String get nameRequiredError;
+
+  /// No description provided for @contactNameRequiredError.
+  ///
+  /// In en, this message translates to:
+  /// **'Please enter a contact name.'**
+  String get contactNameRequiredError;
+
+  /// No description provided for @contactPhoneRequiredError.
+  ///
+  /// In en, this message translates to:
+  /// **'Please enter a phone number.'**
+  String get contactPhoneRequiredError;
+
+  /// No description provided for @contactPhoneInvalidError.
+  ///
+  /// In en, this message translates to:
+  /// **'Please enter a dialable phone number.'**
+  String get contactPhoneInvalidError;
+
+  /// No description provided for @contactEditTooltip.
+  ///
+  /// In en, this message translates to:
+  /// **'Edit contact'**
+  String get contactEditTooltip;
+
+  /// No description provided for @contactSaveTooltip.
+  ///
+  /// In en, this message translates to:
+  /// **'Save contact'**
+  String get contactSaveTooltip;
+
+  /// No description provided for @contactCancelTooltip.
+  ///
+  /// In en, this message translates to:
+  /// **'Cancel editing'**
+  String get contactCancelTooltip;
+
+  /// No description provided for @contactDeleteTooltip.
+  ///
+  /// In en, this message translates to:
+  /// **'Delete contact'**
+  String get contactDeleteTooltip;
+
+  /// No description provided for @confirmDeleteContactTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Delete this contact?'**
+  String get confirmDeleteContactTitle;
+
+  /// No description provided for @confirmDeleteContactMessage.
+  ///
+  /// In en, this message translates to:
+  /// **'This removes the contact from your emergency contact list.'**
+  String get confirmDeleteContactMessage;
+
+  /// No description provided for @quoteDismissedMessage.
+  ///
+  /// In en, this message translates to:
+  /// **'Quote dismissed.'**
+  String get quoteDismissedMessage;
+
+  /// No description provided for @quoteUndoAction.
+  ///
+  /// In en, this message translates to:
+  /// **'Undo'**
+  String get quoteUndoAction;
+
+  /// No description provided for @quotesUnavailableMessage.
+  ///
+  /// In en, this message translates to:
+  /// **'No quote is available right now.'**
+  String get quotesUnavailableMessage;
+
+  /// No description provided for @wellnessTranscriptTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Transcript'**
+  String get wellnessTranscriptTitle;
+
+  /// No description provided for @wellnessVideoUnavailableMessage.
+  ///
+  /// In en, this message translates to:
+  /// **'This video is unavailable right now.'**
+  String get wellnessVideoUnavailableMessage;
+
+  /// No description provided for @wellnessVideoDataUnavailableMessage.
+  ///
+  /// In en, this message translates to:
+  /// **'Videos cannot be shown right now.'**
+  String get wellnessVideoDataUnavailableMessage;
+
+  /// No description provided for @disclaimerSummary.
+  ///
+  /// In en, this message translates to:
+  /// **'Read the key points, then accept if these terms work for you.'**
+  String get disclaimerSummary;
+
+  /// No description provided for @disclaimerPurposeTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'App purpose'**
+  String get disclaimerPurposeTitle;
+
+  /// No description provided for @disclaimerInformationTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Information and privacy'**
+  String get disclaimerInformationTitle;
+
+  /// No description provided for @disclaimerConsentTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Consent'**
+  String get disclaimerConsentTitle;
+
+  /// No description provided for @disclaimerConsentMessage.
+  ///
+  /// In en, this message translates to:
+  /// **'If you accept these terms, press Confirm to continue.'**
+  String get disclaimerConsentMessage;
+
+  /// No description provided for @phoneContactDisclaimerSummary.
+  ///
+  /// In en, this message translates to:
+  /// **'Contacts are saved for your personal use.'**
+  String get phoneContactDisclaimerSummary;
+
+  /// No description provided for @phoneContactDisclaimerMoreTooltip.
+  ///
+  /// In en, this message translates to:
+  /// **'Contact storage information'**
+  String get phoneContactDisclaimerMoreTooltip;
+
+  /// No description provided for @feelGoodDeleteTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Delete this photo?'**
+  String get feelGoodDeleteTitle;
+
+  /// No description provided for @feelGoodDeleteMessage.
+  ///
+  /// In en, this message translates to:
+  /// **'This removes the photo from Feel Good.'**
+  String get feelGoodDeleteMessage;
+
+  /// No description provided for @feelGoodBackTooltip.
+  ///
+  /// In en, this message translates to:
+  /// **'Back to photos'**
+  String get feelGoodBackTooltip;
+
+  /// No description provided for @feelGoodDeleteTooltip.
+  ///
+  /// In en, this message translates to:
+  /// **'Delete photo'**
+  String get feelGoodDeleteTooltip;
+
+  /// No description provided for @confirmDeletePlanAnswerTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Delete this answer?'**
+  String get confirmDeletePlanAnswerTitle;
+
+  /// No description provided for @confirmDeletePlanAnswerMessage.
+  ///
+  /// In en, this message translates to:
+  /// **'This removes the answer from your personal plan.'**
+  String get confirmDeletePlanAnswerMessage;
 }
 
 class _AppLocalizationsDelegate

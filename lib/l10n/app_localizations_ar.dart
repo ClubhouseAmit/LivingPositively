@@ -3106,4 +3106,98 @@ class AppLocalizationsAr extends AppLocalizations {
 
   @override
   String get confirmDeleteEntryMessage => 'لا يمكن التراجع عن هذا الإجراء.';
+
+  @override
+  String get nameRequiredError => 'يرجى إدخال اسم.';
+
+  @override
+  String get contactNameRequiredError => 'يرجى إدخال اسم جهة الاتصال.';
+
+  @override
+  String get contactPhoneRequiredError => 'يرجى إدخال رقم هاتف.';
+
+  @override
+  String get contactPhoneInvalidError => 'يرجى إدخال رقم يمكن الاتصال به.';
+
+  @override
+  String get contactEditTooltip => 'تعديل جهة الاتصال';
+
+  @override
+  String get contactSaveTooltip => 'حفظ جهة الاتصال';
+
+  @override
+  String get contactCancelTooltip => 'إلغاء التعديل';
+
+  @override
+  String get contactDeleteTooltip => 'حذف جهة الاتصال';
+
+  @override
+  String get confirmDeleteContactTitle => 'هل تريد حذف جهة الاتصال؟';
+
+  @override
+  String get confirmDeleteContactMessage =>
+      'ستتم إزالة التفاصيل من جهات اتصال الطوارئ.';
+
+  @override
+  String get quoteDismissedMessage => 'تم إغلاق الاقتباس.';
+
+  @override
+  String get quoteUndoAction => 'تراجع';
+
+  @override
+  String get quotesUnavailableMessage => 'لا يوجد اقتباس متاح الآن.';
+
+  @override
+  String get wellnessTranscriptTitle => 'النص المكتوب';
+
+  @override
+  String get wellnessVideoUnavailableMessage => 'هذا الفيديو غير متاح الآن.';
+
+  @override
+  String get wellnessVideoDataUnavailableMessage =>
+      'لا يمكن عرض الفيديوهات الآن.';
+
+  @override
+  String get disclaimerSummary =>
+      'اقرأ النقاط الأساسية ثم وافق إذا كانت الشروط مناسبة لك.';
+
+  @override
+  String get disclaimerPurposeTitle => 'هدف التطبيق';
+
+  @override
+  String get disclaimerInformationTitle => 'المعلومات والخصوصية';
+
+  @override
+  String get disclaimerConsentTitle => 'الموافقة';
+
+  @override
+  String get disclaimerConsentMessage =>
+      'إذا قبلت هذه الشروط، اضغط على تأكيد للمتابعة.';
+
+  @override
+  String get phoneContactDisclaimerSummary =>
+      'يتم حفظ جهات الاتصال لاستخدامك الشخصي.';
+
+  @override
+  String get phoneContactDisclaimerMoreTooltip =>
+      'معلومات حول حفظ جهات الاتصال';
+
+  @override
+  String get feelGoodDeleteTitle => 'هل تريد حذف الصورة؟';
+
+  @override
+  String get feelGoodDeleteMessage => 'ستتم إزالة الصورة من قسم الشعور الجيد.';
+
+  @override
+  String get feelGoodBackTooltip => 'العودة إلى الصور';
+
+  @override
+  String get feelGoodDeleteTooltip => 'حذف الصورة';
+
+  @override
+  String get confirmDeletePlanAnswerTitle => 'هل تريد حذف الإجابة؟';
+
+  @override
+  String get confirmDeletePlanAnswerMessage =>
+      'ستتم إزالة الإجابة من خطتك الشخصية.';
 }

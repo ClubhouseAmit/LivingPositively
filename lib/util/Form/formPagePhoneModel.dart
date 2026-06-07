@@ -93,6 +93,17 @@ class PhonePageData extends ChangeNotifier {
     notifyListeners();
   }
 
+  bool _hasDialablePhoneNumber(String value) {
+    final normalized = value.replaceAll(RegExp(r'[\s().-]'), '');
+    return RegExp(r'^\+?\d{2,}$').hasMatch(normalized);
+  }
+
+  bool _isValidContact(String phoneName, String phoneNumber) {
+    return phoneName.trim().isNotEmpty &&
+        phoneNumber.trim().isNotEmpty &&
+        _hasDialablePhoneNumber(phoneNumber);
+  }
+
   void reset() {
     savedPhoneNames = [];
     savedPhoneNumbers = [];
@@ -101,9 +112,12 @@ class PhonePageData extends ChangeNotifier {
   }
 
   void replaceItem(int index, String newPhoneName, String newPhoneNumber) {
+    if (!_isValidContact(newPhoneName, newPhoneNumber)) {
+      return;
+    }
     if (index < savedPhoneNames.length && index < savedPhoneNumbers.length) {
-      savedPhoneNames[index] = newPhoneName;
-      savedPhoneNumbers[index] = newPhoneNumber;
+      savedPhoneNames[index] = newPhoneName.trim();
+      savedPhoneNumbers[index] = newPhoneNumber.trim();
       saveItemsToPrefs();
       notifyListeners();
     }
@@ -130,11 +144,15 @@ class PhonePageData extends ChangeNotifier {
     notifyListeners();
   }
 
-  void addItem(String phoneName, String phoneNumber) {
-    savedPhoneNames.add(phoneName);
-    savedPhoneNumbers.add(phoneNumber);
+  bool addItem(String phoneName, String phoneNumber) {
+    if (!_isValidContact(phoneName, phoneNumber)) {
+      return false;
+    }
+    savedPhoneNames.add(phoneName.trim());
+    savedPhoneNumbers.add(phoneNumber.trim());
     saveItemsToPrefs();
     notifyListeners();
+    return true;
   }
 
   void removeItemAt(int index) {
