@@ -255,7 +255,7 @@ class _WellnessToolsState extends LPExtendedState<WellnessTools> {
                         videoData: widget.videoData,
                         index: videoIndex,
                         thumbnailUrl: thumbnailUrl,
-                        changeVidoeIdIndex: () {
+                        changeVideoIdIndex: () {
                           return () {
                             setState(() {
                               selectedVideoIdIndex = videoIndex;

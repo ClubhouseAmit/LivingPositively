@@ -4,7 +4,7 @@
 // to display, edit, or remove a user-prompt answer. It owns:
 //   - the row layout (bullet icon + auto-sized text + edit/delete buttons)
 //   - an `editAnswer` closure that pushes an `AddFormAnswer` dialog
-//   - a `remove` callback that invokes the supplied `widget.remove(num - 1)`
+//   - a `remove` callback that invokes the supplied remove function
 //
 // We assert structural render, tap routing, and that the edit button opens
 // the dialog (we don't drive the dialog itself — covered separately).
@@ -94,6 +94,39 @@ void main() {
     expect(removedIndex, 2, reason: 'remove must be called with num - 1');
   });
 
+  testWidgets('delete confirmation removes the originally tapped answer', (
+    tester,
+  ) async {
+    final rowNumber = ValueNotifier<int>(3);
+    addTearDown(rowNumber.dispose);
+    int? removedIndex;
+
+    await pumpWithProviders(
+      tester,
+      _MutableFormAnswerHost(
+        rowNumber: rowNumber,
+        remove: (index) => removedIndex = index,
+      ),
+      userInformation: userInformation,
+      surfaceSize: const Size(1200, 1800),
+    );
+
+    final deleteButton = find.ancestor(
+      of: find.byIcon(Icons.delete),
+      matching: find.byType(TextButton),
+    );
+    await tester.tap(deleteButton, warnIfMissed: false);
+    await tester.pumpAndSettle();
+
+    rowNumber.value = 9;
+    await tester.pump();
+
+    await tester.tap(find.text('Delete'));
+    await tester.pumpAndSettle();
+
+    expect(removedIndex, 2);
+  });
+
   testWidgets('tap edit button opens AddFormAnswer dialog', (tester) async {
     await pumpWithProviders(
       tester,
@@ -113,4 +146,51 @@ void main() {
     // The edit closure does showDialog of AddFormAnswer.
     expect(find.byType(AddFormAnswer), findsOneWidget);
   });
+}
+
+class _MutableFormAnswerHost extends StatefulWidget {
+  final ValueNotifier<int> rowNumber;
+  final void Function(int index) remove;
+
+  const _MutableFormAnswerHost({required this.rowNumber, required this.remove});
+
+  @override
+  State<_MutableFormAnswerHost> createState() => _MutableFormAnswerHostState();
+}
+
+class _MutableFormAnswerHostState extends State<_MutableFormAnswerHost> {
+  @override
+  void initState() {
+    super.initState();
+    widget.rowNumber.addListener(_rebuild);
+  }
+
+  @override
+  void didUpdateWidget(_MutableFormAnswerHost oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (oldWidget.rowNumber != widget.rowNumber) {
+      oldWidget.rowNumber.removeListener(_rebuild);
+      widget.rowNumber.addListener(_rebuild);
+    }
+  }
+
+  @override
+  void dispose() {
+    widget.rowNumber.removeListener(_rebuild);
+    super.dispose();
+  }
+
+  void _rebuild() {
+    setState(() {});
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return FormAnswer(
+      text: 'Cleaning',
+      edit: (_, _, _) {},
+      remove: widget.remove,
+      num: widget.rowNumber.value,
+    );
+  }
 }

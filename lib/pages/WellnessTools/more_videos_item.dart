@@ -10,14 +10,14 @@ class MoreVideosItem extends StatelessWidget {
   final Map<String, List<String>> videoData;
   final int index;
   final String thumbnailUrl;
-  final Function changeVidoeIdIndex;
+  final VoidCallback Function() changeVideoIdIndex;
 
   const MoreVideosItem({
     super.key,
     required this.videoData,
     required this.index,
     required this.thumbnailUrl,
-    required this.changeVidoeIdIndex,
+    required this.changeVideoIdIndex,
   });
 
   @override
@@ -26,7 +26,7 @@ class MoreVideosItem extends StatelessWidget {
         GetIt.instance<ImagePickerService>();
     final appLocale = AppLocalizations.of(context);
     final title = videoData['videoHeadline']?[index] ?? '';
-    final onSelected = changeVidoeIdIndex() as VoidCallback;
+    final onSelected = changeVideoIdIndex();
     return SizedBox(
       height: 100,
       child: Material(

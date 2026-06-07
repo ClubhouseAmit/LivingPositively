@@ -43,6 +43,7 @@ class _FormAnswerState extends LPExtendedState<FormAnswer> {
     }
 
     Future<void> confirmRemoveAnswer() async {
+      final removeIndex = widget.num - 1;
       final confirmed = await showDialog<bool>(
         context: context,
         builder: (dialogContext) => AlertDialog(
@@ -66,7 +67,7 @@ class _FormAnswerState extends LPExtendedState<FormAnswer> {
       if (!mounted) {
         return;
       }
-      widget.remove(widget.num - 1);
+      widget.remove(removeIndex);
       setState(() {});
     }
 
