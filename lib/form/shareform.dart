@@ -40,12 +40,12 @@ class _ShareFormState extends LPExtendedState<ShareForm> {
   final List<MapEntry<String, String>> _customCategories = [];
   bool _isAddingCustomCategory = false;
   bool _showCustomCategoryValidation = false;
+  int? _editingCustomCategoryIndex;
+  int _customCategoryFormGeneration = 0;
 
   void setHasFilled() async {
-    PersistentMemoryService service =
-        GetIt.instance<
-          PersistentMemoryService
-        >(); // Get the persistent memory service instance
+    PersistentMemoryService service = GetIt.instance<
+        PersistentMemoryService>(); // Get the persistent memory service instance
 
     await service.setItem("hasFilled", PersistentMemoryType.Bool, true);
   }
@@ -134,14 +134,54 @@ class _ShareFormState extends LPExtendedState<ShareForm> {
     return getDirectionOfText(text) == 'rtl' ? TextAlign.right : TextAlign.left;
   }
 
+  void resetCustomCategoryForm() {
+    _customCategoryTitleController.clear();
+    _customCategoryDescriptionController.clear();
+    _customCategoryTitleFocusNode.unfocus();
+    _showCustomCategoryValidation = false;
+    _editingCustomCategoryIndex = null;
+    _customCategoryFormGeneration++;
+  }
+
   void startAddingCustomCategory() {
     setState(() {
+      resetCustomCategoryForm();
       _isAddingCustomCategory = true;
-      _showCustomCategoryValidation = false;
     });
   }
 
-  Future<void> addCustomCategory() async {
+  void editCustomCategory(int index) {
+    final category = _customCategories[index];
+    setState(() {
+      _customCategoryTitleController.text = category.key;
+      _customCategoryDescriptionController.text = category.value;
+      _showCustomCategoryValidation = false;
+      _editingCustomCategoryIndex = index;
+      _isAddingCustomCategory = true;
+      _customCategoryFormGeneration++;
+    });
+  }
+
+  Future<void> deleteCustomCategory(int index) async {
+    if (index < 0 || index >= _customCategories.length) {
+      return;
+    }
+
+    setState(() {
+      _customCategories.removeAt(index);
+      if (_editingCustomCategoryIndex == index) {
+        resetCustomCategoryForm();
+        _isAddingCustomCategory = false;
+      } else if (_editingCustomCategoryIndex != null &&
+          _editingCustomCategoryIndex! > index) {
+        _editingCustomCategoryIndex = _editingCustomCategoryIndex! - 1;
+      }
+    });
+
+    await saveCustomCategories();
+  }
+
+  Future<void> saveCustomCategory() async {
     final title = _customCategoryTitleController.text.trim();
     final description = _customCategoryDescriptionController.text.trim();
 
@@ -153,25 +193,56 @@ class _ShareFormState extends LPExtendedState<ShareForm> {
     }
 
     setState(() {
-      _customCategories.add(MapEntry(title, description));
-      _customCategoryTitleController.clear();
-      _customCategoryDescriptionController.clear();
+      final editingIndex = _editingCustomCategoryIndex;
+      if (editingIndex != null &&
+          editingIndex >= 0 &&
+          editingIndex < _customCategories.length) {
+        _customCategories[editingIndex] = MapEntry(title, description);
+      } else {
+        _customCategories.add(MapEntry(title, description));
+      }
+      resetCustomCategoryForm();
       _isAddingCustomCategory = false;
-      _showCustomCategoryValidation = false;
     });
 
     await saveCustomCategories();
   }
 
+  void refreshCustomCategoryTitleOptions(
+      TextEditingController textEditingController) {
+    final value = textEditingController.value;
+    final offset = value.selection.isValid
+        ? value.selection.baseOffset.clamp(0, value.text.length).toInt()
+        : value.text.length;
+    final nextAffinity = value.selection.affinity == TextAffinity.downstream
+        ? TextAffinity.upstream
+        : TextAffinity.downstream;
+
+    // Nudges RawAutocomplete to rebuild options when tapping unchanged text.
+    textEditingController.value = value.copyWith(
+      selection: TextSelection.collapsed(
+        offset: offset,
+        affinity: nextAffinity,
+      ),
+    );
+  }
+
   Widget buildCustomCategoryTitleField() {
     return RawAutocomplete<String>(
+      key: ValueKey(
+          'custom-category-title-autocomplete-$_customCategoryFormGeneration'),
       textEditingController: _customCategoryTitleController,
       focusNode: _customCategoryTitleFocusNode,
       displayStringForOption: (option) => option,
       optionsBuilder: (TextEditingValue textEditingValue) {
         final input = textEditingValue.text.trim();
         final options = predefinedCategoryTitles();
-        if (input.isEmpty) {
+        final editingIndex = _editingCustomCategoryIndex;
+        final isInitialEditingTitle = editingIndex != null &&
+            editingIndex >= 0 &&
+            editingIndex < _customCategories.length &&
+            _customCategories[editingIndex].key == input;
+        if (input.isEmpty || isInitialEditingTitle) {
           return options;
         }
         return options.where((option) => option.contains(input));
@@ -184,23 +255,22 @@ class _ShareFormState extends LPExtendedState<ShareForm> {
       },
       fieldViewBuilder:
           (context, textEditingController, focusNode, onFieldSubmitted) {
-            return TextField(
-              key: const Key('custom-category-title-field'),
-              controller: textEditingController,
-              focusNode: focusNode,
-              textDirection: appLocale.textDirection == 'rtl'
-                  ? TextDirection.rtl
-                  : null,
-              decoration: InputDecoration(
-                labelText: appLocale.sharePageCustomCategoryTitle,
-                errorText:
-                    _showCustomCategoryValidation &&
-                        _customCategoryTitleController.text.trim().isEmpty
-                    ? appLocale.validateEmpty
-                    : null,
-              ),
-            );
-          },
+        return TextField(
+          key: const Key('custom-category-title-field'),
+          controller: textEditingController,
+          focusNode: focusNode,
+          textDirection:
+              appLocale.textDirection == 'rtl' ? TextDirection.rtl : null,
+          onTap: () => refreshCustomCategoryTitleOptions(textEditingController),
+          decoration: InputDecoration(
+            labelText: appLocale.sharePageCustomCategoryTitle,
+            errorText: _showCustomCategoryValidation &&
+                    _customCategoryTitleController.text.trim().isEmpty
+                ? appLocale.validateEmpty
+                : null,
+          ),
+        );
+      },
       optionsViewBuilder: (context, onSelected, options) {
         return Align(
           alignment: Alignment.topLeft,
@@ -249,15 +319,13 @@ class _ShareFormState extends LPExtendedState<ShareForm> {
             controller: _customCategoryDescriptionController,
             minLines: 3,
             maxLines: 6,
-            textDirection: appLocale.textDirection == 'rtl'
-                ? TextDirection.rtl
-                : null,
+            textDirection:
+                appLocale.textDirection == 'rtl' ? TextDirection.rtl : null,
             decoration: InputDecoration(
               labelText: appLocale.sharePageCustomCategoryDescription,
               alignLabelWithHint: true,
               border: const OutlineInputBorder(),
-              errorText:
-                  _showCustomCategoryValidation &&
+              errorText: _showCustomCategoryValidation &&
                       _customCategoryDescriptionController.text.trim().isEmpty
                   ? appLocale.validateEmpty
                   : null,
@@ -265,7 +333,7 @@ class _ShareFormState extends LPExtendedState<ShareForm> {
           ),
           const SizedBox(height: 12),
           TextButton(
-            onPressed: addCustomCategory,
+            onPressed: saveCustomCategory,
             style: myButtonStyle,
             child: myAutoSizedText(
               appLocale.sharePageSaveCustomCategory,
@@ -279,7 +347,8 @@ class _ShareFormState extends LPExtendedState<ShareForm> {
     );
   }
 
-  Widget buildCustomCategoryCard(MapEntry<String, String> category) {
+  Widget buildCustomCategoryCard(
+      MapEntry<String, String> category, int index, String gender) {
     return Container(
       width: MediaQuery.sizeOf(context).width > 1000
           ? 600
@@ -296,14 +365,32 @@ class _ShareFormState extends LPExtendedState<ShareForm> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
-            Text(
-              category.key,
-              style: TextStyle(
-                fontWeight: FontWeight.bold,
-                fontSize: 16.sp,
-                fontFamily: 'Rubix',
-              ),
-              textAlign: textAlignFor(category.key),
+            Row(
+              children: [
+                Expanded(
+                  child: Text(
+                    category.key,
+                    style: TextStyle(
+                      fontWeight: FontWeight.bold,
+                      fontSize: 16.sp,
+                      fontFamily: 'Rubix',
+                    ),
+                    textAlign: textAlignFor(category.key),
+                  ),
+                ),
+                IconButton(
+                  key: Key('custom-category-edit-button-$index'),
+                  tooltip: appLocale.addFormEdit(gender),
+                  icon: const Icon(Icons.edit, size: 20),
+                  onPressed: () => editCustomCategory(index),
+                ),
+                IconButton(
+                  key: Key('custom-category-delete-button-$index'),
+                  tooltip: appLocale.deleteButton(gender),
+                  icon: const Icon(Icons.delete, size: 20),
+                  onPressed: () => deleteCustomCategory(index),
+                ),
+              ],
             ),
             const SizedBox(height: 8),
             Directionality(
@@ -320,10 +407,11 @@ class _ShareFormState extends LPExtendedState<ShareForm> {
     );
   }
 
-  Widget buildCustomCategoriesSection(BuildContext context) {
+  Widget buildCustomCategoriesSection(BuildContext context, String gender) {
     return Column(
       children: [
-        ..._customCategories.map(buildCustomCategoryCard),
+        ..._customCategories.asMap().entries.map(
+            (entry) => buildCustomCategoryCard(entry.value, entry.key, gender)),
         if (_isAddingCustomCategory) buildCustomCategoryForm(context),
         if (!_isAddingCustomCategory)
           TextButton(
@@ -481,6 +569,8 @@ class _ShareFormState extends LPExtendedState<ShareForm> {
                   ),
                 ),
                 const SizedBox(height: 30),
+                buildCustomCategoriesSection(context, gender),
+                const SizedBox(height: 16),
                 ConfirmationButton(
                   context,
                   () {
@@ -492,8 +582,6 @@ class _ShareFormState extends LPExtendedState<ShareForm> {
                     fontSize: 22.sp,
                   ),
                 ),
-                const SizedBox(height: 16),
-                buildCustomCategoriesSection(context),
                 const SizedBox(height: 30),
               ],
             ),
