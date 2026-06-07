@@ -140,6 +140,13 @@ void main() {
 
     await tester.tap(find.text('+ הוספת קטגוריה'));
     await tester.pumpAndSettle();
+    await tester.tap(find.byKey(const Key('custom-category-title-field')));
+    await tester.pumpAndSettle();
+    expect(find.text('משפטים מחזקים שחשוב לי לזכור'), findsOneWidget);
+    expect(find.text('אירועים מהעבר לתזכורת'), findsOneWidget);
+    expect(find.text('דברים עלי שחשוב לי שנזכור'), findsOneWidget);
+    expect(find.text('אפשרות לכתוב משהו מקורי משלי'), findsOneWidget);
+
     await tester.enterText(
       find.byKey(const Key('custom-category-title-field')),
       'Integration English title',

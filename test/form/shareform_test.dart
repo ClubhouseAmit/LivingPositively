@@ -205,6 +205,18 @@ void main() {
     // This can be verified by checking navigation or other state changes
   });
 
+  testWidgets('ShareForm places the finish button below custom categories',
+      (WidgetTester tester) async {
+    await tester.pumpWidget(createTestWidget());
+    await tester.ensureVisible(find.text('+ הוספת קטגוריה'));
+    await tester.pumpAndSettle();
+
+    final addCategoryTop = tester.getTopLeft(find.text('+ הוספת קטגוריה')).dy;
+    final finishTop = tester.getTopLeft(find.text('סיימתי!')).dy;
+
+    expect(finishTop, greaterThan(addCategoryTop));
+  });
+
   testWidgets('ShareForm adds multiple custom categories in original text',
       (WidgetTester tester) async {
     await tester.pumpWidget(createTestWidget());
@@ -251,6 +263,109 @@ void main() {
       'customCategoryDescriptions',
       PersistentMemoryType.StringList,
       ['טקסט חופשי בעברית שלא מתורגם', 'English text remains English'],
+    )).called(1);
+  });
+
+  testWidgets('ShareForm shows title suggestions when adding another category',
+      (WidgetTester tester) async {
+    await tester.pumpWidget(createTestWidget());
+
+    await tester.ensureVisible(find.text('+ הוספת קטגוריה'));
+    await tester.tap(find.text('+ הוספת קטגוריה'));
+    await tester.pumpAndSettle();
+
+    await tester.enterText(
+        find.byKey(const Key('custom-category-title-field')), 'קטגוריה ראשונה');
+    await tester.enterText(
+        find.byKey(const Key('custom-category-description-field')),
+        'תיאור ראשון');
+    await tester.ensureVisible(find.text('הוספת קטגוריה'));
+    await tester.tap(find.text('הוספת קטגוריה'));
+    await tester.pumpAndSettle();
+
+    await tester.ensureVisible(find.text('+ הוספת קטגוריה'));
+    await tester.tap(find.text('+ הוספת קטגוריה'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.byKey(const Key('custom-category-title-field')));
+    await tester.pumpAndSettle();
+
+    expect(find.text('משפטים מחזקים שחשוב לי לזכור'), findsOneWidget);
+    expect(find.text('אירועים מהעבר לתזכורת'), findsOneWidget);
+    expect(find.text('דברים עלי שחשוב לי שנזכור'), findsOneWidget);
+    expect(find.text('אפשרות לכתוב משהו מקורי משלי'), findsOneWidget);
+  });
+
+  testWidgets('ShareForm edits and deletes saved custom categories',
+      (WidgetTester tester) async {
+    await tester.pumpWidget(createTestWidget());
+
+    await tester.ensureVisible(find.text('+ הוספת קטגוריה'));
+    await tester.tap(find.text('+ הוספת קטגוריה'));
+    await tester.pumpAndSettle();
+
+    await tester.enterText(
+        find.byKey(const Key('custom-category-title-field')), 'כותרת לעריכה');
+    await tester.enterText(
+        find.byKey(const Key('custom-category-description-field')),
+        'תיאור לעריכה');
+    await tester.ensureVisible(find.text('הוספת קטגוריה'));
+    await tester.tap(find.text('הוספת קטגוריה'));
+    await tester.pumpAndSettle();
+
+    await tester.tap(find.byKey(const Key('custom-category-edit-button-0')));
+    await tester.pumpAndSettle();
+
+    final titleField = find.byKey(const Key('custom-category-title-field'));
+    final descriptionField =
+        find.byKey(const Key('custom-category-description-field'));
+    expect(
+        tester.widget<TextField>(titleField).controller?.text, 'כותרת לעריכה');
+    expect(tester.widget<TextField>(descriptionField).controller?.text,
+        'תיאור לעריכה');
+
+    await tester.tap(titleField);
+    await tester.pumpAndSettle();
+    expect(find.text('משפטים מחזקים שחשוב לי לזכור'), findsOneWidget);
+    expect(find.text('אירועים מהעבר לתזכורת'), findsOneWidget);
+    expect(find.text('דברים עלי שחשוב לי שנזכור'), findsOneWidget);
+    expect(find.text('אפשרות לכתוב משהו מקורי משלי'), findsOneWidget);
+
+    await tester.enterText(titleField, 'כותרת אחרי עריכה');
+    await tester.enterText(descriptionField, 'תיאור אחרי עריכה');
+    await tester.ensureVisible(find.text('הוספת קטגוריה'));
+    await tester.tap(find.text('הוספת קטגוריה'));
+    await tester.pumpAndSettle();
+
+    expect(find.text('כותרת לעריכה'), findsNothing);
+    expect(find.text('תיאור לעריכה'), findsNothing);
+    expect(find.text('כותרת אחרי עריכה'), findsOneWidget);
+    expect(find.text('תיאור אחרי עריכה'), findsOneWidget);
+    verify(mockPersistentMemoryService.setItem(
+      'customCategoryTitles',
+      PersistentMemoryType.StringList,
+      ['כותרת אחרי עריכה'],
+    )).called(1);
+    verify(mockPersistentMemoryService.setItem(
+      'customCategoryDescriptions',
+      PersistentMemoryType.StringList,
+      ['תיאור אחרי עריכה'],
+    )).called(1);
+
+    await tester.tap(find.byKey(const Key('custom-category-delete-button-0')));
+    await tester.pumpAndSettle();
+
+    expect(find.text('כותרת אחרי עריכה'), findsNothing);
+    expect(find.text('תיאור אחרי עריכה'), findsNothing);
+    expect(find.text('+ הוספת קטגוריה'), findsOneWidget);
+    verify(mockPersistentMemoryService.setItem(
+      'customCategoryTitles',
+      PersistentMemoryType.StringList,
+      <String>[],
+    )).called(1);
+    verify(mockPersistentMemoryService.setItem(
+      'customCategoryDescriptions',
+      PersistentMemoryType.StringList,
+      <String>[],
     )).called(1);
   });
 
