@@ -208,6 +208,12 @@ class _ShareFormState extends LPExtendedState<ShareForm> {
     await saveCustomCategories();
   }
 
+  String? _customCategoryValidationError(TextEditingController controller) {
+    return _showCustomCategoryValidation && controller.text.trim().isEmpty
+        ? appLocale.validateEmpty
+        : null;
+  }
+
   void refreshCustomCategoryTitleOptions(
       TextEditingController textEditingController) {
     final value = textEditingController.value;
@@ -264,10 +270,8 @@ class _ShareFormState extends LPExtendedState<ShareForm> {
           onTap: () => refreshCustomCategoryTitleOptions(textEditingController),
           decoration: InputDecoration(
             labelText: appLocale.sharePageCustomCategoryTitle,
-            errorText: _showCustomCategoryValidation &&
-                    _customCategoryTitleController.text.trim().isEmpty
-                ? appLocale.validateEmpty
-                : null,
+            errorText:
+                _customCategoryValidationError(_customCategoryTitleController),
           ),
         );
       },
@@ -325,10 +329,8 @@ class _ShareFormState extends LPExtendedState<ShareForm> {
               labelText: appLocale.sharePageCustomCategoryDescription,
               alignLabelWithHint: true,
               border: const OutlineInputBorder(),
-              errorText: _showCustomCategoryValidation &&
-                      _customCategoryDescriptionController.text.trim().isEmpty
-                  ? appLocale.validateEmpty
-                  : null,
+              errorText: _customCategoryValidationError(
+                  _customCategoryDescriptionController),
             ),
           ),
           const SizedBox(height: 12),
