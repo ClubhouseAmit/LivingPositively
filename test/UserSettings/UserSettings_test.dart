@@ -78,8 +78,9 @@ void main() {
       expect(find.byType(Scaffold), findsWidgets);
     });
 
-    testWidgets('initializes the name field with widget.username',
-        (tester) async {
+    testWidgets('initializes the name field with widget.username', (
+      tester,
+    ) async {
       await pumpWithProviders(
         tester,
         _buildWidget(changeLocale: (_) {}, username: 'Prefilled'),
@@ -92,8 +93,9 @@ void main() {
       expect(tf.controller?.text, 'Prefilled');
     });
 
-    testWidgets('typing into the name field updates UserInformation.name',
-        (tester) async {
+    testWidgets('typing into the name field stages without persisting', (
+      tester,
+    ) async {
       await pumpWithProviders(
         tester,
         _buildWidget(changeLocale: (_) {}, username: 'Old Name'),
@@ -104,16 +106,41 @@ void main() {
       await tester.enterText(find.byType(TextField).first, 'New Name');
       await tester.pump();
 
-      expect(userInformation.name, 'New Name');
-      // The change should also have been pushed through PersistentMemoryService.
+      expect(userInformation.name, isEmpty);
       expect(
         await services.memory.getItem('name', PersistentMemoryType.String),
-        'New Name',
+        isNot('New Name'),
       );
     });
 
-    testWidgets('confirm button writes name/age/gender to UserInformation',
-        (tester) async {
+    testWidgets('empty name shows validation error and blocks confirm', (
+      tester,
+    ) async {
+      await pumpWithProviders(
+        tester,
+        _buildWidget(changeLocale: (_) {}, username: 'Initial'),
+        userInformation: userInformation,
+        surfaceSize: const Size(1024, 1800),
+      );
+
+      await tester.enterText(find.byType(TextField).first, '   ');
+      await tester.pump();
+
+      final confirmButton = find.ancestor(
+        of: find.text('Confirm'),
+        matching: find.byType(TextButton),
+      );
+      await tester.ensureVisible(confirmButton.first);
+      await tester.tap(confirmButton.first, warnIfMissed: false);
+      await tester.pump();
+
+      expect(find.text('Please enter a name.'), findsOneWidget);
+      expect(userInformation.name, isEmpty);
+    });
+
+    testWidgets('confirm button writes name/age/gender to UserInformation', (
+      tester,
+    ) async {
       await pumpWithProviders(
         tester,
         _buildWidget(changeLocale: (_) {}, username: 'Initial'),
@@ -145,6 +172,37 @@ void main() {
       );
     });
 
+    testWidgets('confirm without changing gender preserves gender and binary', (
+      tester,
+    ) async {
+      userInformation.gender = 'female';
+      userInformation.binary = false;
+      await pumpWithProviders(
+        tester,
+        _buildWidget(
+          changeLocale: (_) {},
+          username: 'Initial',
+          gender: 'female',
+        ),
+        userInformation: userInformation,
+        surfaceSize: const Size(1024, 1800),
+      );
+
+      await tester.enterText(find.byType(TextField).first, 'Confirmed');
+      await tester.pump();
+
+      final confirmButton = find.ancestor(
+        of: find.text('Confirm'),
+        matching: find.byType(TextButton),
+      );
+      await tester.ensureVisible(confirmButton.first);
+      await tester.tap(confirmButton.first, warnIfMissed: false);
+      await tester.pump();
+
+      expect(userInformation.gender, 'female');
+      expect(userInformation.binary, isFalse);
+    });
+
     testWidgets('reset button opens the confirmation dialog', (tester) async {
       await pumpWithProviders(
         tester,
@@ -172,8 +230,10 @@ void main() {
       // The reset button is the last top-level TextButton before the dialog
       // is opened.
       await tester.ensureVisible(find.byWidget(allButtons.last.widget));
-      await tester.tap(find.byWidget(allButtons.last.widget),
-          warnIfMissed: false);
+      await tester.tap(
+        find.byWidget(allButtons.last.widget),
+        warnIfMissed: false,
+      );
       await tester.pumpAndSettle();
 
       // After tapping reset, a Dialog should appear (with confirm-reset title).
@@ -193,8 +253,9 @@ void main() {
       expect(find.byType(GestureDetector), findsWidgets);
     });
 
-    testWidgets('renders TextField, dropdown menus and Country selector',
-        (tester) async {
+    testWidgets('renders TextField, dropdown menus and Country selector', (
+      tester,
+    ) async {
       await pumpWithProviders(
         tester,
         _buildWidget(changeLocale: (_) {}),
@@ -208,8 +269,9 @@ void main() {
       expect(find.byType(TextField).first, findsOneWidget);
     });
 
-    testWidgets('changeLocale callback fires through dropdown selection',
-        (tester) async {
+    testWidgets('changeLocale callback fires through dropdown selection', (
+      tester,
+    ) async {
       // We can't easily open the locale dropdown reliably across platforms,
       // but we can ensure updateLocale (called from onSelected) writes to
       // services + UserInformation when invoked through provider directly.
@@ -225,8 +287,9 @@ void main() {
       // widget; the only way to fire it from outside is through the dropdown
       // selection, which doesn't expose a public API. Instead verify the
       // dropdown's initialSelection reflects userInformation.localeName.
-      final dropdowns = tester
-          .widgetList<DropdownMenu<String>>(find.byType(DropdownMenu<String>));
+      final dropdowns = tester.widgetList<DropdownMenu<String>>(
+        find.byType(DropdownMenu<String>),
+      );
       expect(dropdowns.length, 3);
       // We only assert the test wiring works (no callback fired yet).
       expect(newLocale, isNull);

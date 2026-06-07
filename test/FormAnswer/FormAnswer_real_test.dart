@@ -57,7 +57,9 @@ void main() {
     expect(find.text('Take a walk'), findsOneWidget);
   });
 
-  testWidgets('tap delete button calls widget.remove(num - 1)', (tester) async {
+  testWidgets('tap delete button confirms before remove(num - 1)', (
+    tester,
+  ) async {
     int? removedIndex;
     await pumpWithProviders(
       tester,
@@ -76,8 +78,19 @@ void main() {
       matching: find.byType(TextButton),
     );
     await tester.tap(deleteButton, warnIfMissed: false);
-    await tester.pump();
+    await tester.pumpAndSettle();
 
+    expect(find.text('Delete this answer?'), findsOneWidget);
+    expect(removedIndex, isNull);
+
+    await tester.tap(find.text('Cancel'));
+    await tester.pumpAndSettle();
+    expect(removedIndex, isNull);
+
+    await tester.tap(deleteButton, warnIfMissed: false);
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Delete'));
+    await tester.pumpAndSettle();
     expect(removedIndex, 2, reason: 'remove must be called with num - 1');
   });
 

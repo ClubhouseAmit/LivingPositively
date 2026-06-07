@@ -52,6 +52,54 @@ void main() {
       expect(find.byType(LanguageDropDown), findsOneWidget);
     });
 
+    testWidgets('renders section headings in supported locales', (
+      tester,
+    ) async {
+      final cases = <Locale, List<String>>{
+        const Locale('en'): const [
+          'App purpose',
+          'Information and privacy',
+          'Consent',
+        ],
+        const Locale('he'): const ['מטרת האפליקציה', 'מידע ופרטיות', 'הסכמה'],
+        const Locale('ar'): const [
+          'هدف التطبيق',
+          'المعلومات والخصوصية',
+          'الموافقة',
+        ],
+      };
+
+      for (final entry in cases.entries) {
+        await pumpWithProviders(
+          tester,
+          DisclaimerPage(changeLocale: (_) {}),
+          userInformation: userInformation,
+          locale: entry.key,
+          surfaceSize: const Size(600, 1400),
+        );
+
+        for (final heading in entry.value) {
+          expect(find.text(heading), findsOneWidget);
+        }
+      }
+    });
+
+    testWidgets('renders information collection disclaimer once', (
+      tester,
+    ) async {
+      await pumpWithProviders(
+        tester,
+        DisclaimerPage(changeLocale: (_) {}),
+        userInformation: userInformation,
+        surfaceSize: const Size(600, 1400),
+      );
+
+      expect(
+        find.textContaining('The application only collects anonymous'),
+        findsOneWidget,
+      );
+    });
+
     testWidgets('uses PopScope to disable back navigation', (tester) async {
       await pumpWithProviders(
         tester,

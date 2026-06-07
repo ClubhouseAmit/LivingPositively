@@ -67,20 +67,35 @@ class _PhonePageState extends LPExtendedState<PhonePage> {
                     60,
                   ),
                   const SizedBox(height: 10.0),
-                  Center(
-                    child: Container(
-                      alignment: Alignment.topCenter,
-                      margin: EdgeInsets.symmetric(horizontal: 15, vertical: 5),
-                      child: myAutoSizedText(
-                        appLocale.addingContactDisclaimer,
-                        TextStyle(
-                          fontWeight: FontWeight.bold,
-                          fontSize: 12.sp,
-                          height: 1.5,
+                  Padding(
+                    padding: const EdgeInsets.symmetric(horizontal: 30),
+                    child: ExpansionTile(
+                      leading: Tooltip(
+                        message: appLocale.phoneContactDisclaimerMoreTooltip,
+                        child: Icon(
+                          Icons.info_outline,
+                          size: 20.sp,
+                          semanticLabel:
+                              appLocale.phoneContactDisclaimerMoreTooltip,
                         ),
-                        TextAlign.center,
-                        40,
                       ),
+                      tilePadding: EdgeInsets.zero,
+                      childrenPadding: const EdgeInsets.only(bottom: 8),
+                      title: myAutoSizedText(
+                        appLocale.phoneContactDisclaimerSummary,
+                        TextStyle(fontSize: 12.sp, height: 1.4),
+                        TextAlign.start,
+                        20,
+                        2,
+                      ),
+                      children: [
+                        myAutoSizedText(
+                          appLocale.addingContactDisclaimer,
+                          TextStyle(fontSize: 12.sp, height: 1.5),
+                          TextAlign.start,
+                          40,
+                        ),
+                      ],
                     ),
                   ),
                   const SizedBox(height: 30.0),

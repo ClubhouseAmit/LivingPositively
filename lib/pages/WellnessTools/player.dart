@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:get_it/get_it.dart';
 import 'package:mazilon/AnalyticsService.dart';
+import 'package:mazilon/l10n/app_localizations.dart';
 import 'package:mazilon/pages/WellnessTools/VideoPlayerInheritedWidget.dart';
 import 'package:youtube_player_flutter/youtube_player_flutter.dart';
 
@@ -19,15 +20,28 @@ class VideoPlayerPage extends StatefulWidget {
 class _VideoPlayerPageState extends State<VideoPlayerPage> {
   late VoidCallback listener;
   late YoutubePlayerController controller;
+  bool _controllerInitialized = false;
+  bool _hasInitialVideo = false;
   bool? _isPlaying;
 
   @override
   void initState() {
     super.initState();
+  }
 
+  void _initializeController() {
+    final videoIds = widget.videoData['videoId'];
+    final initialVideoId = videoIds != null && videoIds.isNotEmpty
+        ? _youtubeId(videoIds.first)
+        : null;
+    _hasInitialVideo = initialVideoId != null;
     controller = YoutubePlayerController(
-      initialVideoId: widget.videoData['videoId']?[0] ?? '',
-      flags: YoutubePlayerFlags(autoPlay: false),
+      initialVideoId: initialVideoId ?? '',
+      flags: YoutubePlayerFlags(
+        autoPlay: false,
+        enableCaption: true,
+        captionLanguage: Localizations.localeOf(context).languageCode,
+      ),
     );
 
     listener = () {
@@ -35,6 +49,19 @@ class _VideoPlayerPageState extends State<VideoPlayerPage> {
       _trackIsPlaying();
     };
     controller.addListener(listener);
+    _controllerInitialized = true;
+  }
+
+  String? _youtubeId(String videoId) {
+    final trimmed = videoId.trim();
+    final fromUrl = YoutubePlayer.convertUrlToId(trimmed);
+    if (fromUrl != null && fromUrl.isNotEmpty) {
+      return fromUrl;
+    }
+    if (trimmed.length < 11) {
+      return null;
+    }
+    return trimmed.substring(0, 11);
   }
 
   void _trackIsPlaying() {
@@ -51,15 +78,24 @@ class _VideoPlayerPageState extends State<VideoPlayerPage> {
   @override
   void didChangeDependencies() {
     super.didChangeDependencies();
+    if (!_controllerInitialized) {
+      _initializeController();
+    }
     // Update the video when the inherited widget provides a new videoId
     final newVideoId = VideoPlayerInheritedWidget.of(context)?.videoId ?? '';
-    if (newVideoId != controller.metadata.videoId) {
-      controller.load(newVideoId);
+    final normalizedVideoId = _youtubeId(newVideoId);
+    if (normalizedVideoId != null &&
+        normalizedVideoId != controller.metadata.videoId) {
+      controller.load(normalizedVideoId);
     }
   }
 
   @override
   void dispose() {
+    if (!_controllerInitialized) {
+      super.dispose();
+      return;
+    }
     controller.removeListener(listener);
     // CI run 26463427363 reproduced youtube_player_flutter#1143 on Android:
     // YoutubePlayerController.dispose() calls value.webViewController?.dispose()
@@ -89,6 +125,17 @@ class _VideoPlayerPageState extends State<VideoPlayerPage> {
 
   @override
   Widget build(BuildContext context) {
+    if (!_controllerInitialized) {
+      return const SizedBox.shrink();
+    }
+    if (!_hasInitialVideo) {
+      return Center(
+        child: Text(
+          AppLocalizations.of(context)!.wellnessVideoUnavailableMessage,
+          textAlign: TextAlign.center,
+        ),
+      );
+    }
     debugPrint(controller.metadata.videoId);
     return YoutubePlayer(
       controller: controller,

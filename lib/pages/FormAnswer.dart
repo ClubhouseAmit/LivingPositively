@@ -1,9 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
-import 'package:mazilon/util/LP_extended_state.dart';
-
-import 'package:mazilon/util/styles.dart';
 import 'package:mazilon/util/FormAnswer/addFormAnswer.dart';
+import 'package:mazilon/util/LP_extended_state.dart';
+import 'package:mazilon/util/styles.dart';
+import 'package:mazilon/util/userInformation.dart';
+import 'package:provider/provider.dart';
 
 //the template for the answers in the personal plan questionnaire
 //this is used in the formpagetemplate to display(remove/edit) the selected/inserted user promptss
@@ -27,8 +28,11 @@ class FormAnswer extends StatefulWidget {
 
 class _FormAnswerState extends LPExtendedState<FormAnswer> {
   String tempMyAnswer = '';
+
   @override
   Widget build(BuildContext context) {
+    final gender = Provider.of<UserInformation>(context, listen: false).gender;
+
     void editAnswer(String text, int index) {
       showDialog(
         context: context,
@@ -36,6 +40,34 @@ class _FormAnswerState extends LPExtendedState<FormAnswer> {
           return AddFormAnswer(index: index, edit: widget.edit, text: text);
         },
       );
+    }
+
+    Future<void> confirmRemoveAnswer() async {
+      final confirmed = await showDialog<bool>(
+        context: context,
+        builder: (dialogContext) => AlertDialog(
+          title: Text(appLocale.confirmDeletePlanAnswerTitle),
+          content: Text(appLocale.confirmDeletePlanAnswerMessage),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.of(dialogContext).pop(false),
+              child: Text(appLocale.closeButton(gender)),
+            ),
+            TextButton(
+              onPressed: () => Navigator.of(dialogContext).pop(true),
+              child: Text(appLocale.deleteButton(gender)),
+            ),
+          ],
+        ),
+      );
+      if (confirmed != true) {
+        return;
+      }
+      if (!mounted) {
+        return;
+      }
+      widget.remove(widget.num - 1);
+      setState(() {});
     }
 
     return SizedBox(
@@ -69,8 +101,6 @@ class _FormAnswerState extends LPExtendedState<FormAnswer> {
                                 : MediaQuery.of(context).size.width - 150,
                             child: myAutoSizedText(
                               widget.text,
-
-                              //maxLines: 10,
                               TextStyle(fontSize: 16.sp),
                               appLocale.textDirection == "rtl"
                                   ? TextAlign.right
@@ -92,12 +122,14 @@ class _FormAnswerState extends LPExtendedState<FormAnswer> {
                         child: TextButton(
                           onPressed: () {
                             editAnswer(widget.text, widget.num - 1);
-                            return;
                           },
-                          child: const Icon(
-                            Icons.edit,
-                            color: Colors.black,
-                            size: 20,
+                          child: Tooltip(
+                            message: appLocale.editEntryTooltip,
+                            child: const Icon(
+                              Icons.edit,
+                              color: Colors.black,
+                              size: 20,
+                            ),
                           ),
                         ),
                       ),
@@ -107,14 +139,14 @@ class _FormAnswerState extends LPExtendedState<FormAnswer> {
                       width: 30,
                       child: Center(
                         child: TextButton(
-                          onPressed: () {
-                            widget.remove(widget.num - 1);
-                            setState(() {});
-                          },
-                          child: const Icon(
-                            Icons.delete,
-                            color: Colors.black,
-                            size: 20,
+                          onPressed: confirmRemoveAnswer,
+                          child: Tooltip(
+                            message: appLocale.deleteEntryTooltip,
+                            child: const Icon(
+                              Icons.delete,
+                              color: Colors.black,
+                              size: 20,
+                            ),
                           ),
                         ),
                       ),

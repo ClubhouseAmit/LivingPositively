@@ -21,21 +21,52 @@ class _InspirationalQuoteState extends LPExtendedState<InspirationalQuote> {
   AnalyticsService mixPanelService = GetIt.instance<AnalyticsService>();
   //Let the user close the window
   void setShow() {
-    {
-      setState(() {
-        showText = false;
-      });
-    }
+    setState(() {
+      showText = false;
+    });
+    ScaffoldMessenger.maybeOf(context)?.showSnackBar(
+      SnackBar(
+        content: Text(appLocale.quoteDismissedMessage),
+        action: SnackBarAction(
+          label: appLocale.quoteUndoAction,
+          onPressed: () {
+            if (!mounted) {
+              return;
+            }
+            setState(() {
+              showText = true;
+            });
+          },
+        ),
+      ),
+    );
   }
 
   @override
   void initState() {
     super.initState();
     //decide which quote to show
-    number = Random().nextInt(widget.quotes.length);
+    if (widget.quotes.isNotEmpty) {
+      number = Random().nextInt(widget.quotes.length);
+    }
+  }
+
+  @override
+  void didUpdateWidget(InspirationalQuote oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (widget.quotes.isEmpty) {
+      number = 0;
+      return;
+    }
+    if (oldWidget.quotes != widget.quotes || number >= widget.quotes.length) {
+      number = Random().nextInt(widget.quotes.length);
+    }
   }
 
   void _refreshQuote() {
+    if (widget.quotes.isEmpty) {
+      return;
+    }
     setState(() {
       final prevNumber = number;
       number = Random().nextInt(widget.quotes.length);
@@ -48,6 +79,20 @@ class _InspirationalQuoteState extends LPExtendedState<InspirationalQuote> {
 
   @override
   Widget build(BuildContext context) {
+    if (widget.quotes.isEmpty) {
+      return Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+        child: Text(
+          appLocale.quotesUnavailableMessage,
+          textAlign: TextAlign.start,
+          style: TextStyle(
+            color: darkGray,
+            fontSize: 12.sp,
+            fontWeight: FontWeight.normal,
+          ),
+        ),
+      );
+    }
     return Visibility(
       visible: showText,
       child: Container(

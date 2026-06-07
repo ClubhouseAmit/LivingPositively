@@ -25,38 +25,42 @@ class MoreVideosItem extends StatelessWidget {
     final ImagePickerService imageService =
         GetIt.instance<ImagePickerService>();
     final appLocale = AppLocalizations.of(context);
+    final title = videoData['videoHeadline']?[index] ?? '';
+    final onSelected = changeVidoeIdIndex() as VoidCallback;
     return SizedBox(
-      width: 150,
       height: 100,
-      child: GestureDetector(
-        onTap: changeVidoeIdIndex(),
-        child: Row(
-          mainAxisAlignment: MainAxisAlignment.start,
-          children: [
-            SizedBox(
-              width: 150,
-              height: 150,
-              child: imageService.getOnlineImage(thumbnailUrl),
-            ),
-            SizedBox(
-              width: MediaQuery.of(context).size.width - 150,
-              child: Column(
+      child: Material(
+        color: Colors.transparent,
+        child: InkWell(
+          onTap: onSelected,
+          child: Tooltip(
+            message: title,
+            child: Semantics(
+              button: true,
+              child: Row(
                 mainAxisAlignment: MainAxisAlignment.start,
-                crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  myAutoSizedText(
-                    videoData['videoHeadline']![index],
-                    TextStyle(fontSize: 18.sp, fontWeight: FontWeight.normal),
-                    appLocale!.textDirection == "rtl"
-                        ? TextAlign.right
-                        : TextAlign.left,
-                    20,
-                    2,
+                  SizedBox(
+                    width: 100,
+                    height: 100,
+                    child: imageService.getOnlineImage(thumbnailUrl),
+                  ),
+                  const SizedBox(width: 10),
+                  Expanded(
+                    child: myAutoSizedText(
+                      title,
+                      TextStyle(fontSize: 18.sp, fontWeight: FontWeight.normal),
+                      appLocale!.textDirection == "rtl"
+                          ? TextAlign.right
+                          : TextAlign.left,
+                      20,
+                      2,
+                    ),
                   ),
                 ],
               ),
             ),
-          ],
+          ),
         ),
       ),
     );

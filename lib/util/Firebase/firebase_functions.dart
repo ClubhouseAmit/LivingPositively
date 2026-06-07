@@ -1476,14 +1476,17 @@ Future<Map<String, List<String>>> getWellnessVideos({
     'videoId': [],
     'videoHeadline': [],
     'videoDescription': [],
+    'videoTranscript': [],
     'videoLocale': [],
   };
 
   for (var i = 0; i < snapshot.docs.length; i++) {
-    data['videoId']?.add(snapshot.docs[i].get('videoId'));
-    data['videoHeadline']?.add(snapshot.docs[i].get('videoHeadline'));
-    data['videoDescription']?.add(snapshot.docs[i].get('videoDescription'));
-    data['videoLocale']?.add(snapshot.docs[i].get('videoLocal'));
+    final doc = snapshot.docs[i].data();
+    data['videoId']?.add(doc['videoId'] as String);
+    data['videoHeadline']?.add(doc['videoHeadline'] as String);
+    data['videoDescription']?.add(doc['videoDescription'] as String);
+    data['videoTranscript']?.add((doc['videoTranscript'] as String?) ?? '');
+    data['videoLocale']?.add(doc['videoLocal'] as String);
   }
   return data;
 }

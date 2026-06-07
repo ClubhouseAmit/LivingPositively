@@ -32,13 +32,14 @@ class SectionBarHomeState extends LPExtendedState<SectionBarHome> {
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Row(
-          mainAxisAlignment: MainAxisAlignment.spaceBetween,
           children: [
-            Row(
-              children: [
-                widget.textWidget,
-                Icon(widget.icon, color: Colors.black, size: 30),
-              ],
+            Expanded(
+              child: Row(
+                children: [
+                  Flexible(child: widget.textWidget),
+                  Icon(widget.icon, color: Colors.black, size: 30),
+                ],
+              ),
             ),
             Row(children: widget.icons),
           ],

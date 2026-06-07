@@ -58,33 +58,76 @@ void main() {
       expect(p.savedPhoneNumbers, contains('333'));
     });
 
+    test('addItem rejects empty names and non-dialable phone numbers', () {
+      final p = _make();
+      expect(p.addItem('', '333'), isFalse);
+      expect(p.addItem('A', '1'), isFalse);
+      expect(p.addItem('B', 'abc'), isFalse);
+      expect(p.savedPhoneNames, isEmpty);
+      expect(p.savedPhoneNumbers, isEmpty);
+    });
+
+    test(
+      'saveItemsToPrefs preserves legacy non-dialable saved contacts',
+      () async {
+        final p = _make(key: 'legacyKey');
+        await Future<void>.delayed(Duration.zero);
+        p.savedPhoneNames = <String>['Legacy hotline'];
+        p.savedPhoneNumbers = <String>['*123#'];
+
+        expect(p.addItem('New contact', '111'), isTrue);
+        await p.saveItemsToPrefs();
+
+        expect(p.savedPhoneNames, ['Legacy hotline', 'New contact']);
+        expect(p.savedPhoneNumbers, ['*123#', '111']);
+
+        final p2 = PhonePageData(
+          key: 'legacyKey',
+          phoneNames: <String>[],
+          phoneNumbers: <String>[],
+          header: '',
+          subTitle: '',
+          midTitle: '',
+          phoneNameTitle: '',
+          phoneNumberTitle: '',
+          savedPhoneNames: <String>[],
+          savedPhoneNumbers: <String>[],
+          phoneDescription: <String>[],
+        );
+        await p2.loadItemsFromPrefs();
+
+        expect(p2.savedPhoneNames, ['Legacy hotline', 'New contact']);
+        expect(p2.savedPhoneNumbers, ['*123#', '111']);
+      },
+    );
+
     test('removeItemAt removes by index', () async {
       final p = _make();
-      p.addItem('A', '1');
-      p.addItem('B', '2');
+      p.addItem('A', '111');
+      p.addItem('B', '222');
       p.removeItemAt(0);
       expect(p.savedPhoneNames, ['B']);
-      expect(p.savedPhoneNumbers, ['2']);
+      expect(p.savedPhoneNumbers, ['222']);
     });
 
     test('removeItemAt is a no-op for out-of-range index', () {
       final p = _make();
-      p.addItem('A', '1');
+      p.addItem('A', '111');
       p.removeItemAt(99);
       expect(p.savedPhoneNames, ['A']);
     });
 
     test('removeItem removes by value (both lists)', () {
       final p = _make();
-      p.addItem('A', '1');
-      p.addItem('B', '2');
-      p.removeItem('A', '1');
+      p.addItem('A', '111');
+      p.addItem('B', '222');
+      p.removeItem('A', '111');
       expect(p.savedPhoneNames, ['B']);
     });
 
     test('replaceItem swaps in-place', () {
       final p = _make();
-      p.addItem('A', '1');
+      p.addItem('A', '111');
       p.replaceItem(0, 'A2', '11');
       expect(p.savedPhoneNames, ['A2']);
       expect(p.savedPhoneNumbers, ['11']);
@@ -92,14 +135,14 @@ void main() {
 
     test('replaceItem is a no-op for out-of-range index', () {
       final p = _make();
-      p.addItem('A', '1');
-      p.replaceItem(5, 'X', 'Y');
+      p.addItem('A', '111');
+      p.replaceItem(5, 'X', '999');
       expect(p.savedPhoneNames, ['A']);
     });
 
     test('reset clears saved lists', () {
       final p = _make();
-      p.addItem('A', '1');
+      p.addItem('A', '111');
       p.reset();
       expect(p.savedPhoneNames, isEmpty);
       expect(p.savedPhoneNumbers, isEmpty);
@@ -157,7 +200,7 @@ void main() {
   group('PhonePageData persistence', () {
     test('addItem then loadItemsFromPrefs returns saved values', () async {
       final p = _make(key: 'persistKey');
-      p.addItem('A', '1');
+      p.addItem('A', '111');
       // Allow saveItemsToPrefs futures to settle
       await Future<void>.delayed(Duration.zero);
       // Build a fresh instance and force load
@@ -176,7 +219,7 @@ void main() {
       );
       await p2.loadItemsFromPrefs();
       expect(p2.savedPhoneNames, ['A']);
-      expect(p2.savedPhoneNumbers, ['1']);
+      expect(p2.savedPhoneNumbers, ['111']);
     });
   });
 }

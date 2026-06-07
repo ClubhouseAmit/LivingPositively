@@ -41,7 +41,16 @@ class _PhonePageFormState extends LPExtendedState<PhonePageForm> {
         ? contact.phones[0].number
         : null;
     if (phoneName != null && phoneNumber != null) {
-      widget.phonePageData.addItem(phoneName, phoneNumber);
+      final added = widget.phonePageData.addItem(phoneName, phoneNumber);
+      if (!added) {
+        final message = phoneName.trim().isEmpty
+            ? appLocale.contactNameRequiredError
+            : appLocale.contactPhoneInvalidError;
+        ScaffoldMessenger.maybeOf(
+          context,
+        )?.showSnackBar(SnackBar(content: Text(message)));
+        return;
+      }
       editingIndex =
           widget.phonePageData.savedPhoneNames.length -
           1; // Set editingIndex to the index of the new contact
@@ -53,12 +62,24 @@ class _PhonePageFormState extends LPExtendedState<PhonePageForm> {
   }
 
   Future<void> pickContact() async {
-    if (await FlutterContacts.permissions.has(PermissionType.read)) {
+    final hasPermission = await FlutterContacts.permissions.has(
+      PermissionType.read,
+    );
+    if (!mounted) {
+      return;
+    }
+    if (hasPermission) {
       final contact = await FlutterContacts.native.showPicker(
         properties: {ContactProperty.phone, ContactProperty.name},
       );
+      if (!mounted) {
+        return;
+      }
       if (contact != null) {
         addItem(contact);
+      }
+      if (!mounted) {
+        return;
       }
       setState(() {});
     } else {
@@ -185,20 +206,34 @@ class _PhonePageFormState extends LPExtendedState<PhonePageForm> {
                 fontSize: 20.sp,
               ),
             ),
-            Center(
-              child: Container(
-                alignment: Alignment.topCenter,
-                margin: EdgeInsets.symmetric(horizontal: 15, vertical: 5),
-                child: myAutoSizedText(
-                  appLocale.addingContactDisclaimer,
-                  TextStyle(
-                    fontWeight: FontWeight.bold,
-                    fontSize: 12.sp,
-                    height: 1.5,
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 5),
+              child: ExpansionTile(
+                leading: Tooltip(
+                  message: appLocale.phoneContactDisclaimerMoreTooltip,
+                  child: Icon(
+                    Icons.info_outline,
+                    size: 20.sp,
+                    semanticLabel: appLocale.phoneContactDisclaimerMoreTooltip,
                   ),
-                  TextAlign.center,
-                  40,
                 ),
+                tilePadding: EdgeInsets.zero,
+                childrenPadding: const EdgeInsets.only(bottom: 8),
+                title: myAutoSizedText(
+                  appLocale.phoneContactDisclaimerSummary,
+                  TextStyle(fontSize: 12.sp, height: 1.4),
+                  TextAlign.start,
+                  20,
+                  2,
+                ),
+                children: [
+                  myAutoSizedText(
+                    appLocale.addingContactDisclaimer,
+                    TextStyle(fontSize: 12.sp, height: 1.5),
+                    TextAlign.start,
+                    40,
+                  ),
+                ],
               ),
             ),
           ],

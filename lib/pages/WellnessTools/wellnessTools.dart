@@ -7,6 +7,7 @@ import 'package:mazilon/pages/WellnessTools/VideoPlayerPageFactory.dart';
 import 'package:mazilon/pages/WellnessTools/more_videos_item.dart';
 import 'package:mazilon/util/LP_extended_state.dart';
 import 'package:mazilon/util/styles.dart';
+import 'package:youtube_player_flutter/youtube_player_flutter.dart';
 
 class WellnessTools extends StatefulWidget {
   final Function setBool;
@@ -31,9 +32,91 @@ class _WellnessToolsState extends LPExtendedState<WellnessTools> {
   final VideoPlayerPageFactory _videoPlayerPageFactory =
       GetIt.instance<VideoPlayerPageFactory>();
 
+  String? _youtubeId(String videoId) {
+    final trimmed = videoId.trim();
+    final fromUrl = YoutubePlayer.convertUrlToId(trimmed);
+    if (fromUrl != null && fromUrl.isNotEmpty) {
+      return fromUrl;
+    }
+    if (trimmed.length < 11) {
+      return null;
+    }
+    return trimmed.substring(0, 11);
+  }
+
   String getThumbnailUrl(String videoId) {
-    var trimmedVideoId = videoId.substring(0, 11);
+    final trimmedVideoId = _youtubeId(videoId);
     return 'https://img.youtube.com/vi/$trimmedVideoId/0.jpg';
+  }
+
+  bool _hasUsableVideoData() {
+    final ids = widget.videoData['videoId'];
+    final headlines = widget.videoData['videoHeadline'];
+    final descriptions = widget.videoData['videoDescription'];
+    if (ids == null ||
+        headlines == null ||
+        descriptions == null ||
+        ids.isEmpty) {
+      return false;
+    }
+    if (ids.length != headlines.length || ids.length != descriptions.length) {
+      return false;
+    }
+    return ids.every((id) => _youtubeId(id) != null);
+  }
+
+  List<int> _moreVideoIndexes(int selectedIndex) {
+    return List<int>.generate(
+      widget.videoData['videoId']!.length,
+      (index) => index,
+    ).where((index) => index != selectedIndex).toList();
+  }
+
+  Widget _videoDataFallback() {
+    return Center(
+      child: Padding(
+        padding: const EdgeInsets.all(24),
+        child: Text(
+          appLocale.wellnessVideoDataUnavailableMessage,
+          style: TextStyle(fontSize: 18.sp),
+          textAlign: TextAlign.center,
+        ),
+      ),
+    );
+  }
+
+  Widget _transcript(String? text) {
+    final transcript = text?.trim() ?? '';
+    if (transcript.isEmpty) {
+      return const SizedBox.shrink();
+    }
+    return Padding(
+      padding: const EdgeInsetsDirectional.fromSTEB(0, 0, 4, 12),
+      child: ExpansionTile(
+        tilePadding: EdgeInsets.zero,
+        title: Text(
+          appLocale.wellnessTranscriptTitle,
+          textAlign: appLocale.textDirection == "rtl"
+              ? TextAlign.right
+              : TextAlign.left,
+          style: TextStyle(fontSize: 16.sp, fontWeight: FontWeight.bold),
+        ),
+        children: [
+          Align(
+            alignment: AlignmentDirectional.centerStart,
+            child: Text(
+              transcript,
+              textAlign: TextAlign.start,
+              style: TextStyle(
+                fontSize: 16.sp,
+                height: 1.5,
+                fontWeight: FontWeight.normal,
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
   }
 
   void setIsFullScreen(bool isFullScreen) {
@@ -62,16 +145,20 @@ class _WellnessToolsState extends LPExtendedState<WellnessTools> {
 
   @override
   Widget build(BuildContext context) {
-    if (widget.videoData['videoId']!.isEmpty) {
-      return Center(
-        child: Text(
-          appLocale.noVideosAvailableForLocale,
-          style: TextStyle(fontSize: 18.sp),
-        ),
-      );
+    if (!_hasUsableVideoData()) {
+      return _videoDataFallback();
     }
+    final videoIds = widget.videoData['videoId']!;
+    final selectedIndex = selectedVideoIdIndex < videoIds.length
+        ? selectedVideoIdIndex
+        : 0;
+    final transcript = widget.videoData['videoTranscript'];
+    final moreVideoIndexes = _moreVideoIndexes(selectedIndex);
+
     return VideoPlayerInheritedWidget(
-      videoId: selectedVideoId,
+      videoId: selectedVideoId.isNotEmpty
+          ? selectedVideoId
+          : _youtubeId(videoIds[selectedIndex])!,
       changeVideo: changeVideo,
       child: SafeArea(
         child: Scaffold(
@@ -101,7 +188,7 @@ class _WellnessToolsState extends LPExtendedState<WellnessTools> {
                 child: Padding(
                   padding: const EdgeInsets.fromLTRB(8.0, 10.0, 8, 10),
                   child: myAutoSizedText(
-                    widget.videoData['videoHeadline']![selectedVideoIdIndex],
+                    widget.videoData['videoHeadline']![selectedIndex],
                     TextStyle(fontSize: 24.sp, fontWeight: FontWeight.bold),
                     appLocale.textDirection == "rtl"
                         ? TextAlign.right
@@ -123,7 +210,7 @@ class _WellnessToolsState extends LPExtendedState<WellnessTools> {
                 child: Padding(
                   padding: const EdgeInsets.fromLTRB(0, 4.0, 4, 20),
                   child: myAutoSizedText(
-                    widget.videoData['videoDescription']![selectedVideoIdIndex],
+                    widget.videoData['videoDescription']![selectedIndex],
                     TextStyle(fontSize: 18.sp, fontWeight: FontWeight.normal),
                     appLocale.textDirection == "rtl"
                         ? TextAlign.right
@@ -131,6 +218,14 @@ class _WellnessToolsState extends LPExtendedState<WellnessTools> {
                     20,
                     3,
                   ),
+                ),
+              ),
+              Visibility(
+                visible: !isFullScreen,
+                child: _transcript(
+                  transcript != null && selectedIndex < transcript.length
+                      ? transcript[selectedIndex]
+                      : null,
                 ),
               ),
               Visibility(
@@ -153,31 +248,30 @@ class _WellnessToolsState extends LPExtendedState<WellnessTools> {
                 child: Expanded(
                   child: ListView.separated(
                     itemBuilder: (context, index) {
-                      if (index == selectedVideoIdIndex) {
-                        return Container();
-                      }
-                      var videoId = widget.videoData['videoId']![index];
+                      final videoIndex = moreVideoIndexes[index];
+                      var videoId = widget.videoData['videoId']![videoIndex];
                       var thumbnailUrl = getThumbnailUrl(videoId);
                       return MoreVideosItem(
                         videoData: widget.videoData,
-                        index: index,
+                        index: videoIndex,
                         thumbnailUrl: thumbnailUrl,
                         changeVidoeIdIndex: () {
                           return () {
                             setState(() {
-                              selectedVideoIdIndex = index;
-                              VideoPlayerInheritedWidget.of(
-                                context,
-                              )?.changeVideo(
+                              selectedVideoIdIndex = videoIndex;
+                              selectedVideoId = _youtubeId(
                                 widget
                                     .videoData['videoId']![selectedVideoIdIndex],
-                              );
+                              )!;
+                              VideoPlayerInheritedWidget.of(
+                                context,
+                              )?.changeVideo(selectedVideoId);
                             });
                           };
                         },
                       );
                     },
-                    itemCount: widget.videoData['videoId']!.length,
+                    itemCount: moreVideoIndexes.length,
                     separatorBuilder: (context, _) =>
                         const SizedBox(height: 10.0),
                   ),

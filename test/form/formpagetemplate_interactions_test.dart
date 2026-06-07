@@ -26,8 +26,10 @@ class _FakeAnalytics implements AnalyticsService {
   @override
   Future<void> init() async {}
   @override
-  Future<void> trackEvent(String name,
-      [Map<String, dynamic>? properties]) async {
+  Future<void> trackEvent(
+    String name, [
+    Map<String, dynamic>? properties,
+  ]) async {
     events.add(name);
   }
 }
@@ -106,42 +108,44 @@ void main() {
   });
 
   testWidgets(
-      'empty-text add button enables validation error (validate=true branch)',
-      (tester) async {
-    await _pump(tester, 'PersonalPlan-DifficultEvents');
+    'empty-text add button enables validation error (validate=true branch)',
+    (tester) async {
+      await _pump(tester, 'PersonalPlan-DifficultEvents');
 
-    // Tap the add TextButton without entering text. The first TextButton on
-    // the page is the "Add" button next to the TextField.
-    final addBtn = find.byType(TextButton).first;
-    await tester.tap(addBtn, warnIfMissed: false);
-    await tester.pump();
-    // No new FormAnswer row was added (selectedItems still 0).
-    // The validate flag is local to build(), but no exception means the
-    // empty-text branch (line 224 validate=true) was hit.
-    expect(find.byType(FormPageTemplate), findsOneWidget);
-  });
-
-  testWidgets(
-      'non-empty add appends a FormAnswer row (addItem + createSelection)',
-      (tester) async {
-    await _pump(tester, 'PersonalPlan-DifficultEvents');
-
-    await tester.enterText(find.byType(TextField), 'manual entry');
-    await tester.pump();
-    final addBtn = find.byType(TextButton).first;
-    await tester.tap(addBtn, warnIfMissed: false);
-    await tester.pumpAndSettle();
-
-    // Persisted via the fake PersistentMemoryService.
-    expect(pm.store['userSelectionPersonalPlan-DifficultEvents'],
-        contains('manual entry'));
-    expect(pm.store['disclaimerConfirmed'], true);
-  });
+      // Tap the add TextButton without entering text. The first TextButton on
+      // the page is the "Add" button next to the TextField.
+      final addBtn = find.byType(TextButton).first;
+      await tester.tap(addBtn, warnIfMissed: false);
+      await tester.pump();
+      // No new FormAnswer row was added (selectedItems still 0).
+      // The validate flag is local to build(), but no exception means the
+      // empty-text branch (line 224 validate=true) was hit.
+      expect(find.byType(FormPageTemplate), findsOneWidget);
+    },
+  );
 
   testWidgets(
-      'tapping a CheckboxListTile toggles selection and persists via '
-      'createSelection',
-      (tester) async {
+    'non-empty add appends a FormAnswer row (addItem + createSelection)',
+    (tester) async {
+      await _pump(tester, 'PersonalPlan-DifficultEvents');
+
+      await tester.enterText(find.byType(TextField), 'manual entry');
+      await tester.pump();
+      final addBtn = find.byType(TextButton).first;
+      await tester.tap(addBtn, warnIfMissed: false);
+      await tester.pumpAndSettle();
+
+      // Persisted via the fake PersistentMemoryService.
+      expect(
+        pm.store['userSelectionPersonalPlan-DifficultEvents'],
+        contains('manual entry'),
+      );
+      expect(pm.store['disclaimerConfirmed'], true);
+    },
+  );
+
+  testWidgets('tapping a CheckboxListTile toggles selection and persists via '
+      'createSelection', (tester) async {
     await _pump(tester, 'PersonalPlan-DifficultEvents');
 
     // First CheckboxListTile is rendered for the first suggestion.
@@ -150,10 +154,15 @@ void main() {
     await tester.tap(firstCheckbox, warnIfMissed: false);
     await tester.pumpAndSettle();
 
-    expect(pm.store['userSelectionPersonalPlan-DifficultEvents'],
-        isA<List<String>>());
-    expect((pm.store['userSelectionPersonalPlan-DifficultEvents'] as List)
-        .isNotEmpty, isTrue);
+    expect(
+      pm.store['userSelectionPersonalPlan-DifficultEvents'],
+      isA<List<String>>(),
+    );
+    expect(
+      (pm.store['userSelectionPersonalPlan-DifficultEvents'] as List)
+          .isNotEmpty,
+      isTrue,
+    );
 
     // Tap the same checkbox again — already-selected branch executes
     // removeItem(selectedItems.indexOf(item)).
@@ -166,8 +175,9 @@ void main() {
     );
   });
 
-  testWidgets('tapping the show-more button widens displayedLength',
-      (tester) async {
+  testWidgets('tapping the show-more button widens displayedLength', (
+    tester,
+  ) async {
     await _pump(tester, 'PersonalPlan-DifficultEvents');
 
     // The show-more button is the last TextButton on the page (after the
@@ -183,10 +193,8 @@ void main() {
     expect(find.byType(CheckboxListTile), findsWidgets);
   });
 
-  testWidgets(
-      'every collectionName routes through its createSelection arm + '
-      'next button fires widget.next',
-      (tester) async {
+  testWidgets('every collectionName routes through its createSelection arm + '
+      'next button fires widget.next', (tester) async {
     for (final collection in const [
       'PersonalPlan-DifficultEvents',
       'PersonalPlan-MakeSafer',
@@ -244,8 +252,9 @@ void main() {
     }
   });
 
-  testWidgets('tapping FormAnswer row edit/delete calls editItem/removeItem',
-      (tester) async {
+  testWidgets('tapping FormAnswer row edit/delete calls editItem/removeItem', (
+    tester,
+  ) async {
     final user = UserInformation()..gender = 'other';
     user.updateDifficultEvents(['seedA', 'seedB']);
 
@@ -256,6 +265,11 @@ void main() {
     final delete = find.byIcon(Icons.delete).first;
     await tester.tap(delete, warnIfMissed: false);
     await tester.pumpAndSettle();
+    expect(find.text('Delete this answer?'), findsOneWidget);
+
+    await tester.tap(find.text('Delete'));
+    await tester.pumpAndSettle();
+
     // After removal, persisted list shrinks by one.
     final after = pm.store['userSelectionPersonalPlan-DifficultEvents'];
     expect(after, isA<List<String>>());
