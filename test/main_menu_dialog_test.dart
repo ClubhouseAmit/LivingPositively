@@ -19,6 +19,11 @@ import 'package:mazilon/util/userInformation.dart';
 
 import 'helpers/widget_test_scaffold.dart';
 
+const MethodChannel _shareChannel = MethodChannel(
+  'dev.fluttercommunity.plus/share',
+);
+const _oldGoogleSitesShareBase = 'https://sites.google.com/mishol.org';
+
 PhonePageData _phoneData() => PhonePageData(
       key: 'phone',
       header: 'h',
@@ -38,10 +43,11 @@ Future<void> _openMenu(
   required bool isWeb,
   required VoidCallback onAbout,
   required VoidCallback onNotifications,
+  Locale locale = const Locale('en'),
 }) async {
   final user = UserInformation()
     ..gender = 'other'
-    ..localeName = 'en';
+    ..localeName = locale.languageCode;
   final phone = _phoneData();
   await pumpWithProviders(
     tester,
@@ -69,8 +75,47 @@ Future<void> _openMenu(
       );
     }),
     userInformation: user,
+    locale: locale,
     surfaceSize: const Size(1024, 800),
   );
+}
+
+Future<Map<String, dynamic>> _sharePayloadFromMenu(
+  WidgetTester tester, {
+  Locale locale = const Locale('en'),
+}) async {
+  final shareCalls = <MethodCall>[];
+  tester.binding.defaultBinaryMessenger.setMockMethodCallHandler(
+    _shareChannel,
+    (call) async {
+      shareCalls.add(call);
+      return null;
+    },
+  );
+
+  await _openMenu(
+    tester,
+    isWeb: false,
+    onAbout: () {},
+    onNotifications: () {},
+    locale: locale,
+  );
+  await tester.tap(find.byKey(const Key('openMenu')));
+  await tester.pumpAndSettle();
+
+  final shareButton = tester.widget<TextButton>(
+    find.ancestor(
+      of: find.byIcon(Icons.share),
+      matching: find.byType(TextButton),
+    ),
+  );
+  shareButton.onPressed!();
+  await tester.pump();
+  await tester.pump(const Duration(milliseconds: 50));
+
+  expect(shareCalls, hasLength(1));
+  expect(shareCalls.single.method, 'share');
+  return Map<String, dynamic>.from(shareCalls.single.arguments as Map);
 }
 
 void main() {
@@ -83,7 +128,7 @@ void main() {
     TestWidgetsFlutterBinding.ensureInitialized()
         .defaultBinaryMessenger
         .setMockMethodCallHandler(
-      const MethodChannel('dev.fluttercommunity.plus/share'),
+      _shareChannel,
       (call) async => null,
     );
   });
@@ -251,5 +296,28 @@ void main() {
     shareButton.onPressed!();
     await tester.pump();
     await tester.pump(const Duration(milliseconds: 50));
+  });
+
+  testWidgets('Share button includes Hebrew app URL for Hebrew locale', (
+    tester,
+  ) async {
+    final payload = await _sharePayloadFromMenu(
+      tester,
+      locale: const Locale('he'),
+    );
+
+    final sharedText = payload['text'] as String;
+    expect(sharedText, contains('https://hebsite.livepositively.club'));
+    expect(sharedText, isNot(contains(_oldGoogleSitesShareBase)));
+  });
+
+  testWidgets('Share button includes English app URL for English locale', (
+    tester,
+  ) async {
+    final payload = await _sharePayloadFromMenu(tester);
+
+    final sharedText = payload['text'] as String;
+    expect(sharedText, contains('https://engsite.livepositively.club'));
+    expect(sharedText, isNot(contains(_oldGoogleSitesShareBase)));
   });
 }

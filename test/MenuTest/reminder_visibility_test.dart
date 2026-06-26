@@ -317,7 +317,7 @@ void main() {
 
     expect(
       fakePlatform.lastLaunchedUrl,
-      'https://sites.google.com/mishol.org/matzilon/%D7%AA%D7%9E%D7%99%D7%9B%D7%94',
+      'https://hebsite.livepositively.club/%D7%AA%D7%9E%D7%99%D7%9B%D7%94',
     );
     expect(
       fakePlatform.lastLaunchOptions?.mode,
@@ -348,7 +348,7 @@ void main() {
 
     expect(
       fakePlatform.lastLaunchedUrl,
-      'https://sites.google.com/mishol.org/living-positively/support',
+      'https://engsite.livepositively.club/support',
     );
     expect(
       fakePlatform.lastLaunchOptions?.mode,
