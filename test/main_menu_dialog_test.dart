@@ -22,7 +22,7 @@ import 'helpers/widget_test_scaffold.dart';
 const MethodChannel _shareChannel = MethodChannel(
   'dev.fluttercommunity.plus/share',
 );
-const _oldGoogleSitesShareBase = 'https://sites.google.com/mishol.org';
+const _shareSubject = 'Living Positively App';
 
 PhonePageData _phoneData() => PhonePageData(
       key: 'phone',
@@ -116,6 +116,10 @@ Future<Map<String, dynamic>> _sharePayloadFromMenu(
   expect(shareCalls, hasLength(1));
   expect(shareCalls.single.method, 'share');
   return Map<String, dynamic>.from(shareCalls.single.arguments as Map);
+}
+
+String _expectedShareText(Locale locale, String url) {
+  return '${lookupAppLocalizations(locale).shareAppMessage}\n $url';
 }
 
 void main() {
@@ -298,26 +302,34 @@ void main() {
     await tester.pump(const Duration(milliseconds: 50));
   });
 
-  testWidgets('Share button includes Hebrew app URL for Hebrew locale', (
-    tester,
-  ) async {
+  testWidgets('Share button includes Hebrew app URL for Hebrew locale',
+      (tester) async {
+    const locale = Locale('he');
     final payload = await _sharePayloadFromMenu(
       tester,
-      locale: const Locale('he'),
+      locale: locale,
     );
 
-    final sharedText = payload['text'] as String;
-    expect(sharedText, contains('https://hebsite.livepositively.club'));
-    expect(sharedText, isNot(contains(_oldGoogleSitesShareBase)));
+    expect(
+      payload['text'],
+      equals(
+        _expectedShareText(locale, 'https://hebsite.livepositively.club'),
+      ),
+    );
+    expect(payload['subject'], equals(_shareSubject));
   });
 
-  testWidgets('Share button includes English app URL for English locale', (
-    tester,
-  ) async {
+  testWidgets('Share button includes English app URL for English locale',
+      (tester) async {
+    const locale = Locale('en');
     final payload = await _sharePayloadFromMenu(tester);
 
-    final sharedText = payload['text'] as String;
-    expect(sharedText, contains('https://engsite.livepositively.club'));
-    expect(sharedText, isNot(contains(_oldGoogleSitesShareBase)));
+    expect(
+      payload['text'],
+      equals(
+        _expectedShareText(locale, 'https://engsite.livepositively.club'),
+      ),
+    );
+    expect(payload['subject'], equals(_shareSubject));
   });
 }
