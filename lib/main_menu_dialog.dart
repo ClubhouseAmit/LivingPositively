@@ -9,9 +9,16 @@ import 'package:share_plus/share_plus.dart';
 import 'package:url_launcher/url_launcher.dart';
 
 const _hebrewContactUsUrl =
-    'https://sites.google.com/mishol.org/matzilon/%D7%AA%D7%9E%D7%99%D7%9B%D7%94';
-const _englishContactUsUrl =
-    'https://sites.google.com/mishol.org/living-positively/support';
+    'https://hebsite.livepositively.club/%D7%AA%D7%9E%D7%99%D7%9B%D7%94';
+const _englishContactUsUrl = 'https://engsite.livepositively.club/support';
+const _hebrewShareAppUrl = 'https://hebsite.livepositively.club';
+const _englishShareAppUrl = 'https://engsite.livepositively.club';
+
+String _shareAppUrl(AppLocalizations appLocale) {
+  return appLocale.localeName.startsWith('he')
+      ? _hebrewShareAppUrl
+      : _englishShareAppUrl;
+}
 
 String _contactUsUrl(AppLocalizations appLocale) {
   return appLocale.localeName.startsWith('he')
@@ -168,7 +175,7 @@ void showMainMenuDialog({
                       await SharePlus.instance.share(
                         ShareParams(
                           text:
-                              '${appLocale.shareAppMessage}\n https://sites.google.com/mishol.org/matzilon/%D7%91%D7%99%D7%AA',
+                              '${appLocale.shareAppMessage}\n ${_shareAppUrl(appLocale)}',
                           subject: 'Living Positively App',
                         ),
                       );

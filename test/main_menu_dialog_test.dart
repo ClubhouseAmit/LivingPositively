@@ -19,6 +19,11 @@ import 'package:mazilon/util/userInformation.dart';
 
 import 'helpers/widget_test_scaffold.dart';
 
+const MethodChannel _shareChannel = MethodChannel(
+  'dev.fluttercommunity.plus/share',
+);
+const _shareSubject = 'Living Positively App';
+
 PhonePageData _phoneData() => PhonePageData(
       key: 'phone',
       header: 'h',
@@ -38,10 +43,11 @@ Future<void> _openMenu(
   required bool isWeb,
   required VoidCallback onAbout,
   required VoidCallback onNotifications,
+  Locale locale = const Locale('en'),
 }) async {
   final user = UserInformation()
     ..gender = 'other'
-    ..localeName = 'en';
+    ..localeName = locale.languageCode;
   final phone = _phoneData();
   await pumpWithProviders(
     tester,
@@ -69,8 +75,51 @@ Future<void> _openMenu(
       );
     }),
     userInformation: user,
+    locale: locale,
     surfaceSize: const Size(1024, 800),
   );
+}
+
+Future<Map<String, dynamic>> _sharePayloadFromMenu(
+  WidgetTester tester, {
+  Locale locale = const Locale('en'),
+}) async {
+  final shareCalls = <MethodCall>[];
+  tester.binding.defaultBinaryMessenger.setMockMethodCallHandler(
+    _shareChannel,
+    (call) async {
+      shareCalls.add(call);
+      return null;
+    },
+  );
+
+  await _openMenu(
+    tester,
+    isWeb: false,
+    onAbout: () {},
+    onNotifications: () {},
+    locale: locale,
+  );
+  await tester.tap(find.byKey(const Key('openMenu')));
+  await tester.pumpAndSettle();
+
+  final shareButton = tester.widget<TextButton>(
+    find.ancestor(
+      of: find.byIcon(Icons.share),
+      matching: find.byType(TextButton),
+    ),
+  );
+  shareButton.onPressed!();
+  await tester.pump();
+  await tester.pump(const Duration(milliseconds: 50));
+
+  expect(shareCalls, hasLength(1));
+  expect(shareCalls.single.method, 'share');
+  return Map<String, dynamic>.from(shareCalls.single.arguments as Map);
+}
+
+String _expectedShareText(Locale locale, String url) {
+  return '${lookupAppLocalizations(locale).shareAppMessage}\n $url';
 }
 
 void main() {
@@ -83,7 +132,7 @@ void main() {
     TestWidgetsFlutterBinding.ensureInitialized()
         .defaultBinaryMessenger
         .setMockMethodCallHandler(
-      const MethodChannel('dev.fluttercommunity.plus/share'),
+      _shareChannel,
       (call) async => null,
     );
   });
@@ -251,5 +300,36 @@ void main() {
     shareButton.onPressed!();
     await tester.pump();
     await tester.pump(const Duration(milliseconds: 50));
+  });
+
+  testWidgets('Share button includes Hebrew app URL for Hebrew locale',
+      (tester) async {
+    const locale = Locale('he');
+    final payload = await _sharePayloadFromMenu(
+      tester,
+      locale: locale,
+    );
+
+    expect(
+      payload['text'],
+      equals(
+        _expectedShareText(locale, 'https://hebsite.livepositively.club'),
+      ),
+    );
+    expect(payload['subject'], equals(_shareSubject));
+  });
+
+  testWidgets('Share button includes English app URL for English locale',
+      (tester) async {
+    const locale = Locale('en');
+    final payload = await _sharePayloadFromMenu(tester);
+
+    expect(
+      payload['text'],
+      equals(
+        _expectedShareText(locale, 'https://engsite.livepositively.club'),
+      ),
+    );
+    expect(payload['subject'], equals(_shareSubject));
   });
 }
