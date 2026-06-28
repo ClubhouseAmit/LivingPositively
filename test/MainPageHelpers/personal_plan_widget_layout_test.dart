@@ -106,6 +106,35 @@ void main() {
     expect(fullPlanCalls, 1);
   });
 
+  testWidgets('Hebrew view-all control uses right-pointing arrow', (
+    tester,
+  ) async {
+    await pumpWithProviders(
+      tester,
+      PersonalPlanWidget(
+        text: planText(const <String>['First item', 'Second item']),
+        changeCurrentIndex: (_, _) {},
+      ),
+      locale: const Locale('he'),
+      surfaceSize: const Size(700, 1200),
+    );
+
+    final button = find.byKey(const Key('personalPlanViewAllButton'));
+    expect(button, findsOneWidget);
+    expect(
+      find.descendant(of: button, matching: find.text('לכל התוכנית')),
+      findsOneWidget,
+    );
+    expect(
+      find.descendant(of: button, matching: find.byIcon(Icons.arrow_right)),
+      findsOneWidget,
+    );
+    expect(
+      find.descendant(of: button, matching: find.byIcon(Icons.arrow_left)),
+      findsNothing,
+    );
+  });
+
   testWidgets('large Hebrew preview text does not overflow', (tester) async {
     await pumpWithProviders(
       tester,

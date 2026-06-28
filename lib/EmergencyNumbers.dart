@@ -67,7 +67,7 @@ final Map<String, Country> countries = {
       "number": "1201",
       "whatsappNumber": "972528451201",
       "link": "",
-      "description": "טלפון-1201/מחו\"ל-*2201 | שלוחה 5",
+      "description": "עזרה ראשונה נפשית",
       "icon": Icons.phone,
       "whatsapp": true,
       "canCall": true,
@@ -75,7 +75,7 @@ final Map<String, Country> countries = {
     {
       "name": "סה\"ר",
       "number": "0559571399",
-      "link": "",
+      "link": "https://sahar.org.il/",
       "description": "סיוע והקשבה ברשת",
       "icon": Icons.phone,
       "whatsapp": true,

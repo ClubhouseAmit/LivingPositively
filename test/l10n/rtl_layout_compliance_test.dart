@@ -168,28 +168,27 @@ void main() {
       }
     });
 
-    testWidgets(
-      'PersonalPlanWidget does not use a physical right arrow under RTL',
-      (WidgetTester tester) async {
-        await pumpArabicHarness(
-          tester,
-          PersonalPlanWidget(
-            text: const {
-              'list': ['One', 'Two'],
-              'SubTitle': 'Subtitle',
-            },
-            changeCurrentIndex: (_, _) {},
-          ),
-        );
+    testWidgets('PersonalPlanWidget does not use a left arrow under RTL', (
+      WidgetTester tester,
+    ) async {
+      await pumpArabicHarness(
+        tester,
+        PersonalPlanWidget(
+          text: const {
+            'list': ['One', 'Two'],
+            'SubTitle': 'Subtitle',
+          },
+          changeCurrentIndex: (_, _) {},
+        ),
+      );
 
-        expect(
-          find.descendant(
-            of: find.byType(PersonalPlanWidget),
-            matching: find.byIcon(Icons.arrow_right),
-          ),
-          findsNothing,
-        );
-      },
-    );
+      expect(
+        find.descendant(
+          of: find.byType(PersonalPlanWidget),
+          matching: find.byIcon(Icons.arrow_left),
+        ),
+        findsNothing,
+      );
+    });
   });
 }

@@ -214,11 +214,7 @@ class _PersonalPlanWidgetState extends LPExtendedState<PersonalPlanWidget> {
                               2,
                             ),
                           ),
-                          Icon(
-                            appLocale.textDirection == "rtl"
-                                ? Icons.arrow_left
-                                : Icons.arrow_right,
-                          ),
+                          const Icon(Icons.arrow_right),
                         ],
                       ),
                     ),

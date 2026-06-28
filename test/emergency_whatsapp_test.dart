@@ -143,6 +143,21 @@ void main() {
     expect(eran['number'], '1201');
     expect(eran['whatsapp'], true);
     expect(eran['whatsappNumber'], '972528451201');
+    expect(eran['description'], 'עזרה ראשונה נפשית');
+  });
+
+  test('Israel emergency numbers include Sahar description and website', () {
+    final israel = countries['israel'];
+    expect(israel, isNotNull);
+
+    final sahar = israel!.emergencyNumbers.firstWhere(
+      (entry) => entry['name'] == 'סה"ר',
+    );
+
+    expect(sahar['number'], '0559571399');
+    expect(sahar['whatsapp'], true);
+    expect(sahar['description'], 'סיוע והקשבה ברשת');
+    expect(sahar['link'], 'https://sahar.org.il/');
   });
 
   test('105 entry uses WhatsApp chat number 0521210105', () {
@@ -705,9 +720,13 @@ void main() {
     final eran = find.text(hebrewEran);
     final sahar = find.text(hebrewSahar);
     final number105 = find.text('105');
+    final eranDescription = find.text('עזרה ראשונה נפשית');
+    final saharDescription = find.text('סיוע והקשבה ברשת');
     expect(eran, findsOneWidget);
     expect(sahar, findsOneWidget);
     expect(number105, findsOneWidget);
+    expect(eranDescription, findsOneWidget);
+    expect(saharDescription, findsOneWidget);
 
     final eranTop = tester.getTopLeft(eran).dy;
     final saharTop = tester.getTopLeft(sahar).dy;
@@ -716,4 +735,55 @@ void main() {
     expect(saharTop, closeTo(eranTop, 1));
     expect(number105Top, greaterThan(eranTop + 20));
   });
+
+  testWidgets(
+    'Sahar website action appears below WhatsApp and opens the site',
+    (tester) async {
+      final originalPlatform = UrlLauncherPlatform.instance;
+      final fakePlatform = FakeUrlLauncherPlatform();
+      UrlLauncherPlatform.instance = fakePlatform;
+      addTearDown(() {
+        UrlLauncherPlatform.instance = originalPlatform;
+      });
+
+      tester.view.physicalSize = const Size(390, 844);
+      tester.view.devicePixelRatio = 1;
+      addTearDown(() {
+        tester.view.resetPhysicalSize();
+        tester.view.resetDevicePixelRatio();
+      });
+
+      final userInfo = UserInformation(
+        gender: 'male',
+        location: 'IL',
+        service: FakePersistentMemoryService(),
+      );
+
+      await tester.pumpWidget(
+        buildEmergencyGridTestApp(
+          userInformation: userInfo,
+          locale: const Locale('he'),
+        ),
+      );
+
+      await tester.pumpAndSettle();
+      await tester.tap(find.text(hebrewSahar));
+      await tester.pumpAndSettle();
+
+      final whatsAppAction = find.text('ווצאפ');
+      final websiteAction = find.text('קישור לאתר');
+      expect(whatsAppAction, findsOneWidget);
+      expect(websiteAction, findsOneWidget);
+
+      expect(
+        tester.getTopLeft(websiteAction).dy,
+        greaterThan(tester.getTopLeft(whatsAppAction).dy),
+      );
+
+      await tester.tap(find.byIcon(Icons.language));
+      await tester.pumpAndSettle();
+
+      expect(fakePlatform.lastLaunchedUrl, 'https://sahar.org.il/');
+    },
+  );
 }
