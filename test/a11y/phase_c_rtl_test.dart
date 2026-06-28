@@ -173,15 +173,14 @@ void main() {
     }
 
     testWidgets(
-        'header Row no longer pins an inverted textDirection in he locale',
+        'header Row uses explicit physical ordering for the close button',
         (tester) async {
       await openMenu(tester, const Locale('he'));
 
-      // The header Row that holds the close (X) button used to set
-      // `textDirection: isRtl ? LTR : RTL` (UX_GAPS §1.4). Phase C drops
-      // that override so the Row inherits the ambient Directionality (RTL
-      // in `he`). We assert by walking up from the close button to the
-      // first Row ancestor and confirming the override is null.
+      // The close button side is a physical product requirement:
+      // English => right, Hebrew => left. Keep the header Row in physical
+      // LTR coordinates and choose child order from the active locale so
+      // the X does not depend on a route-level Directionality mismatch.
       final closeFinder = find.byKey(const Key('mainMenuCloseButton'));
       expect(closeFinder, findsOneWidget);
 
@@ -194,10 +193,11 @@ void main() {
       final headerRow = tester.widget<Row>(rowAncestor.first);
       expect(
         headerRow.textDirection,
-        isNull,
+        TextDirection.ltr,
         reason:
-            'main_menu_dialog header Row must not override textDirection — '
-            'Phase C removed the inverted `isRtl ? LTR : RTL` branch.',
+            'main_menu_dialog must place the close button using explicit '
+            'physical coordinates so locale, not inherited route direction, '
+            'decides whether the X is left or right.',
       );
     });
 

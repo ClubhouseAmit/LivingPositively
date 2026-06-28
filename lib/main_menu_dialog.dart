@@ -84,6 +84,33 @@ void showMainMenuDialog({
     transitionDuration: const Duration(milliseconds: 200),
     pageBuilder: (BuildContext buildContext, Animation<double> animation,
         Animation<double> secondaryAnimation) {
+      final closeButton = IconButton(
+        key: const Key('mainMenuCloseButton'),
+        icon: const Icon(Icons.close),
+        onPressed: () {
+          Navigator.of(context).pop();
+        },
+      );
+      final aboutButton = Expanded(
+        child: Align(
+          alignment: AlignmentDirectional.centerStart,
+          child: TextButton(
+            child: Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                const Icon(Icons.people),
+                const SizedBox(width: 20),
+                Text(appLocale.homePageAbout(gender)),
+              ],
+            ),
+            onPressed: () {
+              onAboutPressed();
+              Navigator.of(context).pop();
+            },
+          ),
+        ),
+      );
+
       return Stack(
         children: [
           Positioned(
@@ -102,34 +129,10 @@ void showMainMenuDialog({
                 mainAxisSize: MainAxisSize.min,
                 children: <Widget>[
                   Row(
-                    children: [
-                      Expanded(
-                        child: Align(
-                          alignment: AlignmentDirectional.centerStart,
-                          child: TextButton(
-                            child: Row(
-                              mainAxisSize: MainAxisSize.min,
-                              children: [
-                                const Icon(Icons.people),
-                                const SizedBox(width: 20),
-                                Text(appLocale.homePageAbout(gender)),
-                              ],
-                            ),
-                            onPressed: () {
-                              onAboutPressed();
-                              Navigator.of(context).pop();
-                            },
-                          ),
-                        ),
-                      ),
-                      IconButton(
-                        key: const Key('mainMenuCloseButton'),
-                        icon: const Icon(Icons.close),
-                        onPressed: () {
-                          Navigator.of(context).pop();
-                        },
-                      ),
-                    ],
+                    textDirection: TextDirection.ltr,
+                    children: isRtl
+                        ? [closeButton, aboutButton]
+                        : [aboutButton, closeButton],
                   ),
                   _notificationButton(
                     context: context,
