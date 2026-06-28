@@ -53,11 +53,9 @@ class EmergencyDialogBox extends StatelessWidget {
       content: SingleChildScrollView(
         child: ListBody(
           children: <Widget>[
-            Wrap(
-              alignment: WrapAlignment.center,
-              runAlignment: WrapAlignment.center,
-              spacing: 12,
-              runSpacing: 12,
+            Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.center,
               children: <Widget>[
                 if (canCall)
                   getTextIconWidget(
@@ -70,6 +68,7 @@ class EmergencyDialogBox extends StatelessWidget {
                     ),
                     Icons.phone,
                   ),
+                if (canCall) const SizedBox(height: 12),
                 if (hasText)
                   getTextIconWidget(
                     'Text',
@@ -82,6 +81,7 @@ class EmergencyDialogBox extends StatelessWidget {
                     ),
                     Icons.sms,
                   ),
+                if (hasText) const SizedBox(height: 12),
                 if (hasWhatsApp)
                   getTextIconWidget(
                     appLocale.whatsApp,
@@ -93,6 +93,7 @@ class EmergencyDialogBox extends StatelessWidget {
                     ),
                     Icons.chat,
                   ),
+                if (hasWhatsApp && hasLink) const SizedBox(height: 12),
                 if (hasLink)
                   getTextIconWidget(
                     isChatLink ? 'Chat' : appLocale.link,

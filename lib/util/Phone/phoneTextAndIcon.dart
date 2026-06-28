@@ -207,14 +207,17 @@ Future<bool> openTextMessage(String number, {String body = ''}) {
 Widget getTextIconWidget(String text, Function onClick, IconData icon) {
   return SizedBox(
     child: Row(
+      mainAxisAlignment: MainAxisAlignment.center,
       children: [
-        myText(
-          text,
-          TextStyle(
-            fontWeight: FontWeight.normal,
-            fontSize: 18.sp > 35 ? 35 : 20.sp,
+        Flexible(
+          child: myText(
+            text,
+            TextStyle(
+              fontWeight: FontWeight.normal,
+              fontSize: 18.sp > 35 ? 35 : 20.sp,
+            ),
+            null,
           ),
-          null,
         ),
         SizedBox(width: 5.0),
         // Button to make a phone call. Tooltip carries the visible long-press
