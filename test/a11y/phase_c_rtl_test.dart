@@ -201,6 +201,44 @@ void main() {
       );
     });
 
+    testWidgets('close button lands on the trailing edge in LTR', (
+      tester,
+    ) async {
+      await openMenu(tester, const Locale('en'));
+
+      final closeCenter = tester.getCenter(
+        find.byKey(const Key('mainMenuCloseButton')),
+      );
+      final dialogCenter = tester.getCenter(
+        find.byKey(const Key('mainMenuDialog')),
+      );
+
+      expect(
+        closeCenter.dx,
+        greaterThan(dialogCenter.dx),
+        reason: 'The main menu close button must sit on the right in English.',
+      );
+    });
+
+    testWidgets('close button flips to the trailing edge in RTL', (
+      tester,
+    ) async {
+      await openMenu(tester, const Locale('he'));
+
+      final closeCenter = tester.getCenter(
+        find.byKey(const Key('mainMenuCloseButton')),
+      );
+      final dialogCenter = tester.getCenter(
+        find.byKey(const Key('mainMenuDialog')),
+      );
+
+      expect(
+        closeCenter.dx,
+        lessThan(dialogCenter.dx),
+        reason: 'The main menu close button must sit on the left in Hebrew.',
+      );
+    });
+
     testWidgets(
         'About label aligns to leading edge via AlignmentDirectional',
         (tester) async {

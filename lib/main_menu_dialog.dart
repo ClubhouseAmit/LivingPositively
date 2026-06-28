@@ -103,13 +103,6 @@ void showMainMenuDialog({
                 children: <Widget>[
                   Row(
                     children: [
-                      IconButton(
-                        key: const Key('mainMenuCloseButton'),
-                        icon: const Icon(Icons.close),
-                        onPressed: () {
-                          Navigator.of(context).pop();
-                        },
-                      ),
                       Expanded(
                         child: Align(
                           alignment: AlignmentDirectional.centerStart,
@@ -128,6 +121,13 @@ void showMainMenuDialog({
                             },
                           ),
                         ),
+                      ),
+                      IconButton(
+                        key: const Key('mainMenuCloseButton'),
+                        icon: const Icon(Icons.close),
+                        onPressed: () {
+                          Navigator.of(context).pop();
+                        },
                       ),
                     ],
                   ),
