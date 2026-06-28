@@ -94,15 +94,10 @@ void showMainMenuDialog({
       final aboutButton = Expanded(
         child: Align(
           alignment: AlignmentDirectional.centerStart,
-          child: TextButton(
-            child: Row(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                const Icon(Icons.people),
-                const SizedBox(width: 20),
-                Text(appLocale.homePageAbout(gender)),
-              ],
-            ),
+          child: _buildMainMenuAction(
+            icon: Icons.people,
+            label: appLocale.homePageAbout(gender),
+            mainAxisSize: MainAxisSize.min,
             onPressed: () {
               onAboutPressed();
               Navigator.of(context).pop();
@@ -141,15 +136,9 @@ void showMainMenuDialog({
                     isWeb: isWeb,
                     onNotificationsPressed: onNotificationsPressed,
                   ),
-                  TextButton(
-                    child: Row(
-                      mainAxisAlignment: MainAxisAlignment.start,
-                      children: [
-                        const Icon(Icons.settings),
-                        const SizedBox(width: 20),
-                        Text(appLocale.settings(gender)),
-                      ],
-                    ),
+                  _buildMainMenuAction(
+                    icon: Icons.settings,
+                    label: appLocale.settings(gender),
                     onPressed: () {
                       Navigator.of(context).pop();
                       Navigator.push(
@@ -165,15 +154,9 @@ void showMainMenuDialog({
                       );
                     },
                   ),
-                  TextButton(
-                    child: Row(
-                      mainAxisAlignment: MainAxisAlignment.start,
-                      children: [
-                        const Icon(Icons.share),
-                        const SizedBox(width: 20),
-                        Text(appLocale.shareButtonText),
-                      ],
-                    ),
+                  _buildMainMenuAction(
+                    icon: Icons.share,
+                    label: appLocale.shareButtonText,
                     onPressed: () async {
                       await SharePlus.instance.share(
                         ShareParams(
@@ -184,16 +167,10 @@ void showMainMenuDialog({
                       );
                     },
                   ),
-                  TextButton(
+                  _buildMainMenuAction(
                     key: const Key('mainMenuContactUsButton'),
-                    child: Row(
-                      mainAxisAlignment: MainAxisAlignment.start,
-                      children: [
-                        const Icon(Icons.email),
-                        const SizedBox(width: 20),
-                        Text(appLocale.contactUs),
-                      ],
-                    ),
+                    icon: Icons.email,
+                    label: appLocale.contactUs,
                     onPressed: () async {
                       await _openContactUs(appLocale);
                     },
@@ -208,6 +185,24 @@ void showMainMenuDialog({
   );
 }
 
+Widget _buildMainMenuAction({
+  Key? key,
+  required IconData icon,
+  required String label,
+  required VoidCallback onPressed,
+  MainAxisSize mainAxisSize = MainAxisSize.max,
+}) {
+  return TextButton(
+    key: key,
+    onPressed: onPressed,
+    child: Row(
+      mainAxisAlignment: MainAxisAlignment.start,
+      mainAxisSize: mainAxisSize,
+      children: [Icon(icon), const SizedBox(width: 20), Text(label)],
+    ),
+  );
+}
+
 Widget _notificationButton({
   required BuildContext context,
   required AppLocalizations appLocale,
@@ -219,15 +214,9 @@ Widget _notificationButton({
     return const SizedBox.shrink();
   }
 
-  return TextButton(
-    child: Row(
-      mainAxisAlignment: MainAxisAlignment.start,
-      children: [
-        const Icon(Icons.notification_add),
-        const SizedBox(width: 20),
-        Text(appLocale.notifications(gender)),
-      ],
-    ),
+  return _buildMainMenuAction(
+    icon: Icons.notification_add,
+    label: appLocale.notifications(gender),
     onPressed: () {
       onNotificationsPressed();
       Navigator.of(context).pop();
