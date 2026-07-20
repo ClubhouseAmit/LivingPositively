@@ -201,13 +201,23 @@ void main() {
     );
     await tester.pumpAndSettle();
 
-    final emergency = find.text('Emergency');
-    final elem = find.text('Elem עלם');
-    expect(elem, findsOneWidget);
-    expect(
-      tester.getTopLeft(elem).dy,
-      greaterThan(tester.getTopLeft(emergency).dy),
-    );
+    const expectedNames = [
+      'Emergency',
+      'Veterans Crisis Line',
+      'The Trevor Project (for LGBTQ+ youth)',
+      '988 Suicide & Crisis Lifeline',
+      'Crisis Text Line',
+      'Elem עלם',
+    ];
+    for (final name in expectedNames) {
+      expect(find.text(name), findsOneWidget);
+    }
+
+    final renderedNames = tester
+        .widgetList<EmergencyPhoneItem>(find.byType(EmergencyPhoneItem))
+        .map((item) => item.number['name'] as String)
+        .toList();
+    expect(renderedNames, expectedNames);
 
     await tester.pumpWidget(
       buildEmergencyGridTestApp(
