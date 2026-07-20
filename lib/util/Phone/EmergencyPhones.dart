@@ -50,14 +50,17 @@ class EmergencyPhonesGrid extends StatelessWidget {
     final activeCountry = country ?? defaultEmergencyCountry;
     final bool isFallback = country == null;
     final localNumbers = <Map<String, dynamic>>[
-      if (userInfo.age.trim() == '18-') elemSupportOption,
       ...activeCountry.emergencyNumbers,
     ];
     final appLocale = AppLocalizations.of(context);
-    final displayedNumbers =
+    final orderedNumbers =
         appLocale?.localeName == 'he' && activeCountry.id == 'israel'
             ? _hebrewIsraelEmergencyOrder(localNumbers)
             : localNumbers;
+    final displayedNumbers = <Map<String, dynamic>>[
+      ...orderedNumbers,
+      if (userInfo.age.trim() == '18-') elemSupportOption,
+    ];
 
     Widget? fallbackBanner;
     if (isFallback) {

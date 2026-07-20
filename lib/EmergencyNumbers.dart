@@ -18,7 +18,7 @@ class Country {
 
 const Map<String, dynamic> elemSupportOption = {
   "name": "Elem עלם",
-  "number": "972546786776",
+  "number": "0546786776",
   "whatsappNumber": "972546786776",
   "link": "https://yelem.org.il/",
   "description": "Support for children and teens",
