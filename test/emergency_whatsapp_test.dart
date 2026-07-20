@@ -173,6 +173,75 @@ void main() {
     expect(entry105['whatsappNumber'], '0521210105');
   });
 
+  test('Elem support uses the requested WhatsApp number and website', () {
+    expect(elemSupportOption['name'], 'Elem עלם');
+    expect(elemSupportOption['whatsappNumber'], '972546786776');
+    expect(elemSupportOption['link'], 'https://yelem.org.il/');
+    expect(elemSupportOption['whatsapp'], true);
+    expect(elemSupportOption['canCall'], false);
+  });
+
+  testWidgets('Elem support is shown only to under-18 users', (tester) async {
+    await tester.pumpWidget(
+      buildEmergencyGridTestApp(
+        userInformation: UserInformation(
+          age: '18-',
+          location: 'US',
+          service: FakePersistentMemoryService(),
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    expect(find.text('Elem עלם'), findsOneWidget);
+
+    await tester.pumpWidget(
+      buildEmergencyGridTestApp(
+        userInformation: UserInformation(
+          age: '18-30',
+          location: 'US',
+          service: FakePersistentMemoryService(),
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    expect(find.text('Elem עלם'), findsNothing);
+  });
+
+  testWidgets('Elem support opens WhatsApp and website actions', (
+    tester,
+  ) async {
+    final originalPlatform = UrlLauncherPlatform.instance;
+    final fakePlatform = FakeUrlLauncherPlatform();
+    UrlLauncherPlatform.instance = fakePlatform;
+    addTearDown(() {
+      UrlLauncherPlatform.instance = originalPlatform;
+    });
+
+    await tester.pumpWidget(
+      buildEmergencyGridTestApp(
+        userInformation: UserInformation(
+          age: '18-',
+          location: 'US',
+          service: FakePersistentMemoryService(),
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    await tester.tap(find.text('Elem עלם'));
+    await tester.pumpAndSettle();
+
+    await tester.tap(find.byIcon(Icons.chat).last);
+    await tester.pumpAndSettle();
+    expect(fakePlatform.lastLaunchedUrl, 'https://wa.me/972546786776');
+
+    await tester.tap(find.byIcon(Icons.language));
+    await tester.pumpAndSettle();
+    expect(fakePlatform.lastLaunchedUrl, 'https://yelem.org.il/');
+  });
+
   test('Emergency numbers match SOS reference data for AU/US/UK/EU', () {
     final usa = countries['usa'];
     final uk = countries['uk'];

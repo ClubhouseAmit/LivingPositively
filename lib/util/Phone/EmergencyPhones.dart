@@ -49,7 +49,10 @@ class EmergencyPhonesGrid extends StatelessWidget {
     }
     final activeCountry = country ?? defaultEmergencyCountry;
     final bool isFallback = country == null;
-    final localNumbers = activeCountry.emergencyNumbers;
+    final localNumbers = <Map<String, dynamic>>[
+      if (userInfo.age.trim() == '18-') elemSupportOption,
+      ...activeCountry.emergencyNumbers,
+    ];
     final appLocale = AppLocalizations.of(context);
     final displayedNumbers =
         appLocale?.localeName == 'he' && activeCountry.id == 'israel'
