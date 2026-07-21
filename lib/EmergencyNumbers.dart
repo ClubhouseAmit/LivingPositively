@@ -16,6 +16,18 @@ class Country {
   });
 }
 
+const Map<String, dynamic> elemSupportOption = {
+  "name": "Elem עלם",
+  "number": "0546786776",
+  "whatsappNumber": "972546786776",
+  "link": "https://yelem.org.il/",
+  "description": "Support for children and teens",
+  "descriptionHe": "סיוע לילדים ובני נוער",
+  "icon": Icons.chat,
+  "whatsapp": true,
+  "canCall": false,
+};
+
 const List<String> euCountryCodes = [
   'AT',
   'BE',
