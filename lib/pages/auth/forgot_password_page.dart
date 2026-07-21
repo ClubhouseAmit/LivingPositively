@@ -34,7 +34,12 @@ class _ForgotPasswordPageState extends LPExtendedState<ForgotPasswordPage> {
       if (mounted) setState(() => _sent = true);
     } catch (e) {
       if (mounted) {
-        setState(() => _errorMessage = appLocale.authErrorGeneric);
+        final key = AuthService.localizedError(e);
+        setState(() => _errorMessage = switch (key) {
+              'authErrorUserNotFound' => appLocale.authErrorUserNotFound,
+              'authErrorInvalidEmail' => appLocale.authErrorInvalidEmail,
+              _ => appLocale.authErrorGeneric,
+            });
       }
     } finally {
       if (mounted) setState(() => _isLoading = false);
@@ -56,13 +61,15 @@ class _ForgotPasswordPageState extends LPExtendedState<ForgotPasswordPage> {
       ),
       body: Padding(
         padding: const EdgeInsets.all(24),
-        child: _sent ? _SuccessView(appLocale.authForgotPasswordSuccess) : _FormView(
-          emailController: _emailController,
-          isLoading: _isLoading,
-          errorMessage: _errorMessage,
-          onSend: _send,
-          appLocale: appLocale,
-        ),
+        child: _sent
+            ? _SuccessView(appLocale.authForgotPasswordSuccess)
+            : _FormView(
+                emailController: _emailController,
+                isLoading: _isLoading,
+                errorMessage: _errorMessage,
+                onSend: _send,
+                appLocale: appLocale,
+              ),
       ),
     );
   }
@@ -80,7 +87,8 @@ class _SuccessView extends StatelessWidget {
         children: [
           Icon(Icons.mark_email_read_outlined, size: 64, color: Colors.green),
           const SizedBox(height: 16),
-          Text(message, textAlign: TextAlign.center,
+          Text(message,
+              textAlign: TextAlign.center,
               style: const TextStyle(fontSize: 16)),
           const SizedBox(height: 24),
           TextButton(
@@ -123,8 +131,7 @@ class _FormView extends StatelessWidget {
           autocorrect: false,
           decoration: InputDecoration(
             labelText: appLocale.authEmailHint,
-            border: OutlineInputBorder(
-                borderRadius: BorderRadius.circular(12)),
+            border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
             prefixIcon: const Icon(Icons.email_outlined),
           ),
         ),
@@ -139,14 +146,15 @@ class _FormView extends StatelessWidget {
             backgroundColor: primaryPurple,
             foregroundColor: Colors.white,
             minimumSize: const Size.fromHeight(48),
-            shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(12)),
+            shape:
+                RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
           ),
           child: isLoading
               ? const SizedBox(
-                  height: 20, width: 20,
-                  child: CircularProgressIndicator(strokeWidth: 2,
-                      color: Colors.white))
+                  height: 20,
+                  width: 20,
+                  child: CircularProgressIndicator(
+                      strokeWidth: 2, color: Colors.white))
               : Text(appLocale.authForgotPasswordButton,
                   style: const TextStyle(fontSize: 16)),
         ),

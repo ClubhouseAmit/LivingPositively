@@ -60,8 +60,6 @@ mixin _SocialSignIn<T extends StatefulWidget> on LPExtendedState<T> {
         return appLocale.authErrorWeakPassword;
       case 'authErrorUserNotFound':
         return appLocale.authErrorUserNotFound;
-      case 'authErrorWrongPassword':
-        return appLocale.authErrorWrongPassword;
       case 'authErrorEmailInUse':
         return appLocale.authErrorEmailInUse;
       default:
@@ -89,19 +87,28 @@ class _AuthPageState extends LPExtendedState<AuthPage> {
   bool _isLoginMode = true;
 
   Future<void> _onAuthSuccess(User user) async {
-    final userInfo = Provider.of<UserInformation>(context, listen: false);
-    await AuthService.saveUserToFirestore(user);
-    await FcmService.onUserSignedIn();
+    try {
+      debugPrint("1");
+      final userInfo = Provider.of<UserInformation>(context, listen: false);
+      debugPrint("2");
+      await AuthService.saveUserToFirestore(user);
+      debugPrint("3");
+      await FcmService.onUserSignedIn();
+      debugPrint("4");
 
-    userInfo.updateLoggedIn(true);
-    userInfo.updateUserId(user.uid);
-    userInfo.updateEmail(user.email ?? '');
-    userInfo.updateDisplayName(user.displayName ?? '');
+      userInfo.updateLoggedIn(true);
+      userInfo.updateUserId(user.uid);
+      userInfo.updateEmail(user.email ?? '');
+      userInfo.updateDisplayName(user.displayName ?? '');
 
-    if (widget.fromNotifications) {
-      if (mounted) Navigator.pop(context);
-    } else {
-      userInfo.updateAuthDecisionMade(true);
+      if (widget.fromNotifications) {
+        if (mounted) Navigator.pop(context);
+      } else {
+        userInfo.updateAuthDecisionMade(true);
+      }
+    } catch (e) {
+      debugPrint("in error");
+      debugPrint(e.toString());
     }
   }
 
@@ -217,7 +224,8 @@ class _LoginFormState extends LPExtendedState<_LoginForm>
       if (mounted) await widget.onSuccess(user);
     } catch (e) {
       if (mounted) {
-        setState(() => _errorMessage = _resolveError(AuthService.localizedError(e)));
+        setState(
+            () => _errorMessage = _resolveError(AuthService.localizedError(e)));
       }
     } finally {
       if (mounted) setState(() => _isLoading = false);
@@ -383,15 +391,24 @@ class _SignupFormState extends LPExtendedState<_SignupForm>
     });
     try {
       final result = await AuthService.signUpWithEmail(email, password);
+      debugPrint("1");
       if (_nameController.text.trim().isNotEmpty) {
+        debugPrint("2");
+
         await result.user?.updateDisplayName(_nameController.text.trim());
+        debugPrint("3");
         await result.user?.reload();
+        debugPrint("4");
       }
+      debugPrint("5");
       final user = FirebaseAuth.instance.currentUser!;
+      debugPrint("6");
       if (mounted) await widget.onSuccess(user);
+      debugPrint("7");
     } catch (e) {
       if (mounted) {
-        setState(() => _errorMessage = _resolveError(AuthService.localizedError(e)));
+        setState(
+            () => _errorMessage = _resolveError(AuthService.localizedError(e)));
       }
     } finally {
       if (mounted) setState(() => _isLoading = false);

@@ -160,6 +160,7 @@ class UserInformation with ChangeNotifier {
 
   void updateLoggedIn(bool value) {
     loggedIn = value;
+    service.setItem('loggedIn', PersistentMemoryType.Bool, value);
     notifyListeners();
   }
 
@@ -181,6 +182,7 @@ class UserInformation with ChangeNotifier {
 
   void updateUserId(String value) {
     userId = value;
+    service.setItem('userId', PersistentMemoryType.String, value);
     notifyListeners();
   }
 
