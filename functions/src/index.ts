@@ -218,17 +218,27 @@ export const processScheduledNotifications = onSchedule(
       }),
     );
 
-    // --- Send phase ---
+    // --- Device fetch phase (parallel) ---
 
-    let successCount = 0;
-    let failureCount = 0;
+    const uniqueUids = [...new Set(snapshot.docs.map((d) => d.data().uid))];
+    const deviceDocs = await Promise.all(
+      uniqueUids.map((uid) =>
+        admin.firestore().collection("devices").doc(uid).get(),
+      ),
+    );
+    const deviceMap = new Map(
+      deviceDocs.map((d) => [d.id, d.data()]),
+    );
+
+    // --- Build send list, collecting stale UIDs for deferred cleanup ---
+
+    const staleUids: string[] = [];
+    const sendTasks: Array<() => Promise<"success" | "failure">> = [];
 
     for (const doc of snapshot.docs) {
       const { uid, typeId, locale, gender } = doc.data();
 
-      const deviceDoc = await admin.firestore().collection("devices").doc(uid).get();
-
-      const deviceData = deviceDoc.data();
+      const deviceData = deviceMap.get(uid);
 
       const updatedAt = deviceData?.updatedAt as
         | admin.firestore.Timestamp
@@ -236,23 +246,16 @@ export const processScheduledNotifications = onSchedule(
       if (updatedAt) {
         const ageDays = (Date.now() - updatedAt.toMillis()) / 86_400_000;
         if (ageDays > STALE_TOKEN_DAYS) {
-          await cleanupInactiveDevice(uid);
-          failureCount++;
+          staleUids.push(uid);
           continue;
         }
       }
 
       const fcmToken = deviceData?.fcmToken as string | undefined;
-      if (!fcmToken) {
-        failureCount++;
-        continue;
-      }
+      if (!fcmToken) continue;
 
       const typeData = typeDataMap.get(typeId);
-      if (!typeData) {
-        failureCount++;
-        continue;
-      }
+      if (!typeData) continue;
 
       let title = "Living Positively";
       let body = "";
@@ -261,15 +264,9 @@ export const processScheduledNotifications = onSchedule(
         const collectionName =
           typeData.quotesCollections[locale] ??
           typeData.quotesCollections["he"];
-        if (!collectionName) {
-          failureCount++;
-          continue;
-        }
+        if (!collectionName) continue;
         const quotes = quotesMap.get(collectionName);
-        if (!quotes || quotes.length === 0) {
-          failureCount++;
-          continue;
-        }
+        if (!quotes || quotes.length === 0) continue;
         const quoteData = quotes[Math.floor(Math.random() * quotes.length)];
         body = quoteData[gender] ?? quoteData.other ?? quoteData.male ?? quoteData.text ?? "";
       } else {
@@ -277,19 +274,40 @@ export const processScheduledNotifications = onSchedule(
         body = typeData.staticBody ?? "";
       }
 
-      try {
-        await admin
-          .messaging()
-          .send({ token: fcmToken, notification: { title, body } });
-        successCount++;
-      } catch (err: any) {
-        if (
-          err?.errorInfo?.code === "messaging/registration-token-not-registered"
-        ) {
-          await clearFCMToken(uid);
+      sendTasks.push(async () => {
+        try {
+          await admin
+            .messaging()
+            .send({ token: fcmToken, notification: { title, body } });
+          return "success";
+        } catch (err: any) {
+          if (
+            err?.errorInfo?.code === "messaging/registration-token-not-registered"
+          ) {
+            await clearFCMToken(uid);
+          }
+          return "failure";
         }
-        failureCount++;
-      }
+      });
+    }
+
+    // --- Send phase (parallel) ---
+
+    const results = await Promise.allSettled(sendTasks.map((t) => t()));
+    let successCount = 0;
+    let failureCount = 0;
+    for (const r of results) {
+      if (r.status === "fulfilled" && r.value === "success") successCount++;
+      else failureCount++;
+    }
+
+    // --- Stale device cleanup (batched, after sends) ---
+
+    if (staleUids.length > 0) {
+      await Promise.allSettled(
+        [...new Set(staleUids)].map((uid) => cleanupInactiveDevice(uid)),
+      );
+      failureCount += staleUids.length;
     }
 
     console.log(
