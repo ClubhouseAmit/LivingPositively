@@ -37,7 +37,10 @@ class FakePersistentMemoryService implements PersistentMemoryService {
 }
 
 class FakeUrlLauncherPlatform extends UrlLauncherPlatform {
-  String? lastLaunchedUrl;
+  final List<String> launchedUrls = [];
+
+  String? get lastLaunchedUrl =>
+      launchedUrls.isEmpty ? null : launchedUrls.last;
 
   @override
   LinkDelegate? get linkDelegate => null;
@@ -58,7 +61,7 @@ class FakeUrlLauncherPlatform extends UrlLauncherPlatform {
     required Map<String, String> headers,
     String? webOnlyWindowName,
   }) async {
-    lastLaunchedUrl = url;
+    launchedUrls.add(url);
     return true;
   }
 }
@@ -171,6 +174,99 @@ void main() {
     expect(entry105['number'], '105');
     expect(entry105['whatsapp'], true);
     expect(entry105['whatsappNumber'], '0521210105');
+  });
+
+  test('Elem support uses the requested WhatsApp number and website', () {
+    expect(elemSupportOption['name'], 'Elem עלם');
+    expect(elemSupportOption['number'], '0546786776');
+    expect(elemSupportOption['whatsappNumber'], '972546786776');
+    expect(
+      elemSupportOption['number'],
+      isNot(elemSupportOption['whatsappNumber']),
+    );
+    expect(elemSupportOption['link'], 'https://yelem.org.il/');
+    expect(elemSupportOption['whatsapp'], true);
+    expect(elemSupportOption['canCall'], false);
+  });
+
+  testWidgets('Elem support is shown only to under-18 users', (tester) async {
+    await tester.pumpWidget(
+      buildEmergencyGridTestApp(
+        userInformation: UserInformation(
+          age: '18-',
+          location: 'US',
+          service: FakePersistentMemoryService(),
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    const expectedNames = [
+      'Emergency',
+      'Veterans Crisis Line',
+      'The Trevor Project (for LGBTQ+ youth)',
+      '988 Suicide & Crisis Lifeline',
+      'Crisis Text Line',
+      'Elem עלם',
+    ];
+    for (final name in expectedNames) {
+      expect(find.text(name), findsOneWidget);
+    }
+
+    final renderedNames = tester
+        .widgetList<EmergencyPhoneItem>(find.byType(EmergencyPhoneItem))
+        .map((item) => item.number['name'] as String)
+        .toList();
+    expect(renderedNames, expectedNames);
+
+    await tester.pumpWidget(
+      buildEmergencyGridTestApp(
+        userInformation: UserInformation(
+          age: '18-30',
+          location: 'US',
+          service: FakePersistentMemoryService(),
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    expect(find.text('Elem עלם'), findsNothing);
+  });
+
+  testWidgets('Elem support opens WhatsApp and website actions', (
+    tester,
+  ) async {
+    final originalPlatform = UrlLauncherPlatform.instance;
+    final fakePlatform = FakeUrlLauncherPlatform();
+    UrlLauncherPlatform.instance = fakePlatform;
+    addTearDown(() {
+      UrlLauncherPlatform.instance = originalPlatform;
+    });
+
+    await tester.pumpWidget(
+      buildEmergencyGridTestApp(
+        userInformation: UserInformation(
+          age: '18-',
+          location: 'US',
+          service: FakePersistentMemoryService(),
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    await tester.tap(find.text('Elem עלם'));
+    await tester.pumpAndSettle();
+
+    await tester.tap(find.byIcon(Icons.chat).last);
+    await tester.pumpAndSettle();
+    expect(fakePlatform.launchedUrls, ['https://wa.me/972546786776']);
+
+    await tester.tap(find.byIcon(Icons.language));
+    await tester.pumpAndSettle();
+    expect(fakePlatform.launchedUrls, [
+      'https://wa.me/972546786776',
+      'https://yelem.org.il/',
+    ]);
   });
 
   test('Emergency numbers match SOS reference data for AU/US/UK/EU', () {
