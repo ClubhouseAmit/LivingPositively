@@ -188,7 +188,7 @@ class _FormPageTemplateState extends LPExtendedState<FormPageTemplate> {
                         displayInformation['subTitle'],
                         TextStyle(
                           fontWeight: FontWeight.bold,
-                          color: darkGray,
+                          color: Theme.of(context).colorScheme.outline,
                           fontSize: 14.sp,
                           height: 1.3,
                         ),
@@ -245,17 +245,19 @@ class _FormPageTemplateState extends LPExtendedState<FormPageTemplate> {
                           }
                         },
                         style: TextButton.styleFrom(
-                          foregroundColor:
-                              Colors.black, // This is the color of the text
-                          backgroundColor: Colors
-                              .white, // This is the background color of the button
+                          foregroundColor: Theme.of(context)
+                              .colorScheme
+                              .onSurface, // This is the color of the text
+                          backgroundColor: Theme.of(context)
+                              .colorScheme
+                              .surfaceContainerHighest, // This is the background color of the button
                           shape: RoundedRectangleBorder(
                             // This is the shape of the button
                             borderRadius: BorderRadius.circular(
                               20,
                             ), // This is the border radius
-                            side: const BorderSide(
-                              color: Colors.black,
+                            side: BorderSide(
+                              color: Theme.of(context).colorScheme.onSurface,
                             ), // This is the border color
                           ),
                           padding: const EdgeInsets.all(
@@ -311,7 +313,7 @@ class _FormPageTemplateState extends LPExtendedState<FormPageTemplate> {
                         displayInformation['midSubTitle'],
                         TextStyle(
                           fontWeight: FontWeight.bold,
-                          color: darkGray,
+                          color: Theme.of(context).colorScheme.outline,
                           fontSize: 14.sp,
                           height: 1.5,
                         ),
@@ -336,7 +338,7 @@ class _FormPageTemplateState extends LPExtendedState<FormPageTemplate> {
                         contentPadding: const EdgeInsetsDirectional.only(
                           start: 15.0,
                         ),
-                        activeColor: appGreen,
+                        activeColor: Theme.of(context).colorScheme.tertiary,
                         checkboxShape: CircleBorder(),
                         visualDensity: VisualDensity.compact,
                         title: isAlreadySelected(item)
@@ -344,7 +346,7 @@ class _FormPageTemplateState extends LPExtendedState<FormPageTemplate> {
                                 options: RoundedRectDottedBorderOptions(
                                   radius: const Radius.circular(20),
                                   dashPattern: const [5, 5],
-                                  color: appGreen,
+                                  color: Theme.of(context).colorScheme.tertiary,
                                   strokeWidth: 2,
                                 ),
                                 child: Container(
@@ -358,7 +360,9 @@ class _FormPageTemplateState extends LPExtendedState<FormPageTemplate> {
                                     vertical: 5,
                                   ),
                                   decoration: BoxDecoration(
-                                    color: Colors.white,
+                                    color: Theme.of(
+                                      context,
+                                    ).colorScheme.surfaceContainerHighest,
                                     borderRadius: BorderRadius.circular(20),
                                   ),
                                   child: Text(
@@ -375,7 +379,7 @@ class _FormPageTemplateState extends LPExtendedState<FormPageTemplate> {
                                 options: RoundedRectDottedBorderOptions(
                                   radius: const Radius.circular(20),
                                   dashPattern: const [5, 5],
-                                  color: appGreen,
+                                  color: Theme.of(context).colorScheme.tertiary,
                                   strokeWidth: 2,
                                 ),
                                 child: Container(
@@ -390,7 +394,9 @@ class _FormPageTemplateState extends LPExtendedState<FormPageTemplate> {
                                     vertical: 5,
                                   ),
                                   decoration: BoxDecoration(
-                                    color: Colors.white,
+                                    color: Theme.of(
+                                      context,
+                                    ).colorScheme.surfaceContainerHighest,
                                     borderRadius: BorderRadius.circular(20),
                                     //border: Border.all(color: Color.fromARGB(255, 187, 167, 235))
                                   ),
@@ -431,17 +437,19 @@ class _FormPageTemplateState extends LPExtendedState<FormPageTemplate> {
                           addSuggestion();
                         },
                         style: TextButton.styleFrom(
-                          foregroundColor:
-                              Colors.black, // This is the color of the text
-                          backgroundColor: Colors
-                              .white, // This is the background color of the button
+                          foregroundColor: Theme.of(context)
+                              .colorScheme
+                              .onSurface, // This is the color of the text
+                          backgroundColor: Theme.of(context)
+                              .colorScheme
+                              .surfaceContainerHighest, // This is the background color of the button
                           shape: RoundedRectangleBorder(
                             // This is the shape of the button
                             borderRadius: BorderRadius.circular(
                               20,
                             ), // This is the border radius
-                            side: const BorderSide(
-                              color: Colors.black,
+                            side: BorderSide(
+                              color: Theme.of(context).colorScheme.onSurface,
                             ), // This is the border color
                           ),
                           padding: const EdgeInsets.all(

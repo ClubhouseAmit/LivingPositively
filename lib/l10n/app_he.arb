@@ -74,6 +74,12 @@
      "userSettingsAge": "{gender,select,male{מהו גילי?} female{מהו גילי?} other{מהו גילי?}}",
 
      "settings": "{gender,select,male{הגדרות} female{הגדרות} other{הגדרות}}",
+     "darkModeSettingsTitle": "מצב כהה",
+     "darkModeAlwaysLight": "תמיד בהיר",
+     "darkModeAlwaysDark": "תמיד כהה",
+     "darkModeSleepPromoting": "מצב תומך שינה",
+     "darkModeStartTime": "שעת התחלה",
+     "darkModeEndTime": "שעת סיום",
 
 
      "introductionFormFirstPageMainTitle": "{gender,select,male{מה ששומר עלי} female{מה ששומר עלי} other{מה ששומר עלי}}",

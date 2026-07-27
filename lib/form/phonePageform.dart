@@ -156,7 +156,9 @@ class _PhonePageFormState extends LPExtendedState<PhonePageForm> {
                         TextButton(
                           onPressed: pickContact,
                           style: TextButton.styleFrom(
-                            backgroundColor: Colors.white,
+                            backgroundColor: Theme.of(
+                              context,
+                            ).colorScheme.surfaceContainerHighest,
                             shape: RoundedRectangleBorder(
                               borderRadius: BorderRadius.circular(12),
                             ),
@@ -166,7 +168,7 @@ class _PhonePageFormState extends LPExtendedState<PhonePageForm> {
                             appLocale.phonesPageContactImportTitle(gender),
                             TextStyle(
                               fontWeight: FontWeight.bold,
-                              color: primaryPurple,
+                              color: Theme.of(context).colorScheme.primary,
                               fontSize: 16.sp,
                             ),
                             TextAlign.center,

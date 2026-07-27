@@ -123,7 +123,7 @@ class _PhonePageState extends LPExtendedState<PhonePage> {
                           onPressed: _openContactsEditor,
                           icon: Icon(
                             Icons.edit,
-                            color: primaryPurple,
+                            color: Theme.of(context).colorScheme.primary,
                             size: 28.sp,
                           ),
                         ),

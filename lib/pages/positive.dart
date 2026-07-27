@@ -15,6 +15,7 @@ import 'package:mazilon/util/Thanks/AddForm.dart';
 import 'package:provider/provider.dart';
 import 'package:mazilon/util/userInformation.dart';
 import 'package:mazilon/l10n/app_localizations.dart';
+
 // positive traits page, where the user can add/edit/remove positive traits
 // the user can also see suggestions for positive traits and refresh them
 // the code here is not related to the "מעלות" section in homepage , its the positive triats page.
@@ -200,10 +201,11 @@ class _PositiveState extends LPExtendedState<Positive> {
     );
     final gender = userInfoProvider.gender;
     final appLocale = AppLocalizations.of(context);
+    final colorScheme = Theme.of(context).colorScheme;
     return KeyboardDismisser(
       gestures: const [GestureType.onTap, GestureType.onPanUpdateAnyDirection],
       child: Scaffold(
-        backgroundColor: appWhite,
+        backgroundColor: colorScheme.surface,
         body: ListView(
           children: [
             Padding(
@@ -235,7 +237,11 @@ class _PositiveState extends LPExtendedState<Positive> {
                             userInfoProvider,
                           );
                         },
-                        icon: Icon(Icons.add, size: 50.0, color: primaryPurple),
+                        icon: Icon(
+                          Icons.add,
+                          size: 50.0,
+                          color: colorScheme.primary,
+                        ),
                       ),
                     ],
                   ),
@@ -248,7 +254,7 @@ class _PositiveState extends LPExtendedState<Positive> {
                           child: myAutoSizedText(
                             appLocale.homePageTraitsSecondaryTitle(gender),
                             TextStyle(
-                              color: darkGray,
+                              color: colorScheme.outline,
                               fontSize: 16.sp,
                               fontWeight: FontWeight.bold,
                             ),
@@ -284,7 +290,7 @@ class _PositiveState extends LPExtendedState<Positive> {
                 },
                 myFocusNode: focusNodes[index],
                 date: "",
-                color: primaryPurple,
+                color: colorScheme.primary,
               ),
             ),
             positiveTraits.isEmpty
@@ -293,7 +299,7 @@ class _PositiveState extends LPExtendedState<Positive> {
                     child: myAutoSizedText(
                       appLocale.positiveEmptyGuidance,
                       TextStyle(
-                        color: darkGray,
+                        color: colorScheme.outline,
                         fontSize: 16.sp,
                         fontWeight: FontWeight.normal,
                       ),
@@ -301,7 +307,11 @@ class _PositiveState extends LPExtendedState<Positive> {
                       40,
                     ),
                   )
-                : Divider(color: darkGray, indent: 30, endIndent: 30),
+                : Divider(
+                    color: colorScheme.outline,
+                    indent: 30,
+                    endIndent: 30,
+                  ),
             //suggestions
             if (sug1.isNotEmpty)
               PositiveTraitItemSug(
@@ -355,13 +365,13 @@ class _PositiveState extends LPExtendedState<Positive> {
                     appLocale.otherSuggestions(gender),
                     style: TextStyle(
                       fontWeight: FontWeight.bold,
-                      color: appGreen,
+                      color: colorScheme.tertiary,
                     ),
                   ),
                   const SizedBox(width: 1.0),
                   Icon(
                     Icons.refresh, //refresh icon
-                    color: appGreen, //refresh icon color
+                    color: colorScheme.tertiary, //refresh icon color
                   ),
                 ],
               ),

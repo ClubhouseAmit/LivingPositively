@@ -49,15 +49,15 @@ class FormContainerState extends State<FormContainer> {
             ).size.width, // Adjusts the width of the container
       clipBehavior: Clip.hardEdge,
       decoration: BoxDecoration(
-        color: Colors.grey.withValues(
+        color: Theme.of(context).colorScheme.surfaceContainerHighest.withValues(
           alpha: .35,
         ), // Background color with opacity
         borderRadius: BorderRadius.circular(10), // Rounded corners
       ),
       child: TextFormField(
-        style: const TextStyle(
+        style: TextStyle(
           fontWeight: FontWeight.normal,
-          color: Colors.black,
+          color: Theme.of(context).colorScheme.onSurface,
         ), // Text style for input
         controller: widget.controller, // Controller for managing text input
         keyboardType: widget.inputType, // Input type (e.g., text, number)
@@ -73,9 +73,9 @@ class FormContainerState extends State<FormContainer> {
           border: InputBorder.none, // No border for the input field
           filled: true,
           hintText: widget.hintText, // Hint text inside the field
-          hintStyle: const TextStyle(
+          hintStyle: TextStyle(
             fontWeight: FontWeight.normal,
-            color: Colors.black45,
+            color: Theme.of(context).colorScheme.outline,
           ), // Style for hint text
           suffixIcon: GestureDetector(
             onTap: () {
@@ -89,7 +89,9 @@ class FormContainerState extends State<FormContainer> {
                     _obscureText
                         ? Icons.visibility_off
                         : Icons.visibility, // Icon based on visibility state
-                    color: _obscureText == false ? Colors.blue : Colors.grey,
+                    color: _obscureText == false
+                        ? Theme.of(context).colorScheme.primary
+                        : Theme.of(context).colorScheme.outline,
                   )
                 : const Text(""), // No icon for non-password fields
           ),

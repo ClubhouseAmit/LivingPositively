@@ -295,6 +295,7 @@ class _MenuState extends LPExtendedState<Menu> {
     final userInformation = Provider.of<UserInformation>(context);
     final appInfoProvider = Provider.of<AppInformation>(context);
     final gender = userInformation.gender;
+    final colorScheme = Theme.of(context).colorScheme;
     testingChange();
 
     return PopScope(
@@ -312,7 +313,7 @@ class _MenuState extends LPExtendedState<Menu> {
         }
       },
       child: Scaffold(
-        backgroundColor: appWhite,
+        backgroundColor: colorScheme.surface,
         resizeToAvoidBottomInset: false,
         body: currentScreen,
         // SOS FAB is always visible — ADR-005 §A.2: emergency access must be
@@ -327,7 +328,7 @@ class _MenuState extends LPExtendedState<Menu> {
                   101,
                 ) // ~78% opaque in fullscreen
               : const Color.fromARGB(255, 33, 1, 101),
-          foregroundColor: appWhite,
+          foregroundColor: Colors.white,
           // The SOS FAB stays at the default 56dp in every mode — even
           // fullscreen video — because shrinking the emergency affordance
           // below the 48dp Material tap target conflicts with UX_GAPS §1.6
@@ -373,11 +374,11 @@ class _MenuState extends LPExtendedState<Menu> {
             ? null
             : BottomAppBar(
                 elevation: 0,
-                color: appWhite,
+                color: colorScheme.surface,
                 shape: const CircularNotchedRectangle(),
                 notchMargin: 10,
                 child: Container(
-                  color: appWhite,
+                  color: colorScheme.surface,
                   height: 60,
                   child: Row(
                     children: [

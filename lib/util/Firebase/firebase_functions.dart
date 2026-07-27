@@ -133,6 +133,26 @@ Future<void> loadUserInformation(
       "notificationHour",
       PersistentMemoryType.Int,
     ),
+    'darkModePreference': service.getItem(
+      'darkModePreference',
+      PersistentMemoryType.String,
+    ),
+    'darkModeStartHour': service.getItem(
+      'darkModeStartHour',
+      PersistentMemoryType.Int,
+    ),
+    'darkModeStartMinute': service.getItem(
+      'darkModeStartMinute',
+      PersistentMemoryType.Int,
+    ),
+    'darkModeEndHour': service.getItem(
+      'darkModeEndHour',
+      PersistentMemoryType.Int,
+    ),
+    'darkModeEndMinute': service.getItem(
+      'darkModeEndMinute',
+      PersistentMemoryType.Int,
+    ),
     'localeName': service.getItem("localeName", PersistentMemoryType.String),
     'positiveTraits': service.getItem(
       "positiveTraits",
@@ -164,6 +184,18 @@ Future<void> loadUserInformation(
   userInfo.updateDisclaimerSigned(data['disclaimerConfirmed'] ?? false);
   userInfo.updateNotificationMinute(data['notificationMinute'] ?? 0);
   userInfo.updateNotificationHour(data['notificationHour'] ?? 12);
+  final darkModePreference = UserInformation.parseDarkModePreference(
+    data['darkModePreference'] as String?,
+  );
+  if (darkModePreference != null) {
+    userInfo.restoreDarkModeSettings(
+      preference: darkModePreference,
+      startHour: data['darkModeStartHour'] as int?,
+      startMinute: data['darkModeStartMinute'] as int?,
+      endHour: data['darkModeEndHour'] as int?,
+      endMinute: data['darkModeEndMinute'] as int?,
+    );
+  }
   final savedLocale = data['localeName'];
   userInfo.updateLocaleName(
     savedLocale is String && savedLocale.isNotEmpty ? savedLocale : locale,

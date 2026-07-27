@@ -26,7 +26,7 @@ class MainpageListItemWidget extends StatelessWidget {
           ? 600
           : MediaQuery.of(context).size.width * 0.8,
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: Theme.of(context).colorScheme.surfaceContainerHighest,
         borderRadius: BorderRadius.circular(20),
       ),
       child: Padding(

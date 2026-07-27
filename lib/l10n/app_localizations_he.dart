@@ -576,6 +576,24 @@ class AppLocalizationsHe extends AppLocalizations {
   }
 
   @override
+  String get darkModeSettingsTitle => 'מצב כהה';
+
+  @override
+  String get darkModeAlwaysLight => 'תמיד בהיר';
+
+  @override
+  String get darkModeAlwaysDark => 'תמיד כהה';
+
+  @override
+  String get darkModeSleepPromoting => 'מצב תומך שינה';
+
+  @override
+  String get darkModeStartTime => 'שעת התחלה';
+
+  @override
+  String get darkModeEndTime => 'שעת סיום';
+
+  @override
   String introductionFormFirstPageMainTitle(String gender) {
     String _temp0 = intl.Intl.selectLogic(gender, {
       'male': 'מה ששומר עלי',

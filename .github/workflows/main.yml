@@ -207,7 +207,7 @@ jobs:
           #    method-channel assumptions with the Android plugin stack.
           script: |
             flutter devices
-            flutter test integration_test/custom_categories_e2e_test.dart integration_test/bootstrap_smoke_test.dart integration_test/bootstrap_full_test.dart integration_test/wellness_player_test.dart integration_test/logger_init_test.dart integration_test/notifications_schedule_test.dart --coverage --coverage-path coverage/integration.info --dart-define=SENTRY_DSN=https://test@dsn.example.local/0 -d emulator-5554
+            flutter test integration_test/custom_categories_e2e_test.dart integration_test/dark_mode_settings_test.dart integration_test/bootstrap_smoke_test.dart integration_test/bootstrap_full_test.dart integration_test/wellness_player_test.dart integration_test/logger_init_test.dart integration_test/notifications_schedule_test.dart --coverage --coverage-path coverage/integration.info --dart-define=SENTRY_DSN=https://test@dsn.example.local/0 -d emulator-5554
 
       - name: Enforce integration-test per-file coverage floors
         run: dart run scripts/check_integration_coverage.dart

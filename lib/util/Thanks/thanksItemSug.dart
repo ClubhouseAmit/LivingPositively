@@ -5,8 +5,6 @@ import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:dotted_border/dotted_border.dart';
 import 'package:mazilon/util/LP_extended_state.dart';
 
-import 'package:mazilon/util/styles.dart';
-
 import 'package:mazilon/util/userInformation.dart';
 import 'package:provider/provider.dart';
 
@@ -145,7 +143,7 @@ class _ThanksItemSuggestedState extends LPExtendedState<ThanksItemSuggested> {
               options: RoundedRectDottedBorderOptions(
                 radius: const Radius.circular(20),
                 dashPattern: const [5, 5],
-                color: const Color.fromARGB(255, 12, 207, 19),
+                color: Theme.of(context).colorScheme.tertiary,
                 strokeWidth: 2,
               ),
               child: Container(
@@ -157,16 +155,18 @@ class _ThanksItemSuggestedState extends LPExtendedState<ThanksItemSuggested> {
                 child: Stack(
                   alignment: Alignment.center,
                   children: <Widget>[
-                    const Icon(
+                    Icon(
                       Icons.add, // the icon of the add button
-                      color: Colors.green, // the color of the icon
+                      color: Theme.of(
+                        context,
+                      ).colorScheme.tertiary, // the color of the icon
                       size: 20, // the size of the icon
                     ),
                     Transform.translate(
                       offset: const Offset(0.5, 0.5),
-                      child: const Icon(
+                      child: Icon(
                         Icons.add,
-                        color: Colors.green,
+                        color: Theme.of(context).colorScheme.tertiary,
                         size: 20,
                       ),
                     ),
@@ -182,7 +182,7 @@ class _ThanksItemSuggestedState extends LPExtendedState<ThanksItemSuggested> {
             options: RoundedRectDottedBorderOptions(
               radius: const Radius.circular(20),
               dashPattern: const [5, 5],
-              color: appGreen,
+              color: Theme.of(context).colorScheme.tertiary,
               strokeWidth: 2,
             ),
             child: Container(
@@ -218,7 +218,7 @@ class _ThanksItemSuggestedState extends LPExtendedState<ThanksItemSuggested> {
                           fontFamily: "Rubix",
                           fontSize: 14.sp, // the text size
                           fontWeight: FontWeight.bold,
-                          color: darkGray,
+                          color: Theme.of(context).colorScheme.outline,
                         ),
                       ),
                     ),

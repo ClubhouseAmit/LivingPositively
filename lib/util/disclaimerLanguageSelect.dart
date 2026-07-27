@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:mazilon/util/styles.dart';
 
 class LanguageDropDown extends StatefulWidget {
   final List<Map<String, String>> list = [
@@ -60,7 +59,10 @@ class _LanguageDropDownState extends State<LanguageDropDown> {
                 .map(
                   (item) => Text(
                     item['label'] ?? item['locale']!,
-                    style: const TextStyle(color: Colors.black87, fontSize: 12),
+                    style: TextStyle(
+                      color: Theme.of(context).colorScheme.onSurface,
+                      fontSize: 12,
+                    ),
                   ),
                 )
                 .toList(),
@@ -71,19 +73,19 @@ class _LanguageDropDownState extends State<LanguageDropDown> {
               ? 600
               : MediaQuery.of(context).size.width * 0.5,
           decoration: BoxDecoration(
-            color: primaryPurple,
+            color: Theme.of(context).colorScheme.primary,
             borderRadius: BorderRadius.circular(20), // Rounded edges
           ),
           child: DropdownButton<String>(
             value: dropdownValue,
-            icon: const Icon(
+            icon: Icon(
               Icons.keyboard_arrow_down_rounded,
-              color: Colors.white,
+              color: Theme.of(context).colorScheme.onPrimary,
             ),
             iconSize: 24,
             isExpanded: true,
-            dropdownColor: appWhite,
-            style: const TextStyle(color: Colors.white),
+            dropdownColor: Theme.of(context).colorScheme.surface,
+            style: TextStyle(color: Theme.of(context).colorScheme.onPrimary),
             underline: SizedBox.shrink(),
             onChanged: (String? value) {
               if (value != null) {
@@ -95,7 +97,12 @@ class _LanguageDropDownState extends State<LanguageDropDown> {
             },
             selectedItemBuilder: (context) {
               return widget.list
-                  .map<Widget>((item) => _languageOption(item, Colors.white))
+                  .map<Widget>(
+                    (item) => _languageOption(
+                      item,
+                      Theme.of(context).colorScheme.onPrimary,
+                    ),
+                  )
                   .toList();
             },
             items: widget.list.map<DropdownMenuItem<String>>((
@@ -103,7 +110,10 @@ class _LanguageDropDownState extends State<LanguageDropDown> {
             ) {
               return DropdownMenuItem<String>(
                 value: item['locale']!,
-                child: _languageOption(item, Colors.black87),
+                child: _languageOption(
+                  item,
+                  Theme.of(context).colorScheme.onSurface,
+                ),
               );
             }).toList(),
           ),

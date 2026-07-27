@@ -9,11 +9,11 @@ import 'package:mazilon/global_enums.dart';
 import 'package:mazilon/util/LP_extended_state.dart';
 import 'package:mazilon/util/persistent_memory_service.dart';
 
-import 'package:mazilon/util/styles.dart';
 import 'package:mazilon/util/type_utils.dart';
 
 import 'package:provider/provider.dart';
 import 'package:mazilon/util/userInformation.dart';
+
 // the positive trait item suggested widget, it shows a suggested positive trait text and an add button
 //its used in positive trait page/homepage in todo list section to suggest a trait to the user
 // we use this in 2 ways , if the input text is not empty, it will show the input text in the suggestion
@@ -158,7 +158,7 @@ class _PositiveTraitItemSugState extends LPExtendedState<PositiveTraitItemSug> {
               options: RoundedRectDottedBorderOptions(
                 radius: const Radius.circular(20),
                 dashPattern: const [5, 5],
-                color: const Color.fromARGB(255, 12, 207, 19),
+                color: Theme.of(context).colorScheme.tertiary,
                 strokeWidth: 2,
               ),
               child: Container(
@@ -170,12 +170,18 @@ class _PositiveTraitItemSugState extends LPExtendedState<PositiveTraitItemSug> {
                 child: Stack(
                   alignment: Alignment.center,
                   children: <Widget>[
-                    const Icon(Icons.add, color: Colors.green, size: 20),
+                    Icon(
+                      Icons.add,
+                      color: Theme.of(context).colorScheme.tertiary,
+                      size: 20,
+                    ),
                     Transform.translate(
                       offset: const Offset(0.5, 0.5),
-                      child: const Icon(
+                      child: Icon(
                         Icons.add, // the icon of the add button
-                        color: Colors.green, // the color of the icon
+                        color: Theme.of(
+                          context,
+                        ).colorScheme.tertiary, // the color of the icon
                         size: 20, // the size of the icon
                       ),
                     ),
@@ -193,7 +199,7 @@ class _PositiveTraitItemSugState extends LPExtendedState<PositiveTraitItemSug> {
             options: RoundedRectDottedBorderOptions(
               radius: const Radius.circular(20),
               dashPattern: const [5, 5],
-              color: appGreen,
+              color: Theme.of(context).colorScheme.tertiary,
               strokeWidth: 2,
             ),
             child: Container(
@@ -226,7 +232,7 @@ class _PositiveTraitItemSugState extends LPExtendedState<PositiveTraitItemSug> {
                           fontFamily: "Rubix",
                           fontSize: 14.sp, // the font size of the text
                           fontWeight: FontWeight.bold,
-                          color: darkGray,
+                          color: Theme.of(context).colorScheme.outline,
                         ),
                       ),
                     ),

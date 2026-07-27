@@ -50,7 +50,7 @@ class _PagePhoneItemState extends State<PagePhoneItem>
               TextStyle(
                 fontWeight: FontWeight.normal,
                 fontSize: 12.sp,
-                color: Colors.grey,
+                color: Theme.of(context).colorScheme.outline,
               ),
               null,
               22, // Make the text grey

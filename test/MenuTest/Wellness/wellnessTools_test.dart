@@ -12,8 +12,6 @@ import 'package:mazilon/pages/WellnessTools/more_videos_item.dart';
 import 'package:mazilon/pages/home.dart';
 import 'package:mazilon/pages/WellnessTools/wellnessTools.dart';
 import 'package:mazilon/util/persistent_memory_service.dart';
-import 'package:mazilon/util/styles.dart';
-
 import 'package:mazilon/util/userInformation.dart';
 import 'package:mazilon/util/appInformation.dart';
 import 'package:mockito/annotations.dart';
@@ -125,7 +123,10 @@ void main() {
       final menuIcon = tester.widget<Icon>(menuButton);
       final menuButtonBottom = tester.getBottomLeft(menuButton).dy;
 
-      expect(menuIcon.color, primaryPurple);
+      expect(
+        menuIcon.color,
+        Theme.of(tester.element(menuButton)).colorScheme.primary,
+      );
 
       await tapAndSettle(tester, menuButton);
 

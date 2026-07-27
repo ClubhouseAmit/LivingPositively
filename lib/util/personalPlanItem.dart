@@ -28,7 +28,7 @@ class _PersonalPlanItemState extends State<PersonalPlanItem> {
             style: TextStyle(
               fontSize: 16.sp,
               fontWeight: FontWeight.normal,
-              color: Colors.black,
+              color: Theme.of(context).colorScheme.onSurface,
               fontFamily: 'Rubix',
             ),
             overflow: TextOverflow.ellipsis,

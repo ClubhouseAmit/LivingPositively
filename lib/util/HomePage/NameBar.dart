@@ -46,7 +46,7 @@ class NameBarState extends LPExtendedState<NameBar> {
                       style: TextStyle(
                         fontSize: 30.sp,
                         fontWeight: FontWeight.bold,
-                        color: Colors.black,
+                        color: Theme.of(context).colorScheme.onSurface,
                         fontFamily: 'Rubix',
                       ),
                     ),
@@ -68,7 +68,7 @@ class NameBarState extends LPExtendedState<NameBar> {
               TextStyle(
                 fontSize: 18.sp,
                 fontWeight: FontWeight.bold,
-                color: darkGray,
+                color: Theme.of(context).colorScheme.outline,
               ),
               null,
               30,

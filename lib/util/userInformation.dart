@@ -3,6 +3,8 @@ import 'package:get_it/get_it.dart';
 import 'package:mazilon/global_enums.dart';
 import 'package:mazilon/util/persistent_memory_service.dart';
 
+enum DarkModePreference { alwaysLight, alwaysDark, scheduled }
+
 //this it the user's information class, with it we store and display it across the app
 class UserInformation with ChangeNotifier {
   String localeName;
@@ -21,6 +23,11 @@ class UserInformation with ChangeNotifier {
   String userId;
   int notificationMinute;
   int notificationHour;
+  DarkModePreference darkModePreference;
+  int darkModeStartHour;
+  int darkModeStartMinute;
+  int darkModeEndHour;
+  int darkModeEndMinute;
   Map<String, List<String>> thanks;
   PersistentMemoryService service; // Get the persistent memory service instance
 
@@ -31,6 +38,11 @@ class UserInformation with ChangeNotifier {
     this.localeName = '',
     this.notificationHour = 12,
     this.notificationMinute = 0,
+    this.darkModePreference = DarkModePreference.alwaysLight,
+    this.darkModeStartHour = 22,
+    this.darkModeStartMinute = 0,
+    this.darkModeEndHour = 6,
+    this.darkModeEndMinute = 0,
     this.gender = '',
     this.name = '',
     this.age = '',
@@ -49,6 +61,11 @@ class UserInformation with ChangeNotifier {
     location = '';
     notificationHour = 12;
     notificationMinute = 0;
+    darkModePreference = DarkModePreference.alwaysLight;
+    darkModeStartHour = 22;
+    darkModeStartMinute = 0;
+    darkModeEndHour = 6;
+    darkModeEndMinute = 0;
     gender = '';
     name = '';
     age = '';
@@ -164,6 +181,185 @@ class UserInformation with ChangeNotifier {
     notificationMinute = value;
     saveNotificationMinute(value);
     notifyListeners();
+  }
+
+  /// Returns whether the selected dark-mode preference is active at [now].
+  ///
+  /// Scheduled mode uses the device's local time. A schedule that crosses
+  /// midnight (for example, 22:00 to 06:00) is supported. Equal start and
+  /// end times intentionally mean dark mode remains enabled all day.
+  bool usesDarkModeAt(DateTime now) {
+    switch (darkModePreference) {
+      case DarkModePreference.alwaysLight:
+        return false;
+      case DarkModePreference.alwaysDark:
+        return true;
+      case DarkModePreference.scheduled:
+        final currentMinutes = now.hour * 60 + now.minute;
+        final startMinutes = darkModeStartHour * 60 + darkModeStartMinute;
+        final endMinutes = darkModeEndHour * 60 + darkModeEndMinute;
+
+        if (startMinutes == endMinutes) {
+          return true;
+        }
+        if (startMinutes < endMinutes) {
+          return currentMinutes >= startMinutes && currentMinutes < endMinutes;
+        }
+        return currentMinutes >= startMinutes || currentMinutes < endMinutes;
+    }
+  }
+
+  /// Returns the next local schedule boundary after [now], or `null` when a
+  /// schedule has no boundary because it is active for the entire day.
+  DateTime? nextDarkModeBoundaryAfter(DateTime now) {
+    if (darkModePreference != DarkModePreference.scheduled) {
+      return null;
+    }
+
+    final startMinutes = darkModeStartHour * 60 + darkModeStartMinute;
+    final endMinutes = darkModeEndHour * 60 + darkModeEndMinute;
+    if (startMinutes == endMinutes) {
+      return null;
+    }
+
+    final todayStart = DateTime(
+      now.year,
+      now.month,
+      now.day,
+      darkModeStartHour,
+      darkModeStartMinute,
+    );
+    final todayEnd = DateTime(
+      now.year,
+      now.month,
+      now.day,
+      darkModeEndHour,
+      darkModeEndMinute,
+    );
+    // Construct tomorrow from calendar fields rather than adding 24 hours, so
+    // a daylight-saving transition still schedules the same local clock time.
+    final tomorrowStart = DateTime(
+      now.year,
+      now.month,
+      now.day + 1,
+      darkModeStartHour,
+      darkModeStartMinute,
+    );
+    final tomorrowEnd = DateTime(
+      now.year,
+      now.month,
+      now.day + 1,
+      darkModeEndHour,
+      darkModeEndMinute,
+    );
+
+    final candidates = <DateTime>[
+      todayStart,
+      todayEnd,
+      tomorrowStart,
+      tomorrowEnd,
+    ]..sort();
+
+    return candidates.firstWhere((boundary) => boundary.isAfter(now));
+  }
+
+  static DarkModePreference? parseDarkModePreference(String? value) {
+    for (final preference in DarkModePreference.values) {
+      if (preference.name == value) {
+        return preference;
+      }
+    }
+    return null;
+  }
+
+  /// Applies a persisted setting without writing it back to local storage.
+  /// Invalid stored times fall back to the default 22:00–06:00 schedule.
+  void restoreDarkModeSettings({
+    required DarkModePreference preference,
+    int? startHour,
+    int? startMinute,
+    int? endHour,
+    int? endMinute,
+  }) {
+    darkModePreference = preference;
+    darkModeStartHour = _validHourOrDefault(startHour, 22);
+    darkModeStartMinute = _validMinuteOrDefault(startMinute, 0);
+    darkModeEndHour = _validHourOrDefault(endHour, 6);
+    darkModeEndMinute = _validMinuteOrDefault(endMinute, 0);
+    notifyListeners();
+  }
+
+  /// Updates and persists the dark-mode preference and complete schedule.
+  Future<void> updateDarkModeSettings({
+    DarkModePreference? preference,
+    int? startHour,
+    int? startMinute,
+    int? endHour,
+    int? endMinute,
+  }) async {
+    if (startHour != null && !_isValidHour(startHour)) {
+      throw ArgumentError.value(startHour, 'startHour', 'Must be 0 through 23');
+    }
+    if (endHour != null && !_isValidHour(endHour)) {
+      throw ArgumentError.value(endHour, 'endHour', 'Must be 0 through 23');
+    }
+    if (startMinute != null && !_isValidMinute(startMinute)) {
+      throw ArgumentError.value(
+        startMinute,
+        'startMinute',
+        'Must be 0 through 59',
+      );
+    }
+    if (endMinute != null && !_isValidMinute(endMinute)) {
+      throw ArgumentError.value(endMinute, 'endMinute', 'Must be 0 through 59');
+    }
+
+    darkModePreference = preference ?? darkModePreference;
+    darkModeStartHour = startHour ?? darkModeStartHour;
+    darkModeStartMinute = startMinute ?? darkModeStartMinute;
+    darkModeEndHour = endHour ?? darkModeEndHour;
+    darkModeEndMinute = endMinute ?? darkModeEndMinute;
+    notifyListeners();
+
+    await Future.wait<void>([
+      service.setItem(
+        'darkModePreference',
+        PersistentMemoryType.String,
+        darkModePreference.name,
+      ),
+      service.setItem(
+        'darkModeStartHour',
+        PersistentMemoryType.Int,
+        darkModeStartHour,
+      ),
+      service.setItem(
+        'darkModeStartMinute',
+        PersistentMemoryType.Int,
+        darkModeStartMinute,
+      ),
+      service.setItem(
+        'darkModeEndHour',
+        PersistentMemoryType.Int,
+        darkModeEndHour,
+      ),
+      service.setItem(
+        'darkModeEndMinute',
+        PersistentMemoryType.Int,
+        darkModeEndMinute,
+      ),
+    ]);
+  }
+
+  static bool _isValidHour(int value) => value >= 0 && value <= 23;
+
+  static bool _isValidMinute(int value) => value >= 0 && value <= 59;
+
+  static int _validHourOrDefault(int? value, int defaultValue) {
+    return value != null && _isValidHour(value) ? value : defaultValue;
+  }
+
+  static int _validMinuteOrDefault(int? value, int defaultValue) {
+    return value != null && _isValidMinute(value) ? value : defaultValue;
   }
 
   void updateLocaleName(String value) {

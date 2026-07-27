@@ -218,8 +218,8 @@ class _PhonePageListState extends LPExtendedState<PhonePageList> {
             child: Center(
               child: CircleAvatar(
                 radius: returnSizedBox(context, 20),
-                backgroundColor: primaryPurple,
-                foregroundColor: appWhite,
+                backgroundColor: Theme.of(context).colorScheme.primary,
+                foregroundColor: Theme.of(context).colorScheme.onPrimary,
                 child: Icon(Icons.phone, size: returnSizedBox(context, 24)),
               ),
             ),
@@ -372,7 +372,9 @@ class _PhonePageListState extends LPExtendedState<PhonePageList> {
         TextButton(
           onPressed: _startDraft,
           style: TextButton.styleFrom(
-            backgroundColor: Colors.white,
+            backgroundColor: Theme.of(
+              context,
+            ).colorScheme.surfaceContainerHighest,
             shape: RoundedRectangleBorder(
               borderRadius: BorderRadius.circular(12),
             ),
@@ -382,7 +384,7 @@ class _PhonePageListState extends LPExtendedState<PhonePageList> {
             appLocale.phonesPageManualTitle(gender),
             TextStyle(
               fontWeight: FontWeight.bold,
-              color: primaryPurple,
+              color: Theme.of(context).colorScheme.primary,
               fontSize: 16.sp,
             ),
             TextAlign.center,

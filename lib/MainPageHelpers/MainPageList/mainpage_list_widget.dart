@@ -276,7 +276,9 @@ class _ListWidgetState extends LPExtendedState<ListWidget> {
                   TextStyle(
                     fontSize: 24.sp, // the font size of the title
                     fontWeight: FontWeight.bold,
-                    color: Colors.black, // the color of the title
+                    color: Theme.of(
+                      context,
+                    ).colorScheme.onSurface, // the color of the title
                   ),
                   null,
                   40,
@@ -286,7 +288,11 @@ class _ListWidgetState extends LPExtendedState<ListWidget> {
               icons: [
                 // add button with the add icon
                 IconButton(
-                  icon: mainpageListsAddIcon,
+                  icon: Icon(
+                    Icons.add,
+                    color: Theme.of(context).colorScheme.primary,
+                    size: 30,
+                  ),
                   tooltip: appLocale.addItemTooltip,
                   onPressed: addItemFunction,
                 ),

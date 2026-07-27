@@ -39,8 +39,12 @@ Widget phoneContact(String phone, String contact) {
                   child: Center(
                     child: CircleAvatar(
                       radius: 20, // adjust as needed
-                      backgroundColor: primaryPurple,
-                      foregroundColor: appWhite,
+                      backgroundColor: Theme.of(
+                        innerContext,
+                      ).colorScheme.primary,
+                      foregroundColor: Theme.of(
+                        innerContext,
+                      ).colorScheme.onPrimary,
                       child: const Icon(
                         Icons.phone,
                         size: 20,
@@ -205,50 +209,52 @@ Future<bool> openTextMessage(String number, {String body = ''}) {
 }
 
 Widget getTextIconWidget(String text, Function onClick, IconData icon) {
-  return SizedBox(
-    child: Row(
-      mainAxisAlignment: MainAxisAlignment.center,
-      children: [
-        Flexible(
-          child: myText(
-            text,
-            TextStyle(
-              fontWeight: FontWeight.normal,
-              fontSize: 18.sp > 35 ? 35 : 20.sp,
+  return Builder(
+    builder: (context) => SizedBox(
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          Flexible(
+            child: myText(
+              text,
+              TextStyle(
+                fontWeight: FontWeight.normal,
+                fontSize: 18.sp > 35 ? 35 : 20.sp,
+              ),
+              null,
             ),
-            null,
           ),
-        ),
-        SizedBox(width: 5.0),
-        // Button to make a phone call. Tooltip carries the visible long-press
-        // hint and the announced label; Semantics(button: true) ensures the
-        // GestureDetector reads as a button rather than plain text.
-        // 48dp tap target per UX_GAPS §1.6.
-        Tooltip(
-          message: text,
-          child: Semantics(
-            button: true,
-            child: SizedBox(
-              width: 48,
-              height: 48,
-              child: GestureDetector(
-                onTap: () async {
-                  onClick();
-                },
-                child: Center(
-                  child: CircleAvatar(
-                    radius: 20, // adjust as needed
-                    backgroundColor: primaryPurple,
-                    foregroundColor: Colors.white,
-                    child: Icon(icon, size: 20), // adjust as needed
+          SizedBox(width: 5.0),
+          // Button to make a phone call. Tooltip carries the visible long-press
+          // hint and the announced label; Semantics(button: true) ensures the
+          // GestureDetector reads as a button rather than plain text.
+          // 48dp tap target per UX_GAPS §1.6.
+          Tooltip(
+            message: text,
+            child: Semantics(
+              button: true,
+              child: SizedBox(
+                width: 48,
+                height: 48,
+                child: GestureDetector(
+                  onTap: () async {
+                    onClick();
+                  },
+                  child: Center(
+                    child: CircleAvatar(
+                      radius: 20, // adjust as needed
+                      backgroundColor: Theme.of(context).colorScheme.primary,
+                      foregroundColor: Theme.of(context).colorScheme.onPrimary,
+                      child: Icon(icon, size: 20), // adjust as needed
+                    ),
                   ),
                 ),
               ),
             ),
           ),
-        ),
-        SizedBox(width: 10.0),
-      ],
+          SizedBox(width: 10.0),
+        ],
+      ),
     ),
   );
 }

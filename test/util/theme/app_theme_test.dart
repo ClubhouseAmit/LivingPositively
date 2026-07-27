@@ -55,12 +55,16 @@ void main() {
   });
 
   group('destructive button uses semantic token', () {
-    testWidgets('myButtonStyle3 background resolves to AppColors.error',
-        (tester) async {
+    testWidgets('myButtonStyle3 background resolves to AppColors.error', (
+      tester,
+    ) async {
       const states = <WidgetState>{};
       final bg = myButtonStyle3.backgroundColor?.resolve(states);
-      expect(bg, isNotNull,
-          reason: 'myButtonStyle3 must declare a background colour');
+      expect(
+        bg,
+        isNotNull,
+        reason: 'myButtonStyle3 must declare a background colour',
+      );
       expect(bg, AppColors.error);
     });
   });
@@ -88,13 +92,27 @@ void main() {
     });
   });
 
-  group('buildDarkThemeStub', () {
-    test('mirrors the light scheme (ADR-005: light-only dark stub)', () {
-      final dark = buildDarkThemeStub();
+  group('buildDarkTheme', () {
+    test('exposes the accessible dark palette via ColorScheme', () {
+      final dark = buildDarkTheme();
+
+      expect(dark.brightness, Brightness.dark);
+      expect(dark.colorScheme, appDarkColorScheme);
+      expect(dark.colorScheme.primary, AppColors.darkPrimary);
+      expect(dark.colorScheme.onPrimary, AppColors.darkOnPrimary);
+      expect(dark.colorScheme.surface, AppColors.darkSurface);
+      expect(dark.colorScheme.onSurface, AppColors.darkOnSurface);
+      expect(dark.colorScheme.error, AppColors.darkError);
+      expect(dark.scaffoldBackgroundColor, AppColors.darkSurface);
+      expect(dark.cardColor, AppColors.darkSurfaceContainer);
+    });
+
+    test('does not silently fall back to the light palette', () {
+      final dark = buildDarkTheme();
       final light = buildLightTheme();
-      expect(dark.colorScheme.primary, light.colorScheme.primary);
-      expect(dark.colorScheme.surface, light.colorScheme.surface);
-      expect(dark.colorScheme.onSurface, light.colorScheme.onSurface);
+
+      expect(dark.colorScheme.surface, isNot(light.colorScheme.surface));
+      expect(dark.colorScheme.onSurface, isNot(light.colorScheme.onSurface));
     });
   });
 }

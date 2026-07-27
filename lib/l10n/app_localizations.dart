@@ -478,6 +478,42 @@ abstract class AppLocalizations {
   /// **'{gender,select,male{Settings} female{Settings} other{Settings}}'**
   String settings(String gender);
 
+  /// No description provided for @darkModeSettingsTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Dark Mode'**
+  String get darkModeSettingsTitle;
+
+  /// No description provided for @darkModeAlwaysLight.
+  ///
+  /// In en, this message translates to:
+  /// **'Always Light'**
+  String get darkModeAlwaysLight;
+
+  /// No description provided for @darkModeAlwaysDark.
+  ///
+  /// In en, this message translates to:
+  /// **'Always Dark'**
+  String get darkModeAlwaysDark;
+
+  /// No description provided for @darkModeSleepPromoting.
+  ///
+  /// In en, this message translates to:
+  /// **'Sleep-Promoting Mode'**
+  String get darkModeSleepPromoting;
+
+  /// No description provided for @darkModeStartTime.
+  ///
+  /// In en, this message translates to:
+  /// **'Start time'**
+  String get darkModeStartTime;
+
+  /// No description provided for @darkModeEndTime.
+  ///
+  /// In en, this message translates to:
+  /// **'End time'**
+  String get darkModeEndTime;
+
   ///
   ///
   /// In en, this message translates to:

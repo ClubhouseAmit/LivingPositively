@@ -139,10 +139,14 @@ class _HomeState extends LPExtendedState<Home> {
       listen: true,
     );
     final gender = userInfoProvider.gender;
+    final colorScheme = Theme.of(context).colorScheme;
 
     return Scaffold(
-      appBar: AppBar(scrolledUnderElevation: 0, backgroundColor: lightGray),
-      backgroundColor: lightGray,
+      appBar: AppBar(
+        scrolledUnderElevation: 0,
+        backgroundColor: colorScheme.surfaceContainerHighest,
+      ),
+      backgroundColor: colorScheme.surfaceContainerHighest,
       body: Center(
         child: SingleChildScrollView(
           child: Column(
@@ -155,7 +159,7 @@ class _HomeState extends LPExtendedState<Home> {
                     builder: (menuButtonContext) => myTextButton(
                       () => widget.openMainMenu(menuButtonContext),
                       Icons.menu,
-                      primaryPurple,
+                      colorScheme.primary,
                       tooltip: appLocale.menuTooltip,
                     ),
                   ),

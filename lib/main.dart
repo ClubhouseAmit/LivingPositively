@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:math';
 import 'package:mazilon/global_enums.dart';
 import 'package:mazilon/l10n/app_localizations.dart';
@@ -73,7 +74,7 @@ void callbackDispatcher() {
         status: reminderDebugStatusSuccess,
         task: task,
       );
-      return Future.value(true);
+      return true;
     } catch (error, stackTrace) {
       try {
         await Sentry.captureException(
@@ -87,7 +88,7 @@ void callbackDispatcher() {
         task: task,
         error: error.toString(),
       );
-      return Future.value(false);
+      return false;
     }
   });
 }
@@ -231,8 +232,18 @@ class _MyAppState extends State<MyApp> with WidgetsBindingObserver {
 
   bool hasFilled = false;
   DateTime? _startTime;
+  Timer? _themeScheduleTimer;
+  UserInformation? _themeUserInformation;
+  DarkModePreference? _observedDarkModePreference;
+  int? _observedDarkModeStartHour;
+  int? _observedDarkModeStartMinute;
+  int? _observedDarkModeEndHour;
+  int? _observedDarkModeEndMinute;
+
   @override
   void dispose() {
+    _themeScheduleTimer?.cancel();
+    _themeUserInformation?.removeListener(_handleThemeSettingsChanged);
     WidgetsBinding.instance.removeObserver(this);
     _endSession(); // Ensure session ends when widget is disposed
     super.dispose();
@@ -262,6 +273,10 @@ class _MyAppState extends State<MyApp> with WidgetsBindingObserver {
   void didChangeAppLifecycleState(AppLifecycleState state) {
     if (state == AppLifecycleState.resumed) {
       _startSession(); // App is active
+      _refreshThemeSchedule(force: true);
+      if (mounted) {
+        setState(() {});
+      }
     } else if (state == AppLifecycleState.hidden ||
         state == AppLifecycleState.detached) {
       _endSession(); // App is inactive or closed
@@ -366,11 +381,70 @@ class _MyAppState extends State<MyApp> with WidgetsBindingObserver {
 
   @override
   void didChangeDependencies() {
+    final themeUserInformation = Provider.of<UserInformation>(
+      context,
+      listen: false,
+    );
+    if (!identical(_themeUserInformation, themeUserInformation)) {
+      _themeUserInformation?.removeListener(_handleThemeSettingsChanged);
+      _themeUserInformation = themeUserInformation;
+      _themeUserInformation!.addListener(_handleThemeSettingsChanged);
+      _refreshThemeSchedule(force: true);
+    }
     if (!_isInitialized) {
       phonePageData = Provider.of<PhonePageData>(context);
       _isInitialized = true;
     }
     super.didChangeDependencies();
+  }
+
+  bool _hasThemeSettingsChanged(UserInformation userInfo) {
+    return _observedDarkModePreference != userInfo.darkModePreference ||
+        _observedDarkModeStartHour != userInfo.darkModeStartHour ||
+        _observedDarkModeStartMinute != userInfo.darkModeStartMinute ||
+        _observedDarkModeEndHour != userInfo.darkModeEndHour ||
+        _observedDarkModeEndMinute != userInfo.darkModeEndMinute;
+  }
+
+  void _handleThemeSettingsChanged() {
+    final userInfo = _themeUserInformation;
+    if (userInfo == null || !_hasThemeSettingsChanged(userInfo)) {
+      return;
+    }
+
+    _refreshThemeSchedule(force: true);
+    if (mounted) {
+      setState(() {});
+    }
+  }
+
+  void _refreshThemeSchedule({bool force = false}) {
+    final userInfo = _themeUserInformation;
+    if (userInfo == null || (!force && !_hasThemeSettingsChanged(userInfo))) {
+      return;
+    }
+
+    _observedDarkModePreference = userInfo.darkModePreference;
+    _observedDarkModeStartHour = userInfo.darkModeStartHour;
+    _observedDarkModeStartMinute = userInfo.darkModeStartMinute;
+    _observedDarkModeEndHour = userInfo.darkModeEndHour;
+    _observedDarkModeEndMinute = userInfo.darkModeEndMinute;
+
+    _themeScheduleTimer?.cancel();
+    _themeScheduleTimer = null;
+
+    final nextBoundary = userInfo.nextDarkModeBoundaryAfter(DateTime.now());
+    if (nextBoundary == null) {
+      return;
+    }
+
+    _themeScheduleTimer = Timer(nextBoundary.difference(DateTime.now()), () {
+      if (!mounted) {
+        return;
+      }
+      _refreshThemeSchedule(force: true);
+      setState(() {});
+    });
   }
 
   void changeLocale(String locale) {
@@ -416,6 +490,9 @@ class _MyAppState extends State<MyApp> with WidgetsBindingObserver {
       context,
       listen: false,
     );
+    final themeMode = userInfoProvider.usesDarkModeAt(DateTime.now())
+        ? ThemeMode.dark
+        : ThemeMode.light;
 
     if (widgetNotifier.value == null && !_initializationStarted) {
       _initializationStarted = true; // Prevent multiple initialization attempts
@@ -451,7 +528,8 @@ class _MyAppState extends State<MyApp> with WidgetsBindingObserver {
       return MaterialApp(
         debugShowCheckedModeBanner: false,
         theme: buildLightTheme(),
-        darkTheme: buildDarkThemeStub(),
+        darkTheme: buildDarkTheme(),
+        themeMode: themeMode,
         // Phase E (ADR-005 §Decision step 5): this boot spinner renders
         // before the localization delegates are wired, so it passes an
         // explicit English label rather than reading AppLocalizations.
@@ -469,12 +547,11 @@ class _MyAppState extends State<MyApp> with WidgetsBindingObserver {
         locale: Locale(localeService.getLocale()),
         localizationsDelegates: AppLocalizations.localizationsDelegates,
         debugShowCheckedModeBanner: false,
-        // Phase D (ADR-005 §Decision step 4): semantic tokens layered
-        // onto Material 2. Previously this MaterialApp passed no theme
-        // at all, so every page composed its own colour decisions
-        // (`docs/UX_GAPS.md §1.2`).
+        // Semantic tokens are layered onto Material 2. The user's dark-mode
+        // preference selects the matching accessible palette below.
         theme: buildLightTheme(),
-        darkTheme: buildDarkThemeStub(),
+        darkTheme: buildDarkTheme(),
+        themeMode: themeMode,
         home: UpgradeAlert(
           child: Scaffold(
             resizeToAvoidBottomInset: false,

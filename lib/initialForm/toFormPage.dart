@@ -68,7 +68,7 @@ class _ToFormPageState extends LPExtendedState<ToFormPage> {
               TextStyle(
                 fontSize: 40.sp,
                 fontWeight: FontWeight.bold,
-                color: Colors.black,
+                color: Theme.of(context).colorScheme.onSurface,
               ),
               TextAlign.center,
               60,
@@ -80,7 +80,7 @@ class _ToFormPageState extends LPExtendedState<ToFormPage> {
                 TextStyle(
                   fontSize: 14.sp,
                   fontWeight: FontWeight.bold,
-                  color: darkGray,
+                  color: Theme.of(context).colorScheme.outline,
                 ),
                 TextAlign.center,
                 35,
@@ -94,7 +94,7 @@ class _ToFormPageState extends LPExtendedState<ToFormPage> {
                 TextStyle(
                   fontSize: 14.sp,
                   fontWeight: FontWeight.bold,
-                  color: appGreen,
+                  color: Theme.of(context).colorScheme.tertiary,
                 ),
                 TextAlign.center,
                 35,
@@ -134,13 +134,12 @@ class _ToFormPageState extends LPExtendedState<ToFormPage> {
                   ),
                 );
               },
-              style: myButtonStyle,
+              style: primaryButtonStyle(context),
               child: myAutoSizedText(
                 appLocale.introductionFormLastPageNext(gender),
-                myTextStyle.copyWith(
-                  fontWeight: FontWeight.bold,
-                  fontSize: 20.sp,
-                ),
+                primaryButtonTextStyle(
+                  context,
+                ).copyWith(fontWeight: FontWeight.bold, fontSize: 20.sp),
                 null,
                 50,
               ),
@@ -160,7 +159,7 @@ class _ToFormPageState extends LPExtendedState<ToFormPage> {
                   (Route<dynamic> route) => false,
                 );
               },
-              style: myButtonStyle.copyWith(
+              style: primaryButtonStyle(context).copyWith(
                 padding: WidgetStateProperty.all(
                   EdgeInsets.symmetric(
                     horizontal: returnSizedBox(context, 20),
@@ -170,10 +169,9 @@ class _ToFormPageState extends LPExtendedState<ToFormPage> {
               ),
               child: myAutoSizedText(
                 appLocale.skipButton(gender),
-                myTextStyle.copyWith(
-                  fontWeight: FontWeight.bold,
-                  fontSize: 20.sp,
-                ),
+                primaryButtonTextStyle(
+                  context,
+                ).copyWith(fontWeight: FontWeight.bold, fontSize: 20.sp),
                 null,
                 50,
               ),

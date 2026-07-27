@@ -156,7 +156,9 @@ class InitialFormProgressIndicatorState
           preferredSize: const Size.fromHeight(40),
           child: AppBar(
             scrolledUnderElevation: 0,
-            backgroundColor: lightGray,
+            backgroundColor: Theme.of(
+              context,
+            ).colorScheme.surfaceContainerHighest,
             automaticallyImplyLeading: currentStep != (steps.length - 1),
             leading: currentStep != (steps.length - 1)
                 ? IconButton(
@@ -210,7 +212,9 @@ class InitialFormProgressIndicatorState
                 height: 15.0,
                 margin: const EdgeInsets.symmetric(horizontal: 5.0),
                 decoration: BoxDecoration(
-                  color: index <= currentStep ? appGreen : lightGray,
+                  color: index <= currentStep
+                      ? Theme.of(context).colorScheme.tertiary
+                      : Theme.of(context).colorScheme.surfaceContainerHighest,
                   borderRadius: BorderRadius.circular(5.0),
                 ),
               ),

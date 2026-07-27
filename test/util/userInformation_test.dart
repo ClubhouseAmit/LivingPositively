@@ -19,7 +19,10 @@ class _FakePersistentMemoryService implements PersistentMemoryService {
 
   @override
   Future<void> setItem(
-      String key, PersistentMemoryType type, dynamic value) async {
+    String key,
+    PersistentMemoryType type,
+    dynamic value,
+  ) async {
     stored[key] = value;
     writes.add(MapEntry(key, value));
   }
@@ -42,6 +45,11 @@ void main() {
       expect(u.binary, isFalse);
       expect(u.notificationHour, 12);
       expect(u.notificationMinute, 0);
+      expect(u.darkModePreference, DarkModePreference.alwaysLight);
+      expect(u.darkModeStartHour, 22);
+      expect(u.darkModeStartMinute, 0);
+      expect(u.darkModeEndHour, 6);
+      expect(u.darkModeEndMinute, 0);
       expect(u.disclaimerSigned, isFalse);
       expect(u.loggedIn, isFalse);
       expect(u.userId, '');
@@ -65,6 +73,11 @@ void main() {
         location: 'IL',
         notificationHour: 9,
         notificationMinute: 30,
+        darkModePreference: DarkModePreference.alwaysDark,
+        darkModeStartHour: 20,
+        darkModeStartMinute: 15,
+        darkModeEndHour: 7,
+        darkModeEndMinute: 45,
         difficultEvents: const ['a'],
         makeSafer: const ['b'],
         feelBetter: const ['c'],
@@ -92,6 +105,11 @@ void main() {
       expect(u.binary, isFalse);
       expect(u.notificationHour, 12);
       expect(u.notificationMinute, 0);
+      expect(u.darkModePreference, DarkModePreference.alwaysLight);
+      expect(u.darkModeStartHour, 22);
+      expect(u.darkModeStartMinute, 0);
+      expect(u.darkModeEndHour, 6);
+      expect(u.darkModeEndMinute, 0);
       expect(u.disclaimerSigned, isFalse);
       expect(u.loggedIn, isFalse);
       expect(u.userId, '');
@@ -250,6 +268,118 @@ void main() {
       final u = buildUser();
       u.updateLocation('US');
       expect(u.location, 'US');
+    });
+  });
+
+  group('dark mode settings', () {
+    test('persists the selected preference and complete schedule', () async {
+      final u = buildUser();
+      var notified = 0;
+      u.addListener(() => notified++);
+
+      await u.updateDarkModeSettings(
+        preference: DarkModePreference.scheduled,
+        startHour: 21,
+        startMinute: 30,
+        endHour: 6,
+        endMinute: 15,
+      );
+
+      expect(u.darkModePreference, DarkModePreference.scheduled);
+      expect(u.darkModeStartHour, 21);
+      expect(u.darkModeStartMinute, 30);
+      expect(u.darkModeEndHour, 6);
+      expect(u.darkModeEndMinute, 15);
+      expect(notified, 1);
+      expect(fakeService.stored['darkModePreference'], 'scheduled');
+      expect(fakeService.stored['darkModeStartHour'], 21);
+      expect(fakeService.stored['darkModeStartMinute'], 30);
+      expect(fakeService.stored['darkModeEndHour'], 6);
+      expect(fakeService.stored['darkModeEndMinute'], 15);
+    });
+
+    test('uses device-local time for an overnight schedule', () {
+      final u = buildUser()
+        ..restoreDarkModeSettings(
+          preference: DarkModePreference.scheduled,
+          startHour: 22,
+          startMinute: 0,
+          endHour: 6,
+          endMinute: 0,
+        );
+
+      expect(u.usesDarkModeAt(DateTime(2026, 7, 27, 21, 59)), isFalse);
+      expect(u.usesDarkModeAt(DateTime(2026, 7, 27, 22)), isTrue);
+      expect(u.usesDarkModeAt(DateTime(2026, 7, 28, 5, 59)), isTrue);
+      expect(u.usesDarkModeAt(DateTime(2026, 7, 28, 6)), isFalse);
+    });
+
+    test('supports schedules that do not cross midnight', () {
+      final u = buildUser()
+        ..restoreDarkModeSettings(
+          preference: DarkModePreference.scheduled,
+          startHour: 8,
+          startMinute: 0,
+          endHour: 20,
+          endMinute: 0,
+        );
+
+      expect(u.usesDarkModeAt(DateTime(2026, 7, 27, 7, 59)), isFalse);
+      expect(u.usesDarkModeAt(DateTime(2026, 7, 27, 8)), isTrue);
+      expect(u.usesDarkModeAt(DateTime(2026, 7, 27, 19, 59)), isTrue);
+      expect(u.usesDarkModeAt(DateTime(2026, 7, 27, 20)), isFalse);
+    });
+
+    test('always-light and always-dark preferences override the schedule', () {
+      final u = buildUser();
+
+      u.restoreDarkModeSettings(
+        preference: DarkModePreference.alwaysLight,
+        startHour: 0,
+        endHour: 0,
+      );
+      expect(u.usesDarkModeAt(DateTime(2026, 7, 27, 23)), isFalse);
+
+      u.restoreDarkModeSettings(
+        preference: DarkModePreference.alwaysDark,
+        startHour: 0,
+        endHour: 0,
+      );
+      expect(u.usesDarkModeAt(DateTime(2026, 7, 27, 12)), isTrue);
+    });
+
+    test('returns the next start or end boundary for scheduled mode', () {
+      final u = buildUser()
+        ..restoreDarkModeSettings(
+          preference: DarkModePreference.scheduled,
+          startHour: 22,
+          endHour: 6,
+        );
+
+      expect(
+        u.nextDarkModeBoundaryAfter(DateTime(2026, 7, 27, 21, 59)),
+        DateTime(2026, 7, 27, 22),
+      );
+      expect(
+        u.nextDarkModeBoundaryAfter(DateTime(2026, 7, 27, 22)),
+        DateTime(2026, 7, 28, 6),
+      );
+    });
+
+    test('restores safe defaults for invalid persisted schedule values', () {
+      final u = buildUser()
+        ..restoreDarkModeSettings(
+          preference: DarkModePreference.scheduled,
+          startHour: 25,
+          startMinute: -1,
+          endHour: 24,
+          endMinute: 60,
+        );
+
+      expect(u.darkModeStartHour, 22);
+      expect(u.darkModeStartMinute, 0);
+      expect(u.darkModeEndHour, 6);
+      expect(u.darkModeEndMinute, 0);
     });
   });
 }
