@@ -61,6 +61,7 @@ void main() {
 
       expect(find.text('Mom'), findsOneWidget);
       expect(find.byIcon(Icons.phone), findsOneWidget);
+      expect(find.byType(InkWell), findsOneWidget);
 
       await tester.tap(find.byIcon(Icons.phone));
       await tester.pumpAndSettle();
@@ -82,6 +83,7 @@ void main() {
 
       expect(find.text('Send'), findsOneWidget);
       expect(find.byIcon(Icons.send), findsOneWidget);
+      expect(find.byType(InkWell), findsOneWidget);
 
       await tester.tap(find.byIcon(Icons.send));
       await tester.pumpAndSettle();

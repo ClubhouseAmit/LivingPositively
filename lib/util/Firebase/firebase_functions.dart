@@ -19,6 +19,8 @@ import 'package:flutter/foundation.dart' show kIsWeb, visibleForTesting;
 
 import 'package:firebase_core/firebase_core.dart';
 
+int? _storedIntOrNull(Object? value) => value is int ? value : null;
+
 //This is where we handle all of the data fetching for the app
 //be it from the server or from the local storage
 class FirebaseAuthService {
@@ -190,10 +192,10 @@ Future<void> loadUserInformation(
   if (darkModePreference != null) {
     userInfo.restoreDarkModeSettings(
       preference: darkModePreference,
-      startHour: data['darkModeStartHour'] as int?,
-      startMinute: data['darkModeStartMinute'] as int?,
-      endHour: data['darkModeEndHour'] as int?,
-      endMinute: data['darkModeEndMinute'] as int?,
+      startHour: _storedIntOrNull(data['darkModeStartHour']),
+      startMinute: _storedIntOrNull(data['darkModeStartMinute']),
+      endHour: _storedIntOrNull(data['darkModeEndHour']),
+      endMinute: _storedIntOrNull(data['darkModeEndMinute']),
     );
   }
   final savedLocale = data['localeName'];

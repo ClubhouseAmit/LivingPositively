@@ -8,6 +8,7 @@ import 'package:get_it/get_it.dart';
 import 'package:mazilon/global_enums.dart';
 import 'package:mazilon/util/LP_extended_state.dart';
 import 'package:mazilon/util/persistent_memory_service.dart';
+import 'package:mazilon/util/suggestion_add_button.dart';
 
 import 'package:mazilon/util/type_utils.dart';
 
@@ -100,10 +101,9 @@ class _PositiveTraitItemSugState extends LPExtendedState<PositiveTraitItemSug> {
         mainAxisAlignment: MainAxisAlignment.start,
         children: [
           // the add button
-          GestureDetector(
-            // when the add button is clicked ,
-            // add the trait to the list of traits and show a new suggested trait
-            onTap: () async {
+          SuggestionAddButton(
+            onPressed: () async {
+              // Add the trait to the list and show a new suggestion.
               PersistentMemoryService service =
                   GetIt.instance<
                     PersistentMemoryService
@@ -152,43 +152,6 @@ class _PositiveTraitItemSugState extends LPExtendedState<PositiveTraitItemSug> {
                 }
               });
             },
-
-            // the design of the add button
-            child: DottedBorder(
-              options: RoundedRectDottedBorderOptions(
-                radius: const Radius.circular(20),
-                dashPattern: const [5, 5],
-                color: Theme.of(context).colorScheme.tertiary,
-                strokeWidth: 2,
-              ),
-              child: Container(
-                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 8),
-                decoration: const BoxDecoration(
-                  color: Colors.transparent,
-                  shape: BoxShape.circle,
-                ),
-                child: Stack(
-                  alignment: Alignment.center,
-                  children: <Widget>[
-                    Icon(
-                      Icons.add,
-                      color: Theme.of(context).colorScheme.tertiary,
-                      size: 20,
-                    ),
-                    Transform.translate(
-                      offset: const Offset(0.5, 0.5),
-                      child: Icon(
-                        Icons.add, // the icon of the add button
-                        color: Theme.of(
-                          context,
-                        ).colorScheme.tertiary, // the color of the icon
-                        size: 20, // the size of the icon
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-            ),
           ),
 
           // gap between the text and the add button

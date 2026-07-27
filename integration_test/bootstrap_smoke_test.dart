@@ -245,15 +245,11 @@ void main() {
       // (returning)".
       final hasFirstPage = find.byType(FirstPage).evaluate().isNotEmpty;
       final hasIntroduction = find.byType(Introduction).evaluate().isNotEmpty;
-      final hasProgress = find
-          .byType(CircularProgressIndicator)
-          .evaluate()
-          .isNotEmpty;
       expect(
-        hasFirstPage || hasIntroduction || hasProgress,
+        hasFirstPage || hasIntroduction,
         isTrue,
         reason:
-            'After 1s of async pumps MyApp must show one of FirstPage / Introduction / CircularProgressIndicator. None is a real bootstrap regression.',
+            'After the bounded bootstrap wait, MyApp must expose FirstPage or Introduction instead of treating a spinner as success.',
       );
     },
   );

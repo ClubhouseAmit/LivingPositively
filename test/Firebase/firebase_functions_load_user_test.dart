@@ -176,6 +176,48 @@ void main() {
   });
 
   group('loadUserInformation – empty / null defaults', () {
+    test(
+      'uses the default schedule when saved values are absent or invalid',
+      () async {
+        _registerFakes(
+          store: {
+            'darkModePreference': 'scheduled',
+            'darkModeStartHour': 'not-an-int',
+          },
+        );
+
+        final userInfo = _makeUserInfo();
+        await loadUserInformation(userInfo, 'en');
+
+        expect(userInfo.darkModePreference, DarkModePreference.scheduled);
+        expect(userInfo.darkModeStartHour, 22);
+        expect(userInfo.darkModeStartMinute, 0);
+        expect(userInfo.darkModeEndHour, 6);
+        expect(userInfo.darkModeEndMinute, 0);
+      },
+    );
+
+    test(
+      'uses the default schedule with missing SharedPreferences Int values',
+      () async {
+        SharedPreferences.setMockInitialValues({
+          'darkModePreference': 'scheduled',
+        });
+        GetIt.instance.registerSingleton<IncidentLoggerService>(_FakeLogger());
+        final memory = SharedPreferencesService();
+        GetIt.instance.registerSingleton<PersistentMemoryService>(memory);
+
+        final userInfo = UserInformation(service: memory);
+        await loadUserInformation(userInfo, 'en');
+
+        expect(userInfo.darkModePreference, DarkModePreference.scheduled);
+        expect(userInfo.darkModeStartHour, 22);
+        expect(userInfo.darkModeStartMinute, 0);
+        expect(userInfo.darkModeEndHour, 6);
+        expect(userInfo.darkModeEndMinute, 0);
+      },
+    );
+
     test('uses defaults when all keys return null', () async {
       _registerFakes(store: {}); // all getItem calls return null
 
