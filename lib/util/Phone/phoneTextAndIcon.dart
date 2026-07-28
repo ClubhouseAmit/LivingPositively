@@ -7,11 +7,14 @@ import 'package:mazilon/l10n/app_localizations.dart';
 import 'package:mazilon/util/styles.dart';
 import 'package:url_launcher/url_launcher.dart';
 
-Widget _circularActionButton(
+/// Builds a 48dp circular action with tooltip and button semantics.
+Widget circularActionButton(
   BuildContext context, {
   required String tooltip,
   required IconData icon,
   required VoidCallback onTap,
+  double diameter = 40,
+  double iconSize = 20,
 }) {
   final colorScheme = Theme.of(context).colorScheme;
 
@@ -26,10 +29,10 @@ Widget _circularActionButton(
           onTap: onTap,
           child: Center(
             child: CircleAvatar(
-              radius: 20,
+              radius: diameter / 2,
               backgroundColor: colorScheme.primary,
               foregroundColor: colorScheme.onPrimary,
-              child: Icon(icon, size: 20),
+              child: Icon(icon, size: iconSize),
             ),
           ),
         ),
@@ -53,7 +56,7 @@ Widget phoneContact(String phone, String contact) {
           // SizedBox is the minimum Material tap target — the CircleAvatar
           // (radius 20 → 40dp visual) keeps the same look but the hit area
           // grows to the WCAG-recommended size (UX_GAPS §1.6).
-          return _circularActionButton(
+          return circularActionButton(
             innerContext,
             tooltip: tooltip,
             icon: Icons.phone,
@@ -236,7 +239,7 @@ Widget getTextIconWidget(String text, Function onClick, IconData icon) {
             ),
           ),
           SizedBox(width: 5.0),
-          _circularActionButton(
+          circularActionButton(
             context,
             tooltip: text,
             icon: icon,

@@ -48,6 +48,35 @@ Widget _wrap(Widget Function(BuildContext) builder,
 void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
 
+  group('circularActionButton', () {
+    testWidgets('honors supplied visual dimensions and callback', (
+      tester,
+    ) async {
+      var taps = 0;
+      await tester.pumpWidget(
+        _wrap(
+          (context) => circularActionButton(
+            context,
+            tooltip: 'Call contact',
+            icon: Icons.phone,
+            diameter: 32,
+            iconSize: 16,
+            onTap: () => taps++,
+          ),
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      expect(find.byTooltip('Call contact'), findsOneWidget);
+      expect(tester.widget<CircleAvatar>(find.byType(CircleAvatar)).radius, 16);
+      expect(tester.widget<Icon>(find.byIcon(Icons.phone)).size, 16);
+
+      await tester.tap(find.byIcon(Icons.phone));
+      await tester.pumpAndSettle();
+      expect(taps, 1);
+    });
+  });
+
   group('phoneContact widget', () {
     testWidgets('renders contact text and dials when icon tapped',
         (tester) async {

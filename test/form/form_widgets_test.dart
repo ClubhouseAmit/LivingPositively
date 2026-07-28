@@ -325,9 +325,9 @@ void main() {
       expect(phoneData.savedPhoneNumbers, isEmpty);
     });
 
-    testWidgets('PhonePageData seeded with two entries renders Card widgets', (
-      tester,
-    ) async {
+    testWidgets(
+        'PhonePageData seeded with two entries renders cards and call actions',
+        (tester) async {
       // PhonePageData's constructor calls loadItemsFromPrefs() which
       // overwrites our seeded lists with whatever is in
       // PersistentMemoryService. To keep the two seeded entries visible we
@@ -365,6 +365,8 @@ void main() {
 
       // Card is the production widget used to display a phone entry.
       expect(find.byType(Card), findsWidgets);
+      expect(find.byTooltip('Call Alice'), findsOneWidget);
+      expect(find.byTooltip('Call Bob'), findsOneWidget);
     });
   });
 
