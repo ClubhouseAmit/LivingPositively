@@ -10,10 +10,25 @@ import 'package:mazilon/l10n/app_localizations.dart';
 Widget getMenuForTests(
     UserInformation mockUserInformation, AppInformation mockAppInformation,
     {Locale locale = const Locale('he')}) {
+  final phonePageData = PhonePageData(
+    key: 'phonePageData',
+    header: 'header',
+    subTitle: 'subTitle',
+    midTitle: 'midTitle',
+    phoneNameTitle: 'phoneNameTitle',
+    phoneNumberTitle: 'phoneNumberTitle',
+    phoneNames: [],
+    phoneNumbers: [],
+    savedPhoneNames: [],
+    savedPhoneNumbers: [],
+    phoneDescription: [],
+  );
+
   return MultiProvider(
     providers: [
       ChangeNotifierProvider<UserInformation>.value(value: mockUserInformation),
       ChangeNotifierProvider<AppInformation>.value(value: mockAppInformation),
+      ChangeNotifierProvider<PhonePageData>.value(value: phonePageData),
     ],
     child: MaterialApp(
       supportedLocales: AppLocalizations.supportedLocales,
@@ -22,19 +37,7 @@ Widget getMenuForTests(
       home: ScreenUtilInit(
         designSize: const Size(360, 690),
         child: Menu(
-          phonePageData: PhonePageData(
-            key: 'phonePageData',
-            header: 'header',
-            subTitle: 'subTitle',
-            midTitle: 'midTitle',
-            phoneNameTitle: 'phoneNameTitle',
-            phoneNumberTitle: 'phoneNumberTitle',
-            phoneNames: [],
-            phoneNumbers: [],
-            savedPhoneNames: [],
-            savedPhoneNumbers: [],
-            phoneDescription: [],
-          ),
+          phonePageData: phonePageData,
           changeLocale: (String locale) {},
           hasFilled: false,
         ),

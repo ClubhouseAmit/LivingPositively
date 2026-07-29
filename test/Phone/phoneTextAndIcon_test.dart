@@ -75,6 +75,31 @@ void main() {
       await tester.pumpAndSettle();
       expect(taps, 1);
     });
+
+    testWidgets('expands the tap target for a large visual diameter', (
+      tester,
+    ) async {
+      await tester.pumpWidget(
+        _wrap(
+          (context) => circularActionButton(
+            context,
+            tooltip: 'Call contact',
+            icon: Icons.phone,
+            diameter: 80,
+            onTap: () {},
+          ),
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      final tapTarget = find.byWidgetPredicate(
+        (widget) =>
+            widget is SizedBox && widget.width == 80 && widget.height == 80,
+      );
+      expect(tapTarget, findsOneWidget);
+      expect(tester.getSize(tapTarget), const Size(80, 80));
+      expect(tester.getSize(find.byType(CircleAvatar)), const Size(80, 80));
+    });
   });
 
   group('phoneContact widget', () {

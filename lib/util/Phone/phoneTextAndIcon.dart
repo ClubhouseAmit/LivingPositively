@@ -4,42 +4,12 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:mazilon/l10n/app_localizations.dart';
+import 'package:mazilon/util/circular_action_button.dart';
 import 'package:mazilon/util/styles.dart';
 import 'package:url_launcher/url_launcher.dart';
 
-/// Builds a 48dp circular action with tooltip and button semantics.
-Widget circularActionButton(
-  BuildContext context, {
-  required String tooltip,
-  required IconData icon,
-  required VoidCallback onTap,
-  double diameter = 40,
-  double iconSize = 20,
-}) {
-  final colorScheme = Theme.of(context).colorScheme;
-
-  return Tooltip(
-    message: tooltip,
-    child: Semantics(
-      button: true,
-      child: SizedBox(
-        width: 48,
-        height: 48,
-        child: InkWell(
-          onTap: onTap,
-          child: Center(
-            child: CircleAvatar(
-              radius: diameter / 2,
-              backgroundColor: colorScheme.primary,
-              foregroundColor: colorScheme.onPrimary,
-              child: Icon(icon, size: iconSize),
-            ),
-          ),
-        ),
-      ),
-    ),
-  );
-}
+export 'package:mazilon/util/circular_action_button.dart'
+    show circularActionButton;
 
 Widget phoneContact(String phone, String contact) {
   return Row(
