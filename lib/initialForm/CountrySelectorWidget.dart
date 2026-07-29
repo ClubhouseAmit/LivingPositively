@@ -98,6 +98,12 @@ class _CountrySelectorWidgetState
       context,
     );
     final fieldWidth = formFieldWidth(context);
+    final theme = Theme.of(context);
+    final colorScheme = theme.colorScheme;
+    final dialogTextStyle = theme.textTheme.bodyLarge?.copyWith(
+      color: colorScheme.onSurface,
+    ) ??
+        TextStyle(color: colorScheme.onSurface);
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -178,6 +184,8 @@ class _CountrySelectorWidgetState
                   initialSelection: initialCountryCode,
                   showCountryOnly: true,
                   showOnlyCountryWhenClosed: true,
+                  dialogBackgroundColor: colorScheme.surface,
+                  dialogTextStyle: dialogTextStyle,
                   alignLeft: true, // Changed to true for left alignment
                   countryFilter: countryPickerCodes,
                   padding: EdgeInsets.zero, // Remove internal padding

@@ -217,9 +217,7 @@ class FormProgressIndicatorState extends State<FormProgressIndicator> {
                             decoration: BoxDecoration(
                               color: index <= currentStep
                                   ? Theme.of(context).colorScheme.primary
-                                  : Theme.of(
-                                      context,
-                                    ).colorScheme.surfaceContainerHighest,
+                                  : Theme.of(context).colorScheme.outline,
                               borderRadius: BorderRadius.circular(5.0),
                             ),
                           ),
