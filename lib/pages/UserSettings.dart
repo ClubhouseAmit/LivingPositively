@@ -76,7 +76,7 @@ class _UserSettingsState extends LPExtendedState<UserSettings> {
 
   double getSizeOfTextGender(AppLocalizations locale) {
     switch (locale.language) {
-      case "×¢×‘×¨×™×ª":
+      case "עברית":
         return 18.sp;
 
       case "English":
@@ -243,6 +243,13 @@ class _UserSettingsState extends LPExtendedState<UserSettings> {
   }
 
   Future<void> _signOut(UserInformation userInfo) async {
+    final service = GetIt.instance<PersistentMemoryService>();
+    userInfo.notificationPreferences = {};
+    await service.setItem(
+      'notificationPreferences',
+      PersistentMemoryType.String,
+      '{}',
+    );
     if (userInfo.loggedIn) {
       await AuthService.signOut();
     }
@@ -251,7 +258,6 @@ class _UserSettingsState extends LPExtendedState<UserSettings> {
     userInfo.updateEmail('');
     userInfo.updateDisplayName('');
 
-    final service = GetIt.instance<PersistentMemoryService>();
     final enteredBeforeValue =
         await service.getItem("enteredBefore", PersistentMemoryType.Bool) ??
         false;
@@ -723,9 +729,9 @@ class _UserSettingsState extends LPExtendedState<UserSettings> {
                               child: Text(appLocale.closeButton(gender)),
                             ),
                             TextButton(
-                              onPressed: () {
+                              onPressed: () async {
                                 Navigator.pop(dialogContext);
-                                _signOut(userInfoProvider);
+                                await _signOut(userInfoProvider);
                               },
                               child: Text(
                                 appLocale.authSignOut,

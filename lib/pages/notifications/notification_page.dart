@@ -50,7 +50,15 @@ class _NotificationPageState extends LPExtendedState<NotificationPage>
   }
 
   void _onToggle(bool value, UserInformation userInfo) {
-    if (!value) {
+    if (value) {
+      final preference = userInfo.getNotificationPreference('default');
+      FcmScheduledNotificationService.registerNotification(
+        context: context,
+        typeId: 'default',
+        hour: preference?.hour ?? 8,
+        minute: preference?.minute ?? 30,
+      );
+    } else {
       FcmScheduledNotificationService.cancelNotification(
         context: context,
         typeId: 'default',
@@ -132,25 +140,19 @@ class _NotificationPageState extends LPExtendedState<NotificationPage>
                     if (_hasPermission == false) {
                       return _PermissionDeniedCard();
                     }
+                    final preference = userInfo.getNotificationPreference(
+                      'default',
+                    );
                     return NotificationToggleCard(
-                      emoji: "âœ¨",
+                      emoji: "✨",
                       badgeText: "LP",
-                      title: "×ž×¡×¨ ×—×™×–×•×§ ×™×•×ž×™",
-                      subtitle:
-                          "× ×™×¦×•×¥ ×™×•×ž×™ ×¢×“×™×Ÿ ×©×œ ×ª×§×•×•×” ×•× ×—×ž×”, ×œ×”××™×¨ ××ª ×”×“×¨×š",
-                      initialEnabled:
-                          userInfo.getNotificationPreference('default') != null,
-                      initialTime:
-                          userInfo.getNotificationPreference('default') == null
-                          ? null
-                          : TimeOfDay(
-                              hour: userInfo
-                                  .getNotificationPreference('default')!
-                                  .hour,
-                              minute: userInfo
-                                  .getNotificationPreference('default')!
-                                  .minute,
-                            ),
+                      title: appLocale.notifications(gender),
+                      subtitle: appLocale.notificationPageHeader(gender),
+                      initialEnabled: preference != null,
+                      initialTime: TimeOfDay(
+                        hour: preference?.hour ?? 8,
+                        minute: preference?.minute ?? 30,
+                      ),
                       onTimeSelected: (time) =>
                           _onPickedTime(time, appLocale, userInfo),
                       onToggle: (value) => _onToggle(value, userInfo),

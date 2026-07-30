@@ -135,6 +135,14 @@ Future<void> loadUserInformation(
       "notificationPreferences",
       PersistentMemoryType.String,
     ),
+    'notificationHour': service.getItem(
+      "notificationHour",
+      PersistentMemoryType.Int,
+    ),
+    'notificationMinute': service.getItem(
+      "notificationMinute",
+      PersistentMemoryType.Int,
+    ),
     'darkModePreference': service.getItem(
       'darkModePreference',
       PersistentMemoryType.String,
@@ -194,15 +202,34 @@ Future<void> loadUserInformation(
   );
   userInfo.updateLocation(data['location'] ?? "");
   userInfo.updateDisclaimerSigned(data['disclaimerConfirmed'] ?? false);
+  final legacyHour = data['notificationHour'];
+  final legacyMinute = data['notificationMinute'];
+  final legacyPreference =
+      legacyHour is int &&
+          legacyMinute is int &&
+          legacyHour >= 0 &&
+          legacyHour <= 23 &&
+          legacyMinute >= 0 &&
+          legacyMinute <= 59
+      ? NotificationPreference(hour: legacyHour, minute: legacyMinute)
+      : null;
   final prefsJson = data['notificationPreferences'] as String?;
   if (prefsJson != null && prefsJson.isNotEmpty) {
-    final decoded = jsonDecode(prefsJson) as Map<String, dynamic>;
-    userInfo.notificationPreferences = decoded.map(
-      (key, value) => MapEntry(
-        key,
-        NotificationPreference.fromJson(value as Map<String, dynamic>),
-      ),
-    );
+    try {
+      final decoded = jsonDecode(prefsJson) as Map<String, dynamic>;
+      userInfo.notificationPreferences = decoded.map(
+        (key, value) => MapEntry(
+          key,
+          NotificationPreference.fromJson(value as Map<String, dynamic>),
+        ),
+      );
+    } on Object {
+      userInfo.notificationPreferences = legacyPreference == null
+          ? {}
+          : {'default': legacyPreference};
+    }
+  } else if (legacyPreference != null) {
+    userInfo.notificationPreferences = {'default': legacyPreference};
   }
   final darkModePreference = UserInformation.parseDarkModePreference(
     data['darkModePreference'] as String?,

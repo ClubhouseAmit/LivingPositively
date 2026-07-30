@@ -1,6 +1,6 @@
 # Plan: FCM-Based Scheduled Notification System
 
-## Status: Partially Implemented, need to confirm the scheduler is working as intented
+## Status: Partially Implemented, need to confirm the scheduler is working as intended
 
 ---
 
@@ -106,7 +106,12 @@ service cloud.firestore {
       allow read, write: if request.auth != null && request.auth.uid == uid;
     }
     match /scheduled_notifications/{docId} {
-      allow read, write: if request.auth != null && request.auth.uid == resource.data.uid;
+      allow read: if request.auth != null && request.auth.uid == resource.data.uid;
+      allow create: if request.auth != null && request.auth.uid == request.resource.data.uid;
+      allow update: if request.auth != null
+                    && request.auth.uid == resource.data.uid
+                    && request.auth.uid == request.resource.data.uid;
+      allow delete: if request.auth != null && request.auth.uid == resource.data.uid;
     }
   }
 }
@@ -137,7 +142,7 @@ Reads `Authorization: Bearer <idToken>` header, calls `admin.auth().verifyIdToke
 
 ### 3. `processScheduledNotifications` — Scheduled every 1 minute
 
-1. Gets current time in `Asia/Jerusalem` via luxon
+1. Converts the scheduler event's original `scheduleTime` to `Asia/Jerusalem`
 2. Queries `scheduled_notifications` where `hour == localHour && minute == localMinute`
 3. For each matching doc:
    - Reads `locale` and `gender` from the doc

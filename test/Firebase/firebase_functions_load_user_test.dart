@@ -3,6 +3,7 @@ import 'package:get_it/get_it.dart';
 import 'package:mazilon/global_enums.dart';
 import 'package:mazilon/util/Firebase/firebase_functions.dart';
 import 'package:mazilon/util/logger_service.dart';
+import 'package:mazilon/util/notification_preference.dart';
 import 'package:mazilon/util/persistent_memory_service.dart';
 import 'package:mazilon/util/userInformation.dart';
 import 'package:shared_preferences/shared_preferences.dart';
@@ -128,12 +129,50 @@ void main() {
       expect(userInfo.userId, equals('uid-123'));
       expect(userInfo.location, equals('TLV'));
       expect(userInfo.disclaimerSigned, isTrue);
+      expect(
+        userInfo.getNotificationPreference('default')?.toJson(),
+        const NotificationPreference(hour: 9, minute: 30).toJson(),
+      );
       expect(userInfo.darkModePreference, DarkModePreference.scheduled);
       expect(userInfo.darkModeStartHour, equals(21));
       expect(userInfo.darkModeStartMinute, equals(30));
       expect(userInfo.darkModeEndHour, equals(6));
       expect(userInfo.darkModeEndMinute, equals(15));
       expect(userInfo.localeName, equals('he'));
+    });
+
+    test('loads valid notification preferences JSON', () async {
+      _registerFakes(
+        store: {
+          'notificationPreferences': '{"default":{"hour":7,"minute":45}}',
+        },
+      );
+
+      final userInfo = _makeUserInfo();
+      await loadUserInformation(userInfo, 'en');
+
+      expect(
+        userInfo.getNotificationPreference('default')?.toJson(),
+        const NotificationPreference(hour: 7, minute: 45).toJson(),
+      );
+    });
+
+    test('falls back to legacy reminder time for malformed JSON', () async {
+      _registerFakes(
+        store: {
+          'notificationPreferences': '{not-json',
+          'notificationHour': 6,
+          'notificationMinute': 20,
+        },
+      );
+
+      final userInfo = _makeUserInfo();
+      await loadUserInformation(userInfo, 'en');
+
+      expect(
+        userInfo.getNotificationPreference('default')?.toJson(),
+        const NotificationPreference(hour: 6, minute: 20).toJson(),
+      );
     });
 
     test('propagates list fields', () async {
@@ -230,6 +269,7 @@ void main() {
       expect(userInfo.userId, equals(''));
       expect(userInfo.location, equals(''));
       expect(userInfo.disclaimerSigned, isFalse);
+      expect(userInfo.notificationPreferences, isEmpty);
       expect(userInfo.darkModePreference, DarkModePreference.alwaysLight);
       expect(userInfo.darkModeStartHour, equals(22));
       expect(userInfo.darkModeStartMinute, equals(0));

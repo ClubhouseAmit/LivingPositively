@@ -2,7 +2,6 @@ import * as admin from "firebase-admin";
 import { setGlobalOptions } from "firebase-functions";
 import { onRequest, Request } from "firebase-functions/https";
 import { onSchedule } from "firebase-functions/scheduler";
-import { DateTime } from "luxon";
 
 admin.initializeApp();
 setGlobalOptions({ maxInstances: 10 });
@@ -54,11 +53,10 @@ async function cleanupInactiveDevice(uid: string): Promise<void> {
     .where("uid", "==", uid)
     .get();
 
-  const deletes: Promise<any>[] = scheduledSnap.docs.map((doc) =>
-    doc.ref.delete(),
-  );
-  deletes.push(db.collection("devices").doc(uid).delete());
-  await Promise.all(deletes);
+  await Promise.all([
+    ...scheduledSnap.docs.map((doc) => doc.ref.delete()),
+    db.collection("devices").doc(uid).delete(),
+  ]);
 }
 
 // ---------------------------------------------------------------------------
@@ -66,6 +64,11 @@ async function cleanupInactiveDevice(uid: string): Promise<void> {
 // Body: { typeId: string, hour: number, minute: number }
 // ---------------------------------------------------------------------------
 export const registerNotification = onRequest(async (req, res) => {
+  if (req.method !== "POST") {
+    res.status(405).send("Method Not Allowed");
+    return;
+  }
+
   const uid = await extractAndVerifyUid(req);
   if (!uid) {
     res.status(401).send("Unauthorized");
@@ -76,8 +79,10 @@ export const registerNotification = onRequest(async (req, res) => {
 
   if (
     typeof typeId !== "string" ||
-    typeof hour !== "number" ||
-    typeof minute !== "number" ||
+    !Number.isFinite(hour) ||
+    !Number.isInteger(hour) ||
+    !Number.isFinite(minute) ||
+    !Number.isInteger(minute) ||
     hour < 0 ||
     hour > 23 ||
     minute < 0 ||
@@ -124,6 +129,11 @@ export const registerNotification = onRequest(async (req, res) => {
 // Body: { typeId: string }
 // ---------------------------------------------------------------------------
 export const cancelNotification = onRequest(async (req, res) => {
+  if (req.method !== "POST") {
+    res.status(405).send("Method Not Allowed");
+    return;
+  }
+
   const uid = await extractAndVerifyUid(req);
   if (!uid) {
     res.status(401).send("Unauthorized");
@@ -161,11 +171,21 @@ export const cancelNotification = onRequest(async (req, res) => {
 // ---------------------------------------------------------------------------
 export const processScheduledNotifications = onSchedule(
   "every 1 minutes",
-  async () => {
+  async (event) => {
     // --- Query phase ---
-    const now = DateTime.now().setZone("Asia/Jerusalem");
-    const localHour = now.hour;
-    const localMinute = now.minute;
+    const scheduleTime = new Date(event.scheduleTime);
+    const timeParts = new Intl.DateTimeFormat("en-GB", {
+      timeZone: "Asia/Jerusalem",
+      hour: "2-digit",
+      minute: "2-digit",
+      hourCycle: "h23",
+    }).formatToParts(scheduleTime);
+    const localHour = Number(
+      timeParts.find((part) => part.type === "hour")?.value,
+    );
+    const localMinute = Number(
+      timeParts.find((part) => part.type === "minute")?.value,
+    );
 
     const snapshot = await admin
       .firestore()
@@ -268,10 +288,18 @@ export const processScheduledNotifications = onSchedule(
         const quotes = quotesMap.get(collectionName);
         if (!quotes || quotes.length === 0) continue;
         const quoteData = quotes[Math.floor(Math.random() * quotes.length)];
-        body = quoteData[gender] ?? quoteData.other ?? quoteData.male ?? quoteData.text ?? "";
+        const quote =
+          quoteData[gender] ??
+          quoteData.other ??
+          quoteData.male ??
+          quoteData.text;
+        body = typeof quote === "string" ? quote : "";
       } else {
-        title = typeData.staticTitle ?? title;
-        body = typeData.staticBody ?? "";
+        if (typeof typeData.staticTitle === "string") {
+          title = typeData.staticTitle;
+        }
+        body =
+          typeof typeData.staticBody === "string" ? typeData.staticBody : "";
       }
 
       sendTasks.push(async () => {
