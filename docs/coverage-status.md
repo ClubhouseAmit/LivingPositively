@@ -705,28 +705,31 @@ untouched.
 
 Sibling of `scripts/check_coverage.dart`. Reads `coverage/integration.info`
 (separate from `coverage/lcov.info`). Enforces ONLY the four per-file floors
-specified by ADR-002 (50/60/60/85). Does NOT check global coverage — the unit
-pipeline owns that. Exits 0 on pass, 1 on per-file miss or missing file, 2 if
+whose authoritative values are in `scripts/check_integration_coverage.dart`
+(currently 65/60/60/85). Does NOT check global coverage — the unit pipeline
+owns that. Exits 0 on pass, 1 on per-file miss or missing file, 2 if
 `coverage/integration.info` does not exist (clearly distinguishes a CI
 config error from a coverage regression).
 
-#### CI changes — new `integration-test` job in `.github/workflows/main.yml`
+#### CI changes — ADR-009 sharded Android integration gate
 
-Parallel to `build-android`. Same checkout/secrets/JDK/Flutter setup; then:
+The Android integration suite now follows
+[`ADR-009`](adr/ADR-009-shard-android-integration-tests-to-bound-runner-disk.md).
+An `integration-test-shard` matrix runs each of the six Android integration
+entry points on its own fresh emulator runner, with at most three shards in
+parallel and a 45-minute bound per shard. Each shard preserves the ADR-002
+Android configuration and uploads a uniquely named LCOV input.
 
-1. Enable KVM (required by hardware-accelerated emulator).
-2. `reactivecircus/android-emulator-runner@v2` with api-level 34, target
-   google_apis, arch x86_64, profile pixel_6 — exact shape ADR-002 § "CI
-   changes" specifies. The `script:` block runs
-   `flutter test integration_test --coverage --coverage-path coverage/integration.info`.
-3. `dart run scripts/check_integration_coverage.dart` enforces the per-file
-   floors.
-4. Upload `coverage/integration.info` as the `coverage-integration-lcov`
-   artifact.
+The downstream canonical `integration-test` job retains the required-check
+contract. It requires the complete shard matrix to succeed, verifies the exact
+coverage-shard inventory, merges the verified LCOV inputs into
+`coverage/integration.info`, runs
+`scripts/check_integration_coverage.dart`, and uploads the unchanged
+`coverage-integration-lcov` artifact consumed by `coverage-aggregate`.
 
 The existing `build-android` job is untouched. The two coverage gates are
 intentionally decoupled — emulator-class flakes in the integration job
-cannot pull the unit pipeline's 82% global floor below threshold.
+cannot pull the unit pipeline's current **85% global floor** below threshold.
 
 ### Production code changes
 

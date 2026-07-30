@@ -7,6 +7,14 @@ on:
     branches:
       - main
 
+permissions:
+  contents: read
+
+concurrency:
+  group: ${{ github.event_name == 'push' && github.ref == 'refs/heads/main' && 'main-release-pipeline' || github.run_id }}
+  cancel-in-progress: false
+  queue: max
+
 jobs:
   build-android:
     runs-on: ubuntu-latest
@@ -19,17 +27,17 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v4
 
-      - name: Export secrets as env vars
-        uses: oNaiPs/secrets-to-env-action@v1
-        with:
-          secrets: ${{ toJSON(secrets) }}
       - name: Write key store file for release signing
+        env:
+          APPSIGNINGKEY: ${{ secrets.APPSIGNINGKEY }}
         run: |
-          echo "$APPSIGNINGKEY" | base64 --decode > "${{ env.KEYSTORE_PATH }}${{ env.KEYSTORE_FILE }}"
+          printf '%s' "$APPSIGNINGKEY" | base64 --decode > "${{ env.KEYSTORE_PATH }}${{ env.KEYSTORE_FILE }}"
 
       - name: Write firebase options file
+        env:
+          FIREBASE_OPTIONS: ${{ secrets.FIREBASE_OPTIONS }}
         run: |
-          echo "$FIREBASE_OPTIONS" | base64 --decode > "${{ env.FIREBASE_OPTIONS_PATH }}"
+          printf '%s' "$FIREBASE_OPTIONS" | base64 --decode > "${{ env.FIREBASE_OPTIONS_PATH }}"
 
       - name: Set up JDK
         uses: actions/setup-java@v5
@@ -100,6 +108,8 @@ jobs:
 
       - name: Build App Bundle
         env:
+          APPSIGNINGKEYPASSWORD: ${{ secrets.APPSIGNINGKEYPASSWORD }}
+          APPSIGNINGKEYSTOREPASSWORD: ${{ secrets.APPSIGNINGKEYSTOREPASSWORD }}
           MIXPANEL_PROJECT_TOKEN: ${{ secrets.MIXPANEL_PROJECT_TOKEN }}
           SENTRY_DSN: ${{ secrets.SENTRY_DSN }}
         run: |
@@ -123,26 +133,45 @@ jobs:
       #     name: app-release-apk
       #     path: ${{ env.APK_PATH }}
 
-  integration-test:
-    # Phase 7 (ADR-002): per-file coverage gate for the integration_test/
-    # suite. Runs on an Android emulator via reactivecircus/android-emulator-runner.
-    # Decoupled from build-android — emulator-class flake here cannot pull
-    # the unit pipeline's 82% global floor below threshold.
+  integration-test-shard:
+    name: integration-test-shard (${{ matrix.id }})
+    # ADR-009: keep each Android integration entry point in its own runner so
+    # repeated native builds cannot exhaust one runner's disk. The downstream
+    # integration-test job preserves the required-check and artifact contracts.
     runs-on: ubuntu-latest
+    # Bound emulator hangs without changing the coverage or isolation contract.
+    timeout-minutes: 45
+    concurrency:
+      group: ${{ format('{0}-{1}-{2}', github.workflow, github.ref, matrix.id) }}
+      cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+    strategy:
+      fail-fast: false
+      max-parallel: 3
+      matrix:
+        include:
+          - id: custom-categories
+            test_file: integration_test/custom_categories_e2e_test.dart
+          - id: bootstrap-smoke
+            test_file: integration_test/bootstrap_smoke_test.dart
+          - id: bootstrap-full
+            test_file: integration_test/bootstrap_full_test.dart
+          - id: wellness-player
+            test_file: integration_test/wellness_player_test.dart
+          - id: logger-init
+            test_file: integration_test/logger_init_test.dart
+          - id: notifications-schedule
+            test_file: integration_test/notifications_schedule_test.dart
     env:
       FIREBASE_OPTIONS_PATH: lib/util/Firebase/firebase_options.dart
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
 
-      - name: Export secrets as env vars
-        uses: oNaiPs/secrets-to-env-action@v1
-        with:
-          secrets: ${{ toJSON(secrets) }}
-
       - name: Write firebase options file
+        env:
+          FIREBASE_OPTIONS: ${{ secrets.FIREBASE_OPTIONS }}
         run: |
-          echo "$FIREBASE_OPTIONS" | base64 --decode > "${{ env.FIREBASE_OPTIONS_PATH }}"
+          printf '%s' "$FIREBASE_OPTIONS" | base64 --decode > "${{ env.FIREBASE_OPTIONS_PATH }}"
 
       - name: Set up JDK
         uses: actions/setup-java@v5
@@ -165,49 +194,168 @@ jobs:
             sudo tee /etc/udev/rules.d/99-kvm4all.rules
           sudo udevadm control --reload-rules && sudo udevadm trigger --name-match=kvm
 
-      - name: Run integration tests on Android emulator
+      - name: Run integration test shard on Android emulator
         uses: reactivecircus/android-emulator-runner@v2
         with:
           api-level: 34
           target: google_apis
           arch: x86_64
           profile: pixel_6
-          # Notes on the script below:
-          #
-          # 1. Single-line `flutter test` invocation — earlier attempts used
-          #    YAML `|` block + bash `\<newline>` continuations, which got
-          #    re-interpreted by the action's `sh -c` invocation and produced
-          #    "Integration tests and unit tests cannot be run in a single
-          #    invocation." The single-line form is the canonical pattern
-          #    used by reactivecircus's own Flutter examples.
-          #
-          # 2. `-d emulator-5554` explicitly targets the emulator the action
-          #    booted (port 5554 is the default; matches the action's
-          #    `emulator-port: 5554` default). Without `-d`, Flutter
-          #    occasionally fails to auto-detect the device, leaving
-          #    `flutter test` to walk the path as host-VM unit tests, which
-          #    triggers the same mix-error because integration_test files
-          #    use IntegrationTestWidgetsFlutterBinding.
-          #
-          # 3. `flutter devices` runs first as a diagnostic — its output
-          #    appears in CI logs above any subsequent failure, so the
-          #    emulator-visibility question is answered without re-running.
-          #
-          # 4. SENTRY_DSN is a synthetic, non-routable test value — it makes
-          #    `_sentryDsn.isEmpty` false in logger_service.dart so
-          #    integration_test/logger_init_test.dart exercises the
-          #    `SentryFlutter.init` path + its catch branch. The Sentry
-          #    native SDK is channel-mocked in the test so no real network
-          #    traffic leaves the runner (PR #266 review, baz-reviewer
-          #    finding 1).
-          #
-          # 5. The iOS-only notifications_schedule_ios_test.dart is excluded
-          #    here. The macOS integration-test-ios job owns that file; running
-          #    the whole integration_test/ directory on Android mixes iOS
-          #    method-channel assumptions with the Android plugin stack.
-          script: |
-            flutter devices
-            flutter test integration_test/custom_categories_e2e_test.dart integration_test/bootstrap_smoke_test.dart integration_test/bootstrap_full_test.dart integration_test/wellness_player_test.dart integration_test/logger_init_test.dart integration_test/notifications_schedule_test.dart --coverage --coverage-path coverage/integration.info --dart-define=SENTRY_DSN=https://test@dsn.example.local/0 -d emulator-5554
+          # The synthetic, non-routable SENTRY_DSN exercises logger
+          # initialization; native Sentry channels are mocked, so no network
+          # traffic leaves the runner. The explicit device keeps the test on
+          # the emulator shown by `flutter devices`. The iOS-only notifications
+          # entry point is excluded because integration-test-ios owns it.
+          # `>-` is load-bearing: android-emulator-runner executes each non-empty
+          # line in a separate `sh -c`; the test exit code must stay in one
+          # folded command through the post-test disk diagnostic and final exit.
+          script: >-
+            mkdir -p coverage/shards;
+            flutter devices;
+            echo "Filesystem capacity before integration test shard:";
+            df -h;
+            flutter test "${{ matrix.test_file }}" --coverage --coverage-path "coverage/shards/${{ matrix.id }}.info" --dart-define=SENTRY_DSN=https://test@dsn.example.local/0 -d emulator-5554;
+            test_exit_code=$?;
+            echo "Filesystem capacity after integration test shard:";
+            df -h;
+            exit "$test_exit_code"
+
+      - name: Assert post-test disk headroom
+        if: always()
+        shell: bash
+        run: |
+          available_kb=$(df -Pk . | awk 'NR == 2 { print $4 }')
+          if [[ ! "$available_kb" =~ ^[0-9]+$ ]]; then
+            echo "::error::Could not parse available disk space from df -Pk." >&2
+            exit 1
+          fi
+          available_mib=$((available_kb / 1024))
+          echo "Post-test disk available: ${available_mib} MiB (${available_kb} KB)"
+          if (( available_kb < 2097152 )); then
+            echo "::warning::Post-test disk headroom is below 2 GiB (${available_mib} MiB available)."
+          fi
+
+      - name: Upload integration coverage shard
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: coverage-integration-shard-${{ matrix.id }}
+          path: coverage/shards/${{ matrix.id }}.info
+          if-no-files-found: warn
+
+  integration-test-inventory:
+    # Run test discovery beside the emulator shards so matrix drift fails
+    # without extending the canonical coverage gate's critical path.
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Verify Android integration matrix matches test files
+        shell: bash
+        run: |
+          mapfile -t declared < <(
+            awk '
+              /^  integration-test-shard:$/ { in_shard = 1; next }
+              in_shard && /^  [[:alnum:]_-]+:$/ { exit }
+              in_shard && /^[[:space:]]+test_file:[[:space:]]*/ {
+                sub(/^[[:space:]]*test_file:[[:space:]]*/, "")
+                print
+              }
+            ' .github/workflows/main.yml | sort
+          )
+          mapfile -t discovered < <(
+            find integration_test -type f -name '*_test.dart' ! -name '*_ios_test.dart' -printf '%p\n' | sort
+          )
+
+          printf 'Declared Android integration matrix files:\n'
+          printf '  %s\n' "${declared[@]}"
+          printf 'Discovered non-iOS integration test files:\n'
+          printf '  %s\n' "${discovered[@]}"
+
+          if [[ "${#declared[@]}" -ne "${#discovered[@]}" ]] || \
+             [[ "$(printf '%s\n' "${declared[@]}")" != "$(printf '%s\n' "${discovered[@]}")" ]]; then
+            echo "::error::Declared Android integration matrix files do not match discovered non-iOS integration tests." >&2
+            exit 1
+          fi
+
+  integration-test:
+    # Phase 7 (ADR-002) required-check contract, implemented as the canonical
+    # ADR-009 merge and per-file coverage gate for the Android shard matrix.
+    needs: [integration-test-shard, integration-test-inventory]
+    if: ${{ always() }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - name: Require successful integration-test prerequisites
+        shell: bash
+        run: |
+          shard_result="${{ needs.integration-test-shard.result }}"
+          inventory_result="${{ needs.integration-test-inventory.result }}"
+          echo "integration-test-shard result: $shard_result"
+          echo "integration-test-inventory result: $inventory_result"
+          prerequisite_failed=0
+          if [[ "$shard_result" != "success" ]]; then
+            echo "::error::Upstream integration-test-shard matrix did not succeed (result=$shard_result)." >&2
+            prerequisite_failed=1
+          fi
+          if [[ "$inventory_result" != "success" ]]; then
+            echo "::error::Upstream integration-test-inventory did not succeed (result=$inventory_result)." >&2
+            prerequisite_failed=1
+          fi
+          if [[ "$prerequisite_failed" -ne 0 ]]; then
+            exit 1
+          fi
+
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Flutter
+        uses: subosito/flutter-action@v2
+        with:
+          flutter-version: "3.44.0"
+          cache: true
+
+      - name: Install dependencies
+        run: flutter pub get
+
+      - name: Download integration coverage shards
+        uses: actions/download-artifact@v4
+        with:
+          pattern: coverage-integration-shard-*
+          merge-multiple: true
+          path: coverage/shards
+
+      - name: Verify integration coverage shard inventory
+        shell: bash
+        run: |
+          mkdir -p coverage/shards
+          mapfile -t expected_sorted < <(
+            awk '
+              /^  integration-test-shard:$/ { in_shard = 1; next }
+              in_shard && /^  [[:alnum:]_-]+:$/ { exit }
+              in_shard && /^[[:space:]]+-[[:space:]]+id:[[:space:]]*/ {
+                sub(/^[[:space:]]+-[[:space:]]+id:[[:space:]]*/, "")
+                print $0 ".info"
+              }
+            ' .github/workflows/main.yml | sort
+          )
+          mapfile -t actual_sorted < <(find coverage/shards -maxdepth 1 -type f -printf '%f\n' | sort)
+
+          printf 'Expected coverage shards:\n'
+          printf '  %s\n' "${expected_sorted[@]}"
+          printf 'Downloaded coverage shards:\n'
+          printf '  %s\n' "${actual_sorted[@]}"
+
+          if [[ "${#actual_sorted[@]}" -ne "${#expected_sorted[@]}" ]] || \
+             [[ "$(printf '%s\n' "${actual_sorted[@]}")" != "$(printf '%s\n' "${expected_sorted[@]}")" ]]; then
+            echo "::error::Downloaded integration coverage shard set does not match the declared expected inventory." >&2
+            exit 1
+          fi
+
+      - name: Merge integration coverage shards
+        run: dart run scripts/merge_lcov.dart coverage/integration.info coverage/shards/*.info
 
       - name: Enforce integration-test per-file coverage floors
         run: dart run scripts/check_integration_coverage.dart
@@ -274,14 +422,11 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v4
 
-      - name: Export secrets as env vars
-        uses: oNaiPs/secrets-to-env-action@v1
-        with:
-          secrets: ${{ toJSON(secrets) }}
-
       - name: Write firebase options file
+        env:
+          FIREBASE_OPTIONS: ${{ secrets.FIREBASE_OPTIONS }}
         run: |
-          echo "$FIREBASE_OPTIONS" | base64 --decode > "${{ env.FIREBASE_OPTIONS_PATH }}"
+          printf '%s' "$FIREBASE_OPTIONS" | base64 --decode > "${{ env.FIREBASE_OPTIONS_PATH }}"
 
       - name: Set up Flutter
         uses: subosito/flutter-action@v2
@@ -504,14 +649,11 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v4
 
-      - name: Export secrets as env vars
-        uses: oNaiPs/secrets-to-env-action@v1
-        with:
-          secrets: ${{ toJSON(secrets) }}
-
       - name: Write firebase options file
+        env:
+          FIREBASE_OPTIONS: ${{ secrets.FIREBASE_OPTIONS }}
         run: |
-          echo "$FIREBASE_OPTIONS" | base64 --decode > "${{ env.FIREBASE_OPTIONS_PATH }}"
+          printf '%s' "$FIREBASE_OPTIONS" | base64 --decode > "${{ env.FIREBASE_OPTIONS_PATH }}"
 
       - name: Set up Flutter
         uses: subosito/flutter-action@v2
@@ -562,7 +704,7 @@ jobs:
     # never "skipped" — and branch protection treats it correctly.
     #
     # The existing gates are UNCHANGED:
-    #   build-android → check_coverage.dart          (82% unit floor)
+    #   build-android → check_coverage.dart          (85% unit/global floor)
     #   integration-test → check_integration_coverage.dart  (per-file floors)
     # This job is purely additive; removing it restores the Phase 7 state.
     runs-on: ubuntu-latest
@@ -573,6 +715,7 @@ jobs:
     # job is re-promoted to blocking.
     needs: [build-android, integration-test]
     if: ${{ always() }}
+    timeout-minutes: 15
     steps:
       - name: Verify all upstream jobs succeeded
         # Fail fast if any dependency did not succeed. We check the
@@ -661,6 +804,7 @@ jobs:
     concurrency:
       group: google-play-internal-release
       cancel-in-progress: false
+      queue: max
     steps:
       - name: Download App Bundle
         uses: actions/download-artifact@v4
@@ -669,7 +813,7 @@ jobs:
           path: build/app/outputs/bundle/release
 
       - name: Publish to Google Play internal testing
-        uses: r0adkll/upload-google-play@v1
+        uses: r0adkll/upload-google-play@e738b9dd8f2476ea806d921b64aacd24f34515a5 # v1
         with:
           serviceAccountJsonPlainText: ${{ secrets.GOOGLE_PLAY_SERVICE_ACCOUNT_JSON }}
           packageName: com.matzilon.mezilon
@@ -687,14 +831,11 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v4
 
-      - name: Export secrets as env vars
-        uses: oNaiPs/secrets-to-env-action@v1
-        with:
-          secrets: ${{ toJSON(secrets) }}
-
       - name: Write firebase options file
+        env:
+          FIREBASE_OPTIONS: ${{ secrets.FIREBASE_OPTIONS }}
         run: |
-          echo "$FIREBASE_OPTIONS" | base64 --decode > "${{ env.FIREBASE_OPTIONS_PATH }}"
+          printf '%s' "$FIREBASE_OPTIONS" | base64 --decode > "${{ env.FIREBASE_OPTIONS_PATH }}"
 
       - name: Set up Flutter
         uses: subosito/flutter-action@v2
@@ -759,6 +900,9 @@ jobs:
   build-dev-web:
     runs-on: ubuntu-latest
     if: github.ref != 'refs/heads/main'
+    concurrency:
+      group: dev-web-${{ github.ref }}
+      cancel-in-progress: false
     env:
       FIREBASE_OPTIONS_PATH: lib/util/Firebase/firebase_options.dart
       WEB_BUILD_PATH: build/web
@@ -766,14 +910,11 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v4
 
-      - name: Export secrets as env vars
-        uses: oNaiPs/secrets-to-env-action@v1
-        with:
-          secrets: ${{ toJSON(secrets) }}
-
       - name: Write firebase options file
+        env:
+          FIREBASE_OPTIONS: ${{ secrets.FIREBASE_OPTIONS }}
         run: |
-          echo "$FIREBASE_OPTIONS" | base64 --decode > "${{ env.FIREBASE_OPTIONS_PATH }}"
+          printf '%s' "$FIREBASE_OPTIONS" | base64 --decode > "${{ env.FIREBASE_OPTIONS_PATH }}"
 
       - name: Set up Flutter
         uses: subosito/flutter-action@v2
