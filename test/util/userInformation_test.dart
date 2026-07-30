@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter_test/flutter_test.dart';
 import 'package:mazilon/global_enums.dart';
 import 'package:mazilon/util/notification_preference.dart';
@@ -26,6 +28,25 @@ class _FakePersistentMemoryService implements PersistentMemoryService {
   ) async {
     stored[key] = value;
     writes.add(MapEntry(key, value));
+  }
+}
+
+class _ControlledPersistentMemoryService implements PersistentMemoryService {
+  final List<MapEntry<String, dynamic>> writes = [];
+  final List<Completer<void>> pendingWrites = [];
+
+  @override
+  Future<dynamic> getItem(String key, PersistentMemoryType type) async => null;
+
+  @override
+  Future<void> reset() async {}
+
+  @override
+  Future<void> setItem(String key, PersistentMemoryType type, dynamic value) {
+    writes.add(MapEntry(key, value));
+    final completer = Completer<void>();
+    pendingWrites.add(completer);
+    return completer.future;
   }
 }
 
@@ -174,6 +195,37 @@ void main() {
         fakeService.stored['notificationPreferences'],
         '{"default":{"hour":8,"minute":45}}',
       );
+    });
+
+    test('serializes rapid notification preference writes', () async {
+      final controlledService = _ControlledPersistentMemoryService();
+      final u = UserInformation(service: controlledService);
+
+      u.setNotificationPreference(
+        'default',
+        const NotificationPreference(hour: 8, minute: 45),
+      );
+      u.setNotificationPreference(
+        'default',
+        const NotificationPreference(hour: 9, minute: 15),
+      );
+      await Future<void>.delayed(Duration.zero);
+
+      expect(controlledService.pendingWrites, hasLength(1));
+      expect(
+        controlledService.writes.single.value,
+        '{"default":{"hour":8,"minute":45}}',
+      );
+
+      controlledService.pendingWrites.single.complete();
+      await Future<void>.delayed(Duration.zero);
+
+      expect(controlledService.pendingWrites, hasLength(2));
+      expect(
+        controlledService.writes.last.value,
+        '{"default":{"hour":9,"minute":15}}',
+      );
+      controlledService.pendingWrites.last.complete();
     });
 
     test('updatePositiveTraits stores StringList copy', () async {

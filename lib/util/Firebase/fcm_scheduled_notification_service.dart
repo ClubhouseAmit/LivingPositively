@@ -4,6 +4,7 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:get_it/get_it.dart';
 import 'package:http/http.dart' as http;
+import 'package:mazilon/util/Firebase/fcm_service.dart';
 import 'package:mazilon/util/notification_preference.dart';
 import 'package:mazilon/util/userInformation.dart';
 import 'package:provider/provider.dart';
@@ -47,6 +48,7 @@ class FcmScheduledNotificationService {
     Future<String?> Function()? idTokenProvider,
     NotificationHttpPost? post,
   }) async {
+    if (!FcmService.supportsReminderSettings()) return false;
     _log(
       'Registering notification: typeId=$typeId, hour=$hour, minute=$minute',
     );
@@ -108,6 +110,7 @@ class FcmScheduledNotificationService {
     Future<String?> Function()? idTokenProvider,
     NotificationHttpPost? post,
   }) async {
+    if (!FcmService.supportsReminderSettings()) return false;
     _log('Cancelling notification: typeId=$typeId');
     final idToken = await (idTokenProvider ?? _getIdToken)();
     if (idToken == null) return false;

@@ -216,14 +216,27 @@ Future<void> loadUserInformation(
   final prefsJson = data['notificationPreferences'] as String?;
   if (prefsJson != null && prefsJson.isNotEmpty) {
     try {
-      final decoded = jsonDecode(prefsJson) as Map<String, dynamic>;
-      userInfo.notificationPreferences = decoded.map(
-        (key, value) => MapEntry(
-          key,
-          NotificationPreference.fromJson(value as Map<String, dynamic>),
-        ),
-      );
-    } on Object {
+      final decoded = jsonDecode(prefsJson);
+      if (decoded is! Map<String, dynamic>) {
+        throw const FormatException(
+          'notificationPreferences must be a JSON object',
+        );
+      }
+      final parsed = <String, NotificationPreference>{};
+      for (final entry in decoded.entries) {
+        final value = entry.value;
+        if (value is! Map<String, dynamic>) continue;
+        try {
+          parsed[entry.key] = NotificationPreference.fromJson(value);
+        } on FormatException {
+          continue;
+        }
+      }
+      userInfo.notificationPreferences =
+          parsed.isEmpty && legacyPreference != null
+          ? {'default': legacyPreference}
+          : parsed;
+    } on FormatException {
       userInfo.notificationPreferences = legacyPreference == null
           ? {}
           : {'default': legacyPreference};

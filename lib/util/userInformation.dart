@@ -35,6 +35,7 @@ class UserInformation with ChangeNotifier {
   int darkModeEndMinute;
   Map<String, List<String>> thanks;
   PersistentMemoryService service; // Get the persistent memory service instance
+  Future<void> _notificationPreferencesWrite = Future<void>.value();
 
   UserInformation({
     this.location = '',
@@ -380,17 +381,25 @@ class UserInformation with ChangeNotifier {
     return value != null && _isValidMinute(value) ? value : defaultValue;
   }
 
-  void _saveNotificationPreferences() async {
+  void _saveNotificationPreferences() {
     final encoded = jsonEncode(
       notificationPreferences.map(
         (key, value) => MapEntry(key, value.toJson()),
       ),
     );
-    await service.setItem(
-      'notificationPreferences',
-      PersistentMemoryType.String,
-      encoded,
-    );
+    final previousWrite = _notificationPreferencesWrite;
+    _notificationPreferencesWrite = () async {
+      try {
+        await previousWrite;
+      } on Object {
+        // A failed older write must not prevent the latest state from saving.
+      }
+      await service.setItem(
+        'notificationPreferences',
+        PersistentMemoryType.String,
+        encoded,
+      );
+    }();
   }
 
   void updateLocaleName(String value) {

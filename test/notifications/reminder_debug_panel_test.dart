@@ -30,14 +30,20 @@ import 'package:shared_preferences/shared_preferences.dart';
 
 import '../helpers/widget_test_scaffold.dart';
 
-Future<T> _onIos<T>(Future<T> Function() body) async {
-  debugDefaultTargetPlatformOverride = TargetPlatform.iOS;
+Future<T> _onPlatform<T>(
+  TargetPlatform platform,
+  Future<T> Function() body,
+) async {
+  debugDefaultTargetPlatformOverride = platform;
   try {
     return await body();
   } finally {
     debugDefaultTargetPlatformOverride = null;
   }
 }
+
+Future<T> _onIos<T>(Future<T> Function() body) =>
+    _onPlatform(TargetPlatform.iOS, body);
 
 void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
@@ -69,6 +75,43 @@ void main() {
         .setMockMethodCallHandler(permissionChannel, null);
     resetTestServices();
   });
+
+  for (final platform in [TargetPlatform.android, TargetPlatform.iOS]) {
+    testWidgets(
+      'mobile platform matrix renders FCM diagnostics on ${platform.name}',
+      (tester) async {
+        await _onPlatform(platform, () async {
+          await pumpWithProviders(
+            tester,
+            const Scaffold(body: ReminderDebugPanel()),
+            userInformation: UserInformation(
+              gender: 'male',
+              notificationPreferences: const {
+                'default': NotificationPreference(hour: 9, minute: 0),
+              },
+            ),
+            surfaceSize: const Size(800, 1400),
+          );
+          await tester.pumpAndSettle(const Duration(milliseconds: 200));
+          await tester.tap(find.byType(ExpansionTile));
+          await tester.pumpAndSettle(const Duration(milliseconds: 400));
+
+          expect(find.text('Reminder debug panel'), findsOneWidget);
+          expect(
+            find.text('FCM reminders are delivered through cloud messaging.'),
+            findsOneWidget,
+          );
+          final rescheduleButton = tester.widget<OutlinedButton>(
+            find.ancestor(
+              of: find.text('Reschedule now'),
+              matching: find.byType(OutlinedButton),
+            ),
+          );
+          expect(rescheduleButton.onPressed, isNotNull);
+        });
+      },
+    );
+  }
 
   testWidgets('renders ExpansionTile with header + advisory copy on iOS', (
     tester,
