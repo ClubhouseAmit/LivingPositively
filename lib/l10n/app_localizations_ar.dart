@@ -1106,6 +1106,19 @@ class AppLocalizationsAr extends AppLocalizations {
   }
 
   @override
+  String get sosShareLocation => 'Share Location';
+
+  @override
+  String get sosShareLocationTooltip => 'Share your current location';
+
+  @override
+  String get sosShareLocationMessage => 'I am here and I need your help.';
+
+  @override
+  String get sosShareLocationUnavailable =>
+      'Your location could not be shared. Your help message will be shared without it.';
+
+  @override
   String phonePageTitle(String gender) {
     String _temp0 = intl.Intl.selectLogic(gender, {
       'male':

@@ -1100,6 +1100,19 @@ class AppLocalizationsHe extends AppLocalizations {
   }
 
   @override
+  String get sosShareLocation => 'שיתוף במיקום';
+
+  @override
+  String get sosShareLocationTooltip => 'שיתוף המיקום הנוכחי שלך';
+
+  @override
+  String get sosShareLocationMessage => 'אני כאן ויש לי צורך בעזרתך';
+
+  @override
+  String get sosShareLocationUnavailable =>
+      'לא ניתן לשתף את מיקומך. הודעת העזרה תישלח ללא המיקום.';
+
+  @override
   String phonePageTitle(String gender) {
     String _temp0 = intl.Intl.selectLogic(gender, {
       'male': 'אתה לא לבד! אם אתה עכשיו במצוקה נא פנה לאחד הגורמים הרשומים פה',

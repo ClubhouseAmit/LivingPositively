@@ -140,6 +140,22 @@
      "dialButton": "{gender,select,male{חיוג} female{חיוג} other{חיוג}}",
      "yourContacts": "{gender,select,male{אנשי הקשר שלך} female{אנשי הקשר שלך} other{אנשי הקשר שלך}}",
      "emergencyNumbers": "{gender,select,male{מספרי חירום} female{מספרי חירום} other{מספרי חירום}}",
+     "sosShareLocation": "שיתוף במיקום",
+     "@sosShareLocation": {
+       "description": "הפעולה לשיתוף המיקום הנוכחי בדף החירום."
+     },
+     "sosShareLocationTooltip": "שיתוף המיקום הנוכחי שלך",
+     "@sosShareLocationTooltip": {
+       "description": "תווית נגישות לפעולת שיתוף המיקום בדף החירום."
+     },
+     "sosShareLocationMessage": "אני כאן ויש לי צורך בעזרתך",
+     "@sosShareLocationMessage": {
+       "description": "הודעת העזרה שנשלחת יחד עם קישור למיקום הנוכחי כשזמין."
+     },
+     "sosShareLocationUnavailable": "לא ניתן לשתף את מיקומך. הודעת העזרה תישלח ללא המיקום.",
+     "@sosShareLocationUnavailable": {
+       "description": "הודעה המוצגת כששיתוף המיקום עובר להודעת עזרה ללא מיקום."
+     },
      "whatsApp": "ווצאפ",
       "link": "קישור לאתר",
       "showMoreButton": "{gender,select,male{להציג עוד} female{להציג עוד} other{להציג עוד}}",
