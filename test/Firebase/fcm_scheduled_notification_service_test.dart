@@ -2,6 +2,7 @@ import 'dart:convert';
 
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:get_it/get_it.dart';
 import 'package:http/http.dart' as http;
 import 'package:mazilon/global_enums.dart';
 import 'package:mazilon/util/Firebase/fcm_scheduled_notification_service.dart';
@@ -143,4 +144,27 @@ void main() {
       existing.toJson(),
     );
   });
+
+  testWidgets(
+    'register returns false when FirebaseAuth has not been initialized',
+    (tester) async {
+      await GetIt.instance.reset();
+      await pumpUser(tester);
+      var postCalled = false;
+
+      final result = await FcmScheduledNotificationService.registerNotification(
+        context: serviceContext,
+        typeId: 'default',
+        hour: 9,
+        minute: 30,
+        post: (url, {headers, body, encoding}) async {
+          postCalled = true;
+          return http.Response('{}', 200);
+        },
+      );
+
+      expect(result, isFalse);
+      expect(postCalled, isFalse);
+    },
+  );
 }
