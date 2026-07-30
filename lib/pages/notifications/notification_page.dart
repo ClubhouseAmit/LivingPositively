@@ -1,4 +1,4 @@
-﻿// ignore_for_file: prefer_const_constructors
+// ignore_for_file: prefer_const_constructors
 
 import 'package:flutter/material.dart';
 import 'package:permission_handler/permission_handler.dart';
@@ -113,9 +113,13 @@ class _NotificationPageState extends LPExtendedState<NotificationPage>
                       ),
                       children: [
                         TextSpan(
-                            text: 'Remind ',
-                            style: TextStyle(color: primaryPurple)),
-                        TextSpan(text: 'Me', style: TextStyle(color: appGreen)),
+                          text: 'Remind ',
+                          style: TextStyle(color: primaryPurple),
+                        ),
+                        TextSpan(
+                          text: 'Me',
+                          style: TextStyle(color: appGreen),
+                        ),
                       ],
                     ),
                   ),
@@ -132,20 +136,21 @@ class _NotificationPageState extends LPExtendedState<NotificationPage>
                       emoji: "âœ¨",
                       badgeText: "LP",
                       title: "×ž×¡×¨ ×—×™×–×•×§ ×™×•×ž×™",
-                      subtitle: "× ×™×¦×•×¥ ×™×•×ž×™ ×¢×“×™×Ÿ ×©×œ ×ª×§×•×•×” ×•× ×—×ž×”, ×œ×”××™×¨ ××ª ×”×“×¨×š",
+                      subtitle:
+                          "× ×™×¦×•×¥ ×™×•×ž×™ ×¢×“×™×Ÿ ×©×œ ×ª×§×•×•×” ×•× ×—×ž×”, ×œ×”××™×¨ ××ª ×”×“×¨×š",
                       initialEnabled:
                           userInfo.getNotificationPreference('default') != null,
                       initialTime:
                           userInfo.getNotificationPreference('default') == null
-                              ? null
-                              : TimeOfDay(
-                                  hour: userInfo
-                                      .getNotificationPreference('default')!
-                                      .hour,
-                                  minute: userInfo
-                                      .getNotificationPreference('default')!
-                                      .minute,
-                                ),
+                          ? null
+                          : TimeOfDay(
+                              hour: userInfo
+                                  .getNotificationPreference('default')!
+                                  .hour,
+                              minute: userInfo
+                                  .getNotificationPreference('default')!
+                                  .minute,
+                            ),
                       onTimeSelected: (time) =>
                           _onPickedTime(time, appLocale, userInfo),
                       onToggle: (value) => _onToggle(value, userInfo),
@@ -155,9 +160,7 @@ class _NotificationPageState extends LPExtendedState<NotificationPage>
                 GestureDetector(
                   behavior: HitTestBehavior.opaque,
                   onLongPress: _toggleDebugUnlock,
-                  child: Text(
-                    appLocale!.notificationPageHeader(gender),
-                  ),
+                  child: Text(appLocale.notificationPageHeader(gender)),
                 ),
               ],
             ),
@@ -206,7 +209,8 @@ class _NotSignedInCardState extends LPExtendedState<_NotSignedInCard> {
             onPressed: () => Navigator.push(
               context,
               MaterialPageRoute(
-                  builder: (_) => const AuthPage(fromNotifications: true)),
+                builder: (_) => const AuthPage(fromNotifications: true),
+              ),
             ),
             icon: const Icon(Icons.login_outlined),
             label: Text(appLocale.authNotSignedInButton),
@@ -238,8 +242,11 @@ class _PermissionDeniedCardState
       ),
       child: Column(
         children: [
-          const Icon(Icons.notifications_off_outlined,
-              size: 40, color: Colors.grey),
+          const Icon(
+            Icons.notifications_off_outlined,
+            size: 40,
+            color: Colors.grey,
+          ),
           const SizedBox(height: 12),
           Text(
             appLocale.notificationsPermissionDeniedTitle,

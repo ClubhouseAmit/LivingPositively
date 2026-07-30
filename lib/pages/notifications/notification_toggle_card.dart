@@ -2,8 +2,6 @@
 
 import 'package:flutter/material.dart';
 import 'package:mazilon/util/styles.dart';
-import 'package:mazilon/util/userInformation.dart';
-import 'package:provider/provider.dart';
 
 class NotificationToggleCard extends StatefulWidget {
   final String emoji;
@@ -52,8 +50,6 @@ class _NotificationToggleCardState extends State<NotificationToggleCard> {
 
   @override
   Widget build(BuildContext context) {
-    final userInfoProvider =
-        Provider.of<UserInformation>(context, listen: false);
     return Container(
         alignment: Alignment.center,
         width: MediaQuery.of(context).size.width * 0.9,

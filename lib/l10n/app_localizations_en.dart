@@ -3467,10 +3467,8 @@ class AppLocalizationsEn extends AppLocalizations {
   String get authErrorPasswordMismatch => 'Passwords don\'t match';
 
   @override
-  String get authErrorUserNotFound => 'No account found with this email';
-
-  @override
-  String get authErrorWrongPassword => 'Incorrect password';
+  String get authErrorUserNotFound =>
+      'The email/password combination is incorrect';
 
   @override
   String get authErrorEmailInUse => 'An account with this email already exists';

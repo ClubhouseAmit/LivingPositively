@@ -3437,10 +3437,7 @@ class AppLocalizationsAr extends AppLocalizations {
 
   @override
   String get authErrorUserNotFound =>
-      'لم يتم العثور على حساب بهذا البريد الإلكتروني';
-
-  @override
-  String get authErrorWrongPassword => 'كلمة المرور غير صحيحة';
+      'البريد الإلكتروني أو كلمة المرور غير صحيحة';
 
   @override
   String get authErrorEmailInUse => 'يوجد حساب بالفعل بهذا البريد الإلكتروني';

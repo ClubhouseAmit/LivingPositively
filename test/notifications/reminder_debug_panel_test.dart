@@ -23,6 +23,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:mazilon/pages/notifications/reminder_debug_panel.dart';
+import 'package:mazilon/util/notification_preference.dart';
 import 'package:mazilon/pages/notifications/reminder_debug_recorder.dart';
 import 'package:mazilon/util/userInformation.dart';
 import 'package:shared_preferences/shared_preferences.dart';
@@ -44,7 +45,9 @@ void main() {
   // permission_handler's method channel — on iOS the panel only invokes
   // openAppSettings() when the user taps "Open app settings", and we don't
   // tap it. Still, stub it so any defensive lookup short-circuits cleanly.
-  const permissionChannel = MethodChannel('flutter.baseflow.com/permissions/methods');
+  const permissionChannel = MethodChannel(
+    'flutter.baseflow.com/permissions/methods',
+  );
 
   setUp(() {
     SharedPreferences.setMockInitialValues({
@@ -67,16 +70,18 @@ void main() {
     resetTestServices();
   });
 
-  testWidgets('renders ExpansionTile with header + advisory copy on iOS',
-      (tester) async {
+  testWidgets('renders ExpansionTile with header + advisory copy on iOS', (
+    tester,
+  ) async {
     await _onIos(() async {
       await pumpWithProviders(
         tester,
         const Scaffold(body: ReminderDebugPanel()),
         userInformation: UserInformation(
           gender: 'male',
-          notificationHour: 9,
-          notificationMinute: 0,
+          notificationPreferences: const {
+            'default': NotificationPreference(hour: 9, minute: 0),
+          },
         ),
       );
       // Allow initState -> _refresh() future to complete.
@@ -85,21 +90,24 @@ void main() {
       expect(find.byType(ExpansionTile), findsOneWidget);
       expect(find.text('Reminder debug panel'), findsOneWidget);
       expect(
-          find.text('Diagnose why scheduled reminders may not be firing'),
-          findsOneWidget);
+        find.text('Diagnose why scheduled reminders may not be firing'),
+        findsOneWidget,
+      );
     });
   });
 
-  testWidgets('expanded panel surfaces shared-prefs diagnostic state',
-      (tester) async {
+  testWidgets('expanded panel surfaces shared-prefs diagnostic state', (
+    tester,
+  ) async {
     await _onIos(() async {
       await pumpWithProviders(
         tester,
         const Scaffold(body: ReminderDebugPanel()),
         userInformation: UserInformation(
           gender: 'male',
-          notificationHour: 9,
-          notificationMinute: 0,
+          notificationPreferences: const {
+            'default': NotificationPreference(hour: 9, minute: 0),
+          },
         ),
         // Larger surface so the expanded contents fit without overflowing.
         surfaceSize: const Size(800, 1400),
@@ -122,7 +130,7 @@ void main() {
       expect(find.text('Clear history'), findsOneWidget);
       // Non-Android advisory.
       expect(
-        find.text('WorkManager-backed reminders run on Android only.'),
+        find.text('FCM reminders are delivered through cloud messaging.'),
         findsOneWidget,
       );
       // Values from SharedPreferences mock.
@@ -133,30 +141,42 @@ void main() {
     });
   });
 
-  testWidgets('Reschedule button is disabled on non-Android', (tester) async {
+  testWidgets('Reschedule button supports an existing FCM schedule on iOS', (
+    tester,
+  ) async {
     await _onIos(() async {
       await pumpWithProviders(
         tester,
         const Scaffold(body: ReminderDebugPanel()),
-        userInformation: UserInformation(gender: 'male'),
+        userInformation: UserInformation(
+          gender: 'male',
+          notificationPreferences: const {
+            'default': NotificationPreference(hour: 9, minute: 0),
+          },
+        ),
         surfaceSize: const Size(800, 1400),
       );
       await tester.pumpAndSettle(const Duration(milliseconds: 200));
       await tester.tap(find.byType(ExpansionTile));
       await tester.pumpAndSettle(const Duration(milliseconds: 400));
 
-      final rescheduleButton =
-          tester.widget<OutlinedButton>(find.ancestor(
-        of: find.text('Reschedule now'),
-        matching: find.byType(OutlinedButton),
-      ));
-      expect(rescheduleButton.onPressed, isNull,
-          reason: 'Reschedule must be disabled when not on Android');
+      final rescheduleButton = tester.widget<OutlinedButton>(
+        find.ancestor(
+          of: find.text('Reschedule now'),
+          matching: find.byType(OutlinedButton),
+        ),
+      );
+      expect(
+        rescheduleButton.onPressed,
+        isNotNull,
+        reason: 'FCM scheduling is not limited to Android',
+      );
     });
   });
 
-  testWidgets('Refresh button re-runs _refresh() without throwing',
-      (tester) async {
+  testWidgets('Refresh button re-runs _refresh() without throwing', (
+    tester,
+  ) async {
     await _onIos(() async {
       await pumpWithProviders(
         tester,
@@ -175,17 +195,18 @@ void main() {
     });
   });
 
-  testWidgets('Copy diagnostics writes JSON payload to clipboard',
-      (tester) async {
+  testWidgets('Copy diagnostics writes JSON payload to clipboard', (
+    tester,
+  ) async {
     final clipboardCalls = <MethodCall>[];
     TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger
         .setMockMethodCallHandler(SystemChannels.platform, (call) async {
-      clipboardCalls.add(call);
-      if (call.method == 'Clipboard.getData') {
-        return <String, dynamic>{'text': ''};
-      }
-      return null;
-    });
+          clipboardCalls.add(call);
+          if (call.method == 'Clipboard.getData') {
+            return <String, dynamic>{'text': ''};
+          }
+          return null;
+        });
     addTearDown(() {
       TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger
           .setMockMethodCallHandler(SystemChannels.platform, null);
@@ -205,8 +226,9 @@ void main() {
       await tester.tap(find.text('Copy diagnostics'), warnIfMissed: false);
       await tester.pumpAndSettle(const Duration(milliseconds: 200));
 
-      final setDataCalls =
-          clipboardCalls.where((c) => c.method == 'Clipboard.setData').toList();
+      final setDataCalls = clipboardCalls
+          .where((c) => c.method == 'Clipboard.setData')
+          .toList();
       expect(setDataCalls, isNotEmpty);
       // Payload must contain expected diagnostic keys.
       final payload = setDataCalls.first.arguments['text'] as String;

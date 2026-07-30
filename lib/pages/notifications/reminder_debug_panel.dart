@@ -6,10 +6,8 @@ import 'package:flutter/foundation.dart'
     show kIsWeb, defaultTargetPlatform, TargetPlatform;
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
-import 'package:mazilon/l10n/app_localizations.dart';
-import 'package:mazilon/util/Firebase/fcm_service.dart';
 import 'package:mazilon/pages/notifications/reminder_debug_recorder.dart';
-import 'package:mazilon/util/Form/retrieveInformation.dart';
+import 'package:mazilon/util/Firebase/fcm_scheduled_notification_service.dart';
 import 'package:mazilon/util/userInformation.dart';
 import 'package:permission_handler/permission_handler.dart';
 import 'package:provider/provider.dart';
@@ -71,16 +69,14 @@ class _ReminderDebugPanelState extends State<ReminderDebugPanel> {
     setState(() => _busy = true);
     try {
       final userInfo = context.read<UserInformation>();
-      final appLocale = AppLocalizations.of(context);
-      if (appLocale == null) return;
-      final quotes = retrieveInspirationalQuotes(appLocale, userInfo.gender);
-      /*  await NotificationsService.initializeNotification(
-        quotes,
-        userInfo.notificationHour,
-        userInfo.notificationMinute,
-        appLocale.notifyOnscheduledNotification,
-        appLocale,
-      );*/
+      final preference = userInfo.getNotificationPreference('default');
+      if (preference == null) return;
+      await FcmScheduledNotificationService.registerNotification(
+        context: context,
+        typeId: 'default',
+        hour: preference.hour,
+        minute: preference.minute,
+      );
       await _refresh();
     } finally {
       if (mounted) setState(() => _busy = false);
@@ -119,8 +115,11 @@ class _ReminderDebugPanelState extends State<ReminderDebugPanel> {
   @override
   Widget build(BuildContext context) {
     final userInfo = context.watch<UserInformation>();
-    final scheduledTime = "9:30";
-    // '${userInfo.notificationHour.toString().padLeft(2, '0')}:${userInfo.notificationMinute.toString().padLeft(2, '0')}';
+    final preference = userInfo.getNotificationPreference('default');
+    final scheduledTime = preference == null
+        ? 'Not scheduled'
+        : '${preference.hour.toString().padLeft(2, '0')}:'
+              '${preference.minute.toString().padLeft(2, '0')}';
 
     return Theme(
       data: Theme.of(context).copyWith(dividerColor: Colors.transparent),
@@ -166,14 +165,13 @@ class _ReminderDebugPanelState extends State<ReminderDebugPanel> {
             _permLabel(_batteryOptStatus),
             valueColor: _permColor(_batteryOptStatus),
           ),
-          if (!_isAndroid)
-            const Padding(
-              padding: EdgeInsets.only(top: 4),
-              child: Text(
-                'WorkManager-backed reminders run on Android only.',
-                style: TextStyle(fontSize: 11, fontStyle: FontStyle.italic),
-              ),
+          const Padding(
+            padding: EdgeInsets.only(top: 4),
+            child: Text(
+              'FCM reminders are delivered through cloud messaging.',
+              style: TextStyle(fontSize: 11, fontStyle: FontStyle.italic),
             ),
+          ),
           const SizedBox(height: 10),
           Wrap(
             spacing: 8,
@@ -184,7 +182,7 @@ class _ReminderDebugPanelState extends State<ReminderDebugPanel> {
                 child: const Text('Refresh'),
               ),
               OutlinedButton(
-                onPressed: (_busy || !_isAndroid) ? null : _reschedule,
+                onPressed: (_busy || preference == null) ? null : _reschedule,
                 child: const Text('Reschedule now'),
               ),
               OutlinedButton(

@@ -1,4 +1,4 @@
-﻿import 'package:flutter/material.dart';
+import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:get_it/get_it.dart';
 import 'package:mazilon/Locale/locale_service.dart';
@@ -243,7 +243,9 @@ class _UserSettingsState extends LPExtendedState<UserSettings> {
   }
 
   Future<void> _signOut(UserInformation userInfo) async {
-    await AuthService.signOut();
+    if (userInfo.loggedIn) {
+      await AuthService.signOut();
+    }
     userInfo.updateLoggedIn(false);
     userInfo.updateAuthDecisionMade(false);
     userInfo.updateEmail('');
@@ -252,7 +254,7 @@ class _UserSettingsState extends LPExtendedState<UserSettings> {
     final service = GetIt.instance<PersistentMemoryService>();
     final enteredBeforeValue =
         await service.getItem("enteredBefore", PersistentMemoryType.Bool) ??
-            false;
+        false;
     final hasFilledValue =
         await service.getItem("hasFilled", PersistentMemoryType.Bool) ?? false;
 
@@ -280,7 +282,9 @@ class _UserSettingsState extends LPExtendedState<UserSettings> {
           PersistentMemoryService
         >(); // Get the persistent memory service instance
 
-    await AuthService.signOut();
+    if (userInfo.loggedIn) {
+      await AuthService.signOut();
+    }
     await service.reset(); // Reset the persistent memory service
     var enteredBeforeValue = await service.getItem(
       "enteredBefore",

@@ -42,6 +42,7 @@ List<String> checkboxCollectionNames = [
 Future<void> initializeApp({
   Future<void> Function()? firebaseInitializer,
   void Function()? locatorSetup,
+  Future<void> Function()? fcmInitializer,
 }) async {
   WidgetsFlutterBinding.ensureInitialized();
   await (firebaseInitializer ??
@@ -50,11 +51,11 @@ Future<void> initializeApp({
       ))();
 
   (locatorSetup ?? setupLocator)();
-  await FcmService.initialize();
+  await (fcmInitializer ?? FcmService.initialize)();
 }
 
 /// Test seam for `main()`. Performs platform binding + Firebase init +
-/// service-locator setup + (on non-web) Workmanager init, then returns the
+/// service-locator setup + FCM init, then returns the
 /// root widget tree. `main()` only adds the `IncidentLoggerService.
 /// initializeSentry(...)` call (which itself calls `runApp`); a test that
 /// calls `bootstrapApp()` directly can pump the returned widget through the
@@ -70,21 +71,20 @@ Future<void> initializeApp({
 /// initiative, alongside:
 ///   1. ADR-001 Round 1 — `firestore` named-param injection on 14 helpers
 ///      in `firebase_functions.dart`.
-///   2. ADR-002 PR #266 — `@visibleForTesting
-///      NotificationsService.resetForTest()`.
+///   2. ADR-002 PR #266 — notification-service testability seam.
 ///   3. ADR-004 Round 9 — `firestore` injection extended to 29 more helpers.
 /// All four share the same shape: narrow, mechanical, behaviour-preserving
 /// for production paths.
 Future<Widget> bootstrapApp({
   Future<void> Function()? firebaseInitializer,
   void Function()? locatorSetup,
-  void Function()? workmanagerInitializer,
+  Future<void> Function()? fcmInitializer,
 }) async {
   await initializeApp(
     firebaseInitializer: firebaseInitializer,
     locatorSetup: locatorSetup,
+    fcmInitializer: fcmInitializer,
   );
-
 
   return MultiProvider(
     providers: [
@@ -386,7 +386,10 @@ class _MyAppState extends State<MyApp> with WidgetsBindingObserver {
       final appLocale = AppLocalizations.of(currentContext);
       if (appLocale == null) return;
 
-      final userInfo = Provider.of<UserInformation>(currentContext, listen: false);
+      final userInfo = Provider.of<UserInformation>(
+        currentContext,
+        listen: false,
+      );
       userInfo.updateLocaleName(locale);
 
       final pref = userInfo.getNotificationPreference('default');

@@ -1,7 +1,7 @@
 // Phase 7 (ADR-002): integration test for `lib/main.dart`.
 //
 // `main()` itself calls `WidgetsFlutterBinding.ensureInitialized() →
-// Firebase.initializeApp() → setupLocator() → Workmanager.initialize() →
+// Firebase.initializeApp() → setupLocator() → FCM initialization →
 // sentryService.initializeSentry(MultiProvider(...))`. Each of those touches a
 // platform that we either don't have (Firebase config in CI without injected
 // secrets) or that we are testing elsewhere (Sentry — see logger_init_test).
@@ -18,7 +18,7 @@
 // rule #1 — "Zero production code changes UNLESS you had to extract a testable
 // entry-point from main.dart" — we chose a third path: pump the `MyApp` widget
 // directly with the same MultiProvider scaffold `main()` builds, but skip the
-// `initializeApp() / Workmanager.initialize() / Firebase.initializeApp()`
+// `initializeApp() / FCM initialization / Firebase.initializeApp()`
 // preamble (the integration_test binding has the WidgetsBinding already and we
 // channel-mock everything else).
 //
@@ -29,10 +29,6 @@
 //
 // Deferred items recorded in docs/coverage-status.md § Round 7 and the
 // ADR-002 Outcome:
-//   * `callbackDispatcher` (lines 42-89) — Workmanager background entry-point;
-//     never invoked from the foreground; needs a Workmanager-driven real-task
-//     run. Deferred to a future ADR if background-worker coverage is
-//     justified.
 //   * `initializeApp` + `main` (lines 104-156) — would need a bootstrapApp()
 //     extraction to be testable. We deliberately did NOT do that extraction
 //     in Phase 7; the alternative cost is documented but small.
@@ -51,66 +47,8 @@ import 'package:mazilon/util/Form/formPagePhoneModel.dart';
 import 'package:mazilon/util/appInformation.dart';
 import 'package:mazilon/util/userInformation.dart';
 import 'package:provider/provider.dart';
-// ignore: depend_on_referenced_packages
-import 'package:workmanager_platform_interface/workmanager_platform_interface.dart';
 
 import '../test/helpers/widget_test_scaffold.dart';
-
-class _SilentWorkmanager extends WorkmanagerPlatform {
-  _SilentWorkmanager._() : super();
-  static final _SilentWorkmanager _shared = _SilentWorkmanager._();
-  static _SilentWorkmanager register() {
-    WorkmanagerPlatform.instance = _shared;
-    return _shared;
-  }
-
-  @override
-  Future<void> initialize(
-    Function callbackDispatcher, {
-    bool isInDebugMode = false,
-  }) async {}
-
-  @override
-  Future<void> cancelAll() async {}
-
-  @override
-  Future<void> registerOneOffTask(
-    String uniqueName,
-    String taskName, {
-    Map<String, dynamic>? inputData,
-    Duration? initialDelay,
-    Constraints? constraints,
-    ExistingWorkPolicy? existingWorkPolicy,
-    BackoffPolicy? backoffPolicy,
-    Duration? backoffPolicyDelay,
-    String? tag,
-    OutOfQuotaPolicy? outOfQuotaPolicy,
-    ForegroundServiceConfig? foregroundServiceConfig,
-    bool expedited = false,
-  }) async {}
-
-  @override
-  Future<void> registerPeriodicTask(
-    String uniqueName,
-    String taskName, {
-    Duration? frequency,
-    Duration? flexInterval,
-    Map<String, dynamic>? inputData,
-    Duration? initialDelay,
-    Constraints? constraints,
-    ExistingPeriodicWorkPolicy? existingWorkPolicy,
-    BackoffPolicy? backoffPolicy,
-    Duration? backoffPolicyDelay,
-    String? tag,
-    ForegroundServiceConfig? foregroundServiceConfig,
-  }) async {}
-
-  @override
-  Future<void> cancelByUniqueName(String uniqueName) async {}
-
-  @override
-  Future<void> cancelByTag(String tag) async {}
-}
 
 // Mirror of `lib/main.dart`'s top-level constant — kept private to this test.
 const _checkboxCollectionNames = [
@@ -152,7 +90,6 @@ void main() {
 
   setUp(() async {
     await GetIt.instance.reset();
-    _SilentWorkmanager.register();
 
     // Register the same fakes the unit-suite uses; they implement the same
     // service contracts as production but with in-memory backing.
@@ -281,7 +218,7 @@ void main() {
       // lines 334-360 of main.dart (locale setter, persistent memory write,
       // UserInformation.updateLocaleName, addPostFrameCallback ->
       // refreshReminderForLocaleChange). The post-frame callback will
-      // ultimately hit NotificationsService.supportsReminderSettings() which
+      // ultimately hit FcmService.supportsReminderSettings() which
       // returns false outside an Android target; the production code returns
       // early on the !remindersSupported branch (line 96-98 of main.dart).
       final myAppState = tester.state(find.byType(MyApp)) as dynamic;
