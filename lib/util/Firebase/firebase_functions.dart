@@ -1,4 +1,4 @@
-﻿// ignore_for_file: non_constant_identifier_names, avoid_print
+// ignore_for_file: non_constant_identifier_names, avoid_print
 
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
@@ -10,9 +10,6 @@ import 'package:mazilon/util/persistent_memory_service.dart';
 import 'package:mazilon/util/notification_preference.dart';
 import 'package:mazilon/util/type_utils.dart';
 import 'dart:math';
-import 'package:firebase_auth/firebase_auth.dart';
-
-import 'package:mazilon/util/SignIn/popup_toast.dart';
 import 'package:mazilon/util/appInformation.dart';
 import 'package:mazilon/util/userInformation.dart';
 import 'dart:convert';
@@ -30,7 +27,7 @@ class FirebaseAuthService {
   final FirebaseAuth _auth;
 
   FirebaseAuthService(FirebaseApp app, {FirebaseAuth? auth})
-      : _auth = auth ?? FirebaseAuth.instanceFor(app: app);
+    : _auth = auth ?? FirebaseAuth.instanceFor(app: app);
 
   /// Test-only constructor that accepts a [FirebaseAuth] directly without
   /// going through a [FirebaseApp]. Production code should use the primary
@@ -107,7 +104,10 @@ Future<void> loadUserInformation(
     'gender': service.getItem("gender", PersistentMemoryType.String),
     'binary': service.getItem("binary", PersistentMemoryType.Bool),
     'loggedIn': service.getItem("loggedIn", PersistentMemoryType.Bool),
-    'authDecisionMade': service.getItem("authDecisionMade", PersistentMemoryType.Bool),
+    'authDecisionMade': service.getItem(
+      "authDecisionMade",
+      PersistentMemoryType.Bool,
+    ),
     'age': service.getItem("age", PersistentMemoryType.String),
     'userId': service.getItem("userId", PersistentMemoryType.String),
     'difficultEvents': service.getItem(
@@ -175,9 +175,14 @@ Future<void> loadUserInformation(
   userInfo.updateAge(data['age'] ?? '');
   userInfo.updateUserId(data['userId'] ?? '');
 
-  final currentUser = FirebaseAuth.instance.currentUser;
-  userInfo.updateEmail(currentUser?.email ?? '');
-  userInfo.updateDisplayName(currentUser?.displayName ?? '');
+  try {
+    final currentUser = FirebaseAuth.instance.currentUser;
+    userInfo.updateEmail(currentUser?.email ?? '');
+    userInfo.updateDisplayName(currentUser?.displayName ?? '');
+  } on FirebaseException {
+    userInfo.updateEmail('');
+    userInfo.updateDisplayName('');
+  }
 
   userInfo.updateDifficultEvents(
     (TypeUtils.castToStringList(data['difficultEvents'])),
@@ -440,8 +445,8 @@ Future<bool> loadAppInfoFromJson(
 
       Map<String, List<String>> wellnessVideos =
           (json['wellnessVideos'] as Map<String, dynamic>).map(
-        (key, value) => MapEntry(key, List<String>.from(value)),
-      );
+            (key, value) => MapEntry(key, List<String>.from(value)),
+          );
       /*List<Map<String, String>> wellnessVideos = (json['welnessVideos'] as List)
           .map((item) => Map<String, String>.from(item))
           .toList();*/

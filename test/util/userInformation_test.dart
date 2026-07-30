@@ -1,5 +1,6 @@
 import 'package:flutter_test/flutter_test.dart';
 import 'package:mazilon/global_enums.dart';
+import 'package:mazilon/util/notification_preference.dart';
 import 'package:mazilon/util/persistent_memory_service.dart';
 import 'package:mazilon/util/userInformation.dart';
 
@@ -43,8 +44,7 @@ void main() {
       expect(u.name, '');
       expect(u.gender, '');
       expect(u.binary, isFalse);
-      expect(u.notificationHour, 12);
-      expect(u.notificationMinute, 0);
+      expect(u.notificationPreferences, isEmpty);
       expect(u.darkModePreference, DarkModePreference.alwaysLight);
       expect(u.darkModeStartHour, 22);
       expect(u.darkModeStartMinute, 0);
@@ -71,8 +71,9 @@ void main() {
         age: '30',
         binary: true,
         location: 'IL',
-        notificationHour: 9,
-        notificationMinute: 30,
+        notificationPreferences: const {
+          'default': NotificationPreference(hour: 9, minute: 30),
+        },
         darkModePreference: DarkModePreference.alwaysDark,
         darkModeStartHour: 20,
         darkModeStartMinute: 15,
@@ -103,8 +104,7 @@ void main() {
       expect(u.name, '');
       expect(u.age, '');
       expect(u.binary, isFalse);
-      expect(u.notificationHour, 12);
-      expect(u.notificationMinute, 0);
+      expect(u.notificationPreferences, isEmpty);
       expect(u.darkModePreference, DarkModePreference.alwaysLight);
       expect(u.darkModeStartHour, 22);
       expect(u.darkModeStartMinute, 0);
@@ -162,20 +162,18 @@ void main() {
       expect(fakeService.stored['binary'], isTrue);
     });
 
-    test('updateNotificationHour persists Int', () async {
+    test('setNotificationPreference persists the FCM schedule', () async {
       final u = buildUser();
-      u.updateNotificationHour(8);
+      u.setNotificationPreference(
+        'default',
+        const NotificationPreference(hour: 8, minute: 45),
+      );
       await Future<void>.delayed(Duration.zero);
-      expect(u.notificationHour, 8);
-      expect(fakeService.stored['notificationHour'], 8);
-    });
-
-    test('updateNotificationMinute persists Int', () async {
-      final u = buildUser();
-      u.updateNotificationMinute(45);
-      await Future<void>.delayed(Duration.zero);
-      expect(u.notificationMinute, 45);
-      expect(fakeService.stored['notificationMinute'], 45);
+      expect(u.getNotificationPreference('default')?.hour, 8);
+      expect(
+        fakeService.stored['notificationPreferences'],
+        '{"default":{"hour":8,"minute":45}}',
+      );
     });
 
     test('updatePositiveTraits stores StringList copy', () async {

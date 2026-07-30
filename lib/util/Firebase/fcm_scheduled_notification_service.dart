@@ -8,6 +8,14 @@ import 'package:mazilon/util/notification_preference.dart';
 import 'package:mazilon/util/userInformation.dart';
 import 'package:provider/provider.dart';
 
+typedef NotificationHttpPost =
+    Future<http.Response> Function(
+      Uri url, {
+      Map<String, String>? headers,
+      Object? body,
+      Encoding? encoding,
+    });
+
 class FcmScheduledNotificationService {
   static const String _functionsBaseUrl =
       'https://us-central1-mezilondb.cloudfunctions.net';
@@ -16,9 +24,11 @@ class FcmScheduledNotificationService {
       debugPrint('[FcmScheduledNotificationService] $message');
 
   static Future<String?> _getIdToken() async {
-    final token =
-        await GetIt.instance<FirebaseAuth>().currentUser?.getIdToken();
-    if (token == null) _log('Warning: no authenticated user, cannot get ID token.');
+    final token = await GetIt.instance<FirebaseAuth>().currentUser
+        ?.getIdToken();
+    if (token == null) {
+      _log('Warning: no authenticated user, cannot get ID token.');
+    }
     return token;
   }
 
@@ -30,36 +40,54 @@ class FcmScheduledNotificationService {
     required String typeId,
     required int hour,
     required int minute,
+    Future<String?> Function()? idTokenProvider,
+    NotificationHttpPost? post,
   }) async {
-    _log('Registering notification: typeId=$typeId, hour=$hour, minute=$minute');
+    _log(
+      'Registering notification: typeId=$typeId, hour=$hour, minute=$minute',
+    );
     final userInfo = Provider.of<UserInformation>(context, listen: false);
     final locale = userInfo.localeName.isNotEmpty ? userInfo.localeName : 'he';
     final rawGender = userInfo.gender;
-    final gender = (rawGender == 'male' || rawGender == 'female') ? rawGender : 'other';
+    final gender = (rawGender == 'male' || rawGender == 'female')
+        ? rawGender
+        : 'other';
 
-    final idToken = await _getIdToken();
+    final idToken = await (idTokenProvider ?? _getIdToken)();
     if (idToken == null) return false;
 
     try {
-      final response = await http.post(
+      final response = await (post ?? http.post)(
         Uri.parse('$_functionsBaseUrl/registerNotification'),
         headers: {
           'Authorization': 'Bearer $idToken',
           'Content-Type': 'application/json',
         },
-        body: jsonEncode({'typeId': typeId, 'hour': hour, 'minute': minute, 'locale': locale, 'gender': gender}),
+        body: jsonEncode({
+          'typeId': typeId,
+          'hour': hour,
+          'minute': minute,
+          'locale': locale,
+          'gender': gender,
+        }),
       );
 
       if (response.statusCode == 200) {
         _log('Notification registered successfully.');
         if (context.mounted) {
-          Provider.of<UserInformation>(context, listen: false)
-              .setNotificationPreference(
-                  typeId, NotificationPreference(hour: hour, minute: minute));
+          Provider.of<UserInformation>(
+            context,
+            listen: false,
+          ).setNotificationPreference(
+            typeId,
+            NotificationPreference(hour: hour, minute: minute),
+          );
         }
         return true;
       } else {
-        _log('registerNotification failed: ${response.statusCode} ${response.body}');
+        _log(
+          'registerNotification failed: ${response.statusCode} ${response.body}',
+        );
         return false;
       }
     } catch (e) {
@@ -73,13 +101,15 @@ class FcmScheduledNotificationService {
   static Future<bool> cancelNotification({
     required BuildContext context,
     required String typeId,
+    Future<String?> Function()? idTokenProvider,
+    NotificationHttpPost? post,
   }) async {
     _log('Cancelling notification: typeId=$typeId');
-    final idToken = await _getIdToken();
+    final idToken = await (idTokenProvider ?? _getIdToken)();
     if (idToken == null) return false;
 
     try {
-      final response = await http.post(
+      final response = await (post ?? http.post)(
         Uri.parse('$_functionsBaseUrl/cancelNotification'),
         headers: {
           'Authorization': 'Bearer $idToken',
@@ -91,12 +121,16 @@ class FcmScheduledNotificationService {
       if (response.statusCode == 200) {
         _log('Notification cancelled successfully.');
         if (context.mounted) {
-          Provider.of<UserInformation>(context, listen: false)
-              .clearNotificationPreference(typeId);
+          Provider.of<UserInformation>(
+            context,
+            listen: false,
+          ).clearNotificationPreference(typeId);
         }
         return true;
       } else {
-        _log('cancelNotification failed: ${response.statusCode} ${response.body}');
+        _log(
+          'cancelNotification failed: ${response.statusCode} ${response.body}',
+        );
         return false;
       }
     } catch (e) {

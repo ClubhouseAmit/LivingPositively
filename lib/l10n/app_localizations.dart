@@ -2569,14 +2569,8 @@ abstract class AppLocalizations {
   ///
   ///
   /// In en, this message translates to:
-  /// **'No account found with this email'**
+  /// **'The email/password combination is incorrect'**
   String get authErrorUserNotFound;
-
-  ///
-  ///
-  /// In en, this message translates to:
-  /// **'Incorrect password'**
-  String get authErrorWrongPassword;
 
   ///
   ///

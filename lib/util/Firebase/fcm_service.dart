@@ -1,8 +1,7 @@
 import 'dart:io';
 
-import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:flutter/foundation.dart'
-    show defaultTargetPlatform, kIsWeb, TargetPlatform, visibleForTesting;
+    show defaultTargetPlatform, kIsWeb, TargetPlatform;
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:firebase_messaging/firebase_messaging.dart';
@@ -40,13 +39,18 @@ class FcmService {
       return false;
     }
     final platform = platformOverride ?? defaultTargetPlatform;
-    return platform == TargetPlatform.android;
+    return platform == TargetPlatform.android || platform == TargetPlatform.iOS;
   }
 
   static Future<bool> hasPermission() async {
-    final settings = await FirebaseMessaging.instance.getNotificationSettings();
-    return settings.authorizationStatus == AuthorizationStatus.authorized ||
-        settings.authorizationStatus == AuthorizationStatus.provisional;
+    try {
+      final settings = await FirebaseMessaging.instance
+          .getNotificationSettings();
+      return settings.authorizationStatus == AuthorizationStatus.authorized ||
+          settings.authorizationStatus == AuthorizationStatus.provisional;
+    } on FirebaseException {
+      return false;
+    }
   }
 
   static Future<void> initialize() async {
@@ -114,7 +118,9 @@ class FcmService {
   }
 
   static Future<void> _saveTokenToFirestore(
-      String deviceId, String token) async {
+    String deviceId,
+    String token,
+  ) async {
     _log('Saving token to Firestore for device $deviceId...');
     try {
       await FirebaseFirestore.instance.collection('devices').doc(deviceId).set({
@@ -126,8 +132,10 @@ class FcmService {
     } catch (error, stackTrace) {
       _log('Failed to save token to Firestore: $error');
       try {
-        GetIt.instance<IncidentLoggerService>()
-            .captureLog(error, stackTrace: stackTrace);
+        GetIt.instance<IncidentLoggerService>().captureLog(
+          error,
+          stackTrace: stackTrace,
+        );
       } catch (_) {}
     }
   }
@@ -138,7 +146,8 @@ class FcmService {
       final title = message.notification?.title ?? 'Living Positively';
       final body = message.notification?.body ?? '';
       _log(
-          'Foreground message received — title: "$title", body: "$body", data: ${message.data}');
+        'Foreground message received — title: "$title", body: "$body", data: ${message.data}',
+      );
       await _localNotifications.show(
         id: 1,
         title: title,
@@ -159,7 +168,8 @@ class FcmService {
 
   static void handleInitialMessage(RemoteMessage message) {
     _log(
-        'App launched from terminated state via notification — data: ${message.data}');
+      'App launched from terminated state via notification — data: ${message.data}',
+    );
     _handleNotificationTap(message);
   }
 

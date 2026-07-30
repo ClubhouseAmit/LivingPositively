@@ -3291,10 +3291,7 @@ class AppLocalizationsHe extends AppLocalizations {
   String get authErrorPasswordMismatch => 'הסיסמאות אינן תואמות';
 
   @override
-  String get authErrorUserNotFound => 'לא נמצא חשבון עם כתובת אימייל זו';
-
-  @override
-  String get authErrorWrongPassword => 'סיסמה שגויה';
+  String get authErrorUserNotFound => 'שם המשתמש או הסיסמא לא נכונים';
 
   @override
   String get authErrorEmailInUse => 'כבר קיים חשבון עם כתובת אימייל זו';
