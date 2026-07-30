@@ -89,29 +89,24 @@ void main() {
     testWidgets(
         'returns the same MultiProvider tree shape that pre-extraction main() built',
         (tester) async {
-      var firebaseCalled = false;
-      var locatorCalled = false;
-      var fcmCalled = false;
+      final calls = <String>[];
 
       final widget = await bootstrapApp(
         firebaseInitializer: () async {
-          firebaseCalled = true;
+          calls.add('firebase');
         },
         locatorSetup: () {
-          locatorCalled = true;
+          calls.add('locator');
           registerTestServices(locale: 'en');
         },
         fcmInitializer: () async {
-          fcmCalled = true;
+          calls.add('fcm');
         },
       );
 
-      expect(firebaseCalled, isTrue,
-          reason: 'bootstrapApp must call firebaseInitializer');
-      expect(locatorCalled, isTrue,
-          reason: 'bootstrapApp must call locatorSetup');
-      expect(fcmCalled, isTrue,
-          reason: 'bootstrapApp must call fcmInitializer');
+      expect(calls, ['firebase', 'locator', 'fcm'],
+          reason:
+              'bootstrapApp must initialize Firebase, register locators, and only then initialize FCM');
 
       // Top-level shape: MultiProvider wrapping MyApp. The provider package
       // does not expose providers/child as public getters, so we verify the

@@ -7,6 +7,58 @@ admin.initializeApp();
 setGlobalOptions({ maxInstances: 10 });
 
 const STALE_TOKEN_DAYS = 180;
+const NOTIFICATION_TYPE_ID_PATTERN = /^[A-Za-z0-9_-]{1,64}$/;
+
+type NotificationGender = "male" | "female" | "other";
+type DynamicNotificationType = {
+  messageType: "dynamic";
+  quotesCollections: Record<string, unknown>;
+};
+type StaticNotificationType = {
+  messageType: "static";
+  staticTitle: string;
+  staticBody: string;
+};
+type ValidNotificationType = DynamicNotificationType | StaticNotificationType;
+
+export function isValidNotificationTypeId(
+  value: unknown,
+): value is string {
+  return (
+    typeof value === "string" && NOTIFICATION_TYPE_ID_PATTERN.test(value)
+  );
+}
+
+export function normalizeNotificationGender(
+  value: unknown,
+): NotificationGender {
+  return value === "male" || value === "female" || value === "other"
+    ? value
+    : "other";
+}
+
+export function hasValidNotificationTypeSchema(
+  value: unknown,
+): value is ValidNotificationType {
+  if (value === null || typeof value !== "object" || Array.isArray(value)) {
+    return false;
+  }
+  const data = value as Record<string, unknown>;
+  if (data.messageType === "dynamic") {
+    return (
+      data.quotesCollections !== null &&
+      typeof data.quotesCollections === "object" &&
+      !Array.isArray(data.quotesCollections)
+    );
+  }
+  if (data.messageType === "static") {
+    return (
+      typeof data.staticTitle === "string" &&
+      typeof data.staticBody === "string"
+    );
+  }
+  return false;
+}
 
 // ---------------------------------------------------------------------------
 // Helper: verify the Bearer token and return the uid, or null if invalid.
@@ -78,7 +130,7 @@ export const registerNotification = onRequest(async (req, res) => {
   const { typeId, hour, minute, locale, gender } = req.body;
 
   if (
-    typeof typeId !== "string" ||
+    !isValidNotificationTypeId(typeId) ||
     !Number.isFinite(hour) ||
     !Number.isInteger(hour) ||
     !Number.isFinite(minute) ||
@@ -117,7 +169,7 @@ export const registerNotification = onRequest(async (req, res) => {
       hour,
       minute,
       locale,
-      gender: gender ?? "male",
+      gender: normalizeNotificationGender(gender),
       updatedAt: admin.firestore.FieldValue.serverTimestamp(),
     });
 
@@ -141,8 +193,8 @@ export const cancelNotification = onRequest(async (req, res) => {
   }
 
   const { typeId } = req.body;
-  if (typeof typeId !== "string") {
-    res.status(400).send("typeId required");
+  if (!isValidNotificationTypeId(typeId)) {
+    res.status(400).send("Invalid typeId");
     return;
   }
 
@@ -202,6 +254,12 @@ export const processScheduledNotifications = onSchedule(
     const localesByTypeId = new Map<string, Set<string>>();
     for (const doc of snapshot.docs) {
       const { typeId, locale } = doc.data();
+      if (
+        !isValidNotificationTypeId(typeId) ||
+        typeof locale !== "string"
+      ) {
+        continue;
+      }
       if (!localesByTypeId.has(typeId)) localesByTypeId.set(typeId, new Set());
       localesByTypeId.get(typeId)!.add(locale);
     }
@@ -216,31 +274,51 @@ export const processScheduledNotifications = onSchedule(
     );
 
     // Fetch each unique quote collection once, keyed by collection name
+    const neededQuoteCollections = new Set<string>();
+    for (const [typeId, locales] of localesByTypeId.entries()) {
+      const typeData = typeDataMap.get(typeId);
+      if (
+        !hasValidNotificationTypeSchema(typeData) ||
+        typeData.messageType !== "dynamic"
+      ) {
+        continue;
+      }
+      for (const locale of locales) {
+        const collectionName =
+          typeData.quotesCollections[locale] ??
+          typeData.quotesCollections["he"];
+        if (
+          typeof collectionName === "string" &&
+          collectionName.length > 0
+        ) {
+          neededQuoteCollections.add(collectionName);
+        }
+      }
+    }
+
     const quotesMap = new Map<string, FirebaseFirestore.DocumentData[]>();
     await Promise.all(
-      [...localesByTypeId.entries()].map(async ([typeId, locales]) => {
-        const typeData = typeDataMap.get(typeId);
-        if (typeData?.messageType !== "dynamic" || !typeData?.quotesCollections) return;
-
-        const neededCollections = new Set<string>();
-        for (const locale of locales) {
-          const name = typeData.quotesCollections[locale] ?? typeData.quotesCollections["he"];
-          if (name) neededCollections.add(name);
-        }
-
-        await Promise.all(
-          [...neededCollections].map(async (collectionName) => {
-            if (quotesMap.has(collectionName)) return;
-            const snap = await admin.firestore().collection(collectionName).get();
-            quotesMap.set(collectionName, snap.docs.map((d) => d.data()));
-          }),
-        );
+      [...neededQuoteCollections].map(async (collectionName) => {
+        const snap = await admin
+          .firestore()
+          .collection(collectionName)
+          .get();
+        quotesMap.set(collectionName, snap.docs.map((d) => d.data()));
       }),
     );
 
     // --- Device fetch phase (parallel) ---
 
-    const uniqueUids = [...new Set(snapshot.docs.map((d) => d.data().uid))];
+    const uniqueUids = [
+      ...new Set(
+        snapshot.docs
+          .map((d) => d.data().uid)
+          .filter(
+            (uid): uid is string =>
+              typeof uid === "string" && uid.length > 0,
+          ),
+      ),
+    ];
     const deviceDocs = await Promise.all(
       uniqueUids.map((uid) =>
         admin.firestore().collection("devices").doc(uid).get(),
@@ -257,6 +335,13 @@ export const processScheduledNotifications = onSchedule(
 
     for (const doc of snapshot.docs) {
       const { uid, typeId, locale, gender } = doc.data();
+      if (
+        typeof uid !== "string" ||
+        !isValidNotificationTypeId(typeId) ||
+        typeof locale !== "string"
+      ) {
+        continue;
+      }
 
       const deviceData = deviceMap.get(uid);
 
@@ -275,31 +360,39 @@ export const processScheduledNotifications = onSchedule(
       if (!fcmToken) continue;
 
       const typeData = typeDataMap.get(typeId);
-      if (!typeData) continue;
+      if (!hasValidNotificationTypeSchema(typeData)) continue;
 
       let title = "Living Positively";
-      let body = "";
+      let body: string;
 
-      if (typeData.messageType === "dynamic" && typeData.quotesCollections) {
+      if (typeData.messageType === "dynamic") {
         const collectionName =
           typeData.quotesCollections[locale] ??
           typeData.quotesCollections["he"];
-        if (!collectionName) continue;
+        if (
+          typeof collectionName !== "string" ||
+          collectionName.length === 0
+        ) {
+          continue;
+        }
         const quotes = quotesMap.get(collectionName);
         if (!quotes || quotes.length === 0) continue;
         const quoteData = quotes[Math.floor(Math.random() * quotes.length)];
-        const quote =
-          quoteData[gender] ??
-          quoteData.other ??
-          quoteData.male ??
-          quoteData.text;
-        body = typeof quote === "string" ? quote : "";
+        const normalizedGender = normalizeNotificationGender(gender);
+        const quote = [
+          quoteData[normalizedGender],
+          quoteData.other,
+          quoteData.male,
+          quoteData.text,
+        ].find(
+          (candidate): candidate is string =>
+            typeof candidate === "string",
+        );
+        if (quote === undefined) continue;
+        body = quote;
       } else {
-        if (typeof typeData.staticTitle === "string") {
-          title = typeData.staticTitle;
-        }
-        body =
-          typeof typeData.staticBody === "string" ? typeData.staticBody : "";
+        title = typeData.staticTitle;
+        body = typeData.staticBody;
       }
 
       sendTasks.push(async () => {
