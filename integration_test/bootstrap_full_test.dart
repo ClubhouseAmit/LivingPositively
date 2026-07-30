@@ -217,6 +217,7 @@ void main() {
           locatorCalled = true;
           registerTestServices(locale: 'en');
         },
+        fcmInitializer: () async {},
       );
 
       expect(firebaseCalled, isTrue);
