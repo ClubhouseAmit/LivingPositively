@@ -161,6 +161,8 @@ jobs:
             test_file: integration_test/wellness_player_test.dart
           - id: logger-init
             test_file: integration_test/logger_init_test.dart
+          - id: notifications-schedule
+            test_file: integration_test/notifications_schedule_test.dart
     env:
       FIREBASE_OPTIONS_PATH: lib/util/Firebase/firebase_options.dart
     steps:
@@ -204,8 +206,8 @@ jobs:
           # The synthetic, non-routable SENTRY_DSN exercises logger
           # initialization; native Sentry channels are mocked, so no network
           # traffic leaves the runner. The explicit device keeps the test on
-          # the emulator shown by `flutter devices`. Retired local-notification
-          # scheduler tests are excluded; reminder delivery is covered by FCM.
+          # the emulator shown by `flutter devices`. The notifications schedule
+          # shard is an FCM policy smoke test, not a retired local-scheduler test.
           # `>-` is load-bearing: android-emulator-runner executes each non-empty
           # line in a separate `sh -c`; the test exit code must stay in one
           # folded command through the post-test disk diagnostic and final exit.
