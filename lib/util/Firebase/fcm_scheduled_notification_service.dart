@@ -24,6 +24,10 @@ class FcmScheduledNotificationService {
       debugPrint('[FcmScheduledNotificationService] $message');
 
   static Future<String?> _getIdToken() async {
+    if (!GetIt.instance.isRegistered<FirebaseAuth>()) {
+      _log('Warning: FirebaseAuth is not initialized, cannot get ID token.');
+      return null;
+    }
     final token = await GetIt.instance<FirebaseAuth>().currentUser
         ?.getIdToken();
     if (token == null) {
