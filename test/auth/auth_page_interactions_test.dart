@@ -74,6 +74,6 @@ void main() {
 
     await tester.tap(find.text('Send Reset Link'));
     await tester.pump();
-    expect(find.text('Check your email for a reset link'), findsNothing);
+    expect(find.text('Invalid email address'), findsOneWidget);
   });
 }

@@ -54,7 +54,7 @@ class FcmService {
   }
 
   static Future<void> initialize() async {
-    if (kIsWeb) return;
+    if (!supportsReminderSettings()) return;
     if (_isInitialized) {
       _log('Already initialized, skipping.');
       return;
@@ -87,7 +87,7 @@ class FcmService {
 
     _log('=== FCM Ready ===');
     _log('UID       : $uid');
-    _log('FCM Token : $token');
+    _log('FCM token available: ${token != null}');
     _log('=================');
 
     if (uid != null && token != null) await _saveTokenToFirestore(uid, token);
@@ -98,7 +98,7 @@ class FcmService {
     FirebaseMessaging.instance.onTokenRefresh.listen((newToken) {
       final uid = GetIt.instance<FirebaseAuth>().currentUser?.uid;
       if (uid != null) {
-        _log('FCM token refreshed: $newToken');
+        _log('FCM token refreshed.');
         _saveTokenToFirestore(uid, newToken);
       }
     });
@@ -108,7 +108,7 @@ class FcmService {
 
   // Called after a successful sign-in so the new UID is stored with its FCM token.
   static Future<void> onUserSignedIn() async {
-    if (kIsWeb) return;
+    if (!supportsReminderSettings()) return;
     final uid = GetIt.instance<FirebaseAuth>().currentUser?.uid;
     final token = await FirebaseMessaging.instance.getToken();
     if (uid != null && token != null) {

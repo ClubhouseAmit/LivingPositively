@@ -24,7 +24,10 @@ class _ForgotPasswordPageState extends LPExtendedState<ForgotPasswordPage> {
 
   Future<void> _send() async {
     final email = _emailController.text.trim();
-    if (email.isEmpty) return;
+    if (email.isEmpty) {
+      setState(() => _errorMessage = appLocale.authErrorInvalidEmail);
+      return;
+    }
     setState(() {
       _isLoading = true;
       _errorMessage = null;

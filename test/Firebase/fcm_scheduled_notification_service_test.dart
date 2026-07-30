@@ -121,4 +121,26 @@ void main() {
     expect(result, isTrue);
     expect(user.getNotificationPreference('default'), isNull);
   });
+
+  testWidgets('cancel keeps the saved schedule when the server rejects it', (
+    tester,
+  ) async {
+    const existing = NotificationPreference(hour: 8, minute: 15);
+    user.setNotificationPreference('default', existing);
+    await pumpUser(tester);
+
+    final result = await FcmScheduledNotificationService.cancelNotification(
+      context: serviceContext,
+      typeId: 'default',
+      idTokenProvider: () async => 'token-123',
+      post: (url, {headers, body, encoding}) async =>
+          http.Response('server error', 500),
+    );
+
+    expect(result, isFalse);
+    expect(
+      user.getNotificationPreference('default')?.toJson(),
+      existing.toJson(),
+    );
+  });
 }
