@@ -82,6 +82,7 @@ class _ThankYouState extends State<ThankYou> {
   Widget build(BuildContext context) {
     final locale = AppLocalizations.of(context);
     final gender = Provider.of<UserInformation>(context, listen: false).gender;
+    final colorScheme = Theme.of(context).colorScheme;
     return Container(
       padding: const EdgeInsets.fromLTRB(10, 5, 10, 5),
       child: Row(
@@ -92,13 +93,13 @@ class _ThankYouState extends State<ThankYou> {
             borderRadius: BorderRadius.circular(20),
             child: Container(
               padding: const EdgeInsets.symmetric(horizontal: 15, vertical: 10),
-              color: primaryPurple, // the color of the circle
+              color: colorScheme.primary, // the color of the circle
               child: myAutoSizedText(
                 // the number of the thank you/trait
                 widget.number.toString(),
                 TextStyle(
                   // the style of the number
-                  color: appWhite,
+                  color: colorScheme.onPrimary,
                   fontSize: widget.number < 10 ? 14.sp : 10.sp,
                   fontWeight: FontWeight.bold,
                 ),
@@ -117,7 +118,7 @@ class _ThankYouState extends State<ThankYou> {
             ),
             // height: 40,
             decoration: BoxDecoration(
-              color: Colors.white,
+              color: colorScheme.surfaceContainerHighest,
               borderRadius: BorderRadius.circular(95),
             ),
             child: Padding(

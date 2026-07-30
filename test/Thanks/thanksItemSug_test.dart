@@ -15,6 +15,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:mazilon/util/Thanks/thanksItemSug.dart';
+import 'package:mazilon/util/suggestion_add_button.dart';
 import 'package:mazilon/util/userInformation.dart';
 
 import '../helpers/widget_test_scaffold.dart';
@@ -60,6 +61,7 @@ void main() {
     );
 
     expect(find.byType(ThanksItemSuggested), findsOneWidget);
+    expect(find.byType(SuggestionAddButton), findsOneWidget);
     expect(find.byType(GestureDetector), findsWidgets);
     expect(find.byIcon(Icons.add), findsWidgets);
   });

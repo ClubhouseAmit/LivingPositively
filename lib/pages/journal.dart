@@ -247,10 +247,11 @@ class _JournalState extends LPExtendedState<Journal> {
       listen: false,
     );
     final gender = userInfoProvider.gender;
+    final colorScheme = Theme.of(context).colorScheme;
     return KeyboardDismisser(
       gestures: const [GestureType.onTap, GestureType.onPanUpdateAnyDirection],
       child: Scaffold(
-        backgroundColor: appWhite,
+        backgroundColor: colorScheme.surface,
         body: ListView(
           children: [
             Padding(
@@ -280,7 +281,11 @@ class _JournalState extends LPExtendedState<Journal> {
                           editThanks(appLocale.thanks);
                         },
                         tooltip: appLocale.addItemTooltip,
-                        icon: Icon(Icons.add, size: 50.0, color: primaryPurple),
+                        icon: Icon(
+                          Icons.add,
+                          size: 50.0,
+                          color: colorScheme.primary,
+                        ),
                       ),
                     ],
                   ),
@@ -292,7 +297,7 @@ class _JournalState extends LPExtendedState<Journal> {
                         child: myAutoSizedText(
                           appLocale.homePageThanksSecondaryTitle(gender),
                           TextStyle(
-                            color: darkGray,
+                            color: colorScheme.outline,
                             fontSize: 16.sp,
                             fontWeight: FontWeight.bold,
                           ),
@@ -318,7 +323,7 @@ class _JournalState extends LPExtendedState<Journal> {
                 remove: (int index) => removeThankYou(index, userInfoProvider),
                 myFocusNode: focusNodes[index],
                 date: dates[index],
-                color: Colors.black,
+                color: colorScheme.onSurface,
               ),
               itemCount: thankYous.length,
             ),
@@ -328,7 +333,7 @@ class _JournalState extends LPExtendedState<Journal> {
                     child: myAutoSizedText(
                       appLocale.journalEmptyGuidance,
                       TextStyle(
-                        color: darkGray,
+                        color: colorScheme.outline,
                         fontSize: 16.sp,
                         fontWeight: FontWeight.normal,
                       ),
@@ -336,7 +341,11 @@ class _JournalState extends LPExtendedState<Journal> {
                       40,
                     ),
                   )
-                : Divider(color: darkGray, indent: 30, endIndent: 30),
+                : Divider(
+                    color: colorScheme.outline,
+                    indent: 30,
+                    endIndent: 30,
+                  ),
             //the suggested thank you notes
             if (sug1.isNotEmpty)
               ThanksItemSuggested(
@@ -383,11 +392,11 @@ class _JournalState extends LPExtendedState<Journal> {
                     appLocale.otherSuggestions(gender),
                     style: TextStyle(
                       fontWeight: FontWeight.bold,
-                      color: appGreen,
+                      color: colorScheme.tertiary,
                     ),
                   ),
                   const SizedBox(width: 1.0),
-                  Icon(Icons.refresh, color: appGreen),
+                  Icon(Icons.refresh, color: colorScheme.tertiary),
                 ],
               ),
             ),

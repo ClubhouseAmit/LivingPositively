@@ -577,6 +577,24 @@ class AppLocalizationsAr extends AppLocalizations {
   }
 
   @override
+  String get darkModeSettingsTitle => 'الوضع الداكن';
+
+  @override
+  String get darkModeAlwaysLight => 'وضع فاتح دائمًا';
+
+  @override
+  String get darkModeAlwaysDark => 'وضع داكن دائمًا';
+
+  @override
+  String get darkModeSleepPromoting => 'وضع داعم للنوم';
+
+  @override
+  String get darkModeStartTime => 'وقت البدء';
+
+  @override
+  String get darkModeEndTime => 'وقت الانتهاء';
+
+  @override
   String introductionFormFirstPageMainTitle(String gender) {
     String _temp0 = intl.Intl.selectLogic(gender, {
       'male': 'ما الذي يبقيني آمنًا؟',

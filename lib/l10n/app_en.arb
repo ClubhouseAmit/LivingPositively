@@ -259,6 +259,12 @@
   "@settings": {
     "description": ""
   },
+  "darkModeSettingsTitle": "Dark Mode",
+  "darkModeAlwaysLight": "Always Light",
+  "darkModeAlwaysDark": "Always Dark",
+  "darkModeSleepPromoting": "Sleep-Promoting Mode",
+  "darkModeStartTime": "Start time",
+  "darkModeEndTime": "End time",
   "introductionFormFirstPageMainTitle": "{gender,select,male{What keeps me safe?} female{What keeps me safe?} other{What keeps me safe?}}",
   "@introductionFormFirstPageMainTitle": {
     "description": ""

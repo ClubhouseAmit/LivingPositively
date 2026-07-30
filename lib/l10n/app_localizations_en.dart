@@ -578,6 +578,24 @@ class AppLocalizationsEn extends AppLocalizations {
   }
 
   @override
+  String get darkModeSettingsTitle => 'Dark Mode';
+
+  @override
+  String get darkModeAlwaysLight => 'Always Light';
+
+  @override
+  String get darkModeAlwaysDark => 'Always Dark';
+
+  @override
+  String get darkModeSleepPromoting => 'Sleep-Promoting Mode';
+
+  @override
+  String get darkModeStartTime => 'Start time';
+
+  @override
+  String get darkModeEndTime => 'End time';
+
+  @override
   String introductionFormFirstPageMainTitle(String gender) {
     String _temp0 = intl.Intl.selectLogic(gender, {
       'male': 'What keeps me safe?',

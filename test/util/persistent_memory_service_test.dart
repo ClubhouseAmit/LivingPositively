@@ -92,9 +92,17 @@ void main() {
           await s.getItem('missing', PersistentMemoryType.String), '');
     });
 
-    test('getItem with no stored value returns Int default 0', () async {
+    test('getItem with no stored value returns null for Int', () async {
       final s = SharedPreferencesService();
-      expect(await s.getItem('missing', PersistentMemoryType.Int), 0);
+      expect(await s.getItem('missing', PersistentMemoryType.Int), isNull);
+    });
+
+    test('getItem with a wrong Int type returns null', () async {
+      SharedPreferences.setMockInitialValues({'k': 'not-an-int'});
+      final s = SharedPreferencesService();
+
+      expect(await s.getItem('k', PersistentMemoryType.Int), isNull);
+      expect(logger.logs, isNotEmpty);
     });
 
     test('getItem with no stored value returns Double default 0.0', () async {
@@ -121,7 +129,7 @@ void main() {
       await s.setItem('b', PersistentMemoryType.Int, 9);
       await s.reset();
       expect(await s.getItem('a', PersistentMemoryType.String), '');
-      expect(await s.getItem('b', PersistentMemoryType.Int), 0);
+      expect(await s.getItem('b', PersistentMemoryType.Int), isNull);
     });
   });
 

@@ -13,12 +13,15 @@ List<Widget> extractChildrenFromRow(Row row) {
 }
 
 List<Map<String, dynamic>> _hebrewIsraelEmergencyOrder(
-    List<Map<String, dynamic>> numbers) {
+  List<Map<String, dynamic>> numbers,
+) {
   final orderedNumbers = List<Map<String, dynamic>>.of(numbers);
-  final index105 =
-      orderedNumbers.indexWhere((number) => number['number'] == '105');
-  final saharIndex =
-      orderedNumbers.indexWhere((number) => number['number'] == '0559571399');
+  final index105 = orderedNumbers.indexWhere(
+    (number) => number['number'] == '105',
+  );
+  final saharIndex = orderedNumbers.indexWhere(
+    (number) => number['number'] == '0559571399',
+  );
 
   if (index105 != -1 && saharIndex != -1) {
     final number105 = orderedNumbers[index105];
@@ -38,14 +41,16 @@ class EmergencyPhonesGrid extends StatelessWidget {
     final userInfo = Provider.of<UserInformation>(context, listen: true);
     String countryCode = userInfo.location.trim();
     if (countryCode.isEmpty) {
-      countryCode = Localizations.localeOf(context).countryCode ??
+      countryCode =
+          Localizations.localeOf(context).countryCode ??
           defaultPickerCountry.countryCodes.first;
     }
 
     final Country? country = findCountryByCode(countryCode);
     if (country == null) {
       debugPrint(
-          'No emergency mapping for countryCode="$countryCode". Using default "${defaultEmergencyCountry.id}".');
+        'No emergency mapping for countryCode="$countryCode". Using default "${defaultEmergencyCountry.id}".',
+      );
     }
     final activeCountry = country ?? defaultEmergencyCountry;
     final bool isFallback = country == null;
@@ -55,8 +60,8 @@ class EmergencyPhonesGrid extends StatelessWidget {
     final appLocale = AppLocalizations.of(context);
     final orderedNumbers =
         appLocale?.localeName == 'he' && activeCountry.id == 'israel'
-            ? _hebrewIsraelEmergencyOrder(localNumbers)
-            : localNumbers;
+        ? _hebrewIsraelEmergencyOrder(localNumbers)
+        : localNumbers;
     final displayedNumbers = <Map<String, dynamic>>[
       ...orderedNumbers,
       if (userInfo.age.trim() == '18-') elemSupportOption,
@@ -79,8 +84,11 @@ class EmergencyPhonesGrid extends StatelessWidget {
           child: Row(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              const Icon(Icons.info_outline,
-                  color: Color(0xFFB76E00), size: 20),
+              const Icon(
+                Icons.info_outline,
+                color: Color(0xFFB76E00),
+                size: 20,
+              ),
               const SizedBox(width: 8),
               Expanded(
                 child: Text(
@@ -106,7 +114,7 @@ class EmergencyPhonesGrid extends StatelessWidget {
           final crossAxisCount = constraints.maxWidth < 300 ? 1 : 2;
           final itemWidth =
               (constraints.maxWidth - spacing * (crossAxisCount - 1)) /
-                  crossAxisCount;
+              crossAxisCount;
 
           final grid = Wrap(
             spacing: spacing,
@@ -147,6 +155,7 @@ class EmergencyPhoneItem extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final appLocale = AppLocalizations.of(context);
+    final colorScheme = Theme.of(context).colorScheme;
     final isRtl = appLocale?.textDirection == "rtl";
     final descriptionText = isRtl
         ? (number["descriptionHe"] ?? number["description"] ?? '')
@@ -175,8 +184,8 @@ class EmergencyPhoneItem extends StatelessWidget {
         constraints: const BoxConstraints(minHeight: 170),
         padding: const EdgeInsets.all(10),
         decoration: BoxDecoration(
-          border: Border.all(color: primaryPurple, width: 1),
-          color: Colors.white,
+          border: Border.all(color: colorScheme.primary, width: 1),
+          color: colorScheme.surfaceContainerHighest,
           borderRadius: BorderRadius.circular(10), // Rounded corners
         ),
         child: Stack(
@@ -190,26 +199,32 @@ class EmergencyPhoneItem extends StatelessWidget {
                 children: [
                   Center(
                     child: myAutoSizedText(
-                        number["name"],
-                        TextStyle(
-                            color: primaryPurple,
-                            fontWeight: FontWeight.bold,
-                            fontSize: 14.sp),
-                        TextAlign.center,
-                        18,
-                        2),
+                      number["name"],
+                      TextStyle(
+                        color: colorScheme.primary,
+                        fontWeight: FontWeight.bold,
+                        fontSize: 14.sp,
+                      ),
+                      TextAlign.center,
+                      18,
+                      2,
+                    ),
                   ),
                   const SizedBox(height: 8),
                   Center(
                     child: myAutoSizedText(
-                        descriptionText.replaceAll(
-                            '/', '\n'), // Replace '/' with newline
-                        TextStyle(
-                            fontWeight: FontWeight.normal,
-                            color: primaryPurple,
-                            fontSize: 14.sp),
-                        TextAlign.center,
-                        14),
+                      descriptionText.replaceAll(
+                        '/',
+                        '\n',
+                      ), // Replace '/' with newline
+                      TextStyle(
+                        fontWeight: FontWeight.normal,
+                        color: colorScheme.primary,
+                        fontSize: 14.sp,
+                      ),
+                      TextAlign.center,
+                      14,
+                    ),
                   ),
                 ],
               ),
@@ -222,13 +237,13 @@ class EmergencyPhoneItem extends StatelessWidget {
                   width: 40,
                   height: 40,
                   decoration: BoxDecoration(
-                    border: Border.all(color: primaryPurple, width: 1),
-                    color: primaryPurple,
+                    border: Border.all(color: colorScheme.primary, width: 1),
+                    color: colorScheme.primary,
                     shape: BoxShape.circle,
                   ),
                   child: Icon(
                     number['icon'],
-                    color: Colors.white,
+                    color: colorScheme.onPrimary,
                     size: 20,
                   ),
                 ),

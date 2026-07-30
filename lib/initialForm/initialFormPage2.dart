@@ -54,11 +54,11 @@ class _InitialFormPage2State extends LPExtendedState<InitialFormPage2> {
         children: [
           Text(
             sep[0],
-            style: const TextStyle(
+            style: TextStyle(
               fontSize: 20,
               height: 1.2,
               fontWeight: FontWeight.normal,
-              color: Colors.black,
+              color: Theme.of(context).colorScheme.onSurface,
               fontFamily: 'Rubix',
             ),
             textAlign: appLocale!.textDirection == "rtl"
@@ -68,11 +68,11 @@ class _InitialFormPage2State extends LPExtendedState<InitialFormPage2> {
           ),
           Text(
             sep[1],
-            style: const TextStyle(
+            style: TextStyle(
               fontSize: 18,
               height: 1.2,
               fontWeight: FontWeight.normal,
-              color: Colors.black,
+              color: Theme.of(context).colorScheme.onSurface,
               fontFamily: 'Rubix',
             ),
             textAlign: appLocale.textDirection == "rtl"
@@ -90,11 +90,11 @@ class _InitialFormPage2State extends LPExtendedState<InitialFormPage2> {
       width: fieldWidth,
       child: Text(
         text,
-        style: const TextStyle(
+        style: TextStyle(
           fontSize: 20,
           height: 1.2,
           fontWeight: FontWeight.normal,
-          color: Colors.black,
+          color: Theme.of(context).colorScheme.onSurface,
           fontFamily: 'Rubix',
         ),
         maxLines: 2,
@@ -116,10 +116,12 @@ class _InitialFormPage2State extends LPExtendedState<InitialFormPage2> {
       height: 52,
       child: TextButton(
         onPressed: onPressed,
-        style: myButtonStyle,
+        style: primaryButtonStyle(context),
         child: Text(
           text,
-          style: myTextStyle.copyWith(fontSize: 20, fontFamily: 'Rubix'),
+          style: primaryButtonTextStyle(
+            context,
+          ).copyWith(fontSize: 20, fontFamily: 'Rubix'),
         ),
       ),
     );
@@ -163,7 +165,7 @@ class _InitialFormPage2State extends LPExtendedState<InitialFormPage2> {
                   children: [
                     myAutoSizedText(
                       appLocale.introductionFormSecondPageMainTitle(gender),
-                      const TextStyle(
+                      TextStyle(
                         fontSize: 30,
                         height: 1.15,
                         fontWeight: FontWeight.bold,
@@ -175,11 +177,11 @@ class _InitialFormPage2State extends LPExtendedState<InitialFormPage2> {
                     SizedBox(height: 8.h),
                     myAutoSizedText(
                       appLocale.introductionFormSecondPageSubTitle(gender),
-                      const TextStyle(
+                      TextStyle(
                         fontSize: 15,
                         height: 1.25,
                         fontWeight: FontWeight.bold,
-                        color: darkGray,
+                        color: Theme.of(context).colorScheme.outline,
                       ),
                       TextAlign.center,
                       15,
@@ -231,8 +233,8 @@ class _InitialFormPage2State extends LPExtendedState<InitialFormPage2> {
                                 (age) => buildDropdownMenuEntry(
                                   age,
                                   dropdownValueAge == age
-                                      ? primaryPurple
-                                      : Colors.black,
+                                      ? Theme.of(context).colorScheme.primary
+                                      : Theme.of(context).colorScheme.onSurface,
                                 ),
                               ),
                             ],
@@ -271,8 +273,8 @@ class _InitialFormPage2State extends LPExtendedState<InitialFormPage2> {
                                 (gender) => buildDropdownMenuEntry(
                                   gender,
                                   dropdownValueGender == gender
-                                      ? primaryPurple
-                                      : Colors.black,
+                                      ? Theme.of(context).colorScheme.primary
+                                      : Theme.of(context).colorScheme.onSurface,
                                 ),
                               ),
                             ],

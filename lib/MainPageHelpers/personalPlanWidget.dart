@@ -107,7 +107,9 @@ class _PersonalPlanWidgetState extends LPExtendedState<PersonalPlanWidget> {
                   TextStyle(
                     fontSize: 24.sp, // the font size of the title
                     fontWeight: FontWeight.bold,
-                    color: Colors.black, // the color of the title
+                    color: Theme.of(
+                      context,
+                    ).colorScheme.onSurface, // the color of the title
                   ),
                   null,
                   40,
@@ -122,7 +124,7 @@ class _PersonalPlanWidgetState extends LPExtendedState<PersonalPlanWidget> {
                     return;
                   },
                   Elusive.share,
-                  Colors.black,
+                  Theme.of(context).colorScheme.onSurface,
                   tooltip: appLocale.sharePlanTooltip,
                 ),
                 myTextButton(
@@ -156,7 +158,7 @@ class _PersonalPlanWidgetState extends LPExtendedState<PersonalPlanWidget> {
                     showToast(message: appLocale.finishedDownloading(gender));
                   },
                   Icons.download,
-                  Colors.black,
+                  Theme.of(context).colorScheme.onSurface,
                   tooltip: appLocale.downloadPlanTooltip,
                 ), // the download icon
               ],

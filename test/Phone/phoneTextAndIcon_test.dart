@@ -48,6 +48,60 @@ Widget _wrap(Widget Function(BuildContext) builder,
 void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
 
+  group('circularActionButton', () {
+    testWidgets('honors supplied visual dimensions and callback', (
+      tester,
+    ) async {
+      var taps = 0;
+      await tester.pumpWidget(
+        _wrap(
+          (context) => circularActionButton(
+            context,
+            tooltip: 'Call contact',
+            icon: Icons.phone,
+            diameter: 32,
+            iconSize: 16,
+            onTap: () => taps++,
+          ),
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      expect(find.byTooltip('Call contact'), findsOneWidget);
+      expect(tester.widget<CircleAvatar>(find.byType(CircleAvatar)).radius, 16);
+      expect(tester.widget<Icon>(find.byIcon(Icons.phone)).size, 16);
+
+      await tester.tap(find.byIcon(Icons.phone));
+      await tester.pumpAndSettle();
+      expect(taps, 1);
+    });
+
+    testWidgets('expands the tap target for a large visual diameter', (
+      tester,
+    ) async {
+      await tester.pumpWidget(
+        _wrap(
+          (context) => circularActionButton(
+            context,
+            tooltip: 'Call contact',
+            icon: Icons.phone,
+            diameter: 80,
+            onTap: () {},
+          ),
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      final tapTarget = find.byWidgetPredicate(
+        (widget) =>
+            widget is SizedBox && widget.width == 80 && widget.height == 80,
+      );
+      expect(tapTarget, findsOneWidget);
+      expect(tester.getSize(tapTarget), const Size(80, 80));
+      expect(tester.getSize(find.byType(CircleAvatar)), const Size(80, 80));
+    });
+  });
+
   group('phoneContact widget', () {
     testWidgets('renders contact text and dials when icon tapped',
         (tester) async {
@@ -61,6 +115,7 @@ void main() {
 
       expect(find.text('Mom'), findsOneWidget);
       expect(find.byIcon(Icons.phone), findsOneWidget);
+      expect(find.byType(InkWell), findsOneWidget);
 
       await tester.tap(find.byIcon(Icons.phone));
       await tester.pumpAndSettle();
@@ -82,6 +137,7 @@ void main() {
 
       expect(find.text('Send'), findsOneWidget);
       expect(find.byIcon(Icons.send), findsOneWidget);
+      expect(find.byType(InkWell), findsOneWidget);
 
       await tester.tap(find.byIcon(Icons.send));
       await tester.pumpAndSettle();

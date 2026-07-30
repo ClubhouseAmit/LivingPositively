@@ -37,7 +37,7 @@ class _IntroductionState extends LPExtendedState<Introduction> {
               ), // Welcome message in Hebrew
               TextStyle(
                 fontSize: 40.sp,
-                color: Colors.blue,
+                color: Theme.of(context).colorScheme.primary,
                 fontWeight: FontWeight.bold,
               ),
               null,

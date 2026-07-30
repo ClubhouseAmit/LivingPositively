@@ -15,8 +15,11 @@ class _FakeLogger implements IncidentLoggerService {
   @override
   Future<void> initializeSentry(_) async {}
   @override
-  Future<void> captureLog(dynamic exception,
-      {StackTrace? stackTrace, dynamic exceptionData}) async {}
+  Future<void> captureLog(
+    dynamic exception, {
+    StackTrace? stackTrace,
+    dynamic exceptionData,
+  }) async {}
 }
 
 /// A fake [PersistentMemoryService] backed by an in-memory map.
@@ -31,8 +34,11 @@ class _FakeMemory implements PersistentMemoryService {
   }
 
   @override
-  Future<void> setItem(String key, PersistentMemoryType type,
-      dynamic value) async {}
+  Future<void> setItem(
+    String key,
+    PersistentMemoryType type,
+    dynamic value,
+  ) async {}
 
   @override
   Future<void> reset() async {}
@@ -67,9 +73,7 @@ void _unregisterFakes() {
 UserInformation _makeUserInfo() {
   // Provide the PersistentMemoryService explicitly so the constructor
   // does not hit GetIt before it is set up in tests.
-  return UserInformation(
-    service: GetIt.instance<PersistentMemoryService>(),
-  );
+  return UserInformation(service: GetIt.instance<PersistentMemoryService>());
 }
 
 // ---------------------------------------------------------------------------
@@ -85,26 +89,33 @@ void main() {
 
   group('loadUserInformation – populated values', () {
     test('propagates all scalar string/bool/int fields', () async {
-      _registerFakes(store: {
-        'name': 'Alice',
-        'gender': 'female',
-        'binary': false,
-        'loggedIn': true,
-        'age': '25',
-        'userId': 'uid-123',
-        'location': 'TLV',
-        'disclaimerConfirmed': true,
-        'notificationMinute': 30,
-        'notificationHour': 9,
-        'localeName': 'he',
-        'userSelectionPersonalPlan-DifficultEvents': ['event1'],
-        'userSelectionPersonalPlan-MakeSafer': ['safer1'],
-        'userSelectionPersonalPlan-FeelBetter': ['better1'],
-        'userSelectionPersonalPlan-Distractions': ['dist1'],
-        'positiveTraits': ['brave'],
-        'thankYous': ['thanks1'],
-        'dates': ['2024-01-01'],
-      });
+      _registerFakes(
+        store: {
+          'name': 'Alice',
+          'gender': 'female',
+          'binary': false,
+          'loggedIn': true,
+          'age': '25',
+          'userId': 'uid-123',
+          'location': 'TLV',
+          'disclaimerConfirmed': true,
+          'notificationMinute': 30,
+          'notificationHour': 9,
+          'darkModePreference': 'scheduled',
+          'darkModeStartHour': 21,
+          'darkModeStartMinute': 30,
+          'darkModeEndHour': 6,
+          'darkModeEndMinute': 15,
+          'localeName': 'he',
+          'userSelectionPersonalPlan-DifficultEvents': ['event1'],
+          'userSelectionPersonalPlan-MakeSafer': ['safer1'],
+          'userSelectionPersonalPlan-FeelBetter': ['better1'],
+          'userSelectionPersonalPlan-Distractions': ['dist1'],
+          'positiveTraits': ['brave'],
+          'thankYous': ['thanks1'],
+          'dates': ['2024-01-01'],
+        },
+      );
 
       final userInfo = _makeUserInfo();
       await loadUserInformation(userInfo, 'en');
@@ -119,30 +130,37 @@ void main() {
       expect(userInfo.disclaimerSigned, isTrue);
       expect(userInfo.notificationMinute, equals(30));
       expect(userInfo.notificationHour, equals(9));
+      expect(userInfo.darkModePreference, DarkModePreference.scheduled);
+      expect(userInfo.darkModeStartHour, equals(21));
+      expect(userInfo.darkModeStartMinute, equals(30));
+      expect(userInfo.darkModeEndHour, equals(6));
+      expect(userInfo.darkModeEndMinute, equals(15));
       expect(userInfo.localeName, equals('he'));
     });
 
     test('propagates list fields', () async {
-      _registerFakes(store: {
-        'name': '',
-        'gender': '',
-        'binary': false,
-        'loggedIn': false,
-        'age': '',
-        'userId': '',
-        'location': '',
-        'disclaimerConfirmed': false,
-        'notificationMinute': 0,
-        'notificationHour': 12,
-        'localeName': 'en',
-        'userSelectionPersonalPlan-DifficultEvents': ['de1', 'de2'],
-        'userSelectionPersonalPlan-MakeSafer': ['ms1'],
-        'userSelectionPersonalPlan-FeelBetter': ['fb1'],
-        'userSelectionPersonalPlan-Distractions': ['d1', 'd2'],
-        'positiveTraits': ['kind', 'bold'],
-        'thankYous': ['t1', 't2'],
-        'dates': ['2024-01-01', '2024-02-01'],
-      });
+      _registerFakes(
+        store: {
+          'name': '',
+          'gender': '',
+          'binary': false,
+          'loggedIn': false,
+          'age': '',
+          'userId': '',
+          'location': '',
+          'disclaimerConfirmed': false,
+          'notificationMinute': 0,
+          'notificationHour': 12,
+          'localeName': 'en',
+          'userSelectionPersonalPlan-DifficultEvents': ['de1', 'de2'],
+          'userSelectionPersonalPlan-MakeSafer': ['ms1'],
+          'userSelectionPersonalPlan-FeelBetter': ['fb1'],
+          'userSelectionPersonalPlan-Distractions': ['d1', 'd2'],
+          'positiveTraits': ['kind', 'bold'],
+          'thankYous': ['t1', 't2'],
+          'dates': ['2024-01-01', '2024-02-01'],
+        },
+      );
 
       final userInfo = _makeUserInfo();
       await loadUserInformation(userInfo, 'en');
@@ -158,6 +176,48 @@ void main() {
   });
 
   group('loadUserInformation – empty / null defaults', () {
+    test(
+      'uses the default schedule when saved values are absent or invalid',
+      () async {
+        _registerFakes(
+          store: {
+            'darkModePreference': 'scheduled',
+            'darkModeStartHour': 'not-an-int',
+          },
+        );
+
+        final userInfo = _makeUserInfo();
+        await loadUserInformation(userInfo, 'en');
+
+        expect(userInfo.darkModePreference, DarkModePreference.scheduled);
+        expect(userInfo.darkModeStartHour, 22);
+        expect(userInfo.darkModeStartMinute, 0);
+        expect(userInfo.darkModeEndHour, 6);
+        expect(userInfo.darkModeEndMinute, 0);
+      },
+    );
+
+    test(
+      'uses the default schedule with missing SharedPreferences Int values',
+      () async {
+        SharedPreferences.setMockInitialValues({
+          'darkModePreference': 'scheduled',
+        });
+        GetIt.instance.registerSingleton<IncidentLoggerService>(_FakeLogger());
+        final memory = SharedPreferencesService();
+        GetIt.instance.registerSingleton<PersistentMemoryService>(memory);
+
+        final userInfo = UserInformation(service: memory);
+        await loadUserInformation(userInfo, 'en');
+
+        expect(userInfo.darkModePreference, DarkModePreference.scheduled);
+        expect(userInfo.darkModeStartHour, 22);
+        expect(userInfo.darkModeStartMinute, 0);
+        expect(userInfo.darkModeEndHour, 6);
+        expect(userInfo.darkModeEndMinute, 0);
+      },
+    );
+
     test('uses defaults when all keys return null', () async {
       _registerFakes(store: {}); // all getItem calls return null
 
@@ -174,6 +234,11 @@ void main() {
       expect(userInfo.disclaimerSigned, isFalse);
       expect(userInfo.notificationMinute, equals(0));
       expect(userInfo.notificationHour, equals(12));
+      expect(userInfo.darkModePreference, DarkModePreference.alwaysLight);
+      expect(userInfo.darkModeStartHour, equals(22));
+      expect(userInfo.darkModeStartMinute, equals(0));
+      expect(userInfo.darkModeEndHour, equals(6));
+      expect(userInfo.darkModeEndMinute, equals(0));
       expect(userInfo.difficultEvents, equals([]));
       expect(userInfo.makeSafer, equals([]));
       expect(userInfo.feelBetter, equals([]));

@@ -90,7 +90,7 @@ class _FormAnswerState extends LPExtendedState<FormAnswer> {
                           width: 20,
                           child: Icon(
                             Icons.circle,
-                            color: primaryPurple,
+                            color: Theme.of(context).colorScheme.primary,
                             size: 10,
                           ),
                         ),
@@ -126,9 +126,9 @@ class _FormAnswerState extends LPExtendedState<FormAnswer> {
                           },
                           child: Tooltip(
                             message: appLocale.editEntryTooltip,
-                            child: const Icon(
+                            child: Icon(
                               Icons.edit,
-                              color: Colors.black,
+                              color: Theme.of(context).colorScheme.onSurface,
                               size: 20,
                             ),
                           ),
@@ -143,9 +143,9 @@ class _FormAnswerState extends LPExtendedState<FormAnswer> {
                           onPressed: confirmRemoveAnswer,
                           child: Tooltip(
                             message: appLocale.deleteEntryTooltip,
-                            child: const Icon(
+                            child: Icon(
                               Icons.delete,
-                              color: Colors.black,
+                              color: Theme.of(context).colorScheme.onSurface,
                               size: 20,
                             ),
                           ),

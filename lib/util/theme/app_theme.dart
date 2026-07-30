@@ -48,16 +48,56 @@ class AppColors {
   /// Foreground on `error`.
   static const Color onError = Colors.white;
 
+  /// Dark-mode equivalent of the brand lavender. The light value would not
+  /// maintain enough contrast against the dark surface for controls.
+  static const Color darkPrimary = Color(0xFFD7C2FF);
+
+  /// Foreground colour on [darkPrimary].
+  static const Color darkOnPrimary = Color(0xFF2E1649);
+
+  /// Dark-mode secondary accent for selected and supporting controls.
+  static const Color darkSecondary = Color(0xFFE8D7FF);
+
+  /// Foreground colour on [darkSecondary].
+  static const Color darkOnSecondary = Color(0xFF2A1941);
+
+  /// Default dark scaffold and page surface.
+  static const Color darkSurface = Color(0xFF141218);
+
+  /// Elevated dark surface used by cards and input controls.
+  static const Color darkSurfaceContainer = Color(0xFF211F26);
+
+  /// Body-text colour on [darkSurface].
+  static const Color darkOnSurface = Color(0xFFE7E0E8);
+
+  /// Accessible destructive colour for dark mode.
+  static const Color darkError = Color(0xFFFFB4AB);
+
+  /// Foreground on [darkError].
+  static const Color darkOnError = Color(0xFF690005);
+
   // -- Non-ColorScheme tokens (no semantic slot, kept for legacy parity) --
 
   /// Success / confirmation accent. Source: legacy `appGreen`.
   static const Color success = Color(0xFF01B91E);
+
+  /// Foreground on [success].
+  static const Color onSuccess = Colors.white;
 
   /// Card/inactive grey. Source: legacy `lightGray`.
   static const Color neutralLight = Color.fromARGB(255, 231, 231, 231);
 
   /// Muted text/icon grey. Source: legacy `darkGray`.
   static const Color neutralDark = Color(0xFF9A9EB6);
+
+  /// Success accent that remains legible on the dark surface.
+  static const Color darkSuccess = Color(0xFF87E990);
+
+  /// Foreground on [darkSuccess].
+  static const Color darkOnSuccess = Color(0xFF003913);
+
+  /// Muted text, borders, and dividers in dark mode.
+  static const Color darkOutline = Color(0xFFCBC4D0);
 
   /// PDF-export tint. Source: legacy `pdfpurple`. The original literal
   /// `0xfaf6fd` lacks the leading `0xFF` alpha byte; preserved verbatim
@@ -74,10 +114,32 @@ const ColorScheme appLightColorScheme = ColorScheme.light(
   onPrimary: AppColors.onPrimary,
   secondary: AppColors.secondary,
   onSecondary: AppColors.onSecondary,
+  tertiary: AppColors.success,
+  onTertiary: AppColors.onSuccess,
   surface: AppColors.surface,
   onSurface: AppColors.onSurface,
   error: AppColors.error,
   onError: AppColors.onError,
+  outline: AppColors.neutralDark,
+  surfaceContainerHighest: AppColors.neutralLight,
+);
+
+/// Dark `ColorScheme` for user-selected dark mode. Its foreground and
+/// background pairs are deliberately separate from the light palette so the
+/// setting does not merely dim the app while leaving unreadable text behind.
+const ColorScheme appDarkColorScheme = ColorScheme.dark(
+  primary: AppColors.darkPrimary,
+  onPrimary: AppColors.darkOnPrimary,
+  secondary: AppColors.darkSecondary,
+  onSecondary: AppColors.darkOnSecondary,
+  tertiary: AppColors.darkSuccess,
+  onTertiary: AppColors.darkOnSuccess,
+  surface: AppColors.darkSurface,
+  onSurface: AppColors.darkOnSurface,
+  error: AppColors.darkError,
+  onError: AppColors.darkOnError,
+  outline: AppColors.darkOutline,
+  surfaceContainerHighest: AppColors.darkSurfaceContainer,
 );
 
 /// Light `ThemeData` for Phase D. Material 2 is kept on (`useMaterial3:
@@ -95,10 +157,26 @@ ThemeData buildLightTheme() {
   );
 }
 
-/// Dark `ThemeData` — the ADR specifies "light + initially light-only
-/// `darkTheme` stub". This intentionally mirrors the light theme so
-/// devices with a system dark setting do not render against an
-/// unstyled Material 2 dark scheme (which would show unbranded
-/// near-black backgrounds and break the visual contract the audit was
-/// reviewing). A real dark palette is deferred to a follow-up phase.
-ThemeData buildDarkThemeStub() => buildLightTheme();
+/// Dark `ThemeData` used by the user's explicit dark-mode setting. Material 2
+/// remains enabled to preserve the existing custom control styling.
+ThemeData buildDarkTheme() {
+  return ThemeData(
+    useMaterial3: false,
+    brightness: Brightness.dark,
+    colorScheme: appDarkColorScheme,
+    primaryColor: AppColors.darkPrimary,
+    scaffoldBackgroundColor: AppColors.darkSurface,
+    canvasColor: AppColors.darkSurface,
+    cardColor: AppColors.darkSurfaceContainer,
+    dividerColor: AppColors.darkOnSurface.withValues(alpha: 0.2),
+    appBarTheme: const AppBarTheme(
+      backgroundColor: AppColors.darkSurface,
+      foregroundColor: AppColors.darkOnSurface,
+    ),
+    inputDecorationTheme: const InputDecorationTheme(
+      fillColor: AppColors.darkSurfaceContainer,
+      filled: true,
+    ),
+    fontFamily: 'Rubix',
+  );
+}
