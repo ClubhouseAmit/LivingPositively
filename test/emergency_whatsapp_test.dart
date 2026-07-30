@@ -71,7 +71,12 @@ class FakeUrlLauncherPlatform extends UrlLauncherPlatform {
 }
 
 class RecordingFileService implements FileService {
+  RecordingFileService({List<String>? callLog, this.failuresRemaining = 0})
+    : callLog = callLog ?? [];
+
+  final List<String> callLog;
   final List<String> sharedMessages = [];
+  int failuresRemaining;
 
   @override
   Future<String?> download(
@@ -94,6 +99,11 @@ class RecordingFileService implements FileService {
 
   @override
   Future<void> shareTextOnly(String message) async {
+    callLog.add('shareTextOnly');
+    if (failuresRemaining > 0) {
+      failuresRemaining--;
+      throw StateError('shareTextOnly failed');
+    }
     sharedMessages.add(message);
   }
 }
@@ -106,8 +116,10 @@ class FakeGeolocatorPlatform extends GeolocatorPlatform {
     this.position,
     this.positionError,
     this.positionCompleter,
-  });
+    List<String>? callLog,
+  }) : callLog = callLog ?? [];
 
+  final List<String> callLog;
   final bool serviceEnabled;
   final LocationPermission permission;
   final LocationPermission? requestedPermission;
@@ -117,25 +129,33 @@ class FakeGeolocatorPlatform extends GeolocatorPlatform {
   int checkPermissionCalls = 0;
   int requestPermissionCalls = 0;
   int currentPositionCalls = 0;
+  int locationServiceEnabledCalls = 0;
   LocationSettings? lastLocationSettings;
 
   @override
   Future<LocationPermission> checkPermission() async {
+    callLog.add('checkPermission');
     checkPermissionCalls++;
     return permission;
   }
 
   @override
   Future<LocationPermission> requestPermission() async {
+    callLog.add('requestPermission');
     requestPermissionCalls++;
     return requestedPermission ?? permission;
   }
 
   @override
-  Future<bool> isLocationServiceEnabled() async => serviceEnabled;
+  Future<bool> isLocationServiceEnabled() async {
+    callLog.add('isLocationServiceEnabled');
+    locationServiceEnabledCalls++;
+    return serviceEnabled;
+  }
 
   @override
   Future<Position> getCurrentPosition({LocationSettings? locationSettings}) {
+    callLog.add('getCurrentPosition');
     currentPositionCalls++;
     lastLocationSettings = locationSettings;
     if (positionCompleter != null) {
@@ -1069,67 +1089,90 @@ void main() {
     },
   );
 
-  testWidgets(
-    'PhonePage shares a high-accuracy current location after personal contacts',
-    (tester) async {
-      final geolocator = FakeGeolocatorPlatform(
-        position: _testPosition(latitude: 31.7683, longitude: 35.2137),
-      );
-      final fileService = RecordingFileService();
-      await _runLocationShareTest(
-        geolocator,
-        fileService,
-        body: () async {
-          final phonePageData = _phonePageDataForLocationShare();
+  for (final platform in <TargetPlatform>[
+    TargetPlatform.android,
+    TargetPlatform.iOS,
+  ]) {
+    testWidgets(
+      'PhonePage shares a high-accuracy current location after personal contacts on $platform',
+      (tester) async {
+        final callLog = <String>[];
+        final geolocator = FakeGeolocatorPlatform(
+          permission: LocationPermission.denied,
+          requestedPermission: LocationPermission.whileInUse,
+          position: _testPosition(latitude: 31.7683, longitude: 35.2137),
+          callLog: callLog,
+        );
+        final fileService = RecordingFileService(callLog: callLog);
+        await _runLocationShareTest(
+          geolocator,
+          fileService,
+          platform: platform,
+          body: () async {
+            final phonePageData = _phonePageDataForLocationShare();
 
-          await tester.pumpWidget(
-            buildPhonePageTestApp(
-              userInformation: UserInformation(
-                gender: 'male',
-                location: 'US',
-                service: FakePersistentMemoryService(),
+            await tester.pumpWidget(
+              buildPhonePageTestApp(
+                userInformation: UserInformation(
+                  gender: 'male',
+                  location: 'US',
+                  service: FakePersistentMemoryService(),
+                ),
+                appInformation: AppInformation(),
+                phonePageData: phonePageData,
               ),
-              appInformation: AppInformation(),
-              phonePageData: phonePageData,
-            ),
-          );
-          await tester.pumpAndSettle();
+            );
+            await tester.pumpAndSettle();
 
-          final contactSection = find.text('Your contacts');
-          final shareLocation = find.text('Share Location');
-          final emergencyNumbers = find.text('Emergency Numbers');
-          expect(contactSection, findsOneWidget);
-          expect(shareLocation, findsOneWidget);
-          expect(emergencyNumbers, findsOneWidget);
-          expect(
-            tester.getTopLeft(shareLocation).dy,
-            greaterThan(tester.getTopLeft(contactSection).dy),
-          );
-          expect(
-            tester.getTopLeft(emergencyNumbers).dy,
-            greaterThan(tester.getTopLeft(shareLocation).dy),
-          );
-          expect(find.byTooltip('Share your current location'), findsOneWidget);
+            final contactSection = find.text('Your contacts');
+            final shareLocation = find.text('Share Location');
+            final emergencyNumbers = find.text('Emergency Numbers');
+            expect(contactSection, findsOneWidget);
+            expect(shareLocation, findsOneWidget);
+            expect(emergencyNumbers, findsOneWidget);
+            expect(
+              tester.getTopLeft(shareLocation).dy,
+              greaterThan(tester.getTopLeft(contactSection).dy),
+            );
+            expect(
+              tester.getTopLeft(emergencyNumbers).dy,
+              greaterThan(tester.getTopLeft(shareLocation).dy),
+            );
+            expect(
+              find.byTooltip('Share your current location'),
+              findsOneWidget,
+            );
 
-          await _tapLocationShare(tester);
+            await _tapLocationShare(tester);
 
-          expect(fileService.sharedMessages, [
-            'I am here and I need your help.\n'
-                'https://www.google.com/maps/search/?api=1&query=31.7683,35.2137',
-          ]);
-          expect(geolocator.currentPositionCalls, 1);
-          expect(
-            geolocator.lastLocationSettings?.accuracy,
-            LocationAccuracy.high,
-          );
-          expect(
-            geolocator.lastLocationSettings?.timeLimit,
-            const Duration(seconds: 15),
-          );
-        },
-      );
-    },
-  );
+            expect(callLog, [
+              'isLocationServiceEnabled',
+              'checkPermission',
+              'requestPermission',
+              'getCurrentPosition',
+              'shareTextOnly',
+            ]);
+            expect(fileService.sharedMessages, [
+              'I am here and I need your help.\n'
+                  'https://www.google.com/maps/search/?api=1&query=31.7683,35.2137',
+            ]);
+            expect(geolocator.locationServiceEnabledCalls, 1);
+            expect(geolocator.checkPermissionCalls, 1);
+            expect(geolocator.requestPermissionCalls, 1);
+            expect(geolocator.currentPositionCalls, 1);
+            expect(
+              geolocator.lastLocationSettings?.accuracy,
+              LocationAccuracy.high,
+            );
+            expect(
+              geolocator.lastLocationSettings?.timeLimit,
+              const Duration(seconds: 15),
+            );
+          },
+        );
+      },
+    );
+  }
 
   testWidgets('PhonePage localizes SOS location sharing in Hebrew', (
     tester,
@@ -1255,9 +1298,63 @@ void main() {
       platform: TargetPlatform.windows,
     );
 
+    expect(geolocator.locationServiceEnabledCalls, 0);
     expect(geolocator.checkPermissionCalls, 0);
+    expect(geolocator.requestPermissionCalls, 0);
     expect(geolocator.currentPositionCalls, 0);
+    expect(geolocator.callLog, isEmpty);
   });
+
+  testWidgets('PhonePage shares help text without GPS on web', (tester) async {
+    final geolocator = FakeGeolocatorPlatform();
+
+    await _expectTextOnlyLocationFallback(tester, geolocator);
+
+    expect(geolocator.locationServiceEnabledCalls, 0);
+    expect(geolocator.checkPermissionCalls, 0);
+    expect(geolocator.requestPermissionCalls, 0);
+    expect(geolocator.currentPositionCalls, 0);
+    expect(geolocator.callLog, isEmpty);
+  }, skip: !kIsWeb);
+
+  testWidgets(
+    'PhonePage shows localized feedback and allows retry when sharing fails',
+    (tester) async {
+      final geolocator = FakeGeolocatorPlatform();
+      final fileService = RecordingFileService(failuresRemaining: 1);
+      await _runLocationShareTest(
+        geolocator,
+        fileService,
+        body: () async {
+          await tester.pumpWidget(
+            buildPhonePageTestApp(
+              userInformation: UserInformation(
+                gender: 'male',
+                location: 'IL',
+                service: FakePersistentMemoryService(),
+              ),
+              appInformation: AppInformation(),
+              phonePageData: _phonePageDataForLocationShare(),
+              locale: const Locale('he'),
+            ),
+          );
+          await tester.pumpAndSettle();
+
+          await _tapLocationShare(tester);
+
+          expect(tester.takeException(), isNull);
+          expect(find.text('משהו השתבש'), findsOneWidget);
+          expect(fileService.sharedMessages, isEmpty);
+
+          await _tapLocationShare(tester);
+
+          expect(tester.takeException(), isNull);
+          expect(fileService.sharedMessages, hasLength(1));
+          expect(geolocator.currentPositionCalls, 2);
+        },
+      );
+    },
+  );
 
   testWidgets('PhonePage ignores a repeated location-share tap while loading', (
     tester,

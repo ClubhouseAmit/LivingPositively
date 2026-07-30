@@ -41,10 +41,13 @@ post_install do |installer|
     flutter_additional_ios_build_settings(target)
     if target.name == 'geolocator_apple'
       target.build_configurations.each do |config|
-        config.build_settings['GCC_PREPROCESSOR_DEFINITIONS'] ||= [
-          '$(inherited)',
-          'BYPASS_PERMISSION_LOCATION_ALWAYS=1',
-        ]
+        definitions = config.build_settings['GCC_PREPROCESSOR_DEFINITIONS']
+        definitions = ['$(inherited)'] if definitions.nil?
+        definitions = definitions.split(/\s+/) if definitions.is_a?(String)
+        unless definitions.include?('BYPASS_PERMISSION_LOCATION_ALWAYS=1')
+          definitions << 'BYPASS_PERMISSION_LOCATION_ALWAYS=1'
+        end
+        config.build_settings['GCC_PREPROCESSOR_DEFINITIONS'] = definitions
       end
     end
   end
