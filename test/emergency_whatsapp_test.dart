@@ -1259,6 +1259,19 @@ void main() {
     },
   );
 
+  testWidgets('PhonePage treats always location permission as unavailable', (
+    tester,
+  ) async {
+    final geolocator = FakeGeolocatorPlatform(
+      permission: LocationPermission.always,
+    );
+
+    await _expectTextOnlyLocationFallback(tester, geolocator);
+
+    expect(geolocator.requestPermissionCalls, 0);
+    expect(geolocator.currentPositionCalls, 0);
+  });
+
   testWidgets(
     'PhonePage shares help text when location availability cannot be determined',
     (tester) async {

@@ -61,8 +61,7 @@ class _PhonePageState extends LPExtendedState<PhonePage> {
             permission = await Geolocator.requestPermission();
           }
 
-          if (permission == LocationPermission.whileInUse ||
-              permission == LocationPermission.always) {
+          if (permission == LocationPermission.whileInUse) {
             final position = await Geolocator.getCurrentPosition(
               locationSettings: const LocationSettings(
                 accuracy: LocationAccuracy.high,
