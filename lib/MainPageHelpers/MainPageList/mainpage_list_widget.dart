@@ -49,15 +49,17 @@ class _ListWidgetState extends LPExtendedState<ListWidget> {
     final gender = userInfoProvider.gender.isEmpty
         ? 'other'
         : userInfoProvider.gender;
+    final thanks = userInfoProvider.thanks['thanks'] ?? <String>[];
+    final dates = userInfoProvider.thanks['dates'] ?? <String>[];
     final suggestions = widget.pageCode == PagesCode.QualitiesList
         ? retrieveTraitsList(appLocale, gender)
         : retrieveThanksList(appLocale, gender);
     final existingItems = widget.pageCode == PagesCode.QualitiesList
         ? userInfoProvider.positiveTraits
-        : todayThankYousFunc(
-            userInfoProvider.thanks['thanks'] ?? [],
-            userInfoProvider.thanks['dates'] ?? [],
-          );
+        : _todayThankYouIndexes(
+            thanks,
+            dates,
+          ).map((index) => thanks[index]).toList();
     final eligibleSuggestions = <String>[];
 
     for (final suggestion in suggestions) {
@@ -114,16 +116,14 @@ class _ListWidgetState extends LPExtendedState<ListWidget> {
   }
 
   List<int> _todayThankYouIndexes(List<String> thankYous, List<String> dates) {
-    final formattedDate = intl.DateFormat(
-      'yyyy-MM-dd – kk:mm',
-    ).format(DateTime.now());
+    final todayDate = intl.DateFormat('yyyy-MM-dd').format(DateTime.now());
     final itemCount = thankYous.length < dates.length
         ? thankYous.length
         : dates.length;
     final indexes = <int>[];
 
     for (var index = 0; index < itemCount; index++) {
-      if (dates[index].substring(0, 10) == formattedDate.substring(0, 10)) {
+      if (dates[index].startsWith(todayDate)) {
         indexes.add(index);
       }
     }

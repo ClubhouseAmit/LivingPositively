@@ -297,6 +297,24 @@ void main() {
     },
   );
 
+  testWidgets('refreshes qualities suggestions after an external update', (
+    tester,
+  ) async {
+    final testUser = user(traits: <String>[]);
+
+    await _pumpListWidget(
+      tester,
+      user: testUser,
+      pageCode: PagesCode.QualitiesList,
+    );
+
+    final offeredSuggestion = _traitSuggestions(tester).first;
+    testUser.updatePositiveTraits([offeredSuggestion]);
+    await tester.pump();
+
+    expect(_traitSuggestions(tester), isNot(contains(offeredSuggestion)));
+  });
+
   testWidgets('refreshes gratitude suggestions with unique eligible values', (
     tester,
   ) async {
@@ -340,5 +358,103 @@ void main() {
 
     expect(testUser.thanks['thanks'], contains(selectedSuggestion));
     expect(_thanksSuggestions(tester), isNot(contains(selectedSuggestion)));
+  });
+
+  testWidgets('refreshes gratitude suggestions after an external update', (
+    tester,
+  ) async {
+    final now = DateTime.now();
+    final testUser = user();
+
+    await _pumpListWidget(
+      tester,
+      user: testUser,
+      pageCode: PagesCode.GratitudeJournal,
+    );
+
+    final offeredSuggestion = _thanksSuggestions(tester).first;
+    testUser.updateThanks({
+      'thanks': [offeredSuggestion],
+      'dates': [_date(now, '09:00')],
+    });
+    await tester.pump();
+
+    expect(_thanksSuggestions(tester), isNot(contains(offeredSuggestion)));
+  });
+
+  testWidgets('handles gratitude dates that outnumber saved entries', (
+    tester,
+  ) async {
+    final now = DateTime.now();
+    final testUser = user(
+      thanks: {
+        'thanks': ['today'],
+        'dates': [_date(now, '09:00'), _date(now, '10:00')],
+      },
+    );
+
+    await _pumpListWidget(
+      tester,
+      user: testUser,
+      pageCode: PagesCode.GratitudeJournal,
+    );
+
+    final rows = tester
+        .widgetList<MainpageListItemWidget>(find.byType(MainpageListItemWidget))
+        .toList();
+    expect(rows.map((row) => row.item), ['today']);
+    expect(_thanksSuggestions(tester), hasLength(3));
+    final selectedSuggestion = _thanksSuggestions(tester).first;
+    await tester.tap(
+      find.descendant(
+        of: find.byWidgetPredicate(
+          (widget) =>
+              widget is ThanksItemSuggested &&
+              widget.inputText == selectedSuggestion,
+        ),
+        matching: find.byType(SuggestionAddButton),
+      ),
+    );
+    await tester.pumpAndSettle();
+    expect(testUser.thanks['thanks'], contains(selectedSuggestion));
+    expect(tester.takeException(), isNull);
+  });
+
+  testWidgets('skips malformed gratitude dates without failing Home', (
+    tester,
+  ) async {
+    final now = DateTime.now();
+    final testUser = user(
+      thanks: {
+        'thanks': ['today', 'corrupt'],
+        'dates': [_date(now, '09:00'), 'bad'],
+      },
+    );
+
+    await _pumpListWidget(
+      tester,
+      user: testUser,
+      pageCode: PagesCode.GratitudeJournal,
+    );
+
+    final rows = tester
+        .widgetList<MainpageListItemWidget>(find.byType(MainpageListItemWidget))
+        .toList();
+    expect(rows.map((row) => row.item), ['today']);
+    expect(_thanksSuggestions(tester), hasLength(3));
+    final selectedSuggestion = _thanksSuggestions(tester).first;
+    await tester.tap(
+      find.descendant(
+        of: find.byWidgetPredicate(
+          (widget) =>
+              widget is ThanksItemSuggested &&
+              widget.inputText == selectedSuggestion,
+        ),
+        matching: find.byType(SuggestionAddButton),
+      ),
+    );
+    await tester.pumpAndSettle();
+    expect(testUser.thanks['thanks'], contains(selectedSuggestion));
+    expect(tester.takeException(), isNull);
   });
 }

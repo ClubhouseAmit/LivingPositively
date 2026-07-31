@@ -41,10 +41,12 @@ class _ThanksItemSuggestedState extends LPExtendedState<ThanksItemSuggested> {
   // function to get the thank yous written today (the date of the thank you is today)
   List<String> todayThankYousFunc(List<String> thankYous, List<String> dates) {
     List<String> todayThankYous = [];
-    DateTime now = DateTime.now();
-    String formattedDate = DateFormat('yyyy-MM-dd – kk:mm').format(now);
-    for (int i = 0; i < dates.length; i++) {
-      if (dates[i].substring(0, 10) == formattedDate.substring(0, 10)) {
+    final todayDate = DateFormat('yyyy-MM-dd').format(DateTime.now());
+    final itemCount = thankYous.length < dates.length
+        ? thankYous.length
+        : dates.length;
+    for (int i = 0; i < itemCount; i++) {
+      if (dates[i].startsWith(todayDate)) {
         todayThankYous.add(thankYous[i]);
       }
     }
