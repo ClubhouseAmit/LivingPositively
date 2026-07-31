@@ -64,6 +64,60 @@ void main() {
     expect(secondTop.dx, greaterThan(firstTop.dx));
   });
 
+  testWidgets('header controls are ordered and evenly spaced in Hebrew', (
+    tester,
+  ) async {
+    await pumpWithProviders(
+      tester,
+      PersonalPlanWidget(
+        text: planText(const <String>['First item', 'Second item']),
+        changeCurrentIndex: (_, _) {},
+      ),
+      locale: const Locale('he'),
+      surfaceSize: const Size(700, 1200),
+      ignoreOverflow: false,
+    );
+
+    _expectHeaderControlLayout(tester, isRtl: true);
+  });
+
+  testWidgets('header controls are ordered and evenly spaced in English', (
+    tester,
+  ) async {
+    await pumpWithProviders(
+      tester,
+      PersonalPlanWidget(
+        text: planText(const <String>['First item', 'Second item']),
+        changeCurrentIndex: (_, _) {},
+      ),
+      surfaceSize: const Size(700, 1200),
+      ignoreOverflow: false,
+    );
+
+    _expectHeaderControlLayout(tester, isRtl: false);
+  });
+
+  testWidgets('header title opens the full Personal Plan', (tester) async {
+    var fullPlanCalls = 0;
+    await pumpWithProviders(
+      tester,
+      PersonalPlanWidget(
+        text: planText(const <String>['First item', 'Second item']),
+        changeCurrentIndex: (_, page) {
+          if (page == PagesCode.FullPlan) {
+            fullPlanCalls++;
+          }
+        },
+      ),
+      surfaceSize: const Size(700, 1200),
+    );
+
+    await tester.tap(find.byKey(const Key('personalPlanHeaderTitle')));
+    await tester.pump();
+
+    expect(fullPlanCalls, 1);
+  });
+
   testWidgets('view-all control is a TextButton that opens full plan', (
     tester,
   ) async {
@@ -156,6 +210,50 @@ void main() {
     expect(tester.takeException(), isNull);
     expect(find.byType(PersonalPlanItem), findsNWidgets(2));
   });
+}
+
+void _expectHeaderControlLayout(WidgetTester tester, {required bool isRtl}) {
+  final header = find.byKey(const Key('personalPlanHeader'));
+  final title = find.byKey(const Key('personalPlanHeaderTitle'));
+  final document = find.byKey(const Key('personalPlanHeaderDocument'));
+  final download = find.byKey(const Key('personalPlanHeaderDownload'));
+  final share = find.byKey(const Key('personalPlanHeaderShare'));
+
+  expect(header, findsOneWidget);
+  expect(
+    Directionality.of(tester.element(header)),
+    isRtl ? TextDirection.rtl : TextDirection.ltr,
+  );
+
+  final titleX = tester.getCenter(title).dx;
+  final documentX = tester.getCenter(document).dx;
+  final downloadX = tester.getCenter(download).dx;
+  final shareX = tester.getCenter(share).dx;
+
+  if (isRtl) {
+    expect(shareX, lessThan(downloadX));
+    expect(downloadX, lessThan(documentX));
+    expect(documentX, lessThan(titleX));
+  } else {
+    expect(titleX, lessThan(documentX));
+    expect(documentX, lessThan(downloadX));
+    expect(downloadX, lessThan(shareX));
+  }
+
+  expect(tester.getSize(document), const Size(48, 48));
+  expect(tester.getSize(download), const Size(48, 48));
+  expect(tester.getSize(share), const Size(48, 48));
+  expect(
+    (shareX - downloadX).abs(),
+    closeTo((downloadX - documentX).abs(), 0.5),
+  );
+  expect((titleX - documentX).abs(), lessThan((titleX - downloadX).abs()));
+  expect((titleX - documentX).abs(), lessThan((titleX - shareX).abs()));
+
+  final transform = tester.widget<Transform>(
+    find.byKey(const Key('personalPlanHeaderShareTransform')),
+  );
+  expect(transform.transform.entry(0, 0), isRtl ? -1.0 : 1.0);
 }
 
 bool _focusedWithin(WidgetTester tester, Finder finder) {
