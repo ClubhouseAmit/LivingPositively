@@ -154,7 +154,7 @@ class _PersonalPlanWidgetState extends LPExtendedState<PersonalPlanWidget> {
                                 appLocale.makeSaferSubTitle(gender),
                                 appLocale.feelBetterSubTitle(gender),
                                 appLocale.distractionsSubTitle(gender),
-                                appLocale.phonesPageHeader(gender),
+                                appLocale.phonesPageSubTitle(gender),
                               ],
                               appInfoProvider.sharePDFtexts,
                               ShareFileType.PDF,
@@ -216,7 +216,7 @@ class _PersonalPlanWidgetState extends LPExtendedState<PersonalPlanWidget> {
                     fontSize: 14.sp,
                     color: Theme.of(context).colorScheme.outline,
                   ),
-                  appLocale.textDirection == 'rtl'
+                  textDirection == TextDirection.rtl
                       ? TextAlign.right
                       : TextAlign.left,
                   30,

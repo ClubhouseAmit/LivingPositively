@@ -1,3 +1,4 @@
+import 'package:auto_size_text/auto_size_text.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -95,6 +96,36 @@ void main() {
     );
 
     _expectHeaderControlLayout(tester, isRtl: false);
+  });
+
+  testWidgets('header subtitle follows an ambient Directionality override', (
+    tester,
+  ) async {
+    await pumpWithProviders(
+      tester,
+      Directionality(
+        textDirection: TextDirection.rtl,
+        child: PersonalPlanWidget(
+          text: planText(const <String>['First item', 'Second item']),
+          changeCurrentIndex: (_, _) {},
+        ),
+      ),
+      surfaceSize: const Size(700, 1200),
+      ignoreOverflow: false,
+    );
+
+    _expectHeaderControlLayout(tester, isRtl: true);
+    final subtitle = tester.widget<AutoSizeText>(
+      find.descendant(
+        of: find.byKey(const Key('personalPlanHeader')),
+        matching: find.byWidgetPredicate(
+          (widget) =>
+              widget is AutoSizeText &&
+              widget.data == 'A personal plan preview',
+        ),
+      ),
+    );
+    expect(subtitle.textAlign, TextAlign.right);
   });
 
   testWidgets('header title opens the full Personal Plan', (tester) async {

@@ -234,16 +234,26 @@ class _ListWidgetState extends LPExtendedState<ListWidget> {
   ) {
     if (widget.pageCode == PagesCode.GratitudeJournal) {
       return (index) {
+        if (index < 0 || index >= sourceIndexes.length) {
+          return;
+        }
         final sourceIndex = sourceIndexes[index];
-        return editThanks(
-          appLocale.thanks,
-          (userInfoProvider.thanks['thanks'] ?? [])[sourceIndex],
-          sourceIndex,
-        );
+        final thanks = userInfoProvider.thanks['thanks'] ?? <String>[];
+        if (sourceIndex < 0 || sourceIndex >= thanks.length) {
+          return;
+        }
+        return editThanks(appLocale.thanks, thanks[sourceIndex], sourceIndex);
       };
     } else {
       return (index) {
+        if (index < 0 || index >= sourceIndexes.length) {
+          return;
+        }
         final sourceIndex = sourceIndexes[index];
+        if (sourceIndex < 0 ||
+            sourceIndex >= userInfoProvider.positiveTraits.length) {
+          return;
+        }
         return editTrait(
           appLocale.trait,
           userInfoProvider.positiveTraits[sourceIndex],
@@ -258,17 +268,36 @@ class _ListWidgetState extends LPExtendedState<ListWidget> {
     List<int> sourceIndexes,
   ) {
     if (widget.pageCode == PagesCode.GratitudeJournal) {
-      return (index) => removeThankYou(
-        sourceIndexes[index],
-        userInfoProvider,
-        editThanksState,
-      );
+      return (index) {
+        if (index < 0 || index >= sourceIndexes.length) {
+          return;
+        }
+        final sourceIndex = sourceIndexes[index];
+        final thanks = userInfoProvider.thanks['thanks'] ?? <String>[];
+        final dates = userInfoProvider.thanks['dates'] ?? <String>[];
+        if (sourceIndex < 0 ||
+            sourceIndex >= thanks.length ||
+            sourceIndex >= dates.length) {
+          return;
+        }
+        return removeThankYou(sourceIndex, userInfoProvider, editThanksState);
+      };
     } else {
-      return (index) => removePositiveTrait(
-        sourceIndexes[index],
-        userInfoProvider,
-        editTraitsState,
-      );
+      return (index) {
+        if (index < 0 || index >= sourceIndexes.length) {
+          return;
+        }
+        final sourceIndex = sourceIndexes[index];
+        if (sourceIndex < 0 ||
+            sourceIndex >= userInfoProvider.positiveTraits.length) {
+          return;
+        }
+        return removePositiveTrait(
+          sourceIndex,
+          userInfoProvider,
+          editTraitsState,
+        );
+      };
     }
   }
 

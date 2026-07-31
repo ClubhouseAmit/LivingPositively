@@ -15,6 +15,7 @@ import 'package:mazilon/pages/WellnessTools/VideoPlayerPageFactory.dart';
 import 'package:mazilon/pages/home.dart';
 
 import 'package:mazilon/file_service.dart';
+import 'package:mazilon/l10n/app_localizations.dart';
 import 'package:mazilon/util/Share/LP_share_alert_dialog.dart';
 import 'package:mazilon/util/persistent_memory_service.dart';
 
@@ -51,6 +52,7 @@ void main() {
 
   group('PersonalPlanWidget download and share Tests', () {
     late MockSharedPreferences mockSharedPreferences;
+    late MockFileService mockFileServiceImpl;
     late UserInformation mockUserInformation;
     late AppInformation mockAppInformation;
 
@@ -61,7 +63,7 @@ void main() {
 
       // Reset getIt before each test
       await locator.reset();
-      final mockFileServiceImpl = MockFileService();
+      mockFileServiceImpl = MockFileService();
       getIt.registerLazySingleton<FileService>(() => mockFileServiceImpl);
       final mockAnalytics = MockAnalyticsService();
       getIt.registerLazySingleton<AnalyticsService>(() => mockAnalytics);
@@ -132,6 +134,42 @@ void main() {
       expect(find.byIcon(Icons.insert_drive_file_outlined), findsWidgets);
       await tapAndSettle(tester, find.text("שיתוף קובץ של התוכנית האישית"));
       expect(counterShare, 1);
+    });
+
+    testWidgets('download uses the localized plan headers and subtitles', (
+      WidgetTester tester,
+    ) async {
+      await tester.pumpWidget(
+        getMenuForTests(mockUserInformation, mockAppInformation),
+      );
+
+      await tapAndSettle(
+        tester,
+        find.byKey(const Key('personalPlanHeaderDownload')),
+      );
+
+      final localizations = AppLocalizations.of(
+        tester.element(find.byType(PersonalPlanWidget)),
+      )!;
+      final captured = verify(
+        mockFileServiceImpl.download(captureAny, captureAny, any, any, any),
+      ).captured;
+
+      expect(captured, hasLength(2));
+      expect(captured[0], <String>[
+        localizations.difficultEventsHeader('male'),
+        localizations.makeSaferHeader('male'),
+        localizations.feelBetterHeader('male'),
+        localizations.distractionsHeader('male'),
+        localizations.phonesPageHeader('male'),
+      ]);
+      expect(captured[1], <String>[
+        localizations.difficultEventsSubTitle('male'),
+        localizations.makeSaferSubTitle('male'),
+        localizations.feelBetterSubTitle('male'),
+        localizations.distractionsSubTitle('male'),
+        localizations.phonesPageSubTitle('male'),
+      ]);
     });
   });
 }

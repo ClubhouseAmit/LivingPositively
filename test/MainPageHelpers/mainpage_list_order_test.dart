@@ -257,6 +257,88 @@ void main() {
     },
   );
 
+  testWidgets('ignores stale reversed qualities callbacks', (tester) async {
+    final testUser = user(traits: ['older', 'newer']);
+
+    await _pumpListWidget(
+      tester,
+      user: testUser,
+      pageCode: PagesCode.QualitiesList,
+    );
+
+    final staleCallbacks = tester.widget<ListBodyWidget>(
+      find.byType(ListBodyWidget),
+    );
+
+    testUser.updatePositiveTraits(['older']);
+    await tester.pump();
+    staleCallbacks.editItems(0);
+    await tester.pumpAndSettle();
+
+    expect(find.byType(AddForm), findsNothing);
+    expect(testUser.positiveTraits, ['older']);
+
+    staleCallbacks.removeItems(0);
+    await tester.pumpAndSettle();
+
+    expect(testUser.positiveTraits, ['older']);
+    expect(tester.takeException(), isNull);
+  });
+
+  testWidgets(
+    'ignores stale filtered gratitude callbacks when storage shrinks',
+    (tester) async {
+      final now = DateTime.now();
+      final yesterday = now.subtract(const Duration(days: 1));
+      final historicalDate = _date(yesterday, '08:00');
+      final olderTodayDate = _date(now, '09:00');
+      final newerTodayDate = _date(now, '10:00');
+      final testUser = user(
+        thanks: {
+          'thanks': ['historic', 'older today', 'newer today'],
+          'dates': [historicalDate, olderTodayDate, newerTodayDate],
+        },
+      );
+
+      await _pumpListWidget(
+        tester,
+        user: testUser,
+        pageCode: PagesCode.GratitudeJournal,
+      );
+
+      final staleCallbacks = tester.widget<ListBodyWidget>(
+        find.byType(ListBodyWidget),
+      );
+
+      testUser.updateThanks({
+        'thanks': ['historic', 'older today'],
+        'dates': [historicalDate, olderTodayDate],
+      });
+      await tester.pump();
+      staleCallbacks.editItems(0);
+      await tester.pumpAndSettle();
+
+      expect(find.byType(AddForm), findsNothing);
+      expect(testUser.thanks['thanks'], ['historic', 'older today']);
+
+      testUser.updateThanks({
+        'thanks': ['historic', 'older today', 'newer today'],
+        'dates': [historicalDate, olderTodayDate],
+      });
+      await tester.pump();
+      staleCallbacks.removeItems(0);
+      await tester.pumpAndSettle();
+
+      expect(testUser.thanks['thanks'], [
+        'historic',
+        'older today',
+        'newer today',
+      ]);
+      expect(testUser.thanks['dates'], [historicalDate, olderTodayDate]);
+      expect(tester.takeException(), isNull);
+    },
+  );
+
   testWidgets(
     'refreshes qualities suggestions and excludes a newly added one',
     (tester) async {
