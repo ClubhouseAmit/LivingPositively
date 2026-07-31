@@ -1,3 +1,4 @@
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:intl/intl.dart' as intl;
@@ -233,32 +234,45 @@ class _ListWidgetState extends LPExtendedState<ListWidget> {
     List<int> sourceIndexes,
   ) {
     if (widget.pageCode == PagesCode.GratitudeJournal) {
+      final sourceThanks = List<String>.from(
+        userInfoProvider.thanks['thanks'] ?? <String>[],
+      );
+      final sourceDates = List<String>.from(
+        userInfoProvider.thanks['dates'] ?? <String>[],
+      );
       return (index) {
         if (index < 0 || index >= sourceIndexes.length) {
           return;
         }
         final sourceIndex = sourceIndexes[index];
         final thanks = userInfoProvider.thanks['thanks'] ?? <String>[];
-        if (sourceIndex < 0 || sourceIndex >= thanks.length) {
+        final dates = userInfoProvider.thanks['dates'] ?? <String>[];
+        if (!listEquals(thanks, sourceThanks) ||
+            !listEquals(dates, sourceDates) ||
+            sourceIndex < 0 ||
+            sourceIndex >= sourceThanks.length ||
+            sourceIndex >= sourceDates.length ||
+            sourceIndex >= thanks.length ||
+            sourceIndex >= dates.length) {
           return;
         }
         return editThanks(appLocale.thanks, thanks[sourceIndex], sourceIndex);
       };
     } else {
+      final sourceTraits = List<String>.from(userInfoProvider.positiveTraits);
       return (index) {
         if (index < 0 || index >= sourceIndexes.length) {
           return;
         }
         final sourceIndex = sourceIndexes[index];
-        if (sourceIndex < 0 ||
-            sourceIndex >= userInfoProvider.positiveTraits.length) {
+        final traits = userInfoProvider.positiveTraits;
+        if (!listEquals(traits, sourceTraits) ||
+            sourceIndex < 0 ||
+            sourceIndex >= sourceTraits.length ||
+            sourceIndex >= traits.length) {
           return;
         }
-        return editTrait(
-          appLocale.trait,
-          userInfoProvider.positiveTraits[sourceIndex],
-          sourceIndex,
-        );
+        return editTrait(appLocale.trait, traits[sourceIndex], sourceIndex);
       };
     }
   }
@@ -268,6 +282,12 @@ class _ListWidgetState extends LPExtendedState<ListWidget> {
     List<int> sourceIndexes,
   ) {
     if (widget.pageCode == PagesCode.GratitudeJournal) {
+      final sourceThanks = List<String>.from(
+        userInfoProvider.thanks['thanks'] ?? <String>[],
+      );
+      final sourceDates = List<String>.from(
+        userInfoProvider.thanks['dates'] ?? <String>[],
+      );
       return (index) {
         if (index < 0 || index >= sourceIndexes.length) {
           return;
@@ -275,7 +295,11 @@ class _ListWidgetState extends LPExtendedState<ListWidget> {
         final sourceIndex = sourceIndexes[index];
         final thanks = userInfoProvider.thanks['thanks'] ?? <String>[];
         final dates = userInfoProvider.thanks['dates'] ?? <String>[];
-        if (sourceIndex < 0 ||
+        if (!listEquals(thanks, sourceThanks) ||
+            !listEquals(dates, sourceDates) ||
+            sourceIndex < 0 ||
+            sourceIndex >= sourceThanks.length ||
+            sourceIndex >= sourceDates.length ||
             sourceIndex >= thanks.length ||
             sourceIndex >= dates.length) {
           return;
@@ -283,13 +307,17 @@ class _ListWidgetState extends LPExtendedState<ListWidget> {
         return removeThankYou(sourceIndex, userInfoProvider, editThanksState);
       };
     } else {
+      final sourceTraits = List<String>.from(userInfoProvider.positiveTraits);
       return (index) {
         if (index < 0 || index >= sourceIndexes.length) {
           return;
         }
         final sourceIndex = sourceIndexes[index];
-        if (sourceIndex < 0 ||
-            sourceIndex >= userInfoProvider.positiveTraits.length) {
+        final traits = userInfoProvider.positiveTraits;
+        if (!listEquals(traits, sourceTraits) ||
+            sourceIndex < 0 ||
+            sourceIndex >= sourceTraits.length ||
+            sourceIndex >= traits.length) {
           return;
         }
         return removePositiveTrait(
