@@ -832,6 +832,12 @@ abstract class AppLocalizations {
   /// **'Your location could not be shared. Your help message will be shared without it.'**
   String get sosShareLocationUnavailable;
 
+  /// Notice shown when the SOS help message cannot be shared through the native share sheet.
+  ///
+  /// In en, this message translates to:
+  /// **'Your SOS help message could not be shared. Please try again.'**
+  String get sosShareLocationShareFailed;
+
   ///
   ///
   /// In en, this message translates to:

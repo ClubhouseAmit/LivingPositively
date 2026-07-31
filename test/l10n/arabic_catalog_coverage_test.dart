@@ -11,6 +11,7 @@ const _englishFallbackKeys = {
   'sosShareLocationTooltip',
   'sosShareLocationMessage',
   'sosShareLocationUnavailable',
+  'sosShareLocationShareFailed',
 };
 
 Set<String> _messageKeys(String path) {

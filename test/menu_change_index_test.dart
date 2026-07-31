@@ -69,7 +69,7 @@ class _FakeFiles implements FileService {
   @override
   Future<String?> download(titles, subTitles, texts, fmt, dir) async => null;
   @override
-  Future<void> shareTextOnly(message) async {}
+  Future<bool> shareTextOnly(message) async => true;
 }
 
 // We'll register the test scaffold's NoopImagePickerService below in setUp.

@@ -1119,6 +1119,10 @@ class AppLocalizationsAr extends AppLocalizations {
       'Your location could not be shared. Your help message will be shared without it.';
 
   @override
+  String get sosShareLocationShareFailed =>
+      'Your SOS help message could not be shared. Please try again.';
+
+  @override
   String phonePageTitle(String gender) {
     String _temp0 = intl.Intl.selectLogic(gender, {
       'male':

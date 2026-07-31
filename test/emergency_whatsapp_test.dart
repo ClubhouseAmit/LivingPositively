@@ -71,12 +71,16 @@ class FakeUrlLauncherPlatform extends UrlLauncherPlatform {
 }
 
 class RecordingFileService implements FileService {
-  RecordingFileService({List<String>? callLog, this.failuresRemaining = 0})
-    : callLog = callLog ?? [];
+  RecordingFileService({
+    List<String>? callLog,
+    this.failedResultsRemaining = 0,
+    this.exceptionsRemaining = 0,
+  }) : callLog = callLog ?? [];
 
   final List<String> callLog;
   final List<String> sharedMessages = [];
-  int failuresRemaining;
+  int failedResultsRemaining;
+  int exceptionsRemaining;
 
   @override
   Future<String?> download(
@@ -98,13 +102,18 @@ class RecordingFileService implements FileService {
   ) async {}
 
   @override
-  Future<void> shareTextOnly(String message) async {
+  Future<bool> shareTextOnly(String message) async {
     callLog.add('shareTextOnly');
-    if (failuresRemaining > 0) {
-      failuresRemaining--;
+    if (exceptionsRemaining > 0) {
+      exceptionsRemaining--;
       throw StateError('shareTextOnly failed');
     }
+    if (failedResultsRemaining > 0) {
+      failedResultsRemaining--;
+      return false;
+    }
     sharedMessages.add(message);
+    return true;
   }
 }
 
@@ -1318,10 +1327,10 @@ void main() {
   }, skip: !kIsWeb);
 
   testWidgets(
-    'PhonePage shows localized feedback and allows retry when sharing fails',
+    'PhonePage shows localized SOS feedback and allows retry when sharing is not confirmed',
     (tester) async {
       final geolocator = FakeGeolocatorPlatform();
-      final fileService = RecordingFileService(failuresRemaining: 1);
+      final fileService = RecordingFileService(failedResultsRemaining: 1);
       await _runLocationShareTest(
         geolocator,
         fileService,
@@ -1343,7 +1352,58 @@ void main() {
           await _tapLocationShare(tester);
 
           expect(tester.takeException(), isNull);
-          expect(find.text('משהו השתבש'), findsOneWidget);
+          final localizations = AppLocalizations.of(
+            tester.element(find.byType(PhonePage)),
+          )!;
+          expect(
+            find.text(localizations.sosShareLocationShareFailed),
+            findsOneWidget,
+          );
+          expect(fileService.sharedMessages, isEmpty);
+
+          await _tapLocationShare(tester);
+
+          expect(tester.takeException(), isNull);
+          expect(fileService.sharedMessages, hasLength(1));
+          expect(geolocator.currentPositionCalls, 2);
+        },
+      );
+    },
+  );
+
+  testWidgets(
+    'PhonePage shows localized SOS feedback and allows retry when sharing throws',
+    (tester) async {
+      final geolocator = FakeGeolocatorPlatform();
+      final fileService = RecordingFileService(exceptionsRemaining: 1);
+      await _runLocationShareTest(
+        geolocator,
+        fileService,
+        body: () async {
+          await tester.pumpWidget(
+            buildPhonePageTestApp(
+              userInformation: UserInformation(
+                gender: 'male',
+                location: 'IL',
+                service: FakePersistentMemoryService(),
+              ),
+              appInformation: AppInformation(),
+              phonePageData: _phonePageDataForLocationShare(),
+              locale: const Locale('he'),
+            ),
+          );
+          await tester.pumpAndSettle();
+
+          await _tapLocationShare(tester);
+
+          expect(tester.takeException(), isNull);
+          final localizations = AppLocalizations.of(
+            tester.element(find.byType(PhonePage)),
+          )!;
+          expect(
+            find.text(localizations.sosShareLocationShareFailed),
+            findsOneWidget,
+          );
           expect(fileService.sharedMessages, isEmpty);
 
           await _tapLocationShare(tester);

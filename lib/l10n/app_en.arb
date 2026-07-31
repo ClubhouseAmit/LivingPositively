@@ -480,6 +480,10 @@
   "@sosShareLocationUnavailable": {
     "description": "Notice shown when SOS location sharing falls back to a text-only help message."
   },
+  "sosShareLocationShareFailed": "Your SOS help message could not be shared. Please try again.",
+  "@sosShareLocationShareFailed": {
+    "description": "Notice shown when the SOS help message cannot be shared through the native share sheet."
+  },
   "phonePageTitle": "{gender,select,male{You are not alone! If you are in distress right now, please reach out to one of the contacts listed here} female{You are not alone! If you are in distress right now, please reach out to one of the contacts listed here} other{You are not alone! If you are in distress right now, please reach out to one of the contacts listed here}}",
   "@phonePageTitle": {
     "description": ""

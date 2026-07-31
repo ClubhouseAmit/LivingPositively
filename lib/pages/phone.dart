@@ -42,7 +42,7 @@ class _PhonePageState extends LPExtendedState<PhonePage> {
     final fileService = GetIt.instance<FileService>();
     final helpMessage = appLocale.sosShareLocationMessage;
     final unavailableMessage = appLocale.sosShareLocationUnavailable;
-    final shareErrorMessage = appLocale.asyncErrorMessage;
+    final shareFailedMessage = appLocale.sosShareLocationShareFailed;
     var messageToShare = helpMessage;
     var locationUnavailable = !_supportsLocationSharing;
 
@@ -86,11 +86,15 @@ class _PhonePageState extends LPExtendedState<PhonePage> {
     }
 
     try {
-      await fileService.shareTextOnly(messageToShare);
+      final shareSucceeded = await fileService.shareTextOnly(messageToShare);
+      if (!shareSucceeded && mounted) {
+        messenger?.hideCurrentSnackBar();
+        messenger?.showSnackBar(SnackBar(content: Text(shareFailedMessage)));
+      }
     } catch (_) {
       if (mounted) {
         messenger?.hideCurrentSnackBar();
-        messenger?.showSnackBar(SnackBar(content: Text(shareErrorMessage)));
+        messenger?.showSnackBar(SnackBar(content: Text(shareFailedMessage)));
       }
     } finally {
       if (mounted) {

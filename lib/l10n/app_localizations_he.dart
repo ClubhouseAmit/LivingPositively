@@ -1113,6 +1113,10 @@ class AppLocalizationsHe extends AppLocalizations {
       'לא ניתן לשתף את מיקומך. הודעת העזרה תישלח ללא המיקום.';
 
   @override
+  String get sosShareLocationShareFailed =>
+      'לא ניתן היה לשתף את הודעת העזרה שלך. נסו שוב.';
+
+  @override
   String phonePageTitle(String gender) {
     String _temp0 = intl.Intl.selectLogic(gender, {
       'male': 'אתה לא לבד! אם אתה עכשיו במצוקה נא פנה לאחד הגורמים הרשומים פה',

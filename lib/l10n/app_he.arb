@@ -156,6 +156,10 @@
      "@sosShareLocationUnavailable": {
        "description": "הודעה המוצגת כששיתוף המיקום עובר להודעת עזרה ללא מיקום."
      },
+     "sosShareLocationShareFailed": "לא ניתן היה לשתף את הודעת העזרה שלך. נסו שוב.",
+     "@sosShareLocationShareFailed": {
+       "description": "הודעה המוצגת כשלא ניתן לשתף את הודעת העזרה דרך גיליון השיתוף של המכשיר."
+     },
      "whatsApp": "ווצאפ",
       "link": "קישור לאתר",
       "showMoreButton": "{gender,select,male{להציג עוד} female{להציג עוד} other{להציג עוד}}",
