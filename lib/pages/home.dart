@@ -186,21 +186,17 @@ class _HomeState extends LPExtendedState<Home> {
                     ),
 
                     const SizedBox(height: 20),
+                    //This is the main widget for the gratitude journal
+                    ListWidget(
+                      onTabTapped: widget.changeCurrentIndex,
+                      pageCode: PagesCode.GratitudeJournal,
+                    ),
+                    const SizedBox(height: 20),
                     //This is the main widget for the positive traits list
                     ListWidget(
                       onTabTapped: widget.changeCurrentIndex,
                       pageCode: PagesCode.QualitiesList,
                     ),
-                    //  TraitListWidget(
-                    //   onTabTapped: widget.changeCurrentIndex,
-                    // ),
-                    const SizedBox(height: 20),
-                    ListWidget(
-                      onTabTapped: widget.changeCurrentIndex,
-                      pageCode: PagesCode.GratitudeJournal,
-                    ),
-                    //This is the main widget for the thank yous list
-                    //  ThanksListWidget(onTabTapped: widget.changeCurrentIndex),
                   ],
                 ),
               ),

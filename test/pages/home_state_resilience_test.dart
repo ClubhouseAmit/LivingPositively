@@ -2,6 +2,7 @@ import 'dart:io';
 
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:mazilon/MainPageHelpers/MainPageList/mainpage_list_widget.dart';
 import 'package:mazilon/global_enums.dart';
 import 'package:mazilon/pages/home.dart';
 import 'package:mazilon/util/Form/formPagePhoneModel.dart';
@@ -61,6 +62,33 @@ void main() {
     await tester.pump();
 
     expect(tester.takeException(), isNull);
+  });
+
+  testWidgets('Home places Gratitude Journal before Qualities List', (
+    tester,
+  ) async {
+    await pumpWithProviders(
+      tester,
+      Home(
+        phonePageData: _phoneData(),
+        changeCurrentIndex: (BuildContext context, PagesCode code) {},
+        changeLocale: (_) {},
+        openMainMenu: (_) {},
+      ),
+      userInformation: user,
+      surfaceSize: const Size(1024, 2400),
+    );
+
+    final listWidgets = tester.widgetList<ListWidget>(find.byType(ListWidget));
+
+    expect(listWidgets.map((widget) => widget.pageCode), [
+      PagesCode.GratitudeJournal,
+      PagesCode.QualitiesList,
+    ]);
+    expect(
+      tester.getTopLeft(find.byType(ListWidget).first).dy,
+      lessThan(tester.getTopLeft(find.byType(ListWidget).at(1)).dy),
+    );
   });
 
   test(
