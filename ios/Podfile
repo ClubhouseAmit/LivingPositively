@@ -39,5 +39,16 @@ end
 post_install do |installer|
   installer.pods_project.targets.each do |target|
     flutter_additional_ios_build_settings(target)
+    if target.name == 'geolocator_apple'
+      target.build_configurations.each do |config|
+        definitions = config.build_settings['GCC_PREPROCESSOR_DEFINITIONS']
+        definitions = ['$(inherited)'] if definitions.nil?
+        definitions = definitions.split(/\s+/) if definitions.is_a?(String)
+        unless definitions.include?('BYPASS_PERMISSION_LOCATION_ALWAYS=1')
+          definitions << 'BYPASS_PERMISSION_LOCATION_ALWAYS=1'
+        end
+        config.build_settings['GCC_PREPROCESSOR_DEFINITIONS'] = definitions
+      end
+    end
   end
 end

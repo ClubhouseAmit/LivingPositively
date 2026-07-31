@@ -1,3 +1,4 @@
+import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:get_it/get_it.dart';
 import 'package:mazilon/AnalyticsService.dart';
@@ -49,10 +50,14 @@ class _FakeMemory implements PersistentMemoryService {
 
 void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
+  const shareChannel = MethodChannel('dev.fluttercommunity.plus/share');
 
   late _FakeAnalytics analytics;
   late _FakeLogger logger;
   late _FakeMemory memory;
+  late List<MethodCall> shareCalls;
+  String? shareResult;
+  Object? shareError;
 
   setUp(() async {
     await GetIt.instance.reset();
@@ -70,9 +75,22 @@ void main() {
     GetIt.instance.registerSingleton<AnalyticsService>(analytics);
     GetIt.instance.registerSingleton<IncidentLoggerService>(logger);
     GetIt.instance.registerSingleton<PersistentMemoryService>(memory);
+    shareCalls = <MethodCall>[];
+    shareResult = 'com.example.share-target';
+    shareError = null;
+    TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger
+        .setMockMethodCallHandler(shareChannel, (call) async {
+      shareCalls.add(call);
+      if (shareError != null) {
+        throw shareError!;
+      }
+      return shareResult;
+    });
   });
 
   tearDown(() async {
+    TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger
+        .setMockMethodCallHandler(shareChannel, null);
     await GetIt.instance.reset();
   });
 
@@ -177,18 +195,58 @@ void main() {
   });
 
   group('FileServiceImpl.shareTextOnly', () {
-    test('errors are caught and forwarded to logger', () async {
+    test('returns true and tracks analytics after a confirmed share', () async {
       final svc = FileServiceImpl();
-      await svc.shareTextOnly('hello');
-      // Either no error (plugin no-op) or logger captured. The catch branch
-      // is exercised either way; verify no uncaught exception.
-      expect(true, isTrue);
+      final shared = await svc.shareTextOnly('hello');
+
+      expect(shared, isTrue);
+      expect(shareCalls, hasLength(1));
+      expect(shareCalls.single.method, 'share');
+      expect(shareCalls.single.arguments, {'text': 'hello'});
+      expect(analytics.events, ['Text shared']);
+      expect(logger.logs, isEmpty);
     });
 
-    test('empty message tolerated', () async {
+    test('returns false without tracking when the sheet is dismissed',
+        () async {
+      shareResult = '';
       final svc = FileServiceImpl();
-      await svc.shareTextOnly('');
-      expect(true, isTrue);
+      final shared = await svc.shareTextOnly('hello');
+
+      expect(shared, isFalse);
+      expect(analytics.events, isEmpty);
+      expect(logger.logs, isEmpty);
+    });
+
+    test('returns false without tracking when no result is available',
+        () async {
+      shareResult = null;
+      final svc = FileServiceImpl();
+      final shared = await svc.shareTextOnly('hello');
+
+      expect(shared, isFalse);
+      expect(analytics.events, isEmpty);
+      expect(logger.logs, isEmpty);
+    });
+
+    test('logs and returns false when the native share call throws', () async {
+      shareError = StateError('native share unavailable');
+      final svc = FileServiceImpl();
+      final shared = await svc.shareTextOnly('hello');
+
+      expect(shared, isFalse);
+      expect(analytics.events, isEmpty);
+      expect(logger.logs.single, isA<PlatformException>());
+    });
+
+    test('logs and returns false for an invalid empty message', () async {
+      final svc = FileServiceImpl();
+      final shared = await svc.shareTextOnly('');
+
+      expect(shared, isFalse);
+      expect(shareCalls, isEmpty);
+      expect(analytics.events, isEmpty);
+      expect(logger.logs.single, isA<ArgumentError>());
     });
   });
 

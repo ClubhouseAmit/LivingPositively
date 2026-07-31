@@ -808,6 +808,36 @@ abstract class AppLocalizations {
   /// **'{gender,select,male{Emergency Numbers} female{Emergency Numbers} other{Emergency Numbers}}'**
   String emergencyNumbers(String gender);
 
+  /// The SOS action that shares the user's current location.
+  ///
+  /// In en, this message translates to:
+  /// **'Share Location'**
+  String get sosShareLocation;
+
+  /// Accessibility label for the SOS location-share action.
+  ///
+  /// In en, this message translates to:
+  /// **'Share your current location'**
+  String get sosShareLocationTooltip;
+
+  /// The SOS help message shared with an optional current-location map link.
+  ///
+  /// In en, this message translates to:
+  /// **'I am here and I need your help.'**
+  String get sosShareLocationMessage;
+
+  /// Notice shown when SOS location sharing falls back to a text-only help message.
+  ///
+  /// In en, this message translates to:
+  /// **'Your location could not be shared. Your help message will be shared without it.'**
+  String get sosShareLocationUnavailable;
+
+  /// Notice shown when the SOS help message cannot be shared through the native share sheet.
+  ///
+  /// In en, this message translates to:
+  /// **'Your SOS help message could not be shared. Please try again.'**
+  String get sosShareLocationShareFailed;
+
   ///
   ///
   /// In en, this message translates to:

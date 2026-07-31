@@ -1106,6 +1106,23 @@ class AppLocalizationsAr extends AppLocalizations {
   }
 
   @override
+  String get sosShareLocation => 'مشاركة الموقع';
+
+  @override
+  String get sosShareLocationTooltip => 'مشاركة موقعك الحالي';
+
+  @override
+  String get sosShareLocationMessage => 'أنا هنا وأحتاج إلى مساعدتك.';
+
+  @override
+  String get sosShareLocationUnavailable =>
+      'تعذّر مشاركة موقعك. ستتم مشاركة رسالة طلب المساعدة بدون الموقع.';
+
+  @override
+  String get sosShareLocationShareFailed =>
+      'تعذّر مشاركة رسالة طلب المساعدة الخاصة بك. يُرجى المحاولة مرة أخرى.';
+
+  @override
   String phonePageTitle(String gender) {
     String _temp0 = intl.Intl.selectLogic(gender, {
       'male':

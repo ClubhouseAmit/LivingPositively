@@ -27,8 +27,7 @@ Map<String, Set<String>> _placeholderMetadata(String path) {
       continue;
     }
 
-    final placeholders =
-        metadata['placeholders'] ?? metadata['placeholder'];
+    final placeholders = metadata['placeholders'] ?? metadata['placeholder'];
     if (placeholders is Map<String, dynamic>) {
       placeholderMetadata[entry.key] = placeholders.keys.toSet();
     }
@@ -38,24 +37,44 @@ Map<String, Set<String>> _placeholderMetadata(String path) {
 }
 
 void main() {
-  test('Arabic ARB covers every English translation key', () {
-    final englishKeys = _messageKeys('lib/l10n/app_en.arb');
-    final arabicKeys = _messageKeys('lib/l10n/app_ar.arb');
+  test(
+    'Arabic ARB covers every English key',
+    () {
+      final englishKeys = _messageKeys('lib/l10n/app_en.arb');
+      final arabicKeys = _messageKeys('lib/l10n/app_ar.arb');
 
-    final missingArabicKeys = englishKeys.difference(arabicKeys).toList()
-      ..sort();
-    final unexpectedArabicKeys = arabicKeys.difference(englishKeys).toList()
-      ..sort();
+      final missingArabicKeys = englishKeys.difference(arabicKeys).toList()
+        ..sort();
+      final unexpectedArabicKeys = arabicKeys.difference(englishKeys).toList()
+        ..sort();
 
+      expect(
+        missingArabicKeys,
+        isEmpty,
+        reason: 'Missing Arabic keys: ${missingArabicKeys.join(', ')}',
+      );
+      expect(
+        unexpectedArabicKeys,
+        isEmpty,
+        reason:
+            'Unexpected Arabic-only keys: ${unexpectedArabicKeys.join(', ')}',
+      );
+    },
+  );
+
+  test('Arabic ARB provides approved SOS location-sharing copy', () {
+    final arabic = _arb('lib/l10n/app_ar.arb');
+
+    expect(arabic['sosShareLocation'], 'مشاركة الموقع');
+    expect(arabic['sosShareLocationTooltip'], 'مشاركة موقعك الحالي');
+    expect(arabic['sosShareLocationMessage'], 'أنا هنا وأحتاج إلى مساعدتك.');
     expect(
-      missingArabicKeys,
-      isEmpty,
-      reason: 'Missing Arabic keys: ${missingArabicKeys.join(', ')}',
+      arabic['sosShareLocationUnavailable'],
+      'تعذّر مشاركة موقعك. ستتم مشاركة رسالة طلب المساعدة بدون الموقع.',
     );
     expect(
-      unexpectedArabicKeys,
-      isEmpty,
-      reason: 'Unexpected Arabic-only keys: ${unexpectedArabicKeys.join(', ')}',
+      arabic['sosShareLocationShareFailed'],
+      'تعذّر مشاركة رسالة طلب المساعدة الخاصة بك. يُرجى المحاولة مرة أخرى.',
     );
   });
 
@@ -64,16 +83,23 @@ void main() {
     final arabicMetadata = _placeholderMetadata('lib/l10n/app_ar.arb');
 
     final missingMetadataKeys =
-        englishMetadata.keys.toSet().difference(arabicMetadata.keys.toSet()).toList()
+        englishMetadata.keys
+            .toSet()
+            .difference(arabicMetadata.keys.toSet())
+            .toList()
           ..sort();
     final unexpectedMetadataKeys =
-        arabicMetadata.keys.toSet().difference(englishMetadata.keys.toSet()).toList()
+        arabicMetadata.keys
+            .toSet()
+            .difference(englishMetadata.keys.toSet())
+            .toList()
           ..sort();
 
     expect(
       missingMetadataKeys,
       isEmpty,
-      reason: 'Missing Arabic placeholder metadata keys: ${missingMetadataKeys.join(', ')}',
+      reason:
+          'Missing Arabic placeholder metadata keys: ${missingMetadataKeys.join(', ')}',
     );
     expect(
       unexpectedMetadataKeys,
@@ -94,21 +120,66 @@ void main() {
   test('Arabic ARB uses the reviewed UI wording for core navigation and actions', () {
     final arabic = _arb('lib/l10n/app_ar.arb');
 
-    expect(arabic['menu'], '{gender,select,male{القائمة} female{القائمة} other{القائمة}}');
-    expect(arabic['home'], '{gender,select,male{الرئيسية} female{الرئيسية} other{الرئيسية}}');
-    expect(arabic['closeButton'], '{gender,select,male{إلغاء} female{إلغاء} other{إلغاء}}');
-    expect(arabic['confirmButton'], '{gender,select,male{تأكيد} female{تأكيد} other{تأكيد}}');
-    expect(arabic['saveButton'], '{gender,select,male{حفظ} female{حفظ} other{حفظ}}');
-    expect(arabic['deleteButton'], '{gender,select,male{حذف} female{حذف} other{حذف}}');
-    expect(arabic['nextButton'], '{gender,select,male{متابعة} female{متابعة} other{متابعة}}');
-    expect(arabic['skipButton'], '{gender,select,male{تخطي} female{تخطي} other{تخطي}}');
-    expect(arabic['personalPlanPageFinish'], '{gender,select,male{إنهاء} female{إنهاء} other{إنهاء}}');
-    expect(arabic['dialButton'], '{gender,select,male{اتصال} female{اتصال} other{اتصال}}');
-    expect(arabic['select'], '{gender,select,male{اختيار} female{اختيار} other{اختيار}}');
-    expect(arabic['addFormEdit'], '{gender,select,male{تعديل} female{تعديل} other{تعديل}}');
-    expect(arabic['addFormPageTemplateAdd'], '{gender,select,male{إضافة} female{إضافة} other{إضافة}}');
-    expect(arabic['homePageBack'], '{gender,select,male{إغلاق} female{إغلاق} other{إغلاق}}');
-    expect(arabic['introductionFormFirstPageSkip'], '{gender,select,male{تخطي} female{تخطي} other{تخطي}}');
+    expect(
+      arabic['menu'],
+      '{gender,select,male{القائمة} female{القائمة} other{القائمة}}',
+    );
+    expect(
+      arabic['home'],
+      '{gender,select,male{الرئيسية} female{الرئيسية} other{الرئيسية}}',
+    );
+    expect(
+      arabic['closeButton'],
+      '{gender,select,male{إلغاء} female{إلغاء} other{إلغاء}}',
+    );
+    expect(
+      arabic['confirmButton'],
+      '{gender,select,male{تأكيد} female{تأكيد} other{تأكيد}}',
+    );
+    expect(
+      arabic['saveButton'],
+      '{gender,select,male{حفظ} female{حفظ} other{حفظ}}',
+    );
+    expect(
+      arabic['deleteButton'],
+      '{gender,select,male{حذف} female{حذف} other{حذف}}',
+    );
+    expect(
+      arabic['nextButton'],
+      '{gender,select,male{متابعة} female{متابعة} other{متابعة}}',
+    );
+    expect(
+      arabic['skipButton'],
+      '{gender,select,male{تخطي} female{تخطي} other{تخطي}}',
+    );
+    expect(
+      arabic['personalPlanPageFinish'],
+      '{gender,select,male{إنهاء} female{إنهاء} other{إنهاء}}',
+    );
+    expect(
+      arabic['dialButton'],
+      '{gender,select,male{اتصال} female{اتصال} other{اتصال}}',
+    );
+    expect(
+      arabic['select'],
+      '{gender,select,male{اختيار} female{اختيار} other{اختيار}}',
+    );
+    expect(
+      arabic['addFormEdit'],
+      '{gender,select,male{تعديل} female{تعديل} other{تعديل}}',
+    );
+    expect(
+      arabic['addFormPageTemplateAdd'],
+      '{gender,select,male{إضافة} female{إضافة} other{إضافة}}',
+    );
+    expect(
+      arabic['homePageBack'],
+      '{gender,select,male{إغلاق} female{إغلاق} other{إغلاق}}',
+    );
+    expect(
+      arabic['introductionFormFirstPageSkip'],
+      '{gender,select,male{تخطي} female{تخطي} other{تخطي}}',
+    );
     expect(arabic['shareButtonText'], 'مشاركة');
     expect(
       arabic['inspirationalQuotesNo34'],

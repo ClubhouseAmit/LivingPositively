@@ -37,7 +37,7 @@ class _NoopFileService implements FileService {
       String textDirection) async {}
 
   @override
-  Future<void> shareTextOnly(String message) async {}
+  Future<bool> shareTextOnly(String message) async => true;
 }
 
 class _NoopLogger implements IncidentLoggerService {

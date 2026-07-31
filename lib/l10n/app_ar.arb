@@ -385,6 +385,11 @@
       }
     }
   },
+  "sosShareLocation": "مشاركة الموقع",
+  "sosShareLocationTooltip": "مشاركة موقعك الحالي",
+  "sosShareLocationMessage": "أنا هنا وأحتاج إلى مساعدتك.",
+  "sosShareLocationUnavailable": "تعذّر مشاركة موقعك. ستتم مشاركة رسالة طلب المساعدة بدون الموقع.",
+  "sosShareLocationShareFailed": "تعذّر مشاركة رسالة طلب المساعدة الخاصة بك. يُرجى المحاولة مرة أخرى.",
   "menuTooltip": "القائمة",
   "addItemTooltip": "إضافة",
   "downloadPlanTooltip": "تنزيل الخطة",

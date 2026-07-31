@@ -1,4 +1,9 @@
+import 'package:flutter/foundation.dart'
+    show TargetPlatform, defaultTargetPlatform, kIsWeb;
 import 'package:flutter/material.dart';
+import 'package:geolocator/geolocator.dart';
+import 'package:get_it/get_it.dart';
+import 'package:mazilon/file_service.dart';
 import 'package:mazilon/form/phonePageform.dart';
 import 'package:mazilon/util/LP_extended_state.dart';
 import 'package:mazilon/util/Phone/phoneTextAndIcon.dart';
@@ -21,6 +26,83 @@ class _PhonePageState extends LPExtendedState<PhonePage> {
   String mainTitle = '';
   String contactsTitle = '';
   String emergencyNumbersTitle = '';
+  bool _isSharingLocation = false;
+
+  bool get _supportsLocationSharing =>
+      !kIsWeb &&
+      (defaultTargetPlatform == TargetPlatform.android ||
+          defaultTargetPlatform == TargetPlatform.iOS);
+
+  Future<void> _shareCurrentLocation() async {
+    if (_isSharingLocation) {
+      return;
+    }
+
+    final messenger = ScaffoldMessenger.maybeOf(context);
+    final fileService = GetIt.instance<FileService>();
+    final helpMessage = appLocale.sosShareLocationMessage;
+    final unavailableMessage = appLocale.sosShareLocationUnavailable;
+    final shareFailedMessage = appLocale.sosShareLocationShareFailed;
+    var messageToShare = helpMessage;
+    var locationUnavailable = !_supportsLocationSharing;
+
+    setState(() {
+      _isSharingLocation = true;
+    });
+
+    try {
+      if (!locationUnavailable) {
+        final serviceEnabled = await Geolocator.isLocationServiceEnabled();
+        if (!serviceEnabled) {
+          locationUnavailable = true;
+        } else {
+          var permission = await Geolocator.checkPermission();
+          if (permission == LocationPermission.denied) {
+            permission = await Geolocator.requestPermission();
+          }
+
+          if (permission == LocationPermission.whileInUse) {
+            final position = await Geolocator.getCurrentPosition(
+              locationSettings: const LocationSettings(
+                accuracy: LocationAccuracy.high,
+                timeLimit: Duration(seconds: 15),
+              ),
+            );
+            messageToShare =
+                '$helpMessage\nhttps://www.google.com/maps/search/?api=1&query=${position.latitude},${position.longitude}';
+          } else {
+            locationUnavailable = true;
+          }
+        }
+      }
+    } catch (_) {
+      locationUnavailable = true;
+    }
+
+    if (locationUnavailable && mounted) {
+      messenger?.hideCurrentSnackBar();
+      messenger?.showSnackBar(SnackBar(content: Text(unavailableMessage)));
+    }
+
+    try {
+      final shareSucceeded = await fileService.shareTextOnly(messageToShare);
+      if (!shareSucceeded && mounted) {
+        messenger?.hideCurrentSnackBar();
+        messenger?.showSnackBar(SnackBar(content: Text(shareFailedMessage)));
+      }
+    } catch (_) {
+      if (mounted) {
+        messenger?.hideCurrentSnackBar();
+        messenger?.showSnackBar(SnackBar(content: Text(shareFailedMessage)));
+      }
+    } finally {
+      if (mounted) {
+        setState(() {
+          _isSharingLocation = false;
+        });
+      }
+    }
+  }
 
   void _openContactsEditor() {
     Navigator.of(context).push(
@@ -161,6 +243,36 @@ class _PhonePageState extends LPExtendedState<PhonePage> {
                         ),
                       );
                     },
+                  ),
+                  const SizedBox(height: 10.0),
+                  Padding(
+                    padding: const EdgeInsets.symmetric(horizontal: 30.0),
+                    child: Row(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        Flexible(
+                          child: myText(
+                            appLocale.sosShareLocation,
+                            TextStyle(
+                              fontWeight: FontWeight.normal,
+                              fontSize: 20.sp,
+                            ),
+                            null,
+                          ),
+                        ),
+                        const SizedBox(width: 5.0),
+                        KeyedSubtree(
+                          key: const Key('phonePageShareLocationButton'),
+                          child: circularActionButton(
+                            context,
+                            tooltip: appLocale.sosShareLocationTooltip,
+                            icon: Icons.location_on,
+                            onTap: _shareCurrentLocation,
+                          ),
+                        ),
+                        const SizedBox(width: 10.0),
+                      ],
+                    ),
                   ),
                   const SizedBox(height: 10.0),
                   Align(
