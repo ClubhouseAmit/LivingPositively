@@ -246,6 +246,7 @@ Future<void> _expectTextOnlyLocationFallback(
   WidgetTester tester,
   FakeGeolocatorPlatform geolocator, {
   TargetPlatform platform = TargetPlatform.android,
+  Locale locale = const Locale('en', 'US'),
 }) async {
   final fileService = RecordingFileService();
   await _runLocationShareTest(
@@ -265,16 +266,20 @@ Future<void> _expectTextOnlyLocationFallback(
           userInformation: userInfo,
           appInformation: AppInformation(),
           phonePageData: phonePageData,
+          locale: locale,
         ),
       );
       await tester.pumpAndSettle();
       await _tapLocationShare(tester);
 
-      expect(fileService.sharedMessages, ['I am here and I need your help.']);
+      final localizations = AppLocalizations.of(
+        tester.element(find.byType(PhonePage)),
+      )!;
+      expect(fileService.sharedMessages, [
+        localizations.sosShareLocationMessage,
+      ]);
       expect(
-        find.text(
-          'Your location could not be shared. Your help message will be shared without it.',
-        ),
+        find.text(localizations.sosShareLocationUnavailable),
         findsOneWidget,
       );
     },
@@ -1231,6 +1236,21 @@ void main() {
     },
   );
 
+  testWidgets('PhonePage localizes SOS location fallback feedback in Arabic', (
+    tester,
+  ) async {
+    final geolocator = FakeGeolocatorPlatform(serviceEnabled: false);
+
+    await _expectTextOnlyLocationFallback(
+      tester,
+      geolocator,
+      locale: const Locale('ar'),
+    );
+
+    expect(geolocator.checkPermissionCalls, 0);
+    expect(geolocator.currentPositionCalls, 0);
+  });
+
   testWidgets('PhonePage shares help text when location permission is denied', (
     tester,
   ) async {
@@ -1340,7 +1360,7 @@ void main() {
   }, skip: !kIsWeb);
 
   testWidgets(
-    'PhonePage shows localized SOS feedback and allows retry when sharing is not confirmed',
+    'PhonePage shows localized Arabic SOS feedback and allows retry when sharing is not confirmed',
     (tester) async {
       final geolocator = FakeGeolocatorPlatform();
       final fileService = RecordingFileService(failedResultsRemaining: 1);
@@ -1357,7 +1377,7 @@ void main() {
               ),
               appInformation: AppInformation(),
               phonePageData: _phonePageDataForLocationShare(),
-              locale: const Locale('he'),
+              locale: const Locale('ar'),
             ),
           );
           await tester.pumpAndSettle();
@@ -1383,6 +1403,46 @@ void main() {
       );
     },
   );
+
+  testWidgets('PhonePage localizes SOS location sharing in Arabic', (
+    tester,
+  ) async {
+    final geolocator = FakeGeolocatorPlatform();
+    final fileService = RecordingFileService();
+    await _runLocationShareTest(
+      geolocator,
+      fileService,
+      body: () async {
+        await tester.pumpWidget(
+          buildPhonePageTestApp(
+            userInformation: UserInformation(
+              gender: 'male',
+              location: 'IL',
+              service: FakePersistentMemoryService(),
+            ),
+            appInformation: AppInformation(),
+            phonePageData: _phonePageDataForLocationShare(),
+            locale: const Locale('ar'),
+          ),
+        );
+        await tester.pumpAndSettle();
+
+        expect(
+          Directionality.of(tester.element(find.byType(PhonePage))),
+          TextDirection.rtl,
+        );
+        expect(find.text('مشاركة الموقع'), findsOneWidget);
+        expect(find.byTooltip('مشاركة موقعك الحالي'), findsOneWidget);
+
+        await _tapLocationShare(tester);
+
+        expect(fileService.sharedMessages, [
+          'أنا هنا وأحتاج إلى مساعدتك.\n'
+              'https://www.google.com/maps/search/?api=1&query=31.7683,35.2137',
+        ]);
+      },
+    );
+  });
 
   testWidgets(
     'PhonePage shows localized SOS feedback and allows retry when sharing throws',

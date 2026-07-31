@@ -6,14 +6,6 @@ import 'package:flutter_test/flutter_test.dart';
 Map<String, dynamic> _arb(String path) =>
     jsonDecode(File(path).readAsStringSync()) as Map<String, dynamic>;
 
-const _englishFallbackKeys = {
-  'sosShareLocation',
-  'sosShareLocationTooltip',
-  'sosShareLocationMessage',
-  'sosShareLocationUnavailable',
-  'sosShareLocationShareFailed',
-};
-
 Set<String> _messageKeys(String path) {
   final decoded = _arb(path);
   return decoded.keys
@@ -46,7 +38,7 @@ Map<String, Set<String>> _placeholderMetadata(String path) {
 
 void main() {
   test(
-    'Arabic ARB covers every English key except approved English fallbacks',
+    'Arabic ARB covers every English key',
     () {
       final englishKeys = _messageKeys('lib/l10n/app_en.arb');
       final arabicKeys = _messageKeys('lib/l10n/app_ar.arb');
@@ -58,9 +50,8 @@ void main() {
 
       expect(
         missingArabicKeys,
-        _englishFallbackKeys.toList()..sort(),
-        reason:
-            'Arabic may omit only approved English fallback keys: ${missingArabicKeys.join(', ')}',
+        isEmpty,
+        reason: 'Missing Arabic keys: ${missingArabicKeys.join(', ')}',
       );
       expect(
         unexpectedArabicKeys,
@@ -70,6 +61,22 @@ void main() {
       );
     },
   );
+
+  test('Arabic ARB provides approved SOS location-sharing copy', () {
+    final arabic = _arb('lib/l10n/app_ar.arb');
+
+    expect(arabic['sosShareLocation'], 'مشاركة الموقع');
+    expect(arabic['sosShareLocationTooltip'], 'مشاركة موقعك الحالي');
+    expect(arabic['sosShareLocationMessage'], 'أنا هنا وأحتاج إلى مساعدتك.');
+    expect(
+      arabic['sosShareLocationUnavailable'],
+      'تعذّر مشاركة موقعك. ستتم مشاركة رسالة طلب المساعدة بدون الموقع.',
+    );
+    expect(
+      arabic['sosShareLocationShareFailed'],
+      'تعذّر مشاركة رسالة طلب المساعدة الخاصة بك. يُرجى المحاولة مرة أخرى.',
+    );
+  });
 
   test('Arabic ARB preserves English placeholder metadata entries', () {
     final englishMetadata = _placeholderMetadata('lib/l10n/app_en.arb');

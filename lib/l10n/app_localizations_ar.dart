@@ -1106,21 +1106,21 @@ class AppLocalizationsAr extends AppLocalizations {
   }
 
   @override
-  String get sosShareLocation => 'Share Location';
+  String get sosShareLocation => 'مشاركة الموقع';
 
   @override
-  String get sosShareLocationTooltip => 'Share your current location';
+  String get sosShareLocationTooltip => 'مشاركة موقعك الحالي';
 
   @override
-  String get sosShareLocationMessage => 'I am here and I need your help.';
+  String get sosShareLocationMessage => 'أنا هنا وأحتاج إلى مساعدتك.';
 
   @override
   String get sosShareLocationUnavailable =>
-      'Your location could not be shared. Your help message will be shared without it.';
+      'تعذّر مشاركة موقعك. ستتم مشاركة رسالة طلب المساعدة بدون الموقع.';
 
   @override
   String get sosShareLocationShareFailed =>
-      'Your SOS help message could not be shared. Please try again.';
+      'تعذّر مشاركة رسالة طلب المساعدة الخاصة بك. يُرجى المحاولة مرة أخرى.';
 
   @override
   String phonePageTitle(String gender) {
