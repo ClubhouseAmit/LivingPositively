@@ -432,6 +432,7 @@
   "addItemTooltip": "הוספה",
   "downloadPlanTooltip": "הורדת התוכנית",
   "sharePlanTooltip": "שיתוף התוכנית",
+  "refreshPersonalPlanTooltip": "רענון התוכנית האישית",
   "refreshQuoteTooltip": "ציטוט חדש",
   "dismissQuoteTooltip": "סגירת הציטוט",
   "callContactTooltip": "התקשרות אל {contact}",

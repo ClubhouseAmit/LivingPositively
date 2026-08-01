@@ -1645,6 +1645,10 @@
   "@sharePlanTooltip": {
     "description": "Tooltip / TalkBack label for the icon-only share button on the personal plan widget"
   },
+  "refreshPersonalPlanTooltip": "Refresh personal plan",
+  "@refreshPersonalPlanTooltip": {
+    "description": "Tooltip / TalkBack label for the icon-only refresh button on the personal plan widget"
+  },
   "refreshQuoteTooltip": "New quote",
   "@refreshQuoteTooltip": {
     "description": "Tooltip / TalkBack label for the icon-only refresh button on the inspirational quote widget"

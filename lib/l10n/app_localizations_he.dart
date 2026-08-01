@@ -3093,6 +3093,9 @@ class AppLocalizationsHe extends AppLocalizations {
   String get sharePlanTooltip => 'שיתוף התוכנית';
 
   @override
+  String get refreshPersonalPlanTooltip => 'רענון התוכנית האישית';
+
+  @override
   String get refreshQuoteTooltip => 'ציטוט חדש';
 
   @override
