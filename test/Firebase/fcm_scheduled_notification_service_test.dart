@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:convert';
 
 import 'package:flutter/foundation.dart';
@@ -14,10 +15,18 @@ import 'package:provider/provider.dart';
 
 class _FakePersistentMemoryService implements PersistentMemoryService {
   final Map<String, dynamic> stored = {};
+  Completer<dynamic>? migrationMarkerRead;
+  Completer<void>? migrationMarkerReadStarted;
 
   @override
-  Future<dynamic> getItem(String key, PersistentMemoryType type) async =>
-      stored[key];
+  Future<dynamic> getItem(String key, PersistentMemoryType type) async {
+    if (key == 'fcmDefaultReminderMigrated' &&
+        migrationMarkerRead != null) {
+      migrationMarkerReadStarted?.complete();
+      return migrationMarkerRead!.future;
+    }
+    return stored[key];
+  }
 
   @override
   Future<void> reset() async => stored.clear();
@@ -51,6 +60,7 @@ void main() {
 
   setUp(() {
     memory = _FakePersistentMemoryService();
+    GetIt.instance.registerSingleton<PersistentMemoryService>(memory);
     user = UserInformation(
       service: memory,
       localeName: 'en',
@@ -60,6 +70,7 @@ void main() {
   });
 
   tearDown(() async {
+    FcmScheduledNotificationService.resetForTesting();
     await GetIt.instance.reset();
   });
 
@@ -172,6 +183,48 @@ void main() {
     );
   });
 
+  testWidgets('queue registration completes its serialized turn', (tester) async {
+    await pumpUser(tester);
+
+    final registered = await _onPlatform(
+      TargetPlatform.android,
+      () => FcmScheduledNotificationService.registerNotification(
+        context: serviceContext,
+        typeId: 'default',
+        hour: 9,
+        minute: 30,
+        idTokenProvider: () async => 'token-123',
+        post: (url, {headers, body, encoding}) async =>
+            http.Response('{}', 200),
+      ),
+    );
+
+    expect(registered, isTrue);
+  });
+
+  testWidgets('queue cancellation runs after a completed serialized turn', (
+    tester,
+  ) async {
+    user.setNotificationPreference(
+      'default',
+      const NotificationPreference(hour: 8, minute: 15),
+    );
+    await pumpUser(tester);
+
+    final cancelled = await _onPlatform(
+      TargetPlatform.android,
+      () => FcmScheduledNotificationService.cancelNotification(
+        context: serviceContext,
+        typeId: 'default',
+        idTokenProvider: () async => 'token-123',
+        post: (url, {headers, body, encoding}) async =>
+            http.Response('{}', 200),
+      ),
+    );
+
+    expect(cancelled, isTrue);
+  });
+
   testWidgets(
     'register returns false when FirebaseAuth has not been initialized',
     (tester) async {
@@ -226,6 +279,172 @@ void main() {
       expect(result, isFalse);
       expect(tokenRequested, isFalse);
       expect(postCalled, isFalse);
+    },
+  );
+
+  testWidgets(
+    'migrates an unmarked default preference once after remote registration succeeds',
+    (tester) async {
+      user.setNotificationPreference(
+        'default',
+        const NotificationPreference(hour: 8, minute: 15),
+      );
+      await pumpUser(tester);
+      var postCalls = 0;
+
+      await _onPlatform(
+        TargetPlatform.android,
+        () => FcmScheduledNotificationService.migrateLegacyDefaultReminder(
+          context: serviceContext,
+          idTokenProvider: () async => 'token-123',
+          post: (url, {headers, body, encoding}) async {
+            postCalls++;
+            return http.Response('{}', 200);
+          },
+        ),
+      );
+      await _onPlatform(
+        TargetPlatform.android,
+        () => FcmScheduledNotificationService.migrateLegacyDefaultReminder(
+          context: serviceContext,
+          idTokenProvider: () async => 'token-123',
+          post: (url, {headers, body, encoding}) async {
+            postCalls++;
+            return http.Response('{}', 200);
+          },
+        ),
+      );
+
+      expect(postCalls, 1);
+      expect(memory.stored['fcmDefaultReminderMigrated'], isTrue);
+    },
+  );
+
+  testWidgets(
+    'leaves migration unmarked when authentication or registration fails',
+    (tester) async {
+      user.setNotificationPreference(
+        'default',
+        const NotificationPreference(hour: 8, minute: 15),
+      );
+      await pumpUser(tester);
+      var postCalls = 0;
+
+      await _onPlatform(
+        TargetPlatform.android,
+        () => FcmScheduledNotificationService.migrateLegacyDefaultReminder(
+          context: serviceContext,
+          idTokenProvider: () async => null,
+          post: (url, {headers, body, encoding}) async {
+            postCalls++;
+            return http.Response('{}', 200);
+          },
+        ),
+      );
+      await _onPlatform(
+        TargetPlatform.android,
+        () => FcmScheduledNotificationService.migrateLegacyDefaultReminder(
+          context: serviceContext,
+          idTokenProvider: () async => 'token-123',
+          post: (url, {headers, body, encoding}) async {
+            postCalls++;
+            return http.Response('failed', 500);
+          },
+        ),
+      );
+
+      expect(postCalls, 1);
+      expect(memory.stored.containsKey('fcmDefaultReminderMigrated'), isFalse);
+    },
+  );
+
+  testWidgets(
+    'failed reset cancellation permits a subsequent legacy migration',
+    (tester) async {
+      user.setNotificationPreference(
+        'default',
+        const NotificationPreference(hour: 8, minute: 15),
+      );
+      await pumpUser(tester);
+      var cancelRequests = 0;
+      var registerRequests = 0;
+
+      final cancelled = await _onPlatform(
+        TargetPlatform.android,
+        () => FcmScheduledNotificationService.cancelDefaultForReset(
+          userInformation: user,
+          idTokenProvider: () async => 'token-123',
+          post: (url, {headers, body, encoding}) async {
+            cancelRequests++;
+            return http.Response('failed', 500);
+          },
+        ),
+      );
+
+      expect(cancelled, isFalse);
+      expect(cancelRequests, 1);
+      expect(memory.stored.containsKey('fcmDefaultReminderMigrated'), isFalse);
+
+      await _onPlatform(
+        TargetPlatform.android,
+        () => FcmScheduledNotificationService.migrateLegacyDefaultReminder(
+          userInformation: user,
+          idTokenProvider: () async => 'token-123',
+          post: (url, {headers, body, encoding}) async {
+            registerRequests++;
+            return http.Response('{}', 200);
+          },
+        ),
+      );
+
+      expect(registerRequests, 1);
+      expect(memory.stored['fcmDefaultReminderMigrated'], isTrue);
+    },
+  );
+
+  testWidgets(
+    'reset cancellation prevents an in-flight migration from registering',
+    (tester) async {
+      user.setNotificationPreference(
+        'default',
+        const NotificationPreference(hour: 8, minute: 15),
+      );
+      memory.migrationMarkerRead = Completer<dynamic>();
+      memory.migrationMarkerReadStarted = Completer<void>();
+      await pumpUser(tester);
+      final requests = <String>[];
+
+      debugDefaultTargetPlatformOverride = TargetPlatform.android;
+      try {
+        final migration =
+            FcmScheduledNotificationService.migrateLegacyDefaultReminder(
+          userInformation: user,
+          idTokenProvider: () async => 'token-123',
+          post: (url, {headers, body, encoding}) async {
+            requests.add(url.path);
+            return http.Response('{}', 200);
+          },
+        );
+        await tester.pump();
+        await memory.migrationMarkerReadStarted!.future;
+
+        final resetCancellation =
+            FcmScheduledNotificationService.cancelDefaultForReset(
+          userInformation: user,
+          idTokenProvider: () async => 'token-123',
+          post: (url, {headers, body, encoding}) async {
+            requests.add(url.path);
+            return http.Response('{}', 200);
+          },
+        );
+        memory.migrationMarkerRead!.complete(false);
+
+        expect(await resetCancellation, isTrue);
+        await migration;
+        expect(requests, ['/cancelNotification']);
+      } finally {
+        debugDefaultTargetPlatformOverride = null;
+      }
     },
   );
 }

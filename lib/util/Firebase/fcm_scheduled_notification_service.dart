@@ -6,7 +6,9 @@ import 'package:get_it/get_it.dart';
 import 'package:http/http.dart' as http;
 import 'package:mazilon/util/Firebase/fcm_service.dart';
 import 'package:mazilon/util/notification_preference.dart';
+import 'package:mazilon/util/persistent_memory_service.dart';
 import 'package:mazilon/util/userInformation.dart';
+import 'package:mazilon/global_enums.dart';
 import 'package:provider/provider.dart';
 
 typedef NotificationHttpPost =
@@ -20,28 +22,119 @@ typedef NotificationHttpPost =
 class FcmScheduledNotificationService {
   static const String _functionsBaseUrl =
       'https://us-central1-mezilondb.cloudfunctions.net';
+  static const String _legacyDefaultReminderMigrationKey =
+      'fcmDefaultReminderMigrated';
+  static Future<void>? _operationQueue;
+  static bool _legacyMigrationDisabled = false;
+
+  @visibleForTesting
+  static void resetForTesting() {
+    _operationQueue = null;
+    _legacyMigrationDisabled = false;
+  }
 
   static void _log(String message) =>
       debugPrint('[FcmScheduledNotificationService] $message');
+
+  static Future<T> _enqueue<T>(Future<T> Function() operation) {
+    final previousOperation = _operationQueue;
+    final operationResult = previousOperation == null
+        ? Future<T>.sync(operation)
+        : previousOperation.then((_) => operation());
+    final queueRelease = operationResult.then<void>(
+      (_) {},
+      onError: (Object _, StackTrace _) {},
+    );
+    _operationQueue = queueRelease;
+    return operationResult.whenComplete(() => queueRelease);
+  }
 
   static Future<String?> _getIdToken() async {
     if (!GetIt.instance.isRegistered<FirebaseAuth>()) {
       _log('Warning: FirebaseAuth is not initialized, cannot get ID token.');
       return null;
     }
-    final token = await GetIt.instance<FirebaseAuth>().currentUser
-        ?.getIdToken();
+    final user = GetIt.instance<FirebaseAuth>().currentUser;
+    if (user == null || user.isAnonymous) {
+      _log('Warning: no authenticated user, cannot get ID token.');
+      return null;
+    }
+    final token = await user.getIdToken();
     if (token == null) {
       _log('Warning: no authenticated user, cannot get ID token.');
     }
     return token;
   }
 
+  static Future<void> migrateLegacyDefaultReminder({
+    BuildContext? context,
+    UserInformation? userInformation,
+    Future<String?> Function()? idTokenProvider,
+    NotificationHttpPost? post,
+    PersistentMemoryService? persistentMemory,
+  }) async {
+    if (_legacyMigrationDisabled) return;
+    final userInfo =
+        userInformation ?? Provider.of<UserInformation>(context!, listen: false);
+    final preference = userInfo.getNotificationPreference('default');
+    if (preference == null) return;
+
+    final memory =
+        persistentMemory ?? GetIt.instance<PersistentMemoryService>();
+    final migrated =
+        await memory.getItem(
+          _legacyDefaultReminderMigrationKey,
+          PersistentMemoryType.Bool,
+        ) ??
+        false;
+    if (migrated == true || _legacyMigrationDisabled) return;
+
+    await _enqueue(() async {
+      if (_legacyMigrationDisabled) return;
+      final registered = await _registerNotification(
+        userInformation: userInfo,
+        typeId: 'default',
+        hour: preference.hour,
+        minute: preference.minute,
+        idTokenProvider: idTokenProvider,
+        post: post,
+      );
+      if (registered) {
+        await memory.setItem(
+          _legacyDefaultReminderMigrationKey,
+          PersistentMemoryType.Bool,
+          true,
+        );
+      }
+    });
+  }
+
   // Registers or updates a scheduled notification for the given type.
   // hour/minute are Israel local time, exactly as the user selected.
   // Returns true on success.
   static Future<bool> registerNotification({
-    required BuildContext context,
+    BuildContext? context,
+    UserInformation? userInformation,
+    required String typeId,
+    required int hour,
+    required int minute,
+    Future<String?> Function()? idTokenProvider,
+    NotificationHttpPost? post,
+  }) => _enqueue(
+    () => _registerNotification(
+      context: context,
+      userInformation: userInformation,
+      typeId: typeId,
+      hour: hour,
+      minute: minute,
+      idTokenProvider: idTokenProvider,
+      post: post,
+    ),
+  );
+
+  static Future<bool> _registerNotification({
+    BuildContext? context,
+    UserInformation? userInformation,
     required String typeId,
     required int hour,
     required int minute,
@@ -52,7 +145,8 @@ class FcmScheduledNotificationService {
     _log(
       'Registering notification: typeId=$typeId, hour=$hour, minute=$minute',
     );
-    final userInfo = Provider.of<UserInformation>(context, listen: false);
+    final userInfo =
+        userInformation ?? Provider.of<UserInformation>(context!, listen: false);
     final locale = userInfo.localeName.isNotEmpty ? userInfo.localeName : 'he';
     final rawGender = userInfo.gender;
     final gender = (rawGender == 'male' || rawGender == 'female')
@@ -80,7 +174,12 @@ class FcmScheduledNotificationService {
 
       if (response.statusCode == 200) {
         _log('Notification registered successfully.');
-        if (context.mounted) {
+        if (userInformation != null) {
+          userInfo.setNotificationPreference(
+            typeId,
+            NotificationPreference(hour: hour, minute: minute),
+          );
+        } else if (context!.mounted) {
           Provider.of<UserInformation>(
             context,
             listen: false,
@@ -105,7 +204,51 @@ class FcmScheduledNotificationService {
   // Cancels the scheduled notification for the given type (deletes Firestore doc).
   // Returns true on success.
   static Future<bool> cancelNotification({
-    required BuildContext context,
+    BuildContext? context,
+    UserInformation? userInformation,
+    required String typeId,
+    Future<String?> Function()? idTokenProvider,
+    NotificationHttpPost? post,
+  }) => _enqueue(
+    () => _cancelNotification(
+      context: context,
+      userInformation: userInformation,
+      typeId: typeId,
+      idTokenProvider: idTokenProvider,
+      post: post,
+    ),
+  );
+
+  static Future<bool> cancelDefaultForReset({
+    required UserInformation userInformation,
+    Future<String?> Function()? idTokenProvider,
+    NotificationHttpPost? post,
+  }) {
+    _legacyMigrationDisabled = true;
+    return _enqueue(
+      () async {
+        try {
+          final cancelled = await _cancelNotification(
+            userInformation: userInformation,
+            typeId: 'default',
+            idTokenProvider: idTokenProvider,
+            post: post,
+          );
+          if (!cancelled) {
+            _legacyMigrationDisabled = false;
+          }
+          return cancelled;
+        } catch (_) {
+          _legacyMigrationDisabled = false;
+          rethrow;
+        }
+      },
+    );
+  }
+
+  static Future<bool> _cancelNotification({
+    BuildContext? context,
+    UserInformation? userInformation,
     required String typeId,
     Future<String?> Function()? idTokenProvider,
     NotificationHttpPost? post,
@@ -127,7 +270,9 @@ class FcmScheduledNotificationService {
 
       if (response.statusCode == 200) {
         _log('Notification cancelled successfully.');
-        if (context.mounted) {
+        if (userInformation != null) {
+          userInformation.clearNotificationPreference(typeId);
+        } else if (context!.mounted) {
           Provider.of<UserInformation>(
             context,
             listen: false,

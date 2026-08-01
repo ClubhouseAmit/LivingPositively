@@ -429,6 +429,12 @@ class _MyAppState extends State<MyApp> with WidgetsBindingObserver {
             setLocale(),
           ])
           .then((_) {
+            if (!mounted) return;
+            unawaited(
+              FcmScheduledNotificationService.migrateLegacyDefaultReminder(
+                userInformation: userInfoProvider,
+              ),
+            );
             //initialize which widget will run first:
             widgetNotifier.value = FirstPage(
               firsttime: !enteredBefore,

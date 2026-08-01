@@ -7,14 +7,24 @@
 //     (lines 386-392)
 //   - Age dropdown onSelected (lines 272-279)
 
+import 'dart:async';
+
 import 'package:flutter/material.dart';
+import 'package:flutter/foundation.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:firebase_auth/firebase_auth.dart';
+import 'package:get_it/get_it.dart';
+import 'package:http/http.dart' as http;
 import 'package:mazilon/pages/SignIn_Pages/firstPage.dart';
 import 'package:mazilon/pages/UserSettings.dart';
 import 'package:mazilon/util/Form/formPagePhoneModel.dart';
+import 'package:mazilon/util/Firebase/fcm_scheduled_notification_service.dart';
+import 'package:mazilon/util/notification_preference.dart';
 import 'package:mazilon/util/userInformation.dart';
+import 'package:mockito/mockito.dart';
 
 import '../helpers/widget_test_scaffold.dart';
+import '../Firebase/firebase_auth_service_test.mocks.dart';
 
 PhonePageData _phone() => PhonePageData(
   key: 'phonePageData',
@@ -30,6 +40,18 @@ PhonePageData _phone() => PhonePageData(
   phoneDescription: const [],
 );
 
+Future<T> _onPlatform<T>(
+  TargetPlatform platform,
+  Future<T> Function() body,
+) async {
+  debugDefaultTargetPlatformOverride = platform;
+  try {
+    return await body();
+  } finally {
+    debugDefaultTargetPlatformOverride = null;
+  }
+}
+
 void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
 
@@ -43,6 +65,7 @@ void main() {
   });
 
   tearDown(() {
+    FcmScheduledNotificationService.resetForTesting();
     resetTestServices();
   });
 
@@ -119,6 +142,148 @@ void main() {
 
       expect(find.byType(Dialog), findsNothing);
       expect(find.byType(UserSettings), findsOneWidget);
+    },
+  );
+
+  testWidgets('does not offer a sign-out action for an authenticated user', (
+    tester,
+  ) async {
+    user.loggedIn = true;
+    await pumpWithProviders(
+      tester,
+      UserSettings(
+        username: 'Keep identity',
+        age: '18-30',
+        gender: 'male',
+        phonePageData: _phone(),
+        changeLocale: (_) {},
+      ),
+      userInformation: user,
+      surfaceSize: const Size(1024, 2800),
+    );
+
+    expect(find.text('Sign Out'), findsNothing);
+  });
+
+  testWidgets(
+    'reset keeps local data and navigation in place when remote cancellation fails',
+    (tester) async {
+      final auth = MockFirebaseAuth();
+      final firebaseUser = MockUser();
+      when(auth.currentUser).thenReturn(firebaseUser);
+      when(firebaseUser.isAnonymous).thenReturn(false);
+      GetIt.instance.registerSingleton<FirebaseAuth>(auth);
+      user.setNotificationPreference(
+        'default',
+        const NotificationPreference(hour: 9, minute: 30),
+      );
+      await pumpWithProviders(
+        tester,
+        UserSettings(
+          username: 'Keep reminder',
+          age: '18-30',
+          gender: 'male',
+          phonePageData: _phone(),
+          changeLocale: (_) {},
+          cancelDefaultReminder: (userInfo) => _onPlatform(
+            TargetPlatform.android,
+            () => FcmScheduledNotificationService.cancelDefaultForReset(
+              userInformation: userInfo,
+              idTokenProvider: () async => 'token-123',
+              post: (url, {headers, body, encoding}) async {
+                return http.Response('failed', 500);
+              },
+            ),
+          ),
+        ),
+        userInformation: user,
+        surfaceSize: const Size(1024, 2800),
+      );
+
+      final pageButtons = find.byType(TextButton);
+      final last = pageButtons.evaluate().last;
+      await tester.ensureVisible(find.byWidget(last.widget));
+      await tester.tap(find.byWidget(last.widget), warnIfMissed: false);
+      await tester.pumpAndSettle();
+
+      final dialogButtons = find.descendant(
+        of: find.byType(Dialog),
+        matching: find.byType(TextButton),
+      );
+      await tester.tap(dialogButtons.last, warnIfMissed: false);
+      await tester.pumpAndSettle();
+
+      expect(find.byType(UserSettings), findsOneWidget);
+      expect(find.byType(FirstPage), findsNothing);
+      expect(user.getNotificationPreference('default'), isNotNull);
+    },
+  );
+
+  testWidgets(
+    'reset cancels the remote reminder and restores authenticated identity',
+    (tester) async {
+      final auth = MockFirebaseAuth();
+      final firebaseUser = MockUser();
+      when(auth.currentUser).thenReturn(firebaseUser);
+      when(firebaseUser.isAnonymous).thenReturn(false);
+      when(firebaseUser.uid).thenReturn('uid-123');
+      when(firebaseUser.email).thenReturn('user@example.com');
+      when(firebaseUser.displayName).thenReturn('Remembered User');
+      GetIt.instance.registerSingleton<FirebaseAuth>(auth);
+      user.setNotificationPreference(
+        'default',
+        const NotificationPreference(hour: 9, minute: 30),
+      );
+      var cancelRequests = 0;
+      final cancellationStarted = Completer<void>();
+
+      await pumpWithProviders(
+        tester,
+        UserSettings(
+          username: 'Reset identity',
+          age: '18-30',
+          gender: 'male',
+          phonePageData: _phone(),
+          changeLocale: (_) {},
+          cancelDefaultReminder: (userInfo) => _onPlatform(
+            TargetPlatform.android,
+            () => FcmScheduledNotificationService.cancelDefaultForReset(
+              userInformation: userInfo,
+              idTokenProvider: () async => 'token-123',
+              post: (url, {headers, body, encoding}) async {
+                cancelRequests++;
+                cancellationStarted.complete();
+                expect(url.path, '/cancelNotification');
+                return http.Response('{}', 200);
+              },
+            ),
+          ),
+        ),
+        userInformation: user,
+        surfaceSize: const Size(1024, 2800),
+      );
+
+      final pageButtons = find.byType(TextButton);
+      final last = pageButtons.evaluate().last;
+      await tester.ensureVisible(find.byWidget(last.widget));
+      await tester.tap(find.byWidget(last.widget), warnIfMissed: false);
+      await tester.pumpAndSettle();
+      final dialogButtons = find.descendant(
+        of: find.byType(Dialog),
+        matching: find.byType(TextButton),
+      );
+      await tester.tap(dialogButtons.last, warnIfMissed: false);
+      await tester.pump();
+      await cancellationStarted.future;
+      await tester.pumpAndSettle();
+
+      expect(cancelRequests, 1);
+      expect(find.byType(FirstPage), findsOneWidget);
+      expect(user.loggedIn, isTrue);
+      expect(user.authDecisionMade, isTrue);
+      expect(user.userId, 'uid-123');
+      expect(user.email, 'user@example.com');
+      expect(user.displayName, 'Remembered User');
     },
   );
 

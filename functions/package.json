@@ -2,7 +2,8 @@
   "name": "functions",
   "scripts": {
     "build": "tsc",
-    "test": "npm run build && node --test lib/notification_validation.test.js",
+    "test": "npm run build && node --test lib/notification_validation.test.js lib/notification_provisioning.test.js lib/scheduled_delivery.test.js",
+    "provision:notifications": "npm run build && node lib/provision_notifications.js",
     "build:watch": "tsc --watch",
     "serve": "npm run build && firebase emulators:start --only functions",
     "shell": "npm run build && firebase functions:shell",

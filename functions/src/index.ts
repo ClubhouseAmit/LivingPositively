@@ -1,4 +1,5 @@
 import * as admin from "firebase-admin";
+import { Buffer } from "node:buffer";
 import { setGlobalOptions } from "firebase-functions";
 import { onRequest, Request } from "firebase-functions/https";
 import { onSchedule } from "firebase-functions/scheduler";
@@ -20,6 +21,31 @@ type StaticNotificationType = {
   staticBody: string;
 };
 type ValidNotificationType = DynamicNotificationType | StaticNotificationType;
+export type IsraelLocalDeliveryCandidate = {
+  localDate: string;
+  intendedTime: string;
+  hour: number;
+  minute: number;
+  intendedAt: Date;
+};
+type FcmMessage = {
+  token: string;
+  notification: { title: string; body: string };
+  data: Record<string, string>;
+};
+export type ScheduledDeliveryWriter = {
+  create(data: Record<string, unknown>): Promise<unknown>;
+  update(data: Record<string, unknown>): Promise<unknown>;
+};
+export type ScheduledDelivery = {
+  uid: string;
+  typeId: string;
+  localDate: string;
+  intendedTime: string;
+  intendedAt: Date;
+  message: FcmMessage;
+};
+type ScheduledDeliveryResult = "sent" | "failed" | "alreadyClaimed";
 
 export function isValidNotificationTypeId(
   value: unknown,
@@ -58,6 +84,121 @@ export function hasValidNotificationTypeSchema(
     );
   }
   return false;
+}
+
+export function buildNotificationDeliveryKey(
+  uid: string,
+  typeId: string,
+  localDate: string,
+  intendedTime: string,
+): string {
+  return Buffer.from(
+    JSON.stringify([uid, typeId, localDate, intendedTime]),
+    "utf8",
+  ).toString("base64url");
+}
+
+export function israelLocalDeliveryCandidates(
+  scheduleTime: Date,
+): IsraelLocalDeliveryCandidate[] {
+  const dateFormatter = new Intl.DateTimeFormat("en-CA", {
+    timeZone: "Asia/Jerusalem",
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+  });
+  const timeFormatter = new Intl.DateTimeFormat("en-GB", {
+    timeZone: "Asia/Jerusalem",
+    hour: "2-digit",
+    minute: "2-digit",
+    hourCycle: "h23",
+  });
+
+  return Array.from({ length: 121 }, (_, minuteOffset) => {
+    const intendedAt = new Date(scheduleTime.getTime() - minuteOffset * 60_000);
+    const dateParts = dateFormatter.formatToParts(intendedAt);
+    const timeParts = timeFormatter.formatToParts(intendedAt);
+    const year = dateParts.find((part) => part.type === "year")?.value;
+    const month = dateParts.find((part) => part.type === "month")?.value;
+    const day = dateParts.find((part) => part.type === "day")?.value;
+    const hour = timeParts.find((part) => part.type === "hour")?.value;
+    const minute = timeParts.find((part) => part.type === "minute")?.value;
+
+    if (!year || !month || !day || !hour || !minute) {
+      throw new Error("Could not derive Israel-local delivery time");
+    }
+
+    return {
+      localDate: `${year}-${month}-${day}`,
+      intendedTime: `${hour}:${minute}`,
+      hour: Number(hour),
+      minute: Number(minute),
+      intendedAt,
+    };
+  });
+}
+
+function isAlreadyClaimedError(error: unknown): boolean {
+  if (error === null || typeof error !== "object") return false;
+  const code = (error as { code?: unknown }).code;
+  return code === 6 || code === "already-exists";
+}
+
+function failureCode(error: unknown): string {
+  if (error !== null && typeof error === "object") {
+    const errorInfoCode = (error as { errorInfo?: { code?: unknown } })
+      .errorInfo?.code;
+    if (typeof errorInfoCode === "string") return errorInfoCode;
+    const code = (error as { code?: unknown }).code;
+    if (typeof code === "string") return code;
+  }
+  return "unknown";
+}
+
+export async function claimAndSendScheduledDelivery(
+  delivery: ScheduledDelivery,
+  writer: ScheduledDeliveryWriter,
+  send: (message: FcmMessage) => Promise<string>,
+): Promise<ScheduledDeliveryResult> {
+  const deliveryKey = buildNotificationDeliveryKey(
+    delivery.uid,
+    delivery.typeId,
+    delivery.localDate,
+    delivery.intendedTime,
+  );
+  const claimedAt = new Date();
+  try {
+    await writer.create({
+      deliveryKey,
+      uid: delivery.uid,
+      typeId: delivery.typeId,
+      localDate: delivery.localDate,
+      intendedTime: delivery.intendedTime,
+      status: "claimed",
+      claimedAt,
+      attemptStartedAt: claimedAt,
+      expiresAt: new Date(delivery.intendedAt.getTime() + 86_400_000),
+    });
+  } catch (error: unknown) {
+    return isAlreadyClaimedError(error) ? "alreadyClaimed" : "failed";
+  }
+
+  try {
+    const messageId = await send(delivery.message);
+    await writer.update({
+      status: "sent",
+      attemptFinishedAt: new Date(),
+      messageId,
+    });
+    return "sent";
+  } catch (error: unknown) {
+    await writer.update({
+      status: "failed",
+      attemptFinishedAt: new Date(),
+      failureCode: failureCode(error),
+    });
+    return "failed";
+  }
 }
 
 // ---------------------------------------------------------------------------
@@ -226,33 +367,37 @@ export const processScheduledNotifications = onSchedule(
   async (event) => {
     // --- Query phase ---
     const scheduleTime = new Date(event.scheduleTime);
-    const timeParts = new Intl.DateTimeFormat("en-GB", {
-      timeZone: "Asia/Jerusalem",
-      hour: "2-digit",
-      minute: "2-digit",
-      hourCycle: "h23",
-    }).formatToParts(scheduleTime);
-    const localHour = Number(
-      timeParts.find((part) => part.type === "hour")?.value,
+    const deliveryCandidates = israelLocalDeliveryCandidates(scheduleTime);
+    const candidatesByTime = new Map(
+      deliveryCandidates.map((candidate) => [
+        `${candidate.hour}:${candidate.minute}`,
+        candidate,
+      ]),
     );
-    const localMinute = Number(
-      timeParts.find((part) => part.type === "minute")?.value,
-    );
+    const candidateHours = [
+      ...new Set(deliveryCandidates.map((candidate) => candidate.hour)),
+    ];
 
     const snapshot = await admin
       .firestore()
       .collection("scheduled_notifications")
-      .where("hour", "==", localHour)
-      .where("minute", "==", localMinute)
+      .where("hour", "in", candidateHours)
       .get();
 
-    if (snapshot.empty) return;
+    const scheduledCandidates = snapshot.docs.flatMap((doc) => {
+      const { hour, minute } = doc.data();
+      if (!Number.isInteger(hour) || !Number.isInteger(minute)) return [];
+      const candidate = candidatesByTime.get(`${hour}:${minute}`);
+      return candidate ? [{ doc, candidate }] : [];
+    });
+
+    if (scheduledCandidates.length === 0) return;
 
     // --- Pre-fetch phase ---
 
     // Collect unique typeIds and all locales present per typeId
     const localesByTypeId = new Map<string, Set<string>>();
-    for (const doc of snapshot.docs) {
+    for (const { doc } of scheduledCandidates) {
       const { typeId, locale } = doc.data();
       if (
         !isValidNotificationTypeId(typeId) ||
@@ -311,8 +456,8 @@ export const processScheduledNotifications = onSchedule(
 
     const uniqueUids = [
       ...new Set(
-        snapshot.docs
-          .map((d) => d.data().uid)
+        scheduledCandidates
+          .map(({ doc }) => doc.data().uid)
           .filter(
             (uid): uid is string =>
               typeof uid === "string" && uid.length > 0,
@@ -331,9 +476,9 @@ export const processScheduledNotifications = onSchedule(
     // --- Build send list, collecting stale UIDs for deferred cleanup ---
 
     const staleUids: string[] = [];
-    const sendTasks: Array<() => Promise<"success" | "failure">> = [];
+    const sendTasks: Array<() => Promise<ScheduledDeliveryResult>> = [];
 
-    for (const doc of snapshot.docs) {
+    for (const { doc, candidate } of scheduledCandidates) {
       const { uid, typeId, locale, gender } = doc.data();
       if (
         typeof uid !== "string" ||
@@ -395,21 +540,49 @@ export const processScheduledNotifications = onSchedule(
         body = typeData.staticBody;
       }
 
-      sendTasks.push(async () => {
-        try {
-          await admin
-            .messaging()
-            .send({ token: fcmToken, notification: { title, body } });
-          return "success";
-        } catch (err: any) {
-          if (
-            err?.errorInfo?.code === "messaging/registration-token-not-registered"
-          ) {
-            await clearFCMToken(uid);
-          }
-          return "failure";
-        }
-      });
+      const deliveryKey = buildNotificationDeliveryKey(
+        uid,
+        typeId,
+        candidate.localDate,
+        candidate.intendedTime,
+      );
+      const deliveryRef = admin
+        .firestore()
+        .collection("notification_deliveries")
+        .doc(deliveryKey);
+      sendTasks.push(() =>
+        claimAndSendScheduledDelivery(
+          {
+            uid,
+            typeId,
+            localDate: candidate.localDate,
+            intendedTime: candidate.intendedTime,
+            intendedAt: candidate.intendedAt,
+            message: {
+              token: fcmToken,
+              notification: { title, body },
+              data: { deliveryKey },
+            },
+          },
+          {
+            create: (data) => deliveryRef.create(data),
+            update: (data) => deliveryRef.update(data),
+          },
+          async (message) => {
+            try {
+              return await admin.messaging().send(message);
+            } catch (error: unknown) {
+              if (
+                failureCode(error) ===
+                "messaging/registration-token-not-registered"
+              ) {
+                await clearFCMToken(uid);
+              }
+              throw error;
+            }
+          },
+        ),
+      );
     }
 
     // --- Send phase (parallel) ---
@@ -417,9 +590,12 @@ export const processScheduledNotifications = onSchedule(
     const results = await Promise.allSettled(sendTasks.map((t) => t()));
     let successCount = 0;
     let failureCount = 0;
+    let alreadyClaimedCount = 0;
     for (const r of results) {
-      if (r.status === "fulfilled" && r.value === "success") successCount++;
-      else failureCount++;
+      if (r.status === "fulfilled" && r.value === "sent") successCount++;
+      else if (r.status === "fulfilled" && r.value === "alreadyClaimed") {
+        alreadyClaimedCount++;
+      } else failureCount++;
     }
 
     // --- Stale device cleanup (batched, after sends) ---
@@ -432,7 +608,7 @@ export const processScheduledNotifications = onSchedule(
     }
 
     console.log(
-      `processScheduledNotifications: sent=${successCount}, failed=${failureCount}`,
+      `processScheduledNotifications: sent=${successCount}, failed=${failureCount}, alreadyClaimed=${alreadyClaimedCount}`,
     );
   },
 );

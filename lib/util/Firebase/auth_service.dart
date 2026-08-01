@@ -54,10 +54,6 @@ class AuthService {
     return FirebaseAuth.instance.sendPasswordResetEmail(email: email.trim());
   }
 
-  static Future<void> signOut() {
-    return FirebaseAuth.instance.signOut();
-  }
-
   // Called after any successful sign-in to persist the user in Firestore.
   //Saving the user data in our own managed part of FireStore
   static Future<void> saveUserToFirestore(User user) async {
