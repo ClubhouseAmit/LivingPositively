@@ -82,8 +82,13 @@ configured.
 3. Configure Firestore TTL for
    `notification_deliveries.expiresAt` outside this repository. No TTL policy
    is provisioned or assumed here.
-4. Perform the appropriate manual emulator, physical-device, and production
+4. Inventory any production schedules and `devices` documents created with
+   legacy UUID identifiers. The repository contains no verified mapping from
+   those identifiers to Firebase UIDs, so decide whether to migrate that data
+   with an approved ownership mapping or retire it explicitly before relying
+   on UID-keyed delivery.
+5. Perform the appropriate manual emulator, physical-device, and production
    validation: authenticated registration/cancellation, token refresh,
    delayed scheduler delivery, duplicate-claim suppression, failure handling,
    and reset/migration behavior.
-5. Resolve and merge this stacked change through the parent/stacked PR flow.
+6. Resolve and merge this stacked change through the parent/stacked PR flow.
