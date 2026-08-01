@@ -107,7 +107,11 @@ void main() {
     await pumpWithProviders(
       tester,
       PersonalPlanWidget(
-        text: planText(const <String>['First item', 'Second item']),
+        text: planText(const <String>[
+          'First item',
+          'Second item',
+          'Third item',
+        ]),
         changeCurrentIndex: (_, _) {},
       ),
       surfaceSize: const Size(700, 1200),
@@ -163,6 +167,18 @@ void main() {
     await pumpWithProviders(
       tester,
       PersonalPlanWidget(
+        text: planText(const <String>['First item', 'Second item']),
+        changeCurrentIndex: (_, _) {},
+      ),
+      surfaceSize: const Size(700, 1200),
+    );
+
+    expect(tester.widget<IconButton>(refresh).onPressed, isNull);
+    expect(_previewItemTexts(tester), hasLength(2));
+
+    await pumpWithProviders(
+      tester,
+      PersonalPlanWidget(
         text: planText(const <String>['Repeated item', 'Repeated item']),
         changeCurrentIndex: (_, _) {},
       ),
@@ -203,7 +219,7 @@ void main() {
     );
   });
 
-  testWidgets('refresh swaps a two-item preview', (tester) async {
+  testWidgets('refresh is disabled for a two-item preview', (tester) async {
     await pumpWithProviders(
       tester,
       PersonalPlanWidget(
@@ -214,11 +230,13 @@ void main() {
       ignoreOverflow: false,
     );
 
+    final refresh = find.byKey(const Key('personalPlanHeaderRefresh'));
     final before = _previewItemTexts(tester);
-    await tester.tap(find.byKey(const Key('personalPlanHeaderRefresh')));
+    expect(tester.widget<IconButton>(refresh).onPressed, isNull);
+    await tester.tap(refresh);
     await tester.pump();
 
-    expect(_previewItemTexts(tester), before.reversed.toList());
+    expect(_previewItemTexts(tester), before);
     expect(tester.takeException(), isNull);
   });
 

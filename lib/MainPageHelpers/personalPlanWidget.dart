@@ -128,12 +128,8 @@ class _PersonalPlanWidgetState extends LPExtendedState<PersonalPlanWidget> {
   }
 
   bool _hasAlternativeVisiblePreview(List<String> items) {
-    if (items.length < 2 || _selectedIndexes.length != 2) {
+    if (items.length <= 2 || _selectedIndexes.length != 2) {
       return false;
-    }
-
-    if (items.length == 2) {
-      return randomItems.length == 2 && randomItems.first != randomItems.last;
     }
 
     return _previewCandidates(items).any(
