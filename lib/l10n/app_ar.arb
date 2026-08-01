@@ -394,6 +394,7 @@
   "addItemTooltip": "إضافة",
   "downloadPlanTooltip": "تنزيل الخطة",
   "sharePlanTooltip": "مشاركة الخطة",
+  "refreshPersonalPlanTooltip": "تحديث الخطة الشخصية",
   "refreshQuoteTooltip": "اقتباس جديد",
   "dismissQuoteTooltip": "إغلاق الاقتباس",
   "callContactTooltip": "الاتصال بـ {contact}",

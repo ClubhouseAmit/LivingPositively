@@ -33,27 +33,114 @@ class PersonalPlanWidget extends StatefulWidget {
 
 class _PersonalPlanWidgetState extends LPExtendedState<PersonalPlanWidget> {
   late FileService fileService;
-  late List<String> randomItems = ['1', '2'];
+  final Random _random = Random();
+  List<int> _selectedIndexes = <int>[];
+  List<String> randomItems = <String>[];
   List<String> feelBetter = [];
-  void loadFeelBetter() {
-    var random = Random();
-    var index1 = 0;
-    var index2 = 0;
+
+  void loadFeelBetter({bool avoidCurrentSelection = false}) {
     final items = List<String>.from(widget.text['list'] ?? const <String>[]);
-    // taking two random items from the list of the feel better answers or other question
-    // that user filled in the form
-    if (items.length >= 2) {
-      index1 = random.nextInt(items.length);
-      do {
-        index2 = random.nextInt(items.length);
-      } while (index1 == index2);
-      randomItems = [items[index1], items[index2]];
-    } else if (items.length == 1) {
-      index1 = 0;
-      randomItems = [items[index1]];
+    final previousIndexes = _selectedIndexes;
+
+    if (items.length < 2) {
+      _selectedIndexes = List<int>.generate(items.length, (index) => index);
+    } else if (items.length == 2 &&
+        avoidCurrentSelection &&
+        previousIndexes.length == 2) {
+      _selectedIndexes = previousIndexes.reversed.toList();
     } else {
-      randomItems = [];
+      _selectedIndexes = _selectPreviewIndexes(
+        items,
+        previousIndexes,
+        avoidCurrentSelection: avoidCurrentSelection,
+      );
     }
+
+    randomItems = _selectedIndexes.map((index) => items[index]).toList();
+  }
+
+  List<List<int>> _previewCandidates(List<String> items) {
+    return <List<int>>[
+      for (var firstIndex = 0; firstIndex < items.length - 1; firstIndex++)
+        for (
+          var secondIndex = firstIndex + 1;
+          secondIndex < items.length;
+          secondIndex++
+        )
+          <int>[firstIndex, secondIndex],
+    ];
+  }
+
+  List<int> _selectPreviewIndexes(
+    List<String> items,
+    List<int> previousIndexes, {
+    required bool avoidCurrentSelection,
+  }) {
+    final candidates = _previewCandidates(items);
+    var availableCandidates = candidates;
+
+    if (avoidCurrentSelection && previousIndexes.length == 2) {
+      final visiblyDifferentCandidates = candidates
+          .where(
+            (candidate) =>
+                !_hasSameVisibleItems(candidate, previousIndexes, items),
+          )
+          .toList();
+      availableCandidates = visiblyDifferentCandidates.isNotEmpty
+          ? visiblyDifferentCandidates
+          : candidates
+                .where(
+                  (candidate) =>
+                      !_hasSameSelectedIndexes(candidate, previousIndexes),
+                )
+                .toList();
+    }
+
+    final selectedIndexes = List<int>.from(
+      availableCandidates[_random.nextInt(availableCandidates.length)],
+    )..shuffle(_random);
+    return selectedIndexes;
+  }
+
+  bool _hasSameSelectedIndexes(List<int> indexes, List<int> previousIndexes) {
+    return indexes.length == previousIndexes.length &&
+        indexes.every(previousIndexes.contains);
+  }
+
+  bool _hasSameVisibleItems(
+    List<int> indexes,
+    List<int> previousIndexes,
+    List<String> items,
+  ) {
+    if (indexes.length != previousIndexes.length) {
+      return false;
+    }
+
+    final visibleItems = indexes.map((index) => items[index]).toList()..sort();
+    final previousItems = previousIndexes.map((index) => items[index]).toList()
+      ..sort();
+    for (var index = 0; index < visibleItems.length; index++) {
+      if (visibleItems[index] != previousItems[index]) {
+        return false;
+      }
+    }
+    return true;
+  }
+
+  bool _hasAlternativeVisiblePreview(List<String> items) {
+    if (items.length <= 2 || _selectedIndexes.length != 2) {
+      return false;
+    }
+
+    return _previewCandidates(items).any(
+      (candidate) => !_hasSameVisibleItems(candidate, _selectedIndexes, items),
+    );
+  }
+
+  void _refreshPersonalPlanPreview() {
+    setState(() {
+      loadFeelBetter(avoidCurrentSelection: true);
+    });
   }
 
   @override
@@ -78,14 +165,18 @@ class _PersonalPlanWidgetState extends LPExtendedState<PersonalPlanWidget> {
   ) {
     const controlSlotSize = 48.0;
     final textDirection = Directionality.of(context);
-    final controlColor = Theme.of(context).colorScheme.onSurface;
+    final theme = Theme.of(context);
+    final controlColor = theme.colorScheme.onSurface;
+    final refreshColor = theme.colorScheme.outline;
+    final items = List<String>.from(widget.text['list'] ?? const <String>[]);
+    final canRefresh = _hasAlternativeVisiblePreview(items);
     final subHeader = widget.text['SubTitle'] as String? ?? '';
 
     return LayoutBuilder(
       builder: (context, constraints) {
         final titleMaxWidth = max(
           0.0,
-          constraints.maxWidth - controlSlotSize * 3,
+          constraints.maxWidth - controlSlotSize * 4,
         );
 
         return Column(
@@ -128,9 +219,27 @@ class _PersonalPlanWidgetState extends LPExtendedState<PersonalPlanWidget> {
                 ),
                 Expanded(
                   child: Row(
+                    key: const Key('personalPlanHeaderActions'),
                     textDirection: textDirection,
-                    mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                    mainAxisAlignment: MainAxisAlignment.end,
                     children: [
+                      Tooltip(
+                        message: appLocale.refreshPersonalPlanTooltip,
+                        child: IconButton(
+                          key: const Key('personalPlanHeaderRefresh'),
+                          constraints: const BoxConstraints.tightFor(
+                            width: controlSlotSize,
+                            height: controlSlotSize,
+                          ),
+                          padding: EdgeInsets.zero,
+                          color: refreshColor,
+                          disabledColor: theme.disabledColor,
+                          onPressed: canRefresh
+                              ? _refreshPersonalPlanPreview
+                              : null,
+                          icon: Icon(Icons.refresh, size: min(35.sp, 40)),
+                        ),
+                      ),
                       Tooltip(
                         message: appLocale.downloadPlanTooltip,
                         child: IconButton(

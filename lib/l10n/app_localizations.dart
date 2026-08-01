@@ -2188,6 +2188,12 @@ abstract class AppLocalizations {
   /// **'Share plan'**
   String get sharePlanTooltip;
 
+  /// Tooltip / TalkBack label for the icon-only refresh button on the personal plan widget
+  ///
+  /// In en, this message translates to:
+  /// **'Refresh personal plan'**
+  String get refreshPersonalPlanTooltip;
+
   /// Tooltip / TalkBack label for the icon-only refresh button on the inspirational quote widget
   ///
   /// In en, this message translates to:

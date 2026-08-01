@@ -3130,6 +3130,9 @@ class AppLocalizationsEn extends AppLocalizations {
   String get sharePlanTooltip => 'Share plan';
 
   @override
+  String get refreshPersonalPlanTooltip => 'Refresh personal plan';
+
+  @override
   String get refreshQuoteTooltip => 'New quote';
 
   @override

@@ -3102,6 +3102,9 @@ class AppLocalizationsAr extends AppLocalizations {
   String get sharePlanTooltip => 'مشاركة الخطة';
 
   @override
+  String get refreshPersonalPlanTooltip => 'تحديث الخطة الشخصية';
+
+  @override
   String get refreshQuoteTooltip => 'اقتباس جديد';
 
   @override
