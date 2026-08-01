@@ -59,12 +59,8 @@ class _PersonalPlanWidgetState extends LPExtendedState<PersonalPlanWidget> {
     randomItems = _selectedIndexes.map((index) => items[index]).toList();
   }
 
-  List<int> _selectPreviewIndexes(
-    List<String> items,
-    List<int> previousIndexes, {
-    required bool avoidCurrentSelection,
-  }) {
-    final candidates = <List<int>>[
+  List<List<int>> _previewCandidates(List<String> items) {
+    return <List<int>>[
       for (var firstIndex = 0; firstIndex < items.length - 1; firstIndex++)
         for (
           var secondIndex = firstIndex + 1;
@@ -73,6 +69,14 @@ class _PersonalPlanWidgetState extends LPExtendedState<PersonalPlanWidget> {
         )
           <int>[firstIndex, secondIndex],
     ];
+  }
+
+  List<int> _selectPreviewIndexes(
+    List<String> items,
+    List<int> previousIndexes, {
+    required bool avoidCurrentSelection,
+  }) {
+    final candidates = _previewCandidates(items);
     var availableCandidates = candidates;
 
     if (avoidCurrentSelection && previousIndexes.length == 2) {
@@ -123,6 +127,20 @@ class _PersonalPlanWidgetState extends LPExtendedState<PersonalPlanWidget> {
     return true;
   }
 
+  bool _hasAlternativeVisiblePreview(List<String> items) {
+    if (items.length < 2 || _selectedIndexes.length != 2) {
+      return false;
+    }
+
+    if (items.length == 2) {
+      return randomItems.length == 2 && randomItems.first != randomItems.last;
+    }
+
+    return _previewCandidates(items).any(
+      (candidate) => !_hasSameVisibleItems(candidate, _selectedIndexes, items),
+    );
+  }
+
   void _refreshPersonalPlanPreview() {
     setState(() {
       loadFeelBetter(avoidCurrentSelection: true);
@@ -151,10 +169,11 @@ class _PersonalPlanWidgetState extends LPExtendedState<PersonalPlanWidget> {
   ) {
     const controlSlotSize = 48.0;
     final textDirection = Directionality.of(context);
-    final controlColor = Theme.of(context).colorScheme.onSurface;
-    final refreshColor = Theme.of(context).colorScheme.outline;
-    final canRefresh =
-        List<String>.from(widget.text['list'] ?? const <String>[]).length >= 2;
+    final theme = Theme.of(context);
+    final controlColor = theme.colorScheme.onSurface;
+    final refreshColor = theme.colorScheme.outline;
+    final items = List<String>.from(widget.text['list'] ?? const <String>[]);
+    final canRefresh = _hasAlternativeVisiblePreview(items);
     final subHeader = widget.text['SubTitle'] as String? ?? '';
 
     return LayoutBuilder(
@@ -217,14 +236,12 @@ class _PersonalPlanWidgetState extends LPExtendedState<PersonalPlanWidget> {
                             height: controlSlotSize,
                           ),
                           padding: EdgeInsets.zero,
+                          color: refreshColor,
+                          disabledColor: theme.disabledColor,
                           onPressed: canRefresh
                               ? _refreshPersonalPlanPreview
                               : null,
-                          icon: Icon(
-                            Icons.refresh,
-                            color: refreshColor,
-                            size: min(35.sp, 40),
-                          ),
+                          icon: Icon(Icons.refresh, size: min(35.sp, 40)),
                         ),
                       ),
                       Tooltip(

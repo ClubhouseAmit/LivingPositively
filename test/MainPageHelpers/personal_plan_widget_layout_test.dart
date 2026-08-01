@@ -116,12 +116,18 @@ void main() {
     final refresh = find.byKey(const Key('personalPlanHeaderRefresh'));
     expect(refresh, findsOneWidget);
     expect(find.byTooltip('Refresh personal plan'), findsOneWidget);
-    expect(tester.widget<IconButton>(refresh).onPressed, isNotNull);
+    final button = tester.widget<IconButton>(refresh);
+    expect(button.onPressed, isNotNull);
+    expect(button.color, Theme.of(tester.element(refresh)).colorScheme.outline);
+    expect(
+      button.disabledColor,
+      Theme.of(tester.element(refresh)).disabledColor,
+    );
 
     final icon = tester.widget<Icon>(
       find.descendant(of: refresh, matching: find.byIcon(Icons.refresh)),
     );
-    expect(icon.color, Theme.of(tester.element(refresh)).colorScheme.outline);
+    expect(icon.color, isNull);
     expect(icon.size, min(35.sp, 40));
   });
 
@@ -153,6 +159,48 @@ void main() {
 
     expect(tester.widget<IconButton>(refresh).onPressed, isNull);
     expect(_previewItemTexts(tester), <String>['Only item']);
+
+    await pumpWithProviders(
+      tester,
+      PersonalPlanWidget(
+        text: planText(const <String>['Repeated item', 'Repeated item']),
+        changeCurrentIndex: (_, _) {},
+      ),
+      surfaceSize: const Size(700, 1200),
+    );
+
+    expect(tester.widget<IconButton>(refresh).onPressed, isNull);
+    expect(_previewItemTexts(tester), <String>[
+      'Repeated item',
+      'Repeated item',
+    ]);
+
+    await pumpWithProviders(
+      tester,
+      PersonalPlanWidget(
+        text: planText(const <String>[
+          'Repeated item',
+          'Repeated item',
+          'Repeated item',
+        ]),
+        changeCurrentIndex: (_, _) {},
+      ),
+      surfaceSize: const Size(700, 1200),
+    );
+
+    expect(tester.widget<IconButton>(refresh).onPressed, isNull);
+    expect(_previewItemTexts(tester), <String>[
+      'Repeated item',
+      'Repeated item',
+    ]);
+    final disabledIcon = find.descendant(
+      of: refresh,
+      matching: find.byIcon(Icons.refresh),
+    );
+    expect(
+      IconTheme.of(tester.element(disabledIcon)).color,
+      Theme.of(tester.element(refresh)).disabledColor,
+    );
   });
 
   testWidgets('refresh swaps a two-item preview', (tester) async {
@@ -216,6 +264,14 @@ void main() {
     );
 
     final before = _previewItemTexts(tester)..sort();
+    expect(
+      tester
+          .widget<IconButton>(
+            find.byKey(const Key('personalPlanHeaderRefresh')),
+          )
+          .onPressed,
+      isNotNull,
+    );
     await tester.tap(find.byKey(const Key('personalPlanHeaderRefresh')));
     await tester.pump();
     final after = _previewItemTexts(tester)..sort();
