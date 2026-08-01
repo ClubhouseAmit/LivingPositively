@@ -10,7 +10,6 @@ import 'package:mazilon/util/SignIn/popup_toast.dart';
 
 import 'package:mazilon/util/personalPlanItem.dart';
 import 'package:mazilon/util/styles.dart';
-import 'package:mazilon/util/HomePage/sectionBarHome.dart';
 
 import 'dart:math';
 import 'package:mazilon/util/appInformation.dart';
@@ -72,6 +71,163 @@ class _PersonalPlanWidgetState extends LPExtendedState<PersonalPlanWidget> {
     }
   }
 
+  Widget _buildPersonalPlanHeader(
+    BuildContext context,
+    AppInformation appInfoProvider,
+    String gender,
+  ) {
+    const controlSlotSize = 48.0;
+    final textDirection = Directionality.of(context);
+    final controlColor = Theme.of(context).colorScheme.onSurface;
+    final subHeader = widget.text['SubTitle'] as String? ?? '';
+
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        final titleMaxWidth = max(
+          0.0,
+          constraints.maxWidth - controlSlotSize * 3,
+        );
+
+        return Column(
+          key: const Key('personalPlanHeader'),
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              textDirection: textDirection,
+              children: [
+                ConstrainedBox(
+                  constraints: BoxConstraints(maxWidth: titleMaxWidth),
+                  child: TextButton(
+                    key: const Key('personalPlanHeaderTitle'),
+                    style: TextButton.styleFrom(
+                      padding: const EdgeInsets.symmetric(horizontal: 4),
+                      minimumSize: Size.zero,
+                    ),
+                    onPressed: () {
+                      widget.changeCurrentIndex(context, PagesCode.FullPlan);
+                    },
+                    child: myAutoSizedText(
+                      appLocale.personalPlanPageMyPlan(gender),
+                      TextStyle(
+                        fontSize: 24.sp,
+                        fontWeight: FontWeight.bold,
+                        color: controlColor,
+                      ),
+                      null,
+                      40,
+                    ),
+                  ),
+                ),
+                SizedBox(
+                  key: const Key('personalPlanHeaderDocument'),
+                  width: controlSlotSize,
+                  height: controlSlotSize,
+                  child: Center(
+                    child: Icon(Icons.note_add, color: controlColor, size: 30),
+                  ),
+                ),
+                Expanded(
+                  child: Row(
+                    textDirection: textDirection,
+                    mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                    children: [
+                      Tooltip(
+                        message: appLocale.downloadPlanTooltip,
+                        child: IconButton(
+                          key: const Key('personalPlanHeaderDownload'),
+                          constraints: const BoxConstraints.tightFor(
+                            width: controlSlotSize,
+                            height: controlSlotSize,
+                          ),
+                          padding: EdgeInsets.zero,
+                          onPressed: () async {
+                            final result = await fileService.download(
+                              [
+                                appLocale.difficultEventsHeader(gender),
+                                appLocale.makeSaferHeader(gender),
+                                appLocale.feelBetterHeader(gender),
+                                appLocale.distractionsHeader(gender),
+                                appLocale.phonesPageHeader(gender),
+                              ],
+                              [
+                                appLocale.difficultEventsSubTitle(gender),
+                                appLocale.makeSaferSubTitle(gender),
+                                appLocale.feelBetterSubTitle(gender),
+                                appLocale.distractionsSubTitle(gender),
+                                appLocale.phonesPageSubTitle(gender),
+                              ],
+                              appInfoProvider.sharePDFtexts,
+                              ShareFileType.PDF,
+                              appLocale.textDirection,
+                            );
+                            if (result == null) {
+                              showToast(
+                                message: appLocale.downloadFailed(gender),
+                              );
+                              return;
+                            }
+                            showToast(
+                              message: appLocale.finishedDownloading(gender),
+                            );
+                          },
+                          icon: Icon(
+                            Icons.download,
+                            color: controlColor,
+                            size: 30,
+                          ),
+                        ),
+                      ),
+                      Tooltip(
+                        message: appLocale.sharePlanTooltip,
+                        child: IconButton(
+                          key: const Key('personalPlanHeaderShare'),
+                          constraints: const BoxConstraints.tightFor(
+                            width: controlSlotSize,
+                            height: controlSlotSize,
+                          ),
+                          padding: EdgeInsets.zero,
+                          onPressed: () {
+                            showShareDialog(context);
+                          },
+                          icon: Transform.scale(
+                            key: const Key('personalPlanHeaderShareTransform'),
+                            alignment: Alignment.center,
+                            scaleX: textDirection == TextDirection.rtl ? -1 : 1,
+                            child: Icon(
+                              Elusive.share,
+                              color: controlColor,
+                              size: 30,
+                            ),
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ],
+            ),
+            if (subHeader.isNotEmpty)
+              Padding(
+                padding: const EdgeInsetsDirectional.only(start: 5, end: 18.0),
+                child: myAutoSizedText(
+                  subHeader,
+                  TextStyle(
+                    fontWeight: FontWeight.bold,
+                    fontSize: 14.sp,
+                    color: Theme.of(context).colorScheme.outline,
+                  ),
+                  textDirection == TextDirection.rtl
+                      ? TextAlign.right
+                      : TextAlign.left,
+                  30,
+                ),
+              ),
+          ],
+        );
+      },
+    );
+  }
+
   // the build function of the personal plan widget
   @override
   Widget build(BuildContext context) {
@@ -88,83 +244,7 @@ class _PersonalPlanWidgetState extends LPExtendedState<PersonalPlanWidget> {
         padding: const EdgeInsets.only(bottom: 8.0),
         child: Column(
           children: [
-            // the section bar of the personal plan section in the home page,
-            // with the title of the section and the icon of the section , and share and download buttons
-            // and the sub title of the section, when the user presses the section bar,
-            // it will take him to the personal plan page
-            SectionBarHome(
-              textWidget: TextButton(
-                style: TextButton.styleFrom(
-                  padding: const EdgeInsets.symmetric(horizontal: 4),
-                  minimumSize: Size.zero,
-                ),
-                onPressed: () {
-                  widget.changeCurrentIndex(context, PagesCode.FullPlan);
-                },
-                // the title of the personal plan section in the home page
-                child: myAutoSizedText(
-                  appLocale.personalPlanPageMyPlan(gender),
-                  TextStyle(
-                    fontSize: 24.sp, // the font size of the title
-                    fontWeight: FontWeight.bold,
-                    color: Theme.of(
-                      context,
-                    ).colorScheme.onSurface, // the color of the title
-                  ),
-                  null,
-                  40,
-                ),
-              ),
-              icon: Icons.note_add, // the icon of the personal plan section
-              icons: [
-                // the share and download buttons
-                myTextButton(
-                  () async {
-                    showShareDialog(context);
-                    return;
-                  },
-                  Elusive.share,
-                  Theme.of(context).colorScheme.onSurface,
-                  tooltip: appLocale.sharePlanTooltip,
-                ),
-                myTextButton(
-                  () async {
-                    // the function to download the pdf file of the personal plan
-                    var result = await fileService.download(
-                      [
-                        appLocale.difficultEventsHeader(gender),
-                        appLocale.makeSaferHeader(gender),
-                        appLocale.feelBetterHeader(gender),
-                        appLocale.distractionsHeader(gender),
-                        appLocale.phonesPageHeader(gender),
-                      ],
-                      [
-                        appLocale.difficultEventsSubTitle(gender),
-                        appLocale.makeSaferSubTitle(gender),
-                        appLocale.feelBetterSubTitle(gender),
-                        appLocale.distractionsSubTitle(gender),
-                        appLocale.phonesPageHeader(gender),
-                      ],
-                      appInfoProvider.sharePDFtexts,
-                      ShareFileType.PDF,
-                      appLocale.textDirection,
-                    );
-                    if (result == null) {
-                      // Show him a message
-                      showToast(message: appLocale.downloadFailed(gender));
-                      return;
-                    }
-                    // Show a toast message to the user
-                    showToast(message: appLocale.finishedDownloading(gender));
-                  },
-                  Icons.download,
-                  Theme.of(context).colorScheme.onSurface,
-                  tooltip: appLocale.downloadPlanTooltip,
-                ), // the download icon
-              ],
-              // the sub title of the personal plan section in the home page
-              subHeader: widget.text['SubTitle'],
-            ),
+            _buildPersonalPlanHeader(context, appInfoProvider, gender),
             LayoutBuilder(
               builder: (context, constraints) {
                 final twoColumn = constraints.maxWidth >= 520;
