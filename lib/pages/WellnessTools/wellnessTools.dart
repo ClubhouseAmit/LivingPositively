@@ -75,7 +75,7 @@ class _WellnessToolsState extends LPExtendedState<WellnessTools> {
   Widget _videoDataFallback() {
     return Center(
       child: Padding(
-        padding: const EdgeInsets.all(24),
+        padding: const EdgeInsets.all(Spacing.lg),
         child: Text(
           appLocale.wellnessVideoDataUnavailableMessage,
           style: TextStyle(fontSize: 18.sp),
@@ -91,7 +91,7 @@ class _WellnessToolsState extends LPExtendedState<WellnessTools> {
       return const SizedBox.shrink();
     }
     return Padding(
-      padding: const EdgeInsetsDirectional.fromSTEB(0, 0, 4, 12),
+      padding: const EdgeInsetsDirectional.fromSTEB(0, 0, Spacing.xs, Spacing.md),
       child: ExpansionTile(
         tilePadding: EdgeInsets.zero,
         title: Text(
@@ -186,7 +186,7 @@ class _WellnessToolsState extends LPExtendedState<WellnessTools> {
               Visibility(
                 visible: !isFullScreen,
                 child: Padding(
-                  padding: const EdgeInsets.fromLTRB(8.0, 10.0, 8, 10),
+                  padding: const EdgeInsets.symmetric(horizontal: Spacing.sm, vertical: Spacing.sm),
                   child: myAutoSizedText(
                     widget.videoData['videoHeadline']![selectedIndex],
                     TextStyle(fontSize: 24.sp, fontWeight: FontWeight.bold),
@@ -204,11 +204,11 @@ class _WellnessToolsState extends LPExtendedState<WellnessTools> {
                   videoData: widget.videoData,
                 ),
               ),
-              SizedBox(height: 10),
+              const SizedBox(height: Spacing.sm),
               Visibility(
                 visible: !isFullScreen,
                 child: Padding(
-                  padding: const EdgeInsets.fromLTRB(0, 4.0, 4, 20),
+                  padding: const EdgeInsets.fromLTRB(0, Spacing.xs, Spacing.xs, Spacing.md),
                   child: myAutoSizedText(
                     widget.videoData['videoDescription']![selectedIndex],
                     TextStyle(fontSize: 18.sp, fontWeight: FontWeight.normal),
@@ -231,7 +231,7 @@ class _WellnessToolsState extends LPExtendedState<WellnessTools> {
               Visibility(
                 visible: !isFullScreen,
                 child: Padding(
-                  padding: const EdgeInsets.fromLTRB(0, 4.0, 4, 20),
+                  padding: const EdgeInsets.fromLTRB(0, Spacing.xs, Spacing.xs, Spacing.md),
                   child: myAutoSizedText(
                     appLocale.moreVideos,
                     TextStyle(fontSize: 18.sp, fontWeight: FontWeight.bold),

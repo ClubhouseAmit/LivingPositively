@@ -239,7 +239,7 @@ class _MyPlanPageFullState extends LPExtendedState<MyPlanPageFull> {
                 answers: [category.value],
               ),
             ),
-            SizedBox(height: 30),
+            const SizedBox(height: Spacing.lg),
             // Display additional text with links, if available
             Column(
               crossAxisAlignment: CrossAxisAlignment.end,
@@ -247,7 +247,7 @@ class _MyPlanPageFullState extends LPExtendedState<MyPlanPageFull> {
                 appLocale.localeName != 'he'
                     ? Container()
                     : Padding(
-                        padding: const EdgeInsets.all(10.0),
+                        padding: const EdgeInsets.all(Spacing.sm),
                         child: RichText(
                           textAlign: TextAlign.justify,
                           text: TextSpan(
@@ -312,7 +312,7 @@ class _MyPlanPageFullState extends LPExtendedState<MyPlanPageFull> {
                       ),
               ],
             ),
-            SizedBox(height: 30),
+            const SizedBox(height: Spacing.lg),
             // Button to navigate to another form or action
             TextButton(
               onPressed: () {
@@ -349,7 +349,7 @@ class _MyPlanPageFullState extends LPExtendedState<MyPlanPageFull> {
               style: TextButton.styleFrom(
                 backgroundColor: colorScheme.primary,
                 foregroundColor: colorScheme.onPrimary,
-                padding: EdgeInsets.symmetric(horizontal: 25, vertical: 10),
+                padding: const EdgeInsets.symmetric(horizontal: Spacing.lg, vertical: Spacing.sm),
                 shape: const RoundedRectangleBorder(
                   borderRadius: BorderRadius.all(Radius.circular(20)),
                 ),

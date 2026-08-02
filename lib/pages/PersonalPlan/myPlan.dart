@@ -42,7 +42,7 @@ class _MyPlanSectionState extends LPExtendedState<MyPlanSection> {
           children: [
           // Displays the title of the plan section.
           Padding(
-            padding: const EdgeInsets.all(8.0),
+            padding: const EdgeInsets.all(Spacing.sm),
             child: myAutoSizedText(
               widget.title,
               TextStyle(
@@ -56,7 +56,7 @@ class _MyPlanSectionState extends LPExtendedState<MyPlanSection> {
           ),
           // Displays the subtitle with additional context.
           Padding(
-            padding: const EdgeInsets.all(8.0),
+            padding: const EdgeInsets.all(Spacing.sm),
             child: myAutoSizedText(
               widget.subTitle,
               TextStyle(
@@ -77,7 +77,7 @@ class _MyPlanSectionState extends LPExtendedState<MyPlanSection> {
                   Row(
                     mainAxisAlignment: MainAxisAlignment.start,
                     children: [
-                      const SizedBox(height: 15, width: 15),
+                      const SizedBox(height: Spacing.md, width: Spacing.md),
                       Container(
                         width: 20,
                         child: Icon(
@@ -86,7 +86,7 @@ class _MyPlanSectionState extends LPExtendedState<MyPlanSection> {
                           size: 10,
                         ), // Bullet point icon.
                       ),
-                      const SizedBox(height: 15, width: 15),
+                      const SizedBox(height: Spacing.md, width: Spacing.md),
                       Expanded(
                         child: myAutoSizedText(
                           widget.answers[index],
@@ -103,7 +103,7 @@ class _MyPlanSectionState extends LPExtendedState<MyPlanSection> {
                       ),
                     ],
                   ),
-                  SizedBox(height: 5),
+                  const SizedBox(height: Spacing.xs),
                 ],
               );
             },

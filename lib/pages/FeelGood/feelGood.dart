@@ -98,7 +98,7 @@ class _FeelGoodPageState extends LPExtendedState<FeelGood> {
               children: [
                 Container(
                   alignment: Alignment.topCenter,
-                  margin: const EdgeInsets.symmetric(horizontal: 15),
+                  margin: const EdgeInsets.symmetric(horizontal: Spacing.md),
                   child: myAutoSizedText(
                     appLocale.feelGoodTitle(gender),
                     TextStyle(
@@ -110,9 +110,9 @@ class _FeelGoodPageState extends LPExtendedState<FeelGood> {
                     60,
                   ),
                 ),
-                const SizedBox(height: 5),
+                const SizedBox(height: Spacing.xs),
                 Padding(
-                  padding: const EdgeInsets.all(8.0),
+                  padding: const EdgeInsets.all(Spacing.sm),
                   child: myAutoSizedText(
                     appLocale.feelGoodSubTitle(gender),
                     TextStyle(fontSize: 18.sp),
@@ -121,7 +121,7 @@ class _FeelGoodPageState extends LPExtendedState<FeelGood> {
                   ),
                 ),
                 Padding(
-                  padding: const EdgeInsets.symmetric(horizontal: 8.0),
+                  padding: const EdgeInsets.symmetric(horizontal: Spacing.sm),
                   child: Scrollbar(
                     //images uploaded from phone grid view:
                     // Phase E (ADR-005 §Decision step 5): the bare

@@ -167,7 +167,7 @@ class _HomeState extends LPExtendedState<Home> {
               ),
 
               Padding(
-                padding: const EdgeInsets.only(right: 10, left: 10),
+                padding: const EdgeInsets.symmetric(horizontal: Spacing.sm),
                 child: Column(
                   children: [
                     //this is the Personal Plan widget section

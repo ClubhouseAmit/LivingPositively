@@ -81,7 +81,7 @@ class _InspirationalQuoteState extends LPExtendedState<InspirationalQuote> {
   Widget build(BuildContext context) {
     if (widget.quotes.isEmpty) {
       return Padding(
-        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+        padding: const EdgeInsets.symmetric(horizontal: Spacing.md, vertical: Spacing.sm),
         child: Text(
           appLocale.quotesUnavailableMessage,
           textAlign: TextAlign.start,
@@ -142,7 +142,7 @@ class _InspirationalQuoteState extends LPExtendedState<InspirationalQuote> {
                     //"refresh" button to change the quote
                     onPressed: _refreshQuote,
                   ),
-                  const SizedBox(width: 10),
+                  const SizedBox(width: Spacing.sm),
                   Expanded(
                     child: Padding(
                       padding: const EdgeInsetsDirectional.fromSTEB(
