@@ -3329,16 +3329,6 @@ class AppLocalizationsAr extends AppLocalizations {
       'تحقق من بريدك الإلكتروني للحصول على رابط إعادة التعيين';
 
   @override
-  String get authSignOut => 'تسجيل الخروج';
-
-  @override
-  String get authSignOutConfirmTitle => 'تسجيل الخروج؟';
-
-  @override
-  String get authSignOutConfirmBody =>
-      'ستحتاج إلى تسجيل الدخول مرة أخرى للوصول إلى جميع الميزات.';
-
-  @override
   String get authNotSignedInTitle => 'سجّل دخولك لتفعيل الإشعارات';
 
   @override

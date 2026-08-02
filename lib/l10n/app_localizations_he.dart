@@ -3316,16 +3316,6 @@ class AppLocalizationsHe extends AppLocalizations {
   String get authForgotPasswordSuccess => 'בידקו את תיבת הדואר לקישור איפוס';
 
   @override
-  String get authSignOut => 'התנתקות';
-
-  @override
-  String get authSignOutConfirmTitle => 'להתנתק?';
-
-  @override
-  String get authSignOutConfirmBody =>
-      'יהיה עליך להתחבר שוב כדי לגשת לכל התכונות.';
-
-  @override
   String get authNotSignedInTitle => 'יש להתחבר כדי להפעיל תזכורות';
 
   @override

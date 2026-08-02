@@ -494,4 +494,52 @@ void main() {
       }
     },
   );
+
+  testWidgets(
+    'migration does not restore a reminder cancelled before its queued turn',
+    (tester) async {
+      user.setNotificationPreference(
+        'default',
+        const NotificationPreference(hour: 8, minute: 15),
+      );
+      await pumpUser(tester);
+      final cancelResponse = Completer<http.Response>();
+      final requests = <String>[];
+
+      debugDefaultTargetPlatformOverride = TargetPlatform.android;
+      try {
+        final cancellation = FcmScheduledNotificationService.cancelNotification(
+          userInformation: user,
+          typeId: 'default',
+          idTokenProvider: () async => 'token-123',
+          post: (url, {headers, body, encoding}) async {
+            requests.add(url.path);
+            return cancelResponse.future;
+          },
+        );
+        await tester.pump();
+
+        final migration =
+            FcmScheduledNotificationService.migrateLegacyDefaultReminder(
+              userInformation: user,
+              idTokenProvider: () async => 'token-123',
+              post: (url, {headers, body, encoding}) async {
+                requests.add(url.path);
+                return http.Response('{}', 200);
+              },
+            );
+        cancelResponse.complete(http.Response('{}', 200));
+
+        expect(await cancellation, isTrue);
+        await migration;
+        expect(requests, ['/cancelNotification']);
+        expect(
+          memory.stored.containsKey('fcmDefaultReminderMigrated'),
+          isFalse,
+        );
+      } finally {
+        debugDefaultTargetPlatformOverride = null;
+      }
+    },
+  );
 }

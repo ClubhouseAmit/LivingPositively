@@ -86,6 +86,13 @@ describe("scheduled notification delivery", () => {
     );
   });
 
+  it("rejects a schedule query plan with no delivery candidates", () => {
+    assert.throws(
+      () => scheduledNotificationQueryPlan([]),
+      /at least one delivery candidate/,
+    );
+  });
+
   it("skips the non-existent Israel-local hour on spring-forward", () => {
     const candidates = israelLocalDeliveryCandidates(
       new Date("2026-03-27T00:30:00.000Z"),

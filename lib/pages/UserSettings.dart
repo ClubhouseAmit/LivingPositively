@@ -6,6 +6,7 @@ import 'package:mazilon/Locale/locale_service.dart';
 import 'package:mazilon/global_enums.dart';
 import 'package:mazilon/pages/SignIn_Pages/firstPage.dart';
 import 'package:mazilon/util/Firebase/fcm_scheduled_notification_service.dart';
+import 'package:mazilon/util/Firebase/fcm_service.dart';
 import 'package:mazilon/util/Form/formPagePhoneModel.dart';
 
 import 'package:mazilon/pages/FeelGood/image_picker_service_impl.dart';
@@ -257,7 +258,12 @@ class _UserSettingsState extends LPExtendedState<UserSettings> {
     final firebaseUser = GetIt.instance.isRegistered<FirebaseAuth>()
         ? GetIt.instance<FirebaseAuth>().currentUser
         : null;
-    if (firebaseUser != null && !firebaseUser.isAnonymous) {
+    final hasDefaultReminder =
+        userInfo.getNotificationPreference('default') != null;
+    if (firebaseUser != null &&
+        !firebaseUser.isAnonymous &&
+        hasDefaultReminder &&
+        FcmService.supportsReminderSettings()) {
       final cancelled =
           await (widget.cancelDefaultReminder ??
               (userInformation) =>

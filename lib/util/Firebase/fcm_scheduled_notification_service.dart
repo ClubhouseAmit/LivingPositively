@@ -77,10 +77,11 @@ class FcmScheduledNotificationService {
     final userInfo =
         userInformation ??
         Provider.of<UserInformation>(context!, listen: false);
-    final preference = userInfo.getNotificationPreference('default');
-    if (preference == null) return;
 
     await _enqueue(() async {
+      if (_legacyMigrationDisabled) return;
+      final preference = userInfo.getNotificationPreference('default');
+      if (preference == null) return;
       final memory =
           persistentMemory ?? GetIt.instance<PersistentMemoryService>();
       final migrated =
@@ -90,7 +91,6 @@ class FcmScheduledNotificationService {
           ) ??
           false;
       if (migrated == true || _legacyMigrationDisabled) return;
-      if (_legacyMigrationDisabled) return;
       final registered = await _registerNotification(
         userInformation: userInfo,
         typeId: 'default',

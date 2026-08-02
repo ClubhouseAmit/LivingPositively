@@ -215,6 +215,103 @@ void main() {
     },
   );
 
+  testWidgets('reset skips remote cancellation on an unsupported platform', (
+    tester,
+  ) async {
+    final auth = MockFirebaseAuth();
+    final firebaseUser = MockUser();
+    when(auth.currentUser).thenReturn(firebaseUser);
+    when(firebaseUser.isAnonymous).thenReturn(false);
+    GetIt.instance.registerSingleton<FirebaseAuth>(auth);
+    user.setNotificationPreference(
+      'default',
+      const NotificationPreference(hour: 9, minute: 30),
+    );
+    var cancelCalls = 0;
+    debugDefaultTargetPlatformOverride = TargetPlatform.windows;
+    try {
+      await pumpWithProviders(
+        tester,
+        UserSettings(
+          username: 'Web reset',
+          age: '18-30',
+          gender: 'male',
+          phonePageData: _phone(),
+          changeLocale: (_) {},
+          cancelDefaultReminder: (_) async {
+            cancelCalls++;
+            return false;
+          },
+        ),
+        userInformation: user,
+        surfaceSize: const Size(1024, 2800),
+      );
+
+      final resetButton = find.byKey(const Key('userSettingsResetButton'));
+      await tester.ensureVisible(resetButton);
+      await tester.tap(resetButton, warnIfMissed: false);
+      await tester.pumpAndSettle();
+      final dialogButtons = find.descendant(
+        of: find.byType(Dialog),
+        matching: find.byType(TextButton),
+      );
+      await tester.tap(dialogButtons.last, warnIfMissed: false);
+      await tester.pumpAndSettle();
+
+      expect(cancelCalls, 0);
+      expect(find.byType(FirstPage), findsOneWidget);
+    } finally {
+      debugDefaultTargetPlatformOverride = null;
+    }
+  });
+
+  testWidgets(
+    'reset skips remote cancellation when no default reminder is stored',
+    (tester) async {
+      final auth = MockFirebaseAuth();
+      final firebaseUser = MockUser();
+      when(auth.currentUser).thenReturn(firebaseUser);
+      when(firebaseUser.isAnonymous).thenReturn(false);
+      GetIt.instance.registerSingleton<FirebaseAuth>(auth);
+      var cancelCalls = 0;
+      debugDefaultTargetPlatformOverride = TargetPlatform.android;
+      try {
+        await pumpWithProviders(
+          tester,
+          UserSettings(
+            username: 'Offline reset',
+            age: '18-30',
+            gender: 'male',
+            phonePageData: _phone(),
+            changeLocale: (_) {},
+            cancelDefaultReminder: (_) async {
+              cancelCalls++;
+              return false;
+            },
+          ),
+          userInformation: user,
+          surfaceSize: const Size(1024, 2800),
+        );
+
+        final resetButton = find.byKey(const Key('userSettingsResetButton'));
+        await tester.ensureVisible(resetButton);
+        await tester.tap(resetButton, warnIfMissed: false);
+        await tester.pumpAndSettle();
+        final dialogButtons = find.descendant(
+          of: find.byType(Dialog),
+          matching: find.byType(TextButton),
+        );
+        await tester.tap(dialogButtons.last, warnIfMissed: false);
+        await tester.pumpAndSettle();
+
+        expect(cancelCalls, 0);
+        expect(find.byType(FirstPage), findsOneWidget);
+      } finally {
+        debugDefaultTargetPlatformOverride = null;
+      }
+    },
+  );
+
   testWidgets(
     'reset cancels the remote reminder and restores authenticated identity',
     (tester) async {

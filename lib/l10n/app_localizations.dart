@@ -2617,24 +2617,6 @@ abstract class AppLocalizations {
   ///
   ///
   /// In en, this message translates to:
-  /// **'Sign Out'**
-  String get authSignOut;
-
-  ///
-  ///
-  /// In en, this message translates to:
-  /// **'Sign Out?'**
-  String get authSignOutConfirmTitle;
-
-  ///
-  ///
-  /// In en, this message translates to:
-  /// **'You will need to sign in again to access all features.'**
-  String get authSignOutConfirmBody;
-
-  ///
-  ///
-  /// In en, this message translates to:
   /// **'Sign In to Enable Notifications'**
   String get authNotSignedInTitle;
 

@@ -107,6 +107,7 @@ export function buildNotificationDeliveryKey(
 
 export function israelLocalDeliveryCandidates(
   scheduleTime: Date,
+  candidateCount = 121,
 ): IsraelLocalDeliveryCandidate[] {
   const dateFormatter = new Intl.DateTimeFormat("en-CA", {
     timeZone: "Asia/Jerusalem",
@@ -121,7 +122,7 @@ export function israelLocalDeliveryCandidates(
     hourCycle: "h23",
   });
 
-  return Array.from({ length: 121 }, (_, minuteOffset) => {
+  return Array.from({ length: candidateCount }, (_, minuteOffset) => {
     const intendedAt = new Date(scheduleTime.getTime() - minuteOffset * 60_000);
     const dateParts = dateFormatter.formatToParts(intendedAt);
     const timeParts = timeFormatter.formatToParts(intendedAt);
@@ -150,7 +151,7 @@ export function israelLocalDeliveryCandidatesSince(
   lastProcessedAt: Date | undefined,
 ): IsraelLocalDeliveryCandidate[] {
   if (lastProcessedAt === undefined) {
-    return israelLocalDeliveryCandidates(scheduleTime).slice(0, 1);
+    return israelLocalDeliveryCandidates(scheduleTime, 1);
   }
 
   const elapsedMinutes = Math.max(
@@ -160,7 +161,7 @@ export function israelLocalDeliveryCandidatesSince(
       Math.floor((scheduleTime.getTime() - lastProcessedAt.getTime()) / 60_000),
     ),
   );
-  return israelLocalDeliveryCandidates(scheduleTime).slice(0, elapsedMinutes);
+  return israelLocalDeliveryCandidates(scheduleTime, elapsedMinutes);
 }
 
 export function selectScheduledNotificationCandidates<
@@ -197,6 +198,9 @@ export function selectScheduledNotificationCandidates<
 export function scheduledNotificationQueryPlan(
   deliveryCandidates: readonly IsraelLocalDeliveryCandidate[],
 ): ScheduledNotificationQueryPlan {
+  if (deliveryCandidates.length === 0) {
+    throw new Error("Expected at least one delivery candidate");
+  }
   if (deliveryCandidates.length === 1) {
     return {
       kind: "exact",

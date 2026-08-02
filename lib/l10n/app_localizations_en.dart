@@ -3358,16 +3358,6 @@ class AppLocalizationsEn extends AppLocalizations {
   String get authForgotPasswordSuccess => 'Check your email for a reset link';
 
   @override
-  String get authSignOut => 'Sign Out';
-
-  @override
-  String get authSignOutConfirmTitle => 'Sign Out?';
-
-  @override
-  String get authSignOutConfirmBody =>
-      'You will need to sign in again to access all features.';
-
-  @override
   String get authNotSignedInTitle => 'Sign In to Enable Notifications';
 
   @override

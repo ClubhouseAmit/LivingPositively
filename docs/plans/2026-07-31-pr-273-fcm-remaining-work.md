@@ -125,20 +125,33 @@ impossible. Do not assign schedules to guessed identities.
 
 ## Remaining External Work
 
-1. Deploy Functions through the normal production process.
-2. Run `npm --prefix functions run provision:notifications -- --project
+### Deployment gates
+
+1. Configure Firestore TTL for `notification_deliveries.expiresAt`.
+2. Add the documented deny rules for `notification_deliveries` and
+   `notification_scheduler_state` to the canonical production rules source,
+   then verify them with authenticated emulator read/list/create/update/delete
+   checks.
+3. Deploy Functions through the normal production process.
+4. Run `npm --prefix functions run provision:notifications -- --project
    <firebase-project-id>` with credentials for that explicit project.
-3. Configure Firestore TTL for `notification_deliveries.expiresAt` and add the
-   documented deny rules for `notification_deliveries` and
-   `notification_scheduler_state` to the canonical production rules source.
-4. Complete the FCM-04 remote UUID inventory and approved disposition.
-5. Run authenticated emulator, device, and production canaries for
+
+### Post-deploy validation and data work
+
+1. Complete the FCM-04 remote UUID inventory and approved disposition.
+2. Run authenticated emulator, device, and production canaries for
    registration/cancellation, token refresh, delayed delivery, duplicate
    suppression, failure handling, reset, local migration, and DST.
-6. Record dependency approval only if required by project governance.
+3. Record dependency approval only if required by project governance.
 
 ## Deferred Work
 
 Multiple active devices per UID, shared notification-state UI, a shared auth
 form shell, and shared request helpers require a separate volatility and
 consumer review before implementation.
+
+A full `processScheduledNotifications` orchestration test is also deferred.
+The existing unit tests cover its scheduling, query-plan, claim, and delivery
+helpers. Exercising the complete handler needs an approved Firestore/FCM test
+boundary (emulator or explicit dependency injection); adding that seam solely
+for one test would broaden the Functions architecture.

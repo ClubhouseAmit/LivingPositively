@@ -84,6 +84,8 @@ function skipWhitespace(source: string, start: number): number {
 }
 
 export function parseArbSource(source: string): Record<string, unknown> {
+  // JSON.parse keeps only the final duplicate property. Scan the raw source as
+  // well so conflicting inspirational quote keys cannot be silently replaced.
   const parsed: unknown = JSON.parse(source);
   if (parsed === null || typeof parsed !== "object" || Array.isArray(parsed)) {
     throw new Error("ARB source must contain a JSON object");
