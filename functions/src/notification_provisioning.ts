@@ -17,6 +17,8 @@ export type SeedDocument = {
 
 export type SeedWriter = {
   setDocument(document: SeedDocument): Promise<void>;
+  listDocumentIds(collection: string): Promise<string[]>;
+  deleteDocument(collection: string, id: string): Promise<void>;
 };
 
 export function parseProvisionProjectId(args: string[]): string {
@@ -224,5 +226,24 @@ export async function provisionNotificationContent(
 ): Promise<void> {
   for (const document of documents) {
     await writer.setDocument(document);
+  }
+
+  const seededQuoteIdsByCollection = new Map<string, Set<string>>();
+  for (const document of documents) {
+    if (!document.collection.startsWith("quotes_")) continue;
+    let seededIds = seededQuoteIdsByCollection.get(document.collection);
+    if (seededIds === undefined) {
+      seededIds = new Set();
+      seededQuoteIdsByCollection.set(document.collection, seededIds);
+    }
+    seededIds.add(document.id);
+  }
+
+  for (const [collection, seededIds] of seededQuoteIdsByCollection) {
+    for (const id of await writer.listDocumentIds(collection)) {
+      if (QUOTE_KEY_PATTERN.test(id) && !seededIds.has(id)) {
+        await writer.deleteDocument(collection, id);
+      }
+    }
   }
 }

@@ -714,15 +714,15 @@ export const processScheduledNotifications = onSchedule(
 
     // --- Stale device cleanup (batched, after sends) ---
 
-    if (staleUids.length > 0) {
+    const staleDeviceIds = [...new Set(staleUids)];
+    if (staleDeviceIds.length > 0) {
       await Promise.allSettled(
-        [...new Set(staleUids)].map((uid) => cleanupInactiveDevice(uid)),
+        staleDeviceIds.map((uid) => cleanupInactiveDevice(uid)),
       );
-      failureCount += new Set(staleUids).size;
     }
 
     console.log(
-      `processScheduledNotifications: sent=${successCount}, failed=${failureCount}, alreadyClaimed=${alreadyClaimedCount}, claimFailed=${claimFailedCount}`,
+      `processScheduledNotifications: sent=${successCount}, failed=${failureCount}, alreadyClaimed=${alreadyClaimedCount}, claimFailed=${claimFailedCount}, staleDevicesCleaned=${staleDeviceIds.length}`,
     );
 
     if (claimFailedCount === 0) {

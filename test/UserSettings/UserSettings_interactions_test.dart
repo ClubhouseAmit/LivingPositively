@@ -7,14 +7,11 @@
 //     (lines 386-392)
 //   - Age dropdown onSelected (lines 272-279)
 
-import 'dart:async';
-
 import 'package:flutter/material.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:get_it/get_it.dart';
-import 'package:http/http.dart' as http;
 import 'package:mazilon/pages/SignIn_Pages/firstPage.dart';
 import 'package:mazilon/pages/UserSettings.dart';
 import 'package:mazilon/util/Form/formPagePhoneModel.dart';
@@ -39,18 +36,6 @@ PhonePageData _phone() => PhonePageData(
   savedPhoneNumbers: const [],
   phoneDescription: const [],
 );
-
-Future<T> _onPlatform<T>(
-  TargetPlatform platform,
-  Future<T> Function() body,
-) async {
-  debugDefaultTargetPlatformOverride = platform;
-  try {
-    return await body();
-  } finally {
-    debugDefaultTargetPlatformOverride = null;
-  }
-}
 
 void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
@@ -168,50 +153,46 @@ void main() {
       final firebaseUser = MockUser();
       when(auth.currentUser).thenReturn(firebaseUser);
       when(firebaseUser.isAnonymous).thenReturn(false);
+      when(firebaseUser.getIdToken()).thenAnswer((_) async => null);
       GetIt.instance.registerSingleton<FirebaseAuth>(auth);
-      user.setNotificationPreference(
-        'default',
-        const NotificationPreference(hour: 9, minute: 30),
-      );
-      await pumpWithProviders(
-        tester,
-        UserSettings(
-          username: 'Keep reminder',
-          age: '18-30',
-          gender: 'male',
-          phonePageData: _phone(),
-          changeLocale: (_) {},
-          cancelDefaultReminder: (userInfo) => _onPlatform(
-            TargetPlatform.android,
-            () => FcmScheduledNotificationService.cancelDefaultForReset(
-              userInformation: userInfo,
-              idTokenProvider: () async => 'token-123',
-              post: (url, {headers, body, encoding}) async {
-                return http.Response('failed', 500);
-              },
-            ),
+      debugDefaultTargetPlatformOverride = TargetPlatform.android;
+      try {
+        user.setNotificationPreference(
+          'default',
+          const NotificationPreference(hour: 9, minute: 30),
+        );
+        await pumpWithProviders(
+          tester,
+          UserSettings(
+            username: 'Keep reminder',
+            age: '18-30',
+            gender: 'male',
+            phonePageData: _phone(),
+            changeLocale: (_) {},
           ),
-        ),
-        userInformation: user,
-        surfaceSize: const Size(1024, 2800),
-      );
+          userInformation: user,
+          surfaceSize: const Size(1024, 2800),
+        );
 
-      final resetButton = find.byKey(const Key('userSettingsResetButton'));
-      await tester.ensureVisible(resetButton);
-      await tester.tap(resetButton, warnIfMissed: false);
-      await tester.pumpAndSettle();
+        final resetButton = find.byKey(const Key('userSettingsResetButton'));
+        await tester.ensureVisible(resetButton);
+        await tester.tap(resetButton, warnIfMissed: false);
+        await tester.pumpAndSettle();
 
-      final dialogButtons = find.descendant(
-        of: find.byType(Dialog),
-        matching: find.byType(TextButton),
-      );
-      await tester.tap(dialogButtons.last, warnIfMissed: false);
-      await tester.pumpAndSettle();
+        final dialogButtons = find.descendant(
+          of: find.byType(Dialog),
+          matching: find.byType(TextButton),
+        );
+        await tester.tap(dialogButtons.last, warnIfMissed: false);
+        await tester.pumpAndSettle();
 
-      expect(find.byType(UserSettings), findsOneWidget);
-      expect(find.byType(FirstPage), findsNothing);
-      expect(user.getNotificationPreference('default'), isNotNull);
-      expect(find.byType(SnackBar), findsOneWidget);
+        expect(find.byType(UserSettings), findsOneWidget);
+        expect(find.byType(FirstPage), findsNothing);
+        expect(user.getNotificationPreference('default'), isNotNull);
+        expect(find.byType(SnackBar), findsOneWidget);
+      } finally {
+        debugDefaultTargetPlatformOverride = null;
+      }
     },
   );
 
@@ -227,7 +208,6 @@ void main() {
       'default',
       const NotificationPreference(hour: 9, minute: 30),
     );
-    var cancelCalls = 0;
     debugDefaultTargetPlatformOverride = TargetPlatform.windows;
     try {
       await pumpWithProviders(
@@ -238,10 +218,6 @@ void main() {
           gender: 'male',
           phonePageData: _phone(),
           changeLocale: (_) {},
-          cancelDefaultReminder: (_) async {
-            cancelCalls++;
-            return false;
-          },
         ),
         userInformation: user,
         surfaceSize: const Size(1024, 2800),
@@ -258,7 +234,6 @@ void main() {
       await tester.tap(dialogButtons.last, warnIfMissed: false);
       await tester.pumpAndSettle();
 
-      expect(cancelCalls, 0);
       expect(find.byType(FirstPage), findsOneWidget);
     } finally {
       debugDefaultTargetPlatformOverride = null;
@@ -266,28 +241,25 @@ void main() {
   });
 
   testWidgets(
-    'reset skips remote cancellation when no default reminder is stored',
+    'reset keeps data when account cancellation fails without a local reminder',
     (tester) async {
       final auth = MockFirebaseAuth();
       final firebaseUser = MockUser();
       when(auth.currentUser).thenReturn(firebaseUser);
       when(firebaseUser.isAnonymous).thenReturn(false);
+      when(firebaseUser.getIdToken()).thenAnswer((_) async => null);
       GetIt.instance.registerSingleton<FirebaseAuth>(auth);
-      var cancelCalls = 0;
       debugDefaultTargetPlatformOverride = TargetPlatform.android;
+
       try {
         await pumpWithProviders(
           tester,
           UserSettings(
-            username: 'Offline reset',
+            username: 'Account reset',
             age: '18-30',
             gender: 'male',
             phonePageData: _phone(),
             changeLocale: (_) {},
-            cancelDefaultReminder: (_) async {
-              cancelCalls++;
-              return false;
-            },
           ),
           userInformation: user,
           surfaceSize: const Size(1024, 2800),
@@ -304,8 +276,9 @@ void main() {
         await tester.tap(dialogButtons.last, warnIfMissed: false);
         await tester.pumpAndSettle();
 
-        expect(cancelCalls, 0);
-        expect(find.byType(FirstPage), findsOneWidget);
+        expect(find.byType(UserSettings), findsOneWidget);
+        expect(find.byType(FirstPage), findsNothing);
+        expect(find.byType(SnackBar), findsOneWidget);
       } finally {
         debugDefaultTargetPlatformOverride = null;
       }
@@ -313,7 +286,7 @@ void main() {
   );
 
   testWidgets(
-    'reset cancels the remote reminder and restores authenticated identity',
+    'reset on an unsupported platform restores authenticated identity',
     (tester) async {
       final auth = MockFirebaseAuth();
       final firebaseUser = MockUser();
@@ -323,59 +296,42 @@ void main() {
       when(firebaseUser.email).thenReturn('user@example.com');
       when(firebaseUser.displayName).thenReturn('Remembered User');
       GetIt.instance.registerSingleton<FirebaseAuth>(auth);
-      user.setNotificationPreference(
-        'default',
-        const NotificationPreference(hour: 9, minute: 30),
-      );
-      var cancelRequests = 0;
-      final cancellationStarted = Completer<void>();
+      debugDefaultTargetPlatformOverride = TargetPlatform.windows;
 
-      await pumpWithProviders(
-        tester,
-        UserSettings(
-          username: 'Reset identity',
-          age: '18-30',
-          gender: 'male',
-          phonePageData: _phone(),
-          changeLocale: (_) {},
-          cancelDefaultReminder: (userInfo) => _onPlatform(
-            TargetPlatform.android,
-            () => FcmScheduledNotificationService.cancelDefaultForReset(
-              userInformation: userInfo,
-              idTokenProvider: () async => 'token-123',
-              post: (url, {headers, body, encoding}) async {
-                cancelRequests++;
-                cancellationStarted.complete();
-                expect(url.path, '/cancelNotification');
-                return http.Response('{}', 200);
-              },
-            ),
+      try {
+        await pumpWithProviders(
+          tester,
+          UserSettings(
+            username: 'Reset identity',
+            age: '18-30',
+            gender: 'male',
+            phonePageData: _phone(),
+            changeLocale: (_) {},
           ),
-        ),
-        userInformation: user,
-        surfaceSize: const Size(1024, 2800),
-      );
+          userInformation: user,
+          surfaceSize: const Size(1024, 2800),
+        );
 
-      final resetButton = find.byKey(const Key('userSettingsResetButton'));
-      await tester.ensureVisible(resetButton);
-      await tester.tap(resetButton, warnIfMissed: false);
-      await tester.pumpAndSettle();
-      final dialogButtons = find.descendant(
-        of: find.byType(Dialog),
-        matching: find.byType(TextButton),
-      );
-      await tester.tap(dialogButtons.last, warnIfMissed: false);
-      await tester.pump();
-      await cancellationStarted.future;
-      await tester.pumpAndSettle();
+        final resetButton = find.byKey(const Key('userSettingsResetButton'));
+        await tester.ensureVisible(resetButton);
+        await tester.tap(resetButton, warnIfMissed: false);
+        await tester.pumpAndSettle();
+        final dialogButtons = find.descendant(
+          of: find.byType(Dialog),
+          matching: find.byType(TextButton),
+        );
+        await tester.tap(dialogButtons.last, warnIfMissed: false);
+        await tester.pumpAndSettle();
 
-      expect(cancelRequests, 1);
-      expect(find.byType(FirstPage), findsOneWidget);
-      expect(user.loggedIn, isTrue);
-      expect(user.authDecisionMade, isTrue);
-      expect(user.userId, 'uid-123');
-      expect(user.email, 'user@example.com');
-      expect(user.displayName, 'Remembered User');
+        expect(find.byType(FirstPage), findsOneWidget);
+        expect(user.loggedIn, isTrue);
+        expect(user.authDecisionMade, isTrue);
+        expect(user.userId, 'uid-123');
+        expect(user.email, 'user@example.com');
+        expect(user.displayName, 'Remembered User');
+      } finally {
+        debugDefaultTargetPlatformOverride = null;
+      }
     },
   );
 

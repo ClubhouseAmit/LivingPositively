@@ -98,8 +98,6 @@ class _AuthPageState extends LPExtendedState<AuthPage> {
       await FcmService.onUserSignedIn();
       debugPrint("4");
 
-      if (!mounted) return;
-
       userInfo.updateLoggedIn(true);
       userInfo.updateUserId(user.uid);
       userInfo.updateEmail(user.email ?? '');

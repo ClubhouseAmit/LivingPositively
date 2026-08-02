@@ -141,6 +141,14 @@ describe("notification content provisioning", () => {
           document.data,
         );
       },
+      async listDocumentIds(collection: string): Promise<string[]> {
+        return [...storedDocuments.keys()]
+            .filter((path) => path.startsWith(`${collection}/`))
+            .map((path) => path.slice(collection.length + 1));
+      },
+      async deleteDocument(collection: string, id: string): Promise<void> {
+        storedDocuments.delete(`${collection}/${id}`);
+      },
     };
     const seed: SeedDocument[] = [
       {
@@ -160,6 +168,62 @@ describe("notification content provisioning", () => {
     });
     assert.deepEqual(storedDocuments.get("unowned_collection/document"), {
       value: 42,
+    });
+  });
+
+  it("prunes generated quotes withdrawn from the ARB seed", async () => {
+    const storedDocuments = new Map<string, SeedDocument["data"]>([
+      [
+        "quotes_en/inspirationalQuotesNo0",
+        { male: "old", female: "old", other: "old", editorial: "stale" },
+      ],
+      [
+        "quotes_en/inspirationalQuotesNo1",
+        { male: "withdrawn", female: "withdrawn", other: "withdrawn" },
+      ],
+      ["quotes_en/editorial_quote", { text: "Leave this document alone" }],
+    ]);
+    const deletedDocuments: string[] = [];
+    const writer = {
+      async setDocument(document: SeedDocument): Promise<void> {
+        storedDocuments.set(
+          `${document.collection}/${document.id}`,
+          document.data,
+        );
+      },
+      async listDocumentIds(collection: string): Promise<string[]> {
+        return [...storedDocuments.keys()]
+            .filter((path) => path.startsWith(`${collection}/`))
+            .map((path) => path.slice(collection.length + 1));
+      },
+      async deleteDocument(collection: string, id: string): Promise<void> {
+        const path = `${collection}/${id}`;
+        deletedDocuments.push(path);
+        storedDocuments.delete(path);
+      },
+    };
+    const seed: SeedDocument[] = [
+      {
+        collection: "quotes_en",
+        id: "inspirationalQuotesNo0",
+        data: { male: "calm", female: "calm", other: "calm" },
+      },
+    ];
+
+    await provisionNotificationContent(seed, writer);
+
+    assert.deepEqual(storedDocuments.get("quotes_en/inspirationalQuotesNo0"), {
+      male: "calm",
+      female: "calm",
+      other: "calm",
+    });
+    assert.deepEqual(deletedDocuments, ["quotes_en/inspirationalQuotesNo1"]);
+    assert.equal(
+      storedDocuments.has("quotes_en/inspirationalQuotesNo1"),
+      false,
+    );
+    assert.deepEqual(storedDocuments.get("quotes_en/editorial_quote"), {
+      text: "Leave this document alone",
     });
   });
 });

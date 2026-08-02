@@ -1,15 +1,87 @@
+import 'dart:async';
+
+import 'package:firebase_auth/firebase_auth.dart';
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:get_it/get_it.dart';
 import 'package:mazilon/pages/auth/auth_page.dart';
 import 'package:mazilon/pages/auth/forgot_password_page.dart';
+import 'package:mazilon/util/Firebase/auth_service.dart';
 import 'package:mazilon/util/userInformation.dart';
+import 'package:mockito/mockito.dart';
 
+import '../Firebase/firebase_auth_service_test.mocks.dart';
 import '../helpers/widget_test_scaffold.dart';
 
 void main() {
   setUp(() => registerTestServices(locale: 'en'));
   tearDown(() => GetIt.instance.reset());
+
+  test('AuthService persistence test hook delegates when configured', () async {
+    final user = MockUser();
+    var persisted = false;
+    AuthService.saveUserToFirestoreForTesting = (persistedUser) async {
+      expect(persistedUser, same(user));
+      persisted = true;
+    };
+    addTearDown(() => AuthService.saveUserToFirestoreForTesting = null);
+
+    await AuthService.saveUserToFirestore(user);
+
+    expect(persisted, isTrue);
+  });
+
+  testWidgets(
+    'disposed auth screen records the authenticated user after persistence',
+    (tester) async {
+      final userInformation = UserInformation();
+      final firebaseUser = MockUser();
+      when(firebaseUser.uid).thenReturn('uid-123');
+      when(firebaseUser.email).thenReturn('person@example.com');
+      when(firebaseUser.displayName).thenReturn('Person');
+      final persistenceCompleted = Completer<void>();
+      AuthService.saveUserToFirestoreForTesting = (_) =>
+          persistenceCompleted.future;
+      debugDefaultTargetPlatformOverride = TargetPlatform.windows;
+
+      try {
+        await pumpWithProviders(
+          tester,
+          const AuthPage(),
+          userInformation: userInformation,
+          surfaceSize: const Size(1024, 1800),
+        );
+        final loginForm =
+            tester
+                    .widgetList(
+                      find.byWidgetPredicate(
+                        (widget) =>
+                            widget.runtimeType.toString() == '_LoginForm',
+                      ),
+                    )
+                    .single
+                as dynamic;
+        final completion = (loginForm.onSuccess as Future<void> Function(User))(
+          firebaseUser,
+        );
+
+        await tester.pump();
+        await tester.pumpWidget(const SizedBox.shrink());
+        persistenceCompleted.complete();
+        await completion;
+
+        expect(userInformation.loggedIn, isTrue);
+        expect(userInformation.authDecisionMade, isTrue);
+        expect(userInformation.userId, 'uid-123');
+        expect(userInformation.email, 'person@example.com');
+        expect(userInformation.displayName, 'Person');
+      } finally {
+        AuthService.saveUserToFirestoreForTesting = null;
+        debugDefaultTargetPlatformOverride = null;
+      }
+    },
+  );
 
   testWidgets('onboarding auth supports skip and signup validation', (
     tester,

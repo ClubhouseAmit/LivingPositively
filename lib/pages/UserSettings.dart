@@ -29,8 +29,6 @@ class UserSettings extends StatefulWidget {
 
   final Function changeLocale;
   final PhonePageData phonePageData;
-  final Future<bool> Function(UserInformation userInformation)?
-  cancelDefaultReminder;
 
   const UserSettings({
     super.key,
@@ -39,7 +37,6 @@ class UserSettings extends StatefulWidget {
     required this.gender,
     required this.phonePageData,
     required this.changeLocale,
-    this.cancelDefaultReminder,
   });
   @override
   State<UserSettings> createState() => _UserSettingsState();
@@ -258,18 +255,13 @@ class _UserSettingsState extends LPExtendedState<UserSettings> {
     final firebaseUser = GetIt.instance.isRegistered<FirebaseAuth>()
         ? GetIt.instance<FirebaseAuth>().currentUser
         : null;
-    final hasDefaultReminder =
-        userInfo.getNotificationPreference('default') != null;
     if (firebaseUser != null &&
         !firebaseUser.isAnonymous &&
-        hasDefaultReminder &&
         FcmService.supportsReminderSettings()) {
       final cancelled =
-          await (widget.cancelDefaultReminder ??
-              (userInformation) =>
-                  FcmScheduledNotificationService.cancelDefaultForReset(
-                    userInformation: userInformation,
-                  ))(userInfo);
+          await FcmScheduledNotificationService.cancelDefaultForReset(
+            userInformation: userInfo,
+          );
       if (!cancelled) {
         if (mounted) {
           ScaffoldMessenger.maybeOf(context)?.showSnackBar(

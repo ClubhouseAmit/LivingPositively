@@ -1,14 +1,16 @@
 # PR #273 — FCM Decision Record and Remaining External Work
 
-Date: 2026-08-02
+Created: 2026-07-31
+Last updated: 2026-08-02
 
 Parent PR: [#273](https://github.com/ClubhouseAmit/LivingPositively/pull/273)
 Stacked implementation PR: [#309](https://github.com/ClubhouseAmit/LivingPositively/pull/309)
 
 ## Current Status
 
-Stacked PR #309 implements the FCM follow-up. Local verification passed 742
-Flutter tests (8 skipped), clean `flutter analyze`, and 14 Functions tests.
+Stacked PR #309 implements the FCM follow-up. Local verification passed 793
+Flutter tests (9 skipped) and 23 Functions tests. `flutter analyze` reports
+only 24 inherited warnings in unchanged generated mocks.
 The earlier Android integration failure was a missing
 `integration_test/notifications_schedule_test.dart`; the rebased parent now
 contains that restored smoke test.
@@ -20,7 +22,7 @@ contains that restored smoke test.
 | Reminder authentication | Non-anonymous Firebase users only. |
 | Sign-out | Not offered; reset preserves Firebase-authenticated identity. |
 | Device model | One current device token per UID; last registration wins. |
-| Reset | Cancel remote `default` before local reset; abort if cancellation fails. |
+| Reset | On Android/iOS, a non-anonymous user cancels the account-wide remote `default` before local reset, even when this device has no local reminder record; abort if cancellation fails. |
 | Legacy local preference | Migrate idempotently after startup/authentication. |
 | Delivery | Bounded best-effort, at-most-once: consider the event minute and preceding 120 minutes, with one send attempt per key. |
 | Delivery state | Atomic claim retained for intended time plus 24 hours. |
@@ -34,7 +36,7 @@ failure after a claim, is not retried. The claim prevents duplicate attempts.
 
 | ID | Status | Evidence |
 | --- | --- | --- |
-| FCM-01 content provisioning | Implemented | ARB-derived idempotent `provision:notifications` command validates an explicit project. |
+| FCM-01 content provisioning | Implemented | ARB-derived `provision:notifications` validates an explicit project, replaces generated quote documents, and prunes withdrawn generated quote IDs. |
 | FCM-02 lifecycle/reset | Implemented | Sign-out UI/API removed; reset cancels before clear and restores Firebase identity. |
 | FCM-03 durable delivery | Implemented | Atomic encoded delivery claim, one attempt, edit-time guard, checkpointed 120-minute Israel-local recovery, and 24-hour `expiresAt`. |
 | FCM-04A local preference migration | Implemented | Startup/auth migration registers a saved default reminder; marker follows remote success only. |
@@ -49,10 +51,13 @@ failure after a claim, is not retried. The claim prevents duplicate attempts.
 ## FCM-02 — Authenticated Lifecycle and Reset Safety
 
 Sign-out is not an application action. No account-A-to-account-B handoff path
-remains to clean up. For a non-anonymous user, reset sends the existing
-authenticated cancellation command for `default`; on failure it leaves state
-and navigation unchanged, and on success it clears local profile data then
-restores identity from FirebaseAuth.
+remains to clean up. On Android and iOS, reset always sends the existing
+authenticated cancellation command for `default` for a non-anonymous user,
+including when the current device has no local reminder preference. The server
+operation is idempotent, so it safely deletes either the account schedule or
+nothing. On cancellation failure it leaves state and navigation unchanged; on
+success it clears local profile data then restores identity from FirebaseAuth.
+Unsupported platforms have no remote reminder capability and reset locally.
 
 The existing `clearFCMToken()` and `cleanupInactiveDevice()` helpers are not
 wired to reset: they would erase an active account's token or schedules under
@@ -84,6 +89,17 @@ ambiguous failure with no retry, schedule-edit suppression, and claim-failure
 classification. Scheduler checkpoint transactions advance monotonically, so
 overlapping invocations cannot widen a future recovery window.
 
+### Recovery operations note
+
+A claim-write failure deliberately holds the checkpoint rather than skipping an
+unacknowledged intended minute. The next scheduler invocation retries that
+bounded window. During recovery (two or more candidate minutes), Firestore
+queries every schedule in the affected one-to-three local hours and filters
+the exact candidate minutes in memory; the time window is capped at 120
+minutes, but read volume still scales with schedules in those hours. Production
+monitoring must alert on repeated nonzero `claimFailed` counts in the scheduler
+log, because a sustained Firestore failure keeps the checkpoint in recovery.
+
 ### Firestore access policy handoff
 
 `notification_deliveries` and `notification_scheduler_state` are server-only
@@ -114,6 +130,14 @@ The client migration is not a Firestore UUID migration. On startup and after
 authentication it reads a legacy local default preference, calls
 `registerNotification`, and writes its marker only after success. It retries
 on a later startup/authentication after failure.
+
+### ARB notification content — authoritative
+
+The ARB files are the approved source for generated notification quote content.
+Provisioning replaces each generated `inspirationalQuotesNo<N>` document from
+the seed and deletes generated IDs that are absent from the current ARB files.
+It does not delete other documents in `quotes_he`, `quotes_ar`, or `quotes_en`;
+those non-pattern documents are outside the generated-content contract.
 
 ### Remote UUID records — open external decision
 

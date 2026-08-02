@@ -34,6 +34,14 @@ void provisionNotificationContent(documents, {
       .doc(document.id)
       .set(document.data);
   },
+  async listDocumentIds(collection): Promise<string[]> {
+    return (await firestore.collection(collection).listDocuments()).map(
+      (document) => document.id,
+    );
+  },
+  async deleteDocument(collection, id): Promise<void> {
+    await firestore.collection(collection).doc(id).delete();
+  },
 })
   .then(() => {
     console.log(`Provisioned ${documents.length} notification documents.`);
