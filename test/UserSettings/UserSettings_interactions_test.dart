@@ -86,12 +86,9 @@ void main() {
         surfaceSize: const Size(1024, 2800),
       );
 
-      // Open the reset confirmation dialog (the last top-level TextButton
-      // before the dialog opens is ResetButton).
-      final pageButtons = find.byType(TextButton);
-      final last = pageButtons.evaluate().last;
-      await tester.ensureVisible(find.byWidget(last.widget));
-      await tester.tap(find.byWidget(last.widget), warnIfMissed: false);
+      final resetButton = find.byKey(const Key('userSettingsResetButton'));
+      await tester.ensureVisible(resetButton);
+      await tester.tap(resetButton, warnIfMissed: false);
       await tester.pumpAndSettle();
 
       // Now the Dialog is open with two TextButtons: Close + Confirm. Tap the
@@ -125,10 +122,9 @@ void main() {
         surfaceSize: const Size(1024, 2800),
       );
 
-      final pageButtons = find.byType(TextButton);
-      final last = pageButtons.evaluate().last;
-      await tester.ensureVisible(find.byWidget(last.widget));
-      await tester.tap(find.byWidget(last.widget), warnIfMissed: false);
+      final resetButton = find.byKey(const Key('userSettingsResetButton'));
+      await tester.ensureVisible(resetButton);
+      await tester.tap(resetButton, warnIfMissed: false);
       await tester.pumpAndSettle();
 
       final dialogButtons = find.descendant(
@@ -200,10 +196,9 @@ void main() {
         surfaceSize: const Size(1024, 2800),
       );
 
-      final pageButtons = find.byType(TextButton);
-      final last = pageButtons.evaluate().last;
-      await tester.ensureVisible(find.byWidget(last.widget));
-      await tester.tap(find.byWidget(last.widget), warnIfMissed: false);
+      final resetButton = find.byKey(const Key('userSettingsResetButton'));
+      await tester.ensureVisible(resetButton);
+      await tester.tap(resetButton, warnIfMissed: false);
       await tester.pumpAndSettle();
 
       final dialogButtons = find.descendant(
@@ -216,6 +211,7 @@ void main() {
       expect(find.byType(UserSettings), findsOneWidget);
       expect(find.byType(FirstPage), findsNothing);
       expect(user.getNotificationPreference('default'), isNotNull);
+      expect(find.byType(SnackBar), findsOneWidget);
     },
   );
 
@@ -263,10 +259,9 @@ void main() {
         surfaceSize: const Size(1024, 2800),
       );
 
-      final pageButtons = find.byType(TextButton);
-      final last = pageButtons.evaluate().last;
-      await tester.ensureVisible(find.byWidget(last.widget));
-      await tester.tap(find.byWidget(last.widget), warnIfMissed: false);
+      final resetButton = find.byKey(const Key('userSettingsResetButton'));
+      await tester.ensureVisible(resetButton);
+      await tester.tap(resetButton, warnIfMissed: false);
       await tester.pumpAndSettle();
       final dialogButtons = find.descendant(
         of: find.byType(Dialog),

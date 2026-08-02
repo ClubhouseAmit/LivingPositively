@@ -45,7 +45,14 @@ export type ScheduledDelivery = {
   intendedAt: Date;
   message: FcmMessage;
 };
-type ScheduledDeliveryResult = "sent" | "failed" | "alreadyClaimed";
+type ScheduledDeliveryResult = "sent" | "failed" | "alreadyClaimed" | "claimFailed";
+type TimestampLike = { toMillis(): number };
+type ScheduledNotificationDocument = {
+  data(): Record<string, unknown>;
+};
+export type ScheduledNotificationQueryPlan =
+  | { kind: "exact"; hour: number; minute: number }
+  | { kind: "catchUp"; hours: number[] };
 
 export function isValidNotificationTypeId(
   value: unknown,
@@ -138,6 +145,71 @@ export function israelLocalDeliveryCandidates(
   });
 }
 
+export function israelLocalDeliveryCandidatesSince(
+  scheduleTime: Date,
+  lastProcessedAt: Date | undefined,
+): IsraelLocalDeliveryCandidate[] {
+  if (lastProcessedAt === undefined) {
+    return israelLocalDeliveryCandidates(scheduleTime).slice(0, 1);
+  }
+
+  const elapsedMinutes = Math.max(
+    1,
+    Math.min(
+      121,
+      Math.floor((scheduleTime.getTime() - lastProcessedAt.getTime()) / 60_000),
+    ),
+  );
+  return israelLocalDeliveryCandidates(scheduleTime).slice(0, elapsedMinutes);
+}
+
+export function selectScheduledNotificationCandidates<
+  T extends ScheduledNotificationDocument,
+>(
+  docs: readonly T[],
+  deliveryCandidates: readonly IsraelLocalDeliveryCandidate[],
+): Array<{ doc: T; candidate: IsraelLocalDeliveryCandidate }> {
+  const candidatesByTime = new Map(
+    deliveryCandidates.map((candidate) => [
+      `${candidate.hour}:${candidate.minute}`,
+      candidate,
+    ]),
+  );
+
+  return docs.flatMap((doc) => {
+    const { hour, minute, updatedAt } = doc.data();
+    if (!Number.isInteger(hour) || !Number.isInteger(minute)) return [];
+    const candidate = candidatesByTime.get(`${hour}:${minute}`);
+    if (!candidate) return [];
+    if (
+      updatedAt !== null &&
+      typeof updatedAt === "object" &&
+      "toMillis" in updatedAt &&
+      typeof (updatedAt as TimestampLike).toMillis === "function" &&
+      candidate.intendedAt.getTime() < (updatedAt as TimestampLike).toMillis()
+    ) {
+      return [];
+    }
+    return [{ doc, candidate }];
+  });
+}
+
+export function scheduledNotificationQueryPlan(
+  deliveryCandidates: readonly IsraelLocalDeliveryCandidate[],
+): ScheduledNotificationQueryPlan {
+  if (deliveryCandidates.length === 1) {
+    return {
+      kind: "exact",
+      hour: deliveryCandidates[0].hour,
+      minute: deliveryCandidates[0].minute,
+    };
+  }
+  return {
+    kind: "catchUp",
+    hours: [...new Set(deliveryCandidates.map((candidate) => candidate.hour))],
+  };
+}
+
 function isAlreadyClaimedError(error: unknown): boolean {
   if (error === null || typeof error !== "object") return false;
   const code = (error as { code?: unknown }).code;
@@ -180,23 +252,33 @@ export async function claimAndSendScheduledDelivery(
       expiresAt: new Date(delivery.intendedAt.getTime() + 86_400_000),
     });
   } catch (error: unknown) {
-    return isAlreadyClaimedError(error) ? "alreadyClaimed" : "failed";
+    if (isAlreadyClaimedError(error)) return "alreadyClaimed";
+    console.error(`Scheduled delivery claim failed: ${deliveryKey}`, error);
+    return "claimFailed";
   }
 
   try {
     const messageId = await send(delivery.message);
-    await writer.update({
-      status: "sent",
-      attemptFinishedAt: new Date(),
-      messageId,
-    });
+    try {
+      await writer.update({
+        status: "sent",
+        attemptFinishedAt: new Date(),
+        messageId,
+      });
+    } catch (error: unknown) {
+      console.error(`Scheduled delivery sent-status update failed: ${deliveryKey}`, error);
+    }
     return "sent";
   } catch (error: unknown) {
-    await writer.update({
-      status: "failed",
-      attemptFinishedAt: new Date(),
-      failureCode: failureCode(error),
-    });
+    try {
+      await writer.update({
+        status: "failed",
+        attemptFinishedAt: new Date(),
+        failureCode: failureCode(error),
+      });
+    } catch (updateError: unknown) {
+      console.error(`Scheduled delivery failure-status update failed: ${deliveryKey}`, updateError);
+    }
     return "failed";
   }
 }
@@ -367,31 +449,55 @@ export const processScheduledNotifications = onSchedule(
   async (event) => {
     // --- Query phase ---
     const scheduleTime = new Date(event.scheduleTime);
-    const deliveryCandidates = israelLocalDeliveryCandidates(scheduleTime);
-    const candidatesByTime = new Map(
-      deliveryCandidates.map((candidate) => [
-        `${candidate.hour}:${candidate.minute}`,
-        candidate,
-      ]),
+    const db = admin.firestore();
+    const schedulerStateRef = db
+      .collection("notification_scheduler_state")
+      .doc("primary");
+    const schedulerState = await schedulerStateRef.get();
+    const lastProcessedMillis = schedulerState.data()?.lastProcessedMillis;
+    const deliveryCandidates = israelLocalDeliveryCandidatesSince(
+      scheduleTime,
+      typeof lastProcessedMillis === "number"
+        ? new Date(lastProcessedMillis)
+        : undefined,
     );
-    const candidateHours = [
-      ...new Set(deliveryCandidates.map((candidate) => candidate.hour)),
-    ];
+    const scheduledNotifications = db.collection("scheduled_notifications");
+    const queryPlan = scheduledNotificationQueryPlan(deliveryCandidates);
+    const snapshot = queryPlan.kind === "exact"
+      ? await scheduledNotifications
+        .where("hour", "==", queryPlan.hour)
+        .where("minute", "==", queryPlan.minute)
+        .get()
+      : await scheduledNotifications.where("hour", "in", queryPlan.hours).get();
 
-    const snapshot = await admin
-      .firestore()
-      .collection("scheduled_notifications")
-      .where("hour", "in", candidateHours)
-      .get();
+    const scheduledCandidates = selectScheduledNotificationCandidates(
+      snapshot.docs,
+      deliveryCandidates,
+    );
 
-    const scheduledCandidates = snapshot.docs.flatMap((doc) => {
-      const { hour, minute } = doc.data();
-      if (!Number.isInteger(hour) || !Number.isInteger(minute)) return [];
-      const candidate = candidatesByTime.get(`${hour}:${minute}`);
-      return candidate ? [{ doc, candidate }] : [];
+    const advanceSchedulerCheckpoint = () => db.runTransaction(async (transaction) => {
+      const currentState = await transaction.get(schedulerStateRef);
+      const currentMillis = currentState.data()?.lastProcessedMillis;
+      if (
+        typeof currentMillis === "number" &&
+        currentMillis >= scheduleTime.getTime()
+      ) {
+        return;
+      }
+      transaction.set(
+        schedulerStateRef,
+        {
+          lastProcessedMillis: scheduleTime.getTime(),
+          updatedAt: admin.firestore.FieldValue.serverTimestamp(),
+        },
+        { merge: true },
+      );
     });
 
-    if (scheduledCandidates.length === 0) return;
+    if (scheduledCandidates.length === 0) {
+      await advanceSchedulerCheckpoint();
+      return;
+    }
 
     // --- Pre-fetch phase ---
 
@@ -591,10 +697,14 @@ export const processScheduledNotifications = onSchedule(
     let successCount = 0;
     let failureCount = 0;
     let alreadyClaimedCount = 0;
+    let claimFailedCount = 0;
     for (const r of results) {
       if (r.status === "fulfilled" && r.value === "sent") successCount++;
       else if (r.status === "fulfilled" && r.value === "alreadyClaimed") {
         alreadyClaimedCount++;
+      } else if (r.status === "fulfilled" && r.value === "claimFailed") {
+        claimFailedCount++;
+        failureCount++;
       } else failureCount++;
     }
 
@@ -604,11 +714,15 @@ export const processScheduledNotifications = onSchedule(
       await Promise.allSettled(
         [...new Set(staleUids)].map((uid) => cleanupInactiveDevice(uid)),
       );
-      failureCount += staleUids.length;
+      failureCount += new Set(staleUids).size;
     }
 
     console.log(
-      `processScheduledNotifications: sent=${successCount}, failed=${failureCount}, alreadyClaimed=${alreadyClaimedCount}`,
+      `processScheduledNotifications: sent=${successCount}, failed=${failureCount}, alreadyClaimed=${alreadyClaimedCount}, claimFailed=${claimFailedCount}`,
     );
+
+    if (claimFailedCount === 0) {
+      await advanceSchedulerCheckpoint();
+    }
   },
 );

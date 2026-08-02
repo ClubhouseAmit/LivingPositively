@@ -1006,6 +1006,12 @@ abstract class AppLocalizations {
   /// **'Are you sure?'**
   String get confirmResetTitle;
 
+  /// Shown when remote reminder cancellation prevents reset.
+  ///
+  /// In en, this message translates to:
+  /// **'Couldn\'t cancel the reminder. Your data has not been reset.'**
+  String get resetReminderCancellationFailed;
+
   ///
   ///
   /// In en, this message translates to:

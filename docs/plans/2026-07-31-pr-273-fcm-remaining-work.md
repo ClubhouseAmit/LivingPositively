@@ -36,7 +36,7 @@ failure after a claim, is not retried. The claim prevents duplicate attempts.
 | --- | --- | --- |
 | FCM-01 content provisioning | Implemented | ARB-derived idempotent `provision:notifications` command validates an explicit project. |
 | FCM-02 lifecycle/reset | Implemented | Sign-out UI/API removed; reset cancels before clear and restores Firebase identity. |
-| FCM-03 durable delivery | Implemented | Atomic encoded delivery claim, one attempt, 120-minute Israel-local lookback, 24-hour `expiresAt`. |
+| FCM-03 durable delivery | Implemented | Atomic encoded delivery claim, one attempt, edit-time guard, checkpointed 120-minute Israel-local recovery, and 24-hour `expiresAt`. |
 | FCM-04A local preference migration | Implemented | Startup/auth migration registers a saved default reminder; marker follows remote success only. |
 | FCM-04B legacy remote UUID records | External decision | Requires production inventory and approved mapping-or-retirement policy. |
 | FCM-05 authentication policy | Decided and implemented | Authenticated-only; no anonymous account creation. |
@@ -61,9 +61,14 @@ only after ownership and token-match semantics are approved.
 
 ## FCM-03 — Delivery Semantics and DST
 
-The scheduler derives 121 Israel-local intended minutes from the Cloud
-Scheduler event: the event minute and preceding 120 UTC minutes formatted in
-`Asia/Jerusalem`. For each matching schedule it atomically creates
+The scheduler persists its last completed event minute in the Admin-SDK-only
+`notification_scheduler_state/primary` document. A normal invocation queries
+only its exact Israel-local hour and minute; after a genuine scheduler gap it
+recovers the elapsed interval, capped at the event minute plus the preceding
+120 UTC minutes formatted in `Asia/Jerusalem`. A schedule candidate that
+predates the schedule document's `updatedAt` is ignored, so moving a reminder
+to an earlier time cannot send it immediately. For each remaining matching
+schedule it atomically creates
 `notification_deliveries/{deliveryKey}` before FCM send. The key is base64url
 JSON encoding of UID, type, local date, and intended time, avoiding delimiter
 collisions. A claim conflict suppresses a second send; `sent` and `failed` are
@@ -75,7 +80,31 @@ terminal. Configure Firestore TTL for `expiresAt` outside this repository.
   may send; the repeated occurrence is suppressed rather than sending twice.
 
 Tests cover the due window, claim-before-send ordering, duplicate suppression,
-and ambiguous failure with no retry.
+ambiguous failure with no retry, schedule-edit suppression, and claim-failure
+classification. Scheduler checkpoint transactions advance monotonically, so
+overlapping invocations cannot widen a future recovery window.
+
+### Firestore access policy handoff
+
+`notification_deliveries` and `notification_scheduler_state` are server-only
+collections. Firebase Admin SDK writes bypass Firestore security rules; the
+production rules owner must add these clauses to the canonical deployed rules
+source before rollout:
+
+```rules
+match /notification_deliveries/{deliveryId} {
+  allow read, write: if false;
+}
+match /notification_scheduler_state/{stateId} {
+  allow read, write: if false;
+}
+```
+
+This repository has no canonical Firestore rules file or rules deployment
+target in `firebase.json`. A new root rules file could replace unrelated
+production policy, so this record intentionally does not invent one. Verify
+the two deny clauses with authenticated emulator read/list/create/update/delete
+tests once the rules source is supplied.
 
 ## FCM-04 — Two Different Legacy Concerns
 
@@ -99,7 +128,9 @@ impossible. Do not assign schedules to guessed identities.
 1. Deploy Functions through the normal production process.
 2. Run `npm --prefix functions run provision:notifications -- --project
    <firebase-project-id>` with credentials for that explicit project.
-3. Configure Firestore TTL for `notification_deliveries.expiresAt`.
+3. Configure Firestore TTL for `notification_deliveries.expiresAt` and add the
+   documented deny rules for `notification_deliveries` and
+   `notification_scheduler_state` to the canonical production rules source.
 4. Complete the FCM-04 remote UUID inventory and approved disposition.
 5. Run authenticated emulator, device, and production canaries for
    registration/cancellation, token refresh, delayed delivery, duplicate

@@ -20,8 +20,7 @@ class _FakePersistentMemoryService implements PersistentMemoryService {
 
   @override
   Future<dynamic> getItem(String key, PersistentMemoryType type) async {
-    if (key == 'fcmDefaultReminderMigrated' &&
-        migrationMarkerRead != null) {
+    if (key == 'fcmDefaultReminderMigrated' && migrationMarkerRead != null) {
       migrationMarkerReadStarted?.complete();
       return migrationMarkerRead!.future;
     }
@@ -183,7 +182,9 @@ void main() {
     );
   });
 
-  testWidgets('queue registration completes its serialized turn', (tester) async {
+  testWidgets('queue registration completes its serialized turn', (
+    tester,
+  ) async {
     await pumpUser(tester);
 
     final registered = await _onPlatform(
@@ -359,6 +360,52 @@ void main() {
   );
 
   testWidgets(
+    'serializes concurrent legacy migrations before reading the marker',
+    (tester) async {
+      user.setNotificationPreference(
+        'default',
+        const NotificationPreference(hour: 8, minute: 15),
+      );
+      memory.migrationMarkerRead = Completer<dynamic>();
+      memory.migrationMarkerReadStarted = Completer<void>();
+      await pumpUser(tester);
+      var postCalls = 0;
+
+      final first = _onPlatform(
+        TargetPlatform.android,
+        () => FcmScheduledNotificationService.migrateLegacyDefaultReminder(
+          userInformation: user,
+          idTokenProvider: () async => 'token-123',
+          post: (url, {headers, body, encoding}) async {
+            postCalls++;
+            return http.Response('{}', 200);
+          },
+        ),
+      );
+      await memory.migrationMarkerReadStarted!.future;
+      final second = _onPlatform(
+        TargetPlatform.android,
+        () => FcmScheduledNotificationService.migrateLegacyDefaultReminder(
+          userInformation: user,
+          idTokenProvider: () async => 'token-123',
+          post: (url, {headers, body, encoding}) async {
+            postCalls++;
+            return http.Response('{}', 200);
+          },
+        ),
+      );
+      final markerRead = memory.migrationMarkerRead!;
+      memory.migrationMarkerRead = null;
+      markerRead.complete(false);
+
+      await Future.wait([first, second]);
+
+      expect(postCalls, 1);
+      expect(memory.stored['fcmDefaultReminderMigrated'], isTrue);
+    },
+  );
+
+  testWidgets(
     'failed reset cancellation permits a subsequent legacy migration',
     (tester) async {
       user.setNotificationPreference(
@@ -418,25 +465,25 @@ void main() {
       try {
         final migration =
             FcmScheduledNotificationService.migrateLegacyDefaultReminder(
-          userInformation: user,
-          idTokenProvider: () async => 'token-123',
-          post: (url, {headers, body, encoding}) async {
-            requests.add(url.path);
-            return http.Response('{}', 200);
-          },
-        );
+              userInformation: user,
+              idTokenProvider: () async => 'token-123',
+              post: (url, {headers, body, encoding}) async {
+                requests.add(url.path);
+                return http.Response('{}', 200);
+              },
+            );
         await tester.pump();
         await memory.migrationMarkerReadStarted!.future;
 
         final resetCancellation =
             FcmScheduledNotificationService.cancelDefaultForReset(
-          userInformation: user,
-          idTokenProvider: () async => 'token-123',
-          post: (url, {headers, body, encoding}) async {
-            requests.add(url.path);
-            return http.Response('{}', 200);
-          },
-        );
+              userInformation: user,
+              idTokenProvider: () async => 'token-123',
+              post: (url, {headers, body, encoding}) async {
+                requests.add(url.path);
+                return http.Response('{}', 200);
+              },
+            );
         memory.migrationMarkerRead!.complete(false);
 
         expect(await resetCancellation, isTrue);

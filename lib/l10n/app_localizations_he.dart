@@ -1295,6 +1295,10 @@ class AppLocalizationsHe extends AppLocalizations {
   String get confirmResetTitle => 'האם את/ה בטוח/ה?';
 
   @override
+  String get resetReminderCancellationFailed =>
+      'לא ניתן לבטל את התזכורת. הנתונים שלך לא אופסו.';
+
+  @override
   String get shareRoutineMessage =>
       'הנה התוכנית האישית שלי שנועדה לעזור לשמור עלי. שלחתי לך זאת כי מבחינתי גם לך יש חלק בה. מקווה שזה מתאים לך .אעריך מאוד את הסכמתך לקחת בה חלק בעת הצורך. בהרבה תודה מראש ומצפה לתשובתך.';
 

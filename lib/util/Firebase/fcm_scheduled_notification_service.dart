@@ -75,21 +75,21 @@ class FcmScheduledNotificationService {
   }) async {
     if (_legacyMigrationDisabled) return;
     final userInfo =
-        userInformation ?? Provider.of<UserInformation>(context!, listen: false);
+        userInformation ??
+        Provider.of<UserInformation>(context!, listen: false);
     final preference = userInfo.getNotificationPreference('default');
     if (preference == null) return;
 
-    final memory =
-        persistentMemory ?? GetIt.instance<PersistentMemoryService>();
-    final migrated =
-        await memory.getItem(
-          _legacyDefaultReminderMigrationKey,
-          PersistentMemoryType.Bool,
-        ) ??
-        false;
-    if (migrated == true || _legacyMigrationDisabled) return;
-
     await _enqueue(() async {
+      final memory =
+          persistentMemory ?? GetIt.instance<PersistentMemoryService>();
+      final migrated =
+          await memory.getItem(
+            _legacyDefaultReminderMigrationKey,
+            PersistentMemoryType.Bool,
+          ) ??
+          false;
+      if (migrated == true || _legacyMigrationDisabled) return;
       if (_legacyMigrationDisabled) return;
       final registered = await _registerNotification(
         userInformation: userInfo,
@@ -146,7 +146,8 @@ class FcmScheduledNotificationService {
       'Registering notification: typeId=$typeId, hour=$hour, minute=$minute',
     );
     final userInfo =
-        userInformation ?? Provider.of<UserInformation>(context!, listen: false);
+        userInformation ??
+        Provider.of<UserInformation>(context!, listen: false);
     final locale = userInfo.localeName.isNotEmpty ? userInfo.localeName : 'he';
     final rawGender = userInfo.gender;
     final gender = (rawGender == 'male' || rawGender == 'female')
@@ -225,25 +226,23 @@ class FcmScheduledNotificationService {
     NotificationHttpPost? post,
   }) {
     _legacyMigrationDisabled = true;
-    return _enqueue(
-      () async {
-        try {
-          final cancelled = await _cancelNotification(
-            userInformation: userInformation,
-            typeId: 'default',
-            idTokenProvider: idTokenProvider,
-            post: post,
-          );
-          if (!cancelled) {
-            _legacyMigrationDisabled = false;
-          }
-          return cancelled;
-        } catch (_) {
+    return _enqueue(() async {
+      try {
+        final cancelled = await _cancelNotification(
+          userInformation: userInformation,
+          typeId: 'default',
+          idTokenProvider: idTokenProvider,
+          post: post,
+        );
+        if (!cancelled) {
           _legacyMigrationDisabled = false;
-          rethrow;
         }
-      },
-    );
+        return cancelled;
+      } catch (_) {
+        _legacyMigrationDisabled = false;
+        rethrow;
+      }
+    });
   }
 
   static Future<bool> _cancelNotification({

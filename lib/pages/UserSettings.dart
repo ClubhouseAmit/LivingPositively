@@ -258,12 +258,20 @@ class _UserSettingsState extends LPExtendedState<UserSettings> {
         ? GetIt.instance<FirebaseAuth>().currentUser
         : null;
     if (firebaseUser != null && !firebaseUser.isAnonymous) {
-      final cancelled = await (widget.cancelDefaultReminder ??
-          (userInformation) =>
-              FcmScheduledNotificationService.cancelDefaultForReset(
-                userInformation: userInformation,
-              ))(userInfo);
-      if (!cancelled) return;
+      final cancelled =
+          await (widget.cancelDefaultReminder ??
+              (userInformation) =>
+                  FcmScheduledNotificationService.cancelDefaultForReset(
+                    userInformation: userInformation,
+                  ))(userInfo);
+      if (!cancelled) {
+        if (mounted) {
+          ScaffoldMessenger.maybeOf(context)?.showSnackBar(
+            SnackBar(content: Text(appLocale.resetReminderCancellationFailed)),
+          );
+        }
+        return;
+      }
     }
     await service.reset(); // Reset the persistent memory service
     var enteredBeforeValue = await service.getItem(
@@ -698,6 +706,7 @@ class _UserSettingsState extends LPExtendedState<UserSettings> {
                     },
                     appLocale.userSettingsReset(gender),
                     myTextStyle.copyWith(fontSize: 15.sp),
+                    key: const Key('userSettingsResetButton'),
                   ),
                   const SizedBox(height: 20),
                 ],

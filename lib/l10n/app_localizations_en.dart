@@ -1320,6 +1320,10 @@ class AppLocalizationsEn extends AppLocalizations {
   String get confirmResetTitle => 'Are you sure?';
 
   @override
+  String get resetReminderCancellationFailed =>
+      'Couldn\'t cancel the reminder. Your data has not been reset.';
+
+  @override
   String get shareRoutineMessage =>
       'Here is my personal plan that is meant to help keep me safe. I’m sending it to you because, in my view, you also have a part in it. I hope this works for you. I would greatly appreciate your agreement to take part in it if needed. Many thanks in advance, and I look forward to your reply.';
 
