@@ -223,5 +223,5 @@ class Spacing {
   static const double xl = 48.0;
 
   // Padding for the bottom of scrollable views to clear the SOS button
-  static const double bottomPadding = 80.0;
+  static const double bottomPadding = 120.0;
 }
