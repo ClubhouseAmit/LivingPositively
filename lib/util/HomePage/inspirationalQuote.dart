@@ -108,8 +108,8 @@ class _InspirationalQuoteState extends LPExtendedState<InspirationalQuote> {
         child: Stack(
           children: [
             PositionedDirectional(
-              top: 5,
-              end: 5,
+              top: 15,
+              end: 15,
               // Tooltip owns the announced label; Semantics only adds the
               // `button` role so GestureDetector doesn't read as plain text.
               child: Semantics(
@@ -119,7 +119,7 @@ class _InspirationalQuoteState extends LPExtendedState<InspirationalQuote> {
                   child: Tooltip(
                     message: appLocale.dismissQuoteTooltip,
                     child: const Padding(
-                      padding: EdgeInsets.fromLTRB(4, 4, 0, 4),
+                      padding: EdgeInsets.all(4.0),
                       child: Icon(Icons.close),
                     ),
                   ),
@@ -128,29 +128,24 @@ class _InspirationalQuoteState extends LPExtendedState<InspirationalQuote> {
             ),
             Align(
               alignment: Alignment.center,
-              child: Row(
-                mainAxisAlignment: MainAxisAlignment.center,
-                crossAxisAlignment: CrossAxisAlignment.center,
-                children: [
-                  IconButton(
-                    icon: Icon(
-                      Icons.refresh,
-                      size: min(35.sp, 40),
-                      color: Theme.of(context).colorScheme.onPrimary,
-                    ),
-                    tooltip: appLocale.refreshQuoteTooltip,
-                    //"refresh" button to change the quote
-                    onPressed: _refreshQuote,
-                  ),
-                  const SizedBox(width: Spacing.sm),
-                  Expanded(
-                    child: Padding(
-                      padding: const EdgeInsetsDirectional.fromSTEB(
-                        0,
-                        0,
-                        30,
-                        0,
+              child: Padding(
+                padding: const EdgeInsets.symmetric(horizontal: Spacing.xl, vertical: Spacing.md),
+                child: Row(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  crossAxisAlignment: CrossAxisAlignment.center,
+                  children: [
+                    IconButton(
+                      icon: Icon(
+                        Icons.refresh,
+                        size: min(35.sp, 40),
+                        color: Theme.of(context).colorScheme.onPrimary,
                       ),
+                      tooltip: appLocale.refreshQuoteTooltip,
+                      //"refresh" button to change the quote
+                      onPressed: _refreshQuote,
+                    ),
+                    const SizedBox(width: Spacing.md),
+                    Expanded(
                       child: myAutoSizedText(
                         widget.quotes[number],
                         TextStyle(
@@ -163,8 +158,8 @@ class _InspirationalQuoteState extends LPExtendedState<InspirationalQuote> {
                         4,
                       ),
                     ),
-                  ),
-                ],
+                  ],
+                ),
               ),
             ),
           ],
