@@ -175,7 +175,7 @@ class _HomeState extends LPExtendedState<Home> {
                       text: homeTitles,
                       changeCurrentIndex: widget.changeCurrentIndex,
                     ),
-                    const SizedBox(height: 20.0),
+                    const SizedBox(height: Spacing.lg),
 
                     //inspirational quote widget:
                     InspirationalQuote(
@@ -185,13 +185,13 @@ class _HomeState extends LPExtendedState<Home> {
                       ),
                     ),
 
-                    const SizedBox(height: 20),
+                    const SizedBox(height: Spacing.lg),
                     //This is the main widget for the gratitude journal
                     ListWidget(
                       onTabTapped: widget.changeCurrentIndex,
                       pageCode: PagesCode.GratitudeJournal,
                     ),
-                    const SizedBox(height: 20),
+                    const SizedBox(height: Spacing.lg),
                     //This is the main widget for the positive traits list
                     ListWidget(
                       onTabTapped: widget.changeCurrentIndex,
@@ -200,7 +200,7 @@ class _HomeState extends LPExtendedState<Home> {
                   ],
                 ),
               ),
-              const SizedBox(height: 70),
+              const SizedBox(height: Spacing.bottomPadding),
             ],
           ),
         ),

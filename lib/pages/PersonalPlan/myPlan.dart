@@ -34,13 +34,12 @@ class _MyPlanSectionState extends LPExtendedState<MyPlanSection> {
   @override
   Widget build(BuildContext context) {
     final colorScheme = Theme.of(context).colorScheme;
-    return Container(
-      padding: EdgeInsets.all(10.0),
-      color: Colors
-          .transparent, // The container wraps the entire content and provides padding.
-      child: Column(
-        children: [
-          const SizedBox(height: 25),
+    return Card(
+      margin: const EdgeInsets.symmetric(horizontal: Spacing.md, vertical: Spacing.sm),
+      child: Padding(
+        padding: const EdgeInsets.all(Spacing.md),
+        child: Column(
+          children: [
           // Displays the title of the plan section.
           Padding(
             padding: const EdgeInsets.all(8.0),
@@ -116,6 +115,7 @@ class _MyPlanSectionState extends LPExtendedState<MyPlanSection> {
                 NeverScrollableScrollPhysics(), // Disables scrolling within this ListView.
           ),
         ],
+      ),
       ),
     );
   }

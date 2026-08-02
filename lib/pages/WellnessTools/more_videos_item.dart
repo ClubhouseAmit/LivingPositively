@@ -45,7 +45,7 @@ class MoreVideosItem extends StatelessWidget {
                     height: 100,
                     child: imageService.getOnlineImage(thumbnailUrl),
                   ),
-                  const SizedBox(width: 10),
+                  const SizedBox(width: Spacing.md),
                   Expanded(
                     child: myAutoSizedText(
                       title,

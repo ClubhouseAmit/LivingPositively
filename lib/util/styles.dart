@@ -214,3 +214,14 @@ Icon mainpageListsAddIcon = Icon(
   color: primaryPurple, // the color of the add icon
   size: 30, // the size of the add icon
 );
+
+class Spacing {
+  static const double xs = 4.0;
+  static const double sm = 8.0;
+  static const double md = 16.0;
+  static const double lg = 32.0;
+  static const double xl = 48.0;
+
+  // Padding for the bottom of scrollable views to clear the SOS button
+  static const double bottomPadding = 80.0;
+}

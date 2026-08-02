@@ -73,15 +73,18 @@ class _FeelGoodPageState extends LPExtendedState<FeelGood> {
       },
       child: Scaffold(
         appBar: PreferredSize(
-          preferredSize: const Size.fromHeight(150.0),
+          preferredSize: const Size.fromHeight(100.0),
           child: SafeArea(
             child: SizedBox(
-              height: 130.0,
-              child: Image.asset(
-                'assets/images/Logo.png',
-                width: MediaQuery.of(context).size.width * 0.4 > 1000
-                    ? 500
-                    : MediaQuery.of(context).size.width * 0.2,
+              height: 80.0,
+              child: Padding(
+                padding: const EdgeInsets.all(Spacing.sm),
+                child: Image.asset(
+                  'assets/images/Logo.png',
+                  width: MediaQuery.of(context).size.width * 0.4 > 1000
+                      ? 500
+                      : MediaQuery.of(context).size.width * 0.2,
+                ),
               ),
             ),
           ),
@@ -163,6 +166,7 @@ class _FeelGoodPageState extends LPExtendedState<FeelGood> {
                     ),
                   ),
                 ),
+                const SizedBox(height: Spacing.bottomPadding),
               ],
             ),
           ),

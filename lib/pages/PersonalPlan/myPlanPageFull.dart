@@ -367,7 +367,7 @@ class _MyPlanPageFullState extends LPExtendedState<MyPlanPageFull> {
                 24,
               ),
             ),
-            SizedBox(height: 45),
+            SizedBox(height: Spacing.bottomPadding),
           ],
         ),
       ),

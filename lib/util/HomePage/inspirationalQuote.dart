@@ -96,6 +96,7 @@ class _InspirationalQuoteState extends LPExtendedState<InspirationalQuote> {
     return Visibility(
       visible: showText,
       child: Container(
+        padding: const EdgeInsets.all(Spacing.md),
         decoration: BoxDecoration(
           borderRadius: BorderRadius.circular(20),
           color: Theme.of(context).colorScheme.primary,

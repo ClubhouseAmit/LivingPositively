@@ -247,6 +247,7 @@ class _WellnessToolsState extends LPExtendedState<WellnessTools> {
                 visible: !isFullScreen,
                 child: Expanded(
                   child: ListView.separated(
+                    padding: const EdgeInsets.only(bottom: Spacing.bottomPadding, left: Spacing.md, right: Spacing.md),
                     itemBuilder: (context, index) {
                       final videoIndex = moreVideoIndexes[index];
                       var videoId = widget.videoData['videoId']![videoIndex];
@@ -273,7 +274,7 @@ class _WellnessToolsState extends LPExtendedState<WellnessTools> {
                     },
                     itemCount: moreVideoIndexes.length,
                     separatorBuilder: (context, _) =>
-                        const SizedBox(height: 10.0),
+                        const SizedBox(height: Spacing.md),
                   ),
                 ),
               ),

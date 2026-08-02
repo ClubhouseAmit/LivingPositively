@@ -90,42 +90,45 @@ class AsyncErrorRetry extends StatelessWidget {
     final retryText = retryLabel ?? locale?.asyncRetryButton ?? 'Try again';
 
     return Center(
-      child: Padding(
-        padding: const EdgeInsets.all(24.0),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Icon(
-              Icons.error_outline,
-              // Phase D: destructive/error semantics read from the token layer.
-              color: Theme.of(context).colorScheme.error,
-              size: 40.sp,
-              semanticLabel: text,
-            ),
-            SizedBox(height: 12.h),
-            myAutoSizedText(
-              text,
-              TextStyle(fontSize: 16.sp),
-              TextAlign.center,
-              20,
-            ),
-            if (onRetry != null) ...[
-              SizedBox(height: 16.h),
-              Semantics(
-                button: true,
-                child: TextButton(
-                  onPressed: onRetry,
-                  style: primaryButtonStyle(context),
-                  child: myAutoSizedText(
-                    retryText,
-                    primaryButtonTextStyle(context),
-                    TextAlign.center,
-                    20,
+      child: Card(
+        margin: const EdgeInsets.all(Spacing.md),
+        child: Padding(
+          padding: const EdgeInsets.all(Spacing.lg),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Icon(
+                Icons.error_outline,
+                // Phase D: destructive/error semantics read from the token layer.
+                color: Theme.of(context).colorScheme.error,
+                size: 40.sp,
+                semanticLabel: text,
+              ),
+              SizedBox(height: 12.h),
+              myAutoSizedText(
+                text,
+                TextStyle(fontSize: 16.sp),
+                TextAlign.center,
+                20,
+              ),
+              if (onRetry != null) ...[
+                SizedBox(height: 16.h),
+                Semantics(
+                  button: true,
+                  child: TextButton(
+                    onPressed: onRetry,
+                    style: primaryButtonStyle(context),
+                    child: myAutoSizedText(
+                      retryText,
+                      primaryButtonTextStyle(context),
+                      TextAlign.center,
+                      20,
+                    ),
                   ),
                 ),
-              ),
+              ],
             ],
-          ],
+          ),
         ),
       ),
     );
