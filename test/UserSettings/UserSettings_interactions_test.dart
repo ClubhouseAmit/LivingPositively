@@ -1,3 +1,5 @@
+import 'dart:async';
+
 // Drives the previously-uncovered branches of UserSettings:
 //   - resetData (lines 86-113) via the reset confirmation dialog's "confirm"
 //     button — pushes a FirstPage route
@@ -189,6 +191,62 @@ void main() {
         expect(find.byType(UserSettings), findsOneWidget);
         expect(find.byType(FirstPage), findsNothing);
         expect(user.getNotificationPreference('default'), isNotNull);
+        expect(find.byType(SnackBar), findsOneWidget);
+      } finally {
+        debugDefaultTargetPlatformOverride = null;
+      }
+    },
+  );
+
+  testWidgets(
+    'reset confirmation disables repeat taps while remote cancellation is pending',
+    (tester) async {
+      final auth = MockFirebaseAuth();
+      final firebaseUser = MockUser();
+      final idToken = Completer<String?>();
+      when(auth.currentUser).thenReturn(firebaseUser);
+      when(firebaseUser.isAnonymous).thenReturn(false);
+      when(firebaseUser.getIdToken()).thenAnswer((_) => idToken.future);
+      GetIt.instance.registerSingleton<FirebaseAuth>(auth);
+      debugDefaultTargetPlatformOverride = TargetPlatform.android;
+
+      try {
+        await pumpWithProviders(
+          tester,
+          UserSettings(
+            username: 'Pending reset',
+            age: '18-30',
+            gender: 'male',
+            phonePageData: _phone(),
+            changeLocale: (_) {},
+          ),
+          userInformation: user,
+          surfaceSize: const Size(1024, 2800),
+        );
+
+        final resetButton = find.byKey(const Key('userSettingsResetButton'));
+        await tester.ensureVisible(resetButton);
+        await tester.tap(resetButton, warnIfMissed: false);
+        await tester.pumpAndSettle();
+
+        final dialogButtons = find.descendant(
+          of: find.byType(Dialog),
+          matching: find.byType(TextButton),
+        );
+        await tester.tap(dialogButtons.last, warnIfMissed: false);
+        await tester.pump();
+
+        expect(find.byType(CircularProgressIndicator), findsOneWidget);
+        for (final button in tester.widgetList<TextButton>(dialogButtons)) {
+          expect(button.onPressed, isNull);
+        }
+        verify(firebaseUser.getIdToken()).called(1);
+
+        idToken.complete(null);
+        await tester.pumpAndSettle();
+
+        expect(find.byType(UserSettings), findsOneWidget);
+        expect(find.byType(FirstPage), findsNothing);
         expect(find.byType(SnackBar), findsOneWidget);
       } finally {
         debugDefaultTargetPlatformOverride = null;
