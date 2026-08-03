@@ -76,8 +76,11 @@ to an earlier time cannot send it immediately. For each remaining matching
 schedule it atomically creates
 `notification_deliveries/{deliveryKey}` before FCM send. The key is base64url
 JSON encoding of UID, type, local date, and intended time, avoiding delimiter
-collisions. A claim conflict suppresses a second send; `sent` and `failed` are
-terminal. Configure Firestore TTL for `expiresAt` outside this repository.
+collisions. Its transaction re-reads the exact selected schedule and its
+per-type `notification_mutation_state/{uid}_{typeId}` version before creating
+the claim. A deleted or replaced schedule is a non-send skip; a claim conflict
+suppresses a second send; `sent` and `failed` are terminal. Configure Firestore
+TTL for `expiresAt` outside this repository.
 
 - Spring-forward: a configured non-existent Israel-local wall-clock minute is
   skipped. This is accepted best-effort behavior.
@@ -109,10 +112,10 @@ terminal-status update that needs operational investigation.
 
 ### Firestore access policy handoff
 
-`notification_deliveries` and `notification_scheduler_state` are server-only
-collections. Firebase Admin SDK writes bypass Firestore security rules; the
-production rules owner must add these clauses to the canonical deployed rules
-source before rollout:
+`notification_deliveries`, `notification_scheduler_state`, and
+`notification_mutation_state` are server-only collections. Firebase Admin SDK
+writes bypass Firestore security rules; the production rules owner must add
+these clauses to the canonical deployed rules source before rollout:
 
 ```rules
 match /notification_deliveries/{deliveryId} {
@@ -121,12 +124,15 @@ match /notification_deliveries/{deliveryId} {
 match /notification_scheduler_state/{stateId} {
   allow read, write: if false;
 }
+match /notification_mutation_state/{stateId} {
+  allow read, write: if false;
+}
 ```
 
 This repository has no canonical Firestore rules file or rules deployment
 target in `firebase.json`. A new root rules file could replace unrelated
 production policy, so this record intentionally does not invent one. Verify
-the two deny clauses with authenticated emulator read/list/create/update/delete
+the three deny clauses with authenticated emulator read/list/create/update/delete
 tests once the rules source is supplied.
 
 ## FCM-04 — Two Different Legacy Concerns
@@ -162,8 +168,8 @@ impossible. Do not assign schedules to guessed identities.
    `notification_deliveries.expiresAt`; it is a rollout gate, not application
    configuration.
 2. Before deploying, add the documented deny rules for
-   `notification_deliveries` and `notification_scheduler_state` to the
-   canonical production rules source,
+   `notification_deliveries`, `notification_scheduler_state`, and
+   `notification_mutation_state` to the canonical production rules source,
    then verify them with authenticated emulator read/list/create/update/delete
    checks.
 3. Deploy Functions through the normal production process with the approved

@@ -37,15 +37,18 @@ configured.
   disabled for the app session; a failed or thrown cancellation re-enables a
   subsequent migration attempt.
 - Every current-client schedule mutation first reads the authoritative
-  `notification_mutation_state/{uid}` version and sends it as
+  `notification_mutation_state/{uid}_{typeId}` version and sends the `typeId`
+  and version as
   `expectedMutationVersion` to the register/cancel Function. The Function
   transaction applies the mutation only when that version still matches, then
-  advances it. Reset advances a local epoch before cancellation, so work that
-  has not left the app stops; a request that has already left is rejected by
-  the server if reset wins the transaction.
-- `getNotificationMutationVersion` returns version 0 for an account that has
-  no state document. Legacy requests without an expected version remain
-  accepted only until the account is fenced by a versioned mutation or reset.
+  advances it. A versioned registration stores that advanced value as
+  `mutationVersion` on its schedule document. Reset advances a local epoch
+  before cancellation, so work that has not left the app stops; a request that
+  has already left is rejected by the server if reset wins the transaction.
+- `getNotificationMutationVersion` requires a validated `typeId` and returns
+  version 0 when that schedule type has no state document. Legacy requests
+  without an expected version remain accepted only until that schedule type is
+  fenced by a versioned mutation or reset.
   Afterwards the Function returns 409 for an unfenced request, preventing an
   older app request from recreating a reminder after reset.
 
@@ -62,6 +65,10 @@ configured.
   `notification_deliveries/{deliveryKey}`. The key is base64url JSON encoding
   of `[uid, typeId, localDate, intendedHHmm]`, avoiding delimiter collisions
   and remaining valid for both Firestore document IDs and FCM data.
+- The claim transaction re-reads the selected schedule and its matching
+  `notification_mutation_state/{uid}_{typeId}` document. It sends only when
+  the selected/current schedule mutation versions still agree; a deleted or
+  replaced schedule is skipped without an FCM call or checkpoint failure.
 - The delivery record contains its identity, `claimed`/`sent`/`failed` status,
   claim and attempt timestamps, the FCM message ID or failure code, and an
   `expiresAt` value of intended time plus 24 hours. The FCM payload also
@@ -96,7 +103,7 @@ deploy or enable scheduled delivery until each gate is satisfied:
 2. Add server-only deny rules for `notification_deliveries`,
    `notification_scheduler_state`, and `notification_mutation_state` to the
    canonical production rules source, and verify authenticated emulator
-   read/list/create/update/delete denial.
+   read/list/create/update/delete denial for all three collections.
 3. Deploy the Functions code through the normal project deployment process
    with the approved scheduler invocation bound of 300 seconds, 512MiB, and
    25 task batches. These bounds preserve all-or-nothing recovery: a recovery

@@ -96,6 +96,7 @@ void main() {
     late Uri requestedUrl;
     late Map<String, String> requestedHeaders;
     late String requestedBody;
+    late String versionReadBody;
 
     final result = await _onPlatform(
       TargetPlatform.android,
@@ -107,6 +108,7 @@ void main() {
         idTokenProvider: () async => 'token-123',
         post: (url, {headers, body, encoding}) async {
           if (url.path.endsWith('/getNotificationMutationVersion')) {
+            versionReadBody = body! as String;
             return http.Response('{"mutationVersion":0}', 200);
           }
           requestedUrl = url;
@@ -123,6 +125,7 @@ void main() {
       'https://us-central1-mezilondb.cloudfunctions.net/registerNotification',
     );
     expect(requestedHeaders['Authorization'], 'Bearer token-123');
+    expect(jsonDecode(versionReadBody), {'typeId': 'default'});
     expect(jsonDecode(requestedBody), {
       'typeId': 'default',
       'hour': 9,

@@ -273,6 +273,42 @@ describe("scheduled notification delivery", () => {
     assert.ok(updated[0].attemptFinishedAt instanceof Date);
   });
 
+  it("does not send when the schedule is no longer current at claim time", async () => {
+    let sendCalls = 0;
+    const updates: Array<Record<string, unknown>> = [];
+
+    const result = await claimAndSendScheduledDelivery(
+      {
+        uid: "uid-123",
+        typeId: "default",
+        localDate: "2026-01-02",
+        intendedTime: "00:59",
+        intendedAt: new Date("2026-01-01T22:59:00.000Z"),
+        message: {
+          token: "latest-token",
+          notification: { title: "Title", body: "Body" },
+          data: { deliveryKey: "key" },
+        },
+      },
+      {
+        async create(_data: Record<string, unknown>) {
+          return "notCurrent";
+        },
+        async update(data: Record<string, unknown>) {
+          updates.push(data);
+        },
+      },
+      async () => {
+        sendCalls++;
+        return "fcm-message-id";
+      },
+    );
+
+    assert.equal(result, "notCurrent");
+    assert.equal(sendCalls, 0);
+    assert.deepEqual(updates, []);
+  });
+
   it("does not retry an ambiguous failed send after the create claim", async () => {
     let claimed = false;
     let sendCalls = 0;

@@ -45,7 +45,12 @@ export type ScheduledDelivery = {
   intendedAt: Date;
   message: FcmMessage;
 };
-type ScheduledDeliveryResult = "sent" | "failed" | "alreadyClaimed" | "claimFailed";
+type ScheduledDeliveryResult =
+  | "sent"
+  | "failed"
+  | "alreadyClaimed"
+  | "claimFailed"
+  | "notCurrent";
 type TimestampLike = { toMillis(): number };
 type ScheduledNotificationDocument = {
   data(): Record<string, unknown>;
@@ -258,6 +263,25 @@ export function shouldAdvanceSchedulerCheckpoint(
   return claimFailedCount === 0;
 }
 
+function isCurrentScheduledNotificationAtClaim(
+  selectedMutationVersion: unknown,
+  currentSchedule: FirebaseFirestore.DocumentSnapshot,
+  currentState: FirebaseFirestore.DocumentSnapshot,
+): boolean {
+  if (!currentSchedule.exists) return false;
+
+  const currentMutationVersion = currentSchedule.data()?.mutationVersion;
+  if (selectedMutationVersion === undefined) {
+    return currentMutationVersion === undefined && !currentState.exists;
+  }
+
+  return (
+    isNonNegativeNotificationMutationVersion(selectedMutationVersion) &&
+    currentMutationVersion === selectedMutationVersion &&
+    currentState.data()?.version === selectedMutationVersion
+  );
+}
+
 function isAlreadyClaimedError(error: unknown): boolean {
   if (error === null || typeof error !== "object") return false;
   const code = (error as { code?: unknown }).code;
@@ -288,7 +312,7 @@ export async function claimAndSendScheduledDelivery(
   );
   const claimedAt = new Date();
   try {
-    await writer.create({
+    const claimResult = await writer.create({
       deliveryKey,
       uid: delivery.uid,
       typeId: delivery.typeId,
@@ -299,6 +323,7 @@ export async function claimAndSendScheduledDelivery(
       attemptStartedAt: claimedAt,
       expiresAt: new Date(delivery.intendedAt.getTime() + 86_400_000),
     });
+    if (claimResult === "notCurrent") return "notCurrent";
   } catch (error: unknown) {
     if (isAlreadyClaimedError(error)) return "alreadyClaimed";
     console.error(`Scheduled delivery claim failed: ${deliveryKey}`, error);
@@ -386,7 +411,8 @@ class NotificationMutationConflictError extends Error {}
 
 // ---------------------------------------------------------------------------
 // getNotificationMutationVersion — returns the server-authoritative version
-// used to fence scheduled-notification writes for one authenticated account.
+// used to fence scheduled-notification writes for one authenticated schedule.
+// Body: { typeId: string }
 // ---------------------------------------------------------------------------
 export const getNotificationMutationVersion = onRequest(async (req, res) => {
   if (req.method !== "POST") {
@@ -400,10 +426,16 @@ export const getNotificationMutationVersion = onRequest(async (req, res) => {
     return;
   }
 
+  const typeId = req.body?.typeId;
+  if (!isValidNotificationTypeId(typeId)) {
+    res.status(400).send("Invalid typeId");
+    return;
+  }
+
   const stateDoc = await admin
     .firestore()
     .collection("notification_mutation_state")
-    .doc(uid)
+    .doc(`${uid}_${typeId}`)
     .get();
   if (!stateDoc.exists) {
     res.send({ mutationVersion: 0 });
@@ -476,7 +508,9 @@ export const registerNotification = onRequest(async (req, res) => {
   }
 
   const db = admin.firestore();
-  const stateRef = db.collection("notification_mutation_state").doc(uid);
+  const stateRef = db
+    .collection("notification_mutation_state")
+    .doc(`${uid}_${typeId}`);
   const scheduleRef = db
     .collection("scheduled_notifications")
     .doc(`${uid}_${typeId}`);
@@ -495,7 +529,7 @@ export const registerNotification = onRequest(async (req, res) => {
         throw new NotificationMutationConflictError("Stale notification mutation");
       }
 
-      transaction.set(scheduleRef, {
+      const scheduleData: Record<string, unknown> = {
         uid,
         typeId,
         hour,
@@ -503,10 +537,13 @@ export const registerNotification = onRequest(async (req, res) => {
         locale,
         gender: normalizeNotificationGender(gender),
         updatedAt: admin.firestore.FieldValue.serverTimestamp(),
-      });
+      };
       if (expectedVersion.kind === "versioned") {
-        transaction.set(stateRef, { version: (currentVersion ?? 0) + 1 });
+        const nextVersion = (currentVersion ?? 0) + 1;
+        scheduleData.mutationVersion = nextVersion;
+        transaction.set(stateRef, { version: nextVersion });
       }
+      transaction.set(scheduleRef, scheduleData);
     });
   } catch (error) {
     if (error instanceof NotificationMutationConflictError) {
@@ -549,7 +586,9 @@ export const cancelNotification = onRequest(async (req, res) => {
   }
 
   const db = admin.firestore();
-  const stateRef = db.collection("notification_mutation_state").doc(uid);
+  const stateRef = db
+    .collection("notification_mutation_state")
+    .doc(`${uid}_${typeId}`);
   const scheduleRef = db
     .collection("scheduled_notifications")
     .doc(`${uid}_${typeId}`);
@@ -808,10 +847,11 @@ export const processScheduledNotifications = onSchedule(
         candidate.localDate,
         candidate.intendedTime,
       );
-      const deliveryRef = admin
-        .firestore()
-        .collection("notification_deliveries")
-        .doc(deliveryKey);
+      const deliveryRef = db.collection("notification_deliveries").doc(deliveryKey);
+      const stateRef = db
+        .collection("notification_mutation_state")
+        .doc(`${uid}_${typeId}`);
+      const selectedMutationVersion = doc.data().mutationVersion;
       sendTasks.push(() =>
         claimAndSendScheduledDelivery(
           {
@@ -827,7 +867,21 @@ export const processScheduledNotifications = onSchedule(
             },
           },
           {
-            create: (data) => deliveryRef.create(data),
+            create: (data) => db.runTransaction(async (transaction) => {
+              const [currentSchedule, currentState] = await Promise.all([
+                transaction.get(doc.ref),
+                transaction.get(stateRef),
+              ]);
+              if (!isCurrentScheduledNotificationAtClaim(
+                selectedMutationVersion,
+                currentSchedule,
+                currentState,
+              )) {
+                return "notCurrent";
+              }
+              transaction.create(deliveryRef, data);
+              return undefined;
+            }),
             update: (data) => deliveryRef.update(data),
           },
           async (message) => {
@@ -858,11 +912,14 @@ export const processScheduledNotifications = onSchedule(
     let successCount = 0;
     let failureCount = 0;
     let alreadyClaimedCount = 0;
+    let notCurrentCount = 0;
     let claimFailedCount = 0;
     for (const r of results) {
       if (r.status === "fulfilled" && r.value === "sent") successCount++;
       else if (r.status === "fulfilled" && r.value === "alreadyClaimed") {
         alreadyClaimedCount++;
+      } else if (r.status === "fulfilled" && r.value === "notCurrent") {
+        notCurrentCount++;
       } else if (r.status === "fulfilled" && r.value === "claimFailed") {
         claimFailedCount++;
         failureCount++;
@@ -879,7 +936,7 @@ export const processScheduledNotifications = onSchedule(
     }
 
     console.log(
-      `processScheduledNotifications: sent=${successCount}, failed=${failureCount}, alreadyClaimed=${alreadyClaimedCount}, claimFailed=${claimFailedCount}, staleDevicesCleaned=${staleDeviceIds.length}`,
+      `processScheduledNotifications: sent=${successCount}, failed=${failureCount}, alreadyClaimed=${alreadyClaimedCount}, notCurrent=${notCurrentCount}, claimFailed=${claimFailedCount}, staleDevicesCleaned=${staleDeviceIds.length}`,
     );
 
     if (shouldAdvanceSchedulerCheckpoint(claimFailedCount)) {

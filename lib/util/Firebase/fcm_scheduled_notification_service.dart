@@ -179,6 +179,7 @@ class FcmScheduledNotificationService {
       if (resetEpoch != _resetEpoch) return false;
       final expectedMutationVersion = await _getNotificationMutationVersion(
         idToken: idToken,
+        typeId: typeId,
         post: post,
       );
       if (expectedMutationVersion == null || resetEpoch != _resetEpoch) {
@@ -298,6 +299,7 @@ class FcmScheduledNotificationService {
       if (resetEpoch != _resetEpoch) return false;
       final expectedMutationVersion = await _getNotificationMutationVersion(
         idToken: idToken,
+        typeId: typeId,
         post: post,
       );
       if (expectedMutationVersion == null || resetEpoch != _resetEpoch) {
@@ -340,6 +342,7 @@ class FcmScheduledNotificationService {
 
   static Future<int?> _getNotificationMutationVersion({
     required String idToken,
+    required String typeId,
     NotificationHttpPost? post,
   }) async {
     try {
@@ -349,7 +352,7 @@ class FcmScheduledNotificationService {
           'Authorization': 'Bearer $idToken',
           'Content-Type': 'application/json',
         },
-        body: jsonEncode({}),
+        body: jsonEncode({'typeId': typeId}),
       ).timeout(_networkTimeout);
       if (response.statusCode != 200) {
         _log(
