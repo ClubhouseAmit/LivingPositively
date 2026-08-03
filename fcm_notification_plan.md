@@ -36,6 +36,18 @@ configured.
   it can register. A successful reset cancellation leaves that migration
   disabled for the app session; a failed or thrown cancellation re-enables a
   subsequent migration attempt.
+- Every current-client schedule mutation first reads the authoritative
+  `notification_mutation_state/{uid}` version and sends it as
+  `expectedMutationVersion` to the register/cancel Function. The Function
+  transaction applies the mutation only when that version still matches, then
+  advances it. Reset advances a local epoch before cancellation, so work that
+  has not left the app stops; a request that has already left is rejected by
+  the server if reset wins the transaction.
+- `getNotificationMutationVersion` returns version 0 for an account that has
+  no state document. Legacy requests without an expected version remain
+  accepted only until the account is fenced by a versioned mutation or reset.
+  Afterwards the Function returns 409 for an unfenced request, preventing an
+  older app request from recreating a reminder after reset.
 
 ### Server delivery
 
@@ -81,9 +93,10 @@ deploy or enable scheduled delivery until each gate is satisfied:
 
 1. Configure Firestore TTL for `notification_deliveries.expiresAt` in the
    canonical production Firebase configuration.
-2. Add server-only deny rules for `notification_deliveries` and
-   `notification_scheduler_state` to the canonical production rules source,
-   and verify authenticated emulator read/list/create/update/delete denial.
+2. Add server-only deny rules for `notification_deliveries`,
+   `notification_scheduler_state`, and `notification_mutation_state` to the
+   canonical production rules source, and verify authenticated emulator
+   read/list/create/update/delete denial.
 3. Deploy the Functions code through the normal project deployment process
    with the approved scheduler invocation bound of 300 seconds, 512MiB, and
    25 task batches. These bounds preserve all-or-nothing recovery: a recovery
@@ -101,4 +114,8 @@ deploy or enable scheduled delivery until each gate is satisfied:
    validation: authenticated registration/cancellation, token refresh,
    delayed scheduler delivery, duplicate-claim suppression, failure handling,
    and reset/migration behavior.
-8. Resolve and merge this stacked change through the parent/stacked PR flow.
+8. Deploy the Functions version-read and expected-version support before a
+   mobile release that sends `expectedMutationVersion`. This ordering preserves
+   current legacy behavior until an account is fenced; after fencing, legacy
+   reminder mutations are deliberately blocked to preserve reset privacy.
+9. Resolve and merge this stacked change through the parent/stacked PR flow.

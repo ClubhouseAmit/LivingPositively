@@ -106,6 +106,9 @@ void main() {
         minute: 30,
         idTokenProvider: () async => 'token-123',
         post: (url, {headers, body, encoding}) async {
+          if (url.path.endsWith('/getNotificationMutationVersion')) {
+            return http.Response('{"mutationVersion":0}', 200);
+          }
           requestedUrl = url;
           requestedHeaders = headers!;
           requestedBody = body! as String;
@@ -126,6 +129,7 @@ void main() {
       'minute': 30,
       'locale': 'en',
       'gender': 'female',
+      'expectedMutationVersion': 0,
     });
     expect(
       user.getNotificationPreference('default')?.toJson(),
@@ -148,8 +152,11 @@ void main() {
         context: serviceContext,
         typeId: 'default',
         idTokenProvider: () async => 'token-123',
-        post: (url, {headers, body, encoding}) async =>
-            http.Response('{}', 200),
+        post: (url, {headers, body, encoding}) async => url.path.endsWith(
+              '/getNotificationMutationVersion',
+            )
+            ? http.Response('{"mutationVersion":0}', 200)
+            : http.Response('{}', 200),
       ),
     );
 
@@ -170,8 +177,11 @@ void main() {
         context: serviceContext,
         typeId: 'default',
         idTokenProvider: () async => 'token-123',
-        post: (url, {headers, body, encoding}) async =>
-            http.Response('server error', 500),
+        post: (url, {headers, body, encoding}) async => url.path.endsWith(
+              '/getNotificationMutationVersion',
+            )
+            ? http.Response('{"mutationVersion":0}', 200)
+            : http.Response('server error', 500),
       ),
     );
 
@@ -195,8 +205,11 @@ void main() {
         hour: 9,
         minute: 30,
         idTokenProvider: () async => 'token-123',
-        post: (url, {headers, body, encoding}) async =>
-            http.Response('{}', 200),
+        post: (url, {headers, body, encoding}) async => url.path.endsWith(
+              '/getNotificationMutationVersion',
+            )
+            ? http.Response('{"mutationVersion":0}', 200)
+            : http.Response('{}', 200),
       ),
     );
 
@@ -218,8 +231,11 @@ void main() {
         context: serviceContext,
         typeId: 'default',
         idTokenProvider: () async => 'token-123',
-        post: (url, {headers, body, encoding}) async =>
-            http.Response('{}', 200),
+        post: (url, {headers, body, encoding}) async => url.path.endsWith(
+              '/getNotificationMutationVersion',
+            )
+            ? http.Response('{"mutationVersion":0}', 200)
+            : http.Response('{}', 200),
       ),
     );
 
@@ -245,14 +261,21 @@ void main() {
               hour: 9,
               minute: 30,
               idTokenProvider: () async => 'token-123',
-              post: (_, {headers, body, encoding}) => stalledPost.future,
+              post: (url, {headers, body, encoding}) => url.path.endsWith(
+                    '/getNotificationMutationVersion',
+                  )
+                  ? Future.value(http.Response('{"mutationVersion":0}', 200))
+                  : stalledPost.future,
             );
         final cancelling = FcmScheduledNotificationService.cancelNotification(
           userInformation: user,
           typeId: 'default',
           idTokenProvider: () async => 'token-123',
-          post: (_, {headers, body, encoding}) async =>
-              http.Response('{}', 200),
+          post: (url, {headers, body, encoding}) async => url.path.endsWith(
+                '/getNotificationMutationVersion',
+              )
+              ? http.Response('{"mutationVersion":0}', 200)
+              : http.Response('{}', 200),
         );
 
         bool? registrationResult;
@@ -265,6 +288,97 @@ void main() {
         expect(registrationResult, isFalse);
         expect(cancellationResult, isTrue);
         expect(user.getNotificationPreference('default'), isNull);
+      } finally {
+        debugDefaultTargetPlatformOverride = null;
+      }
+    },
+  );
+
+  testWidgets(
+    'a late registration cannot recreate a reminder after reset cancellation',
+    (tester) async {
+      user.setNotificationPreference(
+        'default',
+        const NotificationPreference(hour: 8, minute: 15),
+      );
+      await pumpUser(tester);
+      var remoteMutationVersion = 0;
+      var remoteSchedulePresent = true;
+      Object? registrationExpectedMutationVersion;
+      final registrationStarted = Completer<void>();
+      final completeLateRegistration = Completer<void>();
+
+      Future<http.Response> post(
+        Uri url, {
+        Map<String, String>? headers,
+        Object? body,
+        Encoding? encoding,
+      }) async {
+        if (url.path.endsWith('/getNotificationMutationVersion')) {
+          return http.Response(
+            jsonEncode({'mutationVersion': remoteMutationVersion}),
+            200,
+          );
+        }
+
+        final payload = jsonDecode(body! as String) as Map<String, dynamic>;
+        final expectedMutationVersion =
+            payload['expectedMutationVersion'];
+        if (url.path.endsWith('/registerNotification')) {
+          registrationExpectedMutationVersion = expectedMutationVersion;
+          registrationStarted.complete();
+          await completeLateRegistration.future;
+        }
+
+        if (expectedMutationVersion is int &&
+            expectedMutationVersion != remoteMutationVersion) {
+          return http.Response('Stale notification mutation', 409);
+        }
+
+        if (url.path.endsWith('/registerNotification')) {
+          remoteSchedulePresent = true;
+        } else if (url.path.endsWith('/cancelNotification')) {
+          remoteSchedulePresent = false;
+        } else {
+          fail('Unexpected endpoint: $url');
+        }
+        if (expectedMutationVersion is int) {
+          remoteMutationVersion++;
+        }
+        return http.Response('{}', 200);
+      }
+
+      debugDefaultTargetPlatformOverride = TargetPlatform.android;
+      try {
+        final registering =
+            FcmScheduledNotificationService.registerNotification(
+              userInformation: user,
+              typeId: 'default',
+              hour: 9,
+              minute: 30,
+              idTokenProvider: () async => 'token-123',
+              post: post,
+            );
+        await tester.pump();
+        await registrationStarted.future;
+
+        final resetCancellation =
+            FcmScheduledNotificationService.cancelDefaultForReset(
+              userInformation: user,
+              idTokenProvider: () async => 'token-123',
+              post: post,
+            );
+        await tester.pump(const Duration(seconds: 15));
+
+        expect(await registering, isFalse);
+        expect(await resetCancellation, isTrue);
+        expect(registrationExpectedMutationVersion, 0);
+        expect(remoteMutationVersion, 1);
+        expect(remoteSchedulePresent, isFalse);
+
+        completeLateRegistration.complete();
+        await tester.pump();
+        expect(remoteSchedulePresent, isFalse);
       } finally {
         debugDefaultTargetPlatformOverride = null;
       }
@@ -344,6 +458,9 @@ void main() {
           context: serviceContext,
           idTokenProvider: () async => 'token-123',
           post: (url, {headers, body, encoding}) async {
+            if (url.path.endsWith('/getNotificationMutationVersion')) {
+              return http.Response('{"mutationVersion":0}', 200);
+            }
             postCalls++;
             return http.Response('{}', 200);
           },
@@ -355,6 +472,9 @@ void main() {
           context: serviceContext,
           idTokenProvider: () async => 'token-123',
           post: (url, {headers, body, encoding}) async {
+            if (url.path.endsWith('/getNotificationMutationVersion')) {
+              return http.Response('{"mutationVersion":0}', 200);
+            }
             postCalls++;
             return http.Response('{}', 200);
           },
@@ -382,6 +502,9 @@ void main() {
           context: serviceContext,
           idTokenProvider: () async => null,
           post: (url, {headers, body, encoding}) async {
+            if (url.path.endsWith('/getNotificationMutationVersion')) {
+              return http.Response('{"mutationVersion":0}', 200);
+            }
             postCalls++;
             return http.Response('{}', 200);
           },
@@ -393,6 +516,9 @@ void main() {
           context: serviceContext,
           idTokenProvider: () async => 'token-123',
           post: (url, {headers, body, encoding}) async {
+            if (url.path.endsWith('/getNotificationMutationVersion')) {
+              return http.Response('{"mutationVersion":0}', 200);
+            }
             postCalls++;
             return http.Response('failed', 500);
           },
@@ -422,6 +548,9 @@ void main() {
           userInformation: user,
           idTokenProvider: () async => 'token-123',
           post: (url, {headers, body, encoding}) async {
+            if (url.path.endsWith('/getNotificationMutationVersion')) {
+              return http.Response('{"mutationVersion":0}', 200);
+            }
             postCalls++;
             return http.Response('{}', 200);
           },
@@ -434,6 +563,9 @@ void main() {
           userInformation: user,
           idTokenProvider: () async => 'token-123',
           post: (url, {headers, body, encoding}) async {
+            if (url.path.endsWith('/getNotificationMutationVersion')) {
+              return http.Response('{"mutationVersion":0}', 200);
+            }
             postCalls++;
             return http.Response('{}', 200);
           },
@@ -467,6 +599,9 @@ void main() {
           userInformation: user,
           idTokenProvider: () async => 'token-123',
           post: (url, {headers, body, encoding}) async {
+            if (url.path.endsWith('/getNotificationMutationVersion')) {
+              return http.Response('{"mutationVersion":0}', 200);
+            }
             cancelRequests++;
             return http.Response('failed', 500);
           },
@@ -483,6 +618,9 @@ void main() {
           userInformation: user,
           idTokenProvider: () async => 'token-123',
           post: (url, {headers, body, encoding}) async {
+            if (url.path.endsWith('/getNotificationMutationVersion')) {
+              return http.Response('{"mutationVersion":0}', 200);
+            }
             registerRequests++;
             return http.Response('{}', 200);
           },
@@ -513,6 +651,9 @@ void main() {
               userInformation: user,
               idTokenProvider: () async => 'token-123',
               post: (url, {headers, body, encoding}) async {
+                if (url.path.endsWith('/getNotificationMutationVersion')) {
+                  return http.Response('{"mutationVersion":0}', 200);
+                }
                 requests.add(url.path);
                 return http.Response('{}', 200);
               },
@@ -525,6 +666,9 @@ void main() {
               userInformation: user,
               idTokenProvider: () async => 'token-123',
               post: (url, {headers, body, encoding}) async {
+                if (url.path.endsWith('/getNotificationMutationVersion')) {
+                  return http.Response('{"mutationVersion":0}', 200);
+                }
                 requests.add(url.path);
                 return http.Response('{}', 200);
               },
@@ -558,6 +702,9 @@ void main() {
           typeId: 'default',
           idTokenProvider: () async => 'token-123',
           post: (url, {headers, body, encoding}) async {
+            if (url.path.endsWith('/getNotificationMutationVersion')) {
+              return http.Response('{"mutationVersion":0}', 200);
+            }
             requests.add(url.path);
             return cancelResponse.future;
           },
@@ -569,6 +716,9 @@ void main() {
               userInformation: user,
               idTokenProvider: () async => 'token-123',
               post: (url, {headers, body, encoding}) async {
+                if (url.path.endsWith('/getNotificationMutationVersion')) {
+                  return http.Response('{"mutationVersion":0}', 200);
+                }
                 requests.add(url.path);
                 return http.Response('{}', 200);
               },

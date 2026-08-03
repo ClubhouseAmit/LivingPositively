@@ -53,6 +53,15 @@ type ScheduledNotificationDocument = {
 export type ScheduledNotificationQueryPlan =
   | { kind: "exact"; hour: number; minute: number }
   | { kind: "catchUp"; hours: number[] };
+export type ExpectedNotificationMutationVersion =
+  | { kind: "legacy" }
+  | { kind: "versioned"; version: number }
+  | { kind: "invalid" };
+export type NotificationMutationDecision =
+  | "apply"
+  | "stale"
+  | "legacyBlocked"
+  | "invalid";
 
 export function isValidNotificationTypeId(
   value: unknown,
@@ -68,6 +77,35 @@ export function normalizeNotificationGender(
   return value === "male" || value === "female" || value === "other"
     ? value
     : "other";
+}
+
+function isNonNegativeNotificationMutationVersion(value: unknown): value is number {
+  return (
+    typeof value === "number" &&
+    Number.isSafeInteger(value) &&
+    value >= 0
+  );
+}
+
+export function parseExpectedNotificationMutationVersion(
+  value: unknown,
+): ExpectedNotificationMutationVersion {
+  if (value === undefined) return { kind: "legacy" };
+  if (isNonNegativeNotificationMutationVersion(value)) {
+    return { kind: "versioned", version: value };
+  }
+  return { kind: "invalid" };
+}
+
+export function notificationMutationDecision(
+  expected: ExpectedNotificationMutationVersion,
+  currentVersion: number | undefined,
+): NotificationMutationDecision {
+  if (expected.kind === "invalid") return "invalid";
+  if (expected.kind === "legacy") {
+    return currentVersion === undefined ? "apply" : "legacyBlocked";
+  }
+  return expected.version === (currentVersion ?? 0) ? "apply" : "stale";
 }
 
 export function hasValidNotificationTypeSchema(
@@ -344,9 +382,46 @@ async function cleanupInactiveDevice(uid: string): Promise<void> {
   ]);
 }
 
+class NotificationMutationConflictError extends Error {}
+
+// ---------------------------------------------------------------------------
+// getNotificationMutationVersion — returns the server-authoritative version
+// used to fence scheduled-notification writes for one authenticated account.
+// ---------------------------------------------------------------------------
+export const getNotificationMutationVersion = onRequest(async (req, res) => {
+  if (req.method !== "POST") {
+    res.status(405).send("Method Not Allowed");
+    return;
+  }
+
+  const uid = await extractAndVerifyUid(req);
+  if (!uid) {
+    res.status(401).send("Unauthorized");
+    return;
+  }
+
+  const stateDoc = await admin
+    .firestore()
+    .collection("notification_mutation_state")
+    .doc(uid)
+    .get();
+  if (!stateDoc.exists) {
+    res.send({ mutationVersion: 0 });
+    return;
+  }
+
+  const mutationVersion = stateDoc.data()?.version;
+  if (!isNonNegativeNotificationMutationVersion(mutationVersion)) {
+    res.status(500).send("Invalid notification mutation state");
+    return;
+  }
+  res.send({ mutationVersion });
+});
+
 // ---------------------------------------------------------------------------
 // registerNotification — creates or updates a scheduled notification entry.
-// Body: { typeId: string, hour: number, minute: number }
+// Body: { typeId: string, hour: number, minute: number,
+//         expectedMutationVersion?: non-negative integer }
 // ---------------------------------------------------------------------------
 export const registerNotification = onRequest(async (req, res) => {
   if (req.method !== "POST") {
@@ -360,7 +435,11 @@ export const registerNotification = onRequest(async (req, res) => {
     return;
   }
 
-  const { typeId, hour, minute, locale, gender } = req.body;
+  const { typeId, hour, minute, locale, gender, expectedMutationVersion } =
+    req.body;
+  const expectedVersion = parseExpectedNotificationMutationVersion(
+    expectedMutationVersion,
+  );
 
   if (
     !isValidNotificationTypeId(typeId) ||
@@ -381,6 +460,10 @@ export const registerNotification = onRequest(async (req, res) => {
       );
     return;
   }
+  if (expectedVersion.kind === "invalid") {
+    res.status(400).send("Invalid expectedMutationVersion");
+    return;
+  }
 
   const typeDoc = await admin
     .firestore()
@@ -392,26 +475,53 @@ export const registerNotification = onRequest(async (req, res) => {
     return;
   }
 
-  await admin
-    .firestore()
+  const db = admin.firestore();
+  const stateRef = db.collection("notification_mutation_state").doc(uid);
+  const scheduleRef = db
     .collection("scheduled_notifications")
-    .doc(`${uid}_${typeId}`)
-    .set({
-      uid,
-      typeId,
-      hour,
-      minute,
-      locale,
-      gender: normalizeNotificationGender(gender),
-      updatedAt: admin.firestore.FieldValue.serverTimestamp(),
+    .doc(`${uid}_${typeId}`);
+  try {
+    await db.runTransaction(async (transaction) => {
+      const stateDoc = await transaction.get(stateRef);
+      let currentVersion: number | undefined;
+      if (stateDoc.exists) {
+        const storedVersion = stateDoc.data()?.version;
+        if (!isNonNegativeNotificationMutationVersion(storedVersion)) {
+          throw new Error("Invalid notification mutation state");
+        }
+        currentVersion = storedVersion;
+      }
+      if (notificationMutationDecision(expectedVersion, currentVersion) !== "apply") {
+        throw new NotificationMutationConflictError("Stale notification mutation");
+      }
+
+      transaction.set(scheduleRef, {
+        uid,
+        typeId,
+        hour,
+        minute,
+        locale,
+        gender: normalizeNotificationGender(gender),
+        updatedAt: admin.firestore.FieldValue.serverTimestamp(),
+      });
+      if (expectedVersion.kind === "versioned") {
+        transaction.set(stateRef, { version: (currentVersion ?? 0) + 1 });
+      }
     });
+  } catch (error) {
+    if (error instanceof NotificationMutationConflictError) {
+      res.status(409).send(error.message);
+      return;
+    }
+    throw error;
+  }
 
   res.send({ success: true });
 });
 
 // ---------------------------------------------------------------------------
 // cancelNotification — deletes the scheduled notification entry.
-// Body: { typeId: string }
+// Body: { typeId: string, expectedMutationVersion?: non-negative integer }
 // ---------------------------------------------------------------------------
 export const cancelNotification = onRequest(async (req, res) => {
   if (req.method !== "POST") {
@@ -425,17 +535,51 @@ export const cancelNotification = onRequest(async (req, res) => {
     return;
   }
 
-  const { typeId } = req.body;
+  const { typeId, expectedMutationVersion } = req.body;
   if (!isValidNotificationTypeId(typeId)) {
     res.status(400).send("Invalid typeId");
     return;
   }
+  const expectedVersion = parseExpectedNotificationMutationVersion(
+    expectedMutationVersion,
+  );
+  if (expectedVersion.kind === "invalid") {
+    res.status(400).send("Invalid expectedMutationVersion");
+    return;
+  }
 
-  await admin
-    .firestore()
+  const db = admin.firestore();
+  const stateRef = db.collection("notification_mutation_state").doc(uid);
+  const scheduleRef = db
     .collection("scheduled_notifications")
-    .doc(`${uid}_${typeId}`)
-    .delete();
+    .doc(`${uid}_${typeId}`);
+  try {
+    await db.runTransaction(async (transaction) => {
+      const stateDoc = await transaction.get(stateRef);
+      let currentVersion: number | undefined;
+      if (stateDoc.exists) {
+        const storedVersion = stateDoc.data()?.version;
+        if (!isNonNegativeNotificationMutationVersion(storedVersion)) {
+          throw new Error("Invalid notification mutation state");
+        }
+        currentVersion = storedVersion;
+      }
+      if (notificationMutationDecision(expectedVersion, currentVersion) !== "apply") {
+        throw new NotificationMutationConflictError("Stale notification mutation");
+      }
+
+      transaction.delete(scheduleRef);
+      if (expectedVersion.kind === "versioned") {
+        transaction.set(stateRef, { version: (currentVersion ?? 0) + 1 });
+      }
+    });
+  } catch (error) {
+    if (error instanceof NotificationMutationConflictError) {
+      res.status(409).send(error.message);
+      return;
+    }
+    throw error;
+  }
 
   res.send({ success: true });
 });

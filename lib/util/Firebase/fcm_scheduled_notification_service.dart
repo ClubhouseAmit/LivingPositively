@@ -27,11 +27,13 @@ class FcmScheduledNotificationService {
   static const Duration _networkTimeout = Duration(seconds: 15);
   static Future<void>? _operationQueue;
   static bool _legacyMigrationDisabled = false;
+  static int _resetEpoch = 0;
 
   @visibleForTesting
   static void resetForTesting() {
     _operationQueue = null;
     _legacyMigrationDisabled = false;
+    _resetEpoch = 0;
   }
 
   static void _log(String message) =>
@@ -75,12 +77,13 @@ class FcmScheduledNotificationService {
     PersistentMemoryService? persistentMemory,
   }) async {
     if (_legacyMigrationDisabled) return;
+    final resetEpoch = _resetEpoch;
     final userInfo =
         userInformation ??
         Provider.of<UserInformation>(context!, listen: false);
 
     await _enqueue(() async {
-      if (_legacyMigrationDisabled) return;
+      if (_legacyMigrationDisabled || resetEpoch != _resetEpoch) return;
       final preference = userInfo.getNotificationPreference('default');
       if (preference == null) return;
       final memory =
@@ -91,7 +94,13 @@ class FcmScheduledNotificationService {
             PersistentMemoryType.Bool,
           ) ??
           false;
-      if (migrated == true || _legacyMigrationDisabled) return;
+      if (
+        migrated == true ||
+        _legacyMigrationDisabled ||
+        resetEpoch != _resetEpoch
+      ) {
+        return;
+      }
       final registered = await _registerNotification(
         userInformation: userInfo,
         typeId: 'default',
@@ -99,6 +108,7 @@ class FcmScheduledNotificationService {
         minute: preference.minute,
         idTokenProvider: idTokenProvider,
         post: post,
+        resetEpoch: resetEpoch,
       );
       if (registered) {
         await memory.setItem(
@@ -121,17 +131,21 @@ class FcmScheduledNotificationService {
     required int minute,
     Future<String?> Function()? idTokenProvider,
     NotificationHttpPost? post,
-  }) => _enqueue(
-    () => _registerNotification(
-      context: context,
-      userInformation: userInformation,
-      typeId: typeId,
-      hour: hour,
-      minute: minute,
-      idTokenProvider: idTokenProvider,
-      post: post,
-    ),
-  );
+  }) {
+    final resetEpoch = _resetEpoch;
+    return _enqueue(
+      () => _registerNotification(
+        context: context,
+        userInformation: userInformation,
+        typeId: typeId,
+        hour: hour,
+        minute: minute,
+        idTokenProvider: idTokenProvider,
+        post: post,
+        resetEpoch: resetEpoch,
+      ),
+    );
+  }
 
   static Future<bool> _registerNotification({
     BuildContext? context,
@@ -141,8 +155,10 @@ class FcmScheduledNotificationService {
     required int minute,
     Future<String?> Function()? idTokenProvider,
     NotificationHttpPost? post,
+    required int resetEpoch,
   }) async {
     if (!FcmService.supportsReminderSettings()) return false;
+    if (resetEpoch != _resetEpoch) return false;
     _log(
       'Registering notification: typeId=$typeId, hour=$hour, minute=$minute',
     );
@@ -160,6 +176,14 @@ class FcmScheduledNotificationService {
         _networkTimeout,
       );
       if (idToken == null) return false;
+      if (resetEpoch != _resetEpoch) return false;
+      final expectedMutationVersion = await _getNotificationMutationVersion(
+        idToken: idToken,
+        post: post,
+      );
+      if (expectedMutationVersion == null || resetEpoch != _resetEpoch) {
+        return false;
+      }
       final response = await (post ?? http.post)(
         Uri.parse('$_functionsBaseUrl/registerNotification'),
         headers: {
@@ -172,6 +196,7 @@ class FcmScheduledNotificationService {
           'minute': minute,
           'locale': locale,
           'gender': gender,
+          'expectedMutationVersion': expectedMutationVersion,
         }),
       ).timeout(_networkTimeout);
 
@@ -212,15 +237,19 @@ class FcmScheduledNotificationService {
     required String typeId,
     Future<String?> Function()? idTokenProvider,
     NotificationHttpPost? post,
-  }) => _enqueue(
-    () => _cancelNotification(
-      context: context,
-      userInformation: userInformation,
-      typeId: typeId,
-      idTokenProvider: idTokenProvider,
-      post: post,
-    ),
-  );
+  }) {
+    final resetEpoch = _resetEpoch;
+    return _enqueue(
+      () => _cancelNotification(
+        context: context,
+        userInformation: userInformation,
+        typeId: typeId,
+        idTokenProvider: idTokenProvider,
+        post: post,
+        resetEpoch: resetEpoch,
+      ),
+    );
+  }
 
   static Future<bool> cancelDefaultForReset({
     required UserInformation userInformation,
@@ -228,6 +257,8 @@ class FcmScheduledNotificationService {
     NotificationHttpPost? post,
   }) {
     _legacyMigrationDisabled = true;
+    _resetEpoch++;
+    final resetEpoch = _resetEpoch;
     return _enqueue(() async {
       try {
         final cancelled = await _cancelNotification(
@@ -235,6 +266,7 @@ class FcmScheduledNotificationService {
           typeId: 'default',
           idTokenProvider: idTokenProvider,
           post: post,
+          resetEpoch: resetEpoch,
         );
         if (!cancelled) {
           _legacyMigrationDisabled = false;
@@ -253,21 +285,34 @@ class FcmScheduledNotificationService {
     required String typeId,
     Future<String?> Function()? idTokenProvider,
     NotificationHttpPost? post,
+    required int resetEpoch,
   }) async {
     if (!FcmService.supportsReminderSettings()) return false;
+    if (resetEpoch != _resetEpoch) return false;
     _log('Cancelling notification: typeId=$typeId');
     try {
       final idToken = await (idTokenProvider ?? _getIdToken)().timeout(
         _networkTimeout,
       );
       if (idToken == null) return false;
+      if (resetEpoch != _resetEpoch) return false;
+      final expectedMutationVersion = await _getNotificationMutationVersion(
+        idToken: idToken,
+        post: post,
+      );
+      if (expectedMutationVersion == null || resetEpoch != _resetEpoch) {
+        return false;
+      }
       final response = await (post ?? http.post)(
         Uri.parse('$_functionsBaseUrl/cancelNotification'),
         headers: {
           'Authorization': 'Bearer $idToken',
           'Content-Type': 'application/json',
         },
-        body: jsonEncode({'typeId': typeId}),
+        body: jsonEncode({
+          'typeId': typeId,
+          'expectedMutationVersion': expectedMutationVersion,
+        }),
       ).timeout(_networkTimeout);
 
       if (response.statusCode == 200) {
@@ -290,6 +335,40 @@ class FcmScheduledNotificationService {
     } catch (e) {
       _log('cancelNotification error: $e');
       return false;
+    }
+  }
+
+  static Future<int?> _getNotificationMutationVersion({
+    required String idToken,
+    NotificationHttpPost? post,
+  }) async {
+    try {
+      final response = await (post ?? http.post)(
+        Uri.parse('$_functionsBaseUrl/getNotificationMutationVersion'),
+        headers: {
+          'Authorization': 'Bearer $idToken',
+          'Content-Type': 'application/json',
+        },
+        body: jsonEncode({}),
+      ).timeout(_networkTimeout);
+      if (response.statusCode != 200) {
+        _log(
+          'getNotificationMutationVersion failed: ${response.statusCode} ${response.body}',
+        );
+        return null;
+      }
+      final body = jsonDecode(response.body);
+      final mutationVersion = body is Map<String, dynamic>
+          ? body['mutationVersion']
+          : null;
+      if (mutationVersion is int && mutationVersion >= 0) {
+        return mutationVersion;
+      }
+      _log('getNotificationMutationVersion returned an invalid body.');
+      return null;
+    } catch (e) {
+      _log('getNotificationMutationVersion error: $e');
+      return null;
     }
   }
 }

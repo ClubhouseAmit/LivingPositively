@@ -4,7 +4,9 @@ import { describe, it } from "node:test";
 import {
   hasValidNotificationTypeSchema,
   isValidNotificationTypeId,
+  notificationMutationDecision,
   normalizeNotificationGender,
+  parseExpectedNotificationMutationVersion,
 } from "./index.js";
 
 describe("notification validation", () => {
@@ -59,6 +61,50 @@ describe("notification validation", () => {
         staticBody: "Body",
       }),
       false,
+    );
+  });
+
+  it("parses only non-negative integer expected notification mutation versions", () => {
+    assert.deepEqual(parseExpectedNotificationMutationVersion(undefined), {
+      kind: "legacy",
+    });
+    assert.deepEqual(parseExpectedNotificationMutationVersion(0), {
+      kind: "versioned",
+      version: 0,
+    });
+    assert.deepEqual(parseExpectedNotificationMutationVersion(3), {
+      kind: "versioned",
+      version: 3,
+    });
+    assert.deepEqual(parseExpectedNotificationMutationVersion(-1), {
+      kind: "invalid",
+    });
+    assert.deepEqual(parseExpectedNotificationMutationVersion(1.5), {
+      kind: "invalid",
+    });
+    assert.deepEqual(parseExpectedNotificationMutationVersion("0"), {
+      kind: "invalid",
+    });
+  });
+
+  it("rejects a stale notification mutation version", () => {
+    assert.equal(
+      notificationMutationDecision(
+        { kind: "versioned", version: 0 },
+        1,
+      ),
+      "stale",
+    );
+  });
+
+  it("blocks an unfenced notification mutation after an account is fenced", () => {
+    assert.equal(
+      notificationMutationDecision({ kind: "legacy" }, undefined),
+      "apply",
+    );
+    assert.equal(
+      notificationMutationDecision({ kind: "legacy" }, 0),
+      "legacyBlocked",
     );
   });
 });
