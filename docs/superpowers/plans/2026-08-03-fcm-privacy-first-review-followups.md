@@ -455,6 +455,237 @@ git add lib/pages/UserSettings.dart test/UserSettings/UserSettings_interactions_
 git commit -m "Keep pending reset confirmation open"
 ~~~
 
+### Task 8: Validate the current schedule at delivery claim time
+
+> **Status: superseded.** Commit `43341f7` established the claim-time fence,
+> but review found a post-claim send race, legacy timestamp weakness, and an
+> ambiguous state key. Tasks 10-11 replace its state/claim protocol.
+
+**Files:**
+
+- Modify: `functions/src/index.ts:382-584,601-870`
+- Modify: `functions/src/scheduled_delivery.test.ts`
+- Modify: `lib/util/Firebase/fcm_scheduled_notification_service.dart`
+- Modify: `test/Firebase/fcm_scheduled_notification_service_test.dart`
+- Modify: `fcm_notification_plan.md`
+- Modify: `docs/plans/2026-07-31-pr-273-fcm-remaining-work.md`
+
+**Volatility and approved boundary:** Scheduler selection is asynchronous. A
+schedule can be deleted or replaced by reset after the scheduler query but
+before an FCM send. The approved server fence must therefore protect delivery
+claiming as well as registration/cancellation. The existing mutation state
+becomes per `(uid, typeId)`, which prevents an update to one reminder type from
+invalidating another type's schedule.
+
+**Interfaces:**
+
+- `notification_mutation_state/{uid}_{typeId}` holds the version for one
+  schedule type. `getNotificationMutationVersion` requires the validated
+  `typeId` in its POST body. Current clients supply it before each mutation.
+- Versioned registration stores the successful next version as
+  `mutationVersion` on its schedule document.
+- Scheduler claim uses a Firestore transaction to re-read the exact schedule
+  document and its matching per-type state. It creates the delivery claim only
+  if both still match the selected snapshot; missing, legacy-after-fence, or
+  changed schedules return a non-send skip result. The checkpoint still
+  advances for skips, because no claim write failed.
+
+- [ ] **Step 1: Write failing current-schedule regressions**
+
+Add a pure scheduler regression where a claim writer reports that the selected
+schedule is no longer current; assert no FCM send and a skip result. Extend
+the FCM client expectations to assert `typeId` in the version-read request.
+Document the expected state-ID/validation contract in the test fixture as
+needed. The scheduler behavior is RED first because it currently sends after
+any successful delivery claim.
+
+- [ ] **Step 2: Run focused tests and observe failure**
+
+~~~powershell
+npm --prefix functions test -- --test-name-pattern "current schedule|notification mutation"
+flutter test --no-pub test/Firebase/fcm_scheduled_notification_service_test.dart --plain-name "register sends an authenticated FCM schedule and saves it"
+~~~
+
+- [ ] **Step 3: Gate production claims with the per-type state**
+
+Move state refs to `{uid}_{typeId}`. Validate `typeId` in the read endpoint
+and include it in client reads. In each versioned register transaction, store
+the post-mutation version on the schedule doc. Replace the handler's delivery
+writer `create` with a transaction that re-reads the original schedule ref and
+the per-type state ref, verifies the snapshot's `mutationVersion` equals the
+current schedule/state version, and atomically creates the delivery claim.
+Treat a failed current-schedule check as `notCurrent` rather than an error;
+never call FCM for it. Keep direct writer test doubles compatible and retain
+the all-or-nothing checkpoint decision for actual claim failures.
+
+- [ ] **Step 4: Align deployment records and verify focused suites**
+
+Update both FCM handoff documents to include `notification_mutation_state` in
+their server-only deny-rule/emulator requirements. Run:
+
+~~~powershell
+npm --prefix functions test
+flutter test --no-pub test/Firebase/fcm_scheduled_notification_service_test.dart
+~~~
+
+- [ ] **Step 5: Commit**
+
+~~~powershell
+git add functions/src/index.ts functions/src/scheduled_delivery.test.ts lib/util/Firebase/fcm_scheduled_notification_service.dart test/Firebase/fcm_scheduled_notification_service_test.dart fcm_notification_plan.md docs/plans/2026-07-31-pr-273-fcm-remaining-work.md
+git commit -m "Validate FCM schedule state before delivery"
+~~~
+
+### Task 9: Synchronously reject duplicate reset confirmation
+
+**Files:**
+
+- Modify: `lib/pages/UserSettings.dart:687-706`
+- Modify: `test/UserSettings/UserSettings_interactions_test.dart`
+
+**Interfaces:**
+
+- Produces: a second Confirm activation returns immediately once the first
+  callback has marked `isResetting`, including before Flutter has rebuilt the
+  disabled button. The dialog stays non-dismissible until the one pending
+  attempt completes.
+
+- [x] **Step 1: Add the same-frame duplicate-confirm regression**
+
+In the token-pending Android reset fixture, invoke the captured Confirm handler
+twice before pumping a rebuild. Assert one token request, one spinner, and that
+completing the token with null retains UserSettings and the existing snackbar.
+
+- [x] **Step 2: Run it RED**
+
+~~~powershell
+flutter test --no-pub test/UserSettings/UserSettings_interactions_test.dart --plain-name "reset confirmation ignores same-frame duplicate activation"
+~~~
+
+- [x] **Step 3: Add the callback-entry guard**
+
+The existing asynchronous callback begins with `if (isResetting) return;`,
+then retains the current `setDialogState`, await, and mounted reset path. Do
+not change the reset protocol or move dialog state to the page.
+
+- [x] **Step 4: Verify the UserSettings suite and commit**
+
+~~~powershell
+flutter test --no-pub test/UserSettings/UserSettings_interactions_test.dart
+git add lib/pages/UserSettings.dart test/UserSettings/UserSettings_interactions_test.dart
+git commit -m "Guard duplicate reset confirmation"
+~~~
+
+### Task 10: Hold reset behind an authorized in-flight FCM send
+
+> **Status: completed with recovery follow-up.** Commit `8d53feb` added the
+> permit protocol; Task 11 corrected its legacy permit-expiry and timestamp
+> identity recovery paths.
+
+**Files:**
+
+- Modify: `functions/src/index.ts`
+- Modify: `functions/src/notification_validation.test.ts`
+- Modify: `functions/src/scheduled_delivery.test.ts`
+- Modify: `lib/util/Firebase/fcm_scheduled_notification_service.dart`
+- Test: `test/Firebase/fcm_scheduled_notification_service_test.dart`
+- Modify: `fcm_notification_plan.md`
+- Modify: `docs/plans/2026-07-31-pr-273-fcm-remaining-work.md`
+
+**Volatility and approved behavior:** A Firestore transaction cannot atomically
+include the external FCM call. The claim-time fence in Task 8 still permits
+reset after claim and before send. Privacy-first reset therefore treats an
+already-authorized FCM send as a remote cancellation conflict: reset receives
+409 and preserves local data rather than claiming success. This is the
+existing hard-block behavior applied to the final send boundary.
+
+**Interfaces:**
+
+- Use an unambiguous per-type state path:
+  `notification_mutation_state/{uid}/types/{typeId}`, not a delimiter-composed
+  document ID.
+- Scheduler's atomic claim also records a `deliveryPermitKey` and a
+  server-timestamp-derived permit expiry greater than the 300-second Function
+  deadline. It may call FCM only after that transaction commits.
+- `cancelDefaultForReset` sends `resetFence: true`. The cancellation transaction
+  rejects with 409 while the matching state has an active delivery permit; it
+  must not delete the schedule or advance the mutation version. The Dart
+  boolean failure already keeps reset local data intact.
+- The send callback releases its matching permit in `finally`. Failed release
+  is logged and leaves reset conservatively blocked until the permit expires.
+- Legacy schedule freshness compares the selected and current `updatedAt`
+  values. An unfenced legacy schedule without a usable timestamp is skipped;
+  a legacy replacement after query cannot send the stale selection.
+
+- [x] **Step 1: Write focused failing pure regressions**
+
+Cover (a) unambiguous state paths for underscore-containing uid/type inputs,
+(b) active permit blocks reset while an expired one does not, (c) a legacy
+schedule whose `updatedAt` differs from the selected snapshot is not current,
+and (d) a `notCurrent` or blocked-permit claim makes zero FCM calls. Run these
+tests RED before implementation.
+
+- [x] **Step 2: Implement permit and freshness protocol**
+
+Add private/pure helpers that validate current schedule revisions and active
+permit state, then use them from the request handlers and scheduler transaction.
+Use Firestore `merge` writes for state version changes so an active permit is
+never cleared by a concurrent registration/cancellation. Keep the existing
+FCM send bounded by the Function timeout and do not add retries.
+
+- [x] **Step 3: Update deployed-contract docs and verify**
+
+Document the nested state path, deny rules for parent/subcollection paths, and
+the reset-versus-active-send behavior. Run the complete Functions suite and
+the FCM service suite after the focused tests.
+
+- [x] **Step 4: Commit**
+
+~~~powershell
+git add functions/src/index.ts functions/src/notification_validation.test.ts functions/src/scheduled_delivery.test.ts lib/util/Firebase/fcm_scheduled_notification_service.dart test/Firebase/fcm_scheduled_notification_service_test.dart fcm_notification_plan.md docs/plans/2026-07-31-pr-273-fcm-remaining-work.md
+git commit -m "Block reset during active FCM delivery"
+~~~
+
+### Task 11: Recover legacy schedules safely after a delivery permit
+
+**Files:**
+
+- Modify: `functions/src/index.ts`
+- Modify: `functions/src/notification_validation.test.ts`
+- Modify: `functions/src/scheduled_delivery.test.ts`
+
+**Interfaces:**
+
+- A state document with no mutation `version` is a temporary legacy permit
+  state. It behaves as absent once its permit is expired; a live permit still
+  blocks reset and concurrent claims.
+- Legacy schedule identity uses exact Firestore timestamp equality
+  (`isEqual` or seconds/nanoseconds), never millisecond truncation. A timestamp
+  that cannot be compared exactly is not current.
+- `claimAndSendScheduledDelivery` calls a supplied permit release after either
+  a successful or failed FCM attempt, but not after a no-claim skip.
+
+- [x] **Step 1: Add failing recovery regressions**
+
+Cover expired unversioned state as current for an unchanged legacy schedule,
+same-millisecond timestamps with distinct nanoseconds as non-current, and
+permit release after both success and failure. Keep a `notCurrent` case to
+prove it has no release/send side effects.
+
+- [x] **Step 2: Implement the narrow recovery rules**
+
+Use the active-permit predicate when interpreting unversioned state, replace
+millisecond comparison with full timestamp identity, and retain the existing
+permit release `finally` semantics. Do not widen reset behavior or create an
+emulator harness.
+
+- [x] **Step 3: Verify and commit**
+
+~~~powershell
+npm --prefix functions test
+git add functions/src/index.ts functions/src/notification_validation.test.ts functions/src/scheduled_delivery.test.ts
+git commit -m "Recover legacy FCM schedules after permit expiry"
+~~~
+
 ## Self-Review
 
 - Tasks 1-2 preserve the hard remote cancellation gate and make it bounded/single-flight.
@@ -462,4 +693,13 @@ git commit -m "Keep pending reset confirmation open"
 - Task 4 validates actual localization content without weak duplicate detection or text mutations.
 - Task 6 makes the asynchronous Functions boundary authoritative when a reset races a timed-out request; a 409 leaves the caller's local selection unchanged.
 - Task 7 closes the dialog dismissal race without relaxing the reset gate.
+- Task 8 prevents a schedule selected before reset or schedule replacement
+  from being claimed/sent after that state changes.
+- Task 9 keeps the dialog-local single-flight promise valid before a button
+  rebuild occurs.
+- Task 10 does not promise to recall an FCM message already accepted by FCM;
+  it guarantees reset cannot succeed once scheduler has committed authority to
+  initiate that send.
+- Task 11 keeps the delivery permit bounded for legacy schedules without
+  weakening exact schedule freshness checks.
 - Excluded without new approval: offline reset, pending-cancellation replay, incremental checkpoints, a Functions orchestration seam, scanner rewrite, generic request helper, and Firestore batch provisioning.
