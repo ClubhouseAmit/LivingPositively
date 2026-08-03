@@ -8,6 +8,7 @@ import {
   israelLocalDeliveryCandidatesSince,
   scheduledNotificationQueryPlan,
   selectScheduledNotificationCandidates,
+  shouldAdvanceSchedulerCheckpoint,
 } from "./index.js";
 
 describe("scheduled notification delivery", () => {
@@ -71,6 +72,22 @@ describe("scheduled notification delivery", () => {
     assert.equal(candidates[0].intendedTime, "22:59");
   });
 
+  it("uses one candidate when no scheduler checkpoint exists", () => {
+    const now = new Date("2026-01-01T20:59:00.000Z");
+
+    assert.equal(israelLocalDeliveryCandidatesSince(now, undefined).length, 1);
+  });
+
+  it("caps a stale scheduler checkpoint at 121 candidate minutes", () => {
+    const now = new Date("2026-01-01T20:59:00.000Z");
+    const fourHoursAgo = new Date("2026-01-01T16:59:00.000Z");
+
+    assert.equal(
+      israelLocalDeliveryCandidatesSince(now, fourHoursAgo).length,
+      121,
+    );
+  });
+
   it("uses an exact schedule query for the normal one-minute interval", () => {
     assert.deepEqual(
       scheduledNotificationQueryPlan([
@@ -84,6 +101,35 @@ describe("scheduled notification delivery", () => {
       ]),
       { kind: "exact", hour: 22, minute: 59 },
     );
+  });
+
+  it("uses an hour-in query plan for recovery candidates", () => {
+    const twoCandidates = [
+      {
+        localDate: "2026-01-01",
+        intendedTime: "22:59",
+        hour: 22,
+        minute: 59,
+        intendedAt: new Date("2026-01-01T20:59:00.000Z"),
+      },
+      {
+        localDate: "2026-01-01",
+        intendedTime: "21:59",
+        hour: 21,
+        minute: 59,
+        intendedAt: new Date("2026-01-01T19:59:00.000Z"),
+      },
+    ];
+
+    assert.deepEqual(scheduledNotificationQueryPlan(twoCandidates), {
+      kind: "catchUp",
+      hours: [22, 21],
+    });
+  });
+
+  it("holds the checkpoint when a delivery claim fails", () => {
+    assert.equal(shouldAdvanceSchedulerCheckpoint(1), false);
+    assert.equal(shouldAdvanceSchedulerCheckpoint(0), true);
   });
 
   it("rejects a schedule query plan with no delivery candidates", () => {

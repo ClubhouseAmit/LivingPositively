@@ -214,6 +214,12 @@ export function scheduledNotificationQueryPlan(
   };
 }
 
+export function shouldAdvanceSchedulerCheckpoint(
+  claimFailedCount: number,
+): boolean {
+  return claimFailedCount === 0;
+}
+
 function isAlreadyClaimedError(error: unknown): boolean {
   if (error === null || typeof error !== "object") return false;
   const code = (error as { code?: unknown }).code;
@@ -449,7 +455,7 @@ export const cancelNotification = onRequest(async (req, res) => {
 //                      and dispatch via FCM.
 // ---------------------------------------------------------------------------
 export const processScheduledNotifications = onSchedule(
-  "every 1 minutes",
+  { schedule: "every 1 minutes", timeoutSeconds: 300, memory: "512MiB" },
   async (event) => {
     // --- Query phase ---
     const scheduleTime = new Date(event.scheduleTime);
@@ -499,7 +505,9 @@ export const processScheduledNotifications = onSchedule(
     });
 
     if (scheduledCandidates.length === 0) {
-      await advanceSchedulerCheckpoint();
+      if (shouldAdvanceSchedulerCheckpoint(0)) {
+        await advanceSchedulerCheckpoint();
+      }
       return;
     }
 
@@ -697,7 +705,12 @@ export const processScheduledNotifications = onSchedule(
 
     // --- Send phase (parallel) ---
 
-    const results = await Promise.allSettled(sendTasks.map((t) => t()));
+    const results: PromiseSettledResult<ScheduledDeliveryResult>[] = [];
+    for (let start = 0; start < sendTasks.length; start += 25) {
+      results.push(...await Promise.allSettled(
+        sendTasks.slice(start, start + 25).map((task) => task()),
+      ));
+    }
     let successCount = 0;
     let failureCount = 0;
     let alreadyClaimedCount = 0;
@@ -725,7 +738,7 @@ export const processScheduledNotifications = onSchedule(
       `processScheduledNotifications: sent=${successCount}, failed=${failureCount}, alreadyClaimed=${alreadyClaimedCount}, claimFailed=${claimFailedCount}, staleDevicesCleaned=${staleDeviceIds.length}`,
     );
 
-    if (claimFailedCount === 0) {
+    if (shouldAdvanceSchedulerCheckpoint(claimFailedCount)) {
       await advanceSchedulerCheckpoint();
     }
   },
