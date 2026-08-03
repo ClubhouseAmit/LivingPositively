@@ -76,19 +76,29 @@ configured.
 
 ## Remaining external work
 
-1. Deploy the Functions code through the normal project deployment process.
-2. With explicit project selection and suitable credentials, run the
+The following are deployment gates, not application configuration. Do not
+deploy or enable scheduled delivery until each gate is satisfied:
+
+1. Configure Firestore TTL for `notification_deliveries.expiresAt` in the
+   canonical production Firebase configuration.
+2. Add server-only deny rules for `notification_deliveries` and
+   `notification_scheduler_state` to the canonical production rules source,
+   and verify authenticated emulator read/list/create/update/delete denial.
+3. Deploy the Functions code through the normal project deployment process
+   with the approved scheduler invocation bound of 300 seconds, 512MiB, and
+   25 task batches. These bounds preserve all-or-nothing recovery: a recovery
+   that cannot finish leaves its checkpoint for a later invocation.
+4. Configure monitoring alerts for repeated claim failures and claimed
+   delivery records that age without a terminal status.
+5. With explicit project selection and suitable credentials, run the
    provisioning command above.
-3. Configure Firestore TTL for
-   `notification_deliveries.expiresAt` outside this repository. No TTL policy
-   is provisioned or assumed here.
-4. Inventory any production schedules and `devices` documents created with
+6. Inventory any production schedules and `devices` documents created with
    legacy UUID identifiers. The repository contains no verified mapping from
    those identifiers to Firebase UIDs, so decide whether to migrate that data
    with an approved ownership mapping or retire it explicitly before relying
    on UID-keyed delivery.
-5. Perform the appropriate manual emulator, physical-device, and production
+7. Perform the appropriate manual emulator, physical-device, and production
    validation: authenticated registration/cancellation, token refresh,
    delayed scheduler delivery, duplicate-claim suppression, failure handling,
    and reset/migration behavior.
-6. Resolve and merge this stacked change through the parent/stacked PR flow.
+8. Resolve and merge this stacked change through the parent/stacked PR flow.

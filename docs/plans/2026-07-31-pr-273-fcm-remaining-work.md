@@ -89,6 +89,11 @@ ambiguous failure with no retry, schedule-edit suppression, and claim-failure
 classification. Scheduler checkpoint transactions advance monotonically, so
 overlapping invocations cannot widen a future recovery window.
 
+The deployed scheduler invocation is bounded to 300 seconds, 512MiB, and 25
+task batches. These are deployment bounds for the approved all-or-nothing
+recovery behavior, not runtime configuration: if a bounded recovery cannot
+complete, its checkpoint remains held for a later invocation.
+
 ### Recovery operations note
 
 A claim-write failure deliberately holds the checkpoint rather than skipping an
@@ -97,8 +102,10 @@ bounded window. During recovery (two or more candidate minutes), Firestore
 queries every schedule in the affected one-to-three local hours and filters
 the exact candidate minutes in memory; the time window is capped at 120
 minutes, but read volume still scales with schedules in those hours. Production
-monitoring must alert on repeated nonzero `claimFailed` counts in the scheduler
-log, because a sustained Firestore failure keeps the checkpoint in recovery.
+monitoring must alert on repeated nonzero `claimFailed` counts and claimed
+records that age without reaching a terminal status. Repeated claim failures
+keep the checkpoint in recovery; aged claimed records identify a send or
+terminal-status update that needs operational investigation.
 
 ### Firestore access policy handoff
 
@@ -151,13 +158,19 @@ impossible. Do not assign schedules to guessed identities.
 
 ### Deployment gates
 
-1. Configure Firestore TTL for `notification_deliveries.expiresAt`.
-2. Add the documented deny rules for `notification_deliveries` and
-   `notification_scheduler_state` to the canonical production rules source,
+1. Before deploying, configure Firestore TTL for
+   `notification_deliveries.expiresAt`; it is a rollout gate, not application
+   configuration.
+2. Before deploying, add the documented deny rules for
+   `notification_deliveries` and `notification_scheduler_state` to the
+   canonical production rules source,
    then verify them with authenticated emulator read/list/create/update/delete
    checks.
-3. Deploy Functions through the normal production process.
-4. Run `npm --prefix functions run provision:notifications -- --project
+3. Deploy Functions through the normal production process with the approved
+   scheduler invocation bound of 300 seconds, 512MiB, and 25 task batches.
+4. Before enabling production traffic, configure alerts for repeated claim
+   failures and claimed records that age without a terminal status.
+5. Run `npm --prefix functions run provision:notifications -- --project
    <firebase-project-id>` with credentials for that explicit project.
 
 ### Post-deploy validation and data work

@@ -1,4 +1,6 @@
 import assert from "node:assert/strict";
+import { readFileSync } from "node:fs";
+import { resolve } from "node:path";
 import { describe, it } from "node:test";
 
 import {
@@ -11,6 +13,29 @@ import {
 } from "./notification_provisioning.js";
 
 describe("notification content provisioning", () => {
+  it("validates checked-in ARB sources produce every localized quote document", () => {
+    const arbDirectory = resolve(__dirname, "../../lib/l10n");
+    const documents = buildNotificationSeed({
+      he: parseArbSource(
+        readFileSync(resolve(arbDirectory, "app_he.arb"), "utf8"),
+      ),
+      ar: parseArbSource(
+        readFileSync(resolve(arbDirectory, "app_ar.arb"), "utf8"),
+      ),
+      en: parseArbSource(
+        readFileSync(resolve(arbDirectory, "app_en.arb"), "utf8"),
+      ),
+    });
+
+    assert.equal(documents.length, 124);
+    for (const collection of ["quotes_he", "quotes_ar", "quotes_en"]) {
+      assert.equal(
+        documents.filter((doc) => doc.collection === collection).length,
+        41,
+      );
+    }
+  });
+
   it("extracts every gender variant from an inspirational quote", () => {
     assert.deepEqual(
       parseGenderSelect(
