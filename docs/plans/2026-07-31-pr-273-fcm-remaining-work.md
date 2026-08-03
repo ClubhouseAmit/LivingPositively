@@ -1,15 +1,15 @@
 # PR #273 — FCM Decision Record and Remaining External Work
 
 Created: 2026-07-31
-Last updated: 2026-08-02
+Last updated: 2026-08-03
 
 Parent PR: [#273](https://github.com/ClubhouseAmit/LivingPositively/pull/273)
 Stacked implementation PR: [#309](https://github.com/ClubhouseAmit/LivingPositively/pull/309)
 
 ## Current Status
 
-Stacked PR #309 implements the FCM follow-up. Local verification passed 793
-Flutter tests (9 skipped) and 23 Functions tests. `flutter analyze` reports
+Stacked PR #309 implements the FCM follow-up. Local verification passed 798
+Flutter tests (9 skipped) and 41 Functions tests. `flutter analyze` reports
 only 24 inherited warnings in unchanged generated mocks.
 The earlier Android integration failure was a missing
 `integration_test/notifications_schedule_test.dart`; the rebased parent now
@@ -85,12 +85,15 @@ TTL for `expiresAt` outside this repository.
 The claim transaction also records a delivery permit with a server-time expiry
 of 305 seconds, longer than the 300-second Function deadline. The FCM callback
 releases only its own permit in `finally`. Reset's cancellation request carries
-`resetFence: true`; it receives 409 while a matching permit is active and
-therefore preserves local data rather than reporting reset success. This cannot
+`resetFence: true` with the server-authoritative mutation version; legacy
+requests cannot establish a reset fence. It receives 409 while a matching
+permit is active and therefore preserves local data rather than reporting reset
+success. This cannot
 recall a message already accepted by FCM; it prevents reset from succeeding
 after the scheduler has been authorized to start that send. Legacy schedules
 without a mutation version are current only when the selected and re-read
-`updatedAt` timestamps are both usable and equal.
+`updatedAt` timestamps are both usable and equal. An expired permit without a
+stored mutation version is not a legacy mutation fence.
 
 - Spring-forward: a configured non-existent Israel-local wall-clock minute is
   skipped. This is accepted best-effort behavior.

@@ -109,6 +109,13 @@ export function parseExpectedNotificationMutationVersion(
   return { kind: "invalid" };
 }
 
+export function isValidResetFenceMutation(
+  resetFence: boolean | undefined,
+  expected: ExpectedNotificationMutationVersion,
+): boolean {
+  return resetFence !== true || expected.kind === "versioned";
+}
+
 export function notificationMutationDecision(
   expected: ExpectedNotificationMutationVersion,
   currentVersion: number | undefined,
@@ -146,6 +153,16 @@ export function hasActiveDeliveryPermit(
     typeof state.deliveryPermitExpiresAtMillis === "number" &&
     Number.isFinite(state.deliveryPermitExpiresAtMillis) &&
     state.deliveryPermitExpiresAtMillis > nowMillis
+  );
+}
+
+export function hasEffectiveNotificationMutationState(
+  state: Record<string, unknown> | undefined,
+  nowMillis = Date.now(),
+): boolean {
+  return (
+    isNonNegativeNotificationMutationVersion(state?.version) ||
+    hasActiveDeliveryPermit(state, nowMillis)
   );
 }
 
@@ -623,9 +640,10 @@ export const registerNotification = onRequest(async (req, res) => {
   try {
     await db.runTransaction(async (transaction) => {
       const stateDoc = await transaction.get(stateRef);
+      const stateData = stateDoc.data();
       let currentVersion: number | undefined;
       if (stateDoc.exists) {
-        const storedVersion = stateDoc.data()?.version;
+        const storedVersion = stateData?.version;
         if (
           storedVersion !== undefined &&
           !isNonNegativeNotificationMutationVersion(storedVersion)
@@ -640,7 +658,7 @@ export const registerNotification = onRequest(async (req, res) => {
         notificationMutationDecision(
           expectedVersion,
           currentVersion,
-          stateDoc.exists,
+          hasEffectiveNotificationMutationState(stateData),
         ) !== "apply"
       ) {
         throw new NotificationMutationConflictError("Stale notification mutation");
@@ -706,6 +724,10 @@ export const cancelNotification = onRequest(async (req, res) => {
     res.status(400).send("Invalid expectedMutationVersion");
     return;
   }
+  if (!isValidResetFenceMutation(resetFence, expectedVersion)) {
+    res.status(400).send("resetFence requires expectedMutationVersion");
+    return;
+  }
 
   const db = admin.firestore();
   const stateRef = notificationMutationStateRef(db, uid, typeId);
@@ -715,9 +737,10 @@ export const cancelNotification = onRequest(async (req, res) => {
   try {
     await db.runTransaction(async (transaction) => {
       const stateDoc = await transaction.get(stateRef);
+      const stateData = stateDoc.data();
       let currentVersion: number | undefined;
       if (stateDoc.exists) {
-        const storedVersion = stateDoc.data()?.version;
+        const storedVersion = stateData?.version;
         if (
           storedVersion !== undefined &&
           !isNonNegativeNotificationMutationVersion(storedVersion)
@@ -730,7 +753,7 @@ export const cancelNotification = onRequest(async (req, res) => {
       }
       if (
         resetFence === true &&
-        hasActiveDeliveryPermit(stateDoc.data())
+        hasActiveDeliveryPermit(stateData)
       ) {
         throw new NotificationMutationConflictError(
           "Scheduled delivery is already authorized",
@@ -740,7 +763,7 @@ export const cancelNotification = onRequest(async (req, res) => {
         notificationMutationDecision(
           expectedVersion,
           currentVersion,
-          stateDoc.exists,
+          hasEffectiveNotificationMutationState(stateData),
         ) !== "apply"
       ) {
         throw new NotificationMutationConflictError("Stale notification mutation");

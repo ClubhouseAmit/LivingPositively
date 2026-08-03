@@ -3,7 +3,9 @@ import { describe, it } from "node:test";
 
 import {
   hasActiveDeliveryPermit,
+  hasEffectiveNotificationMutationState,
   hasValidNotificationTypeSchema,
+  isValidResetFenceMutation,
   isValidNotificationTypeId,
   notificationMutationStatePath,
   notificationMutationDecision,
@@ -106,6 +108,45 @@ describe("notification validation", () => {
     );
     assert.equal(
       notificationMutationDecision({ kind: "legacy" }, 0),
+      "legacyBlocked",
+    );
+  });
+
+  it("requires a versioned mutation request for a reset fence", () => {
+    assert.equal(
+      isValidResetFenceMutation(true, { kind: "legacy" }),
+      false,
+    );
+    assert.equal(
+      isValidResetFenceMutation(true, { kind: "versioned", version: 0 }),
+      true,
+    );
+    assert.equal(
+      isValidResetFenceMutation(false, { kind: "legacy" }),
+      true,
+    );
+  });
+
+  it("does not retain a legacy mutation fence after an unversioned permit expires", () => {
+    const expiredPermit = {
+      deliveryPermitKey: "delivery-key",
+      deliveryPermitExpiresAtMillis: 1_000,
+    };
+
+    assert.equal(
+      notificationMutationDecision(
+        { kind: "legacy" },
+        undefined,
+        hasEffectiveNotificationMutationState(expiredPermit, 1_000),
+      ),
+      "apply",
+    );
+    assert.equal(
+      notificationMutationDecision(
+        { kind: "legacy" },
+        undefined,
+        hasEffectiveNotificationMutationState(expiredPermit, 999),
+      ),
       "legacyBlocked",
     );
   });
