@@ -53,7 +53,12 @@ type ScheduledDeliveryResult =
   | "alreadyClaimed"
   | "claimFailed"
   | "notCurrent";
-type TimestampLike = { toMillis(): number };
+type TimestampLike = {
+  isEqual?(other: unknown): boolean;
+  toMillis?(): number;
+  seconds?: unknown;
+  nanoseconds?: unknown;
+};
 type ScheduledNotificationDocument = {
   data(): Record<string, unknown>;
 };
@@ -256,12 +261,13 @@ export function selectScheduledNotificationCandidates<
     if (!Number.isInteger(hour) || !Number.isInteger(minute)) return [];
     const candidate = candidatesByTime.get(`${hour}:${minute}`);
     if (!candidate) return [];
+    const updatedAtTimestamp = updatedAt as TimestampLike;
     if (
       updatedAt !== null &&
       typeof updatedAt === "object" &&
       "toMillis" in updatedAt &&
-      typeof (updatedAt as TimestampLike).toMillis === "function" &&
-      candidate.intendedAt.getTime() < (updatedAt as TimestampLike).toMillis()
+      typeof updatedAtTimestamp.toMillis === "function" &&
+      candidate.intendedAt.getTime() < updatedAtTimestamp.toMillis()
     ) {
       return [];
     }
@@ -294,17 +300,58 @@ export function shouldAdvanceSchedulerCheckpoint(
   return claimFailedCount === 0;
 }
 
-function timestampMillis(value: unknown): number | undefined {
+function timestampSecondsAndNanoseconds(
+  value: unknown,
+): { seconds: number; nanoseconds: number } | undefined {
   if (
     value === null ||
-    typeof value !== "object" ||
-    !("toMillis" in value) ||
-    typeof (value as TimestampLike).toMillis !== "function"
+    typeof value !== "object"
   ) {
     return undefined;
   }
-  const millis = (value as TimestampLike).toMillis();
-  return Number.isFinite(millis) ? millis : undefined;
+  const { seconds, nanoseconds } = value as TimestampLike;
+  if (
+    typeof seconds !== "number" ||
+    typeof nanoseconds !== "number" ||
+    !Number.isSafeInteger(seconds) ||
+    !Number.isInteger(nanoseconds) ||
+    nanoseconds < 0 ||
+    nanoseconds >= 1_000_000_000
+  ) {
+    return undefined;
+  }
+  return { seconds, nanoseconds };
+}
+
+function timestampsAreExactlyEqual(left: unknown, right: unknown): boolean {
+  if (left === null || typeof left !== "object") return false;
+  const leftIsEqual = (left as TimestampLike).isEqual;
+  if (typeof leftIsEqual === "function") {
+    try {
+      return leftIsEqual.call(left, right) === true;
+    } catch {
+      return false;
+    }
+  }
+
+  if (right === null || typeof right !== "object") return false;
+  const rightIsEqual = (right as TimestampLike).isEqual;
+  if (typeof rightIsEqual === "function") {
+    try {
+      return rightIsEqual.call(right, left) === true;
+    } catch {
+      return false;
+    }
+  }
+
+  const leftParts = timestampSecondsAndNanoseconds(left);
+  const rightParts = timestampSecondsAndNanoseconds(right);
+  return (
+    leftParts !== undefined &&
+    rightParts !== undefined &&
+    leftParts.seconds === rightParts.seconds &&
+    leftParts.nanoseconds === rightParts.nanoseconds
+  );
 }
 
 export function isCurrentScheduledNotification(
@@ -317,14 +364,12 @@ export function isCurrentScheduledNotification(
   const selectedMutationVersion = selectedSchedule.mutationVersion;
   const currentMutationVersion = currentSchedule.mutationVersion;
   if (selectedMutationVersion === undefined) {
-    const selectedUpdatedAtMillis = timestampMillis(selectedSchedule.updatedAt);
-    const currentUpdatedAtMillis = timestampMillis(currentSchedule.updatedAt);
     return (
       currentMutationVersion === undefined &&
-      currentState === undefined &&
-      selectedUpdatedAtMillis !== undefined &&
-      currentUpdatedAtMillis !== undefined &&
-      selectedUpdatedAtMillis === currentUpdatedAtMillis
+      (currentState === undefined ||
+        (currentState.version === undefined &&
+          !hasActiveDeliveryPermit(currentState))) &&
+      timestampsAreExactlyEqual(selectedSchedule.updatedAt, currentSchedule.updatedAt)
     );
   }
 

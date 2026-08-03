@@ -332,6 +332,130 @@ describe("scheduled notification delivery", () => {
     );
   });
 
+  it("treats an unchanged legacy schedule as current after an expired unversioned permit", () => {
+    const updatedAt = {
+      seconds: 1_000,
+      nanoseconds: 123_456_789,
+      toMillis: () => 1_000_123,
+    };
+
+    assert.equal(
+      isCurrentScheduledNotification(
+        { updatedAt },
+        {
+          updatedAt: {
+            seconds: 1_000,
+            nanoseconds: 123_456_789,
+            toMillis: () => 1_000_123,
+          },
+        },
+        {
+          deliveryPermitKey: "expired-delivery",
+          deliveryPermitExpiresAtMillis: 0,
+        },
+      ),
+      true,
+    );
+  });
+
+  it("rejects legacy timestamps that differ below the millisecond", () => {
+    assert.equal(
+      isCurrentScheduledNotification(
+        {
+          updatedAt: {
+            seconds: 1_000,
+            nanoseconds: 123_456_001,
+            toMillis: () => 1_000_123,
+          },
+        },
+        {
+          updatedAt: {
+            seconds: 1_000,
+            nanoseconds: 123_456_999,
+            toMillis: () => 1_000_123,
+          },
+        },
+        undefined,
+      ),
+      false,
+    );
+  });
+
+  it("releases a claimed delivery permit after success or send failure but not no-current skip", async () => {
+    const delivery = {
+      uid: "uid-123",
+      typeId: "default",
+      localDate: "2026-01-02",
+      intendedTime: "00:59",
+      intendedAt: new Date("2026-01-01T22:59:00.000Z"),
+      message: {
+        token: "latest-token",
+        notification: { title: "Title", body: "Body" },
+        data: { deliveryKey: "key" },
+      },
+    };
+    let successfulReleaseCount = 0;
+    let failedReleaseCount = 0;
+    let skippedReleaseCount = 0;
+    let skippedSendCount = 0;
+
+    assert.equal(
+      await claimAndSendScheduledDelivery(
+        delivery,
+        {
+          async create(_data: Record<string, unknown>) {},
+          async update(_data: Record<string, unknown>) {},
+          async releasePermit() {
+            successfulReleaseCount++;
+          },
+        },
+        async () => "fcm-message-id",
+      ),
+      "sent",
+    );
+    assert.equal(successfulReleaseCount, 1);
+
+    assert.equal(
+      await claimAndSendScheduledDelivery(
+        delivery,
+        {
+          async create(_data: Record<string, unknown>) {},
+          async update(_data: Record<string, unknown>) {},
+          async releasePermit() {
+            failedReleaseCount++;
+          },
+        },
+        async () => {
+          throw new Error("FCM unavailable");
+        },
+      ),
+      "failed",
+    );
+    assert.equal(failedReleaseCount, 1);
+
+    assert.equal(
+      await claimAndSendScheduledDelivery(
+        delivery,
+        {
+          async create(_data: Record<string, unknown>) {
+            return "notCurrent";
+          },
+          async update(_data: Record<string, unknown>) {},
+          async releasePermit() {
+            skippedReleaseCount++;
+          },
+        },
+        async () => {
+          skippedSendCount++;
+          return "fcm-message-id";
+        },
+      ),
+      "notCurrent",
+    );
+    assert.equal(skippedReleaseCount, 0);
+    assert.equal(skippedSendCount, 0);
+  });
+
   it("does not retry an ambiguous failed send after the create claim", async () => {
     let claimed = false;
     let sendCalls = 0;
