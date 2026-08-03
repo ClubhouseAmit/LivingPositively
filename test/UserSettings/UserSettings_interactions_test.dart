@@ -254,6 +254,72 @@ void main() {
     },
   );
 
+  testWidgets(
+    'reset confirmation cannot be dismissed while remote cancellation is pending',
+    (tester) async {
+      final auth = MockFirebaseAuth();
+      final firebaseUser = MockUser();
+      final idToken = Completer<String?>();
+      when(auth.currentUser).thenReturn(firebaseUser);
+      when(firebaseUser.isAnonymous).thenReturn(false);
+      when(firebaseUser.getIdToken()).thenAnswer((_) => idToken.future);
+      GetIt.instance.registerSingleton<FirebaseAuth>(auth);
+      debugDefaultTargetPlatformOverride = TargetPlatform.android;
+
+      try {
+        await pumpWithProviders(
+          tester,
+          UserSettings(
+            username: 'Pending reset dismissal',
+            age: '18-30',
+            gender: 'male',
+            phonePageData: _phone(),
+            changeLocale: (_) {},
+          ),
+          userInformation: user,
+          surfaceSize: const Size(1024, 2800),
+        );
+
+        final resetButton = find.byKey(const Key('userSettingsResetButton'));
+        await tester.ensureVisible(resetButton);
+        await tester.tap(resetButton, warnIfMissed: false);
+        await tester.pumpAndSettle();
+
+        final dialogButtons = find.descendant(
+          of: find.byType(Dialog),
+          matching: find.byType(TextButton),
+        );
+        await tester.tap(dialogButtons.last, warnIfMissed: false);
+        await tester.pump();
+
+        expect(find.byType(CircularProgressIndicator), findsOneWidget);
+        expect(
+          tester
+              .widgetList<ModalBarrier>(find.byType(ModalBarrier))
+              .last
+              .dismissible,
+          isFalse,
+        );
+
+        await tester.binding.handlePopRoute();
+        await tester.pump();
+
+        expect(find.byType(Dialog), findsOneWidget);
+        expect(find.byType(CircularProgressIndicator), findsOneWidget);
+        verify(firebaseUser.getIdToken()).called(1);
+
+        idToken.complete(null);
+        await tester.pumpAndSettle();
+
+        expect(find.byType(UserSettings), findsOneWidget);
+        expect(find.byType(FirstPage), findsNothing);
+        expect(find.byType(SnackBar), findsOneWidget);
+      } finally {
+        debugDefaultTargetPlatformOverride = null;
+      }
+    },
+  );
+
   testWidgets('reset skips remote cancellation on an unsupported platform', (
     tester,
   ) async {

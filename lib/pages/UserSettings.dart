@@ -624,109 +624,114 @@ class _UserSettingsState extends LPExtendedState<UserSettings> {
                     () {
                       showDialog(
                         context: context,
+                        barrierDismissible: false,
                         builder: (BuildContext context) {
                           var isResetting = false;
                           return StatefulBuilder(
-                            builder: (dialogContext, setDialogState) => Dialog(
-                              child: SizedBox(
-                                // set the width of the dialog to 800 if the screen width is more than 1000, else set it to the screen width
-                                width: MediaQuery.of(context).size.width > 1000
-                                    ? 800
-                                    : MediaQuery.of(context).size.width,
-                                child: SingleChildScrollView(
-                                  // Wrap Column with SingleChildScrollView
-                                  child: Column(
-                                    children: [
-                                      SizedBox(height: 10),
-                                      // text on the top of the form
-                                      myAutoSizedText(
-                                        appLocale.confirmResetTitle,
-                                        TextStyle(
-                                          fontWeight: FontWeight.bold,
-                                          fontSize: 20.sp, // text size
+                            builder: (dialogContext, setDialogState) => PopScope(
+                              canPop: !isResetting,
+                              child: Dialog(
+                                child: SizedBox(
+                                  // set the width of the dialog to 800 if the screen width is more than 1000, else set it to the screen width
+                                  width:
+                                      MediaQuery.of(context).size.width > 1000
+                                      ? 800
+                                      : MediaQuery.of(context).size.width,
+                                  child: SingleChildScrollView(
+                                    // Wrap Column with SingleChildScrollView
+                                    child: Column(
+                                      children: [
+                                        SizedBox(height: 10),
+                                        // text on the top of the form
+                                        myAutoSizedText(
+                                          appLocale.confirmResetTitle,
+                                          TextStyle(
+                                            fontWeight: FontWeight.bold,
+                                            fontSize: 20.sp, // text size
+                                          ),
+                                          null,
+                                          40,
                                         ),
-                                        null,
-                                        40,
-                                      ),
 
-                                      Padding(
-                                        padding: const EdgeInsets.fromLTRB(
-                                          50,
-                                          0,
-                                          50,
-                                          0,
-                                        ),
-                                        child: Row(
-                                          mainAxisAlignment:
-                                              MainAxisAlignment.spaceBetween,
-                                          children: <Widget>[
-                                            // the close button
-                                            TextButton(
-                                              onPressed: isResetting
-                                                  ? null
-                                                  : () {
-                                                      Navigator.of(
-                                                        context,
-                                                      ).pop();
-                                                    },
-                                              child: myAutoSizedText(
-                                                appLocale.closeButton(gender),
-                                                TextStyle(
-                                                  fontWeight: FontWeight.bold,
-                                                  fontSize:
-                                                      20.sp, // button text size
+                                        Padding(
+                                          padding: const EdgeInsets.fromLTRB(
+                                            50,
+                                            0,
+                                            50,
+                                            0,
+                                          ),
+                                          child: Row(
+                                            mainAxisAlignment:
+                                                MainAxisAlignment.spaceBetween,
+                                            children: <Widget>[
+                                              // the close button
+                                              TextButton(
+                                                onPressed: isResetting
+                                                    ? null
+                                                    : () {
+                                                        Navigator.of(
+                                                          context,
+                                                        ).pop();
+                                                      },
+                                                child: myAutoSizedText(
+                                                  appLocale.closeButton(gender),
+                                                  TextStyle(
+                                                    fontWeight: FontWeight.bold,
+                                                    fontSize: 20
+                                                        .sp, // button text size
+                                                  ),
+                                                  null,
+                                                  30,
                                                 ),
-                                                null,
-                                                30,
                                               ),
-                                            ),
-                                            // the save button
-                                            TextButton(
-                                              onPressed: isResetting
-                                                  ? null
-                                                  : () async {
-                                                      setDialogState(
-                                                        () =>
-                                                            isResetting = true,
-                                                      );
-                                                      await resetData(
-                                                        userInfoProvider,
-                                                      );
-                                                      if (dialogContext
-                                                          .mounted) {
+                                              // the save button
+                                              TextButton(
+                                                onPressed: isResetting
+                                                    ? null
+                                                    : () async {
                                                         setDialogState(
                                                           () => isResetting =
-                                                              false,
+                                                              true,
                                                         );
-                                                      }
-                                                    },
-                                              child: isResetting
-                                                  ? const SizedBox(
-                                                      width: 20,
-                                                      height: 20,
-                                                      child:
-                                                          CircularProgressIndicator(
-                                                            strokeWidth: 2,
-                                                          ),
-                                                    )
-                                                  : myAutoSizedText(
-                                                      appLocale.confirmButton(
-                                                        gender,
+                                                        await resetData(
+                                                          userInfoProvider,
+                                                        );
+                                                        if (dialogContext
+                                                            .mounted) {
+                                                          setDialogState(
+                                                            () => isResetting =
+                                                                false,
+                                                          );
+                                                        }
+                                                      },
+                                                child: isResetting
+                                                    ? const SizedBox(
+                                                        width: 20,
+                                                        height: 20,
+                                                        child:
+                                                            CircularProgressIndicator(
+                                                              strokeWidth: 2,
+                                                            ),
+                                                      )
+                                                    : myAutoSizedText(
+                                                        appLocale.confirmButton(
+                                                          gender,
+                                                        ),
+                                                        TextStyle(
+                                                          fontWeight:
+                                                              FontWeight.bold,
+                                                          fontSize: 20
+                                                              .sp, // button text size
+                                                        ),
+                                                        null,
+                                                        30,
                                                       ),
-                                                      TextStyle(
-                                                        fontWeight:
-                                                            FontWeight.bold,
-                                                        fontSize: 20
-                                                            .sp, // button text size
-                                                      ),
-                                                      null,
-                                                      30,
-                                                    ),
-                                            ),
-                                          ],
+                                              ),
+                                            ],
+                                          ),
                                         ),
-                                      ),
-                                    ],
+                                      ],
+                                    ),
                                   ),
                                 ),
                               ),
