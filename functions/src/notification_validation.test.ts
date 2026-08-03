@@ -2,8 +2,10 @@ import assert from "node:assert/strict";
 import { describe, it } from "node:test";
 
 import {
+  hasActiveDeliveryPermit,
   hasValidNotificationTypeSchema,
   isValidNotificationTypeId,
+  notificationMutationStatePath,
   notificationMutationDecision,
   normalizeNotificationGender,
   parseExpectedNotificationMutationVersion,
@@ -105,6 +107,44 @@ describe("notification validation", () => {
     assert.equal(
       notificationMutationDecision({ kind: "legacy" }, 0),
       "legacyBlocked",
+    );
+  });
+
+  it("uses nested state paths that distinguish underscore-containing UID and type pairs", () => {
+    assert.equal(
+      notificationMutationStatePath("a_b", "c"),
+      "notification_mutation_state/a_b/types/c",
+    );
+    assert.equal(
+      notificationMutationStatePath("a", "b_c"),
+      "notification_mutation_state/a/types/b_c",
+    );
+    assert.notEqual(
+      notificationMutationStatePath("a_b", "c"),
+      notificationMutationStatePath("a", "b_c"),
+    );
+  });
+
+  it("treats only an unexpired matching delivery permit as active", () => {
+    assert.equal(
+      hasActiveDeliveryPermit(
+        {
+          deliveryPermitKey: "delivery-key",
+          deliveryPermitExpiresAtMillis: 1_001,
+        },
+        1_000,
+      ),
+      true,
+    );
+    assert.equal(
+      hasActiveDeliveryPermit(
+        {
+          deliveryPermitKey: "delivery-key",
+          deliveryPermitExpiresAtMillis: 1_000,
+        },
+        1_000,
+      ),
+      false,
     );
   });
 });

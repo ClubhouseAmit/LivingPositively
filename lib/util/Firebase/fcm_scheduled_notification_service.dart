@@ -268,6 +268,7 @@ class FcmScheduledNotificationService {
           idTokenProvider: idTokenProvider,
           post: post,
           resetEpoch: resetEpoch,
+          resetFence: true,
         );
         if (!cancelled) {
           _legacyMigrationDisabled = false;
@@ -287,6 +288,7 @@ class FcmScheduledNotificationService {
     Future<String?> Function()? idTokenProvider,
     NotificationHttpPost? post,
     required int resetEpoch,
+    bool resetFence = false,
   }) async {
     if (!FcmService.supportsReminderSettings()) return false;
     if (resetEpoch != _resetEpoch) return false;
@@ -314,6 +316,7 @@ class FcmScheduledNotificationService {
         body: jsonEncode({
           'typeId': typeId,
           'expectedMutationVersion': expectedMutationVersion,
+          if (resetFence) 'resetFence': true,
         }),
       ).timeout(_networkTimeout);
 

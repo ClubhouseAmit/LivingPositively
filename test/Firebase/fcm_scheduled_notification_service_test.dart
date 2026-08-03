@@ -308,6 +308,7 @@ void main() {
       var remoteMutationVersion = 0;
       var remoteSchedulePresent = true;
       Object? registrationExpectedMutationVersion;
+      Map<String, dynamic>? resetCancellationPayload;
       final registrationStarted = Completer<void>();
       final completeLateRegistration = Completer<void>();
 
@@ -331,6 +332,8 @@ void main() {
           registrationExpectedMutationVersion = expectedMutationVersion;
           registrationStarted.complete();
           await completeLateRegistration.future;
+        } else if (url.path.endsWith('/cancelNotification')) {
+          resetCancellationPayload = payload;
         }
 
         if (expectedMutationVersion is int &&
@@ -376,6 +379,11 @@ void main() {
         expect(await registering, isFalse);
         expect(await resetCancellation, isTrue);
         expect(registrationExpectedMutationVersion, 0);
+        expect(resetCancellationPayload, {
+          'typeId': 'default',
+          'expectedMutationVersion': 0,
+          'resetFence': true,
+        });
         expect(remoteMutationVersion, 1);
         expect(remoteSchedulePresent, isFalse);
 

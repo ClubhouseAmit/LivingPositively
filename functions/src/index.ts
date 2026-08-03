@@ -9,6 +9,7 @@ setGlobalOptions({ maxInstances: 10 });
 
 const STALE_TOKEN_DAYS = 180;
 const NOTIFICATION_TYPE_ID_PATTERN = /^[A-Za-z0-9_-]{1,64}$/;
+const DELIVERY_PERMIT_DURATION_MILLIS = 305_000;
 
 type NotificationGender = "male" | "female" | "other";
 type DynamicNotificationType = {
@@ -36,6 +37,7 @@ type FcmMessage = {
 export type ScheduledDeliveryWriter = {
   create(data: Record<string, unknown>): Promise<unknown>;
   update(data: Record<string, unknown>): Promise<unknown>;
+  releasePermit?(): Promise<unknown>;
 };
 export type ScheduledDelivery = {
   uid: string;
@@ -105,12 +107,41 @@ export function parseExpectedNotificationMutationVersion(
 export function notificationMutationDecision(
   expected: ExpectedNotificationMutationVersion,
   currentVersion: number | undefined,
+  stateExists = currentVersion !== undefined,
 ): NotificationMutationDecision {
   if (expected.kind === "invalid") return "invalid";
   if (expected.kind === "legacy") {
-    return currentVersion === undefined ? "apply" : "legacyBlocked";
+    return stateExists ? "legacyBlocked" : "apply";
   }
   return expected.version === (currentVersion ?? 0) ? "apply" : "stale";
+}
+
+export function notificationMutationStatePath(
+  uid: string,
+  typeId: string,
+): string {
+  return `notification_mutation_state/${uid}/types/${typeId}`;
+}
+
+function notificationMutationStateRef(
+  db: FirebaseFirestore.Firestore,
+  uid: string,
+  typeId: string,
+): FirebaseFirestore.DocumentReference {
+  return db.doc(notificationMutationStatePath(uid, typeId));
+}
+
+export function hasActiveDeliveryPermit(
+  state: Record<string, unknown> | undefined,
+  nowMillis = Date.now(),
+): boolean {
+  return (
+    typeof state?.deliveryPermitKey === "string" &&
+    state.deliveryPermitKey.length > 0 &&
+    typeof state.deliveryPermitExpiresAtMillis === "number" &&
+    Number.isFinite(state.deliveryPermitExpiresAtMillis) &&
+    state.deliveryPermitExpiresAtMillis > nowMillis
+  );
 }
 
 export function hasValidNotificationTypeSchema(
@@ -263,22 +294,44 @@ export function shouldAdvanceSchedulerCheckpoint(
   return claimFailedCount === 0;
 }
 
-function isCurrentScheduledNotificationAtClaim(
-  selectedMutationVersion: unknown,
-  currentSchedule: FirebaseFirestore.DocumentSnapshot,
-  currentState: FirebaseFirestore.DocumentSnapshot,
-): boolean {
-  if (!currentSchedule.exists) return false;
+function timestampMillis(value: unknown): number | undefined {
+  if (
+    value === null ||
+    typeof value !== "object" ||
+    !("toMillis" in value) ||
+    typeof (value as TimestampLike).toMillis !== "function"
+  ) {
+    return undefined;
+  }
+  const millis = (value as TimestampLike).toMillis();
+  return Number.isFinite(millis) ? millis : undefined;
+}
 
-  const currentMutationVersion = currentSchedule.data()?.mutationVersion;
+export function isCurrentScheduledNotification(
+  selectedSchedule: Record<string, unknown>,
+  currentSchedule: Record<string, unknown> | undefined,
+  currentState: Record<string, unknown> | undefined,
+): boolean {
+  if (currentSchedule === undefined) return false;
+
+  const selectedMutationVersion = selectedSchedule.mutationVersion;
+  const currentMutationVersion = currentSchedule.mutationVersion;
   if (selectedMutationVersion === undefined) {
-    return currentMutationVersion === undefined && !currentState.exists;
+    const selectedUpdatedAtMillis = timestampMillis(selectedSchedule.updatedAt);
+    const currentUpdatedAtMillis = timestampMillis(currentSchedule.updatedAt);
+    return (
+      currentMutationVersion === undefined &&
+      currentState === undefined &&
+      selectedUpdatedAtMillis !== undefined &&
+      currentUpdatedAtMillis !== undefined &&
+      selectedUpdatedAtMillis === currentUpdatedAtMillis
+    );
   }
 
   return (
     isNonNegativeNotificationMutationVersion(selectedMutationVersion) &&
     currentMutationVersion === selectedMutationVersion &&
-    currentState.data()?.version === selectedMutationVersion
+    currentState?.version === selectedMutationVersion
   );
 }
 
@@ -353,6 +406,12 @@ export async function claimAndSendScheduledDelivery(
       console.error(`Scheduled delivery failure-status update failed: ${deliveryKey}`, updateError);
     }
     return "failed";
+  } finally {
+    try {
+      await writer.releasePermit?.();
+    } catch (error: unknown) {
+      console.error(`Scheduled delivery permit release failed: ${deliveryKey}`, error);
+    }
   }
 }
 
@@ -432,17 +491,21 @@ export const getNotificationMutationVersion = onRequest(async (req, res) => {
     return;
   }
 
-  const stateDoc = await admin
-    .firestore()
-    .collection("notification_mutation_state")
-    .doc(`${uid}_${typeId}`)
-    .get();
+  const stateDoc = await notificationMutationStateRef(
+    admin.firestore(),
+    uid,
+    typeId,
+  ).get();
   if (!stateDoc.exists) {
     res.send({ mutationVersion: 0 });
     return;
   }
 
   const mutationVersion = stateDoc.data()?.version;
+  if (mutationVersion === undefined) {
+    res.send({ mutationVersion: 0 });
+    return;
+  }
   if (!isNonNegativeNotificationMutationVersion(mutationVersion)) {
     res.status(500).send("Invalid notification mutation state");
     return;
@@ -508,9 +571,7 @@ export const registerNotification = onRequest(async (req, res) => {
   }
 
   const db = admin.firestore();
-  const stateRef = db
-    .collection("notification_mutation_state")
-    .doc(`${uid}_${typeId}`);
+  const stateRef = notificationMutationStateRef(db, uid, typeId);
   const scheduleRef = db
     .collection("scheduled_notifications")
     .doc(`${uid}_${typeId}`);
@@ -520,12 +581,23 @@ export const registerNotification = onRequest(async (req, res) => {
       let currentVersion: number | undefined;
       if (stateDoc.exists) {
         const storedVersion = stateDoc.data()?.version;
-        if (!isNonNegativeNotificationMutationVersion(storedVersion)) {
+        if (
+          storedVersion !== undefined &&
+          !isNonNegativeNotificationMutationVersion(storedVersion)
+        ) {
           throw new Error("Invalid notification mutation state");
         }
-        currentVersion = storedVersion;
+        if (storedVersion !== undefined) {
+          currentVersion = storedVersion;
+        }
       }
-      if (notificationMutationDecision(expectedVersion, currentVersion) !== "apply") {
+      if (
+        notificationMutationDecision(
+          expectedVersion,
+          currentVersion,
+          stateDoc.exists,
+        ) !== "apply"
+      ) {
         throw new NotificationMutationConflictError("Stale notification mutation");
       }
 
@@ -541,7 +613,7 @@ export const registerNotification = onRequest(async (req, res) => {
       if (expectedVersion.kind === "versioned") {
         const nextVersion = (currentVersion ?? 0) + 1;
         scheduleData.mutationVersion = nextVersion;
-        transaction.set(stateRef, { version: nextVersion });
+        transaction.set(stateRef, { version: nextVersion }, { merge: true });
       }
       transaction.set(scheduleRef, scheduleData);
     });
@@ -558,7 +630,8 @@ export const registerNotification = onRequest(async (req, res) => {
 
 // ---------------------------------------------------------------------------
 // cancelNotification — deletes the scheduled notification entry.
-// Body: { typeId: string, expectedMutationVersion?: non-negative integer }
+// Body: { typeId: string, expectedMutationVersion?: non-negative integer,
+//         resetFence?: boolean }
 // ---------------------------------------------------------------------------
 export const cancelNotification = onRequest(async (req, res) => {
   if (req.method !== "POST") {
@@ -572,9 +645,13 @@ export const cancelNotification = onRequest(async (req, res) => {
     return;
   }
 
-  const { typeId, expectedMutationVersion } = req.body;
+  const { typeId, expectedMutationVersion, resetFence } = req.body;
   if (!isValidNotificationTypeId(typeId)) {
     res.status(400).send("Invalid typeId");
+    return;
+  }
+  if (resetFence !== undefined && typeof resetFence !== "boolean") {
+    res.status(400).send("Invalid resetFence");
     return;
   }
   const expectedVersion = parseExpectedNotificationMutationVersion(
@@ -586,9 +663,7 @@ export const cancelNotification = onRequest(async (req, res) => {
   }
 
   const db = admin.firestore();
-  const stateRef = db
-    .collection("notification_mutation_state")
-    .doc(`${uid}_${typeId}`);
+  const stateRef = notificationMutationStateRef(db, uid, typeId);
   const scheduleRef = db
     .collection("scheduled_notifications")
     .doc(`${uid}_${typeId}`);
@@ -598,18 +673,41 @@ export const cancelNotification = onRequest(async (req, res) => {
       let currentVersion: number | undefined;
       if (stateDoc.exists) {
         const storedVersion = stateDoc.data()?.version;
-        if (!isNonNegativeNotificationMutationVersion(storedVersion)) {
+        if (
+          storedVersion !== undefined &&
+          !isNonNegativeNotificationMutationVersion(storedVersion)
+        ) {
           throw new Error("Invalid notification mutation state");
         }
-        currentVersion = storedVersion;
+        if (storedVersion !== undefined) {
+          currentVersion = storedVersion;
+        }
       }
-      if (notificationMutationDecision(expectedVersion, currentVersion) !== "apply") {
+      if (
+        resetFence === true &&
+        hasActiveDeliveryPermit(stateDoc.data())
+      ) {
+        throw new NotificationMutationConflictError(
+          "Scheduled delivery is already authorized",
+        );
+      }
+      if (
+        notificationMutationDecision(
+          expectedVersion,
+          currentVersion,
+          stateDoc.exists,
+        ) !== "apply"
+      ) {
         throw new NotificationMutationConflictError("Stale notification mutation");
       }
 
       transaction.delete(scheduleRef);
       if (expectedVersion.kind === "versioned") {
-        transaction.set(stateRef, { version: (currentVersion ?? 0) + 1 });
+        transaction.set(
+          stateRef,
+          { version: (currentVersion ?? 0) + 1 },
+          { merge: true },
+        );
       }
     });
   } catch (error) {
@@ -848,10 +946,8 @@ export const processScheduledNotifications = onSchedule(
         candidate.intendedTime,
       );
       const deliveryRef = db.collection("notification_deliveries").doc(deliveryKey);
-      const stateRef = db
-        .collection("notification_mutation_state")
-        .doc(`${uid}_${typeId}`);
-      const selectedMutationVersion = doc.data().mutationVersion;
+      const stateRef = notificationMutationStateRef(db, uid, typeId);
+      const selectedSchedule = doc.data();
       sendTasks.push(() =>
         claimAndSendScheduledDelivery(
           {
@@ -872,17 +968,47 @@ export const processScheduledNotifications = onSchedule(
                 transaction.get(doc.ref),
                 transaction.get(stateRef),
               ]);
-              if (!isCurrentScheduledNotificationAtClaim(
-                selectedMutationVersion,
-                currentSchedule,
-                currentState,
-              )) {
+              if (
+                !isCurrentScheduledNotification(
+                  selectedSchedule,
+                  currentSchedule.exists ? currentSchedule.data() : undefined,
+                  currentState.exists ? currentState.data() : undefined,
+                ) || hasActiveDeliveryPermit(currentState.data())
+              ) {
                 return "notCurrent";
               }
               transaction.create(deliveryRef, data);
+              transaction.set(
+                stateRef,
+                {
+                  deliveryPermitKey: deliveryKey,
+                  deliveryPermitExpiresAtMillis:
+                    admin.firestore.Timestamp.now().toMillis() +
+                    DELIVERY_PERMIT_DURATION_MILLIS,
+                },
+                { merge: true },
+              );
               return undefined;
             }),
             update: (data) => deliveryRef.update(data),
+            releasePermit: () => db.runTransaction(async (transaction) => {
+              const state = await transaction.get(stateRef);
+              if (state.data()?.deliveryPermitKey !== deliveryKey) return;
+
+              if (state.data()?.version === undefined) {
+                transaction.delete(stateRef);
+                return;
+              }
+              transaction.set(
+                stateRef,
+                {
+                  deliveryPermitKey: admin.firestore.FieldValue.delete(),
+                  deliveryPermitExpiresAtMillis:
+                    admin.firestore.FieldValue.delete(),
+                },
+                { merge: true },
+              );
+            }),
           },
           async (message) => {
             try {

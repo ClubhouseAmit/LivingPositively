@@ -37,7 +37,7 @@ configured.
   disabled for the app session; a failed or thrown cancellation re-enables a
   subsequent migration attempt.
 - Every current-client schedule mutation first reads the authoritative
-  `notification_mutation_state/{uid}_{typeId}` version and sends the `typeId`
+  `notification_mutation_state/{uid}/types/{typeId}` version and sends the `typeId`
   and version as
   `expectedMutationVersion` to the register/cancel Function. The Function
   transaction applies the mutation only when that version still matches, then
@@ -51,6 +51,11 @@ configured.
   fenced by a versioned mutation or reset.
   Afterwards the Function returns 409 for an unfenced request, preventing an
   older app request from recreating a reminder after reset.
+- Reset cancellation additionally sends `resetFence: true`. If the scheduler
+  has already committed authority to initiate the matching FCM send, the
+  active delivery permit makes that cancellation return 409. The app treats
+  this as a cancellation failure and preserves local data; a reset never
+  claims success while that send can still begin.
 
 ### Server delivery
 
@@ -66,9 +71,14 @@ configured.
   of `[uid, typeId, localDate, intendedHHmm]`, avoiding delimiter collisions
   and remaining valid for both Firestore document IDs and FCM data.
 - The claim transaction re-reads the selected schedule and its matching
-  `notification_mutation_state/{uid}_{typeId}` document. It sends only when
+  `notification_mutation_state/{uid}/types/{typeId}` document. It sends only when
   the selected/current schedule mutation versions still agree; a deleted or
   replaced schedule is skipped without an FCM call or checkpoint failure.
+- The same transaction records a delivery permit that expires 305 seconds
+  after server time. The send releases only its matching permit in `finally`;
+  a failed release is deliberately conservative and blocks reset until expiry.
+  Legacy schedules without a mutation version are current only when both the
+  selected and re-read `updatedAt` timestamps are valid and equal.
 - The delivery record contains its identity, `claimed`/`sent`/`failed` status,
   claim and attempt timestamps, the FCM message ID or failure code, and an
   `expiresAt` value of intended time plus 24 hours. The FCM payload also
@@ -101,9 +111,19 @@ deploy or enable scheduled delivery until each gate is satisfied:
 1. Configure Firestore TTL for `notification_deliveries.expiresAt` in the
    canonical production Firebase configuration.
 2. Add server-only deny rules for `notification_deliveries`,
-   `notification_scheduler_state`, and `notification_mutation_state` to the
+   `notification_scheduler_state`, and both the parent and `types`
+   subcollection paths of `notification_mutation_state` to the
    canonical production rules source, and verify authenticated emulator
    read/list/create/update/delete denial for all three collections.
+
+   ```rules
+   match /notification_mutation_state/{uid} {
+     allow read, write: if false;
+   }
+   match /notification_mutation_state/{uid}/types/{typeId} {
+     allow read, write: if false;
+   }
+   ```
 3. Deploy the Functions code through the normal project deployment process
    with the approved scheduler invocation bound of 300 seconds, 512MiB, and
    25 task batches. These bounds preserve all-or-nothing recovery: a recovery
@@ -120,7 +140,8 @@ deploy or enable scheduled delivery until each gate is satisfied:
 7. Perform the appropriate manual emulator, physical-device, and production
    validation: authenticated registration/cancellation, token refresh,
    delayed scheduler delivery, duplicate-claim suppression, failure handling,
-   and reset/migration behavior.
+   reset/migration behavior, and reset rejection while an authorized send is
+   in flight.
 8. Deploy the Functions version-read and expected-version support before a
    mobile release that sends `expectedMutationVersion`. This ordering preserves
    current legacy behavior until an account is fenced; after fencing, legacy

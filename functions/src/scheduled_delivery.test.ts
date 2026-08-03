@@ -6,6 +6,7 @@ import {
   claimAndSendScheduledDelivery,
   israelLocalDeliveryCandidates,
   israelLocalDeliveryCandidatesSince,
+  isCurrentScheduledNotification,
   scheduledNotificationQueryPlan,
   selectScheduledNotificationCandidates,
   shouldAdvanceSchedulerCheckpoint,
@@ -307,6 +308,28 @@ describe("scheduled notification delivery", () => {
     assert.equal(result, "notCurrent");
     assert.equal(sendCalls, 0);
     assert.deepEqual(updates, []);
+  });
+
+  it("does not treat a changed legacy updatedAt timestamp as current", () => {
+    assert.equal(
+      isCurrentScheduledNotification(
+        { updatedAt: { toMillis: () => 1_000 } },
+        { updatedAt: { toMillis: () => 1_001 } },
+        undefined,
+      ),
+      false,
+    );
+  });
+
+  it("does not treat a legacy schedule without a usable selected timestamp as current", () => {
+    assert.equal(
+      isCurrentScheduledNotification(
+        {},
+        { updatedAt: { toMillis: () => 1_000 } },
+        undefined,
+      ),
+      false,
+    );
   });
 
   it("does not retry an ambiguous failed send after the create claim", async () => {
