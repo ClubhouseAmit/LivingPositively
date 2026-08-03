@@ -77,6 +77,10 @@ class FcmScheduledNotificationService {
     PersistentMemoryService? persistentMemory,
   }) async {
     if (_legacyMigrationDisabled) return;
+    if (context == null && userInformation == null) {
+      _log('Warning: no user state, cannot migrate a reminder.');
+      return;
+    }
     final resetEpoch = _resetEpoch;
     final userInfo =
         userInformation ??
@@ -132,6 +136,10 @@ class FcmScheduledNotificationService {
     Future<String?> Function()? idTokenProvider,
     NotificationHttpPost? post,
   }) {
+    if (context == null && userInformation == null) {
+      _log('Warning: no user state, cannot register a reminder.');
+      return Future.value(false);
+    }
     final resetEpoch = _resetEpoch;
     return _enqueue(
       () => _registerNotification(
@@ -239,6 +247,10 @@ class FcmScheduledNotificationService {
     Future<String?> Function()? idTokenProvider,
     NotificationHttpPost? post,
   }) {
+    if (context == null && userInformation == null) {
+      _log('Warning: no user state, cannot cancel a reminder.');
+      return Future.value(false);
+    }
     final resetEpoch = _resetEpoch;
     return _enqueue(
       () => _cancelNotification(

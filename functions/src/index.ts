@@ -1120,21 +1120,25 @@ export const processScheduledNotifications = onSchedule(
       } else failureCount++;
     }
 
-    // --- Stale device cleanup (batched, after sends) ---
-
-    const staleDeviceIds = [...new Set(staleUids)];
-    if (staleDeviceIds.length > 0) {
-      await Promise.allSettled(
-        staleDeviceIds.map((uid) => cleanupInactiveDevice(uid)),
-      );
-    }
-
-    console.log(
-      `processScheduledNotifications: sent=${successCount}, failed=${failureCount}, alreadyClaimed=${alreadyClaimedCount}, notCurrent=${notCurrentCount}, claimFailed=${claimFailedCount}, staleDevicesCleaned=${staleDeviceIds.length}`,
-    );
-
+    // Complete the delivery checkpoint before independent stale-device cleanup.
     if (shouldAdvanceSchedulerCheckpoint(claimFailedCount)) {
       await advanceSchedulerCheckpoint();
     }
+
+    // --- Stale device cleanup (batched, after the delivery checkpoint) ---
+
+    const staleUidsToClean = [...new Set(staleUids)];
+    const staleCleanupResults = await Promise.allSettled(
+      staleUidsToClean.map((uid) => cleanupInactiveDevice(uid)),
+    );
+    const staleDevicesCleaned = staleCleanupResults.filter(
+      (result) => result.status === "fulfilled",
+    ).length;
+    const staleCleanupFailedCount = staleCleanupResults.length - staleDevicesCleaned;
+
+    console.log(
+      `processScheduledNotifications: sent=${successCount}, failed=${failureCount}, alreadyClaimed=${alreadyClaimedCount}, notCurrent=${notCurrentCount}, claimFailed=${claimFailedCount}, staleDevicesCleaned=${staleDevicesCleaned}, staleCleanupFailed=${staleCleanupFailedCount}`,
+    );
+
   },
 );

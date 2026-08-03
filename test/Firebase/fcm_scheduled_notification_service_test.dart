@@ -14,13 +14,17 @@ import 'package:mazilon/util/userInformation.dart';
 import 'package:provider/provider.dart';
 
 class _FakePersistentMemoryService implements PersistentMemoryService {
+  static const _migrationKey = 'fcmDefaultReminderMigrated';
   final Map<String, dynamic> stored = {};
   Completer<dynamic>? migrationMarkerRead;
   Completer<void>? migrationMarkerReadStarted;
 
   @override
   Future<dynamic> getItem(String key, PersistentMemoryType type) async {
-    if (key == 'fcmDefaultReminderMigrated' && migrationMarkerRead != null) {
+    if (key != _migrationKey) {
+      throw StateError('Unexpected persistent-memory read: $key');
+    }
+    if (migrationMarkerRead != null) {
       migrationMarkerReadStarted?.complete();
       return migrationMarkerRead!.future;
     }
@@ -36,6 +40,9 @@ class _FakePersistentMemoryService implements PersistentMemoryService {
     PersistentMemoryType type,
     dynamic value,
   ) async {
+    if (key != _migrationKey) {
+      throw StateError('Unexpected persistent-memory write: $key');
+    }
     stored[key] = value;
   }
 }
@@ -88,6 +95,31 @@ void main() {
       ),
     );
   }
+
+  testWidgets('notification operations reject missing user state safely', (
+    tester,
+  ) async {
+    await _onPlatform(TargetPlatform.android, () async {
+      expect(
+        await FcmScheduledNotificationService.registerNotification(
+          typeId: 'default',
+          hour: 9,
+          minute: 30,
+        ),
+        isFalse,
+      );
+      expect(
+        await FcmScheduledNotificationService.cancelNotification(
+          typeId: 'default',
+        ),
+        isFalse,
+      );
+      await expectLater(
+        FcmScheduledNotificationService.migrateLegacyDefaultReminder(),
+        completes,
+      );
+    });
+  });
 
   testWidgets('register sends an authenticated FCM schedule and saves it', (
     tester,
