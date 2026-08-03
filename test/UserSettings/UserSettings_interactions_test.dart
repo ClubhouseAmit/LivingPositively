@@ -320,6 +320,67 @@ void main() {
     },
   );
 
+  testWidgets(
+    'reset confirmation ignores same-frame duplicate activation',
+    (tester) async {
+      final auth = MockFirebaseAuth();
+      final firebaseUser = MockUser();
+      final idToken = Completer<String?>();
+      var tokenRequests = 0;
+      when(auth.currentUser).thenReturn(firebaseUser);
+      when(firebaseUser.isAnonymous).thenReturn(false);
+      when(firebaseUser.getIdToken()).thenAnswer((_) {
+        tokenRequests += 1;
+        return idToken.future;
+      });
+      GetIt.instance.registerSingleton<FirebaseAuth>(auth);
+      debugDefaultTargetPlatformOverride = TargetPlatform.android;
+
+      try {
+        await pumpWithProviders(
+          tester,
+          UserSettings(
+            username: 'Duplicate reset confirmation',
+            age: '18-30',
+            gender: 'male',
+            phonePageData: _phone(),
+            changeLocale: (_) {},
+          ),
+          userInformation: user,
+          surfaceSize: const Size(1024, 2800),
+        );
+
+        final resetButton = find.byKey(const Key('userSettingsResetButton'));
+        await tester.ensureVisible(resetButton);
+        await tester.tap(resetButton, warnIfMissed: false);
+        await tester.pumpAndSettle();
+
+        final dialogButtons = find.descendant(
+          of: find.byType(Dialog),
+          matching: find.byType(TextButton),
+        );
+        final confirm =
+            tester.widget<TextButton>(dialogButtons.last).onPressed!;
+        confirm();
+        confirm();
+        await tester.pump();
+
+        expect(find.byType(CircularProgressIndicator), findsOneWidget);
+        expect(tokenRequests, 1);
+
+        idToken.complete(null);
+        await tester.pumpAndSettle();
+
+        expect(tokenRequests, 1);
+        expect(find.byType(UserSettings), findsOneWidget);
+        expect(find.byType(FirstPage), findsNothing);
+        expect(find.byType(SnackBar), findsOneWidget);
+      } finally {
+        debugDefaultTargetPlatformOverride = null;
+      }
+    },
+  );
+
   testWidgets('reset skips remote cancellation on an unsupported platform', (
     tester,
   ) async {

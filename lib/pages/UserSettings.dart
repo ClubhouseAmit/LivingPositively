@@ -689,6 +689,7 @@ class _UserSettingsState extends LPExtendedState<UserSettings> {
                                                 onPressed: isResetting
                                                     ? null
                                                     : () async {
+                                                        if (isResetting) return;
                                                         setDialogState(
                                                           () => isResetting =
                                                               true,
