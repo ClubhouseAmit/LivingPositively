@@ -227,6 +227,51 @@ void main() {
   });
 
   testWidgets(
+    'a timed out operation releases the serialized notification queue',
+    (tester) async {
+      user.setNotificationPreference(
+        'default',
+        const NotificationPreference(hour: 8, minute: 15),
+      );
+      await pumpUser(tester);
+      final stalledPost = Completer<http.Response>();
+
+      debugDefaultTargetPlatformOverride = TargetPlatform.android;
+      try {
+        final registering =
+            FcmScheduledNotificationService.registerNotification(
+              userInformation: user,
+              typeId: 'default',
+              hour: 9,
+              minute: 30,
+              idTokenProvider: () async => 'token-123',
+              post: (_, {headers, body, encoding}) => stalledPost.future,
+            );
+        final cancelling = FcmScheduledNotificationService.cancelNotification(
+          userInformation: user,
+          typeId: 'default',
+          idTokenProvider: () async => 'token-123',
+          post: (_, {headers, body, encoding}) async =>
+              http.Response('{}', 200),
+        );
+
+        bool? registrationResult;
+        bool? cancellationResult;
+        registering.then((result) => registrationResult = result);
+        cancelling.then((result) => cancellationResult = result);
+        await tester.pump();
+        await tester.pump(const Duration(seconds: 15));
+
+        expect(registrationResult, isFalse);
+        expect(cancellationResult, isTrue);
+        expect(user.getNotificationPreference('default'), isNull);
+      } finally {
+        debugDefaultTargetPlatformOverride = null;
+      }
+    },
+  );
+
+  testWidgets(
     'register returns false when FirebaseAuth has not been initialized',
     (tester) async {
       await GetIt.instance.reset();

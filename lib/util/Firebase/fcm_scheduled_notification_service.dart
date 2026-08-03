@@ -24,6 +24,7 @@ class FcmScheduledNotificationService {
       'https://us-central1-mezilondb.cloudfunctions.net';
   static const String _legacyDefaultReminderMigrationKey =
       'fcmDefaultReminderMigrated';
+  static const Duration _networkTimeout = Duration(seconds: 15);
   static Future<void>? _operationQueue;
   static bool _legacyMigrationDisabled = false;
 
@@ -154,10 +155,11 @@ class FcmScheduledNotificationService {
         ? rawGender
         : 'other';
 
-    final idToken = await (idTokenProvider ?? _getIdToken)();
-    if (idToken == null) return false;
-
     try {
+      final idToken = await (idTokenProvider ?? _getIdToken)().timeout(
+        _networkTimeout,
+      );
+      if (idToken == null) return false;
       final response = await (post ?? http.post)(
         Uri.parse('$_functionsBaseUrl/registerNotification'),
         headers: {
@@ -171,7 +173,7 @@ class FcmScheduledNotificationService {
           'locale': locale,
           'gender': gender,
         }),
-      );
+      ).timeout(_networkTimeout);
 
       if (response.statusCode == 200) {
         _log('Notification registered successfully.');
@@ -254,10 +256,11 @@ class FcmScheduledNotificationService {
   }) async {
     if (!FcmService.supportsReminderSettings()) return false;
     _log('Cancelling notification: typeId=$typeId');
-    final idToken = await (idTokenProvider ?? _getIdToken)();
-    if (idToken == null) return false;
-
     try {
+      final idToken = await (idTokenProvider ?? _getIdToken)().timeout(
+        _networkTimeout,
+      );
+      if (idToken == null) return false;
       final response = await (post ?? http.post)(
         Uri.parse('$_functionsBaseUrl/cancelNotification'),
         headers: {
@@ -265,7 +268,7 @@ class FcmScheduledNotificationService {
           'Content-Type': 'application/json',
         },
         body: jsonEncode({'typeId': typeId}),
-      );
+      ).timeout(_networkTimeout);
 
       if (response.statusCode == 200) {
         _log('Notification cancelled successfully.');
