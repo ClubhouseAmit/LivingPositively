@@ -313,9 +313,153 @@ appropriate GitHub threads, then push when ready.
 git push origin codex/pr-273-fcm-followups
 ~~~
 
+### Task 6: Fence remote notification mutations across reset
+
+**Files:**
+
+- Modify: `functions/src/index.ts:57-94,347-440`
+- Modify: `functions/src/notification_validation.test.ts`
+- Modify: `lib/util/Firebase/fcm_scheduled_notification_service.dart:22-294`
+- Test: `test/Firebase/fcm_scheduled_notification_service_test.dart`
+- Modify: `fcm_notification_plan.md`
+
+**Volatility and approved boundary:** HTTP requests can outlive the client-side
+15-second deadline. The existing in-process queue cannot order a late request
+at the Functions boundary, so reset needs a server-enforced mutation version.
+The user approved this Functions/client contract change on 2026-08-03. The
+server is authoritative for the version; the client only reads and presents an
+expected value.
+
+**Interfaces:**
+
+- Produces: authenticated `getNotificationMutationVersion` (POST, responds with
+  `{ mutationVersion: nonNegativeInteger }`), plus an optional
+  `expectedMutationVersion` field on existing register/cancel POST bodies.
+- Persisted state: Functions-only `notification_mutation_state/{uid}` with a
+  monotonically increasing `version`; every versioned register/cancel runs in a
+  Firestore transaction that checks the expected version, applies the schedule
+  mutation, then advances the version.
+- Compatibility: old requests without an expected version remain usable only
+  while no state document exists. Once a versioned client mutates or resets an
+  account, the server rejects an unfenced legacy mutation. This keeps a
+  pre-reset legacy request from recreating a reminder after the reset fence.
+
+- [x] **Step 1: Write the failing fence regressions**
+
+In Functions validation tests, cover parsing a non-negative expected version,
+rejecting a stale version, and rejecting an unfenced mutation once state exists.
+In the Flutter service suite, emulate a server version and add
+`a late registration cannot recreate a reminder after reset cancellation`:
+
+1. The version endpoint returns 0 and registration starts a post carrying 0.
+2. Its post exceeds the client deadline.
+3. Reset cancellation reads 0, advances the emulated server to 1, and succeeds.
+4. Completing the old registration later must receive the stale-version result
+   and leave the emulated remote schedule absent.
+
+This test is RED without an expected server version on registration/cancellation.
+
+- [x] **Step 2: Run focused regressions and observe failure**
+
+~~~powershell
+npm --prefix functions test -- --test-name-pattern "notification mutation"
+flutter test --no-pub test/Firebase/fcm_scheduled_notification_service_test.dart --plain-name "a late registration cannot recreate a reminder after reset cancellation"
+~~~
+
+Expected: missing validators/endpoint contract and a late registration can still
+be accepted by the emulated remote state.
+
+- [x] **Step 3: Add the minimal versioned transaction protocol**
+
+Add explicit pure validation helpers for body parsing and stale/fenced
+decisions. The handlers retain their existing auth/type validation, then use
+one Firestore transaction: read the state document, reject a mismatched
+expected version with 409, write/delete the schedule, and increment `version`.
+The version-read endpoint returns 0 for an account with no state document.
+
+The Dart service must capture an in-memory reset epoch before each queued
+mutation, re-check it after token/version awaits, and send the version obtained
+from the endpoint in the subsequent mutation. `cancelDefaultForReset` advances
+the local epoch before it queues its cancellation. These local checks avoid
+sending an operation that has not left the device; the transaction protects the
+request that already has.
+
+Do not retry a 409 automatically: the selected time may no longer represent
+the user's current intent. Preserve `Future<bool>` and existing failure paths.
+
+- [x] **Step 4: Document rollout and verify focused suites**
+
+Document the new state collection, expected-version contract, and deployment
+ordering: deploy the Functions endpoint before the mobile client; legacy app
+mutations are deliberately blocked for an account after it becomes fenced.
+Then run:
+
+~~~powershell
+npm --prefix functions test
+flutter test --no-pub test/Firebase/fcm_scheduled_notification_service_test.dart
+~~~
+
+- [x] **Step 5: Commit**
+
+~~~powershell
+git add functions/src/index.ts functions/src/notification_validation.test.ts fcm_notification_plan.md lib/util/Firebase/fcm_scheduled_notification_service.dart test/Firebase/fcm_scheduled_notification_service_test.dart
+git commit -m "Fence FCM mutations across reset"
+~~~
+
+### Task 7: Keep an in-flight reset dialog on screen
+
+**Files:**
+
+- Modify: `lib/pages/UserSettings.dart:622-736`
+- Test: `test/UserSettings/UserSettings_interactions_test.dart`
+
+**Interfaces:**
+
+- Produces: while reset cancellation is pending, neither a modal-barrier tap
+  nor system Back can dismiss the confirmation dialog. The existing Close
+  action remains available before a reset starts.
+
+- [x] **Step 1: Write the failing dialog-dismissal regression**
+
+Extend the existing pending-reset test (or add a focused sibling) to begin a
+token-pending reset, assert the modal barrier is not dismissible, invoke the
+route back action, and confirm the dialog, spinner, and single token request
+remain. Complete the token with null and retain the existing privacy-first
+failure assertions.
+
+- [x] **Step 2: Run the focused regression and observe failure**
+
+~~~powershell
+flutter test --no-pub test/UserSettings/UserSettings_interactions_test.dart --plain-name "reset confirmation cannot be dismissed while remote cancellation is pending"
+~~~
+
+Expected: the default dialog barrier/back route closes the dialog during the
+pending operation.
+
+- [x] **Step 3: Block only pending dismissal**
+
+Set the dialog's `barrierDismissible` to false and wrap the dialog with
+`PopScope(canPop: !isResetting)`. Keep the existing dialog-local state, disabled
+buttons, spinner, and mounted guard; no reset behavior or navigation changes.
+
+- [x] **Step 4: Verify the UserSettings suite**
+
+~~~powershell
+flutter test --no-pub test/UserSettings/UserSettings_interactions_test.dart
+~~~
+
+- [x] **Step 5: Commit**
+
+~~~powershell
+git add lib/pages/UserSettings.dart test/UserSettings/UserSettings_interactions_test.dart
+git commit -m "Keep pending reset confirmation open"
+~~~
+
 ## Self-Review
 
 - Tasks 1-2 preserve the hard remote cancellation gate and make it bounded/single-flight.
 - Task 3 changes resource use but not checkpoint semantics.
 - Task 4 validates actual localization content without weak duplicate detection or text mutations.
+- Task 6 makes the asynchronous Functions boundary authoritative when a reset races a timed-out request; a 409 leaves the caller's local selection unchanged.
+- Task 7 closes the dialog dismissal race without relaxing the reset gate.
 - Excluded without new approval: offline reset, pending-cancellation replay, incremental checkpoints, a Functions orchestration seam, scanner rewrite, generic request helper, and Firestore batch provisioning.

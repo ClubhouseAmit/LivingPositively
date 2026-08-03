@@ -847,7 +847,7 @@ export const processScheduledNotifications = onSchedule(
       );
     }
 
-    // --- Send phase (parallel) ---
+    // --- Send phase (batched parallel) ---
 
     const results: PromiseSettledResult<ScheduledDeliveryResult>[] = [];
     for (let start = 0; start < sendTasks.length; start += 25) {
