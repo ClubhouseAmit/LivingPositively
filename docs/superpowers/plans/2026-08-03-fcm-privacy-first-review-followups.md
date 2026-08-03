@@ -298,15 +298,18 @@ git diff --check
 
 Expected: Functions/Flutter tests pass; analyzer only has inherited generated-mock warnings; whitespace check passes.
 
-- [x] **Step 3: Reply/resolve direct review threads**
+- [ ] **Step 3: Controller: reply/resolve direct review threads**
 
 Reply inline that reset remains privacy-first but is bounded/single-flight; scheduler preserves all-or-nothing checkpoint recovery with explicit resource limits; real ARBs are CI validated. Do not resolve legacy UUID, UID migration, DST, or API-precondition threads: they remain separate decisions.
 
-- [x] **Step 4: Commit the plan and push**
+- [ ] **Step 4: Controller: push the committed plan**
+
+Local verification and the plan-record commit were completed in `136e3e0`
+(`Document FCM privacy-first review follow-ups`). The remaining external action
+is controller-owned: review the proposed reply topics, post or resolve only the
+appropriate GitHub threads, then push when ready.
 
 ~~~powershell
-git add docs/superpowers/plans/2026-08-03-fcm-privacy-first-review-followups.md
-git commit -m "Document FCM privacy-first review follow-ups"
 git push origin codex/pr-273-fcm-followups
 ~~~
 
