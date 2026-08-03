@@ -36,16 +36,14 @@ void main() {
   late UserInformation user;
 
   setUp(() {
-    registerTestServices(locale: 'en');
+    registerTestServices();
     user = UserInformation();
     user.gender = 'other';
     user.localeName = 'en';
     user.disclaimerSigned = true;
   });
 
-  tearDown(() {
-    resetTestServices();
-  });
+  tearDown(resetTestServices);
 
   testWidgets(
       'when disclaimerSigned is false, InitialFormProgressIndicator renders the DisclaimerPage',

@@ -1,8 +1,7 @@
-// ignore_for_file: non_constant_identifier_names
 
 import 'package:flutter_test/flutter_test.dart';
-import 'package:mazilon/util/appInformation.dart';
 import 'package:mazilon/util/Firebase/firebase_functions.dart';
+import 'package:mazilon/util/appInformation.dart';
 
 void main() {
   group('createJson', () {

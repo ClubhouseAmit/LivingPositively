@@ -22,15 +22,13 @@ void main() {
   late UserInformation user;
 
   setUp(() {
-    services = registerTestServices(locale: 'en');
+    services = registerTestServices();
     user = UserInformation();
     user.gender = 'other';
     user.localeName = 'en';
   });
 
-  tearDown(() {
-    resetTestServices();
-  });
+  tearDown(resetTestServices);
 
   testWidgets('tapping the share IconButton opens the share dialog',
       (tester) async {
@@ -87,7 +85,7 @@ void main() {
 
     final finishButton = find.ancestor(
       of: find.text("I'm Done!"),
-      matching: find.byType(TextButton),
+      matching: find.byType(ElevatedButton),
     );
     expect(finishButton, findsOneWidget);
     await tester.ensureVisible(finishButton);

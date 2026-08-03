@@ -36,15 +36,13 @@ void main() {
   late UserInformation user;
 
   setUp(() {
-    registerTestServices(locale: 'en');
+    registerTestServices();
     user = UserInformation();
     user.gender = 'male';
     user.localeName = 'en';
   });
 
-  tearDown(() {
-    resetTestServices();
-  });
+  tearDown(resetTestServices);
 
   testWidgets(
     'reset confirmation dialog "Confirm" tap calls resetData and pushes '

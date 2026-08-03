@@ -6,39 +6,36 @@ import 'package:mockito/mockito.dart';
 class MockUrlLauncher extends Mock {
   Future<bool> canLaunchUrl(Uri url) => super.noSuchMethod(
     Invocation.method(#canLaunchUrl, [url]),
-    returnValue: Future.value(true),
-    returnValueForMissingStub: Future.value(false),
-  );
+    returnValue: Future<bool>.value(true),
+    returnValueForMissingStub: Future<bool>.value(false),
+  ) as Future<bool>;
 
   Future<void> launchUrl(Uri url) => super.noSuchMethod(
     Invocation.method(#launchUrl, [url]),
-    returnValue: Future.value(),
-    returnValueForMissingStub: Future.value(),
-  );
+    returnValue: Future<void>.value(),
+    returnValueForMissingStub: Future<void>.value(),
+  ) as Future<void>;
 }
 
 class SimpleEmergencyDialogBox extends StatelessWidget {
+
+  const SimpleEmergencyDialogBox({
+    required this.number, required this.canLaunchUrl, required this.launchUrl, super.key,
+  });
   final String number;
   final Future<bool> Function(Uri url) canLaunchUrl;
   final Future<void> Function(Uri url) launchUrl;
 
-  const SimpleEmergencyDialogBox({
-    super.key,
-    required this.number,
-    required this.canLaunchUrl,
-    required this.launchUrl,
-  });
-
   @override
   Widget build(BuildContext context) {
     return AlertDialog(
-      title: Text('Emergency Contact'),
+      title: const Text('Emergency Contact'),
       content: Column(
         mainAxisSize: MainAxisSize.min,
         children: <Widget>[
           GestureDetector(
             child: Container(
-              padding: EdgeInsets.all(8),
+              padding: const EdgeInsets.all(8),
               decoration: BoxDecoration(
                 color: Colors.blue,
                 borderRadius: BorderRadius.circular(10),
@@ -46,7 +43,7 @@ class SimpleEmergencyDialogBox extends StatelessWidget {
               child: Text('Call $number'),
             ),
             onTap: () async {
-              final Uri url = Uri.parse('tel:$number');
+              final url = Uri.parse('tel:$number');
               if (await canLaunchUrl(url)) {
                 await launchUrl(url);
               } else {
@@ -54,10 +51,10 @@ class SimpleEmergencyDialogBox extends StatelessWidget {
               }
             },
           ),
-          SizedBox(height: 10),
+          const SizedBox(height: 10),
           GestureDetector(
             child: Container(
-              padding: EdgeInsets.all(8),
+              padding: const EdgeInsets.all(8),
               decoration: BoxDecoration(
                 color: Colors.green,
                 borderRadius: BorderRadius.circular(10),
@@ -65,7 +62,7 @@ class SimpleEmergencyDialogBox extends StatelessWidget {
               child: Text('WhatsApp $number'),
             ),
             onTap: () async {
-              final Uri url = Uri.parse('https://wa.me/$number');
+              final url = Uri.parse('https://wa.me/$number');
               if (await canLaunchUrl(url)) {
                 await launchUrl(url);
               } else {
@@ -77,7 +74,7 @@ class SimpleEmergencyDialogBox extends StatelessWidget {
       ),
       actions: <Widget>[
         TextButton(
-          child: Text('Close'),
+          child: const Text('Close'),
           onPressed: () {
             Navigator.of(context).pop();
           },
@@ -88,21 +85,18 @@ class SimpleEmergencyDialogBox extends StatelessWidget {
 }
 
 class EmergencyDialogBoxNoWhatsapp extends StatelessWidget {
+
+  const EmergencyDialogBoxNoWhatsapp({
+    required this.number, required this.canLaunchUrl, required this.launchUrl, super.key,
+  });
   final String number;
   final Future<bool> Function(Uri url) canLaunchUrl;
   final Future<void> Function(Uri url) launchUrl;
 
-  const EmergencyDialogBoxNoWhatsapp({
-    super.key,
-    required this.number,
-    required this.canLaunchUrl,
-    required this.launchUrl,
-  });
-
   @override
   Widget build(BuildContext context) {
     return AlertDialog(
-      title: Directionality(
+      title: const Directionality(
         textDirection: TextDirection.rtl,
         child: Text('בחר/י:'),
       ),
@@ -112,16 +106,16 @@ class EmergencyDialogBoxNoWhatsapp extends StatelessWidget {
             Row(
               mainAxisAlignment: MainAxisAlignment.spaceEvenly,
               children: <Widget>[
-                Text('חיוג'),
+                const Text('חיוג'),
                 GestureDetector(
-                  child: CircleAvatar(
+                  child: const CircleAvatar(
                     radius: 20, // adjust as needed
                     backgroundColor: Colors.purple,
                     foregroundColor: Colors.white,
                     child: Icon(Icons.phone, size: 20), // adjust as needed
                   ),
                   onTap: () async {
-                    final Uri url = Uri.parse('tel:$number');
+                    final url = Uri.parse('tel:$number');
                     if (await canLaunchUrl(url)) {
                       await launchUrl(url);
                     } else {
@@ -136,7 +130,7 @@ class EmergencyDialogBoxNoWhatsapp extends StatelessWidget {
       ),
       actions: <Widget>[
         TextButton(
-          child: Text('חזרה'),
+          child: const Text('חזרה'),
           onPressed: () {
             Navigator.of(context).pop();
           },
@@ -147,18 +141,15 @@ class EmergencyDialogBoxNoWhatsapp extends StatelessWidget {
 }
 
 class EmergencyDialogBoxWithLink extends StatelessWidget {
+
+  const EmergencyDialogBoxWithLink({
+    required this.number, required this.canLaunchUrl, required this.launchUrl, super.key,
+  });
   final String number;
   final Future<bool> Function(Uri url) canLaunchUrl;
   final Future<void> Function(Uri url) launchUrl;
 
-  const EmergencyDialogBoxWithLink({
-    super.key,
-    required this.number,
-    required this.canLaunchUrl,
-    required this.launchUrl,
-  });
-
-  void _launchURL(String url) async {
+  Future<void> _launchURL(String url) async {
     if (await canLaunchUrl(Uri.parse(url))) {
       await launchUrl(Uri.parse(url));
     } else {
@@ -169,7 +160,7 @@ class EmergencyDialogBoxWithLink extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return AlertDialog(
-      title: Text(
+      title: const Text(
         'בחר/י:',
         style: TextStyle(fontWeight: FontWeight.normal, fontSize: 20),
       ),
@@ -181,19 +172,19 @@ class EmergencyDialogBoxWithLink extends StatelessWidget {
               children: [
                 GestureDetector(
                   onTap: () => _launchURL('tel:$number'),
-                  child: CircleAvatar(
+                  child: const CircleAvatar(
                     radius: 20,
                     foregroundColor: Colors.white,
                     child: Icon(Icons.phone, size: 20),
                   ),
                 ),
-                Text(
+                const Text(
                   'חיוג',
                   style: TextStyle(fontWeight: FontWeight.normal, fontSize: 20),
                 ),
               ],
             ),
-            SizedBox(height: 10), // Add some spacing
+            const SizedBox(height: 10), // Add some spacing
             Row(
               mainAxisAlignment: MainAxisAlignment.spaceEvenly,
               children: [
@@ -201,13 +192,13 @@ class EmergencyDialogBoxWithLink extends StatelessWidget {
                   onTap: () => _launchURL(
                     'https://govforms.gov.il/mw/forms/moked105@police.gov.il',
                   ),
-                  child: CircleAvatar(
+                  child: const CircleAvatar(
                     radius: 20,
                     foregroundColor: Colors.white,
                     child: Icon(Icons.search, size: 20),
                   ),
                 ),
-                Text(
+                const Text(
                   'קישור לאתר',
                   style: TextStyle(fontWeight: FontWeight.normal, fontSize: 20),
                 ),
@@ -218,7 +209,7 @@ class EmergencyDialogBoxWithLink extends StatelessWidget {
       ),
       actions: <Widget>[
         TextButton(
-          child: Text(
+          child: const Text(
             'חזרה',
             style: TextStyle(fontWeight: FontWeight.bold, fontSize: 20),
           ),

@@ -27,8 +27,8 @@ import 'MenuTest/test_data.dart';
 import 'helpers/widget_test_scaffold.dart';
 
 class _FakePm implements PersistentMemoryService {
-  final Map<String, dynamic> _values;
   _FakePm({Map<String, dynamic>? init}) : _values = {...?init};
+  final Map<String, dynamic> _values;
   @override
   Future<dynamic> getItem(String key, PersistentMemoryType type) async {
     if (_values.containsKey(key)) return _values[key];
@@ -65,11 +65,11 @@ class _FakeAnalytics implements AnalyticsService {
 
 class _FakeFiles implements FileService {
   @override
-  Future<void> share(message, titles, subTitles, texts, fmt, dir) async {}
+  Future<void> share(String message, List<dynamic> titles, List<dynamic> subTitles, Map<String, String> texts, ShareFileType fmt, String dir) async {}
   @override
-  Future<String?> download(titles, subTitles, texts, fmt, dir) async => null;
+  Future<String?> download(List<dynamic> titles, List<dynamic> subTitles, Map<String, String> texts, ShareFileType fmt, String dir) async => null;
   @override
-  Future<bool> shareTextOnly(message) async => true;
+  Future<bool> shareTextOnly(String message) async => true;
 }
 
 // We'll register the test scaffold's NoopImagePickerService below in setUp.
@@ -85,7 +85,7 @@ void main() {
     await GetIt.instance.reset();
     analytics = _FakeAnalytics();
     getIt.registerLazySingleton<AnalyticsService>(() => analytics);
-    getIt.registerLazySingleton<FileService>(() => _FakeFiles());
+    getIt.registerLazySingleton<FileService>(_FakeFiles.new);
     getIt.registerLazySingleton<PersistentMemoryService>(
       () => _FakePm(
         init: {
@@ -97,7 +97,7 @@ void main() {
       ),
     );
     getIt.registerLazySingleton<ImagePickerService>(
-      () => NoopImagePickerService(),
+      NoopImagePickerService.new,
     );
     PackageInfo.setMockInitialValues(
       appName: 'Mazilon',

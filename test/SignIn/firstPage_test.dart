@@ -39,15 +39,13 @@ void main() {
   late UserInformation userInformation;
 
   setUp(() {
-    registerTestServices(locale: 'en');
+    registerTestServices();
     userInformation = UserInformation();
     userInformation.gender = 'other';
     userInformation.localeName = 'en';
   });
 
-  tearDown(() {
-    resetTestServices();
-  });
+  tearDown(resetTestServices);
 
   testWidgets('disclaimerSigned=false → renders DisclaimerPage', (tester) async {
     userInformation.disclaimerSigned = false;

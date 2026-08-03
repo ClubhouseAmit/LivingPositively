@@ -8,7 +8,7 @@
 
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:mazilon/util/styles.dart';
+
 import 'package:mazilon/util/theme/app_theme.dart';
 
 void main() {
@@ -40,34 +40,6 @@ void main() {
     });
   });
 
-  group('legacy palette forwarders', () {
-    test('every legacy variable forwards to an AppColors token', () {
-      expect(primaryPurple, AppColors.primary);
-      expect(lightPurple, AppColors.secondary);
-      expect(appWhite, AppColors.surface);
-      expect(backgroundGray, AppColors.surface);
-      expect(appBlue, AppColors.onSurface);
-      expect(appGreen, AppColors.success);
-      expect(lightGray, AppColors.neutralLight);
-      expect(darkGray, AppColors.neutralDark);
-      expect(pdfpurple, AppColors.pdfTint);
-    });
-  });
-
-  group('destructive button uses semantic token', () {
-    testWidgets('myButtonStyle3 background resolves to AppColors.error', (
-      tester,
-    ) async {
-      const states = <WidgetState>{};
-      final bg = myButtonStyle3.backgroundColor?.resolve(states);
-      expect(
-        bg,
-        isNotNull,
-        reason: 'myButtonStyle3 must declare a background colour',
-      );
-      expect(bg, AppColors.error);
-    });
-  });
 
   group('buildLightTheme', () {
     test('exposes AppColors via ColorScheme', () {

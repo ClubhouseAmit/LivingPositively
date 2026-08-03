@@ -1,19 +1,14 @@
 import 'package:flutter/material.dart';
 
 class SectionBarHome extends StatefulWidget {
+  const SectionBarHome({
+    required this.text, required this.textWidget, required this.icon, required this.icons, required this.subHeader, super.key,
+  });
   final String text;
   final Widget textWidget;
   final IconData icon;
   final List<Widget> icons;
   final String subHeader;
-  const SectionBarHome({
-    super.key,
-    required this.text,
-    required this.textWidget,
-    required this.icon,
-    required this.icons,
-    required this.subHeader,
-  });
 
   @override
   State<SectionBarHome> createState() => SectionBarHomeState();
@@ -31,9 +26,7 @@ class SectionBarHomeState extends State<SectionBarHome> {
             Row(children: widget.icons),
             Row(
               children: [
-                widget.text.isEmpty
-                    ? widget.textWidget
-                    : Text(
+                if (widget.text.isEmpty) widget.textWidget else Text(
                         widget.text,
                       ),
                 Icon(
@@ -45,17 +38,15 @@ class SectionBarHomeState extends State<SectionBarHome> {
             ),
           ],
         ),
-        widget.subHeader.isNotEmpty
-            ? Padding(
-                padding: const EdgeInsets.only(right: 18.0, left: 5),
+        if (widget.subHeader.isNotEmpty) Padding(
+                padding: const EdgeInsets.only(right: 18, left: 5),
                 child: Directionality(
                   textDirection: TextDirection.rtl,
                   child: Text(
                     widget.subHeader,
                   ),
                 ),
-              )
-            : Container(),
+              ) else Container(),
       ],
     );
   }

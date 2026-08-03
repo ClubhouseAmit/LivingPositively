@@ -16,11 +16,11 @@
 
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:mazilon/global_enums.dart';
 import 'package:mazilon/form/form.dart';
-import 'package:mazilon/form/phonePageform.dart';
 import 'package:mazilon/form/phonePageListItem.dart';
+import 'package:mazilon/form/phonePageform.dart';
 import 'package:mazilon/form/shareform.dart';
+import 'package:mazilon/global_enums.dart';
 import 'package:mazilon/util/Form/formPagePhoneModel.dart';
 import 'package:mazilon/util/userInformation.dart';
 import 'package:provider/provider.dart';
@@ -85,15 +85,13 @@ void main() {
   late TestServiceLocators services;
 
   setUp(() {
-    services = registerTestServices(locale: 'en');
+    services = registerTestServices();
     userInformation = UserInformation();
     userInformation.gender = 'other';
     userInformation.localeName = 'en';
   });
 
-  tearDown(() {
-    resetTestServices();
-  });
+  tearDown(resetTestServices);
 
   group('ShareForm (real production widget)', () {
     testWidgets('renders share and download icons', (tester) async {
@@ -426,16 +424,20 @@ void main() {
       'renders header, import button, list, and confirmation button',
       (tester) async {
         final phoneData = _makePhonePageData();
-        bool nextCalled = false;
+        var nextCalled = false;
 
         await pumpWithProviders(
           tester,
           ChangeNotifierProvider<PhonePageData>.value(
             value: phoneData,
-            child: PhonePageForm(
-              next: () => nextCalled = true,
-              prev: () {},
-              phonePageData: phoneData,
+            child: Scaffold(
+              body: SingleChildScrollView(
+                child: PhonePageForm(
+                  next: () => nextCalled = true,
+                  prev: () {},
+                  phonePageData: phoneData,
+                ),
+              ),
             ),
           ),
           userInformation: userInformation,

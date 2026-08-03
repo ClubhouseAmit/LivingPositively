@@ -31,7 +31,7 @@ void main() {
                 widget is SizedBox && widget.width == 48 && widget.height == 48,
           ),
         );
-        final SemanticsHandle handle = tester.ensureSemantics();
+        final handle = tester.ensureSemantics();
         try {
           expect(find.byTooltip(testCase.expectedLabel), findsOneWidget);
           expect(tapTarget, findsOneWidget);

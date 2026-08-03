@@ -51,13 +51,9 @@ Future<void> _pumpForm(WidgetTester tester) async {
 void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
 
-  setUp(() {
-    registerTestServices(locale: 'en');
-  });
+  setUp(registerTestServices);
 
-  tearDown(() {
-    resetTestServices();
-  });
+  tearDown(resetTestServices);
 
   testWidgets(
       'tapping a CheckboxListTile on the first FormPageTemplate increments '
@@ -75,10 +71,11 @@ void main() {
       (tester) async {
     await _pumpForm(tester);
 
-    // The header contains a single IconButton on currentStep=0 (save-and-quit).
-    final iconButton = find.byType(IconButton).first;
-    await tester.tap(iconButton, warnIfMissed: false);
+    // The header contains a TextButton (save-and-quit) when currentStep == 0.
+    final saveAndQuitBtn = find.byType(TextButton).first;
+    await tester.tap(saveAndQuitBtn, warnIfMissed: false);
     await tester.pumpAndSettle();
+    drainOverflowExceptions(tester);
 
     // navigateToMenu pushes the Menu screen via pushAndRemoveUntil.
     expect(find.byType(Menu), findsOneWidget);
@@ -90,13 +87,13 @@ void main() {
       (tester) async {
     await _pumpForm(tester);
 
-    // The inner FormPageTemplate "Continue" ConfirmationButton is a TextButton
-    // at the bottom of the page subtree. Find the last TextButton inside
+    // The inner FormPageTemplate "Continue" ConfirmationButton is an ElevatedButton
+    // at the bottom of the page subtree. Find the last ElevatedButton inside
     // FormPageTemplate and tap it — that calls next() on the parent
     // FormProgressIndicator.
     final continueBtn = find.descendant(
       of: find.byType(FormPageTemplate),
-      matching: find.byType(TextButton),
+      matching: find.byType(ElevatedButton),
     ).last;
     await tester.ensureVisible(continueBtn);
     await tester.tap(continueBtn, warnIfMissed: false);

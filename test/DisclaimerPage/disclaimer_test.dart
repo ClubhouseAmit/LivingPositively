@@ -27,13 +27,11 @@ void main() {
   late UserInformation userInformation;
 
   setUp(() {
-    services = registerTestServices(locale: 'en');
+    services = registerTestServices();
     userInformation = UserInformation();
   });
 
-  tearDown(() {
-    resetTestServices();
-  });
+  tearDown(resetTestServices);
 
   group('DisclaimerPage (real production widget)', () {
     testWidgets('renders disclaimer scaffold with language dropdown', (
@@ -284,7 +282,7 @@ void main() {
   // Verifies that consumers reading UserInformation re-render after the
   // confirm button toggles disclaimerSigned (Provider integration).
   testWidgets('Provider notifies listeners after confirmation', (tester) async {
-    int rebuilds = 0;
+    var rebuilds = 0;
     await pumpWithProviders(
       tester,
       Builder(

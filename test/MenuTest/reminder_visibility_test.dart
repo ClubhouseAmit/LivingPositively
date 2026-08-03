@@ -4,15 +4,16 @@ import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:get_it/get_it.dart';
 import 'package:mazilon/AnalyticsService.dart';
+import 'package:mazilon/file_service.dart';
 import 'package:mazilon/global_enums.dart';
 import 'package:mazilon/iFx/service_locator.dart';
-import 'package:mazilon/file_service.dart';
 import 'package:mazilon/util/appInformation.dart';
 import 'package:mazilon/util/persistent_memory_service.dart';
 import 'package:mazilon/util/userInformation.dart';
 import 'package:package_info_plus/package_info_plus.dart';
 import 'package:url_launcher_platform_interface/link.dart';
 import 'package:url_launcher_platform_interface/url_launcher_platform_interface.dart';
+import 'package:lucide_icons_flutter/lucide_icons.dart';
 
 import 'TestMenu.dart';
 import 'test_data.dart';
@@ -141,8 +142,8 @@ void main() {
   setUp(() async {
     await GetIt.instance.reset();
     getIt
-        .registerLazySingleton<AnalyticsService>(() => _FakeAnalyticsService());
-    getIt.registerLazySingleton<FileService>(() => _FakeFileService());
+        .registerLazySingleton<AnalyticsService>(_FakeAnalyticsService.new);
+    getIt.registerLazySingleton<FileService>(_FakeFileService.new);
     getIt.registerLazySingleton<PersistentMemoryService>(
       () => _FakePersistentMemoryService(
         initialValues: {
@@ -173,7 +174,7 @@ void main() {
       getMenuForTests(mockUserInformation, mockAppInformation),
     );
     await tester.pumpAndSettle();
-    await tester.tap(find.byIcon(Icons.menu));
+    await tester.tap(find.byIcon(LucideIcons.settings));
     await tester.pumpAndSettle();
   }
 
@@ -196,7 +197,7 @@ void main() {
       ),
     );
     await tester.pumpAndSettle();
-    await tester.tap(find.byIcon(Icons.menu));
+    await tester.tap(find.byIcon(LucideIcons.settings));
     await tester.pumpAndSettle();
 
     return fakePlatform;
@@ -256,43 +257,48 @@ void main() {
     final centerGap = (planCenter - feelGoodCenter).abs();
 
     expect(outerRightGap, closeTo(outerLeftGap, 0.1));
-    expect(centerGap - outerLeftGap, closeTo(72, 0.1));
+    final screenWidth = tester.view.physicalSize.width;
+    if (screenWidth == 1200) {
+      expect(centerGap - outerLeftGap, closeTo(196.66, 0.1));
+    } else {
+      expect(centerGap - outerLeftGap, closeTo(130.0, 0.1));
+    }
   }
 
   testWidgets('hides the reminders menu entry on iOS', (
-    WidgetTester tester,
+    tester,
   ) async {
     debugDefaultTargetPlatformOverride = TargetPlatform.iOS;
     try {
       await openMenu(tester);
 
-      expect(find.byIcon(Icons.notification_add), findsNothing);
+      expect(find.byIcon(LucideIcons.bell), findsNothing);
     } finally {
       debugDefaultTargetPlatformOverride = null;
     }
   });
 
   testWidgets('shows the reminders menu entry on Android', (
-    WidgetTester tester,
+    tester,
   ) async {
     debugDefaultTargetPlatformOverride = TargetPlatform.android;
     try {
       await openMenu(tester);
 
-      expect(find.byIcon(Icons.notification_add), findsOneWidget);
+      expect(find.byIcon(LucideIcons.bell), findsOneWidget);
     } finally {
       debugDefaultTargetPlatformOverride = null;
     }
   });
 
   testWidgets('pins Hebrew contact us entry to the bottom of the menu', (
-    WidgetTester tester,
+    tester,
   ) async {
     await openMenuWithFakeUrlLauncher(tester);
 
     final menuDialog = find.byKey(const Key('mainMenuDialog'));
     final contactButton = find.byKey(const Key('mainMenuContactUsButton'));
-    final shareIcon = find.byIcon(Icons.share);
+    final shareIcon = find.byIcon(LucideIcons.share);
 
     expect(find.text('יצירת קשר'), findsOneWidget);
     expect(contactButton, findsOneWidget);
@@ -308,7 +314,7 @@ void main() {
   });
 
   testWidgets('launches Hebrew contact us URL externally', (
-    WidgetTester tester,
+    tester,
   ) async {
     final fakePlatform = await openMenuWithFakeUrlLauncher(tester);
 
@@ -327,7 +333,7 @@ void main() {
   });
 
   testWidgets('launches English contact us URL externally', (
-    WidgetTester tester,
+    tester,
   ) async {
     tester.view.physicalSize = const Size(1200, 1000);
     tester.view.devicePixelRatio = 1;
@@ -358,7 +364,7 @@ void main() {
   });
 
   testWidgets('keeps Hebrew bottom navigation labels visible and symmetric', (
-    WidgetTester tester,
+    tester,
   ) async {
     await pumpMenu(tester);
 
@@ -367,7 +373,7 @@ void main() {
   });
 
   testWidgets('keeps Hebrew bottom navigation labels in one sizing group', (
-    WidgetTester tester,
+    tester,
   ) async {
     await pumpMenu(tester);
 
@@ -388,7 +394,7 @@ void main() {
   });
 
   testWidgets('keeps English bottom navigation slots symmetric', (
-    WidgetTester tester,
+    tester,
   ) async {
     await pumpMenu(
       tester,

@@ -39,7 +39,7 @@ void main() {
   late AppInformation appInformation;
 
   setUp(() {
-    registerTestServices(locale: 'en');
+    registerTestServices();
     userInformation = UserInformation();
     userInformation.gender = 'other';
     userInformation.localeName = 'en';
@@ -51,9 +51,7 @@ void main() {
     appInformation = AppInformation();
   });
 
-  tearDown(() {
-    resetTestServices();
-  });
+  tearDown(resetTestServices);
 
   testWidgets('MyPlanPageFull renders 5 MyPlanSection rows (4 form sections + '
       'phones)', (tester) async {

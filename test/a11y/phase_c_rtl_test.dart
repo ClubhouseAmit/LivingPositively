@@ -43,7 +43,6 @@ Widget _wrapQuote(List<String> quotes, {Locale locale = const Locale('en')}) {
     localizationsDelegates: AppLocalizations.localizationsDelegates,
     supportedLocales: AppLocalizations.supportedLocales,
     home: ScreenUtilInit(
-      designSize: const Size(360, 690),
       builder: (context, _) => Scaffold(
         body: Center(child: InspirationalQuote(quotes: quotes)),
       ),
@@ -55,7 +54,7 @@ void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
 
   group('InspirationalQuote uses directional layout (UX_GAPS §1.4, §3.3)', () {
-    setUp(() => registerTestServices(locale: 'en'));
+    setUp(registerTestServices);
     tearDown(resetTestServices);
 
     testWidgets(

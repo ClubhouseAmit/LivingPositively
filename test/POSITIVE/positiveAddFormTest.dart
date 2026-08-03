@@ -1,20 +1,15 @@
 import 'package:flutter/material.dart';
-import 'package:mazilon/util/styles.dart';
+
 
 class AddForm extends StatefulWidget {
+  const AddForm({
+    required this.add, required this.index, required this.edit, required this.text, required this.formTitle, super.key,
+  });
   final Function add;
   final int index;
   final Function edit;
   final String text;
   final String formTitle;
-  const AddForm({
-    super.key,
-    required this.add,
-    required this.index,
-    required this.edit,
-    required this.text,
-    required this.formTitle,
-  });
   @override
   State<AddForm> createState() => _AddFormState();
 }
@@ -38,24 +33,22 @@ class _AddFormState extends State<AddForm> {
   Widget build(BuildContext context) {
     return Dialog(
       child: SizedBox(
-        width: MediaQuery.of(context).size.width > 1000
+        width: 800 > 1000
             ? 800
-            : MediaQuery.of(context).size.width,
+            : 800,
         // Remove the fixed height
-        // height: MediaQuery.of(context).size.height * 20 / 100,
+        // height: 600 * 20 / 100,
         child: SingleChildScrollView(
           // Wrap Column with SingleChildScrollView
           child: Column(
             children: [
-              SizedBox(height: 10),
-              myAutoSizedText(
+              const SizedBox(height: 10),
+              Text(
                 '${widget.formTitle} חדשה',
-                TextStyle(fontSize: 20),
-                null,
-                40,
+                style: const TextStyle(fontSize: 20),
               ),
               Padding(
-                padding: const EdgeInsets.all(8.0),
+                padding: const EdgeInsets.all(8),
                 child: Form(
                   key: _formKey,
                   child: Column(
@@ -64,18 +57,18 @@ class _AddFormState extends State<AddForm> {
                         child: Column(
                           children: <Widget>[
                             Padding(
-                              padding: const EdgeInsets.only(bottom: 8.0),
+                              padding: const EdgeInsets.only(bottom: 8),
                               child: Directionality(
                                 textDirection: TextDirection.rtl,
                                 child: TextFormField(
-                                  key: Key('addFormTextField'),
+                                  key: const Key('addFormTextField'),
                                   maxLength: 100,
                                   controller: _controller,
                                   autofocus: true,
                                   decoration: InputDecoration(
                                     labelText: widget.formTitle,
-                                    contentPadding: EdgeInsets.only(right: 1.0),
-                                    labelStyle: TextStyle(
+                                    contentPadding: const EdgeInsets.only(right: 1),
+                                    labelStyle: const TextStyle(
                                       fontFamily: 'Rubix',
                                       height: 0,
                                       fontSize: 20,
@@ -101,24 +94,20 @@ class _AddFormState extends State<AddForm> {
                 mainAxisAlignment: MainAxisAlignment.end,
                 children: <Widget>[
                   TextButton(
-                    key: Key('cancelButton'),
-                    child: myAutoSizedText(
+                    key: const Key('cancelButton'),
+                    child: const Text(
                       'בטל',
-                      TextStyle(fontSize: 18),
-                      null,
-                      30,
+                      style: TextStyle(fontSize: 18),
                     ),
                     onPressed: () {
                       Navigator.of(context).pop();
                     },
                   ),
                   TextButton(
-                    key: Key('saveButton'),
-                    child: myAutoSizedText(
+                    key: const Key('saveButton'),
+                    child: const Text(
                       'שמור',
-                      TextStyle(fontSize: 18),
-                      null,
-                      30,
+                      style: TextStyle(fontSize: 18),
                     ),
                     onPressed: () {
                       // Save the reminder

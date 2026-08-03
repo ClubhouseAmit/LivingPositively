@@ -1,17 +1,17 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:get_it/get_it.dart';
 import 'package:mazilon/initialForm/initialFormPage1.dart';
+import 'package:mazilon/l10n/app_localizations.dart';
 import 'package:mazilon/util/appInformation.dart';
 import 'package:mazilon/util/persistent_memory_service.dart';
-import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:mazilon/util/userInformation.dart';
 import 'package:mockito/annotations.dart';
 import 'package:mockito/mockito.dart';
 import 'package:provider/provider.dart';
-
-import 'package:mazilon/l10n/app_localizations.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+
 import 'initialFormPage1_test.mocks.dart';
 
 @GenerateNiceMocks([
@@ -28,23 +28,23 @@ void main() {
   setUp(() async {
     mockUserInformation = MockUserInformation();
     mockAppInformation = MockAppInformation();
-    when(mockUserInformation.gender).thenReturn("male");
+    when(mockUserInformation.gender).thenReturn('male');
     when(mockUserInformation.disclaimerSigned).thenReturn(true);
 
     // Setup required AppInformation mocks
-    when(mockAppInformation.disclaimerText).thenReturn("Test Disclaimer");
-    when(mockAppInformation.disclaimerNext).thenReturn("Next");
-    when(mockAppInformation.traitMainTitle).thenReturn({"he": "כותרת ראשית"});
-    when(mockAppInformation.traitSubTitle).thenReturn({"he": "כותרת משנה"});
-    when(mockAppInformation.positiveTraitsPopUpText).thenReturn({"he": "טקסט"});
+    when(mockAppInformation.disclaimerText).thenReturn('Test Disclaimer');
+    when(mockAppInformation.disclaimerNext).thenReturn('Next');
+    when(mockAppInformation.traitMainTitle).thenReturn({'he': 'כותרת ראשית'});
+    when(mockAppInformation.traitSubTitle).thenReturn({'he': 'כותרת משנה'});
+    when(mockAppInformation.positiveTraitsPopUpText).thenReturn({'he': 'טקסט'});
     when(
       mockAppInformation.personalPlanMainTitle,
-    ).thenReturn({"he": "תוכנית אישית"});
+    ).thenReturn({'he': 'תוכנית אישית'});
     when(
       mockAppInformation.personalPlanSubTitle,
-    ).thenReturn({"he": "כותרת משנה"});
-    when(mockAppInformation.popupBack).thenReturn({"he": "חזור"});
-    when(mockAppInformation.othersuggestions).thenReturn({"he": "הצעות אחרות"});
+    ).thenReturn({'he': 'כותרת משנה'});
+    when(mockAppInformation.popupBack).thenReturn({'he': 'חזור'});
+    when(mockAppInformation.othersuggestions).thenReturn({'he': 'הצעות אחרות'});
     SharedPreferences.setMockInitialValues({'hasFilled': false});
     await GetIt.instance.reset();
     mockPersistentMemoryService = MockPersistentMemoryService();
@@ -74,16 +74,16 @@ void main() {
     await GetIt.instance.reset();
   });
 
-  testWidgets('test the positive trait list', (WidgetTester tester) async {
-    bool tapnext = false;
-    bool tapskip = false;
-    bool tapprev = false;
+  testWidgets('test the positive trait list', (tester) async {
+    var tapnext = false;
+    var tapskip = false;
+    var tapprev = false;
     //List<int> index = 0;
     // Mock functions
-    mockNext() => {tapnext = !tapnext};
-    mockSkip() => {tapskip = !tapskip};
-    mockPrev() => {tapprev = !tapprev};
-    mockUpdateName(String n) {}
+    Set<bool> mockNext() => {tapnext = !tapnext};
+    Set<bool> mockSkip() => {tapskip = !tapskip};
+    Set<bool> mockPrev() => {tapprev = !tapprev};
+    void mockUpdateName(String n) {}
 
     await tester.pumpWidget(
       MultiProvider(
@@ -97,15 +97,16 @@ void main() {
         ],
         child: MaterialApp(
           supportedLocales: AppLocalizations.supportedLocales,
-          locale: Locale('he'),
+          locale: const Locale('he'),
           localizationsDelegates: AppLocalizations.localizationsDelegates,
           home: ScreenUtilInit(
-            designSize: const Size(360, 690),
-            child: InitialFormPage1(
-              next: mockNext,
-              skip: mockSkip,
-              prev: mockPrev,
-              updateName: mockUpdateName,
+            child: Scaffold(
+              body: InitialFormPage1(
+                next: mockNext,
+                skip: mockSkip,
+                prev: mockPrev,
+                updateName: mockUpdateName,
+              ),
             ),
           ),
         ),

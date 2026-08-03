@@ -91,10 +91,10 @@ void main() {
   testWidgets(
       'VideoPlayerPage initState constructs controller and registers listener',
       (tester) async {
-    var fullScreenChanges = <bool>[];
+    final fullScreenChanges = <bool>[];
 
     await tester.pumpWidget(
-      _harness(onFullScreenChanged: (b) => fullScreenChanges.add(b)),
+      _harness(onFullScreenChanged: fullScreenChanges.add),
     );
     // Allow the YoutubePlayer to begin initialising. On the Android emulator
     // its native handshake takes a few frames; on `flutter test` this will
@@ -113,7 +113,7 @@ void main() {
     final fullScreenChanges = <bool>[];
 
     await tester.pumpWidget(
-      _harness(onFullScreenChanged: (b) => fullScreenChanges.add(b)),
+      _harness(onFullScreenChanged: fullScreenChanges.add),
     );
     await tester.pump(const Duration(milliseconds: 100));
 
@@ -123,7 +123,7 @@ void main() {
     // class itself is private — use the widget-test convention of grabbing
     // the State via `tester.state` and `dynamic` to call into it.
     final state = tester.state(find.byType(VideoPlayerPage)) as dynamic;
-    final YoutubePlayerController controller =
+    final controller =
         state.controller as YoutubePlayerController;
 
     // Drive isFullScreen + isPlaying transitions.

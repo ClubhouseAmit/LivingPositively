@@ -28,16 +28,14 @@ void main() {
   late UserInformation user;
 
   setUp(() {
-    registerTestServices(locale: 'en');
+    registerTestServices();
     user = UserInformation();
     user.gender = 'other';
     user.localeName = 'en';
     user.disclaimerSigned = true;
   });
 
-  tearDown(() {
-    resetTestServices();
-  });
+  tearDown(resetTestServices);
 
   testWidgets('personal-info onboarding keeps controls above progress dots', (
     tester,
@@ -59,9 +57,13 @@ void main() {
 
     expect(find.byType(InitialFormPage2), findsOneWidget);
 
+    // Scroll to the bottom to bring the continue button into view
+    await tester.drag(find.byType(CustomScrollView), const Offset(0, -300));
+    await tester.pumpAndSettle();
+
     final continueButton = find.ancestor(
       of: find.text('Continue'),
-      matching: find.byType(TextButton),
+      matching: find.byType(ElevatedButton),
     );
     expect(continueButton, findsOneWidget);
 

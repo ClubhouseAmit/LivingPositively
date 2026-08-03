@@ -721,7 +721,7 @@ void main() {
     test('all 29 helpers accept named firestore param', () {
       // Just reference each helper's tear-off to force the analyzer to
       // verify the signature shape. No execution.
-      final List<Function> helpers = <Function>[
+      final helpers = <Function>[
         getJournalMainTitle,
         getJournalSeocndaryTitle,
         getTraitMainTitle,

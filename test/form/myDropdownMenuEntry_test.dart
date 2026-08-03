@@ -9,7 +9,6 @@ void main() {
     late DropdownMenuEntry<String> entry;
     await tester.pumpWidget(MaterialApp(
       home: ScreenUtilInit(
-        designSize: const Size(360, 690),
         child: Builder(builder: (context) {
           entry = buildDropdownMenuEntry('hello', Colors.purple);
           return const SizedBox.shrink();
@@ -28,7 +27,6 @@ void main() {
     late DropdownMenuEntry<String> b;
     await tester.pumpWidget(MaterialApp(
       home: ScreenUtilInit(
-        designSize: const Size(360, 690),
         child: Builder(builder: (context) {
           a = buildDropdownMenuEntry('x', Colors.red);
           b = buildDropdownMenuEntry('x', Colors.blue);

@@ -6,18 +6,18 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:get_it/get_it.dart';
 import 'package:mazilon/AnalyticsService.dart';
 import 'package:mazilon/file_service.dart';
-import 'package:mazilon/iFx/service_locator.dart';
-import 'package:mazilon/util/appInformation.dart';
+import 'package:mazilon/form/shareform.dart';
 import 'package:mazilon/global_enums.dart';
+import 'package:mazilon/iFx/service_locator.dart';
+import 'package:mazilon/l10n/app_localizations.dart';
+import 'package:mazilon/util/appInformation.dart';
 import 'package:mazilon/util/persistent_memory_service.dart';
 import 'package:mazilon/util/userInformation.dart';
 import 'package:mockito/annotations.dart';
+import 'package:mockito/mockito.dart';
 import 'package:provider/provider.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
-import 'package:mazilon/form/shareform.dart';
-import 'package:mockito/mockito.dart';
-import 'package:mazilon/l10n/app_localizations.dart';
 import 'shareform_test.mocks.dart';
 
 @GenerateNiceMocks([
@@ -62,7 +62,7 @@ void main() {
         () => mockPersistentMemoryService);
 
     mockUserInformation = UserInformation();
-    mockUserInformation.gender = "male";
+    mockUserInformation.gender = 'male';
     mockAppInformation = AppInformation();
     final mockAnalytics = MockAnalyticsService();
     getIt.registerLazySingleton<AnalyticsService>(() => mockAnalytics);
@@ -93,7 +93,6 @@ void main() {
         locale: locale,
         localizationsDelegates: AppLocalizations.localizationsDelegates,
         home: ScreenUtilInit(
-          designSize: const Size(360, 690),
           child: ShareForm(
             prev: () {},
             submit: (context) {},
@@ -103,7 +102,7 @@ void main() {
     );
   }
 
-  testWidgets('ShareForm renders correctly', (WidgetTester tester) async {
+  testWidgets('ShareForm renders correctly', (tester) async {
     await tester.pumpWidget(createTestWidget());
 
     // Verify the presence of the header and subtitles
@@ -126,7 +125,7 @@ void main() {
   });
 
   testWidgets('ShareForm initializes correctly with persistent memory',
-      (WidgetTester tester) async {
+      (tester) async {
     // Get the mock service
     final mockPersistentMemoryService =
         GetIt.instance<PersistentMemoryService>();
@@ -157,7 +156,7 @@ void main() {
   });
 
   testWidgets('ShareForm shows share dialog and generates PDF',
-      (WidgetTester tester) async {
+      (tester) async {
     await tester.pumpWidget(createTestWidget());
 
     // Tap the share button
@@ -177,7 +176,7 @@ void main() {
     expect(find.text("SAVE"), findsNothing);*/
   });
 
-  testWidgets('ShareForm triggers PDF download', (WidgetTester tester) async {
+  testWidgets('ShareForm triggers PDF download', (tester) async {
     await tester.pumpWidget(createTestWidget());
 
     // Mock permission request
@@ -193,7 +192,7 @@ void main() {
     expect(find.byIcon(Icons.download), findsOneWidget);
   });
 
-  testWidgets('ShareForm submit button works', (WidgetTester tester) async {
+  testWidgets('ShareForm submit button works', (tester) async {
     await tester.pumpWidget(createTestWidget());
 
     // Tap the finish button
@@ -206,7 +205,7 @@ void main() {
   });
 
   testWidgets('ShareForm places the finish button below custom categories',
-      (WidgetTester tester) async {
+      (tester) async {
     await tester.pumpWidget(createTestWidget());
     await tester.ensureVisible(find.text('+ הוספת קטגוריה'));
     await tester.pumpAndSettle();
@@ -218,7 +217,7 @@ void main() {
   });
 
   testWidgets('ShareForm adds multiple custom categories in original text',
-      (WidgetTester tester) async {
+      (tester) async {
     await tester.pumpWidget(createTestWidget());
 
     await tester.ensureVisible(find.text('+ הוספת קטגוריה'));
@@ -267,7 +266,7 @@ void main() {
   });
 
   testWidgets('ShareForm shows title suggestions when adding another category',
-      (WidgetTester tester) async {
+      (tester) async {
     await tester.pumpWidget(createTestWidget());
 
     await tester.ensureVisible(find.text('+ הוספת קטגוריה'));
@@ -296,7 +295,7 @@ void main() {
   });
 
   testWidgets('ShareForm edits and deletes saved custom categories',
-      (WidgetTester tester) async {
+      (tester) async {
     await tester.pumpWidget(createTestWidget());
 
     await tester.ensureVisible(find.text('+ הוספת קטגוריה'));
@@ -370,7 +369,7 @@ void main() {
   });
 
   testWidgets('ShareForm exposes predefined custom category titles',
-      (WidgetTester tester) async {
+      (tester) async {
     await tester.pumpWidget(createTestWidget());
 
     await tester.ensureVisible(find.text('+ הוספת קטגוריה'));
@@ -387,7 +386,7 @@ void main() {
   });
 
   testWidgets('ShareForm requires both category title and description',
-      (WidgetTester tester) async {
+      (tester) async {
     await tester.pumpWidget(createTestWidget());
 
     await tester.ensureVisible(find.text('+ הוספת קטגוריה'));
@@ -415,7 +414,7 @@ void main() {
   });
 
   testWidgets('ShareForm custom input option keeps title free-form',
-      (WidgetTester tester) async {
+      (tester) async {
     await tester.pumpWidget(createTestWidget());
 
     await tester.ensureVisible(find.text('+ הוספת קטגוריה'));
@@ -445,7 +444,7 @@ void main() {
   });
 
   testWidgets('ShareForm reloads stored custom text without translating it',
-      (WidgetTester tester) async {
+      (tester) async {
     when(mockPersistentMemoryService.getItem(
       'customCategoryTitles',
       PersistentMemoryType.StringList,

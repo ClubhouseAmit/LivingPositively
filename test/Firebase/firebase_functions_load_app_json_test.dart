@@ -1,12 +1,11 @@
-// ignore_for_file: non_constant_identifier_names
 
 import 'dart:convert';
 import 'dart:io';
 
 import 'package:fake_cloud_firestore/fake_cloud_firestore.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:mazilon/util/appInformation.dart';
 import 'package:mazilon/util/Firebase/firebase_functions.dart';
+import 'package:mazilon/util/appInformation.dart';
 
 // ---------------------------------------------------------------------------
 // Helpers

@@ -4,7 +4,7 @@ import 'package:mazilon/util/disclaimerLanguageSelect.dart';
 
 void main() {
   testWidgets('Language selector follows the language guidelines',
-      (WidgetTester tester) async {
+      (tester) async {
     String? selectedLocale;
 
     await tester.pumpWidget(

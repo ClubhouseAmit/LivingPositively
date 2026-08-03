@@ -2,23 +2,20 @@ import 'package:flutter/material.dart';
 import 'player.dart';
 
 class WellnessTools extends StatefulWidget {
+  const WellnessTools({
+    required this.isFullScreen, required this.setBool, required this.videoData, super.key,
+  });
   final Function setBool;
   final bool isFullScreen;
   final Map<String, List<String>> videoData;
-  const WellnessTools({
-    super.key,
-    required this.isFullScreen,
-    required this.setBool,
-    required this.videoData,
-  });
 
   @override
   State<WellnessTools> createState() => _WellnessToolsState();
 }
 
 class _WellnessToolsState extends State<WellnessTools> {
-  var isFullScreen = false;
-  var selectedVideoId = 0;
+  bool isFullScreen = false;
+  int selectedVideoId = 0;
 
   String getThumbnailUrl(String videoId) {
     return 'https://img.youtube.com/vi/$videoId/0.jpg';
@@ -52,10 +49,9 @@ class _WellnessToolsState extends State<WellnessTools> {
               visible: !isFullScreen,
               child: Container(
                 child: Row(
-                  crossAxisAlignment: CrossAxisAlignment.center,
                   mainAxisAlignment: MainAxisAlignment.center,
                   children: [
-                    Text(
+                    const Text(
                       'מצילון',
                       style: TextStyle(
                         fontWeight: FontWeight.bold,
@@ -66,9 +62,9 @@ class _WellnessToolsState extends State<WellnessTools> {
                       height: 100,
                       child: Image.asset(
                         'assets/images/Logo.png',
-                        width: MediaQuery.sizeOf(context).width * 0.4 > 1000
+                        width: 800 * 0.4 > 1000
                             ? 500
-                            : MediaQuery.sizeOf(context).width *
+                            : 800 *
                                   0.2, // Adjust as needed
                       ),
                     ),
@@ -79,7 +75,7 @@ class _WellnessToolsState extends State<WellnessTools> {
             Visibility(
               visible: !isFullScreen,
               child: Padding(
-                padding: const EdgeInsets.fromLTRB(8.0, 10.0, 8, 10),
+                padding: const EdgeInsets.fromLTRB(8, 10, 8, 10),
                 child: Text(
                   widget.videoData['videoHeadline']![selectedVideoId],
                 ),
@@ -89,11 +85,11 @@ class _WellnessToolsState extends State<WellnessTools> {
               controller: selectedVideoId,
               setBool: setIsFullScreen,
             ),
-            SizedBox(height: 10),
+            const SizedBox(height: 10),
             Visibility(
               visible: !isFullScreen,
               child: Padding(
-                padding: const EdgeInsets.fromLTRB(0, 4.0, 4, 20),
+                padding: const EdgeInsets.fromLTRB(0, 4, 4, 20),
                 child: Text(
                   widget.videoData['videoDescription']![selectedVideoId],
                 ),
@@ -101,13 +97,12 @@ class _WellnessToolsState extends State<WellnessTools> {
             ),
             Visibility(
               visible: !isFullScreen,
-              child: Padding(
-                padding: const EdgeInsets.fromLTRB(0, 4.0, 4, 20),
+              child: const Padding(
+                padding: EdgeInsets.fromLTRB(0, 4, 4, 20),
                 child: Text(':סרטונים נוספים'),
               ),
             ),
             Visibility(
-              visible: true,
               child: Expanded(
                 child: ListView.separated(
                   itemBuilder: (context, index) {
@@ -116,7 +111,7 @@ class _WellnessToolsState extends State<WellnessTools> {
                     }
 
                     return SizedBox(
-                      key: Key("tap$index"),
+                      key: Key('tap$index'),
                       width: 150,
                       height: 100,
                       child: GestureDetector(
@@ -135,7 +130,7 @@ class _WellnessToolsState extends State<WellnessTools> {
                   },
                   itemCount: widget.videoData['videoId']!.length,
                   separatorBuilder: (context, _) =>
-                      const SizedBox(height: 10.0),
+                      const SizedBox(height: 10),
                 ),
               ),
             ),

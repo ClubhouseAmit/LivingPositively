@@ -8,6 +8,7 @@ import 'package:mazilon/global_enums.dart';
 import 'package:mazilon/iFx/service_locator.dart';
 import 'package:mazilon/util/appInformation.dart';
 import 'package:mazilon/util/persistent_memory_service.dart';
+import 'package:lucide_icons_flutter/lucide_icons.dart';
 import 'package:mazilon/util/userInformation.dart';
 import 'package:package_info_plus/package_info_plus.dart';
 
@@ -96,7 +97,7 @@ void main() {
     await GetIt.instance.reset();
     analytics = _FakeAnalyticsService();
     getIt.registerLazySingleton<AnalyticsService>(() => analytics);
-    getIt.registerLazySingleton<FileService>(() => _FakeFileService());
+    getIt.registerLazySingleton<FileService>(_FakeFileService.new);
     getIt.registerLazySingleton<PersistentMemoryService>(
       () => _FakePersistentMemoryService(
         initialValues: {
@@ -190,7 +191,7 @@ void main() {
     await tester.pumpAndSettle();
 
     // Open the main menu drawer.
-    await tester.tap(find.byIcon(Icons.menu));
+    await tester.tap(find.byIcon(LucideIcons.settings));
     await tester.pumpAndSettle();
 
     // Notification add icon must NOT be present on iOS.

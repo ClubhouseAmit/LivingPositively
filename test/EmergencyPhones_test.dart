@@ -27,9 +27,8 @@ Widget _hostGrid(UserInformation userInfo,
       supportedLocales: AppLocalizations.supportedLocales,
       localizationsDelegates: AppLocalizations.localizationsDelegates,
       locale: locale,
-      home: ScreenUtilInit(
-        designSize: const Size(360, 690),
-        child: Scaffold(body: const EmergencyPhonesGrid()),
+      home: const ScreenUtilInit(
+        child: Scaffold(body: EmergencyPhonesGrid()),
       ),
     ),
   );
@@ -98,10 +97,9 @@ void main() {
     final user = UserInformation(
       service: _FakePersistentMemoryService(),
       gender: 'male',
-      location: '',
     );
 
-    await tester.pumpWidget(_hostGrid(user, locale: const Locale('en', 'US')));
+    await tester.pumpWidget(_hostGrid(user));
     await tester.pumpAndSettle();
 
     // The fallback path must still produce at least one rendered emergency

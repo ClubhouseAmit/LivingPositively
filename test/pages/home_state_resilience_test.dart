@@ -30,7 +30,7 @@ void main() {
   late UserInformation user;
 
   setUp(() {
-    registerTestServices(locale: 'en');
+    registerTestServices();
     user = UserInformation();
     user.gender = 'other';
     user.localeName = 'en';
@@ -40,9 +40,7 @@ void main() {
     user.distractions = ['Puzzle', 'Tea'];
   });
 
-  tearDown(() {
-    resetTestServices();
-  });
+  tearDown(resetTestServices);
 
   testWidgets('Home can rebuild without setState-during-build exceptions', (
     tester,
@@ -51,7 +49,7 @@ void main() {
       tester,
       Home(
         phonePageData: _phoneData(),
-        changeCurrentIndex: (BuildContext context, PagesCode code) {},
+        changeCurrentIndex: (context, code) {},
         changeLocale: (_) {},
         openMainMenu: (_) {},
       ),
@@ -71,7 +69,7 @@ void main() {
       tester,
       Home(
         phonePageData: _phoneData(),
-        changeCurrentIndex: (BuildContext context, PagesCode code) {},
+        changeCurrentIndex: (context, code) {},
         changeLocale: (_) {},
         openMainMenu: (_) {},
       ),

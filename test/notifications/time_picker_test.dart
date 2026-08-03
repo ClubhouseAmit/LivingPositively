@@ -1,4 +1,3 @@
-// ignore_for_file: prefer_const_constructors
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:mazilon/pages/notifications/time_picker.dart';
@@ -7,8 +6,8 @@ void main() {
   testWidgets('TimePicker renders two NumberPickers and triggers setTime', (
     tester,
   ) async {
-    int reportedHour = -1;
-    int reportedMinute = -1;
+    var reportedHour = -1;
+    var reportedMinute = -1;
     void setTime(int a, int b) {
       // The widget's onChanged signatures pass (newValue, otherDimension) —
       // we just record any call to verify the wiring.

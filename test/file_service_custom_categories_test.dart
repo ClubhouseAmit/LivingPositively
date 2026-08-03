@@ -6,9 +6,9 @@ import 'package:mazilon/iFx/service_locator.dart';
 import 'package:mazilon/util/persistent_memory_service.dart';
 
 class _MemoryService implements PersistentMemoryService {
-  final Map<String, dynamic> values;
 
   _MemoryService(this.values);
+  final Map<String, dynamic> values;
 
   @override
   Future<dynamic> getItem(String key, PersistentMemoryType type) async {

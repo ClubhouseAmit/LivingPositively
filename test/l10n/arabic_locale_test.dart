@@ -29,7 +29,7 @@ void main() {
     });
 
     testWidgets('LanguageDropDown exposes Arabic as visible selectable text',
-        (WidgetTester tester) async {
+        (tester) async {
       await tester.pumpWidget(
         MaterialApp(
           home: Scaffold(
@@ -42,7 +42,7 @@ void main() {
     });
 
     testWidgets('Arabic locale resolves an Arabic localized label',
-        (WidgetTester tester) async {
+        (tester) async {
       await tester.pumpWidget(
         MaterialApp(
           supportedLocales: AppLocalizations.supportedLocales,
@@ -61,7 +61,7 @@ void main() {
     });
 
     testWidgets('Arabic locale resolves RTL directionality',
-        (WidgetTester tester) async {
+        (tester) async {
       await tester.pumpWidget(
         MaterialApp(
           supportedLocales: AppLocalizations.supportedLocales,

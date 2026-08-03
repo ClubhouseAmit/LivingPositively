@@ -76,7 +76,6 @@ void main() {
         userInformation: UserInformation(
           gender: 'male',
           notificationHour: 9,
-          notificationMinute: 0,
         ),
       );
       // Allow initState -> _refresh() future to complete.
@@ -99,7 +98,6 @@ void main() {
         userInformation: UserInformation(
           gender: 'male',
           notificationHour: 9,
-          notificationMinute: 0,
         ),
         // Larger surface so the expanded contents fit without overflowing.
         surfaceSize: const Size(800, 1400),

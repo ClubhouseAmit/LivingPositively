@@ -35,7 +35,7 @@ void main() {
   const fluttertoastChannel = MethodChannel('PonnamKarthik/fluttertoast');
 
   setUp(() {
-    registerTestServices(locale: 'en');
+    registerTestServices();
     auth = MockFirebaseAuth();
     credential = MockUserCredential();
     user = MockUser();

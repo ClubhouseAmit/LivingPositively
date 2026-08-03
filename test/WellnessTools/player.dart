@@ -1,13 +1,11 @@
 import 'package:flutter/material.dart';
 
 class YoutubePlayerPage extends StatefulWidget {
+  const YoutubePlayerPage({
+    required this.setBool, required this.controller, super.key,
+  });
   final int controller;
   final Function setBool;
-  const YoutubePlayerPage({
-    super.key,
-    required this.setBool,
-    required this.controller,
-  });
   @override
   _YoutubePlayerPageState createState() => _YoutubePlayerPageState();
 }

@@ -9,44 +9,39 @@ class About extends StatelessWidget {
     return MaterialApp(
       home: Scaffold(
         appBar: PreferredSize(
-          preferredSize: Size.fromHeight(200.0),
+          preferredSize: const Size.fromHeight(200),
           child: Container(
             color: Colors.white,
-            height: 200.0,
+            height: 200,
             child: Image.asset(
-              key: Key('MatzilonLogo'),
+              key: const Key('MatzilonLogo'),
               'assets/images/Logo.jpeg',
-              width: MediaQuery.of(context).size.width * 0.8 > 1000
-                  ? 500
-                  : MediaQuery.of(context).size.width * 0.8, // Adjust as needed
-              height:
-                  MediaQuery.of(context).size.height * 0.4, // Adjust as needed
+              width: 500, // Adjust as needed
+              height: 600 * 0.4, // Adjust as needed
             ),
           ),
         ),
         body: Scrollbar(
           child: SingleChildScrollView(
             child: Padding(
-              padding: EdgeInsets.all(8.0),
+              padding: const EdgeInsets.all(8),
               child: Column(
                 children: [
-                  Text('title1'),
+       const            Text(itle1'),
                   SizedBox(height: 5),
                   Text('text1'),
                   Text('title2'),
                   SizedBox(height: 5),
                   Text('text2'),
                   SizedBox(
-                    height: 20,
-                  ), // Adds space between the text and the image
+   height: 20,
+          ), // Adds space between const the text and the image
                   Image.asset(
                     key: Key('aboutPageSocialHubLogo'),
                     'assets/images/SocialHub-Logo.png',
-                    width:
-                        MediaQuery.of(context).size.width *
-                        0.8, // Adjust as needed
+                    width: 800 * 0.8, // Adjust as needed
                     // Optional: if you want to specify the height
-                    // height: MediaQuery.of(context).size.height * 0.2, // Adjust as needed
+                    // height: 600 * 0.2, // Adjust as needed
                   ),
                 ],
               ),

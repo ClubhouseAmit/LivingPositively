@@ -16,13 +16,9 @@ import 'package:mazilon/util/async/async_state_view.dart';
 import '../../helpers/widget_test_scaffold.dart';
 
 void main() {
-  setUp(() {
-    registerTestServices();
-  });
+  setUp(registerTestServices);
 
-  tearDown(() {
-    resetTestServices();
-  });
+  tearDown(resetTestServices);
 
   group('AsyncStateView', () {
     testWidgets('shows a screen-reader-labelled spinner while waiting',

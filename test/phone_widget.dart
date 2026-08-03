@@ -14,14 +14,14 @@ class _PhoneWidgetState extends State<PhoneWidget> {
   TextEditingController controller2 = TextEditingController();
   bool isEditingNew = false;
   int editingIndex = -1;
-  var phones = [];
+  List<dynamic> phones = [];
 
   @override
   void dispose() {
-    for (var controller in nameControllers) {
+    for (final controller in nameControllers) {
       controller.dispose();
     }
-    for (var controller in numberControllers) {
+    for (final controller in numberControllers) {
       controller.dispose();
     }
     controller1.dispose();
@@ -32,7 +32,7 @@ class _PhoneWidgetState extends State<PhoneWidget> {
   void addPhone(name, number) {
     {
       setState(() {
-        phones.add({"name": name, "number": number});
+        phones.add({'name': name, 'number': number});
       });
     }
   }
@@ -48,7 +48,7 @@ class _PhoneWidgetState extends State<PhoneWidget> {
   void updateItemAt(int index, String newName, String newNumber) {
     setState(() {
       if (index >= 0 && index < phones.length) {
-        phones[index] = {"name": newName, "number": newNumber};
+        phones[index] = {'name': newName, 'number': newNumber};
       }
     });
   }
@@ -67,16 +67,16 @@ class _PhoneWidgetState extends State<PhoneWidget> {
                   Column(
                     children: [
                       ...phones.asMap().entries.map((entry) {
-                        int index = entry.key;
-                        bool isEditing = index == editingIndex;
+                        final index = entry.key;
+                        final isEditing = index == editingIndex;
                         return Padding(
-                          padding: EdgeInsets.all(8),
+                          padding: const EdgeInsets.all(8),
                           child: Row(
                             children: [
                               if (isEditing)
                                 IconButton(
-                                  key: Key('deletePhoneButton'),
-                                  icon: Icon(Icons.delete, size: 40),
+                                  key: const Key('deletePhoneButton'),
+                                  icon: const Icon(Icons.delete, size: 40),
                                   onPressed: () {
                                     // Remove the item from phonePageData
                                     removeItemAtIndex(index);
@@ -91,15 +91,15 @@ class _PhoneWidgetState extends State<PhoneWidget> {
                                   },
                                 ),
                               Offstage(
-                                key: Key('addPhoneButtonInEdit'),
+                                key: const Key('addPhoneButtonInEdit'),
                                 offstage: !isEditing,
                                 child: IconButton(
-                                  icon: Icon(Icons.check, size: 40),
+                                  icon: const Icon(Icons.check, size: 40),
                                   onPressed: () {
                                     // Update the item with the new data from the text fields
-                                    String newPhoneName =
+                                    final newPhoneName =
                                         nameControllers[index].text;
-                                    String newPhoneNumber =
+                                    final newPhoneNumber =
                                         numberControllers[index].text;
                                     updateItemAt(
                                       index,
@@ -110,19 +110,19 @@ class _PhoneWidgetState extends State<PhoneWidget> {
                                   },
                                 ),
                               ),
-                              SizedBox(width: 10),
+                              const SizedBox(width: 10),
                               Expanded(
                                 child: isEditing
                                     ? TextField(
-                                        key: Key("numberField"),
-                                        style: TextStyle(
+                                        key: const Key('numberField'),
+                                        style: const TextStyle(
                                           fontWeight: FontWeight.normal,
                                           fontSize: 12,
                                         ),
                                         controller: numberControllers[index],
                                       )
                                     : InkWell(
-                                        key: Key("enterEditingMode"),
+                                        key: const Key('enterEditingMode'),
                                         onTap: () {
                                           // Enter editing mode
                                           setState(() {
@@ -131,21 +131,21 @@ class _PhoneWidgetState extends State<PhoneWidget> {
                                         },
                                         child: Card(
                                           child: Padding(
-                                            padding: EdgeInsets.all(10),
+                                            padding: const EdgeInsets.all(10),
                                             child: Directionality(
                                               textDirection: TextDirection.rtl,
                                               child: Text(
-                                                key: Key('phoneNameAfterAdd'),
-                                                phones[index]["name"],
+                                                key: const Key('phoneNameAfterAdd'),
+                                                phones[index]['name'],
                                               ),
                                             ),
                                           ),
                                         ),
                                       ),
                               ),
-                              if (isEditing) Text("טלפון"),
+                              if (isEditing) const Text('טלפון'),
                               if (!isEditing)
-                                InkWell(
+                                const InkWell(
                                   child: CircleAvatar(
                                     radius: 20,
                                     foregroundColor: Colors.white,
@@ -157,8 +157,8 @@ class _PhoneWidgetState extends State<PhoneWidget> {
                                   child: Directionality(
                                     textDirection: TextDirection.rtl,
                                     child: TextField(
-                                      key: Key("nameField"),
-                                      style: TextStyle(
+                                      key: const Key('nameField'),
+                                      style: const TextStyle(
                                         fontWeight: FontWeight.normal,
                                         fontSize: 12,
                                       ),
@@ -166,22 +166,22 @@ class _PhoneWidgetState extends State<PhoneWidget> {
                                     ),
                                   ),
                                 ),
-                              if (isEditing) Text("שם"),
+                              if (isEditing) const Text('שם'),
                             ],
                           ),
                         );
                       }),
 
-                      SizedBox(width: 10), // Add some space between the buttons
+                      const SizedBox(width: 10), // Add some space between the buttons
                       TextButton(
-                        key: Key('addPhoneButton'),
+                        key: const Key('addPhoneButton'),
                         onPressed: () {
                           setState(() {
                             // Create new controllers with empty text
-                            var nameController = TextEditingController(
+                            final nameController = TextEditingController(
                               text: '',
                             );
-                            var numberController = TextEditingController(
+                            final numberController = TextEditingController(
                               text: '',
                             );
 
@@ -195,7 +195,7 @@ class _PhoneWidgetState extends State<PhoneWidget> {
                             editingIndex = phones.length - 1;
                           });
                         },
-                        child: Text('manual'),
+                        child: const Text('manual'),
                       ),
                     ],
                   ),

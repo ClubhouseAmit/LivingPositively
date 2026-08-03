@@ -80,7 +80,7 @@ Future<FakeFirebaseFirestore> _buildFakeFirestore() async {
       .doc('zzzzzzzzzzzzzzzzzzzy')
       .set({'emergency': 'sos', 'regular': 'reg'});
   // PhonePage-titles requires at least 4 documents (snapshot.docs[0..3]).
-  for (int i = 0; i < 4; i++) {
+  for (var i = 0; i < 4; i++) {
     await fake.collection('PhonePage-titles').add({
       'mainTitle': 'ptMain$i',
       'contactsTitle': 'ptContacts$i',

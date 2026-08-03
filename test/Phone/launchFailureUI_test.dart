@@ -98,7 +98,6 @@ Widget _wrapForPhoneContact(Widget Function(BuildContext) build) {
     localizationsDelegates: AppLocalizations.localizationsDelegates,
     locale: const Locale('en'),
     home: ScreenUtilInit(
-      designSize: const Size(360, 690),
       // Build inside ScreenUtilInit's builder so `.sp` works.
       builder: (context, _) => Scaffold(body: Builder(builder: build)),
     ),
@@ -122,7 +121,6 @@ Widget _wrapForEmergencyDialog(EmergencyDialogBox dialog) {
       locale: const Locale('en'),
       // Scaffold ancestor so the dialog's snackbar has a ScaffoldMessenger.
       home: ScreenUtilInit(
-        designSize: const Size(360, 690),
         builder: (_, _) => Scaffold(body: dialog),
       ),
     ),

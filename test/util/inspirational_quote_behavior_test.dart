@@ -7,13 +7,9 @@ import '../helpers/widget_test_scaffold.dart';
 void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
 
-  setUp(() {
-    registerTestServices(locale: 'en');
-  });
+  setUp(registerTestServices);
 
-  tearDown(() {
-    resetTestServices();
-  });
+  tearDown(resetTestServices);
 
   testWidgets('empty quote list renders without throwing or controls', (
     tester,

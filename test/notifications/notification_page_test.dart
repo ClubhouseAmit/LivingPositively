@@ -117,7 +117,6 @@ void main() {
         userInformation: UserInformation(
           gender: 'male',
           notificationHour: 9,
-          notificationMinute: 0,
         ),
       );
       await tester.pumpAndSettle(const Duration(milliseconds: 300));

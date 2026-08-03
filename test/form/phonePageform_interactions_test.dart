@@ -31,15 +31,13 @@ void main() {
   late UserInformation user;
 
   setUp(() {
-    registerTestServices(locale: 'en');
+    registerTestServices();
     user = UserInformation();
     user.gender = 'other';
     user.localeName = 'en';
   });
 
-  tearDown(() {
-    resetTestServices();
-  });
+  tearDown(resetTestServices);
 
   testWidgets(
       'tapping the bottom Continue button (ConfirmationButton) fires '
@@ -52,10 +50,14 @@ void main() {
       tester,
       ChangeNotifierProvider<PhonePageData>.value(
         value: phone,
-        child: PhonePageForm(
-          phonePageData: phone,
-          next: () => nextCalls++,
-          prev: () {},
+        child: Scaffold(
+          body: SingleChildScrollView(
+            child: PhonePageForm(
+              phonePageData: phone,
+              next: () => nextCalls++,
+              prev: () {},
+            ),
+          ),
         ),
       ),
       userInformation: user,
@@ -64,10 +66,10 @@ void main() {
     await tester.pump();
     drainOverflowExceptions(tester);
 
-    // The page renders one outer TextButton (the ConfirmationButton). Its
+    // The page renders one outer ElevatedButton (the ConfirmationButton). Its
     // onPressed is async and routes through phonePageData.loadItemsFromPrefs
     // → saveItemsToPrefs → update() → widget.next.
-    final buttons = find.byType(TextButton);
+    final buttons = find.byType(ElevatedButton);
     expect(buttons, findsWidgets);
     await tester.ensureVisible(buttons.last);
     await tester.tap(buttons.last, warnIfMissed: false);

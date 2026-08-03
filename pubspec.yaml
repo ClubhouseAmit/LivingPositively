@@ -84,6 +84,10 @@ dependencies:
   devicelocale: ^0.8.2
   upgrader: ^13.4.0
   country_code_picker: ^3.4.1
+  package_info_plus: any
+  sentry: any
+  timezone: any
+  lucide_icons_flutter: ^3.1.15
 dev_dependencies:
   flutter_test:
     sdk: flutter
@@ -99,11 +103,15 @@ dev_dependencies:
   # rules and activating additional ones.
   flutter_lints: ^6.0.0
   fake_cloud_firestore: ^4.1.1
+  very_good_analysis: ^10.3.0
 
 # For information on the generic Dart part of this file, see the
 # following page: https://dart.dev/tools/pub/pubspec
 
 # The following section is specific to Flutter packages.
+  workmanager_platform_interface: any
+  workmanager_android: any
+  firebase_auth_platform_interface: any
 flutter:
   # The following line ensures that the Material Icons font is
   # included with your application, so that you can use the icons in

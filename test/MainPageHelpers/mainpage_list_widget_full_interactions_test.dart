@@ -15,9 +15,9 @@ import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:get_it/get_it.dart';
 import 'package:mazilon/AnalyticsService.dart';
-import 'package:mazilon/MainPageHelpers/MainPageList/mainpage_list_widget.dart';
 import 'package:mazilon/MainPageHelpers/MainPageList/mainpage_list_item_widget.dart'
     show MainpageListItemWidget;
+import 'package:mazilon/MainPageHelpers/MainPageList/mainpage_list_widget.dart';
 import 'package:mazilon/global_enums.dart';
 import 'package:mazilon/l10n/app_localizations.dart';
 import 'package:mazilon/util/Thanks/AddForm.dart';
@@ -91,7 +91,6 @@ Widget _hostListWidget({
       localizationsDelegates: AppLocalizations.localizationsDelegates,
       locale: const Locale('en'),
       home: ScreenUtilInit(
-        designSize: const Size(360, 690),
         builder: (context, _) => Scaffold(
           body: SingleChildScrollView(
             child: ListWidget(onTabTapped: (_, _) {}, pageCode: pageCode),
@@ -133,7 +132,6 @@ void main() {
       final user = UserInformation(
         service: _FakePersistentMemoryService(),
         gender: 'other',
-        thanks: const <String, List<String>>{},
       );
 
       await tester.binding.setSurfaceSize(const Size(800, 2400));

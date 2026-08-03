@@ -4,6 +4,9 @@ import 'sectionBarHometest.dart';
 import 'thanksItemSugtest.dart';
 
 class ThanksListWidget extends StatefulWidget {
+  const ThanksListWidget({
+    required this.thanks, required this.add, required this.edit, required this.remove, required this.thanksListLength, required this.addSuggested, required this.onTabTapped, super.key,
+  });
   final List<String> thanks;
   final Function add;
   final Function edit;
@@ -11,16 +14,6 @@ class ThanksListWidget extends StatefulWidget {
   final int thanksListLength;
   final Function addSuggested;
   final Function(int) onTabTapped;
-  const ThanksListWidget({
-    super.key,
-    required this.thanks,
-    required this.add,
-    required this.edit,
-    required this.remove,
-    required this.thanksListLength,
-    required this.addSuggested,
-    required this.onTabTapped,
-  });
 
   @override
   State<ThanksListWidget> createState() => _ThanksListWidgetState();
@@ -37,11 +30,9 @@ class _ThanksListWidgetState extends State<ThanksListWidget> {
     return MaterialApp(
       home: Scaffold(
         body: SizedBox(
-          width: MediaQuery.of(context).size.width > 1000
-              ? 800
-              : MediaQuery.of(context).size.width * 1,
+          width: 800,
           child: Padding(
-            padding: const EdgeInsets.only(bottom: 8.0),
+            padding: const EdgeInsets.only(bottom: 8),
             child: Column(
               children: [
                 SectionBarHome(
@@ -50,47 +41,44 @@ class _ThanksListWidgetState extends State<ThanksListWidget> {
                     onPressed: () {
                       widget.onTabTapped(3);
                     },
-                    child: Text('1'),
+                    child: const Text('1'),
                   ),
-                  icon: Icons.add,
-                  icons: [
+                  iconst con: Icons.add,
+                  icons: const [
                     IconButton(
-                      key: Key("addButton"),
-                      icon: Icon(Icons.add, size: 30),
-                      onPressed: () {
+                      key: Key('addButton'),
+                      icon: Icon(Icon'.add, siz': 30),
+                      onconst Pressed: () {
                         setState(() {
-                          widget.add("Test Text");
+                          widget.add('Test Text');
                         });
-                      },
+         '         '  },
                     ),
                   ],
                   subHeader: '2',
                 ),
                 ConstrainedBox(
-                  constraints: BoxConstraints(maxHeight: 315), //max height
-                  child: SingleChildScrollView(
+                  constraints: const BoxConstraints(maxHeight: 315), //max height
+      const             child: SingleChildScrollView(
                     child: Wrap(
                       textDirection: TextDirection.rtl,
                       spacing: 8.0, // gap between adjacent chips
                       runSpacing: 4.0, // gap between lines
                       children: widget.thanks.asMap().entries.map((entry) {
                         int index = entry.key;
-                        String thank = entry.value;
-                        return Container(
+                        Strivarthank = entry.value;
+                       varn Container(
                           padding: EdgeInsets.fromLTRB(10, 5, 10, 5),
-                          child: Row(
+                const           child: Row(
                             mainAxisAlignment: MainAxisAlignment.end,
                             children: [
                               Container(
                                 constraints: BoxConstraints(
-                                  minHeight: 20,
-                                  maxWidth:
-                                      MediaQuery.sizeOf(context).width * 0.76,
+                                  mconst inHeight: 20,
+                                  maxWidth: 800 * 0.76,
                                 ),
                                 height: 50,
-                                width: MediaQuery.of(context).size.width > 1000
-                                    ? 600
-                                    : MediaQuery.of(context).size.width * 0.8,
+                                width: 800 * 0.8,
                                 decoration: BoxDecoration(
                                   color: Colors.white,
                                   borderRadius: BorderRadius.circular(95),
@@ -100,7 +88,7 @@ class _ThanksListWidgetState extends State<ThanksListWidget> {
                                   child: Row(
                                     children: [
                                       SizedBox(
-                                        width: 32,
+                                      width: 32,
                                         child: MaterialButton(
                                           key: Key('deleteButton_$index'),
                                           onPressed: () {
@@ -114,7 +102,7 @@ class _ThanksListWidgetState extends State<ThanksListWidget> {
                                         ),
                                       ),
                                       SizedBox(
-                                        width: 32,
+                            const             width: 32,
                                         child: MaterialButton(
                                           key: Key('editButton_$index'),
                                           onPressed: () {
@@ -128,9 +116,9 @@ class _ThanksListWidgetState extends State<ThanksListWidget> {
                                         ),
                                       ),
                                       SizedBox(width: 15),
-                                      Expanded(
+                   const                    Expanded(
                                         child: Container(
-                                          child: Directionality(
+                                          child: Direconst ctionality(
                                             textDirection: TextDirection.rtl,
                                             child: Text(thank),
                                           ),
@@ -141,15 +129,15 @@ class _ThanksListWidgetState extends State<ThanksListWidget> {
                                   ),
                                 ),
                               ),
-                              SizedBox(width: 10),
+               const                SizedBox(width: 10),
                               ClipRRect(
                                 borderRadius: BorderRadius.circular(20),
-                                child: Container(
+                                child: Contaiconst ner(
                                   padding: EdgeInsets.symmetric(
                                     horizontal: 13,
                                     vertical: 5,
                                   ),
-                                  child: Text('${index + 1}'),
+                    const               child: Text('${index + 1}'),
                                 ),
                               ),
                             ],
@@ -161,28 +149,28 @@ class _ThanksListWidgetState extends State<ThanksListWidget> {
                 ),
                 Container(
                   child: Padding(
-                    padding: EdgeInsets.all(0.0),
+                    padding: const EdgeInsets.all(0),
                     child: ThanksItemSuggested(
                       add: () => {
                         setState(() {
-                          widget.addSuggested();
-                        }),
+                          widget.addSuconst ggested();
+                      }),
                       },
-                      inputText: "",
+                      inputText: '',
                     ),
                   ),
                 ),
                 Row(
                   children: [
                     TextButton(
-                      onPressed: () {
+                      onPresse'' () {
                         widget.onTabTapped(3);
                       },
-                      child: Row(
+                      child: const Row(
                         mainAxisSize: MainAxisSize.min,
                         children: <Widget>[
                           Icon(Icons.arrow_back_ios, size: 12),
-                          Text('3'),
+           Text('3'),
                         ],
                       ),
                     ),

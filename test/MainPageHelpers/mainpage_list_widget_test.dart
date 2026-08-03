@@ -53,7 +53,6 @@ Widget _hostListWidget({
       localizationsDelegates: AppLocalizations.localizationsDelegates,
       locale: locale,
       home: ScreenUtilInit(
-        designSize: const Size(360, 690),
         builder: (context, _) => Scaffold(
           body: SingleChildScrollView(
             child: ListWidget(onTabTapped: (_, _) {}, pageCode: pageCode),
@@ -83,7 +82,6 @@ void main() {
       final user = UserInformation(
         service: _FakePersistentMemoryService(),
         gender: 'male',
-        positiveTraits: const [],
       );
 
       await tester.pumpWidget(
@@ -105,7 +103,6 @@ void main() {
       final user = UserInformation(
         service: _FakePersistentMemoryService(),
         gender: 'female',
-        thanks: const <String, List<String>>{},
       );
 
       await tester.pumpWidget(

@@ -33,9 +33,7 @@ import 'package:integration_test/integration_test.dart';
 import 'package:mazilon/l10n/app_localizations.dart';
 import 'package:mazilon/pages/notifications/notification_service.dart';
 import 'package:mazilon/util/logger_service.dart';
-// ignore: depend_on_referenced_packages
 import 'package:workmanager_android/workmanager_android.dart';
-// ignore: depend_on_referenced_packages
 import 'package:workmanager_platform_interface/workmanager_platform_interface.dart';
 
 // IMPORTANT: extends WorkmanagerAndroid (not just WorkmanagerPlatform).

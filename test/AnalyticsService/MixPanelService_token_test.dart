@@ -33,14 +33,14 @@ void main() {
     'mixpanel_flutter',
     StandardMethodCodec(MixpanelMessageCodec()),
   );
-  final List<MethodCall> calls = <MethodCall>[];
+  final calls = <MethodCall>[];
 
   TestWidgetsFlutterBinding.ensureInitialized();
 
   setUp(() {
     calls.clear();
     TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger
-        .setMockMethodCallHandler(channel, (MethodCall m) async {
+        .setMockMethodCallHandler(channel, (m) async {
       calls.add(m);
       // Mixpanel's track / initialize calls all return void on the platform
       // side; null is the right shape for invokeMethod<void>.

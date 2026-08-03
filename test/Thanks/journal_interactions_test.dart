@@ -26,15 +26,13 @@ void main() {
   late UserInformation userInformation;
 
   setUp(() {
-    registerTestServices(locale: 'en');
+    registerTestServices();
     userInformation = UserInformation();
     userInformation.gender = 'other';
     userInformation.localeName = 'en';
   });
 
-  tearDown(() {
-    resetTestServices();
-  });
+  tearDown(resetTestServices);
 
   testWidgets(
     'tap delete on an existing ThankYou row asks before removing the entry',

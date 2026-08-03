@@ -51,7 +51,6 @@ import 'package:mazilon/util/Form/formPagePhoneModel.dart';
 import 'package:mazilon/util/appInformation.dart';
 import 'package:mazilon/util/userInformation.dart';
 import 'package:provider/provider.dart';
-// ignore: depend_on_referenced_packages
 import 'package:workmanager_platform_interface/workmanager_platform_interface.dart';
 
 import '../test/helpers/widget_test_scaffold.dart';
@@ -133,7 +132,7 @@ Widget _bootstrappedMyApp(PhonePageData phonePageData) {
       ChangeNotifierProvider(create: (_) => AppInformation()),
       ChangeNotifierProvider(create: (_) => UserInformation()),
     ],
-    child: MyApp(),
+    child: const MyApp(),
   );
 }
 
@@ -153,7 +152,7 @@ void main() {
 
     // Register the same fakes the unit-suite uses; they implement the same
     // service contracts as production but with in-memory backing.
-    registerTestServices(locale: 'en');
+    registerTestServices();
 
     TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger
         .setMockMethodCallHandler(pathProviderChannel, (call) async {
@@ -230,7 +229,7 @@ void main() {
       // setLocale completes via the in-memory PersistentMemoryService and
       // sets localeName='en', triggering the second-pass build (lines 408-430
       // of main.dart). The route table is built up under that branch.
-      for (int i = 0; i < 10; i++) {
+      for (var i = 0; i < 10; i++) {
         await tester.pump(const Duration(milliseconds: 100));
       }
 

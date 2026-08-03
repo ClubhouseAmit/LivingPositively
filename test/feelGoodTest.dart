@@ -25,13 +25,13 @@ class _SimplifiedFeelGoodState extends State<SimplifiedFeelGood> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: Text('Simplified FeelGood')),
+      appBar: AppBar(title: const Text('Simplified FeelGood')),
       body: Column(
         children: [
           ElevatedButton(
-            key: Key('addImageButton'),
+            key: const Key('addImageButton'),
             onPressed: addMockImage,
-            child: Text('Add Image'),
+            child: const Text('Add Image'),
           ),
           Expanded(
             child: ListView.builder(
@@ -41,7 +41,7 @@ class _SimplifiedFeelGoodState extends State<SimplifiedFeelGood> {
                   title: Text('Image $index'),
                   trailing: IconButton(
                     key: Key('removeImage_$index'),
-                    icon: Icon(Icons.delete),
+                    icon: const Icon(Icons.delete),
                     onPressed: () => removeImage(index),
                   ),
                 );

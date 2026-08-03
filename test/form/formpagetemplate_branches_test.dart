@@ -43,10 +43,14 @@ Future<void> _pumpFormPage(WidgetTester tester, String collectionName) async {
         localizationsDelegates: AppLocalizations.localizationsDelegates,
         home: ScreenUtilInit(
           designSize: const Size(360, 690),
-          child: FormPageTemplate(
-            next: () {},
-            prev: () {},
-            collectionName: collectionName,
+          child: Scaffold(
+            body: SingleChildScrollView(
+              child: FormPageTemplate(
+                next: () {},
+                prev: () {},
+                collectionName: collectionName,
+              ),
+            ),
           ),
         ),
       ),

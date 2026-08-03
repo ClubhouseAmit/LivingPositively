@@ -1,4 +1,3 @@
-// ignore_for_file: non_constant_identifier_names
 
 import 'package:fake_cloud_firestore/fake_cloud_firestore.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -290,7 +289,7 @@ void main() {
 
     test('returns structured map when 4 docs present', () async {
       final fake = FakeFirebaseFirestore();
-      for (int i = 0; i < 4; i++) {
+      for (var i = 0; i < 4; i++) {
         await fake.collection('PhonePage-titles').add({
           'mainTitle': 'main$i',
           'contactsTitle': 'contacts$i',

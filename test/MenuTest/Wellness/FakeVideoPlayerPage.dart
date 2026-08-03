@@ -2,19 +2,17 @@
 import 'package:flutter/material.dart';
 
 class FakeVideoPlayerPage extends StatelessWidget {
-  final Function(bool) onFullScreenChanged;
-  final Map<String, List<String>> videoData;
 
   const FakeVideoPlayerPage({
-    super.key,
-    required this.onFullScreenChanged,
-    required this.videoData,
+    required this.onFullScreenChanged, required this.videoData, super.key,
   });
+  final Function(bool) onFullScreenChanged;
+  final Map<String, List<String>> videoData;
 
   @override
   Widget build(BuildContext context) {
     // Simulate a mock video player
-    return Container(
+    return const ColoredBox(
       color: Colors.grey,
       child: Center(
         child: Text('Mock Video Player'),

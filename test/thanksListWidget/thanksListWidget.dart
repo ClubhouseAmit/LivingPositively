@@ -1,12 +1,17 @@
 import 'package:flutter/material.dart';
 import 'package:fluttericon/font_awesome5_icons.dart';
 
+import 'AddForm.dart';
 import 'sectionBarHome.dart';
 //import 'package:mazilon/util/Thanks/thanksItem.dart';
 import 'thanksItemSug.dart';
-import 'AddForm.dart';
 
 class ThanksListWidget extends StatefulWidget {
+  const ThanksListWidget({
+    required this.thanks, required this.add, required this.edit, required this.remove, required this.thanksListLength, required this.addSuggested, required this.onTabTapped, super.key,
+    this.journalMainTitle = 'Journal',
+    this.journalSubTitle = 'Journal entries',
+  });
   final List<String> thanks;
   final Function add;
   final Function edit;
@@ -16,18 +21,6 @@ class ThanksListWidget extends StatefulWidget {
   final Function(int) onTabTapped;
   final String journalMainTitle;
   final String journalSubTitle;
-  const ThanksListWidget({
-    super.key,
-    required this.thanks,
-    required this.add,
-    required this.edit,
-    required this.remove,
-    required this.thanksListLength,
-    required this.addSuggested,
-    required this.onTabTapped,
-    this.journalMainTitle = 'Journal',
-    this.journalSubTitle = 'Journal entries',
-  });
 
   @override
   State<ThanksListWidget> createState() => _ThanksListWidgetState();
@@ -63,7 +56,7 @@ class _ThanksListWidgetState extends State<ThanksListWidget> {
       setState(() {
         showDialog(
           context: context,
-          builder: (BuildContext context) {
+          builder: (context) {
             return AddForm(
               add: addThanks,
               index: 0,
@@ -79,7 +72,7 @@ class _ThanksListWidgetState extends State<ThanksListWidget> {
     void editThanksNotification(String text, int index) {
       showDialog(
         context: context,
-        builder: (BuildContext context) {
+        builder: (context) {
           return AddForm(
             add: addThanks,
             index: index,
@@ -92,17 +85,17 @@ class _ThanksListWidgetState extends State<ThanksListWidget> {
     }
 
     return SizedBox(
-      width: MediaQuery.of(context).size.width > 1000
+      width: 800 > 1000
           ? 800
-          : MediaQuery.of(context).size.width * 1,
+          : 800 * 1,
       child: Padding(
-        padding: const EdgeInsets.only(bottom: 8.0),
+        padding: const EdgeInsets.only(bottom: 8),
         child: Column(
           children: [
             SectionBarHome(
               text: '',
               textWidget: TextButton(
-                key: Key("tab3"),
+                key: const Key('tab3'),
                 onPressed: () {
                   setState(() {
                     widget.onTabTapped(3);
@@ -113,48 +106,46 @@ class _ThanksListWidgetState extends State<ThanksListWidget> {
               icon: FontAwesome5.praying_hands,
               icons: [
                 IconButton(
-                  key: Key('addButton'),
-                  icon: Icon(Icons.add, color: Colors.purple, size: 30),
+                  key: const Key('addButton'),
+                  icon: const Icon(Icons.add, color: Colors.purple, size: 30),
                   onPressed: () {
-                    setState(() {
-                      addThanksNotification();
-                    });
+                    setState(addThanksNotification);
                   },
                 ),
               ],
               subHeader: widget.journalSubTitle,
             ),
             ConstrainedBox(
-              constraints: BoxConstraints(maxHeight: 315), //max height
+              constraints: const BoxConstraints(maxHeight: 315), //max height
               child: SingleChildScrollView(
                 child: Wrap(
                   textDirection: TextDirection.rtl,
-                  spacing: 8.0, // gap between adjacent chips
-                  runSpacing: 4.0, // gap between lines
+                  spacing: 8, // gap between adjacent chips
+                  runSpacing: 4, // gap between lines
                   children: widget.thanks.asMap().entries.map((entry) {
-                    int index = entry.key;
+                    final index = entry.key;
 
-                    String thank = entry.value;
+                    final thank = entry.value;
                     return Container(
-                      padding: EdgeInsets.fromLTRB(10, 5, 10, 5),
+                      padding: const EdgeInsets.fromLTRB(10, 5, 10, 5),
                       child: Row(
                         mainAxisAlignment: MainAxisAlignment.end,
                         children: [
                           Container(
-                            constraints: BoxConstraints(
+                            constraints: const BoxConstraints(
                               minHeight: 20,
-                              maxWidth: MediaQuery.sizeOf(context).width * 0.76,
+                              maxWidth: 800 * 0.76,
                             ),
                             height: 50,
-                            width: MediaQuery.of(context).size.width > 1000
+                            width: 800 > 1000
                                 ? 600
-                                : MediaQuery.of(context).size.width * 0.8,
+                                : 800 * 0.8,
                             decoration: BoxDecoration(
                               color: Colors.white,
                               borderRadius: BorderRadius.circular(95),
                             ),
                             child: Padding(
-                              padding: const EdgeInsets.all(8.0),
+                              padding: const EdgeInsets.all(8),
                               child: Row(
                                 children: [
                                   SizedBox(
@@ -172,13 +163,13 @@ class _ThanksListWidgetState extends State<ThanksListWidget> {
                                       },
                                       splashColor: Colors.transparent,
                                       enableFeedback: false,
-                                      child: Icon(Icons.delete),
+                                      child: const Icon(Icons.delete),
                                     ),
                                   ),
                                   SizedBox(
                                     width: 32,
                                     child: MaterialButton(
-                                      key: Key("editButton$index"),
+                                      key: Key('editButton$index'),
                                       onPressed: () {
                                         setState(() {
                                           editThanksNotification(
@@ -191,10 +182,10 @@ class _ThanksListWidgetState extends State<ThanksListWidget> {
                                       },
                                       splashColor: Colors.transparent,
                                       enableFeedback: false,
-                                      child: Icon(Icons.edit),
+                                      child: const Icon(Icons.edit),
                                     ),
                                   ),
-                                  SizedBox(width: 15),
+                                  const SizedBox(width: 15),
                                   Expanded(
                                     child: Container(
                                       child: Directionality(
@@ -203,16 +194,16 @@ class _ThanksListWidgetState extends State<ThanksListWidget> {
                                       ),
                                     ),
                                   ),
-                                  SizedBox(width: 15),
+                                  const SizedBox(width: 15),
                                 ],
                               ),
                             ),
                           ),
-                          SizedBox(width: 10),
+                          const SizedBox(width: 10),
                           ClipRRect(
                             borderRadius: BorderRadius.circular(20),
                             child: Container(
-                              padding: EdgeInsets.symmetric(
+                              padding: const EdgeInsets.symmetric(
                                 horizontal: 13,
                                 vertical: 5,
                               ),
@@ -229,24 +220,24 @@ class _ThanksListWidgetState extends State<ThanksListWidget> {
             ),
             Container(
               child: Padding(
-                padding: EdgeInsets.all(0.0),
+                padding: const EdgeInsets.all(0),
                 child: ThanksItemSuggested(
-                  key: ValueKey("Sug"),
+                  key: const ValueKey('Sug'),
                   add: widget.addSuggested,
-                  inputText: "",
+                  inputText: '',
                 ),
               ),
             ),
             Row(
               children: [
                 TextButton(
-                  key: Key("tab4"),
+                  key: const Key('tab4'),
                   onPressed: () {
                     setState(() {
                       widget.onTabTapped(4);
                     });
                   },
-                  child: Row(
+                  child: const Row(
                     mainAxisSize: MainAxisSize.min,
                     children: <Widget>[
                       Icon(Icons.arrow_back_ios, size: 12),

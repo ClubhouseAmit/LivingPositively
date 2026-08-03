@@ -45,13 +45,9 @@ Future<void> _openDialog(WidgetTester tester, Widget dialog) async {
 void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
 
-  setUp(() {
-    registerTestServices(locale: 'en');
-  });
+  setUp(registerTestServices);
 
-  tearDown(() {
-    resetTestServices();
-  });
+  tearDown(resetTestServices);
 
   group('AddForm (real production widget)', () {
     testWidgets('renders Dialog with TextFormField + close/save buttons', (

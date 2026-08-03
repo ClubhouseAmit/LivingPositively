@@ -14,13 +14,9 @@ import '../helpers/widget_test_scaffold.dart';
 void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
 
-  setUp(() {
-    registerTestServices(locale: 'en');
-  });
+  setUp(registerTestServices);
 
-  tearDown(() {
-    resetTestServices();
-  });
+  tearDown(resetTestServices);
 
   testWidgets('renders Scaffold + CircularProgressIndicator + greeting text',
       (tester) async {

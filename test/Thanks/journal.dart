@@ -1,14 +1,16 @@
+import 'dart:math';
+
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import 'package:keyboard_dismisser/keyboard_dismisser.dart';
+
+import 'AddForm.dart';
 import 'thankYou.dart';
 import 'thanksItemSug.dart';
-import 'AddForm.dart';
-import 'dart:math';
 
 class Journal extends StatefulWidget {
+  const Journal({required this.fakeSharedPreferencesStorage, super.key});
   final Map<String, dynamic> fakeSharedPreferencesStorage;
-  const Journal({super.key, required this.fakeSharedPreferencesStorage});
 
   @override
   State<Journal> createState() => _JournalState();
@@ -16,16 +18,16 @@ class Journal extends StatefulWidget {
 
 class _JournalState extends State<Journal> {
   List<String> thanksSuggestionsList = [
-    "1",
-    "2",
-    "3",
-    "4",
-    "5",
-    "6",
-    "7",
-    "8",
-    "9",
-    "10",
+    '1',
+    '2',
+    '3',
+    '4',
+    '5',
+    '6',
+    '7',
+    '8',
+    '9',
+    '10',
   ];
   List<String> thankYous = [];
   List<FocusNode> focusNodes = [];
@@ -38,12 +40,12 @@ class _JournalState extends State<Journal> {
   String sug3 = '';
   int counter = 0;
 
-  void loadData() async {
+  Future<void> loadData() async {
     setState(() {
-      thankYous = widget.fakeSharedPreferencesStorage['thankYous'] ?? [];
-      dates = widget.fakeSharedPreferencesStorage['dates'] ?? [];
+      thankYous = (widget.fakeSharedPreferencesStorage['thankYous'] as List<dynamic>?)?.cast<String>() ?? [];
+      dates = (widget.fakeSharedPreferencesStorage['dates'] as List<dynamic>?)?.cast<String>() ?? [];
       // journalTitle = journalTitleTmp;
-      for (var _ in thankYous) {
+      for (final _ in thankYous) {
         focusNodes.add(FocusNode());
       }
       /* for (int i = 0; i < thankYous.length; i++) {
@@ -52,17 +54,17 @@ class _JournalState extends State<Journal> {
     });
   }
 
-  void changeThankYou(String text, int index) async {
+  Future<void> changeThankYou(String text, int index) async {
     setState(() {
       thankYous[index] = text;
       widget.fakeSharedPreferencesStorage['thankYous'] = thankYous;
     });
   }
 
-  void removeThankYou(int removeIndex) async {
-    List<String> thankyousTemp =
-        widget.fakeSharedPreferencesStorage['thankYous'] ?? [];
-    List<String> datesTemp = widget.fakeSharedPreferencesStorage['dates'] ?? [];
+  Future<void> removeThankYou(int removeIndex) async {
+    final List<String> thankyousTemp =
+        (widget.fakeSharedPreferencesStorage['thankYous'] as List<dynamic>?)?.cast<String>() ?? [];
+    final List<String> datesTemp = (widget.fakeSharedPreferencesStorage['dates'] as List<dynamic>?)?.cast<String>() ?? [];
     thankyousTemp.removeAt(removeIndex);
     datesTemp.removeAt(removeIndex);
     setState(() {
@@ -75,17 +77,17 @@ class _JournalState extends State<Journal> {
     });
   }
 
-  void addThankYou(String thankYou) async {
+  Future<void> addThankYou(String thankYou) async {
     counter = counter < 6 ? counter + 1 : counter;
 
-    List<String> thankyousTemp =
-        widget.fakeSharedPreferencesStorage['thankYous'] ?? [];
-    List<String> datesTemp = widget.fakeSharedPreferencesStorage['dates'] ?? [];
+    final List<String> thankyousTemp =
+        (widget.fakeSharedPreferencesStorage['thankYous'] as List<dynamic>?)?.cast<String>() ?? [];
+    final List<String> datesTemp = (widget.fakeSharedPreferencesStorage['dates'] as List<dynamic>?)?.cast<String>() ?? [];
 
     thankyousTemp.add(thankYou);
 
-    DateTime now = DateTime.now();
-    String formattedDate = DateFormat('yyyy-MM-dd – kk:mm').format(now);
+    final now = DateTime.now();
+    final formattedDate = DateFormat('yyyy-MM-dd – kk:mm').format(now);
     datesTemp.add(formattedDate);
 
     setState(() {
@@ -107,20 +109,20 @@ class _JournalState extends State<Journal> {
   }
 
   void showPopup() {
-    Future.delayed(Duration(seconds: 0), () {
+    Future.delayed(const Duration(), () {
       showDialog(
         context: context,
-        builder: (BuildContext context) {
+        builder: (context) {
           return AlertDialog(
-            title: Text(''),
-            content: Text(
-              "פופ אפ",
+            title: const Text(''),
+            content: const Text(
+              'פופ אפ',
               style: TextStyle(fontWeight: FontWeight.bold, fontSize: 15),
               textAlign: TextAlign.center,
             ),
             actions: <Widget>[
               TextButton(
-                child: Text('Close'),
+                child: const Text('Close'),
                 onPressed: () {
                   Navigator.of(context).pop();
                 },
@@ -148,7 +150,7 @@ class _JournalState extends State<Journal> {
   void editNotification(String text, int index) {
     showDialog(
       context: context,
-      builder: (BuildContext context) {
+      builder: (context) {
         return AddForm(
           add: addThankYou,
           index: index,
@@ -180,13 +182,13 @@ class _JournalState extends State<Journal> {
                       mainAxisAlignment: MainAxisAlignment.spaceBetween,
                       children: [
                         IconButton(
-                          key: Key('addThankYouPlus'),
+                          key: const Key('addThankYouPlus'),
                           onPressed: () {
-                            editNotification("", 0);
+                            editNotification('', 0);
                           },
                           icon: const Icon(
                             Icons.add,
-                            size: 50.0,
+                            size: 50,
                             color: Colors.purple,
                           ),
                         ),
@@ -209,7 +211,7 @@ class _JournalState extends State<Journal> {
                 itemBuilder: (context, index) => ThankYou(
                   key: Key('ThankYou$index'),
                   text: thankYous[index],
-                  number: (index + 1),
+                  number: index + 1,
                   edit: editNotification,
                   remove: removeThankYou,
                   myFocusNode: focusNodes[index],
@@ -218,32 +220,30 @@ class _JournalState extends State<Journal> {
                 ),
                 itemCount: thankYous.length,
               ),
-              thankYous.isEmpty
-                  ? Container()
-                  : const Divider(
+              if (thankYous.isEmpty) Container() else const Divider(
                       color: Colors.white,
                       indent: 30,
                       endIndent: 30,
                     ),
               ThanksItemSuggested(
-                key: Key("Sug1"),
+                key: const Key('Sug1'),
                 add: addThankYou,
                 inputText: sug1,
               ),
               ThanksItemSuggested(
-                key: Key("Sug2"),
+                key: const Key('Sug2'),
                 add: addThankYou,
                 inputText: sug2,
               ),
               ThanksItemSuggested(
-                key: Key("Sug3"),
+                key: const Key('Sug3'),
                 add: addThankYou,
                 inputText: sug3,
               ),
               TextButton(
                 onPressed: () async {
                   setState(() {
-                    var indices = List<int>.generate(
+                    final indices = List<int>.generate(
                       thanksSuggestionsList.length,
                       (i) => i,
                     );
@@ -273,7 +273,7 @@ class _JournalState extends State<Journal> {
                         color: Colors.green,
                       ),
                     ),
-                    SizedBox(width: 1.0),
+                    SizedBox(width: 1),
                     Icon(Icons.refresh, color: Colors.green),
                   ],
                 ),

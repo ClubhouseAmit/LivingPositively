@@ -1,25 +1,25 @@
 // This is a basic Flutter widget test.
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'steps_widget.dart'; // Import your widget file
-import 'text_widget.dart';
-import 'phone_widget.dart';
-
 import 'package:mockito/mockito.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+
+import 'phone_widget.dart';
+import 'steps_widget.dart'; // Import your widget file
+import 'text_widget.dart';
 
 class MockSharedPreferences extends Mock implements SharedPreferences {}
 
 void main() {
   SharedPreferences.setMockInitialValues({});
   testWidgets('next function increments currentStep without exceeding bounds', (
-    WidgetTester tester,
+    tester,
   ) async {
     // Assuming YourWidget is the widget that contains the next function
-    await tester.pumpWidget(StepsWidget());
-    var nextButton = find.byKey(Key('Next'));
-    var prevButton = find.byKey(Key('Prev'));
-    var skipButton = find.byKey(Key('Skip'));
+    await tester.pumpWidget(const StepsWidget());
+    final nextButton = find.byKey(const Key('Next'));
+    final prevButton = find.byKey(const Key('Prev'));
+    final skipButton = find.byKey(const Key('Skip'));
     // Initial conditions: assuming currentStep is 0 and steps.length is 3
     expect(
       find.text('Step 0'),
@@ -59,54 +59,54 @@ void main() {
     await tester.pump();
     expect(find.text('Step 2'), findsOneWidget); // Back to the second step
   });
-  testWidgets('test input received in form', (WidgetTester tester) async {
-    await tester.pumpWidget(TextWidget());
+  testWidgets('test input received in form', (tester) async {
+    await tester.pumpWidget(const TextWidget());
     final textFieldFinder = find.byKey(
-      Key('TextFieldName'),
+      const Key('TextFieldName'),
     ); // or find.byKey(Key('your-textfield-key'))
-    final agedrop = find.byKey(Key('dropdownAge'));
+    final agedrop = find.byKey(const Key('dropdownAge'));
     await tester.enterText(textFieldFinder, 'Test Input');
     await tester.pump();
     expect(find.text('Test Input'), findsOneWidget);
     await tester.pump();
     await tester.tap(agedrop);
     await tester.pumpAndSettle();
-    expect(find.text("18-30"), findsWidgets);
+    expect(find.text('18-30'), findsWidgets);
     await tester.tap(agedrop);
     await tester.pumpAndSettle();
-    await tester.tap(find.text("18-"));
+    await tester.tap(find.text('18-'));
     await tester.pumpAndSettle();
-    expect(find.text("18-"), findsWidgets);
+    expect(find.text('18-'), findsWidgets);
 
     await tester.tap(agedrop);
     await tester.pumpAndSettle();
-    await tester.tap(find.text("30-40"));
+    await tester.tap(find.text('30-40'));
     await tester.pumpAndSettle();
-    expect(find.text("30-40"), findsWidgets);
+    expect(find.text('30-40'), findsWidgets);
 
     await tester.tap(agedrop);
     await tester.pumpAndSettle();
-    await tester.tap(find.text("40-55"));
+    await tester.tap(find.text('40-55'));
     await tester.pumpAndSettle();
-    expect(find.text("40-55"), findsWidgets);
+    expect(find.text('40-55'), findsWidgets);
 
     await tester.tap(agedrop);
     await tester.pumpAndSettle();
-    await tester.tap(find.text("55+"));
+    await tester.tap(find.text('55+'));
     await tester.pumpAndSettle();
-    expect(find.text("55+"), findsWidgets);
+    expect(find.text('55+'), findsWidgets);
   });
 
-  testWidgets('test Phone Page', (WidgetTester tester) async {
-    await tester.pumpWidget(PhoneWidget());
-    final textFieldFinder = find.byKey(Key('addPhoneButton'));
+  testWidgets('test Phone Page', (tester) async {
+    await tester.pumpWidget(const PhoneWidget());
+    final textFieldFinder = find.byKey(const Key('addPhoneButton'));
     await tester.tap(textFieldFinder);
     await tester.pump(); // Rebuild the widget with the new state
     //phase 1, click and then unclick
-    final deletePhoneButton = find.byKey(Key('deletePhoneButton'));
-    final addPhoneButton = find.byKey(Key('addPhoneButtonInEdit'));
-    final nameField = find.byKey(Key('nameField'));
-    final numberField = find.byKey(Key('numberField'));
+    final deletePhoneButton = find.byKey(const Key('deletePhoneButton'));
+    final addPhoneButton = find.byKey(const Key('addPhoneButtonInEdit'));
+    final nameField = find.byKey(const Key('nameField'));
+    final numberField = find.byKey(const Key('numberField'));
     expect(nameField, findsWidgets);
     expect(numberField, findsWidgets);
     expect(addPhoneButton, findsWidgets);
@@ -122,10 +122,10 @@ void main() {
     //phase 2, click and add
     await tester.tap(textFieldFinder);
     await tester.pump();
-    final deletePhoneButton2 = find.byKey(Key('deletePhoneButton'));
-    final nameField2 = find.byKey(Key('nameField'));
-    final numberField2 = find.byKey(Key('numberField'));
-    final addPhoneButton2 = find.byKey(Key('addPhoneButtonInEdit'));
+    final deletePhoneButton2 = find.byKey(const Key('deletePhoneButton'));
+    final nameField2 = find.byKey(const Key('nameField'));
+    final numberField2 = find.byKey(const Key('numberField'));
+    final addPhoneButton2 = find.byKey(const Key('addPhoneButtonInEdit'));
 
     await tester.enterText(nameField2, 'Test Name');
     await tester.enterText(numberField2, 'Test Number');
@@ -137,8 +137,8 @@ void main() {
     expect(deletePhoneButton2, findsNothing);
     expect(nameField2, findsNothing);
     expect(numberField2, findsNothing);
-    final Text nameFieldNoEdit = tester.widget(
-      find.byKey(Key('phoneNameAfterAdd')),
+    final nameFieldNoEdit = tester.widget(
+      find.byKey(const Key('phoneNameAfterAdd')),
     );
 
     expect(nameFieldNoEdit.data, 'Test Name');
@@ -146,14 +146,14 @@ void main() {
 
     // end of phase 2
     //phase 3 delete the phone number
-    expect(find.byKey(Key('enterEditingMode')), findsWidgets);
-    await tester.tap(find.byKey(Key('enterEditingMode')));
+    expect(find.byKey(const Key('enterEditingMode')), findsWidgets);
+    await tester.tap(find.byKey(const Key('enterEditingMode')));
     await tester.pump();
 
-    final deletePhoneButton3 = find.byKey(Key('deletePhoneButton'));
-    final nameField3 = find.byKey(Key('nameField'));
-    final numberField3 = find.byKey(Key('numberField'));
-    final addPhoneButton3 = find.byKey(Key('addPhoneButtonInEdit'));
+    final deletePhoneButton3 = find.byKey(const Key('deletePhoneButton'));
+    final nameField3 = find.byKey(const Key('nameField'));
+    final numberField3 = find.byKey(const Key('numberField'));
+    final addPhoneButton3 = find.byKey(const Key('addPhoneButtonInEdit'));
     expect(nameField3, findsWidgets);
     expect(numberField3, findsWidgets);
     expect(addPhoneButton3, findsWidgets);

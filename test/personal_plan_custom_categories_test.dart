@@ -13,9 +13,9 @@ import 'package:mazilon/util/userInformation.dart';
 import 'package:provider/provider.dart';
 
 class _MemoryService implements PersistentMemoryService {
-  final Map<String, dynamic> values;
 
   _MemoryService(this.values);
+  final Map<String, dynamic> values;
 
   @override
   Future<dynamic> getItem(String key, PersistentMemoryType type) async {
@@ -85,7 +85,6 @@ Widget _harness({
       locale: locale,
       localizationsDelegates: AppLocalizations.localizationsDelegates,
       home: ScreenUtilInit(
-        designSize: const Size(360, 690),
         child: MyPlanPageFull(
           phonePageData: _phonePageData(),
           hasFilled: true,
@@ -104,7 +103,7 @@ void main() {
   });
 
   testWidgets('full My Plan displays saved custom categories after phones',
-      (WidgetTester tester) async {
+      (tester) async {
     await tester.pumpWidget(
       _harness(
         service: _MemoryService({
@@ -130,7 +129,7 @@ void main() {
   });
 
   testWidgets('full My Plan ignores incomplete custom category rows',
-      (WidgetTester tester) async {
+      (tester) async {
     await tester.pumpWidget(
       _harness(
         service: _MemoryService({

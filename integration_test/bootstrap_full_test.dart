@@ -162,7 +162,7 @@ void main() {
         },
         locatorSetup: () {
           locatorCalled = true;
-          registerTestServices(locale: 'en');
+          registerTestServices();
         },
         workmanagerInitializer: () {
           workmanagerCalled = true;
@@ -204,7 +204,7 @@ void main() {
         (tester) async {
       final widget = await bootstrapApp(
         firebaseInitializer: () async {},
-        locatorSetup: () => registerTestServices(locale: 'en'),
+        locatorSetup: registerTestServices,
         workmanagerInitializer: () {},
       );
 
@@ -223,7 +223,7 @@ void main() {
         (tester) async {
       final widget = await bootstrapApp(
         firebaseInitializer: () async {},
-        locatorSetup: () => registerTestServices(locale: 'en'),
+        locatorSetup: registerTestServices,
         workmanagerInitializer: () {},
       );
 
@@ -241,7 +241,7 @@ void main() {
       // CircularProgressIndicator placeholder forever (e.g. setLocale future
       // never completes, or the localeName='' branch never flips) is a real
       // regression — it should fail this test, not slip through.
-      for (int i = 0; i < 20; i++) {
+      for (var i = 0; i < 20; i++) {
         await tester.pump(const Duration(milliseconds: 100));
       }
 
@@ -276,7 +276,7 @@ void main() {
 
       final widget = await bootstrapApp(
         firebaseInitializer: () async {},
-        locatorSetup: () => registerTestServices(locale: 'en'),
+        locatorSetup: registerTestServices,
         // workmanagerInitializer omitted → exercises the default-fallback
         // closure that calls `Workmanager().initialize(callbackDispatcher,
         // isInDebugMode: false)`. _SilentWorkmanager records the call.
@@ -310,7 +310,7 @@ void main() {
         },
         locatorSetup: () {
           locatorCalled = true;
-          registerTestServices(locale: 'en');
+          registerTestServices();
         },
       );
 

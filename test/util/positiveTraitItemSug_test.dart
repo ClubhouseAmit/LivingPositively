@@ -33,21 +33,19 @@ void main() {
   late FakePersistentMemoryService memory;
 
   setUp(() {
-    final services = registerTestServices(locale: 'en');
+    final services = registerTestServices();
     memory = services.memory;
     user = UserInformation();
     user.gender = 'other';
     user.localeName = 'en';
   });
 
-  tearDown(() {
-    resetTestServices();
-  });
+  tearDown(resetTestServices);
 
   testWidgets('renders the suggested trait row with add icon', (tester) async {
     await pumpWithProviders(
       tester,
-      PositiveTraitItemSug(
+      const PositiveTraitItemSug(
         add: _noopAdd,
         inputText: '',
         stopShowing: 1,
@@ -71,7 +69,7 @@ void main() {
 
       await pumpWithProviders(
         tester,
-        PositiveTraitItemSug(
+        const PositiveTraitItemSug(
           add: _noopAdd,
           inputText: '',
           stopShowing: 5,

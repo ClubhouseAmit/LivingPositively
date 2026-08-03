@@ -23,15 +23,13 @@ void main() {
   late UserInformation userInformation;
 
   setUp(() {
-    registerTestServices(locale: 'en');
+    registerTestServices();
     userInformation = UserInformation();
     userInformation.gender = 'other';
     userInformation.localeName = 'en';
   });
 
-  tearDown(() {
-    resetTestServices();
-  });
+  tearDown(resetTestServices);
 
   testWidgets('renders bullet icon, edit + delete buttons, and label text', (
     tester,
@@ -149,10 +147,10 @@ void main() {
 }
 
 class _MutableFormAnswerHost extends StatefulWidget {
-  final ValueNotifier<int> rowNumber;
-  final void Function(int index) remove;
 
   const _MutableFormAnswerHost({required this.rowNumber, required this.remove});
+  final ValueNotifier<int> rowNumber;
+  final void Function(int index) remove;
 
   @override
   State<_MutableFormAnswerHost> createState() => _MutableFormAnswerHostState();

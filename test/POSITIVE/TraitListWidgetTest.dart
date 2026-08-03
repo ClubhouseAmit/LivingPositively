@@ -4,6 +4,9 @@ import '../sectionBarHometest.dart';
 import 'PositiveTraitItemSugTest2.dart';
 
 class TraitListWidget extends StatefulWidget {
+  const TraitListWidget({
+    required this.traits, required this.add, required this.edit, required this.remove, required this.traitListLength, required this.addSuggested, required this.onTabTapped, super.key,
+  });
   final List<String> traits;
   final Function add;
   final Function edit;
@@ -11,16 +14,6 @@ class TraitListWidget extends StatefulWidget {
   final int traitListLength;
   final Function addSuggested;
   final Function(int) onTabTapped;
-  const TraitListWidget({
-    super.key,
-    required this.traits,
-    required this.add,
-    required this.edit,
-    required this.remove,
-    required this.traitListLength,
-    required this.addSuggested,
-    required this.onTabTapped,
-  });
 
   @override
   State<TraitListWidget> createState() => _TraitListWidgetState();
@@ -37,11 +30,11 @@ class _TraitListWidgetState extends State<TraitListWidget> {
     return MaterialApp(
       home: Scaffold(
         body: SizedBox(
-          width: MediaQuery.of(context).size.width > 1000
+          width: 800 > 1000
               ? 800
-              : MediaQuery.of(context).size.width,
+              : 800,
           child: Padding(
-            padding: const EdgeInsets.only(bottom: 8.0),
+            padding: const EdgeInsets.only(bottom: 8),
             child: Column(
               children: [
                 SectionBarHome(
@@ -50,15 +43,15 @@ class _TraitListWidgetState extends State<TraitListWidget> {
                     onPressed: () {
                       widget.onTabTapped(2);
                     },
-                    child: Text('1'),
+                    child: const Text('1'),
                   ),
                   icon: Icons.diamond,
                   icons: [
                     IconButton(
-                      key: Key("addButton"),
-                      icon: Icon(Icons.add, color: Colors.purple, size: 30),
+                      key: const Key('addButton'),
+                      icon: const Icon(Icons.add, color: Colors.purple, size: 30),
                       onPressed: () async {
-                        await widget.add("Test Text");
+                        await widget.add('Test Text');
                         setState(() {});
                       },
                     ),
@@ -67,33 +60,33 @@ class _TraitListWidgetState extends State<TraitListWidget> {
                 ),
                 Wrap(
                   textDirection: TextDirection.rtl,
-                  spacing: 8.0, // gap between adjacent chips
-                  runSpacing: 4.0, // gap between lines
+                  spacing: 8, // gap between adjacent chips
+                  runSpacing: 4, // gap between lines
                   children:
                       widget.traits.asMap().entries.map((entry) {
-                        int index = entry.key;
-                        String trait = entry.value;
+                        final index = entry.key;
+                        final trait = entry.value;
                         return Container(
-                          padding: EdgeInsets.fromLTRB(10, 5, 10, 5),
+                          padding: const EdgeInsets.fromLTRB(10, 5, 10, 5),
                           child: Row(
                             mainAxisAlignment: MainAxisAlignment.end,
                             children: [
                               Container(
-                                constraints: BoxConstraints(
+                                constraints: const BoxConstraints(
                                   minHeight: 20,
                                   maxWidth:
-                                      MediaQuery.sizeOf(context).width * 0.76,
+                                      800 * 0.76,
                                 ),
                                 height: 50,
-                                width: MediaQuery.of(context).size.width > 1000
+                                width: 800 > 1000
                                     ? 600
-                                    : MediaQuery.of(context).size.width * 0.8,
+                                    : 800 * 0.8,
                                 decoration: BoxDecoration(
                                   color: Colors.white,
                                   borderRadius: BorderRadius.circular(95),
                                 ),
                                 child: Padding(
-                                  padding: const EdgeInsets.all(8.0),
+                                  padding: const EdgeInsets.all(8),
                                   child: Row(
                                     children: [
                                       SizedBox(
@@ -107,7 +100,7 @@ class _TraitListWidgetState extends State<TraitListWidget> {
                                           },
                                           splashColor: Colors.transparent,
                                           enableFeedback: false,
-                                          child: Icon(Icons.delete),
+                                          child: const Icon(Icons.delete),
                                         ),
                                       ),
                                       SizedBox(
@@ -123,10 +116,10 @@ class _TraitListWidgetState extends State<TraitListWidget> {
                                           },
                                           splashColor: Colors.transparent,
                                           enableFeedback: false,
-                                          child: Icon(Icons.edit),
+                                          child: const Icon(Icons.edit),
                                         ),
                                       ),
-                                      SizedBox(width: 15),
+                                      const SizedBox(width: 15),
                                       Expanded(
                                         child: Container(
                                           child: Directionality(
@@ -135,8 +128,8 @@ class _TraitListWidgetState extends State<TraitListWidget> {
                                               trait,
                                               maxLines: 1,
                                               overflow: TextOverflow.ellipsis,
-                                              style: TextStyle(
-                                                fontFamily: "Rubix",
+                                              style: const TextStyle(
+                                                fontFamily: 'Rubix',
                                                 fontSize: 20,
                                                 fontWeight: FontWeight.bold,
                                                 color: Colors.purple,
@@ -145,16 +138,16 @@ class _TraitListWidgetState extends State<TraitListWidget> {
                                           ),
                                         ),
                                       ),
-                                      SizedBox(width: 15),
+                                      const SizedBox(width: 15),
                                     ],
                                   ),
                                 ),
                               ),
-                              SizedBox(width: 10),
+                              const SizedBox(width: 10),
                               ClipRRect(
                                 borderRadius: BorderRadius.circular(20),
                                 child: Container(
-                                  padding: EdgeInsets.symmetric(
+                                  padding: const EdgeInsets.symmetric(
                                     horizontal: 15,
                                     vertical: 7,
                                   ),
@@ -168,10 +161,10 @@ class _TraitListWidgetState extends State<TraitListWidget> {
                       }).toList()..add(
                         Container(
                           child: Padding(
-                            padding: EdgeInsets.all(0.0),
+                            padding: const EdgeInsets.all(0),
                             child: PositiveTraitItemSug(
                               add: widget.addSuggested,
-                              inputText: "",
+                              inputText: '',
                             ),
                           ),
                         ),
@@ -183,7 +176,7 @@ class _TraitListWidgetState extends State<TraitListWidget> {
                       onPressed: () {
                         widget.onTabTapped(2);
                       },
-                      child: Row(
+                      child: const Row(
                         mainAxisSize: MainAxisSize.min,
                         children: <Widget>[
                           Icon(Icons.arrow_back_ios, size: 12),

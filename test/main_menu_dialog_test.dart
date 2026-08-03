@@ -16,6 +16,7 @@ import 'package:mazilon/main_menu_dialog.dart';
 import 'package:mazilon/pages/UserSettings.dart';
 import 'package:mazilon/util/Form/formPagePhoneModel.dart';
 import 'package:mazilon/util/userInformation.dart';
+import 'package:lucide_icons_flutter/lucide_icons.dart';
 
 import 'helpers/widget_test_scaffold.dart';
 
@@ -105,7 +106,7 @@ Future<Map<String, dynamic>> _sharePayloadFromMenu(
 
   final shareButton = tester.widget<TextButton>(
     find.ancestor(
-      of: find.byIcon(Icons.share),
+      of: find.byIcon(LucideIcons.share),
       matching: find.byType(TextButton),
     ),
   );
@@ -126,7 +127,7 @@ void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
 
   setUp(() {
-    registerTestServices(locale: 'en');
+    registerTestServices();
     // Stub share_plus / clipboard channels for the Share button — we tap it
     // but the system Share sheet is unavailable in test.
     TestWidgetsFlutterBinding.ensureInitialized()
@@ -137,9 +138,7 @@ void main() {
     );
   });
 
-  tearDown(() {
-    resetTestServices();
-  });
+  tearDown(resetTestServices);
 
   testWidgets(
       'close (X) button pops the dialog without firing About/Notifications',
@@ -181,12 +180,12 @@ void main() {
     await tester.pumpAndSettle();
 
     expect(find.byKey(const Key('mainMenuDialog')), findsOneWidget);
-    expect(find.byIcon(Icons.settings), findsOneWidget);
-    expect(find.byIcon(Icons.share), findsOneWidget);
+    expect(find.byIcon(LucideIcons.settings), findsOneWidget);
+    expect(find.byIcon(LucideIcons.share), findsOneWidget);
 
     final aboutButton = tester.widget<TextButton>(
       find.ancestor(
-        of: find.byIcon(Icons.people),
+        of: find.byIcon(LucideIcons.users),
         matching: find.byType(TextButton),
       ),
     );
@@ -215,7 +214,7 @@ void main() {
     // only assert the dialog pop branch executed.
     final settingsButton = tester.widget<TextButton>(
       find.ancestor(
-        of: find.byIcon(Icons.settings),
+        of: find.byIcon(LucideIcons.settings),
         matching: find.byType(TextButton),
       ),
     );
@@ -244,7 +243,7 @@ void main() {
     await tester.pumpAndSettle();
 
     // The notifications button should be absent under web.
-    expect(find.byIcon(Icons.notification_add), findsNothing);
+    expect(find.byIcon(LucideIcons.bell), findsNothing);
   });
 
   testWidgets(
@@ -263,10 +262,10 @@ void main() {
       await tester.tap(find.byKey(const Key('openMenu')));
       await tester.pumpAndSettle();
 
-      expect(find.byIcon(Icons.notification_add), findsOneWidget);
+      expect(find.byIcon(LucideIcons.bell), findsOneWidget);
       final notifButton = tester.widget<TextButton>(
         find.ancestor(
-          of: find.byIcon(Icons.notification_add),
+          of: find.byIcon(LucideIcons.bell),
           matching: find.byType(TextButton),
         ),
       );
@@ -293,7 +292,7 @@ void main() {
 
     final shareButton = tester.widget<TextButton>(
       find.ancestor(
-        of: find.byIcon(Icons.share),
+        of: find.byIcon(LucideIcons.share),
         matching: find.byType(TextButton),
       ),
     );

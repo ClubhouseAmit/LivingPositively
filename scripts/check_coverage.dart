@@ -70,9 +70,9 @@ const _tier2 = <String>{
   'lib/initialForm/toFormPage.dart',
 };
 
-const double _globalThreshold = 85.0; // ~89.3% as of round 9 (ADR-004)
-const double _tier1Threshold = 50.0;
-const double _tier2Threshold = 40.0;
+const double _globalThreshold = 85; // ~89.3% as of round 9 (ADR-004)
+const double _tier1Threshold = 50;
+const double _tier2Threshold = 40;
 
 // Per-file floors that exist to make ADR-001's hybrid Phase-6 mechanism
 // load-bearing. `lib/AnalyticsService.dart` reaches ~90% only because the

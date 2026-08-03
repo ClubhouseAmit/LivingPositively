@@ -33,32 +33,30 @@ void main() {
   late UserInformation user;
 
   setUp(() {
-    registerTestServices(locale: 'en');
+    registerTestServices();
     user = UserInformation();
     user.gender = 'other';
     user.localeName = 'en';
   });
 
-  tearDown(() {
-    resetTestServices();
-  });
+  tearDown(resetTestServices);
 
   testWidgets('tapping the next button pushes a FormProgressIndicator',
       (tester) async {
     await pumpWithProviders(
       tester,
-      ToFormPage(phonePageData: _data(), changeLocale: (_) {}),
+      Scaffold(body: ToFormPage(phonePageData: _data(), changeLocale: (_) {})),
       userInformation: user,
       surfaceSize: const Size(1024, 2200),
     );
     await tester.pump();
     drainOverflowExceptions(tester);
 
-    final buttons = find.byType(TextButton);
-    expect(buttons.evaluate().length, greaterThanOrEqualTo(2));
-    // First TextButton goes to the form.
-    await tester.ensureVisible(buttons.first);
-    await tester.tap(buttons.first, warnIfMissed: false);
+    final buttons = find.byType(ElevatedButton);
+    expect(buttons, findsOneWidget);
+    // First ElevatedButton goes to the form.
+    await tester.ensureVisible(buttons);
+    await tester.tap(buttons, warnIfMissed: false);
     await tester.pumpAndSettle();
 
     expect(find.byType(FormProgressIndicator), findsOneWidget);
@@ -67,18 +65,19 @@ void main() {
   testWidgets('tapping the skip button pushes a Menu route', (tester) async {
     await pumpWithProviders(
       tester,
-      ToFormPage(phonePageData: _data(), changeLocale: (_) {}),
+      Scaffold(body: ToFormPage(phonePageData: _data(), changeLocale: (_) {})),
       userInformation: user,
       surfaceSize: const Size(1024, 2200),
     );
     await tester.pump();
     drainOverflowExceptions(tester);
 
-    final buttons = find.byType(TextButton);
-    // Second TextButton is the skip.
-    await tester.ensureVisible(buttons.at(1));
-    await tester.tap(buttons.at(1), warnIfMissed: false);
+    final skipBtn = find.byType(OutlinedButton);
+    expect(skipBtn, findsOneWidget);
+    await tester.ensureVisible(skipBtn);
+    await tester.tap(skipBtn, warnIfMissed: false);
     await tester.pumpAndSettle();
+    drainOverflowExceptions(tester);
 
     expect(find.byType(Menu), findsOneWidget);
   });

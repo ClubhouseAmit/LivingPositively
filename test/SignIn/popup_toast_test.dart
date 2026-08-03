@@ -6,7 +6,7 @@ void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
 
   const channel = MethodChannel('PonnamKarthik/fluttertoast');
-  final List<MethodCall> calls = <MethodCall>[];
+  final calls = <MethodCall>[];
 
   setUp(() {
     calls.clear();

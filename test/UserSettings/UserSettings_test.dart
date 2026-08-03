@@ -54,15 +54,13 @@ void main() {
   late UserInformation userInformation;
 
   setUp(() {
-    services = registerTestServices(locale: 'en');
+    services = registerTestServices();
     userInformation = UserInformation();
     userInformation.gender = 'male';
     userInformation.localeName = 'en';
   });
 
-  tearDown(() {
-    resetTestServices();
-  });
+  tearDown(resetTestServices);
 
   group('UserSettings (real production widget)', () {
     testWidgets('builds Scaffold with AppBar title', (tester) async {

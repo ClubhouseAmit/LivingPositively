@@ -1,14 +1,15 @@
+import 'dart:io';
+
 import 'package:flutter/material.dart';
+import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:get_it/get_it.dart';
-import 'dart:io';
-import 'package:flutter_screenutil/flutter_screenutil.dart';
-import 'package:mazilon/l10n/app_localizations.dart';
-import 'package:mazilon/pages/WellnessTools/VideoPlayerPageFactory.dart';
-import 'package:mazilon/pages/FeelGood/image_picker_service_impl.dart';
-import 'package:mazilon/pages/about.dart';
-import 'package:mazilon/pages/WellnessTools/wellnessTools.dart';
 import 'package:image_picker/image_picker.dart';
+import 'package:mazilon/l10n/app_localizations.dart';
+import 'package:mazilon/pages/FeelGood/image_picker_service_impl.dart';
+import 'package:mazilon/pages/WellnessTools/VideoPlayerPageFactory.dart';
+import 'package:mazilon/pages/WellnessTools/wellnessTools.dart';
+import 'package:mazilon/pages/about.dart';
 
 class _FakeImagePickerService implements ImagePickerService {
   @override
@@ -69,12 +70,12 @@ void main() {
 
   group('Arabic hard-coded string coverage', () {
     testWidgets('About page does not keep the English version label in Arabic',
-        (WidgetTester tester) async {
+        (tester) async {
       await tester.pumpWidget(
-        MaterialApp(
+        const MaterialApp(
           supportedLocales: AppLocalizations.supportedLocales,
           localizationsDelegates: AppLocalizations.localizationsDelegates,
-          locale: const Locale('ar'),
+          locale: Locale('ar'),
           home: About(version: '1.2.3'),
         ),
       );
@@ -86,10 +87,9 @@ void main() {
     });
 
     testWidgets('Wellness empty state does not keep the English copy in Arabic',
-        (WidgetTester tester) async {
+        (tester) async {
       await tester.pumpWidget(
         ScreenUtilInit(
-          designSize: const Size(360, 690),
           minTextAdapt: true,
           builder: (context, child) {
             return MaterialApp(

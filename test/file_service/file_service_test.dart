@@ -30,8 +30,8 @@ class _FakeLogger implements IncidentLoggerService {
 }
 
 class _FakeMemory implements PersistentMemoryService {
-  final Map<String, dynamic> store;
   _FakeMemory(this.store);
+  final Map<String, dynamic> store;
   @override
   Future<dynamic> getItem(String key, PersistentMemoryType type) async {
     return store[key];

@@ -52,7 +52,7 @@ class _FlakyImagePickerService implements ImagePickerService {
   void deleteImage(int index, List<String> imagePaths) {}
 
   @override
-  displayImage(String path, {BoxFit fit = BoxFit.none}) =>
+  Image displayImage(String path, {BoxFit fit = BoxFit.none}) =>
       Image.memory(Uint8List(0), fit: fit, errorBuilder: (_, _, _) {
         return const SizedBox.shrink();
       });
@@ -76,9 +76,7 @@ void main() {
     getIt.registerSingleton<ImagePickerService>(flaky);
   });
 
-  tearDown(() {
-    resetTestServices();
-  });
+  tearDown(resetTestServices);
 
   testWidgets('Feel Good surfaces a retry when the image load fails',
       (tester) async {

@@ -1,6 +1,9 @@
 import 'package:flutter/material.dart';
 
 class ThankYou extends StatefulWidget {
+  const ThankYou({
+    required this.text, required this.number, required this.edit, required this.remove, required this.myFocusNode, required this.date, required this.color, super.key,
+  });
   final String text;
   final int number;
   final Function edit;
@@ -8,16 +11,6 @@ class ThankYou extends StatefulWidget {
   final FocusNode myFocusNode;
   final String date;
   final Color color;
-  const ThankYou({
-    super.key,
-    required this.text,
-    required this.number,
-    required this.edit,
-    required this.remove,
-    required this.myFocusNode,
-    required this.date,
-    required this.color,
-  });
 
   @override
   State<ThankYou> createState() => _ThankYouState();
@@ -43,9 +36,9 @@ class _ThankYouState extends State<ThankYou> {
         mainAxisAlignment: MainAxisAlignment.end,
         children: [
           Container(
-            constraints: BoxConstraints(
+            constraints: const BoxConstraints(
               minHeight: 20,
-              maxWidth: MediaQuery.sizeOf(context).width * 0.8,
+              maxWidth: 800 * 0.8,
             ),
 
             // height: 40,
@@ -54,7 +47,7 @@ class _ThankYouState extends State<ThankYou> {
               borderRadius: BorderRadius.circular(95),
             ),
             child: Padding(
-              padding: const EdgeInsets.all(8.0),
+              padding: const EdgeInsets.all(8),
               child: Row(
                 children: [
                   SizedBox(
@@ -69,7 +62,7 @@ class _ThankYouState extends State<ThankYou> {
                       },
                       splashColor: Colors.transparent,
                       enableFeedback: false,
-                      child: Icon(Icons.delete),
+                      child: const Icon(Icons.delete),
                     ),
                   ),
                   SizedBox(
@@ -81,10 +74,10 @@ class _ThankYouState extends State<ThankYou> {
                       },
                       splashColor: Colors.transparent,
                       enableFeedback: false,
-                      child: Icon(Icons.edit),
+                      child: const Icon(Icons.edit),
                     ),
                   ),
-                  SizedBox(width: 15),
+                  const SizedBox(width: 15),
                   Expanded(
                     child: Container(
                       child: Directionality(
@@ -93,16 +86,16 @@ class _ThankYouState extends State<ThankYou> {
                       ),
                     ),
                   ),
-                  SizedBox(width: 15),
+                  const SizedBox(width: 15),
                 ],
               ),
             ),
           ),
-          SizedBox(width: 10),
+          const SizedBox(width: 10),
           ClipRRect(
             borderRadius: BorderRadius.circular(20),
             child: Container(
-              padding: EdgeInsets.symmetric(horizontal: 15, vertical: 10),
+              padding: const EdgeInsets.symmetric(horizontal: 15, vertical: 10),
               color: Colors.purple,
               child: Text(widget.number.toString()),
             ),

@@ -85,11 +85,14 @@ void main() {
         locale: const Locale('he'),
         localizationsDelegates: AppLocalizations.localizationsDelegates,
         home: ScreenUtilInit(
-          designSize: const Size(360, 690),
-          child: InitialFormPage2(
-            next: mockNext,
-            prev: mockPrev,
-            updateName: mockUpdateName,
+          child: Scaffold(
+            body: SingleChildScrollView(
+              child: InitialFormPage2(
+                next: mockNext,
+                prev: mockPrev,
+                updateName: mockUpdateName,
+              ),
+            ),
           ),
         ),
       ),
@@ -100,7 +103,7 @@ void main() {
     final loc = lookupAppLocalizations(const Locale('he'));
     return find.ancestor(
       of: find.text(loc.nextButton('male')),
-      matching: find.byType(TextButton),
+      matching: find.byType(ElevatedButton),
     );
   }
 

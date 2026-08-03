@@ -1,4 +1,3 @@
-// ignore_for_file: prefer_const_constructors
 
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -54,9 +53,9 @@ PhonePageData _emptyPhonePageData() => PhonePageData(
     );
 
 class _FakeWidget {
+  _FakeWidget(this.phonePageData, this.changeLocale);
   final PhonePageData phonePageData;
   final void Function(String) changeLocale;
-  _FakeWidget(this.phonePageData, this.changeLocale);
 }
 
 void main() {

@@ -72,14 +72,17 @@ Future<int> _pump(
         locale: const Locale('en'),
         localizationsDelegates: AppLocalizations.localizationsDelegates,
         home: ScreenUtilInit(
-          designSize: const Size(360, 690),
-          child: FormPageTemplate(
-            next: () {
-              nextCalls++;
-              if (onNext != null) onNext();
-            },
-            prev: () {},
-            collectionName: collection,
+          child: Scaffold(
+            body: SingleChildScrollView(
+              child: FormPageTemplate(
+                next: () {
+                  nextCalls++;
+                  if (onNext != null) onNext();
+                },
+                prev: () {},
+                collectionName: collection,
+              ),
+            ),
           ),
         ),
       ),
@@ -216,11 +219,14 @@ void main() {
             locale: const Locale('en'),
             localizationsDelegates: AppLocalizations.localizationsDelegates,
             home: ScreenUtilInit(
-              designSize: const Size(360, 690),
-              child: FormPageTemplate(
-                next: () => nextCalls++,
-                prev: () {},
-                collectionName: collection,
+              child: Scaffold(
+                body: SingleChildScrollView(
+                  child: FormPageTemplate(
+                    next: () => nextCalls++,
+                    prev: () {},
+                    collectionName: collection,
+                  ),
+                ),
               ),
             ),
           ),

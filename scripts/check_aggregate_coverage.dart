@@ -73,7 +73,7 @@ const _unitLcovPath = 'coverage/lcov.info';
 const _integrationLcovPath = 'coverage/integration.info';
 // _iosIntegrationLcovPath retired under ADR-006 — see header comment.
 
-const double _aggregateFloor = 89.0; // ADR-004 (Phase 9 ratchet)
+const double _aggregateFloor = 89; // ADR-004 (Phase 9 ratchet)
 
 const _excludePatterns = <String>[
   r'lib/l10n/app_localizations.*\.dart$',
@@ -96,10 +96,10 @@ void main(List<String> args) {
     stderr
       ..writeln('FATAL: the following lcov inputs are missing:')
       ..writeln('  ${missing.join('\n  ')}')
-      ..writeln('')
+      ..writeln()
       ..writeln('Expected both files to be present in the coverage-aggregate')
       ..writeln('job — did the artifact-download steps succeed?')
-      ..writeln('')
+      ..writeln()
       ..writeln('  $_unitLcovPath is produced by the build-android job')
       ..writeln('    (artifact: coverage-lcov)')
       ..writeln(

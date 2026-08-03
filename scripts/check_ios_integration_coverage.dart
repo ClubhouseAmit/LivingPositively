@@ -43,9 +43,9 @@ void main(List<String> args) {
       ..writeln(
           '  Expected the integration-test-ios job to have produced it via:')
       ..writeln('    flutter test integration_test/'
-          'notifications_schedule_ios_test.dart \\')
-      ..writeln('      --coverage \\')
-      ..writeln('      --coverage-path coverage/integration_ios.info \\')
+          r'notifications_schedule_ios_test.dart \')
+      ..writeln(r'      --coverage \')
+      ..writeln(r'      --coverage-path coverage/integration_ios.info \')
       ..writeln('      -d "<iPhone simulator UDID>"')
       ..writeln('  If you are running locally without an iOS simulator '
           'attached, this is expected — the file is generated only by the '

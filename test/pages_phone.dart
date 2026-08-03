@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
-import 'EmergencyPhonesTest.dart'; // Adjust the import path as necessary
 import 'package:mockito/mockito.dart';
+
+import 'EmergencyPhonesTest.dart'; // Adjust the import path as necessary
 
 class MockUrlLauncher extends Mock {
   Future<bool> canLaunchUrl(Uri url) => super.noSuchMethod(
@@ -17,22 +18,19 @@ class MockUrlLauncher extends Mock {
 }
 
 class SimplifiedPhonePage extends StatelessWidget {
+
+  const SimplifiedPhonePage({
+    required this.phoneNumbers, required this.canLaunchUrl, required this.launchUrl, super.key,
+  });
   final List<String> phoneNumbers;
   final Future<bool> Function(Uri url) canLaunchUrl;
   final Future<void> Function(Uri url) launchUrl;
-
-  const SimplifiedPhonePage({
-    super.key,
-    required this.phoneNumbers,
-    required this.canLaunchUrl,
-    required this.launchUrl,
-  });
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       body: Padding(
-        padding: const EdgeInsets.all(20.0),
+        padding: const EdgeInsets.all(20),
         child: Column(
           children: <Widget>[
             ...phoneNumbers.map(
@@ -46,10 +44,10 @@ class SimplifiedPhonePage extends StatelessWidget {
                   }
                 },
                 child: Padding(
-                  padding: const EdgeInsets.symmetric(vertical: 10.0),
+                  padding: const EdgeInsets.symmetric(vertical: 10),
                   child: Text(
                     'Call $number',
-                    style: TextStyle(
+                    style: const TextStyle(
                       fontWeight: FontWeight.normal,
                       fontSize: 18,
                     ),
@@ -57,8 +55,8 @@ class SimplifiedPhonePage extends StatelessWidget {
                 ),
               ),
             ),
-            SizedBox(height: 20),
-            EmergencyPhonesRow(), // Assuming this is a widget that displays emergency phone numbers
+            const SizedBox(height: 20),
+            const EmergencyPhonesRow(), // Assuming this is a widget that displays emergency phone numbers
           ],
         ),
       ),

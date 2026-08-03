@@ -51,7 +51,6 @@ Widget _darkModeSettingsHarness(UserInformation userInformation) {
               ? ThemeMode.dark
               : ThemeMode.light,
           home: ScreenUtilInit(
-            designSize: const Size(360, 690),
             child: UserSettings(
               username: 'Integration User',
               age: '18-30',
@@ -75,7 +74,7 @@ void main() {
 
   setUp(() async {
     await GetIt.instance.reset();
-    registerTestServices(locale: 'en');
+    registerTestServices();
     GetIt.instance.unregister<PersistentMemoryService>();
     GetIt.instance.registerSingleton<PersistentMemoryService>(
       SharedPreferencesService(),

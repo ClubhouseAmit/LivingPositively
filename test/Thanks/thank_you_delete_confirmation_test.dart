@@ -1,8 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:mazilon/pages/thankYou.dart';
-import 'package:mazilon/util/styles.dart';
+
 import 'package:mazilon/util/userInformation.dart';
+
+import 'package:mazilon/util/theme/app_theme.dart';
 
 import '../helpers/widget_test_scaffold.dart';
 
@@ -43,7 +45,7 @@ class _RebindingThankYouHostState extends State<_RebindingThankYouHost> {
         },
         myFocusNode: focusNode,
         date: '',
-        color: primaryPurple,
+        color: AppColors.primary,
       ),
     );
   }
@@ -55,15 +57,13 @@ void main() {
   late UserInformation user;
 
   setUp(() {
-    registerTestServices(locale: 'en');
+    registerTestServices();
     user = UserInformation();
     user.gender = 'other';
     user.localeName = 'en';
   });
 
-  tearDown(() {
-    resetTestServices();
-  });
+  tearDown(resetTestServices);
 
   testWidgets('delete confirmation uses the row index from tap time', (
     tester,

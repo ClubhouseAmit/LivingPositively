@@ -42,8 +42,8 @@ import '../helpers/widget_test_scaffold.dart';
 /// without throwing. Avoids the placeholder's UnimplementedError on
 /// `cancelAll`/`registerOneOffTask`/`registerPeriodicTask`.
 class _FakeWorkmanager extends WorkmanagerPlatform {
-  static final _FakeWorkmanager _shared = _FakeWorkmanager._();
   _FakeWorkmanager._() : super();
+  static final _FakeWorkmanager _shared = _FakeWorkmanager._();
 
   final List<String> calls = [];
 
@@ -123,7 +123,7 @@ void main() {
   const timezoneChannel = MethodChannel('flutter_timezone');
   const toastChannel = MethodChannel('PonnamKarthik/fluttertoast');
 
-  final List<MethodCall> localNotifCalls = [];
+  final localNotifCalls = <MethodCall>[];
   late _FakeWorkmanager fakeWm;
 
   setUp(() {
@@ -246,8 +246,8 @@ void main() {
         notificationMinute: 15,
       );
       // Track updates without relying on NumberPicker scroll state.
-      final List<int> hourUpdates = [];
-      final List<int> minuteUpdates = [];
+      final hourUpdates = <int>[];
+      final minuteUpdates = <int>[];
       userInfo.addListener(() {
         hourUpdates.add(userInfo.notificationHour);
         minuteUpdates.add(userInfo.notificationMinute);

@@ -2,15 +2,16 @@ import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:get_it/get_it.dart';
-import 'package:mazilon/iFx/service_locator.dart';
-import 'package:mazilon/util/persistent_memory_service.dart';
-import 'package:provider/provider.dart';
-import 'package:mazilon/util/appInformation.dart';
-import 'package:mazilon/util/userInformation.dart';
 import 'package:mazilon/form/formpagetemplate.dart';
-import 'package:mockito/mockito.dart';
-import 'package:mockito/annotations.dart';
+import 'package:mazilon/iFx/service_locator.dart';
 import 'package:mazilon/l10n/app_localizations.dart';
+import 'package:mazilon/util/appInformation.dart';
+import 'package:mazilon/util/persistent_memory_service.dart';
+import 'package:mazilon/util/userInformation.dart';
+import 'package:mockito/annotations.dart';
+import 'package:mockito/mockito.dart';
+import 'package:provider/provider.dart';
+
 import '../MenuTest/shareAndDownload/share_and_download_test.mocks.dart'
     as ShareMocks;
 
@@ -48,10 +49,10 @@ void main() {
           () => mockPersistentMemoryService);
 
       mockUserInformation = UserInformation();
-      mockUserInformation.gender = "male";
+      mockUserInformation.gender = 'male';
       mockAppInformation = AppInformation();
     });
-    testWidgets('FormPageTemplate widget test', (WidgetTester tester) async {
+    testWidgets('FormPageTemplate widget test', (tester) async {
       // Set the screen size to match your design size
       await tester.binding.setSurfaceSize(const Size(360, 690));
 
@@ -68,14 +69,17 @@ void main() {
           ],
           child: MaterialApp(
             supportedLocales: AppLocalizations.supportedLocales,
-            locale: Locale('he'),
+            locale: const Locale('he'),
             localizationsDelegates: AppLocalizations.localizationsDelegates,
             home: ScreenUtilInit(
-              designSize: const Size(360, 690),
-              child: FormPageTemplate(
-                next: () {},
-                prev: () {},
-                collectionName: 'PersonalPlan-DifficultEvents',
+              child: Scaffold(
+                body: SingleChildScrollView(
+                  child: FormPageTemplate(
+                    next: () {},
+                    prev: () {},
+                    collectionName: 'PersonalPlan-DifficultEvents',
+                  ),
+                ),
               ),
             ),
           ),
@@ -92,7 +96,7 @@ void main() {
       // Debug: Print all text widgets to see what's actually there
       final textWidgets = tester.widgetList(find.byType(Text)).cast<Text>();
       debugPrint('\n=== TEXT WIDGETS FOUND ===');
-      for (var text in textWidgets) {
+      for (final text in textWidgets) {
         debugPrint('Text: "${text.data}"');
       }
       debugPrint('========================\n');

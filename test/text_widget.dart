@@ -32,7 +32,7 @@ class _TextWidgetState extends State<TextWidget> {
                       key: Key('TextFieldName'),
                       decoration: InputDecoration(
                         border: OutlineInputBorder(),
-                        contentPadding: EdgeInsets.symmetric(vertical: 6.0),
+                        contentPadding: EdgeInsets.symmetric(vertical: 6),
                       ),
                       onChanged: (text) {
                         // Do something with the text
@@ -50,13 +50,13 @@ class _TextWidgetState extends State<TextWidget> {
                   child: DropdownMenu<String>(
                     key: Key('dropdownAge'),
                     width: 300,
-                    initialSelection: "18-30",
+                    initialSelection: '18-30',
                     dropdownMenuEntries: [
                       ...ages.map(
                         (age) => DropdownMenuEntry(value: age, label: age),
                       ),
                     ],
-                    onSelected: (String? newValue) {
+                    onSelected: (newValue) {
                       setState(() {
                         if (newValue != null) {
                           dropdownValueAge = newValue;
@@ -81,7 +81,7 @@ class _TextWidgetState extends State<TextWidget> {
                             DropdownMenuEntry(value: gender, label: gender),
                       ),
                     ],
-                    onSelected: (String? newValue) {
+                    onSelected: (newValue) {
                       setState(() {
                         if (newValue != null) {
                           dropdownValueGender = newValue;

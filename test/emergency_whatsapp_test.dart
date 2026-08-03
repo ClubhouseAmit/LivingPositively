@@ -300,7 +300,7 @@ Widget buildEmergencyDialogTestApp({
       supportedLocales: AppLocalizations.supportedLocales,
       localizationsDelegates: AppLocalizations.localizationsDelegates,
       locale: const Locale('en'),
-      home: ScreenUtilInit(designSize: const Size(360, 690), child: dialog),
+      home: ScreenUtilInit(child: dialog),
     ),
   );
 }
@@ -317,8 +317,7 @@ Widget buildEmergencyGridTestApp({
       supportedLocales: AppLocalizations.supportedLocales,
       localizationsDelegates: AppLocalizations.localizationsDelegates,
       locale: locale,
-      home: ScreenUtilInit(
-        designSize: const Size(360, 690),
+      home: const ScreenUtilInit(
         child: Scaffold(body: EmergencyPhonesGrid()),
       ),
     ),
@@ -342,7 +341,6 @@ Widget buildPhonePageTestApp({
       localizationsDelegates: AppLocalizations.localizationsDelegates,
       locale: locale,
       home: ScreenUtilInit(
-        designSize: const Size(360, 690),
         child: PhonePage(phonePageData: phonePageData),
       ),
     ),
@@ -757,7 +755,6 @@ void main() {
       await tester.pumpWidget(
         buildEmergencyGridTestApp(
           userInformation: userInfo,
-          locale: const Locale('en', 'US'),
         ),
       );
 
@@ -1114,7 +1111,7 @@ void main() {
         final geolocator = FakeGeolocatorPlatform(
           permission: LocationPermission.denied,
           requestedPermission: LocationPermission.whileInUse,
-          position: _testPosition(latitude: 31.7683, longitude: 35.2137),
+          position: _testPosition(),
           callLog: callLog,
         );
         final fileService = RecordingFileService(callLog: callLog);

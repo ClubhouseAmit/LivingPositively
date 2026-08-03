@@ -1,7 +1,7 @@
+import 'package:country_code_picker/country_code_picker.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:country_code_picker/country_code_picker.dart';
 import 'package:get_it/get_it.dart';
 import 'package:mazilon/global_enums.dart';
 import 'package:mazilon/initialForm/CountrySelectorWidget.dart';
@@ -44,7 +44,7 @@ void main() {
   });
 
   testWidgets('Country selector defaults to locale when location is empty',
-      (WidgetTester tester) async {
+      (tester) async {
     tester.binding.platformDispatcher.localeTestValue =
         const Locale('en', 'US');
     addTearDown(() {
@@ -57,12 +57,11 @@ void main() {
         providers: [
           ChangeNotifierProvider<UserInformation>.value(value: userInfo),
         ],
-        child: ScreenUtilInit(
-          designSize: const Size(360, 690),
+        child: const ScreenUtilInit(
           child: MaterialApp(
             supportedLocales: AppLocalizations.supportedLocales,
             localizationsDelegates: AppLocalizations.localizationsDelegates,
-            locale: const Locale('en', 'US'),
+            locale: Locale('en', 'US'),
             home: Scaffold(
               body: CountrySelectorWidget(
                 text: 'Country/Region',
@@ -80,7 +79,7 @@ void main() {
   });
 
   testWidgets('Country selector keeps country names legible in dark mode',
-      (WidgetTester tester) async {
+      (tester) async {
     final userInfo = UserInformation(service: InMemoryPersistentMemoryService());
     final darkTheme = buildDarkTheme();
 
@@ -90,7 +89,6 @@ void main() {
           ChangeNotifierProvider<UserInformation>.value(value: userInfo),
         ],
         child: ScreenUtilInit(
-          designSize: const Size(360, 690),
           child: MaterialApp(
             supportedLocales: AppLocalizations.supportedLocales,
             localizationsDelegates: AppLocalizations.localizationsDelegates,
@@ -98,7 +96,7 @@ void main() {
             theme: ThemeData.light(),
             darkTheme: darkTheme,
             themeMode: ThemeMode.dark,
-            home: Scaffold(
+            home: const Scaffold(
               body: CountrySelectorWidget(
                 text: 'Country/Region',
                 disclaimerText: '',

@@ -12,7 +12,6 @@ Widget _wrap(Widget child, {Locale locale = const Locale('en')}) {
     supportedLocales: AppLocalizations.supportedLocales,
     localizationsDelegates: AppLocalizations.localizationsDelegates,
     home: ScreenUtilInit(
-      designSize: const Size(360, 690),
       child: Scaffold(body: SingleChildScrollView(child: child)),
     ),
   );
@@ -24,7 +23,7 @@ void main() {
     await tester.pumpWidget(_wrap(MyPlanSection(
       title: 'Difficult Events',
       subTitle: 'These are warning signs',
-      answers: ['Feeling alone', 'Bad sleep', 'Stress'],
+      answers: const ['Feeling alone', 'Bad sleep', 'Stress'],
     )));
     await tester.pump();
     expect(find.text('Difficult Events'), findsOneWidget);

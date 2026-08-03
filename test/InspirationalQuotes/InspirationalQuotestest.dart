@@ -1,9 +1,10 @@
-import 'package:flutter/material.dart';
 import 'dart:math';
 
+import 'package:flutter/material.dart';
+
 class InspirationalQuote extends StatefulWidget {
+  const InspirationalQuote({required this.quotes, super.key});
   final List<String> quotes;
-  const InspirationalQuote({super.key, required this.quotes});
   @override
   _InspirationalQuoteState createState() => _InspirationalQuoteState();
 }
@@ -31,24 +32,20 @@ class _InspirationalQuoteState extends State<InspirationalQuote> {
     return Visibility(
       visible: showText,
       child: Container(
-        key: Key('InspirationalQuote'),
+        key: const Key('InspirationalQuote'),
         decoration: BoxDecoration(
           borderRadius: BorderRadius.circular(20),
         ),
-        width: MediaQuery.of(context).size.width > 1000
+        width: 800 > 1000
             ? 800
-            : MediaQuery.of(context).size.width,
+            : 800,
         height: 120,
         child: Column(
-          mainAxisAlignment: MainAxisAlignment.start,
           children: [
             Row(
-              mainAxisAlignment: MainAxisAlignment.start,
               children: [
                 GestureDetector(
-                  onTap: () {
-                    setShow();
-                  },
+                  onTap: setShow,
                   child: const Padding(
                     padding: EdgeInsets.fromLTRB(4, 4, 0, 10),
                     child: Icon(Icons.close),
@@ -58,7 +55,6 @@ class _InspirationalQuoteState extends State<InspirationalQuote> {
             ),
             Row(
               mainAxisAlignment: MainAxisAlignment.center,
-              crossAxisAlignment: CrossAxisAlignment.center,
               children: [
                 Expanded(
                   child: Text(
@@ -74,7 +70,7 @@ class _InspirationalQuoteState extends State<InspirationalQuote> {
                   width: 10,
                 ),
                 IconButton(
-                  icon: Icon(
+                  icon: const Icon(
                     Icons.refresh,
                     size: 35,
                   ),

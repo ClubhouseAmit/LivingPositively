@@ -79,7 +79,7 @@ void main() {
     });
 
     test('updateLastUpdated', () {
-      final dt = DateTime(2024, 1, 1);
+      final dt = DateTime(2024);
       app.updateLastUpdated(dt);
       expect(app.lastUpdated, dt);
     });

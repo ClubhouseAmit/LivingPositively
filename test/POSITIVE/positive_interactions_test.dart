@@ -42,16 +42,14 @@ void main() {
   late FakePersistentMemoryService memory;
 
   setUp(() {
-    final s = registerTestServices(locale: 'en');
+    final s = registerTestServices();
     memory = s.memory;
     user = UserInformation();
     user.gender = 'other';
     user.localeName = 'en';
   });
 
-  tearDown(() {
-    resetTestServices();
-  });
+  tearDown(resetTestServices);
 
   testWidgets(
     'tapping a PositiveTraitItemSug add button appends to userInformation.positiveTraits',

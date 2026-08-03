@@ -13,13 +13,13 @@ Map<String, List<String>> mockPhonePageTitles = {
 
 // Simplified EmergencyDialogBox for testing
 class EmergencyDialogBox extends StatelessWidget {
+  const EmergencyDialogBox({required this.number, super.key});
   final String number;
-  const EmergencyDialogBox({super.key, required this.number});
 
   @override
   Widget build(BuildContext context) {
     return AlertDialog(
-      title: Text('Emergency Number'),
+      title: const Text('Emergency Number'),
       content: Text('Call $number'),
       actions: [
         TextButton(
@@ -46,7 +46,7 @@ class EmergencyPhonesRow extends StatelessWidget {
               onTap: () async {
                 showDialog(
                   context: context,
-                  builder: (BuildContext context) {
+                  builder: (context) {
                     return EmergencyDialogBox(
                         number: mockPhonePageTitles['emergencyPhones']![i]);
                   },
@@ -55,7 +55,7 @@ class EmergencyPhonesRow extends StatelessWidget {
               child: Container(
                 padding: const EdgeInsets.fromLTRB(20, 0, 0, 0),
                 decoration: BoxDecoration(
-                  border: Border.all(color: Colors.purple, width: 1),
+                  border: Border.all(color: Colors.purple),
                   color: Colors.white,
                   borderRadius: BorderRadius.circular(10),
                 ),
@@ -71,7 +71,7 @@ class EmergencyPhonesRow extends StatelessWidget {
                           children: [
                             Text(
                               mockPhonePageTitles['phoneName']![i],
-                              style: TextStyle(
+                              style: const TextStyle(
                                   color: Colors.purple,
                                   fontWeight: FontWeight.bold,
                                   fontSize: 12),
@@ -79,25 +79,25 @@ class EmergencyPhonesRow extends StatelessWidget {
                             Text(
                               mockPhonePageTitles['phoneDescription']![i],
                               style:
-                                  TextStyle(color: Colors.purple, fontSize: 12),
+                                  const TextStyle(color: Colors.purple, fontSize: 12),
                             ),
                           ],
                         ),
                       ),
                     ),
                     Transform.translate(
-                      offset: Offset(-30, -10),
+                      offset: const Offset(-30, -10),
                       child: Material(
                         color: Colors.transparent,
                         child: Container(
                           width: 40,
                           height: 40,
                           decoration: BoxDecoration(
-                            border: Border.all(color: Colors.purple, width: 1),
+                            border: Border.all(color: Colors.purple),
                             color: Colors.purple,
                             shape: BoxShape.circle,
                           ),
-                          child: Icon(
+                          child: const Icon(
                             Icons.phone,
                             color: Colors.white,
                             size: 20,

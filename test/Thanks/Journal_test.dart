@@ -29,15 +29,13 @@ void main() {
   late UserInformation userInformation;
 
   setUp(() {
-    services = registerTestServices(locale: 'en');
+    services = registerTestServices();
     userInformation = UserInformation();
     userInformation.gender = 'other';
     userInformation.localeName = 'en';
   });
 
-  tearDown(() {
-    resetTestServices();
-  });
+  tearDown(resetTestServices);
 
   group('Journal (real production widget)', () {
     testWidgets('renders empty journal with suggestions and add icon',

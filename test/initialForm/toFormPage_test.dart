@@ -1,4 +1,3 @@
-// ignore_for_file: unused_local_variable
 
 import 'package:flutter_test/flutter_test.dart';
 
@@ -23,7 +22,7 @@ void main() {
   }
 
   group('FeelGood Widget Tests', () {
-    testWidgets('ToFormPage renders correctly', (WidgetTester tester) async {
+    testWidgets('ToFormPage renders correctly', (tester) async {
       //await tester.pumpWidget(createTestWidget());
 
       /* // Verify the presence of the main title and subtitles

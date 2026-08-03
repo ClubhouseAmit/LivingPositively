@@ -43,15 +43,13 @@ void main() {
   late UserInformation userInformation;
 
   setUp(() {
-    registerTestServices(locale: 'en');
+    registerTestServices();
     userInformation = UserInformation();
     userInformation.gender = 'other';
     userInformation.localeName = 'en';
   });
 
-  tearDown(() {
-    resetTestServices();
-  });
+  tearDown(resetTestServices);
 
   group('Positive (real production widget)', () {
     testWidgets('renders empty positive page with suggestions and add icon', (

@@ -97,7 +97,7 @@ void main() {
     final svc = ImagePickerServiceImpl();
     final img = svc.displayImage('/some/where.png', fit: BoxFit.cover);
     expect(img, isA<Image>());
-    expect((img).fit, BoxFit.cover);
+    expect(img.fit, BoxFit.cover);
   });
 
   test('getOnlineImage returns Image.network for url', () {

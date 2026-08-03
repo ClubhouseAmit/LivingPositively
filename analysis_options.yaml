@@ -7,9 +7,12 @@
 
 # The following line activates a set of recommended lints for Flutter apps,
 # packages, and plugins designed to encourage good coding practices.
-include: package:flutter_lints/flutter.yaml
+include: package:very_good_analysis/analysis_options.yaml
 
 analyzer:
+  exclude:
+    - "build/**"
+    - ".dart_tool/**"
   errors:
     # Legacy naming and inference debt is intentionally baselined here to keep
     # analyzer cleanup behavior-only. Renaming these files and APIs is broad

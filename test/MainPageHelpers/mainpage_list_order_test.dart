@@ -63,7 +63,7 @@ void main() {
   late TestServiceLocators services;
 
   setUp(() {
-    services = registerTestServices(locale: 'en');
+    services = registerTestServices();
   });
 
   tearDown(resetTestServices);

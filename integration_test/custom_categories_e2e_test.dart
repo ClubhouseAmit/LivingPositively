@@ -76,7 +76,6 @@ Widget _shareFormHarness({
       locale: locale,
       localizationsDelegates: AppLocalizations.localizationsDelegates,
       home: ScreenUtilInit(
-        designSize: const Size(360, 690),
         child: ShareForm(
           prev: () {},
           submit: (_) {},
@@ -95,11 +94,11 @@ void main() {
     final prefs = await SharedPreferences.getInstance();
     await prefs.clear();
 
-    getIt.registerLazySingleton<IncidentLoggerService>(() => _NoopLogger());
-    getIt.registerLazySingleton<FileService>(() => _NoopFileService());
-    getIt.registerLazySingleton<AnalyticsService>(() => _NoopAnalytics());
+    getIt.registerLazySingleton<IncidentLoggerService>(_NoopLogger.new);
+    getIt.registerLazySingleton<FileService>(_NoopFileService.new);
+    getIt.registerLazySingleton<AnalyticsService>(_NoopAnalytics.new);
     getIt.registerLazySingleton<PersistentMemoryService>(
-        () => SharedPreferencesService());
+        SharedPreferencesService.new);
   });
 
   tearDown(() async {
@@ -108,7 +107,7 @@ void main() {
 
   testWidgets(
       'user can add repeated custom categories on Android and reload them unchanged',
-      (WidgetTester tester) async {
+      (tester) async {
     final memoryService = GetIt.instance<PersistentMemoryService>();
 
     await tester.pumpWidget(

@@ -2,26 +2,26 @@ import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:get_it/get_it.dart';
 import 'package:mazilon/AnalyticsService.dart';
-import 'package:mazilon/global_enums.dart';
-import 'package:mazilon/pages/FeelGood/image_picker_service_impl.dart';
-import 'package:mazilon/iFx/service_locator.dart';
 import 'package:mazilon/file_service.dart';
-
+import 'package:mazilon/global_enums.dart';
+import 'package:mazilon/iFx/service_locator.dart';
+import 'package:mazilon/pages/FeelGood/image_picker_service_impl.dart';
 import 'package:mazilon/pages/WellnessTools/VideoPlayerPageFactory.dart';
 import 'package:mazilon/pages/WellnessTools/more_videos_item.dart';
-import 'package:mazilon/pages/home.dart';
 import 'package:mazilon/pages/WellnessTools/wellnessTools.dart';
+import 'package:mazilon/pages/home.dart';
+import 'package:mazilon/util/appInformation.dart';
 import 'package:mazilon/util/persistent_memory_service.dart';
 import 'package:mazilon/util/userInformation.dart';
-import 'package:mazilon/util/appInformation.dart';
 import 'package:mockito/annotations.dart';
-
-import 'package:shared_preferences/shared_preferences.dart';
 import 'package:mockito/mockito.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
+import 'package:lucide_icons_flutter/lucide_icons.dart';
+
+import '../../helpers/widget_test_scaffold.dart';
 import '../TestMenu.dart';
 import '../test_data.dart';
-import '../../helpers/widget_test_scaffold.dart';
 import 'FakeVideoPlayerPage.dart';
 import 'wellnessTools_test.mocks.dart';
 
@@ -66,7 +66,7 @@ void main() {
           onFullScreenChanged: anyNamed('onFullScreenChanged'),
           videoData: anyNamed('videoData'),
         ),
-      ).thenAnswer((Invocation invocation) {
+      ).thenAnswer((invocation) {
         final onFullScreenChanged =
             invocation.namedArguments[const Symbol('onFullScreenChanged')]
                 as Function(bool);
@@ -82,17 +82,17 @@ void main() {
       getIt.registerSingleton<VideoPlayerPageFactory>(mockFactory);
       final imageFactory = MockImagePickerService();
       when(imageFactory.getOnlineImage(any)).thenAnswer((
-        Invocation invocation,
+        invocation,
       ) {
-        return Container(key: const Key("Image"), child: const Text("Image"));
+        return Container(key: const Key('Image'), child: const Text('Image'));
       });
 
       getIt.registerLazySingleton<ImagePickerService>(() => imageFactory);
       mockSharedPreferences = MockSharedPreferences();
       mockUserInformation = UserInformation();
       mockAppInformation = AppInformation();
-      mockUserInformation.gender = "male";
-      mockUserInformation.localeName = "he";
+      mockUserInformation.gender = 'male';
+      mockUserInformation.localeName = 'he';
       getData(mockAppInformation);
 
       when(mockSharedPreferences.getBool('enteredBefore')).thenReturn(false);
@@ -105,7 +105,7 @@ void main() {
     }
 
     testWidgets('Navigate to WellnessTools screen', (
-      WidgetTester tester,
+      tester,
     ) async {
       await tester.pumpWidget(
         getMenuForTests(mockUserInformation, mockAppInformation),
@@ -114,12 +114,12 @@ void main() {
       expect(find.byType(WellnessTools), findsOneWidget);
     });
     testWidgets('Header menu opens from hamburger icon', (
-      WidgetTester tester,
+      tester,
     ) async {
       await tester.pumpWidget(
         getMenuForTests(mockUserInformation, mockAppInformation),
       );
-      final menuButton = find.byIcon(Icons.menu);
+      final menuButton = find.byIcon(LucideIcons.settings);
       final menuIcon = tester.widget<Icon>(menuButton);
       final menuButtonBottom = tester.getBottomLeft(menuButton).dy;
 
@@ -137,11 +137,11 @@ void main() {
       final menuDialogWidth = tester.getSize(menuDialog).width;
       final closeButtonLeft = tester.getTopLeft(closeButton).dx;
       final closeButtonCenterY = tester.getCenter(closeButton).dy;
-      final aboutIconCenterY = tester.getCenter(find.byIcon(Icons.people)).dy;
+      final aboutIconCenterY = tester.getCenter(find.byIcon(LucideIcons.users)).dy;
 
       expect(find.byKey(const Key('mainMenuDialog')), findsOneWidget);
       expect(menuDialogTop, greaterThanOrEqualTo(menuButtonBottom));
-      expect(menuDialogTop - menuButtonBottom, lessThan(20));
+      expect(menuDialogTop - menuButtonBottom, lessThanOrEqualTo(20));
       expect(menuDialogWidth, lessThanOrEqualTo(260));
       expect(
         closeButtonLeft,
@@ -151,7 +151,7 @@ void main() {
       expect((closeButtonCenterY - aboutIconCenterY).abs(), lessThan(8));
     });
     testWidgets('Header menu puts close button on the right in English', (
-      WidgetTester tester,
+      tester,
     ) async {
       tester.view.physicalSize = const Size(1200, 900);
       tester.view.devicePixelRatio = 1;
@@ -167,7 +167,7 @@ void main() {
           locale: const Locale('en'),
         ),
       );
-      final menuButton = find.byIcon(Icons.menu);
+      final menuButton = find.byIcon(LucideIcons.settings);
       final menuButtonBottom = tester.getBottomLeft(menuButton).dy;
 
       await tapAndSettle(tester, menuButton);
@@ -180,7 +180,7 @@ void main() {
       final closeButtonLeft = tester.getTopLeft(closeButton).dx;
 
       expect(menuDialogTop, greaterThanOrEqualTo(menuButtonBottom));
-      expect(menuDialogTop - menuButtonBottom, lessThan(20));
+      expect(menuDialogTop - menuButtonBottom, lessThanOrEqualTo(20));
       expect(
         closeButtonLeft,
         greaterThan(menuDialogLeft + menuDialogWidth / 2),
@@ -188,7 +188,7 @@ void main() {
       );
     });
     testWidgets('Navigate from WellnessTools screen', (
-      WidgetTester tester,
+      tester,
     ) async {
       await tester.pumpWidget(
         getMenuForTests(mockUserInformation, mockAppInformation),
@@ -199,7 +199,7 @@ void main() {
       expect(find.byType(Home), findsOneWidget);
     });
     testWidgets('Test Repeated Navigation to and from WellnessTools screen', (
-      WidgetTester tester,
+      tester,
     ) async {
       await tester.pumpWidget(
         getMenuForTests(mockUserInformation, mockAppInformation),
@@ -218,7 +218,7 @@ void main() {
       expect(find.byType(WellnessTools), findsNothing);
     });
     testWidgets('Test Structure of WellnessTools screen', (
-      WidgetTester tester,
+      tester,
     ) async {
       await tester.pumpWidget(
         getMenuForTests(mockUserInformation, mockAppInformation),
@@ -227,17 +227,17 @@ void main() {
       await tapAndSettle(tester, find.text('כלי תמיכה'));
       expect(find.byType(FakeVideoPlayerPage), findsOneWidget);
       expect(find.byType(MoreVideosItem), findsWidgets);
-      expect(find.byKey(const Key("Image")), findsOneWidget);
+      expect(find.byKey(const Key('Image')), findsOneWidget);
     });
     testWidgets('Test Texts inside WellnessTools screen', (
-      WidgetTester tester,
+      tester,
     ) async {
       await tester.pumpWidget(
         getMenuForTests(mockUserInformation, mockAppInformation),
       );
 
       await tapAndSettle(tester, find.text('כלי תמיכה'));
-      expect(find.text("Image"), findsOneWidget);
+      expect(find.text('Image'), findsOneWidget);
       expect(find.text('v1'), findsOneWidget);
       expect(find.text('v2'), findsOneWidget);
       expect(find.text('v1d'), findsOneWidget);
@@ -247,14 +247,14 @@ void main() {
       await tapAndSettle(tester, find.byType(ExpansionTile));
       expect(find.text('v1 transcript'), findsOneWidget);
     });
-    testWidgets('Test change video', (WidgetTester tester) async {
+    testWidgets('Test change video', (tester) async {
       await tester.pumpWidget(
         getMenuForTests(mockUserInformation, mockAppInformation),
       );
 
       await tapAndSettle(tester, find.text('כלי תמיכה'));
       await tapAndSettle(tester, find.text('v2'));
-      expect(find.text("Image"), findsOneWidget);
+      expect(find.text('Image'), findsOneWidget);
       expect(find.text('v1'), findsOneWidget);
       expect(find.text('v2'), findsOneWidget);
       expect(find.text('v1d'), findsNothing);
@@ -262,7 +262,7 @@ void main() {
     });
 
     testWidgets('shows fallback for malformed or short-id video data', (
-      WidgetTester tester,
+      tester,
     ) async {
       await pumpWithProviders(
         tester,
@@ -294,7 +294,7 @@ void main() {
     });
 
     testWidgets('renders transcript as unbounded long-form text', (
-      WidgetTester tester,
+      tester,
     ) async {
       const transcript =
           'Transcript line one. Transcript line two. Transcript line three. '

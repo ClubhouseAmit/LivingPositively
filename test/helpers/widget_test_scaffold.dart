@@ -12,6 +12,7 @@ import 'dart:typed_data';
 
 import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
+import 'package:flutter_test/flutter_test.dart';
 import 'package:get_it/get_it.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:mazilon/AnalyticsService.dart';
@@ -26,7 +27,7 @@ import 'package:mazilon/util/logger_service.dart';
 import 'package:mazilon/util/persistent_memory_service.dart';
 import 'package:mazilon/util/userInformation.dart';
 import 'package:provider/provider.dart';
-import 'package:flutter_test/flutter_test.dart';
+import 'package:youtube_player_flutter/youtube_player_flutter.dart' show YoutubePlayerController;
 
 /// In-memory implementation of [PersistentMemoryService] backed by a [Map].
 ///
@@ -170,7 +171,7 @@ class NoopImagePickerService implements ImagePickerService {
   Future<void> loadImagePaths(List<String> imagePaths) async {}
 
   @override
-  displayImage(String path, {BoxFit fit = BoxFit.none}) {
+  Image displayImage(String path, {BoxFit fit = BoxFit.none}) {
     return Image.memory(
       Uint8List(0),
       fit: fit,
@@ -190,8 +191,8 @@ class NoopImagePickerService implements ImagePickerService {
 
 /// Simple [LocaleService] that returns the locale provided at construction.
 class FakeLocaleService implements LocaleService {
-  String _locale;
   FakeLocaleService([this._locale = 'en']);
+  String _locale;
 
   @override
   String getLocale() => _locale;
@@ -275,13 +276,6 @@ void resetTestServices() {
 }
 
 class TestServiceLocators {
-  final FakePersistentMemoryService memory;
-  final NoopIncidentLoggerService logger;
-  final NoopAnalyticsService analytics;
-  final NoopFileService files;
-  final NoopImagePickerService picker;
-  final FakeLocaleService localeService;
-  final FakeVideoPlayerPageFactory videoFactory;
   TestServiceLocators({
     required this.memory,
     required this.logger,
@@ -291,6 +285,13 @@ class TestServiceLocators {
     required this.localeService,
     required this.videoFactory,
   });
+  final FakePersistentMemoryService memory;
+  final NoopIncidentLoggerService logger;
+  final NoopAnalyticsService analytics;
+  final NoopFileService files;
+  final NoopImagePickerService picker;
+  final FakeLocaleService localeService;
+  final FakeVideoPlayerPageFactory videoFactory;
 }
 
 /// Wraps [child] in MultiProvider + MaterialApp + ScreenUtilInit so it builds

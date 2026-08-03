@@ -1,12 +1,11 @@
-// ignore_for_file: non_constant_identifier_names
 
 import 'dart:io';
 
 import 'package:fake_cloud_firestore/fake_cloud_firestore.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:mazilon/util/appInformation.dart';
 import 'package:mazilon/util/Firebase/firebase_functions.dart';
+import 'package:mazilon/util/appInformation.dart';
 
 const _pathProviderChannel = MethodChannel('plugins.flutter.io/path_provider');
 
@@ -81,7 +80,7 @@ Future<FakeFirebaseFirestore> _buildFullFakeFirestore() async {
   });
 
   // PhonePage-titles (needs at least 4 docs for updatePhonePageTitles)
-  for (int i = 0; i < 4; i++) {
+  for (var i = 0; i < 4; i++) {
     await fake.collection('PhonePage-titles').add({
       'mainTitle': 'ptMain$i',
       'contactsTitle': 'ptContacts$i',
@@ -618,7 +617,7 @@ void main() {
         'emergency': 'e',
         'regular': 'r',
       });
-      for (int i = 0; i < 4; i++) {
+      for (var i = 0; i < 4; i++) {
         await fake2.collection('PhonePage-titles').add({
           'mainTitle': 'pt$i',
           'contactsTitle': 'ct$i',

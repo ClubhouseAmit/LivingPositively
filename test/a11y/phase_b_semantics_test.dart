@@ -11,21 +11,21 @@ import 'package:flutter/rendering.dart' show PipelineOwner;
 import 'package:flutter/semantics.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:mazilon/l10n/app_localizations.dart';
-import 'package:mazilon/util/Phone/phoneTextAndIcon.dart';
-import 'package:mazilon/util/HomePage/inspirationalQuote.dart';
-import 'package:url_launcher_platform_interface/link.dart';
-import 'package:url_launcher_platform_interface/url_launcher_platform_interface.dart';
-
-import 'package:mazilon/AnalyticsService.dart';
 import 'package:get_it/get_it.dart';
+import 'package:mazilon/AnalyticsService.dart';
 import 'package:mazilon/file_service.dart';
 import 'package:mazilon/global_enums.dart';
 import 'package:mazilon/iFx/service_locator.dart';
+import 'package:mazilon/l10n/app_localizations.dart';
+import 'package:mazilon/util/HomePage/inspirationalQuote.dart';
+import 'package:mazilon/util/Phone/phoneTextAndIcon.dart';
+import 'package:mazilon/util/appInformation.dart';
 import 'package:mazilon/util/persistent_memory_service.dart';
 import 'package:mazilon/util/userInformation.dart';
-import 'package:mazilon/util/appInformation.dart';
 import 'package:package_info_plus/package_info_plus.dart';
+import 'package:url_launcher_platform_interface/link.dart';
+import 'package:url_launcher_platform_interface/url_launcher_platform_interface.dart';
+
 import '../MenuTest/TestMenu.dart';
 import '../MenuTest/test_data.dart';
 
@@ -118,7 +118,6 @@ Widget _wrap(
     localizationsDelegates: AppLocalizations.localizationsDelegates,
     supportedLocales: AppLocalizations.supportedLocales,
     home: ScreenUtilInit(
-      designSize: const Size(360, 690),
       builder: (context, _) => Scaffold(body: Builder(builder: builder)),
     ),
   );
@@ -165,7 +164,7 @@ void main() {
       UrlLauncherPlatform.instance = _FakeUrlLauncherPlatform();
       addTearDown(() => UrlLauncherPlatform.instance = originalPlatform);
 
-      final SemanticsHandle handle = tester.ensureSemantics();
+      final handle = tester.ensureSemantics();
       try {
         await tester.pumpWidget(_wrap((_) => phoneContact('555-1234', 'Mom')));
         await tester.pumpAndSettle();
@@ -218,7 +217,7 @@ void main() {
       UrlLauncherPlatform.instance = _FakeUrlLauncherPlatform();
       addTearDown(() => UrlLauncherPlatform.instance = originalPlatform);
 
-      final SemanticsHandle handle = tester.ensureSemantics();
+      final handle = tester.ensureSemantics();
       try {
         await tester.pumpWidget(
           _wrap(
@@ -247,17 +246,17 @@ void main() {
       // Inspirational quote uses GetIt to read AnalyticsService inside its
       // refresh handler. Register a no-op so the widget initialises cleanly.
       await GetIt.instance.reset();
-      getIt.registerLazySingleton<AnalyticsService>(() => _NoopAnalytics());
+      getIt.registerLazySingleton<AnalyticsService>(_NoopAnalytics.new);
     });
 
     testWidgets('refresh button exposes its tooltip to the semantics tree', (
       tester,
     ) async {
-      final SemanticsHandle handle = tester.ensureSemantics();
+      final handle = tester.ensureSemantics();
       try {
         await tester.pumpWidget(
           _wrap(
-            (_) => InspirationalQuote(quotes: const ['quote-1', 'quote-2']),
+            (_) => const InspirationalQuote(quotes: ['quote-1', 'quote-2']),
           ),
         );
         await tester.pumpAndSettle();
@@ -279,10 +278,10 @@ void main() {
     testWidgets('close (X) button exposes its tooltip to the semantics tree', (
       tester,
     ) async {
-      final SemanticsHandle handle = tester.ensureSemantics();
+      final handle = tester.ensureSemantics();
       try {
         await tester.pumpWidget(
-          _wrap((_) => InspirationalQuote(quotes: const ['quote-1'])),
+          _wrap((_) => const InspirationalQuote(quotes: ['quote-1'])),
         );
         await tester.pumpAndSettle();
 
@@ -300,10 +299,10 @@ void main() {
   group('Bottom nav exposes selected: semantics (UX_GAPS §3.11)', () {
     setUp(() async {
       await GetIt.instance.reset();
-      getIt.registerLazySingleton<AnalyticsService>(() => _NoopAnalytics());
-      getIt.registerLazySingleton<FileService>(() => _StubFileService());
+      getIt.registerLazySingleton<AnalyticsService>(_NoopAnalytics.new);
+      getIt.registerLazySingleton<FileService>(_StubFileService.new);
       getIt.registerLazySingleton<PersistentMemoryService>(
-        () => _StubPersistentMemoryService(),
+        _StubPersistentMemoryService.new,
       );
       PackageInfo.setMockInitialValues(
         appName: 'Mazilon',
@@ -321,7 +320,7 @@ void main() {
       final app = AppInformation();
       getData(app);
 
-      final SemanticsHandle handle = tester.ensureSemantics();
+      final handle = tester.ensureSemantics();
       try {
         await tester.pumpWidget(getMenuForTests(user, app));
         await tester.pumpAndSettle();
@@ -347,7 +346,7 @@ void main() {
       final app = AppInformation();
       getData(app);
 
-      final SemanticsHandle handle = tester.ensureSemantics();
+      final handle = tester.ensureSemantics();
       try {
         await tester.pumpWidget(getMenuForTests(user, app));
         await tester.pumpAndSettle();

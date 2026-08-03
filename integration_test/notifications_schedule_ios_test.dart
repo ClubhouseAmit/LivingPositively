@@ -56,7 +56,6 @@ import 'package:mazilon/pages/notifications/notification_service.dart';
 import 'package:mazilon/util/logger_service.dart';
 import 'package:mazilon/util/persistent_memory_service.dart';
 import 'package:mazilon/util/userInformation.dart';
-// ignore: depend_on_referenced_packages
 import 'package:workmanager_platform_interface/workmanager_platform_interface.dart';
 
 // iOS-side Workmanager safety net. The workmanager package has no iOS

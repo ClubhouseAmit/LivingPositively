@@ -14,7 +14,7 @@ class _SimplifiedCheckboxFormState extends State<SimplifiedCheckboxForm> {
   @override
   void initState() {
     super.initState();
-    _isChecked = {for (var v in data) v: false};
+    _isChecked = {for (final v in data) v: false};
   }
 
   @override
@@ -22,15 +22,15 @@ class _SimplifiedCheckboxFormState extends State<SimplifiedCheckboxForm> {
     return Center(
       child: Column(
         children: [
-          ..._isChecked.keys.map((String key) {
+          ..._isChecked.keys.map((key) {
             return CheckboxListTile(
               title: Text(key),
               value: _isChecked[key],
-              onChanged: (bool? value) {
+              onChanged: (value) {
                 setState(() {
                   _isChecked[key] = value ?? false;
                   debugPrint(
-                    "$key is now: ${_isChecked[key]}",
+                    '$key is now: ${_isChecked[key]}',
                   ); // Direct feedback
                 });
               },
@@ -38,10 +38,10 @@ class _SimplifiedCheckboxFormState extends State<SimplifiedCheckboxForm> {
           }),
           TextButton(
             onPressed: () {
-              debugPrint("Next button clicked"); // Direct feedback
+              debugPrint('Next button clicked'); // Direct feedback
               // Logic to proceed to the next page or action
             },
-            child: Text('Next Page'),
+            child: const Text('Next Page'),
           ),
         ],
       ),

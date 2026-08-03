@@ -37,7 +37,6 @@ Widget _wrap(Widget Function(BuildContext) builder,
   return MaterialApp(
     locale: locale,
     home: ScreenUtilInit(
-      designSize: const Size(360, 690),
       builder: (context, _) => Scaffold(
         body: Builder(builder: builder),
       ),

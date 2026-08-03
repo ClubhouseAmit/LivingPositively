@@ -1,23 +1,20 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:get_it/get_it.dart';
+import 'package:mazilon/initialForm/form.dart';
+import 'package:mazilon/initialForm/initialFormPage1.dart';
+import 'package:mazilon/initialForm/initialFormPage2.dart';
+import 'package:mazilon/initialForm/toFormPage.dart';
+import 'package:mazilon/l10n/app_localizations.dart';
+import 'package:mazilon/util/Form/formPagePhoneModel.dart';
+import 'package:mazilon/util/appInformation.dart';
 import 'package:mazilon/util/persistent_memory_service.dart';
+import 'package:mazilon/util/userInformation.dart';
 import 'package:mockito/annotations.dart';
 import 'package:mockito/mockito.dart';
 import 'package:provider/provider.dart';
 import 'package:shared_preferences/shared_preferences.dart';
-import 'package:mazilon/initialForm/initialFormPage1.dart';
-import 'package:mazilon/initialForm/initialFormPage2.dart';
-import 'package:mazilon/initialForm/toFormPage.dart';
-
-import 'package:mazilon/util/Form/formPagePhoneModel.dart';
-import 'package:mazilon/util/appInformation.dart';
-import 'package:mazilon/util/userInformation.dart';
-
-import 'package:mazilon/initialForm/form.dart';
-
-import 'package:mazilon/l10n/app_localizations.dart';
-import 'package:flutter_screenutil/flutter_screenutil.dart';
 
 import 'form_test.mocks.dart';
 
@@ -65,7 +62,7 @@ void main() {
 
       // Setup other mocks
       mockUserInformation = MockUserInformation();
-      when(mockUserInformation.gender).thenReturn("male");
+      when(mockUserInformation.gender).thenReturn('male');
       when(mockUserInformation.disclaimerSigned).thenReturn(true);
 
       // Setup mock AppInformation
@@ -100,7 +97,7 @@ void main() {
     // Setup the test environment
     // SharedPreferences.setMockInitialValues({'hasFilled': false});
 
-    testWidgets('FormPageTemplate widget test', (WidgetTester tester) async {
+    testWidgets('FormPageTemplate widget test', (tester) async {
       await tester.pumpWidget(
         MultiProvider(
           providers: [
@@ -113,10 +110,9 @@ void main() {
           ],
           child: MaterialApp(
             supportedLocales: AppLocalizations.supportedLocales,
-            locale: Locale('he'),
+            locale: const Locale('he'),
             localizationsDelegates: AppLocalizations.localizationsDelegates,
             home: ScreenUtilInit(
-              designSize: const Size(360, 690),
               child: InitialFormProgressIndicator(
                 phonePageData: phonePageData,
                 changeLocale: (String locale) {},
@@ -135,7 +131,7 @@ void main() {
       // Tap the next button
       await tester.scrollUntilVisible(
         find.text('המשך'),
-        500.0,
+        500,
         scrollable: find.byType(Scrollable),
       );
       await tester.pumpAndSettle();
@@ -153,7 +149,7 @@ void main() {
       // Tap the next button again
       await tester.scrollUntilVisible(
         find.text('המשך'),
-        500.0,
+        500,
         scrollable: find.byType(Scrollable).first,
       );
       await tester.pumpAndSettle();

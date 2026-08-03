@@ -10,9 +10,9 @@ class StepsWidget extends StatefulWidget {
 class _StepsWidgetState extends State<StepsWidget> {
   int currentStep = 0;
   final List<Step> steps = [
-    Step(title: Text('Step 0'), content: Text('This is the first step.')),
-    Step(title: Text('Step 1'), content: Text('This is the second step.')),
-    Step(title: Text('Step 2'), content: Text('This is the third step.')),
+    const Step(title: Text('Step 0'), content: Text('This is the first step.')),
+    const Step(title: Text('Step 1'), content: Text('This is the second step.')),
+    const Step(title: Text('Step 2'), content: Text('This is the third step.')),
   ];
 
   void next() {
@@ -39,24 +39,24 @@ class _StepsWidgetState extends State<StepsWidget> {
   Widget build(BuildContext context) {
     return MaterialApp(
       home: Scaffold(
-        appBar: AppBar(title: Text('Your Widget')),
+        appBar: AppBar(title: const Text('Your Widget')),
         body: Column(
           children: [
             Text('Step $currentStep'),
             ElevatedButton(
-              key: Key('Next'),
+              key: const Key('Next'),
               onPressed: next,
-              child: Text('Next'),
+              child: const Text('Next'),
             ),
             ElevatedButton(
-              key: Key('Prev'),
+              key: const Key('Prev'),
               onPressed: prev,
-              child: Text('Prev'),
+              child: const Text('Prev'),
             ),
             ElevatedButton(
-              key: Key('Skip'),
+              key: const Key('Skip'),
               onPressed: skip,
-              child: Text('Skip'),
+              child: const Text('Skip'),
             ),
           ],
         ),

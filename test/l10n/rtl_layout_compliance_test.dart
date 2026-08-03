@@ -2,7 +2,6 @@ import 'package:auto_size_text/auto_size_text.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:mockito/mockito.dart';
 import 'package:mazilon/MainPageHelpers/personalPlanWidget.dart';
 import 'package:mazilon/file_service.dart';
 import 'package:mazilon/form/formpagetemplate.dart';
@@ -14,6 +13,7 @@ import 'package:mazilon/util/HomePage/NameBar.dart';
 import 'package:mazilon/util/HomePage/sectionBarHome.dart';
 import 'package:mazilon/util/appInformation.dart';
 import 'package:mazilon/util/userInformation.dart';
+import 'package:mockito/mockito.dart';
 import 'package:provider/provider.dart';
 
 import '../MenuTest/shareAndDownload/share_and_download_test.mocks.dart'
@@ -54,7 +54,6 @@ Future<void> pumpArabicHarness(
         localizationsDelegates: AppLocalizations.localizationsDelegates,
         locale: const Locale('ar'),
         home: ScreenUtilInit(
-          designSize: const Size(360, 690),
           child: wrapInScaffold ? Scaffold(body: Center(child: child)) : child,
         ),
       ),
@@ -69,11 +68,11 @@ void main() {
 
   group('RTL layout compliance', () {
     testWidgets('NameBar uses directional outer padding', (
-      WidgetTester tester,
+      tester,
     ) async {
       await pumpArabicHarness(
         tester,
-        NameBar(icons: const [SizedBox()], greetingString: 'Greeting'),
+        const NameBar(icons: [SizedBox()], greetingString: 'Greeting'),
       );
 
       final padding = tester.widget<Padding>(
@@ -86,14 +85,14 @@ void main() {
     });
 
     testWidgets('SectionBarHome subtitle padding is directional', (
-      WidgetTester tester,
+      tester,
     ) async {
       await pumpArabicHarness(
         tester,
-        SectionBarHome(
-          textWidget: const Text('Title'),
+        const SectionBarHome(
+          textWidget: Text('Title'),
           icon: Icons.info,
-          icons: const [],
+          icons: [],
           subHeader: 'Subtitle',
         ),
       );
@@ -108,11 +107,11 @@ void main() {
     });
 
     testWidgets('PagePhoneItem description spacing is directional', (
-      WidgetTester tester,
+      tester,
     ) async {
       await pumpArabicHarness(
         tester,
-        PagePhoneItem(
+        const PagePhoneItem(
           phoneNumber: '123456',
           phoneName: 'Hotline',
           phoneDescription: 'Description',
@@ -130,7 +129,7 @@ void main() {
     });
 
     testWidgets('AddFormAnswer text-field padding is directional', (
-      WidgetTester tester,
+      tester,
     ) async {
       await pumpArabicHarness(
         tester,
@@ -146,7 +145,7 @@ void main() {
     });
 
     testWidgets('FormPageTemplate checkbox tile padding is directional', (
-      WidgetTester tester,
+      tester,
     ) async {
       await pumpArabicHarness(
         tester,
@@ -169,7 +168,7 @@ void main() {
     });
 
     testWidgets('PersonalPlanWidget does not use a left arrow under RTL', (
-      WidgetTester tester,
+      tester,
     ) async {
       await pumpArabicHarness(
         tester,

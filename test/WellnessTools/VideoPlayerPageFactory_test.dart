@@ -6,13 +6,9 @@ import 'package:mazilon/pages/WellnessTools/player.dart';
 import '../helpers/widget_test_scaffold.dart';
 
 void main() {
-  setUp(() {
-    registerTestServices(locale: 'en');
-  });
+  setUp(registerTestServices);
 
-  tearDown(() {
-    resetTestServices();
-  });
+  tearDown(resetTestServices);
 
   test('VideoPlayerPageFactoryImpl.create returns a Widget', () {
     final factory = VideoPlayerPageFactoryImpl();
