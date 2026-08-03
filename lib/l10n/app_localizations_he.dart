@@ -302,9 +302,9 @@ class AppLocalizationsHe extends AppLocalizations {
   @override
   String homePageThanksMainTitle(String gender) {
     String _temp0 = intl.Intl.selectLogic(gender, {
-      'male': 'תודו ליסט',
-      'female': 'תודו ליסט',
-      'other': 'תודו ליסט',
+      'male': 'יומן תודה',
+      'female': 'יומן תודה',
+      'other': 'יומן תודה',
     });
     return '$_temp0';
   }
@@ -1335,9 +1335,9 @@ class AppLocalizationsHe extends AppLocalizations {
   @override
   String todoListName(String gender) {
     String _temp0 = intl.Intl.selectLogic(gender, {
-      'male': 'תודו ליסט',
-      'female': 'תודו ליסט',
-      'other': 'תודו ליסט',
+      'male': 'יומן תודה',
+      'female': 'יומן תודה',
+      'other': 'יומן תודה',
     });
     return '$_temp0';
   }

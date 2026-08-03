@@ -36,7 +36,7 @@
      "homePagePersonalPlanSecondaryTitle": "{gender,select,male{דברים שיעשו לי טוב עכשיו} female{דברים שיעשו לי טוב עכשיו} other{דברים שיעשו לי טוב עכשיו}}",
      "homePageTraitsMainTitle": "{gender,select,male{רשימת מעלות} female{רשימת מעלות} other{רשימת מעלות}}",
      "homePageTraitsSecondaryTitle": "{gender,select,male{במה אני חזק, מומלץ לקרוא פעם ביום} female{במה אני חזקה, מומלץ לקרוא פעם ביום} other{חוזקות שלי, מומלץ לקרוא פעם ביום}}",
-     "homePageThanksMainTitle": "{gender,select,male{תודו ליסט} female{תודו ליסט} other{תודו ליסט}}",
+     "homePageThanksMainTitle": "{gender,select,male{יומן תודה} female{יומן תודה} other{יומן תודה}}",
      "homePageThanksSecondaryTitle": "{gender,select,male{על מה אני מודה היום} female{על מה אני מודה היום} other{על מה אני מודה היום}}",
     
      "homePageThankyouPopup": "{gender,select,male{זאת הדרך לחזק את שריר האושר החיובי שלך. ההמלצה היא כל יום להודות לפחות על 5 דברים בחיים שלך. יישר כוח וניפגש שוב מחר} female{זאת הדרך לחזק את שריר האושר החיובי שלך. ההמלצה היא כל יום להודות לפחות על 5 דברים בחיים שלך. יישר כוח וניפגש שוב מחר} other{ זאת הדרך לחזק את שריר האושר החיובי שלך. ההמלצה היא כל יום להודות לפחות על 5 דברים בחיים שלך. יישר כוח וניפגש שוב מחר}}",
@@ -132,7 +132,7 @@
      "menu": "{gender,select,male{תפריט} female{תפריט} other{תפריט}}",
      "notifications": "{gender,select,male{תזכורות} female{תזכורות} other{תזכורות}}",
      "home": "{gender,select,male{בית} female{בית} other{בית}}",
-     "todoListName": "{gender,select,male{תודו ליסט} female{תודו ליסט} other{תודו ליסט}}",
+     "todoListName": "{gender,select,male{יומן תודה} female{יומן תודה} other{יומן תודה}}",
 "confirmButton": "{gender,select,male{אישור} female{אישור} other{אישור}}",
      "phonePageTitle": "{gender,select,male{אתה לא לבד! אם אתה עכשיו במצוקה נא פנה לאחד הגורמים הרשומים פה} female{את לא לבד! אם את עכשיו במצוקה נא פנה לאחד הגורמים הרשומים פה} other{הנך לא לבד! אם הנך עכשיו במצוקה נא פנה לאחד הגורמים הרשומים פה}}",
      "select": "{gender,select,male{בחר} female{בחרי} other{בחר.י}}",
