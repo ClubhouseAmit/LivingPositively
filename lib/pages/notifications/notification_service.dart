@@ -1,6 +1,6 @@
-import 'package:flutter/material.dart';
 import 'package:flutter/foundation.dart'
-    show defaultTargetPlatform, kIsWeb, TargetPlatform, visibleForTesting;
+    show TargetPlatform, defaultTargetPlatform, kIsWeb, visibleForTesting;
+import 'package:flutter/material.dart';
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 import 'package:flutter_timezone/flutter_timezone.dart';
 import 'package:get_it/get_it.dart';
@@ -59,7 +59,7 @@ class NotificationsService {
     tz_data.initializeTimeZones();
     // Get the device's current time zone
     try {
-      final TimezoneInfo timeZoneName =
+      final timeZoneName =
           await FlutterTimezone.getLocalTimezone();
       //  String currentTimeZone = await FlutterNativeTimezone.getLocalTimezone();
 
@@ -77,19 +77,19 @@ class NotificationsService {
       );
       _isInitialized = true;
       try {
-        IncidentLoggerService loggerService =
+        final loggerService =
             GetIt.instance<IncidentLoggerService>();
         await loggerService.captureLog(error, stackTrace: stackTrace);
       } catch (e) {
-        debugPrint("Failed to log the error: $e");
+        debugPrint('Failed to log the error: $e');
       }
     }
   }
 
   static Future<void> showNotification(String title, String body) async {
-    debugPrint("trying to show notification");
+    debugPrint('trying to show notification');
 
-    const AndroidNotificationDetails androidNotificationDetails =
+    const androidNotificationDetails =
         AndroidNotificationDetails(
           'exampleID',
           'ShowExampleChannelTitle',
@@ -99,7 +99,7 @@ class NotificationsService {
           priority: Priority.high,
           ticker: 'ticker',
         );
-    const NotificationDetails notificationDetails = NotificationDetails(
+    const notificationDetails = NotificationDetails(
       android: androidNotificationDetails,
     );
     await _flutterLocalNotificationsPlugin.show(
@@ -128,7 +128,7 @@ class NotificationsService {
 
     final bool? grantedNotificationPermission;
     if (defaultTargetPlatform == TargetPlatform.android) {
-      final AndroidFlutterLocalNotificationsPlugin? androidImplementation =
+      final androidImplementation =
           _flutterLocalNotificationsPlugin
               .resolvePlatformSpecificImplementation<
                 AndroidFlutterLocalNotificationsPlugin
@@ -140,38 +140,38 @@ class NotificationsService {
       grantedNotificationPermission = false;
     }
     if (grantedNotificationPermission != null &&
-        grantedNotificationPermission == false) {
+        !grantedNotificationPermission) {
       showToast(message: appLocale.noPermissionAllowedText);
       //if there are no permissions granted, or no permissions, the rest of the function should not run
       return;
     }
-    TimeOfDay calculatedTime = calculateTime(hour, minute);
-    String id = "${calculatedTime.hour}${calculatedTime.minute}";
+    final calculatedTime = calculateTime(hour, minute);
+    final id = '${calculatedTime.hour}${calculatedTime.minute}';
 
     await cancelNotifications(null, cancelWorker: true);
     Workmanager().registerOneOffTask(
       id,
-      "NotificationWorker${calculatedTime.hour}${calculatedTime.minute}",
+      'NotificationWorker${calculatedTime.hour}${calculatedTime.minute}',
       inputData: {
-        "text": quotes,
-        "timeHour": hour,
-        "timeMinute": minute,
-        "id": id,
+        'text': quotes,
+        'timeHour': hour,
+        'timeMinute': minute,
+        'id': id,
       },
     );
     Workmanager().registerPeriodicTask(
       id,
-      "NotificationWorker${calculatedTime.hour}${calculatedTime.minute}Periodic",
+      'NotificationWorker${calculatedTime.hour}${calculatedTime.minute}Periodic',
       inputData: {
-        "text": quotes,
-        "timeHour": hour,
-        "timeMinute": minute,
-        "id": id,
+        'text': quotes,
+        'timeHour': hour,
+        'timeMinute': minute,
+        'id': id,
       },
-      frequency: Duration(days: 1),
+      frequency: const Duration(days: 1),
     );
 
-    var message = createText(
+    final message = createText(
       '${hour < 10 ? "0$hour" : hour}:${minute < 10 ? "0$minute" : minute}',
     );
     showToast(message: message);
@@ -185,9 +185,9 @@ class NotificationsService {
       return;
     }
 
-    var hour = userInfo.notificationHour;
-    var minute = userInfo.notificationMinute;
-    var newQuotes = retrieveInspirationalQuotes(appLocale, userInfo.gender);
+    final hour = userInfo.notificationHour;
+    final minute = userInfo.notificationMinute;
+    final newQuotes = retrieveInspirationalQuotes(appLocale, userInfo.gender);
     await initializeNotification(
       newQuotes,
       hour,
@@ -202,9 +202,9 @@ class NotificationsService {
     String id,
     String text,
   ) async {
-    final tz.TZDateTime now = tz.TZDateTime.now(tz.local);
+    final now = tz.TZDateTime.now(tz.local);
 
-    tz.TZDateTime scheduledDate = tz.TZDateTime(
+    var scheduledDate = tz.TZDateTime(
       tz.local,
       now.year,
       now.month,

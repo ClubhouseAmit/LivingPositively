@@ -1,31 +1,29 @@
-import 'package:fluttericon/elusive_icons.dart';
+import 'dart:math';
+
+import 'package:auto_size_text/auto_size_text.dart';
 import 'package:flutter/material.dart';
-import 'package:flutter_screenutil/flutter_screenutil.dart';
+
+import 'package:lucide_icons_flutter/lucide_icons.dart';
 import 'package:get_it/get_it.dart';
-import 'package:mazilon/global_enums.dart';
 import 'package:mazilon/file_service.dart';
+import 'package:mazilon/global_enums.dart';
 import 'package:mazilon/util/LP_extended_state.dart';
 import 'package:mazilon/util/Share/show_share_dialog.dart';
 import 'package:mazilon/util/SignIn/popup_toast.dart';
-
-import 'package:mazilon/util/personalPlanItem.dart';
-import 'package:mazilon/util/styles.dart';
-
-import 'dart:math';
 import 'package:mazilon/util/appInformation.dart';
+import 'package:mazilon/util/personalPlanItem.dart';
+import 'package:mazilon/util/theme/spacing.dart';
 import 'package:mazilon/util/userInformation.dart';
 import 'package:provider/provider.dart';
 
 // the personal plan widget, thats related to the personal plan section in home page
-class PersonalPlanWidget extends StatefulWidget {
+class PersonalPlanWidget extends StatefulWidget { // the function to change the current index
+  const PersonalPlanWidget({
+    required this.text, required this.changeCurrentIndex, super.key,
+  });
   final Map<String, dynamic> text; // the text of the personal plan
   final Function(BuildContext, PagesCode)
-  changeCurrentIndex; // the function to change the current index
-  const PersonalPlanWidget({
-    super.key,
-    required this.text,
-    required this.changeCurrentIndex,
-  });
+  changeCurrentIndex;
 
   @override
   State<PersonalPlanWidget> createState() => _PersonalPlanWidgetState();
@@ -39,7 +37,7 @@ class _PersonalPlanWidgetState extends LPExtendedState<PersonalPlanWidget> {
   List<String> feelBetter = [];
 
   void loadFeelBetter({bool avoidCurrentSelection = false}) {
-    final items = List<String>.from(widget.text['list'] ?? const <String>[]);
+    final items = List<String>.from((widget.text['list'] as List<dynamic>?) ?? const <String>[]);
     final previousIndexes = _selectedIndexes;
 
     if (items.length < 2) {
@@ -163,19 +161,19 @@ class _PersonalPlanWidgetState extends LPExtendedState<PersonalPlanWidget> {
     AppInformation appInfoProvider,
     String gender,
   ) {
-    const controlSlotSize = 48.0;
+    const controlSlotSize = 36.0;
     final textDirection = Directionality.of(context);
     final theme = Theme.of(context);
     final controlColor = theme.colorScheme.onSurface;
-    final refreshColor = theme.colorScheme.outline;
-    final items = List<String>.from(widget.text['list'] ?? const <String>[]);
+    final iconColor = theme.colorScheme.primary;
+    final items = List<String>.from((widget.text['list'] as List<dynamic>?) ?? const <String>[]);
     final canRefresh = _hasAlternativeVisiblePreview(items);
     final subHeader = widget.text['SubTitle'] as String? ?? '';
 
     return LayoutBuilder(
       builder: (context, constraints) {
         final titleMaxWidth = max(
-          0.0,
+          0,
           constraints.maxWidth - controlSlotSize * 4,
         );
 
@@ -187,7 +185,7 @@ class _PersonalPlanWidgetState extends LPExtendedState<PersonalPlanWidget> {
               textDirection: textDirection,
               children: [
                 ConstrainedBox(
-                  constraints: BoxConstraints(maxWidth: titleMaxWidth),
+                  constraints: BoxConstraints(maxWidth: titleMaxWidth.toDouble()),
                   child: TextButton(
                     key: const Key('personalPlanHeaderTitle'),
                     style: TextButton.styleFrom(
@@ -197,60 +195,30 @@ class _PersonalPlanWidgetState extends LPExtendedState<PersonalPlanWidget> {
                     onPressed: () {
                       widget.changeCurrentIndex(context, PagesCode.FullPlan);
                     },
-                    child: myAutoSizedText(
+                    child: AutoSizeText(
                       appLocale.personalPlanPageMyPlan(gender),
-                      TextStyle(
-                        fontSize: 24.sp,
-                        fontWeight: FontWeight.bold,
-                        color: controlColor,
-                      ),
-                      null,
-                      40,
+                      style: Theme.of(context).textTheme.headlineMedium?.copyWith(
+                            color: controlColor,
+                          ),
                     ),
                   ),
                 ),
-                SizedBox(
-                  key: const Key('personalPlanHeaderDocument'),
-                  width: controlSlotSize,
-                  height: controlSlotSize,
-                  child: Center(
-                    child: Icon(Icons.note_add, color: controlColor, size: 30),
-                  ),
-                ),
+
                 Expanded(
                   child: Row(
                     key: const Key('personalPlanHeaderActions'),
                     textDirection: textDirection,
                     mainAxisAlignment: MainAxisAlignment.end,
                     children: [
-                      Tooltip(
-                        message: appLocale.refreshPersonalPlanTooltip,
-                        child: IconButton(
-                          key: const Key('personalPlanHeaderRefresh'),
-                          constraints: const BoxConstraints.tightFor(
-                            width: controlSlotSize,
-                            height: controlSlotSize,
-                          ),
-                          padding: EdgeInsets.zero,
-                          color: refreshColor,
-                          disabledColor: theme.disabledColor,
-                          onPressed: canRefresh
-                              ? _refreshPersonalPlanPreview
-                              : null,
-                          icon: Icon(Icons.refresh, size: min(35.sp, 40)),
-                        ),
-                      ),
-                      Tooltip(
-                        message: appLocale.downloadPlanTooltip,
-                        child: IconButton(
-                          key: const Key('personalPlanHeaderDownload'),
-                          constraints: const BoxConstraints.tightFor(
-                            width: controlSlotSize,
-                            height: controlSlotSize,
-                          ),
-                          padding: EdgeInsets.zero,
-                          onPressed: () async {
-                            final result = await fileService.download(
+                      PopupMenuButton<String>(
+                        key: const Key('personalPlanHeaderActionsButton'),
+                        icon: Icon(LucideIcons.moreVertical, color: iconColor),
+                        tooltip: 'Actions',
+                        onSelected: (String result) async {
+                          if (result == 'refresh' && canRefresh) {
+                            _refreshPersonalPlanPreview();
+                          } else if (result == 'download') {
+                            final res = await fileService.download(
                               [
                                 appLocale.difficultEventsHeader(gender),
                                 appLocale.makeSaferHeader(gender),
@@ -269,7 +237,7 @@ class _PersonalPlanWidgetState extends LPExtendedState<PersonalPlanWidget> {
                               ShareFileType.PDF,
                               appLocale.textDirection,
                             );
-                            if (result == null) {
+                            if (res == null) {
                               showToast(
                                 message: appLocale.downloadFailed(gender),
                               );
@@ -278,37 +246,64 @@ class _PersonalPlanWidgetState extends LPExtendedState<PersonalPlanWidget> {
                             showToast(
                               message: appLocale.finishedDownloading(gender),
                             );
-                          },
-                          icon: Icon(
-                            Icons.download,
-                            color: controlColor,
-                            size: 30,
-                          ),
-                        ),
-                      ),
-                      Tooltip(
-                        message: appLocale.sharePlanTooltip,
-                        child: IconButton(
-                          key: const Key('personalPlanHeaderShare'),
-                          constraints: const BoxConstraints.tightFor(
-                            width: controlSlotSize,
-                            height: controlSlotSize,
-                          ),
-                          padding: EdgeInsets.zero,
-                          onPressed: () {
+                          } else if (result == 'share') {
                             showShareDialog(context);
-                          },
-                          icon: Transform.scale(
-                            key: const Key('personalPlanHeaderShareTransform'),
-                            alignment: Alignment.center,
-                            scaleX: textDirection == TextDirection.rtl ? -1 : 1,
-                            child: Icon(
-                              Elusive.share,
-                              color: controlColor,
-                              size: 30,
+                          }
+                        },
+                        itemBuilder: (BuildContext context) => <PopupMenuEntry<String>>[
+                          PopupMenuItem<String>(
+                            key: const Key('personalPlanHeaderRefresh'),
+                            value: 'refresh',
+                            enabled: canRefresh,
+                            child: Row(
+                              children: [
+                                Icon(LucideIcons.rotateCw, color: iconColor, size: 20),
+                                const SizedBox(width: Spacing.sm),
+                                Expanded(
+                                  child: Text(
+                                    appLocale.refreshPersonalPlanTooltip,
+                                    overflow: TextOverflow.ellipsis,
+                                  ),
+                                ),
+                              ],
                             ),
                           ),
-                        ),
+                          PopupMenuItem<String>(
+                            key: const Key('personalPlanHeaderDownload'),
+                            value: 'download',
+                            child: Row(
+                              children: [
+                                Icon(LucideIcons.download, color: iconColor, size: 20),
+                                const SizedBox(width: Spacing.sm),
+                                Expanded(
+                                  child: Text(
+                                    appLocale.downloadPlanTooltip,
+                                    overflow: TextOverflow.ellipsis,
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                          PopupMenuItem<String>(
+                            key: const Key('personalPlanHeaderShare'),
+                            value: 'share',
+                            child: Row(
+                              children: [
+                                Transform.scale(
+                                  scaleX: textDirection == TextDirection.rtl ? -1 : 1,
+                                  child: Icon(LucideIcons.share2, color: iconColor, size: 20),
+                                ),
+                                const SizedBox(width: Spacing.sm),
+                                Expanded(
+                                  child: Text(
+                                    appLocale.sharePlanTooltip,
+                                    overflow: TextOverflow.ellipsis,
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                        ],
                       ),
                     ],
                   ),
@@ -317,18 +312,15 @@ class _PersonalPlanWidgetState extends LPExtendedState<PersonalPlanWidget> {
             ),
             if (subHeader.isNotEmpty)
               Padding(
-                padding: const EdgeInsetsDirectional.only(start: 5, end: 18.0),
-                child: myAutoSizedText(
+                padding: const EdgeInsetsDirectional.only(start: Spacing.sm, end: Spacing.md),
+                child: AutoSizeText(
                   subHeader,
-                  TextStyle(
-                    fontWeight: FontWeight.bold,
-                    fontSize: 14.sp,
-                    color: Theme.of(context).colorScheme.outline,
-                  ),
-                  textDirection == TextDirection.rtl
+                  style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                        color: Theme.of(context).colorScheme.onSurface,
+                      ),
+                  textAlign: textDirection == TextDirection.rtl
                       ? TextAlign.right
                       : TextAlign.left,
-                  30,
                 ),
               ),
           ],
@@ -341,19 +333,19 @@ class _PersonalPlanWidgetState extends LPExtendedState<PersonalPlanWidget> {
   @override
   Widget build(BuildContext context) {
     // the providers of the app information and the user information
-    final appInfoProvider = Provider.of<AppInformation>(context, listen: true);
+    final appInfoProvider = Provider.of<AppInformation>(context);
     final userInfoProvider = Provider.of<UserInformation>(
       context,
-      listen: true,
     );
     final gender = userInfoProvider.gender;
     return SizedBox(
       width: double.infinity,
       child: Padding(
-        padding: const EdgeInsets.only(bottom: 8.0),
+        padding: const EdgeInsets.only(bottom: Spacing.sm),
         child: Column(
           children: [
             _buildPersonalPlanHeader(context, appInfoProvider, gender),
+            const SizedBox(height: Spacing.md),
             LayoutBuilder(
               builder: (context, constraints) {
                 final twoColumn = constraints.maxWidth >= 520;
@@ -375,43 +367,25 @@ class _PersonalPlanWidgetState extends LPExtendedState<PersonalPlanWidget> {
               },
             ),
             // the button to take the user to the personal plan page.
-            LayoutBuilder(
-              builder: (context, constraints) {
-                return Align(
-                  alignment: AlignmentDirectional.centerStart,
-                  child: ConstrainedBox(
-                    constraints: BoxConstraints(maxWidth: constraints.maxWidth),
-                    child: TextButton(
-                      key: const Key('personalPlanViewAllButton'),
-                      style: TextButton.styleFrom(
-                        padding: const EdgeInsets.symmetric(horizontal: 8),
-                        minimumSize: Size.zero,
+            Padding(
+              padding: const EdgeInsets.only(top: Spacing.md),
+              child: ElevatedButton(
+                key: const Key('personalPlanViewAllButton'),
+                style: ElevatedButton.styleFrom(
+                  minimumSize: const Size.fromHeight(Spacing.xxl),
+                ),
+                onPressed: () {
+                  widget.changeCurrentIndex(context, PagesCode.FullPlan);
+                },
+                child: Text(
+                  appLocale.personalPlanPageAllPlan(gender),
+                  style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                        color: Theme.of(context).colorScheme.onPrimary,
+                        fontWeight: FontWeight.bold,
                       ),
-                      onPressed: () {
-                        widget.changeCurrentIndex(context, PagesCode.FullPlan);
-                      },
-                      child: Row(
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          Flexible(
-                            child: myAutoSizedText(
-                              appLocale.personalPlanPageAllPlan(gender),
-                              TextStyle(
-                                fontWeight: FontWeight.bold,
-                                fontSize: 12.sp, // the font size of the text
-                              ),
-                              TextAlign.start,
-                              20,
-                              2,
-                            ),
-                          ),
-                          const Icon(Icons.arrow_right),
-                        ],
-                      ),
-                    ),
-                  ),
-                );
-              },
+                  textAlign: TextAlign.center,
+                ),
+              ),
             ),
           ],
         ),

@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
+import 'package:mazilon/util/theme/spacing.dart';
 
 class LanguageDropDown extends StatefulWidget {
+  LanguageDropDown({required this.changeLocale, super.key});
   final List<Map<String, String>> list = [
     {'locale': 'en', 'label': 'English'},
     {'locale': 'he', 'label': 'עברית'},
@@ -8,7 +10,6 @@ class LanguageDropDown extends StatefulWidget {
   ];
 
   final Function changeLocale;
-  LanguageDropDown({required this.changeLocale, super.key});
 
   @override
   State<LanguageDropDown> createState() => _LanguageDropDownState();
@@ -34,7 +35,7 @@ class _LanguageDropDownState extends State<LanguageDropDown> {
   @override
   void initState() {
     super.initState();
-    final Locale defaultSystemLocale =
+    final defaultSystemLocale =
         WidgetsBinding.instance.platformDispatcher.locale;
     final supportedLocale = widget.list
         .where((item) => item['locale'] == defaultSystemLocale.languageCode)
@@ -48,9 +49,9 @@ class _LanguageDropDownState extends State<LanguageDropDown> {
   Widget build(BuildContext context) {
     return Column(
       children: [
-        SizedBox(height: 20.0),
+        const SizedBox(height: Spacing.md),
         Padding(
-          padding: const EdgeInsets.only(bottom: 10.0),
+          padding: const EdgeInsets.only(bottom: 10),
           child: Wrap(
             alignment: WrapAlignment.center,
             spacing: 12,
@@ -59,35 +60,33 @@ class _LanguageDropDownState extends State<LanguageDropDown> {
                 .map(
                   (item) => Text(
                     item['label'] ?? item['locale']!,
-                    style: TextStyle(
+                    style: Theme.of(context).textTheme.bodySmall?.copyWith(
                       color: Theme.of(context).colorScheme.onSurface,
-                      fontSize: 12,
                     ),
                   ),
                 )
                 .toList(),
           ),
         ),
-        Container(
-          width: MediaQuery.of(context).size.width > 1000
-              ? 600
-              : MediaQuery.of(context).size.width * 0.5,
-          decoration: BoxDecoration(
-            color: Theme.of(context).colorScheme.primary,
-            borderRadius: BorderRadius.circular(20), // Rounded edges
-          ),
-          child: DropdownButton<String>(
+        ConstrainedBox(
+          constraints: const BoxConstraints(maxWidth: 360),
+          child: Container(
+            width: double.infinity,
+            decoration: BoxDecoration(
+              color: Theme.of(context).colorScheme.primary,
+              borderRadius: BorderRadius.circular(20), // Rounded edges
+            ),
+            child: DropdownButton<String>(
             value: dropdownValue,
             icon: Icon(
               Icons.keyboard_arrow_down_rounded,
               color: Theme.of(context).colorScheme.onPrimary,
             ),
-            iconSize: 24,
             isExpanded: true,
             dropdownColor: Theme.of(context).colorScheme.surface,
             style: TextStyle(color: Theme.of(context).colorScheme.onPrimary),
-            underline: SizedBox.shrink(),
-            onChanged: (String? value) {
+            underline: const SizedBox.shrink(),
+            onChanged: (value) {
               if (value != null) {
                 setState(() {
                   dropdownValue = value;
@@ -106,10 +105,10 @@ class _LanguageDropDownState extends State<LanguageDropDown> {
                   .toList();
             },
             items: widget.list.map<DropdownMenuItem<String>>((
-              Map<String, String> item,
+              item,
             ) {
               return DropdownMenuItem<String>(
-                value: item['locale']!,
+                value: item['locale'],
                 child: _languageOption(
                   item,
                   Theme.of(context).colorScheme.onSurface,
@@ -118,7 +117,8 @@ class _LanguageDropDownState extends State<LanguageDropDown> {
             }).toList(),
           ),
         ),
-        SizedBox(height: 20.0),
+      ),
+        const SizedBox(height: Spacing.md),
       ],
     );
   }

@@ -1,164 +1,194 @@
+import 'dart:async';
+import 'dart:math';
+
 import 'package:flutter/material.dart';
 import 'package:get_it/get_it.dart';
+import 'package:lucide_icons_flutter/lucide_icons.dart';
 import 'package:mazilon/AnalyticsService.dart';
 import 'package:mazilon/util/LP_extended_state.dart';
-import 'dart:math';
-import 'package:mazilon/util/styles.dart';
-import 'package:flutter_screenutil/flutter_screenutil.dart';
+import 'package:mazilon/util/theme/app_theme.dart';
+import 'package:mazilon/util/theme/spacing.dart';
 
-//Display a random Inspirational Quote
-class InspirationalQuote extends StatefulWidget {
+// =============================================================================
+// AffirmationCard (Variant B: Left-Accent Layout)
+// - No background, no box container.
+// - Left colored border/rule as the only visual separator.
+// - Controls are moved to a dedicated row below the text with expanded hitboxes 
+//   to prevent accidental taps.
+// =============================================================================
+
+class AffirmationCard extends StatefulWidget {
+  const AffirmationCard({required this.quotes, super.key});
   final List<String> quotes;
-  const InspirationalQuote({super.key, required this.quotes});
   @override
-  _InspirationalQuoteState createState() => _InspirationalQuoteState();
+  _AffirmationCardState createState() => _AffirmationCardState();
 }
 
-class _InspirationalQuoteState extends LPExtendedState<InspirationalQuote> {
-  bool showText = true;
-  String quote = '';
-  int number = 0;
-  AnalyticsService mixPanelService = GetIt.instance<AnalyticsService>();
-  //Let the user close the window
-  void setShow() {
-    setState(() {
-      showText = false;
-    });
+class _AffirmationCardState extends LPExtendedState<AffirmationCard>
+    with SingleTickerProviderStateMixin {
+  bool showCard = true;
+  int _currentIndex = 0;
+  int _displayIndex = 0;
+
+  late AnimationController _fadeController;
+  late Animation<double> _fadeAnimation;
+  final AnalyticsService _analytics = GetIt.instance<AnalyticsService>();
+
+  @override
+  void initState() {
+    super.initState();
+    _fadeController = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 450),
+    );
+    _fadeAnimation = CurvedAnimation(parent: _fadeController, curve: Curves.easeInOut);
+
+    if (widget.quotes.isNotEmpty) {
+      _currentIndex = Random().nextInt(widget.quotes.length);
+      _displayIndex = _currentIndex;
+    }
+    _fadeController.value = 1.0;
+  }
+
+  @override
+  void didUpdateWidget(AffirmationCard oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (widget.quotes.isEmpty) return;
+    if (oldWidget.quotes != widget.quotes || _currentIndex >= widget.quotes.length) {
+      _currentIndex = Random().nextInt(widget.quotes.length);
+      _displayIndex = _currentIndex;
+      _fadeController.value = 1.0;
+    }
+  }
+
+  @override
+  void dispose() {
+    _fadeController.dispose();
+    super.dispose();
+  }
+
+  void _dismiss() {
+    setState(() => showCard = false);
     ScaffoldMessenger.maybeOf(context)?.showSnackBar(
       SnackBar(
         content: Text(appLocale.quoteDismissedMessage),
         action: SnackBarAction(
           label: appLocale.quoteUndoAction,
           onPressed: () {
-            if (!mounted) {
-              return;
-            }
-            setState(() {
-              showText = true;
-            });
+            if (!mounted) return;
+            setState(() => showCard = true);
           },
         ),
       ),
     );
   }
 
-  @override
-  void initState() {
-    super.initState();
-    //decide which quote to show
-    if (widget.quotes.isNotEmpty) {
-      number = Random().nextInt(widget.quotes.length);
-    }
-  }
+  Future<void> _nextAffirmation() async {
+    if (widget.quotes.length < 2) return;
+    await _fadeController.reverse();
+    if (!mounted) return;
 
-  @override
-  void didUpdateWidget(InspirationalQuote oldWidget) {
-    super.didUpdateWidget(oldWidget);
-    if (widget.quotes.isEmpty) {
-      number = 0;
-      return;
-    }
-    if (oldWidget.quotes != widget.quotes || number >= widget.quotes.length) {
-      number = Random().nextInt(widget.quotes.length);
-    }
-  }
+    final prevIndex = _currentIndex;
+    int nextIndex;
+    do {
+      nextIndex = Random().nextInt(widget.quotes.length);
+    } while (nextIndex == prevIndex && widget.quotes.length > 1);
 
-  void _refreshQuote() {
-    if (widget.quotes.isEmpty) {
-      return;
-    }
     setState(() {
-      final prevNumber = number;
-      number = Random().nextInt(widget.quotes.length);
-      mixPanelService.trackEvent("Inspirational Quotes Refreshed", {
-        "Old Quote": widget.quotes[prevNumber],
-        "New Quote": widget.quotes[number],
-      });
+      _currentIndex = nextIndex;
+      _displayIndex = nextIndex;
     });
+
+    unawaited(_analytics.trackEvent('Inspirational Quotes Refreshed', {
+      'Old Quote': widget.quotes[prevIndex],
+      'New Quote': widget.quotes[nextIndex],
+    }));
+
+    if (mounted) await _fadeController.forward();
   }
 
   @override
   Widget build(BuildContext context) {
-    if (widget.quotes.isEmpty) {
-      return Padding(
-        padding: const EdgeInsets.symmetric(horizontal: Spacing.md, vertical: Spacing.sm),
-        child: Text(
-          appLocale.quotesUnavailableMessage,
-          textAlign: TextAlign.start,
-          style: TextStyle(
-            color: Theme.of(context).colorScheme.outline,
-            fontSize: 12.sp,
-            fontWeight: FontWeight.normal,
+    if (widget.quotes.isEmpty || !showCard) return const SizedBox.shrink();
+    
+    final isRtl = Directionality.of(context) == TextDirection.rtl;
+
+    return Padding(
+      // Outer padding matches page sections
+      padding: const EdgeInsets.symmetric(horizontal: Spacing.lg),
+      child: Container(
+        decoration: BoxDecoration(
+          // Thin accent border on the starting edge only
+          border: Border(
+            left: isRtl
+                ? BorderSide.none
+                : BorderSide(color: AppColors.primary.withValues(alpha: 0.5), width: 2),
+            right: isRtl
+                ? BorderSide(color: AppColors.primary.withValues(alpha: 0.5), width: 2)
+                : BorderSide.none,
           ),
         ),
-      );
-    }
-    return Visibility(
-      visible: showText,
-      child: Container(
-        padding: const EdgeInsets.all(Spacing.lg),
-        decoration: BoxDecoration(
-          borderRadius: BorderRadius.circular(20),
-          color: Theme.of(context).colorScheme.primary,
-        ),
-        width: MediaQuery.of(context).size.width > 1000
-            ? 800
-            : MediaQuery.of(context).size.width,
-        constraints: const BoxConstraints(minHeight: 120),
-        child: Stack(
+        padding: const EdgeInsets.symmetric(horizontal: 14), // Offset content from border
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          mainAxisSize: MainAxisSize.min, // Hug content
           children: [
-            PositionedDirectional(
-              top: 15,
-              end: 15,
-              // Tooltip owns the announced label; Semantics only adds the
-              // `button` role so GestureDetector doesn't read as plain text.
-              child: Semantics(
-                button: true,
-                child: GestureDetector(
-                  onTap: setShow,
+            Row(
+              children: [
+                const Icon(LucideIcons.leaf, size: 14, color: AppColors.affirmationMuted),
+                const SizedBox(width: 8),
+                Text(
+                  appLocale.affirmationCardLabel.toUpperCase(),
+                  style: const TextStyle(
+                    fontSize: 11,
+                    fontWeight: FontWeight.w500,
+                    letterSpacing: 0.9,
+                    color: AppColors.affirmationMuted,
+                    height: 1.0,
+                  ),
+                ),
+                const Spacer(),
+                // Controls moved to header row
+                if (widget.quotes.length > 1)
+                  Semantics(
+                    button: true,
+                    child: Tooltip(
+                      message: appLocale.nextAffirmationTooltip,
+                      child: GestureDetector(
+                        onTap: _nextAffirmation,
+                        child: const Padding(
+                          padding: EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                          child: Icon(LucideIcons.chevronRight, size: 16, color: AppColors.affirmationMuted),
+                        ),
+                      ),
+                    ),
+                  ),
+                const SizedBox(width: 4),
+                Semantics(
+                  button: true,
                   child: Tooltip(
                     message: appLocale.dismissQuoteTooltip,
-                    child: const Padding(
-                      padding: EdgeInsets.all(4.0),
-                      child: Icon(Icons.close),
+                    child: GestureDetector(
+                      onTap: _dismiss,
+                      child: const Padding(
+                        padding: EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                        child: Icon(Icons.close, size: 16, color: AppColors.affirmationMuted),
+                      ),
                     ),
                   ),
                 ),
-              ),
+              ],
             ),
-            Align(
-              alignment: Alignment.center,
-              child: Padding(
-                padding: const EdgeInsets.symmetric(horizontal: Spacing.xl, vertical: Spacing.md),
-                child: Row(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  crossAxisAlignment: CrossAxisAlignment.center,
-                  children: [
-                    IconButton(
-                      icon: Icon(
-                        Icons.refresh,
-                        size: min(35.sp, 40),
-                        color: Theme.of(context).colorScheme.onPrimary,
-                      ),
-                      tooltip: appLocale.refreshQuoteTooltip,
-                      //"refresh" button to change the quote
-                      onPressed: _refreshQuote,
-                    ),
-                    const SizedBox(width: Spacing.md),
-                    Expanded(
-                      child: myAutoSizedText(
-                        widget.quotes[number],
-                        TextStyle(
-                          fontWeight: FontWeight.normal,
-                          color: Theme.of(context).colorScheme.onPrimary,
-                          fontSize: 24.sp,
-                        ),
-                        TextAlign.start,
-                        24,
-                        4,
-                      ),
-                    ),
-                  ],
+            const SizedBox(height: 6),
+            FadeTransition(
+              opacity: _fadeAnimation,
+              child: Text(
+                widget.quotes[_displayIndex],
+                style: const TextStyle(
+                  fontSize: 15,
+                  fontWeight: FontWeight.normal,
+                  height: 1.55,
+                  color: AppColors.affirmationForeground,
                 ),
               ),
             ),

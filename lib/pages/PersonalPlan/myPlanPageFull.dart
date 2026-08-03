@@ -1,23 +1,24 @@
-// ignore_for_file: prefer_const_constructors, sort_child_properties_last
+// ignore_for_file: prefer_const_constructors
 
+import 'package:auto_size_text/auto_size_text.dart';
 import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:get_it/get_it.dart';
-
+import 'package:mazilon/form/form.dart';
 import 'package:mazilon/global_enums.dart';
 import 'package:mazilon/pages/PersonalPlan/myPlan.dart';
+import 'package:mazilon/util/Form/formPagePhoneModel.dart';
 import 'package:mazilon/util/Form/retrieveInformation.dart';
 import 'package:mazilon/util/LP_extended_state.dart';
-import 'package:mazilon/util/styles.dart';
 import 'package:mazilon/util/appInformation.dart';
+import 'package:mazilon/util/HomePage/premium_glass_app_bar.dart';
+import 'package:mazilon/util/page_layout_wrapper.dart';
 import 'package:mazilon/util/persistent_memory_service.dart';
+import 'package:mazilon/util/theme/spacing.dart';
 import 'package:mazilon/util/type_utils.dart';
-import 'package:provider/provider.dart';
-import 'package:mazilon/form/form.dart';
 import 'package:mazilon/util/userInformation.dart';
-
-import 'package:mazilon/util/Form/formPagePhoneModel.dart';
-import 'package:flutter_screenutil/flutter_screenutil.dart';
+import 'package:provider/provider.dart';
 import 'package:url_launcher/url_launcher.dart';
 
 const String _customCategoryTitlesKey = 'customCategoryTitles';
@@ -26,16 +27,15 @@ const String _customCategoryDescriptionsKey = 'customCategoryDescriptions';
 // This widget displays the user's personalized plan with sections for various topics.
 // It allows the user to view their selected answers and navigate to additional forms or options.
 class MyPlanPageFull extends StatefulWidget {
-  final PhonePageData phonePageData; // Data related to phone numbers
-  final bool hasFilled; // Whether the user has filled out the required forms
-  final Function changeLocale;
-
   const MyPlanPageFull({
-    super.key,
     required this.phonePageData,
     required this.hasFilled,
     required this.changeLocale,
+    super.key,
   });
+  final PhonePageData phonePageData; // Data related to phone numbers
+  final bool hasFilled; // Whether the user has filled out the required forms
+  final Function changeLocale;
 
   @override
   State<MyPlanPageFull> createState() => _MyPlanPageFullState();
@@ -81,7 +81,7 @@ class _MyPlanPageFullState extends LPExtendedState<MyPlanPageFull> {
 
   // Combine phone names and numbers into a formatted string and update the state
   void setPhones(names, numbers) {
-    List<String> temp = [];
+    final temp = <String>[];
     for (var i = 0; i < names.length; i++) {
       temp.add('${names[i]}:${numbers[i]}');
     }
@@ -91,7 +91,7 @@ class _MyPlanPageFullState extends LPExtendedState<MyPlanPageFull> {
   }
 
   // Launch a URL in the default browser
-  void _launchURL(Uri url) async {
+  Future<void> _launchURL(Uri url) async {
     if (await canLaunchUrl(url)) {
       await launchUrl(url);
     } else {
@@ -100,7 +100,7 @@ class _MyPlanPageFullState extends LPExtendedState<MyPlanPageFull> {
   }
 
   @override
-  initState() {
+  void initState() {
     super.initState();
     loadCustomCategories();
   }
@@ -110,7 +110,7 @@ class _MyPlanPageFullState extends LPExtendedState<MyPlanPageFull> {
       return;
     }
 
-    PersistentMemoryService service = GetIt.instance<PersistentMemoryService>();
+    final service = GetIt.instance<PersistentMemoryService>();
     final titles = TypeUtils.castToStringList(
       await service.getItem(
         _customCategoryTitlesKey,
@@ -147,10 +147,9 @@ class _MyPlanPageFullState extends LPExtendedState<MyPlanPageFull> {
   @override
   Widget build(BuildContext context) {
     // Providers to get app and user information
-    final appInfoProvider = Provider.of<AppInformation>(context, listen: true);
+    final appInfoProvider = Provider.of<AppInformation>(context);
     final userInfoProvider = Provider.of<UserInformation>(
       context,
-      listen: true,
     );
 
     // Set up phone and answer information based on the user's data
@@ -166,155 +165,135 @@ class _MyPlanPageFullState extends LPExtendedState<MyPlanPageFull> {
     );
 
     final gender = userInfoProvider.gender;
-    Map<String, String> texts = appInfoProvider.sharePDFtexts;
+    final texts = appInfoProvider.sharePDFtexts;
 
     // Extract relevant texts for display of the bottom text
-    String text1 = texts['firstLine'] ?? '';
-    String text2 = texts['firstLinkText'] ?? '';
-    String text2Link = texts['firstLinkURL'] ?? '';
-    String text3 = texts['secondLine'] ?? '';
-    String text4 = texts['thirdLine'] ?? '';
-    String text5 = texts['secondLinkText'] ?? '';
-    String text5Link = texts['secondLinkURL'] ?? '';
-    String text6 = texts['forthLine'] ?? '';
+    final text1 = texts['firstLine'] ?? '';
+    final text2 = texts['firstLinkText'] ?? '';
+    final text2Link = texts['firstLinkURL'] ?? '';
+    final text3 = texts['secondLine'] ?? '';
+    final text4 = texts['thirdLine'] ?? '';
+    final text5 = texts['secondLinkText'] ?? '';
+    final text5Link = texts['secondLinkURL'] ?? '';
+    final text6 = texts['forthLine'] ?? '';
     final colorScheme = Theme.of(context).colorScheme;
 
-    return Scaffold(
-      backgroundColor: colorScheme.surfaceContainerHighest,
-      appBar: AppBar(
-        title: SingleChildScrollView(
-          child: Center(
-            child: myAutoSizedText(
-              appLocale.personalPlanPageMyPlan(gender),
-              TextStyle(fontWeight: FontWeight.bold, fontSize: 30.sp),
-              null,
-              40,
-            ),
-          ),
-        ),
-        backgroundColor: colorScheme.primary,
-        foregroundColor: colorScheme.onPrimary,
-        shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.only(
-            bottomLeft: Radius.circular(25.0),
-            bottomRight: Radius.circular(25.0),
-          ),
-        ),
-        toolbarHeight: 100,
+    return PageLayoutWrapper(
+      sliverAppBar: PremiumGlassAppBar(
+        variant: AppBarVariant.rootTab,
+        titleText: appLocale.personalPlanPageMyPlan(gender),
       ),
-      body: SingleChildScrollView(
-        child: Column(
-          // Main content area for displaying the user's plan
-          crossAxisAlignment: CrossAxisAlignment.center,
-          children: [
-            // Display a list of plan sections with their corresponding answers
-            ListView.builder(
-              itemBuilder: (context, index) {
-                var info = retrieveInformation(
-                  fieldNames[index],
-                  userInfoProvider.gender,
-                  appLocale,
-                );
+      body: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          SizedBox(height: Spacing.md),
+          ListView.builder(
+            itemBuilder: (context, index) {
+              final info = retrieveInformation(
+                fieldNames[index],
+                userInfoProvider.gender,
+                appLocale,
+              );
 
-                return MyPlanSection(
-                  title: info["header"] ?? '',
-                  subTitle: info["subTitle"] ?? '',
-                  answers: userAnswers[index],
-                );
-              },
-              itemCount: 4,
-              shrinkWrap: true,
-              physics: NeverScrollableScrollPhysics(),
+              return MyPlanSection(
+                title: info['header'] ?? '',
+                subTitle: info['subTitle'] ?? '',
+                answers: userAnswers[index],
+              );
+            },
+            itemCount: 4,
+            shrinkWrap: true,
+            physics: NeverScrollableScrollPhysics(),
+          ),
+          // Additional section for phone-related information
+          MyPlanSection(
+            title: appLocale.phonesPageHeader(gender),
+            subTitle: appLocale.phonesPageSubTitle(gender),
+            answers: phoneInformation,
+          ),
+          ...customCategories.map(
+            (category) => MyPlanSection(
+              title: category.key,
+              subTitle: '',
+              answers: [category.value],
             ),
-            // Additional section for phone-related information
-            MyPlanSection(
-              title: appLocale.phonesPageHeader(gender),
-              subTitle: appLocale.phonesPageSubTitle(gender),
-              answers: phoneInformation,
-            ),
-            ...customCategories.map(
-              (category) => MyPlanSection(
-                title: category.key,
-                subTitle: '',
-                answers: [category.value],
-              ),
-            ),
-            const SizedBox(height: Spacing.lg),
-            // Display additional text with links, if available
-            Column(
-              crossAxisAlignment: CrossAxisAlignment.end,
-              children: [
-                appLocale.localeName != 'he'
-                    ? Container()
-                    : Padding(
-                        padding: const EdgeInsets.all(Spacing.sm),
-                        child: RichText(
-                          textAlign: TextAlign.justify,
-                          text: TextSpan(
-                            children: <TextSpan>[
-                              TextSpan(
-                                text: "$text1 ",
-                                style: TextStyle(
-                                  fontSize: 15.sp,
-                                  fontWeight: FontWeight.normal,
-                                  color: colorScheme.onSurface,
-                                ),
-                              ),
-                              TextSpan(
-                                recognizer: TapGestureRecognizer()
-                                  ..onTap = () =>
-                                      _launchURL(Uri.parse(text2Link)),
-                                text: "$text2 ",
-                                style: TextStyle(
-                                  fontSize: 15.sp,
-                                  fontWeight: FontWeight.normal,
-                                  color: colorScheme.primary,
-                                ),
-                              ),
-                              TextSpan(
-                                text: "$text3 ",
-                                style: TextStyle(
-                                  fontSize: 15.sp,
-                                  fontWeight: FontWeight.normal,
-                                  color: colorScheme.onSurface,
-                                ),
-                              ),
-                              TextSpan(
-                                text: "$text4 ",
-                                style: TextStyle(
-                                  fontSize: 15.sp,
-                                  fontWeight: FontWeight.normal,
-                                  color: colorScheme.onSurface,
-                                ),
-                              ),
-                              TextSpan(
-                                recognizer: TapGestureRecognizer()
-                                  ..onTap = () =>
-                                      _launchURL(Uri.parse(text5Link)),
-                                text: "$text5 ",
-                                style: TextStyle(
-                                  fontSize: 15.sp,
-                                  fontWeight: FontWeight.normal,
-                                  color: colorScheme.primary,
-                                ),
-                              ),
-                              TextSpan(
-                                text: "$text6.",
-                                style: TextStyle(
-                                  fontSize: 15.sp,
-                                  fontWeight: FontWeight.normal,
-                                  color: colorScheme.onSurface,
-                                ),
-                              ),
-                            ],
+          ),
+          SizedBox(height: Spacing.lg),
+          // Display additional text with links, if available
+          Column(
+            crossAxisAlignment: CrossAxisAlignment.end,
+            children: [
+              if (appLocale.localeName != 'he')
+                Container()
+              else
+                Padding(
+                  padding: EdgeInsets.all(Spacing.sm),
+                  child: RichText(
+                    textAlign: TextAlign.justify,
+                    text: TextSpan(
+                      children: <TextSpan>[
+                        TextSpan(
+                          text: '$text1 ',
+                          style: TextStyle(
+                            fontSize: 15.sp,
+                            fontWeight: FontWeight.normal,
+                            color: colorScheme.onSurface,
                           ),
                         ),
-                      ),
-              ],
-            ),
-            const SizedBox(height: Spacing.lg),
-            // Button to navigate to another form or action
-            TextButton(
+                        TextSpan(
+                          recognizer: TapGestureRecognizer()
+                            ..onTap = () => _launchURL(Uri.parse(text2Link)),
+                          text: '$text2 ',
+                          style: TextStyle(
+                            fontSize: 15.sp,
+                            fontWeight: FontWeight.normal,
+                            color: colorScheme.primary,
+                          ),
+                        ),
+                        TextSpan(
+                          text: '$text3 ',
+                          style: TextStyle(
+                            fontSize: 15.sp,
+                            fontWeight: FontWeight.normal,
+                            color: colorScheme.onSurface,
+                          ),
+                        ),
+                        TextSpan(
+                          text: '$text4 ',
+                          style: TextStyle(
+                            fontSize: 15.sp,
+                            fontWeight: FontWeight.normal,
+                            color: colorScheme.onSurface,
+                          ),
+                        ),
+                        TextSpan(
+                          recognizer: TapGestureRecognizer()
+                            ..onTap = () => _launchURL(Uri.parse(text5Link)),
+                          text: '$text5 ',
+                          style: TextStyle(
+                            fontSize: 15.sp,
+                            fontWeight: FontWeight.normal,
+                            color: colorScheme.primary,
+                          ),
+                        ),
+                        TextSpan(
+                          text: '$text6.',
+                          style: TextStyle(
+                            fontSize: 15.sp,
+                            fontWeight: FontWeight.normal,
+                            color: colorScheme.onSurface,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+            ],
+          ),
+          SizedBox(height: Spacing.lg),
+          // Button to navigate to another form or action
+          Center(
+            child: TextButton(
               onPressed: () {
                 Navigator.pushAndRemoveUntil(
                   context,
@@ -326,13 +305,13 @@ class _MyPlanPageFullState extends LPExtendedState<MyPlanPageFull> {
                         ), //place collections here
                     transitionsBuilder:
                         (context, animation, secondaryAnimation, child) {
-                          var begin = Offset(-1.0, 0.0);
-                          var end = Offset.zero;
-                          var tween = Tween(begin: begin, end: end);
-                          var offsetAnimation = animation.drive(tween);
+                          final begin = Offset(-1, 0);
+                          const end = Offset.zero;
+                          final tween = Tween(begin: begin, end: end);
+                          final offsetAnimation = animation.drive(tween);
 
-                          var fadeTween = Tween(begin: 0.0, end: 1.0);
-                          var fadeAnimation = animation.drive(fadeTween);
+                          final fadeTween = Tween<double>(begin: 0.0, end: 1.0);
+                          final fadeAnimation = animation.drive(fadeTween);
 
                           return SlideTransition(
                             position: offsetAnimation,
@@ -343,33 +322,33 @@ class _MyPlanPageFullState extends LPExtendedState<MyPlanPageFull> {
                           );
                         },
                   ),
-                  (Route<dynamic> route) => false,
+                  (route) => false,
                 );
               },
               style: TextButton.styleFrom(
                 backgroundColor: colorScheme.primary,
                 foregroundColor: colorScheme.onPrimary,
-                padding: const EdgeInsets.symmetric(horizontal: Spacing.lg, vertical: Spacing.sm),
-                shape: const RoundedRectangleBorder(
-                  borderRadius: BorderRadius.all(Radius.circular(20)),
+                padding: EdgeInsets.symmetric(
+                  horizontal: Spacing.md,
+                  vertical: Spacing.md,
                 ),
+                // shape: const RoundedRectangleBorder(
+                //   borderRadius: BorderRadius.all(Radius.circular(20)),
+                // ),
               ),
-              child: myAutoSizedText(
+              child: AutoSizeText(
                 widget.hasFilled
                     ? appLocale.personalPlanPageHasFilled(gender)
                     : appLocale.personalPlanPageDidNotFill(gender),
-                TextStyle(
-                  fontSize: 20.sp,
+                style: Theme.of(context).textTheme.titleLarge?.copyWith(
                   fontWeight: FontWeight.bold,
                   color: colorScheme.onPrimary,
                 ),
-                null,
-                24,
               ),
             ),
-            SizedBox(height: Spacing.bottomPadding),
-          ],
-        ),
+          ),
+          SizedBox(height: Spacing.bottomPadding),
+        ],
       ),
     );
   }

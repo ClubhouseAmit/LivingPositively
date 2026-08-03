@@ -1,26 +1,21 @@
+import 'package:auto_size_text/auto_size_text.dart';
 import 'package:flutter/material.dart';
-import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:mazilon/util/LP_extended_state.dart';
-import 'package:mazilon/util/styles.dart';
+import 'package:mazilon/util/theme/spacing.dart';
 import 'package:mazilon/util/userInformation.dart'; //
 import 'package:provider/provider.dart'; //
 //
 
 // the add form widget, it shows a form to add or edit an item to the list
-class AddForm extends StatefulWidget {
+class AddForm extends StatefulWidget { // the title of the form
+  const AddForm({
+    required this.add, required this.index, required this.edit, required this.text, required this.formTitle, super.key,
+  });
   final Function add; // the function to add item to the list
   final int index; // the index of the item in the list
   final Function edit; // the function to edit the item in the list
   final String text; // the text of the item
-  final String formTitle; // the title of the form
-  const AddForm({
-    super.key,
-    required this.add,
-    required this.index,
-    required this.edit,
-    required this.text,
-    required this.formTitle,
-  });
+  final String formTitle;
   @override
   State<AddForm> createState() => _AddFormState();
 }
@@ -59,33 +54,31 @@ class _AddFormState extends LPExtendedState<AddForm> {
 
     final userInfoProvider = Provider.of<UserInformation>(
       context,
-      listen: true,
     ); //
     final gender = userInfoProvider.gender;
 
     return Dialog(
-      child: SizedBox(
-        // set the width of the dialog to 800 if the screen width is more than 1000, else set it to the screen width
-        width: MediaQuery.of(context).size.width > 1000
-            ? 800
-            : MediaQuery.of(context).size.width,
-        child: SingleChildScrollView(
+      child: ConstrainedBox(
+        constraints: const BoxConstraints(maxWidth: 800),
+        child: SizedBox(
+          width: double.infinity,
+          child: SingleChildScrollView(
           // Wrap Column with SingleChildScrollView
           child: Column(
             children: [
-              SizedBox(height: 10),
+              const SizedBox(height: Spacing.sm),
               // text on the top of the form
-              myAutoSizedText(
-                appLocale.newTraitOrThanks(widget.formTitle),
-                TextStyle(
-                  fontWeight: FontWeight.bold,
-                  fontSize: 20.sp, // text size
+              Semantics(
+                header: true,
+                child: AutoSizeText(
+                  appLocale.newTraitOrThanks(widget.formTitle),
+                  style: Theme.of(context).textTheme.titleLarge?.copyWith(
+                        fontWeight: FontWeight.bold,
+                      ),
                 ),
-                null,
-                40,
               ),
               Padding(
-                padding: const EdgeInsets.all(8.0),
+                padding: const EdgeInsets.all(8),
                 child: Form(
                   key: _formKey,
                   child: Column(
@@ -95,7 +88,7 @@ class _AddFormState extends LPExtendedState<AddForm> {
                           children: <Widget>[
                             // the text field
                             Padding(
-                              padding: const EdgeInsets.only(bottom: 8.0),
+                              padding: const EdgeInsets.only(bottom: 8),
                               child: TextFormField(
                                 onFieldSubmitted: (_) =>
                                     _onSubmitForm(userInfoProvider),
@@ -105,13 +98,8 @@ class _AddFormState extends LPExtendedState<AddForm> {
                                 autofocus: true,
                                 decoration: InputDecoration(
                                   labelText: widget.formTitle,
-                                  contentPadding: EdgeInsets.only(right: 1.0),
-                                  labelStyle: TextStyle(
-                                    fontWeight: FontWeight.normal,
-                                    fontFamily: 'Rubix',
-                                    height: 0,
-                                    fontSize: 20,
-                                  ),
+                                  contentPadding: const EdgeInsets.only(right: 1),
+                                  labelStyle: Theme.of(context).textTheme.titleLarge?.copyWith(height: 0),
                                 ),
                                 validator: (value) {
                                   // validate the text field
@@ -134,14 +122,11 @@ class _AddFormState extends LPExtendedState<AddForm> {
                 children: <Widget>[
                   // the close button
                   TextButton(
-                    child: myAutoSizedText(
+                    child: AutoSizeText(
                       appLocale.closeButton(gender),
-                      TextStyle(
-                        fontWeight: FontWeight.bold,
-                        fontSize: 20.sp, // button text size
-                      ),
-                      null,
-                      30,
+                      style: Theme.of(context).textTheme.bodyLarge?.copyWith(
+                            fontWeight: FontWeight.bold,
+                          ),
                     ),
                     onPressed: () {
                       Navigator.of(context).pop();
@@ -149,14 +134,11 @@ class _AddFormState extends LPExtendedState<AddForm> {
                   ),
                   // the save button
                   TextButton(
-                    child: myAutoSizedText(
+                    child: AutoSizeText(
                       appLocale.saveButton(gender),
-                      TextStyle(
-                        fontWeight: FontWeight.bold,
-                        fontSize: 20.sp, // button text size
-                      ),
-                      null,
-                      30,
+                      style: Theme.of(context).textTheme.bodyLarge?.copyWith(
+                            fontWeight: FontWeight.bold,
+                          ),
                     ),
                     onPressed: () => {_onSubmitForm(userInfoProvider)},
                   ),
@@ -165,6 +147,7 @@ class _AddFormState extends LPExtendedState<AddForm> {
             ],
           ),
         ),
+      ),
       ),
     );
   }

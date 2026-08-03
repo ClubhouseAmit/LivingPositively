@@ -1,22 +1,18 @@
-// ignore_for_file: annotate_overrides
+import 'package:auto_size_text/auto_size_text.dart';
 import 'package:flutter/material.dart';
 import 'package:get_it/get_it.dart';
-import 'package:mazilon/global_enums.dart';
-import 'package:mazilon/util/LP_extended_state.dart';
-import 'package:mazilon/util/persistent_memory_service.dart';
-import 'package:flutter_screenutil/flutter_screenutil.dart';
-
+import 'package:mazilon/form/formpagetemplate.dart';
 import 'package:mazilon/form/phonePageform.dart';
 import 'package:mazilon/form/shareform.dart';
-import 'package:mazilon/form/formpagetemplate.dart';
+import 'package:mazilon/global_enums.dart';
 import 'package:mazilon/menu.dart';
-
 import 'package:mazilon/util/Form/formPagePhoneModel.dart';
-
-import 'package:mazilon/util/styles.dart';
-import 'package:provider/provider.dart';
-
+import 'package:mazilon/util/LP_extended_state.dart';
+import 'package:mazilon/util/HomePage/premium_glass_app_bar.dart';
+import 'package:mazilon/util/page_layout_wrapper.dart';
+import 'package:mazilon/util/persistent_memory_service.dart';
 import 'package:mazilon/util/userInformation.dart';
+import 'package:provider/provider.dart';
 
 List<String> pages = [
   'PersonalPlan-DifficultEvents',
@@ -26,14 +22,12 @@ List<String> pages = [
 ];
 
 class FormProgressIndicator extends StatefulWidget {
-  final PhonePageData phonePageData;
-  final Function changeLocale;
 
   const FormProgressIndicator({
-    super.key,
-    required this.phonePageData,
-    required this.changeLocale,
+    required this.phonePageData, required this.changeLocale, super.key,
   });
+  final PhonePageData phonePageData;
+  final Function changeLocale;
 
   @override
   FormProgressIndicatorState createState() => FormProgressIndicatorState();
@@ -56,20 +50,20 @@ class FormProgressIndicatorState
     });
   }
 
-  void updateName(name) {
+  void updateName(String name) {
     setState(() {
       this.name = name;
     });
   }
 
-  void submitForm(mycontext) async {
-    PersistentMemoryService service =
+  Future<void> submitForm(BuildContext mycontext) async {
+    final service =
         GetIt.instance<
           PersistentMemoryService
         >(); // Get the persistent memory service instance
 
     if (name.isNotEmpty) {
-      await service.setItem("name", PersistentMemoryType.String, name);
+      await service.setItem('name', PersistentMemoryType.String, name);
     }
     navigateToMenu(mycontext);
   }
@@ -80,11 +74,11 @@ class FormProgressIndicatorState
       MaterialPageRoute(
         builder: (context) => ShareForm(prev: prev, submit: submitForm),
       ),
-      (Route<dynamic> route) => false,
+      (route) => false,
     );
   }
 
-  void navigateToMenu(mycontext) {
+  void navigateToMenu(BuildContext mycontext) {
     Navigator.pushAndRemoveUntil(
       mycontext,
       MaterialPageRoute(
@@ -94,7 +88,7 @@ class FormProgressIndicatorState
           changeLocale: widget.changeLocale,
         ),
       ),
-      (Route<dynamic> route) => false,
+      (route) => false,
     );
   }
 
@@ -148,7 +142,6 @@ class FormProgressIndicatorState
   Widget build(BuildContext context) {
     final userInfoProvider = Provider.of<UserInformation>(
       context,
-      listen: true,
     );
 
     final gender = userInfoProvider.gender;
@@ -161,72 +154,56 @@ class FormProgressIndicatorState
           prev();
         }
       },
-      child: Scaffold(
-        appBar: PreferredSize(
-          preferredSize: const Size.fromHeight(70),
-          child: AppBar(
-            automaticallyImplyLeading: false,
-            flexibleSpace: LayoutBuilder(
-              builder: (BuildContext context, BoxConstraints constraints) {
-                return Container(
-                  height: constraints.maxHeight,
-                  color: Theme.of(context).colorScheme.surfaceContainerHighest,
-                  child: Column(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
-                      Row(
-                        mainAxisAlignment: currentStep > (0)
-                            ? MainAxisAlignment.spaceBetween
-                            : MainAxisAlignment.end,
-                        children: [
-                          if (currentStep > (0))
-                            IconButton(
-                              icon: const Icon(Icons.arrow_back_ios),
-                              onPressed: () {
-                                prev();
-                              },
-                            ),
-                          IconButton(
-                            icon: myAutoSizedText(
-                              appLocale.saveAndQuitButton(gender),
-                              TextStyle(fontSize: 23.sp),
-                              null,
-                              23,
-                            ),
-                            onPressed: () {
-                              //clicked next button:
-
-                              //clicked skip button:
-                              navigateToMenu(context);
-                            },
-                          ),
-                        ],
-                      ),
-                      // Bottom widget
-                      // Progress indicator for the form:
-                      Row(
-                        mainAxisAlignment: MainAxisAlignment.center,
-                        children: List.generate(
-                          1 + pages.length,
-                          (index) => AnimatedContainer(
-                            duration: const Duration(milliseconds: 300),
-                            width: 20.0,
-                            height: 10.0,
-                            margin: const EdgeInsets.symmetric(horizontal: 5.0),
-                            decoration: BoxDecoration(
-                              color: index <= currentStep
-                                  ? Theme.of(context).colorScheme.primary
-                                  : Theme.of(context).colorScheme.outline,
-                              borderRadius: BorderRadius.circular(5.0),
-                            ),
-                          ),
-                        ).toList(),
-                      ),
-                    ],
+      child: PageLayoutWrapper(
+        backgroundColor: Colors.white,
+        sliverAppBar: PremiumGlassAppBar(
+          variant: AppBarVariant.detailScreen,
+          toolbarHeight: 90,
+          title: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Row(
+                mainAxisAlignment: currentStep > 0
+                    ? MainAxisAlignment.spaceBetween
+                    : MainAxisAlignment.end,
+                children: [
+                  if (currentStep > 0)
+                    IconButton(
+                      icon: const Icon(Icons.arrow_back_ios),
+                      onPressed: prev,
+                    ),
+                  TextButton(
+                    child: AutoSizeText(
+                      appLocale.saveAndQuitButton(gender),
+                      style: Theme.of(context).textTheme.titleLarge,
+                    ),
+                    onPressed: () {
+                      navigateToMenu(context);
+                    },
                   ),
-                );
-              },
-            ),
+                ],
+              ),
+              // Bottom widget
+              // Progress indicator for the form:
+              Row(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: List.generate(
+                  1 + pages.length,
+                  (index) => AnimatedContainer(
+                    duration: const Duration(milliseconds: 300),
+                    width: 20,
+                    height: 10,
+                    margin: const EdgeInsets.symmetric(horizontal: 5),
+                    decoration: BoxDecoration(
+                      color: index <= currentStep
+                          ? Theme.of(context).colorScheme.primary
+                          : Theme.of(context).colorScheme.outline,
+                      borderRadius: BorderRadius.circular(5),
+                    ),
+                  ),
+                ).toList(),
+              ),
+            ],
           ),
         ),
         //animation for switching between pages:
@@ -234,10 +211,10 @@ class FormProgressIndicatorState
           duration: const Duration(
             milliseconds: 300,
           ), // Specify the duration of the animation
-          transitionBuilder: (Widget child, Animation<double> animation) {
-            var begin = const Offset(1.0, 0.0);
-            var end = Offset.zero;
-            var tween = Tween(begin: begin, end: end);
+          transitionBuilder: (child, animation) {
+            const begin = Offset(1, 0);
+            const end = Offset.zero;
+            final tween = Tween(begin: begin, end: end);
 
             return SlideTransition(
               position: animation.drive(tween),

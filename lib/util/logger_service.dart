@@ -14,10 +14,10 @@ class SentryServiceImpl implements IncidentLoggerService {
   Future<void> initializeSentry(Widget MyApp) async {
     try {
       if (_sentryDsn.isEmpty) {
-        debugPrint("sentry will not be initialized");
+        debugPrint('sentry will not be initialized');
         runApp(MyApp);
       } else {
-        debugPrint("sentry will be initialized");
+        debugPrint('sentry will be initialized');
         await SentryFlutter.init(
           (options) {
             options.dsn = _sentryDsn;
@@ -26,7 +26,7 @@ class SentryServiceImpl implements IncidentLoggerService {
         );
       }
     } catch (e) {
-      debugPrint("sentry will not be initialized,error");
+      debugPrint('sentry will not be initialized,error');
       debugPrint(e.toString());
       runApp(MyApp);
     }
@@ -37,10 +37,10 @@ class SentryServiceImpl implements IncidentLoggerService {
       {StackTrace? stackTrace, dynamic exceptionData}) async {
     if (Sentry.isEnabled) {
       if (exceptionData != null &&
-          exceptionData.containsKey("name") &&
-          exceptionData.containsKey("value")) {
+          exceptionData.containsKey('name') &&
+          exceptionData.containsKey('value')) {
         Sentry.configureScope((scope) {
-          scope.setContexts('${exceptionData["name"]}', exceptionData["value"]);
+          scope.setContexts('${exceptionData["name"]}', exceptionData['value']);
         });
       }
       await Sentry.captureException(

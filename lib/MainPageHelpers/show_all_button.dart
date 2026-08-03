@@ -5,13 +5,11 @@ import 'package:mazilon/util/userInformation.dart';
 import 'package:provider/provider.dart';
 
 class ShowAllButton extends StatefulWidget {
+  const ShowAllButton({
+    required this.onTabTapped, required this.pageCode, super.key,
+  });
   final Function(BuildContext, PagesCode) onTabTapped;
   final PagesCode pageCode;
-  const ShowAllButton({
-    super.key,
-    required this.onTabTapped,
-    required this.pageCode,
-  });
 
   @override
   State<ShowAllButton> createState() => _ShowAllButtonState();

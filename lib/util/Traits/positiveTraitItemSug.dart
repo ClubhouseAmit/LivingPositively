@@ -1,19 +1,16 @@
-import 'package:flutter/material.dart';
 import 'dart:math';
-import 'package:auto_size_text/auto_size_text.dart';
-import 'package:flutter_screenutil/flutter_screenutil.dart';
 
-import 'package:dotted_border/dotted_border.dart';
+import 'package:auto_size_text/auto_size_text.dart';
+import 'package:flutter/material.dart';
 import 'package:get_it/get_it.dart';
 import 'package:mazilon/global_enums.dart';
 import 'package:mazilon/util/LP_extended_state.dart';
 import 'package:mazilon/util/persistent_memory_service.dart';
 import 'package:mazilon/util/suggestion_add_button.dart';
-
+import 'package:mazilon/util/theme/spacing.dart';
 import 'package:mazilon/util/type_utils.dart';
-
-import 'package:provider/provider.dart';
 import 'package:mazilon/util/userInformation.dart';
+import 'package:provider/provider.dart';
 
 // the positive trait item suggested widget, it shows a suggested positive trait text and an add button
 //its used in positive trait page/homepage in todo list section to suggest a trait to the user
@@ -23,17 +20,17 @@ import 'package:mazilon/util/userInformation.dart';
 // (it has some differences in the way suggestion is randomized, we dont look at traits written today but at traits written all time)
 
 class PositiveTraitItemSug extends StatefulWidget {
-  final Function add; // the function to add the trait to the list of traits
-  final String inputText; // the input text of the suggested trait
-  final List<String> fullSuggestionList;
-  final int stopShowing;
   const PositiveTraitItemSug({
-    super.key,
     required this.stopShowing,
     required this.add,
     required this.inputText,
     required this.fullSuggestionList,
+    super.key,
   });
+  final Function add; // the function to add the trait to the list of traits
+  final String inputText; // the input text of the suggested trait
+  final List<String> fullSuggestionList;
+  final int stopShowing;
 
   @override
   State<PositiveTraitItemSug> createState() => _PositiveTraitItemSugState();
@@ -46,22 +43,21 @@ class _PositiveTraitItemSugState extends LPExtendedState<PositiveTraitItemSug> {
   bool show = true; // the list of the suggested traits
   void loadData(BuildContext context) {
     // get the shared preferences
-    if (widget.inputText != "") {
+    if (widget.inputText != '') {
       return;
     }
     final userInfoProvider = Provider.of<UserInformation>(
       context,
-      listen: true,
     );
 
     setState(() {
       myPositiveTraits = userInfoProvider.positiveTraits;
 
-      List<String> tempTraitSuggestionList = widget.fullSuggestionList;
+      final tempTraitSuggestionList = widget.fullSuggestionList;
 
       positiveTraitsSuggestionList = List.from(widget.fullSuggestionList);
       // remove the traits that are already written by the user
-      for (String suggestion in tempTraitSuggestionList) {
+      for (final suggestion in tempTraitSuggestionList) {
         if (positiveTraitsSuggestionList.length > 1 &&
             myPositiveTraits.contains(suggestion)) {
           positiveTraitsSuggestionList.remove(suggestion);
@@ -95,16 +91,56 @@ class _PositiveTraitItemSugState extends LPExtendedState<PositiveTraitItemSug> {
       return Container();
     }
     return Container(
-      padding: const EdgeInsets.all(10),
+      padding: const EdgeInsets.symmetric(
+        vertical: Spacing.xs,
+        horizontal: Spacing.sm,
+      ),
       // the row that contains the suggested trait and the add button
       child: Row(
-        mainAxisAlignment: MainAxisAlignment.start,
         children: [
-          // the add button
+          // the design of the suggested trait (a dotted border with the trait text)
+          Expanded(
+            child: Container(
+              height: 50,
+              alignment: AlignmentDirectional.centerStart,
+              decoration: BoxDecoration(
+                color: Theme.of(
+                  context,
+                ).colorScheme.secondary.withValues(alpha: 0.15),
+                borderRadius: BorderRadius.circular(20),
+                border: Border.all(
+                  color: Theme.of(
+                    context,
+                  ).colorScheme.primary.withValues(alpha: 0.3),
+                ),
+              ),
+              child: Padding(
+                padding: const EdgeInsets.symmetric(
+                  horizontal: Spacing.md,
+                  vertical: Spacing.sm,
+                ),
+                child: AutoSizeText(
+                  widget.inputText == '' ? text : widget.inputText,
+                  maxLines: 1,
+                  minFontSize: 14,
+                  overflow: TextOverflow.ellipsis,
+                  style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                    fontWeight: FontWeight.normal,
+                    color: Theme.of(context).colorScheme.onSurface,
+                  ),
+                ),
+              ),
+            ),
+          ),
+
+          // gap between the text and the add button
+          const SizedBox(width: 10),
+
+          // the add button (right side, aligned with the 3-dot action buttons)
           SuggestionAddButton(
             onPressed: () async {
               // Add the trait to the list and show a new suggestion.
-              PersistentMemoryService service =
+              final service =
                   GetIt.instance<
                     PersistentMemoryService
                   >(); // Get the persistent memory service instance
@@ -113,9 +149,9 @@ class _PositiveTraitItemSugState extends LPExtendedState<PositiveTraitItemSug> {
                 context,
                 listen: false,
               );
-              var myPositiveTraitsValue = TypeUtils.castToStringList(
+              final myPositiveTraitsValue = TypeUtils.castToStringList(
                 await service.getItem(
-                  "positiveTraits",
+                  'positiveTraits',
                   PersistentMemoryType.StringList,
                 ),
               );
@@ -129,14 +165,13 @@ class _PositiveTraitItemSugState extends LPExtendedState<PositiveTraitItemSug> {
                   widget.inputText == '' ? text : widget.inputText,
                 );
 
-                List<String> tempTraitSuggestionList =
-                    widget.fullSuggestionList;
+                final tempTraitSuggestionList = widget.fullSuggestionList;
 
                 positiveTraitsSuggestionList = List.from(
                   widget.fullSuggestionList,
                 );
 
-                for (String suggestion in tempTraitSuggestionList) {
+                for (final suggestion in tempTraitSuggestionList) {
                   if (positiveTraitsSuggestionList.length > 1 &&
                       myPositiveTraits.contains(suggestion)) {
                     positiveTraitsSuggestionList.remove(suggestion);
@@ -152,57 +187,6 @@ class _PositiveTraitItemSugState extends LPExtendedState<PositiveTraitItemSug> {
                 }
               });
             },
-          ),
-
-          // gap between the text and the add button
-          const SizedBox(width: 10),
-
-          // the design of the suggested trait (a dotted border with the trait text)
-          DottedBorder(
-            options: RoundedRectDottedBorderOptions(
-              radius: const Radius.circular(20),
-              dashPattern: const [5, 5],
-              color: Theme.of(context).colorScheme.tertiary,
-              strokeWidth: 2,
-            ),
-            child: Container(
-              height: 50,
-              decoration: BoxDecoration(
-                color: Colors.transparent,
-                borderRadius: BorderRadius.circular(20),
-              ),
-              child: Padding(
-                padding: const EdgeInsets.all(7.0),
-                child: Row(
-                  children: [
-                    Container(
-                      alignment: appLocale.textDirection == "rtl"
-                          ? Alignment.centerRight
-                          : Alignment.centerLeft,
-                      width: MediaQuery.of(context).size.width > 1000
-                          ? 600
-                          : MediaQuery.of(context).size.width * 0.6 + 36,
-                      height: MediaQuery.of(context).size.height * 0.1,
-                      child: AutoSizeText(
-                        widget.inputText == ''
-                            ? text
-                            : widget
-                                  .inputText, // if the input text is empty, show the suggested trait text
-                        maxLines: 3,
-                        minFontSize: 14,
-                        overflow: TextOverflow.ellipsis,
-                        style: TextStyle(
-                          fontFamily: "Rubix",
-                          fontSize: 14.sp, // the font size of the text
-                          fontWeight: FontWeight.bold,
-                          color: Theme.of(context).colorScheme.outline,
-                        ),
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-            ),
           ),
         ],
       ),

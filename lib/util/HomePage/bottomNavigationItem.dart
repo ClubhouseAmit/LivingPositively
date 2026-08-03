@@ -15,24 +15,23 @@ Widget bottomNavigationItem(
           ? Theme.of(context).colorScheme.primary
           : Theme.of(context).colorScheme.outline;
       return Column(
+        mainAxisSize: MainAxisSize.min,
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
-          Expanded(child: Icon(icon, color: color)),
-          Expanded(
-            child: Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 2),
-              child: AutoSizeText(
-                text,
-                group: textGroup,
-                maxFontSize: 25,
-                style: TextStyle(
-                  fontWeight: FontWeight.bold,
-                  color: color,
-                  fontSize: 14.sp,
-                ).copyWith(fontFamily: 'Rubix'),
-                textAlign: TextAlign.center,
-                maxLines: 1,
-              ),
+          Icon(icon, color: color, size: 24),
+          const SizedBox(height: 4),
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 6),
+            child: AutoSizeText(
+              text,
+              group: textGroup,
+              style: TextStyle(
+                fontWeight: FontWeight.bold,
+                color: color,
+                fontSize: 12.sp,
+              ).copyWith(fontFamily: 'Rubix'),
+              textAlign: TextAlign.center,
+              maxLines: 1,
             ),
           ),
         ],

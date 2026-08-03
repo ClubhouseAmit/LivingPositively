@@ -10,7 +10,7 @@ abstract class AnalyticsService {
 class MixPanelService implements AnalyticsService {
   late Mixpanel _mixpanel;
   bool _isInitialized = false;
-  String key = "";
+  String key = '';
   @override
   Future<void> init() async {
     if (_mixpanelProjectToken.isEmpty) {
@@ -26,11 +26,11 @@ class MixPanelService implements AnalyticsService {
   @override
   Future<void> trackEvent(String eventName,
       [Map<String, dynamic>? properties]) async {
-    if (key == "") {
+    if (key == '') {
       return;
     }
     while (!_isInitialized) {
-      await Future.delayed(Duration(milliseconds: 100));
+      await Future.delayed(const Duration(milliseconds: 100));
     }
 
     await _mixpanel.track(eventName, properties: properties);

@@ -1,15 +1,16 @@
-// ignore_for_file: prefer_const_constructors
-
 import 'package:flutter/material.dart';
-
 import 'package:mazilon/pages/notifications/reminder_debug_recorder.dart';
 import 'package:mazilon/pages/notifications/set_notification_widget.dart';
+import 'package:mazilon/util/HomePage/premium_glass_app_bar.dart';
 import 'package:mazilon/util/LP_extended_state.dart';
+import 'package:mazilon/util/page_layout_wrapper.dart';
+import 'package:mazilon/util/theme/spacing.dart';
 import 'package:mazilon/util/userInformation.dart';
 import 'package:provider/provider.dart';
 
 class NotificationPage extends StatefulWidget {
-  const NotificationPage({super.key});
+  const NotificationPage({this.onBackPressed, super.key});
+  final VoidCallback? onBackPressed;
 
   @override
   State<NotificationPage> createState() => _NotificationPageState();
@@ -45,26 +46,34 @@ class _NotificationPageState extends LPExtendedState<NotificationPage> {
     );
 
     final gender = userInfoProvider.gender;
-    return Scaffold(
-      body: SafeArea(
-        child: SingleChildScrollView(
-          child: Padding(
-            padding: const EdgeInsets.all(16.0),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: <Widget>[
-                SizedBox(height: 100),
-                GestureDetector(
-                  behavior: HitTestBehavior.opaque,
-                  onLongPress: _toggleDebugUnlock,
-                  child: Text(appLocale.notificationPageHeader(gender)),
+    return PageLayoutWrapper(
+      sliverAppBar: PremiumGlassAppBar(
+        variant: AppBarVariant.detailScreen,
+        onBackPressed: widget.onBackPressed,
+        title: GestureDetector(
+          behavior: HitTestBehavior.opaque,
+          onLongPress: _toggleDebugUnlock,
+          child: Text(
+            appLocale.notificationPageHeader(gender),
+            style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                  fontWeight: FontWeight.bold,
                 ),
-                SizedBox(height: 20),
-                SetNotificationWidget(),
-              ],
-            ),
           ),
         ),
+      ),
+      body: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          SizedBox(height: Spacing.md),
+          Text(
+            appLocale.notificationPageHeader(gender),
+            style: Theme.of(context).textTheme.headlineLarge?.copyWith(
+                  fontWeight: FontWeight.bold,
+                ),
+          ),
+          SizedBox(height: Spacing.lg),
+          SetNotificationWidget(),
+        ],
       ),
     );
   }

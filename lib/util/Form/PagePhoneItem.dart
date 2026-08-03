@@ -1,19 +1,14 @@
+import 'package:auto_size_text/auto_size_text.dart';
 import 'package:flutter/material.dart';
-import 'package:mazilon/util/styles.dart';
-import 'package:flutter_screenutil/flutter_screenutil.dart';
 
 class PagePhoneItem extends StatefulWidget {
+  const PagePhoneItem({
+    required this.phoneNumber, required this.phoneName, required this.phoneDescription, required this.icon, super.key,
+  });
   final String phoneNumber;
   final String phoneName;
   final String phoneDescription;
   final IconData icon;
-  const PagePhoneItem({
-    super.key,
-    required this.phoneNumber,
-    required this.phoneName,
-    required this.phoneDescription,
-    required this.icon,
-  });
 
   @override
   _PagePhoneItemState createState() => _PagePhoneItemState();
@@ -29,31 +24,26 @@ class _PagePhoneItemState extends State<PagePhoneItem>
     //item in the phone page form(icon + data)
     return Container(
       child: Row(
-        mainAxisAlignment: MainAxisAlignment.start,
-        crossAxisAlignment: CrossAxisAlignment.center,
         children: [
           Icon(widget.icon),
-          const SizedBox(width: 5.0),
-          myAutoSizedText(
+          const SizedBox(width: 5),
+          AutoSizeText(
             widget.phoneName,
-            TextStyle(fontSize: 16.sp, fontWeight: FontWeight.normal),
-            null,
-            28, // Make the text bold
+            style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                  fontWeight: FontWeight.normal,
+                ),
           ),
-          const SizedBox(width: 3.0),
+          const SizedBox(width: 3),
           Padding(
             padding: const EdgeInsetsDirectional.only(
-              start: 8.0,
+              start: 8,
             ), // Add horizontal spacing
-            child: myAutoSizedText(
+            child: AutoSizeText(
               widget.phoneDescription,
-              TextStyle(
-                fontWeight: FontWeight.normal,
-                fontSize: 12.sp,
-                color: Theme.of(context).colorScheme.outline,
-              ),
-              null,
-              22, // Make the text grey
+              style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                    fontWeight: FontWeight.normal,
+                    color: Theme.of(context).colorScheme.outline,
+                  ),
             ),
           ),
         ],

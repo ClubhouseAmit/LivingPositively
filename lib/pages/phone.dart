@@ -1,22 +1,30 @@
+import 'package:auto_size_text/auto_size_text.dart';
 import 'package:flutter/foundation.dart'
     show TargetPlatform, defaultTargetPlatform, kIsWeb;
 import 'package:flutter/material.dart';
+import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:geolocator/geolocator.dart';
 import 'package:get_it/get_it.dart';
 import 'package:mazilon/file_service.dart';
 import 'package:mazilon/form/phonePageform.dart';
-import 'package:mazilon/util/LP_extended_state.dart';
-import 'package:mazilon/util/Phone/phoneTextAndIcon.dart';
-import 'package:provider/provider.dart';
-import 'package:flutter_screenutil/flutter_screenutil.dart';
-import 'package:mazilon/util/userInformation.dart';
-import 'package:mazilon/util/styles.dart';
 import 'package:mazilon/util/Form/formPagePhoneModel.dart';
+import 'package:mazilon/util/LP_extended_state.dart';
 import 'package:mazilon/util/Phone/EmergencyPhones.dart';
+import 'package:mazilon/util/Phone/phoneTextAndIcon.dart';
+import 'package:mazilon/util/theme/spacing.dart';
+import 'package:mazilon/util/userInformation.dart';
+import 'package:provider/provider.dart';
+import 'package:mazilon/util/page_layout_wrapper.dart';
+import 'package:mazilon/util/HomePage/premium_glass_app_bar.dart';
 
 class PhonePage extends StatefulWidget {
+  const PhonePage({
+    required this.phonePageData,
+    this.onBackPressed,
+    super.key,
+  });
   final PhonePageData phonePageData;
-  const PhonePage({super.key, required this.phonePageData});
+  final VoidCallback? onBackPressed;
 
   @override
   _PhonePageState createState() => _PhonePageState();
@@ -123,186 +131,167 @@ class _PhonePageState extends LPExtendedState<PhonePage> {
   Widget build(BuildContext context) {
     final userInfoProvider = Provider.of<UserInformation>(
       context,
-      listen: true,
     );
 
     final gender = userInfoProvider.gender;
 
-    return Scaffold(
-      body: Padding(
-        padding: EdgeInsets.only(
-          top: MediaQuery.of(context).size.height * 0.05,
-          left: MediaQuery.of(context).size.width * 0.05,
-          right: MediaQuery.of(context).size.width * 0.05,
-        ),
-        child: SafeArea(
-          child: SingleChildScrollView(
-            padding: const EdgeInsets.only(bottom: 100.0),
-            child: Center(
-              // Replaced Expanded with Center
-              child: Column(
-                children: <Widget>[
-                  myAutoSizedText(
-                    appLocale.phonePageTitle(gender),
-                    TextStyle(fontWeight: FontWeight.bold, fontSize: 24.sp),
-                    TextAlign.center,
-                    60,
+    return PageLayoutWrapper(
+      sliverAppBar: PremiumGlassAppBar(
+        variant: AppBarVariant.detailScreen,
+        onBackPressed: widget.onBackPressed,
+        titleText: appLocale.phonePageTitle(gender),
+      ),
+      body: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: <Widget>[
+            SizedBox(height: Spacing.md),
+            Text(
+              appLocale.phonePageTitle(gender),
+              style: Theme.of(context).textTheme.headlineLarge?.copyWith(
+                    fontWeight: FontWeight.bold,
                   ),
-                  const SizedBox(height: 10.0),
-                  Padding(
-                    padding: const EdgeInsets.symmetric(horizontal: 30),
-                    child: ExpansionTile(
-                      leading: Tooltip(
-                        message: appLocale.phoneContactDisclaimerMoreTooltip,
-                        child: Icon(
-                          Icons.info_outline,
-                          size: 20.sp,
-                          semanticLabel:
-                              appLocale.phoneContactDisclaimerMoreTooltip,
-                        ),
+            ),
+            SizedBox(height: Spacing.lg),
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 16),
+              child: ExpansionTile(
+                leading: Tooltip(
+                  message: appLocale.phoneContactDisclaimerMoreTooltip,
+                  child: Icon(
+                    Icons.info_outline,
+                    size: 20.sp,
+                    semanticLabel:
+                        appLocale.phoneContactDisclaimerMoreTooltip,
+                  ),
+                ),
+                tilePadding: EdgeInsets.zero,
+                childrenPadding: const EdgeInsets.only(bottom: 8),
+                title: AutoSizeText(
+                  appLocale.phoneContactDisclaimerSummary,
+                  style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                        height: 1.4,
                       ),
-                      tilePadding: EdgeInsets.zero,
-                      childrenPadding: const EdgeInsets.only(bottom: 8),
-                      title: myAutoSizedText(
-                        appLocale.phoneContactDisclaimerSummary,
-                        TextStyle(fontSize: 12.sp, height: 1.4),
-                        TextAlign.start,
-                        20,
-                        2,
-                      ),
-                      children: [
-                        myAutoSizedText(
-                          appLocale.addingContactDisclaimer,
-                          TextStyle(fontSize: 12.sp, height: 1.5),
-                          TextAlign.start,
-                          40,
+                  textAlign: TextAlign.start,
+                  maxLines: 2,
+                ),
+                children: [
+                  AutoSizeText(
+                    appLocale.addingContactDisclaimer,
+                    style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                          height: 1.5,
                         ),
-                      ],
-                    ),
+                    textAlign: TextAlign.start,
                   ),
-                  const SizedBox(height: 30.0),
-                  Padding(
-                    padding: const EdgeInsets.symmetric(horizontal: 30.0),
-                    child: Row(
-                      children: [
-                        Expanded(
-                          child: Align(
-                            alignment: AlignmentDirectional.centerStart,
-                            child: myAutoSizedText(
-                              appLocale.yourContacts(gender),
-                              TextStyle(
-                                fontSize: 18.sp,
-                                fontWeight: FontWeight.normal,
-                              ),
-                              null,
-                              30,
-                            ),
-                          ),
-                        ),
-                        IconButton(
-                          key: const Key('phonePageManageContactsButton'),
-                          tooltip: appLocale.addFormEdit(gender),
-                          onPressed: _openContactsEditor,
-                          icon: Icon(
-                            Icons.edit,
-                            color: Theme.of(context).colorScheme.primary,
-                            size: 28.sp,
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-
-                  const SizedBox(height: 10.0),
-                  //list of phones added in form Phone Page:
-                  Consumer<PhonePageData>(
-                    builder: (context, phonePageData, child) {
-                      final contactCount =
-                          phonePageData.savedPhoneNumbers.length <
-                              phonePageData.savedPhoneNames.length
-                          ? phonePageData.savedPhoneNumbers.length
-                          : phonePageData.savedPhoneNames.length;
-
-                      return Column(
-                        children: List.generate(
-                          contactCount,
-                          (index) => Container(
-                            margin: const EdgeInsets.only(
-                              bottom: 10.0,
-                            ), // adjust as needed
-                            child: Padding(
-                              padding: const EdgeInsets.symmetric(
-                                horizontal: 30.0,
-                              ), // adjust as needed
-                              child: phoneContact(
-                                phonePageData.savedPhoneNumbers[index],
-                                phonePageData.savedPhoneNames[index],
-                              ),
-                            ),
-                          ),
-                        ),
-                      );
-                    },
-                  ),
-                  const SizedBox(height: 10.0),
-                  Padding(
-                    padding: const EdgeInsets.symmetric(horizontal: 30.0),
-                    child: Row(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      children: [
-                        Flexible(
-                          child: myText(
-                            appLocale.sosShareLocation,
-                            TextStyle(
-                              fontWeight: FontWeight.normal,
-                              fontSize: 20.sp,
-                            ),
-                            null,
-                          ),
-                        ),
-                        const SizedBox(width: 5.0),
-                        KeyedSubtree(
-                          key: const Key('phonePageShareLocationButton'),
-                          child: circularActionButton(
-                            context,
-                            tooltip: appLocale.sosShareLocationTooltip,
-                            icon: Icons.location_on,
-                            onTap: _shareCurrentLocation,
-                          ),
-                        ),
-                        const SizedBox(width: 10.0),
-                      ],
-                    ),
-                  ),
-                  const SizedBox(height: 10.0),
-                  Align(
-                    alignment: appLocale.textDirection == "rtl"
-                        ? Alignment.centerRight
-                        : Alignment.centerLeft,
-                    child: Padding(
-                      padding: const EdgeInsets.only(
-                        right: 30.0,
-                      ), // adjust the value as needed
-                      child: myAutoSizedText(
-                        appLocale.emergencyNumbers(gender),
-                        TextStyle(
-                          fontSize: 18.sp,
-                          fontWeight: FontWeight.normal,
-                        ),
-                        null,
-                        30,
-                      ),
-                    ),
-                  ),
-                  const SizedBox(height: 20.0),
-                  //emergency phones grid: (police/105/etc..)
-                  EmergencyPhonesGrid(),
                 ],
               ),
             ),
-          ),
+            const SizedBox(height: 20),
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 16),
+              child: Row(
+                children: [
+                  Expanded(
+                    child: Align(
+                      alignment: AlignmentDirectional.centerStart,
+                      child: AutoSizeText(
+                        appLocale.yourContacts(gender),
+                        style: Theme.of(context).textTheme.titleLarge?.copyWith(
+                              fontWeight: FontWeight.normal,
+                            ),
+                      ),
+                    ),
+                  ),
+                  IconButton(
+                    key: const Key('phonePageManageContactsButton'),
+                    tooltip: appLocale.addFormEdit(gender),
+                    onPressed: _openContactsEditor,
+                    icon: Icon(
+                      Icons.edit,
+                      color: Theme.of(context).colorScheme.primary,
+                      size: 28.sp,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+
+            const SizedBox(height: 10),
+            //list of phones added in form Phone Page:
+            Consumer<PhonePageData>(
+              builder: (context, phonePageData, child) {
+                final contactCount =
+                    phonePageData.savedPhoneNumbers.length <
+                        phonePageData.savedPhoneNames.length
+                    ? phonePageData.savedPhoneNumbers.length
+                    : phonePageData.savedPhoneNames.length;
+
+                return Column(
+                  children: List.generate(
+                    contactCount,
+                    (index) => Container(
+                      margin: const EdgeInsets.only(
+                        bottom: 10,
+                      ), // adjust as needed
+                      child: Padding(
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 16,
+                        ), // adjust as needed
+                        child: phoneContact(
+                          phonePageData.savedPhoneNumbers[index],
+                          phonePageData.savedPhoneNames[index],
+                        ),
+                      ),
+                    ),
+                  ),
+                );
+              },
+            ),
+            const SizedBox(height: 10),
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 16),
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  Flexible(
+                    child: Text(
+                      appLocale.sosShareLocation,
+                      style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                            fontWeight: FontWeight.normal,
+                          ),
+                    ),
+                  ),
+                  const SizedBox(width: 5),
+                  KeyedSubtree(
+                    key: const Key('phonePageShareLocationButton'),
+                    child: circularActionButton(
+                      context,
+                      tooltip: appLocale.sosShareLocationTooltip,
+                      icon: Icons.location_on,
+                      onTap: _shareCurrentLocation,
+                    ),
+                  ),
+                  const SizedBox(width: 10),
+                ],
+              ),
+            ),
+            const SizedBox(height: 10),
+            Align(
+              alignment: AlignmentDirectional.centerStart,
+              child: Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 16),
+                child: AutoSizeText(
+                  appLocale.emergencyNumbers(gender),
+                  style: Theme.of(context).textTheme.titleLarge?.copyWith(
+                        fontWeight: FontWeight.normal,
+                      ),
+                ),
+              ),
+            ),
+            const SizedBox(height: 20),
+            //emergency phones grid: (police/105/etc..)
+            const EmergencyPhonesGrid(),
+          ],
         ),
-      ),
     );
   }
 }

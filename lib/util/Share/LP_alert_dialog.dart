@@ -2,10 +2,10 @@ import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 
 class LPAlertDialog extends StatefulWidget {
+
+  const LPAlertDialog({required this.actions, required this.title, super.key});
   final List<Widget> actions;
   final String title;
-
-  const LPAlertDialog({super.key, required this.actions, required this.title});
 
   @override
   State<LPAlertDialog> createState() => _LPAlertDialogState();

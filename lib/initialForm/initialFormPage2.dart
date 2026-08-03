@@ -1,29 +1,23 @@
-// ignore_for_file: prefer_const_constructors, sized_box_for_whitespace
 
+import 'package:auto_size_text/auto_size_text.dart';
 import 'package:flutter/material.dart';
-import 'package:mazilon/initialForm/CountrySelectorWidget.dart';
-import 'package:mazilon/util/LP_extended_state.dart';
-
 import 'package:flutter_screenutil/flutter_screenutil.dart';
-import 'package:mazilon/l10n/app_localizations.dart';
+import 'package:mazilon/initialForm/CountrySelectorWidget.dart';
 import 'package:mazilon/util/Form/myDropdownMenuEntry.dart';
-import 'package:mazilon/util/styles.dart';
+import 'package:mazilon/util/LP_extended_state.dart';
 import 'package:mazilon/util/userInformation.dart';
 import 'package:provider/provider.dart';
 
 //second page of the initial form
 //this is where the user selects their age,name and gender
 class InitialFormPage2 extends StatefulWidget {
+
+  const InitialFormPage2({
+    required this.next, required this.prev, required this.updateName, super.key,
+  });
   final Function next;
   final Function prev;
   final Function updateName;
-
-  const InitialFormPage2({
-    super.key,
-    required this.next,
-    required this.prev,
-    required this.updateName,
-  });
   @override
   State<InitialFormPage2> createState() => _InitialFormPage2State();
 }
@@ -42,42 +36,24 @@ class _InitialFormPage2State extends LPExtendedState<InitialFormPage2> {
     super.dispose();
   }
 
-  Widget resizeText(String text, double fieldWidth) {
-    List<String> sep = text.split("(");
-    final appLocale = AppLocalizations.of(context);
+  Widget resizeText(String text) {
+    final sep = text.split('(');
 
-    sep[1] = "(${sep[1]}";
+    sep[1] = '(${sep[1]}';
     return SizedBox(
-      width: fieldWidth,
+      width: double.infinity,
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Text(
             sep[0],
-            style: TextStyle(
-              fontSize: 20,
-              height: 1.2,
-              fontWeight: FontWeight.normal,
-              color: Theme.of(context).colorScheme.onSurface,
-              fontFamily: 'Rubix',
-            ),
-            textAlign: appLocale!.textDirection == "rtl"
-                ? TextAlign.right
-                : TextAlign.left,
+            style: Theme.of(context).textTheme.titleLarge,
+            
             maxLines: 2,
           ),
           Text(
             sep[1],
-            style: TextStyle(
-              fontSize: 18,
-              height: 1.2,
-              fontWeight: FontWeight.normal,
-              color: Theme.of(context).colorScheme.onSurface,
-              fontFamily: 'Rubix',
-            ),
-            textAlign: appLocale.textDirection == "rtl"
-                ? TextAlign.right
-                : TextAlign.left,
+            style: Theme.of(context).textTheme.titleMedium,
             maxLines: 2,
           ),
         ],
@@ -85,44 +61,29 @@ class _InitialFormPage2State extends LPExtendedState<InitialFormPage2> {
     );
   }
 
-  Widget _formLabel(String text, double fieldWidth) {
+  Widget _formLabel(String text) {
     return SizedBox(
-      width: fieldWidth,
+      width: double.infinity,
       child: Text(
         text,
-        style: TextStyle(
-          fontSize: 20,
-          height: 1.2,
-          fontWeight: FontWeight.normal,
-          color: Theme.of(context).colorScheme.onSurface,
-          fontFamily: 'Rubix',
-        ),
+        style: Theme.of(context).textTheme.titleLarge,
         maxLines: 2,
         overflow: TextOverflow.ellipsis,
-        textAlign: appLocale.textDirection == "rtl"
-            ? TextAlign.right
-            : TextAlign.left,
+        
       ),
     );
   }
 
   Widget _primaryActionButton({
-    required double width,
     required String text,
     required VoidCallback onPressed,
   }) {
     return SizedBox(
-      width: width,
+      width: double.infinity,
       height: 52,
-      child: TextButton(
+      child: ElevatedButton(
         onPressed: onPressed,
-        style: primaryButtonStyle(context),
-        child: Text(
-          text,
-          style: primaryButtonTextStyle(
-            context,
-          ).copyWith(fontSize: 20, fontFamily: 'Rubix'),
-        ),
+        child: Text(text),
       ),
     );
   }
@@ -137,8 +98,7 @@ class _InitialFormPage2State extends LPExtendedState<InitialFormPage2> {
       appLocale.nonBinary,
       appLocale.notWillingToSay,
     ];
-    var gender = userInfoProvider.gender;
-    final fieldWidth = formFieldWidth(context);
+    final gender = userInfoProvider.gender;
     dropdownValueAge = userInfoProvider.age;
     //add genders here
 
@@ -153,39 +113,36 @@ class _InitialFormPage2State extends LPExtendedState<InitialFormPage2> {
       onTap: () {
         FocusScope.of(context).unfocus();
       },
-      child: Scaffold(
-        body: SingleChildScrollView(
-          padding: EdgeInsets.fromLTRB(24, 8, 24, 24.h),
-          child: Center(
-            child: ConstrainedBox(
-              constraints: const BoxConstraints(maxWidth: 360),
-              child: Form(
-                key: _formKey,
-                child: Column(
-                  children: [
-                    myAutoSizedText(
-                      appLocale.introductionFormSecondPageMainTitle(gender),
-                      TextStyle(
-                        fontSize: 30,
-                        height: 1.15,
-                        fontWeight: FontWeight.bold,
+      child: Padding(
+        padding: EdgeInsets.fromLTRB(24, 8, 24, 24.h),
+        child: Center(
+          child: ConstrainedBox(
+            constraints: const BoxConstraints(maxWidth: 360),
+            child: Form(
+              key: _formKey,
+              child: Column(
+                children: [
+                    Semantics(
+                      header: true,
+                      child: AutoSizeText(
+                        appLocale.introductionFormSecondPageMainTitle(gender),
+                        style: Theme.of(context).textTheme.headlineLarge?.copyWith(
+                              height: 1.15,
+                              fontWeight: FontWeight.bold,
+                            ),
+                        textAlign: TextAlign.center,
+                        maxLines: 2,
                       ),
-                      TextAlign.center,
-                      30,
-                      2,
                     ),
                     SizedBox(height: 8.h),
-                    myAutoSizedText(
+                    AutoSizeText(
                       appLocale.introductionFormSecondPageSubTitle(gender),
-                      TextStyle(
-                        fontSize: 15,
-                        height: 1.25,
-                        fontWeight: FontWeight.bold,
-                        color: Theme.of(context).colorScheme.outline,
-                      ),
-                      TextAlign.center,
-                      15,
-                      3,
+                      style: Theme.of(context).textTheme.titleSmall?.copyWith(
+                            height: 1.25,
+                            color: Theme.of(context).colorScheme.outline,
+                          ),
+                      textAlign: TextAlign.center,
+                      maxLines: 3,
                     ),
                     SizedBox(height: 16.h),
                     Column(
@@ -193,20 +150,12 @@ class _InitialFormPage2State extends LPExtendedState<InitialFormPage2> {
                       children: [
                         resizeText(
                           appLocale.userSettingsName(gender),
-                          fieldWidth,
                         ),
                         const SizedBox(height: 6),
                         SizedBox(
-                          width: fieldWidth,
+                          width: double.infinity,
                           child: TextFormField(
                             controller: _nameController,
-                            decoration: const InputDecoration(
-                              border: OutlineInputBorder(),
-                              contentPadding: EdgeInsets.symmetric(
-                                horizontal: 12,
-                                vertical: 14,
-                              ),
-                            ),
                             validator: (text) {
                               if ((text ?? '').trim().isEmpty) {
                                 return appLocale.nameRequiredError;
@@ -219,14 +168,25 @@ class _InitialFormPage2State extends LPExtendedState<InitialFormPage2> {
                         const SizedBox(height: 12),
                         _formLabel(
                           appLocale.userSettingsAge(gender),
-                          fieldWidth,
                         ),
                         const SizedBox(height: 6),
                         //ages drop down select:
                         SizedBox(
-                          width: fieldWidth,
+                          width: double.infinity,
                           child: DropdownMenu<String>(
-                            width: fieldWidth,
+                            inputDecorationTheme: InputDecorationTheme(
+                              filled: true,
+                              fillColor: Theme.of(context).colorScheme.surfaceContainerHighest,
+                              border: OutlineInputBorder(
+                                borderRadius: BorderRadius.circular(32),
+                                borderSide: BorderSide.none,
+                              ),
+                              enabledBorder: OutlineInputBorder(
+                                borderRadius: BorderRadius.circular(32),
+                                borderSide: BorderSide.none,
+                              ),
+                            ),
+                            width: double.infinity,
                             initialSelection: userInfoProvider.age,
                             dropdownMenuEntries: [
                               ...ages.map(
@@ -238,7 +198,7 @@ class _InitialFormPage2State extends LPExtendedState<InitialFormPage2> {
                                 ),
                               ),
                             ],
-                            onSelected: (String? newValue) {
+                            onSelected: (newValue) {
                               setState(() {
                                 if (newValue != null) {
                                   dropdownValueAge = newValue;
@@ -253,14 +213,25 @@ class _InitialFormPage2State extends LPExtendedState<InitialFormPage2> {
 
                         _formLabel(
                           appLocale.userSettingsGender(gender),
-                          fieldWidth,
                         ),
                         const SizedBox(height: 6),
                         //gender drop down select
                         SizedBox(
-                          width: fieldWidth,
+                          width: double.infinity,
                           child: DropdownMenu<String>(
-                            width: fieldWidth,
+                            inputDecorationTheme: InputDecorationTheme(
+                              filled: true,
+                              fillColor: Theme.of(context).colorScheme.surfaceContainerHighest,
+                              border: OutlineInputBorder(
+                                borderRadius: BorderRadius.circular(32),
+                                borderSide: BorderSide.none,
+                              ),
+                              enabledBorder: OutlineInputBorder(
+                                borderRadius: BorderRadius.circular(32),
+                                borderSide: BorderSide.none,
+                              ),
+                            ),
+                            width: double.infinity,
                             initialSelection: (userInfoProvider.binary)
                                 ? appLocale.nonBinary
                                 : (userInfoProvider.gender == 'male'
@@ -279,7 +250,7 @@ class _InitialFormPage2State extends LPExtendedState<InitialFormPage2> {
                               ),
                             ],
                             //update user info accordingly:
-                            onSelected: (String? newValue) {
+                            onSelected: (newValue) {
                               setState(() {
                                 if (newValue != null) {
                                   dropdownValueGender = newValue;
@@ -311,7 +282,6 @@ class _InitialFormPage2State extends LPExtendedState<InitialFormPage2> {
                     ),
                     SizedBox(height: 16.h),
                     _primaryActionButton(
-                      width: fieldWidth,
                       text: appLocale.nextButton(gender),
                       onPressed: () {
                         FocusScope.of(context).unfocus();
@@ -339,8 +309,7 @@ class _InitialFormPage2State extends LPExtendedState<InitialFormPage2> {
                         widget.next();
                       },
                     ),
-                  ],
-                ),
+                ],
               ),
             ),
           ),

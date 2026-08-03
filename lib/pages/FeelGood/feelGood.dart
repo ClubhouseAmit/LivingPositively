@@ -1,17 +1,18 @@
+import 'package:auto_size_text/auto_size_text.dart';
 import 'package:flutter/material.dart';
 import 'package:get_it/get_it.dart';
 import 'package:mazilon/AnalyticsService.dart';
-
 import 'package:mazilon/pages/FeelGood/FeelGoodInheritedWidget.dart';
 import 'package:mazilon/pages/FeelGood/add_Image_item.dart';
 import 'package:mazilon/pages/FeelGood/image_display_item.dart';
 import 'package:mazilon/pages/FeelGood/image_picker_service_impl.dart';
 import 'package:mazilon/util/LP_extended_state.dart';
 import 'package:mazilon/util/async/async_state_view.dart';
-import 'package:mazilon/util/styles.dart';
-import 'package:flutter_screenutil/flutter_screenutil.dart';
+import 'package:mazilon/util/theme/spacing.dart';
 import 'package:mazilon/util/userInformation.dart';
 import 'package:provider/provider.dart';
+import 'package:mazilon/util/HomePage/premium_glass_app_bar.dart';
+import 'package:mazilon/util/page_layout_wrapper.dart';
 
 class FeelGood extends StatefulWidget {
   const FeelGood({super.key});
@@ -62,64 +63,38 @@ class _FeelGoodPageState extends LPExtendedState<FeelGood> {
     return FeelGoodInheritedWidget(
       displayImage: pickerService.displayImage,
       imagePaths: [...imagePaths],
-      getImage: (String source) async {
+      getImage: (source) async {
         await pickerService.getImage(source, imagePaths);
         setState(() {});
       },
-      deleteImage: (int index) {
+      deleteImage: (index) {
         setState(() {
           pickerService.deleteImage(index, imagePaths);
         });
       },
-      child: Scaffold(
-        appBar: PreferredSize(
-          preferredSize: const Size.fromHeight(100.0),
-          child: SafeArea(
-            child: SizedBox(
-              height: 80.0,
-              child: Padding(
-                padding: const EdgeInsets.all(Spacing.sm),
-                child: Image.asset(
-                  'assets/images/Logo.png',
-                  width: MediaQuery.of(context).size.width * 0.4 > 1000
-                      ? 500
-                      : MediaQuery.of(context).size.width * 0.2,
-                ),
-              ),
-            ),
-          ),
+      child: PageLayoutWrapper(
+        sliverAppBar: PremiumGlassAppBar(
+          variant: AppBarVariant.rootTab,
+          titleText: appLocale.homePageFeelGood(gender),
         ),
-        body: SingleChildScrollView(
-          child: ConstrainedBox(
-            constraints: BoxConstraints(
-              minHeight: MediaQuery.of(context).size.height,
+        body: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            SizedBox(height: Spacing.md),
+            Text(
+              appLocale.feelGoodTitle(gender),
+              style: Theme.of(context).textTheme.headlineLarge?.copyWith(
+                    fontWeight: FontWeight.bold,
+                  ),
             ),
-            child: Column(
-              children: [
-                Container(
-                  alignment: Alignment.topCenter,
-                  margin: const EdgeInsets.symmetric(horizontal: Spacing.md),
-                  child: myAutoSizedText(
-                    appLocale.feelGoodTitle(gender),
-                    TextStyle(
-                      fontWeight: FontWeight.bold,
-                      // .sp so the heading scales with system text-scale.
-                      fontSize: 30.sp,
-                    ),
-                    TextAlign.center,
-                    60,
+            SizedBox(height: Spacing.xs),
+            Text(
+              appLocale.feelGoodSubTitle(gender),
+              style: Theme.of(context).textTheme.bodyLarge?.copyWith(
+                    color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.7),
                   ),
-                ),
-                const SizedBox(height: Spacing.xs),
-                Padding(
-                  padding: const EdgeInsets.all(Spacing.sm),
-                  child: myAutoSizedText(
-                    appLocale.feelGoodSubTitle(gender),
-                    TextStyle(fontSize: 18.sp),
-                    null,
-                    18,
-                  ),
-                ),
+            ),
+            SizedBox(height: Spacing.lg),
                 Padding(
                   padding: const EdgeInsets.symmetric(horizontal: Spacing.sm),
                   child: Scrollbar(
@@ -153,7 +128,7 @@ class _FeelGoodPageState extends LPExtendedState<FeelGood> {
                           itemBuilder: (context, index) {
                             // If this is the last item, return a grid item with the camera and upload icons
                             if (index == imagePaths.length) {
-                              return ImageAddItem();
+                              return const ImageAddItem();
                             }
                             return ImageDisplay(
                               imagePath: imagePaths[index],
@@ -167,11 +142,9 @@ class _FeelGoodPageState extends LPExtendedState<FeelGood> {
                   ),
                 ),
                 const SizedBox(height: Spacing.bottomPadding),
-              ],
-            ),
+            ],
           ),
         ),
-      ),
     );
   }
 }

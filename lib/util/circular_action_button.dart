@@ -24,7 +24,7 @@ Widget circularActionButton(
         radius: diameter / 2,
         backgroundColor: colorScheme.primary,
         foregroundColor: colorScheme.onPrimary,
-        child: Icon(icon!, size: iconSize),
+        child: Icon(icon, size: iconSize),
       );
 
   return Tooltip(

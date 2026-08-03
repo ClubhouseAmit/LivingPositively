@@ -20,9 +20,9 @@ class LPShareAlertDialog extends StatefulWidget {
 }
 
 Future<void> shareFile(appLocale, gender, appInfoProvider) async {
-  var fileService = GetIt.instance<FileService>();
+  final fileService = GetIt.instance<FileService>();
   await fileService.share(
-      "",
+      '',
       [
         appLocale!.difficultEventsHeader(gender),
         appLocale!.makeSaferHeader(gender),
@@ -45,10 +45,10 @@ Future<void> shareFile(appLocale, gender, appInfoProvider) async {
 class _LPShareAlertDialogState extends LPExtendedState<LPShareAlertDialog> {
   @override
   Widget build(BuildContext context) {
-    FileService fileService = GetIt.instance<FileService>();
-    AppInformation appInfoProvider = Provider.of<AppInformation>(context);
-    UserInformation userInfoProvider = Provider.of<UserInformation>(context);
-    String gender = userInfoProvider.gender;
+    final fileService = GetIt.instance<FileService>();
+    final appInfoProvider = Provider.of<AppInformation>(context);
+    final userInfoProvider = Provider.of<UserInformation>(context);
+    final gender = userInfoProvider.gender;
 
     return LPAlertDialog(
       title: appLocale.shareOptions,

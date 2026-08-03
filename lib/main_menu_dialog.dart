@@ -1,4 +1,7 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
+import 'package:lucide_icons_flutter/lucide_icons.dart';
 import 'package:mazilon/l10n/app_localizations.dart';
 import 'package:mazilon/pages/UserSettings.dart';
 import 'package:mazilon/pages/notifications/notification_service.dart';
@@ -37,6 +40,9 @@ Future<void> _openContactUs(AppLocalizations appLocale) async {
   }
 }
 
+/// Identifiers for the menu items returned by [showMenu].
+enum _MenuAction { about, notifications, settings, share, contactUs }
+
 void showMainMenuDialog({
   required BuildContext context,
   required BuildContext anchorContext,
@@ -50,182 +56,137 @@ void showMainMenuDialog({
 }) {
   final gender = userInformation.gender;
   final age = userInformation.age;
-  final mediaQuery = MediaQuery.of(context);
-  final screenWidth = mediaQuery.size.width;
-  final isRtl = appLocale.textDirection == "rtl";
-  final maxMenuWidth = screenWidth - 24 < 260 ? screenWidth - 24 : 260.0;
-  final minMenuWidth = maxMenuWidth < 180 ? maxMenuWidth : 180.0;
-  final menuWidth = (screenWidth * (isRtl ? 0.38 : 0.45))
-      .clamp(minMenuWidth, maxMenuWidth)
-      .toDouble();
-  final anchorBox = anchorContext.findRenderObject();
-  final overlayBox = Overlay.of(context).context.findRenderObject();
-  var menuLeft = isRtl ? 12.0 : screenWidth - menuWidth - 12.0;
-  var menuTop = mediaQuery.padding.top + kToolbarHeight;
 
-  if (anchorBox is RenderBox && overlayBox is RenderBox) {
+  // Compute the anchor position for the popover.
+  final anchorBox = anchorContext.findRenderObject() as RenderBox?;
+  final overlayBox =
+      Overlay.of(context).context.findRenderObject() as RenderBox?;
+
+  RelativeRect position;
+  if (anchorBox != null && overlayBox != null) {
     final anchorOffset = anchorBox.localToGlobal(
       Offset.zero,
       ancestor: overlayBox,
     );
-
-    menuLeft = isRtl
-        ? anchorOffset.dx
-        : anchorOffset.dx + anchorBox.size.width - menuWidth;
-    menuTop = anchorOffset.dy + anchorBox.size.height + 8;
+    position = RelativeRect.fromLTRB(
+      anchorOffset.dx,
+      anchorOffset.dy + anchorBox.size.height,
+      anchorOffset.dx + anchorBox.size.width,
+      0,
+    );
+  } else {
+    // Fallback when render objects aren't available.
+    final mediaQuery = MediaQuery.of(context);
+    position = RelativeRect.fromLTRB(
+      12,
+      mediaQuery.padding.top + kToolbarHeight,
+      12,
+      0,
+    );
   }
 
-  menuLeft = menuLeft.clamp(12.0, screenWidth - menuWidth - 12.0).toDouble();
+  // Build the list of menu items.
+  final items = <PopupMenuEntry<_MenuAction>>[
+    PopupMenuItem<_MenuAction>(
+      key: const Key('mainMenuAboutButton'),
+      value: _MenuAction.about,
+      child: _MenuRow(
+        icon: LucideIcons.users,
+        label: appLocale.homePageAbout(gender),
+      ),
+    ),
+    if (NotificationsService.supportsReminderSettings(isWebOverride: isWeb))
+      PopupMenuItem<_MenuAction>(
+        value: _MenuAction.notifications,
+        child: _MenuRow(
+          icon: LucideIcons.bell,
+          label: appLocale.notifications(gender),
+        ),
+      ),
+    PopupMenuItem<_MenuAction>(
+      value: _MenuAction.settings,
+      child: _MenuRow(
+        icon: LucideIcons.settings,
+        label: appLocale.settings(gender),
+      ),
+    ),
+    PopupMenuItem<_MenuAction>(
+      value: _MenuAction.share,
+      child: _MenuRow(
+        icon: LucideIcons.share,
+        label: appLocale.shareButtonText,
+      ),
+    ),
+    PopupMenuItem<_MenuAction>(
+      key: const Key('mainMenuContactUsButton'),
+      value: _MenuAction.contactUs,
+      child: _MenuRow(
+        icon: LucideIcons.mail,
+        label: appLocale.contactUs,
+      ),
+    ),
+  ];
 
-  showGeneralDialog(
+  unawaited(showMenu<_MenuAction>(
     context: context,
-    barrierDismissible: true,
-    barrierLabel: MaterialLocalizations.of(context).modalBarrierDismissLabel,
-    barrierColor: Colors.black45,
-    transitionDuration: const Duration(milliseconds: 200),
-    pageBuilder:
-        (
-          BuildContext buildContext,
-          Animation<double> animation,
-          Animation<double> secondaryAnimation,
-        ) {
-          final closeButton = IconButton(
-            key: const Key('mainMenuCloseButton'),
-            icon: const Icon(Icons.close),
-            onPressed: () {
-              Navigator.of(context).pop();
-            },
-          );
-          final aboutButton = Expanded(
-            child: Align(
-              alignment: AlignmentDirectional.centerStart,
-              child: _buildMainMenuAction(
-                icon: Icons.people,
-                label: appLocale.homePageAbout(gender),
-                mainAxisSize: MainAxisSize.min,
-                onPressed: () {
-                  onAboutPressed();
-                  Navigator.of(context).pop();
-                },
+    position: position,
+    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+    elevation: 8,
+    items: items,
+  ).then((action) async {
+    if (action == null) return;
+
+    switch (action) {
+      case _MenuAction.about:
+        onAboutPressed();
+      case _MenuAction.notifications:
+        onNotificationsPressed();
+      case _MenuAction.settings:
+        if (!context.mounted) return;
+        unawaited(
+          Navigator.push(
+            context,
+            MaterialPageRoute<void>(
+              builder: (context) => UserSettings(
+                phonePageData: phonePageData,
+                username: userInformation.name,
+                age: age,
+                gender: gender,
+                changeLocale: changeLocale,
               ),
             ),
-          );
-
-          return Stack(
-            children: [
-              Positioned(
-                left: menuLeft,
-                top: menuTop,
-                width: menuWidth,
-                child: Material(
-                  key: const Key('mainMenuDialog'),
-                  color: Theme.of(buildContext).colorScheme.surface,
-                  elevation: 24.0,
-                  shape: Border.all(
-                    color: Theme.of(buildContext).colorScheme.primary,
-                    width: 2,
-                  ),
-                  child: Column(
-                    mainAxisSize: MainAxisSize.min,
-                    children: <Widget>[
-                      Row(
-                        textDirection: TextDirection.ltr,
-                        children: isRtl
-                            ? [closeButton, aboutButton]
-                            : [aboutButton, closeButton],
-                      ),
-                      _notificationButton(
-                        context: context,
-                        appLocale: appLocale,
-                        gender: gender,
-                        isWeb: isWeb,
-                        onNotificationsPressed: onNotificationsPressed,
-                      ),
-                      _buildMainMenuAction(
-                        icon: Icons.settings,
-                        label: appLocale.settings(gender),
-                        onPressed: () {
-                          Navigator.of(context).pop();
-                          Navigator.push(
-                            context,
-                            MaterialPageRoute(
-                              builder: (context) => UserSettings(
-                                phonePageData: phonePageData,
-                                username: userInformation.name,
-                                age: age,
-                                gender: gender,
-                                changeLocale: changeLocale,
-                              ),
-                            ),
-                          );
-                        },
-                      ),
-                      _buildMainMenuAction(
-                        icon: Icons.share,
-                        label: appLocale.shareButtonText,
-                        onPressed: () async {
-                          await SharePlus.instance.share(
-                            ShareParams(
-                              text:
-                                  '${appLocale.shareAppMessage}\n ${_shareAppUrl(appLocale)}',
-                              subject: 'Living Positively App',
-                            ),
-                          );
-                        },
-                      ),
-                      _buildMainMenuAction(
-                        key: const Key('mainMenuContactUsButton'),
-                        icon: Icons.email,
-                        label: appLocale.contactUs,
-                        onPressed: () async {
-                          await _openContactUs(appLocale);
-                        },
-                      ),
-                    ],
-                  ),
-                ),
-              ),
-            ],
-          );
-        },
-  );
+          ),
+        );
+      case _MenuAction.share:
+        await SharePlus.instance.share(
+          ShareParams(
+            text:
+                '${appLocale.shareAppMessage}\n'
+                ' ${_shareAppUrl(appLocale)}',
+            subject: 'Living Positively App',
+          ),
+        );
+      case _MenuAction.contactUs:
+        await _openContactUs(appLocale);
+    }
+  }));
 }
 
-Widget _buildMainMenuAction({
-  Key? key,
-  required IconData icon,
-  required String label,
-  required VoidCallback onPressed,
-  MainAxisSize mainAxisSize = MainAxisSize.max,
-}) {
-  return TextButton(
-    key: key,
-    onPressed: onPressed,
-    child: Row(
-      mainAxisAlignment: MainAxisAlignment.start,
-      mainAxisSize: mainAxisSize,
-      children: [Icon(icon), const SizedBox(width: 20), Text(label)],
-    ),
-  );
-}
+/// A simple icon + label row used inside each [PopupMenuItem].
+class _MenuRow extends StatelessWidget {
+  const _MenuRow({required this.icon, required this.label});
 
-Widget _notificationButton({
-  required BuildContext context,
-  required AppLocalizations appLocale,
-  required String gender,
-  required bool isWeb,
-  required VoidCallback onNotificationsPressed,
-}) {
-  if (!NotificationsService.supportsReminderSettings(isWebOverride: isWeb)) {
-    return const SizedBox.shrink();
+  final IconData icon;
+  final String label;
+
+  @override
+  Widget build(BuildContext context) {
+    return Row(
+      children: [
+        Icon(icon, size: 20),
+        const SizedBox(width: 12),
+        Text(label),
+      ],
+    );
   }
-
-  return _buildMainMenuAction(
-    icon: Icons.notification_add,
-    label: appLocale.notifications(gender),
-    onPressed: () {
-      onNotificationsPressed();
-      Navigator.of(context).pop();
-    },
-  );
 }

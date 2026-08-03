@@ -6,13 +6,11 @@ import 'package:mazilon/pages/WellnessTools/VideoPlayerInheritedWidget.dart';
 import 'package:youtube_player_flutter/youtube_player_flutter.dart';
 
 class VideoPlayerPage extends StatefulWidget {
+  const VideoPlayerPage({
+    required this.onFullScreenChanged, required this.videoData, super.key,
+  });
   final Function(bool isFullScreen) onFullScreenChanged;
   final Map<String, List<String>> videoData;
-  const VideoPlayerPage({
-    super.key,
-    required this.onFullScreenChanged,
-    required this.videoData,
-  });
   @override
   State<VideoPlayerPage> createState() => _VideoPlayerPageState();
 }
@@ -39,7 +37,6 @@ class _VideoPlayerPageState extends State<VideoPlayerPage> {
       initialVideoId: initialVideoId ?? '',
       flags: YoutubePlayerFlags(
         autoPlay: false,
-        enableCaption: true,
         captionLanguage: Localizations.localeOf(context).languageCode,
       ),
     );
@@ -111,15 +108,15 @@ class _VideoPlayerPageState extends State<VideoPlayerPage> {
   }
 
   void _logEvent(bool isPlaying, title, String url) {
-    AnalyticsService mixPanelService = GetIt.instance<AnalyticsService>();
-    debugPrint("logging");
+    final mixPanelService = GetIt.instance<AnalyticsService>();
+    debugPrint('logging');
     if (isPlaying) {
-      mixPanelService.trackEvent("Video unpaused", {
-        "title": title,
-        "url": url,
+      mixPanelService.trackEvent('Video unpaused', {
+        'title': title,
+        'url': url,
       });
     } else {
-      mixPanelService.trackEvent("Video paused", {"title": title, "url": url});
+      mixPanelService.trackEvent('Video paused', {'title': title, 'url': url});
     }
   }
 

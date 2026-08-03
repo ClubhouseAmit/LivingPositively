@@ -1,11 +1,10 @@
+import 'package:auto_size_text/auto_size_text.dart';
 import 'package:flutter/foundation.dart'
     show TargetPlatform, defaultTargetPlatform;
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
-import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:mazilon/l10n/app_localizations.dart';
 import 'package:mazilon/util/circular_action_button.dart';
-import 'package:mazilon/util/styles.dart';
 import 'package:url_launcher/url_launcher.dart';
 
 export 'package:mazilon/util/circular_action_button.dart'
@@ -41,17 +40,19 @@ Widget phoneContact(String phone, String contact) {
           );
         },
       ),
-      const SizedBox(width: 10.0), // adjust as needed
-      Expanded(
-        child: Card(
-          child: Padding(
-            padding: const EdgeInsets.all(10.0),
-            child: myAutoSizedText(
-              contact,
-              TextStyle(fontWeight: FontWeight.normal, fontSize: 20.sp),
-              null,
-              30,
-            ), // present the contacts from myContacts list
+      const SizedBox(width: 10), // adjust as needed
+      Builder(
+        builder: (context) => Expanded(
+          child: Card(
+            child: Padding(
+              padding: const EdgeInsets.all(10),
+              child: AutoSizeText(
+                contact,
+                style: Theme.of(context).textTheme.bodyLarge?.copyWith(
+                      fontWeight: FontWeight.normal,
+                    ),
+              ), // present the contacts from myContacts list
+            ),
           ),
         ),
       ),
@@ -199,16 +200,14 @@ Widget getTextIconWidget(String text, Function onClick, IconData icon) {
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
           Flexible(
-            child: myText(
+            child: Text(
               text,
-              TextStyle(
-                fontWeight: FontWeight.normal,
-                fontSize: 18.sp > 35 ? 35 : 20.sp,
-              ),
-              null,
+              style: Theme.of(context).textTheme.bodyLarge?.copyWith(
+                    fontWeight: FontWeight.normal,
+                  ),
             ),
           ),
-          SizedBox(width: 5.0),
+          const SizedBox(width: 5),
           circularActionButton(
             context,
             tooltip: text,
@@ -217,7 +216,7 @@ Widget getTextIconWidget(String text, Function onClick, IconData icon) {
               onClick();
             },
           ),
-          SizedBox(width: 10.0),
+          const SizedBox(width: 10),
         ],
       ),
     ),

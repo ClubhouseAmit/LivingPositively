@@ -3,6 +3,64 @@ import 'package:flutter/foundation.dart';
 //this it the app's information class, with it we store and display it across the app.
 //We update this information in firebase_functions.dart
 class AppInformation with ChangeNotifier {
+  //add me here
+  AppInformation({
+    //add me here as well
+
+    this.reminderMainTitle = '',
+    this.reminderSubTitle = '',
+    this.homeTitleGreeting = '',
+    this.test1 = const [],
+    this.returnToPlanStrings = const {},
+    this.personalPlanMainTitle = const {},
+    this.personalPlanSubTitle = const {},
+    this.warningHomePageTitles = const {},
+    this.traitsHomePageTitles = const {},
+    this.traitMainTitle = const {},
+    this.traitSubTitle = const {},
+    this.journalMainTitle = const {},
+    this.journalSubTitle = const {},
+    this.personalInformationForm = const {},
+    this.introductionFormFirstPage = const {},
+    this.introductionFormSecondPage = const {},
+    this.introductionFormLastPage = const {},
+    this.homePageInspirationalQuotes = const {},
+    this.lastUpdated,
+    this.shareMessages = const {},
+    this.thanksSuggestionsList = const [],
+    this.phonePersonalPlanText = const [],
+    this.positiveTraitsSuggestionsList = const {},
+    this.journalPopUpText = const {},
+    this.positiveTraitsPopUpText = const {},
+    this.formPhonePage = const {},
+    this.phonePageTitles = const {},
+    this.formDifficultEventsTitles = const {},
+    this.formDistractionsTitles = const {},
+    this.formFeelBetterTitles = const {},
+    this.formMakeSaferTitles = const {},
+    this.formSharePageTitles = const {},
+    this.appVersion = '',
+    this.DifficultEventsSug = const [],
+    this.DistractionsSug = const [],
+    this.FeelBetterSug = const [],
+    this.MakeSaferSug = const [],
+    this.sharePDFtexts = const {},
+    this.wellnessVideos = const {},
+    this.aboutPageText = const {},
+    this.disclaimerText = '',
+    this.disclaimerNext = '',
+    this.formSkipButtonText = const {},
+    this.feelGoodPageTitles = const {},
+    this.extraMenuStrings = const {},
+    this.syncPages = const {},
+    this.popupBack = const {},
+    this.signUpLoginPage = const {},
+    this.addFormStrings = const {}, //
+    this.addThanksFormStrings = const {}, //
+    this.addFormPageTemplateStrings = const {}, //
+    this.IntroductionRestart = const {},
+    this.othersuggestions = const {}, //
+  });
   String disclaimerText;
   String disclaimerNext;
   String reminderMainTitle;
@@ -62,64 +120,6 @@ class AppInformation with ChangeNotifier {
   Map<String, String> addFormPageTemplateStrings;
   Map<String, String> IntroductionRestart;
   Map<String, List<String>> wellnessVideos;
-  //add me here
-  AppInformation({
-    //add me here as well
-
-    this.reminderMainTitle = '',
-    this.reminderSubTitle = '',
-    this.homeTitleGreeting = '',
-    this.test1 = const [],
-    this.returnToPlanStrings = const {},
-    this.personalPlanMainTitle = const {},
-    this.personalPlanSubTitle = const {},
-    this.warningHomePageTitles = const {},
-    this.traitsHomePageTitles = const {},
-    this.traitMainTitle = const {},
-    this.traitSubTitle = const {},
-    this.journalMainTitle = const {},
-    this.journalSubTitle = const {},
-    this.personalInformationForm = const {},
-    this.introductionFormFirstPage = const {},
-    this.introductionFormSecondPage = const {},
-    this.introductionFormLastPage = const {},
-    this.homePageInspirationalQuotes = const {},
-    this.lastUpdated,
-    this.shareMessages = const {},
-    this.thanksSuggestionsList = const [],
-    this.phonePersonalPlanText = const [],
-    this.positiveTraitsSuggestionsList = const {},
-    this.journalPopUpText = const {},
-    this.positiveTraitsPopUpText = const {},
-    this.formPhonePage = const {},
-    this.phonePageTitles = const {},
-    this.formDifficultEventsTitles = const {},
-    this.formDistractionsTitles = const {},
-    this.formFeelBetterTitles = const {},
-    this.formMakeSaferTitles = const {},
-    this.formSharePageTitles = const {},
-    this.appVersion = '',
-    this.DifficultEventsSug = const [],
-    this.DistractionsSug = const [],
-    this.FeelBetterSug = const [],
-    this.MakeSaferSug = const [],
-    this.sharePDFtexts = const {},
-    this.wellnessVideos = const {},
-    this.aboutPageText = const {},
-    this.disclaimerText = '',
-    this.disclaimerNext = '',
-    this.formSkipButtonText = const {},
-    this.feelGoodPageTitles = const {},
-    this.extraMenuStrings = const {},
-    this.syncPages = const {},
-    this.popupBack = const {},
-    this.signUpLoginPage = const {},
-    this.addFormStrings = const {}, //
-    this.addThanksFormStrings = const {}, //
-    this.addFormPageTemplateStrings = const {}, //
-    this.IntroductionRestart = const {},
-    this.othersuggestions = const {}, //
-  });
 
   void updateReminderMainTitle(String title) {
     reminderMainTitle = title;

@@ -1,33 +1,32 @@
-// ignore_for_file: prefer_const_constructors, sized_box_for_whitespace
+// ignore_for_file: prefer_const_constructors
+import 'package:auto_size_text/auto_size_text.dart';
 import 'package:flutter/material.dart';
 import 'package:get_it/get_it.dart';
 import 'package:mazilon/global_enums.dart';
 import 'package:mazilon/util/LP_extended_state.dart';
-import 'package:mazilon/util/persistent_memory_service.dart';
-import 'package:flutter_screenutil/flutter_screenutil.dart';
-import 'package:provider/provider.dart';
-import 'package:mazilon/util/styles.dart';
-import 'package:mazilon/util/userInformation.dart';
 import 'package:mazilon/util/disclaimerLanguageSelect.dart';
+import 'package:mazilon/util/persistent_memory_service.dart';
+import 'package:mazilon/util/userInformation.dart';
+import 'package:provider/provider.dart';
 
 // the disclaimer page widget,
 // it shows the disclaimer text and a button to confirm the disclaimer
 class DisclaimerPage extends StatefulWidget {
-  final Function changeLocale;
   const DisclaimerPage({required this.changeLocale, super.key});
+  final Function changeLocale;
   @override
   State<DisclaimerPage> createState() => _DisclaimerPageState();
 }
 
 // a function to update the disclaimer signed in the shared preferences
-void updateDisclaimers(userInfo) async {
+Future<void> updateDisclaimers(userInfo) async {
   // get the shared preferences
-  PersistentMemoryService service =
+  final service =
       GetIt.instance<
         PersistentMemoryService
       >(); // Get the persistent memory service instance
 
-  await service.setItem("disclaimerConfirmed", PersistentMemoryType.Bool, true);
+  await service.setItem('disclaimerConfirmed', PersistentMemoryType.Bool, true);
 
   userInfo.updateDisclaimerSigned(
     true,
@@ -41,19 +40,24 @@ class _DisclaimerPageState extends LPExtendedState<DisclaimerPage> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          myAutoSizedText(
-            title,
-            TextStyle(fontSize: 18.sp, fontWeight: FontWeight.bold),
-            TextAlign.start,
-            30,
-            2,
+          Semantics(
+            header: true,
+            child: AutoSizeText(
+              title,
+              style: Theme.of(context).textTheme.titleLarge?.copyWith(
+                    fontWeight: FontWeight.bold,
+                  ),
+              textAlign: TextAlign.start,
+              maxLines: 2,
+            ),
           ),
           const SizedBox(height: 8),
-          myAutoSizedText(
+          AutoSizeText(
             body,
-            TextStyle(fontSize: 16.sp, fontWeight: FontWeight.normal),
-            TextAlign.start,
-            40,
+            style: Theme.of(context).textTheme.bodyLarge?.copyWith(
+                  fontWeight: FontWeight.normal,
+                ),
+            textAlign: TextAlign.start,
           ),
         ],
       ),
@@ -66,7 +70,6 @@ class _DisclaimerPageState extends LPExtendedState<DisclaimerPage> {
     // get the appInformation and userInformation providers
     final userInfoProvider = Provider.of<UserInformation>(
       context,
-      listen: true,
     );
     final gender = userInfoProvider.gender;
 
@@ -85,12 +88,13 @@ class _DisclaimerPageState extends LPExtendedState<DisclaimerPage> {
                     LanguageDropDown(changeLocale: widget.changeLocale),
                     Padding(
                       padding: const EdgeInsets.fromLTRB(20, 0, 20, 18),
-                      child: myAutoSizedText(
+                      child: AutoSizeText(
                         appLocale.disclaimerSummary,
-                        TextStyle(fontSize: 16.sp, fontWeight: FontWeight.bold),
-                        TextAlign.start,
-                        24,
-                        3,
+                        style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                              fontWeight: FontWeight.bold,
+                            ),
+                        textAlign: TextAlign.start,
+                        maxLines: 3,
                       ),
                     ),
                     _section(
@@ -106,9 +110,8 @@ class _DisclaimerPageState extends LPExtendedState<DisclaimerPage> {
                       body: appLocale.disclaimerConsentMessage,
                     ),
                     // the confirm disclaimer button
-                    ConfirmationButton(
-                      context,
-                      () {
+                    ElevatedButton(
+                      onPressed: () {
                         setState(() {
                           updateDisclaimers(
                             userInfoProvider,
@@ -116,11 +119,9 @@ class _DisclaimerPageState extends LPExtendedState<DisclaimerPage> {
                           //update the disclaimer signed in the shared preferences (call the updateDisclaimers function)
                         });
                       },
-                      //disclaimer next button text from CMS(Saved in appinfo)
-                      appLocale.confirmButton(gender),
-                      myTextStyle.copyWith(fontSize: 20.sp),
+                      child: Text(appLocale.confirmButton(gender)),
                     ),
-                    SizedBox(height: 20.0),
+                    SizedBox(height: 20),
                   ],
                 ),
               ),

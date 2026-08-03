@@ -1,10 +1,11 @@
+import 'package:auto_size_text/auto_size_text.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:intl/intl.dart' as intl;
-
-import 'package:mazilon/MainPageHelpers/MainPageList/mainpage_list_body_widget.dart';
+import 'package:lucide_icons_flutter/lucide_icons.dart';
 import 'package:mazilon/MainPageHelpers/MainPageList/list_utils.dart';
+import 'package:mazilon/MainPageHelpers/MainPageList/mainpage_list_body_widget.dart';
 import 'package:mazilon/MainPageHelpers/show_all_button.dart';
 import 'package:mazilon/global_enums.dart';
 import 'package:mazilon/util/Form/retrieveInformation.dart';
@@ -12,23 +13,21 @@ import 'package:mazilon/util/HomePage/sectionBarHome.dart';
 import 'package:mazilon/util/LP_extended_state.dart';
 import 'package:mazilon/util/Thanks/AddForm.dart';
 import 'package:mazilon/util/Thanks/thanksItemSug.dart';
-import 'package:mazilon/util/styles.dart';
+import 'package:mazilon/util/Traits/positiveTraitItemSug.dart';
+import 'package:mazilon/util/theme/spacing.dart';
 import 'package:mazilon/util/userInformation.dart';
 import 'package:provider/provider.dart';
-import 'package:mazilon/util/Traits/positiveTraitItemSug.dart';
 
 // the trait list widget, it shows the list of the traits
 // this code is related to "מעלות" section in homepage.
 // this code is similar to thanksListWidget.dart .
-class ListWidget extends StatefulWidget {
+class ListWidget extends StatefulWidget { // the title of the widget
+  const ListWidget({
+    required this.onTabTapped, required this.pageCode, super.key,
+  });
   final Function(BuildContext, PagesCode)
   onTabTapped; // the function to navigate to another page
-  final PagesCode pageCode; // the title of the widget
-  const ListWidget({
-    super.key,
-    required this.onTabTapped,
-    required this.pageCode,
-  });
+  final PagesCode pageCode;
   @override
   State<ListWidget> createState() => _ListWidgetState();
 }
@@ -133,14 +132,14 @@ class _ListWidgetState extends LPExtendedState<ListWidget> {
   }
 
   void showThankYouPopup(UserInformation userInfoProvider) {
-    Future.delayed(const Duration(seconds: 0), () {
+    Future.delayed(const Duration(), () {
       if (!mounted) {
         return;
       }
       final gender = userInfoProvider.gender;
       showDialog(
         context: context,
-        builder: (BuildContext context) {
+        builder: (context) {
           return AlertDialog(
             title: const Text(''),
             content: Text(
@@ -157,7 +156,7 @@ class _ListWidgetState extends LPExtendedState<ListWidget> {
                 onPressed: Navigator.of(context).pop,
                 child: Text(
                   appLocale.confirmButton(gender),
-                  style: TextStyle(fontWeight: FontWeight.normal),
+                  style: const TextStyle(fontWeight: FontWeight.normal),
                 ),
               ),
             ],
@@ -170,7 +169,7 @@ class _ListWidgetState extends LPExtendedState<ListWidget> {
   void editThanksState(
     List<String> thankyousTemp,
     List<String> datesTemp,
-    userInfoProvider,
+    UserInformation userInfoProvider,
   ) {
     setState(() {
       userInfoProvider.updateThanks({
@@ -181,7 +180,7 @@ class _ListWidgetState extends LPExtendedState<ListWidget> {
     });
   }
 
-  void editTraitsState(positivetraitsTemp, userInfoProvider) {
+  void editTraitsState(List<String> positivetraitsTemp, UserInformation userInfoProvider) {
     setState(() {
       userInfoProvider.updatePositiveTraits(positivetraitsTemp);
       _refreshHomeSuggestions(userInfoProvider);
@@ -189,17 +188,17 @@ class _ListWidgetState extends LPExtendedState<ListWidget> {
   }
 
   void editTrait(String title, [String text = '', int index = 0]) {
-    showDialog(
+    showDialog<void>(
       context: context,
-      builder: (BuildContext context) {
+      builder: (context) {
         return AddForm(
-          add: (positiveTrait, userInfoProvider) => addPositiveTrait(
+          add: (String positiveTrait, UserInformation userInfoProvider) => addPositiveTrait(
             positiveTrait,
             userInfoProvider,
             editTraitsState,
           ),
           index: index,
-          edit: (text, index, userInfoProvider) =>
+          edit: (String text, int index, UserInformation userInfoProvider) =>
               editPositiveTrait(text, index, userInfoProvider, editTraitsState),
           text: text,
           formTitle: title,
@@ -209,18 +208,18 @@ class _ListWidgetState extends LPExtendedState<ListWidget> {
   }
 
   void editThanks(String title, [String text = '', int index = 0]) {
-    showDialog(
+    showDialog<void>(
       context: context,
-      builder: (BuildContext context) {
+      builder: (context) {
         return AddForm(
-          add: (thankYou, userInfoProvider) => addThankYou(
+          add: (String thankYou, UserInformation userInfoProvider) => addThankYou(
             thankYou,
             userInfoProvider,
             editThanksState,
             showThankYouPopup,
           ),
           index: index,
-          edit: (text, index, userInfoProvider) =>
+          edit: (String text, int index, UserInformation userInfoProvider) =>
               editThankYou(text, index, userInfoProvider, editThanksState),
           text: text,
           formTitle: title,
@@ -229,7 +228,7 @@ class _ListWidgetState extends LPExtendedState<ListWidget> {
     );
   }
 
-  Function(int index) editItemFunction(
+  void Function(int index) editItemFunction(
     UserInformation userInfoProvider,
     List<int> sourceIndexes,
   ) {
@@ -277,7 +276,7 @@ class _ListWidgetState extends LPExtendedState<ListWidget> {
     }
   }
 
-  Function(int index) removeItemFunction(
+  void Function(int index) removeItemFunction(
     UserInformation userInfoProvider,
     List<int> sourceIndexes,
   ) {
@@ -332,7 +331,7 @@ class _ListWidgetState extends LPExtendedState<ListWidget> {
   Widget buildThanksItemSug(String suggestion, String gender) {
     return ThanksItemSuggested(
       stopShowing: 0,
-      add: (thankYou, userInfoProvider) {
+      add: (String thankYou, UserInformation userInfoProvider) {
         addThankYou(
           thankYou,
           userInfoProvider,
@@ -348,7 +347,7 @@ class _ListWidgetState extends LPExtendedState<ListWidget> {
   Widget buildPositiveTraitItemSug(String suggestion, String gender) {
     return PositiveTraitItemSug(
       stopShowing: 0,
-      add: (trait, userInfoProvider) {
+      add: (String trait, UserInformation userInfoProvider) {
         addPositiveTrait(trait, userInfoProvider, editTraitsState);
       },
       inputText: suggestion,
@@ -379,7 +378,6 @@ class _ListWidgetState extends LPExtendedState<ListWidget> {
 
     final userInfoProvider = Provider.of<UserInformation>(
       context,
-      listen: true,
     );
     final gender = userInfoProvider.gender.isEmpty
         ? 'other'
@@ -404,91 +402,121 @@ class _ListWidgetState extends LPExtendedState<ListWidget> {
       gender,
       widget.pageCode,
     );
-    return SizedBox(
-      // the width of the widget is 800 if the screen width is more than 1000, otherwise it is the screen width
-      width: MediaQuery.of(context).size.width > 1000
-          ? 800
-          : MediaQuery.of(context).size.width,
-      child: Padding(
-        padding: const EdgeInsets.only(bottom: 8.0),
-        child: Column(
-          children: [
-            // the section bar of the trait list ,
-            // which contains the title, the icon, the subheader and the add icon,
-            // when its clicked it navigates to the add trait page
-            SectionBarHome(
-              textWidget: TextButton(
-                onPressed: () {
-                  widget.onTabTapped(context, widget.pageCode);
-                },
-                child: myAutoSizedText(
-                  pageData['mainTitle'],
-                  TextStyle(
-                    fontSize: 24.sp, // the font size of the title
-                    fontWeight: FontWeight.bold,
-                    color: Theme.of(
-                      context,
-                    ).colorScheme.onSurface, // the color of the title
-                  ),
-                  null,
-                  40,
+    return ConstrainedBox(
+      constraints: const BoxConstraints(maxWidth: 800),
+      child: Card(
+        child: ClipRRect(
+          borderRadius: BorderRadius.circular(16),
+          child: Container(
+            decoration: BoxDecoration(
+              border: Border(
+                left: BorderSide(
+                  color: widget.pageCode == PagesCode.GratitudeJournal
+                      ? Theme.of(context).colorScheme.primary
+                      : Theme.of(context).colorScheme.secondary,
+                  width: 6,
                 ),
               ),
-              icon: pageData["icon"], // the icon of the section bar
-              icons: [
-                // add button with the add icon
-                IconButton(
-                  icon: Icon(
-                    Icons.add,
-                    color: Theme.of(context).colorScheme.primary,
-                    size: 30,
-                  ),
-                  tooltip: appLocale.addItemTooltip,
-                  onPressed: addItemFunction,
+            ),
+            child: Directionality(
+              textDirection: Directionality.of(context),
+              child: Padding(
+                padding: const EdgeInsets.only(
+                  top: Spacing.md,
+                  bottom: Spacing.md,
+                  right: Spacing.md,
+                  left: Spacing.md - 6,
                 ),
-              ],
-
-              // the subheader of the section bar
-              subHeader: pageData['secondaryTitle'] ?? "",
-            ),
-            // gap between the section bar and the trait list
-            const SizedBox(height: 10),
-            ListBodyWidget(
-              listItems: listItems,
-              editItems: editItemFunction(userInfoProvider, sourceIndexes),
-              removeItems: removeItemFunction(userInfoProvider, sourceIndexes),
-            ),
-            ShowAllButton(
-              onTabTapped: widget.onTabTapped,
-              pageCode: widget.pageCode,
-            ),
-            for (final suggestion in _homeSuggestions)
-              buildSuggestion(suggestion, gender),
-            TextButton(
-              onPressed: () {
-                setState(() {
-                  _refreshHomeSuggestions(userInfoProvider, force: true);
-                });
-              },
-              child: Row(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: <Widget>[
-                  Text(
-                    appLocale.otherSuggestions(gender),
-                    style: TextStyle(
-                      fontWeight: FontWeight.bold,
-                      color: Theme.of(context).colorScheme.tertiary,
+                child: Column(
+                  children: [
+                    SectionBarHome(
+                      textWidget: TextButton(
+                        style: TextButton.styleFrom(padding: EdgeInsets.zero),
+                        onPressed: () {
+                          widget.onTabTapped(context, widget.pageCode);
+                        },
+                        child: AutoSizeText(
+                          pageData['mainTitle'] as String,
+                          style: Theme.of(context).textTheme.headlineMedium?.copyWith(
+                                color: Theme.of(context).colorScheme.onSurface,
+                              ),
+                        ),
+                      ),
+                      icons: [
+                        IconButton(
+                          icon: Icon(
+                            LucideIcons.plus,
+                            color: Theme.of(context).colorScheme.primary,
+                            size: Spacing.lg,
+                          ),
+                          tooltip: appLocale.addItemTooltip,
+                          onPressed: addItemFunction,
+                        ),
+                        IconButton(
+                          icon: Icon(
+                            LucideIcons.chevronRight,
+                            color: Theme.of(context).colorScheme.primary,
+                            size: Spacing.lg,
+                          ),
+                          tooltip: appLocale.showAll(gender),
+                          onPressed: () {
+                            widget.onTabTapped(context, widget.pageCode);
+                          },
+                        ),
+                      ],
+                      subHeader: pageData['secondaryTitle'] as String? ?? '',
                     ),
-                  ),
-                  const SizedBox(width: 1.0),
-                  Icon(
-                    Icons.refresh,
-                    color: Theme.of(context).colorScheme.tertiary,
-                  ),
-                ],
+                    const SizedBox(height: Spacing.sm),
+                    ListBodyWidget(
+                      listItems: listItems,
+                      editItems: editItemFunction(userInfoProvider, sourceIndexes),
+                      removeItems: removeItemFunction(userInfoProvider, sourceIndexes),
+                    ),
+                    if (listItems.isNotEmpty && _homeSuggestions.isNotEmpty) ...[
+                      const SizedBox(height: Spacing.sm),
+                      Divider(
+                        color: Theme.of(context).colorScheme.outline,
+                        indent: 30,
+                        endIndent: 30,
+                      ),
+                      const SizedBox(height: Spacing.sm),
+                    ] else if (_homeSuggestions.isNotEmpty) ...[
+                      const SizedBox(height: Spacing.sm),
+                    ],
+                    for (final suggestion in _homeSuggestions)
+                      buildSuggestion(suggestion, gender),
+                    Padding(
+                      padding: const EdgeInsets.only(top: Spacing.sm),
+                      child: TextButton(
+                        onPressed: () {
+                          setState(() {
+                            _refreshHomeSuggestions(userInfoProvider, force: true);
+                          });
+                        },
+                        child: Row(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: <Widget>[
+                            Text(
+                              appLocale.otherSuggestions(gender),
+                              style: TextStyle(
+                                fontWeight: FontWeight.normal,
+                                color: Theme.of(context).colorScheme.primary,
+                              ),
+                            ),
+                            const SizedBox(width: 1),
+                            Icon(
+                              LucideIcons.wand2,
+                              color: Theme.of(context).colorScheme.primary,
+                            ),
+                          ],
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
               ),
             ),
-          ],
+          ),
         ),
       ),
     );

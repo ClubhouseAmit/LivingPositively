@@ -1,72 +1,90 @@
 import 'package:flutter/material.dart';
-import 'package:flutter_screenutil/flutter_screenutil.dart';
-import 'dart:math';
+import 'package:lucide_icons_flutter/lucide_icons.dart';
+import 'package:mazilon/util/theme/spacing.dart';
 
 class MainpageListItemWidget extends StatelessWidget {
+  const MainpageListItemWidget({
+    required this.item,
+    required this.onEdit,
+    required this.onDelete,
+    super.key,
+  });
   final String item;
   final VoidCallback onEdit;
   final VoidCallback onDelete;
 
-  const MainpageListItemWidget({
-    super.key,
-    required this.item,
-    required this.onEdit,
-    required this.onDelete,
-  });
-
   @override
   Widget build(BuildContext context) {
+    final colorScheme = Theme.of(context).colorScheme;
     return Container(
-      constraints: BoxConstraints(
-        minHeight: 20,
-        maxWidth: MediaQuery.sizeOf(context).width * 0.76,
-      ),
-      height: 80,
-      width: MediaQuery.of(context).size.width > 1000
-          ? 600
-          : MediaQuery.of(context).size.width * 0.8,
+      constraints: const BoxConstraints(maxWidth: 600),
       decoration: BoxDecoration(
-        color: Theme.of(context).colorScheme.surfaceContainerHighest,
+        color: colorScheme.surfaceContainerHighest,
         borderRadius: BorderRadius.circular(20),
       ),
       child: Padding(
-        padding: const EdgeInsets.all(8.0),
+        padding: const EdgeInsets.symmetric(
+          vertical: Spacing.xs,
+          horizontal: Spacing.sm,
+        ),
         child: Row(
           children: [
-            const SizedBox(width: 15),
+            const SizedBox(width: Spacing.sm),
             Expanded(
               child: Text(
-                maxLines: 2,
                 item,
+                maxLines: 1,
                 overflow: TextOverflow.ellipsis,
-                style: TextStyle(
-                  fontFamily: "Rubix",
-                  fontSize: min(30, 16.sp),
-                  fontWeight: FontWeight.normal,
-                ),
+                style: Theme.of(context).textTheme.bodyMedium,
               ),
             ),
-            const SizedBox(width: 15),
-            SizedBox(
-              width: 32,
-              child: MaterialButton(
-                onPressed: onEdit,
-                splashColor: Colors.transparent,
-                enableFeedback: false,
-                child: const Icon(Icons.edit),
+            // 3-dot popover menu
+            PopupMenuButton<String>(
+              icon: Icon(
+                LucideIcons.ellipsisVertical,
+                size: 18,
+                color: colorScheme.onSurface.withValues(alpha: 0.5),
               ),
-            ),
-            Padding(
-              padding: const EdgeInsets.all(8.0),
-              child: SizedBox(
-                width: 32,
-                child: MaterialButton(
-                  onPressed: onDelete,
-                  splashColor: Colors.transparent,
-                  enableFeedback: false,
-                  child: const Icon(Icons.delete),
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(12),
+              ),
+              onSelected: (value) {
+                if (value == 'edit') onEdit();
+                if (value == 'delete') onDelete();
+              },
+              itemBuilder: (_) => [
+                PopupMenuItem(
+                  value: 'edit',
+                  child: Row(
+                    children: [
+                      Icon(
+                        LucideIcons.pencil,
+                        size: 16,
+                        color: colorScheme.primary,
+                      ),
+                      const SizedBox(width: Spacing.sm),
+                      const Text('Edit'),
+                    ],
+                  ),
                 ),
-              ),
+                PopupMenuItem(
+                  value: 'delete',
+                  child: Row(
+                    children: [
+                      Icon(
+                        LucideIcons.trash2,
+                        size: 16,
+                        color: colorScheme.error,
+                      ),
+                      const SizedBox(width: Spacing.sm),
+                      Text(
+                        'Delete',
+                        style: TextStyle(color: colorScheme.error),
+                      ),
+                    ],
+                  ),
+                ),
+              ],
             ),
           ],
         ),

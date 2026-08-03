@@ -1,25 +1,34 @@
+import 'package:auto_size_text/auto_size_text.dart';
 import 'package:flutter/material.dart';
-import 'package:get_it/get_it.dart';
-import 'package:intl/intl.dart';
-import 'package:mazilon/AnalyticsService.dart';
-import 'package:mazilon/util/Form/retrieveInformation.dart';
-import 'package:mazilon/util/LP_extended_state.dart';
-import 'package:mazilon/util/userInformation.dart';
-import 'package:keyboard_dismisser/keyboard_dismisser.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
-import 'package:mazilon/pages/thankYou.dart';
-import 'package:mazilon/util/Thanks/thanksItemSug.dart';
-import 'package:mazilon/util/styles.dart';
-import 'package:mazilon/util/Thanks/AddForm.dart';
-import 'package:provider/provider.dart';
+import 'package:get_it/get_it.dart';
 import 'package:intl/intl.dart' as intl;
+import 'package:intl/intl.dart';
+import 'package:keyboard_dismisser/keyboard_dismisser.dart';
+import 'package:lucide_icons_flutter/lucide_icons.dart';
+import 'package:mazilon/AnalyticsService.dart';
+import 'package:mazilon/pages/thankYou.dart';
+import 'package:mazilon/util/Form/retrieveInformation.dart';
+import 'package:mazilon/util/HomePage/premium_glass_app_bar.dart';
+import 'package:mazilon/util/LP_extended_state.dart';
+import 'package:mazilon/util/Thanks/AddForm.dart';
+import 'package:mazilon/util/Thanks/thanksItemSug.dart';
+import 'package:mazilon/util/page_layout_wrapper.dart';
+import 'package:mazilon/util/theme/spacing.dart';
+import 'package:mazilon/util/userInformation.dart';
+import 'package:provider/provider.dart';
 
 //Journal page, where the user can write thank you notes (add , edit, remove notes)
 //the user can also see suggested thank you notes and refresh them
 //(the code here is not related to todo list in home page, its the thank you notes page)
 class Journal extends StatefulWidget {
+  const Journal({
+    required this.fullSuggestionList,
+    this.onBackPressed,
+    super.key,
+  });
   final List<String> fullSuggestionList;
-  const Journal({required this.fullSuggestionList, super.key});
+  final VoidCallback? onBackPressed;
 
   @override
   State<Journal> createState() => _JournalState();
@@ -54,7 +63,7 @@ class _JournalState extends LPExtendedState<Journal> {
     );
     thanksSuggestionList = List<String>.from(tempThanksSuggestionList);
 
-    for (String suggestion in tempThanksSuggestionList) {
+    for (final suggestion in tempThanksSuggestionList) {
       if (thanksSuggestionList.length > 3 && thankYous.contains(suggestion)) {
         thanksSuggestionList.remove(suggestion);
       }
@@ -77,11 +86,11 @@ class _JournalState extends LPExtendedState<Journal> {
   }
 
   List<String> todayThankYousFunc(List<String> thankYous, List<String> dates) {
-    List<String> todayThankYous = [];
-    DateTime now = DateTime.now();
-    String formattedDate = intl.DateFormat('yyyy-MM-dd – kk:mm').format(now);
+    final todayThankYous = <String>[];
+    final now = DateTime.now();
+    final formattedDate = intl.DateFormat('yyyy-MM-dd – kk:mm').format(now);
 
-    for (int i = 0; i < dates.length; i++) {
+    for (var i = 0; i < dates.length; i++) {
       if (dates[i].substring(0, 10) == formattedDate.substring(0, 10)) {
         todayThankYous.add(thankYous[i]);
       }
@@ -91,10 +100,9 @@ class _JournalState extends LPExtendedState<Journal> {
 
   //load the thank you notes and suggestions from the shared preferences
   void loadData(BuildContext context) {
-    debugPrint("loading journal");
+    debugPrint('loading journal');
     final userInfoProvider = Provider.of<UserInformation>(
       context,
-      listen: true,
     );
 
     thankYous = List<String>.from(userInfoProvider.thanks['thanks'] ?? []);
@@ -116,8 +124,8 @@ class _JournalState extends LPExtendedState<Journal> {
 
   // remove the thank you note at the index
   void removeThankYou(int removeIndex, UserInformation userInfoProvider) {
-    List<String> thankyousTemp = userInfoProvider.thanks['thanks'] ?? [];
-    List<String> datesTemp = userInfoProvider.thanks['dates'] ?? [];
+    final thankyousTemp = userInfoProvider.thanks['thanks'] ?? [];
+    final datesTemp = userInfoProvider.thanks['dates'] ?? [];
     thankyousTemp.removeAt(removeIndex);
     datesTemp.removeAt(removeIndex);
     setState(() {
@@ -134,11 +142,11 @@ class _JournalState extends LPExtendedState<Journal> {
   // add the thank you note to the list
   void addThankYou(String thankYou, UserInformation userInfoProvider) {
     counter = counter < 6 ? counter + 1 : counter;
-    List<String> thankyousTemp = userInfoProvider.thanks['thanks'] ?? [];
-    List<String> datesTemp = userInfoProvider.thanks['dates'] ?? [];
+    final thankyousTemp = userInfoProvider.thanks['thanks'] ?? [];
+    final datesTemp = userInfoProvider.thanks['dates'] ?? [];
     thankyousTemp.add(thankYou);
-    DateTime now = DateTime.now();
-    String formattedDate = DateFormat('yyyy-MM-dd – kk:mm').format(now);
+    final now = DateTime.now();
+    final formattedDate = DateFormat('yyyy-MM-dd – kk:mm').format(now);
     datesTemp.add(formattedDate);
     setState(() {
       userInfoProvider.updateThanks({
@@ -152,14 +160,14 @@ class _JournalState extends LPExtendedState<Journal> {
     });
     //show the popup after adding the first thank you note (every time you enter the journal page)
     if (todayThankYousFunc(
-          userInfoProvider.thanks["thanks"] ?? [],
-          userInfoProvider.thanks["dates"] ?? [],
+          userInfoProvider.thanks['thanks'] ?? [],
+          userInfoProvider.thanks['dates'] ?? [],
         ).length ==
         1) {
       showThankYouPopup(userInfoProvider);
     }
-    AnalyticsService mixPanelService = GetIt.instance<AnalyticsService>();
-    mixPanelService.trackEvent("Item added to Gratitude Journal");
+    final mixPanelService = GetIt.instance<AnalyticsService>();
+    mixPanelService.trackEvent('Item added to Gratitude Journal');
     //you can show the popup after adding the i-th thank you note (every time you enter the journal page)
     // if(counter == i){
     //   showPopupFunction();
@@ -168,14 +176,14 @@ class _JournalState extends LPExtendedState<Journal> {
 
   //show the popup with the text from the shared preferences
   void showThankYouPopup(UserInformation userInfoProvider) {
-    Future.delayed(const Duration(seconds: 0), () {
+    Future.delayed(const Duration(), () {
       if (!mounted) {
         return;
       }
       final gender = userInfoProvider.gender;
       showDialog(
         context: context,
-        builder: (BuildContext context) {
+        builder: (context) {
           return AlertDialog(
             title: const Text(''),
             content: Text(
@@ -187,7 +195,7 @@ class _JournalState extends LPExtendedState<Journal> {
               TextButton(
                 child: Text(
                   appLocale.confirmButton(gender),
-                  style: TextStyle(fontWeight: FontWeight.normal),
+                  style: const TextStyle(fontWeight: FontWeight.normal),
                 ),
                 onPressed: () {
                   Navigator.of(context).pop();
@@ -225,7 +233,7 @@ class _JournalState extends LPExtendedState<Journal> {
   void editThanks(String title, [String text = '', int index = 0]) {
     showDialog(
       context: context,
-      builder: (BuildContext context) {
+      builder: (context) {
         return AddForm(
           add: addThankYou,
           index: index,
@@ -250,73 +258,51 @@ class _JournalState extends LPExtendedState<Journal> {
     final colorScheme = Theme.of(context).colorScheme;
     return KeyboardDismisser(
       gestures: const [GestureType.onTap, GestureType.onPanUpdateAnyDirection],
-      child: Scaffold(
-        backgroundColor: colorScheme.surface,
-        body: ListView(
-          children: [
-            Padding(
-              padding: const EdgeInsets.fromLTRB(0, 40, 20, 20),
-              child: Column(
-                children: [
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                    children: [
-                      Padding(
-                        padding: const EdgeInsets.fromLTRB(10, 0, 10, 0),
-                        child: myAutoSizedText(
-                          appLocale.homePageThanksMainTitle(gender),
-                          TextStyle(
-                            fontWeight: FontWeight.bold,
-                            fontSize: 30.sp,
-                          ),
-                          null,
-                          60,
-                        ),
-                      ),
-
-                      //the add button to add a new thank you note
-                      IconButton(
-                        //when the button is pressed, open the popup with empty text field to write a new thank you note
-                        onPressed: () {
-                          editThanks(appLocale.thanks);
-                        },
-                        tooltip: appLocale.addItemTooltip,
-                        icon: Icon(
-                          Icons.add,
-                          size: 50.0,
-                          color: colorScheme.primary,
-                        ),
-                      ),
-                    ],
-                  ),
-                  Row(
-                    children: [
-                      //the subtitle of the journal page
-                      Padding(
-                        padding: const EdgeInsets.fromLTRB(10, 0, 10, 0),
-                        child: myAutoSizedText(
-                          appLocale.homePageThanksSecondaryTitle(gender),
-                          TextStyle(
-                            color: colorScheme.outline,
-                            fontSize: 16.sp,
-                            fontWeight: FontWeight.bold,
-                          ),
-                          null,
-                          30,
-                        ),
-                      ),
-                    ],
-                  ),
-                ],
+      child: PageLayoutWrapper(
+        sliverAppBar: PremiumGlassAppBar(
+          variant: AppBarVariant.detailScreen,
+          onBackPressed: widget.onBackPressed,
+          titleText: appLocale.homePageThanksMainTitle(gender),
+          actions: [
+            IconButton(
+              onPressed: () {
+                editThanks(appLocale.thanks);
+              },
+              tooltip: appLocale.addItemTooltip,
+              icon: Icon(
+                Icons.add,
+                size: 28,
+                color: colorScheme.primary,
               ),
             ),
+            const SizedBox(width: Spacing.sm),
+          ],
+        ),
+        body: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            SizedBox(height: Spacing.md),
+            Text(
+              appLocale.homePageThanksMainTitle(gender),
+              style: Theme.of(context).textTheme.headlineLarge?.copyWith(
+                    fontWeight: FontWeight.bold,
+                  ),
+            ),
+            SizedBox(height: Spacing.xs),
+            Text(
+              appLocale.homePageThanksSecondaryTitle(gender),
+              style: Theme.of(context).textTheme.bodyLarge?.copyWith(
+                    color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.7),
+                  ),
+            ),
+            SizedBox(height: Spacing.lg),
             //the list of thank you notes
             ListView.builder(
               shrinkWrap: true,
               physics: const NeverScrollableScrollPhysics(),
               itemBuilder: (context, index) => ThankYou(
                 text: thankYous[index],
-                number: (index + 1),
+                number: index + 1,
                 edit: (String text, int index) {
                   editThanks(appLocale.thanks, text, index);
                 },
@@ -327,21 +313,17 @@ class _JournalState extends LPExtendedState<Journal> {
               ),
               itemCount: thankYous.length,
             ),
-            thankYous.isEmpty
-                ? Padding(
+            if (thankYous.isEmpty) Padding(
                     padding: const EdgeInsets.fromLTRB(24, 8, 24, 16),
-                    child: myAutoSizedText(
+                    child: AutoSizeText(
                       appLocale.journalEmptyGuidance,
-                      TextStyle(
-                        color: colorScheme.outline,
-                        fontSize: 16.sp,
-                        fontWeight: FontWeight.normal,
-                      ),
-                      TextAlign.center,
-                      40,
+                      style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                            color: colorScheme.outline,
+                            fontWeight: FontWeight.normal,
+                          ),
+                      textAlign: TextAlign.center,
                     ),
-                  )
-                : Divider(
+                  ) else Divider(
                     color: colorScheme.outline,
                     indent: 30,
                     endIndent: 30,
@@ -354,50 +336,51 @@ class _JournalState extends LPExtendedState<Journal> {
                 inputText: sug1,
                 fullSuggestionList: retrieveThanksList(
                   appLocale,
-                  gender == "" ? "other" : gender,
+                  gender == '' ? 'other' : gender,
                 ),
               ),
-            if (sug2.isNotEmpty)
+            if (sug2.isNotEmpty && sug1 != sug2)
               ThanksItemSuggested(
                 stopShowing: 2,
                 add: addThankYou,
                 inputText: sug2,
                 fullSuggestionList: retrieveThanksList(
                   appLocale,
-                  gender == "" ? "other" : gender,
+                  gender == '' ? 'other' : gender,
                 ),
               ),
-            if (sug3.isNotEmpty)
+            if (sug3.isNotEmpty && sug1 != sug3)
               ThanksItemSuggested(
                 stopShowing: 1,
                 add: addThankYou,
                 inputText: sug3,
                 fullSuggestionList: retrieveThanksList(
                   appLocale,
-                  gender == "" ? "other" : gender,
+                  gender == '' ? 'other' : gender,
                 ),
               ),
             //the button to refresh the suggested thank you notes and get 3 new suggestions
-            TextButton(
-              onPressed: () async {
-                setState(() {
-                  _refreshSuggestions();
-                });
-              },
-              //the text of the refresh button
-              child: Row(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: <Widget>[
-                  Text(
-                    appLocale.otherSuggestions(gender),
-                    style: TextStyle(
-                      fontWeight: FontWeight.bold,
-                      color: colorScheme.tertiary,
+            Padding(
+              padding: const EdgeInsets.only(top: Spacing.sm),
+              child: TextButton(
+                onPressed: () async {
+                  setState(_refreshSuggestions);
+                },
+                //the text of the refresh button
+                child: Row(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: <Widget>[
+                    Text(
+                      appLocale.otherSuggestions(gender),
+                      style: TextStyle(
+                        fontWeight: FontWeight.normal,
+                        color: colorScheme.primary,
+                      ),
                     ),
-                  ),
-                  const SizedBox(width: 1.0),
-                  Icon(Icons.refresh, color: colorScheme.tertiary),
-                ],
+                    const SizedBox(width: 1),
+                    Icon(LucideIcons.wand2, color: colorScheme.primary),
+                  ],
+                ),
               ),
             ),
             const SizedBox(height: 30),

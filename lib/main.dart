@@ -1,34 +1,35 @@
 import 'dart:async';
 import 'dart:math';
-import 'package:mazilon/global_enums.dart';
-import 'package:mazilon/l10n/app_localizations.dart';
-import 'package:flutter/material.dart';
-import 'package:flutter/foundation.dart' show kIsWeb;
+
 import 'package:firebase_core/firebase_core.dart';
-import 'package:get_it/get_it.dart';
-import 'package:mazilon/Locale/locale_service.dart';
-import 'package:mazilon/iFx/service_locator.dart';
-import 'package:mazilon/AnalyticsService.dart';
-import 'package:mazilon/pages/notifications/notification_service.dart';
-import 'package:mazilon/pages/notifications/reminder_debug_recorder.dart';
-import 'package:mazilon/util/logger_service.dart';
-import 'package:mazilon/util/async/async_state_view.dart';
-import 'package:mazilon/util/persistent_memory_service.dart';
-import 'package:mazilon/util/theme/app_theme.dart';
-import 'package:provider/provider.dart';
-import 'util/Firebase/firebase_options.dart';
+import 'package:flutter/foundation.dart' show kIsWeb;
+import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
-import 'package:mixpanel_flutter/mixpanel_flutter.dart';
-import '/pages/SignIn_Pages/introduction.dart';
-import 'package:workmanager/workmanager.dart';
-import 'package:mazilon/util/userInformation.dart';
-import 'package:mazilon/util/appInformation.dart';
-import 'package:mazilon/util/Firebase/firebase_functions.dart';
-import 'package:mazilon/util/Form/formPagePhoneModel.dart';
-import 'package:upgrader/upgrader.dart';
+import 'package:get_it/get_it.dart';
+import 'package:mazilon/AnalyticsService.dart';
+import 'package:mazilon/Locale/locale_service.dart';
+import 'package:mazilon/global_enums.dart';
+import 'package:mazilon/iFx/service_locator.dart';
+import 'package:mazilon/l10n/app_localizations.dart';
 //testing:
 import 'package:mazilon/pages/SignIn_Pages/firstPage.dart';
+import 'package:mazilon/pages/SignIn_Pages/introduction.dart';
+import 'package:mazilon/pages/notifications/notification_service.dart';
+import 'package:mazilon/pages/notifications/reminder_debug_recorder.dart';
+import 'package:mazilon/util/Firebase/firebase_functions.dart';
+import 'package:mazilon/util/Firebase/firebase_options.dart';
+import 'package:mazilon/util/Form/formPagePhoneModel.dart';
+import 'package:mazilon/util/appInformation.dart';
+import 'package:mazilon/util/async/async_state_view.dart';
+import 'package:mazilon/util/logger_service.dart';
+import 'package:mazilon/util/persistent_memory_service.dart';
+import 'package:mazilon/util/theme/app_theme.dart';
+import 'package:mazilon/util/userInformation.dart';
+import 'package:mixpanel_flutter/mixpanel_flutter.dart';
+import 'package:provider/provider.dart';
 import 'package:sentry/sentry.dart';
+import 'package:upgrader/upgrader.dart';
+import 'package:workmanager/workmanager.dart';
 
 const _backgroundWorkerSentryDsn = String.fromEnvironment('SENTRY_DSN');
 
@@ -52,23 +53,23 @@ void callbackDispatcher() {
         );
       }
       if (inputData == null ||
-          !inputData.containsKey("text") ||
-          !inputData.containsKey("timeHour") ||
-          !inputData.containsKey("timeMinute") ||
-          !inputData.containsKey("id")) {
-        throw ArgumentError("Invalid input data for notification");
+          !inputData.containsKey('text') ||
+          !inputData.containsKey('timeHour') ||
+          !inputData.containsKey('timeMinute') ||
+          !inputData.containsKey('id')) {
+        throw ArgumentError('Invalid input data for notification');
       }
-      int number = Random().nextInt(inputData["text"].length);
+      final number = Random().nextInt(inputData['text'].length);
       await NotificationsService.init();
-      await NotificationsService.cancelNotifications(null, cancelWorker: false);
-      TimeOfDay calculatedTime = NotificationsService.calculateTime(
-        inputData["timeHour"],
-        inputData["timeMinute"],
+      await NotificationsService.cancelNotifications(null);
+      final calculatedTime = NotificationsService.calculateTime(
+        inputData['timeHour'],
+        inputData['timeMinute'],
       ); // Calculate the time for the notification
       await NotificationsService.scheduleNotification(
         calculatedTime,
-        inputData["id"],
-        inputData["text"][number],
+        inputData['id'],
+        inputData['text'][number],
       );
       await recordReminderDebugEvent(
         status: reminderDebugStatusSuccess,
@@ -174,14 +175,14 @@ Future<Widget> bootstrapApp({
         // Initialize the phonePageData provider
         ChangeNotifierProvider(
           create: (context) => PhonePageData(
-            key: "PhonePage",
+            key: 'PhonePage',
             phoneNames: [],
             phoneNumbers: [],
-            header: "", // Blank for unknown field
-            subTitle: "", // Blank for unknown field
-            midTitle: "", // Blank for unknown field
-            phoneNameTitle: "", // Blank for unknown field
-            phoneNumberTitle: "", // Blank for unknown field
+            header: '', // Blank for unknown field
+            subTitle: '', // Blank for unknown field
+            midTitle: '', // Blank for unknown field
+            phoneNameTitle: '', // Blank for unknown field
+            phoneNumberTitle: '', // Blank for unknown field
             savedPhoneNames: [], // Assuming empty list for unknown
             savedPhoneNumbers: [], // Assuming empty list for unknown
             phoneDescription: [], // Assuming empty list for unknown
@@ -193,13 +194,13 @@ Future<Widget> bootstrapApp({
       // Initialize the User information provider
       ChangeNotifierProvider(create: (context) => UserInformation()),
     ],
-    child: MyApp(),
+    child: const MyApp(),
   );
 }
 
 void main() async {
   final app = await bootstrapApp();
-  final IncidentLoggerService sentryService =
+  final sentryService =
       GetIt.instance<IncidentLoggerService>();
   await sentryService.initializeSentry(app);
 }
@@ -250,8 +251,8 @@ class _MyAppState extends State<MyApp> with WidgetsBindingObserver {
   }
 
   void _startSession() {
-    AnalyticsService mixPanelService = GetIt.instance<AnalyticsService>();
-    mixPanelService.trackEvent("Session started");
+    final mixPanelService = GetIt.instance<AnalyticsService>();
+    mixPanelService.trackEvent('Session started');
     _startTime = DateTime.now(); // Store session start time
   }
 
@@ -263,8 +264,8 @@ class _MyAppState extends State<MyApp> with WidgetsBindingObserver {
         .difference(_startTime!)
         .inSeconds; // Calculate session length
 
-    AnalyticsService mixPanelService = GetIt.instance<AnalyticsService>();
-    mixPanelService.trackEvent("Session Ended", {"duration_seconds": duration});
+    final mixPanelService = GetIt.instance<AnalyticsService>();
+    mixPanelService.trackEvent('Session Ended', {'duration_seconds': duration});
 
     _startTime = null; // Reset for next session
   }
@@ -283,15 +284,15 @@ class _MyAppState extends State<MyApp> with WidgetsBindingObserver {
     }
   }
 
-  void getHasFilled() async {
+  Future<void> getHasFilled() async {
     try {
-      PersistentMemoryService service =
+      final service =
           GetIt.instance<
             PersistentMemoryService
           >(); // Get the persistent memory service instance
 
-      var hasFilledValue =
-          await service.getItem("hasFilled", PersistentMemoryType.Bool) ??
+      final hasFilledValue =
+          await service.getItem('hasFilled', PersistentMemoryType.Bool) ??
           false;
       setState(() {
         hasFilled = hasFilledValue;
@@ -306,25 +307,25 @@ class _MyAppState extends State<MyApp> with WidgetsBindingObserver {
 
   Future<void> setLocale() async {
     try {
-      LocaleService localeService = GetIt.instance<LocaleService>();
+      final localeService = GetIt.instance<LocaleService>();
 
-      PersistentMemoryService service =
+      final service =
           GetIt.instance<
             PersistentMemoryService
           >(); // Get the persistent memory service instance
 
-      String? prefsLocale = await service.getItem(
+      final String? prefsLocale = await service.getItem(
         'localeName',
         PersistentMemoryType.String,
       );
 
       setState(() {
-        localeService.setLocale(prefsLocale != "" ? prefsLocale! : 'en');
+        localeService.setLocale(prefsLocale != '' ? prefsLocale! : 'en');
         localeName = localeService.getLocale();
       });
     } catch (e) {
       // Set default locale on error
-      LocaleService localeService = GetIt.instance<LocaleService>();
+      final localeService = GetIt.instance<LocaleService>();
       setState(() {
         localeService.setLocale('en');
         localeName = 'en';
@@ -332,14 +333,14 @@ class _MyAppState extends State<MyApp> with WidgetsBindingObserver {
     }
   }
 
-  void loadFirstTime() async {
+  Future<void> loadFirstTime() async {
     try {
-      PersistentMemoryService service =
+      final service =
           GetIt.instance<
             PersistentMemoryService
           >(); // Get the persistent memory service instance
 
-      var enteredBeforeValue =
+      final enteredBeforeValue =
           await service.getItem('enteredBefore', PersistentMemoryType.Bool) ??
           true;
 
@@ -357,7 +358,7 @@ class _MyAppState extends State<MyApp> with WidgetsBindingObserver {
   @override
   void initState() {
     WidgetsBinding.instance.addObserver(this);
-    AnalyticsService mixPanelService = GetIt.instance<AnalyticsService>();
+    final mixPanelService = GetIt.instance<AnalyticsService>();
     mixPanelService.init();
     getHasFilled();
     loadFirstTime();
@@ -374,7 +375,7 @@ class _MyAppState extends State<MyApp> with WidgetsBindingObserver {
   Future<void> initMixpanel() async {
     // Once you've called this method once, you can access `mixpanel` throughout the rest of your application.
     mixpanel = await Mixpanel.init(
-      "e38d39b73bc076129d0a5390af41fc24",
+      'e38d39b73bc076129d0a5390af41fc24',
       trackAutomaticEvents: false,
     );
   }
@@ -448,14 +449,14 @@ class _MyAppState extends State<MyApp> with WidgetsBindingObserver {
   }
 
   void changeLocale(String locale) {
-    LocaleService localeService = GetIt.instance<LocaleService>();
-    PersistentMemoryService service = GetIt.instance<PersistentMemoryService>();
+    final localeService = GetIt.instance<LocaleService>();
+    final service = GetIt.instance<PersistentMemoryService>();
 
     setState(() {
       localeService.setLocale(locale);
       localeName = localeService.getLocale();
     });
-    service.setItem("localeName", PersistentMemoryType.String, locale);
+    service.setItem('localeName', PersistentMemoryType.String, locale);
     Provider.of<UserInformation>(
       context,
       listen: false,
@@ -472,7 +473,7 @@ class _MyAppState extends State<MyApp> with WidgetsBindingObserver {
       );
       await refreshReminderForLocaleChange(
         remindersSupported: NotificationsService.supportsReminderSettings(),
-        initializeNotifications: () => NotificationsService.init(),
+        initializeNotifications: NotificationsService.init,
         updateNotifications: () =>
             NotificationsService.updateNotification(userInfo, appLocale),
       );
@@ -484,7 +485,7 @@ class _MyAppState extends State<MyApp> with WidgetsBindingObserver {
   //app start this runs:
   @override
   Widget build(BuildContext context) {
-    LocaleService localeService = GetIt.instance<LocaleService>();
+    final localeService = GetIt.instance<LocaleService>();
     final appInfoProvider = Provider.of<AppInformation>(context, listen: false);
     final userInfoProvider = Provider.of<UserInformation>(
       context,
@@ -515,7 +516,7 @@ class _MyAppState extends State<MyApp> with WidgetsBindingObserver {
           .catchError((error, stackTrace) {
             // Handle errors and provide a fallback widget
 
-            IncidentLoggerService loggerService =
+            final loggerService =
                 GetIt.instance<IncidentLoggerService>();
             loggerService.captureLog(error, stackTrace: stackTrace);
 
@@ -540,7 +541,6 @@ class _MyAppState extends State<MyApp> with WidgetsBindingObserver {
     }
 
     return ScreenUtilInit(
-      designSize: Size(360, 690),
       builder: (context, child) => MaterialApp(
         navigatorKey: _navigatorKey,
         supportedLocales: AppLocalizations.supportedLocales,

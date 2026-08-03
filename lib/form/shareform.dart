@@ -1,30 +1,28 @@
+import 'package:auto_size_text/auto_size_text.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
-
 import 'package:get_it/get_it.dart';
-
-import 'package:mazilon/global_enums.dart';
 import 'package:mazilon/file_service.dart';
+import 'package:mazilon/global_enums.dart';
 import 'package:mazilon/util/LP_extended_state.dart';
-import 'package:mazilon/util/SignIn/popup_toast.dart';
-import 'package:mazilon/util/persistent_memory_service.dart';
-import 'package:mazilon/util/languages_util_functions.dart';
-import 'package:provider/provider.dart';
-import 'package:mazilon/util/styles.dart';
-import 'package:mazilon/util/type_utils.dart';
-
-import 'package:mazilon/util/appInformation.dart';
-import 'package:mazilon/util/userInformation.dart';
 import 'package:mazilon/util/Share/show_share_dialog.dart';
+import 'package:mazilon/util/SignIn/popup_toast.dart';
+import 'package:mazilon/util/appInformation.dart';
+import 'package:mazilon/util/languages_util_functions.dart';
+import 'package:mazilon/util/persistent_memory_service.dart';
+import 'package:mazilon/util/theme/spacing.dart';
+import 'package:mazilon/util/type_utils.dart';
+import 'package:mazilon/util/userInformation.dart';
+import 'package:provider/provider.dart';
 
 const String _customCategoryTitlesKey = 'customCategoryTitles';
 const String _customCategoryDescriptionsKey = 'customCategoryDescriptions';
 
 class ShareForm extends StatefulWidget {
+
+  const ShareForm({required this.prev, required this.submit, super.key});
   final Function prev;
   final Function submit;
-
-  const ShareForm({super.key, required this.prev, required this.submit});
 
   @override
   State<ShareForm> createState() => _ShareFormState();
@@ -43,13 +41,13 @@ class _ShareFormState extends LPExtendedState<ShareForm> {
   int? _editingCustomCategoryIndex;
   int _customCategoryFormGeneration = 0;
 
-  void setHasFilled() async {
-    PersistentMemoryService service =
+  Future<void> setHasFilled() async {
+    final service =
         GetIt.instance<
           PersistentMemoryService
         >(); // Get the persistent memory service instance
 
-    await service.setItem("hasFilled", PersistentMemoryType.Bool, true);
+    await service.setItem('hasFilled', PersistentMemoryType.Bool, true);
   }
 
   @override
@@ -69,7 +67,7 @@ class _ShareFormState extends LPExtendedState<ShareForm> {
   }
 
   Future<void> loadCustomCategories() async {
-    PersistentMemoryService service = GetIt.instance<PersistentMemoryService>();
+    final service = GetIt.instance<PersistentMemoryService>();
     final titles = TypeUtils.castToStringList(
       await service.getItem(
         _customCategoryTitlesKey,
@@ -104,7 +102,7 @@ class _ShareFormState extends LPExtendedState<ShareForm> {
   }
 
   Future<void> saveCustomCategories() async {
-    PersistentMemoryService service = GetIt.instance<PersistentMemoryService>();
+    final service = GetIt.instance<PersistentMemoryService>();
     await service.setItem(
       _customCategoryTitlesKey,
       PersistentMemoryType.StringList,
@@ -221,7 +219,7 @@ class _ShareFormState extends LPExtendedState<ShareForm> {
   ) {
     final value = textEditingController.value;
     final offset = value.selection.isValid
-        ? value.selection.baseOffset.clamp(0, value.text.length).toInt()
+        ? value.selection.baseOffset.clamp(0, value.text.length)
         : value.text.length;
     final nextAffinity = value.selection.affinity == TextAffinity.downstream
         ? TextAffinity.upstream
@@ -244,7 +242,7 @@ class _ShareFormState extends LPExtendedState<ShareForm> {
       textEditingController: _customCategoryTitleController,
       focusNode: _customCategoryTitleFocusNode,
       displayStringForOption: (option) => option,
-      optionsBuilder: (TextEditingValue textEditingValue) {
+      optionsBuilder: (textEditingValue) {
         final input = textEditingValue.text.trim();
         final options = predefinedCategoryTitles();
         final editingIndex = _editingCustomCategoryIndex;
@@ -312,10 +310,9 @@ class _ShareFormState extends LPExtendedState<ShareForm> {
   }
 
   Widget buildCustomCategoryForm(BuildContext context) {
-    return Container(
-      width: MediaQuery.sizeOf(context).width > 1000
-          ? 600
-          : MediaQuery.sizeOf(context).width * 0.85,
+    return ConstrainedBox(
+      constraints: const BoxConstraints(maxWidth: 600),
+      child: Container(
       padding: const EdgeInsets.all(14),
       decoration: BoxDecoration(
         color: Theme.of(context).colorScheme.surfaceContainerHighest,
@@ -344,17 +341,12 @@ class _ShareFormState extends LPExtendedState<ShareForm> {
             ),
           ),
           const SizedBox(height: 12),
-          TextButton(
+          ElevatedButton(
             onPressed: saveCustomCategory,
-            style: primaryButtonStyle(context),
-            child: myAutoSizedText(
-              appLocale.sharePageSaveCustomCategory,
-              primaryButtonTextStyle(context).copyWith(fontSize: 16.sp),
-              null,
-              24,
-            ),
+            child: Text(appLocale.sharePageSaveCustomCategory),
           ),
         ],
+      ),
       ),
     );
   }
@@ -364,10 +356,9 @@ class _ShareFormState extends LPExtendedState<ShareForm> {
     int index,
     String gender,
   ) {
-    return Container(
-      width: MediaQuery.sizeOf(context).width > 1000
-          ? 600
-          : MediaQuery.sizeOf(context).width * 0.85,
+    return ConstrainedBox(
+      constraints: const BoxConstraints(maxWidth: 600),
+      child: Container(
       margin: const EdgeInsets.only(bottom: 12),
       padding: const EdgeInsets.all(14),
       decoration: BoxDecoration(
@@ -419,6 +410,7 @@ class _ShareFormState extends LPExtendedState<ShareForm> {
           ],
         ),
       ),
+      ),
     );
   }
 
@@ -432,15 +424,12 @@ class _ShareFormState extends LPExtendedState<ShareForm> {
         if (!_isAddingCustomCategory)
           TextButton(
             onPressed: startAddingCustomCategory,
-            child: myAutoSizedText(
+            child: AutoSizeText(
               appLocale.sharePageAddCustomCategory,
-              TextStyle(
-                color: Theme.of(context).colorScheme.primary,
-                fontWeight: FontWeight.bold,
-                fontSize: 16.sp,
-              ),
-              null,
-              24,
+              style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                    color: Theme.of(context).colorScheme.primary,
+                    fontWeight: FontWeight.bold,
+                  ),
             ),
           ),
       ],
@@ -449,10 +438,9 @@ class _ShareFormState extends LPExtendedState<ShareForm> {
 
   @override
   Widget build(BuildContext context) {
-    final appInfoProvider = Provider.of<AppInformation>(context, listen: true);
+    final appInfoProvider = Provider.of<AppInformation>(context);
     final userInfoProvider = Provider.of<UserInformation>(
       context,
-      listen: true,
     );
     final gender = userInfoProvider.gender;
 
@@ -463,43 +451,43 @@ class _ShareFormState extends LPExtendedState<ShareForm> {
           child: Center(
             child: Column(
               children: [
-                SizedBox(height: returnSizedBox(context, 25)),
+                SizedBox(height: Spacing.xl),
                 Padding(
-                  padding: const EdgeInsets.symmetric(horizontal: 5.0),
-                  child: myAutoSizedText(
-                    appLocale.sharePageHeader(gender),
-                    TextStyle(
-                      fontSize: 40.sp,
-                      fontWeight: FontWeight.bold,
-                      color: Theme.of(context).colorScheme.onSurface,
+                  padding: const EdgeInsets.symmetric(horizontal: 5),
+                  child: Semantics(
+                    header: true,
+                    child: AutoSizeText(
+                      appLocale.sharePageHeader(gender),
+                      style: Theme.of(context).textTheme.displayMedium?.copyWith(
+                            fontWeight: FontWeight.bold,
+                            color: Theme.of(context).colorScheme.onSurface,
+                          ),
                     ),
-                    null,
-                    80,
                   ),
                 ),
-                myAutoSizedText(
+                AutoSizeText(
                   appLocale.sharePageSubTitle(gender),
-                  TextStyle(
-                    fontWeight: FontWeight.normal,
-                    fontSize: 16.sp,
-                    color: Theme.of(context).colorScheme.onSurface,
-                  ),
-                  null,
-                  35,
+                  style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                        fontWeight: FontWeight.normal,
+                        color: Theme.of(context).colorScheme.onSurface,
+                      ),
                 ),
-                myImage('assets/images/FormSubmit.png', context, 0.8, 0.4),
-                SizedBox(
-                  width: MediaQuery.sizeOf(context).width * 0.8,
-                  child: myAutoSizedText(
+                ConstrainedBox(
+                  constraints: const BoxConstraints(maxWidth: 300, maxHeight: 300),
+                  child: Image.asset('assets/images/FormSubmit.png'),
+                ),
+                ConstrainedBox(
+                  constraints: const BoxConstraints(maxWidth: 800),
+                  child: AutoSizeText(
                     appLocale.sharePageMidTitle(gender),
-                    TextStyle(fontWeight: FontWeight.normal, fontSize: 18.sp),
-                    null,
-                    35,
+                    style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                          fontWeight: FontWeight.normal,
+                        ),
                   ),
                 ),
                 const SizedBox(height: 30),
-                SizedBox(
-                  width: MediaQuery.sizeOf(context).width * 0.5,
+                ConstrainedBox(
+                  constraints: const BoxConstraints(maxWidth: 400),
                   child: Row(
                     mainAxisAlignment: MainAxisAlignment.spaceEvenly,
                     children: [
@@ -531,7 +519,7 @@ class _ShareFormState extends LPExtendedState<ShareForm> {
                       //download personal plan PDF button:
                       IconButton(
                         onPressed: () async {
-                          var result = await fileService.download(
+                          final result = await fileService.download(
                             [
                               appLocale.difficultEventsHeader(gender),
                               appLocale.makeSaferHeader(gender),
@@ -589,16 +577,11 @@ class _ShareFormState extends LPExtendedState<ShareForm> {
                 const SizedBox(height: 30),
                 buildCustomCategoriesSection(context, gender),
                 const SizedBox(height: 16),
-                ConfirmationButton(
-                  context,
-                  () {
+                ElevatedButton(
+                  onPressed: () {
                     widget.submit(context);
                   },
-                  appLocale.sharePageFinishButton(gender),
-                  myTextStyle.copyWith(
-                    fontWeight: FontWeight.bold,
-                    fontSize: 22.sp,
-                  ),
+                  child: Text(appLocale.sharePageFinishButton(gender)),
                 ),
                 const SizedBox(height: 30),
               ],

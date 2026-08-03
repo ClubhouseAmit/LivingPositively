@@ -1,16 +1,17 @@
-// ignore_for_file: non_constant_identifier_names
 
 import 'dart:io';
+
 import 'package:file_picker/file_picker.dart';
 import 'package:flutter/foundation.dart';
 import 'package:get_it/get_it.dart';
+import 'package:mazilon/AnalyticsService.dart';
 import 'package:mazilon/global_enums.dart';
 import 'package:mazilon/util/PDF/create_pdf.dart';
 import 'package:mazilon/util/logger_service.dart';
 import 'package:mazilon/util/persistent_memory_service.dart';
 import 'package:mazilon/util/type_utils.dart';
+import 'package:pdf/widgets.dart' as pw;
 import 'package:share_plus/share_plus.dart';
-import 'package:mazilon/AnalyticsService.dart';
 
 const String _customCategoryTitlesKey = 'customCategoryTitles';
 const String _customCategoryDescriptionsKey = 'customCategoryDescriptions';
@@ -34,24 +35,24 @@ abstract class FileService {
 
 class FileServiceImpl implements FileService {
   static Future<Map<String, dynamic>> getPrefsData() async {
-    PersistentMemoryService service = GetIt.instance<
+    final service = GetIt.instance<
         PersistentMemoryService>(); // Get the persistent memory service instance
 
     final futures = <String, Future>{
       'difficultEvents': service.getItem(
-          "userSelectionPersonalPlan-DifficultEvents",
+          'userSelectionPersonalPlan-DifficultEvents',
           PersistentMemoryType.StringList),
-      'makeSafer': service.getItem("userSelectionPersonalPlan-MakeSafer",
+      'makeSafer': service.getItem('userSelectionPersonalPlan-MakeSafer',
           PersistentMemoryType.StringList),
-      'feelBetter': service.getItem("userSelectionPersonalPlan-FeelBetter",
+      'feelBetter': service.getItem('userSelectionPersonalPlan-FeelBetter',
           PersistentMemoryType.StringList),
-      'distractions': service.getItem("userSelectionPersonalPlan-Distractions",
+      'distractions': service.getItem('userSelectionPersonalPlan-Distractions',
           PersistentMemoryType.StringList),
       'phoneNames': service.getItem(
-          "PhonePageSavedPhoneNames", PersistentMemoryType.StringList),
+          'PhonePageSavedPhoneNames', PersistentMemoryType.StringList),
       'phoneNumbers': service.getItem(
-          "PhonePageSavedPhoneNumbers", PersistentMemoryType.StringList),
-      'username': service.getItem("name", PersistentMemoryType.String),
+          'PhonePageSavedPhoneNumbers', PersistentMemoryType.StringList),
+      'username': service.getItem('name', PersistentMemoryType.String),
       'customCategoryTitles': service.getItem(
           _customCategoryTitlesKey, PersistentMemoryType.StringList),
       'customCategoryDescriptions': service.getItem(
@@ -77,7 +78,7 @@ class FileServiceImpl implements FileService {
   }
 
   static List<List<String>> filterEmptyData(List<List<String>> data) {
-    List<List<String>> filtered = [];
+    final filtered = <List<String>>[];
     for (var i = 0; i < data.length; i++) {
       if (data[i].isEmpty) {
         continue;
@@ -89,7 +90,7 @@ class FileServiceImpl implements FileService {
 
   static List<String> formatPhonesText(
       List<String> names, List<String> numbers) {
-    List<String> formattedText = [];
+    final formattedText = <String>[];
     for (var i = 0; i < names.length; i++) {
       formattedText.add('${names[i]}:${numbers[i]}');
     }
@@ -104,21 +105,21 @@ class FileServiceImpl implements FileService {
     // Create a new PDF document
     final dataForPDF = await getPrefsData();
     // Retrieve user data from SharedPreferences
-    List<String> difficultEvents = dataForPDF['DifficultEvents'];
-    List<String> makeSafer = dataForPDF['MakeSafer'];
-    List<String> feelBetter = dataForPDF['FeelBetter'];
-    List<String> distractions = dataForPDF['Distractions'];
-    List<String> phoneNames = dataForPDF['phoneNames'];
-    List<String> phoneNumbers = dataForPDF['phoneNumbers'];
-    String username = dataForPDF['username'];
-    List<String> customCategoryTitles = dataForPDF['customCategoryTitles'];
-    List<String> customCategoryDescriptions =
-        dataForPDF['customCategoryDescriptions'];
-    List<String> phoneDescription = formatPhonesText(phoneNames, phoneNumbers);
+    final difficultEvents = dataForPDF['DifficultEvents'] as List<String>;
+    final makeSafer = dataForPDF['MakeSafer'] as List<String>;
+    final feelBetter = dataForPDF['FeelBetter'] as List<String>;
+    final distractions = dataForPDF['Distractions'] as List<String>;
+    final phoneNames = dataForPDF['phoneNames'] as List<String>;
+    final phoneNumbers = dataForPDF['phoneNumbers'] as List<String>;
+    final username = dataForPDF['username'] as String;
+    final customCategoryTitles = dataForPDF['customCategoryTitles'] as List<String>;
+    final customCategoryDescriptions =
+        dataForPDF['customCategoryDescriptions'] as List<String>;
+    final phoneDescription = formatPhonesText(phoneNames, phoneNumbers);
 
-    List<dynamic> allTitles = [...titles];
-    List<dynamic> allSubTitles = [...subTitles];
-    List<List<String>> allData = [
+    final allTitles = <dynamic>[...titles];
+    final allSubTitles = <dynamic>[...subTitles];
+    final allData = <List<String>>[
       difficultEvents,
       makeSafer,
       feelBetter,
@@ -140,9 +141,9 @@ class FileServiceImpl implements FileService {
       allData.add([description]);
     }
 
-    List<dynamic> realTitles = [];
-    List<dynamic> realSubTitles = [];
-    List<List<String>> realData = [];
+    final realTitles = <dynamic>[];
+    final realSubTitles = <dynamic>[];
+    final realData = <List<String>>[];
     for (var i = 0;
         i < allData.length && i < allTitles.length && i < allSubTitles.length;
         i++) {
@@ -154,18 +155,18 @@ class FileServiceImpl implements FileService {
       realData.add(allData[i]);
     }
     // Create the main title for the PDF
-    String mainTitle =
+    final mainTitle =
         username == '' ? 'התוכנית המשולבת שלי' : 'התוכנית המשולבת של $username';
 
     // Retrieve text content for the PDF
-    String text1 = texts['firstLine'] ?? '';
-    String text2 = texts['firstLinkText'] ?? '';
-    String text2Link = texts['firstLinkURL'] ?? '';
-    String text3 = texts['secondLine'] ?? '';
-    String text4 = texts['thirdLine'] ?? '';
-    String text5 = texts['secondLinkText'] ?? '';
-    String text5Link = texts['secondLinkURL'] ?? '';
-    String text6 = texts['forthLine'] ?? '';
+    final text1 = texts['firstLine'] ?? '';
+    final text2 = texts['firstLinkText'] ?? '';
+    final text2Link = texts['firstLinkURL'] ?? '';
+    final text3 = texts['secondLine'] ?? '';
+    final text4 = texts['thirdLine'] ?? '';
+    final text5 = texts['secondLinkText'] ?? '';
+    final text5Link = texts['secondLinkURL'] ?? '';
+    final text6 = texts['forthLine'] ?? '';
 
     // Prepare the data to be included in the PDF
 
@@ -173,19 +174,19 @@ class FileServiceImpl implements FileService {
 
     // Create widgets for the PDF content
     return {
-      "mainTitle": mainTitle,
-      "titles": realTitles,
-      "subTitles": realSubTitles,
-      "realData": realData,
-      "texts": {
-        "text1": text1,
-        "text2": text2,
-        "text2Link": text2Link,
-        "text3": text3,
-        "text4": text4,
-        "text5": text5,
-        "text5Link": text5Link,
-        "text6": text6
+      'mainTitle': mainTitle,
+      'titles': realTitles,
+      'subTitles': realSubTitles,
+      'realData': realData,
+      'texts': {
+        'text1': text1,
+        'text2': text2,
+        'text2Link': text2Link,
+        'text3': text3,
+        'text4': text4,
+        'text5': text5,
+        'text5Link': text5Link,
+        'text6': text6
       }
     };
   }
@@ -210,30 +211,32 @@ class FileServiceImpl implements FileService {
       switch (saveFormat) {
         case ShareFileType.PDF:
           file = await createPDF(
-              dataForFile["titles"]!,
-              dataForFile["subTitles"]!,
-              dataForFile["texts"]!,
-              dataForFile["mainTitle"]!,
-              dataForFile["realData"]!,
+              dataForFile['titles'] as List<dynamic>,
+              dataForFile['subTitles'] as List<dynamic>,
+              dataForFile['texts'] as Map<String, String>,
+              dataForFile['mainTitle'] as String,
+              dataForFile['realData'] as List<List<String>>,
               textDirection);
-          final tempFile = await saveTempPDF(file["file"], file["format"]);
-          XFile tempXFile = XFile(tempFile.path);
+          final tempFile = await saveTempPDF(
+            file['file'] as pw.Document,
+            file['format'] as String,
+          );
+          final tempXFile = XFile(tempFile.path);
 
           await SharePlus.instance.share(ShareParams(
               files: [tempXFile], text: checkEmptyMessage(message)));
-          break;
         default:
-          file = {"file": null, "format": null};
+          file = {'file': null, 'format': null};
       }
 
       // Save the PDF and share it
-      if (file["file"] == null || file["format"] == null) {
+      if (file['file'] == null || file['format'] == null) {
         return;
       }
-      AnalyticsService mixPanelService = GetIt.instance<AnalyticsService>();
-      mixPanelService.trackEvent("Plan shared");
+      final mixPanelService = GetIt.instance<AnalyticsService>();
+      mixPanelService.trackEvent('Plan shared');
     } catch (error, stackTrace) {
-      IncidentLoggerService loggerService =
+      final loggerService =
           GetIt.instance<IncidentLoggerService>();
       await loggerService.captureLog(
         error,
@@ -245,17 +248,17 @@ class FileServiceImpl implements FileService {
   static Future<String?> saveAndroid(Uint8List data, String format) async {
     try {
       // Open a save file dialog to allow the user to select a location to save the PDF
-      String? outputFile = await FilePicker.saveFile(
+      final outputFile = await FilePicker.saveFile(
         dialogTitle: 'Please select an output file:', // Dialog title
         fileName: 'התוכנית שלי.$format', // Default file name
         bytes: data, // PDF data to be saved
       );
       //If the user cancels the download
-      AnalyticsService mixPanelService = GetIt.instance<AnalyticsService>();
-      mixPanelService.trackEvent("Plan downloaded Android");
+      final mixPanelService = GetIt.instance<AnalyticsService>();
+      mixPanelService.trackEvent('Plan downloaded Android');
       return outputFile;
     } catch (error, stackTrace) {
-      IncidentLoggerService loggerService =
+      final loggerService =
           GetIt.instance<IncidentLoggerService>();
       await loggerService.captureLog(
         error,
@@ -279,8 +282,8 @@ class FileServiceImpl implements FileService {
       // Trigger a click on the anchor element to start the download
       ..click();*/
 
-    AnalyticsService mixPanelService = GetIt.instance<AnalyticsService>();
-    mixPanelService.trackEvent("Plan downloaded Web");
+    final mixPanelService = GetIt.instance<AnalyticsService>();
+    mixPanelService.trackEvent('Plan downloaded Web');
     return null;
   }
 
@@ -293,33 +296,32 @@ class FileServiceImpl implements FileService {
       String textDirection) async {
     final dataForFile = await organizeDataForFile(titles, subTitles, texts);
     Map<String, dynamic> file;
-    Uint8List data = Uint8List(0);
+    var data = Uint8List(0);
     switch (saveFormat) {
       case ShareFileType.PDF:
         file = await createPDF(
-            dataForFile["titles"]!,
-            dataForFile["subTitles"]!,
-            dataForFile["texts"]!,
-            dataForFile["mainTitle"]!,
-            dataForFile["realData"]!,
+            dataForFile['titles'] as List<dynamic>,
+            dataForFile['subTitles'] as List<dynamic>,
+            dataForFile['texts'] as Map<String, String>,
+            dataForFile['mainTitle'] as String,
+            dataForFile['realData'] as List<List<String>>,
             textDirection);
         // Save the PDF and share it
 
         // Save the PDF for download
-        data = await file["file"].save();
+        data = await (file['file'] as pw.Document).save();
 
-        break;
       default:
-        file = {"file": null, "format": null};
+        file = {'file': null, 'format': null};
     }
-    if (file["file"] == null || file["format"] == null) {
+    if (file['file'] == null || file['format'] == null) {
       return null;
     }
     if (Platform.isAndroid) {
-      return await saveAndroid(data, file["format"]);
+      return saveAndroid(data, file['format']);
     }
     if (kIsWeb) {
-      return await saveWeb(data);
+      return saveWeb(data);
     }
     return null;
   }
@@ -332,11 +334,11 @@ class FileServiceImpl implements FileService {
       if (result.status != ShareResultStatus.success) {
         return false;
       }
-      AnalyticsService mixPanelService = GetIt.instance<AnalyticsService>();
-      mixPanelService.trackEvent("Text shared");
+      final mixPanelService = GetIt.instance<AnalyticsService>();
+      mixPanelService.trackEvent('Text shared');
       return true;
     } catch (error, stackTrace) {
-      IncidentLoggerService loggerService =
+      final loggerService =
           GetIt.instance<IncidentLoggerService>();
       await loggerService.captureLog(
         error,

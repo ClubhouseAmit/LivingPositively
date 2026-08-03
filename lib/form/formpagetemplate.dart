@@ -1,33 +1,29 @@
-import 'package:flutter/material.dart';
+import 'package:auto_size_text/auto_size_text.dart';
 import 'package:dotted_border/dotted_border.dart';
+import 'package:flutter/material.dart';
+import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:get_it/get_it.dart';
 import 'package:mazilon/AnalyticsService.dart';
 import 'package:mazilon/global_enums.dart';
-
 import 'package:mazilon/pages/FormAnswer.dart';
+import 'package:mazilon/util/Form/retrieveInformation.dart';
 import 'package:mazilon/util/LP_extended_state.dart';
 import 'package:mazilon/util/persistent_memory_service.dart';
-import 'package:mazilon/util/styles.dart';
-
-import 'package:flutter_screenutil/flutter_screenutil.dart';
+import 'package:mazilon/util/theme/spacing.dart';
 import 'package:mazilon/util/userInformation.dart';
 import 'package:provider/provider.dart';
-import 'package:mazilon/util/Form/retrieveInformation.dart';
 
 class FormPageTemplate extends StatefulWidget {
+
+  const FormPageTemplate({
+    required this.next, required this.prev, required this.collectionName, super.key,
+  });
   //next page:
   final Function next;
   //prev page:
   final Function prev;
 
   final String collectionName;
-
-  const FormPageTemplate({
-    super.key,
-    required this.next,
-    required this.prev,
-    required this.collectionName,
-  });
 
   @override
   State<FormPageTemplate> createState() => _FormPageTemplateState();
@@ -82,8 +78,8 @@ class _FormPageTemplateState extends LPExtendedState<FormPageTemplate> {
     setState(() {});
   }
 
-  void createSelection(userInfo) async {
-    PersistentMemoryService service =
+  Future<void> createSelection(UserInformation userInfo) async {
+    final service =
         GetIt.instance<
           PersistentMemoryService
         >(); // Get the persistent memory service instance
@@ -91,20 +87,16 @@ class _FormPageTemplateState extends LPExtendedState<FormPageTemplate> {
     switch (widget.collectionName) {
       case 'PersonalPlan-DifficultEvents':
         userInfo.updateDifficultEvents([...selectedItems]);
-        break;
       case 'PersonalPlan-MakeSafer':
         userInfo.updateMakeSafer([...selectedItems]);
-        break;
       case 'PersonalPlan-FeelBetter':
         userInfo.updateFeelBetter([...selectedItems]);
-        break;
       case 'PersonalPlan-Distractions':
         userInfo.updateDistractions([...selectedItems]);
-        break;
       default:
     }
     await service.setItem(
-      "disclaimerConfirmed",
+      'disclaimerConfirmed',
       PersistentMemoryType.Bool,
       true,
     );
@@ -120,20 +112,16 @@ class _FormPageTemplateState extends LPExtendedState<FormPageTemplate> {
     );
   }
 
-  void loadItems(userInfo) {
+  void loadItems(UserInformation userInfo) {
     switch (widget.collectionName) {
       case 'PersonalPlan-DifficultEvents':
         selectedItems = [...userInfo.difficultEvents];
-        break;
       case 'PersonalPlan-MakeSafer':
         selectedItems = [...userInfo.makeSafer];
-        break;
       case 'PersonalPlan-FeelBetter':
         selectedItems = [...userInfo.feelBetter];
-        break;
       case 'PersonalPlan-Distractions':
         selectedItems = [...userInfo.distractions];
-        break;
       default:
     }
   }
@@ -142,93 +130,80 @@ class _FormPageTemplateState extends LPExtendedState<FormPageTemplate> {
   Widget build(BuildContext context) {
     final userInfoProvider = Provider.of<UserInformation>(
       context,
-      listen: true,
     );
     final gender = userInfoProvider.gender;
 
-    Map<String, dynamic> displayInformation = retrieveInformation(
+    final displayInformation = retrieveInformation(
       widget.collectionName,
       gender,
       appLocale,
     );
-    length = displayInformation['list'].length;
+    length = (displayInformation['list'] as List<dynamic>).length;
     loadItems(userInfoProvider);
-    bool validate = false;
-    return Scaffold(
-      body: SingleChildScrollView(
-        child: Center(
-          //widthFactor: double.infinity,
-          child: Padding(
-            padding: const EdgeInsets.all(10.0),
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                const SizedBox(height: 20),
+    var validate = false;
+    return Padding(
+      padding: const EdgeInsets.all(10),
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+                const SizedBox(height: Spacing.md),
                 Column(
                   children: [
                     Container(
                       alignment: Alignment.topCenter,
-                      margin: EdgeInsets.symmetric(horizontal: 15),
-                      child: myAutoSizedText(
-                        displayInformation['header'],
-                        TextStyle(
-                          fontWeight: FontWeight.bold,
-                          fontSize: 20.sp,
-                          height: 1.5,
+                      margin: const EdgeInsets.symmetric(horizontal: 15),
+                      child: Semantics(
+                        header: true,
+                        child: AutoSizeText(
+                          displayInformation['header'] as String,
+                          style: Theme.of(context).textTheme.titleLarge?.copyWith(
+                                fontWeight: FontWeight.bold,
+                                height: 1.5,
+                              ),
+                          textAlign: TextAlign.center,
                         ),
-                        TextAlign.center,
-                        40,
                       ),
                     ),
                     SizedBox(height: 5.h),
                     Container(
                       alignment: Alignment.topCenter,
-                      margin: EdgeInsets.symmetric(horizontal: 15),
-                      child: myAutoSizedText(
-                        displayInformation['subTitle'],
-                        TextStyle(
-                          fontWeight: FontWeight.bold,
-                          color: Theme.of(context).colorScheme.outline,
-                          fontSize: 14.sp,
-                          height: 1.3,
-                        ),
-                        TextAlign.center,
-                        25,
+                      margin: const EdgeInsets.symmetric(horizontal: 15),
+                      child: AutoSizeText(
+                        displayInformation['subTitle'] as String,
+                        style: Theme.of(context).textTheme.titleSmall?.copyWith(
+                              fontWeight: FontWeight.bold,
+                              color: Theme.of(context).colorScheme.outline,
+                              height: 1.3,
+                            ),
+                        textAlign: TextAlign.center,
                       ),
                     ),
                   ],
                 ),
                 SizedBox(height: 20.h),
-                Flexible(
-                  fit: FlexFit.loose,
-                  //generate list based on added strings(strings the user chose to manually add
-                  // or items chosen from database item list at the bottom of the screen):
-                  child: ListView.builder(
-                    physics: const NeverScrollableScrollPhysics(),
-                    shrinkWrap: true,
-                    itemCount: selectedItems.length,
-                    itemBuilder: (context, index) {
-                      return FormAnswer(
-                        text: selectedItems[index],
-                        num: (index + 1),
-                        edit: (int index2, String text) {
-                          editItem(index2, text);
-                          createSelection(userInfoProvider);
-                        },
-                        remove: (int index2) {
-                          removeItem(index2);
-                          createSelection(userInfoProvider);
-                        },
-                      );
-                    },
-                  ),
+                ListView.builder(
+                  physics: const NeverScrollableScrollPhysics(),
+                  shrinkWrap: true,
+                  itemCount: selectedItems.length,
+                  itemBuilder: (context, index) {
+                    return FormAnswer(
+                      text: selectedItems[index],
+                      num: index + 1,
+                      edit: (int index2, String text) {
+                        editItem(index2, text);
+                        createSelection(userInfoProvider);
+                      },
+                      remove: (int index2) {
+                        removeItem(index2);
+                        createSelection(userInfoProvider);
+                      },
+                    );
+                  },
                 ),
-                SizedBox(
-                  width: MediaQuery.of(context).size.width > 1000
-                      ? 800
-                      : MediaQuery.of(context).size.width,
+                ConstrainedBox(
+                  constraints: const BoxConstraints(maxWidth: 800),
                   child: Row(
-                    //mainAxisSize: MediaQuery.of(context).size.width,
+                    
                     mainAxisAlignment: MainAxisAlignment.spaceEvenly,
 
                     children: [
@@ -264,23 +239,17 @@ class _FormPageTemplateState extends LPExtendedState<FormPageTemplate> {
                             10,
                           ), // This is the padding inside the button
                         ),
-                        child: myAutoSizedText(
+                        child: AutoSizeText(
                           appLocale.addFormPageTemplateAdd(gender),
-                          TextStyle(
-                            fontWeight: FontWeight.bold,
-                            fontSize: 14.sp,
-                          ),
-                          null,
-                          20,
+                          style: Theme.of(context).textTheme.titleSmall?.copyWith(
+                                fontWeight: FontWeight.bold,
+                              ),
                         ),
                       ),
                       const SizedBox(width: 20),
                       Expanded(
                         child: TextField(
-                          style: TextStyle(
-                            fontWeight: FontWeight.normal,
-                            fontSize: 14.sp > 40 ? 40 : 14.sp,
-                          ),
+                          style: Theme.of(context).textTheme.bodyLarge,
                           controller: _controller,
                           decoration: InputDecoration(
                             errorText: validate
@@ -297,145 +266,120 @@ class _FormPageTemplateState extends LPExtendedState<FormPageTemplate> {
                   children: [
                     Container(
                       alignment: Alignment.topCenter,
-                      margin: EdgeInsets.symmetric(horizontal: 15),
-                      child: myAutoSizedText(
+                      margin: const EdgeInsets.symmetric(horizontal: 15),
+                      child: AutoSizeText(
                         displayInformation['midTitle'],
-                        TextStyle(fontWeight: FontWeight.bold, fontSize: 20.sp),
-                        TextAlign.center,
-                        40,
+                        style: Theme.of(context).textTheme.titleLarge?.copyWith(
+                              fontWeight: FontWeight.bold,
+                            ),
+                        textAlign: TextAlign.center,
                       ),
                     ),
                     SizedBox(height: 5.h),
                     Container(
                       alignment: Alignment.topCenter,
-                      margin: EdgeInsets.symmetric(horizontal: 15),
-                      child: myAutoSizedText(
+                      margin: const EdgeInsets.symmetric(horizontal: 15),
+                      child: AutoSizeText(
                         displayInformation['midSubTitle'],
-                        TextStyle(
-                          fontWeight: FontWeight.bold,
-                          color: Theme.of(context).colorScheme.outline,
-                          fontSize: 14.sp,
-                          height: 1.5,
-                        ),
-                        TextAlign.center,
-                        25,
+                        style: Theme.of(context).textTheme.titleSmall?.copyWith(
+                              fontWeight: FontWeight.bold,
+                              color: Theme.of(context).colorScheme.outline,
+                              height: 1.5,
+                            ),
+                        textAlign: TextAlign.center,
                       ),
                     ),
                   ],
                 ),
                 SizedBox(height: 10.h),
-                Flexible(
-                  fit: FlexFit.loose,
-                  //database items(rowy) check box list:
-                  child: ListView.builder(
-                    physics: const NeverScrollableScrollPhysics(),
-                    shrinkWrap: true,
-                    itemCount: displayedLength,
-                    itemBuilder: (context, index) {
-                      String item = displayInformation["list"][index];
-                      return CheckboxListTile(
-                        controlAffinity: ListTileControlAffinity.leading,
-                        contentPadding: const EdgeInsetsDirectional.only(
-                          start: 15.0,
-                        ),
-                        activeColor: Theme.of(context).colorScheme.tertiary,
-                        checkboxShape: CircleBorder(),
-                        visualDensity: VisualDensity.compact,
-                        title: isAlreadySelected(item)
-                            ? DottedBorder(
-                                options: RoundedRectDottedBorderOptions(
-                                  radius: const Radius.circular(20),
-                                  dashPattern: const [5, 5],
-                                  color: Theme.of(context).colorScheme.tertiary,
-                                  strokeWidth: 2,
+                ListView.builder(
+                  physics: const NeverScrollableScrollPhysics(),
+                  shrinkWrap: true,
+                  itemCount: displayedLength,
+                  itemBuilder: (context, index) {
+                    final String item = displayInformation['list'][index];
+                    return CheckboxListTile(
+                      controlAffinity: ListTileControlAffinity.leading,
+                      contentPadding: const EdgeInsetsDirectional.only(
+                        start: 15,
+                      ),
+                      activeColor: Theme.of(context).colorScheme.tertiary,
+                      checkboxShape: const CircleBorder(),
+                      visualDensity: VisualDensity.compact,
+                      title: isAlreadySelected(item)
+                          ? DottedBorder(
+                              options: RoundedRectDottedBorderOptions(
+                                radius: const Radius.circular(20),
+                                dashPattern: const [5, 5],
+                                color: Theme.of(context).colorScheme.tertiary,
+                                strokeWidth: 2,
+                              ),
+                              child: Container(
+                                alignment: AlignmentDirectional.centerStart,
+                                constraints: const BoxConstraints(minHeight: 55),
+                                width: double.infinity,
+                                padding: const EdgeInsets.symmetric(
+                                  horizontal: 5,
+                                  vertical: 5,
                                 ),
-                                child: Container(
-                                  alignment: appLocale.textDirection == "rtl"
-                                      ? Alignment.centerRight
-                                      : Alignment.centerLeft,
-                                  constraints: BoxConstraints(minHeight: 55),
-                                  width: double.infinity,
-                                  padding: EdgeInsets.symmetric(
-                                    horizontal: 5,
-                                    vertical: 5,
-                                  ),
-                                  decoration: BoxDecoration(
-                                    color: Theme.of(
-                                      context,
-                                    ).colorScheme.surfaceContainerHighest,
-                                    borderRadius: BorderRadius.circular(20),
-                                  ),
-                                  child: Text(
-                                    item,
-                                    style: TextStyle(
-                                      fontFamily: "Rubix",
-                                      fontSize: 16.sp,
-                                      fontWeight: FontWeight.normal,
-                                    ),
-                                  ),
+                                decoration: BoxDecoration(
+                                  color: Theme.of(
+                                    context,
+                                  ).colorScheme.surfaceContainerHighest,
+                                  borderRadius: BorderRadius.circular(20),
                                 ),
-                              )
-                            : DottedBorder(
-                                options: RoundedRectDottedBorderOptions(
-                                  radius: const Radius.circular(20),
-                                  dashPattern: const [5, 5],
-                                  color: Theme.of(context).colorScheme.tertiary,
-                                  strokeWidth: 2,
-                                ),
-                                child: Container(
-                                  alignment: appLocale.textDirection == "rtl"
-                                      ? Alignment.centerRight
-                                      : Alignment.centerLeft,
-                                  //height: returnSizedBox(context, 70),
-                                  constraints: BoxConstraints(minHeight: 55),
-                                  width: double.infinity,
-                                  padding: EdgeInsets.symmetric(
-                                    horizontal: 5,
-                                    vertical: 5,
-                                  ),
-                                  decoration: BoxDecoration(
-                                    color: Theme.of(
-                                      context,
-                                    ).colorScheme.surfaceContainerHighest,
-                                    borderRadius: BorderRadius.circular(20),
-                                    //border: Border.all(color: Color.fromARGB(255, 187, 167, 235))
-                                  ),
-                                  //color: widget.answer1.contains(widget.suggestions[index]) ? Colors.transparent : Color.fromARGB(255, 223, 218, 218),
-                                  child: Text(
-                                    item,
-
-                                    //overflow: TextOverflow.ellipsis,
-                                    style: TextStyle(
-                                      fontFamily: "Rubix",
-                                      fontSize: 16.sp,
-                                      fontWeight: FontWeight.normal,
-                                    ),
-                                  ),
+                                child: Text(
+                                  item,
+                                  style: Theme.of(context).textTheme.bodyMedium,
                                 ),
                               ),
-                        value: isAlreadySelected(item),
-                        onChanged: (bool? value) {
-                          setState(() {
-                            if (value != null) {
-                              if (isAlreadySelected(item)) {
-                                removeItem(selectedItems.indexOf(item));
-                              } else {
-                                addItem(item);
-                              }
-                              createSelection(userInfoProvider);
+                            )
+                          : DottedBorder(
+                              options: RoundedRectDottedBorderOptions(
+                                radius: const Radius.circular(20),
+                                dashPattern: const [5, 5],
+                                color: Theme.of(context).colorScheme.tertiary,
+                                strokeWidth: 2,
+                              ),
+                              child: Container(
+                                alignment: AlignmentDirectional.centerStart,
+                                constraints: const BoxConstraints(minHeight: 55),
+                                width: double.infinity,
+                                padding: const EdgeInsets.symmetric(
+                                  horizontal: 5,
+                                  vertical: 5,
+                                ),
+                                decoration: BoxDecoration(
+                                  color: Theme.of(
+                                    context,
+                                  ).colorScheme.surfaceContainerHighest,
+                                  borderRadius: BorderRadius.circular(20),
+                                ),
+                                child: Text(
+                                  item,
+                                  style: Theme.of(context).textTheme.bodyMedium,
+                                ),
+                              ),
+                            ),
+                      value: isAlreadySelected(item),
+                      onChanged: (value) {
+                        setState(() {
+                          if (value != null) {
+                            if (isAlreadySelected(item)) {
+                              removeItem(selectedItems.indexOf(item));
+                            } else {
+                              addItem(item);
                             }
-                          });
-                        },
-                      );
-                    },
-                  ),
+                            createSelection(userInfoProvider);
+                          }
+                        });
+                      },
+                    );
+                  },
                 ),
                 //add more button:
-                displayedLength < displayInformation['list'].length
-                    ? TextButton(
-                        onPressed: () {
-                          addSuggestion();
-                        },
+                if (displayedLength < displayInformation['list'].length) TextButton(
+                        onPressed: addSuggestion,
                         style: TextButton.styleFrom(
                           foregroundColor: Theme.of(context)
                               .colorScheme
@@ -457,46 +401,33 @@ class _FormPageTemplateState extends LPExtendedState<FormPageTemplate> {
                           ), // This is the padding inside the button
                         ),
                         child: Padding(
-                          padding: const EdgeInsets.all(8.0),
-                          child: myAutoSizedText(
+                          padding: const EdgeInsets.all(8),
+                          child: AutoSizeText(
                             displayInformation['showMoreButtonText'],
-                            TextStyle(
-                              fontWeight: FontWeight.bold,
-                              fontSize: 14.sp,
-                            ),
-                            null,
-                            40,
+                            style: Theme.of(context).textTheme.titleSmall?.copyWith(
+                                  fontWeight: FontWeight.bold,
+                                ),
                           ),
                         ),
-                      )
-                    //nothing to add:
-                    : SizedBox(height: returnSizedBox(context, 10)),
+                      ) else const SizedBox(height: Spacing.md),
                 //spacing between add more and next button:
-                SizedBox(height: returnSizedBox(context, 10)),
+                const SizedBox(height: Spacing.md),
                 //next button:
-                ConfirmationButton(
-                  context,
-                  () {
-                    AnalyticsService mixPanelService =
+                ElevatedButton(
+                  onPressed: () {
+                    final mixPanelService =
                         GetIt.instance<AnalyticsService>();
-                    mixPanelService.trackEvent("Plan edited", {
+                    mixPanelService.trackEvent('Plan edited', {
                       'page': widget.collectionName,
                     });
                     createSelection(userInfoProvider);
                     widget.next();
                   },
-                  displayInformation['nextButtonText'],
-                  myTextStyle.copyWith(
-                    fontWeight: FontWeight.bold,
-                    fontSize: 22.sp,
-                  ),
+                  child: Text(displayInformation['nextButtonText']),
                 ),
                 const SizedBox(height: 20),
               ],
             ),
-          ),
-        ),
-      ),
-    );
+          );
   }
 }

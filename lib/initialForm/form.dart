@@ -1,29 +1,27 @@
+import 'package:auto_size_text/auto_size_text.dart';
 import 'package:flutter/material.dart';
 import 'package:get_it/get_it.dart';
-import 'package:mazilon/global_enums.dart';
-import 'package:mazilon/util/LP_extended_state.dart';
-import 'package:mazilon/util/persistent_memory_service.dart';
-import 'package:flutter_screenutil/flutter_screenutil.dart';
-import 'package:mazilon/util/Form/formPagePhoneModel.dart';
-
-import 'package:mazilon/util/styles.dart';
-import 'package:provider/provider.dart';
-import 'package:mazilon/initialForm/toFormPage.dart';
-import 'package:mazilon/initialForm/initialFormPage2.dart';
-import 'package:mazilon/initialForm/initialFormPage1.dart';
-import 'package:mazilon/menu.dart';
-import 'package:mazilon/util/userInformation.dart';
 import 'package:mazilon/disclaimerPage.dart';
+import 'package:mazilon/global_enums.dart';
+import 'package:mazilon/initialForm/initialFormPage1.dart';
+import 'package:mazilon/initialForm/initialFormPage2.dart';
+import 'package:mazilon/initialForm/toFormPage.dart';
+import 'package:mazilon/menu.dart';
+import 'package:mazilon/util/Form/formPagePhoneModel.dart';
+import 'package:mazilon/util/HomePage/premium_glass_app_bar.dart';
+import 'package:mazilon/util/LP_extended_state.dart';
+import 'package:mazilon/util/page_layout_wrapper.dart';
+import 'package:mazilon/util/persistent_memory_service.dart';
+import 'package:mazilon/util/userInformation.dart';
+import 'package:provider/provider.dart';
 
 class InitialFormProgressIndicator extends StatefulWidget {
-  final PhonePageData phonePageData;
-  final Function changeLocale;
 
   const InitialFormProgressIndicator({
-    super.key,
-    required this.phonePageData,
-    required this.changeLocale,
+    required this.phonePageData, required this.changeLocale, super.key,
   });
+  final PhonePageData phonePageData;
+  final Function changeLocale;
 
   @override
   InitialFormProgressIndicatorState createState() =>
@@ -38,14 +36,14 @@ class InitialFormProgressIndicatorState
 
   bool hasFilled = false;
   List<Widget> steps = [];
-  void getHasFilled() async {
-    PersistentMemoryService service =
+  Future<void> getHasFilled() async {
+    final service =
         GetIt.instance<
           PersistentMemoryService
         >(); // Get the persistent memory service instance
 
-    var hasFilledValue = await service.getItem(
-      "hasFilled",
+    final hasFilledValue = await service.getItem(
+      'hasFilled',
       PersistentMemoryType.Bool,
     );
     setState(() {
@@ -81,14 +79,14 @@ class InitialFormProgressIndicatorState
     });
   }
 
-  void submitForm() async {
-    PersistentMemoryService service =
+  Future<void> submitForm() async {
+    final service =
         GetIt.instance<
           PersistentMemoryService
         >(); // Get the persistent memory service instance
 
     if (name.isNotEmpty) {
-      await service.setItem("name", PersistentMemoryType.String, name);
+      await service.setItem('name', PersistentMemoryType.String, name);
     }
     navigateToMenu();
   }
@@ -103,7 +101,7 @@ class InitialFormProgressIndicatorState
           changeLocale: widget.changeLocale,
         ),
       ),
-      (Route<dynamic> route) => false,
+      (route) => false,
     );
   }
 
@@ -118,7 +116,6 @@ class InitialFormProgressIndicatorState
   Widget build(BuildContext context) {
     final userInfoProvider = Provider.of<UserInformation>(
       context,
-      listen: true,
     );
 
     final gender = userInfoProvider.gender;
@@ -151,45 +148,21 @@ class InitialFormProgressIndicatorState
           prev();
         }
       },
-      child: Scaffold(
-        appBar: PreferredSize(
-          preferredSize: const Size.fromHeight(40),
-          child: AppBar(
-            scrolledUnderElevation: 0,
-            backgroundColor: Theme.of(
-              context,
-            ).colorScheme.surfaceContainerHighest,
-            automaticallyImplyLeading: currentStep != (steps.length - 1),
-            leading: currentStep != (steps.length - 1)
-                ? IconButton(
-                    icon: myAutoSizedText(
-                      appLocale.skipButton(gender),
-                      TextStyle(fontWeight: FontWeight.bold, fontSize: 12.sp),
-                      null,
-                      25,
-                    ),
-                    onPressed: () {
-                      //## this is the part that skips BOTH forms from the initial screen.##//
-                      debugPrint('skipping');
-                      next();
-                    },
-                  )
-                : IconButton(
-                    icon: const Icon(Icons.arrow_back_ios),
-                    onPressed: () {
-                      prev();
-                    },
-                  ),
-          ),
+      child: PageLayoutWrapper(
+        backgroundColor: Colors.white,
+        sliverAppBar: PremiumGlassAppBar(
+          variant: AppBarVariant.detailScreen,
+          toolbarHeight: 50,
+          onBackPressed: currentStep > 0 ? prev : null,
         ),
         body: AnimatedSwitcher(
           duration: const Duration(
             milliseconds: 300,
           ), // Specify the duration of the animation
-          transitionBuilder: (Widget child, Animation<double> animation) {
-            var begin = const Offset(1.0, 0.0);
-            var end = Offset.zero;
-            var tween = Tween(begin: begin, end: end);
+          transitionBuilder: (child, animation) {
+            const begin = Offset(1, 0);
+            const end = Offset.zero;
+            final tween = Tween(begin: begin, end: end);
 
             return SlideTransition(
               position: animation.drive(tween),
@@ -199,7 +172,7 @@ class InitialFormProgressIndicatorState
           child: steps[currentStep],
         ),
         bottomNavigationBar: Padding(
-          padding: const EdgeInsets.only(bottom: 30.0),
+          padding: const EdgeInsets.only(bottom: 30),
           child: Row(
             mainAxisAlignment: MainAxisAlignment.center,
             //visual representation of the progress of the form:
@@ -208,14 +181,14 @@ class InitialFormProgressIndicatorState
               //Animated Container for a non-instant color change, otherwise can be container
               (index) => AnimatedContainer(
                 duration: const Duration(milliseconds: 300),
-                width: 15.0,
-                height: 15.0,
-                margin: const EdgeInsets.symmetric(horizontal: 5.0),
+                width: 15,
+                height: 15,
+                margin: const EdgeInsets.symmetric(horizontal: 5),
                 decoration: BoxDecoration(
                   color: index <= currentStep
                       ? Theme.of(context).colorScheme.tertiary
                       : Theme.of(context).colorScheme.surfaceContainerHighest,
-                  borderRadius: BorderRadius.circular(5.0),
+                  borderRadius: BorderRadius.circular(5),
                 ),
               ),
             ).toList(),

@@ -1,22 +1,20 @@
+import 'package:auto_size_text/auto_size_text.dart';
 import 'package:flutter/material.dart';
-import 'package:mazilon/util/LP_extended_state.dart';
-import 'package:mazilon/util/styles.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
+import 'package:mazilon/util/LP_extended_state.dart';
+import 'package:mazilon/util/theme/spacing.dart';
 import 'package:mazilon/util/userInformation.dart';
 import 'package:provider/provider.dart';
 
-class AddFormAnswer extends StatefulWidget {
-  final int index; // The index of the item being edited
-  final Function edit; // The callback function to handle the edit action
-  final String text; // The current text of the item being edited
+class AddFormAnswer extends StatefulWidget { // The current text of the item being edited
 
   // Constructor for AddFormAnswer, initializing index, edit function, and text.
   const AddFormAnswer({
-    super.key,
-    required this.index,
-    required this.edit,
-    required this.text,
+    required this.index, required this.edit, required this.text, super.key,
   });
+  final int index; // The index of the item being edited
+  final Function edit; // The callback function to handle the edit action
+  final String text;
 
   @override
   State<AddFormAnswer> createState() => _AddFormAnswerState();
@@ -37,26 +35,18 @@ class _AddFormAnswerState extends LPExtendedState<AddFormAnswer> {
   Widget build(BuildContext context) {
     final userInfoProvider = Provider.of<UserInformation>(
       context,
-      listen: true,
     ); // Access the UserInformation provider
     final gender = userInfoProvider.gender;
     return Dialog(
-      child: SizedBox(
-        width: MediaQuery.of(context).size.width > 1000
-            ? 800
-            : MediaQuery.of(
-                context,
-              ).size.width, // Adjust width based on screen size
-        height: MediaQuery.of(context).size.width > 400
-            ? MediaQuery.of(context).size.height * 25 / 100
-            : MediaQuery.of(context).size.height *
-                  30 /
-                  100, // Adjust height based on screen size
-        child: Column(
-          children: [
-            SizedBox(height: 20.h),
-            Expanded(
-              child: Form(
+      child: ConstrainedBox(
+        constraints: const BoxConstraints(maxWidth: 800),
+        child: SizedBox(
+          width: double.infinity,
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              const SizedBox(height: Spacing.md),
+              Form(
                 key: _formKey, // Associate the form with the key
                 child: SingleChildScrollView(
                   child: Padding(
@@ -75,16 +65,9 @@ class _AddFormAnswerState extends LPExtendedState<AddFormAnswer> {
                         contentPadding: const EdgeInsetsDirectional.only(
                           end: 8.0,
                         ),
-                        labelStyle: TextStyle(
-                          fontWeight: FontWeight.normal,
-                          height: 0,
-                          fontSize: 30.sp > 40 ? 40 : 30.sp,
-                        ), // Set label style
+                        labelStyle: Theme.of(context).textTheme.titleLarge?.copyWith(height: 0),
                       ),
-                      style: TextStyle(
-                        fontWeight: FontWeight.normal,
-                        fontSize: 18.sp > 30 ? 30 : 18.sp,
-                      ), // Set text field style
+                      style: Theme.of(context).textTheme.bodyLarge,
                       validator: (value) {
                         if (value == null || value.isEmpty) {
                           return appLocale
@@ -96,32 +79,31 @@ class _AddFormAnswerState extends LPExtendedState<AddFormAnswer> {
                   ),
                 ),
               ),
-            ),
             Row(
               mainAxisAlignment:
                   MainAxisAlignment.end, // Align buttons to the end
               children: <Widget>[
                 TextButton(
-                  child: myAutoSizedText(
+                  child: AutoSizeText(
                     appLocale.closeButton(
                       gender,
                     ), // Set cancel button text dynamically based on user gender
-                    TextStyle(fontWeight: FontWeight.bold, fontSize: 20.sp),
-                    null,
-                    30,
+                    style: Theme.of(context).textTheme.titleLarge?.copyWith(
+                          fontWeight: FontWeight.bold,
+                        ),
                   ),
                   onPressed: () {
                     Navigator.of(context).pop(); // Close the dialog on cancel
                   },
                 ),
                 TextButton(
-                  child: myAutoSizedText(
+                  child: AutoSizeText(
                     appLocale.saveButton(
                       gender,
                     ), // Set save button text dynamically based on user gender
-                    TextStyle(fontWeight: FontWeight.bold, fontSize: 20.sp),
-                    null,
-                    30,
+                    style: Theme.of(context).textTheme.titleLarge?.copyWith(
+                          fontWeight: FontWeight.bold,
+                        ),
                   ),
                   onPressed: () {
                     if (_formKey.currentState!.validate()) {
@@ -140,6 +122,7 @@ class _AddFormAnswerState extends LPExtendedState<AddFormAnswer> {
             ),
           ],
         ),
+      ),
       ),
     );
   }

@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:mazilon/util/styles.dart';
-import 'package:flutter_screenutil/flutter_screenutil.dart';
+
 
 //this is the widget we use in the drop down menu for age selection
 DropdownMenuEntry<String> buildDropdownMenuEntry(text, backgroundColor) {
@@ -9,17 +8,15 @@ DropdownMenuEntry<String> buildDropdownMenuEntry(text, backgroundColor) {
     label: text,
     labelWidget: Builder(
       builder: (context) => Container(
-        child: myText(
+        child: Text(
           text,
-          TextStyle(
-            fontWeight: FontWeight.normal,
-            color: Theme.of(context).colorScheme.onSurface,
-            fontSize: 16.sp > 25 ? 25 : 16.sp,
-          ),
-          null,
+          style: Theme.of(context).textTheme.bodyLarge?.copyWith(
+                fontWeight: FontWeight.normal,
+                color: Theme.of(context).colorScheme.onSurface,
+              ),
         ),
       ),
     ),
-    style: MenuItemButton.styleFrom(foregroundColor: backgroundColor),
+    style: MenuItemButton.styleFrom(foregroundColor: Colors.transparent),
   );
 }

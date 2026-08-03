@@ -6,15 +6,12 @@ import 'package:mazilon/pages/notifications/notification_service.dart'; // Assum
 import 'package:numberpicker/numberpicker.dart';
 
 class TimePicker extends StatefulWidget {
+  const TimePicker({
+    required this.setTime, required this.currentHour, required this.currentMinute, super.key,
+  });
   final int currentHour;
   final int currentMinute;
   final Function setTime;
-  const TimePicker({
-    super.key,
-    required this.setTime,
-    required this.currentHour,
-    required this.currentMinute,
-  });
 
   @override
   State<TimePicker> createState() => _TimePickerState();

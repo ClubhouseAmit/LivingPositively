@@ -9,39 +9,32 @@ import 'dart:math';
 import 'package:flutter/material.dart';
 import 'package:get_it/get_it.dart';
 import 'package:mazilon/MainPageHelpers/MainPageList/mainpage_list_widget.dart';
+import 'package:mazilon/MainPageHelpers/personalPlanWidget.dart';
 import 'package:mazilon/global_enums.dart';
 import 'package:mazilon/l10n/app_localizations.dart';
-
-import 'package:mazilon/util/Form/retrieveInformation.dart';
-import 'package:mazilon/util/LP_extended_state.dart';
-import 'package:mazilon/util/persistent_memory_service.dart';
-
-import 'package:mazilon/MainPageHelpers/personalPlanWidget.dart';
-
-import 'package:mazilon/util/HomePage/inspirationalQuote.dart';
-import 'package:mazilon/util/styles.dart';
-
 import 'package:mazilon/util/Form/formPagePhoneModel.dart';
-import 'package:mazilon/util/HomePage/NameBar.dart';
-
+import 'package:mazilon/util/Form/retrieveInformation.dart';
+import 'package:mazilon/util/HomePage/premium_glass_app_bar.dart';
+import 'package:mazilon/util/HomePage/inspirationalQuote.dart';
+import 'package:mazilon/util/LP_extended_state.dart';
+import 'package:mazilon/util/page_layout_wrapper.dart';
+import 'package:mazilon/util/persistent_memory_service.dart';
+import 'package:mazilon/util/theme/spacing.dart';
 import 'package:mazilon/util/userInformation.dart';
+import 'package:lucide_icons_flutter/lucide_icons.dart';
 import 'package:provider/provider.dart';
 
 //the main page of the app
 //allows navigation to all other pages
 class Home extends StatefulWidget {
+
+  const Home({
+    required this.phonePageData, required this.changeCurrentIndex, required this.changeLocale, required this.openMainMenu, super.key,
+  });
   final PhonePageData phonePageData;
   final Function(BuildContext, PagesCode) changeCurrentIndex;
   final Function changeLocale;
   final void Function(BuildContext) openMainMenu;
-
-  const Home({
-    super.key,
-    required this.phonePageData,
-    required this.changeCurrentIndex,
-    required this.changeLocale,
-    required this.openMainMenu,
-  });
 
   @override
   State<Home> createState() => _HomeState();
@@ -58,16 +51,16 @@ class _HomeState extends LPExtendedState<Home> {
   int? _selectedPersonalPlanIndex;
 
   //load information about the user from shared preferences
-  void loadData() async {
-    PersistentMemoryService service =
+  Future<void> loadData() async {
+    final service =
         GetIt.instance<
           PersistentMemoryService
         >(); // Get the persistent memory service instance
 
-    var hasFilledValue = await service.getItem(
-      "hasFilled",
+    final hasFilledValue = (await service.getItem(
+      'hasFilled',
       PersistentMemoryType.Bool,
-    );
+    ) as bool?) ?? false;
 
     if (!mounted) {
       return;
@@ -98,25 +91,21 @@ class _HomeState extends LPExtendedState<Home> {
           'SubTitle': appLocale.makeSaferSubTitle(userInfo.gender),
           'list': userInfo.makeSafer,
         };
-        break;
       case 1:
         homeTitles = {
           'SubTitle': appLocale.difficultEventsSubTitle(userInfo.gender),
           'list': userInfo.difficultEvents,
         };
-        break;
       case 2:
         homeTitles = {
           'SubTitle': appLocale.feelBetterSubTitle(userInfo.gender),
           'list': userInfo.feelBetter,
         };
-        break;
       case 3:
         homeTitles = {
           'SubTitle': appLocale.distractionsSubTitle(userInfo.gender),
           'list': userInfo.distractions,
         };
-        break;
       default:
         homeTitles = {'SubTitle': '', 'list': []};
     }
@@ -127,7 +116,6 @@ class _HomeState extends LPExtendedState<Home> {
     super.didChangeDependencies();
     final userInfoProvider = Provider.of<UserInformation>(
       context,
-      listen: true,
     );
     setRandomPersonalWidgetText(userInfoProvider, appLocale);
   }
@@ -136,74 +124,70 @@ class _HomeState extends LPExtendedState<Home> {
   Widget build(BuildContext context) {
     final userInfoProvider = Provider.of<UserInformation>(
       context,
-      listen: true,
     );
     final gender = userInfoProvider.gender;
     final colorScheme = Theme.of(context).colorScheme;
 
-    return Scaffold(
-      appBar: AppBar(
-        scrolledUnderElevation: 0,
-        backgroundColor: colorScheme.surfaceContainerHighest,
-      ),
-      backgroundColor: colorScheme.surfaceContainerHighest,
-      body: Center(
-        child: SingleChildScrollView(
-          child: Column(
-            children: [
-              //This shows the "hello <username>" banner and header buttons
-              NameBar(
-                greetingString: appLocale.homePageGreetings(gender),
-                icons: [
-                  Builder(
-                    builder: (menuButtonContext) => myTextButton(
-                      () => widget.openMainMenu(menuButtonContext),
-                      Icons.menu,
-                      colorScheme.primary,
-                      tooltip: appLocale.menuTooltip,
-                    ),
-                  ),
-                ],
+    return PageLayoutWrapper(
+      sliverAppBar: PremiumGlassAppBar(
+        variant: AppBarVariant.rootTab,
+        isHome: true,
+        titleText: '',
+        actions: [
+          Builder(
+            builder: (menuButtonContext) => IconButton(
+              key: const Key('homeSettingsButton'),
+              icon: Icon(
+                LucideIcons.settings,
+                color: colorScheme.primary,
               ),
-
-              Padding(
-                padding: const EdgeInsets.symmetric(horizontal: Spacing.sm),
-                child: Column(
-                  children: [
-                    //this is the Personal Plan widget section
-                    PersonalPlanWidget(
-                      text: homeTitles,
-                      changeCurrentIndex: widget.changeCurrentIndex,
-                    ),
-                    const SizedBox(height: Spacing.xl),
-
-                    //inspirational quote widget:
-                    InspirationalQuote(
-                      quotes: retrieveInspirationalQuotes(
-                        appLocale,
-                        gender == "" ? "other" : gender,
-                      ),
-                    ),
-
-                    const SizedBox(height: Spacing.xl),
-                    //This is the main widget for the gratitude journal
-                    ListWidget(
-                      onTabTapped: widget.changeCurrentIndex,
-                      pageCode: PagesCode.GratitudeJournal,
-                    ),
-                    const SizedBox(height: Spacing.xl),
-                    //This is the main widget for the positive traits list
-                    ListWidget(
-                      onTabTapped: widget.changeCurrentIndex,
-                      pageCode: PagesCode.QualitiesList,
-                    ),
-                  ],
-                ),
-              ),
-              const SizedBox(height: Spacing.bottomPadding),
-            ],
+              onPressed: () => widget.openMainMenu(menuButtonContext),
+            ),
           ),
-        ),
+        ],
+      ),
+      body: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          SizedBox(height: Spacing.md),
+          Text(
+            appLocale.greetings(userInfoProvider.name),
+            style: Theme.of(context).textTheme.headlineLarge?.copyWith(
+                  fontWeight: FontWeight.bold,
+                ),
+          ),
+          SizedBox(height: Spacing.xs),
+          Text(
+            appLocale.homePageGreetings(gender),
+            style: Theme.of(context).textTheme.bodyLarge?.copyWith(
+                  color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.7),
+                ),
+          ),
+          SizedBox(height: Spacing.lg),
+          PersonalPlanWidget(
+            text: homeTitles,
+            changeCurrentIndex: widget.changeCurrentIndex,
+          ),
+          const SizedBox(height: Spacing.xl),
+          AffirmationCard(
+            quotes: retrieveInspirationalQuotes(
+              appLocale,
+              gender == '' ? 'other' : gender,
+            ),
+          ),
+          const SizedBox(height: Spacing.xl),
+          //This is the main widget for the gratitude journal
+          ListWidget(
+            onTabTapped: widget.changeCurrentIndex,
+            pageCode: PagesCode.GratitudeJournal,
+          ),
+          const SizedBox(height: Spacing.xl),
+          //This is the main widget for the positive traits list
+          ListWidget(
+            onTabTapped: widget.changeCurrentIndex,
+            pageCode: PagesCode.QualitiesList,
+          ),
+        ],
       ),
     );
   }

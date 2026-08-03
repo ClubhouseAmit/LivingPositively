@@ -1,11 +1,8 @@
+import 'package:dotted_border/dotted_border.dart';
 import 'package:flutter/material.dart';
-
 import 'package:mazilon/pages/FeelGood/FeelGoodInheritedWidget.dart';
 import 'package:mazilon/util/LP_extended_state.dart';
-
-import 'package:dotted_border/dotted_border.dart';
 import 'package:mazilon/util/userInformation.dart';
-
 import 'package:provider/provider.dart';
 
 class ImageAddItem extends StatefulWidget {
@@ -25,17 +22,17 @@ class _ImageAddItemState extends LPExtendedState<ImageAddItem> {
             mainAxisAlignment: MainAxisAlignment.spaceEvenly,
             children: <Widget>[
               TextButton(
-                key: Key('cameraButtonText'),
+                key: const Key('cameraButtonText'),
                 child: Text(appLocale!.camera),
                 onPressed: () {
-                  pickImage("camera");
+                  pickImage('camera');
                 },
               ),
               TextButton(
-                key: Key('galleryButtonText'),
+                key: const Key('galleryButtonText'),
                 child: Text(appLocale!.gallery),
                 onPressed: () {
-                  pickImage("gallery");
+                  pickImage('gallery');
                 },
               ),
             ],
@@ -67,11 +64,11 @@ class _ImageAddItemState extends LPExtendedState<ImageAddItem> {
         child: SizedBox.expand(
           child: TextButton(
             style: TextButton.styleFrom(padding: EdgeInsets.zero),
-            key: Key('addImgButtonText'),
+            key: const Key('addImgButtonText'),
             child: Text(
               appLocale.addImageButton(gender),
               style: const TextStyle(
-                fontSize: 24.0,
+                fontSize: 24,
               ), // adjust the font size as needed
             ),
             onPressed: () {

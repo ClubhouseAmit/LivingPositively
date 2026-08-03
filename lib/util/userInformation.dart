@@ -6,30 +6,7 @@ import 'package:mazilon/util/persistent_memory_service.dart';
 enum DarkModePreference { alwaysLight, alwaysDark, scheduled }
 
 //this it the user's information class, with it we store and display it across the app
-class UserInformation with ChangeNotifier {
-  String localeName;
-  String gender;
-  String name;
-  String age;
-  String location;
-  bool binary;
-  bool disclaimerSigned;
-  List<String> difficultEvents;
-  List<String> positiveTraits;
-  List<String> makeSafer;
-  List<String> feelBetter;
-  List<String> distractions;
-  bool loggedIn;
-  String userId;
-  int notificationMinute;
-  int notificationHour;
-  DarkModePreference darkModePreference;
-  int darkModeStartHour;
-  int darkModeStartMinute;
-  int darkModeEndHour;
-  int darkModeEndMinute;
-  Map<String, List<String>> thanks;
-  PersistentMemoryService service; // Get the persistent memory service instance
+class UserInformation with ChangeNotifier { // Get the persistent memory service instance
 
   UserInformation({
     this.location = '',
@@ -56,6 +33,29 @@ class UserInformation with ChangeNotifier {
     this.userId = '',
     PersistentMemoryService? service,
   }) : service = service ?? GetIt.instance<PersistentMemoryService>();
+  String localeName;
+  String gender;
+  String name;
+  String age;
+  String location;
+  bool binary;
+  bool disclaimerSigned;
+  List<String> difficultEvents;
+  List<String> positiveTraits;
+  List<String> makeSafer;
+  List<String> feelBetter;
+  List<String> distractions;
+  bool loggedIn;
+  String userId;
+  int notificationMinute;
+  int notificationHour;
+  DarkModePreference darkModePreference;
+  int darkModeStartHour;
+  int darkModeStartMinute;
+  int darkModeEndHour;
+  int darkModeEndMinute;
+  Map<String, List<String>> thanks;
+  PersistentMemoryService service;
 
   void reset(String locale) {
     location = '';
@@ -85,7 +85,7 @@ class UserInformation with ChangeNotifier {
   }
 
   void updateGender(String text) {
-    void saveGender(String value) async {
+    Future<void> saveGender(String value) async {
       await service.setItem('gender', PersistentMemoryType.String, value);
     }
 
@@ -95,7 +95,7 @@ class UserInformation with ChangeNotifier {
   }
 
   void updateName(String text) {
-    void saveName(String value) async {
+    Future<void> saveName(String value) async {
       await service.setItem('name', PersistentMemoryType.String, value);
     }
 
@@ -105,7 +105,7 @@ class UserInformation with ChangeNotifier {
   }
 
   void updateAge(String text) {
-    void saveAge(String value) async {
+    Future<void> saveAge(String value) async {
       await service.setItem('age', PersistentMemoryType.String, value);
     }
 
@@ -115,7 +115,7 @@ class UserInformation with ChangeNotifier {
   }
 
   void updateBinary(bool value) {
-    void saveBinary(bool value) async {
+    Future<void> saveBinary(bool value) async {
       await service.setItem('binary', PersistentMemoryType.Bool, value);
     }
 
@@ -391,8 +391,8 @@ class UserInformation with ChangeNotifier {
       await service.setItem('dates', PersistentMemoryType.StringList, dates);
     }
 
-    thanks = {"thanks": value["thanks"] ?? [], "dates": value["dates"] ?? []};
-    saveThanks(value["thanks"] ?? [], value["dates"] ?? []);
+    thanks = {'thanks': value['thanks'] ?? [], 'dates': value['dates'] ?? []};
+    saveThanks(value['thanks'] ?? [], value['dates'] ?? []);
     notifyListeners();
   }
 

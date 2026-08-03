@@ -1,26 +1,22 @@
+import 'package:auto_size_text/auto_size_text.dart';
 import 'package:flutter/material.dart';
-import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:mazilon/util/FormAnswer/addFormAnswer.dart';
 import 'package:mazilon/util/LP_extended_state.dart';
-import 'package:mazilon/util/styles.dart';
+import 'package:mazilon/util/theme/spacing.dart';
 import 'package:mazilon/util/userInformation.dart';
 import 'package:provider/provider.dart';
 
 //the template for the answers in the personal plan questionnaire
 //this is used in the formpagetemplate to display(remove/edit) the selected/inserted user promptss
 class FormAnswer extends StatefulWidget {
+
+  const FormAnswer({
+    required this.text, required this.edit, required this.remove, required this.num, super.key,
+  });
   final String text;
   final Function edit;
   final Function remove;
   final int num;
-
-  const FormAnswer({
-    super.key,
-    required this.text,
-    required this.edit,
-    required this.remove,
-    required this.num,
-  });
 
   @override
   State<FormAnswer> createState() => _FormAnswerState();
@@ -36,7 +32,7 @@ class _FormAnswerState extends LPExtendedState<FormAnswer> {
     void editAnswer(String text, int index) {
       showDialog(
         context: context,
-        builder: (BuildContext context) {
+        builder: (context) {
           return AddFormAnswer(index: index, edit: widget.edit, text: text);
         },
       );
@@ -71,11 +67,9 @@ class _FormAnswerState extends LPExtendedState<FormAnswer> {
       setState(() {});
     }
 
-    return SizedBox(
-      width: MediaQuery.of(context).size.width > 1000
-          ? 800
-          : MediaQuery.of(context).size.width * 0.6,
-      child: Container(
+    return ConstrainedBox(
+      constraints: const BoxConstraints(maxWidth: 800),
+      child: ColoredBox(
         color: Colors.transparent,
         child: Column(
           children: [
@@ -96,20 +90,11 @@ class _FormAnswerState extends LPExtendedState<FormAnswer> {
                         ),
                         const SizedBox(width: 10),
                         Expanded(
-                          child: SizedBox(
-                            width: MediaQuery.of(context).size.width > 1000
-                                ? 600
-                                : MediaQuery.of(context).size.width - 150,
-                            child: myAutoSizedText(
+                          child: AutoSizeText(
                               widget.text,
-                              TextStyle(fontSize: 16.sp),
-                              appLocale.textDirection == "rtl"
-                                  ? TextAlign.right
-                                  : TextAlign.left,
-                              28,
+                              style: Theme.of(context).textTheme.bodyMedium,
                             ),
                           ),
-                        ),
                       ],
                     ),
                   ),
@@ -119,7 +104,6 @@ class _FormAnswerState extends LPExtendedState<FormAnswer> {
                     SizedBox(
                       width: 50,
                       child: Align(
-                        alignment: Alignment.center,
                         child: TextButton(
                           onPressed: () {
                             editAnswer(widget.text, widget.num - 1);
@@ -135,7 +119,7 @@ class _FormAnswerState extends LPExtendedState<FormAnswer> {
                         ),
                       ),
                     ),
-                    SizedBox(width: returnSizedBox(context, 12)),
+                    const SizedBox(width: Spacing.sm),
                     SizedBox(
                       width: 30,
                       child: Center(

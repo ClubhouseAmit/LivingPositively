@@ -4,16 +4,13 @@ import 'package:mazilon/MainPageHelpers/MainPageList/mainpage_list_item_number_w
 import 'package:mazilon/MainPageHelpers/MainPageList/mainpage_list_item_widget.dart';
 
 class ListBodyWidget extends StatefulWidget {
-  final List<String> listItems;
-  final Function(int index) editItems;
-  final Function(int index) removeItems;
 
   const ListBodyWidget({
-    super.key,
-    required this.listItems,
-    required this.editItems,
-    required this.removeItems,
+    required this.listItems, required this.editItems, required this.removeItems, super.key,
   });
+  final List<String> listItems;
+  final void Function(int index) editItems;
+  final void Function(int index) removeItems;
 
   @override
   State<ListBodyWidget> createState() => _ListBodyWidgetState();
@@ -26,22 +23,23 @@ class _ListBodyWidgetState extends State<ListBodyWidget> {
       constraints: const BoxConstraints(maxHeight: 315),
       child: SingleChildScrollView(
         child: Wrap(
-          spacing: 8.0,
-          runSpacing: 4.0,
+          spacing: 8,
+          runSpacing: 4,
           children: widget.listItems.asMap().entries.map((entry) {
-            int index = entry.key;
-            String item = entry.value;
+            final index = entry.key;
+            final item = entry.value;
             return Container(
               padding: const EdgeInsets.fromLTRB(10, 5, 10, 5),
               child: Row(
-                mainAxisAlignment: MainAxisAlignment.start,
                 children: [
                   ListItemNumberWidget(index: index),
                   const SizedBox(width: 10),
-                  MainpageListItemWidget(
-                    item: item,
-                    onEdit: () => widget.editItems(index),
-                    onDelete: () => widget.removeItems(index),
+                  Expanded(
+                    child: MainpageListItemWidget(
+                      item: item,
+                      onEdit: () => widget.editItems(index),
+                      onDelete: () => widget.removeItems(index),
+                    ),
                   ),
                 ],
               ),

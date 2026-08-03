@@ -1,16 +1,13 @@
 import 'package:flutter/material.dart';
 
 // InheritedWidget to manage video state
-class VideoPlayerInheritedWidget extends InheritedWidget {
-  final String videoId;
-  final Function(String newVideoId) changeVideo; // Method to change video
+class VideoPlayerInheritedWidget extends InheritedWidget { // Method to change video
 
   const VideoPlayerInheritedWidget({
-    super.key,
-    required this.videoId,
-    required this.changeVideo,
-    required super.child,
+    required this.videoId, required this.changeVideo, required super.child, super.key,
   });
+  final String videoId;
+  final Function(String newVideoId) changeVideo;
 
   // Convenience method to access the nearest instance of VideoPlayerInheritedWidget
   static VideoPlayerInheritedWidget? of(BuildContext context) {

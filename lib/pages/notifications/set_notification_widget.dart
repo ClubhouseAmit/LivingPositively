@@ -33,7 +33,7 @@ class _SetNotificationWidgetState
     });
   }
 
-  void saveNotificationTime(
+  Future<void> saveNotificationTime(
     int hour,
     int minute,
     UserInformation userInfo,
@@ -67,7 +67,7 @@ class _SetNotificationWidgetState
     super.initState();
     NotificationsService.init(); // Initialize NotificationsHelper
     WidgetsBinding.instance.addPostFrameCallback((timeStamp) {
-      var userInfo = context.read<UserInformation>();
+      final userInfo = context.read<UserInformation>();
       setState(() {
         _currentHour = userInfo.notificationHour;
         _currentMinute = userInfo.notificationMinute;
@@ -79,7 +79,7 @@ class _SetNotificationWidgetState
   Widget build(BuildContext context) {
     final userInfoProvider = Provider.of<UserInformation>(context);
 
-    var gender = userInfoProvider.gender;
+    final gender = userInfoProvider.gender;
     final colorScheme = Theme.of(context).colorScheme;
 
     final quotes = retrieveInspirationalQuotes(appLocale, gender);

@@ -1,20 +1,23 @@
+import 'package:auto_size_text/auto_size_text.dart';
 import 'package:flutter/material.dart';
 import 'package:get_it/get_it.dart';
+import 'package:lucide_icons_flutter/lucide_icons.dart';
+import 'package:keyboard_dismisser/keyboard_dismisser.dart';
 import 'package:mazilon/AnalyticsService.dart';
 import 'package:mazilon/global_enums.dart';
+import 'package:mazilon/l10n/app_localizations.dart';
+import 'package:mazilon/pages/thankYou.dart';
 import 'package:mazilon/util/Form/retrieveInformation.dart';
 import 'package:mazilon/util/LP_extended_state.dart';
+import 'package:mazilon/util/Thanks/AddForm.dart';
+import 'package:mazilon/util/Traits/positiveTraitItemSug.dart';
 import 'package:mazilon/util/persistent_memory_service.dart';
 import 'package:mazilon/util/type_utils.dart';
-import 'package:keyboard_dismisser/keyboard_dismisser.dart';
-import 'package:flutter_screenutil/flutter_screenutil.dart';
-import 'package:mazilon/pages/thankYou.dart';
-import 'package:mazilon/util/Traits/positiveTraitItemSug.dart';
-import 'package:mazilon/util/styles.dart';
-import 'package:mazilon/util/Thanks/AddForm.dart';
-import 'package:provider/provider.dart';
 import 'package:mazilon/util/userInformation.dart';
-import 'package:mazilon/l10n/app_localizations.dart';
+import 'package:provider/provider.dart';
+import 'package:mazilon/util/page_layout_wrapper.dart';
+import 'package:mazilon/util/HomePage/premium_glass_app_bar.dart';
+import 'package:mazilon/util/theme/spacing.dart';
 
 // positive traits page, where the user can add/edit/remove positive traits
 // the user can also see suggestions for positive traits and refresh them
@@ -22,7 +25,8 @@ import 'package:mazilon/l10n/app_localizations.dart';
 //the code here is similar to journal.dart page code
 
 class Positive extends StatefulWidget {
-  const Positive({super.key});
+  const Positive({this.onBackPressed, super.key});
+  final VoidCallback? onBackPressed;
 
   @override
   State<Positive> createState() => _PositiveState();
@@ -53,7 +57,7 @@ class _PositiveState extends LPExtendedState<Positive> {
     final tempPositiveSuggestionList = List<String>.from(sourceSuggestions);
     positiveSuggestionList = List<String>.from(tempPositiveSuggestionList);
 
-    for (String suggestion in tempPositiveSuggestionList) {
+    for (final suggestion in tempPositiveSuggestionList) {
       if (positiveSuggestionList.length > 1 &&
           positiveTraits.contains(suggestion)) {
         positiveSuggestionList.remove(suggestion);
@@ -84,23 +88,22 @@ class _PositiveState extends LPExtendedState<Positive> {
   void loadData(BuildContext context) {
     final userInfoProvider = Provider.of<UserInformation>(
       context,
-      listen: true,
     );
     positiveTraits = List<String>.from(userInfoProvider.positiveTraits);
     _syncFocusNodes(positiveTraits.length);
-    String gender = userInfoProvider.gender;
+    final gender = userInfoProvider.gender;
     _refreshSuggestions(
-      retrieveTraitsList(appLocale, gender == "" ? "other" : gender),
+      retrieveTraitsList(appLocale, gender == '' ? 'other' : gender),
     );
   }
 
   //change the positive trait at the given index to the given text
-  void editPositiveTrait(
+  Future<void> editPositiveTrait(
     String text,
     int index,
     UserInformation userInfoProvider,
   ) async {
-    List<String> positiveTraits = userInfoProvider.positiveTraits;
+    final positiveTraits = userInfoProvider.positiveTraits;
     setState(() {
       positiveTraits[index] = text;
       userInfoProvider.updatePositiveTraits(positiveTraits);
@@ -108,20 +111,20 @@ class _PositiveState extends LPExtendedState<Positive> {
   }
 
   //remove the positive trait at the given index
-  void removePositiveTrait(int removeIndex, UserInformation userInfo) async {
-    PersistentMemoryService service =
+  Future<void> removePositiveTrait(int removeIndex, UserInformation userInfo) async {
+    final service =
         GetIt.instance<
           PersistentMemoryService
         >(); // Get the persistent memory service instance
 
-    List<String> positiveTraitsTemp = TypeUtils.castToStringList(
-      await service.getItem("positiveTraits", PersistentMemoryType.StringList),
+    final positiveTraitsTemp = TypeUtils.castToStringList(
+      await service.getItem('positiveTraits', PersistentMemoryType.StringList),
     );
 
     positiveTraitsTemp.removeAt(removeIndex);
-    debugPrint("got here");
+    debugPrint('got here');
     await service.setItem(
-      "positiveTraits",
+      'positiveTraits',
       PersistentMemoryType.StringList,
       positiveTraitsTemp,
     );
@@ -133,11 +136,11 @@ class _PositiveState extends LPExtendedState<Positive> {
   }
 
   //add the given positive trait to the list
-  void addPositiveTrait(
+  Future<void> addPositiveTrait(
     String positiveTrait,
     UserInformation userInfoProvider,
   ) async {
-    List<String> positivetraitsTemp = userInfoProvider.positiveTraits;
+    final positivetraitsTemp = userInfoProvider.positiveTraits;
     positivetraitsTemp.add(positiveTrait);
 
     setState(() {
@@ -145,8 +148,8 @@ class _PositiveState extends LPExtendedState<Positive> {
       positiveTraits = positivetraitsTemp;
       focusNodes.add(FocusNode());
     });
-    AnalyticsService mixPanelService = GetIt.instance<AnalyticsService>();
-    mixPanelService.trackEvent("Item added to Qualities List");
+    final mixPanelService = GetIt.instance<AnalyticsService>();
+    mixPanelService.trackEvent('Item added to Qualities List');
   }
 
   @override
@@ -178,7 +181,7 @@ class _PositiveState extends LPExtendedState<Positive> {
   ) {
     showDialog(
       context: context,
-      builder: (BuildContext context) {
+      builder: (context) {
         return AddForm(
           add: addPositiveTrait,
           index: index,
@@ -190,7 +193,6 @@ class _PositiveState extends LPExtendedState<Positive> {
     );
   }
 
-  //build the positive traits page
   @override
   Widget build(BuildContext context) {
     //get the app information and user information providers
@@ -204,71 +206,49 @@ class _PositiveState extends LPExtendedState<Positive> {
     final colorScheme = Theme.of(context).colorScheme;
     return KeyboardDismisser(
       gestures: const [GestureType.onTap, GestureType.onPanUpdateAnyDirection],
-      child: Scaffold(
-        backgroundColor: colorScheme.surface,
-        body: ListView(
-          children: [
-            Padding(
-              padding: const EdgeInsets.fromLTRB(0, 40, 20, 20),
-              child: Column(
-                children: [
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                    children: [
-                      Padding(
-                        padding: const EdgeInsets.fromLTRB(10, 0, 10, 0),
-                        child: myAutoSizedText(
-                          appLocale!.homePageTraitsMainTitle(gender),
-                          TextStyle(
-                            fontWeight: FontWeight.bold,
-                            fontSize: 30.sp,
-                          ),
-                          null,
-                          60,
-                        ),
-                      ),
-                      //add button
-                      IconButton(
-                        onPressed: () {
-                          editNotification(
-                            "",
-                            0,
-                            appLocale.trait,
-                            userInfoProvider,
-                          );
-                        },
-                        icon: Icon(
-                          Icons.add,
-                          size: 50.0,
-                          color: colorScheme.primary,
-                        ),
-                      ),
-                    ],
-                  ),
-                  Row(
-                    children: [
-                      //sub title
-                      Expanded(
-                        child: Padding(
-                          padding: const EdgeInsets.fromLTRB(10, 0, 10, 0),
-                          child: myAutoSizedText(
-                            appLocale.homePageTraitsSecondaryTitle(gender),
-                            TextStyle(
-                              color: colorScheme.outline,
-                              fontSize: 16.sp,
-                              fontWeight: FontWeight.bold,
-                            ),
-                            TextAlign.start,
-                            30,
-                            3,
-                          ),
-                        ),
-                      ),
-                    ],
-                  ),
-                ],
+      child: PageLayoutWrapper(
+        sliverAppBar: PremiumGlassAppBar(
+          variant: AppBarVariant.detailScreen,
+          onBackPressed: widget.onBackPressed,
+          titleText: appLocale!.homePageTraitsMainTitle(gender),
+          actions: [
+            IconButton(
+              onPressed: () {
+                editNotification(
+                  '',
+                  0,
+                  appLocale.trait,
+                  userInfoProvider,
+                );
+              },
+              tooltip: appLocale.addItemTooltip,
+              icon: Icon(
+                Icons.add,
+                size: 28,
+                color: colorScheme.primary,
               ),
             ),
+            const SizedBox(width: Spacing.sm),
+          ],
+        ),
+        body: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            SizedBox(height: Spacing.md),
+            Text(
+              appLocale.homePageTraitsMainTitle(gender),
+              style: Theme.of(context).textTheme.headlineLarge?.copyWith(
+                    fontWeight: FontWeight.bold,
+                  ),
+            ),
+            SizedBox(height: Spacing.xs),
+            Text(
+              appLocale.homePageTraitsSecondaryTitle(gender),
+              style: Theme.of(context).textTheme.bodyLarge?.copyWith(
+                    color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.7),
+                  ),
+            ),
+            SizedBox(height: Spacing.lg),
             //list of positive traits
             ListView.builder(
               shrinkWrap: true,
@@ -276,7 +256,7 @@ class _PositiveState extends LPExtendedState<Positive> {
               itemCount: positiveTraits.length,
               itemBuilder: (context, index) => ThankYou(
                 text: positiveTraits[index],
-                number: (index + 1),
+                number: index + 1,
                 edit: (String text, int index) {
                   editNotification(
                     text,
@@ -289,25 +269,21 @@ class _PositiveState extends LPExtendedState<Positive> {
                   removePositiveTrait(index, userInfoProvider);
                 },
                 myFocusNode: focusNodes[index],
-                date: "",
+                date: '',
                 color: colorScheme.primary,
               ),
             ),
-            positiveTraits.isEmpty
-                ? Padding(
+            if (positiveTraits.isEmpty) Padding(
                     padding: const EdgeInsets.fromLTRB(24, 8, 24, 16),
-                    child: myAutoSizedText(
+                    child: AutoSizeText(
                       appLocale.positiveEmptyGuidance,
-                      TextStyle(
-                        color: colorScheme.outline,
-                        fontSize: 16.sp,
-                        fontWeight: FontWeight.normal,
-                      ),
-                      TextAlign.center,
-                      40,
+                      style: Theme.of(context).textTheme.bodyLarge?.copyWith(
+                            color: colorScheme.outline,
+                            fontWeight: FontWeight.normal,
+                          ),
+                      textAlign: TextAlign.center,
                     ),
-                  )
-                : Divider(
+                  ) else Divider(
                     color: colorScheme.outline,
                     indent: 30,
                     endIndent: 30,
@@ -320,7 +296,7 @@ class _PositiveState extends LPExtendedState<Positive> {
                 inputText: sug1,
                 fullSuggestionList: retrieveTraitsList(
                   appLocale,
-                  gender == "" ? "other" : gender,
+                  gender == '' ? 'other' : gender,
                 ),
               ),
             if (sug2.isNotEmpty && sug1 != sug2)
@@ -330,7 +306,7 @@ class _PositiveState extends LPExtendedState<Positive> {
                 inputText: sug2,
                 fullSuggestionList: retrieveTraitsList(
                   appLocale,
-                  gender == "" ? "other" : gender,
+                  gender == '' ? 'other' : gender,
                 ),
               ),
             if (sug3.isNotEmpty && sug1 != sug3)
@@ -340,40 +316,43 @@ class _PositiveState extends LPExtendedState<Positive> {
                 inputText: sug3,
                 fullSuggestionList: retrieveTraitsList(
                   appLocale,
-                  gender == "" ? "other" : gender,
+                  gender == '' ? 'other' : gender,
                 ),
               ),
             //refresh button
-            TextButton(
-              onPressed: () async {
-                String gender = userInfoProvider.gender;
-                setState(() {
-                  _refreshSuggestions(
-                    retrieveTraitsList(
-                      appLocale,
-                      gender == '' ? 'other' : gender,
+            Padding(
+              padding: const EdgeInsets.only(top: Spacing.sm),
+              child: TextButton(
+                onPressed: () async {
+                  final gender = userInfoProvider.gender;
+                  setState(() {
+                    _refreshSuggestions(
+                      retrieveTraitsList(
+                        appLocale,
+                        gender == '' ? 'other' : gender,
+                      ),
+                    );
+                  });
+                },
+                //refresh button
+                child: Row(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: <Widget>[
+                    //refresh button text
+                    Text(
+                      appLocale.otherSuggestions(gender),
+                      style: TextStyle(
+                        fontWeight: FontWeight.normal,
+                        color: colorScheme.primary,
+                      ),
                     ),
-                  );
-                });
-              },
-              //refresh button
-              child: Row(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: <Widget>[
-                  //refresh button text
-                  Text(
-                    appLocale.otherSuggestions(gender),
-                    style: TextStyle(
-                      fontWeight: FontWeight.bold,
-                      color: colorScheme.tertiary,
+                    const SizedBox(width: 1),
+                    Icon(
+                      LucideIcons.wand2, //refresh icon
+                      color: colorScheme.primary, //refresh icon color
                     ),
-                  ),
-                  const SizedBox(width: 1.0),
-                  Icon(
-                    Icons.refresh, //refresh icon
-                    color: colorScheme.tertiary, //refresh icon color
-                  ),
-                ],
+                  ],
+                ),
               ),
             ),
             const SizedBox(height: 30),

@@ -15,36 +15,32 @@ Map<String, dynamic> retrieveInformation(name, gender, textLocalization) {
       midTitle = textLocalization.difficultEventsMidTitle(gender);
       midSubTitle = textLocalization.difficultEventsMidSubTitle(gender);
       list = retrieveDifficultEventsList(
-          textLocalization, gender == "" ? "other" : gender);
+          textLocalization, gender == '' ? 'other' : gender);
 
-      break;
     case 'PersonalPlan-MakeSafer':
       header = textLocalization.makeSaferHeader(gender);
       subTitle = textLocalization.makeSaferSubTitle(gender);
       midTitle = textLocalization.makeSaferMidTitle(gender);
       midSubTitle = textLocalization.makeSaferMidSubTitle(gender);
       list = retrieveMakeSaferList(
-          textLocalization, gender == "" ? "other" : gender);
+          textLocalization, gender == '' ? 'other' : gender);
 
-      break;
     case 'PersonalPlan-FeelBetter':
       header = textLocalization.feelBetterHeader(gender);
       subTitle = textLocalization.feelBetterSubTitle(gender);
       midTitle = textLocalization.feelBetterMidTitle(gender);
       midSubTitle = textLocalization.feelBetterMidSubTitle(gender);
       list = retrieveFeelBetterList(
-          textLocalization, gender == "" ? "other" : gender);
+          textLocalization, gender == '' ? 'other' : gender);
 
-      break;
     case 'PersonalPlan-Distractions':
       header = textLocalization.distractionsHeader(gender);
       subTitle = textLocalization.distractionsSubTitle(gender);
       midTitle = textLocalization.distractionsMidTitle(gender);
       midSubTitle = textLocalization.distractionsMidSubTitle(gender);
       list = retrieveDistractionsList(
-          textLocalization, gender == "" ? "other" : gender);
+          textLocalization, gender == '' ? 'other' : gender);
 
-      break;
     default:
       throw Exception('Invalid collection name');
   }
@@ -63,7 +59,7 @@ Map<String, dynamic> retrieveInformation(name, gender, textLocalization) {
 }
 
 List<String> retrieveInspirationalQuotes(localization, gender) {
-  List<String> inspirationalQuotes = [];
+  final inspirationalQuotes = <String>[];
   //debugPrint(gender);
   inspirationalQuotes.add(localization.inspirationalQuotesNo0(gender));
   inspirationalQuotes.add(localization.inspirationalQuotesNo1(gender));
@@ -89,7 +85,7 @@ List<String> retrieveInspirationalQuotes(localization, gender) {
 }
 
 List<String> retrieveThanksList(localization, gender) {
-  List<String> thanksList = [];
+  final thanksList = <String>[];
   thanksList.add(localization.thanksListNo0(gender));
   thanksList.add(localization.thanksListNo1(gender));
   thanksList.add(localization.thanksListNo2(gender));
@@ -106,7 +102,7 @@ List<String> retrieveThanksList(localization, gender) {
 }
 
 List<String> retrieveTraitsList(localization, gender) {
-  List<String> traitsList = [];
+  final traitsList = <String>[];
   traitsList.add(localization.traitsListNo0(gender));
   traitsList.add(localization.traitsListNo1(gender));
   traitsList.add(localization.traitsListNo2(gender));
@@ -132,7 +128,7 @@ List<String> retrieveTraitsList(localization, gender) {
 }
 
 List<String> retrieveDifficultEventsList(localization, gender) {
-  List<String> difficultEventsList = [];
+  final difficultEventsList = <String>[];
   difficultEventsList.add(localization.difficultEventsListNo0(gender));
   difficultEventsList.add(localization.difficultEventsListNo1(gender));
   difficultEventsList.add(localization.difficultEventsListNo2(gender));
@@ -157,7 +153,7 @@ List<String> retrieveDifficultEventsList(localization, gender) {
 }
 
 List<String> retrieveMakeSaferList(localization, gender) {
-  List<String> makeSaferList = [];
+  final makeSaferList = <String>[];
   makeSaferList.add(localization.makeSaferListNo0(gender));
   makeSaferList.add(localization.makeSaferListNo1(gender));
   makeSaferList.add(localization.makeSaferListNo2(gender));
@@ -179,7 +175,7 @@ List<String> retrieveMakeSaferList(localization, gender) {
 }
 
 List<String> retrieveFeelBetterList(localization, gender) {
-  List<String> feelBetterList = [];
+  final feelBetterList = <String>[];
   feelBetterList.add(localization.feelBetterListNo0(gender));
   feelBetterList.add(localization.feelBetterListNo1(gender));
   feelBetterList.add(localization.feelBetterListNo2(gender));
@@ -205,7 +201,7 @@ List<String> retrieveFeelBetterList(localization, gender) {
 }
 
 List<String> retrieveDistractionsList(localization, gender) {
-  List<String> distractionsList = [];
+  final distractionsList = <String>[];
   distractionsList.add(localization.distractionsListNo0(gender));
   distractionsList.add(localization.distractionsListNo1(gender));
   distractionsList.add(localization.distractionsListNo2(gender));

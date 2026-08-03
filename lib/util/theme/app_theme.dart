@@ -3,7 +3,7 @@ import 'package:flutter/material.dart';
 /// Phase D (ADR-005 §Decision step 4) — semantic colour tokens.
 ///
 /// Until Phase D, the palette lived as nine top-level mutable `Color`
-/// variables in `lib/util/styles.dart:5-13` with no `ThemeData` wiring
+/// variables with no `ThemeData` wiring
 /// (`lib/main.dart:410-428`). Call sites picked from that palette
 /// alongside raw `Colors.red` / `Colors.blue` / one-off ARGB literals,
 /// so the palette was decorative rather than enforced — see
@@ -26,23 +26,16 @@ class AppColors {
 
   /// Soft purple highlight — used for selected/secondary affordances.
   /// Source: legacy `lightPurple`.
-  static const Color secondary = Color(0xFFE3C6FF);
+  static const Color secondary = Color(0xFFEAD5FF);
 
   /// Foreground colour on `secondary`.
   static const Color onSecondary = Colors.black;
 
   /// Default scaffold/background surface.
   /// Source: legacy `appWhite` / `backgroundGray` (same hex).
-  static const Color surface = Color(0xFFFAF8F8);
+  static const Color surface = Color(0xFFFFFFFF);
+  static const Color onSurface = Color(0xFF1E2124);
 
-  /// Body-text colour on `surface`.
-  /// Source: legacy `appBlue` (the dark navy used for headings/text).
-  static const Color onSurface = Color(0xFF0F2851);
-
-  /// Destructive / error semantic colour. Replaces the raw `Colors.red`
-  /// previously hard-coded in `myButtonStyle3`. Kept at the same red
-  /// value as `Colors.red` (Material red 500) so Phase D is a no-op
-  /// visually; downstream PRs can re-tune without touching call sites.
   static const Color error = Color(0xFFF44336);
 
   /// Foreground on `error`.
@@ -50,7 +43,7 @@ class AppColors {
 
   /// Dark-mode equivalent of the brand lavender. The light value would not
   /// maintain enough contrast against the dark surface for controls.
-  static const Color darkPrimary = Color(0xFFD7C2FF);
+  static const Color darkPrimary = Color(0xFFC4A8F5);
 
   /// Foreground colour on [darkPrimary].
   static const Color darkOnPrimary = Color(0xFF2E1649);
@@ -84,8 +77,8 @@ class AppColors {
   /// Foreground on [success].
   static const Color onSuccess = Colors.white;
 
-  /// Card/inactive grey. Source: legacy `lightGray`.
-  static const Color neutralLight = Color.fromARGB(255, 231, 231, 231);
+  /// Card/inactive grey. Apple-style soft neutral.
+  static const Color neutralLight = Color(0xFFF5F5F7);
 
   /// Muted text/icon grey. Source: legacy `darkGray`.
   static const Color neutralDark = Color(0xFF9A9EB6);
@@ -97,13 +90,29 @@ class AppColors {
   static const Color darkOnSuccess = Color(0xFF003913);
 
   /// Muted text, borders, and dividers in dark mode.
-  static const Color darkOutline = Color(0xFFCBC4D0);
+  static const Color darkOutline = Color.fromARGB(255, 178, 172, 182);
 
   /// PDF-export tint. Source: legacy `pdfpurple`. The original literal
   /// `0xfaf6fd` lacks the leading `0xFF` alpha byte; preserved verbatim
   /// to keep PDF output byte-identical to pre-Phase-D builds.
   // ignore: use_full_hex_values_for_flutter_colors
   static const Color pdfTint = Color(0xfaf6fd);
+
+  // -- AffirmationCard tokens (dusty-blue palette, low arousal) --
+  // Background: dusty blue #E6EDF2 (soft, clinical-grade support tool feel).
+  // Foreground: dark blue-gray #2E3E4E.
+  // Contrast ratio passes WCAG AA.
+  // Brand purple is used only as a thin, desaturated accent (left border) or removed.
+
+  /// Soft dusty-blue background for the AffirmationCard banner.
+  static const Color affirmationBackground = Color(0xFFE6EDF2);
+
+  /// Dark blue-gray text colour for the AffirmationCard banner.
+  static const Color affirmationForeground = Color(0xFF2E3E4E);
+
+  /// Muted blue-gray for the AffirmationCard label and secondary controls.
+  /// Contrast on [affirmationBackground] ≈ 5.6:1 (Passes WCAG AA for small text).
+  static const Color affirmationMuted = Color(0xFF4A6072);
 }
 
 /// Light `ColorScheme` derived from `AppColors`. Phase D wires this onto
@@ -111,15 +120,11 @@ class AppColors {
 /// re-deriving from `primarySwatch`.
 const ColorScheme appLightColorScheme = ColorScheme.light(
   primary: AppColors.primary,
-  onPrimary: AppColors.onPrimary,
   secondary: AppColors.secondary,
-  onSecondary: AppColors.onSecondary,
   tertiary: AppColors.success,
   onTertiary: AppColors.onSuccess,
-  surface: AppColors.surface,
   onSurface: AppColors.onSurface,
   error: AppColors.error,
-  onError: AppColors.onError,
   outline: AppColors.neutralDark,
   surfaceContainerHighest: AppColors.neutralLight,
 );
@@ -142,40 +147,169 @@ const ColorScheme appDarkColorScheme = ColorScheme.dark(
   surfaceContainerHighest: AppColors.darkSurfaceContainer,
 );
 
+TextTheme _buildTextTheme(ColorScheme colorScheme) {
+  return TextTheme(
+    headlineLarge: TextStyle(
+      fontSize: 28,
+      fontWeight: FontWeight.w600,
+      height: 1.2,
+      color: colorScheme.onSurface,
+    ),
+    headlineMedium: TextStyle(
+      fontSize: 22,
+      fontWeight: FontWeight.w600,
+      height: 1.3,
+      color: colorScheme.onSurface,
+    ),
+    titleLarge: TextStyle(
+      fontSize: 18,
+      fontWeight: FontWeight.w500,
+      height: 1.4,
+      color: colorScheme.onSurface,
+    ),
+    titleMedium: TextStyle(
+      fontSize: 16,
+      fontWeight: FontWeight.w500,
+      height: 1.4,
+      color: colorScheme.onSurface,
+    ),
+    bodyLarge: TextStyle(
+      fontSize: 16,
+      fontWeight: FontWeight.normal,
+      height: 1.5,
+      color: colorScheme.onSurface,
+    ),
+    bodyMedium: TextStyle(
+      fontSize: 15,
+      fontWeight: FontWeight.normal,
+      height: 1.5,
+      color: colorScheme.onSurface,
+    ),
+    labelSmall: TextStyle(
+      fontSize: 13,
+      fontWeight: FontWeight.normal,
+      height: 1.4,
+      color: colorScheme.onSurface.withValues(alpha: 0.7),
+    ),
+  );
+}
+
 /// Light `ThemeData` for Phase D. Material 2 is kept on (`useMaterial3:
 /// false`) because the codebase ships custom `TextButton.styleFrom` /
 /// `RoundedRectangleBorder` styles that target Material 2 token names;
 /// a Material 3 flip belongs in a separate PR with design review.
 ThemeData buildLightTheme() {
+  const colorScheme = appLightColorScheme;
   return ThemeData(
     useMaterial3: false,
     brightness: Brightness.light,
-    colorScheme: appLightColorScheme,
+    colorScheme: colorScheme,
     primaryColor: AppColors.primary,
     scaffoldBackgroundColor: AppColors.surface,
     fontFamily: 'Rubix',
+    textTheme: _buildTextTheme(colorScheme),
+    elevatedButtonTheme: ElevatedButtonThemeData(
+      style: ElevatedButton.styleFrom(
+        backgroundColor: colorScheme.primary,
+        foregroundColor: colorScheme.onPrimary,
+        shape: const RoundedRectangleBorder(
+          borderRadius: BorderRadius.all(Radius.circular(32)),
+        ),
+        padding: const EdgeInsets.symmetric(horizontal: 25, vertical: 10),
+      ),
+    ),
+    cardTheme: CardThemeData(
+      color: AppColors.surface,
+      elevation: 8,
+      shadowColor: Colors.black.withValues(alpha: 0.08),
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+      margin: EdgeInsets.zero,
+    ),
+    textButtonTheme: TextButtonThemeData(
+      style: TextButton.styleFrom(
+        shape: const RoundedRectangleBorder(
+          borderRadius: BorderRadius.all(Radius.circular(32)),
+        ),
+      ),
+    ),
+    inputDecorationTheme: InputDecorationTheme(
+      fillColor: colorScheme.surfaceContainerHighest,
+      filled: true,
+      border: OutlineInputBorder(
+        borderRadius: BorderRadius.circular(32),
+        borderSide: BorderSide.none,
+      ),
+      enabledBorder: OutlineInputBorder(
+        borderRadius: BorderRadius.circular(32),
+        borderSide: BorderSide.none,
+      ),
+      focusedBorder: OutlineInputBorder(
+        borderRadius: BorderRadius.circular(32),
+        borderSide: BorderSide(color: colorScheme.primary, width: 2),
+      ),
+    ),
   );
 }
 
 /// Dark `ThemeData` used by the user's explicit dark-mode setting. Material 2
 /// remains enabled to preserve the existing custom control styling.
 ThemeData buildDarkTheme() {
+  const colorScheme = appDarkColorScheme;
   return ThemeData(
     useMaterial3: false,
     brightness: Brightness.dark,
-    colorScheme: appDarkColorScheme,
+    colorScheme: colorScheme,
     primaryColor: AppColors.darkPrimary,
     scaffoldBackgroundColor: AppColors.darkSurface,
     canvasColor: AppColors.darkSurface,
     cardColor: AppColors.darkSurfaceContainer,
     dividerColor: AppColors.darkOnSurface.withValues(alpha: 0.2),
+    textTheme: _buildTextTheme(colorScheme),
+    elevatedButtonTheme: ElevatedButtonThemeData(
+      style: ElevatedButton.styleFrom(
+        backgroundColor: colorScheme.primary,
+        foregroundColor: colorScheme.onPrimary,
+        shape: const RoundedRectangleBorder(
+          borderRadius: BorderRadius.all(Radius.circular(32)),
+        ),
+        padding: const EdgeInsets.symmetric(horizontal: 25, vertical: 10),
+      ),
+    ),
+    cardTheme: CardThemeData(
+      color: AppColors.darkSurfaceContainer,
+      elevation: 0,
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(16),
+        side: BorderSide(color: AppColors.darkOutline.withValues(alpha: 0.1)),
+      ),
+      margin: EdgeInsets.zero,
+    ),
+    textButtonTheme: TextButtonThemeData(
+      style: TextButton.styleFrom(
+        shape: const RoundedRectangleBorder(
+          borderRadius: BorderRadius.all(Radius.circular(32)),
+        ),
+      ),
+    ),
     appBarTheme: const AppBarTheme(
       backgroundColor: AppColors.darkSurface,
       foregroundColor: AppColors.darkOnSurface,
     ),
-    inputDecorationTheme: const InputDecorationTheme(
+    inputDecorationTheme: InputDecorationTheme(
       fillColor: AppColors.darkSurfaceContainer,
       filled: true,
+      border: OutlineInputBorder(
+        borderRadius: BorderRadius.circular(32),
+        borderSide: BorderSide.none,
+      ),
+      enabledBorder: OutlineInputBorder(
+        borderRadius: BorderRadius.circular(32),
+        borderSide: BorderSide.none,
+      ),
+      focusedBorder: OutlineInputBorder(
+        borderRadius: BorderRadius.circular(32),
+        borderSide: BorderSide(color: colorScheme.primary, width: 2),
+      ),
     ),
     fontFamily: 'Rubix',
   );

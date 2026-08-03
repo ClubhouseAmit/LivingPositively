@@ -1,11 +1,10 @@
+import 'package:auto_size_text/auto_size_text.dart';
 import 'package:flutter/material.dart';
-import 'package:mazilon/util/styles.dart';
-import 'package:flutter_screenutil/flutter_screenutil.dart';
+import 'package:mazilon/EmergencyNumbers.dart';
+import 'package:mazilon/l10n/app_localizations.dart';
 import 'package:mazilon/util/Phone/emergencyDialogBox.dart';
 import 'package:mazilon/util/userInformation.dart';
 import 'package:provider/provider.dart';
-import 'package:mazilon/EmergencyNumbers.dart';
-import 'package:mazilon/l10n/app_localizations.dart';
 
 // Extracts and returns the list of child widgets from a Row widget
 List<Widget> extractChildrenFromRow(Row row) {
@@ -38,22 +37,22 @@ class EmergencyPhonesGrid extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final userInfo = Provider.of<UserInformation>(context, listen: true);
-    String countryCode = userInfo.location.trim();
+    final userInfo = Provider.of<UserInformation>(context);
+    var countryCode = userInfo.location.trim();
     if (countryCode.isEmpty) {
       countryCode =
           Localizations.localeOf(context).countryCode ??
           defaultPickerCountry.countryCodes.first;
     }
 
-    final Country? country = findCountryByCode(countryCode);
+    final country = findCountryByCode(countryCode);
     if (country == null) {
       debugPrint(
         'No emergency mapping for countryCode="$countryCode". Using default "${defaultEmergencyCountry.id}".',
       );
     }
     final activeCountry = country ?? defaultEmergencyCountry;
-    final bool isFallback = country == null;
+    final isFallback = country == null;
     final localNumbers = <Map<String, dynamic>>[
       ...activeCountry.emergencyNumbers,
     ];
@@ -78,7 +77,7 @@ class EmergencyPhonesGrid extends StatelessWidget {
           padding: const EdgeInsets.all(12),
           decoration: BoxDecoration(
             color: const Color(0xFFFFF4E5),
-            border: Border.all(color: const Color(0xFFE0A82E), width: 1),
+            border: Border.all(color: const Color(0xFFE0A82E)),
             borderRadius: BorderRadius.circular(8),
           ),
           child: Row(
@@ -107,7 +106,7 @@ class EmergencyPhonesGrid extends StatelessWidget {
     }
 
     return Padding(
-      padding: const EdgeInsets.all(8.0),
+      padding: const EdgeInsets.all(8),
       child: LayoutBuilder(
         builder: (context, constraints) {
           const spacing = 10.0;
@@ -147,35 +146,35 @@ class EmergencyPhonesGrid extends StatelessWidget {
 
 // A custom widget representing an emergency phone item in the grid
 class EmergencyPhoneItem extends StatelessWidget {
+  const EmergencyPhoneItem({required this.i, required this.number, super.key});
   final int i; // Index of the emergency phone item
 
   final dynamic number;
-  const EmergencyPhoneItem({required this.i, required this.number, super.key});
 
   @override
   Widget build(BuildContext context) {
     final appLocale = AppLocalizations.of(context);
     final colorScheme = Theme.of(context).colorScheme;
-    final isRtl = appLocale?.textDirection == "rtl";
+    final isRtl = appLocale?.textDirection == 'rtl';
     final descriptionText = isRtl
-        ? (number["descriptionHe"] ?? number["description"] ?? '')
-        : (number["description"] ?? '');
+        ? (number['descriptionHe'] ?? number['description'] ?? '')
+        : (number['description'] ?? '');
     return InkWell(
       onTap: () async {
         // Display a dialog when the item is tapped
         showDialog(
           context: context,
-          builder: (BuildContext context) {
+          builder: (context) {
             return EmergencyDialogBox(
-              number: number["number"],
-              whatsappNumber: number["whatsappNumber"] ?? number["number"],
-              link: number["link"],
-              textNumber: number["textNumber"] ?? "",
-              textMessage: number["textMessage"] ?? "",
-              linkType: number["linkType"] ?? "website",
-              hasWhatsApp: number["whatsapp"],
-              hasLink: number["link"] != "",
-              canCall: number["canCall"],
+              number: number['number'],
+              whatsappNumber: number['whatsappNumber'] ?? number['number'],
+              link: number['link'],
+              textNumber: number['textNumber'] ?? '',
+              textMessage: number['textMessage'] ?? '',
+              linkType: number['linkType'] ?? 'website',
+              hasWhatsApp: number['whatsapp'],
+              hasLink: number['link'] != '',
+              canCall: number['canCall'],
             );
           },
         );
@@ -184,7 +183,7 @@ class EmergencyPhoneItem extends StatelessWidget {
         constraints: const BoxConstraints(minHeight: 170),
         padding: const EdgeInsets.all(10),
         decoration: BoxDecoration(
-          border: Border.all(color: colorScheme.primary, width: 1),
+          border: Border.all(color: colorScheme.primary),
           color: colorScheme.surfaceContainerHighest,
           borderRadius: BorderRadius.circular(10), // Rounded corners
         ),
@@ -198,32 +197,28 @@ class EmergencyPhoneItem extends StatelessWidget {
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
                   Center(
-                    child: myAutoSizedText(
-                      number["name"],
-                      TextStyle(
-                        color: colorScheme.primary,
-                        fontWeight: FontWeight.bold,
-                        fontSize: 14.sp,
-                      ),
-                      TextAlign.center,
-                      18,
-                      2,
+                    child: AutoSizeText(
+                      number['name'],
+                      style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                            color: colorScheme.primary,
+                            fontWeight: FontWeight.bold,
+                          ),
+                      textAlign: TextAlign.center,
+                      maxLines: 2,
                     ),
                   ),
                   const SizedBox(height: 8),
                   Center(
-                    child: myAutoSizedText(
+                    child: AutoSizeText(
                       descriptionText.replaceAll(
                         '/',
                         '\n',
                       ), // Replace '/' with newline
-                      TextStyle(
-                        fontWeight: FontWeight.normal,
-                        color: colorScheme.primary,
-                        fontSize: 14.sp,
-                      ),
-                      TextAlign.center,
-                      14,
+                      style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                            fontWeight: FontWeight.normal,
+                            color: colorScheme.primary,
+                          ),
+                      textAlign: TextAlign.center,
                     ),
                   ),
                 ],
@@ -237,7 +232,7 @@ class EmergencyPhoneItem extends StatelessWidget {
                   width: 40,
                   height: 40,
                   decoration: BoxDecoration(
-                    border: Border.all(color: colorScheme.primary, width: 1),
+                    border: Border.all(color: colorScheme.primary),
                     color: colorScheme.primary,
                     shape: BoxShape.circle,
                   ),

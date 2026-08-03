@@ -1,25 +1,22 @@
+import 'package:auto_size_text/auto_size_text.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter_contacts/flutter_contacts.dart' hide PermissionStatus;
+import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:mazilon/form/phonePageListItem.dart';
+import 'package:mazilon/util/Form/formPagePhoneModel.dart';
 import 'package:mazilon/util/LP_extended_state.dart';
+import 'package:mazilon/util/theme/spacing.dart';
+import 'package:mazilon/util/userInformation.dart';
 import 'package:provider/provider.dart';
 
-import 'package:mazilon/util/styles.dart';
-import 'package:mazilon/util/Form/formPagePhoneModel.dart';
-import 'package:flutter_screenutil/flutter_screenutil.dart';
-import 'package:mazilon/util/userInformation.dart';
-import 'package:flutter_contacts/flutter_contacts.dart' hide PermissionStatus;
-
 class PhonePageForm extends StatefulWidget {
+  const PhonePageForm({
+    required this.next, required this.prev, required this.phonePageData, super.key,
+  });
   final Function next;
   final Function prev;
 
   final PhonePageData phonePageData;
-  const PhonePageForm({
-    super.key,
-    required this.next,
-    required this.prev,
-    required this.phonePageData,
-  });
 
   @override
   State<PhonePageForm> createState() => _PhonePageFormState();
@@ -36,8 +33,8 @@ class _PhonePageFormState extends LPExtendedState<PhonePageForm> {
   //add contact to the list from the contact list in the phone
   void addItem(Contact contact) {
     //  debugPrint(contact.phones);
-    String? phoneName = contact.displayName;
-    String? phoneNumber = contact.phones.isNotEmpty == true
+    final phoneName = contact.displayName;
+    final phoneNumber = contact.phones.isNotEmpty
         ? contact.phones[0].number
         : null;
     if (phoneName != null && phoneNumber != null) {
@@ -57,7 +54,7 @@ class _PhonePageFormState extends LPExtendedState<PhonePageForm> {
       nameControllers.add(TextEditingController(text: phoneName));
       numberControllers.add(TextEditingController(text: phoneNumber));
     } else {
-      debugPrint("Both fields must be filled");
+      debugPrint('Both fields must be filled');
     }
   }
 
@@ -89,10 +86,10 @@ class _PhonePageFormState extends LPExtendedState<PhonePageForm> {
 
   @override
   void dispose() {
-    for (var controller in nameControllers) {
+    for (final controller in nameControllers) {
       controller.dispose();
     }
-    for (var controller in numberControllers) {
+    for (final controller in numberControllers) {
       controller.dispose();
     }
     controller1.dispose();
@@ -103,7 +100,7 @@ class _PhonePageFormState extends LPExtendedState<PhonePageForm> {
   @override
   void initState() {
     super.initState();
-    for (int i = 0; i < widget.phonePageData.savedPhoneNames.length; i++) {
+    for (var i = 0; i < widget.phonePageData.savedPhoneNames.length; i++) {
       nameControllers.add(
         TextEditingController(text: widget.phonePageData.savedPhoneNames[i]),
       );
@@ -117,33 +114,33 @@ class _PhonePageFormState extends LPExtendedState<PhonePageForm> {
   Widget build(BuildContext context) {
     final userInfoProvider = Provider.of<UserInformation>(
       context,
-      listen: true,
     );
 
     final gender = userInfoProvider.gender;
-    return Scaffold(
-      body: SingleChildScrollView(
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          mainAxisAlignment: MainAxisAlignment.end,
-          children: [
-            SizedBox(height: returnSizedBox(context, 20)),
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 10),
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        mainAxisAlignment: MainAxisAlignment.end,
+        children: [
+            const SizedBox(height: Spacing.xl),
             Column(
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
                 Center(
                   child: Container(
                     alignment: Alignment.topCenter,
-                    margin: EdgeInsets.symmetric(horizontal: 15),
-                    child: myAutoSizedText(
-                      appLocale.phonesPageHeader(gender),
-                      TextStyle(
-                        fontWeight: FontWeight.bold,
-                        fontSize: 20.sp,
-                        height: 1.5,
+                    margin: const EdgeInsets.symmetric(horizontal: 15),
+                    child: Semantics(
+                      header: true,
+                      child: AutoSizeText(
+                        appLocale.phonesPageHeader(gender),
+                        style: Theme.of(context).textTheme.headlineMedium?.copyWith(
+                              fontWeight: FontWeight.bold,
+                              height: 1.5,
+                            ),
+                        textAlign: TextAlign.center,
                       ),
-                      TextAlign.center,
-                      40,
                     ),
                   ),
                 ),
@@ -164,14 +161,13 @@ class _PhonePageFormState extends LPExtendedState<PhonePageForm> {
                             ),
                             padding: const EdgeInsets.all(6),
                           ),
-                          child: myText(
+                          child: Text(
                             appLocale.phonesPageContactImportTitle(gender),
-                            TextStyle(
-                              fontWeight: FontWeight.bold,
-                              color: Theme.of(context).colorScheme.primary,
-                              fontSize: 16.sp,
-                            ),
-                            TextAlign.center,
+                            style: Theme.of(context).textTheme.bodyLarge?.copyWith(
+                                  fontWeight: FontWeight.bold,
+                                  color: Theme.of(context).colorScheme.primary,
+                                ),
+                            textAlign: TextAlign.center,
                           ),
                         ),
                       ],
@@ -180,7 +176,7 @@ class _PhonePageFormState extends LPExtendedState<PhonePageForm> {
                 ),
               ],
             ),
-            SizedBox(height: returnSizedBox(context, 10)),
+            const SizedBox(height: Spacing.md),
             //list of phones added in form Phone Page by the user either manually or from contact list:
             Consumer<PhonePageData>(
               builder: (context, phonePageData, child) {
@@ -192,21 +188,16 @@ class _PhonePageFormState extends LPExtendedState<PhonePageForm> {
                 );
               },
             ),
-            SizedBox(height: returnSizedBox(context, 10)),
+            const SizedBox(height: Spacing.md),
             //save all data after confirming:
-            ConfirmationButton(
-              context,
-              () async {
+            ElevatedButton(
+              onPressed: () async {
                 await widget.phonePageData.loadItemsFromPrefs();
                 await widget.phonePageData.saveItemsToPrefs();
                 widget.phonePageData.update();
                 widget.next();
               },
-              appLocale.nextButton(gender),
-              myTextStyle.copyWith(
-                fontWeight: FontWeight.bold,
-                fontSize: 20.sp,
-              ),
+              child: Text(appLocale.nextButton(gender)),
             ),
             Padding(
               padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 5),
@@ -221,26 +212,27 @@ class _PhonePageFormState extends LPExtendedState<PhonePageForm> {
                 ),
                 tilePadding: EdgeInsets.zero,
                 childrenPadding: const EdgeInsets.only(bottom: 8),
-                title: myAutoSizedText(
+                title: AutoSizeText(
                   appLocale.phoneContactDisclaimerSummary,
-                  TextStyle(fontSize: 12.sp, height: 1.4),
-                  TextAlign.start,
-                  20,
-                  2,
+                  style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                        height: 1.4,
+                      ),
+                  textAlign: TextAlign.start,
+                  maxLines: 2,
                 ),
                 children: [
-                  myAutoSizedText(
+                  AutoSizeText(
                     appLocale.addingContactDisclaimer,
-                    TextStyle(fontSize: 12.sp, height: 1.5),
-                    TextAlign.start,
-                    40,
+                    style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                          height: 1.5,
+                        ),
+                    textAlign: TextAlign.start,
                   ),
                 ],
               ),
             ),
           ],
         ),
-      ),
-    );
+      );
   }
 }

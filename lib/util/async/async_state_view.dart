@@ -1,3 +1,4 @@
+import 'package:auto_size_text/auto_size_text.dart';
 // Phase E (ADR-005 §Decision step 5) — shared async / loading-error contract.
 //
 // Before Phase E the app had no shared loading/error affordance. Async
@@ -26,7 +27,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:mazilon/l10n/app_localizations.dart';
-import 'package:mazilon/util/styles.dart';
+import 'package:mazilon/util/theme/spacing.dart';
 
 /// Builds the data UI once the future resolves with a value.
 typedef AsyncDataBuilder<T> = Widget Function(BuildContext context, T data);
@@ -44,9 +45,9 @@ typedef AsyncEmptyPredicate<T> = bool Function(T data);
 /// delegates are wired) it falls back to a plain English label so the spinner
 /// is never silent to TalkBack/VoiceOver.
 class AsyncLoadingIndicator extends StatelessWidget {
-  final String? semanticLabel;
 
   const AsyncLoadingIndicator({super.key, this.semanticLabel});
+  final String? semanticLabel;
 
   @override
   Widget build(BuildContext context) {
@@ -71,9 +72,6 @@ class AsyncLoadingIndicator extends StatelessWidget {
 /// [onRetry] is null the button is hidden (some flows have nothing to retry),
 /// but the message is still shown so the failure is never silent.
 class AsyncErrorRetry extends StatelessWidget {
-  final VoidCallback? onRetry;
-  final String? message;
-  final String? retryLabel;
 
   const AsyncErrorRetry({
     super.key,
@@ -81,6 +79,9 @@ class AsyncErrorRetry extends StatelessWidget {
     this.message,
     this.retryLabel,
   });
+  final VoidCallback? onRetry;
+  final String? message;
+  final String? retryLabel;
 
   @override
   Widget build(BuildContext context) {
@@ -105,24 +106,22 @@ class AsyncErrorRetry extends StatelessWidget {
                 semanticLabel: text,
               ),
               SizedBox(height: 12.h),
-              myAutoSizedText(
+              AutoSizeText(
                 text,
-                TextStyle(fontSize: 16.sp),
-                TextAlign.center,
-                20,
+                style: Theme.of(context).textTheme.bodyLarge?.copyWith(
+                      fontSize: 16.sp,
+                    ),
+                textAlign: TextAlign.center,
               ),
               if (onRetry != null) ...[
                 SizedBox(height: 16.h),
                 Semantics(
                   button: true,
-                  child: TextButton(
+                  child: ElevatedButton(
                     onPressed: onRetry,
-                    style: primaryButtonStyle(context),
-                    child: myAutoSizedText(
+                    child: Text(
                       retryText,
-                      primaryButtonTextStyle(context),
-                      TextAlign.center,
-                      20,
+                      textAlign: TextAlign.center,
                     ),
                   ),
                 ),
@@ -148,6 +147,16 @@ class AsyncErrorRetry extends StatelessWidget {
 /// Callers own the retry wiring: typically `onRetry` calls `setState` to
 /// re-assign the future field so the builder re-runs.
 class AsyncStateView<T> extends StatelessWidget {
+
+  const AsyncStateView({
+    required this.future, required this.onData, super.key,
+    this.onRetry,
+    this.isEmpty,
+    this.emptyBuilder,
+    this.loadingLabel,
+    this.errorMessage,
+    this.retryLabel,
+  });
   final Future<T> future;
   final AsyncDataBuilder<T> onData;
   final VoidCallback? onRetry;
@@ -156,18 +165,6 @@ class AsyncStateView<T> extends StatelessWidget {
   final String? loadingLabel;
   final String? errorMessage;
   final String? retryLabel;
-
-  const AsyncStateView({
-    super.key,
-    required this.future,
-    required this.onData,
-    this.onRetry,
-    this.isEmpty,
-    this.emptyBuilder,
-    this.loadingLabel,
-    this.errorMessage,
-    this.retryLabel,
-  });
 
   @override
   Widget build(BuildContext context) {

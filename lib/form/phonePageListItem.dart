@@ -1,17 +1,16 @@
 import 'package:flutter/material.dart';
-import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:mazilon/util/Form/formPagePhoneModel.dart';
 import 'package:mazilon/util/LP_extended_state.dart';
 import 'package:mazilon/util/Phone/phoneTextAndIcon.dart';
-import 'package:mazilon/util/styles.dart';
+import 'package:mazilon/util/theme/spacing.dart';
 import 'package:mazilon/util/userInformation.dart';
 import 'package:provider/provider.dart';
 
 class PhonePageList extends StatefulWidget {
+  const PhonePageList({required this.phonePageData, super.key});
   final PhonePageData phonePageData;
   @override
   _PhonePageListState createState() => _PhonePageListState();
-  const PhonePageList({super.key, required this.phonePageData});
 }
 
 class _PhonePageListState extends LPExtendedState<PhonePageList> {
@@ -204,15 +203,15 @@ class _PhonePageListState extends LPExtendedState<PhonePageList> {
     final name = phonePageData.savedPhoneNames[index];
     final number = phonePageData.savedPhoneNumbers[index];
     return Padding(
-      padding: EdgeInsets.all(returnSizedBox(context, 8)),
+      padding: const EdgeInsets.all(Spacing.sm),
       child: Row(
         children: [
           circularActionButton(
             context,
             tooltip: appLocale.callContactTooltip(name),
             icon: Icons.phone,
-            diameter: returnSizedBox(context, 20) * 2,
-            iconSize: returnSizedBox(context, 24),
+            diameter: Spacing.xl * 2,
+            iconSize: Spacing.xl,
             onTap: () {
               launchWithFeedback(
                 context,
@@ -226,18 +225,19 @@ class _PhonePageListState extends LPExtendedState<PhonePageList> {
           Expanded(
             child: Card(
               child: Padding(
-                padding: EdgeInsets.all(returnSizedBox(context, 10)),
-                child: myText(
+                padding: const EdgeInsets.all(Spacing.md),
+                child: Text(
                   name,
-                  TextStyle(fontWeight: FontWeight.normal, fontSize: 14.sp),
-                  null,
+                  style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                        fontWeight: FontWeight.normal,
+                      ),
                 ),
               ),
             ),
           ),
           IconButton(
             tooltip: appLocale.contactEditTooltip,
-            icon: Icon(Icons.edit, size: returnSizedBox(context, 32)),
+            icon: const Icon(Icons.edit, size: 32),
             onPressed: () {
               setState(() {
                 editingIndex = index;
@@ -259,7 +259,7 @@ class _PhonePageListState extends LPExtendedState<PhonePageList> {
     VoidCallback? onDelete,
   }) {
     return Padding(
-      padding: EdgeInsets.all(returnSizedBox(context, 8)),
+      padding: const EdgeInsets.all(Spacing.sm),
       child: Form(
         key: formKey,
         child: Column(
@@ -296,18 +296,18 @@ class _PhonePageListState extends LPExtendedState<PhonePageList> {
               children: [
                 IconButton(
                   tooltip: appLocale.contactSaveTooltip,
-                  icon: Icon(Icons.check, size: returnSizedBox(context, 32)),
+                  icon: const Icon(Icons.check, size: 32),
                   onPressed: onSave,
                 ),
                 IconButton(
                   tooltip: appLocale.contactCancelTooltip,
-                  icon: Icon(Icons.close, size: returnSizedBox(context, 32)),
+                  icon: const Icon(Icons.close, size: 32),
                   onPressed: onCancel,
                 ),
                 if (onDelete != null)
                   IconButton(
                     tooltip: appLocale.contactDeleteTooltip,
-                    icon: Icon(Icons.delete, size: returnSizedBox(context, 32)),
+                    icon: const Icon(Icons.delete, size: 32),
                     onPressed: onDelete,
                   ),
               ],
@@ -332,7 +332,7 @@ class _PhonePageListState extends LPExtendedState<PhonePageList> {
             return _editingRow(
               formKey: _formKeys.putIfAbsent(
                 index,
-                () => GlobalKey<FormState>(),
+                GlobalKey<FormState>.new,
               ),
               nameController: nameControllers[index],
               numberController: numberControllers[index],
@@ -365,14 +365,13 @@ class _PhonePageListState extends LPExtendedState<PhonePageList> {
             ),
             padding: const EdgeInsets.all(6),
           ),
-          child: myText(
+          child: Text(
             appLocale.phonesPageManualTitle(gender),
-            TextStyle(
-              fontWeight: FontWeight.bold,
-              color: Theme.of(context).colorScheme.primary,
-              fontSize: 16.sp,
-            ),
-            TextAlign.center,
+            style: Theme.of(context).textTheme.bodyLarge?.copyWith(
+                  fontWeight: FontWeight.bold,
+                  color: Theme.of(context).colorScheme.primary,
+                ),
+            textAlign: TextAlign.center,
           ),
         ),
       ],
