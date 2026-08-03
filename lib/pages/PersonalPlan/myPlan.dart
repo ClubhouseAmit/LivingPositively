@@ -33,6 +33,7 @@ class _MyPlanSectionState extends LPExtendedState<MyPlanSection> {
 
   @override
   Widget build(BuildContext context) {
+    final colorScheme = Theme.of(context).colorScheme;
     return Container(
       padding: EdgeInsets.all(10.0),
       color: Colors
@@ -48,7 +49,7 @@ class _MyPlanSectionState extends LPExtendedState<MyPlanSection> {
               TextStyle(
                 fontSize: 20.sp,
                 fontWeight: FontWeight.bold,
-                color: Color.fromARGB(255, 2, 0, 5),
+                color: colorScheme.onSurface,
               ),
               TextAlign.center,
               40,
@@ -62,7 +63,7 @@ class _MyPlanSectionState extends LPExtendedState<MyPlanSection> {
               TextStyle(
                 fontSize: 15.sp,
                 fontWeight: FontWeight.bold,
-                color: Color.fromARGB(255, 116, 116, 113),
+                color: colorScheme.outline,
               ),
               TextAlign.center,
               30,
@@ -82,7 +83,7 @@ class _MyPlanSectionState extends LPExtendedState<MyPlanSection> {
                         width: 20,
                         child: Icon(
                           Icons.circle,
-                          color: primaryPurple,
+                          color: colorScheme.primary,
                           size: 10,
                         ), // Bullet point icon.
                       ),
@@ -93,7 +94,7 @@ class _MyPlanSectionState extends LPExtendedState<MyPlanSection> {
                           TextStyle(
                             fontWeight: FontWeight.normal,
                             fontSize: 12.sp,
-                            color: Colors.black,
+                            color: colorScheme.onSurface,
                           ),
                           appLocale.textDirection == "rtl"
                               ? TextAlign.right

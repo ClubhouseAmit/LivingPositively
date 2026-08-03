@@ -3,7 +3,6 @@
 // PagesCode branch (lines 91-136 of lib/menu.dart) plus the FAB SOS tap
 // (lines 310-314) and the main-menu dialog open path.
 
-import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:get_it/get_it.dart';
 import 'package:mazilon/AnalyticsService.dart';
@@ -70,7 +69,7 @@ class _FakeFiles implements FileService {
   @override
   Future<String?> download(titles, subTitles, texts, fmt, dir) async => null;
   @override
-  Future<void> shareTextOnly(message) async {}
+  Future<bool> shareTextOnly(message) async => true;
 }
 
 // We'll register the test scaffold's NoopImagePickerService below in setUp.
@@ -136,16 +135,6 @@ void main() {
   ) async {
     await drive(tester, PagesCode.QualitiesList);
     expect(find.byType(Positive), findsOneWidget);
-    // Positive.initState schedules Future.delayed(10s); drain it so the
-    // test does not fail on "Timer is still pending".
-    await tester.pump(const Duration(seconds: 11));
-    await tester.pumpAndSettle();
-    // Close the popup dialog if it appeared.
-    final dlgBtn = find.byType(TextButton);
-    if (dlgBtn.evaluate().isNotEmpty) {
-      await tester.tap(dlgBtn.first, warnIfMissed: false);
-      await tester.pumpAndSettle();
-    }
   });
 
   testWidgets('changeCurrentIndex GratitudeJournal branch swaps to Journal', (

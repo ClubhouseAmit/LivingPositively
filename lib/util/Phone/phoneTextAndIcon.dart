@@ -4,8 +4,12 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:mazilon/l10n/app_localizations.dart';
+import 'package:mazilon/util/circular_action_button.dart';
 import 'package:mazilon/util/styles.dart';
 import 'package:url_launcher/url_launcher.dart';
+
+export 'package:mazilon/util/circular_action_button.dart'
+    show circularActionButton;
 
 Widget phoneContact(String phone, String contact) {
   return Row(
@@ -22,34 +26,18 @@ Widget phoneContact(String phone, String contact) {
           // SizedBox is the minimum Material tap target — the CircleAvatar
           // (radius 20 → 40dp visual) keeps the same look but the hit area
           // grows to the WCAG-recommended size (UX_GAPS §1.6).
-          return Tooltip(
-            message: tooltip,
-            child: Semantics(
-              button: true,
-              child: SizedBox(
-                width: 48,
-                height: 48,
-                child: InkWell(
-                  onTap: () => launchWithFeedback(
-                    innerContext,
-                    phone,
-                    isCallFailure: true,
-                    launch: () => dialPhone(phone),
-                  ),
-                  child: Center(
-                    child: CircleAvatar(
-                      radius: 20, // adjust as needed
-                      backgroundColor: primaryPurple,
-                      foregroundColor: appWhite,
-                      child: const Icon(
-                        Icons.phone,
-                        size: 20,
-                      ), // adjust as needed
-                    ),
-                  ),
-                ),
-              ),
-            ),
+          return circularActionButton(
+            innerContext,
+            tooltip: tooltip,
+            icon: Icons.phone,
+            onTap: () {
+              launchWithFeedback(
+                innerContext,
+                phone,
+                isCallFailure: true,
+                launch: () => dialPhone(phone),
+              );
+            },
           );
         },
       ),
@@ -205,50 +193,33 @@ Future<bool> openTextMessage(String number, {String body = ''}) {
 }
 
 Widget getTextIconWidget(String text, Function onClick, IconData icon) {
-  return SizedBox(
-    child: Row(
-      mainAxisAlignment: MainAxisAlignment.center,
-      children: [
-        Flexible(
-          child: myText(
-            text,
-            TextStyle(
-              fontWeight: FontWeight.normal,
-              fontSize: 18.sp > 35 ? 35 : 20.sp,
-            ),
-            null,
-          ),
-        ),
-        SizedBox(width: 5.0),
-        // Button to make a phone call. Tooltip carries the visible long-press
-        // hint and the announced label; Semantics(button: true) ensures the
-        // GestureDetector reads as a button rather than plain text.
-        // 48dp tap target per UX_GAPS §1.6.
-        Tooltip(
-          message: text,
-          child: Semantics(
-            button: true,
-            child: SizedBox(
-              width: 48,
-              height: 48,
-              child: GestureDetector(
-                onTap: () async {
-                  onClick();
-                },
-                child: Center(
-                  child: CircleAvatar(
-                    radius: 20, // adjust as needed
-                    backgroundColor: primaryPurple,
-                    foregroundColor: Colors.white,
-                    child: Icon(icon, size: 20), // adjust as needed
-                  ),
-                ),
+  return Builder(
+    builder: (context) => SizedBox(
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          Flexible(
+            child: myText(
+              text,
+              TextStyle(
+                fontWeight: FontWeight.normal,
+                fontSize: 18.sp > 35 ? 35 : 20.sp,
               ),
+              null,
             ),
           ),
-        ),
-        SizedBox(width: 10.0),
-      ],
+          SizedBox(width: 5.0),
+          circularActionButton(
+            context,
+            tooltip: text,
+            icon: icon,
+            onTap: () {
+              onClick();
+            },
+          ),
+          SizedBox(width: 10.0),
+        ],
+      ),
     ),
   );
 }

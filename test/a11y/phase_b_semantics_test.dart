@@ -106,7 +106,7 @@ class _StubFileService implements FileService {
     String textDirection,
   ) async => null;
   @override
-  Future<void> shareTextOnly(String message) async {}
+  Future<bool> shareTextOnly(String message) async => true;
 }
 
 Widget _wrap(

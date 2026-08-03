@@ -37,7 +37,11 @@ class SectionBarHomeState extends LPExtendedState<SectionBarHome> {
               child: Row(
                 children: [
                   Flexible(child: widget.textWidget),
-                  Icon(widget.icon, color: Colors.black, size: 30),
+                  Icon(
+                    widget.icon,
+                    color: Theme.of(context).colorScheme.onSurface,
+                    size: 30,
+                  ),
                 ],
               ),
             ),
@@ -52,7 +56,7 @@ class SectionBarHomeState extends LPExtendedState<SectionBarHome> {
                   TextStyle(
                     fontWeight: FontWeight.bold,
                     fontSize: 14.sp,
-                    color: darkGray,
+                    color: Theme.of(context).colorScheme.outline,
                   ),
                   appLocale.textDirection == "rtl"
                       ? TextAlign.right

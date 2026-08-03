@@ -10,7 +10,6 @@ import 'package:mazilon/util/SignIn/popup_toast.dart';
 
 import 'package:mazilon/util/personalPlanItem.dart';
 import 'package:mazilon/util/styles.dart';
-import 'package:mazilon/util/HomePage/sectionBarHome.dart';
 
 import 'dart:math';
 import 'package:mazilon/util/appInformation.dart';
@@ -34,27 +33,114 @@ class PersonalPlanWidget extends StatefulWidget {
 
 class _PersonalPlanWidgetState extends LPExtendedState<PersonalPlanWidget> {
   late FileService fileService;
-  late List<String> randomItems = ['1', '2'];
+  final Random _random = Random();
+  List<int> _selectedIndexes = <int>[];
+  List<String> randomItems = <String>[];
   List<String> feelBetter = [];
-  void loadFeelBetter() {
-    var random = Random();
-    var index1 = 0;
-    var index2 = 0;
+
+  void loadFeelBetter({bool avoidCurrentSelection = false}) {
     final items = List<String>.from(widget.text['list'] ?? const <String>[]);
-    // taking two random items from the list of the feel better answers or other question
-    // that user filled in the form
-    if (items.length >= 2) {
-      index1 = random.nextInt(items.length);
-      do {
-        index2 = random.nextInt(items.length);
-      } while (index1 == index2);
-      randomItems = [items[index1], items[index2]];
-    } else if (items.length == 1) {
-      index1 = 0;
-      randomItems = [items[index1]];
+    final previousIndexes = _selectedIndexes;
+
+    if (items.length < 2) {
+      _selectedIndexes = List<int>.generate(items.length, (index) => index);
+    } else if (items.length == 2 &&
+        avoidCurrentSelection &&
+        previousIndexes.length == 2) {
+      _selectedIndexes = previousIndexes.reversed.toList();
     } else {
-      randomItems = [];
+      _selectedIndexes = _selectPreviewIndexes(
+        items,
+        previousIndexes,
+        avoidCurrentSelection: avoidCurrentSelection,
+      );
     }
+
+    randomItems = _selectedIndexes.map((index) => items[index]).toList();
+  }
+
+  List<List<int>> _previewCandidates(List<String> items) {
+    return <List<int>>[
+      for (var firstIndex = 0; firstIndex < items.length - 1; firstIndex++)
+        for (
+          var secondIndex = firstIndex + 1;
+          secondIndex < items.length;
+          secondIndex++
+        )
+          <int>[firstIndex, secondIndex],
+    ];
+  }
+
+  List<int> _selectPreviewIndexes(
+    List<String> items,
+    List<int> previousIndexes, {
+    required bool avoidCurrentSelection,
+  }) {
+    final candidates = _previewCandidates(items);
+    var availableCandidates = candidates;
+
+    if (avoidCurrentSelection && previousIndexes.length == 2) {
+      final visiblyDifferentCandidates = candidates
+          .where(
+            (candidate) =>
+                !_hasSameVisibleItems(candidate, previousIndexes, items),
+          )
+          .toList();
+      availableCandidates = visiblyDifferentCandidates.isNotEmpty
+          ? visiblyDifferentCandidates
+          : candidates
+                .where(
+                  (candidate) =>
+                      !_hasSameSelectedIndexes(candidate, previousIndexes),
+                )
+                .toList();
+    }
+
+    final selectedIndexes = List<int>.from(
+      availableCandidates[_random.nextInt(availableCandidates.length)],
+    )..shuffle(_random);
+    return selectedIndexes;
+  }
+
+  bool _hasSameSelectedIndexes(List<int> indexes, List<int> previousIndexes) {
+    return indexes.length == previousIndexes.length &&
+        indexes.every(previousIndexes.contains);
+  }
+
+  bool _hasSameVisibleItems(
+    List<int> indexes,
+    List<int> previousIndexes,
+    List<String> items,
+  ) {
+    if (indexes.length != previousIndexes.length) {
+      return false;
+    }
+
+    final visibleItems = indexes.map((index) => items[index]).toList()..sort();
+    final previousItems = previousIndexes.map((index) => items[index]).toList()
+      ..sort();
+    for (var index = 0; index < visibleItems.length; index++) {
+      if (visibleItems[index] != previousItems[index]) {
+        return false;
+      }
+    }
+    return true;
+  }
+
+  bool _hasAlternativeVisiblePreview(List<String> items) {
+    if (items.length <= 2 || _selectedIndexes.length != 2) {
+      return false;
+    }
+
+    return _previewCandidates(items).any(
+      (candidate) => !_hasSameVisibleItems(candidate, _selectedIndexes, items),
+    );
+  }
+
+  void _refreshPersonalPlanPreview() {
+    setState(() {
+      loadFeelBetter(avoidCurrentSelection: true);
+    });
   }
 
   @override
@@ -70,6 +156,185 @@ class _PersonalPlanWidgetState extends LPExtendedState<PersonalPlanWidget> {
     if (oldWidget.text != widget.text) {
       loadFeelBetter();
     }
+  }
+
+  Widget _buildPersonalPlanHeader(
+    BuildContext context,
+    AppInformation appInfoProvider,
+    String gender,
+  ) {
+    const controlSlotSize = 48.0;
+    final textDirection = Directionality.of(context);
+    final theme = Theme.of(context);
+    final controlColor = theme.colorScheme.onSurface;
+    final refreshColor = theme.colorScheme.outline;
+    final items = List<String>.from(widget.text['list'] ?? const <String>[]);
+    final canRefresh = _hasAlternativeVisiblePreview(items);
+    final subHeader = widget.text['SubTitle'] as String? ?? '';
+
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        final titleMaxWidth = max(
+          0.0,
+          constraints.maxWidth - controlSlotSize * 4,
+        );
+
+        return Column(
+          key: const Key('personalPlanHeader'),
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              textDirection: textDirection,
+              children: [
+                ConstrainedBox(
+                  constraints: BoxConstraints(maxWidth: titleMaxWidth),
+                  child: TextButton(
+                    key: const Key('personalPlanHeaderTitle'),
+                    style: TextButton.styleFrom(
+                      padding: const EdgeInsets.symmetric(horizontal: 4),
+                      minimumSize: Size.zero,
+                    ),
+                    onPressed: () {
+                      widget.changeCurrentIndex(context, PagesCode.FullPlan);
+                    },
+                    child: myAutoSizedText(
+                      appLocale.personalPlanPageMyPlan(gender),
+                      TextStyle(
+                        fontSize: 24.sp,
+                        fontWeight: FontWeight.bold,
+                        color: controlColor,
+                      ),
+                      null,
+                      40,
+                    ),
+                  ),
+                ),
+                SizedBox(
+                  key: const Key('personalPlanHeaderDocument'),
+                  width: controlSlotSize,
+                  height: controlSlotSize,
+                  child: Center(
+                    child: Icon(Icons.note_add, color: controlColor, size: 30),
+                  ),
+                ),
+                Expanded(
+                  child: Row(
+                    key: const Key('personalPlanHeaderActions'),
+                    textDirection: textDirection,
+                    mainAxisAlignment: MainAxisAlignment.end,
+                    children: [
+                      Tooltip(
+                        message: appLocale.refreshPersonalPlanTooltip,
+                        child: IconButton(
+                          key: const Key('personalPlanHeaderRefresh'),
+                          constraints: const BoxConstraints.tightFor(
+                            width: controlSlotSize,
+                            height: controlSlotSize,
+                          ),
+                          padding: EdgeInsets.zero,
+                          color: refreshColor,
+                          disabledColor: theme.disabledColor,
+                          onPressed: canRefresh
+                              ? _refreshPersonalPlanPreview
+                              : null,
+                          icon: Icon(Icons.refresh, size: min(35.sp, 40)),
+                        ),
+                      ),
+                      Tooltip(
+                        message: appLocale.downloadPlanTooltip,
+                        child: IconButton(
+                          key: const Key('personalPlanHeaderDownload'),
+                          constraints: const BoxConstraints.tightFor(
+                            width: controlSlotSize,
+                            height: controlSlotSize,
+                          ),
+                          padding: EdgeInsets.zero,
+                          onPressed: () async {
+                            final result = await fileService.download(
+                              [
+                                appLocale.difficultEventsHeader(gender),
+                                appLocale.makeSaferHeader(gender),
+                                appLocale.feelBetterHeader(gender),
+                                appLocale.distractionsHeader(gender),
+                                appLocale.phonesPageHeader(gender),
+                              ],
+                              [
+                                appLocale.difficultEventsSubTitle(gender),
+                                appLocale.makeSaferSubTitle(gender),
+                                appLocale.feelBetterSubTitle(gender),
+                                appLocale.distractionsSubTitle(gender),
+                                appLocale.phonesPageSubTitle(gender),
+                              ],
+                              appInfoProvider.sharePDFtexts,
+                              ShareFileType.PDF,
+                              appLocale.textDirection,
+                            );
+                            if (result == null) {
+                              showToast(
+                                message: appLocale.downloadFailed(gender),
+                              );
+                              return;
+                            }
+                            showToast(
+                              message: appLocale.finishedDownloading(gender),
+                            );
+                          },
+                          icon: Icon(
+                            Icons.download,
+                            color: controlColor,
+                            size: 30,
+                          ),
+                        ),
+                      ),
+                      Tooltip(
+                        message: appLocale.sharePlanTooltip,
+                        child: IconButton(
+                          key: const Key('personalPlanHeaderShare'),
+                          constraints: const BoxConstraints.tightFor(
+                            width: controlSlotSize,
+                            height: controlSlotSize,
+                          ),
+                          padding: EdgeInsets.zero,
+                          onPressed: () {
+                            showShareDialog(context);
+                          },
+                          icon: Transform.scale(
+                            key: const Key('personalPlanHeaderShareTransform'),
+                            alignment: Alignment.center,
+                            scaleX: textDirection == TextDirection.rtl ? -1 : 1,
+                            child: Icon(
+                              Elusive.share,
+                              color: controlColor,
+                              size: 30,
+                            ),
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ],
+            ),
+            if (subHeader.isNotEmpty)
+              Padding(
+                padding: const EdgeInsetsDirectional.only(start: 5, end: 18.0),
+                child: myAutoSizedText(
+                  subHeader,
+                  TextStyle(
+                    fontWeight: FontWeight.bold,
+                    fontSize: 14.sp,
+                    color: Theme.of(context).colorScheme.outline,
+                  ),
+                  textDirection == TextDirection.rtl
+                      ? TextAlign.right
+                      : TextAlign.left,
+                  30,
+                ),
+              ),
+          ],
+        );
+      },
+    );
   }
 
   // the build function of the personal plan widget
@@ -88,81 +353,7 @@ class _PersonalPlanWidgetState extends LPExtendedState<PersonalPlanWidget> {
         padding: const EdgeInsets.only(bottom: 8.0),
         child: Column(
           children: [
-            // the section bar of the personal plan section in the home page,
-            // with the title of the section and the icon of the section , and share and download buttons
-            // and the sub title of the section, when the user presses the section bar,
-            // it will take him to the personal plan page
-            SectionBarHome(
-              textWidget: TextButton(
-                style: TextButton.styleFrom(
-                  padding: const EdgeInsets.symmetric(horizontal: 4),
-                  minimumSize: Size.zero,
-                ),
-                onPressed: () {
-                  widget.changeCurrentIndex(context, PagesCode.FullPlan);
-                },
-                // the title of the personal plan section in the home page
-                child: myAutoSizedText(
-                  appLocale.personalPlanPageMyPlan(gender),
-                  TextStyle(
-                    fontSize: 24.sp, // the font size of the title
-                    fontWeight: FontWeight.bold,
-                    color: Colors.black, // the color of the title
-                  ),
-                  null,
-                  40,
-                ),
-              ),
-              icon: Icons.note_add, // the icon of the personal plan section
-              icons: [
-                // the share and download buttons
-                myTextButton(
-                  () async {
-                    showShareDialog(context);
-                    return;
-                  },
-                  Elusive.share,
-                  Colors.black,
-                  tooltip: appLocale.sharePlanTooltip,
-                ),
-                myTextButton(
-                  () async {
-                    // the function to download the pdf file of the personal plan
-                    var result = await fileService.download(
-                      [
-                        appLocale.difficultEventsHeader(gender),
-                        appLocale.makeSaferHeader(gender),
-                        appLocale.feelBetterHeader(gender),
-                        appLocale.distractionsHeader(gender),
-                        appLocale.phonesPageHeader(gender),
-                      ],
-                      [
-                        appLocale.difficultEventsSubTitle(gender),
-                        appLocale.makeSaferSubTitle(gender),
-                        appLocale.feelBetterSubTitle(gender),
-                        appLocale.distractionsSubTitle(gender),
-                        appLocale.phonesPageHeader(gender),
-                      ],
-                      appInfoProvider.sharePDFtexts,
-                      ShareFileType.PDF,
-                      appLocale.textDirection,
-                    );
-                    if (result == null) {
-                      // Show him a message
-                      showToast(message: appLocale.downloadFailed(gender));
-                      return;
-                    }
-                    // Show a toast message to the user
-                    showToast(message: appLocale.finishedDownloading(gender));
-                  },
-                  Icons.download,
-                  Colors.black,
-                  tooltip: appLocale.downloadPlanTooltip,
-                ), // the download icon
-              ],
-              // the sub title of the personal plan section in the home page
-              subHeader: widget.text['SubTitle'],
-            ),
+            _buildPersonalPlanHeader(context, appInfoProvider, gender),
             LayoutBuilder(
               builder: (context, constraints) {
                 final twoColumn = constraints.maxWidth >= 520;

@@ -82,7 +82,7 @@ class _FakeFileService implements FileService {
   ) async =>
       null;
   @override
-  Future<void> shareTextOnly(String message) async {}
+  Future<bool> shareTextOnly(String message) async => true;
 }
 
 void main() {

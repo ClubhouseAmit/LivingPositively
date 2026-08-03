@@ -169,14 +169,14 @@ class MockFileService extends _i1.Mock implements _i6.FileService {
       ) as _i7.Future<String?>);
 
   @override
-  _i7.Future<void> shareTextOnly(String? message) => (super.noSuchMethod(
+  _i7.Future<bool> shareTextOnly(String? message) => (super.noSuchMethod(
         Invocation.method(
           #shareTextOnly,
           [message],
         ),
-        returnValue: _i7.Future<void>.value(),
-        returnValueForMissingStub: _i7.Future<void>.value(),
-      ) as _i7.Future<void>);
+        returnValue: _i7.Future<bool>.value(false),
+        returnValueForMissingStub: _i7.Future<bool>.value(false),
+      ) as _i7.Future<bool>);
 }
 
 /// A class which mocks [ImagePickerService].

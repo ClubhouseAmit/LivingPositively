@@ -200,35 +200,6 @@ class _PhonePageListState extends LPExtendedState<PhonePageList> {
     });
   }
 
-  Widget _callButton(String name, String number) {
-    return Tooltip(
-      message: appLocale.callContactTooltip(name),
-      child: Semantics(
-        button: true,
-        child: SizedBox(
-          width: 48,
-          height: 48,
-          child: InkWell(
-            onTap: () => launchWithFeedback(
-              context,
-              number,
-              isCallFailure: true,
-              launch: () => dialPhone(number),
-            ),
-            child: Center(
-              child: CircleAvatar(
-                radius: returnSizedBox(context, 20),
-                backgroundColor: primaryPurple,
-                foregroundColor: appWhite,
-                child: Icon(Icons.phone, size: returnSizedBox(context, 24)),
-              ),
-            ),
-          ),
-        ),
-      ),
-    );
-  }
-
   Widget _displayRow(PhonePageData phonePageData, int index, String gender) {
     final name = phonePageData.savedPhoneNames[index];
     final number = phonePageData.savedPhoneNumbers[index];
@@ -236,7 +207,21 @@ class _PhonePageListState extends LPExtendedState<PhonePageList> {
       padding: EdgeInsets.all(returnSizedBox(context, 8)),
       child: Row(
         children: [
-          _callButton(name, number),
+          circularActionButton(
+            context,
+            tooltip: appLocale.callContactTooltip(name),
+            icon: Icons.phone,
+            diameter: returnSizedBox(context, 20) * 2,
+            iconSize: returnSizedBox(context, 24),
+            onTap: () {
+              launchWithFeedback(
+                context,
+                number,
+                isCallFailure: true,
+                launch: () => dialPhone(number),
+              );
+            },
+          ),
           const SizedBox(width: 10),
           Expanded(
             child: Card(
@@ -372,7 +357,9 @@ class _PhonePageListState extends LPExtendedState<PhonePageList> {
         TextButton(
           onPressed: _startDraft,
           style: TextButton.styleFrom(
-            backgroundColor: Colors.white,
+            backgroundColor: Theme.of(
+              context,
+            ).colorScheme.surfaceContainerHighest,
             shape: RoundedRectangleBorder(
               borderRadius: BorderRadius.circular(12),
             ),
@@ -382,7 +369,7 @@ class _PhonePageListState extends LPExtendedState<PhonePageList> {
             appLocale.phonesPageManualTitle(gender),
             TextStyle(
               fontWeight: FontWeight.bold,
-              color: primaryPurple,
+              color: Theme.of(context).colorScheme.primary,
               fontSize: 16.sp,
             ),
             TextAlign.center,

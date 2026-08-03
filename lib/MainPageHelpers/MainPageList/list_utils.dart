@@ -40,11 +40,13 @@ Map<String, dynamic> getLocalizedTextForLists(locale, gender, type) {
 
 List<String> todayThankYousFunc(List<String> thankYous, List<String> dates) {
   List<String> todayThankYous = [];
-  DateTime now = DateTime.now();
-  String formattedDate = intl.DateFormat('yyyy-MM-dd – kk:mm').format(now);
+  final todayDate = intl.DateFormat('yyyy-MM-dd').format(DateTime.now());
+  final itemCount = thankYous.length < dates.length
+      ? thankYous.length
+      : dates.length;
 
-  for (int i = 0; i < dates.length; i++) {
-    if (dates[i].substring(0, 10) == formattedDate.substring(0, 10)) {
+  for (int i = 0; i < itemCount; i++) {
+    if (dates[i].startsWith(todayDate)) {
       todayThankYous.add(thankYous[i]);
     }
   }

@@ -320,5 +320,78 @@ void main() {
 
       expect(find.byType(UserSettings), findsOneWidget);
     });
+
+    testWidgets(
+      'dark mode settings expose all preferences and scheduled time pickers',
+      (tester) async {
+        await pumpWithProviders(
+          tester,
+          _buildWidget(changeLocale: (_) {}),
+          userInformation: userInformation,
+          surfaceSize: const Size(1024, 1800),
+        );
+
+        expect(find.text('Dark Mode'), findsOneWidget);
+        expect(
+          find.byKey(const Key('darkModeAlwaysLightOption')),
+          findsOneWidget,
+        );
+        expect(
+          find.byKey(const Key('darkModeAlwaysDarkOption')),
+          findsOneWidget,
+        );
+        expect(
+          find.byKey(const Key('darkModeScheduledOption')),
+          findsOneWidget,
+        );
+        expect(find.byKey(const Key('darkModeStartTimeButton')), findsNothing);
+        expect(find.byKey(const Key('darkModeEndTimeButton')), findsNothing);
+
+        final scheduledOption = find.byKey(
+          const Key('darkModeScheduledOption'),
+        );
+        await tester.ensureVisible(scheduledOption);
+        await tester.tap(scheduledOption, warnIfMissed: false);
+        await tester.pump();
+
+        expect(
+          userInformation.darkModePreference,
+          DarkModePreference.scheduled,
+        );
+        expect(userInformation.darkModeStartHour, 22);
+        expect(userInformation.darkModeStartMinute, 0);
+        expect(userInformation.darkModeEndHour, 6);
+        expect(userInformation.darkModeEndMinute, 0);
+        expect(services.memory.store['darkModePreference'], 'scheduled');
+        expect(
+          find.byKey(const Key('darkModeStartTimeButton')),
+          findsOneWidget,
+        );
+        expect(find.byKey(const Key('darkModeEndTimeButton')), findsOneWidget);
+      },
+    );
+
+    testWidgets('selecting always dark persists and hides schedule controls', (
+      tester,
+    ) async {
+      await pumpWithProviders(
+        tester,
+        _buildWidget(changeLocale: (_) {}),
+        userInformation: userInformation,
+        surfaceSize: const Size(1024, 1800),
+      );
+
+      final alwaysDarkOption = find.byKey(
+        const Key('darkModeAlwaysDarkOption'),
+      );
+      await tester.ensureVisible(alwaysDarkOption);
+      await tester.tap(alwaysDarkOption, warnIfMissed: false);
+      await tester.pump();
+
+      expect(userInformation.darkModePreference, DarkModePreference.alwaysDark);
+      expect(services.memory.store['darkModePreference'], 'alwaysDark');
+      expect(find.byKey(const Key('darkModeStartTimeButton')), findsNothing);
+      expect(find.byKey(const Key('darkModeEndTimeButton')), findsNothing);
+    });
   });
 }

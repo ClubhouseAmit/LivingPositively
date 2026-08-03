@@ -177,9 +177,10 @@ class _MyPlanPageFullState extends LPExtendedState<MyPlanPageFull> {
     String text5 = texts['secondLinkText'] ?? '';
     String text5Link = texts['secondLinkURL'] ?? '';
     String text6 = texts['forthLine'] ?? '';
+    final colorScheme = Theme.of(context).colorScheme;
 
     return Scaffold(
-      backgroundColor: Colors.grey[300],
+      backgroundColor: colorScheme.surfaceContainerHighest,
       appBar: AppBar(
         title: SingleChildScrollView(
           child: Center(
@@ -191,7 +192,8 @@ class _MyPlanPageFullState extends LPExtendedState<MyPlanPageFull> {
             ),
           ),
         ),
-        backgroundColor: primaryPurple,
+        backgroundColor: colorScheme.primary,
+        foregroundColor: colorScheme.onPrimary,
         shape: RoundedRectangleBorder(
           borderRadius: BorderRadius.only(
             bottomLeft: Radius.circular(25.0),
@@ -255,7 +257,7 @@ class _MyPlanPageFullState extends LPExtendedState<MyPlanPageFull> {
                                 style: TextStyle(
                                   fontSize: 15.sp,
                                   fontWeight: FontWeight.normal,
-                                  color: Colors.black,
+                                  color: colorScheme.onSurface,
                                 ),
                               ),
                               TextSpan(
@@ -266,7 +268,7 @@ class _MyPlanPageFullState extends LPExtendedState<MyPlanPageFull> {
                                 style: TextStyle(
                                   fontSize: 15.sp,
                                   fontWeight: FontWeight.normal,
-                                  color: Color.fromARGB(255, 6, 25, 231),
+                                  color: colorScheme.primary,
                                 ),
                               ),
                               TextSpan(
@@ -274,7 +276,7 @@ class _MyPlanPageFullState extends LPExtendedState<MyPlanPageFull> {
                                 style: TextStyle(
                                   fontSize: 15.sp,
                                   fontWeight: FontWeight.normal,
-                                  color: Colors.black,
+                                  color: colorScheme.onSurface,
                                 ),
                               ),
                               TextSpan(
@@ -282,7 +284,7 @@ class _MyPlanPageFullState extends LPExtendedState<MyPlanPageFull> {
                                 style: TextStyle(
                                   fontSize: 15.sp,
                                   fontWeight: FontWeight.normal,
-                                  color: Colors.black,
+                                  color: colorScheme.onSurface,
                                 ),
                               ),
                               TextSpan(
@@ -293,7 +295,7 @@ class _MyPlanPageFullState extends LPExtendedState<MyPlanPageFull> {
                                 style: TextStyle(
                                   fontSize: 15.sp,
                                   fontWeight: FontWeight.normal,
-                                  color: Color.fromARGB(255, 6, 25, 231),
+                                  color: colorScheme.primary,
                                 ),
                               ),
                               TextSpan(
@@ -301,7 +303,7 @@ class _MyPlanPageFullState extends LPExtendedState<MyPlanPageFull> {
                                 style: TextStyle(
                                   fontSize: 15.sp,
                                   fontWeight: FontWeight.normal,
-                                  color: Colors.black,
+                                  color: colorScheme.onSurface,
                                 ),
                               ),
                             ],
@@ -345,7 +347,8 @@ class _MyPlanPageFullState extends LPExtendedState<MyPlanPageFull> {
                 );
               },
               style: TextButton.styleFrom(
-                backgroundColor: primaryPurple,
+                backgroundColor: colorScheme.primary,
+                foregroundColor: colorScheme.onPrimary,
                 padding: EdgeInsets.symmetric(horizontal: 25, vertical: 10),
                 shape: const RoundedRectangleBorder(
                   borderRadius: BorderRadius.all(Radius.circular(20)),
@@ -358,7 +361,7 @@ class _MyPlanPageFullState extends LPExtendedState<MyPlanPageFull> {
                 TextStyle(
                   fontSize: 20.sp,
                   fontWeight: FontWeight.bold,
-                  color: Colors.white,
+                  color: colorScheme.onPrimary,
                 ),
                 null,
                 24,

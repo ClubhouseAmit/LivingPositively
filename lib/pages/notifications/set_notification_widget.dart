@@ -80,13 +80,14 @@ class _SetNotificationWidgetState
     final userInfoProvider = Provider.of<UserInformation>(context);
 
     var gender = userInfoProvider.gender;
+    final colorScheme = Theme.of(context).colorScheme;
 
     final quotes = retrieveInspirationalQuotes(appLocale, gender);
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: <Widget>[
         Divider(
-          color: Colors.black,
+          color: colorScheme.outline,
           height: 5, // Adjust the height as needed
         ),
         TimePicker(
@@ -96,7 +97,7 @@ class _SetNotificationWidgetState
         ),
         SizedBox(width: 15),
         Divider(
-          color: Colors.black,
+          color: colorScheme.outline,
           height: 5, // Adjust the height as needed
         ),
         SizedBox(height: 25),
@@ -104,12 +105,7 @@ class _SetNotificationWidgetState
           child: Container(
             width: double.infinity,
             decoration: BoxDecoration(
-              color: const Color.fromARGB(
-                255,
-                96,
-                139,
-                103,
-              ).withValues(alpha: 0.7),
+              color: colorScheme.primary,
               borderRadius: BorderRadius.circular(7),
             ),
             child: TextButton(
@@ -124,7 +120,7 @@ class _SetNotificationWidgetState
               child: Text(
                 appLocale.notificationSetTimeText(gender),
                 textAlign: TextAlign.center,
-                style: TextStyle(color: Colors.white),
+                style: TextStyle(color: colorScheme.onPrimary),
               ),
             ),
           ),
@@ -134,12 +130,7 @@ class _SetNotificationWidgetState
           child: Container(
             width: double.infinity,
             decoration: BoxDecoration(
-              color: const Color.fromARGB(
-                255,
-                138,
-                139,
-                96,
-              ).withValues(alpha: 0.7),
+              color: colorScheme.secondary,
               borderRadius: BorderRadius.circular(7),
             ),
             child: TextButton(
@@ -152,7 +143,7 @@ class _SetNotificationWidgetState
               child: Text(
                 appLocale.notificationShowExampleNotification(gender),
                 textAlign: TextAlign.center,
-                style: TextStyle(color: Colors.white),
+                style: TextStyle(color: colorScheme.onSecondary),
               ),
             ),
           ),
@@ -162,12 +153,7 @@ class _SetNotificationWidgetState
           child: Container(
             width: double.infinity,
             decoration: BoxDecoration(
-              color: const Color.fromARGB(
-                255,
-                139,
-                96,
-                96,
-              ).withValues(alpha: 0.7),
+              color: colorScheme.error,
               borderRadius: BorderRadius.circular(7),
             ),
             child: TextButton(
@@ -180,7 +166,7 @@ class _SetNotificationWidgetState
               child: Text(
                 appLocale.notificationCancelNotification(gender),
                 textAlign: TextAlign.center,
-                style: TextStyle(color: Colors.white),
+                style: TextStyle(color: colorScheme.onError),
               ),
             ),
           ),
@@ -194,7 +180,7 @@ class _SetNotificationWidgetState
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   SizedBox(height: 25),
-                  Divider(color: Colors.black, height: 5),
+                  Divider(color: colorScheme.outline, height: 5),
                   ReminderDebugPanel(),
                 ],
               );

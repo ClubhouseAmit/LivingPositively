@@ -578,6 +578,24 @@ class AppLocalizationsEn extends AppLocalizations {
   }
 
   @override
+  String get darkModeSettingsTitle => 'Dark Mode';
+
+  @override
+  String get darkModeAlwaysLight => 'Always Light';
+
+  @override
+  String get darkModeAlwaysDark => 'Always Dark';
+
+  @override
+  String get darkModeSleepPromoting => 'Sleep-Promoting Mode';
+
+  @override
+  String get darkModeStartTime => 'Start time';
+
+  @override
+  String get darkModeEndTime => 'End time';
+
+  @override
   String introductionFormFirstPageMainTitle(String gender) {
     String _temp0 = intl.Intl.selectLogic(gender, {
       'male': 'What keeps me safe?',
@@ -1101,6 +1119,23 @@ class AppLocalizationsEn extends AppLocalizations {
     });
     return '$_temp0';
   }
+
+  @override
+  String get sosShareLocation => 'Share Location';
+
+  @override
+  String get sosShareLocationTooltip => 'Share your current location';
+
+  @override
+  String get sosShareLocationMessage => 'I am here and I need your help.';
+
+  @override
+  String get sosShareLocationUnavailable =>
+      'Your location could not be shared. Your help message will be shared without it.';
+
+  @override
+  String get sosShareLocationShareFailed =>
+      'Your SOS help message could not be shared. Please try again.';
 
   @override
   String phonePageTitle(String gender) {
@@ -3093,6 +3128,9 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get sharePlanTooltip => 'Share plan';
+
+  @override
+  String get refreshPersonalPlanTooltip => 'Refresh personal plan';
 
   @override
   String get refreshQuoteTooltip => 'New quote';

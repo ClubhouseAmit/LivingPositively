@@ -98,6 +98,12 @@ class _CountrySelectorWidgetState
       context,
     );
     final fieldWidth = formFieldWidth(context);
+    final theme = Theme.of(context);
+    final colorScheme = theme.colorScheme;
+    final dialogTextStyle = theme.textTheme.bodyLarge?.copyWith(
+      color: colorScheme.onSurface,
+    ) ??
+        TextStyle(color: colorScheme.onSurface);
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -108,11 +114,11 @@ class _CountrySelectorWidgetState
               Expanded(
                 child: Text(
                   widget.text,
-                  style: const TextStyle(
+                  style: TextStyle(
                     fontSize: 20,
                     height: 1.2,
                     fontWeight: FontWeight.normal,
-                    color: Colors.black,
+                    color: Theme.of(context).colorScheme.onSurface,
                     fontFamily: 'Rubix',
                   ),
                   maxLines: 2,
@@ -126,8 +132,12 @@ class _CountrySelectorWidgetState
                 child: TextButton(
                   style: ButtonStyle(
                     padding: const WidgetStatePropertyAll(EdgeInsets.zero),
-                    iconColor: WidgetStatePropertyAll(Colors.black),
-                    overlayColor: WidgetStatePropertyAll(backgroundGray),
+                    iconColor: WidgetStatePropertyAll(
+                      Theme.of(context).colorScheme.onSurface,
+                    ),
+                    overlayColor: WidgetStatePropertyAll(
+                      Theme.of(context).colorScheme.surfaceContainerHighest,
+                    ),
                   ),
                   onPressed: changeVisible,
                   child: const Icon(Icons.question_mark, size: 12),
@@ -142,7 +152,10 @@ class _CountrySelectorWidgetState
           height: 56,
           padding: const EdgeInsetsDirectional.fromSTEB(10, 8, 10, 8),
           decoration: BoxDecoration(
-            border: Border.all(color: Colors.grey, width: 1),
+            border: Border.all(
+              color: Theme.of(context).colorScheme.outline,
+              width: 1,
+            ),
             boxShadow: [
               BoxShadow(
                 color: Color.fromRGBO(0, 0, 0, 0.1),
@@ -152,7 +165,7 @@ class _CountrySelectorWidgetState
               ),
             ],
             borderRadius: BorderRadius.circular(8.r),
-            color: backgroundGray,
+            color: Theme.of(context).colorScheme.surfaceContainerHighest,
           ),
           child: Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
@@ -171,6 +184,8 @@ class _CountrySelectorWidgetState
                   initialSelection: initialCountryCode,
                   showCountryOnly: true,
                   showOnlyCountryWhenClosed: true,
+                  dialogBackgroundColor: colorScheme.surface,
+                  dialogTextStyle: dialogTextStyle,
                   alignLeft: true, // Changed to true for left alignment
                   countryFilter: countryPickerCodes,
                   padding: EdgeInsets.zero, // Remove internal padding
@@ -178,7 +193,7 @@ class _CountrySelectorWidgetState
               ),
               Icon(
                 Icons.keyboard_arrow_down,
-                color: Colors.grey[600],
+                color: Theme.of(context).colorScheme.outline,
                 size: 24,
               ),
             ],
@@ -197,12 +212,17 @@ class _CountrySelectorWidgetState
                   : Alignment.centerLeft,
               padding: EdgeInsets.fromLTRB(10, 10, 10, 10),
               decoration: BoxDecoration(
-                color: Colors.white,
+                color: Theme.of(context).colorScheme.surfaceContainerHighest,
                 borderRadius: BorderRadius.circular(5.r),
-                border: Border.all(color: Colors.black, width: 1),
+                border: Border.all(
+                  color: Theme.of(context).colorScheme.outline,
+                  width: 1,
+                ),
                 boxShadow: [
                   BoxShadow(
-                    color: Colors.black.withValues(alpha: 0.1),
+                    color: Theme.of(
+                      context,
+                    ).colorScheme.onSurface.withValues(alpha: 0.1),
                     spreadRadius: 1,
                     blurRadius: 5,
                     offset: Offset(0, 3), // changes position of shadow

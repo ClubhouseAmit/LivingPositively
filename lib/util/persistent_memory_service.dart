@@ -54,7 +54,7 @@ class SharedPreferencesService implements PersistentMemoryService {
         case PersistentMemoryType.String:
           return prefs.getString(key) ?? "";
         case PersistentMemoryType.Int:
-          return prefs.getInt(key) ?? 0;
+          return prefs.getInt(key);
         case PersistentMemoryType.Double:
           return prefs.getDouble(key) ?? 0.0;
         case PersistentMemoryType.Bool:

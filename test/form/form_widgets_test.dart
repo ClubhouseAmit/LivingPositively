@@ -24,6 +24,8 @@ import 'package:mazilon/form/shareform.dart';
 import 'package:mazilon/util/Form/formPagePhoneModel.dart';
 import 'package:mazilon/util/userInformation.dart';
 import 'package:provider/provider.dart';
+import 'package:url_launcher_platform_interface/link.dart';
+import 'package:url_launcher_platform_interface/url_launcher_platform_interface.dart';
 
 import '../helpers/widget_test_scaffold.dart';
 
@@ -43,6 +45,31 @@ PhonePageData _makePhonePageData({
   savedPhoneNumbers: List<String>.from(numbers),
   phoneDescription: const <String>[],
 );
+
+class _RecordingUrlLauncherPlatform extends UrlLauncherPlatform {
+  final List<String> launchedUrls = <String>[];
+
+  @override
+  LinkDelegate? get linkDelegate => null;
+
+  @override
+  Future<bool> canLaunch(String url) async => true;
+
+  @override
+  Future<bool> launch(
+    String url, {
+    required bool useSafariVC,
+    required bool useWebView,
+    required bool enableJavaScript,
+    required bool enableDomStorage,
+    required bool universalLinksOnly,
+    required Map<String, String> headers,
+    String? webOnlyWindowName,
+  }) async {
+    launchedUrls.add(url);
+    return true;
+  }
+}
 
 /// Allow the post-frame loadItemsFromPrefs in PhonePageData's constructor
 /// to settle without producing visible-overflow noise that aborts the test.
@@ -325,47 +352,73 @@ void main() {
       expect(phoneData.savedPhoneNumbers, isEmpty);
     });
 
-    testWidgets('PhonePageData seeded with two entries renders Card widgets', (
-      tester,
-    ) async {
-      // PhonePageData's constructor calls loadItemsFromPrefs() which
-      // overwrites our seeded lists with whatever is in
-      // PersistentMemoryService. To keep the two seeded entries visible we
-      // seed the fake persistent store first.
-      final services = registerTestServices(locale: 'en');
-      await services.memory.setItem(
-        'phonePageSavedPhoneNames',
-        PersistentMemoryType.StringList,
-        <String>['Alice', 'Bob'],
-      );
-      await services.memory.setItem(
-        'phonePageSavedPhoneNumbers',
-        PersistentMemoryType.StringList,
-        <String>['111', '222'],
-      );
-      final phoneData = _makePhonePageData(
-        names: const <String>['Alice', 'Bob'],
-        numbers: const <String>['111', '222'],
-      );
+    testWidgets(
+      'PhonePageData seeded with two entries renders cards and call actions',
+      (tester) async {
+        final originalPlatform = UrlLauncherPlatform.instance;
+        final fakePlatform = _RecordingUrlLauncherPlatform();
+        UrlLauncherPlatform.instance = fakePlatform;
+        addTearDown(() => UrlLauncherPlatform.instance = originalPlatform);
 
-      await pumpWithProviders(
-        tester,
-        ChangeNotifierProvider<PhonePageData>.value(
-          value: phoneData,
-          child: Scaffold(
-            body: SingleChildScrollView(
-              child: PhonePageList(phonePageData: phoneData),
+        // PhonePageData's constructor calls loadItemsFromPrefs() which
+        // overwrites our seeded lists with whatever is in
+        // PersistentMemoryService. To keep the two seeded entries visible we
+        // seed the fake persistent store first.
+        await services.memory.setItem(
+          'phonePageSavedPhoneNames',
+          PersistentMemoryType.StringList,
+          <String>['Alice', 'Bob'],
+        );
+        await services.memory.setItem(
+          'phonePageSavedPhoneNumbers',
+          PersistentMemoryType.StringList,
+          <String>['111', '222'],
+        );
+        final phoneData = _makePhonePageData(
+          names: const <String>['Alice', 'Bob'],
+          numbers: const <String>['111', '222'],
+        );
+
+        await pumpWithProviders(
+          tester,
+          ChangeNotifierProvider<PhonePageData>.value(
+            value: phoneData,
+            child: Scaffold(
+              body: SingleChildScrollView(
+                child: PhonePageList(phonePageData: phoneData),
+              ),
             ),
           ),
-        ),
-        userInformation: userInformation,
-        surfaceSize: const Size(1024, 2000),
-      );
-      await _settle(tester);
+          userInformation: userInformation,
+          surfaceSize: const Size(1024, 2000),
+        );
+        await _settle(tester);
 
-      // Card is the production widget used to display a phone entry.
-      expect(find.byType(Card), findsWidgets);
-    });
+        // Card is the production widget used to display a phone entry.
+        expect(find.byType(Card), findsWidgets);
+        final callAlice = find.byTooltip('Call Alice');
+        final callBob = find.byTooltip('Call Bob');
+        expect(callAlice, findsOneWidget);
+        expect(callBob, findsOneWidget);
+
+        final aliceCard = find.ancestor(
+          of: find.text('Alice'),
+          matching: find.byType(Card),
+        );
+        expect(
+          tester.getRect(callAlice).right,
+          lessThanOrEqualTo(tester.getRect(aliceCard).left),
+        );
+
+        await tester.tap(callAlice);
+        await tester.pump();
+        expect(fakePlatform.launchedUrls, <String>['tel:111']);
+
+        await tester.tap(callBob);
+        await tester.pump();
+        expect(fakePlatform.launchedUrls, <String>['tel:111', 'tel:222']);
+      },
+    );
   });
 
   group('PhonePageForm (real production widget)', () {

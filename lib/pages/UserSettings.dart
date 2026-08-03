@@ -119,6 +119,128 @@ class _UserSettingsState extends LPExtendedState<UserSettings> {
     }
   }
 
+  Future<void> _selectDarkModeTime(
+    UserInformation userInfo, {
+    required bool isStart,
+  }) async {
+    final initialTime = TimeOfDay(
+      hour: isStart ? userInfo.darkModeStartHour : userInfo.darkModeEndHour,
+      minute: isStart
+          ? userInfo.darkModeStartMinute
+          : userInfo.darkModeEndMinute,
+    );
+    final selectedTime = await showTimePicker(
+      context: context,
+      initialTime: initialTime,
+    );
+    if (selectedTime == null || !mounted) {
+      return;
+    }
+
+    await userInfo.updateDarkModeSettings(
+      startHour: isStart ? selectedTime.hour : null,
+      startMinute: isStart ? selectedTime.minute : null,
+      endHour: isStart ? null : selectedTime.hour,
+      endMinute: isStart ? null : selectedTime.minute,
+    );
+  }
+
+  Widget _buildDarkModeSettings(
+    UserInformation userInfo,
+    double settingsFieldWidth,
+    ColorScheme colorScheme,
+  ) {
+    final isScheduled =
+        userInfo.darkModePreference == DarkModePreference.scheduled;
+    final startTime = TimeOfDay(
+      hour: userInfo.darkModeStartHour,
+      minute: userInfo.darkModeStartMinute,
+    );
+    final endTime = TimeOfDay(
+      hour: userInfo.darkModeEndHour,
+      minute: userInfo.darkModeEndMinute,
+    );
+
+    return SizedBox(
+      width: settingsFieldWidth,
+      child: Card(
+        margin: EdgeInsets.zero,
+        child: Padding(
+          padding: const EdgeInsets.all(12),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                appLocale.darkModeSettingsTitle,
+                style: TextStyle(
+                  color: colorScheme.onSurface,
+                  fontSize: 18.sp,
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
+              RadioGroup<DarkModePreference>(
+                groupValue: userInfo.darkModePreference,
+                onChanged: (preference) async {
+                  if (preference != null) {
+                    await userInfo.updateDarkModeSettings(
+                      preference: preference,
+                    );
+                  }
+                },
+                child: Column(
+                  children: [
+                    RadioListTile<DarkModePreference>(
+                      key: const Key('darkModeAlwaysLightOption'),
+                      contentPadding: EdgeInsets.zero,
+                      title: Text(appLocale.darkModeAlwaysLight),
+                      value: DarkModePreference.alwaysLight,
+                      activeColor: colorScheme.primary,
+                    ),
+                    RadioListTile<DarkModePreference>(
+                      key: const Key('darkModeAlwaysDarkOption'),
+                      contentPadding: EdgeInsets.zero,
+                      title: Text(appLocale.darkModeAlwaysDark),
+                      value: DarkModePreference.alwaysDark,
+                      activeColor: colorScheme.primary,
+                    ),
+                    RadioListTile<DarkModePreference>(
+                      key: const Key('darkModeScheduledOption'),
+                      contentPadding: EdgeInsets.zero,
+                      title: Text(appLocale.darkModeSleepPromoting),
+                      value: DarkModePreference.scheduled,
+                      activeColor: colorScheme.primary,
+                    ),
+                  ],
+                ),
+              ),
+              if (isScheduled) ...[
+                const SizedBox(height: 4),
+                OutlinedButton.icon(
+                  key: const Key('darkModeStartTimeButton'),
+                  onPressed: () => _selectDarkModeTime(userInfo, isStart: true),
+                  icon: const Icon(Icons.schedule),
+                  label: Text(
+                    '${appLocale.darkModeStartTime}: ${startTime.format(context)}',
+                  ),
+                ),
+                const SizedBox(height: 8),
+                OutlinedButton.icon(
+                  key: const Key('darkModeEndTimeButton'),
+                  onPressed: () =>
+                      _selectDarkModeTime(userInfo, isStart: false),
+                  icon: const Icon(Icons.schedule),
+                  label: Text(
+                    '${appLocale.darkModeEndTime}: ${endTime.format(context)}',
+                  ),
+                ),
+              ],
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
   //remove log-in data and reset all data that user has filled in the app:
   Future<void> resetData(UserInformation userInfo) async {
     LocaleService localeService = GetIt.instance<LocaleService>();
@@ -168,6 +290,7 @@ class _UserSettingsState extends LPExtendedState<UserSettings> {
   // create the "what's your name?" title
   Column resizeText(text) {
     final appLocale = AppLocalizations.of(context);
+    final colorScheme = Theme.of(context).colorScheme;
     if (text == '') {
       return Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -177,7 +300,7 @@ class _UserSettingsState extends LPExtendedState<UserSettings> {
             TextStyle(
               fontSize: 18.sp,
               fontWeight: FontWeight.normal,
-              color: Colors.black,
+              color: colorScheme.onSurface,
             ),
             appLocale!.textDirection == "rtl"
                 ? TextAlign.right
@@ -198,7 +321,7 @@ class _UserSettingsState extends LPExtendedState<UserSettings> {
           TextStyle(
             fontSize: 18.sp,
             fontWeight: FontWeight.normal,
-            color: Colors.black,
+            color: colorScheme.onSurface,
           ),
           appLocale!.textDirection == "rtl" ? TextAlign.right : TextAlign.left,
           24,
@@ -208,7 +331,7 @@ class _UserSettingsState extends LPExtendedState<UserSettings> {
           TextStyle(
             fontSize: 16.sp,
             fontWeight: FontWeight.normal,
-            color: Colors.black,
+            color: colorScheme.onSurface,
           ),
           appLocale.textDirection == "rtl" ? TextAlign.right : TextAlign.left,
           22,
@@ -242,13 +365,11 @@ class _UserSettingsState extends LPExtendedState<UserSettings> {
       appLocale.nonBinary,
       appLocale.notWillingToSay,
     ];
-    final userInfoProvider = Provider.of<UserInformation>(
-      context,
-      listen: false,
-    );
+    final userInfoProvider = Provider.of<UserInformation>(context);
 
     final gender = userInfoProvider.gender;
     final settingsFieldWidth = formFieldWidth(context);
+    final colorScheme = Theme.of(context).colorScheme;
     final selectedGenderLabel =
         dropdownValueGender ?? _genderLabel(userInfoProvider, appLocale);
     final selectedLocaleName = locales.contains(userInfoProvider.localeName)
@@ -260,7 +381,7 @@ class _UserSettingsState extends LPExtendedState<UserSettings> {
         FocusScope.of(context).unfocus();
       },
       child: Scaffold(
-        backgroundColor: appWhite,
+        backgroundColor: colorScheme.surface,
         appBar: AppBar(
           title: myAutoSizedText(
             appLocale.userSettingsTitle(gender),
@@ -313,7 +434,7 @@ class _UserSettingsState extends LPExtendedState<UserSettings> {
                         TextStyle(
                           fontSize: 18.sp,
                           fontWeight: FontWeight.normal,
-                          color: Colors.black,
+                          color: colorScheme.onSurface,
                         ),
                         null,
                         30,
@@ -329,8 +450,8 @@ class _UserSettingsState extends LPExtendedState<UserSettings> {
                               (age) => buildDropdownMenuEntry(
                                 age,
                                 dropdownValueAge == age
-                                    ? primaryPurple
-                                    : Colors.black,
+                                    ? colorScheme.primary
+                                    : colorScheme.onSurface,
                               ),
                             ),
                           ],
@@ -352,7 +473,7 @@ class _UserSettingsState extends LPExtendedState<UserSettings> {
                         TextStyle(
                           fontSize: getSizeOfTextGender(appLocale),
                           fontWeight: FontWeight.normal,
-                          color: Colors.black,
+                          color: colorScheme.onSurface,
                         ),
                         null,
                         35,
@@ -368,8 +489,8 @@ class _UserSettingsState extends LPExtendedState<UserSettings> {
                               (gender) => buildDropdownMenuEntry(
                                 gender,
                                 selectedGenderLabel == gender
-                                    ? primaryPurple
-                                    : Colors.black,
+                                    ? colorScheme.primary
+                                    : colorScheme.onSurface,
                               ),
                             ),
                           ],
@@ -391,7 +512,7 @@ class _UserSettingsState extends LPExtendedState<UserSettings> {
                         TextStyle(
                           fontSize: 18.sp,
                           fontWeight: FontWeight.normal,
-                          color: Colors.black,
+                          color: colorScheme.onSurface,
                         ),
                         null,
                         30,
@@ -407,8 +528,8 @@ class _UserSettingsState extends LPExtendedState<UserSettings> {
                                 locale,
                                 languageCode(locale) ==
                                         userInfoProvider.localeName
-                                    ? primaryPurple
-                                    : Colors.black,
+                                    ? colorScheme.primary
+                                    : colorScheme.onSurface,
                               ),
                             ),
                           ],
@@ -427,6 +548,12 @@ class _UserSettingsState extends LPExtendedState<UserSettings> {
                       CountrySelectorWidget(
                         text: appLocale.locationSelect(gender),
                         disclaimerText: appLocale.locationDisclaimer(gender),
+                      ),
+                      const SizedBox(height: 20),
+                      _buildDarkModeSettings(
+                        userInfoProvider,
+                        settingsFieldWidth,
+                        colorScheme,
                       ),
                     ],
                   ),

@@ -1,5 +1,7 @@
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
+import 'package:intl/intl.dart' as intl;
 
 import 'package:mazilon/MainPageHelpers/MainPageList/mainpage_list_body_widget.dart';
 import 'package:mazilon/MainPageHelpers/MainPageList/list_utils.dart';
@@ -32,11 +34,102 @@ class ListWidget extends StatefulWidget {
 }
 
 class _ListWidgetState extends LPExtendedState<ListWidget> {
-  List<String> todayThankYous = [];
-  List<String> listItems = [];
+  List<String> _homeSuggestions = [];
+  String _suggestionCandidateKey = '';
+  bool _suggestionsInitialized = false;
+
   @override
-  void initState() {
-    super.initState();
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    _refreshHomeSuggestions(
+      Provider.of<UserInformation>(context, listen: false),
+    );
+  }
+
+  List<String> _eligibleSuggestions(UserInformation userInfoProvider) {
+    final gender = userInfoProvider.gender.isEmpty
+        ? 'other'
+        : userInfoProvider.gender;
+    final thanks = userInfoProvider.thanks['thanks'] ?? <String>[];
+    final dates = userInfoProvider.thanks['dates'] ?? <String>[];
+    final suggestions = widget.pageCode == PagesCode.QualitiesList
+        ? retrieveTraitsList(appLocale, gender)
+        : retrieveThanksList(appLocale, gender);
+    final existingItems = widget.pageCode == PagesCode.QualitiesList
+        ? userInfoProvider.positiveTraits
+        : _todayThankYouIndexes(
+            thanks,
+            dates,
+          ).map((index) => thanks[index]).toList();
+    final eligibleSuggestions = <String>[];
+
+    for (final suggestion in suggestions) {
+      if (!existingItems.contains(suggestion) &&
+          !eligibleSuggestions.contains(suggestion)) {
+        eligibleSuggestions.add(suggestion);
+      }
+    }
+
+    return eligibleSuggestions;
+  }
+
+  bool _sameOrder(List<String> first, List<String> second) {
+    if (first.length != second.length) {
+      return false;
+    }
+
+    for (var index = 0; index < first.length; index++) {
+      if (first[index] != second[index]) {
+        return false;
+      }
+    }
+
+    return true;
+  }
+
+  List<String> _selectHomeSuggestions(List<String> candidates) {
+    final shuffledCandidates = List<String>.from(candidates)..shuffle();
+    final selectedSuggestions = shuffledCandidates.take(3).toList();
+
+    if (_sameOrder(selectedSuggestions, _homeSuggestions) &&
+        selectedSuggestions.length > 1) {
+      selectedSuggestions.add(selectedSuggestions.removeAt(0));
+    }
+
+    return selectedSuggestions;
+  }
+
+  void _refreshHomeSuggestions(
+    UserInformation userInfoProvider, {
+    bool force = false,
+  }) {
+    final candidates = _eligibleSuggestions(userInfoProvider);
+    final candidateKey = candidates.join('\u0000');
+    if (!force &&
+        _suggestionsInitialized &&
+        candidateKey == _suggestionCandidateKey) {
+      return;
+    }
+
+    _homeSuggestions = _selectHomeSuggestions(candidates);
+    _suggestionCandidateKey = candidateKey;
+    _suggestionsInitialized = true;
+  }
+
+  List<int> _todayThankYouIndexes(List<String> thankYous, List<String> dates) {
+    final todayDate = intl.DateFormat('yyyy-MM-dd').format(DateTime.now());
+    final itemCount = thankYous.length < dates.length
+        ? thankYous.length
+        : dates.length;
+    final indexes = <int>[];
+
+    for (var index = 0; index < itemCount; index++) {
+      if (dates[index].startsWith(todayDate)) {
+        indexes.add(index);
+      }
+    }
+
+    return indexes;
   }
 
   void showThankYouPopup(UserInformation userInfoProvider) {
@@ -84,25 +177,15 @@ class _ListWidgetState extends LPExtendedState<ListWidget> {
         'thanks': thankyousTemp,
         'dates': datesTemp,
       });
-
-      todayThankYous = todayThankYousFunc(thankyousTemp, datesTemp);
+      _refreshHomeSuggestions(userInfoProvider);
     });
   }
 
   void editTraitsState(positivetraitsTemp, userInfoProvider) {
     setState(() {
       userInfoProvider.updatePositiveTraits(positivetraitsTemp);
+      _refreshHomeSuggestions(userInfoProvider);
     });
-  }
-
-  Function getSuggestionBox(appLocale) {
-    if (widget.pageCode == PagesCode.QualitiesList) {
-      return (stopShowingNumber, gender) =>
-          buildPositiveTraitItemSug(stopShowingNumber, gender, appLocale);
-    } else {
-      return (stopShowingNumber, gender) =>
-          buildThanksItemSug(stopShowingNumber, gender, appLocale);
-    }
   }
 
   void editTrait(String title, [String text = '', int index = 0]) {
@@ -147,76 +230,138 @@ class _ListWidgetState extends LPExtendedState<ListWidget> {
   }
 
   Function(int index) editItemFunction(
-    userInfoProvider,
-    thanksListLength,
-    traitsListlength,
+    UserInformation userInfoProvider,
+    List<int> sourceIndexes,
   ) {
     if (widget.pageCode == PagesCode.GratitudeJournal) {
-      return (index) => editThanks(
-        appLocale.thanks,
-        todayThankYous[index],
-        thanksListLength - todayThankYous.length + index,
+      final sourceThanks = List<String>.from(
+        userInfoProvider.thanks['thanks'] ?? <String>[],
       );
+      final sourceDates = List<String>.from(
+        userInfoProvider.thanks['dates'] ?? <String>[],
+      );
+      return (index) {
+        if (index < 0 || index >= sourceIndexes.length) {
+          return;
+        }
+        final sourceIndex = sourceIndexes[index];
+        final thanks = userInfoProvider.thanks['thanks'] ?? <String>[];
+        final dates = userInfoProvider.thanks['dates'] ?? <String>[];
+        if (!listEquals(thanks, sourceThanks) ||
+            !listEquals(dates, sourceDates) ||
+            sourceIndex < 0 ||
+            sourceIndex >= sourceThanks.length ||
+            sourceIndex >= sourceDates.length ||
+            sourceIndex >= thanks.length ||
+            sourceIndex >= dates.length) {
+          return;
+        }
+        return editThanks(appLocale.thanks, thanks[sourceIndex], sourceIndex);
+      };
     } else {
-      return (index) => editTrait(
-        appLocale.trait,
-        userInfoProvider.positiveTraits[index],
-        traitsListlength - userInfoProvider.positiveTraits.length + index,
-      );
+      final sourceTraits = List<String>.from(userInfoProvider.positiveTraits);
+      return (index) {
+        if (index < 0 || index >= sourceIndexes.length) {
+          return;
+        }
+        final sourceIndex = sourceIndexes[index];
+        final traits = userInfoProvider.positiveTraits;
+        if (!listEquals(traits, sourceTraits) ||
+            sourceIndex < 0 ||
+            sourceIndex >= sourceTraits.length ||
+            sourceIndex >= traits.length) {
+          return;
+        }
+        return editTrait(appLocale.trait, traits[sourceIndex], sourceIndex);
+      };
     }
   }
 
   Function(int index) removeItemFunction(
-    userInfoProvider,
-    thanksListLength,
-    traitsListlength,
+    UserInformation userInfoProvider,
+    List<int> sourceIndexes,
   ) {
     if (widget.pageCode == PagesCode.GratitudeJournal) {
-      return (index) => removeThankYou(
-        thanksListLength - todayThankYous.length + index,
-        userInfoProvider,
-        editThanksState,
+      final sourceThanks = List<String>.from(
+        userInfoProvider.thanks['thanks'] ?? <String>[],
       );
+      final sourceDates = List<String>.from(
+        userInfoProvider.thanks['dates'] ?? <String>[],
+      );
+      return (index) {
+        if (index < 0 || index >= sourceIndexes.length) {
+          return;
+        }
+        final sourceIndex = sourceIndexes[index];
+        final thanks = userInfoProvider.thanks['thanks'] ?? <String>[];
+        final dates = userInfoProvider.thanks['dates'] ?? <String>[];
+        if (!listEquals(thanks, sourceThanks) ||
+            !listEquals(dates, sourceDates) ||
+            sourceIndex < 0 ||
+            sourceIndex >= sourceThanks.length ||
+            sourceIndex >= sourceDates.length ||
+            sourceIndex >= thanks.length ||
+            sourceIndex >= dates.length) {
+          return;
+        }
+        return removeThankYou(sourceIndex, userInfoProvider, editThanksState);
+      };
     } else {
-      return (index) => removePositiveTrait(
-        traitsListlength - userInfoProvider.positiveTraits.length + index,
-        userInfoProvider,
-        editTraitsState,
-      );
+      final sourceTraits = List<String>.from(userInfoProvider.positiveTraits);
+      return (index) {
+        if (index < 0 || index >= sourceIndexes.length) {
+          return;
+        }
+        final sourceIndex = sourceIndexes[index];
+        final traits = userInfoProvider.positiveTraits;
+        if (!listEquals(traits, sourceTraits) ||
+            sourceIndex < 0 ||
+            sourceIndex >= sourceTraits.length ||
+            sourceIndex >= traits.length) {
+          return;
+        }
+        return removePositiveTrait(
+          sourceIndex,
+          userInfoProvider,
+          editTraitsState,
+        );
+      };
     }
   }
 
-  Widget buildThanksItemSug(stopShowingNumber, gender, appLocale) {
+  Widget buildThanksItemSug(String suggestion, String gender) {
     return ThanksItemSuggested(
-      stopShowing: stopShowingNumber,
-      add: (thankYou, userInfoProvider) => {
+      stopShowing: 0,
+      add: (thankYou, userInfoProvider) {
         addThankYou(
           thankYou,
           userInfoProvider,
           editThanksState,
           showThankYouPopup,
-        ),
+        );
       },
-      inputText: "",
-      fullSuggestionList: retrieveThanksList(
-        appLocale,
-        gender == "" ? "other" : gender,
-      ),
+      inputText: suggestion,
+      fullSuggestionList: retrieveThanksList(appLocale, gender),
     );
   }
 
-  Widget buildPositiveTraitItemSug(stopShowingNumber, gender, appLocale) {
+  Widget buildPositiveTraitItemSug(String suggestion, String gender) {
     return PositiveTraitItemSug(
-      stopShowing: stopShowingNumber,
-      add: (trait, userInfoProvider) => {
-        addPositiveTrait(trait, userInfoProvider, editTraitsState),
+      stopShowing: 0,
+      add: (trait, userInfoProvider) {
+        addPositiveTrait(trait, userInfoProvider, editTraitsState);
       },
-      inputText: "",
-      fullSuggestionList: retrieveTraitsList(
-        appLocale,
-        gender == "" ? "other" : gender,
-      ),
+      inputText: suggestion,
+      fullSuggestionList: retrieveTraitsList(appLocale, gender),
     );
+  }
+
+  Widget buildSuggestion(String suggestion, String gender) {
+    if (widget.pageCode == PagesCode.QualitiesList) {
+      return buildPositiveTraitItemSug(suggestion, gender);
+    }
+
+    return buildThanksItemSug(suggestion, gender);
   }
 
   void addItemFunction() {
@@ -236,24 +381,29 @@ class _ListWidgetState extends LPExtendedState<ListWidget> {
       context,
       listen: true,
     );
-    final gender = userInfoProvider.gender;
-    final traitsListlength = userInfoProvider.positiveTraits.length;
-    final thanksListLength = userInfoProvider.thanks['thanks']?.length ?? 0;
-    todayThankYous = todayThankYousFunc(
-      userInfoProvider.thanks["thanks"] ?? [],
-      userInfoProvider.thanks["dates"] ?? [],
-    );
+    final gender = userInfoProvider.gender.isEmpty
+        ? 'other'
+        : userInfoProvider.gender;
+    final thanks = userInfoProvider.thanks['thanks'] ?? <String>[];
+    final dates = userInfoProvider.thanks['dates'] ?? <String>[];
+    final sourceIndexes = widget.pageCode == PagesCode.GratitudeJournal
+        ? _todayThankYouIndexes(thanks, dates).reversed.toList()
+        : List<int>.generate(
+            userInfoProvider.positiveTraits.length,
+            (index) => userInfoProvider.positiveTraits.length - index - 1,
+          );
+    final listItems = sourceIndexes
+        .map(
+          (index) => widget.pageCode == PagesCode.GratitudeJournal
+              ? thanks[index]
+              : userInfoProvider.positiveTraits[index],
+        )
+        .toList();
     final pageData = getLocalizedTextForLists(
       appLocale,
       gender,
       widget.pageCode,
     );
-    final listItems = getListItems(
-      widget.pageCode,
-      userInfoProvider,
-      todayThankYous,
-    );
-    final sugBox = getSuggestionBox(appLocale);
     return SizedBox(
       // the width of the widget is 800 if the screen width is more than 1000, otherwise it is the screen width
       width: MediaQuery.of(context).size.width > 1000
@@ -276,7 +426,9 @@ class _ListWidgetState extends LPExtendedState<ListWidget> {
                   TextStyle(
                     fontSize: 24.sp, // the font size of the title
                     fontWeight: FontWeight.bold,
-                    color: Colors.black, // the color of the title
+                    color: Theme.of(
+                      context,
+                    ).colorScheme.onSurface, // the color of the title
                   ),
                   null,
                   40,
@@ -286,7 +438,11 @@ class _ListWidgetState extends LPExtendedState<ListWidget> {
               icons: [
                 // add button with the add icon
                 IconButton(
-                  icon: mainpageListsAddIcon,
+                  icon: Icon(
+                    Icons.add,
+                    color: Theme.of(context).colorScheme.primary,
+                    size: 30,
+                  ),
                   tooltip: appLocale.addItemTooltip,
                   onPressed: addItemFunction,
                 ),
@@ -297,28 +453,40 @@ class _ListWidgetState extends LPExtendedState<ListWidget> {
             ),
             // gap between the section bar and the trait list
             const SizedBox(height: 10),
-            // a suggested trait with add button
-            sugBox(1, gender),
-            sugBox(2, gender),
-            sugBox(3, gender),
             ListBodyWidget(
               listItems: listItems,
-              editItems: editItemFunction(
-                userInfoProvider,
-                thanksListLength,
-                traitsListlength,
-              ),
-              removeItems: removeItemFunction(
-                userInfoProvider,
-                thanksListLength,
-                traitsListlength,
-              ),
+              editItems: editItemFunction(userInfoProvider, sourceIndexes),
+              removeItems: removeItemFunction(userInfoProvider, sourceIndexes),
             ),
-            // the list of the traits
-            // the see all button
             ShowAllButton(
               onTabTapped: widget.onTabTapped,
               pageCode: widget.pageCode,
+            ),
+            for (final suggestion in _homeSuggestions)
+              buildSuggestion(suggestion, gender),
+            TextButton(
+              onPressed: () {
+                setState(() {
+                  _refreshHomeSuggestions(userInfoProvider, force: true);
+                });
+              },
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: <Widget>[
+                  Text(
+                    appLocale.otherSuggestions(gender),
+                    style: TextStyle(
+                      fontWeight: FontWeight.bold,
+                      color: Theme.of(context).colorScheme.tertiary,
+                    ),
+                  ),
+                  const SizedBox(width: 1.0),
+                  Icon(
+                    Icons.refresh,
+                    color: Theme.of(context).colorScheme.tertiary,
+                  ),
+                ],
+              ),
             ),
           ],
         ),

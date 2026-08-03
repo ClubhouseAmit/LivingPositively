@@ -577,6 +577,24 @@ class AppLocalizationsAr extends AppLocalizations {
   }
 
   @override
+  String get darkModeSettingsTitle => 'الوضع الداكن';
+
+  @override
+  String get darkModeAlwaysLight => 'وضع فاتح دائمًا';
+
+  @override
+  String get darkModeAlwaysDark => 'وضع داكن دائمًا';
+
+  @override
+  String get darkModeSleepPromoting => 'وضع داعم للنوم';
+
+  @override
+  String get darkModeStartTime => 'وقت البدء';
+
+  @override
+  String get darkModeEndTime => 'وقت الانتهاء';
+
+  @override
   String introductionFormFirstPageMainTitle(String gender) {
     String _temp0 = intl.Intl.selectLogic(gender, {
       'male': 'ما الذي يبقيني آمنًا؟',
@@ -1086,6 +1104,23 @@ class AppLocalizationsAr extends AppLocalizations {
     });
     return '$_temp0';
   }
+
+  @override
+  String get sosShareLocation => 'مشاركة الموقع';
+
+  @override
+  String get sosShareLocationTooltip => 'مشاركة موقعك الحالي';
+
+  @override
+  String get sosShareLocationMessage => 'أنا هنا وأحتاج إلى مساعدتك.';
+
+  @override
+  String get sosShareLocationUnavailable =>
+      'تعذّر مشاركة موقعك. ستتم مشاركة رسالة طلب المساعدة بدون الموقع.';
+
+  @override
+  String get sosShareLocationShareFailed =>
+      'تعذّر مشاركة رسالة طلب المساعدة الخاصة بك. يُرجى المحاولة مرة أخرى.';
 
   @override
   String phonePageTitle(String gender) {
@@ -3065,6 +3100,9 @@ class AppLocalizationsAr extends AppLocalizations {
 
   @override
   String get sharePlanTooltip => 'مشاركة الخطة';
+
+  @override
+  String get refreshPersonalPlanTooltip => 'تحديث الخطة الشخصية';
 
   @override
   String get refreshQuoteTooltip => 'اقتباس جديد';

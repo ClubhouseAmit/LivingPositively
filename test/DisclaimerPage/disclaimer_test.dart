@@ -230,16 +230,19 @@ void main() {
       final dropdown = tester.widget<DropdownButton<String>>(
         find.byType(DropdownButton<String>),
       );
+      final colorScheme = Theme.of(
+        tester.element(find.byType(LanguageDropDown)),
+      ).colorScheme;
       expect(dropdown.icon, isA<Icon>());
 
       final icon = dropdown.icon! as Icon;
       expect(icon.icon, Icons.keyboard_arrow_down_rounded);
-      expect(icon.color, Colors.white);
+      expect(icon.color, colorScheme.onPrimary);
 
-      expect(dropdown.style?.color, Colors.white);
+      expect(dropdown.style?.color, colorScheme.onPrimary);
 
       final languageIcon = tester.widget<Icon>(find.byIcon(Icons.language));
-      expect(languageIcon.color, Colors.white);
+      expect(languageIcon.color, colorScheme.onPrimary);
     });
 
     testWidgets('still renders correctly under Hebrew (RTL) locale', (

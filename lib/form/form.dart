@@ -170,7 +170,7 @@ class FormProgressIndicatorState
               builder: (BuildContext context, BoxConstraints constraints) {
                 return Container(
                   height: constraints.maxHeight,
-                  color: lightGray,
+                  color: Theme.of(context).colorScheme.surfaceContainerHighest,
                   child: Column(
                     mainAxisAlignment: MainAxisAlignment.center,
                     children: [
@@ -215,8 +215,8 @@ class FormProgressIndicatorState
                             margin: const EdgeInsets.symmetric(horizontal: 5.0),
                             decoration: BoxDecoration(
                               color: index <= currentStep
-                                  ? primaryPurple
-                                  : Colors.white,
+                                  ? Theme.of(context).colorScheme.primary
+                                  : Theme.of(context).colorScheme.outline,
                               borderRadius: BorderRadius.circular(5.0),
                             ),
                           ),

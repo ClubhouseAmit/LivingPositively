@@ -138,8 +138,9 @@ class NoopFileService implements FileService {
   }
 
   @override
-  Future<void> shareTextOnly(String message) async {
+  Future<bool> shareTextOnly(String message) async {
     shareTextCalls++;
+    return true;
   }
 }
 

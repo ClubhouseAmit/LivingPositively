@@ -711,11 +711,11 @@ owns that. Exits 0 on pass, 1 on per-file miss or missing file, 2 if
 `coverage/integration.info` does not exist (clearly distinguishes a CI
 config error from a coverage regression).
 
-#### CI changes — ADR-009 sharded Android integration gate
+#### CI changes — ADR-010 sharded Android integration gate
 
 The Android integration suite now follows
-[`ADR-009`](adr/ADR-009-shard-android-integration-tests-to-bound-runner-disk.md).
-An `integration-test-shard` matrix runs each of the six Android integration
+[`ADR-010`](adr/ADR-010-shard-android-integration-tests-to-bound-runner-disk.md).
+An `integration-test-shard` matrix runs each of the seven Android integration
 entry points on its own fresh emulator runner, with at most three shards in
 parallel and a 45-minute bound per shard. Each shard preserves the ADR-002
 Android configuration and uploads a uniquely named LCOV input.

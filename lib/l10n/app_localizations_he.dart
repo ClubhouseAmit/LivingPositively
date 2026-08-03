@@ -576,6 +576,24 @@ class AppLocalizationsHe extends AppLocalizations {
   }
 
   @override
+  String get darkModeSettingsTitle => 'מצב כהה';
+
+  @override
+  String get darkModeAlwaysLight => 'תמיד בהיר';
+
+  @override
+  String get darkModeAlwaysDark => 'תמיד כהה';
+
+  @override
+  String get darkModeSleepPromoting => 'מצב תומך שינה';
+
+  @override
+  String get darkModeStartTime => 'שעת התחלה';
+
+  @override
+  String get darkModeEndTime => 'שעת סיום';
+
+  @override
   String introductionFormFirstPageMainTitle(String gender) {
     String _temp0 = intl.Intl.selectLogic(gender, {
       'male': 'מה ששומר עלי',
@@ -1080,6 +1098,23 @@ class AppLocalizationsHe extends AppLocalizations {
     });
     return '$_temp0';
   }
+
+  @override
+  String get sosShareLocation => 'שיתוף במיקום';
+
+  @override
+  String get sosShareLocationTooltip => 'שיתוף המיקום הנוכחי שלך';
+
+  @override
+  String get sosShareLocationMessage => 'אני כאן ויש לי צורך בעזרתך';
+
+  @override
+  String get sosShareLocationUnavailable =>
+      'לא ניתן לשתף את מיקומך. הודעת העזרה תישלח ללא המיקום.';
+
+  @override
+  String get sosShareLocationShareFailed =>
+      'לא ניתן היה לשתף את הודעת העזרה שלך. נסו שוב.';
 
   @override
   String phonePageTitle(String gender) {
@@ -3056,6 +3091,9 @@ class AppLocalizationsHe extends AppLocalizations {
 
   @override
   String get sharePlanTooltip => 'שיתוף התוכנית';
+
+  @override
+  String get refreshPersonalPlanTooltip => 'רענון התוכנית האישית';
 
   @override
   String get refreshQuoteTooltip => 'ציטוט חדש';

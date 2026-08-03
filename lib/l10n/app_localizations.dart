@@ -478,6 +478,42 @@ abstract class AppLocalizations {
   /// **'{gender,select,male{Settings} female{Settings} other{Settings}}'**
   String settings(String gender);
 
+  /// No description provided for @darkModeSettingsTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Dark Mode'**
+  String get darkModeSettingsTitle;
+
+  /// No description provided for @darkModeAlwaysLight.
+  ///
+  /// In en, this message translates to:
+  /// **'Always Light'**
+  String get darkModeAlwaysLight;
+
+  /// No description provided for @darkModeAlwaysDark.
+  ///
+  /// In en, this message translates to:
+  /// **'Always Dark'**
+  String get darkModeAlwaysDark;
+
+  /// No description provided for @darkModeSleepPromoting.
+  ///
+  /// In en, this message translates to:
+  /// **'Sleep-Promoting Mode'**
+  String get darkModeSleepPromoting;
+
+  /// No description provided for @darkModeStartTime.
+  ///
+  /// In en, this message translates to:
+  /// **'Start time'**
+  String get darkModeStartTime;
+
+  /// No description provided for @darkModeEndTime.
+  ///
+  /// In en, this message translates to:
+  /// **'End time'**
+  String get darkModeEndTime;
+
   ///
   ///
   /// In en, this message translates to:
@@ -771,6 +807,36 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'{gender,select,male{Emergency Numbers} female{Emergency Numbers} other{Emergency Numbers}}'**
   String emergencyNumbers(String gender);
+
+  /// The SOS action that shares the user's current location.
+  ///
+  /// In en, this message translates to:
+  /// **'Share Location'**
+  String get sosShareLocation;
+
+  /// Accessibility label for the SOS location-share action.
+  ///
+  /// In en, this message translates to:
+  /// **'Share your current location'**
+  String get sosShareLocationTooltip;
+
+  /// The SOS help message shared with an optional current-location map link.
+  ///
+  /// In en, this message translates to:
+  /// **'I am here and I need your help.'**
+  String get sosShareLocationMessage;
+
+  /// Notice shown when SOS location sharing falls back to a text-only help message.
+  ///
+  /// In en, this message translates to:
+  /// **'Your location could not be shared. Your help message will be shared without it.'**
+  String get sosShareLocationUnavailable;
+
+  /// Notice shown when the SOS help message cannot be shared through the native share sheet.
+  ///
+  /// In en, this message translates to:
+  /// **'Your SOS help message could not be shared. Please try again.'**
+  String get sosShareLocationShareFailed;
 
   ///
   ///
@@ -2121,6 +2187,12 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Share plan'**
   String get sharePlanTooltip;
+
+  /// Tooltip / TalkBack label for the icon-only refresh button on the personal plan widget
+  ///
+  /// In en, this message translates to:
+  /// **'Refresh personal plan'**
+  String get refreshPersonalPlanTooltip;
 
   /// Tooltip / TalkBack label for the icon-only refresh button on the inspirational quote widget
   ///

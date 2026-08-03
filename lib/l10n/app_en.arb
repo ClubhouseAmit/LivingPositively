@@ -259,6 +259,12 @@
   "@settings": {
     "description": ""
   },
+  "darkModeSettingsTitle": "Dark Mode",
+  "darkModeAlwaysLight": "Always Light",
+  "darkModeAlwaysDark": "Always Dark",
+  "darkModeSleepPromoting": "Sleep-Promoting Mode",
+  "darkModeStartTime": "Start time",
+  "darkModeEndTime": "End time",
   "introductionFormFirstPageMainTitle": "{gender,select,male{What keeps me safe?} female{What keeps me safe?} other{What keeps me safe?}}",
   "@introductionFormFirstPageMainTitle": {
     "description": ""
@@ -457,6 +463,26 @@
   "emergencyNumbers": "{gender,select,male{Emergency Numbers} female{Emergency Numbers} other{Emergency Numbers}}",
   "@emergencyNumbers": {
     "description": ""
+  },
+  "sosShareLocation": "Share Location",
+  "@sosShareLocation": {
+    "description": "The SOS action that shares the user's current location."
+  },
+  "sosShareLocationTooltip": "Share your current location",
+  "@sosShareLocationTooltip": {
+    "description": "Accessibility label for the SOS location-share action."
+  },
+  "sosShareLocationMessage": "I am here and I need your help.",
+  "@sosShareLocationMessage": {
+    "description": "The SOS help message shared with an optional current-location map link."
+  },
+  "sosShareLocationUnavailable": "Your location could not be shared. Your help message will be shared without it.",
+  "@sosShareLocationUnavailable": {
+    "description": "Notice shown when SOS location sharing falls back to a text-only help message."
+  },
+  "sosShareLocationShareFailed": "Your SOS help message could not be shared. Please try again.",
+  "@sosShareLocationShareFailed": {
+    "description": "Notice shown when the SOS help message cannot be shared through the native share sheet."
   },
   "phonePageTitle": "{gender,select,male{You are not alone! If you are in distress right now, please reach out to one of the contacts listed here} female{You are not alone! If you are in distress right now, please reach out to one of the contacts listed here} other{You are not alone! If you are in distress right now, please reach out to one of the contacts listed here}}",
   "@phonePageTitle": {
@@ -1618,6 +1644,10 @@
   "sharePlanTooltip": "Share plan",
   "@sharePlanTooltip": {
     "description": "Tooltip / TalkBack label for the icon-only share button on the personal plan widget"
+  },
+  "refreshPersonalPlanTooltip": "Refresh personal plan",
+  "@refreshPersonalPlanTooltip": {
+    "description": "Tooltip / TalkBack label for the icon-only refresh button on the personal plan widget"
   },
   "refreshQuoteTooltip": "New quote",
   "@refreshQuoteTooltip": {

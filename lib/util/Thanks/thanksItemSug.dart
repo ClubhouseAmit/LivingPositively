@@ -4,8 +4,7 @@ import 'package:auto_size_text/auto_size_text.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:dotted_border/dotted_border.dart';
 import 'package:mazilon/util/LP_extended_state.dart';
-
-import 'package:mazilon/util/styles.dart';
+import 'package:mazilon/util/suggestion_add_button.dart';
 
 import 'package:mazilon/util/userInformation.dart';
 import 'package:provider/provider.dart';
@@ -42,10 +41,12 @@ class _ThanksItemSuggestedState extends LPExtendedState<ThanksItemSuggested> {
   // function to get the thank yous written today (the date of the thank you is today)
   List<String> todayThankYousFunc(List<String> thankYous, List<String> dates) {
     List<String> todayThankYous = [];
-    DateTime now = DateTime.now();
-    String formattedDate = DateFormat('yyyy-MM-dd – kk:mm').format(now);
-    for (int i = 0; i < dates.length; i++) {
-      if (dates[i].substring(0, 10) == formattedDate.substring(0, 10)) {
+    final todayDate = DateFormat('yyyy-MM-dd').format(DateTime.now());
+    final itemCount = thankYous.length < dates.length
+        ? thankYous.length
+        : dates.length;
+    for (int i = 0; i < itemCount; i++) {
+      if (dates[i].startsWith(todayDate)) {
         todayThankYous.add(thankYous[i]);
       }
     }
@@ -108,10 +109,9 @@ class _ThanksItemSuggestedState extends LPExtendedState<ThanksItemSuggested> {
         mainAxisAlignment: MainAxisAlignment.start,
         children: [
           // the add button
-          GestureDetector(
-            // when the add button is clicked ,
-            // add the thank you to the list of thank yous and update the suggested thank you to a new one
-            onTap: () {
+          SuggestionAddButton(
+            onPressed: () {
+              // Add the thank you and update the suggested value.
               setState(() {
                 widget.add(
                   widget.inputText == '' ? text : widget.inputText,
@@ -140,40 +140,6 @@ class _ThanksItemSuggestedState extends LPExtendedState<ThanksItemSuggested> {
                 }
               });
             },
-            // the design of the add button
-            child: DottedBorder(
-              options: RoundedRectDottedBorderOptions(
-                radius: const Radius.circular(20),
-                dashPattern: const [5, 5],
-                color: const Color.fromARGB(255, 12, 207, 19),
-                strokeWidth: 2,
-              ),
-              child: Container(
-                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 8),
-                decoration: const BoxDecoration(
-                  color: Colors.transparent,
-                  shape: BoxShape.circle,
-                ),
-                child: Stack(
-                  alignment: Alignment.center,
-                  children: <Widget>[
-                    const Icon(
-                      Icons.add, // the icon of the add button
-                      color: Colors.green, // the color of the icon
-                      size: 20, // the size of the icon
-                    ),
-                    Transform.translate(
-                      offset: const Offset(0.5, 0.5),
-                      child: const Icon(
-                        Icons.add,
-                        color: Colors.green,
-                        size: 20,
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-            ),
           ),
 
           const SizedBox(width: 10),
@@ -182,7 +148,7 @@ class _ThanksItemSuggestedState extends LPExtendedState<ThanksItemSuggested> {
             options: RoundedRectDottedBorderOptions(
               radius: const Radius.circular(20),
               dashPattern: const [5, 5],
-              color: appGreen,
+              color: Theme.of(context).colorScheme.tertiary,
               strokeWidth: 2,
             ),
             child: Container(
@@ -218,7 +184,7 @@ class _ThanksItemSuggestedState extends LPExtendedState<ThanksItemSuggested> {
                           fontFamily: "Rubix",
                           fontSize: 14.sp, // the text size
                           fontWeight: FontWeight.bold,
-                          color: darkGray,
+                          color: Theme.of(context).colorScheme.outline,
                         ),
                       ),
                     ),

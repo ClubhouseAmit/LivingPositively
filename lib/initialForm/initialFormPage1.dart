@@ -58,7 +58,7 @@ class _InitialFormPage1State extends LPExtendedState<InitialFormPage1> {
                   TextStyle(
                     fontSize: 18.sp,
                     fontWeight: FontWeight.bold,
-                    color: darkGray,
+                    color: Theme.of(context).colorScheme.outline,
                   ),
                   TextAlign.center,
                   35,
@@ -77,7 +77,7 @@ class _InitialFormPage1State extends LPExtendedState<InitialFormPage1> {
                   TextStyle(
                     fontSize: 16.sp,
                     fontWeight: FontWeight.bold,
-                    color: appGreen,
+                    color: Theme.of(context).colorScheme.tertiary,
                   ),
                   TextAlign.center,
                   35,

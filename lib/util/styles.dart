@@ -72,7 +72,39 @@ ButtonStyle myButtonStyle2 = TextButton.styleFrom(
   ),
 );
 
+ButtonStyle primaryButtonStyle(BuildContext context) {
+  final colorScheme = Theme.of(context).colorScheme;
+  return TextButton.styleFrom(
+    backgroundColor: colorScheme.primary,
+    foregroundColor: colorScheme.onPrimary,
+    shape: const RoundedRectangleBorder(
+      borderRadius: BorderRadius.all(Radius.circular(20)),
+    ),
+  );
+}
+
+ButtonStyle destructiveButtonStyle(BuildContext context) {
+  final colorScheme = Theme.of(context).colorScheme;
+  return TextButton.styleFrom(
+    backgroundColor: colorScheme.error,
+    foregroundColor: colorScheme.onError,
+    shape: const RoundedRectangleBorder(
+      borderRadius: BorderRadius.all(Radius.circular(20)),
+    ),
+  );
+}
+
+TextStyle primaryButtonTextStyle(BuildContext context) {
+  return TextStyle(
+    fontWeight: FontWeight.bold,
+    color: Theme.of(context).colorScheme.onPrimary,
+  );
+}
+
 Widget ConfirmationButton(context, function, text, buttonTextStyle) {
+  final textStyle = buttonTextStyle is TextStyle
+      ? buttonTextStyle.copyWith(color: Theme.of(context).colorScheme.onPrimary)
+      : primaryButtonTextStyle(context);
   return SizedBox(
     width: MediaQuery.of(context).size.width > 1000
         ? 600
@@ -81,13 +113,16 @@ Widget ConfirmationButton(context, function, text, buttonTextStyle) {
       onPressed: () {
         function();
       },
-      style: myButtonStyle,
-      child: myAutoSizedText(text, buttonTextStyle, null, 50),
+      style: primaryButtonStyle(context),
+      child: myAutoSizedText(text, textStyle, null, 50),
     ),
   );
 }
 
 Widget CancelButton(context, function, text, buttonTextStyle) {
+  final textStyle = buttonTextStyle is TextStyle
+      ? buttonTextStyle.copyWith(color: Theme.of(context).colorScheme.onError)
+      : TextStyle(color: Theme.of(context).colorScheme.onError);
   return SizedBox(
     width: MediaQuery.of(context).size.width > 1000
         ? 600
@@ -96,13 +131,16 @@ Widget CancelButton(context, function, text, buttonTextStyle) {
       onPressed: () {
         function();
       },
-      style: myButtonStyle3,
-      child: myAutoSizedText(text, buttonTextStyle, null, 50),
+      style: destructiveButtonStyle(context),
+      child: myAutoSizedText(text, textStyle, null, 50),
     ),
   );
 }
 
 Widget ResetButton(context, function, text, buttonTextStyle) {
+  final textStyle = buttonTextStyle is TextStyle
+      ? buttonTextStyle.copyWith(color: Theme.of(context).colorScheme.onError)
+      : TextStyle(color: Theme.of(context).colorScheme.onError);
   return SizedBox(
     width: MediaQuery.of(context).size.width > 1000
         ? 400
@@ -111,8 +149,8 @@ Widget ResetButton(context, function, text, buttonTextStyle) {
       onPressed: () {
         function();
       },
-      style: myButtonStyle3,
-      child: myAutoSizedText(text, buttonTextStyle, null, 50),
+      style: destructiveButtonStyle(context),
+      child: myAutoSizedText(text, textStyle, null, 50),
     ),
   );
 }

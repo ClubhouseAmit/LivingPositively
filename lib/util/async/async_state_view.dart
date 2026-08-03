@@ -27,7 +27,6 @@ import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:mazilon/l10n/app_localizations.dart';
 import 'package:mazilon/util/styles.dart';
-import 'package:mazilon/util/theme/app_theme.dart';
 
 /// Builds the data UI once the future resolves with a value.
 typedef AsyncDataBuilder<T> = Widget Function(BuildContext context, T data);
@@ -51,7 +50,8 @@ class AsyncLoadingIndicator extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final label = semanticLabel ??
+    final label =
+        semanticLabel ??
         AppLocalizations.of(context)?.asyncLoadingLabel ??
         'Loading';
     return Center(
@@ -85,7 +85,8 @@ class AsyncErrorRetry extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final locale = AppLocalizations.of(context);
-    final text = message ?? locale?.asyncErrorMessage ?? 'Something went wrong.';
+    final text =
+        message ?? locale?.asyncErrorMessage ?? 'Something went wrong.';
     final retryText = retryLabel ?? locale?.asyncRetryButton ?? 'Try again';
 
     return Center(
@@ -97,7 +98,7 @@ class AsyncErrorRetry extends StatelessWidget {
             Icon(
               Icons.error_outline,
               // Phase D: destructive/error semantics read from the token layer.
-              color: AppColors.error,
+              color: Theme.of(context).colorScheme.error,
               size: 40.sp,
               semanticLabel: text,
             ),
@@ -114,10 +115,10 @@ class AsyncErrorRetry extends StatelessWidget {
                 button: true,
                 child: TextButton(
                   onPressed: onRetry,
-                  style: myButtonStyle,
+                  style: primaryButtonStyle(context),
                   child: myAutoSizedText(
                     retryText,
-                    myTextStyle,
+                    primaryButtonTextStyle(context),
                     TextAlign.center,
                     20,
                   ),

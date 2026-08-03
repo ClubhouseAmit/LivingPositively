@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
-import 'package:mazilon/util/styles.dart';
 
 class LPAlertDialogBoxItem extends StatelessWidget {
   final Function onPressed;
@@ -23,20 +22,27 @@ class LPAlertDialogBoxItem extends StatelessWidget {
       width: double.infinity,
       decoration: BoxDecoration(
         borderRadius: BorderRadius.circular(15),
-        color: lightGray,
+        color: Theme.of(context).colorScheme.surfaceContainerHighest,
       ),
       margin: EdgeInsets.only(bottom: 6),
       child: Row(
         mainAxisAlignment: MainAxisAlignment.start,
         children: [
           SizedBox(width: 10.0),
-          Icon(icon, color: Colors.black, size: 30.sp),
+          Icon(
+            icon,
+            color: Theme.of(context).colorScheme.onSurface,
+            size: 30.sp,
+          ),
           Expanded(
             child: TextButton(
               onPressed: press,
               child: Text(
                 buttonText,
-                style: TextStyle(color: Colors.black, fontSize: 13.sp),
+                style: TextStyle(
+                  color: Theme.of(context).colorScheme.onSurface,
+                  fontSize: 13.sp,
+                ),
               ),
             ),
           ),

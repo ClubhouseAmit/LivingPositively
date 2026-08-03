@@ -44,8 +44,10 @@ class _ShareFormState extends LPExtendedState<ShareForm> {
   int _customCategoryFormGeneration = 0;
 
   void setHasFilled() async {
-    PersistentMemoryService service = GetIt.instance<
-        PersistentMemoryService>(); // Get the persistent memory service instance
+    PersistentMemoryService service =
+        GetIt.instance<
+          PersistentMemoryService
+        >(); // Get the persistent memory service instance
 
     await service.setItem("hasFilled", PersistentMemoryType.Bool, true);
   }
@@ -215,7 +217,8 @@ class _ShareFormState extends LPExtendedState<ShareForm> {
   }
 
   void refreshCustomCategoryTitleOptions(
-      TextEditingController textEditingController) {
+    TextEditingController textEditingController,
+  ) {
     final value = textEditingController.value;
     final offset = value.selection.isValid
         ? value.selection.baseOffset.clamp(0, value.text.length).toInt()
@@ -236,7 +239,8 @@ class _ShareFormState extends LPExtendedState<ShareForm> {
   Widget buildCustomCategoryTitleField() {
     return RawAutocomplete<String>(
       key: ValueKey(
-          'custom-category-title-autocomplete-$_customCategoryFormGeneration'),
+        'custom-category-title-autocomplete-$_customCategoryFormGeneration',
+      ),
       textEditingController: _customCategoryTitleController,
       focusNode: _customCategoryTitleFocusNode,
       displayStringForOption: (option) => option,
@@ -244,7 +248,8 @@ class _ShareFormState extends LPExtendedState<ShareForm> {
         final input = textEditingValue.text.trim();
         final options = predefinedCategoryTitles();
         final editingIndex = _editingCustomCategoryIndex;
-        final isInitialEditingTitle = editingIndex != null &&
+        final isInitialEditingTitle =
+            editingIndex != null &&
             editingIndex >= 0 &&
             editingIndex < _customCategories.length &&
             _customCategories[editingIndex].key == input;
@@ -261,20 +266,23 @@ class _ShareFormState extends LPExtendedState<ShareForm> {
       },
       fieldViewBuilder:
           (context, textEditingController, focusNode, onFieldSubmitted) {
-        return TextField(
-          key: const Key('custom-category-title-field'),
-          controller: textEditingController,
-          focusNode: focusNode,
-          textDirection:
-              appLocale.textDirection == 'rtl' ? TextDirection.rtl : null,
-          onTap: () => refreshCustomCategoryTitleOptions(textEditingController),
-          decoration: InputDecoration(
-            labelText: appLocale.sharePageCustomCategoryTitle,
-            errorText:
-                _customCategoryValidationError(_customCategoryTitleController),
-          ),
-        );
-      },
+            return TextField(
+              key: const Key('custom-category-title-field'),
+              controller: textEditingController,
+              focusNode: focusNode,
+              textDirection: appLocale.textDirection == 'rtl'
+                  ? TextDirection.rtl
+                  : null,
+              onTap: () =>
+                  refreshCustomCategoryTitleOptions(textEditingController),
+              decoration: InputDecoration(
+                labelText: appLocale.sharePageCustomCategoryTitle,
+                errorText: _customCategoryValidationError(
+                  _customCategoryTitleController,
+                ),
+              ),
+            );
+          },
       optionsViewBuilder: (context, onSelected, options) {
         return Align(
           alignment: Alignment.topLeft,
@@ -310,8 +318,8 @@ class _ShareFormState extends LPExtendedState<ShareForm> {
           : MediaQuery.sizeOf(context).width * 0.85,
       padding: const EdgeInsets.all(14),
       decoration: BoxDecoration(
-        color: Colors.white,
-        border: Border.all(color: primaryPurple),
+        color: Theme.of(context).colorScheme.surfaceContainerHighest,
+        border: Border.all(color: Theme.of(context).colorScheme.primary),
         borderRadius: BorderRadius.circular(8),
       ),
       child: Column(
@@ -323,23 +331,25 @@ class _ShareFormState extends LPExtendedState<ShareForm> {
             controller: _customCategoryDescriptionController,
             minLines: 3,
             maxLines: 6,
-            textDirection:
-                appLocale.textDirection == 'rtl' ? TextDirection.rtl : null,
+            textDirection: appLocale.textDirection == 'rtl'
+                ? TextDirection.rtl
+                : null,
             decoration: InputDecoration(
               labelText: appLocale.sharePageCustomCategoryDescription,
               alignLabelWithHint: true,
               border: const OutlineInputBorder(),
               errorText: _customCategoryValidationError(
-                  _customCategoryDescriptionController),
+                _customCategoryDescriptionController,
+              ),
             ),
           ),
           const SizedBox(height: 12),
           TextButton(
             onPressed: saveCustomCategory,
-            style: myButtonStyle,
+            style: primaryButtonStyle(context),
             child: myAutoSizedText(
               appLocale.sharePageSaveCustomCategory,
-              myTextStyle.copyWith(fontSize: 16.sp),
+              primaryButtonTextStyle(context).copyWith(fontSize: 16.sp),
               null,
               24,
             ),
@@ -350,7 +360,10 @@ class _ShareFormState extends LPExtendedState<ShareForm> {
   }
 
   Widget buildCustomCategoryCard(
-      MapEntry<String, String> category, int index, String gender) {
+    MapEntry<String, String> category,
+    int index,
+    String gender,
+  ) {
     return Container(
       width: MediaQuery.sizeOf(context).width > 1000
           ? 600
@@ -358,8 +371,8 @@ class _ShareFormState extends LPExtendedState<ShareForm> {
       margin: const EdgeInsets.only(bottom: 12),
       padding: const EdgeInsets.all(14),
       decoration: BoxDecoration(
-        color: Colors.white,
-        border: Border.all(color: lightPurple),
+        color: Theme.of(context).colorScheme.surfaceContainerHighest,
+        border: Border.all(color: Theme.of(context).colorScheme.secondary),
         borderRadius: BorderRadius.circular(8),
       ),
       child: Directionality(
@@ -413,7 +426,8 @@ class _ShareFormState extends LPExtendedState<ShareForm> {
     return Column(
       children: [
         ..._customCategories.asMap().entries.map(
-            (entry) => buildCustomCategoryCard(entry.value, entry.key, gender)),
+          (entry) => buildCustomCategoryCard(entry.value, entry.key, gender),
+        ),
         if (_isAddingCustomCategory) buildCustomCategoryForm(context),
         if (!_isAddingCustomCategory)
           TextButton(
@@ -421,7 +435,7 @@ class _ShareFormState extends LPExtendedState<ShareForm> {
             child: myAutoSizedText(
               appLocale.sharePageAddCustomCategory,
               TextStyle(
-                color: primaryPurple,
+                color: Theme.of(context).colorScheme.primary,
                 fontWeight: FontWeight.bold,
                 fontSize: 16.sp,
               ),
@@ -457,7 +471,7 @@ class _ShareFormState extends LPExtendedState<ShareForm> {
                     TextStyle(
                       fontSize: 40.sp,
                       fontWeight: FontWeight.bold,
-                      color: Colors.black,
+                      color: Theme.of(context).colorScheme.onSurface,
                     ),
                     null,
                     80,
@@ -468,7 +482,7 @@ class _ShareFormState extends LPExtendedState<ShareForm> {
                   TextStyle(
                     fontWeight: FontWeight.normal,
                     fontSize: 16.sp,
-                    color: Colors.black,
+                    color: Theme.of(context).colorScheme.onSurface,
                   ),
                   null,
                   35,
@@ -495,21 +509,22 @@ class _ShareFormState extends LPExtendedState<ShareForm> {
                           showShareDialog(context);
                         },
                         style: TextButton.styleFrom(
-                          backgroundColor:
-                              Colors.white, // Set the background color to white
+                          backgroundColor: Theme.of(context)
+                              .colorScheme
+                              .surfaceContainerHighest, // Set the background color to white
                           padding: const EdgeInsets.all(10),
                           shape: RoundedRectangleBorder(
                             borderRadius: const BorderRadius.all(
                               Radius.circular(7),
                             ),
                             side: BorderSide(
-                              color: primaryPurple,
+                              color: Theme.of(context).colorScheme.primary,
                             ), // Set the border color
                           ),
                         ),
                         icon: Icon(
                           Icons.share,
-                          color: primaryPurple,
+                          color: Theme.of(context).colorScheme.primary,
                         ), // Set the icon color
                         padding: const EdgeInsets.all(10),
                       ),
@@ -549,21 +564,22 @@ class _ShareFormState extends LPExtendedState<ShareForm> {
                         },
 
                         style: TextButton.styleFrom(
-                          backgroundColor:
-                              Colors.white, // Set the background color to white
+                          backgroundColor: Theme.of(context)
+                              .colorScheme
+                              .surfaceContainerHighest, // Set the background color to white
                           padding: const EdgeInsets.all(10),
                           shape: RoundedRectangleBorder(
                             borderRadius: const BorderRadius.all(
                               Radius.circular(7),
                             ),
                             side: BorderSide(
-                              color: primaryPurple,
+                              color: Theme.of(context).colorScheme.primary,
                             ), // Set the border color
                           ),
                         ),
                         icon: Icon(
                           Icons.download,
-                          color: primaryPurple,
+                          color: Theme.of(context).colorScheme.primary,
                         ), // Set the icon color
                         padding: const EdgeInsets.all(10),
                       ),

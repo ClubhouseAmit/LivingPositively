@@ -13,11 +13,13 @@
 	<key>CFBundleInfoDictionaryVersion</key>
 	<string>6.0</string>
 	<key>NSPhotoLibraryUsageDescription</key>
-	<string>We use your photo library only when you choose to upload or select an image to include in your content.</string>
+	<string>Living Positively accesses your photo library only when you choose an existing photo to add to your Feel Good collection.</string>
 	<key>NSCameraUsageDescription</key>
-	<string>We use your camera only when you choose to take a photo to include in your content.</string>
+	<string>Living Positively accesses your camera only when you choose to take a photo to add to your Feel Good collection.</string>
 	<key>NSContactsUsageDescription</key>
-	<string>This app requires contacts access to function properly.</string>
+	<string>Living Positively accesses your contacts only when you choose a person to add to your personal emergency contacts list. The selected name and phone number are used to show and call that emergency contact.</string>
+	<key>NSLocationWhenInUseUsageDescription</key>
+	<string>Living Positively accesses your location only when you choose to share your current location in an SOS message.</string>
 	<key>CFBundleName</key>
 	<string>mezilon</string>
 	<key>CFBundlePackageType</key>

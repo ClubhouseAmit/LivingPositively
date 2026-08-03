@@ -60,7 +60,7 @@ class _ImageAddItemState extends LPExtendedState<ImageAddItem> {
     return DottedBorder(
       options: RoundedRectDottedBorderOptions(
         radius: const Radius.circular(20),
-        color: Colors.grey,
+        color: Theme.of(context).colorScheme.outline,
         strokeWidth: 2,
       ),
       child: Center(

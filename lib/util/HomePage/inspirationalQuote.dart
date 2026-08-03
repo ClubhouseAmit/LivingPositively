@@ -86,7 +86,7 @@ class _InspirationalQuoteState extends LPExtendedState<InspirationalQuote> {
           appLocale.quotesUnavailableMessage,
           textAlign: TextAlign.start,
           style: TextStyle(
-            color: darkGray,
+            color: Theme.of(context).colorScheme.outline,
             fontSize: 12.sp,
             fontWeight: FontWeight.normal,
           ),
@@ -98,7 +98,7 @@ class _InspirationalQuoteState extends LPExtendedState<InspirationalQuote> {
       child: Container(
         decoration: BoxDecoration(
           borderRadius: BorderRadius.circular(20),
-          color: primaryPurple,
+          color: Theme.of(context).colorScheme.primary,
         ),
         width: MediaQuery.of(context).size.width > 1000
             ? 800
@@ -135,7 +135,7 @@ class _InspirationalQuoteState extends LPExtendedState<InspirationalQuote> {
                     icon: Icon(
                       Icons.refresh,
                       size: min(35.sp, 40),
-                      color: appWhite,
+                      color: Theme.of(context).colorScheme.onPrimary,
                     ),
                     tooltip: appLocale.refreshQuoteTooltip,
                     //"refresh" button to change the quote
@@ -154,7 +154,7 @@ class _InspirationalQuoteState extends LPExtendedState<InspirationalQuote> {
                         widget.quotes[number],
                         TextStyle(
                           fontWeight: FontWeight.normal,
-                          color: appWhite,
+                          color: Theme.of(context).colorScheme.onPrimary,
                           fontSize: 24.sp,
                         ),
                         TextAlign.start,
