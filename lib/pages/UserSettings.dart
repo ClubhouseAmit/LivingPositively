@@ -662,6 +662,13 @@ class _UserSettingsState extends LPExtendedState<UserSettings> {
                                           children: <Widget>[
                                             // the close button
                                             TextButton(
+                                              onPressed: isResetting
+                                                  ? null
+                                                  : () {
+                                                      Navigator.of(
+                                                        context,
+                                                      ).pop();
+                                                    },
                                               child: myAutoSizedText(
                                                 appLocale.closeButton(gender),
                                                 TextStyle(
@@ -672,16 +679,27 @@ class _UserSettingsState extends LPExtendedState<UserSettings> {
                                                 null,
                                                 30,
                                               ),
-                                              onPressed: isResetting
-                                                  ? null
-                                                  : () {
-                                                      Navigator.of(
-                                                        context,
-                                                      ).pop();
-                                                    },
                                             ),
                                             // the save button
                                             TextButton(
+                                              onPressed: isResetting
+                                                  ? null
+                                                  : () async {
+                                                      setDialogState(
+                                                        () =>
+                                                            isResetting = true,
+                                                      );
+                                                      await resetData(
+                                                        userInfoProvider,
+                                                      );
+                                                      if (dialogContext
+                                                          .mounted) {
+                                                        setDialogState(
+                                                          () => isResetting =
+                                                              false,
+                                                        );
+                                                      }
+                                                    },
                                               child: isResetting
                                                   ? const SizedBox(
                                                       width: 20,
@@ -704,24 +722,6 @@ class _UserSettingsState extends LPExtendedState<UserSettings> {
                                                       null,
                                                       30,
                                                     ),
-                                              onPressed: isResetting
-                                                  ? null
-                                                  : () async {
-                                                      setDialogState(
-                                                        () =>
-                                                            isResetting = true,
-                                                      );
-                                                      await resetData(
-                                                        userInfoProvider,
-                                                      );
-                                                      if (dialogContext
-                                                          .mounted) {
-                                                        setDialogState(
-                                                          () => isResetting =
-                                                              false,
-                                                        );
-                                                      }
-                                                    },
                                             ),
                                           ],
                                         ),
