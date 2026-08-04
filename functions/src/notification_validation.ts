@@ -1,6 +1,7 @@
 const NOTIFICATION_TYPE_ID_PATTERN = /^[A-Za-z0-9_-]{1,64}$/;
 
 export type NotificationGender = "male" | "female" | "other";
+export type NotificationLocale = "he" | "ar" | "en";
 
 type DynamicNotificationType = {
   messageType: "dynamic";
@@ -19,6 +20,12 @@ export function isValidNotificationTypeId(value: unknown): value is string {
   return (
     typeof value === "string" && NOTIFICATION_TYPE_ID_PATTERN.test(value)
   );
+}
+
+export function isValidNotificationLocale(
+  value: unknown,
+): value is NotificationLocale {
+  return value === "he" || value === "ar" || value === "en";
 }
 
 export function normalizeNotificationGender(

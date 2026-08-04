@@ -14,6 +14,7 @@ import {
 } from "./notification_mutation.js";
 import {
   hasValidNotificationTypeSchema,
+  isValidNotificationLocale,
   isValidNotificationTypeId,
   normalizeNotificationGender,
 } from "./notification_validation.js";
@@ -502,7 +503,7 @@ export const registerNotification = onRequest(async (req, res) => {
     hour > 23 ||
     minute < 0 ||
     minute > 59 ||
-    typeof locale !== "string"
+    !isValidNotificationLocale(locale)
   ) {
     res
       .status(400)
@@ -720,7 +721,7 @@ export const processScheduledNotifications = onSchedule(
       const { typeId, locale } = doc.data();
       if (
         !isValidNotificationTypeId(typeId) ||
-        typeof locale !== "string"
+        !isValidNotificationLocale(locale)
       ) {
         continue;
       }
@@ -802,7 +803,7 @@ export const processScheduledNotifications = onSchedule(
       if (
         typeof uid !== "string" ||
         !isValidNotificationTypeId(typeId) ||
-        typeof locale !== "string"
+        !isValidNotificationLocale(locale)
       ) {
         continue;
       }

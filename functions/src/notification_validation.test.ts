@@ -3,6 +3,7 @@ import { describe, it } from "node:test";
 
 import {
   hasValidNotificationTypeSchema,
+  isValidNotificationLocale,
   isValidNotificationTypeId,
   normalizeNotificationGender,
 } from "./notification_validation.js";
@@ -19,6 +20,15 @@ import {
 } from "./notification_mutation.js";
 
 describe("notification validation", () => {
+  it("accepts only the supported persisted notification locales", () => {
+    assert.equal(isValidNotificationLocale("he"), true);
+    assert.equal(isValidNotificationLocale("ar"), true);
+    assert.equal(isValidNotificationLocale("en"), true);
+    assert.equal(isValidNotificationLocale("constructor"), false);
+    assert.equal(isValidNotificationLocale("toString"), false);
+    assert.equal(isValidNotificationLocale("__proto__"), false);
+  });
+
   it("accepts identifier-safe type IDs and rejects Firestore paths", () => {
     assert.equal(isValidNotificationTypeId("default"), true);
     assert.equal(isValidNotificationTypeId("daily_quote-2"), true);
