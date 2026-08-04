@@ -12,14 +12,14 @@ String languageName(String code) {
 }
 
 String getDirectionOfText(String text) {
-  final regex = RegExp('[a-z]');
+  final regex = RegExp(r'[a-z]');
   final regexHebrew = RegExp(r'[\u0590-\u05FF]');
   if (regexHebrew.hasMatch(text)) {
-    return 'rtl'; // Hebrew or Arabic text
+    return "rtl"; // Hebrew or Arabic text
   } else if (regex.hasMatch(text)) {
-    return 'ltr'; // English or other Latin text
+    return "ltr"; // English or other Latin text
   } else {
-    return 'ltr'; // Default to LTR for other cases
+    return "ltr"; // Default to LTR for other cases
   }
 }
 

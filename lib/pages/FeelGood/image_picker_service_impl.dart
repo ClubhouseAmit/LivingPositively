@@ -1,11 +1,11 @@
 import 'dart:io';
 
-import 'package:flutter/material.dart';
 import 'package:get_it/get_it.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:mazilon/AnalyticsService.dart';
 import 'package:mazilon/util/logger_service.dart';
 import 'package:path_provider/path_provider.dart';
+import 'package:flutter/material.dart';
 
 abstract class ImagePickerService {
   Future<XFile?> pickImage({required ImageSource source});
@@ -28,7 +28,7 @@ class ImagePickerServiceImpl implements ImagePickerService {
 
   @override
   Future<void> deleteImages() async {
-    final tempPath = <String>[];
+    List<String> tempPath = [];
     try {
       await loadImagePaths(tempPath);
     } catch (_) {
@@ -54,7 +54,7 @@ class ImagePickerServiceImpl implements ImagePickerService {
 
   @override
   Future<void> getImage(String source, List<String> imagePaths) async {
-    final imageSource = source == 'camera'
+    ImageSource imageSource = source == 'camera'
         ? ImageSource.camera
         : ImageSource.gallery;
     try {
@@ -68,12 +68,12 @@ class ImagePickerServiceImpl implements ImagePickerService {
         ).copy('${appDir.path}/$fileName');
         imagePaths.add(savedImage.path);
         saveImagePaths(imagePaths);
-        final mixPanelService = GetIt.instance<AnalyticsService>();
-        mixPanelService.trackEvent('Photo Added', {'Source': source});
+        AnalyticsService mixPanelService = GetIt.instance<AnalyticsService>();
+        mixPanelService.trackEvent("Photo Added", {"Source": source});
       }
     } catch (error, stackTrace) {
-      debugPrint('errored');
-      final loggerService =
+      debugPrint("errored");
+      IncidentLoggerService loggerService =
           GetIt.instance<IncidentLoggerService>();
       await loggerService.captureLog(error, stackTrace: stackTrace);
     }
@@ -98,13 +98,13 @@ class ImagePickerServiceImpl implements ImagePickerService {
         return;
       }
 
-      final contents = await file.readAsString();
+      String contents = await file.readAsString();
 
       imagePaths.addAll(
         contents.split('\n').where((path) => path.isNotEmpty).toList(),
       );
     } catch (error, stackTrace) {
-      final loggerService =
+      IncidentLoggerService loggerService =
           GetIt.instance<IncidentLoggerService>();
       await loggerService.captureLog(error, stackTrace: stackTrace);
       // A manifest that exists but cannot be read (corruption, permission,
@@ -128,7 +128,7 @@ class ImagePickerServiceImpl implements ImagePickerService {
   }
 
   @override
-  Image getOnlineImage(String url) {
+  getOnlineImage(String url) {
     return Image.network(url);
   }
 }
