@@ -127,7 +127,7 @@ abstract class AppLocalizations {
   ///
   ///
   /// In en, this message translates to:
-  /// **'{gender,select,male{Get inspiration} female{Get inspiration} other{Get inspiration}}'**
+  /// **'{gender,select,male{other suggestions} female{other suggestions} other{other suggestions}}'**
   String otherSuggestions(String gender);
 
   ///
@@ -283,7 +283,7 @@ abstract class AppLocalizations {
   ///
   ///
   /// In en, this message translates to:
-  /// **'{gender,select,male{What I\'m good at, read daily} female{What I\'m good at, read daily} other{What I\'m good at, read daily}}'**
+  /// **'{gender,select,male{What I\'m good at, recommended to read once a day} female{What I\'m good at, recommended to read once a day} other{What I\'m good at, recommended to read once a day}}'**
   String homePageTraitsSecondaryTitle(String gender);
 
   ///
@@ -550,29 +550,17 @@ abstract class AppLocalizations {
   /// **'{gender,select,male{My Personal Plan} female{My Personal Plan} other{My Personal Plan}}'**
   String introductionFormLastPageMainTitle(String gender);
 
-  /// No description provided for @introductionFormLastPageSubTitle1Line1.
+  ///
   ///
   /// In en, this message translates to:
-  /// **'{gender,select,male{A plan gives you steadiness when things feel uncertain.} female{A plan gives you steadiness when things feel uncertain.} other{A plan gives you steadiness when things feel uncertain.}}'**
-  String introductionFormLastPageSubTitle1Line1(String gender);
-
-  /// No description provided for @introductionFormLastPageSubTitle1Line2.
-  ///
-  /// In en, this message translates to:
-  /// **'{gender,select,male{Build yours, in your own time.} female{Build yours, in your own time.} other{Build yours, in your own time.}}'**
-  String introductionFormLastPageSubTitle1Line2(String gender);
+  /// **'{gender,select,male{You\'re invited to create a personal plan that offers support during overwhelming moments, for both you and those around you.} female{You\'re invited to create a personal plan that offers support during overwhelming moments, for both you and those around you.} other{You\'re invited to create a personal plan that offers support during overwhelming moments, for both you and those around you.}}'**
+  String introductionFormLastPageSubTitle1(String gender);
 
   ///
   ///
   /// In en, this message translates to:
   /// **'{gender,select,male{It\'s recommended to spend a few minutes now to better handle future crises.} female{It\'s recommended to spend a few minutes now to better handle future crises.} other{It\'s recommended to spend a few minutes now to better handle future crises.}}'**
   String introductionFormLastPageSubTitle2(String gender);
-
-  ///
-  ///
-  /// In en, this message translates to:
-  /// **'{gender,select,male{Why Prepare Now?} female{Why Prepare Now?} other{Why Prepare Now?}}'**
-  String introductionFormLastPageAccordion2Header(String gender);
 
   ///
   ///
@@ -907,7 +895,7 @@ abstract class AppLocalizations {
   ///
   ///
   /// In en, this message translates to:
-  /// **'{gender,select,male{Mood-Boosting Images} female{Mood-Boosting Images} other{Mood-Boosting Images}}'**
+  /// **'{gender,select,male{Encouraging and uplifting images} female{Encouraging and uplifting images} other{Encouraging and uplifting images}}'**
   String feelGoodTitle(String gender);
 
   ///
@@ -1267,7 +1255,7 @@ abstract class AppLocalizations {
   ///
   ///
   /// In en, this message translates to:
-  /// **'{gender,select,male{You are not alone} female{You are not alone} other{You are not alone}}'**
+  /// **'{gender,select,male{You are not alone!} female{You are not alone!} other{You are not alone!}}'**
   String inspirationalQuotesNo30(String gender);
 
   ///
@@ -2355,18 +2343,6 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Undo'**
   String get quoteUndoAction;
-
-  /// Small label shown above the affirmation/reminder text in the AffirmationCard banner. Should be calm, non-urgent, lowercase.
-  ///
-  /// In en, this message translates to:
-  /// **'A reminder'**
-  String get affirmationCardLabel;
-
-  /// Tooltip / TalkBack label for the icon-only ‘next affirmation’ button on the AffirmationCard banner.
-  ///
-  /// In en, this message translates to:
-  /// **'Next reminder'**
-  String get nextAffirmationTooltip;
 
   /// No description provided for @quotesUnavailableMessage.
   ///

@@ -1,3 +1,4 @@
+// ignore_for_file: avoid_print
 
 import 'package:flutter/material.dart';
 import 'package:get_it/get_it.dart';
@@ -6,6 +7,17 @@ import 'package:mazilon/util/persistent_memory_service.dart';
 import 'package:mazilon/util/type_utils.dart';
 
 class PhonePageData extends ChangeNotifier {
+  final String key;
+  String header; // Add this
+  String subTitle; // Add this
+  String midTitle;
+  String phoneNameTitle;
+  String phoneNumberTitle;
+  List<String> phoneNames = [];
+  List<String> phoneNumbers = [];
+  List<String> savedPhoneNames = []; // New list
+  List<String> savedPhoneNumbers = []; // New list
+  List<String> phoneDescription = [];
 
   PhonePageData({
     required this.key,
@@ -23,6 +35,22 @@ class PhonePageData extends ChangeNotifier {
     loadItemsFromPrefs();
   }
 
+  Map<String, dynamic> toJson() {
+    return {
+      'key': key,
+      'header': header,
+      'subTitle': subTitle,
+      'midTitle': midTitle,
+      'phoneNameTitle': phoneNameTitle,
+      'phoneNumberTitle': phoneNumberTitle,
+      'phoneNames': phoneNames,
+      'phoneNumbers': phoneNumbers,
+      'savedPhoneNames': savedPhoneNames,
+      'savedPhoneNumbers': savedPhoneNumbers,
+      'phoneDescription': phoneDescription,
+    };
+  }
+
   //changes made on phone page CMS must be updated here
   factory PhonePageData.fromJson(Map<String, dynamic> json) {
     return PhonePageData(
@@ -38,33 +66,6 @@ class PhonePageData extends ChangeNotifier {
       savedPhoneNumbers: List<String>.from(json['savedPhoneNumbers']),
       phoneDescription: List<String>.from(json['phoneDescription']),
     );
-  }
-  final String key;
-  String header; // Add this
-  String subTitle; // Add this
-  String midTitle;
-  String phoneNameTitle;
-  String phoneNumberTitle;
-  List<String> phoneNames = [];
-  List<String> phoneNumbers = [];
-  List<String> savedPhoneNames = []; // New list
-  List<String> savedPhoneNumbers = []; // New list
-  List<String> phoneDescription = [];
-
-  Map<String, dynamic> toJson() {
-    return {
-      'key': key,
-      'header': header,
-      'subTitle': subTitle,
-      'midTitle': midTitle,
-      'phoneNameTitle': phoneNameTitle,
-      'phoneNumberTitle': phoneNumberTitle,
-      'phoneNames': phoneNames,
-      'phoneNumbers': phoneNumbers,
-      'savedPhoneNames': savedPhoneNames,
-      'savedPhoneNumbers': savedPhoneNumbers,
-      'phoneDescription': phoneDescription,
-    };
   }
   void updateFromJson(Map<String, dynamic> json) {
     header = json['header'] ?? header;
@@ -123,7 +124,7 @@ class PhonePageData extends ChangeNotifier {
   }
 
   Future<void> loadItemsFromPrefs() async {
-    final service =
+    PersistentMemoryService service =
         GetIt.instance<
           PersistentMemoryService
         >(); // Get the persistent memory service instance
@@ -171,7 +172,7 @@ class PhonePageData extends ChangeNotifier {
   }
 
   Future<void> saveItemsToPrefs() async {
-    final service =
+    PersistentMemoryService service =
         GetIt.instance<
           PersistentMemoryService
         >(); // Get the persistent memory service instance

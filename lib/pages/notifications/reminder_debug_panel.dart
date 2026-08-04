@@ -1,8 +1,9 @@
+// ignore_for_file: prefer_const_constructors
 
 import 'dart:convert';
 
 import 'package:flutter/foundation.dart'
-    show TargetPlatform, defaultTargetPlatform, kIsWeb;
+    show kIsWeb, defaultTargetPlatform, TargetPlatform;
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:mazilon/l10n/app_localizations.dart';
@@ -186,9 +187,9 @@ class _ReminderDebugPanelState extends State<ReminderDebugPanel> {
                 onPressed: (_busy || !_isAndroid) ? null : _reschedule,
                 child: const Text('Reschedule now'),
               ),
-              const OutlinedButton(
-                onPressed: openAppSettings,
-                child: Text('Open app settings'),
+              OutlinedButton(
+                onPressed: () => openAppSettings(),
+                child: const Text('Open app settings'),
               ),
               OutlinedButton(
                 onPressed: _copyDiagnostics,

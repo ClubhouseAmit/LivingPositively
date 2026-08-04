@@ -61,8 +61,6 @@
   "customCategoryOptionPastEvents": "أحداث من الماضي للتذكير",
   "customCategoryOptionAboutMe": "أشياء عني من المهم أن نتذكرها",
   "customCategoryOptionCustomInput": "إمكانية كتابة شيء أصلي خاص بي",
-  "introductionFormLastPageSubTitle1Line1": "{gender,select,male{الخطط تمنحك الثبات عندما تبدو الأمور غير مؤكدة.} female{الخطط تمنحك الثبات عندما تبدو الأمور غير مؤكدة.} other{الخطط تمنحك الثبات عندما تبدو الأمور غير مؤكدة.}}",
-  "introductionFormLastPageSubTitle1Line2": "{gender,select,male{ابنِ خطتك في وقتك الخاص.} female{ابنِ خطتك في وقتك الخاص.} other{ابنِ خطتك في وقتك الخاص.}}",
   "sharePageShareTitle": "{gender,select,male{كيف تريد مشاركة خطتك؟} female{كيف تريدين مشاركة خطتكِ؟} other{كيف تريد مشاركة خطتك؟}}",
   "sharePageEmergencySendButtonText": "{gender,select,male{طارئ} female{طارئ} other{طارئ}}",
   "sharePageRoutineSendButtonText": "{gender,select,male{روتين} female{روتين} other{روتين}}",
@@ -85,9 +83,8 @@
   "introductionFormFirstPageSkip": "{gender,select,male{تخطي} female{تخطي} other{تخطي}}",
   "introductionFormLastPageSkip": "{gender,select,male{تخطي الاستبيان} female{تخطي الاستبيان} other{تخطي الاستبيان}}",
   "introductionFormLastPageMainTitle": "{gender,select,male{خطتي الشخصية} female{خطتي الشخصية} other{خطتي الشخصية}}",
-  "introductionFormLastPageSubTitle1": "{gender,select,male{لا تنتظر اللحظات الصعبة - أنشئ خطتك الشخصية الآن لحماية سلامك النفسي ودعم من تحب.} female{لا تنتظري اللحظات الصعبة - أنشئي خطتكِ الشخصية الآن لحماية سلامكِ النفسي ودعم من تحبين.} other{لا تنتظر اللحظات الصعبة - أنشئ خطتك الشخصية الآن لحماية سلامك النفسي ودعم من تحب.}}",
+  "introductionFormLastPageSubTitle1": "{gender,select,male{أنت مدعوّ لإنشاء خطة شخصية تقدم الدعم خلال اللحظات الصعبة، لك ولمن حولك.} female{أنتِ مدعوّة لإنشاء خطة شخصية تقدم الدعم خلال اللحظات الصعبة، لكِ ولمن حولكِ.} other{أنت مدعوّ لإنشاء خطة شخصية تقدم الدعم خلال اللحظات الصعبة، لك ولمن حولك.}}",
   "introductionFormLastPageSubTitle2": "{gender,select,male{يُنصح بقضاء بضع دقائق الآن للتعامل بشكل أفضل مع التحديات المستقبلية.} female{يُنصح بقضاء بضع دقائق الآن للتعامل بشكل أفضل مع التحديات المستقبلية.} other{يُنصح بقضاء بضع دقائق الآن للتعامل بشكل أفضل مع التحديات المستقبلية.}}",
-  "introductionFormLastPageAccordion2Header": "{gender,select,male{لماذا نستعد الآن؟} female{لماذا نستعد الآن؟} other{لماذا نستعد الآن؟}}",
   "introductionFormSecondPageMainTitle": "{gender,select,male{هيا نتعرف عليك!} female{هيا نتعرف عليكِ!} other{هيا نتعرف عليك!}}",
   "introductionFormSecondPageSubTitle": "{gender,select,male{أهلاً! سعداء بوجودك هنا!\nنودّ أن نتعرف عليك بشكل أفضل حتى نتمكن من دعمك.} female{أهلاً! سعداء بوجودكِ هنا!\nنودّ أن نتعرف عليكِ بشكل أفضل حتى نتمكن من دعمكِ.} other{أهلاً! سعداء بوجودك هنا!\nنودّ أن نتعرف عليك بشكل أفضل حتى نتمكن من دعمك.}}",
   "difficultEventsHeader": "{gender,select,male{تذكير بالمحفزات الشائعة وعوامل التصعيد} female{تذكير بالمحفزات الشائعة وعوامل التصعيد} other{تذكير بالمحفزات الشائعة وعوامل التصعيد}}",
@@ -214,7 +211,7 @@
   "inspirationalQuotesNo27": "{gender,select,male{يمكن للمشاعر أن تتغيّر بشكل طبيعي} female{يمكن للمشاعر أن تتغيّر بشكل طبيعي} other{يمكن للمشاعر أن تتغيّر بشكل طبيعي}}",
   "inspirationalQuotesNo28": "{gender,select,male{الحديث الإيجابي عن النفس يُعزّز احترام الذات} female{الحديث الإيجابي عن النفس يُعزّز احترام الذات} other{الحديث الإيجابي عن النفس يُعزّز احترام الذات}}",
   "inspirationalQuotesNo29": "{gender,select,male{الممارسة اليومية تؤدي إلى التحسّن} female{الممارسة اليومية تؤدي إلى التحسّن} other{الممارسة اليومية تؤدي إلى التحسّن}}",
-  "inspirationalQuotesNo30": "{gender,select,male{أنت لست وحدك} female{أنتِ لستِ وحدكِ} other{أنت لست وحدك}}",
+  "inspirationalQuotesNo30": "{gender,select,male{أنت لست وحدك!} female{أنتِ لستِ وحدكِ!} other{أنت لست وحدك!}}",
   "inspirationalQuotesNo31": "{gender,select,male{الممارسة اليومية تُحسّن مزاجي، والاستمرار يستحق كل هذا العناء} female{الممارسة اليومية تُحسّن مزاجي، والاستمرار يستحق كل هذا العناء} other{الممارسة اليومية تُحسّن مزاجي، والاستمرار يستحق كل هذا العناء}}",
   "inspirationalQuotesNo32": "{gender,select,male{أنا ذو قيمة} female{أنا ذات قيمة} other{أنا ذو قيمة}}",
   "inspirationalQuotesNo33": "{gender,select,male{أنا أؤمن بقدراتي} female{أنا أؤمن بقدراتي} other{أنا أؤمن بقدراتي}}",
@@ -430,14 +427,6 @@
   "confirmDeleteContactMessage": "ستتم إزالة التفاصيل من جهات اتصال الطوارئ.",
   "quoteDismissedMessage": "تم إغلاق الاقتباس.",
   "quoteUndoAction": "تراجع",
-  "affirmationCardLabel": "تذكير",
-  "@affirmationCardLabel": {
-    "description": "Small label shown above the affirmation text in the AffirmationCard banner."
-  },
-  "nextAffirmationTooltip": "التذكير التالي",
-  "@nextAffirmationTooltip": {
-    "description": "Tooltip for the next-affirmation button."
-  },
   "quotesUnavailableMessage": "لا يوجد اقتباس متاح الآن.",
   "wellnessTranscriptTitle": "النص المكتوب",
   "wellnessVideoUnavailableMessage": "هذا الفيديو غير متاح الآن.",

@@ -67,9 +67,8 @@
      "sharePageEmergencySendButtonText": "{gender,select,male{חירום} female{חירום} other{חירום}}",
      "sharePageRoutineSendButtonText": "{gender,select,male{שגרה} female{שגרה} other{שגרה}}",
      "userSettingsTitle": "{gender,select,male{עדכון פרטים אישיים} female{עדכון פרטים אישיים} other{עדכון פרטים אישיים}}",
-     "introductionFormLastPageSubTitle1Line1": "{gender,select,male{אל תחכה לרגעים קשים - צור כבר עכשיו את התוכנית האישית שלך} female{אל תחכי לרגעים קשים - צרי כבר עכשיו את התוכנית האישית שלך} other{אל תחכה לרגעים קשים - צור כבר עכשיו את התוכנית האישית שלך}}",
-     "introductionFormLastPageSubTitle1Line2": "{gender,select,male{כדי להגן על השקט הנפשי שלך ולתמוך באנשים היקרים לך} female{כדי להגן על השקט הנפשי שלך ולתמוך באנשים היקרים לך} other{כדי להגן על השקט הנפשי שלך ולתמוך באנשים היקרים לך}}",
-     "introductionFormLastPageSubTitle2": "{gender,select,male{מומלץ להקדיש כמה דקות עכשיו. כדי לעבור בקלות רגעי משבר עתידיים} female{מומלץ להקדיש כמה דקות עכשיו. כדי לעבור בקלות רגעי משבר עתידיים} other{מומלץ להקדיש כמה דקות עכשיו. כדי לעבור בקלות רגעי משבר עתידיים}}",
+     "userSettingsHeader": "{gender,select,male{הגדרות משתמש} female{הגדרות משתמש} other{הגדרות משתמש}}",
+     "userSettingsReset": "{gender,select,male{איפוס חשבון} female{איפוס חשבון} other{איפוס חשבון}}",
      "userSettingsName": "{gender,select,male{מהו שמי?(אפשר גם לרשום כינוי)} female{מהו שמי?(אפשר גם לרשום כינוי)} other{מהו שמי?(אפשר גם לרשום כינוי)}}",
      "userSettingsGender": "{gender,select,male{כיצד הייתי רוצה שיפנו אלי?} female{כיצד הייתי רוצה שיפנו אלי?} other{כיצד הייתי רוצה שיפנו אלי?}}",
      "userSettingsAge": "{gender,select,male{מהו גילי?} female{מהו גילי?} other{מהו גילי?}}",
@@ -91,9 +90,8 @@
 
 
      "introductionFormLastPageMainTitle": "{gender,select,male{התוכנית האישית שלי} female{התוכנית האישית שלי} other{התוכנית האישית שלי}}",
-     "introductionFormLastPageSubTitle1": "{gender,select,male{אל תחכה לרגעים קשים - צור כבר עכשיו את התוכנית האישית שלך כדי להגן על השקט הנפשי שלך ולתמוך באנשים היקרים לך.} female{אל תחכי לרגעים קשים - צרי כבר עכשיו את התוכנית האישית שלך כדי להגן על השקט הנפשי שלך ולתמוך באנשים היקרים לך.} other{מומלץ לא לחכות לרגעים קשים - כדאי ליצור כבר עכשיו תוכנית אישית כדי להגן על השקט הנפשי ולתמוך באנשים היקרים.}}",
+     "introductionFormLastPageSubTitle1": "{gender,select,male{מוזמן ליצור תכנית אישית, שתיתן לך ולסביבה יד ברגעים שבהם הכל הופך ליותר מדי} female{מוזמנת ליצור תכנית אישית, שתיתן לך ולסביבה יד ברגעים שבהם הכל הופך ליותר מדי} other{הזמנה ליצור תכנית אישית, שתיתן לך ולסביבה יד ברגעים שבהם הכל הופך ליותר מדי}}",
      "introductionFormLastPageSubTitle2": "{gender,select,male{מומלץ להקדיש כמה דקות עכשיו. כדי לעבור בקלות רגעי משבר עתידיים} female{מומלץ להקדיש כמה דקות עכשיו. כדי לעבור בקלות רגעי משבר עתידיים} other{מומלץ להקדיש כמה דקות עכשיו. כדי לעבור בקלות רגעי משבר עתידיים}}",
-     "introductionFormLastPageAccordion2Header": "{gender,select,male{למה להתכונן עכשיו?} female{למה להתכונן עכשיו?} other{למה להתכונן עכשיו?}}",
      "introductionFormSecondPageMainTitle": "{gender,select,male{בוא נכיר} female{בואי נכיר} other{בוא/י נכיר}}",
      "introductionFormSecondPageSubTitle": "{gender,select,male{היי, שמחים שהגעת! נשמח להכיר אותך קצת כדי שנוכל לדעת איך לפנות אליך} female{היי, שמחות שהגעת! נשמח להכיר אותך קצת כדי שנוכל לדעת איך לפנות אלייך} other{היי, כיף שהגעת! נשמח להכיר אותך קצת כדי שנוכל לדעת איך לפנות בצורה הנוחה לך ביותר}}",
      "difficultEventsHeader": "{gender,select,male{תזכורות לטריגרים נפוצים וגורמי הסלמה} female{תזכורות לטריגרים נפוצים וגורמי הסלמה} other{תזכורות לטריגרים נפוצים וגורמי הסלמה}}",
@@ -467,14 +465,6 @@
   "confirmDeleteContactMessage": "הפרטים יוסרו מרשימת אנשי הקשר לשעת חירום.",
   "quoteDismissedMessage": "הציטוט נסגר.",
   "quoteUndoAction": "ביטול",
-  "affirmationCardLabel": "תזכורת",
-  "@affirmationCardLabel": {
-    "description": "Small label shown above the affirmation text in the AffirmationCard banner."
-  },
-  "nextAffirmationTooltip": "תזכורת הבאה",
-  "@nextAffirmationTooltip": {
-    "description": "Tooltip for the next-affirmation button."
-  },
   "quotesUnavailableMessage": "אין ציטוט זמין כרגע.",
   "wellnessTranscriptTitle": "תמלול",
   "wellnessVideoUnavailableMessage": "הסרטון הזה אינו זמין כרגע.",

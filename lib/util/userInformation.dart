@@ -6,7 +6,30 @@ import 'package:mazilon/util/persistent_memory_service.dart';
 enum DarkModePreference { alwaysLight, alwaysDark, scheduled }
 
 //this it the user's information class, with it we store and display it across the app
-class UserInformation with ChangeNotifier { // Get the persistent memory service instance
+class UserInformation with ChangeNotifier {
+  String localeName;
+  String gender;
+  String name;
+  String age;
+  String location;
+  bool binary;
+  bool disclaimerSigned;
+  List<String> difficultEvents;
+  List<String> positiveTraits;
+  List<String> makeSafer;
+  List<String> feelBetter;
+  List<String> distractions;
+  bool loggedIn;
+  String userId;
+  int notificationMinute;
+  int notificationHour;
+  DarkModePreference darkModePreference;
+  int darkModeStartHour;
+  int darkModeStartMinute;
+  int darkModeEndHour;
+  int darkModeEndMinute;
+  Map<String, List<String>> thanks;
+  PersistentMemoryService service; // Get the persistent memory service instance
 
   UserInformation({
     this.location = '',
@@ -33,29 +56,6 @@ class UserInformation with ChangeNotifier { // Get the persistent memory service
     this.userId = '',
     PersistentMemoryService? service,
   }) : service = service ?? GetIt.instance<PersistentMemoryService>();
-  String localeName;
-  String gender;
-  String name;
-  String age;
-  String location;
-  bool binary;
-  bool disclaimerSigned;
-  List<String> difficultEvents;
-  List<String> positiveTraits;
-  List<String> makeSafer;
-  List<String> feelBetter;
-  List<String> distractions;
-  bool loggedIn;
-  String userId;
-  int notificationMinute;
-  int notificationHour;
-  DarkModePreference darkModePreference;
-  int darkModeStartHour;
-  int darkModeStartMinute;
-  int darkModeEndHour;
-  int darkModeEndMinute;
-  Map<String, List<String>> thanks;
-  PersistentMemoryService service;
 
   void reset(String locale) {
     location = '';
@@ -85,7 +85,7 @@ class UserInformation with ChangeNotifier { // Get the persistent memory service
   }
 
   void updateGender(String text) {
-    Future<void> saveGender(String value) async {
+    void saveGender(String value) async {
       await service.setItem('gender', PersistentMemoryType.String, value);
     }
 
@@ -95,7 +95,7 @@ class UserInformation with ChangeNotifier { // Get the persistent memory service
   }
 
   void updateName(String text) {
-    Future<void> saveName(String value) async {
+    void saveName(String value) async {
       await service.setItem('name', PersistentMemoryType.String, value);
     }
 
@@ -105,7 +105,7 @@ class UserInformation with ChangeNotifier { // Get the persistent memory service
   }
 
   void updateAge(String text) {
-    Future<void> saveAge(String value) async {
+    void saveAge(String value) async {
       await service.setItem('age', PersistentMemoryType.String, value);
     }
 
@@ -115,7 +115,7 @@ class UserInformation with ChangeNotifier { // Get the persistent memory service
   }
 
   void updateBinary(bool value) {
-    Future<void> saveBinary(bool value) async {
+    void saveBinary(bool value) async {
       await service.setItem('binary', PersistentMemoryType.Bool, value);
     }
 
@@ -391,8 +391,8 @@ class UserInformation with ChangeNotifier { // Get the persistent memory service
       await service.setItem('dates', PersistentMemoryType.StringList, dates);
     }
 
-    thanks = {'thanks': value['thanks'] ?? [], 'dates': value['dates'] ?? []};
-    saveThanks(value['thanks'] ?? [], value['dates'] ?? []);
+    thanks = {"thanks": value["thanks"] ?? [], "dates": value["dates"] ?? []};
+    saveThanks(value["thanks"] ?? [], value["dates"] ?? []);
     notifyListeners();
   }
 

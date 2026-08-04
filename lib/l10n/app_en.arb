@@ -20,7 +20,7 @@
       }
     }
   },
-  "otherSuggestions": "{gender,select,male{Get inspiration} female{Get inspiration} other{Get inspiration}}",
+  "otherSuggestions": "{gender,select,male{other suggestions} female{other suggestions} other{other suggestions}}",
   "@otherSuggestions": {
     "description": ""
   },
@@ -125,7 +125,7 @@
   "@homePageTraitsMainTitle": {
     "description": ""
   },
-  "homePageTraitsSecondaryTitle": "{gender,select,male{What I'm good at, read daily} female{What I'm good at, read daily} other{What I'm good at, read daily}}",
+  "homePageTraitsSecondaryTitle": "{gender,select,male{What I'm good at, recommended to read once a day} female{What I'm good at, recommended to read once a day} other{What I'm good at, recommended to read once a day}}",
   "@homePageTraitsSecondaryTitle": {
     "description": ""
   },
@@ -289,18 +289,12 @@
   "@introductionFormLastPageMainTitle": {
     "description": ""
   },
-  "introductionFormLastPageSubTitle1Line1": "{gender,select,male{A plan gives you steadiness when things feel uncertain.} female{A plan gives you steadiness when things feel uncertain.} other{A plan gives you steadiness when things feel uncertain.}}",
-  "introductionFormLastPageSubTitle1Line2": "{gender,select,male{Build yours, in your own time.} female{Build yours, in your own time.} other{Build yours, in your own time.}}",
-
+  "introductionFormLastPageSubTitle1": "{gender,select,male{You're invited to create a personal plan that offers support during overwhelming moments, for both you and those around you.} female{You're invited to create a personal plan that offers support during overwhelming moments, for both you and those around you.} other{You're invited to create a personal plan that offers support during overwhelming moments, for both you and those around you.}}",
   "@introductionFormLastPageSubTitle1": {
     "description": ""
   },
   "introductionFormLastPageSubTitle2": "{gender,select,male{It's recommended to spend a few minutes now to better handle future crises.} female{It's recommended to spend a few minutes now to better handle future crises.} other{It's recommended to spend a few minutes now to better handle future crises.}}",
   "@introductionFormLastPageSubTitle2": {
-    "description": ""
-  },
-  "introductionFormLastPageAccordion2Header": "{gender,select,male{Why Prepare Now?} female{Why Prepare Now?} other{Why Prepare Now?}}",
-  "@introductionFormLastPageAccordion2Header": {
     "description": ""
   },
   "introductionFormSecondPageMainTitle": "{gender,select,male{Let's get to know you!} female{Let's get to know you!} other{Let's get to know you!}}",
@@ -527,7 +521,7 @@
   "@addImageTitle": {
     "description": ""
   },
-  "feelGoodTitle": "{gender,select,male{Mood-Boosting Images} female{Mood-Boosting Images} other{Mood-Boosting Images}}",
+  "feelGoodTitle": "{gender,select,male{Encouraging and uplifting images} female{Encouraging and uplifting images} other{Encouraging and uplifting images}}",
   "@feelGoodTitle": {
     "description": ""
   },
@@ -792,7 +786,7 @@
   "@inspirationalQuotesNo29": {
     "description": ""
   },
-  "inspirationalQuotesNo30": "{gender,select,male{You are not alone} female{You are not alone} other{You are not alone}}",
+  "inspirationalQuotesNo30": "{gender,select,male{You are not alone!} female{You are not alone!} other{You are not alone!}}",
   "@inspirationalQuotesNo30": {
     "description": ""
   },
@@ -1724,14 +1718,6 @@
   "confirmDeleteContactMessage": "This removes the contact from your emergency contact list.",
   "quoteDismissedMessage": "Quote dismissed.",
   "quoteUndoAction": "Undo",
-  "affirmationCardLabel": "A reminder",
-  "@affirmationCardLabel": {
-    "description": "Small label shown above the affirmation/reminder text in the AffirmationCard banner. Should be calm, non-urgent, lowercase."
-  },
-  "nextAffirmationTooltip": "Next reminder",
-  "@nextAffirmationTooltip": {
-    "description": "Tooltip / TalkBack label for the icon-only ‘next affirmation’ button on the AffirmationCard banner."
-  },
   "quotesUnavailableMessage": "No quote is available right now.",
   "wellnessTranscriptTitle": "Transcript",
   "wellnessVideoUnavailableMessage": "This video is unavailable right now.",

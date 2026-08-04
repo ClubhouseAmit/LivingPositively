@@ -16,9 +16,9 @@ class SharedPreferencesService implements PersistentMemoryService {
     PersistentMemoryType type,
     dynamic value,
   ) async {
-    final loggerService =
+    IncidentLoggerService loggerService =
         GetIt.instance<IncidentLoggerService>();
-    if (key == '' || value == null) {
+    if (key == "" || value == null) {
       loggerService.captureLog(
         'Invalid key or value for persistent memory service',
       );
@@ -26,7 +26,7 @@ class SharedPreferencesService implements PersistentMemoryService {
     }
 
     try {
-      final prefs = await SharedPreferences.getInstance();
+      var prefs = await SharedPreferences.getInstance();
       switch (type) {
         case PersistentMemoryType.String:
           prefs.setString(key, value);
@@ -46,13 +46,13 @@ class SharedPreferencesService implements PersistentMemoryService {
 
   @override
   Future<dynamic> getItem(String key, PersistentMemoryType type) async {
-    final loggerService =
+    IncidentLoggerService loggerService =
         GetIt.instance<IncidentLoggerService>();
     try {
-      final prefs = await SharedPreferences.getInstance();
+      var prefs = await SharedPreferences.getInstance();
       switch (type) {
         case PersistentMemoryType.String:
-          return prefs.getString(key) ?? '';
+          return prefs.getString(key) ?? "";
         case PersistentMemoryType.Int:
           return prefs.getInt(key);
         case PersistentMemoryType.Double:
@@ -69,10 +69,10 @@ class SharedPreferencesService implements PersistentMemoryService {
 
   @override
   Future<void> reset() async {
-    final loggerService =
+    IncidentLoggerService loggerService =
         GetIt.instance<IncidentLoggerService>();
     try {
-      final prefs = await SharedPreferences.getInstance();
+      var prefs = await SharedPreferences.getInstance();
       await prefs.clear();
     } catch (error, stackTrace) {
       loggerService.captureLog(error, stackTrace: stackTrace);

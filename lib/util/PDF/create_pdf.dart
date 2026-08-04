@@ -1,25 +1,25 @@
 import 'dart:io';
-
 import 'package:flutter/services.dart';
-import 'package:mazilon/util/languages_util_functions.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:pdf/pdf.dart';
 import 'package:pdf/widgets.dart' as pw;
 
+import 'package:mazilon/util/languages_util_functions.dart';
+
 pw.TextDirection getDirection(String text) {
-  return getDirectionOfText(text) == 'ltr'
+  return getDirectionOfText(text) == "ltr"
       ? pw.TextDirection.ltr
       : pw.TextDirection.rtl;
 }
 
 pw.TextAlign getAlign(String text) {
-  return getDirectionOfText(text) == 'ltr'
+  return getDirectionOfText(text) == "ltr"
       ? pw.TextAlign.left
       : pw.TextAlign.right;
 }
 
 pw.Alignment getAlignment(String text) {
-  return getDirectionOfText(text) == 'ltr'
+  return getDirectionOfText(text) == "ltr"
       ? pw.Alignment.centerRight
       : pw.Alignment.centerRight;
 }
@@ -32,14 +32,14 @@ Future<Map<String, dynamic>> createPDF(
   List<List<String>> data,
   String textDirectionLocale,
 ) async {
-  const pageFormat = PdfPageFormat.a4;
-  final fontData = await rootBundle.load('assets/fonts/CALIBRI.TTF');
+  final pageFormat = PdfPageFormat.a4;
+  final ByteData fontData = await rootBundle.load('assets/fonts/CALIBRI.TTF');
   final ttf = pw.Font.ttf(fontData.buffer.asByteData());
   final imageData = await rootBundle.load('assets/images/Logo.png');
   final imageBytes = imageData.buffer.asUint8List();
   final image = pw.Image(pw.MemoryImage(imageBytes));
   final pdf = pw.Document();
-  final widgets = <pw.Widget>[];
+  List<pw.Widget> widgets = [];
   //final textDirection = textDirectionLocale == "rtl"
   //    ? pw.TextDirection.rtl
   //    : pw.TextDirection.ltr;
@@ -80,7 +80,7 @@ Future<Map<String, dynamic>> createPDF(
     // Add the title, subtitle, and data for each section
     widgets.add(
       pw.Padding(
-        padding: const pw.EdgeInsets.all(8),
+        padding: const pw.EdgeInsets.all(8.0),
         child: pw.Directionality(
           textDirection: getDirection(titles[i]),
           child: pw.Column(
@@ -134,7 +134,7 @@ Future<Map<String, dynamic>> createPDF(
                 child: pw.Table(
                   border: pw.TableBorder.all(),
                   children: [
-                    for (final entry in data[i].asMap().entries)
+                    for (var entry in data[i].asMap().entries)
                       pw.TableRow(
                         children: [
                           pw.Padding(
@@ -169,70 +169,70 @@ Future<Map<String, dynamic>> createPDF(
       crossAxisAlignment: pw.CrossAxisAlignment.end,
       children: [
         pw.Directionality(
-          textDirection: getDirection(texts['text1']!),
+          textDirection: getDirection(texts["text1"]!),
           child: pw.Text(
-            texts['text1']!,
+            texts["text1"]!,
             style: pw.TextStyle(fontSize: 20, font: ttf),
-            textAlign: getAlign(texts['text1']!),
+            textAlign: getAlign(texts["text1"]!),
           ),
         ),
         pw.SizedBox(height: 10),
         pw.Directionality(
-          textDirection: getDirection(texts['text2']!),
+          textDirection: getDirection(texts["text2"]!),
           child: pw.UrlLink(
-            destination: texts['text2Link']!,
+            destination: texts["text2Link"]!,
             child: pw.Text(
-              texts['text2']!,
+              texts["text2"]!,
               style: pw.TextStyle(
                 fontSize: 24,
                 font: ttf,
                 color: PdfColors.blue,
               ),
-              textAlign: getAlign(texts['text2']!),
+              textAlign: getAlign(texts["text2"]!),
             ),
           ),
         ),
         pw.SizedBox(height: 10),
         pw.Directionality(
-          textDirection: getDirection(texts['text3']!),
+          textDirection: getDirection(texts["text3"]!),
           child: pw.Text(
-            texts['text3']!,
+            texts["text3"]!,
             style: pw.TextStyle(fontSize: 20, font: ttf),
-            textAlign: getAlign(texts['text3']!),
+            textAlign: getAlign(texts["text3"]!),
           ),
         ),
         pw.SizedBox(height: 20),
         pw.Directionality(
-          textDirection: getDirection(texts['text4']!),
+          textDirection: getDirection(texts["text4"]!),
           child: pw.Text(
-            texts['text4']!,
+            texts["text4"]!,
             style: pw.TextStyle(fontSize: 20, font: ttf),
-            textAlign: getAlign(texts['text4']!),
+            textAlign: getAlign(texts["text4"]!),
           ),
         ),
         pw.SizedBox(height: 10),
         pw.Directionality(
-          textDirection: getDirection(texts['text5']!),
+          textDirection: getDirection(texts["text5"]!),
           child: pw.UrlLink(
-            destination: texts['text5Link']!,
+            destination: texts["text5Link"]!,
             child: pw.Text(
-              texts['text5']!,
+              texts["text5"]!,
               style: pw.TextStyle(
                 fontSize: 24,
                 font: ttf,
                 color: PdfColors.blue,
               ),
-              textAlign: getAlign(texts['text5']!),
+              textAlign: getAlign(texts["text5"]!),
             ),
           ),
         ),
         pw.SizedBox(height: 10),
         pw.Directionality(
-          textDirection: getDirection(texts['text6']!),
+          textDirection: getDirection(texts["text6"]!),
           child: pw.Text(
-            texts['text6']!,
+            texts["text6"]!,
             style: pw.TextStyle(fontSize: 20, font: ttf),
-            textAlign: getAlign(texts['text6']!),
+            textAlign: getAlign(texts["text6"]!),
           ),
         ),
       ],
@@ -251,11 +251,11 @@ Future<Map<String, dynamic>> createPDF(
       build: (context) => widgets, // Build the PDF with the generated widgets
     ),
   );
-  return {'file': pdf, 'format': 'pdf'};
+  return {"file": pdf, "format": "pdf"};
 }
 
 Future<File> saveTempPDF(pw.Document pdf, String format) async {
-  final fileData = await pdf.save();
+  Uint8List fileData = await pdf.save();
   final tempDir = await getTemporaryDirectory();
   final timestamp = DateTime.now().millisecondsSinceEpoch;
   final tempFile = File('${tempDir.path}/התוכנית שלי$timestamp.$format');
