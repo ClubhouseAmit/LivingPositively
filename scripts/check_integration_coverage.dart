@@ -2,9 +2,9 @@
 // `lib/main.dart` floor raised under ADR-005 § B, Phase 10B).
 //
 // Sibling of scripts/check_coverage.dart. Reads coverage/integration.info
-// (produced by the Android integration-test job's explicit test-file list with
-// `--coverage --coverage-path coverage/integration.info`) and enforces ONLY
-// the per-file floors below.
+// (produced by the canonical Android integration-test job by merging shard
+// LCOV files with scripts/merge_lcov.dart) and enforces ONLY the per-file
+// floors below.
 // Global coverage is owned by the unit pipeline (`scripts/check_coverage.dart`)
 // and the aggregate gate (`scripts/check_aggregate_coverage.dart`); this gate
 // intentionally does NOT check global so that emulator-class flakes in the
@@ -53,13 +53,19 @@ void main(List<String> args) {
   if (!lcovFile.existsSync()) {
     stderr
       ..writeln('FATAL: coverage/integration.info not found.')
-      ..writeln('  Expected the integration-test job to have produced it via:')
       ..writeln(
-          '    flutter test <Android integration files> --coverage --coverage-path coverage/integration.info')
+        '  Expected the canonical integration-test job to have merged shard coverage via:',
+      )
       ..writeln(
-          '  If you are running locally and have no emulator attached, this is')
+        '    dart run scripts/merge_lcov.dart coverage/integration.info coverage/shards/*.info',
+      )
       ..writeln(
-          '  expected — the file is generated only by the CI integration-test job.');
+        '  With no Android emulator attached locally, missing merged integration',
+      )
+      ..writeln(
+        '  coverage is expected. Generate shard LCOV on an emulator, then merge it',
+      )
+      ..writeln('  with the command above before running this gate.');
     exit(2);
   }
 

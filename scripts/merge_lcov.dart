@@ -1,7 +1,7 @@
-// Merges two or more LCOV files into a single output.
+// Merges one or more LCOV files into a single output.
 //
 // Usage:
-//   dart run scripts/merge_lcov.dart out.info in1.info in2.info [in3.info...]
+//   dart run scripts/merge_lcov.dart out.info in1.info [in2.info...]
 //
 // For each input file we accumulate per-line hit counts (DA records). When the
 // same source file appears in multiple inputs the maximum hit count per line
@@ -23,8 +23,8 @@ import 'dart:io';
 import '_lcov_parser.dart';
 
 void main(List<String> args) {
-  if (args.length < 3) {
-    stderr.writeln('Usage: merge_lcov.dart OUT IN1 IN2 [IN3...]');
+  if (args.length < 2) {
+    stderr.writeln('Usage: merge_lcov.dart OUT IN1 [IN2...]');
     exit(2);
   }
   final outPath = args.first;
@@ -49,5 +49,6 @@ void main(List<String> args) {
 
   File(outPath).writeAsStringSync(buf.toString());
   stdout.writeln(
-      'wrote $outPath: ${merged.length} files, ${inputs.length} inputs merged');
+    'wrote $outPath: ${merged.length} files, ${inputs.length} inputs merged',
+  );
 }
