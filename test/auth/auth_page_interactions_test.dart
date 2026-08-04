@@ -1,5 +1,5 @@
-import 'dart:async';
-
+import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:fake_cloud_firestore/fake_cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
@@ -18,19 +18,25 @@ void main() {
   setUp(() => registerTestServices(locale: 'en'));
   tearDown(() => GetIt.instance.reset());
 
-  test('AuthService persistence test hook delegates when configured', () async {
-    final user = MockUser();
-    var persisted = false;
-    AuthService.saveUserToFirestoreForTesting = (persistedUser) async {
-      expect(persistedUser, same(user));
-      persisted = true;
-    };
-    addTearDown(() => AuthService.saveUserToFirestoreForTesting = null);
+  test(
+    'AuthService persists user profile through registered Firestore',
+    () async {
+      final firestore = FakeFirebaseFirestore();
+      GetIt.instance.registerSingleton<FirebaseFirestore>(firestore);
+      final user = MockUser();
+      when(user.uid).thenReturn('uid-123');
+      when(user.email).thenReturn('person@example.com');
+      when(user.displayName).thenReturn('Person');
 
-    await AuthService.saveUserToFirestore(user);
+      await AuthService.saveUserToFirestore(user);
 
-    expect(persisted, isTrue);
-  });
+      final document = await firestore.collection('users').doc('uid-123').get();
+
+      expect(document.data(), containsPair('email', 'person@example.com'));
+      expect(document.data(), containsPair('displayName', 'Person'));
+      expect(document.data(), containsPair('provider', 'password'));
+    },
+  );
 
   testWidgets(
     'disposed auth screen records the authenticated user after persistence',
@@ -40,9 +46,8 @@ void main() {
       when(firebaseUser.uid).thenReturn('uid-123');
       when(firebaseUser.email).thenReturn('person@example.com');
       when(firebaseUser.displayName).thenReturn('Person');
-      final persistenceCompleted = Completer<void>();
-      AuthService.saveUserToFirestoreForTesting = (_) =>
-          persistenceCompleted.future;
+      final firestore = FakeFirebaseFirestore();
+      GetIt.instance.registerSingleton<FirebaseFirestore>(firestore);
       debugDefaultTargetPlatformOverride = TargetPlatform.windows;
 
       try {
@@ -68,7 +73,6 @@ void main() {
 
         await tester.pump();
         await tester.pumpWidget(const SizedBox.shrink());
-        persistenceCompleted.complete();
         await completion;
 
         expect(userInformation.loggedIn, isTrue);
@@ -77,7 +81,6 @@ void main() {
         expect(userInformation.email, 'person@example.com');
         expect(userInformation.displayName, 'Person');
       } finally {
-        AuthService.saveUserToFirestoreForTesting = null;
         debugDefaultTargetPlatformOverride = null;
       }
     },
