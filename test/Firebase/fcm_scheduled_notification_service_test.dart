@@ -8,6 +8,7 @@ import 'package:get_it/get_it.dart';
 import 'package:http/http.dart' as http;
 import 'package:mazilon/global_enums.dart';
 import 'package:mazilon/util/Firebase/fcm_scheduled_notification_service.dart';
+import 'package:mazilon/util/logger_service.dart';
 import 'package:mazilon/util/notification_preference.dart';
 import 'package:mazilon/util/persistent_memory_service.dart';
 import 'package:mazilon/util/userInformation.dart';
@@ -18,6 +19,8 @@ class _FakePersistentMemoryService implements PersistentMemoryService {
   final Map<String, dynamic> stored = {};
   Completer<dynamic>? migrationMarkerRead;
   Completer<void>? migrationMarkerReadStarted;
+  Object? migrationMarkerReadError;
+  StackTrace? migrationMarkerReadStackTrace;
 
   @override
   Future<dynamic> getItem(String key, PersistentMemoryType type) async {
@@ -27,6 +30,12 @@ class _FakePersistentMemoryService implements PersistentMemoryService {
     if (migrationMarkerRead != null) {
       migrationMarkerReadStarted?.complete();
       return migrationMarkerRead!.future;
+    }
+    if (migrationMarkerReadError != null) {
+      Error.throwWithStackTrace(
+        migrationMarkerReadError!,
+        migrationMarkerReadStackTrace!,
+      );
     }
     return stored[key];
   }
@@ -45,6 +54,24 @@ class _FakePersistentMemoryService implements PersistentMemoryService {
     }
     stored[key] = value;
   }
+}
+
+class _RecordingIncidentLogger implements IncidentLoggerService {
+  dynamic capturedError;
+  StackTrace? capturedStackTrace;
+
+  @override
+  Future<void> captureLog(
+    dynamic exception, {
+    StackTrace? stackTrace,
+    dynamic exceptionData,
+  }) async {
+    capturedError = exception;
+    capturedStackTrace = stackTrace;
+  }
+
+  @override
+  Future<void> initializeSentry(Widget myApp) async {}
 }
 
 Future<T> _onPlatform<T>(
@@ -528,6 +555,32 @@ void main() {
       expect(memory.stored['fcmDefaultReminderMigrated'], isTrue);
     },
   );
+
+  testWidgets('reports a migration-marker read failure without propagating it', (
+    tester,
+  ) async {
+    final logger = _RecordingIncidentLogger();
+    final exception = StateError('migration marker unavailable');
+    final stackTrace = StackTrace.current;
+    memory.migrationMarkerReadError = exception;
+    memory.migrationMarkerReadStackTrace = stackTrace;
+    GetIt.instance.registerSingleton<IncidentLoggerService>(logger);
+    user.setNotificationPreference(
+      'default',
+      const NotificationPreference(hour: 8, minute: 15),
+    );
+
+    await _onPlatform(
+      TargetPlatform.android,
+      () =>
+          FcmScheduledNotificationService.migrateLegacyDefaultReminderWithReporting(
+            userInformation: user,
+          ),
+    );
+
+    expect(logger.capturedError, same(exception));
+    expect(logger.capturedStackTrace, same(stackTrace));
+  });
 
   testWidgets(
     'leaves migration unmarked when authentication or registration fails',

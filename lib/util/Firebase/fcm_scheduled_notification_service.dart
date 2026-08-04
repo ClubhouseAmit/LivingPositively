@@ -5,6 +5,7 @@ import 'package:flutter/material.dart';
 import 'package:get_it/get_it.dart';
 import 'package:http/http.dart' as http;
 import 'package:mazilon/util/Firebase/fcm_service.dart';
+import 'package:mazilon/util/logger_service.dart';
 import 'package:mazilon/util/notification_preference.dart';
 import 'package:mazilon/util/persistent_memory_service.dart';
 import 'package:mazilon/util/userInformation.dart';
@@ -122,6 +123,23 @@ class FcmScheduledNotificationService {
         );
       }
     });
+  }
+
+  static Future<void> migrateLegacyDefaultReminderWithReporting({
+    required UserInformation userInformation,
+  }) async {
+    try {
+      await migrateLegacyDefaultReminder(userInformation: userInformation);
+    } catch (error, stackTrace) {
+      if (GetIt.instance.isRegistered<IncidentLoggerService>()) {
+        await GetIt.instance<IncidentLoggerService>().captureLog(
+          error,
+          stackTrace: stackTrace,
+        );
+      } else {
+        debugPrint('Legacy reminder migration failed: $error');
+      }
+    }
   }
 
   // Registers or updates a scheduled notification for the given type.

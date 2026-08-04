@@ -104,11 +104,9 @@ class _AuthPageState extends LPExtendedState<AuthPage> {
       userInfo.updateDisplayName(user.displayName ?? '');
 
       unawaited(
-        FcmScheduledNotificationService.migrateLegacyDefaultReminder(
+        FcmScheduledNotificationService.migrateLegacyDefaultReminderWithReporting(
           userInformation: userInfo,
-        ).catchError((Object error, StackTrace stackTrace) {
-          debugPrint('Legacy reminder migration failed: $error');
-        }),
+        ),
       );
 
       if (widget.fromNotifications) {

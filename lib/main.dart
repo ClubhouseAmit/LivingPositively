@@ -431,20 +431,9 @@ class _MyAppState extends State<MyApp> with WidgetsBindingObserver {
           .then((_) {
             if (!mounted) return;
             unawaited(
-              FcmScheduledNotificationService.migrateLegacyDefaultReminder(
+              FcmScheduledNotificationService.migrateLegacyDefaultReminderWithReporting(
                 userInformation: userInfoProvider,
-              ).catchError((Object error, StackTrace stackTrace) {
-                if (GetIt.instance.isRegistered<IncidentLoggerService>()) {
-                  unawaited(
-                    GetIt.instance<IncidentLoggerService>().captureLog(
-                      error,
-                      stackTrace: stackTrace,
-                    ),
-                  );
-                } else {
-                  debugPrint('Legacy reminder migration failed: $error');
-                }
-              }),
+              ),
             );
             //initialize which widget will run first:
             widgetNotifier.value = FirstPage(
