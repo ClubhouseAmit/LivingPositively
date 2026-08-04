@@ -222,6 +222,49 @@ describe("notification validation", () => {
     ]);
   });
 
+  it("writes version one to the state and schedule for a versioned registration", async () => {
+    const writes: Array<{
+      kind: "set" | "delete";
+      reference: "state" | "schedule";
+      data?: Record<string, unknown>;
+    }> = [];
+    const transaction = {
+      get: async () => ({ data: () => undefined }),
+      set: (
+        reference: "state" | "schedule",
+        data: Record<string, unknown>,
+      ) => {
+        writes.push({ kind: "set", reference, data });
+      },
+      delete: (reference: "state" | "schedule") => {
+        writes.push({ kind: "delete", reference });
+      },
+    };
+
+    assert.deepEqual(
+      await executeNotificationMutation(transaction, {
+        stateRef: "state",
+        scheduleRef: "schedule",
+        expectedVersion: { kind: "versioned", version: 0 },
+        resetFence: false,
+        rejectActiveDeliveryPermit: false,
+        operation: {
+          kind: "register",
+          scheduleData: { uid: "uid", typeId: "default" },
+        },
+      }),
+      { kind: "apply", nextVersion: 1 },
+    );
+    assert.deepEqual(writes, [
+      { kind: "set", reference: "state", data: { version: 1 } },
+      {
+        kind: "set",
+        reference: "schedule",
+        data: { uid: "uid", typeId: "default", mutationVersion: 1 },
+      },
+    ]);
+  });
+
   it("does not repair a corrupt reset while a delivery permit is active", async () => {
     const writes: Array<{
       kind: "set" | "delete";

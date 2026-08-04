@@ -144,7 +144,15 @@ export async function executeNotificationMutation<TReference>(
         { merge: true },
       );
     }
-    transaction.set(input.scheduleRef, input.operation.scheduleData);
+    transaction.set(
+      input.scheduleRef,
+      decision.nextVersion === undefined
+        ? input.operation.scheduleData
+        : {
+          ...input.operation.scheduleData,
+          mutationVersion: decision.nextVersion,
+        },
+    );
     return decision;
   }
 
