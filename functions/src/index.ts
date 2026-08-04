@@ -460,7 +460,7 @@ export const getNotificationMutationVersion = onRequest(async (req, res) => {
     return;
   }
   if (!isNonNegativeNotificationMutationVersion(mutationVersion)) {
-    console.warn("Invalid notification mutation state version", {
+    logger.warn("Invalid notification mutation state version", {
       typeId,
       valueType: typeof mutationVersion,
     });
@@ -642,8 +642,9 @@ export const cancelNotification = onRequest(async (req, res) => {
 // processScheduledNotifications — runs every minute via Cloud Scheduler.
 //
 // Invocation flow:
-//   1. Query phase   — fetch all scheduled_notifications matching the current
-//                      hour+minute. Early-exit if none match.
+//   1. Query phase   — query the bounded recovery window for matching
+//                      scheduled_notifications, then continue through the
+//                      checkpoint and structured summary even when none match.
 //   2. Pre-fetch phase — collect the unique typeIds and locales from the result
 //                      set, then fetch all notification_type docs and quote
 //                      collections in parallel. Each collection is fetched at
