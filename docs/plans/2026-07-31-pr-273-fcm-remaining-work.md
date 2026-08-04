@@ -8,8 +8,8 @@ Stacked implementation PR: [#309](https://github.com/ClubhouseAmit/LivingPositiv
 
 ## Current Status
 
-Stacked PR #309 implements the FCM follow-up. Local verification passed 799
-Flutter tests (9 skipped) and 42 Functions tests. `flutter analyze` reports
+Stacked PR #309 implements the FCM follow-up. Local verification passed 801
+Flutter tests (9 skipped) and 53 Functions tests. `flutter analyze` reports
 only 24 inherited warnings in unchanged generated mocks.
 The earlier Android integration failure was a missing
 `integration_test/notifications_schedule_test.dart`; the rebased parent now
