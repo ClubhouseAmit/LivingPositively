@@ -9,10 +9,9 @@ import {
   hasEffectiveNotificationMutationState,
   isNonNegativeNotificationMutationVersion,
   isValidResetFenceMutation,
-  notificationMutationDecision,
+  notificationMutationAuthorizationDecision,
   notificationMutationStatePath,
   parseExpectedNotificationMutationVersion,
-  storedNotificationMutationVersionDecision,
 } from "./notification_mutation.js";
 import {
   hasValidNotificationTypeSchema,
@@ -418,52 +417,31 @@ async function cleanupInactiveDevice(uid: string): Promise<void> {
 
 class NotificationMutationConflictError extends Error {}
 
+type NotificationMutationAuthorizationOptions = {
+  resetFence: boolean;
+  rejectActiveDeliveryPermit: boolean;
+};
+
 async function authorizeNotificationMutation(
   transaction: FirebaseFirestore.Transaction,
   stateRef: FirebaseFirestore.DocumentReference,
   expectedVersion: ExpectedNotificationMutationVersion,
-  rejectActiveDeliveryPermit: boolean,
-): Promise<number | undefined> {
+  options: NotificationMutationAuthorizationOptions,
+): Promise<{ nextVersion: number | undefined }> {
   const stateDoc = await transaction.get(stateRef);
   const stateData = stateDoc.data();
-  const storedVersion = stateData?.version;
-
-  if (
-    rejectActiveDeliveryPermit &&
-    hasActiveDeliveryPermit(stateData)
-  ) {
-    throw new NotificationMutationConflictError(
-      "Scheduled delivery is already authorized",
-    );
-  }
-
-  const storedVersionDecision = storedNotificationMutationVersionDecision(
-    storedVersion,
-    rejectActiveDeliveryPermit,
-  );
-  if (storedVersionDecision.kind === "reject") {
-    throw new NotificationMutationConflictError(
-      "Invalid notification mutation state",
-    );
-  }
-  const currentVersion = storedVersionDecision.kind === "repair"
-    ? 0
-    : storedVersionDecision.version;
-
-  const decision = notificationMutationDecision(
+  const decision = notificationMutationAuthorizationDecision({
+    storedVersion: stateData?.version,
     expectedVersion,
-    currentVersion,
-    hasEffectiveNotificationMutationState(stateData),
-  );
-  if (decision === "overflow") {
-    throw new NotificationMutationConflictError(
-      "Notification mutation version overflow",
-    );
+    resetFence: options.resetFence,
+    rejectActiveDeliveryPermit: options.rejectActiveDeliveryPermit,
+    hasActiveDeliveryPermit: hasActiveDeliveryPermit(stateData),
+    hasEffectiveState: hasEffectiveNotificationMutationState(stateData),
+  });
+  if (decision.kind === "conflict") {
+    throw new NotificationMutationConflictError(decision.message);
   }
-  if (decision !== "apply") {
-    throw new NotificationMutationConflictError("Stale notification mutation");
-  }
-  return currentVersion;
+  return decision;
 }
 
 // ---------------------------------------------------------------------------
@@ -579,11 +557,14 @@ export const registerNotification = onRequest(async (req, res) => {
     .doc(`${uid}_${typeId}`);
   try {
     await db.runTransaction(async (transaction) => {
-      const currentVersion = await authorizeNotificationMutation(
+      const authorization = await authorizeNotificationMutation(
         transaction,
         stateRef,
         expectedVersion,
-        false,
+        {
+          resetFence: false,
+          rejectActiveDeliveryPermit: false,
+        },
       );
 
       const scheduleData: Record<string, unknown> = {
@@ -595,10 +576,13 @@ export const registerNotification = onRequest(async (req, res) => {
         gender: normalizeNotificationGender(gender),
         updatedAt: admin.firestore.FieldValue.serverTimestamp(),
       };
-      if (expectedVersion.kind === "versioned") {
-        const nextVersion = (currentVersion ?? 0) + 1;
-        scheduleData.mutationVersion = nextVersion;
-        transaction.set(stateRef, { version: nextVersion }, { merge: true });
+      if (authorization.nextVersion !== undefined) {
+        scheduleData.mutationVersion = authorization.nextVersion;
+        transaction.set(
+          stateRef,
+          { version: authorization.nextVersion },
+          { merge: true },
+        );
       }
       transaction.set(scheduleRef, scheduleData);
     });
@@ -658,18 +642,21 @@ export const cancelNotification = onRequest(async (req, res) => {
     .doc(`${uid}_${typeId}`);
   try {
     await db.runTransaction(async (transaction) => {
-      const currentVersion = await authorizeNotificationMutation(
+      const authorization = await authorizeNotificationMutation(
         transaction,
         stateRef,
         expectedVersion,
-        resetFence === true,
+        {
+          resetFence: resetFence === true,
+          rejectActiveDeliveryPermit: resetFence === true,
+        },
       );
 
       transaction.delete(scheduleRef);
-      if (expectedVersion.kind === "versioned") {
+      if (authorization.nextVersion !== undefined) {
         transaction.set(
           stateRef,
-          { version: (currentVersion ?? 0) + 1 },
+          { version: authorization.nextVersion },
           { merge: true },
         );
       }

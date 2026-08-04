@@ -15,6 +15,19 @@ export type StoredNotificationMutationVersionDecision =
   | { kind: "repair" }
   | { kind: "reject" };
 
+export type NotificationMutationAuthorizationDecision =
+  | { kind: "apply"; nextVersion: number | undefined }
+  | { kind: "conflict"; message: string };
+
+export type NotificationMutationAuthorizationInput = {
+  storedVersion: unknown;
+  expectedVersion: ExpectedNotificationMutationVersion;
+  resetFence: boolean;
+  rejectActiveDeliveryPermit: boolean;
+  hasActiveDeliveryPermit: boolean;
+  hasEffectiveState: boolean;
+};
+
 export function isNonNegativeNotificationMutationVersion(
   value: unknown,
 ): value is number {
@@ -34,6 +47,53 @@ export function storedNotificationMutationVersionDecision(
     return { kind: "use", version: value };
   }
   return allowInvalidVersionRepair ? { kind: "repair" } : { kind: "reject" };
+}
+
+export function notificationMutationAuthorizationDecision(
+  input: NotificationMutationAuthorizationInput,
+): NotificationMutationAuthorizationDecision {
+  if (input.rejectActiveDeliveryPermit && input.hasActiveDeliveryPermit) {
+    return {
+      kind: "conflict",
+      message: "Scheduled delivery is already authorized",
+    };
+  }
+
+  const storedVersionDecision = storedNotificationMutationVersionDecision(
+    input.storedVersion,
+    input.resetFence,
+  );
+  if (storedVersionDecision.kind === "reject") {
+    return {
+      kind: "conflict",
+      message: "Invalid notification mutation state",
+    };
+  }
+
+  const currentVersion = storedVersionDecision.kind === "repair"
+    ? 0
+    : storedVersionDecision.version;
+  const decision = notificationMutationDecision(
+    input.expectedVersion,
+    currentVersion,
+    input.hasEffectiveState,
+  );
+  if (decision === "overflow") {
+    return {
+      kind: "conflict",
+      message: "Notification mutation version overflow",
+    };
+  }
+  if (decision !== "apply") {
+    return { kind: "conflict", message: "Stale notification mutation" };
+  }
+
+  return {
+    kind: "apply",
+    nextVersion: input.expectedVersion.kind === "versioned"
+      ? currentVersion + 1
+      : undefined,
+  };
 }
 
 export function parseExpectedNotificationMutationVersion(

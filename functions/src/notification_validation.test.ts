@@ -10,6 +10,7 @@ import {
   hasActiveDeliveryPermit,
   hasEffectiveNotificationMutationState,
   isValidResetFenceMutation,
+  notificationMutationAuthorizationDecision,
   notificationMutationDecision,
   notificationMutationStatePath,
   parseExpectedNotificationMutationVersion,
@@ -106,6 +107,48 @@ describe("notification validation", () => {
     assert.deepEqual(
       storedNotificationMutationVersionDecision(7, false),
       { kind: "use", version: 7 },
+    );
+  });
+
+  it("returns a controlled conflict for an ordinary corrupt mutation", () => {
+    assert.deepEqual(
+      notificationMutationAuthorizationDecision({
+        storedVersion: "corrupt",
+        expectedVersion: { kind: "versioned", version: 0 },
+        resetFence: false,
+        rejectActiveDeliveryPermit: false,
+        hasActiveDeliveryPermit: false,
+        hasEffectiveState: false,
+      }),
+      { kind: "conflict", message: "Invalid notification mutation state" },
+    );
+  });
+
+  it("writes version one when a reset fence repairs a corrupt mutation", () => {
+    assert.deepEqual(
+      notificationMutationAuthorizationDecision({
+        storedVersion: "corrupt",
+        expectedVersion: { kind: "versioned", version: 0 },
+        resetFence: true,
+        rejectActiveDeliveryPermit: true,
+        hasActiveDeliveryPermit: false,
+        hasEffectiveState: false,
+      }),
+      { kind: "apply", nextVersion: 1 },
+    );
+  });
+
+  it("blocks corrupt-state reset repair while a delivery permit is active", () => {
+    assert.deepEqual(
+      notificationMutationAuthorizationDecision({
+        storedVersion: "corrupt",
+        expectedVersion: { kind: "versioned", version: 0 },
+        resetFence: true,
+        rejectActiveDeliveryPermit: true,
+        hasActiveDeliveryPermit: true,
+        hasEffectiveState: true,
+      }),
+      { kind: "conflict", message: "Scheduled delivery is already authorized" },
     );
   });
 
