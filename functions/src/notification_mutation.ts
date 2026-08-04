@@ -28,6 +28,31 @@ export type NotificationMutationAuthorizationInput = {
   hasEffectiveState: boolean;
 };
 
+export type NotificationMutationOperation =
+  | { kind: "register"; scheduleData: Record<string, unknown> }
+  | { kind: "cancel" };
+
+export type NotificationMutationTransaction<TReference> = {
+  get(reference: TReference): Promise<{
+    data(): Record<string, unknown> | undefined;
+  }>;
+  set(
+    reference: TReference,
+    data: Record<string, unknown>,
+    options?: { merge: boolean },
+  ): unknown;
+  delete(reference: TReference): unknown;
+};
+
+export type NotificationMutationExecutionInput<TReference> = {
+  stateRef: TReference;
+  scheduleRef: TReference;
+  expectedVersion: ExpectedNotificationMutationVersion;
+  resetFence: boolean;
+  rejectActiveDeliveryPermit: boolean;
+  operation: NotificationMutationOperation;
+};
+
 export function isNonNegativeNotificationMutationVersion(
   value: unknown,
 ): value is number {
@@ -94,6 +119,44 @@ export function notificationMutationAuthorizationDecision(
       ? currentVersion + 1
       : undefined,
   };
+}
+
+export async function executeNotificationMutation<TReference>(
+  transaction: NotificationMutationTransaction<TReference>,
+  input: NotificationMutationExecutionInput<TReference>,
+): Promise<NotificationMutationAuthorizationDecision> {
+  const stateData = (await transaction.get(input.stateRef)).data();
+  const decision = notificationMutationAuthorizationDecision({
+    storedVersion: stateData?.version,
+    expectedVersion: input.expectedVersion,
+    resetFence: input.resetFence,
+    rejectActiveDeliveryPermit: input.rejectActiveDeliveryPermit,
+    hasActiveDeliveryPermit: hasActiveDeliveryPermit(stateData),
+    hasEffectiveState: hasEffectiveNotificationMutationState(stateData),
+  });
+  if (decision.kind === "conflict") return decision;
+
+  if (input.operation.kind === "register") {
+    if (decision.nextVersion !== undefined) {
+      transaction.set(
+        input.stateRef,
+        { version: decision.nextVersion },
+        { merge: true },
+      );
+    }
+    transaction.set(input.scheduleRef, input.operation.scheduleData);
+    return decision;
+  }
+
+  transaction.delete(input.scheduleRef);
+  if (decision.nextVersion !== undefined) {
+    transaction.set(
+      input.stateRef,
+      { version: decision.nextVersion },
+      { merge: true },
+    );
+  }
+  return decision;
 }
 
 export function parseExpectedNotificationMutationVersion(

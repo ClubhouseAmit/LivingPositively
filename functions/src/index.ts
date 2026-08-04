@@ -4,12 +4,10 @@ import { setGlobalOptions } from "firebase-functions";
 import { onRequest, Request } from "firebase-functions/https";
 import { onSchedule } from "firebase-functions/scheduler";
 import {
-  ExpectedNotificationMutationVersion,
+  executeNotificationMutation,
   hasActiveDeliveryPermit,
-  hasEffectiveNotificationMutationState,
   isNonNegativeNotificationMutationVersion,
   isValidResetFenceMutation,
-  notificationMutationAuthorizationDecision,
   notificationMutationStatePath,
   parseExpectedNotificationMutationVersion,
 } from "./notification_mutation.js";
@@ -417,33 +415,6 @@ async function cleanupInactiveDevice(uid: string): Promise<void> {
 
 class NotificationMutationConflictError extends Error {}
 
-type NotificationMutationAuthorizationOptions = {
-  resetFence: boolean;
-  rejectActiveDeliveryPermit: boolean;
-};
-
-async function authorizeNotificationMutation(
-  transaction: FirebaseFirestore.Transaction,
-  stateRef: FirebaseFirestore.DocumentReference,
-  expectedVersion: ExpectedNotificationMutationVersion,
-  options: NotificationMutationAuthorizationOptions,
-): Promise<{ nextVersion: number | undefined }> {
-  const stateDoc = await transaction.get(stateRef);
-  const stateData = stateDoc.data();
-  const decision = notificationMutationAuthorizationDecision({
-    storedVersion: stateData?.version,
-    expectedVersion,
-    resetFence: options.resetFence,
-    rejectActiveDeliveryPermit: options.rejectActiveDeliveryPermit,
-    hasActiveDeliveryPermit: hasActiveDeliveryPermit(stateData),
-    hasEffectiveState: hasEffectiveNotificationMutationState(stateData),
-  });
-  if (decision.kind === "conflict") {
-    throw new NotificationMutationConflictError(decision.message);
-  }
-  return decision;
-}
-
 // ---------------------------------------------------------------------------
 // getNotificationMutationVersion — returns the server-authoritative version
 // used to fence scheduled-notification writes for one authenticated schedule.
@@ -557,16 +528,6 @@ export const registerNotification = onRequest(async (req, res) => {
     .doc(`${uid}_${typeId}`);
   try {
     await db.runTransaction(async (transaction) => {
-      const authorization = await authorizeNotificationMutation(
-        transaction,
-        stateRef,
-        expectedVersion,
-        {
-          resetFence: false,
-          rejectActiveDeliveryPermit: false,
-        },
-      );
-
       const scheduleData: Record<string, unknown> = {
         uid,
         typeId,
@@ -576,15 +537,19 @@ export const registerNotification = onRequest(async (req, res) => {
         gender: normalizeNotificationGender(gender),
         updatedAt: admin.firestore.FieldValue.serverTimestamp(),
       };
-      if (authorization.nextVersion !== undefined) {
-        scheduleData.mutationVersion = authorization.nextVersion;
-        transaction.set(
-          stateRef,
-          { version: authorization.nextVersion },
-          { merge: true },
-        );
+      const decision = await executeNotificationMutation<
+        FirebaseFirestore.DocumentReference
+      >(transaction, {
+        stateRef,
+        scheduleRef,
+        expectedVersion,
+        resetFence: false,
+        rejectActiveDeliveryPermit: false,
+        operation: { kind: "register", scheduleData },
+      });
+      if (decision.kind === "conflict") {
+        throw new NotificationMutationConflictError(decision.message);
       }
-      transaction.set(scheduleRef, scheduleData);
     });
   } catch (error) {
     if (error instanceof NotificationMutationConflictError) {
@@ -642,23 +607,18 @@ export const cancelNotification = onRequest(async (req, res) => {
     .doc(`${uid}_${typeId}`);
   try {
     await db.runTransaction(async (transaction) => {
-      const authorization = await authorizeNotificationMutation(
-        transaction,
+      const decision = await executeNotificationMutation<
+        FirebaseFirestore.DocumentReference
+      >(transaction, {
         stateRef,
+        scheduleRef,
         expectedVersion,
-        {
-          resetFence: resetFence === true,
-          rejectActiveDeliveryPermit: resetFence === true,
-        },
-      );
-
-      transaction.delete(scheduleRef);
-      if (authorization.nextVersion !== undefined) {
-        transaction.set(
-          stateRef,
-          { version: authorization.nextVersion },
-          { merge: true },
-        );
+        resetFence: resetFence === true,
+        rejectActiveDeliveryPermit: resetFence === true,
+        operation: { kind: "cancel" },
+      });
+      if (decision.kind === "conflict") {
+        throw new NotificationMutationConflictError(decision.message);
       }
     });
   } catch (error) {

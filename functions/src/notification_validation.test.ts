@@ -10,6 +10,7 @@ import {
   hasActiveDeliveryPermit,
   hasEffectiveNotificationMutationState,
   isValidResetFenceMutation,
+  executeNotificationMutation,
   notificationMutationAuthorizationDecision,
   notificationMutationDecision,
   notificationMutationStatePath,
@@ -150,6 +151,114 @@ describe("notification validation", () => {
       }),
       { kind: "conflict", message: "Scheduled delivery is already authorized" },
     );
+  });
+
+  it("does not write an ordinary corrupt mutation", async () => {
+    const writes: Array<{
+      kind: "set" | "delete";
+      reference: "state" | "schedule";
+      data?: Record<string, unknown>;
+    }> = [];
+    const transaction = {
+      get: async () => ({ data: () => ({ version: "corrupt" }) }),
+      set: (
+        reference: "state" | "schedule",
+        data: Record<string, unknown>,
+      ) => {
+        writes.push({ kind: "set", reference, data });
+      },
+      delete: (reference: "state" | "schedule") => {
+        writes.push({ kind: "delete", reference });
+      },
+    };
+
+    assert.deepEqual(
+      await executeNotificationMutation(transaction, {
+        stateRef: "state",
+        scheduleRef: "schedule",
+        expectedVersion: { kind: "versioned", version: 0 },
+        resetFence: false,
+        rejectActiveDeliveryPermit: false,
+        operation: { kind: "cancel" },
+      }),
+      { kind: "conflict", message: "Invalid notification mutation state" },
+    );
+    assert.deepEqual(writes, []);
+  });
+
+  it("deletes the schedule and writes version one for a corrupt reset", async () => {
+    const writes: Array<{
+      kind: "set" | "delete";
+      reference: "state" | "schedule";
+      data?: Record<string, unknown>;
+    }> = [];
+    const transaction = {
+      get: async () => ({ data: () => ({ version: "corrupt" }) }),
+      set: (
+        reference: "state" | "schedule",
+        data: Record<string, unknown>,
+      ) => {
+        writes.push({ kind: "set", reference, data });
+      },
+      delete: (reference: "state" | "schedule") => {
+        writes.push({ kind: "delete", reference });
+      },
+    };
+
+    assert.deepEqual(
+      await executeNotificationMutation(transaction, {
+        stateRef: "state",
+        scheduleRef: "schedule",
+        expectedVersion: { kind: "versioned", version: 0 },
+        resetFence: true,
+        rejectActiveDeliveryPermit: true,
+        operation: { kind: "cancel" },
+      }),
+      { kind: "apply", nextVersion: 1 },
+    );
+    assert.deepEqual(writes, [
+      { kind: "delete", reference: "schedule" },
+      { kind: "set", reference: "state", data: { version: 1 } },
+    ]);
+  });
+
+  it("does not repair a corrupt reset while a delivery permit is active", async () => {
+    const writes: Array<{
+      kind: "set" | "delete";
+      reference: "state" | "schedule";
+      data?: Record<string, unknown>;
+    }> = [];
+    const transaction = {
+      get: async () => ({
+        data: () => ({
+          version: "corrupt",
+          deliveryPermitKey: "delivery-key",
+          deliveryPermitExpiresAtMillis: Date.now() + 1_000,
+        }),
+      }),
+      set: (
+        reference: "state" | "schedule",
+        data: Record<string, unknown>,
+      ) => {
+        writes.push({ kind: "set", reference, data });
+      },
+      delete: (reference: "state" | "schedule") => {
+        writes.push({ kind: "delete", reference });
+      },
+    };
+
+    assert.deepEqual(
+      await executeNotificationMutation(transaction, {
+        stateRef: "state",
+        scheduleRef: "schedule",
+        expectedVersion: { kind: "versioned", version: 0 },
+        resetFence: true,
+        rejectActiveDeliveryPermit: true,
+        operation: { kind: "cancel" },
+      }),
+      { kind: "conflict", message: "Scheduled delivery is already authorized" },
+    );
+    assert.deepEqual(writes, []);
   });
 
   it("rejects a stale notification mutation version", () => {
