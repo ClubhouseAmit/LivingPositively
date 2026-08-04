@@ -132,10 +132,16 @@ class FcmScheduledNotificationService {
       await migrateLegacyDefaultReminder(userInformation: userInformation);
     } catch (error, stackTrace) {
       if (GetIt.instance.isRegistered<IncidentLoggerService>()) {
-        await GetIt.instance<IncidentLoggerService>().captureLog(
-          error,
-          stackTrace: stackTrace,
-        );
+        try {
+          await GetIt.instance<IncidentLoggerService>().captureLog(
+            error,
+            stackTrace: stackTrace,
+          );
+        } catch (loggerError) {
+          debugPrint(
+            'Legacy reminder migration reporting failed: $loggerError',
+          );
+        }
       } else {
         debugPrint('Legacy reminder migration failed: $error');
       }

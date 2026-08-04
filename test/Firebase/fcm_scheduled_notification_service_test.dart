@@ -74,6 +74,23 @@ class _RecordingIncidentLogger implements IncidentLoggerService {
   Future<void> initializeSentry(Widget myApp) async {}
 }
 
+class _ThrowingIncidentLogger implements IncidentLoggerService {
+  bool captureAttempted = false;
+
+  @override
+  Future<void> captureLog(
+    dynamic exception, {
+    StackTrace? stackTrace,
+    dynamic exceptionData,
+  }) async {
+    captureAttempted = true;
+    throw StateError('incident logger unavailable');
+  }
+
+  @override
+  Future<void> initializeSentry(Widget myApp) async {}
+}
+
 Future<T> _onPlatform<T>(
   TargetPlatform platform,
   Future<T> Function() body,
@@ -580,6 +597,30 @@ void main() {
 
     expect(logger.capturedError, same(exception));
     expect(logger.capturedStackTrace, same(stackTrace));
+  });
+
+  testWidgets('contains logger failures while reporting a migration failure', (
+    tester,
+  ) async {
+    final logger = _ThrowingIncidentLogger();
+    memory.migrationMarkerReadError = StateError('migration marker unavailable');
+    memory.migrationMarkerReadStackTrace = StackTrace.current;
+    GetIt.instance.registerSingleton<IncidentLoggerService>(logger);
+    user.setNotificationPreference(
+      'default',
+      const NotificationPreference(hour: 8, minute: 15),
+    );
+
+    await expectLater(
+      _onPlatform(
+        TargetPlatform.android,
+        () => FcmScheduledNotificationService
+            .migrateLegacyDefaultReminderWithReporting(userInformation: user),
+      ),
+      completes,
+    );
+
+    expect(logger.captureAttempted, isTrue);
   });
 
   testWidgets(
