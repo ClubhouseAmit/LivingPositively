@@ -191,7 +191,8 @@ void main() {
         expect(find.byType(UserSettings), findsOneWidget);
         expect(find.byType(FirstPage), findsNothing);
         expect(user.getNotificationPreference('default'), isNotNull);
-        expect(find.byType(SnackBar), findsOneWidget);
+        expect(find.byType(Dialog), findsNothing);
+        expect(find.byType(SnackBar).hitTestable(), findsOneWidget);
       } finally {
         debugDefaultTargetPlatformOverride = null;
       }

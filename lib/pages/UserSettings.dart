@@ -264,6 +264,7 @@ class _UserSettingsState extends LPExtendedState<UserSettings> {
           );
       if (!cancelled) {
         if (mounted) {
+          Navigator.of(context).pop();
           ScaffoldMessenger.maybeOf(context)?.showSnackBar(
             SnackBar(content: Text(appLocale.resetReminderCancellationFailed)),
           );
