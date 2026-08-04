@@ -2,6 +2,7 @@ import * as admin from "firebase-admin";
 import { Buffer } from "node:buffer";
 import { setGlobalOptions } from "firebase-functions";
 import { onRequest, Request } from "firebase-functions/https";
+import * as logger from "firebase-functions/logger";
 import { onSchedule } from "firebase-functions/scheduler";
 import {
   executeNotificationMutation,
@@ -16,6 +17,10 @@ import {
   isValidNotificationTypeId,
   normalizeNotificationGender,
 } from "./notification_validation.js";
+import {
+  schedulerRecoveryWindow,
+  scheduledNotificationSummary,
+} from "./scheduler_observability.js";
 
 admin.initializeApp();
 setGlobalOptions({ maxInstances: 10 });
@@ -657,11 +662,22 @@ export const processScheduledNotifications = onSchedule(
       .doc("primary");
     const schedulerState = await schedulerStateRef.get();
     const lastProcessedMillis = schedulerState.data()?.lastProcessedMillis;
-    const deliveryCandidates = israelLocalDeliveryCandidatesSince(
+    const recoveryWindow = schedulerRecoveryWindow(
       scheduleTime,
       typeof lastProcessedMillis === "number"
         ? new Date(lastProcessedMillis)
         : undefined,
+    );
+    if (recoveryWindow.wasClamped) {
+      logger.warn("processScheduledNotifications recovery window clamped", {
+        recoveryCandidateMinutes: recoveryWindow.processedCandidateMinutes,
+        requestedRecoveryCandidateMinutes:
+          recoveryWindow.requestedCandidateMinutes,
+      });
+    }
+    const deliveryCandidates = israelLocalDeliveryCandidates(
+      scheduleTime,
+      recoveryWindow.processedCandidateMinutes,
     );
     const scheduledNotifications = db.collection("scheduled_notifications");
     const queryPlan = scheduledNotificationQueryPlan(deliveryCandidates);
@@ -695,13 +711,6 @@ export const processScheduledNotifications = onSchedule(
         { merge: true },
       );
     });
-
-    if (scheduledCandidates.length === 0) {
-      if (shouldAdvanceSchedulerCheckpoint(0)) {
-        await advanceSchedulerCheckpoint();
-      }
-      return;
-    }
 
     // --- Pre-fetch phase ---
 
@@ -979,8 +988,20 @@ export const processScheduledNotifications = onSchedule(
     ).length;
     const staleCleanupFailedCount = staleCleanupResults.length - staleDevicesCleaned;
 
-    console.log(
-      `processScheduledNotifications: sent=${successCount}, failed=${failureCount}, alreadyClaimed=${alreadyClaimedCount}, notCurrent=${notCurrentCount}, claimFailed=${claimFailedCount}, staleDevicesCleaned=${staleDevicesCleaned}, staleCleanupFailed=${staleCleanupFailedCount}`,
+    logger.info(
+      "processScheduledNotifications",
+      scheduledNotificationSummary(
+        {
+          sent: successCount,
+          failed: failureCount,
+          alreadyClaimed: alreadyClaimedCount,
+          notCurrent: notCurrentCount,
+          claimFailed: claimFailedCount,
+          staleDevicesCleaned,
+          staleCleanupFailed: staleCleanupFailedCount,
+        },
+        recoveryWindow,
+      ),
     );
 
   },

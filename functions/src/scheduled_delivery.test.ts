@@ -11,6 +11,10 @@ import {
   selectScheduledNotificationCandidates,
   shouldAdvanceSchedulerCheckpoint,
 } from "./index.js";
+import {
+  schedulerRecoveryWindow,
+  scheduledNotificationSummary,
+} from "./scheduler_observability.js";
 
 describe("scheduled notification delivery", () => {
   it("builds a canonical delivery key from the local intended time", () => {
@@ -87,6 +91,48 @@ describe("scheduled notification delivery", () => {
       israelLocalDeliveryCandidatesSince(now, fourHoursAgo).length,
       121,
     );
+  });
+
+  it("reports when a stale scheduler checkpoint is clamped", () => {
+    assert.deepEqual(
+      schedulerRecoveryWindow(
+        new Date("2026-01-01T20:59:00.000Z"),
+        new Date("2026-01-01T16:59:00.000Z"),
+      ),
+      {
+        requestedCandidateMinutes: 240,
+        processedCandidateMinutes: 121,
+        wasClamped: true,
+      },
+    );
+  });
+
+  it("keeps scheduler summary recovery and claim failure metrics structured", () => {
+    const summary = JSON.parse(JSON.stringify(scheduledNotificationSummary(
+      {
+        sent: 3,
+        failed: 2,
+        alreadyClaimed: 4,
+        notCurrent: 5,
+        claimFailed: 2,
+        staleDevicesCleaned: 6,
+        staleCleanupFailed: 7,
+      },
+      {
+        requestedCandidateMinutes: 240,
+        processedCandidateMinutes: 121,
+        wasClamped: true,
+      },
+    )));
+
+    assert.equal(summary.claimFailed, 2);
+    assert.equal(typeof summary.claimFailed, "number");
+    assert.equal(summary.recoveryCandidateMinutes, 121);
+    assert.equal(typeof summary.recoveryCandidateMinutes, "number");
+    assert.equal(summary.requestedRecoveryCandidateMinutes, 240);
+    assert.equal(typeof summary.requestedRecoveryCandidateMinutes, "number");
+    assert.equal(summary.recoveryClamped, true);
+    assert.equal(typeof summary.recoveryClamped, "boolean");
   });
 
   it("uses an exact schedule query for the normal one-minute interval", () => {
