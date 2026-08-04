@@ -95,6 +95,12 @@ without a mutation version are current only when the selected and re-read
 `updatedAt` timestamps are both usable and equal. An expired permit without a
 stored mutation version is not a legacy mutation fence.
 
+If a stored mutation version is malformed, `getNotificationMutationVersion`
+returns zero to the authenticated client only so it can issue the reset-fenced
+repair. Ordinary register and cancel operations remain rejected with a
+controlled conflict; the active-delivery-permit check remains authoritative,
+including during reset-fenced repair.
+
 - Spring-forward: a configured non-existent Israel-local wall-clock minute is
   skipped. This is accepted best-effort behavior.
 - Fall-back: both occurrences share the local-date/time key. The first claim
@@ -114,10 +120,15 @@ complete, its checkpoint remains held for a later invocation.
 
 A claim-write failure deliberately holds the checkpoint rather than skipping an
 unacknowledged intended minute. The next scheduler invocation retries that
-bounded window. During recovery (two or more candidate minutes), Firestore
-queries every schedule in the affected one-to-three local hours and filters
-the exact candidate minutes in memory; the time window is capped at 120
-minutes, but read volume still scales with schedules in those hours. Production
+bounded window. The scheduler summary emits `claimFailed`,
+`recoveryCandidateMinutes`, `requestedRecoveryCandidateMinutes`, and
+`recoveryClamped` as structured Cloud Logging fields. During recovery (two or
+more candidate minutes), Firestore queries every schedule in the affected
+one-to-three local hours and filters the exact candidate minutes in memory. A
+gap beyond the 120-minute lookback drops older intended minutes by design and
+always emits a clamp warning before the scheduler can advance its checkpoint;
+the fields distinguish the requested window from the processed bounded window.
+Read volume still scales with schedules in the queried hours. Production
 monitoring must alert on repeated nonzero `claimFailed` counts and claimed
 records that age without reaching a terminal status. Repeated claim failures
 keep the checkpoint in recovery; aged claimed records identify a send or
@@ -161,7 +172,8 @@ tests once the rules source is supplied.
 
 Do not deploy these Functions, provision notification content, or enable the
 scheduler until the production rules owner records all three artifacts in the
-release ticket.
+release ticket. This is a hard pre-deployment gate, not a post-merge
+follow-up.
 
 ## FCM-04 — Two Different Legacy Concerns
 
