@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:fake_cloud_firestore/fake_cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
@@ -9,11 +11,20 @@ import 'package:mazilon/pages/auth/auth_page.dart';
 import 'package:mazilon/pages/auth/forgot_password_page.dart';
 import 'package:mazilon/util/Firebase/auth_service.dart';
 import 'package:mazilon/util/userInformation.dart';
+import 'package:mockito/annotations.dart';
 import 'package:mockito/mockito.dart';
 
-import '../Firebase/firebase_auth_service_test.mocks.dart';
 import '../helpers/widget_test_scaffold.dart';
 
+import 'auth_page_interactions_test.mocks.dart';
+
+@GenerateNiceMocks([
+  MockSpec<User>(),
+  MockSpec<FirebaseFirestore>(),
+  MockSpec<CollectionReference<Map<String, dynamic>>>(),
+  MockSpec<DocumentReference<Map<String, dynamic>>>(),
+  MockSpec<DocumentSnapshot<Map<String, dynamic>>>(),
+])
 void main() {
   setUp(() => registerTestServices(locale: 'en'));
   tearDown(() => GetIt.instance.reset());
@@ -46,7 +57,16 @@ void main() {
       when(firebaseUser.uid).thenReturn('uid-123');
       when(firebaseUser.email).thenReturn('person@example.com');
       when(firebaseUser.displayName).thenReturn('Person');
-      final firestore = FakeFirebaseFirestore();
+      final persistenceRead =
+          Completer<DocumentSnapshot<Map<String, dynamic>>>();
+      final firestore = MockFirebaseFirestore();
+      final users = MockCollectionReference();
+      final userDocument = MockDocumentReference();
+      final documentSnapshot = MockDocumentSnapshot();
+      when(firestore.collection('users')).thenReturn(users);
+      when(users.doc('uid-123')).thenReturn(userDocument);
+      when(userDocument.get()).thenAnswer((_) => persistenceRead.future);
+      when(documentSnapshot.exists).thenReturn(false);
       GetIt.instance.registerSingleton<FirebaseFirestore>(firestore);
       debugDefaultTargetPlatformOverride = TargetPlatform.windows;
 
@@ -71,8 +91,11 @@ void main() {
           firebaseUser,
         );
 
-        await tester.pump();
         await tester.pumpWidget(const SizedBox.shrink());
+        expect(find.byType(AuthPage), findsNothing);
+        expect(userInformation.loggedIn, isFalse);
+
+        persistenceRead.complete(documentSnapshot);
         await completion;
 
         expect(userInformation.loggedIn, isTrue);
