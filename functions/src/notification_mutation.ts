@@ -10,6 +10,11 @@ export type NotificationMutationDecision =
   | "legacyBlocked"
   | "invalid";
 
+export type StoredNotificationMutationVersionDecision =
+  | { kind: "use"; version: number }
+  | { kind: "repair" }
+  | { kind: "reject" };
+
 export function isNonNegativeNotificationMutationVersion(
   value: unknown,
 ): value is number {
@@ -18,6 +23,17 @@ export function isNonNegativeNotificationMutationVersion(
     Number.isSafeInteger(value) &&
     value >= 0
   );
+}
+
+export function storedNotificationMutationVersionDecision(
+  value: unknown,
+  allowInvalidVersionRepair: boolean,
+): StoredNotificationMutationVersionDecision {
+  if (value === undefined) return { kind: "use", version: 0 };
+  if (isNonNegativeNotificationMutationVersion(value)) {
+    return { kind: "use", version: value };
+  }
+  return allowInvalidVersionRepair ? { kind: "repair" } : { kind: "reject" };
 }
 
 export function parseExpectedNotificationMutationVersion(

@@ -12,6 +12,7 @@ import {
   notificationMutationDecision,
   notificationMutationStatePath,
   parseExpectedNotificationMutationVersion,
+  storedNotificationMutationVersionDecision,
 } from "./notification_mutation.js";
 import {
   hasValidNotificationTypeSchema,
@@ -426,13 +427,6 @@ async function authorizeNotificationMutation(
   const stateDoc = await transaction.get(stateRef);
   const stateData = stateDoc.data();
   const storedVersion = stateData?.version;
-  if (
-    storedVersion !== undefined &&
-    !isNonNegativeNotificationMutationVersion(storedVersion)
-  ) {
-    throw new Error("Invalid notification mutation state");
-  }
-  const currentVersion = storedVersion;
 
   if (
     rejectActiveDeliveryPermit &&
@@ -442,6 +436,19 @@ async function authorizeNotificationMutation(
       "Scheduled delivery is already authorized",
     );
   }
+
+  const storedVersionDecision = storedNotificationMutationVersionDecision(
+    storedVersion,
+    rejectActiveDeliveryPermit,
+  );
+  if (storedVersionDecision.kind === "reject") {
+    throw new NotificationMutationConflictError(
+      "Invalid notification mutation state",
+    );
+  }
+  const currentVersion = storedVersionDecision.kind === "repair"
+    ? 0
+    : storedVersionDecision.version;
 
   const decision = notificationMutationDecision(
     expectedVersion,
@@ -498,7 +505,11 @@ export const getNotificationMutationVersion = onRequest(async (req, res) => {
     return;
   }
   if (!isNonNegativeNotificationMutationVersion(mutationVersion)) {
-    res.status(500).send("Invalid notification mutation state");
+    console.warn("Invalid notification mutation state version", {
+      typeId,
+      valueType: typeof mutationVersion,
+    });
+    res.send({ mutationVersion: 0 });
     return;
   }
   res.send({ mutationVersion });

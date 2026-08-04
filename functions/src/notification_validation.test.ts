@@ -13,6 +13,7 @@ import {
   notificationMutationDecision,
   notificationMutationStatePath,
   parseExpectedNotificationMutationVersion,
+  storedNotificationMutationVersionDecision,
 } from "./notification_mutation.js";
 
 describe("notification validation", () => {
@@ -91,6 +92,21 @@ describe("notification validation", () => {
     assert.deepEqual(parseExpectedNotificationMutationVersion("0"), {
       kind: "invalid",
     });
+  });
+
+  it("repairs corrupt stored versions only for reset-fenced mutations", () => {
+    assert.deepEqual(
+      storedNotificationMutationVersionDecision("corrupt", false),
+      { kind: "reject" },
+    );
+    assert.deepEqual(
+      storedNotificationMutationVersionDecision("corrupt", true),
+      { kind: "repair" },
+    );
+    assert.deepEqual(
+      storedNotificationMutationVersionDecision(7, false),
+      { kind: "use", version: 7 },
+    );
   });
 
   it("rejects a stale notification mutation version", () => {
