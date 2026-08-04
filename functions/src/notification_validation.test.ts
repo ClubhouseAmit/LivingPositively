@@ -2,16 +2,18 @@ import assert from "node:assert/strict";
 import { describe, it } from "node:test";
 
 import {
+  hasValidNotificationTypeSchema,
+  isValidNotificationTypeId,
+  normalizeNotificationGender,
+} from "./notification_validation.js";
+import {
   hasActiveDeliveryPermit,
   hasEffectiveNotificationMutationState,
-  hasValidNotificationTypeSchema,
   isValidResetFenceMutation,
-  isValidNotificationTypeId,
-  notificationMutationStatePath,
   notificationMutationDecision,
-  normalizeNotificationGender,
+  notificationMutationStatePath,
   parseExpectedNotificationMutationVersion,
-} from "./index.js";
+} from "./notification_mutation.js";
 
 describe("notification validation", () => {
   it("accepts identifier-safe type IDs and rejects Firestore paths", () => {
@@ -98,6 +100,16 @@ describe("notification validation", () => {
         1,
       ),
       "stale",
+    );
+  });
+
+  it("rejects a mutation version that cannot be incremented safely", () => {
+    assert.equal(
+      notificationMutationDecision(
+        { kind: "versioned", version: Number.MAX_SAFE_INTEGER },
+        Number.MAX_SAFE_INTEGER,
+      ),
+      "overflow",
     );
   });
 

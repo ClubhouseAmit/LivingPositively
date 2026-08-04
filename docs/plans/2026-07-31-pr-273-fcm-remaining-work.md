@@ -1,7 +1,7 @@
 # PR #273 — FCM Decision Record and Remaining External Work
 
 Created: 2026-07-31
-Last updated: 2026-08-03
+Last updated: 2026-08-04
 
 Parent PR: [#273](https://github.com/ClubhouseAmit/LivingPositively/pull/273)
 Stacked implementation PR: [#309](https://github.com/ClubhouseAmit/LivingPositively/pull/309)
@@ -9,7 +9,7 @@ Stacked implementation PR: [#309](https://github.com/ClubhouseAmit/LivingPositiv
 ## Current Status
 
 Stacked PR #309 implements the FCM follow-up. Local verification passed 799
-Flutter tests (9 skipped) and 41 Functions tests. `flutter analyze` reports
+Flutter tests (9 skipped) and 42 Functions tests. `flutter analyze` reports
 only 24 inherited warnings in unchanged generated mocks.
 The earlier Android integration failure was a missing
 `integration_test/notifications_schedule_test.dart`; the rebased parent now
@@ -149,8 +149,19 @@ match /notification_mutation_state/{uid}/types/{typeId} {
 This repository has no canonical Firestore rules file or rules deployment
 target in `firebase.json`. A new root rules file could replace unrelated
 production policy, so this record intentionally does not invent one. Verify
-the three deny clauses with authenticated emulator read/list/create/update/delete
+the four deny clauses with authenticated emulator read/list/create/update/delete
 tests once the rules source is supplied.
+
+**Rollout is blocked until that verification exists.** Required evidence is:
+
+1. the canonical rules repository, file, and Firebase deployment target;
+2. the reviewed deny-rule change for every path above; and
+3. an authenticated emulator result covering get, list, create, update, and
+   delete attempts against each parent and nested path.
+
+Do not deploy these Functions, provision notification content, or enable the
+scheduler until the production rules owner records all three artifacts in the
+release ticket.
 
 ## FCM-04 — Two Different Legacy Concerns
 
@@ -181,20 +192,27 @@ impossible. Do not assign schedules to guessed identities.
 
 ### Deployment gates
 
-1. Before deploying, configure Firestore TTL for
+1. Release a compatible mobile client that sends
+   `expectedMutationVersion` for register, cancel, and reset, and enforce the
+   project's minimum-version/upgrade policy before deploying the mutation
+   fence. After a versioned mutation or reset creates state, older clients
+   intentionally receive 409. Treating an omitted version as current would let
+   a delayed legacy request recreate a reminder after reset.
+2. Before deploying, configure Firestore TTL for
    `notification_deliveries.expiresAt`; it is a rollout gate, not application
    configuration.
-2. Before deploying, add the documented deny rules for
+3. Before deploying, add the documented deny rules for
    `notification_deliveries`, `notification_scheduler_state`, and both the
    parent and `types` paths of `notification_mutation_state` to the canonical
    production rules source,
    then verify them with authenticated emulator read/list/create/update/delete
-   checks.
-3. Deploy Functions through the normal production process with the approved
+   checks. Attach the canonical source, reviewed diff, and emulator result to
+   the release ticket; deployment remains blocked without all three.
+4. Deploy Functions through the normal production process with the approved
    scheduler invocation bound of 300 seconds, 512MiB, and 25 task batches.
-4. Before enabling production traffic, configure alerts for repeated claim
+5. Before enabling production traffic, configure alerts for repeated claim
    failures and claimed records that age without a terminal status.
-5. Run `npm --prefix functions run provision:notifications -- --project
+6. Run `npm --prefix functions run provision:notifications -- --project
    <firebase-project-id>` with credentials for that explicit project.
 
 ### Post-deploy validation and data work

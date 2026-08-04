@@ -3,25 +3,28 @@ import { Buffer } from "node:buffer";
 import { setGlobalOptions } from "firebase-functions";
 import { onRequest, Request } from "firebase-functions/https";
 import { onSchedule } from "firebase-functions/scheduler";
+import {
+  ExpectedNotificationMutationVersion,
+  hasActiveDeliveryPermit,
+  hasEffectiveNotificationMutationState,
+  isNonNegativeNotificationMutationVersion,
+  isValidResetFenceMutation,
+  notificationMutationDecision,
+  notificationMutationStatePath,
+  parseExpectedNotificationMutationVersion,
+} from "./notification_mutation.js";
+import {
+  hasValidNotificationTypeSchema,
+  isValidNotificationTypeId,
+  normalizeNotificationGender,
+} from "./notification_validation.js";
 
 admin.initializeApp();
 setGlobalOptions({ maxInstances: 10 });
 
 const STALE_TOKEN_DAYS = 180;
-const NOTIFICATION_TYPE_ID_PATTERN = /^[A-Za-z0-9_-]{1,64}$/;
 const DELIVERY_PERMIT_DURATION_MILLIS = 305_000;
 
-type NotificationGender = "male" | "female" | "other";
-type DynamicNotificationType = {
-  messageType: "dynamic";
-  quotesCollections: Record<string, unknown>;
-};
-type StaticNotificationType = {
-  messageType: "static";
-  staticTitle: string;
-  staticBody: string;
-};
-type ValidNotificationType = DynamicNotificationType | StaticNotificationType;
 export type IsraelLocalDeliveryCandidate = {
   localDate: string;
   intendedTime: string;
@@ -65,128 +68,12 @@ type ScheduledNotificationDocument = {
 export type ScheduledNotificationQueryPlan =
   | { kind: "exact"; hour: number; minute: number }
   | { kind: "catchUp"; hours: number[] };
-export type ExpectedNotificationMutationVersion =
-  | { kind: "legacy" }
-  | { kind: "versioned"; version: number }
-  | { kind: "invalid" };
-export type NotificationMutationDecision =
-  | "apply"
-  | "stale"
-  | "legacyBlocked"
-  | "invalid";
-
-export function isValidNotificationTypeId(
-  value: unknown,
-): value is string {
-  return (
-    typeof value === "string" && NOTIFICATION_TYPE_ID_PATTERN.test(value)
-  );
-}
-
-export function normalizeNotificationGender(
-  value: unknown,
-): NotificationGender {
-  return value === "male" || value === "female" || value === "other"
-    ? value
-    : "other";
-}
-
-function isNonNegativeNotificationMutationVersion(value: unknown): value is number {
-  return (
-    typeof value === "number" &&
-    Number.isSafeInteger(value) &&
-    value >= 0
-  );
-}
-
-export function parseExpectedNotificationMutationVersion(
-  value: unknown,
-): ExpectedNotificationMutationVersion {
-  if (value === undefined) return { kind: "legacy" };
-  if (isNonNegativeNotificationMutationVersion(value)) {
-    return { kind: "versioned", version: value };
-  }
-  return { kind: "invalid" };
-}
-
-export function isValidResetFenceMutation(
-  resetFence: boolean | undefined,
-  expected: ExpectedNotificationMutationVersion,
-): boolean {
-  return resetFence !== true || expected.kind === "versioned";
-}
-
-export function notificationMutationDecision(
-  expected: ExpectedNotificationMutationVersion,
-  currentVersion: number | undefined,
-  stateExists = currentVersion !== undefined,
-): NotificationMutationDecision {
-  if (expected.kind === "invalid") return "invalid";
-  if (expected.kind === "legacy") {
-    return stateExists ? "legacyBlocked" : "apply";
-  }
-  return expected.version === (currentVersion ?? 0) ? "apply" : "stale";
-}
-
-export function notificationMutationStatePath(
-  uid: string,
-  typeId: string,
-): string {
-  return `notification_mutation_state/${uid}/types/${typeId}`;
-}
-
 function notificationMutationStateRef(
   db: FirebaseFirestore.Firestore,
   uid: string,
   typeId: string,
 ): FirebaseFirestore.DocumentReference {
   return db.doc(notificationMutationStatePath(uid, typeId));
-}
-
-export function hasActiveDeliveryPermit(
-  state: Record<string, unknown> | undefined,
-  nowMillis = Date.now(),
-): boolean {
-  return (
-    typeof state?.deliveryPermitKey === "string" &&
-    state.deliveryPermitKey.length > 0 &&
-    typeof state.deliveryPermitExpiresAtMillis === "number" &&
-    Number.isFinite(state.deliveryPermitExpiresAtMillis) &&
-    state.deliveryPermitExpiresAtMillis > nowMillis
-  );
-}
-
-export function hasEffectiveNotificationMutationState(
-  state: Record<string, unknown> | undefined,
-  nowMillis = Date.now(),
-): boolean {
-  return (
-    isNonNegativeNotificationMutationVersion(state?.version) ||
-    hasActiveDeliveryPermit(state, nowMillis)
-  );
-}
-
-export function hasValidNotificationTypeSchema(
-  value: unknown,
-): value is ValidNotificationType {
-  if (value === null || typeof value !== "object" || Array.isArray(value)) {
-    return false;
-  }
-  const data = value as Record<string, unknown>;
-  if (data.messageType === "dynamic") {
-    return (
-      data.quotesCollections !== null &&
-      typeof data.quotesCollections === "object" &&
-      !Array.isArray(data.quotesCollections)
-    );
-  }
-  if (data.messageType === "static") {
-    return (
-      typeof data.staticTitle === "string" &&
-      typeof data.staticBody === "string"
-    );
-  }
-  return false;
 }
 
 export function buildNotificationDeliveryKey(
@@ -530,6 +417,48 @@ async function cleanupInactiveDevice(uid: string): Promise<void> {
 
 class NotificationMutationConflictError extends Error {}
 
+async function authorizeNotificationMutation(
+  transaction: FirebaseFirestore.Transaction,
+  stateRef: FirebaseFirestore.DocumentReference,
+  expectedVersion: ExpectedNotificationMutationVersion,
+  rejectActiveDeliveryPermit: boolean,
+): Promise<number | undefined> {
+  const stateDoc = await transaction.get(stateRef);
+  const stateData = stateDoc.data();
+  const storedVersion = stateData?.version;
+  if (
+    storedVersion !== undefined &&
+    !isNonNegativeNotificationMutationVersion(storedVersion)
+  ) {
+    throw new Error("Invalid notification mutation state");
+  }
+  const currentVersion = storedVersion;
+
+  if (
+    rejectActiveDeliveryPermit &&
+    hasActiveDeliveryPermit(stateData)
+  ) {
+    throw new NotificationMutationConflictError(
+      "Scheduled delivery is already authorized",
+    );
+  }
+
+  const decision = notificationMutationDecision(
+    expectedVersion,
+    currentVersion,
+    hasEffectiveNotificationMutationState(stateData),
+  );
+  if (decision === "overflow") {
+    throw new NotificationMutationConflictError(
+      "Notification mutation version overflow",
+    );
+  }
+  if (decision !== "apply") {
+    throw new NotificationMutationConflictError("Stale notification mutation");
+  }
+  return currentVersion;
+}
+
 // ---------------------------------------------------------------------------
 // getNotificationMutationVersion — returns the server-authoritative version
 // used to fence scheduled-notification writes for one authenticated schedule.
@@ -639,30 +568,12 @@ export const registerNotification = onRequest(async (req, res) => {
     .doc(`${uid}_${typeId}`);
   try {
     await db.runTransaction(async (transaction) => {
-      const stateDoc = await transaction.get(stateRef);
-      const stateData = stateDoc.data();
-      let currentVersion: number | undefined;
-      if (stateDoc.exists) {
-        const storedVersion = stateData?.version;
-        if (
-          storedVersion !== undefined &&
-          !isNonNegativeNotificationMutationVersion(storedVersion)
-        ) {
-          throw new Error("Invalid notification mutation state");
-        }
-        if (storedVersion !== undefined) {
-          currentVersion = storedVersion;
-        }
-      }
-      if (
-        notificationMutationDecision(
-          expectedVersion,
-          currentVersion,
-          hasEffectiveNotificationMutationState(stateData),
-        ) !== "apply"
-      ) {
-        throw new NotificationMutationConflictError("Stale notification mutation");
-      }
+      const currentVersion = await authorizeNotificationMutation(
+        transaction,
+        stateRef,
+        expectedVersion,
+        false,
+      );
 
       const scheduleData: Record<string, unknown> = {
         uid,
@@ -736,38 +647,12 @@ export const cancelNotification = onRequest(async (req, res) => {
     .doc(`${uid}_${typeId}`);
   try {
     await db.runTransaction(async (transaction) => {
-      const stateDoc = await transaction.get(stateRef);
-      const stateData = stateDoc.data();
-      let currentVersion: number | undefined;
-      if (stateDoc.exists) {
-        const storedVersion = stateData?.version;
-        if (
-          storedVersion !== undefined &&
-          !isNonNegativeNotificationMutationVersion(storedVersion)
-        ) {
-          throw new Error("Invalid notification mutation state");
-        }
-        if (storedVersion !== undefined) {
-          currentVersion = storedVersion;
-        }
-      }
-      if (
-        resetFence === true &&
-        hasActiveDeliveryPermit(stateData)
-      ) {
-        throw new NotificationMutationConflictError(
-          "Scheduled delivery is already authorized",
-        );
-      }
-      if (
-        notificationMutationDecision(
-          expectedVersion,
-          currentVersion,
-          hasEffectiveNotificationMutationState(stateData),
-        ) !== "apply"
-      ) {
-        throw new NotificationMutationConflictError("Stale notification mutation");
-      }
+      const currentVersion = await authorizeNotificationMutation(
+        transaction,
+        stateRef,
+        expectedVersion,
+        resetFence === true,
+      );
 
       transaction.delete(scheduleRef);
       if (expectedVersion.kind === "versioned") {
