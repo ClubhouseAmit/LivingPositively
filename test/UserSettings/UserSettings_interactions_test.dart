@@ -61,6 +61,85 @@ class _PendingResetImagePickerService extends NoopImagePickerService {
   }
 }
 
+class _TrackingResetImagePickerService extends NoopImagePickerService {
+  bool deleteStarted = false;
+
+  @override
+  Future<void> deleteImages() async {
+    deleteStarted = true;
+  }
+}
+
+class _TrackingPhonePageData extends PhonePageData {
+  _TrackingPhonePageData()
+    : super(
+        key: 'trackingPhonePageData',
+        header: 'header',
+        subTitle: 'subTitle',
+        midTitle: 'midTitle',
+        phoneNameTitle: 'phoneNameTitle',
+        phoneNumberTitle: 'phoneNumberTitle',
+        phoneNames: const [],
+        phoneNumbers: const [],
+        savedPhoneNames: const [],
+        savedPhoneNumbers: const [],
+        phoneDescription: const [],
+      );
+
+  bool resetStarted = false;
+
+  @override
+  void reset() {
+    resetStarted = true;
+  }
+}
+
+class _FailingResetMemoryService extends FakePersistentMemoryService {
+  @override
+  Future<void> reset() {
+    return Future<void>.error(StateError('persistent reset failed'));
+  }
+}
+
+class _RejectedPhonePersistenceMemoryService
+    extends FakePersistentMemoryService {
+  bool resetCompleted = false;
+
+  @override
+  Future<void> reset() async {
+    await super.reset();
+    resetCompleted = true;
+  }
+
+  @override
+  Future<void> setItem(String key, PersistentMemoryType type, dynamic value) {
+    if (resetCompleted && key.endsWith('SavedPhoneNames')) {
+      return Future<void>.error(StateError('phone persistence failed'));
+    }
+    return super.setItem(key, type, value);
+  }
+}
+
+class _RejectedAuthPersistenceMemoryService
+    extends FakePersistentMemoryService {
+  bool resetCompleted = false;
+
+  @override
+  Future<void> reset() async {
+    await super.reset();
+    resetCompleted = true;
+  }
+
+  @override
+  Future<void> setItem(String key, PersistentMemoryType type, dynamic value) {
+    if (resetCompleted &&
+        const {'loggedIn', 'authDecisionMade', 'userId'}.contains(key)) {
+      return Future<void>.error(StateError('auth persistence failed'));
+    }
+    return super.setItem(key, type, value);
+  }
+}
+
 class _PostResetReadFailingMemoryService extends FakePersistentMemoryService {
   bool resetCompleted = false;
   bool postResetReadAttempted = false;
@@ -210,6 +289,182 @@ void main() {
       expect(find.byType(UserSettings), findsOneWidget);
     },
   );
+
+  testWidgets('reset failure keeps Settings interactive before commit', (
+    tester,
+  ) async {
+    final memory = _FailingResetMemoryService();
+    memory.store['name'] = 'Not reset';
+    memory.store['age'] = '30-40';
+    GetIt.instance.unregister<PersistentMemoryService>();
+    GetIt.instance.registerSingleton<PersistentMemoryService>(memory);
+    user.service = memory;
+    user.name = 'Not reset';
+    user.age = '30-40';
+    final phonePageData = _TrackingPhonePageData();
+    final picker = _TrackingResetImagePickerService();
+    GetIt.instance.unregister<ImagePickerService>();
+    GetIt.instance.registerSingleton<ImagePickerService>(picker);
+    debugDefaultTargetPlatformOverride = TargetPlatform.windows;
+
+    try {
+      await pumpWithProviders(
+        tester,
+        UserSettings(
+          username: user.name,
+          age: user.age,
+          gender: 'male',
+          phonePageData: phonePageData,
+          changeLocale: (_) {},
+        ),
+        userInformation: user,
+        surfaceSize: const Size(1024, 2800),
+      );
+
+      final resetButton = find.byKey(const Key('userSettingsResetButton'));
+      await tester.ensureVisible(resetButton);
+      await tester.tap(resetButton, warnIfMissed: false);
+      await tester.pumpAndSettle();
+
+      var dialogButtons = find.descendant(
+        of: find.byType(Dialog),
+        matching: find.byType(TextButton),
+      );
+      await tester.tap(dialogButtons.last, warnIfMissed: false);
+      await tester.pumpAndSettle();
+
+      dialogButtons = find.descendant(
+        of: find.byType(Dialog),
+        matching: find.byType(TextButton),
+      );
+      expect(find.byType(FirstPage), findsNothing);
+      expect(find.byType(UserSettings), findsOneWidget);
+      expect(find.byType(Dialog), findsOneWidget);
+      expect(find.byType(CircularProgressIndicator), findsNothing);
+      for (final button in tester.widgetList<TextButton>(dialogButtons)) {
+        expect(button.onPressed, isNotNull);
+      }
+      expect(phonePageData.resetStarted, isFalse);
+      expect(picker.deleteStarted, isFalse);
+      expect(user.name, 'Not reset');
+      expect(user.age, '30-40');
+      expect(memory.store['name'], 'Not reset');
+      expect(memory.store['age'], '30-40');
+      expect(tester.takeException(), isNull);
+    } finally {
+      debugDefaultTargetPlatformOverride = null;
+    }
+  });
+
+  testWidgets('discarded phone persistence failure remains terminal', (
+    tester,
+  ) async {
+    final memory = _RejectedPhonePersistenceMemoryService();
+    GetIt.instance.unregister<PersistentMemoryService>();
+    GetIt.instance.registerSingleton<PersistentMemoryService>(memory);
+    user.service = memory;
+    final logger =
+        GetIt.instance<IncidentLoggerService>() as NoopIncidentLoggerService;
+    debugDefaultTargetPlatformOverride = TargetPlatform.windows;
+
+    try {
+      await pumpWithProviders(
+        tester,
+        UserSettings(
+          username: 'Phone persistence',
+          age: '18-30',
+          gender: 'male',
+          phonePageData: _phone(),
+          changeLocale: (_) {},
+        ),
+        userInformation: user,
+        surfaceSize: const Size(1024, 2800),
+      );
+
+      final resetButton = find.byKey(const Key('userSettingsResetButton'));
+      await tester.ensureVisible(resetButton);
+      await tester.tap(resetButton, warnIfMissed: false);
+      await tester.pumpAndSettle();
+
+      final dialogButtons = find.descendant(
+        of: find.byType(Dialog),
+        matching: find.byType(TextButton),
+      );
+      await tester.tap(dialogButtons.last, warnIfMissed: false);
+      await tester.pumpAndSettle();
+
+      expect(find.byType(FirstPage), findsOneWidget);
+      expect(find.byType(UserSettings), findsNothing);
+      expect(find.byType(Dialog), findsNothing);
+      expect(
+        logger.captured.whereType<StateError>().map((error) => error.message),
+        contains('phone persistence failed'),
+      );
+      expect(tester.takeException(), isNull);
+    } finally {
+      debugDefaultTargetPlatformOverride = null;
+    }
+  });
+
+  testWidgets('discarded auth persistence failures remain terminal', (
+    tester,
+  ) async {
+    final memory = _RejectedAuthPersistenceMemoryService();
+    GetIt.instance.unregister<PersistentMemoryService>();
+    GetIt.instance.registerSingleton<PersistentMemoryService>(memory);
+    user.service = memory;
+    final logger =
+        GetIt.instance<IncidentLoggerService>() as NoopIncidentLoggerService;
+    final auth = MockFirebaseAuth();
+    final firebaseUser = MockUser();
+    when(auth.currentUser).thenReturn(firebaseUser);
+    when(firebaseUser.isAnonymous).thenReturn(false);
+    when(firebaseUser.uid).thenReturn('reset-user');
+    when(firebaseUser.email).thenReturn('reset@example.com');
+    when(firebaseUser.displayName).thenReturn('Reset User');
+    GetIt.instance.registerSingleton<FirebaseAuth>(auth);
+    debugDefaultTargetPlatformOverride = TargetPlatform.windows;
+
+    try {
+      await pumpWithProviders(
+        tester,
+        UserSettings(
+          username: 'Auth persistence',
+          age: '18-30',
+          gender: 'male',
+          phonePageData: _phone(),
+          changeLocale: (_) {},
+        ),
+        userInformation: user,
+        surfaceSize: const Size(1024, 2800),
+      );
+
+      final resetButton = find.byKey(const Key('userSettingsResetButton'));
+      await tester.ensureVisible(resetButton);
+      await tester.tap(resetButton, warnIfMissed: false);
+      await tester.pumpAndSettle();
+
+      final dialogButtons = find.descendant(
+        of: find.byType(Dialog),
+        matching: find.byType(TextButton),
+      );
+      await tester.tap(dialogButtons.last, warnIfMissed: false);
+      await tester.pumpAndSettle();
+
+      expect(find.byType(FirstPage), findsOneWidget);
+      expect(find.byType(UserSettings), findsNothing);
+      expect(find.byType(Dialog), findsNothing);
+      expect(user.loggedIn, isTrue);
+      expect(user.userId, 'reset-user');
+      expect(
+        logger.captured.whereType<StateError>().map((error) => error.message),
+        contains('auth persistence failed'),
+      );
+      expect(tester.takeException(), isNull);
+    } finally {
+      debugDefaultTargetPlatformOverride = null;
+    }
+  });
 
   testWidgets('reset stays terminal after persistence reset commits', (
     tester,

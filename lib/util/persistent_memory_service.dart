@@ -69,13 +69,26 @@ class SharedPreferencesService implements PersistentMemoryService {
 
   @override
   Future<void> reset() async {
-    IncidentLoggerService loggerService =
-        GetIt.instance<IncidentLoggerService>();
     try {
       var prefs = await SharedPreferences.getInstance();
-      await prefs.clear();
+      final cleared = await prefs.clear();
+      if (!cleared) {
+        throw StateError('SharedPreferences clear returned false');
+      }
     } catch (error, stackTrace) {
-      loggerService.captureLog(error, stackTrace: stackTrace);
+      try {
+        if (GetIt.instance.isRegistered<IncidentLoggerService>()) {
+          await Future<void>.sync(
+            () => GetIt.instance<IncidentLoggerService>().captureLog(
+              error,
+              stackTrace: stackTrace,
+            ),
+          );
+        }
+      } catch (_) {
+        // Reporting is best effort; preserve the reset failure below.
+      }
+      Error.throwWithStackTrace(error, stackTrace);
     }
   }
 }

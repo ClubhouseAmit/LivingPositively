@@ -298,19 +298,14 @@ class _UserSettingsState extends LPExtendedState<UserSettings> {
     hasFilled = false;
 
     try {
-      try {
-        widget.phonePageData.reset();
-      } catch (error, stackTrace) {
-        _reportResetFailure(error, stackTrace);
-      }
+      runZonedGuarded<void>(widget.phonePageData.reset, _reportResetFailure);
 
-      try {
-        userInfo.reset(localeService.getLocale());
-      } catch (error, stackTrace) {
-        _reportResetFailure(error, stackTrace);
-      }
+      runZonedGuarded<void>(
+        () => userInfo.reset(localeService.getLocale()),
+        _reportResetFailure,
+      );
 
-      try {
+      runZonedGuarded<void>(() {
         final authenticatedUser = GetIt.instance.isRegistered<FirebaseAuth>()
             ? GetIt.instance<FirebaseAuth>().currentUser
             : null;
@@ -321,9 +316,7 @@ class _UserSettingsState extends LPExtendedState<UserSettings> {
           userInfo.updateEmail(authenticatedUser.email ?? '');
           userInfo.updateDisplayName(authenticatedUser.displayName ?? '');
         }
-      } catch (error, stackTrace) {
-        _reportResetFailure(error, stackTrace);
-      }
+      }, _reportResetFailure);
 
       try {
         await Future<void>.sync(pickerService.deleteImages);
