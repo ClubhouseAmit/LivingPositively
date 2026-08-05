@@ -294,56 +294,57 @@ class _UserSettingsState extends LPExtendedState<UserSettings> {
       }
     }
     await service.reset(); // Reset the persistent memory service
-    var enteredBeforeValue = await service.getItem(
-      "enteredBefore",
-      PersistentMemoryType.Bool,
-    );
-    var hasFilledValue = await service.getItem(
-      "hasFilled",
-      PersistentMemoryType.Bool,
-    );
+    enteredBefore = false;
+    hasFilled = false;
 
-    if (!mounted) {
-      return;
-    }
-    widget.phonePageData.reset();
-    setState(() {
-      enteredBefore = enteredBeforeValue;
-      hasFilled = hasFilledValue;
-    });
+    try {
+      try {
+        widget.phonePageData.reset();
+      } catch (error, stackTrace) {
+        _reportResetFailure(error, stackTrace);
+      }
 
-    userInfo.reset(localeService.getLocale());
-    final authenticatedUser = GetIt.instance.isRegistered<FirebaseAuth>()
-        ? GetIt.instance<FirebaseAuth>().currentUser
-        : null;
-    if (authenticatedUser != null && !authenticatedUser.isAnonymous) {
-      userInfo.updateLoggedIn(true);
-      userInfo.updateAuthDecisionMade(true);
-      userInfo.updateUserId(authenticatedUser.uid);
-      userInfo.updateEmail(authenticatedUser.email ?? '');
-      userInfo.updateDisplayName(authenticatedUser.displayName ?? '');
-    }
-    await Future<void>.sync(pickerService.deleteImages).catchError((
-      Object error,
-      StackTrace stackTrace,
-    ) {
-      _reportResetFailure(error, stackTrace);
-    });
+      try {
+        userInfo.reset(localeService.getLocale());
+      } catch (error, stackTrace) {
+        _reportResetFailure(error, stackTrace);
+      }
 
-    if (!mounted) {
-      return;
+      try {
+        final authenticatedUser = GetIt.instance.isRegistered<FirebaseAuth>()
+            ? GetIt.instance<FirebaseAuth>().currentUser
+            : null;
+        if (authenticatedUser != null && !authenticatedUser.isAnonymous) {
+          userInfo.updateLoggedIn(true);
+          userInfo.updateAuthDecisionMade(true);
+          userInfo.updateUserId(authenticatedUser.uid);
+          userInfo.updateEmail(authenticatedUser.email ?? '');
+          userInfo.updateDisplayName(authenticatedUser.displayName ?? '');
+        }
+      } catch (error, stackTrace) {
+        _reportResetFailure(error, stackTrace);
+      }
+
+      try {
+        await Future<void>.sync(pickerService.deleteImages);
+      } catch (error, stackTrace) {
+        _reportResetFailure(error, stackTrace);
+      }
+    } finally {
+      if (mounted) {
+        Navigator.of(context).pushAndRemoveUntil(
+          MaterialPageRoute(
+            builder: (context) => FirstPage(
+              phonePageData: widget.phonePageData,
+              firsttime: !enteredBefore,
+              changeLocale: widget.changeLocale,
+              hasFilled: hasFilled,
+            ),
+          ),
+          (Route<dynamic> route) => false,
+        );
+      }
     }
-    Navigator.of(context).pushAndRemoveUntil(
-      MaterialPageRoute(
-        builder: (context) => FirstPage(
-          phonePageData: widget.phonePageData,
-          firsttime: !enteredBefore,
-          changeLocale: widget.changeLocale,
-          hasFilled: hasFilled,
-        ),
-      ),
-      (Route<dynamic> route) => false,
-    );
   }
 
   // create the "what's your name?" title

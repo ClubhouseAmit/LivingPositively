@@ -14,6 +14,7 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:get_it/get_it.dart';
+import 'package:mazilon/global_enums.dart';
 import 'package:mazilon/pages/FeelGood/image_picker_service_impl.dart';
 import 'package:mazilon/pages/SignIn_Pages/firstPage.dart';
 import 'package:mazilon/pages/UserSettings.dart';
@@ -21,6 +22,7 @@ import 'package:mazilon/util/Form/formPagePhoneModel.dart';
 import 'package:mazilon/util/Firebase/fcm_scheduled_notification_service.dart';
 import 'package:mazilon/util/logger_service.dart';
 import 'package:mazilon/util/notification_preference.dart';
+import 'package:mazilon/util/persistent_memory_service.dart';
 import 'package:mazilon/util/userInformation.dart';
 import 'package:mockito/mockito.dart';
 
@@ -59,6 +61,26 @@ class _PendingResetImagePickerService extends NoopImagePickerService {
   }
 }
 
+class _PostResetReadFailingMemoryService extends FakePersistentMemoryService {
+  bool resetCompleted = false;
+  bool postResetReadAttempted = false;
+
+  @override
+  Future<void> reset() async {
+    await super.reset();
+    resetCompleted = true;
+  }
+
+  @override
+  Future<dynamic> getItem(String key, PersistentMemoryType type) async {
+    if (resetCompleted) {
+      postResetReadAttempted = true;
+      throw StateError('post-reset persistence read failed');
+    }
+    return super.getItem(key, type);
+  }
+}
+
 class _PendingIncidentLoggerService extends NoopIncidentLoggerService {
   final Completer<void> completion = Completer<void>();
   bool captureStarted = false;
@@ -71,6 +93,32 @@ class _PendingIncidentLoggerService extends NoopIncidentLoggerService {
   }) async {
     captureStarted = true;
     await completion.future;
+  }
+}
+
+class _SynchronouslyFailingIncidentLoggerService
+    extends NoopIncidentLoggerService {
+  @override
+  Future<void> captureLog(
+    dynamic exception, {
+    StackTrace? stackTrace,
+    dynamic exceptionData,
+  }) {
+    throw StateError('synchronous incident logger failure');
+  }
+}
+
+class _AsynchronouslyFailingIncidentLoggerService
+    extends NoopIncidentLoggerService {
+  @override
+  Future<void> captureLog(
+    dynamic exception, {
+    StackTrace? stackTrace,
+    dynamic exceptionData,
+  }) {
+    return Future<void>.error(
+      StateError('asynchronous incident logger failure'),
+    );
   }
 }
 
@@ -162,6 +210,59 @@ void main() {
       expect(find.byType(UserSettings), findsOneWidget);
     },
   );
+
+  testWidgets('reset stays terminal after persistence reset commits', (
+    tester,
+  ) async {
+    final memory = _PostResetReadFailingMemoryService();
+    memory.store['name'] = 'Committed reset';
+    memory.store['age'] = '30-40';
+    GetIt.instance.unregister<PersistentMemoryService>();
+    GetIt.instance.registerSingleton<PersistentMemoryService>(memory);
+    user.service = memory;
+    user.name = 'Committed reset';
+    user.age = '30-40';
+    debugDefaultTargetPlatformOverride = TargetPlatform.windows;
+
+    try {
+      await pumpWithProviders(
+        tester,
+        UserSettings(
+          username: user.name,
+          age: user.age,
+          gender: 'male',
+          phonePageData: _phone(),
+          changeLocale: (_) {},
+        ),
+        userInformation: user,
+        surfaceSize: const Size(1024, 2800),
+      );
+
+      final resetButton = find.byKey(const Key('userSettingsResetButton'));
+      await tester.ensureVisible(resetButton);
+      await tester.tap(resetButton, warnIfMissed: false);
+      await tester.pumpAndSettle();
+
+      final dialogButtons = find.descendant(
+        of: find.byType(Dialog),
+        matching: find.byType(TextButton),
+      );
+      await tester.tap(dialogButtons.last, warnIfMissed: false);
+      await tester.pumpAndSettle();
+
+      expect(memory.resetCompleted, isTrue);
+      expect(memory.postResetReadAttempted, isFalse);
+      expect(find.byType(FirstPage), findsOneWidget);
+      expect(find.byType(UserSettings), findsNothing);
+      expect(find.byType(Dialog), findsNothing);
+      expect(user.name, isEmpty);
+      expect(user.age, isEmpty);
+      expect(memory.store, isNot(contains('name')));
+      expect(memory.store, isNot(contains('age')));
+    } finally {
+      debugDefaultTargetPlatformOverride = null;
+    }
+  });
 
   testWidgets('reset waits for successful image cleanup before navigation', (
     tester,
@@ -326,6 +427,61 @@ void main() {
       }
       debugDefaultTargetPlatformOverride = null;
     }
+  });
+
+  final failingIncidentLoggers = <String, IncidentLoggerService Function()>{
+    'throws synchronously': () => _SynchronouslyFailingIncidentLoggerService(),
+    'returns a rejected Future': () =>
+        _AsynchronouslyFailingIncidentLoggerService(),
+  };
+
+  failingIncidentLoggers.forEach((description, createLogger) {
+    testWidgets(
+      'cleanup failure stays terminal when incident logger $description',
+      (tester) async {
+        GetIt.instance.unregister<IncidentLoggerService>();
+        GetIt.instance.registerSingleton<IncidentLoggerService>(createLogger());
+        GetIt.instance.unregister<ImagePickerService>();
+        GetIt.instance.registerSingleton<ImagePickerService>(
+          _FailingResetImagePickerService(),
+        );
+        debugDefaultTargetPlatformOverride = TargetPlatform.windows;
+
+        try {
+          await pumpWithProviders(
+            tester,
+            UserSettings(
+              username: 'Logger failure',
+              age: '18-30',
+              gender: 'male',
+              phonePageData: _phone(),
+              changeLocale: (_) {},
+            ),
+            userInformation: user,
+            surfaceSize: const Size(1024, 2800),
+          );
+
+          final resetButton = find.byKey(const Key('userSettingsResetButton'));
+          await tester.ensureVisible(resetButton);
+          await tester.tap(resetButton, warnIfMissed: false);
+          await tester.pumpAndSettle();
+
+          final dialogButtons = find.descendant(
+            of: find.byType(Dialog),
+            matching: find.byType(TextButton),
+          );
+          await tester.tap(dialogButtons.last, warnIfMissed: false);
+          await tester.pumpAndSettle();
+
+          expect(find.byType(FirstPage), findsOneWidget);
+          expect(find.byType(UserSettings), findsNothing);
+          expect(find.byType(Dialog), findsNothing);
+          expect(tester.takeException(), isNull);
+        } finally {
+          debugDefaultTargetPlatformOverride = null;
+        }
+      },
+    );
   });
 
   testWidgets('does not offer a sign-out action for an authenticated user', (
