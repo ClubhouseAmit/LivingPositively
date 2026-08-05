@@ -170,6 +170,59 @@ void main() {
     }
   });
 
+  testWidgets('notification auth pops while its FCM refresh is still pending', (
+    tester,
+  ) async {
+    final userInformation = UserInformation();
+    final firebaseUser = MockUser();
+    when(firebaseUser.uid).thenReturn('uid-123');
+    when(firebaseUser.email).thenReturn('person@example.com');
+    when(firebaseUser.displayName).thenReturn('Person');
+    GetIt.instance.registerSingleton<FirebaseFirestore>(
+      FakeFirebaseFirestore(),
+    );
+    final tokenRead = Completer<String?>();
+    debugDefaultTargetPlatformOverride = TargetPlatform.android;
+    FcmService.debugGetCurrentUserIdOverride = () => 'uid-123';
+    FcmService.debugGetTokenOverride = () => tokenRead.future;
+
+    try {
+      await pumpWithProviders(
+        tester,
+        const _NotificationAuthLauncher(),
+        userInformation: userInformation,
+        surfaceSize: const Size(1024, 1800),
+      );
+      await tester.tap(find.byKey(const Key('open-notification-auth')));
+      await tester.pumpAndSettle();
+
+      final loginForm =
+          tester
+                  .widgetList(
+                    find.byWidgetPredicate(
+                      (widget) => widget.runtimeType.toString() == '_LoginForm',
+                    ),
+                  )
+                  .single
+              as dynamic;
+      final completion = (loginForm.onSuccess as Future<void> Function(User))(
+        firebaseUser,
+      );
+
+      await tester.pumpAndSettle();
+
+      expect(find.byType(AuthPage), findsNothing);
+      expect(find.byKey(const Key('open-notification-auth')), findsOneWidget);
+      expect(userInformation.loggedIn, isTrue);
+
+      tokenRead.complete(null);
+      await completion;
+    } finally {
+      debugDefaultTargetPlatformOverride = null;
+      if (!tokenRead.isCompleted) tokenRead.complete(null);
+    }
+  });
+
   testWidgets('onboarding auth supports skip and signup validation', (
     tester,
   ) async {
@@ -376,4 +429,25 @@ void main() {
       debugDefaultTargetPlatformOverride = null;
     }
   });
+}
+
+class _NotificationAuthLauncher extends StatelessWidget {
+  const _NotificationAuthLauncher();
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      body: TextButton(
+        key: const Key('open-notification-auth'),
+        onPressed: () {
+          Navigator.of(context).push(
+            MaterialPageRoute<void>(
+              builder: (_) => const AuthPage(fromNotifications: true),
+            ),
+          );
+        },
+        child: const Text('Open authentication'),
+      ),
+    );
+  }
 }

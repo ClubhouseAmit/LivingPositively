@@ -57,7 +57,7 @@ void main() {
     };
     FcmService.debugInitializeLocalNotificationsOverride = () async {};
     FcmService.debugGetCurrentUserIdOverride = () => null;
-    FcmService.debugGetTokenOverride = () async => null;
+    FcmService.debugGetTokenOverride = () async => 'fcm-token';
     FcmService.debugRegisterListenersOverride = () {
       listenerRegistrations++;
     };
@@ -69,6 +69,100 @@ void main() {
     expect(permissionAttempts, 2);
     expect(listenerRegistrations, 1);
   });
+
+  test(
+    'denied permission remains retryable until authorization succeeds',
+    () async {
+      debugDefaultTargetPlatformOverride = TargetPlatform.android;
+      var permissionAttempts = 0;
+      var tokenRequests = 0;
+      var listenerRegistrations = 0;
+      FcmService.debugRequestPermissionOverride = () async {
+        permissionAttempts++;
+        return _notificationSettings(
+          permissionAttempts == 1
+              ? AuthorizationStatus.denied
+              : AuthorizationStatus.authorized,
+        );
+      };
+      FcmService.debugInitializeLocalNotificationsOverride = () async {};
+      FcmService.debugGetCurrentUserIdOverride = () => null;
+      FcmService.debugGetTokenOverride = () async {
+        tokenRequests++;
+        return 'fcm-token';
+      };
+      FcmService.debugRegisterListenersOverride = () {
+        listenerRegistrations++;
+      };
+
+      await FcmService.initialize();
+      await FcmService.initialize();
+      await FcmService.initialize();
+
+      expect(permissionAttempts, 2);
+      expect(tokenRequests, 1);
+      expect(listenerRegistrations, 1);
+    },
+  );
+
+  test(
+    'a null FCM token remains retryable without duplicate listeners',
+    () async {
+      debugDefaultTargetPlatformOverride = TargetPlatform.android;
+      var tokenRequests = 0;
+      var listenerRegistrations = 0;
+      _configureSuccessfulInitialization(
+        apnsToken: 'unused',
+        getToken: () async {
+          tokenRequests++;
+          return tokenRequests == 1 ? null : 'fcm-token';
+        },
+      );
+      FcmService.debugRegisterListenersOverride = () {
+        listenerRegistrations++;
+      };
+
+      await FcmService.initialize();
+      await FcmService.initialize();
+      await FcmService.initialize();
+
+      expect(tokenRequests, 2);
+      expect(listenerRegistrations, 1);
+    },
+  );
+
+  test(
+    'failed current-token save retries without duplicate listeners',
+    () async {
+      debugDefaultTargetPlatformOverride = TargetPlatform.android;
+      var tokenRequests = 0;
+      var saveAttempts = 0;
+      var listenerRegistrations = 0;
+      FcmService.debugRequestPermissionOverride = () async =>
+          _notificationSettings(AuthorizationStatus.authorized);
+      FcmService.debugInitializeLocalNotificationsOverride = () async {};
+      FcmService.debugGetCurrentUserIdOverride = () => 'uid-123';
+      FcmService.debugGetTokenOverride = () async {
+        tokenRequests++;
+        return 'fcm-token';
+      };
+      FcmService.debugSaveTokenOverride = (deviceId, token) async {
+        saveAttempts++;
+        return saveAttempts > 1;
+      };
+      FcmService.debugRegisterListenersOverride = () {
+        listenerRegistrations++;
+      };
+
+      await FcmService.initialize();
+      await FcmService.initialize();
+      await FcmService.initialize();
+
+      expect(tokenRequests, 2);
+      expect(saveAttempts, 2);
+      expect(listenerRegistrations, 1);
+    },
+  );
 
   test('concurrent initialization callers share one attempt', () async {
     debugDefaultTargetPlatformOverride = TargetPlatform.android;
@@ -159,6 +253,67 @@ void main() {
     await expectLater(FcmService.onUserSignedIn(), completes);
 
     expect(fcmTokenRequests, 0);
+  });
+
+  test(
+    'post-sign-in save failure makes app-resume retry initialization',
+    () async {
+      debugDefaultTargetPlatformOverride = TargetPlatform.android;
+      var uid = <String?>[null, 'uid-123', 'uid-123'].iterator;
+      var tokenRequests = 0;
+      var saveAttempts = 0;
+      var listenerRegistrations = 0;
+      FcmService.debugRequestPermissionOverride = () async =>
+          _notificationSettings(AuthorizationStatus.authorized);
+      FcmService.debugInitializeLocalNotificationsOverride = () async {};
+      FcmService.debugGetCurrentUserIdOverride = () {
+        uid.moveNext();
+        return uid.current;
+      };
+      FcmService.debugGetTokenOverride = () async {
+        tokenRequests++;
+        return 'fcm-token';
+      };
+      FcmService.debugSaveTokenOverride = (deviceId, token) async {
+        saveAttempts++;
+        return saveAttempts > 1;
+      };
+      FcmService.debugRegisterListenersOverride = () {
+        listenerRegistrations++;
+      };
+
+      await FcmService.initialize();
+      await FcmService.onUserSignedIn();
+      FcmService.onAppResumed();
+      await Future<void>.delayed(Duration.zero);
+
+      expect(tokenRequests, 3);
+      expect(saveAttempts, 2);
+      expect(listenerRegistrations, 1);
+    },
+  );
+
+  test('app resume invokes a retry after an initialization failure', () async {
+    debugDefaultTargetPlatformOverride = TargetPlatform.android;
+    final retryCompleted = Completer<void>();
+    var permissionAttempts = 0;
+    FcmService.debugRequestPermissionOverride = () async {
+      permissionAttempts++;
+      if (permissionAttempts == 1) {
+        throw StateError('messaging unavailable');
+      }
+      return _notificationSettings(AuthorizationStatus.authorized);
+    };
+    FcmService.debugInitializeLocalNotificationsOverride = () async {};
+    FcmService.debugGetCurrentUserIdOverride = () => null;
+    FcmService.debugGetTokenOverride = () async => 'fcm-token';
+    FcmService.debugRegisterListenersOverride = retryCompleted.complete;
+
+    await FcmService.initialize();
+    FcmService.onAppResumed();
+    await retryCompleted.future;
+
+    expect(permissionAttempts, 2);
   });
 }
 

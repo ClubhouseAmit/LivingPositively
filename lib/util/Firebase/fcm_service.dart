@@ -33,6 +33,10 @@ class FcmService {
   static String? Function()? debugGetCurrentUserIdOverride;
 
   @visibleForTesting
+  static Future<bool> Function(String deviceId, String token)?
+  debugSaveTokenOverride;
+
+  @visibleForTesting
   static void Function()? debugRegisterListenersOverride;
 
   @visibleForTesting
@@ -45,6 +49,7 @@ class FcmService {
     debugGetApnsTokenOverride = null;
     debugGetTokenOverride = null;
     debugGetCurrentUserIdOverride = null;
+    debugSaveTokenOverride = null;
     debugRegisterListenersOverride = null;
   }
 
@@ -104,6 +109,10 @@ class FcmService {
     return initialization;
   }
 
+  static void onAppResumed() {
+    unawaited(initialize());
+  }
+
   static Future<void> _initializeWithReporting() async {
     try {
       final platformReady = await _initializeOnce();
@@ -131,7 +140,7 @@ class FcmService {
     _log('Permission status: ${settings.authorizationStatus}');
     if (settings.authorizationStatus == AuthorizationStatus.denied) {
       _log('Permission denied — aborting initialization.');
-      return true;
+      return false;
     }
 
     await (debugInitializeLocalNotificationsOverride ??
@@ -157,9 +166,16 @@ class FcmService {
     _log('FCM token available: ${token != null}');
     _log('=================');
 
-    if (uid != null && token != null) await _saveTokenToFirestore(uid, token);
-
     _registerListenersOnce();
+
+    if (token == null) {
+      _log('FCM token is not ready; initialization will be retried.');
+      return false;
+    }
+
+    if (uid != null && !await _saveTokenToFirestore(uid, token)) {
+      return false;
+    }
 
     _log('Initialization complete.');
     return true;
@@ -172,9 +188,15 @@ class FcmService {
       final uid = _currentUserId();
       final tokenResult = await _getTokenWhenPlatformReady();
       final token = tokenResult.token;
-      if (uid != null && token != null) {
+      if (!tokenResult.isPlatformReady || token == null) {
+        _isInitialized = false;
+        return;
+      }
+      if (uid != null) {
         _log('Saving token after sign-in for $uid');
-        await _saveTokenToFirestore(uid, token);
+        if (!await _saveTokenToFirestore(uid, token)) {
+          _isInitialized = false;
+        }
       }
     } catch (error, stackTrace) {
       _reportFailure(error, stackTrace);
@@ -215,13 +237,23 @@ class FcmService {
     _setupForegroundHandler();
     _setupOnMessageOpenedApp();
 
-    FirebaseMessaging.instance.onTokenRefresh.listen((newToken) {
+    FirebaseMessaging.instance.onTokenRefresh.listen(
+      (newToken) => unawaited(_handleTokenRefresh(newToken)),
+    );
+  }
+
+  static Future<void> _handleTokenRefresh(String newToken) async {
+    try {
       final uid = _currentUserId();
-      if (uid != null) {
-        _log('FCM token refreshed.');
-        unawaited(_saveTokenToFirestore(uid, newToken));
+      if (uid == null) return;
+      _log('FCM token refreshed.');
+      if (!await _saveTokenToFirestore(uid, newToken)) {
+        _isInitialized = false;
       }
-    });
+    } catch (error, stackTrace) {
+      _isInitialized = false;
+      _reportFailure(error, stackTrace);
+    }
   }
 
   static void _reportFailure(Object error, StackTrace stackTrace) {
@@ -243,18 +275,23 @@ class FcmService {
     }
   }
 
-  static Future<void> _saveTokenToFirestore(
+  static Future<bool> _saveTokenToFirestore(
     String deviceId,
     String token,
   ) async {
     _log('Saving token to Firestore for device $deviceId...');
     try {
+      final override = debugSaveTokenOverride;
+      if (override != null) {
+        return await override(deviceId, token);
+      }
       await FirebaseFirestore.instance.collection('devices').doc(deviceId).set({
         'fcmToken': token,
         'platform': Platform.isAndroid ? 'android' : 'ios',
         'updatedAt': FieldValue.serverTimestamp(),
       }, SetOptions(merge: true));
       _log('Token saved to Firestore successfully.');
+      return true;
     } catch (error, stackTrace) {
       _log('Failed to save token to Firestore: $error');
       try {
@@ -263,6 +300,7 @@ class FcmService {
           stackTrace: stackTrace,
         );
       } catch (_) {}
+      return false;
     }
   }
 

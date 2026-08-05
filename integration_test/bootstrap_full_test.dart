@@ -286,5 +286,27 @@ void main() {
           GetIt.instance<IncidentLoggerService>() as NoopIncidentLoggerService;
       expect(logger.captured, contains(failure));
     });
+
+    testWidgets(
+      'synchronously throwing FCM initialization is contained and reported',
+      (tester) async {
+        final failure = StateError('FCM failed synchronously');
+
+        await expectLater(
+          initializeApp(
+            firebaseInitializer: () async {},
+            locatorSetup: () => registerTestServices(locale: 'en'),
+            fcmInitializer: () => throw failure,
+          ),
+          completes,
+        );
+        await tester.pump();
+
+        final logger =
+            GetIt.instance<IncidentLoggerService>()
+                as NoopIncidentLoggerService;
+        expect(logger.captured, contains(failure));
+      },
+    );
   });
 }

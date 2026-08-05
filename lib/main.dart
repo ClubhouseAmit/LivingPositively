@@ -213,7 +213,7 @@ class _MyAppState extends State<MyApp> with WidgetsBindingObserver {
     if (state == AppLifecycleState.resumed) {
       _startSession(); // App is active
       _refreshThemeSchedule(force: true);
-      unawaited(FcmService.initialize());
+      FcmService.onAppResumed();
       if (mounted) {
         setState(() {});
       }
