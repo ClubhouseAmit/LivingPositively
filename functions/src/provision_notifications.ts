@@ -1,4 +1,5 @@
-import * as admin from "firebase-admin";
+import { initializeApp } from "firebase-admin/app";
+import { getFirestore } from "firebase-admin/firestore";
 import { readFileSync } from "node:fs";
 import path from "node:path";
 
@@ -23,8 +24,8 @@ const arbByLocale = {
   ),
 };
 
-admin.initializeApp({ projectId });
-const firestore = admin.firestore();
+initializeApp({ projectId });
+const firestore = getFirestore();
 const documents = buildNotificationSeed(arbByLocale);
 
 void provisionNotificationContent(documents, {

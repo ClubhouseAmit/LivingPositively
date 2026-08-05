@@ -1,4 +1,7 @@
-import * as admin from "firebase-admin";
+import { initializeApp } from "firebase-admin/app";
+import { getAuth } from "firebase-admin/auth";
+import { FieldValue, getFirestore, Timestamp } from "firebase-admin/firestore";
+import { getMessaging } from "firebase-admin/messaging";
 import { Buffer } from "node:buffer";
 import { setGlobalOptions } from "firebase-functions";
 import { onRequest, Request } from "firebase-functions/https";
@@ -23,7 +26,7 @@ import {
   scheduledNotificationSummary,
 } from "./scheduler_observability.js";
 
-admin.initializeApp();
+initializeApp();
 setGlobalOptions({ maxInstances: 10 });
 
 const STALE_TOKEN_DAYS = 180;
@@ -208,6 +211,36 @@ export function shouldAdvanceSchedulerCheckpoint(
   return claimFailedCount === 0;
 }
 
+export type DeviceUpdatedAtClassification =
+  | "missing"
+  | "fresh"
+  | "stale"
+  | "malformed";
+
+export function classifyDeviceUpdatedAt(
+  updatedAt: unknown,
+  nowMillis: number,
+): DeviceUpdatedAtClassification {
+  if (updatedAt === undefined) return "missing";
+
+  let timestampParts: ReturnType<typeof timestampSecondsAndNanoseconds>;
+  try {
+    timestampParts = timestampSecondsAndNanoseconds(updatedAt);
+  } catch {
+    return "malformed";
+  }
+  if (timestampParts === undefined) return "malformed";
+
+  const updatedAtMillis =
+    timestampParts.seconds * 1_000 +
+    Math.floor(timestampParts.nanoseconds / 1_000_000);
+  if (!Number.isSafeInteger(updatedAtMillis)) return "malformed";
+
+  return nowMillis - updatedAtMillis > STALE_TOKEN_DAYS * 86_400_000
+    ? "stale"
+    : "fresh";
+}
+
 function timestampSecondsAndNanoseconds(
   value: unknown,
 ): { seconds: number; nanoseconds: number } | undefined {
@@ -376,7 +409,7 @@ async function extractAndVerifyUid(req: Request): Promise<string | null> {
   const idToken = authHeader.startsWith("Bearer ") ? authHeader.slice(7) : null;
   if (!idToken) return null;
   try {
-    const decoded = await admin.auth().verifyIdToken(idToken);
+    const decoded = await getAuth().verifyIdToken(idToken);
     return decoded.uid;
   } catch {
     return null;
@@ -394,8 +427,8 @@ async function extractAndVerifyUid(req: Request): Promise<string | null> {
 // 4. Firebase server-side rotation (rare, automatic).
 // ---------------------------------------------------------------------------
 async function clearFCMToken(uid: string): Promise<void> {
-  await admin.firestore().collection("devices").doc(uid).update({
-    fcmToken: admin.firestore.FieldValue.delete(),
+  await getFirestore().collection("devices").doc(uid).update({
+    fcmToken: FieldValue.delete(),
   });
 }
 
@@ -407,7 +440,7 @@ async function clearFCMToken(uid: string): Promise<void> {
 // 1. user is inactive for 180 days.
 // ---------------------------------------------------------------------------
 async function cleanupInactiveDevice(uid: string): Promise<void> {
-  const db = admin.firestore();
+  const db = getFirestore();
   const scheduledSnap = await db
     .collection("scheduled_notifications")
     .where("uid", "==", uid)
@@ -445,7 +478,7 @@ export const getNotificationMutationVersion = onRequest(async (req, res) => {
   }
 
   const stateDoc = await notificationMutationStateRef(
-    admin.firestore(),
+    getFirestore(),
     uid,
     typeId,
   ).get();
@@ -517,8 +550,7 @@ export const registerNotification = onRequest(async (req, res) => {
     return;
   }
 
-  const typeDoc = await admin
-    .firestore()
+  const typeDoc = await getFirestore()
     .collection("notification_types")
     .doc(typeId)
     .get();
@@ -527,7 +559,7 @@ export const registerNotification = onRequest(async (req, res) => {
     return;
   }
 
-  const db = admin.firestore();
+  const db = getFirestore();
   const stateRef = notificationMutationStateRef(db, uid, typeId);
   const scheduleRef = db
     .collection("scheduled_notifications")
@@ -541,7 +573,7 @@ export const registerNotification = onRequest(async (req, res) => {
         minute,
         locale,
         gender: normalizeNotificationGender(gender),
-        updatedAt: admin.firestore.FieldValue.serverTimestamp(),
+        updatedAt: FieldValue.serverTimestamp(),
       };
       const decision = await executeNotificationMutation<
         FirebaseFirestore.DocumentReference
@@ -606,7 +638,7 @@ export const cancelNotification = onRequest(async (req, res) => {
     return;
   }
 
-  const db = admin.firestore();
+  const db = getFirestore();
   const stateRef = notificationMutationStateRef(db, uid, typeId);
   const scheduleRef = db
     .collection("scheduled_notifications")
@@ -658,7 +690,7 @@ export const processScheduledNotifications = onSchedule(
   async (event) => {
     // --- Query phase ---
     const scheduleTime = new Date(event.scheduleTime);
-    const db = admin.firestore();
+    const db = getFirestore();
     const schedulerStateRef = db
       .collection("notification_scheduler_state")
       .doc("primary");
@@ -708,7 +740,7 @@ export const processScheduledNotifications = onSchedule(
         schedulerStateRef,
         {
           lastProcessedMillis: scheduleTime.getTime(),
-          updatedAt: admin.firestore.FieldValue.serverTimestamp(),
+          updatedAt: FieldValue.serverTimestamp(),
         },
         { merge: true },
       );
@@ -734,7 +766,7 @@ export const processScheduledNotifications = onSchedule(
     const typeDataMap = new Map<string, FirebaseFirestore.DocumentData>();
     await Promise.all(
       [...localesByTypeId.keys()].map(async (typeId) => {
-        const doc = await admin.firestore().collection("notification_types").doc(typeId).get();
+        const doc = await getFirestore().collection("notification_types").doc(typeId).get();
         if (doc.exists) typeDataMap.set(typeId, doc.data()!);
       }),
     );
@@ -765,8 +797,7 @@ export const processScheduledNotifications = onSchedule(
     const quotesMap = new Map<string, FirebaseFirestore.DocumentData[]>();
     await Promise.all(
       [...neededQuoteCollections].map(async (collectionName) => {
-        const snap = await admin
-          .firestore()
+        const snap = await getFirestore()
           .collection(collectionName)
           .get();
         quotesMap.set(collectionName, snap.docs.map((d) => d.data()));
@@ -787,7 +818,7 @@ export const processScheduledNotifications = onSchedule(
     ];
     const deviceDocs = await Promise.all(
       uniqueUids.map((uid) =>
-        admin.firestore().collection("devices").doc(uid).get(),
+        getFirestore().collection("devices").doc(uid).get(),
       ),
     );
     const deviceMap = new Map(
@@ -811,15 +842,17 @@ export const processScheduledNotifications = onSchedule(
 
       const deviceData = deviceMap.get(uid);
 
-      const updatedAt = deviceData?.updatedAt as
-        | admin.firestore.Timestamp
-        | undefined;
-      if (updatedAt) {
-        const ageDays = (Date.now() - updatedAt.toMillis()) / 86_400_000;
-        if (ageDays > STALE_TOKEN_DAYS) {
-          staleUids.push(uid);
-          continue;
-        }
+      const updatedAtClassification = classifyDeviceUpdatedAt(
+        deviceData?.updatedAt,
+        Date.now(),
+      );
+      if (updatedAtClassification === "stale") {
+        staleUids.push(uid);
+        continue;
+      }
+      if (updatedAtClassification === "malformed") {
+        logger.warn("Skipping device with malformed updatedAt", { uid });
+        continue;
       }
 
       const fcmToken = deviceData?.fcmToken as string | undefined;
@@ -905,7 +938,7 @@ export const processScheduledNotifications = onSchedule(
                 {
                   deliveryPermitKey: deliveryKey,
                   deliveryPermitExpiresAtMillis:
-                    admin.firestore.Timestamp.now().toMillis() +
+                    Timestamp.now().toMillis() +
                     DELIVERY_PERMIT_DURATION_MILLIS,
                 },
                 { merge: true },
@@ -924,9 +957,9 @@ export const processScheduledNotifications = onSchedule(
               transaction.set(
                 stateRef,
                 {
-                  deliveryPermitKey: admin.firestore.FieldValue.delete(),
+                  deliveryPermitKey: FieldValue.delete(),
                   deliveryPermitExpiresAtMillis:
-                    admin.firestore.FieldValue.delete(),
+                    FieldValue.delete(),
                 },
                 { merge: true },
               );
@@ -934,7 +967,7 @@ export const processScheduledNotifications = onSchedule(
           },
           async (message) => {
             try {
-              return await admin.messaging().send(message);
+              return await getMessaging().send(message);
             } catch (error: unknown) {
               if (
                 failureCode(error) ===

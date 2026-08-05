@@ -4,6 +4,7 @@ import { describe, it } from "node:test";
 import {
   buildNotificationDeliveryKey,
   claimAndSendScheduledDelivery,
+  classifyDeviceUpdatedAt,
   israelLocalDeliveryCandidates,
   israelLocalDeliveryCandidatesSince,
   isCurrentScheduledNotification,
@@ -17,6 +18,78 @@ import {
 } from "./scheduler_observability.js";
 
 describe("scheduled notification delivery", () => {
+  describe("device timestamp validation", () => {
+    const nowMillis = Date.parse("2026-08-05T12:00:00.000Z");
+
+    it("accepts a fresh Firestore timestamp without calling toMillis", () => {
+      let toMillisCalls = 0;
+      const freshMillis = nowMillis - 30 * 86_400_000;
+
+      assert.equal(
+        classifyDeviceUpdatedAt(
+          {
+            seconds: Math.floor(freshMillis / 1_000),
+            nanoseconds: 0,
+            toMillis() {
+              toMillisCalls++;
+              throw new Error("client method must not execute");
+            },
+          },
+          nowMillis,
+        ),
+        "fresh",
+      );
+      assert.equal(toMillisCalls, 0);
+    });
+
+    it("classifies a device timestamp older than 180 days as stale", () => {
+      const staleMillis = nowMillis - 181 * 86_400_000;
+
+      assert.equal(
+        classifyDeviceUpdatedAt(
+          {
+            seconds: Math.floor(staleMillis / 1_000),
+            nanoseconds: 0,
+          },
+          nowMillis,
+        ),
+        "stale",
+      );
+    });
+
+    it("preserves legacy devices that have no updatedAt field", () => {
+      assert.equal(classifyDeviceUpdatedAt(undefined, nowMillis), "missing");
+    });
+
+    it("rejects a malformed updatedAt value without affecting later devices", () => {
+      const deviceValues = [
+        { seconds: 1, nanoseconds: "not-a-number" },
+        { seconds: Math.floor(nowMillis / 1_000), nanoseconds: 0 },
+      ];
+
+      assert.deepEqual(
+        deviceValues.map((value) => classifyDeviceUpdatedAt(value, nowMillis)),
+        ["malformed", "fresh"],
+      );
+    });
+
+    it("never invokes a hostile client-supplied toMillis method", () => {
+      const hostileTimestamp = {
+        toMillis() {
+          throw new Error("hostile toMillis invoked");
+        },
+      };
+
+      assert.doesNotThrow(() =>
+        classifyDeviceUpdatedAt(hostileTimestamp, nowMillis),
+      );
+      assert.equal(
+        classifyDeviceUpdatedAt(hostileTimestamp, nowMillis),
+        "malformed",
+      );
+    });
+  });
+
   it("builds a canonical delivery key from the local intended time", () => {
     assert.equal(
       buildNotificationDeliveryKey(

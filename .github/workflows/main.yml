@@ -16,6 +16,32 @@ concurrency:
   queue: max
 
 jobs:
+  functions-test:
+    name: Cloud Functions tests and production audit
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: functions
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          cache: npm
+          cache-dependency-path: functions/package-lock.json
+
+      - name: Install Functions dependencies
+        run: npm ci
+
+      - name: Run Functions tests
+        run: npm test
+
+      - name: Audit production dependencies
+        run: npm audit --omit=dev --audit-level=high
+
   build-android:
     runs-on: ubuntu-latest
     env:
