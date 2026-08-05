@@ -462,9 +462,7 @@ jobs:
 
       - name: Resolve CocoaPods dependencies with current specs
         working-directory: ios
-        run: |
-          pod update GTMSessionFetcher/Core --repo-update
-          git diff -- Podfile.lock
+        run: pod install --repo-update
 
       - name: List available iOS simulators
         # Diagnostic: surfaces the runtime + device names available on the
