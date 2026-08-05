@@ -82,6 +82,11 @@ class FcmService {
     return platform == TargetPlatform.android || platform == TargetPlatform.iOS;
   }
 
+  static Future<void> cancelLegacyLocalNotification(int notificationId) async {
+    if (kIsWeb || defaultTargetPlatform != TargetPlatform.android) return;
+    await _localNotifications.cancel(id: notificationId);
+  }
+
   static Future<bool> hasPermission() async {
     try {
       final settings = await FirebaseMessaging.instance

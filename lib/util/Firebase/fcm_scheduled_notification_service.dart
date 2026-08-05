@@ -76,6 +76,7 @@ class FcmScheduledNotificationService {
     Future<String?> Function()? idTokenProvider,
     NotificationHttpPost? post,
     PersistentMemoryService? persistentMemory,
+    Future<void> Function(int notificationId)? legacyNotificationCanceller,
   }) async {
     if (_legacyMigrationDisabled) return;
     if (context == null && userInformation == null) {
@@ -99,11 +100,9 @@ class FcmScheduledNotificationService {
             PersistentMemoryType.Bool,
           ) ??
           false;
-      if (
-        migrated == true ||
-        _legacyMigrationDisabled ||
-        resetEpoch != _resetEpoch
-      ) {
+      if (migrated == true ||
+          _legacyMigrationDisabled ||
+          resetEpoch != _resetEpoch) {
         return;
       }
       final registered = await _registerNotification(
@@ -116,6 +115,10 @@ class FcmScheduledNotificationService {
         resetEpoch: resetEpoch,
       );
       if (registered) {
+        await (legacyNotificationCanceller ??
+            FcmService.cancelLegacyLocalNotification)(
+          int.parse('${preference.hour}${preference.minute}'),
+        );
         await memory.setItem(
           _legacyDefaultReminderMigrationKey,
           PersistentMemoryType.Bool,
