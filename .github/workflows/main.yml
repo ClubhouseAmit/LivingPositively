@@ -407,8 +407,9 @@ jobs:
     # runner long after the blocking gates have completed.
     # A cold CocoaPods/Firebase compile can exceed 45 minutes on GitHub's
     # arm64 macOS runners. Allow the first run to finish and populate the
-    # DerivedData cache while keeping the job bounded.
-    timeout-minutes: 90
+    # DerivedData cache while keeping the job bounded. Leave enough time after
+    # the 75-minute test step to save a cold build and upload diagnostics.
+    timeout-minutes: 105
     env:
       FIREBASE_OPTIONS_PATH: lib/util/Firebase/firebase_options.dart
       IOS_PODS_CACHE_VERSION: v1
@@ -456,7 +457,8 @@ jobs:
             ${{ runner.os }}-${{ runner.arch }}-${{ steps.xcode.outputs.cache_key }}-ios-pods-${{ env.IOS_PODS_CACHE_VERSION }}-
 
       - name: Cache Xcode DerivedData
-        uses: actions/cache@v5
+        id: ios-derived-data-cache
+        uses: actions/cache/restore@v5
         with:
           path: ~/Library/Developer/Xcode/DerivedData
           key: ${{ runner.os }}-${{ runner.arch }}-${{ steps.xcode.outputs.cache_key }}-ios-deriveddata-${{ env.IOS_DERIVED_DATA_CACHE_VERSION }}-${{ hashFiles('pubspec.lock', 'ios/Podfile', 'ios/Podfile.lock', '.flutter-plugins-dependencies', 'ios/Runner.xcodeproj/project.pbxproj', 'ios/Runner.xcworkspace/contents.xcworkspacedata') }}
@@ -497,6 +499,7 @@ jobs:
           xcrun simctl bootstatus "$DEVICE_ID" -b
 
       - name: Run iOS integration test with diagnostics
+        id: ios-integration-test
         # Notes on the invocation below (mirrors the Android job's design
         # rationale in the integration-test job above):
         #
@@ -578,6 +581,71 @@ jobs:
           find ~/Library/Logs/DiagnosticReports -type f -mtime -1 -exec cp {} ci-ios-diagnostics/DiagnosticReports/ \; 2>/dev/null || true
 
           exit "$TEST_EXIT"
+
+      - name: Collect iOS launch failure forensics
+        if: ${{ !cancelled() && steps.ios-integration-test.outcome == 'failure' }}
+        timeout-minutes: 5
+        run: |
+          DIAGNOSTICS_DIR="$PWD/ci-ios-diagnostics"
+          mkdir -p "$DIAGNOSTICS_DIR"
+          RUNNER_PID=$(sed -n 's/.*com\.clubhouse\.livingpositively: \([0-9][0-9]*\).*/\1/p' "$DIAGNOSTICS_DIR/flutter-test.log" 2>/dev/null | tail -n 1)
+
+          {
+            echo "=== post-failure launch assessment ==="
+            date -u
+            echo
+            echo "Runner PID from Flutter log: ${RUNNER_PID:-missing}"
+            echo
+            echo "=== installed app container ==="
+            xcrun simctl get_app_container "$DEVICE_ID" com.clubhouse.livingpositively app || true
+          } > "$DIAGNOSTICS_DIR/launch-failure.txt" 2>&1
+
+          if ! grep -q 'Waiting for VM Service port to be available' "$DIAGNOSTICS_DIR/flutter-test.log" 2>/dev/null; then
+            echo "Flutter did not reach the VM-service wait; skipping relaunch." >> "$DIAGNOSTICS_DIR/launch-failure.txt"
+            exit 0
+          fi
+          if grep -Eq 'VM Service URL on device|Successfully connected to service protocol' "$DIAGNOSTICS_DIR/flutter-test.log"; then
+            echo "Flutter connected to the VM service; skipping dyld relaunch." >> "$DIAGNOSTICS_DIR/launch-failure.txt"
+            exit 0
+          fi
+          if [ -z "$RUNNER_PID" ]; then
+            echo "The Runner PID was not present in Flutter's verbose log; skipping relaunch." >> "$DIAGNOSTICS_DIR/launch-failure.txt"
+            exit 0
+          fi
+
+          # The timed-out Flutter step has ended, so this relaunch cannot be
+          # adopted by the test process. It exists only to surface dyld stderr.
+          xcrun simctl terminate "$DEVICE_ID" com.clubhouse.livingpositively 2>/dev/null || true
+          xcrun simctl launch \
+            --console \
+            "$DEVICE_ID" \
+            com.clubhouse.livingpositively \
+            --disable-vm-service-publication \
+            > "$DIAGNOSTICS_DIR/manual-launch.log" 2>&1 &
+          MANUAL_LAUNCH_PID=$!
+          sleep 10
+          kill "$MANUAL_LAUNCH_PID" 2>/dev/null || true
+          wait "$MANUAL_LAUNCH_PID" 2>/dev/null || true
+          xcrun simctl terminate "$DEVICE_ID" com.clubhouse.livingpositively 2>/dev/null || true
+
+          xcrun simctl spawn "$DEVICE_ID" log show \
+            --last 3m \
+            --style compact \
+            --info \
+            --debug \
+            --predicate 'process == "Runner" OR process == "ReportCrash" OR eventMessage CONTAINS[c] "dyld" OR eventMessage CONTAINS[c] "Library not loaded"' \
+            > "$DIAGNOSTICS_DIR/launch-failure-system.log" 2>&1 || true
+          sleep 10
+          mkdir -p "$DIAGNOSTICS_DIR/DiagnosticReports/host" "$DIAGNOSTICS_DIR/DiagnosticReports/simulator"
+          find ~/Library/Logs/DiagnosticReports -type f -mtime -1 -exec cp -n {} "$DIAGNOSTICS_DIR/DiagnosticReports/host/" \; 2>/dev/null || true
+          find ~/Library/Developer/CoreSimulator/Devices/"$DEVICE_ID"/data/Library/Logs/CrashReporter -type f -mtime -1 -exec cp -n {} "$DIAGNOSTICS_DIR/DiagnosticReports/simulator/" \; 2>/dev/null || true
+
+      - name: Save Xcode DerivedData
+        if: ${{ !cancelled() && (steps.ios-integration-test.outcome == 'success' || steps.ios-integration-test.outcome == 'failure') && steps.ios-derived-data-cache.outputs.cache-hit != 'true' }}
+        uses: actions/cache/save@v5
+        with:
+          path: ~/Library/Developer/Xcode/DerivedData
+          key: ${{ steps.ios-derived-data-cache.outputs.cache-primary-key }}
 
       - name: Upload iOS integration diagnostics
         if: always()
