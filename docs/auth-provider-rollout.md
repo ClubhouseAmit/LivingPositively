@@ -34,6 +34,12 @@ An omitted or whitespace-only value intentionally hides the Google button.
 The Apple button is available only on iOS and only when
 `APPLE_SIGN_IN_ENABLED=true`.
 
+The app delegates the native Apple authorization and nonce binding to
+Firebase Authentication through `AppleAuthProvider` and
+`signInWithProvider`. The existing `sign_in_with_apple` dependency and
+Apple-branded UI remain in place, but the app does not use the package to
+construct Firebase credentials manually.
+
 Before enabling it:
 
 1. Enable Push Notifications and Sign in with Apple for the Apple App ID

@@ -4,6 +4,8 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:mazilon/util/Firebase/auth_service.dart';
 
 void main() {
+  TestWidgetsFlutterBinding.ensureInitialized();
+
   test('localizedError maps Firebase authentication failures', () {
     expect(
       AuthService.localizedError(FirebaseAuthException(code: 'invalid-email')),
@@ -125,5 +127,16 @@ void main() {
       ),
       isFalse,
     );
+  });
+
+  test('Apple sign-in returns null when the provider is unavailable', () async {
+    debugDefaultTargetPlatformOverride = TargetPlatform.iOS;
+    AuthService.debugAppleSignInEnabledOverride = false;
+    addTearDown(() {
+      debugDefaultTargetPlatformOverride = null;
+      AuthService.debugAppleSignInEnabledOverride = null;
+    });
+
+    await expectLater(AuthService.signInWithApple(), completion(isNull));
   });
 }

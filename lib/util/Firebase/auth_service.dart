@@ -9,7 +9,6 @@ import 'package:flutter/foundation.dart'
         visibleForTesting;
 import 'package:get_it/get_it.dart';
 import 'package:google_sign_in/google_sign_in.dart';
-import 'package:sign_in_with_apple/sign_in_with_apple.dart';
 
 class AuthService {
   static const String _googleSignInServerClientId = String.fromEnvironment(
@@ -63,17 +62,12 @@ class AuthService {
 
   // Apple Sign In is only available on iOS.
   static Future<UserCredential?> signInWithApple() async {
-    final appleCredential = await SignInWithApple.getAppleIDCredential(
-      scopes: [
-        AppleIDAuthorizationScopes.email,
-        AppleIDAuthorizationScopes.fullName,
-      ],
-    );
-    final oauthCredential = OAuthProvider('apple.com').credential(
-      idToken: appleCredential.identityToken,
-      accessToken: appleCredential.authorizationCode,
-    );
-    return FirebaseAuth.instance.signInWithCredential(oauthCredential);
+    if (!isAppleSignInAvailable) return null;
+
+    final appleProvider = AppleAuthProvider()
+      ..addScope('email')
+      ..addScope('name');
+    return FirebaseAuth.instance.signInWithProvider(appleProvider);
   }
 
   @visibleForTesting
