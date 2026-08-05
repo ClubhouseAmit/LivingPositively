@@ -230,7 +230,35 @@ void main() {
     }
   });
 
-  testWidgets('iOS shows Apple only when its build capability is enabled', (
+  testWidgets('iOS hides the social section when Apple is not enabled', (
+    tester,
+  ) async {
+    debugDefaultTargetPlatformOverride = TargetPlatform.iOS;
+    AuthService.debugAppleSignInEnabledOverride = null;
+    try {
+      await pumpWithProviders(
+        tester,
+        const AuthPage(),
+        surfaceSize: const Size(1024, 1800),
+      );
+
+      void expectNoSocialSection() {
+        expect(find.text('or'), findsNothing);
+        expect(find.text('Continue with Google'), findsNothing);
+        expect(find.text('Continue with Apple'), findsNothing);
+      }
+
+      expectNoSocialSection();
+      await tester.tap(find.text('Sign Up'));
+      await tester.pumpAndSettle();
+      expectNoSocialSection();
+    } finally {
+      AuthService.debugAppleSignInEnabledOverride = null;
+      debugDefaultTargetPlatformOverride = null;
+    }
+  });
+
+  testWidgets('iOS shows only Apple when its build capability is enabled', (
     tester,
   ) async {
     debugDefaultTargetPlatformOverride = TargetPlatform.iOS;
@@ -242,9 +270,16 @@ void main() {
         surfaceSize: const Size(1024, 1800),
       );
 
-      expect(find.text('or'), findsOneWidget);
-      expect(find.text('Continue with Google'), findsNothing);
-      expect(find.text('Continue with Apple'), findsOneWidget);
+      void expectAppleOnly() {
+        expect(find.text('or'), findsOneWidget);
+        expect(find.text('Continue with Google'), findsNothing);
+        expect(find.text('Continue with Apple'), findsOneWidget);
+      }
+
+      expectAppleOnly();
+      await tester.tap(find.text('Sign Up'));
+      await tester.pumpAndSettle();
+      expectAppleOnly();
     } finally {
       AuthService.debugAppleSignInEnabledOverride = null;
       debugDefaultTargetPlatformOverride = null;
