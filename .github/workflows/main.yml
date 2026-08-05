@@ -405,7 +405,10 @@ jobs:
     # Simulator validation must be time-bounded. GitHub's default timeout is
     # 360 minutes, which lets a stuck `flutter test` monopolize the macOS
     # runner long after the blocking gates have completed.
-    timeout-minutes: 60
+    # A cold CocoaPods/Firebase compile can exceed 45 minutes on GitHub's
+    # arm64 macOS runners. Allow the first run to finish and populate the
+    # DerivedData cache while keeping the job bounded.
+    timeout-minutes: 90
     env:
       FIREBASE_OPTIONS_PATH: lib/util/Firebase/firebase_options.dart
       IOS_PODS_CACHE_VERSION: v1
@@ -505,7 +508,7 @@ jobs:
         #    mocked inside the test setUp. Symmetric with the Android job.
         # 4. Run only the iOS FCM initialization test here rather than
         #    duplicating the Android integration matrix on the iOS simulator.
-        timeout-minutes: 45
+        timeout-minutes: 75
         run: |
           mkdir -p ci-ios-diagnostics
           {
@@ -528,9 +531,9 @@ jobs:
           SIM_LOG_PID=$!
 
           (
-            sleep 2400
+            sleep 3900
             {
-              echo "=== iOS test watchdog fired at 40 minutes ==="
+              echo "=== iOS test watchdog fired at 65 minutes ==="
               date -u
               echo
               echo "=== process snapshot ==="
