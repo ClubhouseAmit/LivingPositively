@@ -247,6 +247,24 @@ class _UserSettingsState extends LPExtendedState<UserSettings> {
     );
   }
 
+  void _reportResetFailure(Object error, StackTrace stackTrace) {
+    if (!GetIt.instance.isRegistered<IncidentLoggerService>()) {
+      debugPrint('Reset failed: $error');
+      return;
+    }
+
+    unawaited(
+      Future<void>.sync(
+        () => GetIt.instance<IncidentLoggerService>().captureLog(
+          error,
+          stackTrace: stackTrace,
+        ),
+      ).catchError((Object loggerError, StackTrace loggerStackTrace) {
+        debugPrint('Reset failure reporting failed: $loggerError');
+      }),
+    );
+  }
+
   //remove log-in data and reset all data that user has filled in the app:
   Future<void> resetData(UserInformation userInfo) async {
     LocaleService localeService = GetIt.instance<LocaleService>();
@@ -305,7 +323,14 @@ class _UserSettingsState extends LPExtendedState<UserSettings> {
       userInfo.updateEmail(authenticatedUser.email ?? '');
       userInfo.updateDisplayName(authenticatedUser.displayName ?? '');
     }
-    await pickerService.deleteImages();
+    unawaited(
+      Future<void>.sync(pickerService.deleteImages).catchError((
+        Object error,
+        StackTrace stackTrace,
+      ) {
+        _reportResetFailure(error, stackTrace);
+      }),
+    );
 
     if (!mounted) {
       return;
@@ -706,41 +731,10 @@ class _UserSettingsState extends LPExtendedState<UserSettings> {
                                                           error,
                                                           stackTrace
                                                         ) {
-                                                          if (GetIt.instance
-                                                              .isRegistered<
-                                                                IncidentLoggerService
-                                                              >()) {
-                                                            try {
-                                                              unawaited(
-                                                                GetIt.instance<
-                                                                      IncidentLoggerService
-                                                                    >()
-                                                                    .captureLog(
-                                                                      error,
-                                                                      stackTrace:
-                                                                          stackTrace,
-                                                                    )
-                                                                    .catchError((
-                                                                      Object
-                                                                      loggerError,
-                                                                    ) {
-                                                                      debugPrint(
-                                                                        'Reset failure reporting failed: $loggerError',
-                                                                      );
-                                                                    }),
-                                                              );
-                                                            } catch (
-                                                              loggerError
-                                                            ) {
-                                                              debugPrint(
-                                                                'Reset failure reporting failed: $loggerError',
-                                                              );
-                                                            }
-                                                          } else {
-                                                            debugPrint(
-                                                              'Reset failed: $error',
-                                                            );
-                                                          }
+                                                          _reportResetFailure(
+                                                            error,
+                                                            stackTrace,
+                                                          );
                                                         } finally {
                                                           if (dialogContext
                                                               .mounted) {

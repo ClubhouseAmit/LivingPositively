@@ -152,9 +152,14 @@ void main() {
     },
   );
 
-  testWidgets('reset confirmation regains controls when cleanup throws', (
+  testWidgets('reset remains terminal when best-effort image cleanup throws', (
     tester,
   ) async {
+    final memory = user.service as FakePersistentMemoryService;
+    user.name = 'Cleanup failure';
+    user.age = '18-30';
+    memory.store['name'] = user.name;
+    memory.store['age'] = user.age;
     GetIt.instance.unregister<ImagePickerService>();
     GetIt.instance.registerSingleton<ImagePickerService>(
       _FailingResetImagePickerService(),
@@ -186,29 +191,27 @@ void main() {
       await tester.tap(dialogButtons.last, warnIfMissed: false);
       await tester.pumpAndSettle();
 
-      dialogButtons = find.descendant(
-        of: find.byType(Dialog),
-        matching: find.byType(TextButton),
-      );
-      expect(find.byType(CircularProgressIndicator), findsNothing);
-      for (final button in tester.widgetList<TextButton>(dialogButtons)) {
-        expect(button.onPressed, isNotNull);
-      }
-
-      await tester.tap(dialogButtons.first, warnIfMissed: false);
-      await tester.pumpAndSettle();
-
+      expect(find.byType(FirstPage), findsOneWidget);
       expect(find.byType(Dialog), findsNothing);
-      expect(find.byType(UserSettings), findsOneWidget);
+      expect(find.byType(UserSettings), findsNothing);
+      expect(user.name, isEmpty);
+      expect(user.age, isEmpty);
+      expect(memory.store, isNot(contains('name')));
+      expect(memory.store, isNot(contains('age')));
     } finally {
       debugDefaultTargetPlatformOverride = null;
     }
   });
 
-  testWidgets('reset recovery does not wait for incident reporting', (
+  testWidgets('reset navigation does not wait for cleanup incident reporting', (
     tester,
   ) async {
     final logger = _PendingIncidentLoggerService();
+    final memory = user.service as FakePersistentMemoryService;
+    user.name = 'Pending failure report';
+    user.age = '18-30';
+    memory.store['name'] = user.name;
+    memory.store['age'] = user.age;
     GetIt.instance.unregister<IncidentLoggerService>();
     GetIt.instance.registerSingleton<IncidentLoggerService>(logger);
     GetIt.instance.unregister<ImagePickerService>();
@@ -240,25 +243,16 @@ void main() {
         matching: find.byType(TextButton),
       );
       await tester.tap(dialogButtons.last, warnIfMissed: false);
-      await tester.pump();
+      await tester.pumpAndSettle();
 
       expect(logger.captureStarted, isTrue);
-      dialogButtons = find.descendant(
-        of: find.byType(Dialog),
-        matching: find.byType(TextButton),
-      );
-      expect(find.byType(CircularProgressIndicator), findsNothing);
-      for (final button in tester.widgetList<TextButton>(dialogButtons)) {
-        expect(button.onPressed, isNotNull);
-      }
-
-      logger.completion.complete();
-      await tester.pumpAndSettle();
-      await tester.tap(dialogButtons.first, warnIfMissed: false);
-      await tester.pumpAndSettle();
-
+      expect(find.byType(FirstPage), findsOneWidget);
       expect(find.byType(Dialog), findsNothing);
-      expect(find.byType(UserSettings), findsOneWidget);
+      expect(find.byType(UserSettings), findsNothing);
+      expect(user.name, isEmpty);
+      expect(user.age, isEmpty);
+      expect(memory.store, isNot(contains('name')));
+      expect(memory.store, isNot(contains('age')));
     } finally {
       if (!logger.completion.isCompleted) {
         logger.completion.complete();
@@ -461,66 +455,64 @@ void main() {
     },
   );
 
-  testWidgets(
-    'reset confirmation ignores same-frame duplicate activation',
-    (tester) async {
-      final auth = MockFirebaseAuth();
-      final firebaseUser = MockUser();
-      final idToken = Completer<String?>();
-      var tokenRequests = 0;
-      when(auth.currentUser).thenReturn(firebaseUser);
-      when(firebaseUser.isAnonymous).thenReturn(false);
-      when(firebaseUser.getIdToken()).thenAnswer((_) {
-        tokenRequests += 1;
-        return idToken.future;
-      });
-      GetIt.instance.registerSingleton<FirebaseAuth>(auth);
-      debugDefaultTargetPlatformOverride = TargetPlatform.android;
+  testWidgets('reset confirmation ignores same-frame duplicate activation', (
+    tester,
+  ) async {
+    final auth = MockFirebaseAuth();
+    final firebaseUser = MockUser();
+    final idToken = Completer<String?>();
+    var tokenRequests = 0;
+    when(auth.currentUser).thenReturn(firebaseUser);
+    when(firebaseUser.isAnonymous).thenReturn(false);
+    when(firebaseUser.getIdToken()).thenAnswer((_) {
+      tokenRequests += 1;
+      return idToken.future;
+    });
+    GetIt.instance.registerSingleton<FirebaseAuth>(auth);
+    debugDefaultTargetPlatformOverride = TargetPlatform.android;
 
-      try {
-        await pumpWithProviders(
-          tester,
-          UserSettings(
-            username: 'Duplicate reset confirmation',
-            age: '18-30',
-            gender: 'male',
-            phonePageData: _phone(),
-            changeLocale: (_) {},
-          ),
-          userInformation: user,
-          surfaceSize: const Size(1024, 2800),
-        );
+    try {
+      await pumpWithProviders(
+        tester,
+        UserSettings(
+          username: 'Duplicate reset confirmation',
+          age: '18-30',
+          gender: 'male',
+          phonePageData: _phone(),
+          changeLocale: (_) {},
+        ),
+        userInformation: user,
+        surfaceSize: const Size(1024, 2800),
+      );
 
-        final resetButton = find.byKey(const Key('userSettingsResetButton'));
-        await tester.ensureVisible(resetButton);
-        await tester.tap(resetButton, warnIfMissed: false);
-        await tester.pumpAndSettle();
+      final resetButton = find.byKey(const Key('userSettingsResetButton'));
+      await tester.ensureVisible(resetButton);
+      await tester.tap(resetButton, warnIfMissed: false);
+      await tester.pumpAndSettle();
 
-        final dialogButtons = find.descendant(
-          of: find.byType(Dialog),
-          matching: find.byType(TextButton),
-        );
-        final confirm =
-            tester.widget<TextButton>(dialogButtons.last).onPressed!;
-        confirm();
-        confirm();
-        await tester.pump();
+      final dialogButtons = find.descendant(
+        of: find.byType(Dialog),
+        matching: find.byType(TextButton),
+      );
+      final confirm = tester.widget<TextButton>(dialogButtons.last).onPressed!;
+      confirm();
+      confirm();
+      await tester.pump();
 
-        expect(find.byType(CircularProgressIndicator), findsOneWidget);
-        expect(tokenRequests, 1);
+      expect(find.byType(CircularProgressIndicator), findsOneWidget);
+      expect(tokenRequests, 1);
 
-        idToken.complete(null);
-        await tester.pumpAndSettle();
+      idToken.complete(null);
+      await tester.pumpAndSettle();
 
-        expect(tokenRequests, 1);
-        expect(find.byType(UserSettings), findsOneWidget);
-        expect(find.byType(FirstPage), findsNothing);
-        expect(find.byType(SnackBar), findsOneWidget);
-      } finally {
-        debugDefaultTargetPlatformOverride = null;
-      }
-    },
-  );
+      expect(tokenRequests, 1);
+      expect(find.byType(UserSettings), findsOneWidget);
+      expect(find.byType(FirstPage), findsNothing);
+      expect(find.byType(SnackBar), findsOneWidget);
+    } finally {
+      debugDefaultTargetPlatformOverride = null;
+    }
+  });
 
   testWidgets('reset skips remote cancellation on an unsupported platform', (
     tester,
