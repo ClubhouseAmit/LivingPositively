@@ -184,6 +184,10 @@ class FcmService {
   // Called after a successful sign-in so the new UID is stored with its FCM token.
   static Future<void> onUserSignedIn() async {
     if (!supportsReminderSettings()) return;
+    if (!_isInitialized) {
+      await initialize();
+      return;
+    }
     try {
       final uid = _currentUserId();
       final tokenResult = await _getTokenWhenPlatformReady();
@@ -295,12 +299,7 @@ class FcmService {
       return true;
     } catch (error, stackTrace) {
       _log('Failed to save token to Firestore: $error');
-      try {
-        GetIt.instance<IncidentLoggerService>().captureLog(
-          error,
-          stackTrace: stackTrace,
-        );
-      } catch (_) {}
+      _reportFailure(error, stackTrace);
       return false;
     }
   }

@@ -3,6 +3,7 @@ import 'dart:async';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:fake_cloud_firestore/fake_cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
+import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -130,8 +131,16 @@ void main() {
     final firestore = FakeFirebaseFirestore();
     GetIt.instance.registerSingleton<FirebaseFirestore>(firestore);
     final tokenRead = Completer<String?>();
+    String? fcmUid;
     debugDefaultTargetPlatformOverride = TargetPlatform.android;
-    FcmService.debugGetCurrentUserIdOverride = () => 'uid-123';
+    FcmService.debugRequestPermissionOverride = () async =>
+        _authorizedNotificationSettings();
+    FcmService.debugInitializeLocalNotificationsOverride = () async {};
+    FcmService.debugGetCurrentUserIdOverride = () => fcmUid;
+    FcmService.debugGetTokenOverride = () async => 'initial-fcm-token';
+    FcmService.debugRegisterListenersOverride = () {};
+    await FcmService.initialize();
+    fcmUid = 'uid-123';
     FcmService.debugGetTokenOverride = () => tokenRead.future;
 
     try {
@@ -182,8 +191,16 @@ void main() {
       FakeFirebaseFirestore(),
     );
     final tokenRead = Completer<String?>();
+    String? fcmUid;
     debugDefaultTargetPlatformOverride = TargetPlatform.android;
-    FcmService.debugGetCurrentUserIdOverride = () => 'uid-123';
+    FcmService.debugRequestPermissionOverride = () async =>
+        _authorizedNotificationSettings();
+    FcmService.debugInitializeLocalNotificationsOverride = () async {};
+    FcmService.debugGetCurrentUserIdOverride = () => fcmUid;
+    FcmService.debugGetTokenOverride = () async => 'initial-fcm-token';
+    FcmService.debugRegisterListenersOverride = () {};
+    await FcmService.initialize();
+    fcmUid = 'uid-123';
     FcmService.debugGetTokenOverride = () => tokenRead.future;
 
     try {
@@ -450,4 +467,21 @@ class _NotificationAuthLauncher extends StatelessWidget {
       ),
     );
   }
+}
+
+NotificationSettings _authorizedNotificationSettings() {
+  return const NotificationSettings(
+    alert: AppleNotificationSetting.enabled,
+    announcement: AppleNotificationSetting.disabled,
+    authorizationStatus: AuthorizationStatus.authorized,
+    badge: AppleNotificationSetting.enabled,
+    carPlay: AppleNotificationSetting.disabled,
+    criticalAlert: AppleNotificationSetting.disabled,
+    lockScreen: AppleNotificationSetting.enabled,
+    notificationCenter: AppleNotificationSetting.enabled,
+    showPreviews: AppleShowPreviewSetting.always,
+    sound: AppleNotificationSetting.enabled,
+    timeSensitive: AppleNotificationSetting.disabled,
+    providesAppNotificationSettings: AppleNotificationSetting.disabled,
+  );
 }

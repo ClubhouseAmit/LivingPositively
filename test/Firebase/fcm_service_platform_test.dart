@@ -2,17 +2,24 @@ import 'dart:async';
 
 import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:flutter/foundation.dart';
+import 'package:flutter/widgets.dart' show Widget;
 import 'package:flutter_test/flutter_test.dart';
+import 'package:get_it/get_it.dart';
 import 'package:mazilon/util/Firebase/fcm_service.dart';
+import 'package:mazilon/util/logger_service.dart';
 
 void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
 
-  setUp(FcmService.resetForTesting);
+  setUp(() async {
+    await GetIt.instance.reset();
+    FcmService.resetForTesting();
+  });
 
-  tearDown(() {
+  tearDown(() async {
     FcmService.resetForTesting();
     debugDefaultTargetPlatformOverride = null;
+    await GetIt.instance.reset();
   });
 
   test(
@@ -243,16 +250,101 @@ void main() {
   test('post-sign-in token refresh also waits for APNs on iOS', () async {
     debugDefaultTargetPlatformOverride = TargetPlatform.iOS;
     var fcmTokenRequests = 0;
+    FcmService.debugRequestPermissionOverride = () async =>
+        _notificationSettings(AuthorizationStatus.authorized);
+    FcmService.debugInitializeLocalNotificationsOverride = () async {};
     FcmService.debugGetCurrentUserIdOverride = () => 'uid-123';
     FcmService.debugGetApnsTokenOverride = () async => null;
     FcmService.debugGetTokenOverride = () async {
       fcmTokenRequests++;
       return 'fcm-token';
     };
+    FcmService.debugRegisterListenersOverride = () {};
 
     await expectLater(FcmService.onUserSignedIn(), completes);
 
     expect(fcmTokenRequests, 0);
+  });
+
+  test('incomplete iOS initialization is completed during sign-in', () async {
+    debugDefaultTargetPlatformOverride = TargetPlatform.iOS;
+    String? uid;
+    var apnsTokenRequests = 0;
+    var tokenRequests = 0;
+    var listenerRegistrations = 0;
+    final savedTokens = <String>[];
+    FcmService.debugRequestPermissionOverride = () async =>
+        _notificationSettings(AuthorizationStatus.authorized);
+    FcmService.debugInitializeLocalNotificationsOverride = () async {};
+    FcmService.debugGetCurrentUserIdOverride = () => uid;
+    FcmService.debugGetApnsTokenOverride = () async {
+      apnsTokenRequests++;
+      return apnsTokenRequests == 1 ? null : 'apns-token';
+    };
+    FcmService.debugGetTokenOverride = () async {
+      tokenRequests++;
+      return 'fcm-token';
+    };
+    FcmService.debugSaveTokenOverride = (deviceId, token) async {
+      savedTokens.add('$deviceId:$token');
+      return true;
+    };
+    FcmService.debugRegisterListenersOverride = () {
+      listenerRegistrations++;
+    };
+
+    await FcmService.initialize();
+    uid = 'uid-123';
+    await FcmService.onUserSignedIn();
+
+    expect(apnsTokenRequests, 2);
+    expect(tokenRequests, 1);
+    expect(savedTokens, ['uid-123:fcm-token']);
+    expect(listenerRegistrations, 1);
+  });
+
+  test(
+    'sign-in does not bypass denied permission with a raw token read',
+    () async {
+      debugDefaultTargetPlatformOverride = TargetPlatform.android;
+      var permissionAttempts = 0;
+      var tokenRequests = 0;
+      FcmService.debugRequestPermissionOverride = () async {
+        permissionAttempts++;
+        return _notificationSettings(AuthorizationStatus.denied);
+      };
+      FcmService.debugGetCurrentUserIdOverride = () => 'uid-123';
+      FcmService.debugGetTokenOverride = () async {
+        tokenRequests++;
+        return 'fcm-token';
+      };
+
+      await FcmService.initialize();
+      await FcmService.onUserSignedIn();
+
+      expect(permissionAttempts, 2);
+      expect(tokenRequests, 0);
+    },
+  );
+
+  test('token-save failure contains a rejecting incident logger', () async {
+    debugDefaultTargetPlatformOverride = TargetPlatform.android;
+    final logger = _RejectingIncidentLogger();
+    GetIt.instance.registerSingleton<IncidentLoggerService>(logger);
+    FcmService.debugRequestPermissionOverride = () async =>
+        _notificationSettings(AuthorizationStatus.authorized);
+    FcmService.debugInitializeLocalNotificationsOverride = () async {};
+    FcmService.debugGetCurrentUserIdOverride = () => 'uid-123';
+    FcmService.debugGetTokenOverride = () async => 'fcm-token';
+    FcmService.debugSaveTokenOverride = (deviceId, token) async {
+      throw StateError('Firestore unavailable');
+    };
+    FcmService.debugRegisterListenersOverride = () {};
+
+    await expectLater(FcmService.initialize(), completes);
+    await Future<void>.delayed(Duration.zero);
+
+    expect(logger.captureCalls, 1);
   });
 
   test(
@@ -380,4 +472,21 @@ NotificationSettings _notificationSettings(AuthorizationStatus status) {
     timeSensitive: AppleNotificationSetting.disabled,
     providesAppNotificationSettings: AppleNotificationSetting.disabled,
   );
+}
+
+class _RejectingIncidentLogger implements IncidentLoggerService {
+  int captureCalls = 0;
+
+  @override
+  Future<void> captureLog(
+    dynamic exception, {
+    StackTrace? stackTrace,
+    dynamic exceptionData,
+  }) {
+    captureCalls++;
+    return Future<void>.error(StateError('logger unavailable'));
+  }
+
+  @override
+  Future<void> initializeSentry(Widget MyApp) async {}
 }
