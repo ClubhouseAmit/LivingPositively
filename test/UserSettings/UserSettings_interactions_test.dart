@@ -19,6 +19,7 @@ import 'package:mazilon/pages/SignIn_Pages/firstPage.dart';
 import 'package:mazilon/pages/UserSettings.dart';
 import 'package:mazilon/util/Form/formPagePhoneModel.dart';
 import 'package:mazilon/util/Firebase/fcm_scheduled_notification_service.dart';
+import 'package:mazilon/util/logger_service.dart';
 import 'package:mazilon/util/notification_preference.dart';
 import 'package:mazilon/util/userInformation.dart';
 import 'package:mockito/mockito.dart';
@@ -44,6 +45,21 @@ class _FailingResetImagePickerService extends NoopImagePickerService {
   @override
   Future<void> deleteImages() async {
     throw StateError('image cleanup failed');
+  }
+}
+
+class _PendingIncidentLoggerService extends NoopIncidentLoggerService {
+  final Completer<void> completion = Completer<void>();
+  bool captureStarted = false;
+
+  @override
+  Future<void> captureLog(
+    dynamic exception, {
+    StackTrace? stackTrace,
+    dynamic exceptionData,
+  }) async {
+    captureStarted = true;
+    await completion.future;
   }
 }
 
@@ -185,6 +201,69 @@ void main() {
       expect(find.byType(Dialog), findsNothing);
       expect(find.byType(UserSettings), findsOneWidget);
     } finally {
+      debugDefaultTargetPlatformOverride = null;
+    }
+  });
+
+  testWidgets('reset recovery does not wait for incident reporting', (
+    tester,
+  ) async {
+    final logger = _PendingIncidentLoggerService();
+    GetIt.instance.unregister<IncidentLoggerService>();
+    GetIt.instance.registerSingleton<IncidentLoggerService>(logger);
+    GetIt.instance.unregister<ImagePickerService>();
+    GetIt.instance.registerSingleton<ImagePickerService>(
+      _FailingResetImagePickerService(),
+    );
+    debugDefaultTargetPlatformOverride = TargetPlatform.windows;
+    try {
+      await pumpWithProviders(
+        tester,
+        UserSettings(
+          username: 'Pending failure report',
+          age: '18-30',
+          gender: 'male',
+          phonePageData: _phone(),
+          changeLocale: (_) {},
+        ),
+        userInformation: user,
+        surfaceSize: const Size(1024, 2800),
+      );
+
+      final resetButton = find.byKey(const Key('userSettingsResetButton'));
+      await tester.ensureVisible(resetButton);
+      await tester.tap(resetButton, warnIfMissed: false);
+      await tester.pumpAndSettle();
+
+      var dialogButtons = find.descendant(
+        of: find.byType(Dialog),
+        matching: find.byType(TextButton),
+      );
+      await tester.tap(dialogButtons.last, warnIfMissed: false);
+      await tester.pump();
+
+      expect(logger.captureStarted, isTrue);
+      dialogButtons = find.descendant(
+        of: find.byType(Dialog),
+        matching: find.byType(TextButton),
+      );
+      expect(find.byType(CircularProgressIndicator), findsNothing);
+      for (final button in tester.widgetList<TextButton>(dialogButtons)) {
+        expect(button.onPressed, isNotNull);
+      }
+
+      logger.completion.complete();
+      await tester.pumpAndSettle();
+      await tester.tap(dialogButtons.first, warnIfMissed: false);
+      await tester.pumpAndSettle();
+
+      expect(find.byType(Dialog), findsNothing);
+      expect(find.byType(UserSettings), findsOneWidget);
+    } finally {
+      if (!logger.completion.isCompleted) {
+        logger.completion.complete();
+        await tester.pump();
+      }
       debugDefaultTargetPlatformOverride = null;
     }
   });

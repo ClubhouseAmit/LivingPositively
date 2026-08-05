@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:firebase_auth/firebase_auth.dart';
@@ -709,14 +711,24 @@ class _UserSettingsState extends LPExtendedState<UserSettings> {
                                                                 IncidentLoggerService
                                                               >()) {
                                                             try {
-                                                              await GetIt.instance<
-                                                                    IncidentLoggerService
-                                                                  >()
-                                                                  .captureLog(
-                                                                    error,
-                                                                    stackTrace:
-                                                                        stackTrace,
-                                                                  );
+                                                              unawaited(
+                                                                GetIt.instance<
+                                                                      IncidentLoggerService
+                                                                    >()
+                                                                    .captureLog(
+                                                                      error,
+                                                                      stackTrace:
+                                                                          stackTrace,
+                                                                    )
+                                                                    .catchError((
+                                                                      Object
+                                                                      loggerError,
+                                                                    ) {
+                                                                      debugPrint(
+                                                                        'Reset failure reporting failed: $loggerError',
+                                                                      );
+                                                                    }),
+                                                              );
                                                             } catch (
                                                               loggerError
                                                             ) {
