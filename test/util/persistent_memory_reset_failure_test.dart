@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:get_it/get_it.dart';
@@ -9,8 +11,8 @@ const _sharedPreferencesChannel = MethodChannel(
   'plugins.flutter.io/shared_preferences',
 );
 
-class _RecordingLogger implements IncidentLoggerService {
-  final List<dynamic> logs = <dynamic>[];
+class _PendingLogger implements IncidentLoggerService {
+  final Completer<void> completion = Completer<void>();
 
   @override
   Future<void> initializeSentry(_) async {}
@@ -20,23 +22,24 @@ class _RecordingLogger implements IncidentLoggerService {
     dynamic exception, {
     StackTrace? stackTrace,
     dynamic exceptionData,
-  }) async {
-    logs.add(exception);
-  }
+  }) => completion.future;
 }
 
 void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
 
-  late _RecordingLogger logger;
+  late _PendingLogger logger;
 
   setUp(() {
     SharedPreferences.resetStatic();
-    logger = _RecordingLogger();
+    logger = _PendingLogger();
     GetIt.instance.registerSingleton<IncidentLoggerService>(logger);
   });
 
   tearDown(() async {
+    if (!logger.completion.isCompleted) {
+      logger.completion.complete();
+    }
     TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger
         .setMockMethodCallHandler(_sharedPreferencesChannel, null);
     SharedPreferences.resetStatic();
@@ -67,7 +70,7 @@ void main() {
     installClearResult(false);
 
     await expectLater(
-      SharedPreferencesService().reset(),
+      SharedPreferencesService().reset().timeout(const Duration(seconds: 1)),
       throwsA(
         isA<StateError>().having(
           (error) => error.message,
@@ -76,8 +79,6 @@ void main() {
         ),
       ),
     );
-    expect(logger.logs, hasLength(1));
-    expect(logger.logs.single, isA<StateError>());
   });
 
   test('reset rethrows a SharedPreferences clear exception', () async {
@@ -86,7 +87,7 @@ void main() {
     );
 
     await expectLater(
-      SharedPreferencesService().reset(),
+      SharedPreferencesService().reset().timeout(const Duration(seconds: 1)),
       throwsA(
         isA<PlatformException>().having(
           (error) => error.code,
@@ -95,7 +96,5 @@ void main() {
         ),
       ),
     );
-    expect(logger.logs, hasLength(1));
-    expect(logger.logs.single, isA<PlatformException>());
   });
 }

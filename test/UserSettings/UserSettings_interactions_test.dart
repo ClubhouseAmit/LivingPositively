@@ -293,6 +293,9 @@ void main() {
   testWidgets('reset failure keeps Settings interactive before commit', (
     tester,
   ) async {
+    final logger = _PendingIncidentLoggerService();
+    GetIt.instance.unregister<IncidentLoggerService>();
+    GetIt.instance.registerSingleton<IncidentLoggerService>(logger);
     final memory = _FailingResetMemoryService();
     memory.store['name'] = 'Not reset';
     memory.store['age'] = '30-40';
@@ -341,6 +344,7 @@ void main() {
       expect(find.byType(UserSettings), findsOneWidget);
       expect(find.byType(Dialog), findsOneWidget);
       expect(find.byType(CircularProgressIndicator), findsNothing);
+      expect(logger.captureStarted, isTrue);
       for (final button in tester.widgetList<TextButton>(dialogButtons)) {
         expect(button.onPressed, isNotNull);
       }
@@ -352,6 +356,10 @@ void main() {
       expect(memory.store['age'], '30-40');
       expect(tester.takeException(), isNull);
     } finally {
+      if (!logger.completion.isCompleted) {
+        logger.completion.complete();
+        await tester.pump();
+      }
       debugDefaultTargetPlatformOverride = null;
     }
   });
