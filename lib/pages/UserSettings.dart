@@ -11,6 +11,7 @@ import 'package:mazilon/util/Form/formPagePhoneModel.dart';
 
 import 'package:mazilon/pages/FeelGood/image_picker_service_impl.dart';
 import 'package:mazilon/util/LP_extended_state.dart';
+import 'package:mazilon/util/logger_service.dart';
 import 'package:mazilon/util/persistent_memory_service.dart';
 import 'package:mazilon/util/styles.dart';
 import 'package:mazilon/util/Form/myDropdownMenuEntry.dart';
@@ -695,15 +696,48 @@ class _UserSettingsState extends LPExtendedState<UserSettings> {
                                                           () => isResetting =
                                                               true,
                                                         );
-                                                        await resetData(
-                                                          userInfoProvider,
-                                                        );
-                                                        if (dialogContext
-                                                            .mounted) {
-                                                          setDialogState(
-                                                            () => isResetting =
-                                                                false,
+                                                        try {
+                                                          await resetData(
+                                                            userInfoProvider,
                                                           );
+                                                        } catch (
+                                                          error,
+                                                          stackTrace
+                                                        ) {
+                                                          if (GetIt.instance
+                                                              .isRegistered<
+                                                                IncidentLoggerService
+                                                              >()) {
+                                                            try {
+                                                              await GetIt.instance<
+                                                                    IncidentLoggerService
+                                                                  >()
+                                                                  .captureLog(
+                                                                    error,
+                                                                    stackTrace:
+                                                                        stackTrace,
+                                                                  );
+                                                            } catch (
+                                                              loggerError
+                                                            ) {
+                                                              debugPrint(
+                                                                'Reset failure reporting failed: $loggerError',
+                                                              );
+                                                            }
+                                                          } else {
+                                                            debugPrint(
+                                                              'Reset failed: $error',
+                                                            );
+                                                          }
+                                                        } finally {
+                                                          if (dialogContext
+                                                              .mounted) {
+                                                            setDialogState(
+                                                              () =>
+                                                                  isResetting =
+                                                                      false,
+                                                            );
+                                                          }
                                                         }
                                                       },
                                                 child: isResetting

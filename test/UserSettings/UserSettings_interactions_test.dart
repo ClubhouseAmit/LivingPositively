@@ -14,6 +14,7 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:get_it/get_it.dart';
+import 'package:mazilon/pages/FeelGood/image_picker_service_impl.dart';
 import 'package:mazilon/pages/SignIn_Pages/firstPage.dart';
 import 'package:mazilon/pages/UserSettings.dart';
 import 'package:mazilon/util/Form/formPagePhoneModel.dart';
@@ -38,6 +39,13 @@ PhonePageData _phone() => PhonePageData(
   savedPhoneNumbers: const [],
   phoneDescription: const [],
 );
+
+class _FailingResetImagePickerService extends NoopImagePickerService {
+  @override
+  Future<void> deleteImages() async {
+    throw StateError('image cleanup failed');
+  }
+}
 
 void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
@@ -127,6 +135,59 @@ void main() {
       expect(find.byType(UserSettings), findsOneWidget);
     },
   );
+
+  testWidgets('reset confirmation regains controls when cleanup throws', (
+    tester,
+  ) async {
+    GetIt.instance.unregister<ImagePickerService>();
+    GetIt.instance.registerSingleton<ImagePickerService>(
+      _FailingResetImagePickerService(),
+    );
+    debugDefaultTargetPlatformOverride = TargetPlatform.windows;
+    try {
+      await pumpWithProviders(
+        tester,
+        UserSettings(
+          username: 'Cleanup failure',
+          age: '18-30',
+          gender: 'male',
+          phonePageData: _phone(),
+          changeLocale: (_) {},
+        ),
+        userInformation: user,
+        surfaceSize: const Size(1024, 2800),
+      );
+
+      final resetButton = find.byKey(const Key('userSettingsResetButton'));
+      await tester.ensureVisible(resetButton);
+      await tester.tap(resetButton, warnIfMissed: false);
+      await tester.pumpAndSettle();
+
+      var dialogButtons = find.descendant(
+        of: find.byType(Dialog),
+        matching: find.byType(TextButton),
+      );
+      await tester.tap(dialogButtons.last, warnIfMissed: false);
+      await tester.pumpAndSettle();
+
+      dialogButtons = find.descendant(
+        of: find.byType(Dialog),
+        matching: find.byType(TextButton),
+      );
+      expect(find.byType(CircularProgressIndicator), findsNothing);
+      for (final button in tester.widgetList<TextButton>(dialogButtons)) {
+        expect(button.onPressed, isNotNull);
+      }
+
+      await tester.tap(dialogButtons.first, warnIfMissed: false);
+      await tester.pumpAndSettle();
+
+      expect(find.byType(Dialog), findsNothing);
+      expect(find.byType(UserSettings), findsOneWidget);
+    } finally {
+      debugDefaultTargetPlatformOverride = null;
+    }
+  });
 
   testWidgets('does not offer a sign-out action for an authenticated user', (
     tester,
