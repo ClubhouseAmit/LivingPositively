@@ -48,6 +48,17 @@ class _FailingResetImagePickerService extends NoopImagePickerService {
   }
 }
 
+class _PendingResetImagePickerService extends NoopImagePickerService {
+  final Completer<void> completion = Completer<void>();
+  bool deleteStarted = false;
+
+  @override
+  Future<void> deleteImages() {
+    deleteStarted = true;
+    return completion.future;
+  }
+}
+
 class _PendingIncidentLoggerService extends NoopIncidentLoggerService {
   final Completer<void> completion = Completer<void>();
   bool captureStarted = false;
@@ -151,6 +162,61 @@ void main() {
       expect(find.byType(UserSettings), findsOneWidget);
     },
   );
+
+  testWidgets('reset waits for successful image cleanup before navigation', (
+    tester,
+  ) async {
+    final picker = _PendingResetImagePickerService();
+    GetIt.instance.unregister<ImagePickerService>();
+    GetIt.instance.registerSingleton<ImagePickerService>(picker);
+    debugDefaultTargetPlatformOverride = TargetPlatform.windows;
+
+    try {
+      await pumpWithProviders(
+        tester,
+        UserSettings(
+          username: 'Pending cleanup',
+          age: '18-30',
+          gender: 'male',
+          phonePageData: _phone(),
+          changeLocale: (_) {},
+        ),
+        userInformation: user,
+        surfaceSize: const Size(1024, 2800),
+      );
+
+      final resetButton = find.byKey(const Key('userSettingsResetButton'));
+      await tester.ensureVisible(resetButton);
+      await tester.tap(resetButton, warnIfMissed: false);
+      await tester.pumpAndSettle();
+
+      final dialogButtons = find.descendant(
+        of: find.byType(Dialog),
+        matching: find.byType(TextButton),
+      );
+      await tester.tap(dialogButtons.last, warnIfMissed: false);
+      await tester.pump();
+
+      expect(picker.deleteStarted, isTrue);
+      expect(find.byType(CircularProgressIndicator), findsOneWidget);
+      expect(find.byType(UserSettings), findsOneWidget);
+      expect(find.byType(Dialog), findsOneWidget);
+      expect(find.byType(FirstPage), findsNothing);
+
+      picker.completion.complete();
+      await tester.pumpAndSettle();
+
+      expect(find.byType(FirstPage), findsOneWidget);
+      expect(find.byType(Dialog), findsNothing);
+      expect(find.byType(UserSettings), findsNothing);
+    } finally {
+      if (!picker.completion.isCompleted) {
+        picker.completion.complete();
+        await tester.pump();
+      }
+      debugDefaultTargetPlatformOverride = null;
+    }
+  });
 
   testWidgets('reset remains terminal when best-effort image cleanup throws', (
     tester,

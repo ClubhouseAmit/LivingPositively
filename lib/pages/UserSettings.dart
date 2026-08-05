@@ -323,14 +323,12 @@ class _UserSettingsState extends LPExtendedState<UserSettings> {
       userInfo.updateEmail(authenticatedUser.email ?? '');
       userInfo.updateDisplayName(authenticatedUser.displayName ?? '');
     }
-    unawaited(
-      Future<void>.sync(pickerService.deleteImages).catchError((
-        Object error,
-        StackTrace stackTrace,
-      ) {
-        _reportResetFailure(error, stackTrace);
-      }),
-    );
+    await Future<void>.sync(pickerService.deleteImages).catchError((
+      Object error,
+      StackTrace stackTrace,
+    ) {
+      _reportResetFailure(error, stackTrace);
+    });
 
     if (!mounted) {
       return;
