@@ -460,8 +460,10 @@ jobs:
         with:
           path: ~/Library/Developer/Xcode/DerivedData
           key: ${{ runner.os }}-${{ runner.arch }}-${{ steps.xcode.outputs.cache_key }}-ios-deriveddata-${{ env.IOS_DERIVED_DATA_CACHE_VERSION }}-${{ hashFiles('pubspec.lock', 'ios/Podfile', 'ios/Podfile.lock', '.flutter-plugins-dependencies', 'ios/Runner.xcodeproj/project.pbxproj', 'ios/Runner.xcworkspace/contents.xcworkspacedata') }}
-          restore-keys: |
-            ${{ runner.os }}-${{ runner.arch }}-${{ steps.xcode.outputs.cache_key }}-ios-deriveddata-${{ env.IOS_DERIVED_DATA_CACHE_VERSION }}-
+          # DerivedData contains build products tied to the exact plugin/pod
+          # graph. Prefix fallback restored a removed workmanager framework,
+          # producing a stale Runner binary that exited in dyld on launch.
+          # Use exact matches only; CocoaPods keeps its own broader cache.
 
       - name: Resolve CocoaPods dependencies with current specs
         working-directory: ios
