@@ -8,6 +8,7 @@ import {
   israelLocalDeliveryCandidates,
   israelLocalDeliveryCandidatesSince,
   isCurrentScheduledNotification,
+  routeDevicesByUpdatedAt,
   scheduledNotificationQueryPlan,
   selectScheduledNotificationCandidates,
   shouldAdvanceSchedulerCheckpoint,
@@ -87,6 +88,47 @@ describe("scheduled notification delivery", () => {
         classifyDeviceUpdatedAt(hostileTimestamp, nowMillis),
         "malformed",
       );
+    });
+
+    it("skips one malformed device while routing a later valid device", () => {
+      let hostileToMillisCalls = 0;
+      const staleMillis = nowMillis - 181 * 86_400_000;
+
+      const routes = routeDevicesByUpdatedAt(
+        [
+          {
+            uid: "malformed-device",
+            updatedAt: {
+              toMillis() {
+                hostileToMillisCalls++;
+                throw new Error("client method must not execute");
+              },
+            },
+          },
+          {
+            uid: "stale-device",
+            updatedAt: {
+              seconds: Math.floor(staleMillis / 1_000),
+              nanoseconds: 0,
+            },
+          },
+          {
+            uid: "eligible-device",
+            updatedAt: {
+              seconds: Math.floor(nowMillis / 1_000),
+              nanoseconds: 0,
+            },
+          },
+        ],
+        nowMillis,
+      );
+
+      assert.deepEqual(routes, {
+        deliveryEligibleUids: ["eligible-device"],
+        staleUids: ["stale-device"],
+        malformedUids: ["malformed-device"],
+      });
+      assert.equal(hostileToMillisCalls, 0);
     });
   });
 

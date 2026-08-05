@@ -241,6 +241,41 @@ export function classifyDeviceUpdatedAt(
     : "fresh";
 }
 
+type DeviceUpdatedAtEntry = {
+  uid: string;
+  updatedAt: unknown;
+};
+
+type DeviceUpdatedAtRoutes = {
+  deliveryEligibleUids: string[];
+  staleUids: string[];
+  malformedUids: string[];
+};
+
+export function routeDevicesByUpdatedAt(
+  entries: readonly DeviceUpdatedAtEntry[],
+  nowMillis: number,
+): DeviceUpdatedAtRoutes {
+  const routes: DeviceUpdatedAtRoutes = {
+    deliveryEligibleUids: [],
+    staleUids: [],
+    malformedUids: [],
+  };
+
+  for (const entry of entries) {
+    const classification = classifyDeviceUpdatedAt(entry.updatedAt, nowMillis);
+    if (classification === "stale") {
+      routes.staleUids.push(entry.uid);
+    } else if (classification === "malformed") {
+      routes.malformedUids.push(entry.uid);
+    } else {
+      routes.deliveryEligibleUids.push(entry.uid);
+    }
+  }
+
+  return routes;
+}
+
 function timestampSecondsAndNanoseconds(
   value: unknown,
 ): { seconds: number; nanoseconds: number } | undefined {
@@ -824,6 +859,18 @@ export const processScheduledNotifications = onSchedule(
     const deviceMap = new Map(
       deviceDocs.map((d) => [d.id, d.data()]),
     );
+    const deviceTimestampRoutes = routeDevicesByUpdatedAt(
+      [...deviceMap.entries()].map(([uid, deviceData]) => ({
+        uid,
+        updatedAt: deviceData?.updatedAt,
+      })),
+      Date.now(),
+    );
+    const deliveryEligibleUids = new Set(
+      deviceTimestampRoutes.deliveryEligibleUids,
+    );
+    const staleDeviceUids = new Set(deviceTimestampRoutes.staleUids);
+    const malformedDeviceUids = new Set(deviceTimestampRoutes.malformedUids);
 
     // --- Build send list, collecting stale UIDs for deferred cleanup ---
 
@@ -842,18 +889,15 @@ export const processScheduledNotifications = onSchedule(
 
       const deviceData = deviceMap.get(uid);
 
-      const updatedAtClassification = classifyDeviceUpdatedAt(
-        deviceData?.updatedAt,
-        Date.now(),
-      );
-      if (updatedAtClassification === "stale") {
+      if (staleDeviceUids.has(uid)) {
         staleUids.push(uid);
         continue;
       }
-      if (updatedAtClassification === "malformed") {
+      if (malformedDeviceUids.has(uid)) {
         logger.warn("Skipping device with malformed updatedAt", { uid });
         continue;
       }
+      if (!deliveryEligibleUids.has(uid)) continue;
 
       const fcmToken = deviceData?.fcmToken as string | undefined;
       if (!fcmToken) continue;

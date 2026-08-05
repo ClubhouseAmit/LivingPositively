@@ -40,6 +40,7 @@ jobs:
         run: npm test
 
       - name: Audit production dependencies
+        # Residual moderate-only uuid advisory rationale: functions/SECURITY.md
         run: npm audit --omit=dev --audit-level=high
 
   build-android:
