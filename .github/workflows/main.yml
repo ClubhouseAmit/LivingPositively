@@ -397,8 +397,8 @@ jobs:
           path: coverage/integration.info
 
   integration-test-ios:
-    # Blocking iOS simulator validation. This job runs the current
-    # cross-platform notification schedule test and fails the workflow when
+    # Blocking iOS simulator validation. This job runs the iOS-specific
+    # FCM initialization test and fails the workflow when
     # the test is missing or fails. It intentionally does not collect lcov;
     # aggregate coverage remains the unit + Android integration union.
     runs-on: macos-15
@@ -460,6 +460,10 @@ jobs:
           restore-keys: |
             ${{ runner.os }}-${{ runner.arch }}-${{ steps.xcode.outputs.cache_key }}-ios-deriveddata-${{ env.IOS_DERIVED_DATA_CACHE_VERSION }}-
 
+      - name: Resolve CocoaPods dependencies with current specs
+        working-directory: ios
+        run: pod install --repo-update
+
       - name: List available iOS simulators
         # Diagnostic: surfaces the runtime + device names available on the
         # macos-15 image. If the next step fails to find an iPhone, the
@@ -499,7 +503,7 @@ jobs:
         # 3. SENTRY_DSN dart-define is a synthetic test value — Sentry's
         #    native SDK never reaches the network because the channel is
         #    mocked inside the test setUp. Symmetric with the Android job.
-        # 4. Run only the current notification schedule test here rather than
+        # 4. Run only the iOS FCM initialization test here rather than
         #    duplicating the Android integration matrix on the iOS simulator.
         timeout-minutes: 45
         run: |
@@ -547,7 +551,7 @@ jobs:
           trap cleanup_ios_diagnostics EXIT
 
           set +e
-          flutter --verbose test integration_test/notifications_schedule_test.dart --no-pub --dart-define=SENTRY_DSN=https://test@dsn.example.local/0 -d "$DEVICE_ID" 2>&1 | tee ci-ios-diagnostics/flutter-test.log
+          flutter --verbose test integration_test/fcm_initialization_ios_test.dart --no-pub --dart-define=SENTRY_DSN=https://test@dsn.example.local/0 -d "$DEVICE_ID" 2>&1 | tee ci-ios-diagnostics/flutter-test.log
           TEST_EXIT=${PIPESTATUS[0]}
           set -e
 
@@ -678,9 +682,10 @@ jobs:
     #   integration-test → check_integration_coverage.dart  (per-file floors)
     # This job is purely additive; removing it restores the Phase 7 state.
     runs-on: ubuntu-latest
-    # The blocking iOS simulator job does not emit coverage, so the aggregate
-    # gate depends only on the jobs that publish lcov artifacts.
-    needs: [build-android, integration-test]
+    # Functions and iOS do not emit aggregate lcov inputs, but their job
+    # results are part of this canonical gate so a required aggregate check
+    # cannot pass while either production boundary is red.
+    needs: [build-android, integration-test, functions-test, integration-test-ios]
     if: ${{ always() }}
     timeout-minutes: 15
     steps:
@@ -692,14 +697,26 @@ jobs:
         run: |
           build_result="${{ needs.build-android.result }}"
           intg_result="${{ needs.integration-test.result }}"
+          functions_result="${{ needs.functions-test.result }}"
+          ios_result="${{ needs.integration-test-ios.result }}"
           echo "build-android result:        $build_result"
           echo "integration-test result:     $intg_result"
+          echo "functions-test result:       $functions_result"
+          echo "integration-test-ios result: $ios_result"
           if [ "$build_result" != "success" ]; then
             echo "::error::Upstream job build-android did not succeed (result=$build_result); cannot compute aggregate coverage." >&2
             exit 1
           fi
           if [ "$intg_result" != "success" ]; then
             echo "::error::Upstream job integration-test did not succeed (result=$intg_result); cannot compute aggregate coverage." >&2
+            exit 1
+          fi
+          if [ "$functions_result" != "success" ]; then
+            echo "::error::Upstream job functions-test did not succeed (result=$functions_result); cannot compute aggregate coverage." >&2
+            exit 1
+          fi
+          if [ "$ios_result" != "success" ]; then
+            echo "::error::Upstream job integration-test-ios did not succeed (result=$ios_result); cannot compute aggregate coverage." >&2
             exit 1
           fi
           echo "All upstream jobs succeeded — proceeding with aggregate merge."
