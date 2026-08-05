@@ -15,9 +15,10 @@ token audience; do not use an Android OAuth client ID.
 Before enabling it:
 
 1. Enable Google as a sign-in provider in Firebase Authentication.
-2. Register the Android application ID `com.clubhouse.livingpositively` and the
+2. Register the Gradle Android application ID `com.matzilon.mezilon` and the
    SHA-1/SHA-256 fingerprints for every signing certificate used by release,
-   internal, and development builds.
+   internal, and development builds. The source namespace
+   `com.example.mezilon` is not the OAuth application ID.
 3. Create or select the matching Web OAuth client in the same Google Cloud /
    Firebase project and configure the OAuth consent screen.
 4. Inject the client ID when building. For example:
