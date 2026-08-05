@@ -445,6 +445,20 @@ jobs:
           XCODE_CACHE_KEY=$(xcodebuild -version | tr '\n' '-' | sed -E 's/-$//' | tr ' ' '_')
           echo "cache_key=$XCODE_CACHE_KEY" >> "$GITHUB_OUTPUT"
 
+      - name: Verify CocoaPods version
+        working-directory: ios
+        run: |
+          EXPECTED_COCOAPODS_VERSION=$(awk '$1 == "COCOAPODS:" { print $2 }' Podfile.lock)
+          ACTUAL_COCOAPODS_VERSION=$(pod --version)
+          if [ -z "$EXPECTED_COCOAPODS_VERSION" ]; then
+            echo "::error::Podfile.lock does not declare a CocoaPods version."
+            exit 1
+          fi
+          if [ "$ACTUAL_COCOAPODS_VERSION" != "$EXPECTED_COCOAPODS_VERSION" ]; then
+            echo "::error::CocoaPods $EXPECTED_COCOAPODS_VERSION is required by Podfile.lock; runner has $ACTUAL_COCOAPODS_VERSION."
+            exit 1
+          fi
+
       - name: Cache CocoaPods
         uses: actions/cache@v5
         with:
@@ -469,7 +483,9 @@ jobs:
 
       - name: Resolve CocoaPods dependencies with current specs
         working-directory: ios
-        run: pod install --repo-update
+        # --deployment rejects any Podfile/Podfile.lock mutation. Updating the
+        # specs index may locate locked podspecs, but cannot change versions.
+        run: pod install --repo-update --deployment
 
       - name: List available iOS simulators
         # Diagnostic: surfaces the runtime + device names available on the
