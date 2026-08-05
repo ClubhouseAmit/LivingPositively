@@ -43,19 +43,51 @@ void main() {
 
   test('Google sign-in is available only on non-web Android builds', () {
     expect(
-      AuthService.googleSignInAvailableOn(TargetPlatform.android, isWeb: false),
+      AuthService.googleSignInAvailableOn(
+        TargetPlatform.android,
+        isWeb: false,
+        serverClientId: 'test-server-client-id.apps.googleusercontent.com',
+      ),
       isTrue,
     );
     expect(
-      AuthService.googleSignInAvailableOn(TargetPlatform.iOS, isWeb: false),
+      AuthService.googleSignInAvailableOn(
+        TargetPlatform.iOS,
+        isWeb: false,
+        serverClientId: 'test-server-client-id.apps.googleusercontent.com',
+      ),
       isFalse,
     );
     expect(
-      AuthService.googleSignInAvailableOn(TargetPlatform.windows, isWeb: false),
+      AuthService.googleSignInAvailableOn(
+        TargetPlatform.windows,
+        isWeb: false,
+        serverClientId: 'test-server-client-id.apps.googleusercontent.com',
+      ),
       isFalse,
     );
     expect(
-      AuthService.googleSignInAvailableOn(TargetPlatform.android, isWeb: true),
+      AuthService.googleSignInAvailableOn(
+        TargetPlatform.android,
+        isWeb: true,
+        serverClientId: 'test-server-client-id.apps.googleusercontent.com',
+      ),
+      isFalse,
+    );
+    expect(
+      AuthService.googleSignInAvailableOn(
+        TargetPlatform.android,
+        isWeb: false,
+        serverClientId: '',
+      ),
+      isFalse,
+    );
+    expect(
+      AuthService.googleSignInAvailableOn(
+        TargetPlatform.android,
+        isWeb: false,
+        serverClientId: '   ',
+      ),
       isFalse,
     );
   });

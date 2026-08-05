@@ -29,6 +29,7 @@ void main() {
   setUp(() => registerTestServices(locale: 'en'));
   tearDown(() async {
     AuthService.debugAppleSignInEnabledOverride = null;
+    AuthService.debugGoogleSignInServerClientIdOverride = null;
     debugDefaultTargetPlatformOverride = null;
     await GetIt.instance.reset();
   });
@@ -206,8 +207,41 @@ void main() {
     },
   );
 
-  testWidgets('Android shows only Google in login and signup', (tester) async {
+  testWidgets(
+    'Android hides the social section when Google is not configured',
+    (tester) async {
+      debugDefaultTargetPlatformOverride = TargetPlatform.android;
+      AuthService.debugGoogleSignInServerClientIdOverride = null;
+      try {
+        await pumpWithProviders(
+          tester,
+          const AuthPage(),
+          surfaceSize: const Size(1024, 1800),
+        );
+
+        void expectNoSocialSection() {
+          expect(find.text('or'), findsNothing);
+          expect(find.text('Continue with Google'), findsNothing);
+          expect(find.text('Continue with Apple'), findsNothing);
+        }
+
+        expectNoSocialSection();
+        await tester.tap(find.text('Sign Up'));
+        await tester.pumpAndSettle();
+        expectNoSocialSection();
+      } finally {
+        AuthService.debugGoogleSignInServerClientIdOverride = null;
+        debugDefaultTargetPlatformOverride = null;
+      }
+    },
+  );
+
+  testWidgets('Android shows only configured Google in login and signup', (
+    tester,
+  ) async {
     debugDefaultTargetPlatformOverride = TargetPlatform.android;
+    AuthService.debugGoogleSignInServerClientIdOverride =
+        'test-server-client-id.apps.googleusercontent.com';
     try {
       await pumpWithProviders(
         tester,
@@ -226,6 +260,7 @@ void main() {
       await tester.pumpAndSettle();
       expectGoogleOnly();
     } finally {
+      AuthService.debugGoogleSignInServerClientIdOverride = null;
       debugDefaultTargetPlatformOverride = null;
     }
   });

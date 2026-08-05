@@ -1,5 +1,15 @@
 # Phase 10 Coverage Plan
 
+> **Superseded for the active workflow on 2026-08-05.** This document records
+> the original Phase 10 plan. The current `integration-test-ios` job runs the
+> existing `integration_test/notifications_schedule_test.dart` as a blocking
+> simulator test without coverage. The former
+> `integration_test/notifications_schedule_ios_test.dart`,
+> `scripts/check_ios_integration_coverage.dart`,
+> `coverage/integration_ios.info`, and `coverage-integration-ios-lcov` artifact
+> are no longer active and have been removed. Historical details below are
+> retained to explain the earlier coverage design.
+
 Generated: 2026-05-24 — continuation of `docs/coverage-status.md` (Rounds 1–9)
 and the ADR-001 / ADR-002 / ADR-003 / ADR-004 sequence.
 
