@@ -30,6 +30,8 @@ initializeApp();
 setGlobalOptions({ maxInstances: 10 });
 
 const STALE_TOKEN_DAYS = 180;
+// Allow small scheduler/Firestore clock differences around serverTimestamp().
+const DEVICE_TIMESTAMP_FUTURE_SKEW_MILLIS = 5 * 60_000;
 const DELIVERY_PERMIT_DURATION_MILLIS = 305_000;
 
 export type IsraelLocalDeliveryCandidate = {
@@ -222,6 +224,7 @@ export function classifyDeviceUpdatedAt(
   nowMillis: number,
 ): DeviceUpdatedAtClassification {
   if (updatedAt === undefined) return "missing";
+  if (!(updatedAt instanceof Timestamp)) return "malformed";
 
   let timestampParts: ReturnType<typeof timestampSecondsAndNanoseconds>;
   try {
@@ -235,6 +238,9 @@ export function classifyDeviceUpdatedAt(
     timestampParts.seconds * 1_000 +
     Math.floor(timestampParts.nanoseconds / 1_000_000);
   if (!Number.isSafeInteger(updatedAtMillis)) return "malformed";
+  if (updatedAtMillis > nowMillis + DEVICE_TIMESTAMP_FUTURE_SKEW_MILLIS) {
+    return "malformed";
+  }
 
   return nowMillis - updatedAtMillis > STALE_TOKEN_DAYS * 86_400_000
     ? "stale"

@@ -1,5 +1,6 @@
 import assert from "node:assert/strict";
 import { describe, it } from "node:test";
+import { Timestamp } from "firebase-admin/firestore";
 
 import {
   buildNotificationDeliveryKey,
@@ -25,19 +26,16 @@ describe("scheduled notification delivery", () => {
     it("accepts a fresh Firestore timestamp without calling toMillis", () => {
       let toMillisCalls = 0;
       const freshMillis = nowMillis - 30 * 86_400_000;
+      const updatedAt = Timestamp.fromMillis(freshMillis);
+      Object.defineProperty(updatedAt, "toMillis", {
+        value() {
+          toMillisCalls++;
+          throw new Error("client method must not execute");
+        },
+      });
 
       assert.equal(
-        classifyDeviceUpdatedAt(
-          {
-            seconds: Math.floor(freshMillis / 1_000),
-            nanoseconds: 0,
-            toMillis() {
-              toMillisCalls++;
-              throw new Error("client method must not execute");
-            },
-          },
-          nowMillis,
-        ),
+        classifyDeviceUpdatedAt(updatedAt, nowMillis),
         "fresh",
       );
       assert.equal(toMillisCalls, 0);
@@ -48,10 +46,7 @@ describe("scheduled notification delivery", () => {
 
       assert.equal(
         classifyDeviceUpdatedAt(
-          {
-            seconds: Math.floor(staleMillis / 1_000),
-            nanoseconds: 0,
-          },
+          Timestamp.fromMillis(staleMillis),
           nowMillis,
         ),
         "stale",
@@ -62,10 +57,33 @@ describe("scheduled notification delivery", () => {
       assert.equal(classifyDeviceUpdatedAt(undefined, nowMillis), "missing");
     });
 
+    it("rejects a plain timestamp-shaped map", () => {
+      assert.equal(
+        classifyDeviceUpdatedAt(
+          {
+            seconds: Math.floor(nowMillis / 1_000),
+            nanoseconds: 0,
+          },
+          nowMillis,
+        ),
+        "malformed",
+      );
+    });
+
+    it("rejects a real Timestamp beyond the allowed future clock skew", () => {
+      assert.equal(
+        classifyDeviceUpdatedAt(
+          Timestamp.fromMillis(nowMillis + 6 * 60_000),
+          nowMillis,
+        ),
+        "malformed",
+      );
+    });
+
     it("rejects a malformed updatedAt value without affecting later devices", () => {
       const deviceValues = [
         { seconds: 1, nanoseconds: "not-a-number" },
-        { seconds: Math.floor(nowMillis / 1_000), nanoseconds: 0 },
+        Timestamp.fromMillis(nowMillis),
       ];
 
       assert.deepEqual(
@@ -107,17 +125,11 @@ describe("scheduled notification delivery", () => {
           },
           {
             uid: "stale-device",
-            updatedAt: {
-              seconds: Math.floor(staleMillis / 1_000),
-              nanoseconds: 0,
-            },
+            updatedAt: Timestamp.fromMillis(staleMillis),
           },
           {
             uid: "eligible-device",
-            updatedAt: {
-              seconds: Math.floor(nowMillis / 1_000),
-              nanoseconds: 0,
-            },
+            updatedAt: Timestamp.fromMillis(nowMillis),
           },
         ],
         nowMillis,
