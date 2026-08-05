@@ -762,7 +762,13 @@ jobs:
   release-android-internal:
     name: Release Android to Google Play internal testing
     runs-on: ubuntu-latest
-    needs: [build-android, coverage-aggregate]
+    needs:
+      [
+        build-android,
+        coverage-aggregate,
+        functions-test,
+        integration-test-ios,
+      ]
     if: github.event_name == 'push' && github.ref == 'refs/heads/main'
     concurrency:
       group: google-play-internal-release
