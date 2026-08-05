@@ -193,6 +193,39 @@ void main() {
     await Future.wait([first, second]);
   });
 
+  test('coalesced sign-in saves the token for the new user', () async {
+    debugDefaultTargetPlatformOverride = TargetPlatform.android;
+    String? uid;
+    var tokenRequests = 0;
+    var listenerRegistrations = 0;
+    final savedTokens = <String>[];
+    late Future<void> signIn;
+    FcmService.debugRequestPermissionOverride = () async =>
+        _notificationSettings(AuthorizationStatus.authorized);
+    FcmService.debugInitializeLocalNotificationsOverride = () async {};
+    FcmService.debugGetCurrentUserIdOverride = () => uid;
+    FcmService.debugGetTokenOverride = () async {
+      tokenRequests++;
+      return 'fcm-token';
+    };
+    FcmService.debugSaveTokenOverride = (deviceId, token) async {
+      savedTokens.add('$deviceId:$token');
+      return true;
+    };
+    FcmService.debugRegisterListenersOverride = () {
+      listenerRegistrations++;
+      uid = 'uid-123';
+      signIn = FcmService.onUserSignedIn();
+    };
+
+    await FcmService.initialize();
+    await signIn;
+
+    expect(tokenRequests, 2);
+    expect(savedTokens, ['uid-123:fcm-token']);
+    expect(listenerRegistrations, 1);
+  });
+
   test('iOS does not request an FCM token until APNs is ready', () async {
     debugDefaultTargetPlatformOverride = TargetPlatform.iOS;
     var fcmTokenRequests = 0;
@@ -297,9 +330,9 @@ void main() {
     uid = 'uid-123';
     await FcmService.onUserSignedIn();
 
-    expect(apnsTokenRequests, 2);
-    expect(tokenRequests, 1);
-    expect(savedTokens, ['uid-123:fcm-token']);
+    expect(apnsTokenRequests, 3);
+    expect(tokenRequests, 2);
+    expect(savedTokens, ['uid-123:fcm-token', 'uid-123:fcm-token']);
     expect(listenerRegistrations, 1);
   });
 

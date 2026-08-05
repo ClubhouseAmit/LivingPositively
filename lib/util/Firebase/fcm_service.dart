@@ -186,7 +186,7 @@ class FcmService {
     if (!supportsReminderSettings()) return;
     if (!_isInitialized) {
       await initialize();
-      return;
+      if (!_isInitialized) return;
     }
     try {
       final uid = _currentUserId();
