@@ -1,10 +1,11 @@
+import 'dart:async';
 import 'dart:io';
 
-import 'package:flutter/foundation.dart'
-    show defaultTargetPlatform, kIsWeb, TargetPlatform;
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:firebase_messaging/firebase_messaging.dart';
+import 'package:flutter/foundation.dart'
+    show TargetPlatform, defaultTargetPlatform, kIsWeb, visibleForTesting;
 import 'package:flutter/material.dart';
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 import 'package:get_it/get_it.dart';
@@ -12,6 +13,40 @@ import 'package:mazilon/util/logger_service.dart';
 
 class FcmService {
   static bool _isInitialized = false;
+  static bool _listenersRegistered = false;
+  static Future<void>? _initialization;
+
+  @visibleForTesting
+  static Future<NotificationSettings> Function()?
+  debugRequestPermissionOverride;
+
+  @visibleForTesting
+  static Future<void> Function()? debugInitializeLocalNotificationsOverride;
+
+  @visibleForTesting
+  static Future<String?> Function()? debugGetApnsTokenOverride;
+
+  @visibleForTesting
+  static Future<String?> Function()? debugGetTokenOverride;
+
+  @visibleForTesting
+  static String? Function()? debugGetCurrentUserIdOverride;
+
+  @visibleForTesting
+  static void Function()? debugRegisterListenersOverride;
+
+  @visibleForTesting
+  static void resetForTesting() {
+    _isInitialized = false;
+    _listenersRegistered = false;
+    _initialization = null;
+    debugRequestPermissionOverride = null;
+    debugInitializeLocalNotificationsOverride = null;
+    debugGetApnsTokenOverride = null;
+    debugGetTokenOverride = null;
+    debugGetCurrentUserIdOverride = null;
+    debugRegisterListenersOverride = null;
+  }
 
   static final FlutterLocalNotificationsPlugin _localNotifications =
       FlutterLocalNotificationsPlugin();
@@ -53,37 +88,69 @@ class FcmService {
     }
   }
 
-  static Future<void> initialize() async {
-    if (!supportsReminderSettings()) return;
+  static Future<void> initialize() {
+    if (!supportsReminderSettings()) return Future<void>.value();
     if (_isInitialized) {
       _log('Already initialized, skipping.');
-      return;
+      return Future<void>.value();
     }
-    _isInitialized = true;
+    final pendingInitialization = _initialization;
+    if (pendingInitialization != null) {
+      return pendingInitialization;
+    }
+
+    final initialization = _initializeWithReporting();
+    _initialization = initialization;
+    return initialization;
+  }
+
+  static Future<void> _initializeWithReporting() async {
+    try {
+      final platformReady = await _initializeOnce();
+      if (platformReady) {
+        _isInitialized = true;
+      }
+    } catch (error, stackTrace) {
+      _reportFailure(error, stackTrace);
+    } finally {
+      _initialization = null;
+    }
+  }
+
+  static Future<bool> _initializeOnce() async {
     _log('Initializing...');
-    _log("Asking permission");
-    final settings = await FirebaseMessaging.instance.requestPermission(
-      alert: true,
-      badge: true,
-      sound: true,
-    );
-    _log("finished Asking permission");
+    _log('Asking permission');
+    final settings =
+        await (debugRequestPermissionOverride ??
+            () => FirebaseMessaging.instance.requestPermission(
+              alert: true,
+              badge: true,
+              sound: true,
+            ))();
+    _log('Finished asking permission');
     _log('Permission status: ${settings.authorizationStatus}');
     if (settings.authorizationStatus == AuthorizationStatus.denied) {
       _log('Permission denied — aborting initialization.');
-      return;
+      return true;
     }
 
-    await _localNotifications.initialize(
-      settings: const InitializationSettings(
-        android: AndroidInitializationSettings('@mipmap/ic_launcher'),
-        iOS: DarwinInitializationSettings(),
-      ),
-    );
+    await (debugInitializeLocalNotificationsOverride ??
+        () async {
+          await _localNotifications.initialize(
+            settings: const InitializationSettings(
+              android: AndroidInitializationSettings('@mipmap/ic_launcher'),
+              iOS: DarwinInitializationSettings(),
+            ),
+          );
+        })();
     _log('Local notifications initialized.');
 
-    final uid = GetIt.instance<FirebaseAuth>().currentUser?.uid;
-    final token = await FirebaseMessaging.instance.getToken();
+    final tokenResult = await _getTokenWhenPlatformReady();
+    if (!tokenResult.isPlatformReady) {
+      return false;
+    }
+    final uid = _currentUserId();
+    final token = tokenResult.token;
 
     _log('=== FCM Ready ===');
     _log('UID       : $uid');
@@ -92,28 +159,87 @@ class FcmService {
 
     if (uid != null && token != null) await _saveTokenToFirestore(uid, token);
 
-    _setupForegroundHandler();
-    _setupOnMessageOpenedApp();
-
-    FirebaseMessaging.instance.onTokenRefresh.listen((newToken) {
-      final uid = GetIt.instance<FirebaseAuth>().currentUser?.uid;
-      if (uid != null) {
-        _log('FCM token refreshed.');
-        _saveTokenToFirestore(uid, newToken);
-      }
-    });
+    _registerListenersOnce();
 
     _log('Initialization complete.');
+    return true;
   }
 
   // Called after a successful sign-in so the new UID is stored with its FCM token.
   static Future<void> onUserSignedIn() async {
     if (!supportsReminderSettings()) return;
-    final uid = GetIt.instance<FirebaseAuth>().currentUser?.uid;
-    final token = await FirebaseMessaging.instance.getToken();
-    if (uid != null && token != null) {
-      _log('Saving token after sign-in for $uid');
-      await _saveTokenToFirestore(uid, token);
+    try {
+      final uid = _currentUserId();
+      final tokenResult = await _getTokenWhenPlatformReady();
+      final token = tokenResult.token;
+      if (uid != null && token != null) {
+        _log('Saving token after sign-in for $uid');
+        await _saveTokenToFirestore(uid, token);
+      }
+    } catch (error, stackTrace) {
+      _reportFailure(error, stackTrace);
+    }
+  }
+
+  static Future<({bool isPlatformReady, String? token})>
+  _getTokenWhenPlatformReady() async {
+    if (defaultTargetPlatform == TargetPlatform.iOS) {
+      final apnsToken =
+          await (debugGetApnsTokenOverride ??
+              FirebaseMessaging.instance.getAPNSToken)();
+      if (apnsToken == null) {
+        _log('APNs token is not ready; deferring the FCM token request.');
+        return (isPlatformReady: false, token: null);
+      }
+    }
+
+    final token =
+        await (debugGetTokenOverride ?? FirebaseMessaging.instance.getToken)();
+    return (isPlatformReady: true, token: token);
+  }
+
+  static String? _currentUserId() {
+    final override = debugGetCurrentUserIdOverride;
+    if (override != null) return override();
+    if (!GetIt.instance.isRegistered<FirebaseAuth>()) return null;
+    return GetIt.instance<FirebaseAuth>().currentUser?.uid;
+  }
+
+  static void _registerListenersOnce() {
+    if (_listenersRegistered) return;
+    (debugRegisterListenersOverride ?? _registerMessagingListeners)();
+    _listenersRegistered = true;
+  }
+
+  static void _registerMessagingListeners() {
+    _setupForegroundHandler();
+    _setupOnMessageOpenedApp();
+
+    FirebaseMessaging.instance.onTokenRefresh.listen((newToken) {
+      final uid = _currentUserId();
+      if (uid != null) {
+        _log('FCM token refreshed.');
+        unawaited(_saveTokenToFirestore(uid, newToken));
+      }
+    });
+  }
+
+  static void _reportFailure(Object error, StackTrace stackTrace) {
+    _log('FCM operation failed: $error');
+    if (!GetIt.instance.isRegistered<IncidentLoggerService>()) return;
+    try {
+      unawaited(
+        Future<void>.sync(
+          () => GetIt.instance<IncidentLoggerService>().captureLog(
+            error,
+            stackTrace: stackTrace,
+          ),
+        ).catchError((Object loggerError, StackTrace _) {
+          _log('Failed to report FCM operation: $loggerError');
+        }),
+      );
+    } catch (loggerError) {
+      _log('Failed to report FCM operation: $loggerError');
     }
   }
 

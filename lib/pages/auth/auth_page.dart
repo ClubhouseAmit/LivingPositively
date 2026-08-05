@@ -93,7 +93,7 @@ class _AuthPageState extends LPExtendedState<AuthPage> {
       debugPrint("2");
       await AuthService.saveUserToFirestore(user);
       debugPrint("3");
-      await FcmService.onUserSignedIn();
+      unawaited(FcmService.onUserSignedIn());
       debugPrint("4");
 
       userInfo.updateLoggedIn(true);

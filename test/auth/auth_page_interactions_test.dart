@@ -10,6 +10,7 @@ import 'package:get_it/get_it.dart';
 import 'package:mazilon/pages/auth/auth_page.dart';
 import 'package:mazilon/pages/auth/forgot_password_page.dart';
 import 'package:mazilon/util/Firebase/auth_service.dart';
+import 'package:mazilon/util/Firebase/fcm_service.dart';
 import 'package:mazilon/util/userInformation.dart';
 import 'package:mockito/annotations.dart';
 import 'package:mockito/mockito.dart';
@@ -26,11 +27,15 @@ import 'auth_page_interactions_test.mocks.dart';
   MockSpec<DocumentSnapshot<Map<String, dynamic>>>(),
 ])
 void main() {
-  setUp(() => registerTestServices(locale: 'en'));
+  setUp(() {
+    registerTestServices(locale: 'en');
+    FcmService.resetForTesting();
+  });
   tearDown(() async {
     AuthService.debugAppleSignInEnabledOverride = null;
     AuthService.debugGoogleSignInServerClientIdOverride = null;
     debugDefaultTargetPlatformOverride = null;
+    FcmService.resetForTesting();
     await GetIt.instance.reset();
   });
 
@@ -113,6 +118,57 @@ void main() {
       }
     },
   );
+
+  testWidgets('pending FCM refresh cannot delay authentication success', (
+    tester,
+  ) async {
+    final userInformation = UserInformation();
+    final firebaseUser = MockUser();
+    when(firebaseUser.uid).thenReturn('uid-123');
+    when(firebaseUser.email).thenReturn('person@example.com');
+    when(firebaseUser.displayName).thenReturn('Person');
+    final firestore = FakeFirebaseFirestore();
+    GetIt.instance.registerSingleton<FirebaseFirestore>(firestore);
+    final tokenRead = Completer<String?>();
+    debugDefaultTargetPlatformOverride = TargetPlatform.android;
+    FcmService.debugGetCurrentUserIdOverride = () => 'uid-123';
+    FcmService.debugGetTokenOverride = () => tokenRead.future;
+
+    try {
+      await pumpWithProviders(
+        tester,
+        const AuthPage(),
+        userInformation: userInformation,
+        surfaceSize: const Size(1024, 1800),
+      );
+      final loginForm =
+          tester
+                  .widgetList(
+                    find.byWidgetPredicate(
+                      (widget) => widget.runtimeType.toString() == '_LoginForm',
+                    ),
+                  )
+                  .single
+              as dynamic;
+      var callbackCompleted = false;
+      final completion = (loginForm.onSuccess as Future<void> Function(User))(
+        firebaseUser,
+      )..then((_) => callbackCompleted = true);
+
+      await tester.pump();
+
+      expect(callbackCompleted, isTrue);
+      expect(userInformation.loggedIn, isTrue);
+      expect(userInformation.authDecisionMade, isTrue);
+      expect(userInformation.userId, 'uid-123');
+
+      tokenRead.complete(null);
+      await completion;
+    } finally {
+      debugDefaultTargetPlatformOverride = null;
+      if (!tokenRead.isCompleted) tokenRead.complete(null);
+    }
+  });
 
   testWidgets('onboarding auth supports skip and signup validation', (
     tester,
