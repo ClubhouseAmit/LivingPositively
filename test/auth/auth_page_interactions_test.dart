@@ -27,7 +27,11 @@ import 'auth_page_interactions_test.mocks.dart';
 ])
 void main() {
   setUp(() => registerTestServices(locale: 'en'));
-  tearDown(() => GetIt.instance.reset());
+  tearDown(() async {
+    AuthService.debugAppleSignInEnabledOverride = null;
+    debugDefaultTargetPlatformOverride = null;
+    await GetIt.instance.reset();
+  });
 
   test(
     'AuthService persists user profile through registered Firestore',
@@ -173,5 +177,77 @@ void main() {
     await tester.tap(find.text('Send Reset Link'));
     await tester.pump();
     expect(find.text('Invalid email address'), findsOneWidget);
+  });
+
+  testWidgets(
+    'unsupported platforms hide the social section in login and signup',
+    (tester) async {
+      debugDefaultTargetPlatformOverride = TargetPlatform.windows;
+      try {
+        await pumpWithProviders(
+          tester,
+          const AuthPage(),
+          surfaceSize: const Size(1024, 1800),
+        );
+
+        void expectNoSocialSection() {
+          expect(find.text('or'), findsNothing);
+          expect(find.text('Continue with Google'), findsNothing);
+          expect(find.text('Continue with Apple'), findsNothing);
+        }
+
+        expectNoSocialSection();
+        await tester.tap(find.text('Sign Up'));
+        await tester.pumpAndSettle();
+        expectNoSocialSection();
+      } finally {
+        debugDefaultTargetPlatformOverride = null;
+      }
+    },
+  );
+
+  testWidgets('Android shows only Google in login and signup', (tester) async {
+    debugDefaultTargetPlatformOverride = TargetPlatform.android;
+    try {
+      await pumpWithProviders(
+        tester,
+        const AuthPage(),
+        surfaceSize: const Size(1024, 1800),
+      );
+
+      void expectGoogleOnly() {
+        expect(find.text('or'), findsOneWidget);
+        expect(find.text('Continue with Google'), findsOneWidget);
+        expect(find.text('Continue with Apple'), findsNothing);
+      }
+
+      expectGoogleOnly();
+      await tester.tap(find.text('Sign Up'));
+      await tester.pumpAndSettle();
+      expectGoogleOnly();
+    } finally {
+      debugDefaultTargetPlatformOverride = null;
+    }
+  });
+
+  testWidgets('iOS shows Apple only when its build capability is enabled', (
+    tester,
+  ) async {
+    debugDefaultTargetPlatformOverride = TargetPlatform.iOS;
+    AuthService.debugAppleSignInEnabledOverride = true;
+    try {
+      await pumpWithProviders(
+        tester,
+        const AuthPage(),
+        surfaceSize: const Size(1024, 1800),
+      );
+
+      expect(find.text('or'), findsOneWidget);
+      expect(find.text('Continue with Google'), findsNothing);
+      expect(find.text('Continue with Apple'), findsOneWidget);
+    } finally {
+      AuthService.debugAppleSignInEnabledOverride = null;
+      debugDefaultTargetPlatformOverride = null;
+    }
   });
 }

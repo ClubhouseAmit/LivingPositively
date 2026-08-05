@@ -1,8 +1,6 @@
 import 'dart:async';
-import 'dart:io';
 
 import 'package:firebase_auth/firebase_auth.dart';
-import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:flutter/material.dart';
 import 'package:mazilon/pages/auth/forgot_password_page.dart';
 import 'package:mazilon/util/Firebase/auth_service.dart';
@@ -307,24 +305,27 @@ class _LoginFormState extends LPExtendedState<_LoginForm>
                   style: const TextStyle(fontSize: 16),
                 ),
         ),
-        const SizedBox(height: 24),
-        //Gray Divider
-        _OrDivider(label: appLocale.authOr),
-        const SizedBox(height: 16),
-        //Sign with Google Button
-        _SocialButton(
-          label: appLocale.authGoogleButton,
-          icon: Icons.g_mobiledata,
-          onPressed: _isLoading ? null : _signInWithGoogle,
-        ),
-        if (!kIsWeb && Platform.isIOS) ...[
-          const SizedBox(height: 10),
-          //Sign with AppleID button
-          _SocialButton(
-            label: appLocale.authAppleButton,
-            icon: Icons.apple,
-            onPressed: _isLoading ? null : _signInWithApple,
-          ),
+        if (AuthService.isSocialSignInAvailable) ...[
+          const SizedBox(height: 24),
+          //Gray Divider
+          _OrDivider(label: appLocale.authOr),
+          const SizedBox(height: 16),
+          if (AuthService.isGoogleSignInAvailable)
+            //Sign with Google Button
+            _SocialButton(
+              label: appLocale.authGoogleButton,
+              icon: Icons.g_mobiledata,
+              onPressed: _isLoading ? null : _signInWithGoogle,
+            ),
+          if (AuthService.isAppleSignInAvailable) ...[
+            if (AuthService.isGoogleSignInAvailable) const SizedBox(height: 10),
+            //Sign with AppleID button
+            _SocialButton(
+              label: appLocale.authAppleButton,
+              icon: Icons.apple,
+              onPressed: _isLoading ? null : _signInWithApple,
+            ),
+          ],
         ],
         const SizedBox(height: 24),
         //Skip Button options
@@ -504,24 +505,27 @@ class _SignupFormState extends LPExtendedState<_SignupForm>
                   style: const TextStyle(fontSize: 16),
                 ),
         ),
-        const SizedBox(height: 24),
-        //Gray Divider
-        _OrDivider(label: appLocale.authOr),
-        const SizedBox(height: 16),
-        //Sign with Google Button
-        _SocialButton(
-          label: appLocale.authGoogleButton,
-          icon: Icons.g_mobiledata,
-          onPressed: _isLoading ? null : _signInWithGoogle,
-        ),
-        if (!kIsWeb && Platform.isIOS) ...[
-          const SizedBox(height: 10),
-          //Sign with AppleID Button
-          _SocialButton(
-            label: appLocale.authAppleButton,
-            icon: Icons.apple,
-            onPressed: _isLoading ? null : _signInWithApple,
-          ),
+        if (AuthService.isSocialSignInAvailable) ...[
+          const SizedBox(height: 24),
+          //Gray Divider
+          _OrDivider(label: appLocale.authOr),
+          const SizedBox(height: 16),
+          if (AuthService.isGoogleSignInAvailable)
+            //Sign with Google Button
+            _SocialButton(
+              label: appLocale.authGoogleButton,
+              icon: Icons.g_mobiledata,
+              onPressed: _isLoading ? null : _signInWithGoogle,
+            ),
+          if (AuthService.isAppleSignInAvailable) ...[
+            if (AuthService.isGoogleSignInAvailable) const SizedBox(height: 10),
+            //Sign with AppleID Button
+            _SocialButton(
+              label: appLocale.authAppleButton,
+              icon: Icons.apple,
+              onPressed: _isLoading ? null : _signInWithApple,
+            ),
+          ],
         ],
         const SizedBox(height: 24),
         //Skip Button options

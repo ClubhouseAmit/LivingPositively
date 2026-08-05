@@ -1,13 +1,25 @@
-import 'dart:io';
-
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
-import 'package:flutter/foundation.dart' show kIsWeb, debugPrint;
+import 'package:flutter/foundation.dart'
+    show
+        TargetPlatform,
+        debugPrint,
+        defaultTargetPlatform,
+        kIsWeb,
+        visibleForTesting;
 import 'package:get_it/get_it.dart';
 import 'package:google_sign_in/google_sign_in.dart';
 import 'package:sign_in_with_apple/sign_in_with_apple.dart';
 
 class AuthService {
+  static const bool _appleSignInEnabled = bool.fromEnvironment(
+    'APPLE_SIGN_IN_ENABLED',
+    defaultValue: false,
+  );
+
+  @visibleForTesting
+  static bool? debugAppleSignInEnabledOverride;
+
   static Future<UserCredential> signInWithEmail(String email, String password) {
     return FirebaseAuth.instance.signInWithEmailAndPassword(
       email: email.trim(),
@@ -49,7 +61,30 @@ class AuthService {
     return FirebaseAuth.instance.signInWithCredential(oauthCredential);
   }
 
-  static bool get isAppleSignInAvailable => !kIsWeb && Platform.isIOS;
+  @visibleForTesting
+  static bool googleSignInAvailableOn(
+    TargetPlatform platform, {
+    required bool isWeb,
+  }) => !isWeb && platform == TargetPlatform.android;
+
+  @visibleForTesting
+  static bool appleSignInAvailableOn(
+    TargetPlatform platform, {
+    required bool isWeb,
+    required bool appleSignInEnabled,
+  }) => !isWeb && platform == TargetPlatform.iOS && appleSignInEnabled;
+
+  static bool get isGoogleSignInAvailable =>
+      googleSignInAvailableOn(defaultTargetPlatform, isWeb: kIsWeb);
+
+  static bool get isAppleSignInAvailable => appleSignInAvailableOn(
+    defaultTargetPlatform,
+    isWeb: kIsWeb,
+    appleSignInEnabled: debugAppleSignInEnabledOverride ?? _appleSignInEnabled,
+  );
+
+  static bool get isSocialSignInAvailable =>
+      isGoogleSignInAvailable || isAppleSignInAvailable;
 
   static Future<void> sendPasswordReset(String email) {
     return FirebaseAuth.instance.sendPasswordResetEmail(email: email.trim());

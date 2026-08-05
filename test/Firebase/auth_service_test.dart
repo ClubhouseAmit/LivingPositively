@@ -1,4 +1,5 @@
 import 'package:firebase_auth/firebase_auth.dart';
+import 'package:flutter/foundation.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:mazilon/util/Firebase/auth_service.dart';
 
@@ -40,7 +41,57 @@ void main() {
     );
   });
 
-  test('Apple sign-in availability is false on the test platform', () {
-    expect(AuthService.isAppleSignInAvailable, isFalse);
+  test('Google sign-in is available only on non-web Android builds', () {
+    expect(
+      AuthService.googleSignInAvailableOn(TargetPlatform.android, isWeb: false),
+      isTrue,
+    );
+    expect(
+      AuthService.googleSignInAvailableOn(TargetPlatform.iOS, isWeb: false),
+      isFalse,
+    );
+    expect(
+      AuthService.googleSignInAvailableOn(TargetPlatform.windows, isWeb: false),
+      isFalse,
+    );
+    expect(
+      AuthService.googleSignInAvailableOn(TargetPlatform.android, isWeb: true),
+      isFalse,
+    );
+  });
+
+  test('Apple sign-in requires iOS and the build capability', () {
+    expect(
+      AuthService.appleSignInAvailableOn(
+        TargetPlatform.iOS,
+        isWeb: false,
+        appleSignInEnabled: true,
+      ),
+      isTrue,
+    );
+    expect(
+      AuthService.appleSignInAvailableOn(
+        TargetPlatform.iOS,
+        isWeb: false,
+        appleSignInEnabled: false,
+      ),
+      isFalse,
+    );
+    expect(
+      AuthService.appleSignInAvailableOn(
+        TargetPlatform.android,
+        isWeb: false,
+        appleSignInEnabled: true,
+      ),
+      isFalse,
+    );
+    expect(
+      AuthService.appleSignInAvailableOn(
+        TargetPlatform.iOS,
+        isWeb: true,
+        appleSignInEnabled: true,
+      ),
+      isFalse,
+    );
   });
 }
