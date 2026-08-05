@@ -293,6 +293,40 @@ void main() {
     },
   );
 
+  test(
+    'post-sign-in token exception makes app-resume retry initialization',
+    () async {
+      debugDefaultTargetPlatformOverride = TargetPlatform.android;
+      String? uid;
+      var tokenRequests = 0;
+      var listenerRegistrations = 0;
+      FcmService.debugRequestPermissionOverride = () async =>
+          _notificationSettings(AuthorizationStatus.authorized);
+      FcmService.debugInitializeLocalNotificationsOverride = () async {};
+      FcmService.debugGetCurrentUserIdOverride = () => uid;
+      FcmService.debugGetTokenOverride = () async {
+        tokenRequests++;
+        if (tokenRequests == 2) {
+          throw StateError('token read failed');
+        }
+        return 'fcm-token';
+      };
+      FcmService.debugSaveTokenOverride = (deviceId, token) async => true;
+      FcmService.debugRegisterListenersOverride = () {
+        listenerRegistrations++;
+      };
+
+      await FcmService.initialize();
+      uid = 'uid-123';
+      await FcmService.onUserSignedIn();
+      FcmService.onAppResumed();
+      await Future<void>.delayed(Duration.zero);
+
+      expect(tokenRequests, 3);
+      expect(listenerRegistrations, 1);
+    },
+  );
+
   test('app resume invokes a retry after an initialization failure', () async {
     debugDefaultTargetPlatformOverride = TargetPlatform.android;
     final retryCompleted = Completer<void>();

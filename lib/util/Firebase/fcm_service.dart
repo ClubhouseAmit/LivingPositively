@@ -199,6 +199,7 @@ class FcmService {
         }
       }
     } catch (error, stackTrace) {
+      _isInitialized = false;
       _reportFailure(error, stackTrace);
     }
   }
