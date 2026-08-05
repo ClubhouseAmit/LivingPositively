@@ -153,7 +153,17 @@ class FcmService {
           await _localNotifications.initialize(
             settings: const InitializationSettings(
               android: AndroidInitializationSettings('@mipmap/ic_launcher'),
-              iOS: DarwinInitializationSettings(),
+              // Firebase Messaging owns the user-facing permission request
+              // above. Keep plugin registration side-effect free so a second
+              // Darwin permission prompt cannot hold up best-effort startup.
+              iOS: DarwinInitializationSettings(
+                requestAlertPermission: false,
+                requestSoundPermission: false,
+                requestBadgePermission: false,
+                requestProvisionalPermission: false,
+                requestCriticalPermission: false,
+                requestProvidesAppNotificationSettings: false,
+              ),
             ),
           );
         })();

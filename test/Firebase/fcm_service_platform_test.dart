@@ -2,7 +2,9 @@ import 'dart:async';
 
 import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:flutter/foundation.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter/widgets.dart' show Widget;
+import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:get_it/get_it.dart';
 import 'package:mazilon/util/Firebase/fcm_service.dart';
@@ -240,6 +242,39 @@ void main() {
     await expectLater(FcmService.initialize(), completes);
 
     expect(fcmTokenRequests, 0);
+  });
+
+  test('iOS local plugin initialization does not request permission', () async {
+    debugDefaultTargetPlatformOverride = TargetPlatform.iOS;
+    const channel = MethodChannel('dexterous.com/flutter/local_notifications');
+    MethodCall? initializationCall;
+    TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger
+        .setMockMethodCallHandler(channel, (call) async {
+          initializationCall = call;
+          return true;
+        });
+    addTearDown(
+      () => TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger
+          .setMockMethodCallHandler(channel, null),
+    );
+    IOSFlutterLocalNotificationsPlugin.registerWith();
+    FcmService.debugRequestPermissionOverride = () async =>
+        _notificationSettings(AuthorizationStatus.authorized);
+    FcmService.debugGetCurrentUserIdOverride = () => null;
+    FcmService.debugGetApnsTokenOverride = () async => null;
+    FcmService.debugGetTokenOverride = () async => 'unexpected-token';
+    FcmService.debugRegisterListenersOverride = () {};
+
+    await expectLater(FcmService.initialize(), completes);
+
+    expect(initializationCall?.method, 'initialize');
+    final arguments = initializationCall?.arguments as Map<Object?, Object?>;
+    expect(arguments['requestAlertPermission'], isFalse);
+    expect(arguments['requestSoundPermission'], isFalse);
+    expect(arguments['requestBadgePermission'], isFalse);
+    expect(arguments['requestProvisionalPermission'], isFalse);
+    expect(arguments['requestCriticalPermission'], isFalse);
+    expect(arguments['requestProvidesAppNotificationSettings'], isFalse);
   });
 
   test('iOS requests an FCM token after APNs is ready', () async {
