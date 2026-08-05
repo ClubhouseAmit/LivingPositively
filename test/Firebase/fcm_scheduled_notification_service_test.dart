@@ -16,6 +16,7 @@ import 'package:provider/provider.dart';
 
 class _FakePersistentMemoryService implements PersistentMemoryService {
   static const _migrationKey = 'fcmDefaultReminderMigrated';
+  static const _legacyReminderKeys = {'notificationHour', 'notificationMinute'};
   final Map<String, dynamic> stored = {};
   Completer<dynamic>? migrationMarkerRead;
   Completer<void>? migrationMarkerReadStarted;
@@ -24,6 +25,12 @@ class _FakePersistentMemoryService implements PersistentMemoryService {
 
   @override
   Future<dynamic> getItem(String key, PersistentMemoryType type) async {
+    if (_legacyReminderKeys.contains(key)) {
+      if (type != PersistentMemoryType.Int) {
+        throw StateError('Unexpected persistent-memory type for $key: $type');
+      }
+      return stored[key];
+    }
     if (key != _migrationKey) {
       throw StateError('Unexpected persistent-memory read: $key');
     }
@@ -690,13 +697,16 @@ void main() {
   testWidgets(
     'leaves migration retryable when legacy local reminder cancellation fails',
     (tester) async {
+      memory.stored['notificationHour'] = 8;
+      memory.stored['notificationMinute'] = 15;
       user.setNotificationPreference(
         'default',
         const NotificationPreference(hour: 8, minute: 15),
       );
       await pumpUser(tester);
-      var registrationCalls = 0;
+      final registrations = <({int hour, int minute})>[];
       var cancellationCalls = 0;
+      final cancelledIds = <int>[];
 
       Future<http.Response> post(
         Uri url, {
@@ -707,13 +717,17 @@ void main() {
         if (url.path.endsWith('/getNotificationMutationVersion')) {
           return http.Response('{"mutationVersion":0}', 200);
         }
-        registrationCalls++;
+        final payload = jsonDecode(body! as String) as Map<String, dynamic>;
+        registrations.add((
+          hour: payload['hour'] as int,
+          minute: payload['minute'] as int,
+        ));
         return http.Response('{}', 200);
       }
 
       Future<void> cancelLegacyNotification(int notificationId) async {
         cancellationCalls++;
-        expect(notificationId, 815);
+        cancelledIds.add(notificationId);
         if (cancellationCalls == 1) {
           throw StateError('local notification database unavailable');
         }
@@ -732,6 +746,10 @@ void main() {
         throwsA(isA<StateError>()),
       );
       expect(memory.stored.containsKey('fcmDefaultReminderMigrated'), isFalse);
+      user.setNotificationPreference(
+        'default',
+        const NotificationPreference(hour: 9, minute: 30),
+      );
 
       await _onPlatform(
         TargetPlatform.android,
@@ -743,8 +761,8 @@ void main() {
         ),
       );
 
-      expect(registrationCalls, 2);
-      expect(cancellationCalls, 2);
+      expect(registrations, [(hour: 8, minute: 15), (hour: 9, minute: 30)]);
+      expect(cancelledIds, [815, 815]);
       expect(memory.stored['fcmDefaultReminderMigrated'], isTrue);
     },
   );

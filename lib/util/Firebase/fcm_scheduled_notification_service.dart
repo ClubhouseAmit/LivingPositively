@@ -105,6 +105,10 @@ class FcmScheduledNotificationService {
           resetEpoch != _resetEpoch) {
         return;
       }
+      final legacyNotificationId = await _legacyLocalNotificationId(
+        memory: memory,
+        fallbackPreference: preference,
+      );
       final registered = await _registerNotification(
         userInformation: userInfo,
         typeId: 'default',
@@ -116,9 +120,7 @@ class FcmScheduledNotificationService {
       );
       if (registered) {
         await (legacyNotificationCanceller ??
-            FcmService.cancelLegacyLocalNotification)(
-          int.parse('${preference.hour}${preference.minute}'),
-        );
+            FcmService.cancelLegacyLocalNotification)(legacyNotificationId);
         await memory.setItem(
           _legacyDefaultReminderMigrationKey,
           PersistentMemoryType.Bool,
@@ -126,6 +128,32 @@ class FcmScheduledNotificationService {
         );
       }
     });
+  }
+
+  static Future<int> _legacyLocalNotificationId({
+    required PersistentMemoryService memory,
+    required NotificationPreference fallbackPreference,
+  }) async {
+    final legacyHour = await memory.getItem(
+      'notificationHour',
+      PersistentMemoryType.Int,
+    );
+    final legacyMinute = await memory.getItem(
+      'notificationMinute',
+      PersistentMemoryType.Int,
+    );
+    final hasValidLegacyTime =
+        legacyHour is int &&
+        legacyHour >= 0 &&
+        legacyHour <= 23 &&
+        legacyMinute is int &&
+        legacyMinute >= 0 &&
+        legacyMinute <= 59;
+    final hour = hasValidLegacyTime ? legacyHour : fallbackPreference.hour;
+    final minute = hasValidLegacyTime
+        ? legacyMinute
+        : fallbackPreference.minute;
+    return int.parse('$hour$minute');
   }
 
   static Future<void> migrateLegacyDefaultReminderWithReporting({
