@@ -408,8 +408,8 @@ jobs:
     # A cold CocoaPods/Firebase compile can exceed 45 minutes on GitHub's
     # arm64 macOS runners. Allow the first run to finish and populate the
     # DerivedData cache while keeping the job bounded. Leave enough time after
-    # the 75-minute test step to save a cold build and upload diagnostics.
-    timeout-minutes: 105
+    # the 90-minute test step to save a cold build and upload diagnostics.
+    timeout-minutes: 120
     env:
       FIREBASE_OPTIONS_PATH: lib/util/Firebase/firebase_options.dart
       IOS_PODS_CACHE_VERSION: v1
@@ -531,7 +531,10 @@ jobs:
         #    mocked inside the test setUp. Symmetric with the Android job.
         # 4. Run only the iOS FCM initialization test here rather than
         #    duplicating the Android integration matrix on the iOS simulator.
-        timeout-minutes: 75
+        # A cold Xcode build plus VM-service discovery reached 73m49s on the
+        # dependency-locked graph, then passed. Keep bounded headroom for that
+        # proven path instead of timing out a successful native test.
+        timeout-minutes: 90
         run: |
           mkdir -p ci-ios-diagnostics
           {
@@ -554,9 +557,9 @@ jobs:
           SIM_LOG_PID=$!
 
           (
-            sleep 3900
+            sleep 4800
             {
-              echo "=== iOS test watchdog fired at 65 minutes ==="
+              echo "=== iOS test watchdog snapshot at 80 minutes ==="
               date -u
               echo
               echo "=== process snapshot ==="
@@ -568,11 +571,13 @@ jobs:
             xcrun simctl io "$DEVICE_ID" screenshot ci-ios-diagnostics/watchdog-screenshot.png > ci-ios-diagnostics/watchdog-screenshot.txt 2>&1 || true
             mkdir -p ci-ios-diagnostics/DiagnosticReports
             find ~/Library/Logs/DiagnosticReports -type f -mtime -1 -exec cp {} ci-ios-diagnostics/DiagnosticReports/ \; 2>/dev/null || true
-          ) &
+          ) > /dev/null 2>&1 &
           WATCHDOG_PID=$!
 
           cleanup_ios_diagnostics() {
-            kill "$SIM_LOG_PID" "$WATCHDOG_PID" 2>/dev/null || true
+            kill "$SIM_LOG_PID" 2>/dev/null || true
+            pkill -P "$WATCHDOG_PID" 2>/dev/null || true
+            kill "$WATCHDOG_PID" 2>/dev/null || true
           }
           trap cleanup_ios_diagnostics EXIT
 
