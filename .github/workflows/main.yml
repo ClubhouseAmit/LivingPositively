@@ -581,9 +581,41 @@ jobs:
           }
           trap cleanup_ios_diagnostics EXIT
 
+          run_ios_fcm_test() {
+            flutter --verbose test integration_test/fcm_initialization_ios_test.dart --no-pub --dart-define=SENTRY_DSN=https://test@dsn.example.local/0 -d "$DEVICE_ID"
+          }
+
           set +e
-          flutter --verbose test integration_test/fcm_initialization_ios_test.dart --no-pub --dart-define=SENTRY_DSN=https://test@dsn.example.local/0 -d "$DEVICE_ID" 2>&1 | tee ci-ios-diagnostics/flutter-test.log
+          run_ios_fcm_test 2>&1 | tee ci-ios-diagnostics/flutter-test.log
           TEST_EXIT=${PIPESTATUS[0]}
+
+          # CoreSimulator can finish installing the bundle before FrontBoard
+          # registers it. Retry only that pre-process launch race; application
+          # crashes and test failures remain blocking on their first result.
+          if [ "$TEST_EXIT" -ne 0 ] && grep -Fq 'is unknown to FrontBoard' ci-ios-diagnostics/flutter-test.log; then
+            if [ "$SECONDS" -lt 2400 ]; then
+              echo "::warning::FrontBoard has not registered the installed app; resetting its registration and retrying once."
+              {
+                echo
+                echo "=== reset after FrontBoard registration race ==="
+                xcrun simctl terminate "$DEVICE_ID" com.clubhouse.livingpositively 2>/dev/null || true
+                xcrun simctl uninstall "$DEVICE_ID" com.clubhouse.livingpositively 2>/dev/null || true
+                xcrun simctl bootstatus "$DEVICE_ID" -b
+              } 2>&1 | tee -a ci-ios-diagnostics/flutter-test.log
+              RESET_EXIT=${PIPESTATUS[0]}
+
+              if [ "$RESET_EXIT" -eq 0 ]; then
+                sleep 5
+                printf '\n=== retry after FrontBoard registration reset ===\n' | tee -a ci-ios-diagnostics/flutter-test.log
+                run_ios_fcm_test 2>&1 | tee -a ci-ios-diagnostics/flutter-test.log
+                TEST_EXIT=${PIPESTATUS[0]}
+              else
+                TEST_EXIT=$RESET_EXIT
+              fi
+            else
+              echo "::warning::Skipping the FrontBoard retry after ${SECONDS}s to preserve the 90-minute step boundary."
+            fi
+          fi
           set -e
 
           {
