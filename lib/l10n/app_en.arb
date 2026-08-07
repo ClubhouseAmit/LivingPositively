@@ -1637,6 +1637,10 @@
   "@addItemTooltip": {
     "description": "Tooltip / TalkBack label for icon-only add buttons (journal entry, list item)"
   },
+  "scrollToBottomTooltip": "Scroll to bottom",
+  "@scrollToBottomTooltip": {
+    "description": "Tooltip / TalkBack label for the icon-only Gratitude Journal scroll-to-bottom button"
+  },
   "downloadPlanTooltip": "Download plan",
   "@downloadPlanTooltip": {
     "description": "Tooltip / TalkBack label for the icon-only download button on the personal plan widget"
