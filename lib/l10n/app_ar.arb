@@ -388,8 +388,27 @@
   "sosShareLocation": "مشاركة الموقع",
   "sosShareLocationTooltip": "مشاركة موقعك الحالي",
   "sosShareLocationMessage": "أنا هنا وأحتاج إلى مساعدتك.",
-  "sosShareLocationUnavailable": "تعذّر مشاركة موقعك. ستتم مشاركة رسالة طلب المساعدة بدون الموقع.",
+  "sosShareLocationUnavailable": "تعذّر الحصول على موقعك الحالي.",
   "sosShareLocationShareFailed": "تعذّر مشاركة رسالة طلب المساعدة الخاصة بك. يُرجى المحاولة مرة أخرى.",
+  "sosShareMessage": "مشاركة رسالة الاستغاثة",
+  "sosShareMessageTooltip": "مشاركة رسالة طلب المساعدة",
+  "sosDeliveryOptionsTitle": "خيارات الإرسال",
+  "sosDeliveryChooseApp": "اختيار تطبيق",
+  "sosDeliverySendToContact": "إرسال إلى جهة اتصال شخصية",
+  "sosDeliveryOpenMapApp": "فتح في تطبيق خرائط",
+  "sosDeliveryContactPickerTitle": "اختيار جهة اتصال شخصية",
+  "sosDeliveryNoContactsMessage": "لا توجد جهات اتصال شخصية. أضف جهة اتصال لإرسال رسالة استغاثة مباشرةً.",
+  "sosDeliveryMethodTitle": "طريقة الإرسال إلى {contact}",
+  "@sosDeliveryMethodTitle": {
+    "placeholders": {
+      "contact": {
+        "type": "String"
+      }
+    }
+  },
+  "sosDeliverySms": "رسالة نصية (SMS)",
+  "sosDeliveryWhatsAppInternationalNumber": "للإرسال عبر واتساب، احفظ رقم جهة الاتصال بصيغة دولية، مثل +15551234567.",
+  "sosDeliveryEditContacts": "تعديل جهات الاتصال",
   "menuTooltip": "القائمة",
   "addItemTooltip": "إضافة",
   "scrollToBottomTooltip": "الانتقال إلى أسفل القائمة",

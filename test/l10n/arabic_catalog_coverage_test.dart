@@ -37,30 +37,26 @@ Map<String, Set<String>> _placeholderMetadata(String path) {
 }
 
 void main() {
-  test(
-    'Arabic ARB covers every English key',
-    () {
-      final englishKeys = _messageKeys('lib/l10n/app_en.arb');
-      final arabicKeys = _messageKeys('lib/l10n/app_ar.arb');
+  test('Arabic ARB covers every English key', () {
+    final englishKeys = _messageKeys('lib/l10n/app_en.arb');
+    final arabicKeys = _messageKeys('lib/l10n/app_ar.arb');
 
-      final missingArabicKeys = englishKeys.difference(arabicKeys).toList()
-        ..sort();
-      final unexpectedArabicKeys = arabicKeys.difference(englishKeys).toList()
-        ..sort();
+    final missingArabicKeys = englishKeys.difference(arabicKeys).toList()
+      ..sort();
+    final unexpectedArabicKeys = arabicKeys.difference(englishKeys).toList()
+      ..sort();
 
-      expect(
-        missingArabicKeys,
-        isEmpty,
-        reason: 'Missing Arabic keys: ${missingArabicKeys.join(', ')}',
-      );
-      expect(
-        unexpectedArabicKeys,
-        isEmpty,
-        reason:
-            'Unexpected Arabic-only keys: ${unexpectedArabicKeys.join(', ')}',
-      );
-    },
-  );
+    expect(
+      missingArabicKeys,
+      isEmpty,
+      reason: 'Missing Arabic keys: ${missingArabicKeys.join(', ')}',
+    );
+    expect(
+      unexpectedArabicKeys,
+      isEmpty,
+      reason: 'Unexpected Arabic-only keys: ${unexpectedArabicKeys.join(', ')}',
+    );
+  });
 
   test('Arabic ARB provides approved SOS location-sharing copy', () {
     final arabic = _arb('lib/l10n/app_ar.arb');
@@ -70,12 +66,30 @@ void main() {
     expect(arabic['sosShareLocationMessage'], 'أنا هنا وأحتاج إلى مساعدتك.');
     expect(
       arabic['sosShareLocationUnavailable'],
-      'تعذّر مشاركة موقعك. ستتم مشاركة رسالة طلب المساعدة بدون الموقع.',
+      'تعذّر الحصول على موقعك الحالي.',
     );
     expect(
       arabic['sosShareLocationShareFailed'],
       'تعذّر مشاركة رسالة طلب المساعدة الخاصة بك. يُرجى المحاولة مرة أخرى.',
     );
+    expect(arabic['sosShareMessage'], 'مشاركة رسالة الاستغاثة');
+    expect(arabic['sosShareMessageTooltip'], 'مشاركة رسالة طلب المساعدة');
+    expect(arabic['sosDeliveryOptionsTitle'], 'خيارات الإرسال');
+    expect(arabic['sosDeliveryChooseApp'], 'اختيار تطبيق');
+    expect(arabic['sosDeliverySendToContact'], 'إرسال إلى جهة اتصال شخصية');
+    expect(arabic['sosDeliveryOpenMapApp'], 'فتح في تطبيق خرائط');
+    expect(arabic['sosDeliveryContactPickerTitle'], 'اختيار جهة اتصال شخصية');
+    expect(
+      arabic['sosDeliveryNoContactsMessage'],
+      'لا توجد جهات اتصال شخصية. أضف جهة اتصال لإرسال رسالة استغاثة مباشرةً.',
+    );
+    expect(arabic['sosDeliveryMethodTitle'], 'طريقة الإرسال إلى {contact}');
+    expect(arabic['sosDeliverySms'], 'رسالة نصية (SMS)');
+    expect(
+      arabic['sosDeliveryWhatsAppInternationalNumber'],
+      'للإرسال عبر واتساب، احفظ رقم جهة الاتصال بصيغة دولية، مثل +15551234567.',
+    );
+    expect(arabic['sosDeliveryEditContacts'], 'تعديل جهات الاتصال');
   });
 
   test('Arabic ARB preserves English placeholder metadata entries', () {

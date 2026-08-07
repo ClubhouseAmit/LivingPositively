@@ -1131,11 +1131,51 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get sosShareLocationUnavailable =>
-      'Your location could not be shared. Your help message will be shared without it.';
+      'Your current location could not be obtained.';
 
   @override
   String get sosShareLocationShareFailed =>
       'Your SOS help message could not be shared. Please try again.';
+
+  @override
+  String get sosShareMessage => 'Share SOS Message';
+
+  @override
+  String get sosShareMessageTooltip => 'Share your SOS help message';
+
+  @override
+  String get sosDeliveryOptionsTitle => 'Choose a delivery option';
+
+  @override
+  String get sosDeliveryChooseApp => 'Choose an app';
+
+  @override
+  String get sosDeliverySendToContact => 'Send to a personal contact';
+
+  @override
+  String get sosDeliveryOpenMapApp => 'Open in a map app';
+
+  @override
+  String get sosDeliveryContactPickerTitle => 'Choose a personal contact';
+
+  @override
+  String get sosDeliveryNoContactsMessage =>
+      'No personal contacts are available. Add one to send an SOS message directly.';
+
+  @override
+  String sosDeliveryMethodTitle(String contact) {
+    return 'Choose how to send to $contact';
+  }
+
+  @override
+  String get sosDeliverySms => 'Text message (SMS)';
+
+  @override
+  String get sosDeliveryWhatsAppInternationalNumber =>
+      'To send with WhatsApp, save this contact\'s number in international format, for example +15551234567.';
+
+  @override
+  String get sosDeliveryEditContacts => 'Edit contacts';
 
   @override
   String phonePageTitle(String gender) {

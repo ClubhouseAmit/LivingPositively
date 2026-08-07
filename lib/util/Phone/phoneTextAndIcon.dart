@@ -172,10 +172,13 @@ Uri _dialPhoneUri(String number) {
   return Uri.parse('tel:$trimmedNumber');
 }
 
-Future<bool> openWhatsApp(String number) => _launchUriWithLogging(
-  Uri.parse('https://wa.me/$number'),
-  mode: LaunchMode.externalApplication,
-);
+Future<bool> openWhatsApp(String number, {String body = ''}) {
+  final trimmedBody = body.trim();
+  final uri = trimmedBody.isEmpty
+      ? Uri.parse('https://wa.me/$number')
+      : Uri.https('wa.me', '/$number', {'text': trimmedBody});
+  return _launchUriWithLogging(uri, mode: LaunchMode.externalApplication);
+}
 
 Future<bool> openSite(String url) =>
     _launchUriWithLogging(Uri.parse(url), mode: LaunchMode.externalApplication);

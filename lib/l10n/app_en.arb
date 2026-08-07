@@ -476,13 +476,66 @@
   "@sosShareLocationMessage": {
     "description": "The SOS help message shared with an optional current-location map link."
   },
-  "sosShareLocationUnavailable": "Your location could not be shared. Your help message will be shared without it.",
+  "sosShareLocationUnavailable": "Your current location could not be obtained.",
   "@sosShareLocationUnavailable": {
-    "description": "Notice shown when SOS location sharing falls back to a text-only help message."
+    "description": "Notice shown when a one-time SOS location cannot be obtained."
   },
   "sosShareLocationShareFailed": "Your SOS help message could not be shared. Please try again.",
   "@sosShareLocationShareFailed": {
     "description": "Notice shown when the SOS help message cannot be shared through the native share sheet."
+  },
+  "sosShareMessage": "Share SOS Message",
+  "@sosShareMessage": {
+    "description": "The SOS action that shares only the help message."
+  },
+  "sosShareMessageTooltip": "Share your SOS help message",
+  "@sosShareMessageTooltip": {
+    "description": "Accessibility label for the SOS help-message action."
+  },
+  "sosDeliveryOptionsTitle": "Choose a delivery option",
+  "@sosDeliveryOptionsTitle": {
+    "description": "Title for the SOS delivery-method chooser."
+  },
+  "sosDeliveryChooseApp": "Choose an app",
+  "@sosDeliveryChooseApp": {
+    "description": "Option to open the native app picker for SOS content."
+  },
+  "sosDeliverySendToContact": "Send to a personal contact",
+  "@sosDeliverySendToContact": {
+    "description": "Option to send SOS content to a saved personal contact."
+  },
+  "sosDeliveryOpenMapApp": "Open in a map app",
+  "@sosDeliveryOpenMapApp": {
+    "description": "Option to open the current location in a compatible map app."
+  },
+  "sosDeliveryContactPickerTitle": "Choose a personal contact",
+  "@sosDeliveryContactPickerTitle": {
+    "description": "Title for the saved personal-contact chooser."
+  },
+  "sosDeliveryNoContactsMessage": "No personal contacts are available. Add one to send an SOS message directly.",
+  "@sosDeliveryNoContactsMessage": {
+    "description": "Message shown when no saved personal contacts are available for SOS delivery."
+  },
+  "sosDeliveryMethodTitle": "Choose how to send to {contact}",
+  "@sosDeliveryMethodTitle": {
+    "description": "Title for choosing SMS or WhatsApp delivery to a saved contact.",
+    "placeholders": {
+      "contact": {
+        "type": "String"
+      }
+    }
+  },
+  "sosDeliverySms": "Text message (SMS)",
+  "@sosDeliverySms": {
+    "description": "Option to open the SMS composer for SOS content."
+  },
+  "sosDeliveryWhatsAppInternationalNumber": "To send with WhatsApp, save this contact's number in international format, for example +15551234567.",
+  "@sosDeliveryWhatsAppInternationalNumber": {
+    "description": "Guidance shown when a saved contact cannot be used with WhatsApp."
+  },
+  "sosDeliveryEditContacts": "Edit contacts",
+  "@sosDeliveryEditContacts": {
+    "description": "Action that opens the personal-contact editor from an SOS delivery prompt."
   },
   "phonePageTitle": "{gender,select,male{You are not alone! If you are in distress right now, please reach out to one of the contacts listed here} female{You are not alone! If you are in distress right now, please reach out to one of the contacts listed here} other{You are not alone! If you are in distress right now, please reach out to one of the contacts listed here}}",
   "@phonePageTitle": {

@@ -1115,12 +1115,51 @@ class AppLocalizationsAr extends AppLocalizations {
   String get sosShareLocationMessage => 'أنا هنا وأحتاج إلى مساعدتك.';
 
   @override
-  String get sosShareLocationUnavailable =>
-      'تعذّر مشاركة موقعك. ستتم مشاركة رسالة طلب المساعدة بدون الموقع.';
+  String get sosShareLocationUnavailable => 'تعذّر الحصول على موقعك الحالي.';
 
   @override
   String get sosShareLocationShareFailed =>
       'تعذّر مشاركة رسالة طلب المساعدة الخاصة بك. يُرجى المحاولة مرة أخرى.';
+
+  @override
+  String get sosShareMessage => 'مشاركة رسالة الاستغاثة';
+
+  @override
+  String get sosShareMessageTooltip => 'مشاركة رسالة طلب المساعدة';
+
+  @override
+  String get sosDeliveryOptionsTitle => 'خيارات الإرسال';
+
+  @override
+  String get sosDeliveryChooseApp => 'اختيار تطبيق';
+
+  @override
+  String get sosDeliverySendToContact => 'إرسال إلى جهة اتصال شخصية';
+
+  @override
+  String get sosDeliveryOpenMapApp => 'فتح في تطبيق خرائط';
+
+  @override
+  String get sosDeliveryContactPickerTitle => 'اختيار جهة اتصال شخصية';
+
+  @override
+  String get sosDeliveryNoContactsMessage =>
+      'لا توجد جهات اتصال شخصية. أضف جهة اتصال لإرسال رسالة استغاثة مباشرةً.';
+
+  @override
+  String sosDeliveryMethodTitle(String contact) {
+    return 'طريقة الإرسال إلى $contact';
+  }
+
+  @override
+  String get sosDeliverySms => 'رسالة نصية (SMS)';
+
+  @override
+  String get sosDeliveryWhatsAppInternationalNumber =>
+      'للإرسال عبر واتساب، احفظ رقم جهة الاتصال بصيغة دولية، مثل +15551234567.';
+
+  @override
+  String get sosDeliveryEditContacts => 'تعديل جهات الاتصال';
 
   @override
   String phonePageTitle(String gender) {

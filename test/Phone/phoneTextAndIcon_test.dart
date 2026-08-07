@@ -32,15 +32,15 @@ class _FakeUrlLauncherPlatform extends UrlLauncherPlatform {
   }
 }
 
-Widget _wrap(Widget Function(BuildContext) builder,
-    {Locale locale = const Locale('en')}) {
+Widget _wrap(
+  Widget Function(BuildContext) builder, {
+  Locale locale = const Locale('en'),
+}) {
   return MaterialApp(
     locale: locale,
     home: ScreenUtilInit(
       designSize: const Size(360, 690),
-      builder: (context, _) => Scaffold(
-        body: Builder(builder: builder),
-      ),
+      builder: (context, _) => Scaffold(body: Builder(builder: builder)),
     ),
   );
 }
@@ -103,8 +103,9 @@ void main() {
   });
 
   group('phoneContact widget', () {
-    testWidgets('renders contact text and dials when icon tapped',
-        (tester) async {
+    testWidgets('renders contact text and dials when icon tapped', (
+      tester,
+    ) async {
       final originalPlatform = UrlLauncherPlatform.instance;
       final fake = _FakeUrlLauncherPlatform();
       UrlLauncherPlatform.instance = fake;
@@ -125,14 +126,13 @@ void main() {
   });
 
   group('getTextIconWidget', () {
-    testWidgets('renders text + icon and triggers callback on tap',
-        (tester) async {
+    testWidgets('renders text + icon and triggers callback on tap', (
+      tester,
+    ) async {
       var taps = 0;
-      await tester.pumpWidget(_wrap((_) => getTextIconWidget(
-            'Send',
-            () => taps++,
-            Icons.send,
-          )));
+      await tester.pumpWidget(
+        _wrap((_) => getTextIconWidget('Send', () => taps++, Icons.send)),
+      );
       await tester.pumpAndSettle();
 
       expect(find.text('Send'), findsOneWidget);
@@ -192,6 +192,25 @@ void main() {
 
       await openWhatsApp('972501234567');
       expect(fake.lastLaunchedUrl, 'https://wa.me/972501234567');
+    });
+
+    test('adds a URL-encoded message body when provided', () async {
+      final originalPlatform = UrlLauncherPlatform.instance;
+      final fake = _FakeUrlLauncherPlatform();
+      UrlLauncherPlatform.instance = fake;
+      addTearDown(() => UrlLauncherPlatform.instance = originalPlatform);
+
+      await openWhatsApp(
+        '972501234567',
+        body: 'I am here.\nhttps://example.com/location',
+      );
+      final uri = Uri.parse(fake.lastLaunchedUrl!);
+      expect(uri.host, 'wa.me');
+      expect(uri.path, '/972501234567');
+      expect(
+        uri.queryParameters['text'],
+        'I am here.\nhttps://example.com/location',
+      );
     });
 
     test('failed launch returns false', () async {

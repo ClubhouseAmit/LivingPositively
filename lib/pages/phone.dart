@@ -14,6 +14,12 @@ import 'package:mazilon/util/styles.dart';
 import 'package:mazilon/util/Form/formPagePhoneModel.dart';
 import 'package:mazilon/util/Phone/EmergencyPhones.dart';
 
+enum _SosDeliveryOption { app, contact, map }
+
+enum _SosContactDeliveryOption { sms, whatsApp }
+
+enum _SosLocationUnavailableOption { retry, message }
+
 class PhonePage extends StatefulWidget {
   final PhonePageData phonePageData;
   const PhonePage({super.key, required this.phonePageData});
@@ -33,67 +39,29 @@ class _PhonePageState extends LPExtendedState<PhonePage> {
       (defaultTargetPlatform == TargetPlatform.android ||
           defaultTargetPlatform == TargetPlatform.iOS);
 
-  Future<void> _shareCurrentLocation() async {
-    if (_isSharingLocation) {
+  Future<void> _startLocationDelivery() async {
+    if (_isSharingLocation || !mounted) {
       return;
     }
 
-    final messenger = ScaffoldMessenger.maybeOf(context);
-    final fileService = GetIt.instance<FileService>();
-    final helpMessage = appLocale.sosShareLocationMessage;
-    final unavailableMessage = appLocale.sosShareLocationUnavailable;
-    final shareFailedMessage = appLocale.sosShareLocationShareFailed;
-    var messageToShare = helpMessage;
-    var locationUnavailable = !_supportsLocationSharing;
+    _SosLocationUnavailableOption? unavailableOption;
 
     setState(() {
       _isSharingLocation = true;
     });
 
     try {
-      if (!locationUnavailable) {
-        final serviceEnabled = await Geolocator.isLocationServiceEnabled();
-        if (!serviceEnabled) {
-          locationUnavailable = true;
-        } else {
-          var permission = await Geolocator.checkPermission();
-          if (permission == LocationPermission.denied) {
-            permission = await Geolocator.requestPermission();
-          }
-
-          if (permission == LocationPermission.whileInUse) {
-            final position = await Geolocator.getCurrentPosition(
-              locationSettings: const LocationSettings(
-                accuracy: LocationAccuracy.high,
-                timeLimit: Duration(seconds: 15),
-              ),
-            );
-            messageToShare =
-                '$helpMessage\nhttps://www.google.com/maps/search/?api=1&query=${position.latitude},${position.longitude}';
-          } else {
-            locationUnavailable = true;
-          }
+      final position = await _getCurrentPosition();
+      if (position == null) {
+        if (mounted) {
+          unavailableOption = await _showLocationUnavailableDialog();
         }
-      }
-    } catch (_) {
-      locationUnavailable = true;
-    }
-
-    if (locationUnavailable && mounted) {
-      messenger?.hideCurrentSnackBar();
-      messenger?.showSnackBar(SnackBar(content: Text(unavailableMessage)));
-    }
-
-    try {
-      final shareSucceeded = await fileService.shareTextOnly(messageToShare);
-      if (!shareSucceeded && mounted) {
-        messenger?.hideCurrentSnackBar();
-        messenger?.showSnackBar(SnackBar(content: Text(shareFailedMessage)));
-      }
-    } catch (_) {
-      if (mounted) {
-        messenger?.hideCurrentSnackBar();
-        messenger?.showSnackBar(SnackBar(content: Text(shareFailedMessage)));
+      } else if (mounted) {
+        final mapLink = _mapShareLink(position);
+        await _showDeliveryOptions(
+          '${appLocale.sosShareLocationMessage}\n$mapLink',
+          mapAppUrl: _mapAppUrl(position),
+        );
       }
     } finally {
       if (mounted) {
@@ -102,10 +70,331 @@ class _PhonePageState extends LPExtendedState<PhonePage> {
         });
       }
     }
+
+    if (!mounted) {
+      return;
+    }
+    if (unavailableOption == _SosLocationUnavailableOption.retry) {
+      _startLocationDelivery();
+    } else if (unavailableOption == _SosLocationUnavailableOption.message) {
+      _startMessageDelivery();
+    }
   }
 
-  void _openContactsEditor() {
-    Navigator.of(context).push(
+  Future<Position?> _getCurrentPosition() async {
+    if (!_supportsLocationSharing) {
+      return null;
+    }
+
+    try {
+      final serviceEnabled = await Geolocator.isLocationServiceEnabled();
+      if (!serviceEnabled) {
+        return null;
+      }
+
+      var permission = await Geolocator.checkPermission();
+      if (permission == LocationPermission.denied) {
+        permission = await Geolocator.requestPermission();
+      }
+      if (permission != LocationPermission.whileInUse) {
+        return null;
+      }
+
+      return await Geolocator.getCurrentPosition(
+        locationSettings: const LocationSettings(
+          accuracy: LocationAccuracy.high,
+          timeLimit: Duration(seconds: 15),
+        ),
+      );
+    } catch (error, stackTrace) {
+      debugPrint('Could not get SOS location: $error\n$stackTrace');
+      return null;
+    }
+  }
+
+  String _mapShareLink(Position position) =>
+      'https://www.google.com/maps/search/?api=1&query=${position.latitude},${position.longitude}';
+
+  String _mapAppUrl(Position position) {
+    final coordinates = '${position.latitude},${position.longitude}';
+    if (defaultTargetPlatform == TargetPlatform.android) {
+      return 'geo:0,0?q=$coordinates';
+    }
+    return 'https://maps.apple.com/?ll=$coordinates';
+  }
+
+  Future<void> _startMessageDelivery() =>
+      _showDeliveryOptions(appLocale.sosShareLocationMessage);
+
+  Future<void> _showDeliveryOptions(String message, {String? mapAppUrl}) async {
+    if (!mounted) {
+      return;
+    }
+
+    final option = await showDialog<_SosDeliveryOption>(
+      context: context,
+      builder: (dialogContext) => SimpleDialog(
+        title: Text(appLocale.sosDeliveryOptionsTitle),
+        children: [
+          SimpleDialogOption(
+            onPressed: () =>
+                Navigator.of(dialogContext).pop(_SosDeliveryOption.app),
+            child: _deliveryOption(Icons.share, appLocale.sosDeliveryChooseApp),
+          ),
+          SimpleDialogOption(
+            onPressed: () =>
+                Navigator.of(dialogContext).pop(_SosDeliveryOption.contact),
+            child: _deliveryOption(
+              Icons.person,
+              appLocale.sosDeliverySendToContact,
+            ),
+          ),
+          if (mapAppUrl != null)
+            SimpleDialogOption(
+              onPressed: () =>
+                  Navigator.of(dialogContext).pop(_SosDeliveryOption.map),
+              child: _deliveryOption(
+                Icons.map,
+                appLocale.sosDeliveryOpenMapApp,
+              ),
+            ),
+        ],
+      ),
+    );
+
+    if (!mounted || option == null) {
+      return;
+    }
+    switch (option) {
+      case _SosDeliveryOption.app:
+        await _shareText(message);
+        return;
+      case _SosDeliveryOption.contact:
+        await _showContactPicker(message);
+        return;
+      case _SosDeliveryOption.map:
+        if (mapAppUrl != null) {
+          await launchWithFeedback(
+            context,
+            '',
+            isCallFailure: false,
+            launch: () => openSite(mapAppUrl),
+          );
+        }
+        return;
+    }
+  }
+
+  Widget _deliveryOption(IconData icon, String label) => Row(
+    children: [
+      Icon(icon),
+      const SizedBox(width: 12),
+      Expanded(child: Text(label)),
+    ],
+  );
+
+  Future<void> _shareText(String message) async {
+    final messenger = ScaffoldMessenger.maybeOf(context);
+    final failedMessage = appLocale.sosShareLocationShareFailed;
+    var succeeded = false;
+    try {
+      succeeded = await GetIt.instance<FileService>().shareTextOnly(message);
+    } catch (error, stackTrace) {
+      debugPrint('Could not share SOS content: $error\n$stackTrace');
+    }
+
+    if (!succeeded && mounted) {
+      messenger?.hideCurrentSnackBar();
+      messenger?.showSnackBar(SnackBar(content: Text(failedMessage)));
+    }
+  }
+
+  Future<void> _showContactPicker(String message) async {
+    final contacts = _savedContacts();
+    if (contacts.isEmpty) {
+      final shouldEdit = await _showNoContactsDialog();
+      if (shouldEdit && mounted) {
+        await _openContactsEditor();
+      }
+      return;
+    }
+
+    final contact = await showDialog<MapEntry<String, String>>(
+      context: context,
+      builder: (dialogContext) => SimpleDialog(
+        title: Text(appLocale.sosDeliveryContactPickerTitle),
+        children: contacts
+            .map(
+              (contact) => SimpleDialogOption(
+                onPressed: () => Navigator.of(dialogContext).pop(contact),
+                child: ListTile(
+                  contentPadding: EdgeInsets.zero,
+                  title: Text(contact.key),
+                  subtitle: Text(contact.value),
+                ),
+              ),
+            )
+            .toList(),
+      ),
+    );
+
+    if (contact == null || !mounted) {
+      return;
+    }
+    await _showContactDeliveryOptions(contact, message);
+  }
+
+  List<MapEntry<String, String>> _savedContacts() {
+    final contacts = <MapEntry<String, String>>[];
+    final names = widget.phonePageData.savedPhoneNames;
+    final numbers = widget.phonePageData.savedPhoneNumbers;
+    for (
+      var index = 0;
+      index < names.length && index < numbers.length;
+      index++
+    ) {
+      final name = names[index].trim();
+      final number = numbers[index].trim();
+      if (name.isNotEmpty && number.isNotEmpty) {
+        contacts.add(MapEntry(name, number));
+      }
+    }
+    return contacts;
+  }
+
+  Future<void> _showContactDeliveryOptions(
+    MapEntry<String, String> contact,
+    String message,
+  ) async {
+    final option = await showDialog<_SosContactDeliveryOption>(
+      context: context,
+      builder: (dialogContext) => SimpleDialog(
+        title: Text(appLocale.sosDeliveryMethodTitle(contact.key)),
+        children: [
+          SimpleDialogOption(
+            onPressed: () =>
+                Navigator.of(dialogContext).pop(_SosContactDeliveryOption.sms),
+            child: _deliveryOption(Icons.sms, appLocale.sosDeliverySms),
+          ),
+          SimpleDialogOption(
+            onPressed: () => Navigator.of(
+              dialogContext,
+            ).pop(_SosContactDeliveryOption.whatsApp),
+            child: _deliveryOption(Icons.chat, appLocale.whatsApp),
+          ),
+        ],
+      ),
+    );
+
+    if (option == null || !mounted) {
+      return;
+    }
+    if (option == _SosContactDeliveryOption.sms) {
+      await launchWithFeedback(
+        context,
+        contact.value,
+        isCallFailure: false,
+        launch: () => openTextMessage(contact.value, body: message),
+      );
+      return;
+    }
+
+    final whatsAppNumber = _whatsAppNumber(contact.value);
+    if (whatsAppNumber == null) {
+      final shouldEdit = await _showWhatsAppNumberDialog();
+      if (shouldEdit && mounted) {
+        await _openContactsEditor();
+      }
+      return;
+    }
+    await launchWithFeedback(
+      context,
+      contact.value,
+      isCallFailure: false,
+      launch: () => openWhatsApp(whatsAppNumber, body: message),
+    );
+  }
+
+  String? _whatsAppNumber(String number) {
+    final normalized = number.replaceAll(RegExp(r'[\s().-]'), '');
+    if (!RegExp(r'^\+[1-9]\d{7,14}$').hasMatch(normalized)) {
+      return null;
+    }
+    return normalized.substring(1);
+  }
+
+  Future<bool> _showNoContactsDialog() async {
+    final gender = Provider.of<UserInformation>(context, listen: false).gender;
+    return (await showDialog<bool>(
+          context: context,
+          builder: (dialogContext) => AlertDialog(
+            content: Text(appLocale.sosDeliveryNoContactsMessage),
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.of(dialogContext).pop(false),
+                child: Text(appLocale.closeButton(gender)),
+              ),
+              TextButton(
+                onPressed: () => Navigator.of(dialogContext).pop(true),
+                child: Text(appLocale.sosDeliveryEditContacts),
+              ),
+            ],
+          ),
+        )) ??
+        false;
+  }
+
+  Future<bool> _showWhatsAppNumberDialog() async {
+    final gender = Provider.of<UserInformation>(context, listen: false).gender;
+    return (await showDialog<bool>(
+          context: context,
+          builder: (dialogContext) => AlertDialog(
+            content: Text(appLocale.sosDeliveryWhatsAppInternationalNumber),
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.of(dialogContext).pop(false),
+                child: Text(appLocale.closeButton(gender)),
+              ),
+              TextButton(
+                onPressed: () => Navigator.of(dialogContext).pop(true),
+                child: Text(appLocale.sosDeliveryEditContacts),
+              ),
+            ],
+          ),
+        )) ??
+        false;
+  }
+
+  Future<_SosLocationUnavailableOption?> _showLocationUnavailableDialog() {
+    final gender = Provider.of<UserInformation>(context, listen: false).gender;
+    return showDialog<_SosLocationUnavailableOption>(
+      context: context,
+      builder: (dialogContext) => AlertDialog(
+        content: Text(appLocale.sosShareLocationUnavailable),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(dialogContext).pop(),
+            child: Text(appLocale.closeButton(gender)),
+          ),
+          TextButton(
+            onPressed: () => Navigator.of(
+              dialogContext,
+            ).pop(_SosLocationUnavailableOption.message),
+            child: Text(appLocale.sosShareMessage),
+          ),
+          TextButton(
+            onPressed: () => Navigator.of(
+              dialogContext,
+            ).pop(_SosLocationUnavailableOption.retry),
+            child: Text(appLocale.asyncRetryButton),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Future<void> _openContactsEditor() {
+    return Navigator.of(context).push<void>(
       MaterialPageRoute(
         builder: (routeContext) => ChangeNotifierProvider<PhonePageData>.value(
           value: widget.phonePageData,
@@ -118,6 +407,35 @@ class _PhonePageState extends LPExtendedState<PhonePage> {
       ),
     );
   }
+
+  Widget _sosAction({
+    required Key key,
+    required String label,
+    required String tooltip,
+    required IconData icon,
+    required VoidCallback onTap,
+  }) => Column(
+    mainAxisSize: MainAxisSize.min,
+    children: [
+      KeyedSubtree(
+        key: key,
+        child: circularActionButton(
+          context,
+          tooltip: tooltip,
+          icon: icon,
+          onTap: onTap,
+        ),
+      ),
+      const SizedBox(height: 4.0),
+      myAutoSizedText(
+        label,
+        TextStyle(fontWeight: FontWeight.normal, fontSize: 18.sp),
+        TextAlign.center,
+        18,
+        2,
+      ),
+    ],
+  );
 
   @override
   Widget build(BuildContext context) {
@@ -248,29 +566,30 @@ class _PhonePageState extends LPExtendedState<PhonePage> {
                   Padding(
                     padding: const EdgeInsets.symmetric(horizontal: 30.0),
                     child: Row(
-                      mainAxisAlignment: MainAxisAlignment.center,
                       children: [
-                        Flexible(
-                          child: myText(
-                            appLocale.sosShareLocation,
-                            TextStyle(
-                              fontWeight: FontWeight.normal,
-                              fontSize: 20.sp,
-                            ),
-                            null,
-                          ),
-                        ),
-                        const SizedBox(width: 5.0),
-                        KeyedSubtree(
-                          key: const Key('phonePageShareLocationButton'),
-                          child: circularActionButton(
-                            context,
+                        Expanded(
+                          child: _sosAction(
+                            key: const Key('phonePageShareLocationButton'),
+                            label: appLocale.sosShareLocation,
                             tooltip: appLocale.sosShareLocationTooltip,
                             icon: Icons.location_on,
-                            onTap: _shareCurrentLocation,
+                            onTap: () {
+                              _startLocationDelivery();
+                            },
                           ),
                         ),
-                        const SizedBox(width: 10.0),
+                        const SizedBox(width: 12.0),
+                        Expanded(
+                          child: _sosAction(
+                            key: const Key('phonePageShareMessageButton'),
+                            label: appLocale.sosShareMessage,
+                            tooltip: appLocale.sosShareMessageTooltip,
+                            icon: Icons.message,
+                            onTap: () {
+                              _startMessageDelivery();
+                            },
+                          ),
+                        ),
                       ],
                     ),
                   ),
