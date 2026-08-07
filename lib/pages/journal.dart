@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/rendering.dart';
 import 'package:get_it/get_it.dart';
 import 'package:intl/intl.dart';
 import 'package:mazilon/AnalyticsService.dart';
@@ -34,6 +35,7 @@ class _JournalState extends LPExtendedState<Journal> {
   List<String> dates = []; //list of dates for each thank you note
   FocusNode myFocusNode = FocusNode(); //focus node for the text field
   final ScrollController _journalScrollController = ScrollController();
+  int _quickScrollOperation = 0;
   String journalMainTitle = ''; //journal main title
   String journalSubTitle = ''; //journal sub title
   String sug1 = ''; //suggested thank you note 1
@@ -80,7 +82,22 @@ class _JournalState extends LPExtendedState<Journal> {
         thanksSuggestionList[indices[thanksSuggestionList.length > 2 ? 2 : 0]];
   }
 
+  bool _isCurrentQuickScrollOperation(int operation) {
+    return mounted &&
+        _journalScrollController.hasClients &&
+        operation == _quickScrollOperation;
+  }
+
+  bool _handleJournalUserScroll(UserScrollNotification notification) {
+    if (notification.depth == 0 &&
+        notification.direction != ScrollDirection.idle) {
+      _quickScrollOperation++;
+    }
+    return false;
+  }
+
   Future<void> _scrollToBottom() async {
+    final operation = ++_quickScrollOperation;
     if (!_journalScrollController.hasClients) {
       return;
     }
@@ -96,28 +113,34 @@ class _JournalState extends LPExtendedState<Journal> {
       curve: Curves.easeOut,
     );
 
-    if (!mounted || !_journalScrollController.hasClients) {
+    if (!_isCurrentQuickScrollOperation(operation)) {
       return;
     }
 
     await WidgetsBinding.instance.endOfFrame;
+    if (!_isCurrentQuickScrollOperation(operation)) {
+      return;
+    }
 
     // The nested shrink-wrapped lazy list refines outer scroll geometry over
     // later frames, so reconcile it with four bounded post-animation passes.
     for (var frame = 0; frame < 4; frame++) {
-      if (!mounted || !_journalScrollController.hasClients) {
+      if (!_isCurrentQuickScrollOperation(operation)) {
         return;
       }
 
       WidgetsBinding.instance.scheduleFrame();
       await WidgetsBinding.instance.endOfFrame;
 
-      if (!mounted || !_journalScrollController.hasClients) {
+      if (!_isCurrentQuickScrollOperation(operation)) {
         return;
       }
 
       final updatedPosition = _journalScrollController.position;
       if (updatedPosition.extentAfter > 0 || updatedPosition.outOfRange) {
+        if (!_isCurrentQuickScrollOperation(operation)) {
+          return;
+        }
         _journalScrollController.jumpTo(updatedPosition.maxScrollExtent);
       }
     }
@@ -300,173 +323,177 @@ class _JournalState extends LPExtendedState<Journal> {
       gestures: const [GestureType.onTap, GestureType.onPanUpdateAnyDirection],
       child: Scaffold(
         backgroundColor: colorScheme.surface,
-        body: ListView(
-          key: _journalScrollViewKey,
-          controller: _journalScrollController,
-          children: [
-            Padding(
-              padding: const EdgeInsets.fromLTRB(0, 40, 20, 20),
-              child: Column(
-                children: [
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                    children: [
-                      Padding(
-                        padding: const EdgeInsets.fromLTRB(10, 0, 10, 0),
-                        child: myAutoSizedText(
-                          appLocale.homePageThanksMainTitle(gender),
-                          TextStyle(
-                            fontWeight: FontWeight.bold,
-                            fontSize: 30.sp,
+        body: NotificationListener<UserScrollNotification>(
+          onNotification: _handleJournalUserScroll,
+          child: ListView(
+            key: _journalScrollViewKey,
+            controller: _journalScrollController,
+            children: [
+              Padding(
+                padding: const EdgeInsets.fromLTRB(0, 40, 20, 20),
+                child: Column(
+                  children: [
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        Padding(
+                          padding: const EdgeInsets.fromLTRB(10, 0, 10, 0),
+                          child: myAutoSizedText(
+                            appLocale.homePageThanksMainTitle(gender),
+                            TextStyle(
+                              fontWeight: FontWeight.bold,
+                              fontSize: 30.sp,
+                            ),
+                            null,
+                            60,
                           ),
-                          null,
-                          60,
                         ),
-                      ),
 
-                      Column(
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          //the add button to add a new thank you note
-                          IconButton(
-                            //when the button is pressed, open the popup with empty text field to write a new thank you note
-                            onPressed: () {
-                              editThanks(appLocale.thanks);
-                            },
-                            tooltip: appLocale.addItemTooltip,
-                            icon: Icon(
-                              Icons.add,
-                              size: 50.0,
-                              color: colorScheme.primary,
+                        Column(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            //the add button to add a new thank you note
+                            IconButton(
+                              //when the button is pressed, open the popup with empty text field to write a new thank you note
+                              onPressed: () {
+                                editThanks(appLocale.thanks);
+                              },
+                              tooltip: appLocale.addItemTooltip,
+                              icon: Icon(
+                                Icons.add,
+                                size: 50.0,
+                                color: colorScheme.primary,
+                              ),
                             ),
-                          ),
-                          IconButton(
-                            key: _scrollToBottomKey,
-                            onPressed: _scrollToBottom,
-                            tooltip: appLocale.scrollToBottomTooltip,
-                            icon: Icon(
-                              Icons.keyboard_double_arrow_down,
-                              size: 50.0,
-                              color: colorScheme.primary,
+                            IconButton(
+                              key: _scrollToBottomKey,
+                              onPressed: _scrollToBottom,
+                              tooltip: appLocale.scrollToBottomTooltip,
+                              icon: Icon(
+                                Icons.keyboard_double_arrow_down,
+                                size: 50.0,
+                                color: colorScheme.primary,
+                              ),
                             ),
-                          ),
-                        ],
-                      ),
-                    ],
-                  ),
-                  Row(
-                    children: [
-                      //the subtitle of the journal page
-                      Padding(
-                        padding: const EdgeInsets.fromLTRB(10, 0, 10, 0),
-                        child: myAutoSizedText(
-                          appLocale.homePageThanksSecondaryTitle(gender),
-                          TextStyle(
-                            color: colorScheme.outline,
-                            fontSize: 16.sp,
-                            fontWeight: FontWeight.bold,
-                          ),
-                          null,
-                          30,
+                          ],
                         ),
-                      ),
-                    ],
-                  ),
-                ],
+                      ],
+                    ),
+                    Row(
+                      children: [
+                        //the subtitle of the journal page
+                        Padding(
+                          padding: const EdgeInsets.fromLTRB(10, 0, 10, 0),
+                          child: myAutoSizedText(
+                            appLocale.homePageThanksSecondaryTitle(gender),
+                            TextStyle(
+                              color: colorScheme.outline,
+                              fontSize: 16.sp,
+                              fontWeight: FontWeight.bold,
+                            ),
+                            null,
+                            30,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ],
+                ),
               ),
-            ),
-            //the list of thank you notes
-            ListView.builder(
-              shrinkWrap: true,
-              physics: const NeverScrollableScrollPhysics(),
-              itemBuilder: (context, index) => ThankYou(
-                text: thankYous[index],
-                number: (index + 1),
-                edit: (String text, int index) {
-                  editThanks(appLocale.thanks, text, index);
+              //the list of thank you notes
+              ListView.builder(
+                shrinkWrap: true,
+                physics: const NeverScrollableScrollPhysics(),
+                itemBuilder: (context, index) => ThankYou(
+                  text: thankYous[index],
+                  number: (index + 1),
+                  edit: (String text, int index) {
+                    editThanks(appLocale.thanks, text, index);
+                  },
+                  remove: (int index) =>
+                      removeThankYou(index, userInfoProvider),
+                  myFocusNode: focusNodes[index],
+                  date: dates[index],
+                  color: colorScheme.onSurface,
+                ),
+                itemCount: thankYous.length,
+              ),
+              thankYous.isEmpty
+                  ? Padding(
+                      padding: const EdgeInsets.fromLTRB(24, 8, 24, 16),
+                      child: myAutoSizedText(
+                        appLocale.journalEmptyGuidance,
+                        TextStyle(
+                          color: colorScheme.outline,
+                          fontSize: 16.sp,
+                          fontWeight: FontWeight.normal,
+                        ),
+                        TextAlign.center,
+                        40,
+                      ),
+                    )
+                  : Divider(
+                      color: colorScheme.outline,
+                      indent: 30,
+                      endIndent: 30,
+                    ),
+              //the suggested thank you notes
+              if (sug1.isNotEmpty)
+                ThanksItemSuggested(
+                  stopShowing: 3,
+                  add: addThankYou,
+                  inputText: sug1,
+                  fullSuggestionList: retrieveThanksList(
+                    appLocale,
+                    gender == "" ? "other" : gender,
+                  ),
+                ),
+              if (sug2.isNotEmpty)
+                ThanksItemSuggested(
+                  stopShowing: 2,
+                  add: addThankYou,
+                  inputText: sug2,
+                  fullSuggestionList: retrieveThanksList(
+                    appLocale,
+                    gender == "" ? "other" : gender,
+                  ),
+                ),
+              if (sug3.isNotEmpty)
+                ThanksItemSuggested(
+                  stopShowing: 1,
+                  add: addThankYou,
+                  inputText: sug3,
+                  fullSuggestionList: retrieveThanksList(
+                    appLocale,
+                    gender == "" ? "other" : gender,
+                  ),
+                ),
+              //the button to refresh the suggested thank you notes and get 3 new suggestions
+              TextButton(
+                onPressed: () async {
+                  setState(() {
+                    _refreshSuggestions();
+                  });
                 },
-                remove: (int index) => removeThankYou(index, userInfoProvider),
-                myFocusNode: focusNodes[index],
-                date: dates[index],
-                color: colorScheme.onSurface,
-              ),
-              itemCount: thankYous.length,
-            ),
-            thankYous.isEmpty
-                ? Padding(
-                    padding: const EdgeInsets.fromLTRB(24, 8, 24, 16),
-                    child: myAutoSizedText(
-                      appLocale.journalEmptyGuidance,
-                      TextStyle(
-                        color: colorScheme.outline,
-                        fontSize: 16.sp,
-                        fontWeight: FontWeight.normal,
+                //the text of the refresh button
+                child: Row(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: <Widget>[
+                    Text(
+                      appLocale.otherSuggestions(gender),
+                      style: TextStyle(
+                        fontWeight: FontWeight.bold,
+                        color: colorScheme.tertiary,
                       ),
-                      TextAlign.center,
-                      40,
                     ),
-                  )
-                : Divider(
-                    color: colorScheme.outline,
-                    indent: 30,
-                    endIndent: 30,
-                  ),
-            //the suggested thank you notes
-            if (sug1.isNotEmpty)
-              ThanksItemSuggested(
-                stopShowing: 3,
-                add: addThankYou,
-                inputText: sug1,
-                fullSuggestionList: retrieveThanksList(
-                  appLocale,
-                  gender == "" ? "other" : gender,
+                    const SizedBox(width: 1.0),
+                    Icon(Icons.refresh, color: colorScheme.tertiary),
+                  ],
                 ),
               ),
-            if (sug2.isNotEmpty)
-              ThanksItemSuggested(
-                stopShowing: 2,
-                add: addThankYou,
-                inputText: sug2,
-                fullSuggestionList: retrieveThanksList(
-                  appLocale,
-                  gender == "" ? "other" : gender,
-                ),
-              ),
-            if (sug3.isNotEmpty)
-              ThanksItemSuggested(
-                stopShowing: 1,
-                add: addThankYou,
-                inputText: sug3,
-                fullSuggestionList: retrieveThanksList(
-                  appLocale,
-                  gender == "" ? "other" : gender,
-                ),
-              ),
-            //the button to refresh the suggested thank you notes and get 3 new suggestions
-            TextButton(
-              onPressed: () async {
-                setState(() {
-                  _refreshSuggestions();
-                });
-              },
-              //the text of the refresh button
-              child: Row(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: <Widget>[
-                  Text(
-                    appLocale.otherSuggestions(gender),
-                    style: TextStyle(
-                      fontWeight: FontWeight.bold,
-                      color: colorScheme.tertiary,
-                    ),
-                  ),
-                  const SizedBox(width: 1.0),
-                  Icon(Icons.refresh, color: colorScheme.tertiary),
-                ],
-              ),
-            ),
-            const SizedBox(height: 30),
-          ],
+              const SizedBox(height: 30),
+            ],
+          ),
         ),
       ),
     );
