@@ -86,7 +86,7 @@ class _JournalState extends LPExtendedState<Journal> {
     }
 
     final position = _journalScrollController.position;
-    if (position.pixels >= position.maxScrollExtent) {
+    if (position.pixels >= position.maxScrollExtent && !position.outOfRange) {
       return;
     }
 
@@ -95,6 +95,32 @@ class _JournalState extends LPExtendedState<Journal> {
       duration: const Duration(milliseconds: 300),
       curve: Curves.easeOut,
     );
+
+    if (!mounted || !_journalScrollController.hasClients) {
+      return;
+    }
+
+    await WidgetsBinding.instance.endOfFrame;
+
+    // The nested shrink-wrapped lazy list refines outer scroll geometry over
+    // later frames, so reconcile it with four bounded post-animation passes.
+    for (var frame = 0; frame < 4; frame++) {
+      if (!mounted || !_journalScrollController.hasClients) {
+        return;
+      }
+
+      WidgetsBinding.instance.scheduleFrame();
+      await WidgetsBinding.instance.endOfFrame;
+
+      if (!mounted || !_journalScrollController.hasClients) {
+        return;
+      }
+
+      final updatedPosition = _journalScrollController.position;
+      if (updatedPosition.extentAfter > 0 || updatedPosition.outOfRange) {
+        _journalScrollController.jumpTo(updatedPosition.maxScrollExtent);
+      }
+    }
   }
 
   List<String> todayThankYousFunc(List<String> thankYous, List<String> dates) {

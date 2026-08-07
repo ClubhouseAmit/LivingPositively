@@ -42,8 +42,9 @@ void main() {
   });
 
   group('Journal (real production widget)', () {
-    testWidgets('renders empty journal with suggestions and add icon',
-        (tester) async {
+    testWidgets('renders empty journal with suggestions and add icon', (
+      tester,
+    ) async {
       await pumpWithProviders(
         tester,
         const Journal(fullSuggestionList: _suggestions),
@@ -62,8 +63,7 @@ void main() {
       expect(find.byTooltip('Scroll to bottom'), findsOneWidget);
     });
 
-    testWidgets('quick scroll moves the journal to the bottom',
-        (tester) async {
+    testWidgets('quick scroll moves the journal to the bottom', (tester) async {
       final longThanks = List<String>.generate(
         20,
         (index) => 'Gratitude entry ${index + 1}',
@@ -98,12 +98,158 @@ void main() {
       await tester.tap(find.byKey(_scrollToBottomKey));
       await tester.pump();
       await tester.pump(const Duration(milliseconds: 350));
+      await tester.pump();
+      await tester.pump();
+      await tester.pump();
+      await tester.pump();
 
       expect(position.extentAfter, closeTo(0, 0.1));
     });
 
-    testWidgets('quick scroll is safe when the journal does not overflow',
-        (tester) async {
+    testWidgets('quick scroll catches up after journal content grows', (
+      tester,
+    ) async {
+      final initialThanks = List<String>.generate(
+        20,
+        (index) =>
+            'Gratitude entry ${index + 1}\nSecond line\nThird line\nFourth line',
+      );
+
+      await pumpWithProviders(
+        tester,
+        const Journal(fullSuggestionList: _suggestions),
+        userInformation: userInformation,
+        designSize: const Size(1024, 700),
+        surfaceSize: const Size(1024, 700),
+      );
+
+      userInformation.updateThanks({
+        'thanks': initialThanks,
+        'dates': List<String>.generate(
+          initialThanks.length,
+          (index) => '2024-01-01 – ${index.toString().padLeft(2, '0')}:00',
+        ),
+      });
+      await tester.pump();
+      await tester.pump();
+
+      final journalScrollable = find.ancestor(
+        of: find.byKey(_scrollToBottomKey),
+        matching: find.byType(Scrollable),
+      );
+      final position = tester
+          .state<ScrollableState>(journalScrollable)
+          .position;
+      final journalScrollableBox = tester.renderObject<RenderBox>(
+        journalScrollable,
+      );
+
+      await tester.tap(find.byKey(_scrollToBottomKey));
+      await tester.pump();
+      await tester.pump(const Duration(milliseconds: 100));
+      expect(position.isScrollingNotifier.value, isTrue);
+
+      final updatedThanks = [
+        ...initialThanks,
+        ...List<String>.generate(
+          20,
+          (index) =>
+              'New gratitude row ${index + 1}\nSecond line\nThird line\nFourth line',
+        ),
+      ];
+      userInformation.updateThanks({
+        'thanks': updatedThanks,
+        'dates': List<String>.generate(
+          updatedThanks.length,
+          (index) => '2024-01-01 – ${index.toString().padLeft(2, '0')}:00',
+        ),
+      });
+      await tester.pump();
+      await tester.pump(const Duration(milliseconds: 250));
+      await tester.pump();
+      await tester.pump();
+      await tester.pump();
+      await tester.pump();
+      await tester.pump();
+
+      expect(userInformation.thanks['thanks'], hasLength(40));
+      expect(
+        userInformation.thanks['thanks'],
+        contains('New gratitude row 20\nSecond line\nThird line\nFourth line'),
+      );
+
+      expect(position.pixels, closeTo(position.maxScrollExtent, 0.1));
+      expect(position.extentAfter, closeTo(0, 0.1));
+      expect(position.outOfRange, isFalse);
+      final journalViewport =
+          journalScrollableBox.localToGlobal(Offset.zero) &
+          journalScrollableBox.size;
+      final refreshIcon = find.byIcon(Icons.refresh);
+      expect(refreshIcon, findsOneWidget);
+      expect(journalViewport.contains(tester.getCenter(refreshIcon)), isTrue);
+      expect(tester.takeException(), isNull);
+    });
+
+    testWidgets('quick scroll is a no-op when already at the bottom', (
+      tester,
+    ) async {
+      final longThanks = List<String>.generate(
+        20,
+        (index) => 'Gratitude entry ${index + 1}',
+      );
+      userInformation.updateThanks({
+        'thanks': longThanks,
+        'dates': List<String>.generate(
+          longThanks.length,
+          (index) => '2024-01-01 – ${index.toString().padLeft(2, '0')}:00',
+        ),
+      });
+
+      await pumpWithProviders(
+        tester,
+        const Journal(fullSuggestionList: _suggestions),
+        userInformation: userInformation,
+        designSize: const Size(1024, 700),
+        surfaceSize: const Size(1024, 700),
+      );
+
+      final journalScrollable = find.ancestor(
+        of: find.byKey(_scrollToBottomKey),
+        matching: find.byType(Scrollable),
+      );
+      final position = tester
+          .state<ScrollableState>(journalScrollable)
+          .position;
+      final scrollButton = tester.widget<IconButton>(
+        find.byKey(_scrollToBottomKey),
+      );
+
+      await tester.tap(find.byKey(_scrollToBottomKey));
+      await tester.pump();
+      await tester.pump(const Duration(milliseconds: 350));
+      await tester.pump();
+      await tester.pump();
+      await tester.pump();
+      await tester.pump();
+      final bottomPixels = position.pixels;
+      final bottomMaxScrollExtent = position.maxScrollExtent;
+
+      // The header is evicted once the outer list reaches the bottom, so this
+      // invokes the same button callback captured before the first user tap.
+      scrollButton.onPressed!();
+      await tester.pump();
+
+      expect(position.pixels, closeTo(bottomPixels, 0.1));
+      expect(position.pixels, closeTo(bottomMaxScrollExtent, 0.1));
+      expect(position.extentAfter, closeTo(0, 0.1));
+      expect(position.isScrollingNotifier.value, isFalse);
+      expect(position.outOfRange, isFalse);
+      expect(tester.takeException(), isNull);
+    });
+
+    testWidgets('quick scroll is safe when the journal does not overflow', (
+      tester,
+    ) async {
       await pumpWithProviders(
         tester,
         const Journal(fullSuggestionList: _suggestions),
@@ -129,8 +275,9 @@ void main() {
       expect(tester.takeException(), isNull);
     });
 
-    testWidgets('quick scroll remains usable in the Hebrew journal layout',
-        (tester) async {
+    testWidgets('quick scroll remains usable in the Hebrew journal layout', (
+      tester,
+    ) async {
       userInformation.localeName = 'he';
       services.localeService.setLocale('he');
       final longThanks = List<String>.generate(
@@ -188,6 +335,10 @@ void main() {
       await tester.tap(scrollButton);
       await tester.pump();
       await tester.pump(const Duration(milliseconds: 350));
+      await tester.pump();
+      await tester.pump();
+      await tester.pump();
+      await tester.pump();
 
       expect(position.extentAfter, closeTo(0, 0.1));
       expect(tester.takeException(), isNull);
@@ -216,8 +367,7 @@ void main() {
       expect(find.byType(ThanksItemSuggested), findsNWidgets(3));
     });
 
-    testWidgets(skip: true,
-        'add button opens AddForm dialog', (tester) async {
+    testWidgets(skip: true, 'add button opens AddForm dialog', (tester) async {
       await pumpWithProviders(
         tester,
         const Journal(fullSuggestionList: _suggestions),
@@ -245,80 +395,86 @@ void main() {
     });
 
     testWidgets(
-        skip: true,
-        'typing in AddForm + Save adds an entry to the journal',
-        (tester) async {
-      await pumpWithProviders(
-        tester,
-        const Journal(fullSuggestionList: _suggestions),
-        userInformation: userInformation,
-        surfaceSize: const Size(1024, 1800),
-      );
+      skip: true,
+      'typing in AddForm + Save adds an entry to the journal',
+      (tester) async {
+        await pumpWithProviders(
+          tester,
+          const Journal(fullSuggestionList: _suggestions),
+          userInformation: userInformation,
+          surfaceSize: const Size(1024, 1800),
+        );
 
-      // Open the dialog.
-      final addIcon = find.descendant(
-        of: find.byType(Journal),
-        matching: find.byIcon(Icons.add),
-      );
-      final pageAddButton = find
-          .ancestor(of: addIcon, matching: find.byType(IconButton))
-          .first;
-      await tester.ensureVisible(pageAddButton);
-      await tester.tap(pageAddButton, warnIfMissed: false);
-      await tester.pumpAndSettle();
+        // Open the dialog.
+        final addIcon = find.descendant(
+          of: find.byType(Journal),
+          matching: find.byIcon(Icons.add),
+        );
+        final pageAddButton = find
+            .ancestor(of: addIcon, matching: find.byType(IconButton))
+            .first;
+        await tester.ensureVisible(pageAddButton);
+        await tester.tap(pageAddButton, warnIfMissed: false);
+        await tester.pumpAndSettle();
 
-      // Enter text and tap Save.
-      await tester.enterText(find.byType(TextFormField), 'Tested entry');
-      await tester.pump();
-      // The save button is rendered with localized "Save" text.
-      final saveButton = find.ancestor(
-        of: find.text('Save'),
-        matching: find.byType(TextButton),
-      );
-      expect(saveButton, findsOneWidget);
-      await tester.tap(saveButton, warnIfMissed: false);
-      await tester.pumpAndSettle();
+        // Enter text and tap Save.
+        await tester.enterText(find.byType(TextFormField), 'Tested entry');
+        await tester.pump();
+        // The save button is rendered with localized "Save" text.
+        final saveButton = find.ancestor(
+          of: find.text('Save'),
+          matching: find.byType(TextButton),
+        );
+        expect(saveButton, findsOneWidget);
+        await tester.tap(saveButton, warnIfMissed: false);
+        await tester.pumpAndSettle();
 
-      // The dialog should have been dismissed and the new entry appended.
-      expect(find.byType(AddForm), findsNothing);
-      expect(userInformation.thanks['thanks'], contains('Tested entry'));
-      // The popup AlertDialog is shown for the first entry of the day.
-      expect(find.byType(AlertDialog), findsOneWidget);
-    });
+        // The dialog should have been dismissed and the new entry appended.
+        expect(find.byType(AddForm), findsNothing);
+        expect(userInformation.thanks['thanks'], contains('Tested entry'));
+        // The popup AlertDialog is shown for the first entry of the day.
+        expect(find.byType(AlertDialog), findsOneWidget);
+      },
+    );
 
-    testWidgets(skip: true,
-        'AddForm Cancel closes the dialog without persisting',
-        (tester) async {
-      await pumpWithProviders(
-        tester,
-        const Journal(fullSuggestionList: _suggestions),
-        userInformation: userInformation,
-        surfaceSize: const Size(1024, 1800),
-      );
+    testWidgets(
+      skip: true,
+      'AddForm Cancel closes the dialog without persisting',
+      (tester) async {
+        await pumpWithProviders(
+          tester,
+          const Journal(fullSuggestionList: _suggestions),
+          userInformation: userInformation,
+          surfaceSize: const Size(1024, 1800),
+        );
 
-      final addIcon = find.descendant(
-        of: find.byType(Journal),
-        matching: find.byIcon(Icons.add),
-      );
-      final pageAddButton = find
-          .ancestor(of: addIcon, matching: find.byType(IconButton))
-          .first;
-      await tester.tap(pageAddButton, warnIfMissed: false);
-      await tester.pumpAndSettle();
+        final addIcon = find.descendant(
+          of: find.byType(Journal),
+          matching: find.byIcon(Icons.add),
+        );
+        final pageAddButton = find
+            .ancestor(of: addIcon, matching: find.byType(IconButton))
+            .first;
+        await tester.tap(pageAddButton, warnIfMissed: false);
+        await tester.pumpAndSettle();
 
-      await tester.enterText(find.byType(TextFormField), 'Should not save');
-      // Tap the Close button (localized "Close").
-      final closeButton = find.ancestor(
-        of: find.text('Close'),
-        matching: find.byType(TextButton),
-      );
-      expect(closeButton, findsOneWidget);
-      await tester.tap(closeButton, warnIfMissed: false);
-      await tester.pumpAndSettle();
+        await tester.enterText(find.byType(TextFormField), 'Should not save');
+        // Tap the Close button (localized "Close").
+        final closeButton = find.ancestor(
+          of: find.text('Close'),
+          matching: find.byType(TextButton),
+        );
+        expect(closeButton, findsOneWidget);
+        await tester.tap(closeButton, warnIfMissed: false);
+        await tester.pumpAndSettle();
 
-      expect(find.byType(AddForm), findsNothing);
-      expect(userInformation.thanks['thanks'], isNot(contains('Should not save')));
-    });
+        expect(find.byType(AddForm), findsNothing);
+        expect(
+          userInformation.thanks['thanks'],
+          isNot(contains('Should not save')),
+        );
+      },
+    );
 
     testWidgets('existing thanks render as ThankYou rows', (tester) async {
       userInformation.updateThanks({
@@ -338,8 +494,9 @@ void main() {
       expect(find.text('Thank B'), findsOneWidget);
     });
 
-    testWidgets(skip: true,
-        'AddForm validator blocks empty text', (tester) async {
+    testWidgets(skip: true, 'AddForm validator blocks empty text', (
+      tester,
+    ) async {
       await pumpWithProviders(
         tester,
         const Journal(fullSuggestionList: _suggestions),
@@ -369,8 +526,9 @@ void main() {
       expect(find.byType(AddForm), findsOneWidget);
     });
 
-    testWidgets(skip: true,
-        'analytics event fires when entry added', (tester) async {
+    testWidgets(skip: true, 'analytics event fires when entry added', (
+      tester,
+    ) async {
       await pumpWithProviders(
         tester,
         const Journal(fullSuggestionList: _suggestions),
@@ -390,10 +548,7 @@ void main() {
       await tester.pumpAndSettle();
       await tester.enterText(find.byType(TextFormField), 'analytics test');
       await tester.tap(
-        find.ancestor(
-          of: find.text('Save'),
-          matching: find.byType(TextButton),
-        ),
+        find.ancestor(of: find.text('Save'), matching: find.byType(TextButton)),
         warnIfMissed: false,
       );
       await tester.pumpAndSettle();
