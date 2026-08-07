@@ -3096,6 +3096,9 @@ class AppLocalizationsAr extends AppLocalizations {
   String get addItemTooltip => 'إضافة';
 
   @override
+  String get scrollToBottomTooltip => 'الانتقال إلى أسفل القائمة';
+
+  @override
   String get downloadPlanTooltip => 'تنزيل الخطة';
 
   @override

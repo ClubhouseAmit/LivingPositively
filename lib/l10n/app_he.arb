@@ -430,6 +430,7 @@
   "emergencyCountryFallback": "מוצגים מספרי חירום ברירת מחדל ({country}). ייתכן שלא יפעלו ממיקומך.",
   "menuTooltip": "תפריט",
   "addItemTooltip": "הוספה",
+  "scrollToBottomTooltip": "גלילה לסוף הרשימה",
   "downloadPlanTooltip": "הורדת התוכנית",
   "sharePlanTooltip": "שיתוף התוכנית",
   "refreshPersonalPlanTooltip": "רענון התוכנית האישית",

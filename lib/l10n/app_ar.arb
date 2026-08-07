@@ -392,6 +392,7 @@
   "sosShareLocationShareFailed": "تعذّر مشاركة رسالة طلب المساعدة الخاصة بك. يُرجى المحاولة مرة أخرى.",
   "menuTooltip": "القائمة",
   "addItemTooltip": "إضافة",
+  "scrollToBottomTooltip": "الانتقال إلى أسفل القائمة",
   "downloadPlanTooltip": "تنزيل الخطة",
   "sharePlanTooltip": "مشاركة الخطة",
   "refreshPersonalPlanTooltip": "تحديث الخطة الشخصية",

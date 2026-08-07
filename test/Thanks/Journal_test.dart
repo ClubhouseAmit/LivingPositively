@@ -22,6 +22,8 @@ const _suggestions = [
   'Be grateful for family',
 ];
 
+const _scrollToBottomKey = Key('journal-scroll-to-bottom');
+
 void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
 
@@ -55,6 +57,140 @@ void main() {
       expect(find.byType(ThanksItemSuggested), findsNWidgets(3));
       // The add icon (IconButton with Icons.add) should be visible.
       expect(find.byIcon(Icons.add), findsWidgets);
+      expect(find.byKey(_scrollToBottomKey), findsOneWidget);
+      expect(find.byIcon(Icons.keyboard_double_arrow_down), findsOneWidget);
+      expect(find.byTooltip('Scroll to bottom'), findsOneWidget);
+    });
+
+    testWidgets('quick scroll moves the journal to the bottom',
+        (tester) async {
+      final longThanks = List<String>.generate(
+        20,
+        (index) => 'Gratitude entry ${index + 1}',
+      );
+      userInformation.updateThanks({
+        'thanks': longThanks,
+        'dates': List<String>.generate(
+          longThanks.length,
+          (index) => '2024-01-01 – ${index.toString().padLeft(2, '0')}:00',
+        ),
+      });
+
+      await pumpWithProviders(
+        tester,
+        const Journal(fullSuggestionList: _suggestions),
+        userInformation: userInformation,
+        designSize: const Size(1024, 700),
+        surfaceSize: const Size(1024, 700),
+      );
+
+      final journalScrollable = find.ancestor(
+        of: find.byKey(_scrollToBottomKey),
+        matching: find.byType(Scrollable),
+      );
+      expect(journalScrollable, findsOneWidget);
+      final position = tester
+          .state<ScrollableState>(journalScrollable)
+          .position;
+      expect(position.pixels, 0);
+      expect(position.maxScrollExtent, greaterThan(0));
+
+      await tester.tap(find.byKey(_scrollToBottomKey));
+      await tester.pump();
+      await tester.pump(const Duration(milliseconds: 350));
+
+      expect(position.extentAfter, closeTo(0, 0.1));
+    });
+
+    testWidgets('quick scroll is safe when the journal does not overflow',
+        (tester) async {
+      await pumpWithProviders(
+        tester,
+        const Journal(fullSuggestionList: _suggestions),
+        userInformation: userInformation,
+        designSize: const Size(1024, 1800),
+        surfaceSize: const Size(1024, 1800),
+      );
+
+      final journalScrollable = find.ancestor(
+        of: find.byKey(_scrollToBottomKey),
+        matching: find.byType(Scrollable),
+      );
+      expect(journalScrollable, findsOneWidget);
+      final position = tester
+          .state<ScrollableState>(journalScrollable)
+          .position;
+      expect(position.maxScrollExtent, 0);
+
+      await tester.tap(find.byKey(_scrollToBottomKey));
+      await tester.pump();
+
+      expect(position.pixels, 0);
+      expect(tester.takeException(), isNull);
+    });
+
+    testWidgets('quick scroll remains usable in the Hebrew journal layout',
+        (tester) async {
+      userInformation.localeName = 'he';
+      services.localeService.setLocale('he');
+      final longThanks = List<String>.generate(
+        20,
+        (index) => 'רשומת תודה ${index + 1}',
+      );
+      userInformation.updateThanks({
+        'thanks': longThanks,
+        'dates': List<String>.generate(
+          longThanks.length,
+          (index) => '2024-01-01 – ${index.toString().padLeft(2, '0')}:00',
+        ),
+      });
+
+      await pumpWithProviders(
+        tester,
+        const Journal(fullSuggestionList: _suggestions),
+        userInformation: userInformation,
+        locale: const Locale('he'),
+        designSize: const Size(1024, 700),
+        surfaceSize: const Size(1024, 700),
+      );
+
+      final scrollButton = find.byKey(_scrollToBottomKey);
+      final addButton = find
+          .ancestor(
+            of: find.byIcon(Icons.add),
+            matching: find.byType(IconButton),
+          )
+          .first;
+
+      expect(find.byTooltip('גלילה לסוף הרשימה'), findsOneWidget);
+      expect(
+        Directionality.of(tester.element(scrollButton)),
+        TextDirection.rtl,
+      );
+      expect(
+        tester.getCenter(scrollButton).dx,
+        closeTo(tester.getCenter(addButton).dx, 0.1),
+      );
+      expect(
+        tester.getCenter(scrollButton).dy,
+        greaterThan(tester.getCenter(addButton).dy),
+      );
+
+      final journalScrollable = find.ancestor(
+        of: scrollButton,
+        matching: find.byType(Scrollable),
+      );
+      final position = tester
+          .state<ScrollableState>(journalScrollable)
+          .position;
+      expect(position.maxScrollExtent, greaterThan(0));
+
+      await tester.tap(scrollButton);
+      await tester.pump();
+      await tester.pump(const Duration(milliseconds: 350));
+
+      expect(position.extentAfter, closeTo(0, 0.1));
+      expect(tester.takeException(), isNull);
     });
 
     testWidgets('refresh button rebuilds suggestion text', (tester) async {

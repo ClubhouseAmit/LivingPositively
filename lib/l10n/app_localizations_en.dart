@@ -3124,6 +3124,9 @@ class AppLocalizationsEn extends AppLocalizations {
   String get addItemTooltip => 'Add';
 
   @override
+  String get scrollToBottomTooltip => 'Scroll to bottom';
+
+  @override
   String get downloadPlanTooltip => 'Download plan';
 
   @override

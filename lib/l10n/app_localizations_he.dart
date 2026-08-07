@@ -3087,6 +3087,9 @@ class AppLocalizationsHe extends AppLocalizations {
   String get addItemTooltip => 'הוספה';
 
   @override
+  String get scrollToBottomTooltip => 'גלילה לסוף הרשימה';
+
+  @override
   String get downloadPlanTooltip => 'הורדת התוכנית';
 
   @override

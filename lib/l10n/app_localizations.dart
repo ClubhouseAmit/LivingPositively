@@ -2176,6 +2176,12 @@ abstract class AppLocalizations {
   /// **'Add'**
   String get addItemTooltip;
 
+  /// Tooltip / TalkBack label for the icon-only Gratitude Journal scroll-to-bottom button
+  ///
+  /// In en, this message translates to:
+  /// **'Scroll to bottom'**
+  String get scrollToBottomTooltip;
+
   /// Tooltip / TalkBack label for the icon-only download button on the personal plan widget
   ///
   /// In en, this message translates to:
