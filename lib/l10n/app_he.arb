@@ -140,7 +140,7 @@
      "dialButton": "{gender,select,male{חיוג} female{חיוג} other{חיוג}}",
      "yourContacts": "{gender,select,male{אנשי הקשר שלך} female{אנשי הקשר שלך} other{אנשי הקשר שלך}}",
      "emergencyNumbers": "{gender,select,male{מספרי חירום} female{מספרי חירום} other{מספרי חירום}}",
-     "sosShareLocation": "שיתוף במיקום",
+     "sosShareLocation": "שיתוף מיקום",
      "@sosShareLocation": {
        "description": "הפעולה לשיתוף המיקום הנוכחי בדף החירום."
      },
@@ -152,13 +152,74 @@
      "@sosShareLocationMessage": {
        "description": "הודעת העזרה שנשלחת יחד עם קישור למיקום הנוכחי כשזמין."
      },
-     "sosShareLocationUnavailable": "לא ניתן לשתף את מיקומך. הודעת העזרה תישלח ללא המיקום.",
+     "sosShareLocationUnavailable": "לא ניתן לקבל את מיקומך הנוכחי.",
      "@sosShareLocationUnavailable": {
-       "description": "הודעה המוצגת כששיתוף המיקום עובר להודעת עזרה ללא מיקום."
+       "description": "הודעה המוצגת כאשר לא ניתן לקבל מיקום חד-פעמי עבור פעולת SOS."
      },
      "sosShareLocationShareFailed": "לא ניתן היה לשתף את הודעת העזרה שלך. נסו שוב.",
      "@sosShareLocationShareFailed": {
        "description": "הודעה המוצגת כשלא ניתן לשתף את הודעת העזרה דרך גיליון השיתוף של המכשיר."
+     },
+     "sosShareMessage": "שיתוף הודעת SOS",
+     "@sosShareMessage": {
+       "description": "פעולת SOS שמשתפת רק את הודעת העזרה."
+     },
+     "sosShareMessageTooltip": "שיתוף הודעת העזרה שלך",
+     "@sosShareMessageTooltip": {
+       "description": "תווית נגישות לפעולת שיתוף הודעת העזרה של SOS."
+     },
+     "sosDeliveryOptionsTitle": "בחירת אפשרות שליחה",
+     "@sosDeliveryOptionsTitle": {
+       "description": "כותרת לבחירת שיטת מסירה עבור SOS."
+     },
+     "sosDeliveryChooseApp": "בחירת אפליקציה",
+     "@sosDeliveryChooseApp": {
+       "description": "אפשרות לפתוח את בורר האפליקציות של המכשיר עבור תוכן SOS."
+     },
+     "sosDeliverySendToContact": "שליחה לאיש קשר אישי",
+     "@sosDeliverySendToContact": {
+       "description": "אפשרות לשלוח תוכן SOS לאיש קשר אישי שמור."
+     },
+     "sosDeliveryOpenMapApp": "פתיחה באפליקציית מפות",
+     "@sosDeliveryOpenMapApp": {
+       "description": "אפשרות לפתוח את המיקום הנוכחי באפליקציית מפות תואמת."
+     },
+     "sosDeliveryContactPickerTitle": "בחירת איש קשר אישי",
+     "@sosDeliveryContactPickerTitle": {
+       "description": "כותרת לבחירת איש קשר אישי שמור."
+     },
+  "sosDeliveryNoContactsMessage": "אין אנשי קשר אישיים. הוסיפו איש קשר כדי לשלוח אליו הודעת SOS ישירות.",
+  "@sosDeliveryNoContactsMessage": {
+    "description": "הודעה המוצגת כשאין אנשי קשר אישיים שמורים לשליחת SOS."
+  },
+  "sosDeliveryContactsNeedAttention": "יש לעדכן את אנשי הקשר השמורים לפני שניתן להשתמש בהם לשליחת SOS.",
+  "@sosDeliveryContactsNeedAttention": {
+    "description": "הודעה המוצגת כשאנשי קשר שמורים אינם מתאימים לשליחת SOS ישירה."
+  },
+  "sosDeliveryMethodTitle": "בחרו כיצד לשלוח אל {contact}",
+     "@sosDeliveryMethodTitle": {
+       "description": "כותרת לבחירה בין SMS ל-WhatsApp עבור איש קשר שמור.",
+       "placeholders": {
+         "contact": {
+           "type": "String"
+         }
+       }
+     },
+     "sosDeliverySms": "הודעת טקסט (SMS)",
+     "@sosDeliverySms": {
+       "description": "אפשרות לפתוח את יוצר הודעות ה-SMS עבור תוכן SOS."
+     },
+     "sosDeliveryWhatsAppInternationalNumber": "כדי לשלוח ב-WhatsApp, בחרו קידומת מדינה והזינו את מספר הטלפון המלא.",
+     "@sosDeliveryWhatsAppInternationalNumber": {
+       "description": "הנחיה המוצגת כאשר לא ניתן להשתמש באיש קשר שמור עם WhatsApp."
+     },
+     "contactPhoneCountryCodeHint": "בחרו קידומת מדינה; היא תישמר עם מספר הטלפון המקומי.",
+     "@contactPhoneCountryCodeHint": {
+       "description": "הנחיה המסבירה את סדר הזנת קידומת המדינה ומספר הטלפון המקומי."
+     },
+     "sosDeliveryEditContacts": "עריכת אנשי קשר",
+     "@sosDeliveryEditContacts": {
+       "description": "פעולה שפותחת את עורך אנשי הקשר האישיים מתוך הודעת מסירה של SOS."
      },
      "whatsApp": "ווצאפ",
       "link": "קישור לאתר",

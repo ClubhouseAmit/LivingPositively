@@ -6,11 +6,13 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:fluttericon/font_awesome5_icons.dart';
 import 'package:get_it/get_it.dart';
 import 'package:mazilon/AnalyticsService.dart';
 import 'package:mazilon/MainPageHelpers/MainPageList/mainpage_list_widget.dart';
 import 'package:mazilon/global_enums.dart';
 import 'package:mazilon/l10n/app_localizations.dart';
+import 'package:mazilon/util/HomePage/sectionBarHome.dart';
 import 'package:mazilon/util/Thanks/AddForm.dart';
 import 'package:mazilon/util/logger_service.dart';
 import 'package:mazilon/util/persistent_memory_service.dart';
@@ -50,6 +52,7 @@ class _FakePersistentMemoryService implements PersistentMemoryService {
 Widget _hostListWidget({
   required UserInformation userInfo,
   required PagesCode pageCode,
+  Locale locale = const Locale('en'),
   void Function(BuildContext, PagesCode)? onTabTapped,
 }) {
   return MultiProvider(
@@ -57,7 +60,7 @@ Widget _hostListWidget({
     child: MaterialApp(
       supportedLocales: AppLocalizations.supportedLocales,
       localizationsDelegates: AppLocalizations.localizationsDelegates,
-      locale: const Locale('en'),
+      locale: locale,
       home: ScreenUtilInit(
         designSize: const Size(360, 690),
         builder: (context, _) => Scaffold(
@@ -114,6 +117,44 @@ void main() {
     await tester.pumpAndSettle();
 
     expect(captured, PagesCode.QualitiesList);
+  });
+
+  testWidgets('Todo header matches the personal-plan title-to-icon margin', (
+    tester,
+  ) async {
+    final user = UserInformation(
+      service: _FakePersistentMemoryService(),
+      gender: 'female',
+      thanks: const <String, List<String>>{},
+    );
+
+    await tester.binding.setSurfaceSize(const Size(800, 2000));
+    await tester.pumpWidget(
+      _hostListWidget(
+        userInfo: user,
+        pageCode: PagesCode.GratitudeJournal,
+        locale: const Locale('he'),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    final header = find.byType(SectionBarHome);
+    final title = find.descendant(
+      of: header,
+      matching: find.byType(TextButton),
+    );
+    final icon = find.descendant(
+      of: header,
+      matching: find.byIcon(FontAwesome5.praying_hands),
+    );
+
+    expect(Directionality.of(tester.element(header)), TextDirection.rtl);
+    expect(title, findsOneWidget);
+    expect(icon, findsOneWidget);
+    expect(
+      tester.getRect(title).left - tester.getRect(icon).right,
+      closeTo(5, 0.5),
+    );
   });
 
   testWidgets('add-button on QualitiesList opens the AddForm dialog', (

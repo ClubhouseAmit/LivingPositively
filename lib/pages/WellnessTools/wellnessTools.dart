@@ -34,7 +34,7 @@ class _WellnessToolsState extends LPExtendedState<WellnessTools> {
 
   String? _youtubeId(String videoId) {
     final trimmed = videoId.trim();
-    final fromUrl = YoutubePlayer.convertUrlToId(trimmed);
+    final fromUrl = YoutubePlayerController.convertUrlToId(trimmed);
     if (fromUrl != null && fromUrl.isNotEmpty) {
       return fromUrl;
     }

@@ -1,5 +1,7 @@
+import 'package:country_code_picker/country_code_picker.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
+import 'package:mazilon/EmergencyNumbers.dart';
 import 'package:mazilon/util/Form/formPagePhoneModel.dart';
 import 'package:mazilon/util/LP_extended_state.dart';
 import 'package:mazilon/util/Phone/phoneTextAndIcon.dart';
@@ -20,14 +22,20 @@ class _PhonePageListState extends LPExtendedState<PhonePageList> {
   final GlobalKey<FormState> _draftFormKey = GlobalKey<FormState>();
   final List<TextEditingController> nameControllers = [];
   final List<TextEditingController> numberControllers = [];
+  final Map<int, String> _countryCodesByEntry = {};
   TextEditingController? _draftNameController;
   TextEditingController? _draftNumberController;
+  String? _draftCountryCode;
 
   @override
   void initState() {
     super.initState();
     final phonePageData = Provider.of<PhonePageData>(context, listen: false);
-    _syncControllers(phonePageData);
+    final userInformation = Provider.of<UserInformation>(
+      context,
+      listen: false,
+    );
+    _syncControllers(phonePageData, _profileCountryCode(userInformation));
   }
 
   @override
@@ -50,27 +58,136 @@ class _PhonePageListState extends LPExtendedState<PhonePageList> {
         : phonePageData.savedPhoneNumbers.length;
   }
 
-  void _syncControllers(PhonePageData phonePageData) {
-    final count = _contactCount(phonePageData);
+  int _entryCount(PhonePageData phonePageData) {
+    final contactCount = _contactCount(phonePageData);
+    return phonePageData.savedPhoneNames.length ==
+            phonePageData.savedPhoneNumbers.length
+        ? contactCount
+        : contactCount + 1;
+  }
+
+  String _nameAt(PhonePageData phonePageData, int index) {
+    return index < phonePageData.savedPhoneNames.length
+        ? phonePageData.savedPhoneNames[index]
+        : '';
+  }
+
+  String _numberAt(PhonePageData phonePageData, int index) {
+    return index < phonePageData.savedPhoneNumbers.length
+        ? phonePageData.savedPhoneNumbers[index]
+        : '';
+  }
+
+  String _profileCountryCode(UserInformation userInformation) {
+    final profileCountryCode = userInformation.location.trim().toUpperCase();
+    if (countryPickerCodes.contains(profileCountryCode)) {
+      return profileCountryCode;
+    }
+    return defaultPickerCountry.countryCodes.first;
+  }
+
+  String? _dialCodeFor(String countryCode) {
+    return CountryCode.tryFromCountryCode(countryCode)?.dialCode;
+  }
+
+  String _countryCodeForStoredNumber(
+    String number,
+    String fallbackCountryCode,
+  ) {
+    final normalized = PhonePageData.normalizeDialablePhoneNumber(number);
+    if (normalized == null || !normalized.startsWith('+')) {
+      return fallbackCountryCode;
+    }
+
+    final matchingCodes =
+        countryPickerCodes.where((countryCode) {
+          final dialCode = _dialCodeFor(countryCode);
+          return dialCode != null && normalized.startsWith(dialCode);
+        }).toList()..sort(
+          (left, right) => (_dialCodeFor(right)?.length ?? 0).compareTo(
+            _dialCodeFor(left)?.length ?? 0,
+          ),
+        );
+    return matchingCodes.isEmpty ? fallbackCountryCode : matchingCodes.first;
+  }
+
+  String _numberForEditing(String number, String countryCode) {
+    final normalized = PhonePageData.normalizeDialablePhoneNumber(number);
+    final dialCode = _dialCodeFor(countryCode);
+    if (normalized != null &&
+        normalized.startsWith('+') &&
+        dialCode != null &&
+        normalized.startsWith(dialCode)) {
+      return normalized.substring(dialCode.length);
+    }
+    return number;
+  }
+
+  String? _canonicalPhoneNumber(String value, String countryCode) {
+    final normalized = PhonePageData.normalizeDialablePhoneNumber(value);
+    if (normalized == null) {
+      return null;
+    }
+
+    if (normalized.startsWith('+')) {
+      return RegExp(r'^\+[1-9]\d{1,14}$').hasMatch(normalized)
+          ? normalized
+          : null;
+    }
+
+    final dialCode = _dialCodeFor(countryCode);
+    if (dialCode == null) {
+      return null;
+    }
+    final nationalNumber = normalized.startsWith('0')
+        ? normalized.substring(1)
+        : normalized;
+    final canonicalNumber = '$dialCode$nationalNumber';
+    return RegExp(r'^\+[1-9]\d{1,14}$').hasMatch(canonicalNumber)
+        ? canonicalNumber
+        : null;
+  }
+
+  void _syncControllers(
+    PhonePageData phonePageData,
+    String fallbackCountryCode,
+  ) {
+    final count = _entryCount(phonePageData);
+    final contactCount = _contactCount(phonePageData);
     while (nameControllers.length < count) {
       final index = nameControllers.length;
+      final countryCode = _countryCodeForStoredNumber(
+        _numberAt(phonePageData, index),
+        fallbackCountryCode,
+      );
+      _countryCodesByEntry[index] = countryCode;
       nameControllers.add(
-        TextEditingController(text: phonePageData.savedPhoneNames[index]),
+        TextEditingController(text: _nameAt(phonePageData, index)),
       );
       numberControllers.add(
-        TextEditingController(text: phonePageData.savedPhoneNumbers[index]),
+        TextEditingController(
+          text: _numberForEditing(_numberAt(phonePageData, index), countryCode),
+        ),
       );
     }
     for (var index = 0; index < count; index++) {
-      if (index == editingIndex) {
+      if (index == editingIndex || index >= contactCount) {
         continue;
       }
-      if (nameControllers[index].text != phonePageData.savedPhoneNames[index]) {
-        nameControllers[index].text = phonePageData.savedPhoneNames[index];
+      final countryCode = _countryCodeForStoredNumber(
+        _numberAt(phonePageData, index),
+        fallbackCountryCode,
+      );
+      _countryCodesByEntry[index] = countryCode;
+      if (nameControllers[index].text != _nameAt(phonePageData, index)) {
+        nameControllers[index].text = _nameAt(phonePageData, index);
       }
-      if (numberControllers[index].text !=
-          phonePageData.savedPhoneNumbers[index]) {
-        numberControllers[index].text = phonePageData.savedPhoneNumbers[index];
+      final editableNumber = _numberForEditing(
+        _numberAt(phonePageData, index),
+        countryCode,
+      );
+      if (numberControllers[index].text != editableNumber) {
+        numberControllers[index].text = editableNumber;
       }
     }
     while (nameControllers.length > count) {
@@ -78,6 +195,7 @@ class _PhonePageListState extends LPExtendedState<PhonePageList> {
       numberControllers.removeLast().dispose();
     }
     _formKeys.removeWhere((index, _) => index >= count);
+    _countryCodesByEntry.removeWhere((index, _) => index >= count);
     if (editingIndex >= count) {
       editingIndex = -1;
     }
@@ -90,19 +208,18 @@ class _PhonePageListState extends LPExtendedState<PhonePageList> {
     return null;
   }
 
-  String? _validateNumber(String? value) {
+  String? _validateNumber(String? value, String countryCode) {
     final trimmed = (value ?? '').trim();
     if (trimmed.isEmpty) {
       return appLocale.contactPhoneRequiredError;
     }
-    final normalized = trimmed.replaceAll(RegExp(r'[\s().-]'), '');
-    if (!RegExp(r'^\+?\d{2,}$').hasMatch(normalized)) {
+    if (_canonicalPhoneNumber(trimmed, countryCode) == null) {
       return appLocale.contactPhoneInvalidError;
     }
     return null;
   }
 
-  void _startDraft() {
+  void _startDraft(String countryCode) {
     if (_draftNameController != null || _draftNumberController != null) {
       return;
     }
@@ -110,6 +227,7 @@ class _PhonePageListState extends LPExtendedState<PhonePageList> {
       editingIndex = -1;
       _draftNameController = TextEditingController();
       _draftNumberController = TextEditingController();
+      _draftCountryCode = countryCode;
     });
   }
 
@@ -119,14 +237,27 @@ class _PhonePageListState extends LPExtendedState<PhonePageList> {
       _draftNumberController?.dispose();
       _draftNameController = null;
       _draftNumberController = null;
+      _draftCountryCode = null;
     });
   }
 
-  void _cancelExistingEdit(PhonePageData phonePageData, int index) {
+  void _cancelExistingEdit(
+    PhonePageData phonePageData,
+    int index,
+    String fallbackCountryCode,
+  ) {
     setState(() {
-      if (index < _contactCount(phonePageData)) {
-        nameControllers[index].text = phonePageData.savedPhoneNames[index];
-        numberControllers[index].text = phonePageData.savedPhoneNumbers[index];
+      if (index < _entryCount(phonePageData)) {
+        final countryCode = _countryCodeForStoredNumber(
+          _numberAt(phonePageData, index),
+          fallbackCountryCode,
+        );
+        _countryCodesByEntry[index] = countryCode;
+        nameControllers[index].text = _nameAt(phonePageData, index);
+        numberControllers[index].text = _numberForEditing(
+          _numberAt(phonePageData, index),
+          countryCode,
+        );
       }
       editingIndex = -1;
     });
@@ -136,21 +267,33 @@ class _PhonePageListState extends LPExtendedState<PhonePageList> {
     if (!_draftFormKey.currentState!.validate()) {
       return;
     }
-    phonePageData.addItem(
-      _draftNameController!.text,
+    final canonicalNumber = _canonicalPhoneNumber(
       _draftNumberController!.text,
+      _draftCountryCode ?? defaultPickerCountry.countryCodes.first,
     );
-    _cancelDraft();
+    if (canonicalNumber == null) {
+      return;
+    }
+    if (phonePageData.addItem(_draftNameController!.text, canonicalNumber)) {
+      _cancelDraft();
+    }
   }
 
   void _saveExisting(PhonePageData phonePageData, int index) {
     if (!_formKeys[index]!.currentState!.validate()) {
       return;
     }
+    final canonicalNumber = _canonicalPhoneNumber(
+      numberControllers[index].text,
+      _countryCodesByEntry[index] ?? defaultPickerCountry.countryCodes.first,
+    );
+    if (canonicalNumber == null) {
+      return;
+    }
     phonePageData.replaceItem(
       index,
       nameControllers[index].text,
-      numberControllers[index].text,
+      canonicalNumber,
     );
     setState(() {
       editingIndex = -1;
@@ -253,9 +396,12 @@ class _PhonePageListState extends LPExtendedState<PhonePageList> {
     required GlobalKey<FormState> formKey,
     required TextEditingController nameController,
     required TextEditingController numberController,
+    required String countryCode,
+    required String countryPickerKey,
     required String gender,
     required VoidCallback onSave,
     required VoidCallback onCancel,
+    required ValueChanged<String> onCountryChanged,
     VoidCallback? onDelete,
   }) {
     return Padding(
@@ -264,32 +410,91 @@ class _PhonePageListState extends LPExtendedState<PhonePageList> {
         key: formKey,
         child: Column(
           children: [
-            Row(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Expanded(
-                  child: TextFormField(
-                    controller: nameController,
-                    decoration: InputDecoration(
-                      border: const OutlineInputBorder(),
-                      labelText: appLocale.phonesPageName(gender),
-                    ),
-                    validator: _validateName,
+            LayoutBuilder(
+              builder: (context, constraints) {
+                final nameField = TextFormField(
+                  controller: nameController,
+                  decoration: InputDecoration(
+                    border: const OutlineInputBorder(),
+                    labelText: appLocale.phonesPageName(gender),
                   ),
-                ),
-                const SizedBox(width: 8),
-                Expanded(
+                  validator: _validateName,
+                );
+                final numberField = Directionality(
+                  textDirection: TextDirection.ltr,
                   child: TextFormField(
                     controller: numberController,
                     keyboardType: TextInputType.phone,
+                    textDirection: TextDirection.ltr,
+                    textAlign: TextAlign.left,
                     decoration: InputDecoration(
                       border: const OutlineInputBorder(),
                       labelText: appLocale.phonesPagePhone(gender),
                     ),
-                    validator: _validateNumber,
+                    validator: (value) => _validateNumber(value, countryCode),
                   ),
-                ),
-              ],
+                );
+                final phoneField = Row(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Semantics(
+                      label: appLocale.contactPhoneCountryCodeHint,
+                      child: SizedBox(
+                        width: 112,
+                        child: CountryCodePicker(
+                          key: ValueKey(countryPickerKey),
+                          initialSelection: countryCode,
+                          countryFilter: countryPickerCodes,
+                          showFlag: false,
+                          showDropDownButton: true,
+                          padding: EdgeInsets.zero,
+                          onChanged: (selectedCountry) {
+                            final selectedCode = selectedCountry.code;
+                            if (selectedCode != null) {
+                              onCountryChanged(selectedCode);
+                            }
+                          },
+                        ),
+                      ),
+                    ),
+                    const SizedBox(width: 8),
+                    Expanded(child: numberField),
+                  ],
+                );
+                final helper = Padding(
+                  padding: const EdgeInsetsDirectional.only(top: 4),
+                  child: Text(
+                    appLocale.contactPhoneCountryCodeHint,
+                    textAlign: TextAlign.start,
+                    style: Theme.of(context).textTheme.bodySmall,
+                  ),
+                );
+                if (constraints.maxWidth < 520) {
+                  return Column(
+                    crossAxisAlignment: CrossAxisAlignment.stretch,
+                    children: [
+                      nameField,
+                      const SizedBox(height: 8),
+                      phoneField,
+                      helper,
+                    ],
+                  );
+                }
+                return Column(
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                  children: [
+                    Row(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Expanded(child: nameField),
+                        const SizedBox(width: 8),
+                        Expanded(flex: 2, child: phoneField),
+                      ],
+                    ),
+                    helper,
+                  ],
+                );
+              },
             ),
             Row(
               mainAxisAlignment: MainAxisAlignment.end,
@@ -323,12 +528,14 @@ class _PhonePageListState extends LPExtendedState<PhonePageList> {
     final userInfoProvider = Provider.of<UserInformation>(context);
     final phonePageData = Provider.of<PhonePageData>(context);
     final gender = userInfoProvider.gender;
-    _syncControllers(phonePageData);
+    final profileCountryCode = _profileCountryCode(userInfoProvider);
+    _syncControllers(phonePageData, profileCountryCode);
     final contactCount = _contactCount(phonePageData);
+    final entryCount = _entryCount(phonePageData);
     return Column(
       children: [
-        ...List.generate(contactCount, (index) {
-          if (index == editingIndex) {
+        ...List.generate(entryCount, (index) {
+          if (index == editingIndex || index >= contactCount) {
             return _editingRow(
               formKey: _formKeys.putIfAbsent(
                 index,
@@ -336,10 +543,20 @@ class _PhonePageListState extends LPExtendedState<PhonePageList> {
               ),
               nameController: nameControllers[index],
               numberController: numberControllers[index],
+              countryCode: _countryCodesByEntry[index] ?? profileCountryCode,
+              countryPickerKey: 'contact-country-code-picker-$index',
               gender: gender,
               onSave: () => _saveExisting(phonePageData, index),
-              onCancel: () => _cancelExistingEdit(phonePageData, index),
-              onDelete: () => _confirmDelete(phonePageData, index),
+              onCancel: () =>
+                  _cancelExistingEdit(phonePageData, index, profileCountryCode),
+              onCountryChanged: (countryCode) {
+                setState(() {
+                  _countryCodesByEntry[index] = countryCode;
+                });
+              },
+              onDelete: index < contactCount
+                  ? () => _confirmDelete(phonePageData, index)
+                  : null,
             );
           }
           return _displayRow(phonePageData, index, gender);
@@ -349,32 +566,41 @@ class _PhonePageListState extends LPExtendedState<PhonePageList> {
             formKey: _draftFormKey,
             nameController: _draftNameController!,
             numberController: _draftNumberController!,
+            countryCode: _draftCountryCode ?? profileCountryCode,
+            countryPickerKey: 'contact-country-code-picker-draft',
             gender: gender,
             onSave: () => _saveDraft(phonePageData),
             onCancel: _cancelDraft,
+            onCountryChanged: (countryCode) {
+              setState(() {
+                _draftCountryCode = countryCode;
+              });
+            },
           ),
-        const SizedBox(width: 10),
-        TextButton(
-          onPressed: _startDraft,
-          style: TextButton.styleFrom(
-            backgroundColor: Theme.of(
-              context,
-            ).colorScheme.surfaceContainerHighest,
-            shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(12),
+        if (entryCount == contactCount) ...[
+          const SizedBox(width: 10),
+          TextButton(
+            onPressed: () => _startDraft(profileCountryCode),
+            style: TextButton.styleFrom(
+              backgroundColor: Theme.of(
+                context,
+              ).colorScheme.surfaceContainerHighest,
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(12),
+              ),
+              padding: const EdgeInsets.all(6),
             ),
-            padding: const EdgeInsets.all(6),
-          ),
-          child: myText(
-            appLocale.phonesPageManualTitle(gender),
-            TextStyle(
-              fontWeight: FontWeight.bold,
-              color: Theme.of(context).colorScheme.primary,
-              fontSize: 16.sp,
+            child: myText(
+              appLocale.phonesPageManualTitle(gender),
+              TextStyle(
+                fontWeight: FontWeight.bold,
+                color: Theme.of(context).colorScheme.primary,
+                fontSize: 16.sp,
+              ),
+              TextAlign.center,
             ),
-            TextAlign.center,
           ),
-        ),
+        ],
       ],
     );
   }

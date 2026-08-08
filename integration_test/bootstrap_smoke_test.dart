@@ -85,6 +85,8 @@ class _SilentWorkmanager extends WorkmanagerPlatform {
     Duration? backoffPolicyDelay,
     String? tag,
     OutOfQuotaPolicy? outOfQuotaPolicy,
+    ForegroundServiceConfig? foregroundServiceConfig,
+    bool expedited = false,
   }) async {}
 
   @override
@@ -100,6 +102,7 @@ class _SilentWorkmanager extends WorkmanagerPlatform {
     BackoffPolicy? backoffPolicy,
     Duration? backoffPolicyDelay,
     String? tag,
+    ForegroundServiceConfig? foregroundServiceConfig,
   }) async {}
 
   @override

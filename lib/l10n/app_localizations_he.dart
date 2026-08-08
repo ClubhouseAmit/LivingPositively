@@ -1100,7 +1100,7 @@ class AppLocalizationsHe extends AppLocalizations {
   }
 
   @override
-  String get sosShareLocation => 'שיתוף במיקום';
+  String get sosShareLocation => 'שיתוף מיקום';
 
   @override
   String get sosShareLocationTooltip => 'שיתוף המיקום הנוכחי שלך';
@@ -1109,12 +1109,59 @@ class AppLocalizationsHe extends AppLocalizations {
   String get sosShareLocationMessage => 'אני כאן ויש לי צורך בעזרתך';
 
   @override
-  String get sosShareLocationUnavailable =>
-      'לא ניתן לשתף את מיקומך. הודעת העזרה תישלח ללא המיקום.';
+  String get sosShareLocationUnavailable => 'לא ניתן לקבל את מיקומך הנוכחי.';
 
   @override
   String get sosShareLocationShareFailed =>
       'לא ניתן היה לשתף את הודעת העזרה שלך. נסו שוב.';
+
+  @override
+  String get sosShareMessage => 'שיתוף הודעת SOS';
+
+  @override
+  String get sosShareMessageTooltip => 'שיתוף הודעת העזרה שלך';
+
+  @override
+  String get sosDeliveryOptionsTitle => 'בחירת אפשרות שליחה';
+
+  @override
+  String get sosDeliveryChooseApp => 'בחירת אפליקציה';
+
+  @override
+  String get sosDeliverySendToContact => 'שליחה לאיש קשר אישי';
+
+  @override
+  String get sosDeliveryOpenMapApp => 'פתיחה באפליקציית מפות';
+
+  @override
+  String get sosDeliveryContactPickerTitle => 'בחירת איש קשר אישי';
+
+  @override
+  String get sosDeliveryNoContactsMessage =>
+      'אין אנשי קשר אישיים. הוסיפו איש קשר כדי לשלוח אליו הודעת SOS ישירות.';
+
+  @override
+  String get sosDeliveryContactsNeedAttention =>
+      'יש לעדכן את אנשי הקשר השמורים לפני שניתן להשתמש בהם לשליחת SOS.';
+
+  @override
+  String sosDeliveryMethodTitle(String contact) {
+    return 'בחרו כיצד לשלוח אל $contact';
+  }
+
+  @override
+  String get sosDeliverySms => 'הודעת טקסט (SMS)';
+
+  @override
+  String get sosDeliveryWhatsAppInternationalNumber =>
+      'כדי לשלוח ב-WhatsApp, בחרו קידומת מדינה והזינו את מספר הטלפון המלא.';
+
+  @override
+  String get contactPhoneCountryCodeHint =>
+      'בחרו קידומת מדינה; היא תישמר עם מספר הטלפון המקומי.';
+
+  @override
+  String get sosDeliveryEditContacts => 'עריכת אנשי קשר';
 
   @override
   String phonePageTitle(String gender) {

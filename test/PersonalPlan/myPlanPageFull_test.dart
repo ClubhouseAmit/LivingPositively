@@ -178,4 +178,68 @@ void main() {
     // which can be hidden by AutoSizeText/ellipsis depending on layout).
     expect(find.byType(MyPlanSection), findsWidgets);
   });
+
+  testWidgets(
+    'Personal Plan renders only paired contacts when names are longer',
+    (tester) async {
+      final names = <String>['Mom', 'Dad'];
+      final numbers = <String>['111'];
+      final phoneData = _emptyPhonePageData();
+      await tester.pump();
+      phoneData.savedPhoneNames = names;
+      phoneData.savedPhoneNumbers = numbers;
+
+      await pumpWithProviders(
+        tester,
+        MyPlanPageFull(
+          phonePageData: phoneData,
+          hasFilled: true,
+          changeLocale: (_) {},
+        ),
+        userInformation: userInformation,
+        appInformation: appInformation,
+        surfaceSize: const Size(1024, 2400),
+      );
+
+      final sections = tester
+          .widgetList<MyPlanSection>(find.byType(MyPlanSection))
+          .toList();
+      expect(sections.elementAt(4).answers, <String>['Mom:111']);
+      expect(phoneData.savedPhoneNames, <String>['Mom', 'Dad']);
+      expect(phoneData.savedPhoneNumbers, <String>['111']);
+      expect(tester.takeException(), isNull);
+    },
+  );
+
+  testWidgets(
+    'Personal Plan renders only paired contacts when numbers are longer',
+    (tester) async {
+      final names = <String>['Mom'];
+      final numbers = <String>['111', '222'];
+      final phoneData = _emptyPhonePageData();
+      await tester.pump();
+      phoneData.savedPhoneNames = names;
+      phoneData.savedPhoneNumbers = numbers;
+
+      await pumpWithProviders(
+        tester,
+        MyPlanPageFull(
+          phonePageData: phoneData,
+          hasFilled: true,
+          changeLocale: (_) {},
+        ),
+        userInformation: userInformation,
+        appInformation: appInformation,
+        surfaceSize: const Size(1024, 2400),
+      );
+
+      final sections = tester
+          .widgetList<MyPlanSection>(find.byType(MyPlanSection))
+          .toList();
+      expect(sections.elementAt(4).answers, <String>['Mom:111']);
+      expect(phoneData.savedPhoneNames, <String>['Mom']);
+      expect(phoneData.savedPhoneNumbers, <String>['111', '222']);
+      expect(tester.takeException(), isNull);
+    },
+  );
 }

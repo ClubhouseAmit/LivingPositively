@@ -1131,11 +1131,59 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get sosShareLocationUnavailable =>
-      'Your location could not be shared. Your help message will be shared without it.';
+      'Your current location could not be obtained.';
 
   @override
   String get sosShareLocationShareFailed =>
       'Your SOS help message could not be shared. Please try again.';
+
+  @override
+  String get sosShareMessage => 'Share SOS Message';
+
+  @override
+  String get sosShareMessageTooltip => 'Share your SOS help message';
+
+  @override
+  String get sosDeliveryOptionsTitle => 'Choose a delivery option';
+
+  @override
+  String get sosDeliveryChooseApp => 'Choose an app';
+
+  @override
+  String get sosDeliverySendToContact => 'Send to a personal contact';
+
+  @override
+  String get sosDeliveryOpenMapApp => 'Open in a map app';
+
+  @override
+  String get sosDeliveryContactPickerTitle => 'Choose a personal contact';
+
+  @override
+  String get sosDeliveryNoContactsMessage =>
+      'No personal contacts are available. Add one to send an SOS message directly.';
+
+  @override
+  String get sosDeliveryContactsNeedAttention =>
+      'Your saved contacts need to be updated before they can be used for SOS delivery.';
+
+  @override
+  String sosDeliveryMethodTitle(String contact) {
+    return 'Choose how to send to $contact';
+  }
+
+  @override
+  String get sosDeliverySms => 'Text message (SMS)';
+
+  @override
+  String get sosDeliveryWhatsAppInternationalNumber =>
+      'To send with WhatsApp, choose the country code and enter the full phone number.';
+
+  @override
+  String get contactPhoneCountryCodeHint =>
+      'Select a country code; it will be saved with the local phone number.';
+
+  @override
+  String get sosDeliveryEditContacts => 'Edit contacts';
 
   @override
   String phonePageTitle(String gender) {

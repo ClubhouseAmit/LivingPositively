@@ -22,6 +22,14 @@ analyzer:
     library_private_types_in_public_api: ignore
     non_constant_identifier_names: ignore
     strict_top_level_inference: ignore
+  exclude:
+    - build/**
+    - android/**
+    - ios/**
+    - web/**
+    - windows/**
+    - macos/**
+    - linux/**
 
 linter:
   # The lint rules applied to this project can be customized in the

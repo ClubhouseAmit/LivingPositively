@@ -37,30 +37,26 @@ Map<String, Set<String>> _placeholderMetadata(String path) {
 }
 
 void main() {
-  test(
-    'Arabic ARB covers every English key',
-    () {
-      final englishKeys = _messageKeys('lib/l10n/app_en.arb');
-      final arabicKeys = _messageKeys('lib/l10n/app_ar.arb');
+  test('Arabic ARB covers every English key', () {
+    final englishKeys = _messageKeys('lib/l10n/app_en.arb');
+    final arabicKeys = _messageKeys('lib/l10n/app_ar.arb');
 
-      final missingArabicKeys = englishKeys.difference(arabicKeys).toList()
-        ..sort();
-      final unexpectedArabicKeys = arabicKeys.difference(englishKeys).toList()
-        ..sort();
+    final missingArabicKeys = englishKeys.difference(arabicKeys).toList()
+      ..sort();
+    final unexpectedArabicKeys = arabicKeys.difference(englishKeys).toList()
+      ..sort();
 
-      expect(
-        missingArabicKeys,
-        isEmpty,
-        reason: 'Missing Arabic keys: ${missingArabicKeys.join(', ')}',
-      );
-      expect(
-        unexpectedArabicKeys,
-        isEmpty,
-        reason:
-            'Unexpected Arabic-only keys: ${unexpectedArabicKeys.join(', ')}',
-      );
-    },
-  );
+    expect(
+      missingArabicKeys,
+      isEmpty,
+      reason: 'Missing Arabic keys: ${missingArabicKeys.join(', ')}',
+    );
+    expect(
+      unexpectedArabicKeys,
+      isEmpty,
+      reason: 'Unexpected Arabic-only keys: ${unexpectedArabicKeys.join(', ')}',
+    );
+  });
 
   test('Arabic ARB provides approved SOS location-sharing copy', () {
     final arabic = _arb('lib/l10n/app_ar.arb');
@@ -70,11 +66,68 @@ void main() {
     expect(arabic['sosShareLocationMessage'], 'أنا هنا وأحتاج إلى مساعدتك.');
     expect(
       arabic['sosShareLocationUnavailable'],
-      'تعذّر مشاركة موقعك. ستتم مشاركة رسالة طلب المساعدة بدون الموقع.',
+      'تعذّر الحصول على موقعك الحالي.',
     );
     expect(
       arabic['sosShareLocationShareFailed'],
       'تعذّر مشاركة رسالة طلب المساعدة الخاصة بك. يُرجى المحاولة مرة أخرى.',
+    );
+    expect(arabic['sosShareMessage'], 'مشاركة رسالة الاستغاثة');
+    expect(arabic['sosShareMessageTooltip'], 'مشاركة رسالة طلب المساعدة');
+    expect(arabic['sosDeliveryOptionsTitle'], 'خيارات الإرسال');
+    expect(arabic['sosDeliveryChooseApp'], 'اختيار تطبيق');
+    expect(arabic['sosDeliverySendToContact'], 'إرسال إلى جهة اتصال شخصية');
+    expect(arabic['sosDeliveryOpenMapApp'], 'فتح في تطبيق خرائط');
+    expect(arabic['sosDeliveryContactPickerTitle'], 'اختيار جهة اتصال شخصية');
+    expect(
+      arabic['sosDeliveryNoContactsMessage'],
+      'لا توجد جهات اتصال شخصية. أضف جهة اتصال لإرسال رسالة استغاثة مباشرةً.',
+    );
+    expect(
+      arabic['sosDeliveryContactsNeedAttention'],
+      'يجب تحديث جهات الاتصال المحفوظة قبل أن يمكن استخدامها لإرسال رسالة استغاثة.',
+    );
+    expect(arabic['sosDeliveryMethodTitle'], 'طريقة الإرسال إلى {contact}');
+    expect(arabic['sosDeliverySms'], 'رسالة نصية (SMS)');
+    expect(
+      arabic['sosDeliveryWhatsAppInternationalNumber'],
+      'للإرسال عبر واتساب، اختر رمز الدولة وأدخل رقم الهاتف الكامل.',
+    );
+    expect(
+      arabic['contactPhoneCountryCodeHint'],
+      'اختر رمز الدولة؛ وسيتم حفظه مع رقم الهاتف المحلي.',
+    );
+    expect(arabic['sosDeliveryEditContacts'], 'تعديل جهات الاتصال');
+  });
+
+  test('contact number guidance is localized without requiring a plus prefix', () {
+    final english = _arb('lib/l10n/app_en.arb');
+    final hebrew = _arb('lib/l10n/app_he.arb');
+    final arabic = _arb('lib/l10n/app_ar.arb');
+
+    expect(
+      english['contactPhoneCountryCodeHint'],
+      'Select a country code; it will be saved with the local phone number.',
+    );
+    expect(
+      hebrew['contactPhoneCountryCodeHint'],
+      'בחרו קידומת מדינה; היא תישמר עם מספר הטלפון המקומי.',
+    );
+    expect(
+      arabic['contactPhoneCountryCodeHint'],
+      'اختر رمز الدولة؛ وسيتم حفظه مع رقم الهاتف المحلي.',
+    );
+    expect(
+      english['sosDeliveryWhatsAppInternationalNumber'],
+      'To send with WhatsApp, choose the country code and enter the full phone number.',
+    );
+    expect(
+      hebrew['sosDeliveryWhatsAppInternationalNumber'],
+      'כדי לשלוח ב-WhatsApp, בחרו קידומת מדינה והזינו את מספר הטלפון המלא.',
+    );
+    expect(
+      arabic['sosDeliveryWhatsAppInternationalNumber'],
+      'للإرسال عبر واتساب، اختر رمز الدولة وأدخل رقم الهاتف الكامل.',
     );
   });
 
