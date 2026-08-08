@@ -259,14 +259,14 @@ void main() {
     expect(centerGap - outerLeftGap, closeTo(72, 0.1));
   }
 
-  testWidgets('hides the reminders menu entry on iOS', (
+  testWidgets('shows the reminders menu entry on iOS', (
     WidgetTester tester,
   ) async {
     debugDefaultTargetPlatformOverride = TargetPlatform.iOS;
     try {
       await openMenu(tester);
 
-      expect(find.byIcon(Icons.notification_add), findsNothing);
+      expect(find.byIcon(Icons.notification_add), findsOneWidget);
     } finally {
       debugDefaultTargetPlatformOverride = null;
     }

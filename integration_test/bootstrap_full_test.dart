@@ -27,10 +27,8 @@
 //     registered, and the production `setupLocator` (which would
 //     `registerLazySingleton` concrete impls and throw on duplicate
 //     registration after our fakes are in place) is bypassed.
-//   * `workmanagerInitializer: () {}` — no-op; the underlying
-//     `WorkmanagerPlatform.instance` is replaced with the
-//     `_SilentWorkmanager` recorder so any downstream `Workmanager()` calls
-//     in MyApp's lifecycle complete cleanly.
+//   * `fcmInitializer: () async {}` — avoids requesting notification
+//     permission from the host running the integration test.
 //
 // Production `main()` calls `bootstrapApp()` with no args. Its defaults
 // match the previous in-`main()` body line-for-line. The CI `build-android`
@@ -48,66 +46,8 @@ import 'package:mazilon/main.dart' show MyApp, bootstrapApp, initializeApp;
 import 'package:mazilon/pages/SignIn_Pages/firstPage.dart';
 import 'package:mazilon/pages/SignIn_Pages/introduction.dart';
 import 'package:provider/provider.dart';
-import 'package:workmanager/workmanager.dart';
 
 import '../test/helpers/widget_test_scaffold.dart';
-
-class _SilentWorkmanager extends WorkmanagerPlatform {
-  _SilentWorkmanager._() : super();
-  static final _SilentWorkmanager _shared = _SilentWorkmanager._();
-  final List<String> calls = [];
-
-  static _SilentWorkmanager register() {
-    // Workmanager() lazily constructs a singleton whose constructor installs
-    // the real Android/iOS platform if the current platform is only a test
-    // fake. Prime that singleton first, then replace the platform with this
-    // recorder so the default fallback remains observable.
-    Workmanager();
-    WorkmanagerPlatform.instance = _shared;
-    _shared.calls.clear();
-    return _shared;
-  }
-
-  @override
-  Future<void> initialize(Function callbackDispatcher,
-      {bool isInDebugMode = false}) async {
-    calls.add('initialize');
-  }
-
-  @override
-  Future<void> cancelAll() async {
-    calls.add('cancelAll');
-  }
-
-  @override
-  Future<void> registerOneOffTask(String uniqueName, String taskName,
-      {Map<String, dynamic>? inputData,
-      Duration? initialDelay,
-      Constraints? constraints,
-      ExistingWorkPolicy? existingWorkPolicy,
-      BackoffPolicy? backoffPolicy,
-      Duration? backoffPolicyDelay,
-      String? tag,
-      OutOfQuotaPolicy? outOfQuotaPolicy}) async {}
-
-  @override
-  Future<void> registerPeriodicTask(String uniqueName, String taskName,
-      {Duration? frequency,
-      Duration? flexInterval,
-      Map<String, dynamic>? inputData,
-      Duration? initialDelay,
-      Constraints? constraints,
-      ExistingPeriodicWorkPolicy? existingWorkPolicy,
-      BackoffPolicy? backoffPolicy,
-      Duration? backoffPolicyDelay,
-      String? tag}) async {}
-
-  @override
-  Future<void> cancelByUniqueName(String uniqueName) async {}
-
-  @override
-  Future<void> cancelByTag(String tag) async {}
-}
 
 void main() {
   IntegrationTestWidgetsFlutterBinding.ensureInitialized();
@@ -116,11 +56,8 @@ void main() {
   const sharedPrefsChannel =
       MethodChannel('plugins.flutter.io/shared_preferences');
 
-  late _SilentWorkmanager fakeWm;
-
   setUp(() async {
     await GetIt.instance.reset();
-    fakeWm = _SilentWorkmanager.register();
 
     TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger
       ..setMockMethodCallHandler(pathProviderChannel, (call) async {
@@ -152,32 +89,24 @@ void main() {
     testWidgets(
         'returns the same MultiProvider tree shape that pre-extraction main() built',
         (tester) async {
-      var firebaseCalled = false;
-      var locatorCalled = false;
-      var workmanagerCalled = false;
+      final calls = <String>[];
 
       final widget = await bootstrapApp(
         firebaseInitializer: () async {
-          firebaseCalled = true;
+          calls.add('firebase');
         },
         locatorSetup: () {
-          locatorCalled = true;
+          calls.add('locator');
           registerTestServices(locale: 'en');
         },
-        workmanagerInitializer: () {
-          workmanagerCalled = true;
+        fcmInitializer: () async {
+          calls.add('fcm');
         },
       );
 
-      expect(firebaseCalled, isTrue,
-          reason: 'bootstrapApp must call firebaseInitializer');
-      expect(locatorCalled, isTrue,
-          reason: 'bootstrapApp must call locatorSetup');
-      // workmanagerInitializer only runs on non-web; integration_test binding
-      // on Android emulator => kIsWeb is false, so it must have run.
-      expect(workmanagerCalled, isTrue,
+      expect(calls, ['firebase', 'locator', 'fcm'],
           reason:
-              'bootstrapApp must call workmanagerInitializer on non-web platforms');
+              'bootstrapApp must initialize Firebase, register locators, and only then initialize FCM');
 
       // Top-level shape: MultiProvider wrapping MyApp. The provider package
       // does not expose providers/child as public getters, so we verify the
@@ -205,7 +134,7 @@ void main() {
       final widget = await bootstrapApp(
         firebaseInitializer: () async {},
         locatorSetup: () => registerTestServices(locale: 'en'),
-        workmanagerInitializer: () {},
+        fcmInitializer: () async {},
       );
 
       await tester.pumpWidget(widget);
@@ -224,7 +153,7 @@ void main() {
       final widget = await bootstrapApp(
         firebaseInitializer: () async {},
         locatorSetup: () => registerTestServices(locale: 'en'),
-        workmanagerInitializer: () {},
+        fcmInitializer: () async {},
       );
 
       await tester.pumpWidget(widget);
@@ -268,35 +197,6 @@ void main() {
     });
   });
 
-  group('bootstrapApp() default branches (workmanagerInitializer absent)', () {
-    testWidgets(
-        'when workmanagerInitializer is omitted, falls back to Workmanager().initialize',
-        (tester) async {
-      fakeWm.calls.clear();
-
-      final widget = await bootstrapApp(
-        firebaseInitializer: () async {},
-        locatorSetup: () => registerTestServices(locale: 'en'),
-        // workmanagerInitializer omitted → exercises the default-fallback
-        // closure that calls `Workmanager().initialize(callbackDispatcher,
-        // isInDebugMode: false)`. _SilentWorkmanager records the call.
-      );
-
-      // The default fallback fires Workmanager().initialize, which routes
-      // through WorkmanagerPlatform.instance (our _SilentWorkmanager).
-      expect(
-        fakeWm.calls,
-        contains('initialize'),
-        reason:
-            'default workmanagerInitializer must call Workmanager().initialize',
-      );
-
-      // Returned widget is still the expected MultiProvider shape — proves
-      // the workmanager branch did not derail the bootstrap.
-      expect(widget, isA<MultiProvider>());
-    });
-  });
-
   group('initializeApp() default branches', () {
     testWidgets(
         'initializeApp() with firebaseInitializer override + locatorSetup override completes',
@@ -312,6 +212,7 @@ void main() {
           locatorCalled = true;
           registerTestServices(locale: 'en');
         },
+        fcmInitializer: () async {},
       );
 
       expect(firebaseCalled, isTrue);

@@ -1,11 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:mazilon/l10n/app_localizations.dart';
 import 'package:mazilon/pages/UserSettings.dart';
-import 'package:mazilon/pages/notifications/notification_service.dart';
 import 'package:mazilon/util/Form/formPagePhoneModel.dart';
 import 'package:mazilon/util/userInformation.dart';
 import 'package:share_plus/share_plus.dart';
 import 'package:url_launcher/url_launcher.dart';
+import "package:mazilon/util/Firebase/fcm_service.dart";
 
 const _hebrewContactUsUrl =
     'https://hebsite.livepositively.club/%D7%AA%D7%9E%D7%99%D7%9B%D7%94';
@@ -216,7 +216,7 @@ Widget _notificationButton({
   required bool isWeb,
   required VoidCallback onNotificationsPressed,
 }) {
-  if (!NotificationsService.supportsReminderSettings(isWebOverride: isWeb)) {
+  if (!FcmService.supportsReminderSettings(isWebOverride: isWeb)) {
     return const SizedBox.shrink();
   }
 

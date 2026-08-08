@@ -55,6 +55,7 @@ dependencies:
   cloud_firestore_web: ^5.4.1
   fluttertoast: ^9.1.0
   firebase_auth: ^6.5.1
+  firebase_messaging: ^16.1.3
   font_awesome_flutter: ^11.0.0
   share_plus: ^12.0.2
   flutter_screenutil: ^5.9.3
@@ -76,7 +77,6 @@ dependencies:
   flutter_timezone: ^5.0.2
   numberpicker: ^2.1.2
   flutter_contacts: ^2.2.0
-  workmanager: ^0.9.0+3
   flutter_localizations:
     sdk: flutter
   intl: 0.20.2
@@ -84,6 +84,8 @@ dependencies:
   devicelocale: ^0.8.2
   upgrader: ^13.4.0
   country_code_picker: ^3.4.1
+  google_sign_in: ^6.2.1
+  sign_in_with_apple: ^6.1.1
 dev_dependencies:
   flutter_test:
     sdk: flutter

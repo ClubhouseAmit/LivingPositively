@@ -242,6 +242,9 @@ TestServiceLocators registerTestServices({String locale = 'en'}) {
   if (getIt.isRegistered<VideoPlayerPageFactory>()) {
     getIt.unregister<VideoPlayerPageFactory>();
   }
+  if (getIt.isRegistered<GlobalKey<NavigatorState>>()) {
+    getIt.unregister<GlobalKey<NavigatorState>>();
+  }
 
   final memory = FakePersistentMemoryService();
   final logger = NoopIncidentLoggerService();
@@ -258,6 +261,9 @@ TestServiceLocators registerTestServices({String locale = 'en'}) {
   getIt.registerSingleton<ImagePickerService>(picker);
   getIt.registerSingleton<LocaleService>(localeService);
   getIt.registerSingleton<VideoPlayerPageFactory>(videoFactory);
+  getIt.registerLazySingleton<GlobalKey<NavigatorState>>(
+    () => GlobalKey<NavigatorState>(),
+  );
 
   return TestServiceLocators(
     memory: memory,

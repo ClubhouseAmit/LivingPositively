@@ -206,8 +206,8 @@ jobs:
           # The synthetic, non-routable SENTRY_DSN exercises logger
           # initialization; native Sentry channels are mocked, so no network
           # traffic leaves the runner. The explicit device keeps the test on
-          # the emulator shown by `flutter devices`. The iOS-only notifications
-          # entry point is excluded because integration-test-ios owns it.
+          # the emulator shown by `flutter devices`. The notifications schedule
+          # shard is an FCM policy smoke test, not a retired local-scheduler test.
           # `>-` is load-bearing: android-emulator-runner executes each non-empty
           # line in a separate `sh -c`; the test exit code must stay in one
           # folded command through the post-test disk diagnostic and final exit.
