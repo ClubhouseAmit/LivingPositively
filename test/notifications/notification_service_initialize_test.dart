@@ -20,6 +20,7 @@ import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:mazilon/l10n/app_localizations.dart';
 import 'package:mazilon/pages/notifications/notification_service.dart';
+import 'package:workmanager/workmanager.dart' show Workmanager;
 import 'package:workmanager_platform_interface/workmanager_platform_interface.dart';
 
 class _FakeWorkmanager extends WorkmanagerPlatform {
@@ -28,6 +29,9 @@ class _FakeWorkmanager extends WorkmanagerPlatform {
   final List<String> calls = [];
 
   static _FakeWorkmanager register() {
+    // Workmanager selects its host platform when its singleton is first used.
+    // Prime it before replacing the platform with this test fake.
+    Workmanager();
     WorkmanagerPlatform.instance = _shared;
     _shared.calls.clear();
     return _shared;
