@@ -1147,6 +1147,10 @@ class AppLocalizationsAr extends AppLocalizations {
       'لا توجد جهات اتصال شخصية. أضف جهة اتصال لإرسال رسالة استغاثة مباشرةً.';
 
   @override
+  String get sosDeliveryContactsNeedAttention =>
+      'يجب تحديث جهات الاتصال المحفوظة قبل أن يمكن استخدامها لإرسال رسالة استغاثة.';
+
+  @override
   String sosDeliveryMethodTitle(String contact) {
     return 'طريقة الإرسال إلى $contact';
   }

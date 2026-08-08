@@ -886,6 +886,12 @@ abstract class AppLocalizations {
   /// **'No personal contacts are available. Add one to send an SOS message directly.'**
   String get sosDeliveryNoContactsMessage;
 
+  /// Message shown when saved contacts are mismatched or unsuitable for direct SOS delivery.
+  ///
+  /// In en, this message translates to:
+  /// **'Your saved contacts need to be updated before they can be used for SOS delivery.'**
+  String get sosDeliveryContactsNeedAttention;
+
   /// Title for choosing SMS or WhatsApp delivery to a saved contact.
   ///
   /// In en, this message translates to:

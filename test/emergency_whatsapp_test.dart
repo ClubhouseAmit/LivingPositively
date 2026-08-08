@@ -1316,17 +1316,42 @@ void main() {
     },
   );
 
-  testWidgets('PhonePage treats always location permission as unavailable', (
+  testWidgets('PhonePage accepts an existing always location permission', (
     tester,
   ) async {
     final geolocator = FakeGeolocatorPlatform(
       permission: LocationPermission.always,
     );
+    final fileService = RecordingFileService();
 
-    await _expectLocationUnavailable(tester, geolocator);
+    await _runLocationShareTest(
+      geolocator,
+      fileService,
+      body: () async {
+        await tester.pumpWidget(
+          buildPhonePageTestApp(
+            userInformation: UserInformation(
+              gender: 'male',
+              location: 'US',
+              service: FakePersistentMemoryService(),
+            ),
+            appInformation: AppInformation(),
+            phonePageData: _phonePageDataForLocationShare(),
+          ),
+        );
+        await tester.pumpAndSettle();
 
-    expect(geolocator.requestPermissionCalls, 0);
-    expect(geolocator.currentPositionCalls, 0);
+        await _tapLocationShare(tester);
+        await _chooseDeliveryOption(tester, 'Choose an app');
+
+        expect(geolocator.requestPermissionCalls, 0);
+        expect(geolocator.currentPositionCalls, 1);
+        expect(fileService.sharedMessages, [
+          'I am here and I need your help.\n'
+              'https://www.google.com/maps/search/?api=1&query=31.7683,35.2137',
+        ]);
+      },
+    );
   });
 
   testWidgets(
@@ -1584,47 +1609,54 @@ void main() {
     );
   });
 
-  testWidgets('PhonePage opens a compatible map app without sharing text', (
-    tester,
-  ) async {
-    final originalPlatform = UrlLauncherPlatform.instance;
-    final fakePlatform = FakeUrlLauncherPlatform();
-    UrlLauncherPlatform.instance = fakePlatform;
-    addTearDown(() => UrlLauncherPlatform.instance = originalPlatform);
+  for (final mapHandoff in <TargetPlatform, String>{
+    TargetPlatform.android: 'geo:0,0?q=31.7683,35.2137',
+    TargetPlatform.iOS: 'https://maps.apple.com/?ll=31.7683,35.2137',
+  }.entries) {
+    testWidgets(
+      'PhonePage opens a compatible ${mapHandoff.key} map app without sharing text',
+      (tester) async {
+        final originalPlatform = UrlLauncherPlatform.instance;
+        final fakePlatform = FakeUrlLauncherPlatform();
+        UrlLauncherPlatform.instance = fakePlatform;
+        addTearDown(() => UrlLauncherPlatform.instance = originalPlatform);
 
-    final geolocator = FakeGeolocatorPlatform();
-    final fileService = RecordingFileService();
-    await _runLocationShareTest(
-      geolocator,
-      fileService,
-      body: () async {
-        await tester.pumpWidget(
-          buildPhonePageTestApp(
-            userInformation: UserInformation(
-              gender: 'male',
-              location: 'IL',
-              service: FakePersistentMemoryService(),
-            ),
-            appInformation: AppInformation(),
-            phonePageData: _phonePageDataForLocationShare(),
-          ),
+        final geolocator = FakeGeolocatorPlatform();
+        final fileService = RecordingFileService();
+        await _runLocationShareTest(
+          geolocator,
+          fileService,
+          platform: mapHandoff.key,
+          body: () async {
+            await tester.pumpWidget(
+              buildPhonePageTestApp(
+                userInformation: UserInformation(
+                  gender: 'male',
+                  location: 'IL',
+                  service: FakePersistentMemoryService(),
+                ),
+                appInformation: AppInformation(),
+                phonePageData: _phonePageDataForLocationShare(),
+              ),
+            );
+            await tester.pumpAndSettle();
+            final localizations = AppLocalizations.of(
+              tester.element(find.byType(PhonePage)),
+            )!;
+
+            await _tapLocationShare(tester);
+            await _chooseDeliveryOption(
+              tester,
+              localizations.sosDeliveryOpenMapApp,
+            );
+
+            expect(fakePlatform.lastLaunchedUrl, mapHandoff.value);
+            expect(fileService.sharedMessages, isEmpty);
+          },
         );
-        await tester.pumpAndSettle();
-        final localizations = AppLocalizations.of(
-          tester.element(find.byType(PhonePage)),
-        )!;
-
-        await _tapLocationShare(tester);
-        await _chooseDeliveryOption(
-          tester,
-          localizations.sosDeliveryOpenMapApp,
-        );
-
-        expect(fakePlatform.lastLaunchedUrl, 'geo:0,0?q=31.7683,35.2137');
-        expect(fileService.sharedMessages, isEmpty);
       },
     );
-  });
+  }
 
   testWidgets('PhonePage shows launch feedback when the map app cannot open', (
     tester,
@@ -1712,7 +1744,7 @@ void main() {
 
         final smsUri = Uri.parse(fakePlatform.lastLaunchedUrl!);
         expect(smsUri.scheme, 'sms');
-        expect(Uri.decodeComponent(smsUri.path), '+972 50 123 4567');
+        expect(Uri.decodeComponent(smsUri.path), '+972501234567');
         expect(
           smsUri.queryParameters['body'],
           '${localizations.sosShareLocationMessage}\n'
@@ -1879,6 +1911,139 @@ void main() {
   });
 
   testWidgets(
+    'PhonePage requires mismatched saved contacts to be edited before delivery',
+    (tester) async {
+      final originalPlatform = UrlLauncherPlatform.instance;
+      final fakePlatform = FakeUrlLauncherPlatform();
+      UrlLauncherPlatform.instance = fakePlatform;
+      addTearDown(() => UrlLauncherPlatform.instance = originalPlatform);
+
+      final geolocator = FakeGeolocatorPlatform();
+      final fileService = RecordingFileService();
+      await _runLocationShareTest(
+        geolocator,
+        fileService,
+        body: () async {
+          final phonePageData = _phonePageDataForLocationShare();
+          await tester.pumpWidget(
+            buildPhonePageTestApp(
+              userInformation: UserInformation(
+                gender: 'male',
+                location: 'IL',
+                service: FakePersistentMemoryService(),
+              ),
+              appInformation: AppInformation(),
+              phonePageData: phonePageData,
+            ),
+          );
+          await tester.pumpAndSettle();
+          phonePageData.savedPhoneNames = ['Paired contact', 'Unpaired name'];
+          phonePageData.savedPhoneNumbers = ['+972501234567'];
+          phonePageData.update();
+          await tester.pumpAndSettle();
+          final localizations = AppLocalizations.of(
+            tester.element(find.byType(PhonePage)),
+          )!;
+
+          await _tapMessageShare(tester);
+          await _chooseDeliveryOption(
+            tester,
+            localizations.sosDeliverySendToContact,
+          );
+
+          expect(
+            find.text(localizations.sosDeliveryContactsNeedAttention),
+            findsOneWidget,
+          );
+          expect(fakePlatform.launchedUrls, isEmpty);
+          expect(phonePageData.savedPhoneNames, [
+            'Paired contact',
+            'Unpaired name',
+          ]);
+          expect(phonePageData.savedPhoneNumbers, ['+972501234567']);
+
+          await tester.tap(find.text(localizations.sosDeliveryEditContacts));
+          await tester.pumpAndSettle();
+
+          expect(find.byType(PhonePageForm), findsOneWidget);
+          expect(find.byType(TextFormField), findsNWidgets(2));
+          await tester.enterText(
+            find.byType(TextFormField).at(1),
+            '+972502222222',
+          );
+          final saveButton = find.byIcon(Icons.check);
+          await tester.ensureVisible(saveButton);
+          await tester.tap(saveButton);
+          await tester.pumpAndSettle();
+
+          expect(phonePageData.savedPhoneNames, [
+            'Paired contact',
+            'Unpaired name',
+          ]);
+          expect(phonePageData.savedPhoneNumbers, [
+            '+972501234567',
+            '+972502222222',
+          ]);
+        },
+      );
+    },
+  );
+
+  testWidgets(
+    'PhonePage blocks malformed legacy SMS contacts before launching',
+    (tester) async {
+      final originalPlatform = UrlLauncherPlatform.instance;
+      final fakePlatform = FakeUrlLauncherPlatform();
+      UrlLauncherPlatform.instance = fakePlatform;
+      addTearDown(() => UrlLauncherPlatform.instance = originalPlatform);
+
+      final geolocator = FakeGeolocatorPlatform();
+      final fileService = RecordingFileService();
+      await _runLocationShareTest(
+        geolocator,
+        fileService,
+        body: () async {
+          final phonePageData = _phonePageDataForLocationShare();
+          await tester.pumpWidget(
+            buildPhonePageTestApp(
+              userInformation: UserInformation(
+                gender: 'male',
+                location: 'IL',
+                service: FakePersistentMemoryService(),
+              ),
+              appInformation: AppInformation(),
+              phonePageData: phonePageData,
+            ),
+          );
+          await tester.pumpAndSettle();
+          phonePageData.savedPhoneNames = ['Legacy SMS'];
+          phonePageData.savedPhoneNumbers = ['*123#'];
+          phonePageData.update();
+          await tester.pumpAndSettle();
+          final localizations = AppLocalizations.of(
+            tester.element(find.byType(PhonePage)),
+          )!;
+
+          await _tapMessageShare(tester);
+          await _chooseDeliveryOption(
+            tester,
+            localizations.sosDeliverySendToContact,
+          );
+          await tester.tap(find.text('Legacy SMS').last);
+          await tester.pumpAndSettle();
+          await _chooseDeliveryOption(tester, localizations.sosDeliverySms);
+
+          expect(
+            find.text(localizations.sosDeliveryContactsNeedAttention),
+            findsOneWidget,
+          );
+          expect(fakePlatform.launchedUrls, isEmpty);
+        },
+      );
+    },
+  );
+
+  testWidgets(
     'PhonePage retries location or explicitly enters message delivery',
     (tester) async {
       final geolocator = FakeGeolocatorPlatform(
@@ -1939,7 +2104,7 @@ void main() {
     },
   );
 
-  testWidgets('PhonePage ignores a repeated location-share tap while loading', (
+  testWidgets('PhonePage serializes SOS actions while location is loading', (
     tester,
   ) async {
     final positionCompleter = Completer<Position>();
@@ -1973,7 +2138,16 @@ void main() {
         await tester.tap(locationAction, warnIfMissed: false);
         await tester.pump();
 
+        final messageAction = find.byKey(
+          const Key('phonePageShareMessageButton'),
+        );
+        await tester.ensureVisible(messageAction);
+        await tester.tap(messageAction, warnIfMissed: false);
+        await tester.pump();
+
         expect(geolocator.currentPositionCalls, 1);
+        expect(find.text('Choose a delivery option'), findsNothing);
+        expect(fileService.sharedMessages, isEmpty);
 
         positionCompleter.complete(_testPosition());
         await tester.pumpAndSettle();

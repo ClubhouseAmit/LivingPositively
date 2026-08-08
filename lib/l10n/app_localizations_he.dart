@@ -1141,6 +1141,10 @@ class AppLocalizationsHe extends AppLocalizations {
       'אין אנשי קשר אישיים. הוסיפו איש קשר כדי לשלוח אליו הודעת SOS ישירות.';
 
   @override
+  String get sosDeliveryContactsNeedAttention =>
+      'יש לעדכן את אנשי הקשר השמורים לפני שניתן להשתמש בהם לשליחת SOS.';
+
+  @override
   String sosDeliveryMethodTitle(String contact) {
     return 'בחרו כיצד לשלוח אל $contact';
   }

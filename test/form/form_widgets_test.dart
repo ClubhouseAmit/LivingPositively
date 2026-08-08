@@ -211,6 +211,54 @@ void main() {
       expect(phoneData.savedPhoneNumbers, contains('+972501234567'));
     });
 
+    testWidgets('repairs the next unmatched legacy number explicitly', (
+      tester,
+    ) async {
+      final phoneData = _makePhonePageData();
+
+      await pumpWithProviders(
+        tester,
+        ChangeNotifierProvider<PhonePageData>.value(
+          value: phoneData,
+          child: Scaffold(
+            body: SingleChildScrollView(
+              child: PhonePageList(phonePageData: phoneData),
+            ),
+          ),
+        ),
+        userInformation: userInformation,
+        surfaceSize: const Size(1024, 2000),
+      );
+      await _settle(tester);
+      phoneData.savedPhoneNames = <String>['Paired contact'];
+      phoneData.savedPhoneNumbers = <String>['111', '222'];
+      phoneData.update();
+      await tester.pumpAndSettle();
+
+      expect(find.byType(TextFormField), findsNWidgets(2));
+      expect(
+        tester
+            .widget<TextFormField>(find.byType(TextFormField).first)
+            .controller!
+            .text,
+        isEmpty,
+      );
+      expect(
+        tester
+            .widget<TextFormField>(find.byType(TextFormField).at(1))
+            .controller!
+            .text,
+        '222',
+      );
+
+      await tester.enterText(find.byType(TextFormField).first, 'Number only');
+      await tester.tap(find.byIcon(Icons.check));
+      await tester.pumpAndSettle();
+
+      expect(phoneData.savedPhoneNames, ['Paired contact', 'Number only']);
+      expect(phoneData.savedPhoneNumbers, ['111', '222']);
+    });
+
     testWidgets('editing an existing contact replaces it', (tester) async {
       await services.memory.setItem(
         'phonePageSavedPhoneNames',

@@ -67,6 +67,16 @@ void main() {
       expect(p.savedPhoneNumbers, isEmpty);
     });
 
+    test('addItem preserves unmatched legacy entries', () {
+      final p = _make();
+      p.savedPhoneNames = <String>['Paired', 'Name only'];
+      p.savedPhoneNumbers = <String>['111'];
+
+      expect(p.addItem('New contact', '222'), isFalse);
+      expect(p.savedPhoneNames, ['Paired', 'Name only']);
+      expect(p.savedPhoneNumbers, ['111']);
+    });
+
     test(
       'saveItemsToPrefs preserves legacy non-dialable saved contacts',
       () async {
@@ -117,12 +127,37 @@ void main() {
       expect(p.savedPhoneNames, ['A']);
     });
 
-    test('removeItem removes by value (both lists)', () {
+    test('removeItem removes one exact pair when names or numbers repeat', () {
+      final duplicateName = _make();
+      duplicateName.addItem('Alex', '111');
+      duplicateName.addItem('Blair', '222');
+      duplicateName.addItem('Alex', '333');
+
+      duplicateName.removeItem('Alex', '333');
+
+      expect(duplicateName.savedPhoneNames, ['Alex', 'Blair']);
+      expect(duplicateName.savedPhoneNumbers, ['111', '222']);
+
+      final duplicateNumber = _make(key: 'DuplicateNumbers');
+      duplicateNumber.addItem('Alex', '111');
+      duplicateNumber.addItem('Blair', '222');
+      duplicateNumber.addItem('Casey', '111');
+
+      duplicateNumber.removeItem('Casey', '111');
+
+      expect(duplicateNumber.savedPhoneNames, ['Alex', 'Blair']);
+      expect(duplicateNumber.savedPhoneNumbers, ['111', '222']);
+    });
+
+    test('removeItem trims legacy values while preserving exact pairs', () {
       final p = _make();
-      p.addItem('A', '111');
-      p.addItem('B', '222');
-      p.removeItem('A', '111');
-      expect(p.savedPhoneNames, ['B']);
+      p.savedPhoneNames = <String>[' Alex ', 'Blair'];
+      p.savedPhoneNumbers = <String>[' 111 ', '222'];
+
+      p.removeItem('Alex', '111');
+
+      expect(p.savedPhoneNames, ['Blair']);
+      expect(p.savedPhoneNumbers, ['222']);
     });
 
     test('replaceItem swaps in-place', () {
@@ -138,6 +173,26 @@ void main() {
       p.addItem('A', '111');
       p.replaceItem(5, 'X', '999');
       expect(p.savedPhoneNames, ['A']);
+    });
+
+    test('replaceItem completes one explicit unmatched legacy contact', () {
+      final missingNumber = _make();
+      missingNumber.savedPhoneNames = <String>['Paired', 'Name only'];
+      missingNumber.savedPhoneNumbers = <String>['111'];
+
+      missingNumber.replaceItem(1, 'Name only', '222');
+
+      expect(missingNumber.savedPhoneNames, ['Paired', 'Name only']);
+      expect(missingNumber.savedPhoneNumbers, ['111', '222']);
+
+      final missingName = _make(key: 'MissingName');
+      missingName.savedPhoneNames = <String>['Paired'];
+      missingName.savedPhoneNumbers = <String>['111', '222'];
+
+      missingName.replaceItem(1, 'Number only', '222');
+
+      expect(missingName.savedPhoneNames, ['Paired', 'Number only']);
+      expect(missingName.savedPhoneNumbers, ['111', '222']);
     });
 
     test('reset clears saved lists', () {

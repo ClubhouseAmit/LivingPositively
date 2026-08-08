@@ -50,27 +50,47 @@ class _PhonePageListState extends LPExtendedState<PhonePageList> {
         : phonePageData.savedPhoneNumbers.length;
   }
 
+  int _entryCount(PhonePageData phonePageData) {
+    final contactCount = _contactCount(phonePageData);
+    return phonePageData.savedPhoneNames.length ==
+            phonePageData.savedPhoneNumbers.length
+        ? contactCount
+        : contactCount + 1;
+  }
+
+  String _nameAt(PhonePageData phonePageData, int index) {
+    return index < phonePageData.savedPhoneNames.length
+        ? phonePageData.savedPhoneNames[index]
+        : '';
+  }
+
+  String _numberAt(PhonePageData phonePageData, int index) {
+    return index < phonePageData.savedPhoneNumbers.length
+        ? phonePageData.savedPhoneNumbers[index]
+        : '';
+  }
+
   void _syncControllers(PhonePageData phonePageData) {
-    final count = _contactCount(phonePageData);
+    final count = _entryCount(phonePageData);
+    final contactCount = _contactCount(phonePageData);
     while (nameControllers.length < count) {
       final index = nameControllers.length;
       nameControllers.add(
-        TextEditingController(text: phonePageData.savedPhoneNames[index]),
+        TextEditingController(text: _nameAt(phonePageData, index)),
       );
       numberControllers.add(
-        TextEditingController(text: phonePageData.savedPhoneNumbers[index]),
+        TextEditingController(text: _numberAt(phonePageData, index)),
       );
     }
     for (var index = 0; index < count; index++) {
-      if (index == editingIndex) {
+      if (index == editingIndex || index >= contactCount) {
         continue;
       }
-      if (nameControllers[index].text != phonePageData.savedPhoneNames[index]) {
-        nameControllers[index].text = phonePageData.savedPhoneNames[index];
+      if (nameControllers[index].text != _nameAt(phonePageData, index)) {
+        nameControllers[index].text = _nameAt(phonePageData, index);
       }
-      if (numberControllers[index].text !=
-          phonePageData.savedPhoneNumbers[index]) {
-        numberControllers[index].text = phonePageData.savedPhoneNumbers[index];
+      if (numberControllers[index].text != _numberAt(phonePageData, index)) {
+        numberControllers[index].text = _numberAt(phonePageData, index);
       }
     }
     while (nameControllers.length > count) {
@@ -124,9 +144,9 @@ class _PhonePageListState extends LPExtendedState<PhonePageList> {
 
   void _cancelExistingEdit(PhonePageData phonePageData, int index) {
     setState(() {
-      if (index < _contactCount(phonePageData)) {
-        nameControllers[index].text = phonePageData.savedPhoneNames[index];
-        numberControllers[index].text = phonePageData.savedPhoneNumbers[index];
+      if (index < _entryCount(phonePageData)) {
+        nameControllers[index].text = _nameAt(phonePageData, index);
+        numberControllers[index].text = _numberAt(phonePageData, index);
       }
       editingIndex = -1;
     });
@@ -136,11 +156,12 @@ class _PhonePageListState extends LPExtendedState<PhonePageList> {
     if (!_draftFormKey.currentState!.validate()) {
       return;
     }
-    phonePageData.addItem(
+    if (phonePageData.addItem(
       _draftNameController!.text,
       _draftNumberController!.text,
-    );
-    _cancelDraft();
+    )) {
+      _cancelDraft();
+    }
   }
 
   void _saveExisting(PhonePageData phonePageData, int index) {
@@ -325,10 +346,11 @@ class _PhonePageListState extends LPExtendedState<PhonePageList> {
     final gender = userInfoProvider.gender;
     _syncControllers(phonePageData);
     final contactCount = _contactCount(phonePageData);
+    final entryCount = _entryCount(phonePageData);
     return Column(
       children: [
-        ...List.generate(contactCount, (index) {
-          if (index == editingIndex) {
+        ...List.generate(entryCount, (index) {
+          if (index == editingIndex || index >= contactCount) {
             return _editingRow(
               formKey: _formKeys.putIfAbsent(
                 index,
@@ -339,7 +361,9 @@ class _PhonePageListState extends LPExtendedState<PhonePageList> {
               gender: gender,
               onSave: () => _saveExisting(phonePageData, index),
               onCancel: () => _cancelExistingEdit(phonePageData, index),
-              onDelete: () => _confirmDelete(phonePageData, index),
+              onDelete: index < contactCount
+                  ? () => _confirmDelete(phonePageData, index)
+                  : null,
             );
           }
           return _displayRow(phonePageData, index, gender);
@@ -353,28 +377,30 @@ class _PhonePageListState extends LPExtendedState<PhonePageList> {
             onSave: () => _saveDraft(phonePageData),
             onCancel: _cancelDraft,
           ),
-        const SizedBox(width: 10),
-        TextButton(
-          onPressed: _startDraft,
-          style: TextButton.styleFrom(
-            backgroundColor: Theme.of(
-              context,
-            ).colorScheme.surfaceContainerHighest,
-            shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(12),
+        if (entryCount == contactCount) ...[
+          const SizedBox(width: 10),
+          TextButton(
+            onPressed: _startDraft,
+            style: TextButton.styleFrom(
+              backgroundColor: Theme.of(
+                context,
+              ).colorScheme.surfaceContainerHighest,
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(12),
+              ),
+              padding: const EdgeInsets.all(6),
             ),
-            padding: const EdgeInsets.all(6),
-          ),
-          child: myText(
-            appLocale.phonesPageManualTitle(gender),
-            TextStyle(
-              fontWeight: FontWeight.bold,
-              color: Theme.of(context).colorScheme.primary,
-              fontSize: 16.sp,
+            child: myText(
+              appLocale.phonesPageManualTitle(gender),
+              TextStyle(
+                fontWeight: FontWeight.bold,
+                color: Theme.of(context).colorScheme.primary,
+                fontSize: 16.sp,
+              ),
+              TextAlign.center,
             ),
-            TextAlign.center,
           ),
-        ),
+        ],
       ],
     );
   }

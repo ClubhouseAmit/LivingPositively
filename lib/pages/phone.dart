@@ -32,52 +32,66 @@ class _PhonePageState extends LPExtendedState<PhonePage> {
   String mainTitle = '';
   String contactsTitle = '';
   String emergencyNumbersTitle = '';
-  bool _isSharingLocation = false;
+  bool _isSosDeliveryInProgress = false;
 
   bool get _supportsLocationSharing =>
       !kIsWeb &&
       (defaultTargetPlatform == TargetPlatform.android ||
           defaultTargetPlatform == TargetPlatform.iOS);
 
-  Future<void> _startLocationDelivery() async {
-    if (_isSharingLocation || !mounted) {
-      return;
-    }
+  Future<void> _startLocationDelivery() =>
+      _runSosDelivery(_runLocationDelivery);
 
-    _SosLocationUnavailableOption? unavailableOption;
-
-    setState(() {
-      _isSharingLocation = true;
-    });
-
-    try {
+  Future<void> _runLocationDelivery() async {
+    while (mounted) {
       final position = await _getCurrentPosition();
-      if (position == null) {
-        if (mounted) {
-          unavailableOption = await _showLocationUnavailableDialog();
-        }
-      } else if (mounted) {
+      if (!mounted) {
+        return;
+      }
+
+      if (position != null) {
         final mapLink = _mapShareLink(position);
         await _showDeliveryOptions(
           '${appLocale.sosShareLocationMessage}\n$mapLink',
           mapAppUrl: _mapAppUrl(position),
         );
+        return;
       }
+
+      final unavailableOption = await _showLocationUnavailableDialog();
+      if (!mounted || unavailableOption == null) {
+        return;
+      }
+      if (unavailableOption == _SosLocationUnavailableOption.retry) {
+        continue;
+      }
+      if (unavailableOption == _SosLocationUnavailableOption.message) {
+        await _showDeliveryOptions(appLocale.sosShareLocationMessage);
+      }
+      return;
+    }
+  }
+
+  Future<void> _startMessageDelivery() => _runSosDelivery(
+    () => _showDeliveryOptions(appLocale.sosShareLocationMessage),
+  );
+
+  Future<void> _runSosDelivery(Future<void> Function() delivery) async {
+    if (_isSosDeliveryInProgress || !mounted) {
+      return;
+    }
+    setState(() {
+      _isSosDeliveryInProgress = true;
+    });
+
+    try {
+      await delivery();
     } finally {
       if (mounted) {
         setState(() {
-          _isSharingLocation = false;
+          _isSosDeliveryInProgress = false;
         });
       }
-    }
-
-    if (!mounted) {
-      return;
-    }
-    if (unavailableOption == _SosLocationUnavailableOption.retry) {
-      _startLocationDelivery();
-    } else if (unavailableOption == _SosLocationUnavailableOption.message) {
-      _startMessageDelivery();
     }
   }
 
@@ -96,7 +110,8 @@ class _PhonePageState extends LPExtendedState<PhonePage> {
       if (permission == LocationPermission.denied) {
         permission = await Geolocator.requestPermission();
       }
-      if (permission != LocationPermission.whileInUse) {
+      if (permission != LocationPermission.whileInUse &&
+          permission != LocationPermission.always) {
         return null;
       }
 
@@ -122,9 +137,6 @@ class _PhonePageState extends LPExtendedState<PhonePage> {
     }
     return 'https://maps.apple.com/?ll=$coordinates';
   }
-
-  Future<void> _startMessageDelivery() =>
-      _showDeliveryOptions(appLocale.sosShareLocationMessage);
 
   Future<void> _showDeliveryOptions(String message, {String? mapAppUrl}) async {
     if (!mounted) {
@@ -211,6 +223,13 @@ class _PhonePageState extends LPExtendedState<PhonePage> {
 
   Future<void> _showContactPicker(String message) async {
     final contacts = _savedContacts();
+    if (contacts == null) {
+      final shouldEdit = await _showContactsNeedAttentionDialog();
+      if (shouldEdit && mounted) {
+        await _openContactsEditor();
+      }
+      return;
+    }
     if (contacts.isEmpty) {
       final shouldEdit = await _showNoContactsDialog();
       if (shouldEdit && mounted) {
@@ -244,15 +263,14 @@ class _PhonePageState extends LPExtendedState<PhonePage> {
     await _showContactDeliveryOptions(contact, message);
   }
 
-  List<MapEntry<String, String>> _savedContacts() {
+  List<MapEntry<String, String>>? _savedContacts() {
     final contacts = <MapEntry<String, String>>[];
     final names = widget.phonePageData.savedPhoneNames;
     final numbers = widget.phonePageData.savedPhoneNumbers;
-    for (
-      var index = 0;
-      index < names.length && index < numbers.length;
-      index++
-    ) {
+    if (names.length != numbers.length) {
+      return null;
+    }
+    for (var index = 0; index < names.length; index++) {
       final name = names[index].trim();
       final number = numbers[index].trim();
       if (name.isNotEmpty && number.isNotEmpty) {
@@ -290,11 +308,19 @@ class _PhonePageState extends LPExtendedState<PhonePage> {
       return;
     }
     if (option == _SosContactDeliveryOption.sms) {
+      final smsNumber = _smsNumber(contact.value);
+      if (smsNumber == null) {
+        final shouldEdit = await _showContactsNeedAttentionDialog();
+        if (shouldEdit && mounted) {
+          await _openContactsEditor();
+        }
+        return;
+      }
       await launchWithFeedback(
         context,
-        contact.value,
+        smsNumber,
         isCallFailure: false,
-        launch: () => openTextMessage(contact.value, body: message),
+        launch: () => openTextMessage(smsNumber, body: message),
       );
       return;
     }
@@ -315,41 +341,38 @@ class _PhonePageState extends LPExtendedState<PhonePage> {
     );
   }
 
-  String? _whatsAppNumber(String number) {
+  String? _smsNumber(String number) {
     final normalized = number.replaceAll(RegExp(r'[\s().-]'), '');
-    if (!RegExp(r'^\+[1-9]\d{7,14}$').hasMatch(normalized)) {
+    if (!RegExp(r'^\+?\d{2,}$').hasMatch(normalized)) {
+      return null;
+    }
+    return normalized;
+  }
+
+  String? _whatsAppNumber(String number) {
+    final normalized = _smsNumber(number);
+    if (normalized == null ||
+        !RegExp(r'^\+[1-9]\d{7,14}$').hasMatch(normalized)) {
       return null;
     }
     return normalized.substring(1);
   }
 
-  Future<bool> _showNoContactsDialog() async {
-    final gender = Provider.of<UserInformation>(context, listen: false).gender;
-    return (await showDialog<bool>(
-          context: context,
-          builder: (dialogContext) => AlertDialog(
-            content: Text(appLocale.sosDeliveryNoContactsMessage),
-            actions: [
-              TextButton(
-                onPressed: () => Navigator.of(dialogContext).pop(false),
-                child: Text(appLocale.closeButton(gender)),
-              ),
-              TextButton(
-                onPressed: () => Navigator.of(dialogContext).pop(true),
-                child: Text(appLocale.sosDeliveryEditContacts),
-              ),
-            ],
-          ),
-        )) ??
-        false;
-  }
+  Future<bool> _showNoContactsDialog() =>
+      _showEditContactsDialog(appLocale.sosDeliveryNoContactsMessage);
 
-  Future<bool> _showWhatsAppNumberDialog() async {
+  Future<bool> _showWhatsAppNumberDialog() =>
+      _showEditContactsDialog(appLocale.sosDeliveryWhatsAppInternationalNumber);
+
+  Future<bool> _showContactsNeedAttentionDialog() =>
+      _showEditContactsDialog(appLocale.sosDeliveryContactsNeedAttention);
+
+  Future<bool> _showEditContactsDialog(String message) async {
     final gender = Provider.of<UserInformation>(context, listen: false).gender;
     return (await showDialog<bool>(
           context: context,
           builder: (dialogContext) => AlertDialog(
-            content: Text(appLocale.sosDeliveryWhatsAppInternationalNumber),
+            content: Text(message),
             actions: [
               TextButton(
                 onPressed: () => Navigator.of(dialogContext).pop(false),

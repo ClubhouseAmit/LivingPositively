@@ -188,11 +188,15 @@
      "@sosDeliveryContactPickerTitle": {
        "description": "כותרת לבחירת איש קשר אישי שמור."
      },
-     "sosDeliveryNoContactsMessage": "אין אנשי קשר אישיים. הוסיפו איש קשר כדי לשלוח אליו הודעת SOS ישירות.",
-     "@sosDeliveryNoContactsMessage": {
-       "description": "הודעה המוצגת כשאין אנשי קשר אישיים שמורים לשליחת SOS."
-     },
-     "sosDeliveryMethodTitle": "בחרו כיצד לשלוח אל {contact}",
+  "sosDeliveryNoContactsMessage": "אין אנשי קשר אישיים. הוסיפו איש קשר כדי לשלוח אליו הודעת SOS ישירות.",
+  "@sosDeliveryNoContactsMessage": {
+    "description": "הודעה המוצגת כשאין אנשי קשר אישיים שמורים לשליחת SOS."
+  },
+  "sosDeliveryContactsNeedAttention": "יש לעדכן את אנשי הקשר השמורים לפני שניתן להשתמש בהם לשליחת SOS.",
+  "@sosDeliveryContactsNeedAttention": {
+    "description": "הודעה המוצגת כשאנשי קשר שמורים אינם מתאימים לשליחת SOS ישירה."
+  },
+  "sosDeliveryMethodTitle": "בחרו כיצד לשלוח אל {contact}",
      "@sosDeliveryMethodTitle": {
        "description": "כותרת לבחירה בין SMS ל-WhatsApp עבור איש קשר שמור.",
        "placeholders": {

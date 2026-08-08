@@ -516,6 +516,10 @@
   "@sosDeliveryNoContactsMessage": {
     "description": "Message shown when no saved personal contacts are available for SOS delivery."
   },
+  "sosDeliveryContactsNeedAttention": "Your saved contacts need to be updated before they can be used for SOS delivery.",
+  "@sosDeliveryContactsNeedAttention": {
+    "description": "Message shown when saved contacts are mismatched or unsuitable for direct SOS delivery."
+  },
   "sosDeliveryMethodTitle": "Choose how to send to {contact}",
   "@sosDeliveryMethodTitle": {
     "description": "Title for choosing SMS or WhatsApp delivery to a saved contact.",

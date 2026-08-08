@@ -41,6 +41,13 @@ class _PhonePageFormState extends LPExtendedState<PhonePageForm> {
         ? contact.phones[0].number
         : null;
     if (phoneName != null && phoneNumber != null) {
+      if (widget.phonePageData.savedPhoneNames.length !=
+          widget.phonePageData.savedPhoneNumbers.length) {
+        ScaffoldMessenger.maybeOf(context)?.showSnackBar(
+          SnackBar(content: Text(appLocale.sosDeliveryContactsNeedAttention)),
+        );
+        return;
+      }
       final added = widget.phonePageData.addItem(phoneName, phoneNumber);
       if (!added) {
         final message = phoneName.trim().isEmpty
@@ -103,7 +110,12 @@ class _PhonePageFormState extends LPExtendedState<PhonePageForm> {
   @override
   void initState() {
     super.initState();
-    for (int i = 0; i < widget.phonePageData.savedPhoneNames.length; i++) {
+    final contactCount =
+        widget.phonePageData.savedPhoneNames.length <
+            widget.phonePageData.savedPhoneNumbers.length
+        ? widget.phonePageData.savedPhoneNames.length
+        : widget.phonePageData.savedPhoneNumbers.length;
+    for (int i = 0; i < contactCount; i++) {
       nameControllers.add(
         TextEditingController(text: widget.phonePageData.savedPhoneNames[i]),
       );

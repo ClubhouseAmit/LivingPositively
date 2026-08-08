@@ -398,6 +398,7 @@
   "sosDeliveryOpenMapApp": "فتح في تطبيق خرائط",
   "sosDeliveryContactPickerTitle": "اختيار جهة اتصال شخصية",
   "sosDeliveryNoContactsMessage": "لا توجد جهات اتصال شخصية. أضف جهة اتصال لإرسال رسالة استغاثة مباشرةً.",
+  "sosDeliveryContactsNeedAttention": "يجب تحديث جهات الاتصال المحفوظة قبل أن يمكن استخدامها لإرسال رسالة استغاثة.",
   "sosDeliveryMethodTitle": "طريقة الإرسال إلى {contact}",
   "@sosDeliveryMethodTitle": {
     "placeholders": {

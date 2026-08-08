@@ -115,12 +115,27 @@ class PhonePageData extends ChangeNotifier {
     if (!_isValidContact(newPhoneName, newPhoneNumber)) {
       return;
     }
+    if (index < 0) {
+      return;
+    }
+
     if (index < savedPhoneNames.length && index < savedPhoneNumbers.length) {
       savedPhoneNames[index] = newPhoneName.trim();
       savedPhoneNumbers[index] = newPhoneNumber.trim();
-      saveItemsToPrefs();
-      notifyListeners();
+    } else if (index == savedPhoneNumbers.length &&
+        index < savedPhoneNames.length) {
+      savedPhoneNames[index] = newPhoneName.trim();
+      savedPhoneNumbers.add(newPhoneNumber.trim());
+    } else if (index == savedPhoneNames.length &&
+        index < savedPhoneNumbers.length) {
+      savedPhoneNames.add(newPhoneName.trim());
+      savedPhoneNumbers[index] = newPhoneNumber.trim();
+    } else {
+      return;
     }
+
+    saveItemsToPrefs();
+    notifyListeners();
   }
 
   Future<void> loadItemsFromPrefs() async {
@@ -145,7 +160,8 @@ class PhonePageData extends ChangeNotifier {
   }
 
   bool addItem(String phoneName, String phoneNumber) {
-    if (!_isValidContact(phoneName, phoneNumber)) {
+    if (savedPhoneNames.length != savedPhoneNumbers.length ||
+        !_isValidContact(phoneName, phoneNumber)) {
       return false;
     }
     savedPhoneNames.add(phoneName.trim());
@@ -156,7 +172,9 @@ class PhonePageData extends ChangeNotifier {
   }
 
   void removeItemAt(int index) {
-    if (index < savedPhoneNames.length && index < savedPhoneNumbers.length) {
+    if (index >= 0 &&
+        index < savedPhoneNames.length &&
+        index < savedPhoneNumbers.length) {
       savedPhoneNames.removeAt(index);
       savedPhoneNumbers.removeAt(index);
       saveItemsToPrefs();
@@ -165,10 +183,18 @@ class PhonePageData extends ChangeNotifier {
   }
 
   void removeItem(String phoneName, String phoneNumber) {
-    savedPhoneNames.remove(phoneName);
-    savedPhoneNumbers.remove(phoneNumber);
-    saveItemsToPrefs();
-    notifyListeners();
+    final normalizedName = phoneName.trim();
+    final normalizedNumber = phoneNumber.trim();
+    final contactCount = savedPhoneNames.length < savedPhoneNumbers.length
+        ? savedPhoneNames.length
+        : savedPhoneNumbers.length;
+    for (var index = 0; index < contactCount; index++) {
+      if (savedPhoneNames[index].trim() == normalizedName &&
+          savedPhoneNumbers[index].trim() == normalizedNumber) {
+        removeItemAt(index);
+        return;
+      }
+    }
   }
 
   Future<void> saveItemsToPrefs() async {

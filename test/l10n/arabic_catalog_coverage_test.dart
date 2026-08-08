@@ -83,6 +83,10 @@ void main() {
       arabic['sosDeliveryNoContactsMessage'],
       'لا توجد جهات اتصال شخصية. أضف جهة اتصال لإرسال رسالة استغاثة مباشرةً.',
     );
+    expect(
+      arabic['sosDeliveryContactsNeedAttention'],
+      'يجب تحديث جهات الاتصال المحفوظة قبل أن يمكن استخدامها لإرسال رسالة استغاثة.',
+    );
     expect(arabic['sosDeliveryMethodTitle'], 'طريقة الإرسال إلى {contact}');
     expect(arabic['sosDeliverySms'], 'رسالة نصية (SMS)');
     expect(

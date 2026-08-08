@@ -1163,6 +1163,10 @@ class AppLocalizationsEn extends AppLocalizations {
       'No personal contacts are available. Add one to send an SOS message directly.';
 
   @override
+  String get sosDeliveryContactsNeedAttention =>
+      'Your saved contacts need to be updated before they can be used for SOS delivery.';
+
+  @override
   String sosDeliveryMethodTitle(String contact) {
     return 'Choose how to send to $contact';
   }
