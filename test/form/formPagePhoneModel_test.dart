@@ -67,6 +67,20 @@ void main() {
       expect(p.savedPhoneNumbers, isEmpty);
     });
 
+    test('normalizes dialable phone numbers consistently', () {
+      expect(
+        PhonePageData.normalizeDialablePhoneNumber('+972 50 123 4567'),
+        '+972501234567',
+      );
+      expect(
+        PhonePageData.normalizeDialablePhoneNumber('0501234567'),
+        '0501234567',
+      );
+      expect(PhonePageData.normalizeDialablePhoneNumber('11'), '11');
+      expect(PhonePageData.normalizeDialablePhoneNumber('*123#'), isNull);
+      expect(PhonePageData.normalizeDialablePhoneNumber('1'), isNull);
+    });
+
     test('addItem preserves unmatched legacy entries', () {
       final p = _make();
       p.savedPhoneNames = <String>['Paired', 'Name only'];

@@ -1,3 +1,5 @@
+import 'dart:math' show min;
+
 import 'package:flutter/material.dart';
 import 'package:mazilon/form/phonePageListItem.dart';
 import 'package:mazilon/util/LP_extended_state.dart';
@@ -110,11 +112,10 @@ class _PhonePageFormState extends LPExtendedState<PhonePageForm> {
   @override
   void initState() {
     super.initState();
-    final contactCount =
-        widget.phonePageData.savedPhoneNames.length <
-            widget.phonePageData.savedPhoneNumbers.length
-        ? widget.phonePageData.savedPhoneNames.length
-        : widget.phonePageData.savedPhoneNumbers.length;
+    final contactCount = min(
+      widget.phonePageData.savedPhoneNames.length,
+      widget.phonePageData.savedPhoneNumbers.length,
+    );
     for (int i = 0; i < contactCount; i++) {
       nameControllers.add(
         TextEditingController(text: widget.phonePageData.savedPhoneNames[i]),

@@ -202,13 +202,13 @@ void main() {
       await tester.tap(find.byType(TextButton).last, warnIfMissed: false);
       await tester.pump();
       await tester.enterText(find.byType(TextFormField).at(0), 'Alice');
-      await tester.enterText(find.byType(TextFormField).at(1), '+972501234567');
+      await tester.enterText(find.byType(TextFormField).at(1), '050 123 4567');
       await tester.tap(find.byIcon(Icons.check), warnIfMissed: false);
       await tester.pump();
       drainOverflowExceptions(tester);
 
       expect(phoneData.savedPhoneNames, contains('Alice'));
-      expect(phoneData.savedPhoneNumbers, contains('+972501234567'));
+      expect(phoneData.savedPhoneNumbers, contains('050 123 4567'));
     });
 
     testWidgets('repairs the next unmatched legacy number explicitly', (

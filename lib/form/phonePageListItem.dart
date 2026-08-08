@@ -115,8 +115,7 @@ class _PhonePageListState extends LPExtendedState<PhonePageList> {
     if (trimmed.isEmpty) {
       return appLocale.contactPhoneRequiredError;
     }
-    final normalized = trimmed.replaceAll(RegExp(r'[\s().-]'), '');
-    if (!RegExp(r'^\+?\d{2,}$').hasMatch(normalized)) {
+    if (PhonePageData.normalizeDialablePhoneNumber(trimmed) == null) {
       return appLocale.contactPhoneInvalidError;
     }
     return null;

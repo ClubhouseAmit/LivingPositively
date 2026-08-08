@@ -283,6 +283,19 @@ void main() {
       expect(fake.lastLaunchedUrl, 'sms:741741?body=HOME');
     });
 
+    test('with spaces and newlines percent-encodes the body query', () async {
+      final originalPlatform = UrlLauncherPlatform.instance;
+      final fake = _FakeUrlLauncherPlatform();
+      UrlLauncherPlatform.instance = fake;
+      addTearDown(() => UrlLauncherPlatform.instance = originalPlatform);
+
+      await openTextMessage('741741', body: 'I need help\nPlease call');
+      expect(
+        fake.lastLaunchedUrl,
+        'sms:741741?body=I%20need%20help%0APlease%20call',
+      );
+    });
+
     test('whitespace-only body is treated as empty', () async {
       final originalPlatform = UrlLauncherPlatform.instance;
       final fake = _FakeUrlLauncherPlatform();

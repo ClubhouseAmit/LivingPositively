@@ -341,13 +341,8 @@ class _PhonePageState extends LPExtendedState<PhonePage> {
     );
   }
 
-  String? _smsNumber(String number) {
-    final normalized = number.replaceAll(RegExp(r'[\s().-]'), '');
-    if (!RegExp(r'^\+?\d{2,}$').hasMatch(normalized)) {
-      return null;
-    }
-    return normalized;
-  }
+  String? _smsNumber(String number) =>
+      PhonePageData.normalizeDialablePhoneNumber(number);
 
   String? _whatsAppNumber(String number) {
     final normalized = _smsNumber(number);

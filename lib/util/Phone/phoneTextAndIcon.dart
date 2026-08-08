@@ -190,7 +190,7 @@ Future<bool> openTextMessage(String number, {String body = ''}) {
       : Uri(
           scheme: 'sms',
           path: number,
-          queryParameters: {'body': trimmedBody},
+          query: 'body=${Uri.encodeComponent(trimmedBody)}',
         );
   return _launchUriWithLogging(uri);
 }

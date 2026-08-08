@@ -93,10 +93,16 @@ class PhonePageData extends ChangeNotifier {
     notifyListeners();
   }
 
-  bool _hasDialablePhoneNumber(String value) {
+  static String? normalizeDialablePhoneNumber(String value) {
     final normalized = value.replaceAll(RegExp(r'[\s().-]'), '');
-    return RegExp(r'^\+?\d{2,}$').hasMatch(normalized);
+    if (!RegExp(r'^\+?\d{2,}$').hasMatch(normalized)) {
+      return null;
+    }
+    return normalized;
   }
+
+  bool _hasDialablePhoneNumber(String value) =>
+      normalizeDialablePhoneNumber(value) != null;
 
   bool _isValidContact(String phoneName, String phoneNumber) {
     return phoneName.trim().isNotEmpty &&
