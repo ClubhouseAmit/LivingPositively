@@ -1305,6 +1305,10 @@ class AppLocalizationsAr extends AppLocalizations {
   String get confirmResetTitle => 'هل أنت متأكد؟';
 
   @override
+  String get resetReminderCancellationFailed =>
+      'تعذر إلغاء التذكير. لم تتم إعادة ضبط بياناتك.';
+
+  @override
   String get shareRoutineMessage =>
       'هذه هي خطتي الشخصية التي تساعدني على الحفاظ على سلامتي. أرسلها إليك لأنني أرى أن لك دورًا فيها أيضًا. آمل أن يكون ذلك مناسبًا لك. سأقدّر كثيرًا موافقتك على المشاركة فيها عند الحاجة. شكرًا جزيلًا مقدمًا، وأتطلع إلى ردك.';
 
@@ -3326,16 +3330,6 @@ class AppLocalizationsAr extends AppLocalizations {
   @override
   String get authForgotPasswordSuccess =>
       'تحقق من بريدك الإلكتروني للحصول على رابط إعادة التعيين';
-
-  @override
-  String get authSignOut => 'تسجيل الخروج';
-
-  @override
-  String get authSignOutConfirmTitle => 'تسجيل الخروج؟';
-
-  @override
-  String get authSignOutConfirmBody =>
-      'ستحتاج إلى تسجيل الدخول مرة أخرى للوصول إلى جميع الميزات.';
 
   @override
   String get authNotSignedInTitle => 'سجّل دخولك لتفعيل الإشعارات';

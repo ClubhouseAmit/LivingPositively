@@ -1006,6 +1006,12 @@ abstract class AppLocalizations {
   /// **'Are you sure?'**
   String get confirmResetTitle;
 
+  /// Shown when remote reminder cancellation prevents reset.
+  ///
+  /// In en, this message translates to:
+  /// **'Couldn\'t cancel the reminder. Your data has not been reset.'**
+  String get resetReminderCancellationFailed;
+
   ///
   ///
   /// In en, this message translates to:
@@ -2613,24 +2619,6 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Check your email for a reset link'**
   String get authForgotPasswordSuccess;
-
-  ///
-  ///
-  /// In en, this message translates to:
-  /// **'Sign Out'**
-  String get authSignOut;
-
-  ///
-  ///
-  /// In en, this message translates to:
-  /// **'Sign Out?'**
-  String get authSignOutConfirmTitle;
-
-  ///
-  ///
-  /// In en, this message translates to:
-  /// **'You will need to sign in again to access all features.'**
-  String get authSignOutConfirmBody;
 
   ///
   ///

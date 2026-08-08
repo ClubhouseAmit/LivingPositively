@@ -1,11 +1,11 @@
-import 'dart:io';
+import 'dart:async';
 
 import 'package:firebase_auth/firebase_auth.dart';
-import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:flutter/material.dart';
 import 'package:mazilon/pages/auth/forgot_password_page.dart';
 import 'package:mazilon/util/Firebase/auth_service.dart';
 import 'package:mazilon/util/Firebase/fcm_service.dart';
+import 'package:mazilon/util/Firebase/fcm_scheduled_notification_service.dart';
 import 'package:mazilon/util/LP_extended_state.dart';
 import 'package:mazilon/util/styles.dart';
 import 'package:mazilon/util/userInformation.dart';
@@ -93,13 +93,19 @@ class _AuthPageState extends LPExtendedState<AuthPage> {
       debugPrint("2");
       await AuthService.saveUserToFirestore(user);
       debugPrint("3");
-      await FcmService.onUserSignedIn();
+      unawaited(FcmService.onUserSignedIn());
       debugPrint("4");
 
       userInfo.updateLoggedIn(true);
       userInfo.updateUserId(user.uid);
       userInfo.updateEmail(user.email ?? '');
       userInfo.updateDisplayName(user.displayName ?? '');
+
+      unawaited(
+        FcmScheduledNotificationService.migrateLegacyDefaultReminderWithReporting(
+          userInformation: userInfo,
+        ),
+      );
 
       if (widget.fromNotifications) {
         if (mounted) Navigator.pop(context);
@@ -225,7 +231,8 @@ class _LoginFormState extends LPExtendedState<_LoginForm>
     } catch (e) {
       if (mounted) {
         setState(
-            () => _errorMessage = _resolveError(AuthService.localizedError(e)));
+          () => _errorMessage = _resolveError(AuthService.localizedError(e)),
+        );
       }
     } finally {
       if (mounted) setState(() => _isLoading = false);
@@ -259,14 +266,18 @@ class _LoginFormState extends LPExtendedState<_LoginForm>
               context,
               MaterialPageRoute(builder: (_) => const ForgotPasswordPage()),
             ),
-            child: Text(appLocale.authForgotPassword,
-                style: TextStyle(color: primaryPurple)),
+            child: Text(
+              appLocale.authForgotPassword,
+              style: TextStyle(color: primaryPurple),
+            ),
           ),
         ),
         if (_errorMessage != null) ...[
-          Text(_errorMessage!,
-              style: const TextStyle(color: Colors.red),
-              textAlign: TextAlign.center),
+          Text(
+            _errorMessage!,
+            style: const TextStyle(color: Colors.red),
+            textAlign: TextAlign.center,
+          ),
           const SizedBox(height: 8),
         ],
         //Sign In Button
@@ -276,50 +287,63 @@ class _LoginFormState extends LPExtendedState<_LoginForm>
             backgroundColor: primaryPurple,
             foregroundColor: Colors.white,
             minimumSize: const Size.fromHeight(50),
-            shape:
-                RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(12),
+            ),
           ),
           child: _isLoading
               ? const SizedBox(
                   height: 22,
                   width: 22,
                   child: CircularProgressIndicator(
-                      strokeWidth: 2, color: Colors.white))
-              : Text(appLocale.authLoginButton,
-                  style: const TextStyle(fontSize: 16)),
+                    strokeWidth: 2,
+                    color: Colors.white,
+                  ),
+                )
+              : Text(
+                  appLocale.authLoginButton,
+                  style: const TextStyle(fontSize: 16),
+                ),
         ),
-        const SizedBox(height: 24),
-        //Gray Divider
-        _OrDivider(label: appLocale.authOr),
-        const SizedBox(height: 16),
-        //Sign with Google Button
-        _SocialButton(
-          label: appLocale.authGoogleButton,
-          icon: Icons.g_mobiledata,
-          onPressed: _isLoading ? null : _signInWithGoogle,
-        ),
-        if (!kIsWeb && Platform.isIOS) ...[
-          const SizedBox(height: 10),
-          //Sign with AppleID button
-          _SocialButton(
-            label: appLocale.authAppleButton,
-            icon: Icons.apple,
-            onPressed: _isLoading ? null : _signInWithApple,
-          ),
+        if (AuthService.isSocialSignInAvailable) ...[
+          const SizedBox(height: 24),
+          //Gray Divider
+          _OrDivider(label: appLocale.authOr),
+          const SizedBox(height: 16),
+          if (AuthService.isGoogleSignInAvailable)
+            //Sign with Google Button
+            _SocialButton(
+              label: appLocale.authGoogleButton,
+              icon: Icons.g_mobiledata,
+              onPressed: _isLoading ? null : _signInWithGoogle,
+            ),
+          if (AuthService.isAppleSignInAvailable) ...[
+            if (AuthService.isGoogleSignInAvailable) const SizedBox(height: 10),
+            //Sign with AppleID button
+            _SocialButton(
+              label: appLocale.authAppleButton,
+              icon: Icons.apple,
+              onPressed: _isLoading ? null : _signInWithApple,
+            ),
+          ],
         ],
         const SizedBox(height: 24),
         //Skip Button options
         if (!widget.fromNotifications)
           TextButton(
             onPressed: _isLoading ? null : widget.onSkip,
-            child: Text(appLocale.authSkip,
-                style: TextStyle(color: Colors.grey.shade600)),
+            child: Text(
+              appLocale.authSkip,
+              style: TextStyle(color: Colors.grey.shade600),
+            ),
           )
         else
           TextButton(
             onPressed: () => Navigator.pop(context),
-            child: Text(appLocale.closeButton(''),
-                style: TextStyle(color: Colors.grey.shade600)),
+            child: Text(
+              appLocale.closeButton(''),
+              style: TextStyle(color: Colors.grey.shade600),
+            ),
           ),
         const SizedBox(height: 16),
       ],
@@ -408,7 +432,8 @@ class _SignupFormState extends LPExtendedState<_SignupForm>
     } catch (e) {
       if (mounted) {
         setState(
-            () => _errorMessage = _resolveError(AuthService.localizedError(e)));
+          () => _errorMessage = _resolveError(AuthService.localizedError(e)),
+        );
       }
     } finally {
       if (mounted) setState(() => _isLoading = false);
@@ -448,9 +473,11 @@ class _SignupFormState extends LPExtendedState<_SignupForm>
           obscure: true,
         ),
         if (_errorMessage != null) ...[
-          Text(_errorMessage!,
-              style: const TextStyle(color: Colors.red),
-              textAlign: TextAlign.center),
+          Text(
+            _errorMessage!,
+            style: const TextStyle(color: Colors.red),
+            textAlign: TextAlign.center,
+          ),
           const SizedBox(height: 8),
         ],
         //Sign Up Button
@@ -460,50 +487,63 @@ class _SignupFormState extends LPExtendedState<_SignupForm>
             backgroundColor: primaryPurple,
             foregroundColor: Colors.white,
             minimumSize: const Size.fromHeight(50),
-            shape:
-                RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(12),
+            ),
           ),
           child: _isLoading
               ? const SizedBox(
                   height: 22,
                   width: 22,
                   child: CircularProgressIndicator(
-                      strokeWidth: 2, color: Colors.white))
-              : Text(appLocale.authSignupButton,
-                  style: const TextStyle(fontSize: 16)),
+                    strokeWidth: 2,
+                    color: Colors.white,
+                  ),
+                )
+              : Text(
+                  appLocale.authSignupButton,
+                  style: const TextStyle(fontSize: 16),
+                ),
         ),
-        const SizedBox(height: 24),
-        //Gray Divider
-        _OrDivider(label: appLocale.authOr),
-        const SizedBox(height: 16),
-        //Sign with Google Button
-        _SocialButton(
-          label: appLocale.authGoogleButton,
-          icon: Icons.g_mobiledata,
-          onPressed: _isLoading ? null : _signInWithGoogle,
-        ),
-        if (!kIsWeb && Platform.isIOS) ...[
-          const SizedBox(height: 10),
-          //Sign with AppleID Button
-          _SocialButton(
-            label: appLocale.authAppleButton,
-            icon: Icons.apple,
-            onPressed: _isLoading ? null : _signInWithApple,
-          ),
+        if (AuthService.isSocialSignInAvailable) ...[
+          const SizedBox(height: 24),
+          //Gray Divider
+          _OrDivider(label: appLocale.authOr),
+          const SizedBox(height: 16),
+          if (AuthService.isGoogleSignInAvailable)
+            //Sign with Google Button
+            _SocialButton(
+              label: appLocale.authGoogleButton,
+              icon: Icons.g_mobiledata,
+              onPressed: _isLoading ? null : _signInWithGoogle,
+            ),
+          if (AuthService.isAppleSignInAvailable) ...[
+            if (AuthService.isGoogleSignInAvailable) const SizedBox(height: 10),
+            //Sign with AppleID Button
+            _SocialButton(
+              label: appLocale.authAppleButton,
+              icon: Icons.apple,
+              onPressed: _isLoading ? null : _signInWithApple,
+            ),
+          ],
         ],
         const SizedBox(height: 24),
         //Skip Button options
         if (!widget.fromNotifications)
           TextButton(
             onPressed: _isLoading ? null : widget.onSkip,
-            child: Text(appLocale.authSkip,
-                style: TextStyle(color: Colors.grey.shade600)),
+            child: Text(
+              appLocale.authSkip,
+              style: TextStyle(color: Colors.grey.shade600),
+            ),
           )
         else
           TextButton(
             onPressed: () => Navigator.pop(context),
-            child: Text(appLocale.closeButton(''),
-                style: TextStyle(color: Colors.grey.shade600)),
+            child: Text(
+              appLocale.closeButton(''),
+              style: TextStyle(color: Colors.grey.shade600),
+            ),
           ),
         const SizedBox(height: 16),
       ],
@@ -533,16 +573,20 @@ class _ModeToggle extends StatelessWidget {
         color: Colors.grey.shade200,
         borderRadius: BorderRadius.circular(12),
       ),
-      child: Row(children: [
-        _Tab(
+      child: Row(
+        children: [
+          _Tab(
             label: loginLabel,
             selected: isLogin,
-            onTap: isLogin ? null : onToggle),
-        _Tab(
+            onTap: isLogin ? null : onToggle,
+          ),
+          _Tab(
             label: signupLabel,
             selected: !isLogin,
-            onTap: isLogin ? onToggle : null),
-      ]),
+            onTap: isLogin ? onToggle : null,
+          ),
+        ],
+      ),
     );
   }
 }
@@ -566,12 +610,14 @@ class _Tab extends StatelessWidget {
             color: selected ? primaryPurple : Colors.transparent,
             borderRadius: BorderRadius.circular(12),
           ),
-          child: Text(label,
-              textAlign: TextAlign.center,
-              style: TextStyle(
-                color: selected ? Colors.white : Colors.grey.shade600,
-                fontWeight: selected ? FontWeight.bold : FontWeight.normal,
-              )),
+          child: Text(
+            label,
+            textAlign: TextAlign.center,
+            style: TextStyle(
+              color: selected ? Colors.white : Colors.grey.shade600,
+              fontWeight: selected ? FontWeight.bold : FontWeight.normal,
+            ),
+          ),
         ),
       ),
     );
@@ -595,22 +641,24 @@ class _AuthField extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Column(children: [
-      TextField(
-        controller: controller,
-        obscureText: obscure,
-        keyboardType: keyboardType,
-        autocorrect: false,
-        decoration: InputDecoration(
-          labelText: label,
-          border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
-          prefixIcon: Icon(icon),
-          filled: true,
-          fillColor: Colors.white,
+    return Column(
+      children: [
+        TextField(
+          controller: controller,
+          obscureText: obscure,
+          keyboardType: keyboardType,
+          autocorrect: false,
+          decoration: InputDecoration(
+            labelText: label,
+            border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+            prefixIcon: Icon(icon),
+            filled: true,
+            fillColor: Colors.white,
+          ),
         ),
-      ),
-      const SizedBox(height: 12),
-    ]);
+        const SizedBox(height: 12),
+      ],
+    );
   }
 }
 
@@ -620,14 +668,16 @@ class _OrDivider extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Row(children: [
-      const Expanded(child: Divider()),
-      Padding(
-        padding: const EdgeInsets.symmetric(horizontal: 12),
-        child: Text(label, style: const TextStyle(color: Colors.grey)),
-      ),
-      const Expanded(child: Divider()),
-    ]);
+    return Row(
+      children: [
+        const Expanded(child: Divider()),
+        Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 12),
+          child: Text(label, style: const TextStyle(color: Colors.grey)),
+        ),
+        const Expanded(child: Divider()),
+      ],
+    );
   }
 }
 

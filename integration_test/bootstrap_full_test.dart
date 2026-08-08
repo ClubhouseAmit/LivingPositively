@@ -30,10 +30,13 @@
 //   * `fcmInitializer: () async {}` — avoids requesting notification
 //     permission from the host running the integration test.
 //
-// Production `main()` calls `bootstrapApp()` with no args. Its defaults
-// match the previous in-`main()` body line-for-line. The CI `build-android`
+// Production `main()` calls `bootstrapApp()` with no args. Its injected
+// defaults exercise the same production collaborators while allowing FCM to
+// initialize after the root widget becomes available. The CI `build-android`
 // + `build-web` jobs build the app starting from `main()` and surface any
 // regression.
+
+import 'dart:async';
 
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
@@ -45,6 +48,7 @@ import 'package:mazilon/Locale/locale_service.dart';
 import 'package:mazilon/main.dart' show MyApp, bootstrapApp, initializeApp;
 import 'package:mazilon/pages/SignIn_Pages/firstPage.dart';
 import 'package:mazilon/pages/SignIn_Pages/introduction.dart';
+import 'package:mazilon/util/logger_service.dart';
 import 'package:provider/provider.dart';
 
 import '../test/helpers/widget_test_scaffold.dart';
@@ -53,8 +57,9 @@ void main() {
   IntegrationTestWidgetsFlutterBinding.ensureInitialized();
 
   const pathProviderChannel = MethodChannel('plugins.flutter.io/path_provider');
-  const sharedPrefsChannel =
-      MethodChannel('plugins.flutter.io/shared_preferences');
+  const sharedPrefsChannel = MethodChannel(
+    'plugins.flutter.io/shared_preferences',
+  );
 
   setUp(() async {
     await GetIt.instance.reset();
@@ -87,139 +92,221 @@ void main() {
 
   group('bootstrapApp() return shape', () {
     testWidgets(
-        'returns the same MultiProvider tree shape that pre-extraction main() built',
-        (tester) async {
-      final calls = <String>[];
+      'returns the same MultiProvider tree shape that pre-extraction main() built',
+      (tester) async {
+        final calls = <String>[];
 
-      final widget = await bootstrapApp(
-        firebaseInitializer: () async {
-          calls.add('firebase');
-        },
-        locatorSetup: () {
-          calls.add('locator');
-          registerTestServices(locale: 'en');
-        },
-        fcmInitializer: () async {
-          calls.add('fcm');
-        },
-      );
+        final widget = await bootstrapApp(
+          firebaseInitializer: () async {
+            calls.add('firebase');
+          },
+          locatorSetup: () {
+            calls.add('locator');
+            registerTestServices(locale: 'en');
+          },
+          fcmInitializer: () async {
+            calls.add('fcm');
+          },
+        );
 
-      expect(calls, ['firebase', 'locator', 'fcm'],
+        expect(
+          calls,
+          ['firebase', 'locator', 'fcm'],
           reason:
-              'bootstrapApp must initialize Firebase, register locators, and only then initialize FCM');
+              'bootstrapApp must initialize Firebase, register locators, and only then initialize FCM',
+        );
 
-      // Top-level shape: MultiProvider wrapping MyApp. The provider package
-      // does not expose providers/child as public getters, so we verify the
-      // shape by pumping the widget and asserting the resulting tree
-      // contains the MultiProvider + MyApp pair the pre-extraction main()
-      // produced.
-      expect(widget, isA<MultiProvider>(),
-          reason:
-              'bootstrapApp must return a MultiProvider as its root widget');
+        // Top-level shape: MultiProvider wrapping MyApp. The provider package
+        // does not expose providers/child as public getters, so we verify the
+        // shape by pumping the widget and asserting the resulting tree
+        // contains the MultiProvider + MyApp pair the pre-extraction main()
+        // produced.
+        expect(
+          widget,
+          isA<MultiProvider>(),
+          reason: 'bootstrapApp must return a MultiProvider as its root widget',
+        );
 
-      await tester.pumpWidget(widget);
-      await tester.pump();
+        await tester.pumpWidget(widget);
+        await tester.pump();
 
-      expect(find.byType(MultiProvider), findsOneWidget,
-          reason: 'pumped tree must contain the bootstrap MultiProvider');
-      expect(find.byType(MyApp), findsOneWidget,
-          reason: 'pumped tree must contain MyApp under the MultiProvider');
-    });
+        expect(
+          find.byType(MultiProvider),
+          findsOneWidget,
+          reason: 'pumped tree must contain the bootstrap MultiProvider',
+        );
+        expect(
+          find.byType(MyApp),
+          findsOneWidget,
+          reason: 'pumped tree must contain MyApp under the MultiProvider',
+        );
+      },
+    );
   });
 
   group('bootstrapApp() pumps a working MyApp tree', () {
     testWidgets(
-        'first frame after bootstrapApp shows the CircularProgressIndicator placeholder',
-        (tester) async {
-      final widget = await bootstrapApp(
-        firebaseInitializer: () async {},
-        locatorSetup: () => registerTestServices(locale: 'en'),
-        fcmInitializer: () async {},
-      );
+      'first frame after bootstrapApp shows the CircularProgressIndicator placeholder',
+      (tester) async {
+        final widget = await bootstrapApp(
+          firebaseInitializer: () async {},
+          locatorSetup: () => registerTestServices(locale: 'en'),
+          fcmInitializer: () async {},
+        );
 
-      await tester.pumpWidget(widget);
-      // First frame: localeName is still '' so MyApp renders the bootstrap
-      // MaterialApp + CircularProgressIndicator placeholder (lines 399-406
-      // of main.dart, the pre-`ScreenUtilInit` branch).
-      await tester.pump();
+        await tester.pumpWidget(widget);
+        // First frame: localeName is still '' so MyApp renders the bootstrap
+        // MaterialApp + CircularProgressIndicator placeholder (lines 399-406
+        // of main.dart, the pre-`ScreenUtilInit` branch).
+        await tester.pump();
 
-      expect(find.byType(MaterialApp), findsWidgets);
-      expect(find.byType(CircularProgressIndicator), findsWidgets);
-    });
+        expect(find.byType(MaterialApp), findsWidgets);
+        expect(find.byType(CircularProgressIndicator), findsWidgets);
+      },
+    );
 
     testWidgets(
-        'MyApp settles to FirstPage or Introduction after async bootstrap (spinner is gone)',
-        (tester) async {
-      final widget = await bootstrapApp(
-        firebaseInitializer: () async {},
-        locatorSetup: () => registerTestServices(locale: 'en'),
-        fcmInitializer: () async {},
-      );
+      'MyApp settles to FirstPage or Introduction after async bootstrap (spinner is gone)',
+      (tester) async {
+        final widget = await bootstrapApp(
+          firebaseInitializer: () async {},
+          locatorSetup: () => registerTestServices(locale: 'en'),
+          fcmInitializer: () async {},
+        );
 
-      await tester.pumpWidget(widget);
+        await tester.pumpWidget(widget);
 
-      // Drive the async build cycle. MyApp.build kicks off a Future.wait of
-      // loadAppInformation / loadUserInformation / setLocale. The first two
-      // hit FirebaseFirestore.instance (no Firebase initialised) and fail,
-      // routing through MyApp's .catchError → Introduction. setLocale
-      // completes via the in-memory PersistentMemoryService fake.
-      //
-      // Pump generously (2s total) so a slow CI agent still settles; we then
-      // assert the STRONGER condition that the spinner is gone and the
-      // bootstrap reached a terminal widget. A bootstrap that hangs on the
-      // CircularProgressIndicator placeholder forever (e.g. setLocale future
-      // never completes, or the localeName='' branch never flips) is a real
-      // regression — it should fail this test, not slip through.
-      for (int i = 0; i < 20; i++) {
-        await tester.pump(const Duration(milliseconds: 100));
-      }
+        // Drive the async build cycle. MyApp.build kicks off a Future.wait of
+        // loadAppInformation / loadUserInformation / setLocale. The first two
+        // hit FirebaseFirestore.instance (no Firebase initialised) and fail,
+        // routing through MyApp's .catchError → Introduction. setLocale
+        // completes via the in-memory PersistentMemoryService fake.
+        //
+        // Pump generously (2s total) so a slow CI agent still settles; we then
+        // assert the STRONGER condition that the spinner is gone and the
+        // bootstrap reached a terminal widget. A bootstrap that hangs on the
+        // CircularProgressIndicator placeholder forever (e.g. setLocale future
+        // never completes, or the localeName='' branch never flips) is a real
+        // regression — it should fail this test, not slip through.
+        for (int i = 0; i < 20; i++) {
+          await tester.pump(const Duration(milliseconds: 100));
+        }
 
-      final hasFirstPage = find.byType(FirstPage).evaluate().isNotEmpty;
-      final hasIntroduction = find.byType(Introduction).evaluate().isNotEmpty;
-      // STRONGER than the Phase-7 smoke test: we no longer accept a
-      // CircularProgressIndicator as a "settled" state. A bootstrap that
-      // never leaves the placeholder (e.g. setLocale future never
-      // completes, or the localeName='' → ScreenUtilInit transition is
-      // broken) is the exact regression Phase 10B is meant to catch — the
-      // raised main.dart per-file floor (50% → 65%) is meaningless if the
-      // test passes on a bootstrap that hung.
-      expect(
-        hasFirstPage || hasIntroduction,
-        isTrue,
-        reason: 'After 2s of async pumps MyApp must have left the loading '
-            'placeholder and rendered FirstPage (success path) or '
-            'Introduction (catchError fallback path). If neither is found, '
-            'the bootstrap is stuck on the CircularProgressIndicator '
-            'placeholder from main.dart lines 399-406 — that is a real '
-            'regression in the localeName=""→ScreenUtilInit transition, '
-            'not a flake.',
-      );
-    });
+        final hasFirstPage = find.byType(FirstPage).evaluate().isNotEmpty;
+        final hasIntroduction = find.byType(Introduction).evaluate().isNotEmpty;
+        // STRONGER than the Phase-7 smoke test: we no longer accept a
+        // CircularProgressIndicator as a "settled" state. A bootstrap that
+        // never leaves the placeholder (e.g. setLocale future never
+        // completes, or the localeName='' → ScreenUtilInit transition is
+        // broken) is the exact regression Phase 10B is meant to catch — the
+        // raised main.dart per-file floor (50% → 65%) is meaningless if the
+        // test passes on a bootstrap that hung.
+        expect(
+          hasFirstPage || hasIntroduction,
+          isTrue,
+          reason:
+              'After 2s of async pumps MyApp must have left the loading '
+              'placeholder and rendered FirstPage (success path) or '
+              'Introduction (catchError fallback path). If neither is found, '
+              'the bootstrap is stuck on the CircularProgressIndicator '
+              'placeholder from main.dart lines 399-406 — that is a real '
+              'regression in the localeName=""→ScreenUtilInit transition, '
+              'not a flake.',
+        );
+      },
+    );
   });
 
   group('initializeApp() default branches', () {
     testWidgets(
-        'initializeApp() with firebaseInitializer override + locatorSetup override completes',
-        (tester) async {
-      var firebaseCalled = false;
-      var locatorCalled = false;
+      'initializeApp() with firebaseInitializer override + locatorSetup override completes',
+      (tester) async {
+        var firebaseCalled = false;
+        var locatorCalled = false;
 
-      await initializeApp(
-        firebaseInitializer: () async {
-          firebaseCalled = true;
-        },
-        locatorSetup: () {
-          locatorCalled = true;
-          registerTestServices(locale: 'en');
-        },
-        fcmInitializer: () async {},
+        await initializeApp(
+          firebaseInitializer: () async {
+            firebaseCalled = true;
+          },
+          locatorSetup: () {
+            locatorCalled = true;
+            registerTestServices(locale: 'en');
+          },
+          fcmInitializer: () async {},
+        );
+
+        expect(firebaseCalled, isTrue);
+        expect(locatorCalled, isTrue);
+        // After locator setup our fake should be registered.
+        expect(GetIt.instance.isRegistered<AnalyticsService>(), isTrue);
+        expect(GetIt.instance.isRegistered<LocaleService>(), isTrue);
+      },
+    );
+
+    testWidgets('pending FCM initialization does not delay bootstrapApp', (
+      tester,
+    ) async {
+      final fcmInitialization = Completer<void>();
+      var bootstrapCompleted = false;
+
+      final bootstrap = bootstrapApp(
+        firebaseInitializer: () async {},
+        locatorSetup: () => registerTestServices(locale: 'en'),
+        fcmInitializer: () => fcmInitialization.future,
+      )..then((_) => bootstrapCompleted = true);
+
+      await tester.pump();
+
+      expect(
+        bootstrapCompleted,
+        isTrue,
+        reason: 'FCM is best-effort and must not gate the root widget',
       );
 
-      expect(firebaseCalled, isTrue);
-      expect(locatorCalled, isTrue);
-      // After locator setup our fake should be registered.
-      expect(GetIt.instance.isRegistered<AnalyticsService>(), isTrue);
-      expect(GetIt.instance.isRegistered<LocaleService>(), isTrue);
+      fcmInitialization.complete();
+      await bootstrap;
     });
+
+    testWidgets('rejected FCM initialization is contained and reported', (
+      tester,
+    ) async {
+      final failure = StateError('FCM unavailable');
+
+      await expectLater(
+        initializeApp(
+          firebaseInitializer: () async {},
+          locatorSetup: () => registerTestServices(locale: 'en'),
+          fcmInitializer: () => Future<void>.error(failure),
+        ),
+        completes,
+      );
+      await tester.pump();
+
+      final logger =
+          GetIt.instance<IncidentLoggerService>() as NoopIncidentLoggerService;
+      expect(logger.captured, contains(failure));
+    });
+
+    testWidgets(
+      'synchronously throwing FCM initialization is contained and reported',
+      (tester) async {
+        final failure = StateError('FCM failed synchronously');
+
+        await expectLater(
+          initializeApp(
+            firebaseInitializer: () async {},
+            locatorSetup: () => registerTestServices(locale: 'en'),
+            fcmInitializer: () => throw failure,
+          ),
+          completes,
+        );
+        await tester.pump();
+
+        final logger =
+            GetIt.instance<IncidentLoggerService>()
+                as NoopIncidentLoggerService;
+        expect(logger.captured, contains(failure));
+      },
+    );
   });
 }

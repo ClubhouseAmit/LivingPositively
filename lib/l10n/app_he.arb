@@ -202,6 +202,10 @@
       "@confirmResetTitle": {
         "description": ""
       },
+      "resetReminderCancellationFailed": "לא ניתן לבטל את התזכורת. הנתונים שלך לא אופסו.",
+      "@resetReminderCancellationFailed": {
+        "description": "מוצג כאשר ביטול התזכורת המרוחקת מונע איפוס."
+      },
       
           "locationDisclaimer":"{gender,select,male{האפליקציה משתמשת במיקום שלך אך ורק כדי להתאים את מספרי החירום למיקומך.} female{האפליקציה משתמשת במיקום שלך אך ורק כדי להתאים את מספרי החירום למיקומך.} other{האפליקציה משתמשת במיקום שלך אך ורק כדי להתאים את מספרי החירום למיקומך.}}",
 
@@ -510,9 +514,6 @@
   "authForgotPasswordHint": "הכניסו כתובת אימייל",
   "authForgotPasswordButton": "לקבלת קישור לאיפוס",
   "authForgotPasswordSuccess": "בידקו את תיבת הדואר לקישור איפוס",
-  "authSignOut": "התנתקות",
-  "authSignOutConfirmTitle": "להתנתק?",
-  "authSignOutConfirmBody": "יהיה עליך להתחבר שוב כדי לגשת לכל התכונות.",
   "authNotSignedInTitle": "יש להתחבר כדי להפעיל תזכורות",
   "authNotSignedInBody": "בכדי להפעיל את התזכורות, יש להתחבר לחשבון.",
   "authNotSignedInButton": "התחברות"

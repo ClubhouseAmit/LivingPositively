@@ -16,6 +16,33 @@ concurrency:
   queue: max
 
 jobs:
+  functions-test:
+    name: Cloud Functions tests and production audit
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: functions
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          cache: npm
+          cache-dependency-path: functions/package-lock.json
+
+      - name: Install Functions dependencies
+        run: npm ci
+
+      - name: Run Functions tests
+        run: npm test
+
+      - name: Audit production dependencies
+        # Residual moderate-only uuid advisory rationale: functions/SECURITY.md
+        run: npm audit --omit=dev --audit-level=high
+
   build-android:
     runs-on: ubuntu-latest
     env:
@@ -370,54 +397,26 @@ jobs:
           path: coverage/integration.info
 
   integration-test-ios:
-    # Phase 10A (ADR-005 § A) ORIGINALLY made this a required input to the
-    # aggregate coverage gate. ADR-006 §"Quality gate shape" downgrades it
-    # to TELEMETRY-ONLY — `continue-on-error: true` on the test step and
-    # the per-file floor step make the job green-on-failure, and the job
-    # is NO LONGER in `coverage-aggregate.needs`. This mirrors the
-    # `unit-test-web-telemetry` treatment in the same workflow.
-    #
-    # Rationale: the optimized job still runs on the critical path's
-    # slowest hardware (macOS + simulator + native iOS build). Keeping it
-    # blocking would stall every PR on macOS-runner availability and
-    # simulator/Xcode flakes. The iOS lcov was only ever additive to the
-    # union floor (max hit-count per line), so removing it from the
-    # aggregate input set cannot lower the 89% floor's safety margin.
-    #
-    # ADR-006 benchmarks this job on macos-15 arm64: it still provides
-    # Xcode 16 / iOS 18 SDK symbols required by flutter_contacts' iOS
-    # Contacts limited-permission support without forcing the newer
-    # macos-26 / Xcode 26 toolchain onto this coverage job. macOS runners
-    # are free for public repositories under GitHub's open-source billing,
-    # so the ADR-002 / Round-9 macOS-cost framing that previously deferred
-    # iOS coverage no longer applies.
-    #
-    # The job continues to:
-    #   1. Run `notifications_schedule_ios_test.dart` on the iOS simulator.
-    #   2. Compute per-file lcov for the iOS arms of NotificationsService.
-    #   3. Evaluate scripts/check_ios_integration_coverage.dart (60% floor
-    #      on lib/pages/notifications/notification_service.dart) as
-    #      JOB-INTERNAL telemetry — its failure no longer blocks the
-    #      workflow.
-    #   4. Upload `coverage-integration-ios-lcov` and `ios-podfile-lock`
-    #      artifacts for PR reviewers and ADR-006 §Podfile.lock follow-up.
-    #
-    # Re-flipping to blocking: drop the two `continue-on-error: true`
-    # lines below AND re-add `integration-test-ios` to
-    # `coverage-aggregate.needs` AND restore the iOS branch in
-    # check_aggregate_coverage.dart.
+    # Blocking iOS simulator validation. This job runs the iOS-specific
+    # FCM initialization test and fails the workflow when
+    # the test is missing or fails. It intentionally does not collect lcov;
+    # aggregate coverage remains the unit + Android integration union.
     runs-on: macos-15
-    # Telemetry must still be time-bounded. GitHub's default job timeout is
+    # Simulator validation must be time-bounded. GitHub's default timeout is
     # 360 minutes, which lets a stuck `flutter test` monopolize the macOS
     # runner long after the blocking gates have completed.
-    timeout-minutes: 60
+    # A cold CocoaPods/Firebase compile can exceed 45 minutes on GitHub's
+    # arm64 macOS runners. Allow the first run to finish and populate the
+    # DerivedData cache while keeping the job bounded. Leave enough time after
+    # the 90-minute test step to save a cold build and upload diagnostics.
+    timeout-minutes: 120
     env:
       FIREBASE_OPTIONS_PATH: lib/util/Firebase/firebase_options.dart
       IOS_PODS_CACHE_VERSION: v1
       IOS_DERIVED_DATA_CACHE_VERSION: v1
       # cloud_firestore 6.4.1's SwiftPM manifest allows firebase-ios-sdk
       # 12.14.0, whose Firestore pipeline bridge changed initializer
-      # signatures. Keep this iOS coverage job on the CocoaPods path until
+      # signatures. Keep this iOS simulator job on the CocoaPods path until
       # FlutterFire updates cloud_firestore's iOS parser for that API.
       FLUTTER_SWIFT_PACKAGE_MANAGER: "false"
     steps:
@@ -446,6 +445,20 @@ jobs:
           XCODE_CACHE_KEY=$(xcodebuild -version | tr '\n' '-' | sed -E 's/-$//' | tr ' ' '_')
           echo "cache_key=$XCODE_CACHE_KEY" >> "$GITHUB_OUTPUT"
 
+      - name: Verify CocoaPods version
+        working-directory: ios
+        run: |
+          EXPECTED_COCOAPODS_VERSION=$(awk '$1 == "COCOAPODS:" { print $2 }' Podfile.lock)
+          ACTUAL_COCOAPODS_VERSION=$(pod --version)
+          if [ -z "$EXPECTED_COCOAPODS_VERSION" ]; then
+            echo "::error::Podfile.lock does not declare a CocoaPods version."
+            exit 1
+          fi
+          if [ "$ACTUAL_COCOAPODS_VERSION" != "$EXPECTED_COCOAPODS_VERSION" ]; then
+            echo "::error::CocoaPods $EXPECTED_COCOAPODS_VERSION is required by Podfile.lock; runner has $ACTUAL_COCOAPODS_VERSION."
+            exit 1
+          fi
+
       - name: Cache CocoaPods
         uses: actions/cache@v5
         with:
@@ -458,12 +471,21 @@ jobs:
             ${{ runner.os }}-${{ runner.arch }}-${{ steps.xcode.outputs.cache_key }}-ios-pods-${{ env.IOS_PODS_CACHE_VERSION }}-
 
       - name: Cache Xcode DerivedData
-        uses: actions/cache@v5
+        id: ios-derived-data-cache
+        uses: actions/cache/restore@v5
         with:
           path: ~/Library/Developer/Xcode/DerivedData
           key: ${{ runner.os }}-${{ runner.arch }}-${{ steps.xcode.outputs.cache_key }}-ios-deriveddata-${{ env.IOS_DERIVED_DATA_CACHE_VERSION }}-${{ hashFiles('pubspec.lock', 'ios/Podfile', 'ios/Podfile.lock', '.flutter-plugins-dependencies', 'ios/Runner.xcodeproj/project.pbxproj', 'ios/Runner.xcworkspace/contents.xcworkspacedata') }}
-          restore-keys: |
-            ${{ runner.os }}-${{ runner.arch }}-${{ steps.xcode.outputs.cache_key }}-ios-deriveddata-${{ env.IOS_DERIVED_DATA_CACHE_VERSION }}-
+          # DerivedData contains build products tied to the exact plugin/pod
+          # graph. Prefix fallback restored a removed workmanager framework,
+          # producing a stale Runner binary that exited in dyld on launch.
+          # Use exact matches only; CocoaPods keeps its own broader cache.
+
+      - name: Resolve CocoaPods dependencies with current specs
+        working-directory: ios
+        # --deployment rejects any Podfile/Podfile.lock mutation. Updating the
+        # specs index may locate locked podspecs, but cannot change versions.
+        run: pod install --repo-update --deployment
 
       - name: List available iOS simulators
         # Diagnostic: surfaces the runtime + device names available on the
@@ -472,17 +494,19 @@ jobs:
         run: xcrun simctl list devices available
 
       - name: Boot iPhone simulator
-        # macos-15 images ship with multiple iPhone simulators.
-        # — pick the first "iPhone " device that is available. Avoid pinning
-        # to a specific model so the job survives when GitHub rotates the
-        # default Xcode/iOS-runtime bundle.
+        # Xcode 16.4's iOS 18.5 runtime has a WebKit regression, so use the
+        # fixed iOS 18.6 runtime while keeping the device model flexible.
         timeout-minutes: 10
         run: |
-          DEVICE_LINE=$(xcrun simctl list devices available | grep -E '^\s+iPhone ' | head -n 1)
+          DEVICE_LINE=$(xcrun simctl list devices available | awk '
+            /^-- iOS 18\.6 --$/ { in_runtime = 1; next }
+            /^-- / { in_runtime = 0 }
+            in_runtime && /^[[:space:]]+iPhone / { print; exit }
+          ')
           DEVICE_ID=$(echo "$DEVICE_LINE" | awk -F '[()]' '{print $2}')
           DEVICE_NAME=$(echo "$DEVICE_LINE" | sed -E 's/^\s+//; s/ \(.*//')
           if [ -z "$DEVICE_ID" ]; then
-            echo "::error::No iPhone simulator found on this macos-15 runner."
+            echo "::error::No iOS 18.6 iPhone simulator found on this macos-15 runner."
             xcrun simctl list devices available
             exit 1
           fi
@@ -493,6 +517,7 @@ jobs:
           xcrun simctl bootstatus "$DEVICE_ID" -b
 
       - name: Run iOS integration test with diagnostics
+        id: ios-integration-test
         # Notes on the invocation below (mirrors the Android job's design
         # rationale in the integration-test job above):
         #
@@ -504,19 +529,12 @@ jobs:
         # 3. SENTRY_DSN dart-define is a synthetic test value — Sentry's
         #    native SDK never reaches the network because the channel is
         #    mocked inside the test setUp. Symmetric with the Android job.
-        # 4. We run ONLY `notifications_schedule_ios_test.dart` here, not the
-        #    whole `integration_test/` directory. The other integration tests
-        #    (bootstrap_smoke, wellness_player, logger_init,
-        #    notifications_schedule) are Android-targeted and have no value
-        #    on iOS. Running them on iOS would either pass tautologically
-        #    (because they use debugDefaultTargetPlatformOverride) or fail
-        #    due to Android-specific channel-mock assumptions.
-        # `continue-on-error: true` is INTENTIONAL — see job-level comment.
-        # Failures here are telemetry, not gating. Do not remove without
-        # also re-adding integration-test-ios to coverage-aggregate.needs
-        # and restoring the iOS branch in check_aggregate_coverage.dart.
-        continue-on-error: true
-        timeout-minutes: 45
+        # 4. Run only the iOS FCM initialization test here rather than
+        #    duplicating the Android integration matrix on the iOS simulator.
+        # A cold Xcode build plus VM-service discovery reached 73m49s on the
+        # dependency-locked graph, then passed. Keep bounded headroom for that
+        # proven path instead of timing out a successful native test.
+        timeout-minutes: 90
         run: |
           mkdir -p ci-ios-diagnostics
           {
@@ -525,7 +543,7 @@ jobs:
             echo
             echo "=== selected simulator ==="
             echo "$DEVICE_ID"
-            xcrun simctl list "$DEVICE_ID"
+            xcrun simctl list devices "$DEVICE_ID"
             echo
             echo "=== flutter devices -v ==="
             flutter devices -v
@@ -539,31 +557,65 @@ jobs:
           SIM_LOG_PID=$!
 
           (
-            sleep 2400
+            sleep 4800
             {
-              echo "=== iOS test watchdog fired at 40 minutes ==="
+              echo "=== iOS test watchdog snapshot at 80 minutes ==="
               date -u
               echo
               echo "=== process snapshot ==="
               ps -axo pid,ppid,etime,command | grep -E 'flutter|dart|xcodebuild|simctl|Runner|ios-deploy' | grep -v grep || true
               echo
               echo "=== simulator state ==="
-              xcrun simctl list "$DEVICE_ID"
+              xcrun simctl list devices "$DEVICE_ID"
             } > ci-ios-diagnostics/watchdog.txt 2>&1
             xcrun simctl io "$DEVICE_ID" screenshot ci-ios-diagnostics/watchdog-screenshot.png > ci-ios-diagnostics/watchdog-screenshot.txt 2>&1 || true
             mkdir -p ci-ios-diagnostics/DiagnosticReports
             find ~/Library/Logs/DiagnosticReports -type f -mtime -1 -exec cp {} ci-ios-diagnostics/DiagnosticReports/ \; 2>/dev/null || true
-          ) &
+          ) > /dev/null 2>&1 &
           WATCHDOG_PID=$!
 
           cleanup_ios_diagnostics() {
-            kill "$SIM_LOG_PID" "$WATCHDOG_PID" 2>/dev/null || true
+            kill "$SIM_LOG_PID" 2>/dev/null || true
+            pkill -P "$WATCHDOG_PID" 2>/dev/null || true
+            kill "$WATCHDOG_PID" 2>/dev/null || true
           }
           trap cleanup_ios_diagnostics EXIT
 
+          run_ios_fcm_test() {
+            flutter --verbose test integration_test/fcm_initialization_ios_test.dart --no-pub --dart-define=SENTRY_DSN=https://test@dsn.example.local/0 -d "$DEVICE_ID"
+          }
+
           set +e
-          flutter --verbose test integration_test/notifications_schedule_ios_test.dart --no-pub --coverage --coverage-path coverage/integration_ios.info --dart-define=SENTRY_DSN=https://test@dsn.example.local/0 -d "$DEVICE_ID" 2>&1 | tee ci-ios-diagnostics/flutter-test.log
+          run_ios_fcm_test 2>&1 | tee ci-ios-diagnostics/flutter-test.log
           TEST_EXIT=${PIPESTATUS[0]}
+
+          # CoreSimulator can finish installing the bundle before FrontBoard
+          # registers it. Retry only that pre-process launch race; application
+          # crashes and test failures remain blocking on their first result.
+          if [ "$TEST_EXIT" -ne 0 ] && grep -Fq 'is unknown to FrontBoard' ci-ios-diagnostics/flutter-test.log; then
+            if [ "$SECONDS" -lt 2400 ]; then
+              echo "::warning::FrontBoard has not registered the installed app; resetting its registration and retrying once."
+              {
+                echo
+                echo "=== reset after FrontBoard registration race ==="
+                xcrun simctl terminate "$DEVICE_ID" com.clubhouse.livingpositively 2>/dev/null || true
+                xcrun simctl uninstall "$DEVICE_ID" com.clubhouse.livingpositively 2>/dev/null || true
+                xcrun simctl bootstatus "$DEVICE_ID" -b
+              } 2>&1 | tee -a ci-ios-diagnostics/flutter-test.log
+              RESET_EXIT=${PIPESTATUS[0]}
+
+              if [ "$RESET_EXIT" -eq 0 ]; then
+                sleep 5
+                printf '\n=== retry after FrontBoard registration reset ===\n' | tee -a ci-ios-diagnostics/flutter-test.log
+                run_ios_fcm_test 2>&1 | tee -a ci-ios-diagnostics/flutter-test.log
+                TEST_EXIT=${PIPESTATUS[0]}
+              else
+                TEST_EXIT=$RESET_EXIT
+              fi
+            else
+              echo "::warning::Skipping the FrontBoard retry after ${SECONDS}s to preserve the 90-minute step boundary."
+            fi
+          fi
           set -e
 
           {
@@ -577,13 +629,78 @@ jobs:
             ps -axo pid,ppid,etime,command | grep -E 'flutter|dart|xcodebuild|simctl|Runner|ios-deploy' | grep -v grep || true
             echo
             echo "=== simulator state ==="
-            xcrun simctl list "$DEVICE_ID"
+            xcrun simctl list devices "$DEVICE_ID"
           } > ci-ios-diagnostics/post-test.txt 2>&1 || true
           xcrun simctl io "$DEVICE_ID" screenshot ci-ios-diagnostics/post-test-screenshot.png > ci-ios-diagnostics/post-test-screenshot.txt 2>&1 || true
           mkdir -p ci-ios-diagnostics/DiagnosticReports
           find ~/Library/Logs/DiagnosticReports -type f -mtime -1 -exec cp {} ci-ios-diagnostics/DiagnosticReports/ \; 2>/dev/null || true
 
           exit "$TEST_EXIT"
+
+      - name: Collect iOS launch failure forensics
+        if: ${{ !cancelled() && steps.ios-integration-test.outcome == 'failure' }}
+        timeout-minutes: 5
+        run: |
+          DIAGNOSTICS_DIR="$PWD/ci-ios-diagnostics"
+          mkdir -p "$DIAGNOSTICS_DIR"
+          RUNNER_PID=$(sed -n 's/.*com\.clubhouse\.livingpositively: \([0-9][0-9]*\).*/\1/p' "$DIAGNOSTICS_DIR/flutter-test.log" 2>/dev/null | tail -n 1)
+
+          {
+            echo "=== post-failure launch assessment ==="
+            date -u
+            echo
+            echo "Runner PID from Flutter log: ${RUNNER_PID:-missing}"
+            echo
+            echo "=== installed app container ==="
+            xcrun simctl get_app_container "$DEVICE_ID" com.clubhouse.livingpositively app || true
+          } > "$DIAGNOSTICS_DIR/launch-failure.txt" 2>&1
+
+          if ! grep -q 'Waiting for VM Service port to be available' "$DIAGNOSTICS_DIR/flutter-test.log" 2>/dev/null; then
+            echo "Flutter did not reach the VM-service wait; skipping relaunch." >> "$DIAGNOSTICS_DIR/launch-failure.txt"
+            exit 0
+          fi
+          if grep -Eq 'VM Service URL on device|Successfully connected to service protocol' "$DIAGNOSTICS_DIR/flutter-test.log"; then
+            echo "Flutter connected to the VM service; skipping dyld relaunch." >> "$DIAGNOSTICS_DIR/launch-failure.txt"
+            exit 0
+          fi
+          if [ -z "$RUNNER_PID" ]; then
+            echo "The Runner PID was not present in Flutter's verbose log; skipping relaunch." >> "$DIAGNOSTICS_DIR/launch-failure.txt"
+            exit 0
+          fi
+
+          # The timed-out Flutter step has ended, so this relaunch cannot be
+          # adopted by the test process. It exists only to surface dyld stderr.
+          xcrun simctl terminate "$DEVICE_ID" com.clubhouse.livingpositively 2>/dev/null || true
+          xcrun simctl launch \
+            --console \
+            "$DEVICE_ID" \
+            com.clubhouse.livingpositively \
+            --disable-vm-service-publication \
+            > "$DIAGNOSTICS_DIR/manual-launch.log" 2>&1 &
+          MANUAL_LAUNCH_PID=$!
+          sleep 10
+          kill "$MANUAL_LAUNCH_PID" 2>/dev/null || true
+          wait "$MANUAL_LAUNCH_PID" 2>/dev/null || true
+          xcrun simctl terminate "$DEVICE_ID" com.clubhouse.livingpositively 2>/dev/null || true
+
+          xcrun simctl spawn "$DEVICE_ID" log show \
+            --last 3m \
+            --style compact \
+            --info \
+            --debug \
+            --predicate 'process == "Runner" OR process == "ReportCrash" OR eventMessage CONTAINS[c] "dyld" OR eventMessage CONTAINS[c] "Library not loaded"' \
+            > "$DIAGNOSTICS_DIR/launch-failure-system.log" 2>&1 || true
+          sleep 10
+          mkdir -p "$DIAGNOSTICS_DIR/DiagnosticReports/host" "$DIAGNOSTICS_DIR/DiagnosticReports/simulator"
+          find ~/Library/Logs/DiagnosticReports -type f -mtime -1 -exec cp -n {} "$DIAGNOSTICS_DIR/DiagnosticReports/host/" \; 2>/dev/null || true
+          find ~/Library/Developer/CoreSimulator/Devices/"$DEVICE_ID"/data/Library/Logs/CrashReporter -type f -mtime -1 -exec cp -n {} "$DIAGNOSTICS_DIR/DiagnosticReports/simulator/" \; 2>/dev/null || true
+
+      - name: Save Xcode DerivedData
+        if: ${{ !cancelled() && (steps.ios-integration-test.outcome == 'success' || steps.ios-integration-test.outcome == 'failure') && steps.ios-derived-data-cache.outputs.cache-hit != 'true' }}
+        uses: actions/cache/save@v5
+        with:
+          path: ~/Library/Developer/Xcode/DerivedData
+          key: ${{ steps.ios-derived-data-cache.outputs.cache-primary-key }}
 
       - name: Upload iOS integration diagnostics
         if: always()
@@ -599,23 +716,6 @@ jobs:
         with:
           name: ios-podfile-lock
           path: ios/Podfile.lock
-          if-no-files-found: warn
-
-      - name: Enforce iOS per-file coverage floor (telemetry — non-blocking)
-        # `continue-on-error: true` is INTENTIONAL — see job-level comment.
-        # The per-file floor is preserved as job-internal signal so PR
-        # reviewers can spot iOS-coverage regressions in the workflow log,
-        # but it does not gate the workflow until ADR-006's runtime
-        # objective is met and the job is re-promoted to blocking.
-        continue-on-error: true
-        run: dart run scripts/check_ios_integration_coverage.dart
-
-      - name: Upload iOS integration coverage report
-        if: always()
-        uses: actions/upload-artifact@v4
-        with:
-          name: coverage-integration-ios-lcov
-          path: coverage/integration_ios.info
           if-no-files-found: warn
 
   unit-test-web-telemetry:
@@ -710,12 +810,10 @@ jobs:
     #   integration-test → check_integration_coverage.dart  (per-file floors)
     # This job is purely additive; removing it restores the Phase 7 state.
     runs-on: ubuntu-latest
-    # ADR-006 §"Quality gate shape": integration-test-ios was REMOVED from
-    # this set when the iOS job was downgraded to telemetry. The iOS lcov
-    # was additive to the union floor (max hit-count per line), so its
-    # removal cannot lower the 89% safety margin. Re-add iOS here if the
-    # job is re-promoted to blocking.
-    needs: [build-android, integration-test]
+    # Functions and iOS do not emit aggregate lcov inputs, but their job
+    # results are part of this canonical gate so a required aggregate check
+    # cannot pass while either production boundary is red.
+    needs: [build-android, integration-test, functions-test, integration-test-ios]
     if: ${{ always() }}
     timeout-minutes: 15
     steps:
@@ -727,14 +825,26 @@ jobs:
         run: |
           build_result="${{ needs.build-android.result }}"
           intg_result="${{ needs.integration-test.result }}"
+          functions_result="${{ needs.functions-test.result }}"
+          ios_result="${{ needs.integration-test-ios.result }}"
           echo "build-android result:        $build_result"
           echo "integration-test result:     $intg_result"
+          echo "functions-test result:       $functions_result"
+          echo "integration-test-ios result: $ios_result"
           if [ "$build_result" != "success" ]; then
             echo "::error::Upstream job build-android did not succeed (result=$build_result); cannot compute aggregate coverage." >&2
             exit 1
           fi
           if [ "$intg_result" != "success" ]; then
             echo "::error::Upstream job integration-test did not succeed (result=$intg_result); cannot compute aggregate coverage." >&2
+            exit 1
+          fi
+          if [ "$functions_result" != "success" ]; then
+            echo "::error::Upstream job functions-test did not succeed (result=$functions_result); cannot compute aggregate coverage." >&2
+            exit 1
+          fi
+          if [ "$ios_result" != "success" ]; then
+            echo "::error::Upstream job integration-test-ios did not succeed (result=$ios_result); cannot compute aggregate coverage." >&2
             exit 1
           fi
           echo "All upstream jobs succeeded — proceeding with aggregate merge."
@@ -770,10 +880,8 @@ jobs:
         # step. Output path is distinct from all inputs so no upstream
         # gate is clobbered.
         #
-        # ADR-006 §"Quality gate shape": coverage/integration_ios.info is
-        # NO LONGER merged here. The iOS job is telemetry-only and not in
-        # this job's needs: list, so the artifact may be absent or stale.
-        # Restore the iOS input alongside re-promoting the iOS job.
+        # The iOS simulator job is a behavioral gate and intentionally does
+        # not emit a third lcov input.
         run: dart run scripts/merge_lcov.dart coverage/aggregate.info coverage/lcov.info coverage/integration.info
 
       - name: Enforce aggregate coverage gate
@@ -785,10 +893,8 @@ jobs:
         # extension in firebase_functions.dart pushed unit-only coverage
         # to 89.33% — see docs/coverage-status.md § Round 9).
         #
-        # ADR-006 §"Quality gate shape": the iOS lcov was a third input
-        # under ADR-005 § A (Phase 10A) but is no longer merged here while
-        # the iOS job is telemetry-only. Removing an additive input cannot
-        # lower the union; the 89% floor stays safe.
+        # The iOS simulator job does not contribute lcov; this aggregate gate
+        # remains the unit and Android-integration union.
         run: dart run scripts/check_aggregate_coverage.dart
 
       - name: Upload aggregate coverage report
@@ -801,7 +907,13 @@ jobs:
   release-android-internal:
     name: Release Android to Google Play internal testing
     runs-on: ubuntu-latest
-    needs: [build-android, coverage-aggregate]
+    needs:
+      [
+        build-android,
+        coverage-aggregate,
+        functions-test,
+        integration-test-ios,
+      ]
     if: github.event_name == 'push' && github.ref == 'refs/heads/main'
     concurrency:
       group: google-play-internal-release

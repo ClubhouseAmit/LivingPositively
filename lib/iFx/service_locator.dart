@@ -1,3 +1,4 @@
+import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:get_it/get_it.dart';
@@ -16,17 +17,24 @@ final getIt = GetIt.instance;
 void setupLocator() {
   // Register YoutubePlayer as a singleton for the VideoPlayerController interface
   getIt.registerLazySingleton<VideoPlayerPageFactory>(
-      () => VideoPlayerPageFactoryImpl());
+    () => VideoPlayerPageFactoryImpl(),
+  );
   getIt.registerLazySingleton<ImagePickerService>(
-      () => ImagePickerServiceImpl());
+    () => ImagePickerServiceImpl(),
+  );
 
   getIt.registerLazySingleton<FileService>(() => FileServiceImpl());
   getIt.registerLazySingleton<IncidentLoggerService>(() => SentryServiceImpl());
   getIt.registerLazySingleton<LocaleService>(() => LocaleServiceImpl());
   getIt.registerLazySingleton<AnalyticsService>(() => MixPanelService());
   getIt.registerLazySingleton<PersistentMemoryService>(
-      () => SharedPreferencesService());
+    () => SharedPreferencesService(),
+  );
   getIt.registerLazySingleton<GlobalKey<NavigatorState>>(
-      () => GlobalKey<NavigatorState>());
+    () => GlobalKey<NavigatorState>(),
+  );
   getIt.registerLazySingleton<FirebaseAuth>(() => FirebaseAuth.instance);
+  getIt.registerLazySingleton<FirebaseFirestore>(
+    () => FirebaseFirestore.instance,
+  );
 }

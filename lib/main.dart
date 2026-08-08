@@ -51,11 +51,30 @@ Future<void> initializeApp({
       ))();
 
   (locatorSetup ?? setupLocator)();
-  await (fcmInitializer ?? FcmService.initialize)();
+  unawaited(_initializeFcmBestEffort(fcmInitializer ?? FcmService.initialize));
+}
+
+Future<void> _initializeFcmBestEffort(
+  Future<void> Function() initializer,
+) async {
+  try {
+    await Future<void>.sync(initializer);
+  } catch (error, stackTrace) {
+    debugPrint('[Bootstrap] FCM initialization failed: $error');
+    if (!GetIt.instance.isRegistered<IncidentLoggerService>()) return;
+    try {
+      await GetIt.instance<IncidentLoggerService>().captureLog(
+        error,
+        stackTrace: stackTrace,
+      );
+    } catch (loggerError) {
+      debugPrint('[Bootstrap] FCM failure reporting failed: $loggerError');
+    }
+  }
 }
 
 /// Test seam for `main()`. Performs platform binding + Firebase init +
-/// service-locator setup + FCM init, then returns the
+/// service-locator setup, launches best-effort FCM init, then returns the
 /// root widget tree. `main()` only adds the `IncidentLoggerService.
 /// initializeSentry(...)` call (which itself calls `runApp`); a test that
 /// calls `bootstrapApp()` directly can pump the returned widget through the
@@ -194,6 +213,7 @@ class _MyAppState extends State<MyApp> with WidgetsBindingObserver {
     if (state == AppLifecycleState.resumed) {
       _startSession(); // App is active
       _refreshThemeSchedule(force: true);
+      FcmService.onAppResumed();
       if (mounted) {
         setState(() {});
       }
@@ -429,6 +449,12 @@ class _MyAppState extends State<MyApp> with WidgetsBindingObserver {
             setLocale(),
           ])
           .then((_) {
+            if (!mounted) return;
+            unawaited(
+              FcmScheduledNotificationService.migrateLegacyDefaultReminderWithReporting(
+                userInformation: userInfoProvider,
+              ),
+            );
             //initialize which widget will run first:
             widgetNotifier.value = FirstPage(
               firsttime: !enteredBefore,

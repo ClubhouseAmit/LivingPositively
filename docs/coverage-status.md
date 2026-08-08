@@ -1264,6 +1264,14 @@ no skipped tests, analyzer clean) — all four held without iteration.
 
 ## Round 10 — Phase 10 ADR-005 execution (macOS-runner iOS coverage, bootstrapApp extraction, web test gate)
 
+> **Current-state update (2026-08-05):** The Round 10 iOS coverage design below
+> is historical. The active `integration-test-ios` job is now blocking and runs
+> `integration_test/notifications_schedule_test.dart` without collecting lcov.
+> `integration_test/notifications_schedule_ios_test.dart`,
+> `scripts/check_ios_integration_coverage.dart`, `coverage/integration_ios.info`,
+> and the `coverage-integration-ios-lcov` artifact have been removed. Unit plus
+> Android integration lcov remain the aggregate coverage inputs.
+
 Generated: 2026-05-25 — executes the three sub-decisions adopted in
 [`docs/adr/ADR-005-phase-10-macos-runner-ios-and-web-coverage.md`](adr/ADR-005-phase-10-macos-runner-ios-and-web-coverage.md).
 This round is anchored on the constraint shift that open-source macOS

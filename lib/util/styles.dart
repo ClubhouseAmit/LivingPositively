@@ -137,7 +137,7 @@ Widget CancelButton(context, function, text, buttonTextStyle) {
   );
 }
 
-Widget ResetButton(context, function, text, buttonTextStyle) {
+Widget ResetButton(context, function, text, buttonTextStyle, {Key? key}) {
   final textStyle = buttonTextStyle is TextStyle
       ? buttonTextStyle.copyWith(color: Theme.of(context).colorScheme.onError)
       : TextStyle(color: Theme.of(context).colorScheme.onError);
@@ -146,6 +146,7 @@ Widget ResetButton(context, function, text, buttonTextStyle) {
         ? 400
         : MediaQuery.of(context).size.width * 0.3,
     child: TextButton(
+      key: key,
       onPressed: () {
         function();
       },
