@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:get_it/get_it.dart';
 import 'package:mazilon/AnalyticsService.dart';
@@ -18,11 +20,13 @@ class VideoPlayerPage extends StatefulWidget {
 }
 
 class _VideoPlayerPageState extends State<VideoPlayerPage> {
-  late VoidCallback listener;
   late YoutubePlayerController controller;
+  StreamSubscription<YoutubePlayerValue>? _controllerSubscription;
   bool _controllerInitialized = false;
+  bool _initializationAttempted = false;
   bool _hasInitialVideo = false;
   bool? _isPlaying;
+  String? _loadedVideoId;
 
   @override
   void initState() {
@@ -30,31 +34,36 @@ class _VideoPlayerPageState extends State<VideoPlayerPage> {
   }
 
   void _initializeController() {
+    _initializationAttempted = true;
     final videoIds = widget.videoData['videoId'];
     final initialVideoId = videoIds != null && videoIds.isNotEmpty
         ? _youtubeId(videoIds.first)
         : null;
     _hasInitialVideo = initialVideoId != null;
-    controller = YoutubePlayerController(
-      initialVideoId: initialVideoId ?? '',
-      flags: YoutubePlayerFlags(
-        autoPlay: false,
+    if (initialVideoId == null) {
+      return;
+    }
+
+    final languageCode = Localizations.localeOf(context).languageCode;
+    controller = YoutubePlayerController.fromVideoId(
+      videoId: initialVideoId,
+      autoPlay: false,
+      params: YoutubePlayerParams(
         enableCaption: true,
-        captionLanguage: Localizations.localeOf(context).languageCode,
+        captionLanguage: languageCode,
+        interfaceLanguage: languageCode,
       ),
     );
 
-    listener = () {
-      widget.onFullScreenChanged(controller.value.isFullScreen);
-      _trackIsPlaying();
-    };
-    controller.addListener(listener);
+    controller.setFullScreenListener(widget.onFullScreenChanged);
+    _controllerSubscription = controller.stream.listen(_trackIsPlaying);
+    _loadedVideoId = initialVideoId;
     _controllerInitialized = true;
   }
 
   String? _youtubeId(String videoId) {
     final trimmed = videoId.trim();
-    final fromUrl = YoutubePlayer.convertUrlToId(trimmed);
+    final fromUrl = YoutubePlayerController.convertUrlToId(trimmed);
     if (fromUrl != null && fromUrl.isNotEmpty) {
       return fromUrl;
     }
@@ -64,29 +73,33 @@ class _VideoPlayerPageState extends State<VideoPlayerPage> {
     return trimmed.substring(0, 11);
   }
 
-  void _trackIsPlaying() {
-    if (_isPlaying != controller.value.isPlaying) {
-      _isPlaying = controller.value.isPlaying;
-      _logEvent(
-        _isPlaying!,
-        controller.metadata.title,
-        controller.metadata.videoId,
-      );
+  void _trackIsPlaying(YoutubePlayerValue value) {
+    final isPlaying = switch (value.playerState) {
+      PlayerState.playing => true,
+      PlayerState.paused => false,
+      _ => null,
+    };
+    if (isPlaying != null && _isPlaying != isPlaying) {
+      _isPlaying = isPlaying;
+      _logEvent(isPlaying, value.metaData.title, value.metaData.videoId);
     }
   }
 
   @override
   void didChangeDependencies() {
     super.didChangeDependencies();
-    if (!_controllerInitialized) {
+    if (!_initializationAttempted) {
       _initializeController();
+    }
+    if (!_controllerInitialized) {
+      return;
     }
     // Update the video when the inherited widget provides a new videoId
     final newVideoId = VideoPlayerInheritedWidget.of(context)?.videoId ?? '';
     final normalizedVideoId = _youtubeId(newVideoId);
-    if (normalizedVideoId != null &&
-        normalizedVideoId != controller.metadata.videoId) {
-      controller.load(normalizedVideoId);
+    if (normalizedVideoId != null && normalizedVideoId != _loadedVideoId) {
+      _loadedVideoId = normalizedVideoId;
+      unawaited(controller.loadVideoById(videoId: normalizedVideoId));
     }
   }
 
@@ -96,17 +109,8 @@ class _VideoPlayerPageState extends State<VideoPlayerPage> {
       super.dispose();
       return;
     }
-    controller.removeListener(listener);
-    // CI run 26463427363 reproduced youtube_player_flutter#1143 on Android:
-    // YoutubePlayerController.dispose() calls value.webViewController?.dispose()
-    // after the child InAppWebView has already disposed the same platform
-    // controller. Flutter unmounts children before State.dispose(), so the
-    // YoutubePlayer widget listener is gone here; after removing our listener,
-    // this reset only detaches the stale WebView reference before disposing
-    // the ValueNotifier. Recheck when upgrading youtube_player_flutter.
-    // https://github.com/sarbagyastha/youtube_player_flutter/issues/1143
-    controller.updateValue(YoutubePlayerValue());
-    controller.dispose();
+    unawaited(_controllerSubscription?.cancel());
+    unawaited(controller.close());
     super.dispose();
   }
 
@@ -125,9 +129,6 @@ class _VideoPlayerPageState extends State<VideoPlayerPage> {
 
   @override
   Widget build(BuildContext context) {
-    if (!_controllerInitialized) {
-      return const SizedBox.shrink();
-    }
     if (!_hasInitialVideo) {
       return Center(
         child: Text(
@@ -136,13 +137,10 @@ class _VideoPlayerPageState extends State<VideoPlayerPage> {
         ),
       );
     }
+    if (!_controllerInitialized || !_initializationAttempted) {
+      return const SizedBox.shrink();
+    }
     debugPrint(controller.metadata.videoId);
-    return YoutubePlayer(
-      controller: controller,
-      showVideoProgressIndicator: true,
-      onReady: () {
-        debugPrint('Player is ready.');
-      },
-    );
+    return YoutubePlayer(controller: controller);
   }
 }

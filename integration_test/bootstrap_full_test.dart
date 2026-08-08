@@ -88,7 +88,9 @@ class _SilentWorkmanager extends WorkmanagerPlatform {
       BackoffPolicy? backoffPolicy,
       Duration? backoffPolicyDelay,
       String? tag,
-      OutOfQuotaPolicy? outOfQuotaPolicy}) async {}
+      OutOfQuotaPolicy? outOfQuotaPolicy,
+      ForegroundServiceConfig? foregroundServiceConfig,
+      bool expedited = false}) async {}
 
   @override
   Future<void> registerPeriodicTask(String uniqueName, String taskName,
@@ -100,7 +102,8 @@ class _SilentWorkmanager extends WorkmanagerPlatform {
       ExistingPeriodicWorkPolicy? existingWorkPolicy,
       BackoffPolicy? backoffPolicy,
       Duration? backoffPolicyDelay,
-      String? tag}) async {}
+      String? tag,
+      ForegroundServiceConfig? foregroundServiceConfig}) async {}
 
   @override
   Future<void> cancelByUniqueName(String uniqueName) async {}

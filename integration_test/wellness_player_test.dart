@@ -27,8 +27,8 @@
 // platform view will fail to render and this file will fail to pump. That is
 // expected — it is the whole reason this file lives in integration_test/
 // rather than test/. The test logic is verifiable by construction (the
-// listener/track/log calls are exercised via direct value mutation of the
-// controller, which works on any binding) and the documentation here is the
+// listener/track/log calls are exercised via direct controller state updates,
+// which work on any binding) and the documentation here is the
 // contract for the CI emulator-runner job.
 
 import 'package:flutter/material.dart';
@@ -47,8 +47,10 @@ class _RecordingAnalytics implements AnalyticsService {
   Future<void> init() async {}
 
   @override
-  Future<void> trackEvent(String eventName,
-      [Map<String, dynamic>? properties]) async {
+  Future<void> trackEvent(
+    String eventName, [
+    Map<String, dynamic>? properties,
+  ]) async {
     events.add(MapEntry(eventName, properties));
   }
 }
@@ -89,88 +91,88 @@ void main() {
   });
 
   testWidgets(
-      'VideoPlayerPage initState constructs controller and registers listener',
-      (tester) async {
-    var fullScreenChanges = <bool>[];
+    'VideoPlayerPage initState constructs controller and registers listener',
+    (tester) async {
+      var fullScreenChanges = <bool>[];
 
-    await tester.pumpWidget(
-      _harness(onFullScreenChanged: (b) => fullScreenChanges.add(b)),
-    );
-    // Allow the YoutubePlayer to begin initialising. On the Android emulator
-    // its native handshake takes a few frames; on `flutter test` this will
-    // throw and the test will fail — see file-level docstring.
-    await tester.pump(const Duration(milliseconds: 100));
+      await tester.pumpWidget(
+        _harness(onFullScreenChanged: (b) => fullScreenChanges.add(b)),
+      );
+      // Allow the YoutubePlayer to begin initialising. On the Android emulator
+      // its native handshake takes a few frames; on `flutter test` this will
+      // throw and the test will fail — see file-level docstring.
+      await tester.pump(const Duration(milliseconds: 100));
 
-    // The VideoPlayerPage widget is in the tree. (We deliberately do NOT
-    // pumpAndSettle here because the YoutubePlayer's internal animation
-    // controller never settles.)
-    expect(find.byType(VideoPlayerPage), findsOneWidget);
-  });
-
-  testWidgets(
-      'listener fires on controller value change → onFullScreenChanged + _trackIsPlaying',
-      (tester) async {
-    final fullScreenChanges = <bool>[];
-
-    await tester.pumpWidget(
-      _harness(onFullScreenChanged: (b) => fullScreenChanges.add(b)),
-    );
-    await tester.pump(const Duration(milliseconds: 100));
-
-    // Reach into the state to grab the controller and synthesise value
-    // changes that drive the listener through both isPlaying branches. The
-    // controller is a public field on _VideoPlayerPageState, but the state
-    // class itself is private — use the widget-test convention of grabbing
-    // the State via `tester.state` and `dynamic` to call into it.
-    final state = tester.state(find.byType(VideoPlayerPage)) as dynamic;
-    final YoutubePlayerController controller =
-        state.controller as YoutubePlayerController;
-
-    // Drive isFullScreen + isPlaying transitions.
-    controller.value = controller.value.copyWith(isFullScreen: true);
-    await tester.pump();
-    controller.value = controller.value.copyWith(isPlaying: true);
-    await tester.pump();
-    controller.value = controller.value.copyWith(isPlaying: false);
-    await tester.pump();
-
-    expect(fullScreenChanges, contains(true));
-    // Both unpaused + paused tracks should have fired.
-    final names = analytics.events.map((e) => e.key).toSet();
-    expect(names, containsAll(<String>{'Video unpaused', 'Video paused'}));
-  });
+      // The VideoPlayerPage widget is in the tree. (We deliberately do NOT
+      // pumpAndSettle here because the YoutubePlayer's internal animation
+      // controller never settles.)
+      expect(find.byType(VideoPlayerPage), findsOneWidget);
+    },
+  );
 
   testWidgets(
-      'didChangeDependencies reacts to VideoPlayerInheritedWidget videoId change',
-      (tester) async {
-    await tester.pumpWidget(_harness(
-      onFullScreenChanged: (_) {},
-      videoId: 'first-video-id',
-    ));
-    await tester.pump(const Duration(milliseconds: 100));
+      'listener fires on controller state change → onFullScreenChanged + _trackIsPlaying',
+    (tester) async {
+      final fullScreenChanges = <bool>[];
 
-    // Re-pump with a different videoId — the inherited widget's
-    // updateShouldNotify fires, the state's didChangeDependencies calls
-    // controller.load(newVideoId), and the new video id flows into the
-    // controller's metadata. This drives lines 47-54 of player.dart.
-    await tester.pumpWidget(_harness(
-      onFullScreenChanged: (_) {},
-      videoId: 'second-video-id',
-    ));
-    await tester.pump(const Duration(milliseconds: 100));
+      await tester.pumpWidget(
+        _harness(onFullScreenChanged: (b) => fullScreenChanges.add(b)),
+      );
+      await tester.pump(const Duration(milliseconds: 100));
 
-    expect(find.byType(VideoPlayerPage), findsOneWidget);
-  });
+      // Reach into the state to grab the controller and synthesise state
+      // changes that drive the listener through both playback branches. The
+      // controller is a public field on _VideoPlayerPageState, but the state
+      // class itself is private — use the widget-test convention of grabbing
+      // the State via `tester.state` and `dynamic` to call into it.
+      final state = tester.state(find.byType(VideoPlayerPage)) as dynamic;
+      final YoutubePlayerController controller =
+          state.controller as YoutubePlayerController;
 
-  testWidgets('VideoPlayerPage dispose tears down the controller cleanly',
-      (tester) async {
-    await tester.pumpWidget(
-      _harness(onFullScreenChanged: (_) {}),
-    );
+      // Drive fullscreen + playback transitions.
+      controller.enterFullScreen();
+      await tester.pump();
+      controller.update(playerState: PlayerState.playing);
+      await tester.pump();
+      controller.update(playerState: PlayerState.paused);
+      await tester.pump();
+
+      expect(fullScreenChanges, contains(true));
+      // Both unpaused + paused tracks should have fired.
+      final names = analytics.events.map((e) => e.key).toSet();
+      expect(names, containsAll(<String>{'Video unpaused', 'Video paused'}));
+    },
+  );
+
+  testWidgets(
+    'didChangeDependencies reacts to VideoPlayerInheritedWidget videoId change',
+    (tester) async {
+      await tester.pumpWidget(
+        _harness(onFullScreenChanged: (_) {}, videoId: 'first-video-id'),
+      );
+      await tester.pump(const Duration(milliseconds: 100));
+
+      // Re-pump with a different videoId — the inherited widget's
+      // updateShouldNotify fires, the state's didChangeDependencies calls
+      // controller.loadVideoById(newVideoId), and the new video id flows into
+      // the controller's metadata.
+      await tester.pumpWidget(
+        _harness(onFullScreenChanged: (_) {}, videoId: 'second-video-id'),
+      );
+      await tester.pump(const Duration(milliseconds: 100));
+
+      expect(find.byType(VideoPlayerPage), findsOneWidget);
+    },
+  );
+
+  testWidgets('VideoPlayerPage dispose tears down the controller cleanly', (
+    tester,
+  ) async {
+    await tester.pumpWidget(_harness(onFullScreenChanged: (_) {}));
     await tester.pump(const Duration(milliseconds: 100));
 
     // Replace with an empty tree — disposes VideoPlayerPage and runs the
-    // dispose lifecycle (which calls controller.dispose() at line 59).
+    // dispose lifecycle (which closes the controller).
     await tester.pumpWidget(const MaterialApp(home: SizedBox.shrink()));
     await tester.pump();
 

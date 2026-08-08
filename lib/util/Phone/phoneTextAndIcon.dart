@@ -1,5 +1,5 @@
 import 'package:flutter/foundation.dart'
-    show TargetPlatform, defaultTargetPlatform;
+    show TargetPlatform, defaultTargetPlatform, kIsWeb;
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
@@ -183,8 +183,23 @@ Future<bool> openWhatsApp(String number, {String body = ''}) {
 Future<bool> openSite(String url) =>
     _launchUriWithLogging(Uri.parse(url), mode: LaunchMode.externalApplication);
 
-Future<bool> openTextMessage(String number, {String body = ''}) {
+const _smsComposeChannel = MethodChannel('com.matzilon.mezilon/sms_compose');
+
+Future<bool> openTextMessage(String number, {String body = ''}) async {
   final trimmedBody = body.trim();
+  if (!kIsWeb &&
+      (defaultTargetPlatform == TargetPlatform.android ||
+          defaultTargetPlatform == TargetPlatform.iOS)) {
+    final composed = await _smsComposeChannel.invokeMethod<bool>('composeSms', {
+      'number': number,
+      'body': trimmedBody,
+    });
+    if (composed != true) {
+      debugPrint('Could not compose SMS for $number');
+    }
+    return composed ?? false;
+  }
+
   final uri = trimmedBody.isEmpty
       ? Uri(scheme: 'sms', path: number)
       : Uri(

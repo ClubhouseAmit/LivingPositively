@@ -66,7 +66,9 @@ class _PhonePageState extends LPExtendedState<PhonePage> {
         continue;
       }
       if (unavailableOption == _SosLocationUnavailableOption.message) {
-        await _showDeliveryOptions(appLocale.sosShareLocationMessage);
+        await _showDeliveryOptions(
+          '${appLocale.sosShareLocationMessage}\n${appLocale.sosShareLocationUnavailable}',
+        );
       }
       return;
     }

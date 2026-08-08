@@ -3,6 +3,7 @@ import 'dart:async';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:geolocator/geolocator.dart';
 import 'package:get_it/get_it.dart';
@@ -22,6 +23,8 @@ import 'package:mazilon/util/userInformation.dart';
 import 'package:provider/provider.dart';
 import 'package:url_launcher_platform_interface/link.dart';
 import 'package:url_launcher_platform_interface/url_launcher_platform_interface.dart';
+
+const _smsComposeChannel = MethodChannel('com.matzilon.mezilon/sms_compose');
 
 class FakePersistentMemoryService implements PersistentMemoryService {
   @override
@@ -675,11 +678,15 @@ void main() {
   testWidgets('EmergencyDialogBox uses sms number and body for text action', (
     tester,
   ) async {
-    final originalPlatform = UrlLauncherPlatform.instance;
-    final fakePlatform = FakeUrlLauncherPlatform();
-    UrlLauncherPlatform.instance = fakePlatform;
+    MethodCall? smsCall;
+    final messenger =
+        TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger;
+    messenger.setMockMethodCallHandler(_smsComposeChannel, (call) async {
+      smsCall = call;
+      return true;
+    });
     addTearDown(() {
-      UrlLauncherPlatform.instance = originalPlatform;
+      messenger.setMockMethodCallHandler(_smsComposeChannel, null);
     });
 
     final userInfo = UserInformation(
@@ -708,7 +715,11 @@ void main() {
     await tester.tap(find.byIcon(Icons.sms));
     await tester.pumpAndSettle();
 
-    expect(fakePlatform.lastLaunchedUrl, 'sms:741741?body=HOME');
+    expect(smsCall?.method, 'composeSms');
+    expect(smsCall?.arguments, <String, String>{
+      'number': '741741',
+      'body': 'HOME',
+    });
   });
 
   test('dialPhone uses url_launcher for Android phone links', () async {
@@ -1703,10 +1714,16 @@ void main() {
   testWidgets('PhonePage sends location SOS content to a saved SMS contact', (
     tester,
   ) async {
-    final originalPlatform = UrlLauncherPlatform.instance;
-    final fakePlatform = FakeUrlLauncherPlatform();
-    UrlLauncherPlatform.instance = fakePlatform;
-    addTearDown(() => UrlLauncherPlatform.instance = originalPlatform);
+    MethodCall? smsCall;
+    final messenger =
+        TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger;
+    messenger.setMockMethodCallHandler(_smsComposeChannel, (call) async {
+      smsCall = call;
+      return true;
+    });
+    addTearDown(
+      () => messenger.setMockMethodCallHandler(_smsComposeChannel, null),
+    );
 
     final geolocator = FakeGeolocatorPlatform();
     final fileService = RecordingFileService();
@@ -1742,14 +1759,13 @@ void main() {
         await tester.pumpAndSettle();
         await _chooseDeliveryOption(tester, localizations.sosDeliverySms);
 
-        final smsUri = Uri.parse(fakePlatform.lastLaunchedUrl!);
-        expect(smsUri.scheme, 'sms');
-        expect(Uri.decodeComponent(smsUri.path), '+972501234567');
-        expect(
-          smsUri.queryParameters['body'],
-          '${localizations.sosShareLocationMessage}\n'
-          'https://www.google.com/maps/search/?api=1&query=31.7683,35.2137',
-        );
+        expect(smsCall?.method, 'composeSms');
+        expect(smsCall?.arguments, <String, String>{
+          'number': '+972501234567',
+          'body':
+              '${localizations.sosShareLocationMessage}\n'
+              'https://www.google.com/maps/search/?api=1&query=31.7683,35.2137',
+        });
         expect(fileService.sharedMessages, isEmpty);
       },
     );
@@ -2096,9 +2112,139 @@ void main() {
 
           expect(
             fileService.sharedMessages.last,
-            localizations.sosShareLocationMessage,
+            '${localizations.sosShareLocationMessage}\n'
+            '${localizations.sosShareLocationUnavailable}',
           );
           expect(unavailableGeolocator.currentPositionCalls, 0);
+        },
+      );
+    },
+  );
+
+  testWidgets(
+    'PhonePage includes unavailable-location disclosure in fallback SMS delivery',
+    (tester) async {
+      MethodCall? smsCall;
+      final messenger =
+          TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger;
+      messenger.setMockMethodCallHandler(_smsComposeChannel, (call) async {
+        smsCall = call;
+        return true;
+      });
+      addTearDown(
+        () => messenger.setMockMethodCallHandler(_smsComposeChannel, null),
+      );
+
+      final geolocator = FakeGeolocatorPlatform(serviceEnabled: false);
+      final fileService = RecordingFileService();
+      await _runLocationShareTest(
+        geolocator,
+        fileService,
+        body: () async {
+          final phonePageData = _phonePageDataForLocationShare();
+          await tester.pumpWidget(
+            buildPhonePageTestApp(
+              userInformation: UserInformation(
+                gender: 'male',
+                location: 'IL',
+                service: FakePersistentMemoryService(),
+              ),
+              appInformation: AppInformation(),
+              phonePageData: phonePageData,
+            ),
+          );
+          await tester.pumpAndSettle();
+          expect(
+            phonePageData.addItem('Fallback SMS', '+972 50 123 4567'),
+            isTrue,
+          );
+          await tester.pumpAndSettle();
+          final localizations = AppLocalizations.of(
+            tester.element(find.byType(PhonePage)),
+          )!;
+
+          await _tapLocationShare(tester);
+          await tester.tap(find.text(localizations.sosShareMessage).last);
+          await tester.pumpAndSettle();
+          await _chooseDeliveryOption(
+            tester,
+            localizations.sosDeliverySendToContact,
+          );
+          await tester.tap(find.text('Fallback SMS').last);
+          await tester.pumpAndSettle();
+          await _chooseDeliveryOption(tester, localizations.sosDeliverySms);
+
+          expect(smsCall?.method, 'composeSms');
+          expect(smsCall?.arguments, <String, String>{
+            'number': '+972501234567',
+            'body':
+                '${localizations.sosShareLocationMessage}\n'
+                '${localizations.sosShareLocationUnavailable}',
+          });
+          expect(fileService.sharedMessages, isEmpty);
+          expect(geolocator.currentPositionCalls, 0);
+        },
+      );
+    },
+  );
+
+  testWidgets(
+    'PhonePage includes unavailable-location disclosure in fallback WhatsApp delivery',
+    (tester) async {
+      final originalPlatform = UrlLauncherPlatform.instance;
+      final fakePlatform = FakeUrlLauncherPlatform();
+      UrlLauncherPlatform.instance = fakePlatform;
+      addTearDown(() => UrlLauncherPlatform.instance = originalPlatform);
+
+      final geolocator = FakeGeolocatorPlatform(serviceEnabled: false);
+      final fileService = RecordingFileService();
+      await _runLocationShareTest(
+        geolocator,
+        fileService,
+        body: () async {
+          final phonePageData = _phonePageDataForLocationShare();
+          await tester.pumpWidget(
+            buildPhonePageTestApp(
+              userInformation: UserInformation(
+                gender: 'male',
+                location: 'IL',
+                service: FakePersistentMemoryService(),
+              ),
+              appInformation: AppInformation(),
+              phonePageData: phonePageData,
+            ),
+          );
+          await tester.pumpAndSettle();
+          expect(
+            phonePageData.addItem('Fallback WhatsApp', '+972 50 123 4567'),
+            isTrue,
+          );
+          await tester.pumpAndSettle();
+          final localizations = AppLocalizations.of(
+            tester.element(find.byType(PhonePage)),
+          )!;
+
+          await _tapLocationShare(tester);
+          await tester.tap(find.text(localizations.sosShareMessage).last);
+          await tester.pumpAndSettle();
+          await _chooseDeliveryOption(
+            tester,
+            localizations.sosDeliverySendToContact,
+          );
+          await tester.tap(find.text('Fallback WhatsApp').last);
+          await tester.pumpAndSettle();
+          await _chooseDeliveryOption(tester, localizations.whatsApp);
+
+          final whatsAppUri = Uri.parse(fakePlatform.lastLaunchedUrl!);
+          expect(whatsAppUri.host, 'wa.me');
+          expect(whatsAppUri.path, '/972501234567');
+          expect(
+            whatsAppUri.queryParameters['text'],
+            '${localizations.sosShareLocationMessage}\n'
+            '${localizations.sosShareLocationUnavailable}',
+          );
+          expect(fileService.sharedMessages, isEmpty);
+          expect(geolocator.currentPositionCalls, 0);
         },
       );
     },

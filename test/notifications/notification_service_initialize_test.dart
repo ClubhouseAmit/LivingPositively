@@ -48,7 +48,9 @@ class _FakeWorkmanager extends WorkmanagerPlatform {
       BackoffPolicy? backoffPolicy,
       Duration? backoffPolicyDelay,
       String? tag,
-      OutOfQuotaPolicy? outOfQuotaPolicy}) async {
+      OutOfQuotaPolicy? outOfQuotaPolicy,
+      ForegroundServiceConfig? foregroundServiceConfig,
+      bool expedited = false}) async {
     calls.add('registerOneOffTask:$uniqueName:$taskName');
   }
 
@@ -62,7 +64,8 @@ class _FakeWorkmanager extends WorkmanagerPlatform {
       ExistingPeriodicWorkPolicy? existingWorkPolicy,
       BackoffPolicy? backoffPolicy,
       Duration? backoffPolicyDelay,
-      String? tag}) async {
+      String? tag,
+      ForegroundServiceConfig? foregroundServiceConfig}) async {
     calls.add('registerPeriodicTask:$uniqueName:$taskName');
   }
 

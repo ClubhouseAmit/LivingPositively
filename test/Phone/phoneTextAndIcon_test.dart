@@ -1,6 +1,7 @@
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:mazilon/util/Phone/phoneTextAndIcon.dart';
 import 'package:url_launcher_platform_interface/link.dart';
@@ -31,6 +32,8 @@ class _FakeUrlLauncherPlatform extends UrlLauncherPlatform {
     return shouldSucceed;
   }
 }
+
+const _smsComposeChannel = MethodChannel('com.matzilon.mezilon/sms_compose');
 
 Widget _wrap(
   Widget Function(BuildContext) builder, {
@@ -263,6 +266,16 @@ void main() {
   });
 
   group('openTextMessage', () {
+    setUp(() {
+      debugDefaultTargetPlatformOverride = TargetPlatform.windows;
+    });
+
+    tearDown(() {
+      debugDefaultTargetPlatformOverride = null;
+      TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger
+          .setMockMethodCallHandler(_smsComposeChannel, null);
+    });
+
     test('without body uses sms scheme without query', () async {
       final originalPlatform = UrlLauncherPlatform.instance;
       final fake = _FakeUrlLauncherPlatform();
@@ -322,6 +335,99 @@ void main() {
       addTearDown(() => UrlLauncherPlatform.instance = originalPlatform);
 
       expect(await openTextMessage('741741', body: 'HOME'), isTrue);
+    });
+
+    test(
+      'Android invokes the native composer with trimmed arguments',
+      () async {
+        debugDefaultTargetPlatformOverride = TargetPlatform.android;
+        MethodCall? call;
+        TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger
+            .setMockMethodCallHandler(_smsComposeChannel, (receivedCall) async {
+              call = receivedCall;
+              return true;
+            });
+
+        expect(
+          await openTextMessage(
+            '972501234567',
+            body: '  I need help\nCall me  ',
+          ),
+          isTrue,
+        );
+        expect(call?.method, 'composeSms');
+        expect(call?.arguments, <String, String>{
+          'number': '972501234567',
+          'body': 'I need help\nCall me',
+        });
+      },
+    );
+
+    test(
+      'Android returns false when the native composer is unavailable',
+      () async {
+        debugDefaultTargetPlatformOverride = TargetPlatform.android;
+        TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger
+            .setMockMethodCallHandler(
+              _smsComposeChannel,
+              (call) async => false,
+            );
+
+        expect(await openTextMessage('972501234567', body: 'HELP'), isFalse);
+      },
+    );
+
+    test('Android native composer errors propagate', () async {
+      debugDefaultTargetPlatformOverride = TargetPlatform.android;
+      TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger
+          .setMockMethodCallHandler(
+            _smsComposeChannel,
+            (call) async => throw PlatformException(code: 'unavailable'),
+          );
+
+      await expectLater(
+        openTextMessage('972501234567', body: 'HELP'),
+        throwsA(isA<PlatformException>()),
+      );
+    });
+
+    test(
+      'iOS invokes the native composer with an empty trimmed body',
+      () async {
+        debugDefaultTargetPlatformOverride = TargetPlatform.iOS;
+        MethodCall? call;
+        TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger
+            .setMockMethodCallHandler(_smsComposeChannel, (receivedCall) async {
+              call = receivedCall;
+              return true;
+            });
+
+        expect(await openTextMessage('555', body: '   '), isTrue);
+        expect(call?.method, 'composeSms');
+        expect(call?.arguments, <String, String>{'number': '555', 'body': ''});
+      },
+    );
+
+    test('iOS returns false when the native composer is unavailable', () async {
+      debugDefaultTargetPlatformOverride = TargetPlatform.iOS;
+      TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger
+          .setMockMethodCallHandler(_smsComposeChannel, (call) async => false);
+
+      expect(await openTextMessage('555', body: 'HELP'), isFalse);
+    });
+
+    test('iOS native composer errors propagate', () async {
+      debugDefaultTargetPlatformOverride = TargetPlatform.iOS;
+      TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger
+          .setMockMethodCallHandler(
+            _smsComposeChannel,
+            (call) async => throw PlatformException(code: 'unavailable'),
+          );
+
+      await expectLater(
+        openTextMessage('555', body: 'HELP'),
+        throwsA(isA<PlatformException>()),
+      );
     });
   });
 }
