@@ -76,6 +76,12 @@ void main() {
         PhonePageData.normalizeDialablePhoneNumber('0501234567'),
         '0501234567',
       );
+      expect(
+        PhonePageData.normalizeDialablePhoneNumber(
+          '\u061C+972\u200E 50\u200F123\u202A-\u202B45\u202C67\u202D\u202E\u2066\u2067\u2068\u2069',
+        ),
+        '+972501234567',
+      );
       expect(PhonePageData.normalizeDialablePhoneNumber('11'), '11');
       expect(PhonePageData.normalizeDialablePhoneNumber('*123#'), isNull);
       expect(PhonePageData.normalizeDialablePhoneNumber('1'), isNull);

@@ -533,9 +533,13 @@
   "@sosDeliverySms": {
     "description": "Option to open the SMS composer for SOS content."
   },
-  "sosDeliveryWhatsAppInternationalNumber": "To send with WhatsApp, save this contact's number in international format, for example +15551234567.",
+  "sosDeliveryWhatsAppInternationalNumber": "To send with WhatsApp, choose the country code and enter the full phone number.",
   "@sosDeliveryWhatsAppInternationalNumber": {
     "description": "Guidance shown when a saved contact cannot be used with WhatsApp."
+  },
+  "contactPhoneCountryCodeHint": "Select a country code; it will be saved with the local phone number.",
+  "@contactPhoneCountryCodeHint": {
+    "description": "Hint explaining the country-code and local-number contact input order."
   },
   "sosDeliveryEditContacts": "Edit contacts",
   "@sosDeliveryEditContacts": {

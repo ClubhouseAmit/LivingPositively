@@ -1154,7 +1154,11 @@ class AppLocalizationsHe extends AppLocalizations {
 
   @override
   String get sosDeliveryWhatsAppInternationalNumber =>
-      'כדי לשלוח ב-WhatsApp, יש לשמור את מספר איש הקשר בפורמט בין-לאומי, למשל +15551234567.';
+      'כדי לשלוח ב-WhatsApp, בחרו קידומת מדינה והזינו את מספר הטלפון המלא.';
+
+  @override
+  String get contactPhoneCountryCodeHint =>
+      'בחרו קידומת מדינה; היא תישמר עם מספר הטלפון המקומי.';
 
   @override
   String get sosDeliveryEditContacts => 'עריכת אנשי קשר';

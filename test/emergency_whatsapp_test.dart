@@ -1772,7 +1772,7 @@ void main() {
     );
   });
 
-  testWidgets('PhonePage sends SOS message to a valid WhatsApp contact', (
+  testWidgets('PhonePage keeps an international WhatsApp contact unchanged', (
     tester,
   ) async {
     final originalPlatform = UrlLauncherPlatform.instance;
@@ -1791,7 +1791,7 @@ void main() {
           buildPhonePageTestApp(
             userInformation: UserInformation(
               gender: 'male',
-              location: 'IL',
+              location: 'US',
               service: FakePersistentMemoryService(),
             ),
             appInformation: AppInformation(),
@@ -1830,8 +1830,175 @@ void main() {
     );
   });
 
+  testWidgets('PhonePage converts a legacy Israeli local WhatsApp contact', (
+    tester,
+  ) async {
+    final originalPlatform = UrlLauncherPlatform.instance;
+    final fakePlatform = FakeUrlLauncherPlatform();
+    UrlLauncherPlatform.instance = fakePlatform;
+    addTearDown(() => UrlLauncherPlatform.instance = originalPlatform);
+
+    final geolocator = FakeGeolocatorPlatform();
+    final fileService = RecordingFileService();
+    await _runLocationShareTest(
+      geolocator,
+      fileService,
+      body: () async {
+        final phonePageData = _phonePageDataForLocationShare();
+        await tester.pumpWidget(
+          buildPhonePageTestApp(
+            userInformation: UserInformation(
+              gender: 'male',
+              location: 'IL',
+              service: FakePersistentMemoryService(),
+            ),
+            appInformation: AppInformation(),
+            phonePageData: phonePageData,
+          ),
+        );
+        await tester.pumpAndSettle();
+        expect(phonePageData.addItem('Local WhatsApp', '0501234567'), isTrue);
+        await tester.pumpAndSettle();
+        final localizations = AppLocalizations.of(
+          tester.element(find.byType(PhonePage)),
+        )!;
+
+        await _tapMessageShare(tester);
+        await _chooseDeliveryOption(
+          tester,
+          localizations.sosDeliverySendToContact,
+        );
+        await tester.tap(find.text('Local WhatsApp').last);
+        await tester.pumpAndSettle();
+        await _chooseDeliveryOption(tester, localizations.whatsApp);
+
+        final whatsAppUri = Uri.parse(fakePlatform.lastLaunchedUrl!);
+        expect(whatsAppUri.host, 'wa.me');
+        expect(whatsAppUri.path, '/972501234567');
+        expect(
+          whatsAppUri.queryParameters['text'],
+          localizations.sosShareLocationMessage,
+        );
+      },
+    );
+  });
+
   testWidgets(
-    'PhonePage prompts to edit a non-international WhatsApp contact',
+    'PhonePage converts a legacy local WhatsApp contact using profile country',
+    (tester) async {
+      final originalPlatform = UrlLauncherPlatform.instance;
+      final fakePlatform = FakeUrlLauncherPlatform();
+      UrlLauncherPlatform.instance = fakePlatform;
+      addTearDown(() => UrlLauncherPlatform.instance = originalPlatform);
+
+      final geolocator = FakeGeolocatorPlatform();
+      final fileService = RecordingFileService();
+      await _runLocationShareTest(
+        geolocator,
+        fileService,
+        body: () async {
+          final phonePageData = _phonePageDataForLocationShare();
+          await tester.pumpWidget(
+            buildPhonePageTestApp(
+              userInformation: UserInformation(
+                gender: 'male',
+                location: 'US',
+                service: FakePersistentMemoryService(),
+              ),
+              appInformation: AppInformation(),
+              phonePageData: phonePageData,
+            ),
+          );
+          await tester.pumpAndSettle();
+          expect(
+            phonePageData.addItem('US local WhatsApp', '(555) 123-4567'),
+            isTrue,
+          );
+          await tester.pumpAndSettle();
+          final localizations = AppLocalizations.of(
+            tester.element(find.byType(PhonePage)),
+          )!;
+
+          await _tapMessageShare(tester);
+          await _chooseDeliveryOption(
+            tester,
+            localizations.sosDeliverySendToContact,
+          );
+          await tester.tap(find.text('US local WhatsApp').last);
+          await tester.pumpAndSettle();
+          await _chooseDeliveryOption(tester, localizations.whatsApp);
+
+          final whatsAppUri = Uri.parse(fakePlatform.lastLaunchedUrl!);
+          expect(whatsAppUri.host, 'wa.me');
+          expect(whatsAppUri.path, '/15551234567');
+        },
+      );
+    },
+  );
+
+  for (final profileCountry in <String>['', 'XX', 'CA']) {
+    testWidgets(
+      'PhonePage does not launch a legacy local WhatsApp contact without a supported profile country ($profileCountry)',
+      (tester) async {
+        final originalPlatform = UrlLauncherPlatform.instance;
+        final fakePlatform = FakeUrlLauncherPlatform();
+        UrlLauncherPlatform.instance = fakePlatform;
+        addTearDown(() => UrlLauncherPlatform.instance = originalPlatform);
+
+        final geolocator = FakeGeolocatorPlatform();
+        final fileService = RecordingFileService();
+        await _runLocationShareTest(
+          geolocator,
+          fileService,
+          body: () async {
+            final phonePageData = _phonePageDataForLocationShare();
+            await tester.pumpWidget(
+              buildPhonePageTestApp(
+                userInformation: UserInformation(
+                  gender: 'male',
+                  location: profileCountry,
+                  service: FakePersistentMemoryService(),
+                ),
+                appInformation: AppInformation(),
+                phonePageData: phonePageData,
+              ),
+            );
+            await tester.pumpAndSettle();
+            expect(
+              phonePageData.addItem('Unmapped WhatsApp', '0501234567'),
+              isTrue,
+            );
+            await tester.pumpAndSettle();
+            final localizations = AppLocalizations.of(
+              tester.element(find.byType(PhonePage)),
+            )!;
+
+            await _tapMessageShare(tester);
+            await _chooseDeliveryOption(
+              tester,
+              localizations.sosDeliverySendToContact,
+            );
+            await tester.tap(find.text('Unmapped WhatsApp').last);
+            await tester.pumpAndSettle();
+            await _chooseDeliveryOption(tester, localizations.whatsApp);
+
+            expect(
+              find.text(localizations.sosDeliveryWhatsAppInternationalNumber),
+              findsOneWidget,
+            );
+            expect(
+              find.text(localizations.sosDeliveryEditContacts),
+              findsOneWidget,
+            );
+            expect(fakePlatform.launchedUrls, isEmpty);
+          },
+        );
+      },
+    );
+  }
+
+  testWidgets(
+    'PhonePage does not launch an invalid legacy local WhatsApp contact',
     (tester) async {
       final originalPlatform = UrlLauncherPlatform.instance;
       final fakePlatform = FakeUrlLauncherPlatform();
@@ -1857,7 +2024,7 @@ void main() {
             ),
           );
           await tester.pumpAndSettle();
-          expect(phonePageData.addItem('Local WhatsApp', '0501234567'), isTrue);
+          expect(phonePageData.addItem('Invalid WhatsApp', '11'), isTrue);
           await tester.pumpAndSettle();
           final localizations = AppLocalizations.of(
             tester.element(find.byType(PhonePage)),
@@ -1868,16 +2035,12 @@ void main() {
             tester,
             localizations.sosDeliverySendToContact,
           );
-          await tester.tap(find.text('Local WhatsApp').last);
+          await tester.tap(find.text('Invalid WhatsApp').last);
           await tester.pumpAndSettle();
           await _chooseDeliveryOption(tester, localizations.whatsApp);
 
           expect(
             find.text(localizations.sosDeliveryWhatsAppInternationalNumber),
-            findsOneWidget,
-          );
-          expect(
-            find.text(localizations.sosDeliveryEditContacts),
             findsOneWidget,
           );
           expect(fakePlatform.launchedUrls, isEmpty);

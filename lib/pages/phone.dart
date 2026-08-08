@@ -1,8 +1,10 @@
 import 'package:flutter/foundation.dart'
     show TargetPlatform, defaultTargetPlatform, kIsWeb;
 import 'package:flutter/material.dart';
+import 'package:country_code_picker/country_code_picker.dart';
 import 'package:geolocator/geolocator.dart';
 import 'package:get_it/get_it.dart';
+import 'package:mazilon/EmergencyNumbers.dart';
 import 'package:mazilon/file_service.dart';
 import 'package:mazilon/form/phonePageform.dart';
 import 'package:mazilon/util/LP_extended_state.dart';
@@ -348,11 +350,36 @@ class _PhonePageState extends LPExtendedState<PhonePage> {
 
   String? _whatsAppNumber(String number) {
     final normalized = _smsNumber(number);
-    if (normalized == null ||
-        !RegExp(r'^\+[1-9]\d{7,14}$').hasMatch(normalized)) {
+    if (normalized == null) {
       return null;
     }
-    return normalized.substring(1);
+
+    if (normalized.startsWith('+')) {
+      return _internationalWhatsAppNumber(normalized);
+    }
+
+    final countryCode = Provider.of<UserInformation>(
+      context,
+      listen: false,
+    ).location.trim().toUpperCase();
+    if (!countryPickerCodes.contains(countryCode)) {
+      return null;
+    }
+    final dialCode = CountryCode.tryFromCountryCode(countryCode)?.dialCode;
+    if (dialCode == null) {
+      return null;
+    }
+    final localNumber = normalized.startsWith('0')
+        ? normalized.substring(1)
+        : normalized;
+    return _internationalWhatsAppNumber('$dialCode$localNumber');
+  }
+
+  String? _internationalWhatsAppNumber(String number) {
+    if (!RegExp(r'^\+[1-9]\d{7,14}$').hasMatch(number)) {
+      return null;
+    }
+    return number.substring(1);
   }
 
   Future<bool> _showNoContactsDialog() =>

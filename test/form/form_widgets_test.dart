@@ -14,8 +14,10 @@
 // assert on widget types and on state recorded back into the shared
 // PhonePageData ChangeNotifier — that's where the value lives.
 
+import 'package:country_code_picker/country_code_picker.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:mazilon/EmergencyNumbers.dart';
 import 'package:mazilon/global_enums.dart';
 import 'package:mazilon/form/form.dart';
 import 'package:mazilon/form/phonePageform.dart';
@@ -179,7 +181,10 @@ void main() {
       },
     );
 
-    testWidgets('valid manual draft saves as a contact', (tester) async {
+    testWidgets('valid manual draft saves an international contact', (
+      tester,
+    ) async {
+      userInformation.location = 'IL';
       final phoneData = _makePhonePageData();
 
       await pumpWithProviders(
@@ -208,8 +213,224 @@ void main() {
       drainOverflowExceptions(tester);
 
       expect(phoneData.savedPhoneNames, contains('Alice'));
-      expect(phoneData.savedPhoneNumbers, contains('050 123 4567'));
+      expect(phoneData.savedPhoneNumbers, contains('+972501234567'));
     });
+
+    testWidgets(
+      'country-code picker defaults to the profile country and canonicalizes a local number',
+      (tester) async {
+        userInformation.location = 'IL';
+        final phoneData = _makePhonePageData();
+
+        await pumpWithProviders(
+          tester,
+          ChangeNotifierProvider<PhonePageData>.value(
+            value: phoneData,
+            child: Scaffold(
+              body: SingleChildScrollView(
+                child: PhonePageList(phonePageData: phoneData),
+              ),
+            ),
+          ),
+          userInformation: userInformation,
+          surfaceSize: const Size(1024, 2000),
+        );
+        await _settle(tester);
+
+        await tester.tap(find.byType(TextButton).last, warnIfMissed: false);
+        await tester.pump();
+
+        final pickerFinder = find.byKey(
+          const ValueKey('contact-country-code-picker-draft'),
+        );
+        expect(pickerFinder, findsOneWidget);
+        final picker = tester.widget<CountryCodePicker>(pickerFinder);
+        expect(picker.initialSelection, 'IL');
+        expect(picker.countryFilter, countryPickerCodes);
+
+        final phoneField = tester.widget<TextField>(
+          find.byType(TextField).at(1),
+        );
+        expect(phoneField.textDirection, TextDirection.ltr);
+        expect(phoneField.textAlign, TextAlign.left);
+
+        await tester.enterText(find.byType(TextFormField).at(0), 'Alice');
+        await tester.enterText(find.byType(TextFormField).at(1), '0543897645');
+        await tester.tap(find.byIcon(Icons.check), warnIfMissed: false);
+        await tester.pump();
+
+        expect(phoneData.savedPhoneNames, contains('Alice'));
+        expect(phoneData.savedPhoneNumbers, contains('+972543897645'));
+      },
+    );
+
+    testWidgets('changing the country code canonicalizes a US local number', (
+      tester,
+    ) async {
+      userInformation.location = 'IL';
+      final phoneData = _makePhonePageData();
+
+      await pumpWithProviders(
+        tester,
+        ChangeNotifierProvider<PhonePageData>.value(
+          value: phoneData,
+          child: Scaffold(
+            body: SingleChildScrollView(
+              child: PhonePageList(phonePageData: phoneData),
+            ),
+          ),
+        ),
+        userInformation: userInformation,
+        surfaceSize: const Size(1024, 2000),
+      );
+      await _settle(tester);
+
+      await tester.tap(find.byType(TextButton).last, warnIfMissed: false);
+      await tester.pump();
+
+      final picker = tester.widget<CountryCodePicker>(
+        find.byKey(const ValueKey('contact-country-code-picker-draft')),
+      );
+      picker.onChanged!(CountryCode.fromCountryCode('US'));
+      await tester.pump();
+
+      expect(
+        tester
+            .widget<CountryCodePicker>(
+              find.byKey(const ValueKey('contact-country-code-picker-draft')),
+            )
+            .initialSelection,
+        'US',
+      );
+      await tester.enterText(find.byType(TextFormField).at(0), 'Alice');
+      await tester.enterText(
+        find.byType(TextFormField).at(1),
+        '(555) 123-4567',
+      );
+      await tester.tap(find.byIcon(Icons.check), warnIfMissed: false);
+      await tester.pump();
+
+      expect(phoneData.savedPhoneNumbers, contains('+15551234567'));
+    });
+
+    testWidgets('country-code input remains LTR in a narrow RTL form', (
+      tester,
+    ) async {
+      userInformation.location = 'IL';
+      final phoneData = _makePhonePageData();
+
+      await pumpWithProviders(
+        tester,
+        ChangeNotifierProvider<PhonePageData>.value(
+          value: phoneData,
+          child: Scaffold(
+            body: SingleChildScrollView(
+              child: PhonePageList(phonePageData: phoneData),
+            ),
+          ),
+        ),
+        userInformation: userInformation,
+        locale: const Locale('he'),
+        surfaceSize: const Size(320, 900),
+        ignoreOverflow: false,
+      );
+      await _settle(tester);
+
+      await tester.tap(find.byType(TextButton).last, warnIfMissed: false);
+      await tester.pump();
+
+      expect(
+        find.byKey(const ValueKey('contact-country-code-picker-draft')),
+        findsOneWidget,
+      );
+      expect(
+        tester.widget<TextField>(find.byType(TextField).at(1)).textDirection,
+        TextDirection.ltr,
+      );
+      expect(tester.takeException(), isNull);
+    });
+
+    testWidgets('pasted international numbers remain canonical', (
+      tester,
+    ) async {
+      userInformation.location = 'IL';
+      final phoneData = _makePhonePageData();
+
+      await pumpWithProviders(
+        tester,
+        ChangeNotifierProvider<PhonePageData>.value(
+          value: phoneData,
+          child: Scaffold(
+            body: SingleChildScrollView(
+              child: PhonePageList(phonePageData: phoneData),
+            ),
+          ),
+        ),
+        userInformation: userInformation,
+        surfaceSize: const Size(1024, 2000),
+      );
+      await _settle(tester);
+
+      await tester.tap(find.byType(TextButton).last, warnIfMissed: false);
+      await tester.pump();
+      await tester.enterText(find.byType(TextFormField).at(0), 'Alice');
+      await tester.enterText(find.byType(TextFormField).at(1), '+972543897645');
+      await tester.tap(find.byIcon(Icons.check), warnIfMissed: false);
+      await tester.pump();
+
+      expect(phoneData.savedPhoneNumbers, contains('+972543897645'));
+    });
+
+    testWidgets(
+      'editing a canonical contact detects its country and shows its national number',
+      (tester) async {
+        userInformation.location = 'US';
+        await services.memory.setItem(
+          'phonePageSavedPhoneNames',
+          PersistentMemoryType.StringList,
+          <String>['Alice'],
+        );
+        await services.memory.setItem(
+          'phonePageSavedPhoneNumbers',
+          PersistentMemoryType.StringList,
+          <String>['+972543897645'],
+        );
+        final phoneData = _makePhonePageData(
+          names: const <String>['Alice'],
+          numbers: const <String>['+972543897645'],
+        );
+
+        await pumpWithProviders(
+          tester,
+          ChangeNotifierProvider<PhonePageData>.value(
+            value: phoneData,
+            child: Scaffold(
+              body: SingleChildScrollView(
+                child: PhonePageList(phonePageData: phoneData),
+              ),
+            ),
+          ),
+          userInformation: userInformation,
+          surfaceSize: const Size(1024, 2000),
+        );
+        await _settle(tester);
+
+        await tester.tap(find.byIcon(Icons.edit), warnIfMissed: false);
+        await tester.pump();
+
+        final picker = tester.widget<CountryCodePicker>(
+          find.byKey(const ValueKey('contact-country-code-picker-0')),
+        );
+        expect(picker.initialSelection, 'IL');
+        expect(
+          tester
+              .widget<TextFormField>(find.byType(TextFormField).at(1))
+              .controller!
+              .text,
+          '543897645',
+        );
+      },
+    );
 
     testWidgets('repairs the next unmatched legacy number explicitly', (
       tester,
@@ -256,7 +477,7 @@ void main() {
       await tester.pumpAndSettle();
 
       expect(phoneData.savedPhoneNames, ['Paired contact', 'Number only']);
-      expect(phoneData.savedPhoneNumbers, ['111', '222']);
+      expect(phoneData.savedPhoneNumbers, ['111', '+972222']);
     });
 
     testWidgets('editing an existing contact replaces it', (tester) async {
@@ -299,7 +520,7 @@ void main() {
       drainOverflowExceptions(tester);
 
       expect(phoneData.savedPhoneNames, ['Alice updated']);
-      expect(phoneData.savedPhoneNumbers, ['222']);
+      expect(phoneData.savedPhoneNumbers, ['+972222']);
     });
 
     testWidgets('canceling an existing edit restores provider values', (

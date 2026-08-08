@@ -209,9 +209,13 @@
      "@sosDeliverySms": {
        "description": "אפשרות לפתוח את יוצר הודעות ה-SMS עבור תוכן SOS."
      },
-     "sosDeliveryWhatsAppInternationalNumber": "כדי לשלוח ב-WhatsApp, יש לשמור את מספר איש הקשר בפורמט בין-לאומי, למשל +15551234567.",
+     "sosDeliveryWhatsAppInternationalNumber": "כדי לשלוח ב-WhatsApp, בחרו קידומת מדינה והזינו את מספר הטלפון המלא.",
      "@sosDeliveryWhatsAppInternationalNumber": {
        "description": "הנחיה המוצגת כאשר לא ניתן להשתמש באיש קשר שמור עם WhatsApp."
+     },
+     "contactPhoneCountryCodeHint": "בחרו קידומת מדינה; היא תישמר עם מספר הטלפון המקומי.",
+     "@contactPhoneCountryCodeHint": {
+       "description": "הנחיה המסבירה את סדר הזנת קידומת המדינה ומספר הטלפון המקומי."
      },
      "sosDeliveryEditContacts": "עריכת אנשי קשר",
      "@sosDeliveryEditContacts": {

@@ -1176,7 +1176,11 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get sosDeliveryWhatsAppInternationalNumber =>
-      'To send with WhatsApp, save this contact\'s number in international format, for example +15551234567.';
+      'To send with WhatsApp, choose the country code and enter the full phone number.';
+
+  @override
+  String get contactPhoneCountryCodeHint =>
+      'Select a country code; it will be saved with the local phone number.';
 
   @override
   String get sosDeliveryEditContacts => 'Edit contacts';

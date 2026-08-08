@@ -1160,7 +1160,11 @@ class AppLocalizationsAr extends AppLocalizations {
 
   @override
   String get sosDeliveryWhatsAppInternationalNumber =>
-      'للإرسال عبر واتساب، احفظ رقم جهة الاتصال بصيغة دولية، مثل +15551234567.';
+      'للإرسال عبر واتساب، اختر رمز الدولة وأدخل رقم الهاتف الكامل.';
+
+  @override
+  String get contactPhoneCountryCodeHint =>
+      'اختر رمز الدولة؛ وسيتم حفظه مع رقم الهاتف المحلي.';
 
   @override
   String get sosDeliveryEditContacts => 'تعديل جهات الاتصال';

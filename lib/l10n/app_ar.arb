@@ -408,7 +408,8 @@
     }
   },
   "sosDeliverySms": "رسالة نصية (SMS)",
-  "sosDeliveryWhatsAppInternationalNumber": "للإرسال عبر واتساب، احفظ رقم جهة الاتصال بصيغة دولية، مثل +15551234567.",
+  "sosDeliveryWhatsAppInternationalNumber": "للإرسال عبر واتساب، اختر رمز الدولة وأدخل رقم الهاتف الكامل.",
+  "contactPhoneCountryCodeHint": "اختر رمز الدولة؛ وسيتم حفظه مع رقم الهاتف المحلي.",
   "sosDeliveryEditContacts": "تعديل جهات الاتصال",
   "menuTooltip": "القائمة",
   "addItemTooltip": "إضافة",

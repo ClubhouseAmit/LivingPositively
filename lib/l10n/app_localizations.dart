@@ -907,8 +907,14 @@ abstract class AppLocalizations {
   /// Guidance shown when a saved contact cannot be used with WhatsApp.
   ///
   /// In en, this message translates to:
-  /// **'To send with WhatsApp, save this contact\'s number in international format, for example +15551234567.'**
+  /// **'To send with WhatsApp, choose the country code and enter the full phone number.'**
   String get sosDeliveryWhatsAppInternationalNumber;
+
+  /// Hint explaining the country-code and local-number contact input order.
+  ///
+  /// In en, this message translates to:
+  /// **'Select a country code; it will be saved with the local phone number.'**
+  String get contactPhoneCountryCodeHint;
 
   /// Action that opens the personal-contact editor from an SOS delivery prompt.
   ///
