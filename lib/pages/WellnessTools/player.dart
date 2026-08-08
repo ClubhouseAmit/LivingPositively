@@ -23,10 +23,15 @@ class _VideoPlayerPageState extends State<VideoPlayerPage> {
   late YoutubePlayerController controller;
   StreamSubscription<YoutubePlayerValue>? _controllerSubscription;
   bool _controllerInitialized = false;
-  bool _initializationAttempted = false;
   bool _hasInitialVideo = false;
   bool? _isPlaying;
   String? _loadedVideoId;
+  String? _requestedVideoId;
+  String? _pendingVideoId;
+  int? _pendingLoadRequest;
+  int? _pendingLoadWithUnmatchedError;
+  String? _retryableVideoId;
+  int _nextLoadRequest = 0;
 
   @override
   void initState() {
@@ -34,18 +39,22 @@ class _VideoPlayerPageState extends State<VideoPlayerPage> {
   }
 
   void _initializeController() {
-    _initializationAttempted = true;
+    final inheritedVideoId = _youtubeId(
+      VideoPlayerInheritedWidget.of(context)?.videoId ?? '',
+    );
     final videoIds = widget.videoData['videoId'];
-    final initialVideoId = videoIds != null && videoIds.isNotEmpty
-        ? _youtubeId(videoIds.first)
-        : null;
-    _hasInitialVideo = initialVideoId != null;
+    final initialVideoId =
+        inheritedVideoId ??
+        (videoIds != null && videoIds.isNotEmpty
+            ? _youtubeId(videoIds.first)
+            : null);
     if (initialVideoId == null) {
+      _hasInitialVideo = false;
       return;
     }
 
     final languageCode = Localizations.localeOf(context).languageCode;
-    controller = YoutubePlayerController.fromVideoId(
+    final newController = YoutubePlayerController.fromVideoId(
       videoId: initialVideoId,
       autoPlay: false,
       params: YoutubePlayerParams(
@@ -55,10 +64,14 @@ class _VideoPlayerPageState extends State<VideoPlayerPage> {
       ),
     );
 
-    controller.setFullScreenListener(widget.onFullScreenChanged);
-    _controllerSubscription = controller.stream.listen(_trackIsPlaying);
+    newController.setFullScreenListener(widget.onFullScreenChanged);
+    final subscription = newController.stream.listen(_trackIsPlaying);
+    controller = newController;
+    _controllerSubscription = subscription;
     _loadedVideoId = initialVideoId;
+    _requestedVideoId = initialVideoId;
     _controllerInitialized = true;
+    _hasInitialVideo = true;
   }
 
   String? _youtubeId(String videoId) {
@@ -74,6 +87,10 @@ class _VideoPlayerPageState extends State<VideoPlayerPage> {
   }
 
   void _trackIsPlaying(YoutubePlayerValue value) {
+    if (value.hasError) {
+      _handlePlayerError(value);
+    }
+
     final isPlaying = switch (value.playerState) {
       PlayerState.playing => true,
       PlayerState.paused => false,
@@ -85,21 +102,98 @@ class _VideoPlayerPageState extends State<VideoPlayerPage> {
     }
   }
 
+  void _handlePlayerError(YoutubePlayerValue value) {
+    final failedVideoId = _youtubeId(value.metaData.videoId);
+    final pendingLoadRequest = _pendingLoadRequest;
+    if (failedVideoId != null &&
+        failedVideoId == _pendingVideoId &&
+        pendingLoadRequest != null) {
+      _retryableVideoId = failedVideoId;
+      _clearPendingLoad(failedVideoId, pendingLoadRequest);
+      return;
+    }
+
+    if (_pendingLoadRequest != null) {
+      // Iframe errors include only an error code and retain the last metadata.
+      // Do not cancel a newer request unless that metadata identifies it.
+      _pendingLoadWithUnmatchedError = _pendingLoadRequest;
+      return;
+    }
+
+    if (_requestedVideoId == _loadedVideoId) {
+      if (failedVideoId == _loadedVideoId) {
+        _loadedVideoId = null;
+      }
+      // Untagged or stale errors cannot safely clear the active ID. Remember
+      // the requested selection so a later explicit selection can retry it.
+      _retryableVideoId = _requestedVideoId;
+    }
+  }
+
+  void _requestVideoLoad(String videoId) {
+    _requestedVideoId = videoId;
+    if (videoId == _pendingVideoId ||
+        (videoId == _loadedVideoId && videoId != _retryableVideoId)) {
+      return;
+    }
+
+    final request = ++_nextLoadRequest;
+    if (_retryableVideoId == videoId) {
+      _retryableVideoId = null;
+    }
+    _pendingLoadWithUnmatchedError = null;
+    _pendingVideoId = videoId;
+    _pendingLoadRequest = request;
+    unawaited(_loadVideo(videoId, request));
+  }
+
+  Future<void> _loadVideo(String videoId, int request) async {
+    try {
+      await controller.loadVideoById(videoId: videoId);
+      if (!mounted || !_isPendingLoad(videoId, request)) {
+        return;
+      }
+      final sawUnmatchedError = _pendingLoadWithUnmatchedError == request;
+      _loadedVideoId = videoId;
+      _clearPendingLoad(videoId, request);
+      if (sawUnmatchedError) {
+        _retryableVideoId = videoId;
+      }
+    } catch (_) {
+      if (mounted && _isPendingLoad(videoId, request)) {
+        _retryableVideoId = videoId;
+        _clearPendingLoad(videoId, request);
+      }
+    }
+  }
+
+  bool _isPendingLoad(String videoId, int request) {
+    return _pendingVideoId == videoId && _pendingLoadRequest == request;
+  }
+
+  void _clearPendingLoad(String videoId, int request) {
+    if (_isPendingLoad(videoId, request)) {
+      _pendingVideoId = null;
+      _pendingLoadRequest = null;
+      if (_pendingLoadWithUnmatchedError == request) {
+        _pendingLoadWithUnmatchedError = null;
+      }
+    }
+  }
+
   @override
   void didChangeDependencies() {
     super.didChangeDependencies();
-    if (!_initializationAttempted) {
-      _initializeController();
-    }
     if (!_controllerInitialized) {
+      _initializeController();
       return;
     }
-    // Update the video when the inherited widget provides a new videoId
+
+    // Update the video when the inherited widget provides a new videoId.
     final newVideoId = VideoPlayerInheritedWidget.of(context)?.videoId ?? '';
     final normalizedVideoId = _youtubeId(newVideoId);
-    if (normalizedVideoId != null && normalizedVideoId != _loadedVideoId) {
-      _loadedVideoId = normalizedVideoId;
-      unawaited(controller.loadVideoById(videoId: normalizedVideoId));
+    if (normalizedVideoId != null) {
+      _requestVideoLoad(normalizedVideoId);
     }
   }
 
@@ -137,7 +231,7 @@ class _VideoPlayerPageState extends State<VideoPlayerPage> {
         ),
       );
     }
-    if (!_controllerInitialized || !_initializationAttempted) {
+    if (!_controllerInitialized) {
       return const SizedBox.shrink();
     }
     debugPrint(controller.metadata.videoId);

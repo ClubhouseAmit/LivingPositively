@@ -408,11 +408,12 @@ void main() {
 
     expect(sahar['number'], '0559571399');
     expect(sahar['whatsapp'], true);
+    expect(sahar['whatsappNumber'], '972559571399');
     expect(sahar['description'], 'סיוע והקשבה ברשת');
     expect(sahar['link'], 'https://sahar.org.il/');
   });
 
-  test('105 entry uses WhatsApp chat number 0521210105', () {
+  test('105 entry uses WhatsApp chat number 972521210105', () {
     final israel = countries['israel'];
     expect(israel, isNotNull);
 
@@ -422,7 +423,7 @@ void main() {
 
     expect(entry105['number'], '105');
     expect(entry105['whatsapp'], true);
-    expect(entry105['whatsappNumber'], '0521210105');
+    expect(entry105['whatsappNumber'], '972521210105');
   });
 
   test('Elem support uses the requested WhatsApp number and website', () {
@@ -658,7 +659,7 @@ void main() {
       buildEmergencyDialogTestApp(
         dialog: const EmergencyDialogBox(
           number: '105',
-          whatsappNumber: '0521210105',
+          whatsappNumber: '972521210105',
           link: '',
           hasWhatsApp: true,
           hasLink: false,
@@ -672,7 +673,7 @@ void main() {
     await tester.tap(find.byIcon(Icons.chat));
     await tester.pumpAndSettle();
 
-    expect(fakePlatform.lastLaunchedUrl, 'https://wa.me/0521210105');
+    expect(fakePlatform.lastLaunchedUrl, 'https://wa.me/972521210105');
   });
 
   testWidgets('EmergencyDialogBox uses sms number and body for text action', (

@@ -172,11 +172,25 @@ Uri _dialPhoneUri(String number) {
   return Uri.parse('tel:$trimmedNumber');
 }
 
+String? _normalizeWhatsAppRecipient(String number) {
+  final compact = number.trim().replaceAll(RegExp(r'[\s().-]'), '');
+  final digits = compact.startsWith('+') ? compact.substring(1) : compact;
+  if (!RegExp(r'^[1-9]\d{7,14}$').hasMatch(digits)) {
+    return null;
+  }
+  return digits;
+}
+
 Future<bool> openWhatsApp(String number, {String body = ''}) {
+  final recipient = _normalizeWhatsAppRecipient(number);
+  if (recipient == null) {
+    debugPrint('Could not launch WhatsApp because the recipient is invalid.');
+    return Future.value(false);
+  }
   final trimmedBody = body.trim();
   final uri = trimmedBody.isEmpty
-      ? Uri.parse('https://wa.me/$number')
-      : Uri.https('wa.me', '/$number', {'text': trimmedBody});
+      ? Uri.parse('https://wa.me/$recipient')
+      : Uri.https('wa.me', '/$recipient', {'text': trimmedBody});
   return _launchUriWithLogging(uri, mode: LaunchMode.externalApplication);
 }
 

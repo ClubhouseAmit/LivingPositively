@@ -17,27 +17,37 @@ class MainActivity: FlutterActivity() {
         ).setMethodCallHandler { call, result ->
             when (call.method) {
                 "composeSms" -> {
-                    val number = call.argument<String>("number")
-                    val body = call.argument<String>("body")
+                    val arguments = call.arguments as? Map<*, *>
+                    if (arguments == null) {
+                        result.success(false)
+                        return@setMethodCallHandler
+                    }
 
+                    val rawNumber: Any? = arguments["number"]
+                    val rawBody: Any? = arguments["body"]
+                    val number = rawNumber as? String
+                    val body = rawBody as? String
                     if (number.isNullOrBlank() || body == null) {
                         result.success(false)
-                    } else {
-                        val smsIntent = Intent(Intent.ACTION_SENDTO).apply {
-                            data = Uri.fromParts("smsto", number, null)
-                            putExtra("sms_body", body)
-                        }
+                        return@setMethodCallHandler
+                    }
 
-                        if (smsIntent.resolveActivity(packageManager) == null) {
-                            result.success(false)
-                        } else {
-                            try {
-                                startActivity(smsIntent)
-                                result.success(true)
-                            } catch (_: ActivityNotFoundException) {
-                                result.success(false)
-                            }
-                        }
+                    val smsIntent = Intent(Intent.ACTION_SENDTO).apply {
+                        data = Uri.fromParts("smsto", number, null)
+                        putExtra("sms_body", body)
+                    }
+                    if (smsIntent.resolveActivity(packageManager) == null) {
+                        result.success(false)
+                        return@setMethodCallHandler
+                    }
+
+                    try {
+                        startActivity(smsIntent)
+                        result.success(true)
+                    } catch (_: ActivityNotFoundException) {
+                        result.success(false)
+                    } catch (_: SecurityException) {
+                        result.success(false)
                     }
                 }
                 else -> result.notImplemented()

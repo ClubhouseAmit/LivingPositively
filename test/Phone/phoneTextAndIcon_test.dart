@@ -197,6 +197,17 @@ void main() {
       expect(fake.lastLaunchedUrl, 'https://wa.me/972501234567');
     });
 
+    test('normalizes an international recipient to canonical digits', () async {
+      final originalPlatform = UrlLauncherPlatform.instance;
+      final fake = _FakeUrlLauncherPlatform();
+      UrlLauncherPlatform.instance = fake;
+      addTearDown(() => UrlLauncherPlatform.instance = originalPlatform);
+
+      await openWhatsApp('+972 (50) 123-4567');
+
+      expect(fake.lastLaunchedUrl, 'https://wa.me/972501234567');
+    });
+
     test('adds a URL-encoded message body when provided', () async {
       final originalPlatform = UrlLauncherPlatform.instance;
       final fake = _FakeUrlLauncherPlatform();
@@ -204,7 +215,7 @@ void main() {
       addTearDown(() => UrlLauncherPlatform.instance = originalPlatform);
 
       await openWhatsApp(
-        '972501234567',
+        '+972 50 123 4567',
         body: 'I am here.\nhttps://example.com/location',
       );
       final uri = Uri.parse(fake.lastLaunchedUrl!);
@@ -222,7 +233,21 @@ void main() {
       UrlLauncherPlatform.instance = fake;
       addTearDown(() => UrlLauncherPlatform.instance = originalPlatform);
 
-      expect(await openWhatsApp('1'), isFalse);
+      expect(await openWhatsApp('972501234567'), isFalse);
+      expect(fake.lastLaunchedUrl, 'https://wa.me/972501234567');
+    });
+
+    test('rejects domestic and malformed recipients without launching', () async {
+      final originalPlatform = UrlLauncherPlatform.instance;
+      final fake = _FakeUrlLauncherPlatform();
+      UrlLauncherPlatform.instance = fake;
+      addTearDown(() => UrlLauncherPlatform.instance = originalPlatform);
+
+      expect(await openWhatsApp('0521210105'), isFalse);
+      expect(fake.lastLaunchedUrl, isNull);
+
+      expect(await openWhatsApp('+97250invalid'), isFalse);
+      expect(fake.lastLaunchedUrl, isNull);
     });
 
     test('successful launch returns true', () async {

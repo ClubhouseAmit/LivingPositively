@@ -22,7 +22,7 @@ boundary without an identified second consumer.
 ## Decision
 
 The repository collaborator explicitly approves adding the direct dependency
-`geolocator: ^14.0.2` for Issue #217.
+`geolocator: 14.0.2` for Issue #217.
 
 - Use it only for an Android/iOS foreground request for one current position.
 - Request only when-in-use permission. If the platform reports an existing
@@ -33,7 +33,7 @@ The repository collaborator explicitly approves adding the direct dependency
   history, automatic recipient targeting, or tracking of a user's movement.
 - Web and desktop remain text-only SOS fallbacks and must not invoke location
   access.
-- Retain `^14.0.2` as the currently resolved, validated baseline to avoid
+- Pin `14.0.2` as the currently resolved, validated baseline to avoid
   unrelated dependency churn. Moving to a later version requires a separately
   reviewed dependency update.
 
