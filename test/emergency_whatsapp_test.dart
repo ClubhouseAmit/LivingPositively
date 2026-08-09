@@ -1832,11 +1832,11 @@ void main() {
     testWidgets(
       'PhonePage canonicalizes a legacy 00 SOS SMS contact for $platform',
       (tester) async {
-        MethodCall? smsCall;
+        final smsCalls = <MethodCall>[];
         final messenger =
             TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger;
         messenger.setMockMethodCallHandler(_smsComposeChannel, (call) async {
-          smsCall = call;
+          smsCalls.add(call);
           return true;
         });
         addTearDown(
@@ -1880,8 +1880,10 @@ void main() {
             await tester.pumpAndSettle();
             await _chooseDeliveryOption(tester, localizations.sosDeliverySms);
 
-            expect(smsCall?.method, 'composeSms');
-            expect(smsCall?.arguments, <String, String>{
+            expect(smsCalls, hasLength(1));
+            final smsCall = smsCalls.single;
+            expect(smsCall.method, 'composeSms');
+            expect(smsCall.arguments, <String, String>{
               'number': '+972501234567',
               'body': localizations.sosShareLocationMessage,
             });
