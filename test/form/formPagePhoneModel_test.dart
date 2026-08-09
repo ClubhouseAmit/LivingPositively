@@ -88,20 +88,122 @@ void main() {
     });
 
     test('canonicalizes phone numbers consistently', () {
-      expect(
-        PhonePageData.canonicalizePhoneNumber('050 123 4567', '+972'),
-        '+972501234567',
-      );
-      expect(
-        PhonePageData.canonicalizePhoneNumber('00972501234567', null),
-        '+972501234567',
-      );
-      expect(
-        PhonePageData.canonicalizePhoneNumber('+1 (555) 123-4567', '+972'),
-        '+15551234567',
-      );
-      expect(PhonePageData.canonicalizePhoneNumber('0501234567', null), isNull);
-      expect(PhonePageData.canonicalizePhoneNumber('*123#', '+972'), isNull);
+      final cases = [
+        (
+          description: 'local number with a country dial code',
+          value: '050 123 4567',
+          dialCode: '+972',
+          expected: '+972501234567',
+        ),
+        (
+          description: 'minimum-length local number with a country dial code',
+          value: '11',
+          dialCode: '+1',
+          expected: '+111',
+        ),
+        (
+          description: 'below-minimum local number with a country dial code',
+          value: '1',
+          dialCode: '+1',
+          expected: null,
+        ),
+        (
+          description: 'maximum-length local number with a country dial code',
+          value: '123456789012',
+          dialCode: '+972',
+          expected: '+972123456789012',
+        ),
+        (
+          description:
+              'local number exceeding the E.164 maximum with a country dial code',
+          value: '1234567890123',
+          dialCode: '+972',
+          expected: null,
+        ),
+        (
+          description: '00-prefixed international number without a dial code',
+          value: '00972501234567',
+          dialCode: null,
+          expected: '+972501234567',
+        ),
+        (
+          description: 'minimum-length 00-prefixed international number',
+          value: '0012',
+          dialCode: null,
+          expected: '+12',
+        ),
+        (
+          description: 'below-minimum 00-prefixed international number',
+          value: '001',
+          dialCode: null,
+          expected: null,
+        ),
+        (
+          description: 'maximum-length 00-prefixed international number',
+          value: '00123456789012345',
+          dialCode: null,
+          expected: '+123456789012345',
+        ),
+        (
+          description: '00-prefixed number exceeding the E.164 maximum',
+          value: '001234567890123456',
+          dialCode: null,
+          expected: null,
+        ),
+        (
+          description: 'explicit international number',
+          value: '+1 (555) 123-4567',
+          dialCode: '+972',
+          expected: '+15551234567',
+        ),
+        (
+          description: 'minimum-length E.164 number',
+          value: '+12',
+          dialCode: null,
+          expected: '+12',
+        ),
+        (
+          description: 'maximum-length E.164 number',
+          value: '+123456789012345',
+          dialCode: null,
+          expected: '+123456789012345',
+        ),
+        (
+          description: 'number longer than the E.164 maximum',
+          value: '+1234567890123456',
+          dialCode: null,
+          expected: null,
+        ),
+        (
+          description: 'malformed value',
+          value: '*123#',
+          dialCode: '+972',
+          expected: null,
+        ),
+        (
+          description: 'local number without a dial code',
+          value: '0501234567',
+          dialCode: null,
+          expected: null,
+        ),
+        (
+          description: 'invalid dial code',
+          value: '501234567',
+          dialCode: '+0',
+          expected: null,
+        ),
+      ];
+
+      for (final testCase in cases) {
+        expect(
+          PhonePageData.canonicalizePhoneNumber(
+            testCase.value,
+            testCase.dialCode,
+          ),
+          testCase.expected,
+          reason: testCase.description,
+        );
+      }
     });
 
     test('addItem preserves unmatched legacy entries', () {

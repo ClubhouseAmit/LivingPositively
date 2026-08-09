@@ -1046,6 +1046,59 @@ void main() {
     expect(find.text('Alex'), findsOneWidget);
   });
 
+  testWidgets('PhonePage guards invalid legacy personal-contact calls', (
+    tester,
+  ) async {
+    final originalPlatform = UrlLauncherPlatform.instance;
+    final fakePlatform = FakeUrlLauncherPlatform();
+    UrlLauncherPlatform.instance = fakePlatform;
+    addTearDown(() => UrlLauncherPlatform.instance = originalPlatform);
+
+    await GetIt.instance.reset();
+    GetIt.instance.registerSingleton<PersistentMemoryService>(
+      FakePersistentMemoryService(),
+    );
+    addTearDown(() async {
+      await GetIt.instance.reset();
+    });
+
+    final phonePageData = _phonePageDataForLocationShare();
+    await tester.pumpWidget(
+      buildPhonePageTestApp(
+        userInformation: UserInformation(
+          gender: 'male',
+          location: 'IL',
+          service: FakePersistentMemoryService(),
+        ),
+        appInformation: AppInformation(),
+        phonePageData: phonePageData,
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    phonePageData.savedPhoneNames = <String>['Local legacy', 'Invalid legacy'];
+    phonePageData.savedPhoneNumbers = <String>['0501234567', '*123#'];
+    phonePageData.update();
+    await tester.pumpAndSettle();
+
+    final localCall = find.byTooltip('Call Local legacy');
+    await tester.ensureVisible(localCall);
+    await tester.tap(localCall, warnIfMissed: false);
+    await tester.pump();
+    expect(fakePlatform.launchedUrls, <String>['tel:+972501234567']);
+
+    final invalidCall = find.byTooltip('Call Invalid legacy');
+    await tester.ensureVisible(invalidCall);
+    await tester.tap(invalidCall, warnIfMissed: false);
+    await tester.pump();
+
+    final localizations = AppLocalizations.of(
+      tester.element(find.byType(PhonePage)),
+    )!;
+    expect(fakePlatform.launchedUrls, <String>['tel:+972501234567']);
+    expect(find.text(localizations.callFailedMessage('*123#')), findsOneWidget);
+  });
+
   testWidgets('Hebrew Israel emergency grid puts Sahar beside Eran', (
     tester,
   ) async {

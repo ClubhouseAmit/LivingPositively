@@ -11,7 +11,11 @@ import 'package:url_launcher/url_launcher.dart';
 export 'package:mazilon/util/circular_action_button.dart'
     show circularActionButton;
 
-Widget phoneContact(String phone, String contact) {
+Widget phoneContact(
+  String phone,
+  String contact, {
+  Future<bool> Function()? launch,
+}) {
   return Row(
     children: <Widget>[
       // Builder gives us a context that's inside the surrounding Scaffold's
@@ -35,7 +39,7 @@ Widget phoneContact(String phone, String contact) {
                 innerContext,
                 phone,
                 isCallFailure: true,
-                launch: () => dialPhone(phone),
+                launch: launch ?? () => dialPhone(phone),
               );
             },
           );

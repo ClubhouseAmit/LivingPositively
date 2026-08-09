@@ -56,9 +56,10 @@ class _PhonePageFormState extends LPExtendedState<PhonePageForm> {
         context,
         listen: false,
       ).location.trim().toUpperCase();
-      final dialCode = countryPickerCodes.contains(profileCountryCode)
-          ? CountryCode.tryFromCountryCode(profileCountryCode)?.dialCode
-          : null;
+      final countryCode = countryPickerCodes.contains(profileCountryCode)
+          ? profileCountryCode
+          : defaultPickerCountry.countryCodes.first;
+      final dialCode = CountryCode.tryFromCountryCode(countryCode)?.dialCode;
       final canonicalNumber = PhonePageData.canonicalizePhoneNumber(
         phoneNumber,
         dialCode,

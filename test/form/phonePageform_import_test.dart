@@ -8,8 +8,8 @@ import 'package:provider/provider.dart';
 
 import '../helpers/widget_test_scaffold.dart';
 
-PhonePageData _phonePageData() => PhonePageData(
-  key: 'phone',
+PhonePageData _phonePageData({String key = 'phone'}) => PhonePageData(
+  key: key,
   header: 'header',
   subTitle: 'subtitle',
   midTitle: 'middle',
@@ -111,18 +111,22 @@ void main() {
     expect(phonePageData.savedPhoneNumbers, <String>['+972543897645']);
   });
 
-  testWidgets('rejects a local import without a supported profile country', (
-    tester,
-  ) async {
-    final phonePageData = _phonePageData();
-    userInformation.location = 'ZZ';
-    await _pumpPhoneForm(tester, phonePageData, userInformation);
+  testWidgets(
+    'uses the default picker country for unsupported or empty profiles',
+    (tester) async {
+      for (final profileCountryCode in <String>['ZZ', '']) {
+        final phonePageData = _phonePageData(key: 'phone-$profileCountryCode');
+        userInformation.location = profileCountryCode;
+        await _pumpPhoneForm(tester, phonePageData, userInformation);
 
-    _importContact(tester, _contact('054 389-7645'));
-    await tester.pump();
+        _importContact(tester, _contact('054 389-7645'));
 
-    expect(phonePageData.savedPhoneNames, isEmpty);
-    expect(phonePageData.savedPhoneNumbers, isEmpty);
-    expect(find.byType(SnackBar), findsOneWidget);
-  });
+        expect(phonePageData.savedPhoneNumbers, <String>[
+          '+972543897645',
+        ], reason: 'profile country $profileCountryCode');
+
+        await tester.pumpWidget(const SizedBox());
+      }
+    },
+  );
 }

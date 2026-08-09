@@ -348,6 +348,20 @@ class _PhonePageState extends LPExtendedState<PhonePage> {
   String? _smsNumber(String number) =>
       PhonePageData.normalizeDialablePhoneNumber(number);
 
+  String? _canonicalPersonalContactNumber(
+    String number,
+    UserInformation userInformation,
+  ) {
+    final profileCountryCode = userInformation.location.trim().toUpperCase();
+    final countryCode = countryPickerCodes.contains(profileCountryCode)
+        ? profileCountryCode
+        : defaultPickerCountry.countryCodes.first;
+    return PhonePageData.canonicalizePhoneNumber(
+      number,
+      CountryCode.tryFromCountryCode(countryCode)?.dialCode,
+    );
+  }
+
   String? _whatsAppNumber(String number) {
     final normalized = _smsNumber(number);
     if (normalized == null) {
@@ -592,9 +606,14 @@ class _PhonePageState extends LPExtendedState<PhonePage> {
                           : phonePageData.savedPhoneNames.length;
 
                       return Column(
-                        children: List.generate(
-                          contactCount,
-                          (index) => Container(
+                        children: List.generate(contactCount, (index) {
+                          final number = phonePageData.savedPhoneNumbers[index];
+                          final canonicalNumber =
+                              _canonicalPersonalContactNumber(
+                                number,
+                                userInfoProvider,
+                              );
+                          return Container(
                             margin: const EdgeInsets.only(
                               bottom: 10.0,
                             ), // adjust as needed
@@ -603,12 +622,15 @@ class _PhonePageState extends LPExtendedState<PhonePage> {
                                 horizontal: 30.0,
                               ), // adjust as needed
                               child: phoneContact(
-                                phonePageData.savedPhoneNumbers[index],
+                                number,
                                 phonePageData.savedPhoneNames[index],
+                                launch: canonicalNumber == null
+                                    ? () async => false
+                                    : () => dialPhone(canonicalNumber),
                               ),
                             ),
-                          ),
-                        ),
+                          );
+                        }),
                       );
                     },
                   ),

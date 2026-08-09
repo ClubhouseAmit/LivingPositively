@@ -326,9 +326,18 @@ class _PhonePageListState extends LPExtendedState<PhonePageList> {
     });
   }
 
-  Widget _displayRow(PhonePageData phonePageData, int index, String gender) {
+  Widget _displayRow(
+    PhonePageData phonePageData,
+    int index,
+    String gender,
+    String fallbackCountryCode,
+  ) {
     final name = phonePageData.savedPhoneNames[index];
     final number = phonePageData.savedPhoneNumbers[index];
+    final canonicalNumber = PhonePageData.canonicalizePhoneNumber(
+      number,
+      _dialCodeFor(_countryCodeForStoredNumber(number, fallbackCountryCode)),
+    );
     return Padding(
       padding: EdgeInsets.all(returnSizedBox(context, 8)),
       child: Row(
@@ -342,9 +351,11 @@ class _PhonePageListState extends LPExtendedState<PhonePageList> {
             onTap: () {
               launchWithFeedback(
                 context,
-                number,
+                canonicalNumber ?? number,
                 isCallFailure: true,
-                launch: () => dialPhone(number),
+                launch: canonicalNumber == null
+                    ? () async => false
+                    : () => dialPhone(canonicalNumber),
               );
             },
           ),
@@ -542,7 +553,7 @@ class _PhonePageListState extends LPExtendedState<PhonePageList> {
                   : null,
             );
           }
-          return _displayRow(phonePageData, index, gender);
+          return _displayRow(phonePageData, index, gender, profileCountryCode);
         }),
         if (_draftNameController != null && _draftNumberController != null)
           _editingRow(

@@ -661,31 +661,99 @@ void main() {
       expect(phoneData.savedPhoneNumbers, isEmpty);
     });
 
+    testWidgets('PhonePageData calls canonical personal-contact numbers', (
+      tester,
+    ) async {
+      final originalPlatform = UrlLauncherPlatform.instance;
+      final fakePlatform = _RecordingUrlLauncherPlatform();
+      UrlLauncherPlatform.instance = fakePlatform;
+      addTearDown(() => UrlLauncherPlatform.instance = originalPlatform);
+      userInformation.location = 'IL';
+
+      // PhonePageData's constructor calls loadItemsFromPrefs() which
+      // overwrites our seeded lists with whatever is in
+      // PersistentMemoryService. To keep the two seeded entries visible we
+      // seed the fake persistent store first.
+      await services.memory.setItem(
+        'phonePageSavedPhoneNames',
+        PersistentMemoryType.StringList,
+        <String>['Alice', 'Bob'],
+      );
+      await services.memory.setItem(
+        'phonePageSavedPhoneNumbers',
+        PersistentMemoryType.StringList,
+        <String>['0501234567', '+15551234567'],
+      );
+      final phoneData = _makePhonePageData(
+        names: const <String>['Alice', 'Bob'],
+        numbers: const <String>['0501234567', '+15551234567'],
+      );
+
+      await pumpWithProviders(
+        tester,
+        ChangeNotifierProvider<PhonePageData>.value(
+          value: phoneData,
+          child: Scaffold(
+            body: SingleChildScrollView(
+              child: PhonePageList(phonePageData: phoneData),
+            ),
+          ),
+        ),
+        userInformation: userInformation,
+        surfaceSize: const Size(1024, 2000),
+      );
+      await _settle(tester);
+
+      // Card is the production widget used to display a phone entry.
+      expect(find.byType(Card), findsWidgets);
+      final callAlice = find.byTooltip('Call Alice');
+      final callBob = find.byTooltip('Call Bob');
+      expect(callAlice, findsOneWidget);
+      expect(callBob, findsOneWidget);
+
+      final aliceCard = find.ancestor(
+        of: find.text('Alice'),
+        matching: find.byType(Card),
+      );
+      expect(
+        tester.getRect(callAlice).right,
+        lessThanOrEqualTo(tester.getRect(aliceCard).left),
+      );
+
+      await tester.tap(callAlice);
+      await tester.pump();
+      expect(fakePlatform.launchedUrls, <String>['tel:+972501234567']);
+
+      await tester.tap(callBob);
+      await tester.pump();
+      expect(fakePlatform.launchedUrls, <String>[
+        'tel:+972501234567',
+        'tel:+15551234567',
+      ]);
+    });
+
     testWidgets(
-      'PhonePageData seeded with two entries renders cards and call actions',
+      'invalid legacy personal-contact numbers show feedback without dialing',
       (tester) async {
         final originalPlatform = UrlLauncherPlatform.instance;
         final fakePlatform = _RecordingUrlLauncherPlatform();
         UrlLauncherPlatform.instance = fakePlatform;
         addTearDown(() => UrlLauncherPlatform.instance = originalPlatform);
+        userInformation.location = 'IL';
 
-        // PhonePageData's constructor calls loadItemsFromPrefs() which
-        // overwrites our seeded lists with whatever is in
-        // PersistentMemoryService. To keep the two seeded entries visible we
-        // seed the fake persistent store first.
         await services.memory.setItem(
           'phonePageSavedPhoneNames',
           PersistentMemoryType.StringList,
-          <String>['Alice', 'Bob'],
+          <String>['Legacy shortcode'],
         );
         await services.memory.setItem(
           'phonePageSavedPhoneNumbers',
           PersistentMemoryType.StringList,
-          <String>['111', '222'],
+          <String>['*123#'],
         );
         final phoneData = _makePhonePageData(
-          names: const <String>['Alice', 'Bob'],
-          numbers: const <String>['111', '222'],
+          names: const <String>['Legacy shortcode'],
+          numbers: const <String>['*123#'],
         );
 
         await pumpWithProviders(
@@ -703,29 +771,12 @@ void main() {
         );
         await _settle(tester);
 
-        // Card is the production widget used to display a phone entry.
-        expect(find.byType(Card), findsWidgets);
-        final callAlice = find.byTooltip('Call Alice');
-        final callBob = find.byTooltip('Call Bob');
-        expect(callAlice, findsOneWidget);
-        expect(callBob, findsOneWidget);
-
-        final aliceCard = find.ancestor(
-          of: find.text('Alice'),
-          matching: find.byType(Card),
-        );
-        expect(
-          tester.getRect(callAlice).right,
-          lessThanOrEqualTo(tester.getRect(aliceCard).left),
-        );
-
-        await tester.tap(callAlice);
+        await tester.tap(find.byTooltip('Call Legacy shortcode'));
         await tester.pump();
-        expect(fakePlatform.launchedUrls, <String>['tel:111']);
 
-        await tester.tap(callBob);
-        await tester.pump();
-        expect(fakePlatform.launchedUrls, <String>['tel:111', 'tel:222']);
+        expect(fakePlatform.launchedUrls, isEmpty);
+        expect(find.byType(SnackBar), findsOneWidget);
+        expect(find.text("Couldn't open the dialer for *123#"), findsOneWidget);
       },
     );
   });
