@@ -1825,6 +1825,74 @@ void main() {
     );
   });
 
+  for (final platform in <TargetPlatform>[
+    TargetPlatform.android,
+    TargetPlatform.iOS,
+  ]) {
+    testWidgets(
+      'PhonePage canonicalizes a legacy 00 SOS SMS contact for $platform',
+      (tester) async {
+        MethodCall? smsCall;
+        final messenger =
+            TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger;
+        messenger.setMockMethodCallHandler(_smsComposeChannel, (call) async {
+          smsCall = call;
+          return true;
+        });
+        addTearDown(
+          () => messenger.setMockMethodCallHandler(_smsComposeChannel, null),
+        );
+
+        final geolocator = FakeGeolocatorPlatform();
+        final fileService = RecordingFileService();
+        await _runLocationShareTest(
+          geolocator,
+          fileService,
+          platform: platform,
+          body: () async {
+            final phonePageData = _phonePageDataForLocationShare();
+            await tester.pumpWidget(
+              buildPhonePageTestApp(
+                userInformation: UserInformation(
+                  gender: 'male',
+                  location: 'US',
+                  service: FakePersistentMemoryService(),
+                ),
+                appInformation: AppInformation(),
+                phonePageData: phonePageData,
+              ),
+            );
+            await tester.pumpAndSettle();
+            phonePageData.savedPhoneNames = ['Legacy SMS'];
+            phonePageData.savedPhoneNumbers = ['00972501234567'];
+            phonePageData.update();
+            await tester.pumpAndSettle();
+            final localizations = AppLocalizations.of(
+              tester.element(find.byType(PhonePage)),
+            )!;
+
+            await _tapMessageShare(tester);
+            await _chooseDeliveryOption(
+              tester,
+              localizations.sosDeliverySendToContact,
+            );
+            await tester.tap(find.text('Legacy SMS').last);
+            await tester.pumpAndSettle();
+            await _chooseDeliveryOption(tester, localizations.sosDeliverySms);
+
+            expect(smsCall?.method, 'composeSms');
+            expect(smsCall?.arguments, <String, String>{
+              'number': '+972501234567',
+              'body': localizations.sosShareLocationMessage,
+            });
+            expect(geolocator.callLog, isEmpty);
+            expect(fileService.sharedMessages, isEmpty);
+          },
+        );
+      },
+    );
+  }
+
   testWidgets('PhonePage keeps an international WhatsApp contact unchanged', (
     tester,
   ) async {
@@ -2287,6 +2355,17 @@ void main() {
       UrlLauncherPlatform.instance = fakePlatform;
       addTearDown(() => UrlLauncherPlatform.instance = originalPlatform);
 
+      MethodCall? smsCall;
+      final messenger =
+          TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger;
+      messenger.setMockMethodCallHandler(_smsComposeChannel, (call) async {
+        smsCall = call;
+        return true;
+      });
+      addTearDown(
+        () => messenger.setMockMethodCallHandler(_smsComposeChannel, null),
+      );
+
       final geolocator = FakeGeolocatorPlatform();
       final fileService = RecordingFileService();
       await _runLocationShareTest(
@@ -2328,6 +2407,7 @@ void main() {
             findsOneWidget,
           );
           expect(fakePlatform.launchedUrls, isEmpty);
+          expect(smsCall, isNull);
         },
       );
     },

@@ -345,8 +345,10 @@ class _PhonePageState extends LPExtendedState<PhonePage> {
     );
   }
 
-  String? _smsNumber(String number) =>
-      PhonePageData.normalizeDialablePhoneNumber(number);
+  String? _smsNumber(String number) => _canonicalPersonalContactNumber(
+    number,
+    Provider.of<UserInformation>(context, listen: false),
+  );
 
   String? _canonicalPersonalContactNumber(
     String number,
@@ -363,7 +365,7 @@ class _PhonePageState extends LPExtendedState<PhonePage> {
   }
 
   String? _whatsAppNumber(String number) {
-    final normalized = _smsNumber(number);
+    final normalized = PhonePageData.normalizeDialablePhoneNumber(number);
     if (normalized == null) {
       return null;
     }
