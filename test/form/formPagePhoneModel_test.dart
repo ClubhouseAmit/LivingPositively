@@ -67,6 +67,155 @@ void main() {
       expect(p.savedPhoneNumbers, isEmpty);
     });
 
+    test('normalizes dialable phone numbers consistently', () {
+      expect(
+        PhonePageData.normalizeDialablePhoneNumber('+972 50 123 4567'),
+        '+972501234567',
+      );
+      expect(
+        PhonePageData.normalizeDialablePhoneNumber('0501234567'),
+        '0501234567',
+      );
+      expect(
+        PhonePageData.normalizeDialablePhoneNumber(
+          '\u061C+972\u200E 50\u200F123\u202A-\u202B45\u202C67\u202D\u202E\u2066\u2067\u2068\u2069',
+        ),
+        '+972501234567',
+      );
+      expect(PhonePageData.normalizeDialablePhoneNumber('11'), '11');
+      expect(PhonePageData.normalizeDialablePhoneNumber('*123#'), isNull);
+      expect(PhonePageData.normalizeDialablePhoneNumber('1'), isNull);
+    });
+
+    test('canonicalizes phone numbers consistently', () {
+      final cases = [
+        (
+          description: 'local number with a country dial code',
+          value: '050 123 4567',
+          dialCode: '+972',
+          expected: '+972501234567',
+        ),
+        (
+          description: 'minimum-length local number with a country dial code',
+          value: '11',
+          dialCode: '+1',
+          expected: '+111',
+        ),
+        (
+          description: 'below-minimum local number with a country dial code',
+          value: '1',
+          dialCode: '+1',
+          expected: null,
+        ),
+        (
+          description: 'maximum-length local number with a country dial code',
+          value: '123456789012',
+          dialCode: '+972',
+          expected: '+972123456789012',
+        ),
+        (
+          description:
+              'local number exceeding the E.164 maximum with a country dial code',
+          value: '1234567890123',
+          dialCode: '+972',
+          expected: null,
+        ),
+        (
+          description: '00-prefixed international number without a dial code',
+          value: '00972501234567',
+          dialCode: null,
+          expected: '+972501234567',
+        ),
+        (
+          description: 'minimum-length 00-prefixed international number',
+          value: '0012',
+          dialCode: null,
+          expected: '+12',
+        ),
+        (
+          description: 'below-minimum 00-prefixed international number',
+          value: '001',
+          dialCode: null,
+          expected: null,
+        ),
+        (
+          description: 'maximum-length 00-prefixed international number',
+          value: '00123456789012345',
+          dialCode: null,
+          expected: '+123456789012345',
+        ),
+        (
+          description: '00-prefixed number exceeding the E.164 maximum',
+          value: '001234567890123456',
+          dialCode: null,
+          expected: null,
+        ),
+        (
+          description: 'explicit international number',
+          value: '+1 (555) 123-4567',
+          dialCode: '+972',
+          expected: '+15551234567',
+        ),
+        (
+          description: 'minimum-length E.164 number',
+          value: '+12',
+          dialCode: null,
+          expected: '+12',
+        ),
+        (
+          description: 'maximum-length E.164 number',
+          value: '+123456789012345',
+          dialCode: null,
+          expected: '+123456789012345',
+        ),
+        (
+          description: 'number longer than the E.164 maximum',
+          value: '+1234567890123456',
+          dialCode: null,
+          expected: null,
+        ),
+        (
+          description: 'malformed value',
+          value: '*123#',
+          dialCode: '+972',
+          expected: null,
+        ),
+        (
+          description: 'local number without a dial code',
+          value: '0501234567',
+          dialCode: null,
+          expected: null,
+        ),
+        (
+          description: 'invalid dial code',
+          value: '501234567',
+          dialCode: '+0',
+          expected: null,
+        ),
+      ];
+
+      for (final testCase in cases) {
+        expect(
+          PhonePageData.canonicalizePhoneNumber(
+            testCase.value,
+            testCase.dialCode,
+          ),
+          testCase.expected,
+          reason: testCase.description,
+        );
+      }
+    });
+
+    test('addItem preserves unmatched legacy entries', () {
+      final p = _make();
+      p.savedPhoneNames = <String>['Paired', 'Name only'];
+      p.savedPhoneNumbers = <String>['111'];
+
+      expect(p.addItem('New contact', '222'), isFalse);
+      expect(p.savedPhoneNames, ['Paired', 'Name only']);
+      expect(p.savedPhoneNumbers, ['111']);
+    });
+
     test(
       'saveItemsToPrefs preserves legacy non-dialable saved contacts',
       () async {
@@ -117,12 +266,37 @@ void main() {
       expect(p.savedPhoneNames, ['A']);
     });
 
-    test('removeItem removes by value (both lists)', () {
+    test('removeItem removes one exact pair when names or numbers repeat', () {
+      final duplicateName = _make();
+      duplicateName.addItem('Alex', '111');
+      duplicateName.addItem('Blair', '222');
+      duplicateName.addItem('Alex', '333');
+
+      duplicateName.removeItem('Alex', '333');
+
+      expect(duplicateName.savedPhoneNames, ['Alex', 'Blair']);
+      expect(duplicateName.savedPhoneNumbers, ['111', '222']);
+
+      final duplicateNumber = _make(key: 'DuplicateNumbers');
+      duplicateNumber.addItem('Alex', '111');
+      duplicateNumber.addItem('Blair', '222');
+      duplicateNumber.addItem('Casey', '111');
+
+      duplicateNumber.removeItem('Casey', '111');
+
+      expect(duplicateNumber.savedPhoneNames, ['Alex', 'Blair']);
+      expect(duplicateNumber.savedPhoneNumbers, ['111', '222']);
+    });
+
+    test('removeItem trims legacy values while preserving exact pairs', () {
       final p = _make();
-      p.addItem('A', '111');
-      p.addItem('B', '222');
-      p.removeItem('A', '111');
-      expect(p.savedPhoneNames, ['B']);
+      p.savedPhoneNames = <String>[' Alex ', 'Blair'];
+      p.savedPhoneNumbers = <String>[' 111 ', '222'];
+
+      p.removeItem('Alex', '111');
+
+      expect(p.savedPhoneNames, ['Blair']);
+      expect(p.savedPhoneNumbers, ['222']);
     });
 
     test('replaceItem swaps in-place', () {
@@ -138,6 +312,26 @@ void main() {
       p.addItem('A', '111');
       p.replaceItem(5, 'X', '999');
       expect(p.savedPhoneNames, ['A']);
+    });
+
+    test('replaceItem completes one explicit unmatched legacy contact', () {
+      final missingNumber = _make();
+      missingNumber.savedPhoneNames = <String>['Paired', 'Name only'];
+      missingNumber.savedPhoneNumbers = <String>['111'];
+
+      missingNumber.replaceItem(1, 'Name only', '222');
+
+      expect(missingNumber.savedPhoneNames, ['Paired', 'Name only']);
+      expect(missingNumber.savedPhoneNumbers, ['111', '222']);
+
+      final missingName = _make(key: 'MissingName');
+      missingName.savedPhoneNames = <String>['Paired'];
+      missingName.savedPhoneNumbers = <String>['111', '222'];
+
+      missingName.replaceItem(1, 'Number only', '222');
+
+      expect(missingName.savedPhoneNames, ['Paired', 'Number only']);
+      expect(missingName.savedPhoneNumbers, ['111', '222']);
     });
 
     test('reset clears saved lists', () {

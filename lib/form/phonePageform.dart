@@ -1,4 +1,8 @@
+import 'dart:math' show min;
+
+import 'package:country_code_picker/country_code_picker.dart';
 import 'package:flutter/material.dart';
+import 'package:mazilon/EmergencyNumbers.dart';
 import 'package:mazilon/form/phonePageListItem.dart';
 import 'package:mazilon/util/LP_extended_state.dart';
 import 'package:provider/provider.dart';
@@ -41,7 +45,28 @@ class _PhonePageFormState extends LPExtendedState<PhonePageForm> {
         ? contact.phones[0].number
         : null;
     if (phoneName != null && phoneNumber != null) {
-      final added = widget.phonePageData.addItem(phoneName, phoneNumber);
+      if (widget.phonePageData.savedPhoneNames.length !=
+          widget.phonePageData.savedPhoneNumbers.length) {
+        ScaffoldMessenger.maybeOf(context)?.showSnackBar(
+          SnackBar(content: Text(appLocale.sosDeliveryContactsNeedAttention)),
+        );
+        return;
+      }
+      final profileCountryCode = Provider.of<UserInformation>(
+        context,
+        listen: false,
+      ).location.trim().toUpperCase();
+      final countryCode = countryPickerCodes.contains(profileCountryCode)
+          ? profileCountryCode
+          : defaultPickerCountry.countryCodes.first;
+      final dialCode = CountryCode.tryFromCountryCode(countryCode)?.dialCode;
+      final canonicalNumber = PhonePageData.canonicalizePhoneNumber(
+        phoneNumber,
+        dialCode,
+      );
+      final added =
+          canonicalNumber != null &&
+          widget.phonePageData.addItem(phoneName, canonicalNumber);
       if (!added) {
         final message = phoneName.trim().isEmpty
             ? appLocale.contactNameRequiredError
@@ -55,7 +80,7 @@ class _PhonePageFormState extends LPExtendedState<PhonePageForm> {
           widget.phonePageData.savedPhoneNames.length -
           1; // Set editingIndex to the index of the new contact
       nameControllers.add(TextEditingController(text: phoneName));
-      numberControllers.add(TextEditingController(text: phoneNumber));
+      numberControllers.add(TextEditingController(text: canonicalNumber));
     } else {
       debugPrint("Both fields must be filled");
     }
@@ -103,7 +128,11 @@ class _PhonePageFormState extends LPExtendedState<PhonePageForm> {
   @override
   void initState() {
     super.initState();
-    for (int i = 0; i < widget.phonePageData.savedPhoneNames.length; i++) {
+    final contactCount = min(
+      widget.phonePageData.savedPhoneNames.length,
+      widget.phonePageData.savedPhoneNumbers.length,
+    );
+    for (int i = 0; i < contactCount; i++) {
       nameControllers.add(
         TextEditingController(text: widget.phonePageData.savedPhoneNames[i]),
       );

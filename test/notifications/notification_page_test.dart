@@ -52,7 +52,9 @@ class _NoopWorkmanager extends WorkmanagerPlatform {
       BackoffPolicy? backoffPolicy,
       Duration? backoffPolicyDelay,
       String? tag,
-      OutOfQuotaPolicy? outOfQuotaPolicy}) async {}
+      OutOfQuotaPolicy? outOfQuotaPolicy,
+      ForegroundServiceConfig? foregroundServiceConfig,
+      bool expedited = false}) async {}
 
   @override
   Future<void> registerPeriodicTask(String uniqueName, String taskName,
@@ -64,7 +66,8 @@ class _NoopWorkmanager extends WorkmanagerPlatform {
       ExistingPeriodicWorkPolicy? existingWorkPolicy,
       BackoffPolicy? backoffPolicy,
       Duration? backoffPolicyDelay,
-      String? tag}) async {}
+      String? tag,
+      ForegroundServiceConfig? foregroundServiceConfig}) async {}
 }
 
 Future<T> _onIos<T>(Future<T> Function() body) async {

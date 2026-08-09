@@ -67,7 +67,7 @@ final Map<String, Country> countries = {
     {
       "name": "105",
       "number": "105",
-      "whatsappNumber": "0521210105",
+      "whatsappNumber": "972521210105",
       "link": "",
       "description": "המטה הלאומי להגנת ילדים ברשת",
       "icon": Icons.phone,
@@ -87,6 +87,7 @@ final Map<String, Country> countries = {
     {
       "name": "סה\"ר",
       "number": "0559571399",
+      "whatsappNumber": "972559571399",
       "link": "https://sahar.org.il/",
       "description": "סיוע והקשבה ברשת",
       "icon": Icons.phone,
