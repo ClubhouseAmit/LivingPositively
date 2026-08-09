@@ -1931,6 +1931,10 @@ void main() {
           final whatsAppUri = Uri.parse(fakePlatform.lastLaunchedUrl!);
           expect(whatsAppUri.host, 'wa.me');
           expect(whatsAppUri.path, '/972501234567');
+          expect(
+            whatsAppUri.queryParameters['text'],
+            localizations.sosShareLocationMessage,
+          );
         },
       );
     },

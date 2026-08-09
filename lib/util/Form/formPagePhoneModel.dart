@@ -104,6 +104,33 @@ class PhonePageData extends ChangeNotifier {
     return normalized;
   }
 
+  static String? canonicalizePhoneNumber(String value, String? dialCode) {
+    final normalized = normalizeDialablePhoneNumber(value);
+    if (normalized == null) {
+      return null;
+    }
+
+    final internationalNumber = normalized.startsWith('00')
+        ? '+${normalized.substring(2)}'
+        : normalized;
+    if (internationalNumber.startsWith('+')) {
+      return RegExp(r'^\+[1-9]\d{1,14}$').hasMatch(internationalNumber)
+          ? internationalNumber
+          : null;
+    }
+
+    if (dialCode == null || !RegExp(r'^\+[1-9]\d{0,14}$').hasMatch(dialCode)) {
+      return null;
+    }
+    final localNumber = internationalNumber.startsWith('0')
+        ? internationalNumber.substring(1)
+        : internationalNumber;
+    final canonicalNumber = '$dialCode$localNumber';
+    return RegExp(r'^\+[1-9]\d{1,14}$').hasMatch(canonicalNumber)
+        ? canonicalNumber
+        : null;
+  }
+
   bool _hasDialablePhoneNumber(String value) =>
       normalizeDialablePhoneNumber(value) != null;
 

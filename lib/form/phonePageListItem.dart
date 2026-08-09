@@ -123,34 +123,6 @@ class _PhonePageListState extends LPExtendedState<PhonePageList> {
     return number;
   }
 
-  String? _canonicalPhoneNumber(String value, String countryCode) {
-    final normalized = PhonePageData.normalizeDialablePhoneNumber(value);
-    if (normalized == null) {
-      return null;
-    }
-
-    final internationalNumber = normalized.startsWith('00')
-        ? '+${normalized.substring(2)}'
-        : normalized;
-    if (internationalNumber.startsWith('+')) {
-      return RegExp(r'^\+[1-9]\d{1,14}$').hasMatch(internationalNumber)
-          ? internationalNumber
-          : null;
-    }
-
-    final dialCode = _dialCodeFor(countryCode);
-    if (dialCode == null) {
-      return null;
-    }
-    final nationalNumber = internationalNumber.startsWith('0')
-        ? internationalNumber.substring(1)
-        : internationalNumber;
-    final canonicalNumber = '$dialCode$nationalNumber';
-    return RegExp(r'^\+[1-9]\d{1,14}$').hasMatch(canonicalNumber)
-        ? canonicalNumber
-        : null;
-  }
-
   void _syncControllers(
     PhonePageData phonePageData,
     String fallbackCountryCode,
@@ -216,7 +188,11 @@ class _PhonePageListState extends LPExtendedState<PhonePageList> {
     if (trimmed.isEmpty) {
       return appLocale.contactPhoneRequiredError;
     }
-    if (_canonicalPhoneNumber(trimmed, countryCode) == null) {
+    if (PhonePageData.canonicalizePhoneNumber(
+          trimmed,
+          _dialCodeFor(countryCode),
+        ) ==
+        null) {
       return appLocale.contactPhoneInvalidError;
     }
     return null;
@@ -270,9 +246,11 @@ class _PhonePageListState extends LPExtendedState<PhonePageList> {
     if (!_draftFormKey.currentState!.validate()) {
       return;
     }
-    final canonicalNumber = _canonicalPhoneNumber(
+    final canonicalNumber = PhonePageData.canonicalizePhoneNumber(
       _draftNumberController!.text,
-      _draftCountryCode ?? defaultPickerCountry.countryCodes.first,
+      _dialCodeFor(
+        _draftCountryCode ?? defaultPickerCountry.countryCodes.first,
+      ),
     );
     if (canonicalNumber == null) {
       return;
@@ -286,9 +264,11 @@ class _PhonePageListState extends LPExtendedState<PhonePageList> {
     if (!_formKeys[index]!.currentState!.validate()) {
       return;
     }
-    final canonicalNumber = _canonicalPhoneNumber(
+    final canonicalNumber = PhonePageData.canonicalizePhoneNumber(
       numberControllers[index].text,
-      _countryCodesByEntry[index] ?? defaultPickerCountry.countryCodes.first,
+      _dialCodeFor(
+        _countryCodesByEntry[index] ?? defaultPickerCountry.countryCodes.first,
+      ),
     );
     if (canonicalNumber == null) {
       return;

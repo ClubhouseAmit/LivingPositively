@@ -9,12 +9,13 @@
 // On the integration_test binding running on a real Android emulator we pump
 // the real VideoPlayerPage and exercise:
 //
-//   * initState — controller construction + listener registration
+//   * initState — calls super.initState()
+//   * didChangeDependencies — invokes _initializeController for controller
+//     construction + listener registration, then branches on
+//     VideoPlayerInheritedWidget's videoId
 //   * the `listener` closure — fires when the controller's value changes,
 //     calling onFullScreenChanged + _trackIsPlaying + _logEvent (both
 //     unpaused/paused branches)
-//   * didChangeDependencies — branched on VideoPlayerInheritedWidget's
-//     videoId
 //   * build — controller.metadata.videoId getter read
 //   * dispose — controller teardown
 //

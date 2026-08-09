@@ -87,6 +87,23 @@ void main() {
       expect(PhonePageData.normalizeDialablePhoneNumber('1'), isNull);
     });
 
+    test('canonicalizes phone numbers consistently', () {
+      expect(
+        PhonePageData.canonicalizePhoneNumber('050 123 4567', '+972'),
+        '+972501234567',
+      );
+      expect(
+        PhonePageData.canonicalizePhoneNumber('00972501234567', null),
+        '+972501234567',
+      );
+      expect(
+        PhonePageData.canonicalizePhoneNumber('+1 (555) 123-4567', '+972'),
+        '+15551234567',
+      );
+      expect(PhonePageData.canonicalizePhoneNumber('0501234567', null), isNull);
+      expect(PhonePageData.canonicalizePhoneNumber('*123#', '+972'), isNull);
+    });
+
     test('addItem preserves unmatched legacy entries', () {
       final p = _make();
       p.savedPhoneNames = <String>['Paired', 'Name only'];

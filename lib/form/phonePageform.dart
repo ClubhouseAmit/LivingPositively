@@ -37,47 +37,6 @@ class _PhonePageFormState extends LPExtendedState<PhonePageForm> {
   bool isEditingNew = false;
   int editingIndex = -1;
 
-  String? _canonicalImportedPhoneNumber(String value) {
-    var normalized = PhonePageData.normalizeDialablePhoneNumber(value);
-    if (normalized == null) {
-      return null;
-    }
-
-    if (normalized.startsWith('00')) {
-      normalized = '+${normalized.substring(2)}';
-    }
-    if (normalized.startsWith('+')) {
-      return RegExp(r'^\+[1-9]\d{1,14}$').hasMatch(normalized)
-          ? normalized
-          : null;
-    }
-
-    final profileCountryCode = Provider.of<UserInformation>(
-      context,
-      listen: false,
-    ).location.trim().toUpperCase();
-    if (!countryPickerCodes.contains(profileCountryCode)) {
-      return null;
-    }
-    final dialCode = CountryCode.tryFromCountryCode(
-      profileCountryCode,
-    )?.dialCode;
-    if (dialCode == null) {
-      return null;
-    }
-
-    final localNumber = normalized.startsWith('0')
-        ? normalized.substring(1)
-        : normalized;
-    if (localNumber.isEmpty) {
-      return null;
-    }
-    final canonicalNumber = '$dialCode$localNumber';
-    return RegExp(r'^\+[1-9]\d{1,14}$').hasMatch(canonicalNumber)
-        ? canonicalNumber
-        : null;
-  }
-
   //add contact to the list from the contact list in the phone
   void addItem(Contact contact) {
     //  debugPrint(contact.phones);
@@ -93,7 +52,17 @@ class _PhonePageFormState extends LPExtendedState<PhonePageForm> {
         );
         return;
       }
-      final canonicalNumber = _canonicalImportedPhoneNumber(phoneNumber);
+      final profileCountryCode = Provider.of<UserInformation>(
+        context,
+        listen: false,
+      ).location.trim().toUpperCase();
+      final dialCode = countryPickerCodes.contains(profileCountryCode)
+          ? CountryCode.tryFromCountryCode(profileCountryCode)?.dialCode
+          : null;
+      final canonicalNumber = PhonePageData.canonicalizePhoneNumber(
+        phoneNumber,
+        dialCode,
+      );
       final added =
           canonicalNumber != null &&
           widget.phonePageData.addItem(phoneName, canonicalNumber);
