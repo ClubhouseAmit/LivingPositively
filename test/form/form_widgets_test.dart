@@ -288,11 +288,17 @@ void main() {
       await tester.tap(find.byType(TextButton).last, warnIfMissed: false);
       await tester.pump();
 
-      final picker = tester.widget<CountryCodePicker>(
-        find.byKey(const ValueKey('contact-country-code-picker-draft')),
+      final pickerFinder = find.byKey(
+        const ValueKey('contact-country-code-picker-draft'),
       );
-      picker.onChanged!(CountryCode.fromCountryCode('US'));
+      await tester.tap(
+        find.descendant(of: pickerFinder, matching: find.byType(TextButton)),
+      );
+      await tester.pumpAndSettle();
+      await tester.enterText(find.byType(TextField).last, 'US');
       await tester.pump();
+      await tester.tap(find.textContaining('United States').last);
+      await tester.pumpAndSettle();
 
       expect(
         tester
@@ -379,6 +385,40 @@ void main() {
       await tester.pump();
 
       expect(phoneData.savedPhoneNumbers, contains('+972543897645'));
+    });
+
+    testWidgets('00-prefixed international numbers are saved canonically', (
+      tester,
+    ) async {
+      userInformation.location = 'IL';
+      final phoneData = _makePhonePageData();
+
+      await pumpWithProviders(
+        tester,
+        ChangeNotifierProvider<PhonePageData>.value(
+          value: phoneData,
+          child: Scaffold(
+            body: SingleChildScrollView(
+              child: PhonePageList(phonePageData: phoneData),
+            ),
+          ),
+        ),
+        userInformation: userInformation,
+        surfaceSize: const Size(1024, 2000),
+      );
+      await _settle(tester);
+
+      await tester.tap(find.byType(TextButton).last, warnIfMissed: false);
+      await tester.pump();
+      await tester.enterText(find.byType(TextFormField).at(0), 'Alice');
+      await tester.enterText(
+        find.byType(TextFormField).at(1),
+        '00972501234567',
+      );
+      await tester.tap(find.byIcon(Icons.check), warnIfMissed: false);
+      await tester.pump();
+
+      expect(phoneData.savedPhoneNumbers, contains('+972501234567'));
     });
 
     testWidgets(

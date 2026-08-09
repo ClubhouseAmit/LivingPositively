@@ -54,9 +54,8 @@ class _VideoPlayerPageState extends State<VideoPlayerPage> {
     }
 
     final languageCode = Localizations.localeOf(context).languageCode;
-    final newController = YoutubePlayerController.fromVideoId(
-      videoId: initialVideoId,
-      autoPlay: false,
+    final newController = YoutubePlayerController(
+      key: initialVideoId,
       params: YoutubePlayerParams(
         enableCaption: true,
         captionLanguage: languageCode,
@@ -72,6 +71,25 @@ class _VideoPlayerPageState extends State<VideoPlayerPage> {
     _requestedVideoId = initialVideoId;
     _controllerInitialized = true;
     _hasInitialVideo = true;
+    unawaited(_cueInitialVideo(newController, initialVideoId));
+  }
+
+  Future<void> _cueInitialVideo(
+    YoutubePlayerController targetController,
+    String videoId,
+  ) async {
+    try {
+      await targetController.cueVideoById(videoId: videoId);
+    } catch (_) {
+      // `fromVideoId` leaves this iframe-ready future unobserved. Retain a
+      // retryable selection when the player is unavailable instead.
+      if (mounted &&
+          identical(controller, targetController) &&
+          _requestedVideoId == videoId) {
+        _loadedVideoId = null;
+        _retryableVideoId = videoId;
+      }
+    }
   }
 
   String? _youtubeId(String videoId) {

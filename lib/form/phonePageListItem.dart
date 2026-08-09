@@ -129,9 +129,12 @@ class _PhonePageListState extends LPExtendedState<PhonePageList> {
       return null;
     }
 
-    if (normalized.startsWith('+')) {
-      return RegExp(r'^\+[1-9]\d{1,14}$').hasMatch(normalized)
-          ? normalized
+    final internationalNumber = normalized.startsWith('00')
+        ? '+${normalized.substring(2)}'
+        : normalized;
+    if (internationalNumber.startsWith('+')) {
+      return RegExp(r'^\+[1-9]\d{1,14}$').hasMatch(internationalNumber)
+          ? internationalNumber
           : null;
     }
 
@@ -139,9 +142,9 @@ class _PhonePageListState extends LPExtendedState<PhonePageList> {
     if (dialCode == null) {
       return null;
     }
-    final nationalNumber = normalized.startsWith('0')
-        ? normalized.substring(1)
-        : normalized;
+    final nationalNumber = internationalNumber.startsWith('0')
+        ? internationalNumber.substring(1)
+        : internationalNumber;
     final canonicalNumber = '$dialCode$nationalNumber';
     return RegExp(r'^\+[1-9]\d{1,14}$').hasMatch(canonicalNumber)
         ? canonicalNumber

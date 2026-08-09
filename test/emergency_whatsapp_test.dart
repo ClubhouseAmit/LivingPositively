@@ -1884,6 +1884,59 @@ void main() {
   });
 
   testWidgets(
+    'PhonePage converts a legacy 00-prefixed WhatsApp contact to its international number',
+    (tester) async {
+      final originalPlatform = UrlLauncherPlatform.instance;
+      final fakePlatform = FakeUrlLauncherPlatform();
+      UrlLauncherPlatform.instance = fakePlatform;
+      addTearDown(() => UrlLauncherPlatform.instance = originalPlatform);
+
+      final geolocator = FakeGeolocatorPlatform();
+      final fileService = RecordingFileService();
+      await _runLocationShareTest(
+        geolocator,
+        fileService,
+        body: () async {
+          final phonePageData = _phonePageDataForLocationShare();
+          await tester.pumpWidget(
+            buildPhonePageTestApp(
+              userInformation: UserInformation(
+                gender: 'male',
+                location: 'US',
+                service: FakePersistentMemoryService(),
+              ),
+              appInformation: AppInformation(),
+              phonePageData: phonePageData,
+            ),
+          );
+          await tester.pumpAndSettle();
+          expect(
+            phonePageData.addItem('00 WhatsApp', '00972501234567'),
+            isTrue,
+          );
+          await tester.pumpAndSettle();
+          final localizations = AppLocalizations.of(
+            tester.element(find.byType(PhonePage)),
+          )!;
+
+          await _tapMessageShare(tester);
+          await _chooseDeliveryOption(
+            tester,
+            localizations.sosDeliverySendToContact,
+          );
+          await tester.tap(find.text('00 WhatsApp').last);
+          await tester.pumpAndSettle();
+          await _chooseDeliveryOption(tester, localizations.whatsApp);
+
+          final whatsAppUri = Uri.parse(fakePlatform.lastLaunchedUrl!);
+          expect(whatsAppUri.host, 'wa.me');
+          expect(whatsAppUri.path, '/972501234567');
+        },
+      );
+    },
+  );
+
+  testWidgets(
     'PhonePage converts a legacy local WhatsApp contact using profile country',
     (tester) async {
       final originalPlatform = UrlLauncherPlatform.instance;

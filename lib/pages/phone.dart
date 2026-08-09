@@ -354,8 +354,11 @@ class _PhonePageState extends LPExtendedState<PhonePage> {
       return null;
     }
 
-    if (normalized.startsWith('+')) {
-      return _internationalWhatsAppNumber(normalized);
+    final internationalNumber = normalized.startsWith('00')
+        ? '+${normalized.substring(2)}'
+        : normalized;
+    if (internationalNumber.startsWith('+')) {
+      return _internationalWhatsAppNumber(internationalNumber);
     }
 
     final countryCode = Provider.of<UserInformation>(
@@ -369,9 +372,9 @@ class _PhonePageState extends LPExtendedState<PhonePage> {
     if (dialCode == null) {
       return null;
     }
-    final localNumber = normalized.startsWith('0')
-        ? normalized.substring(1)
-        : normalized;
+    final localNumber = internationalNumber.startsWith('0')
+        ? internationalNumber.substring(1)
+        : internationalNumber;
     return _internationalWhatsAppNumber('$dialCode$localNumber');
   }
 

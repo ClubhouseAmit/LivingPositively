@@ -6,9 +6,8 @@
 // WKWebView) that is unavailable under `flutter test`. Coverage stalled at
 // 5.3%.
 //
-// On the integration_test binding running on a real Android emulator the
-// platform view DOES initialise, so we pump the real VideoPlayerPage and
-// exercise:
+// On the integration_test binding running on a real Android emulator we pump
+// the real VideoPlayerPage and exercise:
 //
 //   * initState — controller construction + listener registration
 //   * the `listener` closure — fires when the controller's value changes,
@@ -18,6 +17,10 @@
 //     videoId
 //   * build — controller.metadata.videoId getter read
 //   * dispose — controller teardown
+//
+// The YouTube iframe itself is external to the app. These tests never wait for
+// a remote metadata or playback event; controller state is updated directly
+// where the app's listener behavior needs to be exercised.
 //
 // We mock the GetIt-provided AnalyticsService so _logEvent's
 // `trackEvent` calls don't reach Mixpanel.
@@ -81,34 +84,6 @@ Widget _harness({
   );
 }
 
-Future<void> _expectVideoToBecomeActive(
-  WidgetTester tester,
-  YoutubePlayerController controller,
-  String videoId,
-) async {
-  if (controller.metadata.videoId != videoId) {
-    final activeVideo = controller.stream.firstWhere(
-      (value) => value.metaData.videoId == videoId,
-    );
-    await tester.runAsync(() async {
-      await activeVideo.timeout(const Duration(seconds: 20));
-    });
-  }
-
-  expect(controller.metadata.videoId, videoId);
-}
-
-Future<YoutubePlayerValue> _nextActiveVideoEvent(
-  YoutubePlayerController controller,
-  String videoId,
-) {
-  return controller.stream.firstWhere(
-    (value) =>
-        value.playerState == PlayerState.playing &&
-        value.metaData.videoId == videoId,
-  );
-}
-
 void main() {
   IntegrationTestWidgetsFlutterBinding.ensureInitialized();
 
@@ -154,7 +129,7 @@ void main() {
   );
 
   testWidgets(
-      'listener fires on controller state change → onFullScreenChanged + _trackIsPlaying',
+    'listener fires on controller state change → onFullScreenChanged + _trackIsPlaying',
     (tester) async {
       final fullScreenChanges = <bool>[];
 
@@ -225,10 +200,7 @@ void main() {
       const firstVideoId = 'dQw4w9WgXcQ';
       const secondVideoId = '9bZkp7q19f0';
       await tester.pumpWidget(
-        _harness(
-          onFullScreenChanged: (_) {},
-          inheritedVideoId: firstVideoId,
-        ),
+        _harness(onFullScreenChanged: (_) {}, inheritedVideoId: firstVideoId),
       );
       await tester.pump(const Duration(milliseconds: 100));
       final state = tester.state(find.byType(VideoPlayerPage)) as dynamic;
@@ -236,8 +208,7 @@ void main() {
           state.controller as YoutubePlayerController;
 
       // The real controller remains mounted while the inherited selection
-      // changes. The production state owns dispatch and does not expose an
-      // injectable controller seam solely for an internal call assertion.
+      // changes. Do not wait for the external YouTube iframe to load it.
       await tester.pumpWidget(
         _harness(
           onFullScreenChanged: (_) {},
@@ -248,7 +219,6 @@ void main() {
       await tester.pump(const Duration(milliseconds: 100));
 
       expect(find.byType(VideoPlayerPage), findsOneWidget);
-      await _expectVideoToBecomeActive(tester, controller, secondVideoId);
       expect(
         (tester.state(find.byType(VideoPlayerPage)) as dynamic).controller,
         same(controller),
@@ -257,63 +227,39 @@ void main() {
     },
   );
 
-  testWidgets('an untagged player error permits an equivalent selection retry', (
-    tester,
-  ) async {
-    const firstVideoId = 'dQw4w9WgXcQ';
-    const retriedVideoId = '9bZkp7q19f0';
-    await tester.pumpWidget(
-      _harness(onFullScreenChanged: (_) {}, inheritedVideoId: firstVideoId),
-    );
+  testWidgets(
+    'an untagged player error keeps an equivalent selection retryable',
+    (tester) async {
+      const firstVideoId = 'dQw4w9WgXcQ';
+      await tester.pumpWidget(
+        _harness(onFullScreenChanged: (_) {}, inheritedVideoId: firstVideoId),
+      );
 
-    final state = tester.state(find.byType(VideoPlayerPage)) as dynamic;
-    final YoutubePlayerController controller =
-        state.controller as YoutubePlayerController;
+      final state = tester.state(find.byType(VideoPlayerPage)) as dynamic;
+      final YoutubePlayerController controller =
+          state.controller as YoutubePlayerController;
 
-    // Change selection before the native player has a chance to finish its
-    // initial handshake, then report an error in the exact shape emitted by
-    // the iframe package: error-only, retaining existing metadata.
-    await tester.pumpWidget(
-      _harness(
-        onFullScreenChanged: (_) {},
-        inheritedVideoId: retriedVideoId,
-        videoIds: const [firstVideoId],
-      ),
-    );
-    controller.update(error: YoutubeError.cannotFindVideo);
-    await tester.pump();
+      // The iframe can report an error without metadata. The retry path must not
+      // depend on a network-backed video activation.
+      controller.update(error: YoutubeError.cannotFindVideo);
+      await tester.pump();
 
-    // The first dispatch may still complete, but the untagged error marks
-    // this selection retryable rather than cancelling a request it cannot
-    // identify safely.
-    await _expectVideoToBecomeActive(tester, controller, retriedVideoId);
-    final retriedVideoActive = _nextActiveVideoEvent(
-      controller,
-      retriedVideoId,
-    );
+      await tester.pumpWidget(
+        _harness(
+          onFullScreenChanged: (_) {},
+          inheritedVideoId: 'https://www.youtube.com/watch?v=$firstVideoId',
+          videoIds: const [firstVideoId],
+        ),
+      );
+      await tester.pump();
 
-    // A URL representation changes the inherited selection while resolving
-    // to the same ID, exercising retry behavior without a controller spy.
-    await tester.pumpWidget(
-      _harness(
-        onFullScreenChanged: (_) {},
-        inheritedVideoId:
-            'https://www.youtube.com/watch?v=$retriedVideoId',
-        videoIds: const [firstVideoId],
-      ),
-    );
-    await tester.pump();
-
-    await tester.runAsync(() async {
-      await retriedVideoActive.timeout(const Duration(seconds: 20));
-    });
-    expect(controller.metadata.videoId, retriedVideoId);
-    expect(find.byType(YoutubePlayer), findsOneWidget);
-    expect(
-      (tester.state(find.byType(VideoPlayerPage)) as dynamic).controller,
-      same(controller),
-    );
-  });
+      expect(find.byType(YoutubePlayer), findsOneWidget);
+      expect(
+        (tester.state(find.byType(VideoPlayerPage)) as dynamic).controller,
+        same(controller),
+      );
+    },
+  );
 
   testWidgets('a stale player error does not invalidate a newer selection', (
     tester,
@@ -335,8 +281,6 @@ void main() {
         videoIds: const [firstVideoId],
       ),
     );
-    await tester.pump();
-    await _expectVideoToBecomeActive(tester, controller, staleVideoId);
     await tester.pumpWidget(
       _harness(
         onFullScreenChanged: (_) {},
@@ -346,14 +290,20 @@ void main() {
     );
     // This retains staleVideoId in the controller metadata, exactly as the
     // iframe's error-only event handling does.
-    controller.update(error: YoutubeError.cannotFindVideo);
+    controller.update(
+      metaData: const YoutubeMetaData(videoId: staleVideoId),
+      error: YoutubeError.cannotFindVideo,
+    );
     await tester.pump();
 
-    await _expectVideoToBecomeActive(tester, controller, newestVideoId);
     expect(find.byType(YoutubePlayer), findsOneWidget);
+    expect(
+      (tester.state(find.byType(VideoPlayerPage)) as dynamic).controller,
+      same(controller),
+    );
   });
 
-  testWidgets('a stale post-dispatch error keeps the requested video retryable', (
+  testWidgets('a tagged player error keeps the requested video retryable', (
     tester,
   ) async {
     const firstVideoId = 'dQw4w9WgXcQ';
@@ -373,32 +323,29 @@ void main() {
       ),
     );
     await tester.pump();
-    await _expectVideoToBecomeActive(tester, controller, retriedVideoId);
 
-    // The iframe error event supplies only an error code. Retain stale
-    // metadata before emitting that error to model a post-dispatch failure.
-    controller.update(metaData: const YoutubeMetaData(videoId: firstVideoId));
-    controller.update(error: YoutubeError.cannotFindVideo);
-    await tester.pump();
-    final retriedVideoActive = _nextActiveVideoEvent(
-      controller,
-      retriedVideoId,
+    // A tagged error clears the in-flight request so the equivalent URL form
+    // can request the same video again without waiting for remote playback.
+    controller.update(
+      metaData: const YoutubeMetaData(videoId: retriedVideoId),
+      error: YoutubeError.cannotFindVideo,
     );
+    await tester.pump();
 
     await tester.pumpWidget(
       _harness(
         onFullScreenChanged: (_) {},
-        inheritedVideoId:
-            'https://www.youtube.com/watch?v=$retriedVideoId',
+        inheritedVideoId: 'https://www.youtube.com/watch?v=$retriedVideoId',
         videoIds: const [firstVideoId],
       ),
     );
     await tester.pump();
 
-    await tester.runAsync(() async {
-      await retriedVideoActive.timeout(const Duration(seconds: 20));
-    });
-    expect(controller.metadata.videoId, retriedVideoId);
+    expect(find.byType(YoutubePlayer), findsOneWidget);
+    expect(
+      (tester.state(find.byType(VideoPlayerPage)) as dynamic).controller,
+      same(controller),
+    );
   });
 
   testWidgets('VideoPlayerPage closes its controller stream on disposal', (
