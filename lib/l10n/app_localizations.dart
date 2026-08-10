@@ -2595,6 +2595,12 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'What am I grateful for today'**
   String get gratitudeSubTitle;
+
+  /// Subtitle for suggestion card on home page
+  ///
+  /// In en, this message translates to:
+  /// **'Our suggestion'**
+  String get ourSuggestion;
 }
 
 class _AppLocalizationsDelegate

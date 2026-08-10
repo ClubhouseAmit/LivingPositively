@@ -3351,4 +3351,7 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get gratitudeSubTitle => 'What am I grateful for today';
+
+  @override
+  String get ourSuggestion => 'Our suggestion';
 }

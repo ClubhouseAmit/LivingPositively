@@ -3319,4 +3319,7 @@ class AppLocalizationsAr extends AppLocalizations {
 
   @override
   String get gratitudeSubTitle => 'ما الذي أنا ممتن له اليوم';
+
+  @override
+  String get ourSuggestion => 'اقتراحنا';
 }

@@ -583,5 +583,9 @@
   "gratitudeSubTitle": "על מה אני אסיר/ת תודה היום",
   "@gratitudeSubTitle": {
     "description": "Subtitle for gratitude section"
+  },
+  "ourSuggestion": "ההצעה שלנו",
+  "@ourSuggestion": {
+    "description": "Subtitle for suggestion card on home page"
   }
 }

@@ -2,6 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:mazilon/l10n/app_localizations.dart';
 import 'package:mazilon/util/layout/directional_widgets.dart';
 import 'package:mazilon/util/theme/spacing.dart';
+import 'package:mazilon/util/userInformation.dart';
+import 'package:provider/provider.dart';
 
 class PersonalPlanSectionWidget extends StatelessWidget {
   final List<String> items;
@@ -16,6 +18,7 @@ class PersonalPlanSectionWidget extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final appLocale = AppLocalizations.of(context)!;
+    final userInfo = Provider.of<UserInformation>(context);
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -23,8 +26,7 @@ class PersonalPlanSectionWidget extends StatelessWidget {
         SectionHeaderWidget(
           title: appLocale.myPlan,
           leadingIcon: Icons.assignment_outlined,
-          // TODO: localize subtitle
-          subtitle: 'Things that will do me good now',
+          subtitle: appLocale.myPlanSubTitle,
         ),
         if (items.isNotEmpty)
           SizedBox(
@@ -41,12 +43,14 @@ class PersonalPlanSectionWidget extends StatelessWidget {
                   width: 140,
                   margin: EdgeInsetsDirectional.only(end: AppSpacing.sm),
                   child: CardContainer(
+                    hasShadow: false,
                     padding: EdgeInsets.all(AppSpacing.md),
                     child: Text(
                       items[index],
                       style: Theme.of(context).textTheme.bodySmall?.copyWith(
                             fontWeight: FontWeight.w500,
                             height: 1.4,
+                            color: const Color(0xFF1A1A1A),
                           ),
                       textAlign: TextAlign.start,
                       maxLines: 4,
@@ -64,7 +68,7 @@ class PersonalPlanSectionWidget extends StatelessWidget {
             child: TextButton.icon(
               onPressed: onSeeAll,
               label: Text(
-                'see plan',
+                appLocale.personalPlanPageAllPlan(userInfo.gender),
                 style: TextStyle(
                   color: Theme.of(context).colorScheme.primary,
                   fontWeight: FontWeight.w500,

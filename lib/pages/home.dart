@@ -20,10 +20,8 @@ import 'package:mazilon/MainPageHelpers/components/reminders_section.dart';
 import 'package:mazilon/MainPageHelpers/components/personal_plan_section.dart';
 import 'package:mazilon/MainPageHelpers/components/virtues_section.dart';
 import 'package:mazilon/MainPageHelpers/components/gratitude_section.dart';
-import 'package:mazilon/MainPageHelpers/components/warning_signs_section.dart';
 
-// Warm cream background used throughout this page
-const Color _kPageBackground = Color(0xFFF4F0EB);
+const Color _kPageBackgroundLight = Color(0xFFF4F0EB);
 
 class Home extends StatefulWidget {
   final PhonePageData phonePageData;
@@ -114,11 +112,12 @@ class _HomeState extends LPExtendedState<Home> {
       gender.isEmpty ? 'other' : gender,
     );
     final quote = quotes.isEmpty
-        ? 'You are capable of amazing things'
+        ? appLocale.inspirationalQuotesNo0(gender.isEmpty ? 'other' : gender)
         : quotes[_quoteIndex % quotes.length];
 
+    final isDark = Theme.of(context).brightness == Brightness.dark;
     return Scaffold(
-      backgroundColor: _kPageBackground,
+      backgroundColor: isDark ? Theme.of(context).colorScheme.surface : _kPageBackgroundLight,
       body: SafeArea(
         child: SingleChildScrollView(
           child: Column(
@@ -156,8 +155,8 @@ class _HomeState extends LPExtendedState<Home> {
                 reminders: [
                   ReminderItemData(
                     iconAsset: 'assets/images/sun_draw.svg',
-                    title: 'Go for a short walk out',
-                    subtitle: 'Our suggestion',
+                    title: appLocale.feelBetterListNo18(gender.isEmpty ? 'other' : gender),
+                    subtitle: appLocale.ourSuggestion,
                   ),
                 ],
                 onSeeAll: () => widget.changeCurrentIndex(
@@ -198,9 +197,6 @@ class _HomeState extends LPExtendedState<Home> {
 
               // Gratitude
               GratitudeSectionWidget(
-                items: userInfoProvider.thanks.values
-                    .expand((list) => list)
-                    .toList(),
                 onAddItem: () => widget.changeCurrentIndex(
                   context,
                   PagesCode.GratitudeJournal,

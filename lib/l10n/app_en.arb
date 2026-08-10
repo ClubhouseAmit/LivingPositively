@@ -1839,5 +1839,9 @@
   "gratitudeSubTitle": "What am I grateful for today",
   "@gratitudeSubTitle": {
     "description": "Subtitle for gratitude section"
+  },
+  "ourSuggestion": "Our suggestion",
+  "@ourSuggestion": {
+    "description": "Subtitle for suggestion card on home page"
   }
 }

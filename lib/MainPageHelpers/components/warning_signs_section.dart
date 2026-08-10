@@ -1,6 +1,9 @@
 import 'package:flutter/material.dart';
+import 'package:mazilon/l10n/app_localizations.dart';
 import 'package:mazilon/util/layout/directional_widgets.dart';
 import 'package:mazilon/util/theme/spacing.dart';
+import 'package:mazilon/util/userInformation.dart';
+import 'package:provider/provider.dart';
 
 class WarningSignsSectionWidget extends StatelessWidget {
   final List<String> signs;
@@ -17,19 +20,19 @@ class WarningSignsSectionWidget extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final colorScheme = Theme.of(context).colorScheme;
+    final appLocale = AppLocalizations.of(context)!;
+    final userInfo = Provider.of<UserInformation>(context);
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         // Header
         SectionHeaderWidget(
-          title: 'My warning signs', // TODO: localize
+          title: appLocale.warningSignsTitle,
           leadingIcon: Icons.warning_amber_outlined,
           actionIcon: Icons.add,
           onActionTap: onAddItem,
-          // TODO: localize subtitle
-          subtitle:
-              'If a warning sign appears, activate your personal safety plan. Fill in your warning signs',
+          subtitle: appLocale.warningSignsSubTitle,
         ),
         // Horizontal scroll of cards
         SizedBox(
@@ -59,7 +62,7 @@ class WarningSignsSectionWidget extends StatelessWidget {
             child: TextButton.icon(
               onPressed: onSeeAll,
               label: Text(
-                'see all',
+                appLocale.showAll(userInfo.gender),
                 style: TextStyle(
                   color: colorScheme.primary,
                   fontWeight: FontWeight.w500,
@@ -124,6 +127,7 @@ class _AddWarningCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final appLocale = AppLocalizations.of(context)!;
     return GestureDetector(
       onTap: onTap,
       child: Container(
@@ -147,7 +151,7 @@ class _AddWarningCard extends StatelessWidget {
                 ),
                 SizedBox(height: AppSpacing.sm),
                 Text(
-                  'Add warning sign', // TODO: localize
+                  appLocale.addWarningSign,
                   style: Theme.of(context).textTheme.bodySmall?.copyWith(
                         color: colorScheme.outline,
                         height: 1.4,

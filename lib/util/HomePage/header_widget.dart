@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:mazilon/l10n/app_localizations.dart';
 import 'package:mazilon/util/theme/spacing.dart';
 
 class HeaderWidget extends StatelessWidget {
@@ -30,12 +31,20 @@ class HeaderWidget extends StatelessWidget {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text(
-                  userName.isEmpty ? 'Hi,' : 'Hi $userName,',
-                  style: Theme.of(context).textTheme.headlineMedium?.copyWith(
-                    fontWeight: FontWeight.bold,
-                    color: colorScheme.onSurface,
-                  ),
+                Builder(
+                  builder: (context) {
+                    final appLocale = AppLocalizations.of(context);
+                    final greeting = appLocale != null
+                        ? appLocale.greetings(userName).trim()
+                        : (userName.isEmpty ? 'Hi,' : 'Hi $userName,');
+                    return Text(
+                      greeting,
+                      style: Theme.of(context).textTheme.headlineMedium?.copyWith(
+                        fontWeight: FontWeight.bold,
+                        color: colorScheme.onSurface,
+                      ),
+                    );
+                  },
                 ),
                 const SizedBox(height: 2),
                 Text(

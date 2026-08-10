@@ -31,6 +31,7 @@ class RemindersSectionWidget extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final appLocale = AppLocalizations.of(context)!;
+    final isRtl = Directionality.of(context) == TextDirection.rtl;
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -58,10 +59,18 @@ class RemindersSectionWidget extends StatelessWidget {
                                 SizedBox(
                                   width: 68,
                                   height: 65,
-                                  child: SvgPicture.asset(
-                                    reminder.iconAsset!,
-                                    fit: BoxFit.cover,
-                                  ),
+                                  child: isRtl
+                                      ? Transform.flip(
+                                          flipX: true,
+                                          child: SvgPicture.asset(
+                                            reminder.iconAsset!,
+                                            fit: BoxFit.cover,
+                                          ),
+                                        )
+                                      : SvgPicture.asset(
+                                          reminder.iconAsset!,
+                                          fit: BoxFit.cover,
+                                        ),
                                 )
                               else
                                 Container(
@@ -90,6 +99,7 @@ class RemindersSectionWidget extends StatelessWidget {
                                         reminder.title,
                                         style: Theme.of(context).textTheme.bodyMedium?.copyWith(
                                               fontWeight: FontWeight.w600,
+                                              color: const Color(0xFF1A1A1A),
                                             ),
                                         textAlign: TextAlign.start,
                                         overflow: TextOverflow.ellipsis,
@@ -100,7 +110,7 @@ class RemindersSectionWidget extends StatelessWidget {
                                         Text(
                                           reminder.subtitle!,
                                           style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                                                color: Theme.of(context).colorScheme.outline,
+                                                color: const Color(0xFF757575),
                                               ),
                                           textAlign: TextAlign.start,
                                         ),
@@ -111,10 +121,10 @@ class RemindersSectionWidget extends StatelessWidget {
                               ),
                               Padding(
                                 padding: const EdgeInsetsDirectional.only(end: 16.0),
-                                child: Icon(
+                                child: const Icon(
                                   Icons.edit,
                                   size: 18,
-                                  color: Theme.of(context).colorScheme.outline,
+                                  color: Color(0xFF757575),
                                 ),
                               ),
                             ],

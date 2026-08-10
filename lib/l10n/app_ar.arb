@@ -505,5 +505,9 @@
   "gratitudeSubTitle": "ما الذي أنا ممتن له اليوم",
   "@gratitudeSubTitle": {
     "description": "Subtitle for gratitude section"
+  },
+  "ourSuggestion": "اقتراحنا",
+  "@ourSuggestion": {
+    "description": "Subtitle for suggestion card on home page"
   }
 }

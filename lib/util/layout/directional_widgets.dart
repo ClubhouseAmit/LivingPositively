@@ -9,6 +9,7 @@ class CardContainer extends StatelessWidget {
   final VoidCallback? onTap;
   final Color? backgroundColor;
   final double? borderRadius;
+  final bool hasShadow;
 
   const CardContainer({
     required this.child,
@@ -16,27 +17,52 @@ class CardContainer extends StatelessWidget {
     this.onTap,
     this.backgroundColor,
     this.borderRadius = 16,
+    this.hasShadow = true,
     super.key,
   });
 
   @override
   Widget build(BuildContext context) {
+    final effectiveBg = backgroundColor ?? Colors.white;
+    final bgIsLight = ThemeData.estimateBrightnessForColor(effectiveBg) == Brightness.light;
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final theme = Theme.of(context);
+
+    Widget cardChild = child;
+    if (bgIsLight && isDark) {
+      cardChild = Theme(
+        data: theme.copyWith(
+          textTheme: theme.textTheme.apply(
+            bodyColor: const Color(0xFF1A1A1A),
+            displayColor: const Color(0xFF1A1A1A),
+          ),
+          colorScheme: theme.colorScheme.copyWith(
+            onSurface: const Color(0xFF1A1A1A),
+            outline: const Color(0xFF757575),
+          ),
+        ),
+        child: child,
+      );
+    }
+
     return GestureDetector(
       onTap: onTap,
       child: Container(
         padding: padding ?? const EdgeInsets.all(AppSpacing.lg),
         decoration: BoxDecoration(
-          color: backgroundColor ?? Colors.white,
+          color: effectiveBg,
           borderRadius: BorderRadius.circular(borderRadius!),
-          boxShadow: [
-            BoxShadow(
-              color: Colors.black.withValues(alpha: 0.07),
-              blurRadius: 8,
-              offset: const Offset(0, 2),
-            ),
-          ],
+          boxShadow: hasShadow
+              ? [
+                  BoxShadow(
+                    color: Colors.black.withValues(alpha: 0.07),
+                    blurRadius: 8,
+                    offset: const Offset(0, 2),
+                  ),
+                ]
+              : null,
         ),
-        child: child,
+        child: cardChild,
       ),
     );
   }
@@ -102,7 +128,7 @@ class SectionHeaderWidget extends StatelessWidget {
               ),
               if (actionIcon != null)
                 IconButton(
-                  icon: Icon(actionIcon, color: colorScheme.primary, size: 22),
+                  icon: Icon(actionIcon, color: colorScheme.onSurface, size: 22),
                   onPressed: onActionTap,
                   padding: EdgeInsets.zero,
                   constraints: const BoxConstraints(minWidth: 36, minHeight: 36),
@@ -130,7 +156,7 @@ class SectionHeaderWidget extends StatelessWidget {
             Text(
               subtitle!,
               style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                color: colorScheme.outline,
+                color: colorScheme.onSurface.withValues(alpha: 0.6),
                 fontSize: 14,
               ),
               textAlign: TextAlign.start,
@@ -148,11 +174,13 @@ class PillItemRow extends StatelessWidget {
   final int index;
   final String text;
   final VoidCallback? onEdit;
+  final VoidCallback? onRemove;
 
   const PillItemRow({
     required this.index,
     required this.text,
     this.onEdit,
+    this.onRemove,
     super.key,
   });
 
@@ -169,6 +197,7 @@ class PillItemRow extends StatelessWidget {
             decoration: BoxDecoration(
               color: colorScheme.primary,
               shape: BoxShape.circle,
+              border: Border.all(color: Colors.white, width: 2),
             ),
             child: Center(
               child: Text(
@@ -184,20 +213,13 @@ class PillItemRow extends StatelessWidget {
           SizedBox(width: AppSpacing.md),
           Expanded(
             child: Container(
-              padding: EdgeInsetsDirectional.symmetric(
+              padding: const EdgeInsetsDirectional.symmetric(
                 horizontal: AppSpacing.md,
-                vertical: AppSpacing.sm + 2,
+                vertical: AppSpacing.md,
               ),
               decoration: BoxDecoration(
                 color: Colors.white,
                 borderRadius: BorderRadius.circular(30),
-                boxShadow: [
-                  BoxShadow(
-                    color: Colors.black.withValues(alpha: 0.06),
-                    blurRadius: 6,
-                    offset: const Offset(0, 2),
-                  ),
-                ],
               ),
               child: Row(
                 children: [
@@ -206,14 +228,22 @@ class PillItemRow extends StatelessWidget {
                       text,
                       style: Theme.of(context).textTheme.bodyMedium?.copyWith(
                             fontWeight: FontWeight.w500,
+                            color: const Color(0xFF1A1A1A),
                           ),
                       textAlign: TextAlign.start,
                     ),
                   ),
                   GestureDetector(
                     onTap: onEdit,
-                    child: Icon(Icons.edit, size: 16, color: colorScheme.outline),
+                    child: const Icon(Icons.edit, size: 16, color: Color(0xFF757575)),
                   ),
+                  if (onRemove != null) ...[
+                    const SizedBox(width: 8),
+                    GestureDetector(
+                      onTap: onRemove,
+                      child: const Icon(Icons.close, size: 16, color: Color(0xFF757575)),
+                    ),
+                  ],
                 ],
               ),
             ),
@@ -229,23 +259,25 @@ class PillItemRow extends StatelessWidget {
 class DashedPillAddSlot extends StatelessWidget {
   final String placeholder;
   final VoidCallback? onTap;
+  final VoidCallback? onRefresh;
 
   const DashedPillAddSlot({
     required this.placeholder,
     this.onTap,
+    this.onRefresh,
     super.key,
   });
 
   @override
   Widget build(BuildContext context) {
     final colorScheme = Theme.of(context).colorScheme;
-    return GestureDetector(
-      onTap: onTap,
-      child: Padding(
-        padding: EdgeInsetsDirectional.only(bottom: AppSpacing.sm),
-        child: Row(
-          children: [
-            CustomPaint(
+    return Padding(
+      padding: EdgeInsetsDirectional.only(bottom: AppSpacing.sm),
+      child: Row(
+        children: [
+          GestureDetector(
+            onTap: onTap,
+            child: CustomPaint(
               painter: _DashedCirclePainter(color: colorScheme.tertiary),
               child: SizedBox(
                 width: 36,
@@ -253,27 +285,49 @@ class DashedPillAddSlot extends StatelessWidget {
                 child: Icon(Icons.add, color: colorScheme.tertiary, size: 18),
               ),
             ),
-            SizedBox(width: AppSpacing.md),
-            Expanded(
-              child: CustomPaint(
-                painter: _DashedPillPainter(color: colorScheme.tertiary),
-                child: Container(
-                  padding: EdgeInsetsDirectional.symmetric(
-                    horizontal: AppSpacing.md,
-                    vertical: AppSpacing.sm + 2,
-                  ),
-                  child: Text(
-                    placeholder,
-                    style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+          ),
+          SizedBox(width: AppSpacing.md),
+          Expanded(
+            child: CustomPaint(
+              painter: _DashedPillPainter(color: colorScheme.tertiary),
+              child: Container(
+                padding: EdgeInsetsDirectional.symmetric(
+                  horizontal: AppSpacing.md,
+                  vertical: AppSpacing.sm + 2,
+                ),
+                child: Row(
+                  children: [
+                    Expanded(
+                      child: GestureDetector(
+                        behavior: HitTestBehavior.opaque,
+                        onTap: onTap,
+                        child: Text(
+                          placeholder,
+                          style:
+                              Theme.of(context).textTheme.bodyMedium?.copyWith(
+                                    color: colorScheme.outline,
+                                  ),
+                          textAlign: TextAlign.start,
+                        ),
+                      ),
+                    ),
+                    if (onRefresh != null) ...[
+                      const SizedBox(width: 8),
+                      GestureDetector(
+                        onTap: onRefresh,
+                        child: Icon(
+                          Icons.refresh,
+                          size: 16,
                           color: colorScheme.outline,
                         ),
-                    textAlign: TextAlign.start,
-                  ),
+                      ),
+                    ],
+                  ],
                 ),
               ),
             ),
-          ],
-        ),
+          ),
+        ],
       ),
     );
   }

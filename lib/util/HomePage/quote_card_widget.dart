@@ -43,14 +43,14 @@ class QuoteCardWidget extends StatelessWidget {
               color: colorScheme.primary,
               child: Stack(
                 children: [
-                  // Decorative quotation mark graphic anchored to bottom-right
-                  Positioned(
-                    right: 4,
+                  // Decorative quotation mark graphic anchored to end (right in LTR, left in RTL)
+                  PositionedDirectional(
+                    end: 4,
                     bottom: -15,
                     child: CustomPaint(
                       size: const Size(100, 80),
                       painter: _DoubleQuotePainter(
-                        color: Colors.white.withValues(alpha: 0.18),
+                        color: colorScheme.onPrimary.withValues(alpha: 0.18),
                       ),
                     ),
                   ),
@@ -71,7 +71,7 @@ class QuoteCardWidget extends StatelessWidget {
                             padding: EdgeInsetsDirectional.only(end: AppSpacing.md),
                             child: Icon(
                               Icons.autorenew,
-                              color: Colors.white,
+                              color: colorScheme.onPrimary,
                               size: 26,
                             ),
                           ),
@@ -80,7 +80,7 @@ class QuoteCardWidget extends StatelessWidget {
                           child: Text(
                             quote,
                             style: Theme.of(context).textTheme.bodyLarge?.copyWith(
-                                  color: Colors.white,
+                                  color: colorScheme.onPrimary,
                                   fontWeight: FontWeight.w600,
                                   fontSize: 16,
                                 ),

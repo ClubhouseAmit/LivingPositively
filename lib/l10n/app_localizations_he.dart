@@ -3309,4 +3309,7 @@ class AppLocalizationsHe extends AppLocalizations {
 
   @override
   String get gratitudeSubTitle => 'על מה אני אסיר/ת תודה היום';
+
+  @override
+  String get ourSuggestion => 'ההצעה שלנו';
 }
