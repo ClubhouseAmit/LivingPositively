@@ -3278,4 +3278,35 @@ class AppLocalizationsHe extends AppLocalizations {
   @override
   String get confirmDeletePlanAnswerMessage =>
       'התשובה תוסר מהתוכנית האישית שלך.';
+
+  @override
+  String get reminders => 'תזכורות';
+
+  @override
+  String get myPlan => 'התוכנית שלי';
+
+  @override
+  String get traitsListTitle => 'רשימת מעלות';
+
+  @override
+  String get gratitudeListTitle => 'רשימת תודות';
+
+  @override
+  String get myPlanSubTitle => 'דברים שיעשו לי טוב עכשיו';
+
+  @override
+  String get warningSignsTitle => 'סימני האזהרה שלי';
+
+  @override
+  String get warningSignsSubTitle =>
+      'אם מופיע סימן אזהרה, הפעל/י את תוכנית הבטיחות האישית שלך. מלא/י את סימני האזהרה שלך';
+
+  @override
+  String get addWarningSign => 'הוסף/י סימן אזהרה';
+
+  @override
+  String get traitsSubTitle => 'כאן אני זורח/ת. קרא/י יום יום';
+
+  @override
+  String get gratitudeSubTitle => 'על מה אני אסיר/ת תודה היום';
 }

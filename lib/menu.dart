@@ -4,6 +4,7 @@ import 'package:auto_size_text/auto_size_text.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
+import 'package:flutter_svg/flutter_svg.dart';
 import 'package:get_it/get_it.dart';
 import 'package:mazilon/AnalyticsService.dart';
 import 'package:mazilon/global_enums.dart';
@@ -248,7 +249,7 @@ class _MenuState extends LPExtendedState<Menu> {
     required Key key,
     required VoidCallback onPressed,
     required bool selected,
-    required IconData icon,
+    required dynamic icon,
     required String label,
   }) {
     // Semantics(selected:) lets TalkBack/VoiceOver announce the active tab
@@ -320,48 +321,32 @@ class _MenuState extends LPExtendedState<Menu> {
         // reachable in every app state, including fullscreen video playback.
         floatingActionButton: FloatingActionButton(
           shape: const CircleBorder(),
+          elevation: 6,
           backgroundColor: isFullScreen
-              ? const Color.fromARGB(
-                  200,
-                  33,
-                  1,
-                  101,
-                ) // ~78% opaque in fullscreen
-              : const Color.fromARGB(255, 33, 1, 101),
+              ? const Color(0xCC0F2851)
+              : const Color(0xFF0F2851),
           foregroundColor: Colors.white,
-          // The SOS FAB stays at the default 56dp in every mode — even
-          // fullscreen video — because shrinking the emergency affordance
-          // below the 48dp Material tap target conflicts with UX_GAPS §1.6
-          // and §2.1 (crisis affordance must remain reachable).
-          // Localized so TalkBack/VoiceOver announce the SOS action in the
-          // user's language (Hebrew / Arabic / English) — UX_GAPS §1.3.
           tooltip: appLocale.sosTooltip,
           child: isFullScreen
               ? const Icon(Icons.phone)
-              : Column(
-                  mainAxisSize: MainAxisSize.min,
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: <Widget>[
-                    const Icon(Icons.phone),
-                    // FittedBox keeps the label inside the FAB's 56dp circle
-                    // even when system text-scale is large; without it `.sp`
-                    // overflows the column on smaller layouts.
-                    FittedBox(
-                      fit: BoxFit.scaleDown,
-                      child: myAutoSizedText(
-                        'SOS',
-                        TextStyle(fontSize: 10.sp, fontWeight: FontWeight.bold),
-                        null,
-                        20,
+              : Center(
+                  child: Transform.translate(
+                    offset: const Offset(0, 5),
+                    child: SvgPicture.asset(
+                      'assets/images/sos_icon.svg',
+                      width: 38.57,
+                      fit: BoxFit.contain,
+                      colorFilter: const ColorFilter.mode(
+                        Colors.white,
+                        BlendMode.srcIn,
                       ),
                     ),
-                  ],
+                  ),
                 ),
           onPressed: () {
             setState(() {
               currentScreen = PhonePage(phonePageData: widget.phonePageData);
               current = PagesCode.EmergencyPhones;
-              // Exit fullscreen so emergency page renders with full chrome
               isFullScreen = false;
             });
           },
@@ -373,79 +358,90 @@ class _MenuState extends LPExtendedState<Menu> {
         bottomNavigationBar: isFullScreen
             ? null
             : BottomAppBar(
-                elevation: 0,
-                color: colorScheme.surface,
-                shape: const CircularNotchedRectangle(),
-                notchMargin: 10,
-                child: Container(
-                  color: colorScheme.surface,
-                  height: 60,
-                  child: Row(
-                    children: [
-                      Expanded(
-                        child: _bottomNavigationButton(
-                          key: const Key('bottomNavHome'),
-                          onPressed: () {
-                            setState(() {
-                              currentScreen = _buildHomeScreen();
-                              current = PagesCode.Home;
-                            });
-                          },
-                          selected: current == PagesCode.Home,
-                          icon: Icons.home,
-                          label: appLocale.home(gender),
+                elevation: 8,
+                color: Colors.white,
+                surfaceTintColor: Colors.transparent,
+                shape: const AutomaticNotchedShape(
+                  RoundedRectangleBorder(
+                    borderRadius: BorderRadius.vertical(
+                      top: Radius.circular(24),
+                    ),
+                  ),
+                  CircleBorder(),
+                ),
+                notchMargin: 8,
+                child: SizedBox(
+                  height: 76,
+                  child: Padding(
+                    padding: const EdgeInsets.only(top: 8, bottom: 4),
+                    child: Row(
+                      children: [
+                        Expanded(
+                          child: _bottomNavigationButton(
+                            key: const Key('bottomNavHome'),
+                            onPressed: () {
+                              setState(() {
+                                currentScreen = _buildHomeScreen();
+                                current = PagesCode.Home;
+                              });
+                            },
+                            selected: current == PagesCode.Home,
+                            icon: 'assets/images/home_icons.svg',
+                            label: appLocale.home(gender),
+                          ),
                         ),
-                      ),
-                      Expanded(
-                        child: _bottomNavigationButton(
-                          key: const Key('bottomNavMyPlan'),
-                          onPressed: () {
-                            setState(() {
-                              currentScreen = MyPlanPageFull(
-                                phonePageData: widget.phonePageData,
-                                hasFilled: widget.hasFilled,
-                                changeLocale: widget.changeLocale,
-                              );
-                              current = PagesCode.FullPlan;
-                            });
-                          },
-                          selected: current == PagesCode.FullPlan,
-                          icon: Icons.assignment,
-                          label: appLocale.personalPlanPageMyPlan(gender),
+                        Expanded(
+                          child: _bottomNavigationButton(
+                            key: const Key('bottomNavMyPlan'),
+                            onPressed: () {
+                              setState(() {
+                                currentScreen = MyPlanPageFull(
+                                  phonePageData: widget.phonePageData,
+                                  hasFilled: widget.hasFilled,
+                                  changeLocale: widget.changeLocale,
+                                );
+                                current = PagesCode.FullPlan;
+                              });
+                            },
+                            selected: current == PagesCode.FullPlan,
+                            icon: 'assets/images/task_icon.svg',
+                            label: appLocale.personalPlanPageMyPlan(gender),
+                          ),
                         ),
-                      ),
-                      const SizedBox(width: _bottomNavigationCenterGap),
-                      Expanded(
-                        child: _bottomNavigationButton(
-                          key: const Key('bottomNavFeelGood'),
-                          onPressed: () {
-                            setState(() {
-                              mixPanelService.trackEvent(
-                                "Viewed Feel Good Page",
-                              );
-                              currentScreen = FeelGood();
-                              current = PagesCode.FeelGoodPage;
-                            });
-                          },
-                          selected: current == PagesCode.FeelGoodPage,
-                          icon: Icons.emoji_emotions_outlined,
-                          label: AppLocalizations.of(
-                            context,
-                          )!.homePageFeelGood(gender),
+                        const SizedBox(width: _bottomNavigationCenterGap),
+                        Expanded(
+                          child: _bottomNavigationButton(
+                            key: const Key('bottomNavFeelGood'),
+                            onPressed: () {
+                              setState(() {
+                                mixPanelService.trackEvent(
+                                  "Viewed Feel Good Page",
+                                );
+                                currentScreen = FeelGood();
+                                current = PagesCode.FeelGoodPage;
+                              });
+                            },
+                            selected: current == PagesCode.FeelGoodPage,
+                            icon: 'assets/images/yin_yang_icon.svg',
+                            label: AppLocalizations.of(
+                              context,
+                            )!.homePageFeelGood(gender),
+                          ),
                         ),
-                      ),
-                      Expanded(
-                        child: _bottomNavigationButton(
-                          key: const Key('bottomNavSupportTools'),
-                          onPressed: () {
-                            _showWellnessTools(appInfoProvider);
-                          },
-                          selected: current == PagesCode.WellnessToolsPage,
-                          icon: Icons.local_florist_outlined,
-                          label: appLocale.homePageWellnessTools(gender),
+
+                        Expanded(
+                          child: _bottomNavigationButton(
+                            key: const Key('bottomNavSupportTools'),
+                            onPressed: () {
+                              _showWellnessTools(appInfoProvider);
+                            },
+                            selected: current == PagesCode.WellnessToolsPage,
+                            icon: Icons.local_florist_outlined,
+                            label: appLocale.homePageWellnessTools(gender),
+                          ),
                         ),
-                      ),
-                    ],
+                      ],
+                    ),
                   ),
                 ),
               ),

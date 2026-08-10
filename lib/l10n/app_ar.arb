@@ -465,5 +465,45 @@
   "feelGoodBackTooltip": "العودة إلى الصور",
   "feelGoodDeleteTooltip": "حذف الصورة",
   "confirmDeletePlanAnswerTitle": "هل تريد حذف الإجابة؟",
-  "confirmDeletePlanAnswerMessage": "ستتم إزالة الإجابة من خطتك الشخصية."
+  "confirmDeletePlanAnswerMessage": "ستتم إزالة الإجابة من خطتك الشخصية.",
+  "reminders": "التذكيرات",
+  "@reminders": {
+    "description": "Section header for reminders on home page"
+  },
+  "myPlan": "خطتي",
+  "@myPlan": {
+    "description": "Section header for personal plan on home page"
+  },
+  "traitsListTitle": "السمات الإيجابية",
+  "@traitsListTitle": {
+    "description": "Section header for positive traits list on home page"
+  },
+  "gratitudeListTitle": "قائمة الامتنان",
+  "@gratitudeListTitle": {
+    "description": "Section header for gratitude list on home page"
+  },
+  "myPlanSubTitle": "أشياء ستجعلني أشعر بشكل أفضل الآن",
+  "@myPlanSubTitle": {
+    "description": "Short subtitle for My Plan section on home page"
+  },
+  "warningSignsTitle": "علامات التحذير لدي",
+  "@warningSignsTitle": {
+    "description": "Section header for warning signs on home page"
+  },
+  "warningSignsSubTitle": "إذا ظهرت علامة تحذير، قم بتفعيل خطة السلامة الشخصية. أضف علامات التحذير الخاصة بك",
+  "@warningSignsSubTitle": {
+    "description": "Subtitle for warning signs section on home page"
+  },
+  "addWarningSign": "أضف علامة تحذير",
+  "@addWarningSign": {
+    "description": "Placeholder text for adding a new warning sign"
+  },
+  "traitsSubTitle": "هنا أتألق. اقرأ يومياً",
+  "@traitsSubTitle": {
+    "description": "Subtitle for positive traits section"
+  },
+  "gratitudeSubTitle": "ما الذي أنا ممتن له اليوم",
+  "@gratitudeSubTitle": {
+    "description": "Subtitle for gratitude section"
+  }
 }

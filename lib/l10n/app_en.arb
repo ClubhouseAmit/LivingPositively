@@ -153,7 +153,7 @@
   "@homePageAbout": {
     "description": ""
   },
-  "homePageWellnessTools": "{gender,select,male{Wellness Tools} female{Wellness Tools} other{Wellness Tools}}",
+  "homePageWellnessTools": "{gender,select,male{Wellness} female{Wellness} other{Wellness}}",
   "@homePageWellnessTools": {
     "description": ""
   },
@@ -1799,5 +1799,45 @@
   "feelGoodBackTooltip": "Back to photos",
   "feelGoodDeleteTooltip": "Delete photo",
   "confirmDeletePlanAnswerTitle": "Delete this answer?",
-  "confirmDeletePlanAnswerMessage": "This removes the answer from your personal plan."
+  "confirmDeletePlanAnswerMessage": "This removes the answer from your personal plan.",
+  "reminders": "Reminders",
+  "@reminders": {
+    "description": "Section header for reminders on home page"
+  },
+  "myPlan": "My Plan",
+  "@myPlan": {
+    "description": "Section header for personal plan on home page"
+  },
+  "traitsListTitle": "List of virtues",
+  "@traitsListTitle": {
+    "description": "Section header for positive traits list on home page"
+  },
+  "gratitudeListTitle": "Gratitude list",
+  "@gratitudeListTitle": {
+    "description": "Section header for gratitude list on home page"
+  },
+  "myPlanSubTitle": "Things that will do me good now",
+  "@myPlanSubTitle": {
+    "description": "Short subtitle for My Plan section on home page"
+  },
+  "warningSignsTitle": "My warning signs",
+  "@warningSignsTitle": {
+    "description": "Section header for warning signs on home page"
+  },
+  "warningSignsSubTitle": "If a warning sign appears, activate your personal safety plan. Fill in your warning signs",
+  "@warningSignsSubTitle": {
+    "description": "Subtitle for warning signs section on home page"
+  },
+  "addWarningSign": "Add warning sign",
+  "@addWarningSign": {
+    "description": "Placeholder text for adding a new warning sign"
+  },
+  "traitsSubTitle": "Where I shine. Read daily",
+  "@traitsSubTitle": {
+    "description": "Subtitle for positive traits section"
+  },
+  "gratitudeSubTitle": "What am I grateful for today",
+  "@gratitudeSubTitle": {
+    "description": "Subtitle for gratitude section"
+  }
 }

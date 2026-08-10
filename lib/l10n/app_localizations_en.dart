@@ -368,9 +368,9 @@ class AppLocalizationsEn extends AppLocalizations {
   @override
   String homePageWellnessTools(String gender) {
     String _temp0 = intl.Intl.selectLogic(gender, {
-      'male': 'Wellness Tools',
-      'female': 'Wellness Tools',
-      'other': 'Wellness Tools',
+      'male': 'Wellness',
+      'female': 'Wellness',
+      'other': 'Wellness',
     });
     return '$_temp0';
   }
@@ -3320,4 +3320,35 @@ class AppLocalizationsEn extends AppLocalizations {
   @override
   String get confirmDeletePlanAnswerMessage =>
       'This removes the answer from your personal plan.';
+
+  @override
+  String get reminders => 'Reminders';
+
+  @override
+  String get myPlan => 'My Plan';
+
+  @override
+  String get traitsListTitle => 'List of virtues';
+
+  @override
+  String get gratitudeListTitle => 'Gratitude list';
+
+  @override
+  String get myPlanSubTitle => 'Things that will do me good now';
+
+  @override
+  String get warningSignsTitle => 'My warning signs';
+
+  @override
+  String get warningSignsSubTitle =>
+      'If a warning sign appears, activate your personal safety plan. Fill in your warning signs';
+
+  @override
+  String get addWarningSign => 'Add warning sign';
+
+  @override
+  String get traitsSubTitle => 'Where I shine. Read daily';
+
+  @override
+  String get gratitudeSubTitle => 'What am I grateful for today';
 }

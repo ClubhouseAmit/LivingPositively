@@ -103,10 +103,10 @@ Future<Map<String, dynamic>> _sharePayloadFromMenu(
   await tester.tap(find.byKey(const Key('openMenu')));
   await tester.pumpAndSettle();
 
-  final shareButton = tester.widget<TextButton>(
+  final shareButton = tester.widget<MenuItemButton>(
     find.ancestor(
       of: find.byIcon(Icons.share),
-      matching: find.byType(TextButton),
+      matching: find.byType(MenuItemButton),
     ),
   );
   shareButton.onPressed!();
@@ -184,10 +184,10 @@ void main() {
     expect(find.byIcon(Icons.settings), findsOneWidget);
     expect(find.byIcon(Icons.share), findsOneWidget);
 
-    final aboutButton = tester.widget<TextButton>(
+    final aboutButton = tester.widget<MenuItemButton>(
       find.ancestor(
         of: find.byIcon(Icons.people),
-        matching: find.byType(TextButton),
+        matching: find.byType(MenuItemButton),
       ),
     );
     aboutButton.onPressed!();
@@ -213,10 +213,10 @@ void main() {
     // the production code we want to exercise. The pushed UserSettings
     // page itself is already covered by UserSettings_test.dart; here we
     // only assert the dialog pop branch executed.
-    final settingsButton = tester.widget<TextButton>(
+    final settingsButton = tester.widget<MenuItemButton>(
       find.ancestor(
         of: find.byIcon(Icons.settings),
-        matching: find.byType(TextButton),
+        matching: find.byType(MenuItemButton),
       ),
     );
     settingsButton.onPressed!();
@@ -264,10 +264,10 @@ void main() {
       await tester.pumpAndSettle();
 
       expect(find.byIcon(Icons.notification_add), findsOneWidget);
-      final notifButton = tester.widget<TextButton>(
+      final notifButton = tester.widget<MenuItemButton>(
         find.ancestor(
           of: find.byIcon(Icons.notification_add),
-          matching: find.byType(TextButton),
+          matching: find.byType(MenuItemButton),
         ),
       );
       notifButton.onPressed!();
@@ -291,10 +291,10 @@ void main() {
     await tester.tap(find.byKey(const Key('openMenu')));
     await tester.pumpAndSettle();
 
-    final shareButton = tester.widget<TextButton>(
+    final shareButton = tester.widget<MenuItemButton>(
       find.ancestor(
         of: find.byIcon(Icons.share),
-        matching: find.byType(TextButton),
+        matching: find.byType(MenuItemButton),
       ),
     );
     shareButton.onPressed!();
