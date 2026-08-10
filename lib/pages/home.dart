@@ -119,7 +119,7 @@ class _HomeState extends LPExtendedState<Home> {
         break;
       case 4:
         homeTitles = {
-          'SubTitle': appLocale.makeSaferSubTitle(userInfo.gender),
+          'SubTitle': appLocale.safeEnvironmentSubTitle(userInfo.gender),
           'list': userInfo.safeEnvironment,
         };
         break;

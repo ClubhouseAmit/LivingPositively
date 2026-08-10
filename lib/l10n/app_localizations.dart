@@ -679,6 +679,12 @@ abstract class AppLocalizations {
   ///
   ///
   /// In en, this message translates to:
+  /// **'{gender,select,male{Steps I can take to make my situation and environment safer} female{Steps I can take to make my situation and environment safer} other{Steps I can take to make my situation and environment safer}}'**
+  String safeEnvironmentSubTitle(String gender);
+
+  ///
+  ///
+  /// In en, this message translates to:
   /// **'{gender,select,male{Phone} female{Phone} other{Phone}}'**
   String phonesPagePhone(String gender);
 

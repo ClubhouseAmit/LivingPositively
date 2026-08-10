@@ -47,7 +47,7 @@ Map<String, dynamic> retrieveInformation(name, gender, textLocalization) {
       break;
     case 'PersonalPlan-SafeEnvironment':
       header = textLocalization.safeEnvironmentHeader(gender);
-      subTitle = textLocalization.makeSaferSubTitle(gender);
+      subTitle = textLocalization.safeEnvironmentSubTitle(gender);
       midTitle = textLocalization.makeSaferMidTitle(gender);
       midSubTitle = textLocalization.makeSaferMidSubTitle(gender);
       list = retrieveSafeEnvironmentList(

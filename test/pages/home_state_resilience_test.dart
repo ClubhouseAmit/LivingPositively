@@ -111,4 +111,30 @@ void main() {
       expect(personalPlanBuildPreamble, isNot(contains('loadFeelBetter')));
     },
   );
+
+  test('Safe Environment home preview uses its dedicated subtitle', () {
+    final homeSource = File('lib/pages/home.dart').readAsStringSync();
+    final safeEnvironmentCaseStart = homeSource.indexOf('case 4:');
+    final safeEnvironmentCaseEnd = homeSource.indexOf(
+      'break;',
+      safeEnvironmentCaseStart,
+    );
+
+    expect(safeEnvironmentCaseStart, greaterThanOrEqualTo(0));
+    expect(safeEnvironmentCaseEnd, greaterThan(safeEnvironmentCaseStart));
+
+    final safeEnvironmentCase = homeSource.substring(
+      safeEnvironmentCaseStart,
+      safeEnvironmentCaseEnd,
+    );
+    expect(
+      safeEnvironmentCase,
+      contains('safeEnvironmentSubTitle(userInfo.gender)'),
+    );
+    expect(
+      safeEnvironmentCase,
+      isNot(contains('makeSaferSubTitle(userInfo.gender)')),
+    );
+    expect(safeEnvironmentCase, contains("'list': userInfo.safeEnvironment"));
+  });
 }

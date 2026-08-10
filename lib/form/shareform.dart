@@ -14,6 +14,7 @@ import 'package:mazilon/util/styles.dart';
 import 'package:mazilon/util/type_utils.dart';
 
 import 'package:mazilon/util/appInformation.dart';
+import 'package:mazilon/util/personal_plan_export_metadata.dart';
 import 'package:mazilon/util/userInformation.dart';
 import 'package:mazilon/util/Share/show_share_dialog.dart';
 
@@ -531,23 +532,14 @@ class _ShareFormState extends LPExtendedState<ShareForm> {
                       //download personal plan PDF button:
                       IconButton(
                         onPressed: () async {
+                          final exportMetadata =
+                              buildPersonalPlanExportMetadata(
+                                appLocale,
+                                gender,
+                              );
                           var result = await fileService.download(
-                            [
-                              appLocale.distractionsHeader(gender),
-                              appLocale.difficultEventsHeader(gender),
-                              appLocale.feelBetterHeader(gender),
-                              appLocale.makeSaferHeader(gender),
-                              appLocale.phonesPageHeader(gender),
-                              appLocale.safeEnvironmentHeader(gender),
-                            ],
-                            [
-                              appLocale.distractionsSubTitle(gender),
-                              appLocale.difficultEventsSubTitle(gender),
-                              appLocale.feelBetterSubTitle(gender),
-                              appLocale.makeSaferSubTitle(gender),
-                              appLocale.phonesPageSubTitle(gender),
-                              appLocale.makeSaferSubTitle(gender),
-                            ],
+                            exportMetadata.titles,
+                            exportMetadata.subTitles,
                             appInfoProvider.sharePDFtexts,
                             ShareFileType.PDF,
                             appLocale.textDirection,

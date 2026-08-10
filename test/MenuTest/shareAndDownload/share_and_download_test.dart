@@ -170,7 +170,7 @@ void main() {
         localizations.feelBetterSubTitle('male'),
         localizations.makeSaferSubTitle('male'),
         localizations.phonesPageSubTitle('male'),
-        localizations.makeSaferSubTitle('male'),
+        localizations.safeEnvironmentSubTitle('male'),
       ]);
     });
   });

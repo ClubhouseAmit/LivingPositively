@@ -880,6 +880,17 @@ class AppLocalizationsHe extends AppLocalizations {
   }
 
   @override
+  String safeEnvironmentSubTitle(String gender) {
+    String _temp0 = intl.Intl.selectLogic(gender, {
+      'male': 'צעדים שאוכל לעשות כדי להפוך את המצב והסביבה לבטוחים יותר עבורי',
+      'female':
+          'צעדים שאוכל לעשות כדי להפוך את המצב והסביבה לבטוחים יותר עבורי',
+      'other': 'צעדים שאוכל לעשות כדי להפוך את המצב והסביבה לבטוחים יותר עבורי',
+    });
+    return '$_temp0';
+  }
+
+  @override
   String phonesPagePhone(String gender) {
     String _temp0 = intl.Intl.selectLogic(gender, {
       'male': 'טלפון',

@@ -7,6 +7,7 @@ import 'package:mazilon/util/LP_extended_state.dart';
 import 'package:mazilon/util/Share/LP_alert_dialog.dart';
 import 'package:mazilon/util/Share/LP_alert_dialog_box_item.dart';
 import 'package:mazilon/util/appInformation.dart';
+import 'package:mazilon/util/personal_plan_export_metadata.dart';
 import 'package:mazilon/util/userInformation.dart';
 import 'package:provider/provider.dart';
 
@@ -21,27 +22,15 @@ class LPShareAlertDialog extends StatefulWidget {
 
 Future<void> shareFile(appLocale, gender, appInfoProvider) async {
   var fileService = GetIt.instance<FileService>();
+  final exportMetadata = buildPersonalPlanExportMetadata(appLocale!, gender);
   await fileService.share(
-      "",
-      [
-        appLocale!.distractionsHeader(gender),
-        appLocale!.difficultEventsHeader(gender),
-        appLocale!.feelBetterHeader(gender),
-        appLocale!.makeSaferHeader(gender),
-        appLocale!.phonesPageHeader(gender),
-        appLocale!.safeEnvironmentHeader(gender),
-      ],
-      [
-        appLocale!.distractionsSubTitle(gender),
-        appLocale!.difficultEventsSubTitle(gender),
-        appLocale!.feelBetterSubTitle(gender),
-        appLocale!.makeSaferSubTitle(gender),
-        appLocale!.phonesPageSubTitle(gender),
-        appLocale!.makeSaferSubTitle(gender),
-      ],
-      appInfoProvider.sharePDFtexts,
-      ShareFileType.PDF,
-      appLocale.textDirection);
+    "",
+    exportMetadata.titles,
+    exportMetadata.subTitles,
+    appInfoProvider.sharePDFtexts,
+    ShareFileType.PDF,
+    appLocale.textDirection,
+  );
 }
 
 class _LPShareAlertDialogState extends LPExtendedState<LPShareAlertDialog> {

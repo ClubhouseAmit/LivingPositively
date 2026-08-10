@@ -37,6 +37,9 @@ class _FakeLocalization {
   String distractionsMidSubTitle(String g) =>
       _record('distractionsMidSubTitle', g);
 
+  String safeEnvironmentSubTitle(String g) =>
+      _record('safeEnvironmentSubTitle', g);
+
   String nextButton(String g) => _record('nextButton', g);
   String showMoreButton(String g) => _record('showMoreButton', g);
 
@@ -130,7 +133,7 @@ void main() {
           loc,
         );
         expect(result['header'], 'safeEnvironmentHeader(female)');
-        expect(result['subTitle'], 'makeSaferSubTitle(female)');
+        expect(result['subTitle'], 'safeEnvironmentSubTitle(female)');
         expect(result['midTitle'], 'makeSaferMidTitle(female)');
         expect(result['midSubTitle'], 'makeSaferMidSubTitle(female)');
         expect(result['list'], hasLength(4));

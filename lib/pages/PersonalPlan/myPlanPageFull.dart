@@ -171,6 +171,11 @@ class _MyPlanPageFullState extends LPExtendedState<MyPlanPageFull> {
     );
 
     final gender = userInfoProvider.gender;
+    final safeEnvironmentInfo = retrieveInformation(
+      fieldNames[4],
+      userInfoProvider.gender,
+      appLocale,
+    );
     Map<String, String> texts = appInfoProvider.sharePDFtexts;
 
     // Extract relevant texts for display of the bottom text
@@ -238,18 +243,8 @@ class _MyPlanPageFullState extends LPExtendedState<MyPlanPageFull> {
               answers: phoneInformation,
             ),
             MyPlanSection(
-              title: retrieveInformation(
-                    fieldNames[4],
-                    userInfoProvider.gender,
-                    appLocale,
-                  )["header"] ??
-                  '',
-              subTitle: retrieveInformation(
-                    fieldNames[4],
-                    userInfoProvider.gender,
-                    appLocale,
-                  )["subTitle"] ??
-                  '',
+              title: safeEnvironmentInfo["header"] ?? '',
+              subTitle: safeEnvironmentInfo["subTitle"] ?? '',
               answers: userAnswers[4],
             ),
             ...customCategories.map(

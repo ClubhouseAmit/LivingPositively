@@ -272,15 +272,13 @@ void main() {
       await tester.tap(choices.last, warnIfMissed: false);
       await tester.pumpAndSettle();
 
-      expect(
-        pm.store['userSelectionPersonalPlan-SafeEnvironment'],
-        isA<List<String>>(),
-      );
-      expect(
-        pm.store['userSelectionPersonalPlan-SafeEnvironment'],
-        contains('My own safety step'),
-      );
-      expect(user.safeEnvironment, hasLength(3));
+      const expected = [
+        'My own safety step',
+        'Removing or depositing personal weapon',
+        'Having someone stay with me, not being alone',
+      ];
+      expect(pm.store['userSelectionPersonalPlan-SafeEnvironment'], expected);
+      expect(user.safeEnvironment, expected);
     },
   );
 
