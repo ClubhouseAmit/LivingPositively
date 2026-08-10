@@ -88,11 +88,13 @@ class _HomeState extends LPExtendedState<Home> {
   //this selects what information to show in the personal plan widget boxes
   void setRandomPersonalWidgetText(
     UserInformation userInfo,
-    AppLocalizations appLocale,
-  ) {
-    _selectedPersonalPlanIndex ??= Random().nextInt(5);
+    AppLocalizations appLocale, {
+    int? previewIndex,
+  }) {
+    final selectedPersonalPlanIndex =
+        previewIndex ?? (_selectedPersonalPlanIndex ??= Random().nextInt(5));
 
-    switch (_selectedPersonalPlanIndex) {
+    switch (selectedPersonalPlanIndex) {
       case 0:
         homeTitles = {
           'SubTitle': appLocale.distractionsSubTitle(userInfo.gender),

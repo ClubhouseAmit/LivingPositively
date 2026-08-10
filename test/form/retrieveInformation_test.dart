@@ -39,6 +39,7 @@ class _FakeLocalization {
 
   String safeEnvironmentSubTitle(String g) =>
       _record('safeEnvironmentSubTitle', g);
+  String safeEnvironmentHeader(String g) => _record('safeEnvironmentHeader', g);
 
   String nextButton(String g) => _record('nextButton', g);
   String showMoreButton(String g) => _record('showMoreButton', g);
@@ -124,21 +125,36 @@ void main() {
       expect(result['midSubTitle'], 'distractionsMidSubTitle(male)');
     });
 
-    test(
-      'PersonalPlan-SafeEnvironment returns the safe environment bundle',
-      () {
+    const safeEnvironmentListGenders = <String, String>{
+      'male': 'male',
+      'female': 'female',
+      'other': 'other',
+      '': 'other',
+    };
+
+    for (final entry in safeEnvironmentListGenders.entries) {
+      final gender = entry.key;
+      final listGender = entry.value;
+      final genderLabel = gender.isEmpty ? 'empty' : gender;
+      test('PersonalPlan-SafeEnvironment preserves $genderLabel copy and uses '
+          '$listGender for its suggestions', () {
         final result = retrieveInformation(
           'PersonalPlan-SafeEnvironment',
-          'female',
+          gender,
           loc,
         );
-        expect(result['header'], 'safeEnvironmentHeader(female)');
-        expect(result['subTitle'], 'safeEnvironmentSubTitle(female)');
-        expect(result['midTitle'], 'makeSaferMidTitle(female)');
-        expect(result['midSubTitle'], 'makeSaferMidSubTitle(female)');
-        expect(result['list'], hasLength(4));
-      },
-    );
+        expect(result['header'], 'safeEnvironmentHeader($gender)');
+        expect(result['subTitle'], 'safeEnvironmentSubTitle($gender)');
+        expect(result['midTitle'], 'makeSaferMidTitle($gender)');
+        expect(result['midSubTitle'], 'makeSaferMidSubTitle($gender)');
+        expect(result['list'], [
+          'safeEnvironmentListNo0($listGender)',
+          'safeEnvironmentListNo1($listGender)',
+          'safeEnvironmentListNo2($listGender)',
+          'safeEnvironmentListNo3($listGender)',
+        ]);
+      });
+    }
 
     test('empty gender is replaced with "other" for the list lookup', () {
       retrieveInformation('PersonalPlan-DifficultEvents', '', loc);

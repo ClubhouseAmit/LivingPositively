@@ -3,7 +3,9 @@ import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:mazilon/MainPageHelpers/MainPageList/mainpage_list_widget.dart';
+import 'package:mazilon/MainPageHelpers/personalPlanWidget.dart';
 import 'package:mazilon/global_enums.dart';
+import 'package:mazilon/l10n/app_localizations.dart';
 import 'package:mazilon/pages/home.dart';
 import 'package:mazilon/util/Form/formPagePhoneModel.dart';
 import 'package:mazilon/util/userInformation.dart';
@@ -38,6 +40,7 @@ void main() {
     user.difficultEvents = ['Argument', 'Noise'];
     user.feelBetter = ['Music', 'Walk'];
     user.distractions = ['Puzzle', 'Tea'];
+    user.safeEnvironment = ['Store medications securely', 'Ask Alex to stay'];
   });
 
   tearDown(() {
@@ -112,29 +115,45 @@ void main() {
     },
   );
 
-  test('Safe Environment home preview uses its dedicated subtitle', () {
-    final homeSource = File('lib/pages/home.dart').readAsStringSync();
-    final safeEnvironmentCaseStart = homeSource.indexOf('case 4:');
-    final safeEnvironmentCaseEnd = homeSource.indexOf(
-      'break;',
-      safeEnvironmentCaseStart,
+  testWidgets('Home uses Safe Environment preview data when selected', (
+    tester,
+  ) async {
+    await pumpWithProviders(
+      tester,
+      Home(
+        phonePageData: _phoneData(),
+        changeCurrentIndex: (BuildContext context, PagesCode code) {},
+        changeLocale: (_) {},
+        openMainMenu: (_) {},
+      ),
+      userInformation: user,
+      surfaceSize: const Size(1024, 2400),
     );
 
-    expect(safeEnvironmentCaseStart, greaterThanOrEqualTo(0));
-    expect(safeEnvironmentCaseEnd, greaterThan(safeEnvironmentCaseStart));
+    final localizations = AppLocalizations.of(
+      tester.element(find.byType(Home)),
+    )!;
+    final dynamic homeState = tester.state(find.byType(Home));
+    homeState.setState(() {
+      homeState.setRandomPersonalWidgetText(
+        user,
+        localizations,
+        previewIndex: 4,
+      );
+    });
+    await tester.pump();
 
-    final safeEnvironmentCase = homeSource.substring(
-      safeEnvironmentCaseStart,
-      safeEnvironmentCaseEnd,
+    final preview = tester.widget<PersonalPlanWidget>(
+      find.byType(PersonalPlanWidget),
     );
     expect(
-      safeEnvironmentCase,
-      contains('safeEnvironmentSubTitle(userInfo.gender)'),
+      preview.text['SubTitle'],
+      localizations.safeEnvironmentSubTitle(user.gender),
     );
     expect(
-      safeEnvironmentCase,
-      isNot(contains('makeSaferSubTitle(userInfo.gender)')),
+      preview.text['SubTitle'],
+      isNot(localizations.makeSaferSubTitle(user.gender)),
     );
-    expect(safeEnvironmentCase, contains("'list': userInfo.safeEnvironment"));
+    expect(preview.text['list'], user.safeEnvironment);
   });
 }
