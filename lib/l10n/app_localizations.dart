@@ -601,7 +601,7 @@ abstract class AppLocalizations {
   ///
   ///
   /// In en, this message translates to:
-  /// **'{gender,select,male{Symptoms and warning signs, unusual behaviors for me} female{Symptoms and warning signs, unusual behaviors for me} other{Symptoms and warning signs, unusual behaviors for me}}'**
+  /// **'{gender,select,male{Symptoms and warning signs} female{Symptoms and warning signs} other{Symptoms and warning signs}}'**
   String distractionsHeader(String gender);
 
   ///
@@ -625,7 +625,7 @@ abstract class AppLocalizations {
   ///
   ///
   /// In en, this message translates to:
-  /// **'{gender,select,male{For balance and a healthy lifestyle - Wellness Tools - Personal Medications} female{For balance and a healthy lifestyle - Wellness Tools - Personal Medications} other{For balance and a healthy lifestyle - Wellness Tools - Personal Medications}}'**
+  /// **'{gender,select,male{What to do to help myself balance and maintain a healthy lifestyle (Wellness Tools) - Personal medications} female{What to do to help myself balance and maintain a healthy lifestyle (Wellness Tools) - Personal medications} other{What to do to help myself balance and maintain a healthy lifestyle (Wellness Tools) - Personal medications}}'**
   String feelBetterHeader(String gender);
 
   ///
@@ -649,7 +649,7 @@ abstract class AppLocalizations {
   ///
   ///
   /// In en, this message translates to:
-  /// **'{gender,select,male{Support from my environment when I notice early warning signs, and how I’d like to be assisted} female{Support from my environment when I notice early warning signs, and how I’d like to be assisted} other{Support from my environment when I notice early warning signs, and how I’d like to be assisted}}'**
+  /// **'{gender,select,male{Support and help from the environment when I experience early warning signs, how I would like to be helped} female{Support and help from the environment when I experience early warning signs, how I would like to be helped} other{Support and help from the environment when I experience early warning signs, how I would like to be helped}}'**
   String makeSaferHeader(String gender);
 
   ///
@@ -673,6 +673,12 @@ abstract class AppLocalizations {
   ///
   ///
   /// In en, this message translates to:
+  /// **'{gender,select,male{What will help me make the situation and environment safer for me} female{What will help me make the situation and environment safer for me} other{What will help me make the situation and environment safer for me}}'**
+  String safeEnvironmentHeader(String gender);
+
+  ///
+  ///
+  /// In en, this message translates to:
   /// **'{gender,select,male{Phone} female{Phone} other{Phone}}'**
   String phonesPagePhone(String gender);
 
@@ -685,7 +691,7 @@ abstract class AppLocalizations {
   ///
   ///
   /// In en, this message translates to:
-  /// **'{gender,select,male{Who are the people that support me, who I can turn to if I am distressed or thinking of harming myself?} female{Who are the people that support me, who I can turn to if I am distressed or thinking of harming myself?} other{Who are the people that support me, who I can turn to if I am distressed or thinking of harming myself?}}'**
+  /// **'{gender,select,male{Who are the people who support me, that I can turn to if I am in distress or thinking about self-harm} female{Who are the people who support me, that I can turn to if I am in distress or thinking about self-harm} other{Who are the people who support me, that I can turn to if I am in distress or thinking about self-harm}}'**
   String phonesPageHeader(String gender);
 
   ///
@@ -1821,6 +1827,30 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'{gender,select,male{that they will ask me} female{that they will ask me} other{that they will ask me}}'**
   String makeSaferListNo16(String gender);
+
+  ///
+  ///
+  /// In en, this message translates to:
+  /// **'{gender,select,male{Removing or depositing personal weapon} female{Removing or depositing personal weapon} other{Removing or depositing personal weapon}}'**
+  String safeEnvironmentListNo0(String gender);
+
+  ///
+  ///
+  /// In en, this message translates to:
+  /// **'{gender,select,male{Storing medications in a locked box} female{Storing medications in a locked box} other{Storing medications in a locked box}}'**
+  String safeEnvironmentListNo1(String gender);
+
+  ///
+  ///
+  /// In en, this message translates to:
+  /// **'{gender,select,male{Choosing someone to keep your medications for you} female{Choosing someone to keep your medications for you} other{Choosing someone to keep your medications for you}}'**
+  String safeEnvironmentListNo2(String gender);
+
+  ///
+  ///
+  /// In en, this message translates to:
+  /// **'{gender,select,male{Having someone stay with me, not being alone} female{Having someone stay with me, not being alone} other{Having someone stay with me, not being alone}}'**
+  String safeEnvironmentListNo3(String gender);
 
   ///
   ///

@@ -252,18 +252,20 @@ class _PersonalPlanWidgetState extends LPExtendedState<PersonalPlanWidget> {
                           onPressed: () async {
                             final result = await fileService.download(
                               [
-                                appLocale.difficultEventsHeader(gender),
-                                appLocale.makeSaferHeader(gender),
-                                appLocale.feelBetterHeader(gender),
                                 appLocale.distractionsHeader(gender),
+                                appLocale.difficultEventsHeader(gender),
+                                appLocale.feelBetterHeader(gender),
+                                appLocale.makeSaferHeader(gender),
                                 appLocale.phonesPageHeader(gender),
+                                appLocale.safeEnvironmentHeader(gender),
                               ],
                               [
-                                appLocale.difficultEventsSubTitle(gender),
-                                appLocale.makeSaferSubTitle(gender),
-                                appLocale.feelBetterSubTitle(gender),
                                 appLocale.distractionsSubTitle(gender),
+                                appLocale.difficultEventsSubTitle(gender),
+                                appLocale.feelBetterSubTitle(gender),
+                                appLocale.makeSaferSubTitle(gender),
                                 appLocale.phonesPageSubTitle(gender),
+                                appLocale.makeSaferSubTitle(gender),
                               ],
                               appInfoProvider.sharePDFtexts,
                               ShareFileType.PDF,

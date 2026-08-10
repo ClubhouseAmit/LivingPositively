@@ -90,13 +90,13 @@ class _HomeState extends LPExtendedState<Home> {
     UserInformation userInfo,
     AppLocalizations appLocale,
   ) {
-    _selectedPersonalPlanIndex ??= Random().nextInt(4);
+    _selectedPersonalPlanIndex ??= Random().nextInt(5);
 
     switch (_selectedPersonalPlanIndex) {
       case 0:
         homeTitles = {
-          'SubTitle': appLocale.makeSaferSubTitle(userInfo.gender),
-          'list': userInfo.makeSafer,
+          'SubTitle': appLocale.distractionsSubTitle(userInfo.gender),
+          'list': userInfo.distractions,
         };
         break;
       case 1:
@@ -113,8 +113,14 @@ class _HomeState extends LPExtendedState<Home> {
         break;
       case 3:
         homeTitles = {
-          'SubTitle': appLocale.distractionsSubTitle(userInfo.gender),
-          'list': userInfo.distractions,
+          'SubTitle': appLocale.makeSaferSubTitle(userInfo.gender),
+          'list': userInfo.makeSafer,
+        };
+        break;
+      case 4:
+        homeTitles = {
+          'SubTitle': appLocale.makeSaferSubTitle(userInfo.gender),
+          'list': userInfo.safeEnvironment,
         };
         break;
       default:

@@ -45,6 +45,17 @@ Map<String, dynamic> retrieveInformation(name, gender, textLocalization) {
           textLocalization, gender == "" ? "other" : gender);
 
       break;
+    case 'PersonalPlan-SafeEnvironment':
+      header = textLocalization.safeEnvironmentHeader(gender);
+      subTitle = textLocalization.makeSaferSubTitle(gender);
+      midTitle = textLocalization.makeSaferMidTitle(gender);
+      midSubTitle = textLocalization.makeSaferMidSubTitle(gender);
+      list = retrieveSafeEnvironmentList(
+        textLocalization,
+        gender == "" ? "other" : gender,
+      );
+
+      break;
     default:
       throw Exception('Invalid collection name');
   }
@@ -241,4 +252,13 @@ List<String> retrieveDistractionsList(localization, gender) {
   distractionsList.add(localization.distractionsListNo33(gender));
 
   return distractionsList;
+}
+
+List<String> retrieveSafeEnvironmentList(localization, gender) {
+  return [
+    localization.safeEnvironmentListNo0(gender),
+    localization.safeEnvironmentListNo1(gender),
+    localization.safeEnvironmentListNo2(gender),
+    localization.safeEnvironmentListNo3(gender),
+  ];
 }

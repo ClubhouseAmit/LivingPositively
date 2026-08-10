@@ -41,6 +41,9 @@ class _FormPageTemplateState extends LPExtendedState<FormPageTemplate> {
   @override
   void initState() {
     super.initState();
+    if (widget.collectionName == 'PersonalPlan-SafeEnvironment') {
+      displayedLength = 4;
+    }
   }
 
   @override
@@ -101,6 +104,9 @@ class _FormPageTemplateState extends LPExtendedState<FormPageTemplate> {
       case 'PersonalPlan-Distractions':
         userInfo.updateDistractions([...selectedItems]);
         break;
+      case 'PersonalPlan-SafeEnvironment':
+        userInfo.updateSafeEnvironment([...selectedItems]);
+        break;
       default:
     }
     await service.setItem(
@@ -133,6 +139,9 @@ class _FormPageTemplateState extends LPExtendedState<FormPageTemplate> {
         break;
       case 'PersonalPlan-Distractions':
         selectedItems = [...userInfo.distractions];
+        break;
+      case 'PersonalPlan-SafeEnvironment':
+        selectedItems = [...userInfo.safeEnvironment];
         break;
       default:
     }

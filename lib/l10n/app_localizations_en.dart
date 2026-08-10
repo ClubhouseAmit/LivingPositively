@@ -755,9 +755,9 @@ class AppLocalizationsEn extends AppLocalizations {
   @override
   String distractionsHeader(String gender) {
     String _temp0 = intl.Intl.selectLogic(gender, {
-      'male': 'Symptoms and warning signs, unusual behaviors for me',
-      'female': 'Symptoms and warning signs, unusual behaviors for me',
-      'other': 'Symptoms and warning signs, unusual behaviors for me',
+      'male': 'Symptoms and warning signs',
+      'female': 'Symptoms and warning signs',
+      'other': 'Symptoms and warning signs',
     });
     return '$_temp0';
   }
@@ -799,11 +799,11 @@ class AppLocalizationsEn extends AppLocalizations {
   String feelBetterHeader(String gender) {
     String _temp0 = intl.Intl.selectLogic(gender, {
       'male':
-          'For balance and a healthy lifestyle - Wellness Tools - Personal Medications',
+          'What to do to help myself balance and maintain a healthy lifestyle (Wellness Tools) - Personal medications',
       'female':
-          'For balance and a healthy lifestyle - Wellness Tools - Personal Medications',
+          'What to do to help myself balance and maintain a healthy lifestyle (Wellness Tools) - Personal medications',
       'other':
-          'For balance and a healthy lifestyle - Wellness Tools - Personal Medications',
+          'What to do to help myself balance and maintain a healthy lifestyle (Wellness Tools) - Personal medications',
     });
     return '$_temp0';
   }
@@ -845,11 +845,11 @@ class AppLocalizationsEn extends AppLocalizations {
   String makeSaferHeader(String gender) {
     String _temp0 = intl.Intl.selectLogic(gender, {
       'male':
-          'Support from my environment when I notice early warning signs, and how I’d like to be assisted',
+          'Support and help from the environment when I experience early warning signs, how I would like to be helped',
       'female':
-          'Support from my environment when I notice early warning signs, and how I’d like to be assisted',
+          'Support and help from the environment when I experience early warning signs, how I would like to be helped',
       'other':
-          'Support from my environment when I notice early warning signs, and how I’d like to be assisted',
+          'Support and help from the environment when I experience early warning signs, how I would like to be helped',
     });
     return '$_temp0';
   }
@@ -885,6 +885,19 @@ class AppLocalizationsEn extends AppLocalizations {
   }
 
   @override
+  String safeEnvironmentHeader(String gender) {
+    String _temp0 = intl.Intl.selectLogic(gender, {
+      'male':
+          'What will help me make the situation and environment safer for me',
+      'female':
+          'What will help me make the situation and environment safer for me',
+      'other':
+          'What will help me make the situation and environment safer for me',
+    });
+    return '$_temp0';
+  }
+
+  @override
   String phonesPagePhone(String gender) {
     String _temp0 = intl.Intl.selectLogic(gender, {
       'male': 'Phone',
@@ -908,11 +921,11 @@ class AppLocalizationsEn extends AppLocalizations {
   String phonesPageHeader(String gender) {
     String _temp0 = intl.Intl.selectLogic(gender, {
       'male':
-          'Who are the people that support me, who I can turn to if I am distressed or thinking of harming myself?',
+          'Who are the people who support me, that I can turn to if I am in distress or thinking about self-harm',
       'female':
-          'Who are the people that support me, who I can turn to if I am distressed or thinking of harming myself?',
+          'Who are the people who support me, that I can turn to if I am in distress or thinking about self-harm',
       'other':
-          'Who are the people that support me, who I can turn to if I am distressed or thinking of harming myself?',
+          'Who are the people who support me, that I can turn to if I am in distress or thinking about self-harm',
     });
     return '$_temp0';
   }
@@ -2527,6 +2540,46 @@ class AppLocalizationsEn extends AppLocalizations {
       'male': 'that they will ask me',
       'female': 'that they will ask me',
       'other': 'that they will ask me',
+    });
+    return '$_temp0';
+  }
+
+  @override
+  String safeEnvironmentListNo0(String gender) {
+    String _temp0 = intl.Intl.selectLogic(gender, {
+      'male': 'Removing or depositing personal weapon',
+      'female': 'Removing or depositing personal weapon',
+      'other': 'Removing or depositing personal weapon',
+    });
+    return '$_temp0';
+  }
+
+  @override
+  String safeEnvironmentListNo1(String gender) {
+    String _temp0 = intl.Intl.selectLogic(gender, {
+      'male': 'Storing medications in a locked box',
+      'female': 'Storing medications in a locked box',
+      'other': 'Storing medications in a locked box',
+    });
+    return '$_temp0';
+  }
+
+  @override
+  String safeEnvironmentListNo2(String gender) {
+    String _temp0 = intl.Intl.selectLogic(gender, {
+      'male': 'Choosing someone to keep your medications for you',
+      'female': 'Choosing someone to keep your medications for you',
+      'other': 'Choosing someone to keep your medications for you',
+    });
+    return '$_temp0';
+  }
+
+  @override
+  String safeEnvironmentListNo3(String gender) {
+    String _temp0 = intl.Intl.selectLogic(gender, {
+      'male': 'Having someone stay with me, not being alone',
+      'female': 'Having someone stay with me, not being alone',
+      'other': 'Having someone stay with me, not being alone',
     });
     return '$_temp0';
   }

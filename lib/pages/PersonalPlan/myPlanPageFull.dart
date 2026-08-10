@@ -48,33 +48,37 @@ class _MyPlanPageFullState extends LPExtendedState<MyPlanPageFull> {
 
   // Field names for different sections of the personal plan
   List<String> fieldNames = [
-    'PersonalPlan-DifficultEvents',
-    'PersonalPlan-MakeSafer',
-    'PersonalPlan-FeelBetter',
     'PersonalPlan-Distractions',
+    'PersonalPlan-DifficultEvents',
+    'PersonalPlan-FeelBetter',
+    'PersonalPlan-MakeSafer',
+    'PersonalPlan-SafeEnvironment',
   ];
 
   // Names for the providers managing each section
   List<String> providerNames = [
-    'difficultEvents',
-    'makeSafer',
-    'feelBetter',
     'distractions',
+    'difficultEvents',
+    'feelBetter',
+    'makeSafer',
+    'safeEnvironment',
   ];
 
   // Retrieve the user's answers for each section and update the state
   void getUserAnswers(
-    userSelectionDifficultEvents,
-    userSelectionMakeSafer,
-    userSelectionFeelBetter,
     userSelectionDistractions,
+    userSelectionDifficultEvents,
+    userSelectionFeelBetter,
+    userSelectionMakeSafer,
+    userSelectionSafeEnvironment,
   ) {
     setState(() {
       userAnswers = [
-        userSelectionDifficultEvents,
-        userSelectionMakeSafer,
-        userSelectionFeelBetter,
         userSelectionDistractions,
+        userSelectionDifficultEvents,
+        userSelectionFeelBetter,
+        userSelectionMakeSafer,
+        userSelectionSafeEnvironment,
       ];
     });
   }
@@ -159,10 +163,11 @@ class _MyPlanPageFullState extends LPExtendedState<MyPlanPageFull> {
       widget.phonePageData.savedPhoneNumbers,
     );
     getUserAnswers(
-      userInfoProvider.difficultEvents,
-      userInfoProvider.makeSafer,
-      userInfoProvider.feelBetter,
       userInfoProvider.distractions,
+      userInfoProvider.difficultEvents,
+      userInfoProvider.feelBetter,
+      userInfoProvider.makeSafer,
+      userInfoProvider.safeEnvironment,
     );
 
     final gender = userInfoProvider.gender;
@@ -231,6 +236,21 @@ class _MyPlanPageFullState extends LPExtendedState<MyPlanPageFull> {
               title: appLocale.phonesPageHeader(gender),
               subTitle: appLocale.phonesPageSubTitle(gender),
               answers: phoneInformation,
+            ),
+            MyPlanSection(
+              title: retrieveInformation(
+                    fieldNames[4],
+                    userInfoProvider.gender,
+                    appLocale,
+                  )["header"] ??
+                  '',
+              subTitle: retrieveInformation(
+                    fieldNames[4],
+                    userInfoProvider.gender,
+                    appLocale,
+                  )["subTitle"] ??
+                  '',
+              answers: userAnswers[4],
             ),
             ...customCategories.map(
               (category) => MyPlanSection(

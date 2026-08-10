@@ -121,6 +121,22 @@ void main() {
       expect(result['midSubTitle'], 'distractionsMidSubTitle(male)');
     });
 
+    test(
+      'PersonalPlan-SafeEnvironment returns the safe environment bundle',
+      () {
+        final result = retrieveInformation(
+          'PersonalPlan-SafeEnvironment',
+          'female',
+          loc,
+        );
+        expect(result['header'], 'safeEnvironmentHeader(female)');
+        expect(result['subTitle'], 'makeSaferSubTitle(female)');
+        expect(result['midTitle'], 'makeSaferMidTitle(female)');
+        expect(result['midSubTitle'], 'makeSaferMidSubTitle(female)');
+        expect(result['list'], hasLength(4));
+      },
+    );
+
     test('empty gender is replaced with "other" for the list lookup', () {
       retrieveInformation('PersonalPlan-DifficultEvents', '', loc);
       // The list helper is invoked with "other" rather than the empty string.
@@ -172,6 +188,13 @@ void main() {
     test('retrieveDistractionsList returns ~33 entries', () {
       final list = retrieveDistractionsList(loc, 'male');
       expect(list.length, greaterThanOrEqualTo(30));
+    });
+
+    test('retrieveSafeEnvironmentList returns the four prescribed entries', () {
+      final list = retrieveSafeEnvironmentList(loc, 'male');
+      expect(list, hasLength(4));
+      expect(loc.calls, contains('safeEnvironmentListNo0:male'));
+      expect(loc.calls, contains('safeEnvironmentListNo3:male'));
     });
   });
 }

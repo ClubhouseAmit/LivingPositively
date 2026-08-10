@@ -8,6 +8,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:mazilon/form/form.dart';
 import 'package:mazilon/form/formpagetemplate.dart';
+import 'package:mazilon/form/phonePageform.dart';
 import 'package:mazilon/menu.dart';
 import 'package:mazilon/util/Form/formPagePhoneModel.dart';
 import 'package:mazilon/util/userInformation.dart';
@@ -68,6 +69,43 @@ void main() {
     expect(find.byType(FormProgressIndicator), findsOneWidget);
     // Initial step renders a FormPageTemplate (DifficultEvents).
     expect(find.byType(FormPageTemplate), findsOneWidget);
+  });
+
+  testWidgets('wizard keeps the six default categories in the required order',
+      (tester) async {
+    await _pumpForm(tester);
+    final state = tester.state<FormProgressIndicatorState>(
+      find.byType(FormProgressIndicator),
+    );
+
+    for (final collectionName in const [
+      'PersonalPlan-Distractions',
+      'PersonalPlan-DifficultEvents',
+      'PersonalPlan-FeelBetter',
+      'PersonalPlan-MakeSafer',
+    ]) {
+      expect(
+        tester.widget<FormPageTemplate>(find.byType(FormPageTemplate))
+            .collectionName,
+        collectionName,
+      );
+      state.next();
+      await tester.pumpAndSettle();
+    }
+
+    expect(find.byType(PhonePageForm), findsOneWidget);
+    final contactsContinue = find.descendant(
+      of: find.byType(PhonePageForm),
+      matching: find.byType(TextButton),
+    ).last;
+    await tester.ensureVisible(contactsContinue);
+    await tester.tap(contactsContinue, warnIfMissed: false);
+    await tester.pumpAndSettle();
+    expect(
+      tester.widget<FormPageTemplate>(find.byType(FormPageTemplate))
+          .collectionName,
+      'PersonalPlan-SafeEnvironment',
+    );
   });
 
   testWidgets(

@@ -157,18 +157,20 @@ void main() {
 
       expect(captured, hasLength(2));
       expect(captured[0], <String>[
-        localizations.difficultEventsHeader('male'),
-        localizations.makeSaferHeader('male'),
-        localizations.feelBetterHeader('male'),
         localizations.distractionsHeader('male'),
+        localizations.difficultEventsHeader('male'),
+        localizations.feelBetterHeader('male'),
+        localizations.makeSaferHeader('male'),
         localizations.phonesPageHeader('male'),
+        localizations.safeEnvironmentHeader('male'),
       ]);
       expect(captured[1], <String>[
-        localizations.difficultEventsSubTitle('male'),
-        localizations.makeSaferSubTitle('male'),
-        localizations.feelBetterSubTitle('male'),
         localizations.distractionsSubTitle('male'),
+        localizations.difficultEventsSubTitle('male'),
+        localizations.feelBetterSubTitle('male'),
+        localizations.makeSaferSubTitle('male'),
         localizations.phonesPageSubTitle('male'),
+        localizations.makeSaferSubTitle('male'),
       ]);
     });
   });
