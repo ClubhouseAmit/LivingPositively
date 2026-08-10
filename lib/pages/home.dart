@@ -21,7 +21,6 @@ import 'package:mazilon/MainPageHelpers/components/personal_plan_section.dart';
 import 'package:mazilon/MainPageHelpers/components/virtues_section.dart';
 import 'package:mazilon/MainPageHelpers/components/gratitude_section.dart';
 
-const Color _kPageBackgroundLight = Color(0xFFF4F0EB);
 
 class Home extends StatefulWidget {
   final PhonePageData phonePageData;
@@ -115,9 +114,7 @@ class _HomeState extends LPExtendedState<Home> {
         ? appLocale.inspirationalQuotesNo0(gender.isEmpty ? 'other' : gender)
         : quotes[_quoteIndex % quotes.length];
 
-    final isDark = Theme.of(context).brightness == Brightness.dark;
     return Scaffold(
-      backgroundColor: isDark ? Theme.of(context).colorScheme.surface : _kPageBackgroundLight,
       body: SafeArea(
         child: SingleChildScrollView(
           child: Column(

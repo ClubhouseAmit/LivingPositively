@@ -359,7 +359,6 @@ class _MenuState extends LPExtendedState<Menu> {
             ? null
             : BottomAppBar(
                 elevation: 8,
-                color: Colors.white,
                 surfaceTintColor: Colors.transparent,
                 shape: const AutomaticNotchedShape(
                   RoundedRectangleBorder(
