@@ -115,7 +115,7 @@ void main() {
     },
   );
 
-  testWidgets('Home uses Safe Environment preview data when selected', (
+  testWidgets('Home preview supports valid, null, and invalid indices', (
     tester,
   ) async {
     await pumpWithProviders(
@@ -134,59 +134,83 @@ void main() {
       tester.element(find.byType(Home)),
     )!;
     final dynamic homeState = tester.state(find.byType(Home));
+    final lifecyclePreview = Map<String, dynamic>.from(
+      tester.widget<PersonalPlanWidget>(
+        find.byType(PersonalPlanWidget),
+      ).text,
+    );
+    final expectedPreviews = <int, Map<String, dynamic>>{
+      0: {
+        'SubTitle': localizations.distractionsSubTitle(user.gender),
+        'list': user.distractions,
+      },
+      1: {
+        'SubTitle': localizations.difficultEventsSubTitle(user.gender),
+        'list': user.difficultEvents,
+      },
+      2: {
+        'SubTitle': localizations.feelBetterSubTitle(user.gender),
+        'list': user.feelBetter,
+      },
+      3: {
+        'SubTitle': localizations.makeSaferSubTitle(user.gender),
+        'list': user.makeSafer,
+      },
+      4: {
+        'SubTitle': localizations.safeEnvironmentSubTitle(user.gender),
+        'list': user.safeEnvironment,
+      },
+    };
+
+    for (final expectedPreview in expectedPreviews.entries) {
+      homeState.setState(() {
+        homeState.setRandomPersonalWidgetText(
+          user,
+          localizations,
+          previewIndex: expectedPreview.key,
+        );
+      });
+      await tester.pump();
+
+      final preview = tester.widget<PersonalPlanWidget>(
+        find.byType(PersonalPlanWidget),
+      );
+      expect(preview.text['SubTitle'], expectedPreview.value['SubTitle']);
+      expect(preview.text['list'], expectedPreview.value['list']);
+    }
+
     homeState.setState(() {
       homeState.setRandomPersonalWidgetText(
         user,
         localizations,
-        previewIndex: 4,
+        previewIndex: null,
       );
     });
     await tester.pump();
 
-    final preview = tester.widget<PersonalPlanWidget>(
+    var preview = tester.widget<PersonalPlanWidget>(
       find.byType(PersonalPlanWidget),
     );
-    expect(
-      preview.text['SubTitle'],
-      localizations.safeEnvironmentSubTitle(user.gender),
-    );
-    expect(
-      preview.text['SubTitle'],
-      isNot(localizations.makeSaferSubTitle(user.gender)),
-    );
-    expect(preview.text['list'], user.safeEnvironment);
+    expect(preview.text['SubTitle'], lifecyclePreview['SubTitle']);
+    expect(preview.text['list'], lifecyclePreview['list']);
+
+    for (final invalidPreviewIndex in const [-1, 5]) {
+      final previewBeforeInvalid = Map<String, dynamic>.from(preview.text);
+      expect(
+        () => homeState.setRandomPersonalWidgetText(
+          user,
+          localizations,
+          previewIndex: invalidPreviewIndex,
+        ),
+        throwsA(isA<RangeError>()),
+      );
+      await tester.pump();
+
+      preview = tester.widget<PersonalPlanWidget>(
+        find.byType(PersonalPlanWidget),
+      );
+      expect(preview.text['SubTitle'], previewBeforeInvalid['SubTitle']);
+      expect(preview.text['list'], previewBeforeInvalid['list']);
+    }
   });
-
-  for (final invalidPreviewIndex in const [-1, 5]) {
-    testWidgets(
-      'Home rejects out-of-range preview index $invalidPreviewIndex',
-      (tester) async {
-        await pumpWithProviders(
-          tester,
-          Home(
-            phonePageData: _phoneData(),
-            changeCurrentIndex: (BuildContext context, PagesCode code) {},
-            changeLocale: (_) {},
-            openMainMenu: (_) {},
-          ),
-          userInformation: user,
-          surfaceSize: const Size(1024, 2400),
-        );
-
-        final localizations = AppLocalizations.of(
-          tester.element(find.byType(Home)),
-        )!;
-        final dynamic homeState = tester.state(find.byType(Home));
-
-        expect(
-          () => homeState.setRandomPersonalWidgetText(
-            user,
-            localizations,
-            previewIndex: invalidPreviewIndex,
-          ),
-          throwsA(isA<RangeError>()),
-        );
-      },
-    );
-  }
 }
