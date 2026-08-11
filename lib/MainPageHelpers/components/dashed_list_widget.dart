@@ -40,7 +40,49 @@ class DashedListWidget extends StatefulWidget {
 }
 
 class _DashedListWidgetState extends State<DashedListWidget> {
-  int _suggestionIndex = 0;
+  List<String> _displayedSuggestions = [];
+
+  void _syncDisplayedSuggestions(List<String> available) {
+    final targetCount = widget.items.isEmpty
+        ? min(3, available.length)
+        : min(max(1, 3 - widget.items.length), available.length);
+
+    final stillAvailable = _displayedSuggestions.where((s) => available.contains(s)).toList();
+
+    if (stillAvailable.length < targetCount) {
+      for (final s in available) {
+        if (!stillAvailable.contains(s)) {
+          stillAvailable.add(s);
+        }
+        if (stillAvailable.length == targetCount) break;
+      }
+    }
+
+    if (stillAvailable.length > targetCount) {
+      stillAvailable.removeRange(targetCount, stillAvailable.length);
+    }
+
+    _displayedSuggestions = stillAvailable;
+  }
+
+  void _refreshSuggestion(int index, List<String> available) {
+    if (available.length <= _displayedSuggestions.length) return;
+
+    final currentSuggestion = _displayedSuggestions[index];
+    int availableIndex = available.indexOf(currentSuggestion);
+    if (availableIndex == -1) availableIndex = 0;
+
+    for (int step = 1; step <= available.length; step++) {
+      final nextIndex = (availableIndex + step) % available.length;
+      final candidate = available[nextIndex];
+      if (!_displayedSuggestions.contains(candidate)) {
+        setState(() {
+          _displayedSuggestions[index] = candidate;
+        });
+        return;
+      }
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -49,6 +91,8 @@ class _DashedListWidgetState extends State<DashedListWidget> {
 
     final availableSuggestions =
         widget.suggestions.where((s) => !widget.items.contains(s)).toList();
+
+    _syncDisplayedSuggestions(availableSuggestions);
 
     return Padding(
       padding: const EdgeInsetsDirectional.symmetric(horizontal: 20),
@@ -102,21 +146,18 @@ class _DashedListWidgetState extends State<DashedListWidget> {
           ),
           SizedBox(height: AppSpacing.sm + 4),
           if (widget.items.isEmpty) ...[
-            // Empty state: up to 3 suggestions, cycling from _suggestionIndex
+            // Empty state: up to 3 suggestions
             ...List.generate(
-              min(3, availableSuggestions.length),
+              _displayedSuggestions.length,
               (i) {
-                final suggestion = availableSuggestions.isEmpty
-                    ? ''
-                    : availableSuggestions[
-                        (_suggestionIndex + i) % availableSuggestions.length];
+                final suggestion = _displayedSuggestions[i];
                 return DashedPillAddSlot(
                   placeholder: suggestion,
                   onTap: widget.onAddSuggestion != null
                       ? () => widget.onAddSuggestion!(suggestion)
                       : widget.onAddNew ?? widget.onAddItem,
-                  onRefresh: availableSuggestions.length > 3
-                      ? () => setState(() => _suggestionIndex++)
+                  onRefresh: availableSuggestions.length > _displayedSuggestions.length
+                      ? () => _refreshSuggestion(i, availableSuggestions)
                       : null,
                 );
               },
@@ -136,21 +177,23 @@ class _DashedListWidgetState extends State<DashedListWidget> {
                     : null,
               ),
             ),
-            // Suggestion slot with cycling
-            if (availableSuggestions.isNotEmpty) ...[
-              Builder(builder: (context) {
-                final suggestion = availableSuggestions[
-                    _suggestionIndex % availableSuggestions.length];
-                return DashedPillAddSlot(
-                  placeholder: suggestion,
-                  onTap: widget.onAddSuggestion != null
-                      ? () => widget.onAddSuggestion!(suggestion)
-                      : widget.onAddNew ?? widget.onAddItem,
-                  onRefresh: availableSuggestions.length > 1
-                      ? () => setState(() => _suggestionIndex++)
-                      : null,
-                );
-              }),
+            // Suggestion slots with cycling
+            if (_displayedSuggestions.isNotEmpty) ...[
+              ...List.generate(
+                _displayedSuggestions.length,
+                (i) {
+                  final suggestion = _displayedSuggestions[i];
+                  return DashedPillAddSlot(
+                    placeholder: suggestion,
+                    onTap: widget.onAddSuggestion != null
+                        ? () => widget.onAddSuggestion!(suggestion)
+                        : widget.onAddNew ?? widget.onAddItem,
+                    onRefresh: availableSuggestions.length > _displayedSuggestions.length
+                        ? () => _refreshSuggestion(i, availableSuggestions)
+                        : null,
+                  );
+                },
+              ),
             ] else ...[
               DashedPillAddSlot(
                 placeholder: appLocale.addItemTooltip,

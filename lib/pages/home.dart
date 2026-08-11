@@ -42,9 +42,6 @@ class Home extends StatefulWidget {
 
 class _HomeState extends LPExtendedState<Home> {
   bool hasFilled = false;
-  Map<String, dynamic> homeTitles = {};
-  int? _selectedPersonalPlanIndex;
-
   bool _showQuote = true;
   int _quoteIndex = 0;
 
@@ -64,39 +61,6 @@ class _HomeState extends LPExtendedState<Home> {
   void initState() {
     super.initState();
     loadData();
-  }
-
-  void setRandomPersonalWidgetText(
-    UserInformation userInfo,
-    AppLocalizations appLocale,
-  ) {
-    _selectedPersonalPlanIndex ??= Random().nextInt(4);
-    switch (_selectedPersonalPlanIndex) {
-      case 0:
-        homeTitles = {'list': userInfo.makeSafer};
-        break;
-      case 1:
-        homeTitles = {'list': userInfo.difficultEvents};
-        break;
-      case 2:
-        homeTitles = {'list': userInfo.feelBetter};
-        break;
-      case 3:
-        homeTitles = {'list': userInfo.distractions};
-        break;
-      default:
-        homeTitles = {'list': []};
-    }
-  }
-
-  @override
-  void didChangeDependencies() {
-    super.didChangeDependencies();
-    final userInfoProvider = Provider.of<UserInformation>(
-      context,
-      listen: true,
-    );
-    setRandomPersonalWidgetText(userInfoProvider, appLocale);
   }
 
   @override
@@ -166,7 +130,10 @@ class _HomeState extends LPExtendedState<Home> {
 
               // My Plan
               PersonalPlanSectionWidget(
-                items: (homeTitles['list'] as List<String>? ?? []).toList(),
+                items: [
+                  ...userInfoProvider.makeSafer,
+                  ...userInfoProvider.feelBetter,
+                ],
                 onSeeAll: () =>
                     widget.changeCurrentIndex(context, PagesCode.FullPlan),
               ),

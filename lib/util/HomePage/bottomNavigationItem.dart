@@ -3,7 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 
-//Item for the bottom Navigation in the home page
+/// Item widget for the bottom Navigation in the home page.
 Widget bottomNavigationItem(
   bool current,
   dynamic icon,
@@ -37,7 +37,7 @@ Widget bottomNavigationItem(
         mainAxisSize: MainAxisSize.min,
         children: [
           iconWidget,
-          const SizedBox(height: 4),
+          const SizedBox(height: 2),
           Padding(
             padding: const EdgeInsets.symmetric(horizontal: 2),
             child: AutoSizeText(
@@ -49,7 +49,7 @@ Widget bottomNavigationItem(
                 fontWeight: current ? FontWeight.w600 : FontWeight.normal,
                 color: color,
                 fontSize: 10.sp,
-              ).copyWith(fontFamily: 'Rubix'),
+              ),
               textAlign: TextAlign.center,
               maxLines: 1,
             ),
@@ -59,5 +59,3 @@ Widget bottomNavigationItem(
     },
   );
 }
-
-

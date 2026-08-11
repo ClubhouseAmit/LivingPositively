@@ -252,29 +252,20 @@ class _MenuState extends LPExtendedState<Menu> {
     required dynamic icon,
     required String label,
   }) {
-    // Semantics(selected:) lets TalkBack/VoiceOver announce the active tab
-    // ("<label>, selected"). The visible text label is already inside
-    // `bottomNavigationItem`, so we only add the role here.
     return Semantics(
       button: true,
       selected: selected,
       label: label,
-      child: SizedBox.expand(
+      child: InkWell(
         key: key,
-        child: TextButton(
-          style: TextButton.styleFrom(
-            padding: EdgeInsets.zero,
-            minimumSize: Size.zero,
-            tapTargetSize: MaterialTapTargetSize.shrinkWrap,
-          ),
-          onPressed: onPressed,
-          child: ExcludeSemantics(
-            child: bottomNavigationItem(
-              selected,
-              icon,
-              label,
-              textGroup: _bottomNavigationLabelGroup,
-            ),
+        onTap: onPressed,
+        borderRadius: BorderRadius.circular(12),
+        child: ExcludeSemantics(
+          child: bottomNavigationItem(
+            selected,
+            icon,
+            label,
+            textGroup: _bottomNavigationLabelGroup,
           ),
         ),
       ),
@@ -359,6 +350,7 @@ class _MenuState extends LPExtendedState<Menu> {
             ? null
             : BottomAppBar(
                 elevation: 8,
+                padding: const EdgeInsets.symmetric(horizontal: 8),
                 surfaceTintColor: Colors.transparent,
                 shape: const AutomaticNotchedShape(
                   RoundedRectangleBorder(
