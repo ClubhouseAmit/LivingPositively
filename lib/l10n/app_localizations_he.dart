@@ -3289,7 +3289,7 @@ class AppLocalizationsHe extends AppLocalizations {
   String get traitsListTitle => 'רשימת מעלות';
 
   @override
-  String get gratitudeListTitle => 'רשימת תודות';
+  String get gratitudeListTitle => 'יומן תודה';
 
   @override
   String get myPlanSubTitle => 'דברים שיעשו לי טוב עכשיו';

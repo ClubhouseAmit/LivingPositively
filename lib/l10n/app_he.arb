@@ -556,7 +556,7 @@
   "@traitsListTitle": {
     "description": "Section header for positive traits list on home page"
   },
-  "gratitudeListTitle": "רשימת תודות",
+  "gratitudeListTitle": "יומן תודה",
   "@gratitudeListTitle": {
     "description": "Section header for gratitude list on home page"
   },
