@@ -173,30 +173,29 @@ void main() {
     }
 
     testWidgets(
-        'header Row uses explicit physical ordering for the close button',
+        'header Align uses explicit AlignmentDirectional.topEnd for the close button',
         (tester) async {
       await openMenu(tester, const Locale('he'));
 
       // The close button side is a physical product requirement:
-      // English => right, Hebrew => left. Keep the header Row in physical
-      // LTR coordinates and choose child order from the active locale so
-      // the X does not depend on a route-level Directionality mismatch.
+      // English => right, Hebrew => left. Keep the header Align in
+      // AlignmentDirectional.topEnd coordinates.
       final closeFinder = find.byKey(const Key('mainMenuCloseButton'));
       expect(closeFinder, findsOneWidget);
 
-      final rowAncestor = find.ancestor(
+      final alignAncestor = find.ancestor(
         of: closeFinder,
-        matching: find.byType(Row),
+        matching: find.byType(Align),
       );
-      expect(rowAncestor, findsWidgets);
+      expect(alignAncestor, findsWidgets);
 
-      final headerRow = tester.widget<Row>(rowAncestor.first);
+      final headerAlign = tester.widget<Align>(alignAncestor.first);
       expect(
-        headerRow.textDirection,
-        TextDirection.ltr,
+        headerAlign.alignment,
+        AlignmentDirectional.topEnd,
         reason:
             'main_menu_dialog must place the close button using explicit '
-            'physical coordinates so locale, not inherited route direction, '
+            'AlignmentDirectional.topEnd so locale, not inherited route direction, '
             'decides whether the X is left or right.',
       );
     });

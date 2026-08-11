@@ -1,6 +1,14 @@
 import 'package:flutter/material.dart';
+import 'package:fluttericon/elusive_icons.dart';
+import 'package:get_it/get_it.dart';
+import 'package:mazilon/file_service.dart';
+import 'package:mazilon/global_enums.dart';
 import 'package:mazilon/l10n/app_localizations.dart';
+import 'package:mazilon/util/appInformation.dart';
 import 'package:mazilon/util/layout/directional_widgets.dart';
+import 'package:mazilon/util/Share/show_share_dialog.dart';
+import 'package:mazilon/util/SignIn/popup_toast.dart';
+import 'package:mazilon/util/theme/app_theme.dart';
 import 'package:mazilon/util/theme/spacing.dart';
 import 'package:mazilon/util/userInformation.dart';
 import 'package:provider/provider.dart';
@@ -27,6 +35,42 @@ class PersonalPlanSectionWidget extends StatelessWidget {
           title: appLocale.myPlan,
           leadingIcon: Icons.assignment_outlined,
           subtitle: appLocale.myPlanSubTitle,
+          actionWidget: PopupMenuButton<String>(
+            key: const Key('personalPlanHeaderMenu'),
+            icon: Icon(Icons.more_vert, color: AppColors.neutralDark),
+            onSelected: (value) =>
+                _handleMenuSelection(context, value, appLocale, userInfo),
+            itemBuilder: (BuildContext context) => <PopupMenuEntry<String>>[
+              PopupMenuItem<String>(
+                value: 'share',
+                key: const Key('personalPlanHeaderShare'),
+                child: Row(
+                  children: [
+                    Icon(
+                      Elusive.share,
+                      color: Theme.of(context).colorScheme.onSurface,
+                    ),
+                    const SizedBox(width: AppSpacing.sm),
+                    Text(appLocale.sharePlanTooltip),
+                  ],
+                ),
+              ),
+              PopupMenuItem<String>(
+                value: 'download',
+                key: const Key('personalPlanHeaderDownload'),
+                child: Row(
+                  children: [
+                    Icon(
+                      Icons.download,
+                      color: Theme.of(context).colorScheme.onSurface,
+                    ),
+                    const SizedBox(width: AppSpacing.sm),
+                    Text(appLocale.downloadPlanTooltip),
+                  ],
+                ),
+              ),
+            ],
+          ),
         ),
         const SizedBox(height: 12),
         if (items.isNotEmpty)
@@ -36,6 +80,47 @@ class PersonalPlanSectionWidget extends StatelessWidget {
         _buildSeeAllButton(context, appLocale, userInfo.gender),
       ],
     );
+  }
+
+  Future<void> _handleMenuSelection(
+    BuildContext context,
+    String value,
+    AppLocalizations appLocale,
+    UserInformation userInfo,
+  ) async {
+    if (value == 'share') {
+      showShareDialog(context);
+    } else if (value == 'download') {
+      final fileService = GetIt.instance<FileService>();
+      final appInfoProvider = Provider.of<AppInformation>(
+        context,
+        listen: false,
+      );
+      final result = await fileService.download(
+        [
+          appLocale.difficultEventsHeader(userInfo.gender),
+          appLocale.makeSaferHeader(userInfo.gender),
+          appLocale.feelBetterHeader(userInfo.gender),
+          appLocale.distractionsHeader(userInfo.gender),
+          appLocale.phonesPageHeader(userInfo.gender),
+        ],
+        [
+          appLocale.difficultEventsSubTitle(userInfo.gender),
+          appLocale.makeSaferSubTitle(userInfo.gender),
+          appLocale.feelBetterSubTitle(userInfo.gender),
+          appLocale.distractionsSubTitle(userInfo.gender),
+          appLocale.phonesPageSubTitle(userInfo.gender),
+        ],
+        appInfoProvider.sharePDFtexts,
+        ShareFileType.PDF,
+        appLocale.textDirection,
+      );
+      if (result == null) {
+        showToast(message: appLocale.downloadFailed(userInfo.gender));
+        return;
+      }
+      showToast(message: appLocale.finishedDownloading(userInfo.gender));
+    }
   }
 
   Widget _buildItemsList(BuildContext context) {
@@ -51,10 +136,7 @@ class PersonalPlanSectionWidget extends StatelessWidget {
             margin: const EdgeInsetsDirectional.only(end: AppSpacing.sm),
             child: CardContainer(
               hasShadow: false,
-              padding: const EdgeInsets.symmetric(
-                horizontal: 10,
-                vertical: 14,
-              ),
+              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 14),
               child: Text(
                 items[index],
                 style: Theme.of(context).textTheme.bodySmall?.copyWith(
@@ -85,10 +167,7 @@ class PersonalPlanSectionWidget extends StatelessWidget {
         child: CardContainer(
           hasShadow: false,
           onTap: onSeeAll,
-          padding: const EdgeInsets.symmetric(
-            horizontal: 10,
-            vertical: 0,
-          ),
+          padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 0),
           child: Row(
             children: [
               Icon(
@@ -100,9 +179,9 @@ class PersonalPlanSectionWidget extends StatelessWidget {
               Expanded(
                 child: Text(
                   appLocale.personalPlanPageHasFilled(gender),
-                  style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                    fontWeight: FontWeight.w500,
-                  ),
+                  style: Theme.of(
+                    context,
+                  ).textTheme.bodyMedium?.copyWith(fontWeight: FontWeight.w500),
                 ),
               ),
             ],

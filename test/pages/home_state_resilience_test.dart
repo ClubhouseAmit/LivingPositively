@@ -2,6 +2,8 @@ import 'dart:io';
 
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:mazilon/MainPageHelpers/components/gratitude_section.dart';
+import 'package:mazilon/MainPageHelpers/components/virtues_section.dart';
 import 'package:mazilon/MainPageHelpers/MainPageList/mainpage_list_widget.dart';
 import 'package:mazilon/global_enums.dart';
 import 'package:mazilon/pages/home.dart';
@@ -9,6 +11,7 @@ import 'package:mazilon/util/Form/formPagePhoneModel.dart';
 import 'package:mazilon/util/userInformation.dart';
 
 import '../helpers/widget_test_scaffold.dart';
+
 
 PhonePageData _phoneData() => PhonePageData(
   key: 'phonePageData',
@@ -79,17 +82,15 @@ void main() {
       surfaceSize: const Size(1024, 2400),
     );
 
-    final listWidgets = tester.widgetList<ListWidget>(find.byType(ListWidget));
+    expect(find.byType(GratitudeSectionWidget), findsOneWidget);
+    expect(find.byType(VirtuesSectionWidget), findsOneWidget);
 
-    expect(listWidgets.map((widget) => widget.pageCode), [
-      PagesCode.GratitudeJournal,
-      PagesCode.QualitiesList,
-    ]);
     expect(
-      tester.getTopLeft(find.byType(ListWidget).first).dy,
-      lessThan(tester.getTopLeft(find.byType(ListWidget).at(1)).dy),
+      tester.getTopLeft(find.byType(GratitudeSectionWidget)).dy,
+      lessThan(tester.getTopLeft(find.byType(VirtuesSectionWidget)).dy),
     );
   });
+
 
   test(
     'home surfaces do not refresh randomized content from build methods',

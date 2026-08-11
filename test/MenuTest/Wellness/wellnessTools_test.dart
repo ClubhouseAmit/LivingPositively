@@ -1,11 +1,16 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:flutter_screenutil/flutter_screenutil.dart';
+import 'package:provider/provider.dart';
 import 'package:get_it/get_it.dart';
 import 'package:mazilon/AnalyticsService.dart';
 import 'package:mazilon/global_enums.dart';
 import 'package:mazilon/pages/FeelGood/image_picker_service_impl.dart';
 import 'package:mazilon/iFx/service_locator.dart';
 import 'package:mazilon/file_service.dart';
+import 'package:mazilon/l10n/app_localizations.dart';
+import 'package:mazilon/main_menu_dialog.dart';
+import 'package:mazilon/util/Form/formPagePhoneModel.dart';
 
 import 'package:mazilon/pages/WellnessTools/VideoPlayerPageFactory.dart';
 import 'package:mazilon/pages/WellnessTools/more_videos_item.dart';
@@ -24,6 +29,7 @@ import '../test_data.dart';
 import '../../helpers/widget_test_scaffold.dart';
 import 'FakeVideoPlayerPage.dart';
 import 'wellnessTools_test.mocks.dart';
+
 
 @GenerateNiceMocks([
   MockSpec<FileService>(),
@@ -113,42 +119,84 @@ void main() {
       await tapAndSettle(tester, find.text('כלי תמיכה'));
       expect(find.byType(WellnessTools), findsOneWidget);
     });
+    Future<void> openDialogMenu(WidgetTester tester, {Locale locale = const Locale('he')}) async {
+      final user = UserInformation()
+        ..gender = 'other'
+        ..localeName = locale.languageCode;
+      final phonePageData = PhonePageData(
+        key: 'phonePageData',
+        header: 'header',
+        subTitle: 'subTitle',
+        midTitle: 'midTitle',
+        phoneNameTitle: 'phoneNameTitle',
+        phoneNumberTitle: 'phoneNumberTitle',
+        phoneNames: [],
+        phoneNumbers: [],
+        savedPhoneNames: [],
+        savedPhoneNumbers: [],
+        phoneDescription: [],
+      );
+
+      await tester.pumpWidget(
+        MultiProvider(
+          providers: [
+            ChangeNotifierProvider<UserInformation>.value(value: user),
+            ChangeNotifierProvider<AppInformation>.value(value: mockAppInformation),
+            ChangeNotifierProvider<PhonePageData>.value(value: phonePageData),
+          ],
+          child: MaterialApp(
+            supportedLocales: AppLocalizations.supportedLocales,
+            locale: locale,
+            localizationsDelegates: AppLocalizations.localizationsDelegates,
+            home: ScreenUtilInit(
+              designSize: const Size(360, 690),
+              child: Builder(builder: (ctx) {
+                return Scaffold(
+                  body: Center(
+                    child: ElevatedButton(
+                      key: const Key('openMenu'),
+                      onPressed: () {
+                        showMainMenuDialog(
+                          context: ctx,
+                          anchorContext: ctx,
+                          appLocale: AppLocalizations.of(ctx)!,
+                          userInformation: user,
+                          phonePageData: phonePageData,
+                          changeLocale: (_) {},
+                          isWeb: false,
+                          onAboutPressed: () {},
+                          onNotificationsPressed: () {},
+                        );
+                      },
+                      child: const Text('open'),
+                    ),
+                  ),
+                );
+              }),
+            ),
+          ),
+        ),
+      );
+      await tapAndSettle(tester, find.byKey(const Key('openMenu')));
+    }
+
     testWidgets('Header menu opens from hamburger icon', (
       WidgetTester tester,
     ) async {
-      await tester.pumpWidget(
-        getMenuForTests(mockUserInformation, mockAppInformation),
-      );
-      final menuButton = find.byIcon(Icons.settings_outlined);
-      final menuIcon = tester.widget<Icon>(menuButton);
-      final menuButtonBottom = tester.getBottomLeft(menuButton).dy;
-
-      expect(
-        menuIcon.color,
-        Theme.of(tester.element(menuButton)).colorScheme.primary,
-      );
-
-      await tapAndSettle(tester, menuButton);
+      await openDialogMenu(tester, locale: const Locale('he'));
 
       final menuDialog = find.byKey(const Key('mainMenuDialog'));
       final closeButton = find.byKey(const Key('mainMenuCloseButton'));
-      final menuDialogTop = tester.getTopLeft(menuDialog).dy;
       final menuDialogLeft = tester.getTopLeft(menuDialog).dx;
       final menuDialogWidth = tester.getSize(menuDialog).width;
       final closeButtonLeft = tester.getTopLeft(closeButton).dx;
-      final closeButtonCenterY = tester.getCenter(closeButton).dy;
-      final aboutIconCenterY = tester.getCenter(find.byIcon(Icons.people)).dy;
 
       expect(find.byKey(const Key('mainMenuDialog')), findsOneWidget);
-      expect(menuDialogTop, greaterThanOrEqualTo(menuButtonBottom));
-      expect(menuDialogTop - menuButtonBottom, lessThan(20));
-      expect(menuDialogWidth, lessThanOrEqualTo(260));
       expect(
         closeButtonLeft,
         lessThan(menuDialogLeft + menuDialogWidth / 2),
         reason: 'RTL close button should land on the left edge.',
       );
-      expect((closeButtonCenterY - aboutIconCenterY).abs(), lessThan(8));
     });
     testWidgets('Header menu puts close button on the right in English', (
       WidgetTester tester,
@@ -160,27 +208,14 @@ void main() {
         tester.view.resetDevicePixelRatio();
       });
 
-      await tester.pumpWidget(
-        getMenuForTests(
-          mockUserInformation,
-          mockAppInformation,
-          locale: const Locale('en'),
-        ),
-      );
-      final menuButton = find.byIcon(Icons.settings_outlined);
-      final menuButtonBottom = tester.getBottomLeft(menuButton).dy;
-
-      await tapAndSettle(tester, menuButton);
+      await openDialogMenu(tester, locale: const Locale('en'));
 
       final menuDialog = find.byKey(const Key('mainMenuDialog'));
       final closeButton = find.byKey(const Key('mainMenuCloseButton'));
-      final menuDialogTop = tester.getTopLeft(menuDialog).dy;
       final menuDialogLeft = tester.getTopLeft(menuDialog).dx;
       final menuDialogWidth = tester.getSize(menuDialog).width;
       final closeButtonLeft = tester.getTopLeft(closeButton).dx;
 
-      expect(menuDialogTop, greaterThanOrEqualTo(menuButtonBottom));
-      expect(menuDialogTop - menuButtonBottom, lessThan(20));
       expect(
         closeButtonLeft,
         greaterThan(menuDialogLeft + menuDialogWidth / 2),

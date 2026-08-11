@@ -78,6 +78,7 @@ class SectionHeaderWidget extends StatelessWidget {
   final String? actionLabel;
   final IconData? actionIcon;
   final VoidCallback? onActionTap;
+  final Widget? actionWidget;
 
   const SectionHeaderWidget({
     required this.title,
@@ -87,6 +88,7 @@ class SectionHeaderWidget extends StatelessWidget {
     this.actionLabel,
     this.actionIcon,
     this.onActionTap,
+    this.actionWidget,
     super.key,
   });
 
@@ -126,7 +128,9 @@ class SectionHeaderWidget extends StatelessWidget {
                   ],
                 ),
               ),
-              if (actionIcon != null)
+              if (actionWidget != null)
+                actionWidget!
+              else if (actionIcon != null)
                 IconButton(
                   icon: Icon(actionIcon, color: colorScheme.onSurface, size: 22),
                   onPressed: onActionTap,

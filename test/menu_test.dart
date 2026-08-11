@@ -127,7 +127,7 @@ void main() {
     await tester.pumpWidget(getMenuForTests(user, app));
     await tester.pumpAndSettle();
 
-    expect(find.text('SOS'), findsOneWidget);
+    expect(find.byType(FloatingActionButton), findsOneWidget);
     // Home tab is selected by default
     expect(find.byKey(const Key('bottomNavHome')), findsOneWidget);
   });
@@ -136,10 +136,11 @@ void main() {
     await tester.pumpWidget(getMenuForTests(user, app));
     await tester.pumpAndSettle();
 
-    final sos = find.text('SOS');
+    final sos = find.byType(FloatingActionButton);
     expect(sos, findsOneWidget);
     await tester.tap(sos);
     await tester.pumpAndSettle();
+
 
     // After SOS tap, the PhonePage replaces the home content. Search bar still
     // should not show 'SOS' twice (FAB persists). We verify the page has been

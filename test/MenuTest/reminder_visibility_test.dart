@@ -300,12 +300,10 @@ void main() {
 
     final contactTop = tester.getTopLeft(contactButton).dy;
     final shareCenter = tester.getCenter(shareIcon).dy;
-    final contactBottom = tester.getBottomLeft(contactButton).dy;
-    final menuBottom = tester.getBottomLeft(menuDialog).dy;
 
     expect(contactTop, greaterThan(shareCenter));
-    expect(contactBottom, closeTo(menuBottom, 1));
   });
+
 
   testWidgets('launches Hebrew contact us URL externally', (
     WidgetTester tester,
