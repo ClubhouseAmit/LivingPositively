@@ -21,7 +21,6 @@ import 'package:mazilon/MainPageHelpers/components/personal_plan_section.dart';
 import 'package:mazilon/MainPageHelpers/components/virtues_section.dart';
 import 'package:mazilon/MainPageHelpers/components/gratitude_section.dart';
 
-
 class Home extends StatefulWidget {
   final PhonePageData phonePageData;
   final Function(BuildContext, PagesCode) changeCurrentIndex;
@@ -116,7 +115,9 @@ class _HomeState extends LPExtendedState<Home> {
                 reminders: [
                   ReminderItemData(
                     iconAsset: 'assets/images/sun_draw.svg',
-                    title: appLocale.feelBetterListNo18(gender.isEmpty ? 'other' : gender),
+                    title: appLocale.feelBetterListNo18(
+                      gender.isEmpty ? 'other' : gender,
+                    ),
                     subtitle: appLocale.ourSuggestion,
                   ),
                 ],
@@ -150,16 +151,6 @@ class _HomeState extends LPExtendedState<Home> {
 
               SizedBox(height: 48),
 
-              // Positive Virtues
-              VirtuesSectionWidget(
-                virtues: userInfoProvider.positiveTraits,
-                onAddItem: () =>
-                    widget.changeCurrentIndex(context, PagesCode.QualitiesList),
-              ),
-
-              SizedBox(height: AppSpacing.xl),
-
-              // Gratitude
               GratitudeSectionWidget(
                 onAddItem: () => widget.changeCurrentIndex(
                   context,
@@ -167,7 +158,16 @@ class _HomeState extends LPExtendedState<Home> {
                 ),
               ),
 
+              SizedBox(height: AppSpacing.xl),
+
+              // Gratitude
               SizedBox(height: AppSpacing.xxxl),
+              // Positive Virtues
+              VirtuesSectionWidget(
+                virtues: userInfoProvider.positiveTraits,
+                onAddItem: () =>
+                    widget.changeCurrentIndex(context, PagesCode.QualitiesList),
+              ),
             ],
           ),
         ),
