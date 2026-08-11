@@ -91,6 +91,9 @@ class _HomeState extends LPExtendedState<Home> {
     AppLocalizations appLocale, {
     int? previewIndex,
   }) {
+    if (previewIndex != null) {
+      RangeError.checkValueInInterval(previewIndex, 0, 4, 'previewIndex');
+    }
     final selectedPersonalPlanIndex =
         previewIndex ?? (_selectedPersonalPlanIndex ??= Random().nextInt(5));
 

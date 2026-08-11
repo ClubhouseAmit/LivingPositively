@@ -156,4 +156,37 @@ void main() {
     );
     expect(preview.text['list'], user.safeEnvironment);
   });
+
+  for (final invalidPreviewIndex in const [-1, 5]) {
+    testWidgets(
+      'Home rejects out-of-range preview index $invalidPreviewIndex',
+      (tester) async {
+        await pumpWithProviders(
+          tester,
+          Home(
+            phonePageData: _phoneData(),
+            changeCurrentIndex: (BuildContext context, PagesCode code) {},
+            changeLocale: (_) {},
+            openMainMenu: (_) {},
+          ),
+          userInformation: user,
+          surfaceSize: const Size(1024, 2400),
+        );
+
+        final localizations = AppLocalizations.of(
+          tester.element(find.byType(Home)),
+        )!;
+        final dynamic homeState = tester.state(find.byType(Home));
+
+        expect(
+          () => homeState.setRandomPersonalWidgetText(
+            user,
+            localizations,
+            previewIndex: invalidPreviewIndex,
+          ),
+          throwsA(isA<RangeError>()),
+        );
+      },
+    );
+  }
 }
