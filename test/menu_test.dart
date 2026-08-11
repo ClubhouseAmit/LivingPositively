@@ -190,7 +190,7 @@ void main() {
     await tester.pumpAndSettle();
 
     // Open the main menu drawer.
-    await tester.tap(find.byIcon(Icons.menu));
+    await tester.tap(find.byIcon(Icons.settings_outlined));
     await tester.pumpAndSettle();
 
     // Notification add icon must NOT be present on iOS.

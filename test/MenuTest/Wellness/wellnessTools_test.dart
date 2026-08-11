@@ -119,7 +119,7 @@ void main() {
       await tester.pumpWidget(
         getMenuForTests(mockUserInformation, mockAppInformation),
       );
-      final menuButton = find.byIcon(Icons.menu);
+      final menuButton = find.byIcon(Icons.settings_outlined);
       final menuIcon = tester.widget<Icon>(menuButton);
       final menuButtonBottom = tester.getBottomLeft(menuButton).dy;
 
@@ -167,7 +167,7 @@ void main() {
           locale: const Locale('en'),
         ),
       );
-      final menuButton = find.byIcon(Icons.menu);
+      final menuButton = find.byIcon(Icons.settings_outlined);
       final menuButtonBottom = tester.getBottomLeft(menuButton).dy;
 
       await tapAndSettle(tester, menuButton);
