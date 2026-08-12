@@ -148,6 +148,7 @@ void main() {
         initialValues: {
           'hasFilled': false,
           'location': '',
+          'customReminder': '',
           'phonePageDataSavedPhoneNames': <String>[],
           'phonePageDataSavedPhoneNumbers': <String>[],
         },
