@@ -100,12 +100,6 @@ class _HomeState extends LPExtendedState<Home> {
             setState(() {
               _customReminder = text;
             });
-            PersistentMemoryService service = GetIt.instance<PersistentMemoryService>();
-            await service.setItem(
-              'customReminder',
-              PersistentMemoryType.String,
-              text,
-            );
           },
           text: currentText,
           formTitle: appLocale.reminders,
