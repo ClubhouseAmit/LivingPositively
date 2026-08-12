@@ -588,8 +588,8 @@
   "@ourSuggestion": {
     "description": "Subtitle for suggestion card on home page"
   },
-  "motivationalText0": "{gender,select,male{קח נשימה עמוקה} female{קחי נשימה עמוקה} other{קח/י נשימה עמוקה}}",
-  "@motivationalText0": {
+  "deepBreathSuggestion": "{gender,select,male{קח נשימה עמוקה} female{קחי נשימה עמוקה} other{קח/י נשימה עמוקה}}",
+  "@deepBreathSuggestion": {
     "description": "Motivational suggestion text 0",
     "placeholders": {
       "gender": {
@@ -597,8 +597,8 @@
       }
     }
   },
-  "motivationalText1": "{gender,select,male{מתח את הגוף} female{מתחי את הגוף} other{מתח/י את הגוף}}",
-  "@motivationalText1": {
+  "stretchBodySuggestion": "{gender,select,male{מתח את הגוף} female{מתחי את הגוף} other{מתח/י את הגוף}}",
+  "@stretchBodySuggestion": {
     "description": "Motivational suggestion text 1",
     "placeholders": {
       "gender": {
@@ -606,8 +606,8 @@
       }
     }
   },
-  "motivationalText2": "{gender,select,male{שתה מים} female{שתי מים} other{שתה/י מים}}",
-  "@motivationalText2": {
+  "drinkWaterSuggestion": "{gender,select,male{שתה מים} female{שתי מים} other{שתה/י מים}}",
+  "@drinkWaterSuggestion": {
     "description": "Motivational suggestion text 2",
     "placeholders": {
       "gender": {
@@ -615,8 +615,8 @@
       }
     }
   },
-  "motivationalText3": "{gender,select,male{צא להפסקה קצרה} female{צאי להפסקה קצרה} other{צא/י להפסקה קצרה}}",
-  "@motivationalText3": {
+  "shortBreakSuggestion": "{gender,select,male{צא להפסקה קצרה} female{צאי להפסקה קצרה} other{צא/י להפסקה קצרה}}",
+  "@shortBreakSuggestion": {
     "description": "Motivational suggestion text 3",
     "placeholders": {
       "gender": {
@@ -624,8 +624,8 @@
       }
     }
   },
-  "motivationalText4": "{gender,select,male{חייך והסתכל קדימה} female{חייכי והסתכלי קדימה} other{חייכ/י והסתכל/י קדימה}}",
-  "@motivationalText4": {
+  "lookForwardSuggestion": "{gender,select,male{חייך והסתכל קדימה} female{חייכי והסתכלי קדימה} other{חייכ/י והסתכל/י קדימה}}",
+  "@lookForwardSuggestion": {
     "description": "Motivational suggestion text 4",
     "placeholders": {
       "gender": {

@@ -76,11 +76,11 @@ class _HomeState extends LPExtendedState<Home> {
       return _customReminder!;
     }
     final List<String> activeReminders = [
-      appLocale.motivationalText0(gender),
-      appLocale.motivationalText1(gender),
-      appLocale.motivationalText2(gender),
-      appLocale.motivationalText3(gender),
-      appLocale.motivationalText4(gender),
+      appLocale.deepBreathSuggestion(gender),
+      appLocale.stretchBodySuggestion(gender),
+      appLocale.drinkWaterSuggestion(gender),
+      appLocale.shortBreakSuggestion(gender),
+      appLocale.lookForwardSuggestion(gender),
     ];
     return activeReminders[_reminderIndex % activeReminders.length];
   }

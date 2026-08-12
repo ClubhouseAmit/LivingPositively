@@ -2606,31 +2606,31 @@ abstract class AppLocalizations {
   ///
   /// In en, this message translates to:
   /// **'{gender,select,male{Take a deep breath} female{Take a deep breath} other{Take a deep breath}}'**
-  String motivationalText0(String gender);
+  String deepBreathSuggestion(String gender);
 
   /// Motivational suggestion text 1
   ///
   /// In en, this message translates to:
   /// **'{gender,select,male{Stretch your body} female{Stretch your body} other{Stretch your body}}'**
-  String motivationalText1(String gender);
+  String stretchBodySuggestion(String gender);
 
   /// Motivational suggestion text 2
   ///
   /// In en, this message translates to:
   /// **'{gender,select,male{Drink some water} female{Drink some water} other{Drink some water}}'**
-  String motivationalText2(String gender);
+  String drinkWaterSuggestion(String gender);
 
   /// Motivational suggestion text 3
   ///
   /// In en, this message translates to:
   /// **'{gender,select,male{Take a short break} female{Take a short break} other{Take a short break}}'**
-  String motivationalText3(String gender);
+  String shortBreakSuggestion(String gender);
 
   /// Motivational suggestion text 4
   ///
   /// In en, this message translates to:
   /// **'{gender,select,male{Smile and look forward} female{Smile and look forward} other{Smile and look forward}}'**
-  String motivationalText4(String gender);
+  String lookForwardSuggestion(String gender);
 }
 
 class _AppLocalizationsDelegate

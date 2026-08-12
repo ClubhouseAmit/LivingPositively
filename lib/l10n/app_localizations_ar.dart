@@ -3324,7 +3324,7 @@ class AppLocalizationsAr extends AppLocalizations {
   String get ourSuggestion => 'اقتراحنا';
 
   @override
-  String motivationalText0(String gender) {
+  String deepBreathSuggestion(String gender) {
     String _temp0 = intl.Intl.selectLogic(gender, {
       'male': 'خذ نفساً عميقاً',
       'female': 'خذي نفساً عميقاً',
@@ -3334,7 +3334,7 @@ class AppLocalizationsAr extends AppLocalizations {
   }
 
   @override
-  String motivationalText1(String gender) {
+  String stretchBodySuggestion(String gender) {
     String _temp0 = intl.Intl.selectLogic(gender, {
       'male': 'قم بتمديد جسمك',
       'female': 'قومي بتمديد جسمك',
@@ -3344,7 +3344,7 @@ class AppLocalizationsAr extends AppLocalizations {
   }
 
   @override
-  String motivationalText2(String gender) {
+  String drinkWaterSuggestion(String gender) {
     String _temp0 = intl.Intl.selectLogic(gender, {
       'male': 'اشرب بعض الماء',
       'female': 'اشربي بعض الماء',
@@ -3354,7 +3354,7 @@ class AppLocalizationsAr extends AppLocalizations {
   }
 
   @override
-  String motivationalText3(String gender) {
+  String shortBreakSuggestion(String gender) {
     String _temp0 = intl.Intl.selectLogic(gender, {
       'male': 'خذ استراحة قصيرة',
       'female': 'خذي استراحة قصيرة',
@@ -3364,7 +3364,7 @@ class AppLocalizationsAr extends AppLocalizations {
   }
 
   @override
-  String motivationalText4(String gender) {
+  String lookForwardSuggestion(String gender) {
     String _temp0 = intl.Intl.selectLogic(gender, {
       'male': 'ابتسم وتطلع إلى الأمام',
       'female': 'ابتسمي وتطلعي إلى الأمام',
