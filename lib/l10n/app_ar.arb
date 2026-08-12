@@ -509,5 +509,50 @@
   "ourSuggestion": "اقتراحنا",
   "@ourSuggestion": {
     "description": "Subtitle for suggestion card on home page"
+  },
+  "motivationalText0": "{gender,select,male{خذ نفساً عميقاً} female{خذي نفساً عميقاً} other{خذ/ي نفساً عميقاً}}",
+  "@motivationalText0": {
+    "description": "Motivational suggestion text 0",
+    "placeholders": {
+      "gender": {
+        "type": "String"
+      }
+    }
+  },
+  "motivationalText1": "{gender,select,male{قم بتمديد جسمك} female{قومي بتمديد جسمك} other{قم/قومي بتمديد جسمك}}",
+  "@motivationalText1": {
+    "description": "Motivational suggestion text 1",
+    "placeholders": {
+      "gender": {
+        "type": "String"
+      }
+    }
+  },
+  "motivationalText2": "{gender,select,male{اشرب بعض الماء} female{اشربي بعض الماء} other{اشرب/ي بعض الماء}}",
+  "@motivationalText2": {
+    "description": "Motivational suggestion text 2",
+    "placeholders": {
+      "gender": {
+        "type": "String"
+      }
+    }
+  },
+  "motivationalText3": "{gender,select,male{خذ استراحة قصيرة} female{خذي استراحة قصيرة} other{خذ/ي استراحة قصيرة}}",
+  "@motivationalText3": {
+    "description": "Motivational suggestion text 3",
+    "placeholders": {
+      "gender": {
+        "type": "String"
+      }
+    }
+  },
+  "motivationalText4": "{gender,select,male{ابتسم وتطلع إلى الأمام} female{ابتسمي وتطلعي إلى الأمام} other{ابتسم/ي وتطلع/ي إلى الأمام}}",
+  "@motivationalText4": {
+    "description": "Motivational suggestion text 4",
+    "placeholders": {
+      "gender": {
+        "type": "String"
+      }
+    }
   }
 }

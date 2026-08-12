@@ -1843,5 +1843,50 @@
   "ourSuggestion": "Our suggestion",
   "@ourSuggestion": {
     "description": "Subtitle for suggestion card on home page"
+  },
+  "motivationalText0": "{gender,select,male{Take a deep breath} female{Take a deep breath} other{Take a deep breath}}",
+  "@motivationalText0": {
+    "description": "Motivational suggestion text 0",
+    "placeholders": {
+      "gender": {
+        "type": "String"
+      }
+    }
+  },
+  "motivationalText1": "{gender,select,male{Stretch your body} female{Stretch your body} other{Stretch your body}}",
+  "@motivationalText1": {
+    "description": "Motivational suggestion text 1",
+    "placeholders": {
+      "gender": {
+        "type": "String"
+      }
+    }
+  },
+  "motivationalText2": "{gender,select,male{Drink some water} female{Drink some water} other{Drink some water}}",
+  "@motivationalText2": {
+    "description": "Motivational suggestion text 2",
+    "placeholders": {
+      "gender": {
+        "type": "String"
+      }
+    }
+  },
+  "motivationalText3": "{gender,select,male{Take a short break} female{Take a short break} other{Take a short break}}",
+  "@motivationalText3": {
+    "description": "Motivational suggestion text 3",
+    "placeholders": {
+      "gender": {
+        "type": "String"
+      }
+    }
+  },
+  "motivationalText4": "{gender,select,male{Smile and look forward} female{Smile and look forward} other{Smile and look forward}}",
+  "@motivationalText4": {
+    "description": "Motivational suggestion text 4",
+    "placeholders": {
+      "gender": {
+        "type": "String"
+      }
+    }
   }
 }

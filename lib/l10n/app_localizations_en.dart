@@ -3354,4 +3354,54 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get ourSuggestion => 'Our suggestion';
+
+  @override
+  String motivationalText0(String gender) {
+    String _temp0 = intl.Intl.selectLogic(gender, {
+      'male': 'Take a deep breath',
+      'female': 'Take a deep breath',
+      'other': 'Take a deep breath',
+    });
+    return '$_temp0';
+  }
+
+  @override
+  String motivationalText1(String gender) {
+    String _temp0 = intl.Intl.selectLogic(gender, {
+      'male': 'Stretch your body',
+      'female': 'Stretch your body',
+      'other': 'Stretch your body',
+    });
+    return '$_temp0';
+  }
+
+  @override
+  String motivationalText2(String gender) {
+    String _temp0 = intl.Intl.selectLogic(gender, {
+      'male': 'Drink some water',
+      'female': 'Drink some water',
+      'other': 'Drink some water',
+    });
+    return '$_temp0';
+  }
+
+  @override
+  String motivationalText3(String gender) {
+    String _temp0 = intl.Intl.selectLogic(gender, {
+      'male': 'Take a short break',
+      'female': 'Take a short break',
+      'other': 'Take a short break',
+    });
+    return '$_temp0';
+  }
+
+  @override
+  String motivationalText4(String gender) {
+    String _temp0 = intl.Intl.selectLogic(gender, {
+      'male': 'Smile and look forward',
+      'female': 'Smile and look forward',
+      'other': 'Smile and look forward',
+    });
+    return '$_temp0';
+  }
 }

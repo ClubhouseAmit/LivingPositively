@@ -587,5 +587,50 @@
   "ourSuggestion": "ההצעה שלנו",
   "@ourSuggestion": {
     "description": "Subtitle for suggestion card on home page"
+  },
+  "motivationalText0": "{gender,select,male{קח נשימה עמוקה} female{קחי נשימה עמוקה} other{קח/י נשימה עמוקה}}",
+  "@motivationalText0": {
+    "description": "Motivational suggestion text 0",
+    "placeholders": {
+      "gender": {
+        "type": "String"
+      }
+    }
+  },
+  "motivationalText1": "{gender,select,male{מתח את הגוף} female{מתחי את הגוף} other{מתח/י את הגוף}}",
+  "@motivationalText1": {
+    "description": "Motivational suggestion text 1",
+    "placeholders": {
+      "gender": {
+        "type": "String"
+      }
+    }
+  },
+  "motivationalText2": "{gender,select,male{שתה מים} female{שתי מים} other{שתה/י מים}}",
+  "@motivationalText2": {
+    "description": "Motivational suggestion text 2",
+    "placeholders": {
+      "gender": {
+        "type": "String"
+      }
+    }
+  },
+  "motivationalText3": "{gender,select,male{צא להפסקה קצרה} female{צאי להפסקה קצרה} other{צא/י להפסקה קצרה}}",
+  "@motivationalText3": {
+    "description": "Motivational suggestion text 3",
+    "placeholders": {
+      "gender": {
+        "type": "String"
+      }
+    }
+  },
+  "motivationalText4": "{gender,select,male{חייך והסתכל קדימה} female{חייכי והסתכלי קדימה} other{חייכ/י והסתכל/י קדימה}}",
+  "@motivationalText4": {
+    "description": "Motivational suggestion text 4",
+    "placeholders": {
+      "gender": {
+        "type": "String"
+      }
+    }
   }
 }

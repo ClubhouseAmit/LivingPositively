@@ -20,6 +20,7 @@ import 'package:mazilon/MainPageHelpers/components/reminders_section.dart';
 import 'package:mazilon/MainPageHelpers/components/personal_plan_section.dart';
 import 'package:mazilon/MainPageHelpers/components/virtues_section.dart';
 import 'package:mazilon/MainPageHelpers/components/gratitude_section.dart';
+import 'package:mazilon/util/Thanks/AddForm.dart';
 
 class Home extends StatefulWidget {
   final PhonePageData phonePageData;
@@ -43,6 +44,8 @@ class _HomeState extends LPExtendedState<Home> {
   bool hasFilled = false;
   bool _showQuote = true;
   int _quoteIndex = 0;
+  int _reminderIndex = 0;
+  String? _customReminder;
 
   void loadData() async {
     PersistentMemoryService service = GetIt.instance<PersistentMemoryService>();
@@ -50,9 +53,14 @@ class _HomeState extends LPExtendedState<Home> {
       'hasFilled',
       PersistentMemoryType.Bool,
     );
+    final savedReminder = await service.getItem(
+      'customReminder',
+      PersistentMemoryType.String,
+    );
     if (!mounted) return;
     setState(() {
       hasFilled = hasFilledValue;
+      _customReminder = savedReminder;
     });
   }
 
@@ -60,6 +68,50 @@ class _HomeState extends LPExtendedState<Home> {
   void initState() {
     super.initState();
     loadData();
+    _reminderIndex = Random().nextInt(1000);
+  }
+
+  String _getReminder(String gender) {
+    if (_customReminder != null && _customReminder!.isNotEmpty) {
+      return _customReminder!;
+    }
+    final resolvedGender = gender.isEmpty ? 'other' : gender;
+    final List<String> activeReminders = [
+      appLocale.motivationalText0(resolvedGender),
+      appLocale.motivationalText1(resolvedGender),
+      appLocale.motivationalText2(resolvedGender),
+      appLocale.motivationalText3(resolvedGender),
+      appLocale.motivationalText4(resolvedGender),
+    ];
+    return activeReminders[_reminderIndex % activeReminders.length];
+  }
+
+  void _editReminderDialog(
+    BuildContext context,
+    String currentText,
+  ) {
+    showDialog(
+      context: context,
+      builder: (BuildContext context) {
+        return AddForm(
+          add: (text, provider) {},
+          index: 0,
+          edit: (text, idx, provider) async {
+            setState(() {
+              _customReminder = text;
+            });
+            PersistentMemoryService service = GetIt.instance<PersistentMemoryService>();
+            await service.setItem(
+              'customReminder',
+              PersistentMemoryType.String,
+              text,
+            );
+          },
+          text: currentText,
+          formTitle: appLocale.reminders,
+        );
+      },
+    );
   }
 
   @override
@@ -76,6 +128,16 @@ class _HomeState extends LPExtendedState<Home> {
     final quote = quotes.isEmpty
         ? appLocale.inspirationalQuotesNo0(gender.isEmpty ? 'other' : gender)
         : quotes[_quoteIndex % quotes.length];
+
+    final reminderText = _getReminder(gender);
+
+    final reminderItems = [
+      ReminderItemData(
+        iconAsset: 'assets/images/sun_draw.svg',
+        title: reminderText,
+        subtitle: appLocale.ourSuggestion,
+      ),
+    ];
 
     return Scaffold(
       body: SafeArea(
@@ -96,9 +158,6 @@ class _HomeState extends LPExtendedState<Home> {
                     widget.changeCurrentIndex(context, PagesCode.About);
                   },
                   onNotificationsPressed: () {
-                    if (!NotificationsService.supportsReminderSettings()) {
-                      return;
-                    }
                     widget.changeCurrentIndex(
                       context,
                       PagesCode.NotificationPage,
@@ -110,28 +169,15 @@ class _HomeState extends LPExtendedState<Home> {
 
               SizedBox(height: AppSpacing.lg),
 
-              if (NotificationsService.supportsReminderSettings()) ...[
-                // Reminders — single card
-                RemindersSectionWidget(
-                  reminders: [
-                    ReminderItemData(
-                      iconAsset: 'assets/images/sun_draw.svg',
-                      title: appLocale.notifyOnscheduledNotification(
-                        '${userInfoProvider.notificationHour.toString().padLeft(2, '0')}:${userInfoProvider.notificationMinute.toString().padLeft(2, '0')}',
-                      ),
-                    ),
-                  ],
-                  onSeeAll: () => widget.changeCurrentIndex(
-                    context,
-                    PagesCode.NotificationPage,
-                  ),
-                  onEdit: () => widget.changeCurrentIndex(
-                    context,
-                    PagesCode.NotificationPage,
-                  ),
+              // Reminders list
+              RemindersSectionWidget(
+                reminders: reminderItems,
+                onEdit: (index) => _editReminderDialog(
+                  context,
+                  reminderText,
                 ),
-                SizedBox(height: AppSpacing.xl),
-              ],
+              ),
+              SizedBox(height: AppSpacing.xl),
 
               // My Plan
               PersonalPlanSectionWidget(
@@ -154,7 +200,9 @@ class _HomeState extends LPExtendedState<Home> {
                     ScaffoldMessenger.of(context).clearSnackBars();
                     ScaffoldMessenger.of(context).showSnackBar(
                       SnackBar(
-                        content: Text(AppLocalizations.of(context)!.quoteDismissedMessage),
+                        content: Text(
+                          AppLocalizations.of(context)!.quoteDismissedMessage,
+                        ),
                         action: SnackBarAction(
                           label: AppLocalizations.of(context)!.quoteUndoAction,
                           onPressed: () {

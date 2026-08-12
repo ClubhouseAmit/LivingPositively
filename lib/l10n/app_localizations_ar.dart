@@ -3322,4 +3322,54 @@ class AppLocalizationsAr extends AppLocalizations {
 
   @override
   String get ourSuggestion => 'اقتراحنا';
+
+  @override
+  String motivationalText0(String gender) {
+    String _temp0 = intl.Intl.selectLogic(gender, {
+      'male': 'خذ نفساً عميقاً',
+      'female': 'خذي نفساً عميقاً',
+      'other': 'خذ/ي نفساً عميقاً',
+    });
+    return '$_temp0';
+  }
+
+  @override
+  String motivationalText1(String gender) {
+    String _temp0 = intl.Intl.selectLogic(gender, {
+      'male': 'قم بتمديد جسمك',
+      'female': 'قومي بتمديد جسمك',
+      'other': 'قم/قومي بتمديد جسمك',
+    });
+    return '$_temp0';
+  }
+
+  @override
+  String motivationalText2(String gender) {
+    String _temp0 = intl.Intl.selectLogic(gender, {
+      'male': 'اشرب بعض الماء',
+      'female': 'اشربي بعض الماء',
+      'other': 'اشرب/ي بعض الماء',
+    });
+    return '$_temp0';
+  }
+
+  @override
+  String motivationalText3(String gender) {
+    String _temp0 = intl.Intl.selectLogic(gender, {
+      'male': 'خذ استراحة قصيرة',
+      'female': 'خذي استراحة قصيرة',
+      'other': 'خذ/ي استراحة قصيرة',
+    });
+    return '$_temp0';
+  }
+
+  @override
+  String motivationalText4(String gender) {
+    String _temp0 = intl.Intl.selectLogic(gender, {
+      'male': 'ابتسم وتطلع إلى الأمام',
+      'female': 'ابتسمي وتطلعي إلى الأمام',
+      'other': 'ابتسم/ي وتطلع/ي إلى الأمام',
+    });
+    return '$_temp0';
+  }
 }
