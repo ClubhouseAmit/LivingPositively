@@ -543,5 +543,94 @@
   "feelGoodBackTooltip": "חזרה לתמונות",
   "feelGoodDeleteTooltip": "מחיקת תמונה",
   "confirmDeletePlanAnswerTitle": "למחוק את התשובה?",
-  "confirmDeletePlanAnswerMessage": "התשובה תוסר מהתוכנית האישית שלך."
+  "confirmDeletePlanAnswerMessage": "התשובה תוסר מהתוכנית האישית שלך.",
+  "reminders": "תזכורות",
+  "@reminders": {
+    "description": "Section header for reminders on home page"
+  },
+  "myPlan": "התוכנית שלי",
+  "@myPlan": {
+    "description": "Section header for personal plan on home page"
+  },
+  "traitsListTitle": "רשימת מעלות",
+  "@traitsListTitle": {
+    "description": "Section header for positive traits list on home page"
+  },
+  "gratitudeListTitle": "יומן תודה",
+  "@gratitudeListTitle": {
+    "description": "Section header for gratitude list on home page"
+  },
+  "myPlanSubTitle": "דברים שיעשו לי טוב עכשיו",
+  "@myPlanSubTitle": {
+    "description": "Short subtitle for My Plan section on home page"
+  },
+  "warningSignsTitle": "סימני האזהרה שלי",
+  "@warningSignsTitle": {
+    "description": "Section header for warning signs on home page"
+  },
+  "warningSignsSubTitle": "אם מופיע סימן אזהרה, הפעל/י את תוכנית הבטיחות האישית שלך. מלא/י את סימני האזהרה שלך",
+  "@warningSignsSubTitle": {
+    "description": "Subtitle for warning signs section on home page"
+  },
+  "addWarningSign": "הוסף/י סימן אזהרה",
+  "@addWarningSign": {
+    "description": "Placeholder text for adding a new warning sign"
+  },
+  "traitsSubTitle": "כאן אני זורח/ת. קרא/י יום יום",
+  "@traitsSubTitle": {
+    "description": "Subtitle for positive traits section"
+  },
+  "gratitudeSubTitle": "על מה אני אסיר/ת תודה היום",
+  "@gratitudeSubTitle": {
+    "description": "Subtitle for gratitude section"
+  },
+  "ourSuggestion": "ההצעה שלנו",
+  "@ourSuggestion": {
+    "description": "Subtitle for suggestion card on home page"
+  },
+  "deepBreathSuggestion": "{gender,select,male{קח נשימה עמוקה} female{קחי נשימה עמוקה} other{קח/י נשימה עמוקה}}",
+  "@deepBreathSuggestion": {
+    "description": "Motivational suggestion text 0",
+    "placeholders": {
+      "gender": {
+        "type": "String"
+      }
+    }
+  },
+  "stretchBodySuggestion": "{gender,select,male{מתח את הגוף} female{מתחי את הגוף} other{מתח/י את הגוף}}",
+  "@stretchBodySuggestion": {
+    "description": "Motivational suggestion text 1",
+    "placeholders": {
+      "gender": {
+        "type": "String"
+      }
+    }
+  },
+  "drinkWaterSuggestion": "{gender,select,male{שתה מים} female{שתי מים} other{שתה/י מים}}",
+  "@drinkWaterSuggestion": {
+    "description": "Motivational suggestion text 2",
+    "placeholders": {
+      "gender": {
+        "type": "String"
+      }
+    }
+  },
+  "shortBreakSuggestion": "{gender,select,male{צא להפסקה קצרה} female{צאי להפסקה קצרה} other{צא/י להפסקה קצרה}}",
+  "@shortBreakSuggestion": {
+    "description": "Motivational suggestion text 3",
+    "placeholders": {
+      "gender": {
+        "type": "String"
+      }
+    }
+  },
+  "lookForwardSuggestion": "{gender,select,male{חייך והסתכל קדימה} female{חייכי והסתכלי קדימה} other{חייכ/י והסתכל/י קדימה}}",
+  "@lookForwardSuggestion": {
+    "description": "Motivational suggestion text 4",
+    "placeholders": {
+      "gender": {
+        "type": "String"
+      }
+    }
+  }
 }

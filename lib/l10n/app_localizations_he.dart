@@ -3278,4 +3278,88 @@ class AppLocalizationsHe extends AppLocalizations {
   @override
   String get confirmDeletePlanAnswerMessage =>
       'התשובה תוסר מהתוכנית האישית שלך.';
+
+  @override
+  String get reminders => 'תזכורות';
+
+  @override
+  String get myPlan => 'התוכנית שלי';
+
+  @override
+  String get traitsListTitle => 'רשימת מעלות';
+
+  @override
+  String get gratitudeListTitle => 'יומן תודה';
+
+  @override
+  String get myPlanSubTitle => 'דברים שיעשו לי טוב עכשיו';
+
+  @override
+  String get warningSignsTitle => 'סימני האזהרה שלי';
+
+  @override
+  String get warningSignsSubTitle =>
+      'אם מופיע סימן אזהרה, הפעל/י את תוכנית הבטיחות האישית שלך. מלא/י את סימני האזהרה שלך';
+
+  @override
+  String get addWarningSign => 'הוסף/י סימן אזהרה';
+
+  @override
+  String get traitsSubTitle => 'כאן אני זורח/ת. קרא/י יום יום';
+
+  @override
+  String get gratitudeSubTitle => 'על מה אני אסיר/ת תודה היום';
+
+  @override
+  String get ourSuggestion => 'ההצעה שלנו';
+
+  @override
+  String deepBreathSuggestion(String gender) {
+    String _temp0 = intl.Intl.selectLogic(gender, {
+      'male': 'קח נשימה עמוקה',
+      'female': 'קחי נשימה עמוקה',
+      'other': 'קח/י נשימה עמוקה',
+    });
+    return '$_temp0';
+  }
+
+  @override
+  String stretchBodySuggestion(String gender) {
+    String _temp0 = intl.Intl.selectLogic(gender, {
+      'male': 'מתח את הגוף',
+      'female': 'מתחי את הגוף',
+      'other': 'מתח/י את הגוף',
+    });
+    return '$_temp0';
+  }
+
+  @override
+  String drinkWaterSuggestion(String gender) {
+    String _temp0 = intl.Intl.selectLogic(gender, {
+      'male': 'שתה מים',
+      'female': 'שתי מים',
+      'other': 'שתה/י מים',
+    });
+    return '$_temp0';
+  }
+
+  @override
+  String shortBreakSuggestion(String gender) {
+    String _temp0 = intl.Intl.selectLogic(gender, {
+      'male': 'צא להפסקה קצרה',
+      'female': 'צאי להפסקה קצרה',
+      'other': 'צא/י להפסקה קצרה',
+    });
+    return '$_temp0';
+  }
+
+  @override
+  String lookForwardSuggestion(String gender) {
+    String _temp0 = intl.Intl.selectLogic(gender, {
+      'male': 'חייך והסתכל קדימה',
+      'female': 'חייכי והסתכלי קדימה',
+      'other': 'חייכ/י והסתכל/י קדימה',
+    });
+    return '$_temp0';
+  }
 }

@@ -466,7 +466,9 @@ class _ListWidgetState extends LPExtendedState<ListWidget> {
             ShowAllButton(
               onTabTapped: widget.onTabTapped,
               pageCode: widget.pageCode,
+              count: listItems.length,
             ),
+            // Suggestions (always up to 3)
             for (final suggestion in _homeSuggestions)
               buildSuggestion(suggestion, gender),
             TextButton(

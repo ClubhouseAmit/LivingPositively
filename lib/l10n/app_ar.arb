@@ -465,5 +465,94 @@
   "feelGoodBackTooltip": "العودة إلى الصور",
   "feelGoodDeleteTooltip": "حذف الصورة",
   "confirmDeletePlanAnswerTitle": "هل تريد حذف الإجابة؟",
-  "confirmDeletePlanAnswerMessage": "ستتم إزالة الإجابة من خطتك الشخصية."
+  "confirmDeletePlanAnswerMessage": "ستتم إزالة الإجابة من خطتك الشخصية.",
+  "reminders": "التذكيرات",
+  "@reminders": {
+    "description": "Section header for reminders on home page"
+  },
+  "myPlan": "خطتي",
+  "@myPlan": {
+    "description": "Section header for personal plan on home page"
+  },
+  "traitsListTitle": "السمات الإيجابية",
+  "@traitsListTitle": {
+    "description": "Section header for positive traits list on home page"
+  },
+  "gratitudeListTitle": "قائمة الامتنان",
+  "@gratitudeListTitle": {
+    "description": "Section header for gratitude list on home page"
+  },
+  "myPlanSubTitle": "أشياء ستجعلني أشعر بشكل أفضل الآن",
+  "@myPlanSubTitle": {
+    "description": "Short subtitle for My Plan section on home page"
+  },
+  "warningSignsTitle": "علامات التحذير لدي",
+  "@warningSignsTitle": {
+    "description": "Section header for warning signs on home page"
+  },
+  "warningSignsSubTitle": "إذا ظهرت علامة تحذير، قم بتفعيل خطة السلامة الشخصية. أضف علامات التحذير الخاصة بك",
+  "@warningSignsSubTitle": {
+    "description": "Subtitle for warning signs section on home page"
+  },
+  "addWarningSign": "أضف علامة تحذير",
+  "@addWarningSign": {
+    "description": "Placeholder text for adding a new warning sign"
+  },
+  "traitsSubTitle": "هنا أتألق. اقرأ يومياً",
+  "@traitsSubTitle": {
+    "description": "Subtitle for positive traits section"
+  },
+  "gratitudeSubTitle": "ما الذي أنا ممتن له اليوم",
+  "@gratitudeSubTitle": {
+    "description": "Subtitle for gratitude section"
+  },
+  "ourSuggestion": "اقتراحنا",
+  "@ourSuggestion": {
+    "description": "Subtitle for suggestion card on home page"
+  },
+  "deepBreathSuggestion": "{gender,select,male{خذ نفساً عميقاً} female{خذي نفساً عميقاً} other{خذ/ي نفساً عميقاً}}",
+  "@deepBreathSuggestion": {
+    "description": "Motivational suggestion text 0",
+    "placeholders": {
+      "gender": {
+        "type": "String"
+      }
+    }
+  },
+  "stretchBodySuggestion": "{gender,select,male{قم بتمديد جسمك} female{قومي بتمديد جسمك} other{قم/قومي بتمديد جسمك}}",
+  "@stretchBodySuggestion": {
+    "description": "Motivational suggestion text 1",
+    "placeholders": {
+      "gender": {
+        "type": "String"
+      }
+    }
+  },
+  "drinkWaterSuggestion": "{gender,select,male{اشرب بعض الماء} female{اشربي بعض الماء} other{اشرب/ي بعض الماء}}",
+  "@drinkWaterSuggestion": {
+    "description": "Motivational suggestion text 2",
+    "placeholders": {
+      "gender": {
+        "type": "String"
+      }
+    }
+  },
+  "shortBreakSuggestion": "{gender,select,male{خذ استراحة قصيرة} female{خذي استراحة قصيرة} other{خذ/ي استراحة قصيرة}}",
+  "@shortBreakSuggestion": {
+    "description": "Motivational suggestion text 3",
+    "placeholders": {
+      "gender": {
+        "type": "String"
+      }
+    }
+  },
+  "lookForwardSuggestion": "{gender,select,male{ابتسم وتطلع إلى الأمام} female{ابتسمي وتطلعي إلى الأمام} other{ابتسم/ي وتطلع/ي إلى الأمام}}",
+  "@lookForwardSuggestion": {
+    "description": "Motivational suggestion text 4",
+    "placeholders": {
+      "gender": {
+        "type": "String"
+      }
+    }
+  }
 }

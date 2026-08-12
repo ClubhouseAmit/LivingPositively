@@ -88,7 +88,7 @@ void main() {
       expect(theme.useMaterial3, isFalse);
       expect(theme.brightness, Brightness.light);
       expect(theme.textTheme.bodyMedium?.fontFamily, 'Rubix');
-      expect(theme.scaffoldBackgroundColor, AppColors.surface);
+      expect(theme.scaffoldBackgroundColor, AppColors.pageBackground);
     });
   });
 
@@ -103,9 +103,10 @@ void main() {
       expect(dark.colorScheme.surface, AppColors.darkSurface);
       expect(dark.colorScheme.onSurface, AppColors.darkOnSurface);
       expect(dark.colorScheme.error, AppColors.darkError);
-      expect(dark.scaffoldBackgroundColor, AppColors.darkSurface);
+      expect(dark.scaffoldBackgroundColor, AppColors.darkPageBackground);
       expect(dark.cardColor, AppColors.darkSurfaceContainer);
     });
+
 
     test('does not silently fall back to the light palette', () {
       final dark = buildDarkTheme();

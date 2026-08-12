@@ -84,6 +84,7 @@ dependencies:
   devicelocale: ^0.9.0
   upgrader: ^13.4.0
   country_code_picker: ^3.4.1
+  flutter_svg: ^2.0.10+1
 dev_dependencies:
   flutter_test:
     sdk: flutter
@@ -112,16 +113,8 @@ flutter:
   generate: true
 
   assets:
-    - assets/images/initialFormPage1.png
-    - assets/images/initialFormPage3.png
-    - assets/images/Logo.jpeg
-    - assets/images/Logo.png
-    - assets/images/FormSubmit.png
-    - assets/fonts/CALIBRI.TTF
-    - assets/images/SocialHub-Logo.png
-    - assets/images/clubhouse-Logo.png
-    - assets/images/israel.png
-    - assets/images/united-states.png
+    - assets/images/
+    - assets/fonts/
 
   fonts:
     - family: Rubix

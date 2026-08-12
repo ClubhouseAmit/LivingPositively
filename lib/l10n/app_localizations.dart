@@ -325,7 +325,7 @@ abstract class AppLocalizations {
   ///
   ///
   /// In en, this message translates to:
-  /// **'{gender,select,male{Wellness Tools} female{Wellness Tools} other{Wellness Tools}}'**
+  /// **'{gender,select,male{Wellness} female{Wellness} other{Wellness}}'**
   String homePageWellnessTools(String gender);
 
   ///
@@ -2535,6 +2535,102 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'This removes the answer from your personal plan.'**
   String get confirmDeletePlanAnswerMessage;
+
+  /// Section header for reminders on home page
+  ///
+  /// In en, this message translates to:
+  /// **'Reminders'**
+  String get reminders;
+
+  /// Section header for personal plan on home page
+  ///
+  /// In en, this message translates to:
+  /// **'My Plan'**
+  String get myPlan;
+
+  /// Section header for positive traits list on home page
+  ///
+  /// In en, this message translates to:
+  /// **'List of virtues'**
+  String get traitsListTitle;
+
+  /// Section header for gratitude list on home page
+  ///
+  /// In en, this message translates to:
+  /// **'Gratitude list'**
+  String get gratitudeListTitle;
+
+  /// Short subtitle for My Plan section on home page
+  ///
+  /// In en, this message translates to:
+  /// **'Things that will do me good now'**
+  String get myPlanSubTitle;
+
+  /// Section header for warning signs on home page
+  ///
+  /// In en, this message translates to:
+  /// **'My warning signs'**
+  String get warningSignsTitle;
+
+  /// Subtitle for warning signs section on home page
+  ///
+  /// In en, this message translates to:
+  /// **'If a warning sign appears, activate your personal safety plan. Fill in your warning signs'**
+  String get warningSignsSubTitle;
+
+  /// Placeholder text for adding a new warning sign
+  ///
+  /// In en, this message translates to:
+  /// **'Add warning sign'**
+  String get addWarningSign;
+
+  /// Subtitle for positive traits section
+  ///
+  /// In en, this message translates to:
+  /// **'Where I shine. Read daily'**
+  String get traitsSubTitle;
+
+  /// Subtitle for gratitude section
+  ///
+  /// In en, this message translates to:
+  /// **'What am I grateful for today'**
+  String get gratitudeSubTitle;
+
+  /// Subtitle for suggestion card on home page
+  ///
+  /// In en, this message translates to:
+  /// **'Our suggestion'**
+  String get ourSuggestion;
+
+  /// Motivational suggestion text 0
+  ///
+  /// In en, this message translates to:
+  /// **'{gender,select,male{Take a deep breath} female{Take a deep breath} other{Take a deep breath}}'**
+  String deepBreathSuggestion(String gender);
+
+  /// Motivational suggestion text 1
+  ///
+  /// In en, this message translates to:
+  /// **'{gender,select,male{Stretch your body} female{Stretch your body} other{Stretch your body}}'**
+  String stretchBodySuggestion(String gender);
+
+  /// Motivational suggestion text 2
+  ///
+  /// In en, this message translates to:
+  /// **'{gender,select,male{Drink some water} female{Drink some water} other{Drink some water}}'**
+  String drinkWaterSuggestion(String gender);
+
+  /// Motivational suggestion text 3
+  ///
+  /// In en, this message translates to:
+  /// **'{gender,select,male{Take a short break} female{Take a short break} other{Take a short break}}'**
+  String shortBreakSuggestion(String gender);
+
+  /// Motivational suggestion text 4
+  ///
+  /// In en, this message translates to:
+  /// **'{gender,select,male{Smile and look forward} female{Smile and look forward} other{Smile and look forward}}'**
+  String lookForwardSuggestion(String gender);
 }
 
 class _AppLocalizationsDelegate

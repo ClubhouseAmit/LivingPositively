@@ -13,7 +13,7 @@ import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:mazilon/l10n/app_localizations.dart';
 import 'package:mazilon/util/Phone/phoneTextAndIcon.dart';
-import 'package:mazilon/util/HomePage/inspirationalQuote.dart';
+import 'package:mazilon/util/HomePage/quote_card_widget.dart';
 import 'package:url_launcher_platform_interface/link.dart';
 import 'package:url_launcher_platform_interface/url_launcher_platform_interface.dart';
 
@@ -242,10 +242,8 @@ void main() {
     });
   });
 
-  group('inspirationalQuote close+refresh are labelled (UX_GAPS §1.3)', () {
+  group('QuoteCardWidget close+refresh are labelled (UX_GAPS §1.3)', () {
     setUp(() async {
-      // Inspirational quote uses GetIt to read AnalyticsService inside its
-      // refresh handler. Register a no-op so the widget initialises cleanly.
       await GetIt.instance.reset();
       getIt.registerLazySingleton<AnalyticsService>(() => _NoopAnalytics());
     });
@@ -257,7 +255,11 @@ void main() {
       try {
         await tester.pumpWidget(
           _wrap(
-            (_) => InspirationalQuote(quotes: const ['quote-1', 'quote-2']),
+            (_) => QuoteCardWidget(
+              quote: 'quote-1',
+              onClose: () {},
+              onRefresh: () {},
+            ),
           ),
         );
         await tester.pumpAndSettle();
@@ -282,7 +284,13 @@ void main() {
       final SemanticsHandle handle = tester.ensureSemantics();
       try {
         await tester.pumpWidget(
-          _wrap((_) => InspirationalQuote(quotes: const ['quote-1'])),
+          _wrap(
+            (_) => QuoteCardWidget(
+              quote: 'quote-1',
+              onClose: () {},
+              onRefresh: () {},
+            ),
+          ),
         );
         await tester.pumpAndSettle();
 
