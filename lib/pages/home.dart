@@ -75,21 +75,17 @@ class _HomeState extends LPExtendedState<Home> {
     if (_customReminder != null && _customReminder!.isNotEmpty) {
       return _customReminder!;
     }
-    final resolvedGender = gender.isEmpty ? 'other' : gender;
     final List<String> activeReminders = [
-      appLocale.motivationalText0(resolvedGender),
-      appLocale.motivationalText1(resolvedGender),
-      appLocale.motivationalText2(resolvedGender),
-      appLocale.motivationalText3(resolvedGender),
-      appLocale.motivationalText4(resolvedGender),
+      appLocale.motivationalText0(gender),
+      appLocale.motivationalText1(gender),
+      appLocale.motivationalText2(gender),
+      appLocale.motivationalText3(gender),
+      appLocale.motivationalText4(gender),
     ];
     return activeReminders[_reminderIndex % activeReminders.length];
   }
 
-  void _editReminderDialog(
-    BuildContext context,
-    String currentText,
-  ) {
+  void _editReminderDialog(BuildContext context, String currentText) {
     showDialog(
       context: context,
       builder: (BuildContext context) {
@@ -115,12 +111,9 @@ class _HomeState extends LPExtendedState<Home> {
       listen: true,
     );
     final gender = userInfoProvider.gender;
-    final quotes = retrieveInspirationalQuotes(
-      appLocale,
-      gender.isEmpty ? 'other' : gender,
-    );
+    final quotes = retrieveInspirationalQuotes(appLocale, gender);
     final quote = quotes.isEmpty
-        ? appLocale.inspirationalQuotesNo0(gender.isEmpty ? 'other' : gender)
+        ? appLocale.inspirationalQuotesNo0(gender)
         : quotes[_quoteIndex % quotes.length];
 
     final reminderText = _getReminder(gender);
@@ -166,10 +159,7 @@ class _HomeState extends LPExtendedState<Home> {
               // Reminders list
               RemindersSectionWidget(
                 reminders: reminderItems,
-                onEdit: (index) => _editReminderDialog(
-                  context,
-                  reminderText,
-                ),
+                onEdit: (index) => _editReminderDialog(context, reminderText),
               ),
               SizedBox(height: AppSpacing.xl),
 
