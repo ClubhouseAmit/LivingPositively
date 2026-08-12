@@ -94,10 +94,14 @@ class _HomeState extends LPExtendedState<Home> {
           index: 0,
           edit: (text, idx, provider) async {
             setState(() {
-              _customReminder = text;
+              if (text == currentText && _customReminder != null) {
+                // Submit cannot overwrite the loaded customReminder
+              } else {
+                _customReminder = text;
+              }
             });
           },
-          text: currentText,
+          text: _customReminder ?? currentText,
           formTitle: appLocale.reminders,
         );
       },

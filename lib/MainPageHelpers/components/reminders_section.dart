@@ -5,20 +5,15 @@ import 'package:mazilon/util/layout/directional_widgets.dart';
 import 'package:mazilon/util/theme/spacing.dart';
 
 class ReminderItemData {
-  final String? emoji;
-  final String? iconAsset;
+  final String iconAsset;
   final String title;
   final String? subtitle;
 
   ReminderItemData({
-    this.emoji,
-    this.iconAsset,
+    required this.iconAsset,
     required this.title,
     this.subtitle,
-  }) : assert(
-          (emoji == null) != (iconAsset == null),
-          'Exactly one of emoji or iconAsset must be provided.',
-        );
+  });
 }
 
 class RemindersSectionWidget extends StatelessWidget {
@@ -53,48 +48,31 @@ class RemindersSectionWidget extends StatelessWidget {
                   final index = entry.key;
                   final reminder = entry.value;
                   return Padding(
-                    padding: EdgeInsetsDirectional.only(bottom: AppSpacing.sm),
-                    child: CardContainer(
-                      padding: EdgeInsets.zero,
-                      borderRadius: 20,
-                      child: ClipRRect(
-                        borderRadius: BorderRadius.circular(20),
-                        child: Row(
-                          children: [
-                            if (reminder.iconAsset != null)
-                              SizedBox(
-                                width: 68,
-                                height: 65,
-                                child: isRtl
-                                    ? Transform.flip(
-                                        flipX: true,
-                                        child: SvgPicture.asset(
-                                          reminder.iconAsset!,
-                                          fit: BoxFit.cover,
-                                        ),
-                                      )
-                                    : SvgPicture.asset(
-                                          reminder.iconAsset!,
-                                          fit: BoxFit.cover,
-                                        ),
-                              )
-                            else
-                              Container(
-                                width: 52,
-                                height: 52,
-                                margin: const EdgeInsetsDirectional.only(start: 12),
-                                decoration: BoxDecoration(
-                                  color: const Color(0xFFFFE566),
-                                  borderRadius: BorderRadius.circular(12),
-                                ),
-                                child: Center(
-                                  child: Text(
-                                    reminder.emoji!,
-                                    style: const TextStyle(fontSize: 26),
-                                  ),
-                                ),
-                              ),
-                            SizedBox(width: AppSpacing.md),
+                     padding: EdgeInsetsDirectional.only(bottom: AppSpacing.sm),
+                     child: CardContainer(
+                       padding: EdgeInsets.zero,
+                       borderRadius: 20,
+                       child: ClipRRect(
+                         borderRadius: BorderRadius.circular(20),
+                         child: Row(
+                           children: [
+                             SizedBox(
+                               width: 68,
+                               height: 65,
+                               child: isRtl
+                                   ? Transform.flip(
+                                       flipX: true,
+                                       child: SvgPicture.asset(
+                                         reminder.iconAsset,
+                                         fit: BoxFit.cover,
+                                       ),
+                                     )
+                                   : SvgPicture.asset(
+                                         reminder.iconAsset,
+                                         fit: BoxFit.cover,
+                                       ),
+                             ),
+                             SizedBox(width: AppSpacing.md),
                             Expanded(
                               child: Padding(
                                 padding: const EdgeInsets.symmetric(vertical: 12.0),

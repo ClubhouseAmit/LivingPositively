@@ -1,6 +1,8 @@
+import 'dart:async';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:get_it/get_it.dart';
 import 'package:mazilon/global_enums.dart';
 import 'package:mazilon/pages/home.dart';
 import 'package:mazilon/util/Form/formPagePhoneModel.dart';
@@ -8,8 +10,33 @@ import 'package:mazilon/util/userInformation.dart';
 import 'package:mazilon/MainPageHelpers/components/reminders_section.dart';
 import 'package:mazilon/util/Thanks/AddForm.dart';
 import 'package:mazilon/l10n/app_localizations.dart';
+import 'package:mazilon/util/persistent_memory_service.dart';
 
 import '../helpers/widget_test_scaffold.dart';
+
+class _DelayedMemoryService implements PersistentMemoryService {
+  final Completer<dynamic> completer;
+  final FakePersistentMemoryService fallback;
+  _DelayedMemoryService(this.completer, this.fallback);
+
+  @override
+  Future<dynamic> getItem(String key, PersistentMemoryType type) async {
+    if (key == 'customReminder') {
+      return completer.future;
+    }
+    return fallback.getItem(key, type);
+  }
+
+  @override
+  Future<void> setItem(String key, PersistentMemoryType type, dynamic value) async {
+    return fallback.setItem(key, type, value);
+  }
+
+  @override
+  Future<void> reset() async {
+    return fallback.reset();
+  }
+}
 
 PhonePageData _phoneData() => PhonePageData(
   key: 'phonePageData',
@@ -122,6 +149,70 @@ void main() {
           Navigator.of(tester.element(find.byType(AddForm))).pop();
           await tester.pumpAndSettle();
         }
+      });
+    },
+  );
+
+  testWidgets(
+    'Regression test: AddForm does not overwrite loaded customReminder with stale build-time suggestion',
+    (WidgetTester tester) async {
+      await _onPlatform(TargetPlatform.android, () async {
+        user.gender = 'female';
+
+        final completer = Completer<dynamic>();
+        final memory = FakePersistentMemoryService();
+        final getIt = GetIt.instance;
+
+        if (getIt.isRegistered<PersistentMemoryService>()) {
+          await getIt.unregister<PersistentMemoryService>();
+        }
+
+        final customMemory = _DelayedMemoryService(completer, memory);
+        getIt.registerSingleton<PersistentMemoryService>(customMemory);
+
+        await pumpWithProviders(
+          tester,
+          Home(
+            phonePageData: _phoneData(),
+            changeCurrentIndex: (BuildContext context, PagesCode code) {},
+            changeLocale: (_) {},
+            openMainMenu: (_) {},
+          ),
+          userInformation: user,
+          surfaceSize: const Size(1024, 2400),
+        );
+
+        await tester.pump(); // Start loadData but don't finish yet
+
+        final editButtonFinder = find.descendant(
+          of: find.byType(RemindersSectionWidget),
+          matching: find.byTooltip('Edit entry'),
+        );
+        expect(editButtonFinder, findsOneWidget);
+
+        await tester.tap(editButtonFinder);
+        await tester.pumpAndSettle();
+
+        expect(find.byType(AddForm), findsOneWidget);
+
+        // Complete loading
+        completer.complete('Loaded My Custom Reminder');
+        await tester.pumpAndSettle();
+
+        // Tap Save
+        final saveButtonFinder = find.widgetWithText(TextButton, 'Save');
+        expect(saveButtonFinder, findsOneWidget);
+        await tester.tap(saveButtonFinder);
+        await tester.pumpAndSettle();
+
+        // Dialog should be gone
+        expect(find.byType(AddForm), findsNothing);
+
+        // Value must be loaded custom reminder
+        final remindersWidget = tester.widget<RemindersSectionWidget>(
+          find.byType(RemindersSectionWidget),
+        );
+        expect(remindersWidget.reminders.first.title, equals('Loaded My Custom Reminder'));
       });
     },
   );
