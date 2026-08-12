@@ -6,7 +6,8 @@ import 'package:flutter_test/flutter_test.dart';
 import '../steps_widget.dart'; // Import your widget file
 import '../text_widget.dart';
 import '../phone_widget.dart';
-import '../InspirationalQuotestest.dart';
+import 'package:mazilon/util/HomePage/quote_card_widget.dart';
+import 'package:mazilon/l10n/app_localizations.dart';
 import '../list.dart';
 import '../thanksItemSugtest.dart';
 
@@ -163,17 +164,32 @@ void main() {
     expect(addPhoneButton3, findsWidgets);
     expect(deletePhoneButton3, findsWidgets);
   });
-  final List<String> mockQuotes = ["Quote 1", "Quote 2", "Quote 3"];
   testWidgets('test Inspirational Quotes closing', (WidgetTester tester) async {
+    bool showQuote = true;
     await tester.pumpWidget(
-      MaterialApp(home: InspirationalQuote(quotes: mockQuotes)),
+      MaterialApp(
+        localizationsDelegates: AppLocalizations.localizationsDelegates,
+        supportedLocales: AppLocalizations.supportedLocales,
+        home: StatefulBuilder(
+          builder: (context, setState) {
+            return Scaffold(
+              body: showQuote
+                  ? QuoteCardWidget(
+                      quote: 'Quote 1',
+                      onClose: () => setState(() => showQuote = false),
+                    )
+                  : Container(),
+            );
+          },
+        ),
+      ),
     );
-    expect(find.byKey(Key('InspirationalQuote')), findsWidgets);
+    expect(find.byType(QuoteCardWidget), findsOneWidget);
     await tester.tap(find.byIcon(Icons.close));
     await tester.pump();
 
     // Verify that the widget is no longer visible
-    expect(find.byKey(Key('InspirationalQuote')), findsNothing);
+    expect(find.byType(QuoteCardWidget), findsNothing);
   });
 
   testWidgets('test the generic list', (WidgetTester tester) async {

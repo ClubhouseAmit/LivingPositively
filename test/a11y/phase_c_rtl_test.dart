@@ -18,7 +18,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:mazilon/l10n/app_localizations.dart';
 import 'package:mazilon/main_menu_dialog.dart';
 import 'package:mazilon/util/Form/formPagePhoneModel.dart';
-import 'package:mazilon/util/HomePage/inspirationalQuote.dart';
+import 'package:mazilon/util/HomePage/quote_card_widget.dart';
 import 'package:mazilon/util/userInformation.dart';
 
 import '../helpers/widget_test_scaffold.dart';
@@ -37,7 +37,7 @@ PhonePageData _phoneData() => PhonePageData(
       phoneDescription: const <String>[],
     );
 
-Widget _wrapQuote(List<String> quotes, {Locale locale = const Locale('en')}) {
+Widget _wrapQuote(String quote, {Locale locale = const Locale('en')}) {
   return MaterialApp(
     locale: locale,
     localizationsDelegates: AppLocalizations.localizationsDelegates,
@@ -45,7 +45,13 @@ Widget _wrapQuote(List<String> quotes, {Locale locale = const Locale('en')}) {
     home: ScreenUtilInit(
       designSize: const Size(360, 690),
       builder: (context, _) => Scaffold(
-        body: Center(child: InspirationalQuote(quotes: quotes)),
+        body: Center(
+          child: QuoteCardWidget(
+            quote: quote,
+            onClose: () {},
+            onRefresh: () {},
+          ),
+        ),
       ),
     ),
   );
@@ -54,29 +60,26 @@ Widget _wrapQuote(List<String> quotes, {Locale locale = const Locale('en')}) {
 void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
 
-  group('InspirationalQuote uses directional layout (UX_GAPS §1.4, §3.3)', () {
+  group('QuoteCardWidget uses directional layout (UX_GAPS §1.4, §3.3)', () {
     setUp(() => registerTestServices(locale: 'en'));
     tearDown(resetTestServices);
 
     testWidgets(
-        'PositionedDirectional + EdgeInsetsDirectional replace the isRtl branches',
+        'PositionedDirectional + EdgeInsetsDirectional replace the LTR/RTL branches',
         (tester) async {
-      await tester.pumpWidget(_wrapQuote(const ['quote-one']));
+      await tester.pumpWidget(_wrapQuote('quote-one'));
       await tester.pumpAndSettle();
 
-      // Phase C contract: the close button is positioned with
-      // PositionedDirectional(end:), not Positioned(left:/right:) branches.
+      // Phase C contract: the quote mark uses PositionedDirectional.
       expect(
         find.byType(PositionedDirectional),
         findsOneWidget,
         reason:
-            'InspirationalQuote close button must use PositionedDirectional '
-            'so its trailing edge follows the ambient Directionality.',
+            'QuoteCardWidget quote mark must use PositionedDirectional '
+            'so its layout follows the ambient Directionality.',
       );
 
-      // Phase C contract: the quote-text Padding uses EdgeInsetsDirectional,
-      // so the trailing padding flips with the locale instead of being baked
-      // into LTRB at construction time.
+      // Phase C contract: the padding uses EdgeInsetsDirectional.
       final paddings = tester.widgetList<Padding>(find.byType(Padding));
       final directional = paddings.where(
         (p) => p.padding is EdgeInsetsDirectional,
@@ -85,20 +88,20 @@ void main() {
         directional,
         isNotEmpty,
         reason:
-            'InspirationalQuote text wrapper must use EdgeInsetsDirectional '
-            'instead of EdgeInsets.fromLTRB keyed on isRtl.',
+            'QuoteCardWidget must use EdgeInsetsDirectional '
+            'instead of EdgeInsets keyed on isRtl.',
       );
     });
 
     testWidgets(
         'close button lands on the trailing edge in LTR (right side)',
         (tester) async {
-      await tester.pumpWidget(_wrapQuote(const ['quote-one']));
+      await tester.pumpWidget(_wrapQuote('quote-one'));
       await tester.pumpAndSettle();
 
       final closeCenter = tester.getCenter(find.byIcon(Icons.close));
       final quoteCenter = tester
-          .getCenter(find.byType(InspirationalQuote).first);
+          .getCenter(find.byType(QuoteCardWidget).first);
       expect(
         closeCenter.dx,
         greaterThan(quoteCenter.dx),
@@ -110,20 +113,18 @@ void main() {
         'close button flips to the trailing edge in RTL (left side)',
         (tester) async {
       await tester.pumpWidget(
-        _wrapQuote(const ['quote-one'], locale: const Locale('he')),
+        _wrapQuote('quote-one', locale: const Locale('he')),
       );
       await tester.pumpAndSettle();
 
       final closeCenter = tester.getCenter(find.byIcon(Icons.close));
       final quoteCenter = tester
-          .getCenter(find.byType(InspirationalQuote).first);
+          .getCenter(find.byType(QuoteCardWidget).first);
       expect(
         closeCenter.dx,
         lessThan(quoteCenter.dx),
         reason:
-            'Close icon must flip to the left in RTL (trailing in he). '
-            'If this fails, the close button is still pinned with Positioned '
-            'instead of PositionedDirectional.',
+            'Close icon must flip to the left in RTL (trailing in he).',
       );
     });
   });

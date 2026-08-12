@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:mazilon/util/theme/spacing.dart';
+import 'package:mazilon/l10n/app_localizations.dart';
 
 class QuoteCardWidget extends StatelessWidget {
   final String quote;
@@ -26,12 +27,18 @@ class QuoteCardWidget extends StatelessWidget {
           if (onClose != null)
             Padding(
               padding: EdgeInsetsDirectional.only(bottom: AppSpacing.xs, end: AppSpacing.xs),
-              child: GestureDetector(
-                onTap: onClose,
-                child: Icon(
-                  Icons.close,
+              child: Tooltip(
+                message: AppLocalizations.of(context)!.dismissQuoteTooltip,
+                child: IconButton(
+                  icon: const Icon(Icons.close),
+                  iconSize: 20,
                   color: colorScheme.onSurface.withValues(alpha: 0.6),
-                  size: 20,
+                  onPressed: onClose,
+                  constraints: const BoxConstraints(
+                    minWidth: 48,
+                    minHeight: 48,
+                  ),
+                  padding: EdgeInsets.zero,
                 ),
               ),
             ),
@@ -65,17 +72,24 @@ class QuoteCardWidget extends StatelessWidget {
                     child: Row(
                       crossAxisAlignment: CrossAxisAlignment.center,
                       children: [
-                        GestureDetector(
-                          onTap: onRefresh,
-                          child: Padding(
+                        if (onRefresh != null)
+                          Padding(
                             padding: EdgeInsetsDirectional.only(end: AppSpacing.md),
-                            child: Icon(
-                              Icons.autorenew,
-                              color: colorScheme.onPrimary,
-                              size: 26,
+                            child: Tooltip(
+                              message: AppLocalizations.of(context)!.refreshQuoteTooltip,
+                              child: IconButton(
+                                icon: const Icon(Icons.autorenew),
+                                iconSize: 26,
+                                color: colorScheme.onPrimary,
+                                onPressed: onRefresh,
+                                constraints: const BoxConstraints(
+                                  minWidth: 48,
+                                  minHeight: 48,
+                                ),
+                                padding: EdgeInsets.zero,
+                              ),
                             ),
                           ),
-                        ),
                         Expanded(
                           child: Text(
                             quote,

@@ -110,24 +110,28 @@ class _HomeState extends LPExtendedState<Home> {
 
               SizedBox(height: AppSpacing.lg),
 
-              // Reminders — single card
-              RemindersSectionWidget(
-                reminders: [
-                  ReminderItemData(
-                    iconAsset: 'assets/images/sun_draw.svg',
-                    title: appLocale.feelBetterListNo18(
-                      gender.isEmpty ? 'other' : gender,
+              if (NotificationsService.supportsReminderSettings()) ...[
+                // Reminders — single card
+                RemindersSectionWidget(
+                  reminders: [
+                    ReminderItemData(
+                      iconAsset: 'assets/images/sun_draw.svg',
+                      title: appLocale.notifyOnscheduledNotification(
+                        '${userInfoProvider.notificationHour.toString().padLeft(2, '0')}:${userInfoProvider.notificationMinute.toString().padLeft(2, '0')}',
+                      ),
                     ),
-                    subtitle: appLocale.ourSuggestion,
+                  ],
+                  onSeeAll: () => widget.changeCurrentIndex(
+                    context,
+                    PagesCode.NotificationPage,
                   ),
-                ],
-                onSeeAll: () => widget.changeCurrentIndex(
-                  context,
-                  PagesCode.NotificationPage,
+                  onEdit: () => widget.changeCurrentIndex(
+                    context,
+                    PagesCode.NotificationPage,
+                  ),
                 ),
-              ),
-
-              SizedBox(height: AppSpacing.xl),
+                SizedBox(height: AppSpacing.xl),
+              ],
 
               // My Plan
               PersonalPlanSectionWidget(
@@ -145,7 +149,21 @@ class _HomeState extends LPExtendedState<Home> {
               if (_showQuote)
                 QuoteCardWidget(
                   quote: quote,
-                  onClose: () => setState(() => _showQuote = false),
+                  onClose: () {
+                    setState(() => _showQuote = false);
+                    ScaffoldMessenger.of(context).clearSnackBars();
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      SnackBar(
+                        content: Text(AppLocalizations.of(context)!.quoteDismissedMessage),
+                        action: SnackBarAction(
+                          label: AppLocalizations.of(context)!.quoteUndoAction,
+                          onPressed: () {
+                            setState(() => _showQuote = true);
+                          },
+                        ),
+                      ),
+                    );
+                  },
                   onRefresh: () => setState(() => _quoteIndex++),
                 ),
 
