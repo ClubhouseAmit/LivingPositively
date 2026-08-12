@@ -1,0 +1,83 @@
+{
+  "version": 1,
+  "skills": {
+    "architecture-feature-first": {
+      "source": "evanca/flutter-ai-rules",
+      "sourceType": "github",
+      "skillPath": "skills/architecture-feature-first/SKILL.md",
+      "computedHash": "802332055ffa1711a485b994ea30825765204336c19157db21539823b2415c5e"
+    },
+    "code-review": {
+      "source": "evanca/flutter-ai-rules",
+      "sourceType": "github",
+      "skillPath": "skills/code-review/SKILL.md",
+      "computedHash": "95b4e07db52d8e2360156669249351ad40d1b0f25f6ed5b71414b108ae4c35de"
+    },
+    "dart-3-updates": {
+      "source": "evanca/flutter-ai-rules",
+      "sourceType": "github",
+      "skillPath": "skills/dart-3-updates/SKILL.md",
+      "computedHash": "f8ee1ee7a2f70f41ba937d7d93a1e78855213622ae3acee361b1ffa8778a1550"
+    },
+    "effective-dart": {
+      "source": "evanca/flutter-ai-rules",
+      "sourceType": "github",
+      "skillPath": "skills/effective-dart/SKILL.md",
+      "computedHash": "12cd1b0de85aaa03cfb2cdd14a4c32e0e2dc28f924545054d03df7edb804b15b"
+    },
+    "flutter-app-architecture": {
+      "source": "evanca/flutter-ai-rules",
+      "sourceType": "github",
+      "skillPath": "skills/flutter-app-architecture/SKILL.md",
+      "computedHash": "c4e782f8607f78eba5d269b85d0443f15204ea88ae46d80589ef73ce43830de3"
+    },
+    "flutter-best-practices": {
+      "source": "evanca/flutter-ai-rules",
+      "sourceType": "github",
+      "skillPath": "skills/flutter-best-practices/SKILL.md",
+      "computedHash": "cd30fc9f4a023cfbb5366049d8466b25f68e4efe8b8a198c5ff034bdf1a06850"
+    },
+    "flutter-change-notifier": {
+      "source": "evanca/flutter-ai-rules",
+      "sourceType": "github",
+      "skillPath": "skills/flutter-change-notifier/SKILL.md",
+      "computedHash": "e28f6a8168496b0fc0be85c1f06ca7debf89d7454633ccc7e18d885026e485c7"
+    },
+    "flutter-errors": {
+      "source": "evanca/flutter-ai-rules",
+      "sourceType": "github",
+      "skillPath": "skills/flutter-errors/SKILL.md",
+      "computedHash": "3b04a5c88737e2a0d7be5787199beb46e9040fead5ec9f4b352575c775a1444c"
+    },
+    "flutter-pre-caching": {
+      "source": "evanca/flutter-ai-rules",
+      "sourceType": "github",
+      "skillPath": "skills/flutter-pre-caching/SKILL.md",
+      "computedHash": "d3d2754b913c6d6c9b8e3dacb3c501e1400e8d1adb4d7f56a7bef85bf1d84660"
+    },
+    "flutter-use-column-row-first": {
+      "source": "evanca/flutter-ai-rules",
+      "sourceType": "github",
+      "skillPath": "skills/flutter-use-column-row-first/SKILL.md",
+      "computedHash": "5f9df419ce756e6d6220fe025b367631efb89774aea8ee4316c24e35b31bd03a"
+    },
+    "inclusive-design": {
+      "source": "evanca/flutter-ai-rules",
+      "sourceType": "github",
+      "skillPath": "skills/inclusive-design/SKILL.md",
+      "computedHash": "3364b58d40f40cdefd577d187f01b5663f80a27c3a24e2bddca6a9eefae4626b"
+    },
+    "provider": {
+      "source": "evanca/flutter-ai-rules",
+      "sourceType": "github",
+      "skillPath": "skills/provider/SKILL.md",
+      "computedHash": "c1894d1dc80a1d23d9d8b791266539564c4264b8ebe6a3a8a1eafd902842a03c"
+    },
+    "testing": {
+      "source": "evanca/flutter-ai-rules",
+      "sourceType": "github",
+      "skillPath": "skills/testing/SKILL.md",
+      "computedHash": "221015fb947941b55e0a4360ef267475e68c819512595fbe31638817749ae706"
+    }
+  }
+}
