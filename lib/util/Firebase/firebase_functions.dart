@@ -135,6 +135,10 @@ Future<void> loadUserInformation(
       "notificationHour",
       PersistentMemoryType.Int,
     ),
+    'notificationMessage': service.getItem(
+      "notificationMessage",
+      PersistentMemoryType.String,
+    ),
     'darkModePreference': service.getItem(
       'darkModePreference',
       PersistentMemoryType.String,
@@ -186,6 +190,7 @@ Future<void> loadUserInformation(
   userInfo.updateDisclaimerSigned(data['disclaimerConfirmed'] ?? false);
   userInfo.updateNotificationMinute(data['notificationMinute'] ?? 0);
   userInfo.updateNotificationHour(data['notificationHour'] ?? 12);
+  userInfo.updateNotificationMessage(data['notificationMessage'] ?? '');
   final darkModePreference = UserInformation.parseDarkModePreference(
     data['darkModePreference'] as String?,
   );

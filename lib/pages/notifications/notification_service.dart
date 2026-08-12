@@ -1,3 +1,4 @@
+import 'dart:math';
 import 'package:flutter/material.dart';
 import 'package:flutter/foundation.dart'
     show defaultTargetPlatform, kIsWeb, TargetPlatform, visibleForTesting;
@@ -47,7 +48,7 @@ class NotificationsService {
     }
 
     final platform = platformOverride ?? defaultTargetPlatform;
-    return platform == TargetPlatform.android;
+    return platform == TargetPlatform.android || platform == TargetPlatform.iOS;
   }
 
   static Future<void> init() async {
@@ -101,6 +102,7 @@ class NotificationsService {
         );
     const NotificationDetails notificationDetails = NotificationDetails(
       android: androidNotificationDetails,
+      iOS: DarwinNotificationDetails(),
     );
     await _flutterLocalNotificationsPlugin.show(
       id: 0,
@@ -120,8 +122,9 @@ class NotificationsService {
     int hour,
     int minute,
     Function createText,
-    AppLocalizations appLocale,
-  ) async {
+    AppLocalizations appLocale, {
+    String? customMessage,
+  }) async {
     if (!supportsReminderSettings()) {
       return;
     }
@@ -136,6 +139,18 @@ class NotificationsService {
 
       grantedNotificationPermission = await androidImplementation
           ?.requestNotificationsPermission();
+    } else if (defaultTargetPlatform == TargetPlatform.iOS) {
+      final IOSFlutterLocalNotificationsPlugin? iosImplementation =
+          _flutterLocalNotificationsPlugin
+              .resolvePlatformSpecificImplementation<
+                IOSFlutterLocalNotificationsPlugin
+              >();
+      grantedNotificationPermission = await iosImplementation
+          ?.requestPermissions(
+            alert: true,
+            badge: true,
+            sound: true,
+          );
     } else {
       grantedNotificationPermission = false;
     }
@@ -149,27 +164,40 @@ class NotificationsService {
     String id = "${calculatedTime.hour}${calculatedTime.minute}";
 
     await cancelNotifications(null, cancelWorker: true);
-    Workmanager().registerOneOffTask(
-      id,
-      "NotificationWorker${calculatedTime.hour}${calculatedTime.minute}",
-      inputData: {
-        "text": quotes,
-        "timeHour": hour,
-        "timeMinute": minute,
-        "id": id,
-      },
-    );
-    Workmanager().registerPeriodicTask(
-      id,
-      "NotificationWorker${calculatedTime.hour}${calculatedTime.minute}Periodic",
-      inputData: {
-        "text": quotes,
-        "timeHour": hour,
-        "timeMinute": minute,
-        "id": id,
-      },
-      frequency: Duration(days: 1),
-    );
+    if (defaultTargetPlatform == TargetPlatform.iOS) {
+      String bodyText;
+      if (customMessage != null && customMessage.isNotEmpty) {
+        bodyText = customMessage;
+      } else {
+        int number = Random().nextInt(quotes.length);
+        bodyText = quotes[number];
+      }
+      await scheduleNotification(calculatedTime, id, bodyText);
+    } else {
+      Workmanager().registerOneOffTask(
+        id,
+        "NotificationWorker${calculatedTime.hour}${calculatedTime.minute}",
+        inputData: {
+          "text": quotes,
+          "customMessage": customMessage,
+          "timeHour": hour,
+          "timeMinute": minute,
+          "id": id,
+        },
+      );
+      Workmanager().registerPeriodicTask(
+        id,
+        "NotificationWorker${calculatedTime.hour}${calculatedTime.minute}Periodic",
+        inputData: {
+          "text": quotes,
+          "customMessage": customMessage,
+          "timeHour": hour,
+          "timeMinute": minute,
+          "id": id,
+        },
+        frequency: Duration(days: 1),
+      );
+    }
 
     var message = createText(
       '${hour < 10 ? "0$hour" : hour}:${minute < 10 ? "0$minute" : minute}',
@@ -194,6 +222,7 @@ class NotificationsService {
       minute,
       appLocale.notifyOnscheduledNotification,
       appLocale,
+      customMessage: userInfo.notificationMessage,
     );
   }
 
@@ -227,6 +256,7 @@ class NotificationsService {
           channelDescription:
               'LP Notifications allows you to receive daily reminders from the Mazilon app to keep track of your mental health',
         ),
+        iOS: DarwinNotificationDetails(),
       ),
       androidScheduleMode: AndroidScheduleMode.inexactAllowWhileIdle,
       matchDateTimeComponents: DateTimeComponents.time,

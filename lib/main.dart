@@ -58,7 +58,15 @@ void callbackDispatcher() {
           !inputData.containsKey("id")) {
         throw ArgumentError("Invalid input data for notification");
       }
-      int number = Random().nextInt(inputData["text"].length);
+      String bodyText;
+      if (inputData.containsKey("customMessage") &&
+          inputData["customMessage"] != null &&
+          (inputData["customMessage"] as String).isNotEmpty) {
+        bodyText = inputData["customMessage"];
+      } else {
+        int number = Random().nextInt(inputData["text"].length);
+        bodyText = inputData["text"][number];
+      }
       await NotificationsService.init();
       await NotificationsService.cancelNotifications(null, cancelWorker: false);
       TimeOfDay calculatedTime = NotificationsService.calculateTime(
@@ -68,7 +76,7 @@ void callbackDispatcher() {
       await NotificationsService.scheduleNotification(
         calculatedTime,
         inputData["id"],
-        inputData["text"][number],
+        bodyText,
       );
       await recordReminderDebugEvent(
         status: reminderDebugStatusSuccess,
