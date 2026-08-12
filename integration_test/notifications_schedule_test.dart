@@ -30,9 +30,12 @@ import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:get_it/get_it.dart';
 import 'package:integration_test/integration_test.dart';
+import 'package:mazilon/global_enums.dart';
 import 'package:mazilon/l10n/app_localizations.dart';
 import 'package:mazilon/pages/notifications/notification_service.dart';
 import 'package:mazilon/util/logger_service.dart';
+import 'package:mazilon/util/persistent_memory_service.dart';
+import 'package:mazilon/util/userInformation.dart';
 // ignore: depend_on_referenced_packages
 import 'package:workmanager_android/workmanager_android.dart';
 // ignore: depend_on_referenced_packages
@@ -137,6 +140,21 @@ class _RecordingLogger implements IncidentLoggerService {
 
   @override
   Future<void> initializeSentry(Widget app) async {}
+}
+
+class _NoopPersistentMemoryService implements PersistentMemoryService {
+  @override
+  Future<dynamic> getItem(String key, PersistentMemoryType type) async => null;
+
+  @override
+  Future<void> reset() async {}
+
+  @override
+  Future<void> setItem(
+    String key,
+    PersistentMemoryType type,
+    dynamic value,
+  ) async {}
 }
 
 Future<void> _runWithAndroidTarget(Future<void> Function() body) async {
@@ -404,6 +422,103 @@ void main() {
         expect(
           localNotifCalls.where((c) => c.method == 'zonedSchedule').isNotEmpty,
           isTrue,
+        );
+      });
+    });
+  });
+
+  group('showNotification (Android)', () {
+    testWidgets('reaches plugin.show', (tester) async {
+      await _runWithAndroidTarget(() async {
+        await NotificationsService.init();
+        localNotifCalls.clear();
+
+        await NotificationsService.showNotification('Title', 'Body');
+
+        final showCalls =
+            localNotifCalls.where((c) => c.method == 'show').toList();
+        expect(showCalls, hasLength(1));
+      });
+    });
+  });
+
+  group('initializeNotification permission denied (Android)', () {
+    testWidgets(
+        'no workmanager registrations when notification permission is denied',
+        (tester) async {
+      await _runWithAndroidTarget(() async {
+        requestPermissionResult = false;
+        fakeWm.calls.clear();
+        localNotifCalls.clear();
+
+        await NotificationsService.initializeNotification(
+          const ['quote A'],
+          10,
+          30,
+          (s) => 'msg $s',
+          _DummyLocale(),
+        );
+        // Drain the showToast timer.
+        await tester.pump(const Duration(seconds: 2));
+
+        expect(
+          localNotifCalls.map((c) => c.method).toList(),
+          contains('requestNotificationsPermission'),
+        );
+        expect(
+          fakeWm.calls.where((c) => c.startsWith('register')).toList(),
+          isEmpty,
+          reason: 'permission-denied branch must not schedule any worker',
+        );
+      });
+    });
+  });
+
+  group('updateNotification (Android)', () {
+    testWidgets(
+        'reads UserInformation and registers workmanager tasks like initializeNotification',
+        (tester) async {
+      await _runWithAndroidTarget(() async {
+        requestPermissionResult = true;
+        fakeWm.calls.clear();
+        localNotifCalls.clear();
+
+        final userInfo = UserInformation(
+          notificationHour: 8,
+          notificationMinute: 45,
+          gender: 'female',
+          notificationMessage: 'custom reminder',
+          service: _NoopPersistentMemoryService(),
+        );
+
+        await NotificationsService.updateNotification(
+          userInfo,
+          _DummyLocale(),
+        );
+        // Drain the showToast timer.
+        await tester.pump(const Duration(seconds: 2));
+
+        expect(fakeWm.calls, contains('cancelAll'));
+        expect(
+          fakeWm.calls.any((c) => c.startsWith('registerOneOffTask:845:')),
+          isTrue,
+        );
+        expect(
+          fakeWm.calls.any((c) => c.startsWith('registerPeriodicTask:845:')),
+          isTrue,
+        );
+      });
+    });
+  });
+
+  group('cancelNotifications by id (Android)', () {
+    testWidgets('routes to plugin.cancel', (tester) async {
+      await _runWithAndroidTarget(() async {
+        localNotifCalls.clear();
+        await NotificationsService.cancelNotifications(7);
+        expect(
+          localNotifCalls.map((c) => c.method).toList(),
+          contains('cancel'),
         );
       });
     });
