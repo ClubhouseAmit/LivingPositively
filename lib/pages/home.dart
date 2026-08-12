@@ -60,7 +60,9 @@ class _HomeState extends LPExtendedState<Home> {
     if (!mounted) return;
     setState(() {
       hasFilled = hasFilledValue;
-      _customReminder = savedReminder;
+      _customReminder = (savedReminder != null && savedReminder.isNotEmpty)
+          ? savedReminder
+          : null;
     });
   }
 
@@ -93,13 +95,19 @@ class _HomeState extends LPExtendedState<Home> {
           add: (text, provider) {},
           index: 0,
           edit: (text, idx, provider) async {
-            setState(() {
-              if (text == currentText && _customReminder != null) {
-                // Submit cannot overwrite the loaded customReminder
-              } else {
+            if (text == currentText && _customReminder != null) {
+              // Submit cannot overwrite the loaded customReminder
+            } else {
+              PersistentMemoryService service = GetIt.instance<PersistentMemoryService>();
+              await service.setItem(
+                'customReminder',
+                PersistentMemoryType.String,
+                text,
+              );
+              setState(() {
                 _customReminder = text;
-              }
-            });
+              });
+            }
           },
           text: _customReminder ?? currentText,
           formTitle: appLocale.reminders,

@@ -65,7 +65,9 @@ void main() {
     // which keeps the message on screen forever unless it's explicitly
     // set back to false. Advance well past the default 4s duration plus
     // the hide animation to make sure it's gone on its own.
-    await tester.pump(const Duration(seconds: 6));
+    for (var i = 0; i < 6; i++) {
+      await tester.pump(const Duration(seconds: 1));
+    }
     await tester.pumpAndSettle();
 
     expect(find.text('Quote dismissed.'), findsNothing);
