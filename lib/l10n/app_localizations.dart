@@ -2650,6 +2650,12 @@ abstract class AppLocalizations {
   /// **'Open Settings'**
   String get notificationsOpenSettings;
 
+  /// Requests notification permission before scheduling reminders
+  ///
+  /// In en, this message translates to:
+  /// **'Enable Notifications'**
+  String get notificationsEnable;
+
   /// Shown when remote reminder cancellation prevents reset.
   ///
   /// In en, this message translates to:

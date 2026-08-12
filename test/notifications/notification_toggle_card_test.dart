@@ -39,7 +39,10 @@ void main() {
               title: 'Daily reminder',
               subtitle: 'A supportive message',
               initialTime: const TimeOfDay(hour: 9, minute: 30),
-              onToggle: values.add,
+              onToggle: (value) async {
+                values.add(value);
+                return true;
+              },
             ),
           ),
         ),
@@ -52,5 +55,34 @@ void main() {
 
     expect(values, [isTrue]);
     expect(find.text('9:30 AM'), findsOneWidget);
+  });
+
+  testWidgets('toggle remains unchanged when the remote mutation fails', (
+    tester,
+  ) async {
+    final user = UserInformation(service: _Memory());
+
+    await tester.pumpWidget(
+      ChangeNotifierProvider<UserInformation>.value(
+        value: user,
+        child: MaterialApp(
+          home: Scaffold(
+            body: NotificationToggleCard(
+              emoji: 'âœ¨',
+              badgeText: 'LP',
+              title: 'Daily reminder',
+              subtitle: 'A supportive message',
+              initialTime: const TimeOfDay(hour: 9, minute: 30),
+              onToggle: (_) async => false,
+            ),
+          ),
+        ),
+      ),
+    );
+
+    await tester.tap(find.byType(AnimatedContainer));
+    await tester.pumpAndSettle();
+
+    expect(find.text('9:30 AM'), findsNothing);
   });
 }

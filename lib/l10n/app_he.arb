@@ -637,6 +637,7 @@
 
   "notificationsPermissionDeniedBody": "כדי לקבל תזכורות, יש לאפשר תזכורות בהגדרות המכשיר",
   "notificationsOpenSettings": "הגדרות",
+  "notificationsEnable": "הפעלת התראות",
   "resetReminderCancellationFailed": "לא ניתן לבטל את התזכורת. הנתונים שלך לא אופסו.",
   "@resetReminderCancellationFailed": {
     "description": "מוצג כאשר ביטול התזכורת המרוחקת מונע איפוס."

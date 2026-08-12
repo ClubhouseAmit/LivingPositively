@@ -23,7 +23,7 @@ contains that restored smoke test.
 | Sign-out | Not offered; reset preserves Firebase-authenticated identity. |
 | Device model | One current device token per UID; last registration wins. |
 | Reset | On Android/iOS, a non-anonymous user cancels the account-wide remote `default` before local reset, even when this device has no local reminder record; abort if cancellation fails. |
-| Legacy local preference | Migrate idempotently after startup/authentication. |
+| Legacy local preference | Retire legacy hour/minute values; only an explicit `notificationPreferences` record can activate an FCM reminder. |
 | Delivery | Bounded best-effort, at-most-once: consider the event minute and preceding 120 minutes, with one send attempt per key. |
 | Delivery state | Atomic claim retained for intended time plus 24 hours. |
 | Cancellation method | Retain authenticated `POST /cancelNotification`. |
@@ -39,7 +39,7 @@ failure after a claim, is not retried. The claim prevents duplicate attempts.
 | FCM-01 content provisioning | Implemented | ARB-derived `provision:notifications` validates an explicit project, replaces generated quote documents, and prunes withdrawn generated quote IDs. |
 | FCM-02 lifecycle/reset | Implemented | Sign-out UI/API removed; reset cancels before clear and restores Firebase identity. |
 | FCM-03 durable delivery | Implemented | Atomic encoded delivery claim, one attempt, edit-time guard, checkpointed 120-minute Israel-local recovery, and 24-hour `expiresAt`. |
-| FCM-04A local preference migration | Implemented | Startup/auth migration registers a saved default reminder; marker follows remote success only. |
+| FCM-04A local preference migration | Retired safely | Legacy hour/minute values are ambiguous, so they never create a remote reminder without an explicit modern preference. |
 | FCM-04B legacy remote UUID records | External decision | Requires production inventory and approved mapping-or-retirement policy. |
 | FCM-05 authentication policy | Decided and implemented | Authenticated-only; no anonymous account creation. |
 | FCM-06 cancellation contract | Decided and implemented | POST retained. |
@@ -177,12 +177,15 @@ follow-up.
 
 ## FCM-04 — Two Different Legacy Concerns
 
-### Local preference migration — complete
+### Local preference retirement — complete
 
-The client migration is not a Firestore UUID migration. On startup and after
-authentication it reads a legacy local default preference, calls
-`registerNotification`, and writes its marker only after success. It retries
-on a later startup/authentication after failure.
+Legacy `notificationHour` and `notificationMinute` values cannot prove that a
+person opted into reminders: ordinary application startup persisted their
+default values even when no reminder was configured. The client therefore
+does not turn those values into a remote FCM schedule. A reminder is active
+only when its modern `notificationPreferences` record exists, which is written
+after a successful explicit schedule request. People upgrading from the legacy
+local scheduler must opt in again from the reminder screen.
 
 ### ARB notification content — authoritative
 

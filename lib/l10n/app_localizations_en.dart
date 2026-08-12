@@ -3416,6 +3416,9 @@ class AppLocalizationsEn extends AppLocalizations {
   String get notificationsOpenSettings => 'Open Settings';
 
   @override
+  String get notificationsEnable => 'Enable Notifications';
+
+  @override
   String get resetReminderCancellationFailed =>
       'Couldn\'t cancel the reminder. Your data has not been reset.';
 

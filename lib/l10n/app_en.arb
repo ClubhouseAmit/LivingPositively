@@ -1901,6 +1901,10 @@
   "@notificationsOpenSettings": {
     "description": ""
   },
+  "notificationsEnable": "Enable Notifications",
+  "@notificationsEnable": {
+    "description": "Requests notification permission before scheduling reminders"
+  },
   "resetReminderCancellationFailed": "Couldn't cancel the reminder. Your data has not been reset.",
   "@resetReminderCancellationFailed": {
     "description": "Shown when remote reminder cancellation prevents reset."

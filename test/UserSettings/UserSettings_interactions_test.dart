@@ -747,7 +747,7 @@ void main() {
     );
   });
 
-  testWidgets('offers a sign-out action for an authenticated user', (
+  testWidgets('does not offer sign-out for an authenticated user', (
     tester,
   ) async {
     user.loggedIn = true;
@@ -764,7 +764,7 @@ void main() {
       surfaceSize: const Size(1024, 2800),
     );
 
-    expect(find.text('Sign Out'), findsOneWidget);
+    expect(find.text('Sign Out'), findsNothing);
   });
 
   testWidgets(

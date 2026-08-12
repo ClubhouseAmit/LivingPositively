@@ -50,7 +50,11 @@ describe("notification validation", () => {
     assert.equal(
       hasValidNotificationTypeSchema({
         messageType: "dynamic",
-        quotesCollections: { en: "quotes_en" },
+        quotesCollections: {
+          he: "quotes_he",
+          ar: "quotes_ar",
+          en: "quotes_en",
+        },
       }),
       true,
     );
@@ -64,6 +68,17 @@ describe("notification validation", () => {
     );
     assert.equal(
       hasValidNotificationTypeSchema({ messageType: "dynamic" }),
+      false,
+    );
+    assert.equal(
+      hasValidNotificationTypeSchema({
+        messageType: "dynamic",
+        quotesCollections: {
+          he: "private_documents",
+          ar: "quotes_ar",
+          en: "quotes_en",
+        },
+      }),
       false,
     );
     assert.equal(

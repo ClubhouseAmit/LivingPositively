@@ -202,17 +202,6 @@ Future<void> loadUserInformation(
   );
   userInfo.updateLocation(data['location'] ?? "");
   userInfo.updateDisclaimerSigned(data['disclaimerConfirmed'] ?? false);
-  final legacyHour = data['notificationHour'];
-  final legacyMinute = data['notificationMinute'];
-  final legacyPreference =
-      legacyHour is int &&
-          legacyMinute is int &&
-          legacyHour >= 0 &&
-          legacyHour <= 23 &&
-          legacyMinute >= 0 &&
-          legacyMinute <= 59
-      ? NotificationPreference(hour: legacyHour, minute: legacyMinute)
-      : null;
   final prefsJson = data['notificationPreferences'] as String?;
   if (prefsJson != null && prefsJson.isNotEmpty) {
     try {
@@ -232,17 +221,10 @@ Future<void> loadUserInformation(
           continue;
         }
       }
-      userInfo.notificationPreferences =
-          parsed.isEmpty && legacyPreference != null
-          ? {'default': legacyPreference}
-          : parsed;
+      userInfo.notificationPreferences = parsed;
     } on FormatException {
-      userInfo.notificationPreferences = legacyPreference == null
-          ? {}
-          : {'default': legacyPreference};
+      userInfo.notificationPreferences = {};
     }
-  } else if (legacyPreference != null) {
-    userInfo.notificationPreferences = {'default': legacyPreference};
   }
   final darkModePreference = UserInformation.parseDarkModePreference(
     data['darkModePreference'] as String?,

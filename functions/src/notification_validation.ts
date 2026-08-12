@@ -16,6 +16,12 @@ type StaticNotificationType = {
 
 type ValidNotificationType = DynamicNotificationType | StaticNotificationType;
 
+const GENERATED_QUOTE_COLLECTIONS: Record<NotificationLocale, string> = {
+  he: "quotes_he",
+  ar: "quotes_ar",
+  en: "quotes_en",
+};
+
 export function isValidNotificationTypeId(value: unknown): value is string {
   return (
     typeof value === "string" && NOTIFICATION_TYPE_ID_PATTERN.test(value)
@@ -44,10 +50,17 @@ export function hasValidNotificationTypeSchema(
   }
   const data = value as Record<string, unknown>;
   if (data.messageType === "dynamic") {
+    const collections = data.quotesCollections;
     return (
-      data.quotesCollections !== null &&
-      typeof data.quotesCollections === "object" &&
-      !Array.isArray(data.quotesCollections)
+      collections !== null &&
+      typeof collections === "object" &&
+      !Array.isArray(collections) &&
+      (Object.entries(GENERATED_QUOTE_COLLECTIONS) as Array<
+        [NotificationLocale, string]
+      >).every(([locale, collection]) =>
+        Object.prototype.hasOwnProperty.call(collections, locale) &&
+        (collections as Record<string, unknown>)[locale] === collection,
+      )
     );
   }
   if (data.messageType === "static") {

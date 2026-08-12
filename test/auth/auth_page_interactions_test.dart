@@ -60,65 +60,63 @@ void main() {
     },
   );
 
-  testWidgets(
-    'disposed auth screen records the authenticated user after persistence',
-    (tester) async {
-      final userInformation = UserInformation();
-      final firebaseUser = MockUser();
-      when(firebaseUser.uid).thenReturn('uid-123');
-      when(firebaseUser.email).thenReturn('person@example.com');
-      when(firebaseUser.displayName).thenReturn('Person');
-      final persistenceRead =
-          Completer<DocumentSnapshot<Map<String, dynamic>>>();
-      final firestore = MockFirebaseFirestore();
-      final users = MockCollectionReference();
-      final userDocument = MockDocumentReference();
-      final documentSnapshot = MockDocumentSnapshot();
-      when(firestore.collection('users')).thenReturn(users);
-      when(users.doc('uid-123')).thenReturn(userDocument);
-      when(userDocument.get()).thenAnswer((_) => persistenceRead.future);
-      when(documentSnapshot.exists).thenReturn(false);
-      GetIt.instance.registerSingleton<FirebaseFirestore>(firestore);
-      debugDefaultTargetPlatformOverride = TargetPlatform.windows;
+  testWidgets('auth state is recorded before profile persistence completes', (
+    tester,
+  ) async {
+    final userInformation = UserInformation();
+    final firebaseUser = MockUser();
+    when(firebaseUser.uid).thenReturn('uid-123');
+    when(firebaseUser.email).thenReturn('person@example.com');
+    when(firebaseUser.displayName).thenReturn('Person');
+    final persistenceRead = Completer<DocumentSnapshot<Map<String, dynamic>>>();
+    final firestore = MockFirebaseFirestore();
+    final users = MockCollectionReference();
+    final userDocument = MockDocumentReference();
+    final documentSnapshot = MockDocumentSnapshot();
+    when(firestore.collection('users')).thenReturn(users);
+    when(users.doc('uid-123')).thenReturn(userDocument);
+    when(userDocument.get()).thenAnswer((_) => persistenceRead.future);
+    when(documentSnapshot.exists).thenReturn(false);
+    GetIt.instance.registerSingleton<FirebaseFirestore>(firestore);
+    debugDefaultTargetPlatformOverride = TargetPlatform.windows;
 
-      try {
-        await pumpWithProviders(
-          tester,
-          const AuthPage(),
-          userInformation: userInformation,
-          surfaceSize: const Size(1024, 1800),
-        );
-        final loginForm =
-            tester
-                    .widgetList(
-                      find.byWidgetPredicate(
-                        (widget) =>
-                            widget.runtimeType.toString() == '_LoginForm',
-                      ),
-                    )
-                    .single
-                as dynamic;
-        final completion = (loginForm.onSuccess as Future<void> Function(User))(
-          firebaseUser,
-        );
+    try {
+      await pumpWithProviders(
+        tester,
+        const AuthPage(),
+        userInformation: userInformation,
+        surfaceSize: const Size(1024, 1800),
+      );
+      final loginForm =
+          tester
+                  .widgetList(
+                    find.byWidgetPredicate(
+                      (widget) => widget.runtimeType.toString() == '_LoginForm',
+                    ),
+                  )
+                  .single
+              as dynamic;
+      final completion = (loginForm.onSuccess as Future<void> Function(User))(
+        firebaseUser,
+      );
 
-        await tester.pumpWidget(const SizedBox.shrink());
-        expect(find.byType(AuthPage), findsNothing);
-        expect(userInformation.loggedIn, isFalse);
+      await tester.pumpWidget(const SizedBox.shrink());
+      expect(find.byType(AuthPage), findsNothing);
+      expect(userInformation.loggedIn, isTrue);
+      expect(userInformation.authDecisionMade, isTrue);
 
-        persistenceRead.complete(documentSnapshot);
-        await completion;
+      persistenceRead.complete(documentSnapshot);
+      await completion;
 
-        expect(userInformation.loggedIn, isTrue);
-        expect(userInformation.authDecisionMade, isTrue);
-        expect(userInformation.userId, 'uid-123');
-        expect(userInformation.email, 'person@example.com');
-        expect(userInformation.displayName, 'Person');
-      } finally {
-        debugDefaultTargetPlatformOverride = null;
-      }
-    },
-  );
+      expect(userInformation.loggedIn, isTrue);
+      expect(userInformation.authDecisionMade, isTrue);
+      expect(userInformation.userId, 'uid-123');
+      expect(userInformation.email, 'person@example.com');
+      expect(userInformation.displayName, 'Person');
+    } finally {
+      debugDefaultTargetPlatformOverride = null;
+    }
+  });
 
   testWidgets('pending FCM refresh cannot delay authentication success', (
     tester,

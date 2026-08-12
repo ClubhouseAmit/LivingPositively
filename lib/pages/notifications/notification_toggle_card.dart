@@ -8,8 +8,8 @@ class NotificationToggleCard extends StatefulWidget {
   final String badgeText;
   final String title;
   final String subtitle;
-  final ValueChanged<bool>? onToggle;
-  final ValueChanged<TimeOfDay>? onTimeSelected;
+  final Future<bool> Function(bool value)? onToggle;
+  final Future<bool> Function(TimeOfDay value)? onTimeSelected;
   final TimeOfDay? initialTime;
   final bool initialEnabled;
 
@@ -31,6 +31,7 @@ class NotificationToggleCard extends StatefulWidget {
 
 class _NotificationToggleCardState extends State<NotificationToggleCard> {
   bool _isEnabled = false;
+  bool _isMutating = false;
   late TimeOfDay? _selectedTime;
 
   @override
@@ -40,107 +41,169 @@ class _NotificationToggleCardState extends State<NotificationToggleCard> {
     _selectedTime = widget.initialTime ?? TimeOfDay(hour: 8, minute: 30);
   }
 
-  void setEnabled() {
-    setState(() => _isEnabled = !_isEnabled);
-    widget.onToggle?.call(_isEnabled);
-    if (!_isEnabled) {
-      _selectedTime = TimeOfDay(hour: 8, minute: 30);
+  @override
+  void didUpdateWidget(covariant NotificationToggleCard oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (_isMutating) return;
+    _isEnabled = widget.initialEnabled;
+    if (widget.initialTime != null) {
+      _selectedTime = widget.initialTime;
     }
+  }
+
+  Future<void> setEnabled() async {
+    if (_isMutating) return;
+    final requestedValue = !_isEnabled;
+    setState(() => _isMutating = true);
+    var applied = true;
+    try {
+      applied =
+          await (widget.onToggle?.call(requestedValue) ??
+              Future<bool>.value(true));
+    } catch (_) {
+      applied = false;
+    }
+    if (!mounted) return;
+    setState(() {
+      _isMutating = false;
+      if (applied) {
+        _isEnabled = requestedValue;
+        if (!requestedValue) {
+          _selectedTime = TimeOfDay(hour: 8, minute: 30);
+        }
+      }
+    });
+  }
+
+  Future<void> _selectTime() async {
+    if (_isMutating) return;
+    final picked = await showTimePicker(
+      context: context,
+      initialTime: _selectedTime ?? TimeOfDay.now(),
+    );
+    if (picked == null || !mounted) return;
+
+    setState(() => _isMutating = true);
+    var applied = true;
+    try {
+      applied =
+          await (widget.onTimeSelected?.call(picked) ??
+              Future<bool>.value(true));
+    } catch (_) {
+      applied = false;
+    }
+    if (!mounted) return;
+    setState(() {
+      _isMutating = false;
+      if (applied) _selectedTime = picked;
+    });
   }
 
   @override
   Widget build(BuildContext context) {
     return Container(
-        alignment: Alignment.center,
-        width: MediaQuery.of(context).size.width * 0.9,
-        padding: EdgeInsets.all(16),
-        decoration: BoxDecoration(
-          color: primaryPurple.withValues(alpha: 0.1),
-          borderRadius: BorderRadius.circular(20),
-          border: Border.all(color: primaryPurple, width: 1),
-        ),
-        child: Container(
-          margin: EdgeInsets.all(5),
-          child:
-              Row(mainAxisAlignment: MainAxisAlignment.spaceBetween, children: [
+      alignment: Alignment.center,
+      width: MediaQuery.of(context).size.width * 0.9,
+      padding: EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: primaryPurple.withValues(alpha: 0.1),
+        borderRadius: BorderRadius.circular(20),
+        border: Border.all(color: primaryPurple, width: 1),
+      ),
+      child: Container(
+        margin: EdgeInsets.all(5),
+        child: Row(
+          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+          children: [
             Text(widget.emoji),
             SizedBox(width: 8),
             Expanded(
               child: Column(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Row(children: [
+                mainAxisAlignment: MainAxisAlignment.center,
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Row(
+                    children: [
                       Container(
                         padding: EdgeInsets.fromLTRB(8, 2, 8, 2),
                         decoration: BoxDecoration(
-                            borderRadius: BorderRadius.circular(15),
-                            gradient: LinearGradient(
-                              begin: Alignment.topLeft,
-                              end: Alignment.bottomRight,
-                              colors: [
-                                primaryPurple,
-                                Color.lerp(primaryPurple, appGreen, 0.15)!,
-                                appGreen,
-                              ],
-                              stops: [0.0, 0.5, 1.5],
-                            )),
-                        child: Text(widget.badgeText,
-                            style: TextStyle(
-                                color: Colors.white,
-                                fontWeight: FontWeight.bold)),
+                          borderRadius: BorderRadius.circular(15),
+                          gradient: LinearGradient(
+                            begin: Alignment.topLeft,
+                            end: Alignment.bottomRight,
+                            colors: [
+                              primaryPurple,
+                              Color.lerp(primaryPurple, appGreen, 0.15)!,
+                              appGreen,
+                            ],
+                            stops: [0.0, 0.5, 1.5],
+                          ),
+                        ),
+                        child: Text(
+                          widget.badgeText,
+                          style: TextStyle(
+                            color: Colors.white,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
                       ),
                       SizedBox(width: 8),
-                      Text(widget.title,
-                          style: TextStyle(
-                              color: Color.fromARGB(255, 119, 78, 230),
-                              fontSize: 16,
-                              fontWeight: FontWeight.bold)),
-                    ]),
-                    SizedBox(
-                        width: 210,
-                        child: Text(widget.subtitle,
-                            style: TextStyle(
-                                color: primaryPurple,
-                                fontSize: 10,
-                                fontWeight: FontWeight.bold))),
-                    if (_isEnabled)
-                      GestureDetector(
-                        onTap: () async {
-                          final picked = await showTimePicker(
-                            context: context,
-                            initialTime: _selectedTime ?? TimeOfDay.now(),
-                          );
-                          if (picked != null) {
-                            setState(() => _selectedTime = picked);
-                            widget.onTimeSelected?.call(picked);
-                          }
-                        },
-                        child: _selectedTime != null
-                            ? Row(children: [
+                      Text(
+                        widget.title,
+                        style: TextStyle(
+                          color: Color.fromARGB(255, 119, 78, 230),
+                          fontSize: 16,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                    ],
+                  ),
+                  SizedBox(
+                    width: 210,
+                    child: Text(
+                      widget.subtitle,
+                      style: TextStyle(
+                        color: primaryPurple,
+                        fontSize: 10,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                  ),
+                  if (_isEnabled)
+                    GestureDetector(
+                      onTap: _isMutating ? null : _selectTime,
+                      child: _selectedTime != null
+                          ? Row(
+                              children: [
                                 Icon(
                                   Icons.access_time,
                                   size: 12,
                                   color: Colors.blue,
                                 ),
-                                Text(_selectedTime!.format(context),
-                                    style: TextStyle(
-                                        color: Colors.blue,
-                                        fontSize: 12,
-                                        fontWeight: FontWeight.bold)),
-                              ])
-                            : Text('Set time',
-                                style: TextStyle(
+                                Text(
+                                  _selectedTime!.format(context),
+                                  style: TextStyle(
                                     color: Colors.blue,
                                     fontSize: 12,
-                                    fontWeight: FontWeight.bold)),
-                      )
-                  ]),
+                                    fontWeight: FontWeight.bold,
+                                  ),
+                                ),
+                              ],
+                            )
+                          : Text(
+                              'Set time',
+                              style: TextStyle(
+                                color: Colors.blue,
+                                fontSize: 12,
+                                fontWeight: FontWeight.bold,
+                              ),
+                            ),
+                    ),
+                ],
+              ),
             ),
             GestureDetector(
-              onTap: () {
-                setEnabled();
-              },
+              onTap: _isMutating ? null : setEnabled,
               child: AnimatedContainer(
                 duration: Duration(milliseconds: 250),
                 width: 55,
@@ -159,8 +222,9 @@ class _NotificationToggleCardState extends State<NotificationToggleCard> {
                 ),
                 child: AnimatedAlign(
                   duration: Duration(milliseconds: 250),
-                  alignment:
-                      _isEnabled ? Alignment.centerRight : Alignment.centerLeft,
+                  alignment: _isEnabled
+                      ? Alignment.centerRight
+                      : Alignment.centerLeft,
                   child: Container(
                     width: 22,
                     height: 22,
@@ -172,8 +236,10 @@ class _NotificationToggleCardState extends State<NotificationToggleCard> {
                   ),
                 ),
               ),
-            )
-          ]),
-        ));
+            ),
+          ],
+        ),
+      ),
+    );
   }
 }

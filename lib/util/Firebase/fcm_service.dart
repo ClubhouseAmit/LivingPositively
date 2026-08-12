@@ -9,6 +9,7 @@ import 'package:flutter/foundation.dart'
 import 'package:flutter/material.dart';
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 import 'package:get_it/get_it.dart';
+import 'package:mazilon/pages/notifications/reminder_debug_recorder.dart';
 import 'package:mazilon/util/logger_service.dart';
 
 class FcmService {
@@ -19,6 +20,10 @@ class FcmService {
   @visibleForTesting
   static Future<NotificationSettings> Function()?
   debugRequestPermissionOverride;
+
+  @visibleForTesting
+  static Future<NotificationSettings> Function()?
+  debugGetNotificationSettingsOverride;
 
   @visibleForTesting
   static Future<void> Function()? debugInitializeLocalNotificationsOverride;
@@ -40,18 +45,30 @@ class FcmService {
   static void Function()? debugRegisterListenersOverride;
 
   @visibleForTesting
+  static Future<RemoteMessage?> Function()? debugGetInitialMessageOverride;
+
+  @visibleForTesting
   static void resetForTesting() {
     _isInitialized = false;
     _listenersRegistered = false;
     _initialization = null;
     debugRequestPermissionOverride = null;
+    debugGetNotificationSettingsOverride = null;
     debugInitializeLocalNotificationsOverride = null;
     debugGetApnsTokenOverride = null;
     debugGetTokenOverride = null;
     debugGetCurrentUserIdOverride = null;
     debugSaveTokenOverride = null;
     debugRegisterListenersOverride = null;
+    debugGetInitialMessageOverride = null;
   }
+
+  static const _foregroundAndroidChannel = AndroidNotificationChannel(
+    'LPNotificationServiceID',
+    'LP Notifications',
+    description: 'Living Positively reminder notifications',
+    importance: Importance.max,
+  );
 
   static final FlutterLocalNotificationsPlugin _localNotifications =
       FlutterLocalNotificationsPlugin();
@@ -60,6 +77,7 @@ class FcmService {
     android: AndroidNotificationDetails(
       'LPNotificationServiceID',
       'LP Notifications',
+      channelDescription: 'Living Positively reminder notifications',
       importance: Importance.max,
       priority: Priority.high,
     ),
@@ -89,11 +107,12 @@ class FcmService {
 
   static Future<bool> hasPermission() async {
     try {
-      final settings = await FirebaseMessaging.instance
-          .getNotificationSettings();
+      final settings =
+          await (debugGetNotificationSettingsOverride ??
+              FirebaseMessaging.instance.getNotificationSettings)();
       return settings.authorizationStatus == AuthorizationStatus.authorized ||
           settings.authorizationStatus == AuthorizationStatus.provisional;
-    } on FirebaseException {
+    } catch (_) {
       return false;
     }
   }
@@ -109,7 +128,7 @@ class FcmService {
       return pendingInitialization;
     }
 
-    final initialization = _initializeWithReporting();
+    final initialization = _initializeWithReporting(requestPermission: false);
     _initialization = initialization;
     return initialization;
   }
@@ -118,9 +137,27 @@ class FcmService {
     unawaited(initialize());
   }
 
-  static Future<void> _initializeWithReporting() async {
+  static Future<bool> requestPermissionAndInitialize() async {
+    if (!supportsReminderSettings()) return false;
+    if (_isInitialized) return true;
+    final pendingInitialization = _initialization;
+    if (pendingInitialization != null) {
+      await pendingInitialization;
+      if (_isInitialized) return true;
+    }
+    final initialization = _initializeWithReporting(requestPermission: true);
+    _initialization = initialization;
+    await initialization;
+    return _isInitialized;
+  }
+
+  static Future<void> _initializeWithReporting({
+    required bool requestPermission,
+  }) async {
     try {
-      final platformReady = await _initializeOnce();
+      final platformReady = await _initializeOnce(
+        requestPermission: requestPermission,
+      );
       if (platformReady) {
         _isInitialized = true;
       }
@@ -131,42 +168,21 @@ class FcmService {
     }
   }
 
-  static Future<bool> _initializeOnce() async {
+  static Future<bool> _initializeOnce({required bool requestPermission}) async {
     _log('Initializing...');
-    _log('Asking permission');
-    final settings =
-        await (debugRequestPermissionOverride ??
-            () => FirebaseMessaging.instance.requestPermission(
-              alert: true,
-              badge: true,
-              sound: true,
-            ))();
-    _log('Finished asking permission');
+    final settings = requestPermission
+        ? await _requestPermission()
+        : await (debugGetNotificationSettingsOverride ??
+              FirebaseMessaging.instance.getNotificationSettings)();
     _log('Permission status: ${settings.authorizationStatus}');
-    if (settings.authorizationStatus == AuthorizationStatus.denied) {
+    if (settings.authorizationStatus != AuthorizationStatus.authorized &&
+        settings.authorizationStatus != AuthorizationStatus.provisional) {
       _log('Permission denied — aborting initialization.');
       return false;
     }
 
     await (debugInitializeLocalNotificationsOverride ??
-        () async {
-          await _localNotifications.initialize(
-            settings: const InitializationSettings(
-              android: AndroidInitializationSettings('@mipmap/ic_launcher'),
-              // Firebase Messaging owns the user-facing permission request
-              // above. Keep plugin registration side-effect free so a second
-              // Darwin permission prompt cannot hold up best-effort startup.
-              iOS: DarwinInitializationSettings(
-                requestAlertPermission: false,
-                requestSoundPermission: false,
-                requestBadgePermission: false,
-                requestProvisionalPermission: false,
-                requestCriticalPermission: false,
-                requestProvidesAppNotificationSettings: false,
-              ),
-            ),
-          );
-        })();
+        _initializeLocalNotifications)();
     _log('Local notifications initialized.');
 
     final tokenResult = await _getTokenWhenPlatformReady();
@@ -194,6 +210,45 @@ class FcmService {
 
     _log('Initialization complete.');
     return true;
+  }
+
+  static Future<NotificationSettings> _requestPermission() async {
+    _log('Asking permission');
+    final settings =
+        await (debugRequestPermissionOverride ??
+            () => FirebaseMessaging.instance.requestPermission(
+              alert: true,
+              badge: true,
+              sound: true,
+            ))();
+    _log('Finished asking permission');
+    return settings;
+  }
+
+  static Future<void> _initializeLocalNotifications() async {
+    await _localNotifications.initialize(
+      settings: const InitializationSettings(
+        android: AndroidInitializationSettings('@mipmap/ic_launcher'),
+        // Firebase Messaging owns the user-facing permission request above.
+        // Keep plugin registration side-effect free so a second Darwin prompt
+        // cannot hold up best-effort startup.
+        iOS: DarwinInitializationSettings(
+          requestAlertPermission: false,
+          requestSoundPermission: false,
+          requestBadgePermission: false,
+          requestProvisionalPermission: false,
+          requestCriticalPermission: false,
+          requestProvidesAppNotificationSettings: false,
+        ),
+      ),
+    );
+    if (!kIsWeb && defaultTargetPlatform == TargetPlatform.android) {
+      final androidPlugin = _localNotifications
+          .resolvePlatformSpecificImplementation<
+            AndroidFlutterLocalNotificationsPlugin
+          >();
+      await androidPlugin?.createNotificationChannel(_foregroundAndroidChannel);
+    }
   }
 
   // Called after a successful sign-in so the new UID is stored with its FCM token.
@@ -249,17 +304,41 @@ class FcmService {
 
   static void _registerListenersOnce() {
     if (_listenersRegistered) return;
-    (debugRegisterListenersOverride ?? _registerMessagingListeners)();
+    final registerListeners = debugRegisterListenersOverride;
+    if (registerListeners != null) {
+      registerListeners();
+      if (debugGetInitialMessageOverride != null) {
+        _setupInitialMessage();
+      }
+    } else {
+      _registerMessagingListeners();
+    }
     _listenersRegistered = true;
   }
 
   static void _registerMessagingListeners() {
     _setupForegroundHandler();
     _setupOnMessageOpenedApp();
+    _setupInitialMessage();
 
     FirebaseMessaging.instance.onTokenRefresh.listen(
       (newToken) => unawaited(_handleTokenRefresh(newToken)),
     );
+  }
+
+  static void _setupInitialMessage() {
+    unawaited(_handleInitialMessageFromLaunch());
+  }
+
+  static Future<void> _handleInitialMessageFromLaunch() async {
+    try {
+      final message =
+          await (debugGetInitialMessageOverride ??
+              FirebaseMessaging.instance.getInitialMessage)();
+      if (message != null) handleInitialMessage(message);
+    } catch (error, stackTrace) {
+      _reportFailure(error, stackTrace);
+    }
   }
 
   static Future<void> _handleTokenRefresh(String newToken) async {
@@ -327,13 +406,30 @@ class FcmService {
       _log(
         'Foreground message received — title: "$title", body: "$body", data: ${message.data}',
       );
-      await _localNotifications.show(
-        id: 1,
-        title: title,
-        body: body,
-        notificationDetails: _foregroundNotificationDetails,
-      );
-      _log('Local notification shown.');
+      try {
+        await _localNotifications.show(
+          id: 1,
+          title: title,
+          body: body,
+          notificationDetails: _foregroundNotificationDetails,
+        );
+        unawaited(
+          recordReminderDebugEvent(
+            status: reminderDebugStatusSuccess,
+            task: 'fcm_foreground_message',
+          ),
+        );
+        _log('Local notification shown.');
+      } catch (error, stackTrace) {
+        unawaited(
+          recordReminderDebugEvent(
+            status: reminderDebugStatusFailure,
+            task: 'fcm_foreground_message',
+            error: error.toString(),
+          ),
+        );
+        _reportFailure(error, stackTrace);
+      }
     });
   }
 
@@ -353,6 +449,7 @@ class FcmService {
   }
 
   static void _handleNotificationTap(RemoteMessage message) {
+    if (!GetIt.instance.isRegistered<GlobalKey<NavigatorState>>()) return;
     _log('Handling notification tap — navigating to root.');
     final navigatorKey = GetIt.instance<GlobalKey<NavigatorState>>();
     navigatorKey.currentState?.popUntil((route) => route.isFirst);

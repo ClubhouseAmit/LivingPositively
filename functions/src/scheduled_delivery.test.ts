@@ -12,6 +12,7 @@ import {
   routeDevicesByUpdatedAt,
   scheduledNotificationQueryPlan,
   selectScheduledNotificationCandidates,
+  shouldClearFCMToken,
   shouldAdvanceSchedulerCheckpoint,
 } from "./index.js";
 import {
@@ -20,6 +21,12 @@ import {
 } from "./scheduler_observability.js";
 
 describe("scheduled notification delivery", () => {
+  it("clears an invalid FCM token only when it is still current", () => {
+    assert.equal(shouldClearFCMToken("old-token", "old-token"), true);
+    assert.equal(shouldClearFCMToken("new-token", "old-token"), false);
+    assert.equal(shouldClearFCMToken(undefined, "old-token"), false);
+  });
+
   describe("device timestamp validation", () => {
     const nowMillis = Date.parse("2026-08-05T12:00:00.000Z");
 

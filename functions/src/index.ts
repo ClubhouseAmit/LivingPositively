@@ -467,9 +467,25 @@ async function extractAndVerifyUid(req: Request): Promise<string | null> {
 // 3. user restores the app from backup on a new device.
 // 4. Firebase server-side rotation (rare, automatic).
 // ---------------------------------------------------------------------------
-async function clearFCMToken(uid: string): Promise<void> {
-  await getFirestore().collection("devices").doc(uid).update({
-    fcmToken: FieldValue.delete(),
+export function shouldClearFCMToken(
+  storedToken: unknown,
+  failedToken: string,
+): boolean {
+  return typeof storedToken === "string" && storedToken === failedToken;
+}
+
+async function clearFCMToken(
+  uid: string,
+  failedToken: string,
+): Promise<void> {
+  const db = getFirestore();
+  const deviceRef = db.collection("devices").doc(uid);
+  await db.runTransaction(async (transaction) => {
+    const device = await transaction.get(deviceRef);
+    if (!shouldClearFCMToken(device.data()?.fcmToken, failedToken)) return;
+    transaction.update(deviceRef, {
+      fcmToken: FieldValue.delete(),
+    });
   });
 }
 
@@ -1023,7 +1039,7 @@ export const processScheduledNotifications = onSchedule(
                 failureCode(error) ===
                 "messaging/registration-token-not-registered"
               ) {
-                await clearFCMToken(uid);
+                await clearFCMToken(uid, fcmToken);
               }
               throw error;
             }

@@ -2,11 +2,13 @@ import 'dart:async';
 
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
+import 'package:get_it/get_it.dart';
 import 'package:mazilon/pages/auth/forgot_password_page.dart';
 import 'package:mazilon/util/Firebase/auth_service.dart';
 import 'package:mazilon/util/Firebase/fcm_service.dart';
 import 'package:mazilon/util/Firebase/fcm_scheduled_notification_service.dart';
 import 'package:mazilon/util/LP_extended_state.dart';
+import 'package:mazilon/util/logger_service.dart';
 import 'package:mazilon/util/styles.dart';
 import 'package:mazilon/util/userInformation.dart';
 import 'package:provider/provider.dart';
@@ -87,34 +89,43 @@ class _AuthPageState extends LPExtendedState<AuthPage> {
   bool _isLoginMode = true;
 
   Future<void> _onAuthSuccess(User user) async {
+    final userInfo = Provider.of<UserInformation>(context, listen: false);
+    userInfo.updateLoggedIn(true);
+    userInfo.updateUserId(user.uid);
+    userInfo.updateEmail(user.email ?? '');
+    userInfo.updateDisplayName(user.displayName ?? '');
+
+    if (widget.fromNotifications) {
+      if (mounted) Navigator.pop(context);
+    } else {
+      userInfo.updateAuthDecisionMade(true);
+    }
+
+    unawaited(_persistAuthenticatedUser(user));
+    unawaited(FcmService.onUserSignedIn());
+    unawaited(
+      FcmScheduledNotificationService.migrateLegacyDefaultReminderWithReporting(
+        userInformation: userInfo,
+      ),
+    );
+  }
+
+  Future<void> _persistAuthenticatedUser(User user) async {
     try {
-      debugPrint("1");
-      final userInfo = Provider.of<UserInformation>(context, listen: false);
-      debugPrint("2");
       await AuthService.saveUserToFirestore(user);
-      debugPrint("3");
-      unawaited(FcmService.onUserSignedIn());
-      debugPrint("4");
-
-      userInfo.updateLoggedIn(true);
-      userInfo.updateUserId(user.uid);
-      userInfo.updateEmail(user.email ?? '');
-      userInfo.updateDisplayName(user.displayName ?? '');
-
-      unawaited(
-        FcmScheduledNotificationService.migrateLegacyDefaultReminderWithReporting(
-          userInformation: userInfo,
-        ),
-      );
-
-      if (widget.fromNotifications) {
-        if (mounted) Navigator.pop(context);
-      } else {
-        userInfo.updateAuthDecisionMade(true);
+    } catch (error, stackTrace) {
+      debugPrint('Authenticated profile persistence failed: $error');
+      if (!GetIt.instance.isRegistered<IncidentLoggerService>()) return;
+      try {
+        await GetIt.instance<IncidentLoggerService>().captureLog(
+          error,
+          stackTrace: stackTrace,
+        );
+      } catch (loggerError) {
+        debugPrint(
+          'Authenticated profile persistence reporting failed: $loggerError',
+        );
       }
-    } catch (e) {
-      debugPrint("in error");
-      debugPrint(e.toString());
     }
   }
 

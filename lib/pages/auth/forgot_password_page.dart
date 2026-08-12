@@ -38,11 +38,17 @@ class _ForgotPasswordPageState extends LPExtendedState<ForgotPasswordPage> {
     } catch (e) {
       if (mounted) {
         final key = AuthService.localizedError(e);
-        setState(() => _errorMessage = switch (key) {
-              'authErrorUserNotFound' => appLocale.authErrorUserNotFound,
+        if (key == 'authErrorUserNotFound') {
+          // Keep the reset flow indistinguishable for unknown accounts.
+          setState(() => _sent = true);
+        } else {
+          setState(
+            () => _errorMessage = switch (key) {
               'authErrorInvalidEmail' => appLocale.authErrorInvalidEmail,
               _ => appLocale.authErrorGeneric,
-            });
+            },
+          );
+        }
       }
     } finally {
       if (mounted) setState(() => _isLoading = false);
@@ -90,9 +96,11 @@ class _SuccessView extends StatelessWidget {
         children: [
           Icon(Icons.mark_email_read_outlined, size: 64, color: Colors.green),
           const SizedBox(height: 16),
-          Text(message,
-              textAlign: TextAlign.center,
-              style: const TextStyle(fontSize: 16)),
+          Text(
+            message,
+            textAlign: TextAlign.center,
+            style: const TextStyle(fontSize: 16),
+          ),
           const SizedBox(height: 24),
           TextButton(
             onPressed: () => Navigator.pop(context),
@@ -125,8 +133,10 @@ class _FormView extends StatelessWidget {
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
         const SizedBox(height: 24),
-        Text(appLocale.authForgotPasswordHint,
-            style: const TextStyle(fontSize: 16, color: Colors.black54)),
+        Text(
+          appLocale.authForgotPasswordHint,
+          style: const TextStyle(fontSize: 16, color: Colors.black54),
+        ),
         const SizedBox(height: 24),
         TextField(
           controller: emailController,
@@ -149,17 +159,23 @@ class _FormView extends StatelessWidget {
             backgroundColor: primaryPurple,
             foregroundColor: Colors.white,
             minimumSize: const Size.fromHeight(48),
-            shape:
-                RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(12),
+            ),
           ),
           child: isLoading
               ? const SizedBox(
                   height: 20,
                   width: 20,
                   child: CircularProgressIndicator(
-                      strokeWidth: 2, color: Colors.white))
-              : Text(appLocale.authForgotPasswordButton,
-                  style: const TextStyle(fontSize: 16)),
+                    strokeWidth: 2,
+                    color: Colors.white,
+                  ),
+                )
+              : Text(
+                  appLocale.authForgotPasswordButton,
+                  style: const TextStyle(fontSize: 16),
+                ),
         ),
       ],
     );

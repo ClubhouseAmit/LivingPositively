@@ -567,6 +567,10 @@
   "@notificationsOpenSettings": {
     "description": ""
   },
+  "notificationsEnable": "تفعيل الإشعارات",
+  "@notificationsEnable": {
+    "description": ""
+  },
   "resetReminderCancellationFailed": "تعذر إلغاء التذكير. لم تتم إعادة ضبط بياناتك.",
   "authWelcomeTitle": "أهلاً وسهلاً",
   "@authWelcomeTitle": { "description": "" },
