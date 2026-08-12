@@ -42,7 +42,7 @@ if (signingKeyFile.isEmpty() || signingKeyPassword.isEmpty() || signingKeyStoreP
 android {
     namespace = "com.example.mezilon"
     ndkVersion = flutter.ndkVersion
-    compileSdk = flutter.compileSdkVersion
+    compileSdk = 37
 
     compileOptions {
         isCoreLibraryDesugaringEnabled = true

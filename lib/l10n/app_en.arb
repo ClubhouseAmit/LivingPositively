@@ -153,7 +153,7 @@
   "@homePageAbout": {
     "description": ""
   },
-  "homePageWellnessTools": "{gender,select,male{Wellness Tools} female{Wellness Tools} other{Wellness Tools}}",
+  "homePageWellnessTools": "{gender,select,male{Wellness} female{Wellness} other{Wellness}}",
   "@homePageWellnessTools": {
     "description": ""
   },
@@ -476,13 +476,74 @@
   "@sosShareLocationMessage": {
     "description": "The SOS help message shared with an optional current-location map link."
   },
-  "sosShareLocationUnavailable": "Your location could not be shared. Your help message will be shared without it.",
+  "sosShareLocationUnavailable": "Your current location could not be obtained.",
   "@sosShareLocationUnavailable": {
-    "description": "Notice shown when SOS location sharing falls back to a text-only help message."
+    "description": "Notice shown when a one-time SOS location cannot be obtained."
   },
   "sosShareLocationShareFailed": "Your SOS help message could not be shared. Please try again.",
   "@sosShareLocationShareFailed": {
     "description": "Notice shown when the SOS help message cannot be shared through the native share sheet."
+  },
+  "sosShareMessage": "Share SOS Message",
+  "@sosShareMessage": {
+    "description": "The SOS action that shares only the help message."
+  },
+  "sosShareMessageTooltip": "Share your SOS help message",
+  "@sosShareMessageTooltip": {
+    "description": "Accessibility label for the SOS help-message action."
+  },
+  "sosDeliveryOptionsTitle": "Choose a delivery option",
+  "@sosDeliveryOptionsTitle": {
+    "description": "Title for the SOS delivery-method chooser."
+  },
+  "sosDeliveryChooseApp": "Choose an app",
+  "@sosDeliveryChooseApp": {
+    "description": "Option to open the native app picker for SOS content."
+  },
+  "sosDeliverySendToContact": "Send to a personal contact",
+  "@sosDeliverySendToContact": {
+    "description": "Option to send SOS content to a saved personal contact."
+  },
+  "sosDeliveryOpenMapApp": "Open in a map app",
+  "@sosDeliveryOpenMapApp": {
+    "description": "Option to open the current location in a compatible map app."
+  },
+  "sosDeliveryContactPickerTitle": "Choose a personal contact",
+  "@sosDeliveryContactPickerTitle": {
+    "description": "Title for the saved personal-contact chooser."
+  },
+  "sosDeliveryNoContactsMessage": "No personal contacts are available. Add one to send an SOS message directly.",
+  "@sosDeliveryNoContactsMessage": {
+    "description": "Message shown when no saved personal contacts are available for SOS delivery."
+  },
+  "sosDeliveryContactsNeedAttention": "Your saved contacts need to be updated before they can be used for SOS delivery.",
+  "@sosDeliveryContactsNeedAttention": {
+    "description": "Message shown when saved contacts are mismatched or unsuitable for direct SOS delivery."
+  },
+  "sosDeliveryMethodTitle": "Choose how to send to {contact}",
+  "@sosDeliveryMethodTitle": {
+    "description": "Title for choosing SMS or WhatsApp delivery to a saved contact.",
+    "placeholders": {
+      "contact": {
+        "type": "String"
+      }
+    }
+  },
+  "sosDeliverySms": "Text message (SMS)",
+  "@sosDeliverySms": {
+    "description": "Option to open the SMS composer for SOS content."
+  },
+  "sosDeliveryWhatsAppInternationalNumber": "To send with WhatsApp, choose the country code and enter the full phone number.",
+  "@sosDeliveryWhatsAppInternationalNumber": {
+    "description": "Guidance shown when a saved contact cannot be used with WhatsApp."
+  },
+  "contactPhoneCountryCodeHint": "Select a country code; it will be saved with the local phone number.",
+  "@contactPhoneCountryCodeHint": {
+    "description": "Hint explaining the country-code and local-number contact input order."
+  },
+  "sosDeliveryEditContacts": "Edit contacts",
+  "@sosDeliveryEditContacts": {
+    "description": "Action that opens the personal-contact editor from an SOS delivery prompt."
   },
   "phonePageTitle": "{gender,select,male{You are not alone! If you are in distress right now, please reach out to one of the contacts listed here} female{You are not alone! If you are in distress right now, please reach out to one of the contacts listed here} other{You are not alone! If you are in distress right now, please reach out to one of the contacts listed here}}",
   "@phonePageTitle": {
@@ -602,10 +663,6 @@
   "confirmResetTitle": "Are you sure?",
   "@confirmResetTitle": {
     "description": ""
-  },
-  "resetReminderCancellationFailed": "Couldn't cancel the reminder. Your data has not been reset.",
-  "@resetReminderCancellationFailed": {
-    "description": "Shown when remote reminder cancellation prevents reset."
   },
 
   "shareRoutineMessage": "Here is my personal plan that is meant to help keep me safe. I’m sending it to you because, in my view, you also have a part in it. I hope this works for you. I would greatly appreciate your agreement to take part in it if needed. Many thanks in advance, and I look forward to your reply.",
@@ -1641,6 +1698,10 @@
   "@addItemTooltip": {
     "description": "Tooltip / TalkBack label for icon-only add buttons (journal entry, list item)"
   },
+  "scrollToBottomTooltip": "Scroll to bottom",
+  "@scrollToBottomTooltip": {
+    "description": "Tooltip / TalkBack label for the icon-only Gratitude Journal scroll-to-bottom button"
+  },
   "downloadPlanTooltip": "Download plan",
   "@downloadPlanTooltip": {
     "description": "Tooltip / TalkBack label for the icon-only download button on the personal plan widget"
@@ -1739,6 +1800,95 @@
   "feelGoodDeleteTooltip": "Delete photo",
   "confirmDeletePlanAnswerTitle": "Delete this answer?",
   "confirmDeletePlanAnswerMessage": "This removes the answer from your personal plan.",
+  "reminders": "Reminders",
+  "@reminders": {
+    "description": "Section header for reminders on home page"
+  },
+  "myPlan": "My Plan",
+  "@myPlan": {
+    "description": "Section header for personal plan on home page"
+  },
+  "traitsListTitle": "List of virtues",
+  "@traitsListTitle": {
+    "description": "Section header for positive traits list on home page"
+  },
+  "gratitudeListTitle": "Gratitude list",
+  "@gratitudeListTitle": {
+    "description": "Section header for gratitude list on home page"
+  },
+  "myPlanSubTitle": "Things that will do me good now",
+  "@myPlanSubTitle": {
+    "description": "Short subtitle for My Plan section on home page"
+  },
+  "warningSignsTitle": "My warning signs",
+  "@warningSignsTitle": {
+    "description": "Section header for warning signs on home page"
+  },
+  "warningSignsSubTitle": "If a warning sign appears, activate your personal safety plan. Fill in your warning signs",
+  "@warningSignsSubTitle": {
+    "description": "Subtitle for warning signs section on home page"
+  },
+  "addWarningSign": "Add warning sign",
+  "@addWarningSign": {
+    "description": "Placeholder text for adding a new warning sign"
+  },
+  "traitsSubTitle": "Where I shine. Read daily",
+  "@traitsSubTitle": {
+    "description": "Subtitle for positive traits section"
+  },
+  "gratitudeSubTitle": "What am I grateful for today",
+  "@gratitudeSubTitle": {
+    "description": "Subtitle for gratitude section"
+  },
+  "ourSuggestion": "Our suggestion",
+  "@ourSuggestion": {
+    "description": "Subtitle for suggestion card on home page"
+  },
+  "deepBreathSuggestion": "{gender,select,male{Take a deep breath} female{Take a deep breath} other{Take a deep breath}}",
+  "@deepBreathSuggestion": {
+    "description": "Motivational suggestion text 0",
+    "placeholders": {
+      "gender": {
+        "type": "String"
+      }
+    }
+  },
+  "stretchBodySuggestion": "{gender,select,male{Stretch your body} female{Stretch your body} other{Stretch your body}}",
+  "@stretchBodySuggestion": {
+    "description": "Motivational suggestion text 1",
+    "placeholders": {
+      "gender": {
+        "type": "String"
+      }
+    }
+  },
+  "drinkWaterSuggestion": "{gender,select,male{Drink some water} female{Drink some water} other{Drink some water}}",
+  "@drinkWaterSuggestion": {
+    "description": "Motivational suggestion text 2",
+    "placeholders": {
+      "gender": {
+        "type": "String"
+      }
+    }
+  },
+  "shortBreakSuggestion": "{gender,select,male{Take a short break} female{Take a short break} other{Take a short break}}",
+  "@shortBreakSuggestion": {
+    "description": "Motivational suggestion text 3",
+    "placeholders": {
+      "gender": {
+        "type": "String"
+      }
+    }
+  },
+  "lookForwardSuggestion": "{gender,select,male{Smile and look forward} female{Smile and look forward} other{Smile and look forward}}",
+  "@lookForwardSuggestion": {
+    "description": "Motivational suggestion text 4",
+    "placeholders": {
+      "gender": {
+        "type": "String"
+      }
+    }
+  },
   "notificationsPermissionDeniedTitle": "Notifications Blocked",
   "@notificationsPermissionDeniedTitle": {
     "description": ""
@@ -1750,6 +1900,10 @@
   "notificationsOpenSettings": "Open Settings",
   "@notificationsOpenSettings": {
     "description": ""
+  },
+  "resetReminderCancellationFailed": "Couldn't cancel the reminder. Your data has not been reset.",
+  "@resetReminderCancellationFailed": {
+    "description": "Shown when remote reminder cancellation prevents reset."
   },
   "authWelcomeTitle": "Welcome",
   "@authWelcomeTitle": { "description": "" },
@@ -1799,6 +1953,12 @@
   "@authForgotPasswordButton": { "description": "" },
   "authForgotPasswordSuccess": "Check your email for a reset link",
   "@authForgotPasswordSuccess": { "description": "" },
+  "authSignOut": "Sign Out",
+  "@authSignOut": { "description": "" },
+  "authSignOutConfirmTitle": "Sign Out?",
+  "@authSignOutConfirmTitle": { "description": "" },
+  "authSignOutConfirmBody": "You will need to sign in again to access all features.",
+  "@authSignOutConfirmBody": { "description": "" },
   "authNotSignedInTitle": "Sign In to Enable Notifications",
   "@authNotSignedInTitle": { "description": "" },
   "authNotSignedInBody": "Create an account or sign in to set up daily reminders.",

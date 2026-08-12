@@ -140,7 +140,7 @@
      "dialButton": "{gender,select,male{חיוג} female{חיוג} other{חיוג}}",
      "yourContacts": "{gender,select,male{אנשי הקשר שלך} female{אנשי הקשר שלך} other{אנשי הקשר שלך}}",
      "emergencyNumbers": "{gender,select,male{מספרי חירום} female{מספרי חירום} other{מספרי חירום}}",
-     "sosShareLocation": "שיתוף במיקום",
+     "sosShareLocation": "שיתוף מיקום",
      "@sosShareLocation": {
        "description": "הפעולה לשיתוף המיקום הנוכחי בדף החירום."
      },
@@ -152,13 +152,74 @@
      "@sosShareLocationMessage": {
        "description": "הודעת העזרה שנשלחת יחד עם קישור למיקום הנוכחי כשזמין."
      },
-     "sosShareLocationUnavailable": "לא ניתן לשתף את מיקומך. הודעת העזרה תישלח ללא המיקום.",
+     "sosShareLocationUnavailable": "לא ניתן לקבל את מיקומך הנוכחי.",
      "@sosShareLocationUnavailable": {
-       "description": "הודעה המוצגת כששיתוף המיקום עובר להודעת עזרה ללא מיקום."
+       "description": "הודעה המוצגת כאשר לא ניתן לקבל מיקום חד-פעמי עבור פעולת SOS."
      },
      "sosShareLocationShareFailed": "לא ניתן היה לשתף את הודעת העזרה שלך. נסו שוב.",
      "@sosShareLocationShareFailed": {
        "description": "הודעה המוצגת כשלא ניתן לשתף את הודעת העזרה דרך גיליון השיתוף של המכשיר."
+     },
+     "sosShareMessage": "שיתוף הודעת SOS",
+     "@sosShareMessage": {
+       "description": "פעולת SOS שמשתפת רק את הודעת העזרה."
+     },
+     "sosShareMessageTooltip": "שיתוף הודעת העזרה שלך",
+     "@sosShareMessageTooltip": {
+       "description": "תווית נגישות לפעולת שיתוף הודעת העזרה של SOS."
+     },
+     "sosDeliveryOptionsTitle": "בחירת אפשרות שליחה",
+     "@sosDeliveryOptionsTitle": {
+       "description": "כותרת לבחירת שיטת מסירה עבור SOS."
+     },
+     "sosDeliveryChooseApp": "בחירת אפליקציה",
+     "@sosDeliveryChooseApp": {
+       "description": "אפשרות לפתוח את בורר האפליקציות של המכשיר עבור תוכן SOS."
+     },
+     "sosDeliverySendToContact": "שליחה לאיש קשר אישי",
+     "@sosDeliverySendToContact": {
+       "description": "אפשרות לשלוח תוכן SOS לאיש קשר אישי שמור."
+     },
+     "sosDeliveryOpenMapApp": "פתיחה באפליקציית מפות",
+     "@sosDeliveryOpenMapApp": {
+       "description": "אפשרות לפתוח את המיקום הנוכחי באפליקציית מפות תואמת."
+     },
+     "sosDeliveryContactPickerTitle": "בחירת איש קשר אישי",
+     "@sosDeliveryContactPickerTitle": {
+       "description": "כותרת לבחירת איש קשר אישי שמור."
+     },
+  "sosDeliveryNoContactsMessage": "אין אנשי קשר אישיים. הוסיפו איש קשר כדי לשלוח אליו הודעת SOS ישירות.",
+  "@sosDeliveryNoContactsMessage": {
+    "description": "הודעה המוצגת כשאין אנשי קשר אישיים שמורים לשליחת SOS."
+  },
+  "sosDeliveryContactsNeedAttention": "יש לעדכן את אנשי הקשר השמורים לפני שניתן להשתמש בהם לשליחת SOS.",
+  "@sosDeliveryContactsNeedAttention": {
+    "description": "הודעה המוצגת כשאנשי קשר שמורים אינם מתאימים לשליחת SOS ישירה."
+  },
+  "sosDeliveryMethodTitle": "בחרו כיצד לשלוח אל {contact}",
+     "@sosDeliveryMethodTitle": {
+       "description": "כותרת לבחירה בין SMS ל-WhatsApp עבור איש קשר שמור.",
+       "placeholders": {
+         "contact": {
+           "type": "String"
+         }
+       }
+     },
+     "sosDeliverySms": "הודעת טקסט (SMS)",
+     "@sosDeliverySms": {
+       "description": "אפשרות לפתוח את יוצר הודעות ה-SMS עבור תוכן SOS."
+     },
+     "sosDeliveryWhatsAppInternationalNumber": "כדי לשלוח ב-WhatsApp, בחרו קידומת מדינה והזינו את מספר הטלפון המלא.",
+     "@sosDeliveryWhatsAppInternationalNumber": {
+       "description": "הנחיה המוצגת כאשר לא ניתן להשתמש באיש קשר שמור עם WhatsApp."
+     },
+     "contactPhoneCountryCodeHint": "בחרו קידומת מדינה; היא תישמר עם מספר הטלפון המקומי.",
+     "@contactPhoneCountryCodeHint": {
+       "description": "הנחיה המסבירה את סדר הזנת קידומת המדינה ומספר הטלפון המקומי."
+     },
+     "sosDeliveryEditContacts": "עריכת אנשי קשר",
+     "@sosDeliveryEditContacts": {
+       "description": "פעולה שפותחת את עורך אנשי הקשר האישיים מתוך הודעת מסירה של SOS."
      },
      "whatsApp": "ווצאפ",
       "link": "קישור לאתר",
@@ -201,10 +262,6 @@
       "confirmResetTitle": "האם את/ה בטוח/ה?",
       "@confirmResetTitle": {
         "description": ""
-      },
-      "resetReminderCancellationFailed": "לא ניתן לבטל את התזכורת. הנתונים שלך לא אופסו.",
-      "@resetReminderCancellationFailed": {
-        "description": "מוצג כאשר ביטול התזכורת המרוחקת מונע איפוס."
       },
       
           "locationDisclaimer":"{gender,select,male{האפליקציה משתמשת במיקום שלך אך ורק כדי להתאים את מספרי החירום למיקומך.} female{האפליקציה משתמשת במיקום שלך אך ורק כדי להתאים את מספרי החירום למיקומך.} other{האפליקציה משתמשת במיקום שלך אך ורק כדי להתאים את מספרי החירום למיקומך.}}",
@@ -434,6 +491,7 @@
   "emergencyCountryFallback": "מוצגים מספרי חירום ברירת מחדל ({country}). ייתכן שלא יפעלו ממיקומך.",
   "menuTooltip": "תפריט",
   "addItemTooltip": "הוספה",
+  "scrollToBottomTooltip": "גלילה לסוף הרשימה",
   "downloadPlanTooltip": "הורדת התוכנית",
   "sharePlanTooltip": "שיתוף התוכנית",
   "refreshPersonalPlanTooltip": "רענון התוכנית האישית",
@@ -486,10 +544,103 @@
   "feelGoodDeleteTooltip": "מחיקת תמונה",
   "confirmDeletePlanAnswerTitle": "למחוק את התשובה?",
   "confirmDeletePlanAnswerMessage": "התשובה תוסר מהתוכנית האישית שלך.",
+  "reminders": "תזכורות",
+  "@reminders": {
+    "description": "Section header for reminders on home page"
+  },
+  "myPlan": "התוכנית שלי",
+  "@myPlan": {
+    "description": "Section header for personal plan on home page"
+  },
+  "traitsListTitle": "רשימת מעלות",
+  "@traitsListTitle": {
+    "description": "Section header for positive traits list on home page"
+  },
+  "gratitudeListTitle": "יומן תודה",
+  "@gratitudeListTitle": {
+    "description": "Section header for gratitude list on home page"
+  },
+  "myPlanSubTitle": "דברים שיעשו לי טוב עכשיו",
+  "@myPlanSubTitle": {
+    "description": "Short subtitle for My Plan section on home page"
+  },
+  "warningSignsTitle": "סימני האזהרה שלי",
+  "@warningSignsTitle": {
+    "description": "Section header for warning signs on home page"
+  },
+  "warningSignsSubTitle": "אם מופיע סימן אזהרה, הפעל/י את תוכנית הבטיחות האישית שלך. מלא/י את סימני האזהרה שלך",
+  "@warningSignsSubTitle": {
+    "description": "Subtitle for warning signs section on home page"
+  },
+  "addWarningSign": "הוסף/י סימן אזהרה",
+  "@addWarningSign": {
+    "description": "Placeholder text for adding a new warning sign"
+  },
+  "traitsSubTitle": "כאן אני זורח/ת. קרא/י יום יום",
+  "@traitsSubTitle": {
+    "description": "Subtitle for positive traits section"
+  },
+  "gratitudeSubTitle": "על מה אני אסיר/ת תודה היום",
+  "@gratitudeSubTitle": {
+    "description": "Subtitle for gratitude section"
+  },
+  "ourSuggestion": "ההצעה שלנו",
+  "@ourSuggestion": {
+    "description": "Subtitle for suggestion card on home page"
+  },
+  "deepBreathSuggestion": "{gender,select,male{קח נשימה עמוקה} female{קחי נשימה עמוקה} other{קח/י נשימה עמוקה}}",
+  "@deepBreathSuggestion": {
+    "description": "Motivational suggestion text 0",
+    "placeholders": {
+      "gender": {
+        "type": "String"
+      }
+    }
+  },
+  "stretchBodySuggestion": "{gender,select,male{מתח את הגוף} female{מתחי את הגוף} other{מתח/י את הגוף}}",
+  "@stretchBodySuggestion": {
+    "description": "Motivational suggestion text 1",
+    "placeholders": {
+      "gender": {
+        "type": "String"
+      }
+    }
+  },
+  "drinkWaterSuggestion": "{gender,select,male{שתה מים} female{שתי מים} other{שתה/י מים}}",
+  "@drinkWaterSuggestion": {
+    "description": "Motivational suggestion text 2",
+    "placeholders": {
+      "gender": {
+        "type": "String"
+      }
+    }
+  },
+  "shortBreakSuggestion": "{gender,select,male{צא להפסקה קצרה} female{צאי להפסקה קצרה} other{צא/י להפסקה קצרה}}",
+  "@shortBreakSuggestion": {
+    "description": "Motivational suggestion text 3",
+    "placeholders": {
+      "gender": {
+        "type": "String"
+      }
+    }
+  },
+  "lookForwardSuggestion": "{gender,select,male{חייך והסתכל קדימה} female{חייכי והסתכלי קדימה} other{חייכ/י והסתכל/י קדימה}}",
+  "@lookForwardSuggestion": {
+    "description": "Motivational suggestion text 4",
+    "placeholders": {
+      "gender": {
+        "type": "String"
+      }
+    }
+  },
   "notificationsPermissionDeniedTitle": "תזכורות חסומות",
 
   "notificationsPermissionDeniedBody": "כדי לקבל תזכורות, יש לאפשר תזכורות בהגדרות המכשיר",
   "notificationsOpenSettings": "הגדרות",
+  "resetReminderCancellationFailed": "לא ניתן לבטל את התזכורת. הנתונים שלך לא אופסו.",
+  "@resetReminderCancellationFailed": {
+    "description": "מוצג כאשר ביטול התזכורת המרוחקת מונע איפוס."
+  },
   "authWelcomeTitle": "ברוכים הבאים",
   "authLoginTab": "התחברות",
   "authSignupTab": "הרשמה",
@@ -513,6 +664,9 @@
   "authForgotPasswordHint": "הכניסו כתובת אימייל",
   "authForgotPasswordButton": "לקבלת קישור לאיפוס",
   "authForgotPasswordSuccess": "בידקו את תיבת הדואר לקישור איפוס",
+  "authSignOut": "התנתקות",
+  "authSignOutConfirmTitle": "להתנתק?",
+  "authSignOutConfirmBody": "יהיה עליך להתחבר שוב כדי לגשת לכל התכונות.",
   "authNotSignedInTitle": "יש להתחבר כדי להפעיל תזכורות",
   "authNotSignedInBody": "בכדי להפעיל את התזכורות, יש להתחבר לחשבון.",
   "authNotSignedInButton": "התחברות"

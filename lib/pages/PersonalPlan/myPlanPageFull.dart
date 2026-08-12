@@ -82,7 +82,7 @@ class _MyPlanPageFullState extends LPExtendedState<MyPlanPageFull> {
   // Combine phone names and numbers into a formatted string and update the state
   void setPhones(names, numbers) {
     List<String> temp = [];
-    for (var i = 0; i < names.length; i++) {
+    for (var i = 0; i < names.length && i < numbers.length; i++) {
       temp.add('${names[i]}:${numbers[i]}');
     }
     setState(() {

@@ -368,9 +368,9 @@ class AppLocalizationsEn extends AppLocalizations {
   @override
   String homePageWellnessTools(String gender) {
     String _temp0 = intl.Intl.selectLogic(gender, {
-      'male': 'Wellness Tools',
-      'female': 'Wellness Tools',
-      'other': 'Wellness Tools',
+      'male': 'Wellness',
+      'female': 'Wellness',
+      'other': 'Wellness',
     });
     return '$_temp0';
   }
@@ -1131,11 +1131,59 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get sosShareLocationUnavailable =>
-      'Your location could not be shared. Your help message will be shared without it.';
+      'Your current location could not be obtained.';
 
   @override
   String get sosShareLocationShareFailed =>
       'Your SOS help message could not be shared. Please try again.';
+
+  @override
+  String get sosShareMessage => 'Share SOS Message';
+
+  @override
+  String get sosShareMessageTooltip => 'Share your SOS help message';
+
+  @override
+  String get sosDeliveryOptionsTitle => 'Choose a delivery option';
+
+  @override
+  String get sosDeliveryChooseApp => 'Choose an app';
+
+  @override
+  String get sosDeliverySendToContact => 'Send to a personal contact';
+
+  @override
+  String get sosDeliveryOpenMapApp => 'Open in a map app';
+
+  @override
+  String get sosDeliveryContactPickerTitle => 'Choose a personal contact';
+
+  @override
+  String get sosDeliveryNoContactsMessage =>
+      'No personal contacts are available. Add one to send an SOS message directly.';
+
+  @override
+  String get sosDeliveryContactsNeedAttention =>
+      'Your saved contacts need to be updated before they can be used for SOS delivery.';
+
+  @override
+  String sosDeliveryMethodTitle(String contact) {
+    return 'Choose how to send to $contact';
+  }
+
+  @override
+  String get sosDeliverySms => 'Text message (SMS)';
+
+  @override
+  String get sosDeliveryWhatsAppInternationalNumber =>
+      'To send with WhatsApp, choose the country code and enter the full phone number.';
+
+  @override
+  String get contactPhoneCountryCodeHint =>
+      'Select a country code; it will be saved with the local phone number.';
+
+  @override
+  String get sosDeliveryEditContacts => 'Edit contacts';
 
   @override
   String phonePageTitle(String gender) {
@@ -1318,10 +1366,6 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get confirmResetTitle => 'Are you sure?';
-
-  @override
-  String get resetReminderCancellationFailed =>
-      'Couldn\'t cancel the reminder. Your data has not been reset.';
 
   @override
   String get shareRoutineMessage =>
@@ -3128,6 +3172,9 @@ class AppLocalizationsEn extends AppLocalizations {
   String get addItemTooltip => 'Add';
 
   @override
+  String get scrollToBottomTooltip => 'Scroll to bottom';
+
+  @override
   String get downloadPlanTooltip => 'Download plan';
 
   @override
@@ -3275,6 +3322,90 @@ class AppLocalizationsEn extends AppLocalizations {
       'This removes the answer from your personal plan.';
 
   @override
+  String get reminders => 'Reminders';
+
+  @override
+  String get myPlan => 'My Plan';
+
+  @override
+  String get traitsListTitle => 'List of virtues';
+
+  @override
+  String get gratitudeListTitle => 'Gratitude list';
+
+  @override
+  String get myPlanSubTitle => 'Things that will do me good now';
+
+  @override
+  String get warningSignsTitle => 'My warning signs';
+
+  @override
+  String get warningSignsSubTitle =>
+      'If a warning sign appears, activate your personal safety plan. Fill in your warning signs';
+
+  @override
+  String get addWarningSign => 'Add warning sign';
+
+  @override
+  String get traitsSubTitle => 'Where I shine. Read daily';
+
+  @override
+  String get gratitudeSubTitle => 'What am I grateful for today';
+
+  @override
+  String get ourSuggestion => 'Our suggestion';
+
+  @override
+  String deepBreathSuggestion(String gender) {
+    String _temp0 = intl.Intl.selectLogic(gender, {
+      'male': 'Take a deep breath',
+      'female': 'Take a deep breath',
+      'other': 'Take a deep breath',
+    });
+    return '$_temp0';
+  }
+
+  @override
+  String stretchBodySuggestion(String gender) {
+    String _temp0 = intl.Intl.selectLogic(gender, {
+      'male': 'Stretch your body',
+      'female': 'Stretch your body',
+      'other': 'Stretch your body',
+    });
+    return '$_temp0';
+  }
+
+  @override
+  String drinkWaterSuggestion(String gender) {
+    String _temp0 = intl.Intl.selectLogic(gender, {
+      'male': 'Drink some water',
+      'female': 'Drink some water',
+      'other': 'Drink some water',
+    });
+    return '$_temp0';
+  }
+
+  @override
+  String shortBreakSuggestion(String gender) {
+    String _temp0 = intl.Intl.selectLogic(gender, {
+      'male': 'Take a short break',
+      'female': 'Take a short break',
+      'other': 'Take a short break',
+    });
+    return '$_temp0';
+  }
+
+  @override
+  String lookForwardSuggestion(String gender) {
+    String _temp0 = intl.Intl.selectLogic(gender, {
+      'male': 'Smile and look forward',
+      'female': 'Smile and look forward',
+      'other': 'Smile and look forward',
+    });
+    return '$_temp0';
+  }
+
+  @override
   String get notificationsPermissionDeniedTitle => 'Notifications Blocked';
 
   @override
@@ -3283,6 +3414,10 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get notificationsOpenSettings => 'Open Settings';
+
+  @override
+  String get resetReminderCancellationFailed =>
+      'Couldn\'t cancel the reminder. Your data has not been reset.';
 
   @override
   String get authWelcomeTitle => 'Welcome';
@@ -3356,6 +3491,16 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get authForgotPasswordSuccess => 'Check your email for a reset link';
+
+  @override
+  String get authSignOut => 'Sign Out';
+
+  @override
+  String get authSignOutConfirmTitle => 'Sign Out?';
+
+  @override
+  String get authSignOutConfirmBody =>
+      'You will need to sign in again to access all features.';
 
   @override
   String get authNotSignedInTitle => 'Sign In to Enable Notifications';

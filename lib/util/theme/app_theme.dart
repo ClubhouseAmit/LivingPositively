@@ -61,6 +61,15 @@ class AppColors {
   /// Foreground colour on [darkSecondary].
   static const Color darkOnSecondary = Color(0xFF2A1941);
 
+  /// Home page background in light mode — warm cream.
+  static const Color pageBackground = Color(0xFFF4F0EB);
+
+  /// Home page background in dark mode — warm dark brown.
+  static const Color darkPageBackground = Color(0xFF1C1814);
+
+  /// Bottom navbar background in dark mode — visibly lighter warm brown.
+  static const Color darkNavBackground = Color(0xFF4A4440);
+
   /// Default dark scaffold and page surface.
   static const Color darkSurface = Color(0xFF141218);
 
@@ -152,7 +161,8 @@ ThemeData buildLightTheme() {
     brightness: Brightness.light,
     colorScheme: appLightColorScheme,
     primaryColor: AppColors.primary,
-    scaffoldBackgroundColor: AppColors.surface,
+    scaffoldBackgroundColor: AppColors.pageBackground,
+    bottomAppBarTheme: const BottomAppBarThemeData(color: Colors.white),
     fontFamily: 'Rubix',
   );
 }
@@ -165,7 +175,8 @@ ThemeData buildDarkTheme() {
     brightness: Brightness.dark,
     colorScheme: appDarkColorScheme,
     primaryColor: AppColors.darkPrimary,
-    scaffoldBackgroundColor: AppColors.darkSurface,
+    scaffoldBackgroundColor: AppColors.darkPageBackground,
+    bottomAppBarTheme: const BottomAppBarThemeData(color: AppColors.darkNavBackground),
     canvasColor: AppColors.darkSurface,
     cardColor: AppColors.darkSurfaceContainer,
     dividerColor: AppColors.darkOnSurface.withValues(alpha: 0.2),

@@ -1115,12 +1115,59 @@ class AppLocalizationsAr extends AppLocalizations {
   String get sosShareLocationMessage => 'أنا هنا وأحتاج إلى مساعدتك.';
 
   @override
-  String get sosShareLocationUnavailable =>
-      'تعذّر مشاركة موقعك. ستتم مشاركة رسالة طلب المساعدة بدون الموقع.';
+  String get sosShareLocationUnavailable => 'تعذّر الحصول على موقعك الحالي.';
 
   @override
   String get sosShareLocationShareFailed =>
       'تعذّر مشاركة رسالة طلب المساعدة الخاصة بك. يُرجى المحاولة مرة أخرى.';
+
+  @override
+  String get sosShareMessage => 'مشاركة رسالة الاستغاثة';
+
+  @override
+  String get sosShareMessageTooltip => 'مشاركة رسالة طلب المساعدة';
+
+  @override
+  String get sosDeliveryOptionsTitle => 'خيارات الإرسال';
+
+  @override
+  String get sosDeliveryChooseApp => 'اختيار تطبيق';
+
+  @override
+  String get sosDeliverySendToContact => 'إرسال إلى جهة اتصال شخصية';
+
+  @override
+  String get sosDeliveryOpenMapApp => 'فتح في تطبيق خرائط';
+
+  @override
+  String get sosDeliveryContactPickerTitle => 'اختيار جهة اتصال شخصية';
+
+  @override
+  String get sosDeliveryNoContactsMessage =>
+      'لا توجد جهات اتصال شخصية. أضف جهة اتصال لإرسال رسالة استغاثة مباشرةً.';
+
+  @override
+  String get sosDeliveryContactsNeedAttention =>
+      'يجب تحديث جهات الاتصال المحفوظة قبل أن يمكن استخدامها لإرسال رسالة استغاثة.';
+
+  @override
+  String sosDeliveryMethodTitle(String contact) {
+    return 'طريقة الإرسال إلى $contact';
+  }
+
+  @override
+  String get sosDeliverySms => 'رسالة نصية (SMS)';
+
+  @override
+  String get sosDeliveryWhatsAppInternationalNumber =>
+      'للإرسال عبر واتساب، اختر رمز الدولة وأدخل رقم الهاتف الكامل.';
+
+  @override
+  String get contactPhoneCountryCodeHint =>
+      'اختر رمز الدولة؛ وسيتم حفظه مع رقم الهاتف المحلي.';
+
+  @override
+  String get sosDeliveryEditContacts => 'تعديل جهات الاتصال';
 
   @override
   String phonePageTitle(String gender) {
@@ -1303,10 +1350,6 @@ class AppLocalizationsAr extends AppLocalizations {
 
   @override
   String get confirmResetTitle => 'هل أنت متأكد؟';
-
-  @override
-  String get resetReminderCancellationFailed =>
-      'تعذر إلغاء التذكير. لم تتم إعادة ضبط بياناتك.';
 
   @override
   String get shareRoutineMessage =>
@@ -3100,6 +3143,9 @@ class AppLocalizationsAr extends AppLocalizations {
   String get addItemTooltip => 'إضافة';
 
   @override
+  String get scrollToBottomTooltip => 'الانتقال إلى أسفل القائمة';
+
+  @override
   String get downloadPlanTooltip => 'تنزيل الخطة';
 
   @override
@@ -3244,6 +3290,90 @@ class AppLocalizationsAr extends AppLocalizations {
       'ستتم إزالة الإجابة من خطتك الشخصية.';
 
   @override
+  String get reminders => 'التذكيرات';
+
+  @override
+  String get myPlan => 'خطتي';
+
+  @override
+  String get traitsListTitle => 'السمات الإيجابية';
+
+  @override
+  String get gratitudeListTitle => 'قائمة الامتنان';
+
+  @override
+  String get myPlanSubTitle => 'أشياء ستجعلني أشعر بشكل أفضل الآن';
+
+  @override
+  String get warningSignsTitle => 'علامات التحذير لدي';
+
+  @override
+  String get warningSignsSubTitle =>
+      'إذا ظهرت علامة تحذير، قم بتفعيل خطة السلامة الشخصية. أضف علامات التحذير الخاصة بك';
+
+  @override
+  String get addWarningSign => 'أضف علامة تحذير';
+
+  @override
+  String get traitsSubTitle => 'هنا أتألق. اقرأ يومياً';
+
+  @override
+  String get gratitudeSubTitle => 'ما الذي أنا ممتن له اليوم';
+
+  @override
+  String get ourSuggestion => 'اقتراحنا';
+
+  @override
+  String deepBreathSuggestion(String gender) {
+    String _temp0 = intl.Intl.selectLogic(gender, {
+      'male': 'خذ نفساً عميقاً',
+      'female': 'خذي نفساً عميقاً',
+      'other': 'خذ/ي نفساً عميقاً',
+    });
+    return '$_temp0';
+  }
+
+  @override
+  String stretchBodySuggestion(String gender) {
+    String _temp0 = intl.Intl.selectLogic(gender, {
+      'male': 'قم بتمديد جسمك',
+      'female': 'قومي بتمديد جسمك',
+      'other': 'قم/قومي بتمديد جسمك',
+    });
+    return '$_temp0';
+  }
+
+  @override
+  String drinkWaterSuggestion(String gender) {
+    String _temp0 = intl.Intl.selectLogic(gender, {
+      'male': 'اشرب بعض الماء',
+      'female': 'اشربي بعض الماء',
+      'other': 'اشرب/ي بعض الماء',
+    });
+    return '$_temp0';
+  }
+
+  @override
+  String shortBreakSuggestion(String gender) {
+    String _temp0 = intl.Intl.selectLogic(gender, {
+      'male': 'خذ استراحة قصيرة',
+      'female': 'خذي استراحة قصيرة',
+      'other': 'خذ/ي استراحة قصيرة',
+    });
+    return '$_temp0';
+  }
+
+  @override
+  String lookForwardSuggestion(String gender) {
+    String _temp0 = intl.Intl.selectLogic(gender, {
+      'male': 'ابتسم وتطلع إلى الأمام',
+      'female': 'ابتسمي وتطلعي إلى الأمام',
+      'other': 'ابتسم/ي وتطلع/ي إلى الأمام',
+    });
+    return '$_temp0';
+  }
+
+  @override
   String get notificationsPermissionDeniedTitle => 'الإشعارات محظورة';
 
   @override
@@ -3252,6 +3382,10 @@ class AppLocalizationsAr extends AppLocalizations {
 
   @override
   String get notificationsOpenSettings => 'فتح الإعدادات';
+
+  @override
+  String get resetReminderCancellationFailed =>
+      'تعذر إلغاء التذكير. لم تتم إعادة ضبط بياناتك.';
 
   @override
   String get authWelcomeTitle => 'أهلاً وسهلاً';
@@ -3327,6 +3461,16 @@ class AppLocalizationsAr extends AppLocalizations {
   @override
   String get authForgotPasswordSuccess =>
       'تحقق من بريدك الإلكتروني للحصول على رابط إعادة التعيين';
+
+  @override
+  String get authSignOut => 'تسجيل الخروج';
+
+  @override
+  String get authSignOutConfirmTitle => 'تسجيل الخروج؟';
+
+  @override
+  String get authSignOutConfirmBody =>
+      'ستحتاج إلى تسجيل الدخول مرة أخرى للوصول إلى جميع الميزات.';
 
   @override
   String get authNotSignedInTitle => 'سجّل دخولك لتفعيل الإشعارات';

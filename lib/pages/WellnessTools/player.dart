@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:get_it/get_it.dart';
 import 'package:mazilon/AnalyticsService.dart';
@@ -18,11 +20,18 @@ class VideoPlayerPage extends StatefulWidget {
 }
 
 class _VideoPlayerPageState extends State<VideoPlayerPage> {
-  late VoidCallback listener;
   late YoutubePlayerController controller;
+  StreamSubscription<YoutubePlayerValue>? _controllerSubscription;
   bool _controllerInitialized = false;
   bool _hasInitialVideo = false;
   bool? _isPlaying;
+  String? _loadedVideoId;
+  String? _requestedVideoId;
+  String? _pendingVideoId;
+  int? _pendingLoadRequest;
+  int? _pendingLoadWithUnmatchedError;
+  String? _retryableVideoId;
+  int _nextLoadRequest = 0;
 
   @override
   void initState() {
@@ -30,31 +39,62 @@ class _VideoPlayerPageState extends State<VideoPlayerPage> {
   }
 
   void _initializeController() {
+    final inheritedVideoId = _youtubeId(
+      VideoPlayerInheritedWidget.of(context)?.videoId ?? '',
+    );
     final videoIds = widget.videoData['videoId'];
-    final initialVideoId = videoIds != null && videoIds.isNotEmpty
-        ? _youtubeId(videoIds.first)
-        : null;
-    _hasInitialVideo = initialVideoId != null;
-    controller = YoutubePlayerController(
-      initialVideoId: initialVideoId ?? '',
-      flags: YoutubePlayerFlags(
-        autoPlay: false,
+    final initialVideoId =
+        inheritedVideoId ??
+        (videoIds != null && videoIds.isNotEmpty
+            ? _youtubeId(videoIds.first)
+            : null);
+    if (initialVideoId == null) {
+      _hasInitialVideo = false;
+      return;
+    }
+
+    final languageCode = Localizations.localeOf(context).languageCode;
+    final newController = YoutubePlayerController(
+      key: initialVideoId,
+      params: YoutubePlayerParams(
         enableCaption: true,
-        captionLanguage: Localizations.localeOf(context).languageCode,
+        captionLanguage: languageCode,
+        interfaceLanguage: languageCode,
       ),
     );
 
-    listener = () {
-      widget.onFullScreenChanged(controller.value.isFullScreen);
-      _trackIsPlaying();
-    };
-    controller.addListener(listener);
+    newController.setFullScreenListener(widget.onFullScreenChanged);
+    final subscription = newController.stream.listen(_trackIsPlaying);
+    controller = newController;
+    _controllerSubscription = subscription;
+    _loadedVideoId = initialVideoId;
+    _requestedVideoId = initialVideoId;
     _controllerInitialized = true;
+    _hasInitialVideo = true;
+    unawaited(_cueInitialVideo(newController, initialVideoId));
+  }
+
+  Future<void> _cueInitialVideo(
+    YoutubePlayerController targetController,
+    String videoId,
+  ) async {
+    try {
+      await targetController.cueVideoById(videoId: videoId);
+    } catch (_) {
+      // `fromVideoId` leaves this iframe-ready future unobserved. Retain a
+      // retryable selection when the player is unavailable instead.
+      if (mounted &&
+          identical(controller, targetController) &&
+          _requestedVideoId == videoId) {
+        _loadedVideoId = null;
+        _retryableVideoId = videoId;
+      }
+    }
   }
 
   String? _youtubeId(String videoId) {
     final trimmed = videoId.trim();
-    final fromUrl = YoutubePlayer.convertUrlToId(trimmed);
+    final fromUrl = YoutubePlayerController.convertUrlToId(trimmed);
     if (fromUrl != null && fromUrl.isNotEmpty) {
       return fromUrl;
     }
@@ -64,14 +104,98 @@ class _VideoPlayerPageState extends State<VideoPlayerPage> {
     return trimmed.substring(0, 11);
   }
 
-  void _trackIsPlaying() {
-    if (_isPlaying != controller.value.isPlaying) {
-      _isPlaying = controller.value.isPlaying;
-      _logEvent(
-        _isPlaying!,
-        controller.metadata.title,
-        controller.metadata.videoId,
-      );
+  void _trackIsPlaying(YoutubePlayerValue value) {
+    if (value.hasError) {
+      _handlePlayerError(value);
+    }
+
+    final isPlaying = switch (value.playerState) {
+      PlayerState.playing => true,
+      PlayerState.paused => false,
+      _ => null,
+    };
+    if (isPlaying != null && _isPlaying != isPlaying) {
+      _isPlaying = isPlaying;
+      _logEvent(isPlaying, value.metaData.title, value.metaData.videoId);
+    }
+  }
+
+  void _handlePlayerError(YoutubePlayerValue value) {
+    final failedVideoId = _youtubeId(value.metaData.videoId);
+    final pendingLoadRequest = _pendingLoadRequest;
+    if (failedVideoId != null &&
+        failedVideoId == _pendingVideoId &&
+        pendingLoadRequest != null) {
+      _retryableVideoId = failedVideoId;
+      _clearPendingLoad(failedVideoId, pendingLoadRequest);
+      return;
+    }
+
+    if (_pendingLoadRequest != null) {
+      // Iframe errors include only an error code and retain the last metadata.
+      // Do not cancel a newer request unless that metadata identifies it.
+      _pendingLoadWithUnmatchedError = _pendingLoadRequest;
+      return;
+    }
+
+    if (_requestedVideoId == _loadedVideoId) {
+      if (failedVideoId == _loadedVideoId) {
+        _loadedVideoId = null;
+      }
+      // Untagged or stale errors cannot safely clear the active ID. Remember
+      // the requested selection so a later explicit selection can retry it.
+      _retryableVideoId = _requestedVideoId;
+    }
+  }
+
+  void _requestVideoLoad(String videoId) {
+    _requestedVideoId = videoId;
+    if (videoId == _pendingVideoId ||
+        (videoId == _loadedVideoId && videoId != _retryableVideoId)) {
+      return;
+    }
+
+    final request = ++_nextLoadRequest;
+    if (_retryableVideoId == videoId) {
+      _retryableVideoId = null;
+    }
+    _pendingLoadWithUnmatchedError = null;
+    _pendingVideoId = videoId;
+    _pendingLoadRequest = request;
+    unawaited(_loadVideo(videoId, request));
+  }
+
+  Future<void> _loadVideo(String videoId, int request) async {
+    try {
+      await controller.loadVideoById(videoId: videoId);
+      if (!mounted || !_isPendingLoad(videoId, request)) {
+        return;
+      }
+      final sawUnmatchedError = _pendingLoadWithUnmatchedError == request;
+      _loadedVideoId = videoId;
+      _clearPendingLoad(videoId, request);
+      if (sawUnmatchedError) {
+        _retryableVideoId = videoId;
+      }
+    } catch (_) {
+      if (mounted && _isPendingLoad(videoId, request)) {
+        _retryableVideoId = videoId;
+        _clearPendingLoad(videoId, request);
+      }
+    }
+  }
+
+  bool _isPendingLoad(String videoId, int request) {
+    return _pendingVideoId == videoId && _pendingLoadRequest == request;
+  }
+
+  void _clearPendingLoad(String videoId, int request) {
+    if (_isPendingLoad(videoId, request)) {
+      _pendingVideoId = null;
+      _pendingLoadRequest = null;
+      if (_pendingLoadWithUnmatchedError == request) {
+        _pendingLoadWithUnmatchedError = null;
+      }
     }
   }
 
@@ -80,13 +204,14 @@ class _VideoPlayerPageState extends State<VideoPlayerPage> {
     super.didChangeDependencies();
     if (!_controllerInitialized) {
       _initializeController();
+      return;
     }
-    // Update the video when the inherited widget provides a new videoId
+
+    // Update the video when the inherited widget provides a new videoId.
     final newVideoId = VideoPlayerInheritedWidget.of(context)?.videoId ?? '';
     final normalizedVideoId = _youtubeId(newVideoId);
-    if (normalizedVideoId != null &&
-        normalizedVideoId != controller.metadata.videoId) {
-      controller.load(normalizedVideoId);
+    if (normalizedVideoId != null) {
+      _requestVideoLoad(normalizedVideoId);
     }
   }
 
@@ -96,17 +221,8 @@ class _VideoPlayerPageState extends State<VideoPlayerPage> {
       super.dispose();
       return;
     }
-    controller.removeListener(listener);
-    // CI run 26463427363 reproduced youtube_player_flutter#1143 on Android:
-    // YoutubePlayerController.dispose() calls value.webViewController?.dispose()
-    // after the child InAppWebView has already disposed the same platform
-    // controller. Flutter unmounts children before State.dispose(), so the
-    // YoutubePlayer widget listener is gone here; after removing our listener,
-    // this reset only detaches the stale WebView reference before disposing
-    // the ValueNotifier. Recheck when upgrading youtube_player_flutter.
-    // https://github.com/sarbagyastha/youtube_player_flutter/issues/1143
-    controller.updateValue(YoutubePlayerValue());
-    controller.dispose();
+    unawaited(_controllerSubscription?.cancel());
+    unawaited(controller.close());
     super.dispose();
   }
 
@@ -125,9 +241,6 @@ class _VideoPlayerPageState extends State<VideoPlayerPage> {
 
   @override
   Widget build(BuildContext context) {
-    if (!_controllerInitialized) {
-      return const SizedBox.shrink();
-    }
     if (!_hasInitialVideo) {
       return Center(
         child: Text(
@@ -136,13 +249,10 @@ class _VideoPlayerPageState extends State<VideoPlayerPage> {
         ),
       );
     }
+    if (!_controllerInitialized) {
+      return const SizedBox.shrink();
+    }
     debugPrint(controller.metadata.videoId);
-    return YoutubePlayer(
-      controller: controller,
-      showVideoProgressIndicator: true,
-      onReady: () {
-        debugPrint('Player is ready.');
-      },
-    );
+    return YoutubePlayer(controller: controller);
   }
 }

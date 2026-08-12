@@ -325,7 +325,7 @@ abstract class AppLocalizations {
   ///
   ///
   /// In en, this message translates to:
-  /// **'{gender,select,male{Wellness Tools} female{Wellness Tools} other{Wellness Tools}}'**
+  /// **'{gender,select,male{Wellness} female{Wellness} other{Wellness}}'**
   String homePageWellnessTools(String gender);
 
   ///
@@ -826,10 +826,10 @@ abstract class AppLocalizations {
   /// **'I am here and I need your help.'**
   String get sosShareLocationMessage;
 
-  /// Notice shown when SOS location sharing falls back to a text-only help message.
+  /// Notice shown when a one-time SOS location cannot be obtained.
   ///
   /// In en, this message translates to:
-  /// **'Your location could not be shared. Your help message will be shared without it.'**
+  /// **'Your current location could not be obtained.'**
   String get sosShareLocationUnavailable;
 
   /// Notice shown when the SOS help message cannot be shared through the native share sheet.
@@ -837,6 +837,90 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Your SOS help message could not be shared. Please try again.'**
   String get sosShareLocationShareFailed;
+
+  /// The SOS action that shares only the help message.
+  ///
+  /// In en, this message translates to:
+  /// **'Share SOS Message'**
+  String get sosShareMessage;
+
+  /// Accessibility label for the SOS help-message action.
+  ///
+  /// In en, this message translates to:
+  /// **'Share your SOS help message'**
+  String get sosShareMessageTooltip;
+
+  /// Title for the SOS delivery-method chooser.
+  ///
+  /// In en, this message translates to:
+  /// **'Choose a delivery option'**
+  String get sosDeliveryOptionsTitle;
+
+  /// Option to open the native app picker for SOS content.
+  ///
+  /// In en, this message translates to:
+  /// **'Choose an app'**
+  String get sosDeliveryChooseApp;
+
+  /// Option to send SOS content to a saved personal contact.
+  ///
+  /// In en, this message translates to:
+  /// **'Send to a personal contact'**
+  String get sosDeliverySendToContact;
+
+  /// Option to open the current location in a compatible map app.
+  ///
+  /// In en, this message translates to:
+  /// **'Open in a map app'**
+  String get sosDeliveryOpenMapApp;
+
+  /// Title for the saved personal-contact chooser.
+  ///
+  /// In en, this message translates to:
+  /// **'Choose a personal contact'**
+  String get sosDeliveryContactPickerTitle;
+
+  /// Message shown when no saved personal contacts are available for SOS delivery.
+  ///
+  /// In en, this message translates to:
+  /// **'No personal contacts are available. Add one to send an SOS message directly.'**
+  String get sosDeliveryNoContactsMessage;
+
+  /// Message shown when saved contacts are mismatched or unsuitable for direct SOS delivery.
+  ///
+  /// In en, this message translates to:
+  /// **'Your saved contacts need to be updated before they can be used for SOS delivery.'**
+  String get sosDeliveryContactsNeedAttention;
+
+  /// Title for choosing SMS or WhatsApp delivery to a saved contact.
+  ///
+  /// In en, this message translates to:
+  /// **'Choose how to send to {contact}'**
+  String sosDeliveryMethodTitle(String contact);
+
+  /// Option to open the SMS composer for SOS content.
+  ///
+  /// In en, this message translates to:
+  /// **'Text message (SMS)'**
+  String get sosDeliverySms;
+
+  /// Guidance shown when a saved contact cannot be used with WhatsApp.
+  ///
+  /// In en, this message translates to:
+  /// **'To send with WhatsApp, choose the country code and enter the full phone number.'**
+  String get sosDeliveryWhatsAppInternationalNumber;
+
+  /// Hint explaining the country-code and local-number contact input order.
+  ///
+  /// In en, this message translates to:
+  /// **'Select a country code; it will be saved with the local phone number.'**
+  String get contactPhoneCountryCodeHint;
+
+  /// Action that opens the personal-contact editor from an SOS delivery prompt.
+  ///
+  /// In en, this message translates to:
+  /// **'Edit contacts'**
+  String get sosDeliveryEditContacts;
 
   ///
   ///
@@ -1005,12 +1089,6 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Are you sure?'**
   String get confirmResetTitle;
-
-  /// Shown when remote reminder cancellation prevents reset.
-  ///
-  /// In en, this message translates to:
-  /// **'Couldn\'t cancel the reminder. Your data has not been reset.'**
-  String get resetReminderCancellationFailed;
 
   ///
   ///
@@ -2182,6 +2260,12 @@ abstract class AppLocalizations {
   /// **'Add'**
   String get addItemTooltip;
 
+  /// Tooltip / TalkBack label for the icon-only Gratitude Journal scroll-to-bottom button
+  ///
+  /// In en, this message translates to:
+  /// **'Scroll to bottom'**
+  String get scrollToBottomTooltip;
+
   /// Tooltip / TalkBack label for the icon-only download button on the personal plan widget
   ///
   /// In en, this message translates to:
@@ -2452,6 +2536,102 @@ abstract class AppLocalizations {
   /// **'This removes the answer from your personal plan.'**
   String get confirmDeletePlanAnswerMessage;
 
+  /// Section header for reminders on home page
+  ///
+  /// In en, this message translates to:
+  /// **'Reminders'**
+  String get reminders;
+
+  /// Section header for personal plan on home page
+  ///
+  /// In en, this message translates to:
+  /// **'My Plan'**
+  String get myPlan;
+
+  /// Section header for positive traits list on home page
+  ///
+  /// In en, this message translates to:
+  /// **'List of virtues'**
+  String get traitsListTitle;
+
+  /// Section header for gratitude list on home page
+  ///
+  /// In en, this message translates to:
+  /// **'Gratitude list'**
+  String get gratitudeListTitle;
+
+  /// Short subtitle for My Plan section on home page
+  ///
+  /// In en, this message translates to:
+  /// **'Things that will do me good now'**
+  String get myPlanSubTitle;
+
+  /// Section header for warning signs on home page
+  ///
+  /// In en, this message translates to:
+  /// **'My warning signs'**
+  String get warningSignsTitle;
+
+  /// Subtitle for warning signs section on home page
+  ///
+  /// In en, this message translates to:
+  /// **'If a warning sign appears, activate your personal safety plan. Fill in your warning signs'**
+  String get warningSignsSubTitle;
+
+  /// Placeholder text for adding a new warning sign
+  ///
+  /// In en, this message translates to:
+  /// **'Add warning sign'**
+  String get addWarningSign;
+
+  /// Subtitle for positive traits section
+  ///
+  /// In en, this message translates to:
+  /// **'Where I shine. Read daily'**
+  String get traitsSubTitle;
+
+  /// Subtitle for gratitude section
+  ///
+  /// In en, this message translates to:
+  /// **'What am I grateful for today'**
+  String get gratitudeSubTitle;
+
+  /// Subtitle for suggestion card on home page
+  ///
+  /// In en, this message translates to:
+  /// **'Our suggestion'**
+  String get ourSuggestion;
+
+  /// Motivational suggestion text 0
+  ///
+  /// In en, this message translates to:
+  /// **'{gender,select,male{Take a deep breath} female{Take a deep breath} other{Take a deep breath}}'**
+  String deepBreathSuggestion(String gender);
+
+  /// Motivational suggestion text 1
+  ///
+  /// In en, this message translates to:
+  /// **'{gender,select,male{Stretch your body} female{Stretch your body} other{Stretch your body}}'**
+  String stretchBodySuggestion(String gender);
+
+  /// Motivational suggestion text 2
+  ///
+  /// In en, this message translates to:
+  /// **'{gender,select,male{Drink some water} female{Drink some water} other{Drink some water}}'**
+  String drinkWaterSuggestion(String gender);
+
+  /// Motivational suggestion text 3
+  ///
+  /// In en, this message translates to:
+  /// **'{gender,select,male{Take a short break} female{Take a short break} other{Take a short break}}'**
+  String shortBreakSuggestion(String gender);
+
+  /// Motivational suggestion text 4
+  ///
+  /// In en, this message translates to:
+  /// **'{gender,select,male{Smile and look forward} female{Smile and look forward} other{Smile and look forward}}'**
+  String lookForwardSuggestion(String gender);
+
   ///
   ///
   /// In en, this message translates to:
@@ -2469,6 +2649,12 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Open Settings'**
   String get notificationsOpenSettings;
+
+  /// Shown when remote reminder cancellation prevents reset.
+  ///
+  /// In en, this message translates to:
+  /// **'Couldn\'t cancel the reminder. Your data has not been reset.'**
+  String get resetReminderCancellationFailed;
 
   ///
   ///
@@ -2613,6 +2799,24 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Check your email for a reset link'**
   String get authForgotPasswordSuccess;
+
+  ///
+  ///
+  /// In en, this message translates to:
+  /// **'Sign Out'**
+  String get authSignOut;
+
+  ///
+  ///
+  /// In en, this message translates to:
+  /// **'Sign Out?'**
+  String get authSignOutConfirmTitle;
+
+  ///
+  ///
+  /// In en, this message translates to:
+  /// **'You will need to sign in again to access all features.'**
+  String get authSignOutConfirmBody;
 
   ///
   ///

@@ -154,7 +154,6 @@
   "moreVideos": "مقاطع فيديو إضافية",
   "noVideosAvailableForLocale": "لا توجد مقاطع فيديو متاحة للغتك، نعتذر.",
   "confirmResetTitle": "هل أنت متأكد؟",
-  "resetReminderCancellationFailed": "تعذر إلغاء التذكير. لم تتم إعادة ضبط بياناتك.",
   "shareRoutineMessage": "هذه هي خطتي الشخصية التي تساعدني على الحفاظ على سلامتي. أرسلها إليك لأنني أرى أن لك دورًا فيها أيضًا. آمل أن يكون ذلك مناسبًا لك. سأقدّر كثيرًا موافقتك على المشاركة فيها عند الحاجة. شكرًا جزيلًا مقدمًا، وأتطلع إلى ردك.",
   "shareOptions": "خيارات المشاركة",
   "shareFile": "مشاركة ملف الخطة الشخصية",
@@ -389,10 +388,32 @@
   "sosShareLocation": "مشاركة الموقع",
   "sosShareLocationTooltip": "مشاركة موقعك الحالي",
   "sosShareLocationMessage": "أنا هنا وأحتاج إلى مساعدتك.",
-  "sosShareLocationUnavailable": "تعذّر مشاركة موقعك. ستتم مشاركة رسالة طلب المساعدة بدون الموقع.",
+  "sosShareLocationUnavailable": "تعذّر الحصول على موقعك الحالي.",
   "sosShareLocationShareFailed": "تعذّر مشاركة رسالة طلب المساعدة الخاصة بك. يُرجى المحاولة مرة أخرى.",
+  "sosShareMessage": "مشاركة رسالة الاستغاثة",
+  "sosShareMessageTooltip": "مشاركة رسالة طلب المساعدة",
+  "sosDeliveryOptionsTitle": "خيارات الإرسال",
+  "sosDeliveryChooseApp": "اختيار تطبيق",
+  "sosDeliverySendToContact": "إرسال إلى جهة اتصال شخصية",
+  "sosDeliveryOpenMapApp": "فتح في تطبيق خرائط",
+  "sosDeliveryContactPickerTitle": "اختيار جهة اتصال شخصية",
+  "sosDeliveryNoContactsMessage": "لا توجد جهات اتصال شخصية. أضف جهة اتصال لإرسال رسالة استغاثة مباشرةً.",
+  "sosDeliveryContactsNeedAttention": "يجب تحديث جهات الاتصال المحفوظة قبل أن يمكن استخدامها لإرسال رسالة استغاثة.",
+  "sosDeliveryMethodTitle": "طريقة الإرسال إلى {contact}",
+  "@sosDeliveryMethodTitle": {
+    "placeholders": {
+      "contact": {
+        "type": "String"
+      }
+    }
+  },
+  "sosDeliverySms": "رسالة نصية (SMS)",
+  "sosDeliveryWhatsAppInternationalNumber": "للإرسال عبر واتساب، اختر رمز الدولة وأدخل رقم الهاتف الكامل.",
+  "contactPhoneCountryCodeHint": "اختر رمز الدولة؛ وسيتم حفظه مع رقم الهاتف المحلي.",
+  "sosDeliveryEditContacts": "تعديل جهات الاتصال",
   "menuTooltip": "القائمة",
   "addItemTooltip": "إضافة",
+  "scrollToBottomTooltip": "الانتقال إلى أسفل القائمة",
   "downloadPlanTooltip": "تنزيل الخطة",
   "sharePlanTooltip": "مشاركة الخطة",
   "refreshPersonalPlanTooltip": "تحديث الخطة الشخصية",
@@ -445,6 +466,95 @@
   "feelGoodDeleteTooltip": "حذف الصورة",
   "confirmDeletePlanAnswerTitle": "هل تريد حذف الإجابة؟",
   "confirmDeletePlanAnswerMessage": "ستتم إزالة الإجابة من خطتك الشخصية.",
+  "reminders": "التذكيرات",
+  "@reminders": {
+    "description": "Section header for reminders on home page"
+  },
+  "myPlan": "خطتي",
+  "@myPlan": {
+    "description": "Section header for personal plan on home page"
+  },
+  "traitsListTitle": "السمات الإيجابية",
+  "@traitsListTitle": {
+    "description": "Section header for positive traits list on home page"
+  },
+  "gratitudeListTitle": "قائمة الامتنان",
+  "@gratitudeListTitle": {
+    "description": "Section header for gratitude list on home page"
+  },
+  "myPlanSubTitle": "أشياء ستجعلني أشعر بشكل أفضل الآن",
+  "@myPlanSubTitle": {
+    "description": "Short subtitle for My Plan section on home page"
+  },
+  "warningSignsTitle": "علامات التحذير لدي",
+  "@warningSignsTitle": {
+    "description": "Section header for warning signs on home page"
+  },
+  "warningSignsSubTitle": "إذا ظهرت علامة تحذير، قم بتفعيل خطة السلامة الشخصية. أضف علامات التحذير الخاصة بك",
+  "@warningSignsSubTitle": {
+    "description": "Subtitle for warning signs section on home page"
+  },
+  "addWarningSign": "أضف علامة تحذير",
+  "@addWarningSign": {
+    "description": "Placeholder text for adding a new warning sign"
+  },
+  "traitsSubTitle": "هنا أتألق. اقرأ يومياً",
+  "@traitsSubTitle": {
+    "description": "Subtitle for positive traits section"
+  },
+  "gratitudeSubTitle": "ما الذي أنا ممتن له اليوم",
+  "@gratitudeSubTitle": {
+    "description": "Subtitle for gratitude section"
+  },
+  "ourSuggestion": "اقتراحنا",
+  "@ourSuggestion": {
+    "description": "Subtitle for suggestion card on home page"
+  },
+  "deepBreathSuggestion": "{gender,select,male{خذ نفساً عميقاً} female{خذي نفساً عميقاً} other{خذ/ي نفساً عميقاً}}",
+  "@deepBreathSuggestion": {
+    "description": "Motivational suggestion text 0",
+    "placeholders": {
+      "gender": {
+        "type": "String"
+      }
+    }
+  },
+  "stretchBodySuggestion": "{gender,select,male{قم بتمديد جسمك} female{قومي بتمديد جسمك} other{قم/قومي بتمديد جسمك}}",
+  "@stretchBodySuggestion": {
+    "description": "Motivational suggestion text 1",
+    "placeholders": {
+      "gender": {
+        "type": "String"
+      }
+    }
+  },
+  "drinkWaterSuggestion": "{gender,select,male{اشرب بعض الماء} female{اشربي بعض الماء} other{اشرب/ي بعض الماء}}",
+  "@drinkWaterSuggestion": {
+    "description": "Motivational suggestion text 2",
+    "placeholders": {
+      "gender": {
+        "type": "String"
+      }
+    }
+  },
+  "shortBreakSuggestion": "{gender,select,male{خذ استراحة قصيرة} female{خذي استراحة قصيرة} other{خذ/ي استراحة قصيرة}}",
+  "@shortBreakSuggestion": {
+    "description": "Motivational suggestion text 3",
+    "placeholders": {
+      "gender": {
+        "type": "String"
+      }
+    }
+  },
+  "lookForwardSuggestion": "{gender,select,male{ابتسم وتطلع إلى الأمام} female{ابتسمي وتطلعي إلى الأمام} other{ابتسم/ي وتطلع/ي إلى الأمام}}",
+  "@lookForwardSuggestion": {
+    "description": "Motivational suggestion text 4",
+    "placeholders": {
+      "gender": {
+        "type": "String"
+      }
+    }
+  },
   "notificationsPermissionDeniedTitle": "الإشعارات محظورة",
   "@notificationsPermissionDeniedTitle": {
     "description": ""
@@ -457,6 +567,7 @@
   "@notificationsOpenSettings": {
     "description": ""
   },
+  "resetReminderCancellationFailed": "تعذر إلغاء التذكير. لم تتم إعادة ضبط بياناتك.",
   "authWelcomeTitle": "أهلاً وسهلاً",
   "@authWelcomeTitle": { "description": "" },
   "authLoginTab": "تسجيل الدخول",
@@ -505,6 +616,12 @@
   "@authForgotPasswordButton": { "description": "" },
   "authForgotPasswordSuccess": "تحقق من بريدك الإلكتروني للحصول على رابط إعادة التعيين",
   "@authForgotPasswordSuccess": { "description": "" },
+  "authSignOut": "تسجيل الخروج",
+  "@authSignOut": { "description": "" },
+  "authSignOutConfirmTitle": "تسجيل الخروج؟",
+  "@authSignOutConfirmTitle": { "description": "" },
+  "authSignOutConfirmBody": "ستحتاج إلى تسجيل الدخول مرة أخرى للوصول إلى جميع الميزات.",
+  "@authSignOutConfirmBody": { "description": "" },
   "authNotSignedInTitle": "سجّل دخولك لتفعيل الإشعارات",
   "@authNotSignedInTitle": { "description": "" },
   "authNotSignedInBody": "أنشئ حساباً أو سجّل دخولك لإعداد تذكيرات يومية.",

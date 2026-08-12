@@ -417,21 +417,26 @@ class _ListWidgetState extends LPExtendedState<ListWidget> {
             // which contains the title, the icon, the subheader and the add icon,
             // when its clicked it navigates to the add trait page
             SectionBarHome(
-              textWidget: TextButton(
-                onPressed: () {
-                  widget.onTabTapped(context, widget.pageCode);
-                },
-                child: myAutoSizedText(
-                  pageData['mainTitle'],
-                  TextStyle(
-                    fontSize: 24.sp, // the font size of the title
-                    fontWeight: FontWeight.bold,
-                    color: Theme.of(
-                      context,
-                    ).colorScheme.onSurface, // the color of the title
+              textWidget: Padding(
+                padding: widget.pageCode == PagesCode.GratitudeJournal
+                    ? const EdgeInsetsDirectional.only(end: 5)
+                    : EdgeInsets.zero,
+                child: TextButton(
+                  onPressed: () {
+                    widget.onTabTapped(context, widget.pageCode);
+                  },
+                  child: myAutoSizedText(
+                    pageData['mainTitle'],
+                    TextStyle(
+                      fontSize: 24.sp, // the font size of the title
+                      fontWeight: FontWeight.bold,
+                      color: Theme.of(
+                        context,
+                      ).colorScheme.onSurface, // the color of the title
+                    ),
+                    null,
+                    40,
                   ),
-                  null,
-                  40,
                 ),
               ),
               icon: pageData["icon"], // the icon of the section bar
@@ -461,7 +466,9 @@ class _ListWidgetState extends LPExtendedState<ListWidget> {
             ShowAllButton(
               onTabTapped: widget.onTabTapped,
               pageCode: widget.pageCode,
+              count: listItems.length,
             ),
+            // Suggestions (always up to 3)
             for (final suggestion in _homeSuggestions)
               buildSuggestion(suggestion, gender),
             TextButton(

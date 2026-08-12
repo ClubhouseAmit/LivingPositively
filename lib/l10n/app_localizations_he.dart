@@ -1100,7 +1100,7 @@ class AppLocalizationsHe extends AppLocalizations {
   }
 
   @override
-  String get sosShareLocation => 'שיתוף במיקום';
+  String get sosShareLocation => 'שיתוף מיקום';
 
   @override
   String get sosShareLocationTooltip => 'שיתוף המיקום הנוכחי שלך';
@@ -1109,12 +1109,59 @@ class AppLocalizationsHe extends AppLocalizations {
   String get sosShareLocationMessage => 'אני כאן ויש לי צורך בעזרתך';
 
   @override
-  String get sosShareLocationUnavailable =>
-      'לא ניתן לשתף את מיקומך. הודעת העזרה תישלח ללא המיקום.';
+  String get sosShareLocationUnavailable => 'לא ניתן לקבל את מיקומך הנוכחי.';
 
   @override
   String get sosShareLocationShareFailed =>
       'לא ניתן היה לשתף את הודעת העזרה שלך. נסו שוב.';
+
+  @override
+  String get sosShareMessage => 'שיתוף הודעת SOS';
+
+  @override
+  String get sosShareMessageTooltip => 'שיתוף הודעת העזרה שלך';
+
+  @override
+  String get sosDeliveryOptionsTitle => 'בחירת אפשרות שליחה';
+
+  @override
+  String get sosDeliveryChooseApp => 'בחירת אפליקציה';
+
+  @override
+  String get sosDeliverySendToContact => 'שליחה לאיש קשר אישי';
+
+  @override
+  String get sosDeliveryOpenMapApp => 'פתיחה באפליקציית מפות';
+
+  @override
+  String get sosDeliveryContactPickerTitle => 'בחירת איש קשר אישי';
+
+  @override
+  String get sosDeliveryNoContactsMessage =>
+      'אין אנשי קשר אישיים. הוסיפו איש קשר כדי לשלוח אליו הודעת SOS ישירות.';
+
+  @override
+  String get sosDeliveryContactsNeedAttention =>
+      'יש לעדכן את אנשי הקשר השמורים לפני שניתן להשתמש בהם לשליחת SOS.';
+
+  @override
+  String sosDeliveryMethodTitle(String contact) {
+    return 'בחרו כיצד לשלוח אל $contact';
+  }
+
+  @override
+  String get sosDeliverySms => 'הודעת טקסט (SMS)';
+
+  @override
+  String get sosDeliveryWhatsAppInternationalNumber =>
+      'כדי לשלוח ב-WhatsApp, בחרו קידומת מדינה והזינו את מספר הטלפון המלא.';
+
+  @override
+  String get contactPhoneCountryCodeHint =>
+      'בחרו קידומת מדינה; היא תישמר עם מספר הטלפון המקומי.';
+
+  @override
+  String get sosDeliveryEditContacts => 'עריכת אנשי קשר';
 
   @override
   String phonePageTitle(String gender) {
@@ -1293,10 +1340,6 @@ class AppLocalizationsHe extends AppLocalizations {
 
   @override
   String get confirmResetTitle => 'האם את/ה בטוח/ה?';
-
-  @override
-  String get resetReminderCancellationFailed =>
-      'לא ניתן לבטל את התזכורת. הנתונים שלך לא אופסו.';
 
   @override
   String get shareRoutineMessage =>
@@ -3091,6 +3134,9 @@ class AppLocalizationsHe extends AppLocalizations {
   String get addItemTooltip => 'הוספה';
 
   @override
+  String get scrollToBottomTooltip => 'גלילה לסוף הרשימה';
+
+  @override
   String get downloadPlanTooltip => 'הורדת התוכנית';
 
   @override
@@ -3234,6 +3280,90 @@ class AppLocalizationsHe extends AppLocalizations {
       'התשובה תוסר מהתוכנית האישית שלך.';
 
   @override
+  String get reminders => 'תזכורות';
+
+  @override
+  String get myPlan => 'התוכנית שלי';
+
+  @override
+  String get traitsListTitle => 'רשימת מעלות';
+
+  @override
+  String get gratitudeListTitle => 'יומן תודה';
+
+  @override
+  String get myPlanSubTitle => 'דברים שיעשו לי טוב עכשיו';
+
+  @override
+  String get warningSignsTitle => 'סימני האזהרה שלי';
+
+  @override
+  String get warningSignsSubTitle =>
+      'אם מופיע סימן אזהרה, הפעל/י את תוכנית הבטיחות האישית שלך. מלא/י את סימני האזהרה שלך';
+
+  @override
+  String get addWarningSign => 'הוסף/י סימן אזהרה';
+
+  @override
+  String get traitsSubTitle => 'כאן אני זורח/ת. קרא/י יום יום';
+
+  @override
+  String get gratitudeSubTitle => 'על מה אני אסיר/ת תודה היום';
+
+  @override
+  String get ourSuggestion => 'ההצעה שלנו';
+
+  @override
+  String deepBreathSuggestion(String gender) {
+    String _temp0 = intl.Intl.selectLogic(gender, {
+      'male': 'קח נשימה עמוקה',
+      'female': 'קחי נשימה עמוקה',
+      'other': 'קח/י נשימה עמוקה',
+    });
+    return '$_temp0';
+  }
+
+  @override
+  String stretchBodySuggestion(String gender) {
+    String _temp0 = intl.Intl.selectLogic(gender, {
+      'male': 'מתח את הגוף',
+      'female': 'מתחי את הגוף',
+      'other': 'מתח/י את הגוף',
+    });
+    return '$_temp0';
+  }
+
+  @override
+  String drinkWaterSuggestion(String gender) {
+    String _temp0 = intl.Intl.selectLogic(gender, {
+      'male': 'שתה מים',
+      'female': 'שתי מים',
+      'other': 'שתה/י מים',
+    });
+    return '$_temp0';
+  }
+
+  @override
+  String shortBreakSuggestion(String gender) {
+    String _temp0 = intl.Intl.selectLogic(gender, {
+      'male': 'צא להפסקה קצרה',
+      'female': 'צאי להפסקה קצרה',
+      'other': 'צא/י להפסקה קצרה',
+    });
+    return '$_temp0';
+  }
+
+  @override
+  String lookForwardSuggestion(String gender) {
+    String _temp0 = intl.Intl.selectLogic(gender, {
+      'male': 'חייך והסתכל קדימה',
+      'female': 'חייכי והסתכלי קדימה',
+      'other': 'חייכ/י והסתכל/י קדימה',
+    });
+    return '$_temp0';
+  }
+
+  @override
   String get notificationsPermissionDeniedTitle => 'תזכורות חסומות';
 
   @override
@@ -3242,6 +3372,10 @@ class AppLocalizationsHe extends AppLocalizations {
 
   @override
   String get notificationsOpenSettings => 'הגדרות';
+
+  @override
+  String get resetReminderCancellationFailed =>
+      'לא ניתן לבטל את התזכורת. הנתונים שלך לא אופסו.';
 
   @override
   String get authWelcomeTitle => 'ברוכים הבאים';
@@ -3314,6 +3448,16 @@ class AppLocalizationsHe extends AppLocalizations {
 
   @override
   String get authForgotPasswordSuccess => 'בידקו את תיבת הדואר לקישור איפוס';
+
+  @override
+  String get authSignOut => 'התנתקות';
+
+  @override
+  String get authSignOutConfirmTitle => 'להתנתק?';
+
+  @override
+  String get authSignOutConfirmBody =>
+      'יהיה עליך להתחבר שוב כדי לגשת לכל התכונות.';
 
   @override
   String get authNotSignedInTitle => 'יש להתחבר כדי להפעיל תזכורות';

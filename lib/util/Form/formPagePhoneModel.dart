@@ -93,10 +93,46 @@ class PhonePageData extends ChangeNotifier {
     notifyListeners();
   }
 
-  bool _hasDialablePhoneNumber(String value) {
-    final normalized = value.replaceAll(RegExp(r'[\s().-]'), '');
-    return RegExp(r'^\+?\d{2,}$').hasMatch(normalized);
+  static String? normalizeDialablePhoneNumber(String value) {
+    final normalized = value.replaceAll(
+      RegExp(r'[\s().\-\u061C\u200E\u200F\u202A-\u202E\u2066-\u2069]'),
+      '',
+    );
+    if (!RegExp(r'^\+?\d{2,}$').hasMatch(normalized)) {
+      return null;
+    }
+    return normalized;
   }
+
+  static String? canonicalizePhoneNumber(String value, String? dialCode) {
+    final normalized = normalizeDialablePhoneNumber(value);
+    if (normalized == null) {
+      return null;
+    }
+
+    final internationalNumber = normalized.startsWith('00')
+        ? '+${normalized.substring(2)}'
+        : normalized;
+    if (internationalNumber.startsWith('+')) {
+      return RegExp(r'^\+[1-9]\d{1,14}$').hasMatch(internationalNumber)
+          ? internationalNumber
+          : null;
+    }
+
+    if (dialCode == null || !RegExp(r'^\+[1-9]\d{0,14}$').hasMatch(dialCode)) {
+      return null;
+    }
+    final localNumber = internationalNumber.startsWith('0')
+        ? internationalNumber.substring(1)
+        : internationalNumber;
+    final canonicalNumber = '$dialCode$localNumber';
+    return RegExp(r'^\+[1-9]\d{1,14}$').hasMatch(canonicalNumber)
+        ? canonicalNumber
+        : null;
+  }
+
+  bool _hasDialablePhoneNumber(String value) =>
+      normalizeDialablePhoneNumber(value) != null;
 
   bool _isValidContact(String phoneName, String phoneNumber) {
     return phoneName.trim().isNotEmpty &&
@@ -115,12 +151,27 @@ class PhonePageData extends ChangeNotifier {
     if (!_isValidContact(newPhoneName, newPhoneNumber)) {
       return;
     }
+    if (index < 0) {
+      return;
+    }
+
     if (index < savedPhoneNames.length && index < savedPhoneNumbers.length) {
       savedPhoneNames[index] = newPhoneName.trim();
       savedPhoneNumbers[index] = newPhoneNumber.trim();
-      saveItemsToPrefs();
-      notifyListeners();
+    } else if (index == savedPhoneNumbers.length &&
+        index < savedPhoneNames.length) {
+      savedPhoneNames[index] = newPhoneName.trim();
+      savedPhoneNumbers.add(newPhoneNumber.trim());
+    } else if (index == savedPhoneNames.length &&
+        index < savedPhoneNumbers.length) {
+      savedPhoneNames.add(newPhoneName.trim());
+      savedPhoneNumbers[index] = newPhoneNumber.trim();
+    } else {
+      return;
     }
+
+    saveItemsToPrefs();
+    notifyListeners();
   }
 
   Future<void> loadItemsFromPrefs() async {
@@ -145,7 +196,8 @@ class PhonePageData extends ChangeNotifier {
   }
 
   bool addItem(String phoneName, String phoneNumber) {
-    if (!_isValidContact(phoneName, phoneNumber)) {
+    if (savedPhoneNames.length != savedPhoneNumbers.length ||
+        !_isValidContact(phoneName, phoneNumber)) {
       return false;
     }
     savedPhoneNames.add(phoneName.trim());
@@ -156,7 +208,9 @@ class PhonePageData extends ChangeNotifier {
   }
 
   void removeItemAt(int index) {
-    if (index < savedPhoneNames.length && index < savedPhoneNumbers.length) {
+    if (index >= 0 &&
+        index < savedPhoneNames.length &&
+        index < savedPhoneNumbers.length) {
       savedPhoneNames.removeAt(index);
       savedPhoneNumbers.removeAt(index);
       saveItemsToPrefs();
@@ -165,10 +219,18 @@ class PhonePageData extends ChangeNotifier {
   }
 
   void removeItem(String phoneName, String phoneNumber) {
-    savedPhoneNames.remove(phoneName);
-    savedPhoneNumbers.remove(phoneNumber);
-    saveItemsToPrefs();
-    notifyListeners();
+    final normalizedName = phoneName.trim();
+    final normalizedNumber = phoneNumber.trim();
+    final contactCount = savedPhoneNames.length < savedPhoneNumbers.length
+        ? savedPhoneNames.length
+        : savedPhoneNumbers.length;
+    for (var index = 0; index < contactCount; index++) {
+      if (savedPhoneNames[index].trim() == normalizedName &&
+          savedPhoneNumbers[index].trim() == normalizedNumber) {
+        removeItemAt(index);
+        return;
+      }
+    }
   }
 
   Future<void> saveItemsToPrefs() async {
