@@ -13,7 +13,6 @@ import 'package:mazilon/util/userInformation.dart';
 import 'package:provider/provider.dart';
 
 import 'package:mazilon/main_menu_dialog.dart';
-import 'package:mazilon/pages/notifications/notification_service.dart';
 import 'package:mazilon/util/HomePage/header_widget.dart';
 import 'package:mazilon/util/HomePage/quote_card_widget.dart';
 import 'package:mazilon/MainPageHelpers/components/reminders_section.dart';

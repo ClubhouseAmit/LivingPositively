@@ -73,8 +73,6 @@ void main() {
     registerTestServices(locale: 'en');
     user = UserInformation();
     user.localeName = 'en';
-    user.notificationHour = 14;
-    user.notificationMinute = 30;
   });
 
   tearDown(() {
@@ -89,15 +87,11 @@ void main() {
 
         for (final gender in genders) {
           user.gender = gender;
-          PagesCode? navigatedCode;
-
           await pumpWithProviders(
             tester,
             Home(
               phonePageData: _phoneData(),
-              changeCurrentIndex: (BuildContext context, PagesCode code) {
-                navigatedCode = code;
-              },
+              changeCurrentIndex: (BuildContext context, PagesCode code) {},
               changeLocale: (_) {},
               openMainMenu: (_) {},
             ),
