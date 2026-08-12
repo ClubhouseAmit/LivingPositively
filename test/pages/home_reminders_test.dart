@@ -7,6 +7,7 @@ import 'package:mazilon/util/Form/formPagePhoneModel.dart';
 import 'package:mazilon/util/userInformation.dart';
 import 'package:mazilon/MainPageHelpers/components/reminders_section.dart';
 import 'package:mazilon/util/Thanks/AddForm.dart';
+import 'package:mazilon/l10n/app_localizations.dart';
 
 import '../helpers/widget_test_scaffold.dart';
 
@@ -41,7 +42,6 @@ void main() {
   setUp(() {
     registerTestServices(locale: 'en');
     user = UserInformation();
-    user.gender = 'other';
     user.localeName = 'en';
     user.notificationHour = 14;
     user.notificationMinute = 30;
@@ -56,38 +56,68 @@ void main() {
     WidgetTester tester,
   ) async {
     await _onPlatform(TargetPlatform.android, () async {
-      PagesCode? navigatedCode;
+      final genders = ['male', 'female', 'other'];
 
-      await pumpWithProviders(
-        tester,
-        Home(
-          phonePageData: _phoneData(),
-          changeCurrentIndex: (BuildContext context, PagesCode code) {
-            navigatedCode = code;
-          },
-          changeLocale: (_) {},
-          openMainMenu: (_) {},
-        ),
-        userInformation: user,
-        surfaceSize: const Size(1024, 2400),
-      );
+      for (final gender in genders) {
+        user.gender = gender;
+        PagesCode? navigatedCode;
 
-      await tester.pumpAndSettle();
+        await pumpWithProviders(
+          tester,
+          Home(
+            phonePageData: _phoneData(),
+            changeCurrentIndex: (BuildContext context, PagesCode code) {
+              navigatedCode = code;
+            },
+            changeLocale: (_) {},
+            openMainMenu: (_) {},
+          ),
+          userInformation: user,
+          surfaceSize: const Size(1024, 2400),
+        );
 
-      // Verify widget exists
-      expect(find.byType(RemindersSectionWidget), findsOneWidget);
+        await tester.pumpAndSettle();
 
-      // Verify the edit button (IconButton) exists and is clickable by tooltip
-      final editButtonFinder = find.descendant(
-        of: find.byType(RemindersSectionWidget),
-        matching: find.byTooltip('Edit entry'),
-      );
-      expect(editButtonFinder, findsOneWidget);
+        // Verify widget exists
+        expect(find.byType(RemindersSectionWidget), findsOneWidget);
 
-      await tester.tap(editButtonFinder);
-      await tester.pumpAndSettle();
+        // Verify the expected gender-specific reminder text is displayed
+        final remindersWidget = tester.widget<RemindersSectionWidget>(
+          find.byType(RemindersSectionWidget),
+        );
+        final displayedTitle = remindersWidget.reminders.first.title;
+        final appLocale = AppLocalizations.of(tester.element(find.byType(Home)))!;
+        final expectedTexts = [
+          appLocale.motivationalText0(gender),
+          appLocale.motivationalText1(gender),
+          appLocale.motivationalText2(gender),
+          appLocale.motivationalText3(gender),
+          appLocale.motivationalText4(gender),
+        ];
 
-      expect(find.byType(AddForm), findsOneWidget);
+        expect(
+          expectedTexts.contains(displayedTitle),
+          isTrue,
+          reason: 'Displayed title "$displayedTitle" should be one of the expected motivational texts for gender "$gender": $expectedTexts',
+        );
+
+        // Verify the edit button (IconButton) exists and is clickable by tooltip
+        final editButtonFinder = find.descendant(
+          of: find.byType(RemindersSectionWidget),
+          matching: find.byTooltip('Edit entry'),
+        );
+        expect(editButtonFinder, findsOneWidget);
+
+        await tester.tap(editButtonFinder);
+        await tester.pumpAndSettle();
+
+        expect(find.byType(AddForm), findsOneWidget);
+
+        // Pop the dialog to leave a clean state for subsequent iterations
+        Navigator.of(tester.element(find.byType(AddForm))).pop();
+        await tester.pumpAndSettle();
+      }
     });
   });
 }
+

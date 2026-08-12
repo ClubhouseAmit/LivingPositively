@@ -15,7 +15,10 @@ class ReminderItemData {
     this.iconAsset,
     required this.title,
     this.subtitle,
-  });
+  }) : assert(
+          (emoji == null) != (iconAsset == null),
+          'Exactly one of emoji or iconAsset must be provided.',
+        );
 }
 
 class RemindersSectionWidget extends StatelessWidget {
@@ -86,7 +89,7 @@ class RemindersSectionWidget extends StatelessWidget {
                                 ),
                                 child: Center(
                                   child: Text(
-                                    reminder.emoji ?? '',
+                                    reminder.emoji!,
                                     style: const TextStyle(fontSize: 26),
                                   ),
                                 ),
