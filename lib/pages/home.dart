@@ -188,9 +188,15 @@ class _HomeState extends LPExtendedState<Home> {
                     ScaffoldMessenger.of(context).clearSnackBars();
                     ScaffoldMessenger.of(context).showSnackBar(
                       SnackBar(
+                        behavior: SnackBarBehavior.floating,
+                        showCloseIcon: true,
+                        closeIconColor: Colors.white,
                         content: Text(
                           AppLocalizations.of(context)!.quoteDismissedMessage,
                         ),
+                        // A SnackBarAction defaults `persist` to true, which
+                        // would keep this message on screen forever.
+                        persist: false,
                         action: SnackBarAction(
                           label: AppLocalizations.of(context)!.quoteUndoAction,
                           onPressed: () {
