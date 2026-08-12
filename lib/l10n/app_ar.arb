@@ -554,5 +554,13 @@
         "type": "String"
       }
     }
+  },
+  "notificationCustomMessageLabel": "اكتب رسالة التذكير هنا (اختياري):",
+  "@notificationCustomMessageLabel": {
+    "description": "Label for the custom reminder message text field"
+  },
+  "notificationCustomMessageHint": "أدخل رسالة التذكير...",
+  "@notificationCustomMessageHint": {
+    "description": "Hint text for the custom reminder message text field"
   }
 }

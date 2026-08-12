@@ -1888,5 +1888,13 @@
         "type": "String"
       }
     }
+  },
+  "notificationCustomMessageLabel": "Write a custom reminder message (optional):",
+  "@notificationCustomMessageLabel": {
+    "description": "Label for the custom reminder message text field"
+  },
+  "notificationCustomMessageHint": "Enter reminder message...",
+  "@notificationCustomMessageHint": {
+    "description": "Hint text for the custom reminder message text field"
   }
 }
