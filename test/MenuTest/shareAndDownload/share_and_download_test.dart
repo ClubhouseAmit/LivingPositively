@@ -1,10 +1,11 @@
 import 'package:flutter/material.dart';
 
 import 'package:flutter_test/flutter_test.dart';
+import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:fluttericon/elusive_icons.dart';
 import 'package:get_it/get_it.dart';
 import 'package:mazilon/AnalyticsService.dart';
-import 'package:mazilon/MainPageHelpers/personalPlanWidget.dart';
+import 'package:mazilon/MainPageHelpers/components/personal_plan_section.dart';
 import 'package:mazilon/global_enums.dart';
 
 import 'package:mazilon/util/HomePage/sectionBarHome.dart';
@@ -22,6 +23,7 @@ import 'package:mazilon/util/persistent_memory_service.dart';
 import 'package:mazilon/util/userInformation.dart';
 import 'package:mazilon/util/appInformation.dart';
 import 'package:mockito/annotations.dart';
+import 'package:provider/provider.dart';
 
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:mockito/mockito.dart';
@@ -50,7 +52,7 @@ void main() {
   var counterDownload = 0;
   TestWidgetsFlutterBinding.ensureInitialized();
 
-  group('PersonalPlanWidget download and share Tests', () {
+  group('PersonalPlanSectionWidget download and share Tests', () {
     late MockSharedPreferences mockSharedPreferences;
     late MockFileService mockFileServiceImpl;
     late UserInformation mockUserInformation;
@@ -104,32 +106,57 @@ void main() {
       await tester.pumpAndSettle(const Duration(milliseconds: 200));
     }
 
+    Widget getPersonalPlanWidgetForTests({Locale locale = const Locale('he')}) {
+      return MultiProvider(
+        providers: [
+          ChangeNotifierProvider<UserInformation>.value(value: mockUserInformation),
+          ChangeNotifierProvider<AppInformation>.value(value: mockAppInformation),
+        ],
+        child: MaterialApp(
+          supportedLocales: AppLocalizations.supportedLocales,
+          locale: locale,
+          localizationsDelegates: AppLocalizations.localizationsDelegates,
+          home: ScreenUtilInit(
+            designSize: const Size(360, 690),
+            child: Scaffold(
+              body: PersonalPlanSectionWidget(
+                items: const ['Item 1', 'Item 2'],
+                onSeeAll: () {},
+              ),
+            ),
+          ),
+        ),
+      );
+    }
+
     testWidgets('Display exists', (WidgetTester tester) async {
       await tester.pumpWidget(
-        getMenuForTests(mockUserInformation, mockAppInformation),
+        getPersonalPlanWidgetForTests(),
       );
-      expect(find.byType(Home), findsOneWidget);
-      expect(find.byType(PersonalPlanWidget), findsOneWidget);
-
-      expect(find.byType(SectionBarHome), findsWidgets);
-      expect(find.byIcon(Elusive.share), findsOneWidget);
-      expect(find.byIcon(Icons.download), findsOneWidget);
+      expect(find.byType(PersonalPlanSectionWidget), findsOneWidget);
+      expect(find.byKey(const Key('personalPlanHeaderMenu')), findsOneWidget);
     });
     testWidgets('Buttons Clickable', (WidgetTester tester) async {
       await tester.pumpWidget(
-        getMenuForTests(mockUserInformation, mockAppInformation),
+        getPersonalPlanWidgetForTests(),
       );
-      expect(find.byType(Home), findsOneWidget);
-      expect(find.byType(PersonalPlanWidget), findsOneWidget);
+      expect(find.byType(PersonalPlanSectionWidget), findsOneWidget);
 
-      expect(find.byType(SectionBarHome), findsWidgets);
-      expect(find.byIcon(Elusive.share), findsOneWidget);
       expect(counterDownload, 0);
       expect(counterShare, 0);
-      await tapAndSettle(tester, find.byIcon(Icons.download));
 
+      // Open the popover menu
+      await tapAndSettle(tester, find.byKey(const Key('personalPlanHeaderMenu')));
+
+      // Tap download option
+      await tapAndSettle(tester, find.byKey(const Key('personalPlanHeaderDownload')));
       expect(counterDownload, 1);
-      await tapAndSettle(tester, find.byIcon(Elusive.share));
+
+      // Open the popover menu again for share
+      await tapAndSettle(tester, find.byKey(const Key('personalPlanHeaderMenu')));
+
+      // Tap share option
+      await tapAndSettle(tester, find.byKey(const Key('personalPlanHeaderShare')));
       expect(find.byType(LPShareAlertDialog), findsWidgets);
       expect(find.byIcon(Icons.insert_drive_file_outlined), findsWidgets);
       await tapAndSettle(tester, find.text("שיתוף קובץ של התוכנית האישית"));
@@ -140,8 +167,11 @@ void main() {
       WidgetTester tester,
     ) async {
       await tester.pumpWidget(
-        getMenuForTests(mockUserInformation, mockAppInformation),
+        getPersonalPlanWidgetForTests(),
       );
+
+      // Open the popover menu
+      await tapAndSettle(tester, find.byKey(const Key('personalPlanHeaderMenu')));
 
       await tapAndSettle(
         tester,
@@ -149,7 +179,7 @@ void main() {
       );
 
       final localizations = AppLocalizations.of(
-        tester.element(find.byType(PersonalPlanWidget)),
+        tester.element(find.byType(PersonalPlanSectionWidget)),
       )!;
       final captured = verify(
         mockFileServiceImpl.download(captureAny, captureAny, any, any, any),

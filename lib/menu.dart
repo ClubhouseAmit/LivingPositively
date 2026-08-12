@@ -4,6 +4,7 @@ import 'package:auto_size_text/auto_size_text.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
+import 'package:flutter_svg/flutter_svg.dart';
 import 'package:get_it/get_it.dart';
 import 'package:mazilon/AnalyticsService.dart';
 import 'package:mazilon/global_enums.dart';
@@ -248,32 +249,23 @@ class _MenuState extends LPExtendedState<Menu> {
     required Key key,
     required VoidCallback onPressed,
     required bool selected,
-    required IconData icon,
+    required dynamic icon,
     required String label,
   }) {
-    // Semantics(selected:) lets TalkBack/VoiceOver announce the active tab
-    // ("<label>, selected"). The visible text label is already inside
-    // `bottomNavigationItem`, so we only add the role here.
     return Semantics(
       button: true,
       selected: selected,
       label: label,
-      child: SizedBox.expand(
+      child: InkWell(
         key: key,
-        child: TextButton(
-          style: TextButton.styleFrom(
-            padding: EdgeInsets.zero,
-            minimumSize: Size.zero,
-            tapTargetSize: MaterialTapTargetSize.shrinkWrap,
-          ),
-          onPressed: onPressed,
-          child: ExcludeSemantics(
-            child: bottomNavigationItem(
-              selected,
-              icon,
-              label,
-              textGroup: _bottomNavigationLabelGroup,
-            ),
+        onTap: onPressed,
+        borderRadius: BorderRadius.circular(12),
+        child: ExcludeSemantics(
+          child: bottomNavigationItem(
+            selected,
+            icon,
+            label,
+            textGroup: _bottomNavigationLabelGroup,
           ),
         ),
       ),
@@ -295,7 +287,6 @@ class _MenuState extends LPExtendedState<Menu> {
     final userInformation = Provider.of<UserInformation>(context);
     final appInfoProvider = Provider.of<AppInformation>(context);
     final gender = userInformation.gender;
-    final colorScheme = Theme.of(context).colorScheme;
     testingChange();
 
     return PopScope(
@@ -313,58 +304,44 @@ class _MenuState extends LPExtendedState<Menu> {
         }
       },
       child: Scaffold(
-        backgroundColor: colorScheme.surface,
         resizeToAvoidBottomInset: false,
         body: currentScreen,
         // SOS FAB is always visible — ADR-005 §A.2: emergency access must be
         // reachable in every app state, including fullscreen video playback.
-        floatingActionButton: FloatingActionButton(
-          shape: const CircleBorder(),
-          backgroundColor: isFullScreen
-              ? const Color.fromARGB(
-                  200,
-                  33,
-                  1,
-                  101,
-                ) // ~78% opaque in fullscreen
-              : const Color.fromARGB(255, 33, 1, 101),
-          foregroundColor: Colors.white,
-          // The SOS FAB stays at the default 56dp in every mode — even
-          // fullscreen video — because shrinking the emergency affordance
-          // below the 48dp Material tap target conflicts with UX_GAPS §1.6
-          // and §2.1 (crisis affordance must remain reachable).
-          // Localized so TalkBack/VoiceOver announce the SOS action in the
-          // user's language (Hebrew / Arabic / English) — UX_GAPS §1.3.
-          tooltip: appLocale.sosTooltip,
-          child: isFullScreen
-              ? const Icon(Icons.phone)
-              : Column(
-                  mainAxisSize: MainAxisSize.min,
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: <Widget>[
-                    const Icon(Icons.phone),
-                    // FittedBox keeps the label inside the FAB's 56dp circle
-                    // even when system text-scale is large; without it `.sp`
-                    // overflows the column on smaller layouts.
-                    FittedBox(
-                      fit: BoxFit.scaleDown,
-                      child: myAutoSizedText(
-                        'SOS',
-                        TextStyle(fontSize: 10.sp, fontWeight: FontWeight.bold),
-                        null,
-                        20,
+        floatingActionButton: SizedBox(
+          width: 64,
+          height: 64,
+          child: FloatingActionButton(
+            shape: const CircleBorder(),
+            elevation: 6,
+            backgroundColor: isFullScreen
+                ? const Color(0xCC0F2851)
+                : const Color(0xFF0F2851),
+            tooltip: appLocale.sosTooltip,
+            child: isFullScreen
+                ? const Icon(Icons.phone)
+                : Center(
+                    child: Transform.translate(
+                      offset: const Offset(0, 5),
+                      child: SvgPicture.asset(
+                        'assets/images/sos_icon.svg',
+                        width: 40,
+                        fit: BoxFit.contain,
+                        colorFilter: const ColorFilter.mode(
+                          Colors.white,
+                          BlendMode.srcIn,
+                        ),
                       ),
                     ),
-                  ],
-                ),
-          onPressed: () {
-            setState(() {
-              currentScreen = PhonePage(phonePageData: widget.phonePageData);
-              current = PagesCode.EmergencyPhones;
-              // Exit fullscreen so emergency page renders with full chrome
-              isFullScreen = false;
-            });
-          },
+                  ),
+            onPressed: () {
+              setState(() {
+                currentScreen = PhonePage(phonePageData: widget.phonePageData);
+                current = PagesCode.EmergencyPhones;
+                isFullScreen = false;
+              });
+            },
+          ),
         ),
         floatingActionButtonLocation: isFullScreen
             ? FloatingActionButtonLocation.endFloat
@@ -374,79 +351,81 @@ class _MenuState extends LPExtendedState<Menu> {
             ? null
             : BottomAppBar(
                 elevation: 0,
-                color: colorScheme.surface,
-                shape: const CircularNotchedRectangle(),
-                notchMargin: 10,
-                child: Container(
-                  color: colorScheme.surface,
-                  height: 60,
-                  child: Row(
-                    children: [
-                      Expanded(
-                        child: _bottomNavigationButton(
-                          key: const Key('bottomNavHome'),
-                          onPressed: () {
-                            setState(() {
-                              currentScreen = _buildHomeScreen();
-                              current = PagesCode.Home;
-                            });
-                          },
-                          selected: current == PagesCode.Home,
-                          icon: Icons.home,
-                          label: appLocale.home(gender),
-                        ),
-                      ),
-                      Expanded(
-                        child: _bottomNavigationButton(
-                          key: const Key('bottomNavMyPlan'),
-                          onPressed: () {
-                            setState(() {
-                              currentScreen = MyPlanPageFull(
-                                phonePageData: widget.phonePageData,
-                                hasFilled: widget.hasFilled,
-                                changeLocale: widget.changeLocale,
-                              );
-                              current = PagesCode.FullPlan;
-                            });
-                          },
-                          selected: current == PagesCode.FullPlan,
-                          icon: Icons.assignment,
-                          label: appLocale.personalPlanPageMyPlan(gender),
-                        ),
-                      ),
-                      const SizedBox(width: _bottomNavigationCenterGap),
-                      Expanded(
-                        child: _bottomNavigationButton(
-                          key: const Key('bottomNavFeelGood'),
-                          onPressed: () {
-                            setState(() {
-                              mixPanelService.trackEvent(
-                                "Viewed Feel Good Page",
-                              );
-                              currentScreen = FeelGood();
-                              current = PagesCode.FeelGoodPage;
-                            });
-                          },
-                          selected: current == PagesCode.FeelGoodPage,
-                          icon: Icons.emoji_emotions_outlined,
-                          label: AppLocalizations.of(
-                            context,
-                          )!.homePageFeelGood(gender),
-                        ),
-                      ),
-                      Expanded(
-                        child: _bottomNavigationButton(
-                          key: const Key('bottomNavSupportTools'),
-                          onPressed: () {
-                            _showWellnessTools(appInfoProvider);
-                          },
-                          selected: current == PagesCode.WellnessToolsPage,
-                          icon: Icons.local_florist_outlined,
-                          label: appLocale.homePageWellnessTools(gender),
-                        ),
-                      ),
-                    ],
+                padding: const EdgeInsets.fromLTRB(8, 30, 8, 4),
+                shape: const AutomaticNotchedShape(
+                  RoundedRectangleBorder(
+                    borderRadius: BorderRadius.vertical(
+                      top: Radius.circular(34),
+                    ),
                   ),
+                  CircleBorder(),
+                ),
+                notchMargin: 10,
+                child: Row(
+                  children: [
+                    Expanded(
+                      child: _bottomNavigationButton(
+                        key: const Key('bottomNavHome'),
+                        onPressed: () {
+                          setState(() {
+                            currentScreen = _buildHomeScreen();
+                            current = PagesCode.Home;
+                          });
+                        },
+                        selected: current == PagesCode.Home,
+                        icon: 'assets/images/home_icons.svg',
+                        label: appLocale.home(gender),
+                      ),
+                    ),
+                    Expanded(
+                      child: _bottomNavigationButton(
+                        key: const Key('bottomNavMyPlan'),
+                        onPressed: () {
+                          setState(() {
+                            currentScreen = MyPlanPageFull(
+                              phonePageData: widget.phonePageData,
+                              hasFilled: widget.hasFilled,
+                              changeLocale: widget.changeLocale,
+                            );
+                            current = PagesCode.FullPlan;
+                          });
+                        },
+                        selected: current == PagesCode.FullPlan,
+                        icon: 'assets/images/task_icon.svg',
+                        label: appLocale.personalPlanPageMyPlan(gender),
+                      ),
+                    ),
+                    const SizedBox(width: _bottomNavigationCenterGap),
+                    Expanded(
+                      child: _bottomNavigationButton(
+                        key: const Key('bottomNavFeelGood'),
+                        onPressed: () {
+                          setState(() {
+                            mixPanelService.trackEvent("Viewed Feel Good Page");
+                            currentScreen = FeelGood();
+                            current = PagesCode.FeelGoodPage;
+                          });
+                        },
+                        selected: current == PagesCode.FeelGoodPage,
+                        icon: 'assets/images/yin_yang_icon.svg',
+                        label: AppLocalizations.of(
+                          context,
+                        )!.homePageFeelGood(gender),
+                      ),
+                    ),
+
+                    Expanded(
+                      child: _bottomNavigationButton(
+                        key: const Key('bottomNavSupportTools'),
+                        onPressed: () {
+                          _showWellnessTools(appInfoProvider);
+                        },
+                        selected: current == PagesCode.WellnessToolsPage,
+                        icon: Icons.local_florist_outlined,
+                        label: appLocale.homePageWellnessTools(gender),
+                      ),
+                    ),
+                  ],
                 ),
               ),
       ),

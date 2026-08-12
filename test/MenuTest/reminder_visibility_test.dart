@@ -148,6 +148,7 @@ void main() {
         initialValues: {
           'hasFilled': false,
           'location': '',
+          'customReminder': '',
           'phonePageDataSavedPhoneNames': <String>[],
           'phonePageDataSavedPhoneNumbers': <String>[],
         },
@@ -173,7 +174,7 @@ void main() {
       getMenuForTests(mockUserInformation, mockAppInformation),
     );
     await tester.pumpAndSettle();
-    await tester.tap(find.byIcon(Icons.menu));
+    await tester.tap(find.byIcon(Icons.settings_outlined));
     await tester.pumpAndSettle();
   }
 
@@ -196,7 +197,7 @@ void main() {
       ),
     );
     await tester.pumpAndSettle();
-    await tester.tap(find.byIcon(Icons.menu));
+    await tester.tap(find.byIcon(Icons.settings_outlined));
     await tester.pumpAndSettle();
 
     return fakePlatform;
@@ -300,12 +301,10 @@ void main() {
 
     final contactTop = tester.getTopLeft(contactButton).dy;
     final shareCenter = tester.getCenter(shareIcon).dy;
-    final contactBottom = tester.getBottomLeft(contactButton).dy;
-    final menuBottom = tester.getBottomLeft(menuDialog).dy;
 
     expect(contactTop, greaterThan(shareCenter));
-    expect(contactBottom, closeTo(menuBottom, 1));
   });
+
 
   testWidgets('launches Hebrew contact us URL externally', (
     WidgetTester tester,

@@ -15,7 +15,7 @@ class About extends StatelessWidget {
             height: 200.0,
             child: Image.asset(
               key: Key('MatzilonLogo'),
-              'assets/images/Logo.jpeg',
+              'assets/images/Logo.png',
               width: MediaQuery.of(context).size.width * 0.8 > 1000
                   ? 500
                   : MediaQuery.of(context).size.width * 0.8, // Adjust as needed

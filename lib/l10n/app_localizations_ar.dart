@@ -3351,4 +3351,88 @@ class AppLocalizationsAr extends AppLocalizations {
   @override
   String get confirmDeletePlanAnswerMessage =>
       'ستتم إزالة الإجابة من خطتك الشخصية.';
+
+  @override
+  String get reminders => 'التذكيرات';
+
+  @override
+  String get myPlan => 'خطتي';
+
+  @override
+  String get traitsListTitle => 'السمات الإيجابية';
+
+  @override
+  String get gratitudeListTitle => 'قائمة الامتنان';
+
+  @override
+  String get myPlanSubTitle => 'أشياء ستجعلني أشعر بشكل أفضل الآن';
+
+  @override
+  String get warningSignsTitle => 'علامات التحذير لدي';
+
+  @override
+  String get warningSignsSubTitle =>
+      'إذا ظهرت علامة تحذير، قم بتفعيل خطة السلامة الشخصية. أضف علامات التحذير الخاصة بك';
+
+  @override
+  String get addWarningSign => 'أضف علامة تحذير';
+
+  @override
+  String get traitsSubTitle => 'هنا أتألق. اقرأ يومياً';
+
+  @override
+  String get gratitudeSubTitle => 'ما الذي أنا ممتن له اليوم';
+
+  @override
+  String get ourSuggestion => 'اقتراحنا';
+
+  @override
+  String deepBreathSuggestion(String gender) {
+    String _temp0 = intl.Intl.selectLogic(gender, {
+      'male': 'خذ نفساً عميقاً',
+      'female': 'خذي نفساً عميقاً',
+      'other': 'خذ/ي نفساً عميقاً',
+    });
+    return '$_temp0';
+  }
+
+  @override
+  String stretchBodySuggestion(String gender) {
+    String _temp0 = intl.Intl.selectLogic(gender, {
+      'male': 'قم بتمديد جسمك',
+      'female': 'قومي بتمديد جسمك',
+      'other': 'قم/قومي بتمديد جسمك',
+    });
+    return '$_temp0';
+  }
+
+  @override
+  String drinkWaterSuggestion(String gender) {
+    String _temp0 = intl.Intl.selectLogic(gender, {
+      'male': 'اشرب بعض الماء',
+      'female': 'اشربي بعض الماء',
+      'other': 'اشرب/ي بعض الماء',
+    });
+    return '$_temp0';
+  }
+
+  @override
+  String shortBreakSuggestion(String gender) {
+    String _temp0 = intl.Intl.selectLogic(gender, {
+      'male': 'خذ استراحة قصيرة',
+      'female': 'خذي استراحة قصيرة',
+      'other': 'خذ/ي استراحة قصيرة',
+    });
+    return '$_temp0';
+  }
+
+  @override
+  String lookForwardSuggestion(String gender) {
+    String _temp0 = intl.Intl.selectLogic(gender, {
+      'male': 'ابتسم وتطلع إلى الأمام',
+      'female': 'ابتسمي وتطلعي إلى الأمام',
+      'other': 'ابتسم/ي وتطلع/ي إلى الأمام',
+    });
+    return '$_temp0';
+  }
 }
