@@ -20,7 +20,12 @@ enum _SosDeliveryOption { app, contact, map }
 
 enum _SosContactDeliveryOption { sms, whatsApp }
 
-enum _SosLocationUnavailableOption { retry, message }
+enum _SosLocationFailure { servicesDisabled, unavailable }
+
+typedef _SosLocationLookupResult = ({
+  Position? position,
+  _SosLocationFailure? failure,
+});
 
 class PhonePage extends StatefulWidget {
   final PhonePageData phonePageData;
@@ -46,11 +51,12 @@ class _PhonePageState extends LPExtendedState<PhonePage> {
 
   Future<void> _runLocationDelivery() async {
     while (mounted) {
-      final position = await _getCurrentPosition();
+      final locationResult = await _getCurrentPosition();
       if (!mounted) {
         return;
       }
 
+      final position = locationResult.position;
       if (position != null) {
         final mapLink = _mapShareLink(position);
         await _showDeliveryOptions(
@@ -60,19 +66,14 @@ class _PhonePageState extends LPExtendedState<PhonePage> {
         return;
       }
 
-      final unavailableOption = await _showLocationUnavailableDialog();
-      if (!mounted || unavailableOption == null) {
+      final shouldRetry = await _showLocationUnavailableDialog(
+        locationResult.failure == _SosLocationFailure.servicesDisabled
+            ? appLocale.sosShareLocationServicesDisabled
+            : appLocale.sosShareLocationUnavailable,
+      );
+      if (!mounted || !shouldRetry) {
         return;
       }
-      if (unavailableOption == _SosLocationUnavailableOption.retry) {
-        continue;
-      }
-      if (unavailableOption == _SosLocationUnavailableOption.message) {
-        await _showDeliveryOptions(
-          '${appLocale.sosShareLocationMessage}\n${appLocale.sosShareLocationUnavailable}',
-        );
-      }
-      return;
     }
   }
 
@@ -99,15 +100,15 @@ class _PhonePageState extends LPExtendedState<PhonePage> {
     }
   }
 
-  Future<Position?> _getCurrentPosition() async {
+  Future<_SosLocationLookupResult> _getCurrentPosition() async {
     if (!_supportsLocationSharing) {
-      return null;
+      return (position: null, failure: _SosLocationFailure.unavailable);
     }
 
     try {
       final serviceEnabled = await Geolocator.isLocationServiceEnabled();
       if (!serviceEnabled) {
-        return null;
+        return (position: null, failure: _SosLocationFailure.servicesDisabled);
       }
 
       var permission = await Geolocator.checkPermission();
@@ -116,18 +117,21 @@ class _PhonePageState extends LPExtendedState<PhonePage> {
       }
       if (permission != LocationPermission.whileInUse &&
           permission != LocationPermission.always) {
-        return null;
+        return (position: null, failure: _SosLocationFailure.unavailable);
       }
 
-      return await Geolocator.getCurrentPosition(
-        locationSettings: const LocationSettings(
-          accuracy: LocationAccuracy.high,
-          timeLimit: Duration(seconds: 15),
+      return (
+        position: await Geolocator.getCurrentPosition(
+          locationSettings: const LocationSettings(
+            accuracy: LocationAccuracy.high,
+            timeLimit: Duration(seconds: 15),
+          ),
         ),
+        failure: null,
       );
     } catch (error, stackTrace) {
       debugPrint('Could not get SOS location: $error\n$stackTrace');
-      return null;
+      return (position: null, failure: _SosLocationFailure.unavailable);
     }
   }
 
@@ -431,32 +435,25 @@ class _PhonePageState extends LPExtendedState<PhonePage> {
         false;
   }
 
-  Future<_SosLocationUnavailableOption?> _showLocationUnavailableDialog() {
+  Future<bool> _showLocationUnavailableDialog(String message) async {
     final gender = Provider.of<UserInformation>(context, listen: false).gender;
-    return showDialog<_SosLocationUnavailableOption>(
-      context: context,
-      builder: (dialogContext) => AlertDialog(
-        content: Text(appLocale.sosShareLocationUnavailable),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.of(dialogContext).pop(),
-            child: Text(appLocale.closeButton(gender)),
+    return (await showDialog<bool>(
+          context: context,
+          builder: (dialogContext) => AlertDialog(
+            content: Text(message),
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.of(dialogContext).pop(false),
+                child: Text(appLocale.closeButton(gender)),
+              ),
+              TextButton(
+                onPressed: () => Navigator.of(dialogContext).pop(true),
+                child: Text(appLocale.asyncRetryButton),
+              ),
+            ],
           ),
-          TextButton(
-            onPressed: () => Navigator.of(
-              dialogContext,
-            ).pop(_SosLocationUnavailableOption.message),
-            child: Text(appLocale.sosShareMessage),
-          ),
-          TextButton(
-            onPressed: () => Navigator.of(
-              dialogContext,
-            ).pop(_SosLocationUnavailableOption.retry),
-            child: Text(appLocale.asyncRetryButton),
-          ),
-        ],
-      ),
-    );
+        )) ??
+        false;
   }
 
   Future<void> _openContactsEditor() {

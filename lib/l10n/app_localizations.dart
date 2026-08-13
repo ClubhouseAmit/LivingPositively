@@ -844,6 +844,12 @@ abstract class AppLocalizations {
   /// **'Your current location could not be obtained.'**
   String get sosShareLocationUnavailable;
 
+  /// Notice shown when device location services are disabled for a one-time SOS location request.
+  ///
+  /// In en, this message translates to:
+  /// **'Your current location could not be obtained. Please enable location services.'**
+  String get sosShareLocationServicesDisabled;
+
   /// Notice shown when the SOS help message cannot be shared through the native share sheet.
   ///
   /// In en, this message translates to:

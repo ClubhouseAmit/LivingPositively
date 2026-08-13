@@ -395,6 +395,7 @@
   "sosShareLocationTooltip": "مشاركة موقعك الحالي",
   "sosShareLocationMessage": "أنا هنا وأحتاج إلى مساعدتك.",
   "sosShareLocationUnavailable": "تعذّر الحصول على موقعك الحالي.",
+  "sosShareLocationServicesDisabled": "تعذّر الحصول على موقعك الحالي. يُرجى تفعيل خدمات الموقع.",
   "sosShareLocationShareFailed": "تعذّر مشاركة رسالة طلب المساعدة الخاصة بك. يُرجى المحاولة مرة أخرى.",
   "sosShareMessage": "مشاركة رسالة الاستغاثة",
   "sosShareMessageTooltip": "مشاركة رسالة طلب المساعدة",

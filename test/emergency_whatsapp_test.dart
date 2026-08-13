@@ -278,6 +278,8 @@ Future<void> _expectLocationUnavailable(
   FakeGeolocatorPlatform geolocator, {
   TargetPlatform platform = TargetPlatform.android,
   Locale locale = const Locale('en', 'US'),
+  bool servicesDisabled = false,
+  String? expectedNotice,
 }) async {
   final fileService = RecordingFileService();
   await _runLocationShareTest(
@@ -306,9 +308,39 @@ Future<void> _expectLocationUnavailable(
       final localizations = AppLocalizations.of(
         tester.element(find.byType(PhonePage)),
       )!;
+      final locationUnavailableDialog = find.byType(AlertDialog);
       expect(fileService.sharedMessages, isEmpty);
       expect(
-        find.text(localizations.sosShareLocationUnavailable),
+        find.text(
+          expectedNotice ??
+              (servicesDisabled
+                  ? localizations.sosShareLocationServicesDisabled
+                  : localizations.sosShareLocationUnavailable),
+        ),
+        findsOneWidget,
+      );
+      expect(locationUnavailableDialog, findsOneWidget);
+      for (final deliveryAction in [
+        localizations.sosShareMessage,
+        localizations.sosDeliveryChooseApp,
+        localizations.sosDeliverySendToContact,
+        localizations.sosDeliveryOpenMapApp,
+        localizations.sosDeliverySms,
+        localizations.whatsApp,
+      ]) {
+        expect(
+          find.descendant(
+            of: locationUnavailableDialog,
+            matching: find.text(deliveryAction),
+          ),
+          findsNothing,
+        );
+      }
+      expect(
+        find.descendant(
+          of: locationUnavailableDialog,
+          matching: find.text(localizations.asyncRetryButton),
+        ),
         findsOneWidget,
       );
     },
@@ -1326,49 +1358,57 @@ void main() {
     );
   });
 
+  for (final disabledServicesCase in <({Locale locale, String notice})>[
+    (
+      locale: const Locale('en'),
+      notice:
+          'Your current location could not be obtained. Please enable location services.',
+    ),
+    (
+      locale: const Locale('he'),
+      notice: 'לא ניתן לקבל את מיקומך הנוכחי, נא להפעיל את שירותי המיקום',
+    ),
+    (
+      locale: const Locale('ar'),
+      notice: 'تعذّر الحصول على موقعك الحالي. يُرجى تفعيل خدمات الموقع.',
+    ),
+  ]) {
+    testWidgets(
+      'PhonePage stops SOS delivery and shows disabled-services feedback in ${disabledServicesCase.locale.languageCode}',
+      (tester) async {
+        final geolocator = FakeGeolocatorPlatform(serviceEnabled: false);
+
+        await _expectLocationUnavailable(
+          tester,
+          geolocator,
+          locale: disabledServicesCase.locale,
+          servicesDisabled: true,
+          expectedNotice: disabledServicesCase.notice,
+        );
+
+        expect(geolocator.checkPermissionCalls, 0);
+        expect(geolocator.currentPositionCalls, 0);
+      },
+    );
+  }
+
   testWidgets(
-    'PhonePage shares help text when location services are disabled',
+    'PhonePage stops SOS delivery when location permission is denied',
     (tester) async {
-      final geolocator = FakeGeolocatorPlatform(serviceEnabled: false);
+      final geolocator = FakeGeolocatorPlatform(
+        permission: LocationPermission.denied,
+        requestedPermission: LocationPermission.denied,
+      );
 
       await _expectLocationUnavailable(tester, geolocator);
 
-      expect(geolocator.checkPermissionCalls, 0);
+      expect(geolocator.requestPermissionCalls, 1);
       expect(geolocator.currentPositionCalls, 0);
     },
   );
 
-  testWidgets('PhonePage localizes SOS location fallback feedback in Arabic', (
-    tester,
-  ) async {
-    final geolocator = FakeGeolocatorPlatform(serviceEnabled: false);
-
-    await _expectLocationUnavailable(
-      tester,
-      geolocator,
-      locale: const Locale('ar'),
-    );
-
-    expect(geolocator.checkPermissionCalls, 0);
-    expect(geolocator.currentPositionCalls, 0);
-  });
-
-  testWidgets('PhonePage shares help text when location permission is denied', (
-    tester,
-  ) async {
-    final geolocator = FakeGeolocatorPlatform(
-      permission: LocationPermission.denied,
-      requestedPermission: LocationPermission.denied,
-    );
-
-    await _expectLocationUnavailable(tester, geolocator);
-
-    expect(geolocator.requestPermissionCalls, 1);
-    expect(geolocator.currentPositionCalls, 0);
-  });
-
   testWidgets(
-    'PhonePage shares help text when location permission is permanently denied',
+    'PhonePage stops SOS delivery when location permission is permanently denied',
     (tester) async {
       final geolocator = FakeGeolocatorPlatform(
         permission: LocationPermission.deniedForever,
@@ -1420,7 +1460,7 @@ void main() {
   });
 
   testWidgets(
-    'PhonePage shares help text when location availability cannot be determined',
+    'PhonePage stops SOS delivery when location availability cannot be determined',
     (tester) async {
       final geolocator = FakeGeolocatorPlatform(
         permission: LocationPermission.unableToDetermine,
@@ -1432,7 +1472,7 @@ void main() {
     },
   );
 
-  testWidgets('PhonePage shares help text when location lookup times out', (
+  testWidgets('PhonePage stops SOS delivery when location lookup times out', (
     tester,
   ) async {
     final geolocator = FakeGeolocatorPlatform(
@@ -1444,7 +1484,7 @@ void main() {
     expect(geolocator.currentPositionCalls, 1);
   });
 
-  testWidgets('PhonePage shares help text when location lookup throws', (
+  testWidgets('PhonePage stops SOS delivery when location lookup throws', (
     tester,
   ) async {
     final geolocator = FakeGeolocatorPlatform(
@@ -1456,7 +1496,7 @@ void main() {
     expect(geolocator.currentPositionCalls, 1);
   });
 
-  testWidgets('PhonePage shares help text without GPS on desktop', (
+  testWidgets('PhonePage stops SOS delivery without GPS on desktop', (
     tester,
   ) async {
     final geolocator = FakeGeolocatorPlatform();
@@ -1474,7 +1514,9 @@ void main() {
     expect(geolocator.callLog, isEmpty);
   });
 
-  testWidgets('PhonePage shares help text without GPS on web', (tester) async {
+  testWidgets('PhonePage stops SOS delivery without GPS on web', (
+    tester,
+  ) async {
     final geolocator = FakeGeolocatorPlatform();
 
     await _expectLocationUnavailable(tester, geolocator);
@@ -2416,7 +2458,7 @@ void main() {
   );
 
   testWidgets(
-    'PhonePage retries location or explicitly enters message delivery',
+    'PhonePage retries disabled location services before offering delivery',
     (tester) async {
       final geolocator = FakeGeolocatorPlatform(
         serviceEnabledResults: [false, true],
@@ -2444,6 +2486,10 @@ void main() {
 
           await _tapLocationShare(tester);
           expect(fileService.sharedMessages, isEmpty);
+          expect(
+            find.text(localizations.sosShareLocationServicesDisabled),
+            findsOneWidget,
+          );
           await tester.tap(find.text(localizations.asyncRetryButton));
           await tester.pumpAndSettle();
           await _chooseDeliveryOption(
@@ -2453,154 +2499,11 @@ void main() {
 
           expect(geolocator.locationServiceEnabledCalls, 2);
           expect(fileService.sharedMessages, hasLength(1));
-
-          final unavailableGeolocator = FakeGeolocatorPlatform(
-            serviceEnabled: false,
-          );
-          GeolocatorPlatform.instance = unavailableGeolocator;
-          await _tapLocationShare(tester);
-          await tester.tap(find.text(localizations.sosShareMessage).last);
-          await tester.pumpAndSettle();
-          await _chooseDeliveryOption(
-            tester,
-            localizations.sosDeliveryChooseApp,
-          );
-
           expect(
-            fileService.sharedMessages.last,
+            fileService.sharedMessages.single,
             '${localizations.sosShareLocationMessage}\n'
-            '${localizations.sosShareLocationUnavailable}',
+            'https://www.google.com/maps/search/?api=1&query=31.7683,35.2137',
           );
-          expect(unavailableGeolocator.currentPositionCalls, 0);
-        },
-      );
-    },
-  );
-
-  testWidgets(
-    'PhonePage includes unavailable-location disclosure in fallback SMS delivery',
-    (tester) async {
-      MethodCall? smsCall;
-      final messenger =
-          TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger;
-      messenger.setMockMethodCallHandler(_smsComposeChannel, (call) async {
-        smsCall = call;
-        return true;
-      });
-      addTearDown(
-        () => messenger.setMockMethodCallHandler(_smsComposeChannel, null),
-      );
-
-      final geolocator = FakeGeolocatorPlatform(serviceEnabled: false);
-      final fileService = RecordingFileService();
-      await _runLocationShareTest(
-        geolocator,
-        fileService,
-        body: () async {
-          final phonePageData = _phonePageDataForLocationShare();
-          await tester.pumpWidget(
-            buildPhonePageTestApp(
-              userInformation: UserInformation(
-                gender: 'male',
-                location: 'IL',
-                service: FakePersistentMemoryService(),
-              ),
-              appInformation: AppInformation(),
-              phonePageData: phonePageData,
-            ),
-          );
-          await tester.pumpAndSettle();
-          expect(
-            phonePageData.addItem('Fallback SMS', '+972 50 123 4567'),
-            isTrue,
-          );
-          await tester.pumpAndSettle();
-          final localizations = AppLocalizations.of(
-            tester.element(find.byType(PhonePage)),
-          )!;
-
-          await _tapLocationShare(tester);
-          await tester.tap(find.text(localizations.sosShareMessage).last);
-          await tester.pumpAndSettle();
-          await _chooseDeliveryOption(
-            tester,
-            localizations.sosDeliverySendToContact,
-          );
-          await tester.tap(find.text('Fallback SMS').last);
-          await tester.pumpAndSettle();
-          await _chooseDeliveryOption(tester, localizations.sosDeliverySms);
-
-          expect(smsCall?.method, 'composeSms');
-          expect(smsCall?.arguments, <String, String>{
-            'number': '+972501234567',
-            'body':
-                '${localizations.sosShareLocationMessage}\n'
-                '${localizations.sosShareLocationUnavailable}',
-          });
-          expect(fileService.sharedMessages, isEmpty);
-          expect(geolocator.currentPositionCalls, 0);
-        },
-      );
-    },
-  );
-
-  testWidgets(
-    'PhonePage includes unavailable-location disclosure in fallback WhatsApp delivery',
-    (tester) async {
-      final originalPlatform = UrlLauncherPlatform.instance;
-      final fakePlatform = FakeUrlLauncherPlatform();
-      UrlLauncherPlatform.instance = fakePlatform;
-      addTearDown(() => UrlLauncherPlatform.instance = originalPlatform);
-
-      final geolocator = FakeGeolocatorPlatform(serviceEnabled: false);
-      final fileService = RecordingFileService();
-      await _runLocationShareTest(
-        geolocator,
-        fileService,
-        body: () async {
-          final phonePageData = _phonePageDataForLocationShare();
-          await tester.pumpWidget(
-            buildPhonePageTestApp(
-              userInformation: UserInformation(
-                gender: 'male',
-                location: 'IL',
-                service: FakePersistentMemoryService(),
-              ),
-              appInformation: AppInformation(),
-              phonePageData: phonePageData,
-            ),
-          );
-          await tester.pumpAndSettle();
-          expect(
-            phonePageData.addItem('Fallback WhatsApp', '+972 50 123 4567'),
-            isTrue,
-          );
-          await tester.pumpAndSettle();
-          final localizations = AppLocalizations.of(
-            tester.element(find.byType(PhonePage)),
-          )!;
-
-          await _tapLocationShare(tester);
-          await tester.tap(find.text(localizations.sosShareMessage).last);
-          await tester.pumpAndSettle();
-          await _chooseDeliveryOption(
-            tester,
-            localizations.sosDeliverySendToContact,
-          );
-          await tester.tap(find.text('Fallback WhatsApp').last);
-          await tester.pumpAndSettle();
-          await _chooseDeliveryOption(tester, localizations.whatsApp);
-
-          final whatsAppUri = Uri.parse(fakePlatform.lastLaunchedUrl!);
-          expect(whatsAppUri.host, 'wa.me');
-          expect(whatsAppUri.path, '/972501234567');
-          expect(
-            whatsAppUri.queryParameters['text'],
-            '${localizations.sosShareLocationMessage}\n'
-            '${localizations.sosShareLocationUnavailable}',
-          );
-          expect(fileService.sharedMessages, isEmpty);
-          expect(geolocator.currentPositionCalls, 0);
         },
       );
     },

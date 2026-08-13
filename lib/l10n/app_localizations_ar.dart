@@ -1141,6 +1141,10 @@ class AppLocalizationsAr extends AppLocalizations {
   String get sosShareLocationUnavailable => 'تعذّر الحصول على موقعك الحالي.';
 
   @override
+  String get sosShareLocationServicesDisabled =>
+      'تعذّر الحصول على موقعك الحالي. يُرجى تفعيل خدمات الموقع.';
+
+  @override
   String get sosShareLocationShareFailed =>
       'تعذّر مشاركة رسالة طلب المساعدة الخاصة بك. يُرجى المحاولة مرة أخرى.';
 

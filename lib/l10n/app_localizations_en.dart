@@ -1157,6 +1157,10 @@ class AppLocalizationsEn extends AppLocalizations {
       'Your current location could not be obtained.';
 
   @override
+  String get sosShareLocationServicesDisabled =>
+      'Your current location could not be obtained. Please enable location services.';
+
+  @override
   String get sosShareLocationShareFailed =>
       'Your SOS help message could not be shared. Please try again.';
 
