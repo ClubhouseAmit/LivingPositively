@@ -555,15 +555,12 @@ class _MyAppState extends State<MyApp> with WidgetsBindingObserver {
         home: UpgradeAlert(
           child: Scaffold(
             resizeToAvoidBottomInset: false,
-            body: Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 16),
-              child: ValueListenableBuilder<Widget?>(
-                valueListenable: widgetNotifier,
-                builder: (context, widget, child) {
-                  //widget running on success or intro in first login:
-                  return widget ?? const Center(child: Introduction());
-                },
-              ),
+            body: ValueListenableBuilder<Widget?>(
+              valueListenable: widgetNotifier,
+              builder: (context, widget, child) {
+                //widget running on success or intro in first login:
+                return widget ?? const Center(child: Introduction());
+              },
             ),
           ),
         ),

@@ -462,140 +462,146 @@ class _ShareFormState extends LPExtendedState<ShareForm> {
         body: SafeArea(
           child: SingleChildScrollView(
             child: Center(
-              child: Column(
-                children: [
-                  SizedBox(height: returnSizedBox(context, 25)),
-                  myAutoSizedText(
-                    appLocale.sharePageHeader(gender),
-                    TextStyle(
-                      fontSize: 30.sp,
-                      fontWeight: FontWeight.w500,
-                      color: Theme.of(context).colorScheme.onSurface,
+              child: Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 16),
+                child: Column(
+                  children: [
+                    SizedBox(height: returnSizedBox(context, 25)),
+                    myAutoSizedText(
+                      appLocale.sharePageHeader(gender),
+                      TextStyle(
+                        fontSize: 30.sp,
+                        fontWeight: FontWeight.w500,
+                        color: Theme.of(context).colorScheme.onSurface,
+                      ),
+                      null,
+                      60,
                     ),
-                    null,
-                    60,
-                  ),
-                  myAutoSizedText(
-                    appLocale.sharePageSubTitle(gender),
-                    TextStyle(
-                      fontWeight: FontWeight.normal,
-                      fontSize: 16.sp,
-                      color: Theme.of(context).colorScheme.outline,
-                    ),
-                    null,
-                    35,
-                  ),
-                  myImage('assets/images/FormSubmit.png', context, 0.8, 0.4),
-                  SizedBox(
-                    width: MediaQuery.sizeOf(context).width * 0.8,
-                    child: myAutoSizedText(
-                      appLocale.sharePageMidTitle(gender),
-                      TextStyle(fontWeight: FontWeight.normal, fontSize: 16.sp),
+                    myAutoSizedText(
+                      appLocale.sharePageSubTitle(gender),
+                      TextStyle(
+                        fontWeight: FontWeight.normal,
+                        fontSize: 16.sp,
+                        color: Theme.of(context).colorScheme.outline,
+                      ),
                       null,
                       35,
                     ),
-                  ),
-                  const SizedBox(height: 30),
-                  SizedBox(
-                    width: MediaQuery.sizeOf(context).width * 0.5,
-                    child: Row(
-                      mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-                      children: [
-                        //share personal plan PDF button:
-                        IconButton(
-                          onPressed: () {
-                            showShareDialog(context);
-                          },
-                          style: TextButton.styleFrom(
-                            backgroundColor: Colors.transparent,
-                            padding: const EdgeInsets.all(10),
-                            shape: RoundedRectangleBorder(
-                              borderRadius: const BorderRadius.all(
-                                Radius.circular(16),
-                              ),
-                              side: BorderSide(
-                                color: Theme.of(context).colorScheme.primary,
-                              ), // Set the border color
-                            ),
-                          ),
-                          icon: Icon(
-                            Icons.share,
-                            color: Theme.of(context).colorScheme.primary,
-                          ), // Set the icon color
-                          padding: const EdgeInsets.all(10),
+                    myImage('assets/images/FormSubmit.png', context, 0.8, 0.4),
+                    SizedBox(
+                      width: MediaQuery.sizeOf(context).width * 0.8,
+                      child: myAutoSizedText(
+                        appLocale.sharePageMidTitle(gender),
+                        TextStyle(
+                          fontWeight: FontWeight.normal,
+                          fontSize: 16.sp,
                         ),
-                        //download personal plan PDF button:
-                        IconButton(
-                          onPressed: () async {
-                            var result = await fileService.download(
-                              [
-                                appLocale.difficultEventsHeader(gender),
-                                appLocale.makeSaferHeader(gender),
-                                appLocale.feelBetterHeader(gender),
-                                appLocale.distractionsHeader(gender),
-                                appLocale.phonesPageHeader(gender),
-                              ],
-                              [
-                                appLocale.difficultEventsSubTitle(gender),
-                                appLocale.makeSaferSubTitle(gender),
-                                appLocale.feelBetterSubTitle(gender),
-                                appLocale.distractionsSubTitle(gender),
-                                appLocale.phonesPageHeader(gender),
-                              ],
-                              appInfoProvider.sharePDFtexts,
-                              ShareFileType.PDF,
-                              appLocale.textDirection,
-                            );
-                            if (result == null) {
-                              // Show him a message
-                              showToast(
-                                message: appLocale.downloadFailed(gender),
+                        null,
+                        35,
+                      ),
+                    ),
+                    const SizedBox(height: 30),
+                    SizedBox(
+                      width: MediaQuery.sizeOf(context).width * 0.5,
+                      child: Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                        children: [
+                          //share personal plan PDF button:
+                          IconButton(
+                            onPressed: () {
+                              showShareDialog(context);
+                            },
+                            style: TextButton.styleFrom(
+                              backgroundColor: Colors.transparent,
+                              padding: const EdgeInsets.all(10),
+                              shape: RoundedRectangleBorder(
+                                borderRadius: const BorderRadius.all(
+                                  Radius.circular(16),
+                                ),
+                                side: BorderSide(
+                                  color: Theme.of(context).colorScheme.primary,
+                                ), // Set the border color
+                              ),
+                            ),
+                            icon: Icon(
+                              Icons.share,
+                              color: Theme.of(context).colorScheme.primary,
+                            ), // Set the icon color
+                            padding: const EdgeInsets.all(10),
+                          ),
+                          //download personal plan PDF button:
+                          IconButton(
+                            onPressed: () async {
+                              var result = await fileService.download(
+                                [
+                                  appLocale.difficultEventsHeader(gender),
+                                  appLocale.makeSaferHeader(gender),
+                                  appLocale.feelBetterHeader(gender),
+                                  appLocale.distractionsHeader(gender),
+                                  appLocale.phonesPageHeader(gender),
+                                ],
+                                [
+                                  appLocale.difficultEventsSubTitle(gender),
+                                  appLocale.makeSaferSubTitle(gender),
+                                  appLocale.feelBetterSubTitle(gender),
+                                  appLocale.distractionsSubTitle(gender),
+                                  appLocale.phonesPageHeader(gender),
+                                ],
+                                appInfoProvider.sharePDFtexts,
+                                ShareFileType.PDF,
+                                appLocale.textDirection,
                               );
-                              return;
-                            }
-                            // Show a toast message to the user
-                            showToast(
-                              message: appLocale.finishedDownloading(gender),
-                            );
-                          },
+                              if (result == null) {
+                                // Show him a message
+                                showToast(
+                                  message: appLocale.downloadFailed(gender),
+                                );
+                                return;
+                              }
+                              // Show a toast message to the user
+                              showToast(
+                                message: appLocale.finishedDownloading(gender),
+                              );
+                            },
 
-                          style: TextButton.styleFrom(
-                            backgroundColor: Colors.transparent,
-                            padding: const EdgeInsets.all(10),
-                            shape: RoundedRectangleBorder(
-                              borderRadius: const BorderRadius.all(
-                                Radius.circular(16),
+                            style: TextButton.styleFrom(
+                              backgroundColor: Colors.transparent,
+                              padding: const EdgeInsets.all(10),
+                              shape: RoundedRectangleBorder(
+                                borderRadius: const BorderRadius.all(
+                                  Radius.circular(16),
+                                ),
+                                side: BorderSide(
+                                  color: Theme.of(context).colorScheme.primary,
+                                ), // Set the border color
                               ),
-                              side: BorderSide(
-                                color: Theme.of(context).colorScheme.primary,
-                              ), // Set the border color
                             ),
+                            icon: Icon(
+                              Icons.download,
+                              color: Theme.of(context).colorScheme.primary,
+                            ), // Set the icon color
+                            padding: const EdgeInsets.all(10),
                           ),
-                          icon: Icon(
-                            Icons.download,
-                            color: Theme.of(context).colorScheme.primary,
-                          ), // Set the icon color
-                          padding: const EdgeInsets.all(10),
-                        ),
-                      ],
+                        ],
+                      ),
                     ),
-                  ),
-                  const SizedBox(height: 30),
-                  buildCustomCategoriesSection(context, gender),
-                  const SizedBox(height: 16),
-                  ConfirmationButton(
-                    context,
-                    () {
-                      widget.submit(context);
-                    },
-                    appLocale.sharePageFinishButton(gender),
-                    myTextStyle.copyWith(
-                      fontWeight: FontWeight.w500,
-                      fontSize: 18.sp,
+                    const SizedBox(height: 30),
+                    buildCustomCategoriesSection(context, gender),
+                    const SizedBox(height: 16),
+                    ConfirmationButton(
+                      context,
+                      () {
+                        widget.submit(context);
+                      },
+                      appLocale.sharePageFinishButton(gender),
+                      myTextStyle.copyWith(
+                        fontWeight: FontWeight.w500,
+                        fontSize: 18.sp,
+                      ),
                     ),
-                  ),
-                  const SizedBox(height: 30),
-                ],
+                    const SizedBox(height: 30),
+                  ],
+                ),
               ),
             ),
           ),
