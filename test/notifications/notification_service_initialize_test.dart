@@ -196,7 +196,7 @@ void main() {
   });
 
   group('initializeNotification platform branches', () {
-    testWidgets('iOS short-circuits at supportsReminderSettings guard',
+    testWidgets('iOS schedules reminder without workmanager registrations',
         (tester) async {
       await _onIos(() async {
         fakeWm.calls.clear();
@@ -207,6 +207,7 @@ void main() {
           (s) => 'msg $s',
           _DummyLocale(),
         );
+        await tester.pump(const Duration(seconds: 2));
         // No workmanager registrations on iOS.
         expect(fakeWm.calls.where((c) => c.startsWith('register')).toList(),
             isEmpty);

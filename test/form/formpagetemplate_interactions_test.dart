@@ -1,8 +1,9 @@
 // Drives every uncovered branch in FormPageTemplate:
 //   - addItem / removeItem / editItem (lines 56-72)
 //   - addSuggestion show-more button (lines 75-83)
-//   - createSelection switch arms for all four collection names
-//     (lines 85-109) — DifficultEvents, MakeSafer, FeelBetter, Distractions
+//   - createSelection switch arms for all five collection names
+//     (lines 85-109) — DifficultEvents, MakeSafer, FeelBetter, Distractions,
+//     SafeEnvironment
 //   - the CheckboxListTile onChanged tap path with the already-selected branch
 //     (lines 389-400)
 //   - the "add manual item" TextButton handler with both empty-validate
@@ -200,6 +201,7 @@ void main() {
       'PersonalPlan-MakeSafer',
       'PersonalPlan-FeelBetter',
       'PersonalPlan-Distractions',
+      'PersonalPlan-SafeEnvironment',
     ]) {
       await tester.binding.setSurfaceSize(const Size(900, 2200));
       var nextCalls = 0;
@@ -251,6 +253,34 @@ void main() {
       );
     }
   });
+
+  testWidgets(
+    'Safe Environment shows all four options and persists multiple choices '
+    'with free text',
+    (tester) async {
+      final user = UserInformation()..gender = 'other';
+      await _pump(tester, 'PersonalPlan-SafeEnvironment', user: user);
+
+      final choices = find.byType(CheckboxListTile);
+      expect(choices, findsNWidgets(4));
+
+      await tester.enterText(find.byType(TextField), 'My own safety step');
+      await tester.tap(find.byType(TextButton).first, warnIfMissed: false);
+      await tester.pumpAndSettle();
+
+      await tester.tap(choices.first, warnIfMissed: false);
+      await tester.tap(choices.last, warnIfMissed: false);
+      await tester.pumpAndSettle();
+
+      const expected = [
+        'My own safety step',
+        'Removing or depositing personal weapon',
+        'Having someone stay with me, not being alone',
+      ];
+      expect(pm.store['userSelectionPersonalPlan-SafeEnvironment'], expected);
+      expect(user.safeEnvironment, expected);
+    },
+  );
 
   testWidgets('tapping FormAnswer row edit/delete calls editItem/removeItem', (
     tester,

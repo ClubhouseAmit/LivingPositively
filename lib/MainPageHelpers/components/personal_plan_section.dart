@@ -6,6 +6,7 @@ import 'package:mazilon/global_enums.dart';
 import 'package:mazilon/l10n/app_localizations.dart';
 import 'package:mazilon/util/appInformation.dart';
 import 'package:mazilon/util/layout/directional_widgets.dart';
+import 'package:mazilon/util/personal_plan_export_metadata.dart';
 import 'package:mazilon/util/Share/show_share_dialog.dart';
 import 'package:mazilon/util/SignIn/popup_toast.dart';
 import 'package:mazilon/util/theme/app_theme.dart';
@@ -96,21 +97,13 @@ class PersonalPlanSectionWidget extends StatelessWidget {
         context,
         listen: false,
       );
+      final exportMetadata = buildPersonalPlanExportMetadata(
+        appLocale,
+        userInfo.gender,
+      );
       final result = await fileService.download(
-        [
-          appLocale.difficultEventsHeader(userInfo.gender),
-          appLocale.makeSaferHeader(userInfo.gender),
-          appLocale.feelBetterHeader(userInfo.gender),
-          appLocale.distractionsHeader(userInfo.gender),
-          appLocale.phonesPageHeader(userInfo.gender),
-        ],
-        [
-          appLocale.difficultEventsSubTitle(userInfo.gender),
-          appLocale.makeSaferSubTitle(userInfo.gender),
-          appLocale.feelBetterSubTitle(userInfo.gender),
-          appLocale.distractionsSubTitle(userInfo.gender),
-          appLocale.phonesPageSubTitle(userInfo.gender),
-        ],
+        exportMetadata.titles,
+        exportMetadata.subTitles,
         appInfoProvider.sharePDFtexts,
         ShareFileType.PDF,
         appLocale.textDirection,

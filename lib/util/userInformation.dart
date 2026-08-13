@@ -19,10 +19,12 @@ class UserInformation with ChangeNotifier {
   List<String> makeSafer;
   List<String> feelBetter;
   List<String> distractions;
+  List<String> safeEnvironment;
   bool loggedIn;
   String userId;
   int notificationMinute;
   int notificationHour;
+  String notificationMessage;
   DarkModePreference darkModePreference;
   int darkModeStartHour;
   int darkModeStartMinute;
@@ -38,6 +40,7 @@ class UserInformation with ChangeNotifier {
     this.localeName = '',
     this.notificationHour = 12,
     this.notificationMinute = 0,
+    this.notificationMessage = '',
     this.darkModePreference = DarkModePreference.alwaysLight,
     this.darkModeStartHour = 22,
     this.darkModeStartMinute = 0,
@@ -51,6 +54,7 @@ class UserInformation with ChangeNotifier {
     this.makeSafer = const [],
     this.feelBetter = const [],
     this.distractions = const [],
+    this.safeEnvironment = const [],
     this.disclaimerSigned = false,
     this.loggedIn = false,
     this.userId = '',
@@ -61,6 +65,7 @@ class UserInformation with ChangeNotifier {
     location = '';
     notificationHour = 12;
     notificationMinute = 0;
+    notificationMessage = '';
     darkModePreference = DarkModePreference.alwaysLight;
     darkModeStartHour = 22;
     darkModeStartMinute = 0;
@@ -75,6 +80,7 @@ class UserInformation with ChangeNotifier {
     makeSafer = [];
     feelBetter = [];
     distractions = [];
+    safeEnvironment = [];
     loggedIn = false;
     userId = '';
     thanks = {};
@@ -144,6 +150,11 @@ class UserInformation with ChangeNotifier {
     notifyListeners();
   }
 
+  void updateSafeEnvironment(List<String> value) {
+    safeEnvironment = value;
+    notifyListeners();
+  }
+
   void updateDisclaimerSigned(bool value) {
     disclaimerSigned = value;
     notifyListeners();
@@ -180,6 +191,20 @@ class UserInformation with ChangeNotifier {
 
     notificationMinute = value;
     saveNotificationMinute(value);
+    notifyListeners();
+  }
+
+  void updateNotificationMessage(String value) {
+    Future<void> saveNotificationMessage(String message) async {
+      await service.setItem(
+        'notificationMessage',
+        PersistentMemoryType.String,
+        message,
+      );
+    }
+
+    notificationMessage = value;
+    saveNotificationMessage(value);
     notifyListeners();
   }
 

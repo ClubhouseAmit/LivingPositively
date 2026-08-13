@@ -13,13 +13,13 @@ void main() {
       );
     });
 
-    test('returns false on iOS', () {
+    test('returns true on iOS', () {
       expect(
         NotificationsService.supportsReminderSettings(
           isWebOverride: false,
           platformOverride: TargetPlatform.iOS,
         ),
-        isFalse,
+        isTrue,
       );
     });
 

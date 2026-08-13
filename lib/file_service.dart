@@ -47,6 +47,9 @@ class FileServiceImpl implements FileService {
           PersistentMemoryType.StringList),
       'distractions': service.getItem("userSelectionPersonalPlan-Distractions",
           PersistentMemoryType.StringList),
+      'safeEnvironment': service.getItem(
+          "userSelectionPersonalPlan-SafeEnvironment",
+          PersistentMemoryType.StringList),
       'phoneNames': service.getItem(
           "PhonePageSavedPhoneNames", PersistentMemoryType.StringList),
       'phoneNumbers': service.getItem(
@@ -66,6 +69,7 @@ class FileServiceImpl implements FileService {
       'MakeSafer': TypeUtils.castToStringList(data['makeSafer']),
       'FeelBetter': TypeUtils.castToStringList(data['feelBetter']),
       'Distractions': TypeUtils.castToStringList(data['distractions']),
+      'SafeEnvironment': TypeUtils.castToStringList(data['safeEnvironment']),
       'phoneNames': TypeUtils.castToStringList(data['phoneNames']),
       'phoneNumbers': TypeUtils.castToStringList(data['phoneNumbers']),
       'username': data['username'] ?? '',
@@ -108,6 +112,7 @@ class FileServiceImpl implements FileService {
     List<String> makeSafer = dataForPDF['MakeSafer'];
     List<String> feelBetter = dataForPDF['FeelBetter'];
     List<String> distractions = dataForPDF['Distractions'];
+    List<String> safeEnvironment = dataForPDF['SafeEnvironment'];
     List<String> phoneNames = dataForPDF['phoneNames'];
     List<String> phoneNumbers = dataForPDF['phoneNumbers'];
     String username = dataForPDF['username'];
@@ -119,11 +124,12 @@ class FileServiceImpl implements FileService {
     List<dynamic> allTitles = [...titles];
     List<dynamic> allSubTitles = [...subTitles];
     List<List<String>> allData = [
-      difficultEvents,
-      makeSafer,
-      feelBetter,
       distractions,
-      phoneDescription
+      difficultEvents,
+      feelBetter,
+      makeSafer,
+      phoneDescription,
+      safeEnvironment,
     ];
 
     for (var i = 0;

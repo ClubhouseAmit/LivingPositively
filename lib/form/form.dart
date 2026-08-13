@@ -19,10 +19,11 @@ import 'package:provider/provider.dart';
 import 'package:mazilon/util/userInformation.dart';
 
 List<String> pages = [
-  'PersonalPlan-DifficultEvents',
-  'PersonalPlan-MakeSafer',
-  'PersonalPlan-FeelBetter',
   'PersonalPlan-Distractions',
+  'PersonalPlan-DifficultEvents',
+  'PersonalPlan-FeelBetter',
+  'PersonalPlan-MakeSafer',
+  'PersonalPlan-SafeEnvironment',
 ];
 
 class FormProgressIndicator extends StatefulWidget {
@@ -135,9 +136,15 @@ class FormProgressIndicatorState
       //<<<<<<<<<<<CHECKBOX PAGES END HERE
       //add contacts page:
       PhonePageForm(
-        next: navigateToShare,
+        next: next,
         prev: prev,
         phonePageData: widget.phonePageData,
+      ),
+      FormPageTemplate(
+        key: UniqueKey(),
+        next: navigateToShare,
+        prev: prev,
+        collectionName: pages[4],
       ),
 
       //ShareForm(prev: prev, submit: submitForm),

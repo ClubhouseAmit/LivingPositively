@@ -10,10 +10,13 @@
 
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:get_it/get_it.dart';
+import 'package:mazilon/global_enums.dart';
 import 'package:mazilon/pages/PersonalPlan/myPlan.dart';
 import 'package:mazilon/pages/PersonalPlan/myPlanPageFull.dart';
 import 'package:mazilon/util/Form/formPagePhoneModel.dart';
 import 'package:mazilon/util/appInformation.dart';
+import 'package:mazilon/util/persistent_memory_service.dart';
 import 'package:mazilon/util/userInformation.dart';
 
 import '../helpers/widget_test_scaffold.dart';
@@ -47,6 +50,7 @@ void main() {
     userInformation.makeSafer = ['Remove sharp objects'];
     userInformation.feelBetter = ['Walk'];
     userInformation.distractions = ['Music', 'Reading'];
+    userInformation.safeEnvironment = ['Store medications safely'];
 
     appInformation = AppInformation();
   });
@@ -55,8 +59,8 @@ void main() {
     resetTestServices();
   });
 
-  testWidgets('MyPlanPageFull renders 5 MyPlanSection rows (4 form sections + '
-      'phones)', (tester) async {
+  testWidgets('MyPlanPageFull renders six default sections in plan order',
+      (tester) async {
     final phoneData = _emptyPhonePageData();
 
     await pumpWithProviders(
@@ -74,8 +78,54 @@ void main() {
     drainOverflowExceptions(tester);
 
     expect(find.byType(MyPlanPageFull), findsOneWidget);
-    // 4 form-section rows + 1 phones section = 5 MyPlanSection widgets.
-    expect(find.byType(MyPlanSection), findsNWidgets(5));
+    // Symptoms, triggers, wellness, environmental support, contacts, then
+    // Safe Environment.
+    expect(find.byType(MyPlanSection), findsNWidgets(6));
+    final sections = tester
+        .widgetList<MyPlanSection>(find.byType(MyPlanSection))
+        .toList();
+    expect(sections[0].answers, ['Music', 'Reading']);
+    expect(sections[1].answers, ['Lonely', 'Stress']);
+    expect(sections[2].answers, ['Walk']);
+    expect(sections[3].answers, ['Remove sharp objects']);
+    expect(sections[4].answers, isEmpty);
+    expect(sections[5].answers, ['Store medications safely']);
+  });
+
+  testWidgets('custom categories are rendered after Safe Environment',
+      (tester) async {
+    final memory = GetIt.instance<PersistentMemoryService>();
+    await memory.setItem(
+      'customCategoryTitles',
+      PersistentMemoryType.StringList,
+      ['My custom category'],
+    );
+    await memory.setItem(
+      'customCategoryDescriptions',
+      PersistentMemoryType.StringList,
+      ['My custom category note'],
+    );
+
+    await pumpWithProviders(
+      tester,
+      MyPlanPageFull(
+        phonePageData: _emptyPhonePageData(),
+        hasFilled: true,
+        changeLocale: (_) {},
+      ),
+      userInformation: userInformation,
+      appInformation: appInformation,
+      surfaceSize: const Size(1024, 2400),
+    );
+    await tester.pumpAndSettle();
+
+    final sections = tester
+        .widgetList<MyPlanSection>(find.byType(MyPlanSection))
+        .toList();
+    expect(sections, hasLength(7));
+    expect(sections[5].answers, ['Store medications safely']);
+    expect(sections[6].title, 'My custom category');
+    expect(sections[6].answers, ['My custom category note']);
   });
 
   testWidgets('hasFilled=true and hasFilled=false render different button '
