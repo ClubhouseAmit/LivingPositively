@@ -457,146 +457,137 @@ class _ShareFormState extends LPExtendedState<ShareForm> {
     );
     final gender = userInfoProvider.gender;
 
-    return PopScope(
-      canPop: false,
-      child: Scaffold(
-        body: SafeArea(
-          child: SingleChildScrollView(
-            child: Center(
-              child: Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 16),
-                child: Column(
-                  children: [
-                    SizedBox(height: returnSizedBox(context, 25)),
-                    myAutoSizedText(
-                      appLocale.sharePageHeader(gender),
-                      TextStyle(
-                        fontSize: 30.sp,
-                        fontWeight: FontWeight.w500,
-                        color: Theme.of(context).colorScheme.onSurface,
-                      ),
-                      null,
-                      60,
-                    ),
-                    myAutoSizedText(
-                      appLocale.sharePageSubTitle(gender),
-                      TextStyle(
-                        fontWeight: FontWeight.normal,
-                        fontSize: 16.sp,
-                        color: Theme.of(context).colorScheme.outline,
-                      ),
-                      null,
-                      35,
-                    ),
-                    myImage('assets/images/FormSubmit.png', context, 0.8, 0.4),
-                    SizedBox(
-                      width: MediaQuery.sizeOf(context).width * 0.8,
-                      child: myAutoSizedText(
-                        appLocale.sharePageMidTitle(gender),
-                        TextStyle(
-                          fontWeight: FontWeight.normal,
-                          fontSize: 16.sp,
-                        ),
-                        null,
-                        35,
-                      ),
-                    ),
-                    const SizedBox(height: 30),
-                    SizedBox(
-                      width: MediaQuery.sizeOf(context).width * 0.5,
-                      child: Row(
-                        mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-                        children: [
-                          //share personal plan PDF button:
-                          IconButton(
-                            onPressed: () {
-                              showShareDialog(context);
-                            },
-                            style: TextButton.styleFrom(
-                              backgroundColor: Colors.transparent,
-                              padding: const EdgeInsets.all(10),
-                              shape: RoundedRectangleBorder(
-                                borderRadius: const BorderRadius.all(
-                                  Radius.circular(16),
-                                ),
-                                side: BorderSide(
-                                  color: Theme.of(context).colorScheme.primary,
-                                ), // Set the border color
-                              ),
-                            ),
-                            icon: Icon(
-                              Icons.share,
-                              color: Theme.of(context).colorScheme.primary,
-                            ), // Set the icon color
-                            padding: const EdgeInsets.all(10),
-                          ),
-                          //download personal plan PDF button:
-                          IconButton(
-                            onPressed: () async {
-                              final exportMetadata =
-                                  buildPersonalPlanExportMetadata(
-                                    appLocale,
-                                    gender,
-                                  );
-                              var result = await fileService.download(
-                                exportMetadata.titles,
-                                exportMetadata.subTitles,
-                                appInfoProvider.sharePDFtexts,
-                                ShareFileType.PDF,
-                                appLocale.textDirection,
-                              );
-                              if (result == null) {
-                                // Show him a message
-                                showToast(
-                                  message: appLocale.downloadFailed(gender),
-                                );
-                                return;
-                              }
-                              // Show a toast message to the user
-                              showToast(
-                                message: appLocale.finishedDownloading(gender),
-                              );
-                            },
-
-                            style: TextButton.styleFrom(
-                              backgroundColor: Colors.transparent,
-                              padding: const EdgeInsets.all(10),
-                              shape: RoundedRectangleBorder(
-                                borderRadius: const BorderRadius.all(
-                                  Radius.circular(16),
-                                ),
-                                side: BorderSide(
-                                  color: Theme.of(context).colorScheme.primary,
-                                ), // Set the border color
-                              ),
-                            ),
-                            icon: Icon(
-                              Icons.download,
-                              color: Theme.of(context).colorScheme.primary,
-                            ), // Set the icon color
-                            padding: const EdgeInsets.all(10),
-                          ),
-                        ],
-                      ),
-                    ),
-                    const SizedBox(height: 30),
-                    buildCustomCategoriesSection(context, gender),
-                    const SizedBox(height: 16),
-                    ConfirmationButton(
-                      context,
-                      () {
-                        widget.submit(context);
-                      },
-                      appLocale.sharePageFinishButton(gender),
-                      myTextStyle.copyWith(
-                        fontWeight: FontWeight.w500,
-                        fontSize: 18.sp,
-                      ),
-                    ),
-                    const SizedBox(height: 30),
-                  ],
+    return Scaffold(
+      body: SafeArea(
+        child: SingleChildScrollView(
+          child: Center(
+            child: Column(
+              children: [
+                SizedBox(height: returnSizedBox(context, 25)),
+                myAutoSizedText(
+                  appLocale.sharePageHeader(gender),
+                  TextStyle(
+                    fontSize: 30.sp,
+                    fontWeight: FontWeight.w500,
+                    color: Theme.of(context).colorScheme.onSurface,
+                  ),
+                  null,
+                  60,
                 ),
-              ),
+                myAutoSizedText(
+                  appLocale.sharePageSubTitle(gender),
+                  TextStyle(
+                    fontWeight: FontWeight.normal,
+                    fontSize: 16.sp,
+                    color: Theme.of(context).colorScheme.outline,
+                  ),
+                  null,
+                  35,
+                ),
+                myImage('assets/images/FormSubmit.png', context, 0.8, 0.4),
+                SizedBox(
+                  width: MediaQuery.sizeOf(context).width * 0.8,
+                  child: myAutoSizedText(
+                    appLocale.sharePageMidTitle(gender),
+                    TextStyle(fontWeight: FontWeight.normal, fontSize: 16.sp),
+                    null,
+                    35,
+                  ),
+                ),
+                const SizedBox(height: 30),
+                SizedBox(
+                  width: MediaQuery.sizeOf(context).width * 0.5,
+                  child: Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                    children: [
+                      //share personal plan PDF button:
+                      IconButton(
+                        onPressed: () {
+                          showShareDialog(context);
+                        },
+                        style: TextButton.styleFrom(
+                          backgroundColor: Colors.transparent,
+                          padding: const EdgeInsets.all(10),
+                          shape: RoundedRectangleBorder(
+                            borderRadius: const BorderRadius.all(
+                              Radius.circular(16),
+                            ),
+                            side: BorderSide(
+                              color: Theme.of(context).colorScheme.primary,
+                            ), // Set the border color
+                          ),
+                        ),
+                        icon: Icon(
+                          Icons.share,
+                          color: Theme.of(context).colorScheme.primary,
+                        ), // Set the icon color
+                        padding: const EdgeInsets.all(10),
+                      ),
+                      //download personal plan PDF button:
+                      IconButton(
+                        onPressed: () async {
+                          final exportMetadata =
+                              buildPersonalPlanExportMetadata(
+                                appLocale,
+                                gender,
+                              );
+                          var result = await fileService.download(
+                            exportMetadata.titles,
+                            exportMetadata.subTitles,
+                            appInfoProvider.sharePDFtexts,
+                            ShareFileType.PDF,
+                            appLocale.textDirection,
+                          );
+                          if (result == null) {
+                            // Show him a message
+                            showToast(
+                              message: appLocale.downloadFailed(gender),
+                            );
+                            return;
+                          }
+                          // Show a toast message to the user
+                          showToast(
+                            message: appLocale.finishedDownloading(gender),
+                          );
+                        },
+
+                        style: TextButton.styleFrom(
+                          backgroundColor: Colors.transparent,
+                          padding: const EdgeInsets.all(10),
+                          shape: RoundedRectangleBorder(
+                            borderRadius: const BorderRadius.all(
+                              Radius.circular(16),
+                            ),
+                            side: BorderSide(
+                              color: Theme.of(context).colorScheme.primary,
+                            ), // Set the border color
+                          ),
+                        ),
+                        icon: Icon(
+                          Icons.download,
+                          color: Theme.of(context).colorScheme.primary,
+                        ), // Set the icon color
+                        padding: const EdgeInsets.all(10),
+                      ),
+                    ],
+                  ),
+                ),
+                const SizedBox(height: 30),
+                buildCustomCategoriesSection(context, gender),
+                const SizedBox(height: 16),
+                ConfirmationButton(
+                  context,
+                  () {
+                    widget.submit(context);
+                  },
+                  appLocale.sharePageFinishButton(gender),
+                  myTextStyle.copyWith(
+                    fontWeight: FontWeight.w500,
+                    fontSize: 18.sp,
+                  ),
+                ),
+                const SizedBox(height: 30),
+              ],
             ),
           ),
         ),

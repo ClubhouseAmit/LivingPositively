@@ -168,7 +168,7 @@ class _FormPageTemplateState extends LPExtendedState<FormPageTemplate> {
         child: Center(
           //widthFactor: double.infinity,
           child: Padding(
-            padding: const EdgeInsets.all(10.0),
+            padding: const EdgeInsets.symmetric(vertical: 10.0),
             child: Column(
               mainAxisSize: MainAxisSize.min,
               children: [
@@ -177,7 +177,6 @@ class _FormPageTemplateState extends LPExtendedState<FormPageTemplate> {
                   children: [
                     Container(
                       alignment: Alignment.topCenter,
-                      margin: EdgeInsets.symmetric(horizontal: 15),
                       child: myAutoSizedText(
                         displayInformation['header'],
                         TextStyle(
@@ -192,7 +191,6 @@ class _FormPageTemplateState extends LPExtendedState<FormPageTemplate> {
                     SizedBox(height: 5.h),
                     Container(
                       alignment: Alignment.topCenter,
-                      margin: EdgeInsets.symmetric(horizontal: 15),
                       child: myAutoSizedText(
                         displayInformation['subTitle'],
                         TextStyle(
@@ -306,7 +304,6 @@ class _FormPageTemplateState extends LPExtendedState<FormPageTemplate> {
                   children: [
                     Container(
                       alignment: Alignment.topCenter,
-                      margin: EdgeInsets.symmetric(horizontal: 15),
                       child: myAutoSizedText(
                         displayInformation['midTitle'],
                         TextStyle(fontWeight: FontWeight.bold, fontSize: 20.sp),
@@ -317,7 +314,6 @@ class _FormPageTemplateState extends LPExtendedState<FormPageTemplate> {
                     SizedBox(height: 5.h),
                     Container(
                       alignment: Alignment.topCenter,
-                      margin: EdgeInsets.symmetric(horizontal: 15),
                       child: myAutoSizedText(
                         displayInformation['midSubTitle'],
                         TextStyle(
