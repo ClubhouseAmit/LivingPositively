@@ -3435,4 +3435,11 @@ class AppLocalizationsAr extends AppLocalizations {
     });
     return '$_temp0';
   }
+
+  @override
+  String get notificationCustomMessageLabel =>
+      'اكتب رسالة التذكير هنا (اختياري):';
+
+  @override
+  String get notificationCustomMessageHint => 'أدخل رسالة التذكير...';
 }

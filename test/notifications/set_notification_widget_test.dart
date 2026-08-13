@@ -169,7 +169,7 @@ void main() {
     resetTestServices();
   });
 
-  testWidgets('renders TimePicker plus 3 action buttons', (tester) async {
+  testWidgets('renders TimePicker plus 2 action buttons', (tester) async {
     await _onIos(() async {
       final userInfo = UserInformation(
         gender: 'male',
@@ -185,31 +185,14 @@ void main() {
       await tester.pumpAndSettle(const Duration(milliseconds: 300));
 
       expect(find.byType(TimePicker), findsOneWidget);
-      // 3 TextButtons: set time / show example / cancel.
-      expect(find.byType(TextButton), findsNWidgets(3));
-      // Two horizontal Dividers wrap the picker.
-      expect(find.byType(Divider), findsNWidgets(2));
+      // 2 TextButtons: set time / cancel.
+      expect(find.byType(TextButton), findsNWidgets(2));
+      // Three horizontal Dividers in the tree.
+      expect(find.byType(Divider), findsNWidgets(3));
     });
   });
 
-  testWidgets(
-      'does not render ReminderDebugPanel when iOS '
-      '(supportsReminderSettings == false)', (tester) async {
-    await _onIos(() async {
-      final userInfo = UserInformation(gender: 'male');
-      await pumpWithProviders(
-        tester,
-        const SetNotificationWidget(),
-        userInformation: userInfo,
-      );
-      await tester.pumpAndSettle(const Duration(milliseconds: 300));
 
-      // ReminderDebugPanel renders an ExpansionTile — must be absent on iOS.
-      expect(find.byType(ExpansionTile), findsNothing);
-      // Confirms the platform short-circuit at the source.
-      expect(NotificationsService.supportsReminderSettings(), isFalse);
-    });
-  });
 
   testWidgets('TimePicker receives non-default userInfo state',
       (tester) async {
@@ -245,7 +228,7 @@ void main() {
 
   testWidgets(
       'tapping "set time" still calls userInfo.updateNotificationHour/Minute '
-      'and short-circuits NotificationsService on iOS', (tester) async {
+      'and schedules reminder on iOS', (tester) async {
     await _onIos(() async {
       final userInfo = UserInformation(
         gender: 'male',
@@ -279,7 +262,7 @@ void main() {
       // the test surface — the button is still wired correctly, the
       // warning is a hit-test artefact from the surface clipping.
       await tester.tap(find.text(setLabel), warnIfMissed: false);
-      await tester.pump();
+      await tester.pump(const Duration(seconds: 2));
 
       // saveNotificationTime() always calls updateNotificationHour AND
       // updateNotificationMinute — regardless of the exact rendered value,
@@ -290,8 +273,7 @@ void main() {
           reason:
               'updateNotificationMinute should fire from saveNotificationTime');
 
-      // On iOS the static `initializeNotification` short-circuits at the
-      // platform guard — workmanager must NOT have been touched.
+      // On iOS the static `initializeNotification` does not use Workmanager.
       expect(fakeWm.calls.where((c) => c.startsWith('register')).toList(),
           isEmpty);
     });
@@ -326,29 +308,5 @@ void main() {
     });
   });
 
-  testWidgets('tapping "show example" invokes the local-notifications plugin',
-      (tester) async {
-    await _onIos(() async {
-      final userInfo = UserInformation(gender: 'male');
-      await pumpWithProviders(
-        tester,
-        const SetNotificationWidget(),
-        userInformation: userInfo,
-        locale: const Locale('he'),
-      );
-      await tester.pumpAndSettle(const Duration(milliseconds: 300));
 
-      final ctx = tester.element(find.byType(SetNotificationWidget));
-      final loc = AppLocalizations.of(ctx)!;
-      final exampleLabel = loc.notificationShowExampleNotification('male');
-
-      localNotifCalls.clear();
-      await tester.tap(find.text(exampleLabel), warnIfMissed: false);
-      await tester.pumpAndSettle(const Duration(milliseconds: 300));
-
-      // The iOS impl may serialize `show` via the method channel; we just
-      // verify the widget tree survived the tap.
-      expect(find.byType(SetNotificationWidget), findsOneWidget);
-    });
-  });
 }

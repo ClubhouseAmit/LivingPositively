@@ -3426,4 +3426,11 @@ class AppLocalizationsHe extends AppLocalizations {
     });
     return '$_temp0';
   }
+
+  @override
+  String get notificationCustomMessageLabel =>
+      'כתיבת הודעת תזכורת אישית (אופציונלי):';
+
+  @override
+  String get notificationCustomMessageHint => 'הזן הודעת תזכורת...';
 }

@@ -24,6 +24,7 @@ class UserInformation with ChangeNotifier {
   String userId;
   int notificationMinute;
   int notificationHour;
+  String notificationMessage;
   DarkModePreference darkModePreference;
   int darkModeStartHour;
   int darkModeStartMinute;
@@ -39,6 +40,7 @@ class UserInformation with ChangeNotifier {
     this.localeName = '',
     this.notificationHour = 12,
     this.notificationMinute = 0,
+    this.notificationMessage = '',
     this.darkModePreference = DarkModePreference.alwaysLight,
     this.darkModeStartHour = 22,
     this.darkModeStartMinute = 0,
@@ -63,6 +65,7 @@ class UserInformation with ChangeNotifier {
     location = '';
     notificationHour = 12;
     notificationMinute = 0;
+    notificationMessage = '';
     darkModePreference = DarkModePreference.alwaysLight;
     darkModeStartHour = 22;
     darkModeStartMinute = 0;
@@ -188,6 +191,20 @@ class UserInformation with ChangeNotifier {
 
     notificationMinute = value;
     saveNotificationMinute(value);
+    notifyListeners();
+  }
+
+  void updateNotificationMessage(String value) {
+    Future<void> saveNotificationMessage(String message) async {
+      await service.setItem(
+        'notificationMessage',
+        PersistentMemoryType.String,
+        message,
+      );
+    }
+
+    notificationMessage = value;
+    saveNotificationMessage(value);
     notifyListeners();
   }
 

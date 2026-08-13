@@ -2667,6 +2667,18 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'{gender,select,male{Smile and look forward} female{Smile and look forward} other{Smile and look forward}}'**
   String lookForwardSuggestion(String gender);
+
+  /// Label for the custom reminder message text field
+  ///
+  /// In en, this message translates to:
+  /// **'Write a custom reminder message (optional):'**
+  String get notificationCustomMessageLabel;
+
+  /// Hint text for the custom reminder message text field
+  ///
+  /// In en, this message translates to:
+  /// **'Enter reminder message...'**
+  String get notificationCustomMessageHint;
 }
 
 class _AppLocalizationsDelegate
