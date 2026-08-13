@@ -98,7 +98,8 @@ class _HomeState extends LPExtendedState<Home> {
             if (text == currentText && _customReminder != null) {
               // Submit cannot overwrite the loaded customReminder
             } else {
-              PersistentMemoryService service = GetIt.instance<PersistentMemoryService>();
+              PersistentMemoryService service =
+                  GetIt.instance<PersistentMemoryService>();
               await service.setItem(
                 'customReminder',
                 PersistentMemoryType.String,
@@ -236,6 +237,7 @@ class _HomeState extends LPExtendedState<Home> {
                 onAddItem: () =>
                     widget.changeCurrentIndex(context, PagesCode.QualitiesList),
               ),
+              SizedBox(height: AppSpacing.xxl),
             ],
           ),
         ),
