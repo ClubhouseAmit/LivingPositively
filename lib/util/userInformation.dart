@@ -19,6 +19,7 @@ class UserInformation with ChangeNotifier {
   List<String> makeSafer;
   List<String> feelBetter;
   List<String> distractions;
+  List<String> safeEnvironment;
   bool loggedIn;
   String userId;
   int notificationMinute;
@@ -53,6 +54,7 @@ class UserInformation with ChangeNotifier {
     this.makeSafer = const [],
     this.feelBetter = const [],
     this.distractions = const [],
+    this.safeEnvironment = const [],
     this.disclaimerSigned = false,
     this.loggedIn = false,
     this.userId = '',
@@ -78,6 +80,7 @@ class UserInformation with ChangeNotifier {
     makeSafer = [];
     feelBetter = [];
     distractions = [];
+    safeEnvironment = [];
     loggedIn = false;
     userId = '';
     thanks = {};
@@ -144,6 +147,11 @@ class UserInformation with ChangeNotifier {
 
   void updateDistractions(List<String> value) {
     distractions = value;
+    notifyListeners();
+  }
+
+  void updateSafeEnvironment(List<String> value) {
+    safeEnvironment = value;
     notifyListeners();
   }
 

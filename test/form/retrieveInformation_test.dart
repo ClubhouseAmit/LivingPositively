@@ -37,6 +37,10 @@ class _FakeLocalization {
   String distractionsMidSubTitle(String g) =>
       _record('distractionsMidSubTitle', g);
 
+  String safeEnvironmentSubTitle(String g) =>
+      _record('safeEnvironmentSubTitle', g);
+  String safeEnvironmentHeader(String g) => _record('safeEnvironmentHeader', g);
+
   String nextButton(String g) => _record('nextButton', g);
   String showMoreButton(String g) => _record('showMoreButton', g);
 
@@ -121,6 +125,37 @@ void main() {
       expect(result['midSubTitle'], 'distractionsMidSubTitle(male)');
     });
 
+    const safeEnvironmentListGenders = <String, String>{
+      'male': 'male',
+      'female': 'female',
+      'other': 'other',
+      '': 'other',
+    };
+
+    for (final entry in safeEnvironmentListGenders.entries) {
+      final gender = entry.key;
+      final listGender = entry.value;
+      final genderLabel = gender.isEmpty ? 'empty' : gender;
+      test('PersonalPlan-SafeEnvironment preserves $genderLabel copy and uses '
+          '$listGender for its suggestions', () {
+        final result = retrieveInformation(
+          'PersonalPlan-SafeEnvironment',
+          gender,
+          loc,
+        );
+        expect(result['header'], 'safeEnvironmentHeader($gender)');
+        expect(result['subTitle'], 'safeEnvironmentSubTitle($gender)');
+        expect(result['midTitle'], 'makeSaferMidTitle($gender)');
+        expect(result['midSubTitle'], 'makeSaferMidSubTitle($gender)');
+        expect(result['list'], [
+          'safeEnvironmentListNo0($listGender)',
+          'safeEnvironmentListNo1($listGender)',
+          'safeEnvironmentListNo2($listGender)',
+          'safeEnvironmentListNo3($listGender)',
+        ]);
+      });
+    }
+
     test('empty gender is replaced with "other" for the list lookup', () {
       retrieveInformation('PersonalPlan-DifficultEvents', '', loc);
       // The list helper is invoked with "other" rather than the empty string.
@@ -172,6 +207,13 @@ void main() {
     test('retrieveDistractionsList returns ~33 entries', () {
       final list = retrieveDistractionsList(loc, 'male');
       expect(list.length, greaterThanOrEqualTo(30));
+    });
+
+    test('retrieveSafeEnvironmentList returns the four prescribed entries', () {
+      final list = retrieveSafeEnvironmentList(loc, 'male');
+      expect(list, hasLength(4));
+      expect(loc.calls, contains('safeEnvironmentListNo0:male'));
+      expect(loc.calls, contains('safeEnvironmentListNo3:male'));
     });
   });
 }

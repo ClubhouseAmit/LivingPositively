@@ -54,6 +54,9 @@ void main() {
         'userSelectionPersonalPlan-MakeSafer': <String>['standard answer'],
         'userSelectionPersonalPlan-FeelBetter': <String>[],
         'userSelectionPersonalPlan-Distractions': <String>[],
+        'userSelectionPersonalPlan-SafeEnvironment': <String>[
+          'safe environment answer',
+        ],
         'PhonePageSavedPhoneNames': <String>[],
         'PhonePageSavedPhoneNumbers': <String>[],
         'name': '',
@@ -70,34 +73,39 @@ void main() {
 
     final result = await FileServiceImpl().organizeDataForFile(
       [
-        'difficult title',
-        'make safer title',
-        'feel better title',
-        'distractions title',
+        'symptoms title',
+        'triggers title',
+        'wellness title',
+        'environmental support title',
         'phones title',
+        'safe environment title',
       ],
       [
-        'difficult subtitle',
-        'make safer subtitle',
-        'feel better subtitle',
-        'distractions subtitle',
+        'symptoms subtitle',
+        'triggers subtitle',
+        'wellness subtitle',
+        'environmental support subtitle',
         'phones subtitle',
+        'safe environment subtitle',
       ],
       const {},
     );
 
     expect(result['titles'], [
-      'make safer title',
+      'environmental support title',
+      'safe environment title',
       'כותרת מקורית שלי',
       'Second free title',
     ]);
     expect(result['subTitles'], [
-      'make safer subtitle',
+      'environmental support subtitle',
+      'safe environment subtitle',
       '',
       '',
     ]);
     expect(result['realData'], [
       ['standard answer'],
+      ['safe environment answer'],
       ['טקסט חופשי בעברית שלא מתורגם'],
       ['English text remains English'],
     ]);
@@ -112,13 +120,21 @@ void main() {
     );
 
     final result = await FileServiceImpl().organizeDataForFile(
-      ['difficult', 'safe', 'better', 'distractions', 'phones'],
       [
-        'difficult sub',
-        'safe sub',
-        'better sub',
-        'distractions sub',
-        'phones sub'
+        'symptoms',
+        'triggers',
+        'wellness',
+        'environmental support',
+        'phones',
+        'safe environment',
+      ],
+      [
+        'symptoms sub',
+        'triggers sub',
+        'wellness sub',
+        'environmental support sub',
+        'phones sub',
+        'safe environment sub',
       ],
       const {},
     );
@@ -150,24 +166,32 @@ void main() {
     );
 
     final result = await FileServiceImpl().organizeDataForFile(
-      ['difficult', 'safe', 'better', 'distractions', 'phones'],
       [
-        'difficult sub',
-        'safe sub',
-        'better sub',
-        'distractions sub',
-        'phones sub'
+        'symptoms',
+        'triggers',
+        'wellness',
+        'environmental support',
+        'phones',
+        'safe environment',
+      ],
+      [
+        'symptoms sub',
+        'triggers sub',
+        'wellness sub',
+        'environmental support sub',
+        'phones sub',
+        'safe environment sub',
       ],
       const {},
     );
 
     expect(result['titles'], [
-      'better',
+      'wellness',
       'Valid custom title',
       'Another valid title',
     ]);
     expect(result['subTitles'], [
-      'better sub',
+      'wellness sub',
       '',
       '',
     ]);
@@ -187,13 +211,21 @@ void main() {
     );
 
     final result = await FileServiceImpl().organizeDataForFile(
-      ['difficult', 'safe', 'better', 'distractions', 'phones'],
       [
-        'difficult sub',
-        'safe sub',
-        'better sub',
-        'distractions sub',
-        'phones sub'
+        'symptoms',
+        'triggers',
+        'wellness',
+        'environmental support',
+        'phones',
+        'safe environment',
+      ],
+      [
+        'symptoms sub',
+        'triggers sub',
+        'wellness sub',
+        'environmental support sub',
+        'phones sub',
+        'safe environment sub',
       ],
       const {},
     );

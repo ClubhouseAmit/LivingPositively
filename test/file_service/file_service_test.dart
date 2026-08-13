@@ -68,6 +68,7 @@ void main() {
       'userSelectionPersonalPlan-MakeSafer': <dynamic>['safer1'],
       'userSelectionPersonalPlan-FeelBetter': <dynamic>[],
       'userSelectionPersonalPlan-Distractions': <dynamic>['dist1'],
+      'userSelectionPersonalPlan-SafeEnvironment': <dynamic>['safe1'],
       'PhonePageSavedPhoneNames': <dynamic>['Mom', 'Dad'],
       'PhonePageSavedPhoneNumbers': <dynamic>['111', '222'],
       'name': 'Alex',
@@ -95,12 +96,13 @@ void main() {
   });
 
   group('FileServiceImpl.getPrefsData', () {
-    test('reads all 7 keys and returns expected shape', () async {
+    test('reads each default plan category and returns expected shape', () async {
       final data = await FileServiceImpl.getPrefsData();
       expect(data['DifficultEvents'], ['ev1', 'ev2']);
       expect(data['MakeSafer'], ['safer1']);
       expect(data['FeelBetter'], <String>[]);
       expect(data['Distractions'], ['dist1']);
+      expect(data['SafeEnvironment'], ['safe1']);
       expect(data['phoneNames'], ['Mom', 'Dad']);
       expect(data['phoneNumbers'], ['111', '222']);
       expect(data['username'], 'Alex');
@@ -110,6 +112,13 @@ void main() {
       memory.store['name'] = null;
       final data = await FileServiceImpl.getPrefsData();
       expect(data['username'], '');
+    });
+
+    test('safe environment defaults to an empty list for existing plans',
+        () async {
+      memory.store.remove('userSelectionPersonalPlan-SafeEnvironment');
+      final data = await FileServiceImpl.getPrefsData();
+      expect(data['SafeEnvironment'], isEmpty);
     });
   });
 
@@ -164,8 +173,22 @@ void main() {
     test('produces expected mainTitle when username present', () async {
       final svc = FileServiceImpl();
       final result = await svc.organizeDataForFile(
-        ['t1', 't2', 't3', 't4', 't5'],
-        ['s1', 's2', 's3', 's4', 's5'],
+        [
+          'Symptoms',
+          'Triggers',
+          'Wellness',
+          'Environmental support',
+          'Contacts',
+          'Safe Environment',
+        ],
+        [
+          'symptoms subtitle',
+          'triggers subtitle',
+          'wellness subtitle',
+          'support subtitle',
+          'contacts subtitle',
+          'safe subtitle',
+        ],
         {
           'firstLine': 'a',
           'firstLinkText': 'b',
@@ -178,16 +201,37 @@ void main() {
         },
       );
       expect(result['mainTitle'], 'התוכנית המשולבת של Alex');
-      // 'FeelBetter' was empty -> should be dropped from realData
-      expect((result['realData'] as List).length, 4);
+      // 'FeelBetter' was empty; the remaining defaults retain their six-wide
+      // order, including Safe Environment after Contacts.
+      expect(result['titles'], [
+        'Symptoms',
+        'Triggers',
+        'Environmental support',
+        'Contacts',
+        'Safe Environment',
+      ]);
+      expect(result['subTitles'], [
+        'symptoms subtitle',
+        'triggers subtitle',
+        'support subtitle',
+        'contacts subtitle',
+        'safe subtitle',
+      ]);
+      expect(result['realData'], [
+        ['dist1'],
+        ['ev1', 'ev2'],
+        ['safer1'],
+        ['Mom:111', 'Dad:222'],
+        ['safe1'],
+      ]);
     });
 
     test('uses generic title when username empty', () async {
       memory.store['name'] = '';
       final svc = FileServiceImpl();
       final result = await svc.organizeDataForFile(
-        ['t1', 't2', 't3', 't4', 't5'],
-        ['s1', 's2', 's3', 's4', 's5'],
+        ['t1', 't2', 't3', 't4', 't5', 't6'],
+        ['s1', 's2', 's3', 's4', 's5', 's6'],
         {},
       );
       expect(result['mainTitle'], 'התוכנית המשולבת שלי');
@@ -258,8 +302,8 @@ void main() {
       // and the function returns without invoking AnalyticsService.
       await svc.share(
         '',
-        ['t1', 't2', 't3', 't4', 't5'],
-        ['s1', 's2', 's3', 's4', 's5'],
+        ['t1', 't2', 't3', 't4', 't5', 't6'],
+        ['s1', 's2', 's3', 's4', 's5', 's6'],
         const <String, String>{
           'firstLine': '',
           'firstLinkText': '',
@@ -285,8 +329,8 @@ void main() {
       final svc = FileServiceImpl();
       await svc.share(
         'msg',
-        ['t1', 't2', 't3', 't4', 't5'],
-        ['s1', 's2', 's3', 's4', 's5'],
+        ['t1', 't2', 't3', 't4', 't5', 't6'],
+        ['s1', 's2', 's3', 's4', 's5', 's6'],
         const <String, String>{
           'firstLine': 'a',
           'firstLinkText': 'b',
@@ -314,8 +358,8 @@ void main() {
     test('returns null when format is not PDF', () async {
       final svc = FileServiceImpl();
       final out = await svc.download(
-        ['t1', 't2', 't3', 't4', 't5'],
-        ['s1', 's2', 's3', 's4', 's5'],
+        ['t1', 't2', 't3', 't4', 't5', 't6'],
+        ['s1', 's2', 's3', 's4', 's5', 's6'],
         const <String, String>{},
         ShareFileType.DOCX,
         'ltr',
