@@ -11,8 +11,10 @@ import 'package:mazilon/form/formpagetemplate.dart';
 import 'package:mockito/mockito.dart';
 import 'package:mockito/annotations.dart';
 import 'package:mazilon/l10n/app_localizations.dart';
+import 'package:mazilon/AnalyticsService.dart';
 import '../MenuTest/shareAndDownload/share_and_download_test.mocks.dart'
     as ShareMocks;
+import '../helpers/widget_test_scaffold.dart' show NoopAnalyticsService;
 
 @GenerateNiceMocks([
   MockSpec<UserInformation>(),
@@ -37,15 +39,22 @@ void main() {
           ShareMocks.MockPersistentMemoryService();
 
       // Set up mock behaviors for PersistentMemoryService
-      when(mockPersistentMemoryService.getItem(any, any))
-          .thenAnswer((_) async => null);
-      when(mockPersistentMemoryService.setItem(any, any, any))
-          .thenAnswer((_) async {});
+      when(
+        mockPersistentMemoryService.getItem(any, any),
+      ).thenAnswer((_) async => null);
+      when(
+        mockPersistentMemoryService.setItem(any, any, any),
+      ).thenAnswer((_) async {});
       when(mockPersistentMemoryService.reset()).thenAnswer((_) async {});
 
       // Register PersistentMemoryService with GetIt
       getIt.registerLazySingleton<PersistentMemoryService>(
-          () => mockPersistentMemoryService);
+        () => mockPersistentMemoryService,
+      );
+
+      // The "next" button's onPressed tracks an analytics event; register a
+      // no-op fake so tapping it doesn't throw on an unregistered service.
+      getIt.registerSingleton<AnalyticsService>(NoopAnalyticsService());
 
       mockUserInformation = UserInformation();
       mockUserInformation.gender = "male";
@@ -62,9 +71,11 @@ void main() {
         MultiProvider(
           providers: [
             ChangeNotifierProvider<AppInformation>.value(
-                value: mockAppInformation),
+              value: mockAppInformation,
+            ),
             ChangeNotifierProvider<UserInformation>.value(
-                value: mockUserInformation),
+              value: mockUserInformation,
+            ),
           ],
           child: MaterialApp(
             supportedLocales: AppLocalizations.supportedLocales,
@@ -103,8 +114,10 @@ void main() {
       expect(find.text('תזכורות לטריגרים נפוצים וגורמי הסלמה'), findsOneWidget);
       expect(find.text('גורמים ואירועים שהקשו עלי בעבר'), findsOneWidget);
       expect(find.text('אין לך רעיון? הנה כמה הצעות'), findsOneWidget);
-      expect(find.text('לחץ כדי להוסיף אפשרויות המתאימות לך לתכנית האישית שלך'),
-          findsOneWidget);
+      expect(
+        find.text('לחץ כדי להוסיף אפשרויות המתאימות לך לתכנית האישית שלך'),
+        findsOneWidget,
+      );
       expect(find.text('להציג עוד'), findsOneWidget);
       expect(find.text('המשך'), findsOneWidget);
 

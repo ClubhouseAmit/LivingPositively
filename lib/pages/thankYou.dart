@@ -111,75 +111,77 @@ class _ThankYouState extends State<ThankYou> {
           // gap between the text and the number
           const SizedBox(width: 10),
 
-          Container(
-            constraints: BoxConstraints(
-              minHeight: 20,
-              maxWidth: MediaQuery.sizeOf(context).width * 0.8,
-            ),
-            // height: 40,
-            decoration: BoxDecoration(
-              color: colorScheme.surfaceContainerHighest,
-              borderRadius: BorderRadius.circular(95),
-            ),
-            child: Padding(
-              padding: const EdgeInsets.all(8.0),
-              child: Row(
-                children: [
-                  const SizedBox(width: 15),
+          Expanded(
+            child: Container(
+              constraints: BoxConstraints(
+                minHeight: 20,
+                maxWidth: MediaQuery.sizeOf(context).width * 0.8,
+              ),
+              // height: 40,
+              decoration: BoxDecoration(
+                color: colorScheme.surfaceContainerHighest,
+                borderRadius: BorderRadius.circular(95),
+              ),
+              child: Padding(
+                padding: const EdgeInsets.all(8.0),
+                child: Row(
+                  children: [
+                    const SizedBox(width: 15),
 
-                  // the text of the thank you/trait
-                  Expanded(
-                    child: Container(
-                      child: AutoSizeText(
-                        widget.text,
-                        maxLines: 4,
-                        minFontSize: 14,
-                        overflow: TextOverflow.ellipsis,
-                        style: TextStyle(
-                          // .sp so system text-scale enlarges the entry
-                          // copy alongside the rest of the journal.
-                          fontSize: 20.sp,
-                          fontWeight: FontWeight.normal,
-                          color: widget.color, // the color of the text
+                    // the text of the thank you/trait
+                    Expanded(
+                      child: Container(
+                        child: AutoSizeText(
+                          widget.text,
+                          maxLines: 4,
+                          minFontSize: 14,
+                          overflow: TextOverflow.ellipsis,
+                          style: TextStyle(
+                            // .sp so system text-scale enlarges the entry
+                            // copy alongside the rest of the journal.
+                            fontSize: 20.sp,
+                            fontWeight: FontWeight.normal,
+                            color: widget.color, // the color of the text
+                          ),
                         ),
                       ),
                     ),
-                  ),
 
-                  // gap between the buttons and the text
-                  const SizedBox(width: 15),
-                  // the edit button
-                  SizedBox(
-                    width: 50,
-                    child: Tooltip(
-                      message: locale?.editEntryTooltip ?? 'Edit entry',
-                      child: MaterialButton(
-                        onPressed: () {
-                          widget.edit(widget.text, widget.number - 1);
-                        },
-                        splashColor: Colors.transparent,
-                        enableFeedback: false,
-                        child: const Icon(Icons.edit),
+                    // gap between the buttons and the text
+                    const SizedBox(width: 15),
+                    // the edit button
+                    SizedBox(
+                      width: 50,
+                      child: Tooltip(
+                        message: locale?.editEntryTooltip ?? 'Edit entry',
+                        child: MaterialButton(
+                          onPressed: () {
+                            widget.edit(widget.text, widget.number - 1);
+                          },
+                          splashColor: Colors.transparent,
+                          enableFeedback: false,
+                          child: const Icon(Icons.edit),
+                        ),
                       ),
                     ),
-                  ),
 
-                  // the delete button
-                  SizedBox(
-                    width: 50,
-                    child: Tooltip(
-                      message: locale?.deleteEntryTooltip ?? 'Delete entry',
-                      child: MaterialButton(
-                        onPressed: () {
-                          _confirmDelete(locale, gender, widget.number - 1);
-                        },
-                        splashColor: Colors.transparent,
-                        enableFeedback: false,
-                        child: const Icon(Icons.delete),
+                    // the delete button
+                    SizedBox(
+                      width: 50,
+                      child: Tooltip(
+                        message: locale?.deleteEntryTooltip ?? 'Delete entry',
+                        child: MaterialButton(
+                          onPressed: () {
+                            _confirmDelete(locale, gender, widget.number - 1);
+                          },
+                          splashColor: Colors.transparent,
+                          enableFeedback: false,
+                          child: const Icon(Icons.delete),
+                        ),
                       ),
                     ),
-                  ),
-                ],
+                  ],
+                ),
               ),
             ),
           ),

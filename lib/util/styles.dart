@@ -106,9 +106,7 @@ Widget ConfirmationButton(context, function, text, buttonTextStyle) {
       ? buttonTextStyle.copyWith(color: Theme.of(context).colorScheme.onPrimary)
       : primaryButtonTextStyle(context);
   return SizedBox(
-    width: MediaQuery.of(context).size.width > 1000
-        ? 600
-        : MediaQuery.of(context).size.width * 0.6,
+    width: MediaQuery.of(context).size.width,
     child: TextButton(
       onPressed: () {
         function();
