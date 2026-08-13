@@ -3404,4 +3404,11 @@ class AppLocalizationsEn extends AppLocalizations {
     });
     return '$_temp0';
   }
+
+  @override
+  String get notificationCustomMessageLabel =>
+      'Write a custom reminder message (optional):';
+
+  @override
+  String get notificationCustomMessageHint => 'Enter reminder message...';
 }

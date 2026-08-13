@@ -80,6 +80,7 @@ class _ReminderDebugPanelState extends State<ReminderDebugPanel> {
         userInfo.notificationMinute,
         appLocale.notifyOnscheduledNotification,
         appLocale,
+        customMessage: userInfo.notificationMessage,
       );
       await _refresh();
     } finally {

@@ -632,5 +632,13 @@
         "type": "String"
       }
     }
+  },
+  "notificationCustomMessageLabel": "כתיבת הודעת תזכורת אישית (אופציונלי):",
+  "@notificationCustomMessageLabel": {
+    "description": "Label for the custom reminder message text field"
+  },
+  "notificationCustomMessageHint": "הזן הודעת תזכורת...",
+  "@notificationCustomMessageHint": {
+    "description": "Hint text for the custom reminder message text field"
   }
 }
