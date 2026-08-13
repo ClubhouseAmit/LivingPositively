@@ -172,8 +172,8 @@ class _FormPageTemplateState extends LPExtendedState<FormPageTemplate> {
                       child: myAutoSizedText(
                         displayInformation['header'],
                         TextStyle(
-                          fontWeight: FontWeight.bold,
-                          fontSize: 20.sp,
+                          fontWeight: FontWeight.w600,
+                          fontSize: 24.sp,
                           height: 1.5,
                         ),
                         TextAlign.center,
@@ -187,9 +187,9 @@ class _FormPageTemplateState extends LPExtendedState<FormPageTemplate> {
                       child: myAutoSizedText(
                         displayInformation['subTitle'],
                         TextStyle(
-                          fontWeight: FontWeight.bold,
+                          fontWeight: FontWeight.w400,
                           color: Theme.of(context).colorScheme.outline,
-                          fontSize: 14.sp,
+                          fontSize: 16.sp,
                           height: 1.3,
                         ),
                         TextAlign.center,
@@ -267,8 +267,8 @@ class _FormPageTemplateState extends LPExtendedState<FormPageTemplate> {
                         child: myAutoSizedText(
                           appLocale.addFormPageTemplateAdd(gender),
                           TextStyle(
-                            fontWeight: FontWeight.bold,
-                            fontSize: 14.sp,
+                            fontWeight: FontWeight.w500,
+                            fontSize: 12.sp,
                           ),
                           null,
                           20,
@@ -300,7 +300,7 @@ class _FormPageTemplateState extends LPExtendedState<FormPageTemplate> {
                       margin: EdgeInsets.symmetric(horizontal: 15),
                       child: myAutoSizedText(
                         displayInformation['midTitle'],
-                        TextStyle(fontWeight: FontWeight.bold, fontSize: 20.sp),
+                        TextStyle(fontWeight: FontWeight.w600, fontSize: 14.sp),
                         TextAlign.center,
                         40,
                       ),
@@ -312,9 +312,9 @@ class _FormPageTemplateState extends LPExtendedState<FormPageTemplate> {
                       child: myAutoSizedText(
                         displayInformation['midSubTitle'],
                         TextStyle(
-                          fontWeight: FontWeight.bold,
+                          fontWeight: FontWeight.w400,
                           color: Theme.of(context).colorScheme.outline,
-                          fontSize: 14.sp,
+                          fontSize: 12.sp,
                           height: 1.5,
                         ),
                         TextAlign.center,
@@ -461,7 +461,7 @@ class _FormPageTemplateState extends LPExtendedState<FormPageTemplate> {
                           child: myAutoSizedText(
                             displayInformation['showMoreButtonText'],
                             TextStyle(
-                              fontWeight: FontWeight.bold,
+                              fontWeight: FontWeight.w500,
                               fontSize: 14.sp,
                             ),
                             null,
@@ -487,8 +487,8 @@ class _FormPageTemplateState extends LPExtendedState<FormPageTemplate> {
                   },
                   displayInformation['nextButtonText'],
                   myTextStyle.copyWith(
-                    fontWeight: FontWeight.bold,
-                    fontSize: 22.sp,
+                    fontWeight: FontWeight.w500,
+                    fontSize: 18.sp,
                   ),
                 ),
                 const SizedBox(height: 20),
