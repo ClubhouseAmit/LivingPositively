@@ -1194,99 +1194,68 @@ PODS:
   - BoringSSL-GRPC/Implementation (0.0.37):
     - BoringSSL-GRPC/Interface (= 0.0.37)
   - BoringSSL-GRPC/Interface (0.0.37)
-  - cloud_firestore (6.4.1):
-    - Firebase/Firestore (= 12.13.0)
+  - cloud_firestore (6.8.0):
+    - Firebase/Firestore (= 12.17.0)
     - firebase_core
     - Flutter
   - devicelocale (0.0.1):
     - Flutter
-  - DKImagePickerController/Core (4.3.9):
-    - DKImagePickerController/ImageDataManager
-    - DKImagePickerController/Resource
-  - DKImagePickerController/ImageDataManager (4.3.9)
-  - DKImagePickerController/PhotoGallery (4.3.9):
-    - DKImagePickerController/Core
-    - DKPhotoGallery
-  - DKImagePickerController/Resource (4.3.9)
-  - DKPhotoGallery (0.0.19):
-    - DKPhotoGallery/Core (= 0.0.19)
-    - DKPhotoGallery/Model (= 0.0.19)
-    - DKPhotoGallery/Preview (= 0.0.19)
-    - DKPhotoGallery/Resource (= 0.0.19)
-    - SDWebImage
-    - SwiftyGif
-  - DKPhotoGallery/Core (0.0.19):
-    - DKPhotoGallery/Model
-    - DKPhotoGallery/Preview
-    - SDWebImage
-    - SwiftyGif
-  - DKPhotoGallery/Model (0.0.19):
-    - SDWebImage
-    - SwiftyGif
-  - DKPhotoGallery/Preview (0.0.19):
-    - DKPhotoGallery/Model
-    - DKPhotoGallery/Resource
-    - SDWebImage
-    - SwiftyGif
-  - DKPhotoGallery/Resource (0.0.19):
-    - SDWebImage
-    - SwiftyGif
   - file_picker (0.0.1):
-    - DKImagePickerController/PhotoGallery
     - Flutter
-  - Firebase/Auth (12.13.0):
+    - FlutterMacOS
+  - Firebase/Auth (12.17.0):
     - Firebase/CoreOnly
-    - FirebaseAuth (~> 12.13.0)
-  - Firebase/CoreOnly (12.13.0):
-    - FirebaseCore (~> 12.13.0)
-  - Firebase/Database (12.13.0):
+    - FirebaseAuth (~> 12.17.0)
+  - Firebase/CoreOnly (12.17.0):
+    - FirebaseCore (~> 12.17.0)
+  - Firebase/Database (12.17.0):
     - Firebase/CoreOnly
-    - FirebaseDatabase (~> 12.13.0)
-  - Firebase/Firestore (12.13.0):
+    - FirebaseDatabase (~> 12.17.0)
+  - Firebase/Firestore (12.17.0):
     - Firebase/CoreOnly
-    - FirebaseFirestore (~> 12.13.0)
-  - firebase_auth (6.5.1):
-    - Firebase/Auth (= 12.13.0)
+    - FirebaseFirestore (~> 12.17.0)
+  - firebase_auth (6.5.7):
+    - Firebase/Auth (= 12.17.0)
     - firebase_core
     - Flutter
-  - firebase_core (4.9.0):
-    - Firebase/CoreOnly (= 12.13.0)
+  - firebase_core (4.13.0):
+    - Firebase/CoreOnly (= 12.17.0)
     - Flutter
-  - firebase_database (12.4.1):
-    - Firebase/Database (= 12.13.0)
+  - firebase_database (12.4.7):
+    - Firebase/Database (= 12.17.0)
     - firebase_core
     - Flutter
-  - FirebaseAppCheckInterop (12.13.0)
-  - FirebaseAuth (12.13.0):
-    - FirebaseAppCheckInterop (~> 12.13.0)
-    - FirebaseAuthInterop (~> 12.13.0)
-    - FirebaseCore (~> 12.13.0)
-    - FirebaseCoreExtension (~> 12.13.0)
+  - FirebaseAppCheckInterop (12.17.0)
+  - FirebaseAuth (12.17.0):
+    - FirebaseAppCheckInterop (~> 12.17.0)
+    - FirebaseAuthInterop (~> 12.17.0)
+    - FirebaseCore (~> 12.17.0)
+    - FirebaseCoreExtension (~> 12.17.0)
     - GoogleUtilities/AppDelegateSwizzler (~> 8.1)
     - GoogleUtilities/Environment (~> 8.1)
     - GTMSessionFetcher/Core (< 6.0, >= 3.4)
     - RecaptchaInterop (~> 101.0)
-  - FirebaseAuthInterop (12.13.0)
-  - FirebaseCore (12.13.0):
-    - FirebaseCoreInternal (~> 12.13.0)
+  - FirebaseAuthInterop (12.17.0)
+  - FirebaseCore (12.17.0):
+    - FirebaseCoreInternal (~> 12.17.0)
     - GoogleUtilities/Environment (~> 8.1)
     - GoogleUtilities/Logger (~> 8.1)
-  - FirebaseCoreExtension (12.13.0):
-    - FirebaseCore (~> 12.13.0)
-  - FirebaseCoreInternal (12.13.0):
+  - FirebaseCoreExtension (12.17.0):
+    - FirebaseCore (~> 12.17.0)
+  - FirebaseCoreInternal (12.17.0):
     - "GoogleUtilities/NSData+zlib (~> 8.1)"
-  - FirebaseDatabase (12.13.0):
-    - FirebaseAppCheckInterop (~> 12.13.0)
-    - FirebaseCore (~> 12.13.0)
-    - FirebaseSharedSwift (~> 12.13.0)
+  - FirebaseDatabase (12.17.0):
+    - FirebaseAppCheckInterop (~> 12.17.0)
+    - FirebaseCore (~> 12.17.0)
+    - FirebaseSharedSwift (~> 12.17.0)
     - GoogleUtilities/UserDefaults (~> 8.1)
     - leveldb-library (~> 1.22)
-  - FirebaseFirestore (12.13.0):
-    - FirebaseCore (~> 12.13.0)
-    - FirebaseCoreExtension (~> 12.13.0)
-    - FirebaseFirestoreInternal (~> 12.13.0)
-    - FirebaseSharedSwift (~> 12.13.0)
-  - FirebaseFirestoreInternal (12.13.0):
+  - FirebaseFirestore (12.17.0):
+    - FirebaseCore (~> 12.17.0)
+    - FirebaseCoreExtension (~> 12.17.0)
+    - FirebaseFirestoreInternal (~> 12.17.0)
+    - FirebaseSharedSwift (~> 12.17.0)
+  - FirebaseFirestoreInternal (12.17.0):
     - abseil/algorithm (~> 1.20240722.0)
     - abseil/base (~> 1.20240722.0)
     - abseil/container/flat_hash_map (~> 1.20240722.0)
@@ -1295,51 +1264,47 @@ PODS:
     - abseil/strings/strings (~> 1.20240722.0)
     - abseil/time (~> 1.20240722.0)
     - abseil/types (~> 1.20240722.0)
-    - FirebaseAppCheckInterop (~> 12.13.0)
-    - FirebaseCore (~> 12.13.0)
+    - FirebaseAppCheckInterop (~> 12.17.0)
+    - FirebaseCore (~> 12.17.0)
     - "gRPC-C++ (~> 1.69.0)"
     - gRPC-Core (~> 1.69.0)
     - leveldb-library (~> 1.22)
     - nanopb (~> 3.30910.0)
-  - FirebaseSharedSwift (12.13.0)
+  - FirebaseSharedSwift (12.17.0)
   - Flutter (1.0.0)
   - flutter_contacts (0.0.1):
     - Flutter
-  - flutter_inappwebview_ios (0.0.1):
-    - Flutter
-    - flutter_inappwebview_ios/Core (= 0.0.1)
-    - OrderedSet (~> 6.0.3)
-  - flutter_inappwebview_ios/Core (0.0.1):
-    - Flutter
-    - OrderedSet (~> 6.0.3)
   - flutter_local_notifications (0.0.1):
     - Flutter
   - flutter_timezone (0.0.1):
     - Flutter
   - fluttertoast (0.0.2):
     - Flutter
-  - GoogleUtilities/AppDelegateSwizzler (8.1.0):
+  - geolocator_apple (1.2.0):
+    - Flutter
+    - FlutterMacOS
+  - GoogleUtilities/AppDelegateSwizzler (8.1.2):
     - GoogleUtilities/Environment
     - GoogleUtilities/Logger
     - GoogleUtilities/Network
     - GoogleUtilities/Privacy
-  - GoogleUtilities/Environment (8.1.0):
+  - GoogleUtilities/Environment (8.1.2):
     - GoogleUtilities/Privacy
-  - GoogleUtilities/Logger (8.1.0):
+  - GoogleUtilities/Logger (8.1.2):
     - GoogleUtilities/Environment
     - GoogleUtilities/Privacy
-  - GoogleUtilities/Network (8.1.0):
+  - GoogleUtilities/Network (8.1.2):
     - GoogleUtilities/Logger
     - "GoogleUtilities/NSData+zlib"
     - GoogleUtilities/Privacy
     - GoogleUtilities/Reachability
-  - "GoogleUtilities/NSData+zlib (8.1.0)":
+  - "GoogleUtilities/NSData+zlib (8.1.2)":
     - GoogleUtilities/Privacy
-  - GoogleUtilities/Privacy (8.1.0)
-  - GoogleUtilities/Reachability (8.1.0):
+  - GoogleUtilities/Privacy (8.1.2)
+  - GoogleUtilities/Reachability (8.1.2):
     - GoogleUtilities/Logger
     - GoogleUtilities/Privacy
-  - GoogleUtilities/UserDefaults (8.1.0):
+  - GoogleUtilities/UserDefaults (8.1.2):
     - GoogleUtilities/Logger
     - GoogleUtilities/Privacy
   - "gRPC-C++ (1.69.0)":
@@ -1434,7 +1399,7 @@ PODS:
     - gRPC-Core/Privacy (= 1.69.0)
   - gRPC-Core/Interface (1.69.0)
   - gRPC-Core/Privacy (1.69.0)
-  - GTMSessionFetcher/Core (5.3.0)
+  - GTMSessionFetcher/Core (5.3.1)
   - image_picker_ios (0.0.1):
     - Flutter
   - integration_test (0.0.1):
@@ -1443,16 +1408,17 @@ PODS:
   - jsonlogic (1.2.4):
     - json-enum (~> 1.2.3)
   - leveldb-library (1.22.6)
-  - Mixpanel-swift (6.4.0):
+  - Mixpanel-swift (6.5.1):
     - jsonlogic (~> 1.2.0)
-    - Mixpanel-swift/Complete (= 6.4.0)
+    - Mixpanel-swift/Complete (= 6.5.1)
     - MixpanelSwiftCommon (~> 1.0.0)
-  - Mixpanel-swift/Complete (6.4.0):
+  - Mixpanel-swift/Complete (6.5.1):
     - jsonlogic (~> 1.2.0)
     - MixpanelSwiftCommon (~> 1.0.0)
-  - mixpanel_flutter (2.8.0):
+  - mixpanel_flutter (2.13.0):
     - Flutter
-    - Mixpanel-swift (= 6.4.0)
+    - Mixpanel-swift (= 6.5.1)
+    - MixpanelSwiftCommon (~> 1.0.1)
   - MixpanelSwiftCommon (1.0.1)
   - mobile_scanner (7.0.0):
     - Flutter
@@ -1462,18 +1428,11 @@ PODS:
     - nanopb/encode (= 3.30910.0)
   - nanopb/decode (3.30910.0)
   - nanopb/encode (3.30910.0)
-  - OrderedSet (6.0.3)
   - package_info_plus (0.4.5):
     - Flutter
-  - path_provider_foundation (0.0.1):
-    - Flutter
-    - FlutterMacOS
-  - permission_handler_apple (9.3.0):
+  - permission_handler_apple (9.4.8):
     - Flutter
   - RecaptchaInterop (101.0.0)
-  - SDWebImage (5.21.7):
-    - SDWebImage/Core (= 5.21.7)
-  - SDWebImage/Core (5.21.7)
   - Sentry/HybridSDK (8.58.2)
   - sentry_flutter (9.20.0):
     - Flutter
@@ -1484,44 +1443,44 @@ PODS:
   - shared_preferences_foundation (0.0.1):
     - Flutter
     - FlutterMacOS
-  - SwiftyGif (5.4.5)
   - url_launcher_ios (0.0.1):
     - Flutter
+  - webview_flutter_wkwebview (0.0.1):
+    - Flutter
+    - FlutterMacOS
   - workmanager_apple (0.0.1):
     - Flutter
 
 DEPENDENCIES:
   - cloud_firestore (from `.symlinks/plugins/cloud_firestore/ios`)
   - devicelocale (from `.symlinks/plugins/devicelocale/ios`)
-  - file_picker (from `.symlinks/plugins/file_picker/ios`)
+  - file_picker (from `.symlinks/plugins/file_picker/darwin`)
   - firebase_auth (from `.symlinks/plugins/firebase_auth/ios`)
   - firebase_core (from `.symlinks/plugins/firebase_core/ios`)
   - firebase_database (from `.symlinks/plugins/firebase_database/ios`)
   - Flutter (from `Flutter`)
   - flutter_contacts (from `.symlinks/plugins/flutter_contacts/ios`)
-  - flutter_inappwebview_ios (from `.symlinks/plugins/flutter_inappwebview_ios/ios`)
   - flutter_local_notifications (from `.symlinks/plugins/flutter_local_notifications/ios`)
   - flutter_timezone (from `.symlinks/plugins/flutter_timezone/ios`)
   - fluttertoast (from `.symlinks/plugins/fluttertoast/ios`)
+  - geolocator_apple (from `.symlinks/plugins/geolocator_apple/darwin`)
   - image_picker_ios (from `.symlinks/plugins/image_picker_ios/ios`)
   - integration_test (from `.symlinks/plugins/integration_test/ios`)
   - mixpanel_flutter (from `.symlinks/plugins/mixpanel_flutter/ios`)
   - mobile_scanner (from `.symlinks/plugins/mobile_scanner/darwin`)
   - package_info_plus (from `.symlinks/plugins/package_info_plus/ios`)
-  - path_provider_foundation (from `.symlinks/plugins/path_provider_foundation/darwin`)
   - permission_handler_apple (from `.symlinks/plugins/permission_handler_apple/ios`)
   - sentry_flutter (from `.symlinks/plugins/sentry_flutter/ios`)
   - share_plus (from `.symlinks/plugins/share_plus/ios`)
   - shared_preferences_foundation (from `.symlinks/plugins/shared_preferences_foundation/darwin`)
   - url_launcher_ios (from `.symlinks/plugins/url_launcher_ios/ios`)
+  - webview_flutter_wkwebview (from `.symlinks/plugins/webview_flutter_wkwebview/darwin`)
   - workmanager_apple (from `.symlinks/plugins/workmanager_apple/ios`)
 
 SPEC REPOS:
   trunk:
     - abseil
     - BoringSSL-GRPC
-    - DKImagePickerController
-    - DKPhotoGallery
     - Firebase
     - FirebaseAppCheckInterop
     - FirebaseAuth
@@ -1543,11 +1502,8 @@ SPEC REPOS:
     - Mixpanel-swift
     - MixpanelSwiftCommon
     - nanopb
-    - OrderedSet
     - RecaptchaInterop
-    - SDWebImage
     - Sentry
-    - SwiftyGif
 
 EXTERNAL SOURCES:
   cloud_firestore:
@@ -1555,7 +1511,7 @@ EXTERNAL SOURCES:
   devicelocale:
     :path: ".symlinks/plugins/devicelocale/ios"
   file_picker:
-    :path: ".symlinks/plugins/file_picker/ios"
+    :path: ".symlinks/plugins/file_picker/darwin"
   firebase_auth:
     :path: ".symlinks/plugins/firebase_auth/ios"
   firebase_core:
@@ -1566,14 +1522,14 @@ EXTERNAL SOURCES:
     :path: Flutter
   flutter_contacts:
     :path: ".symlinks/plugins/flutter_contacts/ios"
-  flutter_inappwebview_ios:
-    :path: ".symlinks/plugins/flutter_inappwebview_ios/ios"
   flutter_local_notifications:
     :path: ".symlinks/plugins/flutter_local_notifications/ios"
   flutter_timezone:
     :path: ".symlinks/plugins/flutter_timezone/ios"
   fluttertoast:
     :path: ".symlinks/plugins/fluttertoast/ios"
+  geolocator_apple:
+    :path: ".symlinks/plugins/geolocator_apple/darwin"
   image_picker_ios:
     :path: ".symlinks/plugins/image_picker_ios/ios"
   integration_test:
@@ -1584,8 +1540,6 @@ EXTERNAL SOURCES:
     :path: ".symlinks/plugins/mobile_scanner/darwin"
   package_info_plus:
     :path: ".symlinks/plugins/package_info_plus/ios"
-  path_provider_foundation:
-    :path: ".symlinks/plugins/path_provider_foundation/darwin"
   permission_handler_apple:
     :path: ".symlinks/plugins/permission_handler_apple/ios"
   sentry_flutter:
@@ -1596,65 +1550,62 @@ EXTERNAL SOURCES:
     :path: ".symlinks/plugins/shared_preferences_foundation/darwin"
   url_launcher_ios:
     :path: ".symlinks/plugins/url_launcher_ios/ios"
+  webview_flutter_wkwebview:
+    :path: ".symlinks/plugins/webview_flutter_wkwebview/darwin"
   workmanager_apple:
     :path: ".symlinks/plugins/workmanager_apple/ios"
 
 SPEC CHECKSUMS:
   abseil: a05cc83bf02079535e17169a73c5be5ba47f714b
   BoringSSL-GRPC: dded2a44897e45f28f08ae87a55ee4bcd19bc508
-  cloud_firestore: c8c679b625a56c64997046e4e2cb184e5cb7f0a9
-  devicelocale: 35ba84dc7f45f527c3001535d8c8d104edd5d926
-  DKImagePickerController: 946cec48c7873164274ecc4624d19e3da4c1ef3c
-  DKPhotoGallery: b3834fecb755ee09a593d7c9e389d8b5d6deed60
-  file_picker: b159e0c068aef54932bb15dc9fd1571818edaf49
-  Firebase: 7d62445aeabdaea36f7d372f33052fed9a72514f
-  firebase_auth: cff048fe712e30c2500be9ebdf4c438475f7064c
-  firebase_core: 8863b8f05ae77d045fbd3ce0b6e86a8ae12f443b
-  firebase_database: 7fe85b7704e7514d1e80b2bba65bb105e9271d62
-  FirebaseAppCheckInterop: db09d7412340fb4b5a8727d4d410e5a5c780dd56
-  FirebaseAuth: fedecd40125af7f898ba4f0a328ac9f3a9c3b8c4
-  FirebaseAuthInterop: 63d36ca102054d7336f87aec87b1c68a0bab77e0
-  FirebaseCore: 58905958aa00a061397a0fd759ae4b55bddb3576
-  FirebaseCoreExtension: 5b94169f1ee96ecc2dbde40bc53690e4d65eb652
-  FirebaseCoreInternal: 37bee58388fc6d183f0ab1b32d69ae44f2cf8aad
-  FirebaseDatabase: a686e507e65ddfb2776e27be780125195e70fcfc
-  FirebaseFirestore: e5c352f6cc5158929702a7dffc0b917324907e89
-  FirebaseFirestoreInternal: f5748d57cf73bb51f01ecebce87c72321193e388
-  FirebaseSharedSwift: 76bdd9de8ff1da7a601236ee058253e36206978e
+  cloud_firestore: 511375ce1aea4e819e2df382fb1a141015cb8c60
+  devicelocale: 408371e7027f9342d4c044e1e0bf88148b3fde71
+  file_picker: 70164d9778c42c47218d6cd79ce435de0856b11a
+  Firebase: e8400c058702940d53f31fc0653e4e7a06332326
+  firebase_auth: 3e82fa3e632856cd5a8e2bedf458d682740c8168
+  firebase_core: c94f9efeed0ded590b7eecaf6110a374eb865d7a
+  firebase_database: 77bea7311951e20af46a508419047d9fa8c5d29b
+  FirebaseAppCheckInterop: 6d4cd7b9df8047da8cfc98c3fef4618bab2a8e0d
+  FirebaseAuth: d27d2fc54508c3af9db2f617300fcf3042328d80
+  FirebaseAuthInterop: 1679f5a45921270225b7eabf1ad4ebff8790fe82
+  FirebaseCore: 52d4512296984a44a8c8870c6494870fc7aeee2f
+  FirebaseCoreExtension: be2d62bfcf339c7dd94646d43d910aaf37fe17c1
+  FirebaseCoreInternal: 3b310521b34a51ce3a6c605e4618b9aef8f6c112
+  FirebaseDatabase: 9b8c0e705a35612c2154c173cf4542e7c85462f5
+  FirebaseFirestore: dfebd53ce603c93a8514102c9a0b688d2be2bfc2
+  FirebaseFirestoreInternal: 99cccc955349efee1652cbe132cf206915e6923d
+  FirebaseSharedSwift: 983820e9aa55d2acd6af77f9a1f252ba0afb3150
   Flutter: cabc95a1d2626b1b06e7179b784ebcf0c0cde467
-  flutter_contacts: 8d2ecfb85b529297c9924aefd4699ded455dea8a
-  flutter_inappwebview_ios: 6f63631e2c62a7c350263b13fa5427aedefe81d4
-  flutter_local_notifications: eda81afddbf18f8589f6ec069ce593c4c6378769
-  flutter_timezone: ac3da59ac941ff1c98a2e1f0293420e020120282
-  fluttertoast: fac57e14a92926e51402ed1da7a53ecd30588a44
-  GoogleUtilities: 00c88b9a86066ef77f0da2fab05f65d7768ed8e1
+  flutter_contacts: 2ec1d6b62ca2869c3bbb3871bd74d4e3ef157135
+  flutter_local_notifications: 643a3eda1ce1c0599413ca31672536d423dee214
+  flutter_timezone: 7c838e17ffd4645d261e87037e5bebf6d38fe544
+  fluttertoast: fe6790210fdba20801685be946e3a2124b72eef5
+  geolocator_apple: ab36aa0e8b7d7a2d7639b3b4e48308394e8cef5e
+  GoogleUtilities: 766ace00c6b10d8148408f329d10c4f051931850
   "gRPC-C++": cc207623316fb041a7a3e774c252cf68a058b9e8
   gRPC-Core: 860978b7db482de8b4f5e10677216309b5ff6330
-  GTMSessionFetcher: 127211aeec0b1e904fc49f4f6f895dcc535b0ecf
-  image_picker_ios: 4f2f91b01abdb52842a8e277617df877e40f905b
-  integration_test: 252f60fa39af5e17c3aa9899d35d908a0721b573
+  GTMSessionFetcher: a6d2b2aa203485893d4511ff64642dc811f7c09f
+  image_picker_ios: e0ece4aa2a75771a7de3fa735d26d90817041326
+  integration_test: 4a889634ef21a45d28d50d622cf412dc6d9f586e
   json-enum: 57ad746d2f0d7852796e9aa50267bd84a778222e
   jsonlogic: 006f892470384401b8ca5b5d8d4cdadb3a0d5c9b
   leveldb-library: cc8b8f8e013647a295ad3f8cd2ddf49a6f19be19
-  Mixpanel-swift: 9eb2ea2d0463970687c984e07040669f787b7a49
-  mixpanel_flutter: 9214a5f06b0290e54a2667ee7e92ec381f3d3afa
+  Mixpanel-swift: 7b6cea07c32e688c90442b83f4ecfd79a9332d00
+  mixpanel_flutter: a64a13a53f121b338365611d994ba24344b19555
   MixpanelSwiftCommon: 6fc461403945422a2e1d0989d712c0db2c26ecdb
-  mobile_scanner: 77265f3dc8d580810e91849d4a0811a90467ed5e
+  mobile_scanner: 9157936403f5a0644ca3779a38ff8404c5434a93
   nanopb: fad817b59e0457d11a5dfbde799381cd727c1275
-  OrderedSet: e539b66b644ff081c73a262d24ad552a69be3a94
-  package_info_plus: c0502532a26c7662a62a356cebe2692ec5fe4ec4
-  path_provider_foundation: 0b743cbb62d8e47eab856f09262bb8c1ddcfe6ba
-  permission_handler_apple: 9878588469a2b0d0fc1e048d9f43605f92e6cec2
+  package_info_plus: af8e2ca6888548050f16fa2f1938db7b5a5df499
+  permission_handler_apple: 92d754bbaa7361d436db2d6c3c1c2a0fdcec462e
   RecaptchaInterop: 11e0b637842dfb48308d242afc3f448062325aba
-  SDWebImage: e9fc87c1aab89a8ab1bbd74eba378c6f53be8abf
   Sentry: de29b881e83bd91cf99a927f82f1fd86bfb39db2
-  sentry_flutter: aafdf112550e9550972852e71f44994bd4239254
-  share_plus: 8b6f8b3447e494cca5317c8c3073de39b3600d1f
-  shared_preferences_foundation: 5086985c1d43c5ba4d5e69a4e8083a389e2909e6
-  SwiftyGif: 706c60cf65fa2bc5ee0313beece843c8eb8194d4
-  url_launcher_ios: bb13df5870e8c4234ca12609d04010a21be43dfa
-  workmanager_apple: 7bac258335c310689a641e2d66e88d4845d372e9
+  sentry_flutter: cbb414ef141b64f901bc1ba32daa871349510ce4
+  share_plus: 50da8cb520a8f0f65671c6c6a99b3617ed10a58a
+  shared_preferences_foundation: 7036424c3d8ec98dfe75ff1667cb0cd531ec82bb
+  url_launcher_ios: 7a95fa5b60cc718a708b8f2966718e93db0cef1b
+  webview_flutter_wkwebview: 8ebf4fded22593026f7dbff1fbff31ea98573c8d
+  workmanager_apple: 1fc2a64e6a63ed3540fbb91b65f0c0d501881248
 
-PODFILE CHECKSUM: 3c63482e143d1b91d2d2560aee9fb04ecc74ac7e
+PODFILE CHECKSUM: cce0700a908dfcfff7bcd7ee6818a50a952789ff
 
-COCOAPODS: 1.16.2
+COCOAPODS: 1.17.0
