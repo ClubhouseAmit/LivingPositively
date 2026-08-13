@@ -309,16 +309,13 @@ Future<void> _expectLocationUnavailable(
         tester.element(find.byType(PhonePage)),
       )!;
       final locationUnavailableDialog = find.byType(AlertDialog);
-      expect(fileService.sharedMessages, isEmpty);
-      expect(
-        find.text(
+      final notice =
           expectedNotice ??
-              (servicesDisabled
-                  ? localizations.sosShareLocationServicesDisabled
-                  : localizations.sosShareLocationUnavailable),
-        ),
-        findsOneWidget,
-      );
+          (servicesDisabled
+              ? localizations.sosShareLocationServicesDisabled
+              : localizations.sosShareLocationUnavailable);
+      expect(fileService.sharedMessages, isEmpty);
+      expect(find.text(notice), findsOneWidget);
       expect(locationUnavailableDialog, findsOneWidget);
       for (final deliveryAction in [
         localizations.sosShareMessage,
@@ -343,6 +340,51 @@ Future<void> _expectLocationUnavailable(
         ),
         findsOneWidget,
       );
+
+      if (!servicesDisabled) {
+        final locationServiceEnabledCallsBeforeRetry =
+            geolocator.locationServiceEnabledCalls;
+        final geolocatorCallsBeforeRetry = geolocator.callLog.length;
+        await tester.tap(
+          find.descendant(
+            of: locationUnavailableDialog,
+            matching: find.text(localizations.asyncRetryButton),
+          ),
+        );
+        await tester.pumpAndSettle();
+
+        expect(locationUnavailableDialog, findsOneWidget);
+        expect(find.text(notice), findsOneWidget);
+        if (!kIsWeb &&
+            (platform == TargetPlatform.android ||
+                platform == TargetPlatform.iOS)) {
+          expect(
+            geolocator.locationServiceEnabledCalls,
+            locationServiceEnabledCallsBeforeRetry + 1,
+          );
+          expect(
+            geolocator.callLog.length,
+            greaterThan(geolocatorCallsBeforeRetry),
+          );
+        } else {
+          expect(
+            geolocator.locationServiceEnabledCalls,
+            locationServiceEnabledCallsBeforeRetry,
+          );
+          expect(geolocator.callLog.length, geolocatorCallsBeforeRetry);
+        }
+      }
+
+      await tester.tap(
+        find.descendant(
+          of: locationUnavailableDialog,
+          matching: find.text(localizations.closeButton(userInfo.gender)),
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      expect(locationUnavailableDialog, findsNothing);
+      expect(fileService.sharedMessages, isEmpty);
     },
   );
 }
@@ -1358,43 +1400,45 @@ void main() {
     );
   });
 
-  for (final disabledServicesCase in <({Locale locale, String notice})>[
-    (
-      locale: const Locale('en'),
-      notice:
-          'Your current location could not be obtained. Please enable location services.',
-    ),
-    (
-      locale: const Locale('he'),
-      notice: 'לא ניתן לקבל את מיקומך הנוכחי, נא להפעיל את שירותי המיקום',
-    ),
-    (
-      locale: const Locale('ar'),
-      notice: 'تعذّر الحصول على موقعك الحالي. يُرجى تفعيل خدمات الموقع.',
-    ),
-  ]) {
-    testWidgets(
-      'PhonePage stops SOS delivery and shows disabled-services feedback in ${disabledServicesCase.locale.languageCode}',
-      (tester) async {
-        final geolocator = FakeGeolocatorPlatform(serviceEnabled: false);
+  group('PhonePage SOS location availability', () {
+    for (final disabledServicesCase in <({Locale locale, String notice})>[
+      (
+        locale: const Locale('en'),
+        notice:
+            'Your current location could not be obtained. Please enable location services.',
+      ),
+      (
+        locale: const Locale('he'),
+        notice: 'לא ניתן לקבל את מיקומך הנוכחי, נא להפעיל את שירותי המיקום',
+      ),
+      (
+        locale: const Locale('ar'),
+        notice: 'تعذّر الحصول على موقعك الحالي. يُرجى تفعيل خدمات الموقع.',
+      ),
+    ]) {
+      testWidgets(
+        'should stop SOS delivery and show disabled-services feedback in ${disabledServicesCase.locale.languageCode}',
+        (tester) async {
+          final geolocator = FakeGeolocatorPlatform(serviceEnabled: false);
 
-        await _expectLocationUnavailable(
-          tester,
-          geolocator,
-          locale: disabledServicesCase.locale,
-          servicesDisabled: true,
-          expectedNotice: disabledServicesCase.notice,
-        );
+          await _expectLocationUnavailable(
+            tester,
+            geolocator,
+            locale: disabledServicesCase.locale,
+            servicesDisabled: true,
+            expectedNotice: disabledServicesCase.notice,
+          );
 
-        expect(geolocator.checkPermissionCalls, 0);
-        expect(geolocator.currentPositionCalls, 0);
-      },
-    );
-  }
+          expect(geolocator.locationServiceEnabledCalls, 1);
+          expect(geolocator.checkPermissionCalls, 0);
+          expect(geolocator.currentPositionCalls, 0);
+        },
+      );
+    }
 
-  testWidgets(
-    'PhonePage stops SOS delivery when location permission is denied',
-    (tester) async {
+    testWidgets('should stop SOS delivery when location permission is denied', (
+      tester,
+    ) async {
       final geolocator = FakeGeolocatorPlatform(
         permission: LocationPermission.denied,
         requestedPermission: LocationPermission.denied,
@@ -1402,131 +1446,145 @@ void main() {
 
       await _expectLocationUnavailable(tester, geolocator);
 
-      expect(geolocator.requestPermissionCalls, 1);
+      expect(geolocator.locationServiceEnabledCalls, 2);
+      expect(geolocator.checkPermissionCalls, 2);
+      expect(geolocator.requestPermissionCalls, 2);
       expect(geolocator.currentPositionCalls, 0);
-    },
-  );
+    });
 
-  testWidgets(
-    'PhonePage stops SOS delivery when location permission is permanently denied',
-    (tester) async {
-      final geolocator = FakeGeolocatorPlatform(
-        permission: LocationPermission.deniedForever,
-      );
-
-      await _expectLocationUnavailable(tester, geolocator);
-
-      expect(geolocator.requestPermissionCalls, 0);
-      expect(geolocator.currentPositionCalls, 0);
-    },
-  );
-
-  testWidgets('PhonePage accepts an existing always location permission', (
-    tester,
-  ) async {
-    final geolocator = FakeGeolocatorPlatform(
-      permission: LocationPermission.always,
-    );
-    final fileService = RecordingFileService();
-
-    await _runLocationShareTest(
-      geolocator,
-      fileService,
-      body: () async {
-        await tester.pumpWidget(
-          buildPhonePageTestApp(
-            userInformation: UserInformation(
-              gender: 'male',
-              location: 'US',
-              service: FakePersistentMemoryService(),
-            ),
-            appInformation: AppInformation(),
-            phonePageData: _phonePageDataForLocationShare(),
-          ),
+    testWidgets(
+      'should stop SOS delivery when location permission is permanently denied',
+      (tester) async {
+        final geolocator = FakeGeolocatorPlatform(
+          permission: LocationPermission.deniedForever,
         );
-        await tester.pumpAndSettle();
 
-        await _tapLocationShare(tester);
-        await _chooseDeliveryOption(tester, 'Choose an app');
+        await _expectLocationUnavailable(tester, geolocator);
 
+        expect(geolocator.locationServiceEnabledCalls, 2);
+        expect(geolocator.checkPermissionCalls, 2);
         expect(geolocator.requestPermissionCalls, 0);
-        expect(geolocator.currentPositionCalls, 1);
-        expect(fileService.sharedMessages, [
-          'I am here and I need your help.\n'
-              'https://www.google.com/maps/search/?api=1&query=31.7683,35.2137',
-        ]);
+        expect(geolocator.currentPositionCalls, 0);
       },
     );
-  });
 
-  testWidgets(
-    'PhonePage stops SOS delivery when location availability cannot be determined',
-    (tester) async {
+    testWidgets('should accept an existing always location permission', (
+      tester,
+    ) async {
       final geolocator = FakeGeolocatorPlatform(
-        permission: LocationPermission.unableToDetermine,
+        permission: LocationPermission.always,
+      );
+      final fileService = RecordingFileService();
+
+      await _runLocationShareTest(
+        geolocator,
+        fileService,
+        body: () async {
+          await tester.pumpWidget(
+            buildPhonePageTestApp(
+              userInformation: UserInformation(
+                gender: 'male',
+                location: 'US',
+                service: FakePersistentMemoryService(),
+              ),
+              appInformation: AppInformation(),
+              phonePageData: _phonePageDataForLocationShare(),
+            ),
+          );
+          await tester.pumpAndSettle();
+
+          await _tapLocationShare(tester);
+          await _chooseDeliveryOption(tester, 'Choose an app');
+
+          expect(geolocator.requestPermissionCalls, 0);
+          expect(geolocator.currentPositionCalls, 1);
+          expect(fileService.sharedMessages, [
+            'I am here and I need your help.\n'
+                'https://www.google.com/maps/search/?api=1&query=31.7683,35.2137',
+          ]);
+        },
+      );
+    });
+
+    testWidgets(
+      'should stop SOS delivery when location availability cannot be determined',
+      (tester) async {
+        final geolocator = FakeGeolocatorPlatform(
+          permission: LocationPermission.unableToDetermine,
+        );
+
+        await _expectLocationUnavailable(tester, geolocator);
+
+        expect(geolocator.locationServiceEnabledCalls, 2);
+        expect(geolocator.checkPermissionCalls, 2);
+        expect(geolocator.currentPositionCalls, 0);
+      },
+    );
+
+    testWidgets('should stop SOS delivery when location lookup times out', (
+      tester,
+    ) async {
+      final geolocator = FakeGeolocatorPlatform(
+        positionError: TimeoutException('location lookup timed out'),
       );
 
       await _expectLocationUnavailable(tester, geolocator);
 
-      expect(geolocator.currentPositionCalls, 0);
-    },
-  );
+      expect(geolocator.locationServiceEnabledCalls, 2);
+      expect(geolocator.checkPermissionCalls, 2);
+      expect(geolocator.currentPositionCalls, 2);
+    });
 
-  testWidgets('PhonePage stops SOS delivery when location lookup times out', (
-    tester,
-  ) async {
-    final geolocator = FakeGeolocatorPlatform(
-      positionError: TimeoutException('location lookup timed out'),
-    );
-
-    await _expectLocationUnavailable(tester, geolocator);
-
-    expect(geolocator.currentPositionCalls, 1);
-  });
-
-  testWidgets('PhonePage stops SOS delivery when location lookup throws', (
-    tester,
-  ) async {
-    final geolocator = FakeGeolocatorPlatform(
-      positionError: StateError('location lookup failed'),
-    );
-
-    await _expectLocationUnavailable(tester, geolocator);
-
-    expect(geolocator.currentPositionCalls, 1);
-  });
-
-  testWidgets('PhonePage stops SOS delivery without GPS on desktop', (
-    tester,
-  ) async {
-    final geolocator = FakeGeolocatorPlatform();
-
-    await _expectLocationUnavailable(
+    testWidgets('should stop SOS delivery when location lookup throws', (
       tester,
-      geolocator,
-      platform: TargetPlatform.windows,
-    );
+    ) async {
+      final geolocator = FakeGeolocatorPlatform(
+        positionError: StateError('location lookup failed'),
+      );
 
-    expect(geolocator.locationServiceEnabledCalls, 0);
-    expect(geolocator.checkPermissionCalls, 0);
-    expect(geolocator.requestPermissionCalls, 0);
-    expect(geolocator.currentPositionCalls, 0);
-    expect(geolocator.callLog, isEmpty);
+      await _expectLocationUnavailable(tester, geolocator);
+
+      expect(geolocator.locationServiceEnabledCalls, 2);
+      expect(geolocator.checkPermissionCalls, 2);
+      expect(geolocator.currentPositionCalls, 2);
+    });
+
+    for (final platform in <TargetPlatform>[
+      TargetPlatform.windows,
+      TargetPlatform.macOS,
+      TargetPlatform.linux,
+    ]) {
+      testWidgets('should stop SOS delivery without GPS on $platform', (
+        tester,
+      ) async {
+        final geolocator = FakeGeolocatorPlatform();
+
+        await _expectLocationUnavailable(
+          tester,
+          geolocator,
+          platform: platform,
+        );
+
+        expect(geolocator.locationServiceEnabledCalls, 0);
+        expect(geolocator.checkPermissionCalls, 0);
+        expect(geolocator.requestPermissionCalls, 0);
+        expect(geolocator.currentPositionCalls, 0);
+        expect(geolocator.callLog, isEmpty);
+      });
+    }
+
+    testWidgets('should stop SOS delivery without GPS on web', (tester) async {
+      final geolocator = FakeGeolocatorPlatform();
+
+      await _expectLocationUnavailable(tester, geolocator);
+
+      expect(geolocator.locationServiceEnabledCalls, 0);
+      expect(geolocator.checkPermissionCalls, 0);
+      expect(geolocator.requestPermissionCalls, 0);
+      expect(geolocator.currentPositionCalls, 0);
+      expect(geolocator.callLog, isEmpty);
+    }, skip: !kIsWeb);
   });
-
-  testWidgets('PhonePage stops SOS delivery without GPS on web', (
-    tester,
-  ) async {
-    final geolocator = FakeGeolocatorPlatform();
-
-    await _expectLocationUnavailable(tester, geolocator);
-
-    expect(geolocator.locationServiceEnabledCalls, 0);
-    expect(geolocator.checkPermissionCalls, 0);
-    expect(geolocator.requestPermissionCalls, 0);
-    expect(geolocator.currentPositionCalls, 0);
-    expect(geolocator.callLog, isEmpty);
-  }, skip: !kIsWeb);
 
   testWidgets(
     'PhonePage shows localized Arabic SOS feedback and allows retry when sharing is not confirmed',

@@ -51,7 +51,7 @@ class _PhonePageState extends LPExtendedState<PhonePage> {
 
   Future<void> _runLocationDelivery() async {
     while (mounted) {
-      final locationResult = await _getCurrentPosition();
+      final locationResult = await _lookupCurrentPosition();
       if (!mounted) {
         return;
       }
@@ -66,7 +66,7 @@ class _PhonePageState extends LPExtendedState<PhonePage> {
         return;
       }
 
-      final shouldRetry = await _showLocationUnavailableDialog(
+      final shouldRetry = await _showLocationFailureDialog(
         locationResult.failure == _SosLocationFailure.servicesDisabled
             ? appLocale.sosShareLocationServicesDisabled
             : appLocale.sosShareLocationUnavailable,
@@ -100,7 +100,7 @@ class _PhonePageState extends LPExtendedState<PhonePage> {
     }
   }
 
-  Future<_SosLocationLookupResult> _getCurrentPosition() async {
+  Future<_SosLocationLookupResult> _lookupCurrentPosition() async {
     if (!_supportsLocationSharing) {
       return (position: null, failure: _SosLocationFailure.unavailable);
     }
@@ -414,28 +414,13 @@ class _PhonePageState extends LPExtendedState<PhonePage> {
   Future<bool> _showContactsNeedAttentionDialog() =>
       _showEditContactsDialog(appLocale.sosDeliveryContactsNeedAttention);
 
-  Future<bool> _showEditContactsDialog(String message) async {
-    final gender = Provider.of<UserInformation>(context, listen: false).gender;
-    return (await showDialog<bool>(
-          context: context,
-          builder: (dialogContext) => AlertDialog(
-            content: Text(message),
-            actions: [
-              TextButton(
-                onPressed: () => Navigator.of(dialogContext).pop(false),
-                child: Text(appLocale.closeButton(gender)),
-              ),
-              TextButton(
-                onPressed: () => Navigator.of(dialogContext).pop(true),
-                child: Text(appLocale.sosDeliveryEditContacts),
-              ),
-            ],
-          ),
-        )) ??
-        false;
-  }
+  Future<bool> _showEditContactsDialog(String message) =>
+      _showMessageDialog(message, appLocale.sosDeliveryEditContacts);
 
-  Future<bool> _showLocationUnavailableDialog(String message) async {
+  Future<bool> _showLocationFailureDialog(String message) =>
+      _showMessageDialog(message, appLocale.asyncRetryButton);
+
+  Future<bool> _showMessageDialog(String message, String actionLabel) async {
     final gender = Provider.of<UserInformation>(context, listen: false).gender;
     return (await showDialog<bool>(
           context: context,
@@ -448,7 +433,7 @@ class _PhonePageState extends LPExtendedState<PhonePage> {
               ),
               TextButton(
                 onPressed: () => Navigator.of(dialogContext).pop(true),
-                child: Text(appLocale.asyncRetryButton),
+                child: Text(actionLabel),
               ),
             ],
           ),
