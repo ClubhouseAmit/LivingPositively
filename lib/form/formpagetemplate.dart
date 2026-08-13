@@ -172,7 +172,7 @@ class _FormPageTemplateState extends LPExtendedState<FormPageTemplate> {
                       child: myAutoSizedText(
                         displayInformation['header'],
                         TextStyle(
-                          fontWeight: FontWeight.w600,
+                          fontWeight: FontWeight.w500,
                           fontSize: 24.sp,
                           height: 1.5,
                         ),

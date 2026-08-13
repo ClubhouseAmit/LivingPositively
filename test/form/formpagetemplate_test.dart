@@ -1,3 +1,4 @@
+import 'package:auto_size_text/auto_size_text.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -99,9 +100,27 @@ void main() {
 
       // More readable tree dump
 
-      // Verifying initial UI elements
-      expect(find.text('תזכורות לטריגרים נפוצים וגורמי הסלמה'), findsOneWidget);
-      expect(find.text('גורמים ואירועים שהקשו עלי בעבר'), findsOneWidget);
+      // Verifying initial UI elements and their styles to prevent design regressions
+      final headerFinder = find.byWidgetPredicate(
+        (widget) => widget is AutoSizeText && widget.data == 'תזכורות לטריגרים נפוצים וגורמי הסלמה',
+      );
+      expect(headerFinder, findsOneWidget);
+      final AutoSizeText headerWidget = tester.widget(headerFinder);
+      expect(headerWidget.style?.fontFamily, 'Rubix');
+      expect(headerWidget.style?.fontWeight, FontWeight.w500);
+      expect(headerWidget.style?.fontSize, 24.sp);
+      expect(headerWidget.style?.height, 1.5);
+
+      final subTitleFinder = find.byWidgetPredicate(
+        (widget) => widget is AutoSizeText && widget.data == 'גורמים ואירועים שהקשו עלי בעבר',
+      );
+      expect(subTitleFinder, findsOneWidget);
+      final AutoSizeText subTitleWidget = tester.widget(subTitleFinder);
+      expect(subTitleWidget.style?.fontFamily, 'Rubix');
+      expect(subTitleWidget.style?.fontWeight, FontWeight.w400);
+      expect(subTitleWidget.style?.fontSize, 16.sp);
+      expect(subTitleWidget.style?.height, 1.3);
+
       expect(find.text('אין לך רעיון? הנה כמה הצעות'), findsOneWidget);
       expect(find.text('לחץ כדי להוסיף אפשרויות המתאימות לך לתכנית האישית שלך'),
           findsOneWidget);
