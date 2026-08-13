@@ -9,15 +9,14 @@
 
 Issue #217 adds a one-time SOS action that appends the user's current
 location to an existing help message before opening the native share sheet.
-The app has no existing current-position abstraction: a repository search
-found only the new `PhonePage` call site, and the existing sharing service is
-responsible only for presenting text to the system share sheet.
+The existing sharing service is responsible only for presenting text to the
+system share sheet.
 
 Location permissions, GPS availability, and platform implementations are
-volatile concerns. They remain local to the SOS page, while the stable shared
-text-sharing behavior remains in `FileService`. Creating a new application
-abstraction for this single current-position use case would add an unsupported
-boundary without an identified second consumer.
+volatile concerns. ADR-013 supersedes this record's earlier decision to keep
+those concerns directly in `PhonePage`: the SOS-specific lookup service now
+owns platform access and failure classification, while `PhonePage` retains the
+stable UI and delivery choices.
 
 ## Decision
 
@@ -31,16 +30,19 @@ The repository collaborator explicitly approves adding the direct dependency
   not request always authorization or perform background location access.
 - Do not enable background location, continuous location streams, location
   history, automatic recipient targeting, or tracking of a user's movement.
-- Web and desktop remain text-only SOS fallbacks and must not invoke location
-  access.
+- The Location action fails closed on web and desktop and must not invoke
+  location access. The separate Message action remains the intentional
+  text-only SOS flow.
 - Pin `14.0.2` as the currently resolved, validated baseline to avoid
   unrelated dependency churn. Moving to a later version requires a separately
   reviewed dependency update.
 
 ## Consequences
 
-- The SOS page owns permission and device-location failure handling, keeping
-  volatile GPS behavior out of the shared sharing service.
+- The SOS lookup service owns permission and device-location failure
+  classification, keeping volatile GPS behavior out of `PhonePage` and the
+  shared sharing service. `PhonePage` owns the resulting UI and delivery
+  choices.
 - The dependency is deliberately limited to one foreground-only product need;
   any background, live-tracking, or additional current-position consumer
   requires a new decision record.
@@ -51,4 +53,5 @@ The repository collaborator explicitly approves adding the direct dependency
 
 - Issue #217 — SOS current-location sharing
 - `lib/pages/phone.dart` — sole production location consumer
+- `docs/adr/ADR-013-sos-location-lookup-boundary.md` — SOS lookup boundary
 - `pubspec.yaml` — approved direct dependency declaration

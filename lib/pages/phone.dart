@@ -1,12 +1,12 @@
 import 'package:flutter/foundation.dart'
-    show TargetPlatform, defaultTargetPlatform, kIsWeb;
+    show TargetPlatform, defaultTargetPlatform;
 import 'package:flutter/material.dart';
 import 'package:country_code_picker/country_code_picker.dart';
-import 'package:geolocator/geolocator.dart';
 import 'package:get_it/get_it.dart';
 import 'package:mazilon/EmergencyNumbers.dart';
 import 'package:mazilon/file_service.dart';
 import 'package:mazilon/form/phonePageform.dart';
+import 'package:mazilon/pages/sos_location_service.dart';
 import 'package:mazilon/util/LP_extended_state.dart';
 import 'package:mazilon/util/Phone/phoneTextAndIcon.dart';
 import 'package:provider/provider.dart';
@@ -20,56 +20,75 @@ enum _SosDeliveryOption { app, contact, map }
 
 enum _SosContactDeliveryOption { sms, whatsApp }
 
-enum _SosLocationFailure { servicesDisabled, unavailable }
-
-typedef _SosLocationLookupResult = ({
-  Position? position,
-  _SosLocationFailure? failure,
-});
-
 class PhonePage extends StatefulWidget {
   final PhonePageData phonePageData;
-  const PhonePage({super.key, required this.phonePageData});
+  final SosLocationService? sosLocationService;
+
+  const PhonePage({
+    super.key,
+    required this.phonePageData,
+    this.sosLocationService,
+  });
 
   @override
   _PhonePageState createState() => _PhonePageState();
 }
 
 class _PhonePageState extends LPExtendedState<PhonePage> {
+  static const _maximumLocationAttempts = 3;
+  static const _locationRetryBackoff = Duration(milliseconds: 500);
+
   String mainTitle = '';
   String contactsTitle = '';
   String emergencyNumbersTitle = '';
   bool _isSosDeliveryInProgress = false;
+  late final SosLocationService _sosLocationService;
 
-  bool get _supportsLocationSharing =>
-      !kIsWeb &&
-      (defaultTargetPlatform == TargetPlatform.android ||
-          defaultTargetPlatform == TargetPlatform.iOS);
+  @override
+  void initState() {
+    super.initState();
+    _sosLocationService =
+        widget.sosLocationService ?? GetIt.instance<SosLocationService>();
+  }
 
   Future<void> _startLocationDelivery() =>
       _runSosDelivery(_runLocationDelivery);
 
   Future<void> _runLocationDelivery() async {
-    while (mounted) {
-      final locationResult = await _lookupCurrentPosition();
+    for (
+      var attempt = 0;
+      mounted && attempt < _maximumLocationAttempts;
+      attempt++
+    ) {
+      if (attempt > 0) {
+        await Future<void>.delayed(_locationRetryBackoff);
+        if (!mounted) {
+          return;
+        }
+      }
+
+      final locationResult = await _sosLocationService.lookupCurrentPosition();
       if (!mounted) {
         return;
       }
 
-      final position = locationResult.position;
-      if (position != null) {
-        final mapLink = _mapShareLink(position);
+      if (locationResult case SosLocationSuccess(:final location)) {
+        final mapLink = _mapShareLink(location);
         await _showDeliveryOptions(
           '${appLocale.sosShareLocationMessage}\n$mapLink',
-          mapAppUrl: _mapAppUrl(position),
+          mapAppUrl: _mapAppUrl(location),
         );
         return;
       }
 
+      final failure = locationResult as SosLocationFailureResult;
+      final canRetry =
+          failure.canRetry && attempt < _maximumLocationAttempts - 1;
       final shouldRetry = await _showLocationFailureDialog(
-        locationResult.failure == _SosLocationFailure.servicesDisabled
+        failure.kind == SosLocationFailureKind.servicesDisabled
             ? appLocale.sosShareLocationServicesDisabled
             : appLocale.sosShareLocationUnavailable,
+        canRetry: canRetry,
       );
       if (!mounted || !shouldRetry) {
         return;
@@ -100,46 +119,11 @@ class _PhonePageState extends LPExtendedState<PhonePage> {
     }
   }
 
-  Future<_SosLocationLookupResult> _lookupCurrentPosition() async {
-    if (!_supportsLocationSharing) {
-      return (position: null, failure: _SosLocationFailure.unavailable);
-    }
+  String _mapShareLink(SosLocationSnapshot location) =>
+      'https://www.google.com/maps/search/?api=1&query=${location.latitude},${location.longitude}';
 
-    try {
-      final serviceEnabled = await Geolocator.isLocationServiceEnabled();
-      if (!serviceEnabled) {
-        return (position: null, failure: _SosLocationFailure.servicesDisabled);
-      }
-
-      var permission = await Geolocator.checkPermission();
-      if (permission == LocationPermission.denied) {
-        permission = await Geolocator.requestPermission();
-      }
-      if (permission != LocationPermission.whileInUse &&
-          permission != LocationPermission.always) {
-        return (position: null, failure: _SosLocationFailure.unavailable);
-      }
-
-      return (
-        position: await Geolocator.getCurrentPosition(
-          locationSettings: const LocationSettings(
-            accuracy: LocationAccuracy.high,
-            timeLimit: Duration(seconds: 15),
-          ),
-        ),
-        failure: null,
-      );
-    } catch (error, stackTrace) {
-      debugPrint('Could not get SOS location: $error\n$stackTrace');
-      return (position: null, failure: _SosLocationFailure.unavailable);
-    }
-  }
-
-  String _mapShareLink(Position position) =>
-      'https://www.google.com/maps/search/?api=1&query=${position.latitude},${position.longitude}';
-
-  String _mapAppUrl(Position position) {
-    final coordinates = '${position.latitude},${position.longitude}';
+  String _mapAppUrl(SosLocationSnapshot location) {
+    final coordinates = '${location.latitude},${location.longitude}';
     if (defaultTargetPlatform == TargetPlatform.android) {
       return 'geo:0,0?q=$coordinates';
     }
@@ -417,10 +401,13 @@ class _PhonePageState extends LPExtendedState<PhonePage> {
   Future<bool> _showEditContactsDialog(String message) =>
       _showMessageDialog(message, appLocale.sosDeliveryEditContacts);
 
-  Future<bool> _showLocationFailureDialog(String message) =>
-      _showMessageDialog(message, appLocale.asyncRetryButton);
+  Future<bool> _showLocationFailureDialog(
+    String message, {
+    required bool canRetry,
+  }) =>
+      _showMessageDialog(message, canRetry ? appLocale.asyncRetryButton : null);
 
-  Future<bool> _showMessageDialog(String message, String actionLabel) async {
+  Future<bool> _showMessageDialog(String message, String? actionLabel) async {
     final gender = Provider.of<UserInformation>(context, listen: false).gender;
     return (await showDialog<bool>(
           context: context,
@@ -431,10 +418,11 @@ class _PhonePageState extends LPExtendedState<PhonePage> {
                 onPressed: () => Navigator.of(dialogContext).pop(false),
                 child: Text(appLocale.closeButton(gender)),
               ),
-              TextButton(
-                onPressed: () => Navigator.of(dialogContext).pop(true),
-                child: Text(actionLabel),
-              ),
+              if (actionLabel != null)
+                TextButton(
+                  onPressed: () => Navigator.of(dialogContext).pop(true),
+                  child: Text(actionLabel),
+                ),
             ],
           ),
         )) ??
