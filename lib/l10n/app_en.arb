@@ -488,6 +488,10 @@
   "@sosShareLocationUnavailable": {
     "description": "Notice shown when a one-time SOS location cannot be obtained."
   },
+  "sosShareLocationServicesDisabled": "Your current location could not be obtained. Please enable location services.",
+  "@sosShareLocationServicesDisabled": {
+    "description": "Notice shown when device location services are disabled for a one-time SOS location request."
+  },
   "sosShareLocationShareFailed": "Your SOS help message could not be shared. Please try again.",
   "@sosShareLocationShareFailed": {
     "description": "Notice shown when the SOS help message cannot be shared through the native share sheet."

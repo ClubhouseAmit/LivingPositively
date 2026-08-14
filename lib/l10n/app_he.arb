@@ -158,6 +158,10 @@
      "@sosShareLocationUnavailable": {
        "description": "הודעה המוצגת כאשר לא ניתן לקבל מיקום חד-פעמי עבור פעולת SOS."
      },
+     "sosShareLocationServicesDisabled": "לא ניתן לקבל את מיקומך הנוכחי, נא להפעיל את שירותי המיקום",
+     "@sosShareLocationServicesDisabled": {
+       "description": "הודעה המוצגת כאשר שירותי המיקום במכשיר כבויים עבור בקשת מיקום חד-פעמית של SOS."
+     },
      "sosShareLocationShareFailed": "לא ניתן היה לשתף את הודעת העזרה שלך. נסו שוב.",
      "@sosShareLocationShareFailed": {
        "description": "הודעה המוצגת כשלא ניתן לשתף את הודעת העזרה דרך גיליון השיתוף של המכשיר."

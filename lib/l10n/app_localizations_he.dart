@@ -1136,6 +1136,10 @@ class AppLocalizationsHe extends AppLocalizations {
   String get sosShareLocationUnavailable => 'לא ניתן לקבל את מיקומך הנוכחי.';
 
   @override
+  String get sosShareLocationServicesDisabled =>
+      'לא ניתן לקבל את מיקומך הנוכחי, נא להפעיל את שירותי המיקום';
+
+  @override
   String get sosShareLocationShareFailed =>
       'לא ניתן היה לשתף את הודעת העזרה שלך. נסו שוב.';
 
