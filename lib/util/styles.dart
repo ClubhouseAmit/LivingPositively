@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:auto_size_text/auto_size_text.dart';
+import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:mazilon/util/theme/app_theme.dart';
 
 // Phase D (ADR-005 §Decision step 4): the nine palette variables below
@@ -205,6 +206,96 @@ Widget myTextButton(
   );
   if (tooltip == null || tooltip.isEmpty) return button;
   return Tooltip(message: tooltip, child: button);
+}
+
+/// Inline text-and-icon link — a tertiary action rendered as coloured text
+/// with a leading icon and no button chrome (e.g. "add your own",
+/// "other suggestions" in the onboarding template).
+///
+/// The icon leads so `Directionality` mirrors it: reading-start side in both
+/// RTL and LTR. Padding and the minimum tap target are reset because the
+/// design sizes these to the text box; Material's default 48px minimum would
+/// otherwise inflate the surrounding spacing. That is a deliberate trade
+/// against the 48px touch-target guideline — prefer [ConfirmationButton] or
+/// [myTextButton] where a full-size target matters.
+///
+/// [designFontSize] is the design's size in whole points. It is used both as
+/// the (scaled) style size and as the `AutoSizeText` ceiling, which must stay
+/// a whole multiple of `stepGranularity` — so the unscaled value goes there.
+Widget LinkButton(
+  Function function,
+  IconData icon,
+  String label,
+  Color color, {
+  double designFontSize = 14,
+  double iconSize = 16,
+  double gap = 4,
+  double minHeight = 32,
+}) {
+  return TextButton(
+    style: TextButton.styleFrom(
+      padding: EdgeInsets.zero,
+      minimumSize: Size(0, minHeight),
+      tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+    ),
+    onPressed: () {
+      function();
+    },
+    child: Row(
+      mainAxisSize: MainAxisSize.min,
+      spacing: gap,
+      children: [
+        Icon(icon, color: color, size: iconSize),
+        Flexible(
+          child: myAutoSizedText(
+            label,
+            TextStyle(
+              fontWeight: FontWeight.w500,
+              fontSize: designFontSize.sp,
+              color: color,
+            ),
+            null,
+            designFontSize,
+          ),
+        ),
+      ],
+    ),
+  );
+}
+
+/// Dot step indicator for the onboarding wizard — one pill per step, filled
+/// in [AppColors.primary] up to and including [currentStep] and
+/// [AppColors.progressTrack] beyond it.
+///
+/// Distinct from the `LinearProgressIndicator` in DESIGN.md §3.5: the
+/// onboarding flow's design specifies discrete dots, not a continuous bar.
+Widget StepDotsIndicator(
+  BuildContext context, {
+  required int stepCount,
+  required int currentStep,
+  double dotWidth = 18,
+  double dotHeight = 8,
+  //Figma: dots are pitched 26.65 apart at 18.4 wide -> ~8.3 between them.
+  double gap = 8,
+}) {
+  return Row(
+    mainAxisAlignment: MainAxisAlignment.center,
+    spacing: gap,
+    children: List.generate(
+      stepCount,
+      (index) => AnimatedContainer(
+        duration: const Duration(milliseconds: 300),
+        width: dotWidth,
+        height: dotHeight,
+        decoration: BoxDecoration(
+          color: index <= currentStep
+              ? Theme.of(context).colorScheme.primary
+              : AppColors.progressTrack,
+          borderRadius: BorderRadius.circular(dotHeight / 2),
+        ),
+      ),
+    ),
+  );
 }
 
 Icon mainpageListsAddIcon = Icon(

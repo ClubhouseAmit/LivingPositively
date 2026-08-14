@@ -145,7 +145,7 @@ void main() {
       );
     });
 
-    testWidgets('FormPageTemplate checkbox tile padding is directional', (
+    testWidgets('FormPageTemplate suggestion row padding is directional', (
       WidgetTester tester,
     ) async {
       await pumpArabicHarness(
@@ -155,16 +155,32 @@ void main() {
           prev: () {},
           collectionName: 'PersonalPlan-DifficultEvents',
         ),
-        wrapInScaffold: false,
+        // FormPageTemplate is a wizard step hosted inside form.dart's
+        // Scaffold; it no longer nests one of its own.
+        wrapInScaffold: true,
       );
 
-      final checkboxTiles = tester.widgetList<CheckboxListTile>(
-        find.byType(CheckboxListTile),
+      final suggestionRows = tester.widgetList<InkWell>(
+        find.byWidgetPredicate(
+          (widget) =>
+              widget is InkWell &&
+              widget.key is ValueKey &&
+              (widget.key as ValueKey).value.toString().startsWith(
+                'suggestion-',
+              ),
+        ),
       );
 
-      expect(checkboxTiles, isNotEmpty);
-      for (final tile in checkboxTiles) {
-        expect(tile.contentPadding, isA<EdgeInsetsDirectional>());
+      expect(suggestionRows, isNotEmpty);
+      for (final row in suggestionRows) {
+        final content = tester.widget<Container>(
+          find.descendant(
+            of: find.byWidget(row),
+            matching: find.byType(Container),
+          ),
+        );
+        expect(content.padding, isA<EdgeInsetsDirectional>());
+        expect(content.alignment, AlignmentDirectional.centerStart);
       }
     });
 

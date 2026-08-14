@@ -1,14 +1,14 @@
 // Drives every uncovered branch in FormPageTemplate:
-//   - addItem / removeItem / editItem (lines 56-72)
-//   - addSuggestion show-more button (lines 75-83)
+//   - addItem / removeItem / editItem (lines 66-70)
+//   - addSuggestion more-suggestions link (lines 73-81)
 //   - createSelection switch arms for all five collection names
-//     (lines 85-109) — DifficultEvents, MakeSafer, FeelBetter, Distractions,
+//     (lines 89-106) — DifficultEvents, MakeSafer, FeelBetter, Distractions,
 //     SafeEnvironment
-//   - the CheckboxListTile onChanged tap path with the already-selected branch
-//     (lines 389-400)
-//   - the "add manual item" TextButton handler with both empty-validate
-//     and non-empty paths (lines 222-231)
+//   - the suggestion-row tap path with the already-selected branch
+//   - the "add your own" link, which opens the AddFormAnswer dialog with
+//     both the empty-validate and non-empty paths
 
+import 'package:dotted_border/dotted_border.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -72,15 +72,20 @@ Future<int> _pump(
         supportedLocales: AppLocalizations.supportedLocales,
         locale: const Locale('en'),
         localizationsDelegates: AppLocalizations.localizationsDelegates,
+        //FormPageTemplate is a wizard step hosted inside form.dart's
+        //Scaffold; it no longer nests a Scaffold of its own, so the test
+        //must supply the Material ancestor the same way production does.
         home: ScreenUtilInit(
           designSize: const Size(360, 690),
-          child: FormPageTemplate(
-            next: () {
-              nextCalls++;
-              if (onNext != null) onNext();
-            },
-            prev: () {},
-            collectionName: collection,
+          child: Scaffold(
+            body: FormPageTemplate(
+              next: () {
+                nextCalls++;
+                if (onNext != null) onNext();
+              },
+              prev: () {},
+              collectionName: collection,
+            ),
           ),
         ),
       ),
@@ -88,6 +93,19 @@ Future<int> _pump(
   );
   await tester.pumpAndSettle();
   return nextCalls;
+}
+
+/// Opens the "add your own" dialog (the inline link identified by its
+/// leading `Icons.add`), enters [text] if non-null, and taps Save.
+Future<void> _addViaDialog(WidgetTester tester, String? text) async {
+  await tester.ensureVisible(find.byIcon(Icons.add));
+  await tester.tap(find.byIcon(Icons.add));
+  await tester.pumpAndSettle();
+  if (text != null) {
+    await tester.enterText(find.byType(TextFormField), text);
+  }
+  await tester.tap(find.text('Save'));
+  await tester.pumpAndSettle();
 }
 
 void main() {
@@ -109,19 +127,20 @@ void main() {
   });
 
   testWidgets(
-    'empty-text add button enables validation error (validate=true branch)',
+    'empty-text add shows the AddFormAnswer validation error',
     (tester) async {
       await _pump(tester, 'PersonalPlan-DifficultEvents');
 
-      // Tap the add TextButton without entering text. The first TextButton on
-      // the page is the "Add" button next to the TextField.
-      final addBtn = find.byType(TextButton).first;
-      await tester.tap(addBtn, warnIfMissed: false);
-      await tester.pump();
-      // No new FormAnswer row was added (selectedItems still 0).
-      // The validate flag is local to build(), but no exception means the
-      // empty-text branch (line 224 validate=true) was hit.
-      expect(find.byType(FormPageTemplate), findsOneWidget);
+      // Open the "add your own" dialog and save without entering text.
+      await _addViaDialog(tester, null);
+
+      // The empty-text branch is now surfaced by AddFormAnswer's own
+      // validator instead of the removed inline TextField.
+      expect(find.text('Field cannot be empty'), findsOneWidget);
+      expect(
+        pm.store['userSelectionPersonalPlan-DifficultEvents'],
+        isNull,
+      );
     },
   );
 
@@ -130,11 +149,7 @@ void main() {
     (tester) async {
       await _pump(tester, 'PersonalPlan-DifficultEvents');
 
-      await tester.enterText(find.byType(TextField), 'manual entry');
-      await tester.pump();
-      final addBtn = find.byType(TextButton).first;
-      await tester.tap(addBtn, warnIfMissed: false);
-      await tester.pumpAndSettle();
+      await _addViaDialog(tester, 'manual entry');
 
       // Persisted via the fake PersistentMemoryService.
       expect(
@@ -145,53 +160,62 @@ void main() {
     },
   );
 
-  testWidgets('tapping a CheckboxListTile toggles selection and persists via '
-      'createSelection', (tester) async {
+  testWidgets('tapping a suggestion promotes it out of the pool and persists '
+      'via createSelection', (tester) async {
     await _pump(tester, 'PersonalPlan-DifficultEvents');
 
-    // First CheckboxListTile is rendered for the first suggestion.
-    final firstCheckbox = find.byType(CheckboxListTile).first;
-    await tester.ensureVisible(firstCheckbox);
-    await tester.tap(firstCheckbox, warnIfMissed: false);
+    // Suggestion rows are the ones wrapped in a dashed DottedBorder. Picking
+    // one promotes it into the answered list above, so it leaves this pool
+    // rather than staying put with a "selected" treatment.
+    final suggestions = find.ancestor(
+      of: find.byType(DottedBorder),
+      matching: find.byType(InkWell),
+    );
+    final countBefore = suggestions.evaluate().length;
+    expect(countBefore, greaterThan(0));
+
+    final firstSuggestion = suggestions.first;
+    final itemText = tester
+        .widget<Text>(
+          find
+              .descendant(of: firstSuggestion, matching: find.byType(Text))
+              .first,
+        )
+        .data!;
+    await tester.ensureVisible(firstSuggestion);
+    await tester.tap(firstSuggestion, warnIfMissed: false);
     await tester.pumpAndSettle();
 
-    expect(
-      pm.store['userSelectionPersonalPlan-DifficultEvents'],
-      isA<List<String>>(),
-    );
-    expect(
-      (pm.store['userSelectionPersonalPlan-DifficultEvents'] as List)
-          .isNotEmpty,
-      isTrue,
-    );
+    // Persisted as a selection...
+    final stored =
+        pm.store['userSelectionPersonalPlan-DifficultEvents'] as List;
+    expect(stored, contains(itemText));
 
-    // Tap the same checkbox again — already-selected branch executes
-    // removeItem(selectedItems.indexOf(item)).
-    await tester.tap(firstCheckbox, warnIfMissed: false);
-    await tester.pumpAndSettle();
-
+    // ...and gone from the suggestion pool, not merely restyled.
+    expect(find.byKey(ValueKey('suggestion-$itemText')), findsNothing);
     expect(
-      (pm.store['userSelectionPersonalPlan-DifficultEvents'] as List).isEmpty,
-      isTrue,
+      find.ancestor(
+        of: find.byType(DottedBorder),
+        matching: find.byType(InkWell),
+      ).evaluate().length,
+      countBefore - 1,
     );
   });
 
-  testWidgets('tapping the show-more button widens displayedLength', (
+  testWidgets('tapping the more-suggestions link widens displayedLength', (
     tester,
   ) async {
     await _pump(tester, 'PersonalPlan-DifficultEvents');
 
-    // The show-more button is the last TextButton on the page (after the
-    // add button and the ConfirmationButton uses InkWell, not TextButton).
-    // We try to find it by its localized text via the displayInformation
-    // table — but the simplest cross-locale path is to count TextButtons.
-    final buttons = find.byType(TextButton);
-    // At least two TextButtons (add + show-more) when displayedLength <
-    // total. Tap the last one (show-more); if displayedLength already equals
-    // the list length the tap is harmless (no-op render path).
-    await tester.tap(buttons.last, warnIfMissed: false);
+    // The more-suggestions link is identified by its trailing refresh icon.
+    final moreSuggestions = find.ancestor(
+      of: find.byIcon(Icons.refresh),
+      matching: find.byType(TextButton),
+    );
+    expect(moreSuggestions, findsOneWidget);
+    await tester.tap(moreSuggestions, warnIfMissed: false);
     await tester.pumpAndSettle();
-    expect(find.byType(CheckboxListTile), findsWidgets);
+    expect(find.byType(InkWell), findsWidgets);
   });
 
   testWidgets('every collectionName routes through its createSelection arm + '
@@ -219,27 +243,26 @@ void main() {
             localizationsDelegates: AppLocalizations.localizationsDelegates,
             home: ScreenUtilInit(
               designSize: const Size(360, 690),
-              child: FormPageTemplate(
-                next: () => nextCalls++,
-                prev: () {},
-                collectionName: collection,
+              child: Scaffold(
+                body: FormPageTemplate(
+                  next: () => nextCalls++,
+                  prev: () {},
+                  collectionName: collection,
+                ),
               ),
             ),
           ),
         ),
       );
       await tester.pumpAndSettle();
-      // Enter and add to force createSelection.
-      await tester.enterText(find.byType(TextField), 'x');
-      await tester.pump();
-      final addBtn = find.byType(TextButton).first;
-      await tester.tap(addBtn, warnIfMissed: false);
-      await tester.pumpAndSettle();
+      // Add via the dialog to force createSelection.
+      await _addViaDialog(tester, 'x');
       // Tap ConfirmationButton — implementation uses InkWell wrapping the
       // child text, so we find by GestureDetector ancestor. Simplest: scroll
       // it into view and tap by text "המשך"/"Continue".
       // Cross-locale fallback: find ConfirmationButton InkWell — it's the
-      // only InkWell with onPressed in the layout.
+      // last InkWell with onPressed in the layout (suggestion rows precede
+      // it in the tree).
       final inkwell = find.byWidgetPredicate((w) => w is InkWell);
       if (inkwell.evaluate().isNotEmpty) {
         await tester.tap(inkwell.last, warnIfMissed: false);
@@ -261,12 +284,16 @@ void main() {
       final user = UserInformation()..gender = 'other';
       await _pump(tester, 'PersonalPlan-SafeEnvironment', user: user);
 
-      final choices = find.byType(CheckboxListTile);
+      // Suggestion rows are the only InkWells wrapped in a dashed
+      // DottedBorder while unselected — that's how all four are identified
+      // distinct from the "add your own"/continue InkWells.
+      final choices = find.ancestor(
+        of: find.byType(DottedBorder),
+        matching: find.byType(InkWell),
+      );
       expect(choices, findsNWidgets(4));
 
-      await tester.enterText(find.byType(TextField), 'My own safety step');
-      await tester.tap(find.byType(TextButton).first, warnIfMissed: false);
-      await tester.pumpAndSettle();
+      await _addViaDialog(tester, 'My own safety step');
 
       await tester.tap(choices.first, warnIfMissed: false);
       await tester.tap(choices.last, warnIfMissed: false);
@@ -282,18 +309,15 @@ void main() {
     },
   );
 
-  testWidgets('tapping FormAnswer row edit/delete calls editItem/removeItem', (
-    tester,
-  ) async {
+  testWidgets('swiping a FormAnswer row calls removeItem', (tester) async {
     final user = UserInformation()..gender = 'other';
     user.updateDifficultEvents(['seedA', 'seedB']);
 
     await _pump(tester, 'PersonalPlan-DifficultEvents', user: user);
 
-    // Two FormAnswer rows exist.
-    expect(find.byIcon(Icons.delete), findsWidgets);
-    final delete = find.byIcon(Icons.delete).first;
-    await tester.tap(delete, warnIfMissed: false);
+    // Two FormAnswer rows exist, each wrapped in a Dismissible.
+    expect(find.byType(Dismissible), findsNWidgets(2));
+    await tester.drag(find.byType(Dismissible).first, const Offset(-1100, 0));
     await tester.pumpAndSettle();
     expect(find.text('Delete this answer?'), findsOneWidget);
 

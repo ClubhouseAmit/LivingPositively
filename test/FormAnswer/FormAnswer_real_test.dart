@@ -1,12 +1,13 @@
 // Widget tests for the REAL FormAnswer in lib/pages/FormAnswer.dart.
 //
 // FormAnswer is a single-row template used by the personal-plan questionnaire
-// to display, edit, or remove a user-prompt answer. It owns:
-//   - the row layout (bullet icon + auto-sized text + edit/delete buttons)
+// to display, edit, or remove a user-prompt answer, matching the shared
+// Figma onboarding template: a plain numbered row (no border/icons). It owns:
+//   - the row layout (number label + auto-sized text, tap-to-edit)
 //   - an `editAnswer` closure that pushes an `AddFormAnswer` dialog
-//   - a `remove` callback that invokes the supplied remove function
+//   - a swipe-to-delete `Dismissible` that confirms before invoking `remove`
 //
-// We assert structural render, tap routing, and that the edit button opens
+// We assert structural render, tap routing, and that tapping the row opens
 // the dialog (we don't drive the dialog itself — covered separately).
 
 import 'package:flutter/material.dart';
@@ -33,51 +34,75 @@ void main() {
     resetTestServices();
   });
 
-  testWidgets('renders bullet icon, edit + delete buttons, and label text', (
+  testWidgets('renders the numbered row and label text, no icons', (
     tester,
   ) async {
     await pumpWithProviders(
       tester,
-      FormAnswer(
-        text: 'Take a walk',
-        edit: (_, _, _) {},
-        remove: (_) {},
-        num: 1,
+      Scaffold(
+        body: FormAnswer(
+          text: 'Take a walk',
+          edit: (_, _, _) {},
+          remove: (_) {},
+          num: 1,
+        ),
       ),
       userInformation: userInformation,
       surfaceSize: const Size(1200, 1800),
     );
 
     expect(find.byType(FormAnswer), findsOneWidget);
-    expect(find.byIcon(Icons.circle), findsOneWidget);
-    expect(find.byIcon(Icons.edit), findsOneWidget);
-    expect(find.byIcon(Icons.delete), findsOneWidget);
-    // Two TextButtons: edit + delete.
-    expect(find.byType(TextButton), findsNWidgets(2));
+    expect(find.byType(Dismissible), findsOneWidget);
+    expect(find.text('1'), findsOneWidget);
     expect(find.text('Take a walk'), findsOneWidget);
+    // The design has no persistent edit/delete icons on the row.
+    expect(find.byIcon(Icons.circle), findsNothing);
+    expect(find.byIcon(Icons.edit), findsNothing);
   });
 
-  testWidgets('tap delete button confirms before remove(num - 1)', (
+  testWidgets('tapping the row opens the AddFormAnswer edit dialog', (
     tester,
   ) async {
-    int? removedIndex;
     await pumpWithProviders(
       tester,
-      FormAnswer(
-        text: 'Cleaning',
-        edit: (_, _, _) {},
-        remove: (int i) => removedIndex = i,
-        num: 3,
+      Scaffold(
+        body: FormAnswer(
+          text: 'Cleaning',
+          edit: (_, _, _) {},
+          remove: (_) {},
+          num: 2,
+        ),
       ),
       userInformation: userInformation,
       surfaceSize: const Size(1200, 1800),
     );
 
-    final deleteButton = find.ancestor(
-      of: find.byIcon(Icons.delete),
-      matching: find.byType(TextButton),
+    expect(find.byType(AddFormAnswer), findsNothing);
+    await tester.tap(find.text('Cleaning'));
+    await tester.pumpAndSettle();
+
+    expect(find.byType(AddFormAnswer), findsOneWidget);
+  });
+
+  testWidgets('swipe to delete confirms before remove(num - 1)', (
+    tester,
+  ) async {
+    int? removedIndex;
+    await pumpWithProviders(
+      tester,
+      Scaffold(
+        body: FormAnswer(
+          text: 'Cleaning',
+          edit: (_, _, _) {},
+          remove: (int i) => removedIndex = i,
+          num: 3,
+        ),
+      ),
+      userInformation: userInformation,
+      surfaceSize: const Size(1200, 1800),
     );
-    await tester.tap(deleteButton, warnIfMissed: false);
+
+    await tester.drag(find.byType(Dismissible), const Offset(-1100, 0));
     await tester.pumpAndSettle();
 
     expect(find.text('Delete this answer?'), findsOneWidget);
@@ -87,110 +112,10 @@ void main() {
     await tester.pumpAndSettle();
     expect(removedIndex, isNull);
 
-    await tester.tap(deleteButton, warnIfMissed: false);
+    await tester.drag(find.byType(Dismissible), const Offset(-1100, 0));
     await tester.pumpAndSettle();
     await tester.tap(find.text('Delete'));
     await tester.pumpAndSettle();
     expect(removedIndex, 2, reason: 'remove must be called with num - 1');
   });
-
-  testWidgets('delete confirmation removes the originally tapped answer', (
-    tester,
-  ) async {
-    final rowNumber = ValueNotifier<int>(3);
-    addTearDown(rowNumber.dispose);
-    int? removedIndex;
-
-    await pumpWithProviders(
-      tester,
-      _MutableFormAnswerHost(
-        rowNumber: rowNumber,
-        remove: (index) => removedIndex = index,
-      ),
-      userInformation: userInformation,
-      surfaceSize: const Size(1200, 1800),
-    );
-
-    final deleteButton = find.ancestor(
-      of: find.byIcon(Icons.delete),
-      matching: find.byType(TextButton),
-    );
-    await tester.tap(deleteButton, warnIfMissed: false);
-    await tester.pumpAndSettle();
-
-    rowNumber.value = 9;
-    await tester.pump();
-
-    await tester.tap(find.text('Delete'));
-    await tester.pumpAndSettle();
-
-    expect(removedIndex, 2);
-  });
-
-  testWidgets('tap edit button opens AddFormAnswer dialog', (tester) async {
-    await pumpWithProviders(
-      tester,
-      FormAnswer(text: 'Cleaning', edit: (_, _, _) {}, remove: (_) {}, num: 2),
-      userInformation: userInformation,
-      surfaceSize: const Size(1200, 1800),
-    );
-
-    expect(find.byType(AddFormAnswer), findsNothing);
-    final editButton = find.ancestor(
-      of: find.byIcon(Icons.edit),
-      matching: find.byType(TextButton),
-    );
-    await tester.tap(editButton, warnIfMissed: false);
-    await tester.pumpAndSettle();
-
-    // The edit closure does showDialog of AddFormAnswer.
-    expect(find.byType(AddFormAnswer), findsOneWidget);
-  });
-}
-
-class _MutableFormAnswerHost extends StatefulWidget {
-  final ValueNotifier<int> rowNumber;
-  final void Function(int index) remove;
-
-  const _MutableFormAnswerHost({required this.rowNumber, required this.remove});
-
-  @override
-  State<_MutableFormAnswerHost> createState() => _MutableFormAnswerHostState();
-}
-
-class _MutableFormAnswerHostState extends State<_MutableFormAnswerHost> {
-  @override
-  void initState() {
-    super.initState();
-    widget.rowNumber.addListener(_rebuild);
-  }
-
-  @override
-  void didUpdateWidget(_MutableFormAnswerHost oldWidget) {
-    super.didUpdateWidget(oldWidget);
-    if (oldWidget.rowNumber != widget.rowNumber) {
-      oldWidget.rowNumber.removeListener(_rebuild);
-      widget.rowNumber.addListener(_rebuild);
-    }
-  }
-
-  @override
-  void dispose() {
-    widget.rowNumber.removeListener(_rebuild);
-    super.dispose();
-  }
-
-  void _rebuild() {
-    setState(() {});
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    return FormAnswer(
-      text: 'Cleaning',
-      edit: (_, _, _) {},
-      remove: widget.remove,
-      num: widget.rowNumber.value,
-    );
-  }
 }

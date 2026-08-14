@@ -6,6 +6,7 @@
  "otherSuggestions": "{gender,select,male{הצעות אחרות} female{הצעות אחרות} other{הצעות אחרות}}",
      "introductionRestartGreeting": "{gender,select,male{ברוכים הבאים לLiving Positively} female{ברוכים הבאים לLiving Positively} other{ברוכים הבאים לLiving Positively}}",
      "addFormPageTemplateAdd": "{gender,select,male{הוספה} female{הוספה} other{הוספה}}",
+     "addFormPageTemplateAddOwn": "{gender,select,male{הוסף עוד משלך} female{הוסיפי עוד משלך} other{הוסף.י עוד משלך}}",
      "addThanksFormThank": "{gender,select,male{תודה} female{תודה} other{תודה}}",
      "addFormEdit": "{gender,select,male{ערוך} female{ערוך} other{ערוך}}",
      "signupLoginLoginTitle": "{gender,select,male{התחברות לLiving Positively} female{התחברות לLiving Positively} other{התחברות לLiving Positively}}",

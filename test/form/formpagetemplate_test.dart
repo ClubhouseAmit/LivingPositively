@@ -86,10 +86,12 @@ void main() {
             localizationsDelegates: AppLocalizations.localizationsDelegates,
             home: ScreenUtilInit(
               designSize: const Size(360, 690),
-              child: FormPageTemplate(
-                next: () {},
-                prev: () {},
-                collectionName: 'PersonalPlan-DifficultEvents',
+              child: Scaffold(
+                body: FormPageTemplate(
+                  next: () {},
+                  prev: () {},
+                  collectionName: 'PersonalPlan-DifficultEvents',
+                ),
               ),
             ),
           ),
@@ -122,7 +124,6 @@ void main() {
       expect(headerWidget.style?.fontFamily, 'Rubix');
       expect(headerWidget.style?.fontWeight, FontWeight.w500);
       expect(headerWidget.style?.fontSize, 24.sp);
-      expect(headerWidget.style?.height, 1.5);
 
       final subTitleFinder = find.byWidgetPredicate(
         (widget) => widget is AutoSizeText && widget.data == 'גורמים ואירועים שהקשו עלי בעבר',
@@ -132,22 +133,25 @@ void main() {
       expect(subTitleWidget.style?.fontFamily, 'Rubix');
       expect(subTitleWidget.style?.fontWeight, FontWeight.w400);
       expect(subTitleWidget.style?.fontSize, 16.sp);
-      expect(subTitleWidget.style?.height, 1.3);
 
       expect(find.text('אין לך רעיון? הנה כמה הצעות'), findsOneWidget);
       expect(
         find.text('לחץ כדי להוסיף אפשרויות המתאימות לך לתכנית האישית שלך'),
         findsOneWidget,
       );
-      expect(find.text('להציג עוד'), findsOneWidget);
+      expect(find.text('הצעות אחרות'), findsOneWidget);
       expect(find.text('המשך'), findsOneWidget);
 
-      // Verifying interactions
-      await tester.enterText(find.byType(TextField), 'New Suggestion');
-      await tester.tap(find.text('הוספה'));
-      await tester.pump();
+      // Verifying interactions: the inline "add your own" link opens the
+      // AddFormAnswer dialog, matching the shared Figma template.
+      await tester.ensureVisible(find.text('הוסף עוד משלך'));
+      await tester.tap(find.text('הוסף עוד משלך'));
+      await tester.pumpAndSettle();
+      await tester.enterText(find.byType(TextFormField), 'New Suggestion');
+      await tester.tap(find.text('שמור'));
+      await tester.pumpAndSettle();
 
-      await tester.tap(find.text('להציג עוד'));
+      await tester.tap(find.text('הצעות אחרות'));
       await tester.pump();
 
       await tester.tap(find.text('המשך'));

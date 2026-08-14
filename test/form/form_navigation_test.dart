@@ -109,13 +109,14 @@ void main() {
   });
 
   testWidgets(
-      'tapping the save-and-quit IconButton on the header pushes a Menu route',
+      'tapping the save-and-quit control on the header pushes a Menu route',
       (tester) async {
     await _pumpForm(tester);
 
-    // The header contains a single IconButton on currentStep=0 (save-and-quit).
-    final iconButton = find.byType(IconButton).first;
-    await tester.tap(iconButton, warnIfMissed: false);
+    // Located by its label rather than by widget type: it is a TextButton,
+    // not an IconButton (an IconButton sizes its tap target for a square
+    // glyph, which wrapped this multi-word label onto two lines).
+    await tester.tap(find.text('To menu'), warnIfMissed: false);
     await tester.pumpAndSettle();
 
     // navigateToMenu pushes the Menu screen via pushAndRemoveUntil.

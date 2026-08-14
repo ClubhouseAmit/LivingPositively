@@ -18,8 +18,11 @@ import 'package:mazilon/util/userInformation.dart';
 import 'package:mockito/mockito.dart';
 import 'package:provider/provider.dart';
 
+import 'package:mazilon/AnalyticsService.dart';
+
 import '../MenuTest/shareAndDownload/share_and_download_test.mocks.dart'
     as ShareMocks;
+import '../helpers/widget_test_scaffold.dart' show NoopAnalyticsService;
 
 Future<void> _pumpFormPage(WidgetTester tester, String collectionName) async {
   await tester.binding.setSurfaceSize(const Size(360, 690));
@@ -43,10 +46,12 @@ Future<void> _pumpFormPage(WidgetTester tester, String collectionName) async {
         localizationsDelegates: AppLocalizations.localizationsDelegates,
         home: ScreenUtilInit(
           designSize: const Size(360, 690),
-          child: FormPageTemplate(
-            next: () {},
-            prev: () {},
-            collectionName: collectionName,
+          child: Scaffold(
+            body: FormPageTemplate(
+              next: () {},
+              prev: () {},
+              collectionName: collectionName,
+            ),
           ),
         ),
       ),
@@ -67,6 +72,10 @@ void main() {
     when(mockPm.setItem(any, any, any)).thenAnswer((_) async {});
     when(mockPm.reset()).thenAnswer((_) async {});
     locator.registerLazySingleton<PersistentMemoryService>(() => mockPm);
+    // The continue button tracks an analytics event on tap. Previously the
+    // button sat below the fold here so the tap silently missed and this was
+    // never needed; now that it is pinned to the bottom the tap lands.
+    locator.registerSingleton<AnalyticsService>(NoopAnalyticsService());
   });
 
   tearDown(() async {
@@ -75,33 +84,40 @@ void main() {
 
   testWidgets('MakeSafer collection loads + addItem + continue', (tester) async {
     await _pumpFormPage(tester, 'PersonalPlan-MakeSafer');
-    // The 'addItem' path: enter text and tap the add button.
-    await tester.enterText(find.byType(TextField), 'New safer step');
-    await tester.tap(find.text('הוספה'));
-    await tester.pump();
+    // The 'addItem' path: tap the inline "add your own" link, which opens
+    // the AddFormAnswer dialog, then save.
+    await tester.ensureVisible(find.text('הוסף עוד משלך'));
+    await tester.tap(find.text('הוסף עוד משלך'));
+    await tester.pumpAndSettle();
+    await tester.enterText(find.byType(TextFormField), 'New safer step');
+    await tester.tap(find.text('שמור'));
+    await tester.pumpAndSettle();
     // Continue button → createSelection → MakeSafer switch arm.
-    await tester.tap(find.text('המשך'));
+    await tester.tap(find.text('המשך'), warnIfMissed: false);
     await tester.pump();
   });
 
   testWidgets('FeelBetter collection loads + show-more + continue',
       (tester) async {
     await _pumpFormPage(tester, 'PersonalPlan-FeelBetter');
-    // show-more button: exercises the `length > displayedLength + 3` branch
-    // (returns early if list shorter than 3; either way, no crash).
-    await tester.tap(find.text('להציג עוד'));
+    // more-suggestions link: exercises the `length > displayedLength + 3`
+    // branch (returns early if list shorter than 3; either way, no crash).
+    await tester.tap(find.text('הצעות אחרות'));
     await tester.pump();
-    await tester.tap(find.text('המשך'));
+    await tester.tap(find.text('המשך'), warnIfMissed: false);
     await tester.pump();
   });
 
   testWidgets('Distractions collection loads + addItem + continue',
       (tester) async {
     await _pumpFormPage(tester, 'PersonalPlan-Distractions');
-    await tester.enterText(find.byType(TextField), 'Music');
-    await tester.tap(find.text('הוספה'));
-    await tester.pump();
-    await tester.tap(find.text('המשך'));
+    await tester.ensureVisible(find.text('הוסף עוד משלך'));
+    await tester.tap(find.text('הוסף עוד משלך'));
+    await tester.pumpAndSettle();
+    await tester.enterText(find.byType(TextFormField), 'Music');
+    await tester.tap(find.text('שמור'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('המשך'), warnIfMissed: false);
     await tester.pump();
   });
 }
