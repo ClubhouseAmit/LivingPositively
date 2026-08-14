@@ -3,6 +3,7 @@ import 'package:get_it/get_it.dart';
 import 'package:mazilon/file_service.dart';
 
 import 'package:mazilon/global_enums.dart';
+import 'package:mazilon/l10n/app_localizations.dart';
 import 'package:mazilon/util/LP_extended_state.dart';
 import 'package:mazilon/util/Share/LP_alert_dialog.dart';
 import 'package:mazilon/util/Share/LP_alert_dialog_box_item.dart';
@@ -20,17 +21,22 @@ class LPShareAlertDialog extends StatefulWidget {
   State<LPShareAlertDialog> createState() => _LPShareAlertDialogState();
 }
 
-Future<void> shareFile(appLocale, gender, username, appInfoProvider) async {
-  var fileService = GetIt.instance<FileService>();
-  final exportMetadata = buildPersonalPlanExportMetadata(appLocale!, gender, username);
+Future<void> shareFile(
+  AppLocalizations appLocale,
+  String gender,
+  String username,
+  AppInformation appInfoProvider,
+) async {
+  final fileService = GetIt.instance<FileService>();
+  final exportMetadata = buildPersonalPlanExportMetadata(appLocale, gender, username);
   await fileService.share(
     "",
     exportMetadata.titles,
     exportMetadata.subTitles,
     appInfoProvider.sharePDFtexts,
-    exportMetadata.mainTitle,
     ShareFileType.PDF,
-    appLocale.textDirection,
+    mainTitle: exportMetadata.mainTitle,
+    textDirection: appLocale.textDirection,
   );
 }
 

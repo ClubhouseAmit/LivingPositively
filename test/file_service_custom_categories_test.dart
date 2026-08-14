@@ -89,7 +89,7 @@ void main() {
         'safe environment subtitle',
       ],
       const {},
-      'My Personal Plan',
+      mainTitle: 'My Personal Plan',
     );
 
     expect(result['titles'], [
@@ -138,7 +138,7 @@ void main() {
         'safe environment sub',
       ],
       const {},
-      'My Personal Plan',
+      mainTitle: 'My Personal Plan',
     );
 
     expect(result['titles'], ['Only custom title']);
@@ -185,7 +185,7 @@ void main() {
         'safe environment sub',
       ],
       const {},
-      'My Personal Plan',
+      mainTitle: 'My Personal Plan',
     );
 
     expect(result['titles'], [
@@ -231,7 +231,7 @@ void main() {
         'safe environment sub',
       ],
       const {},
-      'My Personal Plan',
+      mainTitle: 'My Personal Plan',
     );
 
     expect(result['titles'], ['phones']);

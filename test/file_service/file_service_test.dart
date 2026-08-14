@@ -105,13 +105,6 @@ void main() {
       expect(data['SafeEnvironment'], ['safe1']);
       expect(data['phoneNames'], ['Mom', 'Dad']);
       expect(data['phoneNumbers'], ['111', '222']);
-      expect(data['username'], 'Alex');
-    });
-
-    test('username defaults to empty when null', () async {
-      memory.store['name'] = null;
-      final data = await FileServiceImpl.getPrefsData();
-      expect(data['username'], '');
     });
 
     test('safe environment defaults to an empty list for existing plans',
@@ -199,7 +192,7 @@ void main() {
           'secondLinkURL': 'g',
           'forthLine': 'h',
         },
-        'Personal Plan of Alex',
+        mainTitle: 'Personal Plan of Alex',
       );
       expect(result['mainTitle'], 'Personal Plan of Alex');
       // 'FeelBetter' was empty; the remaining defaults retain their six-wide
@@ -233,7 +226,7 @@ void main() {
         ['t1', 't2', 't3', 't4', 't5', 't6'],
         ['s1', 's2', 's3', 's4', 's5', 's6'],
         {},
-        'My Personal Plan',
+        mainTitle: 'My Personal Plan',
       );
       expect(result['mainTitle'], 'My Personal Plan');
     });
@@ -315,9 +308,9 @@ void main() {
           'secondLinkURL': '',
           'forthLine': '',
         },
-        'My Personal Plan',
         ShareFileType.DOCX,
-        'rtl',
+        mainTitle: 'My Personal Plan',
+        textDirection: 'rtl',
       );
       expect(analytics.events, isEmpty);
     });
@@ -343,9 +336,9 @@ void main() {
           'secondLinkURL': 'https://example.com/2',
           'forthLine': 'f',
         },
-        'My Personal Plan',
         ShareFileType.PDF,
-        'rtl',
+        mainTitle: 'My Personal Plan',
+        textDirection: 'rtl',
       );
       // Either AnalyticsService recorded "Plan shared" or the catch branch
       // forwarded the share_plus failure to logger. At least one must hold,
@@ -364,9 +357,9 @@ void main() {
         ['t1', 't2', 't3', 't4', 't5', 't6'],
         ['s1', 's2', 's3', 's4', 's5', 's6'],
         const <String, String>{},
-        'My Personal Plan',
         ShareFileType.DOCX,
-        'ltr',
+        mainTitle: 'My Personal Plan',
+        textDirection: 'ltr',
       );
       expect(out, isNull);
     });

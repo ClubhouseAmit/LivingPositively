@@ -83,10 +83,10 @@ class MockFileService extends _i1.Mock implements _i6.FileService {
     List<dynamic>? titles,
     List<dynamic>? subTitles,
     Map<String, String>? texts,
-    String? mainTitle,
     _i8.ShareFileType? saveFormat,
-    String? textDirection,
-  ) =>
+    {required String? mainTitle,
+    required String? textDirection,
+  }) =>
       (super.noSuchMethod(
         Invocation.method(
           #share,
@@ -95,10 +95,9 @@ class MockFileService extends _i1.Mock implements _i6.FileService {
             titles,
             subTitles,
             texts,
-            mainTitle,
             saveFormat,
-            textDirection,
           ],
+          {#mainTitle: mainTitle, #textDirection: textDirection},
         ),
         returnValue: _i7.Future<void>.value(),
         returnValueForMissingStub: _i7.Future<void>.value(),
@@ -109,10 +108,10 @@ class MockFileService extends _i1.Mock implements _i6.FileService {
     List<dynamic>? titles,
     List<dynamic>? subTitles,
     Map<String, String>? texts,
-    String? mainTitle,
     _i8.ShareFileType? saveFormat,
-    String? textDirection,
-  ) =>
+    {required String? mainTitle,
+    required String? textDirection,
+  }) =>
       (super.noSuchMethod(
         Invocation.method(
           #download,
@@ -120,10 +119,9 @@ class MockFileService extends _i1.Mock implements _i6.FileService {
             titles,
             subTitles,
             texts,
-            mainTitle,
             saveFormat,
-            textDirection,
           ],
+          {#mainTitle: mainTitle, #textDirection: textDirection},
         ),
         returnValue: _i7.Future<String?>.value(),
         returnValueForMissingStub: _i7.Future<String?>.value(),

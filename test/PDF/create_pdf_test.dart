@@ -80,7 +80,7 @@ void main() {
       expect(bytes.lengthInBytes, greaterThan(500));
     });
 
-    test('handles empty data list', () async {
+    test('renders a titled PDF when no plan sections are populated', () async {
       final result = await createPDF(
         <String>[],
         <String>[],

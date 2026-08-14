@@ -48,31 +48,29 @@ Future<Map<String, dynamic>> createPDF(
   //    : pw.Alignment.centerLeft;
   //final textAlign =
   //   textDirectionLocale == "rtl" ? pw.TextAlign.right : pw.TextAlign.left;
+  if (mainTitle.isNotEmpty) {
+    widgets.add(
+      pw.Container(
+        width: pageFormat.availableWidth,
+        child: pw.Align(
+          alignment: getAlignment(mainTitle),
+          child: pw.Directionality(
+            textDirection: getDirection(mainTitle),
+            child: pw.Text(
+              mainTitle,
+              style: pw.TextStyle(fontSize: 40, font: ttf),
+            ),
+          ),
+        ),
+      ),
+    );
+  }
   for (var i = 0; i < data.length; i++) {
     if (data[i].isEmpty) {
       continue;
     }
 
-    // Add the main title for the first section
-    if (i == 0) {
-      widgets.add(
-        pw.Container(
-          width: pageFormat.availableWidth,
-          child: pw.Align(
-            alignment: getAlignment(mainTitle), // Align the title to the right
-            child: pw.Directionality(
-              textDirection: getDirection(
-                mainTitle,
-              ), // Set text direction to RTL
-              child: pw.Text(
-                mainTitle,
-                style: pw.TextStyle(fontSize: 40, font: ttf),
-              ),
-            ),
-          ),
-        ),
-      );
-    } else {
+    if (i > 0) {
       widgets.add(pw.SizedBox(height: 25));
     }
     widgets.add(pw.SizedBox(height: 25));

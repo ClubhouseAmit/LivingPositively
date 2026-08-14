@@ -23,6 +23,13 @@ void main() {
     });
   }
 
+  test('should use the generic title for a whitespace-only username', () {
+    expect(
+      buildPersonalPlanExportMetadata(AppLocalizationsEn(), 'male', '  ').mainTitle,
+      'My Personal Plan',
+    );
+  });
+
   test('builds complete fixed English Personal Plan export metadata', () {
     final metadata = buildPersonalPlanExportMetadata(
       AppLocalizationsEn(),

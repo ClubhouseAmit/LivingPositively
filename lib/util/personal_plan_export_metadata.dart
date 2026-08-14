@@ -17,7 +17,7 @@ PersonalPlanExportMetadata buildPersonalPlanExportMetadata(
   String gender,
   String username,
 ) {
-  final mainTitle = username.isEmpty
+  final mainTitle = username.trim().isEmpty
       ? appLocale.personalPlanPdfTitle
       : appLocale.personalPlanPdfTitleWithName(username);
 

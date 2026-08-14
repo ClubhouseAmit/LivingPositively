@@ -30,7 +30,8 @@ Future<void> pumpArabicHarness(
 
   final fileService = share_mocks.MockFileService();
   when(
-    fileService.download(any, any, any, any, any, any),
+    fileService.download(any, any, any, any,
+        mainTitle: anyNamed('mainTitle'), textDirection: anyNamed('textDirection')),
   ).thenAnswer((_) async => null);
   getIt.registerLazySingleton<FileService>(() => fileService);
 

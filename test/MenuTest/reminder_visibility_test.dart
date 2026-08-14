@@ -66,20 +66,20 @@ class _FakeFileService implements FileService {
     List<dynamic> titles,
     List<dynamic> subTitles,
     Map<String, String> texts,
-    String mainTitle,
     ShareFileType saveFormat,
-    String textDirection,
-  ) async {}
+    {required String mainTitle,
+    required String textDirection,
+  }) async {}
 
   @override
   Future<String?> download(
     List<dynamic> titles,
     List<dynamic> subTitles,
     Map<String, String> texts,
-    String mainTitle,
     ShareFileType saveFormat,
-    String textDirection,
-  ) async {
+    {required String mainTitle,
+    required String textDirection,
+  }) async {
     return null;
   }
 

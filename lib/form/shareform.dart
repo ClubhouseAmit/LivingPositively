@@ -536,9 +536,9 @@ class _ShareFormState extends LPExtendedState<ShareForm> {
                             exportMetadata.titles,
                             exportMetadata.subTitles,
                             appInfoProvider.sharePDFtexts,
-                            exportMetadata.mainTitle,
                             ShareFileType.PDF,
-                            appLocale.textDirection,
+                            mainTitle: exportMetadata.mainTitle,
+                            textDirection: appLocale.textDirection,
                           );
                           if (result == null) {
                             // Show him a message

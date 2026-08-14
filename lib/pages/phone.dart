@@ -107,9 +107,9 @@ class _PhonePageState extends LPExtendedState<PhonePage> {
       exportMetadata.titles,
       exportMetadata.subTitles,
       appInformation.sharePDFtexts,
-      exportMetadata.mainTitle,
       ShareFileType.PDF,
-      appLocale.textDirection,
+      mainTitle: exportMetadata.mainTitle,
+      textDirection: appLocale.textDirection,
     );
   });
 

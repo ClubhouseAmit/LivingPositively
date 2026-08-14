@@ -16,21 +16,29 @@ const String _customCategoryTitlesKey = 'customCategoryTitles';
 const String _customCategoryDescriptionsKey = 'customCategoryDescriptions';
 
 abstract class FileService {
+  /// Shares a Personal Plan export with its caller-localized [mainTitle].
+  ///
+  /// The title is rendered before the sections, including when no sections are
+  /// populated. Callers provide a non-empty localized title and [textDirection].
   Future<void> share(
       String message,
       List<dynamic> titles,
       List<dynamic> subTitles,
       Map<String, String> texts,
-      String mainTitle,
       ShareFileType saveFormat,
-      String textDirection);
+      {required String mainTitle,
+      required String textDirection});
+  /// Downloads a Personal Plan export with its caller-localized [mainTitle].
+  ///
+  /// The title is rendered before the sections, including when no sections are
+  /// populated. Callers provide a non-empty localized title and [textDirection].
   Future<String?> download(
       List<dynamic> titles,
       List<dynamic> subTitles,
       Map<String, String> texts,
-      String mainTitle,
       ShareFileType saveFormat,
-      String textDirection);
+      {required String mainTitle,
+      required String textDirection});
   Future<bool> shareTextOnly(String message);
 }
 
@@ -56,7 +64,6 @@ class FileServiceImpl implements FileService {
           "PhonePageSavedPhoneNames", PersistentMemoryType.StringList),
       'phoneNumbers': service.getItem(
           "PhonePageSavedPhoneNumbers", PersistentMemoryType.StringList),
-      'username': service.getItem("name", PersistentMemoryType.String),
       'customCategoryTitles': service.getItem(
           _customCategoryTitlesKey, PersistentMemoryType.StringList),
       'customCategoryDescriptions': service.getItem(
@@ -74,7 +81,6 @@ class FileServiceImpl implements FileService {
       'SafeEnvironment': TypeUtils.castToStringList(data['safeEnvironment']),
       'phoneNames': TypeUtils.castToStringList(data['phoneNames']),
       'phoneNumbers': TypeUtils.castToStringList(data['phoneNumbers']),
-      'username': data['username'] ?? '',
       'customCategoryTitles':
           TypeUtils.castToStringList(data['customCategoryTitles']),
       'customCategoryDescriptions':
@@ -103,7 +109,8 @@ class FileServiceImpl implements FileService {
   }
 
   Future<Map<String, dynamic>> organizeDataForFile(List<dynamic> titles,
-      List<dynamic> subTitles, Map<String, String> texts, String mainTitle) async {
+      List<dynamic> subTitles, Map<String, String> texts,
+      {required String mainTitle}) async {
     // Set the page format to A4
 
     // Load the font for the PDF
@@ -204,12 +211,13 @@ class FileServiceImpl implements FileService {
       List<dynamic> titles,
       List<dynamic> subTitles,
       Map<String, String> texts,
-      String mainTitle,
       ShareFileType saveFormat,
-      String textDirection) async {
+      {required String mainTitle,
+      required String textDirection}) async {
     try {
       // Add the generated widgets to the PDF
-      final dataForFile = await organizeDataForFile(titles, subTitles, texts, mainTitle);
+      final dataForFile = await organizeDataForFile(titles, subTitles, texts,
+          mainTitle: mainTitle);
       Map<String, dynamic> file;
       switch (saveFormat) {
         case ShareFileType.PDF:
@@ -293,10 +301,11 @@ class FileServiceImpl implements FileService {
       List<dynamic> titles,
       List<dynamic> subTitles,
       Map<String, String> texts,
-      String mainTitle,
       ShareFileType saveFormat,
-      String textDirection) async {
-    final dataForFile = await organizeDataForFile(titles, subTitles, texts, mainTitle);
+      {required String mainTitle,
+      required String textDirection}) async {
+    final dataForFile = await organizeDataForFile(titles, subTitles, texts,
+        mainTitle: mainTitle);
     Map<String, dynamic> file;
     Uint8List data = Uint8List(0);
     switch (saveFormat) {
