@@ -22,12 +22,12 @@ enum _SosContactDeliveryOption { sms, whatsApp }
 
 class PhonePage extends StatefulWidget {
   final PhonePageData phonePageData;
-  final SosLocationService? sosLocationService;
+  final SosLocationService sosLocationService;
 
   const PhonePage({
     super.key,
     required this.phonePageData,
-    this.sosLocationService,
+    required this.sosLocationService,
   });
 
   @override
@@ -42,14 +42,6 @@ class _PhonePageState extends LPExtendedState<PhonePage> {
   String contactsTitle = '';
   String emergencyNumbersTitle = '';
   bool _isSosDeliveryInProgress = false;
-  late final SosLocationService _sosLocationService;
-
-  @override
-  void initState() {
-    super.initState();
-    _sosLocationService =
-        widget.sosLocationService ?? GetIt.instance<SosLocationService>();
-  }
 
   Future<void> _startLocationDelivery() =>
       _runSosDelivery(_runLocationDelivery);
@@ -67,7 +59,8 @@ class _PhonePageState extends LPExtendedState<PhonePage> {
         }
       }
 
-      final locationResult = await _sosLocationService.lookupCurrentPosition();
+      final locationResult = await widget.sosLocationService
+          .lookupCurrentPosition();
       if (!mounted) {
         return;
       }

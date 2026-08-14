@@ -20,12 +20,14 @@ void setupLocator() {
   getIt.registerLazySingleton<ImagePickerService>(
     () => ImagePickerServiceImpl(),
   );
+  getIt.registerLazySingleton<IncidentLoggerService>(() => SentryServiceImpl());
   getIt.registerLazySingleton<SosLocationService>(
-    () => GeolocatorSosLocationService(),
+    () => GeolocatorSosLocationService(
+      incidentLoggerService: getIt<IncidentLoggerService>(),
+    ),
   );
 
   getIt.registerLazySingleton<FileService>(() => FileServiceImpl());
-  getIt.registerLazySingleton<IncidentLoggerService>(() => SentryServiceImpl());
   getIt.registerLazySingleton<LocaleService>(() => LocaleServiceImpl());
   getIt.registerLazySingleton<AnalyticsService>(() => MixPanelService());
   getIt.registerLazySingleton<PersistentMemoryService>(

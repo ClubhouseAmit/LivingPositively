@@ -4,73 +4,18 @@ import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:mazilon/EmergencyNumbers.dart';
-import 'package:mazilon/global_enums.dart';
 import 'package:mazilon/l10n/app_localizations.dart';
 import 'package:mazilon/util/Phone/EmergencyPhones.dart';
 import 'package:mazilon/util/Phone/emergencyDialogBox.dart';
 import 'package:mazilon/util/Phone/phoneTextAndIcon.dart';
 import 'package:mazilon/util/appInformation.dart';
-import 'package:mazilon/util/persistent_memory_service.dart';
 import 'package:mazilon/util/userInformation.dart';
 import 'package:provider/provider.dart';
-import 'package:url_launcher_platform_interface/link.dart';
 import 'package:url_launcher_platform_interface/url_launcher_platform_interface.dart';
 
+import 'helpers/phone_delivery_test_fakes.dart';
+
 const _smsComposeChannel = MethodChannel('com.matzilon.mezilon/sms_compose');
-
-class FakePersistentMemoryService implements PersistentMemoryService {
-  @override
-  Future<dynamic> getItem(String key, PersistentMemoryType type) async {
-    return null;
-  }
-
-  @override
-  Future<void> reset() async {}
-
-  @override
-  Future<void> setItem(
-    String key,
-    PersistentMemoryType type,
-    dynamic value,
-  ) async {}
-}
-
-class FakeUrlLauncherPlatform extends UrlLauncherPlatform {
-  FakeUrlLauncherPlatform({this.shouldSucceed = true, this.launchError});
-
-  final List<String> launchedUrls = [];
-  final bool shouldSucceed;
-  final Object? launchError;
-
-  String? get lastLaunchedUrl =>
-      launchedUrls.isEmpty ? null : launchedUrls.last;
-
-  @override
-  LinkDelegate? get linkDelegate => null;
-
-  @override
-  Future<bool> canLaunch(String url) async {
-    return true;
-  }
-
-  @override
-  Future<bool> launch(
-    String url, {
-    required bool useSafariVC,
-    required bool useWebView,
-    required bool enableJavaScript,
-    required bool enableDomStorage,
-    required bool universalLinksOnly,
-    required Map<String, String> headers,
-    String? webOnlyWindowName,
-  }) async {
-    launchedUrls.add(url);
-    if (launchError != null) {
-      throw launchError!;
-    }
-    return shouldSucceed;
-  }
-}
 
 Widget buildEmergencyDialogTestApp({
   required EmergencyDialogBox dialog,

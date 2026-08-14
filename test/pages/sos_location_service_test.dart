@@ -2,9 +2,11 @@ import 'dart:async';
 
 import 'package:flutter/foundation.dart'
     show TargetPlatform, debugDefaultTargetPlatformOverride;
+import 'package:flutter/widgets.dart' show Widget;
 import 'package:flutter_test/flutter_test.dart';
 import 'package:geolocator/geolocator.dart';
 import 'package:mazilon/pages/sos_location_service.dart';
+import 'package:mazilon/util/logger_service.dart';
 
 class RecordingGeolocatorPlatform extends GeolocatorPlatform {
   RecordingGeolocatorPlatform({
@@ -65,6 +67,38 @@ class RecordingGeolocatorPlatform extends GeolocatorPlatform {
   }
 }
 
+class RecordingIncidentLoggerService implements IncidentLoggerService {
+  RecordingIncidentLoggerService({
+    this.throwOnCapture = false,
+    this.captureCompleter,
+  });
+
+  final bool throwOnCapture;
+  final Completer<void>? captureCompleter;
+  final List<({Object exception, StackTrace? stackTrace})> captured = [];
+  int captureCalls = 0;
+
+  @override
+  Future<void> initializeSentry(Widget myApp) async {}
+
+  @override
+  Future<void> captureLog(
+    dynamic exception, {
+    StackTrace? stackTrace,
+    dynamic exceptionData,
+  }) async {
+    captureCalls++;
+    if (throwOnCapture) {
+      throw StateError('incident logging failed');
+    }
+    captured.add((exception: exception as Object, stackTrace: stackTrace));
+    final completer = captureCompleter;
+    if (completer != null) {
+      await completer.future;
+    }
+  }
+}
+
 Position _position({double latitude = 31.7683, double longitude = 35.2137}) {
   return Position(
     latitude: latitude,
@@ -80,69 +114,123 @@ Position _position({double latitude = 31.7683, double longitude = 35.2137}) {
   );
 }
 
+Future<SosLocationLookupResult> _lookupOnNativeTarget(
+  RecordingGeolocatorPlatform geolocator,
+  RecordingIncidentLoggerService logger, {
+  TargetPlatform targetPlatform = TargetPlatform.android,
+}) async {
+  final originalPlatform = debugDefaultTargetPlatformOverride;
+  debugDefaultTargetPlatformOverride = targetPlatform;
+  try {
+    return await GeolocatorSosLocationService(
+      incidentLoggerService: logger,
+      geolocatorPlatform: geolocator,
+    ).lookupCurrentPosition();
+  } finally {
+    debugDefaultTargetPlatformOverride = originalPlatform;
+  }
+}
+
+void _expectUnavailable(SosLocationLookupResult result) {
+  expect(
+    result,
+    isA<SosLocationFailureResult>().having(
+      (failure) => failure.kind,
+      'kind',
+      SosLocationFailureKind.unavailable,
+    ),
+  );
+}
+
 void main() {
   group('GeolocatorSosLocationService', () {
-    Future<SosLocationLookupResult> lookup(
-      RecordingGeolocatorPlatform geolocator,
-    ) {
-      return GeolocatorSosLocationService(
-        geolocatorPlatform: geolocator,
-        supportsLocationSharing: true,
-      ).lookupCurrentPosition();
+    for (final targetPlatform in <TargetPlatform>[
+      TargetPlatform.android,
+      TargetPlatform.iOS,
+    ]) {
+      test('should allow one lookup on native $targetPlatform', () async {
+        final geolocator = RecordingGeolocatorPlatform(
+          position: _position(latitude: 32.1, longitude: 34.8),
+        );
+        final logger = RecordingIncidentLoggerService();
+
+        final result = await _lookupOnNativeTarget(
+          geolocator,
+          logger,
+          targetPlatform: targetPlatform,
+        );
+
+        expect(
+          result,
+          isA<SosLocationSuccess>()
+              .having((success) => success.location.latitude, 'latitude', 32.1)
+              .having(
+                (success) => success.location.longitude,
+                'longitude',
+                34.8,
+              ),
+        );
+        expect(geolocator.calls, [
+          'isLocationServiceEnabled',
+          'checkPermission',
+          'getCurrentPosition',
+        ]);
+        expect(geolocator.locationSettings?.accuracy, LocationAccuracy.high);
+        expect(
+          geolocator.locationSettings?.timeLimit,
+          const Duration(seconds: 15),
+        );
+        expect(logger.captureCalls, 0);
+      });
     }
 
-    test(
-      'should return unavailable without platform calls when unsupported',
-      () async {
-        final geolocator = RecordingGeolocatorPlatform();
-        final result = await GeolocatorSosLocationService(
-          geolocatorPlatform: geolocator,
-          supportsLocationSharing: false,
-        ).lookupCurrentPosition();
-
-        expect(result, isA<SosLocationFailureResult>());
-        expect(
-          (result as SosLocationFailureResult).kind,
-          SosLocationFailureKind.unavailable,
-        );
-        expect(geolocator.calls, isEmpty);
-      },
-    );
-
-    for (final platform in <TargetPlatform>[
+    for (final targetPlatform in <TargetPlatform>[
       TargetPlatform.windows,
       TargetPlatform.macOS,
       TargetPlatform.linux,
     ]) {
-      test('should avoid platform calls on $platform', () async {
-        final originalPlatform = debugDefaultTargetPlatformOverride;
-        debugDefaultTargetPlatformOverride = platform;
-        try {
+      test(
+        'should fail closed without platform calls on $targetPlatform',
+        () async {
           final geolocator = RecordingGeolocatorPlatform();
-          final result = await GeolocatorSosLocationService(
-            geolocatorPlatform: geolocator,
-          ).lookupCurrentPosition();
+          final logger = RecordingIncidentLoggerService();
 
-          expect(
-            result,
-            isA<SosLocationFailureResult>().having(
-              (failure) => failure.kind,
-              'kind',
-              SosLocationFailureKind.unavailable,
-            ),
+          final result = await _lookupOnNativeTarget(
+            geolocator,
+            logger,
+            targetPlatform: targetPlatform,
           );
+
+          _expectUnavailable(result);
           expect(geolocator.calls, isEmpty);
-        } finally {
-          debugDefaultTargetPlatformOverride = originalPlatform;
-        }
-      });
+          expect(logger.captureCalls, 0);
+        },
+      );
     }
+
+    test('should fail closed without platform calls on web', () async {
+      final geolocator = RecordingGeolocatorPlatform();
+      final logger = RecordingIncidentLoggerService();
+
+      final result = await GeolocatorSosLocationService.forTesting(
+        incidentLoggerService: logger,
+        geolocatorPlatform: geolocator,
+        isWeb: true,
+        targetPlatform: TargetPlatform.android,
+      ).lookupCurrentPosition();
+
+      _expectUnavailable(result);
+      expect(geolocator.calls, isEmpty);
+      expect(logger.captureCalls, 0);
+    });
 
     test(
       'should classify disabled services before permission lookup',
       () async {
         final geolocator = RecordingGeolocatorPlatform(serviceEnabled: false);
-        final result = await lookup(geolocator);
+        final logger = RecordingIncidentLoggerService();
+
+        final result = await _lookupOnNativeTarget(geolocator, logger);
 
         expect(
           result,
@@ -153,6 +241,7 @@ void main() {
           ),
         );
         expect(geolocator.calls, ['isLocationServiceEnabled']);
+        expect(logger.captureCalls, 0);
       },
     );
 
@@ -165,34 +254,18 @@ void main() {
         () async {
           final geolocator = RecordingGeolocatorPlatform(
             permission: permission,
-            position: _position(latitude: 32.1, longitude: 34.8),
           );
-          final result = await lookup(geolocator);
+          final logger = RecordingIncidentLoggerService();
 
-          expect(
-            result,
-            isA<SosLocationSuccess>()
-                .having(
-                  (success) => success.location.latitude,
-                  'latitude',
-                  32.1,
-                )
-                .having(
-                  (success) => success.location.longitude,
-                  'longitude',
-                  34.8,
-                ),
-          );
+          final result = await _lookupOnNativeTarget(geolocator, logger);
+
+          expect(result, isA<SosLocationSuccess>());
           expect(geolocator.calls, [
             'isLocationServiceEnabled',
             'checkPermission',
             'getCurrentPosition',
           ]);
-          expect(geolocator.locationSettings?.accuracy, LocationAccuracy.high);
-          expect(
-            geolocator.locationSettings?.timeLimit,
-            const Duration(seconds: 15),
-          );
+          expect(logger.captureCalls, 0);
         },
       );
     }
@@ -204,7 +277,9 @@ void main() {
           permission: LocationPermission.denied,
           requestedPermission: LocationPermission.whileInUse,
         );
-        final result = await lookup(geolocator);
+        final logger = RecordingIncidentLoggerService();
+
+        final result = await _lookupOnNativeTarget(geolocator, logger);
 
         expect(result, isA<SosLocationSuccess>());
         expect(geolocator.calls, [
@@ -213,6 +288,7 @@ void main() {
           'requestPermission',
           'getCurrentPosition',
         ]);
+        expect(logger.captureCalls, 0);
       },
     );
 
@@ -230,16 +306,11 @@ void main() {
           permission: permissionCase.initial,
           requestedPermission: permissionCase.requested,
         );
-        final result = await lookup(geolocator);
+        final logger = RecordingIncidentLoggerService();
 
-        expect(
-          result,
-          isA<SosLocationFailureResult>().having(
-            (failure) => failure.kind,
-            'kind',
-            SosLocationFailureKind.unavailable,
-          ),
-        );
+        final result = await _lookupOnNativeTarget(geolocator, logger);
+
+        _expectUnavailable(result);
         expect(
           geolocator.calls,
           permissionCase.initial == LocationPermission.denied
@@ -250,6 +321,7 @@ void main() {
                 ]
               : ['isLocationServiceEnabled', 'checkPermission'],
         );
+        expect(logger.captureCalls, 0);
       });
     }
 
@@ -258,60 +330,114 @@ void main() {
       StateError('position failed'),
     ]) {
       test(
-        'should return unavailable when the position lookup throws $error',
+        'should log structured diagnostics when the position lookup throws $error',
         () async {
           final geolocator = RecordingGeolocatorPlatform(positionError: error);
-          final result = await lookup(geolocator);
+          final logger = RecordingIncidentLoggerService();
 
-          expect(
-            result,
-            isA<SosLocationFailureResult>().having(
-              (failure) => failure.kind,
-              'kind',
-              SosLocationFailureKind.unavailable,
-            ),
-          );
+          final result = await _lookupOnNativeTarget(geolocator, logger);
+
+          _expectUnavailable(result);
           expect(geolocator.calls, [
             'isLocationServiceEnabled',
             'checkPermission',
             'getCurrentPosition',
           ]);
+          expect(logger.captureCalls, 1);
+          expect(logger.captured, hasLength(1));
+          expect(logger.captured.single.exception, same(error));
+          expect(logger.captured.single.stackTrace, isNotNull);
         },
       );
     }
 
     test(
-      'should return unavailable when the permission platform call throws',
+      'should log a permission platform failure with its stack trace',
       () async {
-        final geolocator = RecordingGeolocatorPlatform(
-          permissionError: StateError('permission platform failed'),
-        );
-        final result = await lookup(geolocator);
+        final error = StateError('permission platform failed');
+        final geolocator = RecordingGeolocatorPlatform(permissionError: error);
+        final logger = RecordingIncidentLoggerService();
 
-        expect(
-          result,
-          isA<SosLocationFailureResult>()
-              .having(
-                (failure) => failure.kind,
-                'kind',
-                SosLocationFailureKind.unavailable,
-              )
-              .having((failure) => failure.canRetry, 'canRetry', isFalse),
-        );
+        final result = await _lookupOnNativeTarget(geolocator, logger);
+
+        _expectUnavailable(result);
         expect(geolocator.calls, [
           'isLocationServiceEnabled',
           'checkPermission',
         ]);
+        expect(logger.captureCalls, 1);
+        expect(logger.captured.single.exception, same(error));
+        expect(logger.captured.single.stackTrace, isNotNull);
       },
     );
 
     test(
-      'should classify a disabled-services exception as retryable',
+      'should log a location-service platform failure with its stack trace',
+      () async {
+        final error = StateError('location service platform failed');
+        final geolocator = RecordingGeolocatorPlatform(serviceError: error);
+        final logger = RecordingIncidentLoggerService();
+
+        final result = await _lookupOnNativeTarget(geolocator, logger);
+
+        _expectUnavailable(result);
+        expect(geolocator.calls, ['isLocationServiceEnabled']);
+        expect(logger.captureCalls, 1);
+        expect(logger.captured.single.exception, same(error));
+        expect(logger.captured.single.stackTrace, isNotNull);
+      },
+    );
+
+    test(
+      'should return unavailable before a stalled incident capture completes',
+      () async {
+        final captureCompleter = Completer<void>();
+        addTearDown(() {
+          if (!captureCompleter.isCompleted) {
+            captureCompleter.complete();
+          }
+        });
+        final error = StateError('position failed');
+        final geolocator = RecordingGeolocatorPlatform(positionError: error);
+        final logger = RecordingIncidentLoggerService(
+          captureCompleter: captureCompleter,
+        );
+
+        final result = await _lookupOnNativeTarget(
+          geolocator,
+          logger,
+        ).timeout(const Duration(seconds: 1));
+
+        _expectUnavailable(result);
+        expect(logger.captureCalls, 1);
+        expect(logger.captured.single.exception, same(error));
+        expect(logger.captured.single.stackTrace, isNotNull);
+        expect(captureCompleter.isCompleted, isFalse);
+      },
+    );
+
+    test('should remain unavailable when incident logging fails', () async {
+      final geolocator = RecordingGeolocatorPlatform(
+        positionError: StateError('position failed'),
+      );
+      final logger = RecordingIncidentLoggerService(throwOnCapture: true);
+
+      final result = await _lookupOnNativeTarget(geolocator, logger);
+
+      _expectUnavailable(result);
+      expect(logger.captureCalls, 1);
+      expect(logger.captured, isEmpty);
+    });
+
+    test(
+      'should classify a disabled-services exception without logging',
       () async {
         final geolocator = RecordingGeolocatorPlatform(
           serviceError: const LocationServiceDisabledException(),
         );
-        final result = await lookup(geolocator);
+        final logger = RecordingIncidentLoggerService();
+
+        final result = await _lookupOnNativeTarget(geolocator, logger);
 
         expect(
           result,
@@ -324,6 +450,7 @@ void main() {
               .having((failure) => failure.canRetry, 'canRetry', isTrue),
         );
         expect(geolocator.calls, ['isLocationServiceEnabled']);
+        expect(logger.captureCalls, 0);
       },
     );
   });

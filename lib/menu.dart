@@ -3,7 +3,6 @@
 import 'package:auto_size_text/auto_size_text.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
-import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 import 'package:get_it/get_it.dart';
 import 'package:mazilon/AnalyticsService.dart';
@@ -22,12 +21,12 @@ import 'package:mazilon/util/persistent_memory_service.dart';
 import 'package:mazilon/pages/home.dart';
 import 'package:mazilon/pages/journal.dart';
 import 'package:mazilon/pages/phone.dart';
+import 'package:mazilon/pages/sos_location_service.dart';
 import 'package:mazilon/pages/positive.dart';
 import 'package:mazilon/pages/PersonalPlan/myPlanPageFull.dart';
 import 'package:package_info_plus/package_info_plus.dart';
 
 import 'package:mazilon/util/appInformation.dart';
-import 'package:mazilon/util/styles.dart';
 
 import 'package:mazilon/util/Form/formPagePhoneModel.dart';
 import 'package:mazilon/util/HomePage/bottomNavigationItem.dart';
@@ -137,7 +136,10 @@ class _MenuState extends LPExtendedState<Menu> {
           ),
         );
       } else if (index == PagesCode.EmergencyPhones) {
-        currentScreen = PhonePage(phonePageData: widget.phonePageData);
+        currentScreen = PhonePage(
+          phonePageData: widget.phonePageData,
+          sosLocationService: GetIt.instance<SosLocationService>(),
+        );
       } else if (index == PagesCode.About) {
         currentScreen = About(version: version);
       } else if (index == PagesCode.NotificationPage) {
@@ -339,7 +341,10 @@ class _MenuState extends LPExtendedState<Menu> {
                   ),
             onPressed: () {
               setState(() {
-                currentScreen = PhonePage(phonePageData: widget.phonePageData);
+                currentScreen = PhonePage(
+                  phonePageData: widget.phonePageData,
+                  sosLocationService: GetIt.instance<SosLocationService>(),
+                );
                 current = PagesCode.EmergencyPhones;
                 isFullScreen = false;
               });
