@@ -8,6 +8,7 @@ import 'package:mazilon/pages/FormAnswer.dart';
 import 'package:mazilon/util/LP_extended_state.dart';
 import 'package:mazilon/util/persistent_memory_service.dart';
 import 'package:mazilon/util/styles.dart';
+import 'package:mazilon/util/theme/font_weight.dart';
 
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:mazilon/util/userInformation.dart';
@@ -180,8 +181,8 @@ class _FormPageTemplateState extends LPExtendedState<FormPageTemplate> {
                       child: myAutoSizedText(
                         displayInformation['header'],
                         TextStyle(
-                          fontWeight: FontWeight.bold,
-                          fontSize: 20.sp,
+                          fontWeight: AppFontWeight.medium,
+                          fontSize: 24.sp,
                           height: 1.5,
                         ),
                         TextAlign.center,
@@ -194,9 +195,9 @@ class _FormPageTemplateState extends LPExtendedState<FormPageTemplate> {
                       child: myAutoSizedText(
                         displayInformation['subTitle'],
                         TextStyle(
-                          fontWeight: FontWeight.bold,
+                          fontWeight: AppFontWeight.regular,
                           color: Theme.of(context).colorScheme.outline,
-                          fontSize: 14.sp,
+                          fontSize: 16.sp,
                           height: 1.3,
                         ),
                         TextAlign.center,
@@ -274,8 +275,8 @@ class _FormPageTemplateState extends LPExtendedState<FormPageTemplate> {
                         child: myAutoSizedText(
                           appLocale.addFormPageTemplateAdd(gender),
                           TextStyle(
-                            fontWeight: FontWeight.bold,
-                            fontSize: 14.sp,
+                            fontWeight: AppFontWeight.medium,
+                            fontSize: 12.sp,
                           ),
                           null,
                           20,
@@ -285,7 +286,7 @@ class _FormPageTemplateState extends LPExtendedState<FormPageTemplate> {
                       Expanded(
                         child: TextField(
                           style: TextStyle(
-                            fontWeight: FontWeight.normal,
+                            fontWeight: AppFontWeight.regular,
                             fontSize: 14.sp > 40 ? 40 : 14.sp,
                           ),
                           controller: _controller,
@@ -306,7 +307,10 @@ class _FormPageTemplateState extends LPExtendedState<FormPageTemplate> {
                       alignment: Alignment.topCenter,
                       child: myAutoSizedText(
                         displayInformation['midTitle'],
-                        TextStyle(fontWeight: FontWeight.bold, fontSize: 20.sp),
+                        TextStyle(
+                          fontWeight: AppFontWeight.semiBold,
+                          fontSize: 14.sp,
+                        ),
                         TextAlign.center,
                         40,
                       ),
@@ -317,9 +321,9 @@ class _FormPageTemplateState extends LPExtendedState<FormPageTemplate> {
                       child: myAutoSizedText(
                         displayInformation['midSubTitle'],
                         TextStyle(
-                          fontWeight: FontWeight.bold,
+                          fontWeight: AppFontWeight.regular,
                           color: Theme.of(context).colorScheme.outline,
-                          fontSize: 14.sp,
+                          fontSize: 12.sp,
                           height: 1.5,
                         ),
                         TextAlign.center,
@@ -375,7 +379,7 @@ class _FormPageTemplateState extends LPExtendedState<FormPageTemplate> {
                                     style: TextStyle(
                                       fontFamily: "Rubix",
                                       fontSize: 16.sp,
-                                      fontWeight: FontWeight.normal,
+                                      fontWeight: AppFontWeight.regular,
                                     ),
                                   ),
                                 ),
@@ -413,7 +417,7 @@ class _FormPageTemplateState extends LPExtendedState<FormPageTemplate> {
                                     style: TextStyle(
                                       fontFamily: "Rubix",
                                       fontSize: 16.sp,
-                                      fontWeight: FontWeight.normal,
+                                      fontWeight: AppFontWeight.regular,
                                     ),
                                   ),
                                 ),
@@ -466,7 +470,7 @@ class _FormPageTemplateState extends LPExtendedState<FormPageTemplate> {
                           child: myAutoSizedText(
                             displayInformation['showMoreButtonText'],
                             TextStyle(
-                              fontWeight: FontWeight.bold,
+                              fontWeight: AppFontWeight.medium,
                               fontSize: 14.sp,
                             ),
                             null,
@@ -492,8 +496,8 @@ class _FormPageTemplateState extends LPExtendedState<FormPageTemplate> {
                   },
                   displayInformation['nextButtonText'],
                   myTextStyle.copyWith(
-                    fontWeight: FontWeight.bold,
-                    fontSize: 22.sp,
+                    fontWeight: AppFontWeight.medium,
+                    fontSize: 18.sp,
                   ),
                 ),
                 const SizedBox(height: 20),

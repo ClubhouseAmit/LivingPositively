@@ -11,6 +11,7 @@ import 'dart:io';
 import 'dart:typed_data';
 
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:get_it/get_it.dart';
 import 'package:image_picker/image_picker.dart';
@@ -380,3 +381,22 @@ List<dynamic> drainOverflowExceptions(WidgetTester tester) {
   }
   return drained;
 }
+
+/// Loads the Rubix custom font family into the Flutter test environment
+/// so text measurements and visual rendering match production font metrics.
+Future<void> loadTestFonts() async {
+  final fontLoader = FontLoader('Rubix');
+
+  final regular = File('fonts/Rubik-Regular.ttf').readAsBytesSync();
+  final medium = File('fonts/Rubik-Medium.ttf').readAsBytesSync();
+  final semiBold = File('fonts/Rubik-SemiBold.ttf').readAsBytesSync();
+  final bold = File('fonts/Rubik-Bold.ttf').readAsBytesSync();
+
+  fontLoader.addFont(Future.value(ByteData.sublistView(regular)));
+  fontLoader.addFont(Future.value(ByteData.sublistView(medium)));
+  fontLoader.addFont(Future.value(ByteData.sublistView(semiBold)));
+  fontLoader.addFont(Future.value(ByteData.sublistView(bold)));
+
+  await fontLoader.load();
+}
+
