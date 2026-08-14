@@ -89,6 +89,15 @@
     "description": ""
   },
   "personalPlanPageTitle": "{gender,select,male{My Personal Plan} female{My Personal Plan} other{My Personal Plan}}",
+  "personalPlanPdfTitle": "My Personal Plan",
+  "@personalPlanPdfTitle": {
+    "description": "Title used when exporting a Personal Plan PDF without a saved name"
+  },
+  "personalPlanPdfTitleWithName": "{username}'s Personal Plan",
+  "@personalPlanPdfTitleWithName": {
+    "description": "Title used when exporting a Personal Plan PDF with a saved name",
+    "placeholders": {"username": {"type": "String"}}
+  },
   "@personalPlanPageTitle": {
     "description": ""
   },

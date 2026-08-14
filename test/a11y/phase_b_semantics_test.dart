@@ -94,6 +94,7 @@ class _StubFileService implements FileService {
     List<dynamic> titles,
     List<dynamic> subTitles,
     Map<String, String> texts,
+    String mainTitle,
     ShareFileType saveFormat,
     String textDirection,
   ) async {}
@@ -102,6 +103,7 @@ class _StubFileService implements FileService {
     List<dynamic> titles,
     List<dynamic> subTitles,
     Map<String, String> texts,
+    String mainTitle,
     ShareFileType saveFormat,
     String textDirection,
   ) async => null;

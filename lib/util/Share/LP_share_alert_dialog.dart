@@ -20,14 +20,15 @@ class LPShareAlertDialog extends StatefulWidget {
   State<LPShareAlertDialog> createState() => _LPShareAlertDialogState();
 }
 
-Future<void> shareFile(appLocale, gender, appInfoProvider) async {
+Future<void> shareFile(appLocale, gender, username, appInfoProvider) async {
   var fileService = GetIt.instance<FileService>();
-  final exportMetadata = buildPersonalPlanExportMetadata(appLocale!, gender);
+  final exportMetadata = buildPersonalPlanExportMetadata(appLocale!, gender, username);
   await fileService.share(
     "",
     exportMetadata.titles,
     exportMetadata.subTitles,
     appInfoProvider.sharePDFtexts,
+    exportMetadata.mainTitle,
     ShareFileType.PDF,
     appLocale.textDirection,
   );
@@ -45,7 +46,7 @@ class _LPShareAlertDialogState extends LPExtendedState<LPShareAlertDialog> {
       title: appLocale.shareOptions,
       actions: [
         LPAlertDialogBoxItem(
-          onPressed: () => shareFile(appLocale, gender, appInfoProvider),
+          onPressed: () => shareFile(appLocale, gender, userInfoProvider.name, appInfoProvider),
           buttonText: appLocale.shareFile,
           icon: Icons.insert_drive_file_outlined,
         ),

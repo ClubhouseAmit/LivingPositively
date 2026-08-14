@@ -170,7 +170,7 @@ void main() {
   });
 
   group('FileServiceImpl.organizeDataForFile', () {
-    test('produces expected mainTitle when username present', () async {
+    test('should preserve the supplied personalized title', () async {
       final svc = FileServiceImpl();
       final result = await svc.organizeDataForFile(
         [
@@ -199,8 +199,9 @@ void main() {
           'secondLinkURL': 'g',
           'forthLine': 'h',
         },
+        'Personal Plan of Alex',
       );
-      expect(result['mainTitle'], 'התוכנית המשולבת של Alex');
+      expect(result['mainTitle'], 'Personal Plan of Alex');
       // 'FeelBetter' was empty; the remaining defaults retain their six-wide
       // order, including Safe Environment after Contacts.
       expect(result['titles'], [
@@ -226,15 +227,15 @@ void main() {
       ]);
     });
 
-    test('uses generic title when username empty', () async {
-      memory.store['name'] = '';
+    test('should preserve the supplied localized title', () async {
       final svc = FileServiceImpl();
       final result = await svc.organizeDataForFile(
         ['t1', 't2', 't3', 't4', 't5', 't6'],
         ['s1', 's2', 's3', 's4', 's5', 's6'],
         {},
+        'My Personal Plan',
       );
-      expect(result['mainTitle'], 'התוכנית המשולבת שלי');
+      expect(result['mainTitle'], 'My Personal Plan');
     });
   });
 
@@ -314,6 +315,7 @@ void main() {
           'secondLinkURL': '',
           'forthLine': '',
         },
+        'My Personal Plan',
         ShareFileType.DOCX,
         'rtl',
       );
@@ -341,6 +343,7 @@ void main() {
           'secondLinkURL': 'https://example.com/2',
           'forthLine': 'f',
         },
+        'My Personal Plan',
         ShareFileType.PDF,
         'rtl',
       );
@@ -361,6 +364,7 @@ void main() {
         ['t1', 't2', 't3', 't4', 't5', 't6'],
         ['s1', 's2', 's3', 's4', 's5', 's6'],
         const <String, String>{},
+        'My Personal Plan',
         ShareFileType.DOCX,
         'ltr',
       );

@@ -30,6 +30,7 @@ class RecordedShareCall {
     required this.titles,
     required this.subTitles,
     required this.texts,
+    required this.mainTitle,
     required this.saveFormat,
     required this.textDirection,
   });
@@ -38,6 +39,7 @@ class RecordedShareCall {
   final List<dynamic> titles;
   final List<dynamic> subTitles;
   final Map<String, String> texts;
+  final String mainTitle;
   final ShareFileType saveFormat;
   final String textDirection;
 }
@@ -62,6 +64,7 @@ class RecordingFileService implements FileService {
     List<dynamic> titles,
     List<dynamic> subTitles,
     Map<String, String> texts,
+    String mainTitle,
     ShareFileType saveFormat,
     String textDirection,
   ) async => null;
@@ -72,6 +75,7 @@ class RecordingFileService implements FileService {
     List<dynamic> titles,
     List<dynamic> subTitles,
     Map<String, String> texts,
+    String mainTitle,
     ShareFileType saveFormat,
     String textDirection,
   ) async {
@@ -81,6 +85,7 @@ class RecordingFileService implements FileService {
         titles: titles,
         subTitles: subTitles,
         texts: texts,
+        mainTitle: mainTitle,
         saveFormat: saveFormat,
         textDirection: textDirection,
       ),
@@ -1153,11 +1158,13 @@ void main() {
               final exportMetadata = buildPersonalPlanExportMetadata(
                 localizations,
                 'male',
+                '',
               );
               expect(shareCall.message, localeCase.message);
               expect(shareCall.titles, exportMetadata.titles);
               expect(shareCall.subTitles, exportMetadata.subTitles);
               expect(shareCall.texts, appInformation.sharePDFtexts);
+              expect(shareCall.mainTitle, exportMetadata.mainTitle);
               expect(shareCall.saveFormat, ShareFileType.PDF);
               expect(shareCall.textDirection, localeCase.textDirection);
               expect(fileService.sharedMessages, isEmpty);

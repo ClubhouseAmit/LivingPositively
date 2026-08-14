@@ -22,6 +22,7 @@ class _NoopFileService implements FileService {
       List titles,
       List subTitles,
       Map<String, String> texts,
+      String mainTitle,
       ShareFileType saveFormat,
       String textDirection) async {
     return 'noop.pdf';
@@ -33,6 +34,7 @@ class _NoopFileService implements FileService {
       List titles,
       List subTitles,
       Map<String, String> texts,
+      String mainTitle,
       ShareFileType saveFormat,
       String textDirection) async {}
 

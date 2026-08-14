@@ -21,12 +21,14 @@ abstract class FileService {
       List<dynamic> titles,
       List<dynamic> subTitles,
       Map<String, String> texts,
+      String mainTitle,
       ShareFileType saveFormat,
       String textDirection);
   Future<String?> download(
       List<dynamic> titles,
       List<dynamic> subTitles,
       Map<String, String> texts,
+      String mainTitle,
       ShareFileType saveFormat,
       String textDirection);
   Future<bool> shareTextOnly(String message);
@@ -101,7 +103,7 @@ class FileServiceImpl implements FileService {
   }
 
   Future<Map<String, dynamic>> organizeDataForFile(List<dynamic> titles,
-      List<dynamic> subTitles, Map<String, String> texts) async {
+      List<dynamic> subTitles, Map<String, String> texts, String mainTitle) async {
     // Set the page format to A4
 
     // Load the font for the PDF
@@ -115,7 +117,6 @@ class FileServiceImpl implements FileService {
     List<String> safeEnvironment = dataForPDF['SafeEnvironment'];
     List<String> phoneNames = dataForPDF['phoneNames'];
     List<String> phoneNumbers = dataForPDF['phoneNumbers'];
-    String username = dataForPDF['username'];
     List<String> customCategoryTitles = dataForPDF['customCategoryTitles'];
     List<String> customCategoryDescriptions =
         dataForPDF['customCategoryDescriptions'];
@@ -159,10 +160,6 @@ class FileServiceImpl implements FileService {
       realSubTitles.add(allSubTitles[i]);
       realData.add(allData[i]);
     }
-    // Create the main title for the PDF
-    String mainTitle =
-        username == '' ? 'התוכנית המשולבת שלי' : 'התוכנית המשולבת של $username';
-
     // Retrieve text content for the PDF
     String text1 = texts['firstLine'] ?? '';
     String text2 = texts['firstLinkText'] ?? '';
@@ -207,11 +204,12 @@ class FileServiceImpl implements FileService {
       List<dynamic> titles,
       List<dynamic> subTitles,
       Map<String, String> texts,
+      String mainTitle,
       ShareFileType saveFormat,
       String textDirection) async {
     try {
       // Add the generated widgets to the PDF
-      final dataForFile = await organizeDataForFile(titles, subTitles, texts);
+      final dataForFile = await organizeDataForFile(titles, subTitles, texts, mainTitle);
       Map<String, dynamic> file;
       switch (saveFormat) {
         case ShareFileType.PDF:
@@ -295,9 +293,10 @@ class FileServiceImpl implements FileService {
       List<dynamic> titles,
       List<dynamic> subTitles,
       Map<String, String> texts,
+      String mainTitle,
       ShareFileType saveFormat,
       String textDirection) async {
-    final dataForFile = await organizeDataForFile(titles, subTitles, texts);
+    final dataForFile = await organizeDataForFile(titles, subTitles, texts, mainTitle);
     Map<String, dynamic> file;
     Uint8List data = Uint8List(0);
     switch (saveFormat) {

@@ -23,6 +23,15 @@
      "personalPlanPageMyPlan": "{gender,select,male{התוכנית שלי} female{התוכנית שלי} other{התוכנית שלי}}",
      "personalPlanPageAllPlan": "{gender,select,male{לכל התוכנית} female{לכל התוכנית} other{לכל התוכנית}}",
      "personalPlanPageTitle": "{gender,select,male{התוכנית האישית שלי} female{התוכנית האישית שלי} other{התוכנית האישית שלי}}",
+     "personalPlanPdfTitle": "התוכנית האישית שלי",
+     "@personalPlanPdfTitle": {
+       "description": "Title used when exporting a Personal Plan PDF without a saved name"
+     },
+     "personalPlanPdfTitleWithName": "התוכנית האישית של {username}",
+     "@personalPlanPdfTitleWithName": {
+       "description": "Title used when exporting a Personal Plan PDF with a saved name",
+       "placeholders": {"username": {"type": "String"}}
+     },
      "personalPlanPageStartedDownload": "{gender,select,male{ההורדה החלה} female{ההורדה החלה} other{ההורדה החלה}}",
      "personalPlanPageFinishDownload": "{gender,select,male{התוכנית ירדה להורדות} female{התוכנית ירדה להורדות} other{התוכנית ירדה להורדות}}",
      "personalPlanPageFinish": "{gender,select,male{אישור} female{אישור} other{אישור}}",

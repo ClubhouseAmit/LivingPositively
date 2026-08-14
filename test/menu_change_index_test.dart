@@ -65,9 +65,9 @@ class _FakeAnalytics implements AnalyticsService {
 
 class _FakeFiles implements FileService {
   @override
-  Future<void> share(message, titles, subTitles, texts, fmt, dir) async {}
+  Future<void> share(message, titles, subTitles, texts, mainTitle, fmt, dir) async {}
   @override
-  Future<String?> download(titles, subTitles, texts, fmt, dir) async => null;
+  Future<String?> download(titles, subTitles, texts, mainTitle, fmt, dir) async => null;
   @override
   Future<bool> shareTextOnly(message) async => true;
 }

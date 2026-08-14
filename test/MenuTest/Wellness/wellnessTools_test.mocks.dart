@@ -83,6 +83,7 @@ class MockFileService extends _i1.Mock implements _i6.FileService {
     List<dynamic>? titles,
     List<dynamic>? subTitles,
     Map<String, String>? texts,
+    String? mainTitle,
     _i8.ShareFileType? saveFormat,
     String? textDirection,
   ) =>
@@ -94,6 +95,7 @@ class MockFileService extends _i1.Mock implements _i6.FileService {
             titles,
             subTitles,
             texts,
+            mainTitle,
             saveFormat,
             textDirection,
           ],
@@ -107,6 +109,7 @@ class MockFileService extends _i1.Mock implements _i6.FileService {
     List<dynamic>? titles,
     List<dynamic>? subTitles,
     Map<String, String>? texts,
+    String? mainTitle,
     _i8.ShareFileType? saveFormat,
     String? textDirection,
   ) =>
@@ -117,6 +120,7 @@ class MockFileService extends _i1.Mock implements _i6.FileService {
             titles,
             subTitles,
             texts,
+            mainTitle,
             saveFormat,
             textDirection,
           ],

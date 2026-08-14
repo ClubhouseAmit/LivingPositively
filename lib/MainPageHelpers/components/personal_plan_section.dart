@@ -100,11 +100,13 @@ class PersonalPlanSectionWidget extends StatelessWidget {
       final exportMetadata = buildPersonalPlanExportMetadata(
         appLocale,
         userInfo.gender,
+        userInfo.name,
       );
       final result = await fileService.download(
         exportMetadata.titles,
         exportMetadata.subTitles,
         appInfoProvider.sharePDFtexts,
+        exportMetadata.mainTitle,
         ShareFileType.PDF,
         appLocale.textDirection,
       );

@@ -99,13 +99,15 @@ class _PhonePageState extends LPExtendedState<PhonePage> {
   Future<void> _startPersonalPlanCrisisShare(
     AppInformation appInformation,
     String gender,
+    String username,
   ) => _runSosDelivery(() async {
-    final exportMetadata = buildPersonalPlanExportMetadata(appLocale, gender);
+    final exportMetadata = buildPersonalPlanExportMetadata(appLocale, gender, username);
     await GetIt.instance<FileService>().share(
       appLocale.shareEmergencyMessage,
       exportMetadata.titles,
       exportMetadata.subTitles,
       appInformation.sharePDFtexts,
+      exportMetadata.mainTitle,
       ShareFileType.PDF,
       appLocale.textDirection,
     );
@@ -629,6 +631,7 @@ class _PhonePageState extends LPExtendedState<PhonePage> {
                         onPressed: () => _startPersonalPlanCrisisShare(
                           appInformation,
                           gender,
+                          userInfoProvider.name,
                         ),
                         icon: Icon(
                           Icons.description,

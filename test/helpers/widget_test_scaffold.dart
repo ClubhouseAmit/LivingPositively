@@ -120,6 +120,7 @@ class NoopFileService implements FileService {
     List<dynamic> titles,
     List<dynamic> subTitles,
     Map<String, String> texts,
+    String mainTitle,
     ShareFileType saveFormat,
     String textDirection,
   ) async {
@@ -133,6 +134,7 @@ class NoopFileService implements FileService {
     List<dynamic> titles,
     List<dynamic> subTitles,
     Map<String, String> texts,
+    String mainTitle,
     ShareFileType saveFormat,
     String textDirection,
   ) async {

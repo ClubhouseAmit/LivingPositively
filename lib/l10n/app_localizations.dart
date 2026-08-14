@@ -232,6 +232,18 @@ abstract class AppLocalizations {
   /// **'{gender,select,male{My Personal Plan} female{My Personal Plan} other{My Personal Plan}}'**
   String personalPlanPageTitle(String gender);
 
+  /// Title used when exporting a Personal Plan PDF without a saved name
+  ///
+  /// In en, this message translates to:
+  /// **'My Personal Plan'**
+  String get personalPlanPdfTitle;
+
+  /// Title used when exporting a Personal Plan PDF with a saved name
+  ///
+  /// In en, this message translates to:
+  /// **'{username}\'s Personal Plan'**
+  String personalPlanPdfTitleWithName(String username);
+
   ///
   ///
   /// In en, this message translates to:

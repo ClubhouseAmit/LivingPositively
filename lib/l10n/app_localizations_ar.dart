@@ -210,6 +210,14 @@ class AppLocalizationsAr extends AppLocalizations {
   }
 
   @override
+  String get personalPlanPdfTitle => 'خطتي الشخصية';
+
+  @override
+  String personalPlanPdfTitleWithName(String username) {
+    return 'الخطة الشخصية لـ$username';
+  }
+
+  @override
   String personalPlanPageStartedDownload(String gender) {
     String _temp0 = intl.Intl.selectLogic(gender, {
       'male': 'بدأ التنزيل',

@@ -80,12 +80,12 @@ void main() {
         mockPersistentMemoryService.getItem(any, PersistentMemoryType.Bool),
       ).thenAnswer((_) async => true);
       getIt.registerLazySingleton<ImagePickerService>(() => imageFactory);
-      when(mockFileServiceImpl.share(any, any, any, any, any, any)).thenAnswer(
+      when(mockFileServiceImpl.share(any, any, any, any, any, any, any)).thenAnswer(
         ((Invocation invocation) async {
           counterShare = counterShare + 1;
         }),
       );
-      when(mockFileServiceImpl.download(any, any, any, any, any)).thenAnswer(((
+      when(mockFileServiceImpl.download(any, any, any, any, any, any)).thenAnswer(((
         Invocation invocation,
       ) async {
         counterDownload = counterDownload + 1;
@@ -182,7 +182,7 @@ void main() {
         tester.element(find.byType(PersonalPlanSectionWidget)),
       )!;
       final captured = verify(
-        mockFileServiceImpl.download(captureAny, captureAny, any, any, any),
+        mockFileServiceImpl.download(captureAny, captureAny, any, any, any, any),
       ).captured;
 
       expect(captured, hasLength(2));

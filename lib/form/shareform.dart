@@ -530,11 +530,13 @@ class _ShareFormState extends LPExtendedState<ShareForm> {
                               buildPersonalPlanExportMetadata(
                                 appLocale,
                                 gender,
+                                userInfoProvider.name,
                               );
                           var result = await fileService.download(
                             exportMetadata.titles,
                             exportMetadata.subTitles,
                             appInfoProvider.sharePDFtexts,
+                            exportMetadata.mainTitle,
                             ShareFileType.PDF,
                             appLocale.textDirection,
                           );

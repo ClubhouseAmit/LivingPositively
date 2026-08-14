@@ -30,6 +30,15 @@
   "personalPlanPageMyPlan": "{gender,select,male{خطتي} female{خطتي} other{خطتي}}",
   "personalPlanPageAllPlan": "{gender,select,male{لرؤية خطتي} female{لرؤية خطتي} other{لرؤية خطتي}}",
   "personalPlanPageTitle": "{gender,select,male{خطتي الشخصية} female{خطتي الشخصية} other{خطتي الشخصية}}",
+  "personalPlanPdfTitle": "خطتي الشخصية",
+  "@personalPlanPdfTitle": {
+    "description": "Title used when exporting a Personal Plan PDF without a saved name"
+  },
+  "personalPlanPdfTitleWithName": "الخطة الشخصية لـ{username}",
+  "@personalPlanPdfTitleWithName": {
+    "description": "Title used when exporting a Personal Plan PDF with a saved name",
+    "placeholders": {"username": {"type": "String"}}
+  },
   "personalPlanPageStartedDownload": "{gender,select,male{بدأ التنزيل} female{بدأ التنزيل} other{بدأ التنزيل}}",
   "personalPlanPageFinishDownload": "{gender,select,male{تم حفظ خطتك في \"التنزيلات\"} female{تم حفظ خطتكِ في \"التنزيلات\"} other{تم حفظ خطتك في \"التنزيلات\"}}",
   "personalPlanPageFinish": "{gender,select,male{إنهاء} female{إنهاء} other{إنهاء}}",

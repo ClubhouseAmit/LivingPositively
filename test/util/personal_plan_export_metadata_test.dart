@@ -1,14 +1,33 @@
 import 'package:flutter_test/flutter_test.dart';
+import 'package:mazilon/l10n/app_localizations.dart';
 import 'package:mazilon/l10n/app_localizations_ar.dart';
 import 'package:mazilon/l10n/app_localizations_en.dart';
 import 'package:mazilon/l10n/app_localizations_he.dart';
 import 'package:mazilon/util/personal_plan_export_metadata.dart';
 
 void main() {
+  final titleCases = <({AppLocalizations locale, String username, String title})>[
+    (locale: AppLocalizationsEn(), username: '', title: 'My Personal Plan'),
+    (locale: AppLocalizationsEn(), username: 'Alex', title: "Alex's Personal Plan"),
+    (locale: AppLocalizationsHe(), username: '', title: 'התוכנית האישית שלי'),
+    (locale: AppLocalizationsHe(), username: 'אלכס', title: 'התוכנית האישית של אלכס'),
+    (locale: AppLocalizationsAr(), username: '', title: 'خطتي الشخصية'),
+    (locale: AppLocalizationsAr(), username: 'أليكس', title: 'الخطة الشخصية لـأليكس'),
+  ];
+  for (final titleCase in titleCases) {
+    test('should build the localized PDF title for ${titleCase.locale.localeName}', () {
+      expect(
+        buildPersonalPlanExportMetadata(titleCase.locale, 'male', titleCase.username).mainTitle,
+        titleCase.title,
+      );
+    });
+  }
+
   test('builds complete fixed English Personal Plan export metadata', () {
     final metadata = buildPersonalPlanExportMetadata(
       AppLocalizationsEn(),
       'male',
+      '',
     );
 
     expect(metadata.titles, const <String>[
@@ -74,6 +93,7 @@ void main() {
         final metadata = buildPersonalPlanExportMetadata(
           AppLocalizationsHe(),
           gender,
+          '',
         );
 
         expect(metadata.titles, hasLength(6));
@@ -88,6 +108,7 @@ void main() {
     final metadata = buildPersonalPlanExportMetadata(
       AppLocalizationsAr(),
       'male',
+      '',
     );
 
     expect(metadata.titles, hasLength(6));
