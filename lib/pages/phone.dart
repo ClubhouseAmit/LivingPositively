@@ -623,14 +623,24 @@ class _PhonePageState extends LPExtendedState<PhonePage> {
                     padding: const EdgeInsets.symmetric(horizontal: 30.0),
                     child: SizedBox(
                       width: double.infinity,
-                      child: ElevatedButton.icon(
+                      child: TextButton.icon(
                         key: const Key('phonePageSharePersonalPlanButton'),
+                        style: primaryButtonStyle(context),
                         onPressed: () => _startPersonalPlanCrisisShare(
                           appInformation,
                           gender,
                         ),
-                        icon: const Icon(Icons.description),
-                        label: Text(appLocale.sosSharePersonalPlan),
+                        icon: Icon(
+                          Icons.description,
+                          color: Theme.of(context).colorScheme.onPrimary,
+                        ),
+                        label: myAutoSizedText(
+                          appLocale.sosSharePersonalPlan,
+                          primaryButtonTextStyle(context),
+                          TextAlign.center,
+                          18,
+                          2,
+                        ),
                       ),
                     ),
                   ),
