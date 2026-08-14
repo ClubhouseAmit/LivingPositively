@@ -69,6 +69,10 @@ void main() {
       'تعذّر الحصول على موقعك الحالي.',
     );
     expect(
+      arabic['sosShareLocationServicesDisabled'],
+      'تعذّر الحصول على موقعك الحالي. يُرجى تفعيل خدمات الموقع.',
+    );
+    expect(
       arabic['sosShareLocationShareFailed'],
       'تعذّر مشاركة رسالة طلب المساعدة الخاصة بك. يُرجى المحاولة مرة أخرى.',
     );

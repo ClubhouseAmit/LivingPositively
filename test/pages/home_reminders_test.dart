@@ -216,4 +216,66 @@ void main() {
       });
     },
   );
+
+  testWidgets(
+    'Saving an edited reminder updates the customReminder in PersistentMemoryService',
+    (WidgetTester tester) async {
+      await _onPlatform(TargetPlatform.android, () async {
+        user.gender = 'male';
+
+        final locators = registerTestServices(locale: 'en');
+        final memory = locators.memory;
+
+        await pumpWithProviders(
+          tester,
+          Home(
+            phonePageData: _phoneData(),
+            changeCurrentIndex: (BuildContext context, PagesCode code) {},
+            changeLocale: (_) {},
+            openMainMenu: (_) {},
+          ),
+          userInformation: user,
+          surfaceSize: const Size(1024, 2400),
+        );
+
+        await tester.pumpAndSettle();
+
+        final editButtonFinder = find.descendant(
+          of: find.byType(RemindersSectionWidget),
+          matching: find.byTooltip('Edit entry'),
+        );
+        expect(editButtonFinder, findsOneWidget);
+
+        await tester.tap(editButtonFinder);
+        await tester.pumpAndSettle();
+
+        expect(find.byType(AddForm), findsOneWidget);
+
+        // Type a new custom reminder
+        final textFieldFinder = find.byType(TextFormField);
+        expect(textFieldFinder, findsOneWidget);
+        await tester.enterText(textFieldFinder, 'My New Saved Reminder');
+        await tester.pumpAndSettle();
+
+        // Tap Save
+        final saveButtonFinder = find.widgetWithText(TextButton, 'Save');
+        expect(saveButtonFinder, findsOneWidget);
+        await tester.tap(saveButtonFinder);
+        await tester.pumpAndSettle();
+
+        // Dialog should be gone
+        expect(find.byType(AddForm), findsNothing);
+
+        // Check widget state
+        final remindersWidget = tester.widget<RemindersSectionWidget>(
+          find.byType(RemindersSectionWidget),
+        );
+        expect(remindersWidget.reminders.first.title, equals('My New Saved Reminder'));
+
+        // Check persistent memory
+        final savedVal = await memory.getItem('customReminder', PersistentMemoryType.String);
+        expect(savedVal, equals('My New Saved Reminder'));
+      });
+    },
+  );
 }

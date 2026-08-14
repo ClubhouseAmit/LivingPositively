@@ -41,6 +41,9 @@ class _FormPageTemplateState extends LPExtendedState<FormPageTemplate> {
   @override
   void initState() {
     super.initState();
+    if (widget.collectionName == 'PersonalPlan-SafeEnvironment') {
+      displayedLength = 4;
+    }
   }
 
   @override
@@ -101,6 +104,9 @@ class _FormPageTemplateState extends LPExtendedState<FormPageTemplate> {
       case 'PersonalPlan-Distractions':
         userInfo.updateDistractions([...selectedItems]);
         break;
+      case 'PersonalPlan-SafeEnvironment':
+        userInfo.updateSafeEnvironment([...selectedItems]);
+        break;
       default:
     }
     await service.setItem(
@@ -134,6 +140,9 @@ class _FormPageTemplateState extends LPExtendedState<FormPageTemplate> {
       case 'PersonalPlan-Distractions':
         selectedItems = [...userInfo.distractions];
         break;
+      case 'PersonalPlan-SafeEnvironment':
+        selectedItems = [...userInfo.safeEnvironment];
+        break;
       default:
     }
   }
@@ -159,7 +168,7 @@ class _FormPageTemplateState extends LPExtendedState<FormPageTemplate> {
         child: Center(
           //widthFactor: double.infinity,
           child: Padding(
-            padding: const EdgeInsets.all(10.0),
+            padding: const EdgeInsets.symmetric(vertical: 10.0),
             child: Column(
               mainAxisSize: MainAxisSize.min,
               children: [
@@ -168,7 +177,6 @@ class _FormPageTemplateState extends LPExtendedState<FormPageTemplate> {
                   children: [
                     Container(
                       alignment: Alignment.topCenter,
-                      margin: EdgeInsets.symmetric(horizontal: 15),
                       child: myAutoSizedText(
                         displayInformation['header'],
                         TextStyle(
@@ -183,7 +191,6 @@ class _FormPageTemplateState extends LPExtendedState<FormPageTemplate> {
                     SizedBox(height: 5.h),
                     Container(
                       alignment: Alignment.topCenter,
-                      margin: EdgeInsets.symmetric(horizontal: 15),
                       child: myAutoSizedText(
                         displayInformation['subTitle'],
                         TextStyle(
@@ -297,7 +304,6 @@ class _FormPageTemplateState extends LPExtendedState<FormPageTemplate> {
                   children: [
                     Container(
                       alignment: Alignment.topCenter,
-                      margin: EdgeInsets.symmetric(horizontal: 15),
                       child: myAutoSizedText(
                         displayInformation['midTitle'],
                         TextStyle(fontWeight: FontWeight.w600, fontSize: 14.sp),
@@ -308,7 +314,6 @@ class _FormPageTemplateState extends LPExtendedState<FormPageTemplate> {
                     SizedBox(height: 5.h),
                     Container(
                       alignment: Alignment.topCenter,
-                      margin: EdgeInsets.symmetric(horizontal: 15),
                       child: myAutoSizedText(
                         displayInformation['midSubTitle'],
                         TextStyle(

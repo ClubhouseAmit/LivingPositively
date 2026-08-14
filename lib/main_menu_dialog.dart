@@ -19,7 +19,6 @@ String _shareAppUrl(AppLocalizations appLocale) {
       ? _hebrewShareAppUrl
       : _englishShareAppUrl;
 }
-
 String _contactUsUrl(AppLocalizations appLocale) {
   return appLocale.localeName.startsWith('he')
       ? _hebrewContactUsUrl
@@ -247,4 +246,3 @@ void showMainMenuDialog({
     },
   );
 }
-

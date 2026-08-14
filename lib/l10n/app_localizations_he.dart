@@ -743,7 +743,7 @@ class AppLocalizationsHe extends AppLocalizations {
   @override
   String distractionsHeader(String gender) {
     String _temp0 = intl.Intl.selectLogic(gender, {
-      'male': 'סימפטומים וסימני אזהרה, התנהגויות לא רגילות עבורי',
+      'male': 'סימפטומים וסימני אזהרה',
       'female': 'סימפטומים וסימני אזהרה',
       'other': 'סימפטומים וסימני אזהרה',
     });
@@ -783,9 +783,12 @@ class AppLocalizationsHe extends AppLocalizations {
   @override
   String feelBetterHeader(String gender) {
     String _temp0 = intl.Intl.selectLogic(gender, {
-      'male': 'לאיזון ואורח חיים בריא - Wellness Tools- תרופות אישיות',
-      'female': 'לאיזון ואורח חיים בריא - Wellness Tools- תרופות אישיות',
-      'other': 'תרופות אישיות - Wellness Tools - לאיזון אורח חיים בריא',
+      'male':
+          'מה לעשות כדי לעזור לעצמי לאיזון ואורח חיים בריא WELLNESS TOOLS - תרופות אישיות',
+      'female':
+          'מה לעשות כדי לעזור לעצמי לאיזון ואורח חיים בריא WELLNESS TOOLS - תרופות אישיות',
+      'other':
+          'מה לעשות כדי לעזור לעצמי לאיזון ואורח חיים בריא WELLNESS TOOLS - תרופות אישיות',
     });
     return '$_temp0';
   }
@@ -867,6 +870,27 @@ class AppLocalizationsHe extends AppLocalizations {
   }
 
   @override
+  String safeEnvironmentHeader(String gender) {
+    String _temp0 = intl.Intl.selectLogic(gender, {
+      'male': 'מה יעזור לי להפוך את המצב והסביבה לבטוחים יותר עבורי',
+      'female': 'מה יעזור לי להפוך את המצב והסביבה לבטוחים יותר עבורי',
+      'other': 'מה יעזור לי להפוך את המצב והסביבה לבטוחים יותר עבורי',
+    });
+    return '$_temp0';
+  }
+
+  @override
+  String safeEnvironmentSubTitle(String gender) {
+    String _temp0 = intl.Intl.selectLogic(gender, {
+      'male': 'צעדים שאוכל לעשות כדי להפוך את המצב והסביבה לבטוחים יותר עבורי',
+      'female':
+          'צעדים שאוכל לעשות כדי להפוך את המצב והסביבה לבטוחים יותר עבורי',
+      'other': 'צעדים שאוכל לעשות כדי להפוך את המצב והסביבה לבטוחים יותר עבורי',
+    });
+    return '$_temp0';
+  }
+
+  @override
   String phonesPagePhone(String gender) {
     String _temp0 = intl.Intl.selectLogic(gender, {
       'male': 'טלפון',
@@ -890,11 +914,11 @@ class AppLocalizationsHe extends AppLocalizations {
   String phonesPageHeader(String gender) {
     String _temp0 = intl.Intl.selectLogic(gender, {
       'male':
-          'מי האנשים שתומכים בי,שאני יכול לפנות אליהם אם אני במצוקה או חושב לפגוע בעצמי',
+          'מי האנשים שתומכים בי, שאני יכול לפנות אליהם אם אני במצוקה או במחשבה על לפגוע בעצמי',
       'female':
-          'מי האנשים שתומכים בי, שאני יכולה לפנות אליהם אם אני במצוקה או חושבת לפגוע בעצמי',
+          'מי האנשים שתומכים בי, שאני יכולה לפנות אליהם אם אני במצוקה או במחשבה על לפגוע בעצמי',
       'other':
-          'מי האנשים שתומכים בי,שאוכל לפנות אליהם אם אני במצוקה או עם מחשבות על פגיעה עצמית',
+          'מי האנשים שתומכים בי, שניתן לפנות אליהם אם אני במצוקה או במחשבה על לפגוע בעצמי',
     });
     return '$_temp0';
   }
@@ -1110,6 +1134,10 @@ class AppLocalizationsHe extends AppLocalizations {
 
   @override
   String get sosShareLocationUnavailable => 'לא ניתן לקבל את מיקומך הנוכחי.';
+
+  @override
+  String get sosShareLocationServicesDisabled =>
+      'לא ניתן לקבל את מיקומך הנוכחי, נא להפעיל את שירותי המיקום';
 
   @override
   String get sosShareLocationShareFailed =>
@@ -2502,6 +2530,46 @@ class AppLocalizationsHe extends AppLocalizations {
   }
 
   @override
+  String safeEnvironmentListNo0(String gender) {
+    String _temp0 = intl.Intl.selectLogic(gender, {
+      'male': 'הרחקת הנשק האישי או הפקדתו',
+      'female': 'הרחקת הנשק האישי או הפקדתו',
+      'other': 'הרחקת הנשק האישי או הפקדתו',
+    });
+    return '$_temp0';
+  }
+
+  @override
+  String safeEnvironmentListNo1(String gender) {
+    String _temp0 = intl.Intl.selectLogic(gender, {
+      'male': 'אחסון תרופות בקופסא ננעלת',
+      'female': 'אחסון תרופות בקופסא ננעלת',
+      'other': 'אחסון תרופות בקופסא ננעלת',
+    });
+    return '$_temp0';
+  }
+
+  @override
+  String safeEnvironmentListNo2(String gender) {
+    String _temp0 = intl.Intl.selectLogic(gender, {
+      'male': 'בחירת מי שישמור עבורך על התרופות',
+      'female': 'בחירת מי שישמור עבורך על התרופות',
+      'other': 'בחירת מי שישמור עבורך על התרופות',
+    });
+    return '$_temp0';
+  }
+
+  @override
+  String safeEnvironmentListNo3(String gender) {
+    String _temp0 = intl.Intl.selectLogic(gender, {
+      'male': 'שיישארו איתי, ולא אהיה לבד',
+      'female': 'שיישארו איתי, ולא אהיה לבד',
+      'other': 'שיישארו איתי, ולא אהיה לבד',
+    });
+    return '$_temp0';
+  }
+
+  @override
   String feelBetterListNo0(String gender) {
     String _temp0 = intl.Intl.selectLogic(gender, {
       'male': 'מיינדפולנס',
@@ -3362,4 +3430,11 @@ class AppLocalizationsHe extends AppLocalizations {
     });
     return '$_temp0';
   }
+
+  @override
+  String get notificationCustomMessageLabel =>
+      'כתיבת הודעת תזכורת אישית (אופציונלי):';
+
+  @override
+  String get notificationCustomMessageHint => 'הזן הודעת תזכורת...';
 }

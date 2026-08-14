@@ -163,7 +163,6 @@ class _PhonePageFormState extends LPExtendedState<PhonePageForm> {
                 Center(
                   child: Container(
                     alignment: Alignment.topCenter,
-                    margin: EdgeInsets.symmetric(horizontal: 15),
                     child: myAutoSizedText(
                       appLocale.phonesPageHeader(gender),
                       TextStyle(

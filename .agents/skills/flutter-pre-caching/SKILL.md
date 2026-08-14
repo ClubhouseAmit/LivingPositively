@@ -827,7 +827,7 @@ flutter:
 
 > [!NOTE]
 > Flutter web asset URLs often include `assets/assets/...` because Flutter serves declared assets under the `assets/` path, while your asset path also starts with `assets/`.
-> 
+>
 > For example:
 > - Flutter asset: `assets/images/logo.png`
 > - Web URL: `assets/assets/images/logo.png`

@@ -21,6 +21,7 @@ import 'package:mazilon/global_enums.dart';
 import 'package:mazilon/l10n/app_localizations.dart';
 import 'package:mazilon/pages/FeelGood/image_picker_service_impl.dart';
 import 'package:mazilon/pages/WellnessTools/VideoPlayerPageFactory.dart';
+import 'package:mazilon/pages/sos_location_service.dart';
 import 'package:mazilon/util/appInformation.dart';
 import 'package:mazilon/util/logger_service.dart';
 import 'package:mazilon/util/persistent_memory_service.dart';
@@ -144,6 +145,14 @@ class NoopFileService implements FileService {
   }
 }
 
+/// Location service that safely reports no location in generic widget tests.
+class NoopSosLocationService implements SosLocationService {
+  @override
+  Future<SosLocationLookupResult> lookupCurrentPosition() async {
+    return SosLocationFailureResult(SosLocationFailureKind.unavailable);
+  }
+}
+
 /// Image picker that returns null/empty results so widgets can build without
 /// touching real files.
 class NoopImagePickerService implements ImagePickerService {
@@ -242,6 +251,9 @@ TestServiceLocators registerTestServices({String locale = 'en'}) {
   if (getIt.isRegistered<VideoPlayerPageFactory>()) {
     getIt.unregister<VideoPlayerPageFactory>();
   }
+  if (getIt.isRegistered<SosLocationService>()) {
+    getIt.unregister<SosLocationService>();
+  }
 
   final memory = FakePersistentMemoryService();
   final logger = NoopIncidentLoggerService();
@@ -250,6 +262,7 @@ TestServiceLocators registerTestServices({String locale = 'en'}) {
   final picker = NoopImagePickerService();
   final localeService = FakeLocaleService(locale);
   final videoFactory = FakeVideoPlayerPageFactory();
+  final sosLocationService = NoopSosLocationService();
 
   getIt.registerSingleton<PersistentMemoryService>(memory);
   getIt.registerSingleton<IncidentLoggerService>(logger);
@@ -258,6 +271,7 @@ TestServiceLocators registerTestServices({String locale = 'en'}) {
   getIt.registerSingleton<ImagePickerService>(picker);
   getIt.registerSingleton<LocaleService>(localeService);
   getIt.registerSingleton<VideoPlayerPageFactory>(videoFactory);
+  getIt.registerSingleton<SosLocationService>(sosLocationService);
 
   return TestServiceLocators(
     memory: memory,
@@ -267,6 +281,7 @@ TestServiceLocators registerTestServices({String locale = 'en'}) {
     picker: picker,
     localeService: localeService,
     videoFactory: videoFactory,
+    sosLocationService: sosLocationService,
   );
 }
 
@@ -282,6 +297,7 @@ class TestServiceLocators {
   final NoopImagePickerService picker;
   final FakeLocaleService localeService;
   final FakeVideoPlayerPageFactory videoFactory;
+  final NoopSosLocationService sosLocationService;
   TestServiceLocators({
     required this.memory,
     required this.logger,
@@ -290,6 +306,7 @@ class TestServiceLocators {
     required this.picker,
     required this.localeService,
     required this.videoFactory,
+    required this.sosLocationService,
   });
 }
 

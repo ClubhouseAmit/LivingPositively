@@ -122,6 +122,10 @@ Future<void> loadUserInformation(
       "userSelectionPersonalPlan-Distractions",
       PersistentMemoryType.StringList,
     ),
+    'safeEnvironment': service.getItem(
+      "userSelectionPersonalPlan-SafeEnvironment",
+      PersistentMemoryType.StringList,
+    ),
     'location': service.getItem("location", PersistentMemoryType.String),
     'disclaimerConfirmed': service.getItem(
       "disclaimerConfirmed",
@@ -134,6 +138,10 @@ Future<void> loadUserInformation(
     'notificationHour': service.getItem(
       "notificationHour",
       PersistentMemoryType.Int,
+    ),
+    'notificationMessage': service.getItem(
+      "notificationMessage",
+      PersistentMemoryType.String,
     ),
     'darkModePreference': service.getItem(
       'darkModePreference',
@@ -182,10 +190,14 @@ Future<void> loadUserInformation(
   userInfo.updateDistractions(
     (TypeUtils.castToStringList(data['distractions'])),
   );
+  userInfo.updateSafeEnvironment(
+    (TypeUtils.castToStringList(data['safeEnvironment'])),
+  );
   userInfo.updateLocation(data['location'] ?? "");
   userInfo.updateDisclaimerSigned(data['disclaimerConfirmed'] ?? false);
   userInfo.updateNotificationMinute(data['notificationMinute'] ?? 0);
   userInfo.updateNotificationHour(data['notificationHour'] ?? 12);
+  userInfo.updateNotificationMessage(data['notificationMessage'] ?? '');
   final darkModePreference = UserInformation.parseDarkModePreference(
     data['darkModePreference'] as String?,
   );

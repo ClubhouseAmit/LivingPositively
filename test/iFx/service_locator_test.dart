@@ -6,6 +6,7 @@ import 'package:mazilon/file_service.dart';
 import 'package:mazilon/iFx/service_locator.dart';
 import 'package:mazilon/pages/FeelGood/image_picker_service_impl.dart';
 import 'package:mazilon/pages/WellnessTools/VideoPlayerPageFactory.dart';
+import 'package:mazilon/pages/sos_location_service.dart';
 import 'package:mazilon/util/logger_service.dart';
 import 'package:mazilon/util/persistent_memory_service.dart';
 
@@ -29,18 +30,24 @@ void main() {
       expect(GetIt.instance.isRegistered<LocaleService>(), isTrue);
       expect(GetIt.instance.isRegistered<AnalyticsService>(), isTrue);
       expect(GetIt.instance.isRegistered<PersistentMemoryService>(), isTrue);
+      expect(GetIt.instance.isRegistered<SosLocationService>(), isTrue);
     });
 
     test('registered services resolve to the impl types', () {
       setupLocator();
 
       expect(GetIt.instance<LocaleService>(), isA<LocaleServiceImpl>());
-      expect(GetIt.instance<IncidentLoggerService>(),
-          isA<SentryServiceImpl>());
-      expect(GetIt.instance<PersistentMemoryService>(),
-          isA<SharedPreferencesService>());
+      expect(GetIt.instance<IncidentLoggerService>(), isA<SentryServiceImpl>());
+      expect(
+        GetIt.instance<PersistentMemoryService>(),
+        isA<SharedPreferencesService>(),
+      );
       expect(GetIt.instance<AnalyticsService>(), isA<MixPanelService>());
       expect(GetIt.instance<FileService>(), isA<FileServiceImpl>());
+      expect(
+        GetIt.instance<SosLocationService>(),
+        isA<GeolocatorSosLocationService>(),
+      );
     });
 
     test('lazy singletons return the same instance across resolves', () {
@@ -49,6 +56,10 @@ void main() {
       final a = GetIt.instance<LocaleService>();
       final b = GetIt.instance<LocaleService>();
       expect(identical(a, b), isTrue);
+
+      final sosLocationA = GetIt.instance<SosLocationService>();
+      final sosLocationB = GetIt.instance<SosLocationService>();
+      expect(identical(sosLocationA, sosLocationB), isTrue);
     });
   });
 }

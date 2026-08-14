@@ -1,4 +1,3 @@
-
 import 'package:flutter/material.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 import 'package:mazilon/l10n/app_localizations.dart';
@@ -106,8 +105,9 @@ class _DashedListWidgetState extends State<DashedListWidget>
   // ── Pool management ──────────────────────────────────────────────────────────
 
   void _syncDisplayedSuggestions(List<String> available) {
-    final stillValid =
-        _displayedSuggestions.where((s) => available.contains(s)).toList();
+    final stillValid = _displayedSuggestions
+        .where((s) => available.contains(s))
+        .toList();
     for (final s in available) {
       if (stillValid.length >= _kMaxSuggestions) break;
       if (!stillValid.contains(s)) stillValid.add(s);
@@ -140,7 +140,9 @@ class _DashedListWidgetState extends State<DashedListWidget>
   ) async {
     if (_collapsingIndex != null) return; // guard: one animation at a time
 
-    setState(() { _collapsingIndex = slotIndex; });
+    setState(() {
+      _collapsingIndex = slotIndex;
+    });
 
     await _collapseController.forward();
     if (!mounted) return;
@@ -166,7 +168,9 @@ class _DashedListWidgetState extends State<DashedListWidget>
     await _fadeInController.forward(from: 0.0);
     if (!mounted) return;
     _fadeInController.reset();
-    setState(() { _showFadeIn = false; });
+    setState(() {
+      _showFadeIn = false;
+    });
   }
 
   // ── Build ────────────────────────────────────────────────────────────────────
@@ -176,8 +180,9 @@ class _DashedListWidgetState extends State<DashedListWidget>
     final appLocale = AppLocalizations.of(context)!;
     final userInfo = Provider.of<UserInformation>(context);
 
-    final availableSuggestions =
-        widget.suggestions.where((s) => !widget.items.contains(s)).toList();
+    final availableSuggestions = widget.suggestions
+        .where((s) => !widget.items.contains(s))
+        .toList();
 
     // Guard: don't resync the suggestion list while a collapse is in flight —
     // premature removal mid-animation causes layout jumps
@@ -188,163 +193,155 @@ class _DashedListWidgetState extends State<DashedListWidget>
     // Callers pass items newest-first; take the first 3
     final displayedItems = widget.items.take(3).toList();
 
-    return Padding(
-      padding: const EdgeInsetsDirectional.symmetric(horizontal: 20),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          // ── Header ──────────────────────────────────────────────────────────
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              Row(
-                children: [
-                  SvgPicture.asset(
-                    widget.iconAsset,
-                    width: 20,
-                    height: 20,
-                    colorFilter: ColorFilter.mode(
-                      Theme.of(context).colorScheme.onSurface,
-                      BlendMode.srcIn,
-                    ),
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        // ── Header ──────────────────────────────────────────────────────────
+        Row(
+          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+          children: [
+            Row(
+              children: [
+                SvgPicture.asset(
+                  widget.iconAsset,
+                  width: 20,
+                  height: 20,
+                  colorFilter: ColorFilter.mode(
+                    Theme.of(context).colorScheme.onSurface,
+                    BlendMode.srcIn,
                   ),
-                  SizedBox(width: AppSpacing.sm),
-                  Text(
-                    widget.title,
-                    style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                          fontWeight: FontWeight.bold,
-                          fontSize: 18,
-                        ),
-                  ),
-                ],
-              ),
-              IconButton(
-                icon: Icon(
-                  Icons.add,
-                  color: Theme.of(context).colorScheme.onSurface,
-                  size: 22,
                 ),
-                onPressed: widget.onAddNew ?? widget.onAddItem,
-                padding: EdgeInsets.zero,
-                constraints: const BoxConstraints(minWidth: 36, minHeight: 36),
-              ),
-            ],
-          ),
-          const SizedBox(height: 2),
-          Text(
-            widget.subtitle,
-            style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                  color: Theme.of(context).colorScheme.outline,
-                  fontSize: 14,
+                SizedBox(width: AppSpacing.sm),
+                Text(
+                  widget.title,
+                  style: Theme.of(context).textTheme.titleLarge?.copyWith(
+                    fontWeight: FontWeight.bold,
+                    fontSize: 18,
+                  ),
                 ),
-          ),
-          SizedBox(height: AppSpacing.sm + 4),
-
-          // ── Selected items (newest-first, up to 3) ───────────────────────────
-          if (displayedItems.isNotEmpty)
-            ...List.generate(displayedItems.length, (index) {
-              Widget row = PillItemRow(
-                index: index,
-                text: displayedItems[index],
-                onEdit: widget.onEditItem != null
-                    ? () => widget.onEditItem!(index)
-                    : widget.onAddNew ?? widget.onAddItem,
-                onRemove: widget.onRemoveItem != null
-                    ? () => widget.onRemoveItem!(index)
-                    : null,
-              );
-
-              // Wrap position 0 in a fade+slide-in while promotion is animating.
-              // AnimatedBuilder is driven by _fadeInController — fully vsync-synced,
-              // no dependency on string matching or Provider rebuild ordering.
-              if (_showFadeIn && index == 0) {
-                row = AnimatedBuilder(
-                  animation: _fadeInValue,
-                  builder: (_, child) => Opacity(
-                    opacity: _fadeInValue.value,
-                    child: Transform.translate(
-                      // Slide in from 8px above — feels like it enters from the suggestion area
-                      offset: Offset(0, (1.0 - _fadeInValue.value) * -8.0),
-                      child: child,
-                    ),
-                  ),
-                  child: row,
-                );
-              }
-
-              return row;
-            }),
-
-          // ── Suggested section (always up to 3) ───────────────────────────────
-          if (_displayedSuggestions.isNotEmpty) ...[
-            SizedBox(height: AppSpacing.xs),
-            ...List.generate(_displayedSuggestions.length, (i) {
-              final suggestion = _displayedSuggestions[i];
-              final isCollapsing = _collapsingIndex == i;
-
-              Widget pill = DashedPillAddSlot(
-                placeholder: suggestion,
-                onTap: () =>
-                    _promoteSuggestion(i, suggestion, availableSuggestions),
-                onRefresh:
-                    availableSuggestions.length > _displayedSuggestions.length
-                        ? () => _refreshSuggestion(i, availableSuggestions)
-                        : null,
-              );
-
-              if (isCollapsing) {
-                // AnimatedBuilder on a single controller — opacity + height
-                // in perfect sync, no intermediate setState flicker
-                return AnimatedBuilder(
-                  animation: _collapseController,
-                  builder: (_, child) => SizedBox(
-                    height: _collapseHeight.value * _kPillHeight,
-                    child: Opacity(
-                      opacity: _collapseOpacity.value,
-                      child: child,
-                    ),
-                  ),
-                  child: pill,
-                );
-              }
-
-              return pill;
-            }),
-          ] else if (displayedItems.isEmpty) ...[
-            DashedPillAddSlot(
-              placeholder: appLocale.addItemTooltip,
-              onTap: widget.onAddNew ?? widget.onAddItem,
+              ],
+            ),
+            IconButton(
+              icon: Icon(
+                Icons.add,
+                color: Theme.of(context).colorScheme.onSurface,
+                size: 22,
+              ),
+              onPressed: widget.onAddNew ?? widget.onAddItem,
+              padding: EdgeInsets.zero,
+              constraints: const BoxConstraints(minWidth: 36, minHeight: 36),
             ),
           ],
+        ),
+        const SizedBox(height: 2),
+        Text(
+          widget.subtitle,
+          style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+            color: Theme.of(context).colorScheme.outline,
+            fontSize: 14,
+          ),
+        ),
+        SizedBox(height: AppSpacing.sm + 4),
 
-          SizedBox(height: AppSpacing.sm + 4),
+        // ── Selected items (newest-first, up to 3) ───────────────────────────
+        if (displayedItems.isNotEmpty)
+          ...List.generate(displayedItems.length, (index) {
+            Widget row = PillItemRow(
+              index: index,
+              text: displayedItems[index],
+              onEdit: widget.onEditItem != null
+                  ? () => widget.onEditItem!(index)
+                  : widget.onAddNew ?? widget.onAddItem,
+              onRemove: widget.onRemoveItem != null
+                  ? () => widget.onRemoveItem!(index)
+                  : null,
+            );
 
-          // ── See all (N) → footer ─────────────────────────────────────────────
-          Align(
-            alignment: AlignmentDirectional.centerEnd,
-            child: TextButton.icon(
-              onPressed: widget.onAddItem,
-              label: Text(
-                '${appLocale.showAll(userInfo.gender)} (${widget.totalCount})',
-                style: TextStyle(
-                  color: Theme.of(context).colorScheme.primary,
+            // Wrap position 0 in a fade+slide-in while promotion is animating.
+            // AnimatedBuilder is driven by _fadeInController — fully vsync-synced,
+            // no dependency on string matching or Provider rebuild ordering.
+            if (_showFadeIn && index == 0) {
+              row = AnimatedBuilder(
+                animation: _fadeInValue,
+                builder: (_, child) => Opacity(
+                  opacity: _fadeInValue.value,
+                  child: Transform.translate(
+                    // Slide in from 8px above — feels like it enters from the suggestion area
+                    offset: Offset(0, (1.0 - _fadeInValue.value) * -8.0),
+                    child: child,
+                  ),
                 ),
-              ),
-              icon: Icon(
-                Icons.chevron_right,
-                color: Theme.of(context).colorScheme.primary,
-                size: 16,
-              ),
-              iconAlignment: IconAlignment.end,
-              style: TextButton.styleFrom(
-                padding: EdgeInsets.zero,
-                minimumSize: Size.zero,
-                tapTargetSize: MaterialTapTargetSize.shrinkWrap,
-              ),
-            ),
+                child: row,
+              );
+            }
+
+            return row;
+          }),
+
+        // ── Suggested section (always up to 3) ───────────────────────────────
+        if (_displayedSuggestions.isNotEmpty) ...[
+          SizedBox(height: AppSpacing.xs),
+          ...List.generate(_displayedSuggestions.length, (i) {
+            final suggestion = _displayedSuggestions[i];
+            final isCollapsing = _collapsingIndex == i;
+
+            Widget pill = DashedPillAddSlot(
+              placeholder: suggestion,
+              onTap: () =>
+                  _promoteSuggestion(i, suggestion, availableSuggestions),
+              onRefresh:
+                  availableSuggestions.length > _displayedSuggestions.length
+                  ? () => _refreshSuggestion(i, availableSuggestions)
+                  : null,
+            );
+
+            if (isCollapsing) {
+              // AnimatedBuilder on a single controller — opacity + height
+              // in perfect sync, no intermediate setState flicker
+              return AnimatedBuilder(
+                animation: _collapseController,
+                builder: (_, child) => SizedBox(
+                  height: _collapseHeight.value * _kPillHeight,
+                  child: Opacity(opacity: _collapseOpacity.value, child: child),
+                ),
+                child: pill,
+              );
+            }
+
+            return pill;
+          }),
+        ] else if (displayedItems.isEmpty) ...[
+          DashedPillAddSlot(
+            placeholder: appLocale.addItemTooltip,
+            onTap: widget.onAddNew ?? widget.onAddItem,
           ),
         ],
-      ),
+
+        SizedBox(height: AppSpacing.sm + 4),
+
+        // ── See all (N) → footer ─────────────────────────────────────────────
+        Align(
+          alignment: AlignmentDirectional.centerEnd,
+          child: TextButton.icon(
+            onPressed: widget.onAddItem,
+            label: Text(
+              '${appLocale.showAll(userInfo.gender)} (${widget.totalCount})',
+              style: TextStyle(color: Theme.of(context).colorScheme.primary),
+            ),
+            icon: Icon(
+              Icons.chevron_right,
+              color: Theme.of(context).colorScheme.primary,
+              size: 16,
+            ),
+            iconAlignment: IconAlignment.end,
+            style: TextButton.styleFrom(
+              padding: EdgeInsets.zero,
+              minimumSize: Size.zero,
+              tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+            ),
+          ),
+        ),
+      ],
     );
   }
 }

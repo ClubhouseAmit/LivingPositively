@@ -19,10 +19,11 @@ import 'package:provider/provider.dart';
 import 'package:mazilon/util/userInformation.dart';
 
 List<String> pages = [
-  'PersonalPlan-DifficultEvents',
-  'PersonalPlan-MakeSafer',
-  'PersonalPlan-FeelBetter',
   'PersonalPlan-Distractions',
+  'PersonalPlan-DifficultEvents',
+  'PersonalPlan-FeelBetter',
+  'PersonalPlan-MakeSafer',
+  'PersonalPlan-SafeEnvironment',
 ];
 
 class FormProgressIndicator extends StatefulWidget {
@@ -72,16 +73,6 @@ class FormProgressIndicatorState
       await service.setItem("name", PersistentMemoryType.String, name);
     }
     navigateToMenu(mycontext);
-  }
-
-  void navigateToShare() {
-    Navigator.pushAndRemoveUntil(
-      context,
-      MaterialPageRoute(
-        builder: (context) => ShareForm(prev: prev, submit: submitForm),
-      ),
-      (Route<dynamic> route) => false,
-    );
   }
 
   void navigateToMenu(mycontext) {
@@ -135,12 +126,17 @@ class FormProgressIndicatorState
       //<<<<<<<<<<<CHECKBOX PAGES END HERE
       //add contacts page:
       PhonePageForm(
-        next: navigateToShare,
+        next: next,
         prev: prev,
         phonePageData: widget.phonePageData,
       ),
-
-      //ShareForm(prev: prev, submit: submitForm),
+      FormPageTemplate(
+        key: UniqueKey(),
+        next: next,
+        prev: prev,
+        collectionName: pages[4],
+      ),
+      ShareForm(prev: prev, submit: submitForm),
     ];
   }
 
@@ -207,7 +203,7 @@ class FormProgressIndicatorState
                       Row(
                         mainAxisAlignment: MainAxisAlignment.center,
                         children: List.generate(
-                          1 + pages.length,
+                          steps.length,
                           (index) => AnimatedContainer(
                             duration: const Duration(milliseconds: 300),
                             width: 20.0,
@@ -230,21 +226,24 @@ class FormProgressIndicatorState
           ),
         ),
         //animation for switching between pages:
-        body: AnimatedSwitcher(
-          duration: const Duration(
-            milliseconds: 300,
-          ), // Specify the duration of the animation
-          transitionBuilder: (Widget child, Animation<double> animation) {
-            var begin = const Offset(1.0, 0.0);
-            var end = Offset.zero;
-            var tween = Tween(begin: begin, end: end);
+        body: Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 16),
+          child: AnimatedSwitcher(
+            duration: const Duration(
+              milliseconds: 300,
+            ), // Specify the duration of the animation
+            transitionBuilder: (Widget child, Animation<double> animation) {
+              var begin = const Offset(1.0, 0.0);
+              var end = Offset.zero;
+              var tween = Tween(begin: begin, end: end);
 
-            return SlideTransition(
-              position: animation.drive(tween),
-              child: child,
-            );
-          },
-          child: steps[currentStep],
+              return SlideTransition(
+                position: animation.drive(tween),
+                child: child,
+              );
+            },
+            child: steps[currentStep],
+          ),
         ),
       ),
     );

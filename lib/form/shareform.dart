@@ -14,6 +14,7 @@ import 'package:mazilon/util/styles.dart';
 import 'package:mazilon/util/type_utils.dart';
 
 import 'package:mazilon/util/appInformation.dart';
+import 'package:mazilon/util/personal_plan_export_metadata.dart';
 import 'package:mazilon/util/userInformation.dart';
 import 'package:mazilon/util/Share/show_share_dialog.dart';
 
@@ -456,33 +457,29 @@ class _ShareFormState extends LPExtendedState<ShareForm> {
     );
     final gender = userInfoProvider.gender;
 
-    return PopScope(
-      canPop: false,
-      child: Scaffold(
-        body: SingleChildScrollView(
+    return Scaffold(
+      body: SafeArea(
+        child: SingleChildScrollView(
           child: Center(
             child: Column(
               children: [
                 SizedBox(height: returnSizedBox(context, 25)),
-                Padding(
-                  padding: const EdgeInsets.symmetric(horizontal: 5.0),
-                  child: myAutoSizedText(
-                    appLocale.sharePageHeader(gender),
-                    TextStyle(
-                      fontSize: 40.sp,
-                      fontWeight: FontWeight.bold,
-                      color: Theme.of(context).colorScheme.onSurface,
-                    ),
-                    null,
-                    80,
+                myAutoSizedText(
+                  appLocale.sharePageHeader(gender),
+                  TextStyle(
+                    fontSize: 30.sp,
+                    fontWeight: FontWeight.w500,
+                    color: Theme.of(context).colorScheme.onSurface,
                   ),
+                  null,
+                  60,
                 ),
                 myAutoSizedText(
                   appLocale.sharePageSubTitle(gender),
                   TextStyle(
                     fontWeight: FontWeight.normal,
                     fontSize: 16.sp,
-                    color: Theme.of(context).colorScheme.onSurface,
+                    color: Theme.of(context).colorScheme.outline,
                   ),
                   null,
                   35,
@@ -492,7 +489,7 @@ class _ShareFormState extends LPExtendedState<ShareForm> {
                   width: MediaQuery.sizeOf(context).width * 0.8,
                   child: myAutoSizedText(
                     appLocale.sharePageMidTitle(gender),
-                    TextStyle(fontWeight: FontWeight.normal, fontSize: 18.sp),
+                    TextStyle(fontWeight: FontWeight.normal, fontSize: 16.sp),
                     null,
                     35,
                   ),
@@ -509,13 +506,11 @@ class _ShareFormState extends LPExtendedState<ShareForm> {
                           showShareDialog(context);
                         },
                         style: TextButton.styleFrom(
-                          backgroundColor: Theme.of(context)
-                              .colorScheme
-                              .surfaceContainerHighest, // Set the background color to white
+                          backgroundColor: Colors.transparent,
                           padding: const EdgeInsets.all(10),
                           shape: RoundedRectangleBorder(
                             borderRadius: const BorderRadius.all(
-                              Radius.circular(7),
+                              Radius.circular(16),
                             ),
                             side: BorderSide(
                               color: Theme.of(context).colorScheme.primary,
@@ -531,21 +526,14 @@ class _ShareFormState extends LPExtendedState<ShareForm> {
                       //download personal plan PDF button:
                       IconButton(
                         onPressed: () async {
+                          final exportMetadata =
+                              buildPersonalPlanExportMetadata(
+                                appLocale,
+                                gender,
+                              );
                           var result = await fileService.download(
-                            [
-                              appLocale.difficultEventsHeader(gender),
-                              appLocale.makeSaferHeader(gender),
-                              appLocale.feelBetterHeader(gender),
-                              appLocale.distractionsHeader(gender),
-                              appLocale.phonesPageHeader(gender),
-                            ],
-                            [
-                              appLocale.difficultEventsSubTitle(gender),
-                              appLocale.makeSaferSubTitle(gender),
-                              appLocale.feelBetterSubTitle(gender),
-                              appLocale.distractionsSubTitle(gender),
-                              appLocale.phonesPageHeader(gender),
-                            ],
+                            exportMetadata.titles,
+                            exportMetadata.subTitles,
                             appInfoProvider.sharePDFtexts,
                             ShareFileType.PDF,
                             appLocale.textDirection,
@@ -564,13 +552,11 @@ class _ShareFormState extends LPExtendedState<ShareForm> {
                         },
 
                         style: TextButton.styleFrom(
-                          backgroundColor: Theme.of(context)
-                              .colorScheme
-                              .surfaceContainerHighest, // Set the background color to white
+                          backgroundColor: Colors.transparent,
                           padding: const EdgeInsets.all(10),
                           shape: RoundedRectangleBorder(
                             borderRadius: const BorderRadius.all(
-                              Radius.circular(7),
+                              Radius.circular(16),
                             ),
                             side: BorderSide(
                               color: Theme.of(context).colorScheme.primary,
@@ -596,8 +582,8 @@ class _ShareFormState extends LPExtendedState<ShareForm> {
                   },
                   appLocale.sharePageFinishButton(gender),
                   myTextStyle.copyWith(
-                    fontWeight: FontWeight.bold,
-                    fontSize: 22.sp,
+                    fontWeight: FontWeight.w500,
+                    fontSize: 18.sp,
                   ),
                 ),
                 const SizedBox(height: 30),
