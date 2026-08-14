@@ -8,6 +8,7 @@ import 'package:mazilon/util/LP_extended_state.dart';
 import 'package:provider/provider.dart';
 
 import 'package:mazilon/util/styles.dart';
+import 'package:mazilon/util/theme/spacing.dart';
 import 'package:mazilon/util/Form/formPagePhoneModel.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:mazilon/util/userInformation.dart';
@@ -150,120 +151,146 @@ class _PhonePageFormState extends LPExtendedState<PhonePageForm> {
     );
 
     final gender = userInfoProvider.gender;
+    //Same shape as the shared onboarding template
+    //(`lib/form/formpagetemplate.dart`): the page content scrolls and the
+    //continue button is pinned to the bottom, so it sits at the same y on
+    //every step instead of floating mid-page when few contacts are added.
+    //SafeArea(bottom) keeps the pinned button clear of the home indicator —
+    //the wizard's AppBar handles the top inset, nothing insets the bottom.
     return Scaffold(
-      body: SingleChildScrollView(
+      body: SafeArea(
+        top: false,
         child: Column(
-          mainAxisSize: MainAxisSize.min,
-          mainAxisAlignment: MainAxisAlignment.end,
           children: [
-            SizedBox(height: returnSizedBox(context, 20)),
-            Column(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                Center(
-                  child: Container(
-                    alignment: Alignment.topCenter,
-                    child: myAutoSizedText(
-                      appLocale.phonesPageHeader(gender),
-                      TextStyle(
-                        fontWeight: FontWeight.bold,
-                        fontSize: 20.sp,
-                        height: 1.5,
-                      ),
-                      TextAlign.center,
-                      40,
-                    ),
-                  ),
-                ),
-                SizedBox(height: 5.h),
-                Consumer<PhonePageData>(
-                  builder: (context, phonePageData, child) {
-                    return Column(
+            Expanded(
+              child: SingleChildScrollView(
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    SizedBox(height: returnSizedBox(context, 20)),
+                    Column(
+                      mainAxisAlignment: MainAxisAlignment.center,
                       children: [
-                        //add contact from contact list button:
-                        TextButton(
-                          onPressed: pickContact,
-                          style: TextButton.styleFrom(
-                            backgroundColor: Theme.of(
-                              context,
-                            ).colorScheme.surfaceContainerHighest,
-                            shape: RoundedRectangleBorder(
-                              borderRadius: BorderRadius.circular(12),
+                        Center(
+                          child: Container(
+                            alignment: Alignment.topCenter,
+                            child: myAutoSizedText(
+                              appLocale.phonesPageHeader(gender),
+                              TextStyle(
+                                fontWeight: FontWeight.bold,
+                                fontSize: 20.sp,
+                                height: 1.5,
+                              ),
+                              TextAlign.center,
+                              40,
                             ),
-                            padding: const EdgeInsets.all(6),
-                          ),
-                          child: myText(
-                            appLocale.phonesPageContactImportTitle(gender),
-                            TextStyle(
-                              fontWeight: FontWeight.bold,
-                              color: Theme.of(context).colorScheme.primary,
-                              fontSize: 16.sp,
-                            ),
-                            TextAlign.center,
                           ),
                         ),
+                        SizedBox(height: 5.h),
+                        Consumer<PhonePageData>(
+                          builder: (context, phonePageData, child) {
+                            return Column(
+                              children: [
+                                //add contact from contact list button:
+                                TextButton(
+                                  onPressed: pickContact,
+                                  style: TextButton.styleFrom(
+                                    backgroundColor: Theme.of(
+                                      context,
+                                    ).colorScheme.surfaceContainerHighest,
+                                    shape: RoundedRectangleBorder(
+                                      borderRadius: BorderRadius.circular(12),
+                                    ),
+                                    padding: const EdgeInsets.all(6),
+                                  ),
+                                  child: myText(
+                                    appLocale.phonesPageContactImportTitle(
+                                      gender,
+                                    ),
+                                    TextStyle(
+                                      fontWeight: FontWeight.bold,
+                                      color: Theme.of(
+                                        context,
+                                      ).colorScheme.primary,
+                                      fontSize: 16.sp,
+                                    ),
+                                    TextAlign.center,
+                                  ),
+                                ),
+                              ],
+                            );
+                          },
+                        ),
                       ],
-                    );
-                  },
-                ),
-              ],
-            ),
-            SizedBox(height: returnSizedBox(context, 10)),
-            //list of phones added in form Phone Page by the user either manually or from contact list:
-            Consumer<PhonePageData>(
-              builder: (context, phonePageData, child) {
-                return Column(
-                  children: [
-                    PhonePageList(phonePageData: widget.phonePageData),
-                    //add contact from contact list button:
+                    ),
+                    SizedBox(height: returnSizedBox(context, 10)),
+                    //list of phones added in form Phone Page by the user either manually or from contact list:
+                    Consumer<PhonePageData>(
+                      builder: (context, phonePageData, child) {
+                        return Column(
+                          children: [
+                            PhonePageList(phonePageData: widget.phonePageData),
+                            //add contact from contact list button:
+                          ],
+                        );
+                      },
+                    ),
+                    SizedBox(height: returnSizedBox(context, 10)),
+                    Padding(
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 24,
+                        vertical: 5,
+                      ),
+                      child: ExpansionTile(
+                        leading: Tooltip(
+                          message: appLocale.phoneContactDisclaimerMoreTooltip,
+                          child: Icon(
+                            Icons.info_outline,
+                            size: 20.sp,
+                            semanticLabel:
+                                appLocale.phoneContactDisclaimerMoreTooltip,
+                          ),
+                        ),
+                        tilePadding: EdgeInsets.zero,
+                        childrenPadding: const EdgeInsets.only(bottom: 8),
+                        title: myAutoSizedText(
+                          appLocale.phoneContactDisclaimerSummary,
+                          TextStyle(fontSize: 12.sp, height: 1.4),
+                          TextAlign.start,
+                          20,
+                          2,
+                        ),
+                        children: [
+                          myAutoSizedText(
+                            appLocale.addingContactDisclaimer,
+                            TextStyle(fontSize: 12.sp, height: 1.5),
+                            TextAlign.start,
+                            40,
+                          ),
+                        ],
+                      ),
+                    ),
                   ],
-                );
-              },
-            ),
-            SizedBox(height: returnSizedBox(context, 10)),
-            //save all data after confirming:
-            ConfirmationButton(
-              context,
-              () async {
-                await widget.phonePageData.loadItemsFromPrefs();
-                await widget.phonePageData.saveItemsToPrefs();
-                widget.phonePageData.update();
-                widget.next();
-              },
-              appLocale.nextButton(gender),
-              myTextStyle.copyWith(
-                fontWeight: FontWeight.bold,
-                fontSize: 20.sp,
+                ),
               ),
             ),
+            //save all data after confirming — pinned to the bottom, matching
+            //the other wizard steps.
             Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 5),
-              child: ExpansionTile(
-                leading: Tooltip(
-                  message: appLocale.phoneContactDisclaimerMoreTooltip,
-                  child: Icon(
-                    Icons.info_outline,
-                    size: 20.sp,
-                    semanticLabel: appLocale.phoneContactDisclaimerMoreTooltip,
-                  ),
+              padding: const EdgeInsets.only(bottom: AppSpacing.lg),
+              child: ConfirmationButton(
+                context,
+                () async {
+                  await widget.phonePageData.loadItemsFromPrefs();
+                  await widget.phonePageData.saveItemsToPrefs();
+                  widget.phonePageData.update();
+                  widget.next();
+                },
+                appLocale.nextButton(gender),
+                myTextStyle.copyWith(
+                  fontWeight: FontWeight.bold,
+                  fontSize: 20.sp,
                 ),
-                tilePadding: EdgeInsets.zero,
-                childrenPadding: const EdgeInsets.only(bottom: 8),
-                title: myAutoSizedText(
-                  appLocale.phoneContactDisclaimerSummary,
-                  TextStyle(fontSize: 12.sp, height: 1.4),
-                  TextAlign.start,
-                  20,
-                  2,
-                ),
-                children: [
-                  myAutoSizedText(
-                    appLocale.addingContactDisclaimer,
-                    TextStyle(fontSize: 12.sp, height: 1.5),
-                    TextAlign.start,
-                    40,
-                  ),
-                ],
               ),
             ),
           ],
