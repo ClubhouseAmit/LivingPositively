@@ -16,6 +16,7 @@ import 'package:provider/provider.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 import 'package:mazilon/form/shareform.dart';
+import 'package:mazilon/form/wizard_step.dart';
 import 'package:mockito/mockito.dart';
 import 'package:mazilon/l10n/app_localizations.dart';
 import 'shareform_test.mocks.dart';
@@ -94,9 +95,14 @@ void main() {
         localizationsDelegates: AppLocalizations.localizationsDelegates,
         home: ScreenUtilInit(
           designSize: const Size(360, 690),
-          child: ShareForm(
-            prev: () {},
-            submit: (context) {},
+          child: Scaffold(
+            body: WizardStepPage(
+              step: ShareForm(
+                key: GlobalKey<WizardStepState>(),
+                prev: () {},
+                submit: (context) {},
+              ),
+            ),
           ),
         ),
       ),
@@ -217,6 +223,28 @@ void main() {
     expect(finishTop, greaterThan(addCategoryTop));
   });
 
+  testWidgets('ShareForm keeps its content clear of the pinned finish button',
+      (WidgetTester tester) async {
+    // A typical modern phone (390x844 logical). WizardStepPage pins the
+    // finish button, so the risk is no longer that it falls below the fold
+    // but that oversized content (the celebration artwork) runs underneath
+    // it: the step must still be able to show its last element above the
+    // button after scrolling.
+    tester.view.physicalSize = const Size(1170, 2532);
+    tester.view.devicePixelRatio = 3.0;
+    addTearDown(tester.view.reset);
+
+    await tester.pumpWidget(createTestWidget());
+    await tester.pumpAndSettle();
+
+    final finishTop = tester.getTopLeft(find.text('סיימתי!')).dy;
+    final addCategoryBottom =
+        tester.getBottomLeft(find.text('+ הוספת קטגוריה')).dy;
+
+    expect(finishTop, lessThanOrEqualTo(844.0));
+    expect(addCategoryBottom, lessThanOrEqualTo(finishTop));
+  });
+
   testWidgets('ShareForm adds multiple custom categories in original text',
       (WidgetTester tester) async {
     await tester.pumpWidget(createTestWidget());
@@ -243,6 +271,7 @@ void main() {
     expect(find.text('טקסט חופשי בעברית שלא מתורגם'), findsOneWidget);
     expect(find.text('+ הוספת קטגוריה'), findsOneWidget);
 
+    await tester.ensureVisible(find.text('+ הוספת קטגוריה'));
     await tester.tap(find.text('+ הוספת קטגוריה'));
     await tester.pumpAndSettle();
     await tester.enterText(find.byKey(const Key('custom-category-title-field')),
@@ -402,6 +431,7 @@ void main() {
 
     await tester.enterText(
         find.byKey(const Key('custom-category-title-field')), 'כותרת בלבד');
+    await tester.ensureVisible(find.text('הוספת קטגוריה'));
     await tester.tap(find.text('הוספת קטגוריה'));
     await tester.pumpAndSettle();
 

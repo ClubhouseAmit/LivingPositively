@@ -4,9 +4,10 @@ import 'package:get_it/get_it.dart';
 import 'package:mazilon/AnalyticsService.dart';
 import 'package:mazilon/global_enums.dart';
 
+import 'package:mazilon/form/wizard_step.dart';
+import 'package:mazilon/l10n/app_localizations.dart';
 import 'package:mazilon/pages/FormAnswer.dart';
 import 'package:mazilon/util/FormAnswer/addFormAnswer.dart';
-import 'package:mazilon/util/LP_extended_state.dart';
 import 'package:mazilon/util/persistent_memory_service.dart';
 import 'package:mazilon/util/styles.dart';
 import 'package:mazilon/util/theme/app_theme.dart';
@@ -24,12 +25,14 @@ import 'package:mazilon/util/Form/retrieveInformation.dart';
 /// every gap here is the distance between two named design containers
 /// rather than a hand-tuned number.
 const double _gapLabelToCaption = 4; // section heading <-> its caption
-const double _gapWithinGroup = 8; // card <-> card, cards <-> "other suggestions"
-const double _gapWithinBlock = 16; // title <-> subtitle, row <-> row, rows <-> "add your own"
-const double _gapBetweenBlocks = 16; // title block <-> items block <-> suggestions block
-const double _gapHeaderToBody = 24; // header row <-> title block (design: 25)
+const double _gapWithinGroup =
+    8; // card <-> card, cards <-> "other suggestions"
+const double _gapWithinBlock =
+    16; // title <-> subtitle, row <-> row, rows <-> "add your own"
+const double _gapBetweenBlocks =
+    16; // title block <-> items block <-> suggestions block
 
-class FormPageTemplate extends StatefulWidget {
+class FormPageTemplate extends WizardStep {
   //next page:
   final Function next;
   //prev page:
@@ -38,17 +41,24 @@ class FormPageTemplate extends StatefulWidget {
   final String collectionName;
 
   const FormPageTemplate({
-    super.key,
+    required super.key,
     required this.next,
     required this.prev,
     required this.collectionName,
   });
 
   @override
-  State<FormPageTemplate> createState() => _FormPageTemplateState();
+  String primaryActionLabel(BuildContext context) => retrieveInformation(
+    collectionName,
+    Provider.of<UserInformation>(context).gender,
+    AppLocalizations.of(context)!,
+  )['nextButtonText'];
+
+  @override
+  WizardStepState<FormPageTemplate> createState() => _FormPageTemplateState();
 }
 
-class _FormPageTemplateState extends LPExtendedState<FormPageTemplate> {
+class _FormPageTemplateState extends WizardStepState<FormPageTemplate> {
   int displayedLength = 3;
   int length = 0;
   List<String> selectedItems = [];
@@ -302,7 +312,6 @@ class _FormPageTemplateState extends LPExtendedState<FormPageTemplate> {
     );
   }
 
-
   /// Figma "Frame 181"/"Frame 172" — an unselected suggestion. Picking one
   /// promotes it into the answered list above, so it leaves this pool and no
   /// "selected" treatment is rendered here.
@@ -356,6 +365,18 @@ class _FormPageTemplateState extends LPExtendedState<FormPageTemplate> {
   }
 
   @override
+  void onPrimaryAction() {
+    final userInfoProvider = Provider.of<UserInformation>(
+      context,
+      listen: false,
+    );
+    AnalyticsService mixPanelService = GetIt.instance<AnalyticsService>();
+    mixPanelService.trackEvent("Plan edited", {'page': widget.collectionName});
+    createSelection(userInfoProvider);
+    widget.next();
+  }
+
+  @override
   Widget build(BuildContext context) {
     final userInfoProvider = Provider.of<UserInformation>(
       context,
@@ -378,58 +399,20 @@ class _FormPageTemplateState extends LPExtendedState<FormPageTemplate> {
         .where((item) => !isAlreadySelected(item))
         .toList();
 
-    //Mirrors the Figma frame: a stack of blocks that flows from the top,
-    //with the continue button ("Group 86") pinned at the bottom — the design
-    //places it at the same y in every frame regardless of the content above,
-    //so the slack belongs above the button, not below it.
-    //SafeArea(bottom) keeps the pinned button clear of the home indicator —
-    //the AppBar handles the top inset, but nothing insets the bottom, so
-    //without this the button renders inside the indicator zone.
-    return SafeArea(
-      top: false,
+    //Mirrors the Figma frame: a stack of blocks that flows from the top. The
+    //continue button ("Group 86") is not here — WizardStepPage pins it below
+    //this content, at the same y on every step.
+    return SingleChildScrollView(
       child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        spacing: _gapBetweenBlocks,
         children: [
-          Expanded(
-            child: SingleChildScrollView(
-              padding: const EdgeInsets.only(
-                top: _gapHeaderToBody,
-                bottom: _gapBetweenBlocks,
-              ),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.stretch,
-                spacing: _gapBetweenBlocks,
-                children: [
-                  _buildTitleBlock(displayInformation),
-                  _buildItemsBlock(userInfoProvider, gender),
-                  _buildSuggestionsBlock(
-                    displayInformation,
-                    availableSuggestions,
-                    userInfoProvider,
-                  ),
-                ],
-              ),
-            ),
-          ),
-          //Group 86 — full content width, anchored to the bottom.
-          Padding(
-            padding: const EdgeInsets.only(bottom: _gapBetweenBlocks),
-            child: ConfirmationButton(
-              context,
-              () {
-                AnalyticsService mixPanelService =
-                    GetIt.instance<AnalyticsService>();
-                mixPanelService.trackEvent("Plan edited", {
-                  'page': widget.collectionName,
-                });
-                createSelection(userInfoProvider);
-                widget.next();
-              },
-              displayInformation['nextButtonText'],
-              myTextStyle.copyWith(
-                fontWeight: AppFontWeight.medium,
-                fontSize: 18.sp,
-              ),
-            ),
+          _buildTitleBlock(displayInformation),
+          _buildItemsBlock(userInfoProvider, gender),
+          _buildSuggestionsBlock(
+            displayInformation,
+            availableSuggestions,
+            userInfoProvider,
           ),
         ],
       ),

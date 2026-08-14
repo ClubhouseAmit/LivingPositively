@@ -9,6 +9,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:mazilon/form/form.dart';
 import 'package:mazilon/form/formpagetemplate.dart';
 import 'package:mazilon/form/phonePageform.dart';
+import 'package:mazilon/form/wizard_step.dart';
 import 'package:mazilon/menu.dart';
 import 'package:mazilon/util/Form/formPagePhoneModel.dart';
 import 'package:mazilon/util/userInformation.dart';
@@ -97,8 +98,10 @@ void main() {
     }
 
     expect(find.byType(PhonePageForm), findsOneWidget);
+    // The primary button belongs to WizardStepPage, not to the step — that is
+    // what keeps it in the same place on every step.
     final contactsContinue = find.descendant(
-      of: find.byType(PhonePageForm),
+      of: find.byType(WizardStepPage),
       matching: find.byType(TextButton),
     ).last;
     await tester.ensureVisible(contactsContinue);
@@ -131,12 +134,12 @@ void main() {
       (tester) async {
     await _pumpForm(tester);
 
-    // The inner FormPageTemplate "Continue" ConfirmationButton is a TextButton
-    // at the bottom of the page subtree. Find the last TextButton inside
-    // FormPageTemplate and tap it — that calls next() on the parent
+    // The "Continue" ConfirmationButton is the last TextButton in the page
+    // chrome (WizardStepPage pins it below the step's content). Tapping it
+    // runs the step's primary action, which calls next() on the parent
     // FormProgressIndicator.
     final continueBtn = find.descendant(
-      of: find.byType(FormPageTemplate),
+      of: find.byType(WizardStepPage),
       matching: find.byType(TextButton),
     ).last;
     await tester.ensureVisible(continueBtn);

@@ -6,6 +6,7 @@ import 'package:get_it/get_it.dart';
 import 'package:mazilon/EmergencyNumbers.dart';
 import 'package:mazilon/file_service.dart';
 import 'package:mazilon/form/phonePageform.dart';
+import 'package:mazilon/form/wizard_step.dart';
 import 'package:mazilon/pages/sos_location_service.dart';
 import 'package:mazilon/util/LP_extended_state.dart';
 import 'package:mazilon/util/Phone/phoneTextAndIcon.dart';
@@ -427,10 +428,26 @@ class _PhonePageState extends LPExtendedState<PhonePage> {
       MaterialPageRoute(
         builder: (routeContext) => ChangeNotifierProvider<PhonePageData>.value(
           value: widget.phonePageData,
-          child: PhonePageForm(
-            phonePageData: widget.phonePageData,
-            next: () => Navigator.of(context).pop(),
-            prev: () => Navigator.of(context).pop(),
+          //Same page chrome the onboarding wizard gives its steps, so the
+          //contacts editor's button sits where the wizard's does. Only the
+          //top inset is ours to add — there is no AppBar on this route.
+          child: Scaffold(
+            body: SafeArea(
+              bottom: false,
+              child: Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 16),
+                child: WizardStepPage(
+                  step: PhonePageForm(
+                    key: GlobalKey<WizardStepState>(
+                      debugLabel: 'contacts-editor',
+                    ),
+                    phonePageData: widget.phonePageData,
+                    next: () => Navigator.of(context).pop(),
+                    prev: () => Navigator.of(context).pop(),
+                  ),
+                ),
+              ),
+            ),
           ),
         ),
       ),

@@ -23,6 +23,7 @@ import 'package:mazilon/form/form.dart';
 import 'package:mazilon/form/phonePageform.dart';
 import 'package:mazilon/form/phonePageListItem.dart';
 import 'package:mazilon/form/shareform.dart';
+import 'package:mazilon/form/wizard_step.dart';
 import 'package:mazilon/util/Form/formPagePhoneModel.dart';
 import 'package:mazilon/util/userInformation.dart';
 import 'package:provider/provider.dart';
@@ -101,7 +102,13 @@ void main() {
     testWidgets('renders share and download icons', (tester) async {
       await pumpWithProviders(
         tester,
-        ShareForm(prev: () {}, submit: (_) {}),
+        WizardStepPage(
+          step: ShareForm(
+            key: GlobalKey<WizardStepState>(),
+            prev: () {},
+            submit: (_) {},
+          ),
+        ),
         userInformation: userInformation,
         surfaceSize: const Size(1024, 1800),
       );
@@ -792,10 +799,15 @@ void main() {
           tester,
           ChangeNotifierProvider<PhonePageData>.value(
             value: phoneData,
-            child: PhonePageForm(
-              next: () => nextCalled = true,
-              prev: () {},
-              phonePageData: phoneData,
+            child: Scaffold(
+              body: WizardStepPage(
+                step: PhonePageForm(
+                  key: GlobalKey<WizardStepState>(),
+                  next: () => nextCalled = true,
+                  prev: () {},
+                  phonePageData: phoneData,
+                ),
+              ),
             ),
           ),
           userInformation: userInformation,

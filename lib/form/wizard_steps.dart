@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:mazilon/form/formpagetemplate.dart';
 import 'package:mazilon/form/phonePageform.dart';
 import 'package:mazilon/form/shareform.dart';
+import 'package:mazilon/form/wizard_step.dart';
 import 'package:mazilon/util/Form/formPagePhoneModel.dart';
 
 /// The onboarding wizard's steps, in the order the user walks through them.
@@ -13,18 +14,22 @@ import 'package:mazilon/util/Form/formPagePhoneModel.dart';
 ///
 /// Most steps are the shared [FormPageTemplate], driven by the personal-plan
 /// collection whose items and suggestions it shows; the contacts step and the
-/// closing share step have widgets of their own.
-List<Widget> buildWizardSteps({
+/// closing share step have widgets of their own. None of them draws the
+/// primary button — `WizardStepPage` does, from the label and action each step
+/// declares.
+List<WizardStep> buildWizardSteps({
   required VoidCallback next,
   required VoidCallback prev,
   required PhonePageData phonePageData,
   required void Function(BuildContext context) submit,
 }) {
-  //Keyed by collection name: every step occupies the same slot in the widget
-  //tree, so without distinct keys Flutter would hand the next step the
-  //previous step's State — its selected items and its "show more" count.
+  //Every step is created with a GlobalKey: it identifies the step (they all
+  //share one slot in the widget tree, so without distinct keys Flutter would
+  //hand the next step the previous step's State) and it is how the page
+  //reaches the step's primary action. Built once, in initState, so the keys
+  //stay stable for as long as the wizard is open.
   FormPageTemplate planStep(String collectionName) => FormPageTemplate(
-    key: ValueKey(collectionName),
+    key: GlobalKey<WizardStepState>(debugLabel: collectionName),
     next: next,
     prev: prev,
     collectionName: collectionName,
@@ -37,7 +42,16 @@ List<Widget> buildWizardSteps({
     planStep('PersonalPlan-MakeSafer'),
     planStep('PersonalPlan-SafeEnvironment'),
     //The last step the user fills in, immediately before the closing page.
-    PhonePageForm(next: next, prev: prev, phonePageData: phonePageData),
-    ShareForm(prev: prev, submit: submit),
+    PhonePageForm(
+      key: GlobalKey<WizardStepState>(debugLabel: 'contacts'),
+      next: next,
+      prev: prev,
+      phonePageData: phonePageData,
+    ),
+    ShareForm(
+      key: GlobalKey<WizardStepState>(debugLabel: 'share'),
+      prev: prev,
+      submit: submit,
+    ),
   ];
 }

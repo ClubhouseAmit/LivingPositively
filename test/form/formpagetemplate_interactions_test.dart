@@ -15,6 +15,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:get_it/get_it.dart';
 import 'package:mazilon/AnalyticsService.dart';
 import 'package:mazilon/form/formpagetemplate.dart';
+import 'package:mazilon/form/wizard_step.dart';
 import 'package:mazilon/global_enums.dart';
 import 'package:mazilon/l10n/app_localizations.dart';
 import 'package:mazilon/util/appInformation.dart';
@@ -78,13 +79,16 @@ Future<int> _pump(
         home: ScreenUtilInit(
           designSize: const Size(360, 690),
           child: Scaffold(
-            body: FormPageTemplate(
-              next: () {
-                nextCalls++;
-                if (onNext != null) onNext();
-              },
-              prev: () {},
-              collectionName: collection,
+            body: WizardStepPage(
+              step: FormPageTemplate(
+                key: GlobalKey<WizardStepState>(),
+                next: () {
+                  nextCalls++;
+                  if (onNext != null) onNext();
+                },
+                prev: () {},
+                collectionName: collection,
+              ),
             ),
           ),
         ),
@@ -244,10 +248,13 @@ void main() {
             home: ScreenUtilInit(
               designSize: const Size(360, 690),
               child: Scaffold(
-                body: FormPageTemplate(
-                  next: () => nextCalls++,
-                  prev: () {},
-                  collectionName: collection,
+                body: WizardStepPage(
+                  step: FormPageTemplate(
+                    key: GlobalKey<WizardStepState>(),
+                    next: () => nextCalls++,
+                    prev: () {},
+                    collectionName: collection,
+                  ),
                 ),
               ),
             ),

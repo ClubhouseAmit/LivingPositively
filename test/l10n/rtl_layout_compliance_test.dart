@@ -6,6 +6,7 @@ import 'package:mockito/mockito.dart';
 import 'package:mazilon/MainPageHelpers/personalPlanWidget.dart';
 import 'package:mazilon/file_service.dart';
 import 'package:mazilon/form/formpagetemplate.dart';
+import 'package:mazilon/form/wizard_step.dart';
 import 'package:mazilon/iFx/service_locator.dart';
 import 'package:mazilon/l10n/app_localizations.dart';
 import 'package:mazilon/util/Form/PagePhoneItem.dart';
@@ -151,6 +152,7 @@ void main() {
       await pumpArabicHarness(
         tester,
         FormPageTemplate(
+          key: GlobalKey<WizardStepState>(),
           next: () {},
           prev: () {},
           collectionName: 'PersonalPlan-DifficultEvents',

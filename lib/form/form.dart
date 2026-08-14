@@ -6,6 +6,7 @@ import 'package:mazilon/util/LP_extended_state.dart';
 import 'package:mazilon/util/persistent_memory_service.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 
+import 'package:mazilon/form/wizard_step.dart';
 import 'package:mazilon/form/wizard_steps.dart';
 import 'package:mazilon/menu.dart';
 
@@ -93,7 +94,7 @@ class FormProgressIndicatorState
     );
   }
 
-  List<Widget> steps = [];
+  List<WizardStep> steps = [];
   @override
   void initState() {
     super.initState();
@@ -216,6 +217,10 @@ class FormProgressIndicatorState
             ),
           ),
         ),
+        //The wizard owns its chrome: the header above and, through
+        //WizardStepPage, the primary button below. A step supplies only the
+        //content between them, so the button cannot drift from step to step.
+        //
         //Steps switch without a transition. A slide animation here stacked the
         //outgoing and incoming steps on top of each other, and the step bodies
         //draw straight onto this Scaffold with no surface of their own, so the
@@ -223,7 +228,7 @@ class FormProgressIndicatorState
         //above already signal that the step changed.
         body: Padding(
           padding: const EdgeInsets.symmetric(horizontal: _screenInset),
-          child: steps[currentStep],
+          child: WizardStepPage(step: steps[currentStep]),
         ),
       ),
     );

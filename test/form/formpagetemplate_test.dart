@@ -9,6 +9,7 @@ import 'package:provider/provider.dart';
 import 'package:mazilon/util/appInformation.dart';
 import 'package:mazilon/util/userInformation.dart';
 import 'package:mazilon/form/formpagetemplate.dart';
+import 'package:mazilon/form/wizard_step.dart';
 import 'package:mockito/mockito.dart';
 import 'package:mockito/annotations.dart';
 import 'package:mazilon/l10n/app_localizations.dart';
@@ -87,10 +88,13 @@ void main() {
             home: ScreenUtilInit(
               designSize: const Size(360, 690),
               child: Scaffold(
-                body: FormPageTemplate(
-                  next: () {},
-                  prev: () {},
-                  collectionName: 'PersonalPlan-DifficultEvents',
+                body: WizardStepPage(
+                  step: FormPageTemplate(
+                    key: GlobalKey<WizardStepState>(),
+                    next: () {},
+                    prev: () {},
+                    collectionName: 'PersonalPlan-DifficultEvents',
+                  ),
                 ),
               ),
             ),

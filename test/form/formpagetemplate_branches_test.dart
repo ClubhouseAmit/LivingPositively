@@ -11,6 +11,7 @@ import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:get_it/get_it.dart';
 import 'package:mazilon/form/formpagetemplate.dart';
+import 'package:mazilon/form/wizard_step.dart';
 import 'package:mazilon/l10n/app_localizations.dart';
 import 'package:mazilon/util/appInformation.dart';
 import 'package:mazilon/util/persistent_memory_service.dart';
@@ -47,10 +48,13 @@ Future<void> _pumpFormPage(WidgetTester tester, String collectionName) async {
         home: ScreenUtilInit(
           designSize: const Size(360, 690),
           child: Scaffold(
-            body: FormPageTemplate(
-              next: () {},
-              prev: () {},
-              collectionName: collectionName,
+            body: WizardStepPage(
+              step: FormPageTemplate(
+                key: GlobalKey<WizardStepState>(),
+                next: () {},
+                prev: () {},
+                collectionName: collectionName,
+              ),
             ),
           ),
         ),

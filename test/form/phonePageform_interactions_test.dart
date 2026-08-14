@@ -5,6 +5,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:mazilon/form/phonePageform.dart';
+import 'package:mazilon/form/wizard_step.dart';
 import 'package:mazilon/util/Form/formPagePhoneModel.dart';
 import 'package:mazilon/util/userInformation.dart';
 import 'package:provider/provider.dart';
@@ -52,10 +53,15 @@ void main() {
       tester,
       ChangeNotifierProvider<PhonePageData>.value(
         value: phone,
-        child: PhonePageForm(
-          phonePageData: phone,
-          next: () => nextCalls++,
-          prev: () {},
+        child: Scaffold(
+          body: WizardStepPage(
+            step: PhonePageForm(
+              key: GlobalKey<WizardStepState>(),
+              phonePageData: phone,
+              next: () => nextCalls++,
+              prev: () {},
+            ),
+          ),
         ),
       ),
       userInformation: user,
@@ -64,9 +70,10 @@ void main() {
     await tester.pump();
     drainOverflowExceptions(tester);
 
-    // The page renders one outer TextButton (the ConfirmationButton). Its
-    // onPressed is async and routes through phonePageData.loadItemsFromPrefs
-    // → saveItemsToPrefs → update() → widget.next.
+    // The last TextButton is the one WizardStepPage pins below the step —
+    // the step itself no longer draws it. Its action is async and routes
+    // through phonePageData.loadItemsFromPrefs → saveItemsToPrefs →
+    // update() → widget.next.
     final buttons = find.byType(TextButton);
     expect(buttons, findsWidgets);
     await tester.ensureVisible(buttons.last);
