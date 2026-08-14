@@ -193,25 +193,23 @@ class _FormPageTemplateState extends WizardStepState<FormPageTemplate> {
     return Column(
       spacing: _gapWithinBlock,
       children: [
-        myAutoSizedText(
+        Text(
           displayInformation['header'],
-          TextStyle(
+          style: TextStyle(
             fontWeight: AppFontWeight.medium,
             fontSize: 24.sp,
             color: Theme.of(context).colorScheme.onSurface,
           ),
-          TextAlign.center,
-          24,
+          textAlign: TextAlign.center,
         ),
-        myAutoSizedText(
+        Text(
           displayInformation['subTitle'],
-          TextStyle(
+          style: TextStyle(
             fontWeight: AppFontWeight.regular,
             color: Theme.of(context).colorScheme.outline,
             fontSize: 16.sp,
           ),
-          TextAlign.center,
-          16,
+          textAlign: TextAlign.center,
         ),
       ],
     );
@@ -288,25 +286,23 @@ class _FormPageTemplateState extends WizardStepState<FormPageTemplate> {
         Column(
           spacing: _gapLabelToCaption,
           children: [
-            myAutoSizedText(
+            Text(
               displayInformation['midTitle'],
-              TextStyle(
+              style: TextStyle(
                 fontWeight: AppFontWeight.semiBold,
                 fontSize: 14.sp,
                 color: Theme.of(context).colorScheme.onSurface,
               ),
-              TextAlign.center,
-              14,
+              textAlign: TextAlign.center,
             ),
-            myAutoSizedText(
+            Text(
               displayInformation['midSubTitle'],
-              TextStyle(
+              style: TextStyle(
                 fontWeight: AppFontWeight.regular,
                 color: Theme.of(context).colorScheme.outline,
                 fontSize: 12.sp,
               ),
-              TextAlign.center,
-              12,
+              textAlign: TextAlign.center,
             ),
           ],
         ),
@@ -378,7 +374,7 @@ class _FormPageTemplateState extends WizardStepState<FormPageTemplate> {
             item,
             style: TextStyle(
               fontFamily: "Rubix",
-              fontSize: 16.sp,
+              fontSize: 14.sp,
               fontWeight: AppFontWeight.regular,
               color: Theme.of(context).colorScheme.onSurface,
             ),

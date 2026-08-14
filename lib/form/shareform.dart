@@ -358,11 +358,9 @@ class _ShareFormState extends WizardStepState<ShareForm> {
           TextButton(
             onPressed: saveCustomCategory,
             style: primaryButtonStyle(context),
-            child: myAutoSizedText(
+            child: Text(
               appLocale.sharePageSaveCustomCategory,
-              primaryButtonTextStyle(context).copyWith(fontSize: 16.sp),
-              null,
-              24,
+              style: primaryButtonTextStyle(context).copyWith(fontSize: 16.sp),
             ),
           ),
         ],
@@ -443,15 +441,13 @@ class _ShareFormState extends WizardStepState<ShareForm> {
         if (!_isAddingCustomCategory)
           TextButton(
             onPressed: startAddingCustomCategory,
-            child: myAutoSizedText(
+            child: Text(
               appLocale.sharePageAddCustomCategory,
-              TextStyle(
+              style: TextStyle(
                 color: Theme.of(context).colorScheme.primary,
                 fontWeight: FontWeight.bold,
                 fontSize: 16.sp,
               ),
-              null,
-              24,
             ),
           ),
       ],
@@ -477,25 +473,21 @@ class _ShareFormState extends WizardStepState<ShareForm> {
       child: Center(
         child: Column(
           children: [
-            myAutoSizedText(
+            Text(
               appLocale.sharePageHeader(gender),
-              TextStyle(
+              style: TextStyle(
                 fontSize: 30.sp,
                 fontWeight: FontWeight.w500,
                 color: Theme.of(context).colorScheme.onSurface,
               ),
-              null,
-              60,
             ),
-            myAutoSizedText(
+            Text(
               appLocale.sharePageSubTitle(gender),
-              TextStyle(
+              style: TextStyle(
                 fontWeight: FontWeight.normal,
                 fontSize: 16.sp,
                 color: Theme.of(context).colorScheme.outline,
               ),
-              null,
-              35,
             ),
             //The celebration art is sized so the whole step — copy, share
             //and download actions, custom categories and the finish
@@ -506,11 +498,12 @@ class _ShareFormState extends WizardStepState<ShareForm> {
             myImage('assets/images/FormSubmit.png', context, 0.6, 0.25),
             SizedBox(
               width: MediaQuery.sizeOf(context).width * 0.8,
-              child: myAutoSizedText(
+              child: Text(
                 appLocale.sharePageMidTitle(gender),
-                TextStyle(fontWeight: FontWeight.normal, fontSize: 16.sp),
-                null,
-                35,
+                style: TextStyle(
+                  fontWeight: FontWeight.normal,
+                  fontSize: 16.sp,
+                ),
               ),
             ),
             const SizedBox(height: 30),

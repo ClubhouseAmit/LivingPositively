@@ -1,4 +1,4 @@
-import 'package:auto_size_text/auto_size_text.dart';
+import 'package:flutter/rendering.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -10,6 +10,7 @@ import 'package:mazilon/util/appInformation.dart';
 import 'package:mazilon/util/userInformation.dart';
 import 'package:mazilon/form/formpagetemplate.dart';
 import 'package:mazilon/form/wizard_step.dart';
+import 'package:mazilon/util/theme/app_theme.dart';
 import 'package:mockito/mockito.dart';
 import 'package:mockito/annotations.dart';
 import 'package:mazilon/l10n/app_localizations.dart';
@@ -85,6 +86,7 @@ void main() {
             supportedLocales: AppLocalizations.supportedLocales,
             locale: Locale('he'),
             localizationsDelegates: AppLocalizations.localizationsDelegates,
+            theme: buildLightTheme(),
             home: ScreenUtilInit(
               designSize: const Size(360, 690),
               child: Scaffold(
@@ -121,22 +123,37 @@ void main() {
 
       // Verifying initial UI elements and their styles to prevent design regressions
       final headerFinder = find.byWidgetPredicate(
-        (widget) => widget is AutoSizeText && widget.data == 'תזכורות לטריגרים נפוצים וגורמי הסלמה',
+        (widget) => widget is Text && widget.data == 'תזכורות לטריגרים נפוצים וגורמי הסלמה',
       );
       expect(headerFinder, findsOneWidget);
-      final AutoSizeText headerWidget = tester.widget(headerFinder);
-      expect(headerWidget.style?.fontFamily, 'Rubix');
-      expect(headerWidget.style?.fontWeight, FontWeight.w500);
-      expect(headerWidget.style?.fontSize, 24.sp);
+      // The font family is inherited from ThemeData now, so it is asserted on
+      // the resolved paragraph style rather than on the widget's own style.
+      final headerStyle = tester
+          .renderObject<RenderParagraph>(
+            find.descendant(of: headerFinder, matching: find.byType(RichText)),
+          )
+          .text
+          .style!;
+      expect(headerStyle.fontFamily, 'Rubix');
+      expect(headerStyle.fontWeight, FontWeight.w500);
+      expect(headerStyle.fontSize, 24.sp);
 
       final subTitleFinder = find.byWidgetPredicate(
-        (widget) => widget is AutoSizeText && widget.data == 'גורמים ואירועים שהקשו עלי בעבר',
+        (widget) => widget is Text && widget.data == 'גורמים ואירועים שהקשו עלי בעבר',
       );
       expect(subTitleFinder, findsOneWidget);
-      final AutoSizeText subTitleWidget = tester.widget(subTitleFinder);
-      expect(subTitleWidget.style?.fontFamily, 'Rubix');
-      expect(subTitleWidget.style?.fontWeight, FontWeight.w400);
-      expect(subTitleWidget.style?.fontSize, 16.sp);
+      final subTitleStyle = tester
+          .renderObject<RenderParagraph>(
+            find.descendant(
+              of: subTitleFinder,
+              matching: find.byType(RichText),
+            ),
+          )
+          .text
+          .style!;
+      expect(subTitleStyle.fontFamily, 'Rubix');
+      expect(subTitleStyle.fontWeight, FontWeight.w400);
+      expect(subTitleStyle.fontSize, 16.sp);
 
       expect(find.text('אין לך רעיון? הנה כמה הצעות'), findsOneWidget);
       expect(

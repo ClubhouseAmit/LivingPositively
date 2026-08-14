@@ -175,15 +175,14 @@ class _PhonePageFormState extends WizardStepState<PhonePageForm> {
               Center(
                 child: Container(
                   alignment: Alignment.topCenter,
-                  child: myAutoSizedText(
+                  child: Text(
                     appLocale.phonesPageHeader(gender),
-                    TextStyle(
+                    style: TextStyle(
                       fontWeight: FontWeight.bold,
                       fontSize: 20.sp,
                       height: 1.5,
                     ),
-                    TextAlign.center,
-                    40,
+                    textAlign: TextAlign.center,
                   ),
                 ),
               ),
@@ -254,11 +253,10 @@ class _PhonePageFormState extends WizardStepState<PhonePageForm> {
                 2,
               ),
               children: [
-                myAutoSizedText(
+                Text(
                   appLocale.addingContactDisclaimer,
-                  TextStyle(fontSize: 12.sp, height: 1.5),
-                  TextAlign.start,
-                  40,
+                  style: TextStyle(fontSize: 12.sp, height: 1.5),
+                  textAlign: TextAlign.start,
                 ),
               ],
             ),

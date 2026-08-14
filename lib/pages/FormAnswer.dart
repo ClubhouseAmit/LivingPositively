@@ -2,7 +2,6 @@ import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:mazilon/util/FormAnswer/addFormAnswer.dart';
 import 'package:mazilon/util/LP_extended_state.dart';
-import 'package:mazilon/util/styles.dart';
 import 'package:mazilon/util/theme/font_weight.dart';
 import 'package:mazilon/util/userInformation.dart';
 import 'package:provider/provider.dart';
@@ -88,14 +87,14 @@ class _FormAnswerState extends LPExtendedState<FormAnswer> {
           children: [
             SizedBox(
               width: _indexColumnWidth,
-              child: myText(
+              child: Text(
                 '${widget.num}',
-                TextStyle(
+                style: TextStyle(
                   color: Theme.of(context).colorScheme.primary,
                   fontWeight: AppFontWeight.medium,
                   fontSize: 14.sp,
                 ),
-                TextAlign.center,
+                textAlign: TextAlign.center,
               ),
             ),
             Expanded(
@@ -117,14 +116,13 @@ class _FormAnswerState extends LPExtendedState<FormAnswer> {
                   spacing: _gapTextToEditHint,
                   children: [
                     Expanded(
-                      child: myAutoSizedText(
+                      child: Text(
                         widget.text,
-                        TextStyle(
+                        style: TextStyle(
                           fontSize: 16.sp,
                           color: Theme.of(context).colorScheme.onSurface,
                         ),
-                        TextAlign.start,
-                        16,
+                        textAlign: TextAlign.start,
                       ),
                     ),
                     Icon(
