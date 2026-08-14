@@ -6,9 +6,7 @@ import 'package:mazilon/util/LP_extended_state.dart';
 import 'package:mazilon/util/persistent_memory_service.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 
-import 'package:mazilon/form/phonePageform.dart';
-import 'package:mazilon/form/shareform.dart';
-import 'package:mazilon/form/formpagetemplate.dart';
+import 'package:mazilon/form/wizard_steps.dart';
 import 'package:mazilon/menu.dart';
 
 import 'package:mazilon/util/Form/formPagePhoneModel.dart';
@@ -31,14 +29,6 @@ const double _screenInset = 16;
 /// "save and exit", and Arabic is longer still. Bounding the label lets
 /// `myAutoSizedText` shrink it instead of colliding.
 const double _headerSideControlMaxFraction = 0.30;
-
-List<String> pages = [
-  'PersonalPlan-Distractions',
-  'PersonalPlan-DifficultEvents',
-  'PersonalPlan-FeelBetter',
-  'PersonalPlan-MakeSafer',
-  'PersonalPlan-SafeEnvironment',
-];
 
 class FormProgressIndicator extends StatefulWidget {
   final PhonePageData phonePageData;
@@ -107,51 +97,15 @@ class FormProgressIndicatorState
   @override
   void initState() {
     super.initState();
-    //initialize steps on form load:
-    //if you want to add a page on the personal plan form, add it here:
-    //use formpageTemplate.dart for checkbox pages with data from database below and selected items above.
-    //create your own class for other pages.
-
-    steps = [
-      FormPageTemplate(
-        key: UniqueKey(),
-        next: next,
-        prev: prev,
-        collectionName: pages[0],
-      ),
-      FormPageTemplate(
-        key: UniqueKey(),
-        next: next,
-        prev: prev,
-        collectionName: pages[1],
-      ),
-      FormPageTemplate(
-        key: UniqueKey(),
-        next: next,
-        prev: prev,
-        collectionName: pages[2],
-      ),
-      FormPageTemplate(
-        key: UniqueKey(),
-        next: next,
-        prev: prev,
-        collectionName: pages[3],
-      ),
-      //<<<<<<<<<<<CHECKBOX PAGES END HERE
-      //add contacts page:
-      PhonePageForm(
-        next: next,
-        prev: prev,
-        phonePageData: widget.phonePageData,
-      ),
-      FormPageTemplate(
-        key: UniqueKey(),
-        next: next,
-        prev: prev,
-        collectionName: pages[4],
-      ),
-      ShareForm(prev: prev, submit: submitForm),
-    ];
+    //Which steps the wizard has, and in what order, lives in
+    //`lib/form/wizard_steps.dart` — add, remove or reorder steps there.
+    //Built once, so each step keeps its state while the user moves around.
+    steps = buildWizardSteps(
+      next: next,
+      prev: prev,
+      phonePageData: widget.phonePageData,
+      submit: submitForm,
+    );
   }
 
   @override
@@ -191,9 +145,7 @@ class FormProgressIndicatorState
                 alignment: Alignment.bottomCenter,
                 child: Padding(
                   //Same screen-edge inset as the page body below.
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: _screenInset,
-                  ),
+                  padding: const EdgeInsets.symmetric(horizontal: _screenInset),
                   //A Stack, not a Row: the design centres the progress dots
                   //on the screen, independent of the two controls flanking
                   //them. In a Row they would instead centre in the leftover
@@ -264,25 +216,14 @@ class FormProgressIndicatorState
             ),
           ),
         ),
-        //animation for switching between pages:
+        //Steps switch without a transition. A slide animation here stacked the
+        //outgoing and incoming steps on top of each other, and the step bodies
+        //draw straight onto this Scaffold with no surface of their own, so the
+        //old step showed through the new one as ghosting. The progress dots
+        //above already signal that the step changed.
         body: Padding(
           padding: const EdgeInsets.symmetric(horizontal: _screenInset),
-          child: AnimatedSwitcher(
-            duration: const Duration(
-              milliseconds: 300,
-            ), // Specify the duration of the animation
-            transitionBuilder: (Widget child, Animation<double> animation) {
-              var begin = const Offset(1.0, 0.0);
-              var end = Offset.zero;
-              var tween = Tween(begin: begin, end: end);
-
-              return SlideTransition(
-                position: animation.drive(tween),
-                child: child,
-              );
-            },
-            child: steps[currentStep],
-          ),
+          child: steps[currentStep],
         ),
       ),
     );

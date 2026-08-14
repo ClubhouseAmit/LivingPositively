@@ -78,11 +78,14 @@ void main() {
       find.byType(FormProgressIndicator),
     );
 
+    // All five category steps run first; the contacts step is the last one
+    // the user fills in, immediately before the closing share page.
     for (final collectionName in const [
       'PersonalPlan-Distractions',
       'PersonalPlan-DifficultEvents',
       'PersonalPlan-FeelBetter',
       'PersonalPlan-MakeSafer',
+      'PersonalPlan-SafeEnvironment',
     ]) {
       expect(
         tester.widget<FormPageTemplate>(find.byType(FormPageTemplate))
@@ -101,11 +104,10 @@ void main() {
     await tester.ensureVisible(contactsContinue);
     await tester.tap(contactsContinue, warnIfMissed: false);
     await tester.pumpAndSettle();
-    expect(
-      tester.widget<FormPageTemplate>(find.byType(FormPageTemplate))
-          .collectionName,
-      'PersonalPlan-SafeEnvironment',
-    );
+    // Contacts is the final input step — advancing lands on the share page,
+    // so no FormPageTemplate remains.
+    expect(find.byType(FormPageTemplate), findsNothing);
+    expect(find.byType(PhonePageForm), findsNothing);
   });
 
   testWidgets(
