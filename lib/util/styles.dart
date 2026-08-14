@@ -267,14 +267,26 @@ Widget LinkButton(
 ///
 /// Distinct from the `LinearProgressIndicator` in DESIGN.md §3.5: the
 /// onboarding flow's design specifies discrete dots, not a continuous bar.
+/// Geometry of the wizard's progress dots. Public so the header can reserve
+/// the space they occupy instead of guessing at it.
+const double kStepDotWidth = 18;
+const double kStepDotGap = 8;
+
+/// Width the dots occupy for [stepCount] steps.
+double stepDotsWidth(
+  int stepCount, {
+  double dotWidth = kStepDotWidth,
+  double gap = kStepDotGap,
+}) => stepCount <= 0 ? 0 : stepCount * dotWidth + (stepCount - 1) * gap;
+
 Widget StepDotsIndicator(
   BuildContext context, {
   required int stepCount,
   required int currentStep,
-  double dotWidth = 18,
+  double dotWidth = kStepDotWidth,
   double dotHeight = 8,
   //Figma: dots are pitched 26.65 apart at 18.4 wide -> ~8.3 between them.
-  double gap = 8,
+  double gap = kStepDotGap,
 }) {
   return Row(
     mainAxisAlignment: MainAxisAlignment.center,

@@ -1,4 +1,6 @@
 // ignore_for_file: annotate_overrides
+import 'dart:math' show max;
+
 import 'package:flutter/material.dart';
 import 'package:get_it/get_it.dart';
 import 'package:mazilon/global_enums.dart';
@@ -23,13 +25,22 @@ import 'package:mazilon/util/userInformation.dart';
 /// and the body share this one value rather than drifting apart.
 const double _screenInset = 16;
 
-/// Width budget for the controls flanking the centred progress dots. The
-/// dots are centred on the screen (per the design) rather than in the space
-/// left over by their neighbours, so a long label would otherwise run into
-/// them — the design's own copy is short ("דלג/י") but this app's is
-/// "save and exit", and Arabic is longer still. Bounding the label lets
-/// `myAutoSizedText` shrink it instead of colliding.
-const double _headerSideControlMaxFraction = 0.30;
+/// Clearance between the centred progress dots and the controls flanking
+/// them. The dots are centred on the screen (per the design) rather than in
+/// the space left over by their neighbours, so a long label runs into them
+/// unless it is bounded — the design's own copy is short ("דלג/י") but this
+/// app's is "save and exit", and Arabic is longer still. The bound is the
+/// space actually left beside the dots, so it holds at any width; a fixed
+/// fraction of the screen did not, and the label overlapped the dots below
+/// about 400px in every language.
+const double _headerControlGutter = 8;
+
+/// Width available to one side control at [screenWidth] for [stepCount] dots.
+double headerSideControlMaxWidth(double screenWidth, int stepCount) => max(
+  0.0,
+  (screenWidth - _screenInset * 2 - stepDotsWidth(stepCount)) / 2 -
+      _headerControlGutter,
+);
 
 class FormProgressIndicator extends StatefulWidget {
   final PhonePageData phonePageData;
@@ -180,9 +191,10 @@ class FormProgressIndicatorState
                         alignment: AlignmentDirectional.centerEnd,
                         child: ConstrainedBox(
                           constraints: BoxConstraints(
-                            maxWidth:
-                                MediaQuery.sizeOf(context).width *
-                                _headerSideControlMaxFraction,
+                            maxWidth: headerSideControlMaxWidth(
+                              MediaQuery.sizeOf(context).width,
+                              steps.length,
+                            ),
                           ),
                           child: TextButton(
                             style: TextButton.styleFrom(

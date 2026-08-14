@@ -62,6 +62,21 @@ class _FormPageTemplateState extends WizardStepState<FormPageTemplate> {
   int displayedLength = 3;
   List<String> suggestionPool = const [];
   List<String> selectedItems = [];
+
+  // Identity for the answer rows. Two answers can hold the same text, so a
+  // text-derived key is not identity: after swiping one away, the survivor
+  // would be matched to the dismissed row and inherit its collapsed state.
+  // Ids are reissued whenever the list changes length, which guarantees a
+  // removed row's key never comes back.
+  List<int> rowIds = const [];
+  int _nextRowId = 0;
+
+  void syncRowIds() {
+    if (rowIds.length != selectedItems.length) {
+      rowIds = List.generate(selectedItems.length, (_) => _nextRowId++);
+    }
+  }
+
   @override
   void initState() {
     super.initState();
@@ -88,13 +103,17 @@ class _FormPageTemplateState extends WizardStepState<FormPageTemplate> {
   }
 
   void editItem(int index, String text) {
-    selectedItems[index] = text;
+    selectedItems[index] = text.trim();
     setState(() {});
   }
 
   void removeItem(int index) {
-    final text = selectedItems[index];
-    selectedItems.removeWhere((element) => element == text);
+    if (index < 0 || index >= selectedItems.length) {
+      return;
+    }
+    // By index, not by value: two answers can hold the same text, and
+    // removing by value would delete both.
+    selectedItems.removeAt(index);
 
     setState(() {});
   }
@@ -218,6 +237,7 @@ class _FormPageTemplateState extends WizardStepState<FormPageTemplate> {
         //MediaQuery.padding as sliver padding.
         for (final (index, item) in selectedItems.indexed)
           FormAnswer(
+            key: ValueKey('answer-${rowIds[index]}'),
             text: item,
             num: index + 1,
             edit: (int editIndex, String text) {
@@ -399,6 +419,7 @@ class _FormPageTemplateState extends WizardStepState<FormPageTemplate> {
     );
     suggestionPool = (displayInformation['list'] as List).cast<String>();
     loadItems(userInfoProvider);
+    syncRowIds();
     //suggestions still available to pick — a suggestion drops out of this
     final availableSuggestions = suggestionPool
         .take(revealedSuggestions)

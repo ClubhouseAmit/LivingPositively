@@ -321,6 +321,43 @@ void main() {
     expect(nextCalls, 1);
   });
 
+  testWidgets('deleting one of two identical answers keeps the other', (
+    tester,
+  ) async {
+    final user = UserInformation()..gender = 'other';
+    user.updateDifficultEvents(['same answer', 'same answer', 'other answer']);
+    await _pump(tester, 'PersonalPlan-DifficultEvents', user: user);
+
+    expect(find.byType(Dismissible), findsNWidgets(3));
+
+    // Swipe the first of the two identical rows away.
+    await tester.drag(find.byType(Dismissible).first, const Offset(-1100, 0));
+    await tester.pumpAndSettle();
+
+    expect(find.byType(Dismissible), findsNWidgets(2));
+    expect(
+      pm.store['userSelectionPersonalPlan-DifficultEvents'],
+      ['same answer', 'other answer'],
+      reason: 'removal is by row, not by matching text',
+    );
+  });
+
+  testWidgets('a whitespace-only answer is rejected', (tester) async {
+    await _pump(tester, 'PersonalPlan-DifficultEvents');
+
+    await tester.ensureVisible(find.byIcon(Icons.add));
+    await tester.tap(find.byIcon(Icons.add));
+    await tester.pumpAndSettle();
+    await tester.enterText(find.byType(TextFormField), '    ');
+    await tester.tap(find.text('Save'));
+    await tester.pumpAndSettle();
+
+    // The dialog stays open with its validation error, and nothing is saved.
+    expect(find.text('Field cannot be empty'), findsOneWidget);
+    expect(find.byType(Dismissible), findsNothing);
+    expect(pm.store['userSelectionPersonalPlan-DifficultEvents'], isNull);
+  });
+
   testWidgets('picking every visible suggestion pulls in the next batch', (
     tester,
   ) async {

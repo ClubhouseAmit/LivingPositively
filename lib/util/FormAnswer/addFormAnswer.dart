@@ -89,7 +89,7 @@ class _AddFormAnswerState extends LPExtendedState<AddFormAnswer> {
                         fontSize: 18.sp > 30 ? 30 : 18.sp,
                       ), // Set text field style
                       validator: (value) {
-                        if (value == null || value.isEmpty) {
+                        if (value == null || value.trim().isEmpty) {
                           return appLocale
                               .validateEmpty; // Validate that the field is not empty
                         }
