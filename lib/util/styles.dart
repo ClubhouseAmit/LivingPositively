@@ -247,9 +247,6 @@ Widget LinkButton(
       children: [
         Icon(icon, color: color, size: iconSize),
         Flexible(
-          //Plain Text: the label sits in a row of unbounded height, so
-          //AutoSizeText could never shrink it — passing the unscaled
-          //`designFontSize` as its ceiling only clamped `.sp` back off.
           child: Text(
             label,
             style: TextStyle(

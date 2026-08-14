@@ -225,11 +225,6 @@ void main() {
 
   testWidgets('ShareForm keeps its content clear of the pinned finish button',
       (WidgetTester tester) async {
-    // A typical modern phone (390x844 logical). WizardStepPage pins the
-    // finish button, so the risk is no longer that it falls below the fold
-    // but that oversized content (the celebration artwork) runs underneath
-    // it: the step must still be able to show its last element above the
-    // button after scrolling.
     tester.view.physicalSize = const Size(1170, 2532);
     tester.view.devicePixelRatio = 3.0;
     addTearDown(tester.view.reset);

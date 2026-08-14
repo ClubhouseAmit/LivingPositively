@@ -228,8 +228,6 @@ void main() {
       for (var i = 0; i < batchSize; i++) textOf(suggestionCards().at(i)),
     ];
 
-    // Pick the whole batch. Each pick promotes that card into the answered
-    // list, so the next one moves into first position.
     for (var i = 0; i < batchSize; i++) {
       final card = suggestionCards().first;
       await tester.ensureVisible(card);
@@ -237,8 +235,6 @@ void main() {
       await tester.pumpAndSettle();
     }
 
-    // The section refilled itself instead of going blank: fresh cards, none
-    // of them one the user just picked.
     final refilled = suggestionCards();
     expect(refilled, findsWidgets);
     for (var i = 0; i < refilled.evaluate().length; i++) {
@@ -252,7 +248,6 @@ void main() {
     await _pump(tester, 'PersonalPlan-DifficultEvents');
     await _addViaDialog(tester, 'original answer');
 
-    // The row carries one quiet edit hint — tapping the row opens the editor.
     expect(find.byIcon(Icons.edit_outlined), findsOneWidget);
     await tester.tap(find.text('original answer'));
     await tester.pumpAndSettle();
@@ -266,9 +261,6 @@ void main() {
       contains('edited answer'),
     );
 
-    // Deleting is reachable from the same dialog, so it does not need a
-    // second icon on the row (or a blind swipe), and it takes effect on the
-    // single tap — no confirmation step in between.
     await tester.tap(find.text('edited answer'));
     await tester.pumpAndSettle();
     await tester.tap(find.text('Delete'));

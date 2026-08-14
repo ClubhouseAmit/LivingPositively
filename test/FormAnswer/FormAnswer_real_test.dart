@@ -105,7 +105,6 @@ void main() {
     await tester.drag(find.byType(Dismissible), const Offset(-1100, 0));
     await tester.pumpAndSettle();
 
-    // No confirmation step — the swipe is the decision.
     expect(find.text('Delete this answer?'), findsNothing);
     expect(removedIndex, 2, reason: 'remove must be called with num - 1');
   });

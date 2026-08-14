@@ -164,7 +164,6 @@ class _PhonePageFormState extends WizardStepState<PhonePageForm> {
     );
 
     final gender = userInfoProvider.gender;
-    //Content only — WizardStepPage pins the continue button below it.
     return SingleChildScrollView(
       child: Column(
         mainAxisSize: MainAxisSize.min,

@@ -70,10 +70,6 @@ void main() {
     await tester.pump();
     drainOverflowExceptions(tester);
 
-    // The last TextButton is the one WizardStepPage pins below the step —
-    // the step itself no longer draws it. Its action is async and routes
-    // through phonePageData.loadItemsFromPrefs → saveItemsToPrefs →
-    // update() → widget.next.
     final buttons = find.byType(TextButton);
     expect(buttons, findsWidgets);
     await tester.ensureVisible(buttons.last);

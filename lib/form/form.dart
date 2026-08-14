@@ -98,9 +98,6 @@ class FormProgressIndicatorState
   @override
   void initState() {
     super.initState();
-    //Which steps the wizard has, and in what order, lives in
-    //`lib/form/wizard_steps.dart` — add, remove or reorder steps there.
-    //Built once, so each step keeps its state while the user moves around.
     steps = buildWizardSteps(
       next: next,
       prev: prev,
@@ -217,15 +214,6 @@ class FormProgressIndicatorState
             ),
           ),
         ),
-        //The wizard owns its chrome: the header above and, through
-        //WizardStepPage, the primary button below. A step supplies only the
-        //content between them, so the button cannot drift from step to step.
-        //
-        //Steps switch without a transition. A slide animation here stacked the
-        //outgoing and incoming steps on top of each other, and the step bodies
-        //draw straight onto this Scaffold with no surface of their own, so the
-        //old step showed through the new one as ghosting. The progress dots
-        //above already signal that the step changed.
         body: Padding(
           padding: const EdgeInsets.symmetric(horizontal: _screenInset),
           child: WizardStepPage(step: steps[currentStep]),

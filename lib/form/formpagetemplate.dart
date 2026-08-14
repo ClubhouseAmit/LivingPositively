@@ -70,17 +70,8 @@ class _FormPageTemplateState extends WizardStepState<FormPageTemplate> {
     }
   }
 
-  /// How much of the pool a tap on "other suggestions" uncovers, and how much
-  /// a used-up batch is replaced by.
   static const int _suggestionBatch = 3;
 
-  /// How far into the pool the suggestions section currently reaches.
-  ///
-  /// It starts at [displayedLength] and skips forward over batches the user
-  /// has already picked clean, so selecting the last remaining card brings up
-  /// the next batch instead of leaving an empty section. Derived on every
-  /// build rather than stored, because a step also reopens with items the
-  /// user selected on an earlier visit.
   int get revealedSuggestions {
     var revealed = displayedLength.clamp(0, suggestionPool.length);
     while (revealed < suggestionPool.length &&
@@ -114,9 +105,6 @@ class _FormPageTemplateState extends WizardStepState<FormPageTemplate> {
     setState(() {});
   }
 
-  //uncover the next batch of suggestions from the database list at the bottom
-  //of the screen. Counts from what is actually on screen, so it never re-shows
-  //a batch the auto-refill already stepped past.
   void addSuggestion() {
     setState(() {
       displayedLength = (revealedSuggestions + _suggestionBatch).clamp(
@@ -314,8 +302,6 @@ class _FormPageTemplateState extends WizardStepState<FormPageTemplate> {
           children: [
             for (final item in availableSuggestions)
               _buildSuggestionCard(item, userInfoProvider),
-            //Frame 219 — centred. Offered only while the pool still holds
-            //suggestions the user hasn't been shown.
             if (revealedSuggestions < suggestionPool.length)
               Align(
                 alignment: Alignment.center,
@@ -412,16 +398,11 @@ class _FormPageTemplateState extends WizardStepState<FormPageTemplate> {
     suggestionPool = (displayInformation['list'] as List).cast<String>();
     loadItems(userInfoProvider);
     //suggestions still available to pick — a suggestion drops out of this
-    //pool as soon as it's selected (it's promoted to the answered list above),
-    //and `revealedSuggestions` pulls in the next batch once a batch runs dry.
     final availableSuggestions = suggestionPool
         .take(revealedSuggestions)
         .where((item) => !isAlreadySelected(item))
         .toList();
 
-    //Mirrors the Figma frame: a stack of blocks that flows from the top. The
-    //continue button ("Group 86") is not here — WizardStepPage pins it below
-    //this content, at the same y on every step.
     return SingleChildScrollView(
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -429,9 +410,6 @@ class _FormPageTemplateState extends WizardStepState<FormPageTemplate> {
         children: [
           _buildTitleBlock(displayInformation),
           _buildItemsBlock(userInfoProvider, gender),
-          //Once the user has picked the pool clean there is nothing left to
-          //suggest, so the whole block goes rather than leaving its heading
-          //standing over an empty space.
           if (availableSuggestions.isNotEmpty ||
               revealedSuggestions < suggestionPool.length)
             _buildSuggestionsBlock(

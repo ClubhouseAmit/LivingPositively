@@ -126,8 +126,6 @@ void main() {
         (widget) => widget is Text && widget.data == 'תזכורות לטריגרים נפוצים וגורמי הסלמה',
       );
       expect(headerFinder, findsOneWidget);
-      // The font family is inherited from ThemeData now, so it is asserted on
-      // the resolved paragraph style rather than on the widget's own style.
       final headerStyle = tester
           .renderObject<RenderParagraph>(
             find.descendant(of: headerFinder, matching: find.byType(RichText)),

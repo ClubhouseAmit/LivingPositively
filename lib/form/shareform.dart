@@ -468,7 +468,6 @@ class _ShareFormState extends WizardStepState<ShareForm> {
     );
     final gender = userInfoProvider.gender;
 
-    //Content only — WizardStepPage pins the finish button below it.
     return SingleChildScrollView(
       child: Center(
         child: Column(
@@ -489,12 +488,6 @@ class _ShareFormState extends WizardStepState<ShareForm> {
                 color: Theme.of(context).colorScheme.outline,
               ),
             ),
-            //The celebration art is sized so the whole step — copy, share
-            //and download actions, custom categories and the finish
-            //button — fits on a phone screen without scrolling. At the
-            //previous 0.4 height it alone pushed the finish button below
-            //the fold. `myImage` reserves this box and scales the artwork
-            //down inside it, keeping its aspect ratio.
             myImage('assets/images/FormSubmit.png', context, 0.6, 0.25),
             SizedBox(
               width: MediaQuery.sizeOf(context).width * 0.8,

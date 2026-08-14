@@ -11,9 +11,6 @@ import 'package:provider/provider.dart';
 const double _indexColumnWidth = 16;
 const double _gapIndexToText = 8;
 
-/// The edit hint sitting at the row's trailing edge — deliberately smaller and
-/// quieter than the answer text: it marks the row as editable without reading
-/// as a button of its own.
 const double _gapTextToEditHint = 8;
 const double _editHintSize = 16;
 
@@ -52,11 +49,6 @@ class _FormAnswerState extends LPExtendedState<FormAnswer> {
             index: index,
             edit: widget.edit,
             text: text,
-            //Deleting lives in the edit dialog rather than as a second icon
-            //on the row: the row keeps one affordance, and removing an answer
-            //is discoverable without swiping blind. It takes effect straight
-            //away — opening the editor and choosing delete is deliberate
-            //enough on its own, and the answer can simply be re-added.
             onDelete: () {
               Navigator.of(dialogContext).pop();
               widget.remove(index);
@@ -108,10 +100,6 @@ class _FormAnswerState extends LPExtendedState<FormAnswer> {
                 ),
                 //each row group is 30 tall with the divider at its bottom.
                 padding: const EdgeInsets.symmetric(vertical: 6.0),
-                //A single muted pencil is the row's whole affordance: it says
-                //the answer can be changed without turning the list into a
-                //column of buttons. Tapping anywhere on the row opens the
-                //editor, where deleting also lives.
                 child: Row(
                   spacing: _gapTextToEditHint,
                   children: [

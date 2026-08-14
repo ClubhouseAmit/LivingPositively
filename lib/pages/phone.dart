@@ -428,9 +428,6 @@ class _PhonePageState extends LPExtendedState<PhonePage> {
       MaterialPageRoute(
         builder: (routeContext) => ChangeNotifierProvider<PhonePageData>.value(
           value: widget.phonePageData,
-          //Same page chrome the onboarding wizard gives its steps, so the
-          //contacts editor's button sits where the wizard's does. Only the
-          //top inset is ours to add — there is no AppBar on this route.
           child: Scaffold(
             body: SafeArea(
               bottom: false,

@@ -79,8 +79,6 @@ void main() {
       find.byType(FormProgressIndicator),
     );
 
-    // All five category steps run first; the contacts step is the last one
-    // the user fills in, immediately before the closing share page.
     for (final collectionName in const [
       'PersonalPlan-Distractions',
       'PersonalPlan-DifficultEvents',
@@ -98,8 +96,6 @@ void main() {
     }
 
     expect(find.byType(PhonePageForm), findsOneWidget);
-    // The primary button belongs to WizardStepPage, not to the step — that is
-    // what keeps it in the same place on every step.
     final contactsContinue = find.descendant(
       of: find.byType(WizardStepPage),
       matching: find.byType(TextButton),
@@ -107,8 +103,6 @@ void main() {
     await tester.ensureVisible(contactsContinue);
     await tester.tap(contactsContinue, warnIfMissed: false);
     await tester.pumpAndSettle();
-    // Contacts is the final input step — advancing lands on the share page,
-    // so no FormPageTemplate remains.
     expect(find.byType(FormPageTemplate), findsNothing);
     expect(find.byType(PhonePageForm), findsNothing);
   });
@@ -134,9 +128,6 @@ void main() {
       (tester) async {
     await _pumpForm(tester);
 
-    // The "Continue" ConfirmationButton is the last TextButton in the page
-    // chrome (WizardStepPage pins it below the step's content). Tapping it
-    // runs the step's primary action, which calls next() on the parent
     // FormProgressIndicator.
     final continueBtn = find.descendant(
       of: find.byType(WizardStepPage),
