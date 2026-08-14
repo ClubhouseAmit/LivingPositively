@@ -15,7 +15,8 @@ import 'package:mazilon/l10n/app_localizations.dart';
 import 'package:mazilon/AnalyticsService.dart';
 import '../MenuTest/shareAndDownload/share_and_download_test.mocks.dart'
     as ShareMocks;
-import '../helpers/widget_test_scaffold.dart' show NoopAnalyticsService;
+import '../helpers/widget_test_scaffold.dart'
+    show NoopAnalyticsService, loadTestFonts;
 
 @GenerateNiceMocks([
   MockSpec<UserInformation>(),
@@ -62,6 +63,7 @@ void main() {
       mockAppInformation = AppInformation();
     });
     testWidgets('FormPageTemplate widget test', (WidgetTester tester) async {
+      await loadTestFonts();
       // Set the screen size to match your design size
       await tester.binding.setSurfaceSize(const Size(360, 690));
 
