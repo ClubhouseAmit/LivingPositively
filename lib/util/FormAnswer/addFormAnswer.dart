@@ -10,12 +10,18 @@ class AddFormAnswer extends StatefulWidget {
   final Function edit; // The callback function to handle the edit action
   final String text; // The current text of the item being edited
 
+  /// Removes the answer being edited. Null when the dialog is adding a new
+  /// answer — there is nothing to delete yet. This is where deleting lives so
+  /// the answer rows themselves stay free of a second icon.
+  final VoidCallback? onDelete;
+
   // Constructor for AddFormAnswer, initializing index, edit function, and text.
   const AddFormAnswer({
     super.key,
     required this.index,
     required this.edit,
     required this.text,
+    this.onDelete,
   });
 
   @override
@@ -98,9 +104,24 @@ class _AddFormAnswerState extends LPExtendedState<AddFormAnswer> {
               ),
             ),
             Row(
-              mainAxisAlignment:
-                  MainAxisAlignment.end, // Align buttons to the end
               children: <Widget>[
+                if (widget.onDelete != null)
+                  TextButton(
+                    onPressed: widget.onDelete,
+                    child: myAutoSizedText(
+                      appLocale.deleteButton(gender),
+                      TextStyle(
+                        fontWeight: FontWeight.bold,
+                        fontSize: 20.sp,
+                        color: Theme.of(context).colorScheme.error,
+                      ),
+                      null,
+                      30,
+                    ),
+                  ),
+                //Keeps close/save at the end of the row whether or not the
+                //delete action is there.
+                const Spacer(),
                 TextButton(
                   child: myAutoSizedText(
                     appLocale.closeButton(

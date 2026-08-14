@@ -206,6 +206,76 @@ void main() {
     );
   });
 
+  testWidgets('picking every visible suggestion pulls in the next batch', (
+    tester,
+  ) async {
+    await _pump(tester, 'PersonalPlan-DifficultEvents');
+
+    Finder suggestionCards() => find.ancestor(
+          of: find.byType(DottedBorder),
+          matching: find.byType(InkWell),
+        );
+
+    String textOf(Finder card) => tester
+        .widget<Text>(
+          find.descendant(of: card, matching: find.byType(Text)).first,
+        )
+        .data!;
+
+    final batchSize = suggestionCards().evaluate().length;
+    expect(batchSize, greaterThan(0));
+    final firstBatch = [
+      for (var i = 0; i < batchSize; i++) textOf(suggestionCards().at(i)),
+    ];
+
+    // Pick the whole batch. Each pick promotes that card into the answered
+    // list, so the next one moves into first position.
+    for (var i = 0; i < batchSize; i++) {
+      final card = suggestionCards().first;
+      await tester.ensureVisible(card);
+      await tester.tap(card, warnIfMissed: false);
+      await tester.pumpAndSettle();
+    }
+
+    // The section refilled itself instead of going blank: fresh cards, none
+    // of them one the user just picked.
+    final refilled = suggestionCards();
+    expect(refilled, findsWidgets);
+    for (var i = 0; i < refilled.evaluate().length; i++) {
+      expect(firstBatch, isNot(contains(textOf(refilled.at(i)))));
+    }
+  });
+
+  testWidgets('an answered row can be edited and deleted from its dialog', (
+    tester,
+  ) async {
+    await _pump(tester, 'PersonalPlan-DifficultEvents');
+    await _addViaDialog(tester, 'original answer');
+
+    // The row carries one quiet edit hint — tapping the row opens the editor.
+    expect(find.byIcon(Icons.edit_outlined), findsOneWidget);
+    await tester.tap(find.text('original answer'));
+    await tester.pumpAndSettle();
+
+    await tester.enterText(find.byType(TextFormField), 'edited answer');
+    await tester.tap(find.text('Save'));
+    await tester.pumpAndSettle();
+    expect(find.text('edited answer'), findsOneWidget);
+    expect(
+      pm.store['userSelectionPersonalPlan-DifficultEvents'],
+      contains('edited answer'),
+    );
+
+    // Deleting is reachable from the same dialog, so it does not need a
+    // second icon on the row (or a blind swipe), and it takes effect on the
+    // single tap — no confirmation step in between.
+    await tester.tap(find.text('edited answer'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Delete'));
+    await tester.pumpAndSettle();
+    expect(find.text('edited answer'), findsNothing);
+  });
+
   testWidgets('tapping the more-suggestions link widens displayedLength', (
     tester,
   ) async {
@@ -325,10 +395,6 @@ void main() {
     // Two FormAnswer rows exist, each wrapped in a Dismissible.
     expect(find.byType(Dismissible), findsNWidgets(2));
     await tester.drag(find.byType(Dismissible).first, const Offset(-1100, 0));
-    await tester.pumpAndSettle();
-    expect(find.text('Delete this answer?'), findsOneWidget);
-
-    await tester.tap(find.text('Delete'));
     await tester.pumpAndSettle();
 
     // After removal, persisted list shrinks by one.

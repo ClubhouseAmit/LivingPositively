@@ -12,6 +12,12 @@ import 'package:provider/provider.dart';
 const double _indexColumnWidth = 16;
 const double _gapIndexToText = 8;
 
+/// The edit hint sitting at the row's trailing edge — deliberately smaller and
+/// quieter than the answer text: it marks the row as editable without reading
+/// as a button of its own.
+const double _gapTextToEditHint = 8;
+const double _editHintSize = 16;
+
 //the template for the answers in the personal plan questionnaire
 //this is used in the formpagetemplate to display(remove/edit) the selected/inserted user promptss
 class FormAnswer extends StatefulWidget {
@@ -42,48 +48,34 @@ class _FormAnswerState extends LPExtendedState<FormAnswer> {
     void editAnswer(String text, int index) {
       showDialog(
         context: context,
-        builder: (BuildContext context) {
-          return AddFormAnswer(index: index, edit: widget.edit, text: text);
+        builder: (BuildContext dialogContext) {
+          return AddFormAnswer(
+            index: index,
+            edit: widget.edit,
+            text: text,
+            //Deleting lives in the edit dialog rather than as a second icon
+            //on the row: the row keeps one affordance, and removing an answer
+            //is discoverable without swiping blind. It takes effect straight
+            //away — opening the editor and choosing delete is deliberate
+            //enough on its own, and the answer can simply be re-added.
+            onDelete: () {
+              Navigator.of(dialogContext).pop();
+              widget.remove(index);
+            },
+          );
         },
       );
-    }
-
-    Future<bool> confirmRemoveAnswer(int removeIndex) async {
-      final confirmed = await showDialog<bool>(
-        context: context,
-        builder: (dialogContext) => AlertDialog(
-          title: Text(appLocale.confirmDeletePlanAnswerTitle),
-          content: Text(appLocale.confirmDeletePlanAnswerMessage),
-          actions: [
-            TextButton(
-              onPressed: () => Navigator.of(dialogContext).pop(false),
-              child: Text(appLocale.closeButton(gender)),
-            ),
-            TextButton(
-              onPressed: () => Navigator.of(dialogContext).pop(true),
-              child: Text(appLocale.deleteButton(gender)),
-            ),
-          ],
-        ),
-      );
-      if (confirmed == true) {
-        widget.remove(removeIndex);
-      }
-      return confirmed == true;
     }
 
     return Dismissible(
       key: ValueKey('form-answer-${widget.text}'),
       direction: DismissDirection.endToStart,
-      confirmDismiss: (_) => confirmRemoveAnswer(widget.num - 1),
+      onDismissed: (_) => widget.remove(widget.num - 1),
       background: Container(
         alignment: AlignmentDirectional.centerEnd,
         padding: const EdgeInsetsDirectional.only(end: 20),
         color: Theme.of(context).colorScheme.error,
-        child: Icon(
-          Icons.delete,
-          color: Theme.of(context).colorScheme.onError,
-        ),
+        child: Icon(Icons.delete, color: Theme.of(context).colorScheme.onError),
       ),
       //Width is the parent's concern — the row fills whatever it is given.
       child: InkWell(
@@ -117,14 +109,31 @@ class _FormAnswerState extends LPExtendedState<FormAnswer> {
                 ),
                 //each row group is 30 tall with the divider at its bottom.
                 padding: const EdgeInsets.symmetric(vertical: 6.0),
-                child: myAutoSizedText(
-                  widget.text,
-                  TextStyle(
-                    fontSize: 16.sp,
-                    color: Theme.of(context).colorScheme.onSurface,
-                  ),
-                  TextAlign.start,
-                  16,
+                //A single muted pencil is the row's whole affordance: it says
+                //the answer can be changed without turning the list into a
+                //column of buttons. Tapping anywhere on the row opens the
+                //editor, where deleting also lives.
+                child: Row(
+                  spacing: _gapTextToEditHint,
+                  children: [
+                    Expanded(
+                      child: myAutoSizedText(
+                        widget.text,
+                        TextStyle(
+                          fontSize: 16.sp,
+                          color: Theme.of(context).colorScheme.onSurface,
+                        ),
+                        TextAlign.start,
+                        16,
+                      ),
+                    ),
+                    Icon(
+                      Icons.edit_outlined,
+                      size: _editHintSize,
+                      color: Theme.of(context).colorScheme.outline,
+                      semanticLabel: appLocale.addFormEdit(gender),
+                    ),
+                  ],
                 ),
               ),
             ),

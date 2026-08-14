@@ -84,7 +84,7 @@ void main() {
     expect(find.byType(AddFormAnswer), findsOneWidget);
   });
 
-  testWidgets('swipe to delete confirms before remove(num - 1)', (
+  testWidgets('swipe to delete removes immediately with remove(num - 1)', (
     tester,
   ) async {
     int? removedIndex;
@@ -105,17 +105,8 @@ void main() {
     await tester.drag(find.byType(Dismissible), const Offset(-1100, 0));
     await tester.pumpAndSettle();
 
-    expect(find.text('Delete this answer?'), findsOneWidget);
-    expect(removedIndex, isNull);
-
-    await tester.tap(find.text('Cancel'));
-    await tester.pumpAndSettle();
-    expect(removedIndex, isNull);
-
-    await tester.drag(find.byType(Dismissible), const Offset(-1100, 0));
-    await tester.pumpAndSettle();
-    await tester.tap(find.text('Delete'));
-    await tester.pumpAndSettle();
+    // No confirmation step — the swipe is the decision.
+    expect(find.text('Delete this answer?'), findsNothing);
     expect(removedIndex, 2, reason: 'remove must be called with num - 1');
   });
 }
