@@ -114,7 +114,7 @@ class _FormPageTemplateState extends WizardStepState<FormPageTemplate> {
     });
   }
 
-  void createSelection(userInfo) async {
+  Future<void> createSelection(userInfo) async {
     PersistentMemoryService service =
         GetIt.instance<
           PersistentMemoryService
@@ -371,14 +371,16 @@ class _FormPageTemplateState extends WizardStepState<FormPageTemplate> {
   }
 
   @override
-  void onPrimaryAction() {
+  Future<void> onPrimaryAction() async {
     final userInfoProvider = Provider.of<UserInformation>(
       context,
       listen: false,
     );
     AnalyticsService mixPanelService = GetIt.instance<AnalyticsService>();
     mixPanelService.trackEvent("Plan edited", {'page': widget.collectionName});
-    createSelection(userInfoProvider);
+    // Saved before moving on, so the step cannot be left behind with its
+    // answers still in flight.
+    await createSelection(userInfoProvider);
     widget.next();
   }
 

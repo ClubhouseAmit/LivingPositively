@@ -455,7 +455,7 @@ class _ShareFormState extends WizardStepState<ShareForm> {
   }
 
   @override
-  void onPrimaryAction() {
+  Future<void> onPrimaryAction() async {
     widget.submit(context);
   }
 

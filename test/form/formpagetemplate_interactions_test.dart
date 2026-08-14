@@ -37,7 +37,19 @@ class _FakeAnalytics implements AnalyticsService {
 }
 
 class _FakePm implements PersistentMemoryService {
+  _FakePm({this.writeDelay, this.failFirstWrite = false});
+
   final Map<String, dynamic> store = {};
+
+  /// Makes writes take measurable time so a test can observe the window
+  /// between tapping the primary button and the wizard advancing.
+  final Duration? writeDelay;
+
+  /// Fails the first write only, so a test can check that a step recovers
+  /// from a failed save rather than being stuck.
+  final bool failFirstWrite;
+  bool _firstWriteAttempted = false;
+
   @override
   Future<dynamic> getItem(String key, PersistentMemoryType type) async =>
       store[key];
@@ -48,6 +60,13 @@ class _FakePm implements PersistentMemoryService {
 
   @override
   Future<void> setItem(String key, PersistentMemoryType type, value) async {
+    if (writeDelay != null) {
+      await Future<void>.delayed(writeDelay!);
+    }
+    if (failFirstWrite && !_firstWriteAttempted) {
+      _firstWriteAttempted = true;
+      throw StateError('write failed');
+    }
     store[key] = value;
   }
 }
@@ -112,6 +131,15 @@ Future<void> _addViaDialog(WidgetTester tester, String? text) async {
   await tester.pumpAndSettle();
 }
 
+/// The primary button — WizardStepPage pins it below the step's content, so
+/// it is the last TextButton in the page.
+Finder _primaryButton() => find
+    .descendant(
+      of: find.byType(WizardStepPage),
+      matching: find.byType(TextButton),
+    )
+    .last;
+
 void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
 
@@ -130,23 +158,19 @@ void main() {
     await GetIt.instance.reset();
   });
 
-  testWidgets(
-    'empty-text add shows the AddFormAnswer validation error',
-    (tester) async {
-      await _pump(tester, 'PersonalPlan-DifficultEvents');
+  testWidgets('empty-text add shows the AddFormAnswer validation error', (
+    tester,
+  ) async {
+    await _pump(tester, 'PersonalPlan-DifficultEvents');
 
-      // Open the "add your own" dialog and save without entering text.
-      await _addViaDialog(tester, null);
+    // Open the "add your own" dialog and save without entering text.
+    await _addViaDialog(tester, null);
 
-      // The empty-text branch is now surfaced by AddFormAnswer's own
-      // validator instead of the removed inline TextField.
-      expect(find.text('Field cannot be empty'), findsOneWidget);
-      expect(
-        pm.store['userSelectionPersonalPlan-DifficultEvents'],
-        isNull,
-      );
-    },
-  );
+    // The empty-text branch is now surfaced by AddFormAnswer's own
+    // validator instead of the removed inline TextField.
+    expect(find.text('Field cannot be empty'), findsOneWidget);
+    expect(pm.store['userSelectionPersonalPlan-DifficultEvents'], isNull);
+  });
 
   testWidgets(
     'non-empty add appends a FormAnswer row (addItem + createSelection)',
@@ -198,12 +222,103 @@ void main() {
     // ...and gone from the suggestion pool, not merely restyled.
     expect(find.byKey(ValueKey('suggestion-$itemText')), findsNothing);
     expect(
-      find.ancestor(
-        of: find.byType(DottedBorder),
-        matching: find.byType(InkWell),
-      ).evaluate().length,
+      find
+          .ancestor(
+            of: find.byType(DottedBorder),
+            matching: find.byType(InkWell),
+          )
+          .evaluate()
+          .length,
       countBefore - 1,
     );
+  });
+
+  testWidgets('the wizard does not advance until the answers are saved', (
+    tester,
+  ) async {
+    // Re-register with a service whose writes take time, so the gap between
+    // the tap and the step advancing is observable.
+    await GetIt.instance.reset();
+    final slowPm = _FakePm(writeDelay: const Duration(milliseconds: 300));
+    GetIt.instance.registerSingleton<PersistentMemoryService>(slowPm);
+    GetIt.instance.registerSingleton<AnalyticsService>(_FakeAnalytics());
+
+    var nextCalls = 0;
+    await _pump(
+      tester,
+      'PersonalPlan-DifficultEvents',
+      onNext: () => nextCalls++,
+    );
+
+    await tester.tap(_primaryButton(), warnIfMissed: false);
+    await tester.pump(const Duration(milliseconds: 100));
+
+    // Still saving.
+    expect(nextCalls, 0);
+    expect(slowPm.store['userSelectionPersonalPlan-DifficultEvents'], isNull);
+
+    await tester.pump(const Duration(seconds: 2));
+    await tester.pumpAndSettle();
+
+    expect(nextCalls, 1);
+    expect(
+      slowPm.store['userSelectionPersonalPlan-DifficultEvents'],
+      isNotNull,
+    );
+  });
+
+  testWidgets('a failed save leaves the wizard where it is, and can be '
+      'retried', (tester) async {
+    await GetIt.instance.reset();
+    final flakyPm = _FakePm(failFirstWrite: true);
+    GetIt.instance.registerSingleton<PersistentMemoryService>(flakyPm);
+    GetIt.instance.registerSingleton<AnalyticsService>(_FakeAnalytics());
+
+    var nextCalls = 0;
+    await _pump(
+      tester,
+      'PersonalPlan-DifficultEvents',
+      onNext: () => nextCalls++,
+    );
+
+    await tester.tap(_primaryButton(), warnIfMissed: false);
+    await tester.pumpAndSettle();
+    expect(nextCalls, 0, reason: 'navigation waits on a save that failed');
+
+    // The in-flight guard released, so the step can be submitted again.
+    await tester.tap(_primaryButton(), warnIfMissed: false);
+    await tester.pumpAndSettle();
+    expect(nextCalls, 1);
+    expect(
+      flakyPm.store['userSelectionPersonalPlan-DifficultEvents'],
+      isNotNull,
+    );
+  });
+
+  testWidgets('double-tapping the primary button advances only one step', (
+    tester,
+  ) async {
+    await GetIt.instance.reset();
+    GetIt.instance.registerSingleton<PersistentMemoryService>(
+      _FakePm(writeDelay: const Duration(milliseconds: 300)),
+    );
+    GetIt.instance.registerSingleton<AnalyticsService>(_FakeAnalytics());
+
+    var nextCalls = 0;
+    await _pump(
+      tester,
+      'PersonalPlan-DifficultEvents',
+      onNext: () => nextCalls++,
+    );
+
+    // Both taps land inside the save window.
+    await tester.tap(_primaryButton(), warnIfMissed: false);
+    await tester.pump(const Duration(milliseconds: 50));
+    await tester.tap(_primaryButton(), warnIfMissed: false);
+    await tester.pump(const Duration(seconds: 2));
+    await tester.pumpAndSettle();
+
+    expect(nextCalls, 1);
   });
 
   testWidgets('picking every visible suggestion pulls in the next batch', (
@@ -212,9 +327,9 @@ void main() {
     await _pump(tester, 'PersonalPlan-DifficultEvents');
 
     Finder suggestionCards() => find.ancestor(
-          of: find.byType(DottedBorder),
-          matching: find.byType(InkWell),
-        );
+      of: find.byType(DottedBorder),
+      matching: find.byType(InkWell),
+    );
 
     String textOf(Finder card) => tester
         .widget<Text>(
