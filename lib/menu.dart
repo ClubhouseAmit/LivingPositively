@@ -305,7 +305,10 @@ class _MenuState extends LPExtendedState<Menu> {
       },
       child: Scaffold(
         resizeToAvoidBottomInset: false,
-        body: currentScreen,
+        body: Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 16),
+          child: currentScreen,
+        ),
         // SOS FAB is always visible — ADR-005 §A.2: emergency access must be
         // reachable in every app state, including fullscreen video playback.
         floatingActionButton: SizedBox(

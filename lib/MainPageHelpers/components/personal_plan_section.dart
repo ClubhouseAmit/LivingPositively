@@ -121,7 +121,6 @@ class PersonalPlanSectionWidget extends StatelessWidget {
       height: 70,
       child: ListView.builder(
         scrollDirection: Axis.horizontal,
-        padding: const EdgeInsets.symmetric(horizontal: AppSpacing.lg),
         itemCount: items.length,
         itemBuilder: (context, index) {
           return Container(
@@ -153,32 +152,29 @@ class PersonalPlanSectionWidget extends StatelessWidget {
     AppLocalizations appLocale,
     String gender,
   ) {
-    return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: AppSpacing.lg),
-      child: SizedBox(
-        height: 45,
-        child: CardContainer(
-          hasShadow: false,
-          onTap: onSeeAll,
-          padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 0),
-          child: Row(
-            children: [
-              Icon(
-                Icons.add_circle_outline,
-                color: Theme.of(context).colorScheme.primary,
-                size: 20,
+    return SizedBox(
+      height: 45,
+      child: CardContainer(
+        hasShadow: false,
+        onTap: onSeeAll,
+        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 0),
+        child: Row(
+          children: [
+            Icon(
+              Icons.add_circle_outline,
+              color: Theme.of(context).colorScheme.primary,
+              size: 20,
+            ),
+            const SizedBox(width: AppSpacing.md),
+            Expanded(
+              child: Text(
+                appLocale.personalPlanPageHasFilled(gender),
+                style: Theme.of(
+                  context,
+                ).textTheme.bodyMedium?.copyWith(fontWeight: FontWeight.w500),
               ),
-              const SizedBox(width: AppSpacing.md),
-              Expanded(
-                child: Text(
-                  appLocale.personalPlanPageHasFilled(gender),
-                  style: Theme.of(
-                    context,
-                  ).textTheme.bodyMedium?.copyWith(fontWeight: FontWeight.w500),
-                ),
-              ),
-            ],
-          ),
+            ),
+          ],
         ),
       ),
     );
