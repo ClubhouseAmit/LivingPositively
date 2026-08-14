@@ -504,6 +504,10 @@
   "@sosShareMessageTooltip": {
     "description": "Accessibility label for the SOS help-message action."
   },
+  "sosSharePersonalPlan": "Share Personal Plan during a crisis",
+  "@sosSharePersonalPlan": {
+    "description": "Featured SOS action that shares the Personal Plan PDF with the crisis message."
+  },
   "sosDeliveryOptionsTitle": "Choose a delivery option",
   "@sosDeliveryOptionsTitle": {
     "description": "Title for the SOS delivery-method chooser."

@@ -1171,6 +1171,9 @@ class AppLocalizationsEn extends AppLocalizations {
   String get sosShareMessageTooltip => 'Share your SOS help message';
 
   @override
+  String get sosSharePersonalPlan => 'Share Personal Plan during a crisis';
+
+  @override
   String get sosDeliveryOptionsTitle => 'Choose a delivery option';
 
   @override

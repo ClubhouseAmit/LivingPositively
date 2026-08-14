@@ -174,6 +174,10 @@
      "@sosShareMessageTooltip": {
        "description": "תווית נגישות לפעולת שיתוף הודעת העזרה של SOS."
      },
+     "sosSharePersonalPlan": "שיתוף התוכנית האישית בעת משבר",
+     "@sosSharePersonalPlan": {
+       "description": "פעולת SOS מרכזית שמשתפת את קובץ התוכנית האישית עם הודעת משבר."
+     },
      "sosDeliveryOptionsTitle": "בחירת אפשרות שליחה",
      "@sosDeliveryOptionsTitle": {
        "description": "כותרת לבחירת שיטת מסירה עבור SOS."
@@ -493,7 +497,7 @@
   
     "shareEmergency": "שיתוף הודעה במקרה של משבר",
   "noPermissionAllowedText": "הרשאה לא ניתנה",
-"shareEmergencyMessage":"אני במצב לא טוב ויש לי צורך בעזרה.אשמח לעזרתך בהפעלת התוכנית האישית שלי. בתודה מראש.",
+"shareEmergencyMessage":"אני במצב לא טוב ויש לי צורך בעזרה. אשמח לעזרתך בהפעלת התוכנית האישית שלי. בתודה מראש.",
   "callFailedMessage": "לא ניתן לחייג את {number}",
   "couldNotOpenApp": "לא ניתן לפתוח את האפליקציה",
   "copyNumberAction": "העתק מספר",

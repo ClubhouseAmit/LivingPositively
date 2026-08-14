@@ -6,11 +6,14 @@ import 'package:get_it/get_it.dart';
 import 'package:mazilon/EmergencyNumbers.dart';
 import 'package:mazilon/file_service.dart';
 import 'package:mazilon/form/phonePageform.dart';
+import 'package:mazilon/global_enums.dart';
 import 'package:mazilon/pages/sos_location_service.dart';
 import 'package:mazilon/util/LP_extended_state.dart';
 import 'package:mazilon/util/Phone/phoneTextAndIcon.dart';
+import 'package:mazilon/util/appInformation.dart';
 import 'package:provider/provider.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
+import 'package:mazilon/util/personal_plan_export_metadata.dart';
 import 'package:mazilon/util/userInformation.dart';
 import 'package:mazilon/util/styles.dart';
 import 'package:mazilon/util/Form/formPagePhoneModel.dart';
@@ -92,6 +95,21 @@ class _PhonePageState extends LPExtendedState<PhonePage> {
   Future<void> _startMessageDelivery() => _runSosDelivery(
     () => _showDeliveryOptions(appLocale.sosShareLocationMessage),
   );
+
+  Future<void> _startPersonalPlanCrisisShare(
+    AppInformation appInformation,
+    String gender,
+  ) => _runSosDelivery(() async {
+    final exportMetadata = buildPersonalPlanExportMetadata(appLocale, gender);
+    await GetIt.instance<FileService>().share(
+      appLocale.shareEmergencyMessage,
+      exportMetadata.titles,
+      exportMetadata.subTitles,
+      appInformation.sharePDFtexts,
+      ShareFileType.PDF,
+      appLocale.textDirection,
+    );
+  });
 
   Future<void> _runSosDelivery(Future<void> Function() delivery) async {
     if (_isSosDeliveryInProgress || !mounted) {
@@ -472,6 +490,7 @@ class _PhonePageState extends LPExtendedState<PhonePage> {
       context,
       listen: true,
     );
+    final appInformation = Provider.of<AppInformation>(context, listen: false);
 
     final gender = userInfoProvider.gender;
 
@@ -598,6 +617,22 @@ class _PhonePageState extends LPExtendedState<PhonePage> {
                         }),
                       );
                     },
+                  ),
+                  const SizedBox(height: 10.0),
+                  Padding(
+                    padding: const EdgeInsets.symmetric(horizontal: 30.0),
+                    child: SizedBox(
+                      width: double.infinity,
+                      child: ElevatedButton.icon(
+                        key: const Key('phonePageSharePersonalPlanButton'),
+                        onPressed: () => _startPersonalPlanCrisisShare(
+                          appInformation,
+                          gender,
+                        ),
+                        icon: const Icon(Icons.description),
+                        label: Text(appLocale.sosSharePersonalPlan),
+                      ),
+                    ),
                   ),
                   const SizedBox(height: 10.0),
                   Padding(

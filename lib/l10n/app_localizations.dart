@@ -868,6 +868,12 @@ abstract class AppLocalizations {
   /// **'Share your SOS help message'**
   String get sosShareMessageTooltip;
 
+  /// Featured SOS action that shares the Personal Plan PDF with the crisis message.
+  ///
+  /// In en, this message translates to:
+  /// **'Share Personal Plan during a crisis'**
+  String get sosSharePersonalPlan;
+
   /// Title for the SOS delivery-method chooser.
   ///
   /// In en, this message translates to:

@@ -1150,6 +1150,9 @@ class AppLocalizationsHe extends AppLocalizations {
   String get sosShareMessageTooltip => 'שיתוף הודעת העזרה שלך';
 
   @override
+  String get sosSharePersonalPlan => 'שיתוף התוכנית האישית בעת משבר';
+
+  @override
   String get sosDeliveryOptionsTitle => 'בחירת אפשרות שליחה';
 
   @override
@@ -1387,7 +1390,7 @@ class AppLocalizationsHe extends AppLocalizations {
 
   @override
   String get shareEmergencyMessage =>
-      'אני במצב לא טוב ויש לי צורך בעזרה.אשמח לעזרתך בהפעלת התוכנית האישית שלי. בתודה מראש.';
+      'אני במצב לא טוב ויש לי צורך בעזרה. אשמח לעזרתך בהפעלת התוכנית האישית שלי. בתודה מראש.';
 
   @override
   String get informationCollectionDisclaimer =>

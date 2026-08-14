@@ -1155,6 +1155,9 @@ class AppLocalizationsAr extends AppLocalizations {
   String get sosShareMessageTooltip => 'مشاركة رسالة طلب المساعدة';
 
   @override
+  String get sosSharePersonalPlan => 'مشاركة الخطة الشخصية أثناء الأزمة';
+
+  @override
   String get sosDeliveryOptionsTitle => 'خيارات الإرسال';
 
   @override
