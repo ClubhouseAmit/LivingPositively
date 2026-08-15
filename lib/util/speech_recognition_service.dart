@@ -32,7 +32,15 @@ abstract interface class SpeechRecognitionService {
   /// result callback.
   Future<SpeechRecognitionSessionControlResult> stop();
 
-  /// Discards the active session and ignores any later recognizer callbacks.
+  /// Discards the active session and suppresses ordinary later recognizer
+  /// callbacks.
+  ///
+  /// If cancellation completes with
+  /// [SpeechRecognitionSessionControlResult.failed], a later terminal signal
+  /// for the same still-active discarded session may deliver one synthetic
+  /// [SpeechRecognitionStatusEvent] with
+  /// [SpeechRecognitionSessionStatus.completed] through the original [start]
+  /// callback. Callbacks for nonmatching session IDs remain ignored.
   Future<SpeechRecognitionSessionControlResult> cancel();
 
   /// Whether a recognition session is currently active.
