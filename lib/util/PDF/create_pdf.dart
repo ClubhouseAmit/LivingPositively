@@ -24,16 +24,17 @@ pw.Alignment getAlignment(String text) {
       : pw.Alignment.centerRight;
 }
 
-pw.TextDirection pdfTextDirectionForLocale(String textDirectionLocale) =>
-    textDirectionLocale == 'rtl' ? pw.TextDirection.rtl : pw.TextDirection.ltr;
+/// Maps the `'rtl'` direction token to RTL; all other values fall back to LTR.
+pw.TextDirection pdfTextDirectionForDirection(String textDirection) =>
+    textDirection == 'rtl' ? pw.TextDirection.rtl : pw.TextDirection.ltr;
 
-pw.Alignment pdfAlignmentForLocale(String textDirectionLocale) =>
-    textDirectionLocale == 'rtl'
-    ? pw.Alignment.centerRight
-    : pw.Alignment.centerLeft;
+/// Maps the `'rtl'` direction token to right alignment; all other values use left.
+pw.Alignment pdfAlignmentForDirection(String textDirection) =>
+    textDirection == 'rtl' ? pw.Alignment.centerRight : pw.Alignment.centerLeft;
 
-pw.TextAlign pdfTextAlignForLocale(String textDirectionLocale) =>
-    textDirectionLocale == 'rtl' ? pw.TextAlign.right : pw.TextAlign.left;
+/// Maps the `'rtl'` direction token to right text alignment; all other values use left.
+pw.TextAlign pdfTextAlignForDirection(String textDirection) =>
+    textDirection == 'rtl' ? pw.TextAlign.right : pw.TextAlign.left;
 
 Future<Map<String, dynamic>> createPDF(
   List<dynamic> titles,
@@ -41,7 +42,7 @@ Future<Map<String, dynamic>> createPDF(
   Map<String, String> texts,
   String mainTitle,
   List<List<String>> data,
-  String textDirectionLocale,
+  String textDirection,
 ) async {
   final pageFormat = PdfPageFormat.a4;
   final ByteData fontData = await rootBundle.load('assets/fonts/CALIBRI.TTF');
@@ -51,9 +52,9 @@ Future<Map<String, dynamic>> createPDF(
   final image = pw.Image(pw.MemoryImage(imageBytes));
   final pdf = pw.Document();
   List<pw.Widget> widgets = [];
-  final textDirection = pdfTextDirectionForLocale(textDirectionLocale);
-  final alignment = pdfAlignmentForLocale(textDirectionLocale);
-  final textAlign = pdfTextAlignForLocale(textDirectionLocale);
+  final pdfTextDirection = pdfTextDirectionForDirection(textDirection);
+  final alignment = pdfAlignmentForDirection(textDirection);
+  final textAlign = pdfTextAlignForDirection(textDirection);
   if (mainTitle.isNotEmpty) {
     widgets.add(
       pw.Container(
@@ -61,7 +62,7 @@ Future<Map<String, dynamic>> createPDF(
         child: pw.Align(
           alignment: alignment,
           child: pw.Directionality(
-            textDirection: textDirection,
+            textDirection: pdfTextDirection,
             child: pw.Text(
               mainTitle,
               style: pw.TextStyle(fontSize: 40, font: ttf),
@@ -80,14 +81,13 @@ Future<Map<String, dynamic>> createPDF(
     if (hasRenderedSection) {
       widgets.add(pw.SizedBox(height: 25));
     }
-    widgets.add(pw.SizedBox(height: 25));
 
     // Add the title, subtitle, and data for each section
     widgets.add(
       pw.Padding(
         padding: const pw.EdgeInsets.all(8.0),
         child: pw.Directionality(
-          textDirection: textDirection,
+          textDirection: pdfTextDirection,
           child: pw.Column(
             children: [
               pw.Container(
@@ -95,7 +95,7 @@ Future<Map<String, dynamic>> createPDF(
                 child: pw.Align(
                   alignment: alignment,
                   child: pw.Directionality(
-                    textDirection: textDirection,
+                    textDirection: pdfTextDirection,
                     child: pw.Text(
                       titles[i],
                       style: pw.TextStyle(
@@ -113,7 +113,7 @@ Future<Map<String, dynamic>> createPDF(
                 child: pw.Align(
                   alignment: alignment,
                   child: pw.Directionality(
-                    textDirection: textDirection,
+                    textDirection: pdfTextDirection,
                     child: pw.Text(
                       subTitles[i],
                       style: pw.TextStyle(
@@ -137,7 +137,7 @@ Future<Map<String, dynamic>> createPDF(
                           pw.Padding(
                             padding: const pw.EdgeInsets.only(right: 5),
                             child: pw.Directionality(
-                              textDirection: textDirection,
+                              textDirection: pdfTextDirection,
                               child: pw.Text(
                                 '${entry.key + 1}. ${entry.value}',
                                 style: pw.TextStyle(fontSize: 20, font: ttf),
@@ -167,7 +167,7 @@ Future<Map<String, dynamic>> createPDF(
       crossAxisAlignment: pw.CrossAxisAlignment.end,
       children: [
         pw.Directionality(
-          textDirection: textDirection,
+          textDirection: pdfTextDirection,
           child: pw.Text(
             texts["text1"]!,
             style: pw.TextStyle(fontSize: 20, font: ttf),
@@ -176,7 +176,7 @@ Future<Map<String, dynamic>> createPDF(
         ),
         pw.SizedBox(height: 10),
         pw.Directionality(
-          textDirection: textDirection,
+          textDirection: pdfTextDirection,
           child: pw.UrlLink(
             destination: texts["text2Link"]!,
             child: pw.Text(
@@ -192,7 +192,7 @@ Future<Map<String, dynamic>> createPDF(
         ),
         pw.SizedBox(height: 10),
         pw.Directionality(
-          textDirection: textDirection,
+          textDirection: pdfTextDirection,
           child: pw.Text(
             texts["text3"]!,
             style: pw.TextStyle(fontSize: 20, font: ttf),
@@ -201,7 +201,7 @@ Future<Map<String, dynamic>> createPDF(
         ),
         pw.SizedBox(height: 20),
         pw.Directionality(
-          textDirection: textDirection,
+          textDirection: pdfTextDirection,
           child: pw.Text(
             texts["text4"]!,
             style: pw.TextStyle(fontSize: 20, font: ttf),
@@ -210,7 +210,7 @@ Future<Map<String, dynamic>> createPDF(
         ),
         pw.SizedBox(height: 10),
         pw.Directionality(
-          textDirection: textDirection,
+          textDirection: pdfTextDirection,
           child: pw.UrlLink(
             destination: texts["text5Link"]!,
             child: pw.Text(
@@ -226,7 +226,7 @@ Future<Map<String, dynamic>> createPDF(
         ),
         pw.SizedBox(height: 10),
         pw.Directionality(
-          textDirection: textDirection,
+          textDirection: pdfTextDirection,
           child: pw.Text(
             texts["text6"]!,
             style: pw.TextStyle(fontSize: 20, font: ttf),

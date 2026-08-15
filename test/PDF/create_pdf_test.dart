@@ -33,19 +33,24 @@ void main() {
     });
 
     test(
-      'pdfTextDirectionForLocale uses RTL only for the rtl locale value',
+      'pdfTextDirectionForDirection uses RTL only for the rtl direction token',
       () {
-        expect(pdfTextDirectionForLocale('rtl'), pw.TextDirection.rtl);
-        expect(pdfTextDirectionForLocale('ltr'), pw.TextDirection.ltr);
-        expect(pdfTextDirectionForLocale('unexpected'), pw.TextDirection.ltr);
+        expect(pdfTextDirectionForDirection('rtl'), pw.TextDirection.rtl);
+        expect(pdfTextDirectionForDirection('ltr'), pw.TextDirection.ltr);
+        expect(
+          pdfTextDirectionForDirection('unexpected'),
+          pw.TextDirection.ltr,
+        );
       },
     );
 
-    test('pdf alignment follows the locale direction', () {
-      expect(pdfAlignmentForLocale('rtl'), pw.Alignment.centerRight);
-      expect(pdfAlignmentForLocale('ltr'), pw.Alignment.centerLeft);
-      expect(pdfTextAlignForLocale('rtl'), pw.TextAlign.right);
-      expect(pdfTextAlignForLocale('ltr'), pw.TextAlign.left);
+    test('pdf alignment follows the direction token with an LTR fallback', () {
+      expect(pdfAlignmentForDirection('rtl'), pw.Alignment.centerRight);
+      expect(pdfAlignmentForDirection('ltr'), pw.Alignment.centerLeft);
+      expect(pdfAlignmentForDirection('unexpected'), pw.Alignment.centerLeft);
+      expect(pdfTextAlignForDirection('rtl'), pw.TextAlign.right);
+      expect(pdfTextAlignForDirection('ltr'), pw.TextAlign.left);
+      expect(pdfTextAlignForDirection('unexpected'), pw.TextAlign.left);
     });
   });
 
@@ -88,6 +93,24 @@ void main() {
         [
           [],
           ['only-section-with-data'],
+        ],
+        'ltr',
+      );
+      final doc = result['file'] as pw.Document;
+      final bytes = await doc.save();
+      expect(bytes.lengthInBytes, greaterThan(500));
+    });
+
+    test('renders populated sections after a leading empty section', () async {
+      final result = await createPDF(
+        ['Title 1', 'Title 2', 'Title 3'],
+        ['Sub 1', 'Sub 2', 'Sub 3'],
+        defaultTexts,
+        'My Plan',
+        [
+          <String>[],
+          ['first-populated-section'],
+          ['second-populated-section'],
         ],
         'ltr',
       );
