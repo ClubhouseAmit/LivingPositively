@@ -92,6 +92,7 @@ void main() {
           'phones subtitle',
           'safe environment subtitle',
         ],
+        const {},
         mainTitle: 'My Personal Plan',
       );
 

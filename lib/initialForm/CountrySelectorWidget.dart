@@ -14,10 +14,24 @@ class CountrySelectorWidget extends StatefulWidget {
   final String text;
   final String disclaimerText;
 
+  /// Style hooks. The defaults reproduce the onboarding form's field
+  /// treatment; the settings screen overrides them so this control sits in
+  /// that screen's own field rhythm (pen.dev "Settings Screen", node Ii3Fz).
+  final TextStyle? labelStyle;
+  final double? labelGap;
+  final BoxDecoration? fieldDecoration;
+  final double? fieldHeight;
+  final double helpButtonSize;
+
   const CountrySelectorWidget({
     super.key,
     required this.text,
     required this.disclaimerText,
+    this.labelStyle,
+    this.labelGap,
+    this.fieldDecoration,
+    this.fieldHeight,
+    this.helpButtonSize = 44,
   });
 
   @override
@@ -94,7 +108,7 @@ class _CountrySelectorWidgetState
       mainAxisSize: MainAxisSize.min,
       // Same label-to-field gap as the other field groups on this screen; the
       // separation from the next group belongs to the enclosing block.
-      spacing: OnboardingGaps.labelToField,
+      spacing: widget.labelGap ?? OnboardingGaps.labelToField,
       children: [
         SizedBox(
           child: Row(
@@ -105,21 +119,23 @@ class _CountrySelectorWidgetState
                 // label/field rhythm and must read as one of its fields.
                 child: Text(
                   widget.text,
-                  style: TextStyle(
-                    fontSize: kFormFieldLabelSize.sp,
-                    height: kFormFieldLabelHeight,
-                    fontWeight: AppFontWeight.semiBold,
-                    color: Theme.of(context).colorScheme.onSurface,
-                    fontFamily: 'Rubix',
-                  ),
+                  style:
+                      widget.labelStyle ??
+                      TextStyle(
+                        fontSize: kFormFieldLabelSize.sp,
+                        height: kFormFieldLabelHeight,
+                        fontWeight: AppFontWeight.semiBold,
+                        color: Theme.of(context).colorScheme.onSurface,
+                        fontFamily: 'Rubix',
+                      ),
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
                   textAlign: TextAlign.start,
                 ),
               ),
               SizedBox(
-                width: 44,
-                height: 44,
+                width: widget.helpButtonSize,
+                height: widget.helpButtonSize,
                 child: TextButton(
                   style: ButtonStyle(
                     padding: const WidgetStatePropertyAll(EdgeInsets.zero),
@@ -142,9 +158,9 @@ class _CountrySelectorWidgetState
         // 1px grey outline, no fill, card shadow). This used to be a one-off:
         // radius 8, a grey fill, and a hand-rolled shadow.
         Container(
-          height: kFormFieldHeight,
-          padding: const EdgeInsetsDirectional.fromSTEB(14, 8, 14, 8),
-          decoration: formFieldDecoration(context),
+          height: widget.fieldHeight ?? kFormFieldHeight,
+          padding: const EdgeInsetsDirectional.fromSTEB(14, 0, 14, 0),
+          decoration: widget.fieldDecoration ?? formFieldDecoration(context),
           child: Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
@@ -165,6 +181,10 @@ class _CountrySelectorWidgetState
                   showOnlyCountryWhenClosed: true,
                   dialogBackgroundColor: colorScheme.surface,
                   dialogTextStyle: dialogTextStyle,
+                  textStyle: TextStyle(
+                    fontSize: 14.sp,
+                    color: colorScheme.onSurface,
+                  ),
                   alignLeft: true, // Changed to true for left alignment
                   countryFilter: countryPickerCodes,
                   padding: EdgeInsets.zero, // Remove internal padding
@@ -173,7 +193,7 @@ class _CountrySelectorWidgetState
               Icon(
                 Icons.keyboard_arrow_down,
                 color: Theme.of(context).colorScheme.outline,
-                size: 24,
+                size: 20,
               ),
             ],
           ),

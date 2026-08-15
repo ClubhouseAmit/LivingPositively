@@ -517,7 +517,7 @@ abstract class AppLocalizations {
   /// No description provided for @darkModeSleepPromoting.
   ///
   /// In en, this message translates to:
-  /// **'Sleep-Promoting Mode'**
+  /// **'Scheduled'**
   String get darkModeSleepPromoting;
 
   /// No description provided for @darkModeStartTime.
