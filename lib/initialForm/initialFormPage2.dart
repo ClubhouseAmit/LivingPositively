@@ -1,11 +1,8 @@
-// ignore_for_file: prefer_const_constructors, sized_box_for_whitespace
-
 import 'package:flutter/material.dart';
+import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:mazilon/form/wizard_step.dart';
 import 'package:mazilon/initialForm/CountrySelectorWidget.dart';
 import 'package:mazilon/l10n/app_localizations.dart';
-
-import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:mazilon/util/Form/myDropdownMenuEntry.dart';
 import 'package:mazilon/util/styles.dart';
 import 'package:mazilon/util/theme/font_weight.dart';
@@ -13,12 +10,11 @@ import 'package:mazilon/util/theme/spacing.dart';
 import 'package:mazilon/util/userInformation.dart';
 import 'package:provider/provider.dart';
 
-//second page of the initial form
-//this is where the user selects their age,name and gender
+// Second page of the initial form: user selects age, name and gender.
 class InitialFormPage2 extends WizardStep {
-  final Function next;
-  final Function prev;
-  final Function updateName;
+  final VoidCallback next;
+  final VoidCallback prev;
+  final ValueChanged<String> updateName;
 
   const InitialFormPage2({
     required super.key,
@@ -39,10 +35,15 @@ class InitialFormPage2 extends WizardStep {
 class _InitialFormPage2State extends WizardStepState<InitialFormPage2> {
   final _formKey = GlobalKey<FormState>();
   final _nameController = TextEditingController();
-  String? dropdownValueAge = '18-30';
-  String? dropdownValueGender = '';
-  List<String> ages = ['18-', '18-30', '30-40', '40-55', '55+'];
-  List<String> genders = [];
+
+  static const List<String> ages = ['18-', '18-30', '30-40', '40-55', '55+'];
+
+  @override
+  void initState() {
+    super.initState();
+    final user = Provider.of<UserInformation>(context, listen: false);
+    _nameController.text = user.name;
+  }
 
   @override
   void dispose() {
@@ -50,11 +51,37 @@ class _InitialFormPage2State extends WizardStepState<InitialFormPage2> {
     super.dispose();
   }
 
-  /// Field label — Figma specifies a single 14px/SemiBold line box per field
-  /// (nodes 1660:2288 / 2294 / 2300), start-aligned so it mirrors under RTL.
-  ///
-  /// The name label used to be split on "(" and rendered at two different
-  /// sizes; the design has one uniform label, so the split is gone.
+  String _selectedGender(UserInformation user, AppLocalizations l10n) {
+    if (user.binary) return l10n.nonBinary;
+    return switch (user.gender) {
+      'male' => l10n.male,
+      'female' => l10n.female,
+      _ => l10n.notWillingToSay,
+    };
+  }
+
+  void _updateGender(
+    String? label,
+    UserInformation user,
+    AppLocalizations l10n,
+  ) {
+    if (label == null) return;
+    if (label == l10n.male) {
+      user.updateGender('male');
+      user.updateBinary(false);
+    } else if (label == l10n.female) {
+      user.updateGender('female');
+      user.updateBinary(false);
+    } else if (label == l10n.nonBinary) {
+      user.updateGender('');
+      user.updateBinary(true);
+    } else {
+      user.updateGender('');
+      user.updateBinary(false);
+    }
+  }
+
+  /// Field label (Figma nodes 1660:2288 / 2294 / 2300).
   Widget _formLabel(String text) {
     return Text(
       text,
@@ -71,14 +98,10 @@ class _InitialFormPage2State extends WizardStepState<InitialFormPage2> {
     );
   }
 
-  /// One label + field pair — Figma Groups 143/141/142 on frame 28. The
-  /// groups carry no auto-layout, so the gap comes from the shared onboarding
-  /// scale rather than from a per-screen measurement.
+  /// Label + field group (Figma Groups 143/141/142 on frame 28).
   Widget _fieldGroup({required Widget label, required Widget field}) {
     return Column(
       mainAxisSize: MainAxisSize.min,
-      // Stretch, not start: the design's fields span the full 330 of the
-      // content column, the same width as the primary button below them.
       crossAxisAlignment: CrossAxisAlignment.stretch,
       spacing: OnboardingGaps.labelToField,
       children: [label, field],
@@ -96,240 +119,154 @@ class _InitialFormPage2State extends WizardStepState<InitialFormPage2> {
       return;
     }
     final trimmedName = _nameController.text.trim();
-
-    userInfoProvider.updateAge(dropdownValueAge ?? '');
+    if (userInfoProvider.age.isEmpty) {
+      userInfoProvider.updateAge(ages[1]);
+    }
     userInfoProvider.updateName(trimmedName);
     widget.updateName(trimmedName);
-    userInfoProvider.updateBinary(dropdownValueGender == appLocale.nonBinary);
-
-    if (dropdownValueGender != null) {
-      if (dropdownValueGender == appLocale.male) {
-        userInfoProvider.updateGender('male');
-      } else if (dropdownValueGender == appLocale.female) {
-        userInfoProvider.updateGender('female');
-      } else {
-        userInfoProvider.updateGender('');
-      }
-    }
     widget.next();
   }
 
   @override
   Widget build(BuildContext context) {
     final userInfoProvider = Provider.of<UserInformation>(context);
+    final gender = userInfoProvider.gender;
 
-    genders = [
+    final genders = [
       appLocale.male,
       appLocale.female,
       appLocale.nonBinary,
       appLocale.notWillingToSay,
     ];
-    var gender = userInfoProvider.gender;
-    // Frame 28 shows the age field pre-filled with "18-30"; a user who has not
-    // picked yet should see that default rather than an empty control.
-    dropdownValueAge = userInfoProvider.age.isEmpty
+
+    final selectedAge = userInfoProvider.age.isEmpty
         ? ages[1]
         : userInfoProvider.age;
-    //add genders here
 
-    dropdownValueGender = (userInfoProvider.binary)
-        ? appLocale.nonBinary
-        : (userInfoProvider.gender == 'male'
-              ? appLocale.male
-              : userInfoProvider.gender == 'female'
-              ? appLocale.female
-              : appLocale.notWillingToSay);
+    final selectedGender = _selectedGender(userInfoProvider, appLocale);
+
     return GestureDetector(
       onTap: () {
         FocusScope.of(context).unfocus();
       },
       child: SingleChildScrollView(
         padding: EdgeInsets.only(bottom: 8.h),
-        // topCenter, not Center: all three frames put the title block at y 104,
-        // and centring the column vertically dropped this screen's title well
-        // below the other two whenever the form was shorter than the viewport.
-        child: Align(
-          alignment: Alignment.topCenter,
-          child: ConstrainedBox(
-            constraints: const BoxConstraints(maxWidth: 360),
-            // Tight width inside the cap: `Center` hands the column loose
-            // constraints, under which `stretch` resolves to the widest text
-            // rather than the full column, leaving the fields narrower than
-            // the button below them.
-            child: SizedBox(
-              width: double.infinity,
-              child: Form(
-                key: _formKey,
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.stretch,
-                  spacing: OnboardingGaps.betweenBlocks,
-                  children: [
-                    // Title block — Figma Frame 205 (1660:2844): VERTICAL,
-                    // itemSpacing 16, narrower than the content column so the
-                    // copy wraps as designed.
-                    ConstrainedBox(
-                      constraints: BoxConstraints(
-                        maxWidth: OnboardingSizes.titleBlockWidth.w,
-                      ),
-                      child: Column(
-                        key: const Key('intro-title-block'),
-                        mainAxisSize: MainAxisSize.min,
-                        spacing: OnboardingGaps.withinBlock,
-                        children: [
-                          myText(
-                            appLocale.introductionFormSecondPageMainTitle(
-                              gender,
-                            ),
-                            TextStyle(
-                              fontSize: 26.sp,
-                              height: 1.3,
-                              fontWeight: AppFontWeight.medium,
-                              color: Theme.of(context).colorScheme.onSurface,
-                            ),
-                            TextAlign.center,
-                          ),
-                          myText(
-                            appLocale.introductionFormSecondPageSubTitle(
-                              gender,
-                            ),
-                            TextStyle(
-                              fontSize: 16.sp,
-                              height: 1.125,
-                              fontWeight: AppFontWeight.regular,
-                              color: Theme.of(context).colorScheme.outline,
-                            ),
-                            TextAlign.center,
-                          ),
-                        ],
-                      ),
+        child: Form(
+          key: _formKey,
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            spacing: OnboardingGaps.betweenBlocks,
+            children: [
+              Column(
+                key: const Key('intro-title-block'),
+                mainAxisSize: MainAxisSize.min,
+                spacing: OnboardingGaps.withinBlock,
+                children: [
+                  Text(
+                    appLocale.introductionFormSecondPageMainTitle(gender),
+                    style: TextStyle(
+                      fontSize: 26.sp,
+                      height: 1.3,
+                      fontWeight: AppFontWeight.medium,
+                      color: Theme.of(context).colorScheme.onSurface,
                     ),
-                    // Fields block — Groups 143/141/142 sit 16 apart, each 330
-                    // wide (the full content column) like the button below.
-                    Column(
-                      crossAxisAlignment: CrossAxisAlignment.stretch,
-                      spacing: OnboardingGaps.withinBlock,
-                      children: [
-                        _fieldGroup(
-                          label: _formLabel(appLocale.userSettingsName(gender)),
-                          field: Container(
-                            decoration: formFieldShadowDecoration(),
-                            child: TextFormField(
-                              controller: _nameController,
-                              decoration: formFieldInputDecoration(context),
-                              validator: (text) {
-                                if ((text ?? '').trim().isEmpty) {
-                                  return appLocale.nameRequiredError;
-                                }
-                                return null;
-                              },
-                              textAlignVertical: TextAlignVertical.center,
-                            ),
-                          ),
-                        ),
-                        _fieldGroup(
-                          label: _formLabel(appLocale.userSettingsAge(gender)),
-                          //ages drop down select:
-                          field: Container(
-                            decoration: formFieldShadowDecoration(),
-                            child: DropdownMenu<String>(
-                              // Fills the group's width instead of sizing to the
-                              // widest entry, so it matches the other fields.
-                              expandedInsets: EdgeInsets.zero,
-                              inputDecorationTheme:
-                                  formFieldInputDecorationTheme(context),
-                              initialSelection: dropdownValueAge,
-                              dropdownMenuEntries: [
-                                ...ages.map(
-                                  (age) => buildDropdownMenuEntry(
-                                    age,
-                                    dropdownValueAge == age
-                                        ? Theme.of(context).colorScheme.primary
-                                        : Theme.of(
-                                            context,
-                                          ).colorScheme.onSurface,
-                                  ),
-                                ),
-                              ],
-                              onSelected: (String? newValue) {
-                                setState(() {
-                                  if (newValue != null) {
-                                    dropdownValueAge = newValue;
-                                    userInfoProvider.updateAge(newValue);
-                                  }
-                                });
-                                // Do something with the selected value
-                              },
-                            ),
-                          ),
-                        ),
-                        _fieldGroup(
-                          label: _formLabel(
-                            appLocale.userSettingsGender(gender),
-                          ),
-                          //gender drop down select
-                          field: Container(
-                            decoration: formFieldShadowDecoration(),
-                            child: DropdownMenu<String>(
-                              // Fills the group's width instead of sizing to the
-                              // widest entry, so it matches the other fields.
-                              expandedInsets: EdgeInsets.zero,
-                              inputDecorationTheme:
-                                  formFieldInputDecorationTheme(context),
-                              initialSelection: (userInfoProvider.binary)
-                                  ? appLocale.nonBinary
-                                  : (userInfoProvider.gender == 'male'
-                                        ? appLocale.male
-                                        : userInfoProvider.gender == 'female'
-                                        ? appLocale.female
-                                        : appLocale.notWillingToSay),
-                              dropdownMenuEntries: [
-                                ...genders.map(
-                                  (gender) => buildDropdownMenuEntry(
-                                    gender,
-                                    dropdownValueGender == gender
-                                        ? Theme.of(context).colorScheme.primary
-                                        : Theme.of(
-                                            context,
-                                          ).colorScheme.onSurface,
-                                  ),
-                                ),
-                              ],
-                              //update user info accordingly:
-                              onSelected: (String? newValue) {
-                                setState(() {
-                                  if (newValue != null) {
-                                    dropdownValueGender = newValue;
-                                    if (newValue == appLocale.male) {
-                                      userInfoProvider.updateGender('male');
-                                      userInfoProvider.updateBinary(false);
-                                    } else if (newValue == appLocale.female) {
-                                      userInfoProvider.updateGender('female');
-                                      userInfoProvider.updateBinary(false);
-                                    } else if (newValue ==
-                                        appLocale.nonBinary) {
-                                      userInfoProvider.updateGender('');
-                                      userInfoProvider.updateBinary(true);
-                                    } else {
-                                      userInfoProvider.updateGender('');
-                                      userInfoProvider.updateBinary(false);
-                                    }
-                                  }
-                                });
-                                // Do something with the selected value
-                              },
-                            ),
-                          ),
-                        ),
-                        CountrySelectorWidget(
-                          text: appLocale.locationSelect(gender),
-                          disclaimerText: appLocale.locationDisclaimer(gender),
-                        ),
-                      ],
+                    textAlign: TextAlign.center,
+                  ),
+                  Text(
+                    appLocale.introductionFormSecondPageSubTitle(gender),
+                    style: TextStyle(
+                      fontSize: 16.sp,
+                      height: 1.125,
+                      fontWeight: AppFontWeight.regular,
+                      color: Theme.of(context).colorScheme.outline,
                     ),
-                  ],
-                ),
+                    textAlign: TextAlign.center,
+                  ),
+                ],
               ),
-            ),
+              // Fields block — Groups 143/141/142.
+              Column(
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                spacing: OnboardingGaps.withinBlock,
+                children: [
+                  _fieldGroup(
+                    label: _formLabel(appLocale.userSettingsName(gender)),
+                    field: DecoratedBox(
+                      decoration: formFieldShadowDecoration(),
+                      child: TextFormField(
+                        controller: _nameController,
+                        decoration: formFieldInputDecoration(context),
+                        validator: (text) {
+                          if ((text ?? '').trim().isEmpty) {
+                            return appLocale.nameRequiredError;
+                          }
+                          return null;
+                        },
+                        textAlignVertical: TextAlignVertical.center,
+                      ),
+                    ),
+                  ),
+                  _fieldGroup(
+                    label: _formLabel(appLocale.userSettingsAge(gender)),
+                    field: DecoratedBox(
+                      decoration: formFieldShadowDecoration(),
+                      child: DropdownMenu<String>(
+                        expandedInsets: EdgeInsets.zero,
+                        inputDecorationTheme:
+                            formFieldInputDecorationTheme(context),
+                        initialSelection: selectedAge,
+                        dropdownMenuEntries: [
+                          for (final age in ages)
+                            buildDropdownMenuEntry(
+                              age,
+                              selectedAge == age
+                                  ? Theme.of(context).colorScheme.primary
+                                  : Theme.of(context).colorScheme.onSurface,
+                            ),
+                        ],
+                        onSelected: (String? newValue) {
+                          if (newValue != null) {
+                            userInfoProvider.updateAge(newValue);
+                          }
+                        },
+                      ),
+                    ),
+                  ),
+                  _fieldGroup(
+                    label: _formLabel(
+                      appLocale.userSettingsGender(gender),
+                    ),
+                    field: DecoratedBox(
+                      decoration: formFieldShadowDecoration(),
+                      child: DropdownMenu<String>(
+                        expandedInsets: EdgeInsets.zero,
+                        inputDecorationTheme:
+                            formFieldInputDecorationTheme(context),
+                        initialSelection: selectedGender,
+                        dropdownMenuEntries: [
+                          for (final g in genders)
+                            buildDropdownMenuEntry(
+                              g,
+                              selectedGender == g
+                                  ? Theme.of(context).colorScheme.primary
+                                  : Theme.of(context).colorScheme.onSurface,
+                            ),
+                        ],
+                        onSelected: (String? newValue) => _updateGender(
+                          newValue,
+                          userInfoProvider,
+                          appLocale,
+                        ),
+                      ),
+                    ),
+                  ),
+                  CountrySelectorWidget(
+                    text: appLocale.locationSelect(gender),
+                    disclaimerText: appLocale.locationDisclaimer(gender),
+                  ),
+                ],
+              ),
+            ],
           ),
         ),
       ),

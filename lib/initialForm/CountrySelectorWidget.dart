@@ -1,17 +1,13 @@
 import 'package:flutter/material.dart';
 import 'package:country_code_picker/country_code_picker.dart';
-import 'package:get_it/get_it.dart';
-import 'package:mazilon/global_enums.dart';
 import 'package:mazilon/util/LP_extended_state.dart';
 import 'package:mazilon/EmergencyNumbers.dart';
-import 'package:mazilon/util/persistent_memory_service.dart';
 import 'package:mazilon/util/styles.dart';
 import 'package:mazilon/util/theme/font_weight.dart';
 import 'package:mazilon/util/theme/shadows.dart';
 import 'package:mazilon/util/theme/spacing.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:mazilon/util/userInformation.dart';
-
 import 'package:provider/provider.dart';
 
 class CountrySelectorWidget extends StatefulWidget {
@@ -31,7 +27,7 @@ class CountrySelectorWidget extends StatefulWidget {
 class _CountrySelectorWidgetState
     extends LPExtendedState<CountrySelectorWidget> {
   bool isVisible = false;
-  bool _didInitLocation = false;
+
   String resolveCountryCode(String? currentLocation, BuildContext context) {
     final normalizedLocation = (currentLocation ?? '').trim().toUpperCase();
     if (normalizedLocation.isNotEmpty) {
@@ -56,20 +52,6 @@ class _CountrySelectorWidgetState
     return defaultPickerCountry.countryCodes.first;
   }
 
-  void saveLocation(String location, UserInformation userInfo) async {
-    PersistentMemoryService service =
-        GetIt.instance<
-          PersistentMemoryService
-        >(); // Get the persistent memory service instance
-    final normalizedLocation = location.trim().toUpperCase();
-    await service.setItem(
-      "location",
-      PersistentMemoryType.String,
-      normalizedLocation,
-    );
-    userInfo.updateLocation(normalizedLocation);
-  }
-
   void changeVisible() {
     setState(() {
       isVisible = !isVisible;
@@ -79,18 +61,18 @@ class _CountrySelectorWidgetState
   @override
   void didChangeDependencies() {
     super.didChangeDependencies();
-    if (_didInitLocation) {
-      return;
-    }
-
     final userInfoProvider = Provider.of<UserInformation>(
       context,
       listen: false,
     );
     if (userInfoProvider.location.isEmpty) {
-      saveLocation(resolveCountryCode('', context), userInfoProvider);
+      final defaultCode = resolveCountryCode('', context);
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (mounted && userInfoProvider.location.isEmpty) {
+          userInfoProvider.updateLocation(defaultCode);
+        }
+      });
     }
-    _didInitLocation = true;
   }
 
   @override
@@ -173,9 +155,10 @@ class _CountrySelectorWidgetState
                   showFlagDialog: true,
                   showFlagMain: true,
                   onChanged: (country) {
-                    setState(() {
-                      saveLocation(country.code!, userInfoProvider);
-                    });
+                    final code = country.code;
+                    if (code != null) {
+                      userInfoProvider.updateLocation(code.trim().toUpperCase());
+                    }
                   },
                   initialSelection: initialCountryCode,
                   showCountryOnly: true,
