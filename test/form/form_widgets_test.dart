@@ -102,8 +102,8 @@ void main() {
     testWidgets('renders share and download icons', (tester) async {
       await pumpWithProviders(
         tester,
-        WizardStepPage.forStep(
-          step: ShareForm(
+        wizardStepHarness(
+          ShareForm(
             key: GlobalKey<WizardStepState>(),
             prev: () {},
             submit: (_) {},
@@ -799,14 +799,12 @@ void main() {
           tester,
           ChangeNotifierProvider<PhonePageData>.value(
             value: phoneData,
-            child: Scaffold(
-              body: WizardStepPage.forStep(
-                step: PhonePageForm(
-                  key: GlobalKey<WizardStepState>(),
-                  next: () => nextCalled = true,
-                  prev: () {},
-                  phonePageData: phoneData,
-                ),
+            child: wizardStepHarness(
+              PhonePageForm(
+                key: GlobalKey<WizardStepState>(),
+                next: () => nextCalled = true,
+                prev: () {},
+                phonePageData: phoneData,
               ),
             ),
           ),

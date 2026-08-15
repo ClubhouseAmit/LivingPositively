@@ -51,14 +51,12 @@ void main() {
       tester,
       ChangeNotifierProvider<PhonePageData>.value(
         value: phone,
-        child: Scaffold(
-          body: WizardStepPage.forStep(
-            step: PhonePageForm(
-              key: GlobalKey<WizardStepState>(),
-              phonePageData: phone,
-              next: () => nextCalls++,
-              prev: () {},
-            ),
+        child: wizardStepHarness(
+          PhonePageForm(
+            key: GlobalKey<WizardStepState>(),
+            phonePageData: phone,
+            next: () => nextCalls++,
+            prev: () {},
           ),
         ),
       ),

@@ -5,14 +5,13 @@ import 'package:get_it/get_it.dart';
 import 'package:mazilon/initialForm/initialFormPage1.dart';
 import 'package:mazilon/util/appInformation.dart';
 import 'package:mazilon/util/persistent_memory_service.dart';
-import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:mazilon/util/userInformation.dart';
 import 'package:mockito/annotations.dart';
 import 'package:mockito/mockito.dart';
-import 'package:provider/provider.dart';
 
-import 'package:mazilon/l10n/app_localizations.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import '../helpers/widget_test_scaffold.dart'
+    show pumpWithProviders, wizardStepHarness;
 import 'initialFormPage1_test.mocks.dart';
 
 @GenerateNiceMocks([
@@ -86,59 +85,32 @@ void main() {
     mockPrev() => {tapprev = !tapprev};
     mockUpdateName(String n) {}
 
-    await tester.pumpWidget(
-      MultiProvider(
-        providers: [
-          ChangeNotifierProvider<AppInformation>.value(
-            value: mockAppInformation,
-          ),
-          ChangeNotifierProvider<UserInformation>.value(
-            value: mockUserInformation,
-          ),
-        ],
-        child: MaterialApp(
-          supportedLocales: AppLocalizations.supportedLocales,
-          locale: Locale('he'),
-          localizationsDelegates: AppLocalizations.localizationsDelegates,
-          home: ScreenUtilInit(
-            designSize: const Size(360, 690),
-            // The step's actions live in the wizard wrapper, so the wrapper is
-            // what has to be pumped to exercise them.
-            child: WizardStepPage.forStep(
-              step: InitialFormPage1(
-                key: GlobalKey<WizardStepState>(),
-                next: mockNext,
-                skip: mockSkip,
-                prev: mockPrev,
-                updateName: mockUpdateName,
-              ),
-            ),
-          ),
+    await pumpWithProviders(
+      tester,
+      wizardStepHarness(
+        InitialFormPage1(
+          key: GlobalKey<WizardStepState>(),
+          next: mockNext,
+          skip: mockSkip,
+          prev: mockPrev,
+          updateName: mockUpdateName,
         ),
       ),
+      userInformation: mockUserInformation,
+      appInformation: mockAppInformation,
+      locale: const Locale('he'),
     );
 
-    final nextButton = find.text('המשך');
-    expect(nextButton, findsWidgets);
+    final nextButton = find.byKey(const Key('wizard-primary-action'));
+    expect(nextButton, findsOneWidget);
     await tester.tap(nextButton);
     await tester.pump();
-    //expect(find.text("Test Text"), findsOneWidget);
+    expect(tapnext, isTrue);
 
-    final skipButton = find.text('דלג');
-    expect(skipButton, findsWidgets);
+    final skipButton = find.byKey(const Key('wizard-secondary-action'));
+    expect(skipButton, findsOneWidget);
     await tester.tap(skipButton);
     await tester.pump();
-    //expect(find.text("Edit Text"), findsOneWidget);
-
-    // final prevButton = find.byKey(Key('prev'));
-    // expect(prevButton, findsWidgets);
-    // await tester.tap(prevButton);
-    // await tester.pump();
-    //expect(find.text("Edit Text"), findsNothing);
-
-    // final updateName = find.byKey(Key('addPositiveSuggesstion'));
-    // expect(updateName, findsWidgets);
-    // await tester.tap(updateName);
-    // await tester.pump();
+    expect(tapskip, isTrue);
   });
 }

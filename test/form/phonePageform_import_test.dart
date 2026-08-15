@@ -37,14 +37,12 @@ Future<void> _pumpPhoneForm(
     tester,
     ChangeNotifierProvider<PhonePageData>.value(
       value: phonePageData,
-      child: Scaffold(
-        body: WizardStepPage.forStep(
-          step: PhonePageForm(
-            key: GlobalKey<WizardStepState>(),
-            phonePageData: phonePageData,
-            next: () {},
-            prev: () {},
-          ),
+      child: wizardStepHarness(
+        PhonePageForm(
+          key: GlobalKey<WizardStepState>(),
+          phonePageData: phonePageData,
+          next: () {},
+          prev: () {},
         ),
       ),
     ),

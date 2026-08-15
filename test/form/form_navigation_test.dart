@@ -9,7 +9,6 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:mazilon/form/form.dart';
 import 'package:mazilon/form/formpagetemplate.dart';
 import 'package:mazilon/form/phonePageform.dart';
-import 'package:mazilon/form/wizard_step.dart';
 import 'package:mazilon/menu.dart';
 import 'package:mazilon/util/Form/formPagePhoneModel.dart';
 import 'package:mazilon/util/userInformation.dart';
@@ -99,12 +98,7 @@ void main() {
     }
 
     expect(find.byType(PhonePageForm), findsOneWidget);
-    final contactsContinue = find
-        .descendant(
-          of: find.byType(WizardStepPage),
-          matching: find.byType(TextButton),
-        )
-        .last;
+    final contactsContinue = find.byKey(const Key('wizard-primary-action'));
     await tester.ensureVisible(contactsContinue);
     await tester.tap(contactsContinue, warnIfMissed: false);
     await tester.pumpAndSettle();
@@ -135,12 +129,7 @@ void main() {
       await _pumpForm(tester);
 
       // FormProgressIndicator.
-      final continueBtn = find
-          .descendant(
-            of: find.byType(WizardStepPage),
-            matching: find.byType(TextButton),
-          )
-          .last;
+      final continueBtn = find.byKey(const Key('wizard-primary-action'));
       await tester.ensureVisible(continueBtn);
       await tester.tap(continueBtn, warnIfMissed: false);
       await tester.pumpAndSettle();

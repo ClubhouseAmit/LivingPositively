@@ -8,7 +8,6 @@
 // the same way they do at runtime.
 
 import 'dart:io';
-import 'dart:typed_data';
 
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';

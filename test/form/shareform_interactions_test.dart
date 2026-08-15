@@ -38,8 +38,8 @@ void main() {
   ) async {
     await pumpWithProviders(
       tester,
-      WizardStepPage.forStep(
-        step: ShareForm(
+      wizardStepHarness(
+        ShareForm(
           key: GlobalKey<WizardStepState>(),
           prev: () {},
           submit: (_) {},
@@ -64,8 +64,8 @@ void main() {
       '(null result → toast)', (tester) async {
     await pumpWithProviders(
       tester,
-      WizardStepPage.forStep(
-        step: ShareForm(
+      wizardStepHarness(
+        ShareForm(
           key: GlobalKey<WizardStepState>(),
           prev: () {},
           submit: (_) {},
@@ -92,8 +92,8 @@ void main() {
     var submitCalls = 0;
     await pumpWithProviders(
       tester,
-      WizardStepPage.forStep(
-        step: ShareForm(
+      wizardStepHarness(
+        ShareForm(
           key: GlobalKey<WizardStepState>(),
           prev: () {},
           submit: (_) => submitCalls++,

@@ -49,8 +49,8 @@ void main() {
   ) async {
     await pumpWithProviders(
       tester,
-      WizardStepPage.forStep(
-        step: ToFormPage(
+      wizardStepHarness(
+        ToFormPage(
           key: GlobalKey<WizardStepState>(),
           phonePageData: _data(),
           changeLocale: (_) {},
@@ -75,8 +75,8 @@ void main() {
   testWidgets('tapping the skip button pushes a Menu route', (tester) async {
     await pumpWithProviders(
       tester,
-      WizardStepPage.forStep(
-        step: ToFormPage(
+      wizardStepHarness(
+        ToFormPage(
           key: GlobalKey<WizardStepState>(),
           phonePageData: _data(),
           changeLocale: (_) {},

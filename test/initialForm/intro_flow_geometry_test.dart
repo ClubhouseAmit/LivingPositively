@@ -90,10 +90,14 @@ void main() {
     final dots = find.byKey(const ValueKey('intro-step-dot-0'));
     expect(find.byType(AnimatedContainer), findsNWidgets(3));
 
+    const dotSize = 10.0;
+    const dotGap = 11.0;
+    const dotsToBottom = 26.0;
+
     for (var i = 0; i < 3; i++) {
       final size = tester.getSize(find.byKey(ValueKey('intro-step-dot-$i')));
-      expect(size.height, OnboardingSizes.dotSize, reason: 'dot $i height');
-      expect(size.width, OnboardingSizes.dotSize, reason: 'dot $i width');
+      expect(size.height, dotSize, reason: 'dot $i height');
+      expect(size.width, dotSize, reason: 'dot $i width');
     }
 
     // 21pt pitch: 10 wide + 11 between.
@@ -103,7 +107,7 @@ void main() {
         .dx;
     expect(
       (second - first).abs(),
-      OnboardingSizes.dotSize + OnboardingSizes.dotGap,
+      dotSize + dotGap,
       reason: 'dot pitch',
     );
 
@@ -111,7 +115,7 @@ void main() {
     final dotsBottom = tester.getBottomLeft(dots).dy;
     expect(
       _navBarTop - dotsBottom,
-      closeTo(OnboardingGaps.dotsToBottom, 0.5),
+      closeTo(dotsToBottom, 0.5),
       reason: 'dots to the frame bottom chrome (Group 470 bottom is 726)',
     );
 
@@ -137,7 +141,7 @@ void main() {
     // RTL: the skip link sits on the reading-end edge, i.e. the frame's left.
     expect(
       tester.getTopLeft(skip).dx,
-      closeTo(OnboardingSizes.screenInset, 1),
+      closeTo(15.0, 1),
       reason: 'header control screen inset',
     );
 
@@ -185,9 +189,13 @@ void main() {
       final pill = find.descendant(of: button, matching: find.byType(Material));
       final buttonBox = tester.getRect(pill.first);
 
+      const screenInset = 15.0;
+      const primaryButtonHeight = 40.0;
+      const actionsToDots = 28.0;
+
       expect(
         buttonBox.height,
-        closeTo(OnboardingSizes.primaryButtonHeight, 0.5),
+        closeTo(primaryButtonHeight, 0.5),
         reason: 'primary pill height (Figma node 1660:1272)',
       );
       expect(
@@ -197,12 +205,12 @@ void main() {
       );
       expect(
         buttonBox.left,
-        closeTo(OnboardingSizes.screenInset, 1),
+        closeTo(screenInset, 1),
         reason: 'actions block screen inset',
       );
       expect(
         buttonBox.width,
-        closeTo(_frame.width - OnboardingSizes.screenInset * 2, 1),
+        closeTo(_frame.width - screenInset * 2, 1),
         reason: 'actions block width (330 on a 360 frame)',
       );
 
@@ -214,7 +222,7 @@ void main() {
       expect(secondary, findsOneWidget);
       expect(
         tester.getRect(secondary).top - tester.getRect(button).bottom,
-        closeTo(OnboardingGaps.primaryToSecondary, 1),
+        closeTo(OnboardingGaps.withinBlock, 1),
         reason: 'primary to secondary (Figma frame 19, Row 3)',
       );
 
@@ -224,7 +232,7 @@ void main() {
       // The gap the dots follow.
       expect(
         dotsTop - tester.getRect(secondary).bottom,
-        closeTo(OnboardingGaps.actionsToDots, 1),
+        closeTo(actionsToDots, 1),
         reason: 'last action to dots (Frame 201 itemSpacing)',
       );
     },
@@ -273,14 +281,14 @@ void main() {
     final nameField = tester.getRect(find.byType(TextFormField));
     expect(
       nameField.height,
-      closeTo(OnboardingSizes.fieldHeight, 1),
+      closeTo(kFormFieldHeight, 1),
       reason: 'field height (Figma Group 75, 53 tall)',
     );
 
     final dropdowns = find.byType(DropdownMenu<String>);
     expect(
       tester.getRect(dropdowns.at(0)).height,
-      closeTo(OnboardingSizes.fieldHeight, 1),
+      closeTo(kFormFieldHeight, 1),
       reason: 'age field height',
     );
 
@@ -299,9 +307,9 @@ void main() {
           'field group pitch (Figma: Group 141 top 341 -> Group 142 top 447)',
     );
     expect(
-      OnboardingSizes.fieldLabelBox +
+      kFormFieldLabelBox +
           OnboardingGaps.labelToField +
-          OnboardingSizes.fieldHeight,
+          kFormFieldHeight,
       closeTo(designGroupHeight, 0.5),
       reason: "label + gap + field should make the design's 90pt group",
     );

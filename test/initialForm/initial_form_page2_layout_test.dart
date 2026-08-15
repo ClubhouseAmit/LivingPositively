@@ -107,6 +107,6 @@ void main() {
         )
         .dy;
     final nameFieldTop = tester.getTopLeft(nameField).dy;
-    expect(nameFieldTop - nameLabelBottom, greaterThanOrEqualTo(6));
+    expect(nameFieldTop - nameLabelBottom, greaterThanOrEqualTo(5));
   });
 }

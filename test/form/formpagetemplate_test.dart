@@ -18,7 +18,7 @@ import 'package:mazilon/AnalyticsService.dart';
 import '../MenuTest/shareAndDownload/share_and_download_test.mocks.dart'
     as ShareMocks;
 import '../helpers/widget_test_scaffold.dart'
-    show NoopAnalyticsService, loadTestFonts;
+    show NoopAnalyticsService, loadTestFonts, wizardStepHarness;
 
 @GenerateNiceMocks([
   MockSpec<UserInformation>(),
@@ -89,14 +89,12 @@ void main() {
             theme: buildLightTheme(),
             home: ScreenUtilInit(
               designSize: const Size(360, 690),
-              child: Scaffold(
-                body: WizardStepPage.forStep(
-                  step: FormPageTemplate(
-                    key: GlobalKey<WizardStepState>(),
-                    next: () {},
-                    prev: () {},
-                    collectionName: 'PersonalPlan-DifficultEvents',
-                  ),
+              child: wizardStepHarness(
+                FormPageTemplate(
+                  key: GlobalKey<WizardStepState>(),
+                  next: () {},
+                  prev: () {},
+                  collectionName: 'PersonalPlan-DifficultEvents',
                 ),
               ),
             ),

@@ -19,6 +19,7 @@ import 'package:mazilon/form/shareform.dart';
 import 'package:mazilon/form/wizard_step.dart';
 import 'package:mockito/mockito.dart';
 import 'package:mazilon/l10n/app_localizations.dart';
+import '../helpers/widget_test_scaffold.dart' show wizardStepHarness;
 import 'shareform_test.mocks.dart';
 
 @GenerateNiceMocks([
@@ -100,13 +101,11 @@ void main() {
         localizationsDelegates: AppLocalizations.localizationsDelegates,
         home: ScreenUtilInit(
           designSize: const Size(360, 690),
-          child: Scaffold(
-            body: WizardStepPage.forStep(
-              step: ShareForm(
-                key: GlobalKey<WizardStepState>(),
-                prev: () {},
-                submit: (context) {},
-              ),
+          child: wizardStepHarness(
+            ShareForm(
+              key: GlobalKey<WizardStepState>(),
+              prev: () {},
+              submit: (context) {},
             ),
           ),
         ),
