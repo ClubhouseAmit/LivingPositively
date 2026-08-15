@@ -13,18 +13,18 @@ import 'package:provider/provider.dart';
 import '../helpers/widget_test_scaffold.dart';
 
 PhonePageData _data() => PhonePageData(
-      key: 'phone',
-      header: 'h',
-      subTitle: 's',
-      midTitle: 'm',
-      phoneNameTitle: 'n',
-      phoneNumberTitle: 'p',
-      phoneNames: const <String>[],
-      phoneNumbers: const <String>[],
-      savedPhoneNames: const <String>[],
-      savedPhoneNumbers: const <String>[],
-      phoneDescription: const <String>[],
-    );
+  key: 'phone',
+  header: 'h',
+  subTitle: 's',
+  midTitle: 'm',
+  phoneNameTitle: 'n',
+  phoneNumberTitle: 'p',
+  phoneNames: const <String>[],
+  phoneNumbers: const <String>[],
+  savedPhoneNames: const <String>[],
+  savedPhoneNumbers: const <String>[],
+  phoneDescription: const <String>[],
+);
 
 void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
@@ -42,10 +42,8 @@ void main() {
     resetTestServices();
   });
 
-  testWidgets(
-      'tapping the bottom Continue button (ConfirmationButton) fires '
-      'widget.next after saving prefs',
-      (tester) async {
+  testWidgets('tapping the bottom Continue button (ConfirmationButton) fires '
+      'widget.next after saving prefs', (tester) async {
     final phone = _data();
     var nextCalls = 0;
 
@@ -54,7 +52,7 @@ void main() {
       ChangeNotifierProvider<PhonePageData>.value(
         value: phone,
         child: Scaffold(
-          body: WizardStepPage(
+          body: WizardStepPage.forStep(
             step: PhonePageForm(
               key: GlobalKey<WizardStepState>(),
               phonePageData: phone,

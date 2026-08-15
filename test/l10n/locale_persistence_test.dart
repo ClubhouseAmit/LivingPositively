@@ -17,7 +17,10 @@ class FakePersistentMemoryService implements PersistentMemoryService {
 
   @override
   Future<void> setItem(
-      String key, PersistentMemoryType type, dynamic value) async {
+    String key,
+    PersistentMemoryType type,
+    dynamic value,
+  ) async {
     values[key] = value;
   }
 
@@ -33,9 +36,7 @@ void main() {
   });
 
   test('loadUserInformation keeps saved locale over device fallback', () async {
-    final service = FakePersistentMemoryService({
-      'localeName': 'en',
-    });
+    final service = FakePersistentMemoryService({'localeName': 'en'});
     GetIt.instance.registerSingleton<PersistentMemoryService>(service);
 
     final userInfo = UserInformation(service: service);

@@ -10,8 +10,11 @@ class _RecordingLogger implements IncidentLoggerService {
   @override
   Future<void> initializeSentry(_) async {}
   @override
-  Future<void> captureLog(dynamic exception,
-      {StackTrace? stackTrace, dynamic exceptionData}) async {
+  Future<void> captureLog(
+    dynamic exception, {
+    StackTrace? stackTrace,
+    dynamic exceptionData,
+  }) async {
     logs.add(exception);
   }
 }
@@ -61,10 +64,8 @@ void main() {
 
     test('stores and reads StringList', () async {
       final s = SharedPreferencesService();
-      await s.setItem(
-          'k', PersistentMemoryType.StringList, <String>['a', 'b']);
-      expect(await s.getItem('k', PersistentMemoryType.StringList),
-          ['a', 'b']);
+      await s.setItem('k', PersistentMemoryType.StringList, <String>['a', 'b']);
+      expect(await s.getItem('k', PersistentMemoryType.StringList), ['a', 'b']);
     });
 
     test('accepts a List<dynamic> for StringList (cast)', () async {
@@ -88,8 +89,7 @@ void main() {
 
     test('getItem with no stored value returns String default ""', () async {
       final s = SharedPreferencesService();
-      expect(
-          await s.getItem('missing', PersistentMemoryType.String), '');
+      expect(await s.getItem('missing', PersistentMemoryType.String), '');
     });
 
     test('getItem with no stored value returns null for Int', () async {
@@ -117,8 +117,10 @@ void main() {
 
     test('getItem with no stored value returns empty StringList', () async {
       final s = SharedPreferencesService();
-      expect(await s.getItem('missing', PersistentMemoryType.StringList),
-          <String>[]);
+      expect(
+        await s.getItem('missing', PersistentMemoryType.StringList),
+        <String>[],
+      );
     });
   });
 

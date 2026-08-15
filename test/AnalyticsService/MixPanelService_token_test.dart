@@ -41,11 +41,11 @@ void main() {
     calls.clear();
     TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger
         .setMockMethodCallHandler(channel, (MethodCall m) async {
-      calls.add(m);
-      // Mixpanel's track / initialize calls all return void on the platform
-      // side; null is the right shape for invokeMethod<void>.
-      return null;
-    });
+          calls.add(m);
+          // Mixpanel's track / initialize calls all return void on the platform
+          // side; null is the right shape for invokeMethod<void>.
+          return null;
+        });
   });
 
   tearDown(() {

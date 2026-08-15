@@ -42,6 +42,14 @@ void main() {
   testWidgets('personal-info onboarding keeps controls above progress dots', (
     tester,
   ) async {
+    // The view is driven directly as well as via surfaceSize: ScreenUtil reads
+    // the window, which setSurfaceSize does not change, so without this `.sp`
+    // sizes scale against the default 800px test window instead of 390 and the
+    // page lays out more than twice as tall as it does on the device.
+    tester.view.devicePixelRatio = 1.0;
+    tester.view.physicalSize = const Size(390, 844);
+    addTearDown(tester.view.reset);
+
     await pumpWithProviders(
       tester,
       InitialFormProgressIndicator(
@@ -72,10 +80,15 @@ void main() {
     final firstDotTop = tester.getTopLeft(progressDots.first).dy;
     expect(continueBottom, lessThan(firstDotTop - 8));
 
+    // Ceiling is two lines at the Figma title spec (26px, line-height 1.3,
+    // node 1660:2281) scaled to this 390-wide view: 2 x 26 x 1.3 x 390/360 =
+    // 73.2. The English string wraps to two lines where the Hebrew fits on
+    // one. The previous ceiling of 72 was derived from the old 30px
+    // AutoSizeText, which shrank to fit rather than honouring a design size.
     final titleHeight = tester
         .getSize(find.text("Let's get to know you!"))
         .height;
-    expect(titleHeight, lessThanOrEqualTo(72));
+    expect(titleHeight, lessThanOrEqualTo(76));
 
     final nameField = find.byType(TextField).first;
     final nameFieldHeight = tester.getSize(nameField).height;
@@ -85,10 +98,15 @@ void main() {
     final continueButtonWidth = tester.getSize(continueButton).width;
     expect(continueButtonWidth, moreOrLessEquals(nameFieldWidth, epsilon: 1));
 
-    final nicknameHintBottom = tester
-        .getBottomLeft(find.text('(feel free to use a nickname)'))
+    // The name label is one Text at a single size (Figma node 1660:2294). It
+    // used to be split on "(" and rendered at 20px and 18px, so this assertion
+    // used to target the "(feel free to use a nickname)" fragment on its own.
+    final nameLabelBottom = tester
+        .getBottomLeft(
+          find.text('What should we call you?(feel free to use a nickname)'),
+        )
         .dy;
     final nameFieldTop = tester.getTopLeft(nameField).dy;
-    expect(nameFieldTop - nicknameHintBottom, greaterThanOrEqualTo(6));
+    expect(nameFieldTop - nameLabelBottom, greaterThanOrEqualTo(6));
   });
 }

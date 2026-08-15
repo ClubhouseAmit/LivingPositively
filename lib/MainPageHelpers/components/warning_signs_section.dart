@@ -47,10 +47,7 @@ class WarningSignsSectionWidget extends StatelessWidget {
               // Existing sign cards
               ...signs.take(3).map((sign) => _WarningCard(text: sign)),
               // Add-new dashed card
-              _AddWarningCard(
-                onTap: onAddItem,
-                colorScheme: colorScheme,
-              ),
+              _AddWarningCard(onTap: onAddItem, colorScheme: colorScheme),
             ],
           ),
         ),
@@ -58,7 +55,10 @@ class WarningSignsSectionWidget extends StatelessWidget {
         Align(
           alignment: AlignmentDirectional.centerEnd,
           child: Padding(
-            padding: EdgeInsetsDirectional.only(end: AppSpacing.md, top: AppSpacing.xs),
+            padding: EdgeInsetsDirectional.only(
+              end: AppSpacing.md,
+              top: AppSpacing.xs,
+            ),
             child: TextButton.icon(
               onPressed: onSeeAll,
               label: Text(
@@ -68,7 +68,11 @@ class WarningSignsSectionWidget extends StatelessWidget {
                   fontWeight: FontWeight.w500,
                 ),
               ),
-              icon: Icon(Icons.chevron_right, color: colorScheme.primary, size: 16),
+              icon: Icon(
+                Icons.chevron_right,
+                color: colorScheme.primary,
+                size: 16,
+              ),
               iconAlignment: IconAlignment.end,
               style: TextButton.styleFrom(
                 padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 0),
@@ -106,9 +110,9 @@ class _WarningCard extends StatelessWidget {
             Text(
               text,
               style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                    fontWeight: FontWeight.w500,
-                    height: 1.4,
-                  ),
+                fontWeight: FontWeight.w500,
+                height: 1.4,
+              ),
               maxLines: 4,
               overflow: TextOverflow.ellipsis,
               textAlign: TextAlign.start,
@@ -153,9 +157,9 @@ class _AddWarningCard extends StatelessWidget {
                 Text(
                   appLocale.addWarningSign,
                   style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                        color: colorScheme.outline,
-                        height: 1.4,
-                      ),
+                    color: colorScheme.outline,
+                    height: 1.4,
+                  ),
                   maxLines: 3,
                   overflow: TextOverflow.ellipsis,
                 ),
@@ -184,10 +188,12 @@ class _DashedRectPainter extends CustomPainter {
     const dashG = 5.0;
 
     final path = Path()
-      ..addRRect(RRect.fromRectAndRadius(
-        Rect.fromLTWH(1, 1, size.width - 2, size.height - 2),
-        const Radius.circular(radius),
-      ));
+      ..addRRect(
+        RRect.fromRectAndRadius(
+          Rect.fromLTWH(1, 1, size.width - 2, size.height - 2),
+          const Radius.circular(radius),
+        ),
+      );
 
     for (final m in path.computeMetrics()) {
       var d = 0.0;

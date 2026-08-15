@@ -48,7 +48,7 @@ Future<void> _pumpFormPage(WidgetTester tester, String collectionName) async {
         home: ScreenUtilInit(
           designSize: const Size(360, 690),
           child: Scaffold(
-            body: WizardStepPage(
+            body: WizardStepPage.forStep(
               step: FormPageTemplate(
                 key: GlobalKey<WizardStepState>(),
                 next: () {},
@@ -86,7 +86,9 @@ void main() {
     await GetIt.instance.reset();
   });
 
-  testWidgets('MakeSafer collection loads + addItem + continue', (tester) async {
+  testWidgets('MakeSafer collection loads + addItem + continue', (
+    tester,
+  ) async {
     await _pumpFormPage(tester, 'PersonalPlan-MakeSafer');
     // The 'addItem' path: tap the inline "add your own" link, which opens
     // the AddFormAnswer dialog, then save.
@@ -101,8 +103,9 @@ void main() {
     await tester.pump();
   });
 
-  testWidgets('FeelBetter collection loads + show-more + continue',
-      (tester) async {
+  testWidgets('FeelBetter collection loads + show-more + continue', (
+    tester,
+  ) async {
     await _pumpFormPage(tester, 'PersonalPlan-FeelBetter');
     // more-suggestions link: exercises the `length > displayedLength + 3`
     // branch (returns early if list shorter than 3; either way, no crash).
@@ -112,8 +115,9 @@ void main() {
     await tester.pump();
   });
 
-  testWidgets('Distractions collection loads + addItem + continue',
-      (tester) async {
+  testWidgets('Distractions collection loads + addItem + continue', (
+    tester,
+  ) async {
     await _pumpFormPage(tester, 'PersonalPlan-Distractions');
     await tester.ensureVisible(find.text('הוסף עוד משלך'));
     await tester.tap(find.text('הוסף עוד משלך'));

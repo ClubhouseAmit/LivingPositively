@@ -90,7 +90,7 @@ void main() {
             home: ScreenUtilInit(
               designSize: const Size(360, 690),
               child: Scaffold(
-                body: WizardStepPage(
+                body: WizardStepPage.forStep(
                   step: FormPageTemplate(
                     key: GlobalKey<WizardStepState>(),
                     next: () {},
@@ -123,7 +123,9 @@ void main() {
 
       // Verifying initial UI elements and their styles to prevent design regressions
       final headerFinder = find.byWidgetPredicate(
-        (widget) => widget is Text && widget.data == 'תזכורות לטריגרים נפוצים וגורמי הסלמה',
+        (widget) =>
+            widget is Text &&
+            widget.data == 'תזכורות לטריגרים נפוצים וגורמי הסלמה',
       );
       expect(headerFinder, findsOneWidget);
       final headerStyle = tester
@@ -137,7 +139,8 @@ void main() {
       expect(headerStyle.fontSize, 24.sp);
 
       final subTitleFinder = find.byWidgetPredicate(
-        (widget) => widget is Text && widget.data == 'גורמים ואירועים שהקשו עלי בעבר',
+        (widget) =>
+            widget is Text && widget.data == 'גורמים ואירועים שהקשו עלי בעבר',
       );
       expect(subTitleFinder, findsOneWidget);
       final subTitleStyle = tester

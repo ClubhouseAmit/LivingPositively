@@ -113,8 +113,12 @@ void main() {
     Widget getPersonalPlanWidgetForTests({Locale locale = const Locale('he')}) {
       return MultiProvider(
         providers: [
-          ChangeNotifierProvider<UserInformation>.value(value: mockUserInformation),
-          ChangeNotifierProvider<AppInformation>.value(value: mockAppInformation),
+          ChangeNotifierProvider<UserInformation>.value(
+            value: mockUserInformation,
+          ),
+          ChangeNotifierProvider<AppInformation>.value(
+            value: mockAppInformation,
+          ),
         ],
         child: MaterialApp(
           supportedLocales: AppLocalizations.supportedLocales,
@@ -134,33 +138,41 @@ void main() {
     }
 
     testWidgets('Display exists', (WidgetTester tester) async {
-      await tester.pumpWidget(
-        getPersonalPlanWidgetForTests(),
-      );
+      await tester.pumpWidget(getPersonalPlanWidgetForTests());
       expect(find.byType(PersonalPlanSectionWidget), findsOneWidget);
       expect(find.byKey(const Key('personalPlanHeaderMenu')), findsOneWidget);
     });
     testWidgets('Buttons Clickable', (WidgetTester tester) async {
-      await tester.pumpWidget(
-        getPersonalPlanWidgetForTests(),
-      );
+      await tester.pumpWidget(getPersonalPlanWidgetForTests());
       expect(find.byType(PersonalPlanSectionWidget), findsOneWidget);
 
       expect(counterDownload, 0);
       expect(counterShare, 0);
 
       // Open the popover menu
-      await tapAndSettle(tester, find.byKey(const Key('personalPlanHeaderMenu')));
+      await tapAndSettle(
+        tester,
+        find.byKey(const Key('personalPlanHeaderMenu')),
+      );
 
       // Tap download option
-      await tapAndSettle(tester, find.byKey(const Key('personalPlanHeaderDownload')));
+      await tapAndSettle(
+        tester,
+        find.byKey(const Key('personalPlanHeaderDownload')),
+      );
       expect(counterDownload, 1);
 
       // Open the popover menu again for share
-      await tapAndSettle(tester, find.byKey(const Key('personalPlanHeaderMenu')));
+      await tapAndSettle(
+        tester,
+        find.byKey(const Key('personalPlanHeaderMenu')),
+      );
 
       // Tap share option
-      await tapAndSettle(tester, find.byKey(const Key('personalPlanHeaderShare')));
+      await tapAndSettle(
+        tester,
+        find.byKey(const Key('personalPlanHeaderShare')),
+      );
       expect(find.byType(LPShareAlertDialog), findsWidgets);
       expect(find.byIcon(Icons.insert_drive_file_outlined), findsWidgets);
       await tapAndSettle(tester, find.text("שיתוף קובץ של התוכנית האישית"));
@@ -187,12 +199,13 @@ void main() {
     testWidgets('download uses the localized plan headers and subtitles', (
       WidgetTester tester,
     ) async {
-      await tester.pumpWidget(
-        getPersonalPlanWidgetForTests(),
-      );
+      await tester.pumpWidget(getPersonalPlanWidgetForTests());
 
       // Open the popover menu
-      await tapAndSettle(tester, find.byKey(const Key('personalPlanHeaderMenu')));
+      await tapAndSettle(
+        tester,
+        find.byKey(const Key('personalPlanHeaderMenu')),
+      );
 
       await tapAndSettle(
         tester,

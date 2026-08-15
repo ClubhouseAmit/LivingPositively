@@ -98,7 +98,7 @@ Future<int> _pump(
         home: ScreenUtilInit(
           designSize: const Size(360, 690),
           child: Scaffold(
-            body: WizardStepPage(
+            body: WizardStepPage.forStep(
               step: FormPageTemplate(
                 key: GlobalKey<WizardStepState>(),
                 next: () {
@@ -462,7 +462,7 @@ void main() {
             home: ScreenUtilInit(
               designSize: const Size(360, 690),
               child: Scaffold(
-                body: WizardStepPage(
+                body: WizardStepPage.forStep(
                   step: FormPageTemplate(
                     key: GlobalKey<WizardStepState>(),
                     next: () => nextCalls++,

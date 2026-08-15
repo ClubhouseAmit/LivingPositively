@@ -5,7 +5,8 @@ import 'package:fluttertoast/fluttertoast.dart';
 void showToast({required String message}) {
   Fluttertoast.showToast(
     msg: message, // The message to display in the toast
-    gravity: ToastGravity.BOTTOM, // The position of the toast (bottom of the screen)
+    gravity:
+        ToastGravity.BOTTOM, // The position of the toast (bottom of the screen)
     backgroundColor: Colors.blue, // Background color of the toast
     timeInSecForIosWeb: 1, // Duration the toast is shown (1 second)
     toastLength: Toast.LENGTH_SHORT, // Duration type (short duration)

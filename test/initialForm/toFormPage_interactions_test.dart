@@ -4,6 +4,7 @@
 //   - "Skip" pushes a Menu route via pushAndRemoveUntil (lines 139-149)
 
 import 'package:flutter/material.dart';
+import 'package:mazilon/form/wizard_step.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:mazilon/form/form.dart';
 import 'package:mazilon/initialForm/toFormPage.dart';
@@ -14,18 +15,18 @@ import 'package:mazilon/util/userInformation.dart';
 import '../helpers/widget_test_scaffold.dart';
 
 PhonePageData _data() => PhonePageData(
-      key: 'phone',
-      header: 'h',
-      subTitle: 's',
-      midTitle: 'm',
-      phoneNameTitle: 'n',
-      phoneNumberTitle: 'p',
-      phoneNames: const <String>[],
-      phoneNumbers: const <String>[],
-      savedPhoneNames: const <String>[],
-      savedPhoneNumbers: const <String>[],
-      phoneDescription: const <String>[],
-    );
+  key: 'phone',
+  header: 'h',
+  subTitle: 's',
+  midTitle: 'm',
+  phoneNameTitle: 'n',
+  phoneNumberTitle: 'p',
+  phoneNames: const <String>[],
+  phoneNumbers: const <String>[],
+  savedPhoneNames: const <String>[],
+  savedPhoneNumbers: const <String>[],
+  phoneDescription: const <String>[],
+);
 
 void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
@@ -43,11 +44,18 @@ void main() {
     resetTestServices();
   });
 
-  testWidgets('tapping the next button pushes a FormProgressIndicator',
-      (tester) async {
+  testWidgets('tapping the next button pushes a FormProgressIndicator', (
+    tester,
+  ) async {
     await pumpWithProviders(
       tester,
-      ToFormPage(phonePageData: _data(), changeLocale: (_) {}),
+      WizardStepPage.forStep(
+        step: ToFormPage(
+          key: GlobalKey<WizardStepState>(),
+          phonePageData: _data(),
+          changeLocale: (_) {},
+        ),
+      ),
       userInformation: user,
       surfaceSize: const Size(1024, 2200),
     );
@@ -67,7 +75,13 @@ void main() {
   testWidgets('tapping the skip button pushes a Menu route', (tester) async {
     await pumpWithProviders(
       tester,
-      ToFormPage(phonePageData: _data(), changeLocale: (_) {}),
+      WizardStepPage.forStep(
+        step: ToFormPage(
+          key: GlobalKey<WizardStepState>(),
+          phonePageData: _data(),
+          changeLocale: (_) {},
+        ),
+      ),
       userInformation: user,
       surfaceSize: const Size(1024, 2200),
     );

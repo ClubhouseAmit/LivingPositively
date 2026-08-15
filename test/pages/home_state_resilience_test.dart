@@ -12,7 +12,6 @@ import 'package:mazilon/util/userInformation.dart';
 
 import '../helpers/widget_test_scaffold.dart';
 
-
 PhonePageData _phoneData() => PhonePageData(
   key: 'phonePageData',
   header: 'header',
@@ -90,7 +89,6 @@ void main() {
       lessThan(tester.getTopLeft(find.byType(VirtuesSectionWidget)).dy),
     );
   });
-
 
   test(
     'home surfaces do not refresh randomized content from build methods',

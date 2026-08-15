@@ -179,9 +179,7 @@ class _PositiveTraitItemSugState extends LPExtendedState<PositiveTraitItemSug> {
                         ? Alignment.centerRight
                         : Alignment.centerLeft,
                     child: AutoSizeText(
-                      widget.inputText == ''
-                          ? text
-                          : widget.inputText,
+                      widget.inputText == '' ? text : widget.inputText,
                       maxLines: 3,
                       minFontSize: 14,
                       overflow: TextOverflow.ellipsis,

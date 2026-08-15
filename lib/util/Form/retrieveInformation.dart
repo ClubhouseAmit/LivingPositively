@@ -15,7 +15,9 @@ Map<String, dynamic> retrieveInformation(name, gender, textLocalization) {
       midTitle = textLocalization.difficultEventsMidTitle(gender);
       midSubTitle = textLocalization.difficultEventsMidSubTitle(gender);
       list = retrieveDifficultEventsList(
-          textLocalization, gender == "" ? "other" : gender);
+        textLocalization,
+        gender == "" ? "other" : gender,
+      );
 
       break;
     case 'PersonalPlan-MakeSafer':
@@ -24,7 +26,9 @@ Map<String, dynamic> retrieveInformation(name, gender, textLocalization) {
       midTitle = textLocalization.makeSaferMidTitle(gender);
       midSubTitle = textLocalization.makeSaferMidSubTitle(gender);
       list = retrieveMakeSaferList(
-          textLocalization, gender == "" ? "other" : gender);
+        textLocalization,
+        gender == "" ? "other" : gender,
+      );
 
       break;
     case 'PersonalPlan-FeelBetter':
@@ -33,7 +37,9 @@ Map<String, dynamic> retrieveInformation(name, gender, textLocalization) {
       midTitle = textLocalization.feelBetterMidTitle(gender);
       midSubTitle = textLocalization.feelBetterMidSubTitle(gender);
       list = retrieveFeelBetterList(
-          textLocalization, gender == "" ? "other" : gender);
+        textLocalization,
+        gender == "" ? "other" : gender,
+      );
 
       break;
     case 'PersonalPlan-Distractions':
@@ -42,7 +48,9 @@ Map<String, dynamic> retrieveInformation(name, gender, textLocalization) {
       midTitle = textLocalization.distractionsMidTitle(gender);
       midSubTitle = textLocalization.distractionsMidSubTitle(gender);
       list = retrieveDistractionsList(
-          textLocalization, gender == "" ? "other" : gender);
+        textLocalization,
+        gender == "" ? "other" : gender,
+      );
 
       break;
     case 'PersonalPlan-SafeEnvironment':

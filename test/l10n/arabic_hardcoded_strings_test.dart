@@ -68,52 +68,56 @@ void main() {
   });
 
   group('Arabic hard-coded string coverage', () {
-    testWidgets('About page does not keep the English version label in Arabic',
-        (WidgetTester tester) async {
-      await tester.pumpWidget(
-        MaterialApp(
-          supportedLocales: AppLocalizations.supportedLocales,
-          localizationsDelegates: AppLocalizations.localizationsDelegates,
-          locale: const Locale('ar'),
-          home: About(version: '1.2.3'),
-        ),
-      );
+    testWidgets(
+      'About page does not keep the English version label in Arabic',
+      (WidgetTester tester) async {
+        await tester.pumpWidget(
+          MaterialApp(
+            supportedLocales: AppLocalizations.supportedLocales,
+            localizationsDelegates: AppLocalizations.localizationsDelegates,
+            locale: const Locale('ar'),
+            home: About(version: '1.2.3'),
+          ),
+        );
 
-      expect(
-        find.text('Living Positively App Version : 1.2.3'),
-        findsNothing,
-      );
-    });
+        expect(
+          find.text('Living Positively App Version : 1.2.3'),
+          findsNothing,
+        );
+      },
+    );
 
-    testWidgets('Wellness empty state does not keep the English copy in Arabic',
-        (WidgetTester tester) async {
-      await tester.pumpWidget(
-        ScreenUtilInit(
-          designSize: const Size(360, 690),
-          minTextAdapt: true,
-          builder: (context, child) {
-            return MaterialApp(
-              supportedLocales: AppLocalizations.supportedLocales,
-              localizationsDelegates: AppLocalizations.localizationsDelegates,
-              locale: const Locale('ar'),
-              home: WellnessTools(
-                isFullScreen: false,
-                setBool: (_) {},
-                videoData: const {
-                  'videoId': <String>[],
-                  'videoHeadline': <String>[],
-                  'videoDescription': <String>[],
-                },
-              ),
-            );
-          },
-        ),
-      );
+    testWidgets(
+      'Wellness empty state does not keep the English copy in Arabic',
+      (WidgetTester tester) async {
+        await tester.pumpWidget(
+          ScreenUtilInit(
+            designSize: const Size(360, 690),
+            minTextAdapt: true,
+            builder: (context, child) {
+              return MaterialApp(
+                supportedLocales: AppLocalizations.supportedLocales,
+                localizationsDelegates: AppLocalizations.localizationsDelegates,
+                locale: const Locale('ar'),
+                home: WellnessTools(
+                  isFullScreen: false,
+                  setBool: (_) {},
+                  videoData: const {
+                    'videoId': <String>[],
+                    'videoHeadline': <String>[],
+                    'videoDescription': <String>[],
+                  },
+                ),
+              );
+            },
+          ),
+        );
 
-      expect(
-        find.text('No videos available for your locale, sorry.'),
-        findsNothing,
-      );
-    });
+        expect(
+          find.text('No videos available for your locale, sorry.'),
+          findsNothing,
+        );
+      },
+    );
   });
 }

@@ -37,67 +37,75 @@ void main() {
   });
 
   testWidgets(
-      'tapping the add button on a ThanksItemSuggested invokes addThankYou',
-      (tester) async {
-    await pumpWithProviders(
-      tester,
-      const Journal(fullSuggestionList: _suggestions),
-      userInformation: user,
-      surfaceSize: const Size(1024, 2400),
-    );
+    'tapping the add button on a ThanksItemSuggested invokes addThankYou',
+    (tester) async {
+      await pumpWithProviders(
+        tester,
+        const Journal(fullSuggestionList: _suggestions),
+        userInformation: user,
+        surfaceSize: const Size(1024, 2400),
+      );
 
-    // Find the first GestureDetector inside the first ThanksItemSuggested —
-    // that is the add-button row.
-    final firstSuggestion = find.byType(ThanksItemSuggested).first;
-    final addGesture = find
-        .descendant(of: firstSuggestion, matching: find.byType(GestureDetector))
-        .first;
+      // Find the first GestureDetector inside the first ThanksItemSuggested —
+      // that is the add-button row.
+      final firstSuggestion = find.byType(ThanksItemSuggested).first;
+      final addGesture = find
+          .descendant(
+            of: firstSuggestion,
+            matching: find.byType(GestureDetector),
+          )
+          .first;
 
-    await tester.ensureVisible(addGesture);
-    await tester.tap(addGesture, warnIfMissed: false);
-    await tester.pump();
-    // Drive the post-tap Future.delayed(0) that schedules the popup.
-    await tester.pump(const Duration(milliseconds: 50));
+      await tester.ensureVisible(addGesture);
+      await tester.tap(addGesture, warnIfMissed: false);
+      await tester.pump();
+      // Drive the post-tap Future.delayed(0) that schedules the popup.
+      await tester.pump(const Duration(milliseconds: 50));
 
-    // After the tap, addThankYou should have appended to userInformation.thanks
-    // and the AlertDialog popup should have been scheduled for the first
-    // entry-of-the-day.
-    expect(user.thanks['thanks']?.length, 1);
-    // The popup dialog is shown via showDialog when count == 1.
-    expect(find.byType(AlertDialog), findsOneWidget);
-  });
+      // After the tap, addThankYou should have appended to userInformation.thanks
+      // and the AlertDialog popup should have been scheduled for the first
+      // entry-of-the-day.
+      expect(user.thanks['thanks']?.length, 1);
+      // The popup dialog is shown via showDialog when count == 1.
+      expect(find.byType(AlertDialog), findsOneWidget);
+    },
+  );
 
   testWidgets(
-      'second tap does NOT show the AlertDialog (popup only on first entry)',
-      (tester) async {
-    // Seed a prior thank-you for today so the count-after-tap will be > 1,
-    // exercising the `else` branch (line 137 NOT taken).
-    final today = _todayString();
-    user.updateThanks({
-      'thanks': ['existing-entry'],
-      'dates': [today],
-    });
+    'second tap does NOT show the AlertDialog (popup only on first entry)',
+    (tester) async {
+      // Seed a prior thank-you for today so the count-after-tap will be > 1,
+      // exercising the `else` branch (line 137 NOT taken).
+      final today = _todayString();
+      user.updateThanks({
+        'thanks': ['existing-entry'],
+        'dates': [today],
+      });
 
-    await pumpWithProviders(
-      tester,
-      const Journal(fullSuggestionList: _suggestions),
-      userInformation: user,
-      surfaceSize: const Size(1024, 2400),
-    );
+      await pumpWithProviders(
+        tester,
+        const Journal(fullSuggestionList: _suggestions),
+        userInformation: user,
+        surfaceSize: const Size(1024, 2400),
+      );
 
-    final firstSuggestion = find.byType(ThanksItemSuggested).first;
-    final addGesture = find
-        .descendant(of: firstSuggestion, matching: find.byType(GestureDetector))
-        .first;
-    await tester.ensureVisible(addGesture);
-    await tester.tap(addGesture, warnIfMissed: false);
-    await tester.pump();
-    await tester.pump(const Duration(milliseconds: 50));
+      final firstSuggestion = find.byType(ThanksItemSuggested).first;
+      final addGesture = find
+          .descendant(
+            of: firstSuggestion,
+            matching: find.byType(GestureDetector),
+          )
+          .first;
+      await tester.ensureVisible(addGesture);
+      await tester.tap(addGesture, warnIfMissed: false);
+      await tester.pump();
+      await tester.pump(const Duration(milliseconds: 50));
 
-    // Should now have 2 entries and NO popup.
-    expect(user.thanks['thanks']?.length, 2);
-    expect(find.byType(AlertDialog), findsNothing);
-  });
+      // Should now have 2 entries and NO popup.
+      expect(user.thanks['thanks']?.length, 2);
+      expect(find.byType(AlertDialog), findsNothing);
+    },
+  );
 }
 
 String _todayString() {

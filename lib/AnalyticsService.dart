@@ -24,8 +24,10 @@ class MixPanelService implements AnalyticsService {
   }
 
   @override
-  Future<void> trackEvent(String eventName,
-      [Map<String, dynamic>? properties]) async {
+  Future<void> trackEvent(
+    String eventName, [
+    Map<String, dynamic>? properties,
+  ]) async {
     if (key == "") {
       return;
     }

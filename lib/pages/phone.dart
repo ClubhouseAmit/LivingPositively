@@ -8,6 +8,7 @@ import 'package:mazilon/file_service.dart';
 import 'package:mazilon/form/phonePageform.dart';
 import 'package:mazilon/form/wizard_step.dart';
 import 'package:mazilon/global_enums.dart';
+import 'package:mazilon/util/theme/spacing.dart';
 import 'package:mazilon/pages/sos_location_service.dart';
 import 'package:mazilon/util/LP_extended_state.dart';
 import 'package:mazilon/util/Phone/phoneTextAndIcon.dart';
@@ -461,24 +462,39 @@ class _PhonePageState extends LPExtendedState<PhonePage> {
   }
 
   Future<void> _openContactsEditor() {
+    // One step, reused outside its wizard. Built once so the page and its
+    // actions address the same instance.
+    final step = PhonePageForm(
+      key: GlobalKey<WizardStepState>(debugLabel: 'contacts-editor'),
+      phonePageData: widget.phonePageData,
+      next: () => Navigator.of(context).pop(),
+      prev: () => Navigator.of(context).pop(),
+    );
     return Navigator.of(context).push<void>(
       MaterialPageRoute(
         builder: (routeContext) => ChangeNotifierProvider<PhonePageData>.value(
           value: widget.phonePageData,
           child: Scaffold(
             body: SafeArea(
-              bottom: false,
               child: Padding(
                 padding: const EdgeInsets.symmetric(horizontal: 16),
-                child: WizardStepPage(
-                  step: PhonePageForm(
-                    key: GlobalKey<WizardStepState>(
-                      debugLabel: 'contacts-editor',
+                child: Column(
+                  children: [
+                    Expanded(
+                      child: Padding(
+                        padding: const EdgeInsets.only(
+                          top: OnboardingGaps.questionnaireHeaderToContent,
+                        ),
+                        child: step,
+                      ),
                     ),
-                    phonePageData: widget.phonePageData,
-                    next: () => Navigator.of(context).pop(),
-                    prev: () => Navigator.of(context).pop(),
-                  ),
+                    Padding(
+                      padding: const EdgeInsets.symmetric(
+                        vertical: OnboardingGaps.questionnaireAroundActions,
+                      ),
+                      child: WizardActions(step: step),
+                    ),
+                  ],
                 ),
               ),
             ),

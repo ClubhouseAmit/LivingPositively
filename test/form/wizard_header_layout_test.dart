@@ -57,61 +57,58 @@ void main() {
     final languageCode = probe.$1;
     final width = probe.$2;
 
-    testWidgets(
-      'header controls clear the progress dots at ${width.toInt()}px '
-      '($languageCode)',
-      (tester) async {
-        // The view is set rather than the surface: setSurfaceSize resizes the
-        // render surface but leaves MediaQuery reporting the old width, and
-        // the header bound is computed from MediaQuery.
-        await tester.binding.setSurfaceSize(null);
-        tester.view.physicalSize = Size(width * 3, 700 * 3);
-        tester.view.devicePixelRatio = 3.0;
-        addTearDown(tester.view.reset);
+    testWidgets('header controls clear the progress dots at ${width.toInt()}px '
+        '($languageCode)', (tester) async {
+      // The view is set rather than the surface: setSurfaceSize resizes the
+      // render surface but leaves MediaQuery reporting the old width, and
+      // the header bound is computed from MediaQuery.
+      await tester.binding.setSurfaceSize(null);
+      tester.view.physicalSize = Size(width * 3, 700 * 3);
+      tester.view.devicePixelRatio = 3.0;
+      addTearDown(tester.view.reset);
 
-        final phoneData = _phoneData();
-        final user = UserInformation()..gender = 'other';
-        await tester.pumpWidget(
-          MultiProvider(
-            providers: [
-              ChangeNotifierProvider<UserInformation>.value(value: user),
-              ChangeNotifierProvider<AppInformation>.value(
-                value: AppInformation(),
-              ),
-              ChangeNotifierProvider<PhonePageData>.value(value: phoneData),
-            ],
-            child: MaterialApp(
-              supportedLocales: AppLocalizations.supportedLocales,
-              locale: Locale(languageCode),
-              localizationsDelegates: AppLocalizations.localizationsDelegates,
-              theme: buildLightTheme(),
-              home: ScreenUtilInit(
-                designSize: const Size(360, 690),
-                child: FormProgressIndicator(
-                  phonePageData: phoneData,
-                  changeLocale: (_) {},
-                ),
+      final phoneData = _phoneData();
+      final user = UserInformation()..gender = 'other';
+      await tester.pumpWidget(
+        MultiProvider(
+          providers: [
+            ChangeNotifierProvider<UserInformation>.value(value: user),
+            ChangeNotifierProvider<AppInformation>.value(
+              value: AppInformation(),
+            ),
+            ChangeNotifierProvider<PhonePageData>.value(value: phoneData),
+          ],
+          child: MaterialApp(
+            supportedLocales: AppLocalizations.supportedLocales,
+            locale: Locale(languageCode),
+            localizationsDelegates: AppLocalizations.localizationsDelegates,
+            theme: buildLightTheme(),
+            home: ScreenUtilInit(
+              designSize: const Size(360, 690),
+              child: FormProgressIndicator(
+                phonePageData: phoneData,
+                changeLocale: (_) {},
               ),
             ),
           ),
-        );
-        await tester.pump();
-        drainOverflowExceptions(tester);
+        ),
+      );
+      await tester.pump();
+      drainOverflowExceptions(tester);
 
-        final dots = _dotsBounds(tester);
-        for (final element in find.byType(TextButton).evaluate()) {
-          final rect = tester.getRect(find.byWidget(element.widget));
-          if (rect.top > 80) {
-            continue; // header band only
-          }
-          expect(
-            rect.overlaps(dots),
-            isFalse,
-            reason: 'header control $rect runs into the progress dots $dots',
-          );
+      final dots = _dotsBounds(tester);
+      for (final element in find.byType(TextButton).evaluate()) {
+        final rect = tester.getRect(find.byWidget(element.widget));
+        if (rect.top > 80) {
+          continue; // header band only
         }
-      },
-    );
+        expect(
+          rect.overlaps(dots),
+          isFalse,
+          reason: 'header control $rect runs into the progress dots $dots',
+        );
+      }
+    });
   }
 
   test('side controls are bounded by the space left beside the dots', () {

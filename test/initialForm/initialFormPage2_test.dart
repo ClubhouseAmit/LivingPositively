@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:mazilon/form/wizard_step.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:get_it/get_it.dart';
@@ -86,10 +87,15 @@ void main() {
         localizationsDelegates: AppLocalizations.localizationsDelegates,
         home: ScreenUtilInit(
           designSize: const Size(360, 690),
-          child: InitialFormPage2(
-            next: mockNext,
-            prev: mockPrev,
-            updateName: mockUpdateName,
+          // The step's primary action lives in the wizard wrapper, so the
+          // wrapper is what has to be pumped to exercise it.
+          child: WizardStepPage.forStep(
+            step: InitialFormPage2(
+              key: GlobalKey<WizardStepState>(),
+              next: mockNext,
+              prev: mockPrev,
+              updateName: mockUpdateName,
+            ),
           ),
         ),
       ),

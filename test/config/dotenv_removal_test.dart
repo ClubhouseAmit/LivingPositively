@@ -11,8 +11,10 @@ void main() {
 
       expect(analyticsService, isNot(contains('package:flutter_dotenv/')));
       expect(analyticsService, isNot(contains('dotenv.load(')));
-      expect(analyticsService,
-          isNot(contains("dotenv.env['MIXPANEL_PROJECT_TOKEN']")));
+      expect(
+        analyticsService,
+        isNot(contains("dotenv.env['MIXPANEL_PROJECT_TOKEN']")),
+      );
 
       expect(mainFile, isNot(contains('package:flutter_dotenv/')));
       expect(mainFile, isNot(contains('dotenv.load(')));
@@ -27,8 +29,10 @@ void main() {
       final pubspec = await _readRepoFile('pubspec.yaml');
 
       expect(pubspec, isNot(contains('flutter_dotenv:')));
-      expect(pubspec,
-          isNot(contains(RegExp(r'^\s*-\s+dotenv\s*$', multiLine: true))));
+      expect(
+        pubspec,
+        isNot(contains(RegExp(r'^\s*-\s+dotenv\s*$', multiLine: true))),
+      );
     });
 
     test('CI workflow no longer generates a dotenv file', () async {

@@ -30,7 +30,7 @@ class _FakeAnalyticsService implements AnalyticsService {
 
 class _FakePersistentMemoryService implements PersistentMemoryService {
   _FakePersistentMemoryService({Map<String, dynamic>? initialValues})
-      : _values = {...?initialValues};
+    : _values = {...?initialValues};
   final Map<String, dynamic> _values;
 
   @override
@@ -58,7 +58,10 @@ class _FakePersistentMemoryService implements PersistentMemoryService {
 
   @override
   Future<void> setItem(
-      String key, PersistentMemoryType type, dynamic value) async {
+    String key,
+    PersistentMemoryType type,
+    dynamic value,
+  ) async {
     _values[key] = value;
   }
 }
@@ -125,8 +128,9 @@ void main() {
     getData(app);
   });
 
-  testWidgets('default screen is Home and SOS button is visible',
-      (tester) async {
+  testWidgets('default screen is Home and SOS button is visible', (
+    tester,
+  ) async {
     await tester.pumpWidget(getMenuForTests(user, app));
     await tester.pumpAndSettle();
 
@@ -144,15 +148,15 @@ void main() {
     await tester.tap(sos);
     await tester.pumpAndSettle();
 
-
     // After SOS tap, the PhonePage replaces the home content. Search bar still
     // should not show 'SOS' twice (FAB persists). We verify the page has been
     // swapped by checking the home greeting from getData('') has been hidden.
     expect(find.byKey(const Key('bottomNavHome')), findsOneWidget);
   }, skip: true);
 
-  testWidgets('tapping the Plan bottom nav swaps to MyPlanPageFull',
-      (tester) async {
+  testWidgets('tapping the Plan bottom nav swaps to MyPlanPageFull', (
+    tester,
+  ) async {
     await tester.pumpWidget(getMenuForTests(user, app));
     await tester.pumpAndSettle();
 
@@ -162,8 +166,7 @@ void main() {
     expect(find.byKey(const Key('bottomNavMyPlan')), findsOneWidget);
   });
 
-  testWidgets('tapping FeelGood records analytics event',
-      (tester) async {
+  testWidgets('tapping FeelGood records analytics event', (tester) async {
     await tester.pumpWidget(getMenuForTests(user, app));
     await tester.pumpAndSettle();
 
@@ -173,20 +176,23 @@ void main() {
     expect(analytics.events, contains('Viewed Feel Good Page'));
   }, skip: true);
 
-  testWidgets('back button on Home tab pops the system navigator path',
-      (tester) async {
+  testWidgets('back button on Home tab pops the system navigator path', (
+    tester,
+  ) async {
     await tester.pumpWidget(getMenuForTests(user, app));
     await tester.pumpAndSettle();
 
     // Drive the PopScope back invocation; current is Home so it should call
     // SystemNavigator.pop and reset to home.
-    final dynamicState =
-        tester.state<State<StatefulWidget>>(find.byType(MaterialApp).first);
+    final dynamicState = tester.state<State<StatefulWidget>>(
+      find.byType(MaterialApp).first,
+    );
     expect(dynamicState, isNotNull);
   });
 
-  testWidgets('Notifications menu is hidden on iOS (platform override)',
-      (tester) async {
+  testWidgets('Notifications menu is hidden on iOS (platform override)', (
+    tester,
+  ) async {
     debugDefaultTargetPlatformOverride = TargetPlatform.iOS;
     addTearDown(() => debugDefaultTargetPlatformOverride = null);
 

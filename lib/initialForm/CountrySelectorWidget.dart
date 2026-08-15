@@ -6,6 +6,9 @@ import 'package:mazilon/util/LP_extended_state.dart';
 import 'package:mazilon/EmergencyNumbers.dart';
 import 'package:mazilon/util/persistent_memory_service.dart';
 import 'package:mazilon/util/styles.dart';
+import 'package:mazilon/util/theme/font_weight.dart';
+import 'package:mazilon/util/theme/shadows.dart';
+import 'package:mazilon/util/theme/spacing.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:mazilon/util/userInformation.dart';
 
@@ -97,31 +100,37 @@ class _CountrySelectorWidgetState
       userInfoProvider.location,
       context,
     );
-    final fieldWidth = formFieldWidth(context);
     final theme = Theme.of(context);
     final colorScheme = theme.colorScheme;
-    final dialogTextStyle = theme.textTheme.bodyLarge?.copyWith(
-      color: colorScheme.onSurface,
-    ) ??
+    final dialogTextStyle =
+        theme.textTheme.bodyLarge?.copyWith(color: colorScheme.onSurface) ??
         TextStyle(color: colorScheme.onSurface);
     return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
+      // Stretch so this field is the same width as the ones above it; the
+      // enclosing block sets the width.
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      mainAxisSize: MainAxisSize.min,
+      // Same label-to-field gap as the other field groups on this screen; the
+      // separation from the next group belongs to the enclosing block.
+      spacing: OnboardingGaps.labelToField,
       children: [
         SizedBox(
-          width: fieldWidth,
           child: Row(
             children: [
               Expanded(
+                // Matches _formLabel on the get-to-know-you screen: the country
+                // field has no Figma counterpart, but it sits in that screen's
+                // label/field rhythm and must read as one of its fields.
                 child: Text(
                   widget.text,
                   style: TextStyle(
-                    fontSize: 20,
-                    height: 1.2,
-                    fontWeight: FontWeight.normal,
+                    fontSize: kFormFieldLabelSize.sp,
+                    height: kFormFieldLabelHeight,
+                    fontWeight: AppFontWeight.semiBold,
                     color: Theme.of(context).colorScheme.onSurface,
                     fontFamily: 'Rubix',
                   ),
-                  maxLines: 2,
+                  maxLines: 1,
                   overflow: TextOverflow.ellipsis,
                   textAlign: TextAlign.start,
                 ),
@@ -146,27 +155,14 @@ class _CountrySelectorWidgetState
             ],
           ),
         ),
-        const SizedBox(height: 6),
+        // Same container spec as the name/age/gender fields above it — the
+        // design gives every field on this screen one treatment (radius 16,
+        // 1px grey outline, no fill, card shadow). This used to be a one-off:
+        // radius 8, a grey fill, and a hand-rolled shadow.
         Container(
-          width: fieldWidth,
-          height: 56,
-          padding: const EdgeInsetsDirectional.fromSTEB(10, 8, 10, 8),
-          decoration: BoxDecoration(
-            border: Border.all(
-              color: Theme.of(context).colorScheme.outline,
-              width: 1,
-            ),
-            boxShadow: [
-              BoxShadow(
-                color: Color.fromRGBO(0, 0, 0, 0.1),
-                spreadRadius: 1,
-                blurRadius: 0,
-                offset: Offset(0, 1), // changes position of shadow
-              ),
-            ],
-            borderRadius: BorderRadius.circular(8.r),
-            color: Theme.of(context).colorScheme.surfaceContainerHighest,
-          ),
+          height: kFormFieldHeight,
+          padding: const EdgeInsetsDirectional.fromSTEB(14, 8, 14, 8),
+          decoration: formFieldDecoration(context),
           child: Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
@@ -199,7 +195,6 @@ class _CountrySelectorWidgetState
             ],
           ),
         ),
-        const SizedBox(height: 12),
         Visibility(
           visible: isVisible,
           child: GestureDetector(
@@ -211,25 +206,17 @@ class _CountrySelectorWidgetState
                   ? Alignment.centerRight
                   : Alignment.centerLeft,
               padding: EdgeInsets.fromLTRB(10, 10, 10, 10),
+              // DESIGN.md forbids one-off drop shadows; this popup has no
+              // design counterpart, so it borrows the card token.
               decoration: BoxDecoration(
                 color: Theme.of(context).colorScheme.surfaceContainerHighest,
-                borderRadius: BorderRadius.circular(5.r),
+                borderRadius: BorderRadius.circular(kFormFieldRadius),
                 border: Border.all(
                   color: Theme.of(context).colorScheme.outline,
                   width: 1,
                 ),
-                boxShadow: [
-                  BoxShadow(
-                    color: Theme.of(
-                      context,
-                    ).colorScheme.onSurface.withValues(alpha: 0.1),
-                    spreadRadius: 1,
-                    blurRadius: 5,
-                    offset: Offset(0, 3), // changes position of shadow
-                  ),
-                ],
+                boxShadow: AppShadows.card,
               ),
-              width: fieldWidth,
               constraints: BoxConstraints(minHeight: 50.h),
               child: Text(widget.disclaimerText),
             ),

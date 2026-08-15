@@ -12,25 +12,27 @@ import 'package:mazilon/util/persistent_memory_service.dart';
 import 'package:mazilon/util/styles.dart';
 import 'package:mazilon/util/theme/app_theme.dart';
 import 'package:mazilon/util/theme/font_weight.dart';
+import 'package:mazilon/util/theme/spacing.dart';
 
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:mazilon/util/userInformation.dart';
 import 'package:provider/provider.dart';
 import 'package:mazilon/util/Form/retrieveInformation.dart';
 
-/// Spacing scale for the shared onboarding template, read off the Figma
-/// frames' own container boxes (`Android Large - 10/15`, frames "Frame 210"
-/// title block, "Frame 216" items block, "Frame 223" suggestions block).
-/// The widget tree below mirrors that container hierarchy one-for-one, so
-/// every gap here is the distance between two named design containers
-/// rather than a hand-tuned number.
-const double _gapLabelToCaption = 4; // section heading <-> its caption
-const double _gapWithinGroup =
-    8; // card <-> card, cards <-> "other suggestions"
-const double _gapWithinBlock =
-    16; // title <-> subtitle, row <-> row, rows <-> "add your own"
-const double _gapBetweenBlocks =
-    16; // title block <-> items block <-> suggestions block
+/// Spacing for the shared onboarding template, read off the Figma frames' own
+/// container boxes (`Android Large - 10/15`, frames "Frame 210" title block,
+/// "Frame 216" items block, "Frame 223" suggestions block). The widget tree
+/// below mirrors that container hierarchy one-for-one, so every gap here is the
+/// distance between two named design containers rather than a hand-tuned
+/// number.
+///
+/// The values moved to [OnboardingGaps] once the intro flow was ported onto the
+/// same wizard shell — both flows' frames set the same container spacing, so
+/// they share one definition rather than two copies that can drift.
+const double _gapLabelToCaption = OnboardingGaps.labelToCaption;
+const double _gapWithinGroup = OnboardingGaps.withinGroup;
+const double _gapWithinBlock = OnboardingGaps.withinBlock;
+const double _gapBetweenBlocks = OnboardingGaps.betweenBlocks;
 
 class FormPageTemplate extends WizardStep {
   //next page:

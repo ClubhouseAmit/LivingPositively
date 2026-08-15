@@ -24,7 +24,8 @@ class CardContainer extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final effectiveBg = backgroundColor ?? Colors.white;
-    final bgIsLight = ThemeData.estimateBrightnessForColor(effectiveBg) == Brightness.light;
+    final bgIsLight =
+        ThemeData.estimateBrightnessForColor(effectiveBg) == Brightness.light;
     final isDark = Theme.of(context).brightness == Brightness.dark;
     final theme = Theme.of(context);
 
@@ -119,9 +120,8 @@ class SectionHeaderWidget extends StatelessWidget {
                     Expanded(
                       child: Text(
                         title,
-                        style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                          fontWeight: FontWeight.bold,
-                        ),
+                        style: Theme.of(context).textTheme.titleMedium
+                            ?.copyWith(fontWeight: FontWeight.bold),
                         textAlign: TextAlign.start,
                       ),
                     ),
@@ -132,10 +132,17 @@ class SectionHeaderWidget extends StatelessWidget {
                 actionWidget!
               else if (actionIcon != null)
                 IconButton(
-                  icon: Icon(actionIcon, color: colorScheme.onSurface, size: 22),
+                  icon: Icon(
+                    actionIcon,
+                    color: colorScheme.onSurface,
+                    size: 22,
+                  ),
                   onPressed: onActionTap,
                   padding: EdgeInsets.zero,
-                  constraints: const BoxConstraints(minWidth: 36, minHeight: 36),
+                  constraints: const BoxConstraints(
+                    minWidth: 36,
+                    minHeight: 36,
+                  ),
                 )
               else if (actionLabel != null)
                 TextButton(
@@ -231,21 +238,29 @@ class PillItemRow extends StatelessWidget {
                     child: Text(
                       text,
                       style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                            fontWeight: FontWeight.w500,
-                            color: const Color(0xFF1A1A1A),
-                          ),
+                        fontWeight: FontWeight.w500,
+                        color: const Color(0xFF1A1A1A),
+                      ),
                       textAlign: TextAlign.start,
                     ),
                   ),
                   GestureDetector(
                     onTap: onEdit,
-                    child: const Icon(Icons.edit, size: 16, color: Color(0xFF757575)),
+                    child: const Icon(
+                      Icons.edit,
+                      size: 16,
+                      color: Color(0xFF757575),
+                    ),
                   ),
                   if (onRemove != null) ...[
                     const SizedBox(width: 8),
                     GestureDetector(
                       onTap: onRemove,
-                      child: const Icon(Icons.close, size: 16, color: Color(0xFF757575)),
+                      child: const Icon(
+                        Icons.close,
+                        size: 16,
+                        color: Color(0xFF757575),
+                      ),
                     ),
                   ],
                 ],
@@ -307,10 +322,8 @@ class DashedPillAddSlot extends StatelessWidget {
                         onTap: onTap,
                         child: Text(
                           placeholder,
-                          style:
-                              Theme.of(context).textTheme.bodyMedium?.copyWith(
-                                    color: colorScheme.outline,
-                                  ),
+                          style: Theme.of(context).textTheme.bodyMedium
+                              ?.copyWith(color: colorScheme.outline),
                           textAlign: TextAlign.start,
                         ),
                       ),
@@ -390,10 +403,12 @@ class _DashedPillPainter extends CustomPainter {
     const dashG = 5.0;
 
     final path = Path()
-      ..addRRect(RRect.fromRectAndRadius(
-        Rect.fromLTWH(1, 1, size.width - 2, size.height - 2),
-        const Radius.circular(radius),
-      ));
+      ..addRRect(
+        RRect.fromRectAndRadius(
+          Rect.fromLTWH(1, 1, size.width - 2, size.height - 2),
+          const Radius.circular(radius),
+        ),
+      );
 
     for (final m in path.computeMetrics()) {
       var d = 0.0;

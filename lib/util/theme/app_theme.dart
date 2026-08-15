@@ -187,7 +187,9 @@ ThemeData buildDarkTheme() {
     colorScheme: appDarkColorScheme,
     primaryColor: AppColors.darkPrimary,
     scaffoldBackgroundColor: AppColors.darkPageBackground,
-    bottomAppBarTheme: const BottomAppBarThemeData(color: AppColors.darkNavBackground),
+    bottomAppBarTheme: const BottomAppBarThemeData(
+      color: AppColors.darkNavBackground,
+    ),
     canvasColor: AppColors.darkSurface,
     cardColor: AppColors.darkSurfaceContainer,
     dividerColor: AppColors.darkOnSurface.withValues(alpha: 0.2),
