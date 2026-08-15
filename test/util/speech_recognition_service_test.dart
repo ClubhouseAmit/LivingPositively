@@ -363,6 +363,41 @@ void main() {
     });
 
     test(
+      'should notify the discarded session when a failed cancellation later terminates',
+      () async {
+        final events = <SpeechRecognitionSessionEvent>[];
+        await service.start(localeId: 'en-US', onEvent: events.add);
+        engine.cancelError = StateError('cancel failed');
+
+        expect(
+          await service.cancel(),
+          SpeechRecognitionSessionControlResult.failed,
+        );
+        expect(events, isEmpty);
+        expect(service.hasActiveSession, isTrue);
+
+        engine.emitStatus(SpeechRecognitionEngineStatus.completed);
+
+        expect(events, hasLength(1));
+        expect(
+          events.single,
+          isA<SpeechRecognitionStatusEvent>()
+              .having((event) => event.sessionId, 'sessionId', 1)
+              .having(
+                (event) => event.status,
+                'status',
+                SpeechRecognitionSessionStatus.completed,
+              ),
+        );
+        expect(service.hasActiveSession, isFalse);
+        expect(
+          await service.start(localeId: 'he-IL', onEvent: (_) {}),
+          isA<SpeechRecognitionSessionStarted>(),
+        );
+      },
+    );
+
+    test(
       'should release a cancellation when a terminal status precedes its failed reply',
       () async {
         await service.start(localeId: 'en-US', onEvent: (_) {});

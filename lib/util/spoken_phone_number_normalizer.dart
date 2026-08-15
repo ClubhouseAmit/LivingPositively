@@ -10,17 +10,14 @@ String? normalizeSpokenPhoneNumber(
   required String localeId,
 }) {
   final digitWords = _digitWordsFor(localeId);
-  final acceptsSpokenPhoneCharacters = digitWords.isNotEmpty;
   final candidate = StringBuffer();
-  final tokenSource = acceptsSpokenPhoneCharacters
-      ? transcript.replaceAll('+', ' + ')
-      : transcript;
+  final tokenSource = transcript.replaceAll('+', ' + ');
   final tokens = tokenSource
       .split(_tokenSeparators)
       .where((token) => token.isNotEmpty);
 
   for (final token in tokens) {
-    if (acceptsSpokenPhoneCharacters && token == '+') {
+    if (token == '+') {
       candidate.write('+');
       continue;
     }

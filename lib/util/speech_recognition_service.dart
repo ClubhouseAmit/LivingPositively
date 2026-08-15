@@ -460,10 +460,17 @@ final class SpeechRecognitionServiceImpl implements SpeechRecognitionService {
       return;
     }
     // A previous cancellation failed, but a later terminal lifecycle signal
-    // conclusively releases the recognizer.
-    if (_activeSession?.id == session.id) {
-      _activeSession = null;
+    // conclusively releases the recognizer and lets its UI clear controls.
+    if (_activeSession?.id != session.id) {
+      return;
     }
+    _activeSession = null;
+    session.onEvent(
+      SpeechRecognitionStatusEvent(
+        sessionId: session.id,
+        status: SpeechRecognitionSessionStatus.completed,
+      ),
+    );
   }
 
   Future<SpeechRecognitionAvailability> _initialize() async {

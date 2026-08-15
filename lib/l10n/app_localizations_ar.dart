@@ -3481,7 +3481,7 @@ class AppLocalizationsAr extends AppLocalizations {
 
   @override
   String get speechDictationDisclosureMessage =>
-      'يعالج جهازك أو متصفحك الكلام أثناء الإملاء. لا نخزن الصوت، ويمكنك مراجعة النص وتعديله قبل الحفظ.';
+      'قد يرسل جهازك أو متصفحك الكلام إلى خدمة للتعرّف على الكلام من أجل معالجته. لا يخزن هذا التطبيق الصوت ولا يرسل النص المملى إلى التحليلات. قد تنطبق سياسات موفري خدمة التعرّف. يمكنك مراجعة النص وتعديله قبل الحفظ.';
 
   @override
   String get speechDictationDisclosureAccept => 'متابعة';

@@ -2,6 +2,7 @@ import 'dart:async';
 
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:get_it/get_it.dart';
 import 'package:mazilon/global_enums.dart';
 import 'package:mazilon/l10n/app_localizations.dart';
@@ -58,11 +59,21 @@ class SpeechDictationSuffixAction extends StatefulWidget {
   final PersistentMemoryService? persistentMemoryService;
 
   /// Whether the current platform has an exposed dictation control.
-  static bool get isSupportedPlatform {
-    if (kIsWeb) {
+  static bool get isSupportedPlatform => isSupportedPlatformFor(
+    isWeb: kIsWeb,
+    targetPlatform: defaultTargetPlatform,
+  );
+
+  /// Determines platform support from the supplied runtime characteristics.
+  @visibleForTesting
+  static bool isSupportedPlatformFor({
+    required bool isWeb,
+    required TargetPlatform targetPlatform,
+  }) {
+    if (isWeb) {
       return true;
     }
-    return switch (defaultTargetPlatform) {
+    return switch (targetPlatform) {
       TargetPlatform.android ||
       TargetPlatform.iOS ||
       TargetPlatform.macOS ||
@@ -243,15 +254,19 @@ class _SpeechDictationSuffixActionState
             ? appLocale.speechDictationUnavailable
             : appLocale.speechDictationError,
       );
-    } catch (_) {
-      if (_awaitingSessionStart) {
-        _awaitingSessionStart = false;
-        _pendingSessionEvents.clear();
-        unawaited(service.cancel());
-      }
+    } on PlatformException {
+      await _cancelPendingStart(service);
       if (mounted) {
         _showMessage(appLocale.speechDictationError);
       }
+    } on MissingPluginException {
+      await _cancelPendingStart(service);
+      if (mounted) {
+        _showMessage(appLocale.speechDictationError);
+      }
+    } catch (error, stackTrace) {
+      await _cancelPendingStart(service);
+      Error.throwWithStackTrace(error, stackTrace);
     } finally {
       if (mounted) {
         setState(() {
@@ -259,6 +274,20 @@ class _SpeechDictationSuffixActionState
         });
       }
     }
+  }
+
+  Future<void> _cancelPendingStart(SpeechRecognitionService service) async {
+    if (!_awaitingSessionStart) {
+      return;
+    }
+    _awaitingSessionStart = false;
+    _activeLocaleId = null;
+    _pendingSessionEvents.clear();
+
+    // A failed cancellation remains fail-closed in the shared service until a
+    // terminal recognizer signal arrives. The transient UI has no session id
+    // to keep open after start itself failed.
+    await service.cancel();
   }
 
   Future<bool> _ensureDisclosure(AppLocalizations appLocale) async {
@@ -374,6 +403,10 @@ class _SpeechDictationSuffixActionState
             ? appLocale.speechDictationPhoneInvalid
             : appLocale.speechDictationError,
       );
+      return;
+    }
+    if (transformed.trim().isEmpty) {
+      _showMessage(appLocale.speechDictationError);
       return;
     }
     if (widget.maxLength != null &&

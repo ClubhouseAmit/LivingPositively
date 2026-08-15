@@ -3512,7 +3512,7 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get speechDictationDisclosureMessage =>
-      'Your device or browser processes speech while you dictate. We do not store audio, and you can review and edit the text before saving.';
+      'Your device or browser may send speech to a speech-recognition service for processing. This app does not store audio or send dictated text to analytics. Recognition providers’ policies may apply. You can review and edit the text before saving.';
 
   @override
   String get speechDictationDisclosureAccept => 'Continue';

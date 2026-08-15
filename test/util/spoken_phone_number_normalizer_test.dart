@@ -57,13 +57,14 @@ void main() {
       'should normalize only Unicode digits and separators for other locales',
       () {
         expect(
-          normalizeSpokenPhoneNumber('+٩٧٢ (۰۵۰)-１２３ ٤٥٦٧', localeId: 'fr-FR'),
-          '9720501234567',
+          normalizeSpokenPhoneNumber('+33123456789', localeId: 'fr-FR'),
+          '+33123456789',
         );
         expect(
-          normalizeSpokenPhoneNumber('+ plus ٣٤', localeId: 'fr-FR'),
-          '34',
+          normalizeSpokenPhoneNumber('+٩٧٢ (۰۵۰)-１２３ ٤٥٦٧', localeId: 'fr-FR'),
+          '+9720501234567',
         );
+        expect(normalizeSpokenPhoneNumber('plus ٣٤', localeId: 'fr-FR'), '34');
       },
     );
 

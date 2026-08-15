@@ -3471,7 +3471,7 @@ class AppLocalizationsHe extends AppLocalizations {
 
   @override
   String get speechDictationDisclosureMessage =>
-      'המכשיר או הדפדפן שלך מעבדים את הדיבור בזמן ההכתבה. אנחנו לא שומרים אודיו, ואפשר לעבור על הטקסט ולערוך אותו לפני השמירה.';
+      'המכשיר או הדפדפן שלך עשויים לשלוח את הדיבור לשירות זיהוי דיבור לצורך עיבוד. אפליקציה זו אינה שומרת אודיו ואינה שולחת טקסט מוכתב לניתוח נתונים. ייתכן שמדיניות ספקי שירותי הזיהוי חלה. אפשר לעבור על הטקסט ולערוך אותו לפני השמירה.';
 
   @override
   String get speechDictationDisclosureAccept => 'המשך';
