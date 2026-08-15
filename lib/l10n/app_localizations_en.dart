@@ -3503,4 +3503,49 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get notificationCustomMessageHint => 'Enter reminder message...';
+
+  @override
+  String get speechDictationAction => 'Dictate text';
+
+  @override
+  String get speechDictationDisclosureTitle => 'Use voice dictation?';
+
+  @override
+  String get speechDictationDisclosureMessage =>
+      'Your device or browser may send speech to a speech-recognition service for processing. This app does not store audio or send dictated text to analytics. Recognition providers’ policies may apply. You can review and edit the text before saving.';
+
+  @override
+  String get speechDictationDisclosureAccept => 'Continue';
+
+  @override
+  String get speechDictationDisclosureDecline => 'Not now';
+
+  @override
+  String get speechDictationLanguagePickerTitle =>
+      'Choose a dictation language';
+
+  @override
+  String get speechDictationListeningLabel => 'Listening…';
+
+  @override
+  String get speechDictationStopAndApplyAction => 'Stop and apply';
+
+  @override
+  String get speechDictationDiscardAction => 'Discard';
+
+  @override
+  String get speechDictationUnavailable =>
+      'Voice dictation is unavailable on this device.';
+
+  @override
+  String get speechDictationError =>
+      'Voice dictation could not be completed. Please try again.';
+
+  @override
+  String get speechDictationTooLong =>
+      'The dictated text is too long for this field.';
+
+  @override
+  String get speechDictationPhoneInvalid =>
+      'The dictated phone number is not valid for the selected country.';
 }

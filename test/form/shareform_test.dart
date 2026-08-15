@@ -1,11 +1,13 @@
 import 'dart:async';
 
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:get_it/get_it.dart';
 import 'package:mazilon/AnalyticsService.dart';
 import 'package:mazilon/file_service.dart';
+import 'package:mazilon/form/speech_dictation_suffix_action.dart';
 import 'package:mazilon/iFx/service_locator.dart';
 import 'package:mazilon/util/appInformation.dart';
 import 'package:mazilon/global_enums.dart';
@@ -243,6 +245,35 @@ void main() {
     final finishTop = tester.getTopLeft(find.text('סיימתי!')).dy;
 
     expect(finishTop, greaterThan(addCategoryTop));
+  });
+
+  testWidgets('custom category inputs expose dictation when supported', (
+    WidgetTester tester,
+  ) async {
+    debugDefaultTargetPlatformOverride = TargetPlatform.android;
+    try {
+      await tester.pumpWidget(createTestWidget());
+      await tester.ensureVisible(find.text('+ הוספת קטגוריה'));
+      await tester.tap(find.text('+ הוספת קטגוריה'));
+      await tester.pumpAndSettle();
+
+      final titleField = tester.widget<TextField>(
+        find.byKey(const Key('custom-category-title-field')),
+      );
+      final descriptionField = tester.widget<TextField>(
+        find.byKey(const Key('custom-category-description-field')),
+      );
+      expect(
+        titleField.decoration?.suffixIcon,
+        isA<SpeechDictationSuffixAction>(),
+      );
+      expect(
+        descriptionField.decoration?.suffixIcon,
+        isA<SpeechDictationSuffixAction>(),
+      );
+    } finally {
+      debugDefaultTargetPlatformOverride = null;
+    }
   });
 
   testWidgets('ShareForm keeps its content clear of the pinned finish button', (

@@ -3462,4 +3462,46 @@ class AppLocalizationsHe extends AppLocalizations {
 
   @override
   String get notificationCustomMessageHint => 'הזן הודעת תזכורת...';
+
+  @override
+  String get speechDictationAction => 'הכתבת טקסט';
+
+  @override
+  String get speechDictationDisclosureTitle => 'להשתמש בהכתבה קולית?';
+
+  @override
+  String get speechDictationDisclosureMessage =>
+      'המכשיר או הדפדפן שלך עשויים לשלוח את הדיבור לשירות זיהוי דיבור לצורך עיבוד. אפליקציה זו אינה שומרת אודיו ואינה שולחת טקסט מוכתב לניתוח נתונים. ייתכן שמדיניות ספקי שירותי הזיהוי חלה. אפשר לעבור על הטקסט ולערוך אותו לפני השמירה.';
+
+  @override
+  String get speechDictationDisclosureAccept => 'המשך';
+
+  @override
+  String get speechDictationDisclosureDecline => 'לא עכשיו';
+
+  @override
+  String get speechDictationLanguagePickerTitle => 'בחירת שפת הכתבה';
+
+  @override
+  String get speechDictationListeningLabel => 'מקשיב…';
+
+  @override
+  String get speechDictationStopAndApplyAction => 'עצור והחל';
+
+  @override
+  String get speechDictationDiscardAction => 'בטל';
+
+  @override
+  String get speechDictationUnavailable => 'הכתבה קולית אינה זמינה במכשיר הזה.';
+
+  @override
+  String get speechDictationError =>
+      'לא ניתן היה להשלים את ההכתבה הקולית. נסה/י שוב.';
+
+  @override
+  String get speechDictationTooLong => 'הטקסט שהוכתב ארוך מדי עבור שדה זה.';
+
+  @override
+  String get speechDictationPhoneInvalid =>
+      'מספר הטלפון שהוכתב אינו תקין עבור המדינה שנבחרה.';
 }

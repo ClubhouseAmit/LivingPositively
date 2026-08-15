@@ -5,6 +5,7 @@ import 'package:get_it/get_it.dart';
 
 import 'package:mazilon/global_enums.dart';
 import 'package:mazilon/file_service.dart';
+import 'package:mazilon/form/speech_dictation_suffix_action.dart';
 import 'package:mazilon/form/wizard_step.dart';
 import 'package:mazilon/l10n/app_localizations.dart';
 import 'package:mazilon/util/SignIn/popup_toast.dart';
@@ -288,6 +289,14 @@ class _ShareFormState extends WizardStepState<ShareForm> {
                   refreshCustomCategoryTitleOptions(textEditingController),
               decoration: InputDecoration(
                 labelText: appLocale.sharePageCustomCategoryTitle,
+                suffixIcon: SpeechDictationSuffixAction.isSupportedPlatform
+                    ? SpeechDictationSuffixAction(
+                        controller: textEditingController,
+                        onTextApplied: (_) => refreshCustomCategoryTitleOptions(
+                          textEditingController,
+                        ),
+                      )
+                    : null,
                 errorText: _customCategoryValidationError(
                   _customCategoryTitleController,
                 ),
@@ -348,6 +357,11 @@ class _ShareFormState extends WizardStepState<ShareForm> {
             decoration: InputDecoration(
               labelText: appLocale.sharePageCustomCategoryDescription,
               alignLabelWithHint: true,
+              suffixIcon: SpeechDictationSuffixAction.isSupportedPlatform
+                  ? SpeechDictationSuffixAction(
+                      controller: _customCategoryDescriptionController,
+                    )
+                  : null,
               border: const OutlineInputBorder(),
               errorText: _customCategoryValidationError(
                 _customCategoryDescriptionController,

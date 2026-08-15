@@ -15,6 +15,7 @@
 // PhonePageData ChangeNotifier — that's where the value lives.
 
 import 'package:country_code_picker/country_code_picker.dart';
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:mazilon/EmergencyNumbers.dart';
@@ -23,6 +24,7 @@ import 'package:mazilon/form/form.dart';
 import 'package:mazilon/form/phonePageform.dart';
 import 'package:mazilon/form/phonePageListItem.dart';
 import 'package:mazilon/form/shareform.dart';
+import 'package:mazilon/form/speech_dictation_suffix_action.dart';
 import 'package:mazilon/form/wizard_step.dart';
 import 'package:mazilon/util/Form/formPagePhoneModel.dart';
 import 'package:mazilon/util/userInformation.dart';
@@ -187,6 +189,60 @@ void main() {
         expect(find.text('Please enter a phone number.'), findsOneWidget);
       },
     );
+
+    testWidgets('manual contact draft exposes dictation on both inputs', (
+      tester,
+    ) async {
+      debugDefaultTargetPlatformOverride = TargetPlatform.android;
+      try {
+        final phoneData = _makePhonePageData();
+        await pumpWithProviders(
+          tester,
+          ChangeNotifierProvider<PhonePageData>.value(
+            value: phoneData,
+            child: Scaffold(
+              body: SingleChildScrollView(
+                child: PhonePageList(phonePageData: phoneData),
+              ),
+            ),
+          ),
+          userInformation: userInformation,
+          surfaceSize: const Size(1024, 2000),
+        );
+        await _settle(tester);
+        await tester.pump(const Duration(milliseconds: 50));
+        drainOverflowExceptions(tester);
+
+        await tester.tap(find.byType(TextButton).last, warnIfMissed: false);
+        await tester.pump();
+        drainOverflowExceptions(tester);
+
+        final formFields = find.byType(TextFormField);
+        expect(formFields, findsNWidgets(2));
+        final nameField = tester.widget<TextField>(
+          find.descendant(
+            of: formFields.at(0),
+            matching: find.byType(TextField),
+          ),
+        );
+        final numberField = tester.widget<TextField>(
+          find.descendant(
+            of: formFields.at(1),
+            matching: find.byType(TextField),
+          ),
+        );
+        expect(
+          nameField.decoration?.suffixIcon,
+          isA<SpeechDictationSuffixAction>(),
+        );
+        expect(
+          numberField.decoration?.suffixIcon,
+          isA<SpeechDictationSuffixAction>(),
+        );
+      } finally {
+        debugDefaultTargetPlatformOverride = null;
+      }
+    });
 
     testWidgets('valid manual draft saves an international contact', (
       tester,

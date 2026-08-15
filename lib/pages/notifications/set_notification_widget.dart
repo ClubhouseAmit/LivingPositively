@@ -1,5 +1,6 @@
 import 'package:flutter/foundation.dart' show kDebugMode;
 import 'package:flutter/material.dart';
+import 'package:mazilon/form/speech_dictation_suffix_action.dart';
 import 'package:mazilon/l10n/app_localizations.dart';
 import 'package:mazilon/pages/notifications/notification_service.dart';
 import 'package:mazilon/pages/notifications/reminder_debug_panel.dart';
@@ -141,6 +142,14 @@ class _SetNotificationWidgetState
                     },
                     decoration: InputDecoration(
                       hintText: customMessageHint,
+                      suffixIcon:
+                          SpeechDictationSuffixAction.isSupportedPlatform
+                          ? SpeechDictationSuffixAction(
+                              controller: _messageController,
+                              onTextApplied:
+                                  userInfoProvider.updateNotificationMessage,
+                            )
+                          : null,
                       hintStyle: TextStyle(
                         color: colorScheme.onSurface.withValues(alpha: 0.5),
                       ),

@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:get_it/get_it.dart';
 import 'package:mazilon/Locale/locale_service.dart';
+import 'package:mazilon/form/speech_dictation_suffix_action.dart';
 import 'package:mazilon/global_enums.dart';
 import 'package:mazilon/pages/SignIn_Pages/firstPage.dart';
 import 'package:mazilon/util/Form/formPagePhoneModel.dart';
@@ -11,7 +12,6 @@ import 'package:mazilon/util/Form/formPagePhoneModel.dart';
 import 'package:mazilon/pages/FeelGood/image_picker_service_impl.dart';
 import 'package:mazilon/util/LP_extended_state.dart';
 import 'package:mazilon/util/persistent_memory_service.dart';
-import 'package:mazilon/util/styles.dart';
 import 'package:mazilon/util/theme/font_weight.dart';
 import 'package:mazilon/util/Form/myDropdownMenuEntry.dart';
 import 'package:mazilon/util/userInformation.dart';
@@ -659,6 +659,16 @@ class _UserSettingsState extends LPExtendedState<UserSettings> {
                           constraints: const BoxConstraints.tightFor(
                             height: _kFieldHeight,
                           ),
+                          suffixIconConstraints: const BoxConstraints(
+                            minHeight: _kFieldHeight,
+                            maxHeight: _kFieldHeight,
+                          ),
+                          suffixIcon:
+                              SpeechDictationSuffixAction.isSupportedPlatform
+                              ? SpeechDictationSuffixAction(
+                                  controller: _namecontroller,
+                                )
+                              : null,
                           contentPadding: const EdgeInsets.symmetric(
                             horizontal: _kFieldPaddingX,
                             vertical: 10,

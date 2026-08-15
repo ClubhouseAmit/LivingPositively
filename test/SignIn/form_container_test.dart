@@ -1,6 +1,8 @@
 // ignore_for_file: prefer_const_constructors
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:mazilon/form/speech_dictation_suffix_action.dart';
 import 'package:mazilon/util/SignIn/form_container.dart';
 
 Widget _wrap(Widget child) => MaterialApp(home: Scaffold(body: child));
@@ -9,6 +11,18 @@ void main() {
   testWidgets('FormContainer renders a TextFormField', (tester) async {
     await tester.pumpWidget(_wrap(FormContainer(hintText: 'enter')));
     expect(find.byType(TextFormField), findsOneWidget);
+  });
+
+  testWidgets('FormContainer excludes dictation on a supported platform',
+      (tester) async {
+    debugDefaultTargetPlatformOverride = TargetPlatform.android;
+    try {
+      await tester.pumpWidget(_wrap(FormContainer(hintText: 'enter')));
+
+      expect(find.byType(SpeechDictationSuffixAction), findsNothing);
+    } finally {
+      debugDefaultTargetPlatformOverride = null;
+    }
   });
 
   testWidgets('FormContainer accepts text via controller', (tester) async {
