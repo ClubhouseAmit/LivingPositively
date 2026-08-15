@@ -93,15 +93,12 @@ void main() {
 
         for (final gender in genders) {
           user.gender = gender;
-          PagesCode? navigatedCode;
 
           await pumpWithProviders(
             tester,
             Home(
               phonePageData: _phoneData(),
-              changeCurrentIndex: (BuildContext context, PagesCode code) {
-                navigatedCode = code;
-              },
+              changeCurrentIndex: (BuildContext context, PagesCode code) {},
               changeLocale: (_) {},
               openMainMenu: (_) {},
             ),

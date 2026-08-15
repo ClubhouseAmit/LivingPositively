@@ -286,7 +286,6 @@ void main() {
   ) async {
     await openMenuWithFakeUrlLauncher(tester);
 
-    final menuDialog = find.byKey(const Key('mainMenuDialog'));
     final contactButton = find.byKey(const Key('mainMenuContactUsButton'));
     final shareIcon = find.byIcon(Icons.share);
 

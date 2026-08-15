@@ -3,18 +3,15 @@ import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:share_plus/share_plus.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
-import 'package:fluttericon/elusive_icons.dart';
 import 'package:get_it/get_it.dart';
 import 'package:mazilon/AnalyticsService.dart';
 import 'package:mazilon/MainPageHelpers/components/personal_plan_section.dart';
 import 'package:mazilon/global_enums.dart';
 
-import 'package:mazilon/util/HomePage/sectionBarHome.dart';
 import 'package:mazilon/iFx/service_locator.dart';
 
 import 'package:mazilon/pages/FeelGood/image_picker_service_impl.dart';
 import 'package:mazilon/pages/WellnessTools/VideoPlayerPageFactory.dart';
-import 'package:mazilon/pages/home.dart';
 
 import 'package:mazilon/file_service.dart';
 import 'package:mazilon/l10n/app_localizations.dart';
@@ -29,7 +26,6 @@ import 'package:provider/provider.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:mockito/mockito.dart';
 
-import '../TestMenu.dart';
 import '../test_data.dart';
 
 import 'share_and_download_test.mocks.dart';
