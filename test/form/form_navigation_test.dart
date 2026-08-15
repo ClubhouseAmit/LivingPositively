@@ -9,6 +9,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:mazilon/form/form.dart';
 import 'package:mazilon/form/formpagetemplate.dart';
 import 'package:mazilon/form/phonePageform.dart';
+import 'package:mazilon/form/wizard_step.dart';
 import 'package:mazilon/menu.dart';
 import 'package:mazilon/util/Form/formPagePhoneModel.dart';
 import 'package:mazilon/util/userInformation.dart';
@@ -83,6 +84,7 @@ void main() {
       'PersonalPlan-DifficultEvents',
       'PersonalPlan-FeelBetter',
       'PersonalPlan-MakeSafer',
+      'PersonalPlan-SafeEnvironment',
     ]) {
       expect(
         tester.widget<FormPageTemplate>(find.byType(FormPageTemplate))
@@ -95,27 +97,25 @@ void main() {
 
     expect(find.byType(PhonePageForm), findsOneWidget);
     final contactsContinue = find.descendant(
-      of: find.byType(PhonePageForm),
+      of: find.byType(WizardStepPage),
       matching: find.byType(TextButton),
     ).last;
     await tester.ensureVisible(contactsContinue);
     await tester.tap(contactsContinue, warnIfMissed: false);
     await tester.pumpAndSettle();
-    expect(
-      tester.widget<FormPageTemplate>(find.byType(FormPageTemplate))
-          .collectionName,
-      'PersonalPlan-SafeEnvironment',
-    );
+    expect(find.byType(FormPageTemplate), findsNothing);
+    expect(find.byType(PhonePageForm), findsNothing);
   });
 
   testWidgets(
-      'tapping the save-and-quit IconButton on the header pushes a Menu route',
+      'tapping the save-and-quit control on the header pushes a Menu route',
       (tester) async {
     await _pumpForm(tester);
 
-    // The header contains a single IconButton on currentStep=0 (save-and-quit).
-    final iconButton = find.byType(IconButton).first;
-    await tester.tap(iconButton, warnIfMissed: false);
+    // Located by its label rather than by widget type: it is a TextButton,
+    // not an IconButton (an IconButton sizes its tap target for a square
+    // glyph, which wrapped this multi-word label onto two lines).
+    await tester.tap(find.text('To menu'), warnIfMissed: false);
     await tester.pumpAndSettle();
 
     // navigateToMenu pushes the Menu screen via pushAndRemoveUntil.
@@ -128,12 +128,9 @@ void main() {
       (tester) async {
     await _pumpForm(tester);
 
-    // The inner FormPageTemplate "Continue" ConfirmationButton is a TextButton
-    // at the bottom of the page subtree. Find the last TextButton inside
-    // FormPageTemplate and tap it — that calls next() on the parent
     // FormProgressIndicator.
     final continueBtn = find.descendant(
-      of: find.byType(FormPageTemplate),
+      of: find.byType(WizardStepPage),
       matching: find.byType(TextButton),
     ).last;
     await tester.ensureVisible(continueBtn);

@@ -60,7 +60,7 @@ Map<String, dynamic> retrieveInformation(name, gender, textLocalization) {
       throw Exception('Invalid collection name');
   }
   nextButtonText = textLocalization.nextButton(gender);
-  showMoreButtonText = textLocalization.showMoreButton(gender);
+  showMoreButtonText = textLocalization.otherSuggestions(gender);
 
   return {
     'header': header,

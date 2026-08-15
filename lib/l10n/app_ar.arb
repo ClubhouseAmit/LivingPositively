@@ -15,6 +15,7 @@
   "otherSuggestions": "{gender,select,male{اقتراحات أخرى} female{اقتراحات أخرى} other{اقتراحات أخرى}}",
   "introductionRestartGreeting": "{gender,select,male{مرحبًا بك في Living Positively} female{مرحبًا بكِ في Living Positively} other{مرحبًا في Living Positively}}",
   "addFormPageTemplateAdd": "{gender,select,male{إضافة} female{إضافة} other{إضافة}}",
+  "addFormPageTemplateAddOwn": "{gender,select,male{أضف بنفسك} female{أضيفي بنفسك} other{أضف/ي بنفسك}}",
   "addThanksFormThank": "{gender,select,male{شكرًا} female{شكرًا} other{شكرًا}}",
   "addFormEdit": "{gender,select,male{تعديل} female{تعديل} other{تعديل}}",
   "signupLoginLoginTitle": "{gender,select,male{تسجيل الدخول إلى Living Positively} female{تسجيل الدخول إلى Living Positively} other{تسجيل الدخول إلى Living Positively}}",

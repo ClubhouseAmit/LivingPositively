@@ -108,6 +108,17 @@ class AppColors {
   /// Muted text, borders, and dividers in dark mode.
   static const Color darkOutline = Color(0xFFCBC4D0);
 
+  /// Inactive onboarding progress-dot fill — a lighter, distinct grey from
+  /// [neutralDark]. Figma node 1660:2067; no dark-mode treatment designed
+  /// yet, same value used in both themes pending design follow-up.
+  static const Color progressTrack = Color(0xFFD9D9D9);
+
+  /// Dashed border on an unselected onboarding-suggestion card — teal, a
+  /// distinct color from [success]/[tertiary] despite looking similar.
+  /// Figma node 1661:3187 (Android Large - 15); no dark-mode treatment
+  /// designed yet, same value used in both themes pending design follow-up.
+  static const Color suggestionCardOutline = Color(0xFF01B99F);
+
   /// PDF-export tint. Source: legacy `pdfpurple`. The original literal
   /// `0xfaf6fd` lacks the leading `0xFF` alpha byte; preserved verbatim
   /// to keep PDF output byte-identical to pre-Phase-D builds.

@@ -6,6 +6,7 @@ import 'package:integration_test/integration_test.dart';
 import 'package:mazilon/AnalyticsService.dart';
 import 'package:mazilon/file_service.dart';
 import 'package:mazilon/form/shareform.dart';
+import 'package:mazilon/form/wizard_step.dart';
 import 'package:mazilon/global_enums.dart';
 import 'package:mazilon/iFx/service_locator.dart';
 import 'package:mazilon/l10n/app_localizations.dart';
@@ -77,9 +78,14 @@ Widget _shareFormHarness({
       localizationsDelegates: AppLocalizations.localizationsDelegates,
       home: ScreenUtilInit(
         designSize: const Size(360, 690),
-        child: ShareForm(
-          prev: () {},
-          submit: (_) {},
+        child: Scaffold(
+          body: WizardStepPage(
+            step: ShareForm(
+              key: GlobalKey<WizardStepState>(),
+              prev: () {},
+              submit: (_) {},
+            ),
+          ),
         ),
       ),
     ),

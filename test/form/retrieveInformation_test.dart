@@ -83,7 +83,7 @@ void main() {
         expect(result['midTitle'], 'difficultEventsMidTitle(male)');
         expect(result['midSubTitle'], 'difficultEventsMidSubTitle(male)');
         expect(result['nextButtonText'], 'nextButton(male)');
-        expect(result['showMoreButtonText'], 'showMoreButton(male)');
+        expect(result['showMoreButtonText'], 'otherSuggestions(male)');
         expect(result['list'], isA<List<String>>());
         expect((result['list'] as List).isNotEmpty, isTrue);
       },

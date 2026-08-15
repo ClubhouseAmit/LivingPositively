@@ -62,6 +62,8 @@ Metsilon (Mazilon) serves individuals in highly vulnerable or distressed moments
 | **Success**       | `--color-success`       | `0xFF01B91E` | Success badges, checked checkmarks, safe items         |
 | **Error**         | `--color-error`         | `0xFFF44336` | Destructive warnings, danger alerts, delete buttons    |
 | **Background**    | `--color-bg`            | `0xFFF4F0EB` | Light mode screen backdrop tone                        |
+| **Progress Track** | `--color-progress-track` | `0xFFD9D9D9` | Inactive progress-dot fill (no dark-mode value designed yet) |
+| **Suggestion Card Outline** | `--color-suggestion-outline` | `0xFF01B99F` | Dashed border on an unselected onboarding-suggestion card — teal, distinct from Success green (no dark-mode value designed yet) |
 
 ### 2.2 Typography (Font Family: Rubik)
 
@@ -112,6 +114,16 @@ Ensure all raw text is styled using these helper widgets to correctly apply the 
   _Flutter details:_ TextButton with background color `AppColors.error`, foreground `AppColors.onError`, border radius 20, containing `myAutoSizedText`.
 - **Generic Icon Button:**
   Use `myTextButton(function, icon, color, {tooltip})`.
+- **Inline Text Link (tertiary action):**
+  Use `LinkButton(function, icon, label, color, {designFontSize, iconSize, gap, minHeight})`.
+  Coloured text with a leading icon and no button chrome — for tertiary
+  actions such as "add your own" or "other suggestions". The icon is the
+  first child so `Directionality` mirrors it to the reading-start side.
+  _Note:_ padding and the minimum tap target are reset so the control matches
+  the design's 32px text box; Material's default 48px minimum would inflate
+  surrounding spacing. That is a deliberate trade against the 48px
+  touch-target guideline — use `ConfirmationButton`/`myTextButton` where a
+  full-size target matters.
 
 ### 3.3 Cards & List Items
 
@@ -130,6 +142,13 @@ Ensure all raw text is styled using these helper widgets to correctly apply the 
 
 - **Linear Step Indicator:**
   Use `LinearProgressIndicator` with height 4.0, background color `AppColors.neutralLight`, and progress value color `AppColors.primary`.
+- **Dot Step Indicator (wizard flows):**
+  Use `StepDotsIndicator(context, stepCount:, currentStep:, {dotWidth, dotHeight, gap})`.
+  One pill per step, 18x8 with fully rounded ends, filled `AppColors.primary`
+  up to and including the current step and `AppColors.progressTrack` beyond.
+  The onboarding wizard's design specifies discrete dots rather than the
+  continuous bar above; centre them on the screen (not between the flanking
+  controls) as the design does.
 - **Page Header Group:**
   A `Column` containing a `LinearProgressIndicator` (if in a wizard), a spacer, a Heading Large text (`fontSize: 28.0`, aligned right for RTL), and a small Caption text (`fontSize: 14.0`, `color: AppColors.neutralDark`, aligned right).
 
