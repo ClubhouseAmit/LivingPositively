@@ -41,9 +41,7 @@ void main() {
     resetTestServices();
   });
 
-  testWidgets('quote dismissed snackbar disappears on its own', (
-    tester,
-  ) async {
+  testWidgets('quote dismissed snackbar disappears on its own', (tester) async {
     await pumpWithProviders(
       tester,
       Home(

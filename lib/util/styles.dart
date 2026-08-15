@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:auto_size_text/auto_size_text.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:mazilon/util/theme/app_theme.dart';
+import 'package:mazilon/util/theme/shadows.dart';
 
 // Phase D (ADR-005 §Decision step 4): the nine palette variables below
 // previously held literal `Color(...)` values and were mutated by hand
@@ -41,6 +42,69 @@ double formFieldWidth(BuildContext context) {
   }
   return availableWidth > 0 ? availableWidth : MediaQuery.sizeOf(context).width;
 }
+
+/// Form-field container geometry (Figma frame 28, Groups 75/141/142/143).
+const double kFormFieldHeight = 53;
+const double kFormFieldVerticalPadding = 14.5;
+const double kFormFieldRadius = 16;
+const double kFormFieldLabelBox = 32;
+const double kFormFieldLabelSize = 14;
+const double kFormFieldLabelHeight = kFormFieldLabelBox / kFormFieldLabelSize;
+
+/// Border for a form field. Pair with [formFieldShadowDecoration] for shadow.
+OutlineInputBorder formFieldBorder(BuildContext context) => OutlineInputBorder(
+  borderRadius: BorderRadius.circular(kFormFieldRadius),
+  borderSide: BorderSide(
+    color: Theme.of(context).colorScheme.outline,
+    width: 1,
+  ),
+);
+
+/// Field decoration for [TextFormField] controls.
+InputDecoration formFieldInputDecoration(BuildContext context) =>
+    InputDecoration(
+      filled: false,
+      isDense: true,
+      contentPadding: const EdgeInsets.symmetric(
+        horizontal: 14,
+        vertical: kFormFieldVerticalPadding,
+      ),
+      border: formFieldBorder(context),
+      enabledBorder: formFieldBorder(context),
+      focusedBorder: formFieldBorder(context),
+    );
+
+/// Field decoration theme for [DropdownMenu] controls.
+InputDecorationTheme formFieldInputDecorationTheme(BuildContext context) =>
+    InputDecorationTheme(
+      filled: false,
+      isDense: true,
+      contentPadding: const EdgeInsets.symmetric(
+        horizontal: 14,
+        vertical: kFormFieldVerticalPadding,
+      ),
+      constraints: const BoxConstraints.tightFor(height: kFormFieldHeight),
+      border: formFieldBorder(context),
+      enabledBorder: formFieldBorder(context),
+      focusedBorder: formFieldBorder(context),
+    );
+
+/// Shadow-only wrapper for a form field. The border is drawn by the control
+/// itself so the focus/error states keep working; this supplies the drop
+/// shadow underneath it.
+BoxDecoration formFieldShadowDecoration() => BoxDecoration(
+  borderRadius: BorderRadius.circular(kFormFieldRadius),
+  boxShadow: AppShadows.card,
+);
+
+/// Full field container for controls that do not draw their own border
+/// (the country picker). Border, radius and shadow in one decoration.
+BoxDecoration formFieldDecoration(BuildContext context) => BoxDecoration(
+  color: Colors.transparent,
+  borderRadius: BorderRadius.circular(kFormFieldRadius),
+  border: Border.all(color: Theme.of(context).colorScheme.outline, width: 1),
+  boxShadow: AppShadows.card,
+);
 
 ButtonStyle myButtonStyle = TextButton.styleFrom(
   backgroundColor: primaryPurple,
@@ -155,6 +219,15 @@ Widget ResetButton(context, function, text, buttonTextStyle) {
 }
 
 const emptyStyle = TextStyle();
+
+/// Legacy. Use a plain [Text] widget directly.
+///
+/// All this does is force `fontFamily: 'Rubix'`, which both themes already set
+/// via `ThemeData.fontFamily` — so it buys nothing over `Text`, while costing
+/// an untyped `style` parameter and hiding the widget behind a helper.
+@Deprecated(
+  'Use a plain Text widget; ThemeData already applies Rubik.',
+)
 Text myText(content, style, align) {
   style ??= emptyStyle;
   return Text(
@@ -164,6 +237,18 @@ Text myText(content, style, align) {
   );
 }
 
+/// Legacy, and the more dangerous of the two: the `maxFontSize` argument is
+/// what actually paints, while the `fontSize` in `style` is inert whenever
+/// `maxLines` is null inside an unbounded-height scroll view — every candidate
+/// size "fits", so `AutoSizeText` settles on its ceiling. On issue #338 titles
+/// declared at `40.sp` painted at 60 and buttons declared at `20.sp` at 44, and
+/// changing the declared size did nothing at all.
+///
+/// Use a plain [Text] at an explicit size, which cannot drift from its own
+/// declaration. See `designs/issue-338-audit.md` §1.
+@Deprecated(
+  'Use Text at an explicit size; maxFontSize silently overrides style.fontSize.',
+)
 AutoSizeText myAutoSizedText(
   content,
   style,

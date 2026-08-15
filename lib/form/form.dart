@@ -9,6 +9,7 @@ import 'package:mazilon/util/persistent_memory_service.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 
 import 'package:mazilon/form/wizard_step.dart';
+import 'package:mazilon/util/theme/spacing.dart';
 import 'package:mazilon/form/wizard_steps.dart';
 import 'package:mazilon/menu.dart';
 
@@ -143,13 +144,13 @@ class FormProgressIndicatorState
             //no separate header container in the Figma template — the skip
             //link and progress dots sit directly on the page background.
             backgroundColor: Colors.transparent,
+            //Skip link, progress dots and back chevron share one line,
+            //vertically centred on each other (Figma: all three centre on the
+            //same y). SafeArea keeps them below the status bar instead of
+            //centring across it, and the row sits at the bottom of the bar so
+            //the gap to the page title matches the design.
             flexibleSpace: SafeArea(
               bottom: false,
-              //Skip link, progress dots and back chevron share one line,
-              //vertically centred on each other (Figma: all three centre on
-              //the same y). SafeArea keeps them below the status bar instead
-              //of centring across it, and the row sits at the bottom of the
-              //bar so the gap to the page title matches the design.
               child: Align(
                 alignment: Alignment.bottomCenter,
                 child: Padding(
@@ -226,9 +227,32 @@ class FormProgressIndicatorState
             ),
           ),
         ),
-        body: Padding(
-          padding: const EdgeInsets.symmetric(horizontal: _screenInset),
-          child: WizardStepPage(step: steps[currentStep]),
+        // Top inset is the AppBar's; this only guards the bottom.
+        body: SafeArea(
+          top: false,
+          child: Padding(
+            padding: const EdgeInsets.symmetric(horizontal: _screenInset),
+            // This flow's header and step dots live in the Scaffold's AppBar
+            // above, so there is nothing above the step here.
+            child: Column(
+              children: [
+                Expanded(
+                  child: Padding(
+                    padding: const EdgeInsets.only(
+                      top: OnboardingGaps.questionnaireHeaderToContent,
+                    ),
+                    child: steps[currentStep],
+                  ),
+                ),
+                Padding(
+                  padding: const EdgeInsets.symmetric(
+                    vertical: OnboardingGaps.questionnaireAroundActions,
+                  ),
+                  child: WizardActions(step: steps[currentStep]),
+                ),
+              ],
+            ),
+          ),
         ),
       ),
     );

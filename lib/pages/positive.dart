@@ -216,10 +216,7 @@ class _PositiveState extends LPExtendedState<Positive> {
                     Expanded(
                       child: myAutoSizedText(
                         appLocale!.homePageTraitsMainTitle(gender),
-                        TextStyle(
-                          fontWeight: FontWeight.bold,
-                          fontSize: 30.sp,
-                        ),
+                        TextStyle(fontWeight: FontWeight.bold, fontSize: 30.sp),
                         null,
                         60,
                       ),

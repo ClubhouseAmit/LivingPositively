@@ -22,8 +22,9 @@ void main() {
     resetTestServices();
   });
 
-  testWidgets('renders Scaffold + CircularProgressIndicator + greeting text',
-      (tester) async {
+  testWidgets('renders Scaffold + CircularProgressIndicator + greeting text', (
+    tester,
+  ) async {
     final userInfo = UserInformation();
     userInfo.gender = 'male';
     userInfo.localeName = 'en';
@@ -50,8 +51,9 @@ void main() {
     expect(texts, isNotEmpty);
   });
 
-  testWidgets('renders a different gender variant without throwing',
-      (tester) async {
+  testWidgets('renders a different gender variant without throwing', (
+    tester,
+  ) async {
     final userInfo = UserInformation();
     userInfo.gender = 'female';
     userInfo.localeName = 'en';

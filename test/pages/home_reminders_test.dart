@@ -28,7 +28,11 @@ class _DelayedMemoryService implements PersistentMemoryService {
   }
 
   @override
-  Future<void> setItem(String key, PersistentMemoryType type, dynamic value) async {
+  Future<void> setItem(
+    String key,
+    PersistentMemoryType type,
+    dynamic value,
+  ) async {
     return fallback.setItem(key, type, value);
   }
 
@@ -89,15 +93,12 @@ void main() {
 
         for (final gender in genders) {
           user.gender = gender;
-          PagesCode? navigatedCode;
 
           await pumpWithProviders(
             tester,
             Home(
               phonePageData: _phoneData(),
-              changeCurrentIndex: (BuildContext context, PagesCode code) {
-                navigatedCode = code;
-              },
+              changeCurrentIndex: (BuildContext context, PagesCode code) {},
               changeLocale: (_) {},
               openMainMenu: (_) {},
             ),
@@ -212,7 +213,10 @@ void main() {
         final remindersWidget = tester.widget<RemindersSectionWidget>(
           find.byType(RemindersSectionWidget),
         );
-        expect(remindersWidget.reminders.first.title, equals('Loaded My Custom Reminder'));
+        expect(
+          remindersWidget.reminders.first.title,
+          equals('Loaded My Custom Reminder'),
+        );
       });
     },
   );
@@ -270,10 +274,16 @@ void main() {
         final remindersWidget = tester.widget<RemindersSectionWidget>(
           find.byType(RemindersSectionWidget),
         );
-        expect(remindersWidget.reminders.first.title, equals('My New Saved Reminder'));
+        expect(
+          remindersWidget.reminders.first.title,
+          equals('My New Saved Reminder'),
+        );
 
         // Check persistent memory
-        final savedVal = await memory.getItem('customReminder', PersistentMemoryType.String);
+        final savedVal = await memory.getItem(
+          'customReminder',
+          PersistentMemoryType.String,
+        );
         expect(savedVal, equals('My New Saved Reminder'));
       });
     },

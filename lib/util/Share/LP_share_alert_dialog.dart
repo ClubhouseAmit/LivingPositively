@@ -14,9 +14,7 @@ import 'package:provider/provider.dart';
 import 'package:share_plus/share_plus.dart';
 
 class LPShareAlertDialog extends StatefulWidget {
-  const LPShareAlertDialog({
-    super.key,
-  });
+  const LPShareAlertDialog({super.key});
 
   @override
   State<LPShareAlertDialog> createState() => _LPShareAlertDialogState();

@@ -7,17 +7,11 @@ import 'package:mazilon/util/languages_util_functions.dart';
 void main() {
   group('Arabic locale support', () {
     test('AppLocalizations registers Arabic in supportedLocales', () {
-      expect(
-        AppLocalizations.supportedLocales,
-        contains(const Locale('ar')),
-      );
+      expect(AppLocalizations.supportedLocales, contains(const Locale('ar')));
     });
 
     test('AppLocalizations delegate supports Arabic', () {
-      expect(
-        AppLocalizations.delegate.isSupported(const Locale('ar')),
-        isTrue,
-      );
+      expect(AppLocalizations.delegate.isSupported(const Locale('ar')), isTrue);
     });
 
     test('languageName maps Arabic locale code to Arabic label', () {
@@ -28,21 +22,21 @@ void main() {
       expect(languageCode('العربية'), 'ar');
     });
 
-    testWidgets('LanguageDropDown exposes Arabic as visible selectable text',
-        (WidgetTester tester) async {
+    testWidgets('LanguageDropDown exposes Arabic as visible selectable text', (
+      WidgetTester tester,
+    ) async {
       await tester.pumpWidget(
         MaterialApp(
-          home: Scaffold(
-            body: LanguageDropDown(changeLocale: (_) {}),
-          ),
+          home: Scaffold(body: LanguageDropDown(changeLocale: (_) {})),
         ),
       );
 
       expect(find.text('العربية'), findsOneWidget);
     });
 
-    testWidgets('Arabic locale resolves an Arabic localized label',
-        (WidgetTester tester) async {
+    testWidgets('Arabic locale resolves an Arabic localized label', (
+      WidgetTester tester,
+    ) async {
       await tester.pumpWidget(
         MaterialApp(
           supportedLocales: AppLocalizations.supportedLocales,
@@ -60,8 +54,9 @@ void main() {
       expect(find.text('العربية'), findsOneWidget);
     });
 
-    testWidgets('Arabic locale resolves RTL directionality',
-        (WidgetTester tester) async {
+    testWidgets('Arabic locale resolves RTL directionality', (
+      WidgetTester tester,
+    ) async {
       await tester.pumpWidget(
         MaterialApp(
           supportedLocales: AppLocalizations.supportedLocales,

@@ -165,9 +165,7 @@ class _ThanksItemSuggestedState extends LPExtendedState<ThanksItemSuggested> {
                         ? Alignment.centerRight
                         : Alignment.centerLeft,
                     child: AutoSizeText(
-                      widget.inputText == ''
-                          ? text
-                          : widget.inputText,
+                      widget.inputText == '' ? text : widget.inputText,
                       maxLines: 3,
                       minFontSize: 14,
                       overflow: TextOverflow.ellipsis,

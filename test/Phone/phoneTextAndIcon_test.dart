@@ -237,18 +237,21 @@ void main() {
       expect(fake.lastLaunchedUrl, 'https://wa.me/972501234567');
     });
 
-    test('rejects domestic and malformed recipients without launching', () async {
-      final originalPlatform = UrlLauncherPlatform.instance;
-      final fake = _FakeUrlLauncherPlatform();
-      UrlLauncherPlatform.instance = fake;
-      addTearDown(() => UrlLauncherPlatform.instance = originalPlatform);
+    test(
+      'rejects domestic and malformed recipients without launching',
+      () async {
+        final originalPlatform = UrlLauncherPlatform.instance;
+        final fake = _FakeUrlLauncherPlatform();
+        UrlLauncherPlatform.instance = fake;
+        addTearDown(() => UrlLauncherPlatform.instance = originalPlatform);
 
-      expect(await openWhatsApp('0521210105'), isFalse);
-      expect(fake.lastLaunchedUrl, isNull);
+        expect(await openWhatsApp('0521210105'), isFalse);
+        expect(fake.lastLaunchedUrl, isNull);
 
-      expect(await openWhatsApp('+97250invalid'), isFalse);
-      expect(fake.lastLaunchedUrl, isNull);
-    });
+        expect(await openWhatsApp('+97250invalid'), isFalse);
+        expect(fake.lastLaunchedUrl, isNull);
+      },
+    );
 
     test('successful launch returns true', () async {
       final originalPlatform = UrlLauncherPlatform.instance;

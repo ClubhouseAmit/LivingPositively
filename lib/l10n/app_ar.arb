@@ -84,7 +84,7 @@
   "darkModeSettingsTitle": "الوضع الداكن",
   "darkModeAlwaysLight": "وضع فاتح دائمًا",
   "darkModeAlwaysDark": "وضع داكن دائمًا",
-  "darkModeSleepPromoting": "وضع داعم للنوم",
+  "darkModeSleepPromoting": "مجدول",
   "darkModeStartTime": "وقت البدء",
   "darkModeEndTime": "وقت الانتهاء",
   "introductionFormFirstPageMainTitle": "{gender,select,male{ما الذي يبقيني آمنًا؟} female{ما الذي يبقيني آمنة؟} other{ما الذي يبقيني آمنًا؟}}",

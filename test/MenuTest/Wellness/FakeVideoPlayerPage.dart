@@ -16,9 +16,7 @@ class FakeVideoPlayerPage extends StatelessWidget {
     // Simulate a mock video player
     return Container(
       color: Colors.grey,
-      child: Center(
-        child: Text('Mock Video Player'),
-      ),
+      child: Center(child: Text('Mock Video Player')),
     );
   }
 }

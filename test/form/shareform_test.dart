@@ -19,6 +19,7 @@ import 'package:mazilon/form/shareform.dart';
 import 'package:mazilon/form/wizard_step.dart';
 import 'package:mockito/mockito.dart';
 import 'package:mazilon/l10n/app_localizations.dart';
+import '../helpers/widget_test_scaffold.dart' show wizardStepHarness;
 import 'shareform_test.mocks.dart';
 
 @GenerateNiceMocks([
@@ -43,8 +44,9 @@ void main() {
     mockPersistentMemoryService = MockPersistentMemoryService();
 
     // Set up mock behaviors for PersistentMemoryService
-    when(mockPersistentMemoryService.getItem(any, any))
-        .thenAnswer((invocation) async {
+    when(mockPersistentMemoryService.getItem(any, any)).thenAnswer((
+      invocation,
+    ) async {
       final type = invocation.positionalArguments[1];
       if (type == PersistentMemoryType.Bool) {
         return false;
@@ -54,13 +56,15 @@ void main() {
       }
       return '';
     });
-    when(mockPersistentMemoryService.setItem(any, any, any))
-        .thenAnswer((_) async => {});
+    when(
+      mockPersistentMemoryService.setItem(any, any, any),
+    ).thenAnswer((_) async => {});
     when(mockPersistentMemoryService.reset()).thenAnswer((_) async => {});
 
     // Register PersistentMemoryService with GetIt
     getIt.registerLazySingleton<PersistentMemoryService>(
-        () => mockPersistentMemoryService);
+      () => mockPersistentMemoryService,
+    );
 
     mockUserInformation = UserInformation();
     mockUserInformation.gender = "male";
@@ -85,9 +89,11 @@ void main() {
     return MultiProvider(
       providers: [
         ChangeNotifierProvider<AppInformation>(
-            create: (_) => mockAppInformation),
+          create: (_) => mockAppInformation,
+        ),
         ChangeNotifierProvider<UserInformation>(
-            create: (_) => mockUserInformation),
+          create: (_) => mockUserInformation,
+        ),
       ],
       child: MaterialApp(
         supportedLocales: AppLocalizations.supportedLocales,
@@ -95,13 +101,11 @@ void main() {
         localizationsDelegates: AppLocalizations.localizationsDelegates,
         home: ScreenUtilInit(
           designSize: const Size(360, 690),
-          child: Scaffold(
-            body: WizardStepPage(
-              step: ShareForm(
-                key: GlobalKey<WizardStepState>(),
-                prev: () {},
-                submit: (context) {},
-              ),
+          child: wizardStepHarness(
+            ShareForm(
+              key: GlobalKey<WizardStepState>(),
+              prev: () {},
+              submit: (context) {},
             ),
           ),
         ),
@@ -115,13 +119,17 @@ void main() {
     // Verify the presence of the header and subtitles
     expect(find.text('איזה כיף!'), findsOneWidget);
     expect(
-        find.text(
-            'יצרת לך מדריך שיעזור לך ברגעי משבר! בוא ונכיר כלים נוספים לעזרה עצמית ולחוסן נפשי'),
-        findsOneWidget);
+      find.text(
+        'יצרת לך מדריך שיעזור לך ברגעי משבר! בוא ונכיר כלים נוספים לעזרה עצמית ולחוסן נפשי',
+      ),
+      findsOneWidget,
+    );
     expect(
-        find.text(
-            'עכשיו אתה יכול לשתף את התוכנית עם הקרובים אליך או להוריד אותה כקובץ'),
-        findsOneWidget);
+      find.text(
+        'עכשיו אתה יכול לשתף את התוכנית עם הקרובים אליך או להוריד אותה כקובץ',
+      ),
+      findsOneWidget,
+    );
 
     // Verify the presence of the image
     expect(find.byType(Image), findsOneWidget);
@@ -131,20 +139,28 @@ void main() {
     expect(find.byIcon(Icons.download), findsOneWidget);
   });
 
-  testWidgets('ShareForm initializes correctly with persistent memory',
-      (WidgetTester tester) async {
+  testWidgets('ShareForm initializes correctly with persistent memory', (
+    WidgetTester tester,
+  ) async {
     // Get the mock service
     final mockPersistentMemoryService =
         GetIt.instance<PersistentMemoryService>();
 
     // Setup expectations
-    when(mockPersistentMemoryService.getItem(
-            'hasFilled', PersistentMemoryType.Bool))
-        .thenAnswer((_) async => false);
+    when(
+      mockPersistentMemoryService.getItem(
+        'hasFilled',
+        PersistentMemoryType.Bool,
+      ),
+    ).thenAnswer((_) async => false);
     final completer = Completer<void>();
-    when(mockPersistentMemoryService.setItem(
-            'hasFilled', PersistentMemoryType.Bool, true))
-        .thenAnswer((_) async {
+    when(
+      mockPersistentMemoryService.setItem(
+        'hasFilled',
+        PersistentMemoryType.Bool,
+        true,
+      ),
+    ).thenAnswer((_) async {
       completer.complete();
     });
 
@@ -157,20 +173,25 @@ void main() {
 
     await tester.pump(const Duration(milliseconds: 100));
     // Verify memory service interactions
-    verify(mockPersistentMemoryService.setItem(
-            'hasFilled', PersistentMemoryType.Bool, true))
-        .called(1);
+    verify(
+      mockPersistentMemoryService.setItem(
+        'hasFilled',
+        PersistentMemoryType.Bool,
+        true,
+      ),
+    ).called(1);
   });
 
-  testWidgets('ShareForm shows share dialog and generates PDF',
-      (WidgetTester tester) async {
+  testWidgets('ShareForm shows share dialog and generates PDF', (
+    WidgetTester tester,
+  ) async {
     await tester.pumpWidget(createTestWidget());
 
     // Tap the share button
     await tester.ensureVisible(find.byIcon(Icons.share));
     await tester.tap(find.byIcon(Icons.share));
     await tester.pumpAndSettle();
-/*
+    /*
     // Verify the dialog is shown
     expect(find.text("Quick Share"), findsOneWidget);
     expect(find.text('Share Title Male'), findsOneWidget);
@@ -211,8 +232,9 @@ void main() {
     // This can be verified by checking navigation or other state changes
   });
 
-  testWidgets('ShareForm places the finish button below custom categories',
-      (WidgetTester tester) async {
+  testWidgets('ShareForm places the finish button below custom categories', (
+    WidgetTester tester,
+  ) async {
     await tester.pumpWidget(createTestWidget());
     await tester.ensureVisible(find.text('+ הוספת קטגוריה'));
     await tester.pumpAndSettle();
@@ -223,8 +245,9 @@ void main() {
     expect(finishTop, greaterThan(addCategoryTop));
   });
 
-  testWidgets('ShareForm keeps its content clear of the pinned finish button',
-      (WidgetTester tester) async {
+  testWidgets('ShareForm keeps its content clear of the pinned finish button', (
+    WidgetTester tester,
+  ) async {
     tester.view.physicalSize = const Size(1170, 2532);
     tester.view.devicePixelRatio = 3.0;
     addTearDown(tester.view.reset);
@@ -233,15 +256,17 @@ void main() {
     await tester.pumpAndSettle();
 
     final finishTop = tester.getTopLeft(find.text('סיימתי!')).dy;
-    final addCategoryBottom =
-        tester.getBottomLeft(find.text('+ הוספת קטגוריה')).dy;
+    final addCategoryBottom = tester
+        .getBottomLeft(find.text('+ הוספת קטגוריה'))
+        .dy;
 
     expect(finishTop, lessThanOrEqualTo(844.0));
     expect(addCategoryBottom, lessThanOrEqualTo(finishTop));
   });
 
-  testWidgets('ShareForm adds multiple custom categories in original text',
-      (WidgetTester tester) async {
+  testWidgets('ShareForm adds multiple custom categories in original text', (
+    WidgetTester tester,
+  ) async {
     await tester.pumpWidget(createTestWidget());
 
     await tester.ensureVisible(find.text('+ הוספת קטגוריה'));
@@ -249,15 +274,22 @@ void main() {
     await tester.pumpAndSettle();
 
     expect(
-        find.byKey(const Key('custom-category-title-field')), findsOneWidget);
-    expect(find.byKey(const Key('custom-category-description-field')),
-        findsOneWidget);
+      find.byKey(const Key('custom-category-title-field')),
+      findsOneWidget,
+    );
+    expect(
+      find.byKey(const Key('custom-category-description-field')),
+      findsOneWidget,
+    );
 
-    await tester.enterText(find.byKey(const Key('custom-category-title-field')),
-        'כותרת מקורית שלי');
     await tester.enterText(
-        find.byKey(const Key('custom-category-description-field')),
-        'טקסט חופשי בעברית שלא מתורגם');
+      find.byKey(const Key('custom-category-title-field')),
+      'כותרת מקורית שלי',
+    );
+    await tester.enterText(
+      find.byKey(const Key('custom-category-description-field')),
+      'טקסט חופשי בעברית שלא מתורגם',
+    );
     await tester.ensureVisible(find.text('הוספת קטגוריה'));
     await tester.tap(find.text('הוספת קטגוריה'));
     await tester.pumpAndSettle();
@@ -269,29 +301,71 @@ void main() {
     await tester.ensureVisible(find.text('+ הוספת קטגוריה'));
     await tester.tap(find.text('+ הוספת קטגוריה'));
     await tester.pumpAndSettle();
-    await tester.enterText(find.byKey(const Key('custom-category-title-field')),
-        'Second free title');
     await tester.enterText(
-        find.byKey(const Key('custom-category-description-field')),
-        'English text remains English');
+      find.byKey(const Key('custom-category-title-field')),
+      'Second free title',
+    );
+    await tester.enterText(
+      find.byKey(const Key('custom-category-description-field')),
+      'English text remains English',
+    );
     await tester.ensureVisible(find.text('הוספת קטגוריה'));
     await tester.tap(find.text('הוספת קטגוריה'));
     await tester.pumpAndSettle();
 
-    verify(mockPersistentMemoryService.setItem(
-      'customCategoryTitles',
-      PersistentMemoryType.StringList,
-      ['כותרת מקורית שלי', 'Second free title'],
-    )).called(1);
-    verify(mockPersistentMemoryService.setItem(
-      'customCategoryDescriptions',
-      PersistentMemoryType.StringList,
-      ['טקסט חופשי בעברית שלא מתורגם', 'English text remains English'],
-    )).called(1);
+    verify(
+      mockPersistentMemoryService.setItem(
+        'customCategoryTitles',
+        PersistentMemoryType.StringList,
+        ['כותרת מקורית שלי', 'Second free title'],
+      ),
+    ).called(1);
+    verify(
+      mockPersistentMemoryService.setItem(
+        'customCategoryDescriptions',
+        PersistentMemoryType.StringList,
+        ['טקסט חופשי בעברית שלא מתורגם', 'English text remains English'],
+      ),
+    ).called(1);
   });
 
-  testWidgets('ShareForm shows title suggestions when adding another category',
-      (WidgetTester tester) async {
+  testWidgets(
+    'ShareForm shows title suggestions when adding another category',
+    (WidgetTester tester) async {
+      await tester.pumpWidget(createTestWidget());
+
+      await tester.ensureVisible(find.text('+ הוספת קטגוריה'));
+      await tester.tap(find.text('+ הוספת קטגוריה'));
+      await tester.pumpAndSettle();
+
+      await tester.enterText(
+        find.byKey(const Key('custom-category-title-field')),
+        'קטגוריה ראשונה',
+      );
+      await tester.enterText(
+        find.byKey(const Key('custom-category-description-field')),
+        'תיאור ראשון',
+      );
+      await tester.ensureVisible(find.text('הוספת קטגוריה'));
+      await tester.tap(find.text('הוספת קטגוריה'));
+      await tester.pumpAndSettle();
+
+      await tester.ensureVisible(find.text('+ הוספת קטגוריה'));
+      await tester.tap(find.text('+ הוספת קטגוריה'));
+      await tester.pumpAndSettle();
+      await tester.tap(find.byKey(const Key('custom-category-title-field')));
+      await tester.pumpAndSettle();
+
+      expect(find.text('משפטים מחזקים שחשוב לי לזכור'), findsOneWidget);
+      expect(find.text('אירועים מהעבר לתזכורת'), findsOneWidget);
+      expect(find.text('דברים עלי שחשוב לי שנזכור'), findsOneWidget);
+      expect(find.text('אפשרות לכתוב משהו מקורי משלי'), findsOneWidget);
+    },
+  );
+
+  testWidgets('ShareForm edits and deletes saved custom categories', (
+    WidgetTester tester,
+  ) async {
     await tester.pumpWidget(createTestWidget());
 
     await tester.ensureVisible(find.text('+ הוספת קטגוריה'));
@@ -299,39 +373,13 @@ void main() {
     await tester.pumpAndSettle();
 
     await tester.enterText(
-        find.byKey(const Key('custom-category-title-field')), 'קטגוריה ראשונה');
+      find.byKey(const Key('custom-category-title-field')),
+      'כותרת לעריכה',
+    );
     await tester.enterText(
-        find.byKey(const Key('custom-category-description-field')),
-        'תיאור ראשון');
-    await tester.ensureVisible(find.text('הוספת קטגוריה'));
-    await tester.tap(find.text('הוספת קטגוריה'));
-    await tester.pumpAndSettle();
-
-    await tester.ensureVisible(find.text('+ הוספת קטגוריה'));
-    await tester.tap(find.text('+ הוספת קטגוריה'));
-    await tester.pumpAndSettle();
-    await tester.tap(find.byKey(const Key('custom-category-title-field')));
-    await tester.pumpAndSettle();
-
-    expect(find.text('משפטים מחזקים שחשוב לי לזכור'), findsOneWidget);
-    expect(find.text('אירועים מהעבר לתזכורת'), findsOneWidget);
-    expect(find.text('דברים עלי שחשוב לי שנזכור'), findsOneWidget);
-    expect(find.text('אפשרות לכתוב משהו מקורי משלי'), findsOneWidget);
-  });
-
-  testWidgets('ShareForm edits and deletes saved custom categories',
-      (WidgetTester tester) async {
-    await tester.pumpWidget(createTestWidget());
-
-    await tester.ensureVisible(find.text('+ הוספת קטגוריה'));
-    await tester.tap(find.text('+ הוספת קטגוריה'));
-    await tester.pumpAndSettle();
-
-    await tester.enterText(
-        find.byKey(const Key('custom-category-title-field')), 'כותרת לעריכה');
-    await tester.enterText(
-        find.byKey(const Key('custom-category-description-field')),
-        'תיאור לעריכה');
+      find.byKey(const Key('custom-category-description-field')),
+      'תיאור לעריכה',
+    );
     await tester.ensureVisible(find.text('הוספת קטגוריה'));
     await tester.tap(find.text('הוספת קטגוריה'));
     await tester.pumpAndSettle();
@@ -340,12 +388,17 @@ void main() {
     await tester.pumpAndSettle();
 
     final titleField = find.byKey(const Key('custom-category-title-field'));
-    final descriptionField =
-        find.byKey(const Key('custom-category-description-field'));
+    final descriptionField = find.byKey(
+      const Key('custom-category-description-field'),
+    );
     expect(
-        tester.widget<TextField>(titleField).controller?.text, 'כותרת לעריכה');
-    expect(tester.widget<TextField>(descriptionField).controller?.text,
-        'תיאור לעריכה');
+      tester.widget<TextField>(titleField).controller?.text,
+      'כותרת לעריכה',
+    );
+    expect(
+      tester.widget<TextField>(descriptionField).controller?.text,
+      'תיאור לעריכה',
+    );
 
     await tester.tap(titleField);
     await tester.pumpAndSettle();
@@ -364,16 +417,20 @@ void main() {
     expect(find.text('תיאור לעריכה'), findsNothing);
     expect(find.text('כותרת אחרי עריכה'), findsOneWidget);
     expect(find.text('תיאור אחרי עריכה'), findsOneWidget);
-    verify(mockPersistentMemoryService.setItem(
-      'customCategoryTitles',
-      PersistentMemoryType.StringList,
-      ['כותרת אחרי עריכה'],
-    )).called(1);
-    verify(mockPersistentMemoryService.setItem(
-      'customCategoryDescriptions',
-      PersistentMemoryType.StringList,
-      ['תיאור אחרי עריכה'],
-    )).called(1);
+    verify(
+      mockPersistentMemoryService.setItem(
+        'customCategoryTitles',
+        PersistentMemoryType.StringList,
+        ['כותרת אחרי עריכה'],
+      ),
+    ).called(1);
+    verify(
+      mockPersistentMemoryService.setItem(
+        'customCategoryDescriptions',
+        PersistentMemoryType.StringList,
+        ['תיאור אחרי עריכה'],
+      ),
+    ).called(1);
 
     await tester.tap(find.byKey(const Key('custom-category-delete-button-0')));
     await tester.pumpAndSettle();
@@ -381,20 +438,25 @@ void main() {
     expect(find.text('כותרת אחרי עריכה'), findsNothing);
     expect(find.text('תיאור אחרי עריכה'), findsNothing);
     expect(find.text('+ הוספת קטגוריה'), findsOneWidget);
-    verify(mockPersistentMemoryService.setItem(
-      'customCategoryTitles',
-      PersistentMemoryType.StringList,
-      <String>[],
-    )).called(1);
-    verify(mockPersistentMemoryService.setItem(
-      'customCategoryDescriptions',
-      PersistentMemoryType.StringList,
-      <String>[],
-    )).called(1);
+    verify(
+      mockPersistentMemoryService.setItem(
+        'customCategoryTitles',
+        PersistentMemoryType.StringList,
+        <String>[],
+      ),
+    ).called(1);
+    verify(
+      mockPersistentMemoryService.setItem(
+        'customCategoryDescriptions',
+        PersistentMemoryType.StringList,
+        <String>[],
+      ),
+    ).called(1);
   });
 
-  testWidgets('ShareForm exposes predefined custom category titles',
-      (WidgetTester tester) async {
+  testWidgets('ShareForm exposes predefined custom category titles', (
+    WidgetTester tester,
+  ) async {
     await tester.pumpWidget(createTestWidget());
 
     await tester.ensureVisible(find.text('+ הוספת קטגוריה'));
@@ -410,8 +472,9 @@ void main() {
     expect(find.text('אפשרות לכתוב משהו מקורי משלי'), findsOneWidget);
   });
 
-  testWidgets('ShareForm requires both category title and description',
-      (WidgetTester tester) async {
+  testWidgets('ShareForm requires both category title and description', (
+    WidgetTester tester,
+  ) async {
     await tester.pumpWidget(createTestWidget());
 
     await tester.ensureVisible(find.text('+ הוספת קטגוריה'));
@@ -425,22 +488,27 @@ void main() {
     expect(find.text('השדה אינו יכול להיות ריק'), findsNWidgets(2));
 
     await tester.enterText(
-        find.byKey(const Key('custom-category-title-field')), 'כותרת בלבד');
+      find.byKey(const Key('custom-category-title-field')),
+      'כותרת בלבד',
+    );
     await tester.ensureVisible(find.text('הוספת קטגוריה'));
     await tester.tap(find.text('הוספת קטגוריה'));
     await tester.pumpAndSettle();
 
     expect(find.text('כותרת בלבד'), findsOneWidget);
     expect(find.text('השדה אינו יכול להיות ריק'), findsOneWidget);
-    verifyNever(mockPersistentMemoryService.setItem(
-      'customCategoryTitles',
-      PersistentMemoryType.StringList,
-      any,
-    ));
+    verifyNever(
+      mockPersistentMemoryService.setItem(
+        'customCategoryTitles',
+        PersistentMemoryType.StringList,
+        any,
+      ),
+    );
   });
 
-  testWidgets('ShareForm custom input option keeps title free-form',
-      (WidgetTester tester) async {
+  testWidgets('ShareForm custom input option keeps title free-form', (
+    WidgetTester tester,
+  ) async {
     await tester.pumpWidget(createTestWidget());
 
     await tester.ensureVisible(find.text('+ הוספת קטגוריה'));
@@ -469,16 +537,21 @@ void main() {
     expect(find.text('Typed description'), findsOneWidget);
   });
 
-  testWidgets('ShareForm reloads stored custom text without translating it',
-      (WidgetTester tester) async {
-    when(mockPersistentMemoryService.getItem(
-      'customCategoryTitles',
-      PersistentMemoryType.StringList,
-    )).thenAnswer((_) async => ['כותרת עברית שמורה']);
-    when(mockPersistentMemoryService.getItem(
-      'customCategoryDescriptions',
-      PersistentMemoryType.StringList,
-    )).thenAnswer((_) async => ['טקסט עברי שמור']);
+  testWidgets('ShareForm reloads stored custom text without translating it', (
+    WidgetTester tester,
+  ) async {
+    when(
+      mockPersistentMemoryService.getItem(
+        'customCategoryTitles',
+        PersistentMemoryType.StringList,
+      ),
+    ).thenAnswer((_) async => ['כותרת עברית שמורה']);
+    when(
+      mockPersistentMemoryService.getItem(
+        'customCategoryDescriptions',
+        PersistentMemoryType.StringList,
+      ),
+    ).thenAnswer((_) async => ['טקסט עברי שמור']);
 
     await tester.pumpWidget(createTestWidget(locale: const Locale('en')));
     await tester.pumpAndSettle();

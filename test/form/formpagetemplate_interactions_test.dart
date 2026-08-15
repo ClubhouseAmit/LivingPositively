@@ -23,6 +23,8 @@ import 'package:mazilon/util/persistent_memory_service.dart';
 import 'package:mazilon/util/userInformation.dart';
 import 'package:provider/provider.dart';
 
+import '../helpers/widget_test_scaffold.dart' show wizardStepHarness;
+
 class _FakeAnalytics implements AnalyticsService {
   final List<String> events = [];
   @override
@@ -97,17 +99,15 @@ Future<int> _pump(
         //must supply the Material ancestor the same way production does.
         home: ScreenUtilInit(
           designSize: const Size(360, 690),
-          child: Scaffold(
-            body: WizardStepPage(
-              step: FormPageTemplate(
-                key: GlobalKey<WizardStepState>(),
-                next: () {
-                  nextCalls++;
-                  if (onNext != null) onNext();
-                },
-                prev: () {},
-                collectionName: collection,
-              ),
+          child: wizardStepHarness(
+            FormPageTemplate(
+              key: GlobalKey<WizardStepState>(),
+              next: () {
+                nextCalls++;
+                if (onNext != null) onNext();
+              },
+              prev: () {},
+              collectionName: collection,
             ),
           ),
         ),
@@ -131,14 +131,8 @@ Future<void> _addViaDialog(WidgetTester tester, String? text) async {
   await tester.pumpAndSettle();
 }
 
-/// The primary button — WizardStepPage pins it below the step's content, so
-/// it is the last TextButton in the page.
-Finder _primaryButton() => find
-    .descendant(
-      of: find.byType(WizardStepPage),
-      matching: find.byType(TextButton),
-    )
-    .last;
+/// The primary button — keyed as wizard-primary-action inside WizardActions.
+Finder _primaryButton() => find.byKey(const Key('wizard-primary-action'));
 
 void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
@@ -461,14 +455,12 @@ void main() {
             localizationsDelegates: AppLocalizations.localizationsDelegates,
             home: ScreenUtilInit(
               designSize: const Size(360, 690),
-              child: Scaffold(
-                body: WizardStepPage(
-                  step: FormPageTemplate(
-                    key: GlobalKey<WizardStepState>(),
-                    next: () => nextCalls++,
-                    prev: () {},
-                    collectionName: collection,
-                  ),
+              child: wizardStepHarness(
+                FormPageTemplate(
+                  key: GlobalKey<WizardStepState>(),
+                  next: () => nextCalls++,
+                  prev: () {},
+                  collectionName: collection,
                 ),
               ),
             ),

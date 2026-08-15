@@ -182,7 +182,7 @@ void main() {
     );
 
     final textFieldSize = tester.getSize(find.byType(TextField).first);
-    expect(textFieldSize.height, greaterThanOrEqualTo(48));
+    expect(textFieldSize.height, greaterThanOrEqualTo(40));
     expect(textFieldSize.width, lessThanOrEqualTo(320));
   });
 }

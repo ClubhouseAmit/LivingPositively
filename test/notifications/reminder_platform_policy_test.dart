@@ -6,9 +6,7 @@ void main() {
   group('NotificationsService.supportsReminderSettings', () {
     test('returns false on web', () {
       expect(
-        NotificationsService.supportsReminderSettings(
-          isWebOverride: true,
-        ),
+        NotificationsService.supportsReminderSettings(isWebOverride: true),
         isFalse,
       );
     });

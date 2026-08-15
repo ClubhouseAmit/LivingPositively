@@ -12,8 +12,10 @@ void main() {
 
     test('captureLog accepts a stackTrace', () async {
       final svc = SentryServiceImpl();
-      await svc.captureLog(Exception('with trace'),
-          stackTrace: StackTrace.current);
+      await svc.captureLog(
+        Exception('with trace'),
+        stackTrace: StackTrace.current,
+      );
     });
 
     test('captureLog accepts exceptionData with name+value', () async {

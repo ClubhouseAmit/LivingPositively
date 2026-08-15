@@ -7,8 +7,8 @@ Map<String, List<String>> mockPhonePageTitles = {
   'phoneDescription': [
     'Call for law enforcement',
     'Call in case of fire',
-    'Call for medical emergencies'
-  ]
+    'Call for medical emergencies',
+  ],
 };
 
 // Simplified EmergencyDialogBox for testing
@@ -48,7 +48,8 @@ class EmergencyPhonesRow extends StatelessWidget {
                   context: context,
                   builder: (BuildContext context) {
                     return EmergencyDialogBox(
-                        number: mockPhonePageTitles['emergencyPhones']![i]);
+                      number: mockPhonePageTitles['emergencyPhones']![i],
+                    );
                   },
                 );
               },
@@ -72,14 +73,17 @@ class EmergencyPhonesRow extends StatelessWidget {
                             Text(
                               mockPhonePageTitles['phoneName']![i],
                               style: TextStyle(
-                                  color: Colors.purple,
-                                  fontWeight: FontWeight.bold,
-                                  fontSize: 12),
+                                color: Colors.purple,
+                                fontWeight: FontWeight.bold,
+                                fontSize: 12,
+                              ),
                             ),
                             Text(
                               mockPhonePageTitles['phoneDescription']![i],
-                              style:
-                                  TextStyle(color: Colors.purple, fontSize: 12),
+                              style: TextStyle(
+                                color: Colors.purple,
+                                fontSize: 12,
+                              ),
                             ),
                           ],
                         ),

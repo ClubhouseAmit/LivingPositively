@@ -44,7 +44,9 @@ void main() {
   // permission_handler's method channel — on iOS the panel only invokes
   // openAppSettings() when the user taps "Open app settings", and we don't
   // tap it. Still, stub it so any defensive lookup short-circuits cleanly.
-  const permissionChannel = MethodChannel('flutter.baseflow.com/permissions/methods');
+  const permissionChannel = MethodChannel(
+    'flutter.baseflow.com/permissions/methods',
+  );
 
   setUp(() {
     SharedPreferences.setMockInitialValues({
@@ -67,8 +69,9 @@ void main() {
     resetTestServices();
   });
 
-  testWidgets('renders ExpansionTile with header + advisory copy on iOS',
-      (tester) async {
+  testWidgets('renders ExpansionTile with header + advisory copy on iOS', (
+    tester,
+  ) async {
     await _onIos(() async {
       await pumpWithProviders(
         tester,
@@ -85,13 +88,15 @@ void main() {
       expect(find.byType(ExpansionTile), findsOneWidget);
       expect(find.text('Reminder debug panel'), findsOneWidget);
       expect(
-          find.text('Diagnose why scheduled reminders may not be firing'),
-          findsOneWidget);
+        find.text('Diagnose why scheduled reminders may not be firing'),
+        findsOneWidget,
+      );
     });
   });
 
-  testWidgets('expanded panel surfaces shared-prefs diagnostic state',
-      (tester) async {
+  testWidgets('expanded panel surfaces shared-prefs diagnostic state', (
+    tester,
+  ) async {
     await _onIos(() async {
       await pumpWithProviders(
         tester,
@@ -145,18 +150,23 @@ void main() {
       await tester.tap(find.byType(ExpansionTile));
       await tester.pumpAndSettle(const Duration(milliseconds: 400));
 
-      final rescheduleButton =
-          tester.widget<OutlinedButton>(find.ancestor(
-        of: find.text('Reschedule now'),
-        matching: find.byType(OutlinedButton),
-      ));
-      expect(rescheduleButton.onPressed, isNull,
-          reason: 'Reschedule must be disabled when not on Android');
+      final rescheduleButton = tester.widget<OutlinedButton>(
+        find.ancestor(
+          of: find.text('Reschedule now'),
+          matching: find.byType(OutlinedButton),
+        ),
+      );
+      expect(
+        rescheduleButton.onPressed,
+        isNull,
+        reason: 'Reschedule must be disabled when not on Android',
+      );
     });
   });
 
-  testWidgets('Refresh button re-runs _refresh() without throwing',
-      (tester) async {
+  testWidgets('Refresh button re-runs _refresh() without throwing', (
+    tester,
+  ) async {
     await _onIos(() async {
       await pumpWithProviders(
         tester,
@@ -175,17 +185,18 @@ void main() {
     });
   });
 
-  testWidgets('Copy diagnostics writes JSON payload to clipboard',
-      (tester) async {
+  testWidgets('Copy diagnostics writes JSON payload to clipboard', (
+    tester,
+  ) async {
     final clipboardCalls = <MethodCall>[];
     TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger
         .setMockMethodCallHandler(SystemChannels.platform, (call) async {
-      clipboardCalls.add(call);
-      if (call.method == 'Clipboard.getData') {
-        return <String, dynamic>{'text': ''};
-      }
-      return null;
-    });
+          clipboardCalls.add(call);
+          if (call.method == 'Clipboard.getData') {
+            return <String, dynamic>{'text': ''};
+          }
+          return null;
+        });
     addTearDown(() {
       TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger
           .setMockMethodCallHandler(SystemChannels.platform, null);
@@ -205,8 +216,9 @@ void main() {
       await tester.tap(find.text('Copy diagnostics'), warnIfMissed: false);
       await tester.pumpAndSettle(const Duration(milliseconds: 200));
 
-      final setDataCalls =
-          clipboardCalls.where((c) => c.method == 'Clipboard.setData').toList();
+      final setDataCalls = clipboardCalls
+          .where((c) => c.method == 'Clipboard.setData')
+          .toList();
       expect(setDataCalls, isNotEmpty);
       // Payload must contain expected diagnostic keys.
       final payload = setDataCalls.first.arguments['text'] as String;

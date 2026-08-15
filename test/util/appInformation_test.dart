@@ -26,15 +26,17 @@ void main() {
       expect(notifyCount, 1);
     });
 
-    test('updatePersonalPlanMainTitle and updatePersonalPlanSubTitle copy maps',
-        () {
-      final src = {'k': 'v'};
-      app.updatePersonalPlanMainTitle(src);
-      app.updatePersonalPlanSubTitle(src);
-      src['k'] = 'mutated';
-      expect(app.personalPlanMainTitle, {'k': 'v'});
-      expect(app.personalPlanSubTitle, {'k': 'v'});
-    });
+    test(
+      'updatePersonalPlanMainTitle and updatePersonalPlanSubTitle copy maps',
+      () {
+        final src = {'k': 'v'};
+        app.updatePersonalPlanMainTitle(src);
+        app.updatePersonalPlanSubTitle(src);
+        src['k'] = 'mutated';
+        expect(app.personalPlanMainTitle, {'k': 'v'});
+        expect(app.personalPlanSubTitle, {'k': 'v'});
+      },
+    );
 
     test('updateTraitMainTitle and updateTraitSubTitle copy maps', () {
       final src = {'k': 'v'};

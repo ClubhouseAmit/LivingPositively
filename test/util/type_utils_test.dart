@@ -19,7 +19,10 @@ void main() {
 
     test('throws on non-string element when cast forced', () {
       final dynamic value = <dynamic>[1, 2, 3];
-      expect(() => TypeUtils.castToStringList(value), throwsA(isA<TypeError>()));
+      expect(
+        () => TypeUtils.castToStringList(value),
+        throwsA(isA<TypeError>()),
+      );
     });
   });
 

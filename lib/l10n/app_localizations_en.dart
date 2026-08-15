@@ -605,7 +605,7 @@ class AppLocalizationsEn extends AppLocalizations {
   String get darkModeAlwaysDark => 'Always Dark';
 
   @override
-  String get darkModeSleepPromoting => 'Sleep-Promoting Mode';
+  String get darkModeSleepPromoting => 'Scheduled';
 
   @override
   String get darkModeStartTime => 'Start time';

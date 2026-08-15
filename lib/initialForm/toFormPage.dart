@@ -1,57 +1,51 @@
 import 'package:flutter/material.dart';
-import 'package:get_it/get_it.dart';
-import 'package:mazilon/global_enums.dart';
-import 'package:mazilon/util/LP_extended_state.dart';
-import 'package:mazilon/util/persistent_memory_service.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
-
-import 'package:mazilon/menu.dart';
 import 'package:mazilon/form/form.dart';
-
-import 'package:mazilon/util/styles.dart';
-
+import 'package:mazilon/form/wizard_step.dart';
+import 'package:mazilon/l10n/app_localizations.dart';
 import 'package:mazilon/util/Form/formPagePhoneModel.dart';
+import 'package:mazilon/util/theme/font_weight.dart';
+import 'package:mazilon/util/theme/spacing.dart';
 import 'package:mazilon/util/userInformation.dart';
 import 'package:provider/provider.dart';
 
-//the page before the personal plan questionnaire that allows the user to fill the questionnaire or skip it.
-class ToFormPage extends StatefulWidget {
+// The page before the personal plan questionnaire that allows the user to fill the questionnaire or skip it.
+class ToFormPage extends WizardStep {
   final PhonePageData phonePageData;
   final Function changeLocale;
 
   const ToFormPage({
-    super.key,
+    required super.key,
     required this.phonePageData,
     required this.changeLocale,
   });
 
   @override
-  State<ToFormPage> createState() => _ToFormPageState();
+  String primaryActionLabel(BuildContext context) => AppLocalizations.of(
+    context,
+  )!.introductionFormLastPageNext(Provider.of<UserInformation>(context).gender);
+
+  @override
+  WizardStepState<ToFormPage> createState() => _ToFormPageState();
 }
 
-class _ToFormPageState extends LPExtendedState<ToFormPage> {
-  bool hasFilled = false;
-  void getHasFilled() async {
-    PersistentMemoryService service =
-        GetIt.instance<
-          PersistentMemoryService
-        >(); // Get the persistent memory service instance
-
-    var hasFilledValue = await service.getItem(
-      "hasFilled",
-      PersistentMemoryType.Bool,
+class _ToFormPageState extends WizardStepState<ToFormPage> {
+  void nextPage() {
+    Navigator.pushAndRemoveUntil(
+      context,
+      MaterialPageRoute(
+        builder: (context) => FormProgressIndicator(
+          phonePageData: widget.phonePageData,
+          changeLocale: widget.changeLocale,
+        ),
+      ),
+      (Route<dynamic> route) => false,
     );
-
-    setState(() {
-      hasFilled = hasFilledValue ?? false;
-    });
   }
 
   @override
-  void initState() {
-    // TODO: implement initState
-    super.initState();
-    getHasFilled();
+  Future<void> onPrimaryAction() async {
+    nextPage();
   }
 
   @override
@@ -59,126 +53,61 @@ class _ToFormPageState extends LPExtendedState<ToFormPage> {
     final userInfoProvider = Provider.of<UserInformation>(context);
     var gender = userInfoProvider.gender;
 
-    return Scaffold(
-      body: SingleChildScrollView(
-        child: Column(
-          children: [
-            myAutoSizedText(
-              appLocale.introductionFormLastPageMainTitle(gender),
-              TextStyle(
-                fontSize: 40.sp,
-                fontWeight: FontWeight.bold,
-                color: Theme.of(context).colorScheme.onSurface,
+    return Column(
+      children: [
+        ConstrainedBox(
+          constraints: BoxConstraints(maxWidth: 240.w),
+          child: Column(
+            key: const Key('intro-title-block'),
+            mainAxisSize: MainAxisSize.min,
+            spacing: OnboardingGaps.withinBlock,
+            children: [
+              Text(
+                appLocale.introductionFormLastPageMainTitle(gender),
+                style: TextStyle(
+                  fontSize: 26.sp,
+                  fontWeight: AppFontWeight.medium,
+                  color: Theme.of(context).colorScheme.onSurface,
+                ),
+                textAlign: TextAlign.center,
               ),
-              TextAlign.center,
-              60,
-            ),
-            Padding(
-              padding: const EdgeInsets.fromLTRB(60, 0, 60, 0),
-              child: myAutoSizedText(
+              Text(
                 appLocale.introductionFormLastPageSubTitle1(gender),
-                TextStyle(
-                  fontSize: 14.sp,
-                  fontWeight: FontWeight.bold,
+                style: TextStyle(
+                  fontSize: 16.sp,
+                  fontWeight: AppFontWeight.regular,
                   color: Theme.of(context).colorScheme.outline,
                 ),
-                TextAlign.center,
-                35,
+                textAlign: TextAlign.center,
               ),
-            ),
-            SizedBox(height: returnSizedBox(context, 20)),
-            Padding(
-              padding: const EdgeInsets.fromLTRB(50, 0, 50, 0),
-              child: myAutoSizedText(
+              Text(
                 appLocale.introductionFormLastPageSubTitle2(gender),
-                TextStyle(
-                  fontSize: 14.sp,
-                  fontWeight: FontWeight.bold,
+                style: TextStyle(
+                  fontSize: 16.sp,
+                  fontWeight: AppFontWeight.medium,
                   color: Theme.of(context).colorScheme.tertiary,
                 ),
-                TextAlign.center,
-                35,
+                textAlign: TextAlign.center,
               ),
-            ),
-            SizedBox(height: returnSizedBox(context, 20)),
-            myImage('assets/images/initialFormPage3.png', context, 0.8, 0.4),
-            //navigate to personal plan form button:
-            TextButton(
-              onPressed: () {
-                Navigator.push(
-                  context,
-                  PageRouteBuilder(
-                    pageBuilder: (context, animation, secondaryAnimation) =>
-                        FormProgressIndicator(
-                          phonePageData: widget.phonePageData,
-                          changeLocale: widget.changeLocale,
-                        ), //place collections here
-                    transitionsBuilder:
-                        (context, animation, secondaryAnimation, child) {
-                          var begin = Offset(-1.0, 0.0);
-                          var end = Offset.zero;
-                          var tween = Tween(begin: begin, end: end);
-                          var offsetAnimation = animation.drive(tween);
-
-                          var fadeTween = Tween(begin: 0.0, end: 1.0);
-                          var fadeAnimation = animation.drive(fadeTween);
-
-                          return SlideTransition(
-                            position: offsetAnimation,
-                            child: FadeTransition(
-                              opacity: fadeAnimation,
-                              child: child,
-                            ),
-                          );
-                        },
-                  ),
-                );
-              },
-              style: primaryButtonStyle(context),
-              child: myAutoSizedText(
-                appLocale.introductionFormLastPageNext(gender),
-                primaryButtonTextStyle(
-                  context,
-                ).copyWith(fontWeight: FontWeight.bold, fontSize: 20.sp),
-                null,
-                50,
-              ),
-            ),
-            SizedBox(height: returnSizedBox(context, 15)),
-            TextButton(
-              onPressed: () {
-                Navigator.pushAndRemoveUntil(
-                  context,
-                  MaterialPageRoute(
-                    builder: (context) => Menu(
-                      phonePageData: widget.phonePageData,
-                      hasFilled: hasFilled,
-                      changeLocale: widget.changeLocale,
-                    ),
-                  ),
-                  (Route<dynamic> route) => false,
-                );
-              },
-              style: primaryButtonStyle(context).copyWith(
-                padding: WidgetStateProperty.all(
-                  EdgeInsets.symmetric(
-                    horizontal: returnSizedBox(context, 20),
-                    vertical: returnSizedBox(context, 10),
-                  ),
-                ),
-              ),
-              child: myAutoSizedText(
-                appLocale.skipButton(gender),
-                primaryButtonTextStyle(
-                  context,
-                ).copyWith(fontWeight: FontWeight.bold, fontSize: 20.sp),
-                null,
-                50,
-              ),
-            ),
-          ],
+            ],
+          ),
         ),
-      ),
+        // Figma node 1660:2321 is 240x175 on a 360pt frame — two thirds of the
+        // width, centred in the space the title block leaves.
+        Expanded(
+          child: Center(
+            child: FittedBox(
+              fit: BoxFit.scaleDown,
+              child: Image.asset(
+                'assets/images/initialFormPage3.png',
+                width: MediaQuery.sizeOf(context).width * 0.66 > 440
+                    ? 440
+                    : MediaQuery.sizeOf(context).width * 0.66,
+              ),
+            ),
+          ),
+        ),
+      ],
     );
   }
 }

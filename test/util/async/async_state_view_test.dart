@@ -25,8 +25,9 @@ void main() {
   });
 
   group('AsyncStateView', () {
-    testWidgets('shows a screen-reader-labelled spinner while waiting',
-        (tester) async {
+    testWidgets('shows a screen-reader-labelled spinner while waiting', (
+      tester,
+    ) async {
       final handle = tester.ensureSemantics();
 
       // A future that never completes keeps the view in the loading state.
@@ -65,8 +66,9 @@ void main() {
       expect(find.byType(CircularProgressIndicator), findsNothing);
     });
 
-    testWidgets('shows error message and retry button when future rejects',
-        (tester) async {
+    testWidgets('shows error message and retry button when future rejects', (
+      tester,
+    ) async {
       var retried = 0;
 
       // Complete with the error AFTER pump so FutureBuilder is already
@@ -96,8 +98,9 @@ void main() {
       expect(retried, 1);
     });
 
-    testWidgets('hides retry button when no onRetry is provided',
-        (tester) async {
+    testWidgets('hides retry button when no onRetry is provided', (
+      tester,
+    ) async {
       final completer = Completer<List<String>>();
       await pumpWithProviders(
         tester,
@@ -114,8 +117,9 @@ void main() {
       expect(find.text('Try again'), findsNothing);
     });
 
-    testWidgets('routes through emptyBuilder when isEmpty is true',
-        (tester) async {
+    testWidgets('routes through emptyBuilder when isEmpty is true', (
+      tester,
+    ) async {
       await pumpWithProviders(
         tester,
         AsyncStateView<List<String>>(
@@ -131,8 +135,9 @@ void main() {
       expect(find.text('data'), findsNothing);
     });
 
-    testWidgets('falls back to data builder when empty but no emptyBuilder',
-        (tester) async {
+    testWidgets('falls back to data builder when empty but no emptyBuilder', (
+      tester,
+    ) async {
       await pumpWithProviders(
         tester,
         AsyncStateView<List<String>>(
@@ -148,17 +153,16 @@ void main() {
   });
 
   group('AsyncLoadingIndicator', () {
-    testWidgets('uses an explicit label without any localizations in scope',
-        (tester) async {
+    testWidgets('uses an explicit label without any localizations in scope', (
+      tester,
+    ) async {
       final handle = tester.ensureSemantics();
 
       // Deliberately NOT using pumpWithProviders: no AppLocalizations
       // delegate, mirroring the boot spinner in main.dart.
       await tester.pumpWidget(
         const MaterialApp(
-          home: Scaffold(
-            body: AsyncLoadingIndicator(semanticLabel: 'Booting'),
-          ),
+          home: Scaffold(body: AsyncLoadingIndicator(semanticLabel: 'Booting')),
         ),
       );
 
