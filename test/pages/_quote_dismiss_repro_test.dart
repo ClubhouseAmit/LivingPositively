@@ -69,7 +69,9 @@ void main() {
     for (var i = 0; i < 20; i++) {
       await tester.pump(const Duration(seconds: 1));
       // ignore: avoid_print
-      print('t+${i + 1}s snackbars: ${find.text('Quote dismissed.').evaluate().length}');
+      print(
+        't+${i + 1}s snackbars: ${find.text('Quote dismissed.').evaluate().length}',
+      );
     }
 
     expect(find.text('Quote dismissed.'), findsNothing);

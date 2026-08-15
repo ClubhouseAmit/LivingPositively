@@ -31,8 +31,10 @@ class _NoopWorkmanager extends WorkmanagerPlatform {
   }
 
   @override
-  Future<void> initialize(Function callbackDispatcher,
-      {bool isInDebugMode = false}) async {}
+  Future<void> initialize(
+    Function callbackDispatcher, {
+    bool isInDebugMode = false,
+  }) async {}
 
   @override
   Future<void> cancelAll() async {}
@@ -44,30 +46,36 @@ class _NoopWorkmanager extends WorkmanagerPlatform {
   Future<void> cancelByTag(String tag) async {}
 
   @override
-  Future<void> registerOneOffTask(String uniqueName, String taskName,
-      {Map<String, dynamic>? inputData,
-      Duration? initialDelay,
-      Constraints? constraints,
-      ExistingWorkPolicy? existingWorkPolicy,
-      BackoffPolicy? backoffPolicy,
-      Duration? backoffPolicyDelay,
-      String? tag,
-      OutOfQuotaPolicy? outOfQuotaPolicy,
-      ForegroundServiceConfig? foregroundServiceConfig,
-      bool expedited = false}) async {}
+  Future<void> registerOneOffTask(
+    String uniqueName,
+    String taskName, {
+    Map<String, dynamic>? inputData,
+    Duration? initialDelay,
+    Constraints? constraints,
+    ExistingWorkPolicy? existingWorkPolicy,
+    BackoffPolicy? backoffPolicy,
+    Duration? backoffPolicyDelay,
+    String? tag,
+    OutOfQuotaPolicy? outOfQuotaPolicy,
+    ForegroundServiceConfig? foregroundServiceConfig,
+    bool expedited = false,
+  }) async {}
 
   @override
-  Future<void> registerPeriodicTask(String uniqueName, String taskName,
-      {Duration? frequency,
-      Duration? flexInterval,
-      Map<String, dynamic>? inputData,
-      Duration? initialDelay,
-      Constraints? constraints,
-      ExistingPeriodicWorkPolicy? existingWorkPolicy,
-      BackoffPolicy? backoffPolicy,
-      Duration? backoffPolicyDelay,
-      String? tag,
-      ForegroundServiceConfig? foregroundServiceConfig}) async {}
+  Future<void> registerPeriodicTask(
+    String uniqueName,
+    String taskName, {
+    Duration? frequency,
+    Duration? flexInterval,
+    Map<String, dynamic>? inputData,
+    Duration? initialDelay,
+    Constraints? constraints,
+    ExistingPeriodicWorkPolicy? existingWorkPolicy,
+    BackoffPolicy? backoffPolicy,
+    Duration? backoffPolicyDelay,
+    String? tag,
+    ForegroundServiceConfig? foregroundServiceConfig,
+  }) async {}
 }
 
 Future<T> _onIos<T>(Future<T> Function() body) async {
@@ -82,8 +90,9 @@ Future<T> _onIos<T>(Future<T> Function() body) async {
 void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
 
-  const localNotifChannel =
-      MethodChannel('dexterous.com/flutter/local_notifications');
+  const localNotifChannel = MethodChannel(
+    'dexterous.com/flutter/local_notifications',
+  );
   const timezoneChannel = MethodChannel('flutter_timezone');
   const toastChannel = MethodChannel('PonnamKarthik/fluttertoast');
 
@@ -111,29 +120,32 @@ void main() {
     resetTestServices();
   });
 
-  testWidgets('renders SafeArea + SingleChildScrollView + SetNotificationWidget',
-      (tester) async {
-    await _onIos(() async {
-      await pumpWithProviders(
-        tester,
-        const NotificationPage(),
-        userInformation: UserInformation(
-          gender: 'male',
-          notificationHour: 9,
-          notificationMinute: 0,
-        ),
-      );
-      await tester.pumpAndSettle(const Duration(milliseconds: 300));
+  testWidgets(
+    'renders SafeArea + SingleChildScrollView + SetNotificationWidget',
+    (tester) async {
+      await _onIos(() async {
+        await pumpWithProviders(
+          tester,
+          const NotificationPage(),
+          userInformation: UserInformation(
+            gender: 'male',
+            notificationHour: 9,
+            notificationMinute: 0,
+          ),
+        );
+        await tester.pumpAndSettle(const Duration(milliseconds: 300));
 
-      expect(find.byType(NotificationPage), findsOneWidget);
-      expect(find.byType(SafeArea), findsWidgets);
-      expect(find.byType(SingleChildScrollView), findsWidgets);
-      expect(find.byType(SetNotificationWidget), findsOneWidget);
-    });
-  });
+        expect(find.byType(NotificationPage), findsOneWidget);
+        expect(find.byType(SafeArea), findsWidgets);
+        expect(find.byType(SingleChildScrollView), findsWidgets);
+        expect(find.byType(SetNotificationWidget), findsOneWidget);
+      });
+    },
+  );
 
-  testWidgets('long-press on the header toggles debug panel unlock flag',
-      (tester) async {
+  testWidgets('long-press on the header toggles debug panel unlock flag', (
+    tester,
+  ) async {
     await _onIos(() async {
       // Seed prefs in the locked state (default).
       SharedPreferences.setMockInitialValues({});

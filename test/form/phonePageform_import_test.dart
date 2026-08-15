@@ -37,14 +37,12 @@ Future<void> _pumpPhoneForm(
     tester,
     ChangeNotifierProvider<PhonePageData>.value(
       value: phonePageData,
-      child: Scaffold(
-        body: WizardStepPage(
-          step: PhonePageForm(
-            key: GlobalKey<WizardStepState>(),
-            phonePageData: phonePageData,
-            next: () {},
-            prev: () {},
-          ),
+      child: wizardStepHarness(
+        PhonePageForm(
+          key: GlobalKey<WizardStepState>(),
+          phonePageData: phonePageData,
+          next: () {},
+          prev: () {},
         ),
       ),
     ),
@@ -127,9 +125,11 @@ void main() {
 
         _importContact(tester, _contact('054 389-7645'));
 
-        expect(phonePageData.savedPhoneNumbers, <String>[
-          '+972543897645',
-        ], reason: 'profile country $profileCountryCode');
+        expect(
+          phonePageData.savedPhoneNumbers,
+          <String>['+972543897645'],
+          reason: 'profile country $profileCountryCode',
+        );
 
         await tester.pumpWidget(const SizedBox());
       }

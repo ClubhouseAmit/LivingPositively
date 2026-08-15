@@ -107,7 +107,6 @@ void main() {
       expect(dark.cardColor, AppColors.darkSurfaceContainer);
     });
 
-
     test('does not silently fall back to the light palette', () {
       final dark = buildDarkTheme();
       final light = buildLightTheme();

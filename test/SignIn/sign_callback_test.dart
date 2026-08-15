@@ -23,8 +23,11 @@ class _NoopLogger implements IncidentLoggerService {
   @override
   Future<void> initializeSentry(_) async {}
   @override
-  Future<void> captureLog(dynamic _,
-      {StackTrace? stackTrace, dynamic exceptionData}) async {}
+  Future<void> captureLog(
+    dynamic _, {
+    StackTrace? stackTrace,
+    dynamic exceptionData,
+  }) async {}
 }
 
 class _FakeMemory implements PersistentMemoryService {
@@ -40,18 +43,18 @@ class _FakeMemory implements PersistentMemoryService {
 }
 
 PhonePageData _emptyPhonePageData() => PhonePageData(
-      key: 'k',
-      phoneNames: <String>[],
-      phoneNumbers: <String>[],
-      header: '',
-      subTitle: '',
-      midTitle: '',
-      phoneNameTitle: '',
-      phoneNumberTitle: '',
-      savedPhoneNames: <String>[],
-      savedPhoneNumbers: <String>[],
-      phoneDescription: <String>[],
-    );
+  key: 'k',
+  phoneNames: <String>[],
+  phoneNumbers: <String>[],
+  header: '',
+  subTitle: '',
+  midTitle: '',
+  phoneNameTitle: '',
+  phoneNumberTitle: '',
+  savedPhoneNames: <String>[],
+  savedPhoneNumbers: <String>[],
+  phoneDescription: <String>[],
+);
 
 class _FakeWidget {
   final PhonePageData phonePageData;
@@ -75,15 +78,20 @@ void main() {
     await GetIt.instance.reset();
   });
 
-  testWidgets('callback(false, ...) is a no-op (does not navigate)',
-      (tester) async {
+  testWidgets('callback(false, ...) is a no-op (does not navigate)', (
+    tester,
+  ) async {
     BuildContext? capturedCtx;
-    await tester.pumpWidget(MaterialApp(
-      home: Builder(builder: (ctx) {
-        capturedCtx = ctx;
-        return const Text('home');
-      }),
-    ));
+    await tester.pumpWidget(
+      MaterialApp(
+        home: Builder(
+          builder: (ctx) {
+            capturedCtx = ctx;
+            return const Text('home');
+          },
+        ),
+      ),
+    );
     final widget = _FakeWidget(_emptyPhonePageData(), (_) {});
     callback(false, widget, capturedCtx);
     await tester.pump();
@@ -95,12 +103,16 @@ void main() {
     // we can verify Navigator.pushAndRemoveUntil is invoked. If it throws due
     // to provider absence, that's fine — we only assert the call path runs.
     BuildContext? capturedCtx;
-    await tester.pumpWidget(MaterialApp(
-      home: Builder(builder: (ctx) {
-        capturedCtx = ctx;
-        return const Text('home');
-      }),
-    ));
+    await tester.pumpWidget(
+      MaterialApp(
+        home: Builder(
+          builder: (ctx) {
+            capturedCtx = ctx;
+            return const Text('home');
+          },
+        ),
+      ),
+    );
     final widget = _FakeWidget(_emptyPhonePageData(), (_) {});
     expect(() => callback(true, widget, capturedCtx), returnsNormally);
   });

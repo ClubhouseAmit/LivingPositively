@@ -166,16 +166,15 @@ void main() {
       await fake
           .collection('IntroductionForm_FirstPage')
           .doc('zzzzzzzzzzzzzzzzzzzy')
-          .set({
+          .set({'mainTitle': 'mT', 'subTitle1': 'sT1', 'subTitle2': 'sT2'});
+
+      final result = await getIntroductionFormFirstPage(firestore: fake);
+
+      expect(result, {
         'mainTitle': 'mT',
         'subTitle1': 'sT1',
         'subTitle2': 'sT2',
       });
-
-      final result = await getIntroductionFormFirstPage(firestore: fake);
-
-      expect(
-          result, {'mainTitle': 'mT', 'subTitle1': 'sT1', 'subTitle2': 'sT2'});
     });
 
     test('getIntroductionFormSecondPage returns main + sub', () async {
@@ -196,14 +195,14 @@ void main() {
           .collection('IntroductionForm_LastPage')
           .doc('zzzzzzzzzzzzzzzzzzzy')
           .set({
-        'mainTitle': 'mt',
-        'subTitle1': 's1',
-        'subTitle2': 's2',
-        'subTitle1Male': 's1m',
-        'subTitle2Male': 's2m',
-        'subTitle1Female': 's1f',
-        'subTitle2Female': 's2f',
-      });
+            'mainTitle': 'mt',
+            'subTitle1': 's1',
+            'subTitle2': 's2',
+            'subTitle1Male': 's1m',
+            'subTitle2Male': 's2m',
+            'subTitle1Female': 's1f',
+            'subTitle2Female': 's2f',
+          });
 
       final result = await getIntroductionFormLastPage(firestore: fake);
 
@@ -219,10 +218,9 @@ void main() {
 
     test('getJournalTitle returns title field', () async {
       final fake = FakeFirebaseFirestore();
-      await fake
-          .collection('Journal-title')
-          .doc('zzzzzzzzzzzzzzzzzzzy')
-          .set({'title': 'My Journal'});
+      await fake.collection('Journal-title').doc('zzzzzzzzzzzzzzzzzzzy').set({
+        'title': 'My Journal',
+      });
 
       final result = await getJournalTitle(firestore: fake);
 
@@ -231,10 +229,9 @@ void main() {
 
     test('getGreetingString returns homePageGreeting field', () async {
       final fake = FakeFirebaseFirestore();
-      await fake
-          .collection('homePage-strings')
-          .doc('zzzzzzzzzzzzzzzzzzzy')
-          .set({'homePageGreeting': 'Hello there!'});
+      await fake.collection('homePage-strings').doc('zzzzzzzzzzzzzzzzzzzy').set(
+        {'homePageGreeting': 'Hello there!'},
+      );
 
       final result = await getGreetingString(firestore: fake);
 
@@ -255,28 +252,28 @@ void main() {
 
     test('getJournalPopUpText returns thankYouPopupText field', () async {
       final fake = FakeFirebaseFirestore();
-      await fake
-          .collection('Popups-texts')
-          .doc('zzzzzzzzzzzzzzzzzzzy')
-          .set({'thankYouPopupText': 'Thank You'});
+      await fake.collection('Popups-texts').doc('zzzzzzzzzzzzzzzzzzzy').set({
+        'thankYouPopupText': 'Thank You',
+      });
 
       final result = await getJournalPopUpText(firestore: fake);
 
       expect(result, 'Thank You');
     });
 
-    test('getPositiveTraitsPopUpText reads same doc/field as journal',
-        () async {
-      final fake = FakeFirebaseFirestore();
-      await fake
-          .collection('Popups-texts')
-          .doc('zzzzzzzzzzzzzzzzzzzy')
-          .set({'thankYouPopupText': 'Great Trait'});
+    test(
+      'getPositiveTraitsPopUpText reads same doc/field as journal',
+      () async {
+        final fake = FakeFirebaseFirestore();
+        await fake.collection('Popups-texts').doc('zzzzzzzzzzzzzzzzzzzy').set({
+          'thankYouPopupText': 'Great Trait',
+        });
 
-      final result = await getPositiveTraitsPopUpText(firestore: fake);
+        final result = await getPositiveTraitsPopUpText(firestore: fake);
 
-      expect(result, 'Great Trait');
-    });
+        expect(result, 'Great Trait');
+      },
+    );
 
     test('updateTest1 returns [quotes] from doc zzzz...u', () async {
       final fake = FakeFirebaseFirestore();
@@ -329,120 +326,138 @@ void main() {
       expect(result, 'femaleContacts');
     });
 
-    test('getEmergancyTitle(true) reads emergencyNumbersTitle on male doc',
-        () async {
-      final fake = FakeFirebaseFirestore();
-      await _seedPhonePageTitles(fake);
+    test(
+      'getEmergancyTitle(true) reads emergencyNumbersTitle on male doc',
+      () async {
+        final fake = FakeFirebaseFirestore();
+        await _seedPhonePageTitles(fake);
 
-      final result = await getEmergancyTitle(true, firestore: fake);
+        final result = await getEmergancyTitle(true, firestore: fake);
 
-      expect(result, 'maleEmerg');
-    });
+        expect(result, 'maleEmerg');
+      },
+    );
 
-    test('getEmergancyTitle(false) reads emergencyNumbersTitle on female doc',
-        () async {
-      final fake = FakeFirebaseFirestore();
-      await _seedPhonePageTitles(fake);
+    test(
+      'getEmergancyTitle(false) reads emergencyNumbersTitle on female doc',
+      () async {
+        final fake = FakeFirebaseFirestore();
+        await _seedPhonePageTitles(fake);
 
-      final result = await getEmergancyTitle(false, firestore: fake);
+        final result = await getEmergancyTitle(false, firestore: fake);
 
-      expect(result, 'femaleEmerg');
-    });
+        expect(result, 'femaleEmerg');
+      },
+    );
   });
 
   group('fetchWarnings', () {
-    test('returns Warning whose .warnings is full list and .text is in list',
-        () async {
-      final fake = FakeFirebaseFirestore();
-      await fake
-          .collection('warning-suggestions')
-          .add({'suggestions': 'warn-1'});
-      await fake
-          .collection('warning-suggestions')
-          .add({'suggestions': 'warn-2'});
-      await fake
-          .collection('warning-suggestions')
-          .add({'suggestions': 'warn-3'});
+    test(
+      'returns Warning whose .warnings is full list and .text is in list',
+      () async {
+        final fake = FakeFirebaseFirestore();
+        await fake.collection('warning-suggestions').add({
+          'suggestions': 'warn-1',
+        });
+        await fake.collection('warning-suggestions').add({
+          'suggestions': 'warn-2',
+        });
+        await fake.collection('warning-suggestions').add({
+          'suggestions': 'warn-3',
+        });
 
-      final result = await fetchWarnings(firestore: fake);
+        final result = await fetchWarnings(firestore: fake);
 
-      expect(result, isA<Warning>());
-      expect(result.warnings, hasLength(3));
-      expect(result.warnings, containsAll(['warn-1', 'warn-2', 'warn-3']));
-      // .text is a random pick — must be one of the seeded values.
-      expect(result.warnings.contains(result.text), isTrue);
-    });
+        expect(result, isA<Warning>());
+        expect(result.warnings, hasLength(3));
+        expect(result.warnings, containsAll(['warn-1', 'warn-2', 'warn-3']));
+        // .text is a random pick — must be one of the seeded values.
+        expect(result.warnings.contains(result.text), isTrue);
+      },
+    );
 
-    test('single-doc collection yields a Warning with that single text',
-        () async {
-      final fake = FakeFirebaseFirestore();
-      await fake
-          .collection('warning-suggestions')
-          .add({'suggestions': 'only-one'});
+    test(
+      'single-doc collection yields a Warning with that single text',
+      () async {
+        final fake = FakeFirebaseFirestore();
+        await fake.collection('warning-suggestions').add({
+          'suggestions': 'only-one',
+        });
 
-      final result = await fetchWarnings(firestore: fake);
+        final result = await fetchWarnings(firestore: fake);
 
-      expect(result.warnings, ['only-one']);
-      expect(result.text, 'only-one');
-    });
+        expect(result.warnings, ['only-one']);
+        expect(result.text, 'only-one');
+      },
+    );
   });
 
   group('update* multi-collection helpers', () {
     // ---- updatePhoneFormTitles --------------------------------------------
-    test('updatePhoneFormTitles happy path builds general/female/male map',
-        () async {
-      final fake = FakeFirebaseFirestore();
-      // First collection just needs at least one doc to pass the
-      // isEmpty check; its contents are not read.
-      await fake.collection('PersonalPlan-PhonesPage').add({'placeholder': 1});
-      await fake.collection('FormPage-PhonesPage').add({
-        'fieldName': 'title',
-        'general': 'G',
-        'female': 'F',
-        'male': 'M',
-      });
+    test(
+      'updatePhoneFormTitles happy path builds general/female/male map',
+      () async {
+        final fake = FakeFirebaseFirestore();
+        // First collection just needs at least one doc to pass the
+        // isEmpty check; its contents are not read.
+        await fake.collection('PersonalPlan-PhonesPage').add({
+          'placeholder': 1,
+        });
+        await fake.collection('FormPage-PhonesPage').add({
+          'fieldName': 'title',
+          'general': 'G',
+          'female': 'F',
+          'male': 'M',
+        });
 
-      final result = await updatePhoneFormTitles(firestore: fake);
+        final result = await updatePhoneFormTitles(firestore: fake);
 
-      expect(result['title'], 'G');
-      expect(result['titlefemale'], 'F');
-      expect(result['titlemale'], 'M');
-    });
+        expect(result['title'], 'G');
+        expect(result['titlefemale'], 'F');
+        expect(result['titlemale'], 'M');
+      },
+    );
 
-    test('updatePhoneFormTitles throws when PersonalPlan-PhonesPage is empty',
-        () async {
-      final fake = FakeFirebaseFirestore();
-      // Only seed the secondary collection; primary remains empty.
-      await fake.collection('FormPage-PhonesPage').add({
-        'fieldName': 'title',
-        'general': 'G',
-        'female': 'F',
-        'male': 'M',
-      });
+    test(
+      'updatePhoneFormTitles throws when PersonalPlan-PhonesPage is empty',
+      () async {
+        final fake = FakeFirebaseFirestore();
+        // Only seed the secondary collection; primary remains empty.
+        await fake.collection('FormPage-PhonesPage').add({
+          'fieldName': 'title',
+          'general': 'G',
+          'female': 'F',
+          'male': 'M',
+        });
 
-      await expectLater(
-        updatePhoneFormTitles(firestore: fake),
-        throwsA(isA<Exception>()),
-      );
-    });
+        await expectLater(
+          updatePhoneFormTitles(firestore: fake),
+          throwsA(isA<Exception>()),
+        );
+      },
+    );
 
-    test('updatePhoneFormTitles throws when FormPage-PhonesPage is empty',
-        () async {
-      final fake = FakeFirebaseFirestore();
-      await fake.collection('PersonalPlan-PhonesPage').add({'placeholder': 1});
+    test(
+      'updatePhoneFormTitles throws when FormPage-PhonesPage is empty',
+      () async {
+        final fake = FakeFirebaseFirestore();
+        await fake.collection('PersonalPlan-PhonesPage').add({
+          'placeholder': 1,
+        });
 
-      await expectLater(
-        updatePhoneFormTitles(firestore: fake),
-        throwsA(isA<Exception>()),
-      );
-    });
+        await expectLater(
+          updatePhoneFormTitles(firestore: fake),
+          throwsA(isA<Exception>()),
+        );
+      },
+    );
 
     // ---- updateFormDifficultEventsTitles ----------------------------------
     test('updateFormDifficultEventsTitles happy path', () async {
       final fake = FakeFirebaseFirestore();
-      await fake
-          .collection('PersonalPlan-DifficultEvents')
-          .add({'placeholder': 1});
+      await fake.collection('PersonalPlan-DifficultEvents').add({
+        'placeholder': 1,
+      });
       await fake.collection('FormPage-DifficultEvents').add({
         'fieldName': 'evt',
         'general': 'eG',
@@ -458,42 +473,44 @@ void main() {
     });
 
     test(
-        'updateFormDifficultEventsTitles throws when PersonalPlan-DifficultEvents is empty',
-        () async {
-      final fake = FakeFirebaseFirestore();
-      await fake.collection('FormPage-DifficultEvents').add({
-        'fieldName': 'evt',
-        'general': 'eG',
-        'female': 'eF',
-        'male': 'eM',
-      });
+      'updateFormDifficultEventsTitles throws when PersonalPlan-DifficultEvents is empty',
+      () async {
+        final fake = FakeFirebaseFirestore();
+        await fake.collection('FormPage-DifficultEvents').add({
+          'fieldName': 'evt',
+          'general': 'eG',
+          'female': 'eF',
+          'male': 'eM',
+        });
 
-      await expectLater(
-        updateFormDifficultEventsTitles(firestore: fake),
-        throwsA(isA<Exception>()),
-      );
-    });
+        await expectLater(
+          updateFormDifficultEventsTitles(firestore: fake),
+          throwsA(isA<Exception>()),
+        );
+      },
+    );
 
     test(
-        'updateFormDifficultEventsTitles throws when FormPage-DifficultEvents is empty',
-        () async {
-      final fake = FakeFirebaseFirestore();
-      await fake
-          .collection('PersonalPlan-DifficultEvents')
-          .add({'placeholder': 1});
+      'updateFormDifficultEventsTitles throws when FormPage-DifficultEvents is empty',
+      () async {
+        final fake = FakeFirebaseFirestore();
+        await fake.collection('PersonalPlan-DifficultEvents').add({
+          'placeholder': 1,
+        });
 
-      await expectLater(
-        updateFormDifficultEventsTitles(firestore: fake),
-        throwsA(isA<Exception>()),
-      );
-    });
+        await expectLater(
+          updateFormDifficultEventsTitles(firestore: fake),
+          throwsA(isA<Exception>()),
+        );
+      },
+    );
 
     // ---- updateFormDistractionsTitles -------------------------------------
     test('updateFormDistractionsTitles happy path', () async {
       final fake = FakeFirebaseFirestore();
-      await fake
-          .collection('PersonalPlan-Distractions')
-          .add({'placeholder': 1});
+      await fake.collection('PersonalPlan-Distractions').add({
+        'placeholder': 1,
+      });
       await fake.collection('FormPage-Distractions').add({
         'fieldName': 'dis',
         'general': 'dG',
@@ -508,34 +525,38 @@ void main() {
       expect(result['dismale'], 'dM');
     });
 
-    test('updateFormDistractionsTitles throws on empty primary collection',
-        () async {
-      final fake = FakeFirebaseFirestore();
-      await fake.collection('FormPage-Distractions').add({
-        'fieldName': 'dis',
-        'general': 'dG',
-        'female': 'dF',
-        'male': 'dM',
-      });
+    test(
+      'updateFormDistractionsTitles throws on empty primary collection',
+      () async {
+        final fake = FakeFirebaseFirestore();
+        await fake.collection('FormPage-Distractions').add({
+          'fieldName': 'dis',
+          'general': 'dG',
+          'female': 'dF',
+          'male': 'dM',
+        });
 
-      await expectLater(
-        updateFormDistractionsTitles(firestore: fake),
-        throwsA(isA<Exception>()),
-      );
-    });
+        await expectLater(
+          updateFormDistractionsTitles(firestore: fake),
+          throwsA(isA<Exception>()),
+        );
+      },
+    );
 
-    test('updateFormDistractionsTitles throws on empty secondary collection',
-        () async {
-      final fake = FakeFirebaseFirestore();
-      await fake
-          .collection('PersonalPlan-Distractions')
-          .add({'placeholder': 1});
+    test(
+      'updateFormDistractionsTitles throws on empty secondary collection',
+      () async {
+        final fake = FakeFirebaseFirestore();
+        await fake.collection('PersonalPlan-Distractions').add({
+          'placeholder': 1,
+        });
 
-      await expectLater(
-        updateFormDistractionsTitles(firestore: fake),
-        throwsA(isA<Exception>()),
-      );
-    });
+        await expectLater(
+          updateFormDistractionsTitles(firestore: fake),
+          throwsA(isA<Exception>()),
+        );
+      },
+    );
 
     // ---- updateFormFeelBetterTitles ---------------------------------------
     test('updateFormFeelBetterTitles happy path', () async {
@@ -555,32 +576,38 @@ void main() {
       expect(result['fbmale'], 'fbM');
     });
 
-    test('updateFormFeelBetterTitles throws on empty primary collection',
-        () async {
-      final fake = FakeFirebaseFirestore();
-      await fake.collection('FormPage-FeelBetter').add({
-        'fieldName': 'fb',
-        'general': 'fbG',
-        'female': 'fbF',
-        'male': 'fbM',
-      });
+    test(
+      'updateFormFeelBetterTitles throws on empty primary collection',
+      () async {
+        final fake = FakeFirebaseFirestore();
+        await fake.collection('FormPage-FeelBetter').add({
+          'fieldName': 'fb',
+          'general': 'fbG',
+          'female': 'fbF',
+          'male': 'fbM',
+        });
 
-      await expectLater(
-        updateFormFeelBetterTitles(firestore: fake),
-        throwsA(isA<Exception>()),
-      );
-    });
+        await expectLater(
+          updateFormFeelBetterTitles(firestore: fake),
+          throwsA(isA<Exception>()),
+        );
+      },
+    );
 
-    test('updateFormFeelBetterTitles throws on empty secondary collection',
-        () async {
-      final fake = FakeFirebaseFirestore();
-      await fake.collection('PersonalPlan-FeelBetter').add({'placeholder': 1});
+    test(
+      'updateFormFeelBetterTitles throws on empty secondary collection',
+      () async {
+        final fake = FakeFirebaseFirestore();
+        await fake.collection('PersonalPlan-FeelBetter').add({
+          'placeholder': 1,
+        });
 
-      await expectLater(
-        updateFormFeelBetterTitles(firestore: fake),
-        throwsA(isA<Exception>()),
-      );
-    });
+        await expectLater(
+          updateFormFeelBetterTitles(firestore: fake),
+          throwsA(isA<Exception>()),
+        );
+      },
+    );
 
     // ---- updateFormMakeSaferTitles ----------------------------------------
     test('updateFormMakeSaferTitles happy path', () async {
@@ -600,32 +627,36 @@ void main() {
       expect(result['msmale'], 'msM');
     });
 
-    test('updateFormMakeSaferTitles throws on empty primary collection',
-        () async {
-      final fake = FakeFirebaseFirestore();
-      await fake.collection('FormPage-MakeSafer').add({
-        'fieldName': 'ms',
-        'general': 'msG',
-        'female': 'msF',
-        'male': 'msM',
-      });
+    test(
+      'updateFormMakeSaferTitles throws on empty primary collection',
+      () async {
+        final fake = FakeFirebaseFirestore();
+        await fake.collection('FormPage-MakeSafer').add({
+          'fieldName': 'ms',
+          'general': 'msG',
+          'female': 'msF',
+          'male': 'msM',
+        });
 
-      await expectLater(
-        updateFormMakeSaferTitles(firestore: fake),
-        throwsA(isA<Exception>()),
-      );
-    });
+        await expectLater(
+          updateFormMakeSaferTitles(firestore: fake),
+          throwsA(isA<Exception>()),
+        );
+      },
+    );
 
-    test('updateFormMakeSaferTitles throws on empty secondary collection',
-        () async {
-      final fake = FakeFirebaseFirestore();
-      await fake.collection('PersonalPlan-MakeSafer').add({'placeholder': 1});
+    test(
+      'updateFormMakeSaferTitles throws on empty secondary collection',
+      () async {
+        final fake = FakeFirebaseFirestore();
+        await fake.collection('PersonalPlan-MakeSafer').add({'placeholder': 1});
 
-      await expectLater(
-        updateFormMakeSaferTitles(firestore: fake),
-        throwsA(isA<Exception>()),
-      );
-    });
+        await expectLater(
+          updateFormMakeSaferTitles(firestore: fake),
+          throwsA(isA<Exception>()),
+        );
+      },
+    );
 
     // ---- updateFormSharePageTitles ----------------------------------------
     test('updateFormSharePageTitles happy path returns 11-key map', () async {
@@ -663,54 +694,59 @@ void main() {
     });
 
     test(
-        'updateFormSharePageTitles throws when PersonalPlan-SharePage is empty',
-        () async {
-      final fake = FakeFirebaseFirestore();
+      'updateFormSharePageTitles throws when PersonalPlan-SharePage is empty',
+      () async {
+        final fake = FakeFirebaseFirestore();
 
-      await expectLater(
-        updateFormSharePageTitles(firestore: fake),
-        throwsA(isA<Exception>()),
-      );
-    });
+        await expectLater(
+          updateFormSharePageTitles(firestore: fake),
+          throwsA(isA<Exception>()),
+        );
+      },
+    );
 
     // ---- updatePhonePersonalPlanText --------------------------------------
     test(
-        'updatePhonePersonalPlanText returns data fields from primary collection',
-        () async {
-      final fake = FakeFirebaseFirestore();
-      await fake.collection('Phone-PersonalPlanText').add({'data': 'first'});
-      await fake.collection('Phone-PersonalPlanText').add({'data': 'second'});
-      // Secondary collection must also be non-empty to pass guard.
-      await fake.collection('FormPage-MakeSafer').add({'placeholder': 1});
+      'updatePhonePersonalPlanText returns data fields from primary collection',
+      () async {
+        final fake = FakeFirebaseFirestore();
+        await fake.collection('Phone-PersonalPlanText').add({'data': 'first'});
+        await fake.collection('Phone-PersonalPlanText').add({'data': 'second'});
+        // Secondary collection must also be non-empty to pass guard.
+        await fake.collection('FormPage-MakeSafer').add({'placeholder': 1});
 
-      final result = await updatePhonePersonalPlanText(firestore: fake);
+        final result = await updatePhonePersonalPlanText(firestore: fake);
 
-      expect(result, hasLength(2));
-      expect(result, containsAll(['first', 'second']));
-    });
+        expect(result, hasLength(2));
+        expect(result, containsAll(['first', 'second']));
+      },
+    );
 
     test(
-        'updatePhonePersonalPlanText throws when Phone-PersonalPlanText is empty',
-        () async {
-      final fake = FakeFirebaseFirestore();
-      await fake.collection('FormPage-MakeSafer').add({'placeholder': 1});
+      'updatePhonePersonalPlanText throws when Phone-PersonalPlanText is empty',
+      () async {
+        final fake = FakeFirebaseFirestore();
+        await fake.collection('FormPage-MakeSafer').add({'placeholder': 1});
 
-      await expectLater(
-        updatePhonePersonalPlanText(firestore: fake),
-        throwsA(isA<Exception>()),
-      );
-    });
+        await expectLater(
+          updatePhonePersonalPlanText(firestore: fake),
+          throwsA(isA<Exception>()),
+        );
+      },
+    );
 
-    test('updatePhonePersonalPlanText throws when FormPage-MakeSafer is empty',
-        () async {
-      final fake = FakeFirebaseFirestore();
-      await fake.collection('Phone-PersonalPlanText').add({'data': 'first'});
+    test(
+      'updatePhonePersonalPlanText throws when FormPage-MakeSafer is empty',
+      () async {
+        final fake = FakeFirebaseFirestore();
+        await fake.collection('Phone-PersonalPlanText').add({'data': 'first'});
 
-      await expectLater(
-        updatePhonePersonalPlanText(firestore: fake),
-        throwsA(isA<Exception>()),
-      );
-    });
+        await expectLater(
+          updatePhonePersonalPlanText(firestore: fake),
+          throwsA(isA<Exception>()),
+        );
+      },
+    );
   });
 
   // Smoke check: every helper under test must accept a FirebaseFirestore?

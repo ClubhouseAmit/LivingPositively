@@ -22,18 +22,18 @@ import 'package:mazilon/util/userInformation.dart';
 import '../helpers/widget_test_scaffold.dart';
 
 PhonePageData _emptyPhonePageData() => PhonePageData(
-      key: 'phonePage',
-      header: 'Phones',
-      subTitle: 'Sub',
-      midTitle: 'Mid',
-      phoneNameTitle: 'Name',
-      phoneNumberTitle: 'Phone',
-      phoneNames: const <String>[],
-      phoneNumbers: const <String>[],
-      savedPhoneNames: const <String>[],
-      savedPhoneNumbers: const <String>[],
-      phoneDescription: const <String>[],
-    );
+  key: 'phonePage',
+  header: 'Phones',
+  subTitle: 'Sub',
+  midTitle: 'Mid',
+  phoneNameTitle: 'Name',
+  phoneNumberTitle: 'Phone',
+  phoneNames: const <String>[],
+  phoneNumbers: const <String>[],
+  savedPhoneNames: const <String>[],
+  savedPhoneNumbers: const <String>[],
+  phoneDescription: const <String>[],
+);
 
 void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
@@ -59,8 +59,9 @@ void main() {
     resetTestServices();
   });
 
-  testWidgets('MyPlanPageFull renders six default sections in plan order',
-      (tester) async {
+  testWidgets('MyPlanPageFull renders six default sections in plan order', (
+    tester,
+  ) async {
     final phoneData = _emptyPhonePageData();
 
     await pumpWithProviders(
@@ -92,8 +93,9 @@ void main() {
     expect(sections[5].answers, ['Store medications safely']);
   });
 
-  testWidgets('custom categories are rendered after Safe Environment',
-      (tester) async {
+  testWidgets('custom categories are rendered after Safe Environment', (
+    tester,
+  ) async {
     final memory = GetIt.instance<PersistentMemoryService>();
     await memory.setItem(
       'customCategoryTitles',
@@ -160,8 +162,9 @@ void main() {
     expect(find.byType(TextButton), findsWidgets);
   });
 
-  testWidgets('Hebrew locale activates the RichText branch with locale links',
-      (tester) async {
+  testWidgets('Hebrew locale activates the RichText branch with locale links', (
+    tester,
+  ) async {
     userInformation.localeName = 'he';
     appInformation.sharePDFtexts = {
       'firstLine': 'first',
@@ -192,8 +195,9 @@ void main() {
     expect(find.byType(RichText), findsWidgets);
   });
 
-  testWidgets('Phone information renders as bullet items in phones section',
-      (tester) async {
+  testWidgets('Phone information renders as bullet items in phones section', (
+    tester,
+  ) async {
     final phoneData = PhonePageData(
       key: 'phonePage',
       header: 'Phones',

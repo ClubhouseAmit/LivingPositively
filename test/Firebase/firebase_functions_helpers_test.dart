@@ -37,13 +37,13 @@ void main() {
         formSharePageTitles: {'fspt': 'val'},
         thanksSuggestionsList: ['ts1', 'ts2'],
         positiveTraitsSuggestionsList: {
-          'traits': ['t1']
+          'traits': ['t1'],
         },
         homePageInspirationalQuotes: {
-          'quotes-': ['q1']
+          'quotes-': ['q1'],
         },
         phonePageTitles: {
-          'mainTitle': ['mt']
+          'mainTitle': ['mt'],
         },
         appVersion: '1.2.3',
         MakeSaferSug: ['ms1'],
@@ -55,7 +55,7 @@ void main() {
         disclaimerText: 'disc',
         disclaimerNext: 'next',
         wellnessVideos: {
-          'videoId': ['v1']
+          'videoId': ['v1'],
         },
         formSkipButtonText: {'skip': 'val'},
         feelGoodPageTitles: {'fgt': 'val'},
@@ -126,8 +126,11 @@ void main() {
       ];
 
       for (final key in expectedKeys) {
-        expect(json.containsKey(key), isTrue,
-            reason: 'Expected key "$key" to be present in createJson output');
+        expect(
+          json.containsKey(key),
+          isTrue,
+          reason: 'Expected key "$key" to be present in createJson output',
+        );
       }
 
       expect(json.length, greaterThanOrEqualTo(51));

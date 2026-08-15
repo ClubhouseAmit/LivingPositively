@@ -17,12 +17,12 @@ class _FakePersistentMemoryService implements PersistentMemoryService {
   Future<void> setItem(String key, PersistentMemoryType type, value) async {}
 }
 
-Widget _hostGrid(UserInformation userInfo,
-    {Locale locale = const Locale('en', 'US')}) {
+Widget _hostGrid(
+  UserInformation userInfo, {
+  Locale locale = const Locale('en', 'US'),
+}) {
   return MultiProvider(
-    providers: [
-      ChangeNotifierProvider<UserInformation>.value(value: userInfo),
-    ],
+    providers: [ChangeNotifierProvider<UserInformation>.value(value: userInfo)],
     child: MaterialApp(
       supportedLocales: AppLocalizations.supportedLocales,
       localizationsDelegates: AppLocalizations.localizationsDelegates,
@@ -39,32 +39,33 @@ void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
 
   testWidgets(
-      'unknown countryCode falls back to default emergency country and renders entries',
-      (tester) async {
-    tester.view.physicalSize = const Size(390, 844);
-    tester.view.devicePixelRatio = 1;
-    addTearDown(() {
-      tester.view.resetPhysicalSize();
-      tester.view.resetDevicePixelRatio();
-    });
+    'unknown countryCode falls back to default emergency country and renders entries',
+    (tester) async {
+      tester.view.physicalSize = const Size(390, 844);
+      tester.view.devicePixelRatio = 1;
+      addTearDown(() {
+        tester.view.resetPhysicalSize();
+        tester.view.resetDevicePixelRatio();
+      });
 
-    final user = UserInformation(
-      service: _FakePersistentMemoryService(),
-      gender: 'male',
-      // Country code that has no mapping in `findCountryByCode`.
-      location: 'XX',
-    );
+      final user = UserInformation(
+        service: _FakePersistentMemoryService(),
+        gender: 'male',
+        // Country code that has no mapping in `findCountryByCode`.
+        location: 'XX',
+      );
 
-    await tester.pumpWidget(_hostGrid(user));
-    await tester.pumpAndSettle();
+      await tester.pumpWidget(_hostGrid(user));
+      await tester.pumpAndSettle();
 
-    // The default emergency country has at least one entry rendered.
-    expect(find.byType(EmergencyPhoneItem), findsWidgets);
-  });
+      // The default emergency country has at least one entry rendered.
+      expect(find.byType(EmergencyPhoneItem), findsWidgets);
+    },
+  );
 
-  testWidgets(
-      'tapping an EmergencyPhoneItem opens the EmergencyDialogBox',
-      (tester) async {
+  testWidgets('tapping an EmergencyPhoneItem opens the EmergencyDialogBox', (
+    tester,
+  ) async {
     tester.view.physicalSize = const Size(390, 844);
     tester.view.devicePixelRatio = 1;
     addTearDown(() {
@@ -92,9 +93,9 @@ void main() {
     expect(find.byType(AlertDialog), findsOneWidget);
   });
 
-  testWidgets(
-      'falls back to locale country code when user.location is empty',
-      (tester) async {
+  testWidgets('falls back to locale country code when user.location is empty', (
+    tester,
+  ) async {
     final user = UserInformation(
       service: _FakePersistentMemoryService(),
       gender: 'male',

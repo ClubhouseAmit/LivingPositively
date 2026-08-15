@@ -235,13 +235,12 @@ Widget getTextIconWidget(String text, Function onClick, IconData icon) {
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
           Flexible(
-            child: myText(
+            child: Text(
               text,
-              TextStyle(
+              style: TextStyle(
                 fontWeight: FontWeight.normal,
                 fontSize: 18.sp > 35 ? 35 : 20.sp,
               ),
-              null,
             ),
           ),
           SizedBox(width: 5.0),

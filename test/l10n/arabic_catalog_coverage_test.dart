@@ -104,36 +104,39 @@ void main() {
     expect(arabic['sosDeliveryEditContacts'], 'تعديل جهات الاتصال');
   });
 
-  test('contact number guidance is localized without requiring a plus prefix', () {
-    final english = _arb('lib/l10n/app_en.arb');
-    final hebrew = _arb('lib/l10n/app_he.arb');
-    final arabic = _arb('lib/l10n/app_ar.arb');
+  test(
+    'contact number guidance is localized without requiring a plus prefix',
+    () {
+      final english = _arb('lib/l10n/app_en.arb');
+      final hebrew = _arb('lib/l10n/app_he.arb');
+      final arabic = _arb('lib/l10n/app_ar.arb');
 
-    expect(
-      english['contactPhoneCountryCodeHint'],
-      'Select a country code; it will be saved with the local phone number.',
-    );
-    expect(
-      hebrew['contactPhoneCountryCodeHint'],
-      'בחרו קידומת מדינה; היא תישמר עם מספר הטלפון המקומי.',
-    );
-    expect(
-      arabic['contactPhoneCountryCodeHint'],
-      'اختر رمز الدولة؛ وسيتم حفظه مع رقم الهاتف المحلي.',
-    );
-    expect(
-      english['sosDeliveryWhatsAppInternationalNumber'],
-      'To send with WhatsApp, choose the country code and enter the full phone number.',
-    );
-    expect(
-      hebrew['sosDeliveryWhatsAppInternationalNumber'],
-      'כדי לשלוח ב-WhatsApp, בחרו קידומת מדינה והזינו את מספר הטלפון המלא.',
-    );
-    expect(
-      arabic['sosDeliveryWhatsAppInternationalNumber'],
-      'للإرسال عبر واتساب، اختر رمز الدولة وأدخل رقم الهاتف الكامل.',
-    );
-  });
+      expect(
+        english['contactPhoneCountryCodeHint'],
+        'Select a country code; it will be saved with the local phone number.',
+      );
+      expect(
+        hebrew['contactPhoneCountryCodeHint'],
+        'בחרו קידומת מדינה; היא תישמר עם מספר הטלפון המקומי.',
+      );
+      expect(
+        arabic['contactPhoneCountryCodeHint'],
+        'اختر رمز الدولة؛ وسيتم حفظه مع رقم الهاتف المحلي.',
+      );
+      expect(
+        english['sosDeliveryWhatsAppInternationalNumber'],
+        'To send with WhatsApp, choose the country code and enter the full phone number.',
+      );
+      expect(
+        hebrew['sosDeliveryWhatsAppInternationalNumber'],
+        'כדי לשלוח ב-WhatsApp, בחרו קידומת מדינה והזינו את מספר הטלפון המלא.',
+      );
+      expect(
+        arabic['sosDeliveryWhatsAppInternationalNumber'],
+        'للإرسال عبر واتساب، اختر رمز الدولة وأدخل رقم الهاتف الكامل.',
+      );
+    },
+  );
 
   test('Arabic ARB preserves English placeholder metadata entries', () {
     final englishMetadata = _placeholderMetadata('lib/l10n/app_en.arb');

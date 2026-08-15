@@ -52,10 +52,13 @@ class _FlakyImagePickerService implements ImagePickerService {
   void deleteImage(int index, List<String> imagePaths) {}
 
   @override
-  displayImage(String path, {BoxFit fit = BoxFit.none}) =>
-      Image.memory(Uint8List(0), fit: fit, errorBuilder: (_, _, _) {
-        return const SizedBox.shrink();
-      });
+  displayImage(String path, {BoxFit fit = BoxFit.none}) => Image.memory(
+    Uint8List(0),
+    fit: fit,
+    errorBuilder: (_, _, _) {
+      return const SizedBox.shrink();
+    },
+  );
 
   @override
   Widget getOnlineImage(String url) => const SizedBox.shrink();
@@ -80,8 +83,9 @@ void main() {
     resetTestServices();
   });
 
-  testWidgets('Feel Good surfaces a retry when the image load fails',
-      (tester) async {
+  testWidgets('Feel Good surfaces a retry when the image load fails', (
+    tester,
+  ) async {
     await pumpWithProviders(tester, const FeelGood());
     await tester.pumpAndSettle();
 

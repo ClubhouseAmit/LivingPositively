@@ -12,8 +12,10 @@ class _FakeAnalytics implements AnalyticsService {
   @override
   Future<void> init() async {}
   @override
-  Future<void> trackEvent(String eventName,
-      [Map<String, dynamic>? properties]) async {
+  Future<void> trackEvent(
+    String eventName, [
+    Map<String, dynamic>? properties,
+  ]) async {
     events.add(eventName);
   }
 }
@@ -23,8 +25,11 @@ class _FakeLogger implements IncidentLoggerService {
   @override
   Future<void> initializeSentry(_) async {}
   @override
-  Future<void> captureLog(dynamic exception,
-      {StackTrace? stackTrace, dynamic exceptionData}) async {
+  Future<void> captureLog(
+    dynamic exception, {
+    StackTrace? stackTrace,
+    dynamic exceptionData,
+  }) async {
     logs.add(exception);
   }
 }
@@ -43,7 +48,11 @@ class _FakeMemory implements PersistentMemoryService {
   }
 
   @override
-  Future<void> setItem(String key, PersistentMemoryType type, dynamic value) async {
+  Future<void> setItem(
+    String key,
+    PersistentMemoryType type,
+    dynamic value,
+  ) async {
     store[key] = value;
   }
 }
@@ -81,12 +90,12 @@ void main() {
     shareError = null;
     TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger
         .setMockMethodCallHandler(shareChannel, (call) async {
-      shareCalls.add(call);
-      if (shareError != null) {
-        throw shareError!;
-      }
-      return shareResult;
-    });
+          shareCalls.add(call);
+          if (shareError != null) {
+            throw shareError!;
+          }
+          return shareResult;
+        });
   });
 
   tearDown(() async {
@@ -107,12 +116,14 @@ void main() {
       expect(data['phoneNumbers'], ['111', '222']);
     });
 
-    test('safe environment defaults to an empty list for existing plans',
-        () async {
-      memory.store.remove('userSelectionPersonalPlan-SafeEnvironment');
-      final data = await FileServiceImpl.getPrefsData();
-      expect(data['SafeEnvironment'], isEmpty);
-    });
+    test(
+      'safe environment defaults to an empty list for existing plans',
+      () async {
+        memory.store.remove('userSelectionPersonalPlan-SafeEnvironment');
+        final data = await FileServiceImpl.getPrefsData();
+        expect(data['SafeEnvironment'], isEmpty);
+      },
+    );
   });
 
   group('FileServiceImpl.filterEmptyData', () {
@@ -129,20 +140,14 @@ void main() {
     });
 
     test('returns empty when all inner lists empty', () {
-      final result = FileServiceImpl.filterEmptyData([
-        <String>[],
-        <String>[],
-      ]);
+      final result = FileServiceImpl.filterEmptyData([<String>[], <String>[]]);
       expect(result, isEmpty);
     });
   });
 
   group('FileServiceImpl.formatPhonesText', () {
     test('joins names and numbers as "name:number"', () {
-      final result = FileServiceImpl.formatPhonesText(
-        ['A', 'B'],
-        ['1', '2'],
-      );
+      final result = FileServiceImpl.formatPhonesText(['A', 'B'], ['1', '2']);
       expect(result, ['A:1', 'B:2']);
     });
 
@@ -245,27 +250,31 @@ void main() {
       expect(logger.logs, isEmpty);
     });
 
-    test('returns false without tracking when the sheet is dismissed',
-        () async {
-      shareResult = '';
-      final svc = FileServiceImpl();
-      final shared = await svc.shareTextOnly('hello');
+    test(
+      'returns false without tracking when the sheet is dismissed',
+      () async {
+        shareResult = '';
+        final svc = FileServiceImpl();
+        final shared = await svc.shareTextOnly('hello');
 
-      expect(shared, isFalse);
-      expect(analytics.events, isEmpty);
-      expect(logger.logs, isEmpty);
-    });
+        expect(shared, isFalse);
+        expect(analytics.events, isEmpty);
+        expect(logger.logs, isEmpty);
+      },
+    );
 
-    test('returns false without tracking when no result is available',
-        () async {
-      shareResult = null;
-      final svc = FileServiceImpl();
-      final shared = await svc.shareTextOnly('hello');
+    test(
+      'returns false without tracking when no result is available',
+      () async {
+        shareResult = null;
+        final svc = FileServiceImpl();
+        final shared = await svc.shareTextOnly('hello');
 
-      expect(shared, isFalse);
-      expect(analytics.events, isEmpty);
-      expect(logger.logs, isEmpty);
-    });
+        expect(shared, isFalse);
+        expect(analytics.events, isEmpty);
+        expect(logger.logs, isEmpty);
+      },
+    );
 
     test('logs and returns false when the native share call throws', () async {
       shareError = StateError('native share unavailable');

@@ -1,3 +1,5 @@
+import 'dart:math' as math;
+
 import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:get_it/get_it.dart';
@@ -11,6 +13,7 @@ import 'package:mazilon/pages/FeelGood/image_picker_service_impl.dart';
 import 'package:mazilon/util/LP_extended_state.dart';
 import 'package:mazilon/util/persistent_memory_service.dart';
 import 'package:mazilon/util/styles.dart';
+import 'package:mazilon/util/theme/font_weight.dart';
 import 'package:mazilon/util/Form/myDropdownMenuEntry.dart';
 import 'package:mazilon/util/userInformation.dart';
 import 'package:provider/provider.dart';
@@ -19,6 +22,70 @@ import 'package:mazilon/util/languages_util_functions.dart';
 import 'package:mazilon/initialForm/CountrySelectorWidget.dart';
 
 import 'package:mazilon/l10n/app_localizations.dart';
+
+// Geometry of the settings screen, taken from the pen.dev design
+// "Settings Screen" (node h94Ks). Colours are NOT taken from it — every
+// colour below resolves through the `AppColors`/`ColorScheme` tokens in
+// DESIGN.md, per the user's instruction to use the brand primary for the
+// action button.
+//
+// Note: the design's corner radii (12 for fields, 14 for buttons) are
+// narrower than DESIGN.md's 20/16/10 tokens. The design's values are used
+// here because implementing this screen is the request; see the summary.
+
+/// Gap between the screen's top-level sections.
+const double _kSectionGap = 12;
+
+/// Inset around the content stack: 16 top, 20 sides, 16 bottom.
+const EdgeInsets _kContentPadding = EdgeInsets.fromLTRB(20, 60, 20, 16);
+
+/// Horizontal inset the content stack gives up on each side.
+const double _kContentInsetX = 40;
+
+/// Widest the content stack gets — beyond this it stays phone-width and
+/// centres, rather than stretching a one-column form across a tablet.
+const double _kContentMaxWidth = 393;
+
+/// Gap between a field's label and its control.
+const double _kLabelToField = 5;
+
+/// Height of a text/dropdown field.
+const double _kFieldHeight = 42;
+
+/// Corner radius shared by fields, the appearance cards, and the divider-less
+/// containers on this screen.
+const double _kFieldRadius = 12;
+
+/// Inside horizontal padding of a field.
+const double _kFieldPaddingX = 16;
+
+/// Field label size (`Label` in the design's Form Field component).
+const double _kLabelSize = 13;
+
+/// Field value size (`Value` in the design's Form Field component).
+const double _kValueSize = 15;
+
+/// Appearance option card height.
+const double _kModeOptionHeight = 56;
+
+/// Gap between the three appearance option cards.
+const double _kModeOptionGap = 8;
+
+/// Gap between the appearance section's title and its option cards.
+const double _kModeTitleToOptions = 8;
+
+/// Height and radius of the two action buttons at the bottom.
+const double _kActionButtonHeight = 44;
+const double _kActionButtonRadius = 14;
+const double _kActionLabelSize = 16;
+
+/// Fields carry no visible outline in this design — the fill alone separates
+/// them from the page. Focus and error states still need a border, so those
+/// are the only ones drawn.
+const OutlineInputBorder _kFieldBorder = OutlineInputBorder(
+  borderRadius: BorderRadius.all(Radius.circular(_kFieldRadius)),
+  borderSide: BorderSide.none,
+);
 
 class UserSettings extends StatefulWidget {
   final String username;
@@ -44,6 +111,7 @@ class _UserSettingsState extends LPExtendedState<UserSettings> {
   late ImagePickerService pickerService;
 
   final _settingsFormKey = GlobalKey<FormState>();
+
   String? dropdownValueAge = '18-30';
   TextEditingController _namecontroller = TextEditingController();
   bool enteredBefore = false;
@@ -74,17 +142,115 @@ class _UserSettingsState extends LPExtendedState<UserSettings> {
     });
   }
 
-  double getSizeOfTextGender(AppLocalizations locale) {
-    switch (locale.language) {
-      case "עברית":
-        return 18.sp;
+  // -- Design primitives (pen.dev "Settings Screen") -----------------------
 
-      case "English":
-        return 14.sp;
+  TextStyle _labelStyle(ColorScheme colorScheme) => TextStyle(
+    fontSize: _kLabelSize.sp,
+    fontWeight: AppFontWeight.medium,
+    letterSpacing: 0.3,
+    color: colorScheme.outline,
+  );
 
-      default:
-        return 16.sp;
-    }
+  TextStyle _valueStyle(ColorScheme colorScheme) => TextStyle(
+    fontSize: _kValueSize.sp,
+    fontWeight: AppFontWeight.regular,
+    color: colorScheme.onSurface,
+  );
+
+  BoxDecoration _fieldDecoration(ColorScheme colorScheme) => BoxDecoration(
+    color: colorScheme.surfaceContainerHighest,
+    borderRadius: BorderRadius.circular(_kFieldRadius),
+  );
+
+  InputDecorationTheme _fieldInputTheme(ColorScheme colorScheme) =>
+      InputDecorationTheme(
+        filled: true,
+        fillColor: colorScheme.surfaceContainerHighest,
+        isDense: true,
+        // Tight, not a floor: `DropdownMenu` hands its trailing chevron to the
+        // decorator as an `IconButton` suffix, whose 48 minimum tap target
+        // would otherwise make every dropdown taller than the name field.
+        // Bounding both the decorator and the suffix keeps all five controls
+        // on exactly the same height.
+        constraints: const BoxConstraints.tightFor(height: _kFieldHeight),
+        suffixIconConstraints: const BoxConstraints.tightFor(
+          width: 32,
+          height: _kFieldHeight,
+        ),
+        contentPadding: const EdgeInsets.symmetric(
+          horizontal: _kFieldPaddingX,
+          vertical: 10,
+        ),
+        border: _kFieldBorder,
+        enabledBorder: _kFieldBorder,
+        focusedBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(_kFieldRadius),
+          borderSide: BorderSide(color: colorScheme.primary, width: 1.5),
+        ),
+        errorBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(_kFieldRadius),
+          borderSide: BorderSide(color: colorScheme.error, width: 1.5),
+        ),
+        focusedErrorBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(_kFieldRadius),
+          borderSide: BorderSide(color: colorScheme.error, width: 1.5),
+        ),
+      );
+
+  /// A label stacked above its control — the design's `Form Field` component.
+  Widget _field(ColorScheme colorScheme, String label, Widget control) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      mainAxisSize: MainAxisSize.min,
+      spacing: _kLabelToField,
+      children: [
+        Text(
+          label,
+          style: _labelStyle(colorScheme),
+          textAlign: TextAlign.start,
+        ),
+        control,
+      ],
+    );
+  }
+
+  Widget _divider(ColorScheme colorScheme) =>
+      Container(height: 1, color: colorScheme.surfaceContainerHighest);
+
+  /// Field-styled `DropdownMenu` matching the design's picker rows.
+  Widget _dropdown(
+    ColorScheme colorScheme,
+    double width, {
+    required String? initialSelection,
+    required List<String> options,
+    required bool Function(String option) isSelected,
+    required ValueChanged<String?> onSelected,
+  }) {
+    return DropdownMenu<String>(
+      width: width,
+      initialSelection: initialSelection,
+      textStyle: _valueStyle(colorScheme),
+      inputDecorationTheme: _fieldInputTheme(colorScheme),
+      trailingIcon: Icon(
+        Icons.keyboard_arrow_down,
+        size: 20,
+        color: colorScheme.outline,
+      ),
+      selectedTrailingIcon: Icon(
+        Icons.keyboard_arrow_up,
+        size: 20,
+        color: colorScheme.outline,
+      ),
+      dropdownMenuEntries: [
+        ...options.map(
+          (option) => buildDropdownMenuEntry(
+            option,
+            isSelected(option) ? colorScheme.primary : colorScheme.onSurface,
+          ),
+        ),
+      ],
+      onSelected: onSelected,
+    );
   }
 
   String _genderLabel(UserInformation userInfo, AppLocalizations locale) {
@@ -146,13 +312,80 @@ class _UserSettingsState extends LPExtendedState<UserSettings> {
     );
   }
 
+  /// One card in the appearance segmented control (design nodes dP4Pe /
+  /// wycvf / m1OpYb): icon over label, primary-tinted when selected.
+  Widget _modeOption(
+    ColorScheme colorScheme, {
+    required Key optionKey,
+    required IconData icon,
+    required String label,
+    required bool selected,
+    required VoidCallback onTap,
+  }) {
+    final foreground = selected ? colorScheme.primary : colorScheme.outline;
+    return Expanded(
+      child: Semantics(
+        button: true,
+        selected: selected,
+        label: label,
+        child: InkWell(
+          key: optionKey,
+          onTap: onTap,
+          borderRadius: BorderRadius.circular(_kFieldRadius),
+          child: Container(
+            height: _kModeOptionHeight,
+            padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 6),
+            decoration: BoxDecoration(
+              // The design tints the selected card with a light wash of its
+              // accent; deriving it from `primary` keeps that relationship in
+              // both themes instead of pinning a second literal colour.
+              color: selected
+                  ? colorScheme.primary.withValues(alpha: 0.12)
+                  : colorScheme.surfaceContainerHighest,
+              borderRadius: BorderRadius.circular(_kFieldRadius),
+              border: Border.all(
+                color: selected
+                    ? colorScheme.primary
+                    : colorScheme.surfaceContainerHighest,
+                width: selected ? 1.5 : 1,
+              ),
+            ),
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              mainAxisSize: MainAxisSize.min,
+              spacing: 4,
+              children: [
+                Icon(icon, size: 20, color: foreground),
+                Flexible(
+                  child: Text(
+                    label,
+                    textAlign: TextAlign.center,
+                    maxLines: 2,
+                    overflow: TextOverflow.ellipsis,
+                    style: TextStyle(
+                      fontFamily: 'Rubix',
+                      fontSize: 11.5.sp,
+                      fontWeight: selected
+                          ? AppFontWeight.semiBold
+                          : AppFontWeight.regular,
+                      color: foreground,
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+
   Widget _buildDarkModeSettings(
     UserInformation userInfo,
-    double settingsFieldWidth,
     ColorScheme colorScheme,
   ) {
-    final isScheduled =
-        userInfo.darkModePreference == DarkModePreference.scheduled;
+    final preference = userInfo.darkModePreference;
+    final isScheduled = preference == DarkModePreference.scheduled;
     final startTime = TimeOfDay(
       hour: userInfo.darkModeStartHour,
       minute: userInfo.darkModeStartMinute,
@@ -162,82 +395,105 @@ class _UserSettingsState extends LPExtendedState<UserSettings> {
       minute: userInfo.darkModeEndMinute,
     );
 
-    return SizedBox(
-      width: settingsFieldWidth,
-      child: Card(
-        margin: EdgeInsets.zero,
-        child: Padding(
-          padding: const EdgeInsets.all(12),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
+    Future<void> select(DarkModePreference value) =>
+        userInfo.updateDarkModeSettings(preference: value);
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      mainAxisSize: MainAxisSize.min,
+      spacing: _kModeTitleToOptions,
+      children: [
+        Text(
+          appLocale.darkModeSettingsTitle,
+          style: _labelStyle(colorScheme),
+          textAlign: TextAlign.start,
+        ),
+        Row(
+          spacing: _kModeOptionGap,
+          children: [
+            _modeOption(
+              colorScheme,
+              optionKey: const Key('darkModeAlwaysLightOption'),
+              icon: Icons.light_mode_outlined,
+              label: appLocale.darkModeAlwaysLight,
+              selected: preference == DarkModePreference.alwaysLight,
+              onTap: () => select(DarkModePreference.alwaysLight),
+            ),
+            _modeOption(
+              colorScheme,
+              optionKey: const Key('darkModeAlwaysDarkOption'),
+              icon: Icons.dark_mode_outlined,
+              label: appLocale.darkModeAlwaysDark,
+              selected: preference == DarkModePreference.alwaysDark,
+              onTap: () => select(DarkModePreference.alwaysDark),
+            ),
+            _modeOption(
+              colorScheme,
+              optionKey: const Key('darkModeScheduledOption'),
+              icon: Icons.schedule_outlined,
+              label: appLocale.darkModeSleepPromoting,
+              selected: isScheduled,
+              onTap: () => select(DarkModePreference.scheduled),
+            ),
+          ],
+        ),
+        if (isScheduled)
+          Row(
+            spacing: _kModeOptionGap,
             children: [
-              Text(
-                appLocale.darkModeSettingsTitle,
-                style: TextStyle(
-                  color: colorScheme.onSurface,
-                  fontSize: 18.sp,
-                  fontWeight: FontWeight.bold,
-                ),
-              ),
-              RadioGroup<DarkModePreference>(
-                groupValue: userInfo.darkModePreference,
-                onChanged: (preference) async {
-                  if (preference != null) {
-                    await userInfo.updateDarkModeSettings(
-                      preference: preference,
-                    );
-                  }
-                },
-                child: Column(
-                  children: [
-                    RadioListTile<DarkModePreference>(
-                      key: const Key('darkModeAlwaysLightOption'),
-                      contentPadding: EdgeInsets.zero,
-                      title: Text(appLocale.darkModeAlwaysLight),
-                      value: DarkModePreference.alwaysLight,
-                      activeColor: colorScheme.primary,
-                    ),
-                    RadioListTile<DarkModePreference>(
-                      key: const Key('darkModeAlwaysDarkOption'),
-                      contentPadding: EdgeInsets.zero,
-                      title: Text(appLocale.darkModeAlwaysDark),
-                      value: DarkModePreference.alwaysDark,
-                      activeColor: colorScheme.primary,
-                    ),
-                    RadioListTile<DarkModePreference>(
-                      key: const Key('darkModeScheduledOption'),
-                      contentPadding: EdgeInsets.zero,
-                      title: Text(appLocale.darkModeSleepPromoting),
-                      value: DarkModePreference.scheduled,
-                      activeColor: colorScheme.primary,
-                    ),
-                  ],
-                ),
-              ),
-              if (isScheduled) ...[
-                const SizedBox(height: 4),
-                OutlinedButton.icon(
-                  key: const Key('darkModeStartTimeButton'),
+              Expanded(
+                child: _scheduleButton(
+                  colorScheme,
+                  buttonKey: const Key('darkModeStartTimeButton'),
+                  label:
+                      '${appLocale.darkModeStartTime}: ${startTime.format(context)}',
                   onPressed: () => _selectDarkModeTime(userInfo, isStart: true),
-                  icon: const Icon(Icons.schedule),
-                  label: Text(
-                    '${appLocale.darkModeStartTime}: ${startTime.format(context)}',
-                  ),
                 ),
-                const SizedBox(height: 8),
-                OutlinedButton.icon(
-                  key: const Key('darkModeEndTimeButton'),
+              ),
+              Expanded(
+                child: _scheduleButton(
+                  colorScheme,
+                  buttonKey: const Key('darkModeEndTimeButton'),
+                  label:
+                      '${appLocale.darkModeEndTime}: ${endTime.format(context)}',
                   onPressed: () =>
                       _selectDarkModeTime(userInfo, isStart: false),
-                  icon: const Icon(Icons.schedule),
-                  label: Text(
-                    '${appLocale.darkModeEndTime}: ${endTime.format(context)}',
-                  ),
                 ),
-              ],
+              ),
             ],
           ),
+      ],
+    );
+  }
+
+  /// The schedule pickers have no counterpart in the design (which offers a
+  /// "System" option instead); they borrow this screen's field geometry so
+  /// they read as part of the appearance block.
+  Widget _scheduleButton(
+    ColorScheme colorScheme, {
+    required Key buttonKey,
+    required String label,
+    required VoidCallback onPressed,
+  }) {
+    return OutlinedButton(
+      key: buttonKey,
+      onPressed: onPressed,
+      style: OutlinedButton.styleFrom(
+        minimumSize: const Size.fromHeight(_kFieldHeight),
+        maximumSize: const Size.fromHeight(_kFieldHeight),
+        alignment: AlignmentDirectional.centerStart,
+        padding: const EdgeInsets.symmetric(horizontal: _kFieldPaddingX),
+        foregroundColor: colorScheme.onSurface,
+        side: BorderSide(color: colorScheme.surfaceContainerHighest),
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(_kFieldRadius),
         ),
+      ),
+      child: Text(
+        label,
+        style: _valueStyle(colorScheme).copyWith(fontSize: 12.sp),
+        maxLines: 1,
+        overflow: TextOverflow.ellipsis,
       ),
     );
   }
@@ -288,59 +544,6 @@ class _UserSettingsState extends LPExtendedState<UserSettings> {
     );
   }
 
-  // create the "what's your name?" title
-  Column resizeText(text) {
-    final appLocale = AppLocalizations.of(context);
-    final colorScheme = Theme.of(context).colorScheme;
-    if (text == '') {
-      return Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          myAutoSizedText(
-            text,
-            TextStyle(
-              fontSize: 18.sp,
-              fontWeight: FontWeight.normal,
-              color: colorScheme.onSurface,
-            ),
-            appLocale!.textDirection == "rtl"
-                ? TextAlign.right
-                : TextAlign.left,
-            24,
-          ),
-        ],
-      );
-    }
-    List<String> sep = text.split("(");
-
-    sep[1] = "(${sep[1]}";
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        myAutoSizedText(
-          sep[0],
-          TextStyle(
-            fontSize: 18.sp,
-            fontWeight: FontWeight.normal,
-            color: colorScheme.onSurface,
-          ),
-          appLocale!.textDirection == "rtl" ? TextAlign.right : TextAlign.left,
-          24,
-        ),
-        myAutoSizedText(
-          sep[1],
-          TextStyle(
-            fontSize: 16.sp,
-            fontWeight: FontWeight.normal,
-            color: colorScheme.onSurface,
-          ),
-          appLocale.textDirection == "rtl" ? TextAlign.right : TextAlign.left,
-          22,
-        ),
-      ],
-    );
-  }
-
   @override
   void initState() {
     dropdownValueAge = widget.age;
@@ -369,7 +572,13 @@ class _UserSettingsState extends LPExtendedState<UserSettings> {
     final userInfoProvider = Provider.of<UserInformation>(context);
 
     final gender = userInfoProvider.gender;
-    final settingsFieldWidth = formFieldWidth(context);
+    // The content stack is phone-width (or narrower) and gives up 20 on each
+    // side; the controls inside get whatever is left.
+    final contentWidth = math.min(
+      _kContentMaxWidth,
+      MediaQuery.sizeOf(context).width,
+    );
+    final settingsFieldWidth = math.max(0.0, contentWidth - _kContentInsetX);
     final colorScheme = Theme.of(context).colorScheme;
     final selectedGenderLabel =
         dropdownValueGender ?? _genderLabel(userInfoProvider, appLocale);
@@ -377,311 +586,347 @@ class _UserSettingsState extends LPExtendedState<UserSettings> {
         ? localesNames[locales.indexOf(userInfoProvider.localeName)]
         : localesNames.first;
 
+    final canPop = Navigator.of(context).canPop();
+
     return GestureDetector(
       onTap: () {
         FocusScope.of(context).unfocus();
       },
       child: Scaffold(
         backgroundColor: colorScheme.surface,
+        // Design node F4VwZQ ("Nav Bar"): flat surface, centred 17/600 title,
+        // and a circular back chip on the reading-start side.
         appBar: AppBar(
-          title: myAutoSizedText(
+          backgroundColor: colorScheme.surface,
+          surfaceTintColor: Colors.transparent,
+          elevation: 0,
+          // 8 of padding above and below the 36-high back chip, down from the
+          // design's 12, to buy back another 8 of body height.
+          toolbarHeight: 40,
+          centerTitle: true,
+          automaticallyImplyLeading: false,
+          leading: canPop
+              ? Center(
+                  child: SizedBox.square(
+                    dimension: 36,
+                    child: Material(
+                      color: colorScheme.surfaceContainerHighest,
+                      shape: const CircleBorder(),
+                      clipBehavior: Clip.antiAlias,
+                      child: InkWell(
+                        onTap: () => Navigator.of(context).maybePop(),
+                        child: Icon(
+                          Icons.chevron_left,
+                          size: 20,
+                          color: colorScheme.onSurface,
+                        ),
+                      ),
+                    ),
+                  ),
+                )
+              : null,
+          title: Text(
             appLocale.userSettingsTitle(gender),
-            TextStyle(fontSize: 20.sp),
-            null,
-            40,
+            style: TextStyle(
+              fontSize: 17.sp,
+              fontWeight: AppFontWeight.semiBold,
+              color: colorScheme.onSurface,
+            ),
           ),
         ),
+        // Design node Ye170 ("Content"): a single vertical stack, one gap
+        // between every section, 32 of breathing room at the bottom.
         body: SingleChildScrollView(
           child: Center(
-            child: Form(
-              key: _settingsFormKey,
-              child: Column(
-                children: [
-                  myAutoSizedText(
-                    appLocale.userSettingsTitle(gender),
-                    TextStyle(fontWeight: FontWeight.bold, fontSize: 40.sp),
-                    null,
-                    60,
-                  ),
-                  SizedBox(height: MediaQuery.of(context).size.height * 0.05),
-                  Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      resizeText(appLocale.userSettingsName(gender)),
-                      SizedBox(
-                        width: settingsFieldWidth,
-                        child: TextFormField(
-                          controller: _namecontroller,
-                          decoration: InputDecoration(
-                            border: const OutlineInputBorder(),
-                            suffixIcon:
-                                SpeechDictationSuffixAction.isSupportedPlatform
-                                ? SpeechDictationSuffixAction(
-                                    controller: _namecontroller,
-                                  )
-                                : null,
-                            contentPadding: const EdgeInsets.symmetric(
-                              horizontal: 12,
-                              vertical: 14,
+            child: Container(
+              width: contentWidth,
+              padding: _kContentPadding,
+              child: Form(
+                key: _settingsFormKey,
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                  spacing: _kSectionGap,
+                  children: [
+                    _field(
+                      colorScheme,
+                      appLocale.userSettingsName(gender),
+                      TextFormField(
+                        controller: _namecontroller,
+                        style: _valueStyle(colorScheme),
+                        decoration: InputDecoration(
+                          filled: true,
+                          fillColor: colorScheme.surfaceContainerHighest,
+                          isDense: true,
+                          constraints: const BoxConstraints.tightFor(
+                            height: _kFieldHeight,
+                          ),
+                          suffixIconConstraints: const BoxConstraints(
+                            minHeight: _kFieldHeight,
+                            maxHeight: _kFieldHeight,
+                          ),
+                          suffixIcon:
+                              SpeechDictationSuffixAction.isSupportedPlatform
+                              ? SpeechDictationSuffixAction(
+                                  controller: _namecontroller,
+                                )
+                              : null,
+                          contentPadding: const EdgeInsets.symmetric(
+                            horizontal: _kFieldPaddingX,
+                            vertical: 10,
+                          ),
+                          border: _kFieldBorder,
+                          enabledBorder: _kFieldBorder,
+                          focusedBorder: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(_kFieldRadius),
+                            borderSide: BorderSide(
+                              color: colorScheme.primary,
+                              width: 1.5,
                             ),
                           ),
-                          validator: (text) {
-                            if ((text ?? '').trim().isEmpty) {
-                              return appLocale.nameRequiredError;
-                            }
-                            return null;
-                          },
-                        ),
-                      ),
-                      SizedBox(
-                        height: MediaQuery.of(context).size.height * 0.02,
-                      ),
-                      myAutoSizedText(
-                        appLocale.userSettingsAge(gender),
-                        TextStyle(
-                          fontSize: 18.sp,
-                          fontWeight: FontWeight.normal,
-                          color: colorScheme.onSurface,
-                        ),
-                        null,
-                        30,
-                      ),
-                      //AGE:
-                      SizedBox(
-                        width: settingsFieldWidth,
-                        child: DropdownMenu<String>(
-                          width: settingsFieldWidth,
-                          initialSelection: dropdownValueAge,
-                          dropdownMenuEntries: [
-                            ...ages.map(
-                              (age) => buildDropdownMenuEntry(
-                                age,
-                                dropdownValueAge == age
-                                    ? colorScheme.primary
-                                    : colorScheme.onSurface,
-                              ),
+                          errorBorder: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(_kFieldRadius),
+                            borderSide: BorderSide(
+                              color: colorScheme.error,
+                              width: 1.5,
                             ),
-                          ],
-                          onSelected: (String? newValue) {
-                            setState(() {
-                              if (newValue != null) {
-                                dropdownValueAge = newValue;
-                              }
-                            });
-                            // Do something with the selected value
-                          },
-                        ),
-                      ),
-                      SizedBox(
-                        height: MediaQuery.of(context).size.height * 0.02,
-                      ),
-                      myAutoSizedText(
-                        appLocale.userSettingsGender(gender),
-                        TextStyle(
-                          fontSize: getSizeOfTextGender(appLocale),
-                          fontWeight: FontWeight.normal,
-                          color: colorScheme.onSurface,
-                        ),
-                        null,
-                        35,
-                      ),
-                      //GENDER:
-                      SizedBox(
-                        width: settingsFieldWidth,
-                        child: DropdownMenu<String>(
-                          initialSelection: selectedGenderLabel,
-                          width: settingsFieldWidth,
-                          dropdownMenuEntries: [
-                            ...genders.map(
-                              (gender) => buildDropdownMenuEntry(
-                                gender,
-                                selectedGenderLabel == gender
-                                    ? colorScheme.primary
-                                    : colorScheme.onSurface,
-                              ),
+                          ),
+                          focusedErrorBorder: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(_kFieldRadius),
+                            borderSide: BorderSide(
+                              color: colorScheme.error,
+                              width: 1.5,
                             ),
-                          ],
-                          onSelected: (String? newValue) {
-                            setState(() {
-                              if (newValue != null) {
-                                dropdownValueGender = newValue;
-                              }
-                            });
-                            // Do something with the selected value
-                          },
+                          ),
                         ),
+                        validator: (text) {
+                          if ((text ?? '').trim().isEmpty) {
+                            return appLocale.nameRequiredError;
+                          }
+                          return null;
+                        },
                       ),
-                      SizedBox(
-                        height: MediaQuery.of(context).size.height * 0.02,
-                      ),
-                      myAutoSizedText(
-                        appLocale.selectLanguage(gender),
-                        TextStyle(
-                          fontSize: 18.sp,
-                          fontWeight: FontWeight.normal,
-                          color: colorScheme.onSurface,
-                        ),
-                        null,
-                        30,
-                      ),
-                      SizedBox(
-                        width: settingsFieldWidth,
-                        child: DropdownMenu<String>(
-                          initialSelection: selectedLocaleName,
-                          width: settingsFieldWidth,
-                          dropdownMenuEntries: [
-                            ...localesNames.map(
-                              (locale) => buildDropdownMenuEntry(
-                                locale,
-                                languageCode(locale) ==
-                                        userInfoProvider.localeName
-                                    ? colorScheme.primary
-                                    : colorScheme.onSurface,
-                              ),
-                            ),
-                          ],
-                          onSelected: (String? newValue) {
-                            setState(() {
-                              if (newValue != null) {
-                                final val = languageCode(newValue);
-
-                                updateLocale(val, userInfoProvider);
-                              }
-                            });
-                            // Do something with the selected value
-                          },
-                        ),
-                      ),
-                      CountrySelectorWidget(
-                        text: appLocale.locationSelect(gender),
-                        disclaimerText: appLocale.locationDisclaimer(gender),
-                      ),
-                      const SizedBox(height: 20),
-                      _buildDarkModeSettings(
-                        userInfoProvider,
-                        settingsFieldWidth,
+                    ),
+                    //AGE:
+                    _field(
+                      colorScheme,
+                      appLocale.userSettingsAge(gender),
+                      _dropdown(
                         colorScheme,
+                        settingsFieldWidth,
+                        initialSelection: dropdownValueAge,
+                        options: ages,
+                        isSelected: (age) => dropdownValueAge == age,
+                        onSelected: (newValue) {
+                          setState(() {
+                            if (newValue != null) {
+                              dropdownValueAge = newValue;
+                            }
+                          });
+                        },
                       ),
-                    ],
-                  ),
-                  SizedBox(height: MediaQuery.of(context).size.height * 0.1),
-                  ConfirmationButton(
-                    context,
-                    () {
-                      FocusScope.of(context).unfocus();
-                      if (!_settingsFormKey.currentState!.validate()) {
-                        return;
-                      }
-
-                      userInfoProvider.updateName(_namecontroller.text.trim());
-                      userInfoProvider.updateAge(
-                        dropdownValueAge == ""
-                            ? userInfoProvider.age
-                            : dropdownValueAge!,
-                      );
-                      if (dropdownValueGender != null) {
-                        _applyGenderSelection(
-                          userInfoProvider,
-                          appLocale,
-                          dropdownValueGender!,
-                        );
-                      }
-                      Navigator.pop(context);
-
-                      //savePage(dropdownValueAge!, dropdownValueGender!);
-                    },
-                    appLocale.confirmButton(gender),
-                    myTextStyle.copyWith(fontSize: 20.sp),
-                  ),
-                  const SizedBox(height: 20),
-                  ResetButton(
-                    context,
-                    () {
-                      showDialog(
-                        context: context,
-                        builder: (BuildContext context) {
-                          return Dialog(
-                            child: SizedBox(
-                              // set the width of the dialog to 800 if the screen width is more than 1000, else set it to the screen width
-                              width: MediaQuery.of(context).size.width > 1000
-                                  ? 800
-                                  : MediaQuery.of(context).size.width,
-                              child: SingleChildScrollView(
-                                // Wrap Column with SingleChildScrollView
-                                child: Column(
-                                  children: [
-                                    SizedBox(height: 10),
-                                    // text on the top of the form
-                                    myAutoSizedText(
-                                      appLocale.confirmResetTitle,
-                                      TextStyle(
-                                        fontWeight: FontWeight.bold,
-                                        fontSize: 20.sp, // text size
-                                      ),
-                                      null,
-                                      40,
-                                    ),
-
-                                    Padding(
-                                      padding: const EdgeInsets.fromLTRB(
-                                        50,
-                                        0,
-                                        50,
-                                        0,
-                                      ),
-                                      child: Row(
-                                        mainAxisAlignment:
-                                            MainAxisAlignment.spaceBetween,
-                                        children: <Widget>[
-                                          // the close button
-                                          TextButton(
-                                            child: myAutoSizedText(
-                                              appLocale.closeButton(gender),
-                                              TextStyle(
-                                                fontWeight: FontWeight.bold,
-                                                fontSize:
-                                                    20.sp, // button text size
-                                              ),
-                                              null,
-                                              30,
-                                            ),
-                                            onPressed: () {
-                                              Navigator.of(context).pop();
-                                            },
-                                          ),
-                                          // the save button
-                                          TextButton(
-                                            child: myAutoSizedText(
-                                              appLocale.confirmButton(gender),
-                                              TextStyle(
-                                                fontWeight: FontWeight.bold,
-                                                fontSize:
-                                                    20.sp, // button text size
-                                              ),
-                                              null,
-                                              30,
-                                            ),
-                                            onPressed: () {
-                                              resetData(userInfoProvider);
-                                              // Save the item (add or edit) to the list
-                                            },
-                                          ),
-                                        ],
-                                      ),
-                                    ),
-                                  ],
-                                ),
-                              ),
+                    ),
+                    //GENDER:
+                    _field(
+                      colorScheme,
+                      appLocale.userSettingsGender(gender),
+                      _dropdown(
+                        colorScheme,
+                        settingsFieldWidth,
+                        initialSelection: selectedGenderLabel,
+                        options: genders,
+                        isSelected: (option) => selectedGenderLabel == option,
+                        onSelected: (newValue) {
+                          setState(() {
+                            if (newValue != null) {
+                              dropdownValueGender = newValue;
+                            }
+                          });
+                        },
+                      ),
+                    ),
+                    //LANGUAGE:
+                    _field(
+                      colorScheme,
+                      appLocale.selectLanguage(gender),
+                      _dropdown(
+                        colorScheme,
+                        settingsFieldWidth,
+                        initialSelection: selectedLocaleName,
+                        options: localesNames,
+                        isSelected: (locale) =>
+                            languageCode(locale) == userInfoProvider.localeName,
+                        onSelected: (newValue) {
+                          setState(() {
+                            if (newValue != null) {
+                              updateLocale(
+                                languageCode(newValue),
+                                userInfoProvider,
+                              );
+                            }
+                          });
+                        },
+                      ),
+                    ),
+                    _divider(colorScheme),
+                    CountrySelectorWidget(
+                      text: appLocale.locationSelect(gender),
+                      disclaimerText: appLocale.locationDisclaimer(gender),
+                      labelStyle: _labelStyle(colorScheme),
+                      labelGap: _kLabelToField,
+                      fieldDecoration: _fieldDecoration(colorScheme),
+                      fieldHeight: _kFieldHeight,
+                      helpButtonSize: 20,
+                    ),
+                    _divider(colorScheme),
+                    _buildDarkModeSettings(userInfoProvider, colorScheme),
+                    _divider(colorScheme),
+                    SizedBox(
+                      height: _kActionButtonHeight,
+                      child: TextButton(
+                        style: TextButton.styleFrom(
+                          backgroundColor: colorScheme.primary,
+                          foregroundColor: colorScheme.onPrimary,
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(
+                              _kActionButtonRadius,
                             ),
+                          ),
+                        ),
+                        onPressed: () {
+                          FocusScope.of(context).unfocus();
+                          if (!_settingsFormKey.currentState!.validate()) {
+                            return;
+                          }
+
+                          userInfoProvider.updateName(
+                            _namecontroller.text.trim(),
+                          );
+                          userInfoProvider.updateAge(
+                            dropdownValueAge == ""
+                                ? userInfoProvider.age
+                                : dropdownValueAge!,
+                          );
+                          if (dropdownValueGender != null) {
+                            _applyGenderSelection(
+                              userInfoProvider,
+                              appLocale,
+                              dropdownValueGender!,
+                            );
+                          }
+                          Navigator.pop(context);
+                        },
+                        child: Text(
+                          appLocale.confirmButton(gender),
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                          style: TextStyle(
+                            fontSize: _kActionLabelSize.sp,
+                            fontWeight: AppFontWeight.semiBold,
+                            color: colorScheme.onPrimary,
+                          ),
+                        ),
+                      ),
+                    ),
+                    SizedBox(
+                      height: _kActionButtonHeight,
+                      child: TextButton(
+                        style: TextButton.styleFrom(
+                          backgroundColor: colorScheme.surface,
+                          foregroundColor: colorScheme.error,
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(
+                              _kActionButtonRadius,
+                            ),
+                            side: BorderSide(
+                              color: colorScheme.error,
+                              width: 1.5,
+                            ),
+                          ),
+                        ),
+                        onPressed: () {
+                          showDialog(
+                            context: context,
+                            builder: (BuildContext context) {
+                              return Dialog(
+                                child: SizedBox(
+                                  width:
+                                      MediaQuery.of(context).size.width > 1000
+                                      ? 800
+                                      : MediaQuery.of(context).size.width,
+                                  child: SingleChildScrollView(
+                                    child: Column(
+                                      children: [
+                                        const SizedBox(height: 10),
+                                        Text(
+                                          appLocale.confirmResetTitle,
+                                          textAlign: TextAlign.center,
+                                          style: TextStyle(
+                                            fontWeight: FontWeight.bold,
+                                            fontSize: 18.sp,
+                                          ),
+                                        ),
+                                        Padding(
+                                          padding: const EdgeInsets.fromLTRB(
+                                            50,
+                                            0,
+                                            50,
+                                            0,
+                                          ),
+                                          child: Row(
+                                            mainAxisAlignment:
+                                                MainAxisAlignment.spaceBetween,
+                                            children: <Widget>[
+                                              TextButton(
+                                                child: Text(
+                                                  appLocale.closeButton(gender),
+                                                  style: TextStyle(
+                                                    fontWeight: FontWeight.bold,
+                                                    fontSize: 16.sp,
+                                                  ),
+                                                ),
+                                                onPressed: () {
+                                                  Navigator.of(context).pop();
+                                                },
+                                              ),
+                                              TextButton(
+                                                child: Text(
+                                                  appLocale.confirmButton(
+                                                    gender,
+                                                  ),
+                                                  style: TextStyle(
+                                                    fontWeight: FontWeight.bold,
+                                                    fontSize: 16.sp,
+                                                  ),
+                                                ),
+                                                onPressed: () {
+                                                  resetData(userInfoProvider);
+                                                },
+                                              ),
+                                            ],
+                                          ),
+                                        ),
+                                      ],
+                                    ),
+                                  ),
+                                ),
+                              );
+                            },
                           );
                         },
-                      );
-                    },
-                    appLocale.userSettingsReset(gender),
-                    myTextStyle.copyWith(fontSize: 15.sp),
-                  ),
-                  const SizedBox(height: 20),
-                ],
+                        child: Text(
+                          appLocale.userSettingsReset(gender),
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                          style: TextStyle(
+                            fontSize: _kActionLabelSize.sp,
+                            fontWeight: AppFontWeight.semiBold,
+                            color: colorScheme.error,
+                          ),
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
               ),
             ),
           ),

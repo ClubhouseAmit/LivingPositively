@@ -1,24 +1,37 @@
 import 'package:flutter/material.dart';
 import 'package:country_code_picker/country_code_picker.dart';
-import 'package:get_it/get_it.dart';
-import 'package:mazilon/global_enums.dart';
 import 'package:mazilon/util/LP_extended_state.dart';
 import 'package:mazilon/EmergencyNumbers.dart';
-import 'package:mazilon/util/persistent_memory_service.dart';
 import 'package:mazilon/util/styles.dart';
+import 'package:mazilon/util/theme/font_weight.dart';
+import 'package:mazilon/util/theme/shadows.dart';
+import 'package:mazilon/util/theme/spacing.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:mazilon/util/userInformation.dart';
-
 import 'package:provider/provider.dart';
 
 class CountrySelectorWidget extends StatefulWidget {
   final String text;
   final String disclaimerText;
 
+  /// Style hooks. The defaults reproduce the onboarding form's field
+  /// treatment; the settings screen overrides them so this control sits in
+  /// that screen's own field rhythm (pen.dev "Settings Screen", node Ii3Fz).
+  final TextStyle? labelStyle;
+  final double? labelGap;
+  final BoxDecoration? fieldDecoration;
+  final double? fieldHeight;
+  final double helpButtonSize;
+
   const CountrySelectorWidget({
     super.key,
     required this.text,
     required this.disclaimerText,
+    this.labelStyle,
+    this.labelGap,
+    this.fieldDecoration,
+    this.fieldHeight,
+    this.helpButtonSize = 44,
   });
 
   @override
@@ -28,7 +41,7 @@ class CountrySelectorWidget extends StatefulWidget {
 class _CountrySelectorWidgetState
     extends LPExtendedState<CountrySelectorWidget> {
   bool isVisible = false;
-  bool _didInitLocation = false;
+
   String resolveCountryCode(String? currentLocation, BuildContext context) {
     final normalizedLocation = (currentLocation ?? '').trim().toUpperCase();
     if (normalizedLocation.isNotEmpty) {
@@ -53,20 +66,6 @@ class _CountrySelectorWidgetState
     return defaultPickerCountry.countryCodes.first;
   }
 
-  void saveLocation(String location, UserInformation userInfo) async {
-    PersistentMemoryService service =
-        GetIt.instance<
-          PersistentMemoryService
-        >(); // Get the persistent memory service instance
-    final normalizedLocation = location.trim().toUpperCase();
-    await service.setItem(
-      "location",
-      PersistentMemoryType.String,
-      normalizedLocation,
-    );
-    userInfo.updateLocation(normalizedLocation);
-  }
-
   void changeVisible() {
     setState(() {
       isVisible = !isVisible;
@@ -76,18 +75,18 @@ class _CountrySelectorWidgetState
   @override
   void didChangeDependencies() {
     super.didChangeDependencies();
-    if (_didInitLocation) {
-      return;
-    }
-
     final userInfoProvider = Provider.of<UserInformation>(
       context,
       listen: false,
     );
     if (userInfoProvider.location.isEmpty) {
-      saveLocation(resolveCountryCode('', context), userInfoProvider);
+      final defaultCode = resolveCountryCode('', context);
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (mounted && userInfoProvider.location.isEmpty) {
+          userInfoProvider.updateLocation(defaultCode);
+        }
+      });
     }
-    _didInitLocation = true;
   }
 
   @override
@@ -97,38 +96,46 @@ class _CountrySelectorWidgetState
       userInfoProvider.location,
       context,
     );
-    final fieldWidth = formFieldWidth(context);
     final theme = Theme.of(context);
     final colorScheme = theme.colorScheme;
-    final dialogTextStyle = theme.textTheme.bodyLarge?.copyWith(
-      color: colorScheme.onSurface,
-    ) ??
+    final dialogTextStyle =
+        theme.textTheme.bodyLarge?.copyWith(color: colorScheme.onSurface) ??
         TextStyle(color: colorScheme.onSurface);
     return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
+      // Stretch so this field is the same width as the ones above it; the
+      // enclosing block sets the width.
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      mainAxisSize: MainAxisSize.min,
+      // Same label-to-field gap as the other field groups on this screen; the
+      // separation from the next group belongs to the enclosing block.
+      spacing: widget.labelGap ?? OnboardingGaps.labelToField,
       children: [
         SizedBox(
-          width: fieldWidth,
           child: Row(
             children: [
               Expanded(
+                // Matches _formLabel on the get-to-know-you screen: the country
+                // field has no Figma counterpart, but it sits in that screen's
+                // label/field rhythm and must read as one of its fields.
                 child: Text(
                   widget.text,
-                  style: TextStyle(
-                    fontSize: 20,
-                    height: 1.2,
-                    fontWeight: FontWeight.normal,
-                    color: Theme.of(context).colorScheme.onSurface,
-                    fontFamily: 'Rubix',
-                  ),
-                  maxLines: 2,
+                  style:
+                      widget.labelStyle ??
+                      TextStyle(
+                        fontSize: kFormFieldLabelSize.sp,
+                        height: kFormFieldLabelHeight,
+                        fontWeight: AppFontWeight.semiBold,
+                        color: Theme.of(context).colorScheme.onSurface,
+                        fontFamily: 'Rubix',
+                      ),
+                  maxLines: 1,
                   overflow: TextOverflow.ellipsis,
                   textAlign: TextAlign.start,
                 ),
               ),
               SizedBox(
-                width: 44,
-                height: 44,
+                width: widget.helpButtonSize,
+                height: widget.helpButtonSize,
                 child: TextButton(
                   style: ButtonStyle(
                     padding: const WidgetStatePropertyAll(EdgeInsets.zero),
@@ -146,27 +153,14 @@ class _CountrySelectorWidgetState
             ],
           ),
         ),
-        const SizedBox(height: 6),
+        // Same container spec as the name/age/gender fields above it — the
+        // design gives every field on this screen one treatment (radius 16,
+        // 1px grey outline, no fill, card shadow). This used to be a one-off:
+        // radius 8, a grey fill, and a hand-rolled shadow.
         Container(
-          width: fieldWidth,
-          height: 56,
-          padding: const EdgeInsetsDirectional.fromSTEB(10, 8, 10, 8),
-          decoration: BoxDecoration(
-            border: Border.all(
-              color: Theme.of(context).colorScheme.outline,
-              width: 1,
-            ),
-            boxShadow: [
-              BoxShadow(
-                color: Color.fromRGBO(0, 0, 0, 0.1),
-                spreadRadius: 1,
-                blurRadius: 0,
-                offset: Offset(0, 1), // changes position of shadow
-              ),
-            ],
-            borderRadius: BorderRadius.circular(8.r),
-            color: Theme.of(context).colorScheme.surfaceContainerHighest,
-          ),
+          height: widget.fieldHeight ?? kFormFieldHeight,
+          padding: const EdgeInsetsDirectional.fromSTEB(14, 0, 14, 0),
+          decoration: widget.fieldDecoration ?? formFieldDecoration(context),
           child: Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
@@ -177,15 +171,20 @@ class _CountrySelectorWidgetState
                   showFlagDialog: true,
                   showFlagMain: true,
                   onChanged: (country) {
-                    setState(() {
-                      saveLocation(country.code!, userInfoProvider);
-                    });
+                    final code = country.code;
+                    if (code != null) {
+                      userInfoProvider.updateLocation(code.trim().toUpperCase());
+                    }
                   },
                   initialSelection: initialCountryCode,
                   showCountryOnly: true,
                   showOnlyCountryWhenClosed: true,
                   dialogBackgroundColor: colorScheme.surface,
                   dialogTextStyle: dialogTextStyle,
+                  textStyle: TextStyle(
+                    fontSize: 14.sp,
+                    color: colorScheme.onSurface,
+                  ),
                   alignLeft: true, // Changed to true for left alignment
                   countryFilter: countryPickerCodes,
                   padding: EdgeInsets.zero, // Remove internal padding
@@ -194,12 +193,11 @@ class _CountrySelectorWidgetState
               Icon(
                 Icons.keyboard_arrow_down,
                 color: Theme.of(context).colorScheme.outline,
-                size: 24,
+                size: 20,
               ),
             ],
           ),
         ),
-        const SizedBox(height: 12),
         Visibility(
           visible: isVisible,
           child: GestureDetector(
@@ -211,25 +209,17 @@ class _CountrySelectorWidgetState
                   ? Alignment.centerRight
                   : Alignment.centerLeft,
               padding: EdgeInsets.fromLTRB(10, 10, 10, 10),
+              // DESIGN.md forbids one-off drop shadows; this popup has no
+              // design counterpart, so it borrows the card token.
               decoration: BoxDecoration(
                 color: Theme.of(context).colorScheme.surfaceContainerHighest,
-                borderRadius: BorderRadius.circular(5.r),
+                borderRadius: BorderRadius.circular(kFormFieldRadius),
                 border: Border.all(
                   color: Theme.of(context).colorScheme.outline,
                   width: 1,
                 ),
-                boxShadow: [
-                  BoxShadow(
-                    color: Theme.of(
-                      context,
-                    ).colorScheme.onSurface.withValues(alpha: 0.1),
-                    spreadRadius: 1,
-                    blurRadius: 5,
-                    offset: Offset(0, 3), // changes position of shadow
-                  ),
-                ],
+                boxShadow: AppShadows.card,
               ),
-              width: fieldWidth,
               constraints: BoxConstraints(minHeight: 50.h),
               child: Text(widget.disclaimerText),
             ),

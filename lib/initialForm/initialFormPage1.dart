@@ -1,32 +1,40 @@
-// ignore_for_file: prefer_const_constructors, sized_box_for_whitespace
-
 import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
-import 'package:mazilon/util/LP_extended_state.dart';
-import 'package:mazilon/util/styles.dart';
+import 'package:mazilon/form/wizard_step.dart';
+import 'package:mazilon/l10n/app_localizations.dart';
+import 'package:mazilon/util/theme/font_weight.dart';
+import 'package:mazilon/util/theme/spacing.dart';
 import 'package:mazilon/util/userInformation.dart';
 import 'package:provider/provider.dart';
 
-//The first page of the initial form
-//all text is in the CMS and is fetched from there
-class InitialFormPage1 extends StatefulWidget {
-  final Function next;
-  final Function skip;
-  final Function prev;
-  final Function updateName;
+// The first page of the initial form.
+class InitialFormPage1 extends WizardStep {
+  final VoidCallback next;
+  final VoidCallback skip;
+  final VoidCallback prev;
+  final ValueChanged<String> updateName;
 
   const InitialFormPage1({
-    super.key,
+    required super.key,
     required this.next,
     required this.skip,
     required this.prev,
     required this.updateName,
   });
+
   @override
-  State<InitialFormPage1> createState() => _InitialFormPage1State();
+  String primaryActionLabel(BuildContext context) => AppLocalizations.of(
+    context,
+  )!.nextButton(Provider.of<UserInformation>(context).gender);
+
+  @override
+  WizardStepState<InitialFormPage1> createState() => _InitialFormPage1State();
 }
 
-class _InitialFormPage1State extends LPExtendedState<InitialFormPage1> {
+class _InitialFormPage1State extends WizardStepState<InitialFormPage1> {
+  @override
+  Future<void> onPrimaryAction() async => widget.next();
+
   @override
   Widget build(BuildContext context) {
     final userInfoProvider = Provider.of<UserInformation>(
@@ -35,90 +43,60 @@ class _InitialFormPage1State extends LPExtendedState<InitialFormPage1> {
     );
     final gender = userInfoProvider.gender;
 
-    return Scaffold(
-      body: SingleChildScrollView(
-        child: Center(
+    return Column(
+      children: [
+        ConstrainedBox(
+          constraints: BoxConstraints(maxWidth: 240.w),
           child: Column(
+            key: const Key('intro-title-block'),
+            mainAxisSize: MainAxisSize.min,
+            spacing: OnboardingGaps.withinBlock,
             children: [
-              myAutoSizedText(
+              Text(
                 appLocale.introductionFormFirstPageMainTitle(gender),
-                TextStyle(fontSize: 40.sp, fontWeight: FontWeight.bold),
-                TextAlign.center,
-                60.0,
+                style: TextStyle(
+                  fontSize: 26.sp,
+                  fontWeight: AppFontWeight.medium,
+                  color: Theme.of(context).colorScheme.onSurface,
+                ),
+                textAlign: TextAlign.center,
               ),
-              Padding(
-                padding: EdgeInsets.fromLTRB(
-                  MediaQuery.of(context).size.width / 5,
-                  0,
-                  MediaQuery.of(context).size.width / 5,
-                  0,
+              Text(
+                appLocale.introductionFormFirstPageSubTitle1(gender),
+                style: TextStyle(
+                  fontSize: 16.sp,
+                  fontWeight: AppFontWeight.regular,
+                  color: Theme.of(context).colorScheme.outline,
                 ),
-                child: myAutoSizedText(
-                  appLocale.introductionFormFirstPageSubTitle1(gender),
-                  TextStyle(
-                    fontSize: 18.sp,
-                    fontWeight: FontWeight.bold,
-                    color: Theme.of(context).colorScheme.outline,
-                  ),
-                  TextAlign.center,
-                  35,
-                ),
+                textAlign: TextAlign.center,
               ),
-              SizedBox(height: 20),
-              Padding(
-                padding: EdgeInsets.fromLTRB(
-                  MediaQuery.of(context).size.width / 6,
-                  0,
-                  MediaQuery.of(context).size.width / 6,
-                  0,
+              Text(
+                appLocale.introductionFormFirstPageSubTitle2(gender),
+                style: TextStyle(
+                  fontSize: 16.sp,
+                  fontWeight: AppFontWeight.medium,
+                  color: Theme.of(context).colorScheme.tertiary,
                 ),
-                child: myAutoSizedText(
-                  appLocale.introductionFormFirstPageSubTitle2(gender),
-                  TextStyle(
-                    fontSize: 16.sp,
-                    fontWeight: FontWeight.bold,
-                    color: Theme.of(context).colorScheme.tertiary,
-                  ),
-                  TextAlign.center,
-                  35,
-                ),
-              ),
-              Image.asset(
-                'assets/images/initialFormPage1.png',
-                width: MediaQuery.sizeOf(context).width * 0.8 > 1000
-                    ? 400
-                    : MediaQuery.sizeOf(context).width *
-                          0.6, // Adjust as needed
-                height:
-                    MediaQuery.sizeOf(context).height * 0.3, // Adjust as needed
-              ),
-              ConfirmationButton(
-                context,
-                () {
-                  widget.next();
-                },
-                appLocale.nextButton(gender),
-                myTextStyle.copyWith(
-                  fontWeight: FontWeight.bold,
-                  fontSize: 20.sp,
-                ),
-              ),
-              SizedBox(height: returnSizedBox(context, 20)),
-              ConfirmationButton(
-                context,
-                () {
-                  widget.skip();
-                },
-                appLocale.skipButton(gender),
-                myTextStyle.copyWith(
-                  fontWeight: FontWeight.bold,
-                  fontSize: 20.sp,
-                ),
+                textAlign: TextAlign.center,
               ),
             ],
           ),
         ),
-      ),
+        // Illustration — centred in remaining space.
+        Expanded(
+          child: Center(
+            child: FittedBox(
+              fit: BoxFit.scaleDown,
+              child: Image.asset(
+                'assets/images/initialFormPage1.png',
+                width: MediaQuery.sizeOf(context).width * 0.6 > 400
+                    ? 400
+                    : MediaQuery.sizeOf(context).width * 0.6,
+              ),
+            ),
+          ),
+        ),
+      ],
     );
   }
 }

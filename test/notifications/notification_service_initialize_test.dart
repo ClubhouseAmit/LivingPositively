@@ -38,38 +38,46 @@ class _FakeWorkmanager extends WorkmanagerPlatform {
   }
 
   @override
-  Future<void> initialize(Function callbackDispatcher,
-      {bool isInDebugMode = false}) async {
+  Future<void> initialize(
+    Function callbackDispatcher, {
+    bool isInDebugMode = false,
+  }) async {
     calls.add('initialize');
   }
 
   @override
-  Future<void> registerOneOffTask(String uniqueName, String taskName,
-      {Map<String, dynamic>? inputData,
-      Duration? initialDelay,
-      Constraints? constraints,
-      ExistingWorkPolicy? existingWorkPolicy,
-      BackoffPolicy? backoffPolicy,
-      Duration? backoffPolicyDelay,
-      String? tag,
-      OutOfQuotaPolicy? outOfQuotaPolicy,
-      ForegroundServiceConfig? foregroundServiceConfig,
-      bool expedited = false}) async {
+  Future<void> registerOneOffTask(
+    String uniqueName,
+    String taskName, {
+    Map<String, dynamic>? inputData,
+    Duration? initialDelay,
+    Constraints? constraints,
+    ExistingWorkPolicy? existingWorkPolicy,
+    BackoffPolicy? backoffPolicy,
+    Duration? backoffPolicyDelay,
+    String? tag,
+    OutOfQuotaPolicy? outOfQuotaPolicy,
+    ForegroundServiceConfig? foregroundServiceConfig,
+    bool expedited = false,
+  }) async {
     calls.add('registerOneOffTask:$uniqueName:$taskName');
   }
 
   @override
-  Future<void> registerPeriodicTask(String uniqueName, String taskName,
-      {Duration? frequency,
-      Duration? flexInterval,
-      Map<String, dynamic>? inputData,
-      Duration? initialDelay,
-      Constraints? constraints,
-      ExistingPeriodicWorkPolicy? existingWorkPolicy,
-      BackoffPolicy? backoffPolicy,
-      Duration? backoffPolicyDelay,
-      String? tag,
-      ForegroundServiceConfig? foregroundServiceConfig}) async {
+  Future<void> registerPeriodicTask(
+    String uniqueName,
+    String taskName, {
+    Duration? frequency,
+    Duration? flexInterval,
+    Map<String, dynamic>? inputData,
+    Duration? initialDelay,
+    Constraints? constraints,
+    ExistingPeriodicWorkPolicy? existingWorkPolicy,
+    BackoffPolicy? backoffPolicy,
+    Duration? backoffPolicyDelay,
+    String? tag,
+    ForegroundServiceConfig? foregroundServiceConfig,
+  }) async {
     calls.add('registerPeriodicTask:$uniqueName:$taskName');
   }
 
@@ -112,8 +120,9 @@ Future<T> _onIos<T>(Future<T> Function() body) async {
 void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
 
-  const localNotifChannel =
-      MethodChannel('dexterous.com/flutter/local_notifications');
+  const localNotifChannel = MethodChannel(
+    'dexterous.com/flutter/local_notifications',
+  );
   const timezoneChannel = MethodChannel('flutter_timezone');
   const toastChannel = MethodChannel('PonnamKarthik/fluttertoast');
 
@@ -155,30 +164,38 @@ void main() {
       await _onIos(() async {
         localNotifCalls.clear();
         await NotificationsService.cancelNotifications(null);
-        expect(localNotifCalls.map((c) => c.method).toList(),
-            contains('cancelAll'));
+        expect(
+          localNotifCalls.map((c) => c.method).toList(),
+          contains('cancelAll'),
+        );
         // cancelWorker defaults to false → no workmanager touch.
-        expect(fakeWm.calls.where((c) => c.startsWith('cancel')).toList(),
-            isEmpty);
+        expect(
+          fakeWm.calls.where((c) => c.startsWith('cancel')).toList(),
+          isEmpty,
+        );
       });
     });
 
-    testWidgets('cancel by id routes to plugin.cancel on iOS',
-        (tester) async {
+    testWidgets('cancel by id routes to plugin.cancel on iOS', (tester) async {
       await _onIos(() async {
         localNotifCalls.clear();
         await NotificationsService.cancelNotifications(42);
         expect(
-            localNotifCalls.map((c) => c.method).toList(), contains('cancel'));
+          localNotifCalls.map((c) => c.method).toList(),
+          contains('cancel'),
+        );
       });
     });
 
-    testWidgets('cancelWorker=true also calls workmanager.cancelAll',
-        (tester) async {
+    testWidgets('cancelWorker=true also calls workmanager.cancelAll', (
+      tester,
+    ) async {
       await _onIos(() async {
         fakeWm.calls.clear();
-        await NotificationsService.cancelNotifications(null,
-            cancelWorker: true);
+        await NotificationsService.cancelNotifications(
+          null,
+          cancelWorker: true,
+        );
         expect(fakeWm.calls, contains('cancelAll'));
       });
     });
@@ -196,8 +213,9 @@ void main() {
   });
 
   group('initializeNotification platform branches', () {
-    testWidgets('iOS schedules reminder without workmanager registrations',
-        (tester) async {
+    testWidgets('iOS schedules reminder without workmanager registrations', (
+      tester,
+    ) async {
       await _onIos(() async {
         fakeWm.calls.clear();
         await NotificationsService.initializeNotification(
@@ -209,13 +227,16 @@ void main() {
         );
         await tester.pump(const Duration(seconds: 2));
         // No workmanager registrations on iOS.
-        expect(fakeWm.calls.where((c) => c.startsWith('register')).toList(),
-            isEmpty);
+        expect(
+          fakeWm.calls.where((c) => c.startsWith('register')).toList(),
+          isEmpty,
+        );
       });
     });
 
-    testWidgets('Android permission grant → workmanager registrations fire',
-        (tester) async {
+    testWidgets('Android permission grant → workmanager registrations fire', (
+      tester,
+    ) async {
       await _onAndroid(() async {
         requestPermissionResult = true;
         fakeWm.calls.clear();
@@ -237,7 +258,8 @@ void main() {
         expect(
           fakeWm.calls.any((c) => c.startsWith('registerOneOffTask:')),
           isTrue,
-          reason: 'Android permission-granted branch must register one-off task',
+          reason:
+              'Android permission-granted branch must register one-off task',
         );
         expect(
           fakeWm.calls.any((c) => c.startsWith('registerPeriodicTask:')),
@@ -253,8 +275,9 @@ void main() {
       });
     });
 
-    testWidgets('Android permission DENIED — no workmanager registrations',
-        (tester) async {
+    testWidgets('Android permission DENIED — no workmanager registrations', (
+      tester,
+    ) async {
       await _onAndroid(() async {
         requestPermissionResult = false;
         fakeWm.calls.clear();

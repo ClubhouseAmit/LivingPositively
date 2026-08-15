@@ -1,5 +1,6 @@
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
+import 'package:mazilon/form/wizard_step.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:get_it/get_it.dart';
@@ -13,6 +14,7 @@ import 'package:mockito/annotations.dart';
 import 'package:mockito/mockito.dart';
 import 'package:provider/provider.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import '../helpers/widget_test_scaffold.dart' show wizardStepHarness;
 
 import 'initialFormPage2_test.mocks.dart';
 
@@ -88,10 +90,13 @@ void main() {
         localizationsDelegates: AppLocalizations.localizationsDelegates,
         home: ScreenUtilInit(
           designSize: const Size(360, 690),
-          child: InitialFormPage2(
-            next: mockNext,
-            prev: mockPrev,
-            updateName: mockUpdateName,
+          child: wizardStepHarness(
+            InitialFormPage2(
+              key: GlobalKey<WizardStepState>(),
+              next: mockNext,
+              prev: mockPrev,
+              updateName: mockUpdateName,
+            ),
           ),
         ),
       ),
@@ -145,7 +150,9 @@ void main() {
   testWidgets('InitialFormPage2 dropdown menu selection', (tester) async {
     await tester.pumpWidget(createTestWidget());
 
-    await tester.tap(find.byType(DropdownMenu<String>).first);
+    final firstDropdown = find.byType(DropdownMenu<String>).first;
+    await tester.ensureVisible(firstDropdown);
+    await tester.tap(firstDropdown);
     await tester.pumpAndSettle();
     await tester.tap(find.text('30-40').last);
     await tester.pumpAndSettle();
@@ -153,7 +160,9 @@ void main() {
     expect(find.text('30-40'), findsWidgets);
 
     final loc = lookupAppLocalizations(const Locale('he'));
-    await tester.tap(find.byType(DropdownMenu<String>).last);
+    final lastDropdown = find.byType(DropdownMenu<String>).last;
+    await tester.ensureVisible(lastDropdown);
+    await tester.tap(lastDropdown);
     await tester.pumpAndSettle();
     await tester.tap(find.text(loc.female).last);
     await tester.pumpAndSettle();

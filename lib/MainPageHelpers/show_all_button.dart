@@ -23,8 +23,10 @@ class ShowAllButton extends StatefulWidget {
 class _ShowAllButtonState extends LPExtendedState<ShowAllButton> {
   @override
   Widget build(BuildContext context) {
-    final userInfoProvider =
-        Provider.of<UserInformation>(context, listen: true);
+    final userInfoProvider = Provider.of<UserInformation>(
+      context,
+      listen: true,
+    );
 
     final gender = userInfoProvider.gender;
 
@@ -41,14 +43,8 @@ class _ShowAllButtonState extends LPExtendedState<ShowAllButton> {
           child: Row(
             mainAxisSize: MainAxisSize.min,
             children: <Widget>[
-              Text(
-                label,
-                style: const TextStyle(fontWeight: FontWeight.bold),
-              ),
-              const Icon(
-                Icons.arrow_forward_ios,
-                size: 12,
-              ),
+              Text(label, style: const TextStyle(fontWeight: FontWeight.bold)),
+              const Icon(Icons.arrow_forward_ios, size: 12),
             ],
           ),
         ),

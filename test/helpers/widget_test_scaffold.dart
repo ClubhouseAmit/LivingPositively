@@ -8,7 +8,6 @@
 // the same way they do at runtime.
 
 import 'dart:io';
-import 'dart:typed_data';
 
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
@@ -18,6 +17,7 @@ import 'package:image_picker/image_picker.dart';
 import 'package:mazilon/AnalyticsService.dart';
 import 'package:mazilon/Locale/locale_service.dart';
 import 'package:mazilon/file_service.dart';
+import 'package:mazilon/form/wizard_step.dart';
 import 'package:mazilon/global_enums.dart';
 import 'package:mazilon/l10n/app_localizations.dart';
 import 'package:mazilon/pages/FeelGood/image_picker_service_impl.dart';
@@ -433,6 +433,19 @@ List<dynamic> drainOverflowExceptions(WidgetTester tester) {
   }
   return drained;
 }
+
+/// Frames a single [WizardStep] the way a flow does — content taking the slack,
+/// its actions beneath — inside a [Scaffold] so Material widgets have an
+/// ancestor.
+///
+/// The flows write this `Column` inline; there is no production widget for it,
+/// because five lines of layout do not need a class. This helper exists only so
+/// tests that exercise one step in isolation don't each repeat the frame.
+Widget wizardStepHarness(WizardStep step) => Scaffold(
+  body: Column(
+    children: [Expanded(child: step), WizardActions(step: step)],
+  ),
+);
 
 /// Loads the Rubix custom font family into the Flutter test environment
 /// so text measurements and visual rendering match production font metrics.

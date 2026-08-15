@@ -33,12 +33,13 @@ void main() {
     resetTestServices();
   });
 
-  testWidgets('tapping the share IconButton opens the share dialog',
-      (tester) async {
+  testWidgets('tapping the share IconButton opens the share dialog', (
+    tester,
+  ) async {
     await pumpWithProviders(
       tester,
-      WizardStepPage(
-        step: ShareForm(
+      wizardStepHarness(
+        ShareForm(
           key: GlobalKey<WizardStepState>(),
           prev: () {},
           submit: (_) {},
@@ -59,14 +60,12 @@ void main() {
     expect(find.byType(Dialog), findsWidgets);
   });
 
-  testWidgets(
-      'tapping the download IconButton invokes FileService.download '
-      '(null result → toast)',
-      (tester) async {
+  testWidgets('tapping the download IconButton invokes FileService.download '
+      '(null result → toast)', (tester) async {
     await pumpWithProviders(
       tester,
-      WizardStepPage(
-        step: ShareForm(
+      wizardStepHarness(
+        ShareForm(
           key: GlobalKey<WizardStepState>(),
           prev: () {},
           submit: (_) {},
@@ -87,14 +86,14 @@ void main() {
     expect(services.files.downloadCalls, 1);
   });
 
-  testWidgets(
-      'tapping the finish button calls widget.submit with context',
-      (tester) async {
+  testWidgets('tapping the finish button calls widget.submit with context', (
+    tester,
+  ) async {
     var submitCalls = 0;
     await pumpWithProviders(
       tester,
-      WizardStepPage(
-        step: ShareForm(
+      wizardStepHarness(
+        ShareForm(
           key: GlobalKey<WizardStepState>(),
           prev: () {},
           submit: (_) => submitCalls++,

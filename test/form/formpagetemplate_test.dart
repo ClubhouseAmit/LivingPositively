@@ -18,7 +18,7 @@ import 'package:mazilon/AnalyticsService.dart';
 import '../MenuTest/shareAndDownload/share_and_download_test.mocks.dart'
     as ShareMocks;
 import '../helpers/widget_test_scaffold.dart'
-    show NoopAnalyticsService, loadTestFonts;
+    show NoopAnalyticsService, loadTestFonts, wizardStepHarness;
 
 @GenerateNiceMocks([
   MockSpec<UserInformation>(),
@@ -89,14 +89,12 @@ void main() {
             theme: buildLightTheme(),
             home: ScreenUtilInit(
               designSize: const Size(360, 690),
-              child: Scaffold(
-                body: WizardStepPage(
-                  step: FormPageTemplate(
-                    key: GlobalKey<WizardStepState>(),
-                    next: () {},
-                    prev: () {},
-                    collectionName: 'PersonalPlan-DifficultEvents',
-                  ),
+              child: wizardStepHarness(
+                FormPageTemplate(
+                  key: GlobalKey<WizardStepState>(),
+                  next: () {},
+                  prev: () {},
+                  collectionName: 'PersonalPlan-DifficultEvents',
                 ),
               ),
             ),
@@ -123,7 +121,9 @@ void main() {
 
       // Verifying initial UI elements and their styles to prevent design regressions
       final headerFinder = find.byWidgetPredicate(
-        (widget) => widget is Text && widget.data == 'תזכורות לטריגרים נפוצים וגורמי הסלמה',
+        (widget) =>
+            widget is Text &&
+            widget.data == 'תזכורות לטריגרים נפוצים וגורמי הסלמה',
       );
       expect(headerFinder, findsOneWidget);
       final headerStyle = tester
@@ -137,7 +137,8 @@ void main() {
       expect(headerStyle.fontSize, 24.sp);
 
       final subTitleFinder = find.byWidgetPredicate(
-        (widget) => widget is Text && widget.data == 'גורמים ואירועים שהקשו עלי בעבר',
+        (widget) =>
+            widget is Text && widget.data == 'גורמים ואירועים שהקשו עלי בעבר',
       );
       expect(subTitleFinder, findsOneWidget);
       final subTitleStyle = tester

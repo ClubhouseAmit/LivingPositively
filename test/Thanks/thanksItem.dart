@@ -15,9 +15,10 @@ class _ThankItemState extends State<ThankItem> {
   Widget build(BuildContext context) {
     return Container(
       constraints: BoxConstraints(
-          minWidth: 100,
-          minHeight: 55,
-          maxWidth: MediaQuery.of(context).size.width / 2 - 15),
+        minWidth: 100,
+        minHeight: 55,
+        maxWidth: MediaQuery.of(context).size.width / 2 - 15,
+      ),
       child: Card(
         child: Directionality(
           textDirection: TextDirection.rtl,

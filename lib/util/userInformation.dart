@@ -422,8 +422,12 @@ class UserInformation with ChangeNotifier {
   }
 
   void updateLocation(String value) {
-    location = value;
+    void saveLocation(String value) async {
+      await service.setItem('location', PersistentMemoryType.String, value);
+    }
 
+    location = value;
+    saveLocation(value);
     notifyListeners();
   }
 }

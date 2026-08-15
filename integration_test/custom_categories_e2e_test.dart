@@ -76,6 +76,11 @@ Widget _shareFormHarness({
   final userInformation = UserInformation(service: memoryService)
     ..gender = 'male'
     ..localeName = locale.languageCode;
+  final shareForm = ShareForm(
+    key: GlobalKey<WizardStepState>(),
+    prev: () {},
+    submit: (_) {},
+  );
 
   return MultiProvider(
     providers: [
@@ -89,12 +94,11 @@ Widget _shareFormHarness({
       home: ScreenUtilInit(
         designSize: const Size(360, 690),
         child: Scaffold(
-          body: WizardStepPage(
-            step: ShareForm(
-              key: GlobalKey<WizardStepState>(),
-              prev: () {},
-              submit: (_) {},
-            ),
+          body: Column(
+            children: [
+              Expanded(child: shareForm),
+              WizardActions(step: shareForm),
+            ],
           ),
         ),
       ),

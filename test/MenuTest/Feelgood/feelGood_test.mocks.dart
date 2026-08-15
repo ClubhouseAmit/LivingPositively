@@ -38,13 +38,8 @@ import 'package:shared_preferences/shared_preferences.dart' as _i12;
 // ignore_for_file: invalid_use_of_internal_member
 
 class _FakeWidget_0 extends _i1.SmartFake implements _i2.Widget {
-  _FakeWidget_0(
-    Object parent,
-    Invocation parentInvocation,
-  ) : super(
-          parent,
-          parentInvocation,
-        );
+  _FakeWidget_0(Object parent, Invocation parentInvocation)
+    : super(parent, parentInvocation);
 
   @override
   String toString({_i2.DiagnosticLevel? minLevel = _i2.DiagnosticLevel.info}) =>
@@ -52,24 +47,14 @@ class _FakeWidget_0 extends _i1.SmartFake implements _i2.Widget {
 }
 
 class _FakeFile_1 extends _i1.SmartFake implements _i3.File {
-  _FakeFile_1(
-    Object parent,
-    Invocation parentInvocation,
-  ) : super(
-          parent,
-          parentInvocation,
-        );
+  _FakeFile_1(Object parent, Invocation parentInvocation)
+    : super(parent, parentInvocation);
 }
 
 class _FakePersistentMemoryService_2 extends _i1.SmartFake
     implements _i4.PersistentMemoryService {
-  _FakePersistentMemoryService_2(
-    Object parent,
-    Invocation parentInvocation,
-  ) : super(
-          parent,
-          parentInvocation,
-        );
+  _FakePersistentMemoryService_2(Object parent, Invocation parentInvocation)
+    : super(parent, parentInvocation);
 }
 
 /// A class which mocks [VideoPlayerPageFactory].
@@ -83,37 +68,26 @@ class MockVideoPlayerPageFactory extends _i1.Mock
     required Map<String, List<String>>? videoData,
   }) =>
       (super.noSuchMethod(
-        Invocation.method(
-          #create,
-          [],
-          {
-            #onFullScreenChanged: onFullScreenChanged,
-            #videoData: videoData,
-          },
-        ),
-        returnValue: _FakeWidget_0(
-          this,
-          Invocation.method(
-            #create,
-            [],
-            {
+            Invocation.method(#create, [], {
               #onFullScreenChanged: onFullScreenChanged,
               #videoData: videoData,
-            },
-          ),
-        ),
-        returnValueForMissingStub: _FakeWidget_0(
-          this,
-          Invocation.method(
-            #create,
-            [],
-            {
-              #onFullScreenChanged: onFullScreenChanged,
-              #videoData: videoData,
-            },
-          ),
-        ),
-      ) as _i2.Widget);
+            }),
+            returnValue: _FakeWidget_0(
+              this,
+              Invocation.method(#create, [], {
+                #onFullScreenChanged: onFullScreenChanged,
+                #videoData: videoData,
+              }),
+            ),
+            returnValueForMissingStub: _FakeWidget_0(
+              this,
+              Invocation.method(#create, [], {
+                #onFullScreenChanged: onFullScreenChanged,
+                #videoData: videoData,
+              }),
+            ),
+          )
+          as _i2.Widget);
 }
 
 /// A class which mocks [FileService].
@@ -171,14 +145,13 @@ class MockFileService extends _i1.Mock implements _i6.FileService {
       ) as _i7.Future<String?>);
 
   @override
-  _i7.Future<bool> shareTextOnly(String? message) => (super.noSuchMethod(
-        Invocation.method(
-          #shareTextOnly,
-          [message],
-        ),
-        returnValue: _i7.Future<bool>.value(false),
-        returnValueForMissingStub: _i7.Future<bool>.value(false),
-      ) as _i7.Future<bool>);
+  _i7.Future<bool> shareTextOnly(String? message) =>
+      (super.noSuchMethod(
+            Invocation.method(#shareTextOnly, [message]),
+            returnValue: _i7.Future<bool>.value(false),
+            returnValueForMissingStub: _i7.Future<bool>.value(false),
+          )
+          as _i7.Future<bool>);
 }
 
 /// A class which mocks [ImagePickerService].
@@ -189,127 +162,85 @@ class MockImagePickerService extends _i1.Mock
   @override
   _i7.Future<_i10.XFile?> pickImage({required _i11.ImageSource? source}) =>
       (super.noSuchMethod(
-        Invocation.method(
-          #pickImage,
-          [],
-          {#source: source},
-        ),
-        returnValue: _i7.Future<_i10.XFile?>.value(),
-        returnValueForMissingStub: _i7.Future<_i10.XFile?>.value(),
-      ) as _i7.Future<_i10.XFile?>);
+            Invocation.method(#pickImage, [], {#source: source}),
+            returnValue: _i7.Future<_i10.XFile?>.value(),
+            returnValueForMissingStub: _i7.Future<_i10.XFile?>.value(),
+          )
+          as _i7.Future<_i10.XFile?>);
 
   @override
   _i7.Future<_i3.File> saveImagePaths(List<String>? imagePaths) =>
       (super.noSuchMethod(
-        Invocation.method(
-          #saveImagePaths,
-          [imagePaths],
-        ),
-        returnValue: _i7.Future<_i3.File>.value(_FakeFile_1(
-          this,
-          Invocation.method(
-            #saveImagePaths,
-            [imagePaths],
-          ),
-        )),
-        returnValueForMissingStub: _i7.Future<_i3.File>.value(_FakeFile_1(
-          this,
-          Invocation.method(
-            #saveImagePaths,
-            [imagePaths],
-          ),
-        )),
-      ) as _i7.Future<_i3.File>);
+            Invocation.method(#saveImagePaths, [imagePaths]),
+            returnValue: _i7.Future<_i3.File>.value(
+              _FakeFile_1(
+                this,
+                Invocation.method(#saveImagePaths, [imagePaths]),
+              ),
+            ),
+            returnValueForMissingStub: _i7.Future<_i3.File>.value(
+              _FakeFile_1(
+                this,
+                Invocation.method(#saveImagePaths, [imagePaths]),
+              ),
+            ),
+          )
+          as _i7.Future<_i3.File>);
 
   @override
-  _i7.Future<void> getImage(
-    String? source,
-    List<String>? imagePaths,
-  ) =>
+  _i7.Future<void> getImage(String? source, List<String>? imagePaths) =>
       (super.noSuchMethod(
-        Invocation.method(
-          #getImage,
-          [
-            source,
-            imagePaths,
-          ],
-        ),
-        returnValue: _i7.Future<void>.value(),
-        returnValueForMissingStub: _i7.Future<void>.value(),
-      ) as _i7.Future<void>);
+            Invocation.method(#getImage, [source, imagePaths]),
+            returnValue: _i7.Future<void>.value(),
+            returnValueForMissingStub: _i7.Future<void>.value(),
+          )
+          as _i7.Future<void>);
 
   @override
-  void deleteImage(
-    int? index,
-    List<String>? imagePaths,
-  ) =>
-      super.noSuchMethod(
-        Invocation.method(
-          #deleteImage,
-          [
-            index,
-            imagePaths,
-          ],
-        ),
-        returnValueForMissingStub: null,
-      );
+  void deleteImage(int? index, List<String>? imagePaths) => super.noSuchMethod(
+    Invocation.method(#deleteImage, [index, imagePaths]),
+    returnValueForMissingStub: null,
+  );
 
   @override
   _i7.Future<void> loadImagePaths(List<String>? imagePaths) =>
       (super.noSuchMethod(
-        Invocation.method(
-          #loadImagePaths,
-          [imagePaths],
-        ),
-        returnValue: _i7.Future<void>.value(),
-        returnValueForMissingStub: _i7.Future<void>.value(),
-      ) as _i7.Future<void>);
+            Invocation.method(#loadImagePaths, [imagePaths]),
+            returnValue: _i7.Future<void>.value(),
+            returnValueForMissingStub: _i7.Future<void>.value(),
+          )
+          as _i7.Future<void>);
 
   @override
-  dynamic displayImage(
-    String? path, {
-    _i2.BoxFit? fit = _i2.BoxFit.none,
-  }) =>
+  dynamic displayImage(String? path, {_i2.BoxFit? fit = _i2.BoxFit.none}) =>
       super.noSuchMethod(
-        Invocation.method(
-          #displayImage,
-          [path],
-          {#fit: fit},
-        ),
+        Invocation.method(#displayImage, [path], {#fit: fit}),
         returnValueForMissingStub: null,
       );
 
   @override
-  _i2.Widget getOnlineImage(String? url) => (super.noSuchMethod(
-        Invocation.method(
-          #getOnlineImage,
-          [url],
-        ),
-        returnValue: _FakeWidget_0(
-          this,
-          Invocation.method(
-            #getOnlineImage,
-            [url],
-          ),
-        ),
-        returnValueForMissingStub: _FakeWidget_0(
-          this,
-          Invocation.method(
-            #getOnlineImage,
-            [url],
-          ),
-        ),
-      ) as _i2.Widget);
+  _i2.Widget getOnlineImage(String? url) =>
+      (super.noSuchMethod(
+            Invocation.method(#getOnlineImage, [url]),
+            returnValue: _FakeWidget_0(
+              this,
+              Invocation.method(#getOnlineImage, [url]),
+            ),
+            returnValueForMissingStub: _FakeWidget_0(
+              this,
+              Invocation.method(#getOnlineImage, [url]),
+            ),
+          )
+          as _i2.Widget);
 
   @override
-  _i7.Future<void> deleteImages() => (super.noSuchMethod(
-        Invocation.method(
-          #deleteImages,
-          [],
-        ),
-        returnValue: _i7.Future<void>.value(),
-        returnValueForMissingStub: _i7.Future<void>.value(),
-      ) as _i7.Future<void>);
+  _i7.Future<void> deleteImages() =>
+      (super.noSuchMethod(
+            Invocation.method(#deleteImages, []),
+            returnValue: _i7.Future<void>.value(),
+            returnValueForMissingStub: _i7.Future<void>.value(),
+          )
+          as _i7.Future<void>);
 }
 
 /// A class which mocks [SharedPreferences].
@@ -317,203 +248,151 @@ class MockImagePickerService extends _i1.Mock
 /// See the documentation for Mockito's code generation for more information.
 class MockSharedPreferences extends _i1.Mock implements _i12.SharedPreferences {
   @override
-  Set<String> getKeys() => (super.noSuchMethod(
-        Invocation.method(
-          #getKeys,
-          [],
-        ),
-        returnValue: <String>{},
-        returnValueForMissingStub: <String>{},
-      ) as Set<String>);
-
-  @override
-  Object? get(String? key) => (super.noSuchMethod(
-        Invocation.method(
-          #get,
-          [key],
-        ),
-        returnValueForMissingStub: null,
-      ) as Object?);
-
-  @override
-  bool? getBool(String? key) => (super.noSuchMethod(
-        Invocation.method(
-          #getBool,
-          [key],
-        ),
-        returnValueForMissingStub: null,
-      ) as bool?);
-
-  @override
-  int? getInt(String? key) => (super.noSuchMethod(
-        Invocation.method(
-          #getInt,
-          [key],
-        ),
-        returnValueForMissingStub: null,
-      ) as int?);
-
-  @override
-  double? getDouble(String? key) => (super.noSuchMethod(
-        Invocation.method(
-          #getDouble,
-          [key],
-        ),
-        returnValueForMissingStub: null,
-      ) as double?);
-
-  @override
-  String? getString(String? key) => (super.noSuchMethod(
-        Invocation.method(
-          #getString,
-          [key],
-        ),
-        returnValueForMissingStub: null,
-      ) as String?);
-
-  @override
-  bool containsKey(String? key) => (super.noSuchMethod(
-        Invocation.method(
-          #containsKey,
-          [key],
-        ),
-        returnValue: false,
-        returnValueForMissingStub: false,
-      ) as bool);
-
-  @override
-  List<String>? getStringList(String? key) => (super.noSuchMethod(
-        Invocation.method(
-          #getStringList,
-          [key],
-        ),
-        returnValueForMissingStub: null,
-      ) as List<String>?);
-
-  @override
-  _i7.Future<bool> setBool(
-    String? key,
-    bool? value,
-  ) =>
+  Set<String> getKeys() =>
       (super.noSuchMethod(
-        Invocation.method(
-          #setBool,
-          [
-            key,
-            value,
-          ],
-        ),
-        returnValue: _i7.Future<bool>.value(false),
-        returnValueForMissingStub: _i7.Future<bool>.value(false),
-      ) as _i7.Future<bool>);
+            Invocation.method(#getKeys, []),
+            returnValue: <String>{},
+            returnValueForMissingStub: <String>{},
+          )
+          as Set<String>);
 
   @override
-  _i7.Future<bool> setInt(
-    String? key,
-    int? value,
-  ) =>
+  Object? get(String? key) =>
       (super.noSuchMethod(
-        Invocation.method(
-          #setInt,
-          [
-            key,
-            value,
-          ],
-        ),
-        returnValue: _i7.Future<bool>.value(false),
-        returnValueForMissingStub: _i7.Future<bool>.value(false),
-      ) as _i7.Future<bool>);
+            Invocation.method(#get, [key]),
+            returnValueForMissingStub: null,
+          )
+          as Object?);
 
   @override
-  _i7.Future<bool> setDouble(
-    String? key,
-    double? value,
-  ) =>
+  bool? getBool(String? key) =>
       (super.noSuchMethod(
-        Invocation.method(
-          #setDouble,
-          [
-            key,
-            value,
-          ],
-        ),
-        returnValue: _i7.Future<bool>.value(false),
-        returnValueForMissingStub: _i7.Future<bool>.value(false),
-      ) as _i7.Future<bool>);
+            Invocation.method(#getBool, [key]),
+            returnValueForMissingStub: null,
+          )
+          as bool?);
 
   @override
-  _i7.Future<bool> setString(
-    String? key,
-    String? value,
-  ) =>
+  int? getInt(String? key) =>
       (super.noSuchMethod(
-        Invocation.method(
-          #setString,
-          [
-            key,
-            value,
-          ],
-        ),
-        returnValue: _i7.Future<bool>.value(false),
-        returnValueForMissingStub: _i7.Future<bool>.value(false),
-      ) as _i7.Future<bool>);
+            Invocation.method(#getInt, [key]),
+            returnValueForMissingStub: null,
+          )
+          as int?);
 
   @override
-  _i7.Future<bool> setStringList(
-    String? key,
-    List<String>? value,
-  ) =>
+  double? getDouble(String? key) =>
       (super.noSuchMethod(
-        Invocation.method(
-          #setStringList,
-          [
-            key,
-            value,
-          ],
-        ),
-        returnValue: _i7.Future<bool>.value(false),
-        returnValueForMissingStub: _i7.Future<bool>.value(false),
-      ) as _i7.Future<bool>);
+            Invocation.method(#getDouble, [key]),
+            returnValueForMissingStub: null,
+          )
+          as double?);
 
   @override
-  _i7.Future<bool> remove(String? key) => (super.noSuchMethod(
-        Invocation.method(
-          #remove,
-          [key],
-        ),
-        returnValue: _i7.Future<bool>.value(false),
-        returnValueForMissingStub: _i7.Future<bool>.value(false),
-      ) as _i7.Future<bool>);
+  String? getString(String? key) =>
+      (super.noSuchMethod(
+            Invocation.method(#getString, [key]),
+            returnValueForMissingStub: null,
+          )
+          as String?);
 
   @override
-  _i7.Future<bool> commit() => (super.noSuchMethod(
-        Invocation.method(
-          #commit,
-          [],
-        ),
-        returnValue: _i7.Future<bool>.value(false),
-        returnValueForMissingStub: _i7.Future<bool>.value(false),
-      ) as _i7.Future<bool>);
+  bool containsKey(String? key) =>
+      (super.noSuchMethod(
+            Invocation.method(#containsKey, [key]),
+            returnValue: false,
+            returnValueForMissingStub: false,
+          )
+          as bool);
 
   @override
-  _i7.Future<bool> clear() => (super.noSuchMethod(
-        Invocation.method(
-          #clear,
-          [],
-        ),
-        returnValue: _i7.Future<bool>.value(false),
-        returnValueForMissingStub: _i7.Future<bool>.value(false),
-      ) as _i7.Future<bool>);
+  List<String>? getStringList(String? key) =>
+      (super.noSuchMethod(
+            Invocation.method(#getStringList, [key]),
+            returnValueForMissingStub: null,
+          )
+          as List<String>?);
 
   @override
-  _i7.Future<void> reload() => (super.noSuchMethod(
-        Invocation.method(
-          #reload,
-          [],
-        ),
-        returnValue: _i7.Future<void>.value(),
-        returnValueForMissingStub: _i7.Future<void>.value(),
-      ) as _i7.Future<void>);
+  _i7.Future<bool> setBool(String? key, bool? value) =>
+      (super.noSuchMethod(
+            Invocation.method(#setBool, [key, value]),
+            returnValue: _i7.Future<bool>.value(false),
+            returnValueForMissingStub: _i7.Future<bool>.value(false),
+          )
+          as _i7.Future<bool>);
+
+  @override
+  _i7.Future<bool> setInt(String? key, int? value) =>
+      (super.noSuchMethod(
+            Invocation.method(#setInt, [key, value]),
+            returnValue: _i7.Future<bool>.value(false),
+            returnValueForMissingStub: _i7.Future<bool>.value(false),
+          )
+          as _i7.Future<bool>);
+
+  @override
+  _i7.Future<bool> setDouble(String? key, double? value) =>
+      (super.noSuchMethod(
+            Invocation.method(#setDouble, [key, value]),
+            returnValue: _i7.Future<bool>.value(false),
+            returnValueForMissingStub: _i7.Future<bool>.value(false),
+          )
+          as _i7.Future<bool>);
+
+  @override
+  _i7.Future<bool> setString(String? key, String? value) =>
+      (super.noSuchMethod(
+            Invocation.method(#setString, [key, value]),
+            returnValue: _i7.Future<bool>.value(false),
+            returnValueForMissingStub: _i7.Future<bool>.value(false),
+          )
+          as _i7.Future<bool>);
+
+  @override
+  _i7.Future<bool> setStringList(String? key, List<String>? value) =>
+      (super.noSuchMethod(
+            Invocation.method(#setStringList, [key, value]),
+            returnValue: _i7.Future<bool>.value(false),
+            returnValueForMissingStub: _i7.Future<bool>.value(false),
+          )
+          as _i7.Future<bool>);
+
+  @override
+  _i7.Future<bool> remove(String? key) =>
+      (super.noSuchMethod(
+            Invocation.method(#remove, [key]),
+            returnValue: _i7.Future<bool>.value(false),
+            returnValueForMissingStub: _i7.Future<bool>.value(false),
+          )
+          as _i7.Future<bool>);
+
+  @override
+  _i7.Future<bool> commit() =>
+      (super.noSuchMethod(
+            Invocation.method(#commit, []),
+            returnValue: _i7.Future<bool>.value(false),
+            returnValueForMissingStub: _i7.Future<bool>.value(false),
+          )
+          as _i7.Future<bool>);
+
+  @override
+  _i7.Future<bool> clear() =>
+      (super.noSuchMethod(
+            Invocation.method(#clear, []),
+            returnValue: _i7.Future<bool>.value(false),
+            returnValueForMissingStub: _i7.Future<bool>.value(false),
+          )
+          as _i7.Future<bool>);
+
+  @override
+  _i7.Future<void> reload() =>
+      (super.noSuchMethod(
+            Invocation.method(#reload, []),
+            returnValue: _i7.Future<void>.value(),
+            returnValueForMissingStub: _i7.Future<void>.value(),
+          )
+          as _i7.Future<void>);
 }
 
 /// A class which mocks [UserInformation].
@@ -521,539 +400,454 @@ class MockSharedPreferences extends _i1.Mock implements _i12.SharedPreferences {
 /// See the documentation for Mockito's code generation for more information.
 class MockUserInformation extends _i1.Mock implements _i13.UserInformation {
   @override
-  String get localeName => (super.noSuchMethod(
-        Invocation.getter(#localeName),
-        returnValue: _i14.dummyValue<String>(
-          this,
-          Invocation.getter(#localeName),
-        ),
-        returnValueForMissingStub: _i14.dummyValue<String>(
-          this,
-          Invocation.getter(#localeName),
-        ),
-      ) as String);
+  String get localeName =>
+      (super.noSuchMethod(
+            Invocation.getter(#localeName),
+            returnValue: _i14.dummyValue<String>(
+              this,
+              Invocation.getter(#localeName),
+            ),
+            returnValueForMissingStub: _i14.dummyValue<String>(
+              this,
+              Invocation.getter(#localeName),
+            ),
+          )
+          as String);
 
   @override
-  String get gender => (super.noSuchMethod(
-        Invocation.getter(#gender),
-        returnValue: _i14.dummyValue<String>(
-          this,
-          Invocation.getter(#gender),
-        ),
-        returnValueForMissingStub: _i14.dummyValue<String>(
-          this,
-          Invocation.getter(#gender),
-        ),
-      ) as String);
+  String get gender =>
+      (super.noSuchMethod(
+            Invocation.getter(#gender),
+            returnValue: _i14.dummyValue<String>(
+              this,
+              Invocation.getter(#gender),
+            ),
+            returnValueForMissingStub: _i14.dummyValue<String>(
+              this,
+              Invocation.getter(#gender),
+            ),
+          )
+          as String);
 
   @override
-  String get name => (super.noSuchMethod(
-        Invocation.getter(#name),
-        returnValue: _i14.dummyValue<String>(
-          this,
-          Invocation.getter(#name),
-        ),
-        returnValueForMissingStub: _i14.dummyValue<String>(
-          this,
-          Invocation.getter(#name),
-        ),
-      ) as String);
+  String get name =>
+      (super.noSuchMethod(
+            Invocation.getter(#name),
+            returnValue: _i14.dummyValue<String>(
+              this,
+              Invocation.getter(#name),
+            ),
+            returnValueForMissingStub: _i14.dummyValue<String>(
+              this,
+              Invocation.getter(#name),
+            ),
+          )
+          as String);
 
   @override
-  String get age => (super.noSuchMethod(
-        Invocation.getter(#age),
-        returnValue: _i14.dummyValue<String>(
-          this,
-          Invocation.getter(#age),
-        ),
-        returnValueForMissingStub: _i14.dummyValue<String>(
-          this,
-          Invocation.getter(#age),
-        ),
-      ) as String);
+  String get age =>
+      (super.noSuchMethod(
+            Invocation.getter(#age),
+            returnValue: _i14.dummyValue<String>(this, Invocation.getter(#age)),
+            returnValueForMissingStub: _i14.dummyValue<String>(
+              this,
+              Invocation.getter(#age),
+            ),
+          )
+          as String);
 
   @override
-  String get location => (super.noSuchMethod(
-        Invocation.getter(#location),
-        returnValue: _i14.dummyValue<String>(
-          this,
-          Invocation.getter(#location),
-        ),
-        returnValueForMissingStub: _i14.dummyValue<String>(
-          this,
-          Invocation.getter(#location),
-        ),
-      ) as String);
+  String get location =>
+      (super.noSuchMethod(
+            Invocation.getter(#location),
+            returnValue: _i14.dummyValue<String>(
+              this,
+              Invocation.getter(#location),
+            ),
+            returnValueForMissingStub: _i14.dummyValue<String>(
+              this,
+              Invocation.getter(#location),
+            ),
+          )
+          as String);
 
   @override
-  bool get binary => (super.noSuchMethod(
-        Invocation.getter(#binary),
-        returnValue: false,
-        returnValueForMissingStub: false,
-      ) as bool);
+  bool get binary =>
+      (super.noSuchMethod(
+            Invocation.getter(#binary),
+            returnValue: false,
+            returnValueForMissingStub: false,
+          )
+          as bool);
 
   @override
-  bool get disclaimerSigned => (super.noSuchMethod(
-        Invocation.getter(#disclaimerSigned),
-        returnValue: false,
-        returnValueForMissingStub: false,
-      ) as bool);
+  bool get disclaimerSigned =>
+      (super.noSuchMethod(
+            Invocation.getter(#disclaimerSigned),
+            returnValue: false,
+            returnValueForMissingStub: false,
+          )
+          as bool);
 
   @override
-  List<String> get difficultEvents => (super.noSuchMethod(
-        Invocation.getter(#difficultEvents),
-        returnValue: <String>[],
-        returnValueForMissingStub: <String>[],
-      ) as List<String>);
+  List<String> get difficultEvents =>
+      (super.noSuchMethod(
+            Invocation.getter(#difficultEvents),
+            returnValue: <String>[],
+            returnValueForMissingStub: <String>[],
+          )
+          as List<String>);
 
   @override
-  List<String> get positiveTraits => (super.noSuchMethod(
-        Invocation.getter(#positiveTraits),
-        returnValue: <String>[],
-        returnValueForMissingStub: <String>[],
-      ) as List<String>);
+  List<String> get positiveTraits =>
+      (super.noSuchMethod(
+            Invocation.getter(#positiveTraits),
+            returnValue: <String>[],
+            returnValueForMissingStub: <String>[],
+          )
+          as List<String>);
 
   @override
-  List<String> get makeSafer => (super.noSuchMethod(
-        Invocation.getter(#makeSafer),
-        returnValue: <String>[],
-        returnValueForMissingStub: <String>[],
-      ) as List<String>);
+  List<String> get makeSafer =>
+      (super.noSuchMethod(
+            Invocation.getter(#makeSafer),
+            returnValue: <String>[],
+            returnValueForMissingStub: <String>[],
+          )
+          as List<String>);
 
   @override
-  List<String> get feelBetter => (super.noSuchMethod(
-        Invocation.getter(#feelBetter),
-        returnValue: <String>[],
-        returnValueForMissingStub: <String>[],
-      ) as List<String>);
+  List<String> get feelBetter =>
+      (super.noSuchMethod(
+            Invocation.getter(#feelBetter),
+            returnValue: <String>[],
+            returnValueForMissingStub: <String>[],
+          )
+          as List<String>);
 
   @override
-  List<String> get distractions => (super.noSuchMethod(
-        Invocation.getter(#distractions),
-        returnValue: <String>[],
-        returnValueForMissingStub: <String>[],
-      ) as List<String>);
+  List<String> get distractions =>
+      (super.noSuchMethod(
+            Invocation.getter(#distractions),
+            returnValue: <String>[],
+            returnValueForMissingStub: <String>[],
+          )
+          as List<String>);
 
   @override
-  bool get loggedIn => (super.noSuchMethod(
-        Invocation.getter(#loggedIn),
-        returnValue: false,
-        returnValueForMissingStub: false,
-      ) as bool);
+  bool get loggedIn =>
+      (super.noSuchMethod(
+            Invocation.getter(#loggedIn),
+            returnValue: false,
+            returnValueForMissingStub: false,
+          )
+          as bool);
 
   @override
-  String get userId => (super.noSuchMethod(
-        Invocation.getter(#userId),
-        returnValue: _i14.dummyValue<String>(
-          this,
-          Invocation.getter(#userId),
-        ),
-        returnValueForMissingStub: _i14.dummyValue<String>(
-          this,
-          Invocation.getter(#userId),
-        ),
-      ) as String);
+  String get userId =>
+      (super.noSuchMethod(
+            Invocation.getter(#userId),
+            returnValue: _i14.dummyValue<String>(
+              this,
+              Invocation.getter(#userId),
+            ),
+            returnValueForMissingStub: _i14.dummyValue<String>(
+              this,
+              Invocation.getter(#userId),
+            ),
+          )
+          as String);
 
   @override
-  int get notificationMinute => (super.noSuchMethod(
-        Invocation.getter(#notificationMinute),
-        returnValue: 0,
-        returnValueForMissingStub: 0,
-      ) as int);
+  int get notificationMinute =>
+      (super.noSuchMethod(
+            Invocation.getter(#notificationMinute),
+            returnValue: 0,
+            returnValueForMissingStub: 0,
+          )
+          as int);
 
   @override
-  int get notificationHour => (super.noSuchMethod(
-        Invocation.getter(#notificationHour),
-        returnValue: 0,
-        returnValueForMissingStub: 0,
-      ) as int);
+  int get notificationHour =>
+      (super.noSuchMethod(
+            Invocation.getter(#notificationHour),
+            returnValue: 0,
+            returnValueForMissingStub: 0,
+          )
+          as int);
 
   @override
-  Map<String, List<String>> get thanks => (super.noSuchMethod(
-        Invocation.getter(#thanks),
-        returnValue: <String, List<String>>{},
-        returnValueForMissingStub: <String, List<String>>{},
-      ) as Map<String, List<String>>);
+  Map<String, List<String>> get thanks =>
+      (super.noSuchMethod(
+            Invocation.getter(#thanks),
+            returnValue: <String, List<String>>{},
+            returnValueForMissingStub: <String, List<String>>{},
+          )
+          as Map<String, List<String>>);
 
   @override
-  _i4.PersistentMemoryService get service => (super.noSuchMethod(
-        Invocation.getter(#service),
-        returnValue: _FakePersistentMemoryService_2(
-          this,
-          Invocation.getter(#service),
-        ),
-        returnValueForMissingStub: _FakePersistentMemoryService_2(
-          this,
-          Invocation.getter(#service),
-        ),
-      ) as _i4.PersistentMemoryService);
+  _i4.PersistentMemoryService get service =>
+      (super.noSuchMethod(
+            Invocation.getter(#service),
+            returnValue: _FakePersistentMemoryService_2(
+              this,
+              Invocation.getter(#service),
+            ),
+            returnValueForMissingStub: _FakePersistentMemoryService_2(
+              this,
+              Invocation.getter(#service),
+            ),
+          )
+          as _i4.PersistentMemoryService);
 
   @override
   set localeName(String? value) => super.noSuchMethod(
-        Invocation.setter(
-          #localeName,
-          value,
-        ),
-        returnValueForMissingStub: null,
-      );
+    Invocation.setter(#localeName, value),
+    returnValueForMissingStub: null,
+  );
 
   @override
   set gender(String? value) => super.noSuchMethod(
-        Invocation.setter(
-          #gender,
-          value,
-        ),
-        returnValueForMissingStub: null,
-      );
+    Invocation.setter(#gender, value),
+    returnValueForMissingStub: null,
+  );
 
   @override
   set name(String? value) => super.noSuchMethod(
-        Invocation.setter(
-          #name,
-          value,
-        ),
-        returnValueForMissingStub: null,
-      );
+    Invocation.setter(#name, value),
+    returnValueForMissingStub: null,
+  );
 
   @override
   set age(String? value) => super.noSuchMethod(
-        Invocation.setter(
-          #age,
-          value,
-        ),
-        returnValueForMissingStub: null,
-      );
+    Invocation.setter(#age, value),
+    returnValueForMissingStub: null,
+  );
 
   @override
   set location(String? value) => super.noSuchMethod(
-        Invocation.setter(
-          #location,
-          value,
-        ),
-        returnValueForMissingStub: null,
-      );
+    Invocation.setter(#location, value),
+    returnValueForMissingStub: null,
+  );
 
   @override
   set binary(bool? value) => super.noSuchMethod(
-        Invocation.setter(
-          #binary,
-          value,
-        ),
-        returnValueForMissingStub: null,
-      );
+    Invocation.setter(#binary, value),
+    returnValueForMissingStub: null,
+  );
 
   @override
   set disclaimerSigned(bool? value) => super.noSuchMethod(
-        Invocation.setter(
-          #disclaimerSigned,
-          value,
-        ),
-        returnValueForMissingStub: null,
-      );
+    Invocation.setter(#disclaimerSigned, value),
+    returnValueForMissingStub: null,
+  );
 
   @override
   set difficultEvents(List<String>? value) => super.noSuchMethod(
-        Invocation.setter(
-          #difficultEvents,
-          value,
-        ),
-        returnValueForMissingStub: null,
-      );
+    Invocation.setter(#difficultEvents, value),
+    returnValueForMissingStub: null,
+  );
 
   @override
   set positiveTraits(List<String>? value) => super.noSuchMethod(
-        Invocation.setter(
-          #positiveTraits,
-          value,
-        ),
-        returnValueForMissingStub: null,
-      );
+    Invocation.setter(#positiveTraits, value),
+    returnValueForMissingStub: null,
+  );
 
   @override
   set makeSafer(List<String>? value) => super.noSuchMethod(
-        Invocation.setter(
-          #makeSafer,
-          value,
-        ),
-        returnValueForMissingStub: null,
-      );
+    Invocation.setter(#makeSafer, value),
+    returnValueForMissingStub: null,
+  );
 
   @override
   set feelBetter(List<String>? value) => super.noSuchMethod(
-        Invocation.setter(
-          #feelBetter,
-          value,
-        ),
-        returnValueForMissingStub: null,
-      );
+    Invocation.setter(#feelBetter, value),
+    returnValueForMissingStub: null,
+  );
 
   @override
   set distractions(List<String>? value) => super.noSuchMethod(
-        Invocation.setter(
-          #distractions,
-          value,
-        ),
-        returnValueForMissingStub: null,
-      );
+    Invocation.setter(#distractions, value),
+    returnValueForMissingStub: null,
+  );
 
   @override
   set loggedIn(bool? value) => super.noSuchMethod(
-        Invocation.setter(
-          #loggedIn,
-          value,
-        ),
-        returnValueForMissingStub: null,
-      );
+    Invocation.setter(#loggedIn, value),
+    returnValueForMissingStub: null,
+  );
 
   @override
   set userId(String? value) => super.noSuchMethod(
-        Invocation.setter(
-          #userId,
-          value,
-        ),
-        returnValueForMissingStub: null,
-      );
+    Invocation.setter(#userId, value),
+    returnValueForMissingStub: null,
+  );
 
   @override
   set notificationMinute(int? value) => super.noSuchMethod(
-        Invocation.setter(
-          #notificationMinute,
-          value,
-        ),
-        returnValueForMissingStub: null,
-      );
+    Invocation.setter(#notificationMinute, value),
+    returnValueForMissingStub: null,
+  );
 
   @override
   set notificationHour(int? value) => super.noSuchMethod(
-        Invocation.setter(
-          #notificationHour,
-          value,
-        ),
-        returnValueForMissingStub: null,
-      );
+    Invocation.setter(#notificationHour, value),
+    returnValueForMissingStub: null,
+  );
 
   @override
   set thanks(Map<String, List<String>>? value) => super.noSuchMethod(
-        Invocation.setter(
-          #thanks,
-          value,
-        ),
-        returnValueForMissingStub: null,
-      );
+    Invocation.setter(#thanks, value),
+    returnValueForMissingStub: null,
+  );
 
   @override
   set service(_i4.PersistentMemoryService? value) => super.noSuchMethod(
-        Invocation.setter(
-          #service,
-          value,
-        ),
-        returnValueForMissingStub: null,
-      );
+    Invocation.setter(#service, value),
+    returnValueForMissingStub: null,
+  );
 
   @override
-  bool get hasListeners => (super.noSuchMethod(
-        Invocation.getter(#hasListeners),
-        returnValue: false,
-        returnValueForMissingStub: false,
-      ) as bool);
+  bool get hasListeners =>
+      (super.noSuchMethod(
+            Invocation.getter(#hasListeners),
+            returnValue: false,
+            returnValueForMissingStub: false,
+          )
+          as bool);
 
   @override
   void reset(String? locale) => super.noSuchMethod(
-        Invocation.method(
-          #reset,
-          [locale],
-        ),
-        returnValueForMissingStub: null,
-      );
+    Invocation.method(#reset, [locale]),
+    returnValueForMissingStub: null,
+  );
 
   @override
   void updateGender(String? text) => super.noSuchMethod(
-        Invocation.method(
-          #updateGender,
-          [text],
-        ),
-        returnValueForMissingStub: null,
-      );
+    Invocation.method(#updateGender, [text]),
+    returnValueForMissingStub: null,
+  );
 
   @override
   void updateName(String? text) => super.noSuchMethod(
-        Invocation.method(
-          #updateName,
-          [text],
-        ),
-        returnValueForMissingStub: null,
-      );
+    Invocation.method(#updateName, [text]),
+    returnValueForMissingStub: null,
+  );
 
   @override
   void updateAge(String? text) => super.noSuchMethod(
-        Invocation.method(
-          #updateAge,
-          [text],
-        ),
-        returnValueForMissingStub: null,
-      );
+    Invocation.method(#updateAge, [text]),
+    returnValueForMissingStub: null,
+  );
 
   @override
   void updateBinary(bool? value) => super.noSuchMethod(
-        Invocation.method(
-          #updateBinary,
-          [value],
-        ),
-        returnValueForMissingStub: null,
-      );
+    Invocation.method(#updateBinary, [value]),
+    returnValueForMissingStub: null,
+  );
 
   @override
   void updateDifficultEvents(List<String>? value) => super.noSuchMethod(
-        Invocation.method(
-          #updateDifficultEvents,
-          [value],
-        ),
-        returnValueForMissingStub: null,
-      );
+    Invocation.method(#updateDifficultEvents, [value]),
+    returnValueForMissingStub: null,
+  );
 
   @override
   void updateMakeSafer(List<String>? value) => super.noSuchMethod(
-        Invocation.method(
-          #updateMakeSafer,
-          [value],
-        ),
-        returnValueForMissingStub: null,
-      );
+    Invocation.method(#updateMakeSafer, [value]),
+    returnValueForMissingStub: null,
+  );
 
   @override
   void updateFeelBetter(List<String>? value) => super.noSuchMethod(
-        Invocation.method(
-          #updateFeelBetter,
-          [value],
-        ),
-        returnValueForMissingStub: null,
-      );
+    Invocation.method(#updateFeelBetter, [value]),
+    returnValueForMissingStub: null,
+  );
 
   @override
   void updateDistractions(List<String>? value) => super.noSuchMethod(
-        Invocation.method(
-          #updateDistractions,
-          [value],
-        ),
-        returnValueForMissingStub: null,
-      );
+    Invocation.method(#updateDistractions, [value]),
+    returnValueForMissingStub: null,
+  );
 
   @override
   void updateDisclaimerSigned(bool? value) => super.noSuchMethod(
-        Invocation.method(
-          #updateDisclaimerSigned,
-          [value],
-        ),
-        returnValueForMissingStub: null,
-      );
+    Invocation.method(#updateDisclaimerSigned, [value]),
+    returnValueForMissingStub: null,
+  );
 
   @override
   void updateLoggedIn(bool? value) => super.noSuchMethod(
-        Invocation.method(
-          #updateLoggedIn,
-          [value],
-        ),
-        returnValueForMissingStub: null,
-      );
+    Invocation.method(#updateLoggedIn, [value]),
+    returnValueForMissingStub: null,
+  );
 
   @override
   void updateUserId(String? value) => super.noSuchMethod(
-        Invocation.method(
-          #updateUserId,
-          [value],
-        ),
-        returnValueForMissingStub: null,
-      );
+    Invocation.method(#updateUserId, [value]),
+    returnValueForMissingStub: null,
+  );
 
   @override
   void updateNotificationHour(int? value) => super.noSuchMethod(
-        Invocation.method(
-          #updateNotificationHour,
-          [value],
-        ),
-        returnValueForMissingStub: null,
-      );
+    Invocation.method(#updateNotificationHour, [value]),
+    returnValueForMissingStub: null,
+  );
 
   @override
   void updateNotificationMinute(int? value) => super.noSuchMethod(
-        Invocation.method(
-          #updateNotificationMinute,
-          [value],
-        ),
-        returnValueForMissingStub: null,
-      );
+    Invocation.method(#updateNotificationMinute, [value]),
+    returnValueForMissingStub: null,
+  );
 
   @override
   void updateLocaleName(String? value) => super.noSuchMethod(
-        Invocation.method(
-          #updateLocaleName,
-          [value],
-        ),
-        returnValueForMissingStub: null,
-      );
+    Invocation.method(#updateLocaleName, [value]),
+    returnValueForMissingStub: null,
+  );
 
   @override
   void updatePositiveTraits(List<String>? value) => super.noSuchMethod(
-        Invocation.method(
-          #updatePositiveTraits,
-          [value],
-        ),
-        returnValueForMissingStub: null,
-      );
+    Invocation.method(#updatePositiveTraits, [value]),
+    returnValueForMissingStub: null,
+  );
 
   @override
   void updateThanks(Map<String, List<String>>? value) => super.noSuchMethod(
-        Invocation.method(
-          #updateThanks,
-          [value],
-        ),
-        returnValueForMissingStub: null,
-      );
+    Invocation.method(#updateThanks, [value]),
+    returnValueForMissingStub: null,
+  );
 
   @override
   void updateLocation(String? value) => super.noSuchMethod(
-        Invocation.method(
-          #updateLocation,
-          [value],
-        ),
-        returnValueForMissingStub: null,
-      );
+    Invocation.method(#updateLocation, [value]),
+    returnValueForMissingStub: null,
+  );
 
   @override
   void addListener(_i15.VoidCallback? listener) => super.noSuchMethod(
-        Invocation.method(
-          #addListener,
-          [listener],
-        ),
-        returnValueForMissingStub: null,
-      );
+    Invocation.method(#addListener, [listener]),
+    returnValueForMissingStub: null,
+  );
 
   @override
   void removeListener(_i15.VoidCallback? listener) => super.noSuchMethod(
-        Invocation.method(
-          #removeListener,
-          [listener],
-        ),
-        returnValueForMissingStub: null,
-      );
+    Invocation.method(#removeListener, [listener]),
+    returnValueForMissingStub: null,
+  );
 
   @override
   void dispose() => super.noSuchMethod(
-        Invocation.method(
-          #dispose,
-          [],
-        ),
-        returnValueForMissingStub: null,
-      );
+    Invocation.method(#dispose, []),
+    returnValueForMissingStub: null,
+  );
 
   @override
   void notifyListeners() => super.noSuchMethod(
-        Invocation.method(
-          #notifyListeners,
-          [],
-        ),
-        returnValueForMissingStub: null,
-      );
+    Invocation.method(#notifyListeners, []),
+    returnValueForMissingStub: null,
+  );
 }
 
 /// A class which mocks [AppInformation].
@@ -1061,1437 +855,1211 @@ class MockUserInformation extends _i1.Mock implements _i13.UserInformation {
 /// See the documentation for Mockito's code generation for more information.
 class MockAppInformation extends _i1.Mock implements _i16.AppInformation {
   @override
-  String get disclaimerText => (super.noSuchMethod(
-        Invocation.getter(#disclaimerText),
-        returnValue: _i14.dummyValue<String>(
-          this,
-          Invocation.getter(#disclaimerText),
-        ),
-        returnValueForMissingStub: _i14.dummyValue<String>(
-          this,
-          Invocation.getter(#disclaimerText),
-        ),
-      ) as String);
+  String get disclaimerText =>
+      (super.noSuchMethod(
+            Invocation.getter(#disclaimerText),
+            returnValue: _i14.dummyValue<String>(
+              this,
+              Invocation.getter(#disclaimerText),
+            ),
+            returnValueForMissingStub: _i14.dummyValue<String>(
+              this,
+              Invocation.getter(#disclaimerText),
+            ),
+          )
+          as String);
 
   @override
-  String get disclaimerNext => (super.noSuchMethod(
-        Invocation.getter(#disclaimerNext),
-        returnValue: _i14.dummyValue<String>(
-          this,
-          Invocation.getter(#disclaimerNext),
-        ),
-        returnValueForMissingStub: _i14.dummyValue<String>(
-          this,
-          Invocation.getter(#disclaimerNext),
-        ),
-      ) as String);
+  String get disclaimerNext =>
+      (super.noSuchMethod(
+            Invocation.getter(#disclaimerNext),
+            returnValue: _i14.dummyValue<String>(
+              this,
+              Invocation.getter(#disclaimerNext),
+            ),
+            returnValueForMissingStub: _i14.dummyValue<String>(
+              this,
+              Invocation.getter(#disclaimerNext),
+            ),
+          )
+          as String);
 
   @override
-  String get reminderMainTitle => (super.noSuchMethod(
-        Invocation.getter(#reminderMainTitle),
-        returnValue: _i14.dummyValue<String>(
-          this,
-          Invocation.getter(#reminderMainTitle),
-        ),
-        returnValueForMissingStub: _i14.dummyValue<String>(
-          this,
-          Invocation.getter(#reminderMainTitle),
-        ),
-      ) as String);
+  String get reminderMainTitle =>
+      (super.noSuchMethod(
+            Invocation.getter(#reminderMainTitle),
+            returnValue: _i14.dummyValue<String>(
+              this,
+              Invocation.getter(#reminderMainTitle),
+            ),
+            returnValueForMissingStub: _i14.dummyValue<String>(
+              this,
+              Invocation.getter(#reminderMainTitle),
+            ),
+          )
+          as String);
 
   @override
-  String get reminderSubTitle => (super.noSuchMethod(
-        Invocation.getter(#reminderSubTitle),
-        returnValue: _i14.dummyValue<String>(
-          this,
-          Invocation.getter(#reminderSubTitle),
-        ),
-        returnValueForMissingStub: _i14.dummyValue<String>(
-          this,
-          Invocation.getter(#reminderSubTitle),
-        ),
-      ) as String);
+  String get reminderSubTitle =>
+      (super.noSuchMethod(
+            Invocation.getter(#reminderSubTitle),
+            returnValue: _i14.dummyValue<String>(
+              this,
+              Invocation.getter(#reminderSubTitle),
+            ),
+            returnValueForMissingStub: _i14.dummyValue<String>(
+              this,
+              Invocation.getter(#reminderSubTitle),
+            ),
+          )
+          as String);
 
   @override
-  String get homeTitleGreeting => (super.noSuchMethod(
-        Invocation.getter(#homeTitleGreeting),
-        returnValue: _i14.dummyValue<String>(
-          this,
-          Invocation.getter(#homeTitleGreeting),
-        ),
-        returnValueForMissingStub: _i14.dummyValue<String>(
-          this,
-          Invocation.getter(#homeTitleGreeting),
-        ),
-      ) as String);
+  String get homeTitleGreeting =>
+      (super.noSuchMethod(
+            Invocation.getter(#homeTitleGreeting),
+            returnValue: _i14.dummyValue<String>(
+              this,
+              Invocation.getter(#homeTitleGreeting),
+            ),
+            returnValueForMissingStub: _i14.dummyValue<String>(
+              this,
+              Invocation.getter(#homeTitleGreeting),
+            ),
+          )
+          as String);
 
   @override
-  Map<String, String> get personalPlanMainTitle => (super.noSuchMethod(
-        Invocation.getter(#personalPlanMainTitle),
-        returnValue: <String, String>{},
-        returnValueForMissingStub: <String, String>{},
-      ) as Map<String, String>);
+  Map<String, String> get personalPlanMainTitle =>
+      (super.noSuchMethod(
+            Invocation.getter(#personalPlanMainTitle),
+            returnValue: <String, String>{},
+            returnValueForMissingStub: <String, String>{},
+          )
+          as Map<String, String>);
 
   @override
-  Map<String, String> get personalPlanSubTitle => (super.noSuchMethod(
-        Invocation.getter(#personalPlanSubTitle),
-        returnValue: <String, String>{},
-        returnValueForMissingStub: <String, String>{},
-      ) as Map<String, String>);
+  Map<String, String> get personalPlanSubTitle =>
+      (super.noSuchMethod(
+            Invocation.getter(#personalPlanSubTitle),
+            returnValue: <String, String>{},
+            returnValueForMissingStub: <String, String>{},
+          )
+          as Map<String, String>);
 
   @override
-  Map<String, String> get traitMainTitle => (super.noSuchMethod(
-        Invocation.getter(#traitMainTitle),
-        returnValue: <String, String>{},
-        returnValueForMissingStub: <String, String>{},
-      ) as Map<String, String>);
+  Map<String, String> get traitMainTitle =>
+      (super.noSuchMethod(
+            Invocation.getter(#traitMainTitle),
+            returnValue: <String, String>{},
+            returnValueForMissingStub: <String, String>{},
+          )
+          as Map<String, String>);
 
   @override
-  Map<String, String> get traitSubTitle => (super.noSuchMethod(
-        Invocation.getter(#traitSubTitle),
-        returnValue: <String, String>{},
-        returnValueForMissingStub: <String, String>{},
-      ) as Map<String, String>);
+  Map<String, String> get traitSubTitle =>
+      (super.noSuchMethod(
+            Invocation.getter(#traitSubTitle),
+            returnValue: <String, String>{},
+            returnValueForMissingStub: <String, String>{},
+          )
+          as Map<String, String>);
 
   @override
-  Map<String, String> get journalMainTitle => (super.noSuchMethod(
-        Invocation.getter(#journalMainTitle),
-        returnValue: <String, String>{},
-        returnValueForMissingStub: <String, String>{},
-      ) as Map<String, String>);
+  Map<String, String> get journalMainTitle =>
+      (super.noSuchMethod(
+            Invocation.getter(#journalMainTitle),
+            returnValue: <String, String>{},
+            returnValueForMissingStub: <String, String>{},
+          )
+          as Map<String, String>);
 
   @override
-  Map<String, String> get journalSubTitle => (super.noSuchMethod(
-        Invocation.getter(#journalSubTitle),
-        returnValue: <String, String>{},
-        returnValueForMissingStub: <String, String>{},
-      ) as Map<String, String>);
+  Map<String, String> get journalSubTitle =>
+      (super.noSuchMethod(
+            Invocation.getter(#journalSubTitle),
+            returnValue: <String, String>{},
+            returnValueForMissingStub: <String, String>{},
+          )
+          as Map<String, String>);
 
   @override
-  Map<String, String> get journalPopUpText => (super.noSuchMethod(
-        Invocation.getter(#journalPopUpText),
-        returnValue: <String, String>{},
-        returnValueForMissingStub: <String, String>{},
-      ) as Map<String, String>);
+  Map<String, String> get journalPopUpText =>
+      (super.noSuchMethod(
+            Invocation.getter(#journalPopUpText),
+            returnValue: <String, String>{},
+            returnValueForMissingStub: <String, String>{},
+          )
+          as Map<String, String>);
 
   @override
-  Map<String, String> get positiveTraitsPopUpText => (super.noSuchMethod(
-        Invocation.getter(#positiveTraitsPopUpText),
-        returnValue: <String, String>{},
-        returnValueForMissingStub: <String, String>{},
-      ) as Map<String, String>);
+  Map<String, String> get positiveTraitsPopUpText =>
+      (super.noSuchMethod(
+            Invocation.getter(#positiveTraitsPopUpText),
+            returnValue: <String, String>{},
+            returnValueForMissingStub: <String, String>{},
+          )
+          as Map<String, String>);
 
   @override
-  Map<String, String> get popupBack => (super.noSuchMethod(
-        Invocation.getter(#popupBack),
-        returnValue: <String, String>{},
-        returnValueForMissingStub: <String, String>{},
-      ) as Map<String, String>);
+  Map<String, String> get popupBack =>
+      (super.noSuchMethod(
+            Invocation.getter(#popupBack),
+            returnValue: <String, String>{},
+            returnValueForMissingStub: <String, String>{},
+          )
+          as Map<String, String>);
 
   @override
-  Map<String, String> get othersuggestions => (super.noSuchMethod(
-        Invocation.getter(#othersuggestions),
-        returnValue: <String, String>{},
-        returnValueForMissingStub: <String, String>{},
-      ) as Map<String, String>);
+  Map<String, String> get othersuggestions =>
+      (super.noSuchMethod(
+            Invocation.getter(#othersuggestions),
+            returnValue: <String, String>{},
+            returnValueForMissingStub: <String, String>{},
+          )
+          as Map<String, String>);
 
   @override
-  Map<String, String> get aboutPageText => (super.noSuchMethod(
-        Invocation.getter(#aboutPageText),
-        returnValue: <String, String>{},
-        returnValueForMissingStub: <String, String>{},
-      ) as Map<String, String>);
+  Map<String, String> get aboutPageText =>
+      (super.noSuchMethod(
+            Invocation.getter(#aboutPageText),
+            returnValue: <String, String>{},
+            returnValueForMissingStub: <String, String>{},
+          )
+          as Map<String, String>);
 
   @override
-  Map<String, String> get returnToPlanStrings => (super.noSuchMethod(
-        Invocation.getter(#returnToPlanStrings),
-        returnValue: <String, String>{},
-        returnValueForMissingStub: <String, String>{},
-      ) as Map<String, String>);
+  Map<String, String> get returnToPlanStrings =>
+      (super.noSuchMethod(
+            Invocation.getter(#returnToPlanStrings),
+            returnValue: <String, String>{},
+            returnValueForMissingStub: <String, String>{},
+          )
+          as Map<String, String>);
 
   @override
-  Map<String, String> get warningHomePageTitles => (super.noSuchMethod(
-        Invocation.getter(#warningHomePageTitles),
-        returnValue: <String, String>{},
-        returnValueForMissingStub: <String, String>{},
-      ) as Map<String, String>);
+  Map<String, String> get warningHomePageTitles =>
+      (super.noSuchMethod(
+            Invocation.getter(#warningHomePageTitles),
+            returnValue: <String, String>{},
+            returnValueForMissingStub: <String, String>{},
+          )
+          as Map<String, String>);
 
   @override
-  Map<String, String> get traitsHomePageTitles => (super.noSuchMethod(
-        Invocation.getter(#traitsHomePageTitles),
-        returnValue: <String, String>{},
-        returnValueForMissingStub: <String, String>{},
-      ) as Map<String, String>);
+  Map<String, String> get traitsHomePageTitles =>
+      (super.noSuchMethod(
+            Invocation.getter(#traitsHomePageTitles),
+            returnValue: <String, String>{},
+            returnValueForMissingStub: <String, String>{},
+          )
+          as Map<String, String>);
 
   @override
-  Map<String, String> get introductionFormFirstPage => (super.noSuchMethod(
-        Invocation.getter(#introductionFormFirstPage),
-        returnValue: <String, String>{},
-        returnValueForMissingStub: <String, String>{},
-      ) as Map<String, String>);
+  Map<String, String> get introductionFormFirstPage =>
+      (super.noSuchMethod(
+            Invocation.getter(#introductionFormFirstPage),
+            returnValue: <String, String>{},
+            returnValueForMissingStub: <String, String>{},
+          )
+          as Map<String, String>);
 
   @override
-  Map<String, String> get introductionFormSecondPage => (super.noSuchMethod(
-        Invocation.getter(#introductionFormSecondPage),
-        returnValue: <String, String>{},
-        returnValueForMissingStub: <String, String>{},
-      ) as Map<String, String>);
+  Map<String, String> get introductionFormSecondPage =>
+      (super.noSuchMethod(
+            Invocation.getter(#introductionFormSecondPage),
+            returnValue: <String, String>{},
+            returnValueForMissingStub: <String, String>{},
+          )
+          as Map<String, String>);
 
   @override
-  Map<String, String> get introductionFormLastPage => (super.noSuchMethod(
-        Invocation.getter(#introductionFormLastPage),
-        returnValue: <String, String>{},
-        returnValueForMissingStub: <String, String>{},
-      ) as Map<String, String>);
+  Map<String, String> get introductionFormLastPage =>
+      (super.noSuchMethod(
+            Invocation.getter(#introductionFormLastPage),
+            returnValue: <String, String>{},
+            returnValueForMissingStub: <String, String>{},
+          )
+          as Map<String, String>);
 
   @override
-  Map<String, String> get signUpLoginPage => (super.noSuchMethod(
-        Invocation.getter(#signUpLoginPage),
-        returnValue: <String, String>{},
-        returnValueForMissingStub: <String, String>{},
-      ) as Map<String, String>);
+  Map<String, String> get signUpLoginPage =>
+      (super.noSuchMethod(
+            Invocation.getter(#signUpLoginPage),
+            returnValue: <String, String>{},
+            returnValueForMissingStub: <String, String>{},
+          )
+          as Map<String, String>);
 
   @override
-  Map<String, String> get personalInformationForm => (super.noSuchMethod(
-        Invocation.getter(#personalInformationForm),
-        returnValue: <String, String>{},
-        returnValueForMissingStub: <String, String>{},
-      ) as Map<String, String>);
+  Map<String, String> get personalInformationForm =>
+      (super.noSuchMethod(
+            Invocation.getter(#personalInformationForm),
+            returnValue: <String, String>{},
+            returnValueForMissingStub: <String, String>{},
+          )
+          as Map<String, String>);
 
   @override
   Map<String, List<String>> get homePageInspirationalQuotes =>
       (super.noSuchMethod(
-        Invocation.getter(#homePageInspirationalQuotes),
-        returnValue: <String, List<String>>{},
-        returnValueForMissingStub: <String, List<String>>{},
-      ) as Map<String, List<String>>);
+            Invocation.getter(#homePageInspirationalQuotes),
+            returnValue: <String, List<String>>{},
+            returnValueForMissingStub: <String, List<String>>{},
+          )
+          as Map<String, List<String>>);
 
   @override
-  Map<String, String> get shareMessages => (super.noSuchMethod(
-        Invocation.getter(#shareMessages),
-        returnValue: <String, String>{},
-        returnValueForMissingStub: <String, String>{},
-      ) as Map<String, String>);
+  Map<String, String> get shareMessages =>
+      (super.noSuchMethod(
+            Invocation.getter(#shareMessages),
+            returnValue: <String, String>{},
+            returnValueForMissingStub: <String, String>{},
+          )
+          as Map<String, String>);
 
   @override
-  Map<String, String> get sharePDFtexts => (super.noSuchMethod(
-        Invocation.getter(#sharePDFtexts),
-        returnValue: <String, String>{},
-        returnValueForMissingStub: <String, String>{},
-      ) as Map<String, String>);
+  Map<String, String> get sharePDFtexts =>
+      (super.noSuchMethod(
+            Invocation.getter(#sharePDFtexts),
+            returnValue: <String, String>{},
+            returnValueForMissingStub: <String, String>{},
+          )
+          as Map<String, String>);
 
   @override
-  List<String> get thanksSuggestionsList => (super.noSuchMethod(
-        Invocation.getter(#thanksSuggestionsList),
-        returnValue: <String>[],
-        returnValueForMissingStub: <String>[],
-      ) as List<String>);
+  List<String> get thanksSuggestionsList =>
+      (super.noSuchMethod(
+            Invocation.getter(#thanksSuggestionsList),
+            returnValue: <String>[],
+            returnValueForMissingStub: <String>[],
+          )
+          as List<String>);
 
   @override
-  List<String> get phonePersonalPlanText => (super.noSuchMethod(
-        Invocation.getter(#phonePersonalPlanText),
-        returnValue: <String>[],
-        returnValueForMissingStub: <String>[],
-      ) as List<String>);
+  List<String> get phonePersonalPlanText =>
+      (super.noSuchMethod(
+            Invocation.getter(#phonePersonalPlanText),
+            returnValue: <String>[],
+            returnValueForMissingStub: <String>[],
+          )
+          as List<String>);
 
   @override
-  Map<String, String> get extraMenuStrings => (super.noSuchMethod(
-        Invocation.getter(#extraMenuStrings),
-        returnValue: <String, String>{},
-        returnValueForMissingStub: <String, String>{},
-      ) as Map<String, String>);
+  Map<String, String> get extraMenuStrings =>
+      (super.noSuchMethod(
+            Invocation.getter(#extraMenuStrings),
+            returnValue: <String, String>{},
+            returnValueForMissingStub: <String, String>{},
+          )
+          as Map<String, String>);
 
   @override
   Map<String, List<String>> get positiveTraitsSuggestionsList =>
       (super.noSuchMethod(
-        Invocation.getter(#positiveTraitsSuggestionsList),
-        returnValue: <String, List<String>>{},
-        returnValueForMissingStub: <String, List<String>>{},
-      ) as Map<String, List<String>>);
+            Invocation.getter(#positiveTraitsSuggestionsList),
+            returnValue: <String, List<String>>{},
+            returnValueForMissingStub: <String, List<String>>{},
+          )
+          as Map<String, List<String>>);
 
   @override
-  Map<String, String> get formPhonePage => (super.noSuchMethod(
-        Invocation.getter(#formPhonePage),
-        returnValue: <String, String>{},
-        returnValueForMissingStub: <String, String>{},
-      ) as Map<String, String>);
+  Map<String, String> get formPhonePage =>
+      (super.noSuchMethod(
+            Invocation.getter(#formPhonePage),
+            returnValue: <String, String>{},
+            returnValueForMissingStub: <String, String>{},
+          )
+          as Map<String, String>);
 
   @override
-  Map<String, List<String>> get phonePageTitles => (super.noSuchMethod(
-        Invocation.getter(#phonePageTitles),
-        returnValue: <String, List<String>>{},
-        returnValueForMissingStub: <String, List<String>>{},
-      ) as Map<String, List<String>>);
+  Map<String, List<String>> get phonePageTitles =>
+      (super.noSuchMethod(
+            Invocation.getter(#phonePageTitles),
+            returnValue: <String, List<String>>{},
+            returnValueForMissingStub: <String, List<String>>{},
+          )
+          as Map<String, List<String>>);
 
   @override
-  Map<String, String> get formDifficultEventsTitles => (super.noSuchMethod(
-        Invocation.getter(#formDifficultEventsTitles),
-        returnValue: <String, String>{},
-        returnValueForMissingStub: <String, String>{},
-      ) as Map<String, String>);
+  Map<String, String> get formDifficultEventsTitles =>
+      (super.noSuchMethod(
+            Invocation.getter(#formDifficultEventsTitles),
+            returnValue: <String, String>{},
+            returnValueForMissingStub: <String, String>{},
+          )
+          as Map<String, String>);
 
   @override
-  Map<String, String> get formDistractionsTitles => (super.noSuchMethod(
-        Invocation.getter(#formDistractionsTitles),
-        returnValue: <String, String>{},
-        returnValueForMissingStub: <String, String>{},
-      ) as Map<String, String>);
+  Map<String, String> get formDistractionsTitles =>
+      (super.noSuchMethod(
+            Invocation.getter(#formDistractionsTitles),
+            returnValue: <String, String>{},
+            returnValueForMissingStub: <String, String>{},
+          )
+          as Map<String, String>);
 
   @override
-  Map<String, String> get formFeelBetterTitles => (super.noSuchMethod(
-        Invocation.getter(#formFeelBetterTitles),
-        returnValue: <String, String>{},
-        returnValueForMissingStub: <String, String>{},
-      ) as Map<String, String>);
+  Map<String, String> get formFeelBetterTitles =>
+      (super.noSuchMethod(
+            Invocation.getter(#formFeelBetterTitles),
+            returnValue: <String, String>{},
+            returnValueForMissingStub: <String, String>{},
+          )
+          as Map<String, String>);
 
   @override
-  Map<String, String> get formMakeSaferTitles => (super.noSuchMethod(
-        Invocation.getter(#formMakeSaferTitles),
-        returnValue: <String, String>{},
-        returnValueForMissingStub: <String, String>{},
-      ) as Map<String, String>);
+  Map<String, String> get formMakeSaferTitles =>
+      (super.noSuchMethod(
+            Invocation.getter(#formMakeSaferTitles),
+            returnValue: <String, String>{},
+            returnValueForMissingStub: <String, String>{},
+          )
+          as Map<String, String>);
 
   @override
-  Map<String, String> get formSharePageTitles => (super.noSuchMethod(
-        Invocation.getter(#formSharePageTitles),
-        returnValue: <String, String>{},
-        returnValueForMissingStub: <String, String>{},
-      ) as Map<String, String>);
+  Map<String, String> get formSharePageTitles =>
+      (super.noSuchMethod(
+            Invocation.getter(#formSharePageTitles),
+            returnValue: <String, String>{},
+            returnValueForMissingStub: <String, String>{},
+          )
+          as Map<String, String>);
 
   @override
-  Map<String, String> get formSkipButtonText => (super.noSuchMethod(
-        Invocation.getter(#formSkipButtonText),
-        returnValue: <String, String>{},
-        returnValueForMissingStub: <String, String>{},
-      ) as Map<String, String>);
+  Map<String, String> get formSkipButtonText =>
+      (super.noSuchMethod(
+            Invocation.getter(#formSkipButtonText),
+            returnValue: <String, String>{},
+            returnValueForMissingStub: <String, String>{},
+          )
+          as Map<String, String>);
 
   @override
-  Map<String, String> get feelGoodPageTitles => (super.noSuchMethod(
-        Invocation.getter(#feelGoodPageTitles),
-        returnValue: <String, String>{},
-        returnValueForMissingStub: <String, String>{},
-      ) as Map<String, String>);
+  Map<String, String> get feelGoodPageTitles =>
+      (super.noSuchMethod(
+            Invocation.getter(#feelGoodPageTitles),
+            returnValue: <String, String>{},
+            returnValueForMissingStub: <String, String>{},
+          )
+          as Map<String, String>);
 
   @override
-  Map<String, String> get syncPages => (super.noSuchMethod(
-        Invocation.getter(#syncPages),
-        returnValue: <String, String>{},
-        returnValueForMissingStub: <String, String>{},
-      ) as Map<String, String>);
+  Map<String, String> get syncPages =>
+      (super.noSuchMethod(
+            Invocation.getter(#syncPages),
+            returnValue: <String, String>{},
+            returnValueForMissingStub: <String, String>{},
+          )
+          as Map<String, String>);
 
   @override
-  List<String> get test1 => (super.noSuchMethod(
-        Invocation.getter(#test1),
-        returnValue: <String>[],
-        returnValueForMissingStub: <String>[],
-      ) as List<String>);
+  List<String> get test1 =>
+      (super.noSuchMethod(
+            Invocation.getter(#test1),
+            returnValue: <String>[],
+            returnValueForMissingStub: <String>[],
+          )
+          as List<String>);
 
   @override
-  String get appVersion => (super.noSuchMethod(
-        Invocation.getter(#appVersion),
-        returnValue: _i14.dummyValue<String>(
-          this,
-          Invocation.getter(#appVersion),
-        ),
-        returnValueForMissingStub: _i14.dummyValue<String>(
-          this,
-          Invocation.getter(#appVersion),
-        ),
-      ) as String);
+  String get appVersion =>
+      (super.noSuchMethod(
+            Invocation.getter(#appVersion),
+            returnValue: _i14.dummyValue<String>(
+              this,
+              Invocation.getter(#appVersion),
+            ),
+            returnValueForMissingStub: _i14.dummyValue<String>(
+              this,
+              Invocation.getter(#appVersion),
+            ),
+          )
+          as String);
 
   @override
-  List<String> get DifficultEventsSug => (super.noSuchMethod(
-        Invocation.getter(#DifficultEventsSug),
-        returnValue: <String>[],
-        returnValueForMissingStub: <String>[],
-      ) as List<String>);
+  List<String> get DifficultEventsSug =>
+      (super.noSuchMethod(
+            Invocation.getter(#DifficultEventsSug),
+            returnValue: <String>[],
+            returnValueForMissingStub: <String>[],
+          )
+          as List<String>);
 
   @override
-  List<String> get DistractionsSug => (super.noSuchMethod(
-        Invocation.getter(#DistractionsSug),
-        returnValue: <String>[],
-        returnValueForMissingStub: <String>[],
-      ) as List<String>);
+  List<String> get DistractionsSug =>
+      (super.noSuchMethod(
+            Invocation.getter(#DistractionsSug),
+            returnValue: <String>[],
+            returnValueForMissingStub: <String>[],
+          )
+          as List<String>);
 
   @override
-  List<String> get FeelBetterSug => (super.noSuchMethod(
-        Invocation.getter(#FeelBetterSug),
-        returnValue: <String>[],
-        returnValueForMissingStub: <String>[],
-      ) as List<String>);
+  List<String> get FeelBetterSug =>
+      (super.noSuchMethod(
+            Invocation.getter(#FeelBetterSug),
+            returnValue: <String>[],
+            returnValueForMissingStub: <String>[],
+          )
+          as List<String>);
 
   @override
-  List<String> get MakeSaferSug => (super.noSuchMethod(
-        Invocation.getter(#MakeSaferSug),
-        returnValue: <String>[],
-        returnValueForMissingStub: <String>[],
-      ) as List<String>);
+  List<String> get MakeSaferSug =>
+      (super.noSuchMethod(
+            Invocation.getter(#MakeSaferSug),
+            returnValue: <String>[],
+            returnValueForMissingStub: <String>[],
+          )
+          as List<String>);
 
   @override
-  Map<String, String> get addFormStrings => (super.noSuchMethod(
-        Invocation.getter(#addFormStrings),
-        returnValue: <String, String>{},
-        returnValueForMissingStub: <String, String>{},
-      ) as Map<String, String>);
+  Map<String, String> get addFormStrings =>
+      (super.noSuchMethod(
+            Invocation.getter(#addFormStrings),
+            returnValue: <String, String>{},
+            returnValueForMissingStub: <String, String>{},
+          )
+          as Map<String, String>);
 
   @override
-  Map<String, String> get addThanksFormStrings => (super.noSuchMethod(
-        Invocation.getter(#addThanksFormStrings),
-        returnValue: <String, String>{},
-        returnValueForMissingStub: <String, String>{},
-      ) as Map<String, String>);
+  Map<String, String> get addThanksFormStrings =>
+      (super.noSuchMethod(
+            Invocation.getter(#addThanksFormStrings),
+            returnValue: <String, String>{},
+            returnValueForMissingStub: <String, String>{},
+          )
+          as Map<String, String>);
 
   @override
-  Map<String, String> get addFormPageTemplateStrings => (super.noSuchMethod(
-        Invocation.getter(#addFormPageTemplateStrings),
-        returnValue: <String, String>{},
-        returnValueForMissingStub: <String, String>{},
-      ) as Map<String, String>);
+  Map<String, String> get addFormPageTemplateStrings =>
+      (super.noSuchMethod(
+            Invocation.getter(#addFormPageTemplateStrings),
+            returnValue: <String, String>{},
+            returnValueForMissingStub: <String, String>{},
+          )
+          as Map<String, String>);
 
   @override
-  Map<String, String> get IntroductionRestart => (super.noSuchMethod(
-        Invocation.getter(#IntroductionRestart),
-        returnValue: <String, String>{},
-        returnValueForMissingStub: <String, String>{},
-      ) as Map<String, String>);
+  Map<String, String> get IntroductionRestart =>
+      (super.noSuchMethod(
+            Invocation.getter(#IntroductionRestart),
+            returnValue: <String, String>{},
+            returnValueForMissingStub: <String, String>{},
+          )
+          as Map<String, String>);
 
   @override
-  Map<String, List<String>> get wellnessVideos => (super.noSuchMethod(
-        Invocation.getter(#wellnessVideos),
-        returnValue: <String, List<String>>{},
-        returnValueForMissingStub: <String, List<String>>{},
-      ) as Map<String, List<String>>);
+  Map<String, List<String>> get wellnessVideos =>
+      (super.noSuchMethod(
+            Invocation.getter(#wellnessVideos),
+            returnValue: <String, List<String>>{},
+            returnValueForMissingStub: <String, List<String>>{},
+          )
+          as Map<String, List<String>>);
 
   @override
   set disclaimerText(String? value) => super.noSuchMethod(
-        Invocation.setter(
-          #disclaimerText,
-          value,
-        ),
-        returnValueForMissingStub: null,
-      );
+    Invocation.setter(#disclaimerText, value),
+    returnValueForMissingStub: null,
+  );
 
   @override
   set disclaimerNext(String? value) => super.noSuchMethod(
-        Invocation.setter(
-          #disclaimerNext,
-          value,
-        ),
-        returnValueForMissingStub: null,
-      );
+    Invocation.setter(#disclaimerNext, value),
+    returnValueForMissingStub: null,
+  );
 
   @override
   set reminderMainTitle(String? value) => super.noSuchMethod(
-        Invocation.setter(
-          #reminderMainTitle,
-          value,
-        ),
-        returnValueForMissingStub: null,
-      );
+    Invocation.setter(#reminderMainTitle, value),
+    returnValueForMissingStub: null,
+  );
 
   @override
   set reminderSubTitle(String? value) => super.noSuchMethod(
-        Invocation.setter(
-          #reminderSubTitle,
-          value,
-        ),
-        returnValueForMissingStub: null,
-      );
+    Invocation.setter(#reminderSubTitle, value),
+    returnValueForMissingStub: null,
+  );
 
   @override
   set homeTitleGreeting(String? value) => super.noSuchMethod(
-        Invocation.setter(
-          #homeTitleGreeting,
-          value,
-        ),
-        returnValueForMissingStub: null,
-      );
+    Invocation.setter(#homeTitleGreeting, value),
+    returnValueForMissingStub: null,
+  );
 
   @override
   set personalPlanMainTitle(Map<String, String>? value) => super.noSuchMethod(
-        Invocation.setter(
-          #personalPlanMainTitle,
-          value,
-        ),
-        returnValueForMissingStub: null,
-      );
+    Invocation.setter(#personalPlanMainTitle, value),
+    returnValueForMissingStub: null,
+  );
 
   @override
   set personalPlanSubTitle(Map<String, String>? value) => super.noSuchMethod(
-        Invocation.setter(
-          #personalPlanSubTitle,
-          value,
-        ),
-        returnValueForMissingStub: null,
-      );
+    Invocation.setter(#personalPlanSubTitle, value),
+    returnValueForMissingStub: null,
+  );
 
   @override
   set traitMainTitle(Map<String, String>? value) => super.noSuchMethod(
-        Invocation.setter(
-          #traitMainTitle,
-          value,
-        ),
-        returnValueForMissingStub: null,
-      );
+    Invocation.setter(#traitMainTitle, value),
+    returnValueForMissingStub: null,
+  );
 
   @override
   set traitSubTitle(Map<String, String>? value) => super.noSuchMethod(
-        Invocation.setter(
-          #traitSubTitle,
-          value,
-        ),
-        returnValueForMissingStub: null,
-      );
+    Invocation.setter(#traitSubTitle, value),
+    returnValueForMissingStub: null,
+  );
 
   @override
   set journalMainTitle(Map<String, String>? value) => super.noSuchMethod(
-        Invocation.setter(
-          #journalMainTitle,
-          value,
-        ),
-        returnValueForMissingStub: null,
-      );
+    Invocation.setter(#journalMainTitle, value),
+    returnValueForMissingStub: null,
+  );
 
   @override
   set journalSubTitle(Map<String, String>? value) => super.noSuchMethod(
-        Invocation.setter(
-          #journalSubTitle,
-          value,
-        ),
-        returnValueForMissingStub: null,
-      );
+    Invocation.setter(#journalSubTitle, value),
+    returnValueForMissingStub: null,
+  );
 
   @override
   set journalPopUpText(Map<String, String>? value) => super.noSuchMethod(
-        Invocation.setter(
-          #journalPopUpText,
-          value,
-        ),
-        returnValueForMissingStub: null,
-      );
+    Invocation.setter(#journalPopUpText, value),
+    returnValueForMissingStub: null,
+  );
 
   @override
   set positiveTraitsPopUpText(Map<String, String>? value) => super.noSuchMethod(
-        Invocation.setter(
-          #positiveTraitsPopUpText,
-          value,
-        ),
-        returnValueForMissingStub: null,
-      );
+    Invocation.setter(#positiveTraitsPopUpText, value),
+    returnValueForMissingStub: null,
+  );
 
   @override
   set popupBack(Map<String, String>? value) => super.noSuchMethod(
-        Invocation.setter(
-          #popupBack,
-          value,
-        ),
-        returnValueForMissingStub: null,
-      );
+    Invocation.setter(#popupBack, value),
+    returnValueForMissingStub: null,
+  );
 
   @override
   set othersuggestions(Map<String, String>? value) => super.noSuchMethod(
-        Invocation.setter(
-          #othersuggestions,
-          value,
-        ),
-        returnValueForMissingStub: null,
-      );
+    Invocation.setter(#othersuggestions, value),
+    returnValueForMissingStub: null,
+  );
 
   @override
   set aboutPageText(Map<String, String>? value) => super.noSuchMethod(
-        Invocation.setter(
-          #aboutPageText,
-          value,
-        ),
-        returnValueForMissingStub: null,
-      );
+    Invocation.setter(#aboutPageText, value),
+    returnValueForMissingStub: null,
+  );
 
   @override
   set returnToPlanStrings(Map<String, String>? value) => super.noSuchMethod(
-        Invocation.setter(
-          #returnToPlanStrings,
-          value,
-        ),
-        returnValueForMissingStub: null,
-      );
+    Invocation.setter(#returnToPlanStrings, value),
+    returnValueForMissingStub: null,
+  );
 
   @override
   set warningHomePageTitles(Map<String, String>? value) => super.noSuchMethod(
-        Invocation.setter(
-          #warningHomePageTitles,
-          value,
-        ),
-        returnValueForMissingStub: null,
-      );
+    Invocation.setter(#warningHomePageTitles, value),
+    returnValueForMissingStub: null,
+  );
 
   @override
   set traitsHomePageTitles(Map<String, String>? value) => super.noSuchMethod(
-        Invocation.setter(
-          #traitsHomePageTitles,
-          value,
-        ),
-        returnValueForMissingStub: null,
-      );
+    Invocation.setter(#traitsHomePageTitles, value),
+    returnValueForMissingStub: null,
+  );
 
   @override
   set introductionFormFirstPage(Map<String, String>? value) =>
       super.noSuchMethod(
-        Invocation.setter(
-          #introductionFormFirstPage,
-          value,
-        ),
+        Invocation.setter(#introductionFormFirstPage, value),
         returnValueForMissingStub: null,
       );
 
   @override
   set introductionFormSecondPage(Map<String, String>? value) =>
       super.noSuchMethod(
-        Invocation.setter(
-          #introductionFormSecondPage,
-          value,
-        ),
+        Invocation.setter(#introductionFormSecondPage, value),
         returnValueForMissingStub: null,
       );
 
   @override
   set introductionFormLastPage(Map<String, String>? value) =>
       super.noSuchMethod(
-        Invocation.setter(
-          #introductionFormLastPage,
-          value,
-        ),
+        Invocation.setter(#introductionFormLastPage, value),
         returnValueForMissingStub: null,
       );
 
   @override
   set signUpLoginPage(Map<String, String>? value) => super.noSuchMethod(
-        Invocation.setter(
-          #signUpLoginPage,
-          value,
-        ),
-        returnValueForMissingStub: null,
-      );
+    Invocation.setter(#signUpLoginPage, value),
+    returnValueForMissingStub: null,
+  );
 
   @override
   set personalInformationForm(Map<String, String>? value) => super.noSuchMethod(
-        Invocation.setter(
-          #personalInformationForm,
-          value,
-        ),
-        returnValueForMissingStub: null,
-      );
+    Invocation.setter(#personalInformationForm, value),
+    returnValueForMissingStub: null,
+  );
 
   @override
   set homePageInspirationalQuotes(Map<String, List<String>>? value) =>
       super.noSuchMethod(
-        Invocation.setter(
-          #homePageInspirationalQuotes,
-          value,
-        ),
+        Invocation.setter(#homePageInspirationalQuotes, value),
         returnValueForMissingStub: null,
       );
 
   @override
   set shareMessages(Map<String, String>? value) => super.noSuchMethod(
-        Invocation.setter(
-          #shareMessages,
-          value,
-        ),
-        returnValueForMissingStub: null,
-      );
+    Invocation.setter(#shareMessages, value),
+    returnValueForMissingStub: null,
+  );
 
   @override
   set sharePDFtexts(Map<String, String>? value) => super.noSuchMethod(
-        Invocation.setter(
-          #sharePDFtexts,
-          value,
-        ),
-        returnValueForMissingStub: null,
-      );
+    Invocation.setter(#sharePDFtexts, value),
+    returnValueForMissingStub: null,
+  );
 
   @override
   set thanksSuggestionsList(List<String>? value) => super.noSuchMethod(
-        Invocation.setter(
-          #thanksSuggestionsList,
-          value,
-        ),
-        returnValueForMissingStub: null,
-      );
+    Invocation.setter(#thanksSuggestionsList, value),
+    returnValueForMissingStub: null,
+  );
 
   @override
   set phonePersonalPlanText(List<String>? value) => super.noSuchMethod(
-        Invocation.setter(
-          #phonePersonalPlanText,
-          value,
-        ),
-        returnValueForMissingStub: null,
-      );
+    Invocation.setter(#phonePersonalPlanText, value),
+    returnValueForMissingStub: null,
+  );
 
   @override
   set extraMenuStrings(Map<String, String>? value) => super.noSuchMethod(
-        Invocation.setter(
-          #extraMenuStrings,
-          value,
-        ),
-        returnValueForMissingStub: null,
-      );
+    Invocation.setter(#extraMenuStrings, value),
+    returnValueForMissingStub: null,
+  );
 
   @override
   set positiveTraitsSuggestionsList(Map<String, List<String>>? value) =>
       super.noSuchMethod(
-        Invocation.setter(
-          #positiveTraitsSuggestionsList,
-          value,
-        ),
+        Invocation.setter(#positiveTraitsSuggestionsList, value),
         returnValueForMissingStub: null,
       );
 
   @override
   set formPhonePage(Map<String, String>? value) => super.noSuchMethod(
-        Invocation.setter(
-          #formPhonePage,
-          value,
-        ),
-        returnValueForMissingStub: null,
-      );
+    Invocation.setter(#formPhonePage, value),
+    returnValueForMissingStub: null,
+  );
 
   @override
   set phonePageTitles(Map<String, List<String>>? value) => super.noSuchMethod(
-        Invocation.setter(
-          #phonePageTitles,
-          value,
-        ),
-        returnValueForMissingStub: null,
-      );
+    Invocation.setter(#phonePageTitles, value),
+    returnValueForMissingStub: null,
+  );
 
   @override
   set formDifficultEventsTitles(Map<String, String>? value) =>
       super.noSuchMethod(
-        Invocation.setter(
-          #formDifficultEventsTitles,
-          value,
-        ),
+        Invocation.setter(#formDifficultEventsTitles, value),
         returnValueForMissingStub: null,
       );
 
   @override
   set formDistractionsTitles(Map<String, String>? value) => super.noSuchMethod(
-        Invocation.setter(
-          #formDistractionsTitles,
-          value,
-        ),
-        returnValueForMissingStub: null,
-      );
+    Invocation.setter(#formDistractionsTitles, value),
+    returnValueForMissingStub: null,
+  );
 
   @override
   set formFeelBetterTitles(Map<String, String>? value) => super.noSuchMethod(
-        Invocation.setter(
-          #formFeelBetterTitles,
-          value,
-        ),
-        returnValueForMissingStub: null,
-      );
+    Invocation.setter(#formFeelBetterTitles, value),
+    returnValueForMissingStub: null,
+  );
 
   @override
   set formMakeSaferTitles(Map<String, String>? value) => super.noSuchMethod(
-        Invocation.setter(
-          #formMakeSaferTitles,
-          value,
-        ),
-        returnValueForMissingStub: null,
-      );
+    Invocation.setter(#formMakeSaferTitles, value),
+    returnValueForMissingStub: null,
+  );
 
   @override
   set formSharePageTitles(Map<String, String>? value) => super.noSuchMethod(
-        Invocation.setter(
-          #formSharePageTitles,
-          value,
-        ),
-        returnValueForMissingStub: null,
-      );
+    Invocation.setter(#formSharePageTitles, value),
+    returnValueForMissingStub: null,
+  );
 
   @override
   set formSkipButtonText(Map<String, String>? value) => super.noSuchMethod(
-        Invocation.setter(
-          #formSkipButtonText,
-          value,
-        ),
-        returnValueForMissingStub: null,
-      );
+    Invocation.setter(#formSkipButtonText, value),
+    returnValueForMissingStub: null,
+  );
 
   @override
   set feelGoodPageTitles(Map<String, String>? value) => super.noSuchMethod(
-        Invocation.setter(
-          #feelGoodPageTitles,
-          value,
-        ),
-        returnValueForMissingStub: null,
-      );
+    Invocation.setter(#feelGoodPageTitles, value),
+    returnValueForMissingStub: null,
+  );
 
   @override
   set syncPages(Map<String, String>? value) => super.noSuchMethod(
-        Invocation.setter(
-          #syncPages,
-          value,
-        ),
-        returnValueForMissingStub: null,
-      );
+    Invocation.setter(#syncPages, value),
+    returnValueForMissingStub: null,
+  );
 
   @override
   set test1(List<String>? value) => super.noSuchMethod(
-        Invocation.setter(
-          #test1,
-          value,
-        ),
-        returnValueForMissingStub: null,
-      );
+    Invocation.setter(#test1, value),
+    returnValueForMissingStub: null,
+  );
 
   @override
   set lastUpdated(DateTime? value) => super.noSuchMethod(
-        Invocation.setter(
-          #lastUpdated,
-          value,
-        ),
-        returnValueForMissingStub: null,
-      );
+    Invocation.setter(#lastUpdated, value),
+    returnValueForMissingStub: null,
+  );
 
   @override
   set appVersion(String? value) => super.noSuchMethod(
-        Invocation.setter(
-          #appVersion,
-          value,
-        ),
-        returnValueForMissingStub: null,
-      );
+    Invocation.setter(#appVersion, value),
+    returnValueForMissingStub: null,
+  );
 
   @override
   set DifficultEventsSug(List<String>? value) => super.noSuchMethod(
-        Invocation.setter(
-          #DifficultEventsSug,
-          value,
-        ),
-        returnValueForMissingStub: null,
-      );
+    Invocation.setter(#DifficultEventsSug, value),
+    returnValueForMissingStub: null,
+  );
 
   @override
   set DistractionsSug(List<String>? value) => super.noSuchMethod(
-        Invocation.setter(
-          #DistractionsSug,
-          value,
-        ),
-        returnValueForMissingStub: null,
-      );
+    Invocation.setter(#DistractionsSug, value),
+    returnValueForMissingStub: null,
+  );
 
   @override
   set FeelBetterSug(List<String>? value) => super.noSuchMethod(
-        Invocation.setter(
-          #FeelBetterSug,
-          value,
-        ),
-        returnValueForMissingStub: null,
-      );
+    Invocation.setter(#FeelBetterSug, value),
+    returnValueForMissingStub: null,
+  );
 
   @override
   set MakeSaferSug(List<String>? value) => super.noSuchMethod(
-        Invocation.setter(
-          #MakeSaferSug,
-          value,
-        ),
-        returnValueForMissingStub: null,
-      );
+    Invocation.setter(#MakeSaferSug, value),
+    returnValueForMissingStub: null,
+  );
 
   @override
   set addFormStrings(Map<String, String>? value) => super.noSuchMethod(
-        Invocation.setter(
-          #addFormStrings,
-          value,
-        ),
-        returnValueForMissingStub: null,
-      );
+    Invocation.setter(#addFormStrings, value),
+    returnValueForMissingStub: null,
+  );
 
   @override
   set addThanksFormStrings(Map<String, String>? value) => super.noSuchMethod(
-        Invocation.setter(
-          #addThanksFormStrings,
-          value,
-        ),
-        returnValueForMissingStub: null,
-      );
+    Invocation.setter(#addThanksFormStrings, value),
+    returnValueForMissingStub: null,
+  );
 
   @override
   set addFormPageTemplateStrings(Map<String, String>? value) =>
       super.noSuchMethod(
-        Invocation.setter(
-          #addFormPageTemplateStrings,
-          value,
-        ),
+        Invocation.setter(#addFormPageTemplateStrings, value),
         returnValueForMissingStub: null,
       );
 
   @override
   set IntroductionRestart(Map<String, String>? value) => super.noSuchMethod(
-        Invocation.setter(
-          #IntroductionRestart,
-          value,
-        ),
-        returnValueForMissingStub: null,
-      );
+    Invocation.setter(#IntroductionRestart, value),
+    returnValueForMissingStub: null,
+  );
 
   @override
   set wellnessVideos(Map<String, List<String>>? value) => super.noSuchMethod(
-        Invocation.setter(
-          #wellnessVideos,
-          value,
-        ),
-        returnValueForMissingStub: null,
-      );
+    Invocation.setter(#wellnessVideos, value),
+    returnValueForMissingStub: null,
+  );
 
   @override
-  bool get hasListeners => (super.noSuchMethod(
-        Invocation.getter(#hasListeners),
-        returnValue: false,
-        returnValueForMissingStub: false,
-      ) as bool);
+  bool get hasListeners =>
+      (super.noSuchMethod(
+            Invocation.getter(#hasListeners),
+            returnValue: false,
+            returnValueForMissingStub: false,
+          )
+          as bool);
 
   @override
   void updateReminderMainTitle(String? title) => super.noSuchMethod(
-        Invocation.method(
-          #updateReminderMainTitle,
-          [title],
-        ),
-        returnValueForMissingStub: null,
-      );
+    Invocation.method(#updateReminderMainTitle, [title]),
+    returnValueForMissingStub: null,
+  );
 
   @override
   void updateReminderSubTitle(String? subTitle) => super.noSuchMethod(
-        Invocation.method(
-          #updateReminderSubTitle,
-          [subTitle],
-        ),
-        returnValueForMissingStub: null,
-      );
+    Invocation.method(#updateReminderSubTitle, [subTitle]),
+    returnValueForMissingStub: null,
+  );
 
   @override
   void updateHomeTitleGreeting(String? greeting) => super.noSuchMethod(
-        Invocation.method(
-          #updateHomeTitleGreeting,
-          [greeting],
-        ),
-        returnValueForMissingStub: null,
-      );
+    Invocation.method(#updateHomeTitleGreeting, [greeting]),
+    returnValueForMissingStub: null,
+  );
 
   @override
   void updatePersonalPlanMainTitle(Map<String, String>? title) =>
       super.noSuchMethod(
-        Invocation.method(
-          #updatePersonalPlanMainTitle,
-          [title],
-        ),
+        Invocation.method(#updatePersonalPlanMainTitle, [title]),
         returnValueForMissingStub: null,
       );
 
   @override
   void updatePersonalPlanSubTitle(Map<String, String>? subTitle) =>
       super.noSuchMethod(
-        Invocation.method(
-          #updatePersonalPlanSubTitle,
-          [subTitle],
-        ),
+        Invocation.method(#updatePersonalPlanSubTitle, [subTitle]),
         returnValueForMissingStub: null,
       );
 
   @override
   void updateTraitMainTitle(Map<String, String>? title) => super.noSuchMethod(
-        Invocation.method(
-          #updateTraitMainTitle,
-          [title],
-        ),
-        returnValueForMissingStub: null,
-      );
+    Invocation.method(#updateTraitMainTitle, [title]),
+    returnValueForMissingStub: null,
+  );
 
   @override
   void updateTraitSubTitle(Map<String, String>? subTitle) => super.noSuchMethod(
-        Invocation.method(
-          #updateTraitSubTitle,
-          [subTitle],
-        ),
-        returnValueForMissingStub: null,
-      );
+    Invocation.method(#updateTraitSubTitle, [subTitle]),
+    returnValueForMissingStub: null,
+  );
 
   @override
   void updateJournalMainTitle(Map<String, String>? title) => super.noSuchMethod(
-        Invocation.method(
-          #updateJournalMainTitle,
-          [title],
-        ),
-        returnValueForMissingStub: null,
-      );
+    Invocation.method(#updateJournalMainTitle, [title]),
+    returnValueForMissingStub: null,
+  );
 
   @override
   void updateJournalSubTitle(Map<String, String>? subTitle) =>
       super.noSuchMethod(
-        Invocation.method(
-          #updateJournalSubTitle,
-          [subTitle],
-        ),
+        Invocation.method(#updateJournalSubTitle, [subTitle]),
         returnValueForMissingStub: null,
       );
 
   @override
   void updateReturnToPlanStrings(Map<String, String>? strings) =>
       super.noSuchMethod(
-        Invocation.method(
-          #updateReturnToPlanStrings,
-          [strings],
-        ),
+        Invocation.method(#updateReturnToPlanStrings, [strings]),
         returnValueForMissingStub: null,
       );
 
   @override
   void updateWarningHomePageTitles(Map<String, String>? titles) =>
       super.noSuchMethod(
-        Invocation.method(
-          #updateWarningHomePageTitles,
-          [titles],
-        ),
+        Invocation.method(#updateWarningHomePageTitles, [titles]),
         returnValueForMissingStub: null,
       );
 
   @override
   void updateTraitsHomePageTitles(Map<String, String>? titles) =>
       super.noSuchMethod(
-        Invocation.method(
-          #updateTraitsHomePageTitles,
-          [titles],
-        ),
+        Invocation.method(#updateTraitsHomePageTitles, [titles]),
         returnValueForMissingStub: null,
       );
 
   @override
   void updateIntroductionFormFirstPage(Map<String, String>? form) =>
       super.noSuchMethod(
-        Invocation.method(
-          #updateIntroductionFormFirstPage,
-          [form],
-        ),
+        Invocation.method(#updateIntroductionFormFirstPage, [form]),
         returnValueForMissingStub: null,
       );
 
   @override
   void updateIntroductionFormSecondPage(Map<String, String>? form) =>
       super.noSuchMethod(
-        Invocation.method(
-          #updateIntroductionFormSecondPage,
-          [form],
-        ),
+        Invocation.method(#updateIntroductionFormSecondPage, [form]),
         returnValueForMissingStub: null,
       );
 
   @override
   void updateIntroductionFormLastPage(Map<String, String>? form) =>
       super.noSuchMethod(
-        Invocation.method(
-          #updateIntroductionFormLastPage,
-          [form],
-        ),
+        Invocation.method(#updateIntroductionFormLastPage, [form]),
         returnValueForMissingStub: null,
       );
 
   @override
   void updatePersonalInformationForm(Map<String, String>? form) =>
       super.noSuchMethod(
-        Invocation.method(
-          #updatePersonalInformationForm,
-          [form],
-        ),
+        Invocation.method(#updatePersonalInformationForm, [form]),
         returnValueForMissingStub: null,
       );
 
   @override
   void updateLastUpdated(DateTime? date) => super.noSuchMethod(
-        Invocation.method(
-          #updateLastUpdated,
-          [date],
-        ),
-        returnValueForMissingStub: null,
-      );
+    Invocation.method(#updateLastUpdated, [date]),
+    returnValueForMissingStub: null,
+  );
 
   @override
   void updateHomePageInspirationalQuotes(Map<String, List<String>>? quotes) =>
       super.noSuchMethod(
-        Invocation.method(
-          #updateHomePageInspirationalQuotes,
-          [quotes],
-        ),
+        Invocation.method(#updateHomePageInspirationalQuotes, [quotes]),
         returnValueForMissingStub: null,
       );
 
   @override
   void updateTest1(List<String>? test) => super.noSuchMethod(
-        Invocation.method(
-          #updateTest1,
-          [test],
-        ),
-        returnValueForMissingStub: null,
-      );
+    Invocation.method(#updateTest1, [test]),
+    returnValueForMissingStub: null,
+  );
 
   @override
   void updateShareMessages(Map<String, String>? messages) => super.noSuchMethod(
-        Invocation.method(
-          #updateShareMessages,
-          [messages],
-        ),
-        returnValueForMissingStub: null,
-      );
+    Invocation.method(#updateShareMessages, [messages]),
+    returnValueForMissingStub: null,
+  );
 
   @override
   void updateThanksSuggestionsList(List<String>? suggestions) =>
       super.noSuchMethod(
-        Invocation.method(
-          #updateThanksSuggestionsList,
-          [suggestions],
-        ),
+        Invocation.method(#updateThanksSuggestionsList, [suggestions]),
         returnValueForMissingStub: null,
       );
 
   @override
   void updatePositiveTraitsSuggestionsList(
-          Map<String, List<String>>? suggestions) =>
-      super.noSuchMethod(
-        Invocation.method(
-          #updatePositiveTraitsSuggestionsList,
-          [suggestions],
-        ),
-        returnValueForMissingStub: null,
-      );
+    Map<String, List<String>>? suggestions,
+  ) => super.noSuchMethod(
+    Invocation.method(#updatePositiveTraitsSuggestionsList, [suggestions]),
+    returnValueForMissingStub: null,
+  );
 
   @override
   void updateJournalPopUpText(Map<String, String>? text) => super.noSuchMethod(
-        Invocation.method(
-          #updateJournalPopUpText,
-          [text],
-        ),
-        returnValueForMissingStub: null,
-      );
+    Invocation.method(#updateJournalPopUpText, [text]),
+    returnValueForMissingStub: null,
+  );
 
   @override
   void updatePositiveTraitsPopUpText(Map<String, String>? text) =>
       super.noSuchMethod(
-        Invocation.method(
-          #updatePositiveTraitsPopUpText,
-          [text],
-        ),
+        Invocation.method(#updatePositiveTraitsPopUpText, [text]),
         returnValueForMissingStub: null,
       );
 
   @override
   void updateFormPhonePage(Map<String, String>? form) => super.noSuchMethod(
-        Invocation.method(
-          #updateFormPhonePage,
-          [form],
-        ),
-        returnValueForMissingStub: null,
-      );
+    Invocation.method(#updateFormPhonePage, [form]),
+    returnValueForMissingStub: null,
+  );
 
   @override
   void updatePhonePageTitles(Map<String, List<String>>? titles) =>
       super.noSuchMethod(
-        Invocation.method(
-          #updatePhonePageTitles,
-          [titles],
-        ),
+        Invocation.method(#updatePhonePageTitles, [titles]),
         returnValueForMissingStub: null,
       );
 
   @override
   void updateFormDifficultEventsTitles(Map<String, String>? titles) =>
       super.noSuchMethod(
-        Invocation.method(
-          #updateFormDifficultEventsTitles,
-          [titles],
-        ),
+        Invocation.method(#updateFormDifficultEventsTitles, [titles]),
         returnValueForMissingStub: null,
       );
 
   @override
   void updateFormDistractionsTitles(Map<String, String>? titles) =>
       super.noSuchMethod(
-        Invocation.method(
-          #updateFormDistractionsTitles,
-          [titles],
-        ),
+        Invocation.method(#updateFormDistractionsTitles, [titles]),
         returnValueForMissingStub: null,
       );
 
   @override
   void updateFormFeelBetterTitles(Map<String, String>? titles) =>
       super.noSuchMethod(
-        Invocation.method(
-          #updateFormFeelBetterTitles,
-          [titles],
-        ),
+        Invocation.method(#updateFormFeelBetterTitles, [titles]),
         returnValueForMissingStub: null,
       );
 
   @override
   void updateFormMakeSaferTitles(Map<String, String>? titles) =>
       super.noSuchMethod(
-        Invocation.method(
-          #updateFormMakeSaferTitles,
-          [titles],
-        ),
+        Invocation.method(#updateFormMakeSaferTitles, [titles]),
         returnValueForMissingStub: null,
       );
 
   @override
   void updateFormSharePageTitles(Map<String, String>? titles) =>
       super.noSuchMethod(
-        Invocation.method(
-          #updateFormSharePageTitles,
-          [titles],
-        ),
+        Invocation.method(#updateFormSharePageTitles, [titles]),
         returnValueForMissingStub: null,
       );
 
   @override
   void updatePhonePersonalPlanText(dynamic texts) => super.noSuchMethod(
-        Invocation.method(
-          #updatePhonePersonalPlanText,
-          [texts],
-        ),
-        returnValueForMissingStub: null,
-      );
+    Invocation.method(#updatePhonePersonalPlanText, [texts]),
+    returnValueForMissingStub: null,
+  );
 
   @override
   void updateAppVersion(String? version) => super.noSuchMethod(
-        Invocation.method(
-          #updateAppVersion,
-          [version],
-        ),
-        returnValueForMissingStub: null,
-      );
+    Invocation.method(#updateAppVersion, [version]),
+    returnValueForMissingStub: null,
+  );
 
   @override
   void updateDifficultEventsSug(List<String>? sug) => super.noSuchMethod(
-        Invocation.method(
-          #updateDifficultEventsSug,
-          [sug],
-        ),
-        returnValueForMissingStub: null,
-      );
+    Invocation.method(#updateDifficultEventsSug, [sug]),
+    returnValueForMissingStub: null,
+  );
 
   @override
   void updateDistractionsSug(List<String>? sug) => super.noSuchMethod(
-        Invocation.method(
-          #updateDistractionsSug,
-          [sug],
-        ),
-        returnValueForMissingStub: null,
-      );
+    Invocation.method(#updateDistractionsSug, [sug]),
+    returnValueForMissingStub: null,
+  );
 
   @override
   void updateFeelBetterSug(List<String>? sug) => super.noSuchMethod(
-        Invocation.method(
-          #updateFeelBetterSug,
-          [sug],
-        ),
-        returnValueForMissingStub: null,
-      );
+    Invocation.method(#updateFeelBetterSug, [sug]),
+    returnValueForMissingStub: null,
+  );
 
   @override
   void updateMakeSaferSug(List<String>? sug) => super.noSuchMethod(
-        Invocation.method(
-          #updateMakeSaferSug,
-          [sug],
-        ),
-        returnValueForMissingStub: null,
-      );
+    Invocation.method(#updateMakeSaferSug, [sug]),
+    returnValueForMissingStub: null,
+  );
 
   @override
   void updateSharePDFtexts(Map<String, String>? texts) => super.noSuchMethod(
-        Invocation.method(
-          #updateSharePDFtexts,
-          [texts],
-        ),
-        returnValueForMissingStub: null,
-      );
+    Invocation.method(#updateSharePDFtexts, [texts]),
+    returnValueForMissingStub: null,
+  );
 
   @override
   void updateWellnessVideos(Map<String, List<String>>? videos) =>
       super.noSuchMethod(
-        Invocation.method(
-          #updateWellnessVideos,
-          [videos],
-        ),
+        Invocation.method(#updateWellnessVideos, [videos]),
         returnValueForMissingStub: null,
       );
 
   @override
   void updateAboutPageText(Map<String, String>? texts) => super.noSuchMethod(
-        Invocation.method(
-          #updateAboutPageText,
-          [texts],
-        ),
-        returnValueForMissingStub: null,
-      );
+    Invocation.method(#updateAboutPageText, [texts]),
+    returnValueForMissingStub: null,
+  );
 
   @override
   void updateDisclaimerPageText(String? text) => super.noSuchMethod(
-        Invocation.method(
-          #updateDisclaimerPageText,
-          [text],
-        ),
-        returnValueForMissingStub: null,
-      );
+    Invocation.method(#updateDisclaimerPageText, [text]),
+    returnValueForMissingStub: null,
+  );
 
   @override
   void updateDisclaimerPageNext(String? text) => super.noSuchMethod(
-        Invocation.method(
-          #updateDisclaimerPageNext,
-          [text],
-        ),
-        returnValueForMissingStub: null,
-      );
+    Invocation.method(#updateDisclaimerPageNext, [text]),
+    returnValueForMissingStub: null,
+  );
 
   @override
   void updateFormSkipButtonText(Map<String, String>? text) =>
       super.noSuchMethod(
-        Invocation.method(
-          #updateFormSkipButtonText,
-          [text],
-        ),
+        Invocation.method(#updateFormSkipButtonText, [text]),
         returnValueForMissingStub: null,
       );
 
   @override
   void updateFeelGoodPageTitles(Map<String, String>? text) =>
       super.noSuchMethod(
-        Invocation.method(
-          #updateFeelGoodPageTitles,
-          [text],
-        ),
+        Invocation.method(#updateFeelGoodPageTitles, [text]),
         returnValueForMissingStub: null,
       );
 
   @override
   void updateExtraMenuStrings(Map<String, String>? text) => super.noSuchMethod(
-        Invocation.method(
-          #updateExtraMenuStrings,
-          [text],
-        ),
-        returnValueForMissingStub: null,
-      );
+    Invocation.method(#updateExtraMenuStrings, [text]),
+    returnValueForMissingStub: null,
+  );
 
   @override
   void updateSyncPages(Map<String, String>? text) => super.noSuchMethod(
-        Invocation.method(
-          #updateSyncPages,
-          [text],
-        ),
-        returnValueForMissingStub: null,
-      );
+    Invocation.method(#updateSyncPages, [text]),
+    returnValueForMissingStub: null,
+  );
 
   @override
   void updatePopupBack(Map<String, String>? text) => super.noSuchMethod(
-        Invocation.method(
-          #updatePopupBack,
-          [text],
-        ),
-        returnValueForMissingStub: null,
-      );
+    Invocation.method(#updatePopupBack, [text]),
+    returnValueForMissingStub: null,
+  );
 
   @override
   void updateSignUpLoginPage(Map<String, String>? text) => super.noSuchMethod(
-        Invocation.method(
-          #updateSignUpLoginPage,
-          [text],
-        ),
-        returnValueForMissingStub: null,
-      );
+    Invocation.method(#updateSignUpLoginPage, [text]),
+    returnValueForMissingStub: null,
+  );
 
   @override
   void updateAddFormStrings(Map<String, String>? text) => super.noSuchMethod(
-        Invocation.method(
-          #updateAddFormStrings,
-          [text],
-        ),
-        returnValueForMissingStub: null,
-      );
+    Invocation.method(#updateAddFormStrings, [text]),
+    returnValueForMissingStub: null,
+  );
 
   @override
   void updateAddThanksFormStrings(Map<String, String>? text) =>
       super.noSuchMethod(
-        Invocation.method(
-          #updateAddThanksFormStrings,
-          [text],
-        ),
+        Invocation.method(#updateAddThanksFormStrings, [text]),
         returnValueForMissingStub: null,
       );
 
   @override
   void updateAddFormPageTemplateStrings(Map<String, String>? text) =>
       super.noSuchMethod(
-        Invocation.method(
-          #updateAddFormPageTemplateStrings,
-          [text],
-        ),
+        Invocation.method(#updateAddFormPageTemplateStrings, [text]),
         returnValueForMissingStub: null,
       );
 
   @override
   void updateIntroductionRestart(Map<String, String>? text) =>
       super.noSuchMethod(
-        Invocation.method(
-          #updateIntroductionRestart,
-          [text],
-        ),
+        Invocation.method(#updateIntroductionRestart, [text]),
         returnValueForMissingStub: null,
       );
 
   @override
   void updateOtherSuggestions(Map<String, String>? title) => super.noSuchMethod(
-        Invocation.method(
-          #updateOtherSuggestions,
-          [title],
-        ),
-        returnValueForMissingStub: null,
-      );
+    Invocation.method(#updateOtherSuggestions, [title]),
+    returnValueForMissingStub: null,
+  );
 
   @override
   void addListener(_i15.VoidCallback? listener) => super.noSuchMethod(
-        Invocation.method(
-          #addListener,
-          [listener],
-        ),
-        returnValueForMissingStub: null,
-      );
+    Invocation.method(#addListener, [listener]),
+    returnValueForMissingStub: null,
+  );
 
   @override
   void removeListener(_i15.VoidCallback? listener) => super.noSuchMethod(
-        Invocation.method(
-          #removeListener,
-          [listener],
-        ),
-        returnValueForMissingStub: null,
-      );
+    Invocation.method(#removeListener, [listener]),
+    returnValueForMissingStub: null,
+  );
 
   @override
   void dispose() => super.noSuchMethod(
-        Invocation.method(
-          #dispose,
-          [],
-        ),
-        returnValueForMissingStub: null,
-      );
+    Invocation.method(#dispose, []),
+    returnValueForMissingStub: null,
+  );
 
   @override
   void notifyListeners() => super.noSuchMethod(
-        Invocation.method(
-          #notifyListeners,
-          [],
-        ),
-        returnValueForMissingStub: null,
-      );
+    Invocation.method(#notifyListeners, []),
+    returnValueForMissingStub: null,
+  );
 }
 
 /// A class which mocks [AnalyticsService].
@@ -2499,14 +2067,13 @@ class MockAppInformation extends _i1.Mock implements _i16.AppInformation {
 /// See the documentation for Mockito's code generation for more information.
 class MockAnalyticsService extends _i1.Mock implements _i17.AnalyticsService {
   @override
-  _i7.Future<void> init() => (super.noSuchMethod(
-        Invocation.method(
-          #init,
-          [],
-        ),
-        returnValue: _i7.Future<void>.value(),
-        returnValueForMissingStub: _i7.Future<void>.value(),
-      ) as _i7.Future<void>);
+  _i7.Future<void> init() =>
+      (super.noSuchMethod(
+            Invocation.method(#init, []),
+            returnValue: _i7.Future<void>.value(),
+            returnValueForMissingStub: _i7.Future<void>.value(),
+          )
+          as _i7.Future<void>);
 
   @override
   _i7.Future<void> trackEvent(
@@ -2514,16 +2081,11 @@ class MockAnalyticsService extends _i1.Mock implements _i17.AnalyticsService {
     Map<String, dynamic>? properties,
   ]) =>
       (super.noSuchMethod(
-        Invocation.method(
-          #trackEvent,
-          [
-            eventName,
-            properties,
-          ],
-        ),
-        returnValue: _i7.Future<void>.value(),
-        returnValueForMissingStub: _i7.Future<void>.value(),
-      ) as _i7.Future<void>);
+            Invocation.method(#trackEvent, [eventName, properties]),
+            returnValue: _i7.Future<void>.value(),
+            returnValueForMissingStub: _i7.Future<void>.value(),
+          )
+          as _i7.Future<void>);
 }
 
 /// A class which mocks [PersistentMemoryService].
@@ -2538,42 +2100,27 @@ class MockPersistentMemoryService extends _i1.Mock
     dynamic value,
   ) =>
       (super.noSuchMethod(
-        Invocation.method(
-          #setItem,
-          [
-            key,
-            type,
-            value,
-          ],
-        ),
-        returnValue: _i7.Future<void>.value(),
-        returnValueForMissingStub: _i7.Future<void>.value(),
-      ) as _i7.Future<void>);
+            Invocation.method(#setItem, [key, type, value]),
+            returnValue: _i7.Future<void>.value(),
+            returnValueForMissingStub: _i7.Future<void>.value(),
+          )
+          as _i7.Future<void>);
 
   @override
-  _i7.Future<dynamic> getItem(
-    String? key,
-    _i8.PersistentMemoryType? type,
-  ) =>
+  _i7.Future<dynamic> getItem(String? key, _i8.PersistentMemoryType? type) =>
       (super.noSuchMethod(
-        Invocation.method(
-          #getItem,
-          [
-            key,
-            type,
-          ],
-        ),
-        returnValue: _i7.Future<dynamic>.value(),
-        returnValueForMissingStub: _i7.Future<dynamic>.value(),
-      ) as _i7.Future<dynamic>);
+            Invocation.method(#getItem, [key, type]),
+            returnValue: _i7.Future<dynamic>.value(),
+            returnValueForMissingStub: _i7.Future<dynamic>.value(),
+          )
+          as _i7.Future<dynamic>);
 
   @override
-  _i7.Future<void> reset() => (super.noSuchMethod(
-        Invocation.method(
-          #reset,
-          [],
-        ),
-        returnValue: _i7.Future<void>.value(),
-        returnValueForMissingStub: _i7.Future<void>.value(),
-      ) as _i7.Future<void>);
+  _i7.Future<void> reset() =>
+      (super.noSuchMethod(
+            Invocation.method(#reset, []),
+            returnValue: _i7.Future<void>.value(),
+            returnValueForMissingStub: _i7.Future<void>.value(),
+          )
+          as _i7.Future<void>);
 }

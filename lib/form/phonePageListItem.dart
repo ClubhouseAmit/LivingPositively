@@ -366,10 +366,9 @@ class _PhonePageListState extends LPExtendedState<PhonePageList> {
             child: Card(
               child: Padding(
                 padding: EdgeInsets.all(returnSizedBox(context, 10)),
-                child: myText(
+                child: Text(
                   name,
-                  TextStyle(fontWeight: FontWeight.normal, fontSize: 14.sp),
-                  null,
+                  style: TextStyle(fontWeight: FontWeight.normal, fontSize: 14.sp),
                 ),
               ),
             ),
@@ -609,14 +608,14 @@ class _PhonePageListState extends LPExtendedState<PhonePageList> {
               ),
               padding: const EdgeInsets.all(6),
             ),
-            child: myText(
+            child: Text(
               appLocale.phonesPageManualTitle(gender),
-              TextStyle(
+              style: TextStyle(
                 fontWeight: FontWeight.bold,
                 color: Theme.of(context).colorScheme.primary,
                 fontSize: 16.sp,
               ),
-              TextAlign.center,
+              textAlign: TextAlign.center,
             ),
           ),
         ],

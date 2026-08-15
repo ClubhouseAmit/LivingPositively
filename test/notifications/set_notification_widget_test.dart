@@ -58,38 +58,46 @@ class _FakeWorkmanager extends WorkmanagerPlatform {
   }
 
   @override
-  Future<void> initialize(Function callbackDispatcher,
-      {bool isInDebugMode = false}) async {
+  Future<void> initialize(
+    Function callbackDispatcher, {
+    bool isInDebugMode = false,
+  }) async {
     calls.add('initialize');
   }
 
   @override
-  Future<void> registerOneOffTask(String uniqueName, String taskName,
-      {Map<String, dynamic>? inputData,
-      Duration? initialDelay,
-      Constraints? constraints,
-      ExistingWorkPolicy? existingWorkPolicy,
-      BackoffPolicy? backoffPolicy,
-      Duration? backoffPolicyDelay,
-      String? tag,
-      OutOfQuotaPolicy? outOfQuotaPolicy,
-      ForegroundServiceConfig? foregroundServiceConfig,
-      bool expedited = false}) async {
+  Future<void> registerOneOffTask(
+    String uniqueName,
+    String taskName, {
+    Map<String, dynamic>? inputData,
+    Duration? initialDelay,
+    Constraints? constraints,
+    ExistingWorkPolicy? existingWorkPolicy,
+    BackoffPolicy? backoffPolicy,
+    Duration? backoffPolicyDelay,
+    String? tag,
+    OutOfQuotaPolicy? outOfQuotaPolicy,
+    ForegroundServiceConfig? foregroundServiceConfig,
+    bool expedited = false,
+  }) async {
     calls.add('registerOneOffTask:$uniqueName');
   }
 
   @override
-  Future<void> registerPeriodicTask(String uniqueName, String taskName,
-      {Duration? frequency,
-      Duration? flexInterval,
-      Map<String, dynamic>? inputData,
-      Duration? initialDelay,
-      Constraints? constraints,
-      ExistingPeriodicWorkPolicy? existingWorkPolicy,
-      BackoffPolicy? backoffPolicy,
-      Duration? backoffPolicyDelay,
-      String? tag,
-      ForegroundServiceConfig? foregroundServiceConfig}) async {
+  Future<void> registerPeriodicTask(
+    String uniqueName,
+    String taskName, {
+    Duration? frequency,
+    Duration? flexInterval,
+    Map<String, dynamic>? inputData,
+    Duration? initialDelay,
+    Constraints? constraints,
+    ExistingPeriodicWorkPolicy? existingWorkPolicy,
+    BackoffPolicy? backoffPolicy,
+    Duration? backoffPolicyDelay,
+    String? tag,
+    ForegroundServiceConfig? foregroundServiceConfig,
+  }) async {
     calls.add('registerPeriodicTask:$uniqueName');
   }
 
@@ -125,8 +133,9 @@ Future<T> _onIos<T>(Future<T> Function() body) async {
 void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
 
-  const localNotifChannel =
-      MethodChannel('dexterous.com/flutter/local_notifications');
+  const localNotifChannel = MethodChannel(
+    'dexterous.com/flutter/local_notifications',
+  );
   const timezoneChannel = MethodChannel('flutter_timezone');
   const toastChannel = MethodChannel('PonnamKarthik/fluttertoast');
 
@@ -144,16 +153,16 @@ void main() {
 
     TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger
         .setMockMethodCallHandler(timezoneChannel, (call) async {
-      if (call.method == 'getLocalTimezone') {
-        return 'UTC';
-      }
-      return null;
-    });
+          if (call.method == 'getLocalTimezone') {
+            return 'UTC';
+          }
+          return null;
+        });
     TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger
         .setMockMethodCallHandler(localNotifChannel, (call) async {
-      localNotifCalls.add(call);
-      return null;
-    });
+          localNotifCalls.add(call);
+          return null;
+        });
     TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger
         .setMockMethodCallHandler(toastChannel, (call) async => true);
   });
@@ -192,10 +201,9 @@ void main() {
     });
   });
 
-
-
-  testWidgets('reminder message field exposes dictation on iOS',
-      (tester) async {
+  testWidgets('reminder message field exposes dictation on iOS', (
+    tester,
+  ) async {
     await _onIos(() async {
       await pumpWithProviders(
         tester,
@@ -212,8 +220,7 @@ void main() {
     });
   });
 
-  testWidgets('TimePicker receives non-default userInfo state',
-      (tester) async {
+  testWidgets('TimePicker receives non-default userInfo state', (tester) async {
     await _onIos(() async {
       final userInfo = UserInformation(
         gender: 'male',
@@ -239,63 +246,77 @@ void main() {
           .map((e) => (e.widget as Text).data ?? '')
           .where((s) => RegExp(r'^\d{2}$').hasMatch(s))
           .toSet();
-      expect(allDigits, isNotEmpty,
-          reason: 'TimePicker must render at least one zero-padded value');
+      expect(
+        allDigits,
+        isNotEmpty,
+        reason: 'TimePicker must render at least one zero-padded value',
+      );
     });
   });
 
   testWidgets(
-      'tapping "set time" still calls userInfo.updateNotificationHour/Minute '
-      'and schedules reminder on iOS', (tester) async {
-    await _onIos(() async {
-      final userInfo = UserInformation(
-        gender: 'male',
-        notificationHour: 7,
-        notificationMinute: 15,
-      );
-      // Track updates without relying on NumberPicker scroll state.
-      final List<int> hourUpdates = [];
-      final List<int> minuteUpdates = [];
-      userInfo.addListener(() {
-        hourUpdates.add(userInfo.notificationHour);
-        minuteUpdates.add(userInfo.notificationMinute);
-      });
+    'tapping "set time" still calls userInfo.updateNotificationHour/Minute '
+    'and schedules reminder on iOS',
+    (tester) async {
+      await _onIos(() async {
+        final userInfo = UserInformation(
+          gender: 'male',
+          notificationHour: 7,
+          notificationMinute: 15,
+        );
+        // Track updates without relying on NumberPicker scroll state.
+        final List<int> hourUpdates = [];
+        final List<int> minuteUpdates = [];
+        userInfo.addListener(() {
+          hourUpdates.add(userInfo.notificationHour);
+          minuteUpdates.add(userInfo.notificationMinute);
+        });
 
-      await pumpWithProviders(
-        tester,
-        const SetNotificationWidget(),
-        userInformation: userInfo,
-        locale: const Locale('he'),
-      );
-      // Let post-frame + NumberPicker animation settle so the internal
-      // _currentHour/_currentMinute reach a stable value.
-      await tester.pump();
-      await tester.pumpAndSettle(const Duration(milliseconds: 300));
+        await pumpWithProviders(
+          tester,
+          const SetNotificationWidget(),
+          userInformation: userInfo,
+          locale: const Locale('he'),
+        );
+        // Let post-frame + NumberPicker animation settle so the internal
+        // _currentHour/_currentMinute reach a stable value.
+        await tester.pump();
+        await tester.pumpAndSettle(const Duration(milliseconds: 300));
 
-      final ctx = tester.element(find.byType(SetNotificationWidget));
-      final loc = AppLocalizations.of(ctx)!;
-      final setLabel = loc.notificationSetTimeText('male');
+        final ctx = tester.element(find.byType(SetNotificationWidget));
+        final loc = AppLocalizations.of(ctx)!;
+        final setLabel = loc.notificationSetTimeText('male');
 
-      // Use `warnIfMissed: false` because the widget tree is wider than
-      // the test surface — the button is still wired correctly, the
-      // warning is a hit-test artefact from the surface clipping.
-      await tester.tap(find.text(setLabel), warnIfMissed: false);
-      await tester.pump(const Duration(seconds: 2));
+        // Use `warnIfMissed: false` because the widget tree is wider than
+        // the test surface — the button is still wired correctly, the
+        // warning is a hit-test artefact from the surface clipping.
+        await tester.tap(find.text(setLabel), warnIfMissed: false);
+        await tester.pump(const Duration(seconds: 2));
 
-      // saveNotificationTime() always calls updateNotificationHour AND
-      // updateNotificationMinute — regardless of the exact rendered value,
-      // both listeners must have fired at least once.
-      expect(hourUpdates, isNotEmpty,
-          reason: 'updateNotificationHour should fire from saveNotificationTime');
-      expect(minuteUpdates, isNotEmpty,
+        // saveNotificationTime() always calls updateNotificationHour AND
+        // updateNotificationMinute — regardless of the exact rendered value,
+        // both listeners must have fired at least once.
+        expect(
+          hourUpdates,
+          isNotEmpty,
           reason:
-              'updateNotificationMinute should fire from saveNotificationTime');
+              'updateNotificationHour should fire from saveNotificationTime',
+        );
+        expect(
+          minuteUpdates,
+          isNotEmpty,
+          reason:
+              'updateNotificationMinute should fire from saveNotificationTime',
+        );
 
-      // On iOS the static `initializeNotification` does not use Workmanager.
-      expect(fakeWm.calls.where((c) => c.startsWith('register')).toList(),
-          isEmpty);
-    });
-  });
+        // On iOS the static `initializeNotification` does not use Workmanager.
+        expect(
+          fakeWm.calls.where((c) => c.startsWith('register')).toList(),
+          isEmpty,
+        );
+      });
+    },
+  );
 
   testWidgets('tapping "cancel notifications" routes through Workmanager '
       'and local-notifications cancelAll', (tester) async {
@@ -322,9 +343,9 @@ void main() {
       // the plugin's cancelAll.
       expect(fakeWm.calls, contains('cancelAll'));
       expect(
-          localNotifCalls.map((c) => c.method).toList(), contains('cancelAll'));
+        localNotifCalls.map((c) => c.method).toList(),
+        contains('cancelAll'),
+      );
     });
   });
-
-
 }

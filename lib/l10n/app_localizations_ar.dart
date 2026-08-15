@@ -604,7 +604,7 @@ class AppLocalizationsAr extends AppLocalizations {
   String get darkModeAlwaysDark => 'وضع داكن دائمًا';
 
   @override
-  String get darkModeSleepPromoting => 'وضع داعم للنوم';
+  String get darkModeSleepPromoting => 'مجدول';
 
   @override
   String get darkModeStartTime => 'وقت البدء';

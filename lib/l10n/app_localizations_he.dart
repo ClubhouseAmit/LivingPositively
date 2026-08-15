@@ -603,7 +603,7 @@ class AppLocalizationsHe extends AppLocalizations {
   String get darkModeAlwaysDark => 'תמיד כהה';
 
   @override
-  String get darkModeSleepPromoting => 'מצב תומך שינה';
+  String get darkModeSleepPromoting => 'מתוזמן';
 
   @override
   String get darkModeStartTime => 'שעת התחלה';
