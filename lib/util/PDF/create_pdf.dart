@@ -94,15 +94,12 @@ Future<Map<String, dynamic>> createPDF(
                 width: pageFormat.availableWidth,
                 child: pw.Align(
                   alignment: alignment,
-                  child: pw.Directionality(
-                    textDirection: pdfTextDirection,
-                    child: pw.Text(
-                      titles[i],
-                      style: pw.TextStyle(
-                        fontSize: 26,
-                        fontWeight: pw.FontWeight.bold,
-                        font: ttf,
-                      ),
+                  child: pw.Text(
+                    titles[i],
+                    style: pw.TextStyle(
+                      fontSize: 26,
+                      fontWeight: pw.FontWeight.bold,
+                      font: ttf,
                     ),
                   ),
                 ),
@@ -112,15 +109,12 @@ Future<Map<String, dynamic>> createPDF(
                 width: pageFormat.availableWidth,
                 child: pw.Align(
                   alignment: alignment,
-                  child: pw.Directionality(
-                    textDirection: pdfTextDirection,
-                    child: pw.Text(
-                      subTitles[i],
-                      style: pw.TextStyle(
-                        fontSize: 20,
-                        fontWeight: pw.FontWeight.bold,
-                        font: ttf,
-                      ),
+                  child: pw.Text(
+                    subTitles[i],
+                    style: pw.TextStyle(
+                      fontSize: 20,
+                      fontWeight: pw.FontWeight.bold,
+                      font: ttf,
                     ),
                   ),
                 ),
@@ -136,13 +130,10 @@ Future<Map<String, dynamic>> createPDF(
                         children: [
                           pw.Padding(
                             padding: const pw.EdgeInsets.only(right: 5),
-                            child: pw.Directionality(
-                              textDirection: pdfTextDirection,
-                              child: pw.Text(
-                                '${entry.key + 1}. ${entry.value}',
-                                style: pw.TextStyle(fontSize: 20, font: ttf),
-                                textAlign: textAlign,
-                              ),
+                            child: pw.Text(
+                              '${entry.key + 1}. ${entry.value}',
+                              style: pw.TextStyle(fontSize: 20, font: ttf),
+                              textAlign: textAlign,
                             ),
                           ),
                         ],
