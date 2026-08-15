@@ -87,9 +87,13 @@ The application uses **Rubik** (referenced as `'Rubix'` in code font mappings).
 
 ### 2.4 Shadows & Elevation
 
-- **Bottom Nav / Bottom Sheets:** `color: 0x14000000`, `offset: (0, -11)`, `blurRadius: 28`.
-- **Default Card:** `color: 0x0F0E2851`, `offset: (0, 4)`, `blurRadius: 10`.
-- **Active / Highlight Card:** `color: 0x990F2851`, `offset: (0, 4)`, `blurRadius: 12`.
+Defined in `lib/util/theme/shadows.dart` as `AppShadows`.
+
+- **Bottom Nav / Bottom Sheets** (`AppShadows.sheet`): `color: 0x14000000`, `offset: (0, -11)`, `blurRadius: 28`.
+- **Default Card** (`AppShadows.card`): `color: 0x7AF1EDEA`, `offset: (0, 3)`, `blurRadius: 11`. Also used by form-field containers and raised buttons. Matches Figma effect style `2`.
+- **Active / Highlight Card** (`AppShadows.active`): `color: 0x990F2851`, `offset: (0, 4)`, `blurRadius: 12`.
+
+These agree with the `shadows` block in this file's frontmatter, which is the source of truth. The Default Card entry previously read `0x0F0E2851`, `(0, 4)`, blur `10` here while the frontmatter said otherwise; the frontmatter value is the one that matches the design file.
 
 ---
 
