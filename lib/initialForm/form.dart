@@ -73,6 +73,14 @@ class InitialFormProgressIndicatorState
     });
   }
 
+  void handleSkip() {
+    if (currentStep == steps.length - 1) {
+      navigateToMenu();
+    } else {
+      skip();
+    }
+  }
+
   void prev() {
     setState(() {
       if (currentStep > 0) currentStep--;
@@ -156,28 +164,12 @@ class InitialFormProgressIndicatorState
               children: [
                 _IntroHeader(
                   isLastStep: currentStep == steps.length - 1,
-                  onSkip: next,
+                  onSkip: handleSkip,
                   onBack: prev,
                   skipLabel: appLocale.skipButton(gender),
                 ),
                 Expanded(
-                  child: AnimatedSwitcher(
-                    duration: const Duration(milliseconds: 300),
-                    layoutBuilder: (currentChild, previousChildren) => Stack(
-                      fit: StackFit.expand,
-                      children: [...previousChildren, ?currentChild],
-                    ),
-                    transitionBuilder: (Widget child, Animation<double> animation) {
-                      var begin = const Offset(1.0, 0.0);
-                      var end = Offset.zero;
-                      var tween = Tween(begin: begin, end: end);
-                      return SlideTransition(
-                        position: animation.drive(tween),
-                        child: child,
-                      );
-                    },
-                    child: KeyedSubtree(key: ValueKey(currentStep), child: step),
-                  ),
+                  child: step,
                 ),
                 Padding(
                   padding: const EdgeInsets.only(
@@ -242,28 +234,27 @@ class _IntroHeader extends StatelessWidget {
                   icon: const Icon(Icons.arrow_back_ios, size: 20),
                   onPressed: onBack,
                 ),
-              )
-            else
-              Align(
-                alignment: AlignmentDirectional.centerEnd,
-                child: TextButton(
-                  key: const Key('intro-header-skip'),
-                  style: TextButton.styleFrom(
-                    padding: const EdgeInsets.symmetric(horizontal: 8),
-                    minimumSize: const Size(48, _headerHeight),
+              ),
+            Align(
+              alignment: AlignmentDirectional.centerEnd,
+              child: TextButton(
+                key: const Key('intro-header-skip'),
+                style: TextButton.styleFrom(
+                  padding: const EdgeInsets.symmetric(horizontal: 8),
+                  minimumSize: const Size(48, _headerHeight),
+                ),
+                onPressed: onSkip,
+                child: Text(
+                  skipLabel,
+                  style: TextStyle(
+                    fontWeight: AppFontWeight.medium,
+                    fontSize: 16.sp,
+                    color: Theme.of(context).colorScheme.onSurface,
                   ),
-                  onPressed: onSkip,
-                  child: Text(
-                    skipLabel,
-                    style: TextStyle(
-                      fontWeight: AppFontWeight.medium,
-                      fontSize: 16.sp,
-                      color: Theme.of(context).colorScheme.onSurface,
-                    ),
-                    textAlign: TextAlign.center,
-                  ),
+                  textAlign: TextAlign.center,
                 ),
               ),
+            ),
           ],
         ),
       ),

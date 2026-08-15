@@ -149,7 +149,7 @@ void main() {
     await tester.pump();
     // Advance to InitialFormPage2.
     page1.next();
-    // Drive the AnimatedSwitcher transition fully so only one page is in tree.
+    // Pump to advance the step and settle the dot animation.
     await tester.pump(const Duration(milliseconds: 400));
     drainOverflowExceptions(tester);
 

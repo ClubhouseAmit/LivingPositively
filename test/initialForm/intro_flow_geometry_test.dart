@@ -214,26 +214,17 @@ void main() {
         reason: 'actions block width (330 on a 360 frame)',
       );
 
-      // The actions block's spacing is measured from its *last* action. The
-      // welcome step carries a secondary link under the primary — an addition
-      // beyond frame 2, which has one action — so that link is what the dots
-      // follow.
       final secondary = find.byKey(const Key('wizard-secondary-action'));
-      expect(secondary, findsOneWidget);
-      expect(
-        tester.getRect(secondary).top - tester.getRect(button).bottom,
-        closeTo(OnboardingGaps.withinBlock, 1),
-        reason: 'primary to secondary (Figma frame 19, Row 3)',
-      );
+      expect(secondary, findsNothing);
 
       final dotsTop = tester
           .getTopLeft(find.byKey(const ValueKey('intro-step-dot-0')))
           .dy;
-      // The gap the dots follow.
+      // The gap the dots follow (from the bottom of the primary button to the dots top).
       expect(
-        dotsTop - tester.getRect(secondary).bottom,
+        dotsTop - tester.getRect(button).bottom,
         closeTo(actionsToDots, 1),
-        reason: 'last action to dots (Frame 201 itemSpacing)',
+        reason: 'primary action to dots (Frame 201 itemSpacing)',
       );
     },
   );

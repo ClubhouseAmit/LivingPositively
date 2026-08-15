@@ -3,7 +3,6 @@ import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:mazilon/form/form.dart';
 import 'package:mazilon/form/wizard_step.dart';
 import 'package:mazilon/l10n/app_localizations.dart';
-import 'package:mazilon/menu.dart';
 import 'package:mazilon/util/Form/formPagePhoneModel.dart';
 import 'package:mazilon/util/theme/font_weight.dart';
 import 'package:mazilon/util/theme/spacing.dart';
@@ -27,11 +26,6 @@ class ToFormPage extends WizardStep {
   )!.introductionFormLastPageNext(Provider.of<UserInformation>(context).gender);
 
   @override
-  String? secondaryActionLabel(BuildContext context) => AppLocalizations.of(
-    context,
-  )!.skipButton(Provider.of<UserInformation>(context).gender);
-
-  @override
   WizardStepState<ToFormPage> createState() => _ToFormPageState();
 }
 
@@ -49,28 +43,9 @@ class _ToFormPageState extends WizardStepState<ToFormPage> {
     );
   }
 
-  void navigateToMenu() {
-    Navigator.pushAndRemoveUntil(
-      context,
-      MaterialPageRoute(
-        builder: (context) => Menu(
-          phonePageData: widget.phonePageData,
-          hasFilled: false,
-          changeLocale: widget.changeLocale,
-        ),
-      ),
-      (Route<dynamic> route) => false,
-    );
-  }
-
   @override
   Future<void> onPrimaryAction() async {
     nextPage();
-  }
-
-  @override
-  Future<void> onSecondaryAction() async {
-    navigateToMenu();
   }
 
   @override

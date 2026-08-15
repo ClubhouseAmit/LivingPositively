@@ -28,20 +28,12 @@ class InitialFormPage1 extends WizardStep {
   )!.nextButton(Provider.of<UserInformation>(context).gender);
 
   @override
-  String? secondaryActionLabel(BuildContext context) => AppLocalizations.of(
-    context,
-  )!.skipButton(Provider.of<UserInformation>(context).gender);
-
-  @override
   WizardStepState<InitialFormPage1> createState() => _InitialFormPage1State();
 }
 
 class _InitialFormPage1State extends WizardStepState<InitialFormPage1> {
   @override
   Future<void> onPrimaryAction() async => widget.next();
-
-  @override
-  Future<void> onSecondaryAction() async => widget.skip();
 
   @override
   Widget build(BuildContext context) {

@@ -108,9 +108,6 @@ void main() {
     expect(tapnext, isTrue);
 
     final skipButton = find.byKey(const Key('wizard-secondary-action'));
-    expect(skipButton, findsOneWidget);
-    await tester.tap(skipButton);
-    await tester.pump();
-    expect(tapskip, isTrue);
+    expect(skipButton, findsNothing);
   });
 }
