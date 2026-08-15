@@ -14,6 +14,7 @@ import 'package:mazilon/util/persistent_memory_service.dart' as _i2;
 import 'package:mazilon/util/userInformation.dart' as _i3;
 import 'package:mockito/mockito.dart' as _i1;
 import 'package:mockito/src/dummies.dart' as _i4;
+import 'package:share_plus/share_plus.dart' as _i11;
 
 // ignore_for_file: type=lint
 // ignore_for_file: avoid_redundant_argument_values
@@ -2024,14 +2025,15 @@ class MockAppInformation extends _i1.Mock implements _i6.AppInformation {
 /// See the documentation for Mockito's code generation for more information.
 class MockFileService extends _i1.Mock implements _i7.FileService {
   @override
-  _i8.Future<void> share(
+  _i8.Future<_i11.ShareResult?> share(
     String? message,
     List<dynamic>? titles,
     List<dynamic>? subTitles,
     Map<String, String>? texts,
     _i9.ShareFileType? saveFormat,
-    String? textDirection,
-  ) =>
+    {required String? mainTitle,
+    required String? textDirection,
+  }) =>
       (super.noSuchMethod(
         Invocation.method(
           #share,
@@ -2041,12 +2043,12 @@ class MockFileService extends _i1.Mock implements _i7.FileService {
             subTitles,
             texts,
             saveFormat,
-            textDirection,
           ],
+          {#mainTitle: mainTitle, #textDirection: textDirection},
         ),
-        returnValue: _i8.Future<void>.value(),
-        returnValueForMissingStub: _i8.Future<void>.value(),
-      ) as _i8.Future<void>);
+        returnValue: _i8.Future<_i11.ShareResult?>.value(),
+        returnValueForMissingStub: _i8.Future<_i11.ShareResult?>.value(),
+      ) as _i8.Future<_i11.ShareResult?>);
 
   @override
   _i8.Future<String?> download(
@@ -2054,8 +2056,9 @@ class MockFileService extends _i1.Mock implements _i7.FileService {
     List<dynamic>? subTitles,
     Map<String, String>? texts,
     _i9.ShareFileType? saveFormat,
-    String? textDirection,
-  ) =>
+    {required String? mainTitle,
+    required String? textDirection,
+  }) =>
       (super.noSuchMethod(
         Invocation.method(
           #download,
@@ -2064,8 +2067,8 @@ class MockFileService extends _i1.Mock implements _i7.FileService {
             subTitles,
             texts,
             saveFormat,
-            textDirection,
           ],
+          {#mainTitle: mainTitle, #textDirection: textDirection},
         ),
         returnValue: _i8.Future<String?>.value(),
         returnValueForMissingStub: _i8.Future<String?>.value(),

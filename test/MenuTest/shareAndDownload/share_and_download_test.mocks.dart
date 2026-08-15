@@ -79,14 +79,15 @@ class _FakeFile_2 extends _i1.SmartFake implements _i5.File {
 /// See the documentation for Mockito's code generation for more information.
 class MockFileService extends _i1.Mock implements _i6.FileService {
   @override
-  _i7.Future<void> share(
+  _i7.Future<_i16.ShareResult?> share(
     String? message,
     List<dynamic>? titles,
     List<dynamic>? subTitles,
     Map<String, String>? texts,
     _i8.ShareFileType? saveFormat,
-    String? textDirection,
-  ) =>
+    {required String? mainTitle,
+    required String? textDirection,
+  }) =>
       (super.noSuchMethod(
         Invocation.method(
           #share,
@@ -96,12 +97,12 @@ class MockFileService extends _i1.Mock implements _i6.FileService {
             subTitles,
             texts,
             saveFormat,
-            textDirection,
           ],
+          {#mainTitle: mainTitle, #textDirection: textDirection},
         ),
-        returnValue: _i7.Future<void>.value(),
-        returnValueForMissingStub: _i7.Future<void>.value(),
-      ) as _i7.Future<void>);
+        returnValue: _i7.Future<_i16.ShareResult?>.value(),
+        returnValueForMissingStub: _i7.Future<_i16.ShareResult?>.value(),
+      ) as _i7.Future<_i16.ShareResult?>);
 
   @override
   _i7.Future<String?> download(
@@ -109,8 +110,9 @@ class MockFileService extends _i1.Mock implements _i6.FileService {
     List<dynamic>? subTitles,
     Map<String, String>? texts,
     _i8.ShareFileType? saveFormat,
-    String? textDirection,
-  ) =>
+    {required String? mainTitle,
+    required String? textDirection,
+  }) =>
       (super.noSuchMethod(
         Invocation.method(
           #download,
@@ -119,8 +121,8 @@ class MockFileService extends _i1.Mock implements _i6.FileService {
             subTitles,
             texts,
             saveFormat,
-            textDirection,
           ],
+          {#mainTitle: mainTitle, #textDirection: textDirection},
         ),
         returnValue: _i7.Future<String?>.value(),
         returnValueForMissingStub: _i7.Future<String?>.value(),

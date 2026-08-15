@@ -16,19 +16,29 @@ const String _customCategoryTitlesKey = 'customCategoryTitles';
 const String _customCategoryDescriptionsKey = 'customCategoryDescriptions';
 
 abstract class FileService {
-  Future<void> share(
+  /// Shares a Personal Plan export with its caller-localized [mainTitle].
+  ///
+  /// The title is rendered before the sections, including when no sections are
+  /// populated. Callers provide a non-empty localized title and [textDirection].
+  Future<ShareResult?> share(
       String message,
       List<dynamic> titles,
       List<dynamic> subTitles,
       Map<String, String> texts,
       ShareFileType saveFormat,
-      String textDirection);
+      {required String mainTitle,
+      required String textDirection});
+  /// Downloads a Personal Plan export with its caller-localized [mainTitle].
+  ///
+  /// The title is rendered before the sections, including when no sections are
+  /// populated. Callers provide a non-empty localized title and [textDirection].
   Future<String?> download(
       List<dynamic> titles,
       List<dynamic> subTitles,
       Map<String, String> texts,
       ShareFileType saveFormat,
-      String textDirection);
+      {required String mainTitle,
+      required String textDirection});
   Future<bool> shareTextOnly(String message);
 }
 
@@ -54,7 +64,6 @@ class FileServiceImpl implements FileService {
           "PhonePageSavedPhoneNames", PersistentMemoryType.StringList),
       'phoneNumbers': service.getItem(
           "PhonePageSavedPhoneNumbers", PersistentMemoryType.StringList),
-      'username': service.getItem("name", PersistentMemoryType.String),
       'customCategoryTitles': service.getItem(
           _customCategoryTitlesKey, PersistentMemoryType.StringList),
       'customCategoryDescriptions': service.getItem(
@@ -72,7 +81,6 @@ class FileServiceImpl implements FileService {
       'SafeEnvironment': TypeUtils.castToStringList(data['safeEnvironment']),
       'phoneNames': TypeUtils.castToStringList(data['phoneNames']),
       'phoneNumbers': TypeUtils.castToStringList(data['phoneNumbers']),
-      'username': data['username'] ?? '',
       'customCategoryTitles':
           TypeUtils.castToStringList(data['customCategoryTitles']),
       'customCategoryDescriptions':
@@ -101,7 +109,8 @@ class FileServiceImpl implements FileService {
   }
 
   Future<Map<String, dynamic>> organizeDataForFile(List<dynamic> titles,
-      List<dynamic> subTitles, Map<String, String> texts) async {
+      List<dynamic> subTitles, Map<String, String> texts,
+      {required String mainTitle}) async {
     // Set the page format to A4
 
     // Load the font for the PDF
@@ -115,7 +124,6 @@ class FileServiceImpl implements FileService {
     List<String> safeEnvironment = dataForPDF['SafeEnvironment'];
     List<String> phoneNames = dataForPDF['phoneNames'];
     List<String> phoneNumbers = dataForPDF['phoneNumbers'];
-    String username = dataForPDF['username'];
     List<String> customCategoryTitles = dataForPDF['customCategoryTitles'];
     List<String> customCategoryDescriptions =
         dataForPDF['customCategoryDescriptions'];
@@ -159,10 +167,6 @@ class FileServiceImpl implements FileService {
       realSubTitles.add(allSubTitles[i]);
       realData.add(allData[i]);
     }
-    // Create the main title for the PDF
-    String mainTitle =
-        username == '' ? 'התוכנית המשולבת שלי' : 'התוכנית המשולבת של $username';
-
     // Retrieve text content for the PDF
     String text1 = texts['firstLine'] ?? '';
     String text2 = texts['firstLinkText'] ?? '';
@@ -202,16 +206,18 @@ class FileServiceImpl implements FileService {
   }
 
   @override
-  Future<void> share(
+  Future<ShareResult?> share(
       String message,
       List<dynamic> titles,
       List<dynamic> subTitles,
       Map<String, String> texts,
       ShareFileType saveFormat,
-      String textDirection) async {
+      {required String mainTitle,
+      required String textDirection}) async {
     try {
       // Add the generated widgets to the PDF
-      final dataForFile = await organizeDataForFile(titles, subTitles, texts);
+      final dataForFile = await organizeDataForFile(titles, subTitles, texts,
+          mainTitle: mainTitle);
       Map<String, dynamic> file;
       switch (saveFormat) {
         case ShareFileType.PDF:
@@ -225,19 +231,18 @@ class FileServiceImpl implements FileService {
           final tempFile = await saveTempPDF(file["file"], file["format"]);
           XFile tempXFile = XFile(tempFile.path);
 
-          await SharePlus.instance.share(ShareParams(
+          final shareResult = await SharePlus.instance.share(ShareParams(
               files: [tempXFile], text: checkEmptyMessage(message)));
-          break;
+          if (shareResult.status == ShareResultStatus.success) {
+            AnalyticsService mixPanelService = GetIt.instance<AnalyticsService>();
+            mixPanelService.trackEvent("Plan shared");
+          }
+          return shareResult;
         default:
           file = {"file": null, "format": null};
       }
 
-      // Save the PDF and share it
-      if (file["file"] == null || file["format"] == null) {
-        return;
-      }
-      AnalyticsService mixPanelService = GetIt.instance<AnalyticsService>();
-      mixPanelService.trackEvent("Plan shared");
+      return null;
     } catch (error, stackTrace) {
       IncidentLoggerService loggerService =
           GetIt.instance<IncidentLoggerService>();
@@ -245,6 +250,7 @@ class FileServiceImpl implements FileService {
         error,
         stackTrace: stackTrace,
       );
+      return null;
     }
   }
 
@@ -296,8 +302,10 @@ class FileServiceImpl implements FileService {
       List<dynamic> subTitles,
       Map<String, String> texts,
       ShareFileType saveFormat,
-      String textDirection) async {
-    final dataForFile = await organizeDataForFile(titles, subTitles, texts);
+      {required String mainTitle,
+      required String textDirection}) async {
+    final dataForFile = await organizeDataForFile(titles, subTitles, texts,
+        mainTitle: mainTitle);
     Map<String, dynamic> file;
     Uint8List data = Uint8List(0);
     switch (saveFormat) {

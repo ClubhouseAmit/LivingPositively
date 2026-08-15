@@ -28,6 +28,7 @@ import 'package:mazilon/util/logger_service.dart';
 import 'package:mazilon/util/persistent_memory_service.dart';
 import 'package:mazilon/util/userInformation.dart';
 import 'package:provider/provider.dart';
+import 'package:share_plus/share_plus.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 /// In-memory implementation of [PersistentMemoryService] backed by a [Map].
@@ -120,23 +121,26 @@ class NoopFileService implements FileService {
     List<dynamic> titles,
     List<dynamic> subTitles,
     Map<String, String> texts,
-    ShareFileType saveFormat,
-    String textDirection,
-  ) async {
+    ShareFileType saveFormat, {
+    required String mainTitle,
+    required String textDirection,
+  }) async {
     downloadCalls++;
     return null;
   }
 
   @override
-  Future<void> share(
+  Future<ShareResult?> share(
     String message,
     List<dynamic> titles,
     List<dynamic> subTitles,
     Map<String, String> texts,
-    ShareFileType saveFormat,
-    String textDirection,
-  ) async {
+    ShareFileType saveFormat, {
+    required String mainTitle,
+    required String textDirection,
+  }) async {
     shareCalls++;
+    return const ShareResult('noop', ShareResultStatus.success);
   }
 
   @override
@@ -399,4 +403,3 @@ Future<void> loadTestFonts() async {
 
   await fontLoader.load();
 }
-

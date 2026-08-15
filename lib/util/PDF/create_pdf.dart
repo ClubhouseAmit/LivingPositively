@@ -4,25 +4,17 @@ import 'package:path_provider/path_provider.dart';
 import 'package:pdf/pdf.dart';
 import 'package:pdf/widgets.dart' as pw;
 
-import 'package:mazilon/util/languages_util_functions.dart';
+/// Maps the `'rtl'` direction token to RTL; all other values fall back to LTR.
+pw.TextDirection pdfTextDirectionForDirection(String textDirection) =>
+    textDirection == 'rtl' ? pw.TextDirection.rtl : pw.TextDirection.ltr;
 
-pw.TextDirection getDirection(String text) {
-  return getDirectionOfText(text) == "ltr"
-      ? pw.TextDirection.ltr
-      : pw.TextDirection.rtl;
-}
+/// Maps the `'rtl'` direction token to right alignment; all other values use left.
+pw.Alignment pdfAlignmentForDirection(String textDirection) =>
+    textDirection == 'rtl' ? pw.Alignment.centerRight : pw.Alignment.centerLeft;
 
-pw.TextAlign getAlign(String text) {
-  return getDirectionOfText(text) == "ltr"
-      ? pw.TextAlign.left
-      : pw.TextAlign.right;
-}
-
-pw.Alignment getAlignment(String text) {
-  return getDirectionOfText(text) == "ltr"
-      ? pw.Alignment.centerRight
-      : pw.Alignment.centerRight;
-}
+/// Maps the `'rtl'` direction token to right text alignment; all other values use left.
+pw.TextAlign pdfTextAlignForDirection(String textDirection) =>
+    textDirection == 'rtl' ? pw.TextAlign.right : pw.TextAlign.left;
 
 Future<Map<String, dynamic>> createPDF(
   List<dynamic> titles,
@@ -30,7 +22,7 @@ Future<Map<String, dynamic>> createPDF(
   Map<String, String> texts,
   String mainTitle,
   List<List<String>> data,
-  String textDirectionLocale,
+  String textDirection,
 ) async {
   final pageFormat = PdfPageFormat.a4;
   final ByteData fontData = await rootBundle.load('assets/fonts/CALIBRI.TTF');
@@ -40,68 +32,54 @@ Future<Map<String, dynamic>> createPDF(
   final image = pw.Image(pw.MemoryImage(imageBytes));
   final pdf = pw.Document();
   List<pw.Widget> widgets = [];
-  //final textDirection = textDirectionLocale == "rtl"
-  //    ? pw.TextDirection.rtl
-  //    : pw.TextDirection.ltr;
-  // final alignment = textDirectionLocale == "rtl"
-  //    ? pw.Alignment.centerRight
-  //    : pw.Alignment.centerLeft;
-  //final textAlign =
-  //   textDirectionLocale == "rtl" ? pw.TextAlign.right : pw.TextAlign.left;
+  final pdfTextDirection = pdfTextDirectionForDirection(textDirection);
+  final alignment = pdfAlignmentForDirection(textDirection);
+  final textAlign = pdfTextAlignForDirection(textDirection);
+  if (mainTitle.isNotEmpty) {
+    widgets.add(
+      pw.Container(
+        width: pageFormat.availableWidth,
+        child: pw.Align(
+          alignment: alignment,
+          child: pw.Directionality(
+            textDirection: pdfTextDirection,
+            child: pw.Text(
+              mainTitle,
+              style: pw.TextStyle(fontSize: 40, font: ttf),
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+  var hasRenderedSection = false;
   for (var i = 0; i < data.length; i++) {
     if (data[i].isEmpty) {
       continue;
     }
 
-    // Add the main title for the first section
-    if (i == 0) {
-      widgets.add(
-        pw.Container(
-          width: pageFormat.availableWidth,
-          child: pw.Align(
-            alignment: getAlignment(mainTitle), // Align the title to the right
-            child: pw.Directionality(
-              textDirection: getDirection(
-                mainTitle,
-              ), // Set text direction to RTL
-              child: pw.Text(
-                mainTitle,
-                style: pw.TextStyle(fontSize: 40, font: ttf),
-              ),
-            ),
-          ),
-        ),
-      );
-    } else {
+    if (hasRenderedSection) {
       widgets.add(pw.SizedBox(height: 25));
     }
-    widgets.add(pw.SizedBox(height: 25));
 
     // Add the title, subtitle, and data for each section
     widgets.add(
       pw.Padding(
         padding: const pw.EdgeInsets.all(8.0),
         child: pw.Directionality(
-          textDirection: getDirection(titles[i]),
+          textDirection: pdfTextDirection,
           child: pw.Column(
             children: [
               pw.Container(
                 width: pageFormat.availableWidth,
                 child: pw.Align(
-                  alignment: getAlignment(
+                  alignment: alignment,
+                  child: pw.Text(
                     titles[i],
-                  ), // Align the content to the right
-                  child: pw.Directionality(
-                    textDirection: getDirection(
-                      titles[i],
-                    ), // Set text direction to RTL
-                    child: pw.Text(
-                      titles[i],
-                      style: pw.TextStyle(
-                        fontSize: 26,
-                        fontWeight: pw.FontWeight.bold,
-                        font: ttf,
-                      ),
+                    style: pw.TextStyle(
+                      fontSize: 26,
+                      fontWeight: pw.FontWeight.bold,
+                      font: ttf,
                     ),
                   ),
                 ),
@@ -110,20 +88,13 @@ Future<Map<String, dynamic>> createPDF(
               pw.Container(
                 width: pageFormat.availableWidth,
                 child: pw.Align(
-                  alignment: getAlignment(
+                  alignment: alignment,
+                  child: pw.Text(
                     subTitles[i],
-                  ), // Align the content to the right
-                  child: pw.Directionality(
-                    textDirection: getDirection(
-                      subTitles[i],
-                    ), // Set text direction to RTL
-                    child: pw.Text(
-                      subTitles[i],
-                      style: pw.TextStyle(
-                        fontSize: 20,
-                        fontWeight: pw.FontWeight.bold,
-                        font: ttf,
-                      ),
+                    style: pw.TextStyle(
+                      fontSize: 20,
+                      fontWeight: pw.FontWeight.bold,
+                      font: ttf,
                     ),
                   ),
                 ),
@@ -139,13 +110,10 @@ Future<Map<String, dynamic>> createPDF(
                         children: [
                           pw.Padding(
                             padding: const pw.EdgeInsets.only(right: 5),
-                            child: pw.Directionality(
-                              textDirection: getDirection(entry.value),
-                              child: pw.Text(
-                                '${entry.key + 1}. ${entry.value}',
-                                style: pw.TextStyle(fontSize: 20, font: ttf),
-                                textAlign: getAlign(entry.value),
-                              ),
+                            child: pw.Text(
+                              '${entry.key + 1}. ${entry.value}',
+                              style: pw.TextStyle(fontSize: 20, font: ttf),
+                              textAlign: textAlign,
                             ),
                           ),
                         ],
@@ -158,6 +126,7 @@ Future<Map<String, dynamic>> createPDF(
         ),
       ),
     );
+    hasRenderedSection = true;
   }
 
   // Add space before footer
@@ -169,16 +138,16 @@ Future<Map<String, dynamic>> createPDF(
       crossAxisAlignment: pw.CrossAxisAlignment.end,
       children: [
         pw.Directionality(
-          textDirection: getDirection(texts["text1"]!),
+          textDirection: pdfTextDirection,
           child: pw.Text(
             texts["text1"]!,
             style: pw.TextStyle(fontSize: 20, font: ttf),
-            textAlign: getAlign(texts["text1"]!),
+            textAlign: textAlign,
           ),
         ),
         pw.SizedBox(height: 10),
         pw.Directionality(
-          textDirection: getDirection(texts["text2"]!),
+          textDirection: pdfTextDirection,
           child: pw.UrlLink(
             destination: texts["text2Link"]!,
             child: pw.Text(
@@ -188,31 +157,31 @@ Future<Map<String, dynamic>> createPDF(
                 font: ttf,
                 color: PdfColors.blue,
               ),
-              textAlign: getAlign(texts["text2"]!),
+              textAlign: textAlign,
             ),
           ),
         ),
         pw.SizedBox(height: 10),
         pw.Directionality(
-          textDirection: getDirection(texts["text3"]!),
+          textDirection: pdfTextDirection,
           child: pw.Text(
             texts["text3"]!,
             style: pw.TextStyle(fontSize: 20, font: ttf),
-            textAlign: getAlign(texts["text3"]!),
+            textAlign: textAlign,
           ),
         ),
         pw.SizedBox(height: 20),
         pw.Directionality(
-          textDirection: getDirection(texts["text4"]!),
+          textDirection: pdfTextDirection,
           child: pw.Text(
             texts["text4"]!,
             style: pw.TextStyle(fontSize: 20, font: ttf),
-            textAlign: getAlign(texts["text4"]!),
+            textAlign: textAlign,
           ),
         ),
         pw.SizedBox(height: 10),
         pw.Directionality(
-          textDirection: getDirection(texts["text5"]!),
+          textDirection: pdfTextDirection,
           child: pw.UrlLink(
             destination: texts["text5Link"]!,
             child: pw.Text(
@@ -222,17 +191,17 @@ Future<Map<String, dynamic>> createPDF(
                 font: ttf,
                 color: PdfColors.blue,
               ),
-              textAlign: getAlign(texts["text5"]!),
+              textAlign: textAlign,
             ),
           ),
         ),
         pw.SizedBox(height: 10),
         pw.Directionality(
-          textDirection: getDirection(texts["text6"]!),
+          textDirection: pdfTextDirection,
           child: pw.Text(
             texts["text6"]!,
             style: pw.TextStyle(fontSize: 20, font: ttf),
-            textAlign: getAlign(texts["text6"]!),
+            textAlign: textAlign,
           ),
         ),
       ],

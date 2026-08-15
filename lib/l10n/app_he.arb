@@ -24,6 +24,15 @@
      "personalPlanPageMyPlan": "{gender,select,male{התוכנית שלי} female{התוכנית שלי} other{התוכנית שלי}}",
      "personalPlanPageAllPlan": "{gender,select,male{לכל התוכנית} female{לכל התוכנית} other{לכל התוכנית}}",
      "personalPlanPageTitle": "{gender,select,male{התוכנית האישית שלי} female{התוכנית האישית שלי} other{התוכנית האישית שלי}}",
+     "personalPlanPdfTitle": "התוכנית האישית שלי",
+     "@personalPlanPdfTitle": {
+       "description": "Title used when exporting a Personal Plan PDF without a saved name"
+     },
+     "personalPlanPdfTitleWithName": "התוכנית האישית של {username}",
+     "@personalPlanPdfTitleWithName": {
+       "description": "Title used when exporting a Personal Plan PDF with a saved name",
+       "placeholders": {"username": {"type": "String"}}
+     },
      "personalPlanPageStartedDownload": "{gender,select,male{ההורדה החלה} female{ההורדה החלה} other{ההורדה החלה}}",
      "personalPlanPageFinishDownload": "{gender,select,male{התוכנית ירדה להורדות} female{התוכנית ירדה להורדות} other{התוכנית ירדה להורדות}}",
      "personalPlanPageFinish": "{gender,select,male{אישור} female{אישור} other{אישור}}",
@@ -167,6 +176,10 @@
      "@sosShareLocationShareFailed": {
        "description": "הודעה המוצגת כשלא ניתן לשתף את הודעת העזרה דרך גיליון השיתוף של המכשיר."
      },
+     "personalPlanShareFailed": "לא ניתן היה לשתף את התוכנית האישית שלך. נסו שוב.",
+     "@personalPlanShareFailed": {
+       "description": "הודעה המוצגת כשלא ניתן לשתף את קובץ התוכנית האישית דרך גיליון השיתוף של המכשיר."
+     },
      "sosShareMessage": "שיתוף הודעת SOS",
      "@sosShareMessage": {
        "description": "פעולת SOS שמשתפת רק את הודעת העזרה."
@@ -174,6 +187,10 @@
      "sosShareMessageTooltip": "שיתוף הודעת העזרה שלך",
      "@sosShareMessageTooltip": {
        "description": "תווית נגישות לפעולת שיתוף הודעת העזרה של SOS."
+     },
+     "sosSharePersonalPlan": "שיתוף התוכנית האישית בעת משבר",
+     "@sosSharePersonalPlan": {
+       "description": "פעולת SOS מרכזית שמשתפת את קובץ התוכנית האישית עם הודעת משבר."
      },
      "sosDeliveryOptionsTitle": "בחירת אפשרות שליחה",
      "@sosDeliveryOptionsTitle": {
@@ -494,7 +511,7 @@
   
     "shareEmergency": "שיתוף הודעה במקרה של משבר",
   "noPermissionAllowedText": "הרשאה לא ניתנה",
-"shareEmergencyMessage":"אני במצב לא טוב ויש לי צורך בעזרה.אשמח לעזרתך בהפעלת התוכנית האישית שלי. בתודה מראש.",
+"shareEmergencyMessage":"אני במצב לא טוב ויש לי צורך בעזרה. אשמח לעזרתך בהפעלת התוכנית האישית שלי. בתודה מראש.",
   "callFailedMessage": "לא ניתן לחייג את {number}",
   "couldNotOpenApp": "לא ניתן לפתוח את האפליקציה",
   "copyNumberAction": "העתק מספר",

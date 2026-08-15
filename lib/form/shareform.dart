@@ -534,13 +534,15 @@ class _ShareFormState extends WizardStepState<ShareForm> {
                       final exportMetadata = buildPersonalPlanExportMetadata(
                         appLocale,
                         gender,
+                        userInfoProvider.name,
                       );
                       var result = await fileService.download(
                         exportMetadata.titles,
                         exportMetadata.subTitles,
                         appInfoProvider.sharePDFtexts,
                         ShareFileType.PDF,
-                        appLocale.textDirection,
+                        mainTitle: exportMetadata.mainTitle,
+                        textDirection: appLocale.textDirection,
                       );
                       if (result == null) {
                         // Show him a message

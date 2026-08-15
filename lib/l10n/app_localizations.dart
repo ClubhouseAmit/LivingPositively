@@ -238,6 +238,18 @@ abstract class AppLocalizations {
   /// **'{gender,select,male{My Personal Plan} female{My Personal Plan} other{My Personal Plan}}'**
   String personalPlanPageTitle(String gender);
 
+  /// Title used when exporting a Personal Plan PDF without a saved name
+  ///
+  /// In en, this message translates to:
+  /// **'My Personal Plan'**
+  String get personalPlanPdfTitle;
+
+  /// Title used when exporting a Personal Plan PDF with a saved name
+  ///
+  /// In en, this message translates to:
+  /// **'{username}\'s Personal Plan'**
+  String personalPlanPdfTitleWithName(String username);
+
   ///
   ///
   /// In en, this message translates to:
@@ -862,6 +874,12 @@ abstract class AppLocalizations {
   /// **'Your SOS help message could not be shared. Please try again.'**
   String get sosShareLocationShareFailed;
 
+  /// Notice shown when the Personal Plan PDF cannot be shared through the native share sheet.
+  ///
+  /// In en, this message translates to:
+  /// **'Your Personal Plan could not be shared. Please try again.'**
+  String get personalPlanShareFailed;
+
   /// The SOS action that shares only the help message.
   ///
   /// In en, this message translates to:
@@ -873,6 +891,12 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Share your SOS help message'**
   String get sosShareMessageTooltip;
+
+  /// Featured SOS action that shares the Personal Plan PDF with the crisis message.
+  ///
+  /// In en, this message translates to:
+  /// **'Share Personal Plan during a crisis'**
+  String get sosSharePersonalPlan;
 
   /// Title for the SOS delivery-method chooser.
   ///

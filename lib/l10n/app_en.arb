@@ -93,6 +93,15 @@
     "description": ""
   },
   "personalPlanPageTitle": "{gender,select,male{My Personal Plan} female{My Personal Plan} other{My Personal Plan}}",
+  "personalPlanPdfTitle": "My Personal Plan",
+  "@personalPlanPdfTitle": {
+    "description": "Title used when exporting a Personal Plan PDF without a saved name"
+  },
+  "personalPlanPdfTitleWithName": "{username}'s Personal Plan",
+  "@personalPlanPdfTitleWithName": {
+    "description": "Title used when exporting a Personal Plan PDF with a saved name",
+    "placeholders": {"username": {"type": "String"}}
+  },
   "@personalPlanPageTitle": {
     "description": ""
   },
@@ -500,6 +509,10 @@
   "@sosShareLocationShareFailed": {
     "description": "Notice shown when the SOS help message cannot be shared through the native share sheet."
   },
+  "personalPlanShareFailed": "Your Personal Plan could not be shared. Please try again.",
+  "@personalPlanShareFailed": {
+    "description": "Notice shown when the Personal Plan PDF cannot be shared through the native share sheet."
+  },
   "sosShareMessage": "Share SOS Message",
   "@sosShareMessage": {
     "description": "The SOS action that shares only the help message."
@@ -507,6 +520,10 @@
   "sosShareMessageTooltip": "Share your SOS help message",
   "@sosShareMessageTooltip": {
     "description": "Accessibility label for the SOS help-message action."
+  },
+  "sosSharePersonalPlan": "Share Personal Plan during a crisis",
+  "@sosSharePersonalPlan": {
+    "description": "Featured SOS action that shares the Personal Plan PDF with the crisis message."
   },
   "sosDeliveryOptionsTitle": "Choose a delivery option",
   "@sosDeliveryOptionsTitle": {

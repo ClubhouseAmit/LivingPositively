@@ -163,6 +163,7 @@ class _PersonalPlanWidgetState extends LPExtendedState<PersonalPlanWidget> {
     BuildContext context,
     AppInformation appInfoProvider,
     String gender,
+    String username,
   ) {
     const controlSlotSize = 48.0;
     final textDirection = Directionality.of(context);
@@ -255,13 +256,15 @@ class _PersonalPlanWidgetState extends LPExtendedState<PersonalPlanWidget> {
                                 buildPersonalPlanExportMetadata(
                                   appLocale,
                                   gender,
+                                  username,
                                 );
                             final result = await fileService.download(
                               exportMetadata.titles,
                               exportMetadata.subTitles,
                               appInfoProvider.sharePDFtexts,
                               ShareFileType.PDF,
-                              appLocale.textDirection,
+                              mainTitle: exportMetadata.mainTitle,
+                              textDirection: appLocale.textDirection,
                             );
                             if (result == null) {
                               showToast(
@@ -347,7 +350,8 @@ class _PersonalPlanWidgetState extends LPExtendedState<PersonalPlanWidget> {
         padding: const EdgeInsets.only(bottom: 8.0),
         child: Column(
           children: [
-            _buildPersonalPlanHeader(context, appInfoProvider, gender),
+            _buildPersonalPlanHeader(
+              context, appInfoProvider, gender, userInfoProvider.name),
             LayoutBuilder(
               builder: (context, constraints) {
                 final twoColumn = constraints.maxWidth >= 520;

@@ -105,13 +105,6 @@ void main() {
       expect(data['SafeEnvironment'], ['safe1']);
       expect(data['phoneNames'], ['Mom', 'Dad']);
       expect(data['phoneNumbers'], ['111', '222']);
-      expect(data['username'], 'Alex');
-    });
-
-    test('username defaults to empty when null', () async {
-      memory.store['name'] = null;
-      final data = await FileServiceImpl.getPrefsData();
-      expect(data['username'], '');
     });
 
     test('safe environment defaults to an empty list for existing plans',
@@ -170,7 +163,7 @@ void main() {
   });
 
   group('FileServiceImpl.organizeDataForFile', () {
-    test('produces expected mainTitle when username present', () async {
+    test('should preserve the supplied personalized title', () async {
       final svc = FileServiceImpl();
       final result = await svc.organizeDataForFile(
         [
@@ -199,8 +192,9 @@ void main() {
           'secondLinkURL': 'g',
           'forthLine': 'h',
         },
+        mainTitle: 'Personal Plan of Alex',
       );
-      expect(result['mainTitle'], 'התוכנית המשולבת של Alex');
+      expect(result['mainTitle'], 'Personal Plan of Alex');
       // 'FeelBetter' was empty; the remaining defaults retain their six-wide
       // order, including Safe Environment after Contacts.
       expect(result['titles'], [
@@ -226,15 +220,15 @@ void main() {
       ]);
     });
 
-    test('uses generic title when username empty', () async {
-      memory.store['name'] = '';
+    test('should preserve the supplied localized title', () async {
       final svc = FileServiceImpl();
       final result = await svc.organizeDataForFile(
         ['t1', 't2', 't3', 't4', 't5', 't6'],
         ['s1', 's2', 's3', 's4', 's5', 's6'],
         {},
+        mainTitle: 'My Personal Plan',
       );
-      expect(result['mainTitle'], 'התוכנית המשולבת שלי');
+      expect(result['mainTitle'], 'My Personal Plan');
     });
   });
 
@@ -315,7 +309,8 @@ void main() {
           'forthLine': '',
         },
         ShareFileType.DOCX,
-        'rtl',
+        mainTitle: 'My Personal Plan',
+        textDirection: 'rtl',
       );
       expect(analytics.events, isEmpty);
     });
@@ -342,7 +337,8 @@ void main() {
           'forthLine': 'f',
         },
         ShareFileType.PDF,
-        'rtl',
+        mainTitle: 'My Personal Plan',
+        textDirection: 'rtl',
       );
       // Either AnalyticsService recorded "Plan shared" or the catch branch
       // forwarded the share_plus failure to logger. At least one must hold,
@@ -362,7 +358,8 @@ void main() {
         ['s1', 's2', 's3', 's4', 's5', 's6'],
         const <String, String>{},
         ShareFileType.DOCX,
-        'ltr',
+        mainTitle: 'My Personal Plan',
+        textDirection: 'ltr',
       );
       expect(out, isNull);
     });

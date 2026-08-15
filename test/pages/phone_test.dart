@@ -14,24 +14,56 @@ import 'package:mazilon/pages/phone.dart';
 import 'package:mazilon/pages/sos_location_service.dart';
 import 'package:mazilon/util/Form/formPagePhoneModel.dart';
 import 'package:mazilon/util/appInformation.dart';
+import 'package:mazilon/util/personal_plan_export_metadata.dart';
 import 'package:mazilon/util/persistent_memory_service.dart';
 import 'package:mazilon/util/userInformation.dart';
 import 'package:provider/provider.dart';
+import 'package:share_plus/share_plus.dart';
 import 'package:url_launcher_platform_interface/url_launcher_platform_interface.dart';
 
 import '../helpers/phone_delivery_test_fakes.dart';
 
 const _smsComposeChannel = MethodChannel('com.matzilon.mezilon/sms_compose');
 
+class RecordedShareCall {
+  const RecordedShareCall({
+    required this.message,
+    required this.titles,
+    required this.subTitles,
+    required this.texts,
+    required this.mainTitle,
+    required this.saveFormat,
+    required this.textDirection,
+  });
+
+  final String message;
+  final List<dynamic> titles;
+  final List<dynamic> subTitles;
+  final Map<String, String> texts;
+  final String mainTitle;
+  final ShareFileType saveFormat;
+  final String textDirection;
+}
+
 class RecordingFileService implements FileService {
   RecordingFileService({
     List<String>? callLog,
     this.failedResultsRemaining = 0,
     this.exceptionsRemaining = 0,
+    this.shareCompleter,
+    this.planShareResult = const ShareResult(
+      'test-success',
+      ShareResultStatus.success,
+    ),
+    this.planShareError,
   }) : callLog = callLog ?? [];
 
   final List<String> callLog;
   final List<String> sharedMessages = [];
+  final List<RecordedShareCall> shareCalls = [];
+  final Completer<void>? shareCompleter;
+  final ShareResult? planShareResult;
+  final Object? planShareError;
   int failedResultsRemaining;
   int exceptionsRemaining;
 
@@ -40,19 +72,38 @@ class RecordingFileService implements FileService {
     List<dynamic> titles,
     List<dynamic> subTitles,
     Map<String, String> texts,
-    ShareFileType saveFormat,
-    String textDirection,
-  ) async => null;
+    ShareFileType saveFormat, {
+    required String mainTitle,
+    required String textDirection,
+  }) async => null;
 
   @override
-  Future<void> share(
+  Future<ShareResult?> share(
     String message,
     List<dynamic> titles,
     List<dynamic> subTitles,
     Map<String, String> texts,
-    ShareFileType saveFormat,
-    String textDirection,
-  ) async {}
+    ShareFileType saveFormat, {
+    required String mainTitle,
+    required String textDirection,
+  }) async {
+    shareCalls.add(
+      RecordedShareCall(
+        message: message,
+        titles: titles,
+        subTitles: subTitles,
+        texts: texts,
+        mainTitle: mainTitle,
+        saveFormat: saveFormat,
+        textDirection: textDirection,
+      ),
+    );
+    await shareCompleter?.future;
+    if (planShareError != null) {
+      throw planShareError!;
+    }
+    return planShareResult;
+  }
 
   @override
   Future<bool> shareTextOnly(String message) async {
@@ -1052,6 +1103,212 @@ void main() {
         expect(locationService.callLog, isEmpty);
       },
     );
+  });
+
+  group('PhonePage personal plan crisis sharing', () {
+    for (final localeCase
+        in <
+          ({Locale locale, String label, String message, String textDirection})
+        >[
+          (
+            locale: const Locale('en'),
+            label: 'Share Personal Plan during a crisis',
+            message:
+                'I’m not doing well and I need help. I would appreciate your support in activating my personal plan. Thank you in advance.',
+            textDirection: 'ltr',
+          ),
+          (
+            locale: const Locale('he'),
+            label: 'שיתוף התוכנית האישית בעת משבר',
+            message:
+                'אני במצב לא טוב ויש לי צורך בעזרה. אשמח לעזרתך בהפעלת התוכנית האישית שלי. בתודה מראש.',
+            textDirection: 'rtl',
+          ),
+          (
+            locale: const Locale('ar'),
+            label: 'مشاركة الخطة الشخصية أثناء الأزمة',
+            message:
+                'أنا لست بخير وأحتاج إلى المساعدة. سأقدّر دعمك في تفعيل خطتي الشخصية. شكرًا لك مقدمًا.',
+            textDirection: 'rtl',
+          ),
+        ]) {
+      testWidgets(
+        'should share the localized Personal Plan PDF and crisis message in ${localeCase.locale.languageCode}',
+        (tester) async {
+          final locationService = FakeSosLocationService();
+          final fileService = RecordingFileService();
+          final appInformation = AppInformation()
+            ..updateSharePDFtexts({'customCategory': 'Custom content'});
+          await _runPhonePageTest(
+            locationService,
+            fileService,
+            body: () async {
+              await tester.pumpWidget(
+                buildPhonePageTestApp(
+                  userInformation: UserInformation(
+                    gender: 'male',
+                    location: 'IL',
+                    service: FakePersistentMemoryService(),
+                  ),
+                  appInformation: appInformation,
+                  phonePageData: _phonePageDataForLocationShare(),
+                  locale: localeCase.locale,
+                ),
+              );
+              await tester.pumpAndSettle();
+              final localizations = AppLocalizations.of(
+                tester.element(find.byType(PhonePage)),
+              )!;
+
+              expect(find.text(localeCase.label), findsOneWidget);
+              await _tapSosAction(
+                tester,
+                const Key('phonePageSharePersonalPlanButton'),
+              );
+
+              final shareCall = fileService.shareCalls.single;
+              final exportMetadata = buildPersonalPlanExportMetadata(
+                localizations,
+                'male',
+                '',
+              );
+              expect(shareCall.message, localeCase.message);
+              expect(shareCall.titles, exportMetadata.titles);
+              expect(shareCall.subTitles, exportMetadata.subTitles);
+              expect(shareCall.texts, appInformation.sharePDFtexts);
+              expect(shareCall.mainTitle, exportMetadata.mainTitle);
+              expect(shareCall.saveFormat, ShareFileType.PDF);
+              expect(shareCall.textDirection, localeCase.textDirection);
+              expect(fileService.sharedMessages, isEmpty);
+              expect(locationService.callLog, isEmpty);
+            },
+          );
+        },
+      );
+    }
+
+    for (final failureResult in <ShareResult?>[null, ShareResult.unavailable]) {
+      testWidgets(
+        'should show localized Personal Plan feedback when sharing returns ${failureResult?.status ?? 'null'}',
+        (tester) async {
+          final locationService = FakeSosLocationService();
+          final fileService = RecordingFileService(planShareResult: failureResult);
+          await _runPhonePageTest(
+            locationService,
+            fileService,
+            body: () async {
+              await tester.pumpWidget(
+                buildPhonePageTestApp(
+                  userInformation: UserInformation(
+                    gender: 'male',
+                    location: 'IL',
+                    service: FakePersistentMemoryService(),
+                  ),
+                  appInformation: AppInformation(),
+                  phonePageData: _phonePageDataForLocationShare(),
+                ),
+              );
+              await tester.pumpAndSettle();
+              final localizations = AppLocalizations.of(
+                tester.element(find.byType(PhonePage)),
+              )!;
+
+              await _tapSosAction(
+                tester,
+                const Key('phonePageSharePersonalPlanButton'),
+              );
+
+              expect(fileService.shareCalls, hasLength(1));
+              expect(
+                find.text(localizations.personalPlanShareFailed),
+                findsOneWidget,
+              );
+            },
+          );
+        },
+      );
+    }
+
+    testWidgets(
+      'should not show failure feedback when Personal Plan sharing is dismissed',
+      (tester) async {
+        final locationService = FakeSosLocationService();
+        final fileService = RecordingFileService(
+          planShareResult: const ShareResult('', ShareResultStatus.dismissed),
+        );
+        await _runPhonePageTest(
+          locationService,
+          fileService,
+          body: () async {
+            await tester.pumpWidget(
+              buildPhonePageTestApp(
+                userInformation: UserInformation(
+                  gender: 'male',
+                  location: 'IL',
+                  service: FakePersistentMemoryService(),
+                ),
+                appInformation: AppInformation(),
+                phonePageData: _phonePageDataForLocationShare(),
+              ),
+            );
+            await tester.pumpAndSettle();
+            final localizations = AppLocalizations.of(
+              tester.element(find.byType(PhonePage)),
+            )!;
+
+            await _tapSosAction(
+              tester,
+              const Key('phonePageSharePersonalPlanButton'),
+            );
+
+            expect(fileService.shareCalls, hasLength(1));
+            expect(
+              find.text(localizations.personalPlanShareFailed),
+              findsNothing,
+            );
+          },
+        );
+      },
+    );
+
+    testWidgets('should serialize repeated Personal Plan crisis shares', (
+      tester,
+    ) async {
+      final shareCompleter = Completer<void>();
+      final locationService = FakeSosLocationService();
+      final fileService = RecordingFileService(shareCompleter: shareCompleter);
+      await _runPhonePageTest(
+        locationService,
+        fileService,
+        body: () async {
+          await tester.pumpWidget(
+            buildPhonePageTestApp(
+              userInformation: UserInformation(
+                gender: 'male',
+                location: 'IL',
+                service: FakePersistentMemoryService(),
+              ),
+              appInformation: AppInformation(),
+              phonePageData: _phonePageDataForLocationShare(),
+            ),
+          );
+          await tester.pumpAndSettle();
+          final action = find.byKey(
+            const Key('phonePageSharePersonalPlanButton'),
+          );
+
+          await tester.ensureVisible(action);
+          await tester.tap(action, warnIfMissed: false);
+          await tester.pump();
+          await tester.tap(action, warnIfMissed: false);
+          await tester.pump();
+
+          expect(fileService.shareCalls, hasLength(1));
+          shareCompleter.complete();
+          await tester.pumpAndSettle();
+        },
+      );
+    });
   });
 
   for (final mapHandoff in <TargetPlatform, String>{

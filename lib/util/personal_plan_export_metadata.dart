@@ -4,16 +4,23 @@ class PersonalPlanExportMetadata {
   const PersonalPlanExportMetadata({
     required this.titles,
     required this.subTitles,
+    required this.mainTitle,
   });
 
   final List<String> titles;
   final List<String> subTitles;
+  final String mainTitle;
 }
 
 PersonalPlanExportMetadata buildPersonalPlanExportMetadata(
   AppLocalizations appLocale,
   String gender,
+  String username,
 ) {
+  final mainTitle = username.trim().isEmpty
+      ? appLocale.personalPlanPdfTitle
+      : appLocale.personalPlanPdfTitleWithName(username);
+
   return PersonalPlanExportMetadata(
     titles: [
       appLocale.distractionsHeader(gender),
@@ -31,5 +38,6 @@ PersonalPlanExportMetadata buildPersonalPlanExportMetadata(
       appLocale.phonesPageSubTitle(gender),
       appLocale.safeEnvironmentSubTitle(gender),
     ],
+    mainTitle: mainTitle,
   );
 }

@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import 'package:flutter_test/flutter_test.dart';
+import 'package:share_plus/share_plus.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:fluttericon/elusive_icons.dart';
 import 'package:get_it/get_it.dart';
@@ -80,12 +81,15 @@ void main() {
         mockPersistentMemoryService.getItem(any, PersistentMemoryType.Bool),
       ).thenAnswer((_) async => true);
       getIt.registerLazySingleton<ImagePickerService>(() => imageFactory);
-      when(mockFileServiceImpl.share(any, any, any, any, any, any)).thenAnswer(
+      when(mockFileServiceImpl.share(any, any, any, any, any,
+              mainTitle: anyNamed('mainTitle'), textDirection: anyNamed('textDirection'))).thenAnswer(
         ((Invocation invocation) async {
           counterShare = counterShare + 1;
+          return const ShareResult('test-success', ShareResultStatus.success);
         }),
       );
-      when(mockFileServiceImpl.download(any, any, any, any, any)).thenAnswer(((
+      when(mockFileServiceImpl.download(any, any, any, any,
+              mainTitle: anyNamed('mainTitle'), textDirection: anyNamed('textDirection'))).thenAnswer(((
         Invocation invocation,
       ) async {
         counterDownload = counterDownload + 1;
@@ -163,6 +167,23 @@ void main() {
       expect(counterShare, 1);
     });
 
+    testWidgets('shows Personal Plan feedback when file sharing is unavailable',
+        (WidgetTester tester) async {
+      when(mockFileServiceImpl.share(any, any, any, any, any,
+              mainTitle: anyNamed('mainTitle'), textDirection: anyNamed('textDirection')))
+          .thenAnswer((_) async => ShareResult.unavailable);
+      await tester.pumpWidget(getPersonalPlanWidgetForTests());
+
+      await tapAndSettle(tester, find.byKey(const Key('personalPlanHeaderMenu')));
+      await tapAndSettle(tester, find.byKey(const Key('personalPlanHeaderShare')));
+      await tapAndSettle(tester, find.text('שיתוף קובץ של התוכנית האישית'));
+
+      expect(
+        find.text('לא ניתן היה לשתף את התוכנית האישית שלך. נסו שוב.'),
+        findsOneWidget,
+      );
+    });
+
     testWidgets('download uses the localized plan headers and subtitles', (
       WidgetTester tester,
     ) async {
@@ -182,7 +203,8 @@ void main() {
         tester.element(find.byType(PersonalPlanSectionWidget)),
       )!;
       final captured = verify(
-        mockFileServiceImpl.download(captureAny, captureAny, any, any, any),
+        mockFileServiceImpl.download(captureAny, captureAny, any, any,
+            mainTitle: anyNamed('mainTitle'), textDirection: anyNamed('textDirection')),
       ).captured;
 
       expect(captured, hasLength(2));

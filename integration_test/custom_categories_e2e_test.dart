@@ -15,27 +15,32 @@ import 'package:mazilon/util/logger_service.dart';
 import 'package:mazilon/util/persistent_memory_service.dart';
 import 'package:mazilon/util/userInformation.dart';
 import 'package:provider/provider.dart';
+import 'package:share_plus/share_plus.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 class _NoopFileService implements FileService {
   @override
   Future<String?> download(
-      List titles,
-      List subTitles,
-      Map<String, String> texts,
-      ShareFileType saveFormat,
-      String textDirection) async {
+    List titles,
+    List subTitles,
+    Map<String, String> texts,
+    ShareFileType saveFormat, {
+    required String mainTitle,
+    required String textDirection,
+  }) async {
     return 'noop.pdf';
   }
 
   @override
-  Future<void> share(
-      String message,
-      List titles,
-      List subTitles,
-      Map<String, String> texts,
-      ShareFileType saveFormat,
-      String textDirection) async {}
+  Future<ShareResult?> share(
+    String message,
+    List titles,
+    List subTitles,
+    Map<String, String> texts,
+    ShareFileType saveFormat, {
+    required String mainTitle,
+    required String textDirection,
+  }) async => const ShareResult('noop', ShareResultStatus.success);
 
   @override
   Future<bool> shareTextOnly(String message) async => true;
@@ -43,8 +48,11 @@ class _NoopFileService implements FileService {
 
 class _NoopLogger implements IncidentLoggerService {
   @override
-  Future<void> captureLog(dynamic exception,
-      {StackTrace? stackTrace, dynamic exceptionData}) async {}
+  Future<void> captureLog(
+    dynamic exception, {
+    StackTrace? stackTrace,
+    dynamic exceptionData,
+  }) async {}
 
   @override
   Future<void> initializeSentry(Widget app) async {}
@@ -55,8 +63,10 @@ class _NoopAnalytics implements AnalyticsService {
   Future<void> init() async {}
 
   @override
-  Future<void> trackEvent(String eventName,
-      [Map<String, dynamic>? properties]) async {}
+  Future<void> trackEvent(
+    String eventName, [
+    Map<String, dynamic>? properties,
+  ]) async {}
 }
 
 Widget _shareFormHarness({
@@ -105,7 +115,8 @@ void main() {
     getIt.registerLazySingleton<FileService>(() => _NoopFileService());
     getIt.registerLazySingleton<AnalyticsService>(() => _NoopAnalytics());
     getIt.registerLazySingleton<PersistentMemoryService>(
-        () => SharedPreferencesService());
+      () => SharedPreferencesService(),
+    );
   });
 
   tearDown(() async {
@@ -113,82 +124,87 @@ void main() {
   });
 
   testWidgets(
-      'user can add repeated custom categories on Android and reload them unchanged',
-      (WidgetTester tester) async {
-    final memoryService = GetIt.instance<PersistentMemoryService>();
+    'user can add repeated custom categories on Android and reload them unchanged',
+    (WidgetTester tester) async {
+      final memoryService = GetIt.instance<PersistentMemoryService>();
 
-    await tester.pumpWidget(
-      _shareFormHarness(
-        memoryService: memoryService,
-        locale: const Locale('he'),
-      ),
-    );
-    await tester.pumpAndSettle();
+      await tester.pumpWidget(
+        _shareFormHarness(
+          memoryService: memoryService,
+          locale: const Locale('he'),
+        ),
+      );
+      await tester.pumpAndSettle();
 
-    await tester.ensureVisible(find.text('+ הוספת קטגוריה'));
-    await tester.tap(find.text('+ הוספת קטגוריה'));
-    await tester.pumpAndSettle();
+      await tester.ensureVisible(find.text('+ הוספת קטגוריה'));
+      await tester.tap(find.text('+ הוספת קטגוריה'));
+      await tester.pumpAndSettle();
 
-    await tester.enterText(
-      find.byKey(const Key('custom-category-title-field')),
-      'כותרת מהאינטגרציה',
-    );
-    await tester.enterText(
-      find.byKey(const Key('custom-category-description-field')),
-      'טקסט עברי חופשי שנשאר כמו שהוקלד',
-    );
-    await tester.ensureVisible(find.text('הוספת קטגוריה'));
-    await tester.tap(find.text('הוספת קטגוריה'));
-    await tester.pumpAndSettle();
+      await tester.enterText(
+        find.byKey(const Key('custom-category-title-field')),
+        'כותרת מהאינטגרציה',
+      );
+      await tester.enterText(
+        find.byKey(const Key('custom-category-description-field')),
+        'טקסט עברי חופשי שנשאר כמו שהוקלד',
+      );
+      await tester.ensureVisible(find.text('הוספת קטגוריה'));
+      await tester.tap(find.text('הוספת קטגוריה'));
+      await tester.pumpAndSettle();
 
-    expect(find.text('כותרת מהאינטגרציה'), findsOneWidget);
-    expect(find.text('טקסט עברי חופשי שנשאר כמו שהוקלד'), findsOneWidget);
+      expect(find.text('כותרת מהאינטגרציה'), findsOneWidget);
+      expect(find.text('טקסט עברי חופשי שנשאר כמו שהוקלד'), findsOneWidget);
 
-    await tester.tap(find.text('+ הוספת קטגוריה'));
-    await tester.pumpAndSettle();
-    await tester.tap(find.byKey(const Key('custom-category-title-field')));
-    await tester.pumpAndSettle();
-    expect(find.text('משפטים מחזקים שחשוב לי לזכור'), findsOneWidget);
-    expect(find.text('אירועים מהעבר לתזכורת'), findsOneWidget);
-    expect(find.text('דברים עלי שחשוב לי שנזכור'), findsOneWidget);
-    expect(find.text('אפשרות לכתוב משהו מקורי משלי'), findsOneWidget);
+      await tester.tap(find.text('+ הוספת קטגוריה'));
+      await tester.pumpAndSettle();
+      await tester.tap(find.byKey(const Key('custom-category-title-field')));
+      await tester.pumpAndSettle();
+      expect(find.text('משפטים מחזקים שחשוב לי לזכור'), findsOneWidget);
+      expect(find.text('אירועים מהעבר לתזכורת'), findsOneWidget);
+      expect(find.text('דברים עלי שחשוב לי שנזכור'), findsOneWidget);
+      expect(find.text('אפשרות לכתוב משהו מקורי משלי'), findsOneWidget);
 
-    await tester.enterText(
-      find.byKey(const Key('custom-category-title-field')),
-      'Integration English title',
-    );
-    await tester.enterText(
-      find.byKey(const Key('custom-category-description-field')),
-      'English notes stay English',
-    );
-    await tester.ensureVisible(find.text('הוספת קטגוריה'));
-    await tester.tap(find.text('הוספת קטגוריה'));
-    await tester.pumpAndSettle();
+      await tester.enterText(
+        find.byKey(const Key('custom-category-title-field')),
+        'Integration English title',
+      );
+      await tester.enterText(
+        find.byKey(const Key('custom-category-description-field')),
+        'English notes stay English',
+      );
+      await tester.ensureVisible(find.text('הוספת קטגוריה'));
+      await tester.tap(find.text('הוספת קטגוריה'));
+      await tester.pumpAndSettle();
 
-    expect(
-      await memoryService.getItem(
-          'customCategoryTitles', PersistentMemoryType.StringList),
-      ['כותרת מהאינטגרציה', 'Integration English title'],
-    );
-    expect(
-      await memoryService.getItem(
-          'customCategoryDescriptions', PersistentMemoryType.StringList),
-      ['טקסט עברי חופשי שנשאר כמו שהוקלד', 'English notes stay English'],
-    );
+      expect(
+        await memoryService.getItem(
+          'customCategoryTitles',
+          PersistentMemoryType.StringList,
+        ),
+        ['כותרת מהאינטגרציה', 'Integration English title'],
+      );
+      expect(
+        await memoryService.getItem(
+          'customCategoryDescriptions',
+          PersistentMemoryType.StringList,
+        ),
+        ['טקסט עברי חופשי שנשאר כמו שהוקלד', 'English notes stay English'],
+      );
 
-    await tester.pumpWidget(
-      _shareFormHarness(
-        memoryService: memoryService,
-        locale: const Locale('en'),
-      ),
-    );
-    await tester.pumpAndSettle();
+      await tester.pumpWidget(
+        _shareFormHarness(
+          memoryService: memoryService,
+          locale: const Locale('en'),
+        ),
+      );
+      await tester.pumpAndSettle();
 
-    await tester.ensureVisible(find.text('כותרת מהאינטגרציה'));
-    expect(find.text('כותרת מהאינטגרציה'), findsOneWidget);
-    expect(find.text('טקסט עברי חופשי שנשאר כמו שהוקלד'), findsOneWidget);
-    expect(find.text('Integration English title'), findsOneWidget);
-    expect(find.text('English notes stay English'), findsOneWidget);
-    expect(find.text('+ Add a custom category'), findsOneWidget);
-  });
+      await tester.ensureVisible(find.text('כותרת מהאינטגרציה'));
+      expect(find.text('כותרת מהאינטגרציה'), findsOneWidget);
+      expect(find.text('טקסט עברי חופשי שנשאר כמו שהוקלד'), findsOneWidget);
+      expect(find.text('Integration English title'), findsOneWidget);
+      expect(find.text('English notes stay English'), findsOneWidget);
+      expect(find.text('+ Add a custom category'), findsOneWidget);
+    },
+  );
 }

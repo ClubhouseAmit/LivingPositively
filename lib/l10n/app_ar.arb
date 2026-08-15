@@ -31,6 +31,15 @@
   "personalPlanPageMyPlan": "{gender,select,male{خطتي} female{خطتي} other{خطتي}}",
   "personalPlanPageAllPlan": "{gender,select,male{لرؤية خطتي} female{لرؤية خطتي} other{لرؤية خطتي}}",
   "personalPlanPageTitle": "{gender,select,male{خطتي الشخصية} female{خطتي الشخصية} other{خطتي الشخصية}}",
+  "personalPlanPdfTitle": "خطتي الشخصية",
+  "@personalPlanPdfTitle": {
+    "description": "Title used when exporting a Personal Plan PDF without a saved name"
+  },
+  "personalPlanPdfTitleWithName": "الخطة الشخصية لـ{username}",
+  "@personalPlanPdfTitleWithName": {
+    "description": "Title used when exporting a Personal Plan PDF with a saved name",
+    "placeholders": {"username": {"type": "String"}}
+  },
   "personalPlanPageStartedDownload": "{gender,select,male{بدأ التنزيل} female{بدأ التنزيل} other{بدأ التنزيل}}",
   "personalPlanPageFinishDownload": "{gender,select,male{تم حفظ خطتك في \"التنزيلات\"} female{تم حفظ خطتكِ في \"التنزيلات\"} other{تم حفظ خطتك في \"التنزيلات\"}}",
   "personalPlanPageFinish": "{gender,select,male{إنهاء} female{إنهاء} other{إنهاء}}",
@@ -398,8 +407,13 @@
   "sosShareLocationUnavailable": "تعذّر الحصول على موقعك الحالي.",
   "sosShareLocationServicesDisabled": "تعذّر الحصول على موقعك الحالي. يُرجى تفعيل خدمات الموقع.",
   "sosShareLocationShareFailed": "تعذّر مشاركة رسالة طلب المساعدة الخاصة بك. يُرجى المحاولة مرة أخرى.",
+  "personalPlanShareFailed": "تعذّر مشاركة خطتك الشخصية. يُرجى المحاولة مرة أخرى.",
   "sosShareMessage": "مشاركة رسالة الاستغاثة",
   "sosShareMessageTooltip": "مشاركة رسالة طلب المساعدة",
+  "sosSharePersonalPlan": "مشاركة الخطة الشخصية أثناء الأزمة",
+  "@sosSharePersonalPlan": {
+    "description": "Featured SOS action that shares the Personal Plan PDF with the crisis message."
+  },
   "sosDeliveryOptionsTitle": "خيارات الإرسال",
   "sosDeliveryChooseApp": "اختيار تطبيق",
   "sosDeliverySendToContact": "إرسال إلى جهة اتصال شخصية",

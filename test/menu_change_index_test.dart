@@ -21,6 +21,7 @@ import 'package:mazilon/util/appInformation.dart';
 import 'package:mazilon/util/persistent_memory_service.dart';
 import 'package:mazilon/util/userInformation.dart';
 import 'package:package_info_plus/package_info_plus.dart';
+import 'package:share_plus/share_plus.dart';
 
 import 'MenuTest/TestMenu.dart';
 import 'MenuTest/test_data.dart';
@@ -65,9 +66,24 @@ class _FakeAnalytics implements AnalyticsService {
 
 class _FakeFiles implements FileService {
   @override
-  Future<void> share(message, titles, subTitles, texts, fmt, dir) async {}
+  Future<ShareResult?> share(
+    message,
+    titles,
+    subTitles,
+    texts,
+    fmt, {
+    required mainTitle,
+    required textDirection,
+  }) async => const ShareResult('fake', ShareResultStatus.success);
   @override
-  Future<String?> download(titles, subTitles, texts, fmt, dir) async => null;
+  Future<String?> download(
+    titles,
+    subTitles,
+    texts,
+    fmt, {
+    required mainTitle,
+    required textDirection,
+  }) async => null;
   @override
   Future<bool> shareTextOnly(message) async => true;
 }

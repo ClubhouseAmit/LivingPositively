@@ -220,6 +220,14 @@ class AppLocalizationsHe extends AppLocalizations {
   }
 
   @override
+  String get personalPlanPdfTitle => 'התוכנית האישית שלי';
+
+  @override
+  String personalPlanPdfTitleWithName(String username) {
+    return 'התוכנית האישית של $username';
+  }
+
+  @override
   String personalPlanPageStartedDownload(String gender) {
     String _temp0 = intl.Intl.selectLogic(gender, {
       'male': 'ההורדה החלה',
@@ -1154,10 +1162,17 @@ class AppLocalizationsHe extends AppLocalizations {
       'לא ניתן היה לשתף את הודעת העזרה שלך. נסו שוב.';
 
   @override
+  String get personalPlanShareFailed =>
+      'לא ניתן היה לשתף את התוכנית האישית שלך. נסו שוב.';
+
+  @override
   String get sosShareMessage => 'שיתוף הודעת SOS';
 
   @override
   String get sosShareMessageTooltip => 'שיתוף הודעת העזרה שלך';
+
+  @override
+  String get sosSharePersonalPlan => 'שיתוף התוכנית האישית בעת משבר';
 
   @override
   String get sosDeliveryOptionsTitle => 'בחירת אפשרות שליחה';
@@ -1397,7 +1412,7 @@ class AppLocalizationsHe extends AppLocalizations {
 
   @override
   String get shareEmergencyMessage =>
-      'אני במצב לא טוב ויש לי צורך בעזרה.אשמח לעזרתך בהפעלת התוכנית האישית שלי. בתודה מראש.';
+      'אני במצב לא טוב ויש לי צורך בעזרה. אשמח לעזרתך בהפעלת התוכנית האישית שלי. בתודה מראש.';
 
   @override
   String get informationCollectionDisclaimer =>

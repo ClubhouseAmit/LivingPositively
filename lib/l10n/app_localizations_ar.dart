@@ -220,6 +220,14 @@ class AppLocalizationsAr extends AppLocalizations {
   }
 
   @override
+  String get personalPlanPdfTitle => 'خطتي الشخصية';
+
+  @override
+  String personalPlanPdfTitleWithName(String username) {
+    return 'الخطة الشخصية لـ$username';
+  }
+
+  @override
   String personalPlanPageStartedDownload(String gender) {
     String _temp0 = intl.Intl.selectLogic(gender, {
       'male': 'بدأ التنزيل',
@@ -1159,10 +1167,17 @@ class AppLocalizationsAr extends AppLocalizations {
       'تعذّر مشاركة رسالة طلب المساعدة الخاصة بك. يُرجى المحاولة مرة أخرى.';
 
   @override
+  String get personalPlanShareFailed =>
+      'تعذّر مشاركة خطتك الشخصية. يُرجى المحاولة مرة أخرى.';
+
+  @override
   String get sosShareMessage => 'مشاركة رسالة الاستغاثة';
 
   @override
   String get sosShareMessageTooltip => 'مشاركة رسالة طلب المساعدة';
+
+  @override
+  String get sosSharePersonalPlan => 'مشاركة الخطة الشخصية أثناء الأزمة';
 
   @override
   String get sosDeliveryOptionsTitle => 'خيارات الإرسال';
