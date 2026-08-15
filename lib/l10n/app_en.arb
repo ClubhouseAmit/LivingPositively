@@ -1945,5 +1945,57 @@
   "notificationCustomMessageHint": "Enter reminder message...",
   "@notificationCustomMessageHint": {
     "description": "Hint text for the custom reminder message text field"
+  },
+  "speechDictationAction": "Dictate text",
+  "@speechDictationAction": {
+    "description": "Accessible label for the action that starts voice dictation for a text field"
+  },
+  "speechDictationDisclosureTitle": "Use voice dictation?",
+  "@speechDictationDisclosureTitle": {
+    "description": "Title of the first-use voice dictation disclosure"
+  },
+  "speechDictationDisclosureMessage": "Your device or browser processes speech while you dictate. We do not store audio, and you can review and edit the text before saving.",
+  "@speechDictationDisclosureMessage": {
+    "description": "First-use disclosure explaining speech processing, audio handling, and text review"
+  },
+  "speechDictationDisclosureAccept": "Continue",
+  "@speechDictationDisclosureAccept": {
+    "description": "Accepts the first-use voice dictation disclosure"
+  },
+  "speechDictationDisclosureDecline": "Not now",
+  "@speechDictationDisclosureDecline": {
+    "description": "Declines the first-use voice dictation disclosure"
+  },
+  "speechDictationLanguagePickerTitle": "Choose a dictation language",
+  "@speechDictationLanguagePickerTitle": {
+    "description": "Title of the installed speech-recognition language picker"
+  },
+  "speechDictationListeningLabel": "Listening…",
+  "@speechDictationListeningLabel": {
+    "description": "Status shown while voice dictation is active"
+  },
+  "speechDictationStopAndApplyAction": "Stop and apply",
+  "@speechDictationStopAndApplyAction": {
+    "description": "Stops dictation and applies its final text to the field"
+  },
+  "speechDictationDiscardAction": "Discard",
+  "@speechDictationDiscardAction": {
+    "description": "Cancels active dictation and discards its text"
+  },
+  "speechDictationUnavailable": "Voice dictation is unavailable on this device.",
+  "@speechDictationUnavailable": {
+    "description": "Message shown when device speech recognition cannot be used"
+  },
+  "speechDictationError": "Voice dictation could not be completed. Please try again.",
+  "@speechDictationError": {
+    "description": "Message shown when an active voice dictation session fails"
+  },
+  "speechDictationTooLong": "The dictated text is too long for this field.",
+  "@speechDictationTooLong": {
+    "description": "Message shown when a final dictation result exceeds the text field limit"
+  },
+  "speechDictationPhoneInvalid": "The dictated phone number is not valid for the selected country.",
+  "@speechDictationPhoneInvalid": {
+    "description": "Message shown when a dictated phone number fails country-aware validation"
   }
 }

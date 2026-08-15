@@ -584,5 +584,18 @@
   "notificationCustomMessageHint": "أدخل رسالة التذكير...",
   "@notificationCustomMessageHint": {
     "description": "Hint text for the custom reminder message text field"
-  }
+  },
+  "speechDictationAction": "إملاء النص",
+  "speechDictationDisclosureTitle": "هل تريد استخدام الإملاء الصوتي؟",
+  "speechDictationDisclosureMessage": "يعالج جهازك أو متصفحك الكلام أثناء الإملاء. لا نخزن الصوت، ويمكنك مراجعة النص وتعديله قبل الحفظ.",
+  "speechDictationDisclosureAccept": "متابعة",
+  "speechDictationDisclosureDecline": "ليس الآن",
+  "speechDictationLanguagePickerTitle": "اختر لغة الإملاء",
+  "speechDictationListeningLabel": "جارٍ الاستماع…",
+  "speechDictationStopAndApplyAction": "إيقاف وتطبيق",
+  "speechDictationDiscardAction": "تجاهل",
+  "speechDictationUnavailable": "الإملاء الصوتي غير متاح على هذا الجهاز.",
+  "speechDictationError": "تعذر إكمال الإملاء الصوتي. يرجى المحاولة مرة أخرى.",
+  "speechDictationTooLong": "النص المملى طويل جدًا لهذا الحقل.",
+  "speechDictationPhoneInvalid": "رقم الهاتف المملى غير صالح للبلد المحدد."
 }

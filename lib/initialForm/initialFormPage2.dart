@@ -5,6 +5,7 @@ import 'package:mazilon/initialForm/CountrySelectorWidget.dart';
 import 'package:mazilon/util/LP_extended_state.dart';
 
 import 'package:flutter_screenutil/flutter_screenutil.dart';
+import 'package:mazilon/form/speech_dictation_suffix_action.dart';
 import 'package:mazilon/l10n/app_localizations.dart';
 import 'package:mazilon/util/Form/myDropdownMenuEntry.dart';
 import 'package:mazilon/util/styles.dart';
@@ -200,9 +201,16 @@ class _InitialFormPage2State extends LPExtendedState<InitialFormPage2> {
                           width: fieldWidth,
                           child: TextFormField(
                             controller: _nameController,
-                            decoration: const InputDecoration(
-                              border: OutlineInputBorder(),
-                              contentPadding: EdgeInsets.symmetric(
+                            decoration: InputDecoration(
+                              border: const OutlineInputBorder(),
+                              suffixIcon:
+                                  SpeechDictationSuffixAction
+                                      .isSupportedPlatform
+                                  ? SpeechDictationSuffixAction(
+                                      controller: _nameController,
+                                    )
+                                  : null,
+                              contentPadding: const EdgeInsets.symmetric(
                                 horizontal: 12,
                                 vertical: 14,
                               ),

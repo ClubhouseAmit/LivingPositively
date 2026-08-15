@@ -29,8 +29,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:mazilon/form/speech_dictation_suffix_action.dart';
 import 'package:mazilon/l10n/app_localizations.dart';
-import 'package:mazilon/pages/notifications/notification_service.dart';
 import 'package:workmanager/workmanager.dart' show Workmanager;
 import 'package:mazilon/pages/notifications/set_notification_widget.dart';
 import 'package:mazilon/pages/notifications/time_picker.dart';
@@ -193,6 +193,24 @@ void main() {
   });
 
 
+
+  testWidgets('reminder message field exposes dictation on iOS',
+      (tester) async {
+    await _onIos(() async {
+      await pumpWithProviders(
+        tester,
+        const SetNotificationWidget(),
+        userInformation: UserInformation(gender: 'male'),
+        locale: const Locale('he'),
+      );
+      await tester.pumpAndSettle(const Duration(milliseconds: 300));
+
+      final field = tester.widget<TextField>(
+        find.byKey(const Key('custom-reminder-message-field')),
+      );
+      expect(field.decoration?.suffixIcon, isA<SpeechDictationSuffixAction>());
+    });
+  });
 
   testWidgets('TimePicker receives non-default userInfo state',
       (tester) async {

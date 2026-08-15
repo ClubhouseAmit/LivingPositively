@@ -3471,4 +3471,48 @@ class AppLocalizationsAr extends AppLocalizations {
 
   @override
   String get notificationCustomMessageHint => 'أدخل رسالة التذكير...';
+
+  @override
+  String get speechDictationAction => 'إملاء النص';
+
+  @override
+  String get speechDictationDisclosureTitle =>
+      'هل تريد استخدام الإملاء الصوتي؟';
+
+  @override
+  String get speechDictationDisclosureMessage =>
+      'يعالج جهازك أو متصفحك الكلام أثناء الإملاء. لا نخزن الصوت، ويمكنك مراجعة النص وتعديله قبل الحفظ.';
+
+  @override
+  String get speechDictationDisclosureAccept => 'متابعة';
+
+  @override
+  String get speechDictationDisclosureDecline => 'ليس الآن';
+
+  @override
+  String get speechDictationLanguagePickerTitle => 'اختر لغة الإملاء';
+
+  @override
+  String get speechDictationListeningLabel => 'جارٍ الاستماع…';
+
+  @override
+  String get speechDictationStopAndApplyAction => 'إيقاف وتطبيق';
+
+  @override
+  String get speechDictationDiscardAction => 'تجاهل';
+
+  @override
+  String get speechDictationUnavailable =>
+      'الإملاء الصوتي غير متاح على هذا الجهاز.';
+
+  @override
+  String get speechDictationError =>
+      'تعذر إكمال الإملاء الصوتي. يرجى المحاولة مرة أخرى.';
+
+  @override
+  String get speechDictationTooLong => 'النص المملى طويل جدًا لهذا الحقل.';
+
+  @override
+  String get speechDictationPhoneInvalid =>
+      'رقم الهاتف المملى غير صالح للبلد المحدد.';
 }

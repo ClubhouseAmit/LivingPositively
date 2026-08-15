@@ -24,6 +24,10 @@
 	<string>$(MACOSX_DEPLOYMENT_TARGET)</string>
 	<key>NSHumanReadableCopyright</key>
 	<string>$(PRODUCT_COPYRIGHT)</string>
+	<key>NSSpeechRecognitionUsageDescription</key>
+	<string>Living Positively uses speech recognition only when you choose voice dictation to help enter editable text.</string>
+	<key>NSMicrophoneUsageDescription</key>
+	<string>Living Positively uses your microphone only while you choose voice dictation to help enter editable text.</string>
 	<key>NSMainNibFile</key>
 	<string>MainMenu</string>
 	<key>NSPrincipalClass</key>

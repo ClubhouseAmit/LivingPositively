@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:get_it/get_it.dart';
 import 'package:mazilon/Locale/locale_service.dart';
+import 'package:mazilon/form/speech_dictation_suffix_action.dart';
 import 'package:mazilon/global_enums.dart';
 import 'package:mazilon/pages/SignIn_Pages/firstPage.dart';
 import 'package:mazilon/util/Form/formPagePhoneModel.dart';
@@ -411,9 +412,15 @@ class _UserSettingsState extends LPExtendedState<UserSettings> {
                         width: settingsFieldWidth,
                         child: TextFormField(
                           controller: _namecontroller,
-                          decoration: const InputDecoration(
-                            border: OutlineInputBorder(),
-                            contentPadding: EdgeInsets.symmetric(
+                          decoration: InputDecoration(
+                            border: const OutlineInputBorder(),
+                            suffixIcon:
+                                SpeechDictationSuffixAction.isSupportedPlatform
+                                ? SpeechDictationSuffixAction(
+                                    controller: _namecontroller,
+                                  )
+                                : null,
+                            contentPadding: const EdgeInsets.symmetric(
                               horizontal: 12,
                               vertical: 14,
                             ),
