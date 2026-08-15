@@ -78,7 +78,7 @@ class _FakePersistentMemoryService_2 extends _i1.SmartFake
 /// See the documentation for Mockito's code generation for more information.
 class MockFileService extends _i1.Mock implements _i6.FileService {
   @override
-  _i7.Future<void> share(
+  _i7.Future<_i11.ShareResult?> share(
     String? message,
     List<dynamic>? titles,
     List<dynamic>? subTitles,
@@ -99,9 +99,9 @@ class MockFileService extends _i1.Mock implements _i6.FileService {
           ],
           {#mainTitle: mainTitle, #textDirection: textDirection},
         ),
-        returnValue: _i7.Future<void>.value(),
-        returnValueForMissingStub: _i7.Future<void>.value(),
-      ) as _i7.Future<void>);
+        returnValue: _i7.Future<_i11.ShareResult?>.value(),
+        returnValueForMissingStub: _i7.Future<_i11.ShareResult?>.value(),
+      ) as _i7.Future<_i11.ShareResult?>);
 
   @override
   _i7.Future<String?> download(

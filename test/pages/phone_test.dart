@@ -18,6 +18,7 @@ import 'package:mazilon/util/personal_plan_export_metadata.dart';
 import 'package:mazilon/util/persistent_memory_service.dart';
 import 'package:mazilon/util/userInformation.dart';
 import 'package:provider/provider.dart';
+import 'package:share_plus/share_plus.dart';
 import 'package:url_launcher_platform_interface/url_launcher_platform_interface.dart';
 
 import '../helpers/phone_delivery_test_fakes.dart';
@@ -50,12 +51,19 @@ class RecordingFileService implements FileService {
     this.failedResultsRemaining = 0,
     this.exceptionsRemaining = 0,
     this.shareCompleter,
+    this.planShareResult = const ShareResult(
+      'test-success',
+      ShareResultStatus.success,
+    ),
+    this.planShareError,
   }) : callLog = callLog ?? [];
 
   final List<String> callLog;
   final List<String> sharedMessages = [];
   final List<RecordedShareCall> shareCalls = [];
   final Completer<void>? shareCompleter;
+  final ShareResult? planShareResult;
+  final Object? planShareError;
   int failedResultsRemaining;
   int exceptionsRemaining;
 
@@ -64,19 +72,19 @@ class RecordingFileService implements FileService {
     List<dynamic> titles,
     List<dynamic> subTitles,
     Map<String, String> texts,
-    ShareFileType saveFormat,
-    {required String mainTitle,
+    ShareFileType saveFormat, {
+    required String mainTitle,
     required String textDirection,
   }) async => null;
 
   @override
-  Future<void> share(
+  Future<ShareResult?> share(
     String message,
     List<dynamic> titles,
     List<dynamic> subTitles,
     Map<String, String> texts,
-    ShareFileType saveFormat,
-    {required String mainTitle,
+    ShareFileType saveFormat, {
+    required String mainTitle,
     required String textDirection,
   }) async {
     shareCalls.add(
@@ -91,6 +99,10 @@ class RecordingFileService implements FileService {
       ),
     );
     await shareCompleter?.future;
+    if (planShareError != null) {
+      throw planShareError!;
+    }
+    return planShareResult;
   }
 
   @override
@@ -1174,6 +1186,88 @@ void main() {
         },
       );
     }
+
+    testWidgets(
+      'should show localized SOS feedback when Personal Plan PDF sharing fails',
+      (tester) async {
+        final locationService = FakeSosLocationService();
+        final fileService = RecordingFileService(planShareResult: null);
+        await _runPhonePageTest(
+          locationService,
+          fileService,
+          body: () async {
+            await tester.pumpWidget(
+              buildPhonePageTestApp(
+                userInformation: UserInformation(
+                  gender: 'male',
+                  location: 'IL',
+                  service: FakePersistentMemoryService(),
+                ),
+                appInformation: AppInformation(),
+                phonePageData: _phonePageDataForLocationShare(),
+              ),
+            );
+            await tester.pumpAndSettle();
+            final localizations = AppLocalizations.of(
+              tester.element(find.byType(PhonePage)),
+            )!;
+
+            await _tapSosAction(
+              tester,
+              const Key('phonePageSharePersonalPlanButton'),
+            );
+
+            expect(fileService.shareCalls, hasLength(1));
+            expect(
+              find.text(localizations.sosShareLocationShareFailed),
+              findsOneWidget,
+            );
+          },
+        );
+      },
+    );
+
+    testWidgets(
+      'should not show failure feedback when Personal Plan sharing is dismissed',
+      (tester) async {
+        final locationService = FakeSosLocationService();
+        final fileService = RecordingFileService(
+          planShareResult: const ShareResult('', ShareResultStatus.dismissed),
+        );
+        await _runPhonePageTest(
+          locationService,
+          fileService,
+          body: () async {
+            await tester.pumpWidget(
+              buildPhonePageTestApp(
+                userInformation: UserInformation(
+                  gender: 'male',
+                  location: 'IL',
+                  service: FakePersistentMemoryService(),
+                ),
+                appInformation: AppInformation(),
+                phonePageData: _phonePageDataForLocationShare(),
+              ),
+            );
+            await tester.pumpAndSettle();
+            final localizations = AppLocalizations.of(
+              tester.element(find.byType(PhonePage)),
+            )!;
+
+            await _tapSosAction(
+              tester,
+              const Key('phonePageSharePersonalPlanButton'),
+            );
+
+            expect(fileService.shareCalls, hasLength(1));
+            expect(
+              find.text(localizations.sosShareLocationShareFailed),
+              findsNothing,
+            );
+          },
+        );
+      },
+    );
 
     testWidgets('should serialize repeated Personal Plan crisis shares', (
       tester,

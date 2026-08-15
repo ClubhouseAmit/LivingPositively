@@ -103,16 +103,32 @@ class _PhonePageState extends LPExtendedState<PhonePage> {
     String gender,
     String username,
   ) => _runSosDelivery(() async {
-    final exportMetadata = buildPersonalPlanExportMetadata(appLocale, gender, username);
-    await GetIt.instance<FileService>().share(
-      appLocale.shareEmergencyMessage,
+    final localizations = appLocale;
+    final messenger = ScaffoldMessenger.maybeOf(context);
+    final exportMetadata = buildPersonalPlanExportMetadata(
+      localizations,
+      gender,
+      username,
+    );
+    final shareResult = await GetIt.instance<FileService>().share(
+      localizations.shareEmergencyMessage,
       exportMetadata.titles,
       exportMetadata.subTitles,
       appInformation.sharePDFtexts,
       ShareFileType.PDF,
       mainTitle: exportMetadata.mainTitle,
-      textDirection: appLocale.textDirection,
+      textDirection: localizations.textDirection,
     );
+    if (!mounted) {
+      return;
+    }
+    if (shareResult == null ||
+        shareResult.status == ShareResultStatus.unavailable) {
+      messenger?.hideCurrentSnackBar();
+      messenger?.showSnackBar(
+        SnackBar(content: Text(localizations.sosShareLocationShareFailed)),
+      );
+    }
   });
 
   Future<void> _runSosDelivery(Future<void> Function() delivery) async {

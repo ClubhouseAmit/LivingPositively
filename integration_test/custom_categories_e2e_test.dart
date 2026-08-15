@@ -15,6 +15,7 @@ import 'package:mazilon/util/logger_service.dart';
 import 'package:mazilon/util/persistent_memory_service.dart';
 import 'package:mazilon/util/userInformation.dart';
 import 'package:provider/provider.dart';
+import 'package:share_plus/share_plus.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 class _NoopFileService implements FileService {
@@ -31,7 +32,7 @@ class _NoopFileService implements FileService {
   }
 
   @override
-  Future<void> share(
+  Future<ShareResult?> share(
     String message,
     List titles,
     List subTitles,
@@ -39,7 +40,7 @@ class _NoopFileService implements FileService {
     ShareFileType saveFormat, {
     required String mainTitle,
     required String textDirection,
-  }) async {}
+  }) async => const ShareResult('noop', ShareResultStatus.success);
 
   @override
   Future<bool> shareTextOnly(String message) async => true;

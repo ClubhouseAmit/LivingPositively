@@ -20,7 +20,7 @@ abstract class FileService {
   ///
   /// The title is rendered before the sections, including when no sections are
   /// populated. Callers provide a non-empty localized title and [textDirection].
-  Future<void> share(
+  Future<ShareResult?> share(
       String message,
       List<dynamic> titles,
       List<dynamic> subTitles,
@@ -206,7 +206,7 @@ class FileServiceImpl implements FileService {
   }
 
   @override
-  Future<void> share(
+  Future<ShareResult?> share(
       String message,
       List<dynamic> titles,
       List<dynamic> subTitles,
@@ -231,19 +231,22 @@ class FileServiceImpl implements FileService {
           final tempFile = await saveTempPDF(file["file"], file["format"]);
           XFile tempXFile = XFile(tempFile.path);
 
-          await SharePlus.instance.share(ShareParams(
+          final shareResult = await SharePlus.instance.share(ShareParams(
               files: [tempXFile], text: checkEmptyMessage(message)));
-          break;
+          if (shareResult.status == ShareResultStatus.success) {
+            AnalyticsService mixPanelService = GetIt.instance<AnalyticsService>();
+            mixPanelService.trackEvent("Plan shared");
+          }
+          return shareResult;
         default:
           file = {"file": null, "format": null};
       }
 
       // Save the PDF and share it
       if (file["file"] == null || file["format"] == null) {
-        return;
+        return null;
       }
-      AnalyticsService mixPanelService = GetIt.instance<AnalyticsService>();
-      mixPanelService.trackEvent("Plan shared");
+      return null;
     } catch (error, stackTrace) {
       IncidentLoggerService loggerService =
           GetIt.instance<IncidentLoggerService>();
@@ -251,6 +254,7 @@ class FileServiceImpl implements FileService {
         error,
         stackTrace: stackTrace,
       );
+      return null;
     }
   }
 

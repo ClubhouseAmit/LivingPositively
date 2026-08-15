@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import 'package:flutter_test/flutter_test.dart';
+import 'package:share_plus/share_plus.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:fluttericon/elusive_icons.dart';
 import 'package:get_it/get_it.dart';
@@ -84,6 +85,7 @@ void main() {
               mainTitle: anyNamed('mainTitle'), textDirection: anyNamed('textDirection'))).thenAnswer(
         ((Invocation invocation) async {
           counterShare = counterShare + 1;
+          return const ShareResult('test-success', ShareResultStatus.success);
         }),
       );
       when(mockFileServiceImpl.download(any, any, any, any,

@@ -11,6 +11,7 @@ import 'package:mazilon/util/appInformation.dart';
 import 'package:mazilon/util/persistent_memory_service.dart';
 import 'package:mazilon/util/userInformation.dart';
 import 'package:package_info_plus/package_info_plus.dart';
+import 'package:share_plus/share_plus.dart';
 import 'package:url_launcher_platform_interface/link.dart';
 import 'package:url_launcher_platform_interface/url_launcher_platform_interface.dart';
 
@@ -61,7 +62,7 @@ class _FakePersistentMemoryService implements PersistentMemoryService {
 
 class _FakeFileService implements FileService {
   @override
-  Future<void> share(
+  Future<ShareResult?> share(
     String message,
     List<dynamic> titles,
     List<dynamic> subTitles,
@@ -69,7 +70,7 @@ class _FakeFileService implements FileService {
     ShareFileType saveFormat,
     {required String mainTitle,
     required String textDirection,
-  }) async {}
+  }) async => const ShareResult('fake', ShareResultStatus.success);
 
   @override
   Future<String?> download(

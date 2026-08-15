@@ -65,12 +65,13 @@ Future<Map<String, dynamic>> createPDF(
       ),
     );
   }
+  var hasRenderedSection = false;
   for (var i = 0; i < data.length; i++) {
     if (data[i].isEmpty) {
       continue;
     }
 
-    if (i > 0) {
+    if (hasRenderedSection) {
       widgets.add(pw.SizedBox(height: 25));
     }
     widgets.add(pw.SizedBox(height: 25));
@@ -156,6 +157,7 @@ Future<Map<String, dynamic>> createPDF(
         ),
       ),
     );
+    hasRenderedSection = true;
   }
 
   // Add space before footer
