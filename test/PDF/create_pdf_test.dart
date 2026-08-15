@@ -31,6 +31,22 @@ void main() {
       expect(getAlignment('hello'), pw.Alignment.centerRight);
       expect(getAlignment('שלום'), pw.Alignment.centerRight);
     });
+
+    test(
+      'pdfTextDirectionForLocale uses RTL only for the rtl locale value',
+      () {
+        expect(pdfTextDirectionForLocale('rtl'), pw.TextDirection.rtl);
+        expect(pdfTextDirectionForLocale('ltr'), pw.TextDirection.ltr);
+        expect(pdfTextDirectionForLocale('unexpected'), pw.TextDirection.ltr);
+      },
+    );
+
+    test('pdf alignment follows the locale direction', () {
+      expect(pdfAlignmentForLocale('rtl'), pw.Alignment.centerRight);
+      expect(pdfAlignmentForLocale('ltr'), pw.Alignment.centerLeft);
+      expect(pdfTextAlignForLocale('rtl'), pw.TextAlign.right);
+      expect(pdfTextAlignForLocale('ltr'), pw.TextAlign.left);
+    });
   });
 
   group('createPDF', () {
@@ -96,16 +112,9 @@ void main() {
     });
 
     test('returns format=pdf', () async {
-      final result = await createPDF(
-        ['T'],
-        ['S'],
-        defaultTexts,
-        'Plan',
-        [
-          ['x'],
-        ],
-        'ltr',
-      );
+      final result = await createPDF(['T'], ['S'], defaultTexts, 'Plan', [
+        ['x'],
+      ], 'ltr');
       expect(result['format'], 'pdf');
     });
   });

@@ -1183,6 +1183,10 @@ class AppLocalizationsEn extends AppLocalizations {
       'Your SOS help message could not be shared. Please try again.';
 
   @override
+  String get personalPlanShareFailed =>
+      'Your Personal Plan could not be shared. Please try again.';
+
+  @override
   String get sosShareMessage => 'Share SOS Message';
 
   @override

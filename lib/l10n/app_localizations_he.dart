@@ -1162,6 +1162,10 @@ class AppLocalizationsHe extends AppLocalizations {
       'לא ניתן היה לשתף את הודעת העזרה שלך. נסו שוב.';
 
   @override
+  String get personalPlanShareFailed =>
+      'לא ניתן היה לשתף את התוכנית האישית שלך. נסו שוב.';
+
+  @override
   String get sosShareMessage => 'שיתוף הודעת SOS';
 
   @override

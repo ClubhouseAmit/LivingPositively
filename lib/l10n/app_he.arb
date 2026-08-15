@@ -176,6 +176,10 @@
      "@sosShareLocationShareFailed": {
        "description": "הודעה המוצגת כשלא ניתן לשתף את הודעת העזרה דרך גיליון השיתוף של המכשיר."
      },
+     "personalPlanShareFailed": "לא ניתן היה לשתף את התוכנית האישית שלך. נסו שוב.",
+     "@personalPlanShareFailed": {
+       "description": "הודעה המוצגת כשלא ניתן לשתף את קובץ התוכנית האישית דרך גיליון השיתוף של המכשיר."
+     },
      "sosShareMessage": "שיתוף הודעת SOS",
      "@sosShareMessage": {
        "description": "פעולת SOS שמשתפת רק את הודעת העזרה."

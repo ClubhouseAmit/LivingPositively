@@ -509,6 +509,10 @@
   "@sosShareLocationShareFailed": {
     "description": "Notice shown when the SOS help message cannot be shared through the native share sheet."
   },
+  "personalPlanShareFailed": "Your Personal Plan could not be shared. Please try again.",
+  "@personalPlanShareFailed": {
+    "description": "Notice shown when the Personal Plan PDF cannot be shared through the native share sheet."
+  },
   "sosShareMessage": "Share SOS Message",
   "@sosShareMessage": {
     "description": "The SOS action that shares only the help message."

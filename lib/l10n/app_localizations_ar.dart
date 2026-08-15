@@ -1167,6 +1167,10 @@ class AppLocalizationsAr extends AppLocalizations {
       'تعذّر مشاركة رسالة طلب المساعدة الخاصة بك. يُرجى المحاولة مرة أخرى.';
 
   @override
+  String get personalPlanShareFailed =>
+      'تعذّر مشاركة خطتك الشخصية. يُرجى المحاولة مرة أخرى.';
+
+  @override
   String get sosShareMessage => 'مشاركة رسالة الاستغاثة';
 
   @override

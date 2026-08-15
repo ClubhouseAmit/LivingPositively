@@ -11,6 +11,7 @@ import 'package:mazilon/util/appInformation.dart';
 import 'package:mazilon/util/personal_plan_export_metadata.dart';
 import 'package:mazilon/util/userInformation.dart';
 import 'package:provider/provider.dart';
+import 'package:share_plus/share_plus.dart';
 
 class LPShareAlertDialog extends StatefulWidget {
   const LPShareAlertDialog({
@@ -21,15 +22,15 @@ class LPShareAlertDialog extends StatefulWidget {
   State<LPShareAlertDialog> createState() => _LPShareAlertDialogState();
 }
 
-Future<void> shareFile(
+Future<ShareResult?> shareFile(
   AppLocalizations appLocale,
   String gender,
   String username,
   AppInformation appInfoProvider,
-) async {
+) {
   final fileService = GetIt.instance<FileService>();
   final exportMetadata = buildPersonalPlanExportMetadata(appLocale, gender, username);
-  await fileService.share(
+  return fileService.share(
     "",
     exportMetadata.titles,
     exportMetadata.subTitles,
@@ -52,7 +53,24 @@ class _LPShareAlertDialogState extends LPExtendedState<LPShareAlertDialog> {
       title: appLocale.shareOptions,
       actions: [
         LPAlertDialogBoxItem(
-          onPressed: () => shareFile(appLocale, gender, userInfoProvider.name, appInfoProvider),
+          onPressed: () async {
+            final personalPlanShareFailed = appLocale.personalPlanShareFailed;
+            final shareResult = await shareFile(
+              appLocale,
+              gender,
+              userInfoProvider.name,
+              appInfoProvider,
+            );
+            if (!context.mounted) {
+              return;
+            }
+            if (shareResult == null ||
+                shareResult.status == ShareResultStatus.unavailable) {
+              ScaffoldMessenger.maybeOf(context)?.showSnackBar(
+                SnackBar(content: Text(personalPlanShareFailed)),
+              );
+            }
+          },
           buttonText: appLocale.shareFile,
           icon: Icons.insert_drive_file_outlined,
         ),

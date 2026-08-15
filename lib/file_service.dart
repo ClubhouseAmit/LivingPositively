@@ -242,10 +242,6 @@ class FileServiceImpl implements FileService {
           file = {"file": null, "format": null};
       }
 
-      // Save the PDF and share it
-      if (file["file"] == null || file["format"] == null) {
-        return null;
-      }
       return null;
     } catch (error, stackTrace) {
       IncidentLoggerService loggerService =

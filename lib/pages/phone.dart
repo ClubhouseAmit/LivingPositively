@@ -126,7 +126,7 @@ class _PhonePageState extends LPExtendedState<PhonePage> {
         shareResult.status == ShareResultStatus.unavailable) {
       messenger?.hideCurrentSnackBar();
       messenger?.showSnackBar(
-        SnackBar(content: Text(localizations.sosShareLocationShareFailed)),
+        SnackBar(content: Text(localizations.personalPlanShareFailed)),
       );
     }
   });

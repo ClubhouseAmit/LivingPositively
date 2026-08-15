@@ -167,6 +167,23 @@ void main() {
       expect(counterShare, 1);
     });
 
+    testWidgets('shows Personal Plan feedback when file sharing is unavailable',
+        (WidgetTester tester) async {
+      when(mockFileServiceImpl.share(any, any, any, any, any,
+              mainTitle: anyNamed('mainTitle'), textDirection: anyNamed('textDirection')))
+          .thenAnswer((_) async => ShareResult.unavailable);
+      await tester.pumpWidget(getPersonalPlanWidgetForTests());
+
+      await tapAndSettle(tester, find.byKey(const Key('personalPlanHeaderMenu')));
+      await tapAndSettle(tester, find.byKey(const Key('personalPlanHeaderShare')));
+      await tapAndSettle(tester, find.text('שיתוף קובץ של התוכנית האישית'));
+
+      expect(
+        find.text('לא ניתן היה לשתף את התוכנית האישית שלך. נסו שוב.'),
+        findsOneWidget,
+      );
+    });
+
     testWidgets('download uses the localized plan headers and subtitles', (
       WidgetTester tester,
     ) async {

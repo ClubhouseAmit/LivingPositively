@@ -1187,45 +1187,47 @@ void main() {
       );
     }
 
-    testWidgets(
-      'should show localized SOS feedback when Personal Plan PDF sharing fails',
-      (tester) async {
-        final locationService = FakeSosLocationService();
-        final fileService = RecordingFileService(planShareResult: null);
-        await _runPhonePageTest(
-          locationService,
-          fileService,
-          body: () async {
-            await tester.pumpWidget(
-              buildPhonePageTestApp(
-                userInformation: UserInformation(
-                  gender: 'male',
-                  location: 'IL',
-                  service: FakePersistentMemoryService(),
+    for (final failureResult in <ShareResult?>[null, ShareResult.unavailable]) {
+      testWidgets(
+        'should show localized Personal Plan feedback when sharing returns ${failureResult?.status ?? 'null'}',
+        (tester) async {
+          final locationService = FakeSosLocationService();
+          final fileService = RecordingFileService(planShareResult: failureResult);
+          await _runPhonePageTest(
+            locationService,
+            fileService,
+            body: () async {
+              await tester.pumpWidget(
+                buildPhonePageTestApp(
+                  userInformation: UserInformation(
+                    gender: 'male',
+                    location: 'IL',
+                    service: FakePersistentMemoryService(),
+                  ),
+                  appInformation: AppInformation(),
+                  phonePageData: _phonePageDataForLocationShare(),
                 ),
-                appInformation: AppInformation(),
-                phonePageData: _phonePageDataForLocationShare(),
-              ),
-            );
-            await tester.pumpAndSettle();
-            final localizations = AppLocalizations.of(
-              tester.element(find.byType(PhonePage)),
-            )!;
+              );
+              await tester.pumpAndSettle();
+              final localizations = AppLocalizations.of(
+                tester.element(find.byType(PhonePage)),
+              )!;
 
-            await _tapSosAction(
-              tester,
-              const Key('phonePageSharePersonalPlanButton'),
-            );
+              await _tapSosAction(
+                tester,
+                const Key('phonePageSharePersonalPlanButton'),
+              );
 
-            expect(fileService.shareCalls, hasLength(1));
-            expect(
-              find.text(localizations.sosShareLocationShareFailed),
-              findsOneWidget,
-            );
-          },
-        );
-      },
-    );
+              expect(fileService.shareCalls, hasLength(1));
+              expect(
+                find.text(localizations.personalPlanShareFailed),
+                findsOneWidget,
+              );
+            },
+          );
+        },
+      );
+    }
 
     testWidgets(
       'should not show failure feedback when Personal Plan sharing is dismissed',
@@ -1261,7 +1263,7 @@ void main() {
 
             expect(fileService.shareCalls, hasLength(1));
             expect(
-              find.text(localizations.sosShareLocationShareFailed),
+              find.text(localizations.personalPlanShareFailed),
               findsNothing,
             );
           },

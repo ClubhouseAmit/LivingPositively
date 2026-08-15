@@ -874,6 +874,12 @@ abstract class AppLocalizations {
   /// **'Your SOS help message could not be shared. Please try again.'**
   String get sosShareLocationShareFailed;
 
+  /// Notice shown when the Personal Plan PDF cannot be shared through the native share sheet.
+  ///
+  /// In en, this message translates to:
+  /// **'Your Personal Plan could not be shared. Please try again.'**
+  String get personalPlanShareFailed;
+
   /// The SOS action that shares only the help message.
   ///
   /// In en, this message translates to:
