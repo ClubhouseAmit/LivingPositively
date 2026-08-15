@@ -1,4 +1,4 @@
-import 'package:auto_size_text/auto_size_text.dart';
+import 'package:flutter/rendering.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -9,6 +9,8 @@ import 'package:provider/provider.dart';
 import 'package:mazilon/util/appInformation.dart';
 import 'package:mazilon/util/userInformation.dart';
 import 'package:mazilon/form/formpagetemplate.dart';
+import 'package:mazilon/form/wizard_step.dart';
+import 'package:mazilon/util/theme/app_theme.dart';
 import 'package:mockito/mockito.dart';
 import 'package:mockito/annotations.dart';
 import 'package:mazilon/l10n/app_localizations.dart';
@@ -84,12 +86,18 @@ void main() {
             supportedLocales: AppLocalizations.supportedLocales,
             locale: Locale('he'),
             localizationsDelegates: AppLocalizations.localizationsDelegates,
+            theme: buildLightTheme(),
             home: ScreenUtilInit(
               designSize: const Size(360, 690),
-              child: FormPageTemplate(
-                next: () {},
-                prev: () {},
-                collectionName: 'PersonalPlan-DifficultEvents',
+              child: Scaffold(
+                body: WizardStepPage(
+                  step: FormPageTemplate(
+                    key: GlobalKey<WizardStepState>(),
+                    next: () {},
+                    prev: () {},
+                    collectionName: 'PersonalPlan-DifficultEvents',
+                  ),
+                ),
               ),
             ),
           ),
@@ -115,39 +123,54 @@ void main() {
 
       // Verifying initial UI elements and their styles to prevent design regressions
       final headerFinder = find.byWidgetPredicate(
-        (widget) => widget is AutoSizeText && widget.data == 'תזכורות לטריגרים נפוצים וגורמי הסלמה',
+        (widget) => widget is Text && widget.data == 'תזכורות לטריגרים נפוצים וגורמי הסלמה',
       );
       expect(headerFinder, findsOneWidget);
-      final AutoSizeText headerWidget = tester.widget(headerFinder);
-      expect(headerWidget.style?.fontFamily, 'Rubix');
-      expect(headerWidget.style?.fontWeight, FontWeight.w500);
-      expect(headerWidget.style?.fontSize, 24.sp);
-      expect(headerWidget.style?.height, 1.5);
+      final headerStyle = tester
+          .renderObject<RenderParagraph>(
+            find.descendant(of: headerFinder, matching: find.byType(RichText)),
+          )
+          .text
+          .style!;
+      expect(headerStyle.fontFamily, 'Rubix');
+      expect(headerStyle.fontWeight, FontWeight.w500);
+      expect(headerStyle.fontSize, 24.sp);
 
       final subTitleFinder = find.byWidgetPredicate(
-        (widget) => widget is AutoSizeText && widget.data == 'גורמים ואירועים שהקשו עלי בעבר',
+        (widget) => widget is Text && widget.data == 'גורמים ואירועים שהקשו עלי בעבר',
       );
       expect(subTitleFinder, findsOneWidget);
-      final AutoSizeText subTitleWidget = tester.widget(subTitleFinder);
-      expect(subTitleWidget.style?.fontFamily, 'Rubix');
-      expect(subTitleWidget.style?.fontWeight, FontWeight.w400);
-      expect(subTitleWidget.style?.fontSize, 16.sp);
-      expect(subTitleWidget.style?.height, 1.3);
+      final subTitleStyle = tester
+          .renderObject<RenderParagraph>(
+            find.descendant(
+              of: subTitleFinder,
+              matching: find.byType(RichText),
+            ),
+          )
+          .text
+          .style!;
+      expect(subTitleStyle.fontFamily, 'Rubix');
+      expect(subTitleStyle.fontWeight, FontWeight.w400);
+      expect(subTitleStyle.fontSize, 16.sp);
 
       expect(find.text('אין לך רעיון? הנה כמה הצעות'), findsOneWidget);
       expect(
         find.text('לחץ כדי להוסיף אפשרויות המתאימות לך לתכנית האישית שלך'),
         findsOneWidget,
       );
-      expect(find.text('להציג עוד'), findsOneWidget);
+      expect(find.text('הצעות אחרות'), findsOneWidget);
       expect(find.text('המשך'), findsOneWidget);
 
-      // Verifying interactions
-      await tester.enterText(find.byType(TextField), 'New Suggestion');
-      await tester.tap(find.text('הוספה'));
-      await tester.pump();
+      // Verifying interactions: the inline "add your own" link opens the
+      // AddFormAnswer dialog, matching the shared Figma template.
+      await tester.ensureVisible(find.text('הוסף עוד משלך'));
+      await tester.tap(find.text('הוסף עוד משלך'));
+      await tester.pumpAndSettle();
+      await tester.enterText(find.byType(TextFormField), 'New Suggestion');
+      await tester.tap(find.text('שמור'));
+      await tester.pumpAndSettle();
 
-      await tester.tap(find.text('להציג עוד'));
+      await tester.tap(find.text('הצעות אחרות'));
       await tester.pump();
 
       await tester.tap(find.text('המשך'));

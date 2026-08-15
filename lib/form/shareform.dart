@@ -5,7 +5,8 @@ import 'package:get_it/get_it.dart';
 
 import 'package:mazilon/global_enums.dart';
 import 'package:mazilon/file_service.dart';
-import 'package:mazilon/util/LP_extended_state.dart';
+import 'package:mazilon/form/wizard_step.dart';
+import 'package:mazilon/l10n/app_localizations.dart';
 import 'package:mazilon/util/SignIn/popup_toast.dart';
 import 'package:mazilon/util/persistent_memory_service.dart';
 import 'package:mazilon/util/languages_util_functions.dart';
@@ -21,17 +22,26 @@ import 'package:mazilon/util/Share/show_share_dialog.dart';
 const String _customCategoryTitlesKey = 'customCategoryTitles';
 const String _customCategoryDescriptionsKey = 'customCategoryDescriptions';
 
-class ShareForm extends StatefulWidget {
+class ShareForm extends WizardStep {
   final Function prev;
   final Function submit;
 
-  const ShareForm({super.key, required this.prev, required this.submit});
+  const ShareForm({
+    required super.key,
+    required this.prev,
+    required this.submit,
+  });
 
   @override
-  State<ShareForm> createState() => _ShareFormState();
+  String primaryActionLabel(BuildContext context) => AppLocalizations.of(
+    context,
+  )!.sharePageFinishButton(Provider.of<UserInformation>(context).gender);
+
+  @override
+  WizardStepState<ShareForm> createState() => _ShareFormState();
 }
 
-class _ShareFormState extends LPExtendedState<ShareForm> {
+class _ShareFormState extends WizardStepState<ShareForm> {
   late FileService fileService;
   final TextEditingController _customCategoryTitleController =
       TextEditingController();
@@ -348,11 +358,9 @@ class _ShareFormState extends LPExtendedState<ShareForm> {
           TextButton(
             onPressed: saveCustomCategory,
             style: primaryButtonStyle(context),
-            child: myAutoSizedText(
+            child: Text(
               appLocale.sharePageSaveCustomCategory,
-              primaryButtonTextStyle(context).copyWith(fontSize: 16.sp),
-              null,
-              24,
+              style: primaryButtonTextStyle(context).copyWith(fontSize: 16.sp),
             ),
           ),
         ],
@@ -433,19 +441,22 @@ class _ShareFormState extends LPExtendedState<ShareForm> {
         if (!_isAddingCustomCategory)
           TextButton(
             onPressed: startAddingCustomCategory,
-            child: myAutoSizedText(
+            child: Text(
               appLocale.sharePageAddCustomCategory,
-              TextStyle(
+              style: TextStyle(
                 color: Theme.of(context).colorScheme.primary,
                 fontWeight: FontWeight.bold,
                 fontSize: 16.sp,
               ),
-              null,
-              24,
             ),
           ),
       ],
     );
+  }
+
+  @override
+  Future<void> onPrimaryAction() async {
+    widget.submit(context);
   }
 
   @override
@@ -457,141 +468,115 @@ class _ShareFormState extends LPExtendedState<ShareForm> {
     );
     final gender = userInfoProvider.gender;
 
-    return Scaffold(
-      body: SafeArea(
-        child: SingleChildScrollView(
-          child: Center(
-            child: Column(
-              children: [
-                SizedBox(height: returnSizedBox(context, 25)),
-                myAutoSizedText(
-                  appLocale.sharePageHeader(gender),
-                  TextStyle(
-                    fontSize: 30.sp,
-                    fontWeight: FontWeight.w500,
-                    color: Theme.of(context).colorScheme.onSurface,
-                  ),
-                  null,
-                  60,
-                ),
-                myAutoSizedText(
-                  appLocale.sharePageSubTitle(gender),
-                  TextStyle(
-                    fontWeight: FontWeight.normal,
-                    fontSize: 16.sp,
-                    color: Theme.of(context).colorScheme.outline,
-                  ),
-                  null,
-                  35,
-                ),
-                myImage('assets/images/FormSubmit.png', context, 0.8, 0.4),
-                SizedBox(
-                  width: MediaQuery.sizeOf(context).width * 0.8,
-                  child: myAutoSizedText(
-                    appLocale.sharePageMidTitle(gender),
-                    TextStyle(fontWeight: FontWeight.normal, fontSize: 16.sp),
-                    null,
-                    35,
-                  ),
-                ),
-                const SizedBox(height: 30),
-                SizedBox(
-                  width: MediaQuery.sizeOf(context).width * 0.5,
-                  child: Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-                    children: [
-                      //share personal plan PDF button:
-                      IconButton(
-                        onPressed: () {
-                          showShareDialog(context);
-                        },
-                        style: TextButton.styleFrom(
-                          backgroundColor: Colors.transparent,
-                          padding: const EdgeInsets.all(10),
-                          shape: RoundedRectangleBorder(
-                            borderRadius: const BorderRadius.all(
-                              Radius.circular(16),
-                            ),
-                            side: BorderSide(
-                              color: Theme.of(context).colorScheme.primary,
-                            ), // Set the border color
-                          ),
-                        ),
-                        icon: Icon(
-                          Icons.share,
-                          color: Theme.of(context).colorScheme.primary,
-                        ), // Set the icon color
-                        padding: const EdgeInsets.all(10),
-                      ),
-                      //download personal plan PDF button:
-                      IconButton(
-                        onPressed: () async {
-                          final exportMetadata =
-                              buildPersonalPlanExportMetadata(
-                                appLocale,
-                                gender,
-                                userInfoProvider.name,
-                              );
-                          var result = await fileService.download(
-                            exportMetadata.titles,
-                            exportMetadata.subTitles,
-                            appInfoProvider.sharePDFtexts,
-                            ShareFileType.PDF,
-                            mainTitle: exportMetadata.mainTitle,
-                            textDirection: appLocale.textDirection,
-                          );
-                          if (result == null) {
-                            // Show him a message
-                            showToast(
-                              message: appLocale.downloadFailed(gender),
-                            );
-                            return;
-                          }
-                          // Show a toast message to the user
-                          showToast(
-                            message: appLocale.finishedDownloading(gender),
-                          );
-                        },
-
-                        style: TextButton.styleFrom(
-                          backgroundColor: Colors.transparent,
-                          padding: const EdgeInsets.all(10),
-                          shape: RoundedRectangleBorder(
-                            borderRadius: const BorderRadius.all(
-                              Radius.circular(16),
-                            ),
-                            side: BorderSide(
-                              color: Theme.of(context).colorScheme.primary,
-                            ), // Set the border color
-                          ),
-                        ),
-                        icon: Icon(
-                          Icons.download,
-                          color: Theme.of(context).colorScheme.primary,
-                        ), // Set the icon color
-                        padding: const EdgeInsets.all(10),
-                      ),
-                    ],
-                  ),
-                ),
-                const SizedBox(height: 30),
-                buildCustomCategoriesSection(context, gender),
-                const SizedBox(height: 16),
-                ConfirmationButton(
-                  context,
-                  () {
-                    widget.submit(context);
-                  },
-                  appLocale.sharePageFinishButton(gender),
-                  myTextStyle.copyWith(
-                    fontWeight: FontWeight.w500,
-                    fontSize: 18.sp,
-                  ),
-                ),
-                const SizedBox(height: 30),
-              ],
+    return SingleChildScrollView(
+      child: Center(
+        child: Column(
+          children: [
+            Text(
+              appLocale.sharePageHeader(gender),
+              style: TextStyle(
+                fontSize: 30.sp,
+                fontWeight: FontWeight.w500,
+                color: Theme.of(context).colorScheme.onSurface,
+              ),
             ),
-          ),
+            Text(
+              appLocale.sharePageSubTitle(gender),
+              style: TextStyle(
+                fontWeight: FontWeight.normal,
+                fontSize: 16.sp,
+                color: Theme.of(context).colorScheme.outline,
+              ),
+            ),
+            myImage('assets/images/FormSubmit.png', context, 0.6, 0.25),
+            SizedBox(
+              width: MediaQuery.sizeOf(context).width * 0.8,
+              child: Text(
+                appLocale.sharePageMidTitle(gender),
+                style: TextStyle(
+                  fontWeight: FontWeight.normal,
+                  fontSize: 16.sp,
+                ),
+              ),
+            ),
+            const SizedBox(height: 30),
+            SizedBox(
+              width: MediaQuery.sizeOf(context).width * 0.5,
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                children: [
+                  //share personal plan PDF button:
+                  IconButton(
+                    onPressed: () {
+                      showShareDialog(context);
+                    },
+                    style: TextButton.styleFrom(
+                      backgroundColor: Colors.transparent,
+                      padding: const EdgeInsets.all(10),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: const BorderRadius.all(
+                          Radius.circular(16),
+                        ),
+                        side: BorderSide(
+                          color: Theme.of(context).colorScheme.primary,
+                        ), // Set the border color
+                      ),
+                    ),
+                    icon: Icon(
+                      Icons.share,
+                      color: Theme.of(context).colorScheme.primary,
+                    ), // Set the icon color
+                    padding: const EdgeInsets.all(10),
+                  ),
+                  //download personal plan PDF button:
+                  IconButton(
+                    onPressed: () async {
+                      final exportMetadata = buildPersonalPlanExportMetadata(
+                        appLocale,
+                        gender,
+                        userInfoProvider.name,
+                      );
+                      var result = await fileService.download(
+                        exportMetadata.titles,
+                        exportMetadata.subTitles,
+                        appInfoProvider.sharePDFtexts,
+                        ShareFileType.PDF,
+                        mainTitle: exportMetadata.mainTitle,
+                        textDirection: appLocale.textDirection,
+                      );
+                      if (result == null) {
+                        // Show him a message
+                        showToast(message: appLocale.downloadFailed(gender));
+                        return;
+                      }
+                      // Show a toast message to the user
+                      showToast(message: appLocale.finishedDownloading(gender));
+                    },
+
+                    style: TextButton.styleFrom(
+                      backgroundColor: Colors.transparent,
+                      padding: const EdgeInsets.all(10),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: const BorderRadius.all(
+                          Radius.circular(16),
+                        ),
+                        side: BorderSide(
+                          color: Theme.of(context).colorScheme.primary,
+                        ), // Set the border color
+                      ),
+                    ),
+                    icon: Icon(
+                      Icons.download,
+                      color: Theme.of(context).colorScheme.primary,
+                    ), // Set the icon color
+                    padding: const EdgeInsets.all(10),
+                  ),
+                ],
+              ),
+            ),
+            const SizedBox(height: 30),
+            buildCustomCategoriesSection(context, gender),
+          ],
         ),
       ),
     );

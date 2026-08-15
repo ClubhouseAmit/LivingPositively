@@ -32,6 +32,10 @@
   "@addFormPageTemplateAdd": {
     "description": ""
   },
+  "addFormPageTemplateAddOwn": "{gender,select,male{Add your own} female{Add your own} other{Add your own}}",
+  "@addFormPageTemplateAddOwn": {
+    "description": ""
+  },
   "addThanksFormThank": "{gender,select,male{Thanks} female{Thanks} other{Thanks}}",
   "@addThanksFormThank": {
     "description": ""

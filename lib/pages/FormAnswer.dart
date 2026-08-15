@@ -2,9 +2,17 @@ import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:mazilon/util/FormAnswer/addFormAnswer.dart';
 import 'package:mazilon/util/LP_extended_state.dart';
-import 'package:mazilon/util/styles.dart';
+import 'package:mazilon/util/theme/font_weight.dart';
 import 'package:mazilon/util/userInformation.dart';
 import 'package:provider/provider.dart';
+
+/// Row geometry from the shared Figma onboarding template (`Frame 215`):
+/// a fixed index column on the reading-start edge, then the answer text.
+const double _indexColumnWidth = 16;
+const double _gapIndexToText = 8;
+
+const double _gapTextToEditHint = 8;
+const double _editHintSize = 16;
 
 //the template for the answers in the personal plan questionnaire
 //this is used in the formpagetemplate to display(remove/edit) the selected/inserted user promptss
@@ -36,125 +44,84 @@ class _FormAnswerState extends LPExtendedState<FormAnswer> {
     void editAnswer(String text, int index) {
       showDialog(
         context: context,
-        builder: (BuildContext context) {
-          return AddFormAnswer(index: index, edit: widget.edit, text: text);
+        builder: (BuildContext dialogContext) {
+          return AddFormAnswer(
+            index: index,
+            edit: widget.edit,
+            text: text,
+            onDelete: () {
+              Navigator.of(dialogContext).pop();
+              widget.remove(index);
+            },
+          );
         },
       );
     }
 
-    Future<void> confirmRemoveAnswer() async {
-      final removeIndex = widget.num - 1;
-      final confirmed = await showDialog<bool>(
-        context: context,
-        builder: (dialogContext) => AlertDialog(
-          title: Text(appLocale.confirmDeletePlanAnswerTitle),
-          content: Text(appLocale.confirmDeletePlanAnswerMessage),
-          actions: [
-            TextButton(
-              onPressed: () => Navigator.of(dialogContext).pop(false),
-              child: Text(appLocale.closeButton(gender)),
-            ),
-            TextButton(
-              onPressed: () => Navigator.of(dialogContext).pop(true),
-              child: Text(appLocale.deleteButton(gender)),
-            ),
-          ],
-        ),
-      );
-      if (confirmed != true) {
-        return;
-      }
-      if (!mounted) {
-        return;
-      }
-      widget.remove(removeIndex);
-      setState(() {});
-    }
-
-    return SizedBox(
-      width: MediaQuery.of(context).size.width > 1000
-          ? 800
-          : MediaQuery.of(context).size.width * 0.6,
-      child: Container(
-        color: Colors.transparent,
-        child: Column(
+    return Dismissible(
+      key: ValueKey('form-answer-${widget.text}'),
+      direction: DismissDirection.endToStart,
+      onDismissed: (_) => widget.remove(widget.num - 1),
+      background: Container(
+        alignment: AlignmentDirectional.centerEnd,
+        padding: const EdgeInsetsDirectional.only(end: 20),
+        color: Theme.of(context).colorScheme.error,
+        child: Icon(Icons.delete, color: Theme.of(context).colorScheme.onError),
+      ),
+      //Width is the parent's concern — the row fills whatever it is given.
+      child: InkWell(
+        onTap: () => editAnswer(widget.text, widget.num - 1),
+        //Figma frame 15: the index sits on the reading-start edge and the
+        //divider underlines only the text column — it stops short of the
+        //index rather than running the full row width.
+        child: Row(
+          spacing: _gapIndexToText,
           children: [
-            Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: [
-                Expanded(
-                  child: SizedBox(
-                    child: Row(
-                      children: [
-                        SizedBox(
-                          width: 20,
-                          child: Icon(
-                            Icons.circle,
-                            color: Theme.of(context).colorScheme.primary,
-                            size: 10,
-                          ),
-                        ),
-                        const SizedBox(width: 10),
-                        Expanded(
-                          child: SizedBox(
-                            width: MediaQuery.of(context).size.width > 1000
-                                ? 600
-                                : MediaQuery.of(context).size.width - 150,
-                            child: myAutoSizedText(
-                              widget.text,
-                              TextStyle(fontSize: 16.sp),
-                              appLocale.textDirection == "rtl"
-                                  ? TextAlign.right
-                                  : TextAlign.left,
-                              28,
-                            ),
-                          ),
-                        ),
-                      ],
+            SizedBox(
+              width: _indexColumnWidth,
+              child: Text(
+                '${widget.num}',
+                style: TextStyle(
+                  color: Theme.of(context).colorScheme.primary,
+                  fontWeight: AppFontWeight.medium,
+                  fontSize: 14.sp,
+                ),
+                textAlign: TextAlign.center,
+              ),
+            ),
+            Expanded(
+              child: Container(
+                decoration: BoxDecoration(
+                  border: Border(
+                    bottom: BorderSide(
+                      color: Theme.of(context).colorScheme.primary,
                     ),
                   ),
                 ),
-                Row(
+                //each row group is 30 tall with the divider at its bottom.
+                padding: const EdgeInsets.symmetric(vertical: 6.0),
+                child: Row(
+                  spacing: _gapTextToEditHint,
                   children: [
-                    SizedBox(
-                      width: 50,
-                      child: Align(
-                        alignment: Alignment.center,
-                        child: TextButton(
-                          onPressed: () {
-                            editAnswer(widget.text, widget.num - 1);
-                          },
-                          child: Tooltip(
-                            message: appLocale.editEntryTooltip,
-                            child: Icon(
-                              Icons.edit,
-                              color: Theme.of(context).colorScheme.onSurface,
-                              size: 20,
-                            ),
-                          ),
+                    Expanded(
+                      child: Text(
+                        widget.text,
+                        style: TextStyle(
+                          fontSize: 16.sp,
+                          color: Theme.of(context).colorScheme.onSurface,
                         ),
+                        textAlign: TextAlign.start,
                       ),
                     ),
-                    SizedBox(width: returnSizedBox(context, 12)),
-                    SizedBox(
-                      width: 30,
-                      child: Center(
-                        child: TextButton(
-                          onPressed: confirmRemoveAnswer,
-                          child: Tooltip(
-                            message: appLocale.deleteEntryTooltip,
-                            child: Icon(
-                              Icons.delete,
-                              color: Theme.of(context).colorScheme.onSurface,
-                              size: 20,
-                            ),
-                          ),
-                        ),
-                      ),
+                    Icon(
+                      Icons.edit_outlined,
+                      size: _editHintSize,
+                      color: Theme.of(context).colorScheme.outline,
+                      semanticLabel: appLocale.addFormEdit(gender),
                     ),
                   ],
                 ),
-              ],
+              ),
             ),
           ],
         ),

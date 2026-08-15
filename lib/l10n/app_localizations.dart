@@ -145,6 +145,12 @@ abstract class AppLocalizations {
   ///
   ///
   /// In en, this message translates to:
+  /// **'{gender,select,male{Add your own} female{Add your own} other{Add your own}}'**
+  String addFormPageTemplateAddOwn(String gender);
+
+  ///
+  ///
+  /// In en, this message translates to:
   /// **'{gender,select,male{Thanks} female{Thanks} other{Thanks}}'**
   String addThanksFormThank(String gender);
 

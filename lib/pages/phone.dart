@@ -6,12 +6,14 @@ import 'package:get_it/get_it.dart';
 import 'package:mazilon/EmergencyNumbers.dart';
 import 'package:mazilon/file_service.dart';
 import 'package:mazilon/form/phonePageform.dart';
+import 'package:mazilon/form/wizard_step.dart';
 import 'package:mazilon/global_enums.dart';
 import 'package:mazilon/pages/sos_location_service.dart';
 import 'package:mazilon/util/LP_extended_state.dart';
 import 'package:mazilon/util/Phone/phoneTextAndIcon.dart';
 import 'package:mazilon/util/appInformation.dart';
 import 'package:provider/provider.dart';
+import 'package:share_plus/share_plus.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:mazilon/util/personal_plan_export_metadata.dart';
 import 'package:mazilon/util/userInformation.dart';
@@ -447,10 +449,23 @@ class _PhonePageState extends LPExtendedState<PhonePage> {
       MaterialPageRoute(
         builder: (routeContext) => ChangeNotifierProvider<PhonePageData>.value(
           value: widget.phonePageData,
-          child: PhonePageForm(
-            phonePageData: widget.phonePageData,
-            next: () => Navigator.of(context).pop(),
-            prev: () => Navigator.of(context).pop(),
+          child: Scaffold(
+            body: SafeArea(
+              bottom: false,
+              child: Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 16),
+                child: WizardStepPage(
+                  step: PhonePageForm(
+                    key: GlobalKey<WizardStepState>(
+                      debugLabel: 'contacts-editor',
+                    ),
+                    phonePageData: widget.phonePageData,
+                    next: () => Navigator.of(context).pop(),
+                    prev: () => Navigator.of(context).pop(),
+                  ),
+                ),
+              ),
+            ),
           ),
         ),
       ),

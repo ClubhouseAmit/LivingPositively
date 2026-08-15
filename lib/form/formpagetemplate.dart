@@ -4,10 +4,13 @@ import 'package:get_it/get_it.dart';
 import 'package:mazilon/AnalyticsService.dart';
 import 'package:mazilon/global_enums.dart';
 
+import 'package:mazilon/form/wizard_step.dart';
+import 'package:mazilon/l10n/app_localizations.dart';
 import 'package:mazilon/pages/FormAnswer.dart';
-import 'package:mazilon/util/LP_extended_state.dart';
+import 'package:mazilon/util/FormAnswer/addFormAnswer.dart';
 import 'package:mazilon/util/persistent_memory_service.dart';
 import 'package:mazilon/util/styles.dart';
+import 'package:mazilon/util/theme/app_theme.dart';
 import 'package:mazilon/util/theme/font_weight.dart';
 
 import 'package:flutter_screenutil/flutter_screenutil.dart';
@@ -15,7 +18,21 @@ import 'package:mazilon/util/userInformation.dart';
 import 'package:provider/provider.dart';
 import 'package:mazilon/util/Form/retrieveInformation.dart';
 
-class FormPageTemplate extends StatefulWidget {
+/// Spacing scale for the shared onboarding template, read off the Figma
+/// frames' own container boxes (`Android Large - 10/15`, frames "Frame 210"
+/// title block, "Frame 216" items block, "Frame 223" suggestions block).
+/// The widget tree below mirrors that container hierarchy one-for-one, so
+/// every gap here is the distance between two named design containers
+/// rather than a hand-tuned number.
+const double _gapLabelToCaption = 4; // section heading <-> its caption
+const double _gapWithinGroup =
+    8; // card <-> card, cards <-> "other suggestions"
+const double _gapWithinBlock =
+    16; // title <-> subtitle, row <-> row, rows <-> "add your own"
+const double _gapBetweenBlocks =
+    16; // title block <-> items block <-> suggestions block
+
+class FormPageTemplate extends WizardStep {
   //next page:
   final Function next;
   //prev page:
@@ -24,21 +41,42 @@ class FormPageTemplate extends StatefulWidget {
   final String collectionName;
 
   const FormPageTemplate({
-    super.key,
+    required super.key,
     required this.next,
     required this.prev,
     required this.collectionName,
   });
 
   @override
-  State<FormPageTemplate> createState() => _FormPageTemplateState();
+  String primaryActionLabel(BuildContext context) => retrieveInformation(
+    collectionName,
+    Provider.of<UserInformation>(context).gender,
+    AppLocalizations.of(context)!,
+  )['nextButtonText'];
+
+  @override
+  WizardStepState<FormPageTemplate> createState() => _FormPageTemplateState();
 }
 
-class _FormPageTemplateState extends LPExtendedState<FormPageTemplate> {
-  final TextEditingController _controller = TextEditingController();
+class _FormPageTemplateState extends WizardStepState<FormPageTemplate> {
   int displayedLength = 3;
-  int length = 0;
+  List<String> suggestionPool = const [];
   List<String> selectedItems = [];
+
+  // Identity for the answer rows. Two answers can hold the same text, so a
+  // text-derived key is not identity: after swiping one away, the survivor
+  // would be matched to the dismissed row and inherit its collapsed state.
+  // Ids are reissued whenever the list changes length, which guarantees a
+  // removed row's key never comes back.
+  List<int> rowIds = const [];
+  int _nextRowId = 0;
+
+  void syncRowIds() {
+    if (rowIds.length != selectedItems.length) {
+      rowIds = List.generate(selectedItems.length, (_) => _nextRowId++);
+    }
+  }
+
   @override
   void initState() {
     super.initState();
@@ -47,10 +85,17 @@ class _FormPageTemplateState extends LPExtendedState<FormPageTemplate> {
     }
   }
 
-  @override
-  void dispose() {
-    _controller.dispose();
-    super.dispose();
+  static const int _suggestionBatch = 3;
+
+  int get revealedSuggestions {
+    var revealed = displayedLength.clamp(0, suggestionPool.length);
+    while (revealed < suggestionPool.length &&
+        !suggestionPool
+            .take(revealed)
+            .any((item) => !isAlreadySelected(item))) {
+      revealed = (revealed + _suggestionBatch).clamp(0, suggestionPool.length);
+    }
+    return revealed;
   }
 
   bool isAlreadySelected(String item) {
@@ -58,13 +103,17 @@ class _FormPageTemplateState extends LPExtendedState<FormPageTemplate> {
   }
 
   void editItem(int index, String text) {
-    selectedItems[index] = text;
+    selectedItems[index] = text.trim();
     setState(() {});
   }
 
   void removeItem(int index) {
-    final text = selectedItems[index];
-    selectedItems.removeWhere((element) => element == text);
+    if (index < 0 || index >= selectedItems.length) {
+      return;
+    }
+    // By index, not by value: two answers can hold the same text, and
+    // removing by value would delete both.
+    selectedItems.removeAt(index);
 
     setState(() {});
   }
@@ -75,18 +124,16 @@ class _FormPageTemplateState extends LPExtendedState<FormPageTemplate> {
     setState(() {});
   }
 
-  //generate 3 items in the database items list at the bottom of the screen:
   void addSuggestion() {
-    if (length > displayedLength + 3) {
-      displayedLength = displayedLength + 3;
-    } else {
-      displayedLength = length;
-    }
-
-    setState(() {});
+    setState(() {
+      displayedLength = (revealedSuggestions + _suggestionBatch).clamp(
+        0,
+        suggestionPool.length,
+      );
+    });
   }
 
-  void createSelection(userInfo) async {
+  Future<void> createSelection(userInfo) async {
     PersistentMemoryService service =
         GetIt.instance<
           PersistentMemoryService
@@ -148,6 +195,215 @@ class _FormPageTemplateState extends LPExtendedState<FormPageTemplate> {
     }
   }
 
+  /// Figma "Frame 210" — page title + subtitle, both full width, centred.
+  Widget _buildTitleBlock(Map<String, dynamic> displayInformation) {
+    return Column(
+      spacing: _gapWithinBlock,
+      children: [
+        Text(
+          displayInformation['header'],
+          style: TextStyle(
+            fontWeight: AppFontWeight.medium,
+            fontSize: 24.sp,
+            color: Theme.of(context).colorScheme.onSurface,
+          ),
+          textAlign: TextAlign.center,
+        ),
+        Text(
+          displayInformation['subTitle'],
+          style: TextStyle(
+            fontWeight: AppFontWeight.regular,
+            color: Theme.of(context).colorScheme.outline,
+            fontSize: 16.sp,
+          ),
+          textAlign: TextAlign.center,
+        ),
+      ],
+    );
+  }
+
+  /// Figma "Frame 216" — the answered-item rows ("Frame 215") followed by the
+  /// inline "add your own" link ("Frame 171"), which the design aligns to the
+  /// reading start edge rather than centring.
+  Widget _buildItemsBlock(UserInformation userInfoProvider, String gender) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      //The design spaces the rows and the "add your own" link uniformly, so
+      //one `spacing` covers both — no trailing-item special case.
+      spacing: _gapWithinBlock,
+      children: [
+        //Frame 215 — a plain Column, not a shrink-wrapped ListView: the list
+        //never scrolls on its own, and a ListView would silently inherit
+        //MediaQuery.padding as sliver padding.
+        for (final (index, item) in selectedItems.indexed)
+          FormAnswer(
+            key: ValueKey('answer-${rowIds[index]}'),
+            text: item,
+            num: index + 1,
+            edit: (int editIndex, String text) {
+              editItem(editIndex, text);
+              createSelection(userInfoProvider);
+            },
+            remove: (int removeIndex) {
+              removeItem(removeIndex);
+              createSelection(userInfoProvider);
+            },
+          ),
+        //Frame 171 — start-aligned, not centred.
+        Align(
+          alignment: AlignmentDirectional.centerStart,
+          child: LinkButton(
+            () {
+              showDialog(
+                context: context,
+                builder: (context) {
+                  return AddFormAnswer(
+                    index: selectedItems.length,
+                    edit: (int index, String text) {
+                      addItem(text);
+                      createSelection(userInfoProvider);
+                    },
+                    text: '',
+                  );
+                },
+              );
+            },
+            Icons.add,
+            appLocale.addFormPageTemplateAddOwn(gender),
+            Theme.of(context).colorScheme.primary,
+            designFontSize: 12,
+            iconSize: 12,
+          ),
+        ),
+      ],
+    );
+  }
+
+  /// Figma "Frame 223" — section heading ("Frame 221"), the suggestion cards
+  /// ("Frame 220") and the centred "other suggestions" link ("Frame 219").
+  Widget _buildSuggestionsBlock(
+    Map<String, dynamic> displayInformation,
+    List<String> availableSuggestions,
+    UserInformation userInfoProvider,
+  ) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      spacing: _gapWithinBlock,
+      children: [
+        //Frame 221 — heading and its caption.
+        Column(
+          spacing: _gapLabelToCaption,
+          children: [
+            Text(
+              displayInformation['midTitle'],
+              style: TextStyle(
+                fontWeight: AppFontWeight.semiBold,
+                fontSize: 14.sp,
+                color: Theme.of(context).colorScheme.onSurface,
+              ),
+              textAlign: TextAlign.center,
+            ),
+            Text(
+              displayInformation['midSubTitle'],
+              style: TextStyle(
+                fontWeight: AppFontWeight.regular,
+                color: Theme.of(context).colorScheme.outline,
+                fontSize: 12.sp,
+              ),
+              textAlign: TextAlign.center,
+            ),
+          ],
+        ),
+        //Frame 220 — the cards and the "other suggestions" link share the
+        //tighter within-group spacing.
+        Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          spacing: _gapWithinGroup,
+          children: [
+            for (final item in availableSuggestions)
+              _buildSuggestionCard(item, userInfoProvider),
+            if (revealedSuggestions < suggestionPool.length)
+              Align(
+                alignment: Alignment.center,
+                child: LinkButton(
+                  addSuggestion,
+                  Icons.refresh,
+                  displayInformation['showMoreButtonText'],
+                  Theme.of(context).colorScheme.tertiary,
+                ),
+              ),
+          ],
+        ),
+      ],
+    );
+  }
+
+  /// Figma "Frame 181"/"Frame 172" — an unselected suggestion. Picking one
+  /// promotes it into the answered list above, so it leaves this pool and no
+  /// "selected" treatment is rendered here.
+  Widget _buildSuggestionCard(String item, UserInformation userInfoProvider) {
+    return InkWell(
+      key: ValueKey('suggestion-$item'),
+      onTap: () {
+        setState(() {
+          addItem(item);
+          createSelection(userInfoProvider);
+        });
+      },
+      child: DottedBorder(
+        options: RoundedRectDottedBorderOptions(
+          radius: const Radius.circular(16),
+          dashPattern: const [6, 6],
+          color: AppColors.suggestionCardOutline,
+          strokeWidth: 1,
+        ),
+        child: Container(
+          alignment: AlignmentDirectional.centerStart,
+          width: double.infinity,
+          //Figma: the card's text is inset 10 on every side.
+          padding: const EdgeInsetsDirectional.symmetric(
+            horizontal: 10,
+            vertical: 10,
+          ),
+          decoration: BoxDecoration(
+            color: Theme.of(context).colorScheme.surface,
+            borderRadius: BorderRadius.circular(16),
+            boxShadow: const [
+              BoxShadow(
+                color: Color(0x7AF1EDEA),
+                offset: Offset(0, 3),
+                blurRadius: 11,
+              ),
+            ],
+          ),
+          child: Text(
+            item,
+            style: TextStyle(
+              fontFamily: "Rubix",
+              fontSize: 14.sp,
+              fontWeight: AppFontWeight.regular,
+              color: Theme.of(context).colorScheme.onSurface,
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+
+  @override
+  Future<void> onPrimaryAction() async {
+    final userInfoProvider = Provider.of<UserInformation>(
+      context,
+      listen: false,
+    );
+    AnalyticsService mixPanelService = GetIt.instance<AnalyticsService>();
+    mixPanelService.trackEvent("Plan edited", {'page': widget.collectionName});
+    // Saved before moving on, so the step cannot be left behind with its
+    // answers still in flight.
+    await createSelection(userInfoProvider);
+    widget.next();
+  }
+
   @override
   Widget build(BuildContext context) {
     final userInfoProvider = Provider.of<UserInformation>(
@@ -161,350 +417,30 @@ class _FormPageTemplateState extends LPExtendedState<FormPageTemplate> {
       gender,
       appLocale,
     );
-    length = displayInformation['list'].length;
+    suggestionPool = (displayInformation['list'] as List).cast<String>();
     loadItems(userInfoProvider);
-    bool validate = false;
-    return Scaffold(
-      body: SingleChildScrollView(
-        child: Center(
-          //widthFactor: double.infinity,
-          child: Padding(
-            padding: const EdgeInsets.symmetric(vertical: 10.0),
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                const SizedBox(height: 20),
-                Column(
-                  children: [
-                    Container(
-                      alignment: Alignment.topCenter,
-                      child: myAutoSizedText(
-                        displayInformation['header'],
-                        TextStyle(
-                          fontWeight: AppFontWeight.medium,
-                          fontSize: 24.sp,
-                          height: 1.5,
-                        ),
-                        TextAlign.center,
-                        40,
-                      ),
-                    ),
-                    SizedBox(height: 5.h),
-                    Container(
-                      alignment: Alignment.topCenter,
-                      child: myAutoSizedText(
-                        displayInformation['subTitle'],
-                        TextStyle(
-                          fontWeight: AppFontWeight.regular,
-                          color: Theme.of(context).colorScheme.outline,
-                          fontSize: 16.sp,
-                          height: 1.3,
-                        ),
-                        TextAlign.center,
-                        25,
-                      ),
-                    ),
-                  ],
-                ),
-                SizedBox(height: 20.h),
-                Flexible(
-                  fit: FlexFit.loose,
-                  //generate list based on added strings(strings the user chose to manually add
-                  // or items chosen from database item list at the bottom of the screen):
-                  child: ListView.builder(
-                    physics: const NeverScrollableScrollPhysics(),
-                    shrinkWrap: true,
-                    itemCount: selectedItems.length,
-                    itemBuilder: (context, index) {
-                      return FormAnswer(
-                        text: selectedItems[index],
-                        num: (index + 1),
-                        edit: (int index2, String text) {
-                          editItem(index2, text);
-                          createSelection(userInfoProvider);
-                        },
-                        remove: (int index2) {
-                          removeItem(index2);
-                          createSelection(userInfoProvider);
-                        },
-                      );
-                    },
-                  ),
-                ),
-                SizedBox(
-                  width: MediaQuery.of(context).size.width > 1000
-                      ? 800
-                      : MediaQuery.of(context).size.width,
-                  child: Row(
-                    //mainAxisSize: MediaQuery.of(context).size.width,
-                    mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+    syncRowIds();
+    //suggestions still available to pick — a suggestion drops out of this
+    final availableSuggestions = suggestionPool
+        .take(revealedSuggestions)
+        .where((item) => !isAlreadySelected(item))
+        .toList();
 
-                    children: [
-                      TextButton(
-                        onPressed: () {
-                          if (_controller.text.isEmpty) {
-                            validate = true;
-                          } else {
-                            validate = false;
-                            addItem(_controller.text);
-                            createSelection(userInfoProvider);
-                            _controller.clear();
-                            setState(() {});
-                          }
-                        },
-                        style: TextButton.styleFrom(
-                          foregroundColor: Theme.of(context)
-                              .colorScheme
-                              .onSurface, // This is the color of the text
-                          backgroundColor: Theme.of(context)
-                              .colorScheme
-                              .surfaceContainerHighest, // This is the background color of the button
-                          shape: RoundedRectangleBorder(
-                            // This is the shape of the button
-                            borderRadius: BorderRadius.circular(
-                              20,
-                            ), // This is the border radius
-                            side: BorderSide(
-                              color: Theme.of(context).colorScheme.onSurface,
-                            ), // This is the border color
-                          ),
-                          padding: const EdgeInsets.all(
-                            10,
-                          ), // This is the padding inside the button
-                        ),
-                        child: myAutoSizedText(
-                          appLocale.addFormPageTemplateAdd(gender),
-                          TextStyle(
-                            fontWeight: AppFontWeight.medium,
-                            fontSize: 12.sp,
-                          ),
-                          null,
-                          20,
-                        ),
-                      ),
-                      const SizedBox(width: 20),
-                      Expanded(
-                        child: TextField(
-                          style: TextStyle(
-                            fontWeight: AppFontWeight.regular,
-                            fontSize: 14.sp > 40 ? 40 : 14.sp,
-                          ),
-                          controller: _controller,
-                          decoration: InputDecoration(
-                            errorText: validate
-                                ? appLocale.validateEmpty
-                                : null,
-                          ),
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-                SizedBox(height: 20.h),
-                Column(
-                  children: [
-                    Container(
-                      alignment: Alignment.topCenter,
-                      child: myAutoSizedText(
-                        displayInformation['midTitle'],
-                        TextStyle(
-                          fontWeight: AppFontWeight.semiBold,
-                          fontSize: 14.sp,
-                        ),
-                        TextAlign.center,
-                        40,
-                      ),
-                    ),
-                    SizedBox(height: 5.h),
-                    Container(
-                      alignment: Alignment.topCenter,
-                      child: myAutoSizedText(
-                        displayInformation['midSubTitle'],
-                        TextStyle(
-                          fontWeight: AppFontWeight.regular,
-                          color: Theme.of(context).colorScheme.outline,
-                          fontSize: 12.sp,
-                          height: 1.5,
-                        ),
-                        TextAlign.center,
-                        25,
-                      ),
-                    ),
-                  ],
-                ),
-                SizedBox(height: 10.h),
-                Flexible(
-                  fit: FlexFit.loose,
-                  //database items(rowy) check box list:
-                  child: ListView.builder(
-                    physics: const NeverScrollableScrollPhysics(),
-                    shrinkWrap: true,
-                    itemCount: displayedLength,
-                    itemBuilder: (context, index) {
-                      String item = displayInformation["list"][index];
-                      return CheckboxListTile(
-                        controlAffinity: ListTileControlAffinity.leading,
-                        contentPadding: const EdgeInsetsDirectional.only(
-                          start: 15.0,
-                        ),
-                        activeColor: Theme.of(context).colorScheme.tertiary,
-                        checkboxShape: CircleBorder(),
-                        visualDensity: VisualDensity.compact,
-                        title: isAlreadySelected(item)
-                            ? DottedBorder(
-                                options: RoundedRectDottedBorderOptions(
-                                  radius: const Radius.circular(20),
-                                  dashPattern: const [5, 5],
-                                  color: Theme.of(context).colorScheme.tertiary,
-                                  strokeWidth: 2,
-                                ),
-                                child: Container(
-                                  alignment: appLocale.textDirection == "rtl"
-                                      ? Alignment.centerRight
-                                      : Alignment.centerLeft,
-                                  constraints: BoxConstraints(minHeight: 55),
-                                  width: double.infinity,
-                                  padding: EdgeInsets.symmetric(
-                                    horizontal: 5,
-                                    vertical: 5,
-                                  ),
-                                  decoration: BoxDecoration(
-                                    color: Theme.of(
-                                      context,
-                                    ).colorScheme.surfaceContainerHighest,
-                                    borderRadius: BorderRadius.circular(20),
-                                  ),
-                                  child: Text(
-                                    item,
-                                    style: TextStyle(
-                                      fontFamily: "Rubix",
-                                      fontSize: 16.sp,
-                                      fontWeight: AppFontWeight.regular,
-                                    ),
-                                  ),
-                                ),
-                              )
-                            : DottedBorder(
-                                options: RoundedRectDottedBorderOptions(
-                                  radius: const Radius.circular(20),
-                                  dashPattern: const [5, 5],
-                                  color: Theme.of(context).colorScheme.tertiary,
-                                  strokeWidth: 2,
-                                ),
-                                child: Container(
-                                  alignment: appLocale.textDirection == "rtl"
-                                      ? Alignment.centerRight
-                                      : Alignment.centerLeft,
-                                  //height: returnSizedBox(context, 70),
-                                  constraints: BoxConstraints(minHeight: 55),
-                                  width: double.infinity,
-                                  padding: EdgeInsets.symmetric(
-                                    horizontal: 5,
-                                    vertical: 5,
-                                  ),
-                                  decoration: BoxDecoration(
-                                    color: Theme.of(
-                                      context,
-                                    ).colorScheme.surfaceContainerHighest,
-                                    borderRadius: BorderRadius.circular(20),
-                                    //border: Border.all(color: Color.fromARGB(255, 187, 167, 235))
-                                  ),
-                                  //color: widget.answer1.contains(widget.suggestions[index]) ? Colors.transparent : Color.fromARGB(255, 223, 218, 218),
-                                  child: Text(
-                                    item,
-
-                                    //overflow: TextOverflow.ellipsis,
-                                    style: TextStyle(
-                                      fontFamily: "Rubix",
-                                      fontSize: 16.sp,
-                                      fontWeight: AppFontWeight.regular,
-                                    ),
-                                  ),
-                                ),
-                              ),
-                        value: isAlreadySelected(item),
-                        onChanged: (bool? value) {
-                          setState(() {
-                            if (value != null) {
-                              if (isAlreadySelected(item)) {
-                                removeItem(selectedItems.indexOf(item));
-                              } else {
-                                addItem(item);
-                              }
-                              createSelection(userInfoProvider);
-                            }
-                          });
-                        },
-                      );
-                    },
-                  ),
-                ),
-                //add more button:
-                displayedLength < displayInformation['list'].length
-                    ? TextButton(
-                        onPressed: () {
-                          addSuggestion();
-                        },
-                        style: TextButton.styleFrom(
-                          foregroundColor: Theme.of(context)
-                              .colorScheme
-                              .onSurface, // This is the color of the text
-                          backgroundColor: Theme.of(context)
-                              .colorScheme
-                              .surfaceContainerHighest, // This is the background color of the button
-                          shape: RoundedRectangleBorder(
-                            // This is the shape of the button
-                            borderRadius: BorderRadius.circular(
-                              20,
-                            ), // This is the border radius
-                            side: BorderSide(
-                              color: Theme.of(context).colorScheme.onSurface,
-                            ), // This is the border color
-                          ),
-                          padding: const EdgeInsets.all(
-                            0,
-                          ), // This is the padding inside the button
-                        ),
-                        child: Padding(
-                          padding: const EdgeInsets.all(8.0),
-                          child: myAutoSizedText(
-                            displayInformation['showMoreButtonText'],
-                            TextStyle(
-                              fontWeight: AppFontWeight.medium,
-                              fontSize: 14.sp,
-                            ),
-                            null,
-                            40,
-                          ),
-                        ),
-                      )
-                    //nothing to add:
-                    : SizedBox(height: returnSizedBox(context, 10)),
-                //spacing between add more and next button:
-                SizedBox(height: returnSizedBox(context, 10)),
-                //next button:
-                ConfirmationButton(
-                  context,
-                  () {
-                    AnalyticsService mixPanelService =
-                        GetIt.instance<AnalyticsService>();
-                    mixPanelService.trackEvent("Plan edited", {
-                      'page': widget.collectionName,
-                    });
-                    createSelection(userInfoProvider);
-                    widget.next();
-                  },
-                  displayInformation['nextButtonText'],
-                  myTextStyle.copyWith(
-                    fontWeight: AppFontWeight.medium,
-                    fontSize: 18.sp,
-                  ),
-                ),
-                const SizedBox(height: 20),
-              ],
+    return SingleChildScrollView(
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        spacing: _gapBetweenBlocks,
+        children: [
+          _buildTitleBlock(displayInformation),
+          _buildItemsBlock(userInfoProvider, gender),
+          if (availableSuggestions.isNotEmpty ||
+              revealedSuggestions < suggestionPool.length)
+            _buildSuggestionsBlock(
+              displayInformation,
+              availableSuggestions,
+              userInfoProvider,
             ),
-          ),
-        ),
+        ],
       ),
     );
   }

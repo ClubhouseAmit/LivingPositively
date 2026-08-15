@@ -11,6 +11,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:mazilon/form/shareform.dart';
+import 'package:mazilon/form/wizard_step.dart';
 import 'package:mazilon/util/userInformation.dart';
 
 import '../helpers/widget_test_scaffold.dart';
@@ -36,7 +37,13 @@ void main() {
       (tester) async {
     await pumpWithProviders(
       tester,
-      ShareForm(prev: () {}, submit: (_) {}),
+      WizardStepPage(
+        step: ShareForm(
+          key: GlobalKey<WizardStepState>(),
+          prev: () {},
+          submit: (_) {},
+        ),
+      ),
       userInformation: user,
       surfaceSize: const Size(1024, 1800),
     );
@@ -58,7 +65,13 @@ void main() {
       (tester) async {
     await pumpWithProviders(
       tester,
-      ShareForm(prev: () {}, submit: (_) {}),
+      WizardStepPage(
+        step: ShareForm(
+          key: GlobalKey<WizardStepState>(),
+          prev: () {},
+          submit: (_) {},
+        ),
+      ),
       userInformation: user,
       surfaceSize: const Size(1024, 1800),
     );
@@ -80,7 +93,13 @@ void main() {
     var submitCalls = 0;
     await pumpWithProviders(
       tester,
-      ShareForm(prev: () {}, submit: (_) => submitCalls++),
+      WizardStepPage(
+        step: ShareForm(
+          key: GlobalKey<WizardStepState>(),
+          prev: () {},
+          submit: (_) => submitCalls++,
+        ),
+      ),
       userInformation: user,
       surfaceSize: const Size(1024, 1800),
     );

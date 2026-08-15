@@ -60,6 +60,16 @@ class AppLocalizationsAr extends AppLocalizations {
   }
 
   @override
+  String addFormPageTemplateAddOwn(String gender) {
+    String _temp0 = intl.Intl.selectLogic(gender, {
+      'male': 'أضف بنفسك',
+      'female': 'أضيفي بنفسك',
+      'other': 'أضف/ي بنفسك',
+    });
+    return '$_temp0';
+  }
+
+  @override
   String addThanksFormThank(String gender) {
     String _temp0 = intl.Intl.selectLogic(gender, {
       'male': 'شكرًا',
