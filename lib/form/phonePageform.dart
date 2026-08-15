@@ -202,14 +202,14 @@ class _PhonePageFormState extends WizardStepState<PhonePageForm> {
                           ),
                           padding: const EdgeInsets.all(6),
                         ),
-                        child: myText(
+                        child: Text(
                           appLocale.phonesPageContactImportTitle(gender),
-                          TextStyle(
+                          style: TextStyle(
                             fontWeight: FontWeight.bold,
                             color: Theme.of(context).colorScheme.primary,
                             fontSize: 16.sp,
                           ),
-                          TextAlign.center,
+                          textAlign: TextAlign.center,
                         ),
                       ),
                     ],

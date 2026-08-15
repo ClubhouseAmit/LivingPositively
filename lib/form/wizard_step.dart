@@ -38,12 +38,11 @@ abstract class WizardStepState<T extends WizardStep>
   Future<void> onSecondaryAction() async {}
 }
 
+const double _primaryButtonHeight = 40.0;
+
 /// The buttons for a step: a filled primary and, when the step declares one, a
 /// secondary rendered as a text link so the two don't read as equally
-/// weighted. This is the part both flows genuinely share — the styling, the
-/// design's 40pt pill, and the guard against a double tap advancing twice.
-///
-/// It carries no outer spacing. Whoever places it owns the gaps around it.
+/// weighted.
 class WizardActions extends StatefulWidget {
   const WizardActions({super.key, required this.step});
 
@@ -54,9 +53,6 @@ class WizardActions extends StatefulWidget {
 }
 
 class _WizardActionsState extends State<WizardActions> {
-  /// Taps are dropped while an action is running. Awaiting the action widens
-  /// the gap between the tap and the step changing, and a second tap in that
-  /// gap would advance the wizard twice — skipping a step.
   bool _actionInFlight = false;
 
   Future<void> _run(Future<void> Function() action) async {
@@ -67,10 +63,6 @@ class _WizardActionsState extends State<WizardActions> {
     try {
       await action();
     } catch (error, stackTrace) {
-      // A step that could not save stays put rather than moving on with its
-      // answers unsaved. The button is live again, so the user can retry.
-      // TODO(#333): tell the user the save failed — there is no localized
-      // copy for it yet.
       debugPrint('Wizard step could not complete: $error\n$stackTrace');
     } finally {
       _actionInFlight = false;
@@ -85,33 +77,27 @@ class _WizardActionsState extends State<WizardActions> {
     return Column(
       mainAxisSize: MainAxisSize.min,
       crossAxisAlignment: CrossAxisAlignment.stretch,
-      spacing: OnboardingGaps.primaryToSecondary,
+      spacing: OnboardingGaps.withinBlock,
       children: [
-        // A plain Text, not ConfirmationButton: that helper labels through
-        // `myAutoSizedText`, whose `maxFontSize` ceiling of 50 is what actually
-        // paints, leaving the size below inert. See designs/issue-338-audit.md.
         TextButton(
           key: const Key('wizard-primary-action'),
           onPressed: () => _run(
             () async => widget.step.stepKey.currentState?.onPrimaryAction(),
           ),
-          // `fixedSize` pins the paint to the design's 40 — `minimumSize` alone
-          // is only a floor, and the label's own height pushes past it.
-          // `padded` keeps the hit area at Material's 48 minimum around it.
           style: primaryButtonStyle(context).copyWith(
             fixedSize: const WidgetStatePropertyAll(
-              Size.fromHeight(OnboardingSizes.primaryButtonHeight),
+              Size.fromHeight(_primaryButtonHeight),
             ),
             tapTargetSize: MaterialTapTargetSize.padded,
           ),
-          child: myText(
+          child: Text(
             widget.step.primaryActionLabel(context),
-            TextStyle(
+            style: TextStyle(
               fontWeight: AppFontWeight.medium,
               fontSize: 18.sp,
               color: colorScheme.onPrimary,
             ),
-            TextAlign.center,
+            textAlign: TextAlign.center,
           ),
         ),
         if (secondaryLabel != null)
@@ -124,14 +110,14 @@ class _WizardActionsState extends State<WizardActions> {
               backgroundColor: Colors.transparent,
               foregroundColor: colorScheme.primary,
             ),
-            child: myText(
+            child: Text(
               secondaryLabel,
-              TextStyle(
+              style: TextStyle(
                 fontWeight: AppFontWeight.medium,
                 fontSize: 18.sp,
                 color: colorScheme.primary,
               ),
-              TextAlign.center,
+              textAlign: TextAlign.center,
             ),
           ),
       ],
