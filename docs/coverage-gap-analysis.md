@@ -115,10 +115,9 @@ Each file receives a raw risk score 0–10:
 
 ### `lib/util/PDF/create_pdf.dart`
 - **LOC:** 252 | **Covered:** 0/131 instrumented lines (0%) | **Missed:** 131 | **Risk:** 8.2
-- **Why it matters:** PDF output is the primary export of the personal safety plan. `createPDF` loops across data sections; helper functions `getDirection`, `getAlign`, `getAlignment` each have RTL/LTR branches critical to Arabic/Hebrew rendering.
+- **Why it matters:** PDF output is the primary export of the personal safety plan. `createPDF` loops across data sections and applies the caller's explicit direction token to Arabic/Hebrew rendering.
 - **What to cover:**
-  - `getDirection("hello")` → `ltr`; `getDirection("שלום")` → `rtl`
-  - `getAlign` and `getAlignment` for both branches
+  - Direction-token helpers: `'rtl'` maps to RTL/right alignment, while `'ltr'` and unsupported values fall back to LTR/left alignment
   - `createPDF` with realistic safety-plan data: multi-section, empty section (skipped), single section
   - Use `flutter_test` binding to provide asset bundle for font/image loading, or mock `rootBundle`.
 
@@ -409,7 +408,7 @@ Platform-gated but has injectable overrides.
 
 Requires asset-bundle mocking.
 
-19. `lib/util/PDF/create_pdf.dart` — unit test with mocked `rootBundle`; cover both `getDirection`/`getAlign` branches
+19. `lib/util/PDF/create_pdf.dart` — unit test with mocked `rootBundle`; cover direction-token helper branches
 20. `lib/file_service.dart` — mock `PersistentMemoryService`, `createPDF`, `share_plus`
 21. `lib/AnalyticsService.dart` — 11 missed lines; mock Firebase Analytics
 

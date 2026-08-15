@@ -4,26 +4,6 @@ import 'package:path_provider/path_provider.dart';
 import 'package:pdf/pdf.dart';
 import 'package:pdf/widgets.dart' as pw;
 
-import 'package:mazilon/util/languages_util_functions.dart';
-
-pw.TextDirection getDirection(String text) {
-  return getDirectionOfText(text) == "ltr"
-      ? pw.TextDirection.ltr
-      : pw.TextDirection.rtl;
-}
-
-pw.TextAlign getAlign(String text) {
-  return getDirectionOfText(text) == "ltr"
-      ? pw.TextAlign.left
-      : pw.TextAlign.right;
-}
-
-pw.Alignment getAlignment(String text) {
-  return getDirectionOfText(text) == "ltr"
-      ? pw.Alignment.centerRight
-      : pw.Alignment.centerRight;
-}
-
 /// Maps the `'rtl'` direction token to RTL; all other values fall back to LTR.
 pw.TextDirection pdfTextDirectionForDirection(String textDirection) =>
     textDirection == 'rtl' ? pw.TextDirection.rtl : pw.TextDirection.ltr;

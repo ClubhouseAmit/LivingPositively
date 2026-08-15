@@ -5,33 +5,7 @@ import 'package:pdf/widgets.dart' as pw;
 void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
 
-  group('PDF helpers: getDirection / getAlign / getAlignment', () {
-    test('getDirection returns ltr for Latin', () {
-      expect(getDirection('hello'), pw.TextDirection.ltr);
-    });
-
-    test('getDirection returns rtl for Hebrew', () {
-      expect(getDirection('שלום'), pw.TextDirection.rtl);
-    });
-
-    test('getDirection returns rtl for mixed (Hebrew dominates)', () {
-      expect(getDirection('hello שלום'), pw.TextDirection.rtl);
-    });
-
-    test('getAlign returns left for Latin', () {
-      expect(getAlign('hello'), pw.TextAlign.left);
-    });
-
-    test('getAlign returns right for Hebrew', () {
-      expect(getAlign('שלום'), pw.TextAlign.right);
-    });
-
-    test('getAlignment returns centerRight regardless (current behavior)', () {
-      // Current implementation returns centerRight in both branches.
-      expect(getAlignment('hello'), pw.Alignment.centerRight);
-      expect(getAlignment('שלום'), pw.Alignment.centerRight);
-    });
-
+  group('PDF direction helpers', () {
     test(
       'pdfTextDirectionForDirection uses RTL only for the rtl direction token',
       () {
