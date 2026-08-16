@@ -49,6 +49,7 @@ import 'package:mazilon/pages/SignIn_Pages/firstPage.dart';
 import 'package:mazilon/pages/SignIn_Pages/introduction.dart';
 import 'package:mazilon/util/Form/formPagePhoneModel.dart';
 import 'package:mazilon/util/appInformation.dart';
+import 'package:mazilon/util/async/async_state_view.dart';
 import 'package:mazilon/util/userInformation.dart';
 import 'package:provider/provider.dart';
 // ignore: depend_on_referenced_packages
@@ -178,7 +179,7 @@ void main() {
   });
 
   testWidgets(
-    'MyApp boots without throwing — initial frame shows CircularProgressIndicator',
+    'MyApp boots without throwing — initial frame shows AsyncLoadingIndicator',
     (tester) async {
       final phonePageData = PhonePageData(
         key: 'PhonePage',
@@ -196,12 +197,12 @@ void main() {
 
       await tester.pumpWidget(_bootstrappedMyApp(phonePageData));
       // First frame: localeName is still '' so MyApp renders the bootstrap
-      // MaterialApp + CircularProgressIndicator placeholder (lines 399-406 of
+      // MaterialApp + AsyncLoadingIndicator placeholder (lines 536-549 of
       // main.dart).
       await tester.pump();
 
       expect(find.byType(MaterialApp), findsWidgets);
-      expect(find.byType(CircularProgressIndicator), findsWidgets);
+      expect(find.byType(AsyncLoadingIndicator), findsWidgets);
     },
   );
 
