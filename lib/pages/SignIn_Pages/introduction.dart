@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 import 'package:mazilon/util/LP_extended_state.dart';
-import 'package:mazilon/util/theme/app_theme.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 
 // Introduction widget serves as an initial loading screen or introduction page.
@@ -40,9 +39,10 @@ class _IntroductionState extends LPExtendedState<Introduction>
 
   @override
   Widget build(BuildContext context) {
+    final colorScheme = Theme.of(context).colorScheme;
     return Scaffold(
       body: Container(
-        decoration: BoxDecoration(color: AppColors.pageBackground),
+        decoration: BoxDecoration(color: colorScheme.surface),
         child: SafeArea(
           child: Column(
             children: [
@@ -56,60 +56,62 @@ class _IntroductionState extends LPExtendedState<Introduction>
                 ),
               ),
               const Spacer(flex: 2),
-              // Custom Gradient Progress Bar
-              Padding(
-                padding: EdgeInsets.symmetric(horizontal: 48.w),
-                child: AnimatedBuilder(
-                  animation: _animation,
-                  builder: (context, child) {
-                    return Container(
-                      height: 10.h,
-                      width: double.infinity,
-                      decoration: BoxDecoration(
-                        color: Colors.white.withValues(alpha: 0.5),
-                        borderRadius: BorderRadius.circular(5.r),
-                        border: Border.all(
-                          color: (Colors.black).withValues(alpha: 0.08),
-                          width: 1,
+              if (widget.child != null)
+                widget.child!
+              else ...[
+                // Custom Gradient Progress Bar
+                Padding(
+                  padding: EdgeInsets.symmetric(horizontal: 48.w),
+                  child: AnimatedBuilder(
+                    animation: _animation,
+                    builder: (context, child) {
+                      return Container(
+                        height: 10.h,
+                        width: double.infinity,
+                        decoration: BoxDecoration(
+                          color: colorScheme.surfaceContainerHighest,
+                          borderRadius: BorderRadius.circular(5.r),
+                          border: Border.all(
+                            color: colorScheme.outlineVariant,
+                            width: 1,
+                          ),
                         ),
-                      ),
-                      child: Stack(
-                        children: [
-                          FractionallySizedBox(
-                            widthFactor: _animation.value,
-                            child: Container(
-                              decoration: BoxDecoration(
-                                borderRadius: BorderRadius.circular(5.r),
-                                gradient: LinearGradient(
-                                  colors: [
-                                    AppColors.primary.withValues(alpha: 0.2),
-                                    AppColors.pageBackground,
-                                  ],
-                                  begin: Alignment.centerLeft,
-                                  end: Alignment.centerRight,
+                        child: Stack(
+                          children: [
+                            FractionallySizedBox(
+                              widthFactor: _animation.value,
+                              child: Container(
+                                decoration: BoxDecoration(
+                                  borderRadius: BorderRadius.circular(5.r),
+                                  gradient: LinearGradient(
+                                    colors: [
+                                      colorScheme.primary.withValues(alpha: 0.2),
+                                      colorScheme.surface,
+                                    ],
+                                    begin: Alignment.centerLeft,
+                                    end: Alignment.centerRight,
+                                  ),
                                 ),
                               ),
                             ),
-                          ),
-                        ],
-                      ),
-                    );
-                  },
+                          ],
+                        ),
+                      );
+                    },
+                  ),
                 ),
-              ),
-              const SizedBox(height: 16),
-              // Localized Loading Text
-              Text(
-                appLocale.asyncLoadingLabel,
-                style: TextStyle(
-                  fontSize: 16.sp,
-                  fontWeight: FontWeight.normal,
-                  color: Theme.of(
-                    context,
-                  ).colorScheme.onSurface.withValues(alpha: 0.7),
+                const SizedBox(height: 16),
+                // Localized Loading Text
+                Text(
+                  appLocale.asyncLoadingLabel,
+                  style: TextStyle(
+                    fontSize: 16.sp,
+                    fontWeight: FontWeight.normal,
+                    color: colorScheme.onSurface.withValues(alpha: 0.7),
+                  ),
+                  textAlign: TextAlign.center,
                 ),
-                textAlign: TextAlign.center,
-              ),
+              ],
               const Spacer(flex: 3),
             ],
           ),

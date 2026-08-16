@@ -60,8 +60,10 @@ enum Gender {
   String get listKey => code.isEmpty ? 'other' : code;
 
   /// Writes the choice back to the two fields [UserInformation] stores.
-  void applyTo(UserInformation userInfo) {
-    userInfo.updateBinary(this == Gender.nonBinary);
-    userInfo.updateGender(code);
+  Future<void> applyTo(UserInformation userInfo) async {
+    await userInfo.updateGenderAndBinary(
+      gender: code,
+      isBinary: this == Gender.nonBinary,
+    );
   }
 }

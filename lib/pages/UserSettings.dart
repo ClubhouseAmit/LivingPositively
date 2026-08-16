@@ -115,7 +115,7 @@ class _UserSettingsState extends LPExtendedState<UserSettings> {
   TextEditingController _namecontroller = TextEditingController();
   bool enteredBefore = false;
   bool hasFilled = false;
-  String? dropdownValueGender;
+  Gender? selectedGender;
   List<String> ages = ['18-', '18-30', '30-40', '40-55', '55+'];
   List<String> genders = [];
   List<String> locales = AppLocalizations.supportedLocales
@@ -547,7 +547,7 @@ class _UserSettingsState extends LPExtendedState<UserSettings> {
     final settingsFieldWidth = math.max(0.0, contentWidth - _kContentInsetX);
     final colorScheme = Theme.of(context).colorScheme;
     final selectedGenderLabel =
-        dropdownValueGender ?? Gender.of(userInfoProvider).label(appLocale);
+        selectedGender?.label(appLocale) ?? Gender.of(userInfoProvider).label(appLocale);
     final selectedLocaleName = locales.contains(userInfoProvider.localeName)
         ? localesNames[locales.indexOf(userInfoProvider.localeName)]
         : localesNames.first;
@@ -735,7 +735,7 @@ class _UserSettingsState extends LPExtendedState<UserSettings> {
                                         onSelected: (newValue) {
                                           setState(() {
                                             if (newValue != null) {
-                                              dropdownValueGender = newValue;
+                                              selectedGender = Gender.fromLabel(newValue, appLocale);
                                             }
                                           });
                                         },
@@ -827,13 +827,8 @@ class _UserSettingsState extends LPExtendedState<UserSettings> {
                                                 ? userInfoProvider.age
                                                 : dropdownValueAge!,
                                           );
-                                          if (dropdownValueGender != null) {
-                                            (Gender.fromLabel(
-                                                      dropdownValueGender!,
-                                                      appLocale,
-                                                    ) ??
-                                                    Gender.unspecified)
-                                                .applyTo(userInfoProvider);
+                                          if (selectedGender != null) {
+                                            selectedGender!.applyTo(userInfoProvider);
                                           }
                                           Navigator.pop(context);
                                         },

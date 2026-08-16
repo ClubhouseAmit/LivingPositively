@@ -56,24 +56,41 @@ void main() {
   });
 
   group('Gender.applyTo', () {
-    test('round-trips every choice through the stored fields', () {
+    test('round-trips every choice through the stored fields and persistent memory', () async {
       for (final gender in Gender.values) {
-        final user = buildUser(gender: 'female');
-        gender.applyTo(user);
+        final memory = _FakePersistentMemoryService();
+        final user = UserInformation(
+          gender: 'female', 
+          binary: false, 
+          service: memory,
+        );
+        await gender.applyTo(user);
+        
         expect(Gender.of(user), gender);
+        expect(memory.stored['gender'], gender.code);
+        expect(memory.stored['binary'], gender == Gender.nonBinary);
       }
     });
 
-    test('clears the gender code for the two non-binary-field choices', () {
-      final user = buildUser(gender: 'male');
+    test('clears the gender code for the two non-binary-field choices', () async {
+      final memory = _FakePersistentMemoryService();
+      final user = UserInformation(
+        gender: 'male', 
+        binary: false, 
+        service: memory,
+      );
 
-      Gender.nonBinary.applyTo(user);
+      await Gender.nonBinary.applyTo(user);
       expect(user.gender, '');
       expect(user.binary, isTrue);
+      expect(memory.stored['gender'], '');
+      expect(memory.stored['binary'], isTrue);
 
-      Gender.unspecified.applyTo(user);
+      await Gender.unspecified.applyTo(user);
       expect(user.gender, '');
       expect(user.binary, isFalse);
+      expect(memory.stored['gender'], '');
+      expect(memory.stored['binary'], isFalse);
     });
   });
 

@@ -9,6 +9,7 @@ import 'package:provider/provider.dart';
 import 'package:mazilon/util/styles.dart';
 import 'package:mazilon/util/userInformation.dart';
 import 'package:mazilon/util/disclaimerLanguageSelect.dart';
+import 'package:mazilon/util/logger_service.dart';
 
 // the disclaimer page widget,
 // it shows the disclaimer text and a button to confirm the disclaimer
@@ -20,22 +21,21 @@ class DisclaimerPage extends StatefulWidget {
 }
 
 // a function to update the disclaimer signed in the shared preferences
-void updateDisclaimers(userInfo) async {
+Future<bool> updateDisclaimers(userInfo) async {
   try {
     // get the shared preferences
-    PersistentMemoryService service =
+    PersistentMemoryService persistentMemoryService =
         GetIt.instance<
           PersistentMemoryService
         >(); // Get the persistent memory service instance
 
-    await service.setItem("disclaimerConfirmed", PersistentMemoryType.Bool, true);
-  } catch (e) {
-    debugPrint("Failed to write disclaimer confirmation: $e");
+    await persistentMemoryService.setItem("disclaimerConfirmed", PersistentMemoryType.Bool, true);
+    userInfo.updateDisclaimerSigned(true); //update the disclaimer signed in the user information provider
+    return true;
+  } catch (e, stackTrace) {
+    GetIt.instance<IncidentLoggerService>().captureLog(e, stackTrace: stackTrace);
+    return false;
   }
-
-  userInfo.updateDisclaimerSigned(
-    true,
-  ); //update the disclaimer signed in the user information provider
 }
 
 class _DisclaimerPageState extends LPExtendedState<DisclaimerPage> {
@@ -143,13 +143,13 @@ class _DisclaimerPageState extends LPExtendedState<DisclaimerPage> {
                     padding: const EdgeInsets.fromLTRB(20, 10, 20, 20),
                     child: ConfirmationButton(
                       context,
-                      () {
-                        setState(() {
-                          updateDisclaimers(
-                            userInfoProvider,
-                          ); //if button is clicked,
-                          //update the disclaimer signed in the shared preferences (call the updateDisclaimers function)
-                        });
+                      () async {
+                        bool success = await updateDisclaimers(userInfoProvider);
+                        if (!success && context.mounted) {
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            const SnackBar(content: Text('Failed to save confirmation. Please try again.')),
+                          );
+                        }
                       },
                       //disclaimer next button text from CMS(Saved in appinfo)
                       appLocale.confirmButton(gender),

@@ -452,10 +452,19 @@ class _MyAppState extends State<MyApp> with WidgetsBindingObserver {
       localeName = localeService.getLocale();
     });
     service.setItem("localeName", PersistentMemoryType.String, locale);
-    Provider.of<UserInformation>(
+    
+    final userInfoProvider = Provider.of<UserInformation>(
       context,
       listen: false,
-    ).updateLocaleName(locale);
+    );
+    userInfoProvider.updateLocaleName(locale);
+
+    // Reschedule notifications so they use the new language
+    AppLocalizations.delegate.load(Locale(locale)).then((localizations) {
+      if (userInfoProvider.notificationMessage.isNotEmpty || userInfoProvider.notificationHour != 12) {
+        NotificationsService.updateNotification(userInfoProvider, localizations);
+      }
+    });
   }
 
   ValueNotifier<Widget?> widgetNotifier = ValueNotifier<Widget?>(null);
@@ -499,7 +508,28 @@ class _MyAppState extends State<MyApp> with WidgetsBindingObserver {
             loggerService.captureLog(error, stackTrace: stackTrace);
 
             // Fallback to Introduction page on error
-            widgetNotifier.value = const Center(child: Introduction());
+            widgetNotifier.value = Introduction(
+              child: Builder(
+                builder: (context) {
+                  return Column(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Icon(Icons.error_outline, size: 48, color: Theme.of(context).colorScheme.error),
+                      const SizedBox(height: 16),
+                      Text(
+                        'An error occurred during startup.\nPlease try restarting the app.',
+                        style: TextStyle(
+                          fontSize: 16,
+                          fontWeight: FontWeight.normal,
+                          color: Theme.of(context).colorScheme.onSurface,
+                        ),
+                        textAlign: TextAlign.center,
+                      ),
+                    ],
+                  );
+                }
+              ),
+            );
           });
     }
 
