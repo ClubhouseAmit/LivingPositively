@@ -26,7 +26,6 @@ import 'package:mazilon/pages/sos_location_service.dart';
 import 'package:mazilon/util/appInformation.dart';
 import 'package:mazilon/util/logger_service.dart';
 import 'package:mazilon/util/persistent_memory_service.dart';
-import 'package:mazilon/util/speech_recognition_service.dart';
 import 'package:mazilon/util/userInformation.dart';
 import 'package:provider/provider.dart';
 import 'package:share_plus/share_plus.dart';
@@ -159,45 +158,6 @@ class NoopSosLocationService implements SosLocationService {
   }
 }
 
-/// Speech recognition fake that keeps generic widget tests off platform APIs.
-///
-/// It consistently reports speech recognition as unavailable and never retains
-/// or invokes the callback supplied to [start].
-class NoopSpeechRecognitionService implements SpeechRecognitionService {
-  @override
-  bool get hasActiveSession => false;
-
-  @override
-  Future<SpeechRecognitionAvailability> initialize() async {
-    return SpeechRecognitionAvailability.unavailable;
-  }
-
-  @override
-  Future<SpeechRecognitionLocalesResult> locales() async {
-    return const SpeechRecognitionLocalesUnavailable();
-  }
-
-  @override
-  Future<SpeechRecognitionSessionStartResult> start({
-    required String localeId,
-    required SpeechRecognitionEventCallback onEvent,
-  }) async {
-    return const SpeechRecognitionSessionStartFailure(
-      SpeechRecognitionSessionStartFailureKind.unavailable,
-    );
-  }
-
-  @override
-  Future<SpeechRecognitionSessionControlResult> stop() async {
-    return SpeechRecognitionSessionControlResult.noActiveSession;
-  }
-
-  @override
-  Future<SpeechRecognitionSessionControlResult> cancel() async {
-    return SpeechRecognitionSessionControlResult.noActiveSession;
-  }
-}
-
 /// Image picker that returns null/empty results so widgets can build without
 /// touching real files.
 class NoopImagePickerService implements ImagePickerService {
@@ -299,9 +259,6 @@ TestServiceLocators registerTestServices({String locale = 'en'}) {
   if (getIt.isRegistered<SosLocationService>()) {
     getIt.unregister<SosLocationService>();
   }
-  if (getIt.isRegistered<SpeechRecognitionService>()) {
-    getIt.unregister<SpeechRecognitionService>();
-  }
 
   final memory = FakePersistentMemoryService();
   final logger = NoopIncidentLoggerService();
@@ -311,7 +268,6 @@ TestServiceLocators registerTestServices({String locale = 'en'}) {
   final localeService = FakeLocaleService(locale);
   final videoFactory = FakeVideoPlayerPageFactory();
   final sosLocationService = NoopSosLocationService();
-  final speechRecognitionService = NoopSpeechRecognitionService();
 
   getIt.registerSingleton<PersistentMemoryService>(memory);
   getIt.registerSingleton<IncidentLoggerService>(logger);
@@ -321,7 +277,6 @@ TestServiceLocators registerTestServices({String locale = 'en'}) {
   getIt.registerSingleton<LocaleService>(localeService);
   getIt.registerSingleton<VideoPlayerPageFactory>(videoFactory);
   getIt.registerSingleton<SosLocationService>(sosLocationService);
-  getIt.registerSingleton<SpeechRecognitionService>(speechRecognitionService);
 
   return TestServiceLocators(
     memory: memory,
@@ -332,7 +287,6 @@ TestServiceLocators registerTestServices({String locale = 'en'}) {
     localeService: localeService,
     videoFactory: videoFactory,
     sosLocationService: sosLocationService,
-    speechRecognitionService: speechRecognitionService,
   );
 }
 
@@ -349,7 +303,6 @@ class TestServiceLocators {
   final FakeLocaleService localeService;
   final FakeVideoPlayerPageFactory videoFactory;
   final NoopSosLocationService sosLocationService;
-  final NoopSpeechRecognitionService speechRecognitionService;
   TestServiceLocators({
     required this.memory,
     required this.logger,
@@ -359,7 +312,6 @@ class TestServiceLocators {
     required this.localeService,
     required this.videoFactory,
     required this.sosLocationService,
-    required this.speechRecognitionService,
   });
 }
 

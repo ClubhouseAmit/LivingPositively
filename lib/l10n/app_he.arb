@@ -668,18 +668,5 @@
   "notificationCustomMessageHint": "הזן הודעת תזכורת...",
   "@notificationCustomMessageHint": {
     "description": "Hint text for the custom reminder message text field"
-  },
-  "speechDictationAction": "הכתבת טקסט",
-  "speechDictationDisclosureTitle": "להשתמש בהכתבה קולית?",
-   "speechDictationDisclosureMessage": "המכשיר או הדפדפן שלך עשויים לשלוח את הדיבור לשירות זיהוי דיבור לצורך עיבוד. אפליקציה זו אינה שומרת אודיו ואינה שולחת טקסט מוכתב לניתוח נתונים. ייתכן שמדיניות ספקי שירותי הזיהוי חלה. אפשר לעבור על הטקסט ולערוך אותו לפני השמירה.",
-  "speechDictationDisclosureAccept": "המשך",
-  "speechDictationDisclosureDecline": "לא עכשיו",
-  "speechDictationLanguagePickerTitle": "בחירת שפת הכתבה",
-  "speechDictationListeningLabel": "מקשיב…",
-  "speechDictationStopAndApplyAction": "עצור והחל",
-  "speechDictationDiscardAction": "בטל",
-  "speechDictationUnavailable": "הכתבה קולית אינה זמינה במכשיר הזה.",
-  "speechDictationError": "לא ניתן היה להשלים את ההכתבה הקולית. נסה/י שוב.",
-  "speechDictationTooLong": "הטקסט שהוכתב ארוך מדי עבור שדה זה.",
-  "speechDictationPhoneInvalid": "מספר הטלפון שהוכתב אינו תקין עבור המדינה שנבחרה."
+  }
 }

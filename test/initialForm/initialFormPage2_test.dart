@@ -1,10 +1,8 @@
-import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:mazilon/form/wizard_step.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:get_it/get_it.dart';
-import 'package:mazilon/form/speech_dictation_suffix_action.dart';
 import 'package:mazilon/initialForm/initialFormPage2.dart';
 import 'package:mazilon/l10n/app_localizations.dart';
 import 'package:mazilon/util/appInformation.dart';
@@ -117,25 +115,6 @@ void main() {
     expect(find.byType(InitialFormPage2), findsOneWidget);
     expect(find.byType(TextFormField), findsOneWidget);
     expect(find.byType(DropdownMenu<String>), findsNWidgets(2));
-  });
-
-  testWidgets('onboarding name field exposes dictation when supported', (
-    tester,
-  ) async {
-    debugDefaultTargetPlatformOverride = TargetPlatform.android;
-    try {
-      await tester.pumpWidget(createTestWidget());
-
-      final field = tester.widget<TextField>(
-        find.descendant(
-          of: find.byType(TextFormField),
-          matching: find.byType(TextField),
-        ),
-      );
-      expect(field.decoration?.suffixIcon, isA<SpeechDictationSuffixAction>());
-    } finally {
-      debugDefaultTargetPlatformOverride = null;
-    }
   });
 
   testWidgets('InitialFormPage2 text field input', (tester) async {

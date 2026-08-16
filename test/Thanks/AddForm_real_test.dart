@@ -14,10 +14,8 @@
 // MaterialApp + Scaffold with a "open" button that calls showDialog so we
 // have a real Navigator/dialog context for `Navigator.of(context).pop()`.
 
-import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:mazilon/form/speech_dictation_suffix_action.dart';
 import 'package:mazilon/util/Thanks/AddForm.dart' as real;
 import 'package:mazilon/util/userInformation.dart';
 
@@ -74,37 +72,6 @@ void main() {
       expect(find.byType(TextFormField), findsOneWidget);
       // Two TextButtons: close + save.
       expect(find.byType(TextButton), findsNWidgets(2));
-    });
-
-    testWidgets('exposes dictation on the generic add field when supported', (
-      tester,
-    ) async {
-      debugDefaultTargetPlatformOverride = TargetPlatform.android;
-      try {
-        await _openDialog(
-          tester,
-          real.AddForm(
-            add: (_, _) {},
-            edit: (_, _, _) {},
-            index: 0,
-            text: '',
-            formTitle: 'Trait',
-          ),
-        );
-
-        final field = tester.widget<TextField>(
-          find.descendant(
-            of: find.byType(TextFormField),
-            matching: find.byType(TextField),
-          ),
-        );
-        expect(
-          field.decoration?.suffixIcon,
-          isA<SpeechDictationSuffixAction>(),
-        );
-      } finally {
-        debugDefaultTargetPlatformOverride = null;
-      }
     });
 
     testWidgets('seeds TextFormField controller with widget.text', (

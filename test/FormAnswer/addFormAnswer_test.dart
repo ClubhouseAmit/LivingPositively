@@ -1,8 +1,6 @@
-import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:mazilon/form/speech_dictation_suffix_action.dart';
 import 'package:mazilon/global_enums.dart';
 import 'package:mazilon/l10n/app_localizations.dart';
 import 'package:mazilon/util/FormAnswer/addFormAnswer.dart';
@@ -61,28 +59,6 @@ void main() {
     await tester.pumpAndSettle();
 
     expect(find.text('hello'), findsOneWidget);
-  });
-
-  testWidgets('exposes dictation on the personal-plan answer field', (
-    tester,
-  ) async {
-    debugDefaultTargetPlatformOverride = TargetPlatform.android;
-    try {
-      await tester.pumpWidget(
-        _hostDialog(userInfo: userInfo, edit: (_, _) {}, text: 'hello'),
-      );
-      await tester.pumpAndSettle();
-
-      final field = tester.widget<TextField>(
-        find.descendant(
-          of: find.byType(TextFormField),
-          matching: find.byType(TextField),
-        ),
-      );
-      expect(field.decoration?.suffixIcon, isA<SpeechDictationSuffixAction>());
-    } finally {
-      debugDefaultTargetPlatformOverride = null;
-    }
   });
 
   testWidgets('cancel button closes the dialog without invoking edit', (

@@ -1,11 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
-import 'package:mazilon/form/speech_dictation_suffix_action.dart';
 import 'package:mazilon/util/LP_extended_state.dart';
 import 'package:mazilon/util/styles.dart';
 import 'package:mazilon/util/userInformation.dart'; //
 import 'package:provider/provider.dart'; //
-
 //
 
 // the add form widget, it shows a form to add or edit an item to the list
@@ -107,14 +105,6 @@ class _AddFormState extends LPExtendedState<AddForm> {
                                 autofocus: true,
                                 decoration: InputDecoration(
                                   labelText: widget.formTitle,
-                                  suffixIcon:
-                                      SpeechDictationSuffixAction
-                                          .isSupportedPlatform
-                                      ? SpeechDictationSuffixAction(
-                                          controller: _controller,
-                                          maxLength: 100,
-                                        )
-                                      : null,
                                   contentPadding: EdgeInsets.only(right: 1.0),
                                   labelStyle: TextStyle(
                                     fontWeight: FontWeight.normal,

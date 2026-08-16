@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:mazilon/form/speech_dictation_suffix_action.dart';
 import 'package:mazilon/util/LP_extended_state.dart';
 import 'package:mazilon/util/styles.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
@@ -76,13 +75,6 @@ class _AddFormAnswerState extends LPExtendedState<AddFormAnswer> {
                         labelText: appLocale.addFormEdit(
                           gender,
                         ), // Set label text dynamically based on user gender
-                        suffixIcon:
-                            SpeechDictationSuffixAction.isSupportedPlatform
-                            ? SpeechDictationSuffixAction(
-                                controller: _controller,
-                                maxLength: 100,
-                              )
-                            : null,
                         contentPadding: const EdgeInsetsDirectional.only(
                           end: 8.0,
                         ),

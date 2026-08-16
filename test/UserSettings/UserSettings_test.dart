@@ -6,10 +6,8 @@
 // UserInformation through Provider, persists name/age/gender/locale through
 // PersistentMemoryService (GetIt), and uses AppLocalizations for all copy.
 
-import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:mazilon/form/speech_dictation_suffix_action.dart';
 import 'package:mazilon/global_enums.dart';
 import 'package:mazilon/pages/UserSettings.dart';
 import 'package:mazilon/util/Form/formPagePhoneModel.dart';
@@ -93,33 +91,6 @@ void main() {
       // The TextField is constructed with a controller seeded from username.
       final tf = tester.widget<TextField>(find.byType(TextField).first);
       expect(tf.controller?.text, 'Prefilled');
-    });
-
-    testWidgets('settings name field exposes dictation when supported', (
-      tester,
-    ) async {
-      debugDefaultTargetPlatformOverride = TargetPlatform.android;
-      try {
-        await pumpWithProviders(
-          tester,
-          _buildWidget(changeLocale: (_) {}),
-          userInformation: userInformation,
-          surfaceSize: const Size(1024, 1800),
-        );
-
-        final field = tester.widget<TextField>(
-          find.descendant(
-            of: find.byType(TextFormField).first,
-            matching: find.byType(TextField),
-          ),
-        );
-        expect(
-          field.decoration?.suffixIcon,
-          isA<SpeechDictationSuffixAction>(),
-        );
-      } finally {
-        debugDefaultTargetPlatformOverride = null;
-      }
     });
 
     testWidgets('typing into the name field stages without persisting', (

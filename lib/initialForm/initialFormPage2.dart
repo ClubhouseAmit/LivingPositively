@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
-import 'package:mazilon/form/speech_dictation_suffix_action.dart';
 import 'package:mazilon/form/wizard_step.dart';
 import 'package:mazilon/initialForm/CountrySelectorWidget.dart';
 import 'package:mazilon/l10n/app_localizations.dart';
@@ -196,14 +195,7 @@ class _InitialFormPage2State extends WizardStepState<InitialFormPage2> {
                       decoration: formFieldShadowDecoration(),
                       child: TextFormField(
                         controller: _nameController,
-                        decoration: formFieldInputDecoration(context).copyWith(
-                          suffixIcon:
-                              SpeechDictationSuffixAction.isSupportedPlatform
-                              ? SpeechDictationSuffixAction(
-                                  controller: _nameController,
-                                )
-                              : null,
-                        ),
+                        decoration: formFieldInputDecoration(context),
                         validator: (text) {
                           if ((text ?? '').trim().isEmpty) {
                             return appLocale.nameRequiredError;
