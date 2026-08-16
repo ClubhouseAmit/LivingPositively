@@ -95,10 +95,35 @@ void main() {
       expect(tf.controller?.text, 'Prefilled');
     });
 
-    testWidgets('settings name field exposes dictation when supported', (
+    testWidgets('settings name field hides dictation when feature flag is disabled', (
       tester,
     ) async {
       debugDefaultTargetPlatformOverride = TargetPlatform.android;
+      try {
+        await pumpWithProviders(
+          tester,
+          _buildWidget(changeLocale: (_) {}),
+          userInformation: userInformation,
+          surfaceSize: const Size(1024, 1800),
+        );
+
+        final field = tester.widget<TextField>(
+          find.descendant(
+            of: find.byType(TextFormField).first,
+            matching: find.byType(TextField),
+          ),
+        );
+        expect(field.decoration?.suffixIcon, isNull);
+      } finally {
+        debugDefaultTargetPlatformOverride = null;
+      }
+    });
+
+    testWidgets('settings name field exposes dictation when supported and enabled', (
+      tester,
+    ) async {
+      debugDefaultTargetPlatformOverride = TargetPlatform.android;
+      SpeechDictationSuffixAction.isFeatureEnabled = true;
       try {
         await pumpWithProviders(
           tester,
@@ -118,6 +143,7 @@ void main() {
           isA<SpeechDictationSuffixAction>(),
         );
       } finally {
+        SpeechDictationSuffixAction.isFeatureEnabled = false;
         debugDefaultTargetPlatformOverride = null;
       }
     });

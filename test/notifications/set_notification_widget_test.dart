@@ -201,7 +201,7 @@ void main() {
     });
   });
 
-  testWidgets('reminder message field exposes dictation on iOS', (
+  testWidgets('reminder message field hides dictation when feature flag is disabled', (
     tester,
   ) async {
     await _onIos(() async {
@@ -216,8 +216,32 @@ void main() {
       final field = tester.widget<TextField>(
         find.byKey(const Key('custom-reminder-message-field')),
       );
-      expect(field.decoration?.suffixIcon, isA<SpeechDictationSuffixAction>());
+      expect(field.decoration?.suffixIcon, isNull);
     });
+  });
+
+  testWidgets('reminder message field exposes dictation on iOS when enabled', (
+    tester,
+  ) async {
+    SpeechDictationSuffixAction.isFeatureEnabled = true;
+    try {
+      await _onIos(() async {
+        await pumpWithProviders(
+          tester,
+          const SetNotificationWidget(),
+          userInformation: UserInformation(gender: 'male'),
+          locale: const Locale('he'),
+        );
+        await tester.pumpAndSettle(const Duration(milliseconds: 300));
+
+        final field = tester.widget<TextField>(
+          find.byKey(const Key('custom-reminder-message-field')),
+        );
+        expect(field.decoration?.suffixIcon, isA<SpeechDictationSuffixAction>());
+      });
+    } finally {
+      SpeechDictationSuffixAction.isFeatureEnabled = false;
+    }
   });
 
   testWidgets('TimePicker receives non-default userInfo state', (tester) async {

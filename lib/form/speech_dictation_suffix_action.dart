@@ -58,11 +58,17 @@ class SpeechDictationSuffixAction extends StatefulWidget {
   /// Overrides local persistence in focused widget tests.
   final PersistentMemoryService? persistentMemoryService;
 
+  /// Feature flag controlling whether speech dictation UI is enabled.
+  /// Set to false to hide the dictation action across all form inputs for release.
+  static bool isFeatureEnabled = false;
+
   /// Whether the current platform has an exposed dictation control.
-  static bool get isSupportedPlatform => isSupportedPlatformFor(
-    isWeb: kIsWeb,
-    targetPlatform: defaultTargetPlatform,
-  );
+  static bool get isSupportedPlatform =>
+      isFeatureEnabled &&
+      isSupportedPlatformFor(
+        isWeb: kIsWeb,
+        targetPlatform: defaultTargetPlatform,
+      );
 
   /// Determines platform support from the supplied runtime characteristics.
   @visibleForTesting

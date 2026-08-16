@@ -14,6 +14,19 @@ void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
 
   group('SpeechDictationSuffixAction', () {
+    setUp(() {
+      SpeechDictationSuffixAction.isFeatureEnabled = true;
+    });
+
+    tearDown(() {
+      SpeechDictationSuffixAction.isFeatureEnabled = false;
+    });
+
+    test('should report false when feature flag is disabled', () {
+      SpeechDictationSuffixAction.isFeatureEnabled = false;
+      expect(SpeechDictationSuffixAction.isSupportedPlatform, isFalse);
+    });
+
     test('should report the supported web and native platform matrix', () {
       expect(
         SpeechDictationSuffixAction.isSupportedPlatformFor(

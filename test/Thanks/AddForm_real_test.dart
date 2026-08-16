@@ -76,36 +76,68 @@ void main() {
       expect(find.byType(TextButton), findsNWidgets(2));
     });
 
-    testWidgets('exposes dictation on the generic add field when supported', (
-      tester,
-    ) async {
-      debugDefaultTargetPlatformOverride = TargetPlatform.android;
-      try {
-        await _openDialog(
-          tester,
-          real.AddForm(
-            add: (_, _) {},
-            edit: (_, _, _) {},
-            index: 0,
-            text: '',
-            formTitle: 'Trait',
-          ),
-        );
+    testWidgets(
+      'hides dictation on the generic add field when feature flag is disabled',
+      (tester) async {
+        debugDefaultTargetPlatformOverride = TargetPlatform.android;
+        try {
+          await _openDialog(
+            tester,
+            real.AddForm(
+              add: (_, _) {},
+              edit: (_, _, _) {},
+              index: 0,
+              text: '',
+              formTitle: 'Trait',
+            ),
+          );
 
-        final field = tester.widget<TextField>(
-          find.descendant(
-            of: find.byType(TextFormField),
-            matching: find.byType(TextField),
-          ),
-        );
-        expect(
-          field.decoration?.suffixIcon,
-          isA<SpeechDictationSuffixAction>(),
-        );
-      } finally {
-        debugDefaultTargetPlatformOverride = null;
-      }
-    });
+          final field = tester.widget<TextField>(
+            find.descendant(
+              of: find.byType(TextFormField),
+              matching: find.byType(TextField),
+            ),
+          );
+          expect(field.decoration?.suffixIcon, isNull);
+        } finally {
+          debugDefaultTargetPlatformOverride = null;
+        }
+      },
+    );
+
+    testWidgets(
+      'exposes dictation on the generic add field when supported and enabled',
+      (tester) async {
+        debugDefaultTargetPlatformOverride = TargetPlatform.android;
+        SpeechDictationSuffixAction.isFeatureEnabled = true;
+        try {
+          await _openDialog(
+            tester,
+            real.AddForm(
+              add: (_, _) {},
+              edit: (_, _, _) {},
+              index: 0,
+              text: '',
+              formTitle: 'Trait',
+            ),
+          );
+
+          final field = tester.widget<TextField>(
+            find.descendant(
+              of: find.byType(TextFormField),
+              matching: find.byType(TextField),
+            ),
+          );
+          expect(
+            field.decoration?.suffixIcon,
+            isA<SpeechDictationSuffixAction>(),
+          );
+        } finally {
+          SpeechDictationSuffixAction.isFeatureEnabled = false;
+          debugDefaultTargetPlatformOverride = null;
+        }
+      },
+    );
 
     testWidgets('seeds TextFormField controller with widget.text', (
       tester,

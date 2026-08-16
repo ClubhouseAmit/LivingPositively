@@ -247,10 +247,35 @@ void main() {
     expect(finishTop, greaterThan(addCategoryTop));
   });
 
-  testWidgets('custom category inputs expose dictation when supported', (
+  testWidgets(
+    'custom category inputs hide dictation when feature flag is disabled',
+    (WidgetTester tester) async {
+      debugDefaultTargetPlatformOverride = TargetPlatform.android;
+      try {
+        await tester.pumpWidget(createTestWidget());
+        await tester.ensureVisible(find.text('+ הוספת קטגוריה'));
+        await tester.tap(find.text('+ הוספת קטגוריה'));
+        await tester.pumpAndSettle();
+
+        final titleField = tester.widget<TextField>(
+          find.byKey(const Key('custom-category-title-field')),
+        );
+        final descriptionField = tester.widget<TextField>(
+          find.byKey(const Key('custom-category-description-field')),
+        );
+        expect(titleField.decoration?.suffixIcon, isNull);
+        expect(descriptionField.decoration?.suffixIcon, isNull);
+      } finally {
+        debugDefaultTargetPlatformOverride = null;
+      }
+    },
+  );
+
+  testWidgets('custom category inputs expose dictation when supported and enabled', (
     WidgetTester tester,
   ) async {
     debugDefaultTargetPlatformOverride = TargetPlatform.android;
+    SpeechDictationSuffixAction.isFeatureEnabled = true;
     try {
       await tester.pumpWidget(createTestWidget());
       await tester.ensureVisible(find.text('+ הוספת קטגוריה'));
@@ -272,6 +297,7 @@ void main() {
         isA<SpeechDictationSuffixAction>(),
       );
     } finally {
+      SpeechDictationSuffixAction.isFeatureEnabled = false;
       debugDefaultTargetPlatformOverride = null;
     }
   });

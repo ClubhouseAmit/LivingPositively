@@ -63,27 +63,53 @@ void main() {
     expect(find.text('hello'), findsOneWidget);
   });
 
-  testWidgets('exposes dictation on the personal-plan answer field', (
-    tester,
-  ) async {
-    debugDefaultTargetPlatformOverride = TargetPlatform.android;
-    try {
-      await tester.pumpWidget(
-        _hostDialog(userInfo: userInfo, edit: (_, _) {}, text: 'hello'),
-      );
-      await tester.pumpAndSettle();
+  testWidgets(
+    'hides dictation on the personal-plan answer field when feature flag is disabled',
+    (tester) async {
+      debugDefaultTargetPlatformOverride = TargetPlatform.android;
+      try {
+        await tester.pumpWidget(
+          _hostDialog(userInfo: userInfo, edit: (_, _) {}, text: 'hello'),
+        );
+        await tester.pumpAndSettle();
 
-      final field = tester.widget<TextField>(
-        find.descendant(
-          of: find.byType(TextFormField),
-          matching: find.byType(TextField),
-        ),
-      );
-      expect(field.decoration?.suffixIcon, isA<SpeechDictationSuffixAction>());
-    } finally {
-      debugDefaultTargetPlatformOverride = null;
-    }
-  });
+        final field = tester.widget<TextField>(
+          find.descendant(
+            of: find.byType(TextFormField),
+            matching: find.byType(TextField),
+          ),
+        );
+        expect(field.decoration?.suffixIcon, isNull);
+      } finally {
+        debugDefaultTargetPlatformOverride = null;
+      }
+    },
+  );
+
+  testWidgets(
+    'exposes dictation on the personal-plan answer field when enabled',
+    (tester) async {
+      debugDefaultTargetPlatformOverride = TargetPlatform.android;
+      SpeechDictationSuffixAction.isFeatureEnabled = true;
+      try {
+        await tester.pumpWidget(
+          _hostDialog(userInfo: userInfo, edit: (_, _) {}, text: 'hello'),
+        );
+        await tester.pumpAndSettle();
+
+        final field = tester.widget<TextField>(
+          find.descendant(
+            of: find.byType(TextFormField),
+            matching: find.byType(TextField),
+          ),
+        );
+        expect(field.decoration?.suffixIcon, isA<SpeechDictationSuffixAction>());
+      } finally {
+        SpeechDictationSuffixAction.isFeatureEnabled = false;
+        debugDefaultTargetPlatformOverride = null;
+      }
+    },
+  );
 
   testWidgets('cancel button closes the dialog without invoking edit', (
     tester,

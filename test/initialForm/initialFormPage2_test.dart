@@ -119,24 +119,47 @@ void main() {
     expect(find.byType(DropdownMenu<String>), findsNWidgets(2));
   });
 
-  testWidgets('onboarding name field exposes dictation when supported', (
-    tester,
-  ) async {
-    debugDefaultTargetPlatformOverride = TargetPlatform.android;
-    try {
-      await tester.pumpWidget(createTestWidget());
+  testWidgets(
+    'onboarding name field hides dictation when feature flag is disabled',
+    (tester) async {
+      debugDefaultTargetPlatformOverride = TargetPlatform.android;
+      try {
+        await tester.pumpWidget(createTestWidget());
 
-      final field = tester.widget<TextField>(
-        find.descendant(
-          of: find.byType(TextFormField),
-          matching: find.byType(TextField),
-        ),
-      );
-      expect(field.decoration?.suffixIcon, isA<SpeechDictationSuffixAction>());
-    } finally {
-      debugDefaultTargetPlatformOverride = null;
-    }
-  });
+        final field = tester.widget<TextField>(
+          find.descendant(
+            of: find.byType(TextFormField),
+            matching: find.byType(TextField),
+          ),
+        );
+        expect(field.decoration?.suffixIcon, isNull);
+      } finally {
+        debugDefaultTargetPlatformOverride = null;
+      }
+    },
+  );
+
+  testWidgets(
+    'onboarding name field exposes dictation when supported and enabled',
+    (tester) async {
+      debugDefaultTargetPlatformOverride = TargetPlatform.android;
+      SpeechDictationSuffixAction.isFeatureEnabled = true;
+      try {
+        await tester.pumpWidget(createTestWidget());
+
+        final field = tester.widget<TextField>(
+          find.descendant(
+            of: find.byType(TextFormField),
+            matching: find.byType(TextField),
+          ),
+        );
+        expect(field.decoration?.suffixIcon, isA<SpeechDictationSuffixAction>());
+      } finally {
+        SpeechDictationSuffixAction.isFeatureEnabled = false;
+        debugDefaultTargetPlatformOverride = null;
+      }
+    },
+  );
 
   testWidgets('InitialFormPage2 text field input', (tester) async {
     await tester.pumpWidget(createTestWidget());
