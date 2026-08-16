@@ -2530,6 +2530,12 @@ abstract class AppLocalizations {
   /// **'Videos cannot be shown right now.'**
   String get wellnessVideoDataUnavailableMessage;
 
+  /// No description provided for @disclaimerPageTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Disclaimer'**
+  String get disclaimerPageTitle;
+
   /// No description provided for @disclaimerSummary.
   ///
   /// In en, this message translates to:

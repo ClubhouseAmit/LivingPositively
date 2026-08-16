@@ -3338,6 +3338,9 @@ class AppLocalizationsAr extends AppLocalizations {
       'لا يمكن عرض الفيديوهات الآن.';
 
   @override
+  String get disclaimerPageTitle => 'تصريح';
+
+  @override
   String get disclaimerSummary => 'راجع الشروط ووافق عليها للمتابعة.';
 
   @override

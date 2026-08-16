@@ -3371,6 +3371,9 @@ class AppLocalizationsEn extends AppLocalizations {
       'Videos cannot be shown right now.';
 
   @override
+  String get disclaimerPageTitle => 'Disclaimer';
+
+  @override
   String get disclaimerSummary => 'Review and accept terms to continue.';
 
   @override

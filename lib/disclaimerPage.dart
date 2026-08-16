@@ -69,17 +69,7 @@ class _DisclaimerPageState extends LPExtendedState<DisclaimerPage> {
     );
   }
 
-  String _getTitle(String localeCode) {
-    switch (localeCode) {
-      case 'he':
-        return 'הצהרה';
-      case 'ar':
-        return 'تصريح';
-      case 'en':
-      default:
-        return 'Disclaimer';
-    }
-  }
+
 
   // build the disclaimer page widget
   @override
@@ -111,7 +101,7 @@ class _DisclaimerPageState extends LPExtendedState<DisclaimerPage> {
                           Padding(
                             padding: const EdgeInsets.symmetric(horizontal: 20.0),
                             child: Text(
-                              _getTitle(Localizations.localeOf(context).languageCode),
+                              appLocale.disclaimerPageTitle,
                               style: TextStyle(
                                 fontSize: 24.sp,
                                 fontWeight: FontWeight.bold,

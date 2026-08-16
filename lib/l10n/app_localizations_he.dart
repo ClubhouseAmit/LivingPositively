@@ -3330,6 +3330,9 @@ class AppLocalizationsHe extends AppLocalizations {
       'לא ניתן להציג את הסרטונים כרגע.';
 
   @override
+  String get disclaimerPageTitle => 'הצהרה';
+
+  @override
   String get disclaimerSummary => 'קראו ואשרו את התנאים להמשך.';
 
   @override
