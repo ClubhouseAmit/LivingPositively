@@ -12,6 +12,7 @@ import 'package:mazilon/iFx/service_locator.dart';
 import 'package:mazilon/util/appInformation.dart';
 import 'package:mazilon/global_enums.dart';
 import 'package:mazilon/util/persistent_memory_service.dart';
+import 'package:mazilon/util/speech_recognition_service.dart';
 import 'package:mazilon/util/userInformation.dart';
 import 'package:mockito/annotations.dart';
 import 'package:provider/provider.dart';
@@ -21,7 +22,8 @@ import 'package:mazilon/form/shareform.dart';
 import 'package:mazilon/form/wizard_step.dart';
 import 'package:mockito/mockito.dart';
 import 'package:mazilon/l10n/app_localizations.dart';
-import '../helpers/widget_test_scaffold.dart' show wizardStepHarness;
+import '../helpers/widget_test_scaffold.dart'
+    show NoopSpeechRecognitionService, wizardStepHarness;
 import 'shareform_test.mocks.dart';
 
 @GenerateNiceMocks([
@@ -42,7 +44,10 @@ void main() {
 
     // Reset getIt before each test
     await locator.reset();
-    // Create and register ONLY PersistentMemoryService
+    locator.registerSingleton<SpeechRecognitionService>(
+      NoopSpeechRecognitionService(),
+    );
+    // Create and register PersistentMemoryService
     mockPersistentMemoryService = MockPersistentMemoryService();
 
     // Set up mock behaviors for PersistentMemoryService
@@ -115,7 +120,8 @@ void main() {
     );
   }
 
-  testWidgets('ShareForm renders correctly', (WidgetTester tester) async {
+  group('ShareForm', () {
+    testWidgets('ShareForm renders correctly', (WidgetTester tester) async {
     await tester.pumpWidget(createTestWidget());
 
     // Verify the presence of the header and subtitles
@@ -247,34 +253,74 @@ void main() {
     expect(finishTop, greaterThan(addCategoryTop));
   });
 
-  testWidgets('custom category inputs expose dictation when supported', (
-    WidgetTester tester,
-  ) async {
-    debugDefaultTargetPlatformOverride = TargetPlatform.android;
-    try {
-      await tester.pumpWidget(createTestWidget());
-      await tester.ensureVisible(find.text('+ הוספת קטגוריה'));
-      await tester.tap(find.text('+ הוספת קטגוריה'));
-      await tester.pumpAndSettle();
+  testWidgets(
+    'should hide dictation on custom category inputs when feature flag is disabled',
+    (WidgetTester tester) async {
+      final previousFeatureEnabled =
+          SpeechDictationSuffixAction.isFeatureEnabled;
+      final originalPlatform = debugDefaultTargetPlatformOverride;
+      SpeechDictationSuffixAction.isFeatureEnabled = false;
+      debugDefaultTargetPlatformOverride = TargetPlatform.android;
+      try {
+        await tester.pumpWidget(createTestWidget());
+        await tester.ensureVisible(find.text('+ הוספת קטגוריה'));
+        await tester.tap(find.text('+ הוספת קטגוריה'));
+        await tester.pumpAndSettle();
 
-      final titleField = tester.widget<TextField>(
-        find.byKey(const Key('custom-category-title-field')),
-      );
-      final descriptionField = tester.widget<TextField>(
-        find.byKey(const Key('custom-category-description-field')),
-      );
-      expect(
-        titleField.decoration?.suffixIcon,
-        isA<SpeechDictationSuffixAction>(),
-      );
-      expect(
-        descriptionField.decoration?.suffixIcon,
-        isA<SpeechDictationSuffixAction>(),
-      );
-    } finally {
-      debugDefaultTargetPlatformOverride = null;
-    }
-  });
+        final titleField = tester.widget<TextField>(
+          find.byKey(const Key('custom-category-title-field')),
+        );
+        final descriptionField = tester.widget<TextField>(
+          find.byKey(const Key('custom-category-description-field')),
+        );
+        expect(titleField.decoration?.suffixIcon, isNull);
+        expect(descriptionField.decoration?.suffixIcon, isNull);
+        expect(find.byKey(const Key('speech-dictation-start')), findsNothing);
+      } finally {
+        SpeechDictationSuffixAction.isFeatureEnabled = previousFeatureEnabled;
+        debugDefaultTargetPlatformOverride = originalPlatform;
+      }
+    },
+  );
+
+  testWidgets(
+    'should expose dictation on custom category inputs when supported and enabled',
+    (WidgetTester tester) async {
+      final previousFeatureEnabled =
+          SpeechDictationSuffixAction.isFeatureEnabled;
+      final originalPlatform = debugDefaultTargetPlatformOverride;
+      SpeechDictationSuffixAction.isFeatureEnabled = true;
+      debugDefaultTargetPlatformOverride = TargetPlatform.android;
+      try {
+        await tester.pumpWidget(createTestWidget());
+        await tester.ensureVisible(find.text('+ הוספת קטגוריה'));
+        await tester.tap(find.text('+ הוספת קטגוריה'));
+        await tester.pumpAndSettle();
+
+        final titleField = tester.widget<TextField>(
+          find.byKey(const Key('custom-category-title-field')),
+        );
+        final descriptionField = tester.widget<TextField>(
+          find.byKey(const Key('custom-category-description-field')),
+        );
+        expect(
+          titleField.decoration?.suffixIcon,
+          isA<SpeechDictationSuffixAction>(),
+        );
+        expect(
+          descriptionField.decoration?.suffixIcon,
+          isA<SpeechDictationSuffixAction>(),
+        );
+        expect(
+          find.byKey(const Key('speech-dictation-start')),
+          findsNWidgets(2),
+        );
+      } finally {
+        SpeechDictationSuffixAction.isFeatureEnabled = previousFeatureEnabled;
+        debugDefaultTargetPlatformOverride = originalPlatform;
+      }
+    },
+  );
 
   testWidgets('ShareForm keeps its content clear of the pinned finish button', (
     WidgetTester tester,
@@ -591,5 +637,6 @@ void main() {
     expect(find.text('כותרת עברית שמורה'), findsOneWidget);
     expect(find.text('טקסט עברי שמור'), findsOneWidget);
     expect(find.text('+ Add a custom category'), findsOneWidget);
+  });
   });
 }

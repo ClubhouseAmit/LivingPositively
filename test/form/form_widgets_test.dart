@@ -190,59 +190,124 @@ void main() {
       },
     );
 
-    testWidgets('manual contact draft exposes dictation on both inputs', (
-      tester,
-    ) async {
-      debugDefaultTargetPlatformOverride = TargetPlatform.android;
-      try {
-        final phoneData = _makePhonePageData();
-        await pumpWithProviders(
-          tester,
-          ChangeNotifierProvider<PhonePageData>.value(
-            value: phoneData,
-            child: Scaffold(
-              body: SingleChildScrollView(
-                child: PhonePageList(phonePageData: phoneData),
+    testWidgets(
+      'should hide dictation on manual contact draft inputs when feature flag is disabled',
+      (tester) async {
+        final previousFeatureEnabled =
+            SpeechDictationSuffixAction.isFeatureEnabled;
+        final originalPlatform = debugDefaultTargetPlatformOverride;
+        SpeechDictationSuffixAction.isFeatureEnabled = false;
+        debugDefaultTargetPlatformOverride = TargetPlatform.android;
+        try {
+          final phoneData = _makePhonePageData();
+          await pumpWithProviders(
+            tester,
+            ChangeNotifierProvider<PhonePageData>.value(
+              value: phoneData,
+              child: Scaffold(
+                body: SingleChildScrollView(
+                  child: PhonePageList(phonePageData: phoneData),
+                ),
               ),
             ),
-          ),
-          userInformation: userInformation,
-          surfaceSize: const Size(1024, 2000),
-        );
-        await _settle(tester);
-        await tester.pump(const Duration(milliseconds: 50));
-        drainOverflowExceptions(tester);
+            userInformation: userInformation,
+            surfaceSize: const Size(1024, 2000),
+          );
+          await _settle(tester);
+          await tester.pump(const Duration(milliseconds: 50));
+          drainOverflowExceptions(tester);
 
-        await tester.tap(find.byType(TextButton).last, warnIfMissed: false);
-        await tester.pump();
-        drainOverflowExceptions(tester);
+          await tester.tap(find.byType(TextButton).last, warnIfMissed: false);
+          await tester.pump();
+          drainOverflowExceptions(tester);
 
-        final formFields = find.byType(TextFormField);
-        expect(formFields, findsNWidgets(2));
-        final nameField = tester.widget<TextField>(
-          find.descendant(
-            of: formFields.at(0),
-            matching: find.byType(TextField),
-          ),
-        );
-        final numberField = tester.widget<TextField>(
-          find.descendant(
-            of: formFields.at(1),
-            matching: find.byType(TextField),
-          ),
-        );
-        expect(
-          nameField.decoration?.suffixIcon,
-          isA<SpeechDictationSuffixAction>(),
-        );
-        expect(
-          numberField.decoration?.suffixIcon,
-          isA<SpeechDictationSuffixAction>(),
-        );
-      } finally {
-        debugDefaultTargetPlatformOverride = null;
-      }
-    });
+          final formFields = find.byType(TextFormField);
+          expect(formFields, findsNWidgets(2));
+          final nameField = tester.widget<TextField>(
+            find.descendant(
+              of: formFields.at(0),
+              matching: find.byType(TextField),
+            ),
+          );
+          final numberField = tester.widget<TextField>(
+            find.descendant(
+              of: formFields.at(1),
+              matching: find.byType(TextField),
+            ),
+          );
+          expect(nameField.decoration?.suffixIcon, isNull);
+          expect(numberField.decoration?.suffixIcon, isNull);
+          expect(find.byKey(const Key('speech-dictation-start')), findsNothing);
+        } finally {
+          SpeechDictationSuffixAction.isFeatureEnabled = previousFeatureEnabled;
+          debugDefaultTargetPlatformOverride = originalPlatform;
+        }
+      },
+    );
+
+    testWidgets(
+      'should expose dictation on manual contact draft inputs when enabled',
+      (tester) async {
+        final previousFeatureEnabled =
+            SpeechDictationSuffixAction.isFeatureEnabled;
+        final originalPlatform = debugDefaultTargetPlatformOverride;
+        SpeechDictationSuffixAction.isFeatureEnabled = true;
+        debugDefaultTargetPlatformOverride = TargetPlatform.android;
+        try {
+          final phoneData = _makePhonePageData();
+          await pumpWithProviders(
+            tester,
+            ChangeNotifierProvider<PhonePageData>.value(
+              value: phoneData,
+              child: Scaffold(
+                body: SingleChildScrollView(
+                  child: PhonePageList(phonePageData: phoneData),
+                ),
+              ),
+            ),
+            userInformation: userInformation,
+            surfaceSize: const Size(1024, 2000),
+          );
+          await _settle(tester);
+          await tester.pump(const Duration(milliseconds: 50));
+          drainOverflowExceptions(tester);
+
+          await tester.tap(find.byType(TextButton).last, warnIfMissed: false);
+          await tester.pump();
+          drainOverflowExceptions(tester);
+
+          final formFields = find.byType(TextFormField);
+          expect(formFields, findsNWidgets(2));
+          final nameField = tester.widget<TextField>(
+            find.descendant(
+              of: formFields.at(0),
+              matching: find.byType(TextField),
+            ),
+          );
+          final numberField = tester.widget<TextField>(
+            find.descendant(
+              of: formFields.at(1),
+              matching: find.byType(TextField),
+            ),
+          );
+          expect(
+            nameField.decoration?.suffixIcon,
+            isA<SpeechDictationSuffixAction>(),
+          );
+          expect(
+            numberField.decoration?.suffixIcon,
+            isA<SpeechDictationSuffixAction>(),
+          );
+          expect(
+            find.byKey(const Key('speech-dictation-start')),
+            findsNWidgets(2),
+          );
+        } finally {
+          SpeechDictationSuffixAction.isFeatureEnabled = previousFeatureEnabled;
+          debugDefaultTargetPlatformOverride = originalPlatform;
+        }
+      },
+    );
 
     testWidgets('valid manual draft saves an international contact', (
       tester,

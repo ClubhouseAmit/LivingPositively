@@ -9,12 +9,14 @@ import 'package:mazilon/initialForm/initialFormPage2.dart';
 import 'package:mazilon/l10n/app_localizations.dart';
 import 'package:mazilon/util/appInformation.dart';
 import 'package:mazilon/util/persistent_memory_service.dart';
+import 'package:mazilon/util/speech_recognition_service.dart';
 import 'package:mazilon/util/userInformation.dart';
 import 'package:mockito/annotations.dart';
 import 'package:mockito/mockito.dart';
 import 'package:provider/provider.dart';
 import 'package:shared_preferences/shared_preferences.dart';
-import '../helpers/widget_test_scaffold.dart' show wizardStepHarness;
+import '../helpers/widget_test_scaffold.dart'
+    show NoopSpeechRecognitionService, wizardStepHarness;
 
 import 'initialFormPage2_test.mocks.dart';
 
@@ -66,6 +68,9 @@ void main() {
     GetIt.instance.registerSingleton<PersistentMemoryService>(
       mockPersistentMemoryService,
     );
+    GetIt.instance.registerSingleton<SpeechRecognitionService>(
+      NoopSpeechRecognitionService(),
+    );
   });
 
   tearDown(() async {
@@ -111,7 +116,8 @@ void main() {
     );
   }
 
-  testWidgets('InitialFormPage2 renders form controls', (tester) async {
+  group('InitialFormPage2', () {
+    testWidgets('InitialFormPage2 renders form controls', (tester) async {
     await tester.pumpWidget(createTestWidget());
 
     expect(find.byType(InitialFormPage2), findsOneWidget);
@@ -119,24 +125,57 @@ void main() {
     expect(find.byType(DropdownMenu<String>), findsNWidgets(2));
   });
 
-  testWidgets('onboarding name field exposes dictation when supported', (
-    tester,
-  ) async {
-    debugDefaultTargetPlatformOverride = TargetPlatform.android;
-    try {
-      await tester.pumpWidget(createTestWidget());
+  testWidgets(
+    'should hide dictation on onboarding name field when feature flag is disabled',
+    (tester) async {
+      final previousFeatureEnabled =
+          SpeechDictationSuffixAction.isFeatureEnabled;
+      final originalPlatform = debugDefaultTargetPlatformOverride;
+      SpeechDictationSuffixAction.isFeatureEnabled = false;
+      debugDefaultTargetPlatformOverride = TargetPlatform.android;
+      try {
+        await tester.pumpWidget(createTestWidget());
 
-      final field = tester.widget<TextField>(
-        find.descendant(
-          of: find.byType(TextFormField),
-          matching: find.byType(TextField),
-        ),
-      );
-      expect(field.decoration?.suffixIcon, isA<SpeechDictationSuffixAction>());
-    } finally {
-      debugDefaultTargetPlatformOverride = null;
-    }
-  });
+        final field = tester.widget<TextField>(
+          find.descendant(
+            of: find.byType(TextFormField),
+            matching: find.byType(TextField),
+          ),
+        );
+        expect(field.decoration?.suffixIcon, isNull);
+        expect(find.byKey(const Key('speech-dictation-start')), findsNothing);
+      } finally {
+        SpeechDictationSuffixAction.isFeatureEnabled = previousFeatureEnabled;
+        debugDefaultTargetPlatformOverride = originalPlatform;
+      }
+    },
+  );
+
+  testWidgets(
+    'should expose dictation on onboarding name field when supported and enabled',
+    (tester) async {
+      final previousFeatureEnabled =
+          SpeechDictationSuffixAction.isFeatureEnabled;
+      final originalPlatform = debugDefaultTargetPlatformOverride;
+      SpeechDictationSuffixAction.isFeatureEnabled = true;
+      debugDefaultTargetPlatformOverride = TargetPlatform.android;
+      try {
+        await tester.pumpWidget(createTestWidget());
+
+        final field = tester.widget<TextField>(
+          find.descendant(
+            of: find.byType(TextFormField),
+            matching: find.byType(TextField),
+          ),
+        );
+        expect(field.decoration?.suffixIcon, isA<SpeechDictationSuffixAction>());
+        expect(find.byKey(const Key('speech-dictation-start')), findsOneWidget);
+      } finally {
+        SpeechDictationSuffixAction.isFeatureEnabled = previousFeatureEnabled;
+        debugDefaultTargetPlatformOverride = originalPlatform;
+      }
+    },
+  );
 
   testWidgets('InitialFormPage2 text field input', (tester) async {
     await tester.pumpWidget(createTestWidget());
@@ -206,5 +245,6 @@ void main() {
       find.text(lookupAppLocalizations(const Locale('he')).nameRequiredError),
       findsOneWidget,
     );
+  });
   });
 }

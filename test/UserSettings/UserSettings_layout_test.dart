@@ -15,6 +15,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:get_it/get_it.dart';
+import 'package:mazilon/form/speech_dictation_suffix_action.dart';
 import 'package:mazilon/l10n/app_localizations.dart';
 import 'package:mazilon/pages/UserSettings.dart';
 import 'package:mazilon/util/Form/formPagePhoneModel.dart';
@@ -137,7 +138,10 @@ void main() {
   testWidgets(
     'name field stays within the 42px budget during active dictation',
     (tester) async {
+      final previousFeatureEnabled =
+          SpeechDictationSuffixAction.isFeatureEnabled;
       final originalPlatform = debugDefaultTargetPlatformOverride;
+      SpeechDictationSuffixAction.isFeatureEnabled = true;
       debugDefaultTargetPlatformOverride = TargetPlatform.android;
       try {
         final getIt = GetIt.instance;
@@ -170,6 +174,7 @@ void main() {
         expect(tester.getSize(find.byType(TextField).first).height, 42);
         expect(tester.takeException(), isNull);
       } finally {
+        SpeechDictationSuffixAction.isFeatureEnabled = previousFeatureEnabled;
         debugDefaultTargetPlatformOverride = originalPlatform;
       }
     },
