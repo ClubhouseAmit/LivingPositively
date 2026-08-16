@@ -1,125 +1,95 @@
 import 'package:flutter/material.dart';
 
 class LanguageDropDown extends StatefulWidget {
-  final List<Map<String, String>> list = [
+  final List<Map<String, String>> list = const [
     {'locale': 'en', 'label': 'English'},
     {'locale': 'he', 'label': 'עברית'},
     {'locale': 'ar', 'label': 'العربية'},
   ];
 
   final Function changeLocale;
-  LanguageDropDown({required this.changeLocale, super.key});
+  const LanguageDropDown({required this.changeLocale, super.key});
 
   @override
   State<LanguageDropDown> createState() => _LanguageDropDownState();
 }
 
 class _LanguageDropDownState extends State<LanguageDropDown> {
-  late String? dropdownValue;
-
-  Widget _languageOption(Map<String, String> item, Color foregroundColor) {
-    return Row(
-      mainAxisAlignment: MainAxisAlignment.center,
-      children: [
-        Icon(Icons.language, size: 20, color: foregroundColor),
-        const SizedBox(width: 10),
-        Text(
-          item['label'] ?? item['locale']!,
-          style: TextStyle(color: foregroundColor, fontWeight: FontWeight.w600),
-        ),
-      ],
-    );
-  }
-
-  @override
-  void initState() {
-    super.initState();
-    final Locale defaultSystemLocale =
-        WidgetsBinding.instance.platformDispatcher.locale;
-    final supportedLocale = widget.list
-        .where((item) => item['locale'] == defaultSystemLocale.languageCode)
-        .toList();
-    dropdownValue = supportedLocale.isNotEmpty
-        ? supportedLocale.first['locale']
-        : widget.list.first['locale'];
-  }
+  String? _selectedLocale;
 
   @override
   Widget build(BuildContext context) {
-    return Column(
-      children: [
-        SizedBox(height: 20.0),
-        Padding(
-          padding: const EdgeInsets.only(bottom: 10.0),
-          child: Wrap(
-            alignment: WrapAlignment.center,
-            spacing: 12,
-            runSpacing: 8,
-            children: widget.list
-                .map(
-                  (item) => Text(
-                    item['label'] ?? item['locale']!,
-                    style: TextStyle(
-                      color: Theme.of(context).colorScheme.onSurface,
-                      fontSize: 12,
-                    ),
+    final currentLocaleCode = _selectedLocale ??
+        Localizations.maybeLocaleOf(context)?.languageCode ??
+        widget.list.first['locale']!;
+
+    return Directionality(
+      textDirection: TextDirection.ltr,
+      child: Padding(
+        padding: const EdgeInsets.symmetric(vertical: 16.0, horizontal: 20.0),
+        child: Wrap(
+          alignment: WrapAlignment.center,
+          crossAxisAlignment: WrapCrossAlignment.center,
+          spacing: 8,
+          runSpacing: 8,
+          children: [
+            for (int i = 0; i < widget.list.length; i++) ...[
+              if (i > 0)
+                Text(
+                  '|',
+                  style: TextStyle(
+                    color: Theme.of(context)
+                        .colorScheme
+                        .onSurface
+                        .withValues(alpha: 0.3),
+                    fontSize: 14,
                   ),
-                )
-                .toList(),
-          ),
-        ),
-        Container(
-          width: MediaQuery.of(context).size.width > 1000
-              ? 600
-              : MediaQuery.of(context).size.width * 0.5,
-          decoration: BoxDecoration(
-            color: Theme.of(context).colorScheme.primary,
-            borderRadius: BorderRadius.circular(20), // Rounded edges
-          ),
-          child: DropdownButton<String>(
-            value: dropdownValue,
-            icon: Icon(
-              Icons.keyboard_arrow_down_rounded,
-              color: Theme.of(context).colorScheme.onPrimary,
-            ),
-            iconSize: 24,
-            isExpanded: true,
-            dropdownColor: Theme.of(context).colorScheme.surface,
-            style: TextStyle(color: Theme.of(context).colorScheme.onPrimary),
-            underline: SizedBox.shrink(),
-            onChanged: (String? value) {
-              if (value != null) {
-                setState(() {
-                  dropdownValue = value;
-                  widget.changeLocale(value); // Update the locale
-                });
-              }
-            },
-            selectedItemBuilder: (context) {
-              return widget.list
-                  .map<Widget>(
-                    (item) => _languageOption(
-                      item,
-                      Theme.of(context).colorScheme.onPrimary,
-                    ),
-                  )
-                  .toList();
-            },
-            items: widget.list.map<DropdownMenuItem<String>>((
-              Map<String, String> item,
-            ) {
-              return DropdownMenuItem<String>(
-                value: item['locale']!,
-                child: _languageOption(
-                  item,
-                  Theme.of(context).colorScheme.onSurface,
                 ),
-              );
-            }).toList(),
+              _buildLanguageItem(context, widget.list[i], currentLocaleCode),
+            ],
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildLanguageItem(
+    BuildContext context,
+    Map<String, String> item,
+    String currentLocaleCode,
+  ) {
+    final isSelected = item['locale'] == currentLocaleCode;
+    final primaryColor = Theme.of(context).colorScheme.primary;
+    final onSurfaceColor = Theme.of(context).colorScheme.onSurface;
+
+    return InkWell(
+      borderRadius: BorderRadius.circular(8),
+      onTap: () {
+        if (!isSelected) {
+          setState(() {
+            _selectedLocale = item['locale'];
+          });
+          widget.changeLocale(item['locale']!);
+        }
+      },
+      child: Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 10.0, vertical: 6.0),
+        child: Text(
+          item['label'] ?? item['locale']!,
+          style: TextStyle(
+            fontSize: 15,
+            fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
+            color: isSelected
+                ? primaryColor
+                : onSurfaceColor.withValues(alpha: 0.7),
+            decoration:
+                isSelected ? TextDecoration.underline : TextDecoration.none,
+            decorationColor: primaryColor,
+            decorationThickness: 2,
           ),
         ),
-        SizedBox(height: 20.0),
-      ],
+      ),
     );
   }
 }
+

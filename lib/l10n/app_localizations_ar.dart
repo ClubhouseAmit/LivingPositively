@@ -3338,8 +3338,7 @@ class AppLocalizationsAr extends AppLocalizations {
       'لا يمكن عرض الفيديوهات الآن.';
 
   @override
-  String get disclaimerSummary =>
-      'اقرأ النقاط الأساسية ثم وافق إذا كانت الشروط مناسبة لك.';
+  String get disclaimerSummary => 'راجع الشروط ووافق عليها للمتابعة.';
 
   @override
   String get disclaimerPurposeTitle => 'هدف التطبيق';

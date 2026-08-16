@@ -8,7 +8,6 @@ import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:provider/provider.dart';
 import 'package:mazilon/util/styles.dart';
 import 'package:mazilon/util/userInformation.dart';
-import 'package:mazilon/util/disclaimerLanguageSelect.dart';
 
 // the disclaimer page widget,
 // it shows the disclaimer text and a button to confirm the disclaimer
@@ -41,21 +40,69 @@ class _DisclaimerPageState extends LPExtendedState<DisclaimerPage> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          myAutoSizedText(
+          Text(
             title,
-            TextStyle(fontSize: 18.sp, fontWeight: FontWeight.bold),
-            TextAlign.start,
-            30,
-            2,
+            style: TextStyle(
+              fontSize: 18.sp,
+              fontWeight: FontWeight.bold,
+              color: Theme.of(context).colorScheme.onSurface,
+            ),
+            textAlign: TextAlign.start,
           ),
           const SizedBox(height: 8),
-          myAutoSizedText(
+          Text(
             body,
-            TextStyle(fontSize: 16.sp, fontWeight: FontWeight.normal),
-            TextAlign.start,
-            40,
+            style: TextStyle(
+              fontSize: 16.sp,
+              fontWeight: FontWeight.normal,
+              color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.87),
+            ),
+            textAlign: TextAlign.start,
           ),
         ],
+      ),
+    );
+  }
+
+  String _getTitle(String localeCode) {
+    switch (localeCode) {
+      case 'he':
+        return 'הצהרה';
+      case 'ar':
+        return 'تصريح';
+      case 'en':
+      default:
+        return 'Disclaimer';
+    }
+  }
+
+  Widget _languageButton(String locale, String label) {
+    final currentLocale = Localizations.localeOf(context).languageCode;
+    final isSelected = currentLocale == locale;
+    final primaryColor = Theme.of(context).colorScheme.primary;
+    final onSurfaceColor = Theme.of(context).colorScheme.onSurface;
+
+    return InkWell(
+      borderRadius: BorderRadius.circular(8),
+      onTap: () {
+        if (!isSelected) {
+          widget.changeLocale(locale);
+        }
+      },
+      child: Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 10.0, vertical: 8.0),
+        child: Text(
+          label,
+          style: TextStyle(
+            fontSize: 15.sp,
+            fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
+            color: isSelected ? primaryColor : onSurfaceColor.withOpacity(0.7),
+            decoration:
+                isSelected ? TextDecoration.underline : TextDecoration.none,
+            decorationColor: primaryColor,
+            decorationThickness: 2,
+          ),
+        ),
       ),
     );
   }
@@ -76,37 +123,92 @@ class _DisclaimerPageState extends LPExtendedState<DisclaimerPage> {
       canPop: false, //can't go back from this page
       child: Scaffold(
         body: SafeArea(
-          child: SingleChildScrollView(
-            child: Center(
-              child: ConstrainedBox(
-                constraints: const BoxConstraints(maxWidth: 720),
-                child: Column(
-                  children: [
-                    LanguageDropDown(changeLocale: widget.changeLocale),
-                    Padding(
-                      padding: const EdgeInsets.fromLTRB(20, 0, 20, 18),
-                      child: myAutoSizedText(
-                        appLocale.disclaimerSummary,
-                        TextStyle(fontSize: 16.sp, fontWeight: FontWeight.bold),
-                        TextAlign.start,
-                        24,
-                        3,
+          child: Center(
+            child: ConstrainedBox(
+              constraints: const BoxConstraints(maxWidth: 720),
+              child: Column(
+                children: [
+                  Expanded(
+                    child: SingleChildScrollView(
+                      child: Column(
+                        children: [
+                          SizedBox(height: 20.0),
+                          Directionality(
+                            textDirection: TextDirection.ltr,
+                            child: Row(
+                              mainAxisAlignment: MainAxisAlignment.center,
+                              children: [
+                                _languageButton('en', 'English'),
+                                Text(
+                                  '|',
+                                  style: TextStyle(
+                                    color: Theme.of(context)
+                                        .colorScheme
+                                        .onSurface
+                                        .withOpacity(0.3),
+                                    fontSize: 14.sp,
+                                  ),
+                                ),
+                                _languageButton('he', 'עברית'),
+                                Text(
+                                  '|',
+                                  style: TextStyle(
+                                    color: Theme.of(context)
+                                        .colorScheme
+                                        .onSurface
+                                        .withOpacity(0.3),
+                                    fontSize: 14.sp,
+                                  ),
+                                ),
+                                _languageButton('ar', 'العربية'),
+                              ],
+                            ),
+                          ),
+                          SizedBox(height: 20.0),
+                          Padding(
+                            padding: const EdgeInsets.symmetric(horizontal: 20.0),
+                            child: Text(
+                              _getTitle(Localizations.localeOf(context).languageCode),
+                              style: TextStyle(
+                                fontSize: 24.sp,
+                                fontWeight: FontWeight.bold,
+                                color: Theme.of(context).colorScheme.onSurface,
+                              ),
+                              textAlign: TextAlign.center,
+                            ),
+                          ),
+                          SizedBox(height: 10.0),
+                          Padding(
+                            padding: const EdgeInsets.fromLTRB(20, 0, 20, 18),
+                            child: Text(
+                              appLocale.disclaimerSummary,
+                              style: TextStyle(
+                                fontSize: 16.sp,
+                                fontWeight: FontWeight.bold,
+                                color: Theme.of(context).colorScheme.onSurface,
+                              ),
+                              textAlign: TextAlign.center,
+                            ),
+                          ),
+                          _section(
+                            title: appLocale.disclaimerPurposeTitle,
+                            body: appLocale.disclaimerText,
+                          ),
+                          _section(
+                            title: appLocale.disclaimerInformationTitle,
+                            body: appLocale.informationCollectionDisclaimer,
+                          ),
+                          _section(
+                            title: appLocale.disclaimerConsentTitle,
+                            body: appLocale.disclaimerConsentMessage,
+                          ),
+                        ],
                       ),
                     ),
-                    _section(
-                      title: appLocale.disclaimerPurposeTitle,
-                      body: appLocale.disclaimerText,
-                    ),
-                    _section(
-                      title: appLocale.disclaimerInformationTitle,
-                      body: appLocale.informationCollectionDisclaimer,
-                    ),
-                    _section(
-                      title: appLocale.disclaimerConsentTitle,
-                      body: appLocale.disclaimerConsentMessage,
-                    ),
-                    // the confirm disclaimer button
-                    ConfirmationButton(
+                  ),
+                  Padding(
+                    padding: const EdgeInsets.fromLTRB(20, 10, 20, 20),
+                    child: ConfirmationButton(
                       context,
                       () {
                         setState(() {
@@ -120,9 +222,8 @@ class _DisclaimerPageState extends LPExtendedState<DisclaimerPage> {
                       appLocale.confirmButton(gender),
                       myTextStyle.copyWith(fontSize: 20.sp),
                     ),
-                    SizedBox(height: 20.0),
-                  ],
-                ),
+                  ),
+                ],
               ),
             ),
           ),

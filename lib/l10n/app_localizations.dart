@@ -2533,7 +2533,7 @@ abstract class AppLocalizations {
   /// No description provided for @disclaimerSummary.
   ///
   /// In en, this message translates to:
-  /// **'Read the key points, then accept if these terms work for you.'**
+  /// **'Review and accept terms to continue.'**
   String get disclaimerSummary;
 
   /// No description provided for @disclaimerPurposeTitle.

@@ -3330,8 +3330,7 @@ class AppLocalizationsHe extends AppLocalizations {
       'לא ניתן להציג את הסרטונים כרגע.';
 
   @override
-  String get disclaimerSummary =>
-      'קראו את העיקר, ולאחר מכן אשרו אם תנאי השימוש מתאימים לכם.';
+  String get disclaimerSummary => 'קראו ואשרו את התנאים להמשך.';
 
   @override
   String get disclaimerPurposeTitle => 'מטרת האפליקציה';
