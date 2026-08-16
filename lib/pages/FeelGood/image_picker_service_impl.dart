@@ -1,5 +1,6 @@
 import 'dart:io';
 
+import 'package:file_picker/file_picker.dart';
 import 'package:get_it/get_it.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:mazilon/AnalyticsService.dart';
@@ -16,6 +17,11 @@ abstract class ImagePickerService {
   displayImage(String path, {BoxFit fit = BoxFit.none});
   Widget getOnlineImage(String url);
   Future<void> deleteImages();
+  Future<String?> downloadImage(
+    String imagePath, {
+    String? fileName,
+    String? dialogTitle,
+  });
 }
 
 class ImagePickerServiceImpl implements ImagePickerService {
@@ -130,5 +136,39 @@ class ImagePickerServiceImpl implements ImagePickerService {
   @override
   getOnlineImage(String url) {
     return Image.network(url);
+  }
+
+  @override
+  Future<String?> downloadImage(
+    String imagePath, {
+    String? fileName,
+    String? dialogTitle,
+  }) async {
+    try {
+      final file = File(imagePath);
+      if (!await file.exists()) {
+        return null;
+      }
+      final bytes = await file.readAsBytes();
+      final name = fileName ??
+          'feel_good_${DateTime.now().millisecondsSinceEpoch}.jpg';
+      final result = await FilePicker.saveFile(
+        dialogTitle: dialogTitle ?? 'Save image',
+        fileName: name,
+        bytes: bytes,
+      );
+      if (result != null) {
+        AnalyticsService mixPanelService = GetIt.instance<AnalyticsService>();
+        mixPanelService.trackEvent("Photo downloaded");
+      }
+      return result;
+    } catch (error, stackTrace) {
+      if (GetIt.instance.isRegistered<IncidentLoggerService>()) {
+        IncidentLoggerService loggerService =
+            GetIt.instance<IncidentLoggerService>();
+        await loggerService.captureLog(error, stackTrace: stackTrace);
+      }
+      return null;
+    }
   }
 }

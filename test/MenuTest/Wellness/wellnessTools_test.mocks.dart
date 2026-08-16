@@ -234,6 +234,23 @@ class MockImagePickerService extends _i1.Mock
             returnValueForMissingStub: _i7.Future<void>.value(),
           )
           as _i7.Future<void>);
+
+  @override
+  _i7.Future<String?> downloadImage(
+    String? imagePath, {
+    String? fileName,
+    String? dialogTitle,
+  }) =>
+      (super.noSuchMethod(
+            Invocation.method(
+              #downloadImage,
+              [imagePath],
+              {#fileName: fileName, #dialogTitle: dialogTitle},
+            ),
+            returnValue: _i7.Future<String?>.value(),
+            returnValueForMissingStub: _i7.Future<String?>.value(),
+          )
+          as _i7.Future<String?>);
 }
 
 /// A class which mocks [SharedPreferences].

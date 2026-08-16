@@ -156,4 +156,10 @@ void main() {
     expect(f1.existsSync(), isFalse);
     expect(f2.existsSync(), isFalse);
   });
+
+  test('downloadImage returns null when source image file does not exist', () async {
+    final svc = ImagePickerServiceImpl();
+    final result = await svc.downloadImage('${tempDir.path}/nonexistent.png');
+    expect(result, isNull);
+  });
 }

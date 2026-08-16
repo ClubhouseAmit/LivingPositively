@@ -13,6 +13,9 @@ import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:mazilon/util/userInformation.dart';
 import 'package:provider/provider.dart';
 
+import 'package:mazilon/global_enums.dart';
+import 'package:mazilon/util/persistent_memory_service.dart';
+
 class FeelGood extends StatefulWidget {
   const FeelGood({super.key});
 
@@ -23,6 +26,8 @@ class FeelGood extends StatefulWidget {
 class _FeelGoodPageState extends LPExtendedState<FeelGood> {
   late ImagePickerService pickerService;
   List<String> imagePaths = [];
+  Map<String, int> imageRotations = {};
+  PersistentMemoryService? _persistentMemoryService;
   late Future<List<String>> _loadImagesFuture;
   //final picker = ImagePicker();
   AnalyticsService mixPanelService = GetIt.instance<AnalyticsService>();
@@ -30,6 +35,9 @@ class _FeelGoodPageState extends LPExtendedState<FeelGood> {
   void initState() {
     super.initState();
     pickerService = GetIt.instance<ImagePickerService>();
+    if (GetIt.instance.isRegistered<PersistentMemoryService>()) {
+      _persistentMemoryService = GetIt.instance<PersistentMemoryService>();
+    }
 
     _loadImagesFuture = _loadImagePaths();
   }
@@ -40,7 +48,65 @@ class _FeelGoodPageState extends LPExtendedState<FeelGood> {
   Future<List<String>> _loadImagePaths() async {
     imagePaths.clear();
     await pickerService.loadImagePaths(imagePaths);
+    await _loadImageRotations();
     return imagePaths;
+  }
+
+  Future<void> _loadImageRotations() async {
+    final service = _persistentMemoryService;
+    if (service == null) return;
+    try {
+      final list = await service.getItem(
+        'feelGoodImageRotations',
+        PersistentMemoryType.StringList,
+      );
+      imageRotations.clear();
+      if (list is List<dynamic>) {
+        for (final item in list) {
+          if (item is String) {
+            final parts = item.split(':');
+            if (parts.length >= 2) {
+              final rot = int.tryParse(parts.last);
+              final path = parts.sublist(0, parts.length - 1).join(':');
+              if (rot != null) {
+                imageRotations[path] = rot;
+              }
+            }
+          }
+        }
+      }
+    } catch (_) {}
+  }
+
+  Future<void> _saveImageRotations() async {
+    final service = _persistentMemoryService;
+    if (service == null) return;
+    try {
+      final list = imageRotations.entries
+          .map((e) => '${e.key}:${e.value}')
+          .toList();
+      await service.setItem(
+        'feelGoodImageRotations',
+        PersistentMemoryType.StringList,
+        list,
+      );
+    } catch (_) {}
+  }
+
+  void _rotateImage(int index) {
+    if (index >= 0 && index < imagePaths.length) {
+      final path = imagePaths[index];
+      final current = imageRotations[path] ?? 0;
+      final next = (current + 1) % 4;
+      setState(() {
+        imageRotations[path] = next;
+      });
+      _saveImageRotations();
+    }
+  }
+
+  int _getImageRotation(String path) {
+    return imageRotations[path] ?? 0;
   }
 
   // Phase E: retry hook for the shared error state — re-arms the future so
@@ -68,9 +134,16 @@ class _FeelGoodPageState extends LPExtendedState<FeelGood> {
       },
       deleteImage: (int index) {
         setState(() {
+          if (index >= 0 && index < imagePaths.length) {
+            final path = imagePaths[index];
+            imageRotations.remove(path);
+          }
           pickerService.deleteImage(index, imagePaths);
         });
+        _saveImageRotations();
       },
+      rotateImage: _rotateImage,
+      getImageRotation: _getImageRotation,
       child: Scaffold(
         appBar: PreferredSize(
           preferredSize: const Size.fromHeight(150.0),

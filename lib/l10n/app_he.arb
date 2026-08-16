@@ -570,6 +570,8 @@
   "feelGoodDeleteTitle": "למחוק את התמונה?",
   "feelGoodDeleteMessage": "התמונה תוסר מאזור להרגיש טוב.",
   "feelGoodBackTooltip": "חזרה לתמונות",
+  "feelGoodRotateTooltip": "סיבוב תמונה",
+  "feelGoodDownloadTooltip": "הורדת תמונה",
   "feelGoodDeleteTooltip": "מחיקת תמונה",
   "confirmDeletePlanAnswerTitle": "למחוק את התשובה?",
   "confirmDeletePlanAnswerMessage": "התשובה תוסר מהתוכנית האישית שלך.",

@@ -244,17 +244,20 @@ class NoopImagePickerService implements ImagePickerService {
     }
   }
 
+  List<String> seededImagePaths = [];
+
   @override
-  Future<void> loadImagePaths(List<String> imagePaths) async {}
+  Future<void> loadImagePaths(List<String> imagePaths) async {
+    imagePaths.addAll(seededImagePaths);
+  }
 
   @override
   displayImage(String path, {BoxFit fit = BoxFit.none}) {
-    return Image.memory(
-      Uint8List(0),
-      fit: fit,
-      errorBuilder: (_, _, _) {
-        return SizedBox.shrink(key: Key('test-image-$path'));
-      },
+    return Container(
+      width: 100,
+      height: 100,
+      color: Colors.blue,
+      key: Key('test-image-$path'),
     );
   }
 
@@ -264,6 +267,19 @@ class NoopImagePickerService implements ImagePickerService {
 
   @override
   Future<void> deleteImages() async {}
+
+  int downloadImageCalls = 0;
+  String? downloadImageResult = 'test-downloaded-path';
+
+  @override
+  Future<String?> downloadImage(
+    String imagePath, {
+    String? fileName,
+    String? dialogTitle,
+  }) async {
+    downloadImageCalls++;
+    return downloadImageResult;
+  }
 }
 
 /// Simple [LocaleService] that returns the locale provided at construction.
