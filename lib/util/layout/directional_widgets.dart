@@ -81,6 +81,13 @@ class SectionHeaderWidget extends StatelessWidget {
   final VoidCallback? onActionTap;
   final Widget? actionWidget;
 
+  /// Optional callback invoked when the section title or leading icon/emoji is tapped.
+  /// When provided, the full title content row is made clickable with button semantics.
+  final VoidCallback? onTitleTap;
+
+  /// Optional key assigned to the interactive title hit target when [onTitleTap] is provided.
+  final Key? titleKey;
+
   const SectionHeaderWidget({
     required this.title,
     this.subtitle,
@@ -90,12 +97,53 @@ class SectionHeaderWidget extends StatelessWidget {
     this.actionIcon,
     this.onActionTap,
     this.actionWidget,
+    this.onTitleTap,
+    this.titleKey,
     super.key,
   });
 
   @override
   Widget build(BuildContext context) {
     final colorScheme = Theme.of(context).colorScheme;
+    Widget titleContent = Row(
+      children: [
+        if (leadingEmoji != null) ...[
+          Text(leadingEmoji!, style: const TextStyle(fontSize: 20)),
+          SizedBox(width: AppSpacing.sm),
+        ] else if (leadingIcon != null) ...[
+          Icon(leadingIcon, color: colorScheme.onSurface, size: 22),
+          SizedBox(width: AppSpacing.sm),
+        ],
+        Flexible(
+          child: Text(
+            title,
+            style: Theme.of(context).textTheme.titleMedium
+                ?.copyWith(fontWeight: FontWeight.bold),
+            textAlign: TextAlign.start,
+          ),
+        ),
+      ],
+    );
+
+    if (onTitleTap != null) {
+      titleContent = Semantics(
+        button: true,
+        label: title,
+        child: MouseRegion(
+          cursor: SystemMouseCursors.click,
+          child: GestureDetector(
+            key: titleKey ?? const Key('sectionHeaderTitleTapTarget'),
+            behavior: HitTestBehavior.opaque,
+            onTap: onTitleTap,
+            child: SizedBox(
+              width: double.infinity,
+              child: titleContent,
+            ),
+          ),
+        ),
+      );
+    }
+
     return Padding(
       padding: EdgeInsetsDirectional.symmetric(
         horizontal: AppSpacing.lg,
@@ -108,25 +156,7 @@ class SectionHeaderWidget extends StatelessWidget {
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
               Expanded(
-                child: Row(
-                  children: [
-                    if (leadingEmoji != null) ...[
-                      Text(leadingEmoji!, style: const TextStyle(fontSize: 20)),
-                      SizedBox(width: AppSpacing.sm),
-                    ] else if (leadingIcon != null) ...[
-                      Icon(leadingIcon, color: colorScheme.onSurface, size: 22),
-                      SizedBox(width: AppSpacing.sm),
-                    ],
-                    Expanded(
-                      child: Text(
-                        title,
-                        style: Theme.of(context).textTheme.titleMedium
-                            ?.copyWith(fontWeight: FontWeight.bold),
-                        textAlign: TextAlign.start,
-                      ),
-                    ),
-                  ],
-                ),
+                child: titleContent,
               ),
               if (actionWidget != null)
                 actionWidget!
