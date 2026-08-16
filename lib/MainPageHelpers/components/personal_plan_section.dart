@@ -16,13 +16,24 @@ import 'package:provider/provider.dart';
 
 class PersonalPlanSectionWidget extends StatelessWidget {
   final List<String> items;
+
+  /// Callback invoked when "See all" or the empty state card is tapped.
+  /// Also serves as the default fallback action for title taps when [onTitleTap] is omitted.
   final VoidCallback onSeeAll;
+
+  /// Optional custom callback invoked when the section title or leading icon is tapped.
+  /// When omitted and [enableTitleTap] is `true`, defaults to [onSeeAll].
   final VoidCallback? onTitleTap;
+
+  /// Whether tapping the section title and leading icon is enabled.
+  /// Defaults to `true`.
+  final bool enableTitleTap;
 
   const PersonalPlanSectionWidget({
     required this.items,
     required this.onSeeAll,
     this.onTitleTap,
+    this.enableTitleTap = true,
     super.key,
   });
 
@@ -38,7 +49,7 @@ class PersonalPlanSectionWidget extends StatelessWidget {
           title: appLocale.myPlan,
           leadingIcon: Icons.assignment_outlined,
           subtitle: appLocale.myPlanSubTitle,
-          onTitleTap: onTitleTap ?? onSeeAll,
+          onTitleTap: enableTitleTap ? (onTitleTap ?? onSeeAll) : null,
           actionWidget: PopupMenuButton<String>(
             key: const Key('personalPlanHeaderMenu'),
             icon: Icon(Icons.more_vert, color: AppColors.neutralDark),

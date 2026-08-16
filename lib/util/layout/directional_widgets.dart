@@ -80,6 +80,9 @@ class SectionHeaderWidget extends StatelessWidget {
   final IconData? actionIcon;
   final VoidCallback? onActionTap;
   final Widget? actionWidget;
+
+  /// Optional callback invoked when the section title or leading icon/emoji is tapped.
+  /// When provided, the full title content row is made clickable with button semantics.
   final VoidCallback? onTitleTap;
 
   const SectionHeaderWidget({
@@ -99,7 +102,6 @@ class SectionHeaderWidget extends StatelessWidget {
   Widget build(BuildContext context) {
     final colorScheme = Theme.of(context).colorScheme;
     Widget titleContent = Row(
-      mainAxisSize: MainAxisSize.min,
       children: [
         if (leadingEmoji != null) ...[
           Text(leadingEmoji!, style: const TextStyle(fontSize: 20)),
@@ -128,7 +130,10 @@ class SectionHeaderWidget extends StatelessWidget {
           child: GestureDetector(
             behavior: HitTestBehavior.opaque,
             onTap: onTitleTap,
-            child: titleContent,
+            child: SizedBox(
+              width: double.infinity,
+              child: titleContent,
+            ),
           ),
         ),
       );
@@ -146,10 +151,7 @@ class SectionHeaderWidget extends StatelessWidget {
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
               Expanded(
-                child: Align(
-                  alignment: AlignmentDirectional.centerStart,
-                  child: titleContent,
-                ),
+                child: titleContent,
               ),
               if (actionWidget != null)
                 actionWidget!
