@@ -133,8 +133,11 @@ void main() {
         surfaceSize: const Size(600, 800),
       );
 
-      // Tap near the far end of the Expanded region (e.g. at x=250)
-      await tester.tapAt(const Offset(250, 20));
+      final targetFinder = find.byKey(const Key('sectionHeaderTitleTapTarget'));
+      expect(targetFinder, findsOneWidget);
+
+      final rect = tester.getRect(targetFinder);
+      await tester.tapAt(Offset(rect.right - 1, rect.center.dy));
       await tester.pump();
 
       expect(tapCount, equals(1));
