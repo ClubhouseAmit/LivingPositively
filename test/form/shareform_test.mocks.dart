@@ -3,18 +3,18 @@
 // Do not manually edit this file.
 
 // ignore_for_file: no_leading_underscores_for_library_prefixes
-import 'dart:async' as _i8;
-import 'dart:ui' as _i5;
+import 'dart:async' as _i5;
+import 'dart:ui' as _i6;
 
-import 'package:mazilon/AnalyticsService.dart' as _i10;
-import 'package:mazilon/file_service.dart' as _i7;
-import 'package:mazilon/global_enums.dart' as _i9;
-import 'package:mazilon/util/appInformation.dart' as _i6;
+import 'package:mazilon/AnalyticsService.dart' as _i11;
+import 'package:mazilon/file_service.dart' as _i8;
+import 'package:mazilon/global_enums.dart' as _i10;
+import 'package:mazilon/util/appInformation.dart' as _i7;
 import 'package:mazilon/util/persistent_memory_service.dart' as _i2;
 import 'package:mazilon/util/userInformation.dart' as _i3;
 import 'package:mockito/mockito.dart' as _i1;
 import 'package:mockito/src/dummies.dart' as _i4;
-import 'package:share_plus/share_plus.dart' as _i11;
+import 'package:share_plus/share_plus.dart' as _i9;
 
 // ignore_for_file: type=lint
 // ignore_for_file: avoid_redundant_argument_values
@@ -174,6 +174,15 @@ class MockUserInformation extends _i1.Mock implements _i3.UserInformation {
           as List<String>);
 
   @override
+  List<String> get safeEnvironment =>
+      (super.noSuchMethod(
+            Invocation.getter(#safeEnvironment),
+            returnValue: <String>[],
+            returnValueForMissingStub: <String>[],
+          )
+          as List<String>);
+
+  @override
   bool get loggedIn =>
       (super.noSuchMethod(
             Invocation.getter(#loggedIn),
@@ -210,6 +219,66 @@ class MockUserInformation extends _i1.Mock implements _i3.UserInformation {
   int get notificationHour =>
       (super.noSuchMethod(
             Invocation.getter(#notificationHour),
+            returnValue: 0,
+            returnValueForMissingStub: 0,
+          )
+          as int);
+
+  @override
+  String get notificationMessage =>
+      (super.noSuchMethod(
+            Invocation.getter(#notificationMessage),
+            returnValue: _i4.dummyValue<String>(
+              this,
+              Invocation.getter(#notificationMessage),
+            ),
+            returnValueForMissingStub: _i4.dummyValue<String>(
+              this,
+              Invocation.getter(#notificationMessage),
+            ),
+          )
+          as String);
+
+  @override
+  _i3.DarkModePreference get darkModePreference =>
+      (super.noSuchMethod(
+            Invocation.getter(#darkModePreference),
+            returnValue: _i3.DarkModePreference.alwaysLight,
+            returnValueForMissingStub: _i3.DarkModePreference.alwaysLight,
+          )
+          as _i3.DarkModePreference);
+
+  @override
+  int get darkModeStartHour =>
+      (super.noSuchMethod(
+            Invocation.getter(#darkModeStartHour),
+            returnValue: 0,
+            returnValueForMissingStub: 0,
+          )
+          as int);
+
+  @override
+  int get darkModeStartMinute =>
+      (super.noSuchMethod(
+            Invocation.getter(#darkModeStartMinute),
+            returnValue: 0,
+            returnValueForMissingStub: 0,
+          )
+          as int);
+
+  @override
+  int get darkModeEndHour =>
+      (super.noSuchMethod(
+            Invocation.getter(#darkModeEndHour),
+            returnValue: 0,
+            returnValueForMissingStub: 0,
+          )
+          as int);
+
+  @override
+  int get darkModeEndMinute =>
+      (super.noSuchMethod(
+            Invocation.getter(#darkModeEndMinute),
             returnValue: 0,
             returnValueForMissingStub: 0,
           )
@@ -312,6 +381,12 @@ class MockUserInformation extends _i1.Mock implements _i3.UserInformation {
   );
 
   @override
+  set safeEnvironment(List<String>? value) => super.noSuchMethod(
+    Invocation.setter(#safeEnvironment, value),
+    returnValueForMissingStub: null,
+  );
+
+  @override
   set loggedIn(bool? value) => super.noSuchMethod(
     Invocation.setter(#loggedIn, value),
     returnValueForMissingStub: null,
@@ -332,6 +407,42 @@ class MockUserInformation extends _i1.Mock implements _i3.UserInformation {
   @override
   set notificationHour(int? value) => super.noSuchMethod(
     Invocation.setter(#notificationHour, value),
+    returnValueForMissingStub: null,
+  );
+
+  @override
+  set notificationMessage(String? value) => super.noSuchMethod(
+    Invocation.setter(#notificationMessage, value),
+    returnValueForMissingStub: null,
+  );
+
+  @override
+  set darkModePreference(_i3.DarkModePreference? value) => super.noSuchMethod(
+    Invocation.setter(#darkModePreference, value),
+    returnValueForMissingStub: null,
+  );
+
+  @override
+  set darkModeStartHour(int? value) => super.noSuchMethod(
+    Invocation.setter(#darkModeStartHour, value),
+    returnValueForMissingStub: null,
+  );
+
+  @override
+  set darkModeStartMinute(int? value) => super.noSuchMethod(
+    Invocation.setter(#darkModeStartMinute, value),
+    returnValueForMissingStub: null,
+  );
+
+  @override
+  set darkModeEndHour(int? value) => super.noSuchMethod(
+    Invocation.setter(#darkModeEndHour, value),
+    returnValueForMissingStub: null,
+  );
+
+  @override
+  set darkModeEndMinute(int? value) => super.noSuchMethod(
+    Invocation.setter(#darkModeEndMinute, value),
     returnValueForMissingStub: null,
   );
 
@@ -387,6 +498,21 @@ class MockUserInformation extends _i1.Mock implements _i3.UserInformation {
   );
 
   @override
+  _i5.Future<void> updateGenderAndBinary({
+    required String? gender,
+    required bool? isBinary,
+  }) =>
+      (super.noSuchMethod(
+            Invocation.method(#updateGenderAndBinary, [], {
+              #gender: gender,
+              #isBinary: isBinary,
+            }),
+            returnValue: _i5.Future<void>.value(),
+            returnValueForMissingStub: _i5.Future<void>.value(),
+          )
+          as _i5.Future<void>);
+
+  @override
   void updateDifficultEvents(List<String>? value) => super.noSuchMethod(
     Invocation.method(#updateDifficultEvents, [value]),
     returnValueForMissingStub: null,
@@ -407,6 +533,12 @@ class MockUserInformation extends _i1.Mock implements _i3.UserInformation {
   @override
   void updateDistractions(List<String>? value) => super.noSuchMethod(
     Invocation.method(#updateDistractions, [value]),
+    returnValueForMissingStub: null,
+  );
+
+  @override
+  void updateSafeEnvironment(List<String>? value) => super.noSuchMethod(
+    Invocation.method(#updateSafeEnvironment, [value]),
     returnValueForMissingStub: null,
   );
 
@@ -441,6 +573,68 @@ class MockUserInformation extends _i1.Mock implements _i3.UserInformation {
   );
 
   @override
+  void updateNotificationMessage(String? value) => super.noSuchMethod(
+    Invocation.method(#updateNotificationMessage, [value]),
+    returnValueForMissingStub: null,
+  );
+
+  @override
+  bool usesDarkModeAt(DateTime? now) =>
+      (super.noSuchMethod(
+            Invocation.method(#usesDarkModeAt, [now]),
+            returnValue: false,
+            returnValueForMissingStub: false,
+          )
+          as bool);
+
+  @override
+  DateTime? nextDarkModeBoundaryAfter(DateTime? now) =>
+      (super.noSuchMethod(
+            Invocation.method(#nextDarkModeBoundaryAfter, [now]),
+            returnValueForMissingStub: null,
+          )
+          as DateTime?);
+
+  @override
+  void restoreDarkModeSettings({
+    required _i3.DarkModePreference? preference,
+    int? startHour,
+    int? startMinute,
+    int? endHour,
+    int? endMinute,
+  }) => super.noSuchMethod(
+    Invocation.method(#restoreDarkModeSettings, [], {
+      #preference: preference,
+      #startHour: startHour,
+      #startMinute: startMinute,
+      #endHour: endHour,
+      #endMinute: endMinute,
+    }),
+    returnValueForMissingStub: null,
+  );
+
+  @override
+  _i5.Future<void> updateDarkModeSettings({
+    _i3.DarkModePreference? preference,
+    int? startHour,
+    int? startMinute,
+    int? endHour,
+    int? endMinute,
+  }) =>
+      (super.noSuchMethod(
+            Invocation.method(#updateDarkModeSettings, [], {
+              #preference: preference,
+              #startHour: startHour,
+              #startMinute: startMinute,
+              #endHour: endHour,
+              #endMinute: endMinute,
+            }),
+            returnValue: _i5.Future<void>.value(),
+            returnValueForMissingStub: _i5.Future<void>.value(),
+          )
+          as _i5.Future<void>);
+
+  @override
   void updateLocaleName(String? value) => super.noSuchMethod(
     Invocation.method(#updateLocaleName, [value]),
     returnValueForMissingStub: null,
@@ -465,13 +659,13 @@ class MockUserInformation extends _i1.Mock implements _i3.UserInformation {
   );
 
   @override
-  void addListener(_i5.VoidCallback? listener) => super.noSuchMethod(
+  void addListener(_i6.VoidCallback? listener) => super.noSuchMethod(
     Invocation.method(#addListener, [listener]),
     returnValueForMissingStub: null,
   );
 
   @override
-  void removeListener(_i5.VoidCallback? listener) => super.noSuchMethod(
+  void removeListener(_i6.VoidCallback? listener) => super.noSuchMethod(
     Invocation.method(#removeListener, [listener]),
     returnValueForMissingStub: null,
   );
@@ -492,7 +686,7 @@ class MockUserInformation extends _i1.Mock implements _i3.UserInformation {
 /// A class which mocks [AppInformation].
 ///
 /// See the documentation for Mockito's code generation for more information.
-class MockAppInformation extends _i1.Mock implements _i6.AppInformation {
+class MockAppInformation extends _i1.Mock implements _i7.AppInformation {
   @override
   String get disclaimerText =>
       (super.noSuchMethod(
@@ -1677,13 +1871,13 @@ class MockAppInformation extends _i1.Mock implements _i6.AppInformation {
   );
 
   @override
-  void addListener(_i5.VoidCallback? listener) => super.noSuchMethod(
+  void addListener(_i6.VoidCallback? listener) => super.noSuchMethod(
     Invocation.method(#addListener, [listener]),
     returnValueForMissingStub: null,
   );
 
   @override
-  void removeListener(_i5.VoidCallback? listener) => super.noSuchMethod(
+  void removeListener(_i6.VoidCallback? listener) => super.noSuchMethod(
     Invocation.method(#removeListener, [listener]),
     returnValueForMissingStub: null,
   );
@@ -1704,91 +1898,82 @@ class MockAppInformation extends _i1.Mock implements _i6.AppInformation {
 /// A class which mocks [FileService].
 ///
 /// See the documentation for Mockito's code generation for more information.
-class MockFileService extends _i1.Mock implements _i7.FileService {
+class MockFileService extends _i1.Mock implements _i8.FileService {
   @override
-  _i8.Future<_i11.ShareResult?> share(
+  _i5.Future<_i9.ShareResult?> share(
     String? message,
     List<dynamic>? titles,
     List<dynamic>? subTitles,
     Map<String, String>? texts,
-    _i9.ShareFileType? saveFormat,
-    {required String? mainTitle,
+    _i10.ShareFileType? saveFormat, {
+    required String? mainTitle,
     required String? textDirection,
   }) =>
       (super.noSuchMethod(
-        Invocation.method(
-          #share,
-          [
-            message,
-            titles,
-            subTitles,
-            texts,
-            saveFormat,
-          ],
-          {#mainTitle: mainTitle, #textDirection: textDirection},
-        ),
-        returnValue: _i8.Future<_i11.ShareResult?>.value(),
-        returnValueForMissingStub: _i8.Future<_i11.ShareResult?>.value(),
-      ) as _i8.Future<_i11.ShareResult?>);
+            Invocation.method(
+              #share,
+              [message, titles, subTitles, texts, saveFormat],
+              {#mainTitle: mainTitle, #textDirection: textDirection},
+            ),
+            returnValue: _i5.Future<_i9.ShareResult?>.value(),
+            returnValueForMissingStub: _i5.Future<_i9.ShareResult?>.value(),
+          )
+          as _i5.Future<_i9.ShareResult?>);
 
   @override
-  _i8.Future<String?> download(
+  _i5.Future<String?> download(
     List<dynamic>? titles,
     List<dynamic>? subTitles,
     Map<String, String>? texts,
-    _i9.ShareFileType? saveFormat,
-    {required String? mainTitle,
+    _i10.ShareFileType? saveFormat, {
+    required String? mainTitle,
     required String? textDirection,
   }) =>
       (super.noSuchMethod(
-        Invocation.method(
-          #download,
-          [
-            titles,
-            subTitles,
-            texts,
-            saveFormat,
-          ],
-          {#mainTitle: mainTitle, #textDirection: textDirection},
-        ),
-        returnValue: _i8.Future<String?>.value(),
-        returnValueForMissingStub: _i8.Future<String?>.value(),
-      ) as _i8.Future<String?>);
+            Invocation.method(
+              #download,
+              [titles, subTitles, texts, saveFormat],
+              {#mainTitle: mainTitle, #textDirection: textDirection},
+            ),
+            returnValue: _i5.Future<String?>.value(),
+            returnValueForMissingStub: _i5.Future<String?>.value(),
+          )
+          as _i5.Future<String?>);
 
   @override
-  _i8.Future<bool> shareTextOnly(String? message) =>
+  _i5.Future<bool> shareTextOnly(String? message) =>
       (super.noSuchMethod(
             Invocation.method(#shareTextOnly, [message]),
-            returnValue: _i8.Future<bool>.value(false),
-            returnValueForMissingStub: _i8.Future<bool>.value(false),
+            returnValue: _i5.Future<bool>.value(false),
+            returnValueForMissingStub: _i5.Future<bool>.value(false),
           )
-          as _i8.Future<bool>);
+          as _i5.Future<bool>);
 }
 
 /// A class which mocks [AnalyticsService].
 ///
 /// See the documentation for Mockito's code generation for more information.
-class MockAnalyticsService extends _i1.Mock implements _i10.AnalyticsService {
+class MockAnalyticsService extends _i1.Mock implements _i11.AnalyticsService {
   @override
-  _i8.Future<void> init() =>
+  _i5.Future<void> init() =>
       (super.noSuchMethod(
             Invocation.method(#init, []),
-            returnValue: _i8.Future<void>.value(),
-            returnValueForMissingStub: _i8.Future<void>.value(),
+            returnValue: _i5.Future<void>.value(),
+            returnValueForMissingStub: _i5.Future<void>.value(),
           )
-          as _i8.Future<void>);
+          as _i5.Future<void>);
 
   @override
-  _i8.Future<void> trackEvent(
+  _i5.Future<void> trackEvent(
     String? eventName, [
     Map<String, dynamic>? properties,
   ]) =>
       (super.noSuchMethod(
             Invocation.method(#trackEvent, [eventName, properties]),
-            returnValue: _i8.Future<void>.value(),
-            returnValueForMissingStub: _i8.Future<void>.value(),
+            returnValue: _i5.Future<void>.value(),
+            returnValueForMissingStub: _i5.Future<void>.value(),
           )
-          as _i8.Future<void>);
+          as _i5.Future<void>);
 }
 
 /// A class which mocks [PersistentMemoryService].
@@ -1797,33 +1982,33 @@ class MockAnalyticsService extends _i1.Mock implements _i10.AnalyticsService {
 class MockPersistentMemoryService extends _i1.Mock
     implements _i2.PersistentMemoryService {
   @override
-  _i8.Future<void> setItem(
+  _i5.Future<void> setItem(
     String? key,
-    _i9.PersistentMemoryType? type,
+    _i10.PersistentMemoryType? type,
     dynamic value,
   ) =>
       (super.noSuchMethod(
             Invocation.method(#setItem, [key, type, value]),
-            returnValue: _i8.Future<void>.value(),
-            returnValueForMissingStub: _i8.Future<void>.value(),
+            returnValue: _i5.Future<void>.value(),
+            returnValueForMissingStub: _i5.Future<void>.value(),
           )
-          as _i8.Future<void>);
+          as _i5.Future<void>);
 
   @override
-  _i8.Future<dynamic> getItem(String? key, _i9.PersistentMemoryType? type) =>
+  _i5.Future<dynamic> getItem(String? key, _i10.PersistentMemoryType? type) =>
       (super.noSuchMethod(
             Invocation.method(#getItem, [key, type]),
-            returnValue: _i8.Future<dynamic>.value(),
-            returnValueForMissingStub: _i8.Future<dynamic>.value(),
+            returnValue: _i5.Future<dynamic>.value(),
+            returnValueForMissingStub: _i5.Future<dynamic>.value(),
           )
-          as _i8.Future<dynamic>);
+          as _i5.Future<dynamic>);
 
   @override
-  _i8.Future<void> reset() =>
+  _i5.Future<void> reset() =>
       (super.noSuchMethod(
             Invocation.method(#reset, []),
-            returnValue: _i8.Future<void>.value(),
-            returnValueForMissingStub: _i8.Future<void>.value(),
+            returnValue: _i5.Future<void>.value(),
+            returnValueForMissingStub: _i5.Future<void>.value(),
           )
-          as _i8.Future<void>);
+          as _i5.Future<void>);
 }

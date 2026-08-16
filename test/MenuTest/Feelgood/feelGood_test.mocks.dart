@@ -11,15 +11,15 @@ import 'package:flutter/material.dart' as _i2;
 import 'package:image_picker/image_picker.dart' as _i11;
 import 'package:mazilon/AnalyticsService.dart' as _i17;
 import 'package:mazilon/file_service.dart' as _i6;
-import 'package:mazilon/global_enums.dart' as _i8;
-import 'package:mazilon/pages/FeelGood/image_picker_service_impl.dart' as _i9;
+import 'package:mazilon/global_enums.dart' as _i9;
+import 'package:mazilon/pages/FeelGood/image_picker_service_impl.dart' as _i10;
 import 'package:mazilon/pages/WellnessTools/VideoPlayerPageFactory.dart' as _i5;
 import 'package:mazilon/util/appInformation.dart' as _i16;
 import 'package:mazilon/util/persistent_memory_service.dart' as _i4;
 import 'package:mazilon/util/userInformation.dart' as _i13;
 import 'package:mockito/mockito.dart' as _i1;
 import 'package:mockito/src/dummies.dart' as _i14;
-import 'package:share_plus/share_plus.dart' as _i10;
+import 'package:share_plus/share_plus.dart' as _i8;
 import 'package:shared_preferences/shared_preferences.dart' as _i12;
 
 // ignore_for_file: type=lint
@@ -95,54 +95,45 @@ class MockVideoPlayerPageFactory extends _i1.Mock
 /// See the documentation for Mockito's code generation for more information.
 class MockFileService extends _i1.Mock implements _i6.FileService {
   @override
-  _i7.Future<_i10.ShareResult?> share(
+  _i7.Future<_i8.ShareResult?> share(
     String? message,
     List<dynamic>? titles,
     List<dynamic>? subTitles,
     Map<String, String>? texts,
-    _i8.ShareFileType? saveFormat,
-    {required String? mainTitle,
+    _i9.ShareFileType? saveFormat, {
+    required String? mainTitle,
     required String? textDirection,
   }) =>
       (super.noSuchMethod(
-        Invocation.method(
-          #share,
-          [
-            message,
-            titles,
-            subTitles,
-            texts,
-            saveFormat,
-          ],
-          {#mainTitle: mainTitle, #textDirection: textDirection},
-        ),
-        returnValue: _i7.Future<_i10.ShareResult?>.value(),
-        returnValueForMissingStub: _i7.Future<_i10.ShareResult?>.value(),
-      ) as _i7.Future<_i10.ShareResult?>);
+            Invocation.method(
+              #share,
+              [message, titles, subTitles, texts, saveFormat],
+              {#mainTitle: mainTitle, #textDirection: textDirection},
+            ),
+            returnValue: _i7.Future<_i8.ShareResult?>.value(),
+            returnValueForMissingStub: _i7.Future<_i8.ShareResult?>.value(),
+          )
+          as _i7.Future<_i8.ShareResult?>);
 
   @override
   _i7.Future<String?> download(
     List<dynamic>? titles,
     List<dynamic>? subTitles,
     Map<String, String>? texts,
-    _i8.ShareFileType? saveFormat,
-    {required String? mainTitle,
+    _i9.ShareFileType? saveFormat, {
+    required String? mainTitle,
     required String? textDirection,
   }) =>
       (super.noSuchMethod(
-        Invocation.method(
-          #download,
-          [
-            titles,
-            subTitles,
-            texts,
-            saveFormat,
-          ],
-          {#mainTitle: mainTitle, #textDirection: textDirection},
-        ),
-        returnValue: _i7.Future<String?>.value(),
-        returnValueForMissingStub: _i7.Future<String?>.value(),
-      ) as _i7.Future<String?>);
+            Invocation.method(
+              #download,
+              [titles, subTitles, texts, saveFormat],
+              {#mainTitle: mainTitle, #textDirection: textDirection},
+            ),
+            returnValue: _i7.Future<String?>.value(),
+            returnValueForMissingStub: _i7.Future<String?>.value(),
+          )
+          as _i7.Future<String?>);
 
   @override
   _i7.Future<bool> shareTextOnly(String? message) =>
@@ -158,15 +149,15 @@ class MockFileService extends _i1.Mock implements _i6.FileService {
 ///
 /// See the documentation for Mockito's code generation for more information.
 class MockImagePickerService extends _i1.Mock
-    implements _i9.ImagePickerService {
+    implements _i10.ImagePickerService {
   @override
-  _i7.Future<_i10.XFile?> pickImage({required _i11.ImageSource? source}) =>
+  _i7.Future<_i8.XFile?> pickImage({required _i11.ImageSource? source}) =>
       (super.noSuchMethod(
             Invocation.method(#pickImage, [], {#source: source}),
-            returnValue: _i7.Future<_i10.XFile?>.value(),
-            returnValueForMissingStub: _i7.Future<_i10.XFile?>.value(),
+            returnValue: _i7.Future<_i8.XFile?>.value(),
+            returnValueForMissingStub: _i7.Future<_i8.XFile?>.value(),
           )
-          as _i7.Future<_i10.XFile?>);
+          as _i7.Future<_i8.XFile?>);
 
   @override
   _i7.Future<_i3.File> saveImagePaths(List<String>? imagePaths) =>
@@ -535,6 +526,15 @@ class MockUserInformation extends _i1.Mock implements _i13.UserInformation {
           as List<String>);
 
   @override
+  List<String> get safeEnvironment =>
+      (super.noSuchMethod(
+            Invocation.getter(#safeEnvironment),
+            returnValue: <String>[],
+            returnValueForMissingStub: <String>[],
+          )
+          as List<String>);
+
+  @override
   bool get loggedIn =>
       (super.noSuchMethod(
             Invocation.getter(#loggedIn),
@@ -571,6 +571,66 @@ class MockUserInformation extends _i1.Mock implements _i13.UserInformation {
   int get notificationHour =>
       (super.noSuchMethod(
             Invocation.getter(#notificationHour),
+            returnValue: 0,
+            returnValueForMissingStub: 0,
+          )
+          as int);
+
+  @override
+  String get notificationMessage =>
+      (super.noSuchMethod(
+            Invocation.getter(#notificationMessage),
+            returnValue: _i14.dummyValue<String>(
+              this,
+              Invocation.getter(#notificationMessage),
+            ),
+            returnValueForMissingStub: _i14.dummyValue<String>(
+              this,
+              Invocation.getter(#notificationMessage),
+            ),
+          )
+          as String);
+
+  @override
+  _i13.DarkModePreference get darkModePreference =>
+      (super.noSuchMethod(
+            Invocation.getter(#darkModePreference),
+            returnValue: _i13.DarkModePreference.alwaysLight,
+            returnValueForMissingStub: _i13.DarkModePreference.alwaysLight,
+          )
+          as _i13.DarkModePreference);
+
+  @override
+  int get darkModeStartHour =>
+      (super.noSuchMethod(
+            Invocation.getter(#darkModeStartHour),
+            returnValue: 0,
+            returnValueForMissingStub: 0,
+          )
+          as int);
+
+  @override
+  int get darkModeStartMinute =>
+      (super.noSuchMethod(
+            Invocation.getter(#darkModeStartMinute),
+            returnValue: 0,
+            returnValueForMissingStub: 0,
+          )
+          as int);
+
+  @override
+  int get darkModeEndHour =>
+      (super.noSuchMethod(
+            Invocation.getter(#darkModeEndHour),
+            returnValue: 0,
+            returnValueForMissingStub: 0,
+          )
+          as int);
+
+  @override
+  int get darkModeEndMinute =>
+      (super.noSuchMethod(
+            Invocation.getter(#darkModeEndMinute),
             returnValue: 0,
             returnValueForMissingStub: 0,
           )
@@ -673,6 +733,12 @@ class MockUserInformation extends _i1.Mock implements _i13.UserInformation {
   );
 
   @override
+  set safeEnvironment(List<String>? value) => super.noSuchMethod(
+    Invocation.setter(#safeEnvironment, value),
+    returnValueForMissingStub: null,
+  );
+
+  @override
   set loggedIn(bool? value) => super.noSuchMethod(
     Invocation.setter(#loggedIn, value),
     returnValueForMissingStub: null,
@@ -693,6 +759,42 @@ class MockUserInformation extends _i1.Mock implements _i13.UserInformation {
   @override
   set notificationHour(int? value) => super.noSuchMethod(
     Invocation.setter(#notificationHour, value),
+    returnValueForMissingStub: null,
+  );
+
+  @override
+  set notificationMessage(String? value) => super.noSuchMethod(
+    Invocation.setter(#notificationMessage, value),
+    returnValueForMissingStub: null,
+  );
+
+  @override
+  set darkModePreference(_i13.DarkModePreference? value) => super.noSuchMethod(
+    Invocation.setter(#darkModePreference, value),
+    returnValueForMissingStub: null,
+  );
+
+  @override
+  set darkModeStartHour(int? value) => super.noSuchMethod(
+    Invocation.setter(#darkModeStartHour, value),
+    returnValueForMissingStub: null,
+  );
+
+  @override
+  set darkModeStartMinute(int? value) => super.noSuchMethod(
+    Invocation.setter(#darkModeStartMinute, value),
+    returnValueForMissingStub: null,
+  );
+
+  @override
+  set darkModeEndHour(int? value) => super.noSuchMethod(
+    Invocation.setter(#darkModeEndHour, value),
+    returnValueForMissingStub: null,
+  );
+
+  @override
+  set darkModeEndMinute(int? value) => super.noSuchMethod(
+    Invocation.setter(#darkModeEndMinute, value),
     returnValueForMissingStub: null,
   );
 
@@ -748,6 +850,21 @@ class MockUserInformation extends _i1.Mock implements _i13.UserInformation {
   );
 
   @override
+  _i7.Future<void> updateGenderAndBinary({
+    required String? gender,
+    required bool? isBinary,
+  }) =>
+      (super.noSuchMethod(
+            Invocation.method(#updateGenderAndBinary, [], {
+              #gender: gender,
+              #isBinary: isBinary,
+            }),
+            returnValue: _i7.Future<void>.value(),
+            returnValueForMissingStub: _i7.Future<void>.value(),
+          )
+          as _i7.Future<void>);
+
+  @override
   void updateDifficultEvents(List<String>? value) => super.noSuchMethod(
     Invocation.method(#updateDifficultEvents, [value]),
     returnValueForMissingStub: null,
@@ -768,6 +885,12 @@ class MockUserInformation extends _i1.Mock implements _i13.UserInformation {
   @override
   void updateDistractions(List<String>? value) => super.noSuchMethod(
     Invocation.method(#updateDistractions, [value]),
+    returnValueForMissingStub: null,
+  );
+
+  @override
+  void updateSafeEnvironment(List<String>? value) => super.noSuchMethod(
+    Invocation.method(#updateSafeEnvironment, [value]),
     returnValueForMissingStub: null,
   );
 
@@ -800,6 +923,68 @@ class MockUserInformation extends _i1.Mock implements _i13.UserInformation {
     Invocation.method(#updateNotificationMinute, [value]),
     returnValueForMissingStub: null,
   );
+
+  @override
+  void updateNotificationMessage(String? value) => super.noSuchMethod(
+    Invocation.method(#updateNotificationMessage, [value]),
+    returnValueForMissingStub: null,
+  );
+
+  @override
+  bool usesDarkModeAt(DateTime? now) =>
+      (super.noSuchMethod(
+            Invocation.method(#usesDarkModeAt, [now]),
+            returnValue: false,
+            returnValueForMissingStub: false,
+          )
+          as bool);
+
+  @override
+  DateTime? nextDarkModeBoundaryAfter(DateTime? now) =>
+      (super.noSuchMethod(
+            Invocation.method(#nextDarkModeBoundaryAfter, [now]),
+            returnValueForMissingStub: null,
+          )
+          as DateTime?);
+
+  @override
+  void restoreDarkModeSettings({
+    required _i13.DarkModePreference? preference,
+    int? startHour,
+    int? startMinute,
+    int? endHour,
+    int? endMinute,
+  }) => super.noSuchMethod(
+    Invocation.method(#restoreDarkModeSettings, [], {
+      #preference: preference,
+      #startHour: startHour,
+      #startMinute: startMinute,
+      #endHour: endHour,
+      #endMinute: endMinute,
+    }),
+    returnValueForMissingStub: null,
+  );
+
+  @override
+  _i7.Future<void> updateDarkModeSettings({
+    _i13.DarkModePreference? preference,
+    int? startHour,
+    int? startMinute,
+    int? endHour,
+    int? endMinute,
+  }) =>
+      (super.noSuchMethod(
+            Invocation.method(#updateDarkModeSettings, [], {
+              #preference: preference,
+              #startHour: startHour,
+              #startMinute: startMinute,
+              #endHour: endHour,
+              #endMinute: endMinute,
+            }),
+            returnValue: _i7.Future<void>.value(),
+            returnValueForMissingStub: _i7.Future<void>.value(),
+          )
+          as _i7.Future<void>);
 
   @override
   void updateLocaleName(String? value) => super.noSuchMethod(
@@ -2096,7 +2281,7 @@ class MockPersistentMemoryService extends _i1.Mock
   @override
   _i7.Future<void> setItem(
     String? key,
-    _i8.PersistentMemoryType? type,
+    _i9.PersistentMemoryType? type,
     dynamic value,
   ) =>
       (super.noSuchMethod(
@@ -2107,7 +2292,7 @@ class MockPersistentMemoryService extends _i1.Mock
           as _i7.Future<void>);
 
   @override
-  _i7.Future<dynamic> getItem(String? key, _i8.PersistentMemoryType? type) =>
+  _i7.Future<dynamic> getItem(String? key, _i9.PersistentMemoryType? type) =>
       (super.noSuchMethod(
             Invocation.method(#getItem, [key, type]),
             returnValue: _i7.Future<dynamic>.value(),

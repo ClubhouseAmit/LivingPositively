@@ -1,11 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:mazilon/util/LP_extended_state.dart';
-
-import 'package:mazilon/util/async/async_state_view.dart';
-import 'package:mazilon/util/styles.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
-import 'package:provider/provider.dart';
-import 'package:mazilon/util/userInformation.dart';
 
 // Introduction widget serves as an initial loading screen or introduction page.
 class Introduction extends StatefulWidget {
@@ -17,46 +12,109 @@ class Introduction extends StatefulWidget {
   State<Introduction> createState() => _IntroductionState();
 }
 
-class _IntroductionState extends LPExtendedState<Introduction> {
+class _IntroductionState extends LPExtendedState<Introduction>
+    with SingleTickerProviderStateMixin {
+  late AnimationController _controller;
+  late Animation<double> _animation;
+
+  @override
+  void initState() {
+    super.initState();
+    _controller = AnimationController(
+      vsync: this,
+      duration: const Duration(seconds: 3),
+    );
+    _animation = Tween<double>(
+      begin: 0.0,
+      end: 0.95,
+    ).animate(CurvedAnimation(parent: _controller, curve: Curves.easeOut));
+    _controller.forward();
+  }
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
+  }
+
   @override
   Widget build(BuildContext context) {
-    final userInfoProvider = Provider.of<UserInformation>(
-      context,
-      listen: true,
-    );
-
+    final colorScheme = Theme.of(context).colorScheme;
     return Scaffold(
-      body: Center(
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            // Displaying a welcome message in Hebrew with custom styling
-            myAutoSizedText(
-              appLocale.introductionRestartGreeting(
-                userInfoProvider.gender,
-              ), // Welcome message in Hebrew
-              TextStyle(
-                fontSize: 40.sp,
-                color: Theme.of(context).colorScheme.primary,
-                fontWeight: FontWeight.bold,
+      body: Container(
+        decoration: BoxDecoration(color: colorScheme.surface),
+        child: SafeArea(
+          child: Column(
+            children: [
+              const Spacer(flex: 3),
+              // Center Logo (LP Butterfly)
+              Center(
+                child: Image.asset(
+                  'assets/images/Logo.png',
+                  width: 180.w,
+                  fit: BoxFit.contain,
+                ),
               ),
-              null,
-              100,
-            ),
-            const SizedBox(height: 20.0),
-            // Displaying a large circular progress indicator (spinner).
-            // Phase E (ADR-005 §Decision step 5): the spinner carried no
-            // screen-reader label (UX_GAPS.md §1.5). Announce it via the
-            // shared async loading indicator so TalkBack/VoiceOver users know
-            // the restart is in progress.
-            SizedBox(
-              height: 300,
-              width: 300,
-              child: AsyncLoadingIndicator(
-                semanticLabel: appLocale.asyncLoadingLabel,
-              ),
-            ),
-          ],
+              const Spacer(flex: 2),
+              if (widget.child != null)
+                widget.child!
+              else ...[
+                // Custom Gradient Progress Bar
+                Padding(
+                  padding: EdgeInsets.symmetric(horizontal: 48.w),
+                  child: AnimatedBuilder(
+                    animation: _animation,
+                    builder: (context, child) {
+                      return Container(
+                        height: 10.h,
+                        width: double.infinity,
+                        decoration: BoxDecoration(
+                          color: colorScheme.surfaceContainerHighest,
+                          borderRadius: BorderRadius.circular(5.r),
+                          border: Border.all(
+                            color: colorScheme.outlineVariant,
+                            width: 1,
+                          ),
+                        ),
+                        child: Stack(
+                          children: [
+                            FractionallySizedBox(
+                              widthFactor: _animation.value,
+                              child: Container(
+                                decoration: BoxDecoration(
+                                  borderRadius: BorderRadius.circular(5.r),
+                                  gradient: LinearGradient(
+                                    colors: [
+                                      colorScheme.primary.withValues(alpha: 0.2),
+                                      colorScheme.surface,
+                                    ],
+                                    begin: Alignment.centerLeft,
+                                    end: Alignment.centerRight,
+                                  ),
+                                ),
+                              ),
+                            ),
+                          ],
+                        ),
+                      );
+                    },
+                  ),
+                ),
+                const SizedBox(height: 16),
+                // Localized Loading Text
+                Text(
+                  appLocale.asyncLoadingLabel,
+                  style: TextStyle(
+                    fontSize: 16.sp,
+                    fontWeight: FontWeight.normal,
+                    color: colorScheme.onSurface.withValues(alpha: 0.7),
+                  ),
+                  textAlign: TextAlign.center,
+                ),
+              ],
+              const Spacer(flex: 3),
+            ],
+          ),
         ),
       ),
     );

@@ -49,6 +49,8 @@ import 'package:mazilon/pages/SignIn_Pages/firstPage.dart';
 import 'package:mazilon/pages/SignIn_Pages/introduction.dart';
 import 'package:mazilon/util/Form/formPagePhoneModel.dart';
 import 'package:mazilon/util/appInformation.dart';
+import 'package:mazilon/util/async/async_state_view.dart';
+import 'package:mazilon/util/persistent_memory_service.dart';
 import 'package:mazilon/util/userInformation.dart';
 import 'package:provider/provider.dart';
 // ignore: depend_on_referenced_packages
@@ -178,7 +180,7 @@ void main() {
   });
 
   testWidgets(
-    'MyApp boots without throwing — initial frame shows CircularProgressIndicator',
+    'MyApp boots without throwing — initial frame shows AsyncLoadingIndicator',
     (tester) async {
       final phonePageData = PhonePageData(
         key: 'PhonePage',
@@ -194,18 +196,43 @@ void main() {
         phoneDescription: const [],
       );
 
+      // Hold the `localeName` read open so `localeName` stays '' and the
+      // bootstrap branch of MyApp.build (lines 536-549 of main.dart) is the
+      // rendered tree for as long as we assert against it. Without the gate
+      // the branch is a single-frame race against the live binding's vsync —
+      // see GatedLocalePersistentMemoryService.
+      final gated = GatedLocalePersistentMemoryService();
+      GetIt.instance.unregister<PersistentMemoryService>();
+      GetIt.instance.registerSingleton<PersistentMemoryService>(gated);
+
       await tester.pumpWidget(_bootstrappedMyApp(phonePageData));
-      // First frame: localeName is still '' so MyApp renders the bootstrap
-      // MaterialApp + CircularProgressIndicator placeholder (lines 399-406 of
-      // main.dart).
-      // Pump multiple times to allow async initialization to complete
-      // and CircularProgressIndicator to render
-      for (int i = 0; i < 3; i++) {
-        await tester.pump(const Duration(milliseconds: 100));
-      }
+      await tester.pump(const Duration(milliseconds: 100));
 
       expect(find.byType(MaterialApp), findsWidgets);
-      expect(find.byType(CircularProgressIndicator), findsWidgets);
+      expect(
+        find.byType(AsyncLoadingIndicator),
+        findsWidgets,
+        reason:
+            'While the bootstrap futures are still pending, MyApp must render '
+            'the boot spinner rather than a half-initialised app.',
+      );
+
+      // Release the gate: the same widget must leave the loading state instead
+      // of being stuck on the spinner. (Asserted via the destination pages
+      // rather than the spinner's absence — the pages have loading states of
+      // their own.)
+      gated.localeGate.complete();
+      for (int i = 0; i < 10; i++) {
+        await tester.pump(const Duration(milliseconds: 100));
+      }
+      expect(
+        find.byType(FirstPage).evaluate().isNotEmpty ||
+            find.byType(Introduction).evaluate().isNotEmpty,
+        isTrue,
+        reason:
+            'Once the gated bootstrap read completes, MyApp must leave the boot '
+            'spinner for FirstPage or the Introduction fallback.',
+      );
     },
   );
 
@@ -282,12 +309,8 @@ void main() {
       await tester.pump(const Duration(milliseconds: 100));
 
       // Reach the _MyAppState and invoke changeLocale directly — this drives
-      // lines 334-360 of main.dart (locale setter, persistent memory write,
-      // UserInformation.updateLocaleName, addPostFrameCallback ->
-      // refreshReminderForLocaleChange). The post-frame callback will
-      // ultimately hit NotificationsService.supportsReminderSettings() which
-      // returns false outside an Android target; the production code returns
-      // early on the !remindersSupported branch (line 96-98 of main.dart).
+      // changeLocale in main.dart (locale setter, persistent memory write,
+      // and UserInformation.updateLocaleName).
       final myAppState = tester.state(find.byType(MyApp)) as dynamic;
       myAppState.changeLocale('he');
       await tester.pump();

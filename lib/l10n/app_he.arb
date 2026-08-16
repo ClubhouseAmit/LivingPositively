@@ -559,7 +559,8 @@
   "wellnessTranscriptTitle": "תמלול",
   "wellnessVideoUnavailableMessage": "הסרטון הזה אינו זמין כרגע.",
   "wellnessVideoDataUnavailableMessage": "לא ניתן להציג את הסרטונים כרגע.",
-  "disclaimerSummary": "קראו את העיקר, ולאחר מכן אשרו אם תנאי השימוש מתאימים לכם.",
+  "disclaimerPageTitle": "הצהרה",
+  "disclaimerSummary": "קראו ואשרו את התנאים להמשך.",
   "disclaimerPurposeTitle": "מטרת האפליקציה",
   "disclaimerInformationTitle": "מידע ופרטיות",
   "disclaimerConsentTitle": "הסכמה",
@@ -604,13 +605,23 @@
   "@addWarningSign": {
     "description": "Placeholder text for adding a new warning sign"
   },
-  "traitsSubTitle": "כאן אני זורח/ת. קרא/י יום יום",
+  "traitsSubTitle": "{gender,select,male{הדברים הטובים שבי. תזכורת יומית לעצמי} female{הדברים הטובים שבי. תזכורת יומית לעצמי} other{הדברים הטובים שבי. תזכורת יומית לעצמי}}",
   "@traitsSubTitle": {
-    "description": "Subtitle for positive traits section"
+    "description": "Subtitle for positive traits section",
+    "placeholders": {
+      "gender": {
+        "type": "String"
+      }
+    }
   },
-  "gratitudeSubTitle": "על מה אני אסיר/ת תודה היום",
+  "gratitudeSubTitle": "{gender,select,male{על מה אני מודה היום} female{על מה אני מודה היום} other{על מה אני מודה היום}}",
   "@gratitudeSubTitle": {
-    "description": "Subtitle for gratitude section"
+    "description": "Subtitle for gratitude section",
+    "placeholders": {
+      "gender": {
+        "type": "String"
+      }
+    }
   },
   "ourSuggestion": "ההצעה שלנו",
   "@ourSuggestion": {

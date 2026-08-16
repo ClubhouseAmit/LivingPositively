@@ -2530,10 +2530,16 @@ abstract class AppLocalizations {
   /// **'Videos cannot be shown right now.'**
   String get wellnessVideoDataUnavailableMessage;
 
+  /// No description provided for @disclaimerPageTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Disclaimer'**
+  String get disclaimerPageTitle;
+
   /// No description provided for @disclaimerSummary.
   ///
   /// In en, this message translates to:
-  /// **'Read the key points, then accept if these terms work for you.'**
+  /// **'Review and accept terms to continue.'**
   String get disclaimerSummary;
 
   /// No description provided for @disclaimerPurposeTitle.
@@ -2659,14 +2665,14 @@ abstract class AppLocalizations {
   /// Subtitle for positive traits section
   ///
   /// In en, this message translates to:
-  /// **'Where I shine. Read daily'**
-  String get traitsSubTitle;
+  /// **'{gender,select,male{Where I shine. Read daily} female{Where I shine. Read daily} other{Where I shine. Read daily}}'**
+  String traitsSubTitle(String gender);
 
   /// Subtitle for gratitude section
   ///
   /// In en, this message translates to:
-  /// **'What am I grateful for today'**
-  String get gratitudeSubTitle;
+  /// **'{gender,select,male{What am I grateful for today} female{What am I grateful for today} other{What am I grateful for today}}'**
+  String gratitudeSubTitle(String gender);
 
   /// Subtitle for suggestion card on home page
   ///

@@ -475,7 +475,8 @@
   "wellnessTranscriptTitle": "النص المكتوب",
   "wellnessVideoUnavailableMessage": "هذا الفيديو غير متاح الآن.",
   "wellnessVideoDataUnavailableMessage": "لا يمكن عرض الفيديوهات الآن.",
-  "disclaimerSummary": "اقرأ النقاط الأساسية ثم وافق إذا كانت الشروط مناسبة لك.",
+  "disclaimerPageTitle": "تصريح",
+  "disclaimerSummary": "راجع الشروط ووافق عليها للمتابعة.",
   "disclaimerPurposeTitle": "هدف التطبيق",
   "disclaimerInformationTitle": "المعلومات والخصوصية",
   "disclaimerConsentTitle": "الموافقة",
@@ -520,13 +521,23 @@
   "@addWarningSign": {
     "description": "Placeholder text for adding a new warning sign"
   },
-  "traitsSubTitle": "هنا أتألق. اقرأ يومياً",
+  "traitsSubTitle": "{gender,select,male{هنا أتألق. اقرأ يومياً} female{هنا أتألق. اقرئي يومياً} other{هنا أتألق. اقرأ/ي يومياً}}",
   "@traitsSubTitle": {
-    "description": "Subtitle for positive traits section"
+    "description": "Subtitle for positive traits section",
+    "placeholders": {
+      "gender": {
+        "type": "String"
+      }
+    }
   },
-  "gratitudeSubTitle": "ما الذي أنا ممتن له اليوم",
+  "gratitudeSubTitle": "{gender,select,male{ما الذي أنا ممتن له اليوم} female{ما الذي أنا ممتنة له اليوم} other{ما الذي أنا ممتن/ة له اليوم}}",
   "@gratitudeSubTitle": {
-    "description": "Subtitle for gratitude section"
+    "description": "Subtitle for gratitude section",
+    "placeholders": {
+      "gender": {
+        "type": "String"
+      }
+    }
   },
   "ourSuggestion": "اقتراحنا",
   "@ourSuggestion": {

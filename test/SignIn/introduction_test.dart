@@ -38,7 +38,11 @@ void main() {
 
     expect(find.byType(Introduction), findsOneWidget);
     expect(find.byType(Scaffold), findsOneWidget);
-    expect(find.byType(CircularProgressIndicator), findsOneWidget);
+    
+    final fractionallySizedBox = tester.widget<FractionallySizedBox>(find.byType(FractionallySizedBox));
+    expect(fractionallySizedBox.widthFactor, 0.0); // Starts at 0.0 before animation
+    expect(fractionallySizedBox.heightFactor, null);
+
     // The greeting is sourced from AppLocalizations and depends on gender.
     // We don't pin the literal string — just confirm a non-empty Text exists
     // inside the centered Column.
@@ -65,6 +69,28 @@ void main() {
       surfaceSize: const Size(1200, 1800),
     );
 
-    expect(find.byType(CircularProgressIndicator), findsOneWidget);
+    final fractionallySizedBox = tester.widget<FractionallySizedBox>(find.byType(FractionallySizedBox));
+    expect(fractionallySizedBox.widthFactor, 0.0);
+    expect(fractionallySizedBox.heightFactor, null);
+  });
+
+  testWidgets('renders child widget when provided and hides progress bar', (
+    tester,
+  ) async {
+    final userInfo = UserInformation();
+    userInfo.gender = 'male';
+    userInfo.localeName = 'en';
+
+    const testChild = Text('Error state rendered');
+
+    await pumpWithProviders(
+      tester,
+      const Introduction(child: testChild),
+      userInformation: userInfo,
+      surfaceSize: const Size(1200, 1800),
+    );
+
+    expect(find.text('Error state rendered'), findsOneWidget);
+    expect(find.byType(FractionallySizedBox), findsNothing);
   });
 }

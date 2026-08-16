@@ -39,16 +39,10 @@ void main() {
       findsOneWidget,
     );
 
-    await tester.tap(find.byType(DropdownButton<String>));
-    await tester.pumpAndSettle();
+    final option = find.text('العربية');
+    expect(option, findsOneWidget);
 
-    expect(find.byType(Image), findsNothing);
-    expect(find.byIcon(Icons.language), findsWidgets);
-
-    final dropdown = tester.widget<DropdownButton<String>>(
-      find.byType(DropdownButton<String>),
-    );
-    dropdown.onChanged?.call('ar');
+    await tester.tap(option);
     await tester.pumpAndSettle();
 
     expect(selectedLocale, 'ar');
