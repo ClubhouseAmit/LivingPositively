@@ -205,20 +205,15 @@ void main() {
         userInformation: userInformation,
       );
 
-      // Open the dropdown and select Hebrew.
-      final dropdown = find.byType(DropdownButton<String>);
-      expect(dropdown, findsOneWidget);
-      await tester.tap(dropdown);
-      await tester.pumpAndSettle();
-      // The Hebrew option label is "עברית"; tap it.
-      final option = find.text('עברית').last;
-      await tester.tap(option, warnIfMissed: false);
+      final option = find.text('עברית');
+      expect(option, findsOneWidget);
+      await tester.tap(option);
       await tester.pumpAndSettle();
 
       expect(selected, 'he');
     });
 
-    testWidgets('language selector looks like a dropdown primary control', (
+    testWidgets('language selector highlights active language', (
       tester,
     ) async {
       await pumpWithProviders(
@@ -227,22 +222,18 @@ void main() {
         userInformation: userInformation,
       );
 
-      final dropdown = tester.widget<DropdownButton<String>>(
-        find.byType(DropdownButton<String>),
-      );
-      final colorScheme = Theme.of(
+      final primaryColor = Theme.of(
         tester.element(find.byType(LanguageDropDown)),
-      ).colorScheme;
-      expect(dropdown.icon, isA<Icon>());
+      ).colorScheme.primary;
 
-      final icon = dropdown.icon! as Icon;
-      expect(icon.icon, Icons.keyboard_arrow_down_rounded);
-      expect(icon.color, colorScheme.onPrimary);
+      final englishText = tester.widget<Text>(find.text('English'));
+      expect(englishText.style?.fontWeight, FontWeight.bold);
+      expect(englishText.style?.decoration, TextDecoration.underline);
+      expect(englishText.style?.decorationColor, primaryColor);
 
-      expect(dropdown.style?.color, colorScheme.onPrimary);
-
-      final languageIcon = tester.widget<Icon>(find.byIcon(Icons.language));
-      expect(languageIcon.color, colorScheme.onPrimary);
+      final hebrewText = tester.widget<Text>(find.text('עברית'));
+      expect(hebrewText.style?.fontWeight, FontWeight.normal);
+      expect(hebrewText.style?.decoration, TextDecoration.none);
     });
 
     testWidgets('still renders correctly under Hebrew (RTL) locale', (

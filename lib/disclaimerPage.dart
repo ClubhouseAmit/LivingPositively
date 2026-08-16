@@ -8,6 +8,7 @@ import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:provider/provider.dart';
 import 'package:mazilon/util/styles.dart';
 import 'package:mazilon/util/userInformation.dart';
+import 'package:mazilon/util/disclaimerLanguageSelect.dart';
 
 // the disclaimer page widget,
 // it shows the disclaimer text and a button to confirm the disclaimer
@@ -20,13 +21,17 @@ class DisclaimerPage extends StatefulWidget {
 
 // a function to update the disclaimer signed in the shared preferences
 void updateDisclaimers(userInfo) async {
-  // get the shared preferences
-  PersistentMemoryService service =
-      GetIt.instance<
-        PersistentMemoryService
-      >(); // Get the persistent memory service instance
+  try {
+    // get the shared preferences
+    PersistentMemoryService service =
+        GetIt.instance<
+          PersistentMemoryService
+        >(); // Get the persistent memory service instance
 
-  await service.setItem("disclaimerConfirmed", PersistentMemoryType.Bool, true);
+    await service.setItem("disclaimerConfirmed", PersistentMemoryType.Bool, true);
+  } catch (e) {
+    debugPrint("Failed to write disclaimer confirmation: $e");
+  }
 
   userInfo.updateDisclaimerSigned(
     true,
@@ -76,37 +81,6 @@ class _DisclaimerPageState extends LPExtendedState<DisclaimerPage> {
     }
   }
 
-  Widget _languageButton(String locale, String label) {
-    final currentLocale = Localizations.localeOf(context).languageCode;
-    final isSelected = currentLocale == locale;
-    final primaryColor = Theme.of(context).colorScheme.primary;
-    final onSurfaceColor = Theme.of(context).colorScheme.onSurface;
-
-    return InkWell(
-      borderRadius: BorderRadius.circular(8),
-      onTap: () {
-        if (!isSelected) {
-          widget.changeLocale(locale);
-        }
-      },
-      child: Padding(
-        padding: const EdgeInsets.symmetric(horizontal: 10.0, vertical: 8.0),
-        child: Text(
-          label,
-          style: TextStyle(
-            fontSize: 15.sp,
-            fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
-            color: isSelected ? primaryColor : onSurfaceColor.withOpacity(0.7),
-            decoration:
-                isSelected ? TextDecoration.underline : TextDecoration.none,
-            decorationColor: primaryColor,
-            decorationThickness: 2,
-          ),
-        ),
-      ),
-    );
-  }
-
   // build the disclaimer page widget
   @override
   Widget build(BuildContext context) {
@@ -132,38 +106,7 @@ class _DisclaimerPageState extends LPExtendedState<DisclaimerPage> {
                     child: SingleChildScrollView(
                       child: Column(
                         children: [
-                          SizedBox(height: 20.0),
-                          Directionality(
-                            textDirection: TextDirection.ltr,
-                            child: Row(
-                              mainAxisAlignment: MainAxisAlignment.center,
-                              children: [
-                                _languageButton('en', 'English'),
-                                Text(
-                                  '|',
-                                  style: TextStyle(
-                                    color: Theme.of(context)
-                                        .colorScheme
-                                        .onSurface
-                                        .withOpacity(0.3),
-                                    fontSize: 14.sp,
-                                  ),
-                                ),
-                                _languageButton('he', 'עברית'),
-                                Text(
-                                  '|',
-                                  style: TextStyle(
-                                    color: Theme.of(context)
-                                        .colorScheme
-                                        .onSurface
-                                        .withOpacity(0.3),
-                                    fontSize: 14.sp,
-                                  ),
-                                ),
-                                _languageButton('ar', 'العربية'),
-                              ],
-                            ),
-                          ),
+                          LanguageDropDown(changeLocale: widget.changeLocale),
                           SizedBox(height: 20.0),
                           Padding(
                             padding: const EdgeInsets.symmetric(horizontal: 20.0),

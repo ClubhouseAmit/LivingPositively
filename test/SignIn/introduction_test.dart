@@ -38,7 +38,7 @@ void main() {
 
     expect(find.byType(Introduction), findsOneWidget);
     expect(find.byType(Scaffold), findsOneWidget);
-    expect(find.byType(CircularProgressIndicator), findsOneWidget);
+    expect(find.byType(FractionallySizedBox), findsOneWidget);
     // The greeting is sourced from AppLocalizations and depends on gender.
     // We don't pin the literal string — just confirm a non-empty Text exists
     // inside the centered Column.
@@ -65,6 +65,6 @@ void main() {
       surfaceSize: const Size(1200, 1800),
     );
 
-    expect(find.byType(CircularProgressIndicator), findsOneWidget);
+    expect(find.byType(FractionallySizedBox), findsOneWidget);
   });
 }
