@@ -85,6 +85,9 @@ class SectionHeaderWidget extends StatelessWidget {
   /// When provided, the full title content row is made clickable with button semantics.
   final VoidCallback? onTitleTap;
 
+  /// Optional key assigned to the interactive title hit target when [onTitleTap] is provided.
+  final Key? titleKey;
+
   const SectionHeaderWidget({
     required this.title,
     this.subtitle,
@@ -95,6 +98,7 @@ class SectionHeaderWidget extends StatelessWidget {
     this.onActionTap,
     this.actionWidget,
     this.onTitleTap,
+    this.titleKey,
     super.key,
   });
 
@@ -128,6 +132,7 @@ class SectionHeaderWidget extends StatelessWidget {
         child: MouseRegion(
           cursor: SystemMouseCursors.click,
           child: GestureDetector(
+            key: titleKey ?? const Key('sectionHeaderTitleTapTarget'),
             behavior: HitTestBehavior.opaque,
             onTap: onTitleTap,
             child: SizedBox(

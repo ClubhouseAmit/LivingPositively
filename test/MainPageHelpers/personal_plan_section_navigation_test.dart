@@ -36,7 +36,7 @@ void main() {
       resetTestServices();
     });
 
-    testWidgets('triggers onTitleTap callback when title text is tapped', (
+    testWidgets('should trigger onTitleTap callback when title hit target is tapped', (
       tester,
     ) async {
       final handle = tester.ensureSemantics();
@@ -47,6 +47,7 @@ void main() {
           Scaffold(
             body: SectionHeaderWidget(
               title: 'My Section',
+              titleKey: const Key('customTitleKey'),
               leadingIcon: Icons.star,
               onTitleTap: () {
                 tapped = true;
@@ -55,7 +56,7 @@ void main() {
           ),
         );
 
-        final titleFinder = find.text('My Section');
+        final titleFinder = find.byKey(const Key('customTitleKey'));
         expect(titleFinder, findsOneWidget);
 
         await tester.tap(titleFinder);
@@ -63,14 +64,14 @@ void main() {
 
         expect(tapped, isTrue);
 
-        final semantics = tester.getSemantics(titleFinder);
+        final semantics = tester.getSemantics(find.text('My Section'));
         expect(semantics.getSemanticsData().hasAction(SemanticsAction.tap), isTrue);
       } finally {
         handle.dispose();
       }
     });
 
-    testWidgets('triggers onTitleTap callback when leading icon is tapped', (
+    testWidgets('should trigger onTitleTap callback when leading icon is tapped', (
       tester,
     ) async {
       var tapped = false;
@@ -96,7 +97,7 @@ void main() {
       expect(tapped, isTrue);
     });
 
-    testWidgets('occupies full width of Expanded and is tappable in whitespace', (
+    testWidgets('should occupy full width of Expanded and be tappable in whitespace', (
       tester,
     ) async {
       var tapCount = 0;
@@ -124,7 +125,7 @@ void main() {
       expect(tapCount, equals(1));
     });
 
-    testWidgets('does not wrap with button semantics when onTitleTap is null', (
+    testWidgets('should not wrap with button semantics when onTitleTap is null', (
       tester,
     ) async {
       final handle = tester.ensureSemantics();
@@ -166,7 +167,7 @@ void main() {
       resetTestServices();
     });
 
-    testWidgets('tapping title text triggers onSeeAll by default (Hebrew)', (
+    testWidgets('should render localized title in Hebrew and trigger onSeeAll by default when tapped', (
       tester,
     ) async {
       var seeAllCalled = false;
@@ -185,17 +186,20 @@ void main() {
         locale: const Locale('he'),
       );
 
-      // Hebrew title for My Plan is "התוכנית שלי"
-      final titleFinder = find.text('התוכנית שלי');
-      expect(titleFinder, findsOneWidget);
+      // Assert localized copy is correctly rendered
+      expect(find.text('התוכנית שלי'), findsOneWidget);
 
-      await tester.tap(titleFinder);
+      // Locate interactive title target via stable key
+      final titleHitTarget = find.byKey(const Key('personalPlanHeaderTitle'));
+      expect(titleHitTarget, findsOneWidget);
+
+      await tester.tap(titleHitTarget);
       await tester.pump();
 
       expect(seeAllCalled, isTrue);
     });
 
-    testWidgets('tapping leading icon triggers onSeeAll by default (Hebrew)', (
+    testWidgets('should trigger onSeeAll by default when leading icon is tapped in Hebrew', (
       tester,
     ) async {
       var seeAllCalled = false;
@@ -223,7 +227,7 @@ void main() {
       expect(seeAllCalled, isTrue);
     });
 
-    testWidgets('tapping title or icon triggers custom onTitleTap when provided explicitly', (
+    testWidgets('should trigger custom onTitleTap when provided explicitly', (
       tester,
     ) async {
       var titleTapCount = 0;
@@ -246,10 +250,10 @@ void main() {
         locale: const Locale('he'),
       );
 
-      final titleFinder = find.text('התוכנית שלי');
-      expect(titleFinder, findsOneWidget);
+      final titleHitTarget = find.byKey(const Key('personalPlanHeaderTitle'));
+      expect(titleHitTarget, findsOneWidget);
 
-      await tester.tap(titleFinder);
+      await tester.tap(titleHitTarget);
       await tester.pump();
       expect(titleTapCount, equals(1));
       expect(seeAllCalled, isFalse);
@@ -263,7 +267,7 @@ void main() {
       expect(seeAllCalled, isFalse);
     });
 
-    testWidgets('tapping leading icon or title triggers onTitleTap in English', (
+    testWidgets('should render localized title in English and trigger onSeeAll when tapped', (
       tester,
     ) async {
       var seeAllCount = 0;
@@ -283,6 +287,9 @@ void main() {
         locale: const Locale('en'),
       );
 
+      // Assert English localized copy is correctly rendered
+      expect(find.text('My Plan'), findsOneWidget);
+
       final iconFinder = find.byIcon(Icons.assignment_outlined);
       expect(iconFinder, findsOneWidget);
 
@@ -290,15 +297,15 @@ void main() {
       await tester.pump();
       expect(seeAllCount, equals(1));
 
-      final titleFinder = find.text('My Plan');
-      expect(titleFinder, findsOneWidget);
+      final titleHitTarget = find.byKey(const Key('personalPlanHeaderTitle'));
+      expect(titleHitTarget, findsOneWidget);
 
-      await tester.tap(titleFinder);
+      await tester.tap(titleHitTarget);
       await tester.pump();
       expect(seeAllCount, equals(2));
     });
 
-    testWidgets('disables title tapping when enableTitleTap is false', (
+    testWidgets('should disable title tapping and omit button semantics when enableTitleTap is false', (
       tester,
     ) async {
       final handle = tester.ensureSemantics();
@@ -326,6 +333,9 @@ void main() {
 
         final titleFinder = find.text('התוכנית שלי');
         expect(titleFinder, findsOneWidget);
+
+        // When title tap is disabled, the stable interactive key should not be present
+        expect(find.byKey(const Key('personalPlanHeaderTitle')), findsNothing);
 
         await tester.tap(titleFinder);
         await tester.pump();
@@ -357,7 +367,7 @@ void main() {
       resetTestServices();
     });
 
-    testWidgets('tapping "התוכנית שלי" title on Home page navigates to FullPlan', (
+    testWidgets('should navigate to FullPlan when My Plan title is tapped on Home page', (
       tester,
     ) async {
       PagesCode? navigatedPage;
@@ -377,16 +387,19 @@ void main() {
         surfaceSize: const Size(1024, 2400),
       );
 
-      final myPlanTitleFinder = find.text('התוכנית שלי');
-      expect(myPlanTitleFinder, findsOneWidget);
+      // Verify localized copy
+      expect(find.text('התוכנית שלי'), findsOneWidget);
 
-      await tester.tap(myPlanTitleFinder);
+      final myPlanTitleHitTarget = find.byKey(const Key('personalPlanHeaderTitle'));
+      expect(myPlanTitleHitTarget, findsOneWidget);
+
+      await tester.tap(myPlanTitleHitTarget);
       await tester.pump();
 
       expect(navigatedPage, equals(PagesCode.FullPlan));
     });
 
-    testWidgets('tapping leading assignment icon on Home page navigates to FullPlan', (
+    testWidgets('should navigate to FullPlan when leading assignment icon is tapped on Home page', (
       tester,
     ) async {
       PagesCode? navigatedPage;

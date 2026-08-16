@@ -47,6 +47,7 @@ class PersonalPlanSectionWidget extends StatelessWidget {
       children: [
         SectionHeaderWidget(
           title: appLocale.myPlan,
+          titleKey: const Key('personalPlanHeaderTitle'),
           leadingIcon: Icons.assignment_outlined,
           subtitle: appLocale.myPlanSubTitle,
           onTitleTap: enableTitleTap ? (onTitleTap ?? onSeeAll) : null,
