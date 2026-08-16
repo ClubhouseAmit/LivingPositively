@@ -1881,13 +1881,23 @@
   "@addWarningSign": {
     "description": "Placeholder text for adding a new warning sign"
   },
-  "traitsSubTitle": "Where I shine. Read daily",
+  "traitsSubTitle": "{gender,select,male{Where I shine. Read daily} female{Where I shine. Read daily} other{Where I shine. Read daily}}",
   "@traitsSubTitle": {
-    "description": "Subtitle for positive traits section"
+    "description": "Subtitle for positive traits section",
+    "placeholders": {
+      "gender": {
+        "type": "String"
+      }
+    }
   },
-  "gratitudeSubTitle": "What am I grateful for today",
+  "gratitudeSubTitle": "{gender,select,male{What am I grateful for today} female{What am I grateful for today} other{What am I grateful for today}}",
   "@gratitudeSubTitle": {
-    "description": "Subtitle for gratitude section"
+    "description": "Subtitle for gratitude section",
+    "placeholders": {
+      "gender": {
+        "type": "String"
+      }
+    }
   },
   "ourSuggestion": "Our suggestion",
   "@ourSuggestion": {

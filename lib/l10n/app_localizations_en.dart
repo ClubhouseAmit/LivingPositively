@@ -3439,10 +3439,24 @@ class AppLocalizationsEn extends AppLocalizations {
   String get addWarningSign => 'Add warning sign';
 
   @override
-  String get traitsSubTitle => 'Where I shine. Read daily';
+  String traitsSubTitle(String gender) {
+    String _temp0 = intl.Intl.selectLogic(gender, {
+      'male': 'Where I shine. Read daily',
+      'female': 'Where I shine. Read daily',
+      'other': 'Where I shine. Read daily',
+    });
+    return '$_temp0';
+  }
 
   @override
-  String get gratitudeSubTitle => 'What am I grateful for today';
+  String gratitudeSubTitle(String gender) {
+    String _temp0 = intl.Intl.selectLogic(gender, {
+      'male': 'What am I grateful for today',
+      'female': 'What am I grateful for today',
+      'other': 'What am I grateful for today',
+    });
+    return '$_temp0';
+  }
 
   @override
   String get ourSuggestion => 'Our suggestion';

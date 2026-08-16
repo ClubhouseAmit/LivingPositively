@@ -3398,10 +3398,24 @@ class AppLocalizationsHe extends AppLocalizations {
   String get addWarningSign => 'הוסף/י סימן אזהרה';
 
   @override
-  String get traitsSubTitle => 'כאן אני זורח/ת. קרא/י יום יום';
+  String traitsSubTitle(String gender) {
+    String _temp0 = intl.Intl.selectLogic(gender, {
+      'male': 'הדברים הטובים שבי. תזכורת יומית לעצמי',
+      'female': 'הדברים הטובים שבי. תזכורת יומית לעצמי',
+      'other': 'הדברים הטובים שבי. תזכורת יומית לעצמי',
+    });
+    return '$_temp0';
+  }
 
   @override
-  String get gratitudeSubTitle => 'על מה אני אסיר/ת תודה היום';
+  String gratitudeSubTitle(String gender) {
+    String _temp0 = intl.Intl.selectLogic(gender, {
+      'male': 'על מה אני מודה היום',
+      'female': 'על מה אני מודה היום',
+      'other': 'על מה אני מודה היום',
+    });
+    return '$_temp0';
+  }
 
   @override
   String get ourSuggestion => 'ההצעה שלנו';

@@ -3407,10 +3407,24 @@ class AppLocalizationsAr extends AppLocalizations {
   String get addWarningSign => 'أضف علامة تحذير';
 
   @override
-  String get traitsSubTitle => 'هنا أتألق. اقرأ يومياً';
+  String traitsSubTitle(String gender) {
+    String _temp0 = intl.Intl.selectLogic(gender, {
+      'male': 'هنا أتألق. اقرأ يومياً',
+      'female': 'هنا أتألق. اقرئي يومياً',
+      'other': 'هنا أتألق. اقرأ/ي يومياً',
+    });
+    return '$_temp0';
+  }
 
   @override
-  String get gratitudeSubTitle => 'ما الذي أنا ممتن له اليوم';
+  String gratitudeSubTitle(String gender) {
+    String _temp0 = intl.Intl.selectLogic(gender, {
+      'male': 'ما الذي أنا ممتن له اليوم',
+      'female': 'ما الذي أنا ممتنة له اليوم',
+      'other': 'ما الذي أنا ممتن/ة له اليوم',
+    });
+    return '$_temp0';
+  }
 
   @override
   String get ourSuggestion => 'اقتراحنا';
