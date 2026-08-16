@@ -7,6 +7,7 @@
 // depend on AppLocalizations / Provider.of<UserInformation>() / etc. build
 // the same way they do at runtime.
 
+import 'dart:async';
 import 'dart:io';
 
 import 'package:flutter/material.dart';
@@ -75,6 +76,29 @@ class FakePersistentMemoryService implements PersistentMemoryService {
   @override
   Future<void> reset() async {
     store.clear();
+  }
+}
+
+/// [FakePersistentMemoryService] whose `localeName` read is held open until the
+/// test releases [localeGate].
+///
+/// `MyApp.build` renders its boot spinner only while `localeName == ''`, and
+/// `setLocale()` clears that as soon as the persistent-memory read resolves.
+/// Under the on-device (live) binding used by `integration_test/`, real vsync
+/// frames run between `pumpWidget()` and the first assertion, so the spinner
+/// frame is gone before any `expect` can see it — pumping longer only makes
+/// that worse. Gating the one read that drives the branch makes the loading
+/// state stable for as many frames as the assertion needs; completing the gate
+/// then exercises the transition out of it.
+class GatedLocalePersistentMemoryService extends FakePersistentMemoryService {
+  final Completer<void> localeGate = Completer<void>();
+
+  @override
+  Future<dynamic> getItem(String key, PersistentMemoryType type) async {
+    if (key == 'localeName') {
+      await localeGate.future;
+    }
+    return super.getItem(key, type);
   }
 }
 

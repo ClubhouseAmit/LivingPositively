@@ -1,3 +1,5 @@
+import 'package:mazilon/util/gender.dart';
+
 //this function is used in the form pages to get the correct information for each page
 Map<String, dynamic> retrieveInformation(name, gender, textLocalization) {
   String header;
@@ -16,7 +18,7 @@ Map<String, dynamic> retrieveInformation(name, gender, textLocalization) {
       midSubTitle = textLocalization.difficultEventsMidSubTitle(gender);
       list = retrieveDifficultEventsList(
         textLocalization,
-        gender == "" ? "other" : gender,
+        Gender.fromCode(gender).listKey,
       );
 
       break;
@@ -27,7 +29,7 @@ Map<String, dynamic> retrieveInformation(name, gender, textLocalization) {
       midSubTitle = textLocalization.makeSaferMidSubTitle(gender);
       list = retrieveMakeSaferList(
         textLocalization,
-        gender == "" ? "other" : gender,
+        Gender.fromCode(gender).listKey,
       );
 
       break;
@@ -38,7 +40,7 @@ Map<String, dynamic> retrieveInformation(name, gender, textLocalization) {
       midSubTitle = textLocalization.feelBetterMidSubTitle(gender);
       list = retrieveFeelBetterList(
         textLocalization,
-        gender == "" ? "other" : gender,
+        Gender.fromCode(gender).listKey,
       );
 
       break;
@@ -49,7 +51,7 @@ Map<String, dynamic> retrieveInformation(name, gender, textLocalization) {
       midSubTitle = textLocalization.distractionsMidSubTitle(gender);
       list = retrieveDistractionsList(
         textLocalization,
-        gender == "" ? "other" : gender,
+        Gender.fromCode(gender).listKey,
       );
 
       break;
@@ -60,7 +62,7 @@ Map<String, dynamic> retrieveInformation(name, gender, textLocalization) {
       midSubTitle = textLocalization.makeSaferMidSubTitle(gender);
       list = retrieveSafeEnvironmentList(
         textLocalization,
-        gender == "" ? "other" : gender,
+        Gender.fromCode(gender).listKey,
       );
 
       break;

@@ -5,6 +5,7 @@ import 'package:mazilon/form/wizard_step.dart';
 import 'package:mazilon/initialForm/CountrySelectorWidget.dart';
 import 'package:mazilon/l10n/app_localizations.dart';
 import 'package:mazilon/util/Form/myDropdownMenuEntry.dart';
+import 'package:mazilon/util/gender.dart';
 import 'package:mazilon/util/styles.dart';
 import 'package:mazilon/util/theme/font_weight.dart';
 import 'package:mazilon/util/theme/spacing.dart';
@@ -52,34 +53,13 @@ class _InitialFormPage2State extends WizardStepState<InitialFormPage2> {
     super.dispose();
   }
 
-  String _selectedGender(UserInformation user, AppLocalizations l10n) {
-    if (user.binary) return l10n.nonBinary;
-    return switch (user.gender) {
-      'male' => l10n.male,
-      'female' => l10n.female,
-      _ => l10n.notWillingToSay,
-    };
-  }
-
   void _updateGender(
     String? label,
     UserInformation user,
     AppLocalizations l10n,
   ) {
     if (label == null) return;
-    if (label == l10n.male) {
-      user.updateGender('male');
-      user.updateBinary(false);
-    } else if (label == l10n.female) {
-      user.updateGender('female');
-      user.updateBinary(false);
-    } else if (label == l10n.nonBinary) {
-      user.updateGender('');
-      user.updateBinary(true);
-    } else {
-      user.updateGender('');
-      user.updateBinary(false);
-    }
+    (Gender.fromLabel(label, l10n) ?? Gender.unspecified).applyTo(user);
   }
 
   /// Field label (Figma nodes 1660:2288 / 2294 / 2300).
@@ -133,18 +113,13 @@ class _InitialFormPage2State extends WizardStepState<InitialFormPage2> {
     final userInfoProvider = Provider.of<UserInformation>(context);
     final gender = userInfoProvider.gender;
 
-    final genders = [
-      appLocale.male,
-      appLocale.female,
-      appLocale.nonBinary,
-      appLocale.notWillingToSay,
-    ];
+    final genders = Gender.labels(appLocale);
 
     final selectedAge = userInfoProvider.age.isEmpty
         ? ages[1]
         : userInfoProvider.age;
 
-    final selectedGender = _selectedGender(userInfoProvider, appLocale);
+    final selectedGender = Gender.of(userInfoProvider).label(appLocale);
 
     return GestureDetector(
       onTap: () {
@@ -220,8 +195,9 @@ class _InitialFormPage2State extends WizardStepState<InitialFormPage2> {
                       decoration: formFieldShadowDecoration(),
                       child: DropdownMenu<String>(
                         expandedInsets: EdgeInsets.zero,
-                        inputDecorationTheme:
-                            formFieldInputDecorationTheme(context),
+                        inputDecorationTheme: formFieldInputDecorationTheme(
+                          context,
+                        ),
                         initialSelection: selectedAge,
                         dropdownMenuEntries: [
                           for (final age in ages)
@@ -241,15 +217,14 @@ class _InitialFormPage2State extends WizardStepState<InitialFormPage2> {
                     ),
                   ),
                   _fieldGroup(
-                    label: _formLabel(
-                      appLocale.userSettingsGender(gender),
-                    ),
+                    label: _formLabel(appLocale.userSettingsGender(gender)),
                     field: DecoratedBox(
                       decoration: formFieldShadowDecoration(),
                       child: DropdownMenu<String>(
                         expandedInsets: EdgeInsets.zero,
-                        inputDecorationTheme:
-                            formFieldInputDecorationTheme(context),
+                        inputDecorationTheme: formFieldInputDecorationTheme(
+                          context,
+                        ),
                         initialSelection: selectedGender,
                         dropdownMenuEntries: [
                           for (final g in genders)

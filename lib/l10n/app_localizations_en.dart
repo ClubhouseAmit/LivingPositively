@@ -3371,8 +3371,10 @@ class AppLocalizationsEn extends AppLocalizations {
       'Videos cannot be shown right now.';
 
   @override
-  String get disclaimerSummary =>
-      'Read the key points, then accept if these terms work for you.';
+  String get disclaimerPageTitle => 'Disclaimer';
+
+  @override
+  String get disclaimerSummary => 'Review and accept terms to continue.';
 
   @override
   String get disclaimerPurposeTitle => 'App purpose';
@@ -3439,10 +3441,24 @@ class AppLocalizationsEn extends AppLocalizations {
   String get addWarningSign => 'Add warning sign';
 
   @override
-  String get traitsSubTitle => 'Where I shine. Read daily';
+  String traitsSubTitle(String gender) {
+    String _temp0 = intl.Intl.selectLogic(gender, {
+      'male': 'Where I shine. Read daily',
+      'female': 'Where I shine. Read daily',
+      'other': 'Where I shine. Read daily',
+    });
+    return '$_temp0';
+  }
 
   @override
-  String get gratitudeSubTitle => 'What am I grateful for today';
+  String gratitudeSubTitle(String gender) {
+    String _temp0 = intl.Intl.selectLogic(gender, {
+      'male': 'What am I grateful for today',
+      'female': 'What am I grateful for today',
+      'other': 'What am I grateful for today',
+    });
+    return '$_temp0';
+  }
 
   @override
   String get ourSuggestion => 'Our suggestion';

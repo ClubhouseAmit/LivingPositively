@@ -130,6 +130,17 @@ class UserInformation with ChangeNotifier {
     notifyListeners();
   }
 
+  Future<void> updateGenderAndBinary({required String gender, required bool isBinary}) async {
+    this.gender = gender;
+    binary = isBinary;
+    notifyListeners();
+    
+    await Future.wait([
+      service.setItem('gender', PersistentMemoryType.String, gender),
+      service.setItem('binary', PersistentMemoryType.Bool, isBinary),
+    ]);
+  }
+
   void updateDifficultEvents(List<String> value) {
     difficultEvents = value;
     notifyListeners();
