@@ -138,9 +138,11 @@ void main() {
   testWidgets(
     'name field stays within the 42px budget during active dictation',
     (tester) async {
+      final previousFeatureEnabled =
+          SpeechDictationSuffixAction.isFeatureEnabled;
       final originalPlatform = debugDefaultTargetPlatformOverride;
-      debugDefaultTargetPlatformOverride = TargetPlatform.android;
       SpeechDictationSuffixAction.isFeatureEnabled = true;
+      debugDefaultTargetPlatformOverride = TargetPlatform.android;
       try {
         final getIt = GetIt.instance;
         getIt.unregister<SpeechRecognitionService>();
@@ -172,7 +174,7 @@ void main() {
         expect(tester.getSize(find.byType(TextField).first).height, 42);
         expect(tester.takeException(), isNull);
       } finally {
-        SpeechDictationSuffixAction.isFeatureEnabled = false;
+        SpeechDictationSuffixAction.isFeatureEnabled = previousFeatureEnabled;
         debugDefaultTargetPlatformOverride = originalPlatform;
       }
     },

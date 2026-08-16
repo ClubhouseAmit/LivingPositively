@@ -13,13 +13,21 @@ import 'package:mazilon/util/speech_recognition_service.dart';
 void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
 
+  test('should default isFeatureEnabled to false in production', () {
+    expect(SpeechDictationSuffixAction.isFeatureEnabled, isFalse);
+    expect(SpeechDictationSuffixAction.isSupportedPlatform, isFalse);
+  });
+
   group('SpeechDictationSuffixAction', () {
+    late bool originalFeatureFlag;
+
     setUp(() {
+      originalFeatureFlag = SpeechDictationSuffixAction.isFeatureEnabled;
       SpeechDictationSuffixAction.isFeatureEnabled = true;
     });
 
     tearDown(() {
-      SpeechDictationSuffixAction.isFeatureEnabled = false;
+      SpeechDictationSuffixAction.isFeatureEnabled = originalFeatureFlag;
     });
 
     test('should report false when feature flag is disabled', () {

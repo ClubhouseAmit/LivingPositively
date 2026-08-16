@@ -220,29 +220,62 @@ void main() {
     });
   });
 
-  testWidgets('reminder message field exposes dictation on iOS when enabled', (
-    tester,
-  ) async {
-    SpeechDictationSuffixAction.isFeatureEnabled = true;
-    try {
-      await _onIos(() async {
-        await pumpWithProviders(
-          tester,
-          const SetNotificationWidget(),
-          userInformation: UserInformation(gender: 'male'),
-          locale: const Locale('he'),
-        );
-        await tester.pumpAndSettle(const Duration(milliseconds: 300));
-
-        final field = tester.widget<TextField>(
-          find.byKey(const Key('custom-reminder-message-field')),
-        );
-        expect(field.decoration?.suffixIcon, isA<SpeechDictationSuffixAction>());
-      });
-    } finally {
+  testWidgets(
+    'should hide dictation on reminder message field on iOS when feature flag is disabled',
+    (tester) async {
+      final previousFeatureEnabled =
+          SpeechDictationSuffixAction.isFeatureEnabled;
       SpeechDictationSuffixAction.isFeatureEnabled = false;
-    }
-  });
+      try {
+        await _onIos(() async {
+          await pumpWithProviders(
+            tester,
+            const SetNotificationWidget(),
+            userInformation: UserInformation(gender: 'male'),
+            locale: const Locale('he'),
+          );
+          await tester.pumpAndSettle(const Duration(milliseconds: 300));
+
+          final field = tester.widget<TextField>(
+            find.byKey(const Key('custom-reminder-message-field')),
+          );
+          expect(field.decoration?.suffixIcon, isNull);
+        });
+      } finally {
+        SpeechDictationSuffixAction.isFeatureEnabled = previousFeatureEnabled;
+      }
+    },
+  );
+
+  testWidgets(
+    'should expose dictation on reminder message field on iOS when enabled',
+    (tester) async {
+      final previousFeatureEnabled =
+          SpeechDictationSuffixAction.isFeatureEnabled;
+      SpeechDictationSuffixAction.isFeatureEnabled = true;
+      try {
+        await _onIos(() async {
+          await pumpWithProviders(
+            tester,
+            const SetNotificationWidget(),
+            userInformation: UserInformation(gender: 'male'),
+            locale: const Locale('he'),
+          );
+          await tester.pumpAndSettle(const Duration(milliseconds: 300));
+
+          final field = tester.widget<TextField>(
+            find.byKey(const Key('custom-reminder-message-field')),
+          );
+          expect(
+            field.decoration?.suffixIcon,
+            isA<SpeechDictationSuffixAction>(),
+          );
+        });
+      } finally {
+        SpeechDictationSuffixAction.isFeatureEnabled = previousFeatureEnabled;
+      }
+    },
+  );
 
   testWidgets('TimePicker receives non-default userInfo state', (tester) async {
     await _onIos(() async {

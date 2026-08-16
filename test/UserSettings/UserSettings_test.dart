@@ -95,58 +95,68 @@ void main() {
       expect(tf.controller?.text, 'Prefilled');
     });
 
-    testWidgets('settings name field hides dictation when feature flag is disabled', (
-      tester,
-    ) async {
-      debugDefaultTargetPlatformOverride = TargetPlatform.android;
-      try {
-        await pumpWithProviders(
-          tester,
-          _buildWidget(changeLocale: (_) {}),
-          userInformation: userInformation,
-          surfaceSize: const Size(1024, 1800),
-        );
-
-        final field = tester.widget<TextField>(
-          find.descendant(
-            of: find.byType(TextFormField).first,
-            matching: find.byType(TextField),
-          ),
-        );
-        expect(field.decoration?.suffixIcon, isNull);
-      } finally {
-        debugDefaultTargetPlatformOverride = null;
-      }
-    });
-
-    testWidgets('settings name field exposes dictation when supported and enabled', (
-      tester,
-    ) async {
-      debugDefaultTargetPlatformOverride = TargetPlatform.android;
-      SpeechDictationSuffixAction.isFeatureEnabled = true;
-      try {
-        await pumpWithProviders(
-          tester,
-          _buildWidget(changeLocale: (_) {}),
-          userInformation: userInformation,
-          surfaceSize: const Size(1024, 1800),
-        );
-
-        final field = tester.widget<TextField>(
-          find.descendant(
-            of: find.byType(TextFormField).first,
-            matching: find.byType(TextField),
-          ),
-        );
-        expect(
-          field.decoration?.suffixIcon,
-          isA<SpeechDictationSuffixAction>(),
-        );
-      } finally {
+    testWidgets(
+      'should hide dictation on settings name field when feature flag is disabled',
+      (tester) async {
+        final previousFeatureEnabled =
+            SpeechDictationSuffixAction.isFeatureEnabled;
+        final originalPlatform = debugDefaultTargetPlatformOverride;
         SpeechDictationSuffixAction.isFeatureEnabled = false;
-        debugDefaultTargetPlatformOverride = null;
-      }
-    });
+        debugDefaultTargetPlatformOverride = TargetPlatform.android;
+        try {
+          await pumpWithProviders(
+            tester,
+            _buildWidget(changeLocale: (_) {}),
+            userInformation: userInformation,
+            surfaceSize: const Size(1024, 1800),
+          );
+
+          final field = tester.widget<TextField>(
+            find.descendant(
+              of: find.byType(TextFormField).first,
+              matching: find.byType(TextField),
+            ),
+          );
+          expect(field.decoration?.suffixIcon, isNull);
+        } finally {
+          SpeechDictationSuffixAction.isFeatureEnabled = previousFeatureEnabled;
+          debugDefaultTargetPlatformOverride = originalPlatform;
+        }
+      },
+    );
+
+    testWidgets(
+      'should expose dictation on settings name field when supported and enabled',
+      (tester) async {
+        final previousFeatureEnabled =
+            SpeechDictationSuffixAction.isFeatureEnabled;
+        final originalPlatform = debugDefaultTargetPlatformOverride;
+        SpeechDictationSuffixAction.isFeatureEnabled = true;
+        debugDefaultTargetPlatformOverride = TargetPlatform.android;
+        try {
+          await pumpWithProviders(
+            tester,
+            _buildWidget(changeLocale: (_) {}),
+            userInformation: userInformation,
+            surfaceSize: const Size(1024, 1800),
+          );
+
+          final field = tester.widget<TextField>(
+            find.descendant(
+              of: find.byType(TextFormField).first,
+              matching: find.byType(TextField),
+            ),
+          );
+          expect(
+            field.decoration?.suffixIcon,
+            isA<SpeechDictationSuffixAction>(),
+          );
+        } finally {
+          SpeechDictationSuffixAction.isFeatureEnabled = previousFeatureEnabled;
+          debugDefaultTargetPlatformOverride = originalPlatform;
+        }
+      },
+    );
 
     testWidgets('typing into the name field stages without persisting', (
       tester,

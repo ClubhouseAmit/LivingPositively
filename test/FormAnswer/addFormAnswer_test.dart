@@ -64,8 +64,12 @@ void main() {
   });
 
   testWidgets(
-    'hides dictation on the personal-plan answer field when feature flag is disabled',
+    'should hide dictation on the personal-plan answer field when feature flag is disabled',
     (tester) async {
+      final previousFeatureEnabled =
+          SpeechDictationSuffixAction.isFeatureEnabled;
+      final originalPlatform = debugDefaultTargetPlatformOverride;
+      SpeechDictationSuffixAction.isFeatureEnabled = false;
       debugDefaultTargetPlatformOverride = TargetPlatform.android;
       try {
         await tester.pumpWidget(
@@ -81,16 +85,20 @@ void main() {
         );
         expect(field.decoration?.suffixIcon, isNull);
       } finally {
-        debugDefaultTargetPlatformOverride = null;
+        SpeechDictationSuffixAction.isFeatureEnabled = previousFeatureEnabled;
+        debugDefaultTargetPlatformOverride = originalPlatform;
       }
     },
   );
 
   testWidgets(
-    'exposes dictation on the personal-plan answer field when enabled',
+    'should expose dictation on the personal-plan answer field when enabled',
     (tester) async {
-      debugDefaultTargetPlatformOverride = TargetPlatform.android;
+      final previousFeatureEnabled =
+          SpeechDictationSuffixAction.isFeatureEnabled;
+      final originalPlatform = debugDefaultTargetPlatformOverride;
       SpeechDictationSuffixAction.isFeatureEnabled = true;
+      debugDefaultTargetPlatformOverride = TargetPlatform.android;
       try {
         await tester.pumpWidget(
           _hostDialog(userInfo: userInfo, edit: (_, _) {}, text: 'hello'),
@@ -105,8 +113,8 @@ void main() {
         );
         expect(field.decoration?.suffixIcon, isA<SpeechDictationSuffixAction>());
       } finally {
-        SpeechDictationSuffixAction.isFeatureEnabled = false;
-        debugDefaultTargetPlatformOverride = null;
+        SpeechDictationSuffixAction.isFeatureEnabled = previousFeatureEnabled;
+        debugDefaultTargetPlatformOverride = originalPlatform;
       }
     },
   );

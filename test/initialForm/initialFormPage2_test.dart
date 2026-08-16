@@ -120,8 +120,12 @@ void main() {
   });
 
   testWidgets(
-    'onboarding name field hides dictation when feature flag is disabled',
+    'should hide dictation on onboarding name field when feature flag is disabled',
     (tester) async {
+      final previousFeatureEnabled =
+          SpeechDictationSuffixAction.isFeatureEnabled;
+      final originalPlatform = debugDefaultTargetPlatformOverride;
+      SpeechDictationSuffixAction.isFeatureEnabled = false;
       debugDefaultTargetPlatformOverride = TargetPlatform.android;
       try {
         await tester.pumpWidget(createTestWidget());
@@ -134,16 +138,20 @@ void main() {
         );
         expect(field.decoration?.suffixIcon, isNull);
       } finally {
-        debugDefaultTargetPlatformOverride = null;
+        SpeechDictationSuffixAction.isFeatureEnabled = previousFeatureEnabled;
+        debugDefaultTargetPlatformOverride = originalPlatform;
       }
     },
   );
 
   testWidgets(
-    'onboarding name field exposes dictation when supported and enabled',
+    'should expose dictation on onboarding name field when supported and enabled',
     (tester) async {
-      debugDefaultTargetPlatformOverride = TargetPlatform.android;
+      final previousFeatureEnabled =
+          SpeechDictationSuffixAction.isFeatureEnabled;
+      final originalPlatform = debugDefaultTargetPlatformOverride;
       SpeechDictationSuffixAction.isFeatureEnabled = true;
+      debugDefaultTargetPlatformOverride = TargetPlatform.android;
       try {
         await tester.pumpWidget(createTestWidget());
 
@@ -155,8 +163,8 @@ void main() {
         );
         expect(field.decoration?.suffixIcon, isA<SpeechDictationSuffixAction>());
       } finally {
-        SpeechDictationSuffixAction.isFeatureEnabled = false;
-        debugDefaultTargetPlatformOverride = null;
+        SpeechDictationSuffixAction.isFeatureEnabled = previousFeatureEnabled;
+        debugDefaultTargetPlatformOverride = originalPlatform;
       }
     },
   );

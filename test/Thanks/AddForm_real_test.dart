@@ -77,8 +77,12 @@ void main() {
     });
 
     testWidgets(
-      'hides dictation on the generic add field when feature flag is disabled',
+      'should hide dictation on the generic add field when feature flag is disabled',
       (tester) async {
+        final previousFeatureEnabled =
+            SpeechDictationSuffixAction.isFeatureEnabled;
+        final originalPlatform = debugDefaultTargetPlatformOverride;
+        SpeechDictationSuffixAction.isFeatureEnabled = false;
         debugDefaultTargetPlatformOverride = TargetPlatform.android;
         try {
           await _openDialog(
@@ -100,16 +104,20 @@ void main() {
           );
           expect(field.decoration?.suffixIcon, isNull);
         } finally {
-          debugDefaultTargetPlatformOverride = null;
+          SpeechDictationSuffixAction.isFeatureEnabled = previousFeatureEnabled;
+          debugDefaultTargetPlatformOverride = originalPlatform;
         }
       },
     );
 
     testWidgets(
-      'exposes dictation on the generic add field when supported and enabled',
+      'should expose dictation on the generic add field when supported and enabled',
       (tester) async {
-        debugDefaultTargetPlatformOverride = TargetPlatform.android;
+        final previousFeatureEnabled =
+            SpeechDictationSuffixAction.isFeatureEnabled;
+        final originalPlatform = debugDefaultTargetPlatformOverride;
         SpeechDictationSuffixAction.isFeatureEnabled = true;
+        debugDefaultTargetPlatformOverride = TargetPlatform.android;
         try {
           await _openDialog(
             tester,
@@ -133,8 +141,8 @@ void main() {
             isA<SpeechDictationSuffixAction>(),
           );
         } finally {
-          SpeechDictationSuffixAction.isFeatureEnabled = false;
-          debugDefaultTargetPlatformOverride = null;
+          SpeechDictationSuffixAction.isFeatureEnabled = previousFeatureEnabled;
+          debugDefaultTargetPlatformOverride = originalPlatform;
         }
       },
     );

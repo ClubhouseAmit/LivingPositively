@@ -191,8 +191,12 @@ void main() {
     );
 
     testWidgets(
-      'manual contact draft hides dictation when feature flag is disabled',
+      'should hide dictation on manual contact draft inputs when feature flag is disabled',
       (tester) async {
+        final previousFeatureEnabled =
+            SpeechDictationSuffixAction.isFeatureEnabled;
+        final originalPlatform = debugDefaultTargetPlatformOverride;
+        SpeechDictationSuffixAction.isFeatureEnabled = false;
         debugDefaultTargetPlatformOverride = TargetPlatform.android;
         try {
           final phoneData = _makePhonePageData();
@@ -234,16 +238,20 @@ void main() {
           expect(nameField.decoration?.suffixIcon, isNull);
           expect(numberField.decoration?.suffixIcon, isNull);
         } finally {
-          debugDefaultTargetPlatformOverride = null;
+          SpeechDictationSuffixAction.isFeatureEnabled = previousFeatureEnabled;
+          debugDefaultTargetPlatformOverride = originalPlatform;
         }
       },
     );
 
     testWidgets(
-      'manual contact draft exposes dictation on both inputs when enabled',
+      'should expose dictation on manual contact draft inputs when enabled',
       (tester) async {
-        debugDefaultTargetPlatformOverride = TargetPlatform.android;
+        final previousFeatureEnabled =
+            SpeechDictationSuffixAction.isFeatureEnabled;
+        final originalPlatform = debugDefaultTargetPlatformOverride;
         SpeechDictationSuffixAction.isFeatureEnabled = true;
+        debugDefaultTargetPlatformOverride = TargetPlatform.android;
         try {
           final phoneData = _makePhonePageData();
           await pumpWithProviders(
@@ -290,8 +298,8 @@ void main() {
             isA<SpeechDictationSuffixAction>(),
           );
         } finally {
-          SpeechDictationSuffixAction.isFeatureEnabled = false;
-          debugDefaultTargetPlatformOverride = null;
+          SpeechDictationSuffixAction.isFeatureEnabled = previousFeatureEnabled;
+          debugDefaultTargetPlatformOverride = originalPlatform;
         }
       },
     );

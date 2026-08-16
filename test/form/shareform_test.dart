@@ -248,8 +248,12 @@ void main() {
   });
 
   testWidgets(
-    'custom category inputs hide dictation when feature flag is disabled',
+    'should hide dictation on custom category inputs when feature flag is disabled',
     (WidgetTester tester) async {
+      final previousFeatureEnabled =
+          SpeechDictationSuffixAction.isFeatureEnabled;
+      final originalPlatform = debugDefaultTargetPlatformOverride;
+      SpeechDictationSuffixAction.isFeatureEnabled = false;
       debugDefaultTargetPlatformOverride = TargetPlatform.android;
       try {
         await tester.pumpWidget(createTestWidget());
@@ -266,41 +270,46 @@ void main() {
         expect(titleField.decoration?.suffixIcon, isNull);
         expect(descriptionField.decoration?.suffixIcon, isNull);
       } finally {
-        debugDefaultTargetPlatformOverride = null;
+        SpeechDictationSuffixAction.isFeatureEnabled = previousFeatureEnabled;
+        debugDefaultTargetPlatformOverride = originalPlatform;
       }
     },
   );
 
-  testWidgets('custom category inputs expose dictation when supported and enabled', (
-    WidgetTester tester,
-  ) async {
-    debugDefaultTargetPlatformOverride = TargetPlatform.android;
-    SpeechDictationSuffixAction.isFeatureEnabled = true;
-    try {
-      await tester.pumpWidget(createTestWidget());
-      await tester.ensureVisible(find.text('+ הוספת קטגוריה'));
-      await tester.tap(find.text('+ הוספת קטגוריה'));
-      await tester.pumpAndSettle();
+  testWidgets(
+    'should expose dictation on custom category inputs when supported and enabled',
+    (WidgetTester tester) async {
+      final previousFeatureEnabled =
+          SpeechDictationSuffixAction.isFeatureEnabled;
+      final originalPlatform = debugDefaultTargetPlatformOverride;
+      SpeechDictationSuffixAction.isFeatureEnabled = true;
+      debugDefaultTargetPlatformOverride = TargetPlatform.android;
+      try {
+        await tester.pumpWidget(createTestWidget());
+        await tester.ensureVisible(find.text('+ הוספת קטגוריה'));
+        await tester.tap(find.text('+ הוספת קטגוריה'));
+        await tester.pumpAndSettle();
 
-      final titleField = tester.widget<TextField>(
-        find.byKey(const Key('custom-category-title-field')),
-      );
-      final descriptionField = tester.widget<TextField>(
-        find.byKey(const Key('custom-category-description-field')),
-      );
-      expect(
-        titleField.decoration?.suffixIcon,
-        isA<SpeechDictationSuffixAction>(),
-      );
-      expect(
-        descriptionField.decoration?.suffixIcon,
-        isA<SpeechDictationSuffixAction>(),
-      );
-    } finally {
-      SpeechDictationSuffixAction.isFeatureEnabled = false;
-      debugDefaultTargetPlatformOverride = null;
-    }
-  });
+        final titleField = tester.widget<TextField>(
+          find.byKey(const Key('custom-category-title-field')),
+        );
+        final descriptionField = tester.widget<TextField>(
+          find.byKey(const Key('custom-category-description-field')),
+        );
+        expect(
+          titleField.decoration?.suffixIcon,
+          isA<SpeechDictationSuffixAction>(),
+        );
+        expect(
+          descriptionField.decoration?.suffixIcon,
+          isA<SpeechDictationSuffixAction>(),
+        );
+      } finally {
+        SpeechDictationSuffixAction.isFeatureEnabled = previousFeatureEnabled;
+        debugDefaultTargetPlatformOverride = originalPlatform;
+      }
+    },
+  );
 
   testWidgets('ShareForm keeps its content clear of the pinned finish button', (
     WidgetTester tester,
