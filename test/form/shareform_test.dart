@@ -12,6 +12,7 @@ import 'package:mazilon/iFx/service_locator.dart';
 import 'package:mazilon/util/appInformation.dart';
 import 'package:mazilon/global_enums.dart';
 import 'package:mazilon/util/persistent_memory_service.dart';
+import 'package:mazilon/util/speech_recognition_service.dart';
 import 'package:mazilon/util/userInformation.dart';
 import 'package:mockito/annotations.dart';
 import 'package:provider/provider.dart';
@@ -21,7 +22,8 @@ import 'package:mazilon/form/shareform.dart';
 import 'package:mazilon/form/wizard_step.dart';
 import 'package:mockito/mockito.dart';
 import 'package:mazilon/l10n/app_localizations.dart';
-import '../helpers/widget_test_scaffold.dart' show wizardStepHarness;
+import '../helpers/widget_test_scaffold.dart'
+    show NoopSpeechRecognitionService, wizardStepHarness;
 import 'shareform_test.mocks.dart';
 
 @GenerateNiceMocks([
@@ -42,7 +44,10 @@ void main() {
 
     // Reset getIt before each test
     await locator.reset();
-    // Create and register ONLY PersistentMemoryService
+    locator.registerSingleton<SpeechRecognitionService>(
+      NoopSpeechRecognitionService(),
+    );
+    // Create and register PersistentMemoryService
     mockPersistentMemoryService = MockPersistentMemoryService();
 
     // Set up mock behaviors for PersistentMemoryService
@@ -269,6 +274,7 @@ void main() {
         );
         expect(titleField.decoration?.suffixIcon, isNull);
         expect(descriptionField.decoration?.suffixIcon, isNull);
+        expect(find.byKey(const Key('speech-dictation-start')), findsNothing);
       } finally {
         SpeechDictationSuffixAction.isFeatureEnabled = previousFeatureEnabled;
         debugDefaultTargetPlatformOverride = originalPlatform;
@@ -303,6 +309,10 @@ void main() {
         expect(
           descriptionField.decoration?.suffixIcon,
           isA<SpeechDictationSuffixAction>(),
+        );
+        expect(
+          find.byKey(const Key('speech-dictation-start')),
+          findsNWidgets(2),
         );
       } finally {
         SpeechDictationSuffixAction.isFeatureEnabled = previousFeatureEnabled;

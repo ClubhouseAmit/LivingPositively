@@ -237,6 +237,7 @@ void main() {
           );
           expect(nameField.decoration?.suffixIcon, isNull);
           expect(numberField.decoration?.suffixIcon, isNull);
+          expect(find.byKey(const Key('speech-dictation-start')), findsNothing);
         } finally {
           SpeechDictationSuffixAction.isFeatureEnabled = previousFeatureEnabled;
           debugDefaultTargetPlatformOverride = originalPlatform;
@@ -296,6 +297,10 @@ void main() {
           expect(
             numberField.decoration?.suffixIcon,
             isA<SpeechDictationSuffixAction>(),
+          );
+          expect(
+            find.byKey(const Key('speech-dictation-start')),
+            findsNWidgets(2),
           );
         } finally {
           SpeechDictationSuffixAction.isFeatureEnabled = previousFeatureEnabled;

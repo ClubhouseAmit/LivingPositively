@@ -9,12 +9,14 @@ import 'package:mazilon/initialForm/initialFormPage2.dart';
 import 'package:mazilon/l10n/app_localizations.dart';
 import 'package:mazilon/util/appInformation.dart';
 import 'package:mazilon/util/persistent_memory_service.dart';
+import 'package:mazilon/util/speech_recognition_service.dart';
 import 'package:mazilon/util/userInformation.dart';
 import 'package:mockito/annotations.dart';
 import 'package:mockito/mockito.dart';
 import 'package:provider/provider.dart';
 import 'package:shared_preferences/shared_preferences.dart';
-import '../helpers/widget_test_scaffold.dart' show wizardStepHarness;
+import '../helpers/widget_test_scaffold.dart'
+    show NoopSpeechRecognitionService, wizardStepHarness;
 
 import 'initialFormPage2_test.mocks.dart';
 
@@ -65,6 +67,9 @@ void main() {
 
     GetIt.instance.registerSingleton<PersistentMemoryService>(
       mockPersistentMemoryService,
+    );
+    GetIt.instance.registerSingleton<SpeechRecognitionService>(
+      NoopSpeechRecognitionService(),
     );
   });
 
@@ -137,6 +142,7 @@ void main() {
           ),
         );
         expect(field.decoration?.suffixIcon, isNull);
+        expect(find.byKey(const Key('speech-dictation-start')), findsNothing);
       } finally {
         SpeechDictationSuffixAction.isFeatureEnabled = previousFeatureEnabled;
         debugDefaultTargetPlatformOverride = originalPlatform;
@@ -162,6 +168,7 @@ void main() {
           ),
         );
         expect(field.decoration?.suffixIcon, isA<SpeechDictationSuffixAction>());
+        expect(find.byKey(const Key('speech-dictation-start')), findsOneWidget);
       } finally {
         SpeechDictationSuffixAction.isFeatureEnabled = previousFeatureEnabled;
         debugDefaultTargetPlatformOverride = originalPlatform;

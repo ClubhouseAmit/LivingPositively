@@ -240,6 +240,7 @@ void main() {
             find.byKey(const Key('custom-reminder-message-field')),
           );
           expect(field.decoration?.suffixIcon, isNull);
+          expect(find.byKey(const Key('speech-dictation-start')), findsNothing);
         });
       } finally {
         SpeechDictationSuffixAction.isFeatureEnabled = previousFeatureEnabled;
@@ -269,6 +270,10 @@ void main() {
           expect(
             field.decoration?.suffixIcon,
             isA<SpeechDictationSuffixAction>(),
+          );
+          expect(
+            find.byKey(const Key('speech-dictation-start')),
+            findsOneWidget,
           );
         });
       } finally {
