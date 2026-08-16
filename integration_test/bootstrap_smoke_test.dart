@@ -198,7 +198,11 @@ void main() {
       // First frame: localeName is still '' so MyApp renders the bootstrap
       // MaterialApp + CircularProgressIndicator placeholder (lines 399-406 of
       // main.dart).
-      await tester.pump();
+      // Pump multiple times to allow async initialization to complete
+      // and CircularProgressIndicator to render
+      for (int i = 0; i < 3; i++) {
+        await tester.pump(const Duration(milliseconds: 100));
+      }
 
       expect(find.byType(MaterialApp), findsWidgets);
       expect(find.byType(CircularProgressIndicator), findsWidgets);
