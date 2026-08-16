@@ -373,8 +373,11 @@ void main() {
           find.byKey(const Key('darkModeScheduledOption')),
           findsOneWidget,
         );
-        expect(find.byKey(const Key('darkModeStartTimeButton')), findsNothing);
-        expect(find.byKey(const Key('darkModeEndTimeButton')), findsNothing);
+        final scheduleVisibility = find.ancestor(
+          of: find.byKey(const Key('darkModeStartTimeButton')),
+          matching: find.byType(Visibility),
+        );
+        expect(tester.widget<Visibility>(scheduleVisibility).visible, isFalse);
 
         final scheduledOption = find.byKey(
           const Key('darkModeScheduledOption'),
@@ -392,11 +395,7 @@ void main() {
         expect(userInformation.darkModeEndHour, 6);
         expect(userInformation.darkModeEndMinute, 0);
         expect(services.memory.store['darkModePreference'], 'scheduled');
-        expect(
-          find.byKey(const Key('darkModeStartTimeButton')),
-          findsOneWidget,
-        );
-        expect(find.byKey(const Key('darkModeEndTimeButton')), findsOneWidget);
+        expect(tester.widget<Visibility>(scheduleVisibility).visible, isTrue);
       },
     );
 
@@ -419,8 +418,11 @@ void main() {
 
       expect(userInformation.darkModePreference, DarkModePreference.alwaysDark);
       expect(services.memory.store['darkModePreference'], 'alwaysDark');
-      expect(find.byKey(const Key('darkModeStartTimeButton')), findsNothing);
-      expect(find.byKey(const Key('darkModeEndTimeButton')), findsNothing);
+      final scheduleVisibility = find.ancestor(
+        of: find.byKey(const Key('darkModeStartTimeButton')),
+        matching: find.byType(Visibility),
+      );
+      expect(tester.widget<Visibility>(scheduleVisibility).visible, isFalse);
     });
   });
 }

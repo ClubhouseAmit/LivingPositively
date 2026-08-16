@@ -278,12 +278,8 @@ void main() {
       await tester.pump(const Duration(milliseconds: 100));
 
       // Reach the _MyAppState and invoke changeLocale directly — this drives
-      // lines 334-360 of main.dart (locale setter, persistent memory write,
-      // UserInformation.updateLocaleName, addPostFrameCallback ->
-      // refreshReminderForLocaleChange). The post-frame callback will
-      // ultimately hit NotificationsService.supportsReminderSettings() which
-      // returns false outside an Android target; the production code returns
-      // early on the !remindersSupported branch (line 96-98 of main.dart).
+      // changeLocale in main.dart (locale setter, persistent memory write,
+      // and UserInformation.updateLocaleName).
       final myAppState = tester.state(find.byType(MyApp)) as dynamic;
       myAppState.changeLocale('he');
       await tester.pump();

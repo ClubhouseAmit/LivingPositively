@@ -111,6 +111,27 @@ void main() {
             'scrolling; it overflows by ${position.maxScrollExtent}px.',
       );
     });
+
+    testWidgets(
+      'layout fits without scrolling when scheduled dark mode is active ($locale)',
+      (tester) async {
+        await pumpSettings(tester, locale);
+
+        await tester.tap(find.byKey(const Key('darkModeScheduledOption')));
+        await tester.pumpAndSettle();
+
+        final scrollable = find.byType(Scrollable).first;
+        final position = tester.state<ScrollableState>(scrollable).position;
+        expect(
+          position.maxScrollExtent,
+          0,
+          reason:
+              'The settings form with scheduled dark mode is meant to fit a '
+              '$_kPhone screen without scrolling; it overflows by '
+              '${position.maxScrollExtent}px.',
+        );
+      },
+    );
   }
 
   testWidgets('field, button and app-bar heights match the spacing budget', (

@@ -101,18 +101,6 @@ void callbackDispatcher() {
   });
 }
 
-Future<void> refreshReminderForLocaleChange({
-  required bool remindersSupported,
-  required Future<void> Function() initializeNotifications,
-  required Future<void> Function() updateNotifications,
-}) async {
-  if (!remindersSupported) {
-    return;
-  }
-
-  await initializeNotifications();
-  await updateNotifications();
-}
 
 // Phase 10B (ADR-005 § B): `firebaseInitializer` is a dependency-injection
 // seam used only by tests (`integration_test/bootstrap_full_test.dart`).
@@ -468,23 +456,6 @@ class _MyAppState extends State<MyApp> with WidgetsBindingObserver {
       context,
       listen: false,
     ).updateLocaleName(locale);
-    WidgetsBinding.instance.addPostFrameCallback((_) async {
-      final currentContext = _navigatorKey.currentContext;
-      if (currentContext == null) return;
-      final appLocale = AppLocalizations.of(currentContext);
-      if (appLocale == null) return;
-
-      final userInfo = Provider.of<UserInformation>(
-        currentContext,
-        listen: false,
-      );
-      await refreshReminderForLocaleChange(
-        remindersSupported: NotificationsService.supportsReminderSettings(),
-        initializeNotifications: () => NotificationsService.init(),
-        updateNotifications: () =>
-            NotificationsService.updateNotification(userInfo, appLocale),
-      );
-    });
   }
 
   ValueNotifier<Widget?> widgetNotifier = ValueNotifier<Widget?>(null);
