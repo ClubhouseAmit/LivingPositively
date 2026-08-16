@@ -120,7 +120,8 @@ void main() {
     );
   }
 
-  testWidgets('ShareForm renders correctly', (WidgetTester tester) async {
+  group('ShareForm', () {
+    testWidgets('ShareForm renders correctly', (WidgetTester tester) async {
     await tester.pumpWidget(createTestWidget());
 
     // Verify the presence of the header and subtitles
@@ -636,5 +637,6 @@ void main() {
     expect(find.text('כותרת עברית שמורה'), findsOneWidget);
     expect(find.text('טקסט עברי שמור'), findsOneWidget);
     expect(find.text('+ Add a custom category'), findsOneWidget);
+  });
   });
 }

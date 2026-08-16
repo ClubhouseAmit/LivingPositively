@@ -116,7 +116,8 @@ void main() {
     );
   }
 
-  testWidgets('InitialFormPage2 renders form controls', (tester) async {
+  group('InitialFormPage2', () {
+    testWidgets('InitialFormPage2 renders form controls', (tester) async {
     await tester.pumpWidget(createTestWidget());
 
     expect(find.byType(InitialFormPage2), findsOneWidget);
@@ -244,5 +245,6 @@ void main() {
       find.text(lookupAppLocalizations(const Locale('he')).nameRequiredError),
       findsOneWidget,
     );
+  });
   });
 }

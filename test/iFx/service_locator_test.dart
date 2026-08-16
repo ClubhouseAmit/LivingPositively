@@ -9,6 +9,7 @@ import 'package:mazilon/pages/WellnessTools/VideoPlayerPageFactory.dart';
 import 'package:mazilon/pages/sos_location_service.dart';
 import 'package:mazilon/util/logger_service.dart';
 import 'package:mazilon/util/persistent_memory_service.dart';
+import 'package:mazilon/util/speech_recognition_service.dart';
 
 void main() {
   group('setupLocator', () {
@@ -20,7 +21,7 @@ void main() {
       await GetIt.instance.reset();
     });
 
-    test('registers all expected services', () {
+    test('should register all expected services', () {
       setupLocator();
 
       expect(GetIt.instance.isRegistered<VideoPlayerPageFactory>(), isTrue);
@@ -31,9 +32,10 @@ void main() {
       expect(GetIt.instance.isRegistered<AnalyticsService>(), isTrue);
       expect(GetIt.instance.isRegistered<PersistentMemoryService>(), isTrue);
       expect(GetIt.instance.isRegistered<SosLocationService>(), isTrue);
+      expect(GetIt.instance.isRegistered<SpeechRecognitionService>(), isTrue);
     });
 
-    test('registered services resolve to the impl types', () {
+    test('should resolve registered services to the impl types', () {
       setupLocator();
 
       expect(GetIt.instance<LocaleService>(), isA<LocaleServiceImpl>());
@@ -48,9 +50,13 @@ void main() {
         GetIt.instance<SosLocationService>(),
         isA<GeolocatorSosLocationService>(),
       );
+      expect(
+        GetIt.instance<SpeechRecognitionService>(),
+        isA<SpeechRecognitionServiceImpl>(),
+      );
     });
 
-    test('lazy singletons return the same instance across resolves', () {
+    test('should return the same lazy singleton instance across resolves', () {
       setupLocator();
 
       final a = GetIt.instance<LocaleService>();
@@ -60,6 +66,10 @@ void main() {
       final sosLocationA = GetIt.instance<SosLocationService>();
       final sosLocationB = GetIt.instance<SosLocationService>();
       expect(identical(sosLocationA, sosLocationB), isTrue);
+
+      final speechA = GetIt.instance<SpeechRecognitionService>();
+      final speechB = GetIt.instance<SpeechRecognitionService>();
+      expect(identical(speechA, speechB), isTrue);
     });
   });
 }
