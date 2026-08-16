@@ -17,10 +17,12 @@ import 'package:provider/provider.dart';
 class PersonalPlanSectionWidget extends StatelessWidget {
   final List<String> items;
   final VoidCallback onSeeAll;
+  final VoidCallback? onTitleTap;
 
   const PersonalPlanSectionWidget({
     required this.items,
     required this.onSeeAll,
+    this.onTitleTap,
     super.key,
   });
 
@@ -36,6 +38,7 @@ class PersonalPlanSectionWidget extends StatelessWidget {
           title: appLocale.myPlan,
           leadingIcon: Icons.assignment_outlined,
           subtitle: appLocale.myPlanSubTitle,
+          onTitleTap: onTitleTap ?? onSeeAll,
           actionWidget: PopupMenuButton<String>(
             key: const Key('personalPlanHeaderMenu'),
             icon: Icon(Icons.more_vert, color: AppColors.neutralDark),

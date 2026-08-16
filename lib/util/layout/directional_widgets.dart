@@ -80,6 +80,7 @@ class SectionHeaderWidget extends StatelessWidget {
   final IconData? actionIcon;
   final VoidCallback? onActionTap;
   final Widget? actionWidget;
+  final VoidCallback? onTitleTap;
 
   const SectionHeaderWidget({
     required this.title,
@@ -90,12 +91,49 @@ class SectionHeaderWidget extends StatelessWidget {
     this.actionIcon,
     this.onActionTap,
     this.actionWidget,
+    this.onTitleTap,
     super.key,
   });
 
   @override
   Widget build(BuildContext context) {
     final colorScheme = Theme.of(context).colorScheme;
+    Widget titleContent = Row(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        if (leadingEmoji != null) ...[
+          Text(leadingEmoji!, style: const TextStyle(fontSize: 20)),
+          SizedBox(width: AppSpacing.sm),
+        ] else if (leadingIcon != null) ...[
+          Icon(leadingIcon, color: colorScheme.onSurface, size: 22),
+          SizedBox(width: AppSpacing.sm),
+        ],
+        Flexible(
+          child: Text(
+            title,
+            style: Theme.of(context).textTheme.titleMedium
+                ?.copyWith(fontWeight: FontWeight.bold),
+            textAlign: TextAlign.start,
+          ),
+        ),
+      ],
+    );
+
+    if (onTitleTap != null) {
+      titleContent = Semantics(
+        button: true,
+        label: title,
+        child: MouseRegion(
+          cursor: SystemMouseCursors.click,
+          child: GestureDetector(
+            behavior: HitTestBehavior.opaque,
+            onTap: onTitleTap,
+            child: titleContent,
+          ),
+        ),
+      );
+    }
+
     return Padding(
       padding: EdgeInsetsDirectional.symmetric(
         horizontal: AppSpacing.lg,
@@ -108,24 +146,9 @@ class SectionHeaderWidget extends StatelessWidget {
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
               Expanded(
-                child: Row(
-                  children: [
-                    if (leadingEmoji != null) ...[
-                      Text(leadingEmoji!, style: const TextStyle(fontSize: 20)),
-                      SizedBox(width: AppSpacing.sm),
-                    ] else if (leadingIcon != null) ...[
-                      Icon(leadingIcon, color: colorScheme.onSurface, size: 22),
-                      SizedBox(width: AppSpacing.sm),
-                    ],
-                    Expanded(
-                      child: Text(
-                        title,
-                        style: Theme.of(context).textTheme.titleMedium
-                            ?.copyWith(fontWeight: FontWeight.bold),
-                        textAlign: TextAlign.start,
-                      ),
-                    ),
-                  ],
+                child: Align(
+                  alignment: AlignmentDirectional.centerStart,
+                  child: titleContent,
                 ),
               ),
               if (actionWidget != null)
