@@ -47,6 +47,7 @@ import 'package:mazilon/Locale/locale_service.dart';
 import 'package:mazilon/main.dart' show MyApp, bootstrapApp, initializeApp;
 import 'package:mazilon/pages/SignIn_Pages/firstPage.dart';
 import 'package:mazilon/pages/SignIn_Pages/introduction.dart';
+import 'package:mazilon/util/persistent_memory_service.dart';
 import 'package:provider/provider.dart';
 import 'package:workmanager/workmanager.dart';
 
@@ -205,20 +206,50 @@ void main() {
     testWidgets(
         'first frame after bootstrapApp shows the CircularProgressIndicator placeholder',
         (tester) async {
+      // Hold the `localeName` read open so MyApp stays on the bootstrap
+      // MaterialApp + CircularProgressIndicator placeholder (the
+      // pre-`ScreenUtilInit` branch of main.dart) for as long as we assert
+      // against it. Under the live binding this branch is otherwise a
+      // single-frame race against real vsync — see
+      // GatedLocalePersistentMemoryService.
+      final gated = GatedLocalePersistentMemoryService();
       final widget = await bootstrapApp(
         firebaseInitializer: () async {},
-        locatorSetup: () => registerTestServices(locale: 'en'),
+        locatorSetup: () {
+          registerTestServices(locale: 'en');
+          GetIt.instance.unregister<PersistentMemoryService>();
+          GetIt.instance.registerSingleton<PersistentMemoryService>(gated);
+        },
         workmanagerInitializer: () {},
       );
 
       await tester.pumpWidget(widget);
-      // First frame: localeName is still '' so MyApp renders the bootstrap
-      // MaterialApp + CircularProgressIndicator placeholder (lines 399-406
-      // of main.dart, the pre-`ScreenUtilInit` branch).
-      await tester.pump();
+      await tester.pump(const Duration(milliseconds: 100));
 
       expect(find.byType(MaterialApp), findsWidgets);
-      expect(find.byType(CircularProgressIndicator), findsWidgets);
+      expect(
+        find.byType(CircularProgressIndicator),
+        findsWidgets,
+        reason: 'While the bootstrap futures are still pending, MyApp must '
+            'render the boot placeholder rather than a half-initialised app.',
+      );
+
+      // Release the gate so this test does not leave MyApp mid-bootstrap: a
+      // widget tree still holding pending futures leaks into the next test's
+      // teardown, where _MyAppState.dispose reads GetIt after it has been
+      // reset. Asserted via the destination pages rather than the spinner's
+      // absence — those pages have loading states of their own.
+      gated.localeGate.complete();
+      for (int i = 0; i < 20; i++) {
+        await tester.pump(const Duration(milliseconds: 100));
+      }
+      expect(
+        find.byType(FirstPage).evaluate().isNotEmpty ||
+            find.byType(Introduction).evaluate().isNotEmpty,
+        isTrue,
+        reason: 'Once the gated bootstrap read completes, MyApp must leave the '
+            'placeholder for FirstPage or the Introduction fallback.',
+      );
     });
 
     testWidgets(

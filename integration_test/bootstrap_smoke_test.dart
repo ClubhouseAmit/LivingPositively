@@ -37,8 +37,6 @@
 //     extraction to be testable. We deliberately did NOT do that extraction
 //     in Phase 7; the alternative cost is documented but small.
 
-import 'dart:async';
-
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -46,7 +44,6 @@ import 'package:get_it/get_it.dart';
 import 'package:integration_test/integration_test.dart';
 import 'package:mazilon/AnalyticsService.dart';
 import 'package:mazilon/Locale/locale_service.dart';
-import 'package:mazilon/global_enums.dart';
 import 'package:mazilon/main.dart' show MyApp;
 import 'package:mazilon/pages/SignIn_Pages/firstPage.dart';
 import 'package:mazilon/pages/SignIn_Pages/introduction.dart';
@@ -115,29 +112,6 @@ class _SilentWorkmanager extends WorkmanagerPlatform {
 
   @override
   Future<void> cancelByTag(String tag) async {}
-}
-
-/// [FakePersistentMemoryService] whose `localeName` read is held open until the
-/// test releases it.
-///
-/// `MyApp.build` renders the boot spinner only while `localeName == ''`, and
-/// `setLocale()` clears that as soon as the persistent-memory read resolves.
-/// Under the on-device (live) binding, real vsync frames run between
-/// `pumpWidget()` and the first assertion, so the spinner frame is gone before
-/// any `expect` can see it — pumping longer only makes that worse. Gating the
-/// one read that drives the branch makes the loading state stable for as many
-/// frames as the assertion needs, and completing the gate exercises the
-/// transition out of it.
-class _GatedLocalePersistentMemoryService extends FakePersistentMemoryService {
-  final Completer<void> localeGate = Completer<void>();
-
-  @override
-  Future<dynamic> getItem(String key, PersistentMemoryType type) async {
-    if (key == 'localeName') {
-      await localeGate.future;
-    }
-    return super.getItem(key, type);
-  }
 }
 
 // Mirror of `lib/main.dart`'s top-level constant — kept private to this test.
@@ -225,8 +199,9 @@ void main() {
       // Hold the `localeName` read open so `localeName` stays '' and the
       // bootstrap branch of MyApp.build (lines 536-549 of main.dart) is the
       // rendered tree for as long as we assert against it. Without the gate
-      // the branch is a single-frame race against the live binding's vsync.
-      final gated = _GatedLocalePersistentMemoryService();
+      // the branch is a single-frame race against the live binding's vsync —
+      // see GatedLocalePersistentMemoryService.
+      final gated = GatedLocalePersistentMemoryService();
       GetIt.instance.unregister<PersistentMemoryService>();
       GetIt.instance.registerSingleton<PersistentMemoryService>(gated);
 
