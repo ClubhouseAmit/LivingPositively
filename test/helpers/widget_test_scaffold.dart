@@ -42,6 +42,7 @@ class FakePersistentMemoryService implements PersistentMemoryService {
 
   @override
   Future<dynamic> getItem(String key, PersistentMemoryType type) async {
+    await Future.delayed(Duration.zero);
     final value = store[key];
     if (value != null) return value;
     switch (type) {
