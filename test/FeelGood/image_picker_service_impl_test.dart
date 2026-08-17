@@ -258,6 +258,65 @@ void main() {
     final loaded = await svc.loadImageRotations();
     expect(loaded, {'/path/test.jpg': 2});
   });
+
+  test('downloadImage returns destination path even if analytics tracking throws', () async {
+    final sourceFile = File('${tempDir.path}/picture.png')
+      ..writeAsBytesSync([1, 2, 3, 4]);
+
+    final svc = ImagePickerServiceImpl(
+      analyticsService: _FailingAnalytics(),
+      loggerService: logger,
+      fileSaver: ({
+        String? dialogTitle,
+        String? fileName,
+        FileType type = FileType.any,
+        String? initialDirectory,
+        Uint8List? bytes,
+        List<String>? allowedExtensions,
+      }) async {
+        return '${tempDir.path}/saved_$fileName';
+      },
+    );
+
+    final result = await svc.downloadImage(sourceFile.path);
+    expect(result, isNotNull);
+    expect(result, contains('saved_feel_good_'));
+    expect(result, endsWith('.png'));
+  });
+
+  test('downloadImage correctly derives extension when path contains dotted directory names', () async {
+    final subDir = Directory('${tempDir.path}/folder.2024')..createSync();
+    final sourceFile = File('${subDir.path}/photo.webp')
+      ..writeAsBytesSync([1, 2, 3]);
+
+    String? capturedFileName;
+    final svc = ImagePickerServiceImpl(
+      fileSaver: ({
+        String? dialogTitle,
+        String? fileName,
+        FileType type = FileType.any,
+        String? initialDirectory,
+        Uint8List? bytes,
+        List<String>? allowedExtensions,
+      }) async {
+        capturedFileName = fileName;
+        return '${tempDir.path}/saved';
+      },
+    );
+
+    await svc.downloadImage(sourceFile.path);
+    expect(capturedFileName, endsWith('.webp'));
+    expect(capturedFileName, isNot(contains('folder')));
+  });
+}
+
+class _FailingAnalytics implements AnalyticsService {
+  @override
+  Future<void> init() async {}
+  @override
+  Future<void> trackEvent(String eventName, [Map<String, dynamic>? properties]) async {
+    throw Exception('Analytics uninitialized');
+  }
 }
 
 class _FakePersistentMemory implements PersistentMemoryService {

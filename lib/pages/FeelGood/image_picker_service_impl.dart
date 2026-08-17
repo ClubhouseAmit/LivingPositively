@@ -123,6 +123,28 @@ class ImagePickerServiceImpl implements ImagePickerService {
     return file.writeAsString(imagePaths.join('\n'));
   }
 
+  String _extractImageExtension(String filePath) {
+    final base = filePath.split(RegExp(r'[/\\]')).last;
+    final dotIndex = base.lastIndexOf('.');
+    if (dotIndex != -1) {
+      final ext = base.substring(dotIndex).toLowerCase();
+      const validExtensions = {
+        '.jpg',
+        '.jpeg',
+        '.png',
+        '.webp',
+        '.gif',
+        '.heic',
+        '.heif',
+        '.bmp',
+      };
+      if (validExtensions.contains(ext)) {
+        return ext;
+      }
+    }
+    return '.jpg';
+  }
+
   @override
   Future<void> getImage(String source, List<String> imagePaths) async {
     ImageSource imageSource = source == 'camera'
@@ -133,9 +155,7 @@ class ImagePickerServiceImpl implements ImagePickerService {
 
       if (pickedFile != null) {
         final appDir = await getApplicationDocumentsDirectory();
-        final dotIndex = pickedFile.path.lastIndexOf('.');
-        final extension =
-            dotIndex != -1 ? pickedFile.path.substring(dotIndex) : '';
+        final extension = _extractImageExtension(pickedFile.path);
         int counter = 0;
         final timestamp = DateTime.now().millisecondsSinceEpoch;
         String candidateName = '$timestamp$extension';
@@ -150,10 +170,17 @@ class ImagePickerServiceImpl implements ImagePickerService {
         ).copy(targetFile.path);
         imagePaths.add(savedImage.path);
         await saveImagePaths(imagePaths);
-        await _effectiveAnalyticsService?.trackEvent(
-          "Photo Added",
-          {"Source": source},
-        );
+        try {
+          await _effectiveAnalyticsService?.trackEvent(
+            "Photo Added",
+            {"Source": source},
+          );
+        } catch (analyticsError, analyticsStackTrace) {
+          await _effectiveLoggerService?.captureLog(
+            analyticsError,
+            stackTrace: analyticsStackTrace,
+          );
+        }
       }
     } catch (error, stackTrace) {
       debugPrint("errored");
@@ -224,14 +251,7 @@ class ImagePickerServiceImpl implements ImagePickerService {
         return null;
       }
       final bytes = await file.readAsBytes();
-      String extension = '.jpg';
-      final dotIndex = imagePath.lastIndexOf('.');
-      if (dotIndex != -1) {
-        final ext = imagePath.substring(dotIndex);
-        if (ext.isNotEmpty && ext.length <= 5) {
-          extension = ext;
-        }
-      }
+      final extension = _extractImageExtension(imagePath);
       final name = fileName ??
           'feel_good_${DateTime.now().millisecondsSinceEpoch}$extension';
       final saveFile = customFileSaver ?? FilePicker.saveFile;
@@ -241,7 +261,14 @@ class ImagePickerServiceImpl implements ImagePickerService {
         bytes: bytes,
       );
       if (result != null) {
-        await _effectiveAnalyticsService?.trackEvent("Photo downloaded");
+        try {
+          await _effectiveAnalyticsService?.trackEvent("Photo downloaded");
+        } catch (analyticsError, analyticsStackTrace) {
+          await _effectiveLoggerService?.captureLog(
+            analyticsError,
+            stackTrace: analyticsStackTrace,
+          );
+        }
       }
       return result;
     } catch (error, stackTrace) {
