@@ -310,6 +310,45 @@ void main() {
     expect(capturedFileName, endsWith('.webp'));
     expect(capturedFileName, isNot(contains('folder')));
   });
+
+  test('downloadImage returns destination path even if both analytics and logger throw', () async {
+    final sourceFile = File('${tempDir.path}/picture.png')
+      ..writeAsBytesSync([1, 2, 3, 4]);
+
+    final svc = ImagePickerServiceImpl(
+      analyticsService: _FailingAnalytics(),
+      loggerService: _ThrowingLogger(),
+      fileSaver: ({
+        String? dialogTitle,
+        String? fileName,
+        FileType type = FileType.any,
+        String? initialDirectory,
+        Uint8List? bytes,
+        List<String>? allowedExtensions,
+      }) async {
+        return '${tempDir.path}/saved_$fileName';
+      },
+    );
+
+    final result = await svc.downloadImage(sourceFile.path);
+    expect(result, isNotNull);
+    expect(result, contains('saved_feel_good_'));
+    expect(result, endsWith('.png'));
+  });
+}
+
+class _ThrowingLogger implements IncidentLoggerService {
+  @override
+  Future<void> initializeSentry(Widget myApp) async {}
+
+  @override
+  Future<void> captureLog(
+    dynamic exception, {
+    StackTrace? stackTrace,
+    dynamic exceptionData,
+  }) async {
+    throw Exception('Logger exception');
+  }
 }
 
 class _FailingAnalytics implements AnalyticsService {

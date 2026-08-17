@@ -152,10 +152,15 @@ class ImagePickerServiceImpl implements ImagePickerService {
     try {
       await _effectiveAnalyticsService?.trackEvent(eventName, properties);
     } catch (analyticsError, analyticsStackTrace) {
-      await _effectiveLoggerService?.captureLog(
-        analyticsError,
-        stackTrace: analyticsStackTrace,
-      );
+      try {
+        await _effectiveLoggerService?.captureLog(
+          analyticsError,
+          stackTrace: analyticsStackTrace,
+        );
+      } catch (_) {
+        // Telemetry and incident logging are strictly best-effort and must
+        // never escape or fail the outer business operation.
+      }
     }
   }
 
