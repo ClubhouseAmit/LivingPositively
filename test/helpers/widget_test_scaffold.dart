@@ -270,6 +270,9 @@ class NoopImagePickerService implements ImagePickerService {
 
   int downloadImageCalls = 0;
   String? downloadImageResult = 'test-downloaded-path';
+  String? lastDownloadImagePath;
+  String? lastDownloadFileName;
+  String? lastDownloadDialogTitle;
 
   @override
   Future<String?> downloadImage(
@@ -278,7 +281,26 @@ class NoopImagePickerService implements ImagePickerService {
     String? dialogTitle,
   }) async {
     downloadImageCalls++;
+    lastDownloadImagePath = imagePath;
+    lastDownloadFileName = fileName;
+    lastDownloadDialogTitle = dialogTitle;
     return downloadImageResult;
+  }
+
+  Map<String, int> seededRotations = {};
+  int saveImageRotationsCalls = 0;
+  Map<String, int>? lastSavedRotations;
+
+  @override
+  Future<Map<String, int>> loadImageRotations() async {
+    return Map<String, int>.from(seededRotations);
+  }
+
+  @override
+  Future<void> saveImageRotations(Map<String, int> imageRotations) async {
+    saveImageRotationsCalls++;
+    lastSavedRotations = Map<String, int>.from(imageRotations);
+    seededRotations = Map<String, int>.from(imageRotations);
   }
 }
 

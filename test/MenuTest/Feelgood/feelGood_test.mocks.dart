@@ -203,11 +203,19 @@ class MockImagePickerService extends _i1.Mock
           as _i7.Future<void>);
 
   @override
-  dynamic displayImage(String? path, {_i2.BoxFit? fit = _i2.BoxFit.none}) =>
-      super.noSuchMethod(
-        Invocation.method(#displayImage, [path], {#fit: fit}),
-        returnValueForMissingStub: null,
-      );
+  _i2.Widget displayImage(String? path, {_i2.BoxFit? fit = _i2.BoxFit.none}) =>
+      (super.noSuchMethod(
+            Invocation.method(#displayImage, [path], {#fit: fit}),
+            returnValue: _FakeWidget_0(
+              this,
+              Invocation.method(#displayImage, [path], {#fit: fit}),
+            ),
+            returnValueForMissingStub: _FakeWidget_0(
+              this,
+              Invocation.method(#displayImage, [path], {#fit: fit}),
+            ),
+          )
+          as _i2.Widget);
 
   @override
   _i2.Widget getOnlineImage(String? url) =>
@@ -249,6 +257,26 @@ class MockImagePickerService extends _i1.Mock
             returnValueForMissingStub: _i7.Future<String?>.value(),
           )
           as _i7.Future<String?>);
+
+  @override
+  _i7.Future<Map<String, int>> loadImageRotations() =>
+      (super.noSuchMethod(
+            Invocation.method(#loadImageRotations, []),
+            returnValue: _i7.Future<Map<String, int>>.value(<String, int>{}),
+            returnValueForMissingStub: _i7.Future<Map<String, int>>.value(
+              <String, int>{},
+            ),
+          )
+          as _i7.Future<Map<String, int>>);
+
+  @override
+  _i7.Future<void> saveImageRotations(Map<String, int>? imageRotations) =>
+      (super.noSuchMethod(
+            Invocation.method(#saveImageRotations, [imageRotations]),
+            returnValue: _i7.Future<void>.value(),
+            returnValueForMissingStub: _i7.Future<void>.value(),
+          )
+          as _i7.Future<void>);
 }
 
 /// A class which mocks [SharedPreferences].

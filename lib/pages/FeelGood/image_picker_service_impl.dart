@@ -1,10 +1,13 @@
 import 'dart:io';
+import 'dart:typed_data';
 
 import 'package:file_picker/file_picker.dart';
 import 'package:get_it/get_it.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:mazilon/AnalyticsService.dart';
+import 'package:mazilon/global_enums.dart';
 import 'package:mazilon/util/logger_service.dart';
+import 'package:mazilon/util/persistent_memory_service.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:flutter/material.dart';
 
@@ -14,18 +17,56 @@ abstract class ImagePickerService {
   Future<void> getImage(String source, List<String> imagePaths);
   void deleteImage(int index, List<String> imagePaths);
   Future<void> loadImagePaths(List<String> imagePaths);
-  displayImage(String path, {BoxFit fit = BoxFit.none});
+  Widget displayImage(String path, {BoxFit fit = BoxFit.none});
   Widget getOnlineImage(String url);
   Future<void> deleteImages();
+
+  /// Downloads the image at [imagePath] to user-selected device storage.
+  ///
+  /// [imagePath] is the local filesystem path of the source image to download.
+  /// [fileName] is an optional custom filename for the saved file. If omitted,
+  /// a timestamped filename with the source image's file extension is generated.
+  /// [dialogTitle] is an optional title displayed on the native save file dialog.
+  ///
+  /// Returns the destination file path returned by [FilePicker.saveFile] on
+  /// success, or `null` if the user cancels, the source file does not exist,
+  /// or a read/write error occurs.
   Future<String?> downloadImage(
     String imagePath, {
     String? fileName,
     String? dialogTitle,
   });
+
+  /// Loads saved image rotations from persistent storage.
+  Future<Map<String, int>> loadImageRotations();
+
+  /// Saves image rotations to persistent storage.
+  Future<void> saveImageRotations(Map<String, int> imageRotations);
 }
 
 class ImagePickerServiceImpl implements ImagePickerService {
-  final ImagePicker _picker = ImagePicker();
+  final ImagePicker _picker;
+  final Future<String?> Function({
+    String? dialogTitle,
+    String? fileName,
+    FileType type,
+    String? initialDirectory,
+    Uint8List? bytes,
+    List<String>? allowedExtensions,
+  })? _customFileSaver;
+
+  ImagePickerServiceImpl({
+    ImagePicker? picker,
+    Future<String?> Function({
+      String? dialogTitle,
+      String? fileName,
+      FileType type,
+      String? initialDirectory,
+      Uint8List? bytes,
+      List<String>? allowedExtensions,
+    })? fileSaver,
+  })  : _picker = picker ?? ImagePicker(),
+        _customFileSaver = fileSaver;
 
   @override
   Future<XFile?> pickImage({required ImageSource source}) {
@@ -68,7 +109,11 @@ class ImagePickerServiceImpl implements ImagePickerService {
 
       if (pickedFile != null) {
         final appDir = await getApplicationDocumentsDirectory();
-        final fileName = DateTime.now().millisecondsSinceEpoch.toString();
+        final dotIndex = pickedFile.path.lastIndexOf('.');
+        final extension =
+            dotIndex != -1 ? pickedFile.path.substring(dotIndex) : '';
+        final fileName =
+            '${DateTime.now().millisecondsSinceEpoch}$extension';
         final savedImage = await File(
           pickedFile.path,
         ).copy('${appDir.path}/$fileName');
@@ -150,13 +195,27 @@ class ImagePickerServiceImpl implements ImagePickerService {
         return null;
       }
       final bytes = await file.readAsBytes();
+      String extension = '.jpg';
+      final dotIndex = imagePath.lastIndexOf('.');
+      if (dotIndex != -1) {
+        final ext = imagePath.substring(dotIndex);
+        if (ext.isNotEmpty && ext.length <= 5) {
+          extension = ext;
+        }
+      }
       final name = fileName ??
-          'feel_good_${DateTime.now().millisecondsSinceEpoch}.jpg';
-      final result = await FilePicker.saveFile(
-        dialogTitle: dialogTitle ?? 'Save image',
-        fileName: name,
-        bytes: bytes,
-      );
+          'feel_good_${DateTime.now().millisecondsSinceEpoch}$extension';
+      final result = _customFileSaver != null
+          ? await _customFileSaver(
+              dialogTitle: dialogTitle ?? 'Save image',
+              fileName: name,
+              bytes: bytes,
+            )
+          : await FilePicker.saveFile(
+              dialogTitle: dialogTitle ?? 'Save image',
+              fileName: name,
+              bytes: bytes,
+            );
       if (result != null) {
         AnalyticsService mixPanelService = GetIt.instance<AnalyticsService>();
         mixPanelService.trackEvent("Photo downloaded");
@@ -169,6 +228,65 @@ class ImagePickerServiceImpl implements ImagePickerService {
         await loggerService.captureLog(error, stackTrace: stackTrace);
       }
       return null;
+    }
+  }
+
+  @override
+  Future<Map<String, int>> loadImageRotations() async {
+    final rotations = <String, int>{};
+    try {
+      if (GetIt.instance.isRegistered<PersistentMemoryService>()) {
+        final service = GetIt.instance<PersistentMemoryService>();
+        final list = await service.getItem(
+          'feelGoodImageRotations',
+          PersistentMemoryType.StringList,
+        );
+        if (list is List<dynamic>) {
+          for (final item in list) {
+            if (item is String) {
+              final parts = item.split(':');
+              if (parts.length >= 2) {
+                final rot = int.tryParse(parts.last);
+                final path = parts.sublist(0, parts.length - 1).join(':');
+                if (rot != null) {
+                  rotations[path] = rot;
+                }
+              }
+            }
+          }
+        }
+      }
+    } catch (error, stackTrace) {
+      if (GetIt.instance.isRegistered<IncidentLoggerService>()) {
+        IncidentLoggerService loggerService =
+            GetIt.instance<IncidentLoggerService>();
+        await loggerService.captureLog(error, stackTrace: stackTrace);
+      }
+    }
+    return rotations;
+  }
+
+  @override
+  Future<void> saveImageRotations(Map<String, int> imageRotations) async {
+    try {
+      if (GetIt.instance.isRegistered<PersistentMemoryService>()) {
+        final service = GetIt.instance<PersistentMemoryService>();
+        final list = imageRotations.entries
+            .map((e) => '${e.key}:${e.value}')
+            .toList();
+        await service.setItem(
+          'feelGoodImageRotations',
+          PersistentMemoryType.StringList,
+          list,
+        );
+      }
+    } catch (error, stackTrace) {
+      if (GetIt.instance.isRegistered<IncidentLoggerService>()) {
+        IncidentLoggerService loggerService =
+            GetIt.instance<IncidentLoggerService>();
+        await loggerService.captureLog(error, stackTrace: stackTrace);
+      }
+      rethrow;
     }
   }
 }

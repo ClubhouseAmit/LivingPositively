@@ -13,9 +13,6 @@ import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:mazilon/util/userInformation.dart';
 import 'package:provider/provider.dart';
 
-import 'package:mazilon/global_enums.dart';
-import 'package:mazilon/util/persistent_memory_service.dart';
-
 class FeelGood extends StatefulWidget {
   const FeelGood({super.key});
 
@@ -27,18 +24,13 @@ class _FeelGoodPageState extends LPExtendedState<FeelGood> {
   late ImagePickerService pickerService;
   List<String> imagePaths = [];
   Map<String, int> imageRotations = {};
-  PersistentMemoryService? _persistentMemoryService;
   late Future<List<String>> _loadImagesFuture;
-  //final picker = ImagePicker();
   AnalyticsService mixPanelService = GetIt.instance<AnalyticsService>();
+
   @override
   void initState() {
     super.initState();
     pickerService = GetIt.instance<ImagePickerService>();
-    if (GetIt.instance.isRegistered<PersistentMemoryService>()) {
-      _persistentMemoryService = GetIt.instance<PersistentMemoryService>();
-    }
-
     _loadImagesFuture = _loadImagePaths();
   }
 
@@ -48,49 +40,8 @@ class _FeelGoodPageState extends LPExtendedState<FeelGood> {
   Future<List<String>> _loadImagePaths() async {
     imagePaths.clear();
     await pickerService.loadImagePaths(imagePaths);
-    await _loadImageRotations();
+    imageRotations = await pickerService.loadImageRotations();
     return imagePaths;
-  }
-
-  Future<void> _loadImageRotations() async {
-    final service = _persistentMemoryService;
-    if (service == null) return;
-    try {
-      final list = await service.getItem(
-        'feelGoodImageRotations',
-        PersistentMemoryType.StringList,
-      );
-      imageRotations.clear();
-      if (list is List<dynamic>) {
-        for (final item in list) {
-          if (item is String) {
-            final parts = item.split(':');
-            if (parts.length >= 2) {
-              final rot = int.tryParse(parts.last);
-              final path = parts.sublist(0, parts.length - 1).join(':');
-              if (rot != null) {
-                imageRotations[path] = rot;
-              }
-            }
-          }
-        }
-      }
-    } catch (_) {}
-  }
-
-  Future<void> _saveImageRotations() async {
-    final service = _persistentMemoryService;
-    if (service == null) return;
-    try {
-      final list = imageRotations.entries
-          .map((e) => '${e.key}:${e.value}')
-          .toList();
-      await service.setItem(
-        'feelGoodImageRotations',
-        PersistentMemoryType.StringList,
-        list,
-      );
-    } catch (_) {}
   }
 
   void _rotateImage(int index) {
@@ -101,7 +52,7 @@ class _FeelGoodPageState extends LPExtendedState<FeelGood> {
       setState(() {
         imageRotations[path] = next;
       });
-      _saveImageRotations();
+      pickerService.saveImageRotations(imageRotations);
     }
   }
 
@@ -128,6 +79,7 @@ class _FeelGoodPageState extends LPExtendedState<FeelGood> {
     return FeelGoodInheritedWidget(
       displayImage: pickerService.displayImage,
       imagePaths: [...imagePaths],
+      imageRotations: Map.unmodifiable(imageRotations),
       getImage: (String source) async {
         await pickerService.getImage(source, imagePaths);
         setState(() {});
@@ -140,7 +92,7 @@ class _FeelGoodPageState extends LPExtendedState<FeelGood> {
           }
           pickerService.deleteImage(index, imagePaths);
         });
-        _saveImageRotations();
+        pickerService.saveImageRotations(imageRotations);
       },
       rotateImage: _rotateImage,
       getImageRotation: _getImageRotation,

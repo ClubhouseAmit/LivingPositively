@@ -19,13 +19,16 @@
 
 import 'dart:io';
 
+import 'package:file_picker/file_picker.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:get_it/get_it.dart';
 import 'package:mazilon/AnalyticsService.dart';
+import 'package:mazilon/global_enums.dart';
 import 'package:mazilon/pages/FeelGood/image_picker_service_impl.dart';
 import 'package:mazilon/util/logger_service.dart';
+import 'package:mazilon/util/persistent_memory_service.dart';
 
 class _CapturingLogger implements IncidentLoggerService {
   final List<dynamic> captured = [];
@@ -162,4 +165,94 @@ void main() {
     final result = await svc.downloadImage('${tempDir.path}/nonexistent.png');
     expect(result, isNull);
   });
+
+  test('downloadImage returns destination path on success and preserves source extension', () async {
+    final sourceFile = File('${tempDir.path}/picture.png')
+      ..writeAsBytesSync([1, 2, 3, 4]);
+
+    String? capturedDialogTitle;
+    String? capturedFileName;
+    Uint8List? capturedBytes;
+    int saveFileCalls = 0;
+
+    final svc = ImagePickerServiceImpl(
+      fileSaver: ({
+        String? dialogTitle,
+        String? fileName,
+        FileType type = FileType.any,
+        String? initialDirectory,
+        Uint8List? bytes,
+        List<String>? allowedExtensions,
+      }) async {
+        saveFileCalls++;
+        capturedDialogTitle = dialogTitle;
+        capturedFileName = fileName;
+        capturedBytes = bytes;
+        return '${tempDir.path}/saved_$fileName';
+      },
+    );
+
+    final result = await svc.downloadImage(
+      sourceFile.path,
+      dialogTitle: 'Download photo',
+    );
+
+    expect(saveFileCalls, 1);
+    expect(capturedDialogTitle, 'Download photo');
+    expect(capturedFileName, startsWith('feel_good_'));
+    expect(capturedFileName, endsWith('.png'));
+    expect(capturedBytes, [1, 2, 3, 4]);
+    expect(result, '${tempDir.path}/saved_$capturedFileName');
+  });
+
+  test('saveImageRotations persists map to memory service and loadImageRotations reads it back', () async {
+    final memory = _FakePersistentMemory();
+    final getIt = GetIt.instance;
+    if (getIt.isRegistered<PersistentMemoryService>()) {
+      getIt.unregister<PersistentMemoryService>();
+    }
+    getIt.registerSingleton<PersistentMemoryService>(memory);
+
+    final svc = ImagePickerServiceImpl();
+    await svc.saveImageRotations({'/path/1.jpg': 1, '/path/2.png': 3});
+
+    final loaded = await svc.loadImageRotations();
+    expect(loaded, {'/path/1.jpg': 1, '/path/2.png': 3});
+  });
+
+  test('loadImageRotations returns empty map when nothing is saved', () async {
+    final memory = _FakePersistentMemory();
+    final getIt = GetIt.instance;
+    if (getIt.isRegistered<PersistentMemoryService>()) {
+      getIt.unregister<PersistentMemoryService>();
+    }
+    getIt.registerSingleton<PersistentMemoryService>(memory);
+
+    final svc = ImagePickerServiceImpl();
+    final loaded = await svc.loadImageRotations();
+    expect(loaded, isEmpty);
+  });
+}
+
+class _FakePersistentMemory implements PersistentMemoryService {
+  final Map<String, dynamic> _storage = {};
+
+  @override
+  Future<dynamic> getItem(String key, PersistentMemoryType type) async {
+    return _storage[key];
+  }
+
+  @override
+  Future<void> setItem(
+    String key,
+    PersistentMemoryType type,
+    dynamic value,
+  ) async {
+    _storage[key] = value;
+  }
+
+  @override
+  Future<void> reset() async {
+    _storage.clear();
+  }
 }

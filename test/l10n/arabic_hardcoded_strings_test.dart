@@ -47,6 +47,12 @@ class _FakeImagePickerService implements ImagePickerService {
     String? fileName,
     String? dialogTitle,
   }) async => null;
+
+  @override
+  Future<Map<String, int>> loadImageRotations() async => {};
+
+  @override
+  Future<void> saveImageRotations(Map<String, int> imageRotations) async {}
 }
 
 class _FakeVideoPlayerPageFactory implements VideoPlayerPageFactory {

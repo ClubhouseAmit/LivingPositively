@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:mazilon/global_enums.dart';
 import 'package:mazilon/pages/FeelGood/feelGood.dart';
 import 'package:mazilon/pages/FeelGood/image_display_item.dart';
 
@@ -174,36 +173,45 @@ void main() {
     );
 
     testWidgets(
-      'should persist rotation across app reload through persistent storage',
+      'should persist rotation writes on rotate and prune entry on delete',
       (WidgetTester tester) async {
-        const testPath = 'test_persisted.jpg';
-        // Pre-populate rotation in persistent memory
-        await locators.memory.setItem(
-          'feelGoodImageRotations',
-          PersistentMemoryType.StringList,
-          ['$testPath:3'],
-        );
+        const testPath = 'rot_save.jpg';
         locators.picker.seededImagePaths.add(testPath);
 
         await pumpWithProviders(tester, const FeelGood());
         await tester.pumpAndSettle();
 
-        // Grid thumbnail should load persisted rotation (3 quarter turns)
-        final gridRotatedBox = tester.widget<RotatedBox>(
-          find.descendant(
-            of: find.byType(ImageDisplay),
-            matching: find.byType(RotatedBox),
-          ),
-        );
-        expect(gridRotatedBox.quarterTurns, 3);
+        // Open viewer
+        await openViewer(tester);
+
+        // Rotate image once (quarterTurns: 1)
+        await tester.tap(find.byKey(const Key('rotateButtonIcon')));
+        await tester.pumpAndSettle();
+
+        // Verify rotation write was triggered on the service with quarterTurns = 1
+        expect(locators.picker.saveImageRotationsCalls, greaterThan(0));
+        expect(locators.picker.lastSavedRotations?[testPath], 1);
+
+        // Tap delete button in fullscreen viewer
+        await tester.tap(find.byKey(const Key('deleteButtonIcon')));
+        await tester.pumpAndSettle();
+
+        // Confirm deletion in alert dialog
+        expect(find.byKey(const Key('deleteButtonText')), findsOneWidget);
+        await tester.tap(find.byKey(const Key('deleteButtonText')));
+        await tester.pumpAndSettle();
+
+        // Verify pruned rotations map without deleted path was persisted
+        expect(locators.picker.lastSavedRotations?.containsKey(testPath), isFalse);
       },
     );
 
     testWidgets(
-      'should invoke download on image picker service when download button is tapped',
+      'should invoke download on image picker service with correct arguments and show success toast',
       (WidgetTester tester) async {
         const testPath = 'test_download.jpg';
         locators.picker.seededImagePaths.add(testPath);
+        locators.picker.downloadImageResult = '/storage/test_download.jpg';
 
         await pumpWithProviders(tester, const FeelGood());
         await tester.pumpAndSettle();
@@ -215,13 +223,39 @@ void main() {
         await tester.tap(find.byKey(const Key('downloadButtonIcon')));
         await tester.pumpAndSettle();
 
-        // Assert downloadImage was invoked on the service
+        // Assert downloadImage arguments were passed correctly
         expect(locators.picker.downloadImageCalls, 1);
+        expect(locators.picker.lastDownloadImagePath, testPath);
+        expect(locators.picker.lastDownloadDialogTitle, 'Download photo');
       },
     );
 
     testWidgets(
-      'should render localized Hebrew tooltips when locale is Hebrew',
+      'should handle cancelled download gracefully without crashing',
+      (WidgetTester tester) async {
+        const testPath = 'test_cancel.jpg';
+        locators.picker.seededImagePaths.add(testPath);
+        // Simulate user cancelling native file picker dialog
+        locators.picker.downloadImageResult = null;
+
+        await pumpWithProviders(tester, const FeelGood());
+        await tester.pumpAndSettle();
+
+        // Open viewer
+        await openViewer(tester);
+
+        // Tap download
+        await tester.tap(find.byKey(const Key('downloadButtonIcon')));
+        await tester.pumpAndSettle();
+
+        // Service invoked once and safely handled
+        expect(locators.picker.downloadImageCalls, 1);
+        expect(locators.picker.lastDownloadImagePath, testPath);
+      },
+    );
+
+    testWidgets(
+      'should render localized Hebrew tooltips and pass Hebrew dialog title when locale is Hebrew',
       (WidgetTester tester) async {
         locators = registerTestServices(locale: 'he');
         locators.picker.seededImagePaths.add('he_test.jpg');
@@ -241,6 +275,13 @@ void main() {
         expect(find.byTooltip('סיבוב תמונה'), findsOneWidget);
         expect(find.byTooltip('הורדת תמונה'), findsOneWidget);
         expect(find.byTooltip('מחיקת תמונה'), findsOneWidget);
+
+        // Tap download and assert Hebrew dialog title passed
+        await tester.tap(find.byKey(const Key('downloadButtonIcon')));
+        await tester.pumpAndSettle();
+
+        expect(locators.picker.downloadImageCalls, 1);
+        expect(locators.picker.lastDownloadDialogTitle, 'הורדת תמונה');
       },
     );
   });

@@ -1,12 +1,14 @@
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 
 class FeelGoodInheritedWidget extends InheritedWidget {
   final List<String> imagePaths;
   final Function(String source) getImage;
-  final Function(String path, {BoxFit fit}) displayImage;
+  final Widget Function(String path, {BoxFit fit}) displayImage;
   final Function(int index) deleteImage;
   final Function(int index) rotateImage;
   final int Function(String path) getImageRotation;
+  final Map<String, int> imageRotations;
 
   const FeelGoodInheritedWidget({
     super.key,
@@ -15,6 +17,7 @@ class FeelGoodInheritedWidget extends InheritedWidget {
     required this.deleteImage,
     required this.rotateImage,
     required this.getImageRotation,
+    required this.imageRotations,
     required super.child,
     required this.displayImage,
   });
@@ -27,19 +30,7 @@ class FeelGoodInheritedWidget extends InheritedWidget {
 
   @override
   bool updateShouldNotify(FeelGoodInheritedWidget oldWidget) {
-    if (imagePaths.length != oldWidget.imagePaths.length) {
-      return true;
-    }
-    for (int i = 0; i < imagePaths.length; i++) {
-      if (imagePaths[i] != oldWidget.imagePaths[i]) {
-        return true;
-      }
-      if (getImageRotation(imagePaths[i]) !=
-          oldWidget.getImageRotation(imagePaths[i])) {
-        return true;
-      }
-    }
-
-    return false;
+    return !listEquals(imagePaths, oldWidget.imagePaths) ||
+        !mapEquals(imageRotations, oldWidget.imageRotations);
   }
 }

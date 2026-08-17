@@ -11,7 +11,7 @@ import 'package:mazilon/l10n/app_localizations.dart';
 
 void _focusOnPicture(
   BuildContext context,
-  Function(String path, {BoxFit fit}) displayImage,
+  Widget Function(String path, {BoxFit fit}) displayImage,
   String imagePath,
   int index,
   Function(int index) deleteImageFunction,
@@ -161,9 +161,9 @@ class ImageDisplay extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final inherited = FeelGoodInheritedWidget.of(context);
-    final Function(String path, {BoxFit fit}) displayImage =
+    final Widget Function(String path, {BoxFit fit}) displayImage =
         inherited?.displayImage ??
-        (String path, {BoxFit fit = BoxFit.none}) {};
+        (String path, {BoxFit fit = BoxFit.none}) => const SizedBox.shrink();
 
     final appLocale = AppLocalizations.of(context);
     final UserInformation userInfoProvider = Provider.of<UserInformation>(
