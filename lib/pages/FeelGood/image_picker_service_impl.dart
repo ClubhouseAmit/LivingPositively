@@ -145,6 +145,20 @@ class ImagePickerServiceImpl implements ImagePickerService {
     return '.jpg';
   }
 
+  Future<void> _trackEventSafely(
+    String eventName, [
+    Map<String, dynamic>? properties,
+  ]) async {
+    try {
+      await _effectiveAnalyticsService?.trackEvent(eventName, properties);
+    } catch (analyticsError, analyticsStackTrace) {
+      await _effectiveLoggerService?.captureLog(
+        analyticsError,
+        stackTrace: analyticsStackTrace,
+      );
+    }
+  }
+
   @override
   Future<void> getImage(String source, List<String> imagePaths) async {
     ImageSource imageSource = source == 'camera'
@@ -170,17 +184,7 @@ class ImagePickerServiceImpl implements ImagePickerService {
         ).copy(targetFile.path);
         imagePaths.add(savedImage.path);
         await saveImagePaths(imagePaths);
-        try {
-          await _effectiveAnalyticsService?.trackEvent(
-            "Photo Added",
-            {"Source": source},
-          );
-        } catch (analyticsError, analyticsStackTrace) {
-          await _effectiveLoggerService?.captureLog(
-            analyticsError,
-            stackTrace: analyticsStackTrace,
-          );
-        }
+        await _trackEventSafely("Photo Added", {"Source": source});
       }
     } catch (error, stackTrace) {
       debugPrint("errored");
@@ -261,14 +265,7 @@ class ImagePickerServiceImpl implements ImagePickerService {
         bytes: bytes,
       );
       if (result != null) {
-        try {
-          await _effectiveAnalyticsService?.trackEvent("Photo downloaded");
-        } catch (analyticsError, analyticsStackTrace) {
-          await _effectiveLoggerService?.captureLog(
-            analyticsError,
-            stackTrace: analyticsStackTrace,
-          );
-        }
+        await _trackEventSafely("Photo downloaded");
       }
       return result;
     } catch (error, stackTrace) {

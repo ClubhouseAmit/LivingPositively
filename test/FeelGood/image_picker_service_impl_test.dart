@@ -282,6 +282,8 @@ void main() {
     expect(result, isNotNull);
     expect(result, contains('saved_feel_good_'));
     expect(result, endsWith('.png'));
+    expect(logger.captured, isNotEmpty);
+    expect(logger.captured.first.toString(), contains('Analytics uninitialized'));
   });
 
   test('downloadImage correctly derives extension when path contains dotted directory names', () async {
