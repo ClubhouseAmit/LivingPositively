@@ -486,6 +486,8 @@
   "feelGoodDeleteTitle": "هل تريد حذف الصورة؟",
   "feelGoodDeleteMessage": "ستتم إزالة الصورة من قسم الشعور الجيد.",
   "feelGoodBackTooltip": "العودة إلى الصور",
+  "feelGoodRotateTooltip": "تدوير الصورة",
+  "feelGoodDownloadTooltip": "تنزيل الصورة",
   "feelGoodDeleteTooltip": "حذف الصورة",
   "confirmDeletePlanAnswerTitle": "هل تريد حذف الإجابة؟",
   "confirmDeletePlanAnswerMessage": "ستتم إزالة الإجابة من خطتك الشخصية.",

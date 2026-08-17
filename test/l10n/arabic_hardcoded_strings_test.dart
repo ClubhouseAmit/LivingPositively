@@ -40,6 +40,19 @@ class _FakeImagePickerService implements ImagePickerService {
   Future<File> saveImagePaths(List<String> imagePaths) async {
     throw UnimplementedError();
   }
+
+  @override
+  Future<String?> downloadImage(
+    String imagePath, {
+    String? fileName,
+    String? dialogTitle,
+  }) async => null;
+
+  @override
+  Future<Map<String, int>> loadImageRotations() async => {};
+
+  @override
+  Future<void> saveImageRotations(Map<String, int> imageRotations) async {}
 }
 
 class _FakeVideoPlayerPageFactory implements VideoPlayerPageFactory {

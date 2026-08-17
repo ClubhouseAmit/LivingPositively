@@ -182,13 +182,30 @@ void main() {
       await tapAndSettle(tester, find.byKey(const Key("addImgButtonText")));
       await tapAndSettle(tester, find.byKey(const Key("cameraButtonText")));
       await tapAndSettle(tester, find.text('added'));
+      expect(find.byKey(const Key('backButtonIcon')), findsOneWidget);
+      expect(find.byKey(const Key('rotateButtonIcon')), findsOneWidget);
+      expect(find.byKey(const Key('downloadButtonIcon')), findsOneWidget);
       expect(find.byKey(const Key('deleteButtonIcon')), findsOneWidget);
       expect(find.byTooltip('חזרה לתמונות'), findsOneWidget);
+      expect(find.byTooltip('סיבוב תמונה'), findsOneWidget);
+      expect(find.byTooltip('הורדת תמונה'), findsOneWidget);
       expect(find.byTooltip('מחיקת תמונה'), findsOneWidget);
       final backIcon = tester.widget<Icon>(
         find.descendant(
           of: find.byKey(const Key('backButtonIcon')),
           matching: find.byIcon(Icons.arrow_back),
+        ),
+      );
+      final rotateIcon = tester.widget<Icon>(
+        find.descendant(
+          of: find.byKey(const Key('rotateButtonIcon')),
+          matching: find.byIcon(Icons.rotate_right),
+        ),
+      );
+      final downloadIcon = tester.widget<Icon>(
+        find.descendant(
+          of: find.byKey(const Key('downloadButtonIcon')),
+          matching: find.byIcon(Icons.download),
         ),
       );
       final deleteIcon = tester.widget<Icon>(
@@ -198,6 +215,8 @@ void main() {
         ),
       );
       expect(backIcon.semanticLabel, isNull);
+      expect(rotateIcon.semanticLabel, isNull);
+      expect(downloadIcon.semanticLabel, isNull);
       expect(deleteIcon.semanticLabel, isNull);
 
       await tapAndSettle(tester, find.byKey(const Key('deleteButtonIcon')));

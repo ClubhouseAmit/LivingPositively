@@ -65,6 +65,19 @@ class _FlakyImagePickerService implements ImagePickerService {
 
   @override
   Future<void> deleteImages() async {}
+
+  @override
+  Future<String?> downloadImage(
+    String imagePath, {
+    String? fileName,
+    String? dialogTitle,
+  }) async => null;
+
+  @override
+  Future<Map<String, int>> loadImageRotations() async => {};
+
+  @override
+  Future<void> saveImageRotations(Map<String, int> imageRotations) async {}
 }
 
 void main() {

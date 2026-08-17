@@ -3406,6 +3406,12 @@ class AppLocalizationsEn extends AppLocalizations {
   String get feelGoodBackTooltip => 'Back to photos';
 
   @override
+  String get feelGoodRotateTooltip => 'Rotate photo';
+
+  @override
+  String get feelGoodDownloadTooltip => 'Download photo';
+
+  @override
   String get feelGoodDeleteTooltip => 'Delete photo';
 
   @override

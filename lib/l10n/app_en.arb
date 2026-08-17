@@ -1847,6 +1847,8 @@
   "feelGoodDeleteTitle": "Delete this photo?",
   "feelGoodDeleteMessage": "This removes the photo from Feel Good.",
   "feelGoodBackTooltip": "Back to photos",
+  "feelGoodRotateTooltip": "Rotate photo",
+  "feelGoodDownloadTooltip": "Download photo",
   "feelGoodDeleteTooltip": "Delete photo",
   "confirmDeletePlanAnswerTitle": "Delete this answer?",
   "confirmDeletePlanAnswerMessage": "This removes the answer from your personal plan.",

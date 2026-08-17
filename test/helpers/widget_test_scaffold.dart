@@ -244,17 +244,20 @@ class NoopImagePickerService implements ImagePickerService {
     }
   }
 
+  List<String> seededImagePaths = [];
+
   @override
-  Future<void> loadImagePaths(List<String> imagePaths) async {}
+  Future<void> loadImagePaths(List<String> imagePaths) async {
+    imagePaths.addAll(seededImagePaths);
+  }
 
   @override
   displayImage(String path, {BoxFit fit = BoxFit.none}) {
-    return Image.memory(
-      Uint8List(0),
-      fit: fit,
-      errorBuilder: (_, _, _) {
-        return SizedBox.shrink(key: Key('test-image-$path'));
-      },
+    return Container(
+      width: 100,
+      height: 100,
+      color: Colors.blue,
+      key: Key('test-image-$path'),
     );
   }
 
@@ -264,6 +267,41 @@ class NoopImagePickerService implements ImagePickerService {
 
   @override
   Future<void> deleteImages() async {}
+
+  int downloadImageCalls = 0;
+  String? downloadImageResult = 'test-downloaded-path';
+  String? lastDownloadImagePath;
+  String? lastDownloadFileName;
+  String? lastDownloadDialogTitle;
+
+  @override
+  Future<String?> downloadImage(
+    String imagePath, {
+    String? fileName,
+    String? dialogTitle,
+  }) async {
+    downloadImageCalls++;
+    lastDownloadImagePath = imagePath;
+    lastDownloadFileName = fileName;
+    lastDownloadDialogTitle = dialogTitle;
+    return downloadImageResult;
+  }
+
+  Map<String, int> seededRotations = {};
+  int saveImageRotationsCalls = 0;
+  Map<String, int>? lastSavedRotations;
+
+  @override
+  Future<Map<String, int>> loadImageRotations() async {
+    return Map<String, int>.from(seededRotations);
+  }
+
+  @override
+  Future<void> saveImageRotations(Map<String, int> imageRotations) async {
+    saveImageRotationsCalls++;
+    lastSavedRotations = Map<String, int>.from(imageRotations);
+    seededRotations = Map<String, int>.from(imageRotations);
+  }
 }
 
 /// Simple [LocaleService] that returns the locale provided at construction.

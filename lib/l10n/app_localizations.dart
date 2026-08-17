@@ -2596,6 +2596,18 @@ abstract class AppLocalizations {
   /// **'Back to photos'**
   String get feelGoodBackTooltip;
 
+  /// No description provided for @feelGoodRotateTooltip.
+  ///
+  /// In en, this message translates to:
+  /// **'Rotate photo'**
+  String get feelGoodRotateTooltip;
+
+  /// No description provided for @feelGoodDownloadTooltip.
+  ///
+  /// In en, this message translates to:
+  /// **'Download photo'**
+  String get feelGoodDownloadTooltip;
+
   /// No description provided for @feelGoodDeleteTooltip.
   ///
   /// In en, this message translates to:

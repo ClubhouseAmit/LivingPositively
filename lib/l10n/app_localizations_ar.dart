@@ -3374,6 +3374,12 @@ class AppLocalizationsAr extends AppLocalizations {
   String get feelGoodBackTooltip => 'العودة إلى الصور';
 
   @override
+  String get feelGoodRotateTooltip => 'تدوير الصورة';
+
+  @override
+  String get feelGoodDownloadTooltip => 'تنزيل الصورة';
+
+  @override
   String get feelGoodDeleteTooltip => 'حذف الصورة';
 
   @override

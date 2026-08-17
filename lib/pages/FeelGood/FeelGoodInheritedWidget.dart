@@ -1,23 +1,28 @@
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 
-// InheritedWidget to manage video state
 class FeelGoodInheritedWidget extends InheritedWidget {
   final List<String> imagePaths;
   final Function(String source) getImage;
-  final Function(String path, {BoxFit fit}) displayImage;
+  final Widget Function(String path, {BoxFit fit}) displayImage;
   final Function(int index) deleteImage;
-  // Method to change video
+  final Function(int index) rotateImage;
+  final int Function(String path) getImageRotation;
+  final Map<String, int> imageRotations;
 
   const FeelGoodInheritedWidget({
     super.key,
     required this.imagePaths,
     required this.getImage,
     required this.deleteImage,
+    required this.rotateImage,
+    required this.getImageRotation,
+    required this.imageRotations,
     required super.child,
     required this.displayImage,
   });
 
-  // Convenience method to access the nearest instance of VideoPlayerInheritedWidget
+  // Convenience method to access the nearest instance of FeelGoodInheritedWidget
   static FeelGoodInheritedWidget? of(BuildContext context) {
     return context
         .dependOnInheritedWidgetOfExactType<FeelGoodInheritedWidget>();
@@ -25,15 +30,7 @@ class FeelGoodInheritedWidget extends InheritedWidget {
 
   @override
   bool updateShouldNotify(FeelGoodInheritedWidget oldWidget) {
-    if (imagePaths.length != oldWidget.imagePaths.length) {
-      return true;
-    }
-    for (int i = 0; i < imagePaths.length; i++) {
-      if (imagePaths[i] != oldWidget.imagePaths[i]) {
-        return true;
-      }
-    }
-
-    return false; // Notify children when videoId changes
+    return !listEquals(imagePaths, oldWidget.imagePaths) ||
+        !mapEquals(imageRotations, oldWidget.imageRotations);
   }
 }

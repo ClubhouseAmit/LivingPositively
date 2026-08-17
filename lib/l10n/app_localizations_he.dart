@@ -3365,6 +3365,12 @@ class AppLocalizationsHe extends AppLocalizations {
   String get feelGoodBackTooltip => 'חזרה לתמונות';
 
   @override
+  String get feelGoodRotateTooltip => 'סיבוב תמונה';
+
+  @override
+  String get feelGoodDownloadTooltip => 'הורדת תמונה';
+
+  @override
   String get feelGoodDeleteTooltip => 'מחיקת תמונה';
 
   @override
