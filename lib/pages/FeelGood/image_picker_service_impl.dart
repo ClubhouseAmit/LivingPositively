@@ -46,6 +46,9 @@ abstract class ImagePickerService {
 
 class ImagePickerServiceImpl implements ImagePickerService {
   final ImagePicker _picker;
+  final AnalyticsService? analyticsService;
+  final IncidentLoggerService? loggerService;
+  final PersistentMemoryService? persistentMemoryService;
   final Future<String?> Function({
     String? dialogTitle,
     String? fileName,
@@ -53,10 +56,13 @@ class ImagePickerServiceImpl implements ImagePickerService {
     String? initialDirectory,
     Uint8List? bytes,
     List<String>? allowedExtensions,
-  })? _customFileSaver;
+  })? customFileSaver;
 
   ImagePickerServiceImpl({
     ImagePicker? picker,
+    this.analyticsService,
+    this.loggerService,
+    this.persistentMemoryService,
     Future<String?> Function({
       String? dialogTitle,
       String? fileName,
@@ -66,7 +72,25 @@ class ImagePickerServiceImpl implements ImagePickerService {
       List<String>? allowedExtensions,
     })? fileSaver,
   })  : _picker = picker ?? ImagePicker(),
-        _customFileSaver = fileSaver;
+        customFileSaver = fileSaver;
+
+  AnalyticsService? get _effectiveAnalyticsService =>
+      analyticsService ??
+      (GetIt.instance.isRegistered<AnalyticsService>()
+          ? GetIt.instance<AnalyticsService>()
+          : null);
+
+  IncidentLoggerService? get _effectiveLoggerService =>
+      loggerService ??
+      (GetIt.instance.isRegistered<IncidentLoggerService>()
+          ? GetIt.instance<IncidentLoggerService>()
+          : null);
+
+  PersistentMemoryService? get _effectiveMemoryService =>
+      persistentMemoryService ??
+      (GetIt.instance.isRegistered<PersistentMemoryService>()
+          ? GetIt.instance<PersistentMemoryService>()
+          : null);
 
   @override
   Future<XFile?> pickImage({required ImageSource source}) {
@@ -112,21 +136,28 @@ class ImagePickerServiceImpl implements ImagePickerService {
         final dotIndex = pickedFile.path.lastIndexOf('.');
         final extension =
             dotIndex != -1 ? pickedFile.path.substring(dotIndex) : '';
-        final fileName =
-            '${DateTime.now().millisecondsSinceEpoch}$extension';
+        int counter = 0;
+        final timestamp = DateTime.now().millisecondsSinceEpoch;
+        String candidateName = '$timestamp$extension';
+        var targetFile = File('${appDir.path}/$candidateName');
+        while (await targetFile.exists()) {
+          counter++;
+          candidateName = '${timestamp}_$counter$extension';
+          targetFile = File('${appDir.path}/$candidateName');
+        }
         final savedImage = await File(
           pickedFile.path,
-        ).copy('${appDir.path}/$fileName');
+        ).copy(targetFile.path);
         imagePaths.add(savedImage.path);
-        saveImagePaths(imagePaths);
-        AnalyticsService mixPanelService = GetIt.instance<AnalyticsService>();
-        mixPanelService.trackEvent("Photo Added", {"Source": source});
+        await saveImagePaths(imagePaths);
+        await _effectiveAnalyticsService?.trackEvent(
+          "Photo Added",
+          {"Source": source},
+        );
       }
     } catch (error, stackTrace) {
       debugPrint("errored");
-      IncidentLoggerService loggerService =
-          GetIt.instance<IncidentLoggerService>();
-      await loggerService.captureLog(error, stackTrace: stackTrace);
+      await _effectiveLoggerService?.captureLog(error, stackTrace: stackTrace);
     }
   }
 
@@ -155,9 +186,7 @@ class ImagePickerServiceImpl implements ImagePickerService {
         contents.split('\n').where((path) => path.isNotEmpty).toList(),
       );
     } catch (error, stackTrace) {
-      IncidentLoggerService loggerService =
-          GetIt.instance<IncidentLoggerService>();
-      await loggerService.captureLog(error, stackTrace: stackTrace);
+      await _effectiveLoggerService?.captureLog(error, stackTrace: stackTrace);
       // A manifest that exists but cannot be read (corruption, permission,
       // decode failure) is a genuine failure. Phase E (ADR-005 §Decision
       // step 5): rethrow so the caller's error UI surfaces it with a retry,
@@ -205,28 +234,18 @@ class ImagePickerServiceImpl implements ImagePickerService {
       }
       final name = fileName ??
           'feel_good_${DateTime.now().millisecondsSinceEpoch}$extension';
-      final result = _customFileSaver != null
-          ? await _customFileSaver(
-              dialogTitle: dialogTitle ?? 'Save image',
-              fileName: name,
-              bytes: bytes,
-            )
-          : await FilePicker.saveFile(
-              dialogTitle: dialogTitle ?? 'Save image',
-              fileName: name,
-              bytes: bytes,
-            );
+      final saveFile = customFileSaver ?? FilePicker.saveFile;
+      final result = await saveFile(
+        dialogTitle: dialogTitle ?? 'Save image',
+        fileName: name,
+        bytes: bytes,
+      );
       if (result != null) {
-        AnalyticsService mixPanelService = GetIt.instance<AnalyticsService>();
-        mixPanelService.trackEvent("Photo downloaded");
+        await _effectiveAnalyticsService?.trackEvent("Photo downloaded");
       }
       return result;
     } catch (error, stackTrace) {
-      if (GetIt.instance.isRegistered<IncidentLoggerService>()) {
-        IncidentLoggerService loggerService =
-            GetIt.instance<IncidentLoggerService>();
-        await loggerService.captureLog(error, stackTrace: stackTrace);
-      }
+      await _effectiveLoggerService?.captureLog(error, stackTrace: stackTrace);
       return null;
     }
   }
@@ -235,21 +254,23 @@ class ImagePickerServiceImpl implements ImagePickerService {
   Future<Map<String, int>> loadImageRotations() async {
     final rotations = <String, int>{};
     try {
-      if (GetIt.instance.isRegistered<PersistentMemoryService>()) {
-        final service = GetIt.instance<PersistentMemoryService>();
-        final list = await service.getItem(
+      final service = _effectiveMemoryService;
+      if (service != null) {
+        final serializedRotationEntries = await service.getItem(
           'feelGoodImageRotations',
           PersistentMemoryType.StringList,
         );
-        if (list is List<dynamic>) {
-          for (final item in list) {
-            if (item is String) {
-              final parts = item.split(':');
+        if (serializedRotationEntries is List<dynamic>) {
+          for (final serializedRotationEntry in serializedRotationEntries) {
+            if (serializedRotationEntry is String) {
+              final parts = serializedRotationEntry.split(':');
               if (parts.length >= 2) {
-                final rot = int.tryParse(parts.last);
+                final rotationQuarterTurns = int.tryParse(parts.last);
                 final path = parts.sublist(0, parts.length - 1).join(':');
-                if (rot != null) {
-                  rotations[path] = rot;
+                if (rotationQuarterTurns != null) {
+                  final normalizedQuarterTurns =
+                      ((rotationQuarterTurns % 4) + 4) % 4;
+                  rotations[path] = normalizedQuarterTurns;
                 }
               }
             }
@@ -257,11 +278,7 @@ class ImagePickerServiceImpl implements ImagePickerService {
         }
       }
     } catch (error, stackTrace) {
-      if (GetIt.instance.isRegistered<IncidentLoggerService>()) {
-        IncidentLoggerService loggerService =
-            GetIt.instance<IncidentLoggerService>();
-        await loggerService.captureLog(error, stackTrace: stackTrace);
-      }
+      await _effectiveLoggerService?.captureLog(error, stackTrace: stackTrace);
     }
     return rotations;
   }
@@ -269,23 +286,19 @@ class ImagePickerServiceImpl implements ImagePickerService {
   @override
   Future<void> saveImageRotations(Map<String, int> imageRotations) async {
     try {
-      if (GetIt.instance.isRegistered<PersistentMemoryService>()) {
-        final service = GetIt.instance<PersistentMemoryService>();
-        final list = imageRotations.entries
-            .map((e) => '${e.key}:${e.value}')
+      final service = _effectiveMemoryService;
+      if (service != null) {
+        final serializedRotationEntries = imageRotations.entries
+            .map((e) => '${e.key}:${((e.value % 4) + 4) % 4}')
             .toList();
         await service.setItem(
           'feelGoodImageRotations',
           PersistentMemoryType.StringList,
-          list,
+          serializedRotationEntries,
         );
       }
     } catch (error, stackTrace) {
-      if (GetIt.instance.isRegistered<IncidentLoggerService>()) {
-        IncidentLoggerService loggerService =
-            GetIt.instance<IncidentLoggerService>();
-        await loggerService.captureLog(error, stackTrace: stackTrace);
-      }
+      await _effectiveLoggerService?.captureLog(error, stackTrace: stackTrace);
       rethrow;
     }
   }

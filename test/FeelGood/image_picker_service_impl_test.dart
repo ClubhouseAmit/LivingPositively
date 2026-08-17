@@ -205,37 +205,66 @@ void main() {
     expect(result, '${tempDir.path}/saved_$capturedFileName');
   });
 
-  test('saveImageRotations persists map to memory service and loadImageRotations reads it back', () async {
+  test('saveImageRotations verifies contract and persists serialized list', () async {
     final memory = _FakePersistentMemory();
-    final getIt = GetIt.instance;
-    if (getIt.isRegistered<PersistentMemoryService>()) {
-      getIt.unregister<PersistentMemoryService>();
-    }
-    getIt.registerSingleton<PersistentMemoryService>(memory);
-
-    final svc = ImagePickerServiceImpl();
+    final svc = ImagePickerServiceImpl(
+      persistentMemoryService: memory,
+      loggerService: logger,
+    );
     await svc.saveImageRotations({'/path/1.jpg': 1, '/path/2.png': 3});
 
+    expect(memory.lastSetKey, 'feelGoodImageRotations');
+    expect(memory.lastSetType, PersistentMemoryType.StringList);
+    expect(memory.lastSetValue, containsAll(['/path/1.jpg:1', '/path/2.png:3']));
+  });
+
+  test('loadImageRotations normalizes out-of-range legacy entries', () async {
+    final memory = _FakePersistentMemory();
+    await memory.setItem(
+      'feelGoodImageRotations',
+      PersistentMemoryType.StringList,
+      ['/path/legacy.jpg:7', '/path/normal.png:2'],
+    );
+
+    final svc = ImagePickerServiceImpl(
+      persistentMemoryService: memory,
+      loggerService: logger,
+    );
     final loaded = await svc.loadImageRotations();
-    expect(loaded, {'/path/1.jpg': 1, '/path/2.png': 3});
+    expect(loaded['/path/legacy.jpg'], 3); // 7 % 4 = 3
+    expect(loaded['/path/normal.png'], 2);
   });
 
   test('loadImageRotations returns empty map when nothing is saved', () async {
     final memory = _FakePersistentMemory();
-    final getIt = GetIt.instance;
-    if (getIt.isRegistered<PersistentMemoryService>()) {
-      getIt.unregister<PersistentMemoryService>();
-    }
-    getIt.registerSingleton<PersistentMemoryService>(memory);
-
-    final svc = ImagePickerServiceImpl();
+    final svc = ImagePickerServiceImpl(
+      persistentMemoryService: memory,
+      loggerService: logger,
+    );
     final loaded = await svc.loadImageRotations();
     expect(loaded, isEmpty);
+  });
+
+  test('ImagePickerServiceImpl works with injected analytics, logger, and memory without GetIt', () async {
+    final memory = _FakePersistentMemory();
+    final noopAnalytics = _NoopAnalytics();
+    final svc = ImagePickerServiceImpl(
+      persistentMemoryService: memory,
+      analyticsService: noopAnalytics,
+      loggerService: logger,
+    );
+
+    await svc.saveImageRotations({'/path/test.jpg': 2});
+    final loaded = await svc.loadImageRotations();
+    expect(loaded, {'/path/test.jpg': 2});
   });
 }
 
 class _FakePersistentMemory implements PersistentMemoryService {
   final Map<String, dynamic> _storage = {};
+  String? lastSetKey;
+  PersistentMemoryType? lastSetType;
+  dynamic lastSetValue;
 
   @override
   Future<dynamic> getItem(String key, PersistentMemoryType type) async {
@@ -248,6 +277,9 @@ class _FakePersistentMemory implements PersistentMemoryService {
     PersistentMemoryType type,
     dynamic value,
   ) async {
+    lastSetKey = key;
+    lastSetType = type;
+    lastSetValue = value;
     _storage[key] = value;
   }
 

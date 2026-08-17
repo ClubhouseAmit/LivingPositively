@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:get_it/get_it.dart';
 import 'package:mazilon/AnalyticsService.dart';
+import 'package:mazilon/util/logger_service.dart';
 
 import 'package:mazilon/pages/FeelGood/FeelGoodInheritedWidget.dart';
 import 'package:mazilon/pages/FeelGood/add_Image_item.dart';
@@ -85,14 +86,20 @@ class _FeelGoodPageState extends LPExtendedState<FeelGood> {
         setState(() {});
       },
       deleteImage: (int index) {
-        setState(() {
-          if (index >= 0 && index < imagePaths.length) {
-            final path = imagePaths[index];
-            imageRotations.remove(path);
-          }
+        if (index < 0 || index >= imagePaths.length) return;
+        final path = imagePaths[index];
+        try {
           pickerService.deleteImage(index, imagePaths);
-        });
-        pickerService.saveImageRotations(imageRotations);
+          setState(() {
+            imageRotations.remove(path);
+          });
+          pickerService.saveImageRotations(imageRotations);
+        } catch (error, stackTrace) {
+          if (GetIt.instance.isRegistered<IncidentLoggerService>()) {
+            GetIt.instance<IncidentLoggerService>()
+                .captureLog(error, stackTrace: stackTrace);
+          }
+        }
       },
       rotateImage: _rotateImage,
       getImageRotation: _getImageRotation,
