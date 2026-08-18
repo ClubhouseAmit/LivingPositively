@@ -234,7 +234,7 @@ void main() {
       ]);
     });
 
-    test('should preserve the supplied localized title', () async {
+    test('should omit Dreams data when legacy metadata has six sections', () async {
       final svc = FileServiceImpl();
       final result = await svc.organizeDataForFile(
         ['t1', 't2', 't3', 't4', 't5', 't6'],
@@ -243,6 +243,15 @@ void main() {
         mainTitle: 'My Personal Plan',
       );
       expect(result['mainTitle'], 'My Personal Plan');
+      expect(result['titles'], ['t1', 't2', 't4', 't5', 't6']);
+      expect(result['subTitles'], ['s1', 's2', 's4', 's5', 's6']);
+      expect(result['realData'], [
+        ['dist1'],
+        ['ev1', 'ev2'],
+        ['safer1'],
+        ['Mom:111', 'Dad:222'],
+        ['safe1'],
+      ]);
     });
   });
 

@@ -228,6 +228,13 @@ void main() {
           ['My shared dream'],
         ),
       ).called(1);
+      verify(
+        mockPersistentMemoryService.setItem(
+          'selectionSourcesPersonalPlan-DreamsAndGoals',
+          PersistentMemoryType.StringList,
+          ['custom'],
+        ),
+      ).called(1);
       verifyNever(
         mockPersistentMemoryService.setItem(
           'customCategoryTitles',

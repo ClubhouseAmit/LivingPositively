@@ -26,6 +26,8 @@ const _dreamsAndGoalsSelectionKey =
     'userSelectionPersonalPlan-DreamsAndGoals';
 const _dreamsAndGoalsAddedStringsKey =
     'addedStringsPersonalPlan-DreamsAndGoals';
+const _dreamsAndGoalsSelectionSourcesKey =
+    'selectionSourcesPersonalPlan-DreamsAndGoals';
 
 class _DelayedDreamsMemoryService extends FakePersistentMemoryService {
   final Completer<void> _firstSelectionWrite = Completer<void>();
@@ -73,6 +75,21 @@ class _ExportReadingFileService extends NoopFileService {
     dreamsAtDownload = List<String>.from(storedDreams as Iterable);
     return 'downloaded-plan.pdf';
   }
+}
+
+Future<void> _openDreamsAndGoalsAndAddOwnGoal(WidgetTester tester) async {
+  final dreamsToggle = find.byKey(const Key('share-dreams-and-goals-toggle'));
+  await tester.ensureVisible(dreamsToggle);
+  await tester.tap(dreamsToggle);
+  await tester.pumpAndSettle();
+
+  final addOwn = find.text('Add my own personal dream or goal...');
+  await tester.ensureVisible(addOwn);
+  await tester.tap(addOwn);
+  await tester.pumpAndSettle();
+  await tester.enterText(find.byType(TextFormField), 'Immediate dream');
+  await tester.tap(find.text('Save'));
+  await tester.pumpAndSettle();
 }
 
 void main() {
@@ -145,9 +162,57 @@ void main() {
     expect(services.files.downloadCalls, 1);
   });
 
-  testWidgets(
-    'immediate download persists a just-selected dream before exporting',
-    (tester) async {
+  group('ShareForm', () {
+    testWidgets('should persist a just-selected dream before exporting', (
+      tester,
+    ) async {
+      final delayedMemory = _DelayedDreamsMemoryService();
+      final exportFiles = _ExportReadingFileService(delayedMemory);
+      final locator = GetIt.instance;
+      locator.unregister<PersistentMemoryService>();
+      locator.unregister<FileService>();
+      locator.registerSingleton<PersistentMemoryService>(delayedMemory);
+      locator.registerSingleton<FileService>(exportFiles);
+      addTearDown(delayedMemory.releaseFirstSelectionWrite);
+
+      await pumpWithProviders(
+        tester,
+        wizardStepHarness(
+          ShareForm(
+            key: GlobalKey<WizardStepState>(),
+            prev: () {},
+            submit: (_) {},
+          ),
+        ),
+        userInformation: user,
+        surfaceSize: const Size(1024, 1800),
+      );
+
+      await _openDreamsAndGoalsAndAddOwnGoal(tester);
+      expect(user.dreamsAndGoals, ['Immediate dream']);
+      expect(delayedMemory.firstSelectionWriteStarted, isTrue);
+
+      final downloadIcon = find.byIcon(Icons.download);
+      await tester.ensureVisible(downloadIcon);
+      await tester.tap(downloadIcon);
+      await tester.pumpAndSettle();
+
+      expect(exportFiles.dreamsAtDownload, ['Immediate dream']);
+      expect(
+        delayedMemory.store[_dreamsAndGoalsAddedStringsKey],
+        ['Immediate dream'],
+      );
+      expect(
+        delayedMemory.store[_dreamsAndGoalsSelectionSourcesKey],
+        ['custom'],
+      );
+
+      delayedMemory.releaseFirstSelectionWrite();
+    });
+
+    testWidgets('should persist a just-selected dream before finishing', (
+      tester,
+    ) async {
       final delayedMemory = _DelayedDreamsMemoryService();
       final exportFiles = _ExportReadingFileService(delayedMemory);
       List<String>? dreamsAtSubmit;
@@ -175,37 +240,12 @@ void main() {
         surfaceSize: const Size(1024, 1800),
       );
 
-      final dreamsToggle = find.byKey(
-        const Key('share-dreams-and-goals-toggle'),
-      );
-      await tester.ensureVisible(dreamsToggle);
-      await tester.tap(dreamsToggle);
-      await tester.pumpAndSettle();
-
-      final addOwn = find.text('Add my own personal dream or goal...');
-      await tester.ensureVisible(addOwn);
-      await tester.tap(addOwn);
-      await tester.pumpAndSettle();
-      await tester.enterText(find.byType(TextFormField), 'Immediate dream');
-      await tester.tap(find.text('Save'));
-      await tester.pumpAndSettle();
-
-      expect(user.dreamsAndGoals, ['Immediate dream']);
+      await _openDreamsAndGoalsAndAddOwnGoal(tester);
       expect(delayedMemory.firstSelectionWriteStarted, isTrue);
-
-      final downloadIcon = find.byIcon(Icons.download);
-      await tester.ensureVisible(downloadIcon);
-      await tester.tap(downloadIcon);
-      await tester.pumpAndSettle();
-
-      expect(exportFiles.dreamsAtDownload, ['Immediate dream']);
-      expect(
-        delayedMemory.store[_dreamsAndGoalsAddedStringsKey],
-        ['Immediate dream'],
-      );
 
       delayedMemory.store[_dreamsAndGoalsSelectionKey] = <String>[];
       delayedMemory.store[_dreamsAndGoalsAddedStringsKey] = <String>[];
+      delayedMemory.store[_dreamsAndGoalsSelectionSourcesKey] = <String>[];
 
       final finishButton = find.byKey(const Key('wizard-primary-action'));
       await tester.ensureVisible(finishButton);
@@ -217,10 +257,11 @@ void main() {
         delayedMemory.store[_dreamsAndGoalsAddedStringsKey],
         ['Immediate dream'],
       );
+      expect(delayedMemory.store[_dreamsAndGoalsSelectionSourcesKey], ['custom']);
 
       delayedMemory.releaseFirstSelectionWrite();
-    },
-  );
+    });
+  });
 
   testWidgets('tapping the finish button calls widget.submit with context', (
     tester,

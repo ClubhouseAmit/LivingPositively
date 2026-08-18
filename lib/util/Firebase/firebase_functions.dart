@@ -10,12 +10,14 @@ import 'dart:math';
 import 'package:firebase_auth/firebase_auth.dart';
 
 import 'package:mazilon/util/SignIn/popup_toast.dart';
+import 'package:mazilon/util/Form/retrieveInformation.dart';
 import 'package:mazilon/util/appInformation.dart';
 import 'package:mazilon/util/userInformation.dart';
 import 'dart:convert';
 import 'dart:io';
 import 'package:path_provider/path_provider.dart';
-import 'package:flutter/foundation.dart' show kIsWeb, visibleForTesting;
+import 'package:flutter/foundation.dart'
+    show kIsWeb, listEquals, visibleForTesting;
 
 import 'package:firebase_core/firebase_core.dart';
 
@@ -130,6 +132,14 @@ Future<void> loadUserInformation(
       "userSelectionPersonalPlan-DreamsAndGoals",
       PersistentMemoryType.StringList,
     ),
+    'dreamsAndGoalsSelectionSources': service.getItem(
+      'selectionSourcesPersonalPlan-DreamsAndGoals',
+      PersistentMemoryType.StringList,
+    ),
+    'dreamsAndGoalsAddedStrings': service.getItem(
+      'addedStringsPersonalPlan-DreamsAndGoals',
+      PersistentMemoryType.StringList,
+    ),
     'location': service.getItem("location", PersistentMemoryType.String),
     'disclaimerConfirmed': service.getItem(
       "disclaimerConfirmed",
@@ -197,9 +207,47 @@ Future<void> loadUserInformation(
   userInfo.updateSafeEnvironment(
     (TypeUtils.castToStringList(data['safeEnvironment'])),
   );
-  userInfo.updateDreamsAndGoals(
-    (TypeUtils.castToStringList(data['dreamsAndGoals'])),
+  final dreamsAndGoals = TypeUtils.castToStringList(data['dreamsAndGoals']);
+  final storedDreamsAndGoalsSources = TypeUtils.castToStringList(
+    data['dreamsAndGoalsSelectionSources'],
   );
+  final dreamsAndGoalsSelectionSources =
+      normalizeDreamsAndGoalsSelectionSources(
+        dreamsAndGoals,
+        storedDreamsAndGoalsSources,
+      );
+  final dreamsAndGoalsAddedStrings = dreamsAndGoalsCustomItems(
+    dreamsAndGoals,
+    dreamsAndGoalsSelectionSources,
+  );
+  userInfo.updateDreamsAndGoals(
+    dreamsAndGoals,
+    selectionSources: dreamsAndGoalsSelectionSources,
+  );
+  final storedDreamsAndGoalsAddedStrings = TypeUtils.castToStringList(
+    data['dreamsAndGoalsAddedStrings'],
+  );
+  if (!listEquals(
+        storedDreamsAndGoalsSources,
+        dreamsAndGoalsSelectionSources,
+      ) ||
+      !listEquals(
+        storedDreamsAndGoalsAddedStrings,
+        dreamsAndGoalsAddedStrings,
+      )) {
+    await Future.wait<void>([
+      service.setItem(
+        'selectionSourcesPersonalPlan-DreamsAndGoals',
+        PersistentMemoryType.StringList,
+        dreamsAndGoalsSelectionSources,
+      ),
+      service.setItem(
+        'addedStringsPersonalPlan-DreamsAndGoals',
+        PersistentMemoryType.StringList,
+        dreamsAndGoalsAddedStrings,
+      ),
+    ]);
+  }
   userInfo.updateLocation(data['location'] ?? "");
   userInfo.updateDisclaimerSigned(data['disclaimerConfirmed'] ?? false);
   userInfo.updateNotificationMinute(data['notificationMinute'] ?? 0);

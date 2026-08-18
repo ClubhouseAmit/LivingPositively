@@ -523,73 +523,220 @@ void main() {
     },
   );
 
-  testWidgets(
-    'Dreams and Goals persists selected suggestions with one custom goal and '
-    'lets removal make the custom option available again',
-    (tester) async {
-      final user = UserInformation()..gender = 'other';
-      await _pump(tester, 'PersonalPlan-DreamsAndGoals', user: user);
+  group('FormPageTemplate', () {
+    group('Dreams and Goals', () {
+      testWidgets('should persist catalogue and custom sources separately', (
+        tester,
+      ) async {
+        final user = UserInformation()..gender = 'other';
+        await _pump(tester, 'PersonalPlan-DreamsAndGoals', user: user);
 
-      final choices = find.ancestor(
-        of: find.byType(DottedBorder),
-        matching: find.byType(InkWell),
+        await _addViaDialog(tester, 'My personal dream');
+        await tester.tap(
+          find.byKey(const ValueKey('suggestion-Write and publish a book')),
+        );
+        await tester.tap(
+          find.byKey(const ValueKey('suggestion-Learn a new language')),
+        );
+        await tester.pumpAndSettle();
+
+        const expected = <String>[
+          'My personal dream',
+          'Write and publish a book',
+          'Learn a new language',
+        ];
+        expect(user.dreamsAndGoals, expected);
+        expect(user.dreamsAndGoalsSelectionSources, const <String>[
+          'custom',
+          'catalogue:write-and-publish-a-book',
+          'catalogue:learn-a-new-language',
+        ]);
+        expect(pm.store['userSelectionPersonalPlan-DreamsAndGoals'], expected);
+        expect(pm.store['addedStringsPersonalPlan-DreamsAndGoals'], [
+          'My personal dream',
+        ]);
+        expect(
+          pm.store['selectionSourcesPersonalPlan-DreamsAndGoals'],
+          user.dreamsAndGoalsSelectionSources,
+        );
+        expect(find.text('Add my own personal dream or goal...'), findsNothing);
+      });
+
+      testWidgets('should preserve sources through edit and paired removal', (
+        tester,
+      ) async {
+        final user = UserInformation()
+          ..gender = 'other'
+          ..updateDreamsAndGoals(
+            ['My original dream', 'Write and publish a book'],
+            selectionSources: const <String>[
+              'custom',
+              'catalogue:write-and-publish-a-book',
+            ],
+          );
+        await _pump(tester, 'PersonalPlan-DreamsAndGoals', user: user);
+
+        await tester.tap(find.text('My original dream'));
+        await tester.pumpAndSettle();
+        await tester.enterText(find.byType(TextFormField), 'My edited dream');
+        await tester.tap(find.text('Save'));
+        await tester.pumpAndSettle();
+
+        expect(user.dreamsAndGoalsSelectionSources, const <String>[
+          'custom',
+          'catalogue:write-and-publish-a-book',
+        ]);
+        expect(pm.store['addedStringsPersonalPlan-DreamsAndGoals'], [
+          'My edited dream',
+        ]);
+
+        await tester.tap(find.text('My edited dream'));
+        await tester.pumpAndSettle();
+        await tester.tap(find.text('Delete'));
+        await tester.pumpAndSettle();
+
+        expect(user.dreamsAndGoals, ['Write and publish a book']);
+        expect(user.dreamsAndGoalsSelectionSources, const <String>[
+          'catalogue:write-and-publish-a-book',
+        ]);
+        expect(pm.store['addedStringsPersonalPlan-DreamsAndGoals'], isEmpty);
+        expect(
+          find.text('Add my own personal dream or goal...'),
+          findsOneWidget,
+        );
+      });
+
+      testWidgets('should promote a changed catalogue row to a custom source', (
+        tester,
+      ) async {
+        final user = UserInformation()
+          ..gender = 'other'
+          ..updateDreamsAndGoals(
+            ['Write and publish a book'],
+            selectionSources: const <String>[
+              'catalogue:write-and-publish-a-book',
+            ],
+          );
+        await _pump(tester, 'PersonalPlan-DreamsAndGoals', user: user);
+
+        await tester.tap(find.text('Write and publish a book'));
+        await tester.pumpAndSettle();
+        await tester.enterText(
+          find.byType(TextFormField),
+          'My revised own goal',
+        );
+        await tester.tap(find.text('Save'));
+        await tester.pumpAndSettle();
+
+        expect(user.dreamsAndGoals, ['My revised own goal']);
+        expect(user.dreamsAndGoalsSelectionSources, const <String>['custom']);
+        expect(pm.store['addedStringsPersonalPlan-DreamsAndGoals'], [
+          'My revised own goal',
+        ]);
+
+        await tester.tap(find.text('My revised own goal'));
+        await tester.pumpAndSettle();
+        await tester.enterText(
+          find.byType(TextFormField),
+          'Learn a new language',
+        );
+        await tester.tap(find.text('Save'));
+        await tester.pumpAndSettle();
+
+        expect(user.dreamsAndGoalsSelectionSources, const <String>['custom']);
+        expect(
+          find.byKey(const ValueKey('suggestion-Learn a new language')),
+          findsOneWidget,
+        );
+      });
+
+      testWidgets('should retain a catalogue row when another custom exists', (
+        tester,
+      ) async {
+        final user = UserInformation()
+          ..gender = 'other'
+          ..updateDreamsAndGoals(
+            ['My only custom goal', 'Write and publish a book'],
+            selectionSources: const <String>[
+              'custom',
+              'catalogue:write-and-publish-a-book',
+            ],
+          );
+        await _pump(tester, 'PersonalPlan-DreamsAndGoals', user: user);
+
+        await tester.tap(find.text('Write and publish a book'));
+        await tester.pumpAndSettle();
+        await tester.enterText(
+          find.byType(TextFormField),
+          'A second own goal',
+        );
+        await tester.tap(find.text('Save'));
+        await tester.pumpAndSettle();
+
+        expect(user.dreamsAndGoals, [
+          'My only custom goal',
+          'Write and publish a book',
+        ]);
+        expect(user.dreamsAndGoalsSelectionSources, const <String>[
+          'custom',
+          'catalogue:write-and-publish-a-book',
+        ]);
+      });
+
+      testWidgets(
+        'should keep an exact-catalogue own goal custom and selectable separately',
+        (tester) async {
+          final user = UserInformation()..gender = 'other';
+          await _pump(tester, 'PersonalPlan-DreamsAndGoals', user: user);
+
+          await _addViaDialog(tester, 'Write and publish a book');
+
+          final catalogueSuggestion = find.byKey(
+            const ValueKey('suggestion-Write and publish a book'),
+          );
+          expect(catalogueSuggestion, findsOneWidget);
+          await tester.tap(catalogueSuggestion);
+          await tester.pumpAndSettle();
+
+          expect(user.dreamsAndGoals, const <String>[
+            'Write and publish a book',
+            'Write and publish a book',
+          ]);
+          expect(user.dreamsAndGoalsSelectionSources, const <String>[
+            'custom',
+            'catalogue:write-and-publish-a-book',
+          ]);
+          expect(pm.store['addedStringsPersonalPlan-DreamsAndGoals'], const [
+            'Write and publish a book',
+          ]);
+        },
       );
-      expect(choices, findsNWidgets(3));
 
-      await _addViaDialog(tester, 'My personal dream');
-      await tester.tap(find.text('Write and publish a book'));
-      await tester.tap(find.text('Learn a new language'));
-      await tester.pumpAndSettle();
+      testWidgets('should hide a Hebrew catalogue selection in English', (
+        tester,
+      ) async {
+        const hebrewSuggestion = 'לכתוב ולהוציא לאור ספר';
+        final user = UserInformation()
+          ..gender = 'other'
+          ..updateDreamsAndGoals(
+            [hebrewSuggestion],
+            selectionSources: const <String>[
+              'catalogue:write-and-publish-a-book',
+            ],
+          );
+        await _pump(tester, 'PersonalPlan-DreamsAndGoals', user: user);
 
-      const expected = [
-        'My personal dream',
-        'Write and publish a book',
-        'Learn a new language',
-      ];
-      expect(user.dreamsAndGoals, expected);
-      expect(pm.store['userSelectionPersonalPlan-DreamsAndGoals'], expected);
-      expect(pm.store['addedStringsPersonalPlan-DreamsAndGoals'], expected);
-      expect(find.text('Add my own personal dream or goal...'), findsNothing);
-
-      await tester.tap(find.text('My personal dream'));
-      await tester.pumpAndSettle();
-      await tester.tap(find.text('Delete'));
-      await tester.pumpAndSettle();
-
-      expect(user.dreamsAndGoals, [
-        'Write and publish a book',
-        'Learn a new language',
-      ]);
-      expect(
-        find.text('Add my own personal dream or goal...'),
-        findsOneWidget,
-      );
-    },
-  );
-
-  testWidgets(
-    'Hebrew Dreams suggestion remains predefined after switching to English',
-    (tester) async {
-      const hebrewSuggestion = 'לכתוב ולהוציא לאור ספר';
-      final user = UserInformation()
-        ..gender = 'other'
-        ..dreamsAndGoals = [hebrewSuggestion];
-      await _pump(tester, 'PersonalPlan-DreamsAndGoals', user: user);
-
-      expect(
-        find.text('Add my own personal dream or goal...'),
-        findsOneWidget,
-      );
-
-      await _addViaDialog(tester, 'My English custom dream');
-
-      expect(user.dreamsAndGoals, [hebrewSuggestion, 'My English custom dream']);
-      expect(
-        find.text('Add my own personal dream or goal...'),
-        findsNothing,
-      );
-    },
-  );
+        expect(
+          find.byKey(const ValueKey('suggestion-Write and publish a book')),
+          findsNothing,
+        );
+        expect(
+          find.text('Add my own personal dream or goal...'),
+          findsOneWidget,
+        );
+      });
+    });
+  });
 
   testWidgets('swiping a FormAnswer row calls removeItem', (tester) async {
     final user = UserInformation()..gender = 'other';

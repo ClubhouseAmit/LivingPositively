@@ -1,4 +1,137 @@
 import 'package:mazilon/util/gender.dart';
+import 'package:mazilon/l10n/app_localizations_ar.dart';
+import 'package:mazilon/l10n/app_localizations_en.dart';
+import 'package:mazilon/l10n/app_localizations_he.dart';
+
+const String dreamsAndGoalsCustomSelectionSource = 'custom';
+const String _dreamsAndGoalsCatalogueSelectionSourcePrefix = 'catalogue:';
+
+/// Immutable ids for the ordered Dreams and Goals catalogue.
+///
+/// The localized labels may change, but the ids retain the selection identity
+/// used by the Personal Plan form and its local persistence.
+const List<String> dreamsAndGoalsCatalogueIds = <String>[
+  'write-and-publish-a-book',
+  'learn-a-new-language',
+  'fly-in-a-hot-air-balloon',
+  'run-a-marathon-or-half-marathon',
+  'run-five-kilometers',
+  'start-my-own-business',
+  'learn-to-play-a-musical-instrument',
+  'volunteer-regularly',
+  'travel-to-my-dream-destination',
+  'complete-a-degree-or-certificate',
+  'forgive-someone-who-hurt-me',
+  'buy-my-own-home',
+  'give-a-talk-to-an-audience',
+  'go-skydiving',
+  'learn-to-surf',
+  'adopt-a-pet',
+  'start-a-podcast-or-blog',
+  'plant-and-tend-my-own-garden',
+  'get-a-motorcycle-or-boat-license',
+  'get-a-drivers-license',
+  'overcome-my-greatest-fear',
+  'see-the-northern-lights',
+  'start-or-grow-a-family',
+  'develop-an-invention-or-app',
+  'attend-a-vipassana-workshop-or-silent-retreat',
+  'write-a-song-or-musical-piece',
+  'organize-a-large-gathering',
+  'learn-to-cook-a-gourmet-meal',
+  'achieve-financial-independence',
+  'exhibit-my-work',
+  'donate-a-meaningful-amount',
+  'get-angry-less-often',
+  'find-a-romantic-relationship',
+  'earn-more-money',
+];
+
+const List<String> _dreamsAndGoalsCatalogueGenders = <String>[
+  'male',
+  'female',
+  'other',
+];
+
+String dreamsAndGoalsCatalogueSelectionSourceForIndex(int index) {
+  return '$_dreamsAndGoalsCatalogueSelectionSourcePrefix'
+      '${dreamsAndGoalsCatalogueIds[index]}';
+}
+
+bool isDreamsAndGoalsCatalogueSelectionSource(String source) {
+  if (!source.startsWith(_dreamsAndGoalsCatalogueSelectionSourcePrefix)) {
+    return false;
+  }
+  final id = source.substring(
+    _dreamsAndGoalsCatalogueSelectionSourcePrefix.length,
+  );
+  return dreamsAndGoalsCatalogueIds.contains(id);
+}
+
+/// Returns the stable source token for a known localized catalogue label.
+///
+/// This is deliberately exact: a legacy own goal that happens to equal a
+/// catalogue label cannot be distinguished after the fact and migrates as the
+/// corresponding catalogue selection. New selections always retain their
+/// explicit source token instead of relying on this lookup.
+String? dreamsAndGoalsSelectionSourceForLocalizedText(String text) {
+  final localizations = <dynamic>[
+    AppLocalizationsEn(),
+    AppLocalizationsHe(),
+    AppLocalizationsAr(),
+  ];
+
+  for (final localization in localizations) {
+    for (final gender in _dreamsAndGoalsCatalogueGenders) {
+      final index = retrieveDreamsAndGoalsList(
+        localization,
+        gender,
+      ).indexOf(text);
+      if (index >= 0) {
+        return dreamsAndGoalsCatalogueSelectionSourceForIndex(index);
+      }
+    }
+  }
+  return null;
+}
+
+/// Restores one source token per saved Dreams and Goals row.
+///
+/// Valid stored tokens remain authoritative so an explicitly custom value
+/// equal to a catalogue label stays custom. Missing, malformed, or legacy
+/// source entries are reconstructed from all supported localized catalogues.
+List<String> normalizeDreamsAndGoalsSelectionSources(
+  List<String> selectedItems,
+  List<String> storedSources,
+) {
+  return List<String>.generate(selectedItems.length, (index) {
+    if (index < storedSources.length) {
+      final source = storedSources[index];
+      if (source == dreamsAndGoalsCustomSelectionSource ||
+          isDreamsAndGoalsCatalogueSelectionSource(source)) {
+        return source;
+      }
+    }
+    return dreamsAndGoalsSelectionSourceForLocalizedText(
+          selectedItems[index],
+        ) ??
+        dreamsAndGoalsCustomSelectionSource;
+  });
+}
+
+List<String> dreamsAndGoalsCustomItems(
+  List<String> selectedItems,
+  List<String> selectionSources,
+) {
+  final sources = normalizeDreamsAndGoalsSelectionSources(
+    selectedItems,
+    selectionSources,
+  );
+  return <String>[
+    for (final (index, item) in selectedItems.indexed)
+      if (sources[index] == dreamsAndGoalsCustomSelectionSource) item,
+  ];
+}
 
 //this function is used in the form pages to get the correct information for each page
 Map<String, dynamic> retrieveInformation(name, gender, textLocalization) {

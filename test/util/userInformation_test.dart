@@ -59,6 +59,7 @@ void main() {
       expect(u.distractions, isEmpty);
       expect(u.safeEnvironment, isEmpty);
       expect(u.dreamsAndGoals, isEmpty);
+      expect(u.dreamsAndGoalsSelectionSources, isEmpty);
       expect(u.positiveTraits, isEmpty);
       expect(u.thanks, isEmpty);
     });
@@ -86,6 +87,7 @@ void main() {
         distractions: const ['d'],
         safeEnvironment: const ['e'],
         dreamsAndGoals: const ['f'],
+        dreamsAndGoalsSelectionSources: const ['custom'],
         positiveTraits: const ['kind'],
         disclaimerSigned: true,
         loggedIn: true,
@@ -123,6 +125,7 @@ void main() {
       expect(u.distractions, isEmpty);
       expect(u.safeEnvironment, isEmpty);
       expect(u.dreamsAndGoals, isEmpty);
+      expect(u.dreamsAndGoalsSelectionSources, isEmpty);
       expect(u.thanks, isEmpty);
       expect(u.positiveTraits, isEmpty);
       expect(notified, 1);
@@ -252,10 +255,16 @@ void main() {
       expect(u.safeEnvironment, ['store medications safely']);
     });
 
-    test('updateDreamsAndGoals', () {
+    test('updateDreamsAndGoals keeps positional selection sources', () {
       final u = buildUser();
-      u.updateDreamsAndGoals(['Write and publish a book']);
+      u.updateDreamsAndGoals(
+        ['Write and publish a book'],
+        selectionSources: ['catalogue:write-and-publish-a-book'],
+      );
       expect(u.dreamsAndGoals, ['Write and publish a book']);
+      expect(u.dreamsAndGoalsSelectionSources, [
+        'catalogue:write-and-publish-a-book',
+      ]);
     });
 
     test('updateDisclaimerSigned', () {

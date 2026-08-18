@@ -21,6 +21,7 @@ class UserInformation with ChangeNotifier {
   List<String> distractions;
   List<String> safeEnvironment;
   List<String> dreamsAndGoals;
+  List<String> dreamsAndGoalsSelectionSources;
   bool loggedIn;
   String userId;
   int notificationMinute;
@@ -57,6 +58,7 @@ class UserInformation with ChangeNotifier {
     this.distractions = const [],
     this.safeEnvironment = const [],
     this.dreamsAndGoals = const [],
+    this.dreamsAndGoalsSelectionSources = const [],
     this.disclaimerSigned = false,
     this.loggedIn = false,
     this.userId = '',
@@ -84,6 +86,7 @@ class UserInformation with ChangeNotifier {
     distractions = [];
     safeEnvironment = [];
     dreamsAndGoals = [];
+    dreamsAndGoalsSelectionSources = [];
     loggedIn = false;
     userId = '';
     thanks = {};
@@ -169,8 +172,14 @@ class UserInformation with ChangeNotifier {
     notifyListeners();
   }
 
-  void updateDreamsAndGoals(List<String> value) {
-    dreamsAndGoals = value;
+  void updateDreamsAndGoals(
+    List<String> value, {
+    List<String>? selectionSources,
+  }) {
+    dreamsAndGoals = [...value];
+    if (selectionSources != null) {
+      dreamsAndGoalsSelectionSources = [...selectionSources];
+    }
     notifyListeners();
   }
 

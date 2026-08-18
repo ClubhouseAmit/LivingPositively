@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:dotted_border/dotted_border.dart';
 import 'package:get_it/get_it.dart';
@@ -6,9 +8,6 @@ import 'package:mazilon/global_enums.dart';
 
 import 'package:mazilon/form/wizard_step.dart';
 import 'package:mazilon/l10n/app_localizations.dart';
-import 'package:mazilon/l10n/app_localizations_ar.dart';
-import 'package:mazilon/l10n/app_localizations_en.dart';
-import 'package:mazilon/l10n/app_localizations_he.dart';
 import 'package:mazilon/pages/FormAnswer.dart';
 import 'package:mazilon/util/FormAnswer/addFormAnswer.dart';
 import 'package:mazilon/util/persistent_memory_service.dart';
@@ -69,11 +68,7 @@ class _FormPageTemplateState extends WizardStepState<FormPageTemplate> {
   int displayedLength = 3;
   List<String> suggestionPool = const [];
   List<String> selectedItems = [];
-  late final Set<String> _dreamsAndGoalsCatalogue = {
-    ...retrieveDreamsAndGoalsList(AppLocalizationsEn(), 'other'),
-    ...retrieveDreamsAndGoalsList(AppLocalizationsHe(), 'other'),
-    ...retrieveDreamsAndGoalsList(AppLocalizationsAr(), 'other'),
-  };
+  List<String> selectedItemSources = const [];
 
   // Identity for the answer rows. Two answers can hold the same text, so a
   // text-derived key is not identity: after swiping one away, the survivor
@@ -111,32 +106,42 @@ class _FormPageTemplateState extends WizardStepState<FormPageTemplate> {
   }
 
   bool isAlreadySelected(String item) {
+    if (_limitsToOneCustomItem) {
+      final index = suggestionPool.indexOf(item);
+      return index >= 0 &&
+          selectedItemSources.contains(
+            dreamsAndGoalsCatalogueSelectionSourceForIndex(index),
+          );
+    }
     return selectedItems.contains(item);
   }
 
   bool get _limitsToOneCustomItem =>
       widget.collectionName == 'PersonalPlan-DreamsAndGoals';
 
-  bool _isSuggestion(String item) {
-    if (_limitsToOneCustomItem) {
-      return _dreamsAndGoalsCatalogue.contains(item);
-    }
-    return suggestionPool.contains(item);
-  }
-
-  bool get _hasCustomItem => selectedItems.any((item) => !_isSuggestion(item));
+  bool get _hasCustomItem =>
+      selectedItemSources.contains(dreamsAndGoalsCustomSelectionSource);
 
   bool get _canAddOwnItem => !_limitsToOneCustomItem || !_hasCustomItem;
 
   void editItem(int index, String text) {
-    final editedItem = text.trim();
-    final hasAnotherCustomItem = selectedItems.indexed.any(
-      (entry) => entry.$1 != index && !_isSuggestion(entry.$2),
-    );
-    if (_limitsToOneCustomItem &&
-        !_isSuggestion(editedItem) &&
-        hasAnotherCustomItem) {
+    if (index < 0 || index >= selectedItems.length) {
       return;
+    }
+    final editedItem = text.trim();
+    if (_limitsToOneCustomItem && editedItem != selectedItems[index]) {
+      final source = selectedItemSources[index];
+      if (source != dreamsAndGoalsCustomSelectionSource) {
+        final hasAnotherCustomItem = selectedItemSources.indexed.any(
+          (entry) =>
+              entry.$1 != index &&
+              entry.$2 == dreamsAndGoalsCustomSelectionSource,
+        );
+        if (hasAnotherCustomItem) {
+          return;
+        }
+        selectedItemSources[index] = dreamsAndGoalsCustomSelectionSource;
+      }
     }
     selectedItems[index] = editedItem;
     setState(() {});
@@ -149,15 +154,24 @@ class _FormPageTemplateState extends WizardStepState<FormPageTemplate> {
     // By index, not by value: two answers can hold the same text, and
     // removing by value would delete both.
     selectedItems.removeAt(index);
+    if (_limitsToOneCustomItem) {
+      selectedItemSources.removeAt(index);
+    }
 
     setState(() {});
   }
 
-  void addItem(String text, {bool isSuggestion = false}) {
-    if (_limitsToOneCustomItem && !isSuggestion && _hasCustomItem) {
+  void addItem(String text, {String? selectionSource}) {
+    final source = selectionSource ?? dreamsAndGoalsCustomSelectionSource;
+    if (_limitsToOneCustomItem &&
+        source == dreamsAndGoalsCustomSelectionSource &&
+        _hasCustomItem) {
       return;
     }
     selectedItems.add(text.trim());
+    if (_limitsToOneCustomItem) {
+      selectedItemSources.add(source);
+    }
 
     setState(() {});
   }
@@ -194,7 +208,13 @@ class _FormPageTemplateState extends WizardStepState<FormPageTemplate> {
         userInfo.updateSafeEnvironment([...selectedItems]);
         break;
       case 'PersonalPlan-DreamsAndGoals':
-        userInfo.updateDreamsAndGoals([...selectedItems]);
+        selectedItemSources = normalizeDreamsAndGoalsSelectionSources(
+          selectedItems,
+          selectedItemSources,
+        );
+        userInfo.updateDreamsAndGoals([
+          ...selectedItems,
+        ], selectionSources: selectedItemSources);
         break;
       default:
     }
@@ -203,6 +223,26 @@ class _FormPageTemplateState extends WizardStepState<FormPageTemplate> {
       PersistentMemoryType.Bool,
       true,
     );
+    if (_limitsToOneCustomItem) {
+      await Future.wait<void>([
+        service.setItem(
+          'userSelection${widget.collectionName}',
+          PersistentMemoryType.StringList,
+          [...selectedItems],
+        ),
+        service.setItem(
+          'addedStrings${widget.collectionName}',
+          PersistentMemoryType.StringList,
+          dreamsAndGoalsCustomItems(selectedItems, selectedItemSources),
+        ),
+        service.setItem(
+          'selectionSources${widget.collectionName}',
+          PersistentMemoryType.StringList,
+          [...selectedItemSources],
+        ),
+      ]);
+      return;
+    }
     await service.setItem(
       'userSelection${widget.collectionName}',
       PersistentMemoryType.StringList,
@@ -234,6 +274,10 @@ class _FormPageTemplateState extends WizardStepState<FormPageTemplate> {
         break;
       case 'PersonalPlan-DreamsAndGoals':
         selectedItems = [...userInfo.dreamsAndGoals];
+        selectedItemSources = normalizeDreamsAndGoalsSelectionSources(
+          selectedItems,
+          userInfo.dreamsAndGoalsSelectionSources,
+        );
         break;
       default:
     }
@@ -286,11 +330,11 @@ class _FormPageTemplateState extends WizardStepState<FormPageTemplate> {
             num: index + 1,
             edit: (int editIndex, String text) {
               editItem(editIndex, text);
-              createSelection(userInfoProvider);
+              unawaited(createSelection(userInfoProvider));
             },
             remove: (int removeIndex) {
               removeItem(removeIndex);
-              createSelection(userInfoProvider);
+              unawaited(createSelection(userInfoProvider));
             },
           ),
         //Frame 171 — start-aligned, not centred.
@@ -305,8 +349,11 @@ class _FormPageTemplateState extends WizardStepState<FormPageTemplate> {
                     return AddFormAnswer(
                       index: selectedItems.length,
                       edit: (int index, String text) {
-                        addItem(text);
-                        createSelection(userInfoProvider);
+                        addItem(
+                          text,
+                          selectionSource: dreamsAndGoalsCustomSelectionSource,
+                        );
+                        unawaited(createSelection(userInfoProvider));
                       },
                       text: '',
                     );
@@ -392,10 +439,14 @@ class _FormPageTemplateState extends WizardStepState<FormPageTemplate> {
     return InkWell(
       key: ValueKey('suggestion-$item'),
       onTap: () {
-        setState(() {
-          addItem(item, isSuggestion: true);
-          createSelection(userInfoProvider);
-        });
+        final index = suggestionPool.indexOf(item);
+        addItem(
+          item,
+          selectionSource: _limitsToOneCustomItem
+              ? dreamsAndGoalsCatalogueSelectionSourceForIndex(index)
+              : null,
+        );
+        unawaited(createSelection(userInfoProvider));
       },
       child: DottedBorder(
         options: RoundedRectDottedBorderOptions(

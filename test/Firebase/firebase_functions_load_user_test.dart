@@ -1,7 +1,11 @@
 import 'package:flutter_test/flutter_test.dart';
 import 'package:get_it/get_it.dart';
 import 'package:mazilon/global_enums.dart';
+import 'package:mazilon/l10n/app_localizations_ar.dart';
+import 'package:mazilon/l10n/app_localizations_en.dart';
+import 'package:mazilon/l10n/app_localizations_he.dart';
 import 'package:mazilon/util/Firebase/firebase_functions.dart';
+import 'package:mazilon/util/Form/retrieveInformation.dart';
 import 'package:mazilon/util/logger_service.dart';
 import 'package:mazilon/util/persistent_memory_service.dart';
 import 'package:mazilon/util/userInformation.dart';
@@ -38,7 +42,9 @@ class _FakeMemory implements PersistentMemoryService {
     String key,
     PersistentMemoryType type,
     dynamic value,
-  ) async {}
+  ) async {
+    _store[key] = value;
+  }
 
   @override
   Future<void> reset() async {}
@@ -179,6 +185,118 @@ void main() {
       expect(userInfo.thanks['thanks'], equals(['t1', 't2']));
       expect(userInfo.thanks['dates'], equals(['2024-01-01', '2024-02-01']));
     });
+  });
+
+  group('loadUserInformation – Dreams and Goals source migration', () {
+    test(
+      'should migrate legacy English, Hebrew, and Arabic labels by id',
+      () async {
+        const englishGoal = 'Write and publish a book';
+        const hebrewGoal = 'לכתוב ולהוציא לאור ספר';
+        const arabicGoal = 'كتابة كتاب ونشره';
+        final store = <String, dynamic>{
+          'userSelectionPersonalPlan-DreamsAndGoals': <String>[
+            englishGoal,
+            hebrewGoal,
+            arabicGoal,
+            'My own goal',
+          ],
+          'addedStringsPersonalPlan-DreamsAndGoals': <String>[
+            englishGoal,
+            hebrewGoal,
+            arabicGoal,
+            'My own goal',
+          ],
+        };
+        _registerFakes(store: store);
+
+        final userInfo = _makeUserInfo();
+        await loadUserInformation(userInfo, 'en');
+
+        const bookSource = 'catalogue:write-and-publish-a-book';
+        expect(userInfo.dreamsAndGoalsSelectionSources, [
+          bookSource,
+          bookSource,
+          bookSource,
+          dreamsAndGoalsCustomSelectionSource,
+        ]);
+        expect(store['selectionSourcesPersonalPlan-DreamsAndGoals'], [
+          bookSource,
+          bookSource,
+          bookSource,
+          dreamsAndGoalsCustomSelectionSource,
+        ]);
+        expect(store['addedStringsPersonalPlan-DreamsAndGoals'], [
+          'My own goal',
+        ]);
+      },
+    );
+
+    test('should align all localized catalogue labels with immutable ids', () {
+      final localizedCatalogues = <List<String>>[
+        retrieveDreamsAndGoalsList(AppLocalizationsEn(), 'other'),
+        retrieveDreamsAndGoalsList(AppLocalizationsHe(), 'other'),
+        retrieveDreamsAndGoalsList(AppLocalizationsAr(), 'other'),
+      ];
+      final expectedSources = List<String>.generate(
+        dreamsAndGoalsCatalogueIds.length,
+        dreamsAndGoalsCatalogueSelectionSourceForIndex,
+      );
+
+      for (final catalogue in localizedCatalogues) {
+        expect(catalogue, hasLength(dreamsAndGoalsCatalogueIds.length));
+        expect(
+          normalizeDreamsAndGoalsSelectionSources(
+            catalogue,
+            const <String>[],
+          ),
+          expectedSources,
+        );
+      }
+    });
+
+    test(
+      'should repair short, long, malformed, and out-of-range source rows',
+      () {
+        const selections = <String>[
+          'Write and publish a book',
+          'Learn a new language',
+          'A saved own goal',
+        ];
+
+        expect(
+          normalizeDreamsAndGoalsSelectionSources(selections, const <String>[]),
+          [
+            'catalogue:write-and-publish-a-book',
+            'catalogue:learn-a-new-language',
+            dreamsAndGoalsCustomSelectionSource,
+          ],
+        );
+        expect(
+          normalizeDreamsAndGoalsSelectionSources(selections, const <String>[
+            'catalogue:write-and-publish-a-book',
+          ]),
+          [
+            'catalogue:write-and-publish-a-book',
+            'catalogue:learn-a-new-language',
+            dreamsAndGoalsCustomSelectionSource,
+          ],
+        );
+        expect(
+          normalizeDreamsAndGoalsSelectionSources(selections, const <String>[
+            'catalogue:write-and-publish-a-book',
+            'catalogue:not-a-goal',
+            'not-a-source',
+            'custom',
+          ]),
+          [
+            'catalogue:write-and-publish-a-book',
+            'catalogue:learn-a-new-language',
+            dreamsAndGoalsCustomSelectionSource,
+          ],
+        );
+      },
+    );
   });
 
   group('loadUserInformation – empty / null defaults', () {

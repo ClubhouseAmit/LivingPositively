@@ -10,8 +10,10 @@ import 'package:mazilon/form/speech_dictation_suffix_action.dart';
 import 'package:mazilon/form/wizard_step.dart';
 import 'package:mazilon/l10n/app_localizations.dart';
 import 'package:mazilon/util/SignIn/popup_toast.dart';
+import 'package:mazilon/util/Form/retrieveInformation.dart';
 import 'package:mazilon/util/persistent_memory_service.dart';
 import 'package:mazilon/util/languages_util_functions.dart';
+import 'package:mazilon/util/theme/spacing.dart';
 import 'package:provider/provider.dart';
 import 'package:mazilon/util/styles.dart';
 import 'package:mazilon/util/type_utils.dart';
@@ -27,6 +29,8 @@ const String _dreamsAndGoalsSelectionKey =
     'userSelectionPersonalPlan-DreamsAndGoals';
 const String _dreamsAndGoalsAddedStringsKey =
     'addedStringsPersonalPlan-DreamsAndGoals';
+const String _dreamsAndGoalsSelectionSourcesKey =
+    'selectionSourcesPersonalPlan-DreamsAndGoals';
 
 class ShareForm extends WizardStep {
   final Function prev;
@@ -477,50 +481,65 @@ class _ShareFormState extends WizardStepState<ShareForm> {
     );
   }
 
-  Future<void> persistDreamsAndGoals(
-    UserInformation userInformation,
-  ) async {
+  Future<void> persistDreamsAndGoals(UserInformation userInformation) async {
     final service = GetIt.instance<PersistentMemoryService>();
     final dreamsAndGoals = [...userInformation.dreamsAndGoals];
+    final selectionSources = normalizeDreamsAndGoalsSelectionSources(
+      dreamsAndGoals,
+      userInformation.dreamsAndGoalsSelectionSources,
+    );
+    final customDreamsAndGoals = dreamsAndGoalsCustomItems(
+      dreamsAndGoals,
+      selectionSources,
+    );
+    userInformation.updateDreamsAndGoals(
+      dreamsAndGoals,
+      selectionSources: selectionSources,
+    );
 
-    await service.setItem(
-      _dreamsAndGoalsSelectionKey,
-      PersistentMemoryType.StringList,
-      dreamsAndGoals,
-    );
-    await service.setItem(
-      _dreamsAndGoalsAddedStringsKey,
-      PersistentMemoryType.StringList,
-      dreamsAndGoals,
-    );
+    await Future.wait<void>([
+      service.setItem(
+        _dreamsAndGoalsSelectionKey,
+        PersistentMemoryType.StringList,
+        dreamsAndGoals,
+      ),
+      service.setItem(
+        _dreamsAndGoalsAddedStringsKey,
+        PersistentMemoryType.StringList,
+        customDreamsAndGoals,
+      ),
+      service.setItem(
+        _dreamsAndGoalsSelectionSourcesKey,
+        PersistentMemoryType.StringList,
+        selectionSources,
+      ),
+    ]);
   }
 
   Widget buildDreamsAndGoalsSection(BuildContext context, String gender) {
     return SizedBox(
-      width: MediaQuery.sizeOf(context).width * 0.85,
+      width: formFieldWidth(context),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          TextButton.icon(
+          KeyedSubtree(
             key: const Key('share-dreams-and-goals-toggle'),
-            onPressed: () {
-              setState(() {
-                _isEditingDreamsAndGoals = !_isEditingDreamsAndGoals;
-              });
-            },
-            icon: Icon(
+            child: LinkButton(
+              () {
+                setState(() {
+                  _isEditingDreamsAndGoals = !_isEditingDreamsAndGoals;
+                });
+              },
               _isEditingDreamsAndGoals
                   ? Icons.keyboard_arrow_up
                   : Icons.keyboard_arrow_down,
-            ),
-            label: Text(appLocale.dreamsAndGoalsHeader(gender)),
-            style: TextButton.styleFrom(
-              minimumSize: const Size.fromHeight(40),
-              tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+              appLocale.dreamsAndGoalsHeader(gender),
+              Theme.of(context).colorScheme.primary,
+              minHeight: 40,
             ),
           ),
           if (_isEditingDreamsAndGoals) ...[
-            const SizedBox(height: 8),
+            const SizedBox(height: AppSpacing.sm),
             FormPageTemplate(
               key: _dreamsAndGoalsStepKey,
               next: () {},

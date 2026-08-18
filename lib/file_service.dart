@@ -1,6 +1,7 @@
 // ignore_for_file: non_constant_identifier_names
 
 import 'dart:io';
+import 'dart:math' show min;
 import 'package:file_picker/file_picker.dart';
 import 'package:flutter/foundation.dart';
 import 'package:get_it/get_it.dart';
@@ -153,7 +154,7 @@ class FileServiceImpl implements FileService {
         dataForPDF['customCategoryDescriptions'];
     List<String> phoneDescription = formatPhonesText(phoneNames, phoneNumbers);
 
-    List<List<String>> allData = [
+    List<List<String>> personalPlanSectionData = [
       distractions,
       difficultEvents,
       feelBetter,
@@ -162,17 +163,15 @@ class FileServiceImpl implements FileService {
       safeEnvironment,
       dreamsAndGoals,
     ];
-    List<dynamic> allTitles = [...titles];
-    List<dynamic> allSubTitles = [...subTitles];
-
-    // Older callers may supply the pre-Dreams metadata lists. Preserve the
-    // standard data-slot alignment before custom categories are appended.
-    while (allTitles.length < allData.length) {
-      allTitles.add('');
-    }
-    while (allSubTitles.length < allData.length) {
-      allSubTitles.add('');
-    }
+    final metadataSectionCount = min(
+      personalPlanSectionData.length,
+      min(titles.length, subTitles.length),
+    );
+    personalPlanSectionData = personalPlanSectionData
+        .take(metadataSectionCount)
+        .toList();
+    List<dynamic> allTitles = titles.take(metadataSectionCount).toList();
+    List<dynamic> allSubTitles = subTitles.take(metadataSectionCount).toList();
 
     for (
       var i = 0;
@@ -186,7 +185,7 @@ class FileServiceImpl implements FileService {
       }
       allTitles.add(title);
       allSubTitles.add('');
-      allData.add([description]);
+      personalPlanSectionData.add([description]);
     }
 
     List<dynamic> realTitles = [];
@@ -194,15 +193,17 @@ class FileServiceImpl implements FileService {
     List<List<String>> realData = [];
     for (
       var i = 0;
-      i < allData.length && i < allTitles.length && i < allSubTitles.length;
+      i < personalPlanSectionData.length &&
+          i < allTitles.length &&
+          i < allSubTitles.length;
       i++
     ) {
-      if (allData[i].isEmpty) {
+      if (personalPlanSectionData[i].isEmpty) {
         continue;
       }
       realTitles.add(allTitles[i]);
       realSubTitles.add(allSubTitles[i]);
-      realData.add(allData[i]);
+      realData.add(personalPlanSectionData[i]);
     }
 
     // Retrieve text content for the PDF
