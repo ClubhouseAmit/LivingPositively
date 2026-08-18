@@ -180,8 +180,23 @@ class _SpeechDictationSuffixActionState
       key: const Key('speech-dictation-start'),
       tooltip: appLocale.speechDictationAction,
       icon: const Icon(Icons.mic_none),
-      onPressed: _start,
+      onPressed: _startFromButton,
     );
+  }
+
+  void _startFromButton() {
+    unawaited(_startAndHandleError());
+  }
+
+  Future<void> _startAndHandleError() async {
+    try {
+      await _start();
+    } catch (error, stackTrace) {
+      debugPrint('Unable to start speech dictation: $error\n$stackTrace');
+      if (mounted) {
+        _showMessage(AppLocalizations.of(context)!.speechDictationError);
+      }
+    }
   }
 
   Future<void> _start() async {

@@ -10,6 +10,7 @@ import 'package:mazilon/form/wizard_step.dart';
 import 'package:mazilon/l10n/app_localizations.dart';
 import 'package:mazilon/pages/FormAnswer.dart';
 import 'package:mazilon/util/FormAnswer/addFormAnswer.dart';
+import 'package:mazilon/util/dreams_and_goals_selection.dart';
 import 'package:mazilon/util/persistent_memory_service.dart';
 import 'package:mazilon/util/styles.dart';
 import 'package:mazilon/util/theme/app_theme.dart';
@@ -69,6 +70,8 @@ class _FormPageTemplateState extends WizardStepState<FormPageTemplate> {
   List<String> suggestionPool = const [];
   List<String> selectedItems = [];
   List<String> selectedItemSources = const [];
+  Future<void> _pendingDreamsAndGoalsPersistence = Future<void>.value();
+  int? _pendingDreamsAndGoalsPersistenceRevision;
 
   // Identity for the answer rows. Two answers can hold the same text, so a
   // text-derived key is not identity: after swiping one away, the survivor
@@ -185,7 +188,35 @@ class _FormPageTemplateState extends WizardStepState<FormPageTemplate> {
     });
   }
 
-  Future<void> createSelection(userInfo) async {
+  Future<void> _saveDreamsAndGoalsWithDisclaimer(
+    UserInformation userInfo, {
+    required int revision,
+    required bool retry,
+  }) {
+    final Future<void> dreamsSave = retry
+        ? userInfo.retryDreamsAndGoalsSave(revision)
+        : userInfo.queueDreamsAndGoalsSave();
+    final Future<void> disclaimerSave = Future<void>.sync(
+      () => GetIt.instance<PersistentMemoryService>().setItem(
+        'disclaimerConfirmed',
+        PersistentMemoryType.Bool,
+        true,
+      ),
+    );
+    final Future<void> combinedSave = Future.wait<void>([
+      dreamsSave,
+      disclaimerSave,
+    ]);
+    _pendingDreamsAndGoalsPersistence = combinedSave;
+    _pendingDreamsAndGoalsPersistenceRevision =
+        userInfo.dreamsAndGoalsSaveRevision;
+    return combinedSave;
+  }
+
+  Future<void> createSelection(
+    UserInformation userInfo, {
+    void Function(int revision)? onDreamsSaveQueued,
+  }) async {
     PersistentMemoryService service =
         GetIt.instance<
           PersistentMemoryService
@@ -212,10 +243,21 @@ class _FormPageTemplateState extends WizardStepState<FormPageTemplate> {
           selectedItems,
           selectedItemSources,
         );
-        userInfo.updateDreamsAndGoals([
-          ...selectedItems,
-        ], selectionSources: selectedItemSources);
-        break;
+        userInfo.updateDreamsAndGoals(
+          selectedItems,
+          selectionSources: selectedItemSources,
+        );
+        selectedItemSources = List<String>.from(
+          userInfo.dreamsAndGoalsSelectionSources,
+        );
+        final int revision = userInfo.dreamsAndGoalsSaveRevision;
+        onDreamsSaveQueued?.call(revision);
+        await _saveDreamsAndGoalsWithDisclaimer(
+          userInfo,
+          revision: revision,
+          retry: false,
+        );
+        return;
       default:
     }
     await service.setItem(
@@ -223,26 +265,6 @@ class _FormPageTemplateState extends WizardStepState<FormPageTemplate> {
       PersistentMemoryType.Bool,
       true,
     );
-    if (_limitsToOneCustomItem) {
-      await Future.wait<void>([
-        service.setItem(
-          'userSelection${widget.collectionName}',
-          PersistentMemoryType.StringList,
-          [...selectedItems],
-        ),
-        service.setItem(
-          'addedStrings${widget.collectionName}',
-          PersistentMemoryType.StringList,
-          dreamsAndGoalsCustomItems(selectedItems, selectedItemSources),
-        ),
-        service.setItem(
-          'selectionSources${widget.collectionName}',
-          PersistentMemoryType.StringList,
-          [...selectedItemSources],
-        ),
-      ]);
-      return;
-    }
     await service.setItem(
       'userSelection${widget.collectionName}',
       PersistentMemoryType.StringList,
@@ -255,7 +277,7 @@ class _FormPageTemplateState extends WizardStepState<FormPageTemplate> {
     );
   }
 
-  void loadItems(userInfo) {
+  void loadItems(UserInformation userInfo) {
     switch (widget.collectionName) {
       case 'PersonalPlan-DifficultEvents':
         selectedItems = [...userInfo.difficultEvents];
@@ -280,6 +302,72 @@ class _FormPageTemplateState extends WizardStepState<FormPageTemplate> {
         );
         break;
       default:
+    }
+  }
+
+  Future<void> _saveSelectionAfterMutation(UserInformation userInfo) async {
+    int? dreamsSaveRevision;
+    try {
+      await createSelection(
+        userInfo,
+        onDreamsSaveQueued: (int revision) {
+          dreamsSaveRevision = revision;
+        },
+      );
+    } catch (_) {
+      if (!mounted) {
+        return;
+      }
+      _showSaveFailure(
+        () => _retrySelectionSave(userInfo, dreamsSaveRevision),
+      );
+    }
+  }
+
+  Future<void> _retrySelectionSave(
+    UserInformation userInfo,
+    int? dreamsSaveRevision,
+  ) async {
+    if (_limitsToOneCustomItem && dreamsSaveRevision != null) {
+      await _saveDreamsAndGoalsWithDisclaimer(
+        userInfo,
+        revision: dreamsSaveRevision,
+        retry: true,
+      );
+      return;
+    }
+    await createSelection(userInfo);
+  }
+
+  void _showSaveFailure(Future<void> Function() retry) {
+    final ScaffoldMessengerState? messenger = ScaffoldMessenger.maybeOf(
+      context,
+    );
+    if (messenger == null) {
+      return;
+    }
+    messenger
+      ..hideCurrentSnackBar()
+      ..showSnackBar(
+        SnackBar(
+          content: Text(appLocale.asyncErrorMessage),
+          action: SnackBarAction(
+            label: appLocale.asyncRetryButton,
+            onPressed: () {
+              unawaited(_runSaveRetry(retry));
+            },
+          ),
+        ),
+      );
+  }
+
+  Future<void> _runSaveRetry(Future<void> Function() retry) async {
+    try {
+      await retry();
+    } catch (_) {
+      if (mounted) {
+        _showSaveFailure(retry);
+      }
     }
   }
 
@@ -330,11 +418,11 @@ class _FormPageTemplateState extends WizardStepState<FormPageTemplate> {
             num: index + 1,
             edit: (int editIndex, String text) {
               editItem(editIndex, text);
-              unawaited(createSelection(userInfoProvider));
+              unawaited(_saveSelectionAfterMutation(userInfoProvider));
             },
             remove: (int removeIndex) {
               removeItem(removeIndex);
-              unawaited(createSelection(userInfoProvider));
+              unawaited(_saveSelectionAfterMutation(userInfoProvider));
             },
           ),
         //Frame 171 — start-aligned, not centred.
@@ -353,7 +441,7 @@ class _FormPageTemplateState extends WizardStepState<FormPageTemplate> {
                           text,
                           selectionSource: dreamsAndGoalsCustomSelectionSource,
                         );
-                        unawaited(createSelection(userInfoProvider));
+                        unawaited(_saveSelectionAfterMutation(userInfoProvider));
                       },
                       text: '',
                     );
@@ -446,7 +534,7 @@ class _FormPageTemplateState extends WizardStepState<FormPageTemplate> {
               ? dreamsAndGoalsCatalogueSelectionSourceForIndex(index)
               : null,
         );
-        unawaited(createSelection(userInfoProvider));
+        unawaited(_saveSelectionAfterMutation(userInfoProvider));
       },
       child: DottedBorder(
         options: RoundedRectDottedBorderOptions(
@@ -496,10 +584,75 @@ class _FormPageTemplateState extends WizardStepState<FormPageTemplate> {
     );
     AnalyticsService mixPanelService = GetIt.instance<AnalyticsService>();
     mixPanelService.trackEvent("Plan edited", {'page': widget.collectionName});
-    // Saved before moving on, so the step cannot be left behind with its
-    // answers still in flight.
-    await createSelection(userInfoProvider);
-    widget.next();
+    int? dreamsSaveRevision;
+    try {
+      await createSelection(
+        userInfoProvider,
+        onDreamsSaveQueued: (int revision) {
+          dreamsSaveRevision = revision;
+        },
+      );
+      if (mounted) {
+        widget.next();
+      }
+    } catch (_) {
+      if (mounted) {
+        _showSaveFailure(
+          () => _completePrimaryAction(
+            userInfoProvider,
+            dreamsSaveRevision,
+          ),
+        );
+      }
+      rethrow;
+    }
+  }
+
+  Future<void> _completePrimaryAction(
+    UserInformation userInfoProvider,
+    int? dreamsSaveRevision,
+  ) async {
+    if (_limitsToOneCustomItem && dreamsSaveRevision != null) {
+      await _retrySelectionSave(userInfoProvider, dreamsSaveRevision);
+    } else {
+      await createSelection(userInfoProvider);
+    }
+    if (mounted) {
+      widget.next();
+    }
+  }
+
+  @override
+  Future<void> persistBeforeExit() async {
+    if (!_limitsToOneCustomItem) {
+      return;
+    }
+    final UserInformation userInfoProvider = Provider.of<UserInformation>(
+      context,
+      listen: false,
+    );
+    await Future.wait<void>([
+      userInfoProvider.pendingDreamsAndGoalsSave,
+      _pendingDreamsAndGoalsPersistence,
+    ]);
+  }
+
+  @override
+  Future<void> retryPersistBeforeExit() async {
+    if (!_limitsToOneCustomItem) {
+      return;
+    }
+    final UserInformation userInfoProvider = Provider.of<UserInformation>(
+      context,
+      listen: false,
+    );
+    await _saveDreamsAndGoalsWithDisclaimer(
+      userInfoProvider,
+      revision:
+          _pendingDreamsAndGoalsPersistenceRevision ??
+          userInfoProvider.dreamsAndGoalsSaveRevision,
+      retry: true,
+    );
   }
 
   @override

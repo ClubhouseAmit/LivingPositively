@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:mazilon/form/speech_dictation_suffix_action.dart';
@@ -59,7 +61,19 @@ class _InitialFormPage2State extends WizardStepState<InitialFormPage2> {
     AppLocalizations l10n,
   ) {
     if (label == null) return;
-    (Gender.fromLabel(label, l10n) ?? Gender.unspecified).applyTo(user);
+    final Gender gender = Gender.fromLabel(label, l10n) ?? Gender.unspecified;
+    unawaited(_applyGenderInBackground(gender, user));
+  }
+
+  Future<void> _applyGenderInBackground(
+    Gender gender,
+    UserInformation user,
+  ) async {
+    try {
+      await gender.applyTo(user);
+    } catch (error, stackTrace) {
+      debugPrint('Could not save onboarding gender: $error\n$stackTrace');
+    }
   }
 
   /// Field label (Figma nodes 1660:2288 / 2294 / 2300).

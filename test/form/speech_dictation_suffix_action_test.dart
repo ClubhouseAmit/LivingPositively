@@ -288,7 +288,7 @@ void main() {
     );
 
     testWidgets(
-      'should surface unexpected start failures after pending cleanup',
+      'should contain unexpected start failures after pending cleanup',
       (tester) async {
         final controller = _controllerWithText('Existing value');
         final service = _FakeSpeechRecognitionService()
@@ -305,10 +305,10 @@ void main() {
           memory: memory,
         );
 
-        final dynamic startCallback = tester
+        final VoidCallback? startCallback = tester
             .widget<IconButton>(find.byKey(const Key('speech-dictation-start')))
             .onPressed;
-        final operation = startCallback() as Future<void>;
+        startCallback!();
         await _pumpUntilVisible(
           tester,
           find.byKey(const Key('speech-dictation-locale-en-US')),
@@ -318,14 +318,18 @@ void main() {
               find.byKey(const Key('speech-dictation-locale-en-US')),
             )
             .onPressed!;
-        final expectation = expectLater(operation, throwsA(isA<StateError>()));
         localeCallback();
-        await tester.pump();
-
-        await expectation;
+        await _pumpUntilVisible(
+          tester,
+          find.byKey(const Key('speech-dictation-start')),
+        );
         expect(controller.text, 'Existing value');
         expect(service.cancelCalls, 1);
         expect(service.hasActiveSession, isFalse);
+        expect(
+          find.text('Voice dictation could not be completed. Please try again.'),
+          findsOneWidget,
+        );
       },
     );
 
@@ -423,6 +427,39 @@ void main() {
         );
       },
     );
+
+    testWidgets('should contain a disclosure persistence failure at start', (
+      tester,
+    ) async {
+      final controller = _controllerWithText('Existing value');
+      final service = _FakeSpeechRecognitionService();
+      final memory = _FakePersistentMemoryService(failSetItem: true);
+
+      await _pumpAction(
+        tester,
+        controller: controller,
+        service: service,
+        memory: memory,
+      );
+
+      await tester.tap(find.byKey(const Key('speech-dictation-start')));
+      await _pumpUntilVisible(
+        tester,
+        find.byKey(const Key('speech-dictation-disclosure-accept')),
+      );
+      await tester.tap(
+        find.byKey(const Key('speech-dictation-disclosure-accept')),
+      );
+      await _pumpUntilVisible(
+        tester,
+        find.text('Voice dictation could not be completed. Please try again.'),
+      );
+
+      expect(memory.setItemCalls, 1);
+      expect(memory.disclosureAccepted, isFalse);
+      expect(service.initializeCalls, 0);
+      expect(find.byKey(const Key('speech-dictation-start')), findsOneWidget);
+    });
 
     testWidgets('should expose an active dictation accessibility label', (
       tester,
@@ -763,10 +800,13 @@ Future<void> _pumpUntilVisible(WidgetTester tester, Finder finder) async {
 final class _FakePersistentMemoryService implements PersistentMemoryService {
   static const _disclosureAcceptedKey = 'speechDictationDisclosureAccepted';
 
-  _FakePersistentMemoryService({bool initialDisclosureAccepted = false})
-    : _disclosureAccepted = initialDisclosureAccepted;
+  _FakePersistentMemoryService({
+    bool initialDisclosureAccepted = false,
+    this.failSetItem = false,
+  }) : _disclosureAccepted = initialDisclosureAccepted;
 
   bool _disclosureAccepted;
+  final bool failSetItem;
   int getItemCalls = 0;
   int setItemCalls = 0;
 
@@ -790,6 +830,9 @@ final class _FakePersistentMemoryService implements PersistentMemoryService {
       throw StateError('The disclosure acknowledgement must be a bool.');
     }
     setItemCalls++;
+    if (failSetItem) {
+      throw StateError('The disclosure acknowledgement could not be saved.');
+    }
     _disclosureAccepted = value;
   }
 

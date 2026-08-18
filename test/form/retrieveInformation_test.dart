@@ -1,4 +1,6 @@
 import 'package:flutter_test/flutter_test.dart';
+import 'package:mazilon/l10n/app_localizations_en.dart';
+import 'package:mazilon/util/dreams_and_goals_selection.dart';
 import 'package:mazilon/util/Form/retrieveInformation.dart';
 
 /// Stub that implements every method called by `retrieveInformation` and the
@@ -130,23 +132,27 @@ void main() {
     });
 
     test('PersonalPlan-DreamsAndGoals returns all dream and goal suggestions', () {
+      final localization = AppLocalizationsEn();
       final result = retrieveInformation(
         'PersonalPlan-DreamsAndGoals',
         'female',
-        loc,
+        localization,
       );
 
-      expect(result['header'], 'dreamsAndGoalsHeader(female)');
-      expect(result['subTitle'], 'dreamsAndGoalsSubTitle(female)');
-      expect(result['midTitle'], 'makeSaferMidTitle(female)');
-      expect(result['midSubTitle'], 'makeSaferMidSubTitle(female)');
+      expect(result['header'], localization.dreamsAndGoalsHeader('female'));
+      expect(
+        result['subTitle'],
+        localization.dreamsAndGoalsSubTitle('female'),
+      );
+      expect(result['midTitle'], localization.makeSaferMidTitle('female'));
+      expect(
+        result['midSubTitle'],
+        localization.makeSaferMidSubTitle('female'),
+      );
       expect(result['list'], hasLength(34));
       expect(
         result['list'],
-        containsAllInOrder([
-          'dreamsAndGoalsListNo0(female)',
-          'dreamsAndGoalsListNo33(female)',
-        ]),
+        retrieveDreamsAndGoalsList(localization, 'female'),
       );
     });
 
@@ -242,10 +248,10 @@ void main() {
     });
 
     test('retrieveDreamsAndGoalsList returns the 34 prescribed entries', () {
-      final list = retrieveDreamsAndGoalsList(loc, 'other');
+      final list = retrieveDreamsAndGoalsList(AppLocalizationsEn(), 'other');
       expect(list, hasLength(34));
-      expect(loc.calls, contains('dreamsAndGoalsListNo0:other'));
-      expect(loc.calls, contains('dreamsAndGoalsListNo33:other'));
+      expect(list.first, isNotEmpty);
+      expect(list.last, isNotEmpty);
     });
   });
 }

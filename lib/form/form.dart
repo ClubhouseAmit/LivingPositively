@@ -1,5 +1,6 @@
 // ignore_for_file: annotate_overrides
 import 'dart:math' show max;
+import 'dart:async';
 
 import 'package:flutter/material.dart';
 import 'package:get_it/get_it.dart';
@@ -61,6 +62,7 @@ class FormProgressIndicatorState
     extends LPExtendedState<FormProgressIndicator> {
   int currentStep = 0;
   String name = '';
+  bool _headerNavigationInFlight = false;
 
   void next() {
     setState(() {
@@ -80,7 +82,7 @@ class FormProgressIndicatorState
     });
   }
 
-  void submitForm(mycontext) async {
+  Future<void> submitForm(BuildContext mycontext) async {
     PersistentMemoryService service =
         GetIt.instance<
           PersistentMemoryService
@@ -89,7 +91,9 @@ class FormProgressIndicatorState
     if (name.isNotEmpty) {
       await service.setItem("name", PersistentMemoryType.String, name);
     }
-    navigateToMenu(mycontext);
+    if (mounted) {
+      navigateToMenu(mycontext);
+    }
   }
 
   void navigateToMenu(mycontext) {
@@ -104,6 +108,59 @@ class FormProgressIndicatorState
       ),
       (Route<dynamic> route) => false,
     );
+  }
+
+  Future<void> _persistThenNavigate(
+    BuildContext context,
+    VoidCallback navigate, {
+    bool retry = false,
+  }) async {
+    if (_headerNavigationInFlight) {
+      return;
+    }
+    _headerNavigationInFlight = true;
+    try {
+      final WizardStepState? stepState =
+          steps[currentStep].stepKey.currentState;
+      if (retry) {
+        await stepState?.retryPersistBeforeExit();
+      } else {
+        await stepState?.persistBeforeExit();
+      }
+      if (mounted) {
+        navigate();
+      }
+    } catch (_) {
+      if (mounted) {
+        _showHeaderPersistenceFailure(
+          () => _persistThenNavigate(context, navigate, retry: true),
+        );
+      }
+    } finally {
+      _headerNavigationInFlight = false;
+    }
+  }
+
+  void _showHeaderPersistenceFailure(Future<void> Function() retry) {
+    final ScaffoldMessengerState? messenger = ScaffoldMessenger.maybeOf(
+      context,
+    );
+    if (messenger == null) {
+      return;
+    }
+    messenger
+      ..hideCurrentSnackBar()
+      ..showSnackBar(
+        SnackBar(
+          content: Text(appLocale.asyncErrorMessage),
+          action: SnackBarAction(
+            label: appLocale.asyncRetryButton,
+            onPressed: () {
+              unawaited(retry());
+            },
+          ),
+        ),
+      );
   }
 
   List<WizardStep> steps = [];
@@ -132,7 +189,7 @@ class FormProgressIndicatorState
         if (didPop) {
           return;
         } else {
-          prev();
+          await _persistThenNavigate(context, prev);
         }
       },
       child: Scaffold(
@@ -179,7 +236,7 @@ class FormProgressIndicatorState
                             visualDensity: VisualDensity.compact,
                             icon: const Icon(Icons.arrow_back_ios, size: 20),
                             onPressed: () {
-                              prev();
+                              unawaited(_persistThenNavigate(context, prev));
                             },
                           ),
                         ),
@@ -204,7 +261,12 @@ class FormProgressIndicatorState
                               tapTargetSize: MaterialTapTargetSize.shrinkWrap,
                             ),
                             onPressed: () {
-                              navigateToMenu(context);
+                              unawaited(
+                                _persistThenNavigate(
+                                  context,
+                                  () => navigateToMenu(context),
+                                ),
+                              );
                             },
                             child: myAutoSizedText(
                               appLocale.saveAndQuitButton(gender),

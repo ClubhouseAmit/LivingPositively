@@ -5,7 +5,7 @@ import 'package:mazilon/l10n/app_localizations_ar.dart';
 import 'package:mazilon/l10n/app_localizations_en.dart';
 import 'package:mazilon/l10n/app_localizations_he.dart';
 import 'package:mazilon/util/Firebase/firebase_functions.dart';
-import 'package:mazilon/util/Form/retrieveInformation.dart';
+import 'package:mazilon/util/dreams_and_goals_selection.dart';
 import 'package:mazilon/util/logger_service.dart';
 import 'package:mazilon/util/persistent_memory_service.dart';
 import 'package:mazilon/util/userInformation.dart';
@@ -333,6 +333,7 @@ void main() {
 
         final userInfo = UserInformation(service: memory);
         await loadUserInformation(userInfo, 'en');
+        await Future<void>.delayed(Duration.zero);
 
         expect(userInfo.darkModePreference, DarkModePreference.scheduled);
         expect(userInfo.darkModeStartHour, 22);

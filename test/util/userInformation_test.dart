@@ -1,5 +1,8 @@
+import 'dart:async';
+
 import 'package:flutter_test/flutter_test.dart';
 import 'package:mazilon/global_enums.dart';
+import 'package:mazilon/util/dreams_and_goals_selection.dart';
 import 'package:mazilon/util/persistent_memory_service.dart';
 import 'package:mazilon/util/userInformation.dart';
 
@@ -23,8 +26,52 @@ class _FakePersistentMemoryService implements PersistentMemoryService {
     PersistentMemoryType type,
     dynamic value,
   ) async {
-    stored[key] = value;
-    writes.add(MapEntry(key, value));
+    final dynamic storedValue = type == PersistentMemoryType.StringList
+        ? List<String>.from(value as Iterable)
+        : value;
+    stored[key] = storedValue;
+    writes.add(MapEntry(key, storedValue));
+  }
+}
+
+class _DelayedDreamsMemoryService extends _FakePersistentMemoryService {
+  final Completer<void> _firstSelectionWrite = Completer<void>();
+  final Completer<void> firstSelectionWriteStarted = Completer<void>();
+  final List<List<String>> selectionWriteSnapshots = <List<String>>[];
+  bool _isFirstSelectionWrite = true;
+
+  @override
+  Future<void> setItem(
+    String key,
+    PersistentMemoryType type,
+    dynamic value,
+  ) async {
+    if (key == dreamsAndGoalsSelectionStorageKey) {
+      selectionWriteSnapshots.add(List<String>.from(value as Iterable));
+      if (_isFirstSelectionWrite) {
+        _isFirstSelectionWrite = false;
+        firstSelectionWriteStarted.complete();
+        await _firstSelectionWrite.future;
+      }
+    }
+    await super.setItem(key, type, value);
+  }
+
+  void releaseFirstSelectionWrite() {
+    if (!_firstSelectionWrite.isCompleted) {
+      _firstSelectionWrite.complete();
+    }
+  }
+}
+
+class _FailingPersistentMemoryService extends _FakePersistentMemoryService {
+  @override
+  Future<void> setItem(
+    String key,
+    PersistentMemoryType type,
+    dynamic value,
+  ) async {
+    throw StateError('Persistent memory failed.');
   }
 }
 
@@ -130,6 +177,38 @@ void main() {
       expect(u.positiveTraits, isEmpty);
       expect(notified, 1);
     });
+
+    test('queues an empty Dreams snapshot after a held earlier snapshot',
+        () async {
+      final delayedService = _DelayedDreamsMemoryService();
+      final user = UserInformation(service: delayedService);
+      user.updateDreamsAndGoals(
+        <String>['My custom goal'],
+        selectionSources: const <String>[dreamsAndGoalsCustomSelectionSource],
+      );
+      user.queueDreamsAndGoalsSave();
+      await delayedService.firstSelectionWriteStarted.future;
+
+      user.reset('en');
+      expect(user.dreamsAndGoals, isEmpty);
+      expect(user.dreamsAndGoalsSelectionSources, isEmpty);
+
+      delayedService.releaseFirstSelectionWrite();
+      await user.pendingDreamsAndGoalsSave;
+
+      expect(
+        delayedService.stored[dreamsAndGoalsSelectionStorageKey],
+        isEmpty,
+      );
+      expect(
+        delayedService.stored[dreamsAndGoalsSelectionSourcesStorageKey],
+        isEmpty,
+      );
+      expect(
+        delayedService.stored[dreamsAndGoalsCustomSelectionsStorageKey],
+        isEmpty,
+      );
+    });
   });
 
   group('update methods that persist', () {
@@ -169,6 +248,17 @@ void main() {
       await Future<void>.delayed(Duration.zero);
       expect(u.binary, isTrue);
       expect(fakeService.stored['binary'], isTrue);
+    });
+
+    test('background preference writes should contain persistence failures', () async {
+      final user = UserInformation(service: _FailingPersistentMemoryService());
+
+      user.updateGender('other');
+      user.updateNotificationHour(9);
+      await Future<void>.delayed(Duration.zero);
+
+      expect(user.gender, 'other');
+      expect(user.notificationHour, 9);
     });
 
     test('updateNotificationHour persists Int', () async {
@@ -266,6 +356,110 @@ void main() {
         'catalogue:write-and-publish-a-book',
       ]);
     });
+
+    test('should defensively copy Dreams and Goals values and sources', () {
+      final u = buildUser();
+      final values = <String>['My original goal'];
+      final sources = <String>[dreamsAndGoalsCustomSelectionSource];
+
+      u.updateDreamsAndGoals(values, selectionSources: sources);
+      values[0] = 'Changed outside the model';
+      sources[0] = 'catalogue:write-and-publish-a-book';
+
+      expect(u.dreamsAndGoals, <String>['My original goal']);
+      expect(u.dreamsAndGoalsSelectionSources, <String>[
+        dreamsAndGoalsCustomSelectionSource,
+      ]);
+    });
+
+    test('should clear Dreams and Goals sources when they are omitted', () {
+      final u = buildUser();
+      u.updateDreamsAndGoals(
+        <String>['Write and publish a book'],
+        selectionSources: const <String>['catalogue:write-and-publish-a-book'],
+      );
+
+      u.updateDreamsAndGoals(<String>['A source-free legacy value']);
+
+      expect(u.dreamsAndGoals, <String>['A source-free legacy value']);
+      expect(u.dreamsAndGoalsSelectionSources, isEmpty);
+    });
+
+    test('should reject mismatched Dreams sources without mutating state', () {
+      final u = buildUser();
+      u.updateDreamsAndGoals(
+        <String>['Write and publish a book'],
+        selectionSources: const <String>['catalogue:write-and-publish-a-book'],
+      );
+      var notifications = 0;
+      u.addListener(() => notifications++);
+
+      expect(
+        () => u.updateDreamsAndGoals(
+          <String>['First new value', 'Second new value'],
+          selectionSources: const <String>[dreamsAndGoalsCustomSelectionSource],
+        ),
+        throwsArgumentError,
+      );
+
+      expect(u.dreamsAndGoals, <String>['Write and publish a book']);
+      expect(u.dreamsAndGoalsSelectionSources, const <String>[
+        'catalogue:write-and-publish-a-book',
+      ]);
+      expect(notifications, 0);
+    });
+
+    test(
+      'should serialize the latest Dreams snapshot after an older save',
+      () async {
+        final delayedService = _DelayedDreamsMemoryService();
+        final u = UserInformation(service: delayedService);
+        u.updateDreamsAndGoals(
+          <String>['My custom goal'],
+          selectionSources: const <String>[dreamsAndGoalsCustomSelectionSource],
+        );
+        final Future<void> firstSave = u.queueDreamsAndGoalsSave();
+        await delayedService.firstSelectionWriteStarted.future;
+
+        u.updateDreamsAndGoals(
+          <String>['My custom goal', 'Write and publish a book'],
+          selectionSources: const <String>[
+            dreamsAndGoalsCustomSelectionSource,
+            'catalogue:write-and-publish-a-book',
+          ],
+        );
+        final Future<void> secondSave = u.queueDreamsAndGoalsSave();
+        await Future<void>.delayed(Duration.zero);
+
+        expect(delayedService.selectionWriteSnapshots, <List<String>>[
+          <String>['My custom goal'],
+        ]);
+
+        delayedService.releaseFirstSelectionWrite();
+        await firstSave;
+        await secondSave;
+
+        expect(delayedService.selectionWriteSnapshots, <List<String>>[
+          <String>['My custom goal'],
+          <String>['My custom goal', 'Write and publish a book'],
+        ]);
+        expect(
+          delayedService.stored[dreamsAndGoalsSelectionStorageKey],
+          <String>['My custom goal', 'Write and publish a book'],
+        );
+        expect(
+          delayedService.stored[dreamsAndGoalsSelectionSourcesStorageKey],
+          <String>[
+            dreamsAndGoalsCustomSelectionSource,
+            'catalogue:write-and-publish-a-book',
+          ],
+        );
+        expect(
+          delayedService.stored[dreamsAndGoalsCustomSelectionsStorageKey],
+          <String>['My custom goal'],
+        );
+      },
+    );
 
     test('updateDisclaimerSigned', () {
       final u = buildUser();

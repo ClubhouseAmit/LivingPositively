@@ -18,29 +18,35 @@ class SharedPreferencesService implements PersistentMemoryService {
   ) async {
     IncidentLoggerService loggerService =
         GetIt.instance<IncidentLoggerService>();
-    if (key == "" || value == null) {
-      loggerService.captureLog(
-        'Invalid key or value for persistent memory service',
-      );
-      return;
-    }
-
     try {
-      var prefs = await SharedPreferences.getInstance();
+      if (key.isEmpty || value == null) {
+        throw ArgumentError(
+          'Persistent memory requires a non-empty key and non-null value.',
+        );
+      }
+      final SharedPreferences prefs = await SharedPreferences.getInstance();
+      late final bool saved;
       switch (type) {
         case PersistentMemoryType.String:
-          prefs.setString(key, value);
+          saved = await prefs.setString(key, value as String);
         case PersistentMemoryType.Int:
-          prefs.setInt(key, value);
+          saved = await prefs.setInt(key, value as int);
         case PersistentMemoryType.Double:
-          prefs.setDouble(key, value);
+          saved = await prefs.setDouble(key, value as double);
         case PersistentMemoryType.Bool:
-          prefs.setBool(key, value);
+          saved = await prefs.setBool(key, value as bool);
         case PersistentMemoryType.StringList:
-          prefs.setStringList(key, List<String>.from(value));
+          saved = await prefs.setStringList(
+            key,
+            List<String>.from(value as Iterable),
+          );
+      }
+      if (!saved) {
+        throw StateError('Persistent memory rejected "$key".');
       }
     } catch (error, stackTrace) {
-      loggerService.captureLog(error, stackTrace: stackTrace);
+      await loggerService.captureLog(error, stackTrace: stackTrace);
+      rethrow;
     }
   }
 

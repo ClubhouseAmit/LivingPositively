@@ -1,3 +1,5 @@
+import 'dart:async';
+
 // Drives every uncovered branch in FormPageTemplate:
 //   - addItem / removeItem / editItem (lines 66-70)
 //   - addSuggestion more-suggestions link (lines 73-81)
@@ -70,6 +72,43 @@ class _FakePm implements PersistentMemoryService {
       throw StateError('write failed');
     }
     store[key] = value;
+  }
+}
+
+class _HeldDreamsMemoryService extends _FakePm {
+  final Completer<void> _firstDreamsSelectionWrite = Completer<void>();
+  final Completer<void> firstDreamsSelectionWriteStarted = Completer<void>();
+  bool _holdFirstDreamsSelectionWrite = true;
+
+  @override
+  Future<void> setItem(String key, PersistentMemoryType type, value) async {
+    if (key == 'userSelectionPersonalPlan-DreamsAndGoals' &&
+        _holdFirstDreamsSelectionWrite) {
+      _holdFirstDreamsSelectionWrite = false;
+      firstDreamsSelectionWriteStarted.complete();
+      await _firstDreamsSelectionWrite.future;
+    }
+    await super.setItem(key, type, value);
+  }
+
+  void releaseFirstDreamsSelectionWrite() {
+    if (!_firstDreamsSelectionWrite.isCompleted) {
+      _firstDreamsSelectionWrite.complete();
+    }
+  }
+}
+
+class _DualFailureDreamsMemoryService extends _FakePm {
+  bool failDreamsAndDisclaimerWrites = true;
+
+  @override
+  Future<void> setItem(String key, PersistentMemoryType type, value) async {
+    if (failDreamsAndDisclaimerWrites &&
+        (key == 'userSelectionPersonalPlan-DreamsAndGoals' ||
+            key == 'disclaimerConfirmed')) {
+      throw StateError('intentional $key write failure');
+    }
+    await super.setItem(key, type, value);
   }
 }
 
@@ -276,12 +315,17 @@ void main() {
     );
 
     await tester.tap(_primaryButton(), warnIfMissed: false);
-    await tester.pumpAndSettle();
+    await tester.pump();
+    await tester.pump();
     expect(nextCalls, 0, reason: 'navigation waits on a save that failed');
 
-    // The in-flight guard released, so the step can be submitted again.
-    await tester.tap(_primaryButton(), warnIfMissed: false);
-    await tester.pumpAndSettle();
+    final retry = tester.widget<SnackBarAction>(
+      find.widgetWithText(SnackBarAction, 'Try again'),
+    );
+    retry.onPressed();
+    await tester.pump();
+    await tester.pump();
+    await tester.pump();
     expect(nextCalls, 1);
     expect(
       flakyPm.store['userSelectionPersonalPlan-DifficultEvents'],
@@ -562,6 +606,47 @@ void main() {
         expect(find.text('Add my own personal dream or goal...'), findsNothing);
       });
 
+      testWidgets(
+        'should keep the latest row snapshot when an older save is held',
+        (tester) async {
+          await GetIt.instance.reset();
+          final heldMemory = _HeldDreamsMemoryService();
+          GetIt.instance.registerSingleton<PersistentMemoryService>(heldMemory);
+          GetIt.instance.registerSingleton<AnalyticsService>(_FakeAnalytics());
+          addTearDown(heldMemory.releaseFirstDreamsSelectionWrite);
+
+          final user = UserInformation(service: heldMemory)..gender = 'other';
+          await _pump(tester, 'PersonalPlan-DreamsAndGoals', user: user);
+
+          await _addViaDialog(tester, 'First custom dream');
+          await heldMemory.firstDreamsSelectionWriteStarted.future;
+
+          await tester.tap(
+            find.byKey(const ValueKey('suggestion-Write and publish a book')),
+          );
+          await tester.pump();
+
+          heldMemory.releaseFirstDreamsSelectionWrite();
+          await tester.pumpAndSettle();
+
+          expect(
+            heldMemory.store['userSelectionPersonalPlan-DreamsAndGoals'],
+            <String>['First custom dream', 'Write and publish a book'],
+          );
+          expect(
+            heldMemory.store['selectionSourcesPersonalPlan-DreamsAndGoals'],
+            <String>[
+              'custom',
+              'catalogue:write-and-publish-a-book',
+            ],
+          );
+          expect(
+            heldMemory.store['addedStringsPersonalPlan-DreamsAndGoals'],
+            <String>['First custom dream'],
+          );
+        },
+      );
+
       testWidgets('should preserve sources through edit and paired removal', (
         tester,
       ) async {
@@ -605,6 +690,40 @@ void main() {
           findsOneWidget,
         );
       });
+
+      testWidgets(
+        'should observe simultaneous Dreams and disclaimer save failures before retrying',
+        (tester) async {
+          await GetIt.instance.reset();
+          final memory = _DualFailureDreamsMemoryService();
+          GetIt.instance.registerSingleton<PersistentMemoryService>(memory);
+          GetIt.instance.registerSingleton<AnalyticsService>(_FakeAnalytics());
+          final user = UserInformation(service: memory)..gender = 'other';
+          await _pump(tester, 'PersonalPlan-DreamsAndGoals', user: user);
+
+          await _addViaDialog(tester, 'A recoverable dream');
+          await tester.pump();
+
+          expect(
+            find.widgetWithText(SnackBarAction, 'Try again'),
+            findsOneWidget,
+          );
+          expect(tester.takeException(), isNull);
+
+          memory.failDreamsAndDisclaimerWrites = false;
+          final SnackBarAction retry = tester.widget<SnackBarAction>(
+            find.widgetWithText(SnackBarAction, 'Try again'),
+          );
+          retry.onPressed();
+          await tester.pumpAndSettle();
+
+          expect(
+            memory.store['userSelectionPersonalPlan-DreamsAndGoals'],
+            <String>['A recoverable dream'],
+          );
+          expect(memory.store['disclaimerConfirmed'], isTrue);
+        },
+      );
 
       testWidgets('should promote a changed catalogue row to a custom source', (
         tester,

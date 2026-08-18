@@ -10,7 +10,7 @@ List<WizardStep> buildWizardSteps({
   required VoidCallback next,
   required VoidCallback prev,
   required PhonePageData phonePageData,
-  required void Function(BuildContext context) submit,
+  required Future<void> Function(BuildContext context) submit,
 }) {
   FormPageTemplate planStep(String collectionName) => FormPageTemplate(
     key: GlobalKey<WizardStepState>(debugLabel: collectionName),

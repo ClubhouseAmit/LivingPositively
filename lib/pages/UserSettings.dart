@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:math' as math;
 
 import 'package:flutter/material.dart';
@@ -128,17 +129,39 @@ class _UserSettingsState extends LPExtendedState<UserSettings> {
     String locale,
     UserInformation userInfoProvider,
   ) async {
-    PersistentMemoryService service =
-        GetIt.instance<
-          PersistentMemoryService
-        >(); // Get the persistent memory service instance
+    try {
+      PersistentMemoryService service =
+          GetIt.instance<
+            PersistentMemoryService
+          >(); // Get the persistent memory service instance
 
-    await service.setItem("localeName", PersistentMemoryType.String, locale);
+      await service.setItem(
+        "localeName",
+        PersistentMemoryType.String,
+        locale,
+      );
 
-    setState(() {
-      widget.changeLocale(locale);
-      userInfoProvider.updateLocaleName(locale);
-    });
+      if (!mounted) {
+        return;
+      }
+      setState(() {
+        widget.changeLocale(locale);
+        userInfoProvider.updateLocaleName(locale);
+      });
+    } catch (error, stackTrace) {
+      debugPrint('Could not save settings locale: $error\n$stackTrace');
+    }
+  }
+
+  Future<void> _applyGenderInBackground(
+    Gender gender,
+    UserInformation userInfoProvider,
+  ) async {
+    try {
+      await gender.applyTo(userInfoProvider);
+    } catch (error, stackTrace) {
+      debugPrint('Could not save settings gender: $error\n$stackTrace');
+    }
   }
 
   // -- Design primitives (pen.dev "Settings Screen") -----------------------
@@ -256,26 +279,30 @@ class _UserSettingsState extends LPExtendedState<UserSettings> {
     UserInformation userInfo, {
     required bool isStart,
   }) async {
-    final initialTime = TimeOfDay(
-      hour: isStart ? userInfo.darkModeStartHour : userInfo.darkModeEndHour,
-      minute: isStart
-          ? userInfo.darkModeStartMinute
-          : userInfo.darkModeEndMinute,
-    );
-    final selectedTime = await showTimePicker(
-      context: context,
-      initialTime: initialTime,
-    );
-    if (selectedTime == null || !mounted) {
-      return;
-    }
+    try {
+      final initialTime = TimeOfDay(
+        hour: isStart ? userInfo.darkModeStartHour : userInfo.darkModeEndHour,
+        minute: isStart
+            ? userInfo.darkModeStartMinute
+            : userInfo.darkModeEndMinute,
+      );
+      final selectedTime = await showTimePicker(
+        context: context,
+        initialTime: initialTime,
+      );
+      if (selectedTime == null || !mounted) {
+        return;
+      }
 
-    await userInfo.updateDarkModeSettings(
-      startHour: isStart ? selectedTime.hour : null,
-      startMinute: isStart ? selectedTime.minute : null,
-      endHour: isStart ? null : selectedTime.hour,
-      endMinute: isStart ? null : selectedTime.minute,
-    );
+      await userInfo.updateDarkModeSettings(
+        startHour: isStart ? selectedTime.hour : null,
+        startMinute: isStart ? selectedTime.minute : null,
+        endHour: isStart ? null : selectedTime.hour,
+        endMinute: isStart ? null : selectedTime.minute,
+      );
+    } catch (error, stackTrace) {
+      debugPrint('Unable to save dark-mode schedule: $error\n$stackTrace');
+    }
   }
 
   /// One card in the appearance segmented control (design nodes dP4Pe /
@@ -361,8 +388,13 @@ class _UserSettingsState extends LPExtendedState<UserSettings> {
       minute: userInfo.darkModeEndMinute,
     );
 
-    Future<void> select(DarkModePreference value) =>
-        userInfo.updateDarkModeSettings(preference: value);
+    Future<void> select(DarkModePreference value) async {
+      try {
+        await userInfo.updateDarkModeSettings(preference: value);
+      } catch (error, stackTrace) {
+        debugPrint('Unable to save dark-mode preference: $error\n$stackTrace');
+      }
+    }
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -383,7 +415,9 @@ class _UserSettingsState extends LPExtendedState<UserSettings> {
               icon: Icons.light_mode_outlined,
               label: appLocale.darkModeAlwaysLight,
               selected: preference == DarkModePreference.alwaysLight,
-              onTap: () => select(DarkModePreference.alwaysLight),
+              onTap: () {
+                unawaited(select(DarkModePreference.alwaysLight));
+              },
             ),
             _modeOption(
               colorScheme,
@@ -391,7 +425,9 @@ class _UserSettingsState extends LPExtendedState<UserSettings> {
               icon: Icons.dark_mode_outlined,
               label: appLocale.darkModeAlwaysDark,
               selected: preference == DarkModePreference.alwaysDark,
-              onTap: () => select(DarkModePreference.alwaysDark),
+              onTap: () {
+                unawaited(select(DarkModePreference.alwaysDark));
+              },
             ),
             _modeOption(
               colorScheme,
@@ -399,7 +435,9 @@ class _UserSettingsState extends LPExtendedState<UserSettings> {
               icon: Icons.schedule_outlined,
               label: appLocale.darkModeSleepPromoting,
               selected: isScheduled,
-              onTap: () => select(DarkModePreference.scheduled),
+              onTap: () {
+                unawaited(select(DarkModePreference.scheduled));
+              },
             ),
           ],
         ),
@@ -417,7 +455,9 @@ class _UserSettingsState extends LPExtendedState<UserSettings> {
                   buttonKey: const Key('darkModeStartTimeButton'),
                   label:
                       '${appLocale.darkModeStartTime}: ${startTime.format(context)}',
-                  onPressed: () => _selectDarkModeTime(userInfo, isStart: true),
+                  onPressed: () {
+                    unawaited(_selectDarkModeTime(userInfo, isStart: true));
+                  },
                 ),
               ),
               Expanded(
@@ -426,8 +466,9 @@ class _UserSettingsState extends LPExtendedState<UserSettings> {
                   buttonKey: const Key('darkModeEndTimeButton'),
                   label:
                       '${appLocale.darkModeEndTime}: ${endTime.format(context)}',
-                  onPressed: () =>
-                      _selectDarkModeTime(userInfo, isStart: false),
+                  onPressed: () {
+                    unawaited(_selectDarkModeTime(userInfo, isStart: false));
+                  },
                 ),
               ),
             ],
@@ -754,14 +795,14 @@ class _UserSettingsState extends LPExtendedState<UserSettings> {
                                             languageCode(locale) ==
                                             userInfoProvider.localeName,
                                         onSelected: (newValue) {
-                                          setState(() {
-                                            if (newValue != null) {
+                                          if (newValue != null) {
+                                            unawaited(
                                               updateLocale(
                                                 languageCode(newValue),
                                                 userInfoProvider,
-                                              );
-                                            }
-                                          });
+                                              ),
+                                            );
+                                          }
                                         },
                                       ),
                                     ),
@@ -828,7 +869,12 @@ class _UserSettingsState extends LPExtendedState<UserSettings> {
                                                 : dropdownValueAge!,
                                           );
                                           if (selectedGender != null) {
-                                            selectedGender!.applyTo(userInfoProvider);
+                                            unawaited(
+                                              _applyGenderInBackground(
+                                                selectedGender!,
+                                                userInfoProvider,
+                                              ),
+                                            );
                                           }
                                           Navigator.pop(context);
                                         },

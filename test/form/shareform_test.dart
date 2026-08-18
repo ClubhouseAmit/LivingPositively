@@ -113,7 +113,7 @@ void main() {
             ShareForm(
               key: GlobalKey<WizardStepState>(),
               prev: () {},
-              submit: (context) {},
+              submit: (context) async {},
             ),
           ),
         ),
@@ -212,6 +212,8 @@ void main() {
       await tester.enterText(find.byType(TextFormField), 'My shared dream');
       await tester.tap(find.text('Save'));
       await tester.pumpAndSettle();
+      await tester.runAsync(() => Future<void>.delayed(Duration.zero));
+      await tester.pump();
 
       expect(mockUserInformation.dreamsAndGoals, ['My shared dream']);
       verify(
@@ -467,6 +469,64 @@ void main() {
       ),
     ).called(1);
   });
+
+  testWidgets(
+    'should surface custom category persistence failure and retry its latest snapshot',
+    (WidgetTester tester) async {
+      var rejectTitleWrite = true;
+      when(mockPersistentMemoryService.setItem(any, any, any)).thenAnswer((
+        invocation,
+      ) async {
+        if (invocation.positionalArguments[0] == 'customCategoryTitles' &&
+            rejectTitleWrite) {
+          throw StateError('intentional custom category persistence failure');
+        }
+      });
+
+      await tester.pumpWidget(createTestWidget(locale: const Locale('en')));
+      await tester.ensureVisible(find.text('+ Add a custom category'));
+      await tester.tap(find.text('+ Add a custom category'));
+      await tester.pumpAndSettle();
+      await tester.enterText(
+        find.byKey(const Key('custom-category-title-field')),
+        'My category',
+      );
+      await tester.enterText(
+        find.byKey(const Key('custom-category-description-field')),
+        'My description',
+      );
+      await tester.ensureVisible(find.text('Add category'));
+      await tester.tap(find.text('Add category'));
+      await tester.pump();
+
+      expect(find.widgetWithText(SnackBarAction, 'Try again'), findsOneWidget);
+      expect(tester.takeException(), isNull);
+
+      rejectTitleWrite = false;
+      tester
+          .widget<SnackBarAction>(
+            find.widgetWithText(SnackBarAction, 'Try again'),
+          )
+          .onPressed();
+      await tester.pump();
+      await tester.pump();
+
+      verify(
+        mockPersistentMemoryService.setItem(
+          'customCategoryTitles',
+          PersistentMemoryType.StringList,
+          ['My category'],
+        ),
+      ).called(2);
+      verify(
+        mockPersistentMemoryService.setItem(
+          'customCategoryDescriptions',
+          PersistentMemoryType.StringList,
+          ['My description'],
+        ),
+      ).called(1);
+    },
+  );
 
   testWidgets(
     'ShareForm shows title suggestions when adding another category',

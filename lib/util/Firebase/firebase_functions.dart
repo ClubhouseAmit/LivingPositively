@@ -10,8 +10,8 @@ import 'dart:math';
 import 'package:firebase_auth/firebase_auth.dart';
 
 import 'package:mazilon/util/SignIn/popup_toast.dart';
-import 'package:mazilon/util/Form/retrieveInformation.dart';
 import 'package:mazilon/util/appInformation.dart';
+import 'package:mazilon/util/dreams_and_goals_selection.dart';
 import 'package:mazilon/util/userInformation.dart';
 import 'dart:convert';
 import 'dart:io';
@@ -129,15 +129,15 @@ Future<void> loadUserInformation(
       PersistentMemoryType.StringList,
     ),
     'dreamsAndGoals': service.getItem(
-      "userSelectionPersonalPlan-DreamsAndGoals",
+      dreamsAndGoalsSelectionStorageKey,
       PersistentMemoryType.StringList,
     ),
     'dreamsAndGoalsSelectionSources': service.getItem(
-      'selectionSourcesPersonalPlan-DreamsAndGoals',
+      dreamsAndGoalsSelectionSourcesStorageKey,
       PersistentMemoryType.StringList,
     ),
     'dreamsAndGoalsAddedStrings': service.getItem(
-      'addedStringsPersonalPlan-DreamsAndGoals',
+      dreamsAndGoalsCustomSelectionsStorageKey,
       PersistentMemoryType.StringList,
     ),
     'location': service.getItem("location", PersistentMemoryType.String),
@@ -211,42 +211,30 @@ Future<void> loadUserInformation(
   final storedDreamsAndGoalsSources = TypeUtils.castToStringList(
     data['dreamsAndGoalsSelectionSources'],
   );
-  final dreamsAndGoalsSelectionSources =
-      normalizeDreamsAndGoalsSelectionSources(
+  final DreamsAndGoalsPersistenceSnapshot dreamsAndGoalsSnapshot =
+      DreamsAndGoalsPersistenceSnapshot.fromSelections(
         dreamsAndGoals,
-        storedDreamsAndGoalsSources,
+        normalizeDreamsAndGoalsSelectionSources(
+          dreamsAndGoals,
+          storedDreamsAndGoalsSources,
+        ),
       );
-  final dreamsAndGoalsAddedStrings = dreamsAndGoalsCustomItems(
-    dreamsAndGoals,
-    dreamsAndGoalsSelectionSources,
-  );
   userInfo.updateDreamsAndGoals(
-    dreamsAndGoals,
-    selectionSources: dreamsAndGoalsSelectionSources,
+    dreamsAndGoalsSnapshot.selections,
+    selectionSources: dreamsAndGoalsSnapshot.selectionSources,
   );
   final storedDreamsAndGoalsAddedStrings = TypeUtils.castToStringList(
     data['dreamsAndGoalsAddedStrings'],
   );
   if (!listEquals(
         storedDreamsAndGoalsSources,
-        dreamsAndGoalsSelectionSources,
+        dreamsAndGoalsSnapshot.selectionSources,
       ) ||
       !listEquals(
         storedDreamsAndGoalsAddedStrings,
-        dreamsAndGoalsAddedStrings,
+        dreamsAndGoalsSnapshot.customSelections,
       )) {
-    await Future.wait<void>([
-      service.setItem(
-        'selectionSourcesPersonalPlan-DreamsAndGoals',
-        PersistentMemoryType.StringList,
-        dreamsAndGoalsSelectionSources,
-      ),
-      service.setItem(
-        'addedStringsPersonalPlan-DreamsAndGoals',
-        PersistentMemoryType.StringList,
-        dreamsAndGoalsAddedStrings,
-      ),
-    ]);
+    await persistDreamsAndGoalsSnapshot(service, dreamsAndGoalsSnapshot);
   }
   userInfo.updateLocation(data['location'] ?? "");
   userInfo.updateDisclaimerSigned(data['disclaimerConfirmed'] ?? false);

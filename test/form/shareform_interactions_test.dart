@@ -11,6 +11,7 @@
 import 'dart:async';
 
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:get_it/get_it.dart';
 import 'package:mazilon/file_service.dart';
@@ -68,12 +69,29 @@ class _ExportReadingFileService extends NoopFileService {
     required String mainTitle,
     required String textDirection,
   }) async {
+    downloadCalls++;
     final storedDreams = await memory.getItem(
       _dreamsAndGoalsSelectionKey,
       PersistentMemoryType.StringList,
     );
     dreamsAtDownload = List<String>.from(storedDreams as Iterable);
     return 'downloaded-plan.pdf';
+  }
+}
+
+class _FailingDreamsMemoryService extends FakePersistentMemoryService {
+  bool failDreamsSelection = true;
+
+  @override
+  Future<void> setItem(
+    String key,
+    PersistentMemoryType type,
+    dynamic value,
+  ) async {
+    if (key == _dreamsAndGoalsSelectionKey && failDreamsSelection) {
+      throw StateError('Dreams persistence failed.');
+    }
+    await super.setItem(key, type, value);
   }
 }
 
@@ -92,20 +110,44 @@ Future<void> _openDreamsAndGoalsAndAddOwnGoal(WidgetTester tester) async {
   await tester.pumpAndSettle();
 }
 
+void _pressIconButton(WidgetTester tester, IconData icon) {
+  final button = tester.widget<IconButton>(
+    find.ancestor(of: find.byIcon(icon), matching: find.byType(IconButton)),
+  );
+  button.onPressed!();
+}
+
+void _pressWizardPrimaryAction(WidgetTester tester) {
+  final button = tester.widget<TextButton>(
+    find.byKey(const Key('wizard-primary-action')),
+  );
+  button.onPressed!();
+}
+
+Future<void> _flushAsyncAction(WidgetTester tester) async {
+  await tester.runAsync(() => Future<void>.delayed(Duration.zero));
+  await tester.pump();
+}
+
 void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
 
+  const toastChannel = MethodChannel('PonnamKarthik/fluttertoast');
   late TestServiceLocators services;
   late UserInformation user;
 
   setUp(() {
     services = registerTestServices(locale: 'en');
+    TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger
+        .setMockMethodCallHandler(toastChannel, (_) async => true);
     user = UserInformation();
     user.gender = 'other';
     user.localeName = 'en';
   });
 
   tearDown(() {
+    TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger
+        .setMockMethodCallHandler(toastChannel, null);
     resetTestServices();
   });
 
@@ -118,7 +160,7 @@ void main() {
         ShareForm(
           key: GlobalKey<WizardStepState>(),
           prev: () {},
-          submit: (_) {},
+          submit: (_) async {},
         ),
       ),
       userInformation: user,
@@ -128,7 +170,8 @@ void main() {
     // The share icon is the first IconButton.
     final shareIcon = find.byIcon(Icons.share);
     expect(shareIcon, findsOneWidget);
-    await tester.tap(shareIcon, warnIfMissed: false);
+    _pressIconButton(tester, Icons.share);
+    await _flushAsyncAction(tester);
     await tester.pumpAndSettle();
     // showShareDialog opens an AlertDialog/Dialog from
     // util/Share/show_share_dialog.dart — verify a Dialog mounted without
@@ -144,7 +187,7 @@ void main() {
         ShareForm(
           key: GlobalKey<WizardStepState>(),
           prev: () {},
-          submit: (_) {},
+          submit: (_) async {},
         ),
       ),
       userInformation: user,
@@ -153,17 +196,19 @@ void main() {
 
     final downloadIcon = find.byIcon(Icons.download);
     expect(downloadIcon, findsOneWidget);
-    await tester.tap(downloadIcon, warnIfMissed: false);
-    // The download future + toast both schedule timers via showToast →
-    // FlutterToast platform channel — drain a tick.
+    final downloadButton = tester.widget<IconButton>(
+      find.ancestor(of: downloadIcon, matching: find.byType(IconButton)),
+    );
+    downloadButton.onPressed!();
+    await tester.runAsync(() => Future<void>.delayed(Duration.zero));
     await tester.pump();
-    await tester.pump(const Duration(milliseconds: 50));
 
     expect(services.files.downloadCalls, 1);
+    await tester.pump(const Duration(seconds: 2));
   });
 
   group('ShareForm', () {
-    testWidgets('should persist a just-selected dream before exporting', (
+    testWidgets('should wait for the latest shared dream snapshot before exporting', (
       tester,
     ) async {
       final delayedMemory = _DelayedDreamsMemoryService();
@@ -174,6 +219,9 @@ void main() {
       locator.registerSingleton<PersistentMemoryService>(delayedMemory);
       locator.registerSingleton<FileService>(exportFiles);
       addTearDown(delayedMemory.releaseFirstSelectionWrite);
+      user = UserInformation(service: delayedMemory)
+        ..gender = 'other'
+        ..localeName = 'en';
 
       await pumpWithProviders(
         tester,
@@ -181,7 +229,7 @@ void main() {
           ShareForm(
             key: GlobalKey<WizardStepState>(),
             prev: () {},
-            submit: (_) {},
+            submit: (_) async {},
           ),
         ),
         userInformation: user,
@@ -192,25 +240,36 @@ void main() {
       expect(user.dreamsAndGoals, ['Immediate dream']);
       expect(delayedMemory.firstSelectionWriteStarted, isTrue);
 
-      final downloadIcon = find.byIcon(Icons.download);
-      await tester.ensureVisible(downloadIcon);
-      await tester.tap(downloadIcon);
-      await tester.pumpAndSettle();
+      final suggestion = tester.widget<InkWell>(
+        find.byKey(const ValueKey('suggestion-Write and publish a book')),
+      );
+      suggestion.onTap!();
+      await tester.pump();
 
-      expect(exportFiles.dreamsAtDownload, ['Immediate dream']);
+      _pressIconButton(tester, Icons.download);
+      await _flushAsyncAction(tester);
+      expect(exportFiles.downloadCalls, 0);
+
+      delayedMemory.releaseFirstSelectionWrite();
+      await _flushAsyncAction(tester);
+
+      expect(exportFiles.downloadCalls, 1);
+      expect(exportFiles.dreamsAtDownload, [
+        'Immediate dream',
+        'Write and publish a book',
+      ]);
       expect(
         delayedMemory.store[_dreamsAndGoalsAddedStringsKey],
         ['Immediate dream'],
       );
       expect(
         delayedMemory.store[_dreamsAndGoalsSelectionSourcesKey],
-        ['custom'],
+        ['custom', 'catalogue:write-and-publish-a-book'],
       );
-
-      delayedMemory.releaseFirstSelectionWrite();
+      await tester.pump(const Duration(seconds: 2));
     });
 
-    testWidgets('should persist a just-selected dream before finishing', (
+    testWidgets('should wait for the latest shared dream snapshot before finishing', (
       tester,
     ) async {
       final delayedMemory = _DelayedDreamsMemoryService();
@@ -221,6 +280,9 @@ void main() {
       locator.unregister<FileService>();
       locator.registerSingleton<PersistentMemoryService>(delayedMemory);
       locator.registerSingleton<FileService>(exportFiles);
+      user = UserInformation(service: delayedMemory)
+        ..gender = 'other'
+        ..localeName = 'en';
       addTearDown(delayedMemory.releaseFirstSelectionWrite);
 
       await pumpWithProviders(
@@ -229,7 +291,7 @@ void main() {
           ShareForm(
             key: GlobalKey<WizardStepState>(),
             prev: () {},
-            submit: (_) {
+            submit: (_) async {
               dreamsAtSubmit = List<String>.from(
                 delayedMemory.store[_dreamsAndGoalsSelectionKey] as Iterable,
               );
@@ -243,24 +305,100 @@ void main() {
       await _openDreamsAndGoalsAndAddOwnGoal(tester);
       expect(delayedMemory.firstSelectionWriteStarted, isTrue);
 
-      delayedMemory.store[_dreamsAndGoalsSelectionKey] = <String>[];
-      delayedMemory.store[_dreamsAndGoalsAddedStringsKey] = <String>[];
-      delayedMemory.store[_dreamsAndGoalsSelectionSourcesKey] = <String>[];
+      final suggestion = tester.widget<InkWell>(
+        find.byKey(const ValueKey('suggestion-Write and publish a book')),
+      );
+      suggestion.onTap!();
+      await tester.pump();
 
-      final finishButton = find.byKey(const Key('wizard-primary-action'));
-      await tester.ensureVisible(finishButton);
-      await tester.tap(finishButton);
-      await tester.pumpAndSettle();
+      _pressWizardPrimaryAction(tester);
+      await _flushAsyncAction(tester);
+      expect(dreamsAtSubmit, isNull);
 
-      expect(dreamsAtSubmit, ['Immediate dream']);
+      delayedMemory.releaseFirstSelectionWrite();
+      await _flushAsyncAction(tester);
+
+      expect(dreamsAtSubmit, [
+        'Immediate dream',
+        'Write and publish a book',
+      ]);
       expect(
         delayedMemory.store[_dreamsAndGoalsAddedStringsKey],
         ['Immediate dream'],
       );
-      expect(delayedMemory.store[_dreamsAndGoalsSelectionSourcesKey], ['custom']);
-
-      delayedMemory.releaseFirstSelectionWrite();
+      expect(delayedMemory.store[_dreamsAndGoalsSelectionSourcesKey], [
+        'custom',
+        'catalogue:write-and-publish-a-book',
+      ]);
     });
+
+    testWidgets(
+      'should block download and finish on a save failure until Retry succeeds',
+      (tester) async {
+        final failingMemory = _FailingDreamsMemoryService();
+        final exportFiles = _ExportReadingFileService(failingMemory);
+        final locator = GetIt.instance;
+        locator.unregister<PersistentMemoryService>();
+        locator.unregister<FileService>();
+        locator.registerSingleton<PersistentMemoryService>(failingMemory);
+        locator.registerSingleton<FileService>(exportFiles);
+        user = UserInformation(service: failingMemory)
+          ..gender = 'other'
+          ..localeName = 'en';
+        var submitCalls = 0;
+
+        await pumpWithProviders(
+          tester,
+          wizardStepHarness(
+            ShareForm(
+              key: GlobalKey<WizardStepState>(),
+              prev: () {},
+              submit: (_) async {
+                submitCalls++;
+              },
+            ),
+          ),
+          userInformation: user,
+          surfaceSize: const Size(1024, 1800),
+        );
+
+        _pressIconButton(tester, Icons.download);
+        await _flushAsyncAction(tester);
+        expect(exportFiles.downloadCalls, 0);
+        expect(
+          find.widgetWithText(SnackBarAction, 'Try again'),
+          findsOneWidget,
+        );
+
+        failingMemory.failDreamsSelection = false;
+        tester
+            .widget<SnackBarAction>(
+              find.widgetWithText(SnackBarAction, 'Try again'),
+            )
+            .onPressed();
+        await _flushAsyncAction(tester);
+        expect(exportFiles.downloadCalls, 1);
+
+        failingMemory.failDreamsSelection = true;
+        _pressWizardPrimaryAction(tester);
+        await _flushAsyncAction(tester);
+        expect(submitCalls, 0);
+        expect(
+          find.widgetWithText(SnackBarAction, 'Try again'),
+          findsOneWidget,
+        );
+
+        failingMemory.failDreamsSelection = false;
+        tester
+            .widget<SnackBarAction>(
+              find.widgetWithText(SnackBarAction, 'Try again'),
+            )
+            .onPressed();
+        await _flushAsyncAction(tester);
+        expect(submitCalls, 1);
+        await tester.pump(const Duration(seconds: 2));
+      },
+    );
   });
 
   testWidgets('tapping the finish button calls widget.submit with context', (
@@ -273,21 +411,17 @@ void main() {
         ShareForm(
           key: GlobalKey<WizardStepState>(),
           prev: () {},
-          submit: (_) => submitCalls++,
+          submit: (_) async {
+            submitCalls++;
+          },
         ),
       ),
       userInformation: user,
       surfaceSize: const Size(1024, 1800),
     );
 
-    final finishButton = find.ancestor(
-      of: find.text("I'm Done!"),
-      matching: find.byType(TextButton),
-    );
-    expect(finishButton, findsOneWidget);
-    await tester.ensureVisible(finishButton);
-    await tester.tap(finishButton);
-    await tester.pumpAndSettle();
+    _pressWizardPrimaryAction(tester);
+    await _flushAsyncAction(tester);
 
     expect(submitCalls, 1);
   });

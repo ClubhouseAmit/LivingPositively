@@ -1,6 +1,10 @@
+import 'dart:async';
+
 import 'package:flutter/foundation.dart';
 import 'package:get_it/get_it.dart';
 import 'package:mazilon/global_enums.dart';
+import 'package:mazilon/util/dreams_and_goals_selection.dart';
+import 'package:mazilon/util/logger_service.dart';
 import 'package:mazilon/util/persistent_memory_service.dart';
 
 enum DarkModePreference { alwaysLight, alwaysDark, scheduled }
@@ -34,6 +38,8 @@ class UserInformation with ChangeNotifier {
   int darkModeEndMinute;
   Map<String, List<String>> thanks;
   PersistentMemoryService service; // Get the persistent memory service instance
+  Future<void> _pendingDreamsAndGoalsSave = Future<void>.value();
+  int _dreamsAndGoalsSaveRevision = 0;
 
   UserInformation({
     this.location = '',
@@ -87,6 +93,10 @@ class UserInformation with ChangeNotifier {
     safeEnvironment = [];
     dreamsAndGoals = [];
     dreamsAndGoalsSelectionSources = [];
+    // An in-flight snapshot cannot be cancelled safely. Queue the empty
+    // snapshot behind it so reset is always the final local Dreams state.
+    _dreamsAndGoalsSaveRevision++;
+    unawaited(_saveInBackground(queueDreamsAndGoalsSave));
     loggedIn = false;
     userId = '';
     thanks = {};
@@ -96,43 +106,62 @@ class UserInformation with ChangeNotifier {
     notifyListeners();
   }
 
-  void updateGender(String text) {
-    void saveGender(String value) async {
-      await service.setItem('gender', PersistentMemoryType.String, value);
+  /// Observes non-critical legacy writes so a storage failure cannot escape an
+  /// async `void` setter. Dreams and Goals writes deliberately use their
+  /// queue instead, because those errors must reach the visible retry UI.
+  Future<void> _saveInBackground(Future<void> Function() save) async {
+    try {
+      await save();
+    } catch (error, stackTrace) {
+      try {
+        await GetIt.instance<IncidentLoggerService>().captureLog(
+          error,
+          stackTrace: stackTrace,
+        );
+      } catch (_) {
+        // Persistence already attempted its own logging. Never create a new
+        // uncaught async error while reporting a background-write failure.
+      }
     }
+  }
 
+  void updateGender(String text) {
     gender = text;
-    saveGender(text);
+    unawaited(
+      _saveInBackground(
+        () => service.setItem('gender', PersistentMemoryType.String, text),
+      ),
+    );
     notifyListeners();
   }
 
   void updateName(String text) {
-    void saveName(String value) async {
-      await service.setItem('name', PersistentMemoryType.String, value);
-    }
-
     name = text;
-    saveName(text);
+    unawaited(
+      _saveInBackground(
+        () => service.setItem('name', PersistentMemoryType.String, text),
+      ),
+    );
     notifyListeners();
   }
 
   void updateAge(String text) {
-    void saveAge(String value) async {
-      await service.setItem('age', PersistentMemoryType.String, value);
-    }
-
     age = text;
-    saveAge(text);
+    unawaited(
+      _saveInBackground(
+        () => service.setItem('age', PersistentMemoryType.String, text),
+      ),
+    );
     notifyListeners();
   }
 
   void updateBinary(bool value) {
-    void saveBinary(bool value) async {
-      await service.setItem('binary', PersistentMemoryType.Bool, value);
-    }
-
     binary = value;
-    saveBinary(value);
+    unawaited(
+      _saveInBackground(
+        () => service.setItem('binary', PersistentMemoryType.Bool, value),
+      ),
+    );
     notifyListeners();
   }
 
@@ -172,15 +201,72 @@ class UserInformation with ChangeNotifier {
     notifyListeners();
   }
 
+  /// Replaces Dreams and Goals state using defensively copied positional data.
+  ///
+  /// When [selectionSources] is supplied, it must contain exactly one source
+  /// per item in [value] or an [ArgumentError] is thrown before any state is
+  /// changed. Omitting it deliberately clears source metadata.
   void updateDreamsAndGoals(
     List<String> value, {
     List<String>? selectionSources,
   }) {
-    dreamsAndGoals = [...value];
-    if (selectionSources != null) {
-      dreamsAndGoalsSelectionSources = [...selectionSources];
+    final List<String> valueCopy = List<String>.from(value);
+    late final List<String> sourceCopy;
+    if (selectionSources == null) {
+      sourceCopy = <String>[];
+    } else {
+      if (selectionSources.length != valueCopy.length) {
+        throw ArgumentError.value(
+          selectionSources,
+          'selectionSources',
+          'Must contain one source for every Dreams and Goals value.',
+        );
+      }
+      sourceCopy = normalizeDreamsAndGoalsSelectionSources(
+        valueCopy,
+        List<String>.from(selectionSources),
+      );
     }
+    dreamsAndGoals = valueCopy;
+    dreamsAndGoalsSelectionSources = sourceCopy;
+    _dreamsAndGoalsSaveRevision++;
     notifyListeners();
+  }
+
+  /// The latest serialized Dreams and Goals save, including queued snapshots.
+  Future<void> get pendingDreamsAndGoalsSave => _pendingDreamsAndGoalsSave;
+
+  /// Revision captured with a Dreams and Goals persistence snapshot.
+  int get dreamsAndGoalsSaveRevision => _dreamsAndGoalsSaveRevision;
+
+  /// Queues an immutable three-key snapshot after any prior Dreams save.
+  ///
+  /// A failed older write does not block a later snapshot: each new save
+  /// continues after the previous error so the latest queued state wins.
+  Future<void> queueDreamsAndGoalsSave() {
+    final DreamsAndGoalsPersistenceSnapshot snapshot =
+        DreamsAndGoalsPersistenceSnapshot.fromSelections(
+          dreamsAndGoals,
+          dreamsAndGoalsSelectionSources,
+        );
+    final Future<void> nextSave = _pendingDreamsAndGoalsSave
+        .catchError((Object _) {})
+        .then(
+          (_) => persistDreamsAndGoalsSnapshot(service, snapshot),
+        );
+    _pendingDreamsAndGoalsSave = nextSave;
+    return nextSave;
+  }
+
+  /// Retries [revision] only when it is still the current Dreams selection.
+  ///
+  /// A newer edit has already queued its own snapshot, so retrying an older
+  /// failure merely returns the current pending save instead of overwriting it.
+  Future<void> retryDreamsAndGoalsSave(int revision) {
+    if (revision != _dreamsAndGoalsSaveRevision) {
+      return _pendingDreamsAndGoalsSave;
+    }
+    return queueDreamsAndGoalsSave();
   }
 
   void updateDisclaimerSigned(bool value) {
@@ -199,40 +285,44 @@ class UserInformation with ChangeNotifier {
   }
 
   void updateNotificationHour(int value) {
-    Future<void> saveNotificationHour(int hour) async {
-      await service.setItem('notificationHour', PersistentMemoryType.Int, hour);
-    }
-
     notificationHour = value;
-    saveNotificationHour(value);
+    unawaited(
+      _saveInBackground(
+        () => service.setItem(
+          'notificationHour',
+          PersistentMemoryType.Int,
+          value,
+        ),
+      ),
+    );
     notifyListeners();
   }
 
   void updateNotificationMinute(int value) {
-    Future<void> saveNotificationMinute(int minute) async {
-      await service.setItem(
-        'notificationMinute',
-        PersistentMemoryType.Int,
-        minute,
-      );
-    }
-
     notificationMinute = value;
-    saveNotificationMinute(value);
+    unawaited(
+      _saveInBackground(
+        () => service.setItem(
+          'notificationMinute',
+          PersistentMemoryType.Int,
+          value,
+        ),
+      ),
+    );
     notifyListeners();
   }
 
   void updateNotificationMessage(String value) {
-    Future<void> saveNotificationMessage(String message) async {
-      await service.setItem(
-        'notificationMessage',
-        PersistentMemoryType.String,
-        message,
-      );
-    }
-
     notificationMessage = value;
-    saveNotificationMessage(value);
+    unawaited(
+      _saveInBackground(
+        () => service.setItem(
+          'notificationMessage',
+          PersistentMemoryType.String,
+          value,
+        ),
+      ),
+    );
     notifyListeners();
   }
 
@@ -421,41 +511,47 @@ class UserInformation with ChangeNotifier {
   }
 
   void updatePositiveTraits(List<String> value) {
-    Future<void> savePositiveTraits(List<String> traits) async {
-      await service.setItem(
-        'positiveTraits',
-        PersistentMemoryType.StringList,
-        traits,
-      );
-    }
-
     positiveTraits = [...value];
-    savePositiveTraits(value);
+    unawaited(
+      _saveInBackground(
+        () => service.setItem(
+          'positiveTraits',
+          PersistentMemoryType.StringList,
+          positiveTraits,
+        ),
+      ),
+    );
     notifyListeners();
   }
 
   void updateThanks(Map<String, List<String>> value) {
-    Future<void> saveThanks(List<String> thanks, List<String> dates) async {
-      await service.setItem(
-        'thankYous',
-        PersistentMemoryType.StringList,
-        thanks,
-      );
-      await service.setItem('dates', PersistentMemoryType.StringList, dates);
-    }
-
-    thanks = {"thanks": value["thanks"] ?? [], "dates": value["dates"] ?? []};
-    saveThanks(value["thanks"] ?? [], value["dates"] ?? []);
+    final savedThanks = List<String>.from(value['thanks'] ?? const <String>[]);
+    final savedDates = List<String>.from(value['dates'] ?? const <String>[]);
+    thanks = {'thanks': savedThanks, 'dates': savedDates};
+    unawaited(
+      _saveInBackground(() async {
+        await service.setItem(
+          'thankYous',
+          PersistentMemoryType.StringList,
+          savedThanks,
+        );
+        await service.setItem(
+          'dates',
+          PersistentMemoryType.StringList,
+          savedDates,
+        );
+      }),
+    );
     notifyListeners();
   }
 
   void updateLocation(String value) {
-    void saveLocation(String value) async {
-      await service.setItem('location', PersistentMemoryType.String, value);
-    }
-
     location = value;
-    saveLocation(value);
+    unawaited(
+      _saveInBackground(
+        () => service.setItem('location', PersistentMemoryType.String, value),
+      ),
+    );
     notifyListeners();
   }
 }
