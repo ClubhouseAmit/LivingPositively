@@ -700,6 +700,228 @@ abstract class AppLocalizations {
   /// **'{gender,select,male{Steps I can take to make my situation and environment safer} female{Steps I can take to make my situation and environment safer} other{Steps I can take to make my situation and environment safer}}'**
   String safeEnvironmentSubTitle(String gender);
 
+  /// No description provided for @dreamsAndGoalsHeader.
+  ///
+  /// In en, this message translates to:
+  /// **'{gender,select,male{Dreams, Aspirations, and Goals} female{Dreams, Aspirations, and Goals} other{Dreams, Aspirations, and Goals}}'**
+  String dreamsAndGoalsHeader(String gender);
+
+  /// No description provided for @dreamsAndGoalsSubTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'{gender,select,male{Dreams and goals I want to pursue} female{Dreams and goals I want to pursue} other{Dreams and goals I want to pursue}}'**
+  String dreamsAndGoalsSubTitle(String gender);
+
+  /// No description provided for @dreamsAndGoalsAddOwn.
+  ///
+  /// In en, this message translates to:
+  /// **'{gender,select,male{Add my own personal dream or goal...} female{Add my own personal dream or goal...} other{Add my own personal dream or goal...}}'**
+  String dreamsAndGoalsAddOwn(String gender);
+
+  /// No description provided for @dreamsAndGoalsListNo0.
+  ///
+  /// In en, this message translates to:
+  /// **'{gender,select,male{Write and publish a book} female{Write and publish a book} other{Write and publish a book}}'**
+  String dreamsAndGoalsListNo0(String gender);
+
+  /// No description provided for @dreamsAndGoalsListNo1.
+  ///
+  /// In en, this message translates to:
+  /// **'{gender,select,male{Learn a new language} female{Learn a new language} other{Learn a new language}}'**
+  String dreamsAndGoalsListNo1(String gender);
+
+  /// No description provided for @dreamsAndGoalsListNo2.
+  ///
+  /// In en, this message translates to:
+  /// **'{gender,select,male{Fly in a hot-air balloon} female{Fly in a hot-air balloon} other{Fly in a hot-air balloon}}'**
+  String dreamsAndGoalsListNo2(String gender);
+
+  /// No description provided for @dreamsAndGoalsListNo3.
+  ///
+  /// In en, this message translates to:
+  /// **'{gender,select,male{Run a marathon or half marathon} female{Run a marathon or half marathon} other{Run a marathon or half marathon}}'**
+  String dreamsAndGoalsListNo3(String gender);
+
+  /// No description provided for @dreamsAndGoalsListNo4.
+  ///
+  /// In en, this message translates to:
+  /// **'{gender,select,male{Run 5 kilometers} female{Run 5 kilometers} other{Run 5 kilometers}}'**
+  String dreamsAndGoalsListNo4(String gender);
+
+  /// No description provided for @dreamsAndGoalsListNo5.
+  ///
+  /// In en, this message translates to:
+  /// **'{gender,select,male{Start my own business} female{Start my own business} other{Start my own business}}'**
+  String dreamsAndGoalsListNo5(String gender);
+
+  /// No description provided for @dreamsAndGoalsListNo6.
+  ///
+  /// In en, this message translates to:
+  /// **'{gender,select,male{Learn to play a musical instrument} female{Learn to play a musical instrument} other{Learn to play a musical instrument}}'**
+  String dreamsAndGoalsListNo6(String gender);
+
+  /// No description provided for @dreamsAndGoalsListNo7.
+  ///
+  /// In en, this message translates to:
+  /// **'{gender,select,male{Volunteer regularly for a cause that matters to me} female{Volunteer regularly for a cause that matters to me} other{Volunteer regularly for a cause that matters to me}}'**
+  String dreamsAndGoalsListNo7(String gender);
+
+  /// No description provided for @dreamsAndGoalsListNo8.
+  ///
+  /// In en, this message translates to:
+  /// **'{gender,select,male{Travel to my dream destination somewhere in the world} female{Travel to my dream destination somewhere in the world} other{Travel to my dream destination somewhere in the world}}'**
+  String dreamsAndGoalsListNo8(String gender);
+
+  /// No description provided for @dreamsAndGoalsListNo9.
+  ///
+  /// In en, this message translates to:
+  /// **'{gender,select,male{Complete a degree or certificate program} female{Complete a degree or certificate program} other{Complete a degree or certificate program}}'**
+  String dreamsAndGoalsListNo9(String gender);
+
+  /// No description provided for @dreamsAndGoalsListNo10.
+  ///
+  /// In en, this message translates to:
+  /// **'{gender,select,male{Forgive someone who hurt me} female{Forgive someone who hurt me} other{Forgive someone who hurt me}}'**
+  String dreamsAndGoalsListNo10(String gender);
+
+  /// No description provided for @dreamsAndGoalsListNo11.
+  ///
+  /// In en, this message translates to:
+  /// **'{gender,select,male{Buy my own home} female{Buy my own home} other{Buy my own home}}'**
+  String dreamsAndGoalsListNo11(String gender);
+
+  /// No description provided for @dreamsAndGoalsListNo12.
+  ///
+  /// In en, this message translates to:
+  /// **'{gender,select,male{Give a talk to an audience} female{Give a talk to an audience} other{Give a talk to an audience}}'**
+  String dreamsAndGoalsListNo12(String gender);
+
+  /// No description provided for @dreamsAndGoalsListNo13.
+  ///
+  /// In en, this message translates to:
+  /// **'{gender,select,male{Go skydiving} female{Go skydiving} other{Go skydiving}}'**
+  String dreamsAndGoalsListNo13(String gender);
+
+  /// No description provided for @dreamsAndGoalsListNo14.
+  ///
+  /// In en, this message translates to:
+  /// **'{gender,select,male{Learn to surf} female{Learn to surf} other{Learn to surf}}'**
+  String dreamsAndGoalsListNo14(String gender);
+
+  /// No description provided for @dreamsAndGoalsListNo15.
+  ///
+  /// In en, this message translates to:
+  /// **'{gender,select,male{Adopt a pet} female{Adopt a pet} other{Adopt a pet}}'**
+  String dreamsAndGoalsListNo15(String gender);
+
+  /// No description provided for @dreamsAndGoalsListNo16.
+  ///
+  /// In en, this message translates to:
+  /// **'{gender,select,male{Start a podcast or blog} female{Start a podcast or blog} other{Start a podcast or blog}}'**
+  String dreamsAndGoalsListNo16(String gender);
+
+  /// No description provided for @dreamsAndGoalsListNo17.
+  ///
+  /// In en, this message translates to:
+  /// **'{gender,select,male{Plant and tend my own garden} female{Plant and tend my own garden} other{Plant and tend my own garden}}'**
+  String dreamsAndGoalsListNo17(String gender);
+
+  /// No description provided for @dreamsAndGoalsListNo18.
+  ///
+  /// In en, this message translates to:
+  /// **'{gender,select,male{Get a motorcycle or boat license} female{Get a motorcycle or boat license} other{Get a motorcycle or boat license}}'**
+  String dreamsAndGoalsListNo18(String gender);
+
+  /// No description provided for @dreamsAndGoalsListNo19.
+  ///
+  /// In en, this message translates to:
+  /// **'{gender,select,male{Get a driver\'s license} female{Get a driver\'s license} other{Get a driver\'s license}}'**
+  String dreamsAndGoalsListNo19(String gender);
+
+  /// No description provided for @dreamsAndGoalsListNo20.
+  ///
+  /// In en, this message translates to:
+  /// **'{gender,select,male{Overcome my greatest fear} female{Overcome my greatest fear} other{Overcome my greatest fear}}'**
+  String dreamsAndGoalsListNo20(String gender);
+
+  /// No description provided for @dreamsAndGoalsListNo21.
+  ///
+  /// In en, this message translates to:
+  /// **'{gender,select,male{See the Northern Lights} female{See the Northern Lights} other{See the Northern Lights}}'**
+  String dreamsAndGoalsListNo21(String gender);
+
+  /// No description provided for @dreamsAndGoalsListNo22.
+  ///
+  /// In en, this message translates to:
+  /// **'{gender,select,male{Start or grow a family} female{Start or grow a family} other{Start or grow a family}}'**
+  String dreamsAndGoalsListNo22(String gender);
+
+  /// No description provided for @dreamsAndGoalsListNo23.
+  ///
+  /// In en, this message translates to:
+  /// **'{gender,select,male{Develop an invention or app, or obtain a patent} female{Develop an invention or app, or obtain a patent} other{Develop an invention or app, or obtain a patent}}'**
+  String dreamsAndGoalsListNo23(String gender);
+
+  /// No description provided for @dreamsAndGoalsListNo24.
+  ///
+  /// In en, this message translates to:
+  /// **'{gender,select,male{Take part in a Vipassana workshop or silent retreat} female{Take part in a Vipassana workshop or silent retreat} other{Take part in a Vipassana workshop or silent retreat}}'**
+  String dreamsAndGoalsListNo24(String gender);
+
+  /// No description provided for @dreamsAndGoalsListNo25.
+  ///
+  /// In en, this message translates to:
+  /// **'{gender,select,male{Write a song or musical piece} female{Write a song or musical piece} other{Write a song or musical piece}}'**
+  String dreamsAndGoalsListNo25(String gender);
+
+  /// No description provided for @dreamsAndGoalsListNo26.
+  ///
+  /// In en, this message translates to:
+  /// **'{gender,select,male{Organize a large family or social gathering} female{Organize a large family or social gathering} other{Organize a large family or social gathering}}'**
+  String dreamsAndGoalsListNo26(String gender);
+
+  /// No description provided for @dreamsAndGoalsListNo27.
+  ///
+  /// In en, this message translates to:
+  /// **'{gender,select,male{Learn to cook a gourmet meal} female{Learn to cook a gourmet meal} other{Learn to cook a gourmet meal}}'**
+  String dreamsAndGoalsListNo27(String gender);
+
+  /// No description provided for @dreamsAndGoalsListNo28.
+  ///
+  /// In en, this message translates to:
+  /// **'{gender,select,male{Achieve financial independence} female{Achieve financial independence} other{Achieve financial independence}}'**
+  String dreamsAndGoalsListNo28(String gender);
+
+  /// No description provided for @dreamsAndGoalsListNo29.
+  ///
+  /// In en, this message translates to:
+  /// **'{gender,select,male{Exhibit my work in an art or photography exhibition} female{Exhibit my work in an art or photography exhibition} other{Exhibit my work in an art or photography exhibition}}'**
+  String dreamsAndGoalsListNo29(String gender);
+
+  /// No description provided for @dreamsAndGoalsListNo30.
+  ///
+  /// In en, this message translates to:
+  /// **'{gender,select,male{Donate a meaningful amount to a nonprofit} female{Donate a meaningful amount to a nonprofit} other{Donate a meaningful amount to a nonprofit}}'**
+  String dreamsAndGoalsListNo30(String gender);
+
+  /// No description provided for @dreamsAndGoalsListNo31.
+  ///
+  /// In en, this message translates to:
+  /// **'{gender,select,male{Get angry less often} female{Get angry less often} other{Get angry less often}}'**
+  String dreamsAndGoalsListNo31(String gender);
+
+  /// No description provided for @dreamsAndGoalsListNo32.
+  ///
+  /// In en, this message translates to:
+  /// **'{gender,select,male{Find a romantic relationship} female{Find a romantic relationship} other{Find a romantic relationship}}'**
+  String dreamsAndGoalsListNo32(String gender);
+
+  /// No description provided for @dreamsAndGoalsListNo33.
+  ///
+  /// In en, this message translates to:
+  /// **'{gender,select,male{Earn more money} female{Earn more money} other{Earn more money}}'**
+  String dreamsAndGoalsListNo33(String gender);
+
   ///
   ///
   /// In en, this message translates to:

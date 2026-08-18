@@ -1,9 +1,9 @@
 // Drives every uncovered branch in FormPageTemplate:
 //   - addItem / removeItem / editItem (lines 66-70)
 //   - addSuggestion more-suggestions link (lines 73-81)
-//   - createSelection switch arms for all five collection names
+//   - createSelection switch arms for all six collection names
 //     (lines 89-106) — DifficultEvents, MakeSafer, FeelBetter, Distractions,
-//     SafeEnvironment
+//     SafeEnvironment, DreamsAndGoals
 //   - the suggestion-row tap path with the already-selected branch
 //   - the "add your own" link, which opens the AddFormAnswer dialog with
 //     both the empty-validate and non-empty paths
@@ -438,6 +438,7 @@ void main() {
       'PersonalPlan-FeelBetter',
       'PersonalPlan-Distractions',
       'PersonalPlan-SafeEnvironment',
+      'PersonalPlan-DreamsAndGoals',
     ]) {
       await tester.binding.setSurfaceSize(const Size(900, 2200));
       var nextCalls = 0;
@@ -519,6 +520,74 @@ void main() {
       ];
       expect(pm.store['userSelectionPersonalPlan-SafeEnvironment'], expected);
       expect(user.safeEnvironment, expected);
+    },
+  );
+
+  testWidgets(
+    'Dreams and Goals persists selected suggestions with one custom goal and '
+    'lets removal make the custom option available again',
+    (tester) async {
+      final user = UserInformation()..gender = 'other';
+      await _pump(tester, 'PersonalPlan-DreamsAndGoals', user: user);
+
+      final choices = find.ancestor(
+        of: find.byType(DottedBorder),
+        matching: find.byType(InkWell),
+      );
+      expect(choices, findsNWidgets(3));
+
+      await _addViaDialog(tester, 'My personal dream');
+      await tester.tap(find.text('Write and publish a book'));
+      await tester.tap(find.text('Learn a new language'));
+      await tester.pumpAndSettle();
+
+      const expected = [
+        'My personal dream',
+        'Write and publish a book',
+        'Learn a new language',
+      ];
+      expect(user.dreamsAndGoals, expected);
+      expect(pm.store['userSelectionPersonalPlan-DreamsAndGoals'], expected);
+      expect(pm.store['addedStringsPersonalPlan-DreamsAndGoals'], expected);
+      expect(find.text('Add my own personal dream or goal...'), findsNothing);
+
+      await tester.tap(find.text('My personal dream'));
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('Delete'));
+      await tester.pumpAndSettle();
+
+      expect(user.dreamsAndGoals, [
+        'Write and publish a book',
+        'Learn a new language',
+      ]);
+      expect(
+        find.text('Add my own personal dream or goal...'),
+        findsOneWidget,
+      );
+    },
+  );
+
+  testWidgets(
+    'Hebrew Dreams suggestion remains predefined after switching to English',
+    (tester) async {
+      const hebrewSuggestion = 'לכתוב ולהוציא לאור ספר';
+      final user = UserInformation()
+        ..gender = 'other'
+        ..dreamsAndGoals = [hebrewSuggestion];
+      await _pump(tester, 'PersonalPlan-DreamsAndGoals', user: user);
+
+      expect(
+        find.text('Add my own personal dream or goal...'),
+        findsOneWidget,
+      );
+
+      await _addViaDialog(tester, 'My English custom dream');
+
+      expect(user.dreamsAndGoals, [hebrewSuggestion, 'My English custom dream']);
+      expect(
+        find.text('Add my own personal dream or goal...'),
+        findsNothing,
+      );
     },
   );
 

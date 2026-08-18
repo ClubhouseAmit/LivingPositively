@@ -66,6 +66,17 @@ Map<String, dynamic> retrieveInformation(name, gender, textLocalization) {
       );
 
       break;
+    case 'PersonalPlan-DreamsAndGoals':
+      header = textLocalization.dreamsAndGoalsHeader(gender);
+      subTitle = textLocalization.dreamsAndGoalsSubTitle(gender);
+      midTitle = textLocalization.makeSaferMidTitle(gender);
+      midSubTitle = textLocalization.makeSaferMidSubTitle(gender);
+      list = retrieveDreamsAndGoalsList(
+        textLocalization,
+        Gender.fromCode(gender).listKey,
+      );
+
+      break;
     default:
       throw Exception('Invalid collection name');
   }
@@ -270,5 +281,44 @@ List<String> retrieveSafeEnvironmentList(localization, gender) {
     localization.safeEnvironmentListNo1(gender),
     localization.safeEnvironmentListNo2(gender),
     localization.safeEnvironmentListNo3(gender),
+  ];
+}
+
+List<String> retrieveDreamsAndGoalsList(localization, gender) {
+  return [
+    localization.dreamsAndGoalsListNo0(gender),
+    localization.dreamsAndGoalsListNo1(gender),
+    localization.dreamsAndGoalsListNo2(gender),
+    localization.dreamsAndGoalsListNo3(gender),
+    localization.dreamsAndGoalsListNo4(gender),
+    localization.dreamsAndGoalsListNo5(gender),
+    localization.dreamsAndGoalsListNo6(gender),
+    localization.dreamsAndGoalsListNo7(gender),
+    localization.dreamsAndGoalsListNo8(gender),
+    localization.dreamsAndGoalsListNo9(gender),
+    localization.dreamsAndGoalsListNo10(gender),
+    localization.dreamsAndGoalsListNo11(gender),
+    localization.dreamsAndGoalsListNo12(gender),
+    localization.dreamsAndGoalsListNo13(gender),
+    localization.dreamsAndGoalsListNo14(gender),
+    localization.dreamsAndGoalsListNo15(gender),
+    localization.dreamsAndGoalsListNo16(gender),
+    localization.dreamsAndGoalsListNo17(gender),
+    localization.dreamsAndGoalsListNo18(gender),
+    localization.dreamsAndGoalsListNo19(gender),
+    localization.dreamsAndGoalsListNo20(gender),
+    localization.dreamsAndGoalsListNo21(gender),
+    localization.dreamsAndGoalsListNo22(gender),
+    localization.dreamsAndGoalsListNo23(gender),
+    localization.dreamsAndGoalsListNo24(gender),
+    localization.dreamsAndGoalsListNo25(gender),
+    localization.dreamsAndGoalsListNo26(gender),
+    localization.dreamsAndGoalsListNo27(gender),
+    localization.dreamsAndGoalsListNo28(gender),
+    localization.dreamsAndGoalsListNo29(gender),
+    localization.dreamsAndGoalsListNo30(gender),
+    localization.dreamsAndGoalsListNo31(gender),
+    localization.dreamsAndGoalsListNo32(gender),
+    localization.dreamsAndGoalsListNo33(gender),
   ];
 }

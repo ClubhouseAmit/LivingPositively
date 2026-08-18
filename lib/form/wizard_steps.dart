@@ -25,6 +25,7 @@ List<WizardStep> buildWizardSteps({
     planStep('PersonalPlan-FeelBetter'),
     planStep('PersonalPlan-MakeSafer'),
     planStep('PersonalPlan-SafeEnvironment'),
+    planStep('PersonalPlan-DreamsAndGoals'),
     PhonePageForm(
       key: GlobalKey<WizardStepState>(debugLabel: 'contacts'),
       next: next,

@@ -5,6 +5,7 @@ import 'package:get_it/get_it.dart';
 
 import 'package:mazilon/global_enums.dart';
 import 'package:mazilon/file_service.dart';
+import 'package:mazilon/form/formpagetemplate.dart';
 import 'package:mazilon/form/speech_dictation_suffix_action.dart';
 import 'package:mazilon/form/wizard_step.dart';
 import 'package:mazilon/l10n/app_localizations.dart';
@@ -22,6 +23,10 @@ import 'package:mazilon/util/Share/show_share_dialog.dart';
 
 const String _customCategoryTitlesKey = 'customCategoryTitles';
 const String _customCategoryDescriptionsKey = 'customCategoryDescriptions';
+const String _dreamsAndGoalsSelectionKey =
+    'userSelectionPersonalPlan-DreamsAndGoals';
+const String _dreamsAndGoalsAddedStringsKey =
+    'addedStringsPersonalPlan-DreamsAndGoals';
 
 class ShareForm extends WizardStep {
   final Function prev;
@@ -44,12 +49,16 @@ class ShareForm extends WizardStep {
 
 class _ShareFormState extends WizardStepState<ShareForm> {
   late FileService fileService;
+  final _dreamsAndGoalsStepKey = GlobalKey<WizardStepState>(
+    debugLabel: 'share-dreams-and-goals',
+  );
   final TextEditingController _customCategoryTitleController =
       TextEditingController();
   final TextEditingController _customCategoryDescriptionController =
       TextEditingController();
   final FocusNode _customCategoryTitleFocusNode = FocusNode();
   final List<MapEntry<String, String>> _customCategories = [];
+  bool _isEditingDreamsAndGoals = false;
   bool _isAddingCustomCategory = false;
   bool _showCustomCategoryValidation = false;
   int? _editingCustomCategoryIndex;
@@ -468,8 +477,70 @@ class _ShareFormState extends WizardStepState<ShareForm> {
     );
   }
 
+  Future<void> persistDreamsAndGoals(
+    UserInformation userInformation,
+  ) async {
+    final service = GetIt.instance<PersistentMemoryService>();
+    final dreamsAndGoals = [...userInformation.dreamsAndGoals];
+
+    await service.setItem(
+      _dreamsAndGoalsSelectionKey,
+      PersistentMemoryType.StringList,
+      dreamsAndGoals,
+    );
+    await service.setItem(
+      _dreamsAndGoalsAddedStringsKey,
+      PersistentMemoryType.StringList,
+      dreamsAndGoals,
+    );
+  }
+
+  Widget buildDreamsAndGoalsSection(BuildContext context, String gender) {
+    return SizedBox(
+      width: MediaQuery.sizeOf(context).width * 0.85,
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          TextButton.icon(
+            key: const Key('share-dreams-and-goals-toggle'),
+            onPressed: () {
+              setState(() {
+                _isEditingDreamsAndGoals = !_isEditingDreamsAndGoals;
+              });
+            },
+            icon: Icon(
+              _isEditingDreamsAndGoals
+                  ? Icons.keyboard_arrow_up
+                  : Icons.keyboard_arrow_down,
+            ),
+            label: Text(appLocale.dreamsAndGoalsHeader(gender)),
+            style: TextButton.styleFrom(
+              minimumSize: const Size.fromHeight(40),
+              tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+            ),
+          ),
+          if (_isEditingDreamsAndGoals) ...[
+            const SizedBox(height: 8),
+            FormPageTemplate(
+              key: _dreamsAndGoalsStepKey,
+              next: () {},
+              prev: () {},
+              collectionName: 'PersonalPlan-DreamsAndGoals',
+              scrollable: false,
+            ),
+          ],
+        ],
+      ),
+    );
+  }
+
   @override
   Future<void> onPrimaryAction() async {
+    final userInformation = Provider.of<UserInformation>(context, listen: false);
+    await persistDreamsAndGoals(userInformation);
+    if (!mounted) {
+      return;
+    }
     widget.submit(context);
   }
 
@@ -521,8 +592,12 @@ class _ShareFormState extends WizardStepState<ShareForm> {
                 children: [
                   //share personal plan PDF button:
                   IconButton(
-                    onPressed: () {
-                      showShareDialog(context);
+                    onPressed: () async {
+                      await persistDreamsAndGoals(userInfoProvider);
+                      if (!context.mounted) {
+                        return;
+                      }
+                      await showShareDialog(context);
                     },
                     style: TextButton.styleFrom(
                       backgroundColor: Colors.transparent,
@@ -545,6 +620,7 @@ class _ShareFormState extends WizardStepState<ShareForm> {
                   //download personal plan PDF button:
                   IconButton(
                     onPressed: () async {
+                      await persistDreamsAndGoals(userInfoProvider);
                       final exportMetadata = buildPersonalPlanExportMetadata(
                         appLocale,
                         gender,
@@ -588,7 +664,7 @@ class _ShareFormState extends WizardStepState<ShareForm> {
                 ],
               ),
             ),
-            const SizedBox(height: 30),
+            buildDreamsAndGoalsSection(context, gender),
             buildCustomCategoriesSection(context, gender),
           ],
         ),

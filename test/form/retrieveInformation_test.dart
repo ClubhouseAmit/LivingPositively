@@ -41,6 +41,10 @@ class _FakeLocalization {
       _record('safeEnvironmentSubTitle', g);
   String safeEnvironmentHeader(String g) => _record('safeEnvironmentHeader', g);
 
+  String dreamsAndGoalsHeader(String g) => _record('dreamsAndGoalsHeader', g);
+  String dreamsAndGoalsSubTitle(String g) =>
+      _record('dreamsAndGoalsSubTitle', g);
+
   String nextButton(String g) => _record('nextButton', g);
   String showMoreButton(String g) => _record('showMoreButton', g);
 
@@ -123,6 +127,27 @@ void main() {
       expect(result['subTitle'], 'distractionsSubTitle(male)');
       expect(result['midTitle'], 'distractionsMidTitle(male)');
       expect(result['midSubTitle'], 'distractionsMidSubTitle(male)');
+    });
+
+    test('PersonalPlan-DreamsAndGoals returns all dream and goal suggestions', () {
+      final result = retrieveInformation(
+        'PersonalPlan-DreamsAndGoals',
+        'female',
+        loc,
+      );
+
+      expect(result['header'], 'dreamsAndGoalsHeader(female)');
+      expect(result['subTitle'], 'dreamsAndGoalsSubTitle(female)');
+      expect(result['midTitle'], 'makeSaferMidTitle(female)');
+      expect(result['midSubTitle'], 'makeSaferMidSubTitle(female)');
+      expect(result['list'], hasLength(34));
+      expect(
+        result['list'],
+        containsAllInOrder([
+          'dreamsAndGoalsListNo0(female)',
+          'dreamsAndGoalsListNo33(female)',
+        ]),
+      );
     });
 
     const safeEnvironmentListGenders = <String, String>{
@@ -214,6 +239,13 @@ void main() {
       expect(list, hasLength(4));
       expect(loc.calls, contains('safeEnvironmentListNo0:male'));
       expect(loc.calls, contains('safeEnvironmentListNo3:male'));
+    });
+
+    test('retrieveDreamsAndGoalsList returns the 34 prescribed entries', () {
+      final list = retrieveDreamsAndGoalsList(loc, 'other');
+      expect(list, hasLength(34));
+      expect(loc.calls, contains('dreamsAndGoalsListNo0:other'));
+      expect(loc.calls, contains('dreamsAndGoalsListNo33:other'));
     });
   });
 }

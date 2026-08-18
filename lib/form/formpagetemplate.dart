@@ -6,6 +6,9 @@ import 'package:mazilon/global_enums.dart';
 
 import 'package:mazilon/form/wizard_step.dart';
 import 'package:mazilon/l10n/app_localizations.dart';
+import 'package:mazilon/l10n/app_localizations_ar.dart';
+import 'package:mazilon/l10n/app_localizations_en.dart';
+import 'package:mazilon/l10n/app_localizations_he.dart';
 import 'package:mazilon/pages/FormAnswer.dart';
 import 'package:mazilon/util/FormAnswer/addFormAnswer.dart';
 import 'package:mazilon/util/persistent_memory_service.dart';
@@ -41,12 +44,14 @@ class FormPageTemplate extends WizardStep {
   final Function prev;
 
   final String collectionName;
+  final bool scrollable;
 
   const FormPageTemplate({
     required super.key,
     required this.next,
     required this.prev,
     required this.collectionName,
+    this.scrollable = true,
   });
 
   @override
@@ -64,6 +69,11 @@ class _FormPageTemplateState extends WizardStepState<FormPageTemplate> {
   int displayedLength = 3;
   List<String> suggestionPool = const [];
   List<String> selectedItems = [];
+  late final Set<String> _dreamsAndGoalsCatalogue = {
+    ...retrieveDreamsAndGoalsList(AppLocalizationsEn(), 'other'),
+    ...retrieveDreamsAndGoalsList(AppLocalizationsHe(), 'other'),
+    ...retrieveDreamsAndGoalsList(AppLocalizationsAr(), 'other'),
+  };
 
   // Identity for the answer rows. Two answers can hold the same text, so a
   // text-derived key is not identity: after swiping one away, the survivor
@@ -104,8 +114,31 @@ class _FormPageTemplateState extends WizardStepState<FormPageTemplate> {
     return selectedItems.contains(item);
   }
 
+  bool get _limitsToOneCustomItem =>
+      widget.collectionName == 'PersonalPlan-DreamsAndGoals';
+
+  bool _isSuggestion(String item) {
+    if (_limitsToOneCustomItem) {
+      return _dreamsAndGoalsCatalogue.contains(item);
+    }
+    return suggestionPool.contains(item);
+  }
+
+  bool get _hasCustomItem => selectedItems.any((item) => !_isSuggestion(item));
+
+  bool get _canAddOwnItem => !_limitsToOneCustomItem || !_hasCustomItem;
+
   void editItem(int index, String text) {
-    selectedItems[index] = text.trim();
+    final editedItem = text.trim();
+    final hasAnotherCustomItem = selectedItems.indexed.any(
+      (entry) => entry.$1 != index && !_isSuggestion(entry.$2),
+    );
+    if (_limitsToOneCustomItem &&
+        !_isSuggestion(editedItem) &&
+        hasAnotherCustomItem) {
+      return;
+    }
+    selectedItems[index] = editedItem;
     setState(() {});
   }
 
@@ -120,7 +153,10 @@ class _FormPageTemplateState extends WizardStepState<FormPageTemplate> {
     setState(() {});
   }
 
-  void addItem(String text) {
+  void addItem(String text, {bool isSuggestion = false}) {
+    if (_limitsToOneCustomItem && !isSuggestion && _hasCustomItem) {
+      return;
+    }
     selectedItems.add(text.trim());
 
     setState(() {});
@@ -157,6 +193,9 @@ class _FormPageTemplateState extends WizardStepState<FormPageTemplate> {
       case 'PersonalPlan-SafeEnvironment':
         userInfo.updateSafeEnvironment([...selectedItems]);
         break;
+      case 'PersonalPlan-DreamsAndGoals':
+        userInfo.updateDreamsAndGoals([...selectedItems]);
+        break;
       default:
     }
     await service.setItem(
@@ -192,6 +231,9 @@ class _FormPageTemplateState extends WizardStepState<FormPageTemplate> {
         break;
       case 'PersonalPlan-SafeEnvironment':
         selectedItems = [...userInfo.safeEnvironment];
+        break;
+      case 'PersonalPlan-DreamsAndGoals':
+        selectedItems = [...userInfo.dreamsAndGoals];
         break;
       default:
     }
@@ -252,31 +294,34 @@ class _FormPageTemplateState extends WizardStepState<FormPageTemplate> {
             },
           ),
         //Frame 171 — start-aligned, not centred.
-        Align(
-          alignment: AlignmentDirectional.centerStart,
-          child: LinkButton(
-            () {
-              showDialog(
-                context: context,
-                builder: (context) {
-                  return AddFormAnswer(
-                    index: selectedItems.length,
-                    edit: (int index, String text) {
-                      addItem(text);
-                      createSelection(userInfoProvider);
-                    },
-                    text: '',
-                  );
-                },
-              );
-            },
-            Icons.add,
-            appLocale.addFormPageTemplateAddOwn(gender),
-            Theme.of(context).colorScheme.primary,
-            designFontSize: 12,
-            iconSize: 12,
+        if (_canAddOwnItem)
+          Align(
+            alignment: AlignmentDirectional.centerStart,
+            child: LinkButton(
+              () {
+                showDialog(
+                  context: context,
+                  builder: (context) {
+                    return AddFormAnswer(
+                      index: selectedItems.length,
+                      edit: (int index, String text) {
+                        addItem(text);
+                        createSelection(userInfoProvider);
+                      },
+                      text: '',
+                    );
+                  },
+                );
+              },
+              Icons.add,
+              widget.collectionName == 'PersonalPlan-DreamsAndGoals'
+                  ? appLocale.dreamsAndGoalsAddOwn(gender)
+                  : appLocale.addFormPageTemplateAddOwn(gender),
+              Theme.of(context).colorScheme.primary,
+              designFontSize: 12,
+              iconSize: 12,
+            ),
           ),
-        ),
       ],
     );
   }
@@ -348,7 +393,7 @@ class _FormPageTemplateState extends WizardStepState<FormPageTemplate> {
       key: ValueKey('suggestion-$item'),
       onTap: () {
         setState(() {
-          addItem(item);
+          addItem(item, isSuggestion: true);
           createSelection(userInfoProvider);
         });
       },
@@ -428,22 +473,21 @@ class _FormPageTemplateState extends WizardStepState<FormPageTemplate> {
         .where((item) => !isAlreadySelected(item))
         .toList();
 
-    return SingleChildScrollView(
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.stretch,
-        spacing: _gapBetweenBlocks,
-        children: [
-          _buildTitleBlock(displayInformation),
-          _buildItemsBlock(userInfoProvider, gender),
-          if (availableSuggestions.isNotEmpty ||
-              revealedSuggestions < suggestionPool.length)
-            _buildSuggestionsBlock(
-              displayInformation,
-              availableSuggestions,
-              userInfoProvider,
-            ),
-        ],
-      ),
+    final content = Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      spacing: _gapBetweenBlocks,
+      children: [
+        _buildTitleBlock(displayInformation),
+        _buildItemsBlock(userInfoProvider, gender),
+        if (availableSuggestions.isNotEmpty ||
+            revealedSuggestions < suggestionPool.length)
+          _buildSuggestionsBlock(
+            displayInformation,
+            availableSuggestions,
+            userInfoProvider,
+          ),
+      ],
     );
+    return widget.scrollable ? SingleChildScrollView(child: content) : content;
   }
 }

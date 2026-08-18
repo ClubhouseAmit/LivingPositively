@@ -126,6 +126,10 @@ Future<void> loadUserInformation(
       "userSelectionPersonalPlan-SafeEnvironment",
       PersistentMemoryType.StringList,
     ),
+    'dreamsAndGoals': service.getItem(
+      "userSelectionPersonalPlan-DreamsAndGoals",
+      PersistentMemoryType.StringList,
+    ),
     'location': service.getItem("location", PersistentMemoryType.String),
     'disclaimerConfirmed': service.getItem(
       "disclaimerConfirmed",
@@ -192,6 +196,9 @@ Future<void> loadUserInformation(
   );
   userInfo.updateSafeEnvironment(
     (TypeUtils.castToStringList(data['safeEnvironment'])),
+  );
+  userInfo.updateDreamsAndGoals(
+    (TypeUtils.castToStringList(data['dreamsAndGoals'])),
   );
   userInfo.updateLocation(data['location'] ?? "");
   userInfo.updateDisclaimerSigned(data['disclaimerConfirmed'] ?? false);

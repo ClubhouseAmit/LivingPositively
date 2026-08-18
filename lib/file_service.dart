@@ -70,6 +70,10 @@ class FileServiceImpl implements FileService {
         "userSelectionPersonalPlan-SafeEnvironment",
         PersistentMemoryType.StringList,
       ),
+      'dreamsAndGoals': service.getItem(
+        "userSelectionPersonalPlan-DreamsAndGoals",
+        PersistentMemoryType.StringList,
+      ),
       'phoneNames': service.getItem(
         "PhonePageSavedPhoneNames",
         PersistentMemoryType.StringList,
@@ -95,6 +99,7 @@ class FileServiceImpl implements FileService {
       'FeelBetter': TypeUtils.castToStringList(data['feelBetter']),
       'Distractions': TypeUtils.castToStringList(data['distractions']),
       'SafeEnvironment': TypeUtils.castToStringList(data['safeEnvironment']),
+      'DreamsAndGoals': TypeUtils.castToStringList(data['dreamsAndGoals']),
       'phoneNames': TypeUtils.castToStringList(data['phoneNames']),
       'phoneNumbers': TypeUtils.castToStringList(data['phoneNumbers']),
       'customCategoryTitles':
@@ -140,6 +145,7 @@ class FileServiceImpl implements FileService {
     List<String> feelBetter = dataForPDF['FeelBetter'];
     List<String> distractions = dataForPDF['Distractions'];
     List<String> safeEnvironment = dataForPDF['SafeEnvironment'];
+    List<String> dreamsAndGoals = dataForPDF['DreamsAndGoals'];
     List<String> phoneNames = dataForPDF['phoneNames'];
     List<String> phoneNumbers = dataForPDF['phoneNumbers'];
     List<String> customCategoryTitles = dataForPDF['customCategoryTitles'];
@@ -147,8 +153,6 @@ class FileServiceImpl implements FileService {
         dataForPDF['customCategoryDescriptions'];
     List<String> phoneDescription = formatPhonesText(phoneNames, phoneNumbers);
 
-    List<dynamic> allTitles = [...titles];
-    List<dynamic> allSubTitles = [...subTitles];
     List<List<String>> allData = [
       distractions,
       difficultEvents,
@@ -156,7 +160,19 @@ class FileServiceImpl implements FileService {
       makeSafer,
       phoneDescription,
       safeEnvironment,
+      dreamsAndGoals,
     ];
+    List<dynamic> allTitles = [...titles];
+    List<dynamic> allSubTitles = [...subTitles];
+
+    // Older callers may supply the pre-Dreams metadata lists. Preserve the
+    // standard data-slot alignment before custom categories are appended.
+    while (allTitles.length < allData.length) {
+      allTitles.add('');
+    }
+    while (allSubTitles.length < allData.length) {
+      allSubTitles.add('');
+    }
 
     for (
       var i = 0;

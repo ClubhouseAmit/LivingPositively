@@ -72,7 +72,7 @@ void main() {
     },
   );
 
-  testWidgets('wizard keeps the six default categories in the required order', (
+  testWidgets('wizard keeps the seven default categories in the required order', (
     tester,
   ) async {
     await _pumpForm(tester);
@@ -86,6 +86,7 @@ void main() {
       'PersonalPlan-FeelBetter',
       'PersonalPlan-MakeSafer',
       'PersonalPlan-SafeEnvironment',
+      'PersonalPlan-DreamsAndGoals',
     ]) {
       expect(
         tester

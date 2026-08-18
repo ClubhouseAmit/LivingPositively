@@ -7,6 +7,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:get_it/get_it.dart';
 import 'package:mazilon/AnalyticsService.dart';
 import 'package:mazilon/file_service.dart';
+import 'package:mazilon/form/formpagetemplate.dart';
 import 'package:mazilon/form/speech_dictation_suffix_action.dart';
 import 'package:mazilon/iFx/service_locator.dart';
 import 'package:mazilon/util/appInformation.dart';
@@ -189,6 +190,60 @@ void main() {
       ),
     ).called(1);
   });
+
+  testWidgets(
+    'ShareForm edits the shared Dreams and Goals selection without creating a '
+    'generic custom category',
+    (WidgetTester tester) async {
+      await tester.pumpWidget(createTestWidget(locale: const Locale('en')));
+      await tester.pumpAndSettle();
+
+      expect(find.byType(FormPageTemplate), findsNothing);
+      final dreamsToggle = find.byKey(const Key('share-dreams-and-goals-toggle'));
+      await tester.ensureVisible(dreamsToggle);
+      await tester.tap(dreamsToggle);
+      await tester.pumpAndSettle();
+      expect(find.byType(FormPageTemplate), findsOneWidget);
+      final addOwn = find.text('Add my own personal dream or goal...');
+      await tester.ensureVisible(addOwn);
+      await tester.tap(addOwn);
+      await tester.pumpAndSettle();
+
+      await tester.enterText(find.byType(TextFormField), 'My shared dream');
+      await tester.tap(find.text('Save'));
+      await tester.pumpAndSettle();
+
+      expect(mockUserInformation.dreamsAndGoals, ['My shared dream']);
+      verify(
+        mockPersistentMemoryService.setItem(
+          'userSelectionPersonalPlan-DreamsAndGoals',
+          PersistentMemoryType.StringList,
+          ['My shared dream'],
+        ),
+      ).called(1);
+      verify(
+        mockPersistentMemoryService.setItem(
+          'addedStringsPersonalPlan-DreamsAndGoals',
+          PersistentMemoryType.StringList,
+          ['My shared dream'],
+        ),
+      ).called(1);
+      verifyNever(
+        mockPersistentMemoryService.setItem(
+          'customCategoryTitles',
+          PersistentMemoryType.StringList,
+          any,
+        ),
+      );
+      verifyNever(
+        mockPersistentMemoryService.setItem(
+          'customCategoryDescriptions',
+          PersistentMemoryType.StringList,
+          any,
+        ),
+      );
+    },
+  );
 
   testWidgets('ShareForm shows share dialog and generates PDF', (
     WidgetTester tester,

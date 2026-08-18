@@ -58,6 +58,7 @@ void main() {
       expect(u.feelBetter, isEmpty);
       expect(u.distractions, isEmpty);
       expect(u.safeEnvironment, isEmpty);
+      expect(u.dreamsAndGoals, isEmpty);
       expect(u.positiveTraits, isEmpty);
       expect(u.thanks, isEmpty);
     });
@@ -84,6 +85,7 @@ void main() {
         feelBetter: const ['c'],
         distractions: const ['d'],
         safeEnvironment: const ['e'],
+        dreamsAndGoals: const ['f'],
         positiveTraits: const ['kind'],
         disclaimerSigned: true,
         loggedIn: true,
@@ -120,6 +122,7 @@ void main() {
       expect(u.feelBetter, isEmpty);
       expect(u.distractions, isEmpty);
       expect(u.safeEnvironment, isEmpty);
+      expect(u.dreamsAndGoals, isEmpty);
       expect(u.thanks, isEmpty);
       expect(u.positiveTraits, isEmpty);
       expect(notified, 1);
@@ -247,6 +250,12 @@ void main() {
       final u = buildUser();
       u.updateSafeEnvironment(['store medications safely']);
       expect(u.safeEnvironment, ['store medications safely']);
+    });
+
+    test('updateDreamsAndGoals', () {
+      final u = buildUser();
+      u.updateDreamsAndGoals(['Write and publish a book']);
+      expect(u.dreamsAndGoals, ['Write and publish a book']);
     });
 
     test('updateDisclaimerSigned', () {

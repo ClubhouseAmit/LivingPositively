@@ -78,6 +78,7 @@ void main() {
       'userSelectionPersonalPlan-FeelBetter': <dynamic>[],
       'userSelectionPersonalPlan-Distractions': <dynamic>['dist1'],
       'userSelectionPersonalPlan-SafeEnvironment': <dynamic>['safe1'],
+      'userSelectionPersonalPlan-DreamsAndGoals': <dynamic>['dream1'],
       'PhonePageSavedPhoneNames': <dynamic>['Mom', 'Dad'],
       'PhonePageSavedPhoneNumbers': <dynamic>['111', '222'],
       'name': 'Alex',
@@ -112,16 +113,19 @@ void main() {
       expect(data['FeelBetter'], <String>[]);
       expect(data['Distractions'], ['dist1']);
       expect(data['SafeEnvironment'], ['safe1']);
+      expect(data['DreamsAndGoals'], ['dream1']);
       expect(data['phoneNames'], ['Mom', 'Dad']);
       expect(data['phoneNumbers'], ['111', '222']);
     });
 
     test(
-      'safe environment defaults to an empty list for existing plans',
+      'new plan categories default to empty lists for existing plans',
       () async {
         memory.store.remove('userSelectionPersonalPlan-SafeEnvironment');
+        memory.store.remove('userSelectionPersonalPlan-DreamsAndGoals');
         final data = await FileServiceImpl.getPrefsData();
         expect(data['SafeEnvironment'], isEmpty);
+        expect(data['DreamsAndGoals'], isEmpty);
       },
     );
   });
@@ -178,6 +182,7 @@ void main() {
           'Environmental support',
           'Contacts',
           'Safe Environment',
+          'Dreams and Goals',
         ],
         [
           'symptoms subtitle',
@@ -186,6 +191,7 @@ void main() {
           'support subtitle',
           'contacts subtitle',
           'safe subtitle',
+          'dreams subtitle',
         ],
         {
           'firstLine': 'a',
@@ -200,14 +206,15 @@ void main() {
         mainTitle: 'Personal Plan of Alex',
       );
       expect(result['mainTitle'], 'Personal Plan of Alex');
-      // 'FeelBetter' was empty; the remaining defaults retain their six-wide
-      // order, including Safe Environment after Contacts.
+      // 'FeelBetter' was empty; the remaining defaults retain their order,
+      // with Dreams and Goals appended after Safe Environment.
       expect(result['titles'], [
         'Symptoms',
         'Triggers',
         'Environmental support',
         'Contacts',
         'Safe Environment',
+        'Dreams and Goals',
       ]);
       expect(result['subTitles'], [
         'symptoms subtitle',
@@ -215,6 +222,7 @@ void main() {
         'support subtitle',
         'contacts subtitle',
         'safe subtitle',
+        'dreams subtitle',
       ]);
       expect(result['realData'], [
         ['dist1'],
@@ -222,6 +230,7 @@ void main() {
         ['safer1'],
         ['Mom:111', 'Dad:222'],
         ['safe1'],
+        ['dream1'],
       ]);
     });
 
