@@ -40,6 +40,7 @@ class UserInformation with ChangeNotifier {
   PersistentMemoryService service; // Get the persistent memory service instance
   Future<void> _pendingDreamsAndGoalsSave = Future<void>.value();
   int _dreamsAndGoalsSaveRevision = 0;
+  int? _pendingDreamsAndGoalsCustomConflictResolutionRevision;
 
   UserInformation({
     this.location = '',
@@ -93,6 +94,7 @@ class UserInformation with ChangeNotifier {
     safeEnvironment = [];
     dreamsAndGoals = [];
     dreamsAndGoalsSelectionSources = [];
+    _pendingDreamsAndGoalsCustomConflictResolutionRevision = null;
     // An in-flight snapshot cannot be cancelled safely. Queue the empty
     // snapshot behind it so reset is always the final local Dreams state.
     _dreamsAndGoalsSaveRevision++;
@@ -169,7 +171,7 @@ class UserInformation with ChangeNotifier {
     this.gender = gender;
     binary = isBinary;
     notifyListeners();
-    
+
     await Future.wait([
       service.setItem('gender', PersistentMemoryType.String, gender),
       service.setItem('binary', PersistentMemoryType.Bool, isBinary),
@@ -230,6 +232,14 @@ class UserInformation with ChangeNotifier {
     dreamsAndGoals = valueCopy;
     dreamsAndGoalsSelectionSources = sourceCopy;
     _dreamsAndGoalsSaveRevision++;
+    // A conflict choice stays gated until the newest replacement snapshot is
+    // durably written. If another model mutation arrives before that write
+    // succeeds, retry the current state rather than letting the old revision
+    // clear the gate.
+    if (_pendingDreamsAndGoalsCustomConflictResolutionRevision != null) {
+      _pendingDreamsAndGoalsCustomConflictResolutionRevision =
+          _dreamsAndGoalsSaveRevision;
+    }
     notifyListeners();
   }
 
@@ -238,6 +248,102 @@ class UserInformation with ChangeNotifier {
 
   /// Revision captured with a Dreams and Goals persistence snapshot.
   int get dreamsAndGoalsSaveRevision => _dreamsAndGoalsSaveRevision;
+
+  /// Selection-row indexes whose normalized source is explicitly `custom`.
+  ///
+  /// This derives candidates without mutating stored model state, so callers
+  /// should first await [repairDreamsAndGoalsSelectionSources] when they need
+  /// the repaired source list persisted before rendering a recovery choice.
+  List<int> get dreamsAndGoalsCustomSelectionIndexes {
+    final List<String> normalizedSources =
+        normalizeDreamsAndGoalsSelectionSources(
+          dreamsAndGoals,
+          dreamsAndGoalsSelectionSources,
+        );
+    return List<int>.unmodifiable(<int>[
+      for (final (int index, String source) in normalizedSources.indexed)
+        if (source == dreamsAndGoalsCustomSelectionSource) index,
+    ]);
+  }
+
+  /// Whether more than one custom Dreams and Goals row requires user choice.
+  bool get hasDreamsAndGoalsCustomConflict =>
+      dreamsAndGoalsCustomSelectionIndexes.length > 1;
+
+  /// Whether a user-selected custom-goal resolution still needs persistence.
+  ///
+  /// A selected row replaces the conflicting rows in memory immediately so
+  /// the person's explicit choice is never lost. Consumers must keep editing
+  /// and sharing gated while this is true, because the chosen snapshot has not
+  /// yet been saved locally.
+  bool get hasPendingDreamsAndGoalsCustomConflictResolution =>
+      _pendingDreamsAndGoalsCustomConflictResolutionRevision != null;
+
+  /// Whether Dreams and Goals must stay behind the custom-conflict recovery
+  /// gate before it can be edited, exported, or completed.
+  bool get requiresDreamsAndGoalsCustomConflictRecovery =>
+      hasDreamsAndGoalsCustomConflict ||
+      hasPendingDreamsAndGoalsCustomConflictResolution;
+
+  /// Keeps [retainedSelectionIndex]'s custom row and all catalogue rows.
+  ///
+  /// The chosen index must identify a row whose normalized source is `custom`.
+  /// Invalid indexes and catalogue-row choices throw [ArgumentError] before
+  /// changing the model. A valid choice updates the model, then persists the
+  /// queued immutable three-key snapshot before this future completes. If that
+  /// save fails, the selected in-memory snapshot remains available behind
+  /// [hasPendingDreamsAndGoalsCustomConflictResolution] until a retry saves
+  /// the latest revision.
+  ///
+  /// Calling this when there is no multiple-custom conflict is a no-op after
+  /// validating the chosen custom row.
+  Future<void> resolveDreamsAndGoalsCustomConflict(
+    int retainedSelectionIndex,
+  ) async {
+    final List<String> normalizedSources =
+        normalizeDreamsAndGoalsSelectionSources(
+          dreamsAndGoals,
+          dreamsAndGoalsSelectionSources,
+        );
+    if (retainedSelectionIndex < 0 ||
+        retainedSelectionIndex >= normalizedSources.length ||
+        normalizedSources[retainedSelectionIndex] !=
+            dreamsAndGoalsCustomSelectionSource) {
+      throw ArgumentError.value(
+        retainedSelectionIndex,
+        'retainedSelectionIndex',
+        'Must identify a custom Dreams and Goals row.',
+      );
+    }
+
+    final int customSelectionCount = normalizedSources
+        .where(
+          (String source) => source == dreamsAndGoalsCustomSelectionSource,
+        )
+        .length;
+    if (customSelectionCount <= 1) {
+      return;
+    }
+
+    final List<String> retainedSelections = <String>[];
+    final List<String> retainedSources = <String>[];
+    for (final (int index, String selection) in dreamsAndGoals.indexed) {
+      final String source = normalizedSources[index];
+      if (source != dreamsAndGoalsCustomSelectionSource ||
+          index == retainedSelectionIndex) {
+        retainedSelections.add(selection);
+        retainedSources.add(source);
+      }
+    }
+
+    // Mark the next model revision before notifying listeners through
+    // updateDreamsAndGoals. That keeps every consumer behind the recovery
+    // gate from the first frame containing the chosen in-memory snapshot.
+    _pendingDreamsAndGoalsCustomConflictResolutionRevision =
+        _dreamsAndGoalsSaveRevision + 1;
+    updateDreamsAndGoals(retainedSelections, selectionSources: retainedSources);
+    await queueDreamsAndGoalsSave();
+  }
 
   /// Queues an immutable three-key snapshot after any prior Dreams save.
   ///
@@ -249,13 +355,22 @@ class UserInformation with ChangeNotifier {
           dreamsAndGoals,
           dreamsAndGoalsSelectionSources,
         );
+    final int snapshotRevision = _dreamsAndGoalsSaveRevision;
     final Future<void> nextSave = _pendingDreamsAndGoalsSave
         .catchError((Object _) {})
         .then(
           (_) => persistDreamsAndGoalsSnapshot(service, snapshot),
         );
-    _pendingDreamsAndGoalsSave = nextSave;
-    return nextSave;
+    final Future<void> trackedSave = nextSave.then((_) {
+      if (_pendingDreamsAndGoalsCustomConflictResolutionRevision ==
+              snapshotRevision &&
+          _dreamsAndGoalsSaveRevision == snapshotRevision) {
+        _pendingDreamsAndGoalsCustomConflictResolutionRevision = null;
+        notifyListeners();
+      }
+    });
+    _pendingDreamsAndGoalsSave = trackedSave;
+    return trackedSave;
   }
 
   /// Retries [revision] only when it is still the current Dreams selection.
@@ -269,13 +384,25 @@ class UserInformation with ChangeNotifier {
     return queueDreamsAndGoalsSave();
   }
 
+  /// Retries the latest chosen custom-conflict snapshot, if one is pending.
+  ///
+  /// The shared save queue clears the pending recovery gate only after the
+  /// current revision's three-key snapshot succeeds.
+  Future<void> retryDreamsAndGoalsCustomConflictResolution() {
+    if (!hasPendingDreamsAndGoalsCustomConflictResolution) {
+      return Future<void>.value();
+    }
+    return retryDreamsAndGoalsSave(_dreamsAndGoalsSaveRevision);
+  }
+
   /// Loads Dreams and Goals state from local storage and repairs stale
   /// provenance metadata through this model's injected storage service.
   ///
   /// The localized [selections] stay in their saved order. Source tokens and
-  /// the custom-only list are normalized into one immutable snapshot; the
-  /// three-key snapshot is queued only when either stored metadata list differs
-  /// from the repaired values.
+  /// the custom-only list are normalized into one immutable snapshot; multiple
+  /// explicit custom rows intentionally remain until the user resolves that
+  /// conflict. The three-key snapshot is queued only when either stored
+  /// metadata list differs from the repaired values.
   Future<void> hydrateDreamsAndGoalsFromStorage(
     List<String> selections, {
     required List<String> storedSelectionSources,
@@ -307,8 +434,9 @@ class UserInformation with ChangeNotifier {
   }
 
   /// Repairs in-memory Dreams and Goals sources outside the widget build
-  /// lifecycle. Storage hydration should use
-  /// [hydrateDreamsAndGoalsFromStorage] so it can also repair custom metadata.
+  /// lifecycle without collapsing multiple explicit custom rows. Storage
+  /// hydration should use [hydrateDreamsAndGoalsFromStorage] so it can also
+  /// repair custom metadata.
   Future<void> repairDreamsAndGoalsSelectionSources() {
     return hydrateDreamsAndGoalsFromStorage(
       dreamsAndGoals,

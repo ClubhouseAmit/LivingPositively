@@ -84,6 +84,7 @@ class _DreamsMemoryHarness {
   final bool delayFirstSelectionWrite;
   bool firstSelectionWriteStarted = false;
   bool failSelectionWrite = false;
+  bool failAllDreamsWrites = false;
 
   Future<void> _setItem(Invocation invocation) async {
     final String key = invocation.positionalArguments[0] as String;
@@ -95,7 +96,13 @@ class _DreamsMemoryHarness {
       firstSelectionWriteStarted = true;
       await _firstSelectionWrite.future;
     }
-    if (key == _dreamsAndGoalsSelectionKey && failSelectionWrite) {
+    final bool isDreamsAndGoalsKey = <String>[
+      _dreamsAndGoalsSelectionKey,
+      _dreamsAndGoalsSelectionSourcesKey,
+      _dreamsAndGoalsAddedStringsKey,
+    ].contains(key);
+    if ((key == _dreamsAndGoalsSelectionKey && failSelectionWrite) ||
+        (isDreamsAndGoalsKey && failAllDreamsWrites)) {
       throw StateError('Dreams persistence failed.');
     }
     completedWrites.add(_MemoryWrite(key, type, value));
@@ -235,6 +242,38 @@ Future<void> _flushAsyncAction(WidgetTester tester) async {
   await tester.pump();
   await tester.runAsync(() => Future<void>.delayed(Duration.zero));
   await tester.pump();
+}
+
+void _seedMultipleCustomDreams(UserInformation user) {
+  user.updateDreamsAndGoals(
+    const <String>[
+      'Write and publish a book',
+      'First custom dream',
+      'Learn a new language',
+      'Second custom dream',
+    ],
+    selectionSources: const <String>[
+      'catalogue:write-and-publish-a-book',
+      'custom',
+      'catalogue:learn-a-new-language',
+      'custom',
+    ],
+  );
+}
+
+Future<void> _retainSecondCustomDream(WidgetTester tester) async {
+  await tester.tap(
+    find.byKey(
+      const Key('dreams-and-goals-custom-conflict-option-3'),
+    ),
+  );
+  await tester.pump();
+  await tester.tap(
+    find.byKey(
+      const Key('dreams-and-goals-custom-conflict-confirm'),
+    ),
+  );
+  await tester.pumpAndSettle();
 }
 
 void main() {
@@ -398,6 +437,286 @@ void main() {
               ),
             ),
           );
+        },
+      );
+
+      testWidgets(
+        'should keep the inline editor closed until a retained custom goal is saved',
+        (tester) async {
+          final memory = _DreamsMemoryHarness();
+          final locator = GetIt.instance;
+          locator.unregister<PersistentMemoryService>();
+          locator.registerSingleton<PersistentMemoryService>(memory.service);
+          user = UserInformation(service: memory.service)
+            ..gender = 'other'
+            ..localeName = 'en';
+          _seedMultipleCustomDreams(user);
+
+          await pumpWithProviders(
+            tester,
+            wizardStepHarness(
+              ShareForm(
+                key: GlobalKey<WizardStepState>(),
+                prev: () {},
+                submit: (_) async {},
+              ),
+            ),
+            userInformation: user,
+            surfaceSize: const Size(1024, 1800),
+          );
+
+          final Finder dreamsToggle = find.byKey(
+            const Key('share-dreams-and-goals-toggle'),
+          );
+          await tester.ensureVisible(dreamsToggle);
+          await tester.tap(dreamsToggle);
+          await tester.pumpAndSettle();
+
+          expect(
+            find.byKey(
+              const Key('dreams-and-goals-custom-conflict-option-1'),
+            ),
+            findsOneWidget,
+          );
+          expect(
+            find.byKey(
+              const Key('dreams-and-goals-custom-conflict-option-3'),
+            ),
+            findsOneWidget,
+          );
+
+          await tester.tap(
+            find.byKey(
+              const Key('dreams-and-goals-custom-conflict-cancel'),
+            ),
+          );
+          await tester.pumpAndSettle();
+
+          expect(user.hasDreamsAndGoalsCustomConflict, isTrue);
+          expect(find.text('Add my own personal dream or goal...'), findsNothing);
+          expect(find.text('First custom dream'), findsNothing);
+
+          await tester.tap(dreamsToggle);
+          await tester.pumpAndSettle();
+          await _retainSecondCustomDream(tester);
+
+          expect(user.hasDreamsAndGoalsCustomConflict, isFalse);
+          expect(user.dreamsAndGoals, const <String>[
+            'Write and publish a book',
+            'Learn a new language',
+            'Second custom dream',
+          ]);
+          expect(user.dreamsAndGoalsSelectionSources, const <String>[
+            'catalogue:write-and-publish-a-book',
+            'catalogue:learn-a-new-language',
+            'custom',
+          ]);
+          expect(
+            memory.completedStringList(_dreamsAndGoalsSelectionKey),
+            user.dreamsAndGoals,
+          );
+          expect(
+            memory.completedStringList(_dreamsAndGoalsSelectionSourcesKey),
+            user.dreamsAndGoalsSelectionSources,
+          );
+          expect(
+            memory.completedStringList(_dreamsAndGoalsAddedStringsKey),
+            const <String>['Second custom dream'],
+          );
+          expect(find.text('First custom dream'), findsNothing);
+          expect(find.text('Second custom dream'), findsOneWidget);
+        },
+      );
+
+      testWidgets(
+        'should not run Share actions when custom-goal recovery is cancelled',
+        (tester) async {
+          final memory = _DreamsMemoryHarness();
+          final exportFiles = _ExportReadingFileService(memory.service);
+          final locator = GetIt.instance;
+          locator.unregister<PersistentMemoryService>();
+          locator.unregister<FileService>();
+          locator.registerSingleton<PersistentMemoryService>(memory.service);
+          locator.registerSingleton<FileService>(exportFiles);
+          user = UserInformation(service: memory.service)
+            ..gender = 'other'
+            ..localeName = 'en';
+          _seedMultipleCustomDreams(user);
+          var submitCalls = 0;
+
+          await pumpWithProviders(
+            tester,
+            wizardStepHarness(
+              ShareForm(
+                key: GlobalKey<WizardStepState>(),
+                prev: () {},
+                submit: (_) {
+                  submitCalls++;
+                },
+              ),
+            ),
+            userInformation: user,
+            surfaceSize: const Size(1024, 1800),
+          );
+
+          _pressIconButton(tester, Icons.download);
+          await tester.pumpAndSettle();
+          await tester.tap(
+            find.byKey(
+              const Key('dreams-and-goals-custom-conflict-cancel'),
+            ),
+          );
+          await tester.pumpAndSettle();
+
+          expect(exportFiles.downloadCalls, 0);
+          expect(user.hasDreamsAndGoalsCustomConflict, isTrue);
+
+          _pressIconButton(tester, Icons.share);
+          await tester.pumpAndSettle();
+          await tester.tap(
+            find.byKey(
+              const Key('dreams-and-goals-custom-conflict-cancel'),
+            ),
+          );
+          await tester.pumpAndSettle();
+
+          expect(find.byType(LPShareAlertDialog), findsNothing);
+
+          _pressWizardPrimaryAction(tester);
+          await tester.pumpAndSettle();
+          await tester.tap(
+            find.byKey(
+              const Key('dreams-and-goals-custom-conflict-cancel'),
+            ),
+          );
+          await tester.pumpAndSettle();
+
+          expect(submitCalls, 0);
+          expect(user.hasDreamsAndGoalsCustomConflict, isTrue);
+
+          _pressWizardPrimaryAction(tester);
+          await tester.pumpAndSettle();
+          await _retainSecondCustomDream(tester);
+
+          expect(submitCalls, 1);
+          expect(user.hasDreamsAndGoalsCustomConflict, isFalse);
+          expect(
+            memory.completedStringList(_dreamsAndGoalsAddedStringsKey),
+            const <String>['Second custom dream'],
+          );
+        },
+      );
+
+      testWidgets(
+        'should persist the retried custom snapshot once before downloading',
+        (tester) async {
+          final memory = _DreamsMemoryHarness()..failAllDreamsWrites = true;
+          final exportFiles = _ExportReadingFileService(memory.service);
+          final locator = GetIt.instance;
+          locator.unregister<PersistentMemoryService>();
+          locator.unregister<FileService>();
+          locator.registerSingleton<PersistentMemoryService>(memory.service);
+          locator.registerSingleton<FileService>(exportFiles);
+          user = UserInformation(service: memory.service)
+            ..gender = 'other'
+            ..localeName = 'en';
+          _seedMultipleCustomDreams(user);
+
+          await pumpWithProviders(
+            tester,
+            wizardStepHarness(
+              ShareForm(
+                key: GlobalKey<WizardStepState>(),
+                prev: () {},
+                submit: (_) async {},
+              ),
+            ),
+            userInformation: user,
+            surfaceSize: const Size(1024, 1800),
+          );
+
+          _pressIconButton(tester, Icons.download);
+          await tester.pumpAndSettle();
+          await _retainSecondCustomDream(tester);
+          await _flushAsyncAction(tester);
+
+          expect(exportFiles.downloadCalls, 0);
+          expect(
+            user.hasPendingDreamsAndGoalsCustomConflictResolution,
+            isTrue,
+          );
+          expect(
+            find.widgetWithText(SnackBarAction, 'Try again'),
+            findsOneWidget,
+          );
+          expect(user.dreamsAndGoals, const <String>[
+            'Write and publish a book',
+            'Learn a new language',
+            'Second custom dream',
+          ]);
+
+          final Finder dreamsToggle = find.byKey(
+            const Key('share-dreams-and-goals-toggle'),
+          );
+          ScaffoldMessenger.of(
+            tester.element(find.byType(Scaffold).first),
+          ).hideCurrentSnackBar();
+          await tester.pumpAndSettle();
+          expect(
+            find.widgetWithText(SnackBarAction, 'Try again'),
+            findsNothing,
+          );
+
+          await tester.tap(dreamsToggle);
+          await tester.pumpAndSettle();
+          expect(find.text('Second custom dream'), findsNothing);
+          expect(
+            find.widgetWithText(SnackBarAction, 'Try again'),
+            findsOneWidget,
+          );
+
+          ScaffoldMessenger.of(
+            tester.element(find.byType(Scaffold).first),
+          ).hideCurrentSnackBar();
+          await tester.pumpAndSettle();
+          memory.failAllDreamsWrites = false;
+          _pressIconButton(tester, Icons.download);
+          await _flushAsyncAction(tester);
+
+          expect(exportFiles.downloadCalls, 1);
+          expect(
+            user.hasPendingDreamsAndGoalsCustomConflictResolution,
+            isFalse,
+          );
+          expect(exportFiles.dreamsAtDownload, user.dreamsAndGoals);
+          expect(
+            exportFiles.dreamsSourcesAtDownload,
+            user.dreamsAndGoalsSelectionSources,
+          );
+          expect(
+            exportFiles.dreamsCustomItemsAtDownload,
+            const <String>['Second custom dream'],
+          );
+          expect(
+            memory.completedStringList(_dreamsAndGoalsSelectionKey),
+            user.dreamsAndGoals,
+          );
+          expect(
+            memory.completedStringList(_dreamsAndGoalsSelectionSourcesKey),
+            user.dreamsAndGoalsSelectionSources,
+          );
+          expect(
+            memory.completedStringList(_dreamsAndGoalsAddedStringsKey),
+            const <String>['Second custom dream'],
+          );
+          for (final key in <String>[
+            _dreamsAndGoalsSelectionKey,
+            _dreamsAndGoalsSelectionSourcesKey,
+            _dreamsAndGoalsAddedStringsKey,
+          ]) {
+            expect(memory.completedWritesFor(key), hasLength(1));
+          }
+          await tester.pump(const Duration(seconds: 2));
         },
       );
 

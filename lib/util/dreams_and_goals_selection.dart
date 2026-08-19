@@ -212,6 +212,10 @@ final class DreamsAndGoalsPersistenceSnapshot {
        customSelections = List<String>.unmodifiable(customSelections);
 
   /// Creates a validated snapshot from positional selected rows and sources.
+  ///
+  /// This preserves every selected row, including multiple explicit `custom`
+  /// rows. Resolving a conflicting custom-goal selection is a deliberate
+  /// model operation, not an implicit persistence-side data loss.
   factory DreamsAndGoalsPersistenceSnapshot.fromSelections(
     List<String> selections,
     List<String> selectionSources,

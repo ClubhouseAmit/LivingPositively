@@ -469,6 +469,209 @@ void main() {
     });
 
     test(
+      'should preserve multiple custom Dreams rows during hydration and repair',
+      () async {
+        final u = buildUser();
+        const List<String> selections = <String>[
+          'Write and publish a book',
+          'First custom goal',
+          'Learn a new language',
+          'Second custom goal',
+        ];
+        const List<String> sources = <String>[
+          'catalogue:write-and-publish-a-book',
+          dreamsAndGoalsCustomSelectionSource,
+          'catalogue:learn-a-new-language',
+          dreamsAndGoalsCustomSelectionSource,
+        ];
+
+        await u.hydrateDreamsAndGoalsFromStorage(
+          selections,
+          storedSelectionSources: const <String>[],
+          storedCustomSelections: const <String>[],
+        );
+        final int writesAfterHydration = fakeService.writes.length;
+        await u.repairDreamsAndGoalsSelectionSources();
+
+        expect(u.dreamsAndGoals, selections);
+        expect(u.dreamsAndGoalsSelectionSources, sources);
+        expect(u.dreamsAndGoalsCustomSelectionIndexes, const <int>[1, 3]);
+        expect(u.hasDreamsAndGoalsCustomConflict, isTrue);
+        expect(writesAfterHydration, 3);
+        expect(fakeService.writes, hasLength(writesAfterHydration));
+      },
+    );
+
+    test(
+      'should retain a selected non-first catalogue-label custom row and persist its snapshot',
+      () async {
+        final u = buildUser();
+        u.updateDreamsAndGoals(
+          const <String>[
+            'Write and publish a book',
+            'First custom goal',
+            'Learn a new language',
+            'Write and publish a book',
+          ],
+          selectionSources: const <String>[
+            'catalogue:write-and-publish-a-book',
+            dreamsAndGoalsCustomSelectionSource,
+            'catalogue:learn-a-new-language',
+            dreamsAndGoalsCustomSelectionSource,
+          ],
+        );
+        final int revisionBeforeResolution = u.dreamsAndGoalsSaveRevision;
+
+        await u.resolveDreamsAndGoalsCustomConflict(3);
+
+        expect(u.dreamsAndGoals, const <String>[
+          'Write and publish a book',
+          'Learn a new language',
+          'Write and publish a book',
+        ]);
+        expect(u.dreamsAndGoalsSelectionSources, const <String>[
+          'catalogue:write-and-publish-a-book',
+          'catalogue:learn-a-new-language',
+          dreamsAndGoalsCustomSelectionSource,
+        ]);
+        expect(u.dreamsAndGoalsSaveRevision, revisionBeforeResolution + 1);
+        expect(u.dreamsAndGoalsCustomSelectionIndexes, const <int>[2]);
+        expect(u.hasDreamsAndGoalsCustomConflict, isFalse);
+        expect(
+          fakeService.stored[dreamsAndGoalsSelectionStorageKey],
+          u.dreamsAndGoals,
+        );
+        expect(
+          fakeService.stored[dreamsAndGoalsSelectionSourcesStorageKey],
+          u.dreamsAndGoalsSelectionSources,
+        );
+        expect(
+          fakeService.stored[dreamsAndGoalsCustomSelectionsStorageKey],
+          const <String>['Write and publish a book'],
+        );
+      },
+    );
+
+    test(
+      'should keep a selected custom-conflict snapshot gated until retry persists it',
+      () async {
+        final u = UserInformation(service: _FailingPersistentMemoryService())
+          ..updateDreamsAndGoals(
+            const <String>[
+              'Write and publish a book',
+              'First custom goal',
+              'Second custom goal',
+            ],
+            selectionSources: const <String>[
+              'catalogue:write-and-publish-a-book',
+              dreamsAndGoalsCustomSelectionSource,
+              dreamsAndGoalsCustomSelectionSource,
+            ],
+          );
+
+        await expectLater(
+          u.resolveDreamsAndGoalsCustomConflict(2),
+          throwsA(isA<StateError>()),
+        );
+
+        expect(u.dreamsAndGoals, const <String>[
+          'Write and publish a book',
+          'Second custom goal',
+        ]);
+        expect(u.dreamsAndGoalsSelectionSources, const <String>[
+          'catalogue:write-and-publish-a-book',
+          dreamsAndGoalsCustomSelectionSource,
+        ]);
+        expect(u.hasDreamsAndGoalsCustomConflict, isFalse);
+        expect(
+          u.hasPendingDreamsAndGoalsCustomConflictResolution,
+          isTrue,
+        );
+        expect(u.requiresDreamsAndGoalsCustomConflictRecovery, isTrue);
+
+        u.service = fakeService;
+        u.updateDreamsAndGoals(
+          const <String>[
+            'Write and publish a book',
+            'Second custom goal',
+            'Learn a new language',
+          ],
+          selectionSources: const <String>[
+            'catalogue:write-and-publish-a-book',
+            dreamsAndGoalsCustomSelectionSource,
+            'catalogue:learn-a-new-language',
+          ],
+        );
+        expect(
+          u.hasPendingDreamsAndGoalsCustomConflictResolution,
+          isTrue,
+        );
+        await u.retryDreamsAndGoalsCustomConflictResolution();
+
+        expect(
+          u.hasPendingDreamsAndGoalsCustomConflictResolution,
+          isFalse,
+        );
+        expect(u.requiresDreamsAndGoalsCustomConflictRecovery, isFalse);
+        expect(
+          fakeService.stored[dreamsAndGoalsSelectionStorageKey],
+          u.dreamsAndGoals,
+        );
+        expect(
+          fakeService.stored[dreamsAndGoalsSelectionSourcesStorageKey],
+          u.dreamsAndGoalsSelectionSources,
+        );
+        expect(
+          fakeService.stored[dreamsAndGoalsCustomSelectionsStorageKey],
+          const <String>['Second custom goal'],
+        );
+      },
+    );
+
+    test(
+      'should reject an invalid custom-conflict choice without mutating state',
+      () async {
+        final u = buildUser();
+        u.updateDreamsAndGoals(
+          const <String>[
+            'Write and publish a book',
+            'First custom goal',
+            'Second custom goal',
+          ],
+          selectionSources: const <String>[
+            'catalogue:write-and-publish-a-book',
+            dreamsAndGoalsCustomSelectionSource,
+            dreamsAndGoalsCustomSelectionSource,
+          ],
+        );
+        final int revisionBeforeInvalidChoice = u.dreamsAndGoalsSaveRevision;
+        var notifications = 0;
+        u.addListener(() => notifications++);
+
+        for (final int invalidIndex in const <int>[-1, 0]) {
+          await expectLater(
+            u.resolveDreamsAndGoalsCustomConflict(invalidIndex),
+            throwsArgumentError,
+          );
+        }
+
+        expect(u.dreamsAndGoals, const <String>[
+          'Write and publish a book',
+          'First custom goal',
+          'Second custom goal',
+        ]);
+        expect(u.dreamsAndGoalsSelectionSources, const <String>[
+          'catalogue:write-and-publish-a-book',
+          dreamsAndGoalsCustomSelectionSource,
+          dreamsAndGoalsCustomSelectionSource,
+        ]);
+        expect(u.dreamsAndGoalsSaveRevision, revisionBeforeInvalidChoice);
+        expect(notifications, 0);
+        expect(fakeService.writes, isEmpty);
+      },
+    );
+
+    test(
       'should serialize the latest Dreams snapshot after an older save',
       () async {
         final delayedService = _DelayedDreamsMemoryService();

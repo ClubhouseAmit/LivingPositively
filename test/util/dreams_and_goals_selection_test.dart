@@ -114,5 +114,36 @@ void main() {
         );
       },
     );
+
+    test('should preserve multiple explicit custom rows in a snapshot', () {
+      final DreamsAndGoalsPersistenceSnapshot snapshot =
+          DreamsAndGoalsPersistenceSnapshot.fromSelections(
+            const <String>[
+              'First custom goal',
+              'Write and publish a book',
+              'Second custom goal',
+            ],
+            const <String>[
+              dreamsAndGoalsCustomSelectionSource,
+              'catalogue:write-and-publish-a-book',
+              dreamsAndGoalsCustomSelectionSource,
+            ],
+          );
+
+      expect(snapshot.selections, const <String>[
+        'First custom goal',
+        'Write and publish a book',
+        'Second custom goal',
+      ]);
+      expect(snapshot.selectionSources, const <String>[
+        dreamsAndGoalsCustomSelectionSource,
+        'catalogue:write-and-publish-a-book',
+        dreamsAndGoalsCustomSelectionSource,
+      ]);
+      expect(snapshot.customSelections, const <String>[
+        'First custom goal',
+        'Second custom goal',
+      ]);
+    });
   });
 }
