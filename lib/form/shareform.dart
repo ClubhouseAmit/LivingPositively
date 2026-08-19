@@ -516,7 +516,7 @@ class _ShareFormState extends WizardStepState<ShareForm> {
     await _persistAndRepairDreamsAndGoals(
       userInformation,
       retry: false,
-      persist: (_) => userInformation.queueDreamsAndGoalsSave(),
+      persistDreamsAndGoals: (_) => userInformation.queueDreamsAndGoalsSave(),
     );
   }
 
@@ -546,7 +546,7 @@ class _ShareFormState extends WizardStepState<ShareForm> {
   Future<void> _persistAndRepairDreamsAndGoals(
     UserInformation userInformation, {
     required bool retry,
-    required Future<void> Function(int revision) persist,
+    required Future<void> Function(int revision) persistDreamsAndGoals,
     void Function(int revision)? onRevisionCaptured,
     bool useRevisionCapturedAtRepairStart = false,
   }) async {
@@ -562,7 +562,7 @@ class _ShareFormState extends WizardStepState<ShareForm> {
         ? revisionAtRepairStart
         : userInformation.dreamsAndGoalsSaveRevision;
     if (revisionForConditionalSave == revisionBeforeRepair) {
-      await persist(revisionForConditionalSave);
+      await persistDreamsAndGoals(revisionForConditionalSave);
     }
   }
 
@@ -601,20 +601,25 @@ class _ShareFormState extends WizardStepState<ShareForm> {
     UserInformation userInformation,
     FutureOr<void> Function() action,
   ) async {
-    int revision = userInformation.dreamsAndGoalsSaveRevision;
+    int capturedRevision = userInformation.dreamsAndGoalsSaveRevision;
     try {
       await _persistAndRepairDreamsAndGoals(
         userInformation,
         retry: false,
-        persist: (_) => userInformation.queueDreamsAndGoalsSave(),
-        onRevisionCaptured: (value) => revision = value,
+        persistDreamsAndGoals: (_) =>
+            userInformation.queueDreamsAndGoalsSave(),
+        onRevisionCaptured: (revision) => capturedRevision = revision,
         useRevisionCapturedAtRepairStart: true,
       );
     } catch (error, stackTrace) {
       await _captureDreamsAndGoalsFailure(error, stackTrace);
       if (mounted) {
         _showDreamsAndGoalsSaveFailure(
-          () => _retryDreamsAndGoalsAction(userInformation, revision, action),
+          () => _retryDreamsAndGoalsAction(
+            userInformation,
+            capturedRevision,
+            action,
+          ),
         );
       }
       return;
@@ -627,22 +632,26 @@ class _ShareFormState extends WizardStepState<ShareForm> {
 
   Future<void> _retryDreamsAndGoalsAction(
     UserInformation userInformation,
-    int revision,
+    int capturedRevision,
     FutureOr<void> Function() action,
   ) async {
     try {
       await _persistAndRepairDreamsAndGoals(
         userInformation,
         retry: true,
-        persist: userInformation.retryDreamsAndGoalsSave,
-        onRevisionCaptured: (value) => revision = value,
+        persistDreamsAndGoals: userInformation.retryDreamsAndGoalsSave,
+        onRevisionCaptured: (revision) => capturedRevision = revision,
         useRevisionCapturedAtRepairStart: true,
       );
     } catch (error, stackTrace) {
       await _captureDreamsAndGoalsFailure(error, stackTrace);
       if (mounted) {
         _showDreamsAndGoalsSaveFailure(
-          () => _retryDreamsAndGoalsAction(userInformation, revision, action),
+          () => _retryDreamsAndGoalsAction(
+            userInformation,
+            capturedRevision,
+            action,
+          ),
         );
       }
       return;

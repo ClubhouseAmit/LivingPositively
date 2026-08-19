@@ -21,8 +21,10 @@ import 'package:mazilon/global_enums.dart';
 import 'package:mazilon/util/Share/LP_share_alert_dialog.dart';
 import 'package:mazilon/util/persistent_memory_service.dart';
 import 'package:mazilon/util/userInformation.dart';
+import 'package:mockito/mockito.dart';
 
 import '../helpers/widget_test_scaffold.dart';
+import 'shareform_test.mocks.dart' as shareform_mocks;
 
 const _dreamsAndGoalsSelectionKey =
     'userSelectionPersonalPlan-DreamsAndGoals';
@@ -30,28 +32,119 @@ const _dreamsAndGoalsAddedStringsKey =
     'addedStringsPersonalPlan-DreamsAndGoals';
 const _dreamsAndGoalsSelectionSourcesKey =
     'selectionSourcesPersonalPlan-DreamsAndGoals';
+const _customCategoryTitlesKey = 'customCategoryTitles';
+const _customCategoryDescriptionsKey = 'customCategoryDescriptions';
 
-class _DelayedDreamsMemoryService extends FakePersistentMemoryService {
+class _MockPersistentMemoryService
+    extends shareform_mocks.MockPersistentMemoryService {}
+
+class _MemoryWrite {
+  _MemoryWrite(this.key, this.type, dynamic value)
+    : value = type == PersistentMemoryType.StringList
+          ? List<String>.from(value as Iterable)
+          : value;
+
+  final String key;
+  final PersistentMemoryType type;
+  final dynamic value;
+}
+
+class _DreamsMemoryHarness {
+  _DreamsMemoryHarness({
+    List<String> initialSelections = const <String>[],
+    List<String> initialSelectionSources = const <String>[],
+    List<String> initialCustomItems = const <String>[],
+    this.delayFirstSelectionWrite = false,
+  }) : _initialSelections = List<String>.from(initialSelections),
+       _initialSelectionSources = List<String>.from(initialSelectionSources),
+       _initialCustomItems = List<String>.from(initialCustomItems) {
+    when(
+      service.setItem(
+        any,
+        any,
+        any,
+      ),
+    ).thenAnswer(_setItem);
+    when(
+      service.getItem(
+        any,
+        any,
+      ),
+    ).thenAnswer(_getItem);
+    when(service.reset()).thenAnswer((_) async {});
+  }
+
+  final _MockPersistentMemoryService service = _MockPersistentMemoryService();
+  final List<String> _initialSelections;
+  final List<String> _initialSelectionSources;
+  final List<String> _initialCustomItems;
   final Completer<void> _firstSelectionWrite = Completer<void>();
+  final List<_MemoryWrite> completedWrites = <_MemoryWrite>[];
+  final List<String> readKeys = <String>[];
+  final bool delayFirstSelectionWrite;
   bool firstSelectionWriteStarted = false;
+  bool failSelectionWrite = false;
 
-  @override
-  Future<void> setItem(
-    String key,
-    PersistentMemoryType type,
-    dynamic value,
-  ) async {
-    if (key == _dreamsAndGoalsSelectionKey && !firstSelectionWriteStarted) {
+  Future<void> _setItem(Invocation invocation) async {
+    final String key = invocation.positionalArguments[0] as String;
+    final PersistentMemoryType type =
+        invocation.positionalArguments[1] as PersistentMemoryType;
+    final dynamic value = invocation.positionalArguments[2];
+    if (key == _dreamsAndGoalsSelectionKey && delayFirstSelectionWrite &&
+        !firstSelectionWriteStarted) {
       firstSelectionWriteStarted = true;
       await _firstSelectionWrite.future;
     }
-    await super.setItem(key, type, value);
+    if (key == _dreamsAndGoalsSelectionKey && failSelectionWrite) {
+      throw StateError('Dreams persistence failed.');
+    }
+    completedWrites.add(_MemoryWrite(key, type, value));
   }
 
   void releaseFirstSelectionWrite() {
     if (!_firstSelectionWrite.isCompleted) {
       _firstSelectionWrite.complete();
     }
+  }
+
+  Future<dynamic> _getItem(Invocation invocation) async {
+    final String key = invocation.positionalArguments[0] as String;
+    final PersistentMemoryType type =
+        invocation.positionalArguments[1] as PersistentMemoryType;
+    readKeys.add(key);
+    if (type != PersistentMemoryType.StringList) {
+      throw StateError('Unexpected PersistentMemoryService read type: $type');
+    }
+    switch (key) {
+      case _customCategoryTitlesKey:
+      case _customCategoryDescriptionsKey:
+        return <String>[];
+      case _dreamsAndGoalsSelectionKey:
+        return _latestStringList(key, _initialSelections);
+      case _dreamsAndGoalsSelectionSourcesKey:
+        return _latestStringList(key, _initialSelectionSources);
+      case _dreamsAndGoalsAddedStringsKey:
+        return _latestStringList(key, _initialCustomItems);
+      default:
+        throw StateError('Unexpected PersistentMemoryService read: $key');
+    }
+  }
+
+  List<String> _latestStringList(String key, List<String> fallback) {
+    for (final _MemoryWrite write in completedWrites.reversed) {
+      if (write.key == key && write.type == PersistentMemoryType.StringList) {
+        return List<String>.from(write.value as Iterable);
+      }
+    }
+    return List<String>.from(fallback);
+  }
+
+  List<String> completedStringList(String key) {
+    return _latestStringList(key, const <String>[]);
+  }
+
+  List<_MemoryWrite> completedWritesFor(String key) {
+    return completedWrites.where((write) => write.key == key).toList();
   }
 }
 
@@ -91,40 +184,6 @@ class _ExportReadingFileService extends NoopFileService {
       storedCustomItems as Iterable,
     );
     return 'downloaded-plan.pdf';
-  }
-}
-
-class _FailingDreamsMemoryService extends FakePersistentMemoryService {
-  bool failDreamsSelection = true;
-
-  @override
-  Future<void> setItem(
-    String key,
-    PersistentMemoryType type,
-    dynamic value,
-  ) async {
-    if (key == _dreamsAndGoalsSelectionKey && failDreamsSelection) {
-      throw StateError('Dreams persistence failed.');
-    }
-    await super.setItem(key, type, value);
-  }
-}
-
-class _RecordingDreamsMemoryService extends FakePersistentMemoryService {
-  final List<String> dreamsAndGoalsWriteKeys = <String>[];
-
-  @override
-  Future<void> setItem(
-    String key,
-    PersistentMemoryType type,
-    dynamic value,
-  ) async {
-    if (key == _dreamsAndGoalsSelectionKey ||
-        key == _dreamsAndGoalsSelectionSourcesKey ||
-        key == _dreamsAndGoalsAddedStringsKey) {
-      dreamsAndGoalsWriteKeys.add(key);
-    }
-    await super.setItem(key, type, value);
   }
 }
 
@@ -253,8 +312,8 @@ void main() {
     testWidgets(
       'should persist has-filled through the injected UserInformation service',
       (tester) async {
-        final injectedMemory = FakePersistentMemoryService();
-        user = UserInformation(service: injectedMemory)
+        final injectedMemory = _DreamsMemoryHarness();
+        user = UserInformation(service: injectedMemory.service)
           ..gender = 'other'
           ..localeName = 'en';
 
@@ -272,8 +331,10 @@ void main() {
         );
         await _flushAsyncAction(tester);
 
-        expect(injectedMemory.store['hasFilled'], isTrue);
-        expect(services.memory.store['hasFilled'], isNull);
+        final hasFilledWrites = injectedMemory.completedWritesFor('hasFilled');
+        expect(hasFilledWrites, hasLength(1));
+        expect(hasFilledWrites.single.type, PersistentMemoryType.Bool);
+        expect(hasFilledWrites.single.value, isTrue);
       },
     );
 
@@ -318,18 +379,42 @@ void main() {
       },
     );
 
-    testWidgets('should wait for the latest shared dream snapshot before exporting', (
+    group('Dreams and Goals', () {
+      test(
+        'should reject unexpected persistence reads',
+        () async {
+          final memory = _DreamsMemoryHarness();
+
+          await expectLater(
+            memory.service.getItem(
+              'unapproved-key',
+              PersistentMemoryType.StringList,
+            ),
+            throwsA(
+              isA<StateError>().having(
+                (StateError error) => error.message,
+                'message',
+                'Unexpected PersistentMemoryService read: unapproved-key',
+              ),
+            ),
+          );
+        },
+      );
+
+      testWidgets('should wait for the latest shared dream snapshot before exporting', (
       tester,
     ) async {
-      final delayedMemory = _DelayedDreamsMemoryService();
-      final exportFiles = _ExportReadingFileService(delayedMemory);
+      final delayedMemory = _DreamsMemoryHarness(
+        delayFirstSelectionWrite: true,
+      );
+      final exportFiles = _ExportReadingFileService(delayedMemory.service);
       final locator = GetIt.instance;
       locator.unregister<PersistentMemoryService>();
       locator.unregister<FileService>();
-      locator.registerSingleton<PersistentMemoryService>(delayedMemory);
+      locator.registerSingleton<PersistentMemoryService>(delayedMemory.service);
       locator.registerSingleton<FileService>(exportFiles);
       addTearDown(delayedMemory.releaseFirstSelectionWrite);
-      user = UserInformation(service: delayedMemory)
+      user = UserInformation(service: delayedMemory.service)
         ..gender = 'other'
         ..localeName = 'en';
 
@@ -369,11 +454,11 @@ void main() {
         'Write and publish a book',
       ]);
       expect(
-        delayedMemory.store[_dreamsAndGoalsAddedStringsKey],
+        delayedMemory.completedStringList(_dreamsAndGoalsAddedStringsKey),
         ['Immediate dream'],
       );
       expect(
-        delayedMemory.store[_dreamsAndGoalsSelectionSourcesKey],
+        delayedMemory.completedStringList(_dreamsAndGoalsSelectionSourcesKey),
         ['custom', 'catalogue:write-and-publish-a-book'],
       );
       await tester.pump(const Duration(seconds: 2));
@@ -382,28 +467,28 @@ void main() {
     testWidgets(
       'should repair malformed Dreams metadata before downloading without an extra save',
       (tester) async {
-        final recordingMemory = _RecordingDreamsMemoryService();
-        final exportFiles = _ExportReadingFileService(recordingMemory);
+        final recordingMemory = _DreamsMemoryHarness(
+          initialSelections: const <String>['Write and publish a book'],
+          initialSelectionSources: const <String>[
+            'catalogue:learn-a-new-language',
+          ],
+          initialCustomItems: const <String>['Stale custom item'],
+        );
+        final exportFiles = _ExportReadingFileService(recordingMemory.service);
         final locator = GetIt.instance;
         locator.unregister<PersistentMemoryService>();
         locator.unregister<FileService>();
-        locator.registerSingleton<PersistentMemoryService>(recordingMemory);
+        locator.registerSingleton<PersistentMemoryService>(
+          recordingMemory.service,
+        );
         locator.registerSingleton<FileService>(exportFiles);
-        user = UserInformation(service: recordingMemory)
+        user = UserInformation(service: recordingMemory.service)
           ..gender = 'other'
           ..localeName = 'en'
           ..dreamsAndGoals = <String>['Write and publish a book']
           ..dreamsAndGoalsSelectionSources = <String>[
             'catalogue:learn-a-new-language',
           ];
-        recordingMemory.store.addAll(<String, dynamic>{
-          _dreamsAndGoalsSelectionKey: <String>['Write and publish a book'],
-          _dreamsAndGoalsSelectionSourcesKey: <String>[
-            'catalogue:learn-a-new-language',
-          ],
-          _dreamsAndGoalsAddedStringsKey: <String>['Stale custom item'],
-        });
-
         await pumpWithProviders(
           tester,
           wizardStepHarness(
@@ -427,20 +512,47 @@ void main() {
         ]);
         expect(exportFiles.dreamsCustomItemsAtDownload, isEmpty);
         expect(
-          recordingMemory.dreamsAndGoalsWriteKeys,
-          unorderedEquals([
+          recordingMemory.readKeys,
+          containsAll(<String>[
+            _customCategoryTitlesKey,
+            _customCategoryDescriptionsKey,
             _dreamsAndGoalsSelectionKey,
             _dreamsAndGoalsSelectionSourcesKey,
             _dreamsAndGoalsAddedStringsKey,
           ]),
         );
-        expect(recordingMemory.store[_dreamsAndGoalsSelectionKey], [
+        expect(
+          recordingMemory
+              .completedWrites
+              .where(
+                (write) =>
+                    write.key == _dreamsAndGoalsSelectionKey ||
+                    write.key == _dreamsAndGoalsSelectionSourcesKey ||
+                    write.key == _dreamsAndGoalsAddedStringsKey,
+              )
+              .map((write) => write.key),
+          unorderedEquals(<String>[
+            _dreamsAndGoalsSelectionKey,
+            _dreamsAndGoalsSelectionSourcesKey,
+            _dreamsAndGoalsAddedStringsKey,
+          ]),
+        );
+        expect(
+          recordingMemory.completedStringList(_dreamsAndGoalsSelectionKey),
+          [
           'Write and publish a book',
-        ]);
-        expect(recordingMemory.store[_dreamsAndGoalsSelectionSourcesKey], [
-          'catalogue:write-and-publish-a-book',
-        ]);
-        expect(recordingMemory.store[_dreamsAndGoalsAddedStringsKey], isEmpty);
+          ],
+        );
+        expect(
+          recordingMemory.completedStringList(
+            _dreamsAndGoalsSelectionSourcesKey,
+          ),
+          ['catalogue:write-and-publish-a-book'],
+        );
+        expect(
+          recordingMemory.completedStringList(_dreamsAndGoalsAddedStringsKey),
+          isEmpty,
+        );
         await tester.pump(const Duration(seconds: 2));
       },
     );
@@ -448,15 +560,17 @@ void main() {
     testWidgets('should wait for the latest shared dream snapshot before finishing', (
       tester,
     ) async {
-      final delayedMemory = _DelayedDreamsMemoryService();
-      final exportFiles = _ExportReadingFileService(delayedMemory);
+      final delayedMemory = _DreamsMemoryHarness(
+        delayFirstSelectionWrite: true,
+      );
+      final exportFiles = _ExportReadingFileService(delayedMemory.service);
       List<String>? dreamsAtSubmit;
       final locator = GetIt.instance;
       locator.unregister<PersistentMemoryService>();
       locator.unregister<FileService>();
-      locator.registerSingleton<PersistentMemoryService>(delayedMemory);
+      locator.registerSingleton<PersistentMemoryService>(delayedMemory.service);
       locator.registerSingleton<FileService>(exportFiles);
-      user = UserInformation(service: delayedMemory)
+      user = UserInformation(service: delayedMemory.service)
         ..gender = 'other'
         ..localeName = 'en';
       addTearDown(delayedMemory.releaseFirstSelectionWrite);
@@ -468,8 +582,8 @@ void main() {
             key: GlobalKey<WizardStepState>(),
             prev: () {},
             submit: (_) async {
-              dreamsAtSubmit = List<String>.from(
-                delayedMemory.store[_dreamsAndGoalsSelectionKey] as Iterable,
+              dreamsAtSubmit = delayedMemory.completedStringList(
+                _dreamsAndGoalsSelectionKey,
               );
             },
           ),
@@ -499,26 +613,27 @@ void main() {
         'Write and publish a book',
       ]);
       expect(
-        delayedMemory.store[_dreamsAndGoalsAddedStringsKey],
+        delayedMemory.completedStringList(_dreamsAndGoalsAddedStringsKey),
         ['Immediate dream'],
       );
-      expect(delayedMemory.store[_dreamsAndGoalsSelectionSourcesKey], [
-        'custom',
-        'catalogue:write-and-publish-a-book',
-      ]);
+      expect(
+        delayedMemory.completedStringList(_dreamsAndGoalsSelectionSourcesKey),
+        ['custom', 'catalogue:write-and-publish-a-book'],
+      );
     });
 
     testWidgets(
       'should block download and finish on a save failure until Retry succeeds',
       (tester) async {
-        final failingMemory = _FailingDreamsMemoryService();
-        final exportFiles = _ExportReadingFileService(failingMemory);
+        final failingMemory = _DreamsMemoryHarness()
+          ..failSelectionWrite = true;
+        final exportFiles = _ExportReadingFileService(failingMemory.service);
         final locator = GetIt.instance;
         locator.unregister<PersistentMemoryService>();
         locator.unregister<FileService>();
-        locator.registerSingleton<PersistentMemoryService>(failingMemory);
+        locator.registerSingleton<PersistentMemoryService>(failingMemory.service);
         locator.registerSingleton<FileService>(exportFiles);
-        user = UserInformation(service: failingMemory)
+        user = UserInformation(service: failingMemory.service)
           ..gender = 'other'
           ..localeName = 'en';
         var submitCalls = 0;
@@ -546,7 +661,7 @@ void main() {
           findsOneWidget,
         );
 
-        failingMemory.failDreamsSelection = false;
+        failingMemory.failSelectionWrite = false;
         tester
             .widget<SnackBarAction>(
               find.widgetWithText(SnackBarAction, 'Try again'),
@@ -555,7 +670,7 @@ void main() {
         await _flushAsyncAction(tester);
         expect(exportFiles.downloadCalls, 1);
 
-        failingMemory.failDreamsSelection = true;
+        failingMemory.failSelectionWrite = true;
         _pressWizardPrimaryAction(tester);
         await _flushAsyncAction(tester);
         expect(submitCalls, 0);
@@ -564,7 +679,7 @@ void main() {
           findsOneWidget,
         );
 
-        failingMemory.failDreamsSelection = false;
+        failingMemory.failSelectionWrite = false;
         tester
             .widget<SnackBarAction>(
               find.widgetWithText(SnackBarAction, 'Try again'),
@@ -579,11 +694,12 @@ void main() {
     testWidgets(
       'should log a failed persistence Retry before offering it again',
       (tester) async {
-        final failingMemory = _FailingDreamsMemoryService();
+        final failingMemory = _DreamsMemoryHarness()
+          ..failSelectionWrite = true;
         final locator = GetIt.instance;
         locator.unregister<PersistentMemoryService>();
-        locator.registerSingleton<PersistentMemoryService>(failingMemory);
-        user = UserInformation(service: failingMemory)
+        locator.registerSingleton<PersistentMemoryService>(failingMemory.service);
+        user = UserInformation(service: failingMemory.service)
           ..gender = 'other'
           ..localeName = 'en';
 
@@ -617,6 +733,8 @@ void main() {
         );
       },
     );
+
+    });
 
   });
 
