@@ -60,6 +60,7 @@ class _ShareFormState extends WizardStepState<ShareForm> {
   final FocusNode _customCategoryTitleFocusNode = FocusNode();
   final List<MapEntry<String, String>> _customCategories = [];
   bool _isEditingDreamsAndGoals = false;
+  bool _isOpeningDreamsAndGoals = false;
   bool _isAddingCustomCategory = false;
   bool _showCustomCategoryValidation = false;
   int? _editingCustomCategoryIndex;
@@ -512,14 +513,6 @@ class _ShareFormState extends WizardStepState<ShareForm> {
     );
   }
 
-  Future<void> persistDreamsAndGoals(UserInformation userInformation) async {
-    await _persistAndRepairDreamsAndGoals(
-      userInformation,
-      retry: false,
-      persistDreamsAndGoals: (_) => userInformation.queueDreamsAndGoalsSave(),
-    );
-  }
-
   Future<void> _persistInlineDreamsAndGoals(
     UserInformation userInformation, {
     bool retry = false,
@@ -567,17 +560,46 @@ class _ShareFormState extends WizardStepState<ShareForm> {
   }
 
   Future<void> _toggleDreamsAndGoals({bool retry = false}) async {
-    if (!_isEditingDreamsAndGoals) {
-      setState(() {
-        _isEditingDreamsAndGoals = true;
-      });
-      return;
-    }
-
     final UserInformation userInformation = Provider.of<UserInformation>(
       context,
       listen: false,
     );
+    if (!_isEditingDreamsAndGoals) {
+      if (_isOpeningDreamsAndGoals) {
+        return;
+      }
+      _isOpeningDreamsAndGoals = true;
+      try {
+        if (retry) {
+          await userInformation.retryDreamsAndGoalsSave(
+            userInformation.dreamsAndGoalsSaveRevision,
+          );
+        } else {
+          // The editor requires one source token per selected row. Repair the
+          // model-owned snapshot before mounting FormPageTemplate so legacy
+          // selections cannot reach its edit path with unaligned sources.
+          await userInformation.repairDreamsAndGoalsSelectionSources();
+        }
+        if (mounted) {
+          setState(() {
+            _isEditingDreamsAndGoals = true;
+          });
+        }
+      } catch (error, stackTrace) {
+        if (retry) {
+          await _captureDreamsAndGoalsFailure(error, stackTrace);
+        }
+        if (mounted) {
+          _showDreamsAndGoalsSaveFailure(
+            () => _toggleDreamsAndGoals(retry: true),
+          );
+        }
+      } finally {
+        _isOpeningDreamsAndGoals = false;
+      }
+      return;
+    }
+
     try {
       await _persistInlineDreamsAndGoals(userInformation, retry: retry);
       if (mounted) {

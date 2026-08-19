@@ -557,6 +557,194 @@ void main() {
       },
     );
 
+    testWidgets(
+      'should repair empty legacy sources before mounting and persist an edited row',
+      (tester) async {
+        final memory = _DreamsMemoryHarness(
+          initialSelections: const <String>['Write and publish a book'],
+          delayFirstSelectionWrite: true,
+        );
+        final locator = GetIt.instance;
+        locator.unregister<PersistentMemoryService>();
+        locator.registerSingleton<PersistentMemoryService>(memory.service);
+        addTearDown(memory.releaseFirstSelectionWrite);
+        user = UserInformation(service: memory.service)
+          ..gender = 'other'
+          ..localeName = 'en'
+          ..dreamsAndGoals = <String>['Write and publish a book']
+          ..dreamsAndGoalsSelectionSources = <String>[];
+
+        await pumpWithProviders(
+          tester,
+          wizardStepHarness(
+            ShareForm(
+              key: GlobalKey<WizardStepState>(),
+              prev: () {},
+              submit: (_) async {},
+            ),
+          ),
+          userInformation: user,
+          surfaceSize: const Size(1024, 1800),
+        );
+
+        final Finder dreamsToggle = find.byKey(
+          const Key('share-dreams-and-goals-toggle'),
+        );
+        await tester.ensureVisible(dreamsToggle);
+        await tester.tap(dreamsToggle);
+        await tester.pump();
+
+        expect(memory.firstSelectionWriteStarted, isTrue);
+        expect(user.dreamsAndGoalsSelectionSources, <String>[
+          'catalogue:write-and-publish-a-book',
+        ]);
+        expect(find.text('Write and publish a book'), findsNothing);
+
+        memory.releaseFirstSelectionWrite();
+        await tester.pumpAndSettle();
+
+        expect(find.text('Write and publish a book'), findsOneWidget);
+        final Finder selectedDream = find.text('Write and publish a book');
+        await tester.ensureVisible(selectedDream);
+        await tester.tap(selectedDream);
+        await tester.pumpAndSettle();
+        await tester.enterText(
+          find.byType(TextFormField),
+          'My revised own goal',
+        );
+        await tester.tap(find.text('Save'));
+        await tester.pumpAndSettle();
+        await _flushAsyncAction(tester);
+
+        expect(tester.takeException(), isNull);
+        expect(user.dreamsAndGoals, <String>['My revised own goal']);
+        expect(
+          user.dreamsAndGoalsSelectionSources,
+          <String>['custom'],
+        );
+        expect(
+          memory.completedStringList(_dreamsAndGoalsSelectionKey),
+          <String>['My revised own goal'],
+        );
+        expect(
+          memory.completedStringList(_dreamsAndGoalsSelectionSourcesKey),
+          <String>['custom'],
+        );
+        expect(
+          memory.completedStringList(_dreamsAndGoalsAddedStringsKey),
+          <String>['My revised own goal'],
+        );
+      },
+    );
+
+    testWidgets(
+      'should ignore a second Dreams toggle while source repair is in flight',
+      (tester) async {
+        final memory = _DreamsMemoryHarness(
+          initialSelections: const <String>['Write and publish a book'],
+          delayFirstSelectionWrite: true,
+        );
+        final locator = GetIt.instance;
+        locator.unregister<PersistentMemoryService>();
+        locator.registerSingleton<PersistentMemoryService>(memory.service);
+        addTearDown(memory.releaseFirstSelectionWrite);
+        user = UserInformation(service: memory.service)
+          ..gender = 'other'
+          ..localeName = 'en'
+          ..dreamsAndGoals = <String>['Write and publish a book']
+          ..dreamsAndGoalsSelectionSources = <String>[];
+
+        await pumpWithProviders(
+          tester,
+          wizardStepHarness(
+            ShareForm(
+              key: GlobalKey<WizardStepState>(),
+              prev: () {},
+              submit: (_) async {},
+            ),
+          ),
+          userInformation: user,
+          surfaceSize: const Size(1024, 1800),
+        );
+
+        final Finder dreamsToggle = find.byKey(
+          const Key('share-dreams-and-goals-toggle'),
+        );
+        await tester.ensureVisible(dreamsToggle);
+        await tester.tap(dreamsToggle);
+        await tester.pump();
+
+        expect(memory.firstSelectionWriteStarted, isTrue);
+
+        await tester.tap(dreamsToggle);
+        await tester.pump();
+
+        expect(find.text('Write and publish a book'), findsNothing);
+
+        memory.releaseFirstSelectionWrite();
+        await tester.pumpAndSettle();
+
+        expect(find.text('Write and publish a book'), findsOneWidget);
+      },
+    );
+
+    testWidgets(
+      'should keep the Dreams editor closed until failed repair is retried',
+      (tester) async {
+        final memory = _DreamsMemoryHarness(
+          initialSelections: const <String>['Write and publish a book'],
+        )..failSelectionWrite = true;
+        final locator = GetIt.instance;
+        locator.unregister<PersistentMemoryService>();
+        locator.registerSingleton<PersistentMemoryService>(memory.service);
+        user = UserInformation(service: memory.service)
+          ..gender = 'other'
+          ..localeName = 'en'
+          ..dreamsAndGoals = <String>['Write and publish a book']
+          ..dreamsAndGoalsSelectionSources = <String>[];
+
+        await pumpWithProviders(
+          tester,
+          wizardStepHarness(
+            ShareForm(
+              key: GlobalKey<WizardStepState>(),
+              prev: () {},
+              submit: (_) async {},
+            ),
+          ),
+          userInformation: user,
+          surfaceSize: const Size(1024, 1800),
+        );
+
+        final Finder dreamsToggle = find.byKey(
+          const Key('share-dreams-and-goals-toggle'),
+        );
+        await tester.ensureVisible(dreamsToggle);
+        await tester.tap(dreamsToggle);
+        await _flushAsyncAction(tester);
+
+        expect(find.text('Write and publish a book'), findsNothing);
+        expect(
+          find.widgetWithText(SnackBarAction, 'Try again'),
+          findsOneWidget,
+        );
+
+        memory.failSelectionWrite = false;
+        tester
+            .widget<SnackBarAction>(
+              find.widgetWithText(SnackBarAction, 'Try again'),
+            )
+            .onPressed();
+        await _flushAsyncAction(tester);
+        await tester.pumpAndSettle();
+
+        expect(user.dreamsAndGoalsSelectionSources, <String>[
+          'catalogue:write-and-publish-a-book',
+        ]);
+        expect(find.text('Write and publish a book'), findsOneWidget);
+      },
+    );
+
     testWidgets('should wait for the latest shared dream snapshot before finishing', (
       tester,
     ) async {
