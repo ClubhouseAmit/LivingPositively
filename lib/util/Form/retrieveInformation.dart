@@ -1,3 +1,5 @@
+import 'package:mazilon/util/gender.dart';
+
 //this function is used in the form pages to get the correct information for each page
 Map<String, dynamic> retrieveInformation(name, gender, textLocalization) {
   String header;
@@ -15,7 +17,9 @@ Map<String, dynamic> retrieveInformation(name, gender, textLocalization) {
       midTitle = textLocalization.difficultEventsMidTitle(gender);
       midSubTitle = textLocalization.difficultEventsMidSubTitle(gender);
       list = retrieveDifficultEventsList(
-          textLocalization, gender == "" ? "other" : gender);
+        textLocalization,
+        Gender.fromCode(gender).listKey,
+      );
 
       break;
     case 'PersonalPlan-MakeSafer':
@@ -24,7 +28,9 @@ Map<String, dynamic> retrieveInformation(name, gender, textLocalization) {
       midTitle = textLocalization.makeSaferMidTitle(gender);
       midSubTitle = textLocalization.makeSaferMidSubTitle(gender);
       list = retrieveMakeSaferList(
-          textLocalization, gender == "" ? "other" : gender);
+        textLocalization,
+        Gender.fromCode(gender).listKey,
+      );
 
       break;
     case 'PersonalPlan-FeelBetter':
@@ -33,7 +39,9 @@ Map<String, dynamic> retrieveInformation(name, gender, textLocalization) {
       midTitle = textLocalization.feelBetterMidTitle(gender);
       midSubTitle = textLocalization.feelBetterMidSubTitle(gender);
       list = retrieveFeelBetterList(
-          textLocalization, gender == "" ? "other" : gender);
+        textLocalization,
+        Gender.fromCode(gender).listKey,
+      );
 
       break;
     case 'PersonalPlan-Distractions':
@@ -42,14 +50,27 @@ Map<String, dynamic> retrieveInformation(name, gender, textLocalization) {
       midTitle = textLocalization.distractionsMidTitle(gender);
       midSubTitle = textLocalization.distractionsMidSubTitle(gender);
       list = retrieveDistractionsList(
-          textLocalization, gender == "" ? "other" : gender);
+        textLocalization,
+        Gender.fromCode(gender).listKey,
+      );
+
+      break;
+    case 'PersonalPlan-SafeEnvironment':
+      header = textLocalization.safeEnvironmentHeader(gender);
+      subTitle = textLocalization.safeEnvironmentSubTitle(gender);
+      midTitle = textLocalization.makeSaferMidTitle(gender);
+      midSubTitle = textLocalization.makeSaferMidSubTitle(gender);
+      list = retrieveSafeEnvironmentList(
+        textLocalization,
+        Gender.fromCode(gender).listKey,
+      );
 
       break;
     default:
       throw Exception('Invalid collection name');
   }
   nextButtonText = textLocalization.nextButton(gender);
-  showMoreButtonText = textLocalization.showMoreButton(gender);
+  showMoreButtonText = textLocalization.otherSuggestions(gender);
 
   return {
     'header': header,
@@ -241,4 +262,13 @@ List<String> retrieveDistractionsList(localization, gender) {
   distractionsList.add(localization.distractionsListNo33(gender));
 
   return distractionsList;
+}
+
+List<String> retrieveSafeEnvironmentList(localization, gender) {
+  return [
+    localization.safeEnvironmentListNo0(gender),
+    localization.safeEnvironmentListNo1(gender),
+    localization.safeEnvironmentListNo2(gender),
+    localization.safeEnvironmentListNo3(gender),
+  ];
 }

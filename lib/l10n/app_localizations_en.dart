@@ -60,6 +60,16 @@ class AppLocalizationsEn extends AppLocalizations {
   }
 
   @override
+  String addFormPageTemplateAddOwn(String gender) {
+    String _temp0 = intl.Intl.selectLogic(gender, {
+      'male': 'Add your own',
+      'female': 'Add your own',
+      'other': 'Add your own',
+    });
+    return '$_temp0';
+  }
+
+  @override
   String addThanksFormThank(String gender) {
     String _temp0 = intl.Intl.selectLogic(gender, {
       'male': 'Thanks',
@@ -207,6 +217,14 @@ class AppLocalizationsEn extends AppLocalizations {
       'other': 'My Personal Plan',
     });
     return '$_temp0';
+  }
+
+  @override
+  String get personalPlanPdfTitle => 'My Personal Plan';
+
+  @override
+  String personalPlanPdfTitleWithName(String username) {
+    return '$username\'s Personal Plan';
   }
 
   @override
@@ -587,7 +605,7 @@ class AppLocalizationsEn extends AppLocalizations {
   String get darkModeAlwaysDark => 'Always Dark';
 
   @override
-  String get darkModeSleepPromoting => 'Sleep-Promoting Mode';
+  String get darkModeSleepPromoting => 'Scheduled';
 
   @override
   String get darkModeStartTime => 'Start time';
@@ -755,9 +773,9 @@ class AppLocalizationsEn extends AppLocalizations {
   @override
   String distractionsHeader(String gender) {
     String _temp0 = intl.Intl.selectLogic(gender, {
-      'male': 'Symptoms and warning signs, unusual behaviors for me',
-      'female': 'Symptoms and warning signs, unusual behaviors for me',
-      'other': 'Symptoms and warning signs, unusual behaviors for me',
+      'male': 'Symptoms and warning signs',
+      'female': 'Symptoms and warning signs',
+      'other': 'Symptoms and warning signs',
     });
     return '$_temp0';
   }
@@ -799,11 +817,11 @@ class AppLocalizationsEn extends AppLocalizations {
   String feelBetterHeader(String gender) {
     String _temp0 = intl.Intl.selectLogic(gender, {
       'male':
-          'For balance and a healthy lifestyle - Wellness Tools - Personal Medications',
+          'What to do to help myself balance and maintain a healthy lifestyle (Wellness Tools) - Personal medications',
       'female':
-          'For balance and a healthy lifestyle - Wellness Tools - Personal Medications',
+          'What to do to help myself balance and maintain a healthy lifestyle (Wellness Tools) - Personal medications',
       'other':
-          'For balance and a healthy lifestyle - Wellness Tools - Personal Medications',
+          'What to do to help myself balance and maintain a healthy lifestyle (Wellness Tools) - Personal medications',
     });
     return '$_temp0';
   }
@@ -845,11 +863,11 @@ class AppLocalizationsEn extends AppLocalizations {
   String makeSaferHeader(String gender) {
     String _temp0 = intl.Intl.selectLogic(gender, {
       'male':
-          'Support from my environment when I notice early warning signs, and how I’d like to be assisted',
+          'Support and help from the environment when I experience early warning signs, how I would like to be helped',
       'female':
-          'Support from my environment when I notice early warning signs, and how I’d like to be assisted',
+          'Support and help from the environment when I experience early warning signs, how I would like to be helped',
       'other':
-          'Support from my environment when I notice early warning signs, and how I’d like to be assisted',
+          'Support and help from the environment when I experience early warning signs, how I would like to be helped',
     });
     return '$_temp0';
   }
@@ -885,6 +903,29 @@ class AppLocalizationsEn extends AppLocalizations {
   }
 
   @override
+  String safeEnvironmentHeader(String gender) {
+    String _temp0 = intl.Intl.selectLogic(gender, {
+      'male':
+          'What will help me make the situation and environment safer for me',
+      'female':
+          'What will help me make the situation and environment safer for me',
+      'other':
+          'What will help me make the situation and environment safer for me',
+    });
+    return '$_temp0';
+  }
+
+  @override
+  String safeEnvironmentSubTitle(String gender) {
+    String _temp0 = intl.Intl.selectLogic(gender, {
+      'male': 'Steps I can take to make my situation and environment safer',
+      'female': 'Steps I can take to make my situation and environment safer',
+      'other': 'Steps I can take to make my situation and environment safer',
+    });
+    return '$_temp0';
+  }
+
+  @override
   String phonesPagePhone(String gender) {
     String _temp0 = intl.Intl.selectLogic(gender, {
       'male': 'Phone',
@@ -908,11 +949,11 @@ class AppLocalizationsEn extends AppLocalizations {
   String phonesPageHeader(String gender) {
     String _temp0 = intl.Intl.selectLogic(gender, {
       'male':
-          'Who are the people that support me, who I can turn to if I am distressed or thinking of harming myself?',
+          'Who are the people who support me, that I can turn to if I am in distress or thinking about self-harm',
       'female':
-          'Who are the people that support me, who I can turn to if I am distressed or thinking of harming myself?',
+          'Who are the people who support me, that I can turn to if I am in distress or thinking about self-harm',
       'other':
-          'Who are the people that support me, who I can turn to if I am distressed or thinking of harming myself?',
+          'Who are the people who support me, that I can turn to if I am in distress or thinking about self-harm',
     });
     return '$_temp0';
   }
@@ -1134,14 +1175,25 @@ class AppLocalizationsEn extends AppLocalizations {
       'Your current location could not be obtained.';
 
   @override
+  String get sosShareLocationServicesDisabled =>
+      'Your current location could not be obtained. Please enable location services.';
+
+  @override
   String get sosShareLocationShareFailed =>
       'Your SOS help message could not be shared. Please try again.';
+
+  @override
+  String get personalPlanShareFailed =>
+      'Your Personal Plan could not be shared. Please try again.';
 
   @override
   String get sosShareMessage => 'Share SOS Message';
 
   @override
   String get sosShareMessageTooltip => 'Share your SOS help message';
+
+  @override
+  String get sosSharePersonalPlan => 'Share Personal Plan during a crisis';
 
   @override
   String get sosDeliveryOptionsTitle => 'Choose a delivery option';
@@ -2532,6 +2584,46 @@ class AppLocalizationsEn extends AppLocalizations {
   }
 
   @override
+  String safeEnvironmentListNo0(String gender) {
+    String _temp0 = intl.Intl.selectLogic(gender, {
+      'male': 'Removing or depositing personal weapon',
+      'female': 'Removing or depositing personal weapon',
+      'other': 'Removing or depositing personal weapon',
+    });
+    return '$_temp0';
+  }
+
+  @override
+  String safeEnvironmentListNo1(String gender) {
+    String _temp0 = intl.Intl.selectLogic(gender, {
+      'male': 'Storing medications in a locked box',
+      'female': 'Storing medications in a locked box',
+      'other': 'Storing medications in a locked box',
+    });
+    return '$_temp0';
+  }
+
+  @override
+  String safeEnvironmentListNo2(String gender) {
+    String _temp0 = intl.Intl.selectLogic(gender, {
+      'male': 'Choosing someone to keep your medications for you',
+      'female': 'Choosing someone to keep your medications for you',
+      'other': 'Choosing someone to keep your medications for you',
+    });
+    return '$_temp0';
+  }
+
+  @override
+  String safeEnvironmentListNo3(String gender) {
+    String _temp0 = intl.Intl.selectLogic(gender, {
+      'male': 'Having someone stay with me, not being alone',
+      'female': 'Having someone stay with me, not being alone',
+      'other': 'Having someone stay with me, not being alone',
+    });
+    return '$_temp0';
+  }
+
+  @override
   String feelBetterListNo0(String gender) {
     String _temp0 = intl.Intl.selectLogic(gender, {
       'male': 'Mindfulness',
@@ -3279,8 +3371,10 @@ class AppLocalizationsEn extends AppLocalizations {
       'Videos cannot be shown right now.';
 
   @override
-  String get disclaimerSummary =>
-      'Read the key points, then accept if these terms work for you.';
+  String get disclaimerPageTitle => 'Disclaimer';
+
+  @override
+  String get disclaimerSummary => 'Review and accept terms to continue.';
 
   @override
   String get disclaimerPurposeTitle => 'App purpose';
@@ -3310,6 +3404,12 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get feelGoodBackTooltip => 'Back to photos';
+
+  @override
+  String get feelGoodRotateTooltip => 'Rotate photo';
+
+  @override
+  String get feelGoodDownloadTooltip => 'Download photo';
 
   @override
   String get feelGoodDeleteTooltip => 'Delete photo';
@@ -3347,10 +3447,24 @@ class AppLocalizationsEn extends AppLocalizations {
   String get addWarningSign => 'Add warning sign';
 
   @override
-  String get traitsSubTitle => 'Where I shine. Read daily';
+  String traitsSubTitle(String gender) {
+    String _temp0 = intl.Intl.selectLogic(gender, {
+      'male': 'Where I shine. Read daily',
+      'female': 'Where I shine. Read daily',
+      'other': 'Where I shine. Read daily',
+    });
+    return '$_temp0';
+  }
 
   @override
-  String get gratitudeSubTitle => 'What am I grateful for today';
+  String gratitudeSubTitle(String gender) {
+    String _temp0 = intl.Intl.selectLogic(gender, {
+      'male': 'What am I grateful for today',
+      'female': 'What am I grateful for today',
+      'other': 'What am I grateful for today',
+    });
+    return '$_temp0';
+  }
 
   @override
   String get ourSuggestion => 'Our suggestion';
@@ -3404,6 +3518,58 @@ class AppLocalizationsEn extends AppLocalizations {
     });
     return '$_temp0';
   }
+
+  @override
+  String get notificationCustomMessageLabel =>
+      'Write a custom reminder message (optional):';
+
+  @override
+  String get notificationCustomMessageHint => 'Enter reminder message...';
+
+  @override
+  String get speechDictationAction => 'Dictate text';
+
+  @override
+  String get speechDictationDisclosureTitle => 'Use voice dictation?';
+
+  @override
+  String get speechDictationDisclosureMessage =>
+      'Your device or browser may send speech to a speech-recognition service for processing. This app does not store audio or send dictated text to analytics. Recognition providers’ policies may apply. You can review and edit the text before saving.';
+
+  @override
+  String get speechDictationDisclosureAccept => 'Continue';
+
+  @override
+  String get speechDictationDisclosureDecline => 'Not now';
+
+  @override
+  String get speechDictationLanguagePickerTitle =>
+      'Choose a dictation language';
+
+  @override
+  String get speechDictationListeningLabel => 'Listening…';
+
+  @override
+  String get speechDictationStopAndApplyAction => 'Stop and apply';
+
+  @override
+  String get speechDictationDiscardAction => 'Discard';
+
+  @override
+  String get speechDictationUnavailable =>
+      'Voice dictation is unavailable on this device.';
+
+  @override
+  String get speechDictationError =>
+      'Voice dictation could not be completed. Please try again.';
+
+  @override
+  String get speechDictationTooLong =>
+      'The dictated text is too long for this field.';
+
+  @override
+  String get speechDictationPhoneInvalid =>
+      'The dictated phone number is not valid for the selected country.';
 
   @override
   String get notificationsPermissionDeniedTitle => 'Notifications Blocked';

@@ -11,6 +11,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:mazilon/form/shareform.dart';
+import 'package:mazilon/form/wizard_step.dart';
 import 'package:mazilon/util/userInformation.dart';
 
 import '../helpers/widget_test_scaffold.dart';
@@ -32,11 +33,18 @@ void main() {
     resetTestServices();
   });
 
-  testWidgets('tapping the share IconButton opens the share dialog',
-      (tester) async {
+  testWidgets('tapping the share IconButton opens the share dialog', (
+    tester,
+  ) async {
     await pumpWithProviders(
       tester,
-      ShareForm(prev: () {}, submit: (_) {}),
+      wizardStepHarness(
+        ShareForm(
+          key: GlobalKey<WizardStepState>(),
+          prev: () {},
+          submit: (_) {},
+        ),
+      ),
       userInformation: user,
       surfaceSize: const Size(1024, 1800),
     );
@@ -52,13 +60,17 @@ void main() {
     expect(find.byType(Dialog), findsWidgets);
   });
 
-  testWidgets(
-      'tapping the download IconButton invokes FileService.download '
-      '(null result → toast)',
-      (tester) async {
+  testWidgets('tapping the download IconButton invokes FileService.download '
+      '(null result → toast)', (tester) async {
     await pumpWithProviders(
       tester,
-      ShareForm(prev: () {}, submit: (_) {}),
+      wizardStepHarness(
+        ShareForm(
+          key: GlobalKey<WizardStepState>(),
+          prev: () {},
+          submit: (_) {},
+        ),
+      ),
       userInformation: user,
       surfaceSize: const Size(1024, 1800),
     );
@@ -74,13 +86,19 @@ void main() {
     expect(services.files.downloadCalls, 1);
   });
 
-  testWidgets(
-      'tapping the finish button calls widget.submit with context',
-      (tester) async {
+  testWidgets('tapping the finish button calls widget.submit with context', (
+    tester,
+  ) async {
     var submitCalls = 0;
     await pumpWithProviders(
       tester,
-      ShareForm(prev: () {}, submit: (_) => submitCalls++),
+      wizardStepHarness(
+        ShareForm(
+          key: GlobalKey<WizardStepState>(),
+          prev: () {},
+          submit: (_) => submitCalls++,
+        ),
+      ),
       userInformation: user,
       surfaceSize: const Size(1024, 1800),
     );

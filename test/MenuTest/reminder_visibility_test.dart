@@ -11,6 +11,7 @@ import 'package:mazilon/util/appInformation.dart';
 import 'package:mazilon/util/persistent_memory_service.dart';
 import 'package:mazilon/util/userInformation.dart';
 import 'package:package_info_plus/package_info_plus.dart';
+import 'package:share_plus/share_plus.dart';
 import 'package:url_launcher_platform_interface/link.dart';
 import 'package:url_launcher_platform_interface/url_launcher_platform_interface.dart';
 
@@ -29,9 +30,8 @@ class _FakeAnalyticsService implements AnalyticsService {
 }
 
 class _FakePersistentMemoryService implements PersistentMemoryService {
-  _FakePersistentMemoryService({
-    Map<String, dynamic>? initialValues,
-  }) : _values = {...?initialValues};
+  _FakePersistentMemoryService({Map<String, dynamic>? initialValues})
+    : _values = {...?initialValues};
 
   final Map<String, dynamic> _values;
 
@@ -61,14 +61,15 @@ class _FakePersistentMemoryService implements PersistentMemoryService {
 
 class _FakeFileService implements FileService {
   @override
-  Future<void> share(
+  Future<ShareResult?> share(
     String message,
     List<dynamic> titles,
     List<dynamic> subTitles,
     Map<String, String> texts,
     ShareFileType saveFormat,
-    String textDirection,
-  ) async {}
+    {required String mainTitle,
+    required String textDirection,
+  }) async => const ShareResult('fake', ShareResultStatus.success);
 
   @override
   Future<String?> download(
@@ -76,8 +77,9 @@ class _FakeFileService implements FileService {
     List<dynamic> subTitles,
     Map<String, String> texts,
     ShareFileType saveFormat,
-    String textDirection,
-  ) async {
+    {required String mainTitle,
+    required String textDirection,
+  }) async {
     return null;
   }
 
@@ -140,8 +142,9 @@ void main() {
 
   setUp(() async {
     await GetIt.instance.reset();
-    getIt
-        .registerLazySingleton<AnalyticsService>(() => _FakeAnalyticsService());
+    getIt.registerLazySingleton<AnalyticsService>(
+      () => _FakeAnalyticsService(),
+    );
     getIt.registerLazySingleton<FileService>(() => _FakeFileService());
     getIt.registerLazySingleton<PersistentMemoryService>(
       () => _FakePersistentMemoryService(
@@ -190,11 +193,7 @@ void main() {
     });
 
     await tester.pumpWidget(
-      getMenuForTests(
-        mockUserInformation,
-        mockAppInformation,
-        locale: locale,
-      ),
+      getMenuForTests(mockUserInformation, mockAppInformation, locale: locale),
     );
     await tester.pumpAndSettle();
     await tester.tap(find.byIcon(Icons.settings_outlined));
@@ -218,11 +217,7 @@ void main() {
     }
 
     await tester.pumpWidget(
-      getMenuForTests(
-        mockUserInformation,
-        mockAppInformation,
-        locale: locale,
-      ),
+      getMenuForTests(mockUserInformation, mockAppInformation, locale: locale),
     );
     await tester.pumpAndSettle();
   }
@@ -291,7 +286,6 @@ void main() {
   ) async {
     await openMenuWithFakeUrlLauncher(tester);
 
-    final menuDialog = find.byKey(const Key('mainMenuDialog'));
     final contactButton = find.byKey(const Key('mainMenuContactUsButton'));
     final shareIcon = find.byIcon(Icons.share);
 
@@ -304,7 +298,6 @@ void main() {
 
     expect(contactTop, greaterThan(shareCenter));
   });
-
 
   testWidgets('launches Hebrew contact us URL externally', (
     WidgetTester tester,

@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:auto_size_text/auto_size_text.dart';
+import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:mazilon/util/theme/app_theme.dart';
+import 'package:mazilon/util/theme/shadows.dart';
 
 // Phase D (ADR-005 §Decision step 4): the nine palette variables below
 // previously held literal `Color(...)` values and were mutated by hand
@@ -40,6 +42,69 @@ double formFieldWidth(BuildContext context) {
   }
   return availableWidth > 0 ? availableWidth : MediaQuery.sizeOf(context).width;
 }
+
+/// Form-field container geometry (Figma frame 28, Groups 75/141/142/143).
+const double kFormFieldHeight = 53;
+const double kFormFieldVerticalPadding = 14.5;
+const double kFormFieldRadius = 16;
+const double kFormFieldLabelBox = 32;
+const double kFormFieldLabelSize = 14;
+const double kFormFieldLabelHeight = kFormFieldLabelBox / kFormFieldLabelSize;
+
+/// Border for a form field. Pair with [formFieldShadowDecoration] for shadow.
+OutlineInputBorder formFieldBorder(BuildContext context) => OutlineInputBorder(
+  borderRadius: BorderRadius.circular(kFormFieldRadius),
+  borderSide: BorderSide(
+    color: Theme.of(context).colorScheme.outline,
+    width: 1,
+  ),
+);
+
+/// Field decoration for [TextFormField] controls.
+InputDecoration formFieldInputDecoration(BuildContext context) =>
+    InputDecoration(
+      filled: false,
+      isDense: true,
+      contentPadding: const EdgeInsets.symmetric(
+        horizontal: 14,
+        vertical: kFormFieldVerticalPadding,
+      ),
+      border: formFieldBorder(context),
+      enabledBorder: formFieldBorder(context),
+      focusedBorder: formFieldBorder(context),
+    );
+
+/// Field decoration theme for [DropdownMenu] controls.
+InputDecorationTheme formFieldInputDecorationTheme(BuildContext context) =>
+    InputDecorationTheme(
+      filled: false,
+      isDense: true,
+      contentPadding: const EdgeInsets.symmetric(
+        horizontal: 14,
+        vertical: kFormFieldVerticalPadding,
+      ),
+      constraints: const BoxConstraints.tightFor(height: kFormFieldHeight),
+      border: formFieldBorder(context),
+      enabledBorder: formFieldBorder(context),
+      focusedBorder: formFieldBorder(context),
+    );
+
+/// Shadow-only wrapper for a form field. The border is drawn by the control
+/// itself so the focus/error states keep working; this supplies the drop
+/// shadow underneath it.
+BoxDecoration formFieldShadowDecoration() => BoxDecoration(
+  borderRadius: BorderRadius.circular(kFormFieldRadius),
+  boxShadow: AppShadows.card,
+);
+
+/// Full field container for controls that do not draw their own border
+/// (the country picker). Border, radius and shadow in one decoration.
+BoxDecoration formFieldDecoration(BuildContext context) => BoxDecoration(
+  color: Colors.transparent,
+  borderRadius: BorderRadius.circular(kFormFieldRadius),
+  border: Border.all(color: Theme.of(context).colorScheme.outline, width: 1),
+  boxShadow: AppShadows.card,
+);
 
 ButtonStyle myButtonStyle = TextButton.styleFrom(
   backgroundColor: primaryPurple,
@@ -106,9 +171,7 @@ Widget ConfirmationButton(context, function, text, buttonTextStyle) {
       ? buttonTextStyle.copyWith(color: Theme.of(context).colorScheme.onPrimary)
       : primaryButtonTextStyle(context);
   return SizedBox(
-    width: MediaQuery.of(context).size.width > 1000
-        ? 600
-        : MediaQuery.of(context).size.width * 0.6,
+    width: MediaQuery.of(context).size.width,
     child: TextButton(
       onPressed: () {
         function();
@@ -156,6 +219,15 @@ Widget ResetButton(context, function, text, buttonTextStyle) {
 }
 
 const emptyStyle = TextStyle();
+
+/// Legacy. Use a plain [Text] widget directly.
+///
+/// All this does is force `fontFamily: 'Rubix'`, which both themes already set
+/// via `ThemeData.fontFamily` — so it buys nothing over `Text`, while costing
+/// an untyped `style` parameter and hiding the widget behind a helper.
+@Deprecated(
+  'Use a plain Text widget; ThemeData already applies Rubik.',
+)
 Text myText(content, style, align) {
   style ??= emptyStyle;
   return Text(
@@ -165,6 +237,18 @@ Text myText(content, style, align) {
   );
 }
 
+/// Legacy, and the more dangerous of the two: the `maxFontSize` argument is
+/// what actually paints, while the `fontSize` in `style` is inert whenever
+/// `maxLines` is null inside an unbounded-height scroll view — every candidate
+/// size "fits", so `AutoSizeText` settles on its ceiling. On issue #338 titles
+/// declared at `40.sp` painted at 60 and buttons declared at `20.sp` at 44, and
+/// changing the declared size did nothing at all.
+///
+/// Use a plain [Text] at an explicit size, which cannot drift from its own
+/// declaration. See `designs/issue-338-audit.md` §1.
+@Deprecated(
+  'Use Text at an explicit size; maxFontSize silently overrides style.fontSize.',
+)
 AutoSizeText myAutoSizedText(
   content,
   style,
@@ -207,6 +291,106 @@ Widget myTextButton(
   );
   if (tooltip == null || tooltip.isEmpty) return button;
   return Tooltip(message: tooltip, child: button);
+}
+
+/// Inline text-and-icon link — a tertiary action rendered as coloured text
+/// with a leading icon and no button chrome (e.g. "add your own",
+/// "other suggestions" in the onboarding template).
+///
+/// The icon leads so `Directionality` mirrors it: reading-start side in both
+/// RTL and LTR. Padding and the minimum tap target are reset because the
+/// design sizes these to the text box; Material's default 48px minimum would
+/// otherwise inflate the surrounding spacing. That is a deliberate trade
+/// against the 48px touch-target guideline — prefer [ConfirmationButton] or
+/// [myTextButton] where a full-size target matters.
+///
+/// [designFontSize] is the design's size in whole points. It is used both as
+/// the (scaled) style size and as the `AutoSizeText` ceiling, which must stay
+/// a whole multiple of `stepGranularity` — so the unscaled value goes there.
+Widget LinkButton(
+  Function function,
+  IconData icon,
+  String label,
+  Color color, {
+  double designFontSize = 14,
+  double iconSize = 16,
+  double gap = 4,
+  double minHeight = 32,
+}) {
+  return TextButton(
+    style: TextButton.styleFrom(
+      padding: EdgeInsets.zero,
+      minimumSize: Size(0, minHeight),
+      tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+    ),
+    onPressed: () {
+      function();
+    },
+    child: Row(
+      mainAxisSize: MainAxisSize.min,
+      spacing: gap,
+      children: [
+        Icon(icon, color: color, size: iconSize),
+        Flexible(
+          child: Text(
+            label,
+            style: TextStyle(
+              fontWeight: FontWeight.w500,
+              fontSize: designFontSize.sp,
+              color: color,
+            ),
+          ),
+        ),
+      ],
+    ),
+  );
+}
+
+/// Dot step indicator for the onboarding wizard — one pill per step, filled
+/// in [AppColors.primary] up to and including [currentStep] and
+/// [AppColors.progressTrack] beyond it.
+///
+/// Distinct from the `LinearProgressIndicator` in DESIGN.md §3.5: the
+/// onboarding flow's design specifies discrete dots, not a continuous bar.
+/// Geometry of the wizard's progress dots. Public so the header can reserve
+/// the space they occupy instead of guessing at it.
+const double kStepDotWidth = 18;
+const double kStepDotGap = 8;
+
+/// Width the dots occupy for [stepCount] steps.
+double stepDotsWidth(
+  int stepCount, {
+  double dotWidth = kStepDotWidth,
+  double gap = kStepDotGap,
+}) => stepCount <= 0 ? 0 : stepCount * dotWidth + (stepCount - 1) * gap;
+
+Widget StepDotsIndicator(
+  BuildContext context, {
+  required int stepCount,
+  required int currentStep,
+  double dotWidth = kStepDotWidth,
+  double dotHeight = 8,
+  //Figma: dots are pitched 26.65 apart at 18.4 wide -> ~8.3 between them.
+  double gap = kStepDotGap,
+}) {
+  return Row(
+    mainAxisAlignment: MainAxisAlignment.center,
+    spacing: gap,
+    children: List.generate(
+      stepCount,
+      (index) => AnimatedContainer(
+        duration: const Duration(milliseconds: 300),
+        width: dotWidth,
+        height: dotHeight,
+        decoration: BoxDecoration(
+          color: index <= currentStep
+              ? Theme.of(context).colorScheme.primary
+              : AppColors.progressTrack,
+          borderRadius: BorderRadius.circular(dotHeight / 2),
+        ),
+      ),
+    ),
+  );
 }
 
 Icon mainpageListsAddIcon = Icon(

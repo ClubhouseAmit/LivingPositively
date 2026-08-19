@@ -1,0 +1,507 @@
+### Existing reminders stay in old language
+
+The locale-change path updates `LocaleService`, persistent `localeName`, and `UserInformation` but no longer calls `NotificationsService.updateNotification` to refresh `AppLocalizations`, so existing reminders retain their previous-language body/payload. Should we restore a supported-platform refresh or explicitly reschedule them?
+<!--
+_Finding type:_ `Logical Bugs`
+-->
+
+<picture><img src="https://baz.co/api/v2/badges?type=reviewer&content=Logical%20Bugs&severity=high" alt="Severity" height="24" /></picture>
+
+<a href="https://cursor.com/link/prompt?text=Before%20applying%2C%20verify%20this%20suggestion%20against%20the%20current%20code.%0AIn%20%60lib%2Fmain.dart%60%20around%20lines%20446-459%2C%20update%20%60_MyAppState.changeLocale%60%20to%20restore%20the%20reminder%20notification%20refresh%20that%20was%20removed%20after%20the%20locale%20change.%20After%20applying%20the%20new%20locale%2C%20obtain%20the%20current%20%60AppLocalizations%60%20and%20user%20information%20safely%2C%20then%20call%20the%20supported-platform%20notification%20update%2Frescheduling%20flow%20so%20existing%20reminders%20use%20the%20new%20language%3B%20preserve%20the%20existing%20locale%20and%20persistence%20updates." target="_blank" rel="noopener noreferrer"><picture><source media="(prefers-color-scheme: dark)" srcset="https://cursor.com/fix-in-cursor-dark.svg"><source media="(prefers-color-scheme: light)" srcset="https://cursor.com/fix-in-cursor-light.svg"><img alt="Fix in Cursor" src="https://cursor.com/fix-in-cursor.svg"></picture></a>
+
+<details>
+<summary>Prompt for AI Agents</summary>
+
+```text
+Before applying, verify this suggestion against the current code. In `lib/main.dart`
+around lines 446-459, update `_MyAppState.changeLocale` to restore the reminder
+notification refresh that was removed after the locale change. After applying the new
+locale, obtain the current `AppLocalizations` and user information safely, then call the
+supported-platform notification update/rescheduling flow so existing reminders use the
+new language; preserve the existing locale and persistence updates.
+```
+
+</details>
+### Binary users get inconsistent suggestions
+
+The full Journal and Positive screens still pass `gender == "" ? "other" : gender` to suggestion lists, so users with `binary == true` and stale `gender == 'male'` see different suggestions on home and full screens — should we migrate those callers to `Gender.of(userInfo).listKey`?
+<!--
+_Finding type:_ `AI Coding Guidelines`
+-->
+
+<picture><img src="https://baz.co/api/v2/badges?type=reviewer&content=AI%20Coding%20Guidelines&severity=high" alt="Severity" height="24" /></picture>
+
+<a href="https://cursor.com/link/prompt?text=Before%20applying%2C%20verify%20this%20suggestion%20against%20the%20current%20code.%0AIn%20%60lib%2FMainPageHelpers%2FMainPageList%2Fmainpage_list_widget.dart%60%20around%20lines%2051-51%2C%20treat%20%60Gender.of%28userInfoProvider%29.listKey%60%20as%20the%20canonical%20gender%20normalization%20used%20by%20%60_eligibleSuggestions%60.%20Find%20the%20full%20Journal%20and%20Positive%20screen%20callers%20that%20still%20pass%20%60userInfo.gender%60%20with%20an%20empty-string%20fallback%2C%20and%20replace%20that%20logic%20with%20%60Gender.of%28userInfo%29.listKey%60%20so%20all%20suggestion%20lists%20use%20the%20same%20boundary%20and%20stale%20gender%20values%20cannot%20produce%20inconsistent%20suggestions." target="_blank" rel="noopener noreferrer"><picture><source media="(prefers-color-scheme: dark)" srcset="https://cursor.com/fix-in-cursor-dark.svg"><source media="(prefers-color-scheme: light)" srcset="https://cursor.com/fix-in-cursor-light.svg"><img alt="Fix in Cursor" src="https://cursor.com/fix-in-cursor.svg"></picture></a>
+
+<details>
+<summary>Prompt for AI Agents</summary>
+
+```text
+Before applying, verify this suggestion against the current code. In
+`lib/MainPageHelpers/MainPageList/mainpage_list_widget.dart` around lines 51-51, treat
+`Gender.of(userInfoProvider).listKey` as the canonical gender normalization used by
+`_eligibleSuggestions`. Find the full Journal and Positive screen callers that still
+pass `userInfo.gender` with an empty-string fallback, and replace that logic with
+`Gender.of(userInfo).listKey` so all suggestion lists use the same boundary and stale
+gender values cannot produce inconsistent suggestions.
+```
+
+</details>
+### Notification rescheduling regression untested
+
+`test/notifications/reminder_locale_change_guard_test.dart:22-25` mutates locale state and asserts keys that `NotificationsService.updateNotification` never writes, without invoking `MyApp.changeLocale` or any notification API, so it passes even when locale-change rescheduling is removed. Should we exercise `MyApp.changeLocale` with recording platform fakes and assert cancellation plus the new localized reminder payload/body?
+<!--
+_Finding type:_ `Logical Bugs`
+-->
+
+<picture><img src="https://baz.co/api/v2/badges?type=reviewer&content=Logical%20Bugs&severity=medium" alt="Severity" height="24" /></picture>
+
+<a href="https://cursor.com/link/prompt?text=Before%20applying%2C%20verify%20this%20suggestion%20against%20the%20current%20code.%0AIn%20test%2Fnotifications%2Freminder_locale_change_guard_test.dart%20around%20lines%2022-25%2C%20replace%20the%20direct%20locale-state%20mutation%20test%20with%20coverage%20of%20the%20actual%20MyApp.changeLocale%20flow.%20Seed%20existing%20reminder%20settings%2C%20use%20recording%20fakes%20at%20the%20notification%2Fplatform%20scheduling%20boundary%2C%20and%20assert%20that%20changing%20locale%20cancels%20the%20prior%20schedule%20and%20reschedules%20the%20reminder%20with%20the%20newly%20localized%20payload%2Fbody%20across%20the%20relevant%20Android%20and%20iOS%20paths.%20Remove%20the%20assertions%20for%20notificationHour%2C%20notificationMinute%2C%20and%20notificationMessage%20because%20updateNotification%20does%20not%20write%20those%20keys." target="_blank" rel="noopener noreferrer"><picture><source media="(prefers-color-scheme: dark)" srcset="https://cursor.com/fix-in-cursor-dark.svg"><source media="(prefers-color-scheme: light)" srcset="https://cursor.com/fix-in-cursor-light.svg"><img alt="Fix in Cursor" src="https://cursor.com/fix-in-cursor.svg"></picture></a>
+
+<details>
+<summary>Prompt for AI Agents</summary>
+
+```text
+Before applying, verify this suggestion against the current code. In
+test/notifications/reminder_locale_change_guard_test.dart around lines 22-25, replace
+the direct locale-state mutation test with coverage of the actual MyApp.changeLocale
+flow. Seed existing reminder settings, use recording fakes at the notification/platform
+scheduling boundary, and assert that changing locale cancels the prior schedule and
+reschedules the reminder with the newly localized payload/body across the relevant
+Android and iOS paths. Remove the assertions for notificationHour, notificationMinute,
+and notificationMessage because updateNotification does not write those keys.
+```
+
+</details>
+### Locale regressions bypass test coverage
+
+The test directly calls `localeService.setLocale`, writes `localeName`, and invokes `userInformation.updateLocaleName` instead of exercising `main.dart`'s `changeLocale`, so regressions such as skipped persistence or notification updates still pass — should we drive the actual callback/widget flow and assert the resulting state and ordered side effects?
+<!--
+_Finding type:_ `Strict, explicit test coverage`
+-->
+
+<picture><img src="https://baz.co/api/v2/badges?type=reviewer&content=Strict%2C%20explicit%20test%20coverage&severity=medium" alt="Severity" height="24" /></picture>
+
+<a href="https://cursor.com/link/prompt?text=Before%20applying%2C%20verify%20this%20suggestion%20against%20the%20current%20code.%0AIn%20%60test%2Fnotifications%2Freminder_locale_change_guard_test.dart%60%20around%20lines%2034-41%2C%20the%20locale-change%20test%20manually%20calls%20%60setLocale%60%2C%20writes%20persistence%2C%20and%20invokes%20%60updateLocaleName%60%20instead%20of%20exercising%20%60main.dart%60%E2%80%99s%20%60changeLocale%60%20flow.%20Refactor%20it%20to%20trigger%20the%20actual%20locale-change%20callback%20or%20widget%20interaction%2C%20using%20test%20doubles%20or%20instrumentation%20as%20needed%20to%20capture%20ordered%20side%20effects.%20Assert%20that%20the%20production%20flow%20persists%20the%20new%20locale%20while%20leaving%20notification%20settings%20unchanged%20and%20does%20not%20perform%20notification%20updates." target="_blank" rel="noopener noreferrer"><picture><source media="(prefers-color-scheme: dark)" srcset="https://cursor.com/fix-in-cursor-dark.svg"><source media="(prefers-color-scheme: light)" srcset="https://cursor.com/fix-in-cursor-light.svg"><img alt="Fix in Cursor" src="https://cursor.com/fix-in-cursor.svg"></picture></a>
+
+<details>
+<summary>Prompt for AI Agents</summary>
+
+```text
+Before applying, verify this suggestion against the current code. In
+`test/notifications/reminder_locale_change_guard_test.dart` around lines 34-41, the
+locale-change test manually calls `setLocale`, writes persistence, and invokes
+`updateLocaleName` instead of exercising `main.dart`’s `changeLocale` flow. Refactor
+it to trigger the actual locale-change callback or widget interaction, using test
+doubles or instrumentation as needed to capture ordered side effects. Assert that the
+production flow persists the new locale while leaving notification settings unchanged
+and does not perform notification updates.
+```
+
+</details>
+### Gender fields can persist inconsistently
+
+`applyTo` starts independent persistence operations through `updateBinary` and `updateGender` without awaiting them, so one `setItem` failure can leave `binary: true` with stale `gender: 'male'` while callers cannot observe or retry the failure — should we make the pair update atomic and awaitable, or coordinate its error handling?
+<!--
+_Finding type:_ `AI Coding Guidelines`
+-->
+
+<picture><img src="https://baz.co/api/v2/badges?type=reviewer&content=AI%20Coding%20Guidelines&severity=high" alt="Severity" height="24" /></picture>
+
+<a href="https://cursor.com/link/prompt?text=Before%20applying%2C%20verify%20this%20suggestion%20against%20the%20current%20code.%0AIn%20lib%2Futil%2Fgender.dart%20around%20lines%2063-66%2C%20refactor%20%60Gender.applyTo%60%20so%20updating%20%60binary%60%20and%20%60gender%60%20is%20one%20awaitable%2C%20coordinated%20persistence%20operation%20rather%20than%20two%20independent%20unawaited%20calls.%20Add%20or%20use%20a%20%60UserInformation%60%20method%20that%20writes%20both%20fields%20atomically%20or%20rolls%20back%2Fhandles%20partial%20failure%2C%20return%20its%20%60Future%60%20from%20%60applyTo%60%2C%20and%20update%20callers%20to%20await%20it%20and%20handle%20errors%20so%20the%20stored%20pair%20cannot%20silently%20become%20inconsistent." target="_blank" rel="noopener noreferrer"><picture><source media="(prefers-color-scheme: dark)" srcset="https://cursor.com/fix-in-cursor-dark.svg"><source media="(prefers-color-scheme: light)" srcset="https://cursor.com/fix-in-cursor-light.svg"><img alt="Fix in Cursor" src="https://cursor.com/fix-in-cursor.svg"></picture></a>
+
+<details>
+<summary>Prompt for AI Agents</summary>
+
+```text
+Before applying, verify this suggestion against the current code. In
+lib/util/gender.dart around lines 63-66, refactor `Gender.applyTo` so updating `binary`
+and `gender` is one awaitable, coordinated persistence operation rather than two
+independent unawaited calls. Add or use a `UserInformation` method that writes both
+fields atomically or rolls back/handles partial failure, return its `Future` from
+`applyTo`, and update callers to await it and handle errors so the stored pair cannot
+silently become inconsistent.
+```
+
+</details>
+### Persistence regressions pass all Gender tests
+
+The new `applyTo` tests assert only `Gender.of(user)` after changing in-memory fields, so regressions that skip either persistence call still pass; should we retain `_FakePersistentMemoryService` and assert its `gender` and `binary` entries? Could we also add widget tests that exercise the real localized onboarding/settings callbacks through the new public mapping API?
+<!--
+_Finding type:_ `AI Coding Guidelines`
+-->
+
+<picture><img src="https://baz.co/api/v2/badges?type=reviewer&content=AI%20Coding%20Guidelines&severity=low" alt="Severity" height="24" /></picture>
+
+<a href="https://cursor.com/link/prompt?text=Before%20applying%2C%20verify%20this%20suggestion%20against%20the%20current%20code.%0AIn%20%60test%2Futil%2Fgender_test.dart%60%20around%20lines%2059-64%2C%20strengthen%20the%20%60Gender.applyTo%60%20tests%20by%20retaining%20the%20injected%20%60_FakePersistentMemoryService%60%20instead%20of%20hiding%20it%20inside%20%60buildUser%60%2C%20then%20assert%20both%20persisted%20%60gender%60%20and%20%60binary%60%20entries%20for%20each%20enum%20value.%20Add%20widget%20tests%20that%20exercise%20the%20real%20localized%20onboarding%2Fsettings%20callbacks%20and%20verify%20they%20invoke%20%60applyTo%60%20with%20the%20expected%20persisted%20values%2C%20so%20regressions%20that%20skip%20either%20persistence%20call%20cannot%20pass." target="_blank" rel="noopener noreferrer"><picture><source media="(prefers-color-scheme: dark)" srcset="https://cursor.com/fix-in-cursor-dark.svg"><source media="(prefers-color-scheme: light)" srcset="https://cursor.com/fix-in-cursor-light.svg"><img alt="Fix in Cursor" src="https://cursor.com/fix-in-cursor.svg"></picture></a>
+
+<details>
+<summary>Prompt for AI Agents</summary>
+
+```text
+Before applying, verify this suggestion against the current code. In
+`test/util/gender_test.dart` around lines 59-64, strengthen the `Gender.applyTo` tests
+by retaining the injected `_FakePersistentMemoryService` instead of hiding it inside
+`buildUser`, then assert both persisted `gender` and `binary` entries for each enum
+value. Add widget tests that exercise the real localized onboarding/settings callbacks
+and verify they invoke `applyTo` with the expected persisted values, so regressions that
+skip either persistence call cannot pass.
+```
+
+</details>
+### Personal plans use wrong gender suggestions
+
+`retrieveInformation` derives its list key from only `gender`, so `{binary: true, gender: 'male'}` selects `male` instead of the canonical `other` bucket and diverges from home/menu suggestions — should we pass the complete `UserInformation`/reconstructed `Gender`, or normalize with `binary` before selecting each list?
+<!--
+_Finding type:_ `Logical Bugs`
+-->
+
+<picture><img src="https://baz.co/api/v2/badges?type=reviewer&content=Logical%20Bugs&severity=high" alt="Severity" height="24" /></picture>
+
+<a href="https://cursor.com/link/prompt?text=Before%20applying%2C%20verify%20this%20suggestion%20against%20the%20current%20code.%0AIn%20lib%2Futil%2FForm%2FretrieveInformation.dart%20around%20lines%2019-22%2C%20fix%20retrieveInformation%20so%20personal-plan%20list%20selection%20does%20not%20derive%20the%20key%20from%20the%20raw%20gender%20string%20alone.%20Refactor%20the%20method%20and%20its%20callers%20to%20pass%20the%20complete%20UserInformation%2Freconstructed%20Gender%2C%20or%20an%20already%20normalized%20list%20key%2C%20and%20use%20the%20binary-first%20normalization%20so%20binary%20users%20consistently%20resolve%20to%20the%20%E2%80%9Cother%E2%80%9D%20bucket." target="_blank" rel="noopener noreferrer"><picture><source media="(prefers-color-scheme: dark)" srcset="https://cursor.com/fix-in-cursor-dark.svg"><source media="(prefers-color-scheme: light)" srcset="https://cursor.com/fix-in-cursor-light.svg"><img alt="Fix in Cursor" src="https://cursor.com/fix-in-cursor.svg"></picture></a>
+
+<details>
+<summary>Prompt for AI Agents</summary>
+
+```text
+Before applying, verify this suggestion against the current code. In
+lib/util/Form/retrieveInformation.dart around lines 19-22, fix retrieveInformation so
+personal-plan list selection does not derive the key from the raw gender string alone.
+Refactor the method and its callers to pass the complete UserInformation/reconstructed
+Gender, or an already normalized list key, and use the binary-first normalization so
+binary users consistently resolve to the “other” bucket.
+```
+
+</details>
+### Language switch resets selected gender
+
+`dropdownValueGender` stores the localized `newValue`, so after a locale change `Gender.fromLabel` compares the old label with new-locale labels and falls through to `Gender.unspecified`, causing confirmation to clear `userInfo.gender` — should we store the enum or a stable code and derive `label(appLocale)` for the dropdown?
+<!--
+_Finding type:_ `Type Inconsistency`
+-->
+
+<picture><img src="https://baz.co/api/v2/badges?type=reviewer&content=Type%20Inconsistency&severity=high" alt="Severity" height="24" /></picture>
+
+<a href="https://cursor.com/link/prompt?text=Before%20applying%2C%20verify%20this%20suggestion%20against%20the%20current%20code.%0AIn%20lib%2Fpages%2FUserSettings.dart%20around%20lines%20830-836%2C%20update%20the%20UserSettingsState%20gender-selection%20and%20confirmation%20logic%20so%20it%20does%20not%20store%20or%20parse%20localized%20labels%20across%20locale%20changes.%20Store%20the%20selected%20Gender%20enum%20or%20stable%20gender%20code%20in%20state%2C%20derive%20the%20dropdown%E2%80%99s%20displayed%20%60label%28appLocale%29%60%20and%20selection%20state%20from%20that%20value%2C%20and%20apply%20the%20stable%20value%20directly%20when%20confirming.%20Ensure%20switching%20languages%20after%20selecting%20a%20gender%20preserves%20the%20intended%20male%2C%20female%2C%20non-binary%2C%20or%20unspecified%20selection." target="_blank" rel="noopener noreferrer"><picture><source media="(prefers-color-scheme: dark)" srcset="https://cursor.com/fix-in-cursor-dark.svg"><source media="(prefers-color-scheme: light)" srcset="https://cursor.com/fix-in-cursor-light.svg"><img alt="Fix in Cursor" src="https://cursor.com/fix-in-cursor.svg"></picture></a>
+
+<details>
+<summary>Prompt for AI Agents</summary>
+
+```text
+Before applying, verify this suggestion against the current code. In
+lib/pages/UserSettings.dart around lines 830-836, update the UserSettingsState
+gender-selection and confirmation logic so it does not store or parse localized labels
+across locale changes. Store the selected Gender enum or stable gender code in state,
+derive the dropdown’s displayed `label(appLocale)` and selection state from that
+value, and apply the stable value directly when confirming. Ensure switching languages
+after selecting a gender preserves the intended male, female, non-binary, or unspecified
+selection.
+```
+
+</details>
+Commit 425d8fe **addressed** this comment by using `Gender.of(userInfoProvider).listKey` for both suggestion-list paths, replacing the stale `gender` fallback logic.
+### Disclaimer copy bypasses localization
+
+The disclaimer title in `_getTitle` and language-selector labels are hardcoded instead of using `AppLocalizations`, so new locales require widget changes and the title falls back to English via `'Disclaimer'` — should we add localized ARB keys, read them from `appLocale`, and remove the switch/default as `.agents/skills/flutter-best-practices/references/localization-package-boundaries.md` requires?
+<!--
+_Finding type:_ `AI Coding Guidelines`
+-->
+
+<picture><img src="https://baz.co/api/v2/badges?type=reviewer&content=AI%20Coding%20Guidelines&severity=low" alt="Severity" height="24" /></picture>
+
+<a href="https://cursor.com/link/prompt?text=Before%20applying%2C%20verify%20this%20suggestion%20against%20the%20current%20code.%0AIn%20lib%2FdisclaimerPage.dart%20around%20lines%2067-71%20and%20141-163%2C%20replace%20the%20hardcoded%20%60_getTitle%60%20switch%20and%20language-selector%20labels%20with%20%60AppLocalizations%60%20resources%20accessed%20through%20%60appLocale%60.%20Add%20localized%20keys%20for%20the%20disclaimer%20title%20and%20each%20selector%20label%20to%20%60app_en.arb%60%2C%20%60app_he.arb%60%2C%20and%20%60app_ar.arb%60%2C%20regenerate%20localization%20code%20if%20needed%2C%20and%20remove%20the%20switch%20so%20adding%20a%20locale%20does%20not%20require%20widget-code%20changes." target="_blank" rel="noopener noreferrer"><picture><source media="(prefers-color-scheme: dark)" srcset="https://cursor.com/fix-in-cursor-dark.svg"><source media="(prefers-color-scheme: light)" srcset="https://cursor.com/fix-in-cursor-light.svg"><img alt="Fix in Cursor" src="https://cursor.com/fix-in-cursor.svg"></picture></a>
+
+<details>
+<summary>Prompt for AI Agents</summary>
+
+```text
+Before applying, verify this suggestion against the current code. In
+lib/disclaimerPage.dart around lines 67-71 and 141-163, replace the hardcoded
+`_getTitle` switch and language-selector labels with `AppLocalizations` resources
+accessed through `appLocale`. Add localized keys for the disclaimer title and each
+selector label to `app_en.arb`, `app_he.arb`, and `app_ar.arb`, regenerate localization
+code if needed, and remove the switch so adding a locale does not require widget-code
+changes.
+```
+
+</details>
+`_languageButton` duplicates `LanguageDropDown._buildLanguageItem` from `lib/util/disclaimerLanguageSelect.dart`, including its locale detection, selected-state styling, and `InkWell` behavior, so selector changes require updates in two places while the shared widget remains unused — should we remove it and the inline selector row in `disclaimerPage.dart`, then reuse `LanguageDropDown` with `widget.changeLocale` and parameterized sizing?
+<!--
+_Finding types:_ `Conciseness` `Code Dedup and Conventions`
+-->
+
+<picture><img src="https://baz.co/api/v2/badges?type=reviewer&content=Conciseness%20%C2%B7%20Code%20Dedup%20and%20Conventions&severity=low" alt="Severity" height="24" /></picture>
+
+<a href="https://cursor.com/link/prompt?text=Before%20applying%2C%20verify%20this%20suggestion%20against%20the%20current%20code.%0AIn%20%60lib%2FdisclaimerPage.dart%60%20around%20lines%2079-90%2C%20replace%20the%20custom%20%60_languageButton%60%20implementation%20and%20the%20inline%20language-selector%20row%20in%20%60build%60%20%28around%20lines%20136-166%29%20with%20the%20existing%20%60LanguageDropDown%60%20from%20%60lib%2Futil%2FdisclaimerLanguageSelect.dart%60.%20Restore%20the%20import%2C%20pass%20%60widget.changeLocale%60%20to%20the%20shared%20widget%20%28parameterizing%20for%20the%20page%27s%20sizing%20if%20needed%29%2C%20and%20remove%20the%20duplicated%20locale%20detection%2C%20selected-state%20styling%2C%20and%20button%20layout%20so%20language%20options%20have%20a%20single%20source%20of%20truth." target="_blank" rel="noopener noreferrer"><picture><source media="(prefers-color-scheme: dark)" srcset="https://cursor.com/fix-in-cursor-dark.svg"><source media="(prefers-color-scheme: light)" srcset="https://cursor.com/fix-in-cursor-light.svg"><img alt="Fix in Cursor" src="https://cursor.com/fix-in-cursor.svg"></picture></a>
+
+<details>
+<summary>Prompt for AI Agents</summary>
+
+```text
+Before applying, verify this suggestion against the current code. In
+`lib/disclaimerPage.dart` around lines 79-90, replace the custom `_languageButton`
+implementation and the inline language-selector row in `build` (around lines 136-166)
+with the existing `LanguageDropDown` from `lib/util/disclaimerLanguageSelect.dart`.
+Restore the import, pass `widget.changeLocale` to the shared widget (parameterizing for
+the page's sizing if needed), and remove the duplicated locale detection, selected-state
+styling, and button layout so language options have a single source of truth.
+```
+
+</details>
+### Bootstrap failure traps users indefinitely
+
+When `Future.wait` fails, `MyApp` leaves this widget as the notifier value, so initialization never restarts and the controller stops at `0.95`; users remain on an almost-complete loading bar with no recovery action — should we add an explicit retry path or error state?
+<!--
+_Finding type:_ `Logical Bugs`
+-->
+
+<picture><img src="https://baz.co/api/v2/badges?type=reviewer&content=Logical%20Bugs&severity=high" alt="Severity" height="24" /></picture>
+
+<a href="https://cursor.com/link/prompt?text=Before%20applying%2C%20verify%20this%20suggestion%20against%20the%20current%20code.%0AIn%20%60lib%2Fpages%2FSignIn_Pages%2Fintroduction.dart%60%20around%20lines%2024-32%2C%20refactor%20%60_IntroductionState.initState%60%20and%20the%20related%20bootstrap%2Floading%20logic%20so%20a%20failed%20%60Future.wait%60%20cannot%20leave%20the%20user%20on%20a%20permanently%20incomplete%20progress%20bar.%20Add%20an%20explicit%20error%20state%20with%20a%20visible%20retry%20action%20that%20reruns%20initialization%20and%20resets%2Frestarts%20the%20animation%2C%20while%20successful%20initialization%20completes%20the%20flow%20or%20navigates%20onward.%20Do%20not%20treat%20the%20one-time%200.0-to-0.95%20animation%20as%20the%20only%20failure%20handling." target="_blank" rel="noopener noreferrer"><picture><source media="(prefers-color-scheme: dark)" srcset="https://cursor.com/fix-in-cursor-dark.svg"><source media="(prefers-color-scheme: light)" srcset="https://cursor.com/fix-in-cursor-light.svg"><img alt="Fix in Cursor" src="https://cursor.com/fix-in-cursor.svg"></picture></a>
+
+<details>
+<summary>Prompt for AI Agents</summary>
+
+```text
+Before applying, verify this suggestion against the current code. In
+`lib/pages/SignIn_Pages/introduction.dart` around lines 24-32, refactor
+`_IntroductionState.initState` and the related bootstrap/loading logic so a failed
+`Future.wait` cannot leave the user on a permanently incomplete progress bar. Add an
+explicit error state with a visible retry action that reruns initialization and
+resets/restarts the animation, while successful initialization completes the flow or
+navigates onward. Do not treat the one-time 0.0-to-0.95 animation as the only failure
+handling.
+```
+
+</details>
+### Dark mode renders light splash
+
+`lib/pages/SignIn_Pages/introduction.dart` uses `AppColors.pageBackground` for both the body and progress-gradient endpoint, so it overrides `buildDarkTheme()`'s `AppColors.darkPageBackground` and renders a light splash in `ThemeMode.dark` — should we derive both from `Theme.of(context)` or select the dark token, as `CLAUDE.md` requires?
+<!--
+_Finding type:_ `Logical Bugs`
+-->
+
+<picture><img src="https://baz.co/api/v2/badges?type=reviewer&content=Logical%20Bugs&severity=high" alt="Severity" height="24" /></picture>
+
+<a href="https://cursor.com/link/prompt?text=Before%20applying%2C%20verify%20this%20suggestion%20against%20the%20current%20code.%0AIn%20%60lib%2Fpages%2FSignIn_Pages%2Fintroduction.dart%60%20around%20lines%2043-46%20and%2083-87%2C%20update%20%60_IntroductionState.build%60%20so%20the%20introduction%20screen%20respects%20the%20active%20theme%20in%20dark%20mode.%20Replace%20the%20hardcoded%20%60AppColors.pageBackground%60%20used%20by%20the%20container%20and%20gradient%20endpoint%20with%20the%20themed%20scaffold%2Fpage%20background%2C%20or%20select%20%60AppColors.darkPageBackground%60%20when%20%60Theme.of%28context%29.brightness%60%20is%20dark." target="_blank" rel="noopener noreferrer"><picture><source media="(prefers-color-scheme: dark)" srcset="https://cursor.com/fix-in-cursor-dark.svg"><source media="(prefers-color-scheme: light)" srcset="https://cursor.com/fix-in-cursor-light.svg"><img alt="Fix in Cursor" src="https://cursor.com/fix-in-cursor.svg"></picture></a>
+
+<details>
+<summary>Prompt for AI Agents</summary>
+
+```text
+Before applying, verify this suggestion against the current code. In
+`lib/pages/SignIn_Pages/introduction.dart` around lines 43-46 and 83-87, update
+`_IntroductionState.build` so the introduction screen respects the active theme in dark
+mode. Replace the hardcoded `AppColors.pageBackground` used by the container and
+gradient endpoint with the themed scaffold/page background, or select
+`AppColors.darkPageBackground` when `Theme.of(context).brightness` is dark.
+```
+
+</details>
+### Splash rewrite leaves tests on removed spinner
+
+`test/SignIn/introduction_test.dart` still expects `CircularProgressIndicator`, although the introduction now renders `Image.asset('assets/images/Logo.png')` and an `AnimatedBuilder` progress bar, so the tests fail and omit coverage for the logo, track/fill, and localized `asyncLoadingLabel` — should we update them to the new contract using `pumpWithProviders` and `MaterialApp` localization, as `.agents/skills/code-review/SKILL.md` and `.agents/skills/testing/SKILL.md` require?
+<!--
+_Finding type:_ `AI Coding Guidelines`
+-->
+
+<picture><img src="https://baz.co/api/v2/badges?type=reviewer&content=AI%20Coding%20Guidelines&severity=low" alt="Severity" height="24" /></picture>
+
+<a href="https://cursor.com/link/prompt?text=Before%20applying%2C%20verify%20this%20suggestion%20against%20the%20current%20code.%0AIn%20%60lib%2Fpages%2FSignIn_Pages%2Fintroduction.dart%60%20around%20lines%2051-62%2C%20update%20%60test%2FSignIn%2Fintroduction_test.dart%60%20to%20match%20the%20new%20%60Introduction%60%20widget%20contract%20instead%20of%20expecting%20the%20removed%20%60CircularProgressIndicator%60%20and%20greeting.%20Using%20the%20existing%20%60pumpWithProviders%60%20setup%2C%20add%20assertions%20for%20the%20logo%20asset%2C%20progress-bar%20track%2Ffill%2C%20and%20localized%20%60appLocale.asyncLoadingLabel%60%2C%20pumping%20the%20animation%20as%20needed%20so%20the%20test%20reliably%20covers%20the%20rendered%20UI." target="_blank" rel="noopener noreferrer"><picture><source media="(prefers-color-scheme: dark)" srcset="https://cursor.com/fix-in-cursor-dark.svg"><source media="(prefers-color-scheme: light)" srcset="https://cursor.com/fix-in-cursor-light.svg"><img alt="Fix in Cursor" src="https://cursor.com/fix-in-cursor.svg"></picture></a>
+
+<details>
+<summary>Prompt for AI Agents</summary>
+
+```text
+Before applying, verify this suggestion against the current code. In
+`lib/pages/SignIn_Pages/introduction.dart` around lines 51-62, update
+`test/SignIn/introduction_test.dart` to match the new `Introduction` widget contract
+instead of expecting the removed `CircularProgressIndicator` and greeting. Using the
+existing `pumpWithProviders` setup, add assertions for the logo asset, progress-bar
+track/fill, and localized `appLocale.asyncLoadingLabel`, pumping the animation as needed
+so the test reliably covers the rendered UI.
+```
+
+</details>
+### Splash progress colors bypass theme tokens
+
+The progress track hardcodes `Colors.white.withValues(alpha: 0.5)` and `Colors.black`, so the pair stays unchanged across themes and cannot express the approved contrast treatment — should we use `AppColors.progressTrack` and `AppColors.darkOutline` via `AppColors`/`ColorScheme`, as required by `CLAUDE.md` and `DESIGN.md` §5.1?
+<!--
+_Finding type:_ `AI Coding Guidelines`
+-->
+
+<picture><img src="https://baz.co/api/v2/badges?type=reviewer&content=AI%20Coding%20Guidelines&severity=low" alt="Severity" height="24" /></picture>
+
+<a href="https://cursor.com/link/prompt?text=Before%20applying%2C%20verify%20this%20suggestion%20against%20the%20current%20code.%0AIn%20lib%2Fpages%2FSignIn_Pages%2Fintroduction.dart%20around%20lines%2068-73%2C%20update%20the%20progress%20bar%20decoration%20in%20%60_IntroductionState.build%60%20so%20it%20does%20not%20hardcode%20raw%20%60Colors.white%60%20or%20%60Colors.black%60.%20Refactor%20the%20track%20and%20outline%20colors%20to%20use%20the%20existing%20theme-aware%20semantic%20tokens%20%60AppColors.progressTrack%60%20and%20%60AppColors.darkOutline%60%2C%20retaining%20suitable%20transparency%20only%20if%20those%20tokens%20require%20it." target="_blank" rel="noopener noreferrer"><picture><source media="(prefers-color-scheme: dark)" srcset="https://cursor.com/fix-in-cursor-dark.svg"><source media="(prefers-color-scheme: light)" srcset="https://cursor.com/fix-in-cursor-light.svg"><img alt="Fix in Cursor" src="https://cursor.com/fix-in-cursor.svg"></picture></a>
+
+<details>
+<summary>Prompt for AI Agents</summary>
+
+```text
+Before applying, verify this suggestion against the current code. In
+lib/pages/SignIn_Pages/introduction.dart around lines 68-73, update the progress bar
+decoration in `_IntroductionState.build` so it does not hardcode raw `Colors.white` or
+`Colors.black`. Refactor the track and outline colors to use the existing theme-aware
+semantic tokens `AppColors.progressTrack` and `AppColors.darkOutline`, retaining
+suitable transparency only if those tokens require it.
+```
+
+</details>
+### New locales unavailable and selector drift
+
+`LanguageDropDown` is an unused second selector, while `DisclaimerPage` hard-codes `en`, `he`, and `ar` instead of consuming `AppLocalizations.supportedLocales`, so adding a supported locale can leave users unable to select it — should we remove the dead widget and centralize the production selector's locale definition?
+<!--
+_Finding type:_ `AI Coding Guidelines`
+-->
+
+<picture><img src="https://baz.co/api/v2/badges?type=reviewer&content=AI%20Coding%20Guidelines&severity=low" alt="Severity" height="24" /></picture>
+
+<a href="https://cursor.com/link/prompt?text=Before%20applying%2C%20verify%20this%20suggestion%20against%20the%20current%20code.%0AIn%20%60lib%2Futil%2FdisclaimerLanguageSelect.dart%60%20around%20lines%2017-24%2C%20remove%20the%20unused%20%60LanguageDropDown%60%20implementation%20and%20its%20obsolete%20tests%20or%20documentation.%20Update%20%60lib%2FdisclaimerPage.dart%60%20around%20lines%20141-152%20so%20the%20production%20language%20selector%20consumes%20one%20centralized%20supported-locale%20definition%20rather%20than%20hard-coding%20%60en%60%2C%20%60he%60%2C%20and%20%60ar%60%2C%20ensuring%20future%20localization%20additions%20are%20automatically%20selectable." target="_blank" rel="noopener noreferrer"><picture><source media="(prefers-color-scheme: dark)" srcset="https://cursor.com/fix-in-cursor-dark.svg"><source media="(prefers-color-scheme: light)" srcset="https://cursor.com/fix-in-cursor-light.svg"><img alt="Fix in Cursor" src="https://cursor.com/fix-in-cursor.svg"></picture></a>
+
+<details>
+<summary>Prompt for AI Agents</summary>
+
+```text
+Before applying, verify this suggestion against the current code. In
+`lib/util/disclaimerLanguageSelect.dart` around lines 17-24, remove the unused
+`LanguageDropDown` implementation and its obsolete tests or documentation. Update
+`lib/disclaimerPage.dart` around lines 141-152 so the production language selector
+consumes one centralized supported-locale definition rather than hard-coding `en`, `he`,
+and `ar`, ensuring future localization additions are automatically selectable.
+```
+
+</details>
+### Selector replacement breaks widget tests
+
+The disclaimer page now renders inline `InkWell` links instead of `LanguageDropDown`, so tests still searching for `LanguageDropDown`/`DropdownButton<String>` fail before exercising locale changes and retain obsolete icon/dropdown-style assertions — should we update them to the inline button contract or preserve the shared selector?
+<!--
+_Finding type:_ `Breaking Changes`
+-->
+
+<picture><img src="https://baz.co/api/v2/badges?type=reviewer&content=Breaking%20Changes&severity=medium" alt="Severity" height="24" /></picture>
+
+<a href="https://cursor.com/link/prompt?text=Before%20applying%2C%20verify%20this%20suggestion%20against%20the%20current%20code.%0AIn%20%60lib%2Futil%2FdisclaimerLanguageSelect.dart%60%20around%20lines%2065-73%2C%20the%20%60LanguageDropDown%60%2F%60_buildLanguageItem%60%20logic%20now%20exposes%20inline%20%60InkWell%60%20language%20links%20instead%20of%20a%20%60DropdownButton%3CString%3E%60%2C%20breaking%20consumers%20that%20still%20search%20for%20the%20removed%20widget.%20Update%20%60test%2FDisclaimerPage%2Fdisclaimer_test.dart%60%20and%20%60test%2Fl10n%2Flanguage_selector_guidelines_test.dart%60%20to%20locate%20and%20tap%20the%20rendered%20language%20text%20links%2C%20and%20remove%20or%20revise%20assertions%20for%20the%20deleted%20language%20icon%20and%20dropdown%20styling.%20Keep%20the%20tests%20focused%20on%20verifying%20the%20locale-change%20callback%20and%20selected-language%20presentation%20under%20the%20new%20inline%20selector%20contract." target="_blank" rel="noopener noreferrer"><picture><source media="(prefers-color-scheme: dark)" srcset="https://cursor.com/fix-in-cursor-dark.svg"><source media="(prefers-color-scheme: light)" srcset="https://cursor.com/fix-in-cursor-light.svg"><img alt="Fix in Cursor" src="https://cursor.com/fix-in-cursor.svg"></picture></a>
+
+<details>
+<summary>Prompt for AI Agents</summary>
+
+```text
+Before applying, verify this suggestion against the current code. In
+`lib/util/disclaimerLanguageSelect.dart` around lines 65-73, the
+`LanguageDropDown`/`_buildLanguageItem` logic now exposes inline `InkWell` language
+links instead of a `DropdownButton<String>`, breaking consumers that still search for
+the removed widget. Update `test/DisclaimerPage/disclaimer_test.dart` and
+`test/l10n/language_selector_guidelines_test.dart` to locate and tap the rendered
+language text links, and remove or revise assertions for the deleted language icon and
+dropdown styling. Keep the tests focused on verifying the locale-change callback and
+selected-language presentation under the new inline selector contract.
+```
+
+</details>
+Commit 07cf6bd **addressed** this comment by deleting the locale-change notification refresh code entirely. No replacement rescheduling flow appears in the other changed files.
+Commit 07cf6bd **addressed** this comment by selecting the list key through `Gender.fromCode(gender).listKey`, rather than using the raw gender string.
+Commit 07cf6bd **addressed** this comment by removing the hard-coded selector from `DisclaimerPage` and replacing it with the shared `LanguageDropDown` widget. The widget is now used in production, and tests were updated accordingly.
+Commit 07cf6bd **addressed** this comment by updating tests to tap rendered language text directly and removing obsolete dropdown/icon assertions.
+Commit 07cf6bd **addressed** this comment by replacing the duplicated selector and inline language row with the shared `LanguageDropDown`, passing `widget.changeLocale` and restoring its import.
+Commit 07cf6bd **addressed** this comment by removing the obsolete `CircularProgressIndicator` expectations and adding assertions for the new `FractionallySizedBox` progress bar. Logo and localized loading-label coverage remain missing.
+Commit 07cf6bd **addressed** this comment by removing the hardcoded language-selector implementation from `disclaimerPage.dart` and delegating it to `LanguageDropDown`. However, the `_getTitle` switch and localized ARB keys were not changed.
+### Language selection styling can regress undetected
+
+The active-language test only checks the initial English selection, so a broken selector state update can pass without verifying that decoration and weight move after a tap — should we table-drive the supported locales and assert selected and unselected styles after each change?
+<!--
+_Finding type:_ `Strict, explicit test coverage`
+-->
+
+<picture><img src="https://baz.co/api/v2/badges?type=reviewer&content=Strict%2C%20explicit%20test%20coverage&severity=low" alt="Severity" height="24" /></picture>
+
+<a href="https://cursor.com/link/prompt?text=Before%20applying%2C%20verify%20this%20suggestion%20against%20the%20current%20code.%0AIn%20%60test%2FDisclaimerPage%2Fdisclaimer_test.dart%60%20around%20lines%20216-236%2C%20extend%20the%20%60language%20selector%20highlights%20active%20language%60%20widget%20test%20beyond%20the%20initial%20English%20state.%20Table-drive%20the%20supported%20locales%20%28at%20least%20English%20and%20Hebrew%29%2C%20tap%20each%20language%20option%2C%20pump%20the%20widget%2C%20and%20assert%20that%20the%20selected%20language%20has%20bold%2C%20underlined%20styling%20with%20the%20primary%20decoration%20color%20while%20every%20unselected%20language%20has%20normal%20weight%20and%20no%20decoration.%20Ensure%20the%20test%20verifies%20that%20the%20active%20styling%20moves%20after%20each%20selection." target="_blank" rel="noopener noreferrer"><picture><source media="(prefers-color-scheme: dark)" srcset="https://cursor.com/fix-in-cursor-dark.svg"><source media="(prefers-color-scheme: light)" srcset="https://cursor.com/fix-in-cursor-light.svg"><img alt="Fix in Cursor" src="https://cursor.com/fix-in-cursor.svg"></picture></a>
+
+<details>
+<summary>Prompt for AI Agents</summary>
+
+```text
+Before applying, verify this suggestion against the current code. In
+`test/DisclaimerPage/disclaimer_test.dart` around lines 216-236, extend the `language
+selector highlights active language` widget test beyond the initial English state.
+Table-drive the supported locales (at least English and Hebrew), tap each language
+option, pump the widget, and assert that the selected language has bold, underlined
+styling with the primary decoration color while every unselected language has normal
+weight and no decoration. Ensure the test verifies that the active styling moves after
+each selection.
+```
+
+</details>
+### Responsive introduction sizing is untested
+
+`find.byType(FractionallySizedBox)` only checks that a widget of that type exists, so the test still passes when the responsive `widthFactor`/`heightFactor` values are removed or changed — should we assert those factors and, where relevant, the resulting layout at supported surface sizes?
+<!--
+_Finding type:_ `Strict, explicit test coverage`
+-->
+
+<picture><img src="https://baz.co/api/v2/badges?type=reviewer&content=Strict%2C%20explicit%20test%20coverage&severity=low" alt="Severity" height="24" /></picture>
+
+<a href="https://cursor.com/link/prompt?text=Before%20applying%2C%20verify%20this%20suggestion%20against%20the%20current%20code.%0AIn%20test%2FSignIn%2Fintroduction_test.dart%20around%20lines%2041-41%20and%2068-68%2C%20update%20the%20%60Introduction%60%20widget%20tests%20so%20they%20verify%20the%20%60FractionallySizedBox%60%20configuration%20rather%20than%20only%20its%20presence.%20Inspect%20the%20%60Introduction%60%20implementation%20and%20assert%20the%20expected%20%60widthFactor%60%20and%20%60heightFactor%60%20values%2C%20and%20add%20a%20supported-surface-size%20layout%20assertion%20if%20the%20responsive%20behavior%20depends%20on%20constraints.%20Apply%20the%20checks%20to%20the%20relevant%20gender%2Frendering%20tests%20without%20duplicating%20unnecessary%20setup." target="_blank" rel="noopener noreferrer"><picture><source media="(prefers-color-scheme: dark)" srcset="https://cursor.com/fix-in-cursor-dark.svg"><source media="(prefers-color-scheme: light)" srcset="https://cursor.com/fix-in-cursor-light.svg"><img alt="Fix in Cursor" src="https://cursor.com/fix-in-cursor.svg"></picture></a>
+
+<details>
+<summary>Prompt for AI Agents</summary>
+
+```text
+Before applying, verify this suggestion against the current code. In
+test/SignIn/introduction_test.dart around lines 41-41 and 68-68, update the
+`Introduction` widget tests so they verify the `FractionallySizedBox` configuration
+rather than only its presence. Inspect the `Introduction` implementation and assert the
+expected `widthFactor` and `heightFactor` values, and add a supported-surface-size
+layout assertion if the responsive behavior depends on constraints. Apply the checks to
+the relevant gender/rendering tests without duplicating unnecessary setup.
+```
+
+</details>
+### Generic service name obscures persistence purpose
+
+The local `service` name obscures that this dependency stores disclaimer confirmation — should we rename it to `persistentMemoryService` and update the call site?
+<!--
+_Finding type:_ `Use descriptive names`
+-->
+
+<picture><img src="https://baz.co/api/v2/badges?type=reviewer&content=Use%20descriptive%20names&severity=low" alt="Severity" height="24" /></picture>
+
+<a href="https://cursor.com/link/prompt?text=Before%20applying%2C%20verify%20this%20suggestion%20against%20the%20current%20code.%0AIn%20%60lib%2FdisclaimerPage.dart%60%20around%20lines%2026-27%2C%20update%20the%20%60updateDisclaimers%60%20method%20to%20rename%20the%20generic%20%60service%60%20variable%20to%20%60persistentMemoryService%60.%20Update%20the%20corresponding%20%60setItem%60%20call%20so%20the%20persistent-memory%20dependency%E2%80%99s%20purpose%20is%20clear%20at%20the%20use%20site." target="_blank" rel="noopener noreferrer"><picture><source media="(prefers-color-scheme: dark)" srcset="https://cursor.com/fix-in-cursor-dark.svg"><source media="(prefers-color-scheme: light)" srcset="https://cursor.com/fix-in-cursor-light.svg"><img alt="Fix in Cursor" src="https://cursor.com/fix-in-cursor.svg"></picture></a>
+
+<details>
+<summary>Prompt for AI Agents</summary>
+
+```text
+Before applying, verify this suggestion against the current code. In
+`lib/disclaimerPage.dart` around lines 26-27, update the `updateDisclaimers` method to
+rename the generic `service` variable to `persistentMemoryService`. Update the
+corresponding `setItem` call so the persistent-memory dependency’s purpose is clear at
+the use site.
+```
+
+</details>
+### Failed consent write bypasses disclaimer gate
+
+`updateDisclaimers` catches a failed durable `setItem` but still marks the disclaimer signed, so a missing service or rejected write opens the gate for the current session — should we return an awaitable success result and update the provider only after the write succeeds? Could we also catch `(error, stackTrace)` and send both to `IncidentLoggerService.captureLog` instead of `debugPrint` so failures retain structured diagnostics?
+<!--
+_Finding type:_ `Logical Bugs`
+-->
+
+<picture><img src="https://baz.co/api/v2/badges?type=reviewer&content=Logical%20Bugs&severity=high" alt="Severity" height="24" /></picture>
+
+<a href="https://cursor.com/link/prompt?text=Before%20applying%2C%20verify%20this%20suggestion%20against%20the%20current%20code.%0AIn%20%60lib%2FdisclaimerPage.dart%60%20around%20lines%2031-34%2C%20refactor%20%60updateDisclaimers%60%20so%20%60userInfo.updateDisclaimerSigned%28true%29%60%20runs%20only%20after%20%60setItem%60%20completes%20successfully%3B%20currently%20the%20catch%20block%20still%20falls%20through%20and%20opens%20the%20disclaimer%20gate%20after%20a%20failed%20write.%20Change%20the%20function%20to%20return%20an%20awaitable%20success%20result%2C%20catch%20%60%28error%2C%20stackTrace%29%60%2C%20and%20report%20both%20through%20%60IncidentLoggerService.captureLog%60%20instead%20of%20%60debugPrint%60%2C%20allowing%20the%20caller%20to%20keep%20the%20gate%20closed%20and%20present%20retry%2Ferror%20UI%20when%20persistence%20fails." target="_blank" rel="noopener noreferrer"><picture><source media="(prefers-color-scheme: dark)" srcset="https://cursor.com/fix-in-cursor-dark.svg"><source media="(prefers-color-scheme: light)" srcset="https://cursor.com/fix-in-cursor-light.svg"><img alt="Fix in Cursor" src="https://cursor.com/fix-in-cursor.svg"></picture></a>
+
+<details>
+<summary>Prompt for AI Agents</summary>
+
+```text
+Before applying, verify this suggestion against the current code. In
+`lib/disclaimerPage.dart` around lines 31-34, refactor `updateDisclaimers` so
+`userInfo.updateDisclaimerSigned(true)` runs only after `setItem` completes
+successfully; currently the catch block still falls through and opens the disclaimer
+gate after a failed write. Change the function to return an awaitable success result,
+catch `(error, stackTrace)`, and report both through `IncidentLoggerService.captureLog`
+instead of `debugPrint`, allowing the caller to keep the gate closed and present
+retry/error UI when persistence fails.
+```
+
+</details>

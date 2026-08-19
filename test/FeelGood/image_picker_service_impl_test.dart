@@ -19,13 +19,16 @@
 
 import 'dart:io';
 
+import 'package:file_picker/file_picker.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:get_it/get_it.dart';
 import 'package:mazilon/AnalyticsService.dart';
+import 'package:mazilon/global_enums.dart';
 import 'package:mazilon/pages/FeelGood/image_picker_service_impl.dart';
 import 'package:mazilon/util/logger_service.dart';
+import 'package:mazilon/util/persistent_memory_service.dart';
 
 class _CapturingLogger implements IncidentLoggerService {
   final List<dynamic> captured = [];
@@ -156,4 +159,232 @@ void main() {
     expect(f1.existsSync(), isFalse);
     expect(f2.existsSync(), isFalse);
   });
+
+  test('downloadImage returns null when source image file does not exist', () async {
+    final svc = ImagePickerServiceImpl();
+    final result = await svc.downloadImage('${tempDir.path}/nonexistent.png');
+    expect(result, isNull);
+  });
+
+  test('downloadImage returns destination path on success and preserves source extension', () async {
+    final sourceFile = File('${tempDir.path}/picture.png')
+      ..writeAsBytesSync([1, 2, 3, 4]);
+
+    String? capturedDialogTitle;
+    String? capturedFileName;
+    Uint8List? capturedBytes;
+    int saveFileCalls = 0;
+
+    final svc = ImagePickerServiceImpl(
+      fileSaver: ({
+        String? dialogTitle,
+        String? fileName,
+        FileType type = FileType.any,
+        String? initialDirectory,
+        Uint8List? bytes,
+        List<String>? allowedExtensions,
+      }) async {
+        saveFileCalls++;
+        capturedDialogTitle = dialogTitle;
+        capturedFileName = fileName;
+        capturedBytes = bytes;
+        return '${tempDir.path}/saved_$fileName';
+      },
+    );
+
+    final result = await svc.downloadImage(
+      sourceFile.path,
+      dialogTitle: 'Download photo',
+    );
+
+    expect(saveFileCalls, 1);
+    expect(capturedDialogTitle, 'Download photo');
+    expect(capturedFileName, startsWith('feel_good_'));
+    expect(capturedFileName, endsWith('.png'));
+    expect(capturedBytes, [1, 2, 3, 4]);
+    expect(result, '${tempDir.path}/saved_$capturedFileName');
+  });
+
+  test('saveImageRotations verifies contract and persists serialized list', () async {
+    final memory = _FakePersistentMemory();
+    final svc = ImagePickerServiceImpl(
+      persistentMemoryService: memory,
+      loggerService: logger,
+    );
+    await svc.saveImageRotations({'/path/1.jpg': 1, '/path/2.png': 3});
+
+    expect(memory.lastSetKey, 'feelGoodImageRotations');
+    expect(memory.lastSetType, PersistentMemoryType.StringList);
+    expect(memory.lastSetValue, containsAll(['/path/1.jpg:1', '/path/2.png:3']));
+  });
+
+  test('loadImageRotations normalizes out-of-range legacy entries', () async {
+    final memory = _FakePersistentMemory();
+    await memory.setItem(
+      'feelGoodImageRotations',
+      PersistentMemoryType.StringList,
+      ['/path/legacy.jpg:7', '/path/normal.png:2'],
+    );
+
+    final svc = ImagePickerServiceImpl(
+      persistentMemoryService: memory,
+      loggerService: logger,
+    );
+    final loaded = await svc.loadImageRotations();
+    expect(loaded['/path/legacy.jpg'], 3); // 7 % 4 = 3
+    expect(loaded['/path/normal.png'], 2);
+  });
+
+  test('loadImageRotations returns empty map when nothing is saved', () async {
+    final memory = _FakePersistentMemory();
+    final svc = ImagePickerServiceImpl(
+      persistentMemoryService: memory,
+      loggerService: logger,
+    );
+    final loaded = await svc.loadImageRotations();
+    expect(loaded, isEmpty);
+  });
+
+  test('ImagePickerServiceImpl works with injected analytics, logger, and memory without GetIt', () async {
+    final memory = _FakePersistentMemory();
+    final noopAnalytics = _NoopAnalytics();
+    final svc = ImagePickerServiceImpl(
+      persistentMemoryService: memory,
+      analyticsService: noopAnalytics,
+      loggerService: logger,
+    );
+
+    await svc.saveImageRotations({'/path/test.jpg': 2});
+    final loaded = await svc.loadImageRotations();
+    expect(loaded, {'/path/test.jpg': 2});
+  });
+
+  test('downloadImage returns destination path even if analytics tracking throws', () async {
+    final sourceFile = File('${tempDir.path}/picture.png')
+      ..writeAsBytesSync([1, 2, 3, 4]);
+
+    final svc = ImagePickerServiceImpl(
+      analyticsService: _FailingAnalytics(),
+      loggerService: logger,
+      fileSaver: ({
+        String? dialogTitle,
+        String? fileName,
+        FileType type = FileType.any,
+        String? initialDirectory,
+        Uint8List? bytes,
+        List<String>? allowedExtensions,
+      }) async {
+        return '${tempDir.path}/saved_$fileName';
+      },
+    );
+
+    final result = await svc.downloadImage(sourceFile.path);
+    expect(result, isNotNull);
+    expect(result, contains('saved_feel_good_'));
+    expect(result, endsWith('.png'));
+    expect(logger.captured, isNotEmpty);
+    expect(logger.captured.first.toString(), contains('Analytics uninitialized'));
+  });
+
+  test('downloadImage correctly derives extension when path contains dotted directory names', () async {
+    final subDir = Directory('${tempDir.path}/folder.2024')..createSync();
+    final sourceFile = File('${subDir.path}/photo.webp')
+      ..writeAsBytesSync([1, 2, 3]);
+
+    String? capturedFileName;
+    final svc = ImagePickerServiceImpl(
+      fileSaver: ({
+        String? dialogTitle,
+        String? fileName,
+        FileType type = FileType.any,
+        String? initialDirectory,
+        Uint8List? bytes,
+        List<String>? allowedExtensions,
+      }) async {
+        capturedFileName = fileName;
+        return '${tempDir.path}/saved';
+      },
+    );
+
+    await svc.downloadImage(sourceFile.path);
+    expect(capturedFileName, endsWith('.webp'));
+    expect(capturedFileName, isNot(contains('folder')));
+  });
+
+  test('downloadImage returns destination path even if both analytics and logger throw', () async {
+    final sourceFile = File('${tempDir.path}/picture.png')
+      ..writeAsBytesSync([1, 2, 3, 4]);
+
+    final svc = ImagePickerServiceImpl(
+      analyticsService: _FailingAnalytics(),
+      loggerService: _ThrowingLogger(),
+      fileSaver: ({
+        String? dialogTitle,
+        String? fileName,
+        FileType type = FileType.any,
+        String? initialDirectory,
+        Uint8List? bytes,
+        List<String>? allowedExtensions,
+      }) async {
+        return '${tempDir.path}/saved_$fileName';
+      },
+    );
+
+    final result = await svc.downloadImage(sourceFile.path);
+    expect(result, isNotNull);
+    expect(result, contains('saved_feel_good_'));
+    expect(result, endsWith('.png'));
+  });
+}
+
+class _ThrowingLogger implements IncidentLoggerService {
+  @override
+  Future<void> initializeSentry(Widget myApp) async {}
+
+  @override
+  Future<void> captureLog(
+    dynamic exception, {
+    StackTrace? stackTrace,
+    dynamic exceptionData,
+  }) async {
+    throw Exception('Logger exception');
+  }
+}
+
+class _FailingAnalytics implements AnalyticsService {
+  @override
+  Future<void> init() async {}
+  @override
+  Future<void> trackEvent(String eventName, [Map<String, dynamic>? properties]) async {
+    throw Exception('Analytics uninitialized');
+  }
+}
+
+class _FakePersistentMemory implements PersistentMemoryService {
+  final Map<String, dynamic> _storage = {};
+  String? lastSetKey;
+  PersistentMemoryType? lastSetType;
+  dynamic lastSetValue;
+
+  @override
+  Future<dynamic> getItem(String key, PersistentMemoryType type) async {
+    return _storage[key];
+  }
+
+  @override
+  Future<void> setItem(
+    String key,
+    PersistentMemoryType type,
+    dynamic value,
+  ) async {
+    lastSetKey = key;
+    lastSetType = type;
+    lastSetValue = value;
+    _storage[key] = value;
+  }
+
+  @override
+  Future<void> reset() async {
+    _storage.clear();
+  }
 }

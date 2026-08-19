@@ -144,51 +144,39 @@ class _ThanksItemSuggestedState extends LPExtendedState<ThanksItemSuggested> {
 
           const SizedBox(width: 10),
           // the design of the suggested thank you (a dotted border with the text of the thank you)
-          DottedBorder(
-            options: RoundedRectDottedBorderOptions(
-              radius: const Radius.circular(20),
-              dashPattern: const [5, 5],
-              color: Theme.of(context).colorScheme.tertiary,
-              strokeWidth: 2,
-            ),
-            child: Container(
-              height: 50,
-              decoration: BoxDecoration(
-                color: Colors.transparent,
-                borderRadius: BorderRadius.circular(20),
+          Expanded(
+            child: DottedBorder(
+              options: RoundedRectDottedBorderOptions(
+                radius: const Radius.circular(20),
+                dashPattern: const [5, 5],
+                color: Theme.of(context).colorScheme.tertiary,
+                strokeWidth: 2,
               ),
-              child: Padding(
-                padding: const EdgeInsets.all(7.0),
-                child: Row(
-                  children: [
-                    Container(
-                      alignment: appLocale.textDirection == "rtl"
-                          ? Alignment.centerRight
-                          : Alignment.centerLeft,
-                      width: MediaQuery.of(context).size.width > 1000
-                          ? 600
-                          : MediaQuery.of(context).size.width * 0.6 + 36,
-                      height: MediaQuery.of(context).size.height * 0.1,
-                      // the text of the suggested thank you
-                      child: AutoSizeText(
-                        widget.inputText == ''
-                            ? text
-                            : widget
-                                  .inputText, // if the input text is empty, show the suggested thank you text
-                        maxLines:
-                            3, // the maximum number of lines of the text, if the text is more than 3 lines,
-                        // it will be ellipsized , adjust as needed
-                        minFontSize: 14,
-                        overflow: TextOverflow.ellipsis,
-                        style: TextStyle(
-                          fontFamily: "Rubix",
-                          fontSize: 14.sp, // the text size
-                          fontWeight: FontWeight.bold,
-                          color: Theme.of(context).colorScheme.outline,
-                        ),
+              child: Container(
+                height: 50,
+                decoration: BoxDecoration(
+                  color: Colors.transparent,
+                  borderRadius: BorderRadius.circular(20),
+                ),
+                child: Padding(
+                  padding: const EdgeInsets.all(7.0),
+                  child: Align(
+                    alignment: appLocale.textDirection == "rtl"
+                        ? Alignment.centerRight
+                        : Alignment.centerLeft,
+                    child: AutoSizeText(
+                      widget.inputText == '' ? text : widget.inputText,
+                      maxLines: 3,
+                      minFontSize: 14,
+                      overflow: TextOverflow.ellipsis,
+                      style: TextStyle(
+                        fontFamily: "Rubix",
+                        fontSize: 14.sp,
+                        fontWeight: FontWeight.bold,
+                        color: Theme.of(context).colorScheme.outline,
                       ),
                     ),
-                  ],
+                  ),
                 ),
               ),
             ),

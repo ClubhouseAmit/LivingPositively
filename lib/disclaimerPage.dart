@@ -9,6 +9,7 @@ import 'package:provider/provider.dart';
 import 'package:mazilon/util/styles.dart';
 import 'package:mazilon/util/userInformation.dart';
 import 'package:mazilon/util/disclaimerLanguageSelect.dart';
+import 'package:mazilon/util/logger_service.dart';
 
 // the disclaimer page widget,
 // it shows the disclaimer text and a button to confirm the disclaimer
@@ -20,18 +21,21 @@ class DisclaimerPage extends StatefulWidget {
 }
 
 // a function to update the disclaimer signed in the shared preferences
-void updateDisclaimers(userInfo) async {
-  // get the shared preferences
-  PersistentMemoryService service =
-      GetIt.instance<
-        PersistentMemoryService
-      >(); // Get the persistent memory service instance
+Future<bool> updateDisclaimers(userInfo) async {
+  try {
+    // get the shared preferences
+    PersistentMemoryService persistentMemoryService =
+        GetIt.instance<
+          PersistentMemoryService
+        >(); // Get the persistent memory service instance
 
-  await service.setItem("disclaimerConfirmed", PersistentMemoryType.Bool, true);
-
-  userInfo.updateDisclaimerSigned(
-    true,
-  ); //update the disclaimer signed in the user information provider
+    await persistentMemoryService.setItem("disclaimerConfirmed", PersistentMemoryType.Bool, true);
+    userInfo.updateDisclaimerSigned(true); //update the disclaimer signed in the user information provider
+    return true;
+  } catch (e, stackTrace) {
+    GetIt.instance<IncidentLoggerService>().captureLog(e, stackTrace: stackTrace);
+    return false;
+  }
 }
 
 class _DisclaimerPageState extends LPExtendedState<DisclaimerPage> {
@@ -41,24 +45,31 @@ class _DisclaimerPageState extends LPExtendedState<DisclaimerPage> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          myAutoSizedText(
+          Text(
             title,
-            TextStyle(fontSize: 18.sp, fontWeight: FontWeight.bold),
-            TextAlign.start,
-            30,
-            2,
+            style: TextStyle(
+              fontSize: 18.sp,
+              fontWeight: FontWeight.bold,
+              color: Theme.of(context).colorScheme.onSurface,
+            ),
+            textAlign: TextAlign.start,
           ),
           const SizedBox(height: 8),
-          myAutoSizedText(
+          Text(
             body,
-            TextStyle(fontSize: 16.sp, fontWeight: FontWeight.normal),
-            TextAlign.start,
-            40,
+            style: TextStyle(
+              fontSize: 16.sp,
+              fontWeight: FontWeight.normal,
+              color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.87),
+            ),
+            textAlign: TextAlign.start,
           ),
         ],
       ),
     );
   }
+
+
 
   // build the disclaimer page widget
   @override
@@ -76,53 +87,76 @@ class _DisclaimerPageState extends LPExtendedState<DisclaimerPage> {
       canPop: false, //can't go back from this page
       child: Scaffold(
         body: SafeArea(
-          child: SingleChildScrollView(
-            child: Center(
-              child: ConstrainedBox(
-                constraints: const BoxConstraints(maxWidth: 720),
-                child: Column(
-                  children: [
-                    LanguageDropDown(changeLocale: widget.changeLocale),
-                    Padding(
-                      padding: const EdgeInsets.fromLTRB(20, 0, 20, 18),
-                      child: myAutoSizedText(
-                        appLocale.disclaimerSummary,
-                        TextStyle(fontSize: 16.sp, fontWeight: FontWeight.bold),
-                        TextAlign.start,
-                        24,
-                        3,
+          child: Center(
+            child: ConstrainedBox(
+              constraints: const BoxConstraints(maxWidth: 720),
+              child: Column(
+                children: [
+                  Expanded(
+                    child: SingleChildScrollView(
+                      child: Column(
+                        children: [
+                          LanguageDropDown(changeLocale: widget.changeLocale),
+                          SizedBox(height: 20.0),
+                          Padding(
+                            padding: const EdgeInsets.symmetric(horizontal: 20.0),
+                            child: Text(
+                              appLocale.disclaimerPageTitle,
+                              style: TextStyle(
+                                fontSize: 24.sp,
+                                fontWeight: FontWeight.bold,
+                                color: Theme.of(context).colorScheme.onSurface,
+                              ),
+                              textAlign: TextAlign.center,
+                            ),
+                          ),
+                          SizedBox(height: 10.0),
+                          Padding(
+                            padding: const EdgeInsets.fromLTRB(20, 0, 20, 18),
+                            child: Text(
+                              appLocale.disclaimerSummary,
+                              style: TextStyle(
+                                fontSize: 16.sp,
+                                fontWeight: FontWeight.bold,
+                                color: Theme.of(context).colorScheme.onSurface,
+                              ),
+                              textAlign: TextAlign.center,
+                            ),
+                          ),
+                          _section(
+                            title: appLocale.disclaimerPurposeTitle,
+                            body: appLocale.disclaimerText,
+                          ),
+                          _section(
+                            title: appLocale.disclaimerInformationTitle,
+                            body: appLocale.informationCollectionDisclaimer,
+                          ),
+                          _section(
+                            title: appLocale.disclaimerConsentTitle,
+                            body: appLocale.disclaimerConsentMessage,
+                          ),
+                        ],
                       ),
                     ),
-                    _section(
-                      title: appLocale.disclaimerPurposeTitle,
-                      body: appLocale.disclaimerText,
-                    ),
-                    _section(
-                      title: appLocale.disclaimerInformationTitle,
-                      body: appLocale.informationCollectionDisclaimer,
-                    ),
-                    _section(
-                      title: appLocale.disclaimerConsentTitle,
-                      body: appLocale.disclaimerConsentMessage,
-                    ),
-                    // the confirm disclaimer button
-                    ConfirmationButton(
+                  ),
+                  Padding(
+                    padding: const EdgeInsets.fromLTRB(20, 10, 20, 20),
+                    child: ConfirmationButton(
                       context,
-                      () {
-                        setState(() {
-                          updateDisclaimers(
-                            userInfoProvider,
-                          ); //if button is clicked,
-                          //update the disclaimer signed in the shared preferences (call the updateDisclaimers function)
-                        });
+                      () async {
+                        bool success = await updateDisclaimers(userInfoProvider);
+                        if (!success && context.mounted) {
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            const SnackBar(content: Text('Failed to save confirmation. Please try again.')),
+                          );
+                        }
                       },
                       //disclaimer next button text from CMS(Saved in appinfo)
                       appLocale.confirmButton(gender),
                       myTextStyle.copyWith(fontSize: 20.sp),
                     ),
-                    SizedBox(height: 20.0),
-                  ],
-                ),
+                  ),
+                ],
               ),
             ),
           ),

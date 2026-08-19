@@ -8,8 +8,10 @@ import 'package:provider/provider.dart';
 import 'package:mazilon/l10n/app_localizations.dart';
 
 Widget getMenuForTests(
-    UserInformation mockUserInformation, AppInformation mockAppInformation,
-    {Locale locale = const Locale('he')}) {
+  UserInformation mockUserInformation,
+  AppInformation mockAppInformation, {
+  Locale locale = const Locale('he'),
+}) {
   final phonePageData = PhonePageData(
     key: 'phonePageData',
     header: 'header',

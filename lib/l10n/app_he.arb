@@ -6,6 +6,7 @@
  "otherSuggestions": "{gender,select,male{הצעות אחרות} female{הצעות אחרות} other{הצעות אחרות}}",
      "introductionRestartGreeting": "{gender,select,male{ברוכים הבאים לLiving Positively} female{ברוכים הבאים לLiving Positively} other{ברוכים הבאים לLiving Positively}}",
      "addFormPageTemplateAdd": "{gender,select,male{הוספה} female{הוספה} other{הוספה}}",
+     "addFormPageTemplateAddOwn": "{gender,select,male{הוסף עוד משלך} female{הוסיפי עוד משלך} other{הוסף.י עוד משלך}}",
      "addThanksFormThank": "{gender,select,male{תודה} female{תודה} other{תודה}}",
      "addFormEdit": "{gender,select,male{ערוך} female{ערוך} other{ערוך}}",
      "signupLoginLoginTitle": "{gender,select,male{התחברות לLiving Positively} female{התחברות לLiving Positively} other{התחברות לLiving Positively}}",
@@ -23,6 +24,15 @@
      "personalPlanPageMyPlan": "{gender,select,male{התוכנית שלי} female{התוכנית שלי} other{התוכנית שלי}}",
      "personalPlanPageAllPlan": "{gender,select,male{לכל התוכנית} female{לכל התוכנית} other{לכל התוכנית}}",
      "personalPlanPageTitle": "{gender,select,male{התוכנית האישית שלי} female{התוכנית האישית שלי} other{התוכנית האישית שלי}}",
+     "personalPlanPdfTitle": "התוכנית האישית שלי",
+     "@personalPlanPdfTitle": {
+       "description": "Title used when exporting a Personal Plan PDF without a saved name"
+     },
+     "personalPlanPdfTitleWithName": "התוכנית האישית של {username}",
+     "@personalPlanPdfTitleWithName": {
+       "description": "Title used when exporting a Personal Plan PDF with a saved name",
+       "placeholders": {"username": {"type": "String"}}
+     },
      "personalPlanPageStartedDownload": "{gender,select,male{ההורדה החלה} female{ההורדה החלה} other{ההורדה החלה}}",
      "personalPlanPageFinishDownload": "{gender,select,male{התוכנית ירדה להורדות} female{התוכנית ירדה להורדות} other{התוכנית ירדה להורדות}}",
      "personalPlanPageFinish": "{gender,select,male{אישור} female{אישור} other{אישור}}",
@@ -77,7 +87,7 @@
      "darkModeSettingsTitle": "מצב כהה",
      "darkModeAlwaysLight": "תמיד בהיר",
      "darkModeAlwaysDark": "תמיד כהה",
-     "darkModeSleepPromoting": "מצב תומך שינה",
+     "darkModeSleepPromoting": "מתוזמן",
      "darkModeStartTime": "שעת התחלה",
      "darkModeEndTime": "שעת סיום",
 
@@ -104,11 +114,11 @@
      
      
      
-     "distractionsHeader": "{gender,select,male{סימפטומים וסימני אזהרה, התנהגויות לא רגילות עבורי} female{סימפטומים וסימני אזהרה} other{סימפטומים וסימני אזהרה}}",
+     "distractionsHeader": "{gender,select,male{סימפטומים וסימני אזהרה} female{סימפטומים וסימני אזהרה} other{סימפטומים וסימני אזהרה}}",
      "distractionsSubTitle": "{gender,select,male{תזכורות לדברים שהופיעו בעבר אצלי אישית} female{תזכורות לדברים שהופיעו בעבר אצלי אישית} other{תזכורות לדברים שהופיעו בעבר אצלי אישית}}",
      "distractionsMidTitle": "{gender,select,male{אין לך רעיון? קבל כמה הצעות} female{אין לך רעיון? קבלי כמה הצעות} other{אין לך רעיון? הנה כמה הצעות}}",
      "distractionsMidSubTitle": "{gender,select,male{לחץ כדי להוסיף אפשרויות המתאימות לך לתכנית האישית שלך} female{לחצי כדי להוסיף אפשרויות המתאימות לך לתכנית האישית שלך} other{ללחוץ כדי להוסיף אפשרויות המתאימות לך לתכנית האישית שלך}}",
-     "feelBetterHeader": "{gender,select,male{לאיזון ואורח חיים בריא - Wellness Tools- תרופות אישיות} female{לאיזון ואורח חיים בריא - Wellness Tools- תרופות אישיות} other{תרופות אישיות - Wellness Tools - לאיזון אורח חיים בריא}}",
+     "feelBetterHeader": "{gender,select,male{מה לעשות כדי לעזור לעצמי לאיזון ואורח חיים בריא WELLNESS TOOLS - תרופות אישיות} female{מה לעשות כדי לעזור לעצמי לאיזון ואורח חיים בריא WELLNESS TOOLS - תרופות אישיות} other{מה לעשות כדי לעזור לעצמי לאיזון ואורח חיים בריא WELLNESS TOOLS - תרופות אישיות}}",
      "feelBetterSubTitle": "{gender,select,male{מה עוזר לי לשפר את מצב הרוח, להירגע, להרגיש קצת פחות לחץ. דרכים שבהן כדאי לי להשתמש ולהיעזר כתחזוקה מונעת, וכשיש צורך במצבי חירום אפילו להגביר מינונים.} female{דרכים שבהן כדאי לי להשתמש ולהיעזר כתחזוקה מונעת, וכשיש צורך במצבי חירום אפילו להגביר מינונים.} other{דרכים שבהן כדאי לי להשתמש ולהיעזר כתחזוקה מונעת, וכשיש צורך במצבי חירום אפילו להגביר מינונים.}}",
      "feelBetterMidTitle": "{gender,select,male{אין לך רעיון? הנה כמה הצעות} female{אין לך רעיון? הנה כמה הצעות} other{אין לך רעיון? הנה כמה הצעות}}",
      "feelBetterMidSubTitle": "{gender,select,male{לחץ כדי להוסיף אפשרויות המתאימות לך לתכנית הבטחון שלך} female{לחצי כדי להוסיף אפשרויות המתאימות לך לתכנית הבטחון שלך} other{לחצ.י כדי להוסיף אפשרויות המתאימות לך לתכנית הבטחון שלך}}",
@@ -116,9 +126,11 @@
      "makeSaferSubTitle": "{gender,select,male{דרכים שבהן הסביבה יכולה לעזור לי להתמודד.} female{דרכים שבהן הסביבה יכולה לעזור לי להתמודד.} other{דרכים שבהן הסביבה יכולה לעזור לי להתמודד.}}",
      "makeSaferMidTitle": "{gender,select,male{אין לך רעיון? קבל כמה הצעות} female{אין לך רעיון? קבלי כמה הצעות} other{אין לך רעיון? קבל.י כמה הצעות}}",
      "makeSaferMidSubTitle": "{gender,select,male{לחץ כדי להוסיף אפשרויות המתאימות לך לתכנית הבטחון שלך} female{לחצי כדי להוסיף אפשרויות המתאימות לך לתכנית הבטחון שלך} other{לחצ.י כדי להוסיף אפשרויות המתאימות לך לתכנית הבטחון שלך}}",
+     "safeEnvironmentHeader": "{gender,select,male{מה יעזור לי להפוך את המצב והסביבה לבטוחים יותר עבורי} female{מה יעזור לי להפוך את המצב והסביבה לבטוחים יותר עבורי} other{מה יעזור לי להפוך את המצב והסביבה לבטוחים יותר עבורי}}",
+     "safeEnvironmentSubTitle": "{gender,select,male{צעדים שאוכל לעשות כדי להפוך את המצב והסביבה לבטוחים יותר עבורי} female{צעדים שאוכל לעשות כדי להפוך את המצב והסביבה לבטוחים יותר עבורי} other{צעדים שאוכל לעשות כדי להפוך את המצב והסביבה לבטוחים יותר עבורי}}",
      "phonesPagePhone": "{gender,select,male{טלפון} female{טלפון} other{טלפון}}",
      "phonesPageName": "{gender,select,male{שם} female{שם} other{שם}}",
-     "phonesPageHeader": "{gender,select,male{מי האנשים שתומכים בי,שאני יכול לפנות אליהם אם אני במצוקה או חושב לפגוע בעצמי} female{מי האנשים שתומכים בי, שאני יכולה לפנות אליהם אם אני במצוקה או חושבת לפגוע בעצמי} other{מי האנשים שתומכים בי,שאוכל לפנות אליהם אם אני במצוקה או עם מחשבות על פגיעה עצמית}}",
+     "phonesPageHeader": "{gender,select,male{מי האנשים שתומכים בי, שאני יכול לפנות אליהם אם אני במצוקה או במחשבה על לפגוע בעצמי} female{מי האנשים שתומכים בי, שאני יכולה לפנות אליהם אם אני במצוקה או במחשבה על לפגוע בעצמי} other{מי האנשים שתומכים בי, שניתן לפנות אליהם אם אני במצוקה או במחשבה על לפגוע בעצמי}}",
      "phonesPageSubTitle": "{gender,select,male{האנשים שאוהבים אותי ויעזרו לי לצלוח את הרגעים הקשים הם:} female{האנשים שאוהבים אותי ויעזרו לי לצלוח את הרגעים הקשים הם:} other{האנשים שאוהבים אותי ויעזרו לי לצלוח את הרגעים הקשים הם:}}",
      "phonesPageManualTitle": "{gender,select,male{הוספה ידנית} female{הוספה ידנית} other{הוספה ידנית}}",
      "phonesPageContactImportTitle": "{gender,select,male{הוספה מאנשי קשר} female{הוספה מאנשי קשר} other{הוספה מאנשי קשר}}",
@@ -156,9 +168,17 @@
      "@sosShareLocationUnavailable": {
        "description": "הודעה המוצגת כאשר לא ניתן לקבל מיקום חד-פעמי עבור פעולת SOS."
      },
+     "sosShareLocationServicesDisabled": "לא ניתן לקבל את מיקומך הנוכחי, נא להפעיל את שירותי המיקום",
+     "@sosShareLocationServicesDisabled": {
+       "description": "הודעה המוצגת כאשר שירותי המיקום במכשיר כבויים עבור בקשת מיקום חד-פעמית של SOS."
+     },
      "sosShareLocationShareFailed": "לא ניתן היה לשתף את הודעת העזרה שלך. נסו שוב.",
      "@sosShareLocationShareFailed": {
        "description": "הודעה המוצגת כשלא ניתן לשתף את הודעת העזרה דרך גיליון השיתוף של המכשיר."
+     },
+     "personalPlanShareFailed": "לא ניתן היה לשתף את התוכנית האישית שלך. נסו שוב.",
+     "@personalPlanShareFailed": {
+       "description": "הודעה המוצגת כשלא ניתן לשתף את קובץ התוכנית האישית דרך גיליון השיתוף של המכשיר."
      },
      "sosShareMessage": "שיתוף הודעת SOS",
      "@sosShareMessage": {
@@ -167,6 +187,10 @@
      "sosShareMessageTooltip": "שיתוף הודעת העזרה שלך",
      "@sosShareMessageTooltip": {
        "description": "תווית נגישות לפעולת שיתוף הודעת העזרה של SOS."
+     },
+     "sosSharePersonalPlan": "שיתוף התוכנית האישית בעת משבר",
+     "@sosSharePersonalPlan": {
+       "description": "פעולת SOS מרכזית שמשתפת את קובץ התוכנית האישית עם הודעת משבר."
      },
      "sosDeliveryOptionsTitle": "בחירת אפשרות שליחה",
      "@sosDeliveryOptionsTitle": {
@@ -397,6 +421,10 @@
 "makeSaferListNo14":"{gender,select,male{ואת השאר להפקיד בידי מישהו שאני סומך עליו} female{ואת השאר להפקיד בידי מישהו שאני סומכת עליו} other{ואת השאר להפקיד בידי מישהו שאני סומך/ת עליו/ה}}",
 "makeSaferListNo15":"{gender,select,male{לבקש ממישהו אחר להרחיק ממני דברים שעלולים לשמש אותי לפגוע בעצמי} female{לבקש ממישהי אחרת להרחיק ממני דברים שעלולים לשמש אותי לפגוע בעצמי} other{לבקש ממישהו אחר להרחיק ממני דברים שעלולים לשמש אותי לפגוע בעצמי}}",
 "makeSaferListNo16":"{gender,select,male{שישאלו אותי} female{שישאלו אותי} other{שישאלו אותי}}",
+"safeEnvironmentListNo0":"{gender,select,male{הרחקת הנשק האישי או הפקדתו} female{הרחקת הנשק האישי או הפקדתו} other{הרחקת הנשק האישי או הפקדתו}}",
+"safeEnvironmentListNo1":"{gender,select,male{אחסון תרופות בקופסא ננעלת} female{אחסון תרופות בקופסא ננעלת} other{אחסון תרופות בקופסא ננעלת}}",
+"safeEnvironmentListNo2":"{gender,select,male{בחירת מי שישמור עבורך על התרופות} female{בחירת מי שישמור עבורך על התרופות} other{בחירת מי שישמור עבורך על התרופות}}",
+"safeEnvironmentListNo3":"{gender,select,male{שיישארו איתי, ולא אהיה לבד} female{שיישארו איתי, ולא אהיה לבד} other{שיישארו איתי, ולא אהיה לבד}}",
 "feelBetterListNo0":"{gender,select,male{מיינדפולנס} female{מיינדפולנס} other{מיינדפולנס}}",
 "feelBetterListNo1":"{gender,select,male{זמן זוגי/חברתי קבוע בשבוע} female{זמן זוגי/חברתי קבוע בשבוע} other{זמן זוגי/חברתי קבוע בשבוע}}",
 "feelBetterListNo2":"{gender,select,male{רשימת חוזקות ומעלות} female{רשימת חוזקות ומעלות} other{רשימת חוזקות ומעלות}}",
@@ -483,7 +511,7 @@
   
     "shareEmergency": "שיתוף הודעה במקרה של משבר",
   "noPermissionAllowedText": "הרשאה לא ניתנה",
-"shareEmergencyMessage":"אני במצב לא טוב ויש לי צורך בעזרה.אשמח לעזרתך בהפעלת התוכנית האישית שלי. בתודה מראש.",
+"shareEmergencyMessage":"אני במצב לא טוב ויש לי צורך בעזרה. אשמח לעזרתך בהפעלת התוכנית האישית שלי. בתודה מראש.",
   "callFailedMessage": "לא ניתן לחייג את {number}",
   "couldNotOpenApp": "לא ניתן לפתוח את האפליקציה",
   "copyNumberAction": "העתק מספר",
@@ -531,7 +559,8 @@
   "wellnessTranscriptTitle": "תמלול",
   "wellnessVideoUnavailableMessage": "הסרטון הזה אינו זמין כרגע.",
   "wellnessVideoDataUnavailableMessage": "לא ניתן להציג את הסרטונים כרגע.",
-  "disclaimerSummary": "קראו את העיקר, ולאחר מכן אשרו אם תנאי השימוש מתאימים לכם.",
+  "disclaimerPageTitle": "הצהרה",
+  "disclaimerSummary": "קראו ואשרו את התנאים להמשך.",
   "disclaimerPurposeTitle": "מטרת האפליקציה",
   "disclaimerInformationTitle": "מידע ופרטיות",
   "disclaimerConsentTitle": "הסכמה",
@@ -541,6 +570,8 @@
   "feelGoodDeleteTitle": "למחוק את התמונה?",
   "feelGoodDeleteMessage": "התמונה תוסר מאזור להרגיש טוב.",
   "feelGoodBackTooltip": "חזרה לתמונות",
+  "feelGoodRotateTooltip": "סיבוב תמונה",
+  "feelGoodDownloadTooltip": "הורדת תמונה",
   "feelGoodDeleteTooltip": "מחיקת תמונה",
   "confirmDeletePlanAnswerTitle": "למחוק את התשובה?",
   "confirmDeletePlanAnswerMessage": "התשובה תוסר מהתוכנית האישית שלך.",
@@ -576,13 +607,23 @@
   "@addWarningSign": {
     "description": "Placeholder text for adding a new warning sign"
   },
-  "traitsSubTitle": "כאן אני זורח/ת. קרא/י יום יום",
+  "traitsSubTitle": "{gender,select,male{הדברים הטובים שבי. תזכורת יומית לעצמי} female{הדברים הטובים שבי. תזכורת יומית לעצמי} other{הדברים הטובים שבי. תזכורת יומית לעצמי}}",
   "@traitsSubTitle": {
-    "description": "Subtitle for positive traits section"
+    "description": "Subtitle for positive traits section",
+    "placeholders": {
+      "gender": {
+        "type": "String"
+      }
+    }
   },
-  "gratitudeSubTitle": "על מה אני אסיר/ת תודה היום",
+  "gratitudeSubTitle": "{gender,select,male{על מה אני מודה היום} female{על מה אני מודה היום} other{על מה אני מודה היום}}",
   "@gratitudeSubTitle": {
-    "description": "Subtitle for gratitude section"
+    "description": "Subtitle for gratitude section",
+    "placeholders": {
+      "gender": {
+        "type": "String"
+      }
+    }
   },
   "ourSuggestion": "ההצעה שלנו",
   "@ourSuggestion": {
@@ -633,8 +674,28 @@
       }
     }
   },
+  "notificationCustomMessageLabel": "כתיבת הודעת תזכורת אישית (אופציונלי):",
+  "@notificationCustomMessageLabel": {
+    "description": "Label for the custom reminder message text field"
+  },
+  "notificationCustomMessageHint": "הזן הודעת תזכורת...",
+  "@notificationCustomMessageHint": {
+    "description": "Hint text for the custom reminder message text field"
+  },
+  "speechDictationAction": "הכתבת טקסט",
+  "speechDictationDisclosureTitle": "להשתמש בהכתבה קולית?",
+   "speechDictationDisclosureMessage": "המכשיר או הדפדפן שלך עשויים לשלוח את הדיבור לשירות זיהוי דיבור לצורך עיבוד. אפליקציה זו אינה שומרת אודיו ואינה שולחת טקסט מוכתב לניתוח נתונים. ייתכן שמדיניות ספקי שירותי הזיהוי חלה. אפשר לעבור על הטקסט ולערוך אותו לפני השמירה.",
+  "speechDictationDisclosureAccept": "המשך",
+  "speechDictationDisclosureDecline": "לא עכשיו",
+  "speechDictationLanguagePickerTitle": "בחירת שפת הכתבה",
+  "speechDictationListeningLabel": "מקשיב…",
+  "speechDictationStopAndApplyAction": "עצור והחל",
+  "speechDictationDiscardAction": "בטל",
+  "speechDictationUnavailable": "הכתבה קולית אינה זמינה במכשיר הזה.",
+  "speechDictationError": "לא ניתן היה להשלים את ההכתבה הקולית. נסה/י שוב.",
+  "speechDictationTooLong": "הטקסט שהוכתב ארוך מדי עבור שדה זה.",
+  "speechDictationPhoneInvalid": "מספר הטלפון שהוכתב אינו תקין עבור המדינה שנבחרה.",
   "notificationsPermissionDeniedTitle": "תזכורות חסומות",
-
   "notificationsPermissionDeniedBody": "כדי לקבל תזכורות, יש לאפשר תזכורות בהגדרות המכשיר",
   "notificationsOpenSettings": "הגדרות",
   "authWelcomeTitle": "ברוכים הבאים",
@@ -642,6 +703,7 @@
   "authSignupTab": "הרשמה",
   "authSkip": "דילוג לעת עתה",
   "authEmailHint": "כתובת אימייל",
+  "authPasswordHint": "סיסמה",
   "authConfirmPasswordHint": "אימות סיסמה",
   "authNameHint": "שם מלא",
   "authLoginButton": "התחברות",
@@ -664,6 +726,6 @@
   "authSignOutConfirmTitle": "להתנתק?",
   "authSignOutConfirmBody": "יהיה עליך להתחבר שוב כדי לגשת לכל התכונות.",
   "authNotSignedInTitle": "יש להתחבר כדי להפעיל תזכורות",
-  "authNotSignedInBody": "בכדי להפעיל את התזכורות, יש להתחבר לחשבון.",
+  "authNotSignedInBody": "בכדי להפעיל תזכורות, יש להתחבר לחשבון.",
   "authNotSignedInButton": "התחברות"
 }

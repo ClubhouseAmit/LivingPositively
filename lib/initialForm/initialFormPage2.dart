@@ -1,40 +1,51 @@
-// ignore_for_file: prefer_const_constructors, sized_box_for_whitespace
-
 import 'package:flutter/material.dart';
-import 'package:mazilon/initialForm/CountrySelectorWidget.dart';
-import 'package:mazilon/util/LP_extended_state.dart';
-
 import 'package:flutter_screenutil/flutter_screenutil.dart';
+import 'package:mazilon/form/speech_dictation_suffix_action.dart';
+import 'package:mazilon/form/wizard_step.dart';
+import 'package:mazilon/initialForm/CountrySelectorWidget.dart';
 import 'package:mazilon/l10n/app_localizations.dart';
 import 'package:mazilon/util/Form/myDropdownMenuEntry.dart';
+import 'package:mazilon/util/gender.dart';
 import 'package:mazilon/util/styles.dart';
+import 'package:mazilon/util/theme/font_weight.dart';
+import 'package:mazilon/util/theme/spacing.dart';
 import 'package:mazilon/util/userInformation.dart';
 import 'package:provider/provider.dart';
 
-//second page of the initial form
-//this is where the user selects their age,name and gender
-class InitialFormPage2 extends StatefulWidget {
-  final Function next;
-  final Function prev;
-  final Function updateName;
+// Second page of the initial form: user selects age, name and gender.
+class InitialFormPage2 extends WizardStep {
+  final VoidCallback next;
+  final VoidCallback prev;
+  final ValueChanged<String> updateName;
 
   const InitialFormPage2({
-    super.key,
+    required super.key,
     required this.next,
     required this.prev,
     required this.updateName,
   });
+
   @override
-  State<InitialFormPage2> createState() => _InitialFormPage2State();
+  String primaryActionLabel(BuildContext context) => AppLocalizations.of(
+    context,
+  )!.nextButton(Provider.of<UserInformation>(context).gender);
+
+  @override
+  WizardStepState<InitialFormPage2> createState() => _InitialFormPage2State();
 }
 
-class _InitialFormPage2State extends LPExtendedState<InitialFormPage2> {
+class _InitialFormPage2State extends WizardStepState<InitialFormPage2> {
   final _formKey = GlobalKey<FormState>();
   final _nameController = TextEditingController();
-  String? dropdownValueAge = '18-30';
-  String? dropdownValueGender = '';
-  List<String> ages = ['18-', '18-30', '30-40', '40-55', '55+'];
-  List<String> genders = [];
+
+  static const List<String> ages = ['18-', '18-30', '30-40', '40-55', '55+'];
+
+  @override
+  void initState() {
+    super.initState();
+    final user = Provider.of<UserInformation>(context, listen: false);
+    _nameController.text = user.name;
+  }
 
   @override
   void dispose() {
@@ -42,307 +53,203 @@ class _InitialFormPage2State extends LPExtendedState<InitialFormPage2> {
     super.dispose();
   }
 
-  Widget resizeText(String text, double fieldWidth) {
-    List<String> sep = text.split("(");
-    final appLocale = AppLocalizations.of(context);
+  void _updateGender(
+    String? label,
+    UserInformation user,
+    AppLocalizations l10n,
+  ) {
+    if (label == null) return;
+    (Gender.fromLabel(label, l10n) ?? Gender.unspecified).applyTo(user);
+  }
 
-    sep[1] = "(${sep[1]}";
-    return SizedBox(
-      width: fieldWidth,
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Text(
-            sep[0],
-            style: TextStyle(
-              fontSize: 20,
-              height: 1.2,
-              fontWeight: FontWeight.normal,
-              color: Theme.of(context).colorScheme.onSurface,
-              fontFamily: 'Rubix',
-            ),
-            textAlign: appLocale!.textDirection == "rtl"
-                ? TextAlign.right
-                : TextAlign.left,
-            maxLines: 2,
-          ),
-          Text(
-            sep[1],
-            style: TextStyle(
-              fontSize: 18,
-              height: 1.2,
-              fontWeight: FontWeight.normal,
-              color: Theme.of(context).colorScheme.onSurface,
-              fontFamily: 'Rubix',
-            ),
-            textAlign: appLocale.textDirection == "rtl"
-                ? TextAlign.right
-                : TextAlign.left,
-            maxLines: 2,
-          ),
-        ],
+  /// Field label (Figma nodes 1660:2288 / 2294 / 2300).
+  Widget _formLabel(String text) {
+    return Text(
+      text,
+      style: TextStyle(
+        fontSize: kFormFieldLabelSize.sp,
+        height: kFormFieldLabelHeight,
+        fontWeight: AppFontWeight.semiBold,
+        color: Theme.of(context).colorScheme.onSurface,
+        fontFamily: 'Rubix',
       ),
+      maxLines: 1,
+      overflow: TextOverflow.ellipsis,
+      textAlign: TextAlign.start,
     );
   }
 
-  Widget _formLabel(String text, double fieldWidth) {
-    return SizedBox(
-      width: fieldWidth,
-      child: Text(
-        text,
-        style: TextStyle(
-          fontSize: 20,
-          height: 1.2,
-          fontWeight: FontWeight.normal,
-          color: Theme.of(context).colorScheme.onSurface,
-          fontFamily: 'Rubix',
-        ),
-        maxLines: 2,
-        overflow: TextOverflow.ellipsis,
-        textAlign: appLocale.textDirection == "rtl"
-            ? TextAlign.right
-            : TextAlign.left,
-      ),
+  /// Label + field group (Figma Groups 143/141/142 on frame 28).
+  Widget _fieldGroup({required Widget label, required Widget field}) {
+    return Column(
+      mainAxisSize: MainAxisSize.min,
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      spacing: OnboardingGaps.labelToField,
+      children: [label, field],
     );
   }
 
-  Widget _primaryActionButton({
-    required double width,
-    required String text,
-    required VoidCallback onPressed,
-  }) {
-    return SizedBox(
-      width: width,
-      height: 52,
-      child: TextButton(
-        onPressed: onPressed,
-        style: primaryButtonStyle(context),
-        child: Text(
-          text,
-          style: primaryButtonTextStyle(
-            context,
-          ).copyWith(fontSize: 20, fontFamily: 'Rubix'),
-        ),
-      ),
+  @override
+  Future<void> onPrimaryAction() async {
+    final userInfoProvider = Provider.of<UserInformation>(
+      context,
+      listen: false,
     );
+    FocusScope.of(context).unfocus();
+    if (!_formKey.currentState!.validate()) {
+      return;
+    }
+    final trimmedName = _nameController.text.trim();
+    if (userInfoProvider.age.isEmpty) {
+      userInfoProvider.updateAge(ages[1]);
+    }
+    userInfoProvider.updateName(trimmedName);
+    widget.updateName(trimmedName);
+    widget.next();
   }
 
   @override
   Widget build(BuildContext context) {
     final userInfoProvider = Provider.of<UserInformation>(context);
+    final gender = userInfoProvider.gender;
 
-    genders = [
-      appLocale.male,
-      appLocale.female,
-      appLocale.nonBinary,
-      appLocale.notWillingToSay,
-    ];
-    var gender = userInfoProvider.gender;
-    final fieldWidth = formFieldWidth(context);
-    dropdownValueAge = userInfoProvider.age;
-    //add genders here
+    final genders = Gender.labels(appLocale);
 
-    dropdownValueGender = (userInfoProvider.binary)
-        ? appLocale.nonBinary
-        : (userInfoProvider.gender == 'male'
-              ? appLocale.male
-              : userInfoProvider.gender == 'female'
-              ? appLocale.female
-              : appLocale.notWillingToSay);
+    final selectedAge = userInfoProvider.age.isEmpty
+        ? ages[1]
+        : userInfoProvider.age;
+
+    final selectedGender = Gender.of(userInfoProvider).label(appLocale);
+
     return GestureDetector(
       onTap: () {
         FocusScope.of(context).unfocus();
       },
-      child: Scaffold(
-        body: SingleChildScrollView(
-          padding: EdgeInsets.fromLTRB(24, 8, 24, 24.h),
-          child: Center(
-            child: ConstrainedBox(
-              constraints: const BoxConstraints(maxWidth: 360),
-              child: Form(
-                key: _formKey,
-                child: Column(
-                  children: [
-                    myAutoSizedText(
-                      appLocale.introductionFormSecondPageMainTitle(gender),
-                      TextStyle(
-                        fontSize: 30,
-                        height: 1.15,
-                        fontWeight: FontWeight.bold,
-                      ),
-                      TextAlign.center,
-                      30,
-                      2,
+      child: SingleChildScrollView(
+        padding: EdgeInsets.only(bottom: 8.h),
+        child: Form(
+          key: _formKey,
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            spacing: OnboardingGaps.betweenBlocks,
+            children: [
+              Column(
+                key: const Key('intro-title-block'),
+                mainAxisSize: MainAxisSize.min,
+                spacing: OnboardingGaps.withinBlock,
+                children: [
+                  Text(
+                    appLocale.introductionFormSecondPageMainTitle(gender),
+                    style: TextStyle(
+                      fontSize: 26.sp,
+                      height: 1.3,
+                      fontWeight: AppFontWeight.medium,
+                      color: Theme.of(context).colorScheme.onSurface,
                     ),
-                    SizedBox(height: 8.h),
-                    myAutoSizedText(
-                      appLocale.introductionFormSecondPageSubTitle(gender),
-                      TextStyle(
-                        fontSize: 15,
-                        height: 1.25,
-                        fontWeight: FontWeight.bold,
-                        color: Theme.of(context).colorScheme.outline,
-                      ),
-                      TextAlign.center,
-                      15,
-                      3,
+                    textAlign: TextAlign.center,
+                  ),
+                  Text(
+                    appLocale.introductionFormSecondPageSubTitle(gender),
+                    style: TextStyle(
+                      fontSize: 16.sp,
+                      height: 1.125,
+                      fontWeight: AppFontWeight.regular,
+                      color: Theme.of(context).colorScheme.outline,
                     ),
-                    SizedBox(height: 16.h),
-                    Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        resizeText(
-                          appLocale.userSettingsName(gender),
-                          fieldWidth,
-                        ),
-                        const SizedBox(height: 6),
-                        SizedBox(
-                          width: fieldWidth,
-                          child: TextFormField(
-                            controller: _nameController,
-                            decoration: const InputDecoration(
-                              border: OutlineInputBorder(),
-                              contentPadding: EdgeInsets.symmetric(
-                                horizontal: 12,
-                                vertical: 14,
-                              ),
-                            ),
-                            validator: (text) {
-                              if ((text ?? '').trim().isEmpty) {
-                                return appLocale.nameRequiredError;
-                              }
-                              return null;
-                            },
-                            textAlignVertical: TextAlignVertical.center,
-                          ),
-                        ),
-                        const SizedBox(height: 12),
-                        _formLabel(
-                          appLocale.userSettingsAge(gender),
-                          fieldWidth,
-                        ),
-                        const SizedBox(height: 6),
-                        //ages drop down select:
-                        SizedBox(
-                          width: fieldWidth,
-                          child: DropdownMenu<String>(
-                            width: fieldWidth,
-                            initialSelection: userInfoProvider.age,
-                            dropdownMenuEntries: [
-                              ...ages.map(
-                                (age) => buildDropdownMenuEntry(
-                                  age,
-                                  dropdownValueAge == age
-                                      ? Theme.of(context).colorScheme.primary
-                                      : Theme.of(context).colorScheme.onSurface,
-                                ),
-                              ),
-                            ],
-                            onSelected: (String? newValue) {
-                              setState(() {
-                                if (newValue != null) {
-                                  dropdownValueAge = newValue;
-                                  userInfoProvider.updateAge(newValue);
-                                }
-                              });
-                              // Do something with the selected value
-                            },
-                          ),
-                        ),
-                        const SizedBox(height: 12),
-
-                        _formLabel(
-                          appLocale.userSettingsGender(gender),
-                          fieldWidth,
-                        ),
-                        const SizedBox(height: 6),
-                        //gender drop down select
-                        SizedBox(
-                          width: fieldWidth,
-                          child: DropdownMenu<String>(
-                            width: fieldWidth,
-                            initialSelection: (userInfoProvider.binary)
-                                ? appLocale.nonBinary
-                                : (userInfoProvider.gender == 'male'
-                                      ? appLocale.male
-                                      : userInfoProvider.gender == 'female'
-                                      ? appLocale.female
-                                      : appLocale.notWillingToSay),
-                            dropdownMenuEntries: [
-                              ...genders.map(
-                                (gender) => buildDropdownMenuEntry(
-                                  gender,
-                                  dropdownValueGender == gender
-                                      ? Theme.of(context).colorScheme.primary
-                                      : Theme.of(context).colorScheme.onSurface,
-                                ),
-                              ),
-                            ],
-                            //update user info accordingly:
-                            onSelected: (String? newValue) {
-                              setState(() {
-                                if (newValue != null) {
-                                  dropdownValueGender = newValue;
-                                  if (newValue == appLocale.male) {
-                                    userInfoProvider.updateGender('male');
-                                    userInfoProvider.updateBinary(false);
-                                  } else if (newValue == appLocale.female) {
-                                    userInfoProvider.updateGender('female');
-                                    userInfoProvider.updateBinary(false);
-                                  } else if (newValue == appLocale.nonBinary) {
-                                    userInfoProvider.updateGender('');
-                                    userInfoProvider.updateBinary(true);
-                                  } else {
-                                    userInfoProvider.updateGender('');
-                                    userInfoProvider.updateBinary(false);
-                                  }
-                                }
-                              });
-                              // Do something with the selected value
-                            },
-                          ),
-                        ),
-                        const SizedBox(height: 12),
-                        CountrySelectorWidget(
-                          text: appLocale.locationSelect(gender),
-                          disclaimerText: appLocale.locationDisclaimer(gender),
-                        ),
-                      ],
-                    ),
-                    SizedBox(height: 16.h),
-                    _primaryActionButton(
-                      width: fieldWidth,
-                      text: appLocale.nextButton(gender),
-                      onPressed: () {
-                        FocusScope.of(context).unfocus();
-                        if (!_formKey.currentState!.validate()) {
-                          return;
-                        }
-                        final trimmedName = _nameController.text.trim();
-
-                        userInfoProvider.updateAge(dropdownValueAge ?? '');
-                        userInfoProvider.updateName(trimmedName);
-                        widget.updateName(trimmedName);
-                        userInfoProvider.updateBinary(
-                          dropdownValueGender == appLocale.nonBinary,
-                        );
-
-                        if (dropdownValueGender != null) {
-                          if (dropdownValueGender == appLocale.male) {
-                            userInfoProvider.updateGender('male');
-                          } else if (dropdownValueGender == appLocale.female) {
-                            userInfoProvider.updateGender('female');
-                          } else {
-                            userInfoProvider.updateGender('');
-                          }
-                        }
-                        widget.next();
-                      },
-                    ),
-                  ],
-                ),
+                    textAlign: TextAlign.center,
+                  ),
+                ],
               ),
-            ),
+              // Fields block — Groups 143/141/142.
+              Column(
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                spacing: OnboardingGaps.withinBlock,
+                children: [
+                  _fieldGroup(
+                    label: _formLabel(appLocale.userSettingsName(gender)),
+                    field: DecoratedBox(
+                      decoration: formFieldShadowDecoration(),
+                      child: TextFormField(
+                        controller: _nameController,
+                        decoration: formFieldInputDecoration(context).copyWith(
+                          suffixIcon:
+                              SpeechDictationSuffixAction.isSupportedPlatform
+                              ? SpeechDictationSuffixAction(
+                                  controller: _nameController,
+                                )
+                              : null,
+                        ),
+                        validator: (text) {
+                          if ((text ?? '').trim().isEmpty) {
+                            return appLocale.nameRequiredError;
+                          }
+                          return null;
+                        },
+                        textAlignVertical: TextAlignVertical.center,
+                      ),
+                    ),
+                  ),
+                  _fieldGroup(
+                    label: _formLabel(appLocale.userSettingsAge(gender)),
+                    field: DecoratedBox(
+                      decoration: formFieldShadowDecoration(),
+                      child: DropdownMenu<String>(
+                        expandedInsets: EdgeInsets.zero,
+                        inputDecorationTheme: formFieldInputDecorationTheme(
+                          context,
+                        ),
+                        initialSelection: selectedAge,
+                        dropdownMenuEntries: [
+                          for (final age in ages)
+                            buildDropdownMenuEntry(
+                              age,
+                              selectedAge == age
+                                  ? Theme.of(context).colorScheme.primary
+                                  : Theme.of(context).colorScheme.onSurface,
+                            ),
+                        ],
+                        onSelected: (String? newValue) {
+                          if (newValue != null) {
+                            userInfoProvider.updateAge(newValue);
+                          }
+                        },
+                      ),
+                    ),
+                  ),
+                  _fieldGroup(
+                    label: _formLabel(appLocale.userSettingsGender(gender)),
+                    field: DecoratedBox(
+                      decoration: formFieldShadowDecoration(),
+                      child: DropdownMenu<String>(
+                        expandedInsets: EdgeInsets.zero,
+                        inputDecorationTheme: formFieldInputDecorationTheme(
+                          context,
+                        ),
+                        initialSelection: selectedGender,
+                        dropdownMenuEntries: [
+                          for (final g in genders)
+                            buildDropdownMenuEntry(
+                              g,
+                              selectedGender == g
+                                  ? Theme.of(context).colorScheme.primary
+                                  : Theme.of(context).colorScheme.onSurface,
+                            ),
+                        ],
+                        onSelected: (String? newValue) => _updateGender(
+                          newValue,
+                          userInfoProvider,
+                          appLocale,
+                        ),
+                      ),
+                    ),
+                  ),
+                  CountrySelectorWidget(
+                    text: appLocale.locationSelect(gender),
+                    disclaimerText: appLocale.locationDisclaimer(gender),
+                  ),
+                ],
+              ),
+            ],
           ),
         ),
       ),

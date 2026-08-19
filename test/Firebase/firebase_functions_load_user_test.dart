@@ -112,6 +112,7 @@ void main() {
           'userSelectionPersonalPlan-MakeSafer': ['safer1'],
           'userSelectionPersonalPlan-FeelBetter': ['better1'],
           'userSelectionPersonalPlan-Distractions': ['dist1'],
+          'userSelectionPersonalPlan-SafeEnvironment': ['safe1'],
           'positiveTraits': ['brave'],
           'thankYous': ['thanks1'],
           'dates': ['2024-01-01'],
@@ -232,6 +233,7 @@ void main() {
           'userSelectionPersonalPlan-MakeSafer': ['ms1'],
           'userSelectionPersonalPlan-FeelBetter': ['fb1'],
           'userSelectionPersonalPlan-Distractions': ['d1', 'd2'],
+          'userSelectionPersonalPlan-SafeEnvironment': ['se1', 'se2'],
           'positiveTraits': ['kind', 'bold'],
           'thankYous': ['t1', 't2'],
           'dates': ['2024-01-01', '2024-02-01'],
@@ -245,6 +247,7 @@ void main() {
       expect(userInfo.makeSafer, equals(['ms1']));
       expect(userInfo.feelBetter, equals(['fb1']));
       expect(userInfo.distractions, equals(['d1', 'd2']));
+      expect(userInfo.safeEnvironment, equals(['se1', 'se2']));
       expect(userInfo.positiveTraits, equals(['kind', 'bold']));
       expect(userInfo.thanks['thanks'], equals(['t1', 't2']));
       expect(userInfo.thanks['dates'], equals(['2024-01-01', '2024-02-01']));
@@ -318,6 +321,7 @@ void main() {
       expect(userInfo.makeSafer, equals([]));
       expect(userInfo.feelBetter, equals([]));
       expect(userInfo.distractions, equals([]));
+      expect(userInfo.safeEnvironment, equals([]));
       expect(userInfo.positiveTraits, equals([]));
     });
 

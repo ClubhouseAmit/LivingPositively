@@ -5,6 +5,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:mazilon/form/phonePageform.dart';
+import 'package:mazilon/form/wizard_step.dart';
 import 'package:mazilon/util/Form/formPagePhoneModel.dart';
 import 'package:mazilon/util/userInformation.dart';
 import 'package:provider/provider.dart';
@@ -12,18 +13,18 @@ import 'package:provider/provider.dart';
 import '../helpers/widget_test_scaffold.dart';
 
 PhonePageData _data() => PhonePageData(
-      key: 'phone',
-      header: 'h',
-      subTitle: 's',
-      midTitle: 'm',
-      phoneNameTitle: 'n',
-      phoneNumberTitle: 'p',
-      phoneNames: const <String>[],
-      phoneNumbers: const <String>[],
-      savedPhoneNames: const <String>[],
-      savedPhoneNumbers: const <String>[],
-      phoneDescription: const <String>[],
-    );
+  key: 'phone',
+  header: 'h',
+  subTitle: 's',
+  midTitle: 'm',
+  phoneNameTitle: 'n',
+  phoneNumberTitle: 'p',
+  phoneNames: const <String>[],
+  phoneNumbers: const <String>[],
+  savedPhoneNames: const <String>[],
+  savedPhoneNumbers: const <String>[],
+  phoneDescription: const <String>[],
+);
 
 void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
@@ -41,10 +42,8 @@ void main() {
     resetTestServices();
   });
 
-  testWidgets(
-      'tapping the bottom Continue button (ConfirmationButton) fires '
-      'widget.next after saving prefs',
-      (tester) async {
+  testWidgets('tapping the bottom Continue button (ConfirmationButton) fires '
+      'widget.next after saving prefs', (tester) async {
     final phone = _data();
     var nextCalls = 0;
 
@@ -52,10 +51,13 @@ void main() {
       tester,
       ChangeNotifierProvider<PhonePageData>.value(
         value: phone,
-        child: PhonePageForm(
-          phonePageData: phone,
-          next: () => nextCalls++,
-          prev: () {},
+        child: wizardStepHarness(
+          PhonePageForm(
+            key: GlobalKey<WizardStepState>(),
+            phonePageData: phone,
+            next: () => nextCalls++,
+            prev: () {},
+          ),
         ),
       ),
       userInformation: user,
@@ -64,9 +66,6 @@ void main() {
     await tester.pump();
     drainOverflowExceptions(tester);
 
-    // The page renders one outer TextButton (the ConfirmationButton). Its
-    // onPressed is async and routes through phonePageData.loadItemsFromPrefs
-    // → saveItemsToPrefs → update() → widget.next.
     final buttons = find.byType(TextButton);
     expect(buttons, findsWidgets);
     await tester.ensureVisible(buttons.last);

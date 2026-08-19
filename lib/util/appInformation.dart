@@ -36,7 +36,7 @@ class AppInformation with ChangeNotifier {
   Map<String, String> extraMenuStrings;
 
   Map<String, List<String>>
-      positiveTraitsSuggestionsList; //TODO PR: was List<String> before, pushed into main with mistake, didnt notice
+  positiveTraitsSuggestionsList; //TODO PR: was List<String> before, pushed into main with mistake, didnt notice
 
   Map<String, String> formPhonePage;
   Map<String, List<String>> phonePageTitles;
@@ -65,7 +65,6 @@ class AppInformation with ChangeNotifier {
   //add me here
   AppInformation({
     //add me here as well
-
     this.reminderMainTitle = '',
     this.reminderSubTitle = '',
     this.homeTitleGreeting = '',
@@ -227,7 +226,8 @@ class AppInformation with ChangeNotifier {
   }
 
   void updatePositiveTraitsSuggestionsList(
-      Map<String, List<String>> suggestions) {
+    Map<String, List<String>> suggestions,
+  ) {
     positiveTraitsSuggestionsList = {...suggestions};
     notifyListeners();
   }

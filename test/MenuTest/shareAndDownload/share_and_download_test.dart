@@ -1,19 +1,17 @@
 import 'package:flutter/material.dart';
 
 import 'package:flutter_test/flutter_test.dart';
+import 'package:share_plus/share_plus.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
-import 'package:fluttericon/elusive_icons.dart';
 import 'package:get_it/get_it.dart';
 import 'package:mazilon/AnalyticsService.dart';
 import 'package:mazilon/MainPageHelpers/components/personal_plan_section.dart';
 import 'package:mazilon/global_enums.dart';
 
-import 'package:mazilon/util/HomePage/sectionBarHome.dart';
 import 'package:mazilon/iFx/service_locator.dart';
 
 import 'package:mazilon/pages/FeelGood/image_picker_service_impl.dart';
 import 'package:mazilon/pages/WellnessTools/VideoPlayerPageFactory.dart';
-import 'package:mazilon/pages/home.dart';
 
 import 'package:mazilon/file_service.dart';
 import 'package:mazilon/l10n/app_localizations.dart';
@@ -28,7 +26,6 @@ import 'package:provider/provider.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:mockito/mockito.dart';
 
-import '../TestMenu.dart';
 import '../test_data.dart';
 
 import 'share_and_download_test.mocks.dart';
@@ -80,12 +77,15 @@ void main() {
         mockPersistentMemoryService.getItem(any, PersistentMemoryType.Bool),
       ).thenAnswer((_) async => true);
       getIt.registerLazySingleton<ImagePickerService>(() => imageFactory);
-      when(mockFileServiceImpl.share(any, any, any, any, any, any)).thenAnswer(
+      when(mockFileServiceImpl.share(any, any, any, any, any,
+              mainTitle: anyNamed('mainTitle'), textDirection: anyNamed('textDirection'))).thenAnswer(
         ((Invocation invocation) async {
           counterShare = counterShare + 1;
+          return const ShareResult('test-success', ShareResultStatus.success);
         }),
       );
-      when(mockFileServiceImpl.download(any, any, any, any, any)).thenAnswer(((
+      when(mockFileServiceImpl.download(any, any, any, any,
+              mainTitle: anyNamed('mainTitle'), textDirection: anyNamed('textDirection'))).thenAnswer(((
         Invocation invocation,
       ) async {
         counterDownload = counterDownload + 1;
@@ -109,8 +109,12 @@ void main() {
     Widget getPersonalPlanWidgetForTests({Locale locale = const Locale('he')}) {
       return MultiProvider(
         providers: [
-          ChangeNotifierProvider<UserInformation>.value(value: mockUserInformation),
-          ChangeNotifierProvider<AppInformation>.value(value: mockAppInformation),
+          ChangeNotifierProvider<UserInformation>.value(
+            value: mockUserInformation,
+          ),
+          ChangeNotifierProvider<AppInformation>.value(
+            value: mockAppInformation,
+          ),
         ],
         child: MaterialApp(
           supportedLocales: AppLocalizations.supportedLocales,
@@ -130,48 +134,74 @@ void main() {
     }
 
     testWidgets('Display exists', (WidgetTester tester) async {
-      await tester.pumpWidget(
-        getPersonalPlanWidgetForTests(),
-      );
+      await tester.pumpWidget(getPersonalPlanWidgetForTests());
       expect(find.byType(PersonalPlanSectionWidget), findsOneWidget);
       expect(find.byKey(const Key('personalPlanHeaderMenu')), findsOneWidget);
     });
     testWidgets('Buttons Clickable', (WidgetTester tester) async {
-      await tester.pumpWidget(
-        getPersonalPlanWidgetForTests(),
-      );
+      await tester.pumpWidget(getPersonalPlanWidgetForTests());
       expect(find.byType(PersonalPlanSectionWidget), findsOneWidget);
 
       expect(counterDownload, 0);
       expect(counterShare, 0);
 
       // Open the popover menu
-      await tapAndSettle(tester, find.byKey(const Key('personalPlanHeaderMenu')));
+      await tapAndSettle(
+        tester,
+        find.byKey(const Key('personalPlanHeaderMenu')),
+      );
 
       // Tap download option
-      await tapAndSettle(tester, find.byKey(const Key('personalPlanHeaderDownload')));
+      await tapAndSettle(
+        tester,
+        find.byKey(const Key('personalPlanHeaderDownload')),
+      );
       expect(counterDownload, 1);
 
       // Open the popover menu again for share
-      await tapAndSettle(tester, find.byKey(const Key('personalPlanHeaderMenu')));
+      await tapAndSettle(
+        tester,
+        find.byKey(const Key('personalPlanHeaderMenu')),
+      );
 
       // Tap share option
-      await tapAndSettle(tester, find.byKey(const Key('personalPlanHeaderShare')));
+      await tapAndSettle(
+        tester,
+        find.byKey(const Key('personalPlanHeaderShare')),
+      );
       expect(find.byType(LPShareAlertDialog), findsWidgets);
       expect(find.byIcon(Icons.insert_drive_file_outlined), findsWidgets);
       await tapAndSettle(tester, find.text("שיתוף קובץ של התוכנית האישית"));
       expect(counterShare, 1);
     });
 
+    testWidgets('shows Personal Plan feedback when file sharing is unavailable',
+        (WidgetTester tester) async {
+      when(mockFileServiceImpl.share(any, any, any, any, any,
+              mainTitle: anyNamed('mainTitle'), textDirection: anyNamed('textDirection')))
+          .thenAnswer((_) async => ShareResult.unavailable);
+      await tester.pumpWidget(getPersonalPlanWidgetForTests());
+
+      await tapAndSettle(tester, find.byKey(const Key('personalPlanHeaderMenu')));
+      await tapAndSettle(tester, find.byKey(const Key('personalPlanHeaderShare')));
+      await tapAndSettle(tester, find.text('שיתוף קובץ של התוכנית האישית'));
+
+      expect(
+        find.text('לא ניתן היה לשתף את התוכנית האישית שלך. נסו שוב.'),
+        findsOneWidget,
+      );
+    });
+
     testWidgets('download uses the localized plan headers and subtitles', (
       WidgetTester tester,
     ) async {
-      await tester.pumpWidget(
-        getPersonalPlanWidgetForTests(),
-      );
+      await tester.pumpWidget(getPersonalPlanWidgetForTests());
 
       // Open the popover menu
-      await tapAndSettle(tester, find.byKey(const Key('personalPlanHeaderMenu')));
+      await tapAndSettle(
+        tester,
+        find.byKey(const Key('personalPlanHeaderMenu')),
+      );
 
       await tapAndSettle(
         tester,
@@ -182,23 +212,26 @@ void main() {
         tester.element(find.byType(PersonalPlanSectionWidget)),
       )!;
       final captured = verify(
-        mockFileServiceImpl.download(captureAny, captureAny, any, any, any),
+        mockFileServiceImpl.download(captureAny, captureAny, any, any,
+            mainTitle: anyNamed('mainTitle'), textDirection: anyNamed('textDirection')),
       ).captured;
 
       expect(captured, hasLength(2));
       expect(captured[0], <String>[
-        localizations.difficultEventsHeader('male'),
-        localizations.makeSaferHeader('male'),
-        localizations.feelBetterHeader('male'),
         localizations.distractionsHeader('male'),
+        localizations.difficultEventsHeader('male'),
+        localizations.feelBetterHeader('male'),
+        localizations.makeSaferHeader('male'),
         localizations.phonesPageHeader('male'),
+        localizations.safeEnvironmentHeader('male'),
       ]);
       expect(captured[1], <String>[
-        localizations.difficultEventsSubTitle('male'),
-        localizations.makeSaferSubTitle('male'),
-        localizations.feelBetterSubTitle('male'),
         localizations.distractionsSubTitle('male'),
+        localizations.difficultEventsSubTitle('male'),
+        localizations.feelBetterSubTitle('male'),
+        localizations.makeSaferSubTitle('male'),
         localizations.phonesPageSubTitle('male'),
+        localizations.safeEnvironmentSubTitle('male'),
       ]);
     });
   });

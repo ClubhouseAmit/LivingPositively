@@ -5,31 +5,26 @@ import 'package:pdf/widgets.dart' as pw;
 void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
 
-  group('PDF helpers: getDirection / getAlign / getAlignment', () {
-    test('getDirection returns ltr for Latin', () {
-      expect(getDirection('hello'), pw.TextDirection.ltr);
-    });
+  group('PDF direction helpers', () {
+    test(
+      'pdfTextDirectionForDirection uses RTL only for the rtl direction token',
+      () {
+        expect(pdfTextDirectionForDirection('rtl'), pw.TextDirection.rtl);
+        expect(pdfTextDirectionForDirection('ltr'), pw.TextDirection.ltr);
+        expect(
+          pdfTextDirectionForDirection('unexpected'),
+          pw.TextDirection.ltr,
+        );
+      },
+    );
 
-    test('getDirection returns rtl for Hebrew', () {
-      expect(getDirection('שלום'), pw.TextDirection.rtl);
-    });
-
-    test('getDirection returns rtl for mixed (Hebrew dominates)', () {
-      expect(getDirection('hello שלום'), pw.TextDirection.rtl);
-    });
-
-    test('getAlign returns left for Latin', () {
-      expect(getAlign('hello'), pw.TextAlign.left);
-    });
-
-    test('getAlign returns right for Hebrew', () {
-      expect(getAlign('שלום'), pw.TextAlign.right);
-    });
-
-    test('getAlignment returns centerRight regardless (current behavior)', () {
-      // Current implementation returns centerRight in both branches.
-      expect(getAlignment('hello'), pw.Alignment.centerRight);
-      expect(getAlignment('שלום'), pw.Alignment.centerRight);
+    test('pdf alignment follows the direction token with an LTR fallback', () {
+      expect(pdfAlignmentForDirection('rtl'), pw.Alignment.centerRight);
+      expect(pdfAlignmentForDirection('ltr'), pw.Alignment.centerLeft);
+      expect(pdfAlignmentForDirection('unexpected'), pw.Alignment.centerLeft);
+      expect(pdfTextAlignForDirection('rtl'), pw.TextAlign.right);
+      expect(pdfTextAlignForDirection('ltr'), pw.TextAlign.left);
+      expect(pdfTextAlignForDirection('unexpected'), pw.TextAlign.left);
     });
   });
 
@@ -80,7 +75,25 @@ void main() {
       expect(bytes.lengthInBytes, greaterThan(500));
     });
 
-    test('handles empty data list', () async {
+    test('renders populated sections after a leading empty section', () async {
+      final result = await createPDF(
+        ['Title 1', 'Title 2', 'Title 3'],
+        ['Sub 1', 'Sub 2', 'Sub 3'],
+        defaultTexts,
+        'My Plan',
+        [
+          <String>[],
+          ['first-populated-section'],
+          ['second-populated-section'],
+        ],
+        'ltr',
+      );
+      final doc = result['file'] as pw.Document;
+      final bytes = await doc.save();
+      expect(bytes.lengthInBytes, greaterThan(500));
+    });
+
+    test('renders a titled PDF when no plan sections are populated', () async {
       final result = await createPDF(
         <String>[],
         <String>[],
@@ -96,16 +109,9 @@ void main() {
     });
 
     test('returns format=pdf', () async {
-      final result = await createPDF(
-        ['T'],
-        ['S'],
-        defaultTexts,
-        'Plan',
-        [
-          ['x'],
-        ],
-        'ltr',
-      );
+      final result = await createPDF(['T'], ['S'], defaultTexts, 'Plan', [
+        ['x'],
+      ], 'ltr');
       expect(result['format'], 'pdf');
     });
   });

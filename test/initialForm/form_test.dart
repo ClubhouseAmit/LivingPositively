@@ -4,7 +4,6 @@ import 'package:get_it/get_it.dart';
 import 'package:mazilon/util/persistent_memory_service.dart';
 import 'package:mockito/annotations.dart';
 import 'package:mockito/mockito.dart';
-import 'package:provider/provider.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:mazilon/initialForm/initialFormPage1.dart';
 import 'package:mazilon/initialForm/initialFormPage2.dart';
@@ -16,8 +15,8 @@ import 'package:mazilon/util/userInformation.dart';
 
 import 'package:mazilon/initialForm/form.dart';
 
-import 'package:mazilon/l10n/app_localizations.dart';
-import 'package:flutter_screenutil/flutter_screenutil.dart';
+import '../helpers/widget_test_scaffold.dart'
+    show drainOverflowExceptions, pumpWithProviders;
 
 import 'form_test.mocks.dart';
 
@@ -101,29 +100,15 @@ void main() {
     // SharedPreferences.setMockInitialValues({'hasFilled': false});
 
     testWidgets('FormPageTemplate widget test', (WidgetTester tester) async {
-      await tester.pumpWidget(
-        MultiProvider(
-          providers: [
-            ChangeNotifierProvider<AppInformation>.value(
-              value: mockAppInformation,
-            ),
-            ChangeNotifierProvider<UserInformation>.value(
-              value: mockUserInformation,
-            ),
-          ],
-          child: MaterialApp(
-            supportedLocales: AppLocalizations.supportedLocales,
-            locale: Locale('he'),
-            localizationsDelegates: AppLocalizations.localizationsDelegates,
-            home: ScreenUtilInit(
-              designSize: const Size(360, 690),
-              child: InitialFormProgressIndicator(
-                phonePageData: phonePageData,
-                changeLocale: (String locale) {},
-              ),
-            ),
-          ),
+      await pumpWithProviders(
+        tester,
+        InitialFormProgressIndicator(
+          phonePageData: phonePageData,
+          changeLocale: (String locale) {},
         ),
+        userInformation: mockUserInformation,
+        appInformation: mockAppInformation,
+        locale: const Locale('he'),
       );
       await tester.pumpAndSettle();
 
@@ -133,14 +118,9 @@ void main() {
       expect(find.byType(ToFormPage), findsNothing);
 
       // Tap the next button
-      await tester.scrollUntilVisible(
-        find.text('המשך'),
-        500.0,
-        scrollable: find.byType(Scrollable),
-      );
+      await tester.tap(find.byKey(const Key('wizard-primary-action')));
       await tester.pumpAndSettle();
-      await tester.tap(find.text('המשך'));
-      await tester.pumpAndSettle();
+      drainOverflowExceptions(tester);
 
       // Verify the state after tapping next
       expect(find.byType(InitialFormPage1), findsNothing);
@@ -151,14 +131,9 @@ void main() {
       await tester.pumpAndSettle();
 
       // Tap the next button again
-      await tester.scrollUntilVisible(
-        find.text('המשך'),
-        500.0,
-        scrollable: find.byType(Scrollable).first,
-      );
+      await tester.tap(find.byKey(const Key('wizard-primary-action')));
       await tester.pumpAndSettle();
-      await tester.tap(find.text('המשך'));
-      await tester.pumpAndSettle();
+      drainOverflowExceptions(tester);
 
       // Verify the state after tapping next
       expect(find.byType(InitialFormPage1), findsNothing);

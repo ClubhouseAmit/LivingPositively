@@ -31,16 +31,8 @@ class SectionBarHomeState extends State<SectionBarHome> {
             Row(children: widget.icons),
             Row(
               children: [
-                widget.text.isEmpty
-                    ? widget.textWidget
-                    : Text(
-                        widget.text,
-                      ),
-                Icon(
-                  widget.icon,
-                  color: Colors.black,
-                  size: 30,
-                ),
+                widget.text.isEmpty ? widget.textWidget : Text(widget.text),
+                Icon(widget.icon, color: Colors.black, size: 30),
               ],
             ),
           ],
@@ -50,9 +42,7 @@ class SectionBarHomeState extends State<SectionBarHome> {
                 padding: const EdgeInsets.only(right: 18.0, left: 5),
                 child: Directionality(
                   textDirection: TextDirection.rtl,
-                  child: Text(
-                    widget.subHeader,
-                  ),
+                  child: Text(widget.subHeader),
                 ),
               )
             : Container(),

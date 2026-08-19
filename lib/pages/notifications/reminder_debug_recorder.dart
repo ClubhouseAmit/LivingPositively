@@ -12,7 +12,9 @@ const int reminderDebugMaxRecentEvents = 20;
 const String reminderDebugStatusSuccess = 'success';
 const String reminderDebugStatusFailure = 'failure';
 
-final ValueNotifier<bool> reminderDebugPanelUnlocked = ValueNotifier<bool>(false);
+final ValueNotifier<bool> reminderDebugPanelUnlocked = ValueNotifier<bool>(
+  false,
+);
 bool _unlockedLoaded = false;
 
 Future<void> loadReminderDebugPanelUnlocked() async {

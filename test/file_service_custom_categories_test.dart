@@ -34,7 +34,10 @@ class _MemoryService implements PersistentMemoryService {
 
   @override
   Future<void> setItem(
-      String key, PersistentMemoryType type, dynamic value) async {
+    String key,
+    PersistentMemoryType type,
+    dynamic value,
+  ) async {
     values[key] = value;
   }
 }
@@ -46,62 +49,73 @@ void main() {
     await GetIt.instance.reset();
   });
 
-  test('organizeDataForFile appends custom categories with original text',
-      () async {
-    getIt.registerLazySingleton<PersistentMemoryService>(
-      () => _MemoryService({
-        'userSelectionPersonalPlan-DifficultEvents': <String>[],
-        'userSelectionPersonalPlan-MakeSafer': <String>['standard answer'],
-        'userSelectionPersonalPlan-FeelBetter': <String>[],
-        'userSelectionPersonalPlan-Distractions': <String>[],
-        'PhonePageSavedPhoneNames': <String>[],
-        'PhonePageSavedPhoneNumbers': <String>[],
-        'name': '',
-        'customCategoryTitles': <String>[
-          'כותרת מקורית שלי',
-          'Second free title',
-        ],
-        'customCategoryDescriptions': <String>[
-          'טקסט חופשי בעברית שלא מתורגם',
-          'English text remains English',
-        ],
-      }),
-    );
+  test(
+    'organizeDataForFile appends custom categories with original text',
+    () async {
+      getIt.registerLazySingleton<PersistentMemoryService>(
+        () => _MemoryService({
+          'userSelectionPersonalPlan-DifficultEvents': <String>[],
+          'userSelectionPersonalPlan-MakeSafer': <String>['standard answer'],
+          'userSelectionPersonalPlan-FeelBetter': <String>[],
+          'userSelectionPersonalPlan-Distractions': <String>[],
+          'userSelectionPersonalPlan-SafeEnvironment': <String>[
+            'safe environment answer',
+          ],
+          'PhonePageSavedPhoneNames': <String>[],
+          'PhonePageSavedPhoneNumbers': <String>[],
+          'name': '',
+          'customCategoryTitles': <String>[
+            'כותרת מקורית שלי',
+            'Second free title',
+          ],
+          'customCategoryDescriptions': <String>[
+            'טקסט חופשי בעברית שלא מתורגם',
+            'English text remains English',
+          ],
+        }),
+      );
 
-    final result = await FileServiceImpl().organizeDataForFile(
-      [
-        'difficult title',
-        'make safer title',
-        'feel better title',
-        'distractions title',
-        'phones title',
-      ],
-      [
-        'difficult subtitle',
-        'make safer subtitle',
-        'feel better subtitle',
-        'distractions subtitle',
-        'phones subtitle',
-      ],
-      const {},
-    );
+      final result = await FileServiceImpl().organizeDataForFile(
+        [
+          'symptoms title',
+          'triggers title',
+          'wellness title',
+          'environmental support title',
+          'phones title',
+          'safe environment title',
+        ],
+        [
+          'symptoms subtitle',
+          'triggers subtitle',
+          'wellness subtitle',
+          'environmental support subtitle',
+          'phones subtitle',
+          'safe environment subtitle',
+        ],
+        const {},
+        mainTitle: 'My Personal Plan',
+      );
 
-    expect(result['titles'], [
-      'make safer title',
-      'כותרת מקורית שלי',
-      'Second free title',
-    ]);
-    expect(result['subTitles'], [
-      'make safer subtitle',
-      '',
-      '',
-    ]);
-    expect(result['realData'], [
-      ['standard answer'],
-      ['טקסט חופשי בעברית שלא מתורגם'],
-      ['English text remains English'],
-    ]);
-  });
+      expect(result['titles'], [
+        'environmental support title',
+        'safe environment title',
+        'כותרת מקורית שלי',
+        'Second free title',
+      ]);
+      expect(result['subTitles'], [
+        'environmental support subtitle',
+        'safe environment subtitle',
+        '',
+        '',
+      ]);
+      expect(result['realData'], [
+        ['standard answer'],
+        ['safe environment answer'],
+        ['טקסט חופשי בעברית שלא מתורגם'],
+        ['English text remains English'],
+      ]);
+    },
+  );
 
   test('organizeDataForFile supports a custom-only plan', () async {
     getIt.registerLazySingleton<PersistentMemoryService>(
@@ -112,15 +126,24 @@ void main() {
     );
 
     final result = await FileServiceImpl().organizeDataForFile(
-      ['difficult', 'safe', 'better', 'distractions', 'phones'],
       [
-        'difficult sub',
-        'safe sub',
-        'better sub',
-        'distractions sub',
-        'phones sub'
+        'symptoms',
+        'triggers',
+        'wellness',
+        'environmental support',
+        'phones',
+        'safe environment',
+      ],
+      [
+        'symptoms sub',
+        'triggers sub',
+        'wellness sub',
+        'environmental support sub',
+        'phones sub',
+        'safe environment sub',
       ],
       const {},
+      mainTitle: 'My Personal Plan',
     );
 
     expect(result['titles'], ['Only custom title']);
@@ -150,27 +173,32 @@ void main() {
     );
 
     final result = await FileServiceImpl().organizeDataForFile(
-      ['difficult', 'safe', 'better', 'distractions', 'phones'],
       [
-        'difficult sub',
-        'safe sub',
-        'better sub',
-        'distractions sub',
-        'phones sub'
+        'symptoms',
+        'triggers',
+        'wellness',
+        'environmental support',
+        'phones',
+        'safe environment',
+      ],
+      [
+        'symptoms sub',
+        'triggers sub',
+        'wellness sub',
+        'environmental support sub',
+        'phones sub',
+        'safe environment sub',
       ],
       const {},
+      mainTitle: 'My Personal Plan',
     );
 
     expect(result['titles'], [
-      'better',
+      'wellness',
       'Valid custom title',
       'Another valid title',
     ]);
-    expect(result['subTitles'], [
-      'better sub',
-      '',
-      '',
-    ]);
+    expect(result['subTitles'], ['wellness sub', '', '']);
     expect(result['realData'], [
       ['standard item'],
       ['Valid custom notes'],
@@ -187,15 +215,24 @@ void main() {
     );
 
     final result = await FileServiceImpl().organizeDataForFile(
-      ['difficult', 'safe', 'better', 'distractions', 'phones'],
       [
-        'difficult sub',
-        'safe sub',
-        'better sub',
-        'distractions sub',
-        'phones sub'
+        'symptoms',
+        'triggers',
+        'wellness',
+        'environmental support',
+        'phones',
+        'safe environment',
+      ],
+      [
+        'symptoms sub',
+        'triggers sub',
+        'wellness sub',
+        'environmental support sub',
+        'phones sub',
+        'safe environment sub',
       ],
       const {},
+      mainTitle: 'My Personal Plan',
     );
 
     expect(result['titles'], ['phones']);

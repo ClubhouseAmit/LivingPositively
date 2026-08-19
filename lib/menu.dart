@@ -13,6 +13,7 @@ import 'package:mazilon/pages/FeelGood/feelGood.dart';
 import 'package:mazilon/pages/WellnessTools/wellnessTools.dart';
 import 'package:mazilon/pages/notifications/notification_page.dart';
 import 'package:mazilon/util/Form/retrieveInformation.dart';
+import 'package:mazilon/util/gender.dart';
 import 'package:flutter/services.dart';
 import 'package:mazilon/util/LP_extended_state.dart';
 import 'package:mazilon/util/persistent_memory_service.dart';
@@ -20,6 +21,7 @@ import "package:mazilon/util/Firebase/fcm_service.dart";
 import 'package:mazilon/pages/home.dart';
 import 'package:mazilon/pages/journal.dart';
 import 'package:mazilon/pages/phone.dart';
+import 'package:mazilon/pages/sos_location_service.dart';
 import 'package:mazilon/pages/positive.dart';
 import 'package:mazilon/pages/PersonalPlan/myPlanPageFull.dart';
 import 'package:package_info_plus/package_info_plus.dart';
@@ -103,7 +105,6 @@ class _MenuState extends LPExtendedState<Menu> {
       context,
       listen: false,
     );
-    final gender = userInformation.gender;
     AnalyticsService mixPanelService = GetIt.instance<AnalyticsService>();
 
     setState(() {
@@ -125,11 +126,14 @@ class _MenuState extends LPExtendedState<Menu> {
         currentScreen = Journal(
           fullSuggestionList: retrieveThanksList(
             appLocale,
-            gender == "" ? "other" : gender,
+            Gender.of(userInformation).listKey,
           ),
         );
       } else if (index == PagesCode.EmergencyPhones) {
-        currentScreen = PhonePage(phonePageData: widget.phonePageData);
+        currentScreen = PhonePage(
+          phonePageData: widget.phonePageData,
+          sosLocationService: GetIt.instance<SosLocationService>(),
+        );
       } else if (index == PagesCode.About) {
         currentScreen = About(version: version);
       } else if (index == PagesCode.NotificationPage) {
@@ -318,7 +322,10 @@ class _MenuState extends LPExtendedState<Menu> {
       },
       child: Scaffold(
         resizeToAvoidBottomInset: false,
-        body: currentScreen,
+        body: Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 16),
+          child: currentScreen,
+        ),
         // SOS FAB is always visible — ADR-005 §A.2: emergency access must be
         // reachable in every app state, including fullscreen video playback.
         floatingActionButton: SizedBox(
@@ -349,7 +356,10 @@ class _MenuState extends LPExtendedState<Menu> {
                   ),
             onPressed: () {
               setState(() {
-                currentScreen = PhonePage(phonePageData: widget.phonePageData);
+                currentScreen = PhonePage(
+                  phonePageData: widget.phonePageData,
+                  sosLocationService: GetIt.instance<SosLocationService>(),
+                );
                 current = PagesCode.EmergencyPhones;
                 isFullScreen = false;
               });

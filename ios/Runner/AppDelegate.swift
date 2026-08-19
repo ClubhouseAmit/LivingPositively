@@ -2,7 +2,7 @@ import UIKit
 import Flutter
 import MessageUI
 
-@UIApplicationMain
+@main
 @objc class AppDelegate: FlutterAppDelegate, MFMessageComposeViewControllerDelegate {
   private let smsComposeChannelName = "com.matzilon.mezilon/sms_compose"
   private var activeMessageComposer: MFMessageComposeViewController?

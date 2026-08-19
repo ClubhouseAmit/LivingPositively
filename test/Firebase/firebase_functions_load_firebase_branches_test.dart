@@ -42,9 +42,9 @@ void _uninstallPathProviderMock() {
 Future<FakeFirebaseFirestore> _buildFakeFirestore() async {
   final fake = FakeFirebaseFirestore();
   await fake.collection('VersionManager').add({'version': '2.0.0'});
-  await fake
-      .collection('Thanks-suggestions')
-      .add({'suggestions': 'thank you suggestion'});
+  await fake.collection('Thanks-suggestions').add({
+    'suggestions': 'thank you suggestion',
+  });
   await fake.collection('positiveTraits-suggestions').add({
     'generalSuggestions': 'brave',
     'femaleSuggestions': 'braveF',
@@ -62,23 +62,23 @@ Future<FakeFirebaseFirestore> _buildFakeFirestore() async {
     'secondaryTitleMale': 'traitSubM',
     'secondaryTitleFemale': 'traitSubF',
   });
-  await fake
-      .collection('homePage-titles')
-      .doc('zzzzzzzzzzzzzzzzzzzu')
-      .set({'mainTitles': 'remMain', 'secondaryTitle': 'remSub'});
-  await fake
-      .collection('homePage-titles')
-      .doc('zzzzzzzzzzzzzzzzzzzv')
-      .set({'mainTitles': 'ppMain', 'secondaryTitle': 'ppSub'});
+  await fake.collection('homePage-titles').doc('zzzzzzzzzzzzzzzzzzzu').set({
+    'mainTitles': 'remMain',
+    'secondaryTitle': 'remSub',
+  });
+  await fake.collection('homePage-titles').doc('zzzzzzzzzzzzzzzzzzzv').set({
+    'mainTitles': 'ppMain',
+    'secondaryTitle': 'ppSub',
+  });
   await fake.collection('HomePage-InspirationalQuotes').add({
     'quotes': 'q1',
     'quotesFemale': 'q1F',
     'quotesMale': 'q1M',
   });
-  await fake
-      .collection('ShareTexts')
-      .doc('zzzzzzzzzzzzzzzzzzzy')
-      .set({'emergency': 'sos', 'regular': 'reg'});
+  await fake.collection('ShareTexts').doc('zzzzzzzzzzzzzzzzzzzy').set({
+    'emergency': 'sos',
+    'regular': 'reg',
+  });
   // PhonePage-titles requires at least 4 documents (snapshot.docs[0..3]).
   for (int i = 0; i < 4; i++) {
     await fake.collection('PhonePage-titles').add({
@@ -98,29 +98,30 @@ Future<FakeFirebaseFirestore> _buildFakeFirestore() async {
       'emergencyDialogWebsiteTitle': 'webTitle',
     });
   }
-  await fake
-      .collection('SharePDFtexts')
-      .add({'fieldName': 'header', 'content': 'Share Header'});
-  await fake.collection('SyncPages').add(
-      {'fieldName': 'sync1', 'general': 'sg', 'female': 'sf', 'male': 'sm'});
+  await fake.collection('SharePDFtexts').add({
+    'fieldName': 'header',
+    'content': 'Share Header',
+  });
+  await fake.collection('SyncPages').add({
+    'fieldName': 'sync1',
+    'general': 'sg',
+    'female': 'sf',
+    'male': 'sm',
+  });
   await fake.collection('Wellness-Videos').add({
     'videoId': 'vid1',
     'videoHeadline': 'headline',
     'videoDescription': 'desc',
     'videoLocal': 'en',
   });
-  await fake
-      .collection('Disclaimer-Page-Text')
-      .doc('zzzzzzzzzzzzzzzzzzzy')
-      .set({'disclaimerText': 'discText', 'next': 'nextBtn'});
+  await fake.collection('Disclaimer-Page-Text').doc('zzzzzzzzzzzzzzzzzzzy').set(
+    {'disclaimerText': 'discText', 'next': 'nextBtn'},
+  );
   await fake
       .collection('PersonalPlan_SaveButton')
       .doc('zzzzzzzzzzzzzzzzzzzy')
       .set({'female': 'saveF', 'male': 'saveM', 'general': 'saveG'});
-  await fake
-      .collection('feelGoodPageTitles')
-      .doc('zzzzzzzzzzzzzzzzzzzy')
-      .set({
+  await fake.collection('feelGoodPageTitles').doc('zzzzzzzzzzzzzzzzzzzy').set({
     'header': 'fgh',
     'subHeader': 'fgsh',
     'alertButtonTitle': 'abt',
@@ -134,7 +135,9 @@ Future<FakeFirebaseFirestore> _buildFakeFirestore() async {
 }
 
 Future<void> _addDoc(
-    FakeFirebaseFirestore fake, Map<String, dynamic> data) async {
+  FakeFirebaseFirestore fake,
+  Map<String, dynamic> data,
+) async {
   await fake
       .collection('_pageGroups')
       .doc('parent')
@@ -164,22 +167,24 @@ void main() {
       expect(appInfo.introductionFormSecondPage['subTitle-female'], 'Sub2F');
     });
 
-    test('IntroductionFormLastPage non-mainTitle takes suffixed branch',
-        () async {
-      final fake = await _buildFakeFirestore();
-      await _addDoc(fake, {
-        'page': 'IntroductionFormLastPage',
-        'fieldName': 'subTitle1',
-        'general': 'S1G',
-        'male': 'S1M',
-        'female': 'S1F',
-      });
-      final appInfo = AppInformation();
-      await loadAppFromFirebase(appInfo, firestore: fake);
-      expect(appInfo.introductionFormLastPage['subTitle1-'], 'S1G');
-      expect(appInfo.introductionFormLastPage['subTitle1-male'], 'S1M');
-      expect(appInfo.introductionFormLastPage['subTitle1-female'], 'S1F');
-    });
+    test(
+      'IntroductionFormLastPage non-mainTitle takes suffixed branch',
+      () async {
+        final fake = await _buildFakeFirestore();
+        await _addDoc(fake, {
+          'page': 'IntroductionFormLastPage',
+          'fieldName': 'subTitle1',
+          'general': 'S1G',
+          'male': 'S1M',
+          'female': 'S1F',
+        });
+        final appInfo = AppInformation();
+        await loadAppFromFirebase(appInfo, firestore: fake);
+        expect(appInfo.introductionFormLastPage['subTitle1-'], 'S1G');
+        expect(appInfo.introductionFormLastPage['subTitle1-male'], 'S1M');
+        expect(appInfo.introductionFormLastPage['subTitle1-female'], 'S1F');
+      },
+    );
 
     test('Distractions nextButton routes through no-suffix branch', () async {
       final fake = await _buildFakeFirestore();
@@ -193,8 +198,10 @@ void main() {
       final appInfo = AppInformation();
       await loadAppFromFirebase(appInfo, firestore: fake);
       expect(appInfo.formDistractionsTitles['nextButton'], 'NextG');
-      expect(appInfo.formDistractionsTitles.containsKey('nextButtonmale'),
-          isFalse);
+      expect(
+        appInfo.formDistractionsTitles.containsKey('nextButtonmale'),
+        isFalse,
+      );
     });
 
     test('FeelBetter nextButton routes through no-suffix branch', () async {
@@ -210,7 +217,9 @@ void main() {
       await loadAppFromFirebase(appInfo, firestore: fake);
       expect(appInfo.formFeelBetterTitles['nextButton'], 'FBnext');
       expect(
-          appInfo.formFeelBetterTitles.containsKey('nextButtonmale'), isFalse);
+        appInfo.formFeelBetterTitles.containsKey('nextButtonmale'),
+        isFalse,
+      );
     });
 
     test('MakeSafer non-button field stored with gender suffixes', () async {
@@ -240,8 +249,10 @@ void main() {
       });
       final appInfo = AppInformation();
       await loadAppFromFirebase(appInfo, firestore: fake);
-      expect(appInfo.personalPlanSubTitle['PersonalPlanSecondaryTitle-'],
-          'PPSubG');
+      expect(
+        appInfo.personalPlanSubTitle['PersonalPlanSecondaryTitle-'],
+        'PPSubG',
+      );
     });
 
     test('HomePage TraitsSecondaryTitle branch', () async {
@@ -314,8 +325,7 @@ void main() {
       expect(appInfo.positiveTraitsPopUpText['PositiveTraitPopup-'], 'PG');
     });
 
-    test('SharePage default (non-listed) field uses suffixed branch',
-        () async {
+    test('SharePage default (non-listed) field uses suffixed branch', () async {
       final fake = await _buildFakeFirestore();
       await _addDoc(fake, {
         'page': 'SharePage',
@@ -331,20 +341,22 @@ void main() {
       expect(appInfo.formSharePageTitles['mainTitlefemale'], 'SPF');
     });
 
-    test('AddFormPageTemplate branch populates addFormPageTemplateStrings',
-        () async {
-      final fake = await _buildFakeFirestore();
-      await _addDoc(fake, {
-        'page': 'AddFormPageTemplate',
-        'fieldName': 'addTemplateTitle',
-        'general': 'TplG',
-        'male': 'TplM',
-        'female': 'TplF',
-      });
-      final appInfo = AppInformation();
-      await loadAppFromFirebase(appInfo, firestore: fake);
-      expect(appInfo.addFormPageTemplateStrings['addTemplateTitle-'], 'TplG');
-    });
+    test(
+      'AddFormPageTemplate branch populates addFormPageTemplateStrings',
+      () async {
+        final fake = await _buildFakeFirestore();
+        await _addDoc(fake, {
+          'page': 'AddFormPageTemplate',
+          'fieldName': 'addTemplateTitle',
+          'general': 'TplG',
+          'male': 'TplM',
+          'female': 'TplF',
+        });
+        final appInfo = AppInformation();
+        await loadAppFromFirebase(appInfo, firestore: fake);
+        expect(appInfo.addFormPageTemplateStrings['addTemplateTitle-'], 'TplG');
+      },
+    );
 
     test('IntroductionRestart branch populates introductionRestart', () async {
       final fake = await _buildFakeFirestore();
@@ -360,8 +372,7 @@ void main() {
       expect(appInfo.IntroductionRestart['restartTitle-'], 'RG');
     });
 
-    test('Unknown page name falls through default arm without error',
-        () async {
+    test('Unknown page name falls through default arm without error', () async {
       final fake = await _buildFakeFirestore();
       await _addDoc(fake, {
         'page': 'NoSuchPage',
@@ -372,7 +383,9 @@ void main() {
       });
       final appInfo = AppInformation();
       await expectLater(
-          loadAppFromFirebase(appInfo, firestore: fake), completes);
+        loadAppFromFirebase(appInfo, firestore: fake),
+        completes,
+      );
     });
   });
 }

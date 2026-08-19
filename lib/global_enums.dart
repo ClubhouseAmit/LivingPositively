@@ -18,10 +18,4 @@ enum PagesCode {
   WellnessToolsPage,
 }
 
-enum PersistentMemoryType {
-  String,
-  Int,
-  Double,
-  Bool,
-  StringList,
-}
+enum PersistentMemoryType { String, Int, Double, Bool, StringList }

@@ -40,14 +40,16 @@ end_of_record
 ''');
   });
 
-  test('merge CLI combines multiple LCOV inputs by maximum line hits', () async {
-    final tempDirectory = Directory.systemTemp.createTempSync(
-      'merge_lcov_cli_multiple_inputs_test_',
-    );
-    addTearDown(() => tempDirectory.deleteSync(recursive: true));
+  test(
+    'merge CLI combines multiple LCOV inputs by maximum line hits',
+    () async {
+      final tempDirectory = Directory.systemTemp.createTempSync(
+        'merge_lcov_cli_multiple_inputs_test_',
+      );
+      addTearDown(() => tempDirectory.deleteSync(recursive: true));
 
-    final firstInput = File('${tempDirectory.path}/first.info')
-      ..writeAsStringSync('''SF:lib/example.dart
+      final firstInput = File('${tempDirectory.path}/first.info')
+        ..writeAsStringSync('''SF:lib/example.dart
 DA:10,1
 DA:3,0
 end_of_record
@@ -55,8 +57,8 @@ SF:lib/other.dart
 DA:7,0
 end_of_record
 ''');
-    final secondInput = File('${tempDirectory.path}/second.info')
-      ..writeAsStringSync('''SF:lib/example.dart
+      final secondInput = File('${tempDirectory.path}/second.info')
+        ..writeAsStringSync('''SF:lib/example.dart
 DA:10,4
 DA:5,2
 DA:3,0
@@ -66,22 +68,22 @@ DA:7,1
 DA:9,0
 end_of_record
 ''');
-    final output = File('${tempDirectory.path}/merged.info');
+      final output = File('${tempDirectory.path}/merged.info');
 
-    final result = await Process.run(_dartExecutable(), <String>[
-      'run',
-      'scripts/merge_lcov.dart',
-      output.path,
-      firstInput.path,
-      secondInput.path,
-    ], workingDirectory: Directory.current.path);
+      final result = await Process.run(_dartExecutable(), <String>[
+        'run',
+        'scripts/merge_lcov.dart',
+        output.path,
+        firstInput.path,
+        secondInput.path,
+      ], workingDirectory: Directory.current.path);
 
-    expect(
-      result.exitCode,
-      0,
-      reason: 'stderr: ${result.stderr}\nstdout: ${result.stdout}',
-    );
-    expect(output.readAsStringSync(), '''SF:lib/example.dart
+      expect(
+        result.exitCode,
+        0,
+        reason: 'stderr: ${result.stderr}\nstdout: ${result.stdout}',
+      );
+      expect(output.readAsStringSync(), '''SF:lib/example.dart
 DA:3,0
 DA:5,2
 DA:10,4
@@ -95,7 +97,8 @@ LF:2
 LH:1
 end_of_record
 ''');
-  });
+    },
+  );
 
   test('merge CLI rejects invocations without LCOV inputs', () async {
     final tempDirectory = Directory.systemTemp.createTempSync(

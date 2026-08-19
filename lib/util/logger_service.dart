@@ -5,8 +5,11 @@ const _sentryDsn = String.fromEnvironment('SENTRY_DSN');
 
 abstract class IncidentLoggerService {
   Future<void> initializeSentry(Widget MyApp);
-  Future<void> captureLog(dynamic exception,
-      {StackTrace? stackTrace, dynamic exceptionData});
+  Future<void> captureLog(
+    dynamic exception, {
+    StackTrace? stackTrace,
+    dynamic exceptionData,
+  });
 }
 
 class SentryServiceImpl implements IncidentLoggerService {
@@ -18,12 +21,9 @@ class SentryServiceImpl implements IncidentLoggerService {
         runApp(MyApp);
       } else {
         debugPrint("sentry will be initialized");
-        await SentryFlutter.init(
-          (options) {
-            options.dsn = _sentryDsn;
-          },
-          appRunner: () => runApp(MyApp),
-        );
+        await SentryFlutter.init((options) {
+          options.dsn = _sentryDsn;
+        }, appRunner: () => runApp(MyApp));
       }
     } catch (e) {
       debugPrint("sentry will not be initialized,error");
@@ -33,8 +33,11 @@ class SentryServiceImpl implements IncidentLoggerService {
   }
 
   @override
-  Future<void> captureLog(dynamic log,
-      {StackTrace? stackTrace, dynamic exceptionData}) async {
+  Future<void> captureLog(
+    dynamic log, {
+    StackTrace? stackTrace,
+    dynamic exceptionData,
+  }) async {
     if (Sentry.isEnabled) {
       if (exceptionData != null &&
           exceptionData.containsKey("name") &&
@@ -43,10 +46,7 @@ class SentryServiceImpl implements IncidentLoggerService {
           scope.setContexts('${exceptionData["name"]}', exceptionData["value"]);
         });
       }
-      await Sentry.captureException(
-        log,
-        stackTrace: stackTrace,
-      );
+      await Sentry.captureException(log, stackTrace: stackTrace);
       return;
     }
   }

@@ -208,66 +208,59 @@ class _PositiveState extends LPExtendedState<Positive> {
         backgroundColor: colorScheme.surface,
         body: ListView(
           children: [
-            Padding(
-              padding: const EdgeInsets.fromLTRB(0, 40, 20, 20),
-              child: Column(
-                children: [
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                    children: [
-                      Padding(
+            Column(
+              children: [
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    Expanded(
+                      child: myAutoSizedText(
+                        appLocale!.homePageTraitsMainTitle(gender),
+                        TextStyle(fontWeight: FontWeight.bold, fontSize: 30.sp),
+                        null,
+                        60,
+                      ),
+                    ),
+                    //add button
+                    IconButton(
+                      onPressed: () {
+                        editNotification(
+                          "",
+                          0,
+                          appLocale.trait,
+                          userInfoProvider,
+                        );
+                      },
+                      icon: Icon(
+                        Icons.add,
+                        size: 50.0,
+                        color: colorScheme.primary,
+                      ),
+                    ),
+                  ],
+                ),
+                Row(
+                  children: [
+                    //sub title
+                    Expanded(
+                      child: Padding(
                         padding: const EdgeInsets.fromLTRB(10, 0, 10, 0),
                         child: myAutoSizedText(
-                          appLocale!.homePageTraitsMainTitle(gender),
+                          appLocale.homePageTraitsSecondaryTitle(gender),
                           TextStyle(
+                            color: colorScheme.outline,
+                            fontSize: 16.sp,
                             fontWeight: FontWeight.bold,
-                            fontSize: 30.sp,
                           ),
-                          null,
-                          60,
+                          TextAlign.start,
+                          30,
+                          3,
                         ),
                       ),
-                      //add button
-                      IconButton(
-                        onPressed: () {
-                          editNotification(
-                            "",
-                            0,
-                            appLocale.trait,
-                            userInfoProvider,
-                          );
-                        },
-                        icon: Icon(
-                          Icons.add,
-                          size: 50.0,
-                          color: colorScheme.primary,
-                        ),
-                      ),
-                    ],
-                  ),
-                  Row(
-                    children: [
-                      //sub title
-                      Expanded(
-                        child: Padding(
-                          padding: const EdgeInsets.fromLTRB(10, 0, 10, 0),
-                          child: myAutoSizedText(
-                            appLocale.homePageTraitsSecondaryTitle(gender),
-                            TextStyle(
-                              color: colorScheme.outline,
-                              fontSize: 16.sp,
-                              fontWeight: FontWeight.bold,
-                            ),
-                            TextAlign.start,
-                            30,
-                            3,
-                          ),
-                        ),
-                      ),
-                    ],
-                  ),
-                ],
-              ),
+                    ),
+                  ],
+                ),
+              ],
             ),
             //list of positive traits
             ListView.builder(

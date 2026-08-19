@@ -24,7 +24,8 @@ class CardContainer extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final effectiveBg = backgroundColor ?? Colors.white;
-    final bgIsLight = ThemeData.estimateBrightnessForColor(effectiveBg) == Brightness.light;
+    final bgIsLight =
+        ThemeData.estimateBrightnessForColor(effectiveBg) == Brightness.light;
     final isDark = Theme.of(context).brightness == Brightness.dark;
     final theme = Theme.of(context);
 
@@ -80,6 +81,13 @@ class SectionHeaderWidget extends StatelessWidget {
   final VoidCallback? onActionTap;
   final Widget? actionWidget;
 
+  /// Optional callback invoked when the section title or leading icon/emoji is tapped.
+  /// When provided, the full title content row is made clickable with button semantics.
+  final VoidCallback? onTitleTap;
+
+  /// Optional key assigned to the interactive title hit target when [onTitleTap] is provided.
+  final Key? titleKey;
+
   const SectionHeaderWidget({
     required this.title,
     this.subtitle,
@@ -89,12 +97,53 @@ class SectionHeaderWidget extends StatelessWidget {
     this.actionIcon,
     this.onActionTap,
     this.actionWidget,
+    this.onTitleTap,
+    this.titleKey,
     super.key,
   });
 
   @override
   Widget build(BuildContext context) {
     final colorScheme = Theme.of(context).colorScheme;
+    Widget titleContent = Row(
+      children: [
+        if (leadingEmoji != null) ...[
+          Text(leadingEmoji!, style: const TextStyle(fontSize: 20)),
+          SizedBox(width: AppSpacing.sm),
+        ] else if (leadingIcon != null) ...[
+          Icon(leadingIcon, color: colorScheme.onSurface, size: 22),
+          SizedBox(width: AppSpacing.sm),
+        ],
+        Flexible(
+          child: Text(
+            title,
+            style: Theme.of(context).textTheme.titleMedium
+                ?.copyWith(fontWeight: FontWeight.bold),
+            textAlign: TextAlign.start,
+          ),
+        ),
+      ],
+    );
+
+    if (onTitleTap != null) {
+      titleContent = Semantics(
+        button: true,
+        label: title,
+        child: MouseRegion(
+          cursor: SystemMouseCursors.click,
+          child: GestureDetector(
+            key: titleKey ?? const Key('sectionHeaderTitleTapTarget'),
+            behavior: HitTestBehavior.opaque,
+            onTap: onTitleTap,
+            child: SizedBox(
+              width: double.infinity,
+              child: titleContent,
+            ),
+          ),
+        ),
+      );
+    }
+
     return Padding(
       padding: EdgeInsetsDirectional.symmetric(
         horizontal: AppSpacing.lg,
@@ -107,35 +156,23 @@ class SectionHeaderWidget extends StatelessWidget {
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
               Expanded(
-                child: Row(
-                  children: [
-                    if (leadingEmoji != null) ...[
-                      Text(leadingEmoji!, style: const TextStyle(fontSize: 20)),
-                      SizedBox(width: AppSpacing.sm),
-                    ] else if (leadingIcon != null) ...[
-                      Icon(leadingIcon, color: colorScheme.onSurface, size: 22),
-                      SizedBox(width: AppSpacing.sm),
-                    ],
-                    Expanded(
-                      child: Text(
-                        title,
-                        style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                          fontWeight: FontWeight.bold,
-                        ),
-                        textAlign: TextAlign.start,
-                      ),
-                    ),
-                  ],
-                ),
+                child: titleContent,
               ),
               if (actionWidget != null)
                 actionWidget!
               else if (actionIcon != null)
                 IconButton(
-                  icon: Icon(actionIcon, color: colorScheme.onSurface, size: 22),
+                  icon: Icon(
+                    actionIcon,
+                    color: colorScheme.onSurface,
+                    size: 22,
+                  ),
                   onPressed: onActionTap,
                   padding: EdgeInsets.zero,
-                  constraints: const BoxConstraints(minWidth: 36, minHeight: 36),
+                  constraints: const BoxConstraints(
+                    minWidth: 36,
+                    minHeight: 36,
+                  ),
                 )
               else if (actionLabel != null)
                 TextButton(
@@ -231,21 +268,29 @@ class PillItemRow extends StatelessWidget {
                     child: Text(
                       text,
                       style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                            fontWeight: FontWeight.w500,
-                            color: const Color(0xFF1A1A1A),
-                          ),
+                        fontWeight: FontWeight.w500,
+                        color: const Color(0xFF1A1A1A),
+                      ),
                       textAlign: TextAlign.start,
                     ),
                   ),
                   GestureDetector(
                     onTap: onEdit,
-                    child: const Icon(Icons.edit, size: 16, color: Color(0xFF757575)),
+                    child: const Icon(
+                      Icons.edit,
+                      size: 16,
+                      color: Color(0xFF757575),
+                    ),
                   ),
                   if (onRemove != null) ...[
                     const SizedBox(width: 8),
                     GestureDetector(
                       onTap: onRemove,
-                      child: const Icon(Icons.close, size: 16, color: Color(0xFF757575)),
+                      child: const Icon(
+                        Icons.close,
+                        size: 16,
+                        color: Color(0xFF757575),
+                      ),
                     ),
                   ],
                 ],
@@ -307,10 +352,8 @@ class DashedPillAddSlot extends StatelessWidget {
                         onTap: onTap,
                         child: Text(
                           placeholder,
-                          style:
-                              Theme.of(context).textTheme.bodyMedium?.copyWith(
-                                    color: colorScheme.outline,
-                                  ),
+                          style: Theme.of(context).textTheme.bodyMedium
+                              ?.copyWith(color: colorScheme.outline),
                           textAlign: TextAlign.start,
                         ),
                       ),
@@ -390,10 +433,12 @@ class _DashedPillPainter extends CustomPainter {
     const dashG = 5.0;
 
     final path = Path()
-      ..addRRect(RRect.fromRectAndRadius(
-        Rect.fromLTWH(1, 1, size.width - 2, size.height - 2),
-        const Radius.circular(radius),
-      ));
+      ..addRRect(
+        RRect.fromRectAndRadius(
+          Rect.fromLTWH(1, 1, size.width - 2, size.height - 2),
+          const Radius.circular(radius),
+        ),
+      );
 
     for (final m in path.computeMetrics()) {
       var d = 0.0;

@@ -143,43 +143,45 @@ class MainMenuAnchor extends StatelessWidget {
       key: const Key('mainMenuDialog'),
       style: MenuStyle(
         shape: WidgetStateProperty.all<OutlinedBorder>(
-          RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(16),
-          ),
+          RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
         ),
       ),
       builder:
-          (BuildContext context, MenuController controller, Widget? childWidget) {
-        if (child != null) {
-          return InkWell(
-            onTap: () {
-              if (controller.isOpen) {
-                controller.close();
-              } else {
-                controller.open();
-              }
-            },
-            child: child,
-          );
-        }
-        return IconButton(
-          key: const Key('mainMenuButton'),
-          icon: Icon(
-            Icons.settings_outlined,
-            color: colorScheme.primary,
-            size: 26,
-          ),
-          onPressed: () {
-            if (controller.isOpen) {
-              controller.close();
-            } else {
-              controller.open();
+          (
+            BuildContext context,
+            MenuController controller,
+            Widget? childWidget,
+          ) {
+            if (child != null) {
+              return InkWell(
+                onTap: () {
+                  if (controller.isOpen) {
+                    controller.close();
+                  } else {
+                    controller.open();
+                  }
+                },
+                child: child,
+              );
             }
+            return IconButton(
+              key: const Key('mainMenuButton'),
+              icon: Icon(
+                Icons.settings_outlined,
+                color: colorScheme.primary,
+                size: 26,
+              ),
+              onPressed: () {
+                if (controller.isOpen) {
+                  controller.close();
+                } else {
+                  controller.open();
+                }
+              },
+              padding: EdgeInsets.zero,
+              constraints: const BoxConstraints(minWidth: 40, minHeight: 40),
+            );
           },
-          padding: EdgeInsets.zero,
-          constraints: const BoxConstraints(minWidth: 40, minHeight: 40),
-        );
-      },
       menuChildren: buildMainMenuItems(
         context: context,
         appLocale: appLocale,
@@ -210,9 +212,7 @@ void showMainMenuDialog({
     builder: (dialogContext) {
       return Dialog(
         key: const Key('mainMenuDialog'),
-        shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(16),
-        ),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
         child: SingleChildScrollView(
           child: Column(
             mainAxisSize: MainAxisSize.min,
@@ -247,4 +247,3 @@ void showMainMenuDialog({
     },
   );
 }
-

@@ -2,11 +2,13 @@ import 'package:country_code_picker/country_code_picker.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:mazilon/EmergencyNumbers.dart';
+import 'package:mazilon/form/speech_dictation_suffix_action.dart';
 import 'package:mazilon/util/Form/formPagePhoneModel.dart';
 import 'package:mazilon/util/LP_extended_state.dart';
 import 'package:mazilon/util/Phone/phoneTextAndIcon.dart';
 import 'package:mazilon/util/styles.dart';
 import 'package:mazilon/util/userInformation.dart';
+import 'package:mazilon/util/spoken_phone_number_normalizer.dart';
 import 'package:provider/provider.dart';
 
 class PhonePageList extends StatefulWidget {
@@ -364,10 +366,9 @@ class _PhonePageListState extends LPExtendedState<PhonePageList> {
             child: Card(
               child: Padding(
                 padding: EdgeInsets.all(returnSizedBox(context, 10)),
-                child: myText(
+                child: Text(
                   name,
-                  TextStyle(fontWeight: FontWeight.normal, fontSize: 14.sp),
-                  null,
+                  style: TextStyle(fontWeight: FontWeight.normal, fontSize: 14.sp),
                 ),
               ),
             ),
@@ -411,6 +412,11 @@ class _PhonePageListState extends LPExtendedState<PhonePageList> {
                   decoration: InputDecoration(
                     border: const OutlineInputBorder(),
                     labelText: appLocale.phonesPageName(gender),
+                    suffixIcon: SpeechDictationSuffixAction.isSupportedPlatform
+                        ? SpeechDictationSuffixAction(
+                            controller: nameController,
+                          )
+                        : null,
                   ),
                   validator: _validateName,
                 );
@@ -424,6 +430,24 @@ class _PhonePageListState extends LPExtendedState<PhonePageList> {
                     decoration: InputDecoration(
                       border: const OutlineInputBorder(),
                       labelText: appLocale.phonesPagePhone(gender),
+                      suffixIcon:
+                          SpeechDictationSuffixAction.isSupportedPlatform
+                          ? SpeechDictationSuffixAction(
+                              controller: numberController,
+                              isPhoneNumber: true,
+                              transcriptTransformer: (transcript, localeId) =>
+                                  normalizeSpokenPhoneNumber(
+                                    transcript,
+                                    localeId: localeId,
+                                  ),
+                              replacementValidator: (transcript) =>
+                                  PhonePageData.canonicalizePhoneNumber(
+                                    transcript,
+                                    _dialCodeFor(countryCode),
+                                  ) !=
+                                  null,
+                            )
+                          : null,
                     ),
                     validator: (value) => _validateNumber(value, countryCode),
                   ),
@@ -584,14 +608,14 @@ class _PhonePageListState extends LPExtendedState<PhonePageList> {
               ),
               padding: const EdgeInsets.all(6),
             ),
-            child: myText(
+            child: Text(
               appLocale.phonesPageManualTitle(gender),
-              TextStyle(
+              style: TextStyle(
                 fontWeight: FontWeight.bold,
                 color: Theme.of(context).colorScheme.primary,
                 fontSize: 16.sp,
               ),
-              TextAlign.center,
+              textAlign: TextAlign.center,
             ),
           ),
         ],

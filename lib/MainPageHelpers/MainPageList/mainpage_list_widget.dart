@@ -12,6 +12,7 @@ import 'package:mazilon/util/HomePage/sectionBarHome.dart';
 import 'package:mazilon/util/LP_extended_state.dart';
 import 'package:mazilon/util/Thanks/AddForm.dart';
 import 'package:mazilon/util/Thanks/thanksItemSug.dart';
+import 'package:mazilon/util/gender.dart';
 import 'package:mazilon/util/styles.dart';
 import 'package:mazilon/util/userInformation.dart';
 import 'package:provider/provider.dart';
@@ -47,9 +48,7 @@ class _ListWidgetState extends LPExtendedState<ListWidget> {
   }
 
   List<String> _eligibleSuggestions(UserInformation userInfoProvider) {
-    final gender = userInfoProvider.gender.isEmpty
-        ? 'other'
-        : userInfoProvider.gender;
+    final gender = Gender.of(userInfoProvider).listKey;
     final thanks = userInfoProvider.thanks['thanks'] ?? <String>[];
     final dates = userInfoProvider.thanks['dates'] ?? <String>[];
     final suggestions = widget.pageCode == PagesCode.QualitiesList
@@ -381,9 +380,7 @@ class _ListWidgetState extends LPExtendedState<ListWidget> {
       context,
       listen: true,
     );
-    final gender = userInfoProvider.gender.isEmpty
-        ? 'other'
-        : userInfoProvider.gender;
+    final gender = Gender.of(userInfoProvider).listKey;
     final thanks = userInfoProvider.thanks['thanks'] ?? <String>[];
     final dates = userInfoProvider.thanks['dates'] ?? <String>[];
     final sourceIndexes = widget.pageCode == PagesCode.GratitudeJournal
