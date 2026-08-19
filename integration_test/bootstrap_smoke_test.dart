@@ -45,6 +45,7 @@ import 'package:mazilon/pages/SignIn_Pages/firstPage.dart';
 import 'package:mazilon/pages/SignIn_Pages/introduction.dart';
 import 'package:mazilon/util/Form/formPagePhoneModel.dart';
 import 'package:mazilon/util/appInformation.dart';
+import 'package:mazilon/util/persistent_memory_service.dart';
 import 'package:mazilon/util/userInformation.dart';
 import 'package:provider/provider.dart';
 
@@ -76,6 +77,21 @@ Widget _bootstrappedMyApp(PhonePageData phonePageData) {
     ],
     child: MyApp(),
   );
+}
+
+GatedLocalePersistentMemoryService _installGatedLocaleMemory() {
+  final getIt = GetIt.instance;
+  getIt.unregister<PersistentMemoryService>();
+  final memory = GatedLocalePersistentMemoryService();
+  getIt.registerSingleton<PersistentMemoryService>(memory);
+  return memory;
+}
+
+void _disposePumpedAppAfterTest(WidgetTester tester) {
+  addTearDown(() async {
+    await tester.pumpWidget(const SizedBox.shrink());
+    await tester.pump();
+  });
 }
 
 void main() {
@@ -117,6 +133,14 @@ void main() {
   testWidgets(
     'MyApp boots without throwing — initial frame shows CircularProgressIndicator',
     (tester) async {
+      final gatedMemory = _installGatedLocaleMemory();
+      addTearDown(() {
+        if (!gatedMemory.localeGate.isCompleted) {
+          gatedMemory.localeGate.complete();
+        }
+      });
+      _disposePumpedAppAfterTest(tester);
+
       final phonePageData = PhonePageData(
         key: 'PhonePage',
         phoneNames: const [],
@@ -145,6 +169,8 @@ void main() {
   testWidgets(
     'MyApp settles to either FirstPage or Introduction after async bootstrap',
     (tester) async {
+      _disposePumpedAppAfterTest(tester);
+
       final phonePageData = PhonePageData(
         key: 'PhonePage',
         phoneNames: const [],
@@ -197,6 +223,8 @@ void main() {
   testWidgets(
     'MyApp.changeLocale updates the locale and triggers a re-build cycle',
     (tester) async {
+      _disposePumpedAppAfterTest(tester);
+
       final phonePageData = PhonePageData(
         key: 'PhonePage',
         phoneNames: const [],
@@ -234,6 +262,8 @@ void main() {
   testWidgets(
     'didChangeAppLifecycleState (paused/resumed/detached) drives session tracking branches',
     (tester) async {
+      _disposePumpedAppAfterTest(tester);
+
       final phonePageData = PhonePageData(
         key: 'PhonePage',
         phoneNames: const [],
@@ -281,6 +311,8 @@ void main() {
   testWidgets('MyApp applies an updated dark-mode preference immediately', (
     tester,
   ) async {
+    _disposePumpedAppAfterTest(tester);
+
     final phonePageData = PhonePageData(
       key: 'PhonePage',
       phoneNames: const [],
