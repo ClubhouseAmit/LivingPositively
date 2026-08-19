@@ -12,13 +12,12 @@ import 'package:mazilon/pages/about.dart';
 import 'package:mazilon/pages/FeelGood/feelGood.dart';
 import 'package:mazilon/pages/WellnessTools/wellnessTools.dart';
 import 'package:mazilon/pages/notifications/notification_page.dart';
-import 'package:mazilon/pages/notifications/notification_service.dart';
 import 'package:mazilon/util/Form/retrieveInformation.dart';
 import 'package:mazilon/util/gender.dart';
 import 'package:flutter/services.dart';
 import 'package:mazilon/util/LP_extended_state.dart';
 import 'package:mazilon/util/persistent_memory_service.dart';
-
+import "package:mazilon/util/Firebase/fcm_service.dart";
 import 'package:mazilon/pages/home.dart';
 import 'package:mazilon/pages/journal.dart';
 import 'package:mazilon/pages/phone.dart';
@@ -101,17 +100,16 @@ class _MenuState extends LPExtendedState<Menu> {
 
   //Function to change the current displayed page in the "home"
   void changeCurrentIndex(BuildContext context, PagesCode index) {
+    if (index == PagesCode.NotificationPage &&
+        !FcmService.supportsReminderSettings()) {
+      return;
+    }
     final appLocale = AppLocalizations.of(context)!;
     final userInformation = Provider.of<UserInformation>(
       context,
       listen: false,
     );
     AnalyticsService mixPanelService = GetIt.instance<AnalyticsService>();
-
-    if (index == PagesCode.NotificationPage &&
-        !NotificationsService.supportsReminderSettings()) {
-      return;
-    }
 
     setState(() {
       current = index;
@@ -236,7 +234,7 @@ class _MenuState extends LPExtendedState<Menu> {
         });
       },
       onNotificationsPressed: () {
-        if (!NotificationsService.supportsReminderSettings()) {
+        if (!FcmService.supportsReminderSettings()) {
           return;
         }
         setState(() {

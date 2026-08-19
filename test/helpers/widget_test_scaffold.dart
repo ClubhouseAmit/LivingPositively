@@ -358,6 +358,9 @@ TestServiceLocators registerTestServices({String locale = 'en'}) {
   if (getIt.isRegistered<VideoPlayerPageFactory>()) {
     getIt.unregister<VideoPlayerPageFactory>();
   }
+  if (getIt.isRegistered<GlobalKey<NavigatorState>>()) {
+    getIt.unregister<GlobalKey<NavigatorState>>();
+  }
   if (getIt.isRegistered<SosLocationService>()) {
     getIt.unregister<SosLocationService>();
   }
@@ -382,6 +385,9 @@ TestServiceLocators registerTestServices({String locale = 'en'}) {
   getIt.registerSingleton<ImagePickerService>(picker);
   getIt.registerSingleton<LocaleService>(localeService);
   getIt.registerSingleton<VideoPlayerPageFactory>(videoFactory);
+  getIt.registerLazySingleton<GlobalKey<NavigatorState>>(
+    () => GlobalKey<NavigatorState>(),
+  );
   getIt.registerSingleton<SosLocationService>(sosLocationService);
   getIt.registerSingleton<SpeechRecognitionService>(speechRecognitionService);
 

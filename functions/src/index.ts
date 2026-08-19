@@ -1,0 +1,455 @@
+import * as admin from "firebase-admin";
+import { setGlobalOptions } from "firebase-functions";
+import { onRequest, Request } from "firebase-functions/https";
+import { logger } from "firebase-functions/logger";
+import { onSchedule } from "firebase-functions/scheduler";
+
+admin.initializeApp();
+setGlobalOptions({ maxInstances: 10 });
+
+const STALE_TOKEN_DAYS = 180;
+const NOTIFICATION_TYPE_ID_PATTERN = /^[A-Za-z0-9_-]{1,64}$/;
+
+type NotificationGender = "male" | "female" | "other";
+type DynamicNotificationType = {
+  messageType: "dynamic";
+  quotesCollections: Record<string, unknown>;
+};
+type StaticNotificationType = {
+  messageType: "static";
+  staticTitle: string;
+  staticBody: string;
+};
+type ValidNotificationType = DynamicNotificationType | StaticNotificationType;
+
+export function isValidNotificationTypeId(
+  value: unknown,
+): value is string {
+  return (
+    typeof value === "string" && NOTIFICATION_TYPE_ID_PATTERN.test(value)
+  );
+}
+
+export function normalizeNotificationGender(
+  value: unknown,
+): NotificationGender {
+  return value === "male" || value === "female" || value === "other"
+    ? value
+    : "other";
+}
+
+export function hasValidNotificationTypeSchema(
+  value: unknown,
+): value is ValidNotificationType {
+  if (value === null || typeof value !== "object" || Array.isArray(value)) {
+    return false;
+  }
+  const data = value as Record<string, unknown>;
+  if (data.messageType === "dynamic") {
+    return (
+      data.quotesCollections !== null &&
+      typeof data.quotesCollections === "object" &&
+      !Array.isArray(data.quotesCollections)
+    );
+  }
+  if (data.messageType === "static") {
+    return (
+      typeof data.staticTitle === "string" &&
+      typeof data.staticBody === "string"
+    );
+  }
+  return false;
+}
+
+// ---------------------------------------------------------------------------
+// Helper: verify the Bearer token and return the uid, or null if invalid.
+// ---------------------------------------------------------------------------
+async function extractAndVerifyUid(req: Request): Promise<string | null> {
+  const authHeader = req.headers.authorization ?? "";
+  const idToken = authHeader.startsWith("Bearer ") ? authHeader.slice(7) : null;
+  if (!idToken) return null;
+  try {
+    const decoded = await admin.auth().verifyIdToken(idToken);
+    return decoded.uid;
+  } catch {
+    return null;
+  }
+}
+
+// ---------------------------------------------------------------------------
+// clearFCMToken — nulls out the fcmToken field on a device doc without touching
+// scheduled_notifications. Used when the token is invalid but the user may still
+// have the app. The token will be repopulated the next time the user opens the app.
+// triggered when:
+// 1. user uninstalls the app.
+// 2. user clears their data.
+// 3. user restores the app from backup on a new device.
+// 4. Firebase server-side rotation (rare, automatic).
+// ---------------------------------------------------------------------------
+async function clearFCMToken(uid: string): Promise<void> {
+  await admin.firestore().collection("devices").doc(uid).set(
+    {
+      fcmToken: admin.firestore.FieldValue.delete(),
+    },
+    { merge: true },
+  );
+}
+
+// ---------------------------------------------------------------------------
+// cleanupInactiveDevice — deletes the device doc and all scheduled_notifications
+// for a user who has been inactive for STALE_TOKEN_DAYS. Only called when we are
+// confident the user has abandoned the app.
+// triggered when:
+// 1. user is inactive for 180 days.
+// ---------------------------------------------------------------------------
+async function cleanupInactiveDevice(uid: string): Promise<void> {
+  const db = admin.firestore();
+  const scheduledSnap = await db
+    .collection("scheduled_notifications")
+    .where("uid", "==", uid)
+    .get();
+
+  await Promise.all([
+    ...scheduledSnap.docs.map((doc) => doc.ref.delete()),
+    db.collection("devices").doc(uid).delete(),
+  ]);
+}
+
+// ---------------------------------------------------------------------------
+// registerNotification — creates or updates a scheduled notification entry.
+// Body: { typeId: string, hour: number, minute: number }
+// ---------------------------------------------------------------------------
+export const registerNotification = onRequest(async (req, res) => {
+  if (req.method !== "POST") {
+    res.status(405).send("Method Not Allowed");
+    return;
+  }
+
+  const uid = await extractAndVerifyUid(req);
+  if (!uid) {
+    res.status(401).send("Unauthorized");
+    return;
+  }
+
+  const { typeId, hour, minute, locale, gender } = req.body;
+
+  if (
+    !isValidNotificationTypeId(typeId) ||
+    !Number.isFinite(hour) ||
+    !Number.isInteger(hour) ||
+    !Number.isFinite(minute) ||
+    !Number.isInteger(minute) ||
+    hour < 0 ||
+    hour > 23 ||
+    minute < 0 ||
+    minute > 59 ||
+    typeof locale !== "string"
+  ) {
+    res
+      .status(400)
+      .send(
+        "Invalid body: typeId (string), hour (0-23), minute (0-59), locale (string) required",
+      );
+    return;
+  }
+
+  const typeDoc = await admin
+    .firestore()
+    .collection("notification_types")
+    .doc(typeId)
+    .get();
+  if (!typeDoc.exists) {
+    res.status(400).send(`Unknown typeId: ${typeId}`);
+    return;
+  }
+
+  await admin
+    .firestore()
+    .collection("scheduled_notifications")
+    .doc(`${uid}_${typeId}`)
+    .set({
+      uid,
+      typeId,
+      hour,
+      minute,
+      locale,
+      gender: normalizeNotificationGender(gender),
+      updatedAt: admin.firestore.FieldValue.serverTimestamp(),
+    });
+
+  res.send({ success: true });
+});
+
+// ---------------------------------------------------------------------------
+// cancelNotification — deletes the scheduled notification entry.
+// Body: { typeId: string }
+// ---------------------------------------------------------------------------
+export const cancelNotification = onRequest(async (req, res) => {
+  if (req.method !== "POST") {
+    res.status(405).send("Method Not Allowed");
+    return;
+  }
+
+  const uid = await extractAndVerifyUid(req);
+  if (!uid) {
+    res.status(401).send("Unauthorized");
+    return;
+  }
+
+  const { typeId } = req.body;
+  if (!isValidNotificationTypeId(typeId)) {
+    res.status(400).send("Invalid typeId");
+    return;
+  }
+
+  await admin
+    .firestore()
+    .collection("scheduled_notifications")
+    .doc(`${uid}_${typeId}`)
+    .delete();
+
+  res.send({ success: true });
+});
+
+// ---------------------------------------------------------------------------
+// processScheduledNotifications — runs every minute via Cloud Scheduler.
+//
+// Invocation flow:
+//   1. Query phase   — fetch all scheduled_notifications matching the current
+//                      hour+minute. Early-exit if none match.
+//   2. Pre-fetch phase — collect the unique typeIds and locales from the result
+//                      set, then fetch all notification_type docs and quote
+//                      collections in parallel. Each collection is fetched at
+//                      most once regardless of how many users share it.
+//   3. Send phase    — iterate users, fetch their device doc, check token
+//                      freshness, build the message from pre-fetched data,
+//                      and dispatch via FCM.
+// ---------------------------------------------------------------------------
+export const processScheduledNotifications = onSchedule(
+  "every 1 minutes",
+  async (event) => {
+    // --- Query phase ---
+    const scheduleTime = new Date(event.scheduleTime);
+    const timeParts = new Intl.DateTimeFormat("en-GB", {
+      timeZone: "Asia/Jerusalem",
+      hour: "2-digit",
+      minute: "2-digit",
+      hourCycle: "h23",
+    }).formatToParts(scheduleTime);
+    const localHour = Number(
+      timeParts.find((part) => part.type === "hour")?.value,
+    );
+    const localMinute = Number(
+      timeParts.find((part) => part.type === "minute")?.value,
+    );
+
+    const snapshot = await admin
+      .firestore()
+      .collection("scheduled_notifications")
+      .where("hour", "==", localHour)
+      .where("minute", "==", localMinute)
+      .get();
+
+    if (snapshot.empty) return;
+
+    // --- Pre-fetch phase ---
+
+    // Collect unique typeIds and all locales present per typeId
+    const localesByTypeId = new Map<string, Set<string>>();
+    for (const doc of snapshot.docs) {
+      const { typeId, locale } = doc.data();
+      if (
+        !isValidNotificationTypeId(typeId) ||
+        typeof locale !== "string"
+      ) {
+        continue;
+      }
+      if (!localesByTypeId.has(typeId)) localesByTypeId.set(typeId, new Set());
+      localesByTypeId.get(typeId)!.add(locale);
+    }
+
+    // Fetch all unique notification_type docs in parallel
+    const typeDataMap = new Map<string, FirebaseFirestore.DocumentData>();
+    await Promise.all(
+      [...localesByTypeId.keys()].map(async (typeId) => {
+        const doc = await admin.firestore().collection("notification_types").doc(typeId).get();
+        if (doc.exists) typeDataMap.set(typeId, doc.data()!);
+      }),
+    );
+
+    // Fetch each unique quote collection once, keyed by collection name
+    const neededQuoteCollections = new Set<string>();
+    for (const [typeId, locales] of localesByTypeId.entries()) {
+      const typeData = typeDataMap.get(typeId);
+      if (
+        !hasValidNotificationTypeSchema(typeData) ||
+        typeData.messageType !== "dynamic"
+      ) {
+        continue;
+      }
+      for (const locale of locales) {
+        const collectionName =
+          typeData.quotesCollections[locale] ??
+          typeData.quotesCollections["he"];
+        if (
+          typeof collectionName === "string" &&
+          collectionName.length > 0
+        ) {
+          neededQuoteCollections.add(collectionName);
+        }
+      }
+    }
+
+    const quotesMap = new Map<string, FirebaseFirestore.DocumentData[]>();
+    await Promise.all(
+      [...neededQuoteCollections].map(async (collectionName) => {
+        const snap = await admin
+          .firestore()
+          .collection(collectionName)
+          .get();
+        quotesMap.set(collectionName, snap.docs.map((d) => d.data()));
+      }),
+    );
+
+    // --- Device fetch phase (parallel) ---
+
+    const uniqueUids = [
+      ...new Set(
+        snapshot.docs
+          .map((d) => d.data().uid)
+          .filter(
+            (uid): uid is string =>
+              typeof uid === "string" && uid.length > 0,
+          ),
+      ),
+    ];
+    const deviceDocs = await Promise.all(
+      uniqueUids.map((uid) =>
+        admin.firestore().collection("devices").doc(uid).get(),
+      ),
+    );
+    const deviceMap = new Map(
+      deviceDocs.map((d) => [d.id, d.data()]),
+    );
+
+    // --- Build send list, collecting stale UIDs for deferred cleanup ---
+
+    const staleUids: string[] = [];
+    const sendTasks: Array<() => Promise<"success" | "failure">> = [];
+
+    for (const doc of snapshot.docs) {
+      const { uid, typeId, locale, gender } = doc.data();
+      if (
+        typeof uid !== "string" ||
+        !isValidNotificationTypeId(typeId) ||
+        typeof locale !== "string"
+      ) {
+        continue;
+      }
+
+      const deviceData = deviceMap.get(uid);
+
+      const updatedAt = deviceData?.updatedAt as
+        | admin.firestore.Timestamp
+        | undefined;
+      if (updatedAt) {
+        const ageDays = (Date.now() - updatedAt.toMillis()) / 86_400_000;
+        if (ageDays > STALE_TOKEN_DAYS) {
+          staleUids.push(uid);
+          continue;
+        }
+      }
+
+      const fcmToken = deviceData?.fcmToken as string | undefined;
+      if (!fcmToken) continue;
+
+      const typeData = typeDataMap.get(typeId);
+      if (!hasValidNotificationTypeSchema(typeData)) continue;
+
+      let title = "Living Positively";
+      let body: string;
+
+      if (typeData.messageType === "dynamic") {
+        const collectionName =
+          typeData.quotesCollections[locale] ??
+          typeData.quotesCollections["he"];
+        if (
+          typeof collectionName !== "string" ||
+          collectionName.length === 0
+        ) {
+          continue;
+        }
+        const quotes = quotesMap.get(collectionName);
+        if (!quotes || quotes.length === 0) continue;
+        const quoteData = quotes[Math.floor(Math.random() * quotes.length)];
+        const normalizedGender = normalizeNotificationGender(gender);
+        const quote = [
+          quoteData[normalizedGender],
+          quoteData.other,
+          quoteData.male,
+          quoteData.text,
+        ].find(
+          (candidate): candidate is string =>
+            typeof candidate === "string",
+        );
+        if (quote === undefined) continue;
+        body = quote;
+      } else {
+        title = typeData.staticTitle;
+        body = typeData.staticBody;
+      }
+
+      sendTasks.push(async () => {
+        try {
+          await admin
+            .messaging()
+            .send({ token: fcmToken, notification: { title, body } });
+          return "success";
+        } catch (err: any) {
+          if (
+            err?.errorInfo?.code === "messaging/registration-token-not-registered"
+          ) {
+            try {
+              await clearFCMToken(uid);
+            } catch (clearError) {
+              logger.warn("Failed to clear an invalid FCM token", {
+                error: String(clearError),
+              });
+            }
+          }
+          return "failure";
+        }
+      });
+    }
+
+    // --- Send phase (parallel) ---
+
+    const results = await Promise.allSettled(sendTasks.map((t) => t()));
+    let successCount = 0;
+    let failureCount = 0;
+    for (const r of results) {
+      if (r.status === "fulfilled" && r.value === "success") successCount++;
+      else failureCount++;
+    }
+
+    // --- Stale device cleanup (batched, after sends) ---
+
+    const uniqueStaleUids = [...new Set(staleUids)];
+    let staleCleanupFailureCount = 0;
+    if (uniqueStaleUids.length > 0) {
+      const cleanupResults = await Promise.allSettled(
+        uniqueStaleUids.map((uid) => cleanupInactiveDevice(uid)),
+      );
+      staleCleanupFailureCount = cleanupResults.filter(
+        (result) => result.status === "rejected",
+      ).length;
+    }
+
+    logger.info("processScheduledNotifications", {
+      sent: successCount,
+      failed: failureCount,
+      staleDeviceCleanups: uniqueStaleUids.length,
+      staleDeviceCleanupFailures: staleCleanupFailureCount,
+    });
+  },
+);

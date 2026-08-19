@@ -5,16 +5,17 @@
 // ignore_for_file: no_leading_underscores_for_library_prefixes
 import 'dart:async' as _i7;
 import 'dart:io' as _i3;
-import 'dart:ui' as _i15;
+import 'dart:ui' as _i16;
 
 import 'package:flutter/material.dart' as _i2;
 import 'package:image_picker/image_picker.dart' as _i11;
-import 'package:mazilon/AnalyticsService.dart' as _i17;
+import 'package:mazilon/AnalyticsService.dart' as _i18;
 import 'package:mazilon/file_service.dart' as _i6;
 import 'package:mazilon/global_enums.dart' as _i9;
 import 'package:mazilon/pages/FeelGood/image_picker_service_impl.dart' as _i10;
 import 'package:mazilon/pages/WellnessTools/VideoPlayerPageFactory.dart' as _i5;
-import 'package:mazilon/util/appInformation.dart' as _i16;
+import 'package:mazilon/util/appInformation.dart' as _i17;
+import 'package:mazilon/util/notification_preference.dart' as _i15;
 import 'package:mazilon/util/persistent_memory_service.dart' as _i4;
 import 'package:mazilon/util/userInformation.dart' as _i13;
 import 'package:mockito/mockito.dart' as _i1;
@@ -589,6 +590,15 @@ class MockUserInformation extends _i1.Mock implements _i13.UserInformation {
           as bool);
 
   @override
+  bool get authDecisionMade =>
+      (super.noSuchMethod(
+            Invocation.getter(#authDecisionMade),
+            returnValue: false,
+            returnValueForMissingStub: false,
+          )
+          as bool);
+
+  @override
   String get userId =>
       (super.noSuchMethod(
             Invocation.getter(#userId),
@@ -604,37 +614,43 @@ class MockUserInformation extends _i1.Mock implements _i13.UserInformation {
           as String);
 
   @override
-  int get notificationMinute =>
+  String get email =>
       (super.noSuchMethod(
-            Invocation.getter(#notificationMinute),
-            returnValue: 0,
-            returnValueForMissingStub: 0,
-          )
-          as int);
-
-  @override
-  int get notificationHour =>
-      (super.noSuchMethod(
-            Invocation.getter(#notificationHour),
-            returnValue: 0,
-            returnValueForMissingStub: 0,
-          )
-          as int);
-
-  @override
-  String get notificationMessage =>
-      (super.noSuchMethod(
-            Invocation.getter(#notificationMessage),
+            Invocation.getter(#email),
             returnValue: _i14.dummyValue<String>(
               this,
-              Invocation.getter(#notificationMessage),
+              Invocation.getter(#email),
             ),
             returnValueForMissingStub: _i14.dummyValue<String>(
               this,
-              Invocation.getter(#notificationMessage),
+              Invocation.getter(#email),
             ),
           )
           as String);
+
+  @override
+  String get displayName =>
+      (super.noSuchMethod(
+            Invocation.getter(#displayName),
+            returnValue: _i14.dummyValue<String>(
+              this,
+              Invocation.getter(#displayName),
+            ),
+            returnValueForMissingStub: _i14.dummyValue<String>(
+              this,
+              Invocation.getter(#displayName),
+            ),
+          )
+          as String);
+
+  @override
+  Map<String, _i15.NotificationPreference> get notificationPreferences =>
+      (super.noSuchMethod(
+            Invocation.getter(#notificationPreferences),
+            returnValue: <String, _i15.NotificationPreference>{},
+            returnValueForMissingStub: <String, _i15.NotificationPreference>{},
+          )
+          as Map<String, _i15.NotificationPreference>);
 
   @override
   _i13.DarkModePreference get darkModePreference =>
@@ -790,26 +806,34 @@ class MockUserInformation extends _i1.Mock implements _i13.UserInformation {
   );
 
   @override
+  set authDecisionMade(bool? value) => super.noSuchMethod(
+    Invocation.setter(#authDecisionMade, value),
+    returnValueForMissingStub: null,
+  );
+
+  @override
   set userId(String? value) => super.noSuchMethod(
     Invocation.setter(#userId, value),
     returnValueForMissingStub: null,
   );
 
   @override
-  set notificationMinute(int? value) => super.noSuchMethod(
-    Invocation.setter(#notificationMinute, value),
+  set email(String? value) => super.noSuchMethod(
+    Invocation.setter(#email, value),
     returnValueForMissingStub: null,
   );
 
   @override
-  set notificationHour(int? value) => super.noSuchMethod(
-    Invocation.setter(#notificationHour, value),
+  set displayName(String? value) => super.noSuchMethod(
+    Invocation.setter(#displayName, value),
     returnValueForMissingStub: null,
   );
 
   @override
-  set notificationMessage(String? value) => super.noSuchMethod(
-    Invocation.setter(#notificationMessage, value),
+  set notificationPreferences(
+    Map<String, _i15.NotificationPreference>? value,
+  ) => super.noSuchMethod(
+    Invocation.setter(#notificationPreferences, value),
     returnValueForMissingStub: null,
   );
 
@@ -952,26 +976,49 @@ class MockUserInformation extends _i1.Mock implements _i13.UserInformation {
   );
 
   @override
+  void updateAuthDecisionMade(bool? value) => super.noSuchMethod(
+    Invocation.method(#updateAuthDecisionMade, [value]),
+    returnValueForMissingStub: null,
+  );
+
+  @override
+  void updateEmail(String? value) => super.noSuchMethod(
+    Invocation.method(#updateEmail, [value]),
+    returnValueForMissingStub: null,
+  );
+
+  @override
+  void updateDisplayName(String? value) => super.noSuchMethod(
+    Invocation.method(#updateDisplayName, [value]),
+    returnValueForMissingStub: null,
+  );
+
+  @override
   void updateUserId(String? value) => super.noSuchMethod(
     Invocation.method(#updateUserId, [value]),
     returnValueForMissingStub: null,
   );
 
   @override
-  void updateNotificationHour(int? value) => super.noSuchMethod(
-    Invocation.method(#updateNotificationHour, [value]),
+  _i15.NotificationPreference? getNotificationPreference(String? typeId) =>
+      (super.noSuchMethod(
+            Invocation.method(#getNotificationPreference, [typeId]),
+            returnValueForMissingStub: null,
+          )
+          as _i15.NotificationPreference?);
+
+  @override
+  void setNotificationPreference(
+    String? typeId,
+    _i15.NotificationPreference? pref,
+  ) => super.noSuchMethod(
+    Invocation.method(#setNotificationPreference, [typeId, pref]),
     returnValueForMissingStub: null,
   );
 
   @override
-  void updateNotificationMinute(int? value) => super.noSuchMethod(
-    Invocation.method(#updateNotificationMinute, [value]),
-    returnValueForMissingStub: null,
-  );
-
-  @override
-  void updateNotificationMessage(String? value) => super.noSuchMethod(
-    Invocation.method(#updateNotificationMessage, [value]),
+  void clearNotificationPreference(String? typeId) => super.noSuchMethod(
+    Invocation.method(#clearNotificationPreference, [typeId]),
     returnValueForMissingStub: null,
   );
 
@@ -1056,13 +1103,13 @@ class MockUserInformation extends _i1.Mock implements _i13.UserInformation {
   );
 
   @override
-  void addListener(_i15.VoidCallback? listener) => super.noSuchMethod(
+  void addListener(_i16.VoidCallback? listener) => super.noSuchMethod(
     Invocation.method(#addListener, [listener]),
     returnValueForMissingStub: null,
   );
 
   @override
-  void removeListener(_i15.VoidCallback? listener) => super.noSuchMethod(
+  void removeListener(_i16.VoidCallback? listener) => super.noSuchMethod(
     Invocation.method(#removeListener, [listener]),
     returnValueForMissingStub: null,
   );
@@ -1083,7 +1130,7 @@ class MockUserInformation extends _i1.Mock implements _i13.UserInformation {
 /// A class which mocks [AppInformation].
 ///
 /// See the documentation for Mockito's code generation for more information.
-class MockAppInformation extends _i1.Mock implements _i16.AppInformation {
+class MockAppInformation extends _i1.Mock implements _i17.AppInformation {
   @override
   String get disclaimerText =>
       (super.noSuchMethod(
@@ -2268,13 +2315,13 @@ class MockAppInformation extends _i1.Mock implements _i16.AppInformation {
   );
 
   @override
-  void addListener(_i15.VoidCallback? listener) => super.noSuchMethod(
+  void addListener(_i16.VoidCallback? listener) => super.noSuchMethod(
     Invocation.method(#addListener, [listener]),
     returnValueForMissingStub: null,
   );
 
   @override
-  void removeListener(_i15.VoidCallback? listener) => super.noSuchMethod(
+  void removeListener(_i16.VoidCallback? listener) => super.noSuchMethod(
     Invocation.method(#removeListener, [listener]),
     returnValueForMissingStub: null,
   );
@@ -2295,7 +2342,7 @@ class MockAppInformation extends _i1.Mock implements _i16.AppInformation {
 /// A class which mocks [AnalyticsService].
 ///
 /// See the documentation for Mockito's code generation for more information.
-class MockAnalyticsService extends _i1.Mock implements _i17.AnalyticsService {
+class MockAnalyticsService extends _i1.Mock implements _i18.AnalyticsService {
   @override
   _i7.Future<void> init() =>
       (super.noSuchMethod(

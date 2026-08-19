@@ -1,15 +1,15 @@
 // ignore_for_file: non_constant_identifier_names, avoid_print
 
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:get_it/get_it.dart';
 import 'package:mazilon/global_enums.dart';
+import 'package:mazilon/util/SignIn/popup_toast.dart';
 import 'package:mazilon/util/logger_service.dart';
 import 'package:mazilon/util/persistent_memory_service.dart';
+import 'package:mazilon/util/notification_preference.dart';
 import 'package:mazilon/util/type_utils.dart';
 import 'dart:math';
-import 'package:firebase_auth/firebase_auth.dart';
-
-import 'package:mazilon/util/SignIn/popup_toast.dart';
 import 'package:mazilon/util/appInformation.dart';
 import 'package:mazilon/util/userInformation.dart';
 import 'dart:convert';
@@ -104,6 +104,10 @@ Future<void> loadUserInformation(
     'gender': service.getItem("gender", PersistentMemoryType.String),
     'binary': service.getItem("binary", PersistentMemoryType.Bool),
     'loggedIn': service.getItem("loggedIn", PersistentMemoryType.Bool),
+    'authDecisionMade': service.getItem(
+      "authDecisionMade",
+      PersistentMemoryType.Bool,
+    ),
     'age': service.getItem("age", PersistentMemoryType.String),
     'userId': service.getItem("userId", PersistentMemoryType.String),
     'difficultEvents': service.getItem(
@@ -131,17 +135,17 @@ Future<void> loadUserInformation(
       "disclaimerConfirmed",
       PersistentMemoryType.Bool,
     ),
-    'notificationMinute': service.getItem(
-      "notificationMinute",
-      PersistentMemoryType.Int,
+    'notificationPreferences': service.getItem(
+      "notificationPreferences",
+      PersistentMemoryType.String,
     ),
     'notificationHour': service.getItem(
       "notificationHour",
       PersistentMemoryType.Int,
     ),
-    'notificationMessage': service.getItem(
-      "notificationMessage",
-      PersistentMemoryType.String,
+    'notificationMinute': service.getItem(
+      "notificationMinute",
+      PersistentMemoryType.Int,
     ),
     'darkModePreference': service.getItem(
       'darkModePreference',
@@ -179,8 +183,18 @@ Future<void> loadUserInformation(
   userInfo.updateGender(data['gender'] ?? '');
   userInfo.updateBinary(data['binary'] ?? false);
   userInfo.updateLoggedIn(data['loggedIn'] ?? false);
+  userInfo.updateAuthDecisionMade(data['authDecisionMade'] ?? false);
   userInfo.updateAge(data['age'] ?? '');
   userInfo.updateUserId(data['userId'] ?? '');
+
+  try {
+    final currentUser = FirebaseAuth.instance.currentUser;
+    userInfo.updateEmail(currentUser?.email ?? '');
+    userInfo.updateDisplayName(currentUser?.displayName ?? '');
+  } on FirebaseException {
+    userInfo.updateEmail('');
+    userInfo.updateDisplayName('');
+  }
 
   userInfo.updateDifficultEvents(
     (TypeUtils.castToStringList(data['difficultEvents'])),
@@ -195,9 +209,34 @@ Future<void> loadUserInformation(
   );
   userInfo.updateLocation(data['location'] ?? "");
   userInfo.updateDisclaimerSigned(data['disclaimerConfirmed'] ?? false);
-  userInfo.updateNotificationMinute(data['notificationMinute'] ?? 0);
-  userInfo.updateNotificationHour(data['notificationHour'] ?? 12);
-  userInfo.updateNotificationMessage(data['notificationMessage'] ?? '');
+  final prefsJson = data['notificationPreferences'] as String?;
+  if (prefsJson != null && prefsJson.isNotEmpty) {
+    try {
+      final decoded = jsonDecode(prefsJson);
+      if (decoded is! Map<String, dynamic>) {
+        throw const FormatException(
+          'notificationPreferences must be a JSON object',
+        );
+      }
+      final parsed = <String, NotificationPreference>{};
+      for (final entry in decoded.entries) {
+        final value = entry.value;
+        if (value is! Map<String, dynamic>) continue;
+        try {
+          parsed[entry.key] = NotificationPreference.fromJson(value);
+        } on FormatException {
+          continue;
+        }
+      }
+      userInfo.notificationPreferences = parsed;
+    } on FormatException {
+      userInfo.notificationPreferences = {};
+    }
+  } else {
+    // Legacy local schedules never created a server-side FCM schedule. Do not
+    // render their stored hour/minute as an enabled reminder.
+    userInfo.notificationPreferences = {};
+  }
   final darkModePreference = UserInformation.parseDarkModePreference(
     data['darkModePreference'] as String?,
   );

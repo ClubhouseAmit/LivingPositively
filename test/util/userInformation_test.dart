@@ -1,5 +1,8 @@
+import 'dart:async';
+
 import 'package:flutter_test/flutter_test.dart';
 import 'package:mazilon/global_enums.dart';
+import 'package:mazilon/util/notification_preference.dart';
 import 'package:mazilon/util/persistent_memory_service.dart';
 import 'package:mazilon/util/userInformation.dart';
 
@@ -28,6 +31,25 @@ class _FakePersistentMemoryService implements PersistentMemoryService {
   }
 }
 
+class _ControlledPersistentMemoryService implements PersistentMemoryService {
+  final List<MapEntry<String, dynamic>> writes = [];
+  final List<Completer<void>> pendingWrites = [];
+
+  @override
+  Future<dynamic> getItem(String key, PersistentMemoryType type) async => null;
+
+  @override
+  Future<void> reset() async {}
+
+  @override
+  Future<void> setItem(String key, PersistentMemoryType type, dynamic value) {
+    writes.add(MapEntry(key, value));
+    final completer = Completer<void>();
+    pendingWrites.add(completer);
+    return completer.future;
+  }
+}
+
 void main() {
   late _FakePersistentMemoryService fakeService;
 
@@ -43,8 +65,7 @@ void main() {
       expect(u.name, '');
       expect(u.gender, '');
       expect(u.binary, isFalse);
-      expect(u.notificationHour, 12);
-      expect(u.notificationMinute, 0);
+      expect(u.notificationPreferences, isEmpty);
       expect(u.darkModePreference, DarkModePreference.alwaysLight);
       expect(u.darkModeStartHour, 22);
       expect(u.darkModeStartMinute, 0);
@@ -72,8 +93,9 @@ void main() {
         age: '30',
         binary: true,
         location: 'IL',
-        notificationHour: 9,
-        notificationMinute: 30,
+        notificationPreferences: const {
+          'default': NotificationPreference(hour: 9, minute: 30),
+        },
         darkModePreference: DarkModePreference.alwaysDark,
         darkModeStartHour: 20,
         darkModeStartMinute: 15,
@@ -105,8 +127,7 @@ void main() {
       expect(u.name, '');
       expect(u.age, '');
       expect(u.binary, isFalse);
-      expect(u.notificationHour, 12);
-      expect(u.notificationMinute, 0);
+      expect(u.notificationPreferences, isEmpty);
       expect(u.darkModePreference, DarkModePreference.alwaysLight);
       expect(u.darkModeStartHour, 22);
       expect(u.darkModeStartMinute, 0);
@@ -165,20 +186,49 @@ void main() {
       expect(fakeService.stored['binary'], isTrue);
     });
 
-    test('updateNotificationHour persists Int', () async {
+    test('setNotificationPreference persists the FCM schedule', () async {
       final u = buildUser();
-      u.updateNotificationHour(8);
+      u.setNotificationPreference(
+        'default',
+        const NotificationPreference(hour: 8, minute: 45),
+      );
       await Future<void>.delayed(Duration.zero);
-      expect(u.notificationHour, 8);
-      expect(fakeService.stored['notificationHour'], 8);
+      expect(u.getNotificationPreference('default')?.hour, 8);
+      expect(
+        fakeService.stored['notificationPreferences'],
+        '{"default":{"hour":8,"minute":45}}',
+      );
     });
 
-    test('updateNotificationMinute persists Int', () async {
-      final u = buildUser();
-      u.updateNotificationMinute(45);
+    test('serializes rapid notification preference writes', () async {
+      final controlledService = _ControlledPersistentMemoryService();
+      final u = UserInformation(service: controlledService);
+
+      u.setNotificationPreference(
+        'default',
+        const NotificationPreference(hour: 8, minute: 45),
+      );
+      u.setNotificationPreference(
+        'default',
+        const NotificationPreference(hour: 9, minute: 15),
+      );
       await Future<void>.delayed(Duration.zero);
-      expect(u.notificationMinute, 45);
-      expect(fakeService.stored['notificationMinute'], 45);
+
+      expect(controlledService.pendingWrites, hasLength(1));
+      expect(
+        controlledService.writes.single.value,
+        '{"default":{"hour":8,"minute":45}}',
+      );
+
+      controlledService.pendingWrites.single.complete();
+      await Future<void>.delayed(Duration.zero);
+
+      expect(controlledService.pendingWrites, hasLength(2));
+      expect(
+        controlledService.writes.last.value,
+        '{"default":{"hour":9,"minute":15}}',
+      );
+      controlledService.pendingWrites.last.complete();
     });
 
     test('updatePositiveTraits stores StringList copy', () async {

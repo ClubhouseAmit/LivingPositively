@@ -7,6 +7,8 @@ import 'package:mazilon/Locale/locale_service.dart';
 import 'package:mazilon/form/speech_dictation_suffix_action.dart';
 import 'package:mazilon/global_enums.dart';
 import 'package:mazilon/pages/SignIn_Pages/firstPage.dart';
+import 'package:mazilon/util/Firebase/auth_service.dart';
+import 'package:mazilon/util/Firebase/fcm_scheduled_notification_service.dart';
 import 'package:mazilon/util/Form/formPagePhoneModel.dart';
 
 import 'package:mazilon/pages/FeelGood/image_picker_service_impl.dart';
@@ -477,6 +479,27 @@ class _UserSettingsState extends LPExtendedState<UserSettings> {
           PersistentMemoryService
         >(); // Get the persistent memory service instance
 
+    if (userInfo.loggedIn) {
+      final notificationCancelled =
+          await FcmScheduledNotificationService.cancelNotification(
+            context: context,
+            typeId: 'default',
+          );
+      if (!notificationCancelled) {
+        if (mounted) {
+          ScaffoldMessenger.of(context)
+            ..hideCurrentSnackBar()
+            ..showSnackBar(
+              SnackBar(content: Text(appLocale.asyncErrorMessage)),
+            );
+        }
+        return;
+      }
+    }
+
+    if (userInfo.loggedIn) {
+      await AuthService.signOut();
+    }
     await service.reset(); // Reset the persistent memory service
     var enteredBeforeValue = await service.getItem(
       "enteredBefore",
@@ -547,7 +570,8 @@ class _UserSettingsState extends LPExtendedState<UserSettings> {
     final settingsFieldWidth = math.max(0.0, contentWidth - _kContentInsetX);
     final colorScheme = Theme.of(context).colorScheme;
     final selectedGenderLabel =
-        selectedGender?.label(appLocale) ?? Gender.of(userInfoProvider).label(appLocale);
+        selectedGender?.label(appLocale) ??
+        Gender.of(userInfoProvider).label(appLocale);
     final selectedLocaleName = locales.contains(userInfoProvider.localeName)
         ? localesNames[locales.indexOf(userInfoProvider.localeName)]
         : localesNames.first;
@@ -735,7 +759,10 @@ class _UserSettingsState extends LPExtendedState<UserSettings> {
                                         onSelected: (newValue) {
                                           setState(() {
                                             if (newValue != null) {
-                                              selectedGender = Gender.fromLabel(newValue, appLocale);
+                                              selectedGender = Gender.fromLabel(
+                                                newValue,
+                                                appLocale,
+                                              );
                                             }
                                           });
                                         },
@@ -828,7 +855,9 @@ class _UserSettingsState extends LPExtendedState<UserSettings> {
                                                 : dropdownValueAge!,
                                           );
                                           if (selectedGender != null) {
-                                            selectedGender!.applyTo(userInfoProvider);
+                                            selectedGender!.applyTo(
+                                              userInfoProvider,
+                                            );
                                           }
                                           Navigator.pop(context);
                                         },
@@ -939,8 +968,11 @@ class _UserSettingsState extends LPExtendedState<UserSettings> {
                                                                         16.sp,
                                                                   ),
                                                                 ),
-                                                                onPressed: () {
-                                                                  resetData(
+                                                                onPressed: () async {
+                                                                  Navigator.of(
+                                                                    context,
+                                                                  ).pop();
+                                                                  await resetData(
                                                                     userInfoProvider,
                                                                   );
                                                                 },

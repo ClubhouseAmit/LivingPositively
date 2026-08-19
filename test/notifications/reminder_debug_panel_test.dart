@@ -23,20 +23,27 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:mazilon/pages/notifications/reminder_debug_panel.dart';
+import 'package:mazilon/util/notification_preference.dart';
 import 'package:mazilon/pages/notifications/reminder_debug_recorder.dart';
 import 'package:mazilon/util/userInformation.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 import '../helpers/widget_test_scaffold.dart';
 
-Future<T> _onIos<T>(Future<T> Function() body) async {
-  debugDefaultTargetPlatformOverride = TargetPlatform.iOS;
+Future<T> _onPlatform<T>(
+  TargetPlatform platform,
+  Future<T> Function() body,
+) async {
+  debugDefaultTargetPlatformOverride = platform;
   try {
     return await body();
   } finally {
     debugDefaultTargetPlatformOverride = null;
   }
 }
+
+Future<T> _onIos<T>(Future<T> Function() body) =>
+    _onPlatform(TargetPlatform.iOS, body);
 
 void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
@@ -69,6 +76,43 @@ void main() {
     resetTestServices();
   });
 
+  for (final platform in [TargetPlatform.android, TargetPlatform.iOS]) {
+    testWidgets(
+      'mobile platform matrix renders FCM diagnostics on ${platform.name}',
+      (tester) async {
+        await _onPlatform(platform, () async {
+          await pumpWithProviders(
+            tester,
+            const Scaffold(body: ReminderDebugPanel()),
+            userInformation: UserInformation(
+              gender: 'male',
+              notificationPreferences: const {
+                'default': NotificationPreference(hour: 9, minute: 0),
+              },
+            ),
+            surfaceSize: const Size(800, 1400),
+          );
+          await tester.pumpAndSettle(const Duration(milliseconds: 200));
+          await tester.tap(find.byType(ExpansionTile));
+          await tester.pumpAndSettle(const Duration(milliseconds: 400));
+
+          expect(find.text('Reminder debug panel'), findsOneWidget);
+          expect(
+            find.text('FCM reminders are delivered through cloud messaging.'),
+            findsOneWidget,
+          );
+          final rescheduleButton = tester.widget<OutlinedButton>(
+            find.ancestor(
+              of: find.text('Reschedule now'),
+              matching: find.byType(OutlinedButton),
+            ),
+          );
+          expect(rescheduleButton.onPressed, isNotNull);
+        });
+      },
+    );
+  }
+
   testWidgets('renders ExpansionTile with header + advisory copy on iOS', (
     tester,
   ) async {
@@ -78,8 +122,9 @@ void main() {
         const Scaffold(body: ReminderDebugPanel()),
         userInformation: UserInformation(
           gender: 'male',
-          notificationHour: 9,
-          notificationMinute: 0,
+          notificationPreferences: const {
+            'default': NotificationPreference(hour: 9, minute: 0),
+          },
         ),
       );
       // Allow initState -> _refresh() future to complete.
@@ -103,8 +148,9 @@ void main() {
         const Scaffold(body: ReminderDebugPanel()),
         userInformation: UserInformation(
           gender: 'male',
-          notificationHour: 9,
-          notificationMinute: 0,
+          notificationPreferences: const {
+            'default': NotificationPreference(hour: 9, minute: 0),
+          },
         ),
         // Larger surface so the expanded contents fit without overflowing.
         surfaceSize: const Size(800, 1400),
@@ -127,7 +173,7 @@ void main() {
       expect(find.text('Clear history'), findsOneWidget);
       // Non-Android advisory.
       expect(
-        find.text('WorkManager-backed reminders run on Android only.'),
+        find.text('FCM reminders are delivered through cloud messaging.'),
         findsOneWidget,
       );
       // Values from SharedPreferences mock.
@@ -138,12 +184,19 @@ void main() {
     });
   });
 
-  testWidgets('Reschedule button is disabled on non-Android', (tester) async {
+  testWidgets('Reschedule button supports an existing FCM schedule on iOS', (
+    tester,
+  ) async {
     await _onIos(() async {
       await pumpWithProviders(
         tester,
         const Scaffold(body: ReminderDebugPanel()),
-        userInformation: UserInformation(gender: 'male'),
+        userInformation: UserInformation(
+          gender: 'male',
+          notificationPreferences: const {
+            'default': NotificationPreference(hour: 9, minute: 0),
+          },
+        ),
         surfaceSize: const Size(800, 1400),
       );
       await tester.pumpAndSettle(const Duration(milliseconds: 200));
@@ -158,8 +211,8 @@ void main() {
       );
       expect(
         rescheduleButton.onPressed,
-        isNull,
-        reason: 'Reschedule must be disabled when not on Android',
+        isNotNull,
+        reason: 'FCM scheduling is not limited to Android',
       );
     });
   });
