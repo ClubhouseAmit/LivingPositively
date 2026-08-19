@@ -60,6 +60,8 @@ class _ExportReadingFileService extends NoopFileService {
 
   final PersistentMemoryService memory;
   List<String> dreamsAtDownload = const [];
+  List<String> dreamsSourcesAtDownload = const [];
+  List<String> dreamsCustomItemsAtDownload = const [];
 
   @override
   Future<String?> download(
@@ -75,7 +77,19 @@ class _ExportReadingFileService extends NoopFileService {
       _dreamsAndGoalsSelectionKey,
       PersistentMemoryType.StringList,
     );
+    final storedSources = await memory.getItem(
+      _dreamsAndGoalsSelectionSourcesKey,
+      PersistentMemoryType.StringList,
+    );
+    final storedCustomItems = await memory.getItem(
+      _dreamsAndGoalsAddedStringsKey,
+      PersistentMemoryType.StringList,
+    );
     dreamsAtDownload = List<String>.from(storedDreams as Iterable);
+    dreamsSourcesAtDownload = List<String>.from(storedSources as Iterable);
+    dreamsCustomItemsAtDownload = List<String>.from(
+      storedCustomItems as Iterable,
+    );
     return 'downloaded-plan.pdf';
   }
 }
@@ -91,6 +105,24 @@ class _FailingDreamsMemoryService extends FakePersistentMemoryService {
   ) async {
     if (key == _dreamsAndGoalsSelectionKey && failDreamsSelection) {
       throw StateError('Dreams persistence failed.');
+    }
+    await super.setItem(key, type, value);
+  }
+}
+
+class _RecordingDreamsMemoryService extends FakePersistentMemoryService {
+  final List<String> dreamsAndGoalsWriteKeys = <String>[];
+
+  @override
+  Future<void> setItem(
+    String key,
+    PersistentMemoryType type,
+    dynamic value,
+  ) async {
+    if (key == _dreamsAndGoalsSelectionKey ||
+        key == _dreamsAndGoalsSelectionSourcesKey ||
+        key == _dreamsAndGoalsAddedStringsKey) {
+      dreamsAndGoalsWriteKeys.add(key);
     }
     await super.setItem(key, type, value);
   }
@@ -346,6 +378,72 @@ void main() {
       );
       await tester.pump(const Duration(seconds: 2));
     });
+
+    testWidgets(
+      'should repair malformed Dreams metadata before downloading without an extra save',
+      (tester) async {
+        final recordingMemory = _RecordingDreamsMemoryService();
+        final exportFiles = _ExportReadingFileService(recordingMemory);
+        final locator = GetIt.instance;
+        locator.unregister<PersistentMemoryService>();
+        locator.unregister<FileService>();
+        locator.registerSingleton<PersistentMemoryService>(recordingMemory);
+        locator.registerSingleton<FileService>(exportFiles);
+        user = UserInformation(service: recordingMemory)
+          ..gender = 'other'
+          ..localeName = 'en'
+          ..dreamsAndGoals = <String>['Write and publish a book']
+          ..dreamsAndGoalsSelectionSources = <String>[
+            'catalogue:learn-a-new-language',
+          ];
+        recordingMemory.store.addAll(<String, dynamic>{
+          _dreamsAndGoalsSelectionKey: <String>['Write and publish a book'],
+          _dreamsAndGoalsSelectionSourcesKey: <String>[
+            'catalogue:learn-a-new-language',
+          ],
+          _dreamsAndGoalsAddedStringsKey: <String>['Stale custom item'],
+        });
+
+        await pumpWithProviders(
+          tester,
+          wizardStepHarness(
+            ShareForm(
+              key: GlobalKey<WizardStepState>(),
+              prev: () {},
+              submit: (_) async {},
+            ),
+          ),
+          userInformation: user,
+          surfaceSize: const Size(1024, 1800),
+        );
+
+        _pressIconButton(tester, Icons.download);
+        await _flushAsyncAction(tester);
+
+        expect(exportFiles.downloadCalls, 1);
+        expect(exportFiles.dreamsAtDownload, ['Write and publish a book']);
+        expect(exportFiles.dreamsSourcesAtDownload, [
+          'catalogue:write-and-publish-a-book',
+        ]);
+        expect(exportFiles.dreamsCustomItemsAtDownload, isEmpty);
+        expect(
+          recordingMemory.dreamsAndGoalsWriteKeys,
+          unorderedEquals([
+            _dreamsAndGoalsSelectionKey,
+            _dreamsAndGoalsSelectionSourcesKey,
+            _dreamsAndGoalsAddedStringsKey,
+          ]),
+        );
+        expect(recordingMemory.store[_dreamsAndGoalsSelectionKey], [
+          'Write and publish a book',
+        ]);
+        expect(recordingMemory.store[_dreamsAndGoalsSelectionSourcesKey], [
+          'catalogue:write-and-publish-a-book',
+        ]);
+        expect(recordingMemory.store[_dreamsAndGoalsAddedStringsKey], isEmpty);
+        await tester.pump(const Duration(seconds: 2));
+      },
+    );
 
     testWidgets('should wait for the latest shared dream snapshot before finishing', (
       tester,

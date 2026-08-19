@@ -513,12 +513,11 @@ class _ShareFormState extends WizardStepState<ShareForm> {
   }
 
   Future<void> persistDreamsAndGoals(UserInformation userInformation) async {
-    await _persistInlineDreamsAndGoals(userInformation);
-    final int revisionBeforeRepair = userInformation.dreamsAndGoalsSaveRevision;
-    await userInformation.repairDreamsAndGoalsSelectionSources();
-    if (userInformation.dreamsAndGoalsSaveRevision == revisionBeforeRepair) {
-      await userInformation.queueDreamsAndGoalsSave();
-    }
+    await _persistAndRepairDreamsAndGoals(
+      userInformation,
+      retry: false,
+      persist: (_) => userInformation.queueDreamsAndGoalsSave(),
+    );
   }
 
   Future<void> _persistInlineDreamsAndGoals(
@@ -537,6 +536,34 @@ class _ShareFormState extends WizardStepState<ShareForm> {
             userInformation.dreamsAndGoalsSaveRevision,
           )
         : userInformation.pendingDreamsAndGoalsSave;
+  }
+
+  /// Completes the shared Dreams persistence and source-repair flow before a
+  /// Share action. [onRevisionCaptured] runs before awaiting repair so callers
+  /// can retry the same snapshot if repair or persistence subsequently fails.
+  /// Action flows set [useRevisionCapturedAtRepairStart] to retain their
+  /// existing pre-repair completion revision semantics.
+  Future<void> _persistAndRepairDreamsAndGoals(
+    UserInformation userInformation, {
+    required bool retry,
+    required Future<void> Function(int revision) persist,
+    void Function(int revision)? onRevisionCaptured,
+    bool useRevisionCapturedAtRepairStart = false,
+  }) async {
+    await _persistInlineDreamsAndGoals(userInformation, retry: retry);
+    final int revisionBeforeRepair = userInformation.dreamsAndGoalsSaveRevision;
+    final Future<void> repair = userInformation
+        .repairDreamsAndGoalsSelectionSources();
+    final int revisionAtRepairStart =
+        userInformation.dreamsAndGoalsSaveRevision;
+    onRevisionCaptured?.call(revisionAtRepairStart);
+    await repair;
+    final int revisionForConditionalSave = useRevisionCapturedAtRepairStart
+        ? revisionAtRepairStart
+        : userInformation.dreamsAndGoalsSaveRevision;
+    if (revisionForConditionalSave == revisionBeforeRepair) {
+      await persist(revisionForConditionalSave);
+    }
   }
 
   Future<void> _toggleDreamsAndGoals({bool retry = false}) async {
@@ -576,16 +603,13 @@ class _ShareFormState extends WizardStepState<ShareForm> {
   ) async {
     int revision = userInformation.dreamsAndGoalsSaveRevision;
     try {
-      await _persistInlineDreamsAndGoals(userInformation);
-      final int revisionBeforeRepair =
-          userInformation.dreamsAndGoalsSaveRevision;
-      final Future<void> repair = userInformation
-          .repairDreamsAndGoalsSelectionSources();
-      revision = userInformation.dreamsAndGoalsSaveRevision;
-      await repair;
-      if (revision == revisionBeforeRepair) {
-        await userInformation.queueDreamsAndGoalsSave();
-      }
+      await _persistAndRepairDreamsAndGoals(
+        userInformation,
+        retry: false,
+        persist: (_) => userInformation.queueDreamsAndGoalsSave(),
+        onRevisionCaptured: (value) => revision = value,
+        useRevisionCapturedAtRepairStart: true,
+      );
     } catch (error, stackTrace) {
       await _captureDreamsAndGoalsFailure(error, stackTrace);
       if (mounted) {
@@ -607,16 +631,13 @@ class _ShareFormState extends WizardStepState<ShareForm> {
     FutureOr<void> Function() action,
   ) async {
     try {
-      await _persistInlineDreamsAndGoals(userInformation, retry: true);
-      final int revisionBeforeRepair =
-          userInformation.dreamsAndGoalsSaveRevision;
-      final Future<void> repair = userInformation
-          .repairDreamsAndGoalsSelectionSources();
-      revision = userInformation.dreamsAndGoalsSaveRevision;
-      await repair;
-      if (revision == revisionBeforeRepair) {
-        await userInformation.retryDreamsAndGoalsSave(revision);
-      }
+      await _persistAndRepairDreamsAndGoals(
+        userInformation,
+        retry: true,
+        persist: userInformation.retryDreamsAndGoalsSave,
+        onRevisionCaptured: (value) => revision = value,
+        useRevisionCapturedAtRepairStart: true,
+      );
     } catch (error, stackTrace) {
       await _captureDreamsAndGoalsFailure(error, stackTrace);
       if (mounted) {
