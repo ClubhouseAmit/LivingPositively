@@ -143,6 +143,30 @@ class _FailingNameMemoryService extends FakePersistentMemoryService {
   }
 }
 
+class _HeldNameMemoryService extends FakePersistentMemoryService {
+  final Completer<void> _nameWrite = Completer<void>();
+  final Completer<void> nameWriteStarted = Completer<void>();
+
+  @override
+  Future<void> setItem(
+    String key,
+    PersistentMemoryType type,
+    dynamic value,
+  ) async {
+    if (key == 'name' && !nameWriteStarted.isCompleted) {
+      nameWriteStarted.complete();
+      await _nameWrite.future;
+    }
+    await super.setItem(key, type, value);
+  }
+
+  void releaseNameWrite() {
+    if (!_nameWrite.isCompleted) {
+      _nameWrite.complete();
+    }
+  }
+}
+
 Future<UserInformation> _pumpForm(WidgetTester tester) async {
   final phoneData = _phoneData();
   final user = UserInformation()..gender = 'other';
@@ -310,6 +334,75 @@ void main() {
 
       // navigateToMenu pushes the Menu screen via pushAndRemoveUntil.
       expect(find.byType(Menu), findsOneWidget);
+    },
+  );
+
+  testWidgets(
+    'should not navigate when the submit caller context is disposed',
+    (tester) async {
+      final heldMemory = _HeldNameMemoryService();
+      final formKey = GlobalKey<FormProgressIndicatorState>();
+      final phoneData = _phoneData();
+      final user = UserInformation()..gender = 'other';
+      BuildContext? callerContext;
+      late StateSetter setHostState;
+      var includeCaller = true;
+
+      GetIt.instance.unregister<PersistentMemoryService>();
+      GetIt.instance.registerSingleton<PersistentMemoryService>(heldMemory);
+      addTearDown(heldMemory.releaseNameWrite);
+
+      await pumpWithProviders(
+        tester,
+        Scaffold(
+          body: StatefulBuilder(
+            builder: (context, setState) {
+              setHostState = setState;
+              return Column(
+                children: [
+                  Expanded(
+                    child: ChangeNotifierProvider<PhonePageData>.value(
+                      value: phoneData,
+                      child: FormProgressIndicator(
+                        key: formKey,
+                        phonePageData: phoneData,
+                        changeLocale: (_) {},
+                      ),
+                    ),
+                  ),
+                  if (includeCaller)
+                    Builder(
+                      builder: (context) {
+                        callerContext = context;
+                        return const SizedBox();
+                      },
+                    ),
+                ],
+              );
+            },
+          ),
+        ),
+        userInformation: user,
+        surfaceSize: const Size(1024, 2400),
+      );
+
+      formKey.currentState!.updateName('Persisted name');
+      final Future<void> submit = formKey.currentState!.submitForm(
+        callerContext!,
+      );
+      await heldMemory.nameWriteStarted.future;
+
+      setHostState(() {
+        includeCaller = false;
+      });
+      await tester.pump();
+
+      heldMemory.releaseNameWrite();
+      await tester.runAsync(() => submit);
+      await tester.pumpAndSettle();
+
+      expect(find.byType(Menu), findsNothing);
+      expect(tester.takeException(), isNull);
     },
   );
 
@@ -600,30 +693,21 @@ void main() {
     });
   });
 
-  testWidgets('should block finish navigation when the name save fails', (
-    tester,
-  ) async {
-    final failingMemory = _FailingNameMemoryService();
-    GetIt.instance.unregister<PersistentMemoryService>();
-    GetIt.instance.registerSingleton<PersistentMemoryService>(failingMemory);
+  testWidgets(
+    'should block finish navigation without a persistence Retry when the name save fails',
+    (tester) async {
+      final failingMemory = _FailingNameMemoryService();
+      GetIt.instance.unregister<PersistentMemoryService>();
+      GetIt.instance.registerSingleton<PersistentMemoryService>(failingMemory);
 
-    await _pumpForm(tester);
-    final state = await _moveToShare(tester);
-    state.updateName('Name that must persist');
+      await _pumpForm(tester);
+      final state = await _moveToShare(tester);
+      state.updateName('Name that must persist');
 
-    _pressWizardPrimaryAction(tester);
-    await _flushAsyncAction(tester);
-    expect(find.byType(Menu), findsNothing);
-    expect(find.widgetWithText(SnackBarAction, 'Try again'), findsOneWidget);
-
-    failingMemory.failNameWrite = false;
-    tester
-        .widget<SnackBarAction>(
-          find.widgetWithText(SnackBarAction, 'Try again'),
-        )
-        .onPressed();
-    await _flushAsyncAction(tester);
-    await tester.pumpAndSettle();
-    expect(find.byType(Menu), findsOneWidget);
-  });
+      _pressWizardPrimaryAction(tester);
+      await _flushAsyncAction(tester);
+      expect(find.byType(Menu), findsNothing);
+      expect(find.widgetWithText(SnackBarAction, 'Try again'), findsNothing);
+    },
+  );
 }

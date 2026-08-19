@@ -212,6 +212,19 @@ void main() {
   });
 
   group('update methods that persist', () {
+    test(
+      'should persist disclaimer and has-filled through its injected service',
+      () async {
+        final user = buildUser();
+
+        await user.persistDisclaimerConfirmed();
+        await user.persistHasFilled();
+
+        expect(fakeService.stored['disclaimerConfirmed'], isTrue);
+        expect(fakeService.stored['hasFilled'], isTrue);
+      },
+    );
+
     test('updateGender notifies and persists', () async {
       final u = buildUser();
       var notified = 0;
@@ -260,6 +273,52 @@ void main() {
       expect(user.gender, 'other');
       expect(user.notificationHour, 9);
     });
+
+    test(
+      'should hydrate and repair malformed Dreams source metadata through its injected service',
+      () async {
+        final user = UserInformation(service: fakeService);
+        const selections = <String>[
+          'Write and publish a book',
+          'My custom dream',
+        ];
+
+        await user.hydrateDreamsAndGoalsFromStorage(
+          selections,
+          storedSelectionSources: const <String>[
+            'catalogue:learn-a-new-language',
+          ],
+          storedCustomSelections: const <String>[],
+        );
+
+        expect(user.dreamsAndGoals, selections);
+        expect(user.dreamsAndGoalsSelectionSources, const <String>[
+          'catalogue:write-and-publish-a-book',
+          dreamsAndGoalsCustomSelectionSource,
+        ]);
+        expect(
+          fakeService.stored[dreamsAndGoalsSelectionStorageKey],
+          selections,
+        );
+        expect(
+          fakeService.stored[dreamsAndGoalsSelectionSourcesStorageKey],
+          user.dreamsAndGoalsSelectionSources,
+        );
+        expect(
+          fakeService.stored[dreamsAndGoalsCustomSelectionsStorageKey],
+          const <String>['My custom dream'],
+        );
+
+        final writesAfterRepair = fakeService.writes.length;
+        await user.hydrateDreamsAndGoalsFromStorage(
+          selections,
+          storedSelectionSources: user.dreamsAndGoalsSelectionSources,
+          storedCustomSelections: const <String>['My custom dream'],
+        );
+
+        expect(fakeService.writes, hasLength(writesAfterRepair));
+      },
+    );
 
     test('updateNotificationHour persists Int', () async {
       final u = buildUser();

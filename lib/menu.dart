@@ -63,8 +63,8 @@ class _MenuState extends LPExtendedState<Menu> {
   bool isFullScreen = false;
   late Widget currentScreen;
 
-  //Function to set that the users has already opened the app before
-  Future<void> loadFirstTime() async {
+  // Marks that the user has already opened the app before.
+  Future<void> markFirstLaunchCompleted() async {
     try {
       PersistentMemoryService service =
           GetIt.instance<
@@ -286,7 +286,7 @@ class _MenuState extends LPExtendedState<Menu> {
 
   @override
   void initState() {
-    unawaited(loadFirstTime());
+    unawaited(markFirstLaunchCompleted());
     getVersion();
     super.initState();
     //this is the initial page

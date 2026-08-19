@@ -12,7 +12,7 @@ import 'package:mazilon/form/speech_dictation_suffix_action.dart';
 import 'package:mazilon/form/wizard_step.dart';
 import 'package:mazilon/l10n/app_localizations.dart';
 import 'package:mazilon/util/SignIn/popup_toast.dart';
-import 'package:mazilon/util/dreams_and_goals_selection.dart';
+import 'package:mazilon/util/async/persistence_retry_snack_bar.dart';
 import 'package:mazilon/util/logger_service.dart';
 import 'package:mazilon/util/persistent_memory_service.dart';
 import 'package:mazilon/util/languages_util_functions.dart';
@@ -31,7 +31,7 @@ const String _customCategoryDescriptionsKey = 'customCategoryDescriptions';
 
 class ShareForm extends WizardStep {
   final Function prev;
-  final Future<void> Function(BuildContext context) submit;
+  final FutureOr<void> Function(BuildContext context) submit;
 
   const ShareForm({
     required super.key,
@@ -70,12 +70,12 @@ class _ShareFormState extends WizardStepState<ShareForm> {
   }
 
   Future<void> _setHasFilled() async {
+    final UserInformation userInformation = Provider.of<UserInformation>(
+      context,
+      listen: false,
+    );
     try {
-      await GetIt.instance<PersistentMemoryService>().setItem(
-        'hasFilled',
-        PersistentMemoryType.Bool,
-        true,
-      );
+      await userInformation.persistHasFilled();
     } catch (error, stackTrace) {
       try {
         await GetIt.instance<IncidentLoggerService>().captureLog(
@@ -157,7 +157,8 @@ class _ShareFormState extends WizardStepState<ShareForm> {
   Future<void> _persistCustomCategoriesSafely() async {
     try {
       await saveCustomCategories();
-    } catch (_) {
+    } catch (error, stackTrace) {
+      await _captureDreamsAndGoalsFailure(error, stackTrace);
       if (mounted) {
         _showCustomCategorySaveFailure();
       }
@@ -165,25 +166,7 @@ class _ShareFormState extends WizardStepState<ShareForm> {
   }
 
   void _showCustomCategorySaveFailure() {
-    final ScaffoldMessengerState? messenger = ScaffoldMessenger.maybeOf(
-      context,
-    );
-    if (messenger == null) {
-      return;
-    }
-    messenger
-      ..hideCurrentSnackBar()
-      ..showSnackBar(
-        SnackBar(
-          content: Text(appLocale.asyncErrorMessage),
-          action: SnackBarAction(
-            label: appLocale.asyncRetryButton,
-            onPressed: () {
-              unawaited(_persistCustomCategoriesSafely());
-            },
-          ),
-        ),
-      );
+    showPersistenceRetrySnackBar(context, _persistCustomCategoriesSafely);
   }
 
   List<String> predefinedCategoryTitles() {
@@ -529,23 +512,13 @@ class _ShareFormState extends WizardStepState<ShareForm> {
     );
   }
 
-  int _synchronizeDreamsAndGoals(UserInformation userInformation) {
-    final dreamsAndGoals = [...userInformation.dreamsAndGoals];
-    final selectionSources = normalizeDreamsAndGoalsSelectionSources(
-      dreamsAndGoals,
-      userInformation.dreamsAndGoalsSelectionSources,
-    );
-    userInformation.updateDreamsAndGoals(
-      dreamsAndGoals,
-      selectionSources: selectionSources,
-    );
-    return userInformation.dreamsAndGoalsSaveRevision;
-  }
-
   Future<void> persistDreamsAndGoals(UserInformation userInformation) async {
     await _persistInlineDreamsAndGoals(userInformation);
-    _synchronizeDreamsAndGoals(userInformation);
-    await userInformation.queueDreamsAndGoalsSave();
+    final int revisionBeforeRepair = userInformation.dreamsAndGoalsSaveRevision;
+    await userInformation.repairDreamsAndGoalsSelectionSources();
+    if (userInformation.dreamsAndGoalsSaveRevision == revisionBeforeRepair) {
+      await userInformation.queueDreamsAndGoalsSave();
+    }
   }
 
   Future<void> _persistInlineDreamsAndGoals(
@@ -585,7 +558,10 @@ class _ShareFormState extends WizardStepState<ShareForm> {
           _isEditingDreamsAndGoals = false;
         });
       }
-    } catch (_) {
+    } catch (error, stackTrace) {
+      if (retry) {
+        await _captureDreamsAndGoalsFailure(error, stackTrace);
+      }
       if (mounted) {
         _showDreamsAndGoalsSaveFailure(
           () => _toggleDreamsAndGoals(retry: true),
@@ -596,73 +572,101 @@ class _ShareFormState extends WizardStepState<ShareForm> {
 
   Future<void> _runDreamsAndGoalsAction(
     UserInformation userInformation,
-    Future<void> Function() action,
+    FutureOr<void> Function() action,
   ) async {
-    int? revision;
+    int revision = userInformation.dreamsAndGoalsSaveRevision;
     try {
       await _persistInlineDreamsAndGoals(userInformation);
-      revision = _synchronizeDreamsAndGoals(userInformation);
-      await userInformation.queueDreamsAndGoalsSave();
-      if (mounted) {
-        await action();
+      final int revisionBeforeRepair =
+          userInformation.dreamsAndGoalsSaveRevision;
+      final Future<void> repair = userInformation
+          .repairDreamsAndGoalsSelectionSources();
+      revision = userInformation.dreamsAndGoalsSaveRevision;
+      await repair;
+      if (revision == revisionBeforeRepair) {
+        await userInformation.queueDreamsAndGoalsSave();
       }
-    } catch (_) {
+    } catch (error, stackTrace) {
+      await _captureDreamsAndGoalsFailure(error, stackTrace);
       if (mounted) {
         _showDreamsAndGoalsSaveFailure(
-          () => _retryDreamsAndGoalsAction(
-            userInformation,
-            revision ?? userInformation.dreamsAndGoalsSaveRevision,
-            action,
-          ),
+          () => _retryDreamsAndGoalsAction(userInformation, revision, action),
         );
       }
+      return;
+    }
+
+    if (mounted) {
+      await action();
     }
   }
 
   Future<void> _retryDreamsAndGoalsAction(
     UserInformation userInformation,
     int revision,
-    Future<void> Function() action,
+    FutureOr<void> Function() action,
   ) async {
     try {
       await _persistInlineDreamsAndGoals(userInformation, retry: true);
-      await userInformation.retryDreamsAndGoalsSave(revision);
-      if (mounted) {
-        await action();
+      final int revisionBeforeRepair =
+          userInformation.dreamsAndGoalsSaveRevision;
+      final Future<void> repair = userInformation
+          .repairDreamsAndGoalsSelectionSources();
+      revision = userInformation.dreamsAndGoalsSaveRevision;
+      await repair;
+      if (revision == revisionBeforeRepair) {
+        await userInformation.retryDreamsAndGoalsSave(revision);
       }
-    } catch (_) {
+    } catch (error, stackTrace) {
+      await _captureDreamsAndGoalsFailure(error, stackTrace);
       if (mounted) {
         _showDreamsAndGoalsSaveFailure(
-          () => _retryDreamsAndGoalsAction(
-            userInformation,
-            revision,
-            action,
-          ),
+          () => _retryDreamsAndGoalsAction(userInformation, revision, action),
         );
       }
+      return;
     }
+
+    await _runRetriedDreamsAndGoalsAction(action);
   }
 
   void _showDreamsAndGoalsSaveFailure(Future<void> Function() retry) {
-    final ScaffoldMessengerState? messenger = ScaffoldMessenger.maybeOf(
-      context,
-    );
-    if (messenger == null) {
+    showPersistenceRetrySnackBar(context, retry);
+  }
+
+  Future<void> _runRetriedDreamsAndGoalsAction(
+    FutureOr<void> Function() action,
+  ) async {
+    if (!mounted) {
       return;
     }
-    messenger
-      ..hideCurrentSnackBar()
-      ..showSnackBar(
-        SnackBar(
-          content: Text(appLocale.asyncErrorMessage),
-          action: SnackBarAction(
-            label: appLocale.asyncRetryButton,
-            onPressed: () {
-              unawaited(retry());
-            },
-          ),
+    try {
+      await action();
+    } catch (error, stackTrace) {
+      await _captureDreamsAndGoalsFailure(error, stackTrace);
+      FlutterError.reportError(
+        FlutterErrorDetails(
+          exception: error,
+          stack: stackTrace,
+          library: 'ShareForm',
+          context: ErrorDescription('while retrying a Dreams and Goals action'),
         ),
       );
+    }
+  }
+
+  Future<void> _captureDreamsAndGoalsFailure(
+    Object error,
+    StackTrace stackTrace,
+  ) async {
+    try {
+      await GetIt.instance<IncidentLoggerService>().captureLog(
+        error,
+        stackTrace: stackTrace,
+      );
+    } catch (_) {
+      // Logging is best effort; it must not hide the retry affordance.
+    }
   }
 
   Widget buildDreamsAndGoalsSection(BuildContext context, String gender) {

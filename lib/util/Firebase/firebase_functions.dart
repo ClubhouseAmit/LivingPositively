@@ -16,8 +16,7 @@ import 'package:mazilon/util/userInformation.dart';
 import 'dart:convert';
 import 'dart:io';
 import 'package:path_provider/path_provider.dart';
-import 'package:flutter/foundation.dart'
-    show kIsWeb, listEquals, visibleForTesting;
+import 'package:flutter/foundation.dart' show kIsWeb, visibleForTesting;
 
 import 'package:firebase_core/firebase_core.dart';
 
@@ -211,31 +210,14 @@ Future<void> loadUserInformation(
   final storedDreamsAndGoalsSources = TypeUtils.castToStringList(
     data['dreamsAndGoalsSelectionSources'],
   );
-  final DreamsAndGoalsPersistenceSnapshot dreamsAndGoalsSnapshot =
-      DreamsAndGoalsPersistenceSnapshot.fromSelections(
-        dreamsAndGoals,
-        normalizeDreamsAndGoalsSelectionSources(
-          dreamsAndGoals,
-          storedDreamsAndGoalsSources,
-        ),
-      );
-  userInfo.updateDreamsAndGoals(
-    dreamsAndGoalsSnapshot.selections,
-    selectionSources: dreamsAndGoalsSnapshot.selectionSources,
-  );
   final storedDreamsAndGoalsAddedStrings = TypeUtils.castToStringList(
     data['dreamsAndGoalsAddedStrings'],
   );
-  if (!listEquals(
-        storedDreamsAndGoalsSources,
-        dreamsAndGoalsSnapshot.selectionSources,
-      ) ||
-      !listEquals(
-        storedDreamsAndGoalsAddedStrings,
-        dreamsAndGoalsSnapshot.customSelections,
-      )) {
-    await persistDreamsAndGoalsSnapshot(service, dreamsAndGoalsSnapshot);
-  }
+  await userInfo.hydrateDreamsAndGoalsFromStorage(
+    dreamsAndGoals,
+    storedSelectionSources: storedDreamsAndGoalsSources,
+    storedCustomSelections: storedDreamsAndGoalsAddedStrings,
+  );
   userInfo.updateLocation(data['location'] ?? "");
   userInfo.updateDisclaimerSigned(data['disclaimerConfirmed'] ?? false);
   userInfo.updateNotificationMinute(data['notificationMinute'] ?? 0);

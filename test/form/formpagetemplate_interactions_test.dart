@@ -21,11 +21,13 @@ import 'package:mazilon/form/wizard_step.dart';
 import 'package:mazilon/global_enums.dart';
 import 'package:mazilon/l10n/app_localizations.dart';
 import 'package:mazilon/util/appInformation.dart';
+import 'package:mazilon/util/logger_service.dart';
 import 'package:mazilon/util/persistent_memory_service.dart';
 import 'package:mazilon/util/userInformation.dart';
 import 'package:provider/provider.dart';
 
-import '../helpers/widget_test_scaffold.dart' show wizardStepHarness;
+import '../helpers/widget_test_scaffold.dart'
+    show NoopIncidentLoggerService, wizardStepHarness;
 
 class _FakeAnalytics implements AnalyticsService {
   final List<String> events = [];
@@ -100,9 +102,11 @@ class _HeldDreamsMemoryService extends _FakePm {
 
 class _DualFailureDreamsMemoryService extends _FakePm {
   bool failDreamsAndDisclaimerWrites = true;
+  final List<String> attemptedKeys = <String>[];
 
   @override
   Future<void> setItem(String key, PersistentMemoryType type, value) async {
+    attemptedKeys.add(key);
     if (failDreamsAndDisclaimerWrites &&
         (key == 'userSelectionPersonalPlan-DreamsAndGoals' ||
             key == 'disclaimerConfirmed')) {
@@ -568,7 +572,78 @@ void main() {
   );
 
   group('FormPageTemplate', () {
+    testWidgets(
+      'should persist a non-Dreams disclaimer through the injected UserInformation service',
+      (tester) async {
+        final modelMemory = _FakePm();
+        final user = UserInformation(service: modelMemory)..gender = 'other';
+        await _pump(tester, 'PersonalPlan-DifficultEvents', user: user);
+
+        await tester.tap(
+          find.byKey(const ValueKey('suggestion-Watching the news')),
+        );
+        await tester.pumpAndSettle();
+
+        expect(modelMemory.store['disclaimerConfirmed'], isTrue);
+        expect(pm.store['disclaimerConfirmed'], isNull);
+      },
+    );
+
     group('Dreams and Goals', () {
+      testWidgets(
+        'should persist the disclaimer through the injected UserInformation service',
+        (tester) async {
+          final modelMemory = _FakePm();
+          final user = UserInformation(service: modelMemory)..gender = 'other';
+          await _pump(tester, 'PersonalPlan-DreamsAndGoals', user: user);
+
+          await tester.tap(
+            find.byKey(const ValueKey('suggestion-Write and publish a book')),
+          );
+          await tester.pumpAndSettle();
+
+          expect(modelMemory.store['disclaimerConfirmed'], isTrue);
+          expect(pm.store['disclaimerConfirmed'], isNull);
+        },
+      );
+
+      testWidgets(
+        'should repair and persist malformed and missing sources before rendering',
+        (tester) async {
+          final modelMemory = _FakePm();
+          final user = UserInformation(
+            service: modelMemory,
+            gender: 'other',
+          );
+          await user.hydrateDreamsAndGoalsFromStorage(
+            const <String>['Write and publish a book', 'My custom dream'],
+            storedSelectionSources: const <String>[
+              'catalogue:learn-a-new-language',
+            ],
+            storedCustomSelections: const <String>[],
+          );
+
+          await _pump(tester, 'PersonalPlan-DreamsAndGoals', user: user);
+
+          expect(user.dreamsAndGoalsSelectionSources, const <String>[
+            'catalogue:write-and-publish-a-book',
+            'custom',
+          ]);
+          expect(
+            modelMemory.store['selectionSourcesPersonalPlan-DreamsAndGoals'],
+            user.dreamsAndGoalsSelectionSources,
+          );
+          expect(
+            modelMemory.store['addedStringsPersonalPlan-DreamsAndGoals'],
+            const <String>['My custom dream'],
+          );
+          expect(
+            find.byKey(const ValueKey('suggestion-Write and publish a book')),
+            findsNothing,
+          );
+        },
+      );
+
       testWidgets('should persist catalogue and custom sources separately', (
         tester,
       ) async {
@@ -696,8 +771,10 @@ void main() {
         (tester) async {
           await GetIt.instance.reset();
           final memory = _DualFailureDreamsMemoryService();
+          final logger = NoopIncidentLoggerService();
           GetIt.instance.registerSingleton<PersistentMemoryService>(memory);
           GetIt.instance.registerSingleton<AnalyticsService>(_FakeAnalytics());
+          GetIt.instance.registerSingleton<IncidentLoggerService>(logger);
           final user = UserInformation(service: memory)..gender = 'other';
           await _pump(tester, 'PersonalPlan-DreamsAndGoals', user: user);
 
@@ -708,7 +785,28 @@ void main() {
             find.widgetWithText(SnackBarAction, 'Try again'),
             findsOneWidget,
           );
+          expect(
+            memory.attemptedKeys,
+            containsAll(<String>[
+              'userSelectionPersonalPlan-DreamsAndGoals',
+              'disclaimerConfirmed',
+            ]),
+          );
           expect(tester.takeException(), isNull);
+
+          final SnackBarAction failedRetry = tester.widget<SnackBarAction>(
+            find.widgetWithText(SnackBarAction, 'Try again'),
+          );
+          failedRetry.onPressed();
+          await tester.pump();
+          await tester.pump(const Duration(milliseconds: 250));
+
+          expect(logger.captured, isNotEmpty);
+          expect(logger.captured.last, isA<StateError>());
+          expect(
+            find.widgetWithText(SnackBarAction, 'Try again'),
+            findsOneWidget,
+          );
 
           memory.failDreamsAndDisclaimerWrites = false;
           final SnackBarAction retry = tester.widget<SnackBarAction>(

@@ -269,6 +269,73 @@ class UserInformation with ChangeNotifier {
     return queueDreamsAndGoalsSave();
   }
 
+  /// Loads Dreams and Goals state from local storage and repairs stale
+  /// provenance metadata through this model's injected storage service.
+  ///
+  /// The localized [selections] stay in their saved order. Source tokens and
+  /// the custom-only list are normalized into one immutable snapshot; the
+  /// three-key snapshot is queued only when either stored metadata list differs
+  /// from the repaired values.
+  Future<void> hydrateDreamsAndGoalsFromStorage(
+    List<String> selections, {
+    required List<String> storedSelectionSources,
+    required List<String> storedCustomSelections,
+  }) async {
+    final DreamsAndGoalsPersistenceSnapshot snapshot =
+        DreamsAndGoalsPersistenceSnapshot.fromSelections(
+          selections,
+          normalizeDreamsAndGoalsSelectionSources(
+            selections,
+            storedSelectionSources,
+          ),
+        );
+    if (!listEquals(dreamsAndGoals, snapshot.selections) ||
+        !listEquals(
+          dreamsAndGoalsSelectionSources,
+          snapshot.selectionSources,
+        )) {
+      updateDreamsAndGoals(
+        snapshot.selections,
+        selectionSources: snapshot.selectionSources,
+      );
+    }
+    if (listEquals(storedSelectionSources, snapshot.selectionSources) &&
+        listEquals(storedCustomSelections, snapshot.customSelections)) {
+      return;
+    }
+    await queueDreamsAndGoalsSave();
+  }
+
+  /// Repairs in-memory Dreams and Goals sources outside the widget build
+  /// lifecycle. Storage hydration should use
+  /// [hydrateDreamsAndGoalsFromStorage] so it can also repair custom metadata.
+  Future<void> repairDreamsAndGoalsSelectionSources() {
+    return hydrateDreamsAndGoalsFromStorage(
+      dreamsAndGoals,
+      storedSelectionSources: dreamsAndGoalsSelectionSources,
+      storedCustomSelections: dreamsAndGoalsCustomItems(
+        dreamsAndGoals,
+        dreamsAndGoalsSelectionSources,
+      ),
+    );
+  }
+
+  /// Persists the form completion disclaimer using this model's injected
+  /// storage service.
+  Future<void> persistDisclaimerConfirmed() {
+    return service.setItem(
+      'disclaimerConfirmed',
+      PersistentMemoryType.Bool,
+      true,
+    );
+  }
+
+  /// Persists the completed-form marker using this model's injected storage
+  /// service.
+  Future<void> persistHasFilled() {
+    return service.setItem('hasFilled', PersistentMemoryType.Bool, true);
+  }
+
   void updateDisclaimerSigned(bool value) {
     disclaimerSigned = value;
     notifyListeners();

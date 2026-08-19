@@ -474,7 +474,14 @@ class _MyAppState extends State<MyApp> with WidgetsBindingObserver {
     try {
       await service.setItem("localeName", PersistentMemoryType.String, locale);
     } catch (error, stackTrace) {
-      debugPrint('Could not save locale preference: $error\n$stackTrace');
+      try {
+        await GetIt.instance<IncidentLoggerService>().captureLog(
+          error,
+          stackTrace: stackTrace,
+        );
+      } catch (_) {
+        // Logging is best effort for this background preference write.
+      }
     }
   }
 

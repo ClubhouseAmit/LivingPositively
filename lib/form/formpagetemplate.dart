@@ -10,7 +10,9 @@ import 'package:mazilon/form/wizard_step.dart';
 import 'package:mazilon/l10n/app_localizations.dart';
 import 'package:mazilon/pages/FormAnswer.dart';
 import 'package:mazilon/util/FormAnswer/addFormAnswer.dart';
+import 'package:mazilon/util/async/persistence_retry_snack_bar.dart';
 import 'package:mazilon/util/dreams_and_goals_selection.dart';
+import 'package:mazilon/util/logger_service.dart';
 import 'package:mazilon/util/persistent_memory_service.dart';
 import 'package:mazilon/util/styles.dart';
 import 'package:mazilon/util/theme/app_theme.dart';
@@ -197,11 +199,7 @@ class _FormPageTemplateState extends WizardStepState<FormPageTemplate> {
         ? userInfo.retryDreamsAndGoalsSave(revision)
         : userInfo.queueDreamsAndGoalsSave();
     final Future<void> disclaimerSave = Future<void>.sync(
-      () => GetIt.instance<PersistentMemoryService>().setItem(
-        'disclaimerConfirmed',
-        PersistentMemoryType.Bool,
-        true,
-      ),
+      userInfo.persistDisclaimerConfirmed,
     );
     final Future<void> combinedSave = Future.wait<void>([
       dreamsSave,
@@ -239,10 +237,6 @@ class _FormPageTemplateState extends WizardStepState<FormPageTemplate> {
         userInfo.updateSafeEnvironment([...selectedItems]);
         break;
       case 'PersonalPlan-DreamsAndGoals':
-        selectedItemSources = normalizeDreamsAndGoalsSelectionSources(
-          selectedItems,
-          selectedItemSources,
-        );
         userInfo.updateDreamsAndGoals(
           selectedItems,
           selectionSources: selectedItemSources,
@@ -260,11 +254,7 @@ class _FormPageTemplateState extends WizardStepState<FormPageTemplate> {
         return;
       default:
     }
-    await service.setItem(
-      "disclaimerConfirmed",
-      PersistentMemoryType.Bool,
-      true,
-    );
+    await userInfo.persistDisclaimerConfirmed();
     await service.setItem(
       'userSelection${widget.collectionName}',
       PersistentMemoryType.StringList,
@@ -296,10 +286,7 @@ class _FormPageTemplateState extends WizardStepState<FormPageTemplate> {
         break;
       case 'PersonalPlan-DreamsAndGoals':
         selectedItems = [...userInfo.dreamsAndGoals];
-        selectedItemSources = normalizeDreamsAndGoalsSelectionSources(
-          selectedItems,
-          userInfo.dreamsAndGoalsSelectionSources,
-        );
+        selectedItemSources = [...userInfo.dreamsAndGoalsSelectionSources];
         break;
       default:
     }
@@ -340,34 +327,28 @@ class _FormPageTemplateState extends WizardStepState<FormPageTemplate> {
   }
 
   void _showSaveFailure(Future<void> Function() retry) {
-    final ScaffoldMessengerState? messenger = ScaffoldMessenger.maybeOf(
-      context,
-    );
-    if (messenger == null) {
-      return;
-    }
-    messenger
-      ..hideCurrentSnackBar()
-      ..showSnackBar(
-        SnackBar(
-          content: Text(appLocale.asyncErrorMessage),
-          action: SnackBarAction(
-            label: appLocale.asyncRetryButton,
-            onPressed: () {
-              unawaited(_runSaveRetry(retry));
-            },
-          ),
-        ),
-      );
+    showPersistenceRetrySnackBar(context, () => _runSaveRetry(retry));
   }
 
   Future<void> _runSaveRetry(Future<void> Function() retry) async {
     try {
       await retry();
-    } catch (_) {
+    } catch (error, stackTrace) {
+      await _captureRetryFailure(error, stackTrace);
       if (mounted) {
         _showSaveFailure(retry);
       }
+    }
+  }
+
+  Future<void> _captureRetryFailure(Object error, StackTrace stackTrace) async {
+    try {
+      await GetIt.instance<IncidentLoggerService>().captureLog(
+        error,
+        stackTrace: stackTrace,
+      );
+    } catch (_) {
+      // Logging is best effort; it must not hide the retry affordance.
     }
   }
 

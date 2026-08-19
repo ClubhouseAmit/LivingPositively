@@ -210,7 +210,10 @@ void main() {
         };
         _registerFakes(store: store);
 
-        final userInfo = _makeUserInfo();
+        final repairedMetadataStore = <String, dynamic>{};
+        final userInfo = UserInformation(
+          service: _FakeMemory(repairedMetadataStore),
+        );
         await loadUserInformation(userInfo, 'en');
 
         const bookSource = 'catalogue:write-and-publish-a-book';
@@ -220,15 +223,27 @@ void main() {
           bookSource,
           dreamsAndGoalsCustomSelectionSource,
         ]);
-        expect(store['selectionSourcesPersonalPlan-DreamsAndGoals'], [
-          bookSource,
-          bookSource,
-          bookSource,
-          dreamsAndGoalsCustomSelectionSource,
-        ]);
-        expect(store['addedStringsPersonalPlan-DreamsAndGoals'], [
-          'My own goal',
-        ]);
+        expect(
+          repairedMetadataStore[dreamsAndGoalsSelectionStorageKey],
+          <String>[englishGoal, hebrewGoal, arabicGoal, 'My own goal'],
+        );
+        expect(
+          repairedMetadataStore[dreamsAndGoalsSelectionSourcesStorageKey],
+          <String>[
+            bookSource,
+            bookSource,
+            bookSource,
+            dreamsAndGoalsCustomSelectionSource,
+          ],
+        );
+        expect(
+          repairedMetadataStore[dreamsAndGoalsCustomSelectionsStorageKey],
+          <String>['My own goal'],
+        );
+        expect(
+          store.containsKey(dreamsAndGoalsSelectionSourcesStorageKey),
+          isFalse,
+        );
       },
     );
 

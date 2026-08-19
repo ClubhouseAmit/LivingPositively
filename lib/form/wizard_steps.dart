@@ -1,5 +1,6 @@
-import 'package:flutter/material.dart';
+import 'dart:async';
 
+import 'package:flutter/material.dart';
 import 'package:mazilon/form/formpagetemplate.dart';
 import 'package:mazilon/form/phonePageform.dart';
 import 'package:mazilon/form/shareform.dart';
@@ -10,7 +11,7 @@ List<WizardStep> buildWizardSteps({
   required VoidCallback next,
   required VoidCallback prev,
   required PhonePageData phonePageData,
-  required Future<void> Function(BuildContext context) submit,
+  required FutureOr<void> Function(BuildContext context) submit,
 }) {
   FormPageTemplate planStep(String collectionName) => FormPageTemplate(
     key: GlobalKey<WizardStepState>(debugLabel: collectionName),

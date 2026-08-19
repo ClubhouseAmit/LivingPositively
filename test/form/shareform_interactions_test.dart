@@ -18,6 +18,7 @@ import 'package:mazilon/file_service.dart';
 import 'package:mazilon/form/shareform.dart';
 import 'package:mazilon/form/wizard_step.dart';
 import 'package:mazilon/global_enums.dart';
+import 'package:mazilon/util/Share/LP_share_alert_dialog.dart';
 import 'package:mazilon/util/persistent_memory_service.dart';
 import 'package:mazilon/util/userInformation.dart';
 
@@ -111,10 +112,25 @@ Future<void> _openDreamsAndGoalsAndAddOwnGoal(WidgetTester tester) async {
 }
 
 void _pressIconButton(WidgetTester tester, IconData icon) {
-  final button = tester.widget<IconButton>(
-    find.ancestor(of: find.byIcon(icon), matching: find.byType(IconButton)),
+  final Finder iconFinder = find.byIcon(icon);
+  final IconButton button = tester.widget<IconButton>(
+    find.ancestor(of: iconFinder, matching: find.byType(IconButton)),
   );
   button.onPressed!();
+}
+
+Future<void> _pressIconButtonInAsyncZone(
+  WidgetTester tester,
+  IconData icon,
+) async {
+  final Finder iconFinder = find.byIcon(icon);
+  final IconButton button = tester.widget<IconButton>(
+    find.ancestor(of: iconFinder, matching: find.byType(IconButton)),
+  );
+  await tester.runAsync(() async {
+    button.onPressed!();
+    await Future<void>.delayed(Duration.zero);
+  });
 }
 
 void _pressWizardPrimaryAction(WidgetTester tester) {
@@ -125,6 +141,7 @@ void _pressWizardPrimaryAction(WidgetTester tester) {
 }
 
 Future<void> _flushAsyncAction(WidgetTester tester) async {
+  await tester.pump();
   await tester.runAsync(() => Future<void>.delayed(Duration.zero));
   await tester.pump();
 }
@@ -170,13 +187,10 @@ void main() {
     // The share icon is the first IconButton.
     final shareIcon = find.byIcon(Icons.share);
     expect(shareIcon, findsOneWidget);
-    _pressIconButton(tester, Icons.share);
+    await _pressIconButtonInAsyncZone(tester, Icons.share);
     await _flushAsyncAction(tester);
     await tester.pumpAndSettle();
-    // showShareDialog opens an AlertDialog/Dialog from
-    // util/Share/show_share_dialog.dart — verify a Dialog mounted without
-    // crashing.
-    expect(find.byType(Dialog), findsWidgets);
+    expect(find.byType(LPShareAlertDialog), findsOneWidget);
   });
 
   testWidgets('tapping the download IconButton invokes FileService.download '
@@ -196,18 +210,82 @@ void main() {
 
     final downloadIcon = find.byIcon(Icons.download);
     expect(downloadIcon, findsOneWidget);
-    final downloadButton = tester.widget<IconButton>(
-      find.ancestor(of: downloadIcon, matching: find.byType(IconButton)),
-    );
-    downloadButton.onPressed!();
-    await tester.runAsync(() => Future<void>.delayed(Duration.zero));
-    await tester.pump();
+    await _pressIconButtonInAsyncZone(tester, Icons.download);
+    await _flushAsyncAction(tester);
 
     expect(services.files.downloadCalls, 1);
     await tester.pump(const Duration(seconds: 2));
   });
 
   group('ShareForm', () {
+    testWidgets(
+      'should persist has-filled through the injected UserInformation service',
+      (tester) async {
+        final injectedMemory = FakePersistentMemoryService();
+        user = UserInformation(service: injectedMemory)
+          ..gender = 'other'
+          ..localeName = 'en';
+
+        await pumpWithProviders(
+          tester,
+          wizardStepHarness(
+            ShareForm(
+              key: GlobalKey<WizardStepState>(),
+              prev: () {},
+              submit: (_) {},
+            ),
+          ),
+          userInformation: user,
+          surfaceSize: const Size(1024, 1800),
+        );
+        await _flushAsyncAction(tester);
+
+        expect(injectedMemory.store['hasFilled'], isTrue);
+        expect(services.memory.store['hasFilled'], isNull);
+      },
+    );
+
+    testWidgets(
+      'should not show a persistence Retry when the finish action fails',
+      (tester) async {
+        var actionCalls = 0;
+        final stepKey = GlobalKey<WizardStepState>();
+
+        await pumpWithProviders(
+          tester,
+          wizardStepHarness(
+            ShareForm(
+              key: stepKey,
+              prev: () {},
+              submit: (_) {
+                actionCalls++;
+                throw StateError('finish action failed');
+              },
+            ),
+          ),
+          userInformation: user,
+          surfaceSize: const Size(1024, 1800),
+        );
+
+        await tester.runAsync(() async {
+          await expectLater(
+            stepKey.currentState!.onPrimaryAction(),
+            throwsA(
+              isA<StateError>().having(
+                (StateError error) => error.message,
+                'message',
+                'finish action failed',
+              ),
+            ),
+          );
+        });
+        await tester.pump();
+
+        expect(actionCalls, 1);
+        expect(find.widgetWithText(SnackBarAction, 'Try again'), findsNothing);
+      },
+    );
+
     testWidgets('should wait for the latest shared dream snapshot before exporting', (
       tester,
     ) async {
@@ -399,19 +477,63 @@ void main() {
         await tester.pump(const Duration(seconds: 2));
       },
     );
+
+    testWidgets(
+      'should log a failed persistence Retry before offering it again',
+      (tester) async {
+        final failingMemory = _FailingDreamsMemoryService();
+        final locator = GetIt.instance;
+        locator.unregister<PersistentMemoryService>();
+        locator.registerSingleton<PersistentMemoryService>(failingMemory);
+        user = UserInformation(service: failingMemory)
+          ..gender = 'other'
+          ..localeName = 'en';
+
+        await pumpWithProviders(
+          tester,
+          wizardStepHarness(
+            ShareForm(
+              key: GlobalKey<WizardStepState>(),
+              prev: () {},
+              submit: (_) {},
+            ),
+          ),
+          userInformation: user,
+          surfaceSize: const Size(1024, 1800),
+        );
+
+        _pressIconButton(tester, Icons.download);
+        await _flushAsyncAction(tester);
+        tester
+            .widget<SnackBarAction>(
+              find.widgetWithText(SnackBarAction, 'Try again'),
+            )
+            .onPressed();
+        await _flushAsyncAction(tester);
+
+        expect(services.logger.captured, isNotEmpty);
+        expect(services.logger.captured.last, isA<StateError>());
+        expect(
+          find.widgetWithText(SnackBarAction, 'Try again'),
+          findsOneWidget,
+        );
+      },
+    );
+
   });
 
-  testWidgets('tapping the finish button calls widget.submit with context', (
+  testWidgets('should support a synchronous submit callback', (
     tester,
   ) async {
     var submitCalls = 0;
+    final stepKey = GlobalKey<WizardStepState>();
     await pumpWithProviders(
       tester,
       wizardStepHarness(
         ShareForm(
-          key: GlobalKey<WizardStepState>(),
+          key: stepKey,
           prev: () {},
-          submit: (_) async {
+          submit: (_) {
             submitCalls++;
           },
         ),
@@ -420,9 +542,47 @@ void main() {
       surfaceSize: const Size(1024, 1800),
     );
 
-    _pressWizardPrimaryAction(tester);
-    await _flushAsyncAction(tester);
+    await tester.runAsync(() => stepKey.currentState!.onPrimaryAction());
 
     expect(submitCalls, 1);
+  });
+
+  testWidgets('should await an asynchronous submit callback', (tester) async {
+    final Completer<void> completion = Completer<void>();
+    final stepKey = GlobalKey<WizardStepState>();
+    var submitCalls = 0;
+    var actionCompleted = false;
+
+    await pumpWithProviders(
+      tester,
+      wizardStepHarness(
+        ShareForm(
+          key: stepKey,
+          prev: () {},
+          submit: (_) async {
+            submitCalls++;
+            await completion.future;
+          },
+        ),
+      ),
+      userInformation: user,
+      surfaceSize: const Size(1024, 1800),
+    );
+
+    late Future<void> action;
+    await tester.runAsync(() async {
+      action = stepKey.currentState!.onPrimaryAction().then((_) {
+        actionCompleted = true;
+      });
+      await Future<void>.delayed(Duration.zero);
+    });
+
+    expect(submitCalls, 1);
+    expect(actionCompleted, isFalse);
+
+    completion.complete();
+    await tester.runAsync(() => action);
+
+    expect(actionCompleted, isTrue);
   });
 }

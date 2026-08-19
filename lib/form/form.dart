@@ -6,6 +6,8 @@ import 'package:flutter/material.dart';
 import 'package:get_it/get_it.dart';
 import 'package:mazilon/global_enums.dart';
 import 'package:mazilon/util/LP_extended_state.dart';
+import 'package:mazilon/util/async/persistence_retry_snack_bar.dart';
+import 'package:mazilon/util/logger_service.dart';
 import 'package:mazilon/util/persistent_memory_service.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 
@@ -82,7 +84,7 @@ class FormProgressIndicatorState
     });
   }
 
-  Future<void> submitForm(BuildContext mycontext) async {
+  Future<void> submitForm(BuildContext context) async {
     PersistentMemoryService service =
         GetIt.instance<
           PersistentMemoryService
@@ -91,9 +93,8 @@ class FormProgressIndicatorState
     if (name.isNotEmpty) {
       await service.setItem("name", PersistentMemoryType.String, name);
     }
-    if (mounted) {
-      navigateToMenu(mycontext);
-    }
+    if (!context.mounted) return;
+    navigateToMenu(context);
   }
 
   void navigateToMenu(mycontext) {
@@ -130,7 +131,10 @@ class FormProgressIndicatorState
       if (mounted) {
         navigate();
       }
-    } catch (_) {
+    } catch (error, stackTrace) {
+      if (retry) {
+        await _captureHeaderRetryFailure(error, stackTrace);
+      }
       if (mounted) {
         _showHeaderPersistenceFailure(
           () => _persistThenNavigate(context, navigate, retry: true),
@@ -142,25 +146,21 @@ class FormProgressIndicatorState
   }
 
   void _showHeaderPersistenceFailure(Future<void> Function() retry) {
-    final ScaffoldMessengerState? messenger = ScaffoldMessenger.maybeOf(
-      context,
-    );
-    if (messenger == null) {
-      return;
-    }
-    messenger
-      ..hideCurrentSnackBar()
-      ..showSnackBar(
-        SnackBar(
-          content: Text(appLocale.asyncErrorMessage),
-          action: SnackBarAction(
-            label: appLocale.asyncRetryButton,
-            onPressed: () {
-              unawaited(retry());
-            },
-          ),
-        ),
+    showPersistenceRetrySnackBar(context, retry);
+  }
+
+  Future<void> _captureHeaderRetryFailure(
+    Object error,
+    StackTrace stackTrace,
+  ) async {
+    try {
+      await GetIt.instance<IncidentLoggerService>().captureLog(
+        error,
+        stackTrace: stackTrace,
       );
+    } catch (_) {
+      // Logging is best effort; it must not hide the retry affordance.
+    }
   }
 
   List<WizardStep> steps = [];
