@@ -30,6 +30,49 @@ import 'package:mazilon/util/Share/show_share_dialog.dart';
 const String _customCategoryTitlesKey = 'customCategoryTitles';
 const String _customCategoryDescriptionsKey = 'customCategoryDescriptions';
 
+enum _DreamsAndGoalsActionPreparationState { ready, blocked, failed }
+
+/// The result of preparing a Share action that depends on Dreams and Goals.
+///
+/// [retryRevision] is captured before each persistence await so a retry never
+/// replays an older snapshot over a newer edit.
+class _DreamsAndGoalsActionPreparation {
+  const _DreamsAndGoalsActionPreparation._(
+    this.state, {
+    required this.retryRevision,
+    this.error,
+    this.stackTrace,
+  });
+
+  const _DreamsAndGoalsActionPreparation.ready(int retryRevision)
+    : this._(
+        _DreamsAndGoalsActionPreparationState.ready,
+        retryRevision: retryRevision,
+      );
+
+  const _DreamsAndGoalsActionPreparation.blocked(int retryRevision)
+    : this._(
+        _DreamsAndGoalsActionPreparationState.blocked,
+        retryRevision: retryRevision,
+      );
+
+  const _DreamsAndGoalsActionPreparation.failed(
+    int retryRevision,
+    Object error,
+    StackTrace stackTrace,
+  ) : this._(
+        _DreamsAndGoalsActionPreparationState.failed,
+        retryRevision: retryRevision,
+        error: error,
+        stackTrace: stackTrace,
+      );
+
+  final _DreamsAndGoalsActionPreparationState state;
+  final int retryRevision;
+  final Object? error;
+  final StackTrace? stackTrace;
+}
+
 class ShareForm extends WizardStep {
   final Function prev;
   final FutureOr<void> Function(BuildContext context) submit;
@@ -532,95 +575,107 @@ class _ShareFormState extends WizardStepState<ShareForm> {
         : userInformation.pendingDreamsAndGoalsSave;
   }
 
-  /// Completes the shared Dreams persistence and source-repair flow before a
-  /// Share action. [onRevisionCaptured] runs before each persistence await so
-  /// callers can retry the same snapshot if repair or persistence fails.
-  /// Action flows set [useRevisionCapturedAtRepairStart] to retain their
-  /// existing pre-repair completion revision semantics.
+  /// Prepares Dreams and Goals state for a Share action.
   ///
-  /// Returns false when the person dismisses the custom-goal recovery dialog.
-  Future<bool> _persistAndRepairDreamsAndGoals(
+  /// The returned outcome keeps persistence failures separate from the action
+  /// that follows, and records the current revision before each await that can
+  /// fail. A retry therefore replays the latest prepared snapshot rather than
+  /// an earlier state.
+  Future<_DreamsAndGoalsActionPreparation> _prepareDreamsAndGoalsAction(
     UserInformation userInformation, {
     required bool retry,
-    required Future<void> Function(int revision) persistDreamsAndGoals,
-    void Function(int revision)? onRevisionCaptured,
-    bool useRevisionCapturedAtRepairStart = false,
+    required int retryRevision,
   }) async {
-    final bool retriedPendingConflictResolution =
-        userInformation.hasPendingDreamsAndGoalsCustomConflictResolution;
-    if (retriedPendingConflictResolution) {
-      await userInformation.retryDreamsAndGoalsCustomConflictResolution();
-    } else {
-      await _persistInlineDreamsAndGoals(userInformation, retry: retry);
+    try {
+      final bool retriedPendingConflictResolution =
+          userInformation.hasPendingDreamsAndGoalsCustomConflictResolution;
+      if (retriedPendingConflictResolution) {
+        await userInformation.retryDreamsAndGoalsCustomConflictResolution();
+      } else {
+        await _persistInlineDreamsAndGoals(userInformation, retry: retry);
+      }
+
+      final int revisionBeforeRepair =
+          userInformation.dreamsAndGoalsSaveRevision;
+      retryRevision = revisionBeforeRepair;
+      final Future<void> repair = userInformation
+          .repairDreamsAndGoalsSelectionSources();
+      retryRevision = userInformation.dreamsAndGoalsSaveRevision;
+      await repair;
+      if (userInformation.hasPendingDreamsAndGoalsCustomConflictResolution) {
+        return _DreamsAndGoalsActionPreparation.blocked(retryRevision);
+      }
+
+      final _DreamsAndGoalsActionPreparation conflictResolution =
+          await _resolveDreamsAndGoalsCustomConflict(
+            userInformation,
+            retryRevision: retryRevision,
+          );
+      if (conflictResolution.state !=
+          _DreamsAndGoalsActionPreparationState.ready) {
+        return conflictResolution;
+      }
+      retryRevision = conflictResolution.retryRevision;
+
+      // A retry has already persisted the current snapshot through
+      // _persistInlineDreamsAndGoals. Repeating it here would enqueue the
+      // same three-key snapshot a second time before the deferred action runs.
+      if (!retry &&
+          !retriedPendingConflictResolution &&
+          userInformation.dreamsAndGoalsSaveRevision == revisionBeforeRepair) {
+        retryRevision = userInformation.dreamsAndGoalsSaveRevision;
+        await userInformation.queueDreamsAndGoalsSave();
+      }
+      return _DreamsAndGoalsActionPreparation.ready(retryRevision);
+    } catch (error, stackTrace) {
+      return _DreamsAndGoalsActionPreparation.failed(
+        retryRevision,
+        error,
+        stackTrace,
+      );
     }
-    final int revisionBeforeRepair = userInformation.dreamsAndGoalsSaveRevision;
-    final Future<void> repair = userInformation
-        .repairDreamsAndGoalsSelectionSources();
-    final int revisionAtRepairStart =
-        userInformation.dreamsAndGoalsSaveRevision;
-    onRevisionCaptured?.call(revisionAtRepairStart);
-    await repair;
-    if (userInformation.hasPendingDreamsAndGoalsCustomConflictResolution) {
-      return false;
-    }
-    if (!await _resolveDreamsAndGoalsCustomConflict(
-      userInformation,
-      onRevisionCaptured: onRevisionCaptured,
-    )) {
-      return false;
-    }
-    final int revisionAfterConflictResolution =
-        userInformation.dreamsAndGoalsSaveRevision;
-    final int revisionForConditionalSave =
-        revisionAfterConflictResolution != revisionAtRepairStart
-        ? revisionAfterConflictResolution
-        : useRevisionCapturedAtRepairStart
-        ? revisionAtRepairStart
-        : revisionAfterConflictResolution;
-    // A retry has already persisted the current snapshot through
-    // _persistInlineDreamsAndGoals. Repeating it here would enqueue the same
-    // three-key snapshot a second time before the deferred action runs.
-    if (!retry &&
-        !retriedPendingConflictResolution &&
-        revisionForConditionalSave == revisionBeforeRepair) {
-      await persistDreamsAndGoals(revisionForConditionalSave);
-    }
-    return true;
   }
 
-  Future<bool> _resolveDreamsAndGoalsCustomConflict(
+  Future<_DreamsAndGoalsActionPreparation>
+  _resolveDreamsAndGoalsCustomConflict(
     UserInformation userInformation, {
-    void Function(int revision)? onRevisionCaptured,
+    required int retryRevision,
   }) async {
-    if (!mounted) {
-      return false;
-    }
-    if (userInformation.hasPendingDreamsAndGoalsCustomConflictResolution) {
-      return false;
-    }
-    final customSelectionIndexes =
-        userInformation.dreamsAndGoalsCustomSelectionIndexes;
-    if (customSelectionIndexes.length <= 1) {
-      return true;
-    }
+    try {
+      if (!mounted ||
+          userInformation.hasPendingDreamsAndGoalsCustomConflictResolution) {
+        return _DreamsAndGoalsActionPreparation.blocked(retryRevision);
+      }
+      final List<int> customSelectionIndexes =
+          userInformation.dreamsAndGoalsCustomSelectionIndexes;
+      if (customSelectionIndexes.length <= 1) {
+        return _DreamsAndGoalsActionPreparation.ready(retryRevision);
+      }
 
-    final retainedSelectionIndex = await showDreamsAndGoalsCustomConflictDialog(
-      context,
-      selections: userInformation.dreamsAndGoals,
-      customSelectionIndexes: customSelectionIndexes,
-      gender: userInformation.gender,
-    );
-    if (retainedSelectionIndex == null) {
-      return false;
-    }
+      final int? retainedSelectionIndex =
+          await showDreamsAndGoalsCustomConflictDialog(
+            context,
+            selections: userInformation.dreamsAndGoals,
+            customSelectionIndexes: customSelectionIndexes,
+            gender: userInformation.gender,
+          );
+      if (retainedSelectionIndex == null) {
+        return _DreamsAndGoalsActionPreparation.blocked(retryRevision);
+      }
 
-    final Future<void> resolution = userInformation
-        .resolveDreamsAndGoalsCustomConflict(
-      retainedSelectionIndex,
-    );
-    onRevisionCaptured?.call(userInformation.dreamsAndGoalsSaveRevision);
-    await resolution;
-    return true;
+      retryRevision = userInformation.dreamsAndGoalsSaveRevision;
+      final Future<void> resolution = userInformation
+          .resolveDreamsAndGoalsCustomConflict(retainedSelectionIndex);
+      retryRevision = userInformation.dreamsAndGoalsSaveRevision;
+      await resolution;
+      return _DreamsAndGoalsActionPreparation.ready(retryRevision);
+    } catch (error, stackTrace) {
+      return _DreamsAndGoalsActionPreparation.failed(
+        retryRevision,
+        error,
+        stackTrace,
+      );
+    }
   }
 
   Future<void> _toggleDreamsAndGoals({bool retry = false}) async {
@@ -652,7 +707,20 @@ class _ShareFormState extends WizardStepState<ShareForm> {
         if (userInformation.hasPendingDreamsAndGoalsCustomConflictResolution) {
           return;
         }
-        if (!await _resolveDreamsAndGoalsCustomConflict(userInformation)) {
+        final _DreamsAndGoalsActionPreparation conflictResolution =
+            await _resolveDreamsAndGoalsCustomConflict(
+              userInformation,
+              retryRevision: userInformation.dreamsAndGoalsSaveRevision,
+            );
+        if (conflictResolution.state ==
+            _DreamsAndGoalsActionPreparationState.failed) {
+          Error.throwWithStackTrace(
+            conflictResolution.error!,
+            conflictResolution.stackTrace!,
+          );
+        }
+        if (conflictResolution.state !=
+            _DreamsAndGoalsActionPreparationState.ready) {
           return;
         }
         if (mounted) {
@@ -698,26 +766,25 @@ class _ShareFormState extends WizardStepState<ShareForm> {
     UserInformation userInformation,
     FutureOr<void> Function() action,
   ) async {
-    int capturedRevision = userInformation.dreamsAndGoalsSaveRevision;
-    try {
-      final bool canRunAction = await _persistAndRepairDreamsAndGoals(
-        userInformation,
-        retry: false,
-        persistDreamsAndGoals: (_) =>
-            userInformation.queueDreamsAndGoalsSave(),
-        onRevisionCaptured: (revision) => capturedRevision = revision,
-        useRevisionCapturedAtRepairStart: true,
+    final _DreamsAndGoalsActionPreparation preparation =
+        await _prepareDreamsAndGoalsAction(
+          userInformation,
+          retry: false,
+          retryRevision: userInformation.dreamsAndGoalsSaveRevision,
+        );
+    if (preparation.state == _DreamsAndGoalsActionPreparationState.blocked) {
+      return;
+    }
+    if (preparation.state == _DreamsAndGoalsActionPreparationState.failed) {
+      await _captureDreamsAndGoalsFailure(
+        preparation.error!,
+        preparation.stackTrace!,
       );
-      if (!canRunAction) {
-        return;
-      }
-    } catch (error, stackTrace) {
-      await _captureDreamsAndGoalsFailure(error, stackTrace);
       if (mounted) {
         _showDreamsAndGoalsSaveFailure(
           () => _retryDreamsAndGoalsAction(
             userInformation,
-            capturedRevision,
+            preparation.retryRevision,
             action,
           ),
         );
@@ -735,24 +802,25 @@ class _ShareFormState extends WizardStepState<ShareForm> {
     int capturedRevision,
     FutureOr<void> Function() action,
   ) async {
-    try {
-      final bool canRunAction = await _persistAndRepairDreamsAndGoals(
-        userInformation,
-        retry: true,
-        persistDreamsAndGoals: userInformation.retryDreamsAndGoalsSave,
-        onRevisionCaptured: (revision) => capturedRevision = revision,
-        useRevisionCapturedAtRepairStart: true,
+    final _DreamsAndGoalsActionPreparation preparation =
+        await _prepareDreamsAndGoalsAction(
+          userInformation,
+          retry: true,
+          retryRevision: capturedRevision,
+        );
+    if (preparation.state == _DreamsAndGoalsActionPreparationState.blocked) {
+      return;
+    }
+    if (preparation.state == _DreamsAndGoalsActionPreparationState.failed) {
+      await _captureDreamsAndGoalsFailure(
+        preparation.error!,
+        preparation.stackTrace!,
       );
-      if (!canRunAction) {
-        return;
-      }
-    } catch (error, stackTrace) {
-      await _captureDreamsAndGoalsFailure(error, stackTrace);
       if (mounted) {
         _showDreamsAndGoalsSaveFailure(
           () => _retryDreamsAndGoalsAction(
             userInformation,
-            capturedRevision,
+            preparation.retryRevision,
             action,
           ),
         );

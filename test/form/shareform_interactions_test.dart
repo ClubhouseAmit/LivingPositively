@@ -1133,7 +1133,7 @@ void main() {
       'should block download and finish on a save failure until Retry succeeds',
       (tester) async {
         final failingMemory = _DreamsMemoryHarness()
-          ..failSelectionWrite = true;
+          ..failAllDreamsWrites = true;
         final exportFiles = _ExportReadingFileService(failingMemory.service);
         final locator = GetIt.instance;
         locator.unregister<PersistentMemoryService>();
@@ -1167,8 +1167,9 @@ void main() {
           find.widgetWithText(SnackBarAction, 'Try again'),
           findsOneWidget,
         );
+        final int capturedRevision = user.dreamsAndGoalsSaveRevision;
 
-        failingMemory.failSelectionWrite = false;
+        failingMemory.failAllDreamsWrites = false;
         tester
             .widget<SnackBarAction>(
               find.widgetWithText(SnackBarAction, 'Try again'),
@@ -1176,8 +1177,16 @@ void main() {
             .onPressed();
         await _flushAsyncAction(tester);
         expect(exportFiles.downloadCalls, 1);
+        expect(user.dreamsAndGoalsSaveRevision, capturedRevision);
+        for (final key in <String>[
+          _dreamsAndGoalsSelectionKey,
+          _dreamsAndGoalsSelectionSourcesKey,
+          _dreamsAndGoalsAddedStringsKey,
+        ]) {
+          expect(failingMemory.completedWritesFor(key), hasLength(1));
+        }
 
-        failingMemory.failSelectionWrite = true;
+        failingMemory.failAllDreamsWrites = true;
         _pressWizardPrimaryAction(tester);
         await _flushAsyncAction(tester);
         expect(submitCalls, 0);
@@ -1186,7 +1195,7 @@ void main() {
           findsOneWidget,
         );
 
-        failingMemory.failSelectionWrite = false;
+        failingMemory.failAllDreamsWrites = false;
         tester
             .widget<SnackBarAction>(
               find.widgetWithText(SnackBarAction, 'Try again'),

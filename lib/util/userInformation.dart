@@ -347,6 +347,10 @@ class UserInformation with ChangeNotifier {
 
   /// Queues an immutable three-key snapshot after any prior Dreams save.
   ///
+  /// This stays with the shared injected [UserInformation] storage state,
+  /// matching the existing model convention and keeping the wizard and Share
+  /// surfaces synchronized around one revision-aware queue.
+  ///
   /// A failed older write does not block a later snapshot: each new save
   /// continues after the previous error so the latest queued state wins.
   Future<void> queueDreamsAndGoalsSave() {
