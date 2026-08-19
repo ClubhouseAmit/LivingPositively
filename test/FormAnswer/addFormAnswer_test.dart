@@ -1,12 +1,18 @@
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:get_it/get_it.dart';
+import 'package:mazilon/form/speech_dictation_suffix_action.dart';
 import 'package:mazilon/global_enums.dart';
 import 'package:mazilon/l10n/app_localizations.dart';
 import 'package:mazilon/util/FormAnswer/addFormAnswer.dart';
 import 'package:mazilon/util/persistent_memory_service.dart';
+import 'package:mazilon/util/speech_recognition_service.dart';
 import 'package:mazilon/util/userInformation.dart';
 import 'package:provider/provider.dart';
+
+import '../helpers/widget_test_scaffold.dart' show NoopSpeechRecognitionService;
 
 class _FakePersistentMemoryService implements PersistentMemoryService {
   @override
@@ -45,11 +51,19 @@ void main() {
 
   late UserInformation userInfo;
 
-  setUp(() {
+  setUp(() async {
+    await GetIt.instance.reset();
+    GetIt.instance.registerSingleton<SpeechRecognitionService>(
+      NoopSpeechRecognitionService(),
+    );
     userInfo = UserInformation(
       service: _FakePersistentMemoryService(),
       gender: 'male',
     );
+  });
+
+  tearDown(() async {
+    await GetIt.instance.reset();
   });
 
   testWidgets('renders the initial text in the editor', (tester) async {
@@ -60,6 +74,64 @@ void main() {
 
     expect(find.text('hello'), findsOneWidget);
   });
+
+  testWidgets(
+    'should hide dictation on the personal-plan answer field when feature flag is disabled',
+    (tester) async {
+      final previousFeatureEnabled =
+          SpeechDictationSuffixAction.isFeatureEnabled;
+      final originalPlatform = debugDefaultTargetPlatformOverride;
+      SpeechDictationSuffixAction.isFeatureEnabled = false;
+      debugDefaultTargetPlatformOverride = TargetPlatform.android;
+      try {
+        await tester.pumpWidget(
+          _hostDialog(userInfo: userInfo, edit: (_, _) {}, text: 'hello'),
+        );
+        await tester.pumpAndSettle();
+
+        final field = tester.widget<TextField>(
+          find.descendant(
+            of: find.byType(TextFormField),
+            matching: find.byType(TextField),
+          ),
+        );
+        expect(field.decoration?.suffixIcon, isNull);
+        expect(find.byKey(const Key('speech-dictation-start')), findsNothing);
+      } finally {
+        SpeechDictationSuffixAction.isFeatureEnabled = previousFeatureEnabled;
+        debugDefaultTargetPlatformOverride = originalPlatform;
+      }
+    },
+  );
+
+  testWidgets(
+    'should expose dictation on the personal-plan answer field when enabled',
+    (tester) async {
+      final previousFeatureEnabled =
+          SpeechDictationSuffixAction.isFeatureEnabled;
+      final originalPlatform = debugDefaultTargetPlatformOverride;
+      SpeechDictationSuffixAction.isFeatureEnabled = true;
+      debugDefaultTargetPlatformOverride = TargetPlatform.android;
+      try {
+        await tester.pumpWidget(
+          _hostDialog(userInfo: userInfo, edit: (_, _) {}, text: 'hello'),
+        );
+        await tester.pumpAndSettle();
+
+        final field = tester.widget<TextField>(
+          find.descendant(
+            of: find.byType(TextFormField),
+            matching: find.byType(TextField),
+          ),
+        );
+        expect(field.decoration?.suffixIcon, isA<SpeechDictationSuffixAction>());
+        expect(find.byKey(const Key('speech-dictation-start')), findsOneWidget);
+      } finally {
+        SpeechDictationSuffixAction.isFeatureEnabled = previousFeatureEnabled;
+        debugDefaultTargetPlatformOverride = originalPlatform;
+      }
+    },
+  );
 
   testWidgets('cancel button closes the dialog without invoking edit', (
     tester,

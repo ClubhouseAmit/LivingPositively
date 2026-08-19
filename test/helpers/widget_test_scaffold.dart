@@ -7,25 +7,30 @@
 // depend on AppLocalizations / Provider.of<UserInformation>() / etc. build
 // the same way they do at runtime.
 
+import 'dart:async';
 import 'dart:io';
-import 'dart:typed_data';
 
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:get_it/get_it.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:mazilon/AnalyticsService.dart';
 import 'package:mazilon/Locale/locale_service.dart';
 import 'package:mazilon/file_service.dart';
+import 'package:mazilon/form/wizard_step.dart';
 import 'package:mazilon/global_enums.dart';
 import 'package:mazilon/l10n/app_localizations.dart';
 import 'package:mazilon/pages/FeelGood/image_picker_service_impl.dart';
 import 'package:mazilon/pages/WellnessTools/VideoPlayerPageFactory.dart';
+import 'package:mazilon/pages/sos_location_service.dart';
 import 'package:mazilon/util/appInformation.dart';
 import 'package:mazilon/util/logger_service.dart';
 import 'package:mazilon/util/persistent_memory_service.dart';
+import 'package:mazilon/util/speech_recognition_service.dart';
 import 'package:mazilon/util/userInformation.dart';
 import 'package:provider/provider.dart';
+import 'package:share_plus/share_plus.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 /// In-memory implementation of [PersistentMemoryService] backed by a [Map].
@@ -74,6 +79,29 @@ class FakePersistentMemoryService implements PersistentMemoryService {
   }
 }
 
+/// [FakePersistentMemoryService] whose `localeName` read is held open until the
+/// test releases [localeGate].
+///
+/// `MyApp.build` renders its boot spinner only while `localeName == ''`, and
+/// `setLocale()` clears that as soon as the persistent-memory read resolves.
+/// Under the on-device (live) binding used by `integration_test/`, real vsync
+/// frames run between `pumpWidget()` and the first assertion, so the spinner
+/// frame is gone before any `expect` can see it — pumping longer only makes
+/// that worse. Gating the one read that drives the branch makes the loading
+/// state stable for as many frames as the assertion needs; completing the gate
+/// then exercises the transition out of it.
+class GatedLocalePersistentMemoryService extends FakePersistentMemoryService {
+  final Completer<void> localeGate = Completer<void>();
+
+  @override
+  Future<dynamic> getItem(String key, PersistentMemoryType type) async {
+    if (key == 'localeName') {
+      await localeGate.future;
+    }
+    return super.getItem(key, type);
+  }
+}
+
 /// No-op logger that records exceptions for assertions if needed.
 class NoopIncidentLoggerService implements IncidentLoggerService {
   final List<dynamic> captured = [];
@@ -118,29 +146,79 @@ class NoopFileService implements FileService {
     List<dynamic> titles,
     List<dynamic> subTitles,
     Map<String, String> texts,
-    ShareFileType saveFormat,
-    String textDirection,
-  ) async {
+    ShareFileType saveFormat, {
+    required String mainTitle,
+    required String textDirection,
+  }) async {
     downloadCalls++;
     return null;
   }
 
   @override
-  Future<void> share(
+  Future<ShareResult?> share(
     String message,
     List<dynamic> titles,
     List<dynamic> subTitles,
     Map<String, String> texts,
-    ShareFileType saveFormat,
-    String textDirection,
-  ) async {
+    ShareFileType saveFormat, {
+    required String mainTitle,
+    required String textDirection,
+  }) async {
     shareCalls++;
+    return const ShareResult('noop', ShareResultStatus.success);
   }
 
   @override
   Future<bool> shareTextOnly(String message) async {
     shareTextCalls++;
     return true;
+  }
+}
+
+/// Location service that safely reports no location in generic widget tests.
+class NoopSosLocationService implements SosLocationService {
+  @override
+  Future<SosLocationLookupResult> lookupCurrentPosition() async {
+    return SosLocationFailureResult(SosLocationFailureKind.unavailable);
+  }
+}
+
+/// Speech recognition fake that keeps generic widget tests off platform APIs.
+///
+/// It consistently reports speech recognition as unavailable and never retains
+/// or invokes the callback supplied to [start].
+class NoopSpeechRecognitionService implements SpeechRecognitionService {
+  @override
+  bool get hasActiveSession => false;
+
+  @override
+  Future<SpeechRecognitionAvailability> initialize() async {
+    return SpeechRecognitionAvailability.unavailable;
+  }
+
+  @override
+  Future<SpeechRecognitionLocalesResult> locales() async {
+    return const SpeechRecognitionLocalesUnavailable();
+  }
+
+  @override
+  Future<SpeechRecognitionSessionStartResult> start({
+    required String localeId,
+    required SpeechRecognitionEventCallback onEvent,
+  }) async {
+    return const SpeechRecognitionSessionStartFailure(
+      SpeechRecognitionSessionStartFailureKind.unavailable,
+    );
+  }
+
+  @override
+  Future<SpeechRecognitionSessionControlResult> stop() async {
+    return SpeechRecognitionSessionControlResult.noActiveSession;
+  }
+
+  @override
+  Future<SpeechRecognitionSessionControlResult> cancel() async {
+    return SpeechRecognitionSessionControlResult.noActiveSession;
   }
 }
 
@@ -166,17 +244,20 @@ class NoopImagePickerService implements ImagePickerService {
     }
   }
 
+  List<String> seededImagePaths = [];
+
   @override
-  Future<void> loadImagePaths(List<String> imagePaths) async {}
+  Future<void> loadImagePaths(List<String> imagePaths) async {
+    imagePaths.addAll(seededImagePaths);
+  }
 
   @override
   displayImage(String path, {BoxFit fit = BoxFit.none}) {
-    return Image.memory(
-      Uint8List(0),
-      fit: fit,
-      errorBuilder: (_, _, _) {
-        return SizedBox.shrink(key: Key('test-image-$path'));
-      },
+    return Container(
+      width: 100,
+      height: 100,
+      color: Colors.blue,
+      key: Key('test-image-$path'),
     );
   }
 
@@ -186,6 +267,41 @@ class NoopImagePickerService implements ImagePickerService {
 
   @override
   Future<void> deleteImages() async {}
+
+  int downloadImageCalls = 0;
+  String? downloadImageResult = 'test-downloaded-path';
+  String? lastDownloadImagePath;
+  String? lastDownloadFileName;
+  String? lastDownloadDialogTitle;
+
+  @override
+  Future<String?> downloadImage(
+    String imagePath, {
+    String? fileName,
+    String? dialogTitle,
+  }) async {
+    downloadImageCalls++;
+    lastDownloadImagePath = imagePath;
+    lastDownloadFileName = fileName;
+    lastDownloadDialogTitle = dialogTitle;
+    return downloadImageResult;
+  }
+
+  Map<String, int> seededRotations = {};
+  int saveImageRotationsCalls = 0;
+  Map<String, int>? lastSavedRotations;
+
+  @override
+  Future<Map<String, int>> loadImageRotations() async {
+    return Map<String, int>.from(seededRotations);
+  }
+
+  @override
+  Future<void> saveImageRotations(Map<String, int> imageRotations) async {
+    saveImageRotationsCalls++;
+    lastSavedRotations = Map<String, int>.from(imageRotations);
+    seededRotations = Map<String, int>.from(imageRotations);
+  }
 }
 
 /// Simple [LocaleService] that returns the locale provided at construction.
@@ -245,6 +361,12 @@ TestServiceLocators registerTestServices({String locale = 'en'}) {
   if (getIt.isRegistered<GlobalKey<NavigatorState>>()) {
     getIt.unregister<GlobalKey<NavigatorState>>();
   }
+  if (getIt.isRegistered<SosLocationService>()) {
+    getIt.unregister<SosLocationService>();
+  }
+  if (getIt.isRegistered<SpeechRecognitionService>()) {
+    getIt.unregister<SpeechRecognitionService>();
+  }
 
   final memory = FakePersistentMemoryService();
   final logger = NoopIncidentLoggerService();
@@ -253,6 +375,8 @@ TestServiceLocators registerTestServices({String locale = 'en'}) {
   final picker = NoopImagePickerService();
   final localeService = FakeLocaleService(locale);
   final videoFactory = FakeVideoPlayerPageFactory();
+  final sosLocationService = NoopSosLocationService();
+  final speechRecognitionService = NoopSpeechRecognitionService();
 
   getIt.registerSingleton<PersistentMemoryService>(memory);
   getIt.registerSingleton<IncidentLoggerService>(logger);
@@ -264,6 +388,8 @@ TestServiceLocators registerTestServices({String locale = 'en'}) {
   getIt.registerLazySingleton<GlobalKey<NavigatorState>>(
     () => GlobalKey<NavigatorState>(),
   );
+  getIt.registerSingleton<SosLocationService>(sosLocationService);
+  getIt.registerSingleton<SpeechRecognitionService>(speechRecognitionService);
 
   return TestServiceLocators(
     memory: memory,
@@ -273,6 +399,8 @@ TestServiceLocators registerTestServices({String locale = 'en'}) {
     picker: picker,
     localeService: localeService,
     videoFactory: videoFactory,
+    sosLocationService: sosLocationService,
+    speechRecognitionService: speechRecognitionService,
   );
 }
 
@@ -288,6 +416,8 @@ class TestServiceLocators {
   final NoopImagePickerService picker;
   final FakeLocaleService localeService;
   final FakeVideoPlayerPageFactory videoFactory;
+  final NoopSosLocationService sosLocationService;
+  final NoopSpeechRecognitionService speechRecognitionService;
   TestServiceLocators({
     required this.memory,
     required this.logger,
@@ -296,6 +426,8 @@ class TestServiceLocators {
     required this.picker,
     required this.localeService,
     required this.videoFactory,
+    required this.sosLocationService,
+    required this.speechRecognitionService,
   });
 }
 
@@ -368,4 +500,35 @@ List<dynamic> drainOverflowExceptions(WidgetTester tester) {
     }
   }
   return drained;
+}
+
+/// Frames a single [WizardStep] the way a flow does — content taking the slack,
+/// its actions beneath — inside a [Scaffold] so Material widgets have an
+/// ancestor.
+///
+/// The flows write this `Column` inline; there is no production widget for it,
+/// because five lines of layout do not need a class. This helper exists only so
+/// tests that exercise one step in isolation don't each repeat the frame.
+Widget wizardStepHarness(WizardStep step) => Scaffold(
+  body: Column(
+    children: [Expanded(child: step), WizardActions(step: step)],
+  ),
+);
+
+/// Loads the Rubix custom font family into the Flutter test environment
+/// so text measurements and visual rendering match production font metrics.
+Future<void> loadTestFonts() async {
+  final fontLoader = FontLoader('Rubix');
+
+  final regular = File('fonts/Rubik-Regular.ttf').readAsBytesSync();
+  final medium = File('fonts/Rubik-Medium.ttf').readAsBytesSync();
+  final semiBold = File('fonts/Rubik-SemiBold.ttf').readAsBytesSync();
+  final bold = File('fonts/Rubik-Bold.ttf').readAsBytesSync();
+
+  fontLoader.addFont(Future.value(ByteData.sublistView(regular)));
+  fontLoader.addFont(Future.value(ByteData.sublistView(medium)));
+  fontLoader.addFont(Future.value(ByteData.sublistView(semiBold)));
+  fontLoader.addFont(Future.value(ByteData.sublistView(bold)));
+
+  await fontLoader.load();
 }

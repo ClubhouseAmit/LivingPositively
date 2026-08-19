@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_contacts/flutter_contacts.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:mazilon/form/phonePageform.dart';
+import 'package:mazilon/form/wizard_step.dart';
 import 'package:mazilon/util/Form/formPagePhoneModel.dart';
 import 'package:mazilon/util/userInformation.dart';
 import 'package:provider/provider.dart';
@@ -36,10 +37,13 @@ Future<void> _pumpPhoneForm(
     tester,
     ChangeNotifierProvider<PhonePageData>.value(
       value: phonePageData,
-      child: PhonePageForm(
-        phonePageData: phonePageData,
-        next: () {},
-        prev: () {},
+      child: wizardStepHarness(
+        PhonePageForm(
+          key: GlobalKey<WizardStepState>(),
+          phonePageData: phonePageData,
+          next: () {},
+          prev: () {},
+        ),
       ),
     ),
     userInformation: userInformation,
@@ -121,9 +125,11 @@ void main() {
 
         _importContact(tester, _contact('054 389-7645'));
 
-        expect(phonePageData.savedPhoneNumbers, <String>[
-          '+972543897645',
-        ], reason: 'profile country $profileCountryCode');
+        expect(
+          phonePageData.savedPhoneNumbers,
+          <String>['+972543897645'],
+          reason: 'profile country $profileCountryCode',
+        );
 
         await tester.pumpWidget(const SizedBox());
       }

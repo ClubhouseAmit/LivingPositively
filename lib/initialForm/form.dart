@@ -6,7 +6,8 @@ import 'package:mazilon/util/persistent_memory_service.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:mazilon/util/Form/formPagePhoneModel.dart';
 
-import 'package:mazilon/util/styles.dart';
+import 'package:mazilon/form/wizard_step.dart';
+import 'package:mazilon/util/theme/font_weight.dart';
 import 'package:provider/provider.dart';
 import 'package:mazilon/initialForm/toFormPage.dart';
 import 'package:mazilon/initialForm/initialFormPage2.dart';
@@ -14,6 +15,16 @@ import 'package:mazilon/initialForm/initialFormPage1.dart';
 import 'package:mazilon/menu.dart';
 import 'package:mazilon/util/userInformation.dart';
 import 'package:mazilon/disclaimerPage.dart';
+
+// Design-derived layout constants for the onboarding intro flow.
+const double _screenInset = 15.0;
+const double _chromeToHeader = 27.0;
+const double _headerToTitle = 20.0;
+const double _headerHeight = 33.0;
+const double _actionsToDots = 28.0;
+const double _dotsToBottom = 26.0;
+const double _dotSize = 10.0;
+const double _dotGap = 11.0;
 
 class InitialFormProgressIndicator extends StatefulWidget {
   final PhonePageData phonePageData;
@@ -34,39 +45,40 @@ class InitialFormProgressIndicatorState
     extends LPExtendedState<InitialFormProgressIndicator> {
   int currentStep = 0;
   String name = '';
-  bool disclaimerApproved = false;
-
   bool hasFilled = false;
-  List<Widget> steps = [];
-  void getHasFilled() async {
-    PersistentMemoryService service =
-        GetIt.instance<
-          PersistentMemoryService
-        >(); // Get the persistent memory service instance
+  List<WizardStep> steps = [];
 
-    var hasFilledValue = await service.getItem(
+  void getHasFilled() async {
+    final service = GetIt.instance<PersistentMemoryService>();
+    final hasFilledValue = await service.getItem(
       "hasFilled",
       PersistentMemoryType.Bool,
     );
-    setState(() {
-      hasFilled = hasFilledValue ?? false;
-    });
+    if (mounted) {
+      setState(() {
+        hasFilled = hasFilledValue ?? false;
+      });
+    }
   }
 
   void next() {
     setState(() {
-      //currentStep = steps.length - 1;
       if (currentStep < steps.length - 1) currentStep++;
-      //## this is the part that skips the initial form.##//
     });
   }
 
   void skip() {
     setState(() {
       currentStep = steps.length - 1;
-      //if (currentStep < steps.length - 1) currentStep++;
-      //## this is the part that skips the initial form.##//
     });
+  }
+
+  void handleSkip() {
+    if (currentStep == steps.length - 1) {
+      navigateToMenu();
+    } else {
+      skip();
+    }
   }
 
   void prev() {
@@ -75,22 +87,10 @@ class InitialFormProgressIndicatorState
     });
   }
 
-  void updateName(name) {
+  void updateName(String name) {
     setState(() {
       this.name = name;
     });
-  }
-
-  void submitForm() async {
-    PersistentMemoryService service =
-        GetIt.instance<
-          PersistentMemoryService
-        >(); // Get the persistent memory service instance
-
-    if (name.isNotEmpty) {
-      await service.setItem("name", PersistentMemoryType.String, name);
-    }
-    navigateToMenu();
   }
 
   void navigateToMenu() {
@@ -107,11 +107,30 @@ class InitialFormProgressIndicatorState
     );
   }
 
-  //List<Widget> steps = [];
   @override
   void initState() {
     super.initState();
     getHasFilled();
+    steps = [
+      InitialFormPage1(
+        key: GlobalKey<WizardStepState>(debugLabel: 'welcome'),
+        next: next,
+        prev: prev,
+        skip: skip,
+        updateName: updateName,
+      ),
+      InitialFormPage2(
+        key: GlobalKey<WizardStepState>(debugLabel: 'personal-info'),
+        next: next,
+        prev: prev,
+        updateName: updateName,
+      ),
+      ToFormPage(
+        key: GlobalKey<WizardStepState>(debugLabel: 'safety-plan-intro'),
+        phonePageData: widget.phonePageData,
+        changeLocale: widget.changeLocale,
+      ),
+    ];
   }
 
   @override
@@ -125,23 +144,7 @@ class InitialFormProgressIndicatorState
     if (!userInfoProvider.disclaimerSigned) {
       return DisclaimerPage(changeLocale: widget.changeLocale);
     }
-    steps = [
-      //<<<<<<<<<<<INITIALFORM PAGES START HERE
-      //IF YOU WANT TO ADD PAGES TO INITAL FORM DO IT HERE:
-      InitialFormPage1(
-        next: next,
-        prev: prev,
-        skip: skip,
-        updateName: updateName,
-      ),
-      InitialFormPage2(next: next, prev: prev, updateName: updateName),
-      ToFormPage(
-        phonePageData: widget.phonePageData,
-        changeLocale: widget.changeLocale,
-      ),
-
-      //<<<<<<<<<<<PAGES END HERE
-    ];
+    final step = steps[currentStep];
     return PopScope(
       canPop: false,
       onPopInvokedWithResult: (didPop, result) async {
@@ -152,76 +155,140 @@ class InitialFormProgressIndicatorState
         }
       },
       child: Scaffold(
-        appBar: PreferredSize(
-          preferredSize: const Size.fromHeight(40),
-          child: AppBar(
-            scrolledUnderElevation: 0,
-            backgroundColor: Theme.of(
-              context,
-            ).colorScheme.surfaceContainerHighest,
-            automaticallyImplyLeading: currentStep != (steps.length - 1),
-            leading: currentStep != (steps.length - 1)
-                ? IconButton(
-                    icon: myAutoSizedText(
-                      appLocale.skipButton(gender),
-                      TextStyle(fontWeight: FontWeight.bold, fontSize: 12.sp),
-                      null,
-                      25,
-                    ),
-                    onPressed: () {
-                      //## this is the part that skips BOTH forms from the initial screen.##//
-                      debugPrint('skipping');
-                      next();
-                    },
-                  )
-                : IconButton(
-                    icon: const Icon(Icons.arrow_back_ios),
-                    onPressed: () {
-                      prev();
-                    },
-                  ),
-          ),
-        ),
-        body: AnimatedSwitcher(
-          duration: const Duration(
-            milliseconds: 300,
-          ), // Specify the duration of the animation
-          transitionBuilder: (Widget child, Animation<double> animation) {
-            var begin = const Offset(1.0, 0.0);
-            var end = Offset.zero;
-            var tween = Tween(begin: begin, end: end);
-
-            return SlideTransition(
-              position: animation.drive(tween),
-              child: child,
-            );
-          },
-          child: steps[currentStep],
-        ),
-        bottomNavigationBar: Padding(
-          padding: const EdgeInsets.only(bottom: 30.0),
-          child: Row(
-            mainAxisAlignment: MainAxisAlignment.center,
-            //visual representation of the progress of the form:
-            children: List.generate(
-              steps.length, // Adjust the number of stages here
-              //Animated Container for a non-instant color change, otherwise can be container
-              (index) => AnimatedContainer(
-                duration: const Duration(milliseconds: 300),
-                width: 15.0,
-                height: 15.0,
-                margin: const EdgeInsets.symmetric(horizontal: 5.0),
-                decoration: BoxDecoration(
-                  color: index <= currentStep
-                      ? Theme.of(context).colorScheme.tertiary
-                      : Theme.of(context).colorScheme.surfaceContainerHighest,
-                  borderRadius: BorderRadius.circular(5.0),
+        body: SafeArea(
+          child: Padding(
+            padding: const EdgeInsets.symmetric(
+              horizontal: _screenInset,
+            ),
+            child: Column(
+              children: [
+                _IntroHeader(
+                  isLastStep: currentStep == steps.length - 1,
+                  onSkip: handleSkip,
+                  onBack: prev,
+                  skipLabel: appLocale.skipButton(gender),
                 ),
-              ),
-            ).toList(),
+                Expanded(
+                  child: step,
+                ),
+                Padding(
+                  padding: const EdgeInsets.only(
+                    bottom: _dotsToBottom,
+                  ),
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    crossAxisAlignment: CrossAxisAlignment.stretch,
+                    spacing: _actionsToDots,
+                    children: [
+                      WizardActions(step: step),
+                      _IntroStepDots(
+                        stepCount: steps.length,
+                        currentStep: currentStep,
+                      ),
+                    ],
+                  ),
+                ),
+              ],
+            ),
           ),
         ),
       ),
+    );
+  }
+}
+
+/// Header row: the back chevron on the reading-start edge, the skip link on the
+/// reading-end edge (Figma node 1660:2302).
+class _IntroHeader extends StatelessWidget {
+  const _IntroHeader({
+    required this.isLastStep,
+    required this.onSkip,
+    required this.onBack,
+    required this.skipLabel,
+  });
+
+  final bool isLastStep;
+  final VoidCallback onSkip;
+  final VoidCallback onBack;
+  final String skipLabel;
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.only(
+        top: _chromeToHeader,
+        bottom: _headerToTitle,
+      ),
+      child: SizedBox(
+        height: _headerHeight,
+        child: Stack(
+          alignment: Alignment.center,
+          children: [
+            if (isLastStep)
+              Align(
+                alignment: AlignmentDirectional.centerStart,
+                child: IconButton(
+                  key: const Key('intro-header-back'),
+                  padding: EdgeInsets.zero,
+                  constraints: const BoxConstraints(minWidth: 48, minHeight: 48),
+                  icon: const Icon(Icons.arrow_back_ios, size: 20),
+                  onPressed: onBack,
+                ),
+              ),
+            Align(
+              alignment: AlignmentDirectional.centerEnd,
+              child: TextButton(
+                key: const Key('intro-header-skip'),
+                style: TextButton.styleFrom(
+                  padding: const EdgeInsets.symmetric(horizontal: 8),
+                  minimumSize: const Size(48, _headerHeight),
+                ),
+                onPressed: onSkip,
+                child: Text(
+                  skipLabel,
+                  style: TextStyle(
+                    fontWeight: AppFontWeight.medium,
+                    fontSize: 16.sp,
+                    color: Theme.of(context).colorScheme.onSurface,
+                  ),
+                  textAlign: TextAlign.center,
+                ),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+/// Step indicator (Figma nodes 1660:1269-1271 / 1660:2337-2339).
+class _IntroStepDots extends StatelessWidget {
+  const _IntroStepDots({required this.stepCount, required this.currentStep});
+
+  final int stepCount;
+  final int currentStep;
+
+  @override
+  Widget build(BuildContext context) {
+    final green = Theme.of(context).colorScheme.tertiary;
+    return Row(
+      mainAxisAlignment: MainAxisAlignment.center,
+      spacing: _dotGap,
+      children: [
+        for (int index = 0; index < stepCount; index++)
+          AnimatedContainer(
+            key: ValueKey('intro-step-dot-$index'),
+            duration: const Duration(milliseconds: 300),
+            width: _dotSize,
+            height: _dotSize,
+            decoration: BoxDecoration(
+              shape: BoxShape.circle,
+              color: index <= currentStep ? green : Colors.transparent,
+              border: Border.all(color: green, width: 1),
+            ),
+          ),
+      ],
     );
   }
 }

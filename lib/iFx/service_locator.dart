@@ -6,7 +6,9 @@ import 'package:mazilon/AnalyticsService.dart';
 import 'package:mazilon/Locale/locale_service.dart';
 import 'package:mazilon/pages/FeelGood/image_picker_service_impl.dart';
 import 'package:mazilon/pages/WellnessTools/VideoPlayerPageFactory.dart';
+import 'package:mazilon/pages/sos_location_service.dart';
 import 'package:mazilon/util/logger_service.dart';
+import 'package:mazilon/util/speech_recognition_service.dart';
 
 import 'package:mazilon/file_service.dart';
 import 'package:mazilon/util/persistent_memory_service.dart';
@@ -22,9 +24,17 @@ void setupLocator() {
   getIt.registerLazySingleton<ImagePickerService>(
     () => ImagePickerServiceImpl(),
   );
+  getIt.registerLazySingleton<IncidentLoggerService>(() => SentryServiceImpl());
+  getIt.registerLazySingleton<SosLocationService>(
+    () => GeolocatorSosLocationService(
+      incidentLoggerService: getIt<IncidentLoggerService>(),
+    ),
+  );
+  getIt.registerLazySingleton<SpeechRecognitionService>(
+    () => SpeechRecognitionServiceImpl(),
+  );
 
   getIt.registerLazySingleton<FileService>(() => FileServiceImpl());
-  getIt.registerLazySingleton<IncidentLoggerService>(() => SentryServiceImpl());
   getIt.registerLazySingleton<LocaleService>(() => LocaleServiceImpl());
   getIt.registerLazySingleton<AnalyticsService>(() => MixPanelService());
   getIt.registerLazySingleton<PersistentMemoryService>(

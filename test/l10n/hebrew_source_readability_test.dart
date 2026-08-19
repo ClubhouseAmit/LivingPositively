@@ -8,12 +8,11 @@ void main() {
 
     expect(
       arbSource,
-      contains('"noVideosAvailableForLocale": "אין סרטונים זמינים בשפה שבחרת."'),
+      contains(
+        '"noVideosAvailableForLocale": "אין סרטונים זמינים בשפה שבחרת."',
+      ),
     );
-    expect(
-      arbSource,
-      contains('"confirmResetTitle": "האם את/ה בטוח/ה?"'),
-    );
+    expect(arbSource, contains('"confirmResetTitle": "האם את/ה בטוח/ה?"'));
     expect(
       arbSource,
       contains(

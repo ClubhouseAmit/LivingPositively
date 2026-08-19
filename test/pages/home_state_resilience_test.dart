@@ -4,14 +4,12 @@ import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:mazilon/MainPageHelpers/components/gratitude_section.dart';
 import 'package:mazilon/MainPageHelpers/components/virtues_section.dart';
-import 'package:mazilon/MainPageHelpers/MainPageList/mainpage_list_widget.dart';
 import 'package:mazilon/global_enums.dart';
 import 'package:mazilon/pages/home.dart';
 import 'package:mazilon/util/Form/formPagePhoneModel.dart';
 import 'package:mazilon/util/userInformation.dart';
 
 import '../helpers/widget_test_scaffold.dart';
-
 
 PhonePageData _phoneData() => PhonePageData(
   key: 'phonePageData',
@@ -90,7 +88,6 @@ void main() {
       lessThan(tester.getTopLeft(find.byType(VirtuesSectionWidget)).dy),
     );
   });
-
 
   test(
     'home surfaces do not refresh randomized content from build methods',

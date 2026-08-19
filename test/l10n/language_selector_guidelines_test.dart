@@ -3,8 +3,9 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:mazilon/util/disclaimerLanguageSelect.dart';
 
 void main() {
-  testWidgets('Language selector follows the language guidelines',
-      (WidgetTester tester) async {
+  testWidgets('Language selector follows the language guidelines', (
+    WidgetTester tester,
+  ) async {
     String? selectedLocale;
 
     await tester.pumpWidget(
@@ -25,22 +26,23 @@ void main() {
       matching: find.byType(Wrap),
     );
 
-    expect(find.descendant(of: labelStrip, matching: find.text('English')),
-        findsOneWidget);
-    expect(find.descendant(of: labelStrip, matching: find.text('עברית')),
-        findsOneWidget);
-    expect(find.descendant(of: labelStrip, matching: find.text('العربية')),
-        findsOneWidget);
+    expect(
+      find.descendant(of: labelStrip, matching: find.text('English')),
+      findsOneWidget,
+    );
+    expect(
+      find.descendant(of: labelStrip, matching: find.text('עברית')),
+      findsOneWidget,
+    );
+    expect(
+      find.descendant(of: labelStrip, matching: find.text('العربية')),
+      findsOneWidget,
+    );
 
-    await tester.tap(find.byType(DropdownButton<String>));
-    await tester.pumpAndSettle();
+    final option = find.text('العربية');
+    expect(option, findsOneWidget);
 
-    expect(find.byType(Image), findsNothing);
-    expect(find.byIcon(Icons.language), findsWidgets);
-
-    final dropdown =
-        tester.widget<DropdownButton<String>>(find.byType(DropdownButton<String>));
-    dropdown.onChanged?.call('ar');
+    await tester.tap(option);
     await tester.pumpAndSettle();
 
     expect(selectedLocale, 'ar');

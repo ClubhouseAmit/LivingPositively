@@ -23,19 +23,21 @@ void main() {
       expect(reminderDebugPanelUnlocked.value, !initial);
     });
 
-    test('loadReminderDebugPanelUnlocked reads from SharedPreferences',
-        () async {
-      // Set the persisted bit BEFORE calling load. The first call after a
-      // fresh SharedPreferences mock will pick this up.
-      SharedPreferences.setMockInitialValues({
-        reminderDebugPanelUnlockedKey: true,
-      });
-      // Bypass the once-only cache by re-toggling first to a known false
-      // then loading is a no-op in subsequent calls within same test run;
-      // we just confirm the function completes without error.
-      await loadReminderDebugPanelUnlocked();
-      expect(reminderDebugPanelUnlocked.value, isA<bool>());
-    });
+    test(
+      'loadReminderDebugPanelUnlocked reads from SharedPreferences',
+      () async {
+        // Set the persisted bit BEFORE calling load. The first call after a
+        // fresh SharedPreferences mock will pick this up.
+        SharedPreferences.setMockInitialValues({
+          reminderDebugPanelUnlockedKey: true,
+        });
+        // Bypass the once-only cache by re-toggling first to a known false
+        // then loading is a no-op in subsequent calls within same test run;
+        // we just confirm the function completes without error.
+        await loadReminderDebugPanelUnlocked();
+        expect(reminderDebugPanelUnlocked.value, isA<bool>());
+      },
+    );
   });
 
   group('recordReminderDebugEvent', () {
@@ -45,8 +47,10 @@ void main() {
         task: 'periodic',
       );
       final prefs = await SharedPreferences.getInstance();
-      expect(prefs.getString(reminderDebugLastStatusKey),
-          reminderDebugStatusSuccess);
+      expect(
+        prefs.getString(reminderDebugLastStatusKey),
+        reminderDebugStatusSuccess,
+      );
       expect(prefs.getString(reminderDebugLastTaskKey), 'periodic');
       expect(prefs.getString(reminderDebugLastFireAtKey), isNotNull);
     });

@@ -15,6 +15,7 @@
 // PhonePageData ChangeNotifier — that's where the value lives.
 
 import 'package:country_code_picker/country_code_picker.dart';
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:mazilon/EmergencyNumbers.dart';
@@ -23,6 +24,8 @@ import 'package:mazilon/form/form.dart';
 import 'package:mazilon/form/phonePageform.dart';
 import 'package:mazilon/form/phonePageListItem.dart';
 import 'package:mazilon/form/shareform.dart';
+import 'package:mazilon/form/speech_dictation_suffix_action.dart';
+import 'package:mazilon/form/wizard_step.dart';
 import 'package:mazilon/util/Form/formPagePhoneModel.dart';
 import 'package:mazilon/util/userInformation.dart';
 import 'package:provider/provider.dart';
@@ -101,7 +104,13 @@ void main() {
     testWidgets('renders share and download icons', (tester) async {
       await pumpWithProviders(
         tester,
-        ShareForm(prev: () {}, submit: (_) {}),
+        wizardStepHarness(
+          ShareForm(
+            key: GlobalKey<WizardStepState>(),
+            prev: () {},
+            submit: (_) {},
+          ),
+        ),
         userInformation: userInformation,
         surfaceSize: const Size(1024, 1800),
       );
@@ -178,6 +187,125 @@ void main() {
         expect(phoneData.savedPhoneNames.length, beforeNames.length);
         expect(find.text('Please enter a contact name.'), findsOneWidget);
         expect(find.text('Please enter a phone number.'), findsOneWidget);
+      },
+    );
+
+    testWidgets(
+      'should hide dictation on manual contact draft inputs when feature flag is disabled',
+      (tester) async {
+        final previousFeatureEnabled =
+            SpeechDictationSuffixAction.isFeatureEnabled;
+        final originalPlatform = debugDefaultTargetPlatformOverride;
+        SpeechDictationSuffixAction.isFeatureEnabled = false;
+        debugDefaultTargetPlatformOverride = TargetPlatform.android;
+        try {
+          final phoneData = _makePhonePageData();
+          await pumpWithProviders(
+            tester,
+            ChangeNotifierProvider<PhonePageData>.value(
+              value: phoneData,
+              child: Scaffold(
+                body: SingleChildScrollView(
+                  child: PhonePageList(phonePageData: phoneData),
+                ),
+              ),
+            ),
+            userInformation: userInformation,
+            surfaceSize: const Size(1024, 2000),
+          );
+          await _settle(tester);
+          await tester.pump(const Duration(milliseconds: 50));
+          drainOverflowExceptions(tester);
+
+          await tester.tap(find.byType(TextButton).last, warnIfMissed: false);
+          await tester.pump();
+          drainOverflowExceptions(tester);
+
+          final formFields = find.byType(TextFormField);
+          expect(formFields, findsNWidgets(2));
+          final nameField = tester.widget<TextField>(
+            find.descendant(
+              of: formFields.at(0),
+              matching: find.byType(TextField),
+            ),
+          );
+          final numberField = tester.widget<TextField>(
+            find.descendant(
+              of: formFields.at(1),
+              matching: find.byType(TextField),
+            ),
+          );
+          expect(nameField.decoration?.suffixIcon, isNull);
+          expect(numberField.decoration?.suffixIcon, isNull);
+          expect(find.byKey(const Key('speech-dictation-start')), findsNothing);
+        } finally {
+          SpeechDictationSuffixAction.isFeatureEnabled = previousFeatureEnabled;
+          debugDefaultTargetPlatformOverride = originalPlatform;
+        }
+      },
+    );
+
+    testWidgets(
+      'should expose dictation on manual contact draft inputs when enabled',
+      (tester) async {
+        final previousFeatureEnabled =
+            SpeechDictationSuffixAction.isFeatureEnabled;
+        final originalPlatform = debugDefaultTargetPlatformOverride;
+        SpeechDictationSuffixAction.isFeatureEnabled = true;
+        debugDefaultTargetPlatformOverride = TargetPlatform.android;
+        try {
+          final phoneData = _makePhonePageData();
+          await pumpWithProviders(
+            tester,
+            ChangeNotifierProvider<PhonePageData>.value(
+              value: phoneData,
+              child: Scaffold(
+                body: SingleChildScrollView(
+                  child: PhonePageList(phonePageData: phoneData),
+                ),
+              ),
+            ),
+            userInformation: userInformation,
+            surfaceSize: const Size(1024, 2000),
+          );
+          await _settle(tester);
+          await tester.pump(const Duration(milliseconds: 50));
+          drainOverflowExceptions(tester);
+
+          await tester.tap(find.byType(TextButton).last, warnIfMissed: false);
+          await tester.pump();
+          drainOverflowExceptions(tester);
+
+          final formFields = find.byType(TextFormField);
+          expect(formFields, findsNWidgets(2));
+          final nameField = tester.widget<TextField>(
+            find.descendant(
+              of: formFields.at(0),
+              matching: find.byType(TextField),
+            ),
+          );
+          final numberField = tester.widget<TextField>(
+            find.descendant(
+              of: formFields.at(1),
+              matching: find.byType(TextField),
+            ),
+          );
+          expect(
+            nameField.decoration?.suffixIcon,
+            isA<SpeechDictationSuffixAction>(),
+          );
+          expect(
+            numberField.decoration?.suffixIcon,
+            isA<SpeechDictationSuffixAction>(),
+          );
+          expect(
+            find.byKey(const Key('speech-dictation-start')),
+            findsNWidgets(2),
+          );
+        } finally {
+          SpeechDictationSuffixAction.isFeatureEnabled = previousFeatureEnabled;
+          debugDefaultTargetPlatformOverride = originalPlatform;
+        }
       },
     );
 
@@ -792,10 +920,13 @@ void main() {
           tester,
           ChangeNotifierProvider<PhonePageData>.value(
             value: phoneData,
-            child: PhonePageForm(
-              next: () => nextCalled = true,
-              prev: () {},
-              phonePageData: phoneData,
+            child: wizardStepHarness(
+              PhonePageForm(
+                key: GlobalKey<WizardStepState>(),
+                next: () => nextCalled = true,
+                prev: () {},
+                phonePageData: phoneData,
+              ),
             ),
           ),
           userInformation: userInformation,

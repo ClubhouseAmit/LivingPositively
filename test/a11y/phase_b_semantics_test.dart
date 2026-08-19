@@ -23,6 +23,7 @@ import 'package:mazilon/file_service.dart';
 import 'package:mazilon/global_enums.dart';
 import 'package:mazilon/iFx/service_locator.dart';
 import 'package:mazilon/util/persistent_memory_service.dart';
+import 'package:share_plus/share_plus.dart';
 import 'package:mazilon/util/userInformation.dart';
 import 'package:mazilon/util/appInformation.dart';
 import 'package:package_info_plus/package_info_plus.dart';
@@ -89,22 +90,24 @@ class _StubPersistentMemoryService implements PersistentMemoryService {
 
 class _StubFileService implements FileService {
   @override
-  Future<void> share(
+  Future<ShareResult?> share(
     String message,
     List<dynamic> titles,
     List<dynamic> subTitles,
     Map<String, String> texts,
-    ShareFileType saveFormat,
-    String textDirection,
-  ) async {}
+    ShareFileType saveFormat, {
+    required String mainTitle,
+    required String textDirection,
+  }) async => const ShareResult('stub', ShareResultStatus.success);
   @override
   Future<String?> download(
     List<dynamic> titles,
     List<dynamic> subTitles,
     Map<String, String> texts,
-    ShareFileType saveFormat,
-    String textDirection,
-  ) async => null;
+    ShareFileType saveFormat, {
+    required String mainTitle,
+    required String textDirection,
+  }) async => null;
   @override
   Future<bool> shareTextOnly(String message) async => true;
 }

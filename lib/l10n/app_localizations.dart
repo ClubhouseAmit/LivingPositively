@@ -145,6 +145,12 @@ abstract class AppLocalizations {
   ///
   ///
   /// In en, this message translates to:
+  /// **'{gender,select,male{Add your own} female{Add your own} other{Add your own}}'**
+  String addFormPageTemplateAddOwn(String gender);
+
+  ///
+  ///
+  /// In en, this message translates to:
   /// **'{gender,select,male{Thanks} female{Thanks} other{Thanks}}'**
   String addThanksFormThank(String gender);
 
@@ -231,6 +237,18 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'{gender,select,male{My Personal Plan} female{My Personal Plan} other{My Personal Plan}}'**
   String personalPlanPageTitle(String gender);
+
+  /// Title used when exporting a Personal Plan PDF without a saved name
+  ///
+  /// In en, this message translates to:
+  /// **'My Personal Plan'**
+  String get personalPlanPdfTitle;
+
+  /// Title used when exporting a Personal Plan PDF with a saved name
+  ///
+  /// In en, this message translates to:
+  /// **'{username}\'s Personal Plan'**
+  String personalPlanPdfTitleWithName(String username);
 
   ///
   ///
@@ -499,7 +517,7 @@ abstract class AppLocalizations {
   /// No description provided for @darkModeSleepPromoting.
   ///
   /// In en, this message translates to:
-  /// **'Sleep-Promoting Mode'**
+  /// **'Scheduled'**
   String get darkModeSleepPromoting;
 
   /// No description provided for @darkModeStartTime.
@@ -601,7 +619,7 @@ abstract class AppLocalizations {
   ///
   ///
   /// In en, this message translates to:
-  /// **'{gender,select,male{Symptoms and warning signs, unusual behaviors for me} female{Symptoms and warning signs, unusual behaviors for me} other{Symptoms and warning signs, unusual behaviors for me}}'**
+  /// **'{gender,select,male{Symptoms and warning signs} female{Symptoms and warning signs} other{Symptoms and warning signs}}'**
   String distractionsHeader(String gender);
 
   ///
@@ -625,7 +643,7 @@ abstract class AppLocalizations {
   ///
   ///
   /// In en, this message translates to:
-  /// **'{gender,select,male{For balance and a healthy lifestyle - Wellness Tools - Personal Medications} female{For balance and a healthy lifestyle - Wellness Tools - Personal Medications} other{For balance and a healthy lifestyle - Wellness Tools - Personal Medications}}'**
+  /// **'{gender,select,male{What to do to help myself balance and maintain a healthy lifestyle (Wellness Tools) - Personal medications} female{What to do to help myself balance and maintain a healthy lifestyle (Wellness Tools) - Personal medications} other{What to do to help myself balance and maintain a healthy lifestyle (Wellness Tools) - Personal medications}}'**
   String feelBetterHeader(String gender);
 
   ///
@@ -649,7 +667,7 @@ abstract class AppLocalizations {
   ///
   ///
   /// In en, this message translates to:
-  /// **'{gender,select,male{Support from my environment when I notice early warning signs, and how I’d like to be assisted} female{Support from my environment when I notice early warning signs, and how I’d like to be assisted} other{Support from my environment when I notice early warning signs, and how I’d like to be assisted}}'**
+  /// **'{gender,select,male{Support and help from the environment when I experience early warning signs, how I would like to be helped} female{Support and help from the environment when I experience early warning signs, how I would like to be helped} other{Support and help from the environment when I experience early warning signs, how I would like to be helped}}'**
   String makeSaferHeader(String gender);
 
   ///
@@ -673,6 +691,18 @@ abstract class AppLocalizations {
   ///
   ///
   /// In en, this message translates to:
+  /// **'{gender,select,male{What will help me make the situation and environment safer for me} female{What will help me make the situation and environment safer for me} other{What will help me make the situation and environment safer for me}}'**
+  String safeEnvironmentHeader(String gender);
+
+  ///
+  ///
+  /// In en, this message translates to:
+  /// **'{gender,select,male{Steps I can take to make my situation and environment safer} female{Steps I can take to make my situation and environment safer} other{Steps I can take to make my situation and environment safer}}'**
+  String safeEnvironmentSubTitle(String gender);
+
+  ///
+  ///
+  /// In en, this message translates to:
   /// **'{gender,select,male{Phone} female{Phone} other{Phone}}'**
   String phonesPagePhone(String gender);
 
@@ -685,7 +715,7 @@ abstract class AppLocalizations {
   ///
   ///
   /// In en, this message translates to:
-  /// **'{gender,select,male{Who are the people that support me, who I can turn to if I am distressed or thinking of harming myself?} female{Who are the people that support me, who I can turn to if I am distressed or thinking of harming myself?} other{Who are the people that support me, who I can turn to if I am distressed or thinking of harming myself?}}'**
+  /// **'{gender,select,male{Who are the people who support me, that I can turn to if I am in distress or thinking about self-harm} female{Who are the people who support me, that I can turn to if I am in distress or thinking about self-harm} other{Who are the people who support me, that I can turn to if I am in distress or thinking about self-harm}}'**
   String phonesPageHeader(String gender);
 
   ///
@@ -832,11 +862,23 @@ abstract class AppLocalizations {
   /// **'Your current location could not be obtained.'**
   String get sosShareLocationUnavailable;
 
+  /// Notice shown when device location services are disabled for a one-time SOS location request.
+  ///
+  /// In en, this message translates to:
+  /// **'Your current location could not be obtained. Please enable location services.'**
+  String get sosShareLocationServicesDisabled;
+
   /// Notice shown when the SOS help message cannot be shared through the native share sheet.
   ///
   /// In en, this message translates to:
   /// **'Your SOS help message could not be shared. Please try again.'**
   String get sosShareLocationShareFailed;
+
+  /// Notice shown when the Personal Plan PDF cannot be shared through the native share sheet.
+  ///
+  /// In en, this message translates to:
+  /// **'Your Personal Plan could not be shared. Please try again.'**
+  String get personalPlanShareFailed;
 
   /// The SOS action that shares only the help message.
   ///
@@ -849,6 +891,12 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Share your SOS help message'**
   String get sosShareMessageTooltip;
+
+  /// Featured SOS action that shares the Personal Plan PDF with the crisis message.
+  ///
+  /// In en, this message translates to:
+  /// **'Share Personal Plan during a crisis'**
+  String get sosSharePersonalPlan;
 
   /// Title for the SOS delivery-method chooser.
   ///
@@ -1825,6 +1873,30 @@ abstract class AppLocalizations {
   ///
   ///
   /// In en, this message translates to:
+  /// **'{gender,select,male{Removing or depositing personal weapon} female{Removing or depositing personal weapon} other{Removing or depositing personal weapon}}'**
+  String safeEnvironmentListNo0(String gender);
+
+  ///
+  ///
+  /// In en, this message translates to:
+  /// **'{gender,select,male{Storing medications in a locked box} female{Storing medications in a locked box} other{Storing medications in a locked box}}'**
+  String safeEnvironmentListNo1(String gender);
+
+  ///
+  ///
+  /// In en, this message translates to:
+  /// **'{gender,select,male{Choosing someone to keep your medications for you} female{Choosing someone to keep your medications for you} other{Choosing someone to keep your medications for you}}'**
+  String safeEnvironmentListNo2(String gender);
+
+  ///
+  ///
+  /// In en, this message translates to:
+  /// **'{gender,select,male{Having someone stay with me, not being alone} female{Having someone stay with me, not being alone} other{Having someone stay with me, not being alone}}'**
+  String safeEnvironmentListNo3(String gender);
+
+  ///
+  ///
+  /// In en, this message translates to:
   /// **'{gender,select,male{Mindfulness} female{Mindfulness} other{Mindfulness}}'**
   String feelBetterListNo0(String gender);
 
@@ -2458,10 +2530,16 @@ abstract class AppLocalizations {
   /// **'Videos cannot be shown right now.'**
   String get wellnessVideoDataUnavailableMessage;
 
+  /// No description provided for @disclaimerPageTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Disclaimer'**
+  String get disclaimerPageTitle;
+
   /// No description provided for @disclaimerSummary.
   ///
   /// In en, this message translates to:
-  /// **'Read the key points, then accept if these terms work for you.'**
+  /// **'Review and accept terms to continue.'**
   String get disclaimerSummary;
 
   /// No description provided for @disclaimerPurposeTitle.
@@ -2517,6 +2595,18 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Back to photos'**
   String get feelGoodBackTooltip;
+
+  /// No description provided for @feelGoodRotateTooltip.
+  ///
+  /// In en, this message translates to:
+  /// **'Rotate photo'**
+  String get feelGoodRotateTooltip;
+
+  /// No description provided for @feelGoodDownloadTooltip.
+  ///
+  /// In en, this message translates to:
+  /// **'Download photo'**
+  String get feelGoodDownloadTooltip;
 
   /// No description provided for @feelGoodDeleteTooltip.
   ///
@@ -2587,14 +2677,14 @@ abstract class AppLocalizations {
   /// Subtitle for positive traits section
   ///
   /// In en, this message translates to:
-  /// **'Where I shine. Read daily'**
-  String get traitsSubTitle;
+  /// **'{gender,select,male{Where I shine. Read daily} female{Where I shine. Read daily} other{Where I shine. Read daily}}'**
+  String traitsSubTitle(String gender);
 
   /// Subtitle for gratitude section
   ///
   /// In en, this message translates to:
-  /// **'What am I grateful for today'**
-  String get gratitudeSubTitle;
+  /// **'{gender,select,male{What am I grateful for today} female{What am I grateful for today} other{What am I grateful for today}}'**
+  String gratitudeSubTitle(String gender);
 
   /// Subtitle for suggestion card on home page
   ///
@@ -2632,19 +2722,109 @@ abstract class AppLocalizations {
   /// **'{gender,select,male{Smile and look forward} female{Smile and look forward} other{Smile and look forward}}'**
   String lookForwardSuggestion(String gender);
 
+  /// Label for the custom reminder message text field
   ///
+  /// In en, this message translates to:
+  /// **'Write a custom reminder message (optional):'**
+  String get notificationCustomMessageLabel;
+
+  /// Hint text for the custom reminder message text field
+  ///
+  /// In en, this message translates to:
+  /// **'Enter reminder message...'**
+  String get notificationCustomMessageHint;
+
+  /// Accessible label for the action that starts voice dictation for a text field
+  ///
+  /// In en, this message translates to:
+  /// **'Dictate text'**
+  String get speechDictationAction;
+
+  /// Title of the first-use voice dictation disclosure
+  ///
+  /// In en, this message translates to:
+  /// **'Use voice dictation?'**
+  String get speechDictationDisclosureTitle;
+
+  /// First-use disclosure explaining speech processing, audio handling, and text review
+  ///
+  /// In en, this message translates to:
+  /// **'Your device or browser may send speech to a speech-recognition service for processing. This app does not store audio or send dictated text to analytics. Recognition providers’ policies may apply. You can review and edit the text before saving.'**
+  String get speechDictationDisclosureMessage;
+
+  /// Accepts the first-use voice dictation disclosure
+  ///
+  /// In en, this message translates to:
+  /// **'Continue'**
+  String get speechDictationDisclosureAccept;
+
+  /// Declines the first-use voice dictation disclosure
+  ///
+  /// In en, this message translates to:
+  /// **'Not now'**
+  String get speechDictationDisclosureDecline;
+
+  /// Title of the installed speech-recognition language picker
+  ///
+  /// In en, this message translates to:
+  /// **'Choose a dictation language'**
+  String get speechDictationLanguagePickerTitle;
+
+  /// Status shown while voice dictation is active
+  ///
+  /// In en, this message translates to:
+  /// **'Listening…'**
+  String get speechDictationListeningLabel;
+
+  /// Stops dictation and applies its final text to the field
+  ///
+  /// In en, this message translates to:
+  /// **'Stop and apply'**
+  String get speechDictationStopAndApplyAction;
+
+  /// Cancels active dictation and discards its text
+  ///
+  /// In en, this message translates to:
+  /// **'Discard'**
+  String get speechDictationDiscardAction;
+
+  /// Message shown when device speech recognition cannot be used
+  ///
+  /// In en, this message translates to:
+  /// **'Voice dictation is unavailable on this device.'**
+  String get speechDictationUnavailable;
+
+  /// Message shown when an active voice dictation session fails
+  ///
+  /// In en, this message translates to:
+  /// **'Voice dictation could not be completed. Please try again.'**
+  String get speechDictationError;
+
+  /// Message shown when a final dictation result exceeds the text field limit
+  ///
+  /// In en, this message translates to:
+  /// **'The dictated text is too long for this field.'**
+  String get speechDictationTooLong;
+
+  /// Message shown when a dictated phone number fails country-aware validation
+  ///
+  /// In en, this message translates to:
+  /// **'The dictated phone number is not valid for the selected country.'**
+  String get speechDictationPhoneInvalid;
+
+  /// No description provided for @notificationsPermissionDeniedTitle.
   ///
   /// In en, this message translates to:
   /// **'Notifications Blocked'**
   String get notificationsPermissionDeniedTitle;
 
-  ///
+  /// No description provided for @notificationsPermissionDeniedBody.
   ///
   /// In en, this message translates to:
   /// **'To receive reminders, allow notifications in your device settings'**
   String get notificationsPermissionDeniedBody;
 
-  ///
+  /// No description provided for @notificationsOpenSettings.
   ///
   /// In en, this message translates to:
   /// **'Open Settings'**
@@ -2662,181 +2842,181 @@ abstract class AppLocalizations {
   /// **'Couldn\'t cancel the reminder. Your data has not been reset.'**
   String get resetReminderCancellationFailed;
 
-  ///
+  /// No description provided for @authWelcomeTitle.
   ///
   /// In en, this message translates to:
   /// **'Welcome'**
   String get authWelcomeTitle;
 
-  ///
+  /// No description provided for @authLoginTab.
   ///
   /// In en, this message translates to:
   /// **'Sign In'**
   String get authLoginTab;
 
-  ///
+  /// No description provided for @authSignupTab.
   ///
   /// In en, this message translates to:
   /// **'Sign Up'**
   String get authSignupTab;
 
-  ///
+  /// No description provided for @authSkip.
   ///
   /// In en, this message translates to:
   /// **'Skip for now'**
   String get authSkip;
 
-  ///
+  /// No description provided for @authEmailHint.
   ///
   /// In en, this message translates to:
   /// **'Email address'**
   String get authEmailHint;
 
-  ///
+  /// No description provided for @authPasswordHint.
   ///
   /// In en, this message translates to:
   /// **'Password'**
   String get authPasswordHint;
 
-  ///
+  /// No description provided for @authConfirmPasswordHint.
   ///
   /// In en, this message translates to:
   /// **'Confirm password'**
   String get authConfirmPasswordHint;
 
-  ///
+  /// No description provided for @authNameHint.
   ///
   /// In en, this message translates to:
   /// **'Full name'**
   String get authNameHint;
 
-  ///
+  /// No description provided for @authLoginButton.
   ///
   /// In en, this message translates to:
   /// **'Sign In'**
   String get authLoginButton;
 
-  ///
+  /// No description provided for @authSignupButton.
   ///
   /// In en, this message translates to:
   /// **'Create Account'**
   String get authSignupButton;
 
-  ///
+  /// No description provided for @authForgotPassword.
   ///
   /// In en, this message translates to:
   /// **'Forgot password?'**
   String get authForgotPassword;
 
-  ///
+  /// No description provided for @authOr.
   ///
   /// In en, this message translates to:
   /// **'or'**
   String get authOr;
 
-  ///
+  /// No description provided for @authGoogleButton.
   ///
   /// In en, this message translates to:
   /// **'Continue with Google'**
   String get authGoogleButton;
 
-  ///
+  /// No description provided for @authAppleButton.
   ///
   /// In en, this message translates to:
   /// **'Continue with Apple'**
   String get authAppleButton;
 
-  ///
+  /// No description provided for @authErrorInvalidEmail.
   ///
   /// In en, this message translates to:
   /// **'Invalid email address'**
   String get authErrorInvalidEmail;
 
-  ///
+  /// No description provided for @authErrorWeakPassword.
   ///
   /// In en, this message translates to:
   /// **'Password must be at least 6 characters'**
   String get authErrorWeakPassword;
 
-  ///
+  /// No description provided for @authErrorPasswordMismatch.
   ///
   /// In en, this message translates to:
   /// **'Passwords don\'t match'**
   String get authErrorPasswordMismatch;
 
-  ///
+  /// No description provided for @authErrorUserNotFound.
   ///
   /// In en, this message translates to:
   /// **'The email/password combination is incorrect'**
   String get authErrorUserNotFound;
 
-  ///
+  /// No description provided for @authErrorEmailInUse.
   ///
   /// In en, this message translates to:
   /// **'An account with this email already exists'**
   String get authErrorEmailInUse;
 
-  ///
+  /// No description provided for @authErrorGeneric.
   ///
   /// In en, this message translates to:
   /// **'An error occurred. Please try again.'**
   String get authErrorGeneric;
 
-  ///
+  /// No description provided for @authForgotPasswordTitle.
   ///
   /// In en, this message translates to:
   /// **'Reset Password'**
   String get authForgotPasswordTitle;
 
-  ///
+  /// No description provided for @authForgotPasswordHint.
   ///
   /// In en, this message translates to:
   /// **'Enter your email address'**
   String get authForgotPasswordHint;
 
-  ///
+  /// No description provided for @authForgotPasswordButton.
   ///
   /// In en, this message translates to:
   /// **'Send Reset Link'**
   String get authForgotPasswordButton;
 
-  ///
+  /// No description provided for @authForgotPasswordSuccess.
   ///
   /// In en, this message translates to:
   /// **'Check your email for a reset link'**
   String get authForgotPasswordSuccess;
 
-  ///
+  /// No description provided for @authSignOut.
   ///
   /// In en, this message translates to:
   /// **'Sign Out'**
   String get authSignOut;
 
-  ///
+  /// No description provided for @authSignOutConfirmTitle.
   ///
   /// In en, this message translates to:
   /// **'Sign Out?'**
   String get authSignOutConfirmTitle;
 
-  ///
+  /// No description provided for @authSignOutConfirmBody.
   ///
   /// In en, this message translates to:
   /// **'You will need to sign in again to access all features.'**
   String get authSignOutConfirmBody;
 
-  ///
+  /// No description provided for @authNotSignedInTitle.
   ///
   /// In en, this message translates to:
   /// **'Sign In to Enable Notifications'**
   String get authNotSignedInTitle;
 
-  ///
+  /// No description provided for @authNotSignedInBody.
   ///
   /// In en, this message translates to:
   /// **'Create an account or sign in to set up daily reminders.'**
   String get authNotSignedInBody;
 
-  ///
+  /// No description provided for @authNotSignedInButton.
   ///
   /// In en, this message translates to:
   /// **'Sign In'**

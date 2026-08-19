@@ -49,9 +49,25 @@ import 'package:mazilon/main.dart' show MyApp, bootstrapApp, initializeApp;
 import 'package:mazilon/pages/SignIn_Pages/firstPage.dart';
 import 'package:mazilon/pages/SignIn_Pages/introduction.dart';
 import 'package:mazilon/util/logger_service.dart';
+import 'package:mazilon/util/persistent_memory_service.dart';
 import 'package:provider/provider.dart';
 
 import '../test/helpers/widget_test_scaffold.dart';
+
+GatedLocalePersistentMemoryService _installGatedLocaleMemory() {
+  final getIt = GetIt.instance;
+  getIt.unregister<PersistentMemoryService>();
+  final memory = GatedLocalePersistentMemoryService();
+  getIt.registerSingleton<PersistentMemoryService>(memory);
+  return memory;
+}
+
+void _disposePumpedAppAfterTest(WidgetTester tester) {
+  addTearDown(() async {
+    await tester.pumpWidget(const SizedBox.shrink());
+    await tester.pump();
+  });
+}
 
 void main() {
   IntegrationTestWidgetsFlutterBinding.ensureInitialized();
@@ -94,6 +110,8 @@ void main() {
     testWidgets(
       'returns the same MultiProvider tree shape that pre-extraction main() built',
       (tester) async {
+        _disposePumpedAppAfterTest(tester);
+
         final calls = <String>[];
 
         final widget = await bootstrapApp(
@@ -148,11 +166,21 @@ void main() {
     testWidgets(
       'first frame after bootstrapApp shows the CircularProgressIndicator placeholder',
       (tester) async {
+        late GatedLocalePersistentMemoryService gatedMemory;
         final widget = await bootstrapApp(
           firebaseInitializer: () async {},
-          locatorSetup: () => registerTestServices(locale: 'en'),
+          locatorSetup: () {
+            registerTestServices(locale: 'en');
+            gatedMemory = _installGatedLocaleMemory();
+          },
           fcmInitializer: () async {},
         );
+        addTearDown(() {
+          if (!gatedMemory.localeGate.isCompleted) {
+            gatedMemory.localeGate.complete();
+          }
+        });
+        _disposePumpedAppAfterTest(tester);
 
         await tester.pumpWidget(widget);
         // First frame: localeName is still '' so MyApp renders the bootstrap
@@ -168,6 +196,8 @@ void main() {
     testWidgets(
       'MyApp settles to FirstPage or Introduction after async bootstrap (spinner is gone)',
       (tester) async {
+        _disposePumpedAppAfterTest(tester);
+
         final widget = await bootstrapApp(
           firebaseInitializer: () async {},
           locatorSetup: () => registerTestServices(locale: 'en'),

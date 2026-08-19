@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:mazilon/form/speech_dictation_suffix_action.dart';
 import 'package:mazilon/util/LP_extended_state.dart';
 import 'package:mazilon/util/styles.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
@@ -10,12 +11,15 @@ class AddFormAnswer extends StatefulWidget {
   final Function edit; // The callback function to handle the edit action
   final String text; // The current text of the item being edited
 
+  final VoidCallback? onDelete;
+
   // Constructor for AddFormAnswer, initializing index, edit function, and text.
   const AddFormAnswer({
     super.key,
     required this.index,
     required this.edit,
     required this.text,
+    this.onDelete,
   });
 
   @override
@@ -72,6 +76,13 @@ class _AddFormAnswerState extends LPExtendedState<AddFormAnswer> {
                         labelText: appLocale.addFormEdit(
                           gender,
                         ), // Set label text dynamically based on user gender
+                        suffixIcon:
+                            SpeechDictationSuffixAction.isSupportedPlatform
+                            ? SpeechDictationSuffixAction(
+                                controller: _controller,
+                                maxLength: 100,
+                              )
+                            : null,
                         contentPadding: const EdgeInsetsDirectional.only(
                           end: 8.0,
                         ),
@@ -86,7 +97,7 @@ class _AddFormAnswerState extends LPExtendedState<AddFormAnswer> {
                         fontSize: 18.sp > 30 ? 30 : 18.sp,
                       ), // Set text field style
                       validator: (value) {
-                        if (value == null || value.isEmpty) {
+                        if (value == null || value.trim().isEmpty) {
                           return appLocale
                               .validateEmpty; // Validate that the field is not empty
                         }
@@ -98,9 +109,22 @@ class _AddFormAnswerState extends LPExtendedState<AddFormAnswer> {
               ),
             ),
             Row(
-              mainAxisAlignment:
-                  MainAxisAlignment.end, // Align buttons to the end
               children: <Widget>[
+                if (widget.onDelete != null)
+                  TextButton(
+                    onPressed: widget.onDelete,
+                    child: myAutoSizedText(
+                      appLocale.deleteButton(gender),
+                      TextStyle(
+                        fontWeight: FontWeight.bold,
+                        fontSize: 20.sp,
+                        color: Theme.of(context).colorScheme.error,
+                      ),
+                      null,
+                      30,
+                    ),
+                  ),
+                const Spacer(),
                 TextButton(
                   child: myAutoSizedText(
                     appLocale.closeButton(

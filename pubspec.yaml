@@ -37,6 +37,7 @@ dependencies:
   url_launcher: 6.3.2
 
   permission_handler: ^13.0.0
+  speech_to_text: ^7.4.0
   geolocator: 14.0.2
   flutter_local_notifications: ^22.2.0
   pdf: ^3.12.0
@@ -102,6 +103,7 @@ dev_dependencies:
   # rules and activating additional ones.
   flutter_lints: ^6.0.0
   fake_cloud_firestore: ^4.1.1
+  very_good_analysis: ^10.3.0
 
 # For information on the generic Dart part of this file, see the
 # following page: https://dart.dev/tools/pub/pubspec
@@ -122,6 +124,12 @@ flutter:
     - family: Rubix
       fonts:
         - asset: fonts/Rubik-Regular.ttf
+        - asset: fonts/Rubik-Medium.ttf
+          weight: 500
+        - asset: fonts/Rubik-SemiBold.ttf
+          weight: 600
+        - asset: fonts/Rubik-Bold.ttf
+          weight: 700
 
   # To add assets to your application, add an assets section, like this:
   # assets:

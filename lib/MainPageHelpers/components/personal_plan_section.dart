@@ -6,6 +6,7 @@ import 'package:mazilon/global_enums.dart';
 import 'package:mazilon/l10n/app_localizations.dart';
 import 'package:mazilon/util/appInformation.dart';
 import 'package:mazilon/util/layout/directional_widgets.dart';
+import 'package:mazilon/util/personal_plan_export_metadata.dart';
 import 'package:mazilon/util/Share/show_share_dialog.dart';
 import 'package:mazilon/util/SignIn/popup_toast.dart';
 import 'package:mazilon/util/theme/app_theme.dart';
@@ -15,11 +16,24 @@ import 'package:provider/provider.dart';
 
 class PersonalPlanSectionWidget extends StatelessWidget {
   final List<String> items;
+
+  /// Callback invoked when "See all" or the empty state card is tapped.
+  /// Also serves as the default fallback action for title taps when [onTitleTap] is omitted.
   final VoidCallback onSeeAll;
+
+  /// Optional custom callback invoked when the section title or leading icon is tapped.
+  /// When omitted and [enableTitleTap] is `true`, defaults to [onSeeAll].
+  final VoidCallback? onTitleTap;
+
+  /// Whether tapping the section title and leading icon is enabled.
+  /// Defaults to `true`.
+  final bool enableTitleTap;
 
   const PersonalPlanSectionWidget({
     required this.items,
     required this.onSeeAll,
+    this.onTitleTap,
+    this.enableTitleTap = true,
     super.key,
   });
 
@@ -33,8 +47,10 @@ class PersonalPlanSectionWidget extends StatelessWidget {
       children: [
         SectionHeaderWidget(
           title: appLocale.myPlan,
+          titleKey: const Key('personalPlanHeaderTitle'),
           leadingIcon: Icons.assignment_outlined,
           subtitle: appLocale.myPlanSubTitle,
+          onTitleTap: enableTitleTap ? (onTitleTap ?? onSeeAll) : null,
           actionWidget: PopupMenuButton<String>(
             key: const Key('personalPlanHeaderMenu'),
             icon: Icon(Icons.more_vert, color: AppColors.neutralDark),
@@ -96,24 +112,18 @@ class PersonalPlanSectionWidget extends StatelessWidget {
         context,
         listen: false,
       );
+      final exportMetadata = buildPersonalPlanExportMetadata(
+        appLocale,
+        userInfo.gender,
+        userInfo.name,
+      );
       final result = await fileService.download(
-        [
-          appLocale.difficultEventsHeader(userInfo.gender),
-          appLocale.makeSaferHeader(userInfo.gender),
-          appLocale.feelBetterHeader(userInfo.gender),
-          appLocale.distractionsHeader(userInfo.gender),
-          appLocale.phonesPageHeader(userInfo.gender),
-        ],
-        [
-          appLocale.difficultEventsSubTitle(userInfo.gender),
-          appLocale.makeSaferSubTitle(userInfo.gender),
-          appLocale.feelBetterSubTitle(userInfo.gender),
-          appLocale.distractionsSubTitle(userInfo.gender),
-          appLocale.phonesPageSubTitle(userInfo.gender),
-        ],
+        exportMetadata.titles,
+        exportMetadata.subTitles,
         appInfoProvider.sharePDFtexts,
         ShareFileType.PDF,
-        appLocale.textDirection,
+        mainTitle: exportMetadata.mainTitle,
+        textDirection: appLocale.textDirection,
       );
       if (result == null) {
         showToast(message: appLocale.downloadFailed(userInfo.gender));
@@ -128,7 +138,6 @@ class PersonalPlanSectionWidget extends StatelessWidget {
       height: 70,
       child: ListView.builder(
         scrollDirection: Axis.horizontal,
-        padding: const EdgeInsets.symmetric(horizontal: AppSpacing.lg),
         itemCount: items.length,
         itemBuilder: (context, index) {
           return Container(
@@ -160,32 +169,29 @@ class PersonalPlanSectionWidget extends StatelessWidget {
     AppLocalizations appLocale,
     String gender,
   ) {
-    return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: AppSpacing.lg),
-      child: SizedBox(
-        height: 45,
-        child: CardContainer(
-          hasShadow: false,
-          onTap: onSeeAll,
-          padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 0),
-          child: Row(
-            children: [
-              Icon(
-                Icons.add_circle_outline,
-                color: Theme.of(context).colorScheme.primary,
-                size: 20,
+    return SizedBox(
+      height: 45,
+      child: CardContainer(
+        hasShadow: false,
+        onTap: onSeeAll,
+        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 0),
+        child: Row(
+          children: [
+            Icon(
+              Icons.add_circle_outline,
+              color: Theme.of(context).colorScheme.primary,
+              size: 20,
+            ),
+            const SizedBox(width: AppSpacing.md),
+            Expanded(
+              child: Text(
+                appLocale.personalPlanPageHasFilled(gender),
+                style: Theme.of(
+                  context,
+                ).textTheme.bodyMedium?.copyWith(fontWeight: FontWeight.w500),
               ),
-              const SizedBox(width: AppSpacing.md),
-              Expanded(
-                child: Text(
-                  appLocale.personalPlanPageHasFilled(gender),
-                  style: Theme.of(
-                    context,
-                  ).textTheme.bodyMedium?.copyWith(fontWeight: FontWeight.w500),
-                ),
-              ),
-            ],
-          ),
+            ),
+          ],
         ),
       ),
     );

@@ -396,16 +396,15 @@ class _MyAppState extends State<MyApp> with WidgetsBindingObserver {
       localeName = localeService.getLocale();
     });
     service.setItem("localeName", PersistentMemoryType.String, locale);
-    Provider.of<UserInformation>(
+    final userInfoProvider = Provider.of<UserInformation>(
       context,
       listen: false,
-    ).updateLocaleName(locale);
+    );
+    userInfoProvider.updateLocaleName(locale);
+
     WidgetsBinding.instance.addPostFrameCallback((_) async {
       final currentContext = _navigatorKey.currentContext;
       if (currentContext == null) return;
-      final appLocale = AppLocalizations.of(currentContext);
-      if (appLocale == null) return;
-
       final userInfo = Provider.of<UserInformation>(
         currentContext,
         listen: false,
@@ -471,7 +470,28 @@ class _MyAppState extends State<MyApp> with WidgetsBindingObserver {
             loggerService.captureLog(error, stackTrace: stackTrace);
 
             // Fallback to Introduction page on error
-            widgetNotifier.value = const Center(child: Introduction());
+            widgetNotifier.value = Introduction(
+              child: Builder(
+                builder: (context) {
+                  return Column(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Icon(Icons.error_outline, size: 48, color: Theme.of(context).colorScheme.error),
+                      const SizedBox(height: 16),
+                      Text(
+                        'An error occurred during startup.\nPlease try restarting the app.',
+                        style: TextStyle(
+                          fontSize: 16,
+                          fontWeight: FontWeight.normal,
+                          color: Theme.of(context).colorScheme.onSurface,
+                        ),
+                        textAlign: TextAlign.center,
+                      ),
+                    ],
+                  );
+                }
+              ),
+            );
           });
     }
 

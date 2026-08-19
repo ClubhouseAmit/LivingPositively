@@ -60,6 +60,16 @@ class AppLocalizationsAr extends AppLocalizations {
   }
 
   @override
+  String addFormPageTemplateAddOwn(String gender) {
+    String _temp0 = intl.Intl.selectLogic(gender, {
+      'male': 'أضف بنفسك',
+      'female': 'أضيفي بنفسك',
+      'other': 'أضف/ي بنفسك',
+    });
+    return '$_temp0';
+  }
+
+  @override
   String addThanksFormThank(String gender) {
     String _temp0 = intl.Intl.selectLogic(gender, {
       'male': 'شكرًا',
@@ -207,6 +217,14 @@ class AppLocalizationsAr extends AppLocalizations {
       'other': 'خطتي الشخصية',
     });
     return '$_temp0';
+  }
+
+  @override
+  String get personalPlanPdfTitle => 'خطتي الشخصية';
+
+  @override
+  String personalPlanPdfTitleWithName(String username) {
+    return 'الخطة الشخصية لـ$username';
   }
 
   @override
@@ -586,7 +604,7 @@ class AppLocalizationsAr extends AppLocalizations {
   String get darkModeAlwaysDark => 'وضع داكن دائمًا';
 
   @override
-  String get darkModeSleepPromoting => 'وضع داعم للنوم';
+  String get darkModeSleepPromoting => 'مجدول';
 
   @override
   String get darkModeStartTime => 'وقت البدء';
@@ -709,9 +727,9 @@ class AppLocalizationsAr extends AppLocalizations {
   @override
   String difficultEventsHeader(String gender) {
     String _temp0 = intl.Intl.selectLogic(gender, {
-      'male': 'تذكير بالمحفزات الشائعة وعوامل التصعيد',
-      'female': 'تذكير بالمحفزات الشائعة وعوامل التصعيد',
-      'other': 'تذكير بالمحفزات الشائعة وعوامل التصعيد',
+      'male': 'تذكيرات بالمحفزات الشائعة وعوامل التصعيد',
+      'female': 'تذكيرات بالمحفزات الشائعة وعوامل التصعيد',
+      'other': 'تذكيرات بالمحفزات الشائعة وعوامل التصعيد',
     });
     return '$_temp0';
   }
@@ -749,9 +767,9 @@ class AppLocalizationsAr extends AppLocalizations {
   @override
   String distractionsHeader(String gender) {
     String _temp0 = intl.Intl.selectLogic(gender, {
-      'male': 'العلامات التحذيرية والتغيّرات التي قد ألاحظها على نفسي',
-      'female': 'العلامات التحذيرية والتغيّرات التي قد ألاحظها على نفسي',
-      'other': 'العلامات التحذيرية والتغيّرات التي قد ألاحظها على نفسي',
+      'male': 'الأعراض وعلامات التحذير',
+      'female': 'الأعراض وعلامات التحذير',
+      'other': 'الأعراض وعلامات التحذير',
     });
     return '$_temp0';
   }
@@ -789,9 +807,12 @@ class AppLocalizationsAr extends AppLocalizations {
   @override
   String feelBetterHeader(String gender) {
     String _temp0 = intl.Intl.selectLogic(gender, {
-      'male': 'لتحقيق التوازن ونمط حياة صحي - أدوات العافية والأدوية الشخصية',
-      'female': 'لتحقيق التوازن ونمط حياة صحي - أدوات العافية والأدوية الشخصية',
-      'other': 'لتحقيق التوازن ونمط حياة صحي - أدوات العافية والأدوية الشخصية',
+      'male':
+          'ما الذي يمكنني فعله لمساعدة نفسي على تحقيق التوازن والحفاظ على نمط حياة صحي (أدوات العافية) - الأدوية الشخصية',
+      'female':
+          'ما الذي يمكنني فعله لمساعدة نفسي على تحقيق التوازن والحفاظ على نمط حياة صحي (أدوات العافية) - الأدوية الشخصية',
+      'other':
+          'ما الذي يمكنني فعله لمساعدة نفسي على تحقيق التوازن والحفاظ على نمط حياة صحي (أدوات العافية) - الأدوية الشخصية',
     });
     return '$_temp0';
   }
@@ -833,11 +854,11 @@ class AppLocalizationsAr extends AppLocalizations {
   String makeSaferHeader(String gender) {
     String _temp0 = intl.Intl.selectLogic(gender, {
       'male':
-          'الدعم من محيطي عندما ألاحظ علامات الإنذار المبكر، وكيف أرغب في الحصول على المساعدة',
+          'الدعم والمساعدة من محيطي عندما أختبر علامات الإنذار المبكرة، وكيف أود أن أتلقى المساعدة',
       'female':
-          'الدعم من محيطي عندما ألاحظ علامات الإنذار المبكر، وكيف أرغب في الحصول على المساعدة',
+          'الدعم والمساعدة من محيطي عندما أختبر علامات الإنذار المبكرة، وكيف أود أن أتلقى المساعدة',
       'other':
-          'الدعم من محيطي عندما ألاحظ علامات الإنذار المبكر، وكيف أرغب في الحصول على المساعدة',
+          'الدعم والمساعدة من محيطي عندما أختبر علامات الإنذار المبكرة، وكيف أود أن أتلقى المساعدة',
     });
     return '$_temp0';
   }
@@ -873,6 +894,26 @@ class AppLocalizationsAr extends AppLocalizations {
   }
 
   @override
+  String safeEnvironmentHeader(String gender) {
+    String _temp0 = intl.Intl.selectLogic(gender, {
+      'male': 'ما الذي سيساعدني على جعل الوضع والبيئة أكثر أمانًا بالنسبة لي',
+      'female': 'ما الذي سيساعدني على جعل الوضع والبيئة أكثر أمانًا بالنسبة لي',
+      'other': 'ما الذي سيساعدني على جعل الوضع والبيئة أكثر أمانًا بالنسبة لي',
+    });
+    return '$_temp0';
+  }
+
+  @override
+  String safeEnvironmentSubTitle(String gender) {
+    String _temp0 = intl.Intl.selectLogic(gender, {
+      'male': 'خطوات يمكنني اتخاذها لجعل وضعي وبيئتي أكثر أمانًا',
+      'female': 'خطوات يمكنني اتخاذها لجعل وضعي وبيئتي أكثر أمانًا',
+      'other': 'خطوات يمكنني اتخاذها لجعل وضعي وبيئتي أكثر أمانًا',
+    });
+    return '$_temp0';
+  }
+
+  @override
   String phonesPagePhone(String gender) {
     String _temp0 = intl.Intl.selectLogic(gender, {
       'male': 'هاتف',
@@ -896,11 +937,11 @@ class AppLocalizationsAr extends AppLocalizations {
   String phonesPageHeader(String gender) {
     String _temp0 = intl.Intl.selectLogic(gender, {
       'male':
-          'من هم الأشخاص الذين يدعمونني والذين يمكنني اللجوء إليهم إذا شعرت بالضيق أو راودتني أفكار لإيذاء نفسي؟',
+          'من هم الأشخاص الذين يدعمونني ويمكنني اللجوء إليهم إذا كنت في ضيق أو تراودني أفكار لإيذاء نفسي؟',
       'female':
-          'من هم الأشخاص الذين يدعمونني والذين يمكنني اللجوء إليهم إذا شعرتُ بالضيق أو راودتني أفكار لإيذاء نفسي؟',
+          'من هم الأشخاص الذين يدعمونني ويمكنني اللجوء إليهم إذا كنت في ضيق أو تراودني أفكار لإيذاء نفسي؟',
       'other':
-          'من هم الأشخاص الذين يدعمونني والذين يمكنني اللجوء إليهم إذا شعرت بالضيق أو راودتني أفكار لإيذاء نفسي؟',
+          'من هم الأشخاص الذين يدعمونني ويمكنني اللجوء إليهم إذا كنت في ضيق أو تراودني أفكار لإيذاء نفسي؟',
     });
     return '$_temp0';
   }
@@ -1118,14 +1159,25 @@ class AppLocalizationsAr extends AppLocalizations {
   String get sosShareLocationUnavailable => 'تعذّر الحصول على موقعك الحالي.';
 
   @override
+  String get sosShareLocationServicesDisabled =>
+      'تعذّر الحصول على موقعك الحالي. يُرجى تفعيل خدمات الموقع.';
+
+  @override
   String get sosShareLocationShareFailed =>
       'تعذّر مشاركة رسالة طلب المساعدة الخاصة بك. يُرجى المحاولة مرة أخرى.';
+
+  @override
+  String get personalPlanShareFailed =>
+      'تعذّر مشاركة خطتك الشخصية. يُرجى المحاولة مرة أخرى.';
 
   @override
   String get sosShareMessage => 'مشاركة رسالة الاستغاثة';
 
   @override
   String get sosShareMessageTooltip => 'مشاركة رسالة طلب المساعدة';
+
+  @override
+  String get sosSharePersonalPlan => 'مشاركة الخطة الشخصية أثناء الأزمة';
 
   @override
   String get sosDeliveryOptionsTitle => 'خيارات الإرسال';
@@ -2512,6 +2564,46 @@ class AppLocalizationsAr extends AppLocalizations {
   }
 
   @override
+  String safeEnvironmentListNo0(String gender) {
+    String _temp0 = intl.Intl.selectLogic(gender, {
+      'male': 'إبعاد السلاح الشخصي أو إيداعه',
+      'female': 'إبعاد السلاح الشخصي أو إيداعه',
+      'other': 'إبعاد السلاح الشخصي أو إيداعه',
+    });
+    return '$_temp0';
+  }
+
+  @override
+  String safeEnvironmentListNo1(String gender) {
+    String _temp0 = intl.Intl.selectLogic(gender, {
+      'male': 'حفظ الأدوية في صندوق مقفل',
+      'female': 'حفظ الأدوية في صندوق مقفل',
+      'other': 'حفظ الأدوية في صندوق مقفل',
+    });
+    return '$_temp0';
+  }
+
+  @override
+  String safeEnvironmentListNo2(String gender) {
+    String _temp0 = intl.Intl.selectLogic(gender, {
+      'male': 'اختيار شخص ليحتفظ بأدويتي من أجلي',
+      'female': 'اختيار شخص ليحتفظ بأدويتي من أجلي',
+      'other': 'اختيار شخص ليحتفظ بأدويتي من أجلي',
+    });
+    return '$_temp0';
+  }
+
+  @override
+  String safeEnvironmentListNo3(String gender) {
+    String _temp0 = intl.Intl.selectLogic(gender, {
+      'male': 'أن يبقى أحد معي وألا أبقى وحيدًا',
+      'female': 'أن يبقى أحد معي وألا أبقى وحيدةً',
+      'other': 'أن يبقى أحد معي وألا أبقى وحيدًا',
+    });
+    return '$_temp0';
+  }
+
+  @override
   String feelBetterListNo0(String gender) {
     String _temp0 = intl.Intl.selectLogic(gender, {
       'male': 'اليقظة الذهنية',
@@ -3246,8 +3338,10 @@ class AppLocalizationsAr extends AppLocalizations {
       'لا يمكن عرض الفيديوهات الآن.';
 
   @override
-  String get disclaimerSummary =>
-      'اقرأ النقاط الأساسية ثم وافق إذا كانت الشروط مناسبة لك.';
+  String get disclaimerPageTitle => 'تصريح';
+
+  @override
+  String get disclaimerSummary => 'راجع الشروط ووافق عليها للمتابعة.';
 
   @override
   String get disclaimerPurposeTitle => 'هدف التطبيق';
@@ -3278,6 +3372,12 @@ class AppLocalizationsAr extends AppLocalizations {
 
   @override
   String get feelGoodBackTooltip => 'العودة إلى الصور';
+
+  @override
+  String get feelGoodRotateTooltip => 'تدوير الصورة';
+
+  @override
+  String get feelGoodDownloadTooltip => 'تنزيل الصورة';
 
   @override
   String get feelGoodDeleteTooltip => 'حذف الصورة';
@@ -3315,10 +3415,24 @@ class AppLocalizationsAr extends AppLocalizations {
   String get addWarningSign => 'أضف علامة تحذير';
 
   @override
-  String get traitsSubTitle => 'هنا أتألق. اقرأ يومياً';
+  String traitsSubTitle(String gender) {
+    String _temp0 = intl.Intl.selectLogic(gender, {
+      'male': 'هنا أتألق. اقرأ يومياً',
+      'female': 'هنا أتألق. اقرئي يومياً',
+      'other': 'هنا أتألق. اقرأ/ي يومياً',
+    });
+    return '$_temp0';
+  }
 
   @override
-  String get gratitudeSubTitle => 'ما الذي أنا ممتن له اليوم';
+  String gratitudeSubTitle(String gender) {
+    String _temp0 = intl.Intl.selectLogic(gender, {
+      'male': 'ما الذي أنا ممتن له اليوم',
+      'female': 'ما الذي أنا ممتنة له اليوم',
+      'other': 'ما الذي أنا ممتن/ة له اليوم',
+    });
+    return '$_temp0';
+  }
 
   @override
   String get ourSuggestion => 'اقتراحنا';
@@ -3372,6 +3486,57 @@ class AppLocalizationsAr extends AppLocalizations {
     });
     return '$_temp0';
   }
+
+  @override
+  String get notificationCustomMessageLabel =>
+      'اكتب رسالة التذكير هنا (اختياري):';
+
+  @override
+  String get notificationCustomMessageHint => 'أدخل رسالة التذكير...';
+
+  @override
+  String get speechDictationAction => 'إملاء النص';
+
+  @override
+  String get speechDictationDisclosureTitle =>
+      'هل تريد استخدام الإملاء الصوتي؟';
+
+  @override
+  String get speechDictationDisclosureMessage =>
+      'قد يرسل جهازك أو متصفحك الكلام إلى خدمة للتعرّف على الكلام من أجل معالجته. لا يخزن هذا التطبيق الصوت ولا يرسل النص المملى إلى التحليلات. قد تنطبق سياسات موفري خدمة التعرّف. يمكنك مراجعة النص وتعديله قبل الحفظ.';
+
+  @override
+  String get speechDictationDisclosureAccept => 'متابعة';
+
+  @override
+  String get speechDictationDisclosureDecline => 'ليس الآن';
+
+  @override
+  String get speechDictationLanguagePickerTitle => 'اختر لغة الإملاء';
+
+  @override
+  String get speechDictationListeningLabel => 'جارٍ الاستماع…';
+
+  @override
+  String get speechDictationStopAndApplyAction => 'إيقاف وتطبيق';
+
+  @override
+  String get speechDictationDiscardAction => 'تجاهل';
+
+  @override
+  String get speechDictationUnavailable =>
+      'الإملاء الصوتي غير متاح على هذا الجهاز.';
+
+  @override
+  String get speechDictationError =>
+      'تعذر إكمال الإملاء الصوتي. يرجى المحاولة مرة أخرى.';
+
+  @override
+  String get speechDictationTooLong => 'النص المملى طويل جدًا لهذا الحقل.';
+
+  @override
+  String get speechDictationPhoneInvalid =>
+      'رقم الهاتف المملى غير صالح للبلد المحدد.';
 
   @override
   String get notificationsPermissionDeniedTitle => 'الإشعارات محظورة';

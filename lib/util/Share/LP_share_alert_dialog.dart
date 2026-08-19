@@ -3,43 +3,40 @@ import 'package:get_it/get_it.dart';
 import 'package:mazilon/file_service.dart';
 
 import 'package:mazilon/global_enums.dart';
+import 'package:mazilon/l10n/app_localizations.dart';
 import 'package:mazilon/util/LP_extended_state.dart';
 import 'package:mazilon/util/Share/LP_alert_dialog.dart';
 import 'package:mazilon/util/Share/LP_alert_dialog_box_item.dart';
 import 'package:mazilon/util/appInformation.dart';
+import 'package:mazilon/util/personal_plan_export_metadata.dart';
 import 'package:mazilon/util/userInformation.dart';
 import 'package:provider/provider.dart';
+import 'package:share_plus/share_plus.dart';
 
 class LPShareAlertDialog extends StatefulWidget {
-  const LPShareAlertDialog({
-    super.key,
-  });
+  const LPShareAlertDialog({super.key});
 
   @override
   State<LPShareAlertDialog> createState() => _LPShareAlertDialogState();
 }
 
-Future<void> shareFile(appLocale, gender, appInfoProvider) async {
-  var fileService = GetIt.instance<FileService>();
-  await fileService.share(
-      "",
-      [
-        appLocale!.difficultEventsHeader(gender),
-        appLocale!.makeSaferHeader(gender),
-        appLocale!.feelBetterHeader(gender),
-        appLocale!.distractionsHeader(gender),
-        appLocale!.phonesPageHeader(gender),
-      ],
-      [
-        appLocale!.difficultEventsSubTitle(gender),
-        appLocale!.makeSaferSubTitle(gender),
-        appLocale!.feelBetterSubTitle(gender),
-        appLocale!.distractionsSubTitle(gender),
-        appLocale!.phonesPageHeader(gender),
-      ],
-      appInfoProvider.sharePDFtexts,
-      ShareFileType.PDF,
-      appLocale.textDirection);
+Future<ShareResult?> shareFile(
+  AppLocalizations appLocale,
+  String gender,
+  String username,
+  AppInformation appInfoProvider,
+) {
+  final fileService = GetIt.instance<FileService>();
+  final exportMetadata = buildPersonalPlanExportMetadata(appLocale, gender, username);
+  return fileService.share(
+    "",
+    exportMetadata.titles,
+    exportMetadata.subTitles,
+    appInfoProvider.sharePDFtexts,
+    ShareFileType.PDF,
+    mainTitle: exportMetadata.mainTitle,
+    textDirection: appLocale.textDirection,
+  );
 }
 
 class _LPShareAlertDialogState extends LPExtendedState<LPShareAlertDialog> {
@@ -54,7 +51,24 @@ class _LPShareAlertDialogState extends LPExtendedState<LPShareAlertDialog> {
       title: appLocale.shareOptions,
       actions: [
         LPAlertDialogBoxItem(
-          onPressed: () => shareFile(appLocale, gender, appInfoProvider),
+          onPressed: () async {
+            final personalPlanShareFailed = appLocale.personalPlanShareFailed;
+            final shareResult = await shareFile(
+              appLocale,
+              gender,
+              userInfoProvider.name,
+              appInfoProvider,
+            );
+            if (!context.mounted) {
+              return;
+            }
+            if (shareResult == null ||
+                shareResult.status == ShareResultStatus.unavailable) {
+              ScaffoldMessenger.maybeOf(context)?.showSnackBar(
+                SnackBar(content: Text(personalPlanShareFailed)),
+              );
+            }
+          },
           buttonText: appLocale.shareFile,
           icon: Icons.insert_drive_file_outlined,
         ),

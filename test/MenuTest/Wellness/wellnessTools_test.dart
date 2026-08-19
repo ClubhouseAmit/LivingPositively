@@ -30,7 +30,6 @@ import '../../helpers/widget_test_scaffold.dart';
 import 'FakeVideoPlayerPage.dart';
 import 'wellnessTools_test.mocks.dart';
 
-
 @GenerateNiceMocks([
   MockSpec<FileService>(),
   MockSpec<VideoPlayerPageFactory>(),
@@ -119,7 +118,10 @@ void main() {
       await tapAndSettle(tester, find.text('כלי תמיכה'));
       expect(find.byType(WellnessTools), findsOneWidget);
     });
-    Future<void> openDialogMenu(WidgetTester tester, {Locale locale = const Locale('he')}) async {
+    Future<void> openDialogMenu(
+      WidgetTester tester, {
+      Locale locale = const Locale('he'),
+    }) async {
       final user = UserInformation()
         ..gender = 'other'
         ..localeName = locale.languageCode;
@@ -141,7 +143,9 @@ void main() {
         MultiProvider(
           providers: [
             ChangeNotifierProvider<UserInformation>.value(value: user),
-            ChangeNotifierProvider<AppInformation>.value(value: mockAppInformation),
+            ChangeNotifierProvider<AppInformation>.value(
+              value: mockAppInformation,
+            ),
             ChangeNotifierProvider<PhonePageData>.value(value: phonePageData),
           ],
           child: MaterialApp(
@@ -150,29 +154,31 @@ void main() {
             localizationsDelegates: AppLocalizations.localizationsDelegates,
             home: ScreenUtilInit(
               designSize: const Size(360, 690),
-              child: Builder(builder: (ctx) {
-                return Scaffold(
-                  body: Center(
-                    child: ElevatedButton(
-                      key: const Key('openMenu'),
-                      onPressed: () {
-                        showMainMenuDialog(
-                          context: ctx,
-                          anchorContext: ctx,
-                          appLocale: AppLocalizations.of(ctx)!,
-                          userInformation: user,
-                          phonePageData: phonePageData,
-                          changeLocale: (_) {},
-                          isWeb: false,
-                          onAboutPressed: () {},
-                          onNotificationsPressed: () {},
-                        );
-                      },
-                      child: const Text('open'),
+              child: Builder(
+                builder: (ctx) {
+                  return Scaffold(
+                    body: Center(
+                      child: ElevatedButton(
+                        key: const Key('openMenu'),
+                        onPressed: () {
+                          showMainMenuDialog(
+                            context: ctx,
+                            anchorContext: ctx,
+                            appLocale: AppLocalizations.of(ctx)!,
+                            userInformation: user,
+                            phonePageData: phonePageData,
+                            changeLocale: (_) {},
+                            isWeb: false,
+                            onAboutPressed: () {},
+                            onNotificationsPressed: () {},
+                          );
+                        },
+                        child: const Text('open'),
+                      ),
                     ),
-                  ),
-                );
-              }),
+                  );
+                },
+              ),
             ),
           ),
         ),

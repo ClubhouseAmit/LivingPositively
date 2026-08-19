@@ -23,37 +23,41 @@ void main() {
     }
 
     testWidgets('display thanks', (WidgetTester tester) async {
-      await tester.pumpWidget(MaterialApp(
-        home: Scaffold(
-          body: ThanksListWidget(
-            thanks: thanks,
-            add: addThanks,
-            edit: edit,
-            remove: delete,
-            addSuggested: addThanks,
-            thanksListLength: thanks.length,
-            onTabTapped: changeTab,
+      await tester.pumpWidget(
+        MaterialApp(
+          home: Scaffold(
+            body: ThanksListWidget(
+              thanks: thanks,
+              add: addThanks,
+              edit: edit,
+              remove: delete,
+              addSuggested: addThanks,
+              thanksListLength: thanks.length,
+              onTabTapped: changeTab,
+            ),
           ),
         ),
-      ));
+      );
       expect(find.text("Item 1"), findsOne);
       expect(find.text("Item 2"), findsOne);
       expect(find.text("Item 3"), findsOne);
     });
     testWidgets('add thanks', (WidgetTester tester) async {
-      await tester.pumpWidget(MaterialApp(
-        home: Scaffold(
-          body: ThanksListWidget(
-            thanks: thanks,
-            add: addThanks,
-            edit: edit,
-            remove: delete,
-            addSuggested: addThanks,
-            thanksListLength: thanks.length,
-            onTabTapped: changeTab,
+      await tester.pumpWidget(
+        MaterialApp(
+          home: Scaffold(
+            body: ThanksListWidget(
+              thanks: thanks,
+              add: addThanks,
+              edit: edit,
+              remove: delete,
+              addSuggested: addThanks,
+              thanksListLength: thanks.length,
+              onTabTapped: changeTab,
+            ),
           ),
         ),
-      ));
+      );
       final add = find.byKey(Key("addButton"));
       expect(add, findsWidgets);
       await tester.tap(add);
@@ -74,19 +78,21 @@ void main() {
       expect(find.text("tested Add Input"), findsOne);
     });
     testWidgets('edit thanks', (WidgetTester tester) async {
-      await tester.pumpWidget(MaterialApp(
-        home: Scaffold(
-          body: ThanksListWidget(
-            thanks: thanks,
-            add: addThanks,
-            edit: edit,
-            remove: delete,
-            addSuggested: addThanks,
-            thanksListLength: thanks.length,
-            onTabTapped: changeTab,
+      await tester.pumpWidget(
+        MaterialApp(
+          home: Scaffold(
+            body: ThanksListWidget(
+              thanks: thanks,
+              add: addThanks,
+              edit: edit,
+              remove: delete,
+              addSuggested: addThanks,
+              thanksListLength: thanks.length,
+              onTabTapped: changeTab,
+            ),
           ),
         ),
-      ));
+      );
       final editButton = find.byKey(Key("editButton3"));
       expect(editButton, findsWidgets);
       await tester.tap(editButton);
@@ -105,19 +111,21 @@ void main() {
     });
 
     testWidgets('remove thanks', (WidgetTester tester) async {
-      await tester.pumpWidget(MaterialApp(
-        home: Scaffold(
-          body: ThanksListWidget(
-            thanks: thanks,
-            add: addThanks,
-            edit: edit,
-            remove: delete,
-            addSuggested: addThanks,
-            thanksListLength: thanks.length,
-            onTabTapped: changeTab,
+      await tester.pumpWidget(
+        MaterialApp(
+          home: Scaffold(
+            body: ThanksListWidget(
+              thanks: thanks,
+              add: addThanks,
+              edit: edit,
+              remove: delete,
+              addSuggested: addThanks,
+              thanksListLength: thanks.length,
+              onTabTapped: changeTab,
+            ),
           ),
         ),
-      ));
+      );
       final removeButton = find.byKey(Key("removeButton3"));
       expect(removeButton, findsWidgets);
       await tester.tap(removeButton);
@@ -126,19 +134,21 @@ void main() {
       expect(thanks.length, 3);
     });
     testWidgets('change Tab', (WidgetTester tester) async {
-      await tester.pumpWidget(MaterialApp(
-        home: Scaffold(
-          body: ThanksListWidget(
-            thanks: thanks,
-            add: addThanks,
-            edit: edit,
-            remove: delete,
-            addSuggested: addThanks,
-            thanksListLength: thanks.length,
-            onTabTapped: changeTab,
+      await tester.pumpWidget(
+        MaterialApp(
+          home: Scaffold(
+            body: ThanksListWidget(
+              thanks: thanks,
+              add: addThanks,
+              edit: edit,
+              remove: delete,
+              addSuggested: addThanks,
+              thanksListLength: thanks.length,
+              onTabTapped: changeTab,
+            ),
           ),
         ),
-      ));
+      );
       expect(find.byKey(Key("tab3")), findsWidgets);
       expect(find.byKey(Key("tab4")), findsWidgets);
       expect(tab, 0);

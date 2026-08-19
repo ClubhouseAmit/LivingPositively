@@ -12,8 +12,10 @@ class _FakeAnalytics implements AnalyticsService {
   @override
   Future<void> init() async {}
   @override
-  Future<void> trackEvent(String eventName,
-      [Map<String, dynamic>? properties]) async {
+  Future<void> trackEvent(
+    String eventName, [
+    Map<String, dynamic>? properties,
+  ]) async {
     events.add(eventName);
   }
 }
@@ -23,8 +25,11 @@ class _FakeLogger implements IncidentLoggerService {
   @override
   Future<void> initializeSentry(_) async {}
   @override
-  Future<void> captureLog(dynamic exception,
-      {StackTrace? stackTrace, dynamic exceptionData}) async {
+  Future<void> captureLog(
+    dynamic exception, {
+    StackTrace? stackTrace,
+    dynamic exceptionData,
+  }) async {
     logs.add(exception);
   }
 }
@@ -43,7 +48,11 @@ class _FakeMemory implements PersistentMemoryService {
   }
 
   @override
-  Future<void> setItem(String key, PersistentMemoryType type, dynamic value) async {
+  Future<void> setItem(
+    String key,
+    PersistentMemoryType type,
+    dynamic value,
+  ) async {
     store[key] = value;
   }
 }
@@ -68,6 +77,7 @@ void main() {
       'userSelectionPersonalPlan-MakeSafer': <dynamic>['safer1'],
       'userSelectionPersonalPlan-FeelBetter': <dynamic>[],
       'userSelectionPersonalPlan-Distractions': <dynamic>['dist1'],
+      'userSelectionPersonalPlan-SafeEnvironment': <dynamic>['safe1'],
       'PhonePageSavedPhoneNames': <dynamic>['Mom', 'Dad'],
       'PhonePageSavedPhoneNumbers': <dynamic>['111', '222'],
       'name': 'Alex',
@@ -80,12 +90,12 @@ void main() {
     shareError = null;
     TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger
         .setMockMethodCallHandler(shareChannel, (call) async {
-      shareCalls.add(call);
-      if (shareError != null) {
-        throw shareError!;
-      }
-      return shareResult;
-    });
+          shareCalls.add(call);
+          if (shareError != null) {
+            throw shareError!;
+          }
+          return shareResult;
+        });
   });
 
   tearDown(() async {
@@ -95,22 +105,25 @@ void main() {
   });
 
   group('FileServiceImpl.getPrefsData', () {
-    test('reads all 7 keys and returns expected shape', () async {
+    test('reads each default plan category and returns expected shape', () async {
       final data = await FileServiceImpl.getPrefsData();
       expect(data['DifficultEvents'], ['ev1', 'ev2']);
       expect(data['MakeSafer'], ['safer1']);
       expect(data['FeelBetter'], <String>[]);
       expect(data['Distractions'], ['dist1']);
+      expect(data['SafeEnvironment'], ['safe1']);
       expect(data['phoneNames'], ['Mom', 'Dad']);
       expect(data['phoneNumbers'], ['111', '222']);
-      expect(data['username'], 'Alex');
     });
 
-    test('username defaults to empty when null', () async {
-      memory.store['name'] = null;
-      final data = await FileServiceImpl.getPrefsData();
-      expect(data['username'], '');
-    });
+    test(
+      'safe environment defaults to an empty list for existing plans',
+      () async {
+        memory.store.remove('userSelectionPersonalPlan-SafeEnvironment');
+        final data = await FileServiceImpl.getPrefsData();
+        expect(data['SafeEnvironment'], isEmpty);
+      },
+    );
   });
 
   group('FileServiceImpl.filterEmptyData', () {
@@ -127,20 +140,14 @@ void main() {
     });
 
     test('returns empty when all inner lists empty', () {
-      final result = FileServiceImpl.filterEmptyData([
-        <String>[],
-        <String>[],
-      ]);
+      final result = FileServiceImpl.filterEmptyData([<String>[], <String>[]]);
       expect(result, isEmpty);
     });
   });
 
   group('FileServiceImpl.formatPhonesText', () {
     test('joins names and numbers as "name:number"', () {
-      final result = FileServiceImpl.formatPhonesText(
-        ['A', 'B'],
-        ['1', '2'],
-      );
+      final result = FileServiceImpl.formatPhonesText(['A', 'B'], ['1', '2']);
       expect(result, ['A:1', 'B:2']);
     });
 
@@ -161,11 +168,25 @@ void main() {
   });
 
   group('FileServiceImpl.organizeDataForFile', () {
-    test('produces expected mainTitle when username present', () async {
+    test('should preserve the supplied personalized title', () async {
       final svc = FileServiceImpl();
       final result = await svc.organizeDataForFile(
-        ['t1', 't2', 't3', 't4', 't5'],
-        ['s1', 's2', 's3', 's4', 's5'],
+        [
+          'Symptoms',
+          'Triggers',
+          'Wellness',
+          'Environmental support',
+          'Contacts',
+          'Safe Environment',
+        ],
+        [
+          'symptoms subtitle',
+          'triggers subtitle',
+          'wellness subtitle',
+          'support subtitle',
+          'contacts subtitle',
+          'safe subtitle',
+        ],
         {
           'firstLine': 'a',
           'firstLinkText': 'b',
@@ -176,21 +197,43 @@ void main() {
           'secondLinkURL': 'g',
           'forthLine': 'h',
         },
+        mainTitle: 'Personal Plan of Alex',
       );
-      expect(result['mainTitle'], 'התוכנית המשולבת של Alex');
-      // 'FeelBetter' was empty -> should be dropped from realData
-      expect((result['realData'] as List).length, 4);
+      expect(result['mainTitle'], 'Personal Plan of Alex');
+      // 'FeelBetter' was empty; the remaining defaults retain their six-wide
+      // order, including Safe Environment after Contacts.
+      expect(result['titles'], [
+        'Symptoms',
+        'Triggers',
+        'Environmental support',
+        'Contacts',
+        'Safe Environment',
+      ]);
+      expect(result['subTitles'], [
+        'symptoms subtitle',
+        'triggers subtitle',
+        'support subtitle',
+        'contacts subtitle',
+        'safe subtitle',
+      ]);
+      expect(result['realData'], [
+        ['dist1'],
+        ['ev1', 'ev2'],
+        ['safer1'],
+        ['Mom:111', 'Dad:222'],
+        ['safe1'],
+      ]);
     });
 
-    test('uses generic title when username empty', () async {
-      memory.store['name'] = '';
+    test('should preserve the supplied localized title', () async {
       final svc = FileServiceImpl();
       final result = await svc.organizeDataForFile(
-        ['t1', 't2', 't3', 't4', 't5'],
-        ['s1', 's2', 's3', 's4', 's5'],
+        ['t1', 't2', 't3', 't4', 't5', 't6'],
+        ['s1', 's2', 's3', 's4', 's5', 's6'],
         {},
+        mainTitle: 'My Personal Plan',
       );
-      expect(result['mainTitle'], 'התוכנית המשולבת שלי');
+      expect(result['mainTitle'], 'My Personal Plan');
     });
   });
 
@@ -207,27 +250,31 @@ void main() {
       expect(logger.logs, isEmpty);
     });
 
-    test('returns false without tracking when the sheet is dismissed',
-        () async {
-      shareResult = '';
-      final svc = FileServiceImpl();
-      final shared = await svc.shareTextOnly('hello');
+    test(
+      'returns false without tracking when the sheet is dismissed',
+      () async {
+        shareResult = '';
+        final svc = FileServiceImpl();
+        final shared = await svc.shareTextOnly('hello');
 
-      expect(shared, isFalse);
-      expect(analytics.events, isEmpty);
-      expect(logger.logs, isEmpty);
-    });
+        expect(shared, isFalse);
+        expect(analytics.events, isEmpty);
+        expect(logger.logs, isEmpty);
+      },
+    );
 
-    test('returns false without tracking when no result is available',
-        () async {
-      shareResult = null;
-      final svc = FileServiceImpl();
-      final shared = await svc.shareTextOnly('hello');
+    test(
+      'returns false without tracking when no result is available',
+      () async {
+        shareResult = null;
+        final svc = FileServiceImpl();
+        final shared = await svc.shareTextOnly('hello');
 
-      expect(shared, isFalse);
-      expect(analytics.events, isEmpty);
-      expect(logger.logs, isEmpty);
-    });
+        expect(shared, isFalse);
+        expect(analytics.events, isEmpty);
+        expect(logger.logs, isEmpty);
+      },
+    );
 
     test('logs and returns false when the native share call throws', () async {
       shareError = StateError('native share unavailable');
@@ -258,8 +305,8 @@ void main() {
       // and the function returns without invoking AnalyticsService.
       await svc.share(
         '',
-        ['t1', 't2', 't3', 't4', 't5'],
-        ['s1', 's2', 's3', 's4', 's5'],
+        ['t1', 't2', 't3', 't4', 't5', 't6'],
+        ['s1', 's2', 's3', 's4', 's5', 's6'],
         const <String, String>{
           'firstLine': '',
           'firstLinkText': '',
@@ -271,7 +318,8 @@ void main() {
           'forthLine': '',
         },
         ShareFileType.DOCX,
-        'rtl',
+        mainTitle: 'My Personal Plan',
+        textDirection: 'rtl',
       );
       expect(analytics.events, isEmpty);
     });
@@ -285,8 +333,8 @@ void main() {
       final svc = FileServiceImpl();
       await svc.share(
         'msg',
-        ['t1', 't2', 't3', 't4', 't5'],
-        ['s1', 's2', 's3', 's4', 's5'],
+        ['t1', 't2', 't3', 't4', 't5', 't6'],
+        ['s1', 's2', 's3', 's4', 's5', 's6'],
         const <String, String>{
           'firstLine': 'a',
           'firstLinkText': 'b',
@@ -298,7 +346,8 @@ void main() {
           'forthLine': 'f',
         },
         ShareFileType.PDF,
-        'rtl',
+        mainTitle: 'My Personal Plan',
+        textDirection: 'rtl',
       );
       // Either AnalyticsService recorded "Plan shared" or the catch branch
       // forwarded the share_plus failure to logger. At least one must hold,
@@ -314,11 +363,12 @@ void main() {
     test('returns null when format is not PDF', () async {
       final svc = FileServiceImpl();
       final out = await svc.download(
-        ['t1', 't2', 't3', 't4', 't5'],
-        ['s1', 's2', 's3', 's4', 's5'],
+        ['t1', 't2', 't3', 't4', 't5', 't6'],
+        ['s1', 's2', 's3', 's4', 's5', 's6'],
         const <String, String>{},
         ShareFileType.DOCX,
-        'ltr',
+        mainTitle: 'My Personal Plan',
+        textDirection: 'ltr',
       );
       expect(out, isNull);
     });

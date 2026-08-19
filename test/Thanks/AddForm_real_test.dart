@@ -14,8 +14,10 @@
 // MaterialApp + Scaffold with a "open" button that calls showDialog so we
 // have a real Navigator/dialog context for `Navigator.of(context).pop()`.
 
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:mazilon/form/speech_dictation_suffix_action.dart';
 import 'package:mazilon/util/Thanks/AddForm.dart' as real;
 import 'package:mazilon/util/userInformation.dart';
 
@@ -73,6 +75,82 @@ void main() {
       // Two TextButtons: close + save.
       expect(find.byType(TextButton), findsNWidgets(2));
     });
+
+    testWidgets(
+      'should hide dictation on the generic add field when feature flag is disabled',
+      (tester) async {
+        final previousFeatureEnabled =
+            SpeechDictationSuffixAction.isFeatureEnabled;
+        final originalPlatform = debugDefaultTargetPlatformOverride;
+        SpeechDictationSuffixAction.isFeatureEnabled = false;
+        debugDefaultTargetPlatformOverride = TargetPlatform.android;
+        try {
+          await _openDialog(
+            tester,
+            real.AddForm(
+              add: (_, _) {},
+              edit: (_, _, _) {},
+              index: 0,
+              text: '',
+              formTitle: 'Trait',
+            ),
+          );
+
+          final field = tester.widget<TextField>(
+            find.descendant(
+              of: find.byType(TextFormField),
+              matching: find.byType(TextField),
+            ),
+          );
+          expect(field.decoration?.suffixIcon, isNull);
+          expect(find.byKey(const Key('speech-dictation-start')), findsNothing);
+        } finally {
+          SpeechDictationSuffixAction.isFeatureEnabled = previousFeatureEnabled;
+          debugDefaultTargetPlatformOverride = originalPlatform;
+        }
+      },
+    );
+
+    testWidgets(
+      'should expose dictation on the generic add field when supported and enabled',
+      (tester) async {
+        final previousFeatureEnabled =
+            SpeechDictationSuffixAction.isFeatureEnabled;
+        final originalPlatform = debugDefaultTargetPlatformOverride;
+        SpeechDictationSuffixAction.isFeatureEnabled = true;
+        debugDefaultTargetPlatformOverride = TargetPlatform.android;
+        try {
+          await _openDialog(
+            tester,
+            real.AddForm(
+              add: (_, _) {},
+              edit: (_, _, _) {},
+              index: 0,
+              text: '',
+              formTitle: 'Trait',
+            ),
+          );
+
+          final field = tester.widget<TextField>(
+            find.descendant(
+              of: find.byType(TextFormField),
+              matching: find.byType(TextField),
+            ),
+          );
+          expect(
+            field.decoration?.suffixIcon,
+            isA<SpeechDictationSuffixAction>(),
+          );
+          expect(
+            find.byKey(const Key('speech-dictation-start')),
+            findsOneWidget,
+          );
+        } finally {
+          SpeechDictationSuffixAction.isFeatureEnabled = previousFeatureEnabled;
+          debugDefaultTargetPlatformOverride = originalPlatform;
+        }
+      },
+    );
 
     testWidgets('seeds TextFormField controller with widget.text', (
       tester,

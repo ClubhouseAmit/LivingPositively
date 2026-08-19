@@ -2,7 +2,6 @@
 
 import 'package:flutter/material.dart';
 import 'package:mazilon/util/Phone/phoneTextAndIcon.dart';
-import 'package:mazilon/util/styles.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:mazilon/util/userInformation.dart';
 import 'package:provider/provider.dart';
@@ -41,13 +40,12 @@ class EmergencyDialogBox extends StatelessWidget {
     final isChatLink = linkType == 'chat';
     return AlertDialog(
       // Title of the dialog box
-      title: myText(
+      title: Text(
         appLocale!.select(gender),
-        TextStyle(
+        style: TextStyle(
           fontWeight: FontWeight.normal,
           fontSize: 18.sp > 40 ? 40 : 20.sp,
         ),
-        null,
       ),
       // Content of the dialog box, which includes options to make a call or send a WhatsApp message
       content: SingleChildScrollView(
@@ -115,13 +113,12 @@ class EmergencyDialogBox extends StatelessWidget {
       // Back button to close the dialog box
       actions: <Widget>[
         TextButton(
-          child: myText(
+          child: Text(
             appLocale.backButton(gender),
-            TextStyle(
+            style: TextStyle(
               fontWeight: FontWeight.bold,
               fontSize: 20.sp > 30 ? 30 : 20.sp,
             ),
-            null,
           ),
           onPressed: () {
             Navigator.of(context).pop();

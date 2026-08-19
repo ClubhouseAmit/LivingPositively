@@ -6,8 +6,10 @@
 // UserInformation through Provider, persists name/age/gender/locale through
 // PersistentMemoryService (GetIt), and uses AppLocalizations for all copy.
 
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:mazilon/form/speech_dictation_suffix_action.dart';
 import 'package:mazilon/global_enums.dart';
 import 'package:mazilon/pages/UserSettings.dart';
 import 'package:mazilon/util/Form/formPagePhoneModel.dart';
@@ -92,6 +94,74 @@ void main() {
       final tf = tester.widget<TextField>(find.byType(TextField).first);
       expect(tf.controller?.text, 'Prefilled');
     });
+
+    testWidgets(
+      'should hide dictation on settings name field when feature flag is disabled',
+      (tester) async {
+        final previousFeatureEnabled =
+            SpeechDictationSuffixAction.isFeatureEnabled;
+        final originalPlatform = debugDefaultTargetPlatformOverride;
+        SpeechDictationSuffixAction.isFeatureEnabled = false;
+        debugDefaultTargetPlatformOverride = TargetPlatform.android;
+        try {
+          await pumpWithProviders(
+            tester,
+            _buildWidget(changeLocale: (_) {}),
+            userInformation: userInformation,
+            surfaceSize: const Size(1024, 1800),
+          );
+
+          final field = tester.widget<TextField>(
+            find.descendant(
+              of: find.byType(TextFormField).first,
+              matching: find.byType(TextField),
+            ),
+          );
+          expect(field.decoration?.suffixIcon, isNull);
+          expect(find.byKey(const Key('speech-dictation-start')), findsNothing);
+        } finally {
+          SpeechDictationSuffixAction.isFeatureEnabled = previousFeatureEnabled;
+          debugDefaultTargetPlatformOverride = originalPlatform;
+        }
+      },
+    );
+
+    testWidgets(
+      'should expose dictation on settings name field when supported and enabled',
+      (tester) async {
+        final previousFeatureEnabled =
+            SpeechDictationSuffixAction.isFeatureEnabled;
+        final originalPlatform = debugDefaultTargetPlatformOverride;
+        SpeechDictationSuffixAction.isFeatureEnabled = true;
+        debugDefaultTargetPlatformOverride = TargetPlatform.android;
+        try {
+          await pumpWithProviders(
+            tester,
+            _buildWidget(changeLocale: (_) {}),
+            userInformation: userInformation,
+            surfaceSize: const Size(1024, 1800),
+          );
+
+          final field = tester.widget<TextField>(
+            find.descendant(
+              of: find.byType(TextFormField).first,
+              matching: find.byType(TextField),
+            ),
+          );
+          expect(
+            field.decoration?.suffixIcon,
+            isA<SpeechDictationSuffixAction>(),
+          );
+          expect(
+            find.byKey(const Key('speech-dictation-start')),
+            findsOneWidget,
+          );
+        } finally {
+          SpeechDictationSuffixAction.isFeatureEnabled = previousFeatureEnabled;
+          debugDefaultTargetPlatformOverride = originalPlatform;
+        }
+      },
+    );
 
     testWidgets('typing into the name field stages without persisting', (
       tester,
@@ -344,8 +414,11 @@ void main() {
           find.byKey(const Key('darkModeScheduledOption')),
           findsOneWidget,
         );
-        expect(find.byKey(const Key('darkModeStartTimeButton')), findsNothing);
-        expect(find.byKey(const Key('darkModeEndTimeButton')), findsNothing);
+        final scheduleVisibility = find.ancestor(
+          of: find.byKey(const Key('darkModeStartTimeButton')),
+          matching: find.byType(Visibility),
+        );
+        expect(tester.widget<Visibility>(scheduleVisibility).visible, isFalse);
 
         final scheduledOption = find.byKey(
           const Key('darkModeScheduledOption'),
@@ -363,11 +436,7 @@ void main() {
         expect(userInformation.darkModeEndHour, 6);
         expect(userInformation.darkModeEndMinute, 0);
         expect(services.memory.store['darkModePreference'], 'scheduled');
-        expect(
-          find.byKey(const Key('darkModeStartTimeButton')),
-          findsOneWidget,
-        );
-        expect(find.byKey(const Key('darkModeEndTimeButton')), findsOneWidget);
+        expect(tester.widget<Visibility>(scheduleVisibility).visible, isTrue);
       },
     );
 
@@ -390,8 +459,11 @@ void main() {
 
       expect(userInformation.darkModePreference, DarkModePreference.alwaysDark);
       expect(services.memory.store['darkModePreference'], 'alwaysDark');
-      expect(find.byKey(const Key('darkModeStartTimeButton')), findsNothing);
-      expect(find.byKey(const Key('darkModeEndTimeButton')), findsNothing);
+      final scheduleVisibility = find.ancestor(
+        of: find.byKey(const Key('darkModeStartTimeButton')),
+        matching: find.byType(Visibility),
+      );
+      expect(tester.widget<Visibility>(scheduleVisibility).visible, isFalse);
     });
   });
 }

@@ -54,114 +54,152 @@ void main() {
 
   group('FirebaseAuthService.signUpWithEmailAndPassword', () {
     test('returns the created user on success', () async {
-      when(auth.createUserWithEmailAndPassword(
-        email: anyNamed('email'),
-        password: anyNamed('password'),
-      )).thenAnswer((_) async => credential);
+      when(
+        auth.createUserWithEmailAndPassword(
+          email: anyNamed('email'),
+          password: anyNamed('password'),
+        ),
+      ).thenAnswer((_) async => credential);
 
       final service = FirebaseAuthService.withAuth(auth);
       final result = await service.signUpWithEmailAndPassword(
-          'a@example.com', 'password123');
+        'a@example.com',
+        'password123',
+      );
 
       expect(result, same(user));
-      verify(auth.createUserWithEmailAndPassword(
-        email: 'a@example.com',
-        password: 'password123',
-      )).called(1);
+      verify(
+        auth.createUserWithEmailAndPassword(
+          email: 'a@example.com',
+          password: 'password123',
+        ),
+      ).called(1);
     });
 
     test('returns null and surfaces toast on email-already-in-use', () async {
-      when(auth.createUserWithEmailAndPassword(
-        email: anyNamed('email'),
-        password: anyNamed('password'),
-      )).thenThrow(FirebaseAuthException(code: 'email-already-in-use'));
+      when(
+        auth.createUserWithEmailAndPassword(
+          email: anyNamed('email'),
+          password: anyNamed('password'),
+        ),
+      ).thenThrow(FirebaseAuthException(code: 'email-already-in-use'));
 
       final service = FirebaseAuthService.withAuth(auth);
       final result = await service.signUpWithEmailAndPassword(
-          'a@example.com', 'password123');
+        'a@example.com',
+        'password123',
+      );
 
       expect(result, isNull);
     });
 
-    test('returns null and logs incident on generic FirebaseAuthException',
-        () async {
-      when(auth.createUserWithEmailAndPassword(
-        email: anyNamed('email'),
-        password: anyNamed('password'),
-      )).thenThrow(FirebaseAuthException(code: 'weak-password'));
+    test(
+      'returns null and logs incident on generic FirebaseAuthException',
+      () async {
+        when(
+          auth.createUserWithEmailAndPassword(
+            email: anyNamed('email'),
+            password: anyNamed('password'),
+          ),
+        ).thenThrow(FirebaseAuthException(code: 'weak-password'));
 
-      final service = FirebaseAuthService.withAuth(auth);
-      final result = await service.signUpWithEmailAndPassword(
-          'a@example.com', 'short');
+        final service = FirebaseAuthService.withAuth(auth);
+        final result = await service.signUpWithEmailAndPassword(
+          'a@example.com',
+          'short',
+        );
 
-      expect(result, isNull);
-      // IncidentLoggerService is the NoopIncidentLoggerService from the
-      // test scaffold; the captured list now contains the error.
-      final logger = GetIt.instance<IncidentLoggerService>()
-          as NoopIncidentLoggerService;
-      expect(logger.captured, isNotEmpty);
-    });
+        expect(result, isNull);
+        // IncidentLoggerService is the NoopIncidentLoggerService from the
+        // test scaffold; the captured list now contains the error.
+        final logger =
+            GetIt.instance<IncidentLoggerService>()
+                as NoopIncidentLoggerService;
+        expect(logger.captured, isNotEmpty);
+      },
+    );
   });
 
   group('FirebaseAuthService.signInWithEmailAndPassword', () {
     test('returns the authenticated user on success', () async {
-      when(auth.signInWithEmailAndPassword(
-        email: anyNamed('email'),
-        password: anyNamed('password'),
-      )).thenAnswer((_) async => credential);
+      when(
+        auth.signInWithEmailAndPassword(
+          email: anyNamed('email'),
+          password: anyNamed('password'),
+        ),
+      ).thenAnswer((_) async => credential);
 
       final service = FirebaseAuthService.withAuth(auth);
       final result = await service.signInWithEmailAndPassword(
-          'a@example.com', 'password123');
+        'a@example.com',
+        'password123',
+      );
 
       expect(result, same(user));
-      verify(auth.signInWithEmailAndPassword(
-        email: 'a@example.com',
-        password: 'password123',
-      )).called(1);
+      verify(
+        auth.signInWithEmailAndPassword(
+          email: 'a@example.com',
+          password: 'password123',
+        ),
+      ).called(1);
     });
 
     test('returns null on user-not-found', () async {
-      when(auth.signInWithEmailAndPassword(
-        email: anyNamed('email'),
-        password: anyNamed('password'),
-      )).thenThrow(FirebaseAuthException(code: 'user-not-found'));
+      when(
+        auth.signInWithEmailAndPassword(
+          email: anyNamed('email'),
+          password: anyNamed('password'),
+        ),
+      ).thenThrow(FirebaseAuthException(code: 'user-not-found'));
 
       final service = FirebaseAuthService.withAuth(auth);
       final result = await service.signInWithEmailAndPassword(
-          'ghost@example.com', 'password123');
+        'ghost@example.com',
+        'password123',
+      );
 
       expect(result, isNull);
     });
 
     test('returns null on wrong-password', () async {
-      when(auth.signInWithEmailAndPassword(
-        email: anyNamed('email'),
-        password: anyNamed('password'),
-      )).thenThrow(FirebaseAuthException(code: 'wrong-password'));
+      when(
+        auth.signInWithEmailAndPassword(
+          email: anyNamed('email'),
+          password: anyNamed('password'),
+        ),
+      ).thenThrow(FirebaseAuthException(code: 'wrong-password'));
 
       final service = FirebaseAuthService.withAuth(auth);
       final result = await service.signInWithEmailAndPassword(
-          'a@example.com', 'wrong');
+        'a@example.com',
+        'wrong',
+      );
 
       expect(result, isNull);
     });
 
-    test('returns null and logs incident on generic FirebaseAuthException',
-        () async {
-      when(auth.signInWithEmailAndPassword(
-        email: anyNamed('email'),
-        password: anyNamed('password'),
-      )).thenThrow(FirebaseAuthException(code: 'too-many-requests'));
+    test(
+      'returns null and logs incident on generic FirebaseAuthException',
+      () async {
+        when(
+          auth.signInWithEmailAndPassword(
+            email: anyNamed('email'),
+            password: anyNamed('password'),
+          ),
+        ).thenThrow(FirebaseAuthException(code: 'too-many-requests'));
 
-      final service = FirebaseAuthService.withAuth(auth);
-      final result = await service.signInWithEmailAndPassword(
-          'a@example.com', 'password123');
+        final service = FirebaseAuthService.withAuth(auth);
+        final result = await service.signInWithEmailAndPassword(
+          'a@example.com',
+          'password123',
+        );
 
-      expect(result, isNull);
-      final logger = GetIt.instance<IncidentLoggerService>()
-          as NoopIncidentLoggerService;
-      expect(logger.captured, isNotEmpty);
-    });
+        expect(result, isNull);
+        final logger =
+            GetIt.instance<IncidentLoggerService>()
+                as NoopIncidentLoggerService;
+        expect(logger.captured, isNotEmpty);
+      },
+    );
   });
 }

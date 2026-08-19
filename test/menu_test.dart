@@ -10,6 +10,7 @@ import 'package:mazilon/util/appInformation.dart';
 import 'package:mazilon/util/persistent_memory_service.dart';
 import 'package:mazilon/util/userInformation.dart';
 import 'package:package_info_plus/package_info_plus.dart';
+import 'package:share_plus/share_plus.dart';
 
 import 'MenuTest/TestMenu.dart';
 import 'MenuTest/test_data.dart';
@@ -29,7 +30,7 @@ class _FakeAnalyticsService implements AnalyticsService {
 
 class _FakePersistentMemoryService implements PersistentMemoryService {
   _FakePersistentMemoryService({Map<String, dynamic>? initialValues})
-      : _values = {...?initialValues};
+    : _values = {...?initialValues};
   final Map<String, dynamic> _values;
 
   @override
@@ -57,29 +58,34 @@ class _FakePersistentMemoryService implements PersistentMemoryService {
 
   @override
   Future<void> setItem(
-      String key, PersistentMemoryType type, dynamic value) async {
+    String key,
+    PersistentMemoryType type,
+    dynamic value,
+  ) async {
     _values[key] = value;
   }
 }
 
 class _FakeFileService implements FileService {
   @override
-  Future<void> share(
+  Future<ShareResult?> share(
     String message,
     List<dynamic> titles,
     List<dynamic> subTitles,
     Map<String, String> texts,
     ShareFileType saveFormat,
-    String textDirection,
-  ) async {}
+    {required String mainTitle,
+    required String textDirection,
+  }) async => const ShareResult('fake', ShareResultStatus.success);
   @override
   Future<String?> download(
     List<dynamic> titles,
     List<dynamic> subTitles,
     Map<String, String> texts,
     ShareFileType saveFormat,
-    String textDirection,
-  ) async =>
+    {required String mainTitle,
+    required String textDirection,
+  }) async =>
       null;
   @override
   Future<bool> shareTextOnly(String message) async => true;
@@ -122,8 +128,9 @@ void main() {
     getData(app);
   });
 
-  testWidgets('default screen is Home and SOS button is visible',
-      (tester) async {
+  testWidgets('default screen is Home and SOS button is visible', (
+    tester,
+  ) async {
     await tester.pumpWidget(getMenuForTests(user, app));
     await tester.pumpAndSettle();
 
@@ -141,15 +148,15 @@ void main() {
     await tester.tap(sos);
     await tester.pumpAndSettle();
 
-
     // After SOS tap, the PhonePage replaces the home content. Search bar still
     // should not show 'SOS' twice (FAB persists). We verify the page has been
     // swapped by checking the home greeting from getData('') has been hidden.
     expect(find.byKey(const Key('bottomNavHome')), findsOneWidget);
   }, skip: true);
 
-  testWidgets('tapping the Plan bottom nav swaps to MyPlanPageFull',
-      (tester) async {
+  testWidgets('tapping the Plan bottom nav swaps to MyPlanPageFull', (
+    tester,
+  ) async {
     await tester.pumpWidget(getMenuForTests(user, app));
     await tester.pumpAndSettle();
 
@@ -159,8 +166,7 @@ void main() {
     expect(find.byKey(const Key('bottomNavMyPlan')), findsOneWidget);
   });
 
-  testWidgets('tapping FeelGood records analytics event',
-      (tester) async {
+  testWidgets('tapping FeelGood records analytics event', (tester) async {
     await tester.pumpWidget(getMenuForTests(user, app));
     await tester.pumpAndSettle();
 
@@ -170,20 +176,23 @@ void main() {
     expect(analytics.events, contains('Viewed Feel Good Page'));
   }, skip: true);
 
-  testWidgets('back button on Home tab pops the system navigator path',
-      (tester) async {
+  testWidgets('back button on Home tab pops the system navigator path', (
+    tester,
+  ) async {
     await tester.pumpWidget(getMenuForTests(user, app));
     await tester.pumpAndSettle();
 
     // Drive the PopScope back invocation; current is Home so it should call
     // SystemNavigator.pop and reset to home.
-    final dynamicState =
-        tester.state<State<StatefulWidget>>(find.byType(MaterialApp).first);
+    final dynamicState = tester.state<State<StatefulWidget>>(
+      find.byType(MaterialApp).first,
+    );
     expect(dynamicState, isNotNull);
   });
 
-  testWidgets('Notifications menu is hidden on iOS (platform override)',
-      (tester) async {
+  testWidgets('Notifications menu is hidden on iOS (platform override)', (
+    tester,
+  ) async {
     debugDefaultTargetPlatformOverride = TargetPlatform.iOS;
     addTearDown(() => debugDefaultTargetPlatformOverride = null);
 

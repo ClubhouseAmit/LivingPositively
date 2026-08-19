@@ -24,18 +24,18 @@ import 'package:mazilon/util/userInformation.dart';
 import '../helpers/widget_test_scaffold.dart';
 
 PhonePageData _phoneData() => PhonePageData(
-      key: 'phone',
-      header: 'h',
-      subTitle: 's',
-      midTitle: 'm',
-      phoneNameTitle: 'n',
-      phoneNumberTitle: 'p',
-      phoneNames: const <String>[],
-      phoneNumbers: const <String>[],
-      savedPhoneNames: const <String>[],
-      savedPhoneNumbers: const <String>[],
-      phoneDescription: const <String>[],
-    );
+  key: 'phone',
+  header: 'h',
+  subTitle: 's',
+  midTitle: 'm',
+  phoneNameTitle: 'n',
+  phoneNumberTitle: 'p',
+  phoneNames: const <String>[],
+  phoneNumbers: const <String>[],
+  savedPhoneNames: const <String>[],
+  savedPhoneNumbers: const <String>[],
+  phoneDescription: const <String>[],
+);
 
 Widget _wrapQuote(String quote, {Locale locale = const Locale('en')}) {
   return MaterialApp(
@@ -65,43 +65,43 @@ void main() {
     tearDown(resetTestServices);
 
     testWidgets(
-        'PositionedDirectional + EdgeInsetsDirectional replace the LTR/RTL branches',
-        (tester) async {
-      await tester.pumpWidget(_wrapQuote('quote-one'));
-      await tester.pumpAndSettle();
+      'PositionedDirectional + EdgeInsetsDirectional replace the LTR/RTL branches',
+      (tester) async {
+        await tester.pumpWidget(_wrapQuote('quote-one'));
+        await tester.pumpAndSettle();
 
-      // Phase C contract: the quote mark uses PositionedDirectional.
-      expect(
-        find.byType(PositionedDirectional),
-        findsOneWidget,
-        reason:
-            'QuoteCardWidget quote mark must use PositionedDirectional '
-            'so its layout follows the ambient Directionality.',
-      );
+        // Phase C contract: the quote mark uses PositionedDirectional.
+        expect(
+          find.byType(PositionedDirectional),
+          findsOneWidget,
+          reason:
+              'QuoteCardWidget quote mark must use PositionedDirectional '
+              'so its layout follows the ambient Directionality.',
+        );
 
-      // Phase C contract: the padding uses EdgeInsetsDirectional.
-      final paddings = tester.widgetList<Padding>(find.byType(Padding));
-      final directional = paddings.where(
-        (p) => p.padding is EdgeInsetsDirectional,
-      );
-      expect(
-        directional,
-        isNotEmpty,
-        reason:
-            'QuoteCardWidget must use EdgeInsetsDirectional '
-            'instead of EdgeInsets keyed on isRtl.',
-      );
-    });
+        // Phase C contract: the padding uses EdgeInsetsDirectional.
+        final paddings = tester.widgetList<Padding>(find.byType(Padding));
+        final directional = paddings.where(
+          (p) => p.padding is EdgeInsetsDirectional,
+        );
+        expect(
+          directional,
+          isNotEmpty,
+          reason:
+              'QuoteCardWidget must use EdgeInsetsDirectional '
+              'instead of EdgeInsets keyed on isRtl.',
+        );
+      },
+    );
 
-    testWidgets(
-        'close button lands on the trailing edge in LTR (right side)',
-        (tester) async {
+    testWidgets('close button lands on the trailing edge in LTR (right side)', (
+      tester,
+    ) async {
       await tester.pumpWidget(_wrapQuote('quote-one'));
       await tester.pumpAndSettle();
 
       final closeCenter = tester.getCenter(find.byIcon(Icons.close));
-      final quoteCenter = tester
-          .getCenter(find.byType(QuoteCardWidget).first);
+      final quoteCenter = tester.getCenter(find.byType(QuoteCardWidget).first);
       expect(
         closeCenter.dx,
         greaterThan(quoteCenter.dx),
@@ -109,22 +109,20 @@ void main() {
       );
     });
 
-    testWidgets(
-        'close button flips to the trailing edge in RTL (left side)',
-        (tester) async {
+    testWidgets('close button flips to the trailing edge in RTL (left side)', (
+      tester,
+    ) async {
       await tester.pumpWidget(
         _wrapQuote('quote-one', locale: const Locale('he')),
       );
       await tester.pumpAndSettle();
 
       final closeCenter = tester.getCenter(find.byIcon(Icons.close));
-      final quoteCenter = tester
-          .getCenter(find.byType(QuoteCardWidget).first);
+      final quoteCenter = tester.getCenter(find.byType(QuoteCardWidget).first);
       expect(
         closeCenter.dx,
         lessThan(quoteCenter.dx),
-        reason:
-            'Close icon must flip to the left in RTL (trailing in he).',
+        reason: 'Close icon must flip to the left in RTL (trailing in he).',
       );
     });
   });
@@ -142,29 +140,31 @@ void main() {
         ..localeName = locale.languageCode;
       await pumpWithProviders(
         tester,
-        Builder(builder: (ctx) {
-          return Scaffold(
-            body: Center(
-              child: ElevatedButton(
-                key: const Key('openMenu'),
-                onPressed: () {
-                  showMainMenuDialog(
-                    context: ctx,
-                    anchorContext: ctx,
-                    appLocale: AppLocalizations.of(ctx)!,
-                    userInformation: user,
-                    phonePageData: _phoneData(),
-                    changeLocale: (_) {},
-                    isWeb: false,
-                    onAboutPressed: () {},
-                    onNotificationsPressed: () {},
-                  );
-                },
-                child: const Text('open'),
+        Builder(
+          builder: (ctx) {
+            return Scaffold(
+              body: Center(
+                child: ElevatedButton(
+                  key: const Key('openMenu'),
+                  onPressed: () {
+                    showMainMenuDialog(
+                      context: ctx,
+                      anchorContext: ctx,
+                      appLocale: AppLocalizations.of(ctx)!,
+                      userInformation: user,
+                      phonePageData: _phoneData(),
+                      changeLocale: (_) {},
+                      isWeb: false,
+                      onAboutPressed: () {},
+                      onNotificationsPressed: () {},
+                    );
+                  },
+                  child: const Text('open'),
+                ),
               ),
-            ),
-          );
-        }),
+            );
+          },
+        ),
         userInformation: user,
         locale: locale,
         surfaceSize: const Size(1024, 800),
@@ -174,32 +174,33 @@ void main() {
     }
 
     testWidgets(
-        'header Align uses explicit AlignmentDirectional.topEnd for the close button',
-        (tester) async {
-      await openMenu(tester, const Locale('he'));
+      'header Align uses explicit AlignmentDirectional.topEnd for the close button',
+      (tester) async {
+        await openMenu(tester, const Locale('he'));
 
-      // The close button side is a physical product requirement:
-      // English => right, Hebrew => left. Keep the header Align in
-      // AlignmentDirectional.topEnd coordinates.
-      final closeFinder = find.byKey(const Key('mainMenuCloseButton'));
-      expect(closeFinder, findsOneWidget);
+        // The close button side is a physical product requirement:
+        // English => right, Hebrew => left. Keep the header Align in
+        // AlignmentDirectional.topEnd coordinates.
+        final closeFinder = find.byKey(const Key('mainMenuCloseButton'));
+        expect(closeFinder, findsOneWidget);
 
-      final alignAncestor = find.ancestor(
-        of: closeFinder,
-        matching: find.byType(Align),
-      );
-      expect(alignAncestor, findsWidgets);
+        final alignAncestor = find.ancestor(
+          of: closeFinder,
+          matching: find.byType(Align),
+        );
+        expect(alignAncestor, findsWidgets);
 
-      final headerAlign = tester.widget<Align>(alignAncestor.first);
-      expect(
-        headerAlign.alignment,
-        AlignmentDirectional.topEnd,
-        reason:
-            'main_menu_dialog must place the close button using explicit '
-            'AlignmentDirectional.topEnd so locale, not inherited route direction, '
-            'decides whether the X is left or right.',
-      );
-    });
+        final headerAlign = tester.widget<Align>(alignAncestor.first);
+        expect(
+          headerAlign.alignment,
+          AlignmentDirectional.topEnd,
+          reason:
+              'main_menu_dialog must place the close button using explicit '
+              'AlignmentDirectional.topEnd so locale, not inherited route direction, '
+              'decides whether the X is left or right.',
+        );
+      },
+    );
 
     testWidgets('close button lands on the trailing edge in LTR', (
       tester,
@@ -239,9 +240,9 @@ void main() {
       );
     });
 
-    testWidgets(
-        'About label aligns to leading edge via AlignmentDirectional',
-        (tester) async {
+    testWidgets('About label aligns to leading edge via AlignmentDirectional', (
+      tester,
+    ) async {
       await openMenu(tester, const Locale('he'));
 
       // The Align wrapping the About TextButton previously branched on
@@ -257,8 +258,9 @@ void main() {
           matching: find.byType(Align),
         ),
       );
-      final directional = aligns
-          .where((a) => a.alignment == AlignmentDirectional.centerStart);
+      final directional = aligns.where(
+        (a) => a.alignment == AlignmentDirectional.centerStart,
+      );
       expect(
         directional,
         isNotEmpty,

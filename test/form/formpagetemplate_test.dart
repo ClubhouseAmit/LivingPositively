@@ -1,3 +1,4 @@
+import 'package:flutter/rendering.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -8,11 +9,16 @@ import 'package:provider/provider.dart';
 import 'package:mazilon/util/appInformation.dart';
 import 'package:mazilon/util/userInformation.dart';
 import 'package:mazilon/form/formpagetemplate.dart';
+import 'package:mazilon/form/wizard_step.dart';
+import 'package:mazilon/util/theme/app_theme.dart';
 import 'package:mockito/mockito.dart';
 import 'package:mockito/annotations.dart';
 import 'package:mazilon/l10n/app_localizations.dart';
+import 'package:mazilon/AnalyticsService.dart';
 import '../MenuTest/shareAndDownload/share_and_download_test.mocks.dart'
     as ShareMocks;
+import '../helpers/widget_test_scaffold.dart'
+    show NoopAnalyticsService, loadTestFonts, wizardStepHarness;
 
 @GenerateNiceMocks([
   MockSpec<UserInformation>(),
@@ -37,21 +43,29 @@ void main() {
           ShareMocks.MockPersistentMemoryService();
 
       // Set up mock behaviors for PersistentMemoryService
-      when(mockPersistentMemoryService.getItem(any, any))
-          .thenAnswer((_) async => null);
-      when(mockPersistentMemoryService.setItem(any, any, any))
-          .thenAnswer((_) async {});
+      when(
+        mockPersistentMemoryService.getItem(any, any),
+      ).thenAnswer((_) async => null);
+      when(
+        mockPersistentMemoryService.setItem(any, any, any),
+      ).thenAnswer((_) async {});
       when(mockPersistentMemoryService.reset()).thenAnswer((_) async {});
 
       // Register PersistentMemoryService with GetIt
       getIt.registerLazySingleton<PersistentMemoryService>(
-          () => mockPersistentMemoryService);
+        () => mockPersistentMemoryService,
+      );
+
+      // The "next" button's onPressed tracks an analytics event; register a
+      // no-op fake so tapping it doesn't throw on an unregistered service.
+      getIt.registerSingleton<AnalyticsService>(NoopAnalyticsService());
 
       mockUserInformation = UserInformation();
       mockUserInformation.gender = "male";
       mockAppInformation = AppInformation();
     });
     testWidgets('FormPageTemplate widget test', (WidgetTester tester) async {
+      await loadTestFonts();
       // Set the screen size to match your design size
       await tester.binding.setSurfaceSize(const Size(360, 690));
 
@@ -62,20 +76,26 @@ void main() {
         MultiProvider(
           providers: [
             ChangeNotifierProvider<AppInformation>.value(
-                value: mockAppInformation),
+              value: mockAppInformation,
+            ),
             ChangeNotifierProvider<UserInformation>.value(
-                value: mockUserInformation),
+              value: mockUserInformation,
+            ),
           ],
           child: MaterialApp(
             supportedLocales: AppLocalizations.supportedLocales,
             locale: Locale('he'),
             localizationsDelegates: AppLocalizations.localizationsDelegates,
+            theme: buildLightTheme(),
             home: ScreenUtilInit(
               designSize: const Size(360, 690),
-              child: FormPageTemplate(
-                next: () {},
-                prev: () {},
-                collectionName: 'PersonalPlan-DifficultEvents',
+              child: wizardStepHarness(
+                FormPageTemplate(
+                  key: GlobalKey<WizardStepState>(),
+                  next: () {},
+                  prev: () {},
+                  collectionName: 'PersonalPlan-DifficultEvents',
+                ),
               ),
             ),
           ),
@@ -99,21 +119,59 @@ void main() {
 
       // More readable tree dump
 
-      // Verifying initial UI elements
-      expect(find.text('תזכורות לטריגרים נפוצים וגורמי הסלמה'), findsOneWidget);
-      expect(find.text('גורמים ואירועים שהקשו עלי בעבר'), findsOneWidget);
+      // Verifying initial UI elements and their styles to prevent design regressions
+      final headerFinder = find.byWidgetPredicate(
+        (widget) =>
+            widget is Text &&
+            widget.data == 'תזכורות לטריגרים נפוצים וגורמי הסלמה',
+      );
+      expect(headerFinder, findsOneWidget);
+      final headerStyle = tester
+          .renderObject<RenderParagraph>(
+            find.descendant(of: headerFinder, matching: find.byType(RichText)),
+          )
+          .text
+          .style!;
+      expect(headerStyle.fontFamily, 'Rubix');
+      expect(headerStyle.fontWeight, FontWeight.w500);
+      expect(headerStyle.fontSize, 24.sp);
+
+      final subTitleFinder = find.byWidgetPredicate(
+        (widget) =>
+            widget is Text && widget.data == 'גורמים ואירועים שהקשו עלי בעבר',
+      );
+      expect(subTitleFinder, findsOneWidget);
+      final subTitleStyle = tester
+          .renderObject<RenderParagraph>(
+            find.descendant(
+              of: subTitleFinder,
+              matching: find.byType(RichText),
+            ),
+          )
+          .text
+          .style!;
+      expect(subTitleStyle.fontFamily, 'Rubix');
+      expect(subTitleStyle.fontWeight, FontWeight.w400);
+      expect(subTitleStyle.fontSize, 16.sp);
+
       expect(find.text('אין לך רעיון? הנה כמה הצעות'), findsOneWidget);
-      expect(find.text('לחץ כדי להוסיף אפשרויות המתאימות לך לתכנית האישית שלך'),
-          findsOneWidget);
-      expect(find.text('להציג עוד'), findsOneWidget);
+      expect(
+        find.text('לחץ כדי להוסיף אפשרויות המתאימות לך לתכנית האישית שלך'),
+        findsOneWidget,
+      );
+      expect(find.text('הצעות אחרות'), findsOneWidget);
       expect(find.text('המשך'), findsOneWidget);
 
-      // Verifying interactions
-      await tester.enterText(find.byType(TextField), 'New Suggestion');
-      await tester.tap(find.text('הוספה'));
-      await tester.pump();
+      // Verifying interactions: the inline "add your own" link opens the
+      // AddFormAnswer dialog, matching the shared Figma template.
+      await tester.ensureVisible(find.text('הוסף עוד משלך'));
+      await tester.tap(find.text('הוסף עוד משלך'));
+      await tester.pumpAndSettle();
+      await tester.enterText(find.byType(TextFormField), 'New Suggestion');
+      await tester.tap(find.text('שמור'));
+      await tester.pumpAndSettle();
 
-      await tester.tap(find.text('להציג עוד'));
+      await tester.tap(find.text('הצעות אחרות'));
       await tester.pump();
 
       await tester.tap(find.text('המשך'));

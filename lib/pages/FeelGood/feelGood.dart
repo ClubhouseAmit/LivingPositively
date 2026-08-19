@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:get_it/get_it.dart';
 import 'package:mazilon/AnalyticsService.dart';
+import 'package:mazilon/util/logger_service.dart';
 
 import 'package:mazilon/pages/FeelGood/FeelGoodInheritedWidget.dart';
 import 'package:mazilon/pages/FeelGood/add_Image_item.dart';
@@ -23,14 +24,14 @@ class FeelGood extends StatefulWidget {
 class _FeelGoodPageState extends LPExtendedState<FeelGood> {
   late ImagePickerService pickerService;
   List<String> imagePaths = [];
+  Map<String, int> imageRotations = {};
   late Future<List<String>> _loadImagesFuture;
-  //final picker = ImagePicker();
   AnalyticsService mixPanelService = GetIt.instance<AnalyticsService>();
+
   @override
   void initState() {
     super.initState();
     pickerService = GetIt.instance<ImagePickerService>();
-
     _loadImagesFuture = _loadImagePaths();
   }
 
@@ -40,7 +41,24 @@ class _FeelGoodPageState extends LPExtendedState<FeelGood> {
   Future<List<String>> _loadImagePaths() async {
     imagePaths.clear();
     await pickerService.loadImagePaths(imagePaths);
+    imageRotations = await pickerService.loadImageRotations();
     return imagePaths;
+  }
+
+  void _rotateImage(int index) {
+    if (index >= 0 && index < imagePaths.length) {
+      final path = imagePaths[index];
+      final current = imageRotations[path] ?? 0;
+      final next = (current + 1) % 4;
+      setState(() {
+        imageRotations[path] = next;
+      });
+      pickerService.saveImageRotations(imageRotations);
+    }
+  }
+
+  int _getImageRotation(String path) {
+    return imageRotations[path] ?? 0;
   }
 
   // Phase E: retry hook for the shared error state — re-arms the future so
@@ -62,15 +80,29 @@ class _FeelGoodPageState extends LPExtendedState<FeelGood> {
     return FeelGoodInheritedWidget(
       displayImage: pickerService.displayImage,
       imagePaths: [...imagePaths],
+      imageRotations: Map.unmodifiable(imageRotations),
       getImage: (String source) async {
         await pickerService.getImage(source, imagePaths);
         setState(() {});
       },
       deleteImage: (int index) {
-        setState(() {
+        if (index < 0 || index >= imagePaths.length) return;
+        final path = imagePaths[index];
+        try {
           pickerService.deleteImage(index, imagePaths);
-        });
+          setState(() {
+            imageRotations.remove(path);
+          });
+          pickerService.saveImageRotations(imageRotations);
+        } catch (error, stackTrace) {
+          if (GetIt.instance.isRegistered<IncidentLoggerService>()) {
+            GetIt.instance<IncidentLoggerService>()
+                .captureLog(error, stackTrace: stackTrace);
+          }
+        }
       },
+      rotateImage: _rotateImage,
+      getImageRotation: _getImageRotation,
       child: Scaffold(
         appBar: PreferredSize(
           preferredSize: const Size.fromHeight(150.0),

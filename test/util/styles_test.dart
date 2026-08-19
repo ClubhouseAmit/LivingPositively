@@ -204,7 +204,7 @@ void main() {
   });
 
   group('button width breakpoints', () {
-    testWidgets('ConfirmationButton uses 0.6 of width when <= 1000', (
+    testWidgets('ConfirmationButton uses full width when <= 1000', (
       tester,
     ) async {
       tester.view.physicalSize = const Size(400, 800);
@@ -230,12 +230,11 @@ void main() {
         ),
       );
       expect(button, isNotNull);
-      // 400 * 0.6 = 240
       final width = (button! as SizedBox).width;
-      expect(width, closeTo(240, 0.01));
+      expect(width, 400);
     });
 
-    testWidgets('ConfirmationButton uses fixed 600 when width > 1000', (
+    testWidgets('ConfirmationButton uses full width when width > 1000', (
       tester,
     ) async {
       tester.view.physicalSize = const Size(1200, 1000);
@@ -261,7 +260,7 @@ void main() {
         ),
       );
       final width = (button! as SizedBox).width;
-      expect(width, 600);
+      expect(width, 1200);
     });
   });
 

@@ -16,68 +16,68 @@ import 'package:mazilon/util/Firebase/firebase_functions.dart';
 /// [appVersion] inside the file must match the version stored in Firestore
 /// VersionManager for the function to return true.
 Map<String, dynamic> _buildValidJson(String appVersion) => {
-      'appVersion': appVersion,
-      'reminderMainTitle': 'RMT',
-      'reminderSubTitle': 'RST',
-      'homeTitleGreeting': 'HTG',
-      'personalPlanMainTitle': {'a': 'b'},
-      'personalPlanSubTitle': {'c': 'd'},
-      'traitMainTitle': {'e': 'f'},
-      'traitSubTitle': {'g': 'h'},
-      'journalMainTitle': {'i': 'j'},
-      'othersuggestions': {'os': 'v'},
-      'journalSubTitle': {'k': 'l'},
-      'journalPopUpText': {'m': 'n'},
-      'positiveTraitsPopUpText': {'o': 'p'},
-      'returnToPlanStrings': {'rtp': 'v'},
-      'personalInformationForm': {'pif': 'v'},
-      'signUpLoginPage': {'sulp': 'v'},
-      'introductionFormFirstPage': {'iff': 'v'},
-      'introductionFormSecondPage': {'ifs': 'v'},
-      'introductionFormLastPage': {'ifl': 'v'},
-      'warningHomePageTitles': {'w': 'v'},
-      'traitsHomePageTitles': {'t': 'v'},
-      'formPhonePage': {'fpp': 'v'},
-      'shareMessages': {'sm': 'v'},
-      'formDifficultEventsTitles': {'fde': 'v'},
-      'formDistractionsTitles': {'fdt': 'v'},
-      'formFeelBetterTitles': {'ffbt': 'v'},
-      'formMakeSaferTitles': {'fmst': 'v'},
-      'formSharePageTitles': {'fspt': 'v'},
-      'thanksSuggestionsList': ['ts1', 'ts2'],
-      'positiveTraitsSuggestionsList': {
-        'traits': ['t1'],
-        'traits-female': <String>[],
-        'traits-male': <String>[],
-      },
-      'homePageInspirationalQuotes': {
-        'quotes-': ['q1'],
-        'quotes-female': <String>[],
-        'quotes-male': <String>[],
-      },
-      'phonePageTitles': {
-        'mainTitle': ['mt'],
-      },
-      'sharePDFtexts': {'pdf': 'v'},
-      'aboutPageText': {'about': 'v'},
-      'disclaimerPageText': 'disc',
-      'disclaimerPageNext': 'nxt',
-      'wellnessVideos': {
-        'videoId': ['v1'],
-        'videoHeadline': ['h1'],
-        'videoDescription': ['d1'],
-        'videoLocale': ['en'],
-      },
-      'formSkipButtonText': {'skip': 'v'},
-      'feelGoodPageTitles': {'fgt': 'v'},
-      'extraMenuStrings': {'ems': 'v'},
-      'syncPages': {'sp': 'v'},
-      'popupBack': {'pb': 'v'},
-      'addFormStrings': {'afs': 'v'},
-      'addThanksFormStrings': {'atfs': 'v'},
-      'addFormPageTemplateStrings': {'afpts': 'v'},
-      'IntroductionRestart': {'ir': 'v'},
-    };
+  'appVersion': appVersion,
+  'reminderMainTitle': 'RMT',
+  'reminderSubTitle': 'RST',
+  'homeTitleGreeting': 'HTG',
+  'personalPlanMainTitle': {'a': 'b'},
+  'personalPlanSubTitle': {'c': 'd'},
+  'traitMainTitle': {'e': 'f'},
+  'traitSubTitle': {'g': 'h'},
+  'journalMainTitle': {'i': 'j'},
+  'othersuggestions': {'os': 'v'},
+  'journalSubTitle': {'k': 'l'},
+  'journalPopUpText': {'m': 'n'},
+  'positiveTraitsPopUpText': {'o': 'p'},
+  'returnToPlanStrings': {'rtp': 'v'},
+  'personalInformationForm': {'pif': 'v'},
+  'signUpLoginPage': {'sulp': 'v'},
+  'introductionFormFirstPage': {'iff': 'v'},
+  'introductionFormSecondPage': {'ifs': 'v'},
+  'introductionFormLastPage': {'ifl': 'v'},
+  'warningHomePageTitles': {'w': 'v'},
+  'traitsHomePageTitles': {'t': 'v'},
+  'formPhonePage': {'fpp': 'v'},
+  'shareMessages': {'sm': 'v'},
+  'formDifficultEventsTitles': {'fde': 'v'},
+  'formDistractionsTitles': {'fdt': 'v'},
+  'formFeelBetterTitles': {'ffbt': 'v'},
+  'formMakeSaferTitles': {'fmst': 'v'},
+  'formSharePageTitles': {'fspt': 'v'},
+  'thanksSuggestionsList': ['ts1', 'ts2'],
+  'positiveTraitsSuggestionsList': {
+    'traits': ['t1'],
+    'traits-female': <String>[],
+    'traits-male': <String>[],
+  },
+  'homePageInspirationalQuotes': {
+    'quotes-': ['q1'],
+    'quotes-female': <String>[],
+    'quotes-male': <String>[],
+  },
+  'phonePageTitles': {
+    'mainTitle': ['mt'],
+  },
+  'sharePDFtexts': {'pdf': 'v'},
+  'aboutPageText': {'about': 'v'},
+  'disclaimerPageText': 'disc',
+  'disclaimerPageNext': 'nxt',
+  'wellnessVideos': {
+    'videoId': ['v1'],
+    'videoHeadline': ['h1'],
+    'videoDescription': ['d1'],
+    'videoLocale': ['en'],
+  },
+  'formSkipButtonText': {'skip': 'v'},
+  'feelGoodPageTitles': {'fgt': 'v'},
+  'extraMenuStrings': {'ems': 'v'},
+  'syncPages': {'sp': 'v'},
+  'popupBack': {'pb': 'v'},
+  'addFormStrings': {'afs': 'v'},
+  'addThanksFormStrings': {'atfs': 'v'},
+  'addFormPageTemplateStrings': {'afpts': 'v'},
+  'IntroductionRestart': {'ir': 'v'},
+};
 
 Future<File> _writeJsonFile(Directory dir, Map<String, dynamic> data) async {
   final file = File('${dir.path}/data.json');
@@ -103,8 +103,11 @@ void main() {
       final fakeFirestore = _firestoreWithVersion('1.0.0');
       final appInfo = AppInformation();
 
-      final result = await loadAppInfoFromJson(appInfo, fakePath,
-          firestore: fakeFirestore);
+      final result = await loadAppInfoFromJson(
+        appInfo,
+        fakePath,
+        firestore: fakeFirestore,
+      );
 
       expect(result, isFalse);
       await tempDir.delete(recursive: true);
@@ -114,11 +117,16 @@ void main() {
       final tempDir = await Directory.systemTemp.createTemp('maz_test_');
       final data = _buildValidJson('1.0.0'); // file says 1.0.0
       final file = await _writeJsonFile(tempDir, data);
-      final fakeFirestore = _firestoreWithVersion('2.0.0'); // firestore says 2.0.0
+      final fakeFirestore = _firestoreWithVersion(
+        '2.0.0',
+      ); // firestore says 2.0.0
       final appInfo = AppInformation();
 
-      final result = await loadAppInfoFromJson(appInfo, file.path,
-          firestore: fakeFirestore);
+      final result = await loadAppInfoFromJson(
+        appInfo,
+        file.path,
+        firestore: fakeFirestore,
+      );
 
       expect(result, isFalse);
       await tempDir.delete(recursive: true);
@@ -132,8 +140,11 @@ void main() {
       final fakeFirestore = _firestoreWithVersion(version);
       final appInfo = AppInformation();
 
-      final result = await loadAppInfoFromJson(appInfo, file.path,
-          firestore: fakeFirestore);
+      final result = await loadAppInfoFromJson(
+        appInfo,
+        file.path,
+        firestore: fakeFirestore,
+      );
 
       expect(result, isTrue);
       // Verify a sample of updated fields
@@ -154,32 +165,40 @@ void main() {
       final fakeFirestore = _firestoreWithVersion('1.0.0');
       final appInfo = AppInformation();
 
-      final result = await loadAppInfoFromJson(appInfo, file.path,
-          firestore: fakeFirestore);
+      final result = await loadAppInfoFromJson(
+        appInfo,
+        file.path,
+        firestore: fakeFirestore,
+      );
 
       expect(result, isFalse);
       await tempDir.delete(recursive: true);
     });
 
-    test('returns false on JSON missing required keys (cast error path)',
-        () async {
-      final tempDir = await Directory.systemTemp.createTemp('maz_test_');
-      // Missing 'personalPlanMainTitle' which needs .cast<String,String>()
-      final data = {
-        'appVersion': '1.0.0',
-        'reminderMainTitle': 'R',
-        // intentionally omit many required keys
-      };
-      final file = await _writeJsonFile(tempDir, data);
-      final fakeFirestore = _firestoreWithVersion('1.0.0');
-      final appInfo = AppInformation();
+    test(
+      'returns false on JSON missing required keys (cast error path)',
+      () async {
+        final tempDir = await Directory.systemTemp.createTemp('maz_test_');
+        // Missing 'personalPlanMainTitle' which needs .cast<String,String>()
+        final data = {
+          'appVersion': '1.0.0',
+          'reminderMainTitle': 'R',
+          // intentionally omit many required keys
+        };
+        final file = await _writeJsonFile(tempDir, data);
+        final fakeFirestore = _firestoreWithVersion('1.0.0');
+        final appInfo = AppInformation();
 
-      final result = await loadAppInfoFromJson(appInfo, file.path,
-          firestore: fakeFirestore);
+        final result = await loadAppInfoFromJson(
+          appInfo,
+          file.path,
+          firestore: fakeFirestore,
+        );
 
-      expect(result, isFalse);
-      await tempDir.delete(recursive: true);
-    });
+        expect(result, isFalse);
+        await tempDir.delete(recursive: true);
+      },
+    );
 
     test('verifies map fields are deeply populated from JSON', () async {
       const version = '5.0.0';

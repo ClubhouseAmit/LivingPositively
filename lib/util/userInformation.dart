@@ -22,6 +22,7 @@ class UserInformation with ChangeNotifier {
   List<String> makeSafer;
   List<String> feelBetter;
   List<String> distractions;
+  List<String> safeEnvironment;
   bool loggedIn;
   bool authDecisionMade;
   String userId;
@@ -56,6 +57,7 @@ class UserInformation with ChangeNotifier {
     this.makeSafer = const [],
     this.feelBetter = const [],
     this.distractions = const [],
+    this.safeEnvironment = const [],
     this.disclaimerSigned = false,
     this.loggedIn = false,
     this.authDecisionMade = false,
@@ -82,6 +84,7 @@ class UserInformation with ChangeNotifier {
     makeSafer = [];
     feelBetter = [];
     distractions = [];
+    safeEnvironment = [];
     loggedIn = false;
     authDecisionMade = false;
     userId = '';
@@ -134,6 +137,16 @@ class UserInformation with ChangeNotifier {
     notifyListeners();
   }
 
+  Future<void> updateGenderAndBinary({required String gender, required bool isBinary}) async {
+    this.gender = gender;
+    binary = isBinary;
+    notifyListeners();
+    await Future.wait([
+      service.setItem('gender', PersistentMemoryType.String, gender),
+      service.setItem('binary', PersistentMemoryType.Bool, isBinary),
+    ]);
+  }
+
   void updateDifficultEvents(List<String> value) {
     difficultEvents = value;
     notifyListeners();
@@ -151,6 +164,11 @@ class UserInformation with ChangeNotifier {
 
   void updateDistractions(List<String> value) {
     distractions = value;
+    notifyListeners();
+  }
+
+  void updateSafeEnvironment(List<String> value) {
+    safeEnvironment = value;
     notifyListeners();
   }
 
@@ -437,8 +455,12 @@ class UserInformation with ChangeNotifier {
   }
 
   void updateLocation(String value) {
-    location = value;
+    void saveLocation(String value) async {
+      await service.setItem('location', PersistentMemoryType.String, value);
+    }
 
+    location = value;
+    saveLocation(value);
     notifyListeners();
   }
 }

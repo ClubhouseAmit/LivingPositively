@@ -41,7 +41,10 @@ class _MemoryService implements PersistentMemoryService {
 
   @override
   Future<void> setItem(
-      String key, PersistentMemoryType type, dynamic value) async {
+    String key,
+    PersistentMemoryType type,
+    dynamic value,
+  ) async {
     values[key] = value;
   }
 }
@@ -103,8 +106,9 @@ void main() {
     await GetIt.instance.reset();
   });
 
-  testWidgets('full My Plan displays saved custom categories after phones',
-      (WidgetTester tester) async {
+  testWidgets('full My Plan displays saved custom categories after phones', (
+    WidgetTester tester,
+  ) async {
     await tester.pumpWidget(
       _harness(
         service: _MemoryService({
@@ -129,8 +133,9 @@ void main() {
     expect(find.text('English free text'), findsOneWidget);
   });
 
-  testWidgets('full My Plan ignores incomplete custom category rows',
-      (WidgetTester tester) async {
+  testWidgets('full My Plan ignores incomplete custom category rows', (
+    WidgetTester tester,
+  ) async {
     await tester.pumpWidget(
       _harness(
         service: _MemoryService({

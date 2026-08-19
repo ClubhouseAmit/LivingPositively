@@ -16,46 +16,74 @@ const String _customCategoryTitlesKey = 'customCategoryTitles';
 const String _customCategoryDescriptionsKey = 'customCategoryDescriptions';
 
 abstract class FileService {
-  Future<void> share(
+  /// Shares a Personal Plan export with its caller-localized [mainTitle].
+  ///
+  /// The title is rendered before the sections, including when no sections are
+  /// populated. Callers provide a non-empty localized title and [textDirection].
+  Future<ShareResult?> share(
       String message,
       List<dynamic> titles,
       List<dynamic> subTitles,
       Map<String, String> texts,
       ShareFileType saveFormat,
-      String textDirection);
+      {required String mainTitle,
+      required String textDirection});
+  /// Downloads a Personal Plan export with its caller-localized [mainTitle].
+  ///
+  /// The title is rendered before the sections, including when no sections are
+  /// populated. Callers provide a non-empty localized title and [textDirection].
   Future<String?> download(
       List<dynamic> titles,
       List<dynamic> subTitles,
       Map<String, String> texts,
       ShareFileType saveFormat,
-      String textDirection);
+      {required String mainTitle,
+      required String textDirection});
   Future<bool> shareTextOnly(String message);
 }
 
 class FileServiceImpl implements FileService {
   static Future<Map<String, dynamic>> getPrefsData() async {
-    PersistentMemoryService service = GetIt.instance<
-        PersistentMemoryService>(); // Get the persistent memory service instance
+    PersistentMemoryService service =
+        GetIt.instance<
+          PersistentMemoryService
+        >(); // Get the persistent memory service instance
 
     final futures = <String, Future>{
       'difficultEvents': service.getItem(
-          "userSelectionPersonalPlan-DifficultEvents",
-          PersistentMemoryType.StringList),
-      'makeSafer': service.getItem("userSelectionPersonalPlan-MakeSafer",
-          PersistentMemoryType.StringList),
-      'feelBetter': service.getItem("userSelectionPersonalPlan-FeelBetter",
-          PersistentMemoryType.StringList),
-      'distractions': service.getItem("userSelectionPersonalPlan-Distractions",
-          PersistentMemoryType.StringList),
+        "userSelectionPersonalPlan-DifficultEvents",
+        PersistentMemoryType.StringList,
+      ),
+      'makeSafer': service.getItem(
+        "userSelectionPersonalPlan-MakeSafer",
+        PersistentMemoryType.StringList,
+      ),
+      'feelBetter': service.getItem(
+        "userSelectionPersonalPlan-FeelBetter",
+        PersistentMemoryType.StringList,
+      ),
+      'distractions': service.getItem(
+        "userSelectionPersonalPlan-Distractions",
+        PersistentMemoryType.StringList,
+      ),
+      'safeEnvironment': service.getItem(
+        "userSelectionPersonalPlan-SafeEnvironment",
+        PersistentMemoryType.StringList,
+      ),
       'phoneNames': service.getItem(
-          "PhonePageSavedPhoneNames", PersistentMemoryType.StringList),
+        "PhonePageSavedPhoneNames",
+        PersistentMemoryType.StringList,
+      ),
       'phoneNumbers': service.getItem(
           "PhonePageSavedPhoneNumbers", PersistentMemoryType.StringList),
-      'username': service.getItem("name", PersistentMemoryType.String),
       'customCategoryTitles': service.getItem(
-          _customCategoryTitlesKey, PersistentMemoryType.StringList),
+        _customCategoryTitlesKey,
+        PersistentMemoryType.StringList,
+      ),
       'customCategoryDescriptions': service.getItem(
-          _customCategoryDescriptionsKey, PersistentMemoryType.StringList),
+        _customCategoryDescriptionsKey,
+        PersistentMemoryType.StringList,
+      ),
     };
 
     final results = await Future.wait(futures.values);
@@ -66,9 +94,9 @@ class FileServiceImpl implements FileService {
       'MakeSafer': TypeUtils.castToStringList(data['makeSafer']),
       'FeelBetter': TypeUtils.castToStringList(data['feelBetter']),
       'Distractions': TypeUtils.castToStringList(data['distractions']),
+      'SafeEnvironment': TypeUtils.castToStringList(data['safeEnvironment']),
       'phoneNames': TypeUtils.castToStringList(data['phoneNames']),
       'phoneNumbers': TypeUtils.castToStringList(data['phoneNumbers']),
-      'username': data['username'] ?? '',
       'customCategoryTitles':
           TypeUtils.castToStringList(data['customCategoryTitles']),
       'customCategoryDescriptions':
@@ -88,7 +116,9 @@ class FileServiceImpl implements FileService {
   }
 
   static List<String> formatPhonesText(
-      List<String> names, List<String> numbers) {
+    List<String> names,
+    List<String> numbers,
+  ) {
     List<String> formattedText = [];
     for (var i = 0; i < names.length; i++) {
       formattedText.add('${names[i]}:${numbers[i]}');
@@ -97,7 +127,8 @@ class FileServiceImpl implements FileService {
   }
 
   Future<Map<String, dynamic>> organizeDataForFile(List<dynamic> titles,
-      List<dynamic> subTitles, Map<String, String> texts) async {
+      List<dynamic> subTitles, Map<String, String> texts,
+      {required String mainTitle}) async {
     // Set the page format to A4
 
     // Load the font for the PDF
@@ -108,9 +139,9 @@ class FileServiceImpl implements FileService {
     List<String> makeSafer = dataForPDF['MakeSafer'];
     List<String> feelBetter = dataForPDF['FeelBetter'];
     List<String> distractions = dataForPDF['Distractions'];
+    List<String> safeEnvironment = dataForPDF['SafeEnvironment'];
     List<String> phoneNames = dataForPDF['phoneNames'];
     List<String> phoneNumbers = dataForPDF['phoneNumbers'];
-    String username = dataForPDF['username'];
     List<String> customCategoryTitles = dataForPDF['customCategoryTitles'];
     List<String> customCategoryDescriptions =
         dataForPDF['customCategoryDescriptions'];
@@ -119,17 +150,19 @@ class FileServiceImpl implements FileService {
     List<dynamic> allTitles = [...titles];
     List<dynamic> allSubTitles = [...subTitles];
     List<List<String>> allData = [
-      difficultEvents,
-      makeSafer,
-      feelBetter,
       distractions,
-      phoneDescription
+      difficultEvents,
+      feelBetter,
+      makeSafer,
+      phoneDescription,
+      safeEnvironment,
     ];
 
-    for (var i = 0;
-        i < customCategoryTitles.length &&
-            i < customCategoryDescriptions.length;
-        i++) {
+    for (
+      var i = 0;
+      i < customCategoryTitles.length && i < customCategoryDescriptions.length;
+      i++
+    ) {
       final title = customCategoryTitles[i].trim();
       final description = customCategoryDescriptions[i].trim();
       if (title.isEmpty || description.isEmpty) {
@@ -143,9 +176,11 @@ class FileServiceImpl implements FileService {
     List<dynamic> realTitles = [];
     List<dynamic> realSubTitles = [];
     List<List<String>> realData = [];
-    for (var i = 0;
-        i < allData.length && i < allTitles.length && i < allSubTitles.length;
-        i++) {
+    for (
+      var i = 0;
+      i < allData.length && i < allTitles.length && i < allSubTitles.length;
+      i++
+    ) {
       if (allData[i].isEmpty) {
         continue;
       }
@@ -153,9 +188,6 @@ class FileServiceImpl implements FileService {
       realSubTitles.add(allSubTitles[i]);
       realData.add(allData[i]);
     }
-    // Create the main title for the PDF
-    String mainTitle =
-        username == '' ? 'התוכנית המשולבת שלי' : 'התוכנית המשולבת של $username';
 
     // Retrieve text content for the PDF
     String text1 = texts['firstLine'] ?? '';
@@ -185,53 +217,55 @@ class FileServiceImpl implements FileService {
         "text4": text4,
         "text5": text5,
         "text5Link": text5Link,
-        "text6": text6
-      }
+        "text6": text6,
+      },
     };
   }
 
-//New version of SharePlus can't sennd empty "" message
+  //New version of SharePlus can't sennd empty "" message
   String? checkEmptyMessage(String message) {
     return message.isEmpty ? null : message;
   }
 
   @override
-  Future<void> share(
+  Future<ShareResult?> share(
       String message,
       List<dynamic> titles,
       List<dynamic> subTitles,
       Map<String, String> texts,
       ShareFileType saveFormat,
-      String textDirection) async {
+      {required String mainTitle,
+      required String textDirection}) async {
     try {
       // Add the generated widgets to the PDF
-      final dataForFile = await organizeDataForFile(titles, subTitles, texts);
+      final dataForFile = await organizeDataForFile(titles, subTitles, texts,
+          mainTitle: mainTitle);
       Map<String, dynamic> file;
       switch (saveFormat) {
         case ShareFileType.PDF:
           file = await createPDF(
-              dataForFile["titles"]!,
-              dataForFile["subTitles"]!,
-              dataForFile["texts"]!,
-              dataForFile["mainTitle"]!,
-              dataForFile["realData"]!,
-              textDirection);
+            dataForFile["titles"]!,
+            dataForFile["subTitles"]!,
+            dataForFile["texts"]!,
+            dataForFile["mainTitle"]!,
+            dataForFile["realData"]!,
+            textDirection,
+          );
           final tempFile = await saveTempPDF(file["file"], file["format"]);
           XFile tempXFile = XFile(tempFile.path);
 
-          await SharePlus.instance.share(ShareParams(
+          final shareResult = await SharePlus.instance.share(ShareParams(
               files: [tempXFile], text: checkEmptyMessage(message)));
-          break;
+          if (shareResult.status == ShareResultStatus.success) {
+            AnalyticsService mixPanelService = GetIt.instance<AnalyticsService>();
+            mixPanelService.trackEvent("Plan shared");
+          }
+          return shareResult;
         default:
           file = {"file": null, "format": null};
       }
 
-      // Save the PDF and share it
-      if (file["file"] == null || file["format"] == null) {
-        return;
-      }
-      AnalyticsService mixPanelService = GetIt.instance<AnalyticsService>();
-      mixPanelService.trackEvent("Plan shared");
+      return null;
     } catch (error, stackTrace) {
       IncidentLoggerService loggerService =
           GetIt.instance<IncidentLoggerService>();
@@ -239,6 +273,7 @@ class FileServiceImpl implements FileService {
         error,
         stackTrace: stackTrace,
       );
+      return null;
     }
   }
 
@@ -257,10 +292,7 @@ class FileServiceImpl implements FileService {
     } catch (error, stackTrace) {
       IncidentLoggerService loggerService =
           GetIt.instance<IncidentLoggerService>();
-      await loggerService.captureLog(
-        error,
-        stackTrace: stackTrace,
-      );
+      await loggerService.captureLog(error, stackTrace: stackTrace);
       return null;
     }
   }
@@ -290,19 +322,22 @@ class FileServiceImpl implements FileService {
       List<dynamic> subTitles,
       Map<String, String> texts,
       ShareFileType saveFormat,
-      String textDirection) async {
-    final dataForFile = await organizeDataForFile(titles, subTitles, texts);
+      {required String mainTitle,
+      required String textDirection}) async {
+    final dataForFile = await organizeDataForFile(titles, subTitles, texts,
+        mainTitle: mainTitle);
     Map<String, dynamic> file;
     Uint8List data = Uint8List(0);
     switch (saveFormat) {
       case ShareFileType.PDF:
         file = await createPDF(
-            dataForFile["titles"]!,
-            dataForFile["subTitles"]!,
-            dataForFile["texts"]!,
-            dataForFile["mainTitle"]!,
-            dataForFile["realData"]!,
-            textDirection);
+          dataForFile["titles"]!,
+          dataForFile["subTitles"]!,
+          dataForFile["texts"]!,
+          dataForFile["mainTitle"]!,
+          dataForFile["realData"]!,
+          textDirection,
+        );
         // Save the PDF and share it
 
         // Save the PDF for download
@@ -327,8 +362,7 @@ class FileServiceImpl implements FileService {
   @override
   Future<bool> shareTextOnly(String message) async {
     try {
-      final result =
-          await SharePlus.instance.share(ShareParams(text: message));
+      final result = await SharePlus.instance.share(ShareParams(text: message));
       if (result.status != ShareResultStatus.success) {
         return false;
       }
@@ -338,10 +372,7 @@ class FileServiceImpl implements FileService {
     } catch (error, stackTrace) {
       IncidentLoggerService loggerService =
           GetIt.instance<IncidentLoggerService>();
-      await loggerService.captureLog(
-        error,
-        stackTrace: stackTrace,
-      );
+      await loggerService.captureLog(error, stackTrace: stackTrace);
       return false;
     }
   }

@@ -1,16 +1,22 @@
 import 'package:flutter/foundation.dart'
-    show TargetPlatform, defaultTargetPlatform, kIsWeb;
+    show TargetPlatform, defaultTargetPlatform;
 import 'package:flutter/material.dart';
 import 'package:country_code_picker/country_code_picker.dart';
-import 'package:geolocator/geolocator.dart';
 import 'package:get_it/get_it.dart';
 import 'package:mazilon/EmergencyNumbers.dart';
 import 'package:mazilon/file_service.dart';
 import 'package:mazilon/form/phonePageform.dart';
+import 'package:mazilon/form/wizard_step.dart';
+import 'package:mazilon/global_enums.dart';
+import 'package:mazilon/util/theme/spacing.dart';
+import 'package:mazilon/pages/sos_location_service.dart';
 import 'package:mazilon/util/LP_extended_state.dart';
 import 'package:mazilon/util/Phone/phoneTextAndIcon.dart';
+import 'package:mazilon/util/appInformation.dart';
 import 'package:provider/provider.dart';
+import 'package:share_plus/share_plus.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
+import 'package:mazilon/util/personal_plan_export_metadata.dart';
 import 'package:mazilon/util/userInformation.dart';
 import 'package:mazilon/util/styles.dart';
 import 'package:mazilon/util/Form/formPagePhoneModel.dart';
@@ -20,65 +26,111 @@ enum _SosDeliveryOption { app, contact, map }
 
 enum _SosContactDeliveryOption { sms, whatsApp }
 
-enum _SosLocationUnavailableOption { retry, message }
-
 class PhonePage extends StatefulWidget {
   final PhonePageData phonePageData;
-  const PhonePage({super.key, required this.phonePageData});
+  final SosLocationService sosLocationService;
+
+  const PhonePage({
+    super.key,
+    required this.phonePageData,
+    required this.sosLocationService,
+  });
 
   @override
   _PhonePageState createState() => _PhonePageState();
 }
 
 class _PhonePageState extends LPExtendedState<PhonePage> {
+  static const _maximumLocationAttempts = 3;
+  static const _locationRetryBackoff = Duration(milliseconds: 500);
+
   String mainTitle = '';
   String contactsTitle = '';
   String emergencyNumbersTitle = '';
   bool _isSosDeliveryInProgress = false;
 
-  bool get _supportsLocationSharing =>
-      !kIsWeb &&
-      (defaultTargetPlatform == TargetPlatform.android ||
-          defaultTargetPlatform == TargetPlatform.iOS);
-
   Future<void> _startLocationDelivery() =>
       _runSosDelivery(_runLocationDelivery);
 
   Future<void> _runLocationDelivery() async {
-    while (mounted) {
-      final position = await _getCurrentPosition();
+    for (
+      var attempt = 0;
+      mounted && attempt < _maximumLocationAttempts;
+      attempt++
+    ) {
+      if (attempt > 0) {
+        await Future<void>.delayed(_locationRetryBackoff);
+        if (!mounted) {
+          return;
+        }
+      }
+
+      final locationResult = await widget.sosLocationService
+          .lookupCurrentPosition();
       if (!mounted) {
         return;
       }
 
-      if (position != null) {
-        final mapLink = _mapShareLink(position);
+      if (locationResult case SosLocationSuccess(:final location)) {
+        final mapLink = _mapShareLink(location);
         await _showDeliveryOptions(
           '${appLocale.sosShareLocationMessage}\n$mapLink',
-          mapAppUrl: _mapAppUrl(position),
+          mapAppUrl: _mapAppUrl(location),
         );
         return;
       }
 
-      final unavailableOption = await _showLocationUnavailableDialog();
-      if (!mounted || unavailableOption == null) {
+      final failure = locationResult as SosLocationFailureResult;
+      final canRetry =
+          failure.canRetry && attempt < _maximumLocationAttempts - 1;
+      final shouldRetry = await _showLocationFailureDialog(
+        failure.kind == SosLocationFailureKind.servicesDisabled
+            ? appLocale.sosShareLocationServicesDisabled
+            : appLocale.sosShareLocationUnavailable,
+        canRetry: canRetry,
+      );
+      if (!mounted || !shouldRetry) {
         return;
       }
-      if (unavailableOption == _SosLocationUnavailableOption.retry) {
-        continue;
-      }
-      if (unavailableOption == _SosLocationUnavailableOption.message) {
-        await _showDeliveryOptions(
-          '${appLocale.sosShareLocationMessage}\n${appLocale.sosShareLocationUnavailable}',
-        );
-      }
-      return;
     }
   }
 
   Future<void> _startMessageDelivery() => _runSosDelivery(
     () => _showDeliveryOptions(appLocale.sosShareLocationMessage),
   );
+
+  Future<void> _startPersonalPlanCrisisShare(
+    AppInformation appInformation,
+    String gender,
+    String username,
+  ) => _runSosDelivery(() async {
+    final localizations = appLocale;
+    final messenger = ScaffoldMessenger.maybeOf(context);
+    final exportMetadata = buildPersonalPlanExportMetadata(
+      localizations,
+      gender,
+      username,
+    );
+    final shareResult = await GetIt.instance<FileService>().share(
+      localizations.shareEmergencyMessage,
+      exportMetadata.titles,
+      exportMetadata.subTitles,
+      appInformation.sharePDFtexts,
+      ShareFileType.PDF,
+      mainTitle: exportMetadata.mainTitle,
+      textDirection: localizations.textDirection,
+    );
+    if (!mounted) {
+      return;
+    }
+    if (shareResult == null ||
+        shareResult.status == ShareResultStatus.unavailable) {
+      messenger?.hideCurrentSnackBar();
+      messenger?.showSnackBar(
+        SnackBar(content: Text(localizations.personalPlanShareFailed)),
+      );
+    }
+  });
 
   Future<void> _runSosDelivery(Future<void> Function() delivery) async {
     if (_isSosDeliveryInProgress || !mounted) {
@@ -99,43 +151,11 @@ class _PhonePageState extends LPExtendedState<PhonePage> {
     }
   }
 
-  Future<Position?> _getCurrentPosition() async {
-    if (!_supportsLocationSharing) {
-      return null;
-    }
+  String _mapShareLink(SosLocationSnapshot location) =>
+      'https://www.google.com/maps/search/?api=1&query=${location.latitude},${location.longitude}';
 
-    try {
-      final serviceEnabled = await Geolocator.isLocationServiceEnabled();
-      if (!serviceEnabled) {
-        return null;
-      }
-
-      var permission = await Geolocator.checkPermission();
-      if (permission == LocationPermission.denied) {
-        permission = await Geolocator.requestPermission();
-      }
-      if (permission != LocationPermission.whileInUse &&
-          permission != LocationPermission.always) {
-        return null;
-      }
-
-      return await Geolocator.getCurrentPosition(
-        locationSettings: const LocationSettings(
-          accuracy: LocationAccuracy.high,
-          timeLimit: Duration(seconds: 15),
-        ),
-      );
-    } catch (error, stackTrace) {
-      debugPrint('Could not get SOS location: $error\n$stackTrace');
-      return null;
-    }
-  }
-
-  String _mapShareLink(Position position) =>
-      'https://www.google.com/maps/search/?api=1&query=${position.latitude},${position.longitude}';
-
-  String _mapAppUrl(Position position) {
-    final coordinates = '${position.latitude},${position.longitude}';
+  String _mapAppUrl(SosLocationSnapshot location) {
+    final coordinates = '${location.latitude},${location.longitude}';
     if (defaultTargetPlatform == TargetPlatform.android) {
       return 'geo:0,0?q=$coordinates';
     }
@@ -410,7 +430,16 @@ class _PhonePageState extends LPExtendedState<PhonePage> {
   Future<bool> _showContactsNeedAttentionDialog() =>
       _showEditContactsDialog(appLocale.sosDeliveryContactsNeedAttention);
 
-  Future<bool> _showEditContactsDialog(String message) async {
+  Future<bool> _showEditContactsDialog(String message) =>
+      _showMessageDialog(message, appLocale.sosDeliveryEditContacts);
+
+  Future<bool> _showLocationFailureDialog(
+    String message, {
+    required bool canRetry,
+  }) =>
+      _showMessageDialog(message, canRetry ? appLocale.asyncRetryButton : null);
+
+  Future<bool> _showMessageDialog(String message, String? actionLabel) async {
     final gender = Provider.of<UserInformation>(context, listen: false).gender;
     return (await showDialog<bool>(
           context: context,
@@ -421,53 +450,54 @@ class _PhonePageState extends LPExtendedState<PhonePage> {
                 onPressed: () => Navigator.of(dialogContext).pop(false),
                 child: Text(appLocale.closeButton(gender)),
               ),
-              TextButton(
-                onPressed: () => Navigator.of(dialogContext).pop(true),
-                child: Text(appLocale.sosDeliveryEditContacts),
-              ),
+              if (actionLabel != null)
+                TextButton(
+                  onPressed: () => Navigator.of(dialogContext).pop(true),
+                  child: Text(actionLabel),
+                ),
             ],
           ),
         )) ??
         false;
   }
 
-  Future<_SosLocationUnavailableOption?> _showLocationUnavailableDialog() {
-    final gender = Provider.of<UserInformation>(context, listen: false).gender;
-    return showDialog<_SosLocationUnavailableOption>(
-      context: context,
-      builder: (dialogContext) => AlertDialog(
-        content: Text(appLocale.sosShareLocationUnavailable),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.of(dialogContext).pop(),
-            child: Text(appLocale.closeButton(gender)),
-          ),
-          TextButton(
-            onPressed: () => Navigator.of(
-              dialogContext,
-            ).pop(_SosLocationUnavailableOption.message),
-            child: Text(appLocale.sosShareMessage),
-          ),
-          TextButton(
-            onPressed: () => Navigator.of(
-              dialogContext,
-            ).pop(_SosLocationUnavailableOption.retry),
-            child: Text(appLocale.asyncRetryButton),
-          ),
-        ],
-      ),
-    );
-  }
-
   Future<void> _openContactsEditor() {
+    // One step, reused outside its wizard. Built once so the page and its
+    // actions address the same instance.
+    final step = PhonePageForm(
+      key: GlobalKey<WizardStepState>(debugLabel: 'contacts-editor'),
+      phonePageData: widget.phonePageData,
+      next: () => Navigator.of(context).pop(),
+      prev: () => Navigator.of(context).pop(),
+    );
     return Navigator.of(context).push<void>(
       MaterialPageRoute(
         builder: (routeContext) => ChangeNotifierProvider<PhonePageData>.value(
           value: widget.phonePageData,
-          child: PhonePageForm(
-            phonePageData: widget.phonePageData,
-            next: () => Navigator.of(context).pop(),
-            prev: () => Navigator.of(context).pop(),
+          child: Scaffold(
+            body: SafeArea(
+              child: Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 16),
+                child: Column(
+                  children: [
+                    Expanded(
+                      child: Padding(
+                        padding: const EdgeInsets.only(
+                          top: OnboardingGaps.questionnaireHeaderToContent,
+                        ),
+                        child: step,
+                      ),
+                    ),
+                    Padding(
+                      padding: const EdgeInsets.symmetric(
+                        vertical: OnboardingGaps.questionnaireAroundActions,
+                      ),
+                      child: WizardActions(step: step),
+                    ),
+                  ],
+                ),
+              ),
+            ),
           ),
         ),
       ),
@@ -509,6 +539,7 @@ class _PhonePageState extends LPExtendedState<PhonePage> {
       context,
       listen: true,
     );
+    final appInformation = Provider.of<AppInformation>(context, listen: false);
 
     final gender = userInfoProvider.gender;
 
@@ -635,6 +666,33 @@ class _PhonePageState extends LPExtendedState<PhonePage> {
                         }),
                       );
                     },
+                  ),
+                  const SizedBox(height: 10.0),
+                  Padding(
+                    padding: const EdgeInsets.symmetric(horizontal: 30.0),
+                    child: SizedBox(
+                      width: double.infinity,
+                      child: TextButton.icon(
+                        key: const Key('phonePageSharePersonalPlanButton'),
+                        style: primaryButtonStyle(context),
+                        onPressed: () => _startPersonalPlanCrisisShare(
+                          appInformation,
+                          gender,
+                          userInfoProvider.name,
+                        ),
+                        icon: Icon(
+                          Icons.description,
+                          color: Theme.of(context).colorScheme.onPrimary,
+                        ),
+                        label: myAutoSizedText(
+                          appLocale.sosSharePersonalPlan,
+                          primaryButtonTextStyle(context),
+                          TextAlign.center,
+                          18,
+                          2,
+                        ),
+                      ),
+                    ),
                   ),
                   const SizedBox(height: 10.0),
                   Padding(

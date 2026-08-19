@@ -15,7 +15,11 @@ class InMemoryPersistentMemoryService implements PersistentMemoryService {
   final Map<String, dynamic> _store = {};
 
   @override
-  Future<void> setItem(String key, PersistentMemoryType type, dynamic value) async {
+  Future<void> setItem(
+    String key,
+    PersistentMemoryType type,
+    dynamic value,
+  ) async {
     _store[key] = value;
   }
 
@@ -36,21 +40,27 @@ void main() {
   setUp(() async {
     await GetIt.instance.reset();
     GetIt.instance.registerSingleton<PersistentMemoryService>(
-        InMemoryPersistentMemoryService());
+      InMemoryPersistentMemoryService(),
+    );
   });
 
   tearDown(() async {
     await GetIt.instance.reset();
   });
 
-  testWidgets('Country selector defaults to locale when location is empty',
-      (WidgetTester tester) async {
-    tester.binding.platformDispatcher.localeTestValue =
-        const Locale('en', 'US');
+  testWidgets('Country selector defaults to locale when location is empty', (
+    WidgetTester tester,
+  ) async {
+    tester.binding.platformDispatcher.localeTestValue = const Locale(
+      'en',
+      'US',
+    );
     addTearDown(() {
       tester.binding.platformDispatcher.clearLocaleTestValue();
     });
-    final userInfo = UserInformation(service: InMemoryPersistentMemoryService());
+    final userInfo = UserInformation(
+      service: InMemoryPersistentMemoryService(),
+    );
 
     await tester.pumpWidget(
       MultiProvider(
@@ -79,9 +89,12 @@ void main() {
     expect(userInfo.location, 'US');
   });
 
-  testWidgets('Country selector keeps country names legible in dark mode',
-      (WidgetTester tester) async {
-    final userInfo = UserInformation(service: InMemoryPersistentMemoryService());
+  testWidgets('Country selector keeps country names legible in dark mode', (
+    WidgetTester tester,
+  ) async {
+    final userInfo = UserInformation(
+      service: InMemoryPersistentMemoryService(),
+    );
     final darkTheme = buildDarkTheme();
 
     await tester.pumpWidget(

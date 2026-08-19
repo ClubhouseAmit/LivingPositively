@@ -17,18 +17,18 @@ import 'package:mazilon/util/userInformation.dart';
 import '../helpers/widget_test_scaffold.dart';
 
 PhonePageData _data() => PhonePageData(
-      key: 'phone',
-      header: 'h',
-      subTitle: 's',
-      midTitle: 'm',
-      phoneNameTitle: 'n',
-      phoneNumberTitle: 'p',
-      phoneNames: const <String>[],
-      phoneNumbers: const <String>[],
-      savedPhoneNames: const <String>[],
-      savedPhoneNumbers: const <String>[],
-      phoneDescription: const <String>[],
-    );
+  key: 'phone',
+  header: 'h',
+  subTitle: 's',
+  midTitle: 'm',
+  phoneNameTitle: 'n',
+  phoneNumberTitle: 'p',
+  phoneNames: const <String>[],
+  phoneNumbers: const <String>[],
+  savedPhoneNames: const <String>[],
+  savedPhoneNumbers: const <String>[],
+  phoneDescription: const <String>[],
+);
 
 void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
@@ -48,40 +48,49 @@ void main() {
   });
 
   testWidgets(
-      'when disclaimerSigned is false, InitialFormProgressIndicator renders the DisclaimerPage',
-      (tester) async {
-    user.disclaimerSigned = false;
-    await pumpWithProviders(
-      tester,
-      InitialFormProgressIndicator(phonePageData: _data(), changeLocale: (_) {}),
-      userInformation: user,
-      surfaceSize: const Size(1024, 2200),
-    );
-    expect(find.byType(DisclaimerPage), findsOneWidget);
-  });
+    'when disclaimerSigned is false, InitialFormProgressIndicator renders the DisclaimerPage',
+    (tester) async {
+      user.disclaimerSigned = false;
+      await pumpWithProviders(
+        tester,
+        InitialFormProgressIndicator(
+          phonePageData: _data(),
+          changeLocale: (_) {},
+        ),
+        userInformation: user,
+        surfaceSize: const Size(1024, 2200),
+      );
+      expect(find.byType(DisclaimerPage), findsOneWidget);
+    },
+  );
 
   testWidgets(
-      'renders InitialFormPage1 first; the back arrow is hidden because '
-      'currentStep == 0 and not on the last page',
-      (tester) async {
-    await pumpWithProviders(
-      tester,
-      InitialFormProgressIndicator(phonePageData: _data(), changeLocale: (_) {}),
-      userInformation: user,
-      surfaceSize: const Size(1024, 2200),
-    );
-    await tester.pump();
-    drainOverflowExceptions(tester);
-    expect(find.byType(InitialFormPage1), findsOneWidget);
-  });
+    'renders InitialFormPage1 first; the back arrow is hidden because '
+    'currentStep == 0 and not on the last page',
+    (tester) async {
+      await pumpWithProviders(
+        tester,
+        InitialFormProgressIndicator(
+          phonePageData: _data(),
+          changeLocale: (_) {},
+        ),
+        userInformation: user,
+        surfaceSize: const Size(1024, 2200),
+      );
+      await tester.pump();
+      drainOverflowExceptions(tester);
+      expect(find.byType(InitialFormPage1), findsOneWidget);
+    },
+  );
 
-  testWidgets(
-      'invoking the InitialFormPage1 next callback advances to '
-      'InitialFormPage2',
-      (tester) async {
+  testWidgets('invoking the InitialFormPage1 next callback advances to '
+      'InitialFormPage2', (tester) async {
     await pumpWithProviders(
       tester,
-      InitialFormProgressIndicator(phonePageData: _data(), changeLocale: (_) {}),
+      InitialFormProgressIndicator(
+        phonePageData: _data(),
+        changeLocale: (_) {},
+      ),
       userInformation: user,
       surfaceSize: const Size(1024, 2200),
     );
@@ -89,59 +98,65 @@ void main() {
     drainOverflowExceptions(tester);
     // Capture the InitialFormPage1 widget and call its `next` closure
     // directly — that calls the parent's `next()` setState (lines 56-60).
-    final page1 =
-        tester.widget<InitialFormPage1>(find.byType(InitialFormPage1));
+    final page1 = tester.widget<InitialFormPage1>(
+      find.byType(InitialFormPage1),
+    );
     page1.next();
     await tester.pump();
     drainOverflowExceptions(tester);
     expect(find.byType(InitialFormPage2), findsOneWidget);
   });
 
-  testWidgets(
-      'invoking the InitialFormPage1 skip callback jumps to the final '
-      'ToFormPage',
-      (tester) async {
+  testWidgets('invoking the InitialFormPage1 skip callback jumps to the final '
+      'ToFormPage', (tester) async {
     await pumpWithProviders(
       tester,
-      InitialFormProgressIndicator(phonePageData: _data(), changeLocale: (_) {}),
+      InitialFormProgressIndicator(
+        phonePageData: _data(),
+        changeLocale: (_) {},
+      ),
       userInformation: user,
       surfaceSize: const Size(1024, 2200),
     );
     await tester.pump();
     drainOverflowExceptions(tester);
-    final page1 =
-        tester.widget<InitialFormPage1>(find.byType(InitialFormPage1));
+    final page1 = tester.widget<InitialFormPage1>(
+      find.byType(InitialFormPage1),
+    );
     page1.skip();
     await tester.pump();
     drainOverflowExceptions(tester);
     expect(find.byType(ToFormPage), findsOneWidget);
   });
 
-  testWidgets(
-      'invoking updateName stores the name without throwing; prev() on '
-      'InitialFormPage2 returns to page 1',
-      (tester) async {
+  testWidgets('invoking updateName stores the name without throwing; prev() on '
+      'InitialFormPage2 returns to page 1', (tester) async {
     await pumpWithProviders(
       tester,
-      InitialFormProgressIndicator(phonePageData: _data(), changeLocale: (_) {}),
+      InitialFormProgressIndicator(
+        phonePageData: _data(),
+        changeLocale: (_) {},
+      ),
       userInformation: user,
       surfaceSize: const Size(1024, 2200),
     );
     await tester.pump();
     drainOverflowExceptions(tester);
-    final page1 =
-        tester.widget<InitialFormPage1>(find.byType(InitialFormPage1));
+    final page1 = tester.widget<InitialFormPage1>(
+      find.byType(InitialFormPage1),
+    );
     page1.updateName('TestName');
     await tester.pump();
     // Advance to InitialFormPage2.
     page1.next();
-    // Drive the AnimatedSwitcher transition fully so only one page is in tree.
+    // Pump to advance the step and settle the dot animation.
     await tester.pump(const Duration(milliseconds: 400));
     drainOverflowExceptions(tester);
 
     expect(find.byType(InitialFormPage2), findsOneWidget);
-    final page2 =
-        tester.widget<InitialFormPage2>(find.byType(InitialFormPage2));
+    final page2 = tester.widget<InitialFormPage2>(
+      find.byType(InitialFormPage2),
+    );
     page2.prev();
     await tester.pump(const Duration(milliseconds: 400));
     drainOverflowExceptions(tester);
