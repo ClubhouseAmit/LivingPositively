@@ -100,6 +100,10 @@ class _MenuState extends LPExtendedState<Menu> {
 
   //Function to change the current displayed page in the "home"
   void changeCurrentIndex(BuildContext context, PagesCode index) {
+    if (index == PagesCode.NotificationPage &&
+        !FcmService.supportsReminderSettings()) {
+      return;
+    }
     final appLocale = AppLocalizations.of(context)!;
     final userInformation = Provider.of<UserInformation>(
       context,
@@ -153,27 +157,6 @@ class _MenuState extends LPExtendedState<Menu> {
   void getVersion() async {
     PackageInfo packageInfo = await PackageInfo.fromPlatform();
     version = packageInfo.version;
-  }
-
-  Widget displayNotificationButton(gender) {
-    return TextButton(
-      child: Row(
-        mainAxisAlignment: MainAxisAlignment.start,
-        children: [
-          Icon(Icons.notification_add),
-          SizedBox(width: 20),
-          Text(AppLocalizations.of(context)!.notifications(gender)),
-        ],
-      ),
-      onPressed: () {
-        setState(() {
-          currentScreen = NotificationPage();
-
-          current = PagesCode.NotificationPage;
-        });
-        Navigator.of(context).pop();
-      },
-    );
   }
 
   Map<String, List<String>> _filterVideoByLocal(

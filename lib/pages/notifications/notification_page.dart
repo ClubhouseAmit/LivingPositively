@@ -49,34 +49,42 @@ class _NotificationPageState extends LPExtendedState<NotificationPage>
     if (mounted) setState(() => _hasPermission = granted);
   }
 
-  void _onToggle(bool value, UserInformation userInfo) {
-    if (value) {
-      final preference = userInfo.getNotificationPreference('default');
-      FcmScheduledNotificationService.registerNotification(
-        context: context,
-        typeId: 'default',
-        hour: preference?.hour ?? 8,
-        minute: preference?.minute ?? 30,
-      );
-    } else {
-      FcmScheduledNotificationService.cancelNotification(
-        context: context,
-        typeId: 'default',
-      );
+  Future<void> _onToggle(bool value, UserInformation userInfo) async {
+    final preference = userInfo.getNotificationPreference('default');
+    final succeeded = value
+        ? await FcmScheduledNotificationService.registerNotification(
+            context: context,
+            typeId: 'default',
+            hour: preference?.hour ?? 8,
+            minute: preference?.minute ?? 30,
+          )
+        : await FcmScheduledNotificationService.cancelNotification(
+            context: context,
+            typeId: 'default',
+          );
+    if (!succeeded && mounted) {
+      ScaffoldMessenger.of(context)
+        ..hideCurrentSnackBar()
+        ..showSnackBar(SnackBar(content: Text(appLocale.asyncErrorMessage)));
     }
   }
 
-  void _onPickedTime(
+  Future<void> _onPickedTime(
     TimeOfDay picked,
     AppLocalizations appLocale,
-    UserInformation userInfo,
-  ) {
-    FcmScheduledNotificationService.registerNotification(
-      context: context,
-      typeId: 'default',
-      hour: picked.hour,
-      minute: picked.minute,
-    );
+  ) async {
+    final succeeded =
+        await FcmScheduledNotificationService.registerNotification(
+          context: context,
+          typeId: 'default',
+          hour: picked.hour,
+          minute: picked.minute,
+        );
+    if (!succeeded && mounted) {
+      ScaffoldMessenger.of(context)
+        ..hideCurrentSnackBar()
+        ..showSnackBar(SnackBar(content: Text(appLocale.asyncErrorMessage)));
+    }
   }
 
   Future<void> _toggleDebugUnlock() async {
@@ -112,23 +120,13 @@ class _NotificationPageState extends LPExtendedState<NotificationPage>
               children: <Widget>[
                 SizedBox(height: 100),
                 Container(
-                  alignment: Alignment.topLeft,
-                  child: RichText(
-                    text: TextSpan(
-                      style: TextStyle(
-                        fontSize: 32,
-                        fontWeight: FontWeight.bold,
-                      ),
-                      children: [
-                        TextSpan(
-                          text: 'Remind ',
-                          style: TextStyle(color: primaryPurple),
-                        ),
-                        TextSpan(
-                          text: 'Me',
-                          style: TextStyle(color: appGreen),
-                        ),
-                      ],
+                  alignment: AlignmentDirectional.centerStart,
+                  child: Text(
+                    appLocale.notifications(gender),
+                    style: TextStyle(
+                      color: primaryPurple,
+                      fontSize: 32,
+                      fontWeight: FontWeight.bold,
                     ),
                   ),
                 ),
@@ -153,8 +151,7 @@ class _NotificationPageState extends LPExtendedState<NotificationPage>
                         hour: preference?.hour ?? 8,
                         minute: preference?.minute ?? 30,
                       ),
-                      onTimeSelected: (time) =>
-                          _onPickedTime(time, appLocale, userInfo),
+                      onTimeSelected: (time) => _onPickedTime(time, appLocale),
                       onToggle: (value) => _onToggle(value, userInfo),
                     );
                   },

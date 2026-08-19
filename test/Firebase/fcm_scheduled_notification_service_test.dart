@@ -228,4 +228,28 @@ void main() {
       expect(postCalled, isFalse);
     },
   );
+
+  testWidgets(
+    'cancel remains available on unsupported platforms for account reset',
+    (tester) async {
+      await pumpUser(tester);
+      var postCalled = false;
+
+      final result = await _onPlatform(
+        TargetPlatform.windows,
+        () => FcmScheduledNotificationService.cancelNotification(
+          context: serviceContext,
+          typeId: 'default',
+          idTokenProvider: () async => 'token-123',
+          post: (url, {headers, body, encoding}) async {
+            postCalled = true;
+            return http.Response('{}', 200);
+          },
+        ),
+      );
+
+      expect(result, isTrue);
+      expect(postCalled, isTrue);
+    },
+  );
 }

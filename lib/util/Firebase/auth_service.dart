@@ -2,7 +2,7 @@ import 'dart:io';
 
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
-import 'package:flutter/foundation.dart' show kIsWeb, debugPrint;
+import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:google_sign_in/google_sign_in.dart';
 import 'package:sign_in_with_apple/sign_in_with_apple.dart';
 
@@ -15,7 +15,6 @@ class AuthService {
   }
 
   static Future<UserCredential> signUpWithEmail(String email, String password) {
-    debugPrint("gotten here");
     return FirebaseAuth.instance.createUserWithEmailAndPassword(
       email: email.trim(),
       password: password,
@@ -61,8 +60,7 @@ class AuthService {
   // Called after any successful sign-in to persist the user in Firestore.
   //Saving the user data in our own managed part of FireStore
   static Future<void> saveUserToFirestore(User user) async {
-    final docRef =
-        FirebaseFirestore.instance.collection('users').doc(user.uid);
+    final docRef = FirebaseFirestore.instance.collection('users').doc(user.uid);
     final doc = await docRef.get();
     final data = <String, dynamic>{
       'email': user.email,

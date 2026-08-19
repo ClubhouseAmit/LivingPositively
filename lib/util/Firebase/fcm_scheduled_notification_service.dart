@@ -110,7 +110,6 @@ class FcmScheduledNotificationService {
     Future<String?> Function()? idTokenProvider,
     NotificationHttpPost? post,
   }) async {
-    if (!FcmService.supportsReminderSettings()) return false;
     _log('Cancelling notification: typeId=$typeId');
     final idToken = await (idTokenProvider ?? _getIdToken)();
     if (idToken == null) return false;

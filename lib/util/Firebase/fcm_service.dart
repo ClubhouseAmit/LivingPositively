@@ -12,6 +12,7 @@ import 'package:mazilon/util/logger_service.dart';
 
 class FcmService {
   static bool _isInitialized = false;
+  static Future<void>? _initializationInProgress;
 
   static final FlutterLocalNotificationsPlugin _localNotifications =
       FlutterLocalNotificationsPlugin();
@@ -48,18 +49,23 @@ class FcmService {
           .getNotificationSettings();
       return settings.authorizationStatus == AuthorizationStatus.authorized ||
           settings.authorizationStatus == AuthorizationStatus.provisional;
-    } on FirebaseException {
+    } catch (_) {
       return false;
     }
   }
 
-  static Future<void> initialize() async {
-    if (!supportsReminderSettings()) return;
+  static Future<void> initialize() {
+    if (!supportsReminderSettings()) return Future.value();
     if (_isInitialized) {
       _log('Already initialized, skipping.');
-      return;
+      return Future.value();
     }
-    _isInitialized = true;
+    return _initializationInProgress ??= _initialize().whenComplete(() {
+      _initializationInProgress = null;
+    });
+  }
+
+  static Future<void> _initialize() async {
     _log('Initializing...');
     _log("Asking permission");
     final settings = await FirebaseMessaging.instance.requestPermission(
@@ -69,8 +75,9 @@ class FcmService {
     );
     _log("finished Asking permission");
     _log('Permission status: ${settings.authorizationStatus}');
-    if (settings.authorizationStatus == AuthorizationStatus.denied) {
-      _log('Permission denied — aborting initialization.');
+    if (settings.authorizationStatus != AuthorizationStatus.authorized &&
+        settings.authorizationStatus != AuthorizationStatus.provisional) {
+      _log('Notification permission is unavailable — aborting initialization.');
       return;
     }
 
@@ -92,6 +99,9 @@ class FcmService {
 
     if (uid != null && token != null) await _saveTokenToFirestore(uid, token);
 
+    final initialMessage = await FirebaseMessaging.instance.getInitialMessage();
+    if (initialMessage != null) handleInitialMessage(initialMessage);
+
     _setupForegroundHandler();
     _setupOnMessageOpenedApp();
 
@@ -103,6 +113,7 @@ class FcmService {
       }
     });
 
+    _isInitialized = true;
     _log('Initialization complete.');
   }
 

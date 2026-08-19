@@ -130,10 +130,7 @@ void main() {
       expect(userInfo.userId, equals('uid-123'));
       expect(userInfo.location, equals('TLV'));
       expect(userInfo.disclaimerSigned, isTrue);
-      expect(
-        userInfo.getNotificationPreference('default')?.toJson(),
-        const NotificationPreference(hour: 9, minute: 30).toJson(),
-      );
+      expect(userInfo.notificationPreferences, isEmpty);
       expect(userInfo.darkModePreference, DarkModePreference.scheduled);
       expect(userInfo.darkModeStartHour, equals(21));
       expect(userInfo.darkModeStartMinute, equals(30));
@@ -197,23 +194,23 @@ void main() {
       );
     });
 
-    test('falls back to legacy reminder time for malformed JSON', () async {
-      _registerFakes(
-        store: {
-          'notificationPreferences': '{not-json',
-          'notificationHour': 6,
-          'notificationMinute': 20,
-        },
-      );
+    test(
+      'does not enable a legacy reminder for malformed FCM preferences',
+      () async {
+        _registerFakes(
+          store: {
+            'notificationPreferences': '{not-json',
+            'notificationHour': 6,
+            'notificationMinute': 20,
+          },
+        );
 
-      final userInfo = _makeUserInfo();
-      await loadUserInformation(userInfo, 'en');
+        final userInfo = _makeUserInfo();
+        await loadUserInformation(userInfo, 'en');
 
-      expect(
-        userInfo.getNotificationPreference('default')?.toJson(),
-        const NotificationPreference(hour: 6, minute: 20).toJson(),
-      );
-    });
+        expect(userInfo.notificationPreferences, isEmpty);
+      },
+    );
 
     test('propagates list fields', () async {
       _registerFakes(

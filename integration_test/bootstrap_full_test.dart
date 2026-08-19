@@ -28,7 +28,8 @@
 //     `registerLazySingleton` concrete impls and throw on duplicate
 //     registration after our fakes are in place) is bypassed.
 //   * `fcmInitializer: () async {}` — avoids requesting notification
-//     permission from the host running the integration test.
+//     permission from the host running the integration test. It runs only
+//     after the first frame, matching production startup behavior.
 //
 // Production `main()` calls `bootstrapApp()` with no args. Its defaults
 // match the previous in-`main()` body line-for-line. The CI `build-android`
@@ -125,9 +126,9 @@ void main() {
 
         expect(
           calls,
-          ['firebase', 'locator', 'fcm'],
+          ['firebase', 'locator'],
           reason:
-              'bootstrapApp must initialize Firebase, register locators, and only then initialize FCM',
+              'bootstrapApp must initialize Firebase and register locators before rendering',
         );
 
         // Top-level shape: MultiProvider wrapping MyApp. The provider package
@@ -144,6 +145,8 @@ void main() {
         await tester.pumpWidget(widget);
         await tester.pump();
 
+        expect(calls, ['firebase', 'locator', 'fcm']);
+
         expect(
           find.byType(MultiProvider),
           findsOneWidget,
@@ -154,6 +157,26 @@ void main() {
           findsOneWidget,
           reason: 'pumped tree must contain MyApp under the MultiProvider',
         );
+      },
+    );
+
+    testWidgets(
+      'renders the first frame when deferred FCM initialization fails',
+      (tester) async {
+        _disposePumpedAppAfterTest(tester);
+
+        final widget = await bootstrapApp(
+          firebaseInitializer: () async {},
+          locatorSetup: () => registerTestServices(locale: 'en'),
+          fcmInitializer: () async {
+            throw StateError('FCM is unavailable');
+          },
+        );
+
+        await tester.pumpWidget(widget);
+        await tester.pump();
+
+        expect(find.byType(MyApp), findsOneWidget);
       },
     );
   });
@@ -258,7 +281,6 @@ void main() {
             locatorCalled = true;
             registerTestServices(locale: 'en');
           },
-          fcmInitializer: () async {},
         );
 
         expect(firebaseCalled, isTrue);

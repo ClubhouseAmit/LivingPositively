@@ -1,6 +1,7 @@
 import * as admin from "firebase-admin";
 import { setGlobalOptions } from "firebase-functions";
 import { onRequest, Request } from "firebase-functions/https";
+import { logger } from "firebase-functions/logger";
 import { onSchedule } from "firebase-functions/scheduler";
 
 admin.initializeApp();
@@ -86,9 +87,12 @@ async function extractAndVerifyUid(req: Request): Promise<string | null> {
 // 4. Firebase server-side rotation (rare, automatic).
 // ---------------------------------------------------------------------------
 async function clearFCMToken(uid: string): Promise<void> {
-  await admin.firestore().collection("devices").doc(uid).update({
-    fcmToken: admin.firestore.FieldValue.delete(),
-  });
+  await admin.firestore().collection("devices").doc(uid).set(
+    {
+      fcmToken: admin.firestore.FieldValue.delete(),
+    },
+    { merge: true },
+  );
 }
 
 // ---------------------------------------------------------------------------
@@ -405,7 +409,13 @@ export const processScheduledNotifications = onSchedule(
           if (
             err?.errorInfo?.code === "messaging/registration-token-not-registered"
           ) {
-            await clearFCMToken(uid);
+            try {
+              await clearFCMToken(uid);
+            } catch (clearError) {
+              logger.warn("Failed to clear an invalid FCM token", {
+                error: String(clearError),
+              });
+            }
           }
           return "failure";
         }
@@ -424,15 +434,22 @@ export const processScheduledNotifications = onSchedule(
 
     // --- Stale device cleanup (batched, after sends) ---
 
-    if (staleUids.length > 0) {
-      await Promise.allSettled(
-        [...new Set(staleUids)].map((uid) => cleanupInactiveDevice(uid)),
+    const uniqueStaleUids = [...new Set(staleUids)];
+    let staleCleanupFailureCount = 0;
+    if (uniqueStaleUids.length > 0) {
+      const cleanupResults = await Promise.allSettled(
+        uniqueStaleUids.map((uid) => cleanupInactiveDevice(uid)),
       );
-      failureCount += staleUids.length;
+      staleCleanupFailureCount = cleanupResults.filter(
+        (result) => result.status === "rejected",
+      ).length;
     }
 
-    console.log(
-      `processScheduledNotifications: sent=${successCount}, failed=${failureCount}`,
-    );
+    logger.info("processScheduledNotifications", {
+      sent: successCount,
+      failed: failureCount,
+      staleDeviceCleanups: uniqueStaleUids.length,
+      staleDeviceCleanupFailures: staleCleanupFailureCount,
+    });
   },
 );

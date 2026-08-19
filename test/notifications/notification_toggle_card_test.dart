@@ -22,7 +22,7 @@ class _Memory implements PersistentMemoryService {
 }
 
 void main() {
-  testWidgets('toggle exposes the FCM schedule time when enabled', (
+  testWidgets('shows the FCM schedule time from the parent state', (
     tester,
   ) async {
     final values = <bool>[];
@@ -39,18 +39,45 @@ void main() {
               title: 'Daily reminder',
               subtitle: 'A supportive message',
               initialTime: const TimeOfDay(hour: 9, minute: 30),
-              onToggle: values.add,
+              initialEnabled: true,
+              onToggle: (value) async {
+                values.add(value);
+              },
             ),
           ),
         ),
       ),
     );
 
-    expect(find.text('9:30 AM'), findsNothing);
+    expect(find.text('9:30 AM'), findsOneWidget);
     await tester.tap(find.byType(AnimatedContainer));
     await tester.pumpAndSettle();
 
-    expect(values, [isTrue]);
+    expect(values, [isFalse]);
     expect(find.text('9:30 AM'), findsOneWidget);
+  });
+
+  testWidgets('uses updated parent state instead of retaining toggle state', (
+    tester,
+  ) async {
+    Widget buildCard(bool enabled) => MaterialApp(
+      home: Scaffold(
+        body: NotificationToggleCard(
+          emoji: '✨',
+          badgeText: 'LP',
+          title: 'Daily reminder',
+          subtitle: 'A supportive message',
+          initialEnabled: enabled,
+          initialTime: const TimeOfDay(hour: 7, minute: 45),
+          onToggle: (_) async {},
+        ),
+      ),
+    );
+
+    await tester.pumpWidget(buildCard(false));
+    expect(find.text('7:45 AM'), findsNothing);
+
+    await tester.pumpWidget(buildCard(true));
+    expect(find.text('7:45 AM'), findsOneWidget);
   });
 }
