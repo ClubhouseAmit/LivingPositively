@@ -8,6 +8,7 @@ import 'package:mazilon/Locale/locale_service.dart';
 import 'package:mazilon/form/speech_dictation_suffix_action.dart';
 import 'package:mazilon/global_enums.dart';
 import 'package:mazilon/pages/SignIn_Pages/firstPage.dart';
+import 'package:mazilon/util/async/persistence_retry_snack_bar.dart';
 import 'package:mazilon/util/Form/formPagePhoneModel.dart';
 
 import 'package:mazilon/pages/FeelGood/image_picker_service_impl.dart';
@@ -125,6 +126,7 @@ class _UserSettingsState extends LPExtendedState<UserSettings> {
   List<String> localesNames = AppLocalizations.supportedLocales
       .map((e) => languageName(e.languageCode))
       .toList();
+  bool _resetInProgress = false;
   Future<void> updateLocale(
     String locale,
     UserInformation userInfoProvider,
@@ -519,6 +521,7 @@ class _UserSettingsState extends LPExtendedState<UserSettings> {
         >(); // Get the persistent memory service instance
 
     await service.reset(); // Reset the persistent memory service
+    await userInfo.reset(localeService.getLocale());
     var enteredBeforeValue = await service.getItem(
       "enteredBefore",
       PersistentMemoryType.Bool,
@@ -537,7 +540,6 @@ class _UserSettingsState extends LPExtendedState<UserSettings> {
       hasFilled = hasFilledValue;
     });
 
-    userInfo.reset(localeService.getLocale());
     await pickerService.deleteImages();
 
     if (!mounted) {
@@ -554,6 +556,21 @@ class _UserSettingsState extends LPExtendedState<UserSettings> {
       ),
       (Route<dynamic> route) => false,
     );
+  }
+
+  Future<bool> _resetDataSafely(UserInformation userInfo) async {
+    if (_resetInProgress) {
+      return false;
+    }
+    _resetInProgress = true;
+    try {
+      await resetData(userInfo);
+      return true;
+    } catch (_) {
+      return false;
+    } finally {
+      _resetInProgress = false;
+    }
   }
 
   @override
@@ -909,94 +926,147 @@ class _UserSettingsState extends LPExtendedState<UserSettings> {
                                         onPressed: () {
                                           showDialog(
                                             context: context,
-                                            builder: (BuildContext context) {
-                                              return Dialog(
-                                                child: SizedBox(
-                                                  width:
-                                                      MediaQuery.of(
-                                                            context,
-                                                          ).size.width >
-                                                          1000
-                                                      ? 800
-                                                      : MediaQuery.of(
-                                                          context,
-                                                        ).size.width,
-                                                  child: SingleChildScrollView(
-                                                    child: Column(
-                                                      children: [
-                                                        const SizedBox(
-                                                          height: 10,
-                                                        ),
-                                                        Text(
-                                                          appLocale
-                                                              .confirmResetTitle,
-                                                          textAlign:
-                                                              TextAlign.center,
-                                                          style: TextStyle(
-                                                            fontWeight:
-                                                                FontWeight.bold,
-                                                            fontSize: 18.sp,
-                                                          ),
-                                                        ),
-                                                        Padding(
-                                                          padding:
-                                                              const EdgeInsets.fromLTRB(
-                                                                50,
-                                                                0,
-                                                                50,
-                                                                0,
-                                                              ),
-                                                          child: Row(
-                                                            mainAxisAlignment:
-                                                                MainAxisAlignment
-                                                                    .spaceBetween,
-                                                            children: <Widget>[
-                                                              TextButton(
-                                                                child: Text(
-                                                                  appLocale
-                                                                      .closeButton(
-                                                                        gender,
+                                            barrierDismissible: false,
+                                            builder: (BuildContext dialogContext) {
+                                              bool resetInProgress = false;
+                                              return ScaffoldMessenger(
+                                                child: StatefulBuilder(
+                                                  builder:
+                                                      (
+                                                        BuildContext
+                                                        dialogStateContext,
+                                                        StateSetter
+                                                        setDialogState,
+                                                      ) {
+                                                        Future<void>
+                                                        attemptReset() async {
+                                                          if (resetInProgress) {
+                                                            return;
+                                                          }
+                                                          setDialogState(() {
+                                                            resetInProgress =
+                                                                true;
+                                                          });
+                                                          final bool
+                                                          resetSucceeded =
+                                                              await _resetDataSafely(
+                                                                userInfoProvider,
+                                                              );
+                                                          if (!mounted ||
+                                                              !dialogContext
+                                                                  .mounted ||
+                                                              resetSucceeded) {
+                                                            return;
+                                                          }
+                                                          setDialogState(() {
+                                                            resetInProgress =
+                                                                false;
+                                                          });
+                                                          showPersistenceRetrySnackBar(
+                                                            dialogStateContext,
+                                                            attemptReset,
+                                                          );
+                                                        }
+
+                                                        return PopScope(
+                                                          canPop:
+                                                              !resetInProgress,
+                                                          child: Dialog(
+                                                            child: SizedBox(
+                                                              width:
+                                                                  MediaQuery.of(
+                                                                        dialogStateContext,
+                                                                      ).size.width >
+                                                                      1000
+                                                                  ? 800
+                                                                  : MediaQuery.of(
+                                                                      dialogStateContext,
+                                                                    ).size.width,
+                                                              child: Scaffold(
+                                                                backgroundColor:
+                                                                    Colors
+                                                                        .transparent,
+                                                                body: SingleChildScrollView(
+                                                                  child: Column(
+                                                                    children: [
+                                                                      const SizedBox(
+                                                                        height:
+                                                                            10,
                                                                       ),
-                                                                  style: TextStyle(
-                                                                    fontWeight:
-                                                                        FontWeight
-                                                                            .bold,
-                                                                    fontSize:
-                                                                        16.sp,
+                                                                      Text(
+                                                                        appLocale
+                                                                            .confirmResetTitle,
+                                                                        textAlign:
+                                                                            TextAlign.center,
+                                                                        style: TextStyle(
+                                                                          fontWeight:
+                                                                              FontWeight.bold,
+                                                                          fontSize:
+                                                                              18.sp,
+                                                                        ),
+                                                                      ),
+                                                                      Padding(
+                                                                        padding:
+                                                                            const EdgeInsets.fromLTRB(
+                                                                              50,
+                                                                              0,
+                                                                              50,
+                                                                              0,
+                                                                            ),
+                                                                        child: Row(
+                                                                          mainAxisAlignment:
+                                                                              MainAxisAlignment.spaceBetween,
+                                                                          children:
+                                                                              <
+                                                                                Widget
+                                                                              >[
+                                                                                TextButton(
+                                                                                  onPressed: resetInProgress
+                                                                                      ? null
+                                                                                      : () {
+                                                                                          Navigator.of(
+                                                                                            dialogStateContext,
+                                                                                          ).pop();
+                                                                                        },
+                                                                                  child: Text(
+                                                                                    appLocale.closeButton(
+                                                                                      gender,
+                                                                                    ),
+                                                                                    style: TextStyle(
+                                                                                      fontWeight: FontWeight.bold,
+                                                                                      fontSize: 16.sp,
+                                                                                    ),
+                                                                                  ),
+                                                                                ),
+                                                                                TextButton(
+                                                                                  onPressed: resetInProgress
+                                                                                      ? null
+                                                                                      : () {
+                                                                                          unawaited(
+                                                                                            attemptReset(),
+                                                                                          );
+                                                                                        },
+                                                                                  child: Text(
+                                                                                    appLocale.confirmButton(
+                                                                                      gender,
+                                                                                    ),
+                                                                                    style: TextStyle(
+                                                                                      fontWeight: FontWeight.bold,
+                                                                                      fontSize: 16.sp,
+                                                                                    ),
+                                                                                  ),
+                                                                                ),
+                                                                              ],
+                                                                        ),
+                                                                      ),
+                                                                    ],
                                                                   ),
                                                                 ),
-                                                                onPressed: () {
-                                                                  Navigator.of(
-                                                                    context,
-                                                                  ).pop();
-                                                                },
                                                               ),
-                                                              TextButton(
-                                                                child: Text(
-                                                                  appLocale
-                                                                      .confirmButton(
-                                                                        gender,
-                                                                      ),
-                                                                  style: TextStyle(
-                                                                    fontWeight:
-                                                                        FontWeight
-                                                                            .bold,
-                                                                    fontSize:
-                                                                        16.sp,
-                                                                  ),
-                                                                ),
-                                                                onPressed: () {
-                                                                  resetData(
-                                                                    userInfoProvider,
-                                                                  );
-                                                                },
-                                                              ),
-                                                            ],
+                                                            ),
                                                           ),
-                                                        ),
-                                                      ],
-                                                    ),
-                                                  ),
+                                                        );
+                                                      },
                                                 ),
                                               );
                                             },

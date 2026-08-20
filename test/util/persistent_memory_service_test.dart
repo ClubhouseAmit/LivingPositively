@@ -28,11 +28,16 @@ class _ControlledSharedPreferencesStore extends InMemorySharedPreferencesStore {
   _ControlledSharedPreferencesStore({
     this.outcome = _WriteOutcome.succeed,
     this.gate,
+    this.clearOutcome = _WriteOutcome.succeed,
+    this.clearGate,
   }) : super.empty();
 
   final _WriteOutcome outcome;
   final Completer<_WriteOutcome>? gate;
+  final _WriteOutcome clearOutcome;
+  final Completer<_WriteOutcome>? clearGate;
   final Completer<void> setValueStarted = Completer<void>();
+  final Completer<void> clearStarted = Completer<void>();
 
   @override
   Future<bool> setValue(String valueType, String key, Object value) async {
@@ -50,6 +55,38 @@ class _ControlledSharedPreferencesStore extends InMemorySharedPreferencesStore {
       case _WriteOutcome.throwError:
         throw StateError('Platform preference write failed.');
     }
+  }
+
+  @override
+  Future<bool> clear() async {
+    if (!clearStarted.isCompleted) {
+      clearStarted.complete();
+    }
+    final _WriteOutcome resolvedOutcome = clearGate == null
+        ? clearOutcome
+        : await clearGate!.future;
+    switch (resolvedOutcome) {
+      case _WriteOutcome.succeed:
+        return super.clear();
+      case _WriteOutcome.reject:
+        return false;
+      case _WriteOutcome.throwError:
+        throw StateError('Platform preference reset failed.');
+    }
+  }
+}
+
+class _ThrowingLogger implements IncidentLoggerService {
+  @override
+  Future<void> initializeSentry(_) async {}
+
+  @override
+  Future<void> captureLog(
+    dynamic exception, {
+    StackTrace? stackTrace,
+    dynamic exceptionData,
+  }) async {
+    throw StateError('Incident logging failed.');
   }
 }
 
@@ -237,6 +274,86 @@ void main() {
       expect(await s.getItem('a', PersistentMemoryType.String), '');
       expect(await s.getItem('b', PersistentMemoryType.Int), isNull);
     });
+
+    test('should not resolve until the platform clear completes', () async {
+      final Completer<_WriteOutcome> gate = Completer<_WriteOutcome>();
+      final _ControlledSharedPreferencesStore store =
+          _ControlledSharedPreferencesStore(clearGate: gate);
+      _installControlledStore(store);
+      final SharedPreferencesService service = SharedPreferencesService();
+
+      final Future<void> reset = service.reset();
+      await store.clearStarted.future;
+      var completed = false;
+      final Future<void> completion = reset.then((_) {
+        completed = true;
+      });
+      await Future<void>.delayed(Duration.zero);
+      expect(completed, isFalse);
+
+      gate.complete(_WriteOutcome.succeed);
+      await reset;
+      await completion;
+      expect(completed, isTrue);
+    });
+
+    test('should log and throw when the platform rejects a reset', () async {
+      _installControlledStore(
+        _ControlledSharedPreferencesStore(clearOutcome: _WriteOutcome.reject),
+      );
+      final SharedPreferencesService service = SharedPreferencesService();
+
+      await expectLater(service.reset(), throwsA(isA<StateError>()));
+      expect(logger.logs, contains(isA<StateError>()));
+    });
+
+    test('should log and rethrow a platform reset error', () async {
+      _installControlledStore(
+        _ControlledSharedPreferencesStore(
+          clearOutcome: _WriteOutcome.throwError,
+        ),
+      );
+      final SharedPreferencesService service = SharedPreferencesService();
+
+      await expectLater(
+        service.reset(),
+        throwsA(
+          isA<StateError>().having(
+            (StateError error) => error.message,
+            'message',
+            'Platform preference reset failed.',
+          ),
+        ),
+      );
+      expect(logger.logs, contains(isA<StateError>()));
+    });
+
+    test(
+      'should preserve the reset error when incident logging fails',
+      () async {
+        GetIt.instance.unregister<IncidentLoggerService>();
+        GetIt.instance.registerSingleton<IncidentLoggerService>(
+          _ThrowingLogger(),
+        );
+        _installControlledStore(
+          _ControlledSharedPreferencesStore(
+            clearOutcome: _WriteOutcome.throwError,
+          ),
+        );
+        final SharedPreferencesService service = SharedPreferencesService();
+
+        await expectLater(
+          service.reset(),
+          throwsA(
+            isA<StateError>().having(
+              (StateError error) => error.message,
+              'message',
+              'Platform preference reset failed.',
+            ),
+          ),
+        );
+      },
+    );
   });
 
   group('error path: missing IncidentLoggerService registration', () {

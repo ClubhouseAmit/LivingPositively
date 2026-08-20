@@ -72,7 +72,11 @@ class UserInformation with ChangeNotifier {
     PersistentMemoryService? service,
   }) : service = service ?? GetIt.instance<PersistentMemoryService>();
 
-  void reset(String locale) {
+  /// Clears user state and persists the empty Dreams and Goals snapshot.
+  ///
+  /// State observers receive the cleared state before this completes. The
+  /// returned future completes only after the queued Dreams snapshot succeeds.
+  Future<void> reset(String locale) async {
     location = '';
     notificationHour = 12;
     notificationMinute = 0;
@@ -98,7 +102,6 @@ class UserInformation with ChangeNotifier {
     // An in-flight snapshot cannot be cancelled safely. Queue the empty
     // snapshot behind it so reset is always the final local Dreams state.
     _dreamsAndGoalsSaveRevision++;
-    unawaited(_saveInBackground(queueDreamsAndGoalsSave));
     loggedIn = false;
     userId = '';
     thanks = {};
@@ -106,6 +109,7 @@ class UserInformation with ChangeNotifier {
     localeName = locale;
 
     notifyListeners();
+    await queueDreamsAndGoalsSave();
   }
 
   /// Observes non-critical legacy writes so a storage failure cannot escape an

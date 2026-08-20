@@ -78,10 +78,18 @@ class SharedPreferencesService implements PersistentMemoryService {
     IncidentLoggerService loggerService =
         GetIt.instance<IncidentLoggerService>();
     try {
-      var prefs = await SharedPreferences.getInstance();
-      await prefs.clear();
+      final SharedPreferences prefs = await SharedPreferences.getInstance();
+      final bool cleared = await prefs.clear();
+      if (!cleared) {
+        throw StateError('Persistent memory reset was rejected.');
+      }
     } catch (error, stackTrace) {
-      loggerService.captureLog(error, stackTrace: stackTrace);
+      try {
+        await loggerService.captureLog(error, stackTrace: stackTrace);
+      } catch (_) {
+        // Reset failures must remain visible if incident logging also fails.
+      }
+      rethrow;
     }
   }
 }

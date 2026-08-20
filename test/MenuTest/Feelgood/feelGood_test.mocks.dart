@@ -580,6 +580,24 @@ class MockUserInformation extends _i1.Mock implements _i13.UserInformation {
           as List<String>);
 
   @override
+  List<String> get dreamsAndGoals =>
+      (super.noSuchMethod(
+            Invocation.getter(#dreamsAndGoals),
+            returnValue: <String>[],
+            returnValueForMissingStub: <String>[],
+          )
+          as List<String>);
+
+  @override
+  List<String> get dreamsAndGoalsSelectionSources =>
+      (super.noSuchMethod(
+            Invocation.getter(#dreamsAndGoalsSelectionSources),
+            returnValue: <String>[],
+            returnValueForMissingStub: <String>[],
+          )
+          as List<String>);
+
+  @override
   bool get loggedIn =>
       (super.noSuchMethod(
             Invocation.getter(#loggedIn),
@@ -706,6 +724,62 @@ class MockUserInformation extends _i1.Mock implements _i13.UserInformation {
           as _i4.PersistentMemoryService);
 
   @override
+  _i7.Future<void> get pendingDreamsAndGoalsSave =>
+      (super.noSuchMethod(
+            Invocation.getter(#pendingDreamsAndGoalsSave),
+            returnValue: _i7.Future<void>.value(),
+            returnValueForMissingStub: _i7.Future<void>.value(),
+          )
+          as _i7.Future<void>);
+
+  @override
+  int get dreamsAndGoalsSaveRevision =>
+      (super.noSuchMethod(
+            Invocation.getter(#dreamsAndGoalsSaveRevision),
+            returnValue: 0,
+            returnValueForMissingStub: 0,
+          )
+          as int);
+
+  @override
+  List<int> get dreamsAndGoalsCustomSelectionIndexes =>
+      (super.noSuchMethod(
+            Invocation.getter(#dreamsAndGoalsCustomSelectionIndexes),
+            returnValue: <int>[],
+            returnValueForMissingStub: <int>[],
+          )
+          as List<int>);
+
+  @override
+  bool get hasDreamsAndGoalsCustomConflict =>
+      (super.noSuchMethod(
+            Invocation.getter(#hasDreamsAndGoalsCustomConflict),
+            returnValue: false,
+            returnValueForMissingStub: false,
+          )
+          as bool);
+
+  @override
+  bool get hasPendingDreamsAndGoalsCustomConflictResolution =>
+      (super.noSuchMethod(
+            Invocation.getter(
+              #hasPendingDreamsAndGoalsCustomConflictResolution,
+            ),
+            returnValue: false,
+            returnValueForMissingStub: false,
+          )
+          as bool);
+
+  @override
+  bool get requiresDreamsAndGoalsCustomConflictRecovery =>
+      (super.noSuchMethod(
+            Invocation.getter(#requiresDreamsAndGoalsCustomConflictRecovery),
+            returnValue: false,
+            returnValueForMissingStub: false,
+          )
+          as bool);
+
+  @override
   set localeName(String? value) => super.noSuchMethod(
     Invocation.setter(#localeName, value),
     returnValueForMissingStub: null,
@@ -780,6 +854,18 @@ class MockUserInformation extends _i1.Mock implements _i13.UserInformation {
   @override
   set safeEnvironment(List<String>? value) => super.noSuchMethod(
     Invocation.setter(#safeEnvironment, value),
+    returnValueForMissingStub: null,
+  );
+
+  @override
+  set dreamsAndGoals(List<String>? value) => super.noSuchMethod(
+    Invocation.setter(#dreamsAndGoals, value),
+    returnValueForMissingStub: null,
+  );
+
+  @override
+  set dreamsAndGoalsSelectionSources(List<String>? value) => super.noSuchMethod(
+    Invocation.setter(#dreamsAndGoalsSelectionSources, value),
     returnValueForMissingStub: null,
   );
 
@@ -865,10 +951,13 @@ class MockUserInformation extends _i1.Mock implements _i13.UserInformation {
           as bool);
 
   @override
-  void reset(String? locale) => super.noSuchMethod(
-    Invocation.method(#reset, [locale]),
-    returnValueForMissingStub: null,
-  );
+  _i7.Future<void> reset(String? locale) =>
+      (super.noSuchMethod(
+            Invocation.method(#reset, [locale]),
+            returnValue: _i7.Future<void>.value(),
+            returnValueForMissingStub: _i7.Future<void>.value(),
+          )
+          as _i7.Future<void>);
 
   @override
   void updateGender(String? text) => super.noSuchMethod(
@@ -938,6 +1027,106 @@ class MockUserInformation extends _i1.Mock implements _i13.UserInformation {
     Invocation.method(#updateSafeEnvironment, [value]),
     returnValueForMissingStub: null,
   );
+
+  @override
+  void updateDreamsAndGoals(
+    List<String>? value, {
+    List<String>? selectionSources,
+  }) => super.noSuchMethod(
+    Invocation.method(
+      #updateDreamsAndGoals,
+      [value],
+      {#selectionSources: selectionSources},
+    ),
+    returnValueForMissingStub: null,
+  );
+
+  @override
+  _i7.Future<void> resolveDreamsAndGoalsCustomConflict(
+    int? retainedSelectionIndex,
+  ) =>
+      (super.noSuchMethod(
+            Invocation.method(#resolveDreamsAndGoalsCustomConflict, [
+              retainedSelectionIndex,
+            ]),
+            returnValue: _i7.Future<void>.value(),
+            returnValueForMissingStub: _i7.Future<void>.value(),
+          )
+          as _i7.Future<void>);
+
+  @override
+  _i7.Future<void> queueDreamsAndGoalsSave() =>
+      (super.noSuchMethod(
+            Invocation.method(#queueDreamsAndGoalsSave, []),
+            returnValue: _i7.Future<void>.value(),
+            returnValueForMissingStub: _i7.Future<void>.value(),
+          )
+          as _i7.Future<void>);
+
+  @override
+  _i7.Future<void> retryDreamsAndGoalsSave(int? revision) =>
+      (super.noSuchMethod(
+            Invocation.method(#retryDreamsAndGoalsSave, [revision]),
+            returnValue: _i7.Future<void>.value(),
+            returnValueForMissingStub: _i7.Future<void>.value(),
+          )
+          as _i7.Future<void>);
+
+  @override
+  _i7.Future<void> retryDreamsAndGoalsCustomConflictResolution() =>
+      (super.noSuchMethod(
+            Invocation.method(#retryDreamsAndGoalsCustomConflictResolution, []),
+            returnValue: _i7.Future<void>.value(),
+            returnValueForMissingStub: _i7.Future<void>.value(),
+          )
+          as _i7.Future<void>);
+
+  @override
+  _i7.Future<void> hydrateDreamsAndGoalsFromStorage(
+    List<String>? selections, {
+    required List<String>? storedSelectionSources,
+    required List<String>? storedCustomSelections,
+  }) =>
+      (super.noSuchMethod(
+            Invocation.method(
+              #hydrateDreamsAndGoalsFromStorage,
+              [selections],
+              {
+                #storedSelectionSources: storedSelectionSources,
+                #storedCustomSelections: storedCustomSelections,
+              },
+            ),
+            returnValue: _i7.Future<void>.value(),
+            returnValueForMissingStub: _i7.Future<void>.value(),
+          )
+          as _i7.Future<void>);
+
+  @override
+  _i7.Future<void> repairDreamsAndGoalsSelectionSources() =>
+      (super.noSuchMethod(
+            Invocation.method(#repairDreamsAndGoalsSelectionSources, []),
+            returnValue: _i7.Future<void>.value(),
+            returnValueForMissingStub: _i7.Future<void>.value(),
+          )
+          as _i7.Future<void>);
+
+  @override
+  _i7.Future<void> persistDisclaimerConfirmed() =>
+      (super.noSuchMethod(
+            Invocation.method(#persistDisclaimerConfirmed, []),
+            returnValue: _i7.Future<void>.value(),
+            returnValueForMissingStub: _i7.Future<void>.value(),
+          )
+          as _i7.Future<void>);
+
+  @override
+  _i7.Future<void> persistHasFilled() =>
+      (super.noSuchMethod(
+            Invocation.method(#persistHasFilled, []),
+            returnValue: _i7.Future<void>.value(),
+            returnValueForMissingStub: _i7.Future<void>.value(),
+          )
+          as _i7.Future<void>);
 
   @override
   void updateDisclaimerSigned(bool? value) => super.noSuchMethod(

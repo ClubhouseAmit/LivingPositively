@@ -252,7 +252,7 @@ final class DreamsAndGoalsPersistenceSnapshot {
 
 /// Persists every Dreams and Goals storage key from one immutable [snapshot].
 ///
-/// Writes complete sequentially as selections, source tokens, then custom-only
+/// Writes complete sequentially: selections, source tokens, then custom-only
 /// selections. A failed write stops this attempt before later keys begin.
 Future<void> persistDreamsAndGoalsSnapshot(
   PersistentMemoryService service,

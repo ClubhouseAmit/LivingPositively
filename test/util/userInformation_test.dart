@@ -35,10 +35,16 @@ class _FakePersistentMemoryService implements PersistentMemoryService {
 }
 
 class _DelayedDreamsMemoryService extends _FakePersistentMemoryService {
+  _DelayedDreamsMemoryService({
+    this._failFirstEmptySelectionWrite = false,
+  });
+
   final Completer<void> _firstSelectionWrite = Completer<void>();
   final Completer<void> firstSelectionWriteStarted = Completer<void>();
   final List<List<String>> selectionWriteSnapshots = <List<String>>[];
+  final bool _failFirstEmptySelectionWrite;
   bool _isFirstSelectionWrite = true;
+  bool _hasFailedEmptySelectionWrite = false;
 
   @override
   Future<void> setItem(
@@ -47,11 +53,18 @@ class _DelayedDreamsMemoryService extends _FakePersistentMemoryService {
     dynamic value,
   ) async {
     if (key == dreamsAndGoalsSelectionStorageKey) {
-      selectionWriteSnapshots.add(List<String>.from(value as Iterable));
+      final List<String> snapshot = List<String>.from(value as Iterable);
+      selectionWriteSnapshots.add(snapshot);
       if (_isFirstSelectionWrite) {
         _isFirstSelectionWrite = false;
         firstSelectionWriteStarted.complete();
         await _firstSelectionWrite.future;
+      }
+      if (_failFirstEmptySelectionWrite &&
+          !_hasFailedEmptySelectionWrite &&
+          snapshot.isEmpty) {
+        _hasFailedEmptySelectionWrite = true;
+        throw StateError('Persistent memory failed.');
       }
     }
     await super.setItem(key, type, value);
@@ -72,6 +85,25 @@ class _FailingPersistentMemoryService extends _FakePersistentMemoryService {
     dynamic value,
   ) async {
     throw StateError('Persistent memory failed.');
+  }
+}
+
+class _FailingFirstDreamsSelectionMemoryService
+    extends _FakePersistentMemoryService {
+  bool _shouldFailFirstDreamsSelectionWrite = true;
+
+  @override
+  Future<void> setItem(
+    String key,
+    PersistentMemoryType type,
+    dynamic value,
+  ) async {
+    if (key == dreamsAndGoalsSelectionStorageKey &&
+        _shouldFailFirstDreamsSelectionWrite) {
+      _shouldFailFirstDreamsSelectionWrite = false;
+      throw StateError('Persistent memory failed.');
+    }
+    await super.setItem(key, type, value);
   }
 }
 
@@ -113,7 +145,7 @@ void main() {
   });
 
   group('UserInformation.reset', () {
-    test('clears all mutable fields and applies provided locale', () {
+    test('clears all mutable fields and applies provided locale', () async {
       final u = UserInformation(
         service: fakeService,
         gender: 'male',
@@ -148,7 +180,7 @@ void main() {
       var notified = 0;
       u.addListener(() => notified++);
 
-      u.reset('he');
+      await u.reset('he');
 
       expect(u.localeName, 'he');
       expect(u.location, '');
@@ -189,12 +221,12 @@ void main() {
       user.queueDreamsAndGoalsSave();
       await delayedService.firstSelectionWriteStarted.future;
 
-      user.reset('en');
+      final Future<void> reset = user.reset('en');
       expect(user.dreamsAndGoals, isEmpty);
       expect(user.dreamsAndGoalsSelectionSources, isEmpty);
 
       delayedService.releaseFirstSelectionWrite();
-      await user.pendingDreamsAndGoalsSave;
+      await reset;
 
       expect(
         delayedService.stored[dreamsAndGoalsSelectionStorageKey],
@@ -209,6 +241,120 @@ void main() {
         isEmpty,
       );
     });
+
+    test(
+      'does not leave a held stale custom snapshot persisted after the reset revision retries',
+      () async {
+        final delayedService = _DelayedDreamsMemoryService(
+          failFirstEmptySelectionWrite: true,
+        );
+        final user = UserInformation(service: delayedService);
+        user.updateDreamsAndGoals(
+          <String>['My custom goal'],
+          selectionSources: const <String>[
+            dreamsAndGoalsCustomSelectionSource,
+          ],
+        );
+        final Future<void> oldSave = user.queueDreamsAndGoalsSave();
+        await delayedService.firstSelectionWriteStarted.future;
+
+        final Future<void> reset = user.reset('en');
+        expect(user.dreamsAndGoals, isEmpty);
+        expect(user.dreamsAndGoalsSelectionSources, isEmpty);
+
+        delayedService.releaseFirstSelectionWrite();
+        await oldSave;
+        await expectLater(reset, throwsA(isA<StateError>()));
+
+        expect(delayedService.selectionWriteSnapshots, <List<String>>[
+          <String>['My custom goal'],
+          <String>[],
+        ]);
+        expect(
+          delayedService.writes
+              .map((MapEntry<String, dynamic> write) => write.key)
+              .toList(),
+          <String>[
+            dreamsAndGoalsSelectionStorageKey,
+            dreamsAndGoalsSelectionSourcesStorageKey,
+            dreamsAndGoalsCustomSelectionsStorageKey,
+          ],
+        );
+        expect(
+          delayedService.stored[dreamsAndGoalsCustomSelectionsStorageKey],
+          <String>['My custom goal'],
+        );
+
+        await user.retryDreamsAndGoalsSave(user.dreamsAndGoalsSaveRevision);
+
+        expect(delayedService.selectionWriteSnapshots, <List<String>>[
+          <String>['My custom goal'],
+          <String>[],
+          <String>[],
+        ]);
+        expect(
+          delayedService.writes
+              .map((MapEntry<String, dynamic> write) => write.key)
+              .toList(),
+          <String>[
+            dreamsAndGoalsSelectionStorageKey,
+            dreamsAndGoalsSelectionSourcesStorageKey,
+            dreamsAndGoalsCustomSelectionsStorageKey,
+            dreamsAndGoalsSelectionStorageKey,
+            dreamsAndGoalsSelectionSourcesStorageKey,
+            dreamsAndGoalsCustomSelectionsStorageKey,
+          ],
+        );
+        expect(
+          delayedService.stored[dreamsAndGoalsSelectionStorageKey],
+          isEmpty,
+        );
+        expect(
+          delayedService.stored[dreamsAndGoalsSelectionSourcesStorageKey],
+          isEmpty,
+        );
+        expect(
+          delayedService.stored[dreamsAndGoalsCustomSelectionsStorageKey],
+          isEmpty,
+        );
+      },
+    );
+
+    test(
+      'propagates an empty Dreams snapshot failure until the current revision retries',
+      () async {
+        final failingService = _FailingFirstDreamsSelectionMemoryService();
+        final user = UserInformation(
+          service: failingService,
+          dreamsAndGoals: const <String>['My custom goal'],
+          dreamsAndGoalsSelectionSources: const <String>[
+            dreamsAndGoalsCustomSelectionSource,
+          ],
+        );
+
+        final Future<void> reset = user.reset('en');
+
+        expect(user.dreamsAndGoals, isEmpty);
+        expect(user.dreamsAndGoalsSelectionSources, isEmpty);
+        await expectLater(reset, throwsA(isA<StateError>()));
+        expect(failingService.stored, isEmpty);
+
+        await user.retryDreamsAndGoalsSave(user.dreamsAndGoalsSaveRevision);
+
+        expect(
+          failingService.stored[dreamsAndGoalsSelectionStorageKey],
+          isEmpty,
+        );
+        expect(
+          failingService.stored[dreamsAndGoalsSelectionSourcesStorageKey],
+          isEmpty,
+        );
+        expect(
+          failingService.stored[dreamsAndGoalsCustomSelectionsStorageKey],
+          isEmpty,
+        );
+      },
+    );
   });
 
   group('update methods that persist', () {
