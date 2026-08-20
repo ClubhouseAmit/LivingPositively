@@ -294,13 +294,34 @@ class FileServiceImpl implements FileService {
     }
   }
 
-  static Future<String?> saveAndroid(Uint8List data, String format) async {
+  static Future<String?> saveAndroid(
+    Uint8List data,
+    String format, {
+    Future<dynamic> Function({
+      String? dialogTitle,
+      String? fileName,
+      FileType type,
+      String? initialDirectory,
+      Uint8List? bytes,
+      List<String>? allowedExtensions,
+    })? fileSaver,
+  }) async {
     try {
-      final dynamic outputFile = await FilePicker.saveFile(
-        dialogTitle: 'Please select an output file:', // Dialog title
-        fileName: 'התוכנית שלי.$format', // Default file name
-        bytes: data, // PDF data to be saved
-      );
+      final customSaver = fileSaver;
+      final dynamic outputFile;
+      if (customSaver != null) {
+        outputFile = await customSaver(
+          dialogTitle: 'Please select an output file:',
+          fileName: 'התוכנית שלי.$format',
+          bytes: data,
+        );
+      } else {
+        outputFile = await FilePicker.saveFile(
+          dialogTitle: 'Please select an output file:', // Dialog title
+          fileName: 'התוכנית שלי.$format', // Default file name
+          bytes: data, // PDF data to be saved
+        );
+      }
       //If the user cancels the download
       AnalyticsService mixPanelService = GetIt.instance<AnalyticsService>();
       mixPanelService.trackEvent("Plan downloaded Android");

@@ -1,3 +1,4 @@
+import 'package:file_picker/file_picker.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:get_it/get_it.dart';
@@ -374,6 +375,87 @@ void main() {
         textDirection: 'ltr',
       );
       expect(out, isNull);
+    });
+  });
+
+  group('FileServiceImpl.saveAndroid', () {
+    test('successful save returning String path returns path and tracks event', () async {
+      final data = Uint8List.fromList([1, 2, 3]);
+      final result = await FileServiceImpl.saveAndroid(
+        data,
+        'pdf',
+        fileSaver: ({
+          String? dialogTitle,
+          String? fileName,
+          FileType type = FileType.any,
+          String? initialDirectory,
+          Uint8List? bytes,
+          List<String>? allowedExtensions,
+        }) async => '/storage/emulated/0/Download/plan.pdf',
+      );
+
+      expect(result, '/storage/emulated/0/Download/plan.pdf');
+      expect(analytics.events, ['Plan downloaded Android']);
+      expect(logger.logs, isEmpty);
+    });
+
+    test('successful save returning Uri path returns normalized string path and tracks event', () async {
+      final data = Uint8List.fromList([1, 2, 3]);
+      final result = await FileServiceImpl.saveAndroid(
+        data,
+        'pdf',
+        fileSaver: ({
+          String? dialogTitle,
+          String? fileName,
+          FileType type = FileType.any,
+          String? initialDirectory,
+          Uint8List? bytes,
+          List<String>? allowedExtensions,
+        }) async => Uri.parse('file:///storage/emulated/0/Documents/plan.pdf'),
+      );
+
+      expect(result, '/storage/emulated/0/Documents/plan.pdf');
+      expect(analytics.events, ['Plan downloaded Android']);
+      expect(logger.logs, isEmpty);
+    });
+
+    test('cancellation returning null returns null and tracks event', () async {
+      final data = Uint8List.fromList([1, 2, 3]);
+      final result = await FileServiceImpl.saveAndroid(
+        data,
+        'pdf',
+        fileSaver: ({
+          String? dialogTitle,
+          String? fileName,
+          FileType type = FileType.any,
+          String? initialDirectory,
+          Uint8List? bytes,
+          List<String>? allowedExtensions,
+        }) async => null,
+      );
+
+      expect(result, isNull);
+      expect(analytics.events, ['Plan downloaded Android']);
+      expect(logger.logs, isEmpty);
+    });
+
+    test('save failure is caught, logged, and returns null', () async {
+      final data = Uint8List.fromList([1, 2, 3]);
+      final result = await FileServiceImpl.saveAndroid(
+        data,
+        'pdf',
+        fileSaver: ({
+          String? dialogTitle,
+          String? fileName,
+          FileType type = FileType.any,
+          String? initialDirectory,
+          Uint8List? bytes,
+          List<String>? allowedExtensions,
+        }) async => throw Exception('Storage permission denied'),
+      );
+
+      expect(result, isNull);
+      expect(logger.logs, isNotEmpty);
     });
   });
 }

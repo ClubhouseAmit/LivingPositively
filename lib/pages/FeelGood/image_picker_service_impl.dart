@@ -49,7 +49,7 @@ class ImagePickerServiceImpl implements ImagePickerService {
   final AnalyticsService? analyticsService;
   final IncidentLoggerService? loggerService;
   final PersistentMemoryService? persistentMemoryService;
-  final Future<String?> Function({
+  final Future<dynamic> Function({
     String? dialogTitle,
     String? fileName,
     FileType type,
@@ -63,7 +63,7 @@ class ImagePickerServiceImpl implements ImagePickerService {
     this.analyticsService,
     this.loggerService,
     this.persistentMemoryService,
-    Future<String?> Function({
+    Future<dynamic> Function({
       String? dialogTitle,
       String? fileName,
       FileType type,
@@ -248,6 +248,20 @@ class ImagePickerServiceImpl implements ImagePickerService {
     return Image.network(url);
   }
 
+  /// Normalizes platform-specific save results ([String], [Uri], or custom object) to a file path string.
+  static String? normalizeSavedFilePath(dynamic result) {
+    if (result == null) {
+      return null;
+    }
+    if (result is String) {
+      return result;
+    }
+    if (result is Uri) {
+      return result.path;
+    }
+    return result.toString();
+  }
+
   @override
   Future<String?> downloadImage(
     String imagePath, {
@@ -263,34 +277,27 @@ class ImagePickerServiceImpl implements ImagePickerService {
       final extension = _extractImageExtension(imagePath);
       final name = fileName ??
           'feel_good_${DateTime.now().millisecondsSinceEpoch}$extension';
-      final saveFile = customFileSaver;
-      final String? result;
-      if (saveFile != null) {
-        result = await saveFile(
+      final customImageFileSaver = customFileSaver;
+      final String? savedFilePath;
+      if (customImageFileSaver != null) {
+        final dynamic rawResult = await customImageFileSaver(
           dialogTitle: dialogTitle ?? 'Save image',
           fileName: name,
           bytes: bytes,
         );
+        savedFilePath = normalizeSavedFilePath(rawResult);
       } else {
-        final dynamic outputFile = await FilePicker.saveFile(
+        final dynamic rawResult = await FilePicker.saveFile(
           dialogTitle: dialogTitle ?? 'Save image',
           fileName: name,
           bytes: bytes,
         );
-        if (outputFile == null) {
-          result = null;
-        } else if (outputFile is String) {
-          result = outputFile;
-        } else if (outputFile is Uri) {
-          result = outputFile.path;
-        } else {
-          result = outputFile.toString();
-        }
+        savedFilePath = normalizeSavedFilePath(rawResult);
       }
-      if (result != null) {
+      if (savedFilePath != null) {
         await _trackEventSafely("Photo downloaded");
       }
-      return result;
+      return savedFilePath;
     } catch (error, stackTrace) {
       await _effectiveLoggerService?.captureLog(error, stackTrace: stackTrace);
       return null;
