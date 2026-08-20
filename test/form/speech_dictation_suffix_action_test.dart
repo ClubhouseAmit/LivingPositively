@@ -15,9 +15,9 @@ import '../../test_support/contract_persistent_memory_service.dart';
 void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
 
-  test('should default isFeatureEnabled to true in production', () {
-    expect(SpeechDictationSuffixAction.isFeatureEnabled, isTrue);
-    expect(SpeechDictationSuffixAction.isSupportedPlatform, isTrue);
+  test('should default isFeatureEnabled to false in production', () {
+    expect(SpeechDictationSuffixAction.isFeatureEnabled, isFalse);
+    expect(SpeechDictationSuffixAction.isSupportedPlatform, isFalse);
   });
 
   group('SpeechDictationSuffixAction', () {
