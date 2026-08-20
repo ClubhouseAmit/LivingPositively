@@ -723,6 +723,39 @@ void main() {
       },
     );
 
+    test(
+      'should complete each Dreams persistence key before starting the next',
+      () async {
+        final delayedService = _DelayedDreamsMemoryService();
+        final u = UserInformation(service: delayedService)
+          ..updateDreamsAndGoals(
+            <String>['My custom goal'],
+            selectionSources: const <String>[
+              dreamsAndGoalsCustomSelectionSource,
+            ],
+          );
+
+        final Future<void> save = u.queueDreamsAndGoalsSave();
+        await delayedService.firstSelectionWriteStarted.future;
+
+        expect(delayedService.writes, isEmpty);
+
+        delayedService.releaseFirstSelectionWrite();
+        await save;
+
+        expect(
+          delayedService.writes
+              .map((MapEntry<String, dynamic> write) => write.key)
+              .toList(),
+          <String>[
+            dreamsAndGoalsSelectionStorageKey,
+            dreamsAndGoalsSelectionSourcesStorageKey,
+            dreamsAndGoalsCustomSelectionsStorageKey,
+          ],
+        );
+      },
+    );
+
     test('updateDisclaimerSigned', () {
       final u = buildUser();
       u.updateDisclaimerSigned(true);

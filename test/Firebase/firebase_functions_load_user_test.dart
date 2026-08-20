@@ -16,21 +16,29 @@ import 'package:shared_preferences/shared_preferences.dart';
 // ---------------------------------------------------------------------------
 
 class _FakeLogger implements IncidentLoggerService {
+  final List<dynamic> capturedExceptions = <dynamic>[];
+  final List<StackTrace?> capturedStackTraces = <StackTrace?>[];
+
   @override
   Future<void> initializeSentry(_) async {}
+
   @override
   Future<void> captureLog(
     dynamic exception, {
     StackTrace? stackTrace,
     dynamic exceptionData,
-  }) async {}
+  }) async {
+    capturedExceptions.add(exception);
+    capturedStackTraces.add(stackTrace);
+  }
 }
 
 /// A fake [PersistentMemoryService] backed by an in-memory map.
 class _FakeMemory implements PersistentMemoryService {
   final Map<String, dynamic> _store;
+  bool failDreamsAndGoalsWrites;
 
-  _FakeMemory(this._store);
+  _FakeMemory(this._store, {this.failDreamsAndGoalsWrites = false});
 
   @override
   Future<dynamic> getItem(String key, PersistentMemoryType type) async {
@@ -43,6 +51,9 @@ class _FakeMemory implements PersistentMemoryService {
     PersistentMemoryType type,
     dynamic value,
   ) async {
+    if (failDreamsAndGoalsWrites && _dreamsAndGoalsStorageKeys.contains(key)) {
+      throw StateError('Dreams and Goals storage is unavailable.');
+    }
     _store[key] = value;
   }
 
@@ -50,11 +61,20 @@ class _FakeMemory implements PersistentMemoryService {
   Future<void> reset() async {}
 }
 
+const Set<String> _dreamsAndGoalsStorageKeys = <String>{
+  dreamsAndGoalsSelectionStorageKey,
+  dreamsAndGoalsSelectionSourcesStorageKey,
+  dreamsAndGoalsCustomSelectionsStorageKey,
+};
+
 // ---------------------------------------------------------------------------
 // Helpers
 // ---------------------------------------------------------------------------
 
-void _registerFakes({required Map<String, dynamic> store}) {
+_FakeMemory _registerFakes({
+  required Map<String, dynamic> store,
+  bool failDreamsAndGoalsWrites = false,
+}) {
   final getIt = GetIt.instance;
   if (getIt.isRegistered<IncidentLoggerService>()) {
     getIt.unregister<IncidentLoggerService>();
@@ -62,8 +82,13 @@ void _registerFakes({required Map<String, dynamic> store}) {
   if (getIt.isRegistered<PersistentMemoryService>()) {
     getIt.unregister<PersistentMemoryService>();
   }
+  final memory = _FakeMemory(
+    store,
+    failDreamsAndGoalsWrites: failDreamsAndGoalsWrites,
+  );
   getIt.registerSingleton<IncidentLoggerService>(_FakeLogger());
-  getIt.registerSingleton<PersistentMemoryService>(_FakeMemory(store));
+  getIt.registerSingleton<PersistentMemoryService>(memory);
+  return memory;
 }
 
 void _unregisterFakes() {
@@ -261,10 +286,7 @@ void main() {
       for (final catalogue in localizedCatalogues) {
         expect(catalogue, hasLength(dreamsAndGoalsCatalogueIds.length));
         expect(
-          normalizeDreamsAndGoalsSelectionSources(
-            catalogue,
-            const <String>[],
-          ),
+          normalizeDreamsAndGoalsSelectionSources(catalogue, const <String>[]),
           expectedSources,
         );
       }
@@ -310,6 +332,77 @@ void main() {
             dreamsAndGoalsCustomSelectionSource,
           ],
         );
+      },
+    );
+
+    test(
+      'should continue startup and retain normalized state when repair fails',
+      () async {
+        final store = <String, dynamic>{
+          dreamsAndGoalsSelectionStorageKey: <String>[
+            'Write and publish a book',
+            'My own goal',
+          ],
+          dreamsAndGoalsSelectionSourcesStorageKey: <String>[],
+          dreamsAndGoalsCustomSelectionsStorageKey: <String>[],
+          'location': 'Haifa',
+          'disclaimerConfirmed': true,
+          'notificationMinute': 45,
+          'notificationHour': 8,
+          'notificationMessage': 'Take a break',
+          'localeName': 'he',
+          'positiveTraits': <String>['Kind'],
+          'thankYous': <String>['Thank you'],
+          'dates': <String>['2026-08-19'],
+        };
+        final memory = _registerFakes(
+          store: store,
+          failDreamsAndGoalsWrites: true,
+        );
+        final logger = GetIt.instance<IncidentLoggerService>() as _FakeLogger;
+        final userInfo = _makeUserInfo();
+
+        await loadUserInformation(userInfo, 'en');
+
+        expect(userInfo.dreamsAndGoals, <String>[
+          'Write and publish a book',
+          'My own goal',
+        ]);
+        expect(userInfo.dreamsAndGoalsSelectionSources, <String>[
+          'catalogue:write-and-publish-a-book',
+          dreamsAndGoalsCustomSelectionSource,
+        ]);
+        expect(userInfo.location, 'Haifa');
+        expect(userInfo.disclaimerSigned, isTrue);
+        expect(userInfo.notificationMinute, 45);
+        expect(userInfo.notificationHour, 8);
+        expect(userInfo.notificationMessage, 'Take a break');
+        expect(userInfo.localeName, 'he');
+        expect(userInfo.positiveTraits, <String>['Kind']);
+        expect(userInfo.thanks, <String, List<String>>{
+          'thanks': <String>['Thank you'],
+          'dates': <String>['2026-08-19'],
+        });
+        expect(logger.capturedExceptions, hasLength(1));
+        expect(logger.capturedExceptions.single, isA<StateError>());
+        expect(logger.capturedStackTraces.single, isNotNull);
+
+        memory.failDreamsAndGoalsWrites = false;
+        await userInfo.retryDreamsAndGoalsSave(
+          userInfo.dreamsAndGoalsSaveRevision,
+        );
+
+        expect(store[dreamsAndGoalsSelectionStorageKey], <String>[
+          'Write and publish a book',
+          'My own goal',
+        ]);
+        expect(store[dreamsAndGoalsSelectionSourcesStorageKey], <String>[
+          'catalogue:write-and-publish-a-book',
+          dreamsAndGoalsCustomSelectionSource,
+        ]);
+        expect(store[dreamsAndGoalsCustomSelectionsStorageKey], <String>[
+          'My own goal',
+        ]);
       },
     );
   });

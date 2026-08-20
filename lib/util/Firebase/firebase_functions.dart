@@ -213,11 +213,26 @@ Future<void> loadUserInformation(
   final storedDreamsAndGoalsAddedStrings = TypeUtils.castToStringList(
     data['dreamsAndGoalsAddedStrings'],
   );
-  await userInfo.hydrateDreamsAndGoalsFromStorage(
-    dreamsAndGoals,
-    storedSelectionSources: storedDreamsAndGoalsSources,
-    storedCustomSelections: storedDreamsAndGoalsAddedStrings,
-  );
+  try {
+    await userInfo.hydrateDreamsAndGoalsFromStorage(
+      dreamsAndGoals,
+      storedSelectionSources: storedDreamsAndGoalsSources,
+      storedCustomSelections: storedDreamsAndGoalsAddedStrings,
+    );
+  } catch (error, stackTrace) {
+    // Dreams metadata repair is optional during startup. Preserve the
+    // normalized in-memory state and let its normal retry flow persist it
+    // later, rather than preventing the rest of the user's data from loading.
+    try {
+      await GetIt.instance<IncidentLoggerService>().captureLog(
+        error,
+        stackTrace: stackTrace,
+      );
+    } catch (_) {
+      // Reporting a failed optional repair must not turn it into a startup
+      // failure when logging is unavailable as well.
+    }
+  }
   userInfo.updateLocation(data['location'] ?? "");
   userInfo.updateDisclaimerSigned(data['disclaimerConfirmed'] ?? false);
   userInfo.updateNotificationMinute(data['notificationMinute'] ?? 0);

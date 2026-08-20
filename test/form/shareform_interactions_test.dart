@@ -34,6 +34,11 @@ const _dreamsAndGoalsSelectionSourcesKey =
     'selectionSourcesPersonalPlan-DreamsAndGoals';
 const _customCategoryTitlesKey = 'customCategoryTitles';
 const _customCategoryDescriptionsKey = 'customCategoryDescriptions';
+const _dreamsAndGoalsPersistenceKeys = <String>[
+  _dreamsAndGoalsSelectionKey,
+  _dreamsAndGoalsSelectionSourcesKey,
+  _dreamsAndGoalsAddedStringsKey,
+];
 
 class _MockPersistentMemoryService
     extends shareform_mocks.MockPersistentMemoryService {}
@@ -96,11 +101,9 @@ class _DreamsMemoryHarness {
       firstSelectionWriteStarted = true;
       await _firstSelectionWrite.future;
     }
-    final bool isDreamsAndGoalsKey = <String>[
-      _dreamsAndGoalsSelectionKey,
-      _dreamsAndGoalsSelectionSourcesKey,
-      _dreamsAndGoalsAddedStringsKey,
-    ].contains(key);
+    final bool isDreamsAndGoalsKey = _dreamsAndGoalsPersistenceKeys.contains(
+      key,
+    );
     if ((key == _dreamsAndGoalsSelectionKey && failSelectionWrite) ||
         (isDreamsAndGoalsKey && failAllDreamsWrites)) {
       throw StateError('Dreams persistence failed.');
@@ -152,6 +155,13 @@ class _DreamsMemoryHarness {
 
   List<_MemoryWrite> completedWritesFor(String key) {
     return completedWrites.where((write) => write.key == key).toList();
+  }
+
+  List<String> completedDreamsAndGoalsWriteKeys() {
+    return completedWrites
+        .where((write) => _dreamsAndGoalsPersistenceKeys.contains(write.key))
+        .map((write) => write.key)
+        .toList(growable: false);
   }
 }
 
@@ -784,6 +794,144 @@ void main() {
     });
 
     testWidgets(
+      'should serialize one rapid duplicate download while persistence is delayed',
+      (tester) async {
+        final memory = _DreamsMemoryHarness(delayFirstSelectionWrite: true);
+        final exportFiles = _ExportReadingFileService(memory.service);
+        final locator = GetIt.instance;
+        locator.unregister<PersistentMemoryService>();
+        locator.unregister<FileService>();
+        locator.registerSingleton<PersistentMemoryService>(memory.service);
+        locator.registerSingleton<FileService>(exportFiles);
+        addTearDown(memory.releaseFirstSelectionWrite);
+        user = UserInformation(service: memory.service)
+          ..gender = 'other'
+          ..localeName = 'en';
+
+        await pumpWithProviders(
+          tester,
+          wizardStepHarness(
+            ShareForm(
+              key: GlobalKey<WizardStepState>(),
+              prev: () {},
+              submit: (_) async {},
+            ),
+          ),
+          userInformation: user,
+          surfaceSize: const Size(1024, 1800),
+        );
+
+        _pressIconButton(tester, Icons.download);
+        _pressIconButton(tester, Icons.download);
+        await _flushAsyncAction(tester);
+
+        expect(memory.firstSelectionWriteStarted, isTrue);
+        expect(memory.completedDreamsAndGoalsWriteKeys(), isEmpty);
+        expect(exportFiles.downloadCalls, 0);
+
+        memory.releaseFirstSelectionWrite();
+        await _flushAsyncAction(tester);
+
+        expect(exportFiles.downloadCalls, 1);
+        expect(
+          memory.completedDreamsAndGoalsWriteKeys(),
+          _dreamsAndGoalsPersistenceKeys,
+        );
+        await tester.pump(const Duration(seconds: 2));
+      },
+    );
+
+    testWidgets(
+      'should run one Finish while a previous Finish action is in flight',
+      (tester) async {
+        final Completer<void> finishGate = Completer<void>();
+        final GlobalKey<WizardStepState> stepKey =
+            GlobalKey<WizardStepState>();
+        var submitCalls = 0;
+
+        await pumpWithProviders(
+          tester,
+          wizardStepHarness(
+            ShareForm(
+              key: stepKey,
+              prev: () {},
+              submit: (_) async {
+                submitCalls++;
+                await finishGate.future;
+              },
+            ),
+          ),
+          userInformation: user,
+          surfaceSize: const Size(1024, 1800),
+        );
+
+        _pressWizardPrimaryAction(tester);
+        for (var attempt = 0; attempt < 10 && submitCalls == 0; attempt++) {
+          await _flushAsyncAction(tester);
+        }
+        expect(submitCalls, 1);
+
+        final Future<void> duplicateFinish = stepKey.currentState!
+            .onPrimaryAction();
+        await _flushAsyncAction(tester);
+        expect(submitCalls, 1);
+
+        finishGate.complete();
+        await duplicateFinish;
+        await tester.pump();
+
+        _pressWizardPrimaryAction(tester);
+        for (var attempt = 0; attempt < 10 && submitCalls == 1; attempt++) {
+          await _flushAsyncAction(tester);
+        }
+        expect(submitCalls, 2);
+      },
+    );
+
+    testWidgets(
+      'should show one custom-goal conflict dialog for rapid duplicate downloads',
+      (tester) async {
+        final memory = _DreamsMemoryHarness();
+        final exportFiles = _ExportReadingFileService(memory.service);
+        final locator = GetIt.instance;
+        locator.unregister<PersistentMemoryService>();
+        locator.unregister<FileService>();
+        locator.registerSingleton<PersistentMemoryService>(memory.service);
+        locator.registerSingleton<FileService>(exportFiles);
+        user = UserInformation(service: memory.service)
+          ..gender = 'other'
+          ..localeName = 'en';
+        _seedMultipleCustomDreams(user);
+
+        await pumpWithProviders(
+          tester,
+          wizardStepHarness(
+            ShareForm(
+              key: GlobalKey<WizardStepState>(),
+              prev: () {},
+              submit: (_) async {},
+            ),
+          ),
+          userInformation: user,
+          surfaceSize: const Size(1024, 1800),
+        );
+
+        _pressIconButton(tester, Icons.download);
+        _pressIconButton(tester, Icons.download);
+        await tester.pumpAndSettle();
+
+        expect(find.byType(AlertDialog), findsOneWidget);
+        await tester.tap(
+          find.byKey(const Key('dreams-and-goals-custom-conflict-cancel')),
+        );
+        await tester.pumpAndSettle();
+
+        expect(find.byType(AlertDialog), findsNothing);
+        expect(exportFiles.downloadCalls, 0);
+      },
+    );
+
+    testWidgets(
       'should repair malformed Dreams metadata before downloading without an extra save',
       (tester) async {
         final recordingMemory = _DreamsMemoryHarness(
@@ -841,20 +989,8 @@ void main() {
           ]),
         );
         expect(
-          recordingMemory
-              .completedWrites
-              .where(
-                (write) =>
-                    write.key == _dreamsAndGoalsSelectionKey ||
-                    write.key == _dreamsAndGoalsSelectionSourcesKey ||
-                    write.key == _dreamsAndGoalsAddedStringsKey,
-              )
-              .map((write) => write.key),
-          unorderedEquals(<String>[
-            _dreamsAndGoalsSelectionKey,
-            _dreamsAndGoalsSelectionSourcesKey,
-            _dreamsAndGoalsAddedStringsKey,
-          ]),
+          recordingMemory.completedDreamsAndGoalsWriteKeys(),
+          _dreamsAndGoalsPersistenceKeys,
         );
         expect(
           recordingMemory.completedStringList(_dreamsAndGoalsSelectionKey),
@@ -1185,6 +1321,10 @@ void main() {
         ]) {
           expect(failingMemory.completedWritesFor(key), hasLength(1));
         }
+        expect(
+          failingMemory.completedDreamsAndGoalsWriteKeys(),
+          _dreamsAndGoalsPersistenceKeys,
+        );
 
         failingMemory.failAllDreamsWrites = true;
         _pressWizardPrimaryAction(tester);
