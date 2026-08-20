@@ -232,6 +232,10 @@ Future<void> loadUserInformation(
     } on FormatException {
       userInfo.notificationPreferences = {};
     }
+  } else {
+    // Legacy local schedules never created a server-side FCM schedule. Do not
+    // render their stored hour/minute as an enabled reminder.
+    userInfo.notificationPreferences = {};
   }
   final darkModePreference = UserInformation.parseDarkModePreference(
     data['darkModePreference'] as String?,

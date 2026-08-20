@@ -42,7 +42,6 @@ List<String> checkboxCollectionNames = [
 Future<void> initializeApp({
   Future<void> Function()? firebaseInitializer,
   void Function()? locatorSetup,
-  Future<void> Function()? fcmInitializer,
 }) async {
   WidgetsFlutterBinding.ensureInitialized();
   await (firebaseInitializer ??
@@ -51,7 +50,15 @@ Future<void> initializeApp({
       ))();
 
   (locatorSetup ?? setupLocator)();
-  unawaited(_initializeFcmBestEffort(fcmInitializer ?? FcmService.initialize));
+}
+
+/// Defers best-effort FCM startup until the first frame is visible.
+void _scheduleFcmInitialization(Future<void> Function()? fcmInitializer) {
+  WidgetsBinding.instance.addPostFrameCallback((_) {
+    unawaited(
+      _initializeFcmBestEffort(fcmInitializer ?? FcmService.initialize),
+    );
+  });
 }
 
 Future<void> _initializeFcmBestEffort(
@@ -74,7 +81,7 @@ Future<void> _initializeFcmBestEffort(
 }
 
 /// Test seam for `main()`. Performs platform binding + Firebase init +
-/// service-locator setup, launches best-effort FCM init, then returns the
+/// service-locator setup, then returns the
 /// root widget tree. `main()` only adds the `IncidentLoggerService.
 /// initializeSentry(...)` call (which itself calls `runApp`); a test that
 /// calls `bootstrapApp()` directly can pump the returned widget through the
@@ -82,8 +89,8 @@ Future<void> _initializeFcmBestEffort(
 ///
 /// Named parameters are dependency-injection seams used by
 /// `integration_test/bootstrap_full_test.dart`. Production callers (`main()`
-/// below) omit them and accept defaults that exactly match the previous
-/// pre-extraction body — behavior-preserving by construction.
+/// below) omit them and accept defaults that exactly match the production
+/// collaborators. FCM initialization starts after the first rendered frame.
 ///
 /// Per ADR-005 § B, this extraction is the **fourth sanctioned production-
 /// code exception** to the no-production-changes guard rail of the coverage
@@ -102,10 +109,9 @@ Future<Widget> bootstrapApp({
   await initializeApp(
     firebaseInitializer: firebaseInitializer,
     locatorSetup: locatorSetup,
-    fcmInitializer: fcmInitializer,
   );
 
-  return MultiProvider(
+  final app = MultiProvider(
     providers: [
       for (int i = 0; i < checkboxCollectionNames.length; i++)
         // Initialize the checkbox models
@@ -133,6 +139,8 @@ Future<Widget> bootstrapApp({
     ],
     child: MyApp(),
   );
+  _scheduleFcmInitialization(fcmInitializer);
+  return app;
 }
 
 void main() async {
@@ -476,7 +484,11 @@ class _MyAppState extends State<MyApp> with WidgetsBindingObserver {
                   return Column(
                     mainAxisSize: MainAxisSize.min,
                     children: [
-                      Icon(Icons.error_outline, size: 48, color: Theme.of(context).colorScheme.error),
+                      Icon(
+                        Icons.error_outline,
+                        size: 48,
+                        color: Theme.of(context).colorScheme.error,
+                      ),
                       const SizedBox(height: 16),
                       Text(
                         'An error occurred during startup.\nPlease try restarting the app.',
@@ -489,7 +501,7 @@ class _MyAppState extends State<MyApp> with WidgetsBindingObserver {
                       ),
                     ],
                   );
-                }
+                },
               ),
             );
           });
