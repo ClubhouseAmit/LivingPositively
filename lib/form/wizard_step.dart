@@ -36,6 +36,13 @@ abstract class WizardStepState<T extends WizardStep>
 
   /// Invoked only when the step declares a [WizardStep.secondaryActionLabel].
   Future<void> onSecondaryAction() async {}
+
+  /// Persists pending state before the wizard leaves this step from a header
+  /// navigation control. Most steps have no additional work.
+  Future<void> persistBeforeExit() async {}
+
+  /// Retries [persistBeforeExit] after a header-navigation save failure.
+  Future<void> retryPersistBeforeExit() => persistBeforeExit();
 }
 
 const double _primaryButtonHeight = 40.0;

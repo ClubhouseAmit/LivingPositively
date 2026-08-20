@@ -104,6 +104,9 @@ class _HomeState extends LPExtendedState<Home> {
                 PersistentMemoryType.String,
                 text,
               );
+              if (!mounted) {
+                return;
+              }
               setState(() {
                 _customReminder = text;
               });

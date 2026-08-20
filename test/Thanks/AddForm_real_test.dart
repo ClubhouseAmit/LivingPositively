@@ -265,6 +265,29 @@ void main() {
       expect(capturedIndex, 4);
     });
 
+    testWidgets('keeps the dialog open when an async edit fails', (
+      tester,
+    ) async {
+      await _openDialog(
+        tester,
+        real.AddForm(
+          add: (_, _) {},
+          edit: (_, _, _) async {
+            throw StateError('edit persistence failed');
+          },
+          index: 0,
+          text: 'Existing',
+          formTitle: 'Trait',
+        ),
+      );
+
+      await tester.enterText(find.byType(TextFormField), 'Updated');
+      await tester.tap(find.widgetWithText(TextButton, 'Save'));
+      await tester.pumpAndSettle();
+
+      expect(find.byType(Dialog), findsOneWidget);
+    });
+
     testWidgets(
       'tap save button (not Enter) routes through onPressed → submit',
       (tester) async {

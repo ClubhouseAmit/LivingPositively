@@ -4,12 +4,41 @@ import 'package:mazilon/util/logger_service.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 abstract class PersistentMemoryService {
+  /// Persists [value] for [key] using [type].
+  ///
+  /// Each service instance serializes accepted [setItem] and [reset]
+  /// operations in invocation order. A write requested while a reset is active
+  /// must fail without reaching storage. Failures complete the originating
+  /// operation with an error, but do not prevent a later accepted operation
+  /// from running.
+  ///
+  /// Separate [setItem] calls are not atomic or rolled back as a group. A
+  /// caller that persists multiple keys can therefore observe an earlier key
+  /// persisted when a later write fails.
   Future<void> setItem(String key, PersistentMemoryType type, dynamic value);
+
+  /// Reads [key] using [type] without waiting for queued writes or resets.
+  ///
+  /// A concurrent read can observe implementation-specific visible state and
+  /// does not establish that a write completed durably. Callers must not rely
+  /// on it to observe either the old or new value during a pending operation.
   Future<dynamic> getItem(String key, PersistentMemoryType type);
+
+  /// Clears persisted values after earlier accepted writes complete.
+  ///
+  /// Concurrent callers join the active reset, and new writes are rejected
+  /// while it is active. A reset error propagates to its callers, and its
+  /// failure does not prevent a later accepted operation from running. The
+  /// reset fence reopens after the reset succeeds or fails.
   Future<void> reset();
 }
 
 class SharedPreferencesService implements PersistentMemoryService {
+  /// Keeps the next operation runnable after an earlier failure.
+  Future<void> _pendingOperation = Future<void>.value();
+  Future<void>? _activeReset;
+  bool _resetFenceActive = false;
+
   @override
   Future<void> setItem(
     String key,
@@ -18,30 +47,88 @@ class SharedPreferencesService implements PersistentMemoryService {
   ) async {
     IncidentLoggerService loggerService =
         GetIt.instance<IncidentLoggerService>();
-    if (key == "" || value == null) {
-      loggerService.captureLog(
-        'Invalid key or value for persistent memory service',
+    if (key.isEmpty || value == null) {
+      return _logAndRethrowWriteFailure(
+        loggerService,
+        ArgumentError(
+          'Persistent memory requires a non-empty key and non-null value.',
+        ),
       );
-      return;
     }
+    if (_resetFenceActive) {
+      return _logAndRethrowWriteFailure(
+        loggerService,
+        StateError(
+          'Persistent memory cannot write while reset is in progress.',
+        ),
+      );
+    }
+    return _enqueue(() => _setItem(loggerService, key, type, value));
+  }
 
+  Future<void> _setItem(
+    IncidentLoggerService loggerService,
+    String key,
+    PersistentMemoryType type,
+    dynamic value,
+  ) async {
     try {
-      var prefs = await SharedPreferences.getInstance();
+      if (key.isEmpty || value == null) {
+        throw ArgumentError(
+          'Persistent memory requires a non-empty key and non-null value.',
+        );
+      }
+      final SharedPreferences prefs = await SharedPreferences.getInstance();
+      late final bool saved;
       switch (type) {
         case PersistentMemoryType.String:
-          prefs.setString(key, value);
+          saved = await prefs.setString(key, value as String);
         case PersistentMemoryType.Int:
-          prefs.setInt(key, value);
+          saved = await prefs.setInt(key, value as int);
         case PersistentMemoryType.Double:
-          prefs.setDouble(key, value);
+          saved = await prefs.setDouble(key, value as double);
         case PersistentMemoryType.Bool:
-          prefs.setBool(key, value);
+          saved = await prefs.setBool(key, value as bool);
         case PersistentMemoryType.StringList:
-          prefs.setStringList(key, List<String>.from(value));
+          saved = await prefs.setStringList(
+            key,
+            List<String>.from(value as Iterable),
+          );
+      }
+      if (!saved) {
+        throw StateError('Persistent memory rejected "$key".');
       }
     } catch (error, stackTrace) {
-      loggerService.captureLog(error, stackTrace: stackTrace);
+      await loggerService.captureLog(error, stackTrace: stackTrace);
+      rethrow;
     }
+  }
+
+  Future<void> _logAndRethrowWriteFailure(
+    IncidentLoggerService loggerService,
+    Object error,
+  ) async {
+    try {
+      throw error;
+    } catch (error, stackTrace) {
+      try {
+        await loggerService.captureLog(error, stackTrace: stackTrace);
+      } catch (_) {
+        // A logging failure must not mask the rejected write.
+      }
+      rethrow;
+    }
+  }
+
+  Future<void> _enqueue(Future<void> Function() operation) {
+    final Future<void> queuedOperation = _pendingOperation.then<void>(
+      (_) => operation(),
+    );
+    _pendingOperation = queuedOperation.then<void>(
+      (_) {},
+      onError: (Object _, StackTrace _) {},
+    );
+    return queuedOperation;
   }
 
   @override
@@ -63,19 +150,50 @@ class SharedPreferencesService implements PersistentMemoryService {
           return prefs.getStringList(key) ?? [];
       }
     } catch (error, stackTrace) {
-      loggerService.captureLog(error, stackTrace: stackTrace);
+      try {
+        await loggerService.captureLog(error, stackTrace: stackTrace);
+      } catch (_) {
+        // A logger failure must not turn malformed stored data into a read
+        // failure.
+      }
+      return null;
     }
   }
 
   @override
   Future<void> reset() async {
+    final Future<void>? activeReset = _activeReset;
+    if (activeReset != null) {
+      return activeReset;
+    }
     IncidentLoggerService loggerService =
         GetIt.instance<IncidentLoggerService>();
+    _resetFenceActive = true;
+    late final Future<void> resetOperation;
+    resetOperation = _enqueue(() => _reset(loggerService)).whenComplete(() {
+      if (identical(_activeReset, resetOperation)) {
+        _activeReset = null;
+        _resetFenceActive = false;
+      }
+    });
+    _activeReset = resetOperation;
+    return resetOperation;
+  }
+
+  Future<void> _reset(IncidentLoggerService loggerService) async {
     try {
-      var prefs = await SharedPreferences.getInstance();
-      await prefs.clear();
+      final SharedPreferences prefs = await SharedPreferences.getInstance();
+      final bool cleared = await prefs.clear();
+      if (!cleared) {
+        throw StateError('Persistent memory reset was rejected.');
+      }
     } catch (error, stackTrace) {
-      loggerService.captureLog(error, stackTrace: stackTrace);
+      try {
+        await loggerService.captureLog(error, stackTrace: stackTrace);
+      } catch (_) {
+        // Reset failures must remain visible if incident logging also fails.
+      }
+      rethrow;
     }
   }
 }

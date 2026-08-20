@@ -27,6 +27,8 @@ import 'package:share_plus/share_plus.dart';
 import 'package:mazilon/util/userInformation.dart';
 import 'package:mazilon/util/appInformation.dart';
 import 'package:package_info_plus/package_info_plus.dart';
+
+import '../../test_support/contract_persistent_memory_service.dart';
 import '../MenuTest/TestMenu.dart';
 import '../MenuTest/test_data.dart';
 
@@ -55,36 +57,27 @@ class _NoopAnalytics implements AnalyticsService {
   Future<void> trackEvent(String name, [Map<String, dynamic>? props]) async {}
 }
 
-class _StubPersistentMemoryService implements PersistentMemoryService {
-  final Map<String, dynamic> _values = {'hasFilled': false, 'location': ''};
-
-  @override
-  Future<dynamic> getItem(String key, PersistentMemoryType type) async {
-    if (_values.containsKey(key)) return _values[key];
-    switch (type) {
-      case PersistentMemoryType.String:
-        return '';
-      case PersistentMemoryType.Bool:
-        return false;
-      case PersistentMemoryType.Int:
-        return 0;
-      case PersistentMemoryType.Double:
-        return 0.0;
-      case PersistentMemoryType.StringList:
-        return <String>[];
-    }
-  }
-
-  @override
-  Future<void> reset() async => _values.clear();
-
-  @override
-  Future<void> setItem(
-    String key,
-    PersistentMemoryType type,
-    dynamic value,
-  ) async {
-    _values[key] = value;
+final class _StubPersistentMemoryService
+    extends ContractPersistentMemoryService {
+  _StubPersistentMemoryService()
+    : super(initialValues: <String, Object?>{
+        'hasFilled': false,
+        'location': '',
+      }) {
+    onMissingRead = (_, PersistentMemoryType type) {
+      switch (type) {
+        case PersistentMemoryType.String:
+          return '';
+        case PersistentMemoryType.Bool:
+          return false;
+        case PersistentMemoryType.Int:
+          return 0;
+        case PersistentMemoryType.Double:
+          return 0.0;
+        case PersistentMemoryType.StringList:
+          return <String>[];
+      }
+    };
   }
 }
 

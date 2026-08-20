@@ -10,6 +10,8 @@ import 'package:mazilon/l10n/app_localizations.dart';
 import 'package:mazilon/util/persistent_memory_service.dart';
 import 'package:mazilon/util/speech_recognition_service.dart';
 
+import '../../test_support/contract_persistent_memory_service.dart';
+
 void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
 
@@ -288,7 +290,7 @@ void main() {
     );
 
     testWidgets(
-      'should surface unexpected start failures after pending cleanup',
+      'should contain unexpected start failures after pending cleanup',
       (tester) async {
         final controller = _controllerWithText('Existing value');
         final service = _FakeSpeechRecognitionService()
@@ -305,10 +307,10 @@ void main() {
           memory: memory,
         );
 
-        final dynamic startCallback = tester
+        final VoidCallback? startCallback = tester
             .widget<IconButton>(find.byKey(const Key('speech-dictation-start')))
             .onPressed;
-        final operation = startCallback() as Future<void>;
+        startCallback!();
         await _pumpUntilVisible(
           tester,
           find.byKey(const Key('speech-dictation-locale-en-US')),
@@ -318,14 +320,18 @@ void main() {
               find.byKey(const Key('speech-dictation-locale-en-US')),
             )
             .onPressed!;
-        final expectation = expectLater(operation, throwsA(isA<StateError>()));
         localeCallback();
-        await tester.pump();
-
-        await expectation;
+        await _pumpUntilVisible(
+          tester,
+          find.byKey(const Key('speech-dictation-start')),
+        );
         expect(controller.text, 'Existing value');
         expect(service.cancelCalls, 1);
         expect(service.hasActiveSession, isFalse);
+        expect(
+          find.text('Voice dictation could not be completed. Please try again.'),
+          findsOneWidget,
+        );
       },
     );
 
@@ -423,6 +429,39 @@ void main() {
         );
       },
     );
+
+    testWidgets('should contain a disclosure persistence failure at start', (
+      tester,
+    ) async {
+      final controller = _controllerWithText('Existing value');
+      final service = _FakeSpeechRecognitionService();
+      final memory = _FakePersistentMemoryService(failSetItem: true);
+
+      await _pumpAction(
+        tester,
+        controller: controller,
+        service: service,
+        memory: memory,
+      );
+
+      await tester.tap(find.byKey(const Key('speech-dictation-start')));
+      await _pumpUntilVisible(
+        tester,
+        find.byKey(const Key('speech-dictation-disclosure-accept')),
+      );
+      await tester.tap(
+        find.byKey(const Key('speech-dictation-disclosure-accept')),
+      );
+      await _pumpUntilVisible(
+        tester,
+        find.text('Voice dictation could not be completed. Please try again.'),
+      );
+
+      expect(memory.setItemCalls, 1);
+      expect(memory.disclosureAccepted, isFalse);
+      expect(service.initializeCalls, 0);
+      expect(find.byKey(const Key('speech-dictation-start')), findsOneWidget);
+    });
 
     testWidgets('should expose an active dictation accessibility label', (
       tester,
@@ -760,43 +799,40 @@ Future<void> _pumpUntilVisible(WidgetTester tester, Finder finder) async {
   }
 }
 
-final class _FakePersistentMemoryService implements PersistentMemoryService {
+final class _FakePersistentMemoryService
+    extends ContractPersistentMemoryService {
   static const _disclosureAcceptedKey = 'speechDictationDisclosureAccepted';
 
-  _FakePersistentMemoryService({bool initialDisclosureAccepted = false})
-    : _disclosureAccepted = initialDisclosureAccepted;
+  _FakePersistentMemoryService({
+    bool initialDisclosureAccepted = false,
+    this.failSetItem = false,
+  }) : super(
+         initialValues: <String, Object?>{
+           _disclosureAcceptedKey: initialDisclosureAccepted,
+         },
+       ) {
+    onRead = (String key, PersistentMemoryType type) {
+      _verifyDisclosureEntry(key, type);
+      getItemCalls++;
+    };
+    onPersist = (String key, PersistentMemoryType type, Object value) {
+      _verifyDisclosureEntry(key, type);
+      if (value is! bool) {
+        throw StateError('The disclosure acknowledgement must be a bool.');
+      }
+      setItemCalls++;
+      if (failSetItem) {
+        throw StateError('The disclosure acknowledgement could not be saved.');
+      }
+    };
+  }
 
-  bool _disclosureAccepted;
+  final bool failSetItem;
   int getItemCalls = 0;
   int setItemCalls = 0;
 
-  bool get disclosureAccepted => _disclosureAccepted;
-
-  @override
-  Future<dynamic> getItem(String key, PersistentMemoryType type) async {
-    _verifyDisclosureEntry(key, type);
-    getItemCalls++;
-    return _disclosureAccepted;
-  }
-
-  @override
-  Future<void> setItem(
-    String key,
-    PersistentMemoryType type,
-    dynamic value,
-  ) async {
-    _verifyDisclosureEntry(key, type);
-    if (value is! bool) {
-      throw StateError('The disclosure acknowledgement must be a bool.');
-    }
-    setItemCalls++;
-    _disclosureAccepted = value;
-  }
-
-  @override
-  Future<void> reset() async {
-    _disclosureAccepted = false;
-  }
+  bool get disclosureAccepted =>
+      durableStore[_disclosureAcceptedKey] as bool? ?? false;
 
   void _verifyDisclosureEntry(String key, PersistentMemoryType type) {
     if (key != _disclosureAcceptedKey || type != PersistentMemoryType.Bool) {

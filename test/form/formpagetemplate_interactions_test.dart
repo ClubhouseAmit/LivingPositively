@@ -1,9 +1,11 @@
+import 'dart:async';
+
 // Drives every uncovered branch in FormPageTemplate:
 //   - addItem / removeItem / editItem (lines 66-70)
 //   - addSuggestion more-suggestions link (lines 73-81)
-//   - createSelection switch arms for all five collection names
+//   - createSelection switch arms for all six collection names
 //     (lines 89-106) — DifficultEvents, MakeSafer, FeelBetter, Distractions,
-//     SafeEnvironment
+//     SafeEnvironment, DreamsAndGoals
 //   - the suggestion-row tap path with the already-selected branch
 //   - the "add your own" link, which opens the AddFormAnswer dialog with
 //     both the empty-validate and non-empty paths
@@ -19,11 +21,14 @@ import 'package:mazilon/form/wizard_step.dart';
 import 'package:mazilon/global_enums.dart';
 import 'package:mazilon/l10n/app_localizations.dart';
 import 'package:mazilon/util/appInformation.dart';
+import 'package:mazilon/util/logger_service.dart';
 import 'package:mazilon/util/persistent_memory_service.dart';
 import 'package:mazilon/util/userInformation.dart';
 import 'package:provider/provider.dart';
 
-import '../helpers/widget_test_scaffold.dart' show wizardStepHarness;
+import '../helpers/widget_test_scaffold.dart'
+    show NoopIncidentLoggerService, wizardStepHarness;
+import '../../test_support/contract_persistent_memory_service.dart';
 
 class _FakeAnalytics implements AnalyticsService {
   final List<String> events = [];
@@ -38,10 +43,31 @@ class _FakeAnalytics implements AnalyticsService {
   }
 }
 
-class _FakePm implements PersistentMemoryService {
-  _FakePm({this.writeDelay, this.failFirstWrite = false});
-
-  final Map<String, dynamic> store = {};
+base class _FakePersistentMemoryService
+    extends ContractPersistentMemoryService {
+  _FakePersistentMemoryService({this.writeDelay, this.failFirstWrite = false}) {
+    onMissingRead = (_, _) => null;
+    onPersist = (String key, PersistentMemoryType type, Object value) async {
+      if (writeDelay != null) {
+        await Future<void>.delayed(writeDelay!);
+      }
+      if (failFirstWrite && !_firstWriteAttempted) {
+        _firstWriteAttempted = true;
+        throw StateError('write failed');
+      }
+      if (failDisclaimerWrite && key == 'disclaimerConfirmed') {
+        throw StateError('disclaimer write failed');
+      }
+      if (failDreamsAndGoalsWrites &&
+          <String>[
+            'userSelectionPersonalPlan-DreamsAndGoals',
+            'selectionSourcesPersonalPlan-DreamsAndGoals',
+            'addedStringsPersonalPlan-DreamsAndGoals',
+          ].contains(key)) {
+        throw StateError('Dreams and Goals write failed');
+      }
+    };
+  }
 
   /// Makes writes take measurable time so a test can observe the window
   /// between tapping the primary button and the wizard advancing.
@@ -51,26 +77,59 @@ class _FakePm implements PersistentMemoryService {
   /// from a failed save rather than being stuck.
   final bool failFirstWrite;
   bool _firstWriteAttempted = false;
+  bool failDisclaimerWrite = false;
+  bool failDreamsAndGoalsWrites = false;
 
-  @override
-  Future<dynamic> getItem(String key, PersistentMemoryType type) async =>
-      store[key];
-  @override
-  Future<void> reset() async {
-    store.clear();
+  List<ContractPersistentMemoryWrite> completedWritesFor(String key) =>
+      completedWrites.where((write) => write.key == key).toList();
+}
+
+final class _HeldDreamsMemoryService extends _FakePersistentMemoryService {
+  _HeldDreamsMemoryService() {
+    final ContractPersistentMemoryPersistHook? parentPersist = onPersist;
+    onPersist = (String key, PersistentMemoryType type, Object value) async {
+      if (key == 'userSelectionPersonalPlan-DreamsAndGoals' &&
+          _holdFirstDreamsSelectionWrite) {
+        _holdFirstDreamsSelectionWrite = false;
+        firstDreamsSelectionWriteStarted.complete();
+        await _firstDreamsSelectionWrite.future;
+      }
+      if (parentPersist != null) {
+        await parentPersist(key, type, value);
+      }
+    };
   }
 
-  @override
-  Future<void> setItem(String key, PersistentMemoryType type, value) async {
-    if (writeDelay != null) {
-      await Future<void>.delayed(writeDelay!);
+  final Completer<void> _firstDreamsSelectionWrite = Completer<void>();
+  final Completer<void> firstDreamsSelectionWriteStarted = Completer<void>();
+  bool _holdFirstDreamsSelectionWrite = true;
+
+  void releaseFirstDreamsSelectionWrite() {
+    if (!_firstDreamsSelectionWrite.isCompleted) {
+      _firstDreamsSelectionWrite.complete();
     }
-    if (failFirstWrite && !_firstWriteAttempted) {
-      _firstWriteAttempted = true;
-      throw StateError('write failed');
-    }
-    store[key] = value;
   }
+}
+
+final class _DualFailureDreamsMemoryService
+    extends _FakePersistentMemoryService {
+  _DualFailureDreamsMemoryService() {
+    final ContractPersistentMemoryPersistHook? parentPersist = onPersist;
+    onPersist = (String key, PersistentMemoryType type, Object value) async {
+      attemptedKeys.add(key);
+      if (failDreamsAndDisclaimerWrites &&
+          (key == 'userSelectionPersonalPlan-DreamsAndGoals' ||
+              key == 'disclaimerConfirmed')) {
+        throw StateError('intentional $key write failure');
+      }
+      if (parentPersist != null) {
+        await parentPersist(key, type, value);
+      }
+    };
+  }
+
+  bool failDreamsAndDisclaimerWrites = true;
+  final List<String> attemptedKeys = <String>[];
 }
 
 Future<int> _pump(
@@ -137,12 +196,12 @@ Finder _primaryButton() => find.byKey(const Key('wizard-primary-action'));
 void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
 
-  late _FakePm pm;
+  late _FakePersistentMemoryService pm;
   late _FakeAnalytics analytics;
 
   setUp(() async {
     await GetIt.instance.reset();
-    pm = _FakePm();
+    pm = _FakePersistentMemoryService();
     analytics = _FakeAnalytics();
     GetIt.instance.registerSingleton<PersistentMemoryService>(pm);
     GetIt.instance.registerSingleton<AnalyticsService>(analytics);
@@ -233,7 +292,9 @@ void main() {
     // Re-register with a service whose writes take time, so the gap between
     // the tap and the step advancing is observable.
     await GetIt.instance.reset();
-    final slowPm = _FakePm(writeDelay: const Duration(milliseconds: 300));
+    final slowPm = _FakePersistentMemoryService(
+      writeDelay: const Duration(milliseconds: 300),
+    );
     GetIt.instance.registerSingleton<PersistentMemoryService>(slowPm);
     GetIt.instance.registerSingleton<AnalyticsService>(_FakeAnalytics());
 
@@ -249,7 +310,10 @@ void main() {
 
     // Still saving.
     expect(nextCalls, 0);
-    expect(slowPm.store['userSelectionPersonalPlan-DifficultEvents'], isNull);
+    expect(
+      slowPm.durableStore['userSelectionPersonalPlan-DifficultEvents'],
+      isNull,
+    );
 
     await tester.pump(const Duration(seconds: 2));
     await tester.pumpAndSettle();
@@ -264,7 +328,7 @@ void main() {
   testWidgets('a failed save leaves the wizard where it is, and can be '
       'retried', (tester) async {
     await GetIt.instance.reset();
-    final flakyPm = _FakePm(failFirstWrite: true);
+    final flakyPm = _FakePersistentMemoryService(failFirstWrite: true);
     GetIt.instance.registerSingleton<PersistentMemoryService>(flakyPm);
     GetIt.instance.registerSingleton<AnalyticsService>(_FakeAnalytics());
 
@@ -276,12 +340,17 @@ void main() {
     );
 
     await tester.tap(_primaryButton(), warnIfMissed: false);
-    await tester.pumpAndSettle();
+    await tester.pump();
+    await tester.pump();
     expect(nextCalls, 0, reason: 'navigation waits on a save that failed');
 
-    // The in-flight guard released, so the step can be submitted again.
-    await tester.tap(_primaryButton(), warnIfMissed: false);
-    await tester.pumpAndSettle();
+    final retry = tester.widget<SnackBarAction>(
+      find.widgetWithText(SnackBarAction, 'Try again'),
+    );
+    retry.onPressed();
+    await tester.pump();
+    await tester.pump();
+    await tester.pump();
     expect(nextCalls, 1);
     expect(
       flakyPm.store['userSelectionPersonalPlan-DifficultEvents'],
@@ -294,7 +363,9 @@ void main() {
   ) async {
     await GetIt.instance.reset();
     GetIt.instance.registerSingleton<PersistentMemoryService>(
-      _FakePm(writeDelay: const Duration(milliseconds: 300)),
+      _FakePersistentMemoryService(
+        writeDelay: const Duration(milliseconds: 300),
+      ),
     );
     GetIt.instance.registerSingleton<AnalyticsService>(_FakeAnalytics());
 
@@ -438,6 +509,7 @@ void main() {
       'PersonalPlan-FeelBetter',
       'PersonalPlan-Distractions',
       'PersonalPlan-SafeEnvironment',
+      'PersonalPlan-DreamsAndGoals',
     ]) {
       await tester.binding.setSurfaceSize(const Size(900, 2200));
       var nextCalls = 0;
@@ -521,6 +593,805 @@ void main() {
       expect(user.safeEnvironment, expected);
     },
   );
+
+  group('FormPageTemplate', () {
+    testWidgets(
+      'should persist a non-Dreams disclaimer through the injected UserInformation service',
+      (tester) async {
+        final modelMemory = _FakePersistentMemoryService();
+        final user = UserInformation(service: modelMemory)..gender = 'other';
+        await _pump(tester, 'PersonalPlan-DifficultEvents', user: user);
+
+        await tester.tap(
+          find.byKey(const ValueKey('suggestion-Watching the news')),
+        );
+        await tester.pumpAndSettle();
+
+        expect(modelMemory.store['disclaimerConfirmed'], isTrue);
+        expect(pm.store['disclaimerConfirmed'], isNull);
+      },
+    );
+
+    group('Dreams and Goals', () {
+      testWidgets(
+        'should persist the disclaimer through the injected UserInformation service',
+        (tester) async {
+          final modelMemory = _FakePersistentMemoryService();
+          final user = UserInformation(service: modelMemory)..gender = 'other';
+          await _pump(tester, 'PersonalPlan-DreamsAndGoals', user: user);
+
+          await tester.tap(
+            find.byKey(const ValueKey('suggestion-Write and publish a book')),
+          );
+          await tester.pumpAndSettle();
+
+          expect(modelMemory.store['disclaimerConfirmed'], isTrue);
+          expect(pm.store['disclaimerConfirmed'], isNull);
+        },
+      );
+
+      testWidgets(
+        'should repair and persist malformed and missing sources before rendering',
+        (tester) async {
+          final modelMemory = _FakePersistentMemoryService();
+          final user = UserInformation(
+            service: modelMemory,
+            gender: 'other',
+          );
+          await user.hydrateDreamsAndGoalsFromStorage(
+            const <String>['Write and publish a book', 'My custom dream'],
+            storedSelectionSources: const <String>[
+              'catalogue:learn-a-new-language',
+            ],
+            storedCustomSelections: const <String>[],
+          );
+
+          await _pump(tester, 'PersonalPlan-DreamsAndGoals', user: user);
+
+          expect(user.dreamsAndGoalsSelectionSources, const <String>[
+            'catalogue:write-and-publish-a-book',
+            'custom',
+          ]);
+          expect(
+            modelMemory.store['selectionSourcesPersonalPlan-DreamsAndGoals'],
+            user.dreamsAndGoalsSelectionSources,
+          );
+          expect(
+            modelMemory.store['addedStringsPersonalPlan-DreamsAndGoals'],
+            const <String>['My custom dream'],
+          );
+          expect(
+            find.byKey(const ValueKey('suggestion-Write and publish a book')),
+            findsNothing,
+          );
+        },
+      );
+
+      testWidgets(
+        'should require choosing one custom goal before rendering or advancing',
+        (tester) async {
+          final modelMemory = _FakePersistentMemoryService();
+          final user = UserInformation(
+            service: modelMemory,
+            gender: 'other',
+          )..updateDreamsAndGoals(
+              const <String>[
+                'Write and publish a book',
+                'First custom dream',
+                'Learn a new language',
+                'Second custom dream',
+              ],
+              selectionSources: const <String>[
+                'catalogue:write-and-publish-a-book',
+                'custom',
+                'catalogue:learn-a-new-language',
+                'custom',
+              ],
+            );
+          var nextCalls = 0;
+
+          await _pump(
+            tester,
+            'PersonalPlan-DreamsAndGoals',
+            user: user,
+            onNext: () {
+              nextCalls++;
+            },
+          );
+
+          expect(
+            find.byKey(
+              const Key('dreams-and-goals-custom-conflict-resolve'),
+            ),
+            findsOneWidget,
+          );
+          expect(
+            find.byKey(const ValueKey('answer-0')),
+            findsNothing,
+          );
+          expect(
+            find.byKey(
+              const ValueKey('suggestion-Write and publish a book'),
+            ),
+            findsNothing,
+          );
+          expect(
+            find.byKey(
+              const Key('dreams-and-goals-custom-conflict-option-1'),
+            ),
+            findsOneWidget,
+          );
+          expect(
+            find.byKey(
+              const Key('dreams-and-goals-custom-conflict-option-3'),
+            ),
+            findsOneWidget,
+          );
+
+          await tester.tap(
+            find.byKey(
+              const Key('dreams-and-goals-custom-conflict-cancel'),
+            ),
+          );
+          await tester.pumpAndSettle();
+
+          expect(user.hasDreamsAndGoalsCustomConflict, isTrue);
+          expect(user.dreamsAndGoals, const <String>[
+            'Write and publish a book',
+            'First custom dream',
+            'Learn a new language',
+            'Second custom dream',
+          ]);
+
+          await tester.tap(_primaryButton());
+          await tester.pumpAndSettle();
+          await tester.tap(
+            find.byKey(
+              const Key('dreams-and-goals-custom-conflict-cancel'),
+            ),
+          );
+          await tester.pumpAndSettle();
+
+          expect(nextCalls, 0);
+          expect(user.hasDreamsAndGoalsCustomConflict, isTrue);
+
+          await tester.tap(
+            find.byKey(
+              const Key('dreams-and-goals-custom-conflict-resolve'),
+            ),
+          );
+          await tester.pumpAndSettle();
+          await tester.tap(
+            find.byKey(
+              const Key('dreams-and-goals-custom-conflict-option-3'),
+            ),
+          );
+          await tester.pump();
+          await tester.tap(
+            find.byKey(
+              const Key('dreams-and-goals-custom-conflict-confirm'),
+            ),
+          );
+          await tester.pumpAndSettle();
+
+          expect(user.hasDreamsAndGoalsCustomConflict, isFalse);
+          expect(user.dreamsAndGoals, const <String>[
+            'Write and publish a book',
+            'Learn a new language',
+            'Second custom dream',
+          ]);
+          expect(user.dreamsAndGoalsSelectionSources, const <String>[
+            'catalogue:write-and-publish-a-book',
+            'catalogue:learn-a-new-language',
+            'custom',
+          ]);
+          expect(
+            modelMemory.store['userSelectionPersonalPlan-DreamsAndGoals'],
+            user.dreamsAndGoals,
+          );
+          expect(
+            modelMemory.store['selectionSourcesPersonalPlan-DreamsAndGoals'],
+            user.dreamsAndGoalsSelectionSources,
+          );
+          expect(
+            modelMemory.store['addedStringsPersonalPlan-DreamsAndGoals'],
+            const <String>['Second custom dream'],
+          );
+          expect(find.text('First custom dream'), findsNothing);
+          expect(find.text('Second custom dream'), findsOneWidget);
+
+          await tester.tap(find.text('Second custom dream'));
+          await tester.pumpAndSettle();
+          await tester.enterText(
+            find.byType(TextFormField),
+            'Edited retained custom dream',
+          );
+          await tester.tap(find.text('Save'));
+          await tester.pumpAndSettle();
+
+          expect(user.dreamsAndGoals, const <String>[
+            'Write and publish a book',
+            'Learn a new language',
+            'Edited retained custom dream',
+          ]);
+          expect(
+            user.dreamsAndGoalsSelectionSources.last,
+            'custom',
+          );
+        },
+      );
+
+      testWidgets(
+        'should persist the chosen conflict snapshot once before advancing',
+        (tester) async {
+          final modelMemory = _FakePersistentMemoryService();
+          final user = UserInformation(
+            service: modelMemory,
+            gender: 'other',
+          )..updateDreamsAndGoals(
+              const <String>[
+                'Write and publish a book',
+                'First custom dream',
+                'Learn a new language',
+                'Second custom dream',
+              ],
+              selectionSources: const <String>[
+                'catalogue:write-and-publish-a-book',
+                'custom',
+                'catalogue:learn-a-new-language',
+                'custom',
+              ],
+            );
+          var nextCalls = 0;
+
+          await _pump(
+            tester,
+            'PersonalPlan-DreamsAndGoals',
+            user: user,
+            onNext: () {
+              nextCalls++;
+            },
+          );
+          await tester.tap(
+            find.byKey(
+              const Key('dreams-and-goals-custom-conflict-cancel'),
+            ),
+          );
+          await tester.pumpAndSettle();
+
+          await tester.tap(_primaryButton());
+          await tester.pumpAndSettle();
+          await tester.tap(
+            find.byKey(
+              const Key('dreams-and-goals-custom-conflict-option-3'),
+            ),
+          );
+          await tester.pump();
+          await tester.tap(
+            find.byKey(
+              const Key('dreams-and-goals-custom-conflict-confirm'),
+            ),
+          );
+          await tester.pumpAndSettle();
+
+          expect(nextCalls, 1);
+          for (final key in <String>[
+            'userSelectionPersonalPlan-DreamsAndGoals',
+            'selectionSourcesPersonalPlan-DreamsAndGoals',
+            'addedStringsPersonalPlan-DreamsAndGoals',
+          ]) {
+            expect(modelMemory.completedWritesFor(key), hasLength(1));
+          }
+          expect(
+            modelMemory.completedWritesFor('disclaimerConfirmed'),
+            hasLength(1),
+          );
+        },
+      );
+
+      testWidgets(
+        'should keep rows and advancement gated until a failed conflict choice retries',
+        (tester) async {
+          final modelMemory = _FakePersistentMemoryService()
+            ..failDreamsAndGoalsWrites = true;
+          final user = UserInformation(
+            service: modelMemory,
+            gender: 'other',
+          )..updateDreamsAndGoals(
+              const <String>[
+                'Write and publish a book',
+                'First custom dream',
+                'Learn a new language',
+                'Second custom dream',
+              ],
+              selectionSources: const <String>[
+                'catalogue:write-and-publish-a-book',
+                'custom',
+                'catalogue:learn-a-new-language',
+                'custom',
+              ],
+            );
+          var nextCalls = 0;
+
+          await _pump(
+            tester,
+            'PersonalPlan-DreamsAndGoals',
+            user: user,
+            onNext: () {
+              nextCalls++;
+            },
+          );
+          await tester.tap(
+            find.byKey(
+              const Key('dreams-and-goals-custom-conflict-option-3'),
+            ),
+          );
+          await tester.pump();
+          await tester.tap(
+            find.byKey(
+              const Key('dreams-and-goals-custom-conflict-confirm'),
+            ),
+          );
+          await tester.pumpAndSettle();
+
+          expect(
+            user.hasPendingDreamsAndGoalsCustomConflictResolution,
+            isTrue,
+          );
+          expect(find.byKey(const ValueKey('answer-0')), findsNothing);
+          expect(
+            tester
+                .widget<TextButton>(
+                  find.byKey(
+                    const Key('dreams-and-goals-custom-conflict-resolve'),
+                  ),
+                )
+                .onPressed,
+            isNotNull,
+          );
+
+          tester.widget<TextButton>(_primaryButton()).onPressed!();
+          await tester.pumpAndSettle();
+          expect(nextCalls, 0);
+          expect(
+            find.widgetWithText(SnackBarAction, 'Try again'),
+            findsOneWidget,
+          );
+
+          ScaffoldMessenger.of(
+            tester.element(find.byType(Scaffold).first),
+          ).hideCurrentSnackBar();
+          await tester.pumpAndSettle();
+          expect(
+            find.widgetWithText(SnackBarAction, 'Try again'),
+            findsNothing,
+          );
+
+          modelMemory.failDreamsAndGoalsWrites = false;
+          await tester.tap(
+            find.byKey(
+              const Key('dreams-and-goals-custom-conflict-resolve'),
+            ),
+          );
+          await tester.pumpAndSettle();
+
+          expect(
+            user.hasPendingDreamsAndGoalsCustomConflictResolution,
+            isFalse,
+          );
+          expect(find.text('Second custom dream'), findsOneWidget);
+          expect(find.byKey(const ValueKey('answer-0')), findsOneWidget);
+
+          tester.widget<TextButton>(_primaryButton()).onPressed!();
+          await tester.pumpAndSettle();
+          expect(nextCalls, 1);
+        },
+      );
+
+      testWidgets(
+        'should retry only the disclaimer after resolving a custom conflict',
+        (tester) async {
+          final modelMemory = _FakePersistentMemoryService()
+            ..failDisclaimerWrite = true;
+          final user = UserInformation(
+            service: modelMemory,
+            gender: 'other',
+          )..updateDreamsAndGoals(
+              const <String>[
+                'Write and publish a book',
+                'First custom dream',
+                'Learn a new language',
+                'Second custom dream',
+              ],
+              selectionSources: const <String>[
+                'catalogue:write-and-publish-a-book',
+                'custom',
+                'catalogue:learn-a-new-language',
+                'custom',
+              ],
+            );
+          var nextCalls = 0;
+
+          await _pump(
+            tester,
+            'PersonalPlan-DreamsAndGoals',
+            user: user,
+            onNext: () {
+              nextCalls++;
+            },
+          );
+          await tester.tap(
+            find.byKey(
+              const Key('dreams-and-goals-custom-conflict-cancel'),
+            ),
+          );
+          await tester.pumpAndSettle();
+
+          await tester.tap(_primaryButton());
+          await tester.pumpAndSettle();
+          await tester.tap(
+            find.byKey(
+              const Key('dreams-and-goals-custom-conflict-option-3'),
+            ),
+          );
+          await tester.pump();
+          await tester.tap(
+            find.byKey(
+              const Key('dreams-and-goals-custom-conflict-confirm'),
+            ),
+          );
+          await tester.pumpAndSettle();
+
+          expect(nextCalls, 0);
+          expect(
+            find.widgetWithText(SnackBarAction, 'Try again'),
+            findsOneWidget,
+          );
+          for (final key in <String>[
+            'userSelectionPersonalPlan-DreamsAndGoals',
+            'selectionSourcesPersonalPlan-DreamsAndGoals',
+            'addedStringsPersonalPlan-DreamsAndGoals',
+          ]) {
+            expect(modelMemory.completedWritesFor(key), hasLength(1));
+          }
+          expect(
+            modelMemory.completedWritesFor('disclaimerConfirmed'),
+            isEmpty,
+          );
+
+          modelMemory.failDisclaimerWrite = false;
+          tester
+              .widget<SnackBarAction>(
+                find.widgetWithText(SnackBarAction, 'Try again'),
+              )
+              .onPressed();
+          await tester.pumpAndSettle();
+
+          expect(nextCalls, 1);
+          for (final key in <String>[
+            'userSelectionPersonalPlan-DreamsAndGoals',
+            'selectionSourcesPersonalPlan-DreamsAndGoals',
+            'addedStringsPersonalPlan-DreamsAndGoals',
+          ]) {
+            expect(modelMemory.completedWritesFor(key), hasLength(1));
+          }
+          expect(
+            modelMemory.completedWritesFor('disclaimerConfirmed'),
+            hasLength(1),
+          );
+        },
+      );
+
+      testWidgets('should persist catalogue and custom sources separately', (
+        tester,
+      ) async {
+        final user = UserInformation()..gender = 'other';
+        await _pump(tester, 'PersonalPlan-DreamsAndGoals', user: user);
+
+        await _addViaDialog(tester, 'My personal dream');
+        await tester.tap(
+          find.byKey(const ValueKey('suggestion-Write and publish a book')),
+        );
+        await tester.tap(
+          find.byKey(const ValueKey('suggestion-Learn a new language')),
+        );
+        await tester.pumpAndSettle();
+
+        const expected = <String>[
+          'My personal dream',
+          'Write and publish a book',
+          'Learn a new language',
+        ];
+        expect(user.dreamsAndGoals, expected);
+        expect(user.dreamsAndGoalsSelectionSources, const <String>[
+          'custom',
+          'catalogue:write-and-publish-a-book',
+          'catalogue:learn-a-new-language',
+        ]);
+        expect(pm.store['userSelectionPersonalPlan-DreamsAndGoals'], expected);
+        expect(pm.store['addedStringsPersonalPlan-DreamsAndGoals'], [
+          'My personal dream',
+        ]);
+        expect(
+          pm.store['selectionSourcesPersonalPlan-DreamsAndGoals'],
+          user.dreamsAndGoalsSelectionSources,
+        );
+        expect(find.text('Add my own personal dream or goal...'), findsNothing);
+      });
+
+      testWidgets(
+        'should keep the latest row snapshot when an older save is held',
+        (tester) async {
+          await GetIt.instance.reset();
+          final heldMemory = _HeldDreamsMemoryService();
+          GetIt.instance.registerSingleton<PersistentMemoryService>(heldMemory);
+          GetIt.instance.registerSingleton<AnalyticsService>(_FakeAnalytics());
+          addTearDown(heldMemory.releaseFirstDreamsSelectionWrite);
+
+          final user = UserInformation(service: heldMemory)..gender = 'other';
+          await _pump(tester, 'PersonalPlan-DreamsAndGoals', user: user);
+
+          await _addViaDialog(tester, 'First custom dream');
+          await heldMemory.firstDreamsSelectionWriteStarted.future;
+
+          await tester.tap(
+            find.byKey(const ValueKey('suggestion-Write and publish a book')),
+          );
+          await tester.pump();
+
+          heldMemory.releaseFirstDreamsSelectionWrite();
+          await tester.pumpAndSettle();
+
+          expect(
+            heldMemory.store['userSelectionPersonalPlan-DreamsAndGoals'],
+            <String>['First custom dream', 'Write and publish a book'],
+          );
+          expect(
+            heldMemory.store['selectionSourcesPersonalPlan-DreamsAndGoals'],
+            <String>[
+              'custom',
+              'catalogue:write-and-publish-a-book',
+            ],
+          );
+          expect(
+            heldMemory.store['addedStringsPersonalPlan-DreamsAndGoals'],
+            <String>['First custom dream'],
+          );
+        },
+      );
+
+      testWidgets('should preserve sources through edit and paired removal', (
+        tester,
+      ) async {
+        final user = UserInformation()
+          ..gender = 'other'
+          ..updateDreamsAndGoals(
+            ['My original dream', 'Write and publish a book'],
+            selectionSources: const <String>[
+              'custom',
+              'catalogue:write-and-publish-a-book',
+            ],
+          );
+        await _pump(tester, 'PersonalPlan-DreamsAndGoals', user: user);
+
+        await tester.tap(find.text('My original dream'));
+        await tester.pumpAndSettle();
+        await tester.enterText(find.byType(TextFormField), 'My edited dream');
+        await tester.tap(find.text('Save'));
+        await tester.pumpAndSettle();
+
+        expect(user.dreamsAndGoalsSelectionSources, const <String>[
+          'custom',
+          'catalogue:write-and-publish-a-book',
+        ]);
+        expect(pm.store['addedStringsPersonalPlan-DreamsAndGoals'], [
+          'My edited dream',
+        ]);
+
+        await tester.tap(find.text('My edited dream'));
+        await tester.pumpAndSettle();
+        await tester.tap(find.text('Delete'));
+        await tester.pumpAndSettle();
+
+        expect(user.dreamsAndGoals, ['Write and publish a book']);
+        expect(user.dreamsAndGoalsSelectionSources, const <String>[
+          'catalogue:write-and-publish-a-book',
+        ]);
+        expect(pm.store['addedStringsPersonalPlan-DreamsAndGoals'], isEmpty);
+        expect(
+          find.text('Add my own personal dream or goal...'),
+          findsOneWidget,
+        );
+      });
+
+      testWidgets(
+        'should observe simultaneous Dreams and disclaimer save failures before retrying',
+        (tester) async {
+          await GetIt.instance.reset();
+          final memory = _DualFailureDreamsMemoryService();
+          final logger = NoopIncidentLoggerService();
+          GetIt.instance.registerSingleton<PersistentMemoryService>(memory);
+          GetIt.instance.registerSingleton<AnalyticsService>(_FakeAnalytics());
+          GetIt.instance.registerSingleton<IncidentLoggerService>(logger);
+          final user = UserInformation(service: memory)..gender = 'other';
+          await _pump(tester, 'PersonalPlan-DreamsAndGoals', user: user);
+
+          await _addViaDialog(tester, 'A recoverable dream');
+          await tester.pump();
+
+          expect(
+            find.widgetWithText(SnackBarAction, 'Try again'),
+            findsOneWidget,
+          );
+          expect(
+            memory.attemptedKeys,
+            containsAll(<String>[
+              'userSelectionPersonalPlan-DreamsAndGoals',
+              'disclaimerConfirmed',
+            ]),
+          );
+          expect(tester.takeException(), isNull);
+
+          final SnackBarAction failedRetry = tester.widget<SnackBarAction>(
+            find.widgetWithText(SnackBarAction, 'Try again'),
+          );
+          failedRetry.onPressed();
+          await tester.pump();
+          await tester.pump(const Duration(milliseconds: 250));
+
+          expect(logger.captured, isNotEmpty);
+          expect(logger.captured.last, isA<StateError>());
+          expect(
+            find.widgetWithText(SnackBarAction, 'Try again'),
+            findsOneWidget,
+          );
+
+          memory.failDreamsAndDisclaimerWrites = false;
+          final SnackBarAction retry = tester.widget<SnackBarAction>(
+            find.widgetWithText(SnackBarAction, 'Try again'),
+          );
+          retry.onPressed();
+          await tester.pumpAndSettle();
+
+          expect(
+            memory.store['userSelectionPersonalPlan-DreamsAndGoals'],
+            <String>['A recoverable dream'],
+          );
+          expect(memory.store['disclaimerConfirmed'], isTrue);
+        },
+      );
+
+      testWidgets('should promote a changed catalogue row to a custom source', (
+        tester,
+      ) async {
+        final user = UserInformation()
+          ..gender = 'other'
+          ..updateDreamsAndGoals(
+            ['Write and publish a book'],
+            selectionSources: const <String>[
+              'catalogue:write-and-publish-a-book',
+            ],
+          );
+        await _pump(tester, 'PersonalPlan-DreamsAndGoals', user: user);
+
+        await tester.tap(find.text('Write and publish a book'));
+        await tester.pumpAndSettle();
+        await tester.enterText(
+          find.byType(TextFormField),
+          'My revised own goal',
+        );
+        await tester.tap(find.text('Save'));
+        await tester.pumpAndSettle();
+
+        expect(user.dreamsAndGoals, ['My revised own goal']);
+        expect(user.dreamsAndGoalsSelectionSources, const <String>['custom']);
+        expect(pm.store['addedStringsPersonalPlan-DreamsAndGoals'], [
+          'My revised own goal',
+        ]);
+
+        await tester.tap(find.text('My revised own goal'));
+        await tester.pumpAndSettle();
+        await tester.enterText(
+          find.byType(TextFormField),
+          'Learn a new language',
+        );
+        await tester.tap(find.text('Save'));
+        await tester.pumpAndSettle();
+
+        expect(user.dreamsAndGoalsSelectionSources, const <String>['custom']);
+        expect(
+          find.byKey(const ValueKey('suggestion-Learn a new language')),
+          findsOneWidget,
+        );
+      });
+
+      testWidgets('should retain a catalogue row when another custom exists', (
+        tester,
+      ) async {
+        final user = UserInformation()
+          ..gender = 'other'
+          ..updateDreamsAndGoals(
+            ['My only custom goal', 'Write and publish a book'],
+            selectionSources: const <String>[
+              'custom',
+              'catalogue:write-and-publish-a-book',
+            ],
+          );
+        await _pump(tester, 'PersonalPlan-DreamsAndGoals', user: user);
+
+        await tester.tap(find.text('Write and publish a book'));
+        await tester.pumpAndSettle();
+        await tester.enterText(
+          find.byType(TextFormField),
+          'A second own goal',
+        );
+        await tester.tap(find.text('Save'));
+        await tester.pumpAndSettle();
+
+        expect(user.dreamsAndGoals, [
+          'My only custom goal',
+          'Write and publish a book',
+        ]);
+        expect(user.dreamsAndGoalsSelectionSources, const <String>[
+          'custom',
+          'catalogue:write-and-publish-a-book',
+        ]);
+      });
+
+      testWidgets(
+        'should keep an exact-catalogue own goal custom and selectable separately',
+        (tester) async {
+          final user = UserInformation()..gender = 'other';
+          await _pump(tester, 'PersonalPlan-DreamsAndGoals', user: user);
+
+          await _addViaDialog(tester, 'Write and publish a book');
+
+          final catalogueSuggestion = find.byKey(
+            const ValueKey('suggestion-Write and publish a book'),
+          );
+          expect(catalogueSuggestion, findsOneWidget);
+          await tester.tap(catalogueSuggestion);
+          await tester.pumpAndSettle();
+
+          expect(user.dreamsAndGoals, const <String>[
+            'Write and publish a book',
+            'Write and publish a book',
+          ]);
+          expect(user.dreamsAndGoalsSelectionSources, const <String>[
+            'custom',
+            'catalogue:write-and-publish-a-book',
+          ]);
+          expect(pm.store['addedStringsPersonalPlan-DreamsAndGoals'], const [
+            'Write and publish a book',
+          ]);
+        },
+      );
+
+      testWidgets('should hide a Hebrew catalogue selection in English', (
+        tester,
+      ) async {
+        const hebrewSuggestion = 'לכתוב ולהוציא לאור ספר';
+        final user = UserInformation()
+          ..gender = 'other'
+          ..updateDreamsAndGoals(
+            [hebrewSuggestion],
+            selectionSources: const <String>[
+              'catalogue:write-and-publish-a-book',
+            ],
+          );
+        await _pump(tester, 'PersonalPlan-DreamsAndGoals', user: user);
+
+        expect(
+          find.byKey(const ValueKey('suggestion-Write and publish a book')),
+          findsNothing,
+        );
+        expect(
+          find.text('Add my own personal dream or goal...'),
+          findsOneWidget,
+        );
+      });
+    });
+  });
 
   testWidgets('swiping a FormAnswer row calls removeItem', (tester) async {
     final user = UserInformation()..gender = 'other';

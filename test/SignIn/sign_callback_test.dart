@@ -5,12 +5,13 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:get_it/get_it.dart';
 import 'package:mazilon/AnalyticsService.dart';
 import 'package:mazilon/Locale/locale_service.dart';
-import 'package:mazilon/global_enums.dart';
 import 'package:mazilon/util/Form/formPagePhoneModel.dart';
 import 'package:mazilon/util/SignIn/sign_callback.dart';
 import 'package:mazilon/util/logger_service.dart';
 import 'package:mazilon/util/persistent_memory_service.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+
+import '../../test_support/contract_persistent_memory_service.dart';
 
 class _NoopAnalytics implements AnalyticsService {
   @override
@@ -30,15 +31,9 @@ class _NoopLogger implements IncidentLoggerService {
   }) async {}
 }
 
-class _FakeMemory implements PersistentMemoryService {
-  final Map<String, dynamic> store = {};
-  @override
-  Future getItem(String key, PersistentMemoryType type) async => store[key];
-  @override
-  Future<void> reset() async => store.clear();
-  @override
-  Future<void> setItem(String key, PersistentMemoryType type, dynamic v) async {
-    store[key] = v;
+final class _FakeMemory extends ContractPersistentMemoryService {
+  _FakeMemory() {
+    onMissingRead = (_, _) => null;
   }
 }
 

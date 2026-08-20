@@ -12,33 +12,32 @@ import 'package:mazilon/util/Thanks/AddForm.dart';
 import 'package:mazilon/l10n/app_localizations.dart';
 import 'package:mazilon/util/persistent_memory_service.dart';
 
+import '../../test_support/contract_persistent_memory_service.dart';
 import '../helpers/widget_test_scaffold.dart';
 
-class _DelayedMemoryService implements PersistentMemoryService {
+final class _DelayedMemoryService extends ContractPersistentMemoryService {
   final Completer<dynamic> completer;
-  final FakePersistentMemoryService fallback;
-  _DelayedMemoryService(this.completer, this.fallback);
 
-  @override
-  Future<dynamic> getItem(String key, PersistentMemoryType type) async {
-    if (key == 'customReminder') {
-      return completer.future;
-    }
-    return fallback.getItem(key, type);
-  }
-
-  @override
-  Future<void> setItem(
-    String key,
-    PersistentMemoryType type,
-    dynamic value,
-  ) async {
-    return fallback.setItem(key, type, value);
-  }
-
-  @override
-  Future<void> reset() async {
-    return fallback.reset();
+  _DelayedMemoryService(this.completer) {
+    onRead = (String key, PersistentMemoryType type) async {
+      if (key == 'customReminder') {
+        store[key] = await completer.future;
+      }
+    };
+    onMissingRead = (String _, PersistentMemoryType type) {
+      switch (type) {
+        case PersistentMemoryType.String:
+          return '';
+        case PersistentMemoryType.Int:
+          return 0;
+        case PersistentMemoryType.Double:
+          return 0.0;
+        case PersistentMemoryType.Bool:
+          return false;
+        case PersistentMemoryType.StringList:
+          return <String>[];
+      }
+    };
   }
 }
 
@@ -161,14 +160,13 @@ void main() {
         user.gender = 'female';
 
         final completer = Completer<dynamic>();
-        final memory = FakePersistentMemoryService();
         final getIt = GetIt.instance;
 
         if (getIt.isRegistered<PersistentMemoryService>()) {
           await getIt.unregister<PersistentMemoryService>();
         }
 
-        final customMemory = _DelayedMemoryService(completer, memory);
+        final customMemory = _DelayedMemoryService(completer);
         getIt.registerSingleton<PersistentMemoryService>(customMemory);
 
         await pumpWithProviders(

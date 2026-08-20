@@ -914,6 +914,409 @@ class AppLocalizationsAr extends AppLocalizations {
   }
 
   @override
+  String dreamsAndGoalsHeader(String gender) {
+    String _temp0 = intl.Intl.selectLogic(gender, {
+      'male': 'الأحلام والطموحات والأهداف',
+      'female': 'الأحلام والطموحات والأهداف',
+      'other': 'الأحلام والطموحات والأهداف',
+    });
+    return '$_temp0';
+  }
+
+  @override
+  String dreamsAndGoalsSubTitle(String gender) {
+    String _temp0 = intl.Intl.selectLogic(gender, {
+      'male': 'أحلام وأهداف أريد تحقيقها',
+      'female': 'أحلام وأهداف أريد تحقيقها',
+      'other': 'أحلام وأهداف أريد تحقيقها',
+    });
+    return '$_temp0';
+  }
+
+  @override
+  String dreamsAndGoalsAddOwn(String gender) {
+    String _temp0 = intl.Intl.selectLogic(gender, {
+      'male': 'إضافة حلم أو هدف شخصي خاص بي...',
+      'female': 'إضافة حلم أو هدف شخصي خاص بي...',
+      'other': 'إضافة حلم أو هدف شخصي خاص بي...',
+    });
+    return '$_temp0';
+  }
+
+  @override
+  String dreamsAndGoalsCustomConflictTitle(String gender) {
+    String _temp0 = intl.Intl.selectLogic(gender, {
+      'male': 'اختر حلمًا أو هدفًا شخصيًا واحدًا',
+      'female': 'اختاري حلمًا أو هدفًا شخصيًا واحدًا',
+      'other': 'اختر حلمًا أو هدفًا شخصيًا واحدًا',
+    });
+    return '$_temp0';
+  }
+
+  @override
+  String dreamsAndGoalsCustomConflictMessage(String gender) {
+    String _temp0 = intl.Intl.selectLogic(gender, {
+      'male':
+          'يمكن لخطتك الشخصية حفظ حلم أو هدف شخصي واحد. اختر ما تريد الاحتفاظ به.',
+      'female':
+          'يمكن لخطتك الشخصية حفظ حلم أو هدف شخصي واحد. اختاري ما تريدين الاحتفاظ به.',
+      'other':
+          'يمكن للخطة الشخصية حفظ حلم أو هدف شخصي واحد. اختر ما تريد الاحتفاظ به.',
+    });
+    return '$_temp0';
+  }
+
+  @override
+  String dreamsAndGoalsCustomConflictSelect(String gender) {
+    String _temp0 = intl.Intl.selectLogic(gender, {
+      'male': 'اختر هدفًا',
+      'female': 'اختاري هدفًا',
+      'other': 'اختر هدفًا',
+    });
+    return '$_temp0';
+  }
+
+  @override
+  String dreamsAndGoalsListNo0(String gender) {
+    String _temp0 = intl.Intl.selectLogic(gender, {
+      'male': 'كتابة كتاب ونشره',
+      'female': 'كتابة كتاب ونشره',
+      'other': 'كتابة كتاب ونشره',
+    });
+    return '$_temp0';
+  }
+
+  @override
+  String dreamsAndGoalsListNo1(String gender) {
+    String _temp0 = intl.Intl.selectLogic(gender, {
+      'male': 'تعلّم لغة جديدة',
+      'female': 'تعلّم لغة جديدة',
+      'other': 'تعلّم لغة جديدة',
+    });
+    return '$_temp0';
+  }
+
+  @override
+  String dreamsAndGoalsListNo2(String gender) {
+    String _temp0 = intl.Intl.selectLogic(gender, {
+      'male': 'التحليق بمنطاد هوائي',
+      'female': 'التحليق بمنطاد هوائي',
+      'other': 'التحليق بمنطاد هوائي',
+    });
+    return '$_temp0';
+  }
+
+  @override
+  String dreamsAndGoalsListNo3(String gender) {
+    String _temp0 = intl.Intl.selectLogic(gender, {
+      'male': 'الجري في ماراثون أو نصف ماراثون',
+      'female': 'الجري في ماراثون أو نصف ماراثون',
+      'other': 'الجري في ماراثون أو نصف ماراثون',
+    });
+    return '$_temp0';
+  }
+
+  @override
+  String dreamsAndGoalsListNo4(String gender) {
+    String _temp0 = intl.Intl.selectLogic(gender, {
+      'male': 'الجري لمسافة 5 كيلومترات',
+      'female': 'الجري لمسافة 5 كيلومترات',
+      'other': 'الجري لمسافة 5 كيلومترات',
+    });
+    return '$_temp0';
+  }
+
+  @override
+  String dreamsAndGoalsListNo5(String gender) {
+    String _temp0 = intl.Intl.selectLogic(gender, {
+      'male': 'بدء مشروعي الخاص',
+      'female': 'بدء مشروعي الخاص',
+      'other': 'بدء مشروعي الخاص',
+    });
+    return '$_temp0';
+  }
+
+  @override
+  String dreamsAndGoalsListNo6(String gender) {
+    String _temp0 = intl.Intl.selectLogic(gender, {
+      'male': 'تعلّم العزف على آلة موسيقية',
+      'female': 'تعلّم العزف على آلة موسيقية',
+      'other': 'تعلّم العزف على آلة موسيقية',
+    });
+    return '$_temp0';
+  }
+
+  @override
+  String dreamsAndGoalsListNo7(String gender) {
+    String _temp0 = intl.Intl.selectLogic(gender, {
+      'male': 'التطوّع بانتظام من أجل قضية تهمّني',
+      'female': 'التطوّع بانتظام من أجل قضية تهمّني',
+      'other': 'التطوّع بانتظام من أجل قضية تهمّني',
+    });
+    return '$_temp0';
+  }
+
+  @override
+  String dreamsAndGoalsListNo8(String gender) {
+    String _temp0 = intl.Intl.selectLogic(gender, {
+      'male': 'السفر إلى وجهة أحلامي في العالم',
+      'female': 'السفر إلى وجهة أحلامي في العالم',
+      'other': 'السفر إلى وجهة أحلامي في العالم',
+    });
+    return '$_temp0';
+  }
+
+  @override
+  String dreamsAndGoalsListNo9(String gender) {
+    String _temp0 = intl.Intl.selectLogic(gender, {
+      'male': 'إتمام درجة أكاديمية أو برنامج للحصول على شهادة',
+      'female': 'إتمام درجة أكاديمية أو برنامج للحصول على شهادة',
+      'other': 'إتمام درجة أكاديمية أو برنامج للحصول على شهادة',
+    });
+    return '$_temp0';
+  }
+
+  @override
+  String dreamsAndGoalsListNo10(String gender) {
+    String _temp0 = intl.Intl.selectLogic(gender, {
+      'male': 'مسامحة شخص آذاني',
+      'female': 'مسامحة شخص آذاني',
+      'other': 'مسامحة شخص آذاني',
+    });
+    return '$_temp0';
+  }
+
+  @override
+  String dreamsAndGoalsListNo11(String gender) {
+    String _temp0 = intl.Intl.selectLogic(gender, {
+      'male': 'شراء منزلي الخاص',
+      'female': 'شراء منزلي الخاص',
+      'other': 'شراء منزلي الخاص',
+    });
+    return '$_temp0';
+  }
+
+  @override
+  String dreamsAndGoalsListNo12(String gender) {
+    String _temp0 = intl.Intl.selectLogic(gender, {
+      'male': 'إلقاء محاضرة أمام جمهور',
+      'female': 'إلقاء محاضرة أمام جمهور',
+      'other': 'إلقاء محاضرة أمام جمهور',
+    });
+    return '$_temp0';
+  }
+
+  @override
+  String dreamsAndGoalsListNo13(String gender) {
+    String _temp0 = intl.Intl.selectLogic(gender, {
+      'male': 'القفز بالمظلة',
+      'female': 'القفز بالمظلة',
+      'other': 'القفز بالمظلة',
+    });
+    return '$_temp0';
+  }
+
+  @override
+  String dreamsAndGoalsListNo14(String gender) {
+    String _temp0 = intl.Intl.selectLogic(gender, {
+      'male': 'تعلّم ركوب الأمواج',
+      'female': 'تعلّم ركوب الأمواج',
+      'other': 'تعلّم ركوب الأمواج',
+    });
+    return '$_temp0';
+  }
+
+  @override
+  String dreamsAndGoalsListNo15(String gender) {
+    String _temp0 = intl.Intl.selectLogic(gender, {
+      'male': 'تبنّي حيوان أليف',
+      'female': 'تبنّي حيوان أليف',
+      'other': 'تبنّي حيوان أليف',
+    });
+    return '$_temp0';
+  }
+
+  @override
+  String dreamsAndGoalsListNo16(String gender) {
+    String _temp0 = intl.Intl.selectLogic(gender, {
+      'male': 'إنشاء بودكاست أو مدونة',
+      'female': 'إنشاء بودكاست أو مدونة',
+      'other': 'إنشاء بودكاست أو مدونة',
+    });
+    return '$_temp0';
+  }
+
+  @override
+  String dreamsAndGoalsListNo17(String gender) {
+    String _temp0 = intl.Intl.selectLogic(gender, {
+      'male': 'زراعة حديقتي الخاصة والعناية بها',
+      'female': 'زراعة حديقتي الخاصة والعناية بها',
+      'other': 'زراعة حديقتي الخاصة والعناية بها',
+    });
+    return '$_temp0';
+  }
+
+  @override
+  String dreamsAndGoalsListNo18(String gender) {
+    String _temp0 = intl.Intl.selectLogic(gender, {
+      'male': 'الحصول على رخصة لقيادة دراجة نارية أو قارب',
+      'female': 'الحصول على رخصة لقيادة دراجة نارية أو قارب',
+      'other': 'الحصول على رخصة لقيادة دراجة نارية أو قارب',
+    });
+    return '$_temp0';
+  }
+
+  @override
+  String dreamsAndGoalsListNo19(String gender) {
+    String _temp0 = intl.Intl.selectLogic(gender, {
+      'male': 'الحصول على رخصة قيادة',
+      'female': 'الحصول على رخصة قيادة',
+      'other': 'الحصول على رخصة قيادة',
+    });
+    return '$_temp0';
+  }
+
+  @override
+  String dreamsAndGoalsListNo20(String gender) {
+    String _temp0 = intl.Intl.selectLogic(gender, {
+      'male': 'التغلّب على أكبر مخاوفي',
+      'female': 'التغلّب على أكبر مخاوفي',
+      'other': 'التغلّب على أكبر مخاوفي',
+    });
+    return '$_temp0';
+  }
+
+  @override
+  String dreamsAndGoalsListNo21(String gender) {
+    String _temp0 = intl.Intl.selectLogic(gender, {
+      'male': 'رؤية الشفق القطبي',
+      'female': 'رؤية الشفق القطبي',
+      'other': 'رؤية الشفق القطبي',
+    });
+    return '$_temp0';
+  }
+
+  @override
+  String dreamsAndGoalsListNo22(String gender) {
+    String _temp0 = intl.Intl.selectLogic(gender, {
+      'male': 'تكوين أسرة أو توسيعها',
+      'female': 'تكوين أسرة أو توسيعها',
+      'other': 'تكوين أسرة أو توسيعها',
+    });
+    return '$_temp0';
+  }
+
+  @override
+  String dreamsAndGoalsListNo23(String gender) {
+    String _temp0 = intl.Intl.selectLogic(gender, {
+      'male': 'ابتكار اختراع أو تطوير تطبيق أو الحصول على براءة اختراع',
+      'female': 'ابتكار اختراع أو تطوير تطبيق أو الحصول على براءة اختراع',
+      'other': 'ابتكار اختراع أو تطوير تطبيق أو الحصول على براءة اختراع',
+    });
+    return '$_temp0';
+  }
+
+  @override
+  String dreamsAndGoalsListNo24(String gender) {
+    String _temp0 = intl.Intl.selectLogic(gender, {
+      'male': 'المشاركة في ورشة فيباسانا أو خلوة صامتة',
+      'female': 'المشاركة في ورشة فيباسانا أو خلوة صامتة',
+      'other': 'المشاركة في ورشة فيباسانا أو خلوة صامتة',
+    });
+    return '$_temp0';
+  }
+
+  @override
+  String dreamsAndGoalsListNo25(String gender) {
+    String _temp0 = intl.Intl.selectLogic(gender, {
+      'male': 'كتابة أغنية أو عمل موسيقي',
+      'female': 'كتابة أغنية أو عمل موسيقي',
+      'other': 'كتابة أغنية أو عمل موسيقي',
+    });
+    return '$_temp0';
+  }
+
+  @override
+  String dreamsAndGoalsListNo26(String gender) {
+    String _temp0 = intl.Intl.selectLogic(gender, {
+      'male': 'تنظيم تجمع عائلي أو اجتماعي كبير',
+      'female': 'تنظيم تجمع عائلي أو اجتماعي كبير',
+      'other': 'تنظيم تجمع عائلي أو اجتماعي كبير',
+    });
+    return '$_temp0';
+  }
+
+  @override
+  String dreamsAndGoalsListNo27(String gender) {
+    String _temp0 = intl.Intl.selectLogic(gender, {
+      'male': 'تعلّم إعداد وجبة فاخرة',
+      'female': 'تعلّم إعداد وجبة فاخرة',
+      'other': 'تعلّم إعداد وجبة فاخرة',
+    });
+    return '$_temp0';
+  }
+
+  @override
+  String dreamsAndGoalsListNo28(String gender) {
+    String _temp0 = intl.Intl.selectLogic(gender, {
+      'male': 'تحقيق الاستقلال المالي',
+      'female': 'تحقيق الاستقلال المالي',
+      'other': 'تحقيق الاستقلال المالي',
+    });
+    return '$_temp0';
+  }
+
+  @override
+  String dreamsAndGoalsListNo29(String gender) {
+    String _temp0 = intl.Intl.selectLogic(gender, {
+      'male': 'عرض أعمالي في معرض فني أو معرض للتصوير الفوتوغرافي',
+      'female': 'عرض أعمالي في معرض فني أو معرض للتصوير الفوتوغرافي',
+      'other': 'عرض أعمالي في معرض فني أو معرض للتصوير الفوتوغرافي',
+    });
+    return '$_temp0';
+  }
+
+  @override
+  String dreamsAndGoalsListNo30(String gender) {
+    String _temp0 = intl.Intl.selectLogic(gender, {
+      'male': 'التبرع بمبلغ كبير لجمعية غير ربحية',
+      'female': 'التبرع بمبلغ كبير لجمعية غير ربحية',
+      'other': 'التبرع بمبلغ كبير لجمعية غير ربحية',
+    });
+    return '$_temp0';
+  }
+
+  @override
+  String dreamsAndGoalsListNo31(String gender) {
+    String _temp0 = intl.Intl.selectLogic(gender, {
+      'male': 'أن أغضب أقل',
+      'female': 'أن أغضب أقل',
+      'other': 'أن أغضب أقل',
+    });
+    return '$_temp0';
+  }
+
+  @override
+  String dreamsAndGoalsListNo32(String gender) {
+    String _temp0 = intl.Intl.selectLogic(gender, {
+      'male': 'العثور على علاقة عاطفية',
+      'female': 'العثور على علاقة عاطفية',
+      'other': 'العثور على علاقة عاطفية',
+    });
+    return '$_temp0';
+  }
+
+  @override
+  String dreamsAndGoalsListNo33(String gender) {
+    String _temp0 = intl.Intl.selectLogic(gender, {
+      'male': 'كسب مزيد من المال',
+      'female': 'كسب مزيد من المال',
+      'other': 'كسب مزيد من المال',
+    });
+    return '$_temp0';
+  }
+
+  @override
   String phonesPagePhone(String gender) {
     String _temp0 = intl.Intl.selectLogic(gender, {
       'male': 'هاتف',

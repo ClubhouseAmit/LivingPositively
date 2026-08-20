@@ -5,6 +5,8 @@ import 'package:mazilon/util/logger_service.dart';
 import 'package:mazilon/util/persistent_memory_service.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
+import '../../test_support/contract_persistent_memory_service.dart';
+
 class _NoopLogger implements IncidentLoggerService {
   @override
   Future<void> initializeSentry(_) async {}
@@ -392,11 +394,34 @@ void main() {
   });
 
   group('PhonePageData persistence', () {
+    test('should contain background contact persistence failures', () async {
+      final failingMemory = ContractPersistentMemoryService()
+        ..onPersist = (_, _, _) {
+          throw StateError('intentional contact persistence failure');
+        };
+      GetIt.instance.unregister<PersistentMemoryService>();
+      GetIt.instance.registerSingleton<PersistentMemoryService>(failingMemory);
+
+      final p = _make(key: 'failingPersistKey');
+      await Future<void>.delayed(Duration.zero);
+      expect(p.addItem('A', '111'), isTrue);
+      await Future<void>.delayed(Duration.zero);
+
+      expect(failingMemory.attemptedWrites, hasLength(1));
+      expect(p.savedPhoneNames, <String>['A']);
+      expect(p.savedPhoneNumbers, <String>['111']);
+    });
+
     test('addItem then loadItemsFromPrefs returns saved values', () async {
       final p = _make(key: 'persistKey');
-      p.addItem('A', '111');
-      // Allow saveItemsToPrefs futures to settle
+      // PhonePageData begins its initial preference load in the constructor.
+      // Let that empty-state read finish before changing the model.
       await Future<void>.delayed(Duration.zero);
+      p.addItem('A', '111');
+      // The background save is intentionally not awaited by addItem. Persist
+      // the same snapshot through the public awaited command before loading
+      // it in a fresh model.
+      await p.saveItemsToPrefs();
       // Build a fresh instance and force load
       final p2 = PhonePageData(
         key: 'persistKey',

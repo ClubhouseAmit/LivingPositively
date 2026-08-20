@@ -28,7 +28,8 @@ import 'package:mazilon/AnalyticsService.dart';
 import 'package:mazilon/global_enums.dart';
 import 'package:mazilon/pages/FeelGood/image_picker_service_impl.dart';
 import 'package:mazilon/util/logger_service.dart';
-import 'package:mazilon/util/persistent_memory_service.dart';
+
+import '../../test_support/contract_persistent_memory_service.dart';
 
 class _CapturingLogger implements IncidentLoggerService {
   final List<dynamic> captured = [];
@@ -360,31 +361,17 @@ class _FailingAnalytics implements AnalyticsService {
   }
 }
 
-class _FakePersistentMemory implements PersistentMemoryService {
-  final Map<String, dynamic> _storage = {};
+final class _FakePersistentMemory extends ContractPersistentMemoryService {
+  _FakePersistentMemory() {
+    onMissingRead = (_, _) => null;
+    onSetItemCompleted = (key, type, value) {
+      lastSetKey = key;
+      lastSetType = type;
+      lastSetValue = value;
+    };
+  }
+
   String? lastSetKey;
   PersistentMemoryType? lastSetType;
   dynamic lastSetValue;
-
-  @override
-  Future<dynamic> getItem(String key, PersistentMemoryType type) async {
-    return _storage[key];
-  }
-
-  @override
-  Future<void> setItem(
-    String key,
-    PersistentMemoryType type,
-    dynamic value,
-  ) async {
-    lastSetKey = key;
-    lastSetType = type;
-    lastSetValue = value;
-    _storage[key] = value;
-  }
-
-  @override
-  Future<void> reset() async {
-    _storage.clear();
-  }
 }

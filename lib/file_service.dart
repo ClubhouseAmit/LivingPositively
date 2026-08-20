@@ -1,6 +1,7 @@
 // ignore_for_file: non_constant_identifier_names
 
 import 'dart:io';
+import 'dart:math' show min;
 import 'package:file_picker/file_picker.dart';
 import 'package:flutter/foundation.dart';
 import 'package:get_it/get_it.dart';
@@ -70,6 +71,10 @@ class FileServiceImpl implements FileService {
         "userSelectionPersonalPlan-SafeEnvironment",
         PersistentMemoryType.StringList,
       ),
+      'dreamsAndGoals': service.getItem(
+        "userSelectionPersonalPlan-DreamsAndGoals",
+        PersistentMemoryType.StringList,
+      ),
       'phoneNames': service.getItem(
         "PhonePageSavedPhoneNames",
         PersistentMemoryType.StringList,
@@ -95,6 +100,7 @@ class FileServiceImpl implements FileService {
       'FeelBetter': TypeUtils.castToStringList(data['feelBetter']),
       'Distractions': TypeUtils.castToStringList(data['distractions']),
       'SafeEnvironment': TypeUtils.castToStringList(data['safeEnvironment']),
+      'DreamsAndGoals': TypeUtils.castToStringList(data['dreamsAndGoals']),
       'phoneNames': TypeUtils.castToStringList(data['phoneNames']),
       'phoneNumbers': TypeUtils.castToStringList(data['phoneNumbers']),
       'customCategoryTitles':
@@ -140,6 +146,7 @@ class FileServiceImpl implements FileService {
     List<String> feelBetter = dataForPDF['FeelBetter'];
     List<String> distractions = dataForPDF['Distractions'];
     List<String> safeEnvironment = dataForPDF['SafeEnvironment'];
+    List<String> dreamsAndGoals = dataForPDF['DreamsAndGoals'];
     List<String> phoneNames = dataForPDF['phoneNames'];
     List<String> phoneNumbers = dataForPDF['phoneNumbers'];
     List<String> customCategoryTitles = dataForPDF['customCategoryTitles'];
@@ -147,16 +154,24 @@ class FileServiceImpl implements FileService {
         dataForPDF['customCategoryDescriptions'];
     List<String> phoneDescription = formatPhonesText(phoneNames, phoneNumbers);
 
-    List<dynamic> allTitles = [...titles];
-    List<dynamic> allSubTitles = [...subTitles];
-    List<List<String>> allData = [
+    List<List<String>> personalPlanSectionData = [
       distractions,
       difficultEvents,
       feelBetter,
       makeSafer,
       phoneDescription,
       safeEnvironment,
+      dreamsAndGoals,
     ];
+    final metadataSectionCount = min(
+      personalPlanSectionData.length,
+      min(titles.length, subTitles.length),
+    );
+    personalPlanSectionData = personalPlanSectionData
+        .take(metadataSectionCount)
+        .toList();
+    List<dynamic> allTitles = titles.take(metadataSectionCount).toList();
+    List<dynamic> allSubTitles = subTitles.take(metadataSectionCount).toList();
 
     for (
       var i = 0;
@@ -170,7 +185,7 @@ class FileServiceImpl implements FileService {
       }
       allTitles.add(title);
       allSubTitles.add('');
-      allData.add([description]);
+      personalPlanSectionData.add([description]);
     }
 
     List<dynamic> realTitles = [];
@@ -178,15 +193,17 @@ class FileServiceImpl implements FileService {
     List<List<String>> realData = [];
     for (
       var i = 0;
-      i < allData.length && i < allTitles.length && i < allSubTitles.length;
+      i < personalPlanSectionData.length &&
+          i < allTitles.length &&
+          i < allSubTitles.length;
       i++
     ) {
-      if (allData[i].isEmpty) {
+      if (personalPlanSectionData[i].isEmpty) {
         continue;
       }
       realTitles.add(allTitles[i]);
       realSubTitles.add(allSubTitles[i]);
-      realData.add(allData[i]);
+      realData.add(personalPlanSectionData[i]);
     }
 
     // Retrieve text content for the PDF

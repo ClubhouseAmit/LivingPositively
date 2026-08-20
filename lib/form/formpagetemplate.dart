@@ -1,3 +1,6 @@
+import 'dart:async';
+
+import 'package:flutter/foundation.dart' show listEquals;
 import 'package:flutter/material.dart';
 import 'package:dotted_border/dotted_border.dart';
 import 'package:get_it/get_it.dart';
@@ -5,9 +8,13 @@ import 'package:mazilon/AnalyticsService.dart';
 import 'package:mazilon/global_enums.dart';
 
 import 'package:mazilon/form/wizard_step.dart';
+import 'package:mazilon/form/dreams_and_goals_custom_conflict_dialog.dart';
 import 'package:mazilon/l10n/app_localizations.dart';
 import 'package:mazilon/pages/FormAnswer.dart';
 import 'package:mazilon/util/FormAnswer/addFormAnswer.dart';
+import 'package:mazilon/util/async/persistence_retry_snack_bar.dart';
+import 'package:mazilon/util/dreams_and_goals_selection.dart';
+import 'package:mazilon/util/logger_service.dart';
 import 'package:mazilon/util/persistent_memory_service.dart';
 import 'package:mazilon/util/styles.dart';
 import 'package:mazilon/util/theme/app_theme.dart';
@@ -41,12 +48,14 @@ class FormPageTemplate extends WizardStep {
   final Function prev;
 
   final String collectionName;
+  final bool scrollable;
 
   const FormPageTemplate({
     required super.key,
     required this.next,
     required this.prev,
     required this.collectionName,
+    this.scrollable = true,
   });
 
   @override
@@ -64,6 +73,14 @@ class _FormPageTemplateState extends WizardStepState<FormPageTemplate> {
   int displayedLength = 3;
   List<String> suggestionPool = const [];
   List<String> selectedItems = [];
+  List<String> selectedItemSources = const [];
+  Future<void> _pendingDreamsAndGoalsPersistence = Future<void>.value();
+  int? _pendingDreamsAndGoalsPersistenceRevision;
+  Future<bool>? _pendingDreamsAndGoalsCustomConflictResolution;
+  bool _hasScheduledDreamsAndGoalsCustomConflictDialog = false;
+  int? _resolvedDreamsAndGoalsRevision;
+  List<String> _resolvedDreamsAndGoalsSelections = const [];
+  List<String> _resolvedDreamsAndGoalsSources = const [];
 
   // Identity for the answer rows. Two answers can hold the same text, so a
   // text-derived key is not identity: after swiping one away, the survivor
@@ -101,11 +118,192 @@ class _FormPageTemplateState extends WizardStepState<FormPageTemplate> {
   }
 
   bool isAlreadySelected(String item) {
+    if (_limitsToOneCustomItem) {
+      final index = suggestionPool.indexOf(item);
+      return index >= 0 &&
+          selectedItemSources.contains(
+            dreamsAndGoalsCatalogueSelectionSourceForIndex(index),
+          );
+    }
     return selectedItems.contains(item);
   }
 
+  bool get _limitsToOneCustomItem =>
+      widget.collectionName == 'PersonalPlan-DreamsAndGoals';
+
+  bool get _hasCustomItem =>
+      selectedItemSources.contains(dreamsAndGoalsCustomSelectionSource);
+
+  bool get _canAddOwnItem => !_limitsToOneCustomItem || !_hasCustomItem;
+
+  bool _hasDreamsAndGoalsCustomConflict(UserInformation userInfo) =>
+      _limitsToOneCustomItem &&
+      userInfo.requiresDreamsAndGoalsCustomConflictRecovery;
+
+  void _rememberResolvedDreamsAndGoalsSnapshot(UserInformation userInfo) {
+    _resolvedDreamsAndGoalsRevision = userInfo.dreamsAndGoalsSaveRevision;
+    _resolvedDreamsAndGoalsSelections = List<String>.from(
+      userInfo.dreamsAndGoals,
+    );
+    _resolvedDreamsAndGoalsSources = List<String>.from(
+      userInfo.dreamsAndGoalsSelectionSources,
+    );
+  }
+
+  void _clearResolvedDreamsAndGoalsSnapshot() {
+    _resolvedDreamsAndGoalsRevision = null;
+    _resolvedDreamsAndGoalsSelections = const [];
+    _resolvedDreamsAndGoalsSources = const [];
+  }
+
+  bool _hasUnchangedResolvedDreamsAndGoalsSnapshot(
+    UserInformation userInfo,
+  ) {
+    final int? resolvedRevision = _resolvedDreamsAndGoalsRevision;
+    return _limitsToOneCustomItem &&
+        !userInfo.hasPendingDreamsAndGoalsCustomConflictResolution &&
+        resolvedRevision != null &&
+        resolvedRevision == userInfo.dreamsAndGoalsSaveRevision &&
+        listEquals(
+          _resolvedDreamsAndGoalsSelections,
+          userInfo.dreamsAndGoals,
+        ) &&
+        listEquals(
+          _resolvedDreamsAndGoalsSources,
+          userInfo.dreamsAndGoalsSelectionSources,
+        ) &&
+        listEquals(selectedItems, _resolvedDreamsAndGoalsSelections) &&
+        listEquals(selectedItemSources, _resolvedDreamsAndGoalsSources);
+  }
+
+  Future<bool> _ensureDreamsAndGoalsCustomConflictResolved(
+    UserInformation userInfo,
+  ) {
+    if (userInfo.hasPendingDreamsAndGoalsCustomConflictResolution) {
+      return Future<bool>.value(false);
+    }
+    if (!_hasDreamsAndGoalsCustomConflict(userInfo)) {
+      return Future<bool>.value(true);
+    }
+
+    final pendingResolution = _pendingDreamsAndGoalsCustomConflictResolution;
+    if (pendingResolution != null) {
+      return pendingResolution;
+    }
+
+    final resolution = _resolveDreamsAndGoalsCustomConflict(userInfo);
+    _pendingDreamsAndGoalsCustomConflictResolution = resolution;
+    resolution.then((_) {
+      if (identical(
+        _pendingDreamsAndGoalsCustomConflictResolution,
+        resolution,
+      )) {
+        _pendingDreamsAndGoalsCustomConflictResolution = null;
+      }
+    });
+    return resolution;
+  }
+
+  Future<bool> _resolveDreamsAndGoalsCustomConflict(
+    UserInformation userInfo,
+  ) async {
+    if (!mounted) {
+      return false;
+    }
+    if (userInfo.hasPendingDreamsAndGoalsCustomConflictResolution) {
+      return false;
+    }
+    final customSelectionIndexes =
+        userInfo.dreamsAndGoalsCustomSelectionIndexes;
+    final retainedSelectionIndex = await showDreamsAndGoalsCustomConflictDialog(
+      context,
+      selections: userInfo.dreamsAndGoals,
+      customSelectionIndexes: customSelectionIndexes,
+      gender: userInfo.gender,
+    );
+    if (retainedSelectionIndex == null) {
+      return false;
+    }
+
+    final Future<void> resolution = userInfo
+        .resolveDreamsAndGoalsCustomConflict(retainedSelectionIndex);
+    final int resolvedRevision = userInfo.dreamsAndGoalsSaveRevision;
+    try {
+      await resolution;
+      if (userInfo.dreamsAndGoalsSaveRevision == resolvedRevision &&
+          !userInfo.hasPendingDreamsAndGoalsCustomConflictResolution) {
+        _rememberResolvedDreamsAndGoalsSnapshot(userInfo);
+      }
+    } catch (_) {
+      if (!mounted) {
+        return false;
+      }
+      _showSaveFailure(
+        () => _retryDreamsAndGoalsCustomConflictResolution(userInfo),
+      );
+      return false;
+    }
+
+    if (mounted) {
+      setState(() {
+        loadItems(userInfo);
+        syncRowIds();
+      });
+    }
+    return true;
+  }
+
+  Future<void> _retryDreamsAndGoalsCustomConflictResolution(
+    UserInformation userInfo,
+  ) async {
+    await userInfo.retryDreamsAndGoalsCustomConflictResolution();
+    if (!userInfo.hasPendingDreamsAndGoalsCustomConflictResolution) {
+      _rememberResolvedDreamsAndGoalsSnapshot(userInfo);
+    }
+    if (!mounted) {
+      return;
+    }
+    setState(() {
+      loadItems(userInfo);
+      syncRowIds();
+    });
+  }
+
+  void _scheduleDreamsAndGoalsCustomConflictDialog(
+    UserInformation userInfo,
+  ) {
+    if (_hasScheduledDreamsAndGoalsCustomConflictDialog) {
+      return;
+    }
+    _hasScheduledDreamsAndGoalsCustomConflictDialog = true;
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted || !userInfo.hasDreamsAndGoalsCustomConflict) {
+        return;
+      }
+      unawaited(_ensureDreamsAndGoalsCustomConflictResolved(userInfo));
+    });
+  }
+
   void editItem(int index, String text) {
-    selectedItems[index] = text.trim();
+    if (index < 0 || index >= selectedItems.length) {
+      return;
+    }
+    final editedItem = text.trim();
+    if (_limitsToOneCustomItem && editedItem != selectedItems[index]) {
+      final source = selectedItemSources[index];
+      if (source != dreamsAndGoalsCustomSelectionSource) {
+        final hasAnotherCustomItem = selectedItemSources.indexed.any(
+          (entry) =>
+              entry.$1 != index &&
+              entry.$2 == dreamsAndGoalsCustomSelectionSource,
+        );
+        if (hasAnotherCustomItem) {
+          return;
+        }
+        selectedItemSources[index] = dreamsAndGoalsCustomSelectionSource;
+      }
+    }
+    selectedItems[index] = editedItem;
     setState(() {});
   }
 
@@ -116,12 +314,24 @@ class _FormPageTemplateState extends WizardStepState<FormPageTemplate> {
     // By index, not by value: two answers can hold the same text, and
     // removing by value would delete both.
     selectedItems.removeAt(index);
+    if (_limitsToOneCustomItem) {
+      selectedItemSources.removeAt(index);
+    }
 
     setState(() {});
   }
 
-  void addItem(String text) {
+  void addItem(String text, {String? selectionSource}) {
+    final source = selectionSource ?? dreamsAndGoalsCustomSelectionSource;
+    if (_limitsToOneCustomItem &&
+        source == dreamsAndGoalsCustomSelectionSource &&
+        _hasCustomItem) {
+      return;
+    }
     selectedItems.add(text.trim());
+    if (_limitsToOneCustomItem) {
+      selectedItemSources.add(source);
+    }
 
     setState(() {});
   }
@@ -135,7 +345,43 @@ class _FormPageTemplateState extends WizardStepState<FormPageTemplate> {
     });
   }
 
-  Future<void> createSelection(userInfo) async {
+  Future<void> _saveDreamsAndGoalsWithDisclaimer(
+    UserInformation userInfo, {
+    required int revision,
+    required bool retry,
+  }) {
+    final Future<void> dreamsSave = retry
+        ? userInfo.retryDreamsAndGoalsSave(revision)
+        : userInfo.queueDreamsAndGoalsSave();
+    final Future<void> disclaimerSave = Future<void>.sync(
+      userInfo.persistDisclaimerConfirmed,
+    );
+    final Future<void> combinedSave = Future.wait<void>([
+      dreamsSave,
+      disclaimerSave,
+    ]);
+    _pendingDreamsAndGoalsPersistence = combinedSave;
+    _pendingDreamsAndGoalsPersistenceRevision =
+        userInfo.dreamsAndGoalsSaveRevision;
+    return combinedSave;
+  }
+
+  Future<void> _saveResolvedDreamsAndGoalsDisclaimer(
+    UserInformation userInfo,
+  ) {
+    final Future<void> disclaimerSave = Future<void>.sync(
+      userInfo.persistDisclaimerConfirmed,
+    );
+    _pendingDreamsAndGoalsPersistence = disclaimerSave;
+    _pendingDreamsAndGoalsPersistenceRevision =
+        userInfo.dreamsAndGoalsSaveRevision;
+    return disclaimerSave;
+  }
+
+  Future<void> createSelection(
+    UserInformation userInfo, {
+    void Function(int revision)? onDreamsSaveQueued,
+  }) async {
     PersistentMemoryService service =
         GetIt.instance<
           PersistentMemoryService
@@ -157,13 +403,26 @@ class _FormPageTemplateState extends WizardStepState<FormPageTemplate> {
       case 'PersonalPlan-SafeEnvironment':
         userInfo.updateSafeEnvironment([...selectedItems]);
         break;
+      case 'PersonalPlan-DreamsAndGoals':
+        _clearResolvedDreamsAndGoalsSnapshot();
+        userInfo.updateDreamsAndGoals(
+          selectedItems,
+          selectionSources: selectedItemSources,
+        );
+        selectedItemSources = List<String>.from(
+          userInfo.dreamsAndGoalsSelectionSources,
+        );
+        final int revision = userInfo.dreamsAndGoalsSaveRevision;
+        onDreamsSaveQueued?.call(revision);
+        await _saveDreamsAndGoalsWithDisclaimer(
+          userInfo,
+          revision: revision,
+          retry: false,
+        );
+        return;
       default:
     }
-    await service.setItem(
-      "disclaimerConfirmed",
-      PersistentMemoryType.Bool,
-      true,
-    );
+    await userInfo.persistDisclaimerConfirmed();
     await service.setItem(
       'userSelection${widget.collectionName}',
       PersistentMemoryType.StringList,
@@ -176,7 +435,7 @@ class _FormPageTemplateState extends WizardStepState<FormPageTemplate> {
     );
   }
 
-  void loadItems(userInfo) {
+  void loadItems(UserInformation userInfo) {
     switch (widget.collectionName) {
       case 'PersonalPlan-DifficultEvents':
         selectedItems = [...userInfo.difficultEvents];
@@ -193,7 +452,71 @@ class _FormPageTemplateState extends WizardStepState<FormPageTemplate> {
       case 'PersonalPlan-SafeEnvironment':
         selectedItems = [...userInfo.safeEnvironment];
         break;
+      case 'PersonalPlan-DreamsAndGoals':
+        selectedItems = [...userInfo.dreamsAndGoals];
+        selectedItemSources = [...userInfo.dreamsAndGoalsSelectionSources];
+        break;
       default:
+    }
+  }
+
+  Future<void> _saveSelectionAfterMutation(UserInformation userInfo) async {
+    int? dreamsSaveRevision;
+    try {
+      await createSelection(
+        userInfo,
+        onDreamsSaveQueued: (int revision) {
+          dreamsSaveRevision = revision;
+        },
+      );
+    } catch (_) {
+      if (!mounted) {
+        return;
+      }
+      _showSaveFailure(
+        () => _retrySelectionSave(userInfo, dreamsSaveRevision),
+      );
+    }
+  }
+
+  Future<void> _retrySelectionSave(
+    UserInformation userInfo,
+    int? dreamsSaveRevision,
+  ) async {
+    if (_limitsToOneCustomItem && dreamsSaveRevision != null) {
+      await _saveDreamsAndGoalsWithDisclaimer(
+        userInfo,
+        revision: dreamsSaveRevision,
+        retry: true,
+      );
+      return;
+    }
+    await createSelection(userInfo);
+  }
+
+  void _showSaveFailure(Future<void> Function() retry) {
+    showPersistenceRetrySnackBar(context, () => _runSaveRetry(retry));
+  }
+
+  Future<void> _runSaveRetry(Future<void> Function() retry) async {
+    try {
+      await retry();
+    } catch (error, stackTrace) {
+      await _captureRetryFailure(error, stackTrace);
+      if (mounted) {
+        _showSaveFailure(retry);
+      }
+    }
+  }
+
+  Future<void> _captureRetryFailure(Object error, StackTrace stackTrace) async {
+    try {
+      await GetIt.instance<IncidentLoggerService>().captureLog(
+        error,
+        stackTrace: stackTrace,
+      );
+    } catch (_) {
+      // Logging is best effort; it must not hide the retry affordance.
     }
   }
 
@@ -244,37 +567,87 @@ class _FormPageTemplateState extends WizardStepState<FormPageTemplate> {
             num: index + 1,
             edit: (int editIndex, String text) {
               editItem(editIndex, text);
-              createSelection(userInfoProvider);
+              unawaited(_saveSelectionAfterMutation(userInfoProvider));
             },
             remove: (int removeIndex) {
               removeItem(removeIndex);
-              createSelection(userInfoProvider);
+              unawaited(_saveSelectionAfterMutation(userInfoProvider));
             },
           ),
         //Frame 171 — start-aligned, not centred.
+        if (_canAddOwnItem)
+          Align(
+            alignment: AlignmentDirectional.centerStart,
+            child: LinkButton(
+              () {
+                showDialog(
+                  context: context,
+                  builder: (context) {
+                    return AddFormAnswer(
+                      index: selectedItems.length,
+                      edit: (int index, String text) {
+                        addItem(
+                          text,
+                          selectionSource: dreamsAndGoalsCustomSelectionSource,
+                        );
+                        unawaited(_saveSelectionAfterMutation(userInfoProvider));
+                      },
+                      text: '',
+                    );
+                  },
+                );
+              },
+              Icons.add,
+              widget.collectionName == 'PersonalPlan-DreamsAndGoals'
+                  ? appLocale.dreamsAndGoalsAddOwn(gender)
+                  : appLocale.addFormPageTemplateAddOwn(gender),
+              Theme.of(context).colorScheme.primary,
+              designFontSize: 12,
+              iconSize: 12,
+            ),
+          ),
+      ],
+    );
+  }
+
+  Widget _buildDreamsAndGoalsCustomConflictGate(
+    UserInformation userInfoProvider,
+    String gender,
+  ) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      spacing: _gapWithinBlock,
+      children: [
+        Text(
+          appLocale.dreamsAndGoalsCustomConflictMessage(gender),
+          textAlign: TextAlign.center,
+        ),
         Align(
-          alignment: AlignmentDirectional.centerStart,
-          child: LinkButton(
-            () {
-              showDialog(
-                context: context,
-                builder: (context) {
-                  return AddFormAnswer(
-                    index: selectedItems.length,
-                    edit: (int index, String text) {
-                      addItem(text);
-                      createSelection(userInfoProvider);
-                    },
-                    text: '',
-                  );
-                },
+          alignment: Alignment.center,
+          child: TextButton(
+            key: const Key('dreams-and-goals-custom-conflict-resolve'),
+            onPressed: () {
+              if (userInfoProvider
+                  .hasPendingDreamsAndGoalsCustomConflictResolution) {
+                unawaited(
+                  _runSaveRetry(
+                    () => _retryDreamsAndGoalsCustomConflictResolution(
+                      userInfoProvider,
+                    ),
+                  ),
+                );
+                return;
+              }
+              unawaited(
+                _ensureDreamsAndGoalsCustomConflictResolved(userInfoProvider),
               );
             },
-            Icons.add,
-            appLocale.addFormPageTemplateAddOwn(gender),
-            Theme.of(context).colorScheme.primary,
-            designFontSize: 12,
-            iconSize: 12,
+            child: Text(
+              userInfoProvider
+                      .hasPendingDreamsAndGoalsCustomConflictResolution
+                  ? appLocale.asyncRetryButton
+                  : appLocale.dreamsAndGoalsCustomConflictSelect(gender),
+            ),
           ),
         ),
       ],
@@ -347,10 +720,14 @@ class _FormPageTemplateState extends WizardStepState<FormPageTemplate> {
     return InkWell(
       key: ValueKey('suggestion-$item'),
       onTap: () {
-        setState(() {
-          addItem(item);
-          createSelection(userInfoProvider);
-        });
+        final index = suggestionPool.indexOf(item);
+        addItem(
+          item,
+          selectionSource: _limitsToOneCustomItem
+              ? dreamsAndGoalsCatalogueSelectionSourceForIndex(index)
+              : null,
+        );
+        unawaited(_saveSelectionAfterMutation(userInfoProvider));
       },
       child: DottedBorder(
         options: RoundedRectDottedBorderOptions(
@@ -398,12 +775,98 @@ class _FormPageTemplateState extends WizardStepState<FormPageTemplate> {
       context,
       listen: false,
     );
+    if (!await _ensureDreamsAndGoalsCustomConflictResolved(userInfoProvider)) {
+      return;
+    }
     AnalyticsService mixPanelService = GetIt.instance<AnalyticsService>();
     mixPanelService.trackEvent("Plan edited", {'page': widget.collectionName});
-    // Saved before moving on, so the step cannot be left behind with its
-    // answers still in flight.
-    await createSelection(userInfoProvider);
-    widget.next();
+    int? dreamsSaveRevision;
+    try {
+      if (_hasUnchangedResolvedDreamsAndGoalsSnapshot(userInfoProvider)) {
+        await _saveResolvedDreamsAndGoalsDisclaimer(userInfoProvider);
+      } else {
+        await createSelection(
+          userInfoProvider,
+          onDreamsSaveQueued: (int revision) {
+            dreamsSaveRevision = revision;
+          },
+        );
+      }
+      if (mounted) {
+        widget.next();
+      }
+    } catch (_) {
+      if (mounted) {
+        _showSaveFailure(
+          () => _completePrimaryAction(
+            userInfoProvider,
+            dreamsSaveRevision,
+          ),
+        );
+      }
+      rethrow;
+    }
+  }
+
+  Future<void> _completePrimaryAction(
+    UserInformation userInfoProvider,
+    int? dreamsSaveRevision,
+  ) async {
+    if (_hasUnchangedResolvedDreamsAndGoalsSnapshot(userInfoProvider)) {
+      await _saveResolvedDreamsAndGoalsDisclaimer(userInfoProvider);
+    } else if (_limitsToOneCustomItem && dreamsSaveRevision != null) {
+      await _retrySelectionSave(userInfoProvider, dreamsSaveRevision);
+    } else {
+      await createSelection(userInfoProvider);
+    }
+    if (mounted) {
+      widget.next();
+    }
+  }
+
+  @override
+  Future<void> persistBeforeExit() async {
+    if (!_limitsToOneCustomItem) {
+      return;
+    }
+    final UserInformation userInfoProvider = Provider.of<UserInformation>(
+      context,
+      listen: false,
+    );
+    await Future.wait<void>([
+      userInfoProvider.pendingDreamsAndGoalsSave,
+      _pendingDreamsAndGoalsPersistence,
+    ]);
+  }
+
+  @override
+  Future<void> retryPersistBeforeExit() async {
+    if (!_limitsToOneCustomItem) {
+      return;
+    }
+    final UserInformation userInfoProvider = Provider.of<UserInformation>(
+      context,
+      listen: false,
+    );
+    if (userInfoProvider.hasPendingDreamsAndGoalsCustomConflictResolution) {
+      await userInfoProvider.retryDreamsAndGoalsCustomConflictResolution();
+      if (!userInfoProvider
+          .hasPendingDreamsAndGoalsCustomConflictResolution) {
+        _rememberResolvedDreamsAndGoalsSnapshot(userInfoProvider);
+      }
+      return;
+    }
+    if (_hasUnchangedResolvedDreamsAndGoalsSnapshot(userInfoProvider)) {
+      await _saveResolvedDreamsAndGoalsDisclaimer(userInfoProvider);
+      return;
+    }
+    await _saveDreamsAndGoalsWithDisclaimer(
+      userInfoProvider,
+      revision:
+          _pendingDreamsAndGoalsPersistenceRevision ??
+          userInfoProvider.dreamsAndGoalsSaveRevision,
+      retry: true,
+    );
   }
 
   @override
@@ -420,30 +883,43 @@ class _FormPageTemplateState extends WizardStepState<FormPageTemplate> {
       appLocale,
     );
     suggestionPool = (displayInformation['list'] as List).cast<String>();
-    loadItems(userInfoProvider);
-    syncRowIds();
+    final hasDreamsAndGoalsCustomConflict = _hasDreamsAndGoalsCustomConflict(
+      userInfoProvider,
+    );
+    if (userInfoProvider.hasDreamsAndGoalsCustomConflict) {
+      _scheduleDreamsAndGoalsCustomConflictDialog(userInfoProvider);
+    } else if (!hasDreamsAndGoalsCustomConflict) {
+      _hasScheduledDreamsAndGoalsCustomConflictDialog = false;
+      loadItems(userInfoProvider);
+      syncRowIds();
+    } else {
+      _hasScheduledDreamsAndGoalsCustomConflictDialog = false;
+    }
     //suggestions still available to pick — a suggestion drops out of this
     final availableSuggestions = suggestionPool
         .take(revealedSuggestions)
         .where((item) => !isAlreadySelected(item))
         .toList();
 
-    return SingleChildScrollView(
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.stretch,
-        spacing: _gapBetweenBlocks,
-        children: [
-          _buildTitleBlock(displayInformation),
+    final content = Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      spacing: _gapBetweenBlocks,
+      children: [
+        _buildTitleBlock(displayInformation),
+        if (hasDreamsAndGoalsCustomConflict)
+          _buildDreamsAndGoalsCustomConflictGate(userInfoProvider, gender)
+        else
           _buildItemsBlock(userInfoProvider, gender),
-          if (availableSuggestions.isNotEmpty ||
-              revealedSuggestions < suggestionPool.length)
-            _buildSuggestionsBlock(
-              displayInformation,
-              availableSuggestions,
-              userInfoProvider,
-            ),
-        ],
-      ),
+        if (!hasDreamsAndGoalsCustomConflict &&
+            (availableSuggestions.isNotEmpty ||
+                revealedSuggestions < suggestionPool.length))
+          _buildSuggestionsBlock(
+            displayInformation,
+            availableSuggestions,
+            userInfoProvider,
+          ),
+      ],
     );
+    return widget.scrollable ? SingleChildScrollView(child: content) : content;
   }
 }

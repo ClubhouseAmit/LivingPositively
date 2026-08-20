@@ -224,6 +224,7 @@ void main() {
         localizations.makeSaferHeader('male'),
         localizations.phonesPageHeader('male'),
         localizations.safeEnvironmentHeader('male'),
+        localizations.dreamsAndGoalsHeader('male'),
       ]);
       expect(captured[1], <String>[
         localizations.distractionsSubTitle('male'),
@@ -232,6 +233,7 @@ void main() {
         localizations.makeSaferSubTitle('male'),
         localizations.phonesPageSubTitle('male'),
         localizations.safeEnvironmentSubTitle('male'),
+        localizations.dreamsAndGoalsSubTitle('male'),
       ]);
     });
   });

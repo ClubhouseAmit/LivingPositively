@@ -53,6 +53,7 @@ class _MyPlanPageFullState extends LPExtendedState<MyPlanPageFull> {
     'PersonalPlan-FeelBetter',
     'PersonalPlan-MakeSafer',
     'PersonalPlan-SafeEnvironment',
+    'PersonalPlan-DreamsAndGoals',
   ];
 
   // Names for the providers managing each section
@@ -62,6 +63,7 @@ class _MyPlanPageFullState extends LPExtendedState<MyPlanPageFull> {
     'feelBetter',
     'makeSafer',
     'safeEnvironment',
+    'dreamsAndGoals',
   ];
 
   // Retrieve the user's answers for each section and update the state
@@ -71,6 +73,7 @@ class _MyPlanPageFullState extends LPExtendedState<MyPlanPageFull> {
     userSelectionFeelBetter,
     userSelectionMakeSafer,
     userSelectionSafeEnvironment,
+    userSelectionDreamsAndGoals,
   ) {
     setState(() {
       userAnswers = [
@@ -79,6 +82,7 @@ class _MyPlanPageFullState extends LPExtendedState<MyPlanPageFull> {
         userSelectionFeelBetter,
         userSelectionMakeSafer,
         userSelectionSafeEnvironment,
+        userSelectionDreamsAndGoals,
       ];
     });
   }
@@ -168,11 +172,17 @@ class _MyPlanPageFullState extends LPExtendedState<MyPlanPageFull> {
       userInfoProvider.feelBetter,
       userInfoProvider.makeSafer,
       userInfoProvider.safeEnvironment,
+      userInfoProvider.dreamsAndGoals,
     );
 
     final gender = userInfoProvider.gender;
     final safeEnvironmentInfo = retrieveInformation(
       fieldNames[4],
+      userInfoProvider.gender,
+      appLocale,
+    );
+    final dreamsAndGoalsInfo = retrieveInformation(
+      fieldNames[5],
       userInfoProvider.gender,
       appLocale,
     );
@@ -247,6 +257,12 @@ class _MyPlanPageFullState extends LPExtendedState<MyPlanPageFull> {
               subTitle: safeEnvironmentInfo["subTitle"] ?? '',
               answers: userAnswers[4],
             ),
+            if (userAnswers[5].isNotEmpty)
+              MyPlanSection(
+                title: dreamsAndGoalsInfo["header"] ?? '',
+                subTitle: dreamsAndGoalsInfo["subTitle"] ?? '',
+                answers: userAnswers[5],
+              ),
             ...customCategories.map(
               (category) => MyPlanSection(
                 title: category.key,

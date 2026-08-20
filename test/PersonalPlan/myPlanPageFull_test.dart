@@ -51,6 +51,7 @@ void main() {
     userInformation.feelBetter = ['Walk'];
     userInformation.distractions = ['Music', 'Reading'];
     userInformation.safeEnvironment = ['Store medications safely'];
+    userInformation.dreamsAndGoals = ['Write and publish a book'];
 
     appInformation = AppInformation();
   });
@@ -59,7 +60,7 @@ void main() {
     resetTestServices();
   });
 
-  testWidgets('MyPlanPageFull renders six default sections in plan order', (
+  testWidgets('MyPlanPageFull renders seven default sections in plan order', (
     tester,
   ) async {
     final phoneData = _emptyPhonePageData();
@@ -80,8 +81,8 @@ void main() {
 
     expect(find.byType(MyPlanPageFull), findsOneWidget);
     // Symptoms, triggers, wellness, environmental support, contacts, then
-    // Safe Environment.
-    expect(find.byType(MyPlanSection), findsNWidgets(6));
+    // Safe Environment, then Dreams and Goals.
+    expect(find.byType(MyPlanSection), findsNWidgets(7));
     final sections = tester
         .widgetList<MyPlanSection>(find.byType(MyPlanSection))
         .toList();
@@ -91,9 +92,33 @@ void main() {
     expect(sections[3].answers, ['Remove sharp objects']);
     expect(sections[4].answers, isEmpty);
     expect(sections[5].answers, ['Store medications safely']);
+    expect(sections[6].answers, ['Write and publish a book']);
   });
 
-  testWidgets('custom categories are rendered after Safe Environment', (
+  testWidgets('omits Dreams and Goals for a legacy plan with no answers', (
+    tester,
+  ) async {
+    userInformation.dreamsAndGoals = [];
+
+    await pumpWithProviders(
+      tester,
+      MyPlanPageFull(
+        phonePageData: _emptyPhonePageData(),
+        hasFilled: true,
+        changeLocale: (_) {},
+      ),
+      userInformation: userInformation,
+      appInformation: appInformation,
+      surfaceSize: const Size(1024, 2400),
+    );
+    await tester.pump();
+    drainOverflowExceptions(tester);
+
+    expect(find.byType(MyPlanSection), findsNWidgets(6));
+    expect(find.text('Dreams, Aspirations, and Goals'), findsNothing);
+  });
+
+  testWidgets('custom categories are rendered after Dreams and Goals', (
     tester,
   ) async {
     final memory = GetIt.instance<PersistentMemoryService>();
@@ -124,10 +149,11 @@ void main() {
     final sections = tester
         .widgetList<MyPlanSection>(find.byType(MyPlanSection))
         .toList();
-    expect(sections, hasLength(7));
+    expect(sections, hasLength(8));
     expect(sections[5].answers, ['Store medications safely']);
-    expect(sections[6].title, 'My custom category');
-    expect(sections[6].answers, ['My custom category note']);
+    expect(sections[6].answers, ['Write and publish a book']);
+    expect(sections[7].title, 'My custom category');
+    expect(sections[7].answers, ['My custom category note']);
   });
 
   testWidgets('hasFilled=true and hasFilled=false render different button '
