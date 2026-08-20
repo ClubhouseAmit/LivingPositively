@@ -34,7 +34,7 @@ import 'package:mazilon/l10n/app_localizations.dart';
 import 'package:mazilon/pages/notifications/notification_service.dart';
 import 'package:mazilon/util/logger_service.dart';
 import 'package:mazilon/util/userInformation.dart';
-import '../test/helpers/contract_persistent_memory_service.dart';
+import '../test_support/contract_persistent_memory_service.dart';
 // ignore: depend_on_referenced_packages
 import 'package:workmanager_android/workmanager_android.dart';
 // ignore: depend_on_referenced_packages
@@ -141,7 +141,7 @@ class _RecordingLogger implements IncidentLoggerService {
   Future<void> initializeSentry(Widget app) async {}
 }
 
-class _NoopPersistentMemoryService extends ContractPersistentMemoryService {
+final class _NoopPersistentMemoryService extends ContractPersistentMemoryService {
   _NoopPersistentMemoryService() {
     onMissingRead = (_, _) => null;
   }

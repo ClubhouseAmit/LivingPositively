@@ -4,7 +4,7 @@ import 'package:mazilon/util/Firebase/firebase_functions.dart';
 import 'package:mazilon/util/persistent_memory_service.dart';
 import 'package:mazilon/util/userInformation.dart';
 
-import '../helpers/contract_persistent_memory_service.dart';
+import '../../test_support/contract_persistent_memory_service.dart';
 
 void main() {
   tearDown(() async {

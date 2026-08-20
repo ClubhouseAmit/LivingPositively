@@ -20,7 +20,7 @@ import 'package:mazilon/util/persistent_memory_service.dart';
 import 'package:mazilon/util/userInformation.dart';
 import 'package:provider/provider.dart';
 
-import '../helpers/contract_persistent_memory_service.dart';
+import '../../test_support/contract_persistent_memory_service.dart';
 import '../helpers/widget_test_scaffold.dart';
 
 PhonePageData _phoneData() => PhonePageData(
@@ -37,26 +37,28 @@ PhonePageData _phoneData() => PhonePageData(
   phoneDescription: const <String>[],
 );
 
-abstract class _FormNavigationPersistentMemoryService
+abstract base class _FormNavigationPersistentMemoryService
     extends ContractPersistentMemoryService {
-  @override
-  dynamic missingValueFor(String _, PersistentMemoryType type) {
-    switch (type) {
-      case PersistentMemoryType.String:
-        return '';
-      case PersistentMemoryType.Int:
-        return 0;
-      case PersistentMemoryType.Double:
-        return 0.0;
-      case PersistentMemoryType.Bool:
-        return false;
-      case PersistentMemoryType.StringList:
-        return <String>[];
-    }
+  _FormNavigationPersistentMemoryService() {
+    onMissingRead = (_, PersistentMemoryType type) {
+      switch (type) {
+        case PersistentMemoryType.String:
+          return '';
+        case PersistentMemoryType.Int:
+          return 0;
+        case PersistentMemoryType.Double:
+          return 0.0;
+        case PersistentMemoryType.Bool:
+          return false;
+        case PersistentMemoryType.StringList:
+          return <String>[];
+      }
+    };
   }
 }
 
-class _HeldDreamsMemoryService extends _FormNavigationPersistentMemoryService {
+final class _HeldDreamsMemoryService
+    extends _FormNavigationPersistentMemoryService {
   final Completer<void> _firstDreamsSelectionWrite = Completer<void>();
   final Completer<void> firstDreamsSelectionWriteStarted = Completer<void>();
   bool _holdFirstDreamsSelectionWrite = true;
@@ -79,7 +81,7 @@ class _HeldDreamsMemoryService extends _FormNavigationPersistentMemoryService {
   }
 }
 
-class _HeldDisclaimerMemoryService
+final class _HeldDisclaimerMemoryService
     extends _FormNavigationPersistentMemoryService {
   final Completer<void> _disclaimerWrite = Completer<void>();
   final Completer<void> disclaimerWriteStarted = Completer<void>();
@@ -102,7 +104,7 @@ class _HeldDisclaimerMemoryService
   }
 }
 
-class _FailFirstDisclaimerMemoryService
+final class _FailFirstDisclaimerMemoryService
     extends _FormNavigationPersistentMemoryService {
   bool _hasFailed = false;
   int disclaimerWrites = 0;
@@ -120,7 +122,7 @@ class _FailFirstDisclaimerMemoryService
   }
 }
 
-class _FailFirstDreamsMemoryService
+final class _FailFirstDreamsMemoryService
     extends _FormNavigationPersistentMemoryService {
   bool _hasFailed = false;
 
@@ -134,7 +136,8 @@ class _FailFirstDreamsMemoryService
   }
 }
 
-class _FailingNameMemoryService extends _FormNavigationPersistentMemoryService {
+final class _FailingNameMemoryService
+    extends _FormNavigationPersistentMemoryService {
   bool failNameWrite = true;
 
   _FailingNameMemoryService() {
@@ -146,7 +149,8 @@ class _FailingNameMemoryService extends _FormNavigationPersistentMemoryService {
   }
 }
 
-class _HeldNameMemoryService extends _FormNavigationPersistentMemoryService {
+final class _HeldNameMemoryService
+    extends _FormNavigationPersistentMemoryService {
   final Completer<void> _nameWrite = Completer<void>();
   final Completer<void> nameWriteStarted = Completer<void>();
 

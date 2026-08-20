@@ -28,7 +28,7 @@ import 'package:mazilon/util/persistent_memory_service.dart';
 import 'package:mazilon/util/userInformation.dart';
 import 'package:provider/provider.dart';
 
-import '../helpers/contract_persistent_memory_service.dart';
+import '../../test_support/contract_persistent_memory_service.dart';
 
 class _NoOpLogger implements IncidentLoggerService {
   @override
@@ -51,7 +51,8 @@ class _NoOpAnalytics implements AnalyticsService {
   ]) async {}
 }
 
-class _FakePersistentMemoryService extends ContractPersistentMemoryService {
+final class _FakePersistentMemoryService
+    extends ContractPersistentMemoryService {
   _FakePersistentMemoryService() {
     onMissingRead = (String _, PersistentMemoryType type) {
       switch (type) {

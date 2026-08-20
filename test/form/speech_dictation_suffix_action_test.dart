@@ -10,7 +10,7 @@ import 'package:mazilon/l10n/app_localizations.dart';
 import 'package:mazilon/util/persistent_memory_service.dart';
 import 'package:mazilon/util/speech_recognition_service.dart';
 
-import '../helpers/contract_persistent_memory_service.dart';
+import '../../test_support/contract_persistent_memory_service.dart';
 
 void main() {
   TestWidgetsFlutterBinding.ensureInitialized();

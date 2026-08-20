@@ -1,10 +1,10 @@
 import 'package:url_launcher_platform_interface/link.dart';
 import 'package:url_launcher_platform_interface/url_launcher_platform_interface.dart';
 
-import 'contract_persistent_memory_service.dart';
+import '../../test_support/contract_persistent_memory_service.dart';
 
 /// In-memory persistence used by SOS and emergency-delivery widget tests.
-class FakePersistentMemoryService extends ContractPersistentMemoryService {
+final class FakePersistentMemoryService extends ContractPersistentMemoryService {
   FakePersistentMemoryService() {
     onMissingRead = (_, _) => null;
   }

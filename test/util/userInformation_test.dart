@@ -5,9 +5,10 @@ import 'package:mazilon/global_enums.dart';
 import 'package:mazilon/util/dreams_and_goals_selection.dart';
 import 'package:mazilon/util/userInformation.dart';
 
-import '../helpers/contract_persistent_memory_service.dart';
+import '../../test_support/contract_persistent_memory_service.dart';
 
-class _FakePersistentMemoryService extends ContractPersistentMemoryService {
+base class _FakePersistentMemoryService
+    extends ContractPersistentMemoryService {
   _FakePersistentMemoryService() {
     onMissingRead = (_, _) => null;
   }
@@ -29,7 +30,8 @@ class _FakePersistentMemoryService extends ContractPersistentMemoryService {
   }
 }
 
-class _DelayedDreamsMemoryService extends _FakePersistentMemoryService {
+final class _DelayedDreamsMemoryService
+    extends _FakePersistentMemoryService {
   _DelayedDreamsMemoryService({this._failFirstEmptySelectionWrite = false}) {
     onPersist = (String key, PersistentMemoryType type, Object value) async {
       if (key != dreamsAndGoalsSelectionStorageKey) {
@@ -66,7 +68,8 @@ class _DelayedDreamsMemoryService extends _FakePersistentMemoryService {
   }
 }
 
-class _FailingPersistentMemoryService extends _FakePersistentMemoryService {
+final class _FailingPersistentMemoryService
+    extends _FakePersistentMemoryService {
   _FailingPersistentMemoryService() {
     onPersist = (String key, PersistentMemoryType type, Object value) {
       restoreDurableValue(key);
@@ -75,7 +78,7 @@ class _FailingPersistentMemoryService extends _FakePersistentMemoryService {
   }
 }
 
-class _FailingFirstDreamsSelectionMemoryService
+final class _FailingFirstDreamsSelectionMemoryService
     extends _FakePersistentMemoryService {
   _FailingFirstDreamsSelectionMemoryService() {
     onPersist = (String key, PersistentMemoryType type, Object value) {

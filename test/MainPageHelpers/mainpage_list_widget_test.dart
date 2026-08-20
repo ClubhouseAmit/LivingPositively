@@ -10,7 +10,7 @@ import 'package:mazilon/util/logger_service.dart';
 import 'package:mazilon/util/userInformation.dart';
 import 'package:provider/provider.dart';
 
-import '../helpers/contract_persistent_memory_service.dart';
+import '../../test_support/contract_persistent_memory_service.dart';
 
 class _NoOpLogger implements IncidentLoggerService {
   @override

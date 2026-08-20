@@ -17,7 +17,7 @@ import 'package:url_launcher_platform_interface/url_launcher_platform_interface.
 
 import 'TestMenu.dart';
 import 'test_data.dart';
-import '../helpers/contract_persistent_memory_service.dart';
+import '../../test_support/contract_persistent_memory_service.dart';
 
 class _FakeAnalyticsService implements AnalyticsService {
   @override
@@ -30,7 +30,8 @@ class _FakeAnalyticsService implements AnalyticsService {
   ]) async {}
 }
 
-class _FakePersistentMemoryService extends ContractPersistentMemoryService {
+final class _FakePersistentMemoryService
+    extends ContractPersistentMemoryService {
   _FakePersistentMemoryService({super.initialValues}) {
     onMissingRead = (String key, PersistentMemoryType type) {
       throw StateError(

@@ -33,32 +33,30 @@ import 'package:provider/provider.dart';
 import 'package:share_plus/share_plus.dart';
 import 'package:flutter_test/flutter_test.dart';
 
-import 'contract_persistent_memory_service.dart';
+import '../../test_support/contract_persistent_memory_service.dart';
 
 /// In-memory implementation of [PersistentMemoryService] backed by a [Map].
 ///
 /// Avoids reaching for shared_preferences platform channels in widget tests
 /// while still exercising the real [setItem]/[getItem]/[reset] code paths in
 /// the widgets under test.
-class FakePersistentMemoryService extends ContractPersistentMemoryService {
-  FakePersistentMemoryService() : super(ignoreInvalidWrites: true);
-
-  @override
-  dynamic missingValueFor(String key, PersistentMemoryType type) {
-    switch (type) {
-      case PersistentMemoryType.String:
-        return '';
-      case PersistentMemoryType.Int:
-        return 0;
-      case PersistentMemoryType.Double:
-        return 0.0;
-      case PersistentMemoryType.Bool:
-        return false;
-      case PersistentMemoryType.StringList:
-        return <String>[];
-    }
+base class FakePersistentMemoryService extends ContractPersistentMemoryService {
+  FakePersistentMemoryService() : super(ignoreInvalidWrites: true) {
+    onMissingRead = (_, PersistentMemoryType type) {
+      switch (type) {
+        case PersistentMemoryType.String:
+          return '';
+        case PersistentMemoryType.Int:
+          return 0;
+        case PersistentMemoryType.Double:
+          return 0.0;
+        case PersistentMemoryType.Bool:
+          return false;
+        case PersistentMemoryType.StringList:
+          return <String>[];
+      }
+    };
   }
-
 }
 
 /// [FakePersistentMemoryService] whose `localeName` read is held open until the
@@ -72,15 +70,16 @@ class FakePersistentMemoryService extends ContractPersistentMemoryService {
 /// that worse. Gating the one read that drives the branch makes the loading
 /// state stable for as many frames as the assertion needs; completing the gate
 /// then exercises the transition out of it.
-class GatedLocalePersistentMemoryService extends FakePersistentMemoryService {
+final class GatedLocalePersistentMemoryService
+    extends FakePersistentMemoryService {
   final Completer<void> localeGate = Completer<void>();
 
-  @override
-  Future<dynamic> getItem(String key, PersistentMemoryType type) async {
-    if (key == 'localeName') {
-      await localeGate.future;
-    }
-    return super.getItem(key, type);
+  GatedLocalePersistentMemoryService() {
+    onRead = (String key, PersistentMemoryType _) async {
+      if (key == 'localeName') {
+        await localeGate.future;
+      }
+    };
   }
 }
 

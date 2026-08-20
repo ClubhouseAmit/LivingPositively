@@ -25,11 +25,13 @@ import 'package:share_plus/share_plus.dart';
 
 import 'MenuTest/TestMenu.dart';
 import 'MenuTest/test_data.dart';
-import 'helpers/contract_persistent_memory_service.dart';
+import '../test_support/contract_persistent_memory_service.dart';
 import 'helpers/widget_test_scaffold.dart';
 
-class _FakePm extends ContractPersistentMemoryService {
-  _FakePm({Map<String, dynamic>? init}) : super(initialValues: init) {
+final class _FakePersistentMemoryService
+    extends ContractPersistentMemoryService {
+  _FakePersistentMemoryService({Map<String, dynamic>? init})
+    : super(initialValues: init) {
     onMissingRead = (String _, PersistentMemoryType type) {
       switch (type) {
         case PersistentMemoryType.String:
@@ -95,7 +97,7 @@ void main() {
     getIt.registerLazySingleton<AnalyticsService>(() => analytics);
     getIt.registerLazySingleton<FileService>(() => _FakeFiles());
     getIt.registerLazySingleton<PersistentMemoryService>(
-      () => _FakePm(
+      () => _FakePersistentMemoryService(
         init: {
           'hasFilled': false,
           'location': '',

@@ -1,6 +1,5 @@
 import 'package:flutter_test/flutter_test.dart';
 import 'package:get_it/get_it.dart';
-import 'package:mazilon/global_enums.dart';
 import 'package:mazilon/l10n/app_localizations_ar.dart';
 import 'package:mazilon/l10n/app_localizations_en.dart';
 import 'package:mazilon/l10n/app_localizations_he.dart';
@@ -11,7 +10,7 @@ import 'package:mazilon/util/persistent_memory_service.dart';
 import 'package:mazilon/util/userInformation.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
-import '../helpers/contract_persistent_memory_service.dart';
+import '../../test_support/contract_persistent_memory_service.dart';
 
 // ---------------------------------------------------------------------------
 // Fakes
@@ -36,7 +35,7 @@ class _FakeLogger implements IncidentLoggerService {
 }
 
 /// A fake [PersistentMemoryService] backed by an in-memory map.
-class _FakeMemory extends ContractPersistentMemoryService {
+final class _FakeMemory extends ContractPersistentMemoryService {
   bool failDreamsAndGoalsWrites;
 
   _FakeMemory(
@@ -50,14 +49,6 @@ class _FakeMemory extends ContractPersistentMemoryService {
         throw StateError('Dreams and Goals storage is unavailable.');
       }
     };
-  }
-
-  @override
-  Future<dynamic> getItem(String key, PersistentMemoryType type) async {
-    if (store.containsKey(key)) {
-      return store[key];
-    }
-    return super.getItem(key, type);
   }
 }
 
@@ -409,12 +400,11 @@ void main() {
 
   group('loadUserInformation – empty / null defaults', () {
     test(
-      'uses the default schedule when saved values are absent or invalid',
+      'uses the default schedule when saved values are absent',
       () async {
         _registerFakes(
           store: {
             'darkModePreference': 'scheduled',
-            'darkModeStartHour': 'not-an-int',
           },
         );
 
@@ -426,6 +416,32 @@ void main() {
         expect(userInfo.darkModeStartMinute, 0);
         expect(userInfo.darkModeEndHour, 6);
         expect(userInfo.darkModeEndMinute, 0);
+      },
+    );
+
+    test(
+      'defaults and logs an invalid typed SharedPreferences value',
+      () async {
+        SharedPreferences.setMockInitialValues({
+          'darkModePreference': 'scheduled',
+          'darkModeStartHour': 'not-an-int',
+        });
+        final logger = _FakeLogger();
+        final memory = SharedPreferencesService();
+        GetIt.instance.registerSingleton<IncidentLoggerService>(logger);
+        GetIt.instance.registerSingleton<PersistentMemoryService>(memory);
+
+        final userInfo = UserInformation(service: memory);
+        await loadUserInformation(userInfo, 'en');
+        await Future<void>.delayed(Duration.zero);
+
+        expect(userInfo.darkModePreference, DarkModePreference.scheduled);
+        expect(userInfo.darkModeStartHour, 22);
+        expect(userInfo.darkModeStartMinute, 0);
+        expect(userInfo.darkModeEndHour, 6);
+        expect(userInfo.darkModeEndMinute, 0);
+        expect(logger.capturedExceptions, hasLength(1));
+        expect(logger.capturedStackTraces.single, isNotNull);
       },
     );
 

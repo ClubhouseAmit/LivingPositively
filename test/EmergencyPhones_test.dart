@@ -6,9 +6,10 @@ import 'package:mazilon/util/Phone/EmergencyPhones.dart';
 import 'package:mazilon/util/userInformation.dart';
 import 'package:provider/provider.dart';
 
-import 'helpers/contract_persistent_memory_service.dart';
+import '../test_support/contract_persistent_memory_service.dart';
 
-class _FakePersistentMemoryService extends ContractPersistentMemoryService {
+final class _FakePersistentMemoryService
+    extends ContractPersistentMemoryService {
   _FakePersistentMemoryService() {
     onMissingRead = (_, _) => null;
   }

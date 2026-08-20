@@ -26,9 +26,10 @@ abstract class PersistentMemoryService {
 
   /// Clears persisted values after earlier accepted writes complete.
   ///
-  /// Concurrent callers join the active reset. A reset error propagates to its
-  /// callers, and its failure does not prevent a later accepted operation from
-  /// running. The reset fence reopens after the reset succeeds or fails.
+  /// Concurrent callers join the active reset, and new writes are rejected
+  /// while it is active. A reset error propagates to its callers, and its
+  /// failure does not prevent a later accepted operation from running. The
+  /// reset fence reopens after the reset succeeds or fails.
   Future<void> reset();
 }
 

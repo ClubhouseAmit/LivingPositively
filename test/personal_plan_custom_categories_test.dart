@@ -12,9 +12,9 @@ import 'package:mazilon/util/persistent_memory_service.dart';
 import 'package:mazilon/util/userInformation.dart';
 import 'package:provider/provider.dart';
 
-import 'helpers/contract_persistent_memory_service.dart';
+import '../test_support/contract_persistent_memory_service.dart';
 
-class _MemoryService extends ContractPersistentMemoryService {
+final class _MemoryService extends ContractPersistentMemoryService {
   _MemoryService(Map<String, dynamic> values) : super(initialValues: values) {
     onMissingRead = (String _, PersistentMemoryType type) {
       switch (type) {

@@ -66,6 +66,48 @@ Widget _darkModeSettingsHarness(UserInformation userInformation) {
   );
 }
 
+const Duration _darkModePersistenceTimeout = Duration(seconds: 5);
+
+/// Waits for the platform-backed preference store to contain [preference] and
+/// its complete schedule.
+///
+/// Reloading avoids passing from the legacy [SharedPreferences] memory cache
+/// before the asynchronous Android write has completed. The loop yields test
+/// frames and has a deadline rather than relying on a fixed delay.
+Future<void> _waitForDurableDarkModeSettings(
+  WidgetTester tester,
+  SharedPreferences preferences, {
+  required DarkModePreference preference,
+  required int startHour,
+  required int startMinute,
+  required int endHour,
+  required int endMinute,
+}) async {
+  final Stopwatch stopwatch = Stopwatch()..start();
+  while (stopwatch.elapsed < _darkModePersistenceTimeout) {
+    final Duration remaining = _darkModePersistenceTimeout - stopwatch.elapsed;
+    await preferences.reload().timeout(remaining);
+    if (preferences.getString('darkModePreference') == preference.name &&
+        preferences.getInt('darkModeStartHour') == startHour &&
+        preferences.getInt('darkModeStartMinute') == startMinute &&
+        preferences.getInt('darkModeEndHour') == endHour &&
+        preferences.getInt('darkModeEndMinute') == endMinute) {
+      return;
+    }
+    await tester.pump();
+  }
+
+  fail(
+    'Dark-mode settings did not durably persist within '
+    '$_darkModePersistenceTimeout: '
+    'preference=${preferences.getString('darkModePreference')}, '
+    'start=${preferences.getInt('darkModeStartHour')}:'
+    '${preferences.getInt('darkModeStartMinute')}, '
+    'end=${preferences.getInt('darkModeEndHour')}:'
+    '${preferences.getInt('darkModeEndMinute')}.',
+  );
+}
+
 void main() {
   final binding = IntegrationTestWidgetsFlutterBinding.ensureInitialized();
   binding.framePolicy = LiveTestWidgetsFlutterBindingFramePolicy.fullyLive;
@@ -116,6 +158,15 @@ void main() {
     await tester.pumpAndSettle();
 
     expect(userInformation.darkModePreference, DarkModePreference.alwaysDark);
+    await _waitForDurableDarkModeSettings(
+      tester,
+      preferences,
+      preference: DarkModePreference.alwaysDark,
+      startHour: 22,
+      startMinute: 0,
+      endHour: 6,
+      endMinute: 0,
+    );
     expect(preferences.getString('darkModePreference'), 'alwaysDark');
     expect(
       tester
@@ -145,6 +196,15 @@ void main() {
       expect(userInformation.darkModeStartMinute, 0);
       expect(userInformation.darkModeEndHour, 6);
       expect(userInformation.darkModeEndMinute, 0);
+      await _waitForDurableDarkModeSettings(
+        tester,
+        preferences,
+        preference: DarkModePreference.scheduled,
+        startHour: 22,
+        startMinute: 0,
+        endHour: 6,
+        endMinute: 0,
+      );
       expect(preferences.getString('darkModePreference'), 'scheduled');
       expect(preferences.getInt('darkModeStartHour'), 22);
       expect(preferences.getInt('darkModeStartMinute'), 0);

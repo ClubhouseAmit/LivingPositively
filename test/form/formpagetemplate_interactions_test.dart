@@ -28,7 +28,7 @@ import 'package:provider/provider.dart';
 
 import '../helpers/widget_test_scaffold.dart'
     show NoopIncidentLoggerService, wizardStepHarness;
-import '../helpers/contract_persistent_memory_service.dart';
+import '../../test_support/contract_persistent_memory_service.dart';
 
 class _FakeAnalytics implements AnalyticsService {
   final List<String> events = [];
@@ -43,8 +43,9 @@ class _FakeAnalytics implements AnalyticsService {
   }
 }
 
-class _FakePm extends ContractPersistentMemoryService {
-  _FakePm({this.writeDelay, this.failFirstWrite = false}) {
+base class _FakePersistentMemoryService
+    extends ContractPersistentMemoryService {
+  _FakePersistentMemoryService({this.writeDelay, this.failFirstWrite = false}) {
     onMissingRead = (_, _) => null;
     onPersist = (String key, PersistentMemoryType type, Object value) async {
       if (writeDelay != null) {
@@ -83,7 +84,7 @@ class _FakePm extends ContractPersistentMemoryService {
       completedWrites.where((write) => write.key == key).toList();
 }
 
-class _HeldDreamsMemoryService extends _FakePm {
+final class _HeldDreamsMemoryService extends _FakePersistentMemoryService {
   _HeldDreamsMemoryService() {
     final ContractPersistentMemoryPersistHook? parentPersist = onPersist;
     onPersist = (String key, PersistentMemoryType type, Object value) async {
@@ -110,7 +111,8 @@ class _HeldDreamsMemoryService extends _FakePm {
   }
 }
 
-class _DualFailureDreamsMemoryService extends _FakePm {
+final class _DualFailureDreamsMemoryService
+    extends _FakePersistentMemoryService {
   _DualFailureDreamsMemoryService() {
     final ContractPersistentMemoryPersistHook? parentPersist = onPersist;
     onPersist = (String key, PersistentMemoryType type, Object value) async {
@@ -194,12 +196,12 @@ Finder _primaryButton() => find.byKey(const Key('wizard-primary-action'));
 void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
 
-  late _FakePm pm;
+  late _FakePersistentMemoryService pm;
   late _FakeAnalytics analytics;
 
   setUp(() async {
     await GetIt.instance.reset();
-    pm = _FakePm();
+    pm = _FakePersistentMemoryService();
     analytics = _FakeAnalytics();
     GetIt.instance.registerSingleton<PersistentMemoryService>(pm);
     GetIt.instance.registerSingleton<AnalyticsService>(analytics);
@@ -290,7 +292,9 @@ void main() {
     // Re-register with a service whose writes take time, so the gap between
     // the tap and the step advancing is observable.
     await GetIt.instance.reset();
-    final slowPm = _FakePm(writeDelay: const Duration(milliseconds: 300));
+    final slowPm = _FakePersistentMemoryService(
+      writeDelay: const Duration(milliseconds: 300),
+    );
     GetIt.instance.registerSingleton<PersistentMemoryService>(slowPm);
     GetIt.instance.registerSingleton<AnalyticsService>(_FakeAnalytics());
 
@@ -324,7 +328,7 @@ void main() {
   testWidgets('a failed save leaves the wizard where it is, and can be '
       'retried', (tester) async {
     await GetIt.instance.reset();
-    final flakyPm = _FakePm(failFirstWrite: true);
+    final flakyPm = _FakePersistentMemoryService(failFirstWrite: true);
     GetIt.instance.registerSingleton<PersistentMemoryService>(flakyPm);
     GetIt.instance.registerSingleton<AnalyticsService>(_FakeAnalytics());
 
@@ -359,7 +363,9 @@ void main() {
   ) async {
     await GetIt.instance.reset();
     GetIt.instance.registerSingleton<PersistentMemoryService>(
-      _FakePm(writeDelay: const Duration(milliseconds: 300)),
+      _FakePersistentMemoryService(
+        writeDelay: const Duration(milliseconds: 300),
+      ),
     );
     GetIt.instance.registerSingleton<AnalyticsService>(_FakeAnalytics());
 
@@ -592,7 +598,7 @@ void main() {
     testWidgets(
       'should persist a non-Dreams disclaimer through the injected UserInformation service',
       (tester) async {
-        final modelMemory = _FakePm();
+        final modelMemory = _FakePersistentMemoryService();
         final user = UserInformation(service: modelMemory)..gender = 'other';
         await _pump(tester, 'PersonalPlan-DifficultEvents', user: user);
 
@@ -610,7 +616,7 @@ void main() {
       testWidgets(
         'should persist the disclaimer through the injected UserInformation service',
         (tester) async {
-          final modelMemory = _FakePm();
+          final modelMemory = _FakePersistentMemoryService();
           final user = UserInformation(service: modelMemory)..gender = 'other';
           await _pump(tester, 'PersonalPlan-DreamsAndGoals', user: user);
 
@@ -627,7 +633,7 @@ void main() {
       testWidgets(
         'should repair and persist malformed and missing sources before rendering',
         (tester) async {
-          final modelMemory = _FakePm();
+          final modelMemory = _FakePersistentMemoryService();
           final user = UserInformation(
             service: modelMemory,
             gender: 'other',
@@ -664,7 +670,7 @@ void main() {
       testWidgets(
         'should require choosing one custom goal before rendering or advancing',
         (tester) async {
-          final modelMemory = _FakePm();
+          final modelMemory = _FakePersistentMemoryService();
           final user = UserInformation(
             service: modelMemory,
             gender: 'other',
@@ -818,7 +824,7 @@ void main() {
       testWidgets(
         'should persist the chosen conflict snapshot once before advancing',
         (tester) async {
-          final modelMemory = _FakePm();
+          final modelMemory = _FakePersistentMemoryService();
           final user = UserInformation(
             service: modelMemory,
             gender: 'other',
@@ -886,7 +892,8 @@ void main() {
       testWidgets(
         'should keep rows and advancement gated until a failed conflict choice retries',
         (tester) async {
-          final modelMemory = _FakePm()..failDreamsAndGoalsWrites = true;
+          final modelMemory = _FakePersistentMemoryService()
+            ..failDreamsAndGoalsWrites = true;
           final user = UserInformation(
             service: modelMemory,
             gender: 'other',
@@ -984,7 +991,8 @@ void main() {
       testWidgets(
         'should retry only the disclaimer after resolving a custom conflict',
         (tester) async {
-          final modelMemory = _FakePm()..failDisclaimerWrite = true;
+          final modelMemory = _FakePersistentMemoryService()
+            ..failDisclaimerWrite = true;
           final user = UserInformation(
             service: modelMemory,
             gender: 'other',

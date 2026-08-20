@@ -54,9 +54,9 @@ final class ContractPersistentMemoryWrite {
 /// [store] is the visible cache and remains mutable by reference so tests can
 /// seed or inspect it directly. [durableStore] only changes after a queued
 /// persistence operation succeeds. The default hooks complete immediately;
-/// tests can use the hooks or override the queued methods to hold, reject, or
-/// observe particular operations without bypassing serialization.
-class ContractPersistentMemoryService implements PersistentMemoryService {
+/// tests can use the hooks to hold, reject, or observe particular operations
+/// without bypassing serialization.
+base class ContractPersistentMemoryService implements PersistentMemoryService {
   /// Creates a service using [store] or a copy of [initialValues].
   ///
   /// A supplied [store] remains the service's visible cache by reference. An
@@ -108,7 +108,7 @@ class ContractPersistentMemoryService implements PersistentMemoryService {
   /// Runs inside the serialized reset operation before durable state clears.
   ContractPersistentMemoryResetHook? onReset;
 
-  /// Resolves an absent key before [missingValueFor] supplies its default.
+  /// Resolves an absent key before the default fallback supplies its value.
   ///
   /// Unlike a null sentinel, a present resolver may intentionally return null.
   ContractPersistentMemoryMissingValueResolver? onMissingRead;
@@ -165,24 +165,12 @@ class ContractPersistentMemoryService implements PersistentMemoryService {
       );
       attemptedWrites.add(write);
 
-      await persistQueuedItem(key, type, write.value);
+      await onPersist?.call(key, type, write.value);
 
       _durableStore[key] = _copyValue(type, write.value);
       completedWrites.add(write);
       await onSetItemCompleted?.call(key, type, write.value);
     });
-  }
-
-  /// Persists a queued write after it is visible and before it is durable.
-  ///
-  /// Subclasses can override this method to model persistence behavior while
-  /// retaining the service's queue and reset fence.
-  Future<void> persistQueuedItem(
-    String key,
-    PersistentMemoryType type,
-    Object value,
-  ) async {
-    await onPersist?.call(key, type, value);
   }
 
   @override
@@ -194,32 +182,13 @@ class ContractPersistentMemoryService implements PersistentMemoryService {
       if (resolver != null) {
         return resolver(key, type);
       }
-      return missingValueFor(key, type);
+      return _missingValueFor(type);
     }
     final dynamic value = store[key];
     if (value == null) {
       return null;
     }
     return _copyValue(type, value as Object);
-  }
-
-  /// Returns the value for a missing [key] with [type].
-  ///
-  /// Subclasses can override this to match a test's existing missing-read
-  /// behavior without replacing the direct-read implementation.
-  dynamic missingValueFor(String key, PersistentMemoryType type) {
-    switch (type) {
-      case PersistentMemoryType.String:
-        return '';
-      case PersistentMemoryType.Int:
-        return null;
-      case PersistentMemoryType.Double:
-        return 0.0;
-      case PersistentMemoryType.Bool:
-        return false;
-      case PersistentMemoryType.StringList:
-        return <String>[];
-    }
   }
 
   @override
@@ -234,7 +203,7 @@ class ContractPersistentMemoryService implements PersistentMemoryService {
     resetOperation =
         _enqueue(() async {
           store.clear();
-          await resetQueuedStore();
+          await onReset?.call();
           _durableStore.clear();
         }).whenComplete(() {
           if (identical(_activeReset, resetOperation)) {
@@ -244,14 +213,6 @@ class ContractPersistentMemoryService implements PersistentMemoryService {
         });
     _activeReset = resetOperation;
     return resetOperation;
-  }
-
-  /// Clears the durable backing store from inside the serialized reset.
-  ///
-  /// Subclasses can override this method to model reset behavior while
-  /// retaining the service's queue and reset fence.
-  Future<void> resetQueuedStore() async {
-    await onReset?.call();
   }
 
   Future<void> _enqueue(Future<void> Function() operation) {
@@ -276,6 +237,21 @@ class ContractPersistentMemoryService implements PersistentMemoryService {
       }
     });
     return queuedOperation;
+  }
+}
+
+dynamic _missingValueFor(PersistentMemoryType type) {
+  switch (type) {
+    case PersistentMemoryType.String:
+      return '';
+    case PersistentMemoryType.Int:
+      return null;
+    case PersistentMemoryType.Double:
+      return 0.0;
+    case PersistentMemoryType.Bool:
+      return false;
+    case PersistentMemoryType.StringList:
+      return <String>[];
   }
 }
 

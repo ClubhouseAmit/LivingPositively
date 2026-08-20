@@ -8,7 +8,7 @@ import 'package:mazilon/global_enums.dart';
 import 'package:mazilon/util/logger_service.dart';
 import 'package:mazilon/util/userInformation.dart';
 
-import '../helpers/contract_persistent_memory_service.dart';
+import '../../test_support/contract_persistent_memory_service.dart';
 
 class _RecordingLogger implements IncidentLoggerService {
   final List<dynamic> logs = [];

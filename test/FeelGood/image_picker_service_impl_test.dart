@@ -29,7 +29,7 @@ import 'package:mazilon/global_enums.dart';
 import 'package:mazilon/pages/FeelGood/image_picker_service_impl.dart';
 import 'package:mazilon/util/logger_service.dart';
 
-import '../helpers/contract_persistent_memory_service.dart';
+import '../../test_support/contract_persistent_memory_service.dart';
 
 class _CapturingLogger implements IncidentLoggerService {
   final List<dynamic> captured = [];
@@ -361,7 +361,7 @@ class _FailingAnalytics implements AnalyticsService {
   }
 }
 
-class _FakePersistentMemory extends ContractPersistentMemoryService {
+final class _FakePersistentMemory extends ContractPersistentMemoryService {
   _FakePersistentMemory() {
     onMissingRead = (_, _) => null;
     onSetItemCompleted = (key, type, value) {

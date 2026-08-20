@@ -7,7 +7,7 @@ import 'package:mazilon/global_enums.dart';
 import 'package:mazilon/util/logger_service.dart';
 import 'package:mazilon/util/persistent_memory_service.dart';
 
-import '../helpers/contract_persistent_memory_service.dart';
+import '../../test_support/contract_persistent_memory_service.dart';
 
 class _FakeAnalytics implements AnalyticsService {
   final List<String> events = [];
@@ -36,7 +36,7 @@ class _FakeLogger implements IncidentLoggerService {
   }
 }
 
-class _FakeMemory extends ContractPersistentMemoryService {
+final class _FakeMemory extends ContractPersistentMemoryService {
   _FakeMemory(Map<String, dynamic> store) : super(store: store) {
     onMissingRead = (_, _) => null;
   }

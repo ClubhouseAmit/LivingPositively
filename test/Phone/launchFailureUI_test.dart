@@ -18,7 +18,7 @@ import 'package:provider/provider.dart';
 import 'package:url_launcher_platform_interface/link.dart';
 import 'package:url_launcher_platform_interface/url_launcher_platform_interface.dart';
 
-import '../helpers/contract_persistent_memory_service.dart';
+import '../../test_support/contract_persistent_memory_service.dart';
 
 class _FailingUrlLauncherPlatform extends UrlLauncherPlatform {
   String? lastLaunchedUrl;
@@ -77,7 +77,8 @@ class _ThrowingUrlLauncherPlatform extends UrlLauncherPlatform {
   }
 }
 
-class _FakePersistentMemoryService extends ContractPersistentMemoryService {
+final class _FakePersistentMemoryService
+    extends ContractPersistentMemoryService {
   _FakePersistentMemoryService() {
     onMissingRead = (_, _) => null;
   }

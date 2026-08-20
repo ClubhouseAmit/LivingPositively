@@ -14,7 +14,7 @@ import 'package:share_plus/share_plus.dart';
 
 import 'MenuTest/TestMenu.dart';
 import 'MenuTest/test_data.dart';
-import 'helpers/contract_persistent_memory_service.dart';
+import '../test_support/contract_persistent_memory_service.dart';
 
 class _FakeAnalyticsService implements AnalyticsService {
   final List<String> events = [];
@@ -29,7 +29,8 @@ class _FakeAnalyticsService implements AnalyticsService {
   }
 }
 
-class _FakePersistentMemoryService extends ContractPersistentMemoryService {
+final class _FakePersistentMemoryService
+    extends ContractPersistentMemoryService {
   _FakePersistentMemoryService({super.initialValues}) {
     onMissingRead = (String _, PersistentMemoryType type) {
       switch (type) {

@@ -12,10 +12,10 @@ import 'package:mazilon/util/Thanks/AddForm.dart';
 import 'package:mazilon/l10n/app_localizations.dart';
 import 'package:mazilon/util/persistent_memory_service.dart';
 
-import '../helpers/contract_persistent_memory_service.dart';
+import '../../test_support/contract_persistent_memory_service.dart';
 import '../helpers/widget_test_scaffold.dart';
 
-class _DelayedMemoryService extends ContractPersistentMemoryService {
+final class _DelayedMemoryService extends ContractPersistentMemoryService {
   final Completer<dynamic> completer;
 
   _DelayedMemoryService(this.completer) {

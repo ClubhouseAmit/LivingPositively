@@ -8,7 +8,7 @@ import 'package:mazilon/util/persistent_memory_service.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:shared_preferences_platform_interface/shared_preferences_platform_interface.dart';
 
-import '../helpers/contract_persistent_memory_service.dart';
+import '../../test_support/contract_persistent_memory_service.dart';
 
 class _RecordingLogger implements IncidentLoggerService {
   final List<dynamic> logs = [];
@@ -451,6 +451,30 @@ void main() {
     );
 
     test(
+      'should clear visible cache but retain durable values when reset fails',
+      () async {
+        final ContractPersistentMemoryService service =
+            ContractPersistentMemoryService(
+                initialValues: const <String, Object?>{
+                  'before-reset': 'durable value',
+                },
+              )
+              ..onReset = () {
+                throw StateError('Rejected reset.');
+              };
+
+        await expectLater(service.reset(), throwsA(isA<StateError>()));
+
+        expect(service.store, isEmpty);
+        expect(service.durableStore['before-reset'], 'durable value');
+        expect(
+          await service.getItem('before-reset', PersistentMemoryType.String),
+          '',
+        );
+      },
+    );
+
+    test(
       'should retain a caller-owned store and allow a null missing value',
       () async {
         final Map<String, dynamic> store = <String, dynamic>{};
@@ -664,28 +688,47 @@ void main() {
       expect(completed, isTrue);
     });
 
-    test('should log and throw when the platform rejects a reset', () async {
-      _installControlledStore(
-        _ControlledSharedPreferencesStore(clearOutcome: _WriteOutcome.reject),
-      );
-      final SharedPreferencesService service = SharedPreferencesService();
+    test(
+      'should log, throw, and retain durable values when the platform rejects a reset',
+      () async {
+        final _ControlledSharedPreferencesStore store =
+            _ControlledSharedPreferencesStore(
+              clearOutcome: _WriteOutcome.reject,
+            );
+        _installControlledStore(store);
+        final SharedPreferencesService service = SharedPreferencesService();
 
-      await expectLater(service.reset(), throwsA(isA<StateError>()));
-      expect(logger.logs, contains(isA<StateError>()));
+        await service.setItem(
+          'before-reset',
+          PersistentMemoryType.String,
+          'durable value',
+        );
 
-      await service.setItem(
-        'after-reset-failure',
-        PersistentMemoryType.String,
-        'value',
-      );
-      expect(
-        await service.getItem(
+        await expectLater(service.reset(), throwsA(isA<StateError>()));
+        expect(logger.logs, contains(isA<StateError>()));
+        expect(
+          await store.getAll(),
+          containsPair('flutter.before-reset', 'durable value'),
+        );
+        expect(
+          await service.getItem('before-reset', PersistentMemoryType.String),
+          '',
+        );
+
+        await service.setItem(
           'after-reset-failure',
           PersistentMemoryType.String,
-        ),
-        'value',
-      );
-    });
+          'value',
+        );
+        expect(
+          await service.getItem(
+            'after-reset-failure',
+            PersistentMemoryType.String,
+          ),
+          'value',
+        );
+      },
+    );
 
     test('should log and rethrow a platform reset error', () async {
       _installControlledStore(

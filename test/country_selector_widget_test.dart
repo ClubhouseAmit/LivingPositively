@@ -10,9 +10,10 @@ import 'package:mazilon/util/theme/app_theme.dart';
 import 'package:mazilon/util/userInformation.dart';
 import 'package:provider/provider.dart';
 
-import 'helpers/contract_persistent_memory_service.dart';
+import '../test_support/contract_persistent_memory_service.dart';
 
-class InMemoryPersistentMemoryService extends ContractPersistentMemoryService {
+final class InMemoryPersistentMemoryService
+    extends ContractPersistentMemoryService {
   InMemoryPersistentMemoryService() {
     onMissingRead = (_, _) => null;
   }

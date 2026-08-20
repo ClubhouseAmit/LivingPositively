@@ -28,7 +28,7 @@ import 'package:mazilon/util/userInformation.dart';
 import 'package:mazilon/util/appInformation.dart';
 import 'package:package_info_plus/package_info_plus.dart';
 
-import '../helpers/contract_persistent_memory_service.dart';
+import '../../test_support/contract_persistent_memory_service.dart';
 import '../MenuTest/TestMenu.dart';
 import '../MenuTest/test_data.dart';
 
@@ -57,27 +57,27 @@ class _NoopAnalytics implements AnalyticsService {
   Future<void> trackEvent(String name, [Map<String, dynamic>? props]) async {}
 }
 
-class _StubPersistentMemoryService extends ContractPersistentMemoryService {
+final class _StubPersistentMemoryService
+    extends ContractPersistentMemoryService {
   _StubPersistentMemoryService()
     : super(initialValues: <String, Object?>{
         'hasFilled': false,
         'location': '',
-      });
-
-  @override
-  dynamic missingValueFor(String key, PersistentMemoryType type) {
-    switch (type) {
-      case PersistentMemoryType.String:
-        return '';
-      case PersistentMemoryType.Bool:
-        return false;
-      case PersistentMemoryType.Int:
-        return 0;
-      case PersistentMemoryType.Double:
-        return 0.0;
-      case PersistentMemoryType.StringList:
-        return <String>[];
-    }
+      }) {
+    onMissingRead = (_, PersistentMemoryType type) {
+      switch (type) {
+        case PersistentMemoryType.String:
+          return '';
+        case PersistentMemoryType.Bool:
+          return false;
+        case PersistentMemoryType.Int:
+          return 0;
+        case PersistentMemoryType.Double:
+          return 0.0;
+        case PersistentMemoryType.StringList:
+          return <String>[];
+      }
+    };
   }
 }
 

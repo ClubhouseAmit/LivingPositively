@@ -20,7 +20,7 @@ import 'package:mazilon/util/dreams_and_goals_selection.dart';
 import 'package:mazilon/util/persistent_memory_service.dart';
 import 'package:mazilon/util/userInformation.dart';
 
-import '../helpers/contract_persistent_memory_service.dart';
+import '../../test_support/contract_persistent_memory_service.dart';
 import '../helpers/widget_test_scaffold.dart';
 
 PhonePageData _phone() => PhonePageData(
@@ -50,26 +50,27 @@ Future<void> _openResetDialog(WidgetTester tester) async {
   expect(find.byKey(_resetDialogKey), findsOneWidget);
 }
 
-abstract class _UserSettingsPersistentMemoryService
+abstract base class _UserSettingsPersistentMemoryService
     extends ContractPersistentMemoryService {
-  @override
-  dynamic missingValueFor(String _, PersistentMemoryType type) {
-    switch (type) {
-      case PersistentMemoryType.String:
-        return '';
-      case PersistentMemoryType.Int:
-        return 0;
-      case PersistentMemoryType.Double:
-        return 0.0;
-      case PersistentMemoryType.Bool:
-        return false;
-      case PersistentMemoryType.StringList:
-        return <String>[];
-    }
+  _UserSettingsPersistentMemoryService() {
+    onMissingRead = (_, PersistentMemoryType type) {
+      switch (type) {
+        case PersistentMemoryType.String:
+          return '';
+        case PersistentMemoryType.Int:
+          return 0;
+        case PersistentMemoryType.Double:
+          return 0.0;
+        case PersistentMemoryType.Bool:
+          return false;
+        case PersistentMemoryType.StringList:
+          return <String>[];
+      }
+    };
   }
 }
 
-class _FailingOnceDreamsPersistentMemoryService
+final class _FailingOnceDreamsPersistentMemoryService
     extends _UserSettingsPersistentMemoryService {
   bool _shouldFailNextWrite = true;
 
@@ -83,7 +84,7 @@ class _FailingOnceDreamsPersistentMemoryService
   }
 }
 
-class _DelayedDreamsPersistentMemoryService
+final class _DelayedDreamsPersistentMemoryService
     extends _UserSettingsPersistentMemoryService {
   final Completer<void> _firstDreamsSelectionWrite = Completer<void>();
   final Completer<void> firstDreamsSelectionWriteStarted = Completer<void>();
@@ -108,7 +109,7 @@ class _DelayedDreamsPersistentMemoryService
   }
 }
 
-class _RecordingResetPersistentMemoryService
+final class _RecordingResetPersistentMemoryService
     extends _UserSettingsPersistentMemoryService {
   int resetCalls = 0;
 
@@ -119,7 +120,7 @@ class _RecordingResetPersistentMemoryService
   }
 }
 
-class _DelayedResetPersistentMemoryService
+final class _DelayedResetPersistentMemoryService
     extends _UserSettingsPersistentMemoryService {
   final Completer<void> resetStarted = Completer<void>();
   final Completer<void> _resetGate = Completer<void>();
