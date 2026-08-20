@@ -121,22 +121,18 @@ describe("notification validation", () => {
     });
   });
 
-  it("repairs corrupt stored versions only for reset-fenced mutations", () => {
+  it("repairs corrupt stored versions for versioned mutations", () => {
     assert.deepEqual(
-      storedNotificationMutationVersionDecision("corrupt", false),
-      { kind: "reject" },
-    );
-    assert.deepEqual(
-      storedNotificationMutationVersionDecision("corrupt", true),
+      storedNotificationMutationVersionDecision("corrupt"),
       { kind: "repair" },
     );
     assert.deepEqual(
-      storedNotificationMutationVersionDecision(7, false),
+      storedNotificationMutationVersionDecision(7),
       { kind: "use", version: 7 },
     );
   });
 
-  it("returns a controlled conflict for an ordinary corrupt mutation", () => {
+  it("repairs an ordinary corrupt mutation", () => {
     assert.deepEqual(
       notificationMutationAuthorizationDecision({
         storedVersion: "corrupt",
@@ -146,7 +142,7 @@ describe("notification validation", () => {
         hasActiveDeliveryPermit: false,
         hasEffectiveState: false,
       }),
-      { kind: "conflict", message: "Invalid notification mutation state" },
+      { kind: "apply", nextVersion: 1 },
     );
   });
 
@@ -178,7 +174,7 @@ describe("notification validation", () => {
     );
   });
 
-  it("does not write an ordinary corrupt mutation", async () => {
+  it("deletes the schedule and repairs an ordinary corrupt mutation", async () => {
     const writes: Array<{
       kind: "set" | "delete";
       reference: "state" | "schedule";
@@ -206,9 +202,12 @@ describe("notification validation", () => {
         rejectActiveDeliveryPermit: false,
         operation: { kind: "cancel" },
       }),
-      { kind: "conflict", message: "Invalid notification mutation state" },
+      { kind: "apply", nextVersion: 1 },
     );
-    assert.deepEqual(writes, []);
+    assert.deepEqual(writes, [
+      { kind: "delete", reference: "schedule" },
+      { kind: "set", reference: "state", data: { version: 1 } },
+    ]);
   });
 
   it("deletes the schedule and writes version one for a corrupt reset", async () => {

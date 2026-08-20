@@ -72,6 +72,7 @@ omitted or false flag intentionally hides the Apple button.
 ## Verification before rollout
 
 - Install a signed build that uses the production signing identity and profile.
-- Complete Google and Apple sign-in with a new account and an existing account.
+- On Android, complete Google sign-in with a new account and an existing account.
+- On iOS, complete Apple sign-in with a new account and an existing account.
 - Confirm Firebase Authentication records the expected provider.
 - On a physical iOS device, confirm APNs registration and one FCM delivery.

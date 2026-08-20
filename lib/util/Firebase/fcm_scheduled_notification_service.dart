@@ -1,6 +1,8 @@
 import 'dart:convert';
 
 import 'package:firebase_auth/firebase_auth.dart';
+import 'package:flutter/foundation.dart'
+    show TargetPlatform, defaultTargetPlatform;
 import 'package:flutter/material.dart';
 import 'package:get_it/get_it.dart';
 import 'package:http/http.dart' as http;
@@ -79,6 +81,9 @@ class FcmScheduledNotificationService {
     Future<void> Function(int notificationId)? legacyNotificationCanceller,
   }) async {
     if (_legacyMigrationDisabled) return;
+    // The removed local scheduler ran only on Android. Avoid turning values
+    // persisted by the old shared user model into a new iOS reminder.
+    if (defaultTargetPlatform != TargetPlatform.android) return;
     if (context == null && userInformation == null) {
       _log('Warning: no user state, cannot migrate a reminder.');
       return;
@@ -90,8 +95,6 @@ class FcmScheduledNotificationService {
 
     await _enqueue(() async {
       if (_legacyMigrationDisabled || resetEpoch != _resetEpoch) return;
-      final preference = userInfo.getNotificationPreference('default');
-      if (preference == null) return;
       final memory =
           persistentMemory ?? GetIt.instance<PersistentMemoryService>();
       final migrated =
@@ -105,10 +108,9 @@ class FcmScheduledNotificationService {
           resetEpoch != _resetEpoch) {
         return;
       }
-      final legacyNotificationId = await _legacyLocalNotificationId(
-        memory: memory,
-        fallbackPreference: preference,
-      );
+      final preference = await _legacyDefaultReminderPreference(memory);
+      if (preference == null) return;
+      final legacyNotificationId = _legacyLocalNotificationId(preference);
       final registered = await _registerNotification(
         userInformation: userInfo,
         typeId: 'default',
@@ -130,10 +132,9 @@ class FcmScheduledNotificationService {
     });
   }
 
-  static Future<int> _legacyLocalNotificationId({
-    required PersistentMemoryService memory,
-    required NotificationPreference fallbackPreference,
-  }) async {
+  static Future<NotificationPreference?> _legacyDefaultReminderPreference(
+    PersistentMemoryService memory,
+  ) async {
     final legacyHour = await memory.getItem(
       'notificationHour',
       PersistentMemoryType.Int,
@@ -149,11 +150,12 @@ class FcmScheduledNotificationService {
         legacyMinute is int &&
         legacyMinute >= 0 &&
         legacyMinute <= 59;
-    final hour = hasValidLegacyTime ? legacyHour : fallbackPreference.hour;
-    final minute = hasValidLegacyTime
-        ? legacyMinute
-        : fallbackPreference.minute;
-    return int.parse('$hour$minute');
+    if (!hasValidLegacyTime) return null;
+    return NotificationPreference(hour: legacyHour, minute: legacyMinute);
+  }
+
+  static int _legacyLocalNotificationId(NotificationPreference preference) {
+    return int.parse('${preference.hour}${preference.minute}');
   }
 
   static Future<void> migrateLegacyDefaultReminderWithReporting({
@@ -319,16 +321,28 @@ class FcmScheduledNotificationService {
     );
   }
 
-  /// Reopens legacy migration when local reset fails after remote cancellation.
-  static void restoreDefaultReminderAfterResetFailure({
+  /// Restores the remote reminder when local reset fails after cancellation.
+  static Future<bool> restoreDefaultReminderAfterResetFailure({
     required UserInformation userInformation,
     NotificationPreference? previousPreference,
+    Future<String?> Function()? idTokenProvider,
+    NotificationHttpPost? post,
   }) {
     _resetEpoch++;
     _legacyMigrationDisabled = false;
-    if (previousPreference != null) {
-      userInformation.setNotificationPreference('default', previousPreference);
-    }
+    if (previousPreference == null) return Future.value(true);
+    final resetEpoch = _resetEpoch;
+    return _enqueue(
+      () => _registerNotification(
+        userInformation: userInformation,
+        typeId: 'default',
+        hour: previousPreference.hour,
+        minute: previousPreference.minute,
+        idTokenProvider: idTokenProvider,
+        post: post,
+        resetEpoch: resetEpoch,
+      ),
+    );
   }
 
   static Future<bool> cancelDefaultForReset({
@@ -372,6 +386,9 @@ class FcmScheduledNotificationService {
     if (!FcmService.supportsReminderSettings()) return false;
     if (resetEpoch != _resetEpoch) return false;
     _log('Cancelling notification: typeId=$typeId');
+    final userInfo =
+        userInformation ??
+        Provider.of<UserInformation>(context!, listen: false);
     try {
       final idToken = await (idTokenProvider ?? _getIdToken)().timeout(
         _networkTimeout,
@@ -401,14 +418,10 @@ class FcmScheduledNotificationService {
 
       if (response.statusCode == 200) {
         _log('Notification cancelled successfully.');
-        if (userInformation != null) {
-          userInformation.clearNotificationPreference(typeId);
-        } else if (context!.mounted) {
-          Provider.of<UserInformation>(
-            context,
-            listen: false,
-          ).clearNotificationPreference(typeId);
+        if (typeId == 'default') {
+          await _markLegacyDefaultReminderHandled(userInfo);
         }
+        userInfo.clearNotificationPreference(typeId);
         return true;
       } else {
         _log(
@@ -419,6 +432,20 @@ class FcmScheduledNotificationService {
     } catch (e) {
       _log('cancelNotification error: $e');
       return false;
+    }
+  }
+
+  static Future<void> _markLegacyDefaultReminderHandled(
+    UserInformation userInformation,
+  ) async {
+    try {
+      await userInformation.service.setItem(
+        _legacyDefaultReminderMigrationKey,
+        PersistentMemoryType.Bool,
+        true,
+      );
+    } catch (error) {
+      _log('Unable to persist legacy reminder cancellation: $error');
     }
   }
 

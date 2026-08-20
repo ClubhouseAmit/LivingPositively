@@ -12,6 +12,7 @@ export type ScheduledNotificationCounts = {
   claimFailed: number;
   staleDevicesCleaned: number;
   staleCleanupFailed: number;
+  staleCleanupDeferred: number;
 };
 
 export function schedulerRecoveryWindow(

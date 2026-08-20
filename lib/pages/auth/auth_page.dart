@@ -426,20 +426,12 @@ class _SignupFormState extends LPExtendedState<_SignupForm>
     });
     try {
       final result = await AuthService.signUpWithEmail(email, password);
-      debugPrint("1");
       if (_nameController.text.trim().isNotEmpty) {
-        debugPrint("2");
-
         await result.user?.updateDisplayName(_nameController.text.trim());
-        debugPrint("3");
         await result.user?.reload();
-        debugPrint("4");
       }
-      debugPrint("5");
       final user = FirebaseAuth.instance.currentUser!;
-      debugPrint("6");
       if (mounted) await widget.onSuccess(user);
-      debugPrint("7");
     } catch (e) {
       if (mounted) {
         setState(

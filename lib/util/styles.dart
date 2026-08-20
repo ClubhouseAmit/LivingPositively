@@ -200,7 +200,7 @@ Widget CancelButton(context, function, text, buttonTextStyle) {
   );
 }
 
-Widget ResetButton(context, function, text, buttonTextStyle, {Key? key}) {
+Widget ResetButton(context, function, text, buttonTextStyle) {
   final textStyle = buttonTextStyle is TextStyle
       ? buttonTextStyle.copyWith(color: Theme.of(context).colorScheme.onError)
       : TextStyle(color: Theme.of(context).colorScheme.onError);
@@ -209,7 +209,6 @@ Widget ResetButton(context, function, text, buttonTextStyle, {Key? key}) {
         ? 400
         : MediaQuery.of(context).size.width * 0.3,
     child: TextButton(
-      key: key,
       onPressed: () {
         function();
       },
@@ -226,9 +225,7 @@ const emptyStyle = TextStyle();
 /// All this does is force `fontFamily: 'Rubix'`, which both themes already set
 /// via `ThemeData.fontFamily` — so it buys nothing over `Text`, while costing
 /// an untyped `style` parameter and hiding the widget behind a helper.
-@Deprecated(
-  'Use a plain Text widget; ThemeData already applies Rubik.',
-)
+@Deprecated('Use a plain Text widget; ThemeData already applies Rubik.')
 Text myText(content, style, align) {
   style ??= emptyStyle;
   return Text(

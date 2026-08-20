@@ -531,10 +531,17 @@ class _UserSettingsState extends LPExtendedState<UserSettings> {
       await service.reset(); // Reset the persistent memory service
     } catch (error, stackTrace) {
       if (remoteReminderCancelled) {
-        FcmScheduledNotificationService.restoreDefaultReminderAfterResetFailure(
-          userInformation: userInfo,
-          previousPreference: previousDefaultReminder,
-        );
+        final reminderRestored =
+            await FcmScheduledNotificationService.restoreDefaultReminderAfterResetFailure(
+              userInformation: userInfo,
+              previousPreference: previousDefaultReminder,
+            );
+        if (!reminderRestored) {
+          _reportResetFailure(
+            StateError('Unable to restore the cancelled reminder.'),
+            StackTrace.current,
+          );
+        }
       }
       _reportResetFailure(error, stackTrace);
       if (mounted) {

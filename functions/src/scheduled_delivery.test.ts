@@ -12,6 +12,8 @@ import {
   routeDevicesByUpdatedAt,
   scheduledNotificationQueryPlan,
   selectScheduledNotificationCandidates,
+  staleDeviceCleanupBatch,
+  staleDeviceScheduleCleanupPlan,
   shouldClearFCMToken,
   shouldAdvanceSchedulerCheckpoint,
 } from "./index.js";
@@ -25,6 +27,30 @@ describe("scheduled notification delivery", () => {
     assert.equal(shouldClearFCMToken("old-token", "old-token"), true);
     assert.equal(shouldClearFCMToken("new-token", "old-token"), false);
     assert.equal(shouldClearFCMToken(undefined, "old-token"), false);
+  });
+
+  it("bounds stale-device cleanup and reports the deferred backlog", () => {
+    const uids = [
+      "stale-0",
+      "stale-0",
+      ...Array.from({ length: 26 }, (_, index) => `stale-${index + 1}`),
+    ];
+
+    assert.deepEqual(staleDeviceCleanupBatch(uids), {
+      cleanupUids: Array.from({ length: 25 }, (_, index) => `stale-${index}`),
+      deferredCount: 2,
+    });
+  });
+
+  it("deletes a device when its schedules fit exactly in the cleanup batch", () => {
+    assert.deepEqual(staleDeviceScheduleCleanupPlan(25), {
+      scheduleDeletes: 25,
+      deleteDevice: true,
+    });
+    assert.deepEqual(staleDeviceScheduleCleanupPlan(26), {
+      scheduleDeletes: 25,
+      deleteDevice: false,
+    });
   });
 
   describe("device timestamp validation", () => {
@@ -251,6 +277,7 @@ describe("scheduled notification delivery", () => {
         claimFailed: 2,
         staleDevicesCleaned: 6,
         staleCleanupFailed: 7,
+        staleCleanupDeferred: 8,
       },
       {
         requestedCandidateMinutes: 240,
@@ -267,6 +294,8 @@ describe("scheduled notification delivery", () => {
     assert.equal(typeof summary.requestedRecoveryCandidateMinutes, "number");
     assert.equal(summary.recoveryClamped, true);
     assert.equal(typeof summary.recoveryClamped, "boolean");
+    assert.equal(summary.staleCleanupDeferred, 8);
+    assert.equal(typeof summary.staleCleanupDeferred, "number");
   });
 
   it("uses an exact schedule query for the normal one-minute interval", () => {

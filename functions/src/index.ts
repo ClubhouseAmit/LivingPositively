@@ -33,6 +33,9 @@ const STALE_TOKEN_DAYS = 180;
 // Allow small scheduler/Firestore clock differences around serverTimestamp().
 const DEVICE_TIMESTAMP_FUTURE_SKEW_MILLIS = 5 * 60_000;
 const DELIVERY_PERMIT_DURATION_MILLIS = 305_000;
+const DELIVERY_SEND_BATCH_SIZE = 25;
+const MAX_STALE_DEVICE_CLEANUPS_PER_INVOCATION = 25;
+const MAX_SCHEDULED_NOTIFICATIONS_PER_STALE_DEVICE_CLEANUP = 25;
 
 export type IsraelLocalDeliveryCandidate = {
   localDate: string;
@@ -490,9 +493,9 @@ async function clearFCMToken(
 }
 
 // ---------------------------------------------------------------------------
-// cleanupInactiveDevice — deletes the device doc and all scheduled_notifications
-// for a user who has been inactive for STALE_TOKEN_DAYS. Only called when we are
-// confident the user has abandoned the app.
+// cleanupInactiveDevice — deletes a bounded batch of schedules for a user who
+// has been inactive for STALE_TOKEN_DAYS. It reads one document past the
+// deletion cap so a user with exactly one full batch is fully removed.
 // triggered when:
 // 1. user is inactive for 180 days.
 // ---------------------------------------------------------------------------
@@ -501,12 +504,46 @@ async function cleanupInactiveDevice(uid: string): Promise<void> {
   const scheduledSnap = await db
     .collection("scheduled_notifications")
     .where("uid", "==", uid)
+    .limit(MAX_SCHEDULED_NOTIFICATIONS_PER_STALE_DEVICE_CLEANUP + 1)
     .get();
 
-  await Promise.all([
-    ...scheduledSnap.docs.map((doc) => doc.ref.delete()),
-    db.collection("devices").doc(uid).delete(),
-  ]);
+  const batch = db.batch();
+  const cleanupPlan = staleDeviceScheduleCleanupPlan(scheduledSnap.size);
+  for (const doc of scheduledSnap.docs.slice(0, cleanupPlan.scheduleDeletes)) {
+    batch.delete(doc.ref);
+  }
+  if (cleanupPlan.deleteDevice) {
+    batch.delete(db.collection("devices").doc(uid));
+  }
+  await batch.commit();
+}
+
+export function staleDeviceScheduleCleanupPlan(scheduleCount: number): {
+  scheduleDeletes: number;
+  deleteDevice: boolean;
+} {
+  return {
+    scheduleDeletes: Math.min(
+      scheduleCount,
+      MAX_SCHEDULED_NOTIFICATIONS_PER_STALE_DEVICE_CLEANUP,
+    ),
+    deleteDevice:
+      scheduleCount <= MAX_SCHEDULED_NOTIFICATIONS_PER_STALE_DEVICE_CLEANUP,
+  };
+}
+
+export function staleDeviceCleanupBatch(staleUids: readonly string[]): {
+  cleanupUids: string[];
+  deferredCount: number;
+} {
+  const uniqueUids = [...new Set(staleUids)];
+  return {
+    cleanupUids: uniqueUids.slice(0, MAX_STALE_DEVICE_CLEANUPS_PER_INVOCATION),
+    deferredCount: Math.max(
+      0,
+      uniqueUids.length - MAX_STALE_DEVICE_CLEANUPS_PER_INVOCATION,
+    ),
+  };
 }
 
 class NotificationMutationConflictError extends Error {}
@@ -1051,9 +1088,15 @@ export const processScheduledNotifications = onSchedule(
     // --- Send phase (batched parallel) ---
 
     const results: PromiseSettledResult<ScheduledDeliveryResult>[] = [];
-    for (let start = 0; start < sendTasks.length; start += 25) {
+    for (
+      let start = 0;
+      start < sendTasks.length;
+      start += DELIVERY_SEND_BATCH_SIZE
+    ) {
       results.push(...await Promise.allSettled(
-        sendTasks.slice(start, start + 25).map((task) => task()),
+        sendTasks
+          .slice(start, start + DELIVERY_SEND_BATCH_SIZE)
+          .map((task) => task()),
       ));
     }
     let successCount = 0;
@@ -1080,7 +1123,10 @@ export const processScheduledNotifications = onSchedule(
 
     // --- Stale device cleanup (batched, after the delivery checkpoint) ---
 
-    const staleUidsToClean = [...new Set(staleUids)];
+    const {
+      cleanupUids: staleUidsToClean,
+      deferredCount: staleCleanupDeferred,
+    } = staleDeviceCleanupBatch(staleUids);
     const staleCleanupResults = await Promise.allSettled(
       staleUidsToClean.map((uid) => cleanupInactiveDevice(uid)),
     );
@@ -1100,6 +1146,7 @@ export const processScheduledNotifications = onSchedule(
           claimFailed: claimFailedCount,
           staleDevicesCleaned,
           staleCleanupFailed: staleCleanupFailedCount,
+          staleCleanupDeferred,
         },
         recoveryWindow,
       ),

@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:mazilon/global_enums.dart';
@@ -38,6 +40,7 @@ void main() {
               badgeText: 'LP',
               title: 'Daily reminder',
               subtitle: 'A supportive message',
+              setTimeLabel: 'Set time',
               initialTime: const TimeOfDay(hour: 9, minute: 30),
               onToggle: (value) async {
                 values.add(value);
@@ -72,6 +75,7 @@ void main() {
               badgeText: 'LP',
               title: 'Daily reminder',
               subtitle: 'A supportive message',
+              setTimeLabel: 'Set time',
               initialTime: const TimeOfDay(hour: 9, minute: 30),
               onToggle: (_) async => false,
             ),
@@ -85,4 +89,65 @@ void main() {
 
     expect(find.text('9:30 AM'), findsNothing);
   });
+
+  testWidgets(
+    'shows the localized fallback when an enabled reminder lacks a time',
+    (tester) async {
+      await tester.pumpWidget(
+        const MaterialApp(
+          home: Scaffold(
+            body: NotificationToggleCard(
+              emoji: '✨',
+              badgeText: 'LP',
+              title: 'Daily reminder',
+              subtitle: 'A supportive message',
+              setTimeLabel: 'Choose a time',
+              initialEnabled: true,
+            ),
+          ),
+        ),
+      );
+
+      expect(find.text('Choose a time'), findsOneWidget);
+    },
+  );
+
+  testWidgets(
+    'applies a parent reminder update received during a toggle mutation',
+    (tester) async {
+      final mutation = Completer<bool>();
+
+      Widget buildCard({required bool initialEnabled, TimeOfDay? initialTime}) {
+        return MaterialApp(
+          home: Scaffold(
+            body: NotificationToggleCard(
+              emoji: '✨',
+              badgeText: 'LP',
+              title: 'Daily reminder',
+              subtitle: 'A supportive message',
+              setTimeLabel: 'Set time',
+              initialEnabled: initialEnabled,
+              initialTime: initialTime,
+              onToggle: (_) => mutation.future,
+            ),
+          ),
+        );
+      }
+
+      await tester.pumpWidget(buildCard(initialEnabled: false));
+      await tester.tap(find.byType(AnimatedContainer));
+      await tester.pump();
+
+      await tester.pumpWidget(
+        buildCard(
+          initialEnabled: true,
+          initialTime: const TimeOfDay(hour: 10, minute: 15),
+        ),
+      );
+      mutation.complete(false);
+      await tester.pumpAndSettle();
+
+      expect(find.text('10:15 AM'), findsOneWidget);
+    },
+  );
 }

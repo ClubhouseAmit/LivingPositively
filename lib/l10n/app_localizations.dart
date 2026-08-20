@@ -2836,6 +2836,12 @@ abstract class AppLocalizations {
   /// **'Enable Notifications'**
   String get notificationsEnable;
 
+  /// Label shown when an enabled reminder has no selected time
+  ///
+  /// In en, this message translates to:
+  /// **'Set time'**
+  String get notificationsSetTime;
+
   /// Shown when remote reminder cancellation prevents reset.
   ///
   /// In en, this message translates to:

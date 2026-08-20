@@ -23,7 +23,7 @@ contains that restored smoke test.
 | Sign-out | Not offered; reset preserves Firebase-authenticated identity. |
 | Device model | One current device token per UID; last registration wins. |
 | Reset | On Android/iOS, a non-anonymous user cancels the account-wide remote `default` before local reset, even when this device has no local reminder record; abort if cancellation fails. |
-| Legacy local preference | Retire legacy hour/minute values; only an explicit `notificationPreferences` record can activate an FCM reminder. |
+| Legacy local preference | On Android, register an FCM reminder from the persisted legacy hour/minute, then retire the local reminder only after remote provisioning succeeds. |
 | Delivery | Bounded best-effort, at-most-once: consider the event minute and preceding 120 minutes, with one send attempt per key. |
 | Delivery state | Atomic claim retained for intended time plus 24 hours. |
 | Cancellation method | Retain authenticated `POST /cancelNotification`. |
@@ -111,10 +111,15 @@ ambiguous failure with no retry, schedule-edit suppression, and claim-failure
 classification. Scheduler checkpoint transactions advance monotonically, so
 overlapping invocations cannot widen a future recovery window.
 
-The deployed scheduler invocation is bounded to 300 seconds, 512MiB, and 25
-task batches. These are deployment bounds for the approved all-or-nothing
-recovery behavior, not runtime configuration: if a bounded recovery cannot
-complete, its checkpoint remains held for a later invocation.
+The deployed scheduler invocation is bounded to 300 seconds and 512MiB.
+Outbound sends run in batches of 25. Stale-device cleanup is independent of
+delivery and is capped at 25 unique UIDs per invocation after the checkpoint
+has advanced. Each cleanup reads and deletes at most 25 schedules in one
+Firestore batch; it retains the stale device document when further schedules
+remain. UID overflow is reported as deferred and is eligible for a later
+scheduling pass. These bounds prevent stale cleanup from consuming the
+delivery deadline. If a bounded delivery recovery cannot complete, its
+checkpoint remains held for a later invocation.
 
 ### Recovery operations note
 
@@ -177,15 +182,18 @@ follow-up.
 
 ## FCM-04 — Two Different Legacy Concerns
 
-### Local preference retirement — complete
+### Local reminder migration — complete
 
-Legacy `notificationHour` and `notificationMinute` values cannot prove that a
-person opted into reminders: ordinary application startup persisted their
-default values even when no reminder was configured. The client therefore
-does not turn those values into a remote FCM schedule. A reminder is active
-only when its modern `notificationPreferences` record exists, which is written
-after a successful explicit schedule request. People upgrading from the legacy
-local scheduler must opt in again from the reminder screen.
+The removed Android local scheduler used the persisted `notificationHour` and
+`notificationMinute` values to identify its daily reminder. Migration treats
+that Android-only schedule as active until it has safely registered the same
+time with FCM, cancels the matching local notification ID, and only then writes
+`fcmDefaultReminderMigrated`. The modern `notificationPreferences` record is
+written only after the remote registration succeeds, so the UI does not report
+an enabled FCM reminder prematurely. If registration or local retirement
+fails, the marker remains unset and the existing local reminder is left intact
+for a later retry. An explicit remote cancellation also writes the marker so a
+queued migration cannot recreate a reminder the user has just turned off.
 
 ### ARB notification content — authoritative
 

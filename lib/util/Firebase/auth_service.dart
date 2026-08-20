@@ -1,12 +1,7 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/foundation.dart'
-    show
-        TargetPlatform,
-        debugPrint,
-        defaultTargetPlatform,
-        kIsWeb,
-        visibleForTesting;
+    show TargetPlatform, defaultTargetPlatform, kIsWeb, visibleForTesting;
 import 'package:get_it/get_it.dart';
 import 'package:google_sign_in/google_sign_in.dart';
 
@@ -38,7 +33,6 @@ class AuthService {
   }
 
   static Future<UserCredential> signUpWithEmail(String email, String password) {
-    debugPrint("gotten here");
     return FirebaseAuth.instance.createUserWithEmailAndPassword(
       email: email.trim(),
       password: password,

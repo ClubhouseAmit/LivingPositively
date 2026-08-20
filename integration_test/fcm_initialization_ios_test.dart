@@ -43,8 +43,10 @@ void main() {
     };
 
     await expectLater(
-      FcmService.initialize().timeout(const Duration(seconds: 10)),
-      completes,
+      FcmService.requestPermissionAndInitialize().timeout(
+        const Duration(seconds: 10),
+      ),
+      completion(isFalse),
     );
 
     expect(FcmService.debugInitializeLocalNotificationsOverride, isNull);

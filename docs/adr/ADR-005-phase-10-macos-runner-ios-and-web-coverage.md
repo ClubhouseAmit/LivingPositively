@@ -68,37 +68,14 @@ it surfaced during the Phase 10 plan validation against the workflow file.
 Execute Phase 10 as **three sub-decisions, one per PR**, each ratchetting
 the aggregate floor by ≤1 pt:
 
-### Sub-decision A — iOS notification paths via macOS-14 runner
+### Sub-decision A — iOS simulator gate
 
-Add a fourth CI job `integration-test-ios` parallel to the existing
-`integration-test` job:
-
-- `runs-on: macos-14` (free for public repos under GitHub's open-source
-  macOS runner allotment; first job run must confirm the org is opted in
-  before the gate is treated as required).
-- Boot an iOS Simulator via `xcrun simctl` (macos-14 ships with Xcode +
-  iOS Simulator pre-installed; no third-party action needed).
-- Run `flutter test integration_test --coverage --coverage-path
-  coverage/integration_ios.info -d "iPhone 15"
-  --dart-define=SENTRY_DSN=https://test@dsn.example.local/0`.
-- New test file `integration_test/notifications_schedule_ios_test.dart`
-  mirrors the existing Android `notifications_schedule_test.dart` but
-  exercises **iOS-specific branches** in
-  `lib/pages/notifications/notification_service.dart`:
-  `IOSFlutterLocalNotificationsPlugin.requestPermissions` happy + denied
-  paths, `DarwinInitializationSettings` permission flags, and the
-  `Platform.isIOS` arm of `supportsReminderSettings()`.
-- New gate script `scripts/check_ios_integration_coverage.dart` enforces
-  a single per-file floor:
-  `lib/pages/notifications/notification_service.dart` ≥ 75% under the iOS
-  invocation alone (will exceed 95% post-aggregate-merge with Android intg).
-- Aggregate-gate merge updated to accept a third lcov input
-  (`coverage-integration-ios-lcov` artifact). `scripts/merge_lcov.dart`
-  already accepts N positional args.
-
-**No production-code change.** The iOS plugin paths are reached purely by
-test code; channel mocks follow the same shape as
-`test/notifications/notification_service_initialize_test.dart`.
+The current `integration-test-ios` job runs on `macos-15`, boots an iPhone
+simulator, and blocks on `integration_test/fcm_initialization_ios_test.dart`.
+It validates the iOS FCM initialization path with a synthetic Sentry define.
+The earlier iOS-only coverage suite, its per-file coverage checker, and its
+third lcov artifact were retired; iOS remains a behavioral gate, while the
+aggregate coverage input is the unit plus Android-integration union.
 
 ### Sub-decision B — `bootstrapApp()` extraction (4th sanctioned production exception)
 

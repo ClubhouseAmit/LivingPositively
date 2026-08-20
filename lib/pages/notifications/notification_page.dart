@@ -76,7 +76,7 @@ class _NotificationPageState extends LPExtendedState<NotificationPage>
     );
   }
 
-  Future<bool> _onPickedTime(TimeOfDay picked, UserInformation userInfo) {
+  Future<bool> _onPickedTime(TimeOfDay picked) {
     return FcmScheduledNotificationService.registerNotification(
       context: context,
       typeId: 'default',
@@ -118,23 +118,13 @@ class _NotificationPageState extends LPExtendedState<NotificationPage>
               children: <Widget>[
                 SizedBox(height: 100),
                 Container(
-                  alignment: Alignment.topLeft,
-                  child: RichText(
-                    text: TextSpan(
-                      style: TextStyle(
-                        fontSize: 32,
-                        fontWeight: FontWeight.bold,
-                      ),
-                      children: [
-                        TextSpan(
-                          text: 'Remind ',
-                          style: TextStyle(color: primaryPurple),
-                        ),
-                        TextSpan(
-                          text: 'Me',
-                          style: TextStyle(color: appGreen),
-                        ),
-                      ],
+                  alignment: AlignmentDirectional.centerStart,
+                  child: Text(
+                    appLocale.notifications(gender),
+                    style: TextStyle(
+                      color: primaryPurple,
+                      fontSize: 32,
+                      fontWeight: FontWeight.bold,
                     ),
                   ),
                 ),
@@ -156,12 +146,15 @@ class _NotificationPageState extends LPExtendedState<NotificationPage>
                       badgeText: "LP",
                       title: appLocale.notifications(gender),
                       subtitle: appLocale.notificationPageHeader(gender),
+                      setTimeLabel: appLocale.notificationsSetTime,
                       initialEnabled: preference != null,
-                      initialTime: TimeOfDay(
-                        hour: preference?.hour ?? 8,
-                        minute: preference?.minute ?? 30,
-                      ),
-                      onTimeSelected: (time) => _onPickedTime(time, userInfo),
+                      initialTime: preference == null
+                          ? null
+                          : TimeOfDay(
+                              hour: preference.hour,
+                              minute: preference.minute,
+                            ),
+                      onTimeSelected: _onPickedTime,
                       onToggle: (value) => _onToggle(value, userInfo),
                     );
                   },

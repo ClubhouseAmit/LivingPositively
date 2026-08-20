@@ -8,6 +8,7 @@ class NotificationToggleCard extends StatefulWidget {
   final String badgeText;
   final String title;
   final String subtitle;
+  final String setTimeLabel;
   final Future<bool> Function(bool value)? onToggle;
   final Future<bool> Function(TimeOfDay value)? onTimeSelected;
   final TimeOfDay? initialTime;
@@ -19,6 +20,7 @@ class NotificationToggleCard extends StatefulWidget {
     required this.badgeText,
     required this.title,
     required this.subtitle,
+    required this.setTimeLabel,
     this.onToggle,
     this.onTimeSelected,
     this.initialTime,
@@ -32,23 +34,32 @@ class NotificationToggleCard extends StatefulWidget {
 class _NotificationToggleCardState extends State<NotificationToggleCard> {
   bool _isEnabled = false;
   bool _isMutating = false;
+  bool _hasDeferredWidgetUpdate = false;
   late TimeOfDay? _selectedTime;
 
   @override
   void initState() {
     super.initState();
     _isEnabled = widget.initialEnabled;
-    _selectedTime = widget.initialTime ?? TimeOfDay(hour: 8, minute: 30);
+    _selectedTime = widget.initialTime;
+  }
+
+  void _syncFromWidget() {
+    _isEnabled = widget.initialEnabled;
+    _selectedTime = widget.initialTime;
   }
 
   @override
   void didUpdateWidget(covariant NotificationToggleCard oldWidget) {
     super.didUpdateWidget(oldWidget);
-    if (_isMutating) return;
-    _isEnabled = widget.initialEnabled;
-    if (widget.initialTime != null) {
-      _selectedTime = widget.initialTime;
+    if (_isMutating) {
+      _hasDeferredWidgetUpdate =
+          _hasDeferredWidgetUpdate ||
+          widget.initialEnabled != oldWidget.initialEnabled ||
+          widget.initialTime != oldWidget.initialTime;
+      return;
     }
+    _syncFromWidget();
   }
 
   Future<void> setEnabled() async {
@@ -66,7 +77,10 @@ class _NotificationToggleCardState extends State<NotificationToggleCard> {
     if (!mounted) return;
     setState(() {
       _isMutating = false;
-      if (applied) {
+      if (_hasDeferredWidgetUpdate) {
+        _hasDeferredWidgetUpdate = false;
+        _syncFromWidget();
+      } else if (applied) {
         _isEnabled = requestedValue;
         if (!requestedValue) {
           _selectedTime = TimeOfDay(hour: 8, minute: 30);
@@ -95,7 +109,12 @@ class _NotificationToggleCardState extends State<NotificationToggleCard> {
     if (!mounted) return;
     setState(() {
       _isMutating = false;
-      if (applied) _selectedTime = picked;
+      if (_hasDeferredWidgetUpdate) {
+        _hasDeferredWidgetUpdate = false;
+        _syncFromWidget();
+      } else if (applied) {
+        _selectedTime = picked;
+      }
     });
   }
 
@@ -136,7 +155,7 @@ class _NotificationToggleCardState extends State<NotificationToggleCard> {
                               Color.lerp(primaryPurple, appGreen, 0.15)!,
                               appGreen,
                             ],
-                            stops: [0.0, 0.5, 1.5],
+                            stops: [0.0, 0.5, 1.0],
                           ),
                         ),
                         child: Text(
@@ -191,7 +210,7 @@ class _NotificationToggleCardState extends State<NotificationToggleCard> {
                               ],
                             )
                           : Text(
-                              'Set time',
+                              widget.setTimeLabel,
                               style: TextStyle(
                                 color: Colors.blue,
                                 fontSize: 12,

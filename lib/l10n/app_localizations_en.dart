@@ -3585,6 +3585,9 @@ class AppLocalizationsEn extends AppLocalizations {
   String get notificationsEnable => 'Enable Notifications';
 
   @override
+  String get notificationsSetTime => 'Set time';
+
+  @override
   String get resetReminderCancellationFailed =>
       'Couldn\'t cancel the reminder. Your data has not been reset.';
 

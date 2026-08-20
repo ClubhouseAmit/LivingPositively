@@ -3541,6 +3541,9 @@ class AppLocalizationsHe extends AppLocalizations {
   String get notificationsEnable => 'הפעלת התראות';
 
   @override
+  String get notificationsSetTime => 'הגדרת שעה';
+
+  @override
   String get resetReminderCancellationFailed =>
       'לא ניתן לבטל את התזכורת. הנתונים שלך לא אופסו.';
 

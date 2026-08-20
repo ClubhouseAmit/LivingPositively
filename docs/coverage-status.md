@@ -1266,11 +1266,10 @@ no skipped tests, analyzer clean) — all four held without iteration.
 
 > **Current-state update (2026-08-05):** The Round 10 iOS coverage design below
 > is historical. The active `integration-test-ios` job is now blocking and runs
-> `integration_test/notifications_schedule_test.dart` without collecting lcov.
-> `integration_test/notifications_schedule_ios_test.dart`,
-> `scripts/check_ios_integration_coverage.dart`, `coverage/integration_ios.info`,
-> and the `coverage-integration-ios-lcov` artifact have been removed. Unit plus
-> Android integration lcov remain the aggregate coverage inputs.
+> `integration_test/fcm_initialization_ios_test.dart` without collecting lcov.
+> The retired iOS-only coverage suite, its checker, its lcov input, and its
+> artifact have been removed. Unit plus Android integration lcov remain the
+> aggregate coverage inputs.
 
 Generated: 2026-05-25 — executes the three sub-decisions adopted in
 [`docs/adr/ADR-005-phase-10-macos-runner-ios-and-web-coverage.md`](adr/ADR-005-phase-10-macos-runner-ios-and-web-coverage.md).
@@ -1304,10 +1303,10 @@ first telemetry runs surface their failure modes — tracked in the
 
 ### What landed
 
-#### PR 10A — iOS notification paths via macOS-14 runner (ADR-005 § A)
+#### PR 10A — Retired iOS notification coverage design (ADR-005 § A)
 
-- **`integration_test/notifications_schedule_ios_test.dart`** (~250 LOC,
-  9 testWidgets in 5 groups). Mirrors the Android sibling but exercises
+- **The retired iOS-only coverage suite** (~250 LOC, 9 testWidgets in 5
+  groups). It mirrored the Android sibling but exercised
   iOS-specific arms on a real iOS Simulator under
   `IntegrationTestWidgetsFlutterBinding`:
   - `supportsReminderSettings()` returns false on real iOS binding (no
@@ -1330,9 +1329,9 @@ first telemetry runs surface their failure modes — tracked in the
   - Explicitly skips `cancelNotifications(null, cancelWorker: true)` —
     Workmanager has no iOS implementation; documented in the file
     header.
-- **`scripts/check_ios_integration_coverage.dart`** (new gate). Sibling
-  of `check_integration_coverage.dart`. Reads `coverage/integration_ios.info`
-  produced by the new `integration-test-ios` CI job, enforces a 60%
+- **The retired iOS coverage checker** was a sibling of
+  `check_integration_coverage.dart`. It read the former iOS lcov input and
+  enforced a 60%
   per-file floor on `lib/pages/notifications/notification_service.dart`
   under the iOS invocation alone. Floor sized below the expected ~70-80%
   to absorb iOS surface differences vs Android (no Workmanager arm).

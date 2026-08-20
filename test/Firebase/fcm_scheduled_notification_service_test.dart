@@ -119,6 +119,7 @@ void main() {
 
   setUp(() {
     memory = _FakePersistentMemoryService();
+    memory.stored.addAll({'notificationHour': 8, 'notificationMinute': 15});
     GetIt.instance.registerSingleton<PersistentMemoryService>(memory);
     user = UserInformation(
       service: memory,
@@ -532,12 +533,9 @@ void main() {
   );
 
   testWidgets(
-    'migrates remotely, retires the legacy local reminder, then marks it once',
+    'migrates a persisted legacy reminder, retires it, then marks it once',
     (tester) async {
-      user.setNotificationPreference(
-        'default',
-        const NotificationPreference(hour: 8, minute: 15),
-      );
+      expect(user.getNotificationPreference('default'), isNull);
       await pumpUser(tester);
       var postCalls = 0;
       final operations = <String>[];
@@ -587,6 +585,39 @@ void main() {
       expect(memory.stored['fcmDefaultReminderMigrated'], isTrue);
     },
   );
+
+  testWidgets('does not migrate a reminder without a persisted legacy time', (
+    tester,
+  ) async {
+    memory.stored.remove('notificationHour');
+    memory.stored.remove('notificationMinute');
+    user.setNotificationPreference(
+      'default',
+      const NotificationPreference(hour: 8, minute: 15),
+    );
+    await pumpUser(tester);
+    var postCalls = 0;
+    final cancelledIds = <int>[];
+
+    await _onPlatform(
+      TargetPlatform.android,
+      () => FcmScheduledNotificationService.migrateLegacyDefaultReminder(
+        userInformation: user,
+        idTokenProvider: () async => 'token-123',
+        post: (url, {headers, body, encoding}) async {
+          postCalls++;
+          return http.Response('{}', 200);
+        },
+        legacyNotificationCanceller: (notificationId) async {
+          cancelledIds.add(notificationId);
+        },
+      ),
+    );
+
+    expect(postCalls, 0);
+    expect(cancelledIds, isEmpty);
+    expect(memory.stored.containsKey('fcmDefaultReminderMigrated'), isFalse);
+  });
 
   testWidgets('reports a migration-marker read failure without propagating it', (
     tester,
@@ -746,11 +777,6 @@ void main() {
         throwsA(isA<StateError>()),
       );
       expect(memory.stored.containsKey('fcmDefaultReminderMigrated'), isFalse);
-      user.setNotificationPreference(
-        'default',
-        const NotificationPreference(hour: 9, minute: 30),
-      );
-
       await _onPlatform(
         TargetPlatform.android,
         () => FcmScheduledNotificationService.migrateLegacyDefaultReminder(
@@ -761,7 +787,7 @@ void main() {
         ),
       );
 
-      expect(registrations, [(hour: 8, minute: 15), (hour: 9, minute: 30)]);
+      expect(registrations, [(hour: 8, minute: 15), (hour: 8, minute: 15)]);
       expect(cancelledIds, [815, 815]);
       expect(memory.stored['fcmDefaultReminderMigrated'], isTrue);
     },
@@ -873,7 +899,7 @@ void main() {
   );
 
   testWidgets(
-    'local reset failure restores legacy reminder migration after cancellation',
+    'local reset failure restores the remote reminder after cancellation',
     (tester) async {
       const previousPreference = NotificationPreference(hour: 8, minute: 15);
       user.setNotificationPreference('default', previousPreference);
@@ -900,30 +926,27 @@ void main() {
       expect(cancelRequests, 1);
       expect(user.getNotificationPreference('default'), isNull);
 
-      FcmScheduledNotificationService.restoreDefaultReminderAfterResetFailure(
-        userInformation: user,
-        previousPreference: previousPreference,
+      memory.stored['fcmDefaultReminderMigrated'] = true;
+      final restored = await _onPlatform(
+        TargetPlatform.android,
+        () =>
+            FcmScheduledNotificationService.restoreDefaultReminderAfterResetFailure(
+              userInformation: user,
+              previousPreference: previousPreference,
+              idTokenProvider: () async => 'token-123',
+              post: (url, {headers, body, encoding}) async {
+                if (url.path.endsWith('/getNotificationMutationVersion')) {
+                  return http.Response('{"mutationVersion":1}', 200);
+                }
+                registerRequests++;
+                return http.Response('{}', 200);
+              },
+            ),
       );
 
+      expect(restored, isTrue);
       expect(user.getNotificationPreference('default')?.hour, 8);
       expect(user.getNotificationPreference('default')?.minute, 15);
-
-      await _onPlatform(
-        TargetPlatform.android,
-        () => FcmScheduledNotificationService.migrateLegacyDefaultReminder(
-          userInformation: user,
-          idTokenProvider: () async => 'token-123',
-          legacyNotificationCanceller: _ignoreLegacyNotification,
-          post: (url, {headers, body, encoding}) async {
-            if (url.path.endsWith('/getNotificationMutationVersion')) {
-              return http.Response('{"mutationVersion":0}', 200);
-            }
-            registerRequests++;
-            return http.Response('{}', 200);
-          },
-        ),
-      );
-
       expect(registerRequests, 1);
       expect(memory.stored['fcmDefaultReminderMigrated'], isTrue);
     },
@@ -1025,10 +1048,7 @@ void main() {
         expect(await cancellation, isTrue);
         await migration;
         expect(requests, ['/cancelNotification']);
-        expect(
-          memory.stored.containsKey('fcmDefaultReminderMigrated'),
-          isFalse,
-        );
+        expect(memory.stored['fcmDefaultReminderMigrated'], isTrue);
       } finally {
         debugDefaultTargetPlatformOverride = null;
       }

@@ -699,6 +699,10 @@
   "notificationsPermissionDeniedBody": "כדי לקבל תזכורות, יש לאפשר תזכורות בהגדרות המכשיר",
   "notificationsOpenSettings": "הגדרות",
   "notificationsEnable": "הפעלת התראות",
+  "notificationsSetTime": "הגדרת שעה",
+  "@notificationsSetTime": {
+    "description": "תווית שמוצגת כאשר לתזכורת פעילה אין שעה שנבחרה"
+  },
   "resetReminderCancellationFailed": "לא ניתן לבטל את התזכורת. הנתונים שלך לא אופסו.",
   "@resetReminderCancellationFailed": {
     "description": "מוצג כאשר ביטול התזכורת המרוחקת מונע איפוס."

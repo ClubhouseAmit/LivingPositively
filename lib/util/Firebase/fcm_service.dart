@@ -128,9 +128,7 @@ class FcmService {
       return pendingInitialization;
     }
 
-    final initialization = _initializeWithReporting(requestPermission: false);
-    _initialization = initialization;
-    return initialization;
+    return _startInitialization(requestPermission: false);
   }
 
   static void onAppResumed() {
@@ -145,10 +143,23 @@ class FcmService {
       await pendingInitialization;
       if (_isInitialized) return true;
     }
-    final initialization = _initializeWithReporting(requestPermission: true);
-    _initialization = initialization;
+    final initialization = _startInitialization(requestPermission: true);
     await initialization;
     return _isInitialized;
+  }
+
+  static Future<void> _startInitialization({required bool requestPermission}) {
+    late final Future<void> initialization;
+    initialization =
+        _initializeWithReporting(
+          requestPermission: requestPermission,
+        ).whenComplete(() {
+          if (identical(_initialization, initialization)) {
+            _initialization = null;
+          }
+        });
+    _initialization = initialization;
+    return initialization;
   }
 
   static Future<void> _initializeWithReporting({
@@ -163,8 +174,6 @@ class FcmService {
       }
     } catch (error, stackTrace) {
       _reportFailure(error, stackTrace);
-    } finally {
-      _initialization = null;
     }
   }
 

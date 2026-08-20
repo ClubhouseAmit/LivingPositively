@@ -3552,6 +3552,9 @@ class AppLocalizationsAr extends AppLocalizations {
   String get notificationsEnable => 'تفعيل الإشعارات';
 
   @override
+  String get notificationsSetTime => 'تعيين الوقت';
+
+  @override
   String get resetReminderCancellationFailed =>
       'تعذر إلغاء التذكير. لم تتم إعادة ضبط بياناتك.';
 

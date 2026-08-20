@@ -2018,6 +2018,10 @@
   "@notificationsEnable": {
     "description": "Requests notification permission before scheduling reminders"
   },
+  "notificationsSetTime": "Set time",
+  "@notificationsSetTime": {
+    "description": "Label shown when an enabled reminder has no selected time"
+  },
   "resetReminderCancellationFailed": "Couldn't cancel the reminder. Your data has not been reset.",
   "@resetReminderCancellationFailed": {
     "description": "Shown when remote reminder cancellation prevents reset."

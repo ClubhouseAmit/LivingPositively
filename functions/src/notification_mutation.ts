@@ -12,8 +12,7 @@ export type NotificationMutationDecision =
 
 export type StoredNotificationMutationVersionDecision =
   | { kind: "use"; version: number }
-  | { kind: "repair" }
-  | { kind: "reject" };
+  | { kind: "repair" };
 
 export type NotificationMutationAuthorizationDecision =
   | { kind: "apply"; nextVersion: number | undefined }
@@ -65,13 +64,12 @@ export function isNonNegativeNotificationMutationVersion(
 
 export function storedNotificationMutationVersionDecision(
   value: unknown,
-  allowInvalidVersionRepair: boolean,
 ): StoredNotificationMutationVersionDecision {
   if (value === undefined) return { kind: "use", version: 0 };
   if (isNonNegativeNotificationMutationVersion(value)) {
     return { kind: "use", version: value };
   }
-  return allowInvalidVersionRepair ? { kind: "repair" } : { kind: "reject" };
+  return { kind: "repair" };
 }
 
 export function notificationMutationAuthorizationDecision(
@@ -86,14 +84,7 @@ export function notificationMutationAuthorizationDecision(
 
   const storedVersionDecision = storedNotificationMutationVersionDecision(
     input.storedVersion,
-    input.resetFence,
   );
-  if (storedVersionDecision.kind === "reject") {
-    return {
-      kind: "conflict",
-      message: "Invalid notification mutation state",
-    };
-  }
 
   const currentVersion = storedVersionDecision.kind === "repair"
     ? 0
