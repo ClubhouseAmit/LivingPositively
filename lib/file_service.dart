@@ -296,8 +296,7 @@ class FileServiceImpl implements FileService {
 
   static Future<String?> saveAndroid(Uint8List data, String format) async {
     try {
-      // Open a save file dialog to allow the user to select a location to save the PDF
-      String? outputFile = await FilePicker.saveFile(
+      final outputFile = await FilePicker.saveFile(
         dialogTitle: 'Please select an output file:', // Dialog title
         fileName: 'התוכנית שלי.$format', // Default file name
         bytes: data, // PDF data to be saved
@@ -305,7 +304,7 @@ class FileServiceImpl implements FileService {
       //If the user cancels the download
       AnalyticsService mixPanelService = GetIt.instance<AnalyticsService>();
       mixPanelService.trackEvent("Plan downloaded Android");
-      return outputFile;
+      return outputFile?.path ?? outputFile?.toString();
     } catch (error, stackTrace) {
       IncidentLoggerService loggerService =
           GetIt.instance<IncidentLoggerService>();

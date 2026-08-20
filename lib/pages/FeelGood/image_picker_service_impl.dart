@@ -263,12 +263,22 @@ class ImagePickerServiceImpl implements ImagePickerService {
       final extension = _extractImageExtension(imagePath);
       final name = fileName ??
           'feel_good_${DateTime.now().millisecondsSinceEpoch}$extension';
-      final saveFile = customFileSaver ?? FilePicker.saveFile;
-      final result = await saveFile(
-        dialogTitle: dialogTitle ?? 'Save image',
-        fileName: name,
-        bytes: bytes,
-      );
+      final saveFile = customFileSaver;
+      final String? result;
+      if (saveFile != null) {
+        result = await saveFile(
+          dialogTitle: dialogTitle ?? 'Save image',
+          fileName: name,
+          bytes: bytes,
+        );
+      } else {
+        final outputFile = await FilePicker.saveFile(
+          dialogTitle: dialogTitle ?? 'Save image',
+          fileName: name,
+          bytes: bytes,
+        );
+        result = outputFile?.path ?? outputFile?.toString();
+      }
       if (result != null) {
         await _trackEventSafely("Photo downloaded");
       }
