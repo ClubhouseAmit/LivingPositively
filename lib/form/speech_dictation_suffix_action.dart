@@ -59,8 +59,8 @@ class SpeechDictationSuffixAction extends StatefulWidget {
   final PersistentMemoryService? persistentMemoryService;
 
   /// Feature flag controlling whether speech dictation UI is enabled.
-  /// Set to false to hide the dictation action across all form inputs for release.
-  static bool isFeatureEnabled = false;
+  /// Set to true to show the dictation action across all form inputs.
+  static bool isFeatureEnabled = true;
 
   /// Whether the current platform has an exposed dictation control.
   static bool get isSupportedPlatform =>
