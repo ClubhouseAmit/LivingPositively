@@ -9,6 +9,7 @@ import 'package:mazilon/Locale/locale_service.dart';
 import 'package:mazilon/form/speech_dictation_suffix_action.dart';
 import 'package:mazilon/global_enums.dart';
 import 'package:mazilon/pages/SignIn_Pages/firstPage.dart';
+import 'package:mazilon/util/Firebase/auth_service.dart';
 import 'package:mazilon/util/Firebase/fcm_scheduled_notification_service.dart';
 import 'package:mazilon/util/Firebase/fcm_service.dart';
 import 'package:mazilon/util/Form/formPagePhoneModel.dart';
@@ -598,6 +599,40 @@ class _UserSettingsState extends LPExtendedState<UserSettings> {
     }
   }
 
+  Future<bool> signOut(UserInformation userInfo) async {
+    try {
+      await AuthService.signOut();
+    } catch (error, stackTrace) {
+      _reportResetFailure(error, stackTrace);
+      if (mounted) {
+        ScaffoldMessenger.maybeOf(
+          context,
+        )?.showSnackBar(SnackBar(content: Text(appLocale.asyncErrorMessage)));
+      }
+      return false;
+    }
+
+    userInfo.updateLoggedIn(false);
+    userInfo.updateAuthDecisionMade(false);
+    userInfo.updateUserId('');
+    userInfo.updateEmail('');
+    userInfo.updateDisplayName('');
+
+    if (!mounted) return true;
+    Navigator.of(context).pushAndRemoveUntil(
+      MaterialPageRoute(
+        builder: (context) => FirstPage(
+          phonePageData: widget.phonePageData,
+          firsttime: !enteredBefore,
+          changeLocale: widget.changeLocale,
+          hasFilled: hasFilled,
+        ),
+      ),
+      (Route<dynamic> route) => false,
+    );
+    return true;
+  }
+
   @override
   void initState() {
     dropdownValueAge = widget.age;
@@ -933,6 +968,118 @@ class _UserSettingsState extends LPExtendedState<UserSettings> {
                                         ),
                                       ),
                                     ),
+                                    if (userInfoProvider.loggedIn)
+                                      SizedBox(
+                                        height: _kActionButtonHeight,
+                                        child: TextButton(
+                                          key: const Key(
+                                            'userSettingsSignOutButton',
+                                          ),
+                                          style: TextButton.styleFrom(
+                                            backgroundColor:
+                                                colorScheme.surface,
+                                            foregroundColor:
+                                                colorScheme.onSurface,
+                                            shape: RoundedRectangleBorder(
+                                              borderRadius:
+                                                  BorderRadius.circular(
+                                                    _kActionButtonRadius,
+                                                  ),
+                                              side: BorderSide(
+                                                color: colorScheme
+                                                    .surfaceContainerHighest,
+                                                width: 1.5,
+                                              ),
+                                            ),
+                                          ),
+                                          onPressed: () {
+                                            showDialog<void>(
+                                              context: context,
+                                              builder: (dialogContext) {
+                                                var isSigningOut = false;
+                                                return StatefulBuilder(
+                                                  builder: (dialogContext, setDialogState) => PopScope(
+                                                    canPop: !isSigningOut,
+                                                    child: AlertDialog(
+                                                      title: Text(
+                                                        appLocale
+                                                            .authSignOutConfirmTitle,
+                                                      ),
+                                                      content: Text(
+                                                        appLocale
+                                                            .authSignOutConfirmBody,
+                                                      ),
+                                                      actions: [
+                                                        TextButton(
+                                                          onPressed:
+                                                              isSigningOut
+                                                              ? null
+                                                              : () => Navigator.of(
+                                                                  dialogContext,
+                                                                ).pop(),
+                                                          child: Text(
+                                                            appLocale
+                                                                .closeButton(
+                                                                  gender,
+                                                                ),
+                                                          ),
+                                                        ),
+                                                        TextButton(
+                                                          onPressed:
+                                                              isSigningOut
+                                                              ? null
+                                                              : () async {
+                                                                  setDialogState(
+                                                                    () =>
+                                                                        isSigningOut =
+                                                                            true,
+                                                                  );
+                                                                  final signedOut =
+                                                                      await signOut(
+                                                                        userInfoProvider,
+                                                                      );
+                                                                  if (!signedOut &&
+                                                                      dialogContext
+                                                                          .mounted) {
+                                                                    setDialogState(
+                                                                      () => isSigningOut =
+                                                                          false,
+                                                                    );
+                                                                  }
+                                                                },
+                                                          child: isSigningOut
+                                                              ? const SizedBox(
+                                                                  width: 20,
+                                                                  height: 20,
+                                                                  child: CircularProgressIndicator(
+                                                                    strokeWidth:
+                                                                        2,
+                                                                  ),
+                                                                )
+                                                              : Text(
+                                                                  appLocale
+                                                                      .authSignOut,
+                                                                ),
+                                                        ),
+                                                      ],
+                                                    ),
+                                                  ),
+                                                );
+                                              },
+                                            );
+                                          },
+                                          child: Text(
+                                            appLocale.authSignOut,
+                                            maxLines: 1,
+                                            overflow: TextOverflow.ellipsis,
+                                            style: TextStyle(
+                                              fontSize: _kActionLabelSize.sp,
+                                              fontWeight:
+                                                  AppFontWeight.semiBold,
+                                            ),
+                                          ),
+                                        ),
+                                      ),
                                     SizedBox(
                                       height: _kActionButtonHeight,
                                       child: TextButton(

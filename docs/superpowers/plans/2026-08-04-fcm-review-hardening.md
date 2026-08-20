@@ -4,7 +4,7 @@
 
 **Goal:** Resolve the final PR #309 reliability, observability, validation, UI, and test-seam findings without weakening the approved privacy-first reset fence.
 
-**Architecture:** Keep all changes inside the existing Flutter FCM client, Cloud Functions scheduler/mutation boundary, service locator, and decision record. Corrupt mutation state is recoverable only through an authenticated reset-fenced cancellation; ordinary mutations remain blocked. Scheduler telemetry becomes structured JSON, while the canonical Firestore rules remain an explicit external rollout gate because this repository does not own the production rules source.
+**Architecture:** Keep all changes inside the existing Flutter FCM client, Cloud Functions scheduler/mutation boundary, service locator, and decision record. Corrupt mutation state is recoverable through an authenticated versioned mutation; `resetFence` remains the guard that rejects cancellation while a delivery permit is active. Scheduler telemetry becomes structured JSON, while the canonical Firestore rules remain an explicit external rollout gate because this repository does not own the production rules source.
 
 **Tech Stack:** Flutter/Dart, GetIt, fake_cloud_firestore, Firebase Auth/Firestore, TypeScript, Firebase Functions v7, Node test runner.
 
@@ -28,24 +28,20 @@
 - Modify: `functions/src/index.ts`
 
 **Interfaces:**
-- Produces: `storedNotificationMutationVersionDecision(value, allowInvalidVersionRepair)` returning `use`, `repair`, or `reject`.
-- Consumes: existing `expectedMutationVersion`, `resetFence`, active delivery permit, and `NotificationMutationConflictError` behavior.
+- Produces: `storedNotificationMutationVersionDecision(value)` returning `use` or `repair`.
+- Consumes: existing `expectedMutationVersion`, active delivery permit, and `NotificationMutationConflictError` behavior. `resetFence` remains an endpoint-level guard for active delivery permits.
 
 - [ ] **Step 1: Write the failing decision tests**
 
-Add literal assertions proving invalid state is repairable only when explicitly allowed:
+Add literal assertions proving invalid state repairs to the current version zero:
 
 ```ts
 assert.deepEqual(
-  storedNotificationMutationVersionDecision("corrupt", false),
-  { kind: "reject" },
-);
-assert.deepEqual(
-  storedNotificationMutationVersionDecision("corrupt", true),
+  storedNotificationMutationVersionDecision("corrupt"),
   { kind: "repair" },
 );
 assert.deepEqual(
-  storedNotificationMutationVersionDecision(7, false),
+  storedNotificationMutationVersionDecision(7),
   { kind: "use", version: 7 },
 );
 ```
@@ -58,7 +54,7 @@ Expected: TypeScript build fails because `storedNotificationMutationVersionDecis
 
 - [ ] **Step 3: Implement the minimal decision and handler behavior**
 
-Add the pure decision in `notification_mutation.ts`. In `authorizeNotificationMutation`, allow `repair` only when `resetFence === true`; reject invalid state with a controlled 409 for ordinary mutations. Treat repair as current version zero after the active-permit check so reset overwrites the corrupt field with version one. In `getNotificationMutationVersion`, return zero for an invalid stored version and emit a structured warning so the client can issue the reset-fenced cancellation.
+Add the pure decision in `notification_mutation.ts`. Versioned mutations repair an invalid stored version to zero after the active-permit check, so the client can recover from a corrupt state instead of receiving an unrecoverable 409. `resetFence` remains the endpoint-level request for active-delivery-permit rejection; it is not part of version repair authorization. In `getNotificationMutationVersion`, return zero for an invalid stored version and emit a structured warning.
 
 - [ ] **Step 4: Run `npm test` and verify GREEN**
 

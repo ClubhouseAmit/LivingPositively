@@ -21,7 +21,6 @@ export type NotificationMutationAuthorizationDecision =
 export type NotificationMutationAuthorizationInput = {
   storedVersion: unknown;
   expectedVersion: ExpectedNotificationMutationVersion;
-  resetFence: boolean;
   rejectActiveDeliveryPermit: boolean;
   hasActiveDeliveryPermit: boolean;
   hasEffectiveState: boolean;
@@ -47,7 +46,6 @@ export type NotificationMutationExecutionInput<TReference> = {
   stateRef: TReference;
   scheduleRef: TReference;
   expectedVersion: ExpectedNotificationMutationVersion;
-  resetFence: boolean;
   rejectActiveDeliveryPermit: boolean;
   operation: NotificationMutationOperation;
 };
@@ -120,7 +118,6 @@ export async function executeNotificationMutation<TReference>(
   const decision = notificationMutationAuthorizationDecision({
     storedVersion: stateData?.version,
     expectedVersion: input.expectedVersion,
-    resetFence: input.resetFence,
     rejectActiveDeliveryPermit: input.rejectActiveDeliveryPermit,
     hasActiveDeliveryPermit: hasActiveDeliveryPermit(stateData),
     hasEffectiveState: hasEffectiveNotificationMutationState(stateData),

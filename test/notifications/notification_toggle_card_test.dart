@@ -150,4 +150,35 @@ void main() {
       expect(find.text('10:15 AM'), findsOneWidget);
     },
   );
+
+  testWidgets('shows progress while a reminder mutation is pending', (
+    tester,
+  ) async {
+    final mutation = Completer<bool>();
+
+    await tester.pumpWidget(
+      MaterialApp(
+        home: Scaffold(
+          body: NotificationToggleCard(
+            emoji: '✨',
+            badgeText: 'LP',
+            title: 'Daily reminder',
+            subtitle: 'A supportive message',
+            setTimeLabel: 'Set time',
+            onToggle: (_) => mutation.future,
+          ),
+        ),
+      ),
+    );
+
+    await tester.tap(find.byType(AnimatedContainer));
+    await tester.pump();
+
+    expect(find.byType(CircularProgressIndicator), findsOneWidget);
+
+    mutation.complete(false);
+    await tester.pumpAndSettle();
+
+    expect(find.byType(CircularProgressIndicator), findsNothing);
+  });
 }

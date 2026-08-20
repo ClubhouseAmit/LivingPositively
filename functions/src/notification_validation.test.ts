@@ -137,7 +137,6 @@ describe("notification validation", () => {
       notificationMutationAuthorizationDecision({
         storedVersion: "corrupt",
         expectedVersion: { kind: "versioned", version: 0 },
-        resetFence: false,
         rejectActiveDeliveryPermit: false,
         hasActiveDeliveryPermit: false,
         hasEffectiveState: false,
@@ -146,12 +145,11 @@ describe("notification validation", () => {
     );
   });
 
-  it("writes version one when a reset fence repairs a corrupt mutation", () => {
+  it("writes version one when a reset cancellation repairs a corrupt mutation", () => {
     assert.deepEqual(
       notificationMutationAuthorizationDecision({
         storedVersion: "corrupt",
         expectedVersion: { kind: "versioned", version: 0 },
-        resetFence: true,
         rejectActiveDeliveryPermit: true,
         hasActiveDeliveryPermit: false,
         hasEffectiveState: false,
@@ -165,7 +163,6 @@ describe("notification validation", () => {
       notificationMutationAuthorizationDecision({
         storedVersion: "corrupt",
         expectedVersion: { kind: "versioned", version: 0 },
-        resetFence: true,
         rejectActiveDeliveryPermit: true,
         hasActiveDeliveryPermit: true,
         hasEffectiveState: true,
@@ -198,7 +195,6 @@ describe("notification validation", () => {
         stateRef: "state",
         scheduleRef: "schedule",
         expectedVersion: { kind: "versioned", version: 0 },
-        resetFence: false,
         rejectActiveDeliveryPermit: false,
         operation: { kind: "cancel" },
       }),
@@ -234,7 +230,6 @@ describe("notification validation", () => {
         stateRef: "state",
         scheduleRef: "schedule",
         expectedVersion: { kind: "versioned", version: 0 },
-        resetFence: true,
         rejectActiveDeliveryPermit: true,
         operation: { kind: "cancel" },
       }),
@@ -270,7 +265,6 @@ describe("notification validation", () => {
         stateRef: "state",
         scheduleRef: "schedule",
         expectedVersion: { kind: "versioned", version: 0 },
-        resetFence: false,
         rejectActiveDeliveryPermit: false,
         operation: {
           kind: "register",
@@ -319,7 +313,6 @@ describe("notification validation", () => {
         stateRef: "state",
         scheduleRef: "schedule",
         expectedVersion: { kind: "versioned", version: 0 },
-        resetFence: true,
         rejectActiveDeliveryPermit: true,
         operation: { kind: "cancel" },
       }),

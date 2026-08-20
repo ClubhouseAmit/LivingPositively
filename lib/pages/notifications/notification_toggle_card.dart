@@ -244,15 +244,21 @@ class _NotificationToggleCardState extends State<NotificationToggleCard> {
                   alignment: _isEnabled
                       ? Alignment.centerRight
                       : Alignment.centerLeft,
-                  child: Container(
-                    width: 22,
-                    height: 22,
-                    margin: EdgeInsets.symmetric(horizontal: 2),
-                    decoration: BoxDecoration(
-                      color: Colors.white,
-                      shape: BoxShape.circle,
-                    ),
-                  ),
+                  child: _isMutating
+                      ? const SizedBox(
+                          width: 18,
+                          height: 18,
+                          child: CircularProgressIndicator(strokeWidth: 2),
+                        )
+                      : Container(
+                          width: 22,
+                          height: 22,
+                          margin: EdgeInsets.symmetric(horizontal: 2),
+                          decoration: BoxDecoration(
+                            color: Colors.white,
+                            shape: BoxShape.circle,
+                          ),
+                        ),
                 ),
               ),
             ),

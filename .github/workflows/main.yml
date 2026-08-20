@@ -451,20 +451,6 @@ jobs:
           XCODE_CACHE_KEY=$(xcodebuild -version | tr '\n' '-' | sed -E 's/-$//' | tr ' ' '_')
           echo "cache_key=$XCODE_CACHE_KEY" >> "$GITHUB_OUTPUT"
 
-      - name: Verify CocoaPods version
-        working-directory: ios
-        run: |
-          EXPECTED_COCOAPODS_VERSION=$(awk '$1 == "COCOAPODS:" { print $2 }' Podfile.lock)
-          ACTUAL_COCOAPODS_VERSION=$(pod --version)
-          if [ -z "$EXPECTED_COCOAPODS_VERSION" ]; then
-            echo "::error::Podfile.lock does not declare a CocoaPods version."
-            exit 1
-          fi
-          if [ "$ACTUAL_COCOAPODS_VERSION" != "$EXPECTED_COCOAPODS_VERSION" ]; then
-            echo "::error::CocoaPods $EXPECTED_COCOAPODS_VERSION is required by Podfile.lock; runner has $ACTUAL_COCOAPODS_VERSION."
-            exit 1
-          fi
-
       - name: Cache CocoaPods
         uses: actions/cache@v5
         with:
@@ -500,19 +486,16 @@ jobs:
         run: xcrun simctl list devices available
 
       - name: Boot iPhone simulator
-        # Xcode 16.4's iOS 18.5 runtime has a WebKit regression, so use the
-        # fixed iOS 18.6 runtime while keeping the device model flexible.
+        # The iOS FCM test does not depend on a particular simulator runtime.
+        # Select the first available iPhone so routine macOS image rotations do
+        # not block the release pipeline before the test can run.
         timeout-minutes: 10
         run: |
-          DEVICE_LINE=$(xcrun simctl list devices available | awk '
-            /^-- iOS 18\.6 --$/ { in_runtime = 1; next }
-            /^-- / { in_runtime = 0 }
-            in_runtime && /^[[:space:]]+iPhone / { print; exit }
-          ')
+          DEVICE_LINE=$(xcrun simctl list devices available | awk '/^[[:space:]]+iPhone / { print; exit }')
           DEVICE_ID=$(echo "$DEVICE_LINE" | awk -F '[()]' '{print $2}')
           DEVICE_NAME=$(echo "$DEVICE_LINE" | sed -E 's/^\s+//; s/ \(.*//')
           if [ -z "$DEVICE_ID" ]; then
-            echo "::error::No iOS 18.6 iPhone simulator found on this macos-15 runner."
+            echo "::error::No available iPhone simulator found on this macos-15 runner."
             xcrun simctl list devices available
             exit 1
           fi

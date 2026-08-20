@@ -745,10 +745,17 @@ void main() {
     );
   });
 
-  testWidgets('does not offer sign-out for an authenticated user', (
+  testWidgets('signs out an authenticated user after confirmation', (
     tester,
   ) async {
+    final auth = MockFirebaseAuth();
+    when(auth.signOut()).thenAnswer((_) async {});
+    GetIt.instance.registerSingleton<FirebaseAuth>(auth);
     user.loggedIn = true;
+    user.authDecisionMade = true;
+    user.userId = 'signed-in-user';
+    user.email = 'user@example.com';
+    user.displayName = 'Signed-in User';
     await pumpWithProviders(
       tester,
       UserSettings(
@@ -762,7 +769,31 @@ void main() {
       surfaceSize: const Size(1024, 2800),
     );
 
-    expect(find.text('Sign Out'), findsNothing);
+    final signOutButton = find.byKey(const Key('userSettingsSignOutButton'));
+    await tester.ensureVisible(signOutButton);
+    await tester.tap(signOutButton, warnIfMissed: false);
+    await tester.pumpAndSettle();
+
+    expect(find.text('Sign Out?'), findsOneWidget);
+    expect(
+      find.text('You will need to sign in again to access all features.'),
+      findsOneWidget,
+    );
+
+    final dialogButtons = find.descendant(
+      of: find.byType(Dialog),
+      matching: find.byType(TextButton),
+    );
+    await tester.tap(dialogButtons.last, warnIfMissed: false);
+    await tester.pumpAndSettle();
+
+    verify(auth.signOut()).called(1);
+    expect(user.loggedIn, isFalse);
+    expect(user.authDecisionMade, isFalse);
+    expect(user.userId, isEmpty);
+    expect(user.email, isEmpty);
+    expect(user.displayName, isEmpty);
+    expect(find.byType(FirstPage), findsOneWidget);
   });
 
   testWidgets(

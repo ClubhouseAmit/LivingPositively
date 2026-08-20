@@ -31,7 +31,7 @@ class _NotificationPageState extends LPExtendedState<NotificationPage>
     super.initState();
     WidgetsBinding.instance.addObserver(this);
     _checkPermission();
-    loadReminderDebugPanelUnlocked();
+    if (kDebugMode) loadReminderDebugPanelUnlocked();
   }
 
   @override
@@ -50,14 +50,20 @@ class _NotificationPageState extends LPExtendedState<NotificationPage>
     if (mounted) setState(() => _hasPermission = granted);
   }
 
-  Future<bool> _onToggle(bool value, UserInformation userInfo) {
-    if (value) {
-      return _enableReminder(userInfo);
+  Future<bool> _onToggle(bool value, UserInformation userInfo) async {
+    try {
+      final applied = value
+          ? await _enableReminder(userInfo)
+          : await FcmScheduledNotificationService.cancelNotification(
+              context: context,
+              typeId: 'default',
+            );
+      if (!applied) _showReminderMutationFailure();
+      return applied;
+    } catch (_) {
+      _showReminderMutationFailure();
+      return false;
     }
-    return FcmScheduledNotificationService.cancelNotification(
-      context: context,
-      typeId: 'default',
-    );
   }
 
   Future<bool> _enableReminder(UserInformation userInfo) async {
@@ -76,13 +82,28 @@ class _NotificationPageState extends LPExtendedState<NotificationPage>
     );
   }
 
-  Future<bool> _onPickedTime(TimeOfDay picked) {
-    return FcmScheduledNotificationService.registerNotification(
-      context: context,
-      typeId: 'default',
-      hour: picked.hour,
-      minute: picked.minute,
-    );
+  Future<bool> _onPickedTime(TimeOfDay picked) async {
+    try {
+      final applied =
+          await FcmScheduledNotificationService.registerNotification(
+            context: context,
+            typeId: 'default',
+            hour: picked.hour,
+            minute: picked.minute,
+          );
+      if (!applied) _showReminderMutationFailure();
+      return applied;
+    } catch (_) {
+      _showReminderMutationFailure();
+      return false;
+    }
+  }
+
+  void _showReminderMutationFailure() {
+    if (!mounted) return;
+    ScaffoldMessenger.maybeOf(context)
+      ?..hideCurrentSnackBar()
+      ..showSnackBar(SnackBar(content: Text(appLocale.asyncErrorMessage)));
   }
 
   Future<void> _toggleDebugUnlock() async {
@@ -159,23 +180,23 @@ class _NotificationPageState extends LPExtendedState<NotificationPage>
                     );
                   },
                 ),
-                GestureDetector(
-                  behavior: HitTestBehavior.opaque,
-                  onLongPress: _toggleDebugUnlock,
-                  child: Text(appLocale.notificationPageHeader(gender)),
-                ),
-                ValueListenableBuilder<bool>(
-                  valueListenable: reminderDebugPanelUnlocked,
-                  builder: (context, unlocked, _) {
-                    if (!kDebugMode && !unlocked) {
-                      return const SizedBox.shrink();
-                    }
-                    return const Padding(
-                      padding: EdgeInsets.only(top: 24),
-                      child: ReminderDebugPanel(),
-                    );
-                  },
-                ),
+                if (kDebugMode) ...[
+                  GestureDetector(
+                    behavior: HitTestBehavior.opaque,
+                    onLongPress: _toggleDebugUnlock,
+                    child: Text(appLocale.notificationPageHeader(gender)),
+                  ),
+                  ValueListenableBuilder<bool>(
+                    valueListenable: reminderDebugPanelUnlocked,
+                    builder: (context, unlocked, _) {
+                      if (!unlocked) return const SizedBox.shrink();
+                      return const Padding(
+                        padding: EdgeInsets.only(top: 24),
+                        child: ReminderDebugPanel(),
+                      );
+                    },
+                  ),
+                ],
               ],
             ),
           ),

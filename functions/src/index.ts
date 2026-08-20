@@ -675,7 +675,6 @@ export const registerNotification = onRequest(async (req, res) => {
         stateRef,
         scheduleRef,
         expectedVersion,
-        resetFence: false,
         rejectActiveDeliveryPermit: false,
         operation: { kind: "register", scheduleData },
       });
@@ -745,7 +744,6 @@ export const cancelNotification = onRequest(async (req, res) => {
         stateRef,
         scheduleRef,
         expectedVersion,
-        resetFence: resetFence === true,
         rejectActiveDeliveryPermit: resetFence === true,
         operation: { kind: "cancel" },
       });
