@@ -431,9 +431,14 @@ void main() {
 
     test('addItem then loadItemsFromPrefs returns saved values', () async {
       final p = _make(key: 'persistKey');
-      p.addItem('A', '111');
-      // Allow saveItemsToPrefs futures to settle
+      // PhonePageData begins its initial preference load in the constructor.
+      // Let that empty-state read finish before changing the model.
       await Future<void>.delayed(Duration.zero);
+      p.addItem('A', '111');
+      // The background save is intentionally not awaited by addItem. Persist
+      // the same snapshot through the public awaited command before loading
+      // it in a fresh model.
+      await p.saveItemsToPrefs();
       // Build a fresh instance and force load
       final p2 = PhonePageData(
         key: 'persistKey',

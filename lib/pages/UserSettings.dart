@@ -8,6 +8,7 @@ import 'package:mazilon/Locale/locale_service.dart';
 import 'package:mazilon/form/speech_dictation_suffix_action.dart';
 import 'package:mazilon/global_enums.dart';
 import 'package:mazilon/pages/SignIn_Pages/firstPage.dart';
+import 'package:mazilon/util/Share/LP_alert_dialog.dart';
 import 'package:mazilon/util/async/persistence_retry_snack_bar.dart';
 import 'package:mazilon/util/Form/formPagePhoneModel.dart';
 
@@ -126,7 +127,6 @@ class _UserSettingsState extends LPExtendedState<UserSettings> {
   List<String> localesNames = AppLocalizations.supportedLocales
       .map((e) => languageName(e.languageCode))
       .toList();
-  bool _resetInProgress = false;
   Future<void> updateLocale(
     String locale,
     UserInformation userInfoProvider,
@@ -515,10 +515,7 @@ class _UserSettingsState extends LPExtendedState<UserSettings> {
   //remove log-in data and reset all data that user has filled in the app:
   Future<void> resetData(UserInformation userInfo) async {
     LocaleService localeService = GetIt.instance<LocaleService>();
-    PersistentMemoryService service =
-        GetIt.instance<
-          PersistentMemoryService
-        >(); // Get the persistent memory service instance
+    final PersistentMemoryService service = userInfo.service;
 
     await service.reset(); // Reset the persistent memory service
     await userInfo.reset(localeService.getLocale());
@@ -558,18 +555,16 @@ class _UserSettingsState extends LPExtendedState<UserSettings> {
     );
   }
 
-  Future<bool> _resetDataSafely(UserInformation userInfo) async {
-    if (_resetInProgress) {
-      return false;
-    }
-    _resetInProgress = true;
+  /// Attempts the complete reset flow and reports whether it completed.
+  ///
+  /// The confirmation dialog owns the in-progress state and offers the retry
+  /// affordance when this command returns `false`.
+  Future<bool> _attemptResetAndReturnSuccess(UserInformation userInfo) async {
     try {
       await resetData(userInfo);
       return true;
     } catch (_) {
       return false;
-    } finally {
-      _resetInProgress = false;
     }
   }
 
@@ -910,6 +905,9 @@ class _UserSettingsState extends LPExtendedState<UserSettings> {
                                     SizedBox(
                                       height: _kActionButtonHeight,
                                       child: TextButton(
+                                        key: const Key(
+                                          'user-settings-reset-open',
+                                        ),
                                         style: TextButton.styleFrom(
                                           backgroundColor: colorScheme.surface,
                                           foregroundColor: colorScheme.error,
@@ -927,149 +925,14 @@ class _UserSettingsState extends LPExtendedState<UserSettings> {
                                           showDialog(
                                             context: context,
                                             barrierDismissible: false,
-                                            builder: (BuildContext dialogContext) {
-                                              bool resetInProgress = false;
-                                              return ScaffoldMessenger(
-                                                child: StatefulBuilder(
-                                                  builder:
-                                                      (
-                                                        BuildContext
-                                                        dialogStateContext,
-                                                        StateSetter
-                                                        setDialogState,
-                                                      ) {
-                                                        Future<void>
-                                                        attemptReset() async {
-                                                          if (resetInProgress) {
-                                                            return;
-                                                          }
-                                                          setDialogState(() {
-                                                            resetInProgress =
-                                                                true;
-                                                          });
-                                                          final bool
-                                                          resetSucceeded =
-                                                              await _resetDataSafely(
-                                                                userInfoProvider,
-                                                              );
-                                                          if (!mounted ||
-                                                              !dialogContext
-                                                                  .mounted ||
-                                                              resetSucceeded) {
-                                                            return;
-                                                          }
-                                                          setDialogState(() {
-                                                            resetInProgress =
-                                                                false;
-                                                          });
-                                                          showPersistenceRetrySnackBar(
-                                                            dialogStateContext,
-                                                            attemptReset,
-                                                          );
-                                                        }
-
-                                                        return PopScope(
-                                                          canPop:
-                                                              !resetInProgress,
-                                                          child: Dialog(
-                                                            child: SizedBox(
-                                                              width:
-                                                                  MediaQuery.of(
-                                                                        dialogStateContext,
-                                                                      ).size.width >
-                                                                      1000
-                                                                  ? 800
-                                                                  : MediaQuery.of(
-                                                                      dialogStateContext,
-                                                                    ).size.width,
-                                                              child: Scaffold(
-                                                                backgroundColor:
-                                                                    Colors
-                                                                        .transparent,
-                                                                body: SingleChildScrollView(
-                                                                  child: Column(
-                                                                    children: [
-                                                                      const SizedBox(
-                                                                        height:
-                                                                            10,
-                                                                      ),
-                                                                      Text(
-                                                                        appLocale
-                                                                            .confirmResetTitle,
-                                                                        textAlign:
-                                                                            TextAlign.center,
-                                                                        style: TextStyle(
-                                                                          fontWeight:
-                                                                              FontWeight.bold,
-                                                                          fontSize:
-                                                                              18.sp,
-                                                                        ),
-                                                                      ),
-                                                                      Padding(
-                                                                        padding:
-                                                                            const EdgeInsets.fromLTRB(
-                                                                              50,
-                                                                              0,
-                                                                              50,
-                                                                              0,
-                                                                            ),
-                                                                        child: Row(
-                                                                          mainAxisAlignment:
-                                                                              MainAxisAlignment.spaceBetween,
-                                                                          children:
-                                                                              <
-                                                                                Widget
-                                                                              >[
-                                                                                TextButton(
-                                                                                  onPressed: resetInProgress
-                                                                                      ? null
-                                                                                      : () {
-                                                                                          Navigator.of(
-                                                                                            dialogStateContext,
-                                                                                          ).pop();
-                                                                                        },
-                                                                                  child: Text(
-                                                                                    appLocale.closeButton(
-                                                                                      gender,
-                                                                                    ),
-                                                                                    style: TextStyle(
-                                                                                      fontWeight: FontWeight.bold,
-                                                                                      fontSize: 16.sp,
-                                                                                    ),
-                                                                                  ),
-                                                                                ),
-                                                                                TextButton(
-                                                                                  onPressed: resetInProgress
-                                                                                      ? null
-                                                                                      : () {
-                                                                                          unawaited(
-                                                                                            attemptReset(),
-                                                                                          );
-                                                                                        },
-                                                                                  child: Text(
-                                                                                    appLocale.confirmButton(
-                                                                                      gender,
-                                                                                    ),
-                                                                                    style: TextStyle(
-                                                                                      fontWeight: FontWeight.bold,
-                                                                                      fontSize: 16.sp,
-                                                                                    ),
-                                                                                  ),
-                                                                                ),
-                                                                              ],
-                                                                        ),
-                                                                      ),
-                                                                    ],
-                                                                  ),
-                                                                ),
-                                                              ),
-                                                            ),
-                                                          ),
-                                                        );
-                                                      },
+                                            builder: (_) =>
+                                                _ResetConfirmationDialog(
+                                                  gender: gender,
+                                                  onAttemptReset: () =>
+                                                      _attemptResetAndReturnSuccess(
+                                                        userInfoProvider,
+                                                      ),
                                                 ),
-                                              );
-                                            },
                                           );
                                         },
                                         child: Text(
@@ -1095,6 +958,87 @@ class _UserSettingsState extends LPExtendedState<UserSettings> {
                   },
                 ),
               ),
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+/// Confirmation route for the destructive settings reset flow.
+///
+/// Busy state lives with the route so its actions and system back navigation
+/// stay blocked until the reset attempt either succeeds or exposes a retry.
+class _ResetConfirmationDialog extends StatefulWidget {
+  const _ResetConfirmationDialog({
+    required this.gender,
+    required this.onAttemptReset,
+  });
+
+  final String gender;
+  final Future<bool> Function() onAttemptReset;
+
+  @override
+  State<_ResetConfirmationDialog> createState() =>
+      _ResetConfirmationDialogState();
+}
+
+class _ResetConfirmationDialogState extends State<_ResetConfirmationDialog> {
+  bool _resetInProgress = false;
+
+  Future<void> _attemptReset(BuildContext snackBarContext) async {
+    if (_resetInProgress) {
+      return;
+    }
+
+    setState(() {
+      _resetInProgress = true;
+    });
+    final bool resetSucceeded = await widget.onAttemptReset();
+    if (!mounted || !snackBarContext.mounted || resetSucceeded) {
+      return;
+    }
+
+    setState(() {
+      _resetInProgress = false;
+    });
+    showPersistenceRetrySnackBar(
+      snackBarContext,
+      () => _attemptReset(snackBarContext),
+    );
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final AppLocalizations appLocale = AppLocalizations.of(context)!;
+    return ScaffoldMessenger(
+      child: PopScope(
+        canPop: !_resetInProgress,
+        child: Scaffold(
+          backgroundColor: Colors.transparent,
+          body: Builder(
+            builder: (BuildContext snackBarContext) => LPAlertDialog(
+              key: const Key('user-settings-reset-dialog'),
+              title: appLocale.confirmResetTitle,
+              actions: <Widget>[
+                TextButton(
+                  key: const Key('user-settings-reset-cancel'),
+                  onPressed: _resetInProgress
+                      ? null
+                      : () => Navigator.of(snackBarContext).pop(),
+                  child: Text(appLocale.closeButton(widget.gender)),
+                ),
+                TextButton(
+                  key: const Key('user-settings-reset-confirm'),
+                  onPressed: _resetInProgress
+                      ? null
+                      : () {
+                          unawaited(_attemptReset(snackBarContext));
+                        },
+                  child: Text(appLocale.confirmButton(widget.gender)),
+                ),
+              ],
             ),
           ),
         ),

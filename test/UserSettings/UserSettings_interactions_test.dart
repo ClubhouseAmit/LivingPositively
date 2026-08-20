@@ -1,8 +1,8 @@
 import 'dart:async';
 
 // Drives the previously-uncovered branches of UserSettings:
-//   - resetData (lines 86-113) via the reset confirmation dialog's "confirm"
-//     button — pushes a FirstPage route
+//   - resetData via the reset confirmation dialog's "confirm" button —
+//     pushes a FirstPage route
 //   - resizeText non-empty branch (lines 136-145) — the "(parenthetical)"
 //     suffix render
 //   - Confirm-button female / nonBinary / notWillingToSay gender branches
@@ -35,6 +35,19 @@ PhonePageData _phone() => PhonePageData(
   savedPhoneNumbers: const [],
   phoneDescription: const [],
 );
+
+const Key _resetOpenKey = Key('user-settings-reset-open');
+const Key _resetDialogKey = Key('user-settings-reset-dialog');
+const Key _resetCancelKey = Key('user-settings-reset-cancel');
+const Key _resetConfirmKey = Key('user-settings-reset-confirm');
+
+Future<void> _openResetDialog(WidgetTester tester) async {
+  final Finder resetButton = find.byKey(_resetOpenKey);
+  await tester.ensureVisible(resetButton);
+  await tester.tap(resetButton, warnIfMissed: false);
+  await tester.pumpAndSettle();
+  expect(find.byKey(_resetDialogKey), findsOneWidget);
+}
 
 class _FailingOnceDreamsPersistentMemoryService
     extends FakePersistentMemoryService {
@@ -83,6 +96,35 @@ class _DelayedDreamsPersistentMemoryService
   }
 }
 
+class _RecordingResetPersistentMemoryService
+    extends FakePersistentMemoryService {
+  int resetCalls = 0;
+
+  @override
+  Future<void> reset() async {
+    resetCalls++;
+    await super.reset();
+  }
+}
+
+class _DelayedResetPersistentMemoryService extends FakePersistentMemoryService {
+  final Completer<void> resetStarted = Completer<void>();
+  final Completer<void> _resetGate = Completer<void>();
+
+  @override
+  Future<void> reset() async {
+    resetStarted.complete();
+    await _resetGate.future;
+    await super.reset();
+  }
+
+  void releaseReset() {
+    if (!_resetGate.isCompleted) {
+      _resetGate.complete();
+    }
+  }
+}
+
 void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
 
@@ -116,22 +158,8 @@ void main() {
         surfaceSize: const Size(1024, 2800),
       );
 
-      // Open the reset confirmation dialog (the last top-level TextButton
-      // before the dialog opens is ResetButton).
-      final pageButtons = find.byType(TextButton);
-      final last = pageButtons.evaluate().last;
-      await tester.ensureVisible(find.byWidget(last.widget));
-      await tester.tap(find.byWidget(last.widget), warnIfMissed: false);
-      await tester.pumpAndSettle();
-
-      // Now the Dialog is open with two TextButtons: Close + Confirm. Tap the
-      // last one (Confirm) → resetData runs.
-      final dialogButtons = find.descendant(
-        of: find.byType(Dialog),
-        matching: find.byType(TextButton),
-      );
-      expect(dialogButtons, findsNWidgets(2));
-      await tester.tap(dialogButtons.last, warnIfMissed: false);
+      await _openResetDialog(tester);
+      await tester.tap(find.byKey(_resetConfirmKey), warnIfMissed: false);
       await tester.pumpAndSettle();
       await tester.runAsync(() => Future<void>.delayed(Duration.zero));
       await tester.pumpAndSettle();
@@ -140,6 +168,82 @@ void main() {
       expect(find.byType(FirstPage), findsOneWidget);
     },
   );
+
+  testWidgets(
+    'reset clears the UserInformation injected storage before navigation',
+    (tester) async {
+      final memory = _RecordingResetPersistentMemoryService()
+        ..store['legacy-profile-name'] = 'Old profile';
+      expect(GetIt.instance<PersistentMemoryService>(), isNot(same(memory)));
+      user = UserInformation(service: memory);
+      user.gender = 'male';
+      user.localeName = 'en';
+
+      await pumpWithProviders(
+        tester,
+        UserSettings(
+          username: 'Injected storage',
+          age: '18-30',
+          gender: 'male',
+          phonePageData: _phone(),
+          changeLocale: (_) {},
+        ),
+        userInformation: user,
+        surfaceSize: const Size(1024, 2800),
+      );
+
+      await _openResetDialog(tester);
+      await tester.tap(find.byKey(_resetConfirmKey), warnIfMissed: false);
+      await tester.pumpAndSettle();
+      await tester.runAsync(() => Future<void>.delayed(Duration.zero));
+      await tester.pumpAndSettle();
+
+      expect(memory.resetCalls, 1);
+      expect(memory.store['legacy-profile-name'], isNull);
+      expect(memory.store[dreamsAndGoalsSelectionStorageKey], <String>[]);
+      expect(find.byType(FirstPage), findsOneWidget);
+    },
+  );
+
+  testWidgets('reset waits for the injected storage clear before navigating', (
+    tester,
+  ) async {
+    final memory = _DelayedResetPersistentMemoryService();
+    user = UserInformation(service: memory);
+    user.gender = 'male';
+    user.localeName = 'en';
+
+    await pumpWithProviders(
+      tester,
+      UserSettings(
+        username: 'Ordered reset',
+        age: '18-30',
+        gender: 'male',
+        phonePageData: _phone(),
+        changeLocale: (_) {},
+      ),
+      userInformation: user,
+      surfaceSize: const Size(1024, 2800),
+    );
+
+    await _openResetDialog(tester);
+    await tester.tap(find.byKey(_resetConfirmKey), warnIfMissed: false);
+    await tester.pump();
+    await memory.resetStarted.future;
+
+    expect(find.byType(FirstPage), findsNothing);
+    expect(
+      tester.widget<TextButton>(find.byKey(_resetConfirmKey)).onPressed,
+      isNull,
+    );
+
+    memory.releaseReset();
+    await tester.pumpAndSettle();
+    await tester.runAsync(() => Future<void>.delayed(Duration.zero));
+    await tester.pumpAndSettle();
+
+    expect(find.byType(FirstPage), findsOneWidget);
+  });
 
   testWidgets(
     'reset failure keeps the dialog open and retry navigates only after the '
@@ -166,18 +270,9 @@ void main() {
         surfaceSize: const Size(1024, 2800),
       );
 
-      final pageButtons = find.byType(TextButton);
-      final last = pageButtons.evaluate().last;
-      await tester.ensureVisible(find.byWidget(last.widget));
-      await tester.tap(find.byWidget(last.widget), warnIfMissed: false);
-      await tester.pumpAndSettle();
-
-      final dialogButtons = find.descendant(
-        of: find.byType(Dialog),
-        matching: find.byType(TextButton),
-      );
-      await tester.ensureVisible(dialogButtons.last);
-      await tester.tap(dialogButtons.last, warnIfMissed: false);
+      await _openResetDialog(tester);
+      await tester.ensureVisible(find.byKey(_resetConfirmKey));
+      await tester.tap(find.byKey(_resetConfirmKey), warnIfMissed: false);
       await tester.pumpAndSettle();
 
       expect(find.byType(Dialog), findsOneWidget);
@@ -219,31 +314,18 @@ void main() {
         surfaceSize: const Size(1024, 2800),
       );
 
-      final pageButtons = find.byType(TextButton);
-      final last = pageButtons.evaluate().last;
-      await tester.ensureVisible(find.byWidget(last.widget));
-      await tester.tap(find.byWidget(last.widget), warnIfMissed: false);
-      await tester.pumpAndSettle();
-
-      final dialogButtons = find.descendant(
-        of: find.byType(Dialog),
-        matching: find.byType(TextButton),
-      );
-      await tester.ensureVisible(dialogButtons.last);
-      await tester.tap(dialogButtons.last, warnIfMissed: false);
+      await _openResetDialog(tester);
+      await tester.ensureVisible(find.byKey(_resetConfirmKey));
+      await tester.tap(find.byKey(_resetConfirmKey), warnIfMissed: false);
       await tester.pump();
       await memory.firstDreamsSelectionWriteStarted.future;
 
-      final pendingDialogButtons = find.descendant(
-        of: find.byType(Dialog),
-        matching: find.byType(TextButton),
-      );
       final TextButton pendingConfirm = tester.widget<TextButton>(
-        pendingDialogButtons.last,
+        find.byKey(_resetConfirmKey),
       );
       expect(pendingConfirm.onPressed, isNull);
       final TextButton pendingClose = tester.widget<TextButton>(
-        pendingDialogButtons.first,
+        find.byKey(_resetCancelKey),
       );
       expect(pendingClose.onPressed, isNull);
 
@@ -255,7 +337,7 @@ void main() {
       await tester.pumpAndSettle();
       expect(find.byType(Dialog), findsOneWidget);
 
-      await tester.tap(pendingDialogButtons.last, warnIfMissed: false);
+      await tester.tap(find.byKey(_resetConfirmKey), warnIfMissed: false);
       await tester.pump();
       expect(memory.selectionWriteCount, 1);
 
@@ -284,19 +366,9 @@ void main() {
         surfaceSize: const Size(1024, 2800),
       );
 
-      final pageButtons = find.byType(TextButton);
-      final last = pageButtons.evaluate().last;
-      await tester.ensureVisible(find.byWidget(last.widget));
-      await tester.tap(find.byWidget(last.widget), warnIfMissed: false);
-      await tester.pumpAndSettle();
+      await _openResetDialog(tester);
 
-      final dialogButtons = find.descendant(
-        of: find.byType(Dialog),
-        matching: find.byType(TextButton),
-      );
-      // First is "Close" — tap it, the dialog should pop without leaving
-      // UserSettings.
-      await tester.tap(dialogButtons.first, warnIfMissed: false);
+      await tester.tap(find.byKey(_resetCancelKey), warnIfMissed: false);
       await tester.pumpAndSettle();
 
       expect(find.byType(Dialog), findsNothing);

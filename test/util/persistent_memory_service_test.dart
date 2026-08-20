@@ -38,9 +38,11 @@ class _ControlledSharedPreferencesStore extends InMemorySharedPreferencesStore {
   final Completer<_WriteOutcome>? clearGate;
   final Completer<void> setValueStarted = Completer<void>();
   final Completer<void> clearStarted = Completer<void>();
+  final List<String> setValueKeys = <String>[];
 
   @override
   Future<bool> setValue(String valueType, String key, Object value) async {
+    setValueKeys.add(key);
     if (!setValueStarted.isCompleted) {
       setValueStarted.complete();
     }
@@ -263,6 +265,24 @@ void main() {
       );
       expect(logger.logs, contains(isA<StateError>()));
     });
+
+    test('should continue queued operations after a failed write', () async {
+      _installControlledStore(
+        _ControlledSharedPreferencesStore(outcome: _WriteOutcome.reject),
+      );
+      final SharedPreferencesService service = SharedPreferencesService();
+
+      await expectLater(
+        service.setItem('rejected', PersistentMemoryType.String, 'value'),
+        throwsA(isA<StateError>()),
+      );
+
+      await service.reset();
+      expect(
+        await service.getItem('rejected', PersistentMemoryType.String),
+        '',
+      );
+    });
   });
 
   group('SharedPreferencesService.reset', () {
@@ -274,6 +294,81 @@ void main() {
       expect(await s.getItem('a', PersistentMemoryType.String), '');
       expect(await s.getItem('b', PersistentMemoryType.Int), isNull);
     });
+
+    test('should clear a held earlier write only after it completes', () async {
+      final Completer<_WriteOutcome> gate = Completer<_WriteOutcome>();
+      final _ControlledSharedPreferencesStore store =
+          _ControlledSharedPreferencesStore(gate: gate);
+      _installControlledStore(store);
+      final SharedPreferencesService service = SharedPreferencesService();
+
+      final Future<void> write = service.setItem(
+        'name',
+        PersistentMemoryType.String,
+        'old profile name',
+      );
+      await store.setValueStarted.future;
+      final Future<void> reset = service.reset();
+      await Future<void>.delayed(Duration.zero);
+      expect(store.clearStarted.isCompleted, isFalse);
+
+      gate.complete(_WriteOutcome.succeed);
+      await write;
+      await reset;
+
+      expect(store.setValueKeys, <String>['flutter.name']);
+      expect(await service.getItem('name', PersistentMemoryType.String), '');
+    });
+
+    test(
+      'should reject a later composite write while reset is active',
+      () async {
+        final Completer<_WriteOutcome> writeGate = Completer<_WriteOutcome>();
+        final Completer<_WriteOutcome> clearGate = Completer<_WriteOutcome>();
+        final _ControlledSharedPreferencesStore store =
+            _ControlledSharedPreferencesStore(
+              gate: writeGate,
+              clearGate: clearGate,
+            );
+        _installControlledStore(store);
+        final SharedPreferencesService service = SharedPreferencesService();
+
+        Future<void> writeProfile() async {
+          await service.setItem(
+            'name',
+            PersistentMemoryType.String,
+            'old profile name',
+          );
+          await service.setItem(
+            'gender',
+            PersistentMemoryType.String,
+            'female',
+          );
+        }
+
+        final Future<void> profileWrite = writeProfile();
+        await store.setValueStarted.future;
+        final Future<void> reset = service.reset();
+        final Future<void> rejectedProfileWrite = expectLater(
+          profileWrite,
+          throwsA(isA<StateError>()),
+        );
+
+        writeGate.complete(_WriteOutcome.succeed);
+        await store.clearStarted.future;
+        await rejectedProfileWrite;
+        expect(store.setValueKeys, <String>['flutter.name']);
+
+        clearGate.complete(_WriteOutcome.succeed);
+        await reset;
+
+        expect(await service.getItem('name', PersistentMemoryType.String), '');
+        expect(
+          await service.getItem('gender', PersistentMemoryType.String),
+          '',
+        );
+      },
+    );
 
     test('should not resolve until the platform clear completes', () async {
       final Completer<_WriteOutcome> gate = Completer<_WriteOutcome>();
@@ -305,6 +400,19 @@ void main() {
 
       await expectLater(service.reset(), throwsA(isA<StateError>()));
       expect(logger.logs, contains(isA<StateError>()));
+
+      await service.setItem(
+        'after-reset-failure',
+        PersistentMemoryType.String,
+        'value',
+      );
+      expect(
+        await service.getItem(
+          'after-reset-failure',
+          PersistentMemoryType.String,
+        ),
+        'value',
+      );
     });
 
     test('should log and rethrow a platform reset error', () async {
@@ -327,6 +435,38 @@ void main() {
       );
       expect(logger.logs, contains(isA<StateError>()));
     });
+
+    test(
+      'should preserve a reset-fence write error when incident logging fails',
+      () async {
+        GetIt.instance.unregister<IncidentLoggerService>();
+        GetIt.instance.registerSingleton<IncidentLoggerService>(
+          _ThrowingLogger(),
+        );
+        final Completer<_WriteOutcome> clearGate = Completer<_WriteOutcome>();
+        final _ControlledSharedPreferencesStore store =
+            _ControlledSharedPreferencesStore(clearGate: clearGate);
+        _installControlledStore(store);
+        final SharedPreferencesService service = SharedPreferencesService();
+
+        final Future<void> reset = service.reset();
+        await store.clearStarted.future;
+
+        await expectLater(
+          service.setItem('during-reset', PersistentMemoryType.String, 'value'),
+          throwsA(
+            isA<StateError>().having(
+              (StateError error) => error.message,
+              'message',
+              'Persistent memory cannot write while reset is in progress.',
+            ),
+          ),
+        );
+
+        clearGate.complete(_WriteOutcome.succeed);
+        await reset;
+      },
+    );
 
     test(
       'should preserve the reset error when incident logging fails',

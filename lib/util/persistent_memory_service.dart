@@ -10,6 +10,14 @@ abstract class PersistentMemoryService {
 }
 
 class SharedPreferencesService implements PersistentMemoryService {
+  /// Keeps all writes and reset operations in their invocation order.
+  ///
+  /// A failed operation is reported to its caller but does not prevent the
+  /// next queued operation from running.
+  Future<void> _pendingOperation = Future<void>.value();
+  Future<void>? _activeReset;
+  bool _resetFenceActive = false;
+
   @override
   Future<void> setItem(
     String key,
@@ -18,6 +26,31 @@ class SharedPreferencesService implements PersistentMemoryService {
   ) async {
     IncidentLoggerService loggerService =
         GetIt.instance<IncidentLoggerService>();
+    if (key.isEmpty || value == null) {
+      return _logAndRethrowWriteFailure(
+        loggerService,
+        ArgumentError(
+          'Persistent memory requires a non-empty key and non-null value.',
+        ),
+      );
+    }
+    if (_resetFenceActive) {
+      return _logAndRethrowWriteFailure(
+        loggerService,
+        StateError(
+          'Persistent memory cannot write while reset is in progress.',
+        ),
+      );
+    }
+    return _enqueue(() => _setItem(loggerService, key, type, value));
+  }
+
+  Future<void> _setItem(
+    IncidentLoggerService loggerService,
+    String key,
+    PersistentMemoryType type,
+    dynamic value,
+  ) async {
     try {
       if (key.isEmpty || value == null) {
         throw ArgumentError(
@@ -50,6 +83,33 @@ class SharedPreferencesService implements PersistentMemoryService {
     }
   }
 
+  Future<void> _logAndRethrowWriteFailure(
+    IncidentLoggerService loggerService,
+    Object error,
+  ) async {
+    try {
+      throw error;
+    } catch (error, stackTrace) {
+      try {
+        await loggerService.captureLog(error, stackTrace: stackTrace);
+      } catch (_) {
+        // A logging failure must not mask the rejected write.
+      }
+      rethrow;
+    }
+  }
+
+  Future<void> _enqueue(Future<void> Function() operation) {
+    final Future<void> queuedOperation = _pendingOperation.then<void>(
+      (_) => operation(),
+    );
+    _pendingOperation = queuedOperation.then<void>(
+      (_) {},
+      onError: (Object _, StackTrace _) {},
+    );
+    return queuedOperation;
+  }
+
   @override
   Future<dynamic> getItem(String key, PersistentMemoryType type) async {
     IncidentLoggerService loggerService =
@@ -75,8 +135,25 @@ class SharedPreferencesService implements PersistentMemoryService {
 
   @override
   Future<void> reset() async {
+    final Future<void>? activeReset = _activeReset;
+    if (activeReset != null) {
+      return activeReset;
+    }
     IncidentLoggerService loggerService =
         GetIt.instance<IncidentLoggerService>();
+    _resetFenceActive = true;
+    late final Future<void> resetOperation;
+    resetOperation = _enqueue(() => _reset(loggerService)).whenComplete(() {
+      if (identical(_activeReset, resetOperation)) {
+        _activeReset = null;
+        _resetFenceActive = false;
+      }
+    });
+    _activeReset = resetOperation;
+    return resetOperation;
+  }
+
+  Future<void> _reset(IncidentLoggerService loggerService) async {
     try {
       final SharedPreferences prefs = await SharedPreferences.getInstance();
       final bool cleared = await prefs.clear();
