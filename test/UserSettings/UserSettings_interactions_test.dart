@@ -290,79 +290,77 @@ void main() {
     },
   );
 
-  testWidgets('reset failure keeps Settings interactive before commit', (
-    tester,
-  ) async {
-    final logger = _PendingIncidentLoggerService();
-    GetIt.instance.unregister<IncidentLoggerService>();
-    GetIt.instance.registerSingleton<IncidentLoggerService>(logger);
-    final memory = _FailingResetMemoryService();
-    memory.store['name'] = 'Not reset';
-    memory.store['age'] = '30-40';
-    GetIt.instance.unregister<PersistentMemoryService>();
-    GetIt.instance.registerSingleton<PersistentMemoryService>(memory);
-    user.service = memory;
-    user.name = 'Not reset';
-    user.age = '30-40';
-    final phonePageData = _TrackingPhonePageData();
-    final picker = _TrackingResetImagePickerService();
-    GetIt.instance.unregister<ImagePickerService>();
-    GetIt.instance.registerSingleton<ImagePickerService>(picker);
-    debugDefaultTargetPlatformOverride = TargetPlatform.windows;
+  testWidgets(
+    'persistent reset failure should report the error and keep data',
+    (tester) async {
+      final logger = _PendingIncidentLoggerService();
+      GetIt.instance.unregister<IncidentLoggerService>();
+      GetIt.instance.registerSingleton<IncidentLoggerService>(logger);
+      final memory = _FailingResetMemoryService();
+      memory.store['name'] = 'Not reset';
+      memory.store['age'] = '30-40';
+      GetIt.instance.unregister<PersistentMemoryService>();
+      GetIt.instance.registerSingleton<PersistentMemoryService>(memory);
+      user.service = memory;
+      user.name = 'Not reset';
+      user.age = '30-40';
+      final phonePageData = _TrackingPhonePageData();
+      final picker = _TrackingResetImagePickerService();
+      GetIt.instance.unregister<ImagePickerService>();
+      GetIt.instance.registerSingleton<ImagePickerService>(picker);
+      debugDefaultTargetPlatformOverride = TargetPlatform.windows;
 
-    try {
-      await pumpWithProviders(
-        tester,
-        UserSettings(
-          username: user.name,
-          age: user.age,
-          gender: 'male',
-          phonePageData: phonePageData,
-          changeLocale: (_) {},
-        ),
-        userInformation: user,
-        surfaceSize: const Size(1024, 2800),
-      );
+      try {
+        await pumpWithProviders(
+          tester,
+          UserSettings(
+            username: user.name,
+            age: user.age,
+            gender: 'male',
+            phonePageData: phonePageData,
+            changeLocale: (_) {},
+          ),
+          userInformation: user,
+          surfaceSize: const Size(1024, 2800),
+        );
 
-      final resetButton = find.byKey(const Key('userSettingsResetButton'));
-      await tester.ensureVisible(resetButton);
-      await tester.tap(resetButton, warnIfMissed: false);
-      await tester.pumpAndSettle();
+        final resetButton = find.byKey(const Key('userSettingsResetButton'));
+        await tester.ensureVisible(resetButton);
+        await tester.tap(resetButton, warnIfMissed: false);
+        await tester.pumpAndSettle();
 
-      var dialogButtons = find.descendant(
-        of: find.byType(Dialog),
-        matching: find.byType(TextButton),
-      );
-      await tester.tap(dialogButtons.last, warnIfMissed: false);
-      await tester.pumpAndSettle();
+        var dialogButtons = find.descendant(
+          of: find.byType(Dialog),
+          matching: find.byType(TextButton),
+        );
+        await tester.tap(dialogButtons.last, warnIfMissed: false);
+        await tester.pumpAndSettle();
 
-      dialogButtons = find.descendant(
-        of: find.byType(Dialog),
-        matching: find.byType(TextButton),
-      );
-      expect(find.byType(FirstPage), findsNothing);
-      expect(find.byType(UserSettings), findsOneWidget);
-      expect(find.byType(Dialog), findsOneWidget);
-      expect(find.byType(CircularProgressIndicator), findsNothing);
-      expect(logger.captureStarted, isTrue);
-      for (final button in tester.widgetList<TextButton>(dialogButtons)) {
-        expect(button.onPressed, isNotNull);
+        expect(find.byType(FirstPage), findsNothing);
+        expect(find.byType(UserSettings), findsOneWidget);
+        expect(find.byType(Dialog), findsNothing);
+        expect(find.byType(CircularProgressIndicator), findsNothing);
+        expect(
+          find.text("Couldn't reset your data. Please try again."),
+          findsOneWidget,
+        );
+        expect(logger.captureStarted, isTrue);
+        expect(phonePageData.resetStarted, isFalse);
+        expect(picker.deleteStarted, isFalse);
+        expect(user.name, 'Not reset');
+        expect(user.age, '30-40');
+        expect(memory.store['name'], 'Not reset');
+        expect(memory.store['age'], '30-40');
+        expect(tester.takeException(), isNull);
+      } finally {
+        if (!logger.completion.isCompleted) {
+          logger.completion.complete();
+          await tester.pump();
+        }
+        debugDefaultTargetPlatformOverride = null;
       }
-      expect(phonePageData.resetStarted, isFalse);
-      expect(picker.deleteStarted, isFalse);
-      expect(user.name, 'Not reset');
-      expect(user.age, '30-40');
-      expect(memory.store['name'], 'Not reset');
-      expect(memory.store['age'], '30-40');
-      expect(tester.takeException(), isNull);
-    } finally {
-      if (!logger.completion.isCompleted) {
-        logger.completion.complete();
-        await tester.pump();
-      }
-      debugDefaultTargetPlatformOverride = null;
-    }
-  });
+    },
+  );
 
   testWidgets('discarded phone persistence failure remains terminal', (
     tester,

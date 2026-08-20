@@ -2022,6 +2022,10 @@
   "@resetReminderCancellationFailed": {
     "description": "Shown when remote reminder cancellation prevents reset."
   },
+  "resetDataFailed": "Couldn't reset your data. Please try again.",
+  "@resetDataFailed": {
+    "description": "Shown when local data clearing fails after a reset attempt."
+  },
   "authWelcomeTitle": "Welcome",
   "authLoginTab": "Sign In",
   "authSignupTab": "Sign Up",

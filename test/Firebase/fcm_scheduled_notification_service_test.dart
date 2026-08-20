@@ -873,6 +873,63 @@ void main() {
   );
 
   testWidgets(
+    'local reset failure restores legacy reminder migration after cancellation',
+    (tester) async {
+      const previousPreference = NotificationPreference(hour: 8, minute: 15);
+      user.setNotificationPreference('default', previousPreference);
+      await pumpUser(tester);
+      var cancelRequests = 0;
+      var registerRequests = 0;
+
+      final cancelled = await _onPlatform(
+        TargetPlatform.android,
+        () => FcmScheduledNotificationService.cancelDefaultForReset(
+          userInformation: user,
+          idTokenProvider: () async => 'token-123',
+          post: (url, {headers, body, encoding}) async {
+            if (url.path.endsWith('/getNotificationMutationVersion')) {
+              return http.Response('{"mutationVersion":0}', 200);
+            }
+            cancelRequests++;
+            return http.Response('{}', 200);
+          },
+        ),
+      );
+
+      expect(cancelled, isTrue);
+      expect(cancelRequests, 1);
+      expect(user.getNotificationPreference('default'), isNull);
+
+      FcmScheduledNotificationService.restoreDefaultReminderAfterResetFailure(
+        userInformation: user,
+        previousPreference: previousPreference,
+      );
+
+      expect(user.getNotificationPreference('default')?.hour, 8);
+      expect(user.getNotificationPreference('default')?.minute, 15);
+
+      await _onPlatform(
+        TargetPlatform.android,
+        () => FcmScheduledNotificationService.migrateLegacyDefaultReminder(
+          userInformation: user,
+          idTokenProvider: () async => 'token-123',
+          legacyNotificationCanceller: _ignoreLegacyNotification,
+          post: (url, {headers, body, encoding}) async {
+            if (url.path.endsWith('/getNotificationMutationVersion')) {
+              return http.Response('{"mutationVersion":0}', 200);
+            }
+            registerRequests++;
+            return http.Response('{}', 200);
+          },
+        ),
+      );
+
+      expect(registerRequests, 1);
+      expect(memory.stored['fcmDefaultReminderMigrated'], isTrue);
+    },
+  );
+
+  testWidgets(
     'reset cancellation prevents an in-flight migration from registering',
     (tester) async {
       user.setNotificationPreference(

@@ -499,28 +499,52 @@ class _UserSettingsState extends LPExtendedState<UserSettings> {
         GetIt.instance<
           PersistentMemoryService
         >(); // Get the persistent memory service instance
+    final previousDefaultReminder = userInfo.getNotificationPreference(
+      'default',
+    );
+    var remoteReminderCancelled = false;
 
     final firebaseUser = GetIt.instance.isRegistered<FirebaseAuth>()
         ? GetIt.instance<FirebaseAuth>().currentUser
         : null;
-    if (firebaseUser != null &&
-        !firebaseUser.isAnonymous &&
-        FcmService.supportsReminderSettings()) {
-      final cancelled =
-          await FcmScheduledNotificationService.cancelDefaultForReset(
-            userInformation: userInfo,
-          );
-      if (!cancelled) {
-        if (mounted) {
-          Navigator.of(context).pop();
-          ScaffoldMessenger.maybeOf(context)?.showSnackBar(
-            SnackBar(content: Text(appLocale.resetReminderCancellationFailed)),
-          );
+    try {
+      if (firebaseUser != null &&
+          !firebaseUser.isAnonymous &&
+          FcmService.supportsReminderSettings()) {
+        final cancelled =
+            await FcmScheduledNotificationService.cancelDefaultForReset(
+              userInformation: userInfo,
+            );
+        if (!cancelled) {
+          if (mounted) {
+            Navigator.of(context).pop();
+            ScaffoldMessenger.maybeOf(context)?.showSnackBar(
+              SnackBar(
+                content: Text(appLocale.resetReminderCancellationFailed),
+              ),
+            );
+          }
+          return;
         }
-        return;
+        remoteReminderCancelled = true;
       }
+      await service.reset(); // Reset the persistent memory service
+    } catch (error, stackTrace) {
+      if (remoteReminderCancelled) {
+        FcmScheduledNotificationService.restoreDefaultReminderAfterResetFailure(
+          userInformation: userInfo,
+          previousPreference: previousDefaultReminder,
+        );
+      }
+      _reportResetFailure(error, stackTrace);
+      if (mounted) {
+        Navigator.of(context).pop();
+        ScaffoldMessenger.maybeOf(
+          context,
+        )?.showSnackBar(SnackBar(content: Text(appLocale.resetDataFailed)));
+      }
+      return;
     }
-    await service.reset(); // Reset the persistent memory service
     enteredBefore = false;
     hasFilled = false;
 

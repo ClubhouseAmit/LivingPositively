@@ -703,6 +703,10 @@
   "@resetReminderCancellationFailed": {
     "description": "מוצג כאשר ביטול התזכורת המרוחקת מונע איפוס."
   },
+  "resetDataFailed": "לא ניתן לאפס את הנתונים שלך. נסה/י שוב.",
+  "@resetDataFailed": {
+    "description": "מוצג כאשר ניקוי הנתונים המקומיים נכשל במהלך איפוס."
+  },
   "authWelcomeTitle": "ברוכים הבאים",
   "authLoginTab": "התחברות",
   "authSignupTab": "הרשמה",

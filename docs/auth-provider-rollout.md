@@ -27,6 +27,10 @@ Before enabling it:
    flutter build appbundle --dart-define=GOOGLE_SIGN_IN_SERVER_CLIENT_ID=YOUR_WEB_OAUTH_CLIENT_ID.apps.googleusercontent.com
    ```
 
+For the production Android pipeline, set the repository Actions secret named
+`GOOGLE_SIGN_IN_SERVER_CLIENT_ID`. The `main` App Bundle build passes it as a
+`--dart-define` and fails before release if the secret is empty or whitespace.
+
 An omitted or whitespace-only value intentionally hides the Google button.
 
 ## Sign in with Apple on iOS
@@ -54,7 +58,11 @@ Before enabling it:
 5. Inject the capability flag when building. For example:
 
    ```shell
-   flutter build ipa --dart-define=APPLE_SIGN_IN_ENABLED=true
+   if [ "${APPLE_SIGN_IN_ENABLED:-}" != "true" ]; then
+     echo "APPLE_SIGN_IN_ENABLED=true is required for an iOS release" >&2
+     exit 1
+   fi
+   flutter build ipa --dart-define=APPLE_SIGN_IN_ENABLED="$APPLE_SIGN_IN_ENABLED"
    ```
 
 The committed entitlements declare both capabilities, but they do not replace

@@ -2842,6 +2842,12 @@ abstract class AppLocalizations {
   /// **'Couldn\'t cancel the reminder. Your data has not been reset.'**
   String get resetReminderCancellationFailed;
 
+  /// Shown when local data clearing fails after a reset attempt.
+  ///
+  /// In en, this message translates to:
+  /// **'Couldn\'t reset your data. Please try again.'**
+  String get resetDataFailed;
+
   /// No description provided for @authWelcomeTitle.
   ///
   /// In en, this message translates to:

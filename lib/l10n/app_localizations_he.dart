@@ -3545,6 +3545,9 @@ class AppLocalizationsHe extends AppLocalizations {
       'לא ניתן לבטל את התזכורת. הנתונים שלך לא אופסו.';
 
   @override
+  String get resetDataFailed => 'לא ניתן לאפס את הנתונים שלך. נסה/י שוב.';
+
+  @override
   String get authWelcomeTitle => 'ברוכים הבאים';
 
   @override

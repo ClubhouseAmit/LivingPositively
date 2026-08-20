@@ -3589,6 +3589,9 @@ class AppLocalizationsEn extends AppLocalizations {
       'Couldn\'t cancel the reminder. Your data has not been reset.';
 
   @override
+  String get resetDataFailed => 'Couldn\'t reset your data. Please try again.';
+
+  @override
   String get authWelcomeTitle => 'Welcome';
 
   @override

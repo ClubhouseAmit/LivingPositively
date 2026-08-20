@@ -319,6 +319,18 @@ class FcmScheduledNotificationService {
     );
   }
 
+  /// Reopens legacy migration when local reset fails after remote cancellation.
+  static void restoreDefaultReminderAfterResetFailure({
+    required UserInformation userInformation,
+    NotificationPreference? previousPreference,
+  }) {
+    _resetEpoch++;
+    _legacyMigrationDisabled = false;
+    if (previousPreference != null) {
+      userInformation.setNotificationPreference('default', previousPreference);
+    }
+  }
+
   static Future<bool> cancelDefaultForReset({
     required UserInformation userInformation,
     Future<String?> Function()? idTokenProvider,

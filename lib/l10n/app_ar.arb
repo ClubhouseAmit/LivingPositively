@@ -619,6 +619,7 @@
     "description": ""
   },
   "resetReminderCancellationFailed": "تعذر إلغاء التذكير. لم تتم إعادة ضبط بياناتك.",
+  "resetDataFailed": "تعذرت إعادة ضبط بياناتك. يرجى المحاولة مرة أخرى.",
   "authWelcomeTitle": "أهلاً وسهلاً",
   "authLoginTab": "تسجيل الدخول",
   "authSignupTab": "إنشاء حساب",

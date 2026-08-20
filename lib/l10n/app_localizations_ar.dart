@@ -3556,6 +3556,10 @@ class AppLocalizationsAr extends AppLocalizations {
       'تعذر إلغاء التذكير. لم تتم إعادة ضبط بياناتك.';
 
   @override
+  String get resetDataFailed =>
+      'تعذرت إعادة ضبط بياناتك. يرجى المحاولة مرة أخرى.';
+
+  @override
   String get authWelcomeTitle => 'أهلاً وسهلاً';
 
   @override

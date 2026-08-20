@@ -139,12 +139,18 @@ jobs:
           APPSIGNINGKEYSTOREPASSWORD: ${{ secrets.APPSIGNINGKEYSTOREPASSWORD }}
           MIXPANEL_PROJECT_TOKEN: ${{ secrets.MIXPANEL_PROJECT_TOKEN }}
           SENTRY_DSN: ${{ secrets.SENTRY_DSN }}
+          GOOGLE_SIGN_IN_SERVER_CLIENT_ID: ${{ secrets.GOOGLE_SIGN_IN_SERVER_CLIENT_ID }}
         run: |
+          if [ "$GITHUB_REF" = "refs/heads/main" ] && [ -z "$(printf '%s' "$GOOGLE_SIGN_IN_SERVER_CLIENT_ID" | tr -d '[:space:]')" ]; then
+            echo "::error title=Missing Google Sign-In configuration::Set the GOOGLE_SIGN_IN_SERVER_CLIENT_ID repository secret before releasing from main."
+            exit 1
+          fi
           flutter build appbundle --release \
             --build-name="${BUILD_NAME}" \
             --build-number="${BUILD_NUMBER}" \
             --dart-define=MIXPANEL_PROJECT_TOKEN="$MIXPANEL_PROJECT_TOKEN" \
-            --dart-define=SENTRY_DSN="$SENTRY_DSN"
+            --dart-define=SENTRY_DSN="$SENTRY_DSN" \
+            --dart-define=GOOGLE_SIGN_IN_SERVER_CLIENT_ID="$GOOGLE_SIGN_IN_SERVER_CLIENT_ID"
 
       - name: Upload App Bundle
         uses: actions/upload-artifact@v4
