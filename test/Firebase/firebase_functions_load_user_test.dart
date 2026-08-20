@@ -1,5 +1,8 @@
+import 'dart:async';
+
 import 'package:flutter_test/flutter_test.dart';
 import 'package:get_it/get_it.dart';
+import 'package:mazilon/global_enums.dart';
 import 'package:mazilon/l10n/app_localizations_ar.dart';
 import 'package:mazilon/l10n/app_localizations_en.dart';
 import 'package:mazilon/l10n/app_localizations_he.dart';
@@ -17,8 +20,14 @@ import '../../test_support/contract_persistent_memory_service.dart';
 // ---------------------------------------------------------------------------
 
 class _FakeLogger implements IncidentLoggerService {
+  _FakeLogger({this.captureLogGate, this.throwOnCaptureLog = false});
+
+  final Future<void>? captureLogGate;
+  final bool throwOnCaptureLog;
   final List<dynamic> capturedExceptions = <dynamic>[];
   final List<StackTrace?> capturedStackTraces = <StackTrace?>[];
+  final Completer<void> captureLogStarted = Completer<void>();
+  final Completer<void> captureLogCompleted = Completer<void>();
 
   @override
   Future<void> initializeSentry(_) async {}
@@ -31,6 +40,22 @@ class _FakeLogger implements IncidentLoggerService {
   }) async {
     capturedExceptions.add(exception);
     capturedStackTraces.add(stackTrace);
+    if (!captureLogStarted.isCompleted) {
+      captureLogStarted.complete();
+    }
+    try {
+      final Future<void>? gate = captureLogGate;
+      if (gate != null) {
+        await gate;
+      }
+      if (throwOnCaptureLog) {
+        throw StateError('Incident logging failed.');
+      }
+    } finally {
+      if (!captureLogCompleted.isCompleted) {
+        captureLogCompleted.complete();
+      }
+    }
   }
 }
 
@@ -433,13 +458,58 @@ void main() {
 
         final userInfo = UserInformation(service: memory);
         await loadUserInformation(userInfo, 'en');
-        await Future<void>.delayed(Duration.zero);
+        await logger.captureLogCompleted.future;
 
         expect(userInfo.darkModePreference, DarkModePreference.scheduled);
         expect(userInfo.darkModeStartHour, 22);
         expect(userInfo.darkModeStartMinute, 0);
         expect(userInfo.darkModeEndHour, 6);
         expect(userInfo.darkModeEndMinute, 0);
+        expect(logger.capturedExceptions, hasLength(1));
+        expect(logger.capturedStackTraces.single, isNotNull);
+      },
+    );
+
+    test(
+      'returns a null fallback when logger capture fails for malformed storage',
+      () async {
+        SharedPreferences.setMockInitialValues({
+          'darkModeStartHour': 'not-an-int',
+        });
+        final Completer<void> loggerGate = Completer<void>();
+        final logger = _FakeLogger(
+          captureLogGate: loggerGate.future,
+          throwOnCaptureLog: true,
+        );
+        final memory = SharedPreferencesService();
+        GetIt.instance.registerSingleton<IncidentLoggerService>(logger);
+        GetIt.instance.registerSingleton<PersistentMemoryService>(memory);
+
+        final Future<dynamic> read = memory.getItem(
+          'darkModeStartHour',
+          PersistentMemoryType.Int,
+        );
+        bool readCompleted = false;
+        unawaited(
+          read.then<void>(
+            (_) {
+              readCompleted = true;
+            },
+            onError: (_, _) {
+              readCompleted = true;
+            },
+          ),
+        );
+        await logger.captureLogStarted.future;
+        await Future<void>.microtask(() {});
+        expect(readCompleted, isFalse);
+        expect(logger.captureLogCompleted.isCompleted, isFalse);
+
+        loggerGate.complete();
+        await logger.captureLogCompleted.future;
+
+        expect(await read, isNull);
+        expect(readCompleted, isTrue);
         expect(logger.capturedExceptions, hasLength(1));
         expect(logger.capturedStackTraces.single, isNotNull);
       },

@@ -64,7 +64,6 @@ base class ContractPersistentMemoryService implements PersistentMemoryService {
   ContractPersistentMemoryService({
     Map<String, dynamic>? store,
     Map<String, Object?>? initialValues,
-    this.ignoreInvalidWrites = false,
   }) : store = store ?? _copyInitialValues(initialValues) {
     if (store != null && initialValues != null) {
       throw ArgumentError.value(
@@ -84,12 +83,6 @@ base class ContractPersistentMemoryService implements PersistentMemoryService {
 
   /// The directly readable, mutable cache used by test callers.
   final Map<String, dynamic> store;
-
-  /// Whether invalid writes complete without changing test state.
-  ///
-  /// This preserves legacy no-op fixtures while all accepted writes still use
-  /// the serialized contract below.
-  final bool ignoreInvalidWrites;
 
   final Map<String, Object> _durableStore = <String, Object>{};
   Future<void>? _pendingOperation;
@@ -131,9 +124,6 @@ base class ContractPersistentMemoryService implements PersistentMemoryService {
   @override
   Future<void> setItem(String key, PersistentMemoryType type, dynamic value) {
     if (key.isEmpty || value == null) {
-      if (ignoreInvalidWrites) {
-        return Future<void>.value();
-      }
       return Future<void>.error(
         ArgumentError(
           'Persistent memory requires a non-empty key and non-null value.',

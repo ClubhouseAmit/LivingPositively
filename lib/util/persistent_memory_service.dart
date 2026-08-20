@@ -150,7 +150,13 @@ class SharedPreferencesService implements PersistentMemoryService {
           return prefs.getStringList(key) ?? [];
       }
     } catch (error, stackTrace) {
-      loggerService.captureLog(error, stackTrace: stackTrace);
+      try {
+        await loggerService.captureLog(error, stackTrace: stackTrace);
+      } catch (_) {
+        // A logger failure must not turn malformed stored data into a read
+        // failure.
+      }
+      return null;
     }
   }
 

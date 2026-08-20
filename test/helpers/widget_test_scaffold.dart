@@ -41,7 +41,7 @@ import '../../test_support/contract_persistent_memory_service.dart';
 /// while still exercising the real [setItem]/[getItem]/[reset] code paths in
 /// the widgets under test.
 base class FakePersistentMemoryService extends ContractPersistentMemoryService {
-  FakePersistentMemoryService() : super(ignoreInvalidWrites: true) {
+  FakePersistentMemoryService() {
     onMissingRead = (_, PersistentMemoryType type) {
       switch (type) {
         case PersistentMemoryType.String:

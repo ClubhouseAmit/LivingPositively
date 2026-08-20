@@ -8,6 +8,7 @@ import 'package:mazilon/util/persistent_memory_service.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:shared_preferences_platform_interface/shared_preferences_platform_interface.dart';
 
+import '../helpers/widget_test_scaffold.dart' show FakePersistentMemoryService;
 import '../../test_support/contract_persistent_memory_service.dart';
 
 class _RecordingLogger implements IncidentLoggerService {
@@ -517,11 +518,17 @@ void main() {
       );
     });
 
-    test('should allow a legacy fixture to ignore invalid writes', () async {
-      final ContractPersistentMemoryService service =
-          ContractPersistentMemoryService(ignoreInvalidWrites: true);
+    test('shared widget fake rejects invalid writes', () async {
+      final FakePersistentMemoryService service = FakePersistentMemoryService();
 
-      await service.setItem('', PersistentMemoryType.String, 'value');
+      await expectLater(
+        service.setItem('', PersistentMemoryType.String, 'value'),
+        throwsArgumentError,
+      );
+      await expectLater(
+        service.setItem('value', PersistentMemoryType.String, null),
+        throwsArgumentError,
+      );
 
       expect(service.store, isEmpty);
       expect(service.durableStore, isEmpty);
