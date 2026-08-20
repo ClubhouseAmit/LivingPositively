@@ -225,9 +225,7 @@ const emptyStyle = TextStyle();
 /// All this does is force `fontFamily: 'Rubix'`, which both themes already set
 /// via `ThemeData.fontFamily` — so it buys nothing over `Text`, while costing
 /// an untyped `style` parameter and hiding the widget behind a helper.
-@Deprecated(
-  'Use a plain Text widget; ThemeData already applies Rubik.',
-)
+@Deprecated('Use a plain Text widget; ThemeData already applies Rubik.')
 Text myText(content, style, align) {
   style ??= emptyStyle;
   return Text(

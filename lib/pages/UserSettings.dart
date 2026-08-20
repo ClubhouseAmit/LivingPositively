@@ -1,5 +1,7 @@
+import 'dart:async';
 import 'dart:math' as math;
 
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:get_it/get_it.dart';
@@ -9,10 +11,12 @@ import 'package:mazilon/global_enums.dart';
 import 'package:mazilon/pages/SignIn_Pages/firstPage.dart';
 import 'package:mazilon/util/Firebase/auth_service.dart';
 import 'package:mazilon/util/Firebase/fcm_scheduled_notification_service.dart';
+import 'package:mazilon/util/Firebase/fcm_service.dart';
 import 'package:mazilon/util/Form/formPagePhoneModel.dart';
 
 import 'package:mazilon/pages/FeelGood/image_picker_service_impl.dart';
 import 'package:mazilon/util/LP_extended_state.dart';
+import 'package:mazilon/util/logger_service.dart';
 import 'package:mazilon/util/persistent_memory_service.dart';
 import 'package:mazilon/util/theme/font_weight.dart';
 import 'package:mazilon/util/Form/myDropdownMenuEntry.dart';
@@ -471,60 +475,150 @@ class _UserSettingsState extends LPExtendedState<UserSettings> {
     );
   }
 
-  //remove log-in data and reset all data that user has filled in the app:
+  void _reportResetFailure(Object error, StackTrace stackTrace) {
+    if (!GetIt.instance.isRegistered<IncidentLoggerService>()) {
+      debugPrint('Reset failed: $error');
+      return;
+    }
+
+    unawaited(
+      Future<void>.sync(
+        () => GetIt.instance<IncidentLoggerService>().captureLog(
+          error,
+          stackTrace: stackTrace,
+        ),
+      ).catchError((Object loggerError, StackTrace loggerStackTrace) {
+        debugPrint('Reset failure reporting failed: $loggerError');
+      }),
+    );
+  }
+
+  // Remove locally persisted data after the server-side reminder state is safe.
   Future<void> resetData(UserInformation userInfo) async {
     LocaleService localeService = GetIt.instance<LocaleService>();
     PersistentMemoryService service =
         GetIt.instance<
           PersistentMemoryService
         >(); // Get the persistent memory service instance
+    final previousDefaultReminder = userInfo.getNotificationPreference(
+      'default',
+    );
+    var remoteReminderCancelled = false;
 
-    if (userInfo.loggedIn) {
-      final notificationCancelled =
-          await FcmScheduledNotificationService.cancelNotification(
-            context: context,
-            typeId: 'default',
-          );
-      if (!notificationCancelled) {
-        if (mounted) {
-          ScaffoldMessenger.of(context)
-            ..hideCurrentSnackBar()
-            ..showSnackBar(
-              SnackBar(content: Text(appLocale.asyncErrorMessage)),
+    final firebaseUser = GetIt.instance.isRegistered<FirebaseAuth>()
+        ? GetIt.instance<FirebaseAuth>().currentUser
+        : null;
+    try {
+      if (firebaseUser != null &&
+          !firebaseUser.isAnonymous &&
+          FcmService.supportsReminderSettings()) {
+        final cancelled =
+            await FcmScheduledNotificationService.cancelDefaultForReset(
+              userInformation: userInfo,
             );
+        if (!cancelled) {
+          if (mounted) {
+            Navigator.of(context).pop();
+            ScaffoldMessenger.maybeOf(context)?.showSnackBar(
+              SnackBar(
+                content: Text(appLocale.resetReminderCancellationFailed),
+              ),
+            );
+          }
+          return;
         }
-        return;
+        remoteReminderCancelled = true;
+      }
+      await service.reset(); // Reset the persistent memory service
+    } catch (error, stackTrace) {
+      if (remoteReminderCancelled) {
+        final reminderRestored =
+            await FcmScheduledNotificationService.restoreDefaultReminderAfterResetFailure(
+              userInformation: userInfo,
+              previousPreference: previousDefaultReminder,
+            );
+        if (!reminderRestored) {
+          _reportResetFailure(
+            StateError('Unable to restore the cancelled reminder.'),
+            StackTrace.current,
+          );
+        }
+      }
+      _reportResetFailure(error, stackTrace);
+      if (mounted) {
+        Navigator.of(context).pop();
+        ScaffoldMessenger.maybeOf(
+          context,
+        )?.showSnackBar(SnackBar(content: Text(appLocale.resetDataFailed)));
+      }
+      return;
+    }
+    enteredBefore = false;
+    hasFilled = false;
+
+    try {
+      runZonedGuarded<void>(widget.phonePageData.reset, _reportResetFailure);
+
+      runZonedGuarded<void>(
+        () => userInfo.reset(localeService.getLocale()),
+        _reportResetFailure,
+      );
+
+      runZonedGuarded<void>(() {
+        final authenticatedUser = GetIt.instance.isRegistered<FirebaseAuth>()
+            ? GetIt.instance<FirebaseAuth>().currentUser
+            : null;
+        if (authenticatedUser != null && !authenticatedUser.isAnonymous) {
+          userInfo.updateLoggedIn(true);
+          userInfo.updateAuthDecisionMade(true);
+          userInfo.updateUserId(authenticatedUser.uid);
+          userInfo.updateEmail(authenticatedUser.email ?? '');
+          userInfo.updateDisplayName(authenticatedUser.displayName ?? '');
+        }
+      }, _reportResetFailure);
+
+      try {
+        await Future<void>.sync(pickerService.deleteImages);
+      } catch (error, stackTrace) {
+        _reportResetFailure(error, stackTrace);
+      }
+    } finally {
+      if (mounted) {
+        Navigator.of(context).pushAndRemoveUntil(
+          MaterialPageRoute(
+            builder: (context) => FirstPage(
+              phonePageData: widget.phonePageData,
+              firsttime: !enteredBefore,
+              changeLocale: widget.changeLocale,
+              hasFilled: hasFilled,
+            ),
+          ),
+          (Route<dynamic> route) => false,
+        );
       }
     }
+  }
 
-    if (userInfo.loggedIn) {
+  Future<bool> signOut(UserInformation userInfo) async {
+    try {
       await AuthService.signOut();
+    } catch (error, stackTrace) {
+      _reportResetFailure(error, stackTrace);
+      if (mounted) {
+        ScaffoldMessenger.maybeOf(
+          context,
+        )?.showSnackBar(SnackBar(content: Text(appLocale.asyncErrorMessage)));
+      }
+      return false;
     }
-    await service.reset(); // Reset the persistent memory service
-    var enteredBeforeValue = await service.getItem(
-      "enteredBefore",
-      PersistentMemoryType.Bool,
-    );
-    var hasFilledValue = await service.getItem(
-      "hasFilled",
-      PersistentMemoryType.Bool,
-    );
 
-    if (!mounted) {
-      return;
-    }
-    widget.phonePageData.reset();
-    setState(() {
-      enteredBefore = enteredBeforeValue;
-      hasFilled = hasFilledValue;
-    });
+    userInfo.updateLoggedIn(false);
+    userInfo.updateAuthDecisionMade(false);
+    userInfo.updateUserId('');
+    userInfo.updateEmail('');
+    userInfo.updateDisplayName('');
 
-    userInfo.reset(localeService.getLocale());
-    await pickerService.deleteImages();
-
-    if (!mounted) {
-      return;
-    }
+    if (!mounted) return true;
     Navigator.of(context).pushAndRemoveUntil(
       MaterialPageRoute(
         builder: (context) => FirstPage(
@@ -536,6 +630,7 @@ class _UserSettingsState extends LPExtendedState<UserSettings> {
       ),
       (Route<dynamic> route) => false,
     );
+    return true;
   }
 
   @override
@@ -873,9 +968,124 @@ class _UserSettingsState extends LPExtendedState<UserSettings> {
                                         ),
                                       ),
                                     ),
+                                    if (userInfoProvider.loggedIn)
+                                      SizedBox(
+                                        height: _kActionButtonHeight,
+                                        child: TextButton(
+                                          key: const Key(
+                                            'userSettingsSignOutButton',
+                                          ),
+                                          style: TextButton.styleFrom(
+                                            backgroundColor:
+                                                colorScheme.surface,
+                                            foregroundColor:
+                                                colorScheme.onSurface,
+                                            shape: RoundedRectangleBorder(
+                                              borderRadius:
+                                                  BorderRadius.circular(
+                                                    _kActionButtonRadius,
+                                                  ),
+                                              side: BorderSide(
+                                                color: colorScheme
+                                                    .surfaceContainerHighest,
+                                                width: 1.5,
+                                              ),
+                                            ),
+                                          ),
+                                          onPressed: () {
+                                            showDialog<void>(
+                                              context: context,
+                                              builder: (dialogContext) {
+                                                var isSigningOut = false;
+                                                return StatefulBuilder(
+                                                  builder: (dialogContext, setDialogState) => PopScope(
+                                                    canPop: !isSigningOut,
+                                                    child: AlertDialog(
+                                                      title: Text(
+                                                        appLocale
+                                                            .authSignOutConfirmTitle,
+                                                      ),
+                                                      content: Text(
+                                                        appLocale
+                                                            .authSignOutConfirmBody,
+                                                      ),
+                                                      actions: [
+                                                        TextButton(
+                                                          onPressed:
+                                                              isSigningOut
+                                                              ? null
+                                                              : () => Navigator.of(
+                                                                  dialogContext,
+                                                                ).pop(),
+                                                          child: Text(
+                                                            appLocale
+                                                                .closeButton(
+                                                                  gender,
+                                                                ),
+                                                          ),
+                                                        ),
+                                                        TextButton(
+                                                          onPressed:
+                                                              isSigningOut
+                                                              ? null
+                                                              : () async {
+                                                                  setDialogState(
+                                                                    () =>
+                                                                        isSigningOut =
+                                                                            true,
+                                                                  );
+                                                                  final signedOut =
+                                                                      await signOut(
+                                                                        userInfoProvider,
+                                                                      );
+                                                                  if (!signedOut &&
+                                                                      dialogContext
+                                                                          .mounted) {
+                                                                    setDialogState(
+                                                                      () => isSigningOut =
+                                                                          false,
+                                                                    );
+                                                                  }
+                                                                },
+                                                          child: isSigningOut
+                                                              ? const SizedBox(
+                                                                  width: 20,
+                                                                  height: 20,
+                                                                  child: CircularProgressIndicator(
+                                                                    strokeWidth:
+                                                                        2,
+                                                                  ),
+                                                                )
+                                                              : Text(
+                                                                  appLocale
+                                                                      .authSignOut,
+                                                                ),
+                                                        ),
+                                                      ],
+                                                    ),
+                                                  ),
+                                                );
+                                              },
+                                            );
+                                          },
+                                          child: Text(
+                                            appLocale.authSignOut,
+                                            maxLines: 1,
+                                            overflow: TextOverflow.ellipsis,
+                                            style: TextStyle(
+                                              fontSize: _kActionLabelSize.sp,
+                                              fontWeight:
+                                                  AppFontWeight.semiBold,
+                                            ),
+                                          ),
+                                        ),
+                                      ),
                                     SizedBox(
                                       height: _kActionButtonHeight,
                                       child: TextButton(
+                                        key: const Key(
+                                          'userSettingsResetButton',
+                                        ),
                                         style: TextButton.styleFrom(
                                           backgroundColor: colorScheme.surface,
                                           foregroundColor: colorScheme.error,
@@ -892,95 +1102,133 @@ class _UserSettingsState extends LPExtendedState<UserSettings> {
                                         onPressed: () {
                                           showDialog(
                                             context: context,
-                                            builder: (BuildContext context) {
-                                              return Dialog(
-                                                child: SizedBox(
-                                                  width:
-                                                      MediaQuery.of(
-                                                            context,
-                                                          ).size.width >
-                                                          1000
-                                                      ? 800
-                                                      : MediaQuery.of(
-                                                          context,
-                                                        ).size.width,
-                                                  child: SingleChildScrollView(
-                                                    child: Column(
-                                                      children: [
-                                                        const SizedBox(
-                                                          height: 10,
-                                                        ),
-                                                        Text(
-                                                          appLocale
-                                                              .confirmResetTitle,
-                                                          textAlign:
-                                                              TextAlign.center,
-                                                          style: TextStyle(
-                                                            fontWeight:
-                                                                FontWeight.bold,
-                                                            fontSize: 18.sp,
-                                                          ),
-                                                        ),
-                                                        Padding(
-                                                          padding:
-                                                              const EdgeInsets.fromLTRB(
-                                                                50,
-                                                                0,
-                                                                50,
-                                                                0,
+                                            barrierDismissible: false,
+                                            builder: (dialogContext) {
+                                              var isResetting = false;
+                                              return StatefulBuilder(
+                                                builder: (dialogContext, setDialogState) => PopScope(
+                                                  canPop: !isResetting,
+                                                  child: Dialog(
+                                                    child: SizedBox(
+                                                      width:
+                                                          MediaQuery.of(
+                                                                context,
+                                                              ).size.width >
+                                                              1000
+                                                          ? 800
+                                                          : MediaQuery.of(
+                                                              context,
+                                                            ).size.width,
+                                                      child: SingleChildScrollView(
+                                                        child: Column(
+                                                          children: [
+                                                            const SizedBox(
+                                                              height: 10,
+                                                            ),
+                                                            Text(
+                                                              appLocale
+                                                                  .confirmResetTitle,
+                                                              textAlign:
+                                                                  TextAlign
+                                                                      .center,
+                                                              style: TextStyle(
+                                                                fontWeight:
+                                                                    FontWeight
+                                                                        .bold,
+                                                                fontSize: 18.sp,
                                                               ),
-                                                          child: Row(
-                                                            mainAxisAlignment:
-                                                                MainAxisAlignment
-                                                                    .spaceBetween,
-                                                            children: <Widget>[
-                                                              TextButton(
-                                                                child: Text(
-                                                                  appLocale
-                                                                      .closeButton(
-                                                                        gender,
-                                                                      ),
-                                                                  style: TextStyle(
-                                                                    fontWeight:
-                                                                        FontWeight
-                                                                            .bold,
-                                                                    fontSize:
-                                                                        16.sp,
+                                                            ),
+                                                            Padding(
+                                                              padding:
+                                                                  const EdgeInsets.fromLTRB(
+                                                                    50,
+                                                                    0,
+                                                                    50,
+                                                                    0,
                                                                   ),
-                                                                ),
-                                                                onPressed: () {
-                                                                  Navigator.of(
-                                                                    context,
-                                                                  ).pop();
-                                                                },
-                                                              ),
-                                                              TextButton(
-                                                                child: Text(
-                                                                  appLocale
-                                                                      .confirmButton(
-                                                                        gender,
+                                                              child: Row(
+                                                                mainAxisAlignment:
+                                                                    MainAxisAlignment
+                                                                        .spaceBetween,
+                                                                children: <Widget>[
+                                                                  TextButton(
+                                                                    onPressed:
+                                                                        isResetting
+                                                                        ? null
+                                                                        : () => Navigator.of(
+                                                                            dialogContext,
+                                                                          ).pop(),
+                                                                    child: Text(
+                                                                      appLocale
+                                                                          .closeButton(
+                                                                            gender,
+                                                                          ),
+                                                                      style: TextStyle(
+                                                                        fontWeight:
+                                                                            FontWeight.bold,
+                                                                        fontSize:
+                                                                            16.sp,
                                                                       ),
-                                                                  style: TextStyle(
-                                                                    fontWeight:
-                                                                        FontWeight
-                                                                            .bold,
-                                                                    fontSize:
-                                                                        16.sp,
+                                                                    ),
                                                                   ),
-                                                                ),
-                                                                onPressed: () async {
-                                                                  Navigator.of(
-                                                                    context,
-                                                                  ).pop();
-                                                                  await resetData(
-                                                                    userInfoProvider,
-                                                                  );
-                                                                },
+                                                                  TextButton(
+                                                                    onPressed:
+                                                                        isResetting
+                                                                        ? null
+                                                                        : () async {
+                                                                            if (isResetting) {
+                                                                              return;
+                                                                            }
+                                                                            setDialogState(
+                                                                              () => isResetting = true,
+                                                                            );
+                                                                            try {
+                                                                              await resetData(
+                                                                                userInfoProvider,
+                                                                              );
+                                                                            } catch (
+                                                                              error,
+                                                                              stackTrace
+                                                                            ) {
+                                                                              _reportResetFailure(
+                                                                                error,
+                                                                                stackTrace,
+                                                                              );
+                                                                            } finally {
+                                                                              if (dialogContext.mounted) {
+                                                                                setDialogState(
+                                                                                  () => isResetting = false,
+                                                                                );
+                                                                              }
+                                                                            }
+                                                                          },
+                                                                    child:
+                                                                        isResetting
+                                                                        ? const SizedBox(
+                                                                            width:
+                                                                                20,
+                                                                            height:
+                                                                                20,
+                                                                            child: CircularProgressIndicator(
+                                                                              strokeWidth: 2,
+                                                                            ),
+                                                                          )
+                                                                        : Text(
+                                                                            appLocale.confirmButton(
+                                                                              gender,
+                                                                            ),
+                                                                            style: TextStyle(
+                                                                              fontWeight: FontWeight.bold,
+                                                                              fontSize: 16.sp,
+                                                                            ),
+                                                                          ),
+                                                                  ),
+                                                                ],
                                                               ),
-                                                            ],
-                                                          ),
+                                                            ),
+                                                          ],
                                                         ),
-                                                      ],
+                                                      ),
                                                     ),
                                                   ),
                                                 ),

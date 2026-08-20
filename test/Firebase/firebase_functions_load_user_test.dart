@@ -195,7 +195,7 @@ void main() {
     });
 
     test(
-      'does not enable a legacy reminder for malformed FCM preferences',
+      'does not activate a reminder from legacy time for malformed JSON',
       () async {
         _registerFakes(
           store: {

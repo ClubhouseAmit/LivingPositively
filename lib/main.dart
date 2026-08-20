@@ -52,29 +52,31 @@ Future<void> initializeApp({
   (locatorSetup ?? setupLocator)();
 }
 
-/// Starts FCM after the first frame so a permission or token failure cannot
-/// prevent the app from rendering. The next app resume retries initialization
-/// when permissions are later granted in system settings.
+/// Defers best-effort FCM startup until the first frame is visible.
 void _scheduleFcmInitialization(Future<void> Function()? fcmInitializer) {
   WidgetsBinding.instance.addPostFrameCallback((_) {
-    unawaited(_initializeFcmInBackground(fcmInitializer));
+    unawaited(
+      _initializeFcmBestEffort(fcmInitializer ?? FcmService.initialize),
+    );
   });
 }
 
-Future<void> _initializeFcmInBackground(
-  Future<void> Function()? fcmInitializer,
+Future<void> _initializeFcmBestEffort(
+  Future<void> Function() initializer,
 ) async {
   try {
-    await (fcmInitializer ?? FcmService.initialize)();
+    await Future<void>.sync(initializer);
   } catch (error, stackTrace) {
-    debugPrint('FCM initialization failed: $error');
+    debugPrint('[Bootstrap] FCM initialization failed: $error');
     if (!GetIt.instance.isRegistered<IncidentLoggerService>()) return;
     try {
       await GetIt.instance<IncidentLoggerService>().captureLog(
         error,
         stackTrace: stackTrace,
       );
-    } catch (_) {}
+    } catch (loggerError) {
+      debugPrint('[Bootstrap] FCM failure reporting failed: $loggerError');
+    }
   }
 }
 
@@ -87,8 +89,8 @@ Future<void> _initializeFcmInBackground(
 ///
 /// Named parameters are dependency-injection seams used by
 /// `integration_test/bootstrap_full_test.dart`. Production callers (`main()`
-/// below) omit them and accept the production initializers. FCM is explicitly
-/// deferred until the first frame so an OS prompt cannot block startup.
+/// below) omit them and accept defaults that exactly match the production
+/// collaborators. FCM initialization starts after the first rendered frame.
 ///
 /// Per ADR-005 § B, this extraction is the **fourth sanctioned production-
 /// code exception** to the no-production-changes guard rail of the coverage
@@ -219,7 +221,7 @@ class _MyAppState extends State<MyApp> with WidgetsBindingObserver {
     if (state == AppLifecycleState.resumed) {
       _startSession(); // App is active
       _refreshThemeSchedule(force: true);
-      unawaited(_initializeFcmInBackground(null));
+      FcmService.onAppResumed();
       if (mounted) {
         setState(() {});
       }
@@ -454,6 +456,12 @@ class _MyAppState extends State<MyApp> with WidgetsBindingObserver {
             setLocale(),
           ])
           .then((_) {
+            if (!mounted) return;
+            unawaited(
+              FcmScheduledNotificationService.migrateLegacyDefaultReminderWithReporting(
+                userInformation: userInfoProvider,
+              ),
+            );
             //initialize which widget will run first:
             widgetNotifier.value = FirstPage(
               firsttime: !enteredBefore,

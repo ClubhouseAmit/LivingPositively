@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:mazilon/global_enums.dart';
@@ -22,7 +24,7 @@ class _Memory implements PersistentMemoryService {
 }
 
 void main() {
-  testWidgets('shows the FCM schedule time from the parent state', (
+  testWidgets('toggle exposes the FCM schedule time when enabled', (
     tester,
   ) async {
     final values = <bool>[];
@@ -38,10 +40,11 @@ void main() {
               badgeText: 'LP',
               title: 'Daily reminder',
               subtitle: 'A supportive message',
+              setTimeLabel: 'Set time',
               initialTime: const TimeOfDay(hour: 9, minute: 30),
-              initialEnabled: true,
               onToggle: (value) async {
                 values.add(value);
+                return true;
               },
             ),
           ),
@@ -49,35 +52,133 @@ void main() {
       ),
     );
 
-    expect(find.text('9:30 AM'), findsOneWidget);
+    expect(find.text('9:30 AM'), findsNothing);
     await tester.tap(find.byType(AnimatedContainer));
     await tester.pumpAndSettle();
 
-    expect(values, [isFalse]);
+    expect(values, [isTrue]);
     expect(find.text('9:30 AM'), findsOneWidget);
   });
 
-  testWidgets('uses updated parent state instead of retaining toggle state', (
+  testWidgets('toggle remains unchanged when the remote mutation fails', (
     tester,
   ) async {
-    Widget buildCard(bool enabled) => MaterialApp(
-      home: Scaffold(
-        body: NotificationToggleCard(
-          emoji: '✨',
-          badgeText: 'LP',
-          title: 'Daily reminder',
-          subtitle: 'A supportive message',
-          initialEnabled: enabled,
-          initialTime: const TimeOfDay(hour: 7, minute: 45),
-          onToggle: (_) async {},
+    final user = UserInformation(service: _Memory());
+
+    await tester.pumpWidget(
+      ChangeNotifierProvider<UserInformation>.value(
+        value: user,
+        child: MaterialApp(
+          home: Scaffold(
+            body: NotificationToggleCard(
+              emoji: 'âœ¨',
+              badgeText: 'LP',
+              title: 'Daily reminder',
+              subtitle: 'A supportive message',
+              setTimeLabel: 'Set time',
+              initialTime: const TimeOfDay(hour: 9, minute: 30),
+              onToggle: (_) async => false,
+            ),
+          ),
         ),
       ),
     );
 
-    await tester.pumpWidget(buildCard(false));
-    expect(find.text('7:45 AM'), findsNothing);
+    await tester.tap(find.byType(AnimatedContainer));
+    await tester.pumpAndSettle();
 
-    await tester.pumpWidget(buildCard(true));
-    expect(find.text('7:45 AM'), findsOneWidget);
+    expect(find.text('9:30 AM'), findsNothing);
+  });
+
+  testWidgets(
+    'shows the localized fallback when an enabled reminder lacks a time',
+    (tester) async {
+      await tester.pumpWidget(
+        const MaterialApp(
+          home: Scaffold(
+            body: NotificationToggleCard(
+              emoji: '✨',
+              badgeText: 'LP',
+              title: 'Daily reminder',
+              subtitle: 'A supportive message',
+              setTimeLabel: 'Choose a time',
+              initialEnabled: true,
+            ),
+          ),
+        ),
+      );
+
+      expect(find.text('Choose a time'), findsOneWidget);
+    },
+  );
+
+  testWidgets(
+    'applies a parent reminder update received during a toggle mutation',
+    (tester) async {
+      final mutation = Completer<bool>();
+
+      Widget buildCard({required bool initialEnabled, TimeOfDay? initialTime}) {
+        return MaterialApp(
+          home: Scaffold(
+            body: NotificationToggleCard(
+              emoji: '✨',
+              badgeText: 'LP',
+              title: 'Daily reminder',
+              subtitle: 'A supportive message',
+              setTimeLabel: 'Set time',
+              initialEnabled: initialEnabled,
+              initialTime: initialTime,
+              onToggle: (_) => mutation.future,
+            ),
+          ),
+        );
+      }
+
+      await tester.pumpWidget(buildCard(initialEnabled: false));
+      await tester.tap(find.byType(AnimatedContainer));
+      await tester.pump();
+
+      await tester.pumpWidget(
+        buildCard(
+          initialEnabled: true,
+          initialTime: const TimeOfDay(hour: 10, minute: 15),
+        ),
+      );
+      mutation.complete(false);
+      await tester.pumpAndSettle();
+
+      expect(find.text('10:15 AM'), findsOneWidget);
+    },
+  );
+
+  testWidgets('shows progress while a reminder mutation is pending', (
+    tester,
+  ) async {
+    final mutation = Completer<bool>();
+
+    await tester.pumpWidget(
+      MaterialApp(
+        home: Scaffold(
+          body: NotificationToggleCard(
+            emoji: '✨',
+            badgeText: 'LP',
+            title: 'Daily reminder',
+            subtitle: 'A supportive message',
+            setTimeLabel: 'Set time',
+            onToggle: (_) => mutation.future,
+          ),
+        ),
+      ),
+    );
+
+    await tester.tap(find.byType(AnimatedContainer));
+    await tester.pump();
+
+    expect(find.byType(CircularProgressIndicator), findsOneWidget);
+
+    mutation.complete(false);
+    await tester.pumpAndSettle();
+
+    expect(find.byType(CircularProgressIndicator), findsNothing);
   });
 }

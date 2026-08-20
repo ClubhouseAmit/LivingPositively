@@ -2014,6 +2014,22 @@
   "notificationsPermissionDeniedTitle": "Notifications Blocked",
   "notificationsPermissionDeniedBody": "To receive reminders, allow notifications in your device settings",
   "notificationsOpenSettings": "Open Settings",
+  "notificationsEnable": "Enable Notifications",
+  "@notificationsEnable": {
+    "description": "Requests notification permission before scheduling reminders"
+  },
+  "notificationsSetTime": "Set time",
+  "@notificationsSetTime": {
+    "description": "Label shown when an enabled reminder has no selected time"
+  },
+  "resetReminderCancellationFailed": "Couldn't cancel the reminder. Your data has not been reset.",
+  "@resetReminderCancellationFailed": {
+    "description": "Shown when remote reminder cancellation prevents reset."
+  },
+  "resetDataFailed": "Couldn't reset your data. Please try again.",
+  "@resetDataFailed": {
+    "description": "Shown when local data clearing fails after a reset attempt."
+  },
   "authWelcomeTitle": "Welcome",
   "authLoginTab": "Sign In",
   "authSignupTab": "Sign Up",

@@ -2830,6 +2830,30 @@ abstract class AppLocalizations {
   /// **'Open Settings'**
   String get notificationsOpenSettings;
 
+  /// Requests notification permission before scheduling reminders
+  ///
+  /// In en, this message translates to:
+  /// **'Enable Notifications'**
+  String get notificationsEnable;
+
+  /// Label shown when an enabled reminder has no selected time
+  ///
+  /// In en, this message translates to:
+  /// **'Set time'**
+  String get notificationsSetTime;
+
+  /// Shown when remote reminder cancellation prevents reset.
+  ///
+  /// In en, this message translates to:
+  /// **'Couldn\'t cancel the reminder. Your data has not been reset.'**
+  String get resetReminderCancellationFailed;
+
+  /// Shown when local data clearing fails after a reset attempt.
+  ///
+  /// In en, this message translates to:
+  /// **'Couldn\'t reset your data. Please try again.'**
+  String get resetDataFailed;
+
   /// No description provided for @authWelcomeTitle.
   ///
   /// In en, this message translates to:

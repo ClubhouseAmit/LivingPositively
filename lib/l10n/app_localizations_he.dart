@@ -3538,6 +3538,19 @@ class AppLocalizationsHe extends AppLocalizations {
   String get notificationsOpenSettings => 'הגדרות';
 
   @override
+  String get notificationsEnable => 'הפעלת התראות';
+
+  @override
+  String get notificationsSetTime => 'הגדרת שעה';
+
+  @override
+  String get resetReminderCancellationFailed =>
+      'לא ניתן לבטל את התזכורת. הנתונים שלך לא אופסו.';
+
+  @override
+  String get resetDataFailed => 'לא ניתן לאפס את הנתונים שלך. נסה/י שוב.';
+
+  @override
   String get authWelcomeTitle => 'ברוכים הבאים';
 
   @override

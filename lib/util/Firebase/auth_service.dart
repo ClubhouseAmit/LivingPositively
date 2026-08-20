@@ -1,12 +1,30 @@
-import 'dart:io';
-
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
-import 'package:flutter/foundation.dart' show kIsWeb;
+import 'package:flutter/foundation.dart'
+    show TargetPlatform, defaultTargetPlatform, kIsWeb, visibleForTesting;
+import 'package:get_it/get_it.dart';
 import 'package:google_sign_in/google_sign_in.dart';
-import 'package:sign_in_with_apple/sign_in_with_apple.dart';
 
 class AuthService {
+  static const String _googleSignInServerClientId = String.fromEnvironment(
+    'GOOGLE_SIGN_IN_SERVER_CLIENT_ID',
+    defaultValue: '',
+  );
+  static const bool _appleSignInEnabled = bool.fromEnvironment(
+    'APPLE_SIGN_IN_ENABLED',
+    defaultValue: false,
+  );
+
+  @visibleForTesting
+  static bool? debugAppleSignInEnabledOverride;
+
+  @visibleForTesting
+  static String? debugGoogleSignInServerClientIdOverride;
+
+  static String get _configuredGoogleSignInServerClientId =>
+      (debugGoogleSignInServerClientIdOverride ?? _googleSignInServerClientId)
+          .trim();
+
   static Future<UserCredential> signInWithEmail(String email, String password) {
     return FirebaseAuth.instance.signInWithEmailAndPassword(
       email: email.trim(),
@@ -22,7 +40,11 @@ class AuthService {
   }
 
   static Future<UserCredential?> signInWithGoogle() async {
-    final googleUser = await GoogleSignIn().signIn();
+    final serverClientId = _configuredGoogleSignInServerClientId;
+    if (!isGoogleSignInAvailable) return null;
+    final googleUser = await GoogleSignIn(
+      serverClientId: serverClientId,
+    ).signIn();
     if (googleUser == null) return null;
     final googleAuth = await googleUser.authentication;
     final credential = GoogleAuthProvider.credential(
@@ -34,33 +56,63 @@ class AuthService {
 
   // Apple Sign In is only available on iOS.
   static Future<UserCredential?> signInWithApple() async {
-    final appleCredential = await SignInWithApple.getAppleIDCredential(
-      scopes: [
-        AppleIDAuthorizationScopes.email,
-        AppleIDAuthorizationScopes.fullName,
-      ],
-    );
-    final oauthCredential = OAuthProvider('apple.com').credential(
-      idToken: appleCredential.identityToken,
-      accessToken: appleCredential.authorizationCode,
-    );
-    return FirebaseAuth.instance.signInWithCredential(oauthCredential);
+    if (!isAppleSignInAvailable) return null;
+
+    final appleProvider = AppleAuthProvider()
+      ..addScope('email')
+      ..addScope('name');
+    return FirebaseAuth.instance.signInWithProvider(appleProvider);
   }
 
-  static bool get isAppleSignInAvailable => !kIsWeb && Platform.isIOS;
+  @visibleForTesting
+  static bool googleSignInAvailableOn(
+    TargetPlatform platform, {
+    required bool isWeb,
+    required String serverClientId,
+  }) =>
+      !isWeb &&
+      platform == TargetPlatform.android &&
+      serverClientId.trim().isNotEmpty;
+
+  @visibleForTesting
+  static bool appleSignInAvailableOn(
+    TargetPlatform platform, {
+    required bool isWeb,
+    required bool appleSignInEnabled,
+  }) => !isWeb && platform == TargetPlatform.iOS && appleSignInEnabled;
+
+  static bool get isGoogleSignInAvailable => googleSignInAvailableOn(
+    defaultTargetPlatform,
+    isWeb: kIsWeb,
+    serverClientId: _configuredGoogleSignInServerClientId,
+  );
+
+  static bool get isAppleSignInAvailable => appleSignInAvailableOn(
+    defaultTargetPlatform,
+    isWeb: kIsWeb,
+    appleSignInEnabled: debugAppleSignInEnabledOverride ?? _appleSignInEnabled,
+  );
+
+  static bool get isSocialSignInAvailable =>
+      isGoogleSignInAvailable || isAppleSignInAvailable;
 
   static Future<void> sendPasswordReset(String email) {
     return FirebaseAuth.instance.sendPasswordResetEmail(email: email.trim());
   }
 
   static Future<void> signOut() {
+    if (GetIt.instance.isRegistered<FirebaseAuth>()) {
+      return GetIt.instance<FirebaseAuth>().signOut();
+    }
     return FirebaseAuth.instance.signOut();
   }
 
   // Called after any successful sign-in to persist the user in Firestore.
   //Saving the user data in our own managed part of FireStore
   static Future<void> saveUserToFirestore(User user) async {
-    final docRef = FirebaseFirestore.instance.collection('users').doc(user.uid);
+    final docRef = GetIt.instance<FirebaseFirestore>()
+        .collection('users')
+        .doc(user.uid);
     final doc = await docRef.get();
     final data = <String, dynamic>{
       'email': user.email,

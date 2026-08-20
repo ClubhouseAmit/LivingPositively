@@ -31,10 +31,13 @@
 //     permission from the host running the integration test. It runs only
 //     after the first frame, matching production startup behavior.
 //
-// Production `main()` calls `bootstrapApp()` with no args. Its defaults
-// match the previous in-`main()` body line-for-line. The CI `build-android`
+// Production `main()` calls `bootstrapApp()` with no args. Its injected
+// defaults exercise the same production collaborators while allowing FCM to
+// initialize after the root widget becomes available. The CI `build-android`
 // + `build-web` jobs build the app starting from `main()` and surface any
 // regression.
+
+import 'dart:async';
 
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
@@ -46,6 +49,7 @@ import 'package:mazilon/Locale/locale_service.dart';
 import 'package:mazilon/main.dart' show MyApp, bootstrapApp, initializeApp;
 import 'package:mazilon/pages/SignIn_Pages/firstPage.dart';
 import 'package:mazilon/pages/SignIn_Pages/introduction.dart';
+import 'package:mazilon/util/logger_service.dart';
 import 'package:mazilon/util/persistent_memory_service.dart';
 import 'package:provider/provider.dart';
 
@@ -288,6 +292,70 @@ void main() {
         // After locator setup our fake should be registered.
         expect(GetIt.instance.isRegistered<AnalyticsService>(), isTrue);
         expect(GetIt.instance.isRegistered<LocaleService>(), isTrue);
+      },
+    );
+
+    testWidgets('pending FCM initialization does not delay bootstrapApp', (
+      tester,
+    ) async {
+      final fcmInitialization = Completer<void>();
+      var bootstrapCompleted = false;
+
+      final bootstrap = bootstrapApp(
+        firebaseInitializer: () async {},
+        locatorSetup: () => registerTestServices(locale: 'en'),
+        fcmInitializer: () => fcmInitialization.future,
+      )..then((_) => bootstrapCompleted = true);
+
+      await tester.pump();
+
+      expect(
+        bootstrapCompleted,
+        isTrue,
+        reason: 'FCM is best-effort and must not gate the root widget',
+      );
+
+      fcmInitialization.complete();
+      await bootstrap;
+    });
+
+    testWidgets('rejected FCM initialization is contained and reported', (
+      tester,
+    ) async {
+      _disposePumpedAppAfterTest(tester);
+      final failure = StateError('FCM unavailable');
+
+      final widget = await bootstrapApp(
+        firebaseInitializer: () async {},
+        locatorSetup: () => registerTestServices(locale: 'en'),
+        fcmInitializer: () => Future<void>.error(failure),
+      );
+      await tester.pumpWidget(widget);
+      await tester.pump();
+
+      final logger =
+          GetIt.instance<IncidentLoggerService>() as NoopIncidentLoggerService;
+      expect(logger.captured, contains(failure));
+    });
+
+    testWidgets(
+      'synchronously throwing FCM initialization is contained and reported',
+      (tester) async {
+        _disposePumpedAppAfterTest(tester);
+        final failure = StateError('FCM failed synchronously');
+
+        final widget = await bootstrapApp(
+          firebaseInitializer: () async {},
+          locatorSetup: () => registerTestServices(locale: 'en'),
+          fcmInitializer: () => throw failure,
+        );
+        await tester.pumpWidget(widget);
+        await tester.pump();
+
+        final logger =
+            GetIt.instance<IncidentLoggerService>()
+                as NoopIncidentLoggerService;
+        expect(logger.captured, contains(failure));
       },
     );
   });

@@ -8,8 +8,9 @@ class NotificationToggleCard extends StatefulWidget {
   final String badgeText;
   final String title;
   final String subtitle;
-  final Future<void> Function(bool)? onToggle;
-  final Future<void> Function(TimeOfDay)? onTimeSelected;
+  final String setTimeLabel;
+  final Future<bool> Function(bool value)? onToggle;
+  final Future<bool> Function(TimeOfDay value)? onTimeSelected;
   final TimeOfDay? initialTime;
   final bool initialEnabled;
 
@@ -19,6 +20,7 @@ class NotificationToggleCard extends StatefulWidget {
     required this.badgeText,
     required this.title,
     required this.subtitle,
+    required this.setTimeLabel,
     this.onToggle,
     this.onTimeSelected,
     this.initialTime,
@@ -30,34 +32,90 @@ class NotificationToggleCard extends StatefulWidget {
 }
 
 class _NotificationToggleCardState extends State<NotificationToggleCard> {
-  bool _isSaving = false;
+  bool _isEnabled = false;
+  bool _isMutating = false;
+  bool _hasDeferredWidgetUpdate = false;
+  late TimeOfDay? _selectedTime;
 
-  TimeOfDay get _selectedTime =>
-      widget.initialTime ?? const TimeOfDay(hour: 8, minute: 30);
+  @override
+  void initState() {
+    super.initState();
+    _isEnabled = widget.initialEnabled;
+    _selectedTime = widget.initialTime;
+  }
 
-  Future<void> _setEnabled() async {
-    if (_isSaving || widget.onToggle == null) return;
-    setState(() => _isSaving = true);
-    try {
-      await widget.onToggle!(!widget.initialEnabled);
-    } finally {
-      if (mounted) setState(() => _isSaving = false);
+  void _syncFromWidget() {
+    _isEnabled = widget.initialEnabled;
+    _selectedTime = widget.initialTime;
+  }
+
+  @override
+  void didUpdateWidget(covariant NotificationToggleCard oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (_isMutating) {
+      _hasDeferredWidgetUpdate =
+          _hasDeferredWidgetUpdate ||
+          widget.initialEnabled != oldWidget.initialEnabled ||
+          widget.initialTime != oldWidget.initialTime;
+      return;
     }
+    _syncFromWidget();
+  }
+
+  Future<void> setEnabled() async {
+    if (_isMutating) return;
+    final requestedValue = !_isEnabled;
+    setState(() => _isMutating = true);
+    var applied = true;
+    try {
+      applied =
+          await (widget.onToggle?.call(requestedValue) ??
+              Future<bool>.value(true));
+    } catch (_) {
+      applied = false;
+    }
+    if (!mounted) return;
+    setState(() {
+      _isMutating = false;
+      if (_hasDeferredWidgetUpdate) {
+        _hasDeferredWidgetUpdate = false;
+        _syncFromWidget();
+      } else if (applied) {
+        _isEnabled = requestedValue;
+        if (!requestedValue) {
+          _selectedTime = TimeOfDay(hour: 8, minute: 30);
+        }
+      }
+    });
   }
 
   Future<void> _selectTime() async {
-    if (_isSaving || widget.onTimeSelected == null) return;
+    if (_isMutating) return;
     final picked = await showTimePicker(
       context: context,
-      initialTime: _selectedTime,
+      initialTime: _selectedTime ?? TimeOfDay.now(),
     );
     if (picked == null || !mounted) return;
-    setState(() => _isSaving = true);
+
+    setState(() => _isMutating = true);
+    var applied = true;
     try {
-      await widget.onTimeSelected!(picked);
-    } finally {
-      if (mounted) setState(() => _isSaving = false);
+      applied =
+          await (widget.onTimeSelected?.call(picked) ??
+              Future<bool>.value(true));
+    } catch (_) {
+      applied = false;
     }
+    if (!mounted) return;
+    setState(() {
+      _isMutating = false;
+      if (_hasDeferredWidgetUpdate) {
+        _hasDeferredWidgetUpdate = false;
+        _syncFromWidget();
+      } else if (applied) {
+        _selectedTime = picked;
+      }
+    });
   }
 
   @override
@@ -130,43 +188,48 @@ class _NotificationToggleCardState extends State<NotificationToggleCard> {
                       ),
                     ),
                   ),
-                  if (widget.initialEnabled)
+                  if (_isEnabled)
                     GestureDetector(
-                      onTap: _isSaving ? null : _selectTime,
-                      child: Row(
-                        children: [
-                          Icon(Icons.access_time, size: 12, color: Colors.blue),
-                          Text(
-                            _selectedTime.format(context),
-                            style: TextStyle(
-                              color: Colors.blue,
-                              fontSize: 12,
-                              fontWeight: FontWeight.bold,
+                      onTap: _isMutating ? null : _selectTime,
+                      child: _selectedTime != null
+                          ? Row(
+                              children: [
+                                Icon(
+                                  Icons.access_time,
+                                  size: 12,
+                                  color: Colors.blue,
+                                ),
+                                Text(
+                                  _selectedTime!.format(context),
+                                  style: TextStyle(
+                                    color: Colors.blue,
+                                    fontSize: 12,
+                                    fontWeight: FontWeight.bold,
+                                  ),
+                                ),
+                              ],
+                            )
+                          : Text(
+                              widget.setTimeLabel,
+                              style: TextStyle(
+                                color: Colors.blue,
+                                fontSize: 12,
+                                fontWeight: FontWeight.bold,
+                              ),
                             ),
-                          ),
-                          if (_isSaving) ...[
-                            SizedBox(width: 6),
-                            SizedBox(
-                              width: 12,
-                              height: 12,
-                              child: CircularProgressIndicator(strokeWidth: 2),
-                            ),
-                          ],
-                        ],
-                      ),
                     ),
                 ],
               ),
             ),
             GestureDetector(
-              onTap: _isSaving ? null : _setEnabled,
+              onTap: _isMutating ? null : setEnabled,
               child: AnimatedContainer(
                 duration: Duration(milliseconds: 250),
                 width: 55,
                 height: 30,
                 decoration: BoxDecoration(
                   borderRadius: BorderRadius.circular(15),
-                  gradient: widget.initialEnabled
+                  gradient: _isEnabled
                       ? LinearGradient(
                           colors: [
                             primaryPurple,
@@ -174,22 +237,28 @@ class _NotificationToggleCardState extends State<NotificationToggleCard> {
                           ],
                         )
                       : null,
-                  color: widget.initialEnabled ? null : Colors.grey.shade300,
+                  color: _isEnabled ? null : Colors.grey.shade300,
                 ),
                 child: AnimatedAlign(
                   duration: Duration(milliseconds: 250),
-                  alignment: widget.initialEnabled
+                  alignment: _isEnabled
                       ? Alignment.centerRight
                       : Alignment.centerLeft,
-                  child: Container(
-                    width: 22,
-                    height: 22,
-                    margin: EdgeInsets.symmetric(horizontal: 2),
-                    decoration: BoxDecoration(
-                      color: Colors.white,
-                      shape: BoxShape.circle,
-                    ),
-                  ),
+                  child: _isMutating
+                      ? const SizedBox(
+                          width: 18,
+                          height: 18,
+                          child: CircularProgressIndicator(strokeWidth: 2),
+                        )
+                      : Container(
+                          width: 22,
+                          height: 22,
+                          margin: EdgeInsets.symmetric(horizontal: 2),
+                          decoration: BoxDecoration(
+                            color: Colors.white,
+                            shape: BoxShape.circle,
+                          ),
+                        ),
                 ),
               ),
             ),

@@ -614,6 +614,16 @@
   "notificationsPermissionDeniedTitle": "الإشعارات محظورة",
   "notificationsPermissionDeniedBody": "لتلقي التذكيرات، يرجى السماح بالإشعارات في إعدادات جهازك",
   "notificationsOpenSettings": "فتح الإعدادات",
+  "notificationsEnable": "تفعيل الإشعارات",
+  "@notificationsEnable": {
+    "description": ""
+  },
+  "notificationsSetTime": "تعيين الوقت",
+  "@notificationsSetTime": {
+    "description": "تسمية تظهر عندما لا يكون للتذكير المفعّل وقت محدد"
+  },
+  "resetReminderCancellationFailed": "تعذر إلغاء التذكير. لم تتم إعادة ضبط بياناتك.",
+  "resetDataFailed": "تعذرت إعادة ضبط بياناتك. يرجى المحاولة مرة أخرى.",
   "authWelcomeTitle": "أهلاً وسهلاً",
   "authLoginTab": "تسجيل الدخول",
   "authSignupTab": "إنشاء حساب",

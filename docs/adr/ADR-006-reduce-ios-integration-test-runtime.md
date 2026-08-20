@@ -97,6 +97,11 @@ to unit/widget tests where possible.
 
 ### Quality gate shape: downgrade `integration-test-ios` to telemetry
 
+> **Superseded on 2026-08-05:** `integration-test-ios` is now a blocking
+> simulator test of `integration_test/notifications_schedule_test.dart`. It no
+> longer collects or uploads iOS lcov, and the former iOS-only test and checker
+> were removed. The decision text below is retained as historical context.
+
 Effective with this ADR, `integration-test-ios` is **non-blocking telemetry**:
 
 1. The `flutter test` step and the per-file iOS coverage floor step both run
@@ -106,9 +111,10 @@ Effective with this ADR, `integration-test-ios` is **non-blocking telemetry**:
    `coverage/integration_ios.info` is no longer merged into the aggregate.
    `scripts/check_aggregate_coverage.dart` no longer treats the iOS lcov as a
    required input.
-3. Artifacts (`coverage-integration-ios-lcov`, `ios-podfile-lock`) continue to
-   upload on `if: always()` so PR reviewers retain the iOS coverage trace and
-   the generated `Podfile.lock` needed for the deferred commit follow-up.
+3. At the time of this decision, `coverage-integration-ios-lcov` and
+   `ios-podfile-lock` continued to upload on `if: always()`. Under the
+   2026-08-05 supersession, the coverage artifact was removed; the current job
+   retains the Podfile lockfile and diagnostic artifacts only.
 
 Telemetry is still explicitly time-bounded. The job has a 60-minute ceiling,
 the simulator boot wait has a 10-minute ceiling, and the `flutter test` step

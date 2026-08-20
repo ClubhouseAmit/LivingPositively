@@ -1188,6 +1188,18 @@ PODS:
     - abseil/meta/type_traits
     - abseil/xcprivacy
   - abseil/xcprivacy (1.20240722.0)
+  - AppAuth (1.7.6):
+    - AppAuth/Core (= 1.7.6)
+    - AppAuth/ExternalUserAgent (= 1.7.6)
+  - AppAuth/Core (1.7.6)
+  - AppAuth/ExternalUserAgent (1.7.6):
+    - AppAuth/Core
+  - AppCheckCore (11.3.1):
+    - GoogleUtilities/Environment (~> 8.0)
+    - GoogleUtilities/UserDefaults (~> 8.0)
+    - PromisesObjC (~> 2.4)
+    - PromisesSwift (~> 2.4)
+    - RecaptchaInterop (~> 101.0)
   - BoringSSL-GRPC (0.0.37):
     - BoringSSL-GRPC/Implementation (= 0.0.37)
     - BoringSSL-GRPC/Interface (= 0.0.37)
@@ -1245,6 +1257,9 @@ PODS:
   - Firebase/Firestore (12.13.0):
     - Firebase/CoreOnly
     - FirebaseFirestore (~> 12.13.0)
+  - Firebase/Messaging (12.13.0):
+    - Firebase/CoreOnly
+    - FirebaseMessaging (~> 12.13.0)
   - firebase_auth (6.5.1):
     - Firebase/Auth (= 12.13.0)
     - firebase_core
@@ -1254,6 +1269,10 @@ PODS:
     - Flutter
   - firebase_database (12.4.1):
     - Firebase/Database (= 12.13.0)
+    - firebase_core
+    - Flutter
+  - firebase_messaging (16.2.2):
+    - Firebase/Messaging (= 12.13.0)
     - firebase_core
     - Flutter
   - FirebaseAppCheckInterop (12.13.0)
@@ -1301,6 +1320,20 @@ PODS:
     - gRPC-Core (~> 1.69.0)
     - leveldb-library (~> 1.22)
     - nanopb (~> 3.30910.0)
+  - FirebaseInstallations (12.13.0):
+    - FirebaseCore (~> 12.13.0)
+    - GoogleUtilities/Environment (~> 8.1)
+    - GoogleUtilities/UserDefaults (~> 8.1)
+    - PromisesObjC (~> 2.4)
+  - FirebaseMessaging (12.13.0):
+    - FirebaseCore (~> 12.13.0)
+    - FirebaseInstallations (~> 12.13.0)
+    - GoogleDataTransport (~> 10.1)
+    - GoogleUtilities/AppDelegateSwizzler (~> 8.1)
+    - GoogleUtilities/Environment (~> 8.1)
+    - GoogleUtilities/Reachability (~> 8.1)
+    - GoogleUtilities/UserDefaults (~> 8.1)
+    - nanopb (~> 3.30910.0)
   - FirebaseSharedSwift (12.13.0)
   - Flutter (1.0.0)
   - flutter_contacts (0.0.1):
@@ -1318,6 +1351,23 @@ PODS:
     - Flutter
   - fluttertoast (0.0.2):
     - Flutter
+  - geolocator_apple (1.2.0):
+    - Flutter
+    - FlutterMacOS
+  - google_sign_in_ios (0.0.1):
+    - AppAuth (>= 1.7.4)
+    - Flutter
+    - FlutterMacOS
+    - GoogleSignIn (~> 8.0)
+    - GTMSessionFetcher (>= 3.4.0)
+  - GoogleDataTransport (10.1.1):
+    - nanopb (~> 3.30910.0)
+    - PromisesObjC (~> 2.4)
+  - GoogleSignIn (8.0.0):
+    - AppAuth (< 2.0, >= 1.7.3)
+    - AppCheckCore (~> 11.0)
+    - GTMAppAuth (< 5.0, >= 4.1.1)
+    - GTMSessionFetcher/Core (~> 3.3)
   - GoogleUtilities/AppDelegateSwizzler (8.1.0):
     - GoogleUtilities/Environment
     - GoogleUtilities/Logger
@@ -1434,7 +1484,14 @@ PODS:
     - gRPC-Core/Privacy (= 1.69.0)
   - gRPC-Core/Interface (1.69.0)
   - gRPC-Core/Privacy (1.69.0)
-  - GTMSessionFetcher/Core (5.3.0)
+  - GTMAppAuth (4.1.1):
+    - AppAuth/Core (~> 1.7)
+    - GTMSessionFetcher/Core (< 4.0, >= 3.3)
+  - GTMSessionFetcher (3.5.0):
+    - GTMSessionFetcher/Full (= 3.5.0)
+  - GTMSessionFetcher/Core (3.5.0)
+  - GTMSessionFetcher/Full (3.5.0):
+    - GTMSessionFetcher/Core
   - image_picker_ios (0.0.1):
     - Flutter
   - integration_test (0.0.1):
@@ -1470,6 +1527,9 @@ PODS:
     - FlutterMacOS
   - permission_handler_apple (9.3.0):
     - Flutter
+  - PromisesObjC (2.4.1)
+  - PromisesSwift (2.4.1):
+    - PromisesObjC (= 2.4.1)
   - RecaptchaInterop (101.0.0)
   - SDWebImage (5.21.7):
     - SDWebImage/Core (= 5.21.7)
@@ -1484,6 +1544,8 @@ PODS:
   - shared_preferences_foundation (0.0.1):
     - Flutter
     - FlutterMacOS
+  - sign_in_with_apple (0.0.1):
+    - Flutter
   - SwiftyGif (5.4.5)
   - url_launcher_ios (0.0.1):
     - Flutter
@@ -1495,12 +1557,15 @@ DEPENDENCIES:
   - firebase_auth (from `.symlinks/plugins/firebase_auth/ios`)
   - firebase_core (from `.symlinks/plugins/firebase_core/ios`)
   - firebase_database (from `.symlinks/plugins/firebase_database/ios`)
+  - firebase_messaging (from `.symlinks/plugins/firebase_messaging/ios`)
   - Flutter (from `Flutter`)
   - flutter_contacts (from `.symlinks/plugins/flutter_contacts/ios`)
   - flutter_inappwebview_ios (from `.symlinks/plugins/flutter_inappwebview_ios/ios`)
   - flutter_local_notifications (from `.symlinks/plugins/flutter_local_notifications/ios`)
   - flutter_timezone (from `.symlinks/plugins/flutter_timezone/ios`)
   - fluttertoast (from `.symlinks/plugins/fluttertoast/ios`)
+  - geolocator_apple (from `.symlinks/plugins/geolocator_apple/darwin`)
+  - google_sign_in_ios (from `.symlinks/plugins/google_sign_in_ios/darwin`)
   - image_picker_ios (from `.symlinks/plugins/image_picker_ios/ios`)
   - integration_test (from `.symlinks/plugins/integration_test/ios`)
   - mixpanel_flutter (from `.symlinks/plugins/mixpanel_flutter/ios`)
@@ -1511,11 +1576,14 @@ DEPENDENCIES:
   - sentry_flutter (from `.symlinks/plugins/sentry_flutter/ios`)
   - share_plus (from `.symlinks/plugins/share_plus/ios`)
   - shared_preferences_foundation (from `.symlinks/plugins/shared_preferences_foundation/darwin`)
+  - sign_in_with_apple (from `.symlinks/plugins/sign_in_with_apple/ios`)
   - url_launcher_ios (from `.symlinks/plugins/url_launcher_ios/ios`)
 
 SPEC REPOS:
   trunk:
     - abseil
+    - AppAuth
+    - AppCheckCore
     - BoringSSL-GRPC
     - DKImagePickerController
     - DKPhotoGallery
@@ -1529,10 +1597,15 @@ SPEC REPOS:
     - FirebaseDatabase
     - FirebaseFirestore
     - FirebaseFirestoreInternal
+    - FirebaseInstallations
+    - FirebaseMessaging
     - FirebaseSharedSwift
+    - GoogleDataTransport
+    - GoogleSignIn
     - GoogleUtilities
     - "gRPC-C++"
     - gRPC-Core
+    - GTMAppAuth
     - GTMSessionFetcher
     - json-enum
     - jsonlogic
@@ -1541,6 +1614,8 @@ SPEC REPOS:
     - MixpanelSwiftCommon
     - nanopb
     - OrderedSet
+    - PromisesObjC
+    - PromisesSwift
     - RecaptchaInterop
     - SDWebImage
     - Sentry
@@ -1559,6 +1634,8 @@ EXTERNAL SOURCES:
     :path: ".symlinks/plugins/firebase_core/ios"
   firebase_database:
     :path: ".symlinks/plugins/firebase_database/ios"
+  firebase_messaging:
+    :path: ".symlinks/plugins/firebase_messaging/ios"
   Flutter:
     :path: Flutter
   flutter_contacts:
@@ -1571,6 +1648,10 @@ EXTERNAL SOURCES:
     :path: ".symlinks/plugins/flutter_timezone/ios"
   fluttertoast:
     :path: ".symlinks/plugins/fluttertoast/ios"
+  geolocator_apple:
+    :path: ".symlinks/plugins/geolocator_apple/darwin"
+  google_sign_in_ios:
+    :path: ".symlinks/plugins/google_sign_in_ios/darwin"
   image_picker_ios:
     :path: ".symlinks/plugins/image_picker_ios/ios"
   integration_test:
@@ -1591,11 +1672,15 @@ EXTERNAL SOURCES:
     :path: ".symlinks/plugins/share_plus/ios"
   shared_preferences_foundation:
     :path: ".symlinks/plugins/shared_preferences_foundation/darwin"
+  sign_in_with_apple:
+    :path: ".symlinks/plugins/sign_in_with_apple/ios"
   url_launcher_ios:
     :path: ".symlinks/plugins/url_launcher_ios/ios"
 
 SPEC CHECKSUMS:
   abseil: a05cc83bf02079535e17169a73c5be5ba47f714b
+  AppAuth: d4f13a8fe0baf391b2108511793e4b479691fb73
+  AppCheckCore: e215d35177a9cf469927863e69c13e220df32a8b
   BoringSSL-GRPC: dded2a44897e45f28f08ae87a55ee4bcd19bc508
   cloud_firestore: c8c679b625a56c64997046e4e2cb184e5cb7f0a9
   devicelocale: 35ba84dc7f45f527c3001535d8c8d104edd5d926
@@ -1606,6 +1691,7 @@ SPEC CHECKSUMS:
   firebase_auth: cff048fe712e30c2500be9ebdf4c438475f7064c
   firebase_core: 8863b8f05ae77d045fbd3ce0b6e86a8ae12f443b
   firebase_database: 7fe85b7704e7514d1e80b2bba65bb105e9271d62
+  firebase_messaging: c0e27446616b16b45d4774ecceeb7d6520305779
   FirebaseAppCheckInterop: db09d7412340fb4b5a8727d4d410e5a5c780dd56
   FirebaseAuth: fedecd40125af7f898ba4f0a328ac9f3a9c3b8c4
   FirebaseAuthInterop: 63d36ca102054d7336f87aec87b1c68a0bab77e0
@@ -1615,6 +1701,8 @@ SPEC CHECKSUMS:
   FirebaseDatabase: a686e507e65ddfb2776e27be780125195e70fcfc
   FirebaseFirestore: e5c352f6cc5158929702a7dffc0b917324907e89
   FirebaseFirestoreInternal: f5748d57cf73bb51f01ecebce87c72321193e388
+  FirebaseInstallations: 134bde50e477628ded76070efdb12d515d53f948
+  FirebaseMessaging: 30564b85d2f81a96f9d312bd23acf8186ff092ae
   FirebaseSharedSwift: 76bdd9de8ff1da7a601236ee058253e36206978e
   Flutter: cabc95a1d2626b1b06e7179b784ebcf0c0cde467
   flutter_contacts: 8d2ecfb85b529297c9924aefd4699ded455dea8a
@@ -1622,10 +1710,15 @@ SPEC CHECKSUMS:
   flutter_local_notifications: eda81afddbf18f8589f6ec069ce593c4c6378769
   flutter_timezone: ac3da59ac941ff1c98a2e1f0293420e020120282
   fluttertoast: fac57e14a92926e51402ed1da7a53ecd30588a44
+  geolocator_apple: 66b711889fd333205763b83c9dcf0a57a28c7afd
+  google_sign_in_ios: 7411fab6948df90490dc4620ecbcabdc3ca04017
+  GoogleDataTransport: a24e58982ab3ba2f64d79613e027fe7f57e88539
+  GoogleSignIn: ce8c89bb9b37fb624b92e7514cc67335d1e277e4
   GoogleUtilities: 00c88b9a86066ef77f0da2fab05f65d7768ed8e1
   "gRPC-C++": cc207623316fb041a7a3e774c252cf68a058b9e8
   gRPC-Core: 860978b7db482de8b4f5e10677216309b5ff6330
-  GTMSessionFetcher: 127211aeec0b1e904fc49f4f6f895dcc535b0ecf
+  GTMAppAuth: f69bd07d68cd3b766125f7e072c45d7340dea0de
+  GTMSessionFetcher: 5aea5ba6bd522a239e236100971f10cb71b96ab6
   image_picker_ios: 4f2f91b01abdb52842a8e277617df877e40f905b
   integration_test: 252f60fa39af5e17c3aa9899d35d908a0721b573
   json-enum: 57ad746d2f0d7852796e9aa50267bd84a778222e
@@ -1640,15 +1733,18 @@ SPEC CHECKSUMS:
   package_info_plus: c0502532a26c7662a62a356cebe2692ec5fe4ec4
   path_provider_foundation: 0b743cbb62d8e47eab856f09262bb8c1ddcfe6ba
   permission_handler_apple: 9878588469a2b0d0fc1e048d9f43605f92e6cec2
+  PromisesObjC: 752c3227f599e3467650e47ea36f433eeb10c273
+  PromisesSwift: 217dea0fd5d2ad65222a109c48698add13cc1c5b
   RecaptchaInterop: 11e0b637842dfb48308d242afc3f448062325aba
   SDWebImage: e9fc87c1aab89a8ab1bbd74eba378c6f53be8abf
   Sentry: de29b881e83bd91cf99a927f82f1fd86bfb39db2
   sentry_flutter: aafdf112550e9550972852e71f44994bd4239254
   share_plus: 8b6f8b3447e494cca5317c8c3073de39b3600d1f
   shared_preferences_foundation: 5086985c1d43c5ba4d5e69a4e8083a389e2909e6
+  sign_in_with_apple: f3bf75217ea4c2c8b91823f225d70230119b8440
   SwiftyGif: 706c60cf65fa2bc5ee0313beece843c8eb8194d4
   url_launcher_ios: bb13df5870e8c4234ca12609d04010a21be43dfa
 
-PODFILE CHECKSUM: 3c63482e143d1b91d2d2560aee9fb04ecc74ac7e
+PODFILE CHECKSUM: cce0700a908dfcfff7bcd7ee6818a50a952789ff
 
-COCOAPODS: 1.16.2
+COCOAPODS: 1.17.0

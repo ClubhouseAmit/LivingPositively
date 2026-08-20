@@ -1,64 +1,448 @@
-import * as admin from "firebase-admin";
+import { initializeApp } from "firebase-admin/app";
+import { getAuth } from "firebase-admin/auth";
+import { FieldValue, getFirestore, Timestamp } from "firebase-admin/firestore";
+import { getMessaging } from "firebase-admin/messaging";
+import { Buffer } from "node:buffer";
 import { setGlobalOptions } from "firebase-functions";
 import { onRequest, Request } from "firebase-functions/https";
-import { logger } from "firebase-functions/logger";
+import * as logger from "firebase-functions/logger";
 import { onSchedule } from "firebase-functions/scheduler";
+import {
+  executeNotificationMutation,
+  hasActiveDeliveryPermit,
+  isNonNegativeNotificationMutationVersion,
+  isValidResetFenceMutation,
+  notificationMutationStatePath,
+  parseExpectedNotificationMutationVersion,
+} from "./notification_mutation.js";
+import {
+  hasValidNotificationTypeSchema,
+  isValidNotificationLocale,
+  isValidNotificationTypeId,
+  normalizeNotificationGender,
+} from "./notification_validation.js";
+import {
+  schedulerRecoveryWindow,
+  scheduledNotificationSummary,
+} from "./scheduler_observability.js";
 
-admin.initializeApp();
+initializeApp();
 setGlobalOptions({ maxInstances: 10 });
 
 const STALE_TOKEN_DAYS = 180;
-const NOTIFICATION_TYPE_ID_PATTERN = /^[A-Za-z0-9_-]{1,64}$/;
+// Allow small scheduler/Firestore clock differences around serverTimestamp().
+const DEVICE_TIMESTAMP_FUTURE_SKEW_MILLIS = 5 * 60_000;
+const DELIVERY_PERMIT_DURATION_MILLIS = 305_000;
+const DELIVERY_SEND_BATCH_SIZE = 25;
+const MAX_STALE_DEVICE_CLEANUPS_PER_INVOCATION = 25;
+const MAX_SCHEDULED_NOTIFICATIONS_PER_STALE_DEVICE_CLEANUP = 25;
 
-type NotificationGender = "male" | "female" | "other";
-type DynamicNotificationType = {
-  messageType: "dynamic";
-  quotesCollections: Record<string, unknown>;
+export type IsraelLocalDeliveryCandidate = {
+  localDate: string;
+  intendedTime: string;
+  hour: number;
+  minute: number;
+  intendedAt: Date;
 };
-type StaticNotificationType = {
-  messageType: "static";
-  staticTitle: string;
-  staticBody: string;
+type FcmMessage = {
+  token: string;
+  notification: { title: string; body: string };
+  data: Record<string, string>;
 };
-type ValidNotificationType = DynamicNotificationType | StaticNotificationType;
+export type ScheduledDeliveryWriter = {
+  create(data: Record<string, unknown>): Promise<unknown>;
+  update(data: Record<string, unknown>): Promise<unknown>;
+  releasePermit?(): Promise<unknown>;
+};
+export type ScheduledDelivery = {
+  uid: string;
+  typeId: string;
+  localDate: string;
+  intendedTime: string;
+  intendedAt: Date;
+  message: FcmMessage;
+};
+type ScheduledDeliveryResult =
+  | "sent"
+  | "failed"
+  | "alreadyClaimed"
+  | "claimFailed"
+  | "notCurrent";
+type TimestampLike = {
+  isEqual?(other: unknown): boolean;
+  toMillis?(): number;
+  seconds?: unknown;
+  nanoseconds?: unknown;
+};
+type ScheduledNotificationDocument = {
+  data(): Record<string, unknown>;
+};
+export type ScheduledNotificationQueryPlan =
+  | { kind: "exact"; hour: number; minute: number }
+  | { kind: "catchUp"; hours: number[] };
+function notificationMutationStateRef(
+  db: FirebaseFirestore.Firestore,
+  uid: string,
+  typeId: string,
+): FirebaseFirestore.DocumentReference {
+  return db.doc(notificationMutationStatePath(uid, typeId));
+}
 
-export function isValidNotificationTypeId(
+export function buildNotificationDeliveryKey(
+  uid: string,
+  typeId: string,
+  localDate: string,
+  intendedTime: string,
+): string {
+  return Buffer.from(
+    JSON.stringify([uid, typeId, localDate, intendedTime]),
+    "utf8",
+  ).toString("base64url");
+}
+
+export function israelLocalDeliveryCandidates(
+  scheduleTime: Date,
+  candidateCount = 121,
+): IsraelLocalDeliveryCandidate[] {
+  const dateFormatter = new Intl.DateTimeFormat("en-CA", {
+    timeZone: "Asia/Jerusalem",
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+  });
+  const timeFormatter = new Intl.DateTimeFormat("en-GB", {
+    timeZone: "Asia/Jerusalem",
+    hour: "2-digit",
+    minute: "2-digit",
+    hourCycle: "h23",
+  });
+
+  return Array.from({ length: candidateCount }, (_, minuteOffset) => {
+    const intendedAt = new Date(scheduleTime.getTime() - minuteOffset * 60_000);
+    const dateParts = dateFormatter.formatToParts(intendedAt);
+    const timeParts = timeFormatter.formatToParts(intendedAt);
+    const year = dateParts.find((part) => part.type === "year")?.value;
+    const month = dateParts.find((part) => part.type === "month")?.value;
+    const day = dateParts.find((part) => part.type === "day")?.value;
+    const hour = timeParts.find((part) => part.type === "hour")?.value;
+    const minute = timeParts.find((part) => part.type === "minute")?.value;
+
+    if (!year || !month || !day || !hour || !minute) {
+      throw new Error("Could not derive Israel-local delivery time");
+    }
+
+    return {
+      localDate: `${year}-${month}-${day}`,
+      intendedTime: `${hour}:${minute}`,
+      hour: Number(hour),
+      minute: Number(minute),
+      intendedAt,
+    };
+  });
+}
+
+export function israelLocalDeliveryCandidatesSince(
+  scheduleTime: Date,
+  lastProcessedAt: Date | undefined,
+): IsraelLocalDeliveryCandidate[] {
+  if (lastProcessedAt === undefined) {
+    return israelLocalDeliveryCandidates(scheduleTime, 1);
+  }
+
+  const elapsedMinutes = Math.max(
+    1,
+    Math.min(
+      121,
+      Math.floor((scheduleTime.getTime() - lastProcessedAt.getTime()) / 60_000),
+    ),
+  );
+  return israelLocalDeliveryCandidates(scheduleTime, elapsedMinutes);
+}
+
+export function selectScheduledNotificationCandidates<
+  T extends ScheduledNotificationDocument,
+>(
+  docs: readonly T[],
+  deliveryCandidates: readonly IsraelLocalDeliveryCandidate[],
+): Array<{ doc: T; candidate: IsraelLocalDeliveryCandidate }> {
+  const candidatesByTime = new Map(
+    deliveryCandidates.map((candidate) => [
+      `${candidate.hour}:${candidate.minute}`,
+      candidate,
+    ]),
+  );
+
+  return docs.flatMap((doc) => {
+    const { hour, minute, updatedAt } = doc.data();
+    if (!Number.isInteger(hour) || !Number.isInteger(minute)) return [];
+    const candidate = candidatesByTime.get(`${hour}:${minute}`);
+    if (!candidate) return [];
+    const updatedAtTimestamp = updatedAt as TimestampLike;
+    if (
+      updatedAt !== null &&
+      typeof updatedAt === "object" &&
+      "toMillis" in updatedAt &&
+      typeof updatedAtTimestamp.toMillis === "function" &&
+      candidate.intendedAt.getTime() < updatedAtTimestamp.toMillis()
+    ) {
+      return [];
+    }
+    return [{ doc, candidate }];
+  });
+}
+
+export function scheduledNotificationQueryPlan(
+  deliveryCandidates: readonly IsraelLocalDeliveryCandidate[],
+): ScheduledNotificationQueryPlan {
+  if (deliveryCandidates.length === 0) {
+    throw new Error("Expected at least one delivery candidate");
+  }
+  if (deliveryCandidates.length === 1) {
+    return {
+      kind: "exact",
+      hour: deliveryCandidates[0].hour,
+      minute: deliveryCandidates[0].minute,
+    };
+  }
+  return {
+    kind: "catchUp",
+    hours: [...new Set(deliveryCandidates.map((candidate) => candidate.hour))],
+  };
+}
+
+export function shouldAdvanceSchedulerCheckpoint(
+  claimFailedCount: number,
+): boolean {
+  return claimFailedCount === 0;
+}
+
+export type DeviceUpdatedAtClassification =
+  | "missing"
+  | "fresh"
+  | "stale"
+  | "malformed";
+
+export function classifyDeviceUpdatedAt(
+  updatedAt: unknown,
+  nowMillis: number,
+): DeviceUpdatedAtClassification {
+  if (updatedAt === undefined) return "missing";
+  if (!(updatedAt instanceof Timestamp)) return "malformed";
+
+  let timestampParts: ReturnType<typeof timestampSecondsAndNanoseconds>;
+  try {
+    timestampParts = timestampSecondsAndNanoseconds(updatedAt);
+  } catch {
+    return "malformed";
+  }
+  if (timestampParts === undefined) return "malformed";
+
+  const updatedAtMillis =
+    timestampParts.seconds * 1_000 +
+    Math.floor(timestampParts.nanoseconds / 1_000_000);
+  if (!Number.isSafeInteger(updatedAtMillis)) return "malformed";
+  if (updatedAtMillis > nowMillis + DEVICE_TIMESTAMP_FUTURE_SKEW_MILLIS) {
+    return "malformed";
+  }
+
+  return nowMillis - updatedAtMillis > STALE_TOKEN_DAYS * 86_400_000
+    ? "stale"
+    : "fresh";
+}
+
+type DeviceUpdatedAtEntry = {
+  uid: string;
+  updatedAt: unknown;
+};
+
+type DeviceUpdatedAtRoutes = {
+  deliveryEligibleUids: string[];
+  staleUids: string[];
+  malformedUids: string[];
+};
+
+export function routeDevicesByUpdatedAt(
+  entries: readonly DeviceUpdatedAtEntry[],
+  nowMillis: number,
+): DeviceUpdatedAtRoutes {
+  const routes: DeviceUpdatedAtRoutes = {
+    deliveryEligibleUids: [],
+    staleUids: [],
+    malformedUids: [],
+  };
+
+  for (const entry of entries) {
+    const classification = classifyDeviceUpdatedAt(entry.updatedAt, nowMillis);
+    if (classification === "stale") {
+      routes.staleUids.push(entry.uid);
+    } else if (classification === "malformed") {
+      routes.malformedUids.push(entry.uid);
+    } else {
+      routes.deliveryEligibleUids.push(entry.uid);
+    }
+  }
+
+  return routes;
+}
+
+function timestampSecondsAndNanoseconds(
   value: unknown,
-): value is string {
+): { seconds: number; nanoseconds: number } | undefined {
+  if (
+    value === null ||
+    typeof value !== "object"
+  ) {
+    return undefined;
+  }
+  const { seconds, nanoseconds } = value as TimestampLike;
+  if (
+    typeof seconds !== "number" ||
+    typeof nanoseconds !== "number" ||
+    !Number.isSafeInteger(seconds) ||
+    !Number.isInteger(nanoseconds) ||
+    nanoseconds < 0 ||
+    nanoseconds >= 1_000_000_000
+  ) {
+    return undefined;
+  }
+  return { seconds, nanoseconds };
+}
+
+function timestampsAreExactlyEqual(left: unknown, right: unknown): boolean {
+  if (left === null || typeof left !== "object") return false;
+  const leftIsEqual = (left as TimestampLike).isEqual;
+  if (typeof leftIsEqual === "function") {
+    try {
+      return leftIsEqual.call(left, right) === true;
+    } catch {
+      return false;
+    }
+  }
+
+  if (right === null || typeof right !== "object") return false;
+  const rightIsEqual = (right as TimestampLike).isEqual;
+  if (typeof rightIsEqual === "function") {
+    try {
+      return rightIsEqual.call(right, left) === true;
+    } catch {
+      return false;
+    }
+  }
+
+  const leftParts = timestampSecondsAndNanoseconds(left);
+  const rightParts = timestampSecondsAndNanoseconds(right);
   return (
-    typeof value === "string" && NOTIFICATION_TYPE_ID_PATTERN.test(value)
+    leftParts !== undefined &&
+    rightParts !== undefined &&
+    leftParts.seconds === rightParts.seconds &&
+    leftParts.nanoseconds === rightParts.nanoseconds
   );
 }
 
-export function normalizeNotificationGender(
-  value: unknown,
-): NotificationGender {
-  return value === "male" || value === "female" || value === "other"
-    ? value
-    : "other";
+export function isCurrentScheduledNotification(
+  selectedSchedule: Record<string, unknown>,
+  currentSchedule: Record<string, unknown> | undefined,
+  currentState: Record<string, unknown> | undefined,
+): boolean {
+  if (currentSchedule === undefined) return false;
+
+  const selectedMutationVersion = selectedSchedule.mutationVersion;
+  const currentMutationVersion = currentSchedule.mutationVersion;
+  if (selectedMutationVersion === undefined) {
+    return (
+      currentMutationVersion === undefined &&
+      (currentState === undefined ||
+        (currentState.version === undefined &&
+          !hasActiveDeliveryPermit(currentState))) &&
+      timestampsAreExactlyEqual(selectedSchedule.updatedAt, currentSchedule.updatedAt)
+    );
+  }
+
+  return (
+    isNonNegativeNotificationMutationVersion(selectedMutationVersion) &&
+    currentMutationVersion === selectedMutationVersion &&
+    currentState?.version === selectedMutationVersion
+  );
 }
 
-export function hasValidNotificationTypeSchema(
-  value: unknown,
-): value is ValidNotificationType {
-  if (value === null || typeof value !== "object" || Array.isArray(value)) {
-    return false;
+function isAlreadyClaimedError(error: unknown): boolean {
+  if (error === null || typeof error !== "object") return false;
+  const code = (error as { code?: unknown }).code;
+  return code === 6 || code === "already-exists";
+}
+
+function failureCode(error: unknown): string {
+  if (error !== null && typeof error === "object") {
+    const errorInfoCode = (error as { errorInfo?: { code?: unknown } })
+      .errorInfo?.code;
+    if (typeof errorInfoCode === "string") return errorInfoCode;
+    const code = (error as { code?: unknown }).code;
+    if (typeof code === "string") return code;
   }
-  const data = value as Record<string, unknown>;
-  if (data.messageType === "dynamic") {
-    return (
-      data.quotesCollections !== null &&
-      typeof data.quotesCollections === "object" &&
-      !Array.isArray(data.quotesCollections)
-    );
+  return "unknown";
+}
+
+export async function claimAndSendScheduledDelivery(
+  delivery: ScheduledDelivery,
+  writer: ScheduledDeliveryWriter,
+  send: (message: FcmMessage) => Promise<string>,
+): Promise<ScheduledDeliveryResult> {
+  const deliveryKey = buildNotificationDeliveryKey(
+    delivery.uid,
+    delivery.typeId,
+    delivery.localDate,
+    delivery.intendedTime,
+  );
+  const claimedAt = new Date();
+  try {
+    const claimResult = await writer.create({
+      deliveryKey,
+      uid: delivery.uid,
+      typeId: delivery.typeId,
+      localDate: delivery.localDate,
+      intendedTime: delivery.intendedTime,
+      status: "claimed",
+      claimedAt,
+      attemptStartedAt: claimedAt,
+      expiresAt: new Date(delivery.intendedAt.getTime() + 86_400_000),
+    });
+    if (claimResult === "notCurrent") return "notCurrent";
+  } catch (error: unknown) {
+    if (isAlreadyClaimedError(error)) return "alreadyClaimed";
+    console.error(`Scheduled delivery claim failed: ${deliveryKey}`, error);
+    return "claimFailed";
   }
-  if (data.messageType === "static") {
-    return (
-      typeof data.staticTitle === "string" &&
-      typeof data.staticBody === "string"
-    );
+
+  try {
+    const messageId = await send(delivery.message);
+    try {
+      await writer.update({
+        status: "sent",
+        attemptFinishedAt: new Date(),
+        messageId,
+      });
+    } catch (error: unknown) {
+      console.error(`Scheduled delivery sent-status update failed: ${deliveryKey}`, error);
+    }
+    return "sent";
+  } catch (error: unknown) {
+    try {
+      await writer.update({
+        status: "failed",
+        attemptFinishedAt: new Date(),
+        failureCode: failureCode(error),
+      });
+    } catch (updateError: unknown) {
+      console.error(`Scheduled delivery failure-status update failed: ${deliveryKey}`, updateError);
+    }
+    return "failed";
+  } finally {
+    try {
+      await writer.releasePermit?.();
+    } catch (error: unknown) {
+      console.error(`Scheduled delivery permit release failed: ${deliveryKey}`, error);
+    }
   }
-  return false;
 }
 
 // ---------------------------------------------------------------------------
@@ -69,7 +453,7 @@ async function extractAndVerifyUid(req: Request): Promise<string | null> {
   const idToken = authHeader.startsWith("Bearer ") ? authHeader.slice(7) : null;
   if (!idToken) return null;
   try {
-    const decoded = await admin.auth().verifyIdToken(idToken);
+    const decoded = await getAuth().verifyIdToken(idToken);
     return decoded.uid;
   } catch {
     return null;
@@ -86,38 +470,137 @@ async function extractAndVerifyUid(req: Request): Promise<string | null> {
 // 3. user restores the app from backup on a new device.
 // 4. Firebase server-side rotation (rare, automatic).
 // ---------------------------------------------------------------------------
-async function clearFCMToken(uid: string): Promise<void> {
-  await admin.firestore().collection("devices").doc(uid).set(
-    {
-      fcmToken: admin.firestore.FieldValue.delete(),
-    },
-    { merge: true },
-  );
+export function shouldClearFCMToken(
+  storedToken: unknown,
+  failedToken: string,
+): boolean {
+  return typeof storedToken === "string" && storedToken === failedToken;
+}
+
+async function clearFCMToken(
+  uid: string,
+  failedToken: string,
+): Promise<void> {
+  const db = getFirestore();
+  const deviceRef = db.collection("devices").doc(uid);
+  await db.runTransaction(async (transaction) => {
+    const device = await transaction.get(deviceRef);
+    if (!shouldClearFCMToken(device.data()?.fcmToken, failedToken)) return;
+    transaction.update(deviceRef, {
+      fcmToken: FieldValue.delete(),
+    });
+  });
 }
 
 // ---------------------------------------------------------------------------
-// cleanupInactiveDevice — deletes the device doc and all scheduled_notifications
-// for a user who has been inactive for STALE_TOKEN_DAYS. Only called when we are
-// confident the user has abandoned the app.
+// cleanupInactiveDevice — deletes a bounded batch of schedules for a user who
+// has been inactive for STALE_TOKEN_DAYS. It reads one document past the
+// deletion cap so a user with exactly one full batch is fully removed.
 // triggered when:
 // 1. user is inactive for 180 days.
 // ---------------------------------------------------------------------------
 async function cleanupInactiveDevice(uid: string): Promise<void> {
-  const db = admin.firestore();
+  const db = getFirestore();
   const scheduledSnap = await db
     .collection("scheduled_notifications")
     .where("uid", "==", uid)
+    .limit(MAX_SCHEDULED_NOTIFICATIONS_PER_STALE_DEVICE_CLEANUP + 1)
     .get();
 
-  await Promise.all([
-    ...scheduledSnap.docs.map((doc) => doc.ref.delete()),
-    db.collection("devices").doc(uid).delete(),
-  ]);
+  const batch = db.batch();
+  const cleanupPlan = staleDeviceScheduleCleanupPlan(scheduledSnap.size);
+  for (const doc of scheduledSnap.docs.slice(0, cleanupPlan.scheduleDeletes)) {
+    batch.delete(doc.ref);
+  }
+  if (cleanupPlan.deleteDevice) {
+    batch.delete(db.collection("devices").doc(uid));
+  }
+  await batch.commit();
 }
+
+export function staleDeviceScheduleCleanupPlan(scheduleCount: number): {
+  scheduleDeletes: number;
+  deleteDevice: boolean;
+} {
+  return {
+    scheduleDeletes: Math.min(
+      scheduleCount,
+      MAX_SCHEDULED_NOTIFICATIONS_PER_STALE_DEVICE_CLEANUP,
+    ),
+    deleteDevice:
+      scheduleCount <= MAX_SCHEDULED_NOTIFICATIONS_PER_STALE_DEVICE_CLEANUP,
+  };
+}
+
+export function staleDeviceCleanupBatch(staleUids: readonly string[]): {
+  cleanupUids: string[];
+  deferredCount: number;
+} {
+  const uniqueUids = [...new Set(staleUids)];
+  return {
+    cleanupUids: uniqueUids.slice(0, MAX_STALE_DEVICE_CLEANUPS_PER_INVOCATION),
+    deferredCount: Math.max(
+      0,
+      uniqueUids.length - MAX_STALE_DEVICE_CLEANUPS_PER_INVOCATION,
+    ),
+  };
+}
+
+class NotificationMutationConflictError extends Error {}
+
+// ---------------------------------------------------------------------------
+// getNotificationMutationVersion — returns the server-authoritative version
+// used to fence scheduled-notification writes for one authenticated schedule.
+// Body: { typeId: string }
+// ---------------------------------------------------------------------------
+export const getNotificationMutationVersion = onRequest(async (req, res) => {
+  if (req.method !== "POST") {
+    res.status(405).send("Method Not Allowed");
+    return;
+  }
+
+  const uid = await extractAndVerifyUid(req);
+  if (!uid) {
+    res.status(401).send("Unauthorized");
+    return;
+  }
+
+  const typeId = req.body?.typeId;
+  if (!isValidNotificationTypeId(typeId)) {
+    res.status(400).send("Invalid typeId");
+    return;
+  }
+
+  const stateDoc = await notificationMutationStateRef(
+    getFirestore(),
+    uid,
+    typeId,
+  ).get();
+  if (!stateDoc.exists) {
+    res.send({ mutationVersion: 0 });
+    return;
+  }
+
+  const mutationVersion = stateDoc.data()?.version;
+  if (mutationVersion === undefined) {
+    res.send({ mutationVersion: 0 });
+    return;
+  }
+  if (!isNonNegativeNotificationMutationVersion(mutationVersion)) {
+    logger.warn("Invalid notification mutation state version", {
+      typeId,
+      valueType: typeof mutationVersion,
+    });
+    res.send({ mutationVersion: 0 });
+    return;
+  }
+  res.send({ mutationVersion });
+});
 
 // ---------------------------------------------------------------------------
 // registerNotification — creates or updates a scheduled notification entry.
-// Body: { typeId: string, hour: number, minute: number }
+// Body: { typeId: string, hour: number, minute: number,
+//         expectedMutationVersion?: non-negative integer }
 // ---------------------------------------------------------------------------
 export const registerNotification = onRequest(async (req, res) => {
   if (req.method !== "POST") {
@@ -131,7 +614,11 @@ export const registerNotification = onRequest(async (req, res) => {
     return;
   }
 
-  const { typeId, hour, minute, locale, gender } = req.body;
+  const { typeId, hour, minute, locale, gender, expectedMutationVersion } =
+    req.body;
+  const expectedVersion = parseExpectedNotificationMutationVersion(
+    expectedMutationVersion,
+  );
 
   if (
     !isValidNotificationTypeId(typeId) ||
@@ -143,7 +630,7 @@ export const registerNotification = onRequest(async (req, res) => {
     hour > 23 ||
     minute < 0 ||
     minute > 59 ||
-    typeof locale !== "string"
+    !isValidNotificationLocale(locale)
   ) {
     res
       .status(400)
@@ -152,9 +639,12 @@ export const registerNotification = onRequest(async (req, res) => {
       );
     return;
   }
+  if (expectedVersion.kind === "invalid") {
+    res.status(400).send("Invalid expectedMutationVersion");
+    return;
+  }
 
-  const typeDoc = await admin
-    .firestore()
+  const typeDoc = await getFirestore()
     .collection("notification_types")
     .doc(typeId)
     .get();
@@ -163,26 +653,50 @@ export const registerNotification = onRequest(async (req, res) => {
     return;
   }
 
-  await admin
-    .firestore()
+  const db = getFirestore();
+  const stateRef = notificationMutationStateRef(db, uid, typeId);
+  const scheduleRef = db
     .collection("scheduled_notifications")
-    .doc(`${uid}_${typeId}`)
-    .set({
-      uid,
-      typeId,
-      hour,
-      minute,
-      locale,
-      gender: normalizeNotificationGender(gender),
-      updatedAt: admin.firestore.FieldValue.serverTimestamp(),
+    .doc(`${uid}_${typeId}`);
+  try {
+    await db.runTransaction(async (transaction) => {
+      const scheduleData: Record<string, unknown> = {
+        uid,
+        typeId,
+        hour,
+        minute,
+        locale,
+        gender: normalizeNotificationGender(gender),
+        updatedAt: FieldValue.serverTimestamp(),
+      };
+      const decision = await executeNotificationMutation<
+        FirebaseFirestore.DocumentReference
+      >(transaction, {
+        stateRef,
+        scheduleRef,
+        expectedVersion,
+        rejectActiveDeliveryPermit: false,
+        operation: { kind: "register", scheduleData },
+      });
+      if (decision.kind === "conflict") {
+        throw new NotificationMutationConflictError(decision.message);
+      }
     });
+  } catch (error) {
+    if (error instanceof NotificationMutationConflictError) {
+      res.status(409).send(error.message);
+      return;
+    }
+    throw error;
+  }
 
   res.send({ success: true });
 });
 
 // ---------------------------------------------------------------------------
 // cancelNotification — deletes the scheduled notification entry.
-// Body: { typeId: string }
+// Body: { typeId: string, expectedMutationVersion?: non-negative integer,
+//         resetFence?: boolean }
 // ---------------------------------------------------------------------------
 export const cancelNotification = onRequest(async (req, res) => {
   if (req.method !== "POST") {
@@ -196,17 +710,54 @@ export const cancelNotification = onRequest(async (req, res) => {
     return;
   }
 
-  const { typeId } = req.body;
+  const { typeId, expectedMutationVersion, resetFence } = req.body;
   if (!isValidNotificationTypeId(typeId)) {
     res.status(400).send("Invalid typeId");
     return;
   }
+  if (resetFence !== undefined && typeof resetFence !== "boolean") {
+    res.status(400).send("Invalid resetFence");
+    return;
+  }
+  const expectedVersion = parseExpectedNotificationMutationVersion(
+    expectedMutationVersion,
+  );
+  if (expectedVersion.kind === "invalid") {
+    res.status(400).send("Invalid expectedMutationVersion");
+    return;
+  }
+  if (!isValidResetFenceMutation(resetFence, expectedVersion)) {
+    res.status(400).send("resetFence requires expectedMutationVersion");
+    return;
+  }
 
-  await admin
-    .firestore()
+  const db = getFirestore();
+  const stateRef = notificationMutationStateRef(db, uid, typeId);
+  const scheduleRef = db
     .collection("scheduled_notifications")
-    .doc(`${uid}_${typeId}`)
-    .delete();
+    .doc(`${uid}_${typeId}`);
+  try {
+    await db.runTransaction(async (transaction) => {
+      const decision = await executeNotificationMutation<
+        FirebaseFirestore.DocumentReference
+      >(transaction, {
+        stateRef,
+        scheduleRef,
+        expectedVersion,
+        rejectActiveDeliveryPermit: resetFence === true,
+        operation: { kind: "cancel" },
+      });
+      if (decision.kind === "conflict") {
+        throw new NotificationMutationConflictError(decision.message);
+      }
+    });
+  } catch (error) {
+    if (error instanceof NotificationMutationConflictError) {
+      res.status(409).send(error.message);
+      return;
+    }
+    throw error;
+  }
 
   res.send({ success: true });
 });
@@ -215,8 +766,9 @@ export const cancelNotification = onRequest(async (req, res) => {
 // processScheduledNotifications — runs every minute via Cloud Scheduler.
 //
 // Invocation flow:
-//   1. Query phase   — fetch all scheduled_notifications matching the current
-//                      hour+minute. Early-exit if none match.
+//   1. Query phase   — query the bounded recovery window for matching
+//                      scheduled_notifications, then continue through the
+//                      checkpoint and structured summary even when none match.
 //   2. Pre-fetch phase — collect the unique typeIds and locales from the result
 //                      set, then fetch all notification_type docs and quote
 //                      collections in parallel. Each collection is fetched at
@@ -226,41 +778,75 @@ export const cancelNotification = onRequest(async (req, res) => {
 //                      and dispatch via FCM.
 // ---------------------------------------------------------------------------
 export const processScheduledNotifications = onSchedule(
-  "every 1 minutes",
+  { schedule: "every 1 minutes", timeoutSeconds: 300, memory: "512MiB" },
   async (event) => {
     // --- Query phase ---
     const scheduleTime = new Date(event.scheduleTime);
-    const timeParts = new Intl.DateTimeFormat("en-GB", {
-      timeZone: "Asia/Jerusalem",
-      hour: "2-digit",
-      minute: "2-digit",
-      hourCycle: "h23",
-    }).formatToParts(scheduleTime);
-    const localHour = Number(
-      timeParts.find((part) => part.type === "hour")?.value,
+    const db = getFirestore();
+    const schedulerStateRef = db
+      .collection("notification_scheduler_state")
+      .doc("primary");
+    const schedulerState = await schedulerStateRef.get();
+    const lastProcessedMillis = schedulerState.data()?.lastProcessedMillis;
+    const recoveryWindow = schedulerRecoveryWindow(
+      scheduleTime,
+      typeof lastProcessedMillis === "number"
+        ? new Date(lastProcessedMillis)
+        : undefined,
     );
-    const localMinute = Number(
-      timeParts.find((part) => part.type === "minute")?.value,
+    if (recoveryWindow.wasClamped) {
+      logger.warn("processScheduledNotifications recovery window clamped", {
+        recoveryCandidateMinutes: recoveryWindow.processedCandidateMinutes,
+        requestedRecoveryCandidateMinutes:
+          recoveryWindow.requestedCandidateMinutes,
+      });
+    }
+    const deliveryCandidates = israelLocalDeliveryCandidates(
+      scheduleTime,
+      recoveryWindow.processedCandidateMinutes,
+    );
+    const scheduledNotifications = db.collection("scheduled_notifications");
+    const queryPlan = scheduledNotificationQueryPlan(deliveryCandidates);
+    const snapshot = queryPlan.kind === "exact"
+      ? await scheduledNotifications
+        .where("hour", "==", queryPlan.hour)
+        .where("minute", "==", queryPlan.minute)
+        .get()
+      : await scheduledNotifications.where("hour", "in", queryPlan.hours).get();
+
+    const scheduledCandidates = selectScheduledNotificationCandidates(
+      snapshot.docs,
+      deliveryCandidates,
     );
 
-    const snapshot = await admin
-      .firestore()
-      .collection("scheduled_notifications")
-      .where("hour", "==", localHour)
-      .where("minute", "==", localMinute)
-      .get();
-
-    if (snapshot.empty) return;
+    const advanceSchedulerCheckpoint = () => db.runTransaction(async (transaction) => {
+      const currentState = await transaction.get(schedulerStateRef);
+      const currentMillis = currentState.data()?.lastProcessedMillis;
+      if (
+        typeof currentMillis === "number" &&
+        currentMillis >= scheduleTime.getTime()
+      ) {
+        return;
+      }
+      transaction.set(
+        schedulerStateRef,
+        {
+          lastProcessedMillis: scheduleTime.getTime(),
+          updatedAt: FieldValue.serverTimestamp(),
+        },
+        { merge: true },
+      );
+    });
 
     // --- Pre-fetch phase ---
 
     // Collect unique typeIds and all locales present per typeId
     const localesByTypeId = new Map<string, Set<string>>();
-    for (const doc of snapshot.docs) {
+    for (const { doc } of scheduledCandidates) {
       const { typeId, locale } = doc.data();
       if (
         !isValidNotificationTypeId(typeId) ||
-        typeof locale !== "string"
+        !isValidNotificationLocale(locale)
       ) {
         continue;
       }
@@ -272,7 +858,7 @@ export const processScheduledNotifications = onSchedule(
     const typeDataMap = new Map<string, FirebaseFirestore.DocumentData>();
     await Promise.all(
       [...localesByTypeId.keys()].map(async (typeId) => {
-        const doc = await admin.firestore().collection("notification_types").doc(typeId).get();
+        const doc = await getFirestore().collection("notification_types").doc(typeId).get();
         if (doc.exists) typeDataMap.set(typeId, doc.data()!);
       }),
     );
@@ -303,8 +889,7 @@ export const processScheduledNotifications = onSchedule(
     const quotesMap = new Map<string, FirebaseFirestore.DocumentData[]>();
     await Promise.all(
       [...neededQuoteCollections].map(async (collectionName) => {
-        const snap = await admin
-          .firestore()
+        const snap = await getFirestore()
           .collection(collectionName)
           .get();
         quotesMap.set(collectionName, snap.docs.map((d) => d.data()));
@@ -315,8 +900,8 @@ export const processScheduledNotifications = onSchedule(
 
     const uniqueUids = [
       ...new Set(
-        snapshot.docs
-          .map((d) => d.data().uid)
+        scheduledCandidates
+          .map(({ doc }) => doc.data().uid)
           .filter(
             (uid): uid is string =>
               typeof uid === "string" && uid.length > 0,
@@ -325,40 +910,51 @@ export const processScheduledNotifications = onSchedule(
     ];
     const deviceDocs = await Promise.all(
       uniqueUids.map((uid) =>
-        admin.firestore().collection("devices").doc(uid).get(),
+        getFirestore().collection("devices").doc(uid).get(),
       ),
     );
     const deviceMap = new Map(
       deviceDocs.map((d) => [d.id, d.data()]),
     );
+    const deviceTimestampRoutes = routeDevicesByUpdatedAt(
+      [...deviceMap.entries()].map(([uid, deviceData]) => ({
+        uid,
+        updatedAt: deviceData?.updatedAt,
+      })),
+      Date.now(),
+    );
+    const deliveryEligibleUids = new Set(
+      deviceTimestampRoutes.deliveryEligibleUids,
+    );
+    const staleDeviceUids = new Set(deviceTimestampRoutes.staleUids);
+    const malformedDeviceUids = new Set(deviceTimestampRoutes.malformedUids);
 
     // --- Build send list, collecting stale UIDs for deferred cleanup ---
 
     const staleUids: string[] = [];
-    const sendTasks: Array<() => Promise<"success" | "failure">> = [];
+    const sendTasks: Array<() => Promise<ScheduledDeliveryResult>> = [];
 
-    for (const doc of snapshot.docs) {
+    for (const { doc, candidate } of scheduledCandidates) {
       const { uid, typeId, locale, gender } = doc.data();
       if (
         typeof uid !== "string" ||
         !isValidNotificationTypeId(typeId) ||
-        typeof locale !== "string"
+        !isValidNotificationLocale(locale)
       ) {
         continue;
       }
 
       const deviceData = deviceMap.get(uid);
 
-      const updatedAt = deviceData?.updatedAt as
-        | admin.firestore.Timestamp
-        | undefined;
-      if (updatedAt) {
-        const ageDays = (Date.now() - updatedAt.toMillis()) / 86_400_000;
-        if (ageDays > STALE_TOKEN_DAYS) {
-          staleUids.push(uid);
-          continue;
-        }
+      if (staleDeviceUids.has(uid)) {
+        staleUids.push(uid);
+        continue;
       }
+      if (malformedDeviceUids.has(uid)) {
+        logger.warn("Skipping device with malformed updatedAt", { uid });
+        continue;
+      }
+      if (!deliveryEligibleUids.has(uid)) continue;
 
       const fcmToken = deviceData?.fcmToken as string | undefined;
       if (!fcmToken) continue;
@@ -399,57 +995,160 @@ export const processScheduledNotifications = onSchedule(
         body = typeData.staticBody;
       }
 
-      sendTasks.push(async () => {
-        try {
-          await admin
-            .messaging()
-            .send({ token: fcmToken, notification: { title, body } });
-          return "success";
-        } catch (err: any) {
-          if (
-            err?.errorInfo?.code === "messaging/registration-token-not-registered"
-          ) {
+      const deliveryKey = buildNotificationDeliveryKey(
+        uid,
+        typeId,
+        candidate.localDate,
+        candidate.intendedTime,
+      );
+      const deliveryRef = db.collection("notification_deliveries").doc(deliveryKey);
+      const stateRef = notificationMutationStateRef(db, uid, typeId);
+      const selectedSchedule = doc.data();
+      sendTasks.push(() =>
+        claimAndSendScheduledDelivery(
+          {
+            uid,
+            typeId,
+            localDate: candidate.localDate,
+            intendedTime: candidate.intendedTime,
+            intendedAt: candidate.intendedAt,
+            message: {
+              token: fcmToken,
+              notification: { title, body },
+              data: { deliveryKey },
+            },
+          },
+          {
+            create: (data) => db.runTransaction(async (transaction) => {
+              const [currentSchedule, currentState] = await Promise.all([
+                transaction.get(doc.ref),
+                transaction.get(stateRef),
+              ]);
+              if (
+                !isCurrentScheduledNotification(
+                  selectedSchedule,
+                  currentSchedule.exists ? currentSchedule.data() : undefined,
+                  currentState.exists ? currentState.data() : undefined,
+                ) || hasActiveDeliveryPermit(currentState.data())
+              ) {
+                return "notCurrent";
+              }
+              transaction.create(deliveryRef, data);
+              transaction.set(
+                stateRef,
+                {
+                  deliveryPermitKey: deliveryKey,
+                  deliveryPermitExpiresAtMillis:
+                    Timestamp.now().toMillis() +
+                    DELIVERY_PERMIT_DURATION_MILLIS,
+                },
+                { merge: true },
+              );
+              return undefined;
+            }),
+            update: (data) => deliveryRef.update(data),
+            releasePermit: () => db.runTransaction(async (transaction) => {
+              const state = await transaction.get(stateRef);
+              if (state.data()?.deliveryPermitKey !== deliveryKey) return;
+
+              if (state.data()?.version === undefined) {
+                transaction.delete(stateRef);
+                return;
+              }
+              transaction.set(
+                stateRef,
+                {
+                  deliveryPermitKey: FieldValue.delete(),
+                  deliveryPermitExpiresAtMillis:
+                    FieldValue.delete(),
+                },
+                { merge: true },
+              );
+            }),
+          },
+          async (message) => {
             try {
-              await clearFCMToken(uid);
-            } catch (clearError) {
-              logger.warn("Failed to clear an invalid FCM token", {
-                error: String(clearError),
-              });
+              return await getMessaging().send(message);
+            } catch (error: unknown) {
+              if (
+                failureCode(error) ===
+                "messaging/registration-token-not-registered"
+              ) {
+                await clearFCMToken(uid, fcmToken);
+              }
+              throw error;
             }
-          }
-          return "failure";
-        }
-      });
+          },
+        ),
+      );
     }
 
-    // --- Send phase (parallel) ---
+    // --- Send phase (batched parallel) ---
 
-    const results = await Promise.allSettled(sendTasks.map((t) => t()));
+    const results: PromiseSettledResult<ScheduledDeliveryResult>[] = [];
+    for (
+      let start = 0;
+      start < sendTasks.length;
+      start += DELIVERY_SEND_BATCH_SIZE
+    ) {
+      results.push(...await Promise.allSettled(
+        sendTasks
+          .slice(start, start + DELIVERY_SEND_BATCH_SIZE)
+          .map((task) => task()),
+      ));
+    }
     let successCount = 0;
     let failureCount = 0;
+    let alreadyClaimedCount = 0;
+    let notCurrentCount = 0;
+    let claimFailedCount = 0;
     for (const r of results) {
-      if (r.status === "fulfilled" && r.value === "success") successCount++;
-      else failureCount++;
+      if (r.status === "fulfilled" && r.value === "sent") successCount++;
+      else if (r.status === "fulfilled" && r.value === "alreadyClaimed") {
+        alreadyClaimedCount++;
+      } else if (r.status === "fulfilled" && r.value === "notCurrent") {
+        notCurrentCount++;
+      } else if (r.status === "fulfilled" && r.value === "claimFailed") {
+        claimFailedCount++;
+        failureCount++;
+      } else failureCount++;
     }
 
-    // --- Stale device cleanup (batched, after sends) ---
-
-    const uniqueStaleUids = [...new Set(staleUids)];
-    let staleCleanupFailureCount = 0;
-    if (uniqueStaleUids.length > 0) {
-      const cleanupResults = await Promise.allSettled(
-        uniqueStaleUids.map((uid) => cleanupInactiveDevice(uid)),
-      );
-      staleCleanupFailureCount = cleanupResults.filter(
-        (result) => result.status === "rejected",
-      ).length;
+    // Complete the delivery checkpoint before independent stale-device cleanup.
+    if (shouldAdvanceSchedulerCheckpoint(claimFailedCount)) {
+      await advanceSchedulerCheckpoint();
     }
 
-    logger.info("processScheduledNotifications", {
-      sent: successCount,
-      failed: failureCount,
-      staleDeviceCleanups: uniqueStaleUids.length,
-      staleDeviceCleanupFailures: staleCleanupFailureCount,
-    });
+    // --- Stale device cleanup (batched, after the delivery checkpoint) ---
+
+    const {
+      cleanupUids: staleUidsToClean,
+      deferredCount: staleCleanupDeferred,
+    } = staleDeviceCleanupBatch(staleUids);
+    const staleCleanupResults = await Promise.allSettled(
+      staleUidsToClean.map((uid) => cleanupInactiveDevice(uid)),
+    );
+    const staleDevicesCleaned = staleCleanupResults.filter(
+      (result) => result.status === "fulfilled",
+    ).length;
+    const staleCleanupFailedCount = staleCleanupResults.length - staleDevicesCleaned;
+
+    logger.info(
+      "processScheduledNotifications",
+      scheduledNotificationSummary(
+        {
+          sent: successCount,
+          failed: failureCount,
+          alreadyClaimed: alreadyClaimedCount,
+          notCurrent: notCurrentCount,
+          claimFailed: claimFailedCount,
+          staleDevicesCleaned,
+          staleCleanupFailed: staleCleanupFailedCount,
+          staleCleanupDeferred,
+        },
+        recoveryWindow,
+      ),
+    );
+
   },
 );

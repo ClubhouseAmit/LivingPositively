@@ -1,12 +1,12 @@
-import 'dart:io';
+import 'dart:async';
 
 import 'package:firebase_auth/firebase_auth.dart';
-import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:flutter/material.dart';
 import 'package:get_it/get_it.dart';
 import 'package:mazilon/pages/auth/forgot_password_page.dart';
 import 'package:mazilon/util/Firebase/auth_service.dart';
 import 'package:mazilon/util/Firebase/fcm_service.dart';
+import 'package:mazilon/util/Firebase/fcm_scheduled_notification_service.dart';
 import 'package:mazilon/util/LP_extended_state.dart';
 import 'package:mazilon/util/logger_service.dart';
 import 'package:mazilon/util/styles.dart';
@@ -101,29 +101,32 @@ class _AuthPageState extends LPExtendedState<AuthPage> {
       userInfo.updateAuthDecisionMade(true);
     }
 
+    unawaited(_persistAuthenticatedUser(user));
+    unawaited(FcmService.onUserSignedIn());
+    unawaited(
+      FcmScheduledNotificationService.migrateLegacyDefaultReminderWithReporting(
+        userInformation: userInfo,
+      ),
+    );
+  }
+
+  Future<void> _persistAuthenticatedUser(User user) async {
     try {
       await AuthService.saveUserToFirestore(user);
     } catch (error, stackTrace) {
-      await _recordPostSignInFailure(error, stackTrace);
+      debugPrint('Authenticated profile persistence failed: $error');
+      if (!GetIt.instance.isRegistered<IncidentLoggerService>()) return;
+      try {
+        await GetIt.instance<IncidentLoggerService>().captureLog(
+          error,
+          stackTrace: stackTrace,
+        );
+      } catch (loggerError) {
+        debugPrint(
+          'Authenticated profile persistence reporting failed: $loggerError',
+        );
+      }
     }
-    try {
-      await FcmService.onUserSignedIn();
-    } catch (error, stackTrace) {
-      await _recordPostSignInFailure(error, stackTrace);
-    }
-  }
-
-  Future<void> _recordPostSignInFailure(
-    Object error,
-    StackTrace stackTrace,
-  ) async {
-    if (!GetIt.instance.isRegistered<IncidentLoggerService>()) return;
-    try {
-      await GetIt.instance<IncidentLoggerService>().captureLog(
-        error,
-        stackTrace: stackTrace,
-      );
-    } catch (_) {}
   }
 
   void _onSkip() {
@@ -313,24 +316,27 @@ class _LoginFormState extends LPExtendedState<_LoginForm>
                   style: const TextStyle(fontSize: 16),
                 ),
         ),
-        const SizedBox(height: 24),
-        //Gray Divider
-        _OrDivider(label: appLocale.authOr),
-        const SizedBox(height: 16),
-        //Sign with Google Button
-        _SocialButton(
-          label: appLocale.authGoogleButton,
-          icon: Icons.g_mobiledata,
-          onPressed: _isLoading ? null : _signInWithGoogle,
-        ),
-        if (!kIsWeb && Platform.isIOS) ...[
-          const SizedBox(height: 10),
-          //Sign with AppleID button
-          _SocialButton(
-            label: appLocale.authAppleButton,
-            icon: Icons.apple,
-            onPressed: _isLoading ? null : _signInWithApple,
-          ),
+        if (AuthService.isSocialSignInAvailable) ...[
+          const SizedBox(height: 24),
+          //Gray Divider
+          _OrDivider(label: appLocale.authOr),
+          const SizedBox(height: 16),
+          if (AuthService.isGoogleSignInAvailable)
+            //Sign with Google Button
+            _SocialButton(
+              label: appLocale.authGoogleButton,
+              icon: Icons.g_mobiledata,
+              onPressed: _isLoading ? null : _signInWithGoogle,
+            ),
+          if (AuthService.isAppleSignInAvailable) ...[
+            if (AuthService.isGoogleSignInAvailable) const SizedBox(height: 10),
+            //Sign with AppleID button
+            _SocialButton(
+              label: appLocale.authAppleButton,
+              icon: Icons.apple,
+              onPressed: _isLoading ? null : _signInWithApple,
+            ),
+          ],
         ],
         const SizedBox(height: 24),
         //Skip Button options
@@ -502,24 +508,27 @@ class _SignupFormState extends LPExtendedState<_SignupForm>
                   style: const TextStyle(fontSize: 16),
                 ),
         ),
-        const SizedBox(height: 24),
-        //Gray Divider
-        _OrDivider(label: appLocale.authOr),
-        const SizedBox(height: 16),
-        //Sign with Google Button
-        _SocialButton(
-          label: appLocale.authGoogleButton,
-          icon: Icons.g_mobiledata,
-          onPressed: _isLoading ? null : _signInWithGoogle,
-        ),
-        if (!kIsWeb && Platform.isIOS) ...[
-          const SizedBox(height: 10),
-          //Sign with AppleID Button
-          _SocialButton(
-            label: appLocale.authAppleButton,
-            icon: Icons.apple,
-            onPressed: _isLoading ? null : _signInWithApple,
-          ),
+        if (AuthService.isSocialSignInAvailable) ...[
+          const SizedBox(height: 24),
+          //Gray Divider
+          _OrDivider(label: appLocale.authOr),
+          const SizedBox(height: 16),
+          if (AuthService.isGoogleSignInAvailable)
+            //Sign with Google Button
+            _SocialButton(
+              label: appLocale.authGoogleButton,
+              icon: Icons.g_mobiledata,
+              onPressed: _isLoading ? null : _signInWithGoogle,
+            ),
+          if (AuthService.isAppleSignInAvailable) ...[
+            if (AuthService.isGoogleSignInAvailable) const SizedBox(height: 10),
+            //Sign with AppleID Button
+            _SocialButton(
+              label: appLocale.authAppleButton,
+              icon: Icons.apple,
+              onPressed: _isLoading ? null : _signInWithApple,
+            ),
+          ],
         ],
         const SizedBox(height: 24),
         //Skip Button options

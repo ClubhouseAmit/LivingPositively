@@ -1,10 +1,11 @@
 // ignore_for_file: prefer_const_constructors
 
+import 'package:flutter/foundation.dart' show kDebugMode;
 import 'package:flutter/material.dart';
 import 'package:permission_handler/permission_handler.dart';
 
-import 'package:mazilon/l10n/app_localizations.dart';
 import 'package:mazilon/pages/auth/auth_page.dart';
+import 'package:mazilon/pages/notifications/reminder_debug_panel.dart';
 import 'package:mazilon/pages/notifications/notification_toggle_card.dart';
 import 'package:mazilon/pages/notifications/reminder_debug_recorder.dart';
 import 'package:mazilon/util/Firebase/fcm_scheduled_notification_service.dart';
@@ -30,7 +31,7 @@ class _NotificationPageState extends LPExtendedState<NotificationPage>
     super.initState();
     WidgetsBinding.instance.addObserver(this);
     _checkPermission();
-    loadReminderDebugPanelUnlocked();
+    if (kDebugMode) loadReminderDebugPanelUnlocked();
   }
 
   @override
@@ -49,42 +50,60 @@ class _NotificationPageState extends LPExtendedState<NotificationPage>
     if (mounted) setState(() => _hasPermission = granted);
   }
 
-  Future<void> _onToggle(bool value, UserInformation userInfo) async {
-    final preference = userInfo.getNotificationPreference('default');
-    final succeeded = value
-        ? await FcmScheduledNotificationService.registerNotification(
-            context: context,
-            typeId: 'default',
-            hour: preference?.hour ?? 8,
-            minute: preference?.minute ?? 30,
-          )
-        : await FcmScheduledNotificationService.cancelNotification(
-            context: context,
-            typeId: 'default',
-          );
-    if (!succeeded && mounted) {
-      ScaffoldMessenger.of(context)
-        ..hideCurrentSnackBar()
-        ..showSnackBar(SnackBar(content: Text(appLocale.asyncErrorMessage)));
+  Future<bool> _onToggle(bool value, UserInformation userInfo) async {
+    try {
+      final applied = value
+          ? await _enableReminder(userInfo)
+          : await FcmScheduledNotificationService.cancelNotification(
+              context: context,
+              typeId: 'default',
+            );
+      if (!applied) _showReminderMutationFailure();
+      return applied;
+    } catch (_) {
+      _showReminderMutationFailure();
+      return false;
     }
   }
 
-  Future<void> _onPickedTime(
-    TimeOfDay picked,
-    AppLocalizations appLocale,
-  ) async {
-    final succeeded =
-        await FcmScheduledNotificationService.registerNotification(
-          context: context,
-          typeId: 'default',
-          hour: picked.hour,
-          minute: picked.minute,
-        );
-    if (!succeeded && mounted) {
-      ScaffoldMessenger.of(context)
-        ..hideCurrentSnackBar()
-        ..showSnackBar(SnackBar(content: Text(appLocale.asyncErrorMessage)));
+  Future<bool> _enableReminder(UserInformation userInfo) async {
+    if (!await FcmService.requestPermissionAndInitialize()) {
+      if (!mounted) return false;
+      await _checkPermission();
+      return false;
     }
+    if (!mounted) return false;
+    final preference = userInfo.getNotificationPreference('default');
+    return FcmScheduledNotificationService.registerNotification(
+      context: context,
+      typeId: 'default',
+      hour: preference?.hour ?? 8,
+      minute: preference?.minute ?? 30,
+    );
+  }
+
+  Future<bool> _onPickedTime(TimeOfDay picked) async {
+    try {
+      final applied =
+          await FcmScheduledNotificationService.registerNotification(
+            context: context,
+            typeId: 'default',
+            hour: picked.hour,
+            minute: picked.minute,
+          );
+      if (!applied) _showReminderMutationFailure();
+      return applied;
+    } catch (_) {
+      _showReminderMutationFailure();
+      return false;
+    }
+  }
+
+  void _showReminderMutationFailure() {
+    if (!mounted) return;
+    ScaffoldMessenger.maybeOf(context)
+      ?..hideCurrentSnackBar()
+      ..showSnackBar(SnackBar(content: Text(appLocale.asyncErrorMessage)));
   }
 
   Future<void> _toggleDebugUnlock() async {
@@ -136,7 +155,9 @@ class _NotificationPageState extends LPExtendedState<NotificationPage>
                       return _NotSignedInCard();
                     }
                     if (_hasPermission == false) {
-                      return _PermissionDeniedCard();
+                      return _PermissionDeniedCard(
+                        onRequestPermission: _requestReminderPermission,
+                      );
                     }
                     final preference = userInfo.getNotificationPreference(
                       'default',
@@ -146,27 +167,47 @@ class _NotificationPageState extends LPExtendedState<NotificationPage>
                       badgeText: "LP",
                       title: appLocale.notifications(gender),
                       subtitle: appLocale.notificationPageHeader(gender),
+                      setTimeLabel: appLocale.notificationsSetTime,
                       initialEnabled: preference != null,
-                      initialTime: TimeOfDay(
-                        hour: preference?.hour ?? 8,
-                        minute: preference?.minute ?? 30,
-                      ),
-                      onTimeSelected: (time) => _onPickedTime(time, appLocale),
+                      initialTime: preference == null
+                          ? null
+                          : TimeOfDay(
+                              hour: preference.hour,
+                              minute: preference.minute,
+                            ),
+                      onTimeSelected: _onPickedTime,
                       onToggle: (value) => _onToggle(value, userInfo),
                     );
                   },
                 ),
-                GestureDetector(
-                  behavior: HitTestBehavior.opaque,
-                  onLongPress: _toggleDebugUnlock,
-                  child: Text(appLocale.notificationPageHeader(gender)),
-                ),
+                if (kDebugMode) ...[
+                  GestureDetector(
+                    behavior: HitTestBehavior.opaque,
+                    onLongPress: _toggleDebugUnlock,
+                    child: Text(appLocale.notificationPageHeader(gender)),
+                  ),
+                  ValueListenableBuilder<bool>(
+                    valueListenable: reminderDebugPanelUnlocked,
+                    builder: (context, unlocked, _) {
+                      if (!unlocked) return const SizedBox.shrink();
+                      return const Padding(
+                        padding: EdgeInsets.only(top: 24),
+                        child: ReminderDebugPanel(),
+                      );
+                    },
+                  ),
+                ],
               ],
             ),
           ),
         ),
       ),
     );
+  }
+
+  Future<void> _requestReminderPermission() async {
+    final granted = await FcmService.requestPermissionAndInitialize();
+    if (mounted) setState(() => _hasPermission = granted);
   }
 }
 
@@ -221,7 +262,9 @@ class _NotSignedInCardState extends LPExtendedState<_NotSignedInCard> {
 }
 
 class _PermissionDeniedCard extends StatefulWidget {
-  const _PermissionDeniedCard();
+  final Future<void> Function() onRequestPermission;
+
+  const _PermissionDeniedCard({required this.onRequestPermission});
 
   @override
   State<_PermissionDeniedCard> createState() => _PermissionDeniedCardState();
@@ -229,6 +272,18 @@ class _PermissionDeniedCard extends StatefulWidget {
 
 class _PermissionDeniedCardState
     extends LPExtendedState<_PermissionDeniedCard> {
+  bool _requesting = false;
+
+  Future<void> _requestPermission() async {
+    if (_requesting) return;
+    setState(() => _requesting = true);
+    try {
+      await widget.onRequestPermission();
+    } finally {
+      if (mounted) setState(() => _requesting = false);
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     return Container(
@@ -260,6 +315,11 @@ class _PermissionDeniedCardState
           ),
           const SizedBox(height: 16),
           ElevatedButton.icon(
+            onPressed: _requesting ? null : _requestPermission,
+            icon: const Icon(Icons.notifications_outlined),
+            label: Text(appLocale.notificationsEnable),
+          ),
+          TextButton.icon(
             onPressed: openAppSettings,
             icon: const Icon(Icons.settings_outlined),
             label: Text(appLocale.notificationsOpenSettings),

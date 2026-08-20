@@ -3549,6 +3549,20 @@ class AppLocalizationsAr extends AppLocalizations {
   String get notificationsOpenSettings => 'فتح الإعدادات';
 
   @override
+  String get notificationsEnable => 'تفعيل الإشعارات';
+
+  @override
+  String get notificationsSetTime => 'تعيين الوقت';
+
+  @override
+  String get resetReminderCancellationFailed =>
+      'تعذر إلغاء التذكير. لم تتم إعادة ضبط بياناتك.';
+
+  @override
+  String get resetDataFailed =>
+      'تعذرت إعادة ضبط بياناتك. يرجى المحاولة مرة أخرى.';
+
+  @override
   String get authWelcomeTitle => 'أهلاً وسهلاً';
 
   @override
