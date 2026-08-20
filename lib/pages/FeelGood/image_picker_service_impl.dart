@@ -272,12 +272,20 @@ class ImagePickerServiceImpl implements ImagePickerService {
           bytes: bytes,
         );
       } else {
-        final outputFile = await FilePicker.saveFile(
+        final dynamic outputFile = await FilePicker.saveFile(
           dialogTitle: dialogTitle ?? 'Save image',
           fileName: name,
           bytes: bytes,
         );
-        result = outputFile?.path ?? outputFile?.toString();
+        if (outputFile == null) {
+          result = null;
+        } else if (outputFile is String) {
+          result = outputFile;
+        } else if (outputFile is Uri) {
+          result = outputFile.path;
+        } else {
+          result = outputFile.toString();
+        }
       }
       if (result != null) {
         await _trackEventSafely("Photo downloaded");
