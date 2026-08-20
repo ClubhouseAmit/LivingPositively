@@ -20,6 +20,7 @@ import 'package:mazilon/util/dreams_and_goals_selection.dart';
 import 'package:mazilon/util/persistent_memory_service.dart';
 import 'package:mazilon/util/userInformation.dart';
 
+import '../helpers/contract_persistent_memory_service.dart';
 import '../helpers/widget_test_scaffold.dart';
 
 PhonePageData _phone() => PhonePageData(
@@ -49,44 +50,55 @@ Future<void> _openResetDialog(WidgetTester tester) async {
   expect(find.byKey(_resetDialogKey), findsOneWidget);
 }
 
+abstract class _UserSettingsPersistentMemoryService
+    extends ContractPersistentMemoryService {
+  @override
+  dynamic missingValueFor(String _, PersistentMemoryType type) {
+    switch (type) {
+      case PersistentMemoryType.String:
+        return '';
+      case PersistentMemoryType.Int:
+        return 0;
+      case PersistentMemoryType.Double:
+        return 0.0;
+      case PersistentMemoryType.Bool:
+        return false;
+      case PersistentMemoryType.StringList:
+        return <String>[];
+    }
+  }
+}
+
 class _FailingOnceDreamsPersistentMemoryService
-    extends FakePersistentMemoryService {
+    extends _UserSettingsPersistentMemoryService {
   bool _shouldFailNextWrite = true;
 
-  @override
-  Future<void> setItem(
-    String key,
-    PersistentMemoryType type,
-    dynamic value,
-  ) async {
-    if (key == dreamsAndGoalsSelectionStorageKey && _shouldFailNextWrite) {
-      _shouldFailNextWrite = false;
-      throw StateError('Simulated Dreams persistence failure.');
-    }
-    await super.setItem(key, type, value);
+  _FailingOnceDreamsPersistentMemoryService() {
+    onPersist = (key, _, _) {
+      if (key == dreamsAndGoalsSelectionStorageKey && _shouldFailNextWrite) {
+        _shouldFailNextWrite = false;
+        throw StateError('Simulated Dreams persistence failure.');
+      }
+    };
   }
 }
 
 class _DelayedDreamsPersistentMemoryService
-    extends FakePersistentMemoryService {
+    extends _UserSettingsPersistentMemoryService {
   final Completer<void> _firstDreamsSelectionWrite = Completer<void>();
   final Completer<void> firstDreamsSelectionWriteStarted = Completer<void>();
   int selectionWriteCount = 0;
 
-  @override
-  Future<void> setItem(
-    String key,
-    PersistentMemoryType type,
-    dynamic value,
-  ) async {
-    if (key == dreamsAndGoalsSelectionStorageKey) {
-      selectionWriteCount++;
-      if (selectionWriteCount == 1) {
-        firstDreamsSelectionWriteStarted.complete();
-        await _firstDreamsSelectionWrite.future;
+  _DelayedDreamsPersistentMemoryService() {
+    onPersist = (key, _, _) async {
+      if (key == dreamsAndGoalsSelectionStorageKey) {
+        selectionWriteCount++;
+        if (selectionWriteCount == 1) {
+          firstDreamsSelectionWriteStarted.complete();
+          await _firstDreamsSelectionWrite.future;
+        }
       }
-    }
-    await super.setItem(key, type, value);
+    };
   }
 
   void releaseFirstDreamsSelectionWrite() {
@@ -97,25 +109,26 @@ class _DelayedDreamsPersistentMemoryService
 }
 
 class _RecordingResetPersistentMemoryService
-    extends FakePersistentMemoryService {
+    extends _UserSettingsPersistentMemoryService {
   int resetCalls = 0;
 
-  @override
-  Future<void> reset() async {
-    resetCalls++;
-    await super.reset();
+  _RecordingResetPersistentMemoryService() {
+    onReset = () {
+      resetCalls++;
+    };
   }
 }
 
-class _DelayedResetPersistentMemoryService extends FakePersistentMemoryService {
+class _DelayedResetPersistentMemoryService
+    extends _UserSettingsPersistentMemoryService {
   final Completer<void> resetStarted = Completer<void>();
   final Completer<void> _resetGate = Completer<void>();
 
-  @override
-  Future<void> reset() async {
-    resetStarted.complete();
-    await _resetGate.future;
-    await super.reset();
+  _DelayedResetPersistentMemoryService() {
+    onReset = () async {
+      resetStarted.complete();
+      await _resetGate.future;
+    };
   }
 
   void releaseReset() {

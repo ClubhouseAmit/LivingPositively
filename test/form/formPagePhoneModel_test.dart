@@ -1,10 +1,11 @@
 import 'package:flutter_test/flutter_test.dart';
 import 'package:get_it/get_it.dart';
-import 'package:mazilon/global_enums.dart';
 import 'package:mazilon/util/Form/formPagePhoneModel.dart';
 import 'package:mazilon/util/logger_service.dart';
 import 'package:mazilon/util/persistent_memory_service.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+
+import '../helpers/contract_persistent_memory_service.dart';
 
 class _NoopLogger implements IncidentLoggerService {
   @override
@@ -15,27 +16,6 @@ class _NoopLogger implements IncidentLoggerService {
     StackTrace? stackTrace,
     dynamic exceptionData,
   }) async {}
-}
-
-class _ThrowingPersistentMemoryService implements PersistentMemoryService {
-  int writeAttempts = 0;
-
-  @override
-  Future<dynamic> getItem(String key, PersistentMemoryType type) async =>
-      <String>[];
-
-  @override
-  Future<void> reset() async {}
-
-  @override
-  Future<void> setItem(
-    String key,
-    PersistentMemoryType type,
-    dynamic value,
-  ) async {
-    writeAttempts++;
-    throw StateError('intentional contact persistence failure');
-  }
 }
 
 PhonePageData _make({String key = 'TestPhones'}) => PhonePageData(
@@ -415,7 +395,10 @@ void main() {
 
   group('PhonePageData persistence', () {
     test('should contain background contact persistence failures', () async {
-      final failingMemory = _ThrowingPersistentMemoryService();
+      final failingMemory = ContractPersistentMemoryService()
+        ..onPersist = (_, _, _) {
+          throw StateError('intentional contact persistence failure');
+        };
       GetIt.instance.unregister<PersistentMemoryService>();
       GetIt.instance.registerSingleton<PersistentMemoryService>(failingMemory);
 
@@ -424,7 +407,7 @@ void main() {
       expect(p.addItem('A', '111'), isTrue);
       await Future<void>.delayed(Duration.zero);
 
-      expect(failingMemory.writeAttempts, 1);
+      expect(failingMemory.attemptedWrites, hasLength(1));
       expect(p.savedPhoneNames, <String>['A']);
       expect(p.savedPhoneNumbers, <String>['111']);
     });

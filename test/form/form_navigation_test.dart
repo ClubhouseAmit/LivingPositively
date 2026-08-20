@@ -20,6 +20,7 @@ import 'package:mazilon/util/persistent_memory_service.dart';
 import 'package:mazilon/util/userInformation.dart';
 import 'package:provider/provider.dart';
 
+import '../helpers/contract_persistent_memory_service.dart';
 import '../helpers/widget_test_scaffold.dart';
 
 PhonePageData _phoneData() => PhonePageData(
@@ -36,24 +37,39 @@ PhonePageData _phoneData() => PhonePageData(
   phoneDescription: const <String>[],
 );
 
-class _HeldDreamsMemoryService extends FakePersistentMemoryService {
+abstract class _FormNavigationPersistentMemoryService
+    extends ContractPersistentMemoryService {
+  @override
+  dynamic missingValueFor(String _, PersistentMemoryType type) {
+    switch (type) {
+      case PersistentMemoryType.String:
+        return '';
+      case PersistentMemoryType.Int:
+        return 0;
+      case PersistentMemoryType.Double:
+        return 0.0;
+      case PersistentMemoryType.Bool:
+        return false;
+      case PersistentMemoryType.StringList:
+        return <String>[];
+    }
+  }
+}
+
+class _HeldDreamsMemoryService extends _FormNavigationPersistentMemoryService {
   final Completer<void> _firstDreamsSelectionWrite = Completer<void>();
   final Completer<void> firstDreamsSelectionWriteStarted = Completer<void>();
   bool _holdFirstDreamsSelectionWrite = true;
 
-  @override
-  Future<void> setItem(
-    String key,
-    PersistentMemoryType type,
-    dynamic value,
-  ) async {
-    if (key == 'userSelectionPersonalPlan-DreamsAndGoals' &&
-        _holdFirstDreamsSelectionWrite) {
-      _holdFirstDreamsSelectionWrite = false;
-      firstDreamsSelectionWriteStarted.complete();
-      await _firstDreamsSelectionWrite.future;
-    }
-    await super.setItem(key, type, value);
+  _HeldDreamsMemoryService() {
+    onPersist = (key, _, _) async {
+      if (key == 'userSelectionPersonalPlan-DreamsAndGoals' &&
+          _holdFirstDreamsSelectionWrite) {
+        _holdFirstDreamsSelectionWrite = false;
+        firstDreamsSelectionWriteStarted.complete();
+        await _firstDreamsSelectionWrite.future;
+      }
+    };
   }
 
   void releaseFirstDreamsSelectionWrite() {
@@ -63,23 +79,20 @@ class _HeldDreamsMemoryService extends FakePersistentMemoryService {
   }
 }
 
-class _HeldDisclaimerMemoryService extends FakePersistentMemoryService {
+class _HeldDisclaimerMemoryService
+    extends _FormNavigationPersistentMemoryService {
   final Completer<void> _disclaimerWrite = Completer<void>();
   final Completer<void> disclaimerWriteStarted = Completer<void>();
   bool _holdDisclaimerWrite = true;
 
-  @override
-  Future<void> setItem(
-    String key,
-    PersistentMemoryType type,
-    dynamic value,
-  ) async {
-    if (key == 'disclaimerConfirmed' && _holdDisclaimerWrite) {
-      _holdDisclaimerWrite = false;
-      disclaimerWriteStarted.complete();
-      await _disclaimerWrite.future;
-    }
-    await super.setItem(key, type, value);
+  _HeldDisclaimerMemoryService() {
+    onPersist = (key, _, _) async {
+      if (key == 'disclaimerConfirmed' && _holdDisclaimerWrite) {
+        _holdDisclaimerWrite = false;
+        disclaimerWriteStarted.complete();
+        await _disclaimerWrite.future;
+      }
+    };
   }
 
   void releaseDisclaimerWrite() {
@@ -89,75 +102,61 @@ class _HeldDisclaimerMemoryService extends FakePersistentMemoryService {
   }
 }
 
-class _FailFirstDisclaimerMemoryService extends FakePersistentMemoryService {
+class _FailFirstDisclaimerMemoryService
+    extends _FormNavigationPersistentMemoryService {
   bool _hasFailed = false;
   int disclaimerWrites = 0;
 
-  @override
-  Future<void> setItem(
-    String key,
-    PersistentMemoryType type,
-    dynamic value,
-  ) async {
-    if (key == 'disclaimerConfirmed') {
-      disclaimerWrites++;
-      if (!_hasFailed) {
-        _hasFailed = true;
-        throw StateError('Disclaimer persistence failed.');
+  _FailFirstDisclaimerMemoryService() {
+    onPersist = (key, _, _) {
+      if (key == 'disclaimerConfirmed') {
+        disclaimerWrites++;
+        if (!_hasFailed) {
+          _hasFailed = true;
+          throw StateError('Disclaimer persistence failed.');
+        }
       }
-    }
-    await super.setItem(key, type, value);
+    };
   }
 }
 
-class _FailFirstDreamsMemoryService extends FakePersistentMemoryService {
+class _FailFirstDreamsMemoryService
+    extends _FormNavigationPersistentMemoryService {
   bool _hasFailed = false;
 
-  @override
-  Future<void> setItem(
-    String key,
-    PersistentMemoryType type,
-    dynamic value,
-  ) async {
-    if (key == 'userSelectionPersonalPlan-DreamsAndGoals' && !_hasFailed) {
-      _hasFailed = true;
-      throw StateError('Dreams persistence failed.');
-    }
-    await super.setItem(key, type, value);
+  _FailFirstDreamsMemoryService() {
+    onPersist = (key, _, _) {
+      if (key == 'userSelectionPersonalPlan-DreamsAndGoals' && !_hasFailed) {
+        _hasFailed = true;
+        throw StateError('Dreams persistence failed.');
+      }
+    };
   }
 }
 
-class _FailingNameMemoryService extends FakePersistentMemoryService {
+class _FailingNameMemoryService extends _FormNavigationPersistentMemoryService {
   bool failNameWrite = true;
 
-  @override
-  Future<void> setItem(
-    String key,
-    PersistentMemoryType type,
-    dynamic value,
-  ) async {
-    if (key == 'name' && failNameWrite) {
-      throw StateError('name persistence failed.');
-    }
-    await super.setItem(key, type, value);
+  _FailingNameMemoryService() {
+    onPersist = (key, _, _) {
+      if (key == 'name' && failNameWrite) {
+        throw StateError('name persistence failed.');
+      }
+    };
   }
 }
 
-class _HeldNameMemoryService extends FakePersistentMemoryService {
+class _HeldNameMemoryService extends _FormNavigationPersistentMemoryService {
   final Completer<void> _nameWrite = Completer<void>();
   final Completer<void> nameWriteStarted = Completer<void>();
 
-  @override
-  Future<void> setItem(
-    String key,
-    PersistentMemoryType type,
-    dynamic value,
-  ) async {
-    if (key == 'name' && !nameWriteStarted.isCompleted) {
-      nameWriteStarted.complete();
-      await _nameWrite.future;
-    }
-    await super.setItem(key, type, value);
+  _HeldNameMemoryService() {
+    onPersist = (key, _, _) async {
+      if (key == 'name' && !nameWriteStarted.isCompleted) {
+        nameWriteStarted.complete();
+        await _nameWrite.future;
+      }
+    };
   }
 
   void releaseNameWrite() {

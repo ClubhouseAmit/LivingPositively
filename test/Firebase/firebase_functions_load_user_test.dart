@@ -11,6 +11,8 @@ import 'package:mazilon/util/persistent_memory_service.dart';
 import 'package:mazilon/util/userInformation.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
+import '../helpers/contract_persistent_memory_service.dart';
+
 // ---------------------------------------------------------------------------
 // Fakes
 // ---------------------------------------------------------------------------
@@ -34,31 +36,29 @@ class _FakeLogger implements IncidentLoggerService {
 }
 
 /// A fake [PersistentMemoryService] backed by an in-memory map.
-class _FakeMemory implements PersistentMemoryService {
-  final Map<String, dynamic> _store;
+class _FakeMemory extends ContractPersistentMemoryService {
   bool failDreamsAndGoalsWrites;
 
-  _FakeMemory(this._store, {this.failDreamsAndGoalsWrites = false});
+  _FakeMemory(
+    Map<String, dynamic> store, {
+    this.failDreamsAndGoalsWrites = false,
+  }) : super(store: store) {
+    onMissingRead = (_, _) => null;
+    onPersist = (key, _, _) {
+      if (failDreamsAndGoalsWrites &&
+          _dreamsAndGoalsStorageKeys.contains(key)) {
+        throw StateError('Dreams and Goals storage is unavailable.');
+      }
+    };
+  }
 
   @override
   Future<dynamic> getItem(String key, PersistentMemoryType type) async {
-    return _store[key];
-  }
-
-  @override
-  Future<void> setItem(
-    String key,
-    PersistentMemoryType type,
-    dynamic value,
-  ) async {
-    if (failDreamsAndGoalsWrites && _dreamsAndGoalsStorageKeys.contains(key)) {
-      throw StateError('Dreams and Goals storage is unavailable.');
+    if (store.containsKey(key)) {
+      return store[key];
     }
-    _store[key] = value;
+    return super.getItem(key, type);
   }
-
-  @override
-  Future<void> reset() async {}
 }
 
 const Set<String> _dreamsAndGoalsStorageKeys = <String>{

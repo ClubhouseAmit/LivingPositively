@@ -1,32 +1,17 @@
 import 'package:flutter_test/flutter_test.dart';
-import 'package:mazilon/global_enums.dart';
 import 'package:mazilon/l10n/app_localizations.dart';
 import 'package:mazilon/l10n/app_localizations_en.dart';
 import 'package:mazilon/util/gender.dart';
-import 'package:mazilon/util/persistent_memory_service.dart';
 import 'package:mazilon/util/userInformation.dart';
 
-class _FakePersistentMemoryService implements PersistentMemoryService {
-  final Map<String, dynamic> stored = {};
+import '../helpers/contract_persistent_memory_service.dart';
 
-  @override
-  Future<dynamic> getItem(String key, PersistentMemoryType type) async {
-    return stored[key];
+class _FakePersistentMemoryService extends ContractPersistentMemoryService {
+  _FakePersistentMemoryService() {
+    onMissingRead = (_, _) => null;
   }
 
-  @override
-  Future<void> reset() async {
-    stored.clear();
-  }
-
-  @override
-  Future<void> setItem(
-    String key,
-    PersistentMemoryType type,
-    dynamic value,
-  ) async {
-    stored[key] = value;
-  }
+  Map<String, dynamic> get stored => store;
 }
 
 void main() {
@@ -60,12 +45,12 @@ void main() {
       for (final gender in Gender.values) {
         final memory = _FakePersistentMemoryService();
         final user = UserInformation(
-          gender: 'female', 
-          binary: false, 
+          gender: 'female',
+          binary: false,
           service: memory,
         );
         await gender.applyTo(user);
-        
+
         expect(Gender.of(user), gender);
         expect(memory.stored['gender'], gender.code);
         expect(memory.stored['binary'], gender == Gender.nonBinary);
@@ -75,8 +60,8 @@ void main() {
     test('clears the gender code for the two non-binary-field choices', () async {
       final memory = _FakePersistentMemoryService();
       final user = UserInformation(
-        gender: 'male', 
-        binary: false, 
+        gender: 'male',
+        binary: false,
         service: memory,
       );
 

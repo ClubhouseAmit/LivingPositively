@@ -15,9 +15,10 @@ import 'package:mazilon/l10n/app_localizations.dart';
 import 'package:mazilon/util/HomePage/sectionBarHome.dart';
 import 'package:mazilon/util/Thanks/AddForm.dart';
 import 'package:mazilon/util/logger_service.dart';
-import 'package:mazilon/util/persistent_memory_service.dart';
 import 'package:mazilon/util/userInformation.dart';
 import 'package:provider/provider.dart';
+
+import '../helpers/contract_persistent_memory_service.dart';
 
 class _NoOpLogger implements IncidentLoggerService {
   @override
@@ -40,14 +41,8 @@ class _NoOpAnalytics implements AnalyticsService {
   ]) async {}
 }
 
-class _FakePersistentMemoryService implements PersistentMemoryService {
-  @override
-  Future<dynamic> getItem(String key, PersistentMemoryType type) async => null;
-  @override
-  Future<void> reset() async {}
-  @override
-  Future<void> setItem(String key, PersistentMemoryType type, value) async {}
-}
+ContractPersistentMemoryService _memory() =>
+    ContractPersistentMemoryService()..onMissingRead = (_, _) => null;
 
 Widget _hostListWidget({
   required UserInformation userInfo,
@@ -94,7 +89,7 @@ void main() {
   ) async {
     PagesCode? captured;
     final user = UserInformation(
-      service: _FakePersistentMemoryService(),
+      service: _memory(),
       gender: 'male',
       positiveTraits: const ['kind'],
     );
@@ -123,7 +118,7 @@ void main() {
     tester,
   ) async {
     final user = UserInformation(
-      service: _FakePersistentMemoryService(),
+      service: _memory(),
       gender: 'female',
       thanks: const <String, List<String>>{},
     );
@@ -161,7 +156,7 @@ void main() {
     tester,
   ) async {
     final user = UserInformation(
-      service: _FakePersistentMemoryService(),
+      service: _memory(),
       gender: 'male',
       positiveTraits: const [],
     );
@@ -191,7 +186,7 @@ void main() {
     tester,
   ) async {
     final user = UserInformation(
-      service: _FakePersistentMemoryService(),
+      service: _memory(),
       gender: 'female',
       thanks: const <String, List<String>>{},
     );

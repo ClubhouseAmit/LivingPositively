@@ -33,18 +33,18 @@ import 'package:provider/provider.dart';
 import 'package:share_plus/share_plus.dart';
 import 'package:flutter_test/flutter_test.dart';
 
+import 'contract_persistent_memory_service.dart';
+
 /// In-memory implementation of [PersistentMemoryService] backed by a [Map].
 ///
 /// Avoids reaching for shared_preferences platform channels in widget tests
 /// while still exercising the real [setItem]/[getItem]/[reset] code paths in
 /// the widgets under test.
-class FakePersistentMemoryService implements PersistentMemoryService {
-  final Map<String, dynamic> store = <String, dynamic>{};
+class FakePersistentMemoryService extends ContractPersistentMemoryService {
+  FakePersistentMemoryService() : super(ignoreInvalidWrites: true);
 
   @override
-  Future<dynamic> getItem(String key, PersistentMemoryType type) async {
-    final value = store[key];
-    if (value != null) return value;
+  dynamic missingValueFor(String key, PersistentMemoryType type) {
     switch (type) {
       case PersistentMemoryType.String:
         return '';
@@ -59,24 +59,6 @@ class FakePersistentMemoryService implements PersistentMemoryService {
     }
   }
 
-  @override
-  Future<void> setItem(
-    String key,
-    PersistentMemoryType type,
-    dynamic value,
-  ) async {
-    if (key.isEmpty || value == null) return;
-    if (type == PersistentMemoryType.StringList) {
-      store[key] = List<String>.from(value as Iterable);
-    } else {
-      store[key] = value;
-    }
-  }
-
-  @override
-  Future<void> reset() async {
-    store.clear();
-  }
 }
 
 /// [FakePersistentMemoryService] whose `localeName` read is held open until the

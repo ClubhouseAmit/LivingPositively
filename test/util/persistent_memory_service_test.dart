@@ -8,6 +8,8 @@ import 'package:mazilon/util/persistent_memory_service.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:shared_preferences_platform_interface/shared_preferences_platform_interface.dart';
 
+import '../helpers/contract_persistent_memory_service.dart';
+
 class _RecordingLogger implements IncidentLoggerService {
   final List<dynamic> logs = [];
   @override
@@ -28,12 +30,14 @@ class _ControlledSharedPreferencesStore extends InMemorySharedPreferencesStore {
   _ControlledSharedPreferencesStore({
     this.outcome = _WriteOutcome.succeed,
     this.gate,
+    this.outcomesByKey = const <String, _WriteOutcome>{},
     this.clearOutcome = _WriteOutcome.succeed,
     this.clearGate,
   }) : super.empty();
 
   final _WriteOutcome outcome;
   final Completer<_WriteOutcome>? gate;
+  final Map<String, _WriteOutcome> outcomesByKey;
   final _WriteOutcome clearOutcome;
   final Completer<_WriteOutcome>? clearGate;
   final Completer<void> setValueStarted = Completer<void>();
@@ -47,7 +51,7 @@ class _ControlledSharedPreferencesStore extends InMemorySharedPreferencesStore {
       setValueStarted.complete();
     }
     final _WriteOutcome resolvedOutcome = gate == null
-        ? outcome
+        ? outcomesByKey[key] ?? outcome
         : await gate!.future;
     switch (resolvedOutcome) {
       case _WriteOutcome.succeed:
@@ -240,6 +244,38 @@ void main() {
       expect(completed, isTrue);
     });
 
+    test(
+      'should complete a direct read during a held platform write',
+      () async {
+        final Completer<_WriteOutcome> gate = Completer<_WriteOutcome>();
+        final _ControlledSharedPreferencesStore store =
+            _ControlledSharedPreferencesStore(gate: gate);
+        _installControlledStore(store);
+        final PersistentMemoryService service = SharedPreferencesService();
+
+        final Future<void> write = service.setItem(
+          'delayed',
+          PersistentMemoryType.String,
+          'visible before durable',
+        );
+        await store.setValueStarted.future;
+        var writeCompleted = false;
+        final Future<void> completion = write.then((_) {
+          writeCompleted = true;
+        });
+
+        expect(
+          await service.getItem('delayed', PersistentMemoryType.String),
+          'visible before durable',
+        );
+        expect(await store.getAll(), isNot(contains('flutter.delayed')));
+        expect(writeCompleted, isFalse);
+
+        gate.complete(_WriteOutcome.succeed);
+        await completion;
+      },
+    );
+
     test('should log and throw when the platform rejects a write', () async {
       _installControlledStore(
         _ControlledSharedPreferencesStore(outcome: _WriteOutcome.reject),
@@ -283,6 +319,242 @@ void main() {
         '',
       );
     });
+
+    test(
+      'should not roll back an earlier write when a later write fails',
+      () async {
+        final _ControlledSharedPreferencesStore store =
+            _ControlledSharedPreferencesStore(
+              outcomesByKey: const <String, _WriteOutcome>{
+                'flutter.second': _WriteOutcome.reject,
+              },
+            );
+        _installControlledStore(store);
+        final PersistentMemoryService service = SharedPreferencesService();
+
+        await service.setItem(
+          'first',
+          PersistentMemoryType.String,
+          'first durable value',
+        );
+        await expectLater(
+          service.setItem(
+            'second',
+            PersistentMemoryType.String,
+            'rejected second value',
+          ),
+          throwsA(isA<StateError>()),
+        );
+
+        final Map<String, Object> durableValues = await store.getAll();
+        expect(
+          durableValues,
+          containsPair('flutter.first', 'first durable value'),
+        );
+        expect(durableValues, isNot(contains('flutter.second')));
+      },
+    );
+  });
+
+  group('ContractPersistentMemoryService', () {
+    test(
+      'should expose an idle visible write before awaiting completion',
+      () async {
+        final Completer<void> gate = Completer<void>();
+        final Completer<void> writeStarted = Completer<void>();
+        final ContractPersistentMemoryService service =
+            ContractPersistentMemoryService()
+              ..onPersist =
+                  (String key, PersistentMemoryType type, Object value) async {
+                    writeStarted.complete();
+                    await gate.future;
+                  };
+
+        final Future<void> write = service.setItem(
+          'idle',
+          PersistentMemoryType.String,
+          'visible immediately',
+        );
+
+        expect(writeStarted.isCompleted, isTrue);
+        expect(service.store['idle'], 'visible immediately');
+        expect(service.durableStore, isNot(contains('idle')));
+
+        gate.complete();
+        await write;
+      },
+    );
+
+    test('should complete a direct read during a held queued write', () async {
+      final Completer<void> writeStarted = Completer<void>();
+      final Completer<void> gate = Completer<void>();
+      final ContractPersistentMemoryService service =
+          ContractPersistentMemoryService()
+            ..onPersist =
+                (String key, PersistentMemoryType type, Object value) async {
+                  writeStarted.complete();
+                  await gate.future;
+                };
+
+      final Future<void> write = service.setItem(
+        'delayed',
+        PersistentMemoryType.String,
+        'visible before durable',
+      );
+      await writeStarted.future;
+      var writeCompleted = false;
+      final Future<void> completion = write.then((_) {
+        writeCompleted = true;
+      });
+
+      expect(
+        await service.getItem('delayed', PersistentMemoryType.String),
+        'visible before durable',
+      );
+      expect(service.durableStore, isNot(contains('delayed')));
+      expect(writeCompleted, isFalse);
+
+      gate.complete();
+      await completion;
+      expect(service.durableStore['delayed'], 'visible before durable');
+    });
+
+    test(
+      'should not roll back an earlier durable write when a later write fails',
+      () async {
+        final ContractPersistentMemoryService service =
+            ContractPersistentMemoryService()
+              ..onPersist =
+                  (String key, PersistentMemoryType type, Object value) {
+                    if (key == 'second') {
+                      throw StateError('Rejected second value.');
+                    }
+                  };
+
+        await service.setItem(
+          'first',
+          PersistentMemoryType.String,
+          'first durable value',
+        );
+        await expectLater(
+          service.setItem(
+            'second',
+            PersistentMemoryType.String,
+            'rejected second value',
+          ),
+          throwsA(isA<StateError>()),
+        );
+
+        expect(service.durableStore['first'], 'first durable value');
+        expect(service.durableStore, isNot(contains('second')));
+      },
+    );
+
+    test(
+      'should retain a caller-owned store and allow a null missing value',
+      () async {
+        final Map<String, dynamic> store = <String, dynamic>{};
+        final ContractPersistentMemoryService service =
+            ContractPersistentMemoryService(store: store)
+              ..onMissingRead = (String key, PersistentMemoryType type) => null;
+
+        store['seeded'] = 'caller-owned value';
+
+        expect(identical(service.store, store), isTrue);
+        expect(
+          await service.getItem('missing', PersistentMemoryType.String),
+          isNull,
+        );
+        expect(
+          await service.getItem('seeded', PersistentMemoryType.String),
+          'caller-owned value',
+        );
+      },
+    );
+
+    test('should validate and clone StringList writes', () async {
+      final ContractPersistentMemoryService service =
+          ContractPersistentMemoryService();
+      final List<String> values = <String>['before write'];
+
+      final Future<void> write = service.setItem(
+        'list',
+        PersistentMemoryType.StringList,
+        values,
+      );
+      values.add('after write');
+      await write;
+
+      expect(service.store['list'], <String>['before write']);
+      expect(service.durableStore['list'], <String>['before write']);
+      await expectLater(
+        service.setItem('', PersistentMemoryType.String, 'value'),
+        throwsArgumentError,
+      );
+    });
+
+    test('should allow a legacy fixture to ignore invalid writes', () async {
+      final ContractPersistentMemoryService service =
+          ContractPersistentMemoryService(ignoreInvalidWrites: true);
+
+      await service.setItem('', PersistentMemoryType.String, 'value');
+
+      expect(service.store, isEmpty);
+      expect(service.durableStore, isEmpty);
+    });
+
+    test(
+      'should keep the reset fence and queue usable after failures',
+      () async {
+        final ContractPersistentMemoryService service =
+            ContractPersistentMemoryService();
+        service.onPersist =
+            (String key, PersistentMemoryType type, Object value) {
+              if (key == 'failed') {
+                throw StateError('Rejected write.');
+              }
+            };
+
+        await expectLater(
+          service.setItem('failed', PersistentMemoryType.String, 'value'),
+          throwsA(isA<StateError>()),
+        );
+        await service.setItem(
+          'after-write-failure',
+          PersistentMemoryType.String,
+          'durable value',
+        );
+
+        final Completer<void> resetStarted = Completer<void>();
+        final Completer<void> resetGate = Completer<void>();
+        service.onReset = () async {
+          resetStarted.complete();
+          await resetGate.future;
+        };
+        final Future<void> reset = service.reset();
+        await resetStarted.future;
+        await expectLater(
+          service.setItem('during-reset', PersistentMemoryType.String, 'value'),
+          throwsA(isA<StateError>()),
+        );
+
+        final Future<void> failedReset = expectLater(
+          reset,
+          throwsA(isA<StateError>()),
+        );
+        resetGate.completeError(StateError('Rejected reset.'));
+        await failedReset;
+
+        service.onReset = null;
+        await service.setItem(
+          'after-reset-failure',
+          PersistentMemoryType.String,
+          'durable value',
+        );
+        expect(service.durableStore['after-write-failure'], 'durable value');
+        expect(service.durableStore['after-reset-failure'], 'durable value');
+      },
+    );
   });
 
   group('SharedPreferencesService.reset', () {

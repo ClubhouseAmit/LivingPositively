@@ -10,6 +10,8 @@ import 'package:mazilon/l10n/app_localizations.dart';
 import 'package:mazilon/util/persistent_memory_service.dart';
 import 'package:mazilon/util/speech_recognition_service.dart';
 
+import '../helpers/contract_persistent_memory_service.dart';
+
 void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
 
@@ -797,49 +799,40 @@ Future<void> _pumpUntilVisible(WidgetTester tester, Finder finder) async {
   }
 }
 
-final class _FakePersistentMemoryService implements PersistentMemoryService {
+final class _FakePersistentMemoryService
+    extends ContractPersistentMemoryService {
   static const _disclosureAcceptedKey = 'speechDictationDisclosureAccepted';
 
   _FakePersistentMemoryService({
     bool initialDisclosureAccepted = false,
     this.failSetItem = false,
-  }) : _disclosureAccepted = initialDisclosureAccepted;
+  }) : super(
+         initialValues: <String, Object?>{
+           _disclosureAcceptedKey: initialDisclosureAccepted,
+         },
+       ) {
+    onRead = (String key, PersistentMemoryType type) {
+      _verifyDisclosureEntry(key, type);
+      getItemCalls++;
+    };
+    onPersist = (String key, PersistentMemoryType type, Object value) {
+      _verifyDisclosureEntry(key, type);
+      if (value is! bool) {
+        throw StateError('The disclosure acknowledgement must be a bool.');
+      }
+      setItemCalls++;
+      if (failSetItem) {
+        throw StateError('The disclosure acknowledgement could not be saved.');
+      }
+    };
+  }
 
-  bool _disclosureAccepted;
   final bool failSetItem;
   int getItemCalls = 0;
   int setItemCalls = 0;
 
-  bool get disclosureAccepted => _disclosureAccepted;
-
-  @override
-  Future<dynamic> getItem(String key, PersistentMemoryType type) async {
-    _verifyDisclosureEntry(key, type);
-    getItemCalls++;
-    return _disclosureAccepted;
-  }
-
-  @override
-  Future<void> setItem(
-    String key,
-    PersistentMemoryType type,
-    dynamic value,
-  ) async {
-    _verifyDisclosureEntry(key, type);
-    if (value is! bool) {
-      throw StateError('The disclosure acknowledgement must be a bool.');
-    }
-    setItemCalls++;
-    if (failSetItem) {
-      throw StateError('The disclosure acknowledgement could not be saved.');
-    }
-    _disclosureAccepted = value;
-  }
-
-  @override
-  Future<void> reset() async {
-    _disclosureAccepted = false;
-  }
+  bool get disclosureAccepted =>
+      durableStore[_disclosureAcceptedKey] as bool? ?? false;
 
   void _verifyDisclosureEntry(String key, PersistentMemoryType type) {
     if (key != _disclosureAcceptedKey || type != PersistentMemoryType.Bool) {

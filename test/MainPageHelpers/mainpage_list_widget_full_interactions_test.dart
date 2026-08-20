@@ -28,6 +28,8 @@ import 'package:mazilon/util/persistent_memory_service.dart';
 import 'package:mazilon/util/userInformation.dart';
 import 'package:provider/provider.dart';
 
+import '../helpers/contract_persistent_memory_service.dart';
+
 class _NoOpLogger implements IncidentLoggerService {
   @override
   Future<void> initializeSentry(_) async {}
@@ -49,34 +51,22 @@ class _NoOpAnalytics implements AnalyticsService {
   ]) async {}
 }
 
-class _FakePersistentMemoryService implements PersistentMemoryService {
-  final Map<String, dynamic> _store = {};
-
-  @override
-  Future<dynamic> getItem(String key, PersistentMemoryType type) async {
-    if (_store.containsKey(key)) return _store[key];
-    switch (type) {
-      case PersistentMemoryType.String:
-        return '';
-      case PersistentMemoryType.Bool:
-        return false;
-      case PersistentMemoryType.Int:
-        return 0;
-      case PersistentMemoryType.Double:
-        return 0.0;
-      case PersistentMemoryType.StringList:
-        return <String>[];
-    }
-  }
-
-  @override
-  Future<void> reset() async {
-    _store.clear();
-  }
-
-  @override
-  Future<void> setItem(String key, PersistentMemoryType type, value) async {
-    _store[key] = value;
+class _FakePersistentMemoryService extends ContractPersistentMemoryService {
+  _FakePersistentMemoryService() {
+    onMissingRead = (String _, PersistentMemoryType type) {
+      switch (type) {
+        case PersistentMemoryType.String:
+          return '';
+        case PersistentMemoryType.Bool:
+          return false;
+        case PersistentMemoryType.Int:
+          return 0;
+        case PersistentMemoryType.Double:
+          return 0.0;
+        case PersistentMemoryType.StringList:
+          return <String>[];
+      }
+    };
   }
 }
 

@@ -3,7 +3,6 @@ import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:country_code_picker/country_code_picker.dart';
 import 'package:get_it/get_it.dart';
-import 'package:mazilon/global_enums.dart';
 import 'package:mazilon/initialForm/CountrySelectorWidget.dart';
 import 'package:mazilon/l10n/app_localizations.dart';
 import 'package:mazilon/util/persistent_memory_service.dart';
@@ -11,26 +10,11 @@ import 'package:mazilon/util/theme/app_theme.dart';
 import 'package:mazilon/util/userInformation.dart';
 import 'package:provider/provider.dart';
 
-class InMemoryPersistentMemoryService implements PersistentMemoryService {
-  final Map<String, dynamic> _store = {};
+import 'helpers/contract_persistent_memory_service.dart';
 
-  @override
-  Future<void> setItem(
-    String key,
-    PersistentMemoryType type,
-    dynamic value,
-  ) async {
-    _store[key] = value;
-  }
-
-  @override
-  Future<dynamic> getItem(String key, PersistentMemoryType type) async {
-    return _store[key];
-  }
-
-  @override
-  Future<void> reset() async {
-    _store.clear();
+class InMemoryPersistentMemoryService extends ContractPersistentMemoryService {
+  InMemoryPersistentMemoryService() {
+    onMissingRead = (_, _) => null;
   }
 }
 

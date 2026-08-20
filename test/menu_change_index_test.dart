@@ -25,33 +25,25 @@ import 'package:share_plus/share_plus.dart';
 
 import 'MenuTest/TestMenu.dart';
 import 'MenuTest/test_data.dart';
+import 'helpers/contract_persistent_memory_service.dart';
 import 'helpers/widget_test_scaffold.dart';
 
-class _FakePm implements PersistentMemoryService {
-  final Map<String, dynamic> _values;
-  _FakePm({Map<String, dynamic>? init}) : _values = {...?init};
-  @override
-  Future<dynamic> getItem(String key, PersistentMemoryType type) async {
-    if (_values.containsKey(key)) return _values[key];
-    switch (type) {
-      case PersistentMemoryType.String:
-        return '';
-      case PersistentMemoryType.Bool:
-        return false;
-      case PersistentMemoryType.Int:
-        return 0;
-      case PersistentMemoryType.Double:
-        return 0.0;
-      case PersistentMemoryType.StringList:
-        return <String>[];
-    }
-  }
-
-  @override
-  Future<void> reset() async => _values.clear();
-  @override
-  Future<void> setItem(String key, PersistentMemoryType type, dynamic v) async {
-    _values[key] = v;
+class _FakePm extends ContractPersistentMemoryService {
+  _FakePm({Map<String, dynamic>? init}) : super(initialValues: init) {
+    onMissingRead = (String _, PersistentMemoryType type) {
+      switch (type) {
+        case PersistentMemoryType.String:
+          return '';
+        case PersistentMemoryType.Bool:
+          return false;
+        case PersistentMemoryType.Int:
+          return 0;
+        case PersistentMemoryType.Double:
+          return 0.0;
+        case PersistentMemoryType.StringList:
+          return <String>[];
+      }
+    };
   }
 }
 

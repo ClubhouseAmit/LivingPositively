@@ -1,20 +1,17 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:mazilon/global_enums.dart';
 import 'package:mazilon/l10n/app_localizations.dart';
 import 'package:mazilon/util/Phone/EmergencyPhones.dart';
-import 'package:mazilon/util/persistent_memory_service.dart';
 import 'package:mazilon/util/userInformation.dart';
 import 'package:provider/provider.dart';
 
-class _FakePersistentMemoryService implements PersistentMemoryService {
-  @override
-  Future<dynamic> getItem(String key, PersistentMemoryType type) async => null;
-  @override
-  Future<void> reset() async {}
-  @override
-  Future<void> setItem(String key, PersistentMemoryType type, value) async {}
+import 'helpers/contract_persistent_memory_service.dart';
+
+class _FakePersistentMemoryService extends ContractPersistentMemoryService {
+  _FakePersistentMemoryService() {
+    onMissingRead = (_, _) => null;
+  }
 }
 
 Widget _hostGrid(

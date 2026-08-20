@@ -3,56 +3,38 @@ import 'dart:async';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:mazilon/global_enums.dart';
 import 'package:mazilon/util/dreams_and_goals_selection.dart';
-import 'package:mazilon/util/persistent_memory_service.dart';
 import 'package:mazilon/util/userInformation.dart';
 
-class _FakePersistentMemoryService implements PersistentMemoryService {
-  final Map<String, dynamic> stored = {};
-  final List<MapEntry<String, dynamic>> writes = [];
+import '../helpers/contract_persistent_memory_service.dart';
 
-  @override
-  Future<dynamic> getItem(String key, PersistentMemoryType type) async {
-    return stored[key];
+class _FakePersistentMemoryService extends ContractPersistentMemoryService {
+  _FakePersistentMemoryService() {
+    onMissingRead = (_, _) => null;
   }
 
-  @override
-  Future<void> reset() async {
-    stored.clear();
-  }
+  Map<String, dynamic> get stored => store;
 
-  @override
-  Future<void> setItem(
-    String key,
-    PersistentMemoryType type,
-    dynamic value,
-  ) async {
-    final dynamic storedValue = type == PersistentMemoryType.StringList
-        ? List<String>.from(value as Iterable)
-        : value;
-    stored[key] = storedValue;
-    writes.add(MapEntry(key, storedValue));
+  List<MapEntry<String, dynamic>> get writes => <MapEntry<String, dynamic>>[
+    for (final ContractPersistentMemoryWrite write in completedWrites)
+      MapEntry<String, dynamic>(write.key, write.value),
+  ];
+
+  void restoreDurableValue(String key) {
+    final Object? previousValue = durableStore[key];
+    if (previousValue == null) {
+      store.remove(key);
+      return;
+    }
+    store[key] = previousValue;
   }
 }
 
 class _DelayedDreamsMemoryService extends _FakePersistentMemoryService {
-  _DelayedDreamsMemoryService({
-    this._failFirstEmptySelectionWrite = false,
-  });
-
-  final Completer<void> _firstSelectionWrite = Completer<void>();
-  final Completer<void> firstSelectionWriteStarted = Completer<void>();
-  final List<List<String>> selectionWriteSnapshots = <List<String>>[];
-  final bool _failFirstEmptySelectionWrite;
-  bool _isFirstSelectionWrite = true;
-  bool _hasFailedEmptySelectionWrite = false;
-
-  @override
-  Future<void> setItem(
-    String key,
-    PersistentMemoryType type,
-    dynamic value,
-  ) async {
-    if (key == dreamsAndGoalsSelectionStorageKey) {
+  _DelayedDreamsMemoryService({this._failFirstEmptySelectionWrite = false}) {
+    onPersist = (String key, PersistentMemoryType type, Object value) async {
+      if (key != dreamsAndGoalsSelectionStorageKey) {
+        return;
+      }
       final List<String> snapshot = List<String>.from(value as Iterable);
       selectionWriteSnapshots.add(snapshot);
       if (_isFirstSelectionWrite) {
@@ -64,11 +46,18 @@ class _DelayedDreamsMemoryService extends _FakePersistentMemoryService {
           !_hasFailedEmptySelectionWrite &&
           snapshot.isEmpty) {
         _hasFailedEmptySelectionWrite = true;
+        restoreDurableValue(key);
         throw StateError('Persistent memory failed.');
       }
-    }
-    await super.setItem(key, type, value);
+    };
   }
+
+  final Completer<void> _firstSelectionWrite = Completer<void>();
+  final Completer<void> firstSelectionWriteStarted = Completer<void>();
+  final List<List<String>> selectionWriteSnapshots = <List<String>>[];
+  final bool _failFirstEmptySelectionWrite;
+  bool _isFirstSelectionWrite = true;
+  bool _hasFailedEmptySelectionWrite = false;
 
   void releaseFirstSelectionWrite() {
     if (!_firstSelectionWrite.isCompleted) {
@@ -78,33 +67,28 @@ class _DelayedDreamsMemoryService extends _FakePersistentMemoryService {
 }
 
 class _FailingPersistentMemoryService extends _FakePersistentMemoryService {
-  @override
-  Future<void> setItem(
-    String key,
-    PersistentMemoryType type,
-    dynamic value,
-  ) async {
-    throw StateError('Persistent memory failed.');
+  _FailingPersistentMemoryService() {
+    onPersist = (String key, PersistentMemoryType type, Object value) {
+      restoreDurableValue(key);
+      throw StateError('Persistent memory failed.');
+    };
   }
 }
 
 class _FailingFirstDreamsSelectionMemoryService
     extends _FakePersistentMemoryService {
-  bool _shouldFailFirstDreamsSelectionWrite = true;
-
-  @override
-  Future<void> setItem(
-    String key,
-    PersistentMemoryType type,
-    dynamic value,
-  ) async {
-    if (key == dreamsAndGoalsSelectionStorageKey &&
-        _shouldFailFirstDreamsSelectionWrite) {
-      _shouldFailFirstDreamsSelectionWrite = false;
-      throw StateError('Persistent memory failed.');
-    }
-    await super.setItem(key, type, value);
+  _FailingFirstDreamsSelectionMemoryService() {
+    onPersist = (String key, PersistentMemoryType type, Object value) {
+      if (key == dreamsAndGoalsSelectionStorageKey &&
+          _shouldFailFirstDreamsSelectionWrite) {
+        _shouldFailFirstDreamsSelectionWrite = false;
+        restoreDurableValue(key);
+        throw StateError('Persistent memory failed.');
+      }
+    };
   }
+
+  bool _shouldFailFirstDreamsSelectionWrite = true;
 }
 
 void main() {

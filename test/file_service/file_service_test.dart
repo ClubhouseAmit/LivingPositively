@@ -7,6 +7,8 @@ import 'package:mazilon/global_enums.dart';
 import 'package:mazilon/util/logger_service.dart';
 import 'package:mazilon/util/persistent_memory_service.dart';
 
+import '../helpers/contract_persistent_memory_service.dart';
+
 class _FakeAnalytics implements AnalyticsService {
   final List<String> events = [];
   @override
@@ -34,26 +36,9 @@ class _FakeLogger implements IncidentLoggerService {
   }
 }
 
-class _FakeMemory implements PersistentMemoryService {
-  final Map<String, dynamic> store;
-  _FakeMemory(this.store);
-  @override
-  Future<dynamic> getItem(String key, PersistentMemoryType type) async {
-    return store[key];
-  }
-
-  @override
-  Future<void> reset() async {
-    store.clear();
-  }
-
-  @override
-  Future<void> setItem(
-    String key,
-    PersistentMemoryType type,
-    dynamic value,
-  ) async {
-    store[key] = value;
+class _FakeMemory extends ContractPersistentMemoryService {
+  _FakeMemory(Map<String, dynamic> store) : super(store: store) {
+    onMissingRead = (_, _) => null;
   }
 }
 

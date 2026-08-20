@@ -28,6 +28,7 @@ import 'package:provider/provider.dart';
 
 import '../helpers/widget_test_scaffold.dart'
     show NoopIncidentLoggerService, wizardStepHarness;
+import '../helpers/contract_persistent_memory_service.dart';
 
 class _FakeAnalytics implements AnalyticsService {
   final List<String> events = [];
@@ -42,12 +43,30 @@ class _FakeAnalytics implements AnalyticsService {
   }
 }
 
-class _FakePm implements PersistentMemoryService {
-  _FakePm({this.writeDelay, this.failFirstWrite = false});
-
-  final Map<String, dynamic> store = {};
-  final List<_PersistentMemoryWrite> completedWrites =
-      <_PersistentMemoryWrite>[];
+class _FakePm extends ContractPersistentMemoryService {
+  _FakePm({this.writeDelay, this.failFirstWrite = false}) {
+    onMissingRead = (_, _) => null;
+    onPersist = (String key, PersistentMemoryType type, Object value) async {
+      if (writeDelay != null) {
+        await Future<void>.delayed(writeDelay!);
+      }
+      if (failFirstWrite && !_firstWriteAttempted) {
+        _firstWriteAttempted = true;
+        throw StateError('write failed');
+      }
+      if (failDisclaimerWrite && key == 'disclaimerConfirmed') {
+        throw StateError('disclaimer write failed');
+      }
+      if (failDreamsAndGoalsWrites &&
+          <String>[
+            'userSelectionPersonalPlan-DreamsAndGoals',
+            'selectionSourcesPersonalPlan-DreamsAndGoals',
+            'addedStringsPersonalPlan-DreamsAndGoals',
+          ].contains(key)) {
+        throw StateError('Dreams and Goals write failed');
+      }
+    };
+  }
 
   /// Makes writes take measurable time so a test can observe the window
   /// between tapping the primary button and the wizard advancing.
@@ -60,68 +79,29 @@ class _FakePm implements PersistentMemoryService {
   bool failDisclaimerWrite = false;
   bool failDreamsAndGoalsWrites = false;
 
-  @override
-  Future<dynamic> getItem(String key, PersistentMemoryType type) async =>
-      store[key];
-  @override
-  Future<void> reset() async {
-    store.clear();
-  }
-
-  @override
-  Future<void> setItem(String key, PersistentMemoryType type, value) async {
-    if (writeDelay != null) {
-      await Future<void>.delayed(writeDelay!);
-    }
-    if (failFirstWrite && !_firstWriteAttempted) {
-      _firstWriteAttempted = true;
-      throw StateError('write failed');
-    }
-    if (failDisclaimerWrite && key == 'disclaimerConfirmed') {
-      throw StateError('disclaimer write failed');
-    }
-    if (failDreamsAndGoalsWrites &&
-        <String>[
-          'userSelectionPersonalPlan-DreamsAndGoals',
-          'selectionSourcesPersonalPlan-DreamsAndGoals',
-          'addedStringsPersonalPlan-DreamsAndGoals',
-        ].contains(key)) {
-      throw StateError('Dreams and Goals write failed');
-    }
-    store[key] = value;
-    completedWrites.add(_PersistentMemoryWrite(key, type, value));
-  }
-
-  List<_PersistentMemoryWrite> completedWritesFor(String key) =>
+  List<ContractPersistentMemoryWrite> completedWritesFor(String key) =>
       completedWrites.where((write) => write.key == key).toList();
 }
 
-class _PersistentMemoryWrite {
-  _PersistentMemoryWrite(this.key, this.type, dynamic value)
-    : value = type == PersistentMemoryType.StringList
-          ? List<String>.from(value as Iterable)
-          : value;
-
-  final String key;
-  final PersistentMemoryType type;
-  final dynamic value;
-}
-
 class _HeldDreamsMemoryService extends _FakePm {
+  _HeldDreamsMemoryService() {
+    final ContractPersistentMemoryPersistHook? parentPersist = onPersist;
+    onPersist = (String key, PersistentMemoryType type, Object value) async {
+      if (key == 'userSelectionPersonalPlan-DreamsAndGoals' &&
+          _holdFirstDreamsSelectionWrite) {
+        _holdFirstDreamsSelectionWrite = false;
+        firstDreamsSelectionWriteStarted.complete();
+        await _firstDreamsSelectionWrite.future;
+      }
+      if (parentPersist != null) {
+        await parentPersist(key, type, value);
+      }
+    };
+  }
+
   final Completer<void> _firstDreamsSelectionWrite = Completer<void>();
   final Completer<void> firstDreamsSelectionWriteStarted = Completer<void>();
   bool _holdFirstDreamsSelectionWrite = true;
-
-  @override
-  Future<void> setItem(String key, PersistentMemoryType type, value) async {
-    if (key == 'userSelectionPersonalPlan-DreamsAndGoals' &&
-        _holdFirstDreamsSelectionWrite) {
-      _holdFirstDreamsSelectionWrite = false;
-      firstDreamsSelectionWriteStarted.complete();
-      await _firstDreamsSelectionWrite.future;
-    }
-    await super.setItem(key, type, value);
-  }
 
   void releaseFirstDreamsSelectionWrite() {
     if (!_firstDreamsSelectionWrite.isCompleted) {
@@ -131,19 +111,23 @@ class _HeldDreamsMemoryService extends _FakePm {
 }
 
 class _DualFailureDreamsMemoryService extends _FakePm {
+  _DualFailureDreamsMemoryService() {
+    final ContractPersistentMemoryPersistHook? parentPersist = onPersist;
+    onPersist = (String key, PersistentMemoryType type, Object value) async {
+      attemptedKeys.add(key);
+      if (failDreamsAndDisclaimerWrites &&
+          (key == 'userSelectionPersonalPlan-DreamsAndGoals' ||
+              key == 'disclaimerConfirmed')) {
+        throw StateError('intentional $key write failure');
+      }
+      if (parentPersist != null) {
+        await parentPersist(key, type, value);
+      }
+    };
+  }
+
   bool failDreamsAndDisclaimerWrites = true;
   final List<String> attemptedKeys = <String>[];
-
-  @override
-  Future<void> setItem(String key, PersistentMemoryType type, value) async {
-    attemptedKeys.add(key);
-    if (failDreamsAndDisclaimerWrites &&
-        (key == 'userSelectionPersonalPlan-DreamsAndGoals' ||
-            key == 'disclaimerConfirmed')) {
-      throw StateError('intentional $key write failure');
-    }
-    await super.setItem(key, type, value);
-  }
 }
 
 Future<int> _pump(
@@ -322,7 +306,10 @@ void main() {
 
     // Still saving.
     expect(nextCalls, 0);
-    expect(slowPm.store['userSelectionPersonalPlan-DifficultEvents'], isNull);
+    expect(
+      slowPm.durableStore['userSelectionPersonalPlan-DifficultEvents'],
+      isNull,
+    );
 
     await tester.pump(const Duration(seconds: 2));
     await tester.pumpAndSettle();

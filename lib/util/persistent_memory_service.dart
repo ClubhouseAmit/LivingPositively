@@ -4,16 +4,36 @@ import 'package:mazilon/util/logger_service.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 abstract class PersistentMemoryService {
+  /// Persists [value] for [key] using [type].
+  ///
+  /// Each service instance serializes accepted [setItem] and [reset]
+  /// operations in invocation order. A write requested while a reset is active
+  /// must fail without reaching storage. Failures complete the originating
+  /// operation with an error, but do not prevent a later accepted operation
+  /// from running.
+  ///
+  /// Separate [setItem] calls are not atomic or rolled back as a group. A
+  /// caller that persists multiple keys can therefore observe an earlier key
+  /// persisted when a later write fails.
   Future<void> setItem(String key, PersistentMemoryType type, dynamic value);
+
+  /// Reads [key] using [type] without waiting for queued writes or resets.
+  ///
+  /// A concurrent read can observe implementation-specific visible state and
+  /// does not establish that a write completed durably. Callers must not rely
+  /// on it to observe either the old or new value during a pending operation.
   Future<dynamic> getItem(String key, PersistentMemoryType type);
+
+  /// Clears persisted values after earlier accepted writes complete.
+  ///
+  /// Concurrent callers join the active reset. A reset error propagates to its
+  /// callers, and its failure does not prevent a later accepted operation from
+  /// running. The reset fence reopens after the reset succeeds or fails.
   Future<void> reset();
 }
 
 class SharedPreferencesService implements PersistentMemoryService {
-  /// Keeps all writes and reset operations in their invocation order.
-  ///
-  /// A failed operation is reported to its caller but does not prevent the
-  /// next queued operation from running.
+  /// Keeps the next operation runnable after an earlier failure.
   Future<void> _pendingOperation = Future<void>.value();
   Future<void>? _activeReset;
   bool _resetFenceActive = false;
