@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:fluttericon/elusive_icons.dart';
+import 'package:get_it/get_it.dart';
+import 'package:mazilon/file_service.dart';
 import 'package:mazilon/l10n/app_localizations.dart';
 import 'package:mazilon/util/appInformation.dart';
 import 'package:mazilon/util/layout/directional_widgets.dart';
@@ -25,11 +27,15 @@ class PersonalPlanSectionWidget extends StatelessWidget {
   /// Defaults to `true`.
   final bool enableTitleTap;
 
+  /// Optional [FileService] override for sharing and downloading Personal Plan exports.
+  final FileService? fileService;
+
   const PersonalPlanSectionWidget({
     required this.items,
     required this.onSeeAll,
     this.onTitleTap,
     this.enableTitleTap = true,
+    this.fileService,
     super.key,
   });
 
@@ -107,12 +113,14 @@ class PersonalPlanSectionWidget extends StatelessWidget {
         context,
         listen: false,
       );
+      final service = fileService ?? GetIt.instance<FileService>();
       await downloadPersonalPlanFile(
         appLocale: appLocale,
         gender: userInfo.gender,
         username: userInfo.name,
         appInformation: appInfoProvider,
         userInformation: userInfo,
+        fileService: service,
       );
     }
   }

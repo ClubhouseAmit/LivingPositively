@@ -652,28 +652,57 @@ void main() {
     );
 
     test(
-      'should return null and log error when FileService is not registered in GetIt and not injected',
+      'should execute concurrent downloads independently and provide independent feedback when export contexts differ',
       () async {
-        await locator.unregister<FileService>();
+        final completer1 = Completer<void>();
+        final completer2 = Completer<void>();
+        final service1 = _TestFileService()
+          ..downloadResult = '/saved/male_plan.pdf'
+          ..pendingDownloadCompleter = completer1;
+        final service2 = _TestFileService()
+          ..downloadResult = '/saved/female_plan.pdf'
+          ..pendingDownloadCompleter = completer2;
+
+        userInformation.updateDreamsAndGoals(
+          ['Goal 1', 'Goal 2'],
+          selectionSources: ['custom', 'custom'],
+        );
 
         final localizations = await AppLocalizations.delegate.load(
           const Locale('en'),
         );
 
-        final result = await downloadPersonalPlanFile(
+        final future1 = downloadPersonalPlanFile(
           appLocale: localizations,
-          gender: userInformation.gender,
-          username: userInformation.name,
+          gender: 'male',
+          username: 'User Male',
           appInformation: appInformation,
           userInformation: userInformation,
-          fileService: null,
+          fileService: service1,
         );
 
-        expect(result, isNull);
-        expect(loggerService.capturedLogs, hasLength(1));
-        expect(loggerService.capturedLogs.first, isA<StateError>());
-        expect(loggerService.eventOrder, equals(['captureLog', 'showToast']));
-        expect(toastCalls, contains(localizations.downloadFailed('male')));
+        final future2 = downloadPersonalPlanFile(
+          appLocale: localizations,
+          gender: 'female',
+          username: 'User Female',
+          appInformation: appInformation,
+          userInformation: userInformation,
+          fileService: service2,
+        );
+
+        completer1.complete();
+        completer2.complete();
+        final results = await Future.wait([future1, future2]);
+
+        expect(results[0], '/saved/male_plan.pdf');
+        expect(results[1], '/saved/female_plan.pdf');
+        expect(service1.callLog, ['download']);
+        expect(service2.callLog, ['download']);
+        expect(loggerService.capturedLogs, isEmpty);
+        expect(toastCalls, containsAll([
+          localizations.finishedDownloading('male'),
+          localizations.finishedDownloading('female'),
+        ]));
       },
     );
 
