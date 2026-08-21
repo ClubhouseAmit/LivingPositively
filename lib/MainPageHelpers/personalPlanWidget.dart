@@ -257,7 +257,6 @@ class _PersonalPlanWidgetState extends LPExtendedState<PersonalPlanWidget> {
                               gender: gender,
                               username: username,
                               appInformation: appInfoProvider,
-                              textDirection: appLocale.textDirection,
                               userInformation: userInfoProvider,
                               fileService: fileService,
                             );

@@ -929,7 +929,6 @@ class _ShareFormState extends WizardStepState<ShareForm> {
                             gender: gender,
                             username: userInfoProvider.name,
                             appInformation: appInfoProvider,
-                            textDirection: appLocale.textDirection,
                             fileService: fileService,
                           );
                         }),

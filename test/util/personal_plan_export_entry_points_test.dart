@@ -28,6 +28,7 @@ import '../helpers/widget_test_scaffold.dart';
 
 class _RecordingIncidentLogger implements IncidentLoggerService {
   final List<dynamic> capturedLogs = <dynamic>[];
+  bool throwOnCapture = false;
 
   @override
   Future<void> initializeSentry(Widget myApp) async {}
@@ -38,6 +39,9 @@ class _RecordingIncidentLogger implements IncidentLoggerService {
     StackTrace? stackTrace,
     dynamic exceptionData,
   }) async {
+    if (throwOnCapture) {
+      throw StateError('Telemetry failure');
+    }
     capturedLogs.add(exception);
   }
 }
@@ -360,7 +364,6 @@ void main() {
           gender: userInformation.gender,
           username: userInformation.name,
           appInformation: appInformation,
-          textDirection: localizations.textDirection,
           userInformation: userInformation,
           fileService: fileService,
         );
@@ -368,6 +371,36 @@ void main() {
         expect(result, isNull);
         expect(fileService.callLog, isNot(contains('download')));
         expect(loggerService.capturedLogs, isNotEmpty);
+        expect(toastCalls, contains(localizations.downloadFailed('male')));
+      },
+    );
+
+    test(
+      'downloadPersonalPlanFile returns null and shows failure toast when logger throws',
+      () async {
+        memoryService.throwOnWrite = true;
+        loggerService.throwOnCapture = true;
+        userInformation.updateDreamsAndGoals(
+          ['Goal 1', 'Goal 2'],
+          selectionSources: ['custom', 'custom'],
+        );
+        userInformation.queueDreamsAndGoalsSave();
+
+        final localizations = await AppLocalizations.delegate.load(
+          const Locale('en'),
+        );
+
+        final result = await downloadPersonalPlanFile(
+          appLocale: localizations,
+          gender: userInformation.gender,
+          username: userInformation.name,
+          appInformation: appInformation,
+          userInformation: userInformation,
+          fileService: fileService,
+        );
+
+        expect(result, isNull);
+        expect(fileService.callLog, isNot(contains('download')));
         expect(toastCalls, contains(localizations.downloadFailed('male')));
       },
     );
@@ -390,7 +423,6 @@ void main() {
           gender: userInformation.gender,
           username: userInformation.name,
           appInformation: appInformation,
-          textDirection: localizations.textDirection,
           userInformation: userInformation,
           fileService: fileService,
         );
@@ -420,7 +452,6 @@ void main() {
           gender: userInformation.gender,
           username: userInformation.name,
           appInformation: appInformation,
-          textDirection: localizations.textDirection,
           userInformation: userInformation,
           fileService: fileService,
         );
@@ -459,6 +490,36 @@ void main() {
         expect(result, isNull);
         expect(fileService.callLog, isNot(contains('share')));
         expect(loggerService.capturedLogs, isNotEmpty);
+      },
+    );
+
+    test(
+      'sharePersonalPlanFile returns null when logger throws',
+      () async {
+        memoryService.throwOnWrite = true;
+        loggerService.throwOnCapture = true;
+        userInformation.updateDreamsAndGoals(
+          ['Goal 1', 'Goal 2'],
+          selectionSources: ['custom', 'custom'],
+        );
+        userInformation.queueDreamsAndGoalsSave();
+
+        final localizations = await AppLocalizations.delegate.load(
+          const Locale('en'),
+        );
+
+        final result = await sharePersonalPlanFile(
+          message: 'emergency msg',
+          appLocale: localizations,
+          gender: userInformation.gender,
+          username: userInformation.name,
+          appInformation: appInformation,
+          userInformation: userInformation,
+          fileService: fileService,
+        );
+
+        expect(result, isNull);
+        expect(fileService.callLog, isNot(contains('share')));
       },
     );
 

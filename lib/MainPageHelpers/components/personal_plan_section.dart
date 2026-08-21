@@ -112,7 +112,6 @@ class PersonalPlanSectionWidget extends StatelessWidget {
         gender: userInfo.gender,
         username: userInfo.name,
         appInformation: appInfoProvider,
-        textDirection: appLocale.textDirection,
         userInformation: userInfo,
       );
     }

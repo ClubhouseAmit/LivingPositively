@@ -60,12 +60,14 @@ Future<ShareResult?> sharePersonalPlanFile({
       textDirection: appLocale.textDirection,
     );
   } catch (error, stackTrace) {
-    if (GetIt.instance.isRegistered<IncidentLoggerService>()) {
-      await GetIt.instance<IncidentLoggerService>().captureLog(
-        error,
-        stackTrace: stackTrace,
-      );
-    }
+    try {
+      if (GetIt.instance.isRegistered<IncidentLoggerService>()) {
+        await GetIt.instance<IncidentLoggerService>().captureLog(
+          error,
+          stackTrace: stackTrace,
+        );
+      }
+    } catch (_) {}
     return null;
   }
 }

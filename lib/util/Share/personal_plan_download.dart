@@ -19,7 +19,6 @@ Future<String?> downloadPersonalPlanFile({
   required String gender,
   required String username,
   required AppInformation appInformation,
-  required String textDirection,
   UserInformation? userInformation,
   FileService? fileService,
 }) async {
@@ -37,19 +36,21 @@ Future<String?> downloadPersonalPlanFile({
       appInformation.sharePDFtexts,
       ShareFileType.PDF,
       mainTitle: exportMetadata.mainTitle,
-      textDirection: textDirection,
+      textDirection: appLocale.textDirection,
     );
     if (result != null) {
       showToast(message: appLocale.finishedDownloading(gender));
     }
     return result;
   } catch (error, stackTrace) {
-    if (GetIt.instance.isRegistered<IncidentLoggerService>()) {
-      await GetIt.instance<IncidentLoggerService>().captureLog(
-        error,
-        stackTrace: stackTrace,
-      );
-    }
+    try {
+      if (GetIt.instance.isRegistered<IncidentLoggerService>()) {
+        await GetIt.instance<IncidentLoggerService>().captureLog(
+          error,
+          stackTrace: stackTrace,
+        );
+      }
+    } catch (_) {}
     showToast(message: appLocale.downloadFailed(gender));
     return null;
   }
