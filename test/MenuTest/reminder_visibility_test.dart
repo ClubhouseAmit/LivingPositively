@@ -51,6 +51,7 @@ class _FakeFileService implements FileService {
     ShareFileType saveFormat,
     {required String mainTitle,
     required String textDirection,
+    PersistentMemoryService? memoryService,
   }) async => const ShareResult('fake', ShareResultStatus.success);
 
   @override
@@ -61,6 +62,7 @@ class _FakeFileService implements FileService {
     ShareFileType saveFormat,
     {required String mainTitle,
     required String textDirection,
+    PersistentMemoryService? memoryService,
   }) async {
     return null;
   }

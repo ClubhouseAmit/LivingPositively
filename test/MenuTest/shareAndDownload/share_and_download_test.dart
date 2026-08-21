@@ -78,14 +78,18 @@ void main() {
       ).thenAnswer((_) async => true);
       getIt.registerLazySingleton<ImagePickerService>(() => imageFactory);
       when(mockFileServiceImpl.share(any, any, any, any, any,
-              mainTitle: anyNamed('mainTitle'), textDirection: anyNamed('textDirection'))).thenAnswer(
+              mainTitle: anyNamed('mainTitle'),
+              textDirection: anyNamed('textDirection'),
+              memoryService: anyNamed('memoryService'))).thenAnswer(
         ((Invocation invocation) async {
           counterShare = counterShare + 1;
           return const ShareResult('test-success', ShareResultStatus.success);
         }),
       );
       when(mockFileServiceImpl.download(any, any, any, any,
-              mainTitle: anyNamed('mainTitle'), textDirection: anyNamed('textDirection'))).thenAnswer(((
+              mainTitle: anyNamed('mainTitle'),
+              textDirection: anyNamed('textDirection'),
+              memoryService: anyNamed('memoryService'))).thenAnswer(((
         Invocation invocation,
       ) async {
         counterDownload = counterDownload + 1;
@@ -178,7 +182,9 @@ void main() {
     testWidgets('shows Personal Plan feedback when file sharing is unavailable',
         (WidgetTester tester) async {
       when(mockFileServiceImpl.share(any, any, any, any, any,
-              mainTitle: anyNamed('mainTitle'), textDirection: anyNamed('textDirection')))
+              mainTitle: anyNamed('mainTitle'),
+              textDirection: anyNamed('textDirection'),
+              memoryService: anyNamed('memoryService')))
           .thenAnswer((_) async => ShareResult.unavailable);
       await tester.pumpWidget(getPersonalPlanWidgetForTests());
 
@@ -213,7 +219,9 @@ void main() {
       )!;
       final captured = verify(
         mockFileServiceImpl.download(captureAny, captureAny, any, any,
-            mainTitle: anyNamed('mainTitle'), textDirection: anyNamed('textDirection')),
+            mainTitle: anyNamed('mainTitle'),
+            textDirection: anyNamed('textDirection'),
+            memoryService: anyNamed('memoryService')),
       ).captured;
 
       expect(captured, hasLength(2));

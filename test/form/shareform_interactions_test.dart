@@ -170,6 +170,7 @@ class _ExportReadingFileService extends NoopFileService {
     ShareFileType saveFormat, {
     required String mainTitle,
     required String textDirection,
+    PersistentMemoryService? memoryService,
   }) async {
     downloadCalls++;
     final storedDreams = await memory.getItem(

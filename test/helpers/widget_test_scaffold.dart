@@ -130,6 +130,7 @@ class NoopFileService implements FileService {
     ShareFileType saveFormat, {
     required String mainTitle,
     required String textDirection,
+    PersistentMemoryService? memoryService,
   }) async {
     downloadCalls++;
     return null;
@@ -144,6 +145,7 @@ class NoopFileService implements FileService {
     ShareFileType saveFormat, {
     required String mainTitle,
     required String textDirection,
+    PersistentMemoryService? memoryService,
   }) async {
     shareCalls++;
     return const ShareResult('noop', ShareResultStatus.success);

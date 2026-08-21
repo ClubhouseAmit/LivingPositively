@@ -53,6 +53,7 @@ class _TestFileService implements FileService {
   String? downloadResult = '/path/to/downloaded/file.pdf';
   bool throwOnAction = false;
   Completer<void>? pendingDownloadCompleter;
+  PersistentMemoryService? lastMemoryService;
 
   @override
   Future<ShareResult?> share(
@@ -63,7 +64,9 @@ class _TestFileService implements FileService {
     ShareFileType shareFileType, {
     required String mainTitle,
     required String textDirection,
+    PersistentMemoryService? memoryService,
   }) async {
+    lastMemoryService = memoryService;
     if (throwOnAction) {
       throw StateError('Share failed');
     }
@@ -79,7 +82,9 @@ class _TestFileService implements FileService {
     ShareFileType shareFileType, {
     required String mainTitle,
     required String textDirection,
+    PersistentMemoryService? memoryService,
   }) async {
+    lastMemoryService = memoryService;
     if (throwOnAction) {
       throw StateError('Download failed');
     }
@@ -707,6 +712,74 @@ void main() {
     );
 
     test(
+      'should forward userInformation persistent memory service to FileService download',
+      () async {
+        final customMemory = _TestPersistentMemoryService();
+        final customUser = UserInformation(
+          service: customMemory,
+          name: 'Custom User',
+          gender: 'female',
+        );
+
+        final localizations = await AppLocalizations.delegate.load(
+          const Locale('en'),
+        );
+
+        final result = await downloadPersonalPlanFile(
+          appLocale: localizations,
+          gender: customUser.gender,
+          username: customUser.name,
+          appInformation: appInformation,
+          userInformation: customUser,
+          fileService: fileService,
+        );
+
+        expect(result, isNotNull);
+        expect(fileService.lastMemoryService, same(customMemory));
+      },
+    );
+
+    test(
+      'should coalesce downloads with equivalent sharePDFtexts map in different key order',
+      () async {
+        final completer = Completer<void>();
+        fileService.pendingDownloadCompleter = completer;
+
+        final localizations = await AppLocalizations.delegate.load(
+          const Locale('en'),
+        );
+
+        final appInfoOrderA = AppInformation()
+          ..sharePDFtexts = {'line1': 'text1', 'line2': 'text2'};
+        final appInfoOrderB = AppInformation()
+          ..sharePDFtexts = {'line2': 'text2', 'line1': 'text1'};
+
+        final futureA = downloadPersonalPlanFile(
+          appLocale: localizations,
+          gender: userInformation.gender,
+          username: userInformation.name,
+          appInformation: appInfoOrderA,
+          userInformation: userInformation,
+          fileService: fileService,
+        );
+
+        final futureB = downloadPersonalPlanFile(
+          appLocale: localizations,
+          gender: userInformation.gender,
+          username: userInformation.name,
+          appInformation: appInfoOrderB,
+          userInformation: userInformation,
+          fileService: fileService,
+        );
+
+        completer.complete();
+        final results = await Future.wait([futureA, futureB]);
+        expect(results[0], results[1]);
+        expect(fileService.callLog, ['download']);
+      },
+    );
+
+    test(
       'should catch FileService download failure, log telemetry, and show failure toast',
       () async {
         fileService.throwOnAction = true;
@@ -920,6 +993,34 @@ void main() {
         expect(result?.status, ShareResultStatus.success);
         expect(fileService.callLog, contains('share'));
         expect(userInformation.dreamsAndGoalsSelectionSources.length, 2);
+      },
+    );
+
+    test(
+      'should forward userInformation persistent memory service to FileService share',
+      () async {
+        final customMemory = _TestPersistentMemoryService();
+        final customUser = UserInformation(
+          service: customMemory,
+          name: 'Custom User',
+          gender: 'female',
+        );
+
+        final localizations = await AppLocalizations.delegate.load(
+          const Locale('en'),
+        );
+
+        final result = await shareFile(
+          localizations,
+          customUser.gender,
+          customUser.name,
+          appInformation,
+          userInformation: customUser,
+          fileService: fileService,
+        );
+
+        expect(result?.status, ShareResultStatus.success);
+        expect(fileService.lastMemoryService, same(customMemory));
       },
     );
   });

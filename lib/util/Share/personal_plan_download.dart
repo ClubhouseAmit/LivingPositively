@@ -1,3 +1,4 @@
+import 'package:flutter/foundation.dart';
 import 'package:get_it/get_it.dart';
 import 'package:mazilon/file_service.dart';
 import 'package:mazilon/global_enums.dart';
@@ -6,8 +7,8 @@ import 'package:mazilon/util/Share/personal_plan_share.dart';
 import 'package:mazilon/util/SignIn/popup_toast.dart';
 import 'package:mazilon/util/appInformation.dart';
 import 'package:mazilon/util/logger_service.dart';
+import 'package:mazilon/util/persistent_memory_service.dart';
 import 'package:mazilon/util/userInformation.dart';
-import 'package:meta/meta.dart';
 
 @immutable
 class _PersonalPlanDownloadContext {
@@ -15,8 +16,9 @@ class _PersonalPlanDownloadContext {
   final String textDirection;
   final String gender;
   final String username;
-  final int sharePdfTextsHashCode;
+  final Map<String, String> sharePdfTexts;
   final int? userInformationRevision;
+  final PersistentMemoryService? memoryService;
   final FileService fileService;
 
   _PersonalPlanDownloadContext({
@@ -28,12 +30,19 @@ class _PersonalPlanDownloadContext {
     UserInformation? userInformation,
   })  : localeName = appLocale.localeName,
         textDirection = appLocale.textDirection,
-        sharePdfTextsHashCode = Object.hashAll(
-          appInformation.sharePDFtexts.entries.map(
-            (entry) => Object.hash(entry.key, entry.value),
-          ),
+        sharePdfTexts = Map<String, String>.unmodifiable(
+          appInformation.sharePDFtexts,
         ),
-        userInformationRevision = userInformation?.dreamsAndGoalsSaveRevision;
+        userInformationRevision = userInformation?.dreamsAndGoalsSaveRevision,
+        memoryService = userInformation?.service;
+
+  static int _computeMapHashCode(Map<String, String> map) {
+    var hash = 0;
+    for (final entry in map.entries) {
+      hash ^= Object.hash(entry.key, entry.value);
+    }
+    return hash;
+  }
 
   @override
   bool operator ==(Object other) {
@@ -43,8 +52,9 @@ class _PersonalPlanDownloadContext {
         other.textDirection == textDirection &&
         other.gender == gender &&
         other.username == username &&
-        other.sharePdfTextsHashCode == sharePdfTextsHashCode &&
+        mapEquals(other.sharePdfTexts, sharePdfTexts) &&
         other.userInformationRevision == userInformationRevision &&
+        identical(other.memoryService, memoryService) &&
         identical(other.fileService, fileService);
   }
 
@@ -54,8 +64,9 @@ class _PersonalPlanDownloadContext {
         textDirection,
         gender,
         username,
-        sharePdfTextsHashCode,
+        _computeMapHashCode(sharePdfTexts),
         userInformationRevision,
+        identityHashCode(memoryService),
         identityHashCode(fileService),
       );
 }
@@ -137,6 +148,7 @@ Future<String?> _executeDownloadPersonalPlanFile({
       ShareFileType.PDF,
       mainTitle: exportMetadata.mainTitle,
       textDirection: appLocale.textDirection,
+      memoryService: userInformation?.service,
     );
     if (result != null) {
       await showToast(message: appLocale.finishedDownloading(gender));

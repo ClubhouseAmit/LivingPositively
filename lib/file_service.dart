@@ -22,6 +22,8 @@ abstract class FileService {
   ///
   /// The title is rendered before the sections, including when no sections are
   /// populated. Callers provide a non-empty localized title and [textDirection].
+  /// Optional [memoryService] overrides the persistent memory source used to read
+  /// user plan selections.
   Future<ShareResult?> share(
       String message,
       List<dynamic> titles,
@@ -29,24 +31,30 @@ abstract class FileService {
       Map<String, String> texts,
       ShareFileType saveFormat,
       {required String mainTitle,
-      required String textDirection});
+      required String textDirection,
+      PersistentMemoryService? memoryService});
   /// Downloads a Personal Plan export with its caller-localized [mainTitle].
   ///
   /// The title is rendered before the sections, including when no sections are
   /// populated. Callers provide a non-empty localized title and [textDirection].
+  /// Optional [memoryService] overrides the persistent memory source used to read
+  /// user plan selections.
   Future<String?> download(
       List<dynamic> titles,
       List<dynamic> subTitles,
       Map<String, String> texts,
       ShareFileType saveFormat,
       {required String mainTitle,
-      required String textDirection});
+      required String textDirection,
+      PersistentMemoryService? memoryService});
   Future<bool> shareTextOnly(String message);
 }
 
 class FileServiceImpl implements FileService {
-  static Future<Map<String, dynamic>> getPrefsData() async {
-    PersistentMemoryService service =
+  static Future<Map<String, dynamic>> getPrefsData({
+    PersistentMemoryService? memoryService,
+  }) async {
+    PersistentMemoryService service = memoryService ??
         GetIt.instance<
           PersistentMemoryService
         >(); // Get the persistent memory service instance
@@ -135,12 +143,13 @@ class FileServiceImpl implements FileService {
 
   Future<Map<String, dynamic>> organizeDataForFile(List<dynamic> titles,
       List<dynamic> subTitles, Map<String, String> texts,
-      {required String mainTitle}) async {
+      {required String mainTitle,
+      PersistentMemoryService? memoryService}) async {
     // Set the page format to A4
 
     // Load the font for the PDF
     // Create a new PDF document
-    final dataForPDF = await getPrefsData();
+    final dataForPDF = await getPrefsData(memoryService: memoryService);
     // Retrieve user data from SharedPreferences
     List<String> difficultEvents = dataForPDF['DifficultEvents'];
     List<String> makeSafer = dataForPDF['MakeSafer'];
@@ -253,11 +262,12 @@ class FileServiceImpl implements FileService {
       Map<String, String> texts,
       ShareFileType saveFormat,
       {required String mainTitle,
-      required String textDirection}) async {
+      required String textDirection,
+      PersistentMemoryService? memoryService}) async {
     try {
       // Add the generated widgets to the PDF
       final dataForFile = await organizeDataForFile(titles, subTitles, texts,
-          mainTitle: mainTitle);
+          mainTitle: mainTitle, memoryService: memoryService);
       Map<String, dynamic> file;
       switch (saveFormat) {
         case ShareFileType.PDF:
@@ -379,9 +389,10 @@ class FileServiceImpl implements FileService {
       Map<String, String> texts,
       ShareFileType saveFormat,
       {required String mainTitle,
-      required String textDirection}) async {
+      required String textDirection,
+      PersistentMemoryService? memoryService}) async {
     final dataForFile = await organizeDataForFile(titles, subTitles, texts,
-        mainTitle: mainTitle);
+        mainTitle: mainTitle, memoryService: memoryService);
     Map<String, dynamic> file;
     Uint8List data = Uint8List(0);
     switch (saveFormat) {

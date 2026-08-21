@@ -72,12 +72,17 @@ class MockFileService extends _i1.Mock implements _i6.FileService {
     _i9.ShareFileType? saveFormat, {
     required String? mainTitle,
     required String? textDirection,
+    _i2.PersistentMemoryService? memoryService,
   }) =>
       (super.noSuchMethod(
             Invocation.method(
               #share,
               [message, titles, subTitles, texts, saveFormat],
-              {#mainTitle: mainTitle, #textDirection: textDirection},
+              {
+                #mainTitle: mainTitle,
+                #textDirection: textDirection,
+                #memoryService: memoryService,
+              },
             ),
             returnValue: _i7.Future<_i8.ShareResult?>.value(),
             returnValueForMissingStub: _i7.Future<_i8.ShareResult?>.value(),
@@ -92,12 +97,17 @@ class MockFileService extends _i1.Mock implements _i6.FileService {
     _i9.ShareFileType? saveFormat, {
     required String? mainTitle,
     required String? textDirection,
+    _i2.PersistentMemoryService? memoryService,
   }) =>
       (super.noSuchMethod(
             Invocation.method(
               #download,
               [titles, subTitles, texts, saveFormat],
-              {#mainTitle: mainTitle, #textDirection: textDirection},
+              {
+                #mainTitle: mainTitle,
+                #textDirection: textDirection,
+                #memoryService: memoryService,
+              },
             ),
             returnValue: _i7.Future<String?>.value(),
             returnValueForMissingStub: _i7.Future<String?>.value(),

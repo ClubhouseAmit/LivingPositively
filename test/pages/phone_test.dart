@@ -75,6 +75,7 @@ class RecordingFileService implements FileService {
     ShareFileType saveFormat, {
     required String mainTitle,
     required String textDirection,
+    PersistentMemoryService? memoryService,
   }) async => null;
 
   @override
@@ -86,6 +87,7 @@ class RecordingFileService implements FileService {
     ShareFileType saveFormat, {
     required String mainTitle,
     required String textDirection,
+    PersistentMemoryService? memoryService,
   }) async {
     shareCalls.add(
       RecordedShareCall(

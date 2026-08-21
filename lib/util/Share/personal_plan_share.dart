@@ -58,6 +58,7 @@ Future<ShareResult?> sharePersonalPlanFile({
       ShareFileType.PDF,
       mainTitle: exportMetadata.mainTitle,
       textDirection: appLocale.textDirection,
+      memoryService: userInformation?.service,
     );
   } catch (error, stackTrace) {
     try {

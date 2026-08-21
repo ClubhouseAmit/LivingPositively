@@ -116,6 +116,15 @@ void main() {
         expect(data['DreamsAndGoals'], isEmpty);
       },
     );
+
+    test('reads from supplied memoryService override instead of GetIt', () async {
+      final customMemory = _FakeMemory({
+        'userSelectionPersonalPlan-DreamsAndGoals': ['customDream'],
+      });
+      final data =
+          await FileServiceImpl.getPrefsData(memoryService: customMemory);
+      expect(data['DreamsAndGoals'], ['customDream']);
+    });
   });
 
   group('FileServiceImpl.filterEmptyData', () {
@@ -239,6 +248,28 @@ void main() {
         ['safer1'],
         ['Mom:111', 'Dad:222'],
         ['safe1'],
+      ]);
+    });
+
+    test('uses supplied memoryService override when provided', () async {
+      final customMemory = _FakeMemory({
+        'userSelectionPersonalPlan-DifficultEvents': ['customEv'],
+        'userSelectionPersonalPlan-SafeEnvironment': ['customSafe'],
+        'userSelectionPersonalPlan-DreamsAndGoals': ['customGoal'],
+      });
+      final svc = FileServiceImpl();
+      final result = await svc.organizeDataForFile(
+        ['T1', 'T2', 'T3', 'T4', 'T5', 'T6', 'T7'],
+        ['S1', 'S2', 'S3', 'S4', 'S5', 'S6', 'S7'],
+        {},
+        mainTitle: 'Custom Plan',
+        memoryService: customMemory,
+      );
+      expect(result['titles'], ['T2', 'T6', 'T7']);
+      expect(result['realData'], [
+        ['customEv'],
+        ['customSafe'],
+        ['customGoal'],
       ]);
     });
   });
