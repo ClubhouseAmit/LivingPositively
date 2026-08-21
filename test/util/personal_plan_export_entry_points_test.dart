@@ -139,8 +139,11 @@ void main() {
       if (call.method == 'showToast') {
         loggerService.eventOrder.add('showToast');
         toastCalls.add(call.arguments['msg']?.toString() ?? '');
+        return true;
       }
-      return true;
+      throw UnsupportedError(
+        'Unexpected method on toastChannel: ${call.method}',
+      );
     });
 
     locator.registerSingleton<FileService>(fileService);
@@ -352,11 +355,8 @@ void main() {
       'downloadPersonalPlanFile catches preparation persistence failure, logs telemetry, and shows failure toast',
       () async {
         memoryService.throwOnWrite = true;
-        userInformation.updateDreamsAndGoals(
-          ['Goal 1', 'Goal 2'],
-          selectionSources: ['custom', 'custom'],
-        );
-        userInformation.queueDreamsAndGoalsSave();
+        userInformation.dreamsAndGoals = ['Goal 1', 'Goal 2'];
+        userInformation.dreamsAndGoalsSelectionSources = ['custom'];
 
         final localizations = await AppLocalizations.delegate.load(
           const Locale('en'),
@@ -388,11 +388,8 @@ void main() {
       () async {
         memoryService.throwOnWrite = true;
         loggerService.throwOnCapture = true;
-        userInformation.updateDreamsAndGoals(
-          ['Goal 1', 'Goal 2'],
-          selectionSources: ['custom', 'custom'],
-        );
-        userInformation.queueDreamsAndGoalsSave();
+        userInformation.dreamsAndGoals = ['Goal 1', 'Goal 2'];
+        userInformation.dreamsAndGoalsSelectionSources = ['custom'];
 
         final localizations = await AppLocalizations.delegate.load(
           const Locale('en'),
@@ -481,11 +478,8 @@ void main() {
       'sharePersonalPlanFile catches preparation persistence failure, logs telemetry, and returns null',
       () async {
         memoryService.throwOnWrite = true;
-        userInformation.updateDreamsAndGoals(
-          ['Goal 1', 'Goal 2'],
-          selectionSources: ['custom', 'custom'],
-        );
-        userInformation.queueDreamsAndGoalsSave();
+        userInformation.dreamsAndGoals = ['Goal 1', 'Goal 2'];
+        userInformation.dreamsAndGoalsSelectionSources = ['custom'];
 
         final localizations = await AppLocalizations.delegate.load(
           const Locale('en'),
@@ -517,11 +511,8 @@ void main() {
       () async {
         memoryService.throwOnWrite = true;
         loggerService.throwOnCapture = true;
-        userInformation.updateDreamsAndGoals(
-          ['Goal 1', 'Goal 2'],
-          selectionSources: ['custom', 'custom'],
-        );
-        userInformation.queueDreamsAndGoalsSave();
+        userInformation.dreamsAndGoals = ['Goal 1', 'Goal 2'];
+        userInformation.dreamsAndGoalsSelectionSources = ['custom'];
 
         final localizations = await AppLocalizations.delegate.load(
           const Locale('en'),
