@@ -12,6 +12,7 @@ import '../../test_support/contract_persistent_memory_service.dart';
 
 class _FakeAnalytics implements AnalyticsService {
   final List<String> events = [];
+  final List<String> sequence = [];
   @override
   Future<void> init() async {}
   @override
@@ -20,6 +21,7 @@ class _FakeAnalytics implements AnalyticsService {
     Map<String, dynamic>? properties,
   ]) async {
     events.add(eventName);
+    sequence.add('analytics:$eventName');
   }
 }
 
@@ -379,8 +381,15 @@ void main() {
   });
 
   group('FileServiceImpl.saveAndroid', () {
-    test('successful save returning String path returns path and tracks event', () async {
+    test('successful save returning String path captures full payload and verifies saving precedes analytics', () async {
       final data = Uint8List.fromList([1, 2, 3]);
+      String? capturedDialogTitle;
+      String? capturedFileName;
+      FileType? capturedType;
+      String? capturedInitialDirectory;
+      Uint8List? capturedBytes;
+      List<String>? capturedAllowedExtensions;
+
       final result = await FileServiceImpl.saveAndroid(
         data,
         'pdf',
@@ -391,12 +400,60 @@ void main() {
           String? initialDirectory,
           Uint8List? bytes,
           List<String>? allowedExtensions,
-        }) async => '/storage/emulated/0/Download/plan.pdf',
+        }) async {
+          capturedDialogTitle = dialogTitle;
+          capturedFileName = fileName;
+          capturedType = type;
+          capturedInitialDirectory = initialDirectory;
+          capturedBytes = bytes;
+          capturedAllowedExtensions = allowedExtensions;
+          analytics.sequence.add('saver:saveFile');
+          return '/storage/emulated/0/Download/plan.pdf';
+        },
       );
 
+      expect(capturedDialogTitle, 'Please select an output file:');
+      expect(capturedFileName, 'התוכנית שלי.pdf');
+      expect(capturedBytes, data);
+      expect(capturedType, FileType.any);
+      expect(capturedInitialDirectory, isNull);
+      expect(capturedAllowedExtensions, isNull);
+      expect(
+        analytics.sequence,
+        ['saver:saveFile', 'analytics:Plan downloaded Android'],
+      );
       expect(result, '/storage/emulated/0/Download/plan.pdf');
       expect(analytics.events, ['Plan downloaded Android']);
       expect(logger.logs, isEmpty);
+    });
+
+    test('successful save with custom dialogTitle and fileName passes them to saver', () async {
+      final data = Uint8List.fromList([1, 2, 3]);
+      String? capturedDialogTitle;
+      String? capturedFileName;
+
+      final result = await FileServiceImpl.saveAndroid(
+        data,
+        'docx',
+        dialogTitle: 'Custom Dialog Title',
+        fileName: 'custom_plan.docx',
+        fileSaver: ({
+          String? dialogTitle,
+          String? fileName,
+          FileType type = FileType.any,
+          String? initialDirectory,
+          Uint8List? bytes,
+          List<String>? allowedExtensions,
+        }) async {
+          capturedDialogTitle = dialogTitle;
+          capturedFileName = fileName;
+          return '/storage/emulated/0/Download/custom_plan.docx';
+        },
+      );
+
+      expect(capturedDialogTitle, 'Custom Dialog Title');
+      expect(capturedFileName, 'custom_plan.docx');
+      expect(result, '/storage/emulated/0/Download/custom_plan.docx');
     });
 
     test('successful save returning Uri path returns normalized string path and tracks event', () async {
@@ -419,8 +476,15 @@ void main() {
       expect(logger.logs, isEmpty);
     });
 
-    test('cancellation returning null returns null and tracks event', () async {
+    test('cancellation returning null captures full payload, verifies saving precedes analytics, and returns null', () async {
       final data = Uint8List.fromList([1, 2, 3]);
+      String? capturedDialogTitle;
+      String? capturedFileName;
+      FileType? capturedType;
+      String? capturedInitialDirectory;
+      Uint8List? capturedBytes;
+      List<String>? capturedAllowedExtensions;
+
       final result = await FileServiceImpl.saveAndroid(
         data,
         'pdf',
@@ -431,9 +495,28 @@ void main() {
           String? initialDirectory,
           Uint8List? bytes,
           List<String>? allowedExtensions,
-        }) async => null,
+        }) async {
+          capturedDialogTitle = dialogTitle;
+          capturedFileName = fileName;
+          capturedType = type;
+          capturedInitialDirectory = initialDirectory;
+          capturedBytes = bytes;
+          capturedAllowedExtensions = allowedExtensions;
+          analytics.sequence.add('saver:saveFile');
+          return null;
+        },
       );
 
+      expect(capturedDialogTitle, 'Please select an output file:');
+      expect(capturedFileName, 'התוכנית שלי.pdf');
+      expect(capturedBytes, data);
+      expect(capturedType, FileType.any);
+      expect(capturedInitialDirectory, isNull);
+      expect(capturedAllowedExtensions, isNull);
+      expect(
+        analytics.sequence,
+        ['saver:saveFile', 'analytics:Plan downloaded Android'],
+      );
       expect(result, isNull);
       expect(analytics.events, ['Plan downloaded Android']);
       expect(logger.logs, isEmpty);

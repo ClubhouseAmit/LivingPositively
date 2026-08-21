@@ -7,6 +7,7 @@ import 'package:flutter/foundation.dart';
 import 'package:get_it/get_it.dart';
 import 'package:mazilon/global_enums.dart';
 import 'package:mazilon/util/PDF/create_pdf.dart';
+import 'package:mazilon/util/file_save_utils.dart';
 import 'package:mazilon/util/logger_service.dart';
 import 'package:mazilon/util/persistent_memory_service.dart';
 import 'package:mazilon/util/type_utils.dart';
@@ -297,6 +298,8 @@ class FileServiceImpl implements FileService {
   static Future<String?> saveAndroid(
     Uint8List data,
     String format, {
+    String? dialogTitle,
+    String? fileName,
     Future<dynamic> Function({
       String? dialogTitle,
       String? fileName,
@@ -307,34 +310,28 @@ class FileServiceImpl implements FileService {
     })? fileSaver,
   }) async {
     try {
+      final effectiveDialogTitle =
+          dialogTitle ?? 'Please select an output file:';
+      final effectiveFileName = fileName ?? 'התוכנית שלי.$format';
       final customSaver = fileSaver;
       final dynamic outputFile;
       if (customSaver != null) {
         outputFile = await customSaver(
-          dialogTitle: 'Please select an output file:',
-          fileName: 'התוכנית שלי.$format',
+          dialogTitle: effectiveDialogTitle,
+          fileName: effectiveFileName,
           bytes: data,
         );
       } else {
         outputFile = await FilePicker.saveFile(
-          dialogTitle: 'Please select an output file:', // Dialog title
-          fileName: 'התוכנית שלי.$format', // Default file name
-          bytes: data, // PDF data to be saved
+          dialogTitle: effectiveDialogTitle,
+          fileName: effectiveFileName,
+          bytes: data,
         );
       }
       //If the user cancels the download
       AnalyticsService mixPanelService = GetIt.instance<AnalyticsService>();
       mixPanelService.trackEvent("Plan downloaded Android");
-      if (outputFile == null) {
-        return null;
-      }
-      if (outputFile is String) {
-        return outputFile;
-      }
-      if (outputFile is Uri) {
-        return outputFile.path;
-      }
-      return outputFile.toString();
+      return FileSaveUtils.normalizeSavedFilePath(outputFile);
     } catch (error, stackTrace) {
       IncidentLoggerService loggerService =
           GetIt.instance<IncidentLoggerService>();

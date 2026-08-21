@@ -6,6 +6,7 @@ import 'package:get_it/get_it.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:mazilon/AnalyticsService.dart';
 import 'package:mazilon/global_enums.dart';
+import 'package:mazilon/util/file_save_utils.dart';
 import 'package:mazilon/util/logger_service.dart';
 import 'package:mazilon/util/persistent_memory_service.dart';
 import 'package:path_provider/path_provider.dart';
@@ -249,18 +250,8 @@ class ImagePickerServiceImpl implements ImagePickerService {
   }
 
   /// Normalizes platform-specific save results ([String], [Uri], or custom object) to a file path string.
-  static String? normalizeSavedFilePath(dynamic result) {
-    if (result == null) {
-      return null;
-    }
-    if (result is String) {
-      return result;
-    }
-    if (result is Uri) {
-      return result.path;
-    }
-    return result.toString();
-  }
+  static String? normalizeSavedFilePath(dynamic result) =>
+      FileSaveUtils.normalizeSavedFilePath(result);
 
   @override
   Future<String?> downloadImage(
