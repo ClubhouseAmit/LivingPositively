@@ -342,8 +342,9 @@ void main() {
     expect(result, endsWith('.png'));
   });
 
-  test('normalizeSavedFilePath normalizes null, String, Uri, and custom Object types correctly', () {
+  test('normalizeSavedFilePath normalizes null, String, and Uri, rejecting unsupported types', () {
     expect(ImagePickerServiceImpl.normalizeSavedFilePath(null), isNull);
+    expect(ImagePickerServiceImpl.normalizeSavedFilePath(''), isNull);
     expect(
       ImagePickerServiceImpl.normalizeSavedFilePath('/path/to/image.png'),
       '/path/to/image.png',
@@ -353,8 +354,12 @@ void main() {
       '/storage/emulated/0/Download/image.png',
     );
     expect(
+      ImagePickerServiceImpl.normalizeSavedFilePath(Uri.parse('content://media/external/images/123')),
+      'content://media/external/images/123',
+    );
+    expect(
       ImagePickerServiceImpl.normalizeSavedFilePath(42),
-      '42',
+      isNull,
     );
   });
 

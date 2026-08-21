@@ -295,6 +295,19 @@ class FileServiceImpl implements FileService {
     }
   }
 
+  /// Saves Personal Plan [data] to user-selected device storage on Android.
+  ///
+  /// [data] is the binary content to save, and [format] is the target file extension (e.g. `'pdf'`).
+  ///
+  /// [dialogTitle] is the title displayed on the native save file dialog; defaults to
+  /// `'Please select an output file:'` if omitted or null.
+  /// [fileName] is the suggested default filename; defaults to `'התוכנית שלי.$format'` if omitted or null.
+  ///
+  /// [fileSaver] is an optional injected file saver callback used for testing or custom saver delegation.
+  /// Accepts [String] file paths or [Uri] results (including `file:` and `content:` URIs).
+  ///
+  /// Returns the normalized saved file path or URI string upon success, or `null` if the user
+  /// cancels the save operation or if saving fails.
   static Future<String?> saveAndroid(
     Uint8List data,
     String format, {
