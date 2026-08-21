@@ -214,8 +214,7 @@ final class DreamsAndGoalsPersistenceSnapshot {
   /// Creates a validated snapshot from positional selected rows and sources.
   ///
   /// This preserves every selected row, including multiple explicit `custom`
-  /// rows. Resolving a conflicting custom-goal selection is a deliberate
-  /// model operation, not an implicit persistence-side data loss.
+  /// rows. Source normalization never drops valid custom goals.
   factory DreamsAndGoalsPersistenceSnapshot.fromSelections(
     List<String> selections,
     List<String> selectionSources,

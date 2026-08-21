@@ -956,39 +956,6 @@ class AppLocalizationsEn extends AppLocalizations {
   }
 
   @override
-  String dreamsAndGoalsCustomConflictTitle(String gender) {
-    String _temp0 = intl.Intl.selectLogic(gender, {
-      'male': 'Choose one personal dream or goal',
-      'female': 'Choose one personal dream or goal',
-      'other': 'Choose one personal dream or goal',
-    });
-    return '$_temp0';
-  }
-
-  @override
-  String dreamsAndGoalsCustomConflictMessage(String gender) {
-    String _temp0 = intl.Intl.selectLogic(gender, {
-      'male':
-          'Your Personal Plan can save one personal dream or goal. Choose the one you want to keep.',
-      'female':
-          'Your Personal Plan can save one personal dream or goal. Choose the one you want to keep.',
-      'other':
-          'Your Personal Plan can save one personal dream or goal. Choose the one you want to keep.',
-    });
-    return '$_temp0';
-  }
-
-  @override
-  String dreamsAndGoalsCustomConflictSelect(String gender) {
-    String _temp0 = intl.Intl.selectLogic(gender, {
-      'male': 'Choose a goal',
-      'female': 'Choose a goal',
-      'other': 'Choose a goal',
-    });
-    return '$_temp0';
-  }
-
-  @override
   String dreamsAndGoalsListNo0(String gender) {
     String _temp0 = intl.Intl.selectLogic(gender, {
       'male': 'Write and publish a book',

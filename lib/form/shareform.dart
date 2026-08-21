@@ -8,7 +8,6 @@ import 'package:get_it/get_it.dart';
 import 'package:mazilon/global_enums.dart';
 import 'package:mazilon/file_service.dart';
 import 'package:mazilon/form/formpagetemplate.dart';
-import 'package:mazilon/form/dreams_and_goals_custom_conflict_dialog.dart';
 import 'package:mazilon/form/speech_dictation_suffix_action.dart';
 import 'package:mazilon/form/wizard_step.dart';
 import 'package:mazilon/l10n/app_localizations.dart';
@@ -41,11 +40,6 @@ sealed class _DreamsAndGoalsActionPreparation {
 final class _DreamsAndGoalsActionReady
     extends _DreamsAndGoalsActionPreparation {
   const _DreamsAndGoalsActionReady();
-}
-
-final class _DreamsAndGoalsActionBlocked
-    extends _DreamsAndGoalsActionPreparation {
-  const _DreamsAndGoalsActionBlocked();
 }
 
 /// A preparation failure with the revision safe to retry.
@@ -581,13 +575,7 @@ class _ShareFormState extends WizardStepState<ShareForm> {
   }) async {
     int retryRevision = initialRetryRevision;
     try {
-      final bool retriedPendingConflictResolution =
-          userInformation.hasPendingDreamsAndGoalsCustomConflictResolution;
-      if (retriedPendingConflictResolution) {
-        await userInformation.retryDreamsAndGoalsCustomConflictResolution();
-      } else {
         await _persistInlineDreamsAndGoals(userInformation, retry: retry);
-      }
 
       final int revisionBeforeRepair =
           userInformation.dreamsAndGoalsSaveRevision;
@@ -596,70 +584,15 @@ class _ShareFormState extends WizardStepState<ShareForm> {
           .repairDreamsAndGoalsSelectionSources();
       retryRevision = userInformation.dreamsAndGoalsSaveRevision;
       await repair;
-      if (userInformation.hasPendingDreamsAndGoalsCustomConflictResolution) {
-        return const _DreamsAndGoalsActionBlocked();
-      }
-
-      final _DreamsAndGoalsActionPreparation conflictResolution =
-          await _resolveDreamsAndGoalsCustomConflict(
-            userInformation,
-            retryRevision: retryRevision,
-          );
-      switch (conflictResolution) {
-        case _DreamsAndGoalsActionReady():
-          break;
-        case _DreamsAndGoalsActionBlocked():
-        case _DreamsAndGoalsActionFailed():
-          return conflictResolution;
-      }
 
       // A retry has already persisted the current snapshot through
       // _persistInlineDreamsAndGoals. Repeating it here would enqueue the
       // same three-key snapshot a second time before the deferred action runs.
       if (!retry &&
-          !retriedPendingConflictResolution &&
           userInformation.dreamsAndGoalsSaveRevision == revisionBeforeRepair) {
         retryRevision = userInformation.dreamsAndGoalsSaveRevision;
         await userInformation.queueDreamsAndGoalsSave();
       }
-      return const _DreamsAndGoalsActionReady();
-    } catch (error, stackTrace) {
-      return _DreamsAndGoalsActionFailed(retryRevision, error, stackTrace);
-    }
-  }
-
-  Future<_DreamsAndGoalsActionPreparation>
-  _resolveDreamsAndGoalsCustomConflict(
-    UserInformation userInformation, {
-    required int retryRevision,
-  }) async {
-    try {
-      if (!mounted ||
-          userInformation.hasPendingDreamsAndGoalsCustomConflictResolution) {
-        return const _DreamsAndGoalsActionBlocked();
-      }
-      final List<int> customSelectionIndexes =
-          userInformation.dreamsAndGoalsCustomSelectionIndexes;
-      if (customSelectionIndexes.length <= 1) {
-        return const _DreamsAndGoalsActionReady();
-      }
-
-      final int? retainedSelectionIndex =
-          await showDreamsAndGoalsCustomConflictDialog(
-            context,
-            selections: userInformation.dreamsAndGoals,
-            customSelectionIndexes: customSelectionIndexes,
-            gender: userInformation.gender,
-          );
-      if (retainedSelectionIndex == null) {
-        return const _DreamsAndGoalsActionBlocked();
-      }
-
-      retryRevision = userInformation.dreamsAndGoalsSaveRevision;
-      final Future<void> resolution = userInformation
-          .resolveDreamsAndGoalsCustomConflict(retainedSelectionIndex);
-      retryRevision = userInformation.dreamsAndGoalsSaveRevision;
-      await resolution;
       return const _DreamsAndGoalsActionReady();
     } catch (error, stackTrace) {
       return _DreamsAndGoalsActionFailed(retryRevision, error, stackTrace);
@@ -676,13 +609,8 @@ class _ShareFormState extends WizardStepState<ShareForm> {
         return;
       }
       _isOpeningDreamsAndGoals = true;
-      final bool retryingPendingResolution =
-          userInformation.hasPendingDreamsAndGoalsCustomConflictResolution;
       try {
-        if (retryingPendingResolution) {
-          await userInformation
-              .retryDreamsAndGoalsCustomConflictResolution();
-        } else if (retry) {
+        if (retry) {
           await userInformation.retryDreamsAndGoalsSave(
             userInformation.dreamsAndGoalsSaveRevision,
           );
@@ -692,31 +620,13 @@ class _ShareFormState extends WizardStepState<ShareForm> {
           // selections cannot reach its edit path with unaligned sources.
           await userInformation.repairDreamsAndGoalsSelectionSources();
         }
-        if (userInformation.hasPendingDreamsAndGoalsCustomConflictResolution) {
-          return;
-        }
-        final _DreamsAndGoalsActionPreparation conflictResolution =
-            await _resolveDreamsAndGoalsCustomConflict(
-              userInformation,
-              retryRevision: userInformation.dreamsAndGoalsSaveRevision,
-            );
-        switch (conflictResolution) {
-          case _DreamsAndGoalsActionReady():
             if (mounted) {
               setState(() {
                 _isEditingDreamsAndGoals = true;
               });
             }
-          case _DreamsAndGoalsActionBlocked():
-            return;
-          case _DreamsAndGoalsActionFailed(
-            :final Object error,
-            :final StackTrace stackTrace,
-          ):
-            Error.throwWithStackTrace(error, stackTrace);
-        }
       } catch (error, stackTrace) {
-        if (retry || retryingPendingResolution) {
+        if (retry) {
           await _captureDreamsAndGoalsFailure(error, stackTrace);
         }
         if (mounted) {
@@ -772,8 +682,8 @@ class _ShareFormState extends WizardStepState<ShareForm> {
 
   /// Runs one Dreams-dependent action at a time for this Share form.
   ///
-  /// The guard spans preparation, conflict recovery, persistence retry UI,
-  /// and the final action so rapid taps cannot duplicate an export or finish.
+  /// The guard spans preparation, persistence retry UI, and the final action
+  /// so rapid taps cannot duplicate an export or finish.
   Future<void> _runGuardedDreamsAndGoalsAction(
     UserInformation userInformation,
     FutureOr<void> Function() action, {
@@ -792,8 +702,6 @@ class _ShareFormState extends WizardStepState<ShareForm> {
             initialRetryRevision: retryRevision,
           );
       switch (preparation) {
-        case _DreamsAndGoalsActionBlocked():
-          return;
         case _DreamsAndGoalsActionFailed(
           :final int retryRevision,
           :final Object error,
@@ -914,10 +822,6 @@ class _ShareFormState extends WizardStepState<ShareForm> {
       context,
       listen: false,
     );
-    if (userInformation.hasPendingDreamsAndGoalsCustomConflictResolution) {
-      await userInformation.retryDreamsAndGoalsCustomConflictResolution();
-      return;
-    }
     await _persistInlineDreamsAndGoals(userInformation);
   }
 
@@ -927,10 +831,6 @@ class _ShareFormState extends WizardStepState<ShareForm> {
       context,
       listen: false,
     );
-    if (userInformation.hasPendingDreamsAndGoalsCustomConflictResolution) {
-      await userInformation.retryDreamsAndGoalsCustomConflictResolution();
-      return;
-    }
     await _persistInlineDreamsAndGoals(userInformation, retry: true);
   }
 

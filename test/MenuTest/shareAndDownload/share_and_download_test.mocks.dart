@@ -425,44 +425,6 @@ class MockUserInformation extends _i1.Mock implements _i10.UserInformation {
           as int);
 
   @override
-  List<int> get dreamsAndGoalsCustomSelectionIndexes =>
-      (super.noSuchMethod(
-            Invocation.getter(#dreamsAndGoalsCustomSelectionIndexes),
-            returnValue: <int>[],
-            returnValueForMissingStub: <int>[],
-          )
-          as List<int>);
-
-  @override
-  bool get hasDreamsAndGoalsCustomConflict =>
-      (super.noSuchMethod(
-            Invocation.getter(#hasDreamsAndGoalsCustomConflict),
-            returnValue: false,
-            returnValueForMissingStub: false,
-          )
-          as bool);
-
-  @override
-  bool get hasPendingDreamsAndGoalsCustomConflictResolution =>
-      (super.noSuchMethod(
-            Invocation.getter(
-              #hasPendingDreamsAndGoalsCustomConflictResolution,
-            ),
-            returnValue: false,
-            returnValueForMissingStub: false,
-          )
-          as bool);
-
-  @override
-  bool get requiresDreamsAndGoalsCustomConflictRecovery =>
-      (super.noSuchMethod(
-            Invocation.getter(#requiresDreamsAndGoalsCustomConflictRecovery),
-            returnValue: false,
-            returnValueForMissingStub: false,
-          )
-          as bool);
-
-  @override
   set localeName(String? value) => super.noSuchMethod(
     Invocation.setter(#localeName, value),
     returnValueForMissingStub: null,
@@ -725,19 +687,6 @@ class MockUserInformation extends _i1.Mock implements _i10.UserInformation {
   );
 
   @override
-  _i7.Future<void> resolveDreamsAndGoalsCustomConflict(
-    int? retainedSelectionIndex,
-  ) =>
-      (super.noSuchMethod(
-            Invocation.method(#resolveDreamsAndGoalsCustomConflict, [
-              retainedSelectionIndex,
-            ]),
-            returnValue: _i7.Future<void>.value(),
-            returnValueForMissingStub: _i7.Future<void>.value(),
-          )
-          as _i7.Future<void>);
-
-  @override
   _i7.Future<void> queueDreamsAndGoalsSave() =>
       (super.noSuchMethod(
             Invocation.method(#queueDreamsAndGoalsSave, []),
@@ -750,15 +699,6 @@ class MockUserInformation extends _i1.Mock implements _i10.UserInformation {
   _i7.Future<void> retryDreamsAndGoalsSave(int? revision) =>
       (super.noSuchMethod(
             Invocation.method(#retryDreamsAndGoalsSave, [revision]),
-            returnValue: _i7.Future<void>.value(),
-            returnValueForMissingStub: _i7.Future<void>.value(),
-          )
-          as _i7.Future<void>);
-
-  @override
-  _i7.Future<void> retryDreamsAndGoalsCustomConflictResolution() =>
-      (super.noSuchMethod(
-            Invocation.method(#retryDreamsAndGoalsCustomConflictResolution, []),
             returnValue: _i7.Future<void>.value(),
             returnValueForMissingStub: _i7.Future<void>.value(),
           )
