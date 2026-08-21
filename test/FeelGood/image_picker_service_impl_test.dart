@@ -342,23 +342,23 @@ void main() {
     expect(result, endsWith('.png'));
   });
 
-  test('normalizeSavedFilePath normalizes null, String, and Uri, rejecting unsupported types', () {
-    expect(ImagePickerServiceImpl.normalizeSavedFilePath(null), isNull);
-    expect(ImagePickerServiceImpl.normalizeSavedFilePath(''), isNull);
+  test('normalizeSavedFileDestination normalizes null, String, and Uri, rejecting unsupported types', () {
+    expect(ImagePickerServiceImpl.normalizeSavedFileDestination(null), isNull);
+    expect(ImagePickerServiceImpl.normalizeSavedFileDestination(''), isNull);
     expect(
-      ImagePickerServiceImpl.normalizeSavedFilePath('/path/to/image.png'),
+      ImagePickerServiceImpl.normalizeSavedFileDestination('/path/to/image.png'),
       '/path/to/image.png',
     );
     expect(
-      ImagePickerServiceImpl.normalizeSavedFilePath(Uri.parse('file:///storage/emulated/0/Download/image.png')),
+      ImagePickerServiceImpl.normalizeSavedFileDestination(Uri.parse('file:///storage/emulated/0/Download/image.png')),
       '/storage/emulated/0/Download/image.png',
     );
     expect(
-      ImagePickerServiceImpl.normalizeSavedFilePath(Uri.parse('content://media/external/images/123')),
+      ImagePickerServiceImpl.normalizeSavedFileDestination(Uri.parse('content://media/external/images/123')),
       'content://media/external/images/123',
     );
     expect(
-      ImagePickerServiceImpl.normalizeSavedFilePath(42),
+      ImagePickerServiceImpl.normalizeSavedFileDestination(42),
       isNull,
     );
   });

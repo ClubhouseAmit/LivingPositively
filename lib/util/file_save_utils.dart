@@ -11,7 +11,7 @@ final class FileSaveUtils {
   /// If [result] is a [Uri] with the `file` scheme or no scheme, returns [Uri.path].
   /// If [result] is a non-file [Uri] (such as Android `content://...` URIs),
   /// returns the full URI string via [Uri.toString] to preserve scheme and authority.
-  static String? normalizeSavedFilePath(dynamic result) {
+  static String? normalizeSavedFileDestination(dynamic result) {
     if (result == null) {
       return null;
     }

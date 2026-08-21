@@ -249,9 +249,13 @@ class ImagePickerServiceImpl implements ImagePickerService {
     return Image.network(url);
   }
 
-  /// Normalizes platform-specific save results ([String], [Uri], or custom object) to a file path string.
+  /// Normalizes platform-specific save results ([String] or [Uri]) to a destination string.
+  static String? normalizeSavedFileDestination(dynamic result) =>
+      FileSaveUtils.normalizeSavedFileDestination(result);
+
+  /// Backwards-compatible alias for [normalizeSavedFileDestination].
   static String? normalizeSavedFilePath(dynamic result) =>
-      FileSaveUtils.normalizeSavedFilePath(result);
+      normalizeSavedFileDestination(result);
 
   @override
   Future<String?> downloadImage(
@@ -276,14 +280,14 @@ class ImagePickerServiceImpl implements ImagePickerService {
           fileName: name,
           bytes: bytes,
         );
-        savedFilePath = normalizeSavedFilePath(rawResult);
+        savedFilePath = normalizeSavedFileDestination(rawResult);
       } else {
         final dynamic rawResult = await FilePicker.saveFile(
           dialogTitle: dialogTitle ?? 'Save image',
           fileName: name,
           bytes: bytes,
         );
-        savedFilePath = normalizeSavedFilePath(rawResult);
+        savedFilePath = normalizeSavedFileDestination(rawResult);
       }
       if (savedFilePath != null) {
         await _trackEventSafely("Photo downloaded");

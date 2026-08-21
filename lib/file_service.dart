@@ -344,7 +344,7 @@ class FileServiceImpl implements FileService {
       //If the user cancels the download
       AnalyticsService mixPanelService = GetIt.instance<AnalyticsService>();
       mixPanelService.trackEvent("Plan downloaded Android");
-      return FileSaveUtils.normalizeSavedFilePath(outputFile);
+      return FileSaveUtils.normalizeSavedFileDestination(outputFile);
     } catch (error, stackTrace) {
       IncidentLoggerService loggerService =
           GetIt.instance<IncidentLoggerService>();
