@@ -28,6 +28,7 @@ import '../helpers/widget_test_scaffold.dart';
 
 class _RecordingIncidentLogger implements IncidentLoggerService {
   final List<dynamic> capturedLogs = <dynamic>[];
+  final List<String> eventOrder = <String>[];
   bool throwOnCapture = false;
 
   @override
@@ -39,10 +40,11 @@ class _RecordingIncidentLogger implements IncidentLoggerService {
     StackTrace? stackTrace,
     dynamic exceptionData,
   }) async {
+    eventOrder.add('captureLog');
+    capturedLogs.add(exception);
     if (throwOnCapture) {
       throw StateError('Telemetry failure');
     }
-    capturedLogs.add(exception);
   }
 }
 
@@ -124,14 +126,6 @@ void main() {
 
   setUp(() async {
     toastCalls.clear();
-    TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger
-        .setMockMethodCallHandler(toastChannel, (call) async {
-      if (call.method == 'showToast') {
-        toastCalls.add(call.arguments['msg']?.toString() ?? '');
-      }
-      return true;
-    });
-
     locator = GetIt.instance;
     await locator.reset();
 
@@ -139,6 +133,15 @@ void main() {
     memoryService = _TestPersistentMemoryService();
     loggerService = _RecordingIncidentLogger();
     appInformation = AppInformation();
+
+    TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger
+        .setMockMethodCallHandler(toastChannel, (call) async {
+      if (call.method == 'showToast') {
+        loggerService.eventOrder.add('showToast');
+        toastCalls.add(call.arguments['msg']?.toString() ?? '');
+      }
+      return true;
+    });
 
     locator.registerSingleton<FileService>(fileService);
     locator.registerSingleton<PersistentMemoryService>(memoryService);
@@ -370,7 +373,12 @@ void main() {
 
         expect(result, isNull);
         expect(fileService.callLog, isNot(contains('download')));
-        expect(loggerService.capturedLogs, isNotEmpty);
+        expect(loggerService.capturedLogs, hasLength(1));
+        expect(
+          loggerService.capturedLogs.first,
+          isA<StateError>().having((e) => e.message, 'message', 'Write failed'),
+        );
+        expect(loggerService.eventOrder, equals(['captureLog', 'showToast']));
         expect(toastCalls, contains(localizations.downloadFailed('male')));
       },
     );
@@ -401,6 +409,12 @@ void main() {
 
         expect(result, isNull);
         expect(fileService.callLog, isNot(contains('download')));
+        expect(loggerService.capturedLogs, hasLength(1));
+        expect(
+          loggerService.capturedLogs.first,
+          isA<StateError>().having((e) => e.message, 'message', 'Write failed'),
+        );
+        expect(loggerService.eventOrder, equals(['captureLog', 'showToast']));
         expect(toastCalls, contains(localizations.downloadFailed('male')));
       },
     );
@@ -489,7 +503,12 @@ void main() {
 
         expect(result, isNull);
         expect(fileService.callLog, isNot(contains('share')));
-        expect(loggerService.capturedLogs, isNotEmpty);
+        expect(loggerService.capturedLogs, hasLength(1));
+        expect(
+          loggerService.capturedLogs.first,
+          isA<StateError>().having((e) => e.message, 'message', 'Write failed'),
+        );
+        expect(loggerService.eventOrder, equals(['captureLog']));
       },
     );
 
@@ -520,6 +539,12 @@ void main() {
 
         expect(result, isNull);
         expect(fileService.callLog, isNot(contains('share')));
+        expect(loggerService.capturedLogs, hasLength(1));
+        expect(
+          loggerService.capturedLogs.first,
+          isA<StateError>().having((e) => e.message, 'message', 'Write failed'),
+        );
+        expect(loggerService.eventOrder, equals(['captureLog']));
       },
     );
 
