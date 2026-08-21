@@ -1008,19 +1008,25 @@ class MockUserInformation extends _i1.Mock implements _i13.UserInformation {
           as _i15.NotificationPreference?);
 
   @override
-  void setNotificationPreference(
+  _i7.Future<void> setNotificationPreference(
     String? typeId,
     _i15.NotificationPreference? pref,
-  ) => super.noSuchMethod(
-    Invocation.method(#setNotificationPreference, [typeId, pref]),
-    returnValueForMissingStub: null,
-  );
+  ) =>
+      (super.noSuchMethod(
+            Invocation.method(#setNotificationPreference, [typeId, pref]),
+            returnValue: _i7.Future<void>.value(),
+            returnValueForMissingStub: _i7.Future<void>.value(),
+          )
+          as _i7.Future<void>);
 
   @override
-  void clearNotificationPreference(String? typeId) => super.noSuchMethod(
-    Invocation.method(#clearNotificationPreference, [typeId]),
-    returnValueForMissingStub: null,
-  );
+  _i7.Future<void> clearNotificationPreference(String? typeId) =>
+      (super.noSuchMethod(
+            Invocation.method(#clearNotificationPreference, [typeId]),
+            returnValue: _i7.Future<void>.value(),
+            returnValueForMissingStub: _i7.Future<void>.value(),
+          )
+          as _i7.Future<void>);
 
   @override
   bool usesDarkModeAt(DateTime? now) =>

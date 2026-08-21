@@ -35,6 +35,7 @@ void main() {
   tearDown(() async {
     AuthService.debugAppleSignInEnabledOverride = null;
     AuthService.debugGoogleSignInServerClientIdOverride = null;
+    AuthService.debugGoogleSignInIosClientIdOverride = null;
     debugDefaultTargetPlatformOverride = null;
     FcmService.resetForTesting();
     await GetIt.instance.reset();
@@ -441,6 +442,38 @@ void main() {
       expectAppleOnly();
     } finally {
       AuthService.debugAppleSignInEnabledOverride = null;
+      debugDefaultTargetPlatformOverride = null;
+    }
+  });
+
+  testWidgets('iOS shows configured Google in login and signup', (
+    tester,
+  ) async {
+    debugDefaultTargetPlatformOverride = TargetPlatform.iOS;
+    AuthService.debugGoogleSignInServerClientIdOverride =
+        'test-server-client-id.apps.googleusercontent.com';
+    AuthService.debugGoogleSignInIosClientIdOverride =
+        'test-ios-client-id.apps.googleusercontent.com';
+    try {
+      await pumpWithProviders(
+        tester,
+        const AuthPage(),
+        surfaceSize: const Size(1024, 1800),
+      );
+
+      void expectGoogleOnly() {
+        expect(find.text('or'), findsOneWidget);
+        expect(find.text('Continue with Google'), findsOneWidget);
+        expect(find.text('Continue with Apple'), findsNothing);
+      }
+
+      expectGoogleOnly();
+      await tester.tap(find.text('Sign Up'));
+      await tester.pumpAndSettle();
+      expectGoogleOnly();
+    } finally {
+      AuthService.debugGoogleSignInServerClientIdOverride = null;
+      AuthService.debugGoogleSignInIosClientIdOverride = null;
       debugDefaultTargetPlatformOverride = null;
     }
   });

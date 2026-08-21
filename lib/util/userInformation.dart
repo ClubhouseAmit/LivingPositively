@@ -1,8 +1,10 @@
+import 'dart:async';
 import 'dart:convert';
 
 import 'package:flutter/foundation.dart';
 import 'package:get_it/get_it.dart';
 import 'package:mazilon/global_enums.dart';
+import 'package:mazilon/util/logger_service.dart';
 import 'package:mazilon/util/notification_preference.dart';
 import 'package:mazilon/util/persistent_memory_service.dart';
 
@@ -36,7 +38,7 @@ class UserInformation with ChangeNotifier {
   int darkModeEndMinute;
   Map<String, List<String>> thanks;
   PersistentMemoryService service; // Get the persistent memory service instance
-  Future<void> _notificationPreferencesWrite = Future<void>.value();
+  Future<void>? _notificationPreferencesWrite;
 
   UserInformation({
     this.location = '',
@@ -98,46 +100,41 @@ class UserInformation with ChangeNotifier {
   }
 
   void updateGender(String text) {
-    void saveGender(String value) async {
-      await service.setItem('gender', PersistentMemoryType.String, value);
-    }
-
     gender = text;
-    saveGender(text);
+    _savePersistedValue(
+      () => service.setItem('gender', PersistentMemoryType.String, text),
+    );
     notifyListeners();
   }
 
   void updateName(String text) {
-    void saveName(String value) async {
-      await service.setItem('name', PersistentMemoryType.String, value);
-    }
-
     name = text;
-    saveName(text);
+    _savePersistedValue(
+      () => service.setItem('name', PersistentMemoryType.String, text),
+    );
     notifyListeners();
   }
 
   void updateAge(String text) {
-    void saveAge(String value) async {
-      await service.setItem('age', PersistentMemoryType.String, value);
-    }
-
     age = text;
-    saveAge(text);
+    _savePersistedValue(
+      () => service.setItem('age', PersistentMemoryType.String, text),
+    );
     notifyListeners();
   }
 
   void updateBinary(bool value) {
-    void saveBinary(bool value) async {
-      await service.setItem('binary', PersistentMemoryType.Bool, value);
-    }
-
     binary = value;
-    saveBinary(value);
+    _savePersistedValue(
+      () => service.setItem('binary', PersistentMemoryType.Bool, value),
+    );
     notifyListeners();
   }
 
-  Future<void> updateGenderAndBinary({required String gender, required bool isBinary}) async {
+  Future<void> updateGenderAndBinary({
+    required String gender,
+    required bool isBinary,
+  }) async {
     this.gender = gender;
     binary = isBinary;
     notifyListeners();
@@ -179,13 +176,18 @@ class UserInformation with ChangeNotifier {
 
   void updateLoggedIn(bool value) {
     loggedIn = value;
-    service.setItem('loggedIn', PersistentMemoryType.Bool, value);
+    _savePersistedValue(
+      () => service.setItem('loggedIn', PersistentMemoryType.Bool, value),
+    );
     notifyListeners();
   }
 
   void updateAuthDecisionMade(bool value) {
     authDecisionMade = value;
-    service.setItem('authDecisionMade', PersistentMemoryType.Bool, value);
+    _savePersistedValue(
+      () =>
+          service.setItem('authDecisionMade', PersistentMemoryType.Bool, value),
+    );
     notifyListeners();
   }
 
@@ -201,23 +203,30 @@ class UserInformation with ChangeNotifier {
 
   void updateUserId(String value) {
     userId = value;
-    service.setItem('userId', PersistentMemoryType.String, value);
+    _savePersistedValue(
+      () => service.setItem('userId', PersistentMemoryType.String, value),
+    );
     notifyListeners();
   }
 
   NotificationPreference? getNotificationPreference(String typeId) =>
       notificationPreferences[typeId];
 
-  void setNotificationPreference(String typeId, NotificationPreference pref) {
+  Future<void> setNotificationPreference(
+    String typeId,
+    NotificationPreference pref,
+  ) {
     notificationPreferences = {...notificationPreferences, typeId: pref};
-    _saveNotificationPreferences();
+    final write = _saveNotificationPreferences();
     notifyListeners();
+    return write;
   }
 
-  void clearNotificationPreference(String typeId) {
+  Future<void> clearNotificationPreference(String typeId) {
     notificationPreferences = Map.from(notificationPreferences)..remove(typeId);
-    _saveNotificationPreferences();
+    final write = _saveNotificationPreferences();
     notifyListeners();
+    return write;
   }
 
   /// Returns whether the selected dark-mode preference is active at [now].
@@ -399,25 +408,47 @@ class UserInformation with ChangeNotifier {
     return value != null && _isValidMinute(value) ? value : defaultValue;
   }
 
-  void _saveNotificationPreferences() {
+  Future<void> _saveNotificationPreferences() {
     final encoded = jsonEncode(
       notificationPreferences.map(
         (key, value) => MapEntry(key, value.toJson()),
       ),
     );
     final previousWrite = _notificationPreferencesWrite;
-    _notificationPreferencesWrite = () async {
-      try {
-        await previousWrite;
-      } on Object {
-        // A failed older write must not prevent the latest state from saving.
-      }
-      await service.setItem(
-        'notificationPreferences',
-        PersistentMemoryType.String,
-        encoded,
-      );
-    }();
+    final write = previousWrite == null
+        ? service.setItem(
+            'notificationPreferences',
+            PersistentMemoryType.String,
+            encoded,
+          )
+        : previousWrite
+              .catchError((Object _) {
+                // A failed older write must not prevent the latest state from
+                // saving.
+              })
+              .then<void>(
+                (_) => service.setItem(
+                  'notificationPreferences',
+                  PersistentMemoryType.String,
+                  encoded,
+                ),
+              );
+    _notificationPreferencesWrite = write;
+    unawaited(
+      write.then<void>(
+        (_) {
+          if (identical(_notificationPreferencesWrite, write)) {
+            _notificationPreferencesWrite = null;
+          }
+        },
+        onError: (Object _, StackTrace _) {
+          if (identical(_notificationPreferencesWrite, write)) {
+            _notificationPreferencesWrite = null;
+          }
+        },
+      ),
+    );
+    return write;
   }
 
   void updateLocaleName(String value) {
@@ -426,41 +457,69 @@ class UserInformation with ChangeNotifier {
   }
 
   void updatePositiveTraits(List<String> value) {
-    Future<void> savePositiveTraits(List<String> traits) async {
-      await service.setItem(
+    positiveTraits = [...value];
+    _savePersistedValue(
+      () => service.setItem(
         'positiveTraits',
         PersistentMemoryType.StringList,
-        traits,
-      );
-    }
-
-    positiveTraits = [...value];
-    savePositiveTraits(value);
+        value,
+      ),
+    );
     notifyListeners();
   }
 
   void updateThanks(Map<String, List<String>> value) {
-    Future<void> saveThanks(List<String> thanks, List<String> dates) async {
+    thanks = {"thanks": value["thanks"] ?? [], "dates": value["dates"] ?? []};
+    _savePersistedValue(() async {
       await service.setItem(
         'thankYous',
         PersistentMemoryType.StringList,
-        thanks,
+        value['thanks'] ?? [],
       );
-      await service.setItem('dates', PersistentMemoryType.StringList, dates);
-    }
-
-    thanks = {"thanks": value["thanks"] ?? [], "dates": value["dates"] ?? []};
-    saveThanks(value["thanks"] ?? [], value["dates"] ?? []);
+      await service.setItem(
+        'dates',
+        PersistentMemoryType.StringList,
+        value['dates'] ?? [],
+      );
+    });
     notifyListeners();
   }
 
   void updateLocation(String value) {
-    void saveLocation(String value) async {
-      await service.setItem('location', PersistentMemoryType.String, value);
-    }
-
     location = value;
-    saveLocation(value);
+    _savePersistedValue(
+      () => service.setItem('location', PersistentMemoryType.String, value),
+    );
     notifyListeners();
+  }
+
+  void _savePersistedValue(Future<void> Function() write) {
+    unawaited(
+      Future<void>.sync(write).catchError((
+        Object error,
+        StackTrace stackTrace,
+      ) {
+        _reportPersistenceFailure(error, stackTrace);
+      }),
+    );
+  }
+
+  void _reportPersistenceFailure(Object error, StackTrace stackTrace) {
+    if (!GetIt.instance.isRegistered<IncidentLoggerService>()) {
+      debugPrint('Persistent user state write failed: $error');
+      return;
+    }
+    unawaited(
+      Future<void>.sync(
+        () => GetIt.instance<IncidentLoggerService>().captureLog(
+          error,
+          stackTrace: stackTrace,
+        ),
+      ).catchError((Object loggerError, StackTrace loggerStackTrace) {
+        debugPrint(
+          'Persistent user state failure reporting failed: $loggerError',
+        );
+      }),
+    );
   }
 }

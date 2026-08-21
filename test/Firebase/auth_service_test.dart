@@ -43,12 +43,13 @@ void main() {
     );
   });
 
-  test('Google sign-in is available only on non-web Android builds', () {
+  test('Google sign-in requires platform-specific native configuration', () {
     expect(
       AuthService.googleSignInAvailableOn(
         TargetPlatform.android,
         isWeb: false,
         serverClientId: 'test-server-client-id.apps.googleusercontent.com',
+        iosClientId: '',
       ),
       isTrue,
     );
@@ -57,6 +58,16 @@ void main() {
         TargetPlatform.iOS,
         isWeb: false,
         serverClientId: 'test-server-client-id.apps.googleusercontent.com',
+        iosClientId: 'test-ios-client-id.apps.googleusercontent.com',
+      ),
+      isTrue,
+    );
+    expect(
+      AuthService.googleSignInAvailableOn(
+        TargetPlatform.iOS,
+        isWeb: false,
+        serverClientId: 'test-server-client-id.apps.googleusercontent.com',
+        iosClientId: '',
       ),
       isFalse,
     );
@@ -65,6 +76,7 @@ void main() {
         TargetPlatform.windows,
         isWeb: false,
         serverClientId: 'test-server-client-id.apps.googleusercontent.com',
+        iosClientId: 'test-ios-client-id.apps.googleusercontent.com',
       ),
       isFalse,
     );
@@ -73,6 +85,7 @@ void main() {
         TargetPlatform.android,
         isWeb: true,
         serverClientId: 'test-server-client-id.apps.googleusercontent.com',
+        iosClientId: 'test-ios-client-id.apps.googleusercontent.com',
       ),
       isFalse,
     );
@@ -81,6 +94,7 @@ void main() {
         TargetPlatform.android,
         isWeb: false,
         serverClientId: '',
+        iosClientId: 'test-ios-client-id.apps.googleusercontent.com',
       ),
       isFalse,
     );
@@ -89,6 +103,7 @@ void main() {
         TargetPlatform.android,
         isWeb: false,
         serverClientId: '   ',
+        iosClientId: 'test-ios-client-id.apps.googleusercontent.com',
       ),
       isFalse,
     );

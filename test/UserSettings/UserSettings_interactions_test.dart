@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:convert';
 
 // Drives the previously-uncovered branches of UserSettings:
 //   - resetData (lines 86-113) via the reset confirmation dialog's "confirm"
@@ -14,11 +15,13 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:get_it/get_it.dart';
+import 'package:http/http.dart' as http;
 import 'package:mazilon/global_enums.dart';
 import 'package:mazilon/pages/FeelGood/image_picker_service_impl.dart';
 import 'package:mazilon/pages/SignIn_Pages/firstPage.dart';
 import 'package:mazilon/pages/UserSettings.dart';
 import 'package:mazilon/util/Form/formPagePhoneModel.dart';
+import 'package:mazilon/util/Firebase/fcm_service.dart';
 import 'package:mazilon/util/Firebase/fcm_scheduled_notification_service.dart';
 import 'package:mazilon/util/logger_service.dart';
 import 'package:mazilon/util/notification_preference.dart';
@@ -211,10 +214,13 @@ void main() {
     user = UserInformation();
     user.gender = 'male';
     user.localeName = 'en';
+    FcmService.debugCancelLegacyLocalNotificationOverride =
+        (notificationId) async {};
   });
 
   tearDown(() {
     FcmScheduledNotificationService.resetForTesting();
+    FcmService.resetForTesting();
     resetTestServices();
   });
 
@@ -428,7 +434,13 @@ void main() {
     when(firebaseUser.uid).thenReturn('reset-user');
     when(firebaseUser.email).thenReturn('reset@example.com');
     when(firebaseUser.displayName).thenReturn('Reset User');
+    when(firebaseUser.getIdToken()).thenAnswer((_) async => 'token-123');
     GetIt.instance.registerSingleton<FirebaseAuth>(auth);
+    FcmScheduledNotificationService.debugPostOverride =
+        (url, {headers, body, encoding}) async =>
+            url.path.endsWith('/getNotificationMutationVersion')
+            ? http.Response('{"mutationVersion":0}', 200)
+            : http.Response('{}', 200);
     debugDefaultTargetPlatformOverride = TargetPlatform.windows;
 
     try {
@@ -745,56 +757,148 @@ void main() {
     );
   });
 
-  testWidgets('signs out an authenticated user after confirmation', (
+  testWidgets('signs out on desktop after cancelling the remote reminder', (
     tester,
   ) async {
     final auth = MockFirebaseAuth();
-    when(auth.signOut()).thenAnswer((_) async {});
+    final firebaseUser = MockUser();
+    final events = <String>[];
+    Map<String, dynamic>? cancellationPayload;
+    when(auth.currentUser).thenReturn(firebaseUser);
+    when(firebaseUser.isAnonymous).thenReturn(false);
+    when(firebaseUser.getIdToken()).thenAnswer((_) async {
+      events.add('getIdToken');
+      return 'token-123';
+    });
+    when(auth.signOut()).thenAnswer((_) async {
+      events.add('signOut');
+    });
     GetIt.instance.registerSingleton<FirebaseAuth>(auth);
     user.loggedIn = true;
     user.authDecisionMade = true;
     user.userId = 'signed-in-user';
     user.email = 'user@example.com';
     user.displayName = 'Signed-in User';
-    await pumpWithProviders(
-      tester,
-      UserSettings(
-        username: 'Keep identity',
-        age: '18-30',
-        gender: 'male',
-        phonePageData: _phone(),
-        changeLocale: (_) {},
-      ),
-      userInformation: user,
-      surfaceSize: const Size(1024, 2800),
-    );
+    FcmScheduledNotificationService
+        .debugPostOverride = (url, {headers, body, encoding}) async {
+      if (url.path.endsWith('/getNotificationMutationVersion')) {
+        events.add('getNotificationMutationVersion');
+        return http.Response('{"mutationVersion":0}', 200);
+      }
+      events.add('cancelNotification');
+      cancellationPayload = jsonDecode(body! as String) as Map<String, dynamic>;
+      return http.Response('{}', 200);
+    };
+    debugDefaultTargetPlatformOverride = TargetPlatform.windows;
 
-    final signOutButton = find.byKey(const Key('userSettingsSignOutButton'));
-    await tester.ensureVisible(signOutButton);
-    await tester.tap(signOutButton, warnIfMissed: false);
-    await tester.pumpAndSettle();
+    try {
+      await pumpWithProviders(
+        tester,
+        UserSettings(
+          username: 'Keep identity',
+          age: '18-30',
+          gender: 'male',
+          phonePageData: _phone(),
+          changeLocale: (_) {},
+        ),
+        userInformation: user,
+        surfaceSize: const Size(1024, 2800),
+      );
 
-    expect(find.text('Sign Out?'), findsOneWidget);
-    expect(
-      find.text('You will need to sign in again to access all features.'),
-      findsOneWidget,
-    );
+      final signOutButton = find.byKey(const Key('userSettingsSignOutButton'));
+      await tester.ensureVisible(signOutButton);
+      await tester.tap(signOutButton, warnIfMissed: false);
+      await tester.pumpAndSettle();
 
-    final dialogButtons = find.descendant(
-      of: find.byType(Dialog),
-      matching: find.byType(TextButton),
-    );
-    await tester.tap(dialogButtons.last, warnIfMissed: false);
-    await tester.pumpAndSettle();
+      expect(find.text('Sign Out?'), findsOneWidget);
+      expect(
+        find.text('You will need to sign in again to access all features.'),
+        findsOneWidget,
+      );
 
-    verify(auth.signOut()).called(1);
-    expect(user.loggedIn, isFalse);
-    expect(user.authDecisionMade, isFalse);
-    expect(user.userId, isEmpty);
-    expect(user.email, isEmpty);
-    expect(user.displayName, isEmpty);
-    expect(find.byType(FirstPage), findsOneWidget);
+      final dialogButtons = find.descendant(
+        of: find.byType(Dialog),
+        matching: find.byType(TextButton),
+      );
+      await tester.tap(dialogButtons.last, warnIfMissed: false);
+      await tester.pumpAndSettle();
+
+      verify(auth.signOut()).called(1);
+      expect(events, [
+        'getIdToken',
+        'getNotificationMutationVersion',
+        'cancelNotification',
+        'signOut',
+      ]);
+      expect(cancellationPayload, {
+        'typeId': 'default',
+        'expectedMutationVersion': 0,
+        'resetFence': true,
+      });
+      expect(user.loggedIn, isFalse);
+      expect(user.authDecisionMade, isFalse);
+      expect(user.userId, isEmpty);
+      expect(user.email, isEmpty);
+      expect(user.displayName, isEmpty);
+      expect(find.byType(FirstPage), findsOneWidget);
+    } finally {
+      debugDefaultTargetPlatformOverride = null;
+    }
   });
+
+  testWidgets(
+    'sign-out keeps the session when the remote reminder cannot be cancelled',
+    (tester) async {
+      final auth = MockFirebaseAuth();
+      final firebaseUser = MockUser();
+      when(auth.currentUser).thenReturn(firebaseUser);
+      when(firebaseUser.isAnonymous).thenReturn(false);
+      when(firebaseUser.getIdToken()).thenAnswer((_) async => null);
+      GetIt.instance.registerSingleton<FirebaseAuth>(auth);
+      user.loggedIn = true;
+      user.authDecisionMade = true;
+      user.userId = 'signed-in-user';
+      debugDefaultTargetPlatformOverride = TargetPlatform.windows;
+
+      try {
+        await pumpWithProviders(
+          tester,
+          UserSettings(
+            username: 'Keep reminder private',
+            age: '18-30',
+            gender: 'male',
+            phonePageData: _phone(),
+            changeLocale: (_) {},
+          ),
+          userInformation: user,
+          surfaceSize: const Size(1024, 2800),
+        );
+
+        final signOutButton = find.byKey(
+          const Key('userSettingsSignOutButton'),
+        );
+        await tester.ensureVisible(signOutButton);
+        await tester.tap(signOutButton, warnIfMissed: false);
+        await tester.pumpAndSettle();
+
+        final dialogButtons = find.descendant(
+          of: find.byType(Dialog),
+          matching: find.byType(TextButton),
+        );
+        await tester.tap(dialogButtons.last, warnIfMissed: false);
+        await tester.pumpAndSettle();
+
+        verify(firebaseUser.getIdToken()).called(1);
+        verifyNever(auth.signOut());
+        expect(user.loggedIn, isTrue);
+        expect(find.byType(UserSettings), findsOneWidget);
+        expect(find.byType(FirstPage), findsNothing);
+        expect(find.byType(SnackBar), findsOneWidget);
+      } finally {
+        debugDefaultTargetPlatformOverride = null;
+      }
+    },
+  );
 
   testWidgets(
     'reset keeps local data and navigation in place when remote cancellation fails',
@@ -1028,18 +1132,28 @@ void main() {
     }
   });
 
-  testWidgets('reset skips remote cancellation on an unsupported platform', (
+  testWidgets('reset cancels the remote reminder on an unsupported platform', (
     tester,
   ) async {
     final auth = MockFirebaseAuth();
     final firebaseUser = MockUser();
     when(auth.currentUser).thenReturn(firebaseUser);
     when(firebaseUser.isAnonymous).thenReturn(false);
+    when(firebaseUser.getIdToken()).thenAnswer((_) async => 'token-123');
     GetIt.instance.registerSingleton<FirebaseAuth>(auth);
     user.setNotificationPreference(
       'default',
       const NotificationPreference(hour: 9, minute: 30),
     );
+    final requests = <String>[];
+    FcmScheduledNotificationService.debugPostOverride =
+        (url, {headers, body, encoding}) async {
+          requests.add(url.path);
+          if (url.path.endsWith('/getNotificationMutationVersion')) {
+            return http.Response('{"mutationVersion":0}', 200);
+          }
+          return http.Response('{}', 200);
+        };
     debugDefaultTargetPlatformOverride = TargetPlatform.windows;
     try {
       await pumpWithProviders(
@@ -1067,6 +1181,10 @@ void main() {
       await tester.pumpAndSettle();
 
       expect(find.byType(FirstPage), findsOneWidget);
+      expect(requests, [
+        '/getNotificationMutationVersion',
+        '/cancelNotification',
+      ]);
     } finally {
       debugDefaultTargetPlatformOverride = null;
     }
@@ -1127,7 +1245,13 @@ void main() {
       when(firebaseUser.uid).thenReturn('uid-123');
       when(firebaseUser.email).thenReturn('user@example.com');
       when(firebaseUser.displayName).thenReturn('Remembered User');
+      when(firebaseUser.getIdToken()).thenAnswer((_) async => 'token-123');
       GetIt.instance.registerSingleton<FirebaseAuth>(auth);
+      FcmScheduledNotificationService.debugPostOverride =
+          (url, {headers, body, encoding}) async =>
+              url.path.endsWith('/getNotificationMutationVersion')
+              ? http.Response('{"mutationVersion":0}', 200)
+              : http.Response('{}', 200);
       debugDefaultTargetPlatformOverride = TargetPlatform.windows;
 
       try {

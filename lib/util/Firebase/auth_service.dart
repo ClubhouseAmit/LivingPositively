@@ -10,6 +10,10 @@ class AuthService {
     'GOOGLE_SIGN_IN_SERVER_CLIENT_ID',
     defaultValue: '',
   );
+  static const String _googleSignInIosClientId = String.fromEnvironment(
+    'GOOGLE_SIGN_IN_IOS_CLIENT_ID',
+    defaultValue: '',
+  );
   static const bool _appleSignInEnabled = bool.fromEnvironment(
     'APPLE_SIGN_IN_ENABLED',
     defaultValue: false,
@@ -21,9 +25,15 @@ class AuthService {
   @visibleForTesting
   static String? debugGoogleSignInServerClientIdOverride;
 
+  @visibleForTesting
+  static String? debugGoogleSignInIosClientIdOverride;
+
   static String get _configuredGoogleSignInServerClientId =>
       (debugGoogleSignInServerClientIdOverride ?? _googleSignInServerClientId)
           .trim();
+
+  static String get _configuredGoogleSignInIosClientId =>
+      (debugGoogleSignInIosClientIdOverride ?? _googleSignInIosClientId).trim();
 
   static Future<UserCredential> signInWithEmail(String email, String password) {
     return FirebaseAuth.instance.signInWithEmailAndPassword(
@@ -41,8 +51,12 @@ class AuthService {
 
   static Future<UserCredential?> signInWithGoogle() async {
     final serverClientId = _configuredGoogleSignInServerClientId;
+    final iosClientId = _configuredGoogleSignInIosClientId;
     if (!isGoogleSignInAvailable) return null;
     final googleUser = await GoogleSignIn(
+      clientId: defaultTargetPlatform == TargetPlatform.iOS
+          ? iosClientId
+          : null,
       serverClientId: serverClientId,
     ).signIn();
     if (googleUser == null) return null;
@@ -69,10 +83,15 @@ class AuthService {
     TargetPlatform platform, {
     required bool isWeb,
     required String serverClientId,
-  }) =>
-      !isWeb &&
-      platform == TargetPlatform.android &&
-      serverClientId.trim().isNotEmpty;
+    required String iosClientId,
+  }) {
+    if (isWeb || serverClientId.trim().isEmpty) return false;
+    return switch (platform) {
+      TargetPlatform.android => true,
+      TargetPlatform.iOS => iosClientId.trim().isNotEmpty,
+      _ => false,
+    };
+  }
 
   @visibleForTesting
   static bool appleSignInAvailableOn(
@@ -85,6 +104,7 @@ class AuthService {
     defaultTargetPlatform,
     isWeb: kIsWeb,
     serverClientId: _configuredGoogleSignInServerClientId,
+    iosClientId: _configuredGoogleSignInIosClientId,
   );
 
   static bool get isAppleSignInAvailable => appleSignInAvailableOn(

@@ -11,7 +11,6 @@ import 'package:mazilon/global_enums.dart';
 import 'package:mazilon/pages/SignIn_Pages/firstPage.dart';
 import 'package:mazilon/util/Firebase/auth_service.dart';
 import 'package:mazilon/util/Firebase/fcm_scheduled_notification_service.dart';
-import 'package:mazilon/util/Firebase/fcm_service.dart';
 import 'package:mazilon/util/Form/formPagePhoneModel.dart';
 
 import 'package:mazilon/pages/FeelGood/image_picker_service_impl.dart';
@@ -276,11 +275,13 @@ class _UserSettingsState extends LPExtendedState<UserSettings> {
       return;
     }
 
-    await userInfo.updateDarkModeSettings(
-      startHour: isStart ? selectedTime.hour : null,
-      startMinute: isStart ? selectedTime.minute : null,
-      endHour: isStart ? null : selectedTime.hour,
-      endMinute: isStart ? null : selectedTime.minute,
+    _runSettingsWrite(
+      () => userInfo.updateDarkModeSettings(
+        startHour: isStart ? selectedTime.hour : null,
+        startMinute: isStart ? selectedTime.minute : null,
+        endHour: isStart ? null : selectedTime.hour,
+        endMinute: isStart ? null : selectedTime.minute,
+      ),
     );
   }
 
@@ -367,8 +368,11 @@ class _UserSettingsState extends LPExtendedState<UserSettings> {
       minute: userInfo.darkModeEndMinute,
     );
 
-    Future<void> select(DarkModePreference value) =>
-        userInfo.updateDarkModeSettings(preference: value);
+    void select(DarkModePreference value) {
+      _runSettingsWrite(
+        () => userInfo.updateDarkModeSettings(preference: value),
+      );
+    }
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -493,6 +497,22 @@ class _UserSettingsState extends LPExtendedState<UserSettings> {
     );
   }
 
+  void _runSettingsWrite(Future<void> Function() write) {
+    unawaited(
+      Future<void>.sync(write).catchError((
+        Object error,
+        StackTrace stackTrace,
+      ) {
+        _reportResetFailure(error, stackTrace);
+        if (mounted) {
+          ScaffoldMessenger.maybeOf(
+            context,
+          )?.showSnackBar(SnackBar(content: Text(appLocale.asyncErrorMessage)));
+        }
+      }),
+    );
+  }
+
   // Remove locally persisted data after the server-side reminder state is safe.
   Future<void> resetData(UserInformation userInfo) async {
     LocaleService localeService = GetIt.instance<LocaleService>();
@@ -509,9 +529,7 @@ class _UserSettingsState extends LPExtendedState<UserSettings> {
         ? GetIt.instance<FirebaseAuth>().currentUser
         : null;
     try {
-      if (firebaseUser != null &&
-          !firebaseUser.isAnonymous &&
-          FcmService.supportsReminderSettings()) {
+      if (firebaseUser != null && !firebaseUser.isAnonymous) {
         final cancelled =
             await FcmScheduledNotificationService.cancelDefaultForReset(
               userInformation: userInfo,
@@ -600,6 +618,28 @@ class _UserSettingsState extends LPExtendedState<UserSettings> {
   }
 
   Future<bool> signOut(UserInformation userInfo) async {
+    final firebaseUser = GetIt.instance.isRegistered<FirebaseAuth>()
+        ? GetIt.instance<FirebaseAuth>().currentUser
+        : null;
+    if (firebaseUser != null && !firebaseUser.isAnonymous) {
+      final cancelled =
+          await FcmScheduledNotificationService.cancelDefaultForSignOut(
+            userInformation: userInfo,
+          );
+      if (!cancelled) {
+        _reportResetFailure(
+          StateError('Unable to cancel the reminder before sign-out.'),
+          StackTrace.current,
+        );
+        if (mounted) {
+          ScaffoldMessenger.maybeOf(
+            context,
+          )?.showSnackBar(SnackBar(content: Text(appLocale.asyncErrorMessage)));
+        }
+        return false;
+      }
+    }
+
     try {
       await AuthService.signOut();
     } catch (error, stackTrace) {
@@ -876,14 +916,14 @@ class _UserSettingsState extends LPExtendedState<UserSettings> {
                                             languageCode(locale) ==
                                             userInfoProvider.localeName,
                                         onSelected: (newValue) {
-                                          setState(() {
-                                            if (newValue != null) {
-                                              updateLocale(
+                                          if (newValue != null) {
+                                            _runSettingsWrite(
+                                              () => updateLocale(
                                                 languageCode(newValue),
                                                 userInfoProvider,
-                                              );
-                                            }
-                                          });
+                                              ),
+                                            );
+                                          }
                                         },
                                       ),
                                     ),
@@ -934,12 +974,21 @@ class _UserSettingsState extends LPExtendedState<UserSettings> {
                                             ),
                                           ),
                                         ),
-                                        onPressed: () {
+                                        onPressed: () async {
                                           FocusScope.of(context).unfocus();
                                           if (!_settingsFormKey.currentState!
                                               .validate()) {
                                             return;
                                           }
+                                          final navigator = Navigator.of(
+                                            context,
+                                          );
+                                          final scaffoldMessenger =
+                                              ScaffoldMessenger.maybeOf(
+                                                context,
+                                              );
+                                          final asyncErrorMessage =
+                                              appLocale.asyncErrorMessage;
 
                                           userInfoProvider.updateName(
                                             _namecontroller.text.trim(),
@@ -949,12 +998,31 @@ class _UserSettingsState extends LPExtendedState<UserSettings> {
                                                 ? userInfoProvider.age
                                                 : dropdownValueAge!,
                                           );
-                                          if (selectedGender != null) {
-                                            selectedGender!.applyTo(
-                                              userInfoProvider,
-                                            );
+                                          if (selectedGender
+                                              case final selectedGender?) {
+                                            try {
+                                              await selectedGender.applyTo(
+                                                userInfoProvider,
+                                              );
+                                            } catch (error, stackTrace) {
+                                              _reportResetFailure(
+                                                error,
+                                                stackTrace,
+                                              );
+                                              if (mounted) {
+                                                scaffoldMessenger?.showSnackBar(
+                                                  SnackBar(
+                                                    content: Text(
+                                                      asyncErrorMessage,
+                                                    ),
+                                                  ),
+                                                );
+                                              }
+                                              return;
+                                            }
                                           }
-                                          Navigator.pop(context);
+                                          if (!mounted) return;
+                                          navigator.pop();
                                         },
                                         child: Text(
                                           appLocale.confirmButton(gender),

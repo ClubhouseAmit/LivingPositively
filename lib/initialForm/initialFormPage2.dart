@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:mazilon/form/speech_dictation_suffix_action.dart';
@@ -59,7 +61,20 @@ class _InitialFormPage2State extends WizardStepState<InitialFormPage2> {
     AppLocalizations l10n,
   ) {
     if (label == null) return;
-    (Gender.fromLabel(label, l10n) ?? Gender.unspecified).applyTo(user);
+    final gender = Gender.fromLabel(label, l10n) ?? Gender.unspecified;
+    unawaited(
+      Future<void>.sync(() => gender.applyTo(user)).catchError((
+        Object error,
+        StackTrace stackTrace,
+      ) {
+        debugPrint('Unable to save gender selection: $error');
+        if (mounted) {
+          ScaffoldMessenger.maybeOf(
+            context,
+          )?.showSnackBar(SnackBar(content: Text(l10n.asyncErrorMessage)));
+        }
+      }),
+    );
   }
 
   /// Field label (Figma nodes 1660:2288 / 2294 / 2300).

@@ -7,6 +7,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:get_it/get_it.dart';
 import 'package:http/http.dart' as http;
 import 'package:mazilon/global_enums.dart';
+import 'package:mazilon/util/Firebase/fcm_service.dart';
 import 'package:mazilon/util/Firebase/fcm_scheduled_notification_service.dart';
 import 'package:mazilon/util/logger_service.dart';
 import 'package:mazilon/util/notification_preference.dart';
@@ -16,12 +17,16 @@ import 'package:provider/provider.dart';
 
 class _FakePersistentMemoryService implements PersistentMemoryService {
   static const _migrationKey = 'fcmDefaultReminderMigrated';
+  static const _notificationPreferencesKey = 'notificationPreferences';
   static const _legacyReminderKeys = {'notificationHour', 'notificationMinute'};
   final Map<String, dynamic> stored = {};
   Completer<dynamic>? migrationMarkerRead;
   Completer<void>? migrationMarkerReadStarted;
   Object? migrationMarkerReadError;
   StackTrace? migrationMarkerReadStackTrace;
+  Object? migrationMarkerWriteError;
+  Completer<void>? migrationMarkerWrite;
+  int notificationPreferenceWritesToFail = 0;
 
   @override
   Future<dynamic> getItem(String key, PersistentMemoryType type) async {
@@ -56,8 +61,22 @@ class _FakePersistentMemoryService implements PersistentMemoryService {
     PersistentMemoryType type,
     dynamic value,
   ) async {
-    if (key != _migrationKey) {
+    if (key != _migrationKey && key != _notificationPreferencesKey) {
       throw StateError('Unexpected persistent-memory write: $key');
+    }
+    if (key == _notificationPreferencesKey) {
+      if (notificationPreferenceWritesToFail > 0) {
+        notificationPreferenceWritesToFail--;
+        throw StateError('notification preferences disk unavailable');
+      }
+      stored[key] = value;
+      return;
+    }
+    if (migrationMarkerWrite != null) {
+      await migrationMarkerWrite!.future;
+    }
+    if (migrationMarkerWriteError != null) {
+      throw migrationMarkerWriteError!;
     }
     stored[key] = value;
   }
@@ -127,10 +146,13 @@ void main() {
       gender: 'female',
       loggedIn: true,
     );
+    FcmService.debugCancelLegacyLocalNotificationOverride =
+        _ignoreLegacyNotification;
   });
 
   tearDown(() async {
     FcmScheduledNotificationService.resetForTesting();
+    FcmService.resetForTesting();
     await GetIt.instance.reset();
   });
 
@@ -252,6 +274,134 @@ void main() {
     expect(user.getNotificationPreference('default'), isNull);
   });
 
+  test(
+    'register compensates the remote schedule when local preference persistence fails',
+    () async {
+      memory.notificationPreferenceWritesToFail = 1;
+      final operations = <String>[];
+      var mutationVersion = 0;
+
+      final registered = await _onPlatform(
+        TargetPlatform.android,
+        () => FcmScheduledNotificationService.registerNotification(
+          userInformation: user,
+          typeId: 'default',
+          hour: 9,
+          minute: 30,
+          idTokenProvider: () async => 'token-123',
+          post: (url, {headers, body, encoding}) async {
+            if (url.path.endsWith('/getNotificationMutationVersion')) {
+              operations.add('version:$mutationVersion');
+              return http.Response('{"mutationVersion":$mutationVersion}', 200);
+            }
+            if (url.path.endsWith('/registerNotification')) {
+              operations.add('register');
+            } else {
+              operations.add('cancel');
+            }
+            mutationVersion++;
+            return http.Response('{}', 200);
+          },
+        ),
+      );
+
+      expect(registered, isFalse);
+      expect(operations, ['version:0', 'register', 'version:1', 'cancel']);
+      expect(user.getNotificationPreference('default'), isNull);
+    },
+  );
+
+  test(
+    'register restores an existing remote schedule when its edited preference cannot persist',
+    () async {
+      const existing = NotificationPreference(hour: 8, minute: 15);
+      await user.setNotificationPreference('default', existing);
+      memory.notificationPreferenceWritesToFail = 1;
+      final operations = <String>[];
+      var mutationVersion = 0;
+
+      final registered = await _onPlatform(
+        TargetPlatform.android,
+        () => FcmScheduledNotificationService.registerNotification(
+          userInformation: user,
+          typeId: 'default',
+          hour: 9,
+          minute: 30,
+          idTokenProvider: () async => 'token-123',
+          post: (url, {headers, body, encoding}) async {
+            if (url.path.endsWith('/getNotificationMutationVersion')) {
+              operations.add('version:$mutationVersion');
+              return http.Response('{"mutationVersion":$mutationVersion}', 200);
+            }
+            if (url.path.endsWith('/registerNotification')) {
+              final request =
+                  jsonDecode(body! as String) as Map<String, dynamic>;
+              operations.add(
+                'register:${request['hour']}:${request['minute']}',
+              );
+            } else {
+              operations.add('cancel');
+            }
+            mutationVersion++;
+            return http.Response('{}', 200);
+          },
+        ),
+      );
+
+      expect(registered, isFalse);
+      expect(operations, [
+        'version:0',
+        'register:9:30',
+        'version:1',
+        'register:8:15',
+      ]);
+      expect(
+        user.getNotificationPreference('default')?.toJson(),
+        existing.toJson(),
+      );
+    },
+  );
+
+  test(
+    'cancel restores the remote schedule when clearing its local preference fails',
+    () async {
+      const existing = NotificationPreference(hour: 8, minute: 15);
+      await user.setNotificationPreference('default', existing);
+      memory.notificationPreferenceWritesToFail = 1;
+      final operations = <String>[];
+      var mutationVersion = 0;
+
+      final cancelled = await _onPlatform(
+        TargetPlatform.iOS,
+        () => FcmScheduledNotificationService.cancelNotification(
+          userInformation: user,
+          typeId: 'default',
+          idTokenProvider: () async => 'token-123',
+          post: (url, {headers, body, encoding}) async {
+            if (url.path.endsWith('/getNotificationMutationVersion')) {
+              operations.add('version:$mutationVersion');
+              return http.Response('{"mutationVersion":$mutationVersion}', 200);
+            }
+            if (url.path.endsWith('/cancelNotification')) {
+              operations.add('cancel');
+            } else {
+              operations.add('register');
+            }
+            mutationVersion++;
+            return http.Response('{}', 200);
+          },
+        ),
+      );
+
+      expect(cancelled, isFalse);
+      expect(operations, ['version:0', 'cancel', 'version:1', 'register']);
+      expect(
+        user.getNotificationPreference('default')?.toJson(),
+        existing.toJson(),
+      );
+    },
+  );
+
   testWidgets('cancel keeps the saved schedule when the server rejects it', (
     tester,
   ) async {
@@ -278,6 +428,48 @@ void main() {
       existing.toJson(),
     );
   });
+
+  testWidgets(
+    'fenced cancellation keeps the schedule when delivery is already claimed',
+    (tester) async {
+      const existing = NotificationPreference(hour: 8, minute: 15);
+      user.setNotificationPreference('default', existing);
+      await pumpUser(tester);
+      Map<String, dynamic>? cancellationPayload;
+
+      final result = await _onPlatform(
+        TargetPlatform.android,
+        () => FcmScheduledNotificationService.cancelNotification(
+          context: serviceContext,
+          typeId: 'default',
+          requireNoActiveDeliveryPermit: true,
+          idTokenProvider: () async => 'token-123',
+          post: (url, {headers, body, encoding}) async {
+            if (url.path.endsWith('/getNotificationMutationVersion')) {
+              return http.Response('{"mutationVersion":0}', 200);
+            }
+            cancellationPayload =
+                jsonDecode(body! as String) as Map<String, dynamic>;
+            return http.Response(
+              'Scheduled delivery is already authorized',
+              409,
+            );
+          },
+        ),
+      );
+
+      expect(result, isFalse);
+      expect(cancellationPayload, {
+        'typeId': 'default',
+        'expectedMutationVersion': 0,
+        'resetFence': true,
+      });
+      expect(
+        user.getNotificationPreference('default')?.toJson(),
+        existing.toJson(),
+      );
+    },
+  );
 
   testWidgets('queue registration completes its serialized turn', (
     tester,
@@ -371,6 +563,52 @@ void main() {
         expect(registrationResult, isFalse);
         expect(cancellationResult, isTrue);
         expect(user.getNotificationPreference('default'), isNull);
+      } finally {
+        debugDefaultTargetPlatformOverride = null;
+      }
+    },
+  );
+
+  testWidgets(
+    'timed-out legacy migration releases the queue for fenced cancellation',
+    (tester) async {
+      user.setNotificationPreference(
+        'default',
+        const NotificationPreference(hour: 8, minute: 15),
+      );
+      memory.migrationMarkerRead = Completer<dynamic>();
+      memory.migrationMarkerReadStarted = Completer<void>();
+      await pumpUser(tester);
+      debugDefaultTargetPlatformOverride = TargetPlatform.android;
+
+      try {
+        final migration =
+            FcmScheduledNotificationService.migrateLegacyDefaultReminder(
+              userInformation: user,
+              persistentMemory: memory,
+            );
+        final migrationFailure = expectLater(
+          migration,
+          throwsA(isA<TimeoutException>()),
+        );
+        await tester.pump();
+        await memory.migrationMarkerReadStarted!.future;
+
+        final cancellation = FcmScheduledNotificationService.cancelNotification(
+          userInformation: user,
+          typeId: 'default',
+          requireNoActiveDeliveryPermit: true,
+          idTokenProvider: () async => 'token-123',
+          post: (url, {headers, body, encoding}) async =>
+              url.path.endsWith('/getNotificationMutationVersion')
+              ? http.Response('{"mutationVersion":0}', 200)
+              : http.Response('{}', 200),
+        );
+        memory.migrationMarkerRead = null;
+        await tester.pump(const Duration(seconds: 5));
+
+        await migrationFailure;
+        expect(await cancellation, isTrue);
       } finally {
         debugDefaultTargetPlatformOverride = null;
       }
@@ -502,7 +740,7 @@ void main() {
   );
 
   testWidgets(
-    'unsupported platforms stop before authentication and network calls',
+    'unsupported platforms skip reminder registration before authentication and network calls',
     (tester) async {
       await pumpUser(tester);
       var tokenRequested = false;
@@ -531,6 +769,45 @@ void main() {
       expect(postCalled, isFalse);
     },
   );
+
+  testWidgets('remote cancellation runs on an unsupported platform', (
+    tester,
+  ) async {
+    user.setNotificationPreference(
+      'default',
+      const NotificationPreference(hour: 8, minute: 15),
+    );
+    await pumpUser(tester);
+    var tokenRequested = false;
+    final requestPaths = <String>[];
+
+    final result = await _onPlatform(
+      TargetPlatform.windows,
+      () => FcmScheduledNotificationService.cancelNotification(
+        context: serviceContext,
+        typeId: 'default',
+        requireNoActiveDeliveryPermit: true,
+        idTokenProvider: () async {
+          tokenRequested = true;
+          return 'token-123';
+        },
+        post: (url, {headers, body, encoding}) async {
+          requestPaths.add(url.path);
+          return url.path.endsWith('/getNotificationMutationVersion')
+              ? http.Response('{"mutationVersion":0}', 200)
+              : http.Response('{}', 200);
+        },
+      ),
+    );
+
+    expect(result, isTrue);
+    expect(tokenRequested, isTrue);
+    expect(requestPaths, [
+      '/getNotificationMutationVersion',
+      '/cancelNotification',
+    ]);
+    expect(user.getNotificationPreference('default'), isNull);
+  });
 
   testWidgets(
     'migrates a persisted legacy reminder, retires it, then marks it once',
@@ -859,7 +1136,7 @@ void main() {
       var registerRequests = 0;
 
       final cancelled = await _onPlatform(
-        TargetPlatform.android,
+        TargetPlatform.windows,
         () => FcmScheduledNotificationService.cancelDefaultForReset(
           userInformation: user,
           idTokenProvider: () async => 'token-123',
@@ -899,7 +1176,7 @@ void main() {
   );
 
   testWidgets(
-    'local reset failure restores the remote reminder after cancellation',
+    'local reset failure restores the remote reminder after cancellation off platform',
     (tester) async {
       const previousPreference = NotificationPreference(hour: 8, minute: 15);
       user.setNotificationPreference('default', previousPreference);
@@ -908,7 +1185,7 @@ void main() {
       var registerRequests = 0;
 
       final cancelled = await _onPlatform(
-        TargetPlatform.android,
+        TargetPlatform.windows,
         () => FcmScheduledNotificationService.cancelDefaultForReset(
           userInformation: user,
           idTokenProvider: () async => 'token-123',
@@ -928,7 +1205,7 @@ void main() {
 
       memory.stored['fcmDefaultReminderMigrated'] = true;
       final restored = await _onPlatform(
-        TargetPlatform.android,
+        TargetPlatform.windows,
         () =>
             FcmScheduledNotificationService.restoreDefaultReminderAfterResetFailure(
               userInformation: user,
@@ -993,7 +1270,9 @@ void main() {
                 return http.Response('{}', 200);
               },
             );
-        memory.migrationMarkerRead!.complete(false);
+        final migrationMarkerRead = memory.migrationMarkerRead!;
+        memory.migrationMarkerRead = null;
+        migrationMarkerRead.complete(false);
 
         expect(await resetCancellation, isTrue);
         await migration;
@@ -1003,6 +1282,237 @@ void main() {
       }
     },
   );
+
+  testWidgets(
+    'manual cancellation retires the legacy local reminder before marking it',
+    (tester) async {
+      user.setNotificationPreference(
+        'default',
+        const NotificationPreference(hour: 8, minute: 15),
+      );
+      await pumpUser(tester);
+      final operations = <String>[];
+      FcmService.debugCancelLegacyLocalNotificationOverride =
+          (notificationId) async => operations.add('local:$notificationId');
+
+      final cancelled = await _onPlatform(
+        TargetPlatform.windows,
+        () => FcmScheduledNotificationService.cancelNotification(
+          userInformation: user,
+          typeId: 'default',
+          idTokenProvider: () async => 'token-123',
+          post: (url, {headers, body, encoding}) async {
+            if (url.path.endsWith('/getNotificationMutationVersion')) {
+              return http.Response('{"mutationVersion":0}', 200);
+            }
+            operations.add('remote');
+            return http.Response('{}', 200);
+          },
+        ),
+      );
+
+      expect(cancelled, isTrue);
+      expect(operations, ['local:815', 'remote']);
+      expect(memory.stored['fcmDefaultReminderMigrated'], isTrue);
+      expect(user.getNotificationPreference('default'), isNull);
+    },
+  );
+
+  testWidgets(
+    'reset cancellation retires the legacy local reminder before marking it',
+    (tester) async {
+      user.setNotificationPreference(
+        'default',
+        const NotificationPreference(hour: 8, minute: 15),
+      );
+      await pumpUser(tester);
+      final operations = <String>[];
+      FcmService.debugCancelLegacyLocalNotificationOverride =
+          (notificationId) async => operations.add('local:$notificationId');
+
+      final cancelled = await _onPlatform(
+        TargetPlatform.windows,
+        () => FcmScheduledNotificationService.cancelDefaultForReset(
+          userInformation: user,
+          idTokenProvider: () async => 'token-123',
+          post: (url, {headers, body, encoding}) async {
+            if (url.path.endsWith('/getNotificationMutationVersion')) {
+              return http.Response('{"mutationVersion":0}', 200);
+            }
+            operations.add('remote');
+            return http.Response('{}', 200);
+          },
+        ),
+      );
+
+      expect(cancelled, isTrue);
+      expect(operations, ['local:815', 'remote']);
+      expect(memory.stored['fcmDefaultReminderMigrated'], isTrue);
+      expect(user.getNotificationPreference('default'), isNull);
+    },
+  );
+
+  testWidgets(
+    'default cancellation keeps its marker unset when legacy retirement fails',
+    (tester) async {
+      user.setNotificationPreference(
+        'default',
+        const NotificationPreference(hour: 8, minute: 15),
+      );
+      await pumpUser(tester);
+      FcmService.debugCancelLegacyLocalNotificationOverride =
+          (notificationId) async => throw StateError('local cancel failed');
+      var requests = 0;
+
+      final cancelled = await _onPlatform(
+        TargetPlatform.android,
+        () => FcmScheduledNotificationService.cancelNotification(
+          userInformation: user,
+          typeId: 'default',
+          idTokenProvider: () async => 'token-123',
+          post: (url, {headers, body, encoding}) async {
+            requests++;
+            return http.Response('{}', 200);
+          },
+        ),
+      );
+
+      expect(cancelled, isFalse);
+      expect(requests, 0);
+      expect(memory.stored.containsKey('fcmDefaultReminderMigrated'), isFalse);
+      expect(user.getNotificationPreference('default'), isNotNull);
+    },
+  );
+
+  testWidgets(
+    'sign-out retires the legacy local reminder and prevents queued migration',
+    (tester) async {
+      user.setNotificationPreference(
+        'default',
+        const NotificationPreference(hour: 8, minute: 15),
+      );
+      memory.migrationMarkerRead = Completer<dynamic>();
+      memory.migrationMarkerReadStarted = Completer<void>();
+      await pumpUser(tester);
+      final operations = <String>[];
+
+      debugDefaultTargetPlatformOverride = TargetPlatform.android;
+      try {
+        final migration =
+            FcmScheduledNotificationService.migrateLegacyDefaultReminder(
+              userInformation: user,
+              idTokenProvider: () async => 'token-123',
+              post: (url, {headers, body, encoding}) async {
+                if (url.path.endsWith('/getNotificationMutationVersion')) {
+                  return http.Response('{"mutationVersion":0}', 200);
+                }
+                operations.add('register');
+                return http.Response('{}', 200);
+              },
+            );
+        await tester.pump();
+        await memory.migrationMarkerReadStarted!.future;
+
+        final signOutCancellation =
+            FcmScheduledNotificationService.cancelDefaultForSignOut(
+              userInformation: user,
+              idTokenProvider: () async => 'token-123',
+              post: (url, {headers, body, encoding}) async {
+                if (url.path.endsWith('/getNotificationMutationVersion')) {
+                  return http.Response('{"mutationVersion":0}', 200);
+                }
+                operations.add('remote');
+                return http.Response('{}', 200);
+              },
+              legacyNotificationCanceller: (notificationId) async {
+                operations.add('local:$notificationId');
+              },
+            );
+        final migrationMarkerRead = memory.migrationMarkerRead!;
+        memory.migrationMarkerRead = null;
+        migrationMarkerRead.complete(false);
+
+        expect(await signOutCancellation, isTrue);
+        await migration;
+        expect(operations, ['local:815', 'remote']);
+        expect(memory.stored['fcmDefaultReminderMigrated'], isTrue);
+        expect(user.getNotificationPreference('default'), isNull);
+      } finally {
+        debugDefaultTargetPlatformOverride = null;
+      }
+    },
+  );
+
+  testWidgets(
+    'sign-out remains blocked when its legacy migration marker cannot persist',
+    (tester) async {
+      user.setNotificationPreference(
+        'default',
+        const NotificationPreference(hour: 8, minute: 15),
+      );
+      memory.migrationMarkerWriteError = StateError('disk unavailable');
+      await pumpUser(tester);
+      final operations = <String>[];
+      var mutationVersion = 0;
+
+      final cancelled = await _onPlatform(
+        TargetPlatform.android,
+        () => FcmScheduledNotificationService.cancelDefaultForSignOut(
+          userInformation: user,
+          idTokenProvider: () async => 'token-123',
+          post: (url, {headers, body, encoding}) async {
+            if (url.path.endsWith('/getNotificationMutationVersion')) {
+              operations.add('version:$mutationVersion');
+              return http.Response('{"mutationVersion":$mutationVersion}', 200);
+            }
+            operations.add(
+              url.path.endsWith('/cancelNotification') ? 'cancel' : 'register',
+            );
+            mutationVersion++;
+            return http.Response('{}', 200);
+          },
+          legacyNotificationCanceller: _ignoreLegacyNotification,
+        ),
+      );
+
+      expect(cancelled, isFalse);
+      expect(operations, ['version:0', 'cancel', 'version:1', 'register']);
+      expect(memory.stored.containsKey('fcmDefaultReminderMigrated'), isFalse);
+      expect(user.getNotificationPreference('default'), isNotNull);
+    },
+  );
+
+  testWidgets('sign-out bounds a pending legacy migration marker write', (
+    tester,
+  ) async {
+    user.setNotificationPreference(
+      'default',
+      const NotificationPreference(hour: 8, minute: 15),
+    );
+    memory.migrationMarkerWrite = Completer<void>();
+    await pumpUser(tester);
+
+    final cancelled = _onPlatform(
+      TargetPlatform.android,
+      () => FcmScheduledNotificationService.cancelDefaultForSignOut(
+        userInformation: user,
+        idTokenProvider: () async => 'token-123',
+        post: (url, {headers, body, encoding}) async {
+          if (url.path.endsWith('/getNotificationMutationVersion')) {
+            return http.Response('{"mutationVersion":0}', 200);
+          }
+          return http.Response('{}', 200);
+        },
+        legacyNotificationCanceller: _ignoreLegacyNotification,
+      ),
+    );
+    await tester.pump();
+    await tester.pump(const Duration(seconds: 5));
+
+    expect(await cancelled, isFalse);
+    expect(memory.stored.containsKey('fcmDefaultReminderMigrated'), isFalse);
+    expect(user.getNotificationPreference('default'), isNotNull);
+  });
 
   testWidgets(
     'migration does not restore a reminder cancelled before its queued turn',

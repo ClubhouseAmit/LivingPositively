@@ -50,6 +50,18 @@ class _ControlledPersistentMemoryService implements PersistentMemoryService {
   }
 }
 
+class _FailingPersistentMemoryService implements PersistentMemoryService {
+  @override
+  Future<dynamic> getItem(String key, PersistentMemoryType type) async => null;
+
+  @override
+  Future<void> reset() async {}
+
+  @override
+  Future<void> setItem(String key, PersistentMemoryType type, dynamic value) =>
+      Future<void>.error(StateError('write failed'));
+}
+
 void main() {
   late _FakePersistentMemoryService fakeService;
 
@@ -309,6 +321,38 @@ void main() {
       final u = buildUser();
       u.updateLoggedIn(true);
       expect(u.loggedIn, isTrue);
+    });
+
+    test('consumes a failed fire-and-forget write', () async {
+      final u = UserInformation(service: _FailingPersistentMemoryService());
+
+      u.updateLoggedIn(true);
+      await Future<void>.delayed(Duration.zero);
+
+      expect(u.loggedIn, isTrue);
+    });
+
+    test('updateGenderAndBinary reports a failed required write', () async {
+      final u = UserInformation(service: _FailingPersistentMemoryService());
+
+      await expectLater(
+        u.updateGenderAndBinary(gender: 'female', isBinary: false),
+        throwsA(isA<StateError>()),
+      );
+      expect(u.gender, 'female');
+      expect(u.binary, isFalse);
+    });
+
+    test('notification preference reports a failed required write', () async {
+      final u = UserInformation(service: _FailingPersistentMemoryService());
+
+      await expectLater(
+        u.setNotificationPreference(
+          'default',
+          const NotificationPreference(hour: 8, minute: 15),
+        ),
+        throwsA(isA<StateError>()),
+      );
     });
 
     test('updateUserId', () {

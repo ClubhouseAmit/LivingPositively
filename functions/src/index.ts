@@ -37,6 +37,10 @@ const DELIVERY_SEND_BATCH_SIZE = 25;
 const MAX_STALE_DEVICE_CLEANUPS_PER_INVOCATION = 25;
 const MAX_SCHEDULED_NOTIFICATIONS_PER_STALE_DEVICE_CLEANUP = 25;
 
+// These endpoints still require a Firebase ID token. CORS permits the web app
+// to send that token from its deployed origin; it does not grant access itself.
+const authenticatedClientCors = true;
+
 export type IsraelLocalDeliveryCandidate = {
   localDate: string;
   intendedTime: string;
@@ -288,10 +292,7 @@ export function routeDevicesByUpdatedAt(
 function timestampSecondsAndNanoseconds(
   value: unknown,
 ): { seconds: number; nanoseconds: number } | undefined {
-  if (
-    value === null ||
-    typeof value !== "object"
-  ) {
+  if (value === null || typeof value !== "object") {
     return undefined;
   }
   const { seconds, nanoseconds } = value as TimestampLike;
@@ -354,7 +355,10 @@ export function isCurrentScheduledNotification(
       (currentState === undefined ||
         (currentState.version === undefined &&
           !hasActiveDeliveryPermit(currentState))) &&
-      timestampsAreExactlyEqual(selectedSchedule.updatedAt, currentSchedule.updatedAt)
+      timestampsAreExactlyEqual(
+        selectedSchedule.updatedAt,
+        currentSchedule.updatedAt,
+      )
     );
   }
 
@@ -422,7 +426,10 @@ export async function claimAndSendScheduledDelivery(
         messageId,
       });
     } catch (error: unknown) {
-      console.error(`Scheduled delivery sent-status update failed: ${deliveryKey}`, error);
+      console.error(
+        `Scheduled delivery sent-status update failed: ${deliveryKey}`,
+        error,
+      );
     }
     return "sent";
   } catch (error: unknown) {
@@ -433,14 +440,20 @@ export async function claimAndSendScheduledDelivery(
         failureCode: failureCode(error),
       });
     } catch (updateError: unknown) {
-      console.error(`Scheduled delivery failure-status update failed: ${deliveryKey}`, updateError);
+      console.error(
+        `Scheduled delivery failure-status update failed: ${deliveryKey}`,
+        updateError,
+      );
     }
     return "failed";
   } finally {
     try {
       await writer.releasePermit?.();
     } catch (error: unknown) {
-      console.error(`Scheduled delivery permit release failed: ${deliveryKey}`, error);
+      console.error(
+        `Scheduled delivery permit release failed: ${deliveryKey}`,
+        error,
+      );
     }
   }
 }
@@ -477,10 +490,7 @@ export function shouldClearFCMToken(
   return typeof storedToken === "string" && storedToken === failedToken;
 }
 
-async function clearFCMToken(
-  uid: string,
-  failedToken: string,
-): Promise<void> {
+async function clearFCMToken(uid: string, failedToken: string): Promise<void> {
   const db = getFirestore();
   const deviceRef = db.collection("devices").doc(uid);
   await db.runTransaction(async (transaction) => {
@@ -553,214 +563,227 @@ class NotificationMutationConflictError extends Error {}
 // used to fence scheduled-notification writes for one authenticated schedule.
 // Body: { typeId: string }
 // ---------------------------------------------------------------------------
-export const getNotificationMutationVersion = onRequest(async (req, res) => {
-  if (req.method !== "POST") {
-    res.status(405).send("Method Not Allowed");
-    return;
-  }
+export const getNotificationMutationVersion = onRequest(
+  { cors: authenticatedClientCors },
+  async (req, res) => {
+    if (req.method !== "POST") {
+      res.status(405).send("Method Not Allowed");
+      return;
+    }
 
-  const uid = await extractAndVerifyUid(req);
-  if (!uid) {
-    res.status(401).send("Unauthorized");
-    return;
-  }
+    const uid = await extractAndVerifyUid(req);
+    if (!uid) {
+      res.status(401).send("Unauthorized");
+      return;
+    }
 
-  const typeId = req.body?.typeId;
-  if (!isValidNotificationTypeId(typeId)) {
-    res.status(400).send("Invalid typeId");
-    return;
-  }
+    const typeId = req.body?.typeId;
+    if (!isValidNotificationTypeId(typeId)) {
+      res.status(400).send("Invalid typeId");
+      return;
+    }
 
-  const stateDoc = await notificationMutationStateRef(
-    getFirestore(),
-    uid,
-    typeId,
-  ).get();
-  if (!stateDoc.exists) {
-    res.send({ mutationVersion: 0 });
-    return;
-  }
-
-  const mutationVersion = stateDoc.data()?.version;
-  if (mutationVersion === undefined) {
-    res.send({ mutationVersion: 0 });
-    return;
-  }
-  if (!isNonNegativeNotificationMutationVersion(mutationVersion)) {
-    logger.warn("Invalid notification mutation state version", {
+    const stateDoc = await notificationMutationStateRef(
+      getFirestore(),
+      uid,
       typeId,
-      valueType: typeof mutationVersion,
-    });
-    res.send({ mutationVersion: 0 });
-    return;
-  }
-  res.send({ mutationVersion });
-});
+    ).get();
+    if (!stateDoc.exists) {
+      res.send({ mutationVersion: 0 });
+      return;
+    }
+
+    const mutationVersion = stateDoc.data()?.version;
+    if (mutationVersion === undefined) {
+      res.send({ mutationVersion: 0 });
+      return;
+    }
+    if (!isNonNegativeNotificationMutationVersion(mutationVersion)) {
+      logger.warn("Invalid notification mutation state version", {
+        typeId,
+        valueType: typeof mutationVersion,
+      });
+      res.send({ mutationVersion: 0 });
+      return;
+    }
+    res.send({ mutationVersion });
+  },
+);
 
 // ---------------------------------------------------------------------------
 // registerNotification — creates or updates a scheduled notification entry.
 // Body: { typeId: string, hour: number, minute: number,
 //         expectedMutationVersion?: non-negative integer }
 // ---------------------------------------------------------------------------
-export const registerNotification = onRequest(async (req, res) => {
-  if (req.method !== "POST") {
-    res.status(405).send("Method Not Allowed");
-    return;
-  }
-
-  const uid = await extractAndVerifyUid(req);
-  if (!uid) {
-    res.status(401).send("Unauthorized");
-    return;
-  }
-
-  const { typeId, hour, minute, locale, gender, expectedMutationVersion } =
-    req.body;
-  const expectedVersion = parseExpectedNotificationMutationVersion(
-    expectedMutationVersion,
-  );
-
-  if (
-    !isValidNotificationTypeId(typeId) ||
-    !Number.isFinite(hour) ||
-    !Number.isInteger(hour) ||
-    !Number.isFinite(minute) ||
-    !Number.isInteger(minute) ||
-    hour < 0 ||
-    hour > 23 ||
-    minute < 0 ||
-    minute > 59 ||
-    !isValidNotificationLocale(locale)
-  ) {
-    res
-      .status(400)
-      .send(
-        "Invalid body: typeId (string), hour (0-23), minute (0-59), locale (string) required",
-      );
-    return;
-  }
-  if (expectedVersion.kind === "invalid") {
-    res.status(400).send("Invalid expectedMutationVersion");
-    return;
-  }
-
-  const typeDoc = await getFirestore()
-    .collection("notification_types")
-    .doc(typeId)
-    .get();
-  if (!typeDoc.exists) {
-    res.status(400).send(`Unknown typeId: ${typeId}`);
-    return;
-  }
-
-  const db = getFirestore();
-  const stateRef = notificationMutationStateRef(db, uid, typeId);
-  const scheduleRef = db
-    .collection("scheduled_notifications")
-    .doc(`${uid}_${typeId}`);
-  try {
-    await db.runTransaction(async (transaction) => {
-      const scheduleData: Record<string, unknown> = {
-        uid,
-        typeId,
-        hour,
-        minute,
-        locale,
-        gender: normalizeNotificationGender(gender),
-        updatedAt: FieldValue.serverTimestamp(),
-      };
-      const decision = await executeNotificationMutation<
-        FirebaseFirestore.DocumentReference
-      >(transaction, {
-        stateRef,
-        scheduleRef,
-        expectedVersion,
-        rejectActiveDeliveryPermit: false,
-        operation: { kind: "register", scheduleData },
-      });
-      if (decision.kind === "conflict") {
-        throw new NotificationMutationConflictError(decision.message);
-      }
-    });
-  } catch (error) {
-    if (error instanceof NotificationMutationConflictError) {
-      res.status(409).send(error.message);
+export const registerNotification = onRequest(
+  { cors: authenticatedClientCors },
+  async (req, res) => {
+    if (req.method !== "POST") {
+      res.status(405).send("Method Not Allowed");
       return;
     }
-    throw error;
-  }
 
-  res.send({ success: true });
-});
+    const uid = await extractAndVerifyUid(req);
+    if (!uid) {
+      res.status(401).send("Unauthorized");
+      return;
+    }
+
+    const { typeId, hour, minute, locale, gender, expectedMutationVersion } =
+      req.body;
+    const expectedVersion = parseExpectedNotificationMutationVersion(
+      expectedMutationVersion,
+    );
+
+    if (
+      !isValidNotificationTypeId(typeId) ||
+      !Number.isFinite(hour) ||
+      !Number.isInteger(hour) ||
+      !Number.isFinite(minute) ||
+      !Number.isInteger(minute) ||
+      hour < 0 ||
+      hour > 23 ||
+      minute < 0 ||
+      minute > 59 ||
+      !isValidNotificationLocale(locale)
+    ) {
+      res
+        .status(400)
+        .send(
+          "Invalid body: typeId (string), hour (0-23), minute (0-59), locale (string) required",
+        );
+      return;
+    }
+    if (expectedVersion.kind === "invalid") {
+      res.status(400).send("Invalid expectedMutationVersion");
+      return;
+    }
+
+    const typeDoc = await getFirestore()
+      .collection("notification_types")
+      .doc(typeId)
+      .get();
+    if (!typeDoc.exists) {
+      res.status(400).send(`Unknown typeId: ${typeId}`);
+      return;
+    }
+
+    const db = getFirestore();
+    const stateRef = notificationMutationStateRef(db, uid, typeId);
+    const scheduleRef = db
+      .collection("scheduled_notifications")
+      .doc(`${uid}_${typeId}`);
+    try {
+      await db.runTransaction(async (transaction) => {
+        const scheduleData: Record<string, unknown> = {
+          uid,
+          typeId,
+          hour,
+          minute,
+          locale,
+          gender: normalizeNotificationGender(gender),
+          updatedAt: FieldValue.serverTimestamp(),
+        };
+        const decision =
+          await executeNotificationMutation<FirebaseFirestore.DocumentReference>(
+            transaction,
+            {
+              stateRef,
+              scheduleRef,
+              expectedVersion,
+              rejectActiveDeliveryPermit: false,
+              operation: { kind: "register", scheduleData },
+            },
+          );
+        if (decision.kind === "conflict") {
+          throw new NotificationMutationConflictError(decision.message);
+        }
+      });
+    } catch (error) {
+      if (error instanceof NotificationMutationConflictError) {
+        res.status(409).send(error.message);
+        return;
+      }
+      throw error;
+    }
+
+    res.send({ success: true });
+  },
+);
 
 // ---------------------------------------------------------------------------
 // cancelNotification — deletes the scheduled notification entry.
 // Body: { typeId: string, expectedMutationVersion?: non-negative integer,
 //         resetFence?: boolean }
 // ---------------------------------------------------------------------------
-export const cancelNotification = onRequest(async (req, res) => {
-  if (req.method !== "POST") {
-    res.status(405).send("Method Not Allowed");
-    return;
-  }
-
-  const uid = await extractAndVerifyUid(req);
-  if (!uid) {
-    res.status(401).send("Unauthorized");
-    return;
-  }
-
-  const { typeId, expectedMutationVersion, resetFence } = req.body;
-  if (!isValidNotificationTypeId(typeId)) {
-    res.status(400).send("Invalid typeId");
-    return;
-  }
-  if (resetFence !== undefined && typeof resetFence !== "boolean") {
-    res.status(400).send("Invalid resetFence");
-    return;
-  }
-  const expectedVersion = parseExpectedNotificationMutationVersion(
-    expectedMutationVersion,
-  );
-  if (expectedVersion.kind === "invalid") {
-    res.status(400).send("Invalid expectedMutationVersion");
-    return;
-  }
-  if (!isValidResetFenceMutation(resetFence, expectedVersion)) {
-    res.status(400).send("resetFence requires expectedMutationVersion");
-    return;
-  }
-
-  const db = getFirestore();
-  const stateRef = notificationMutationStateRef(db, uid, typeId);
-  const scheduleRef = db
-    .collection("scheduled_notifications")
-    .doc(`${uid}_${typeId}`);
-  try {
-    await db.runTransaction(async (transaction) => {
-      const decision = await executeNotificationMutation<
-        FirebaseFirestore.DocumentReference
-      >(transaction, {
-        stateRef,
-        scheduleRef,
-        expectedVersion,
-        rejectActiveDeliveryPermit: resetFence === true,
-        operation: { kind: "cancel" },
-      });
-      if (decision.kind === "conflict") {
-        throw new NotificationMutationConflictError(decision.message);
-      }
-    });
-  } catch (error) {
-    if (error instanceof NotificationMutationConflictError) {
-      res.status(409).send(error.message);
+export const cancelNotification = onRequest(
+  { cors: authenticatedClientCors },
+  async (req, res) => {
+    if (req.method !== "POST") {
+      res.status(405).send("Method Not Allowed");
       return;
     }
-    throw error;
-  }
 
-  res.send({ success: true });
-});
+    const uid = await extractAndVerifyUid(req);
+    if (!uid) {
+      res.status(401).send("Unauthorized");
+      return;
+    }
+
+    const { typeId, expectedMutationVersion, resetFence } = req.body;
+    if (!isValidNotificationTypeId(typeId)) {
+      res.status(400).send("Invalid typeId");
+      return;
+    }
+    if (resetFence !== undefined && typeof resetFence !== "boolean") {
+      res.status(400).send("Invalid resetFence");
+      return;
+    }
+    const expectedVersion = parseExpectedNotificationMutationVersion(
+      expectedMutationVersion,
+    );
+    if (expectedVersion.kind === "invalid") {
+      res.status(400).send("Invalid expectedMutationVersion");
+      return;
+    }
+    if (!isValidResetFenceMutation(resetFence, expectedVersion)) {
+      res.status(400).send("resetFence requires expectedMutationVersion");
+      return;
+    }
+
+    const db = getFirestore();
+    const stateRef = notificationMutationStateRef(db, uid, typeId);
+    const scheduleRef = db
+      .collection("scheduled_notifications")
+      .doc(`${uid}_${typeId}`);
+    try {
+      await db.runTransaction(async (transaction) => {
+        const decision =
+          await executeNotificationMutation<FirebaseFirestore.DocumentReference>(
+            transaction,
+            {
+              stateRef,
+              scheduleRef,
+              expectedVersion,
+              rejectActiveDeliveryPermit: resetFence === true,
+              operation: { kind: "cancel" },
+            },
+          );
+        if (decision.kind === "conflict") {
+          throw new NotificationMutationConflictError(decision.message);
+        }
+      });
+    } catch (error) {
+      if (error instanceof NotificationMutationConflictError) {
+        res.status(409).send(error.message);
+        return;
+      }
+      throw error;
+    }
+
+    res.send({ success: true });
+  },
+);
 
 // ---------------------------------------------------------------------------
 // processScheduledNotifications — runs every minute via Cloud Scheduler.
@@ -807,36 +830,40 @@ export const processScheduledNotifications = onSchedule(
     );
     const scheduledNotifications = db.collection("scheduled_notifications");
     const queryPlan = scheduledNotificationQueryPlan(deliveryCandidates);
-    const snapshot = queryPlan.kind === "exact"
-      ? await scheduledNotifications
-        .where("hour", "==", queryPlan.hour)
-        .where("minute", "==", queryPlan.minute)
-        .get()
-      : await scheduledNotifications.where("hour", "in", queryPlan.hours).get();
+    const snapshot =
+      queryPlan.kind === "exact"
+        ? await scheduledNotifications
+            .where("hour", "==", queryPlan.hour)
+            .where("minute", "==", queryPlan.minute)
+            .get()
+        : await scheduledNotifications
+            .where("hour", "in", queryPlan.hours)
+            .get();
 
     const scheduledCandidates = selectScheduledNotificationCandidates(
       snapshot.docs,
       deliveryCandidates,
     );
 
-    const advanceSchedulerCheckpoint = () => db.runTransaction(async (transaction) => {
-      const currentState = await transaction.get(schedulerStateRef);
-      const currentMillis = currentState.data()?.lastProcessedMillis;
-      if (
-        typeof currentMillis === "number" &&
-        currentMillis >= scheduleTime.getTime()
-      ) {
-        return;
-      }
-      transaction.set(
-        schedulerStateRef,
-        {
-          lastProcessedMillis: scheduleTime.getTime(),
-          updatedAt: FieldValue.serverTimestamp(),
-        },
-        { merge: true },
-      );
-    });
+    const advanceSchedulerCheckpoint = () =>
+      db.runTransaction(async (transaction) => {
+        const currentState = await transaction.get(schedulerStateRef);
+        const currentMillis = currentState.data()?.lastProcessedMillis;
+        if (
+          typeof currentMillis === "number" &&
+          currentMillis >= scheduleTime.getTime()
+        ) {
+          return;
+        }
+        transaction.set(
+          schedulerStateRef,
+          {
+            lastProcessedMillis: scheduleTime.getTime(),
+            updatedAt: FieldValue.serverTimestamp(),
+          },
+          { merge: true },
+        );
+      });
 
     // --- Pre-fetch phase ---
 
@@ -858,7 +885,10 @@ export const processScheduledNotifications = onSchedule(
     const typeDataMap = new Map<string, FirebaseFirestore.DocumentData>();
     await Promise.all(
       [...localesByTypeId.keys()].map(async (typeId) => {
-        const doc = await getFirestore().collection("notification_types").doc(typeId).get();
+        const doc = await getFirestore()
+          .collection("notification_types")
+          .doc(typeId)
+          .get();
         if (doc.exists) typeDataMap.set(typeId, doc.data()!);
       }),
     );
@@ -877,10 +907,7 @@ export const processScheduledNotifications = onSchedule(
         const collectionName =
           typeData.quotesCollections[locale] ??
           typeData.quotesCollections["he"];
-        if (
-          typeof collectionName === "string" &&
-          collectionName.length > 0
-        ) {
+        if (typeof collectionName === "string" && collectionName.length > 0) {
           neededQuoteCollections.add(collectionName);
         }
       }
@@ -889,10 +916,11 @@ export const processScheduledNotifications = onSchedule(
     const quotesMap = new Map<string, FirebaseFirestore.DocumentData[]>();
     await Promise.all(
       [...neededQuoteCollections].map(async (collectionName) => {
-        const snap = await getFirestore()
-          .collection(collectionName)
-          .get();
-        quotesMap.set(collectionName, snap.docs.map((d) => d.data()));
+        const snap = await getFirestore().collection(collectionName).get();
+        quotesMap.set(
+          collectionName,
+          snap.docs.map((d) => d.data()),
+        );
       }),
     );
 
@@ -903,8 +931,7 @@ export const processScheduledNotifications = onSchedule(
         scheduledCandidates
           .map(({ doc }) => doc.data().uid)
           .filter(
-            (uid): uid is string =>
-              typeof uid === "string" && uid.length > 0,
+            (uid): uid is string => typeof uid === "string" && uid.length > 0,
           ),
       ),
     ];
@@ -913,9 +940,7 @@ export const processScheduledNotifications = onSchedule(
         getFirestore().collection("devices").doc(uid).get(),
       ),
     );
-    const deviceMap = new Map(
-      deviceDocs.map((d) => [d.id, d.data()]),
-    );
+    const deviceMap = new Map(deviceDocs.map((d) => [d.id, d.data()]));
     const deviceTimestampRoutes = routeDevicesByUpdatedAt(
       [...deviceMap.entries()].map(([uid, deviceData]) => ({
         uid,
@@ -969,10 +994,7 @@ export const processScheduledNotifications = onSchedule(
         const collectionName =
           typeData.quotesCollections[locale] ??
           typeData.quotesCollections["he"];
-        if (
-          typeof collectionName !== "string" ||
-          collectionName.length === 0
-        ) {
+        if (typeof collectionName !== "string" || collectionName.length === 0) {
           continue;
         }
         const quotes = quotesMap.get(collectionName);
@@ -985,8 +1007,7 @@ export const processScheduledNotifications = onSchedule(
           quoteData.male,
           quoteData.text,
         ].find(
-          (candidate): candidate is string =>
-            typeof candidate === "string",
+          (candidate): candidate is string => typeof candidate === "string",
         );
         if (quote === undefined) continue;
         body = quote;
@@ -1001,7 +1022,9 @@ export const processScheduledNotifications = onSchedule(
         candidate.localDate,
         candidate.intendedTime,
       );
-      const deliveryRef = db.collection("notification_deliveries").doc(deliveryKey);
+      const deliveryRef = db
+        .collection("notification_deliveries")
+        .doc(deliveryKey);
       const stateRef = notificationMutationStateRef(db, uid, typeId);
       const selectedSchedule = doc.data();
       sendTasks.push(() =>
@@ -1019,52 +1042,54 @@ export const processScheduledNotifications = onSchedule(
             },
           },
           {
-            create: (data) => db.runTransaction(async (transaction) => {
-              const [currentSchedule, currentState] = await Promise.all([
-                transaction.get(doc.ref),
-                transaction.get(stateRef),
-              ]);
-              if (
-                !isCurrentScheduledNotification(
-                  selectedSchedule,
-                  currentSchedule.exists ? currentSchedule.data() : undefined,
-                  currentState.exists ? currentState.data() : undefined,
-                ) || hasActiveDeliveryPermit(currentState.data())
-              ) {
-                return "notCurrent";
-              }
-              transaction.create(deliveryRef, data);
-              transaction.set(
-                stateRef,
-                {
-                  deliveryPermitKey: deliveryKey,
-                  deliveryPermitExpiresAtMillis:
-                    Timestamp.now().toMillis() +
-                    DELIVERY_PERMIT_DURATION_MILLIS,
-                },
-                { merge: true },
-              );
-              return undefined;
-            }),
+            create: (data) =>
+              db.runTransaction(async (transaction) => {
+                const [currentSchedule, currentState] = await Promise.all([
+                  transaction.get(doc.ref),
+                  transaction.get(stateRef),
+                ]);
+                if (
+                  !isCurrentScheduledNotification(
+                    selectedSchedule,
+                    currentSchedule.exists ? currentSchedule.data() : undefined,
+                    currentState.exists ? currentState.data() : undefined,
+                  ) ||
+                  hasActiveDeliveryPermit(currentState.data())
+                ) {
+                  return "notCurrent";
+                }
+                transaction.create(deliveryRef, data);
+                transaction.set(
+                  stateRef,
+                  {
+                    deliveryPermitKey: deliveryKey,
+                    deliveryPermitExpiresAtMillis:
+                      Timestamp.now().toMillis() +
+                      DELIVERY_PERMIT_DURATION_MILLIS,
+                  },
+                  { merge: true },
+                );
+                return undefined;
+              }),
             update: (data) => deliveryRef.update(data),
-            releasePermit: () => db.runTransaction(async (transaction) => {
-              const state = await transaction.get(stateRef);
-              if (state.data()?.deliveryPermitKey !== deliveryKey) return;
+            releasePermit: () =>
+              db.runTransaction(async (transaction) => {
+                const state = await transaction.get(stateRef);
+                if (state.data()?.deliveryPermitKey !== deliveryKey) return;
 
-              if (state.data()?.version === undefined) {
-                transaction.delete(stateRef);
-                return;
-              }
-              transaction.set(
-                stateRef,
-                {
-                  deliveryPermitKey: FieldValue.delete(),
-                  deliveryPermitExpiresAtMillis:
-                    FieldValue.delete(),
-                },
-                { merge: true },
-              );
-            }),
+                if (state.data()?.version === undefined) {
+                  transaction.delete(stateRef);
+                  return;
+                }
+                transaction.set(
+                  stateRef,
+                  {
+                    deliveryPermitKey: FieldValue.delete(),
+                    deliveryPermitExpiresAtMillis: FieldValue.delete(),
+                  },
+                  { merge: true },
+                );
+              }),
           },
           async (message) => {
             try {
@@ -1091,11 +1116,13 @@ export const processScheduledNotifications = onSchedule(
       start < sendTasks.length;
       start += DELIVERY_SEND_BATCH_SIZE
     ) {
-      results.push(...await Promise.allSettled(
-        sendTasks
-          .slice(start, start + DELIVERY_SEND_BATCH_SIZE)
-          .map((task) => task()),
-      ));
+      results.push(
+        ...(await Promise.allSettled(
+          sendTasks
+            .slice(start, start + DELIVERY_SEND_BATCH_SIZE)
+            .map((task) => task()),
+        )),
+      );
     }
     let successCount = 0;
     let failureCount = 0;
@@ -1131,7 +1158,8 @@ export const processScheduledNotifications = onSchedule(
     const staleDevicesCleaned = staleCleanupResults.filter(
       (result) => result.status === "fulfilled",
     ).length;
-    const staleCleanupFailedCount = staleCleanupResults.length - staleDevicesCleaned;
+    const staleCleanupFailedCount =
+      staleCleanupResults.length - staleDevicesCleaned;
 
     logger.info(
       "processScheduledNotifications",
@@ -1149,6 +1177,5 @@ export const processScheduledNotifications = onSchedule(
         recoveryWindow,
       ),
     );
-
   },
 );

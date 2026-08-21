@@ -29,6 +29,10 @@ class FcmService {
   static Future<void> Function()? debugInitializeLocalNotificationsOverride;
 
   @visibleForTesting
+  static Future<void> Function(int notificationId)?
+  debugCancelLegacyLocalNotificationOverride;
+
+  @visibleForTesting
   static Future<String?> Function()? debugGetApnsTokenOverride;
 
   @visibleForTesting
@@ -55,6 +59,7 @@ class FcmService {
     debugRequestPermissionOverride = null;
     debugGetNotificationSettingsOverride = null;
     debugInitializeLocalNotificationsOverride = null;
+    debugCancelLegacyLocalNotificationOverride = null;
     debugGetApnsTokenOverride = null;
     debugGetTokenOverride = null;
     debugGetCurrentUserIdOverride = null;
@@ -101,6 +106,11 @@ class FcmService {
   }
 
   static Future<void> cancelLegacyLocalNotification(int notificationId) async {
+    final override = debugCancelLegacyLocalNotificationOverride;
+    if (override != null) {
+      await override(notificationId);
+      return;
+    }
     if (kIsWeb || defaultTargetPlatform != TargetPlatform.android) return;
     await _localNotifications.cancel(id: notificationId);
   }

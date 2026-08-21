@@ -403,7 +403,30 @@ class _MyAppState extends State<MyApp> with WidgetsBindingObserver {
       localeService.setLocale(locale);
       localeName = localeService.getLocale();
     });
-    service.setItem("localeName", PersistentMemoryType.String, locale);
+    unawaited(
+      Future<void>.sync(
+        () => service.setItem(
+          'localeName',
+          PersistentMemoryType.String,
+          locale,
+        ),
+      ).catchError((Object error, StackTrace stackTrace) {
+        if (!GetIt.instance.isRegistered<IncidentLoggerService>()) {
+          debugPrint('Locale persistence failed: $error');
+          return;
+        }
+        unawaited(
+          Future<void>.sync(
+            () => GetIt.instance<IncidentLoggerService>().captureLog(
+              error,
+              stackTrace: stackTrace,
+            ),
+          ).catchError((Object loggerError, StackTrace loggerStackTrace) {
+            debugPrint('Locale persistence failure reporting failed: $loggerError');
+          }),
+        );
+      }),
+    );
     final userInfoProvider = Provider.of<UserInformation>(
       context,
       listen: false,

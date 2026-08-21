@@ -26,21 +26,26 @@ class SharedPreferencesService implements PersistentMemoryService {
     }
 
     try {
-      var prefs = await SharedPreferences.getInstance();
+      final prefs = await SharedPreferences.getInstance();
+      late final bool persisted;
       switch (type) {
         case PersistentMemoryType.String:
-          prefs.setString(key, value);
+          persisted = await prefs.setString(key, value);
         case PersistentMemoryType.Int:
-          prefs.setInt(key, value);
+          persisted = await prefs.setInt(key, value);
         case PersistentMemoryType.Double:
-          prefs.setDouble(key, value);
+          persisted = await prefs.setDouble(key, value);
         case PersistentMemoryType.Bool:
-          prefs.setBool(key, value);
+          persisted = await prefs.setBool(key, value);
         case PersistentMemoryType.StringList:
-          prefs.setStringList(key, List<String>.from(value));
+          persisted = await prefs.setStringList(key, List<String>.from(value));
+      }
+      if (!persisted) {
+        throw StateError('SharedPreferences write returned false for $key');
       }
     } catch (error, stackTrace) {
       loggerService.captureLog(error, stackTrace: stackTrace);
+      rethrow;
     }
   }
 

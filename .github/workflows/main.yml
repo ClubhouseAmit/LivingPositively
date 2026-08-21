@@ -3,6 +3,7 @@ on:
   pull_request:
     branches:
       - main
+      - feature/basic-fcm-setup
   push:
     branches:
       - main
@@ -40,8 +41,8 @@ jobs:
         run: npm test
 
       - name: Audit production dependencies
-        # Residual moderate-only uuid advisory rationale: functions/SECURITY.md
-        run: npm audit --omit=dev --audit-level=high
+        # Production deployment must remain free of known audit findings.
+        run: npm audit --omit=dev --audit-level=low
 
   build-android:
     runs-on: ubuntu-latest

@@ -3,6 +3,7 @@ import 'dart:async';
 import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:get_it/get_it.dart';
+import 'package:mazilon/global_enums.dart';
 import 'package:mazilon/util/logger_service.dart';
 import 'package:mazilon/util/persistent_memory_service.dart';
 import 'package:shared_preferences/shared_preferences.dart';
@@ -65,6 +66,45 @@ void main() {
           }
         });
   }
+
+  void installSetBoolResult(Object? setBoolResult) {
+    TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger
+        .setMockMethodCallHandler(_sharedPreferencesChannel, (call) async {
+          switch (call.method) {
+            case 'getAll':
+              return <String, Object>{};
+            case 'setBool':
+              if (setBoolResult is Exception) {
+                throw setBoolResult;
+              }
+              return setBoolResult;
+            default:
+              throw PlatformException(
+                code: 'unexpected_method',
+                message: call.method,
+              );
+          }
+        });
+  }
+
+  test('setItem rejects a real SharedPreferences write failure', () async {
+    installSetBoolResult(
+      PlatformException(code: 'set_failed', message: 'disk unavailable'),
+    );
+
+    await expectLater(
+      SharedPreferencesService()
+          .setItem('fcmDefaultReminderMigrated', PersistentMemoryType.Bool, true)
+          .timeout(const Duration(seconds: 1)),
+      throwsA(
+        isA<PlatformException>().having(
+          (error) => error.code,
+          'code',
+          'set_failed',
+        ),
+      ),
+    );
+  });
 
   test('reset rejects a false SharedPreferences clear result', () async {
     installClearResult(false);

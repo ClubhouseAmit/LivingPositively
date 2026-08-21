@@ -1,0 +1,6 @@
+// Copy this file to GoogleSignIn.xcconfig. Do not commit the populated copy.
+// Copy CLIENT_ID and REVERSED_CLIENT_ID from the GoogleService-Info.plist for
+// com.clubhouse.livingpositively, and use the Web OAuth client for the server.
+GOOGLE_SIGN_IN_IOS_CLIENT_ID = YOUR_IOS_CLIENT_ID.apps.googleusercontent.com
+GOOGLE_SIGN_IN_IOS_REVERSED_CLIENT_ID = com.googleusercontent.apps.YOUR_IOS_CLIENT_ID
+GOOGLE_SIGN_IN_SERVER_CLIENT_ID = YOUR_WEB_CLIENT_ID.apps.googleusercontent.com

@@ -5,12 +5,14 @@ Do not commit OAuth client IDs, Apple private keys, APNs keys, or other provider
 credentials to the repository. Supply build defines from the release environment
 or CI secret store.
 
-## Google sign-in on Android
+## Google sign-in on Android and iOS
 
-The Google button is available only on Android and only when
-`GOOGLE_SIGN_IN_SERVER_CLIENT_ID` is a nonempty value. Use the OAuth 2.0 **Web
+Google sign-in is available on Android when
+`GOOGLE_SIGN_IN_SERVER_CLIENT_ID` is nonempty. On iOS it additionally requires
+`GOOGLE_SIGN_IN_IOS_CLIENT_ID`, the client ID registered for
+`com.clubhouse.livingpositively`. The server client ID is the OAuth 2.0 **Web
 application** client ID that Firebase Authentication expects as the Google ID
-token audience; do not use an Android OAuth client ID.
+token audience; do not use an Android or iOS OAuth client ID in its place.
 
 Before enabling it:
 
@@ -21,17 +23,32 @@ Before enabling it:
    `com.example.mezilon` is not the OAuth application ID.
 3. Create or select the matching Web OAuth client in the same Google Cloud /
    Firebase project and configure the OAuth consent screen.
-4. Inject the client ID when building. For example:
+4. For iOS, register `com.clubhouse.livingpositively` as an iOS app in the
+   Firebase project, enable Google in Firebase Authentication, and download
+   its current `GoogleService-Info.plist`. The checked-in FlutterFire options
+   identify `com.example.mezilon`, so regenerate the local Firebase options
+   from the newly registered iOS app before building.
+5. For iOS, copy
+   `ios/Flutter/GoogleSignIn.xcconfig.example` to the ignored
+   `ios/Flutter/GoogleSignIn.xcconfig` and fill its three values from the
+   registered iOS app: `CLIENT_ID`, `REVERSED_CLIENT_ID`, and the Web OAuth
+   client ID. The native plist uses those values for `GIDClientID`,
+   `GIDServerClientID`, and the required URL callback scheme.
+6. Inject the required Dart defines when building. For example:
 
    ```shell
-   flutter build appbundle --dart-define=GOOGLE_SIGN_IN_SERVER_CLIENT_ID=YOUR_WEB_OAUTH_CLIENT_ID.apps.googleusercontent.com
+   flutter build ipa \
+     --dart-define=GOOGLE_SIGN_IN_SERVER_CLIENT_ID=YOUR_WEB_OAUTH_CLIENT_ID.apps.googleusercontent.com \
+     --dart-define=GOOGLE_SIGN_IN_IOS_CLIENT_ID=YOUR_IOS_CLIENT_ID.apps.googleusercontent.com
    ```
 
 For the production Android pipeline, set the repository Actions secret named
 `GOOGLE_SIGN_IN_SERVER_CLIENT_ID`. The `main` App Bundle build passes it as a
 `--dart-define` and fails before release if the secret is empty or whitespace.
 
-An omitted or whitespace-only value intentionally hides the Google button.
+An omitted or whitespace-only required value intentionally hides the Google
+button. The native URL scheme remains required even when the Dart client ID is
+present.
 
 ## Sign in with Apple on iOS
 
@@ -65,14 +82,18 @@ Before enabling it:
    flutter build ipa --dart-define=APPLE_SIGN_IN_ENABLED="$APPLE_SIGN_IN_ENABLED"
    ```
 
-The committed entitlements declare both capabilities, but they do not replace
-Apple Developer, provisioning-profile, or Firebase Console configuration. An
-omitted or false flag intentionally hides the Apple button.
+The release owner accepts this documented manual iOS release procedure. There
+is no checked-in IPA/archive workflow that can enforce the flag, so each iOS
+release operator must run the guard before archiving. The committed entitlements
+declare both capabilities, but they do not replace Apple Developer,
+provisioning-profile, or Firebase Console configuration. An omitted or false
+flag intentionally hides the Apple button.
 
 ## Verification before rollout
 
 - Install a signed build that uses the production signing identity and profile.
 - On Android, complete Google sign-in with a new account and an existing account.
-- On iOS, complete Apple sign-in with a new account and an existing account.
+- On iOS, complete Google and Apple sign-in with a new account and an existing
+  account.
 - Confirm Firebase Authentication records the expected provider.
 - On a physical iOS device, confirm APNs registration and one FCM delivery.

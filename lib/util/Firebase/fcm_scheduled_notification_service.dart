@@ -2,7 +2,7 @@ import 'dart:convert';
 
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/foundation.dart'
-    show TargetPlatform, defaultTargetPlatform;
+    show TargetPlatform, defaultTargetPlatform, visibleForTesting;
 import 'package:flutter/material.dart';
 import 'package:get_it/get_it.dart';
 import 'package:http/http.dart' as http;
@@ -28,15 +28,20 @@ class FcmScheduledNotificationService {
   static const String _legacyDefaultReminderMigrationKey =
       'fcmDefaultReminderMigrated';
   static const Duration _networkTimeout = Duration(seconds: 15);
+  static const Duration _legacyMigrationOperationTimeout = Duration(seconds: 5);
   static Future<void>? _operationQueue;
   static bool _legacyMigrationDisabled = false;
   static int _resetEpoch = 0;
+
+  @visibleForTesting
+  static NotificationHttpPost? debugPostOverride;
 
   @visibleForTesting
   static void resetForTesting() {
     _operationQueue = null;
     _legacyMigrationDisabled = false;
     _resetEpoch = 0;
+    debugPostOverride = null;
   }
 
   static void _log(String message) =>
@@ -98,10 +103,12 @@ class FcmScheduledNotificationService {
       final memory =
           persistentMemory ?? GetIt.instance<PersistentMemoryService>();
       final migrated =
-          await memory.getItem(
-            _legacyDefaultReminderMigrationKey,
-            PersistentMemoryType.Bool,
-          ) ??
+          await memory
+              .getItem(
+                _legacyDefaultReminderMigrationKey,
+                PersistentMemoryType.Bool,
+              )
+              .timeout(_legacyMigrationOperationTimeout) ??
           false;
       if (migrated == true ||
           _legacyMigrationDisabled ||
@@ -122,12 +129,15 @@ class FcmScheduledNotificationService {
       );
       if (registered) {
         await (legacyNotificationCanceller ??
-            FcmService.cancelLegacyLocalNotification)(legacyNotificationId);
-        await memory.setItem(
-          _legacyDefaultReminderMigrationKey,
-          PersistentMemoryType.Bool,
-          true,
-        );
+                FcmService.cancelLegacyLocalNotification)(legacyNotificationId)
+            .timeout(_legacyMigrationOperationTimeout);
+        await memory
+            .setItem(
+              _legacyDefaultReminderMigrationKey,
+              PersistentMemoryType.Bool,
+              true,
+            )
+            .timeout(_legacyMigrationOperationTimeout);
       }
     });
   }
@@ -135,14 +145,12 @@ class FcmScheduledNotificationService {
   static Future<NotificationPreference?> _legacyDefaultReminderPreference(
     PersistentMemoryService memory,
   ) async {
-    final legacyHour = await memory.getItem(
-      'notificationHour',
-      PersistentMemoryType.Int,
-    );
-    final legacyMinute = await memory.getItem(
-      'notificationMinute',
-      PersistentMemoryType.Int,
-    );
+    final legacyHour = await memory
+        .getItem('notificationHour', PersistentMemoryType.Int)
+        .timeout(_legacyMigrationOperationTimeout);
+    final legacyMinute = await memory
+        .getItem('notificationMinute', PersistentMemoryType.Int)
+        .timeout(_legacyMigrationOperationTimeout);
     final hasValidLegacyTime =
         legacyHour is int &&
         legacyHour >= 0 &&
@@ -221,8 +229,12 @@ class FcmScheduledNotificationService {
     Future<String?> Function()? idTokenProvider,
     NotificationHttpPost? post,
     required int resetEpoch,
+    bool allowUnsupportedPlatform = false,
+    bool persistLocalPreference = true,
   }) async {
-    if (!FcmService.supportsReminderSettings()) return false;
+    if (!allowUnsupportedPlatform && !FcmService.supportsReminderSettings()) {
+      return false;
+    }
     if (resetEpoch != _resetEpoch) return false;
     _log(
       'Registering notification: typeId=$typeId, hour=$hour, minute=$minute',
@@ -250,7 +262,7 @@ class FcmScheduledNotificationService {
       if (expectedMutationVersion == null || resetEpoch != _resetEpoch) {
         return false;
       }
-      final response = await (post ?? http.post)(
+      final response = await (post ?? debugPostOverride ?? http.post)(
         Uri.parse('$_functionsBaseUrl/registerNotification'),
         headers: {
           'Authorization': 'Bearer $idToken',
@@ -268,19 +280,43 @@ class FcmScheduledNotificationService {
 
       if (response.statusCode == 200) {
         _log('Notification registered successfully.');
-        if (userInformation != null) {
-          userInfo.setNotificationPreference(
+        if (!persistLocalPreference) return true;
+        final previousPreference = userInfo.getNotificationPreference(typeId);
+        try {
+          await userInfo
+              .setNotificationPreference(
+                typeId,
+                NotificationPreference(hour: hour, minute: minute),
+              )
+              .timeout(_legacyMigrationOperationTimeout);
+        } catch (error) {
+          _log('Unable to persist registered notification: $error');
+          await _restoreLocalNotificationPreference(
+            userInfo,
             typeId,
-            NotificationPreference(hour: hour, minute: minute),
+            previousPreference,
           );
-        } else if (context!.mounted) {
-          Provider.of<UserInformation>(
-            context,
-            listen: false,
-          ).setNotificationPreference(
-            typeId,
-            NotificationPreference(hour: hour, minute: minute),
-          );
+          final compensated = previousPreference == null
+              ? await _cancelRemoteNotification(
+                  idToken: idToken,
+                  typeId: typeId,
+                  post: post,
+                )
+              : await _registerNotification(
+                  userInformation: userInfo,
+                  typeId: typeId,
+                  hour: previousPreference.hour,
+                  minute: previousPreference.minute,
+                  idTokenProvider: () async => idToken,
+                  post: post,
+                  resetEpoch: resetEpoch,
+                  allowUnsupportedPlatform: true,
+                  persistLocalPreference: false,
+                );
+          if (!compensated) {
+            _log('Unable to compensate a notification registration failure.');
+          }
+          return false;
         }
         return true;
       } else {
@@ -295,12 +331,62 @@ class FcmScheduledNotificationService {
     }
   }
 
-  // Cancels the scheduled notification for the given type (deletes Firestore doc).
-  // Returns true on success.
+  static Future<bool> _cancelRemoteNotification({
+    required String idToken,
+    required String typeId,
+    NotificationHttpPost? post,
+  }) async {
+    try {
+      final expectedMutationVersion = await _getNotificationMutationVersion(
+        idToken: idToken,
+        typeId: typeId,
+        post: post,
+      );
+      if (expectedMutationVersion == null) return false;
+      final response = await (post ?? debugPostOverride ?? http.post)(
+        Uri.parse('$_functionsBaseUrl/cancelNotification'),
+        headers: {
+          'Authorization': 'Bearer $idToken',
+          'Content-Type': 'application/json',
+        },
+        body: jsonEncode({
+          'typeId': typeId,
+          'expectedMutationVersion': expectedMutationVersion,
+        }),
+      ).timeout(_networkTimeout);
+      return response.statusCode == 200;
+    } catch (error) {
+      _log('Unable to compensate a notification registration failure: $error');
+      return false;
+    }
+  }
+
+  static Future<bool> _restoreLocalNotificationPreference(
+    UserInformation userInformation,
+    String typeId,
+    NotificationPreference? preference,
+  ) async {
+    try {
+      final write = preference == null
+          ? userInformation.clearNotificationPreference(typeId)
+          : userInformation.setNotificationPreference(typeId, preference);
+      await write.timeout(_legacyMigrationOperationTimeout);
+      return true;
+    } catch (error) {
+      _log('Unable to restore a local notification preference: $error');
+      return false;
+    }
+  }
+
+  /// Cancels the scheduled notification for the given type.
+  ///
+  /// Set [requireNoActiveDeliveryPermit] for actions, such as sign-out, that
+  /// must not complete after the scheduler has claimed a delivery.
   static Future<bool> cancelNotification({
     BuildContext? context,
     UserInformation? userInformation,
     required String typeId,
+    bool requireNoActiveDeliveryPermit = false,
     Future<String?> Function()? idTokenProvider,
     NotificationHttpPost? post,
   }) {
@@ -317,6 +403,7 @@ class FcmScheduledNotificationService {
         idTokenProvider: idTokenProvider,
         post: post,
         resetEpoch: resetEpoch,
+        resetFence: requireNoActiveDeliveryPermit,
       ),
     );
   }
@@ -341,6 +428,7 @@ class FcmScheduledNotificationService {
         idTokenProvider: idTokenProvider,
         post: post,
         resetEpoch: resetEpoch,
+        allowUnsupportedPlatform: true,
       ),
     );
   }
@@ -374,6 +462,39 @@ class FcmScheduledNotificationService {
     });
   }
 
+  /// Retires every form of the default reminder before the account signs out.
+  static Future<bool> cancelDefaultForSignOut({
+    required UserInformation userInformation,
+    Future<String?> Function()? idTokenProvider,
+    NotificationHttpPost? post,
+    Future<void> Function(int notificationId)? legacyNotificationCanceller,
+  }) {
+    _legacyMigrationDisabled = true;
+    _resetEpoch++;
+    final resetEpoch = _resetEpoch;
+    return _enqueue(() async {
+      try {
+        final cancelled = await _cancelNotification(
+          userInformation: userInformation,
+          typeId: 'default',
+          idTokenProvider: idTokenProvider,
+          post: post,
+          resetEpoch: resetEpoch,
+          resetFence: true,
+          legacyNotificationCanceller: legacyNotificationCanceller,
+        );
+        if (!cancelled) {
+          _legacyMigrationDisabled = false;
+        }
+        return cancelled;
+      } catch (error) {
+        _legacyMigrationDisabled = false;
+        _log('sign-out reminder cancellation error: $error');
+        return false;
+      }
+    });
+  }
+
   static Future<bool> _cancelNotification({
     BuildContext? context,
     UserInformation? userInformation,
@@ -382,14 +503,21 @@ class FcmScheduledNotificationService {
     NotificationHttpPost? post,
     required int resetEpoch,
     bool resetFence = false,
+    Future<void> Function(int notificationId)? legacyNotificationCanceller,
   }) async {
-    if (!FcmService.supportsReminderSettings()) return false;
     if (resetEpoch != _resetEpoch) return false;
     _log('Cancelling notification: typeId=$typeId');
     final userInfo =
         userInformation ??
         Provider.of<UserInformation>(context!, listen: false);
+    final previousPreference = userInfo.getNotificationPreference(typeId);
     try {
+      if (typeId == 'default') {
+        await _cancelLegacyDefaultReminder(
+          userInfo,
+          legacyNotificationCanceller: legacyNotificationCanceller,
+        );
+      }
       final idToken = await (idTokenProvider ?? _getIdToken)().timeout(
         _networkTimeout,
       );
@@ -403,7 +531,7 @@ class FcmScheduledNotificationService {
       if (expectedMutationVersion == null || resetEpoch != _resetEpoch) {
         return false;
       }
-      final response = await (post ?? http.post)(
+      final response = await (post ?? debugPostOverride ?? http.post)(
         Uri.parse('$_functionsBaseUrl/cancelNotification'),
         headers: {
           'Authorization': 'Bearer $idToken',
@@ -419,9 +547,64 @@ class FcmScheduledNotificationService {
       if (response.statusCode == 200) {
         _log('Notification cancelled successfully.');
         if (typeId == 'default') {
-          await _markLegacyDefaultReminderHandled(userInfo);
+          final legacyReminderHandled = await _markLegacyDefaultReminderHandled(
+            userInfo,
+          );
+          if (!legacyReminderHandled) {
+            if (previousPreference != null) {
+              final restoredRemotely = await _registerNotification(
+                userInformation: userInfo,
+                typeId: typeId,
+                hour: previousPreference.hour,
+                minute: previousPreference.minute,
+                idTokenProvider: () async => idToken,
+                post: post,
+                resetEpoch: resetEpoch,
+                allowUnsupportedPlatform: true,
+                persistLocalPreference: false,
+              );
+              if (!restoredRemotely) {
+                _log(
+                  'Unable to compensate a failed legacy reminder cancellation.',
+                );
+              }
+            }
+            return false;
+          }
         }
-        userInfo.clearNotificationPreference(typeId);
+        try {
+          await userInfo
+              .clearNotificationPreference(typeId)
+              .timeout(_legacyMigrationOperationTimeout);
+        } catch (error) {
+          _log('Unable to persist cancelled notification: $error');
+          final restoredLocally = await _restoreLocalNotificationPreference(
+            userInfo,
+            typeId,
+            previousPreference,
+          );
+          if (previousPreference != null) {
+            final restoredRemotely = await _registerNotification(
+              userInformation: userInfo,
+              typeId: typeId,
+              hour: previousPreference.hour,
+              minute: previousPreference.minute,
+              idTokenProvider: () async => idToken,
+              post: post,
+              resetEpoch: resetEpoch,
+              allowUnsupportedPlatform: true,
+            );
+            if (!restoredRemotely) {
+              _log('Unable to compensate a notification cancellation failure.');
+            }
+          }
+          if (!restoredLocally) {
+            _log(
+              'Unable to restore local notification state after cancellation.',
+            );
+          }
+          return false;
+        }
         return true;
       } else {
         _log(
@@ -435,18 +618,46 @@ class FcmScheduledNotificationService {
     }
   }
 
-  static Future<void> _markLegacyDefaultReminderHandled(
+  static Future<bool> _markLegacyDefaultReminderHandled(
     UserInformation userInformation,
   ) async {
     try {
-      await userInformation.service.setItem(
-        _legacyDefaultReminderMigrationKey,
-        PersistentMemoryType.Bool,
-        true,
-      );
+      await userInformation.service
+          .setItem(
+            _legacyDefaultReminderMigrationKey,
+            PersistentMemoryType.Bool,
+            true,
+          )
+          .timeout(_legacyMigrationOperationTimeout);
+      return true;
     } catch (error) {
       _log('Unable to persist legacy reminder cancellation: $error');
+      return false;
     }
+  }
+
+  static Future<void> _cancelLegacyDefaultReminder(
+    UserInformation userInformation, {
+    Future<void> Function(int notificationId)? legacyNotificationCanceller,
+  }) async {
+    final memory = userInformation.service;
+    final migrated =
+        await memory
+            .getItem(
+              _legacyDefaultReminderMigrationKey,
+              PersistentMemoryType.Bool,
+            )
+            .timeout(_legacyMigrationOperationTimeout) ??
+        false;
+    if (migrated == true) return;
+
+    final legacyPreference = await _legacyDefaultReminderPreference(memory);
+    if (legacyPreference == null) return;
+    await (legacyNotificationCanceller ??
+            FcmService.cancelLegacyLocalNotification)(
+          _legacyLocalNotificationId(legacyPreference),
+        )
+        .timeout(_legacyMigrationOperationTimeout);
   }
 
   static Future<int?> _getNotificationMutationVersion({
@@ -455,7 +666,7 @@ class FcmScheduledNotificationService {
     NotificationHttpPost? post,
   }) async {
     try {
-      final response = await (post ?? http.post)(
+      final response = await (post ?? debugPostOverride ?? http.post)(
         Uri.parse('$_functionsBaseUrl/getNotificationMutationVersion'),
         headers: {
           'Authorization': 'Bearer $idToken',
