@@ -8,13 +8,47 @@ import 'package:mazilon/util/appInformation.dart';
 import 'package:mazilon/util/logger_service.dart';
 import 'package:mazilon/util/userInformation.dart';
 
+Future<String?>? _activePersonalPlanDownload;
+
 /// Downloads the Personal Plan PDF export after stabilizing persistence state,
 /// notifying the user of success or failure through standard toast feedback.
 ///
 /// Preparation and download errors are caught, logged via [IncidentLoggerService],
 /// and reported via the [AppLocalizations.downloadFailed] error toast.
 /// User cancellation or unsupported platform outcomes return `null` without an error toast.
+///
+/// Overlapping concurrent calls join the existing in-flight download operation to prevent
+/// duplicate file generations and repeated toasts.
 Future<String?> downloadPersonalPlanFile({
+  required AppLocalizations appLocale,
+  required String gender,
+  required String username,
+  required AppInformation appInformation,
+  UserInformation? userInformation,
+  FileService? fileService,
+}) async {
+  if (_activePersonalPlanDownload != null) {
+    return await _activePersonalPlanDownload;
+  }
+  final downloadFuture = _executeDownloadPersonalPlanFile(
+    appLocale: appLocale,
+    gender: gender,
+    username: username,
+    appInformation: appInformation,
+    userInformation: userInformation,
+    fileService: fileService,
+  );
+  _activePersonalPlanDownload = downloadFuture;
+  try {
+    return await downloadFuture;
+  } finally {
+    if (identical(_activePersonalPlanDownload, downloadFuture)) {
+      _activePersonalPlanDownload = null;
+    }
+  }
+}
+
+Future<String?> _executeDownloadPersonalPlanFile({
   required AppLocalizations appLocale,
   required String gender,
   required String username,

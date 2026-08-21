@@ -52,6 +52,7 @@ class _TestFileService implements FileService {
   final List<String> callLog = <String>[];
   String? downloadResult = '/path/to/downloaded/file.pdf';
   bool throwOnAction = false;
+  Completer<void>? pendingDownloadCompleter;
 
   @override
   Future<ShareResult?> share(
@@ -81,6 +82,9 @@ class _TestFileService implements FileService {
   }) async {
     if (throwOnAction) {
       throw StateError('Download failed');
+    }
+    if (pendingDownloadCompleter != null) {
+      await pendingDownloadCompleter!.future;
     }
     callLog.add('download');
     return downloadResult;
@@ -180,9 +184,9 @@ void main() {
         .setMockMethodCallHandler(toastChannel, null);
   });
 
-  group('Personal Plan export entry points preparation and stabilization', () {
+  group('preparePersonalPlanExport', () {
     test(
-      'preparePersonalPlanExport awaits pending saves and repairs unaligned sources',
+      'should await pending saves and repair unaligned sources',
       () async {
         // Setup initial unaligned sources (legacy state: 2 selections, 1 source)
         userInformation.updateDreamsAndGoals(
@@ -208,36 +212,11 @@ void main() {
         );
       },
     );
+  });
 
-    test(
-      'Entry point 1: LPShareAlertDialog shareFile awaits pending saves before sharing',
-      () async {
-        userInformation.updateDreamsAndGoals(
-          ['Goal 1', 'Goal 2'],
-          selectionSources: ['custom', 'custom'],
-        );
-
-        final localizations = await AppLocalizations.delegate.load(
-          const Locale('en'),
-        );
-
-        final result = await shareFile(
-          localizations,
-          userInformation.gender,
-          userInformation.name,
-          appInformation,
-          userInformation: userInformation,
-          fileService: fileService,
-        );
-
-        expect(result?.status, ShareResultStatus.success);
-        expect(fileService.callLog, contains('share'));
-        expect(userInformation.dreamsAndGoalsSelectionSources.length, 2);
-      },
-    );
-
+  group('Personal Plan UI entry points', () {
     testWidgets(
-      'Entry point 2: personalPlanWidget header download awaits pending saves and repairs sources',
+      'header download button should await pending saves and repair sources',
       (WidgetTester tester) async {
         userInformation.updateDreamsAndGoals(
           ['Goal 1', 'Goal 2'],
@@ -276,7 +255,7 @@ void main() {
     );
 
     testWidgets(
-      'Entry point 3: personal_plan_section menu download awaits pending saves and repairs sources',
+      'section menu download option should await pending saves and repair sources',
       (WidgetTester tester) async {
         userInformation.updateDreamsAndGoals(
           ['Goal 1', 'Goal 2'],
@@ -315,7 +294,7 @@ void main() {
     );
 
     testWidgets(
-      'Entry point 4: phone.dart SOS personal plan crisis share awaits pending saves and repairs sources',
+      'phone page personal plan button should await pending saves and repair sources',
       (WidgetTester tester) async {
         userInformation.updateDreamsAndGoals(
           ['Goal 1', 'Goal 2'],
@@ -369,8 +348,214 @@ void main() {
       },
     );
 
+    testWidgets(
+      'overlapping header and section menu activations should trigger FileService.download only once',
+      (WidgetTester tester) async {
+        final completer = Completer<void>();
+        fileService.pendingDownloadCompleter = completer;
+
+        userInformation.updateDreamsAndGoals(
+          ['Goal 1', 'Goal 2'],
+          selectionSources: ['custom', 'custom'],
+        );
+
+        await pumpWithProviders(
+          tester,
+          Scaffold(
+            body: Column(
+              children: [
+                PersonalPlanWidget(
+                  text: const <String, dynamic>{
+                    'SubTitle': 'Test Subtitle',
+                    'list': ['Item 1', 'Item 2'],
+                  },
+                  changeCurrentIndex: (_, _) {},
+                ),
+                PersonalPlanSectionWidget(
+                  items: const ['Item 1', 'Item 2'],
+                  onSeeAll: () {},
+                ),
+              ],
+            ),
+          ),
+          userInformation: userInformation,
+          appInformation: appInformation,
+          surfaceSize: const Size(800, 1600),
+        );
+        await tester.pumpAndSettle();
+
+        final downloadIcon = find.byKey(
+          const Key('personalPlanHeaderDownload'),
+        );
+        final menuButton = find.byKey(
+          const Key('personalPlanHeaderMenu'),
+        );
+        expect(downloadIcon, findsOneWidget);
+        expect(menuButton, findsOneWidget);
+
+        await tester.runAsync(() async {
+          final button = tester.widget<IconButton>(downloadIcon);
+          button.onPressed!();
+
+          final menu = tester.widget<PopupMenuButton<String>>(menuButton);
+          menu.onSelected!('download');
+
+          await Future<void>.delayed(const Duration(milliseconds: 50));
+          completer.complete();
+          await Future<void>.delayed(const Duration(milliseconds: 50));
+        });
+        await tester.pumpAndSettle();
+
+        expect(
+          fileService.callLog.where((call) => call == 'download').length,
+          1,
+        );
+        expect(toastCalls.length, 1);
+      },
+    );
+  });
+
+  group('downloadPersonalPlanFile', () {
     test(
-      'downloadPersonalPlanFile catches preparation persistence failure, logs telemetry, and shows failure toast',
+      'should return path, log no errors, and show finished toast on success',
+      () async {
+        fileService.downloadResult = '/saved/plan.pdf';
+        userInformation.updateDreamsAndGoals(
+          ['Goal 1', 'Goal 2'],
+          selectionSources: ['custom', 'custom'],
+        );
+
+        final localizations = await AppLocalizations.delegate.load(
+          const Locale('en'),
+        );
+
+        final result = await downloadPersonalPlanFile(
+          appLocale: localizations,
+          gender: userInformation.gender,
+          username: userInformation.name,
+          appInformation: appInformation,
+          userInformation: userInformation,
+          fileService: fileService,
+        );
+
+        expect(result, '/saved/plan.pdf');
+        expect(fileService.callLog, contains('download'));
+        expect(loggerService.capturedLogs, isEmpty);
+        expect(loggerService.eventOrder, equals(['showToast']));
+        expect(toastCalls, contains(localizations.finishedDownloading('male')));
+      },
+    );
+
+    test(
+      'should deduplicate concurrent in-flight downloads and call FileService once',
+      () async {
+        final completer = Completer<void>();
+        fileService.pendingDownloadCompleter = completer;
+        fileService.downloadResult = '/saved/plan.pdf';
+
+        userInformation.updateDreamsAndGoals(
+          ['Goal 1', 'Goal 2'],
+          selectionSources: ['custom', 'custom'],
+        );
+
+        final localizations = await AppLocalizations.delegate.load(
+          const Locale('en'),
+        );
+
+        final future1 = downloadPersonalPlanFile(
+          appLocale: localizations,
+          gender: userInformation.gender,
+          username: userInformation.name,
+          appInformation: appInformation,
+          userInformation: userInformation,
+          fileService: fileService,
+        );
+
+        final future2 = downloadPersonalPlanFile(
+          appLocale: localizations,
+          gender: userInformation.gender,
+          username: userInformation.name,
+          appInformation: appInformation,
+          userInformation: userInformation,
+          fileService: fileService,
+        );
+
+        completer.complete();
+        final results = await Future.wait([future1, future2]);
+
+        expect(results[0], '/saved/plan.pdf');
+        expect(results[1], '/saved/plan.pdf');
+        expect(
+          fileService.callLog.where((call) => call == 'download').length,
+          1,
+        );
+        expect(loggerService.capturedLogs, isEmpty);
+        expect(toastCalls, hasLength(1));
+        expect(toastCalls.first, localizations.finishedDownloading('male'));
+      },
+    );
+
+    test(
+      'should return path and suppress toast exception when toast channel throws on success',
+      () async {
+        throwOnToast = true;
+        fileService.downloadResult = '/saved/plan.pdf';
+        userInformation.updateDreamsAndGoals(
+          ['Goal 1', 'Goal 2'],
+          selectionSources: ['custom', 'custom'],
+        );
+
+        final localizations = await AppLocalizations.delegate.load(
+          const Locale('en'),
+        );
+
+        final result = await downloadPersonalPlanFile(
+          appLocale: localizations,
+          gender: userInformation.gender,
+          username: userInformation.name,
+          appInformation: appInformation,
+          userInformation: userInformation,
+          fileService: fileService,
+        );
+
+        expect(result, '/saved/plan.pdf');
+        expect(fileService.callLog, contains('download'));
+        expect(loggerService.capturedLogs, isEmpty);
+        expect(loggerService.eventOrder, equals(['showToast']));
+      },
+    );
+
+    test(
+      'should return null without failure toast when user cancels download',
+      () async {
+        fileService.downloadResult = null;
+        userInformation.updateDreamsAndGoals(
+          ['Goal 1', 'Goal 2'],
+          selectionSources: ['custom', 'custom'],
+        );
+
+        final localizations = await AppLocalizations.delegate.load(
+          const Locale('en'),
+        );
+
+        final result = await downloadPersonalPlanFile(
+          appLocale: localizations,
+          gender: userInformation.gender,
+          username: userInformation.name,
+          appInformation: appInformation,
+          userInformation: userInformation,
+          fileService: fileService,
+        );
+
+        expect(result, isNull);
+        expect(fileService.callLog, contains('download'));
+        expect(loggerService.capturedLogs, isEmpty);
+        expect(toastCalls, isEmpty);
+      },
+    );
+
+    test(
+      'should catch preparation persistence failure, log telemetry, and show failure toast',
       () async {
         memoryService.throwOnWrite = true;
         userInformation.dreamsAndGoals = ['Goal 1', 'Goal 2'];
@@ -402,7 +587,39 @@ void main() {
     );
 
     test(
-      'downloadPersonalPlanFile returns null and shows failure toast when logger throws',
+      'should return null and retain logged error when toast channel throws on failure',
+      () async {
+        memoryService.throwOnWrite = true;
+        throwOnToast = true;
+        userInformation.dreamsAndGoals = ['Goal 1', 'Goal 2'];
+        userInformation.dreamsAndGoalsSelectionSources = ['custom'];
+
+        final localizations = await AppLocalizations.delegate.load(
+          const Locale('en'),
+        );
+
+        final result = await downloadPersonalPlanFile(
+          appLocale: localizations,
+          gender: userInformation.gender,
+          username: userInformation.name,
+          appInformation: appInformation,
+          userInformation: userInformation,
+          fileService: fileService,
+        );
+
+        expect(result, isNull);
+        expect(fileService.callLog, isNot(contains('download')));
+        expect(loggerService.capturedLogs, hasLength(1));
+        expect(
+          loggerService.capturedLogs.first,
+          isA<StateError>().having((e) => e.message, 'message', 'Write failed'),
+        );
+        expect(loggerService.eventOrder, equals(['captureLog', 'showToast']));
+      },
+    );
+
+    test(
+      'should return null and show failure toast when logger throws',
       () async {
         memoryService.throwOnWrite = true;
         loggerService.throwOnCapture = true;
@@ -435,126 +652,7 @@ void main() {
     );
 
     test(
-      'downloadPersonalPlanFile returns null without failure toast when user cancels download',
-      () async {
-        fileService.downloadResult = null;
-        userInformation.updateDreamsAndGoals(
-          ['Goal 1', 'Goal 2'],
-          selectionSources: ['custom', 'custom'],
-        );
-
-        final localizations = await AppLocalizations.delegate.load(
-          const Locale('en'),
-        );
-
-        final result = await downloadPersonalPlanFile(
-          appLocale: localizations,
-          gender: userInformation.gender,
-          username: userInformation.name,
-          appInformation: appInformation,
-          userInformation: userInformation,
-          fileService: fileService,
-        );
-
-        expect(result, isNull);
-        expect(fileService.callLog, contains('download'));
-        expect(loggerService.capturedLogs, isEmpty);
-        expect(toastCalls, isEmpty);
-      },
-    );
-
-    test(
-      'downloadPersonalPlanFile returns path and shows finished toast on success',
-      () async {
-        fileService.downloadResult = '/saved/plan.pdf';
-        userInformation.updateDreamsAndGoals(
-          ['Goal 1', 'Goal 2'],
-          selectionSources: ['custom', 'custom'],
-        );
-
-        final localizations = await AppLocalizations.delegate.load(
-          const Locale('en'),
-        );
-
-        final result = await downloadPersonalPlanFile(
-          appLocale: localizations,
-          gender: userInformation.gender,
-          username: userInformation.name,
-          appInformation: appInformation,
-          userInformation: userInformation,
-          fileService: fileService,
-        );
-
-        expect(result, '/saved/plan.pdf');
-        expect(fileService.callLog, contains('download'));
-        expect(loggerService.capturedLogs, isEmpty);
-        expect(toastCalls, contains(localizations.finishedDownloading('male')));
-      },
-    );
-
-    test(
-      'downloadPersonalPlanFile returns null and retains logged error when toast channel throws on failure',
-      () async {
-        memoryService.throwOnWrite = true;
-        throwOnToast = true;
-        userInformation.dreamsAndGoals = ['Goal 1', 'Goal 2'];
-        userInformation.dreamsAndGoalsSelectionSources = ['custom'];
-
-        final localizations = await AppLocalizations.delegate.load(
-          const Locale('en'),
-        );
-
-        final result = await downloadPersonalPlanFile(
-          appLocale: localizations,
-          gender: userInformation.gender,
-          username: userInformation.name,
-          appInformation: appInformation,
-          userInformation: userInformation,
-          fileService: fileService,
-        );
-
-        expect(result, isNull);
-        expect(fileService.callLog, isNot(contains('download')));
-        expect(loggerService.capturedLogs, hasLength(1));
-        expect(
-          loggerService.capturedLogs.first,
-          isA<StateError>().having((e) => e.message, 'message', 'Write failed'),
-        );
-        expect(loggerService.eventOrder, equals(['captureLog', 'showToast']));
-      },
-    );
-
-    test(
-      'downloadPersonalPlanFile returns path and suppresses toast exception when toast channel throws on success',
-      () async {
-        throwOnToast = true;
-        fileService.downloadResult = '/saved/plan.pdf';
-        userInformation.updateDreamsAndGoals(
-          ['Goal 1', 'Goal 2'],
-          selectionSources: ['custom', 'custom'],
-        );
-
-        final localizations = await AppLocalizations.delegate.load(
-          const Locale('en'),
-        );
-
-        final result = await downloadPersonalPlanFile(
-          appLocale: localizations,
-          gender: userInformation.gender,
-          username: userInformation.name,
-          appInformation: appInformation,
-          userInformation: userInformation,
-          fileService: fileService,
-        );
-
-        expect(result, '/saved/plan.pdf');
-        expect(fileService.callLog, contains('download'));
-        expect(loggerService.capturedLogs, isEmpty);
-      },
-    );
-
-    test(
-      'downloadPersonalPlanFile returns null and logs error when FileService is not registered and not injected',
+      'should return null and log error when FileService is not registered in GetIt and not injected',
       () async {
         await locator.unregister<FileService>();
 
@@ -580,7 +678,7 @@ void main() {
     );
 
     test(
-      'downloadPersonalPlanFile catches FileService download failure, logs telemetry, and shows failure toast',
+      'should catch FileService download failure, log telemetry, and show failure toast',
       () async {
         fileService.throwOnAction = true;
         userInformation.updateDreamsAndGoals(
@@ -612,9 +710,11 @@ void main() {
         expect(toastCalls, contains(localizations.downloadFailed('male')));
       },
     );
+  });
 
+  group('sharePersonalPlanFile', () {
     test(
-      'sharePersonalPlanFile catches preparation persistence failure, logs telemetry, and returns null',
+      'should catch preparation persistence failure, log telemetry, and return null',
       () async {
         memoryService.throwOnWrite = true;
         userInformation.dreamsAndGoals = ['Goal 1', 'Goal 2'];
@@ -646,7 +746,7 @@ void main() {
     );
 
     test(
-      'sharePersonalPlanFile returns null when logger throws',
+      'should return null when logger throws',
       () async {
         memoryService.throwOnWrite = true;
         loggerService.throwOnCapture = true;
@@ -679,7 +779,7 @@ void main() {
     );
 
     test(
-      'sharePersonalPlanFile returns null and logs error when FileService is not registered and not injected',
+      'should return null and log error when FileService is not registered in GetIt and not injected',
       () async {
         await locator.unregister<FileService>();
 
@@ -705,7 +805,7 @@ void main() {
     );
 
     test(
-      'sharePersonalPlanFile catches FileService share failure, logs telemetry, and returns null',
+      'should catch FileService share failure, log telemetry, and return null',
       () async {
         fileService.throwOnAction = true;
         userInformation.updateDreamsAndGoals(
@@ -737,9 +837,11 @@ void main() {
         expect(loggerService.eventOrder, equals(['captureLog']));
       },
     );
+  });
 
+  group('LPShareAlertDialog shareFile', () {
     test(
-      'LPShareAlertDialog shareFile forwards to sharePersonalPlanFile with empty message',
+      'should forward to sharePersonalPlanFile with empty message',
       () async {
         userInformation.updateDreamsAndGoals(
           ['Goal 1', 'Goal 2'],
@@ -762,6 +864,33 @@ void main() {
         expect(result?.status, ShareResultStatus.success);
         expect(fileService.callLog, contains('share'));
         expect(loggerService.capturedLogs, isEmpty);
+      },
+    );
+
+    test(
+      'should await pending saves before sharing',
+      () async {
+        userInformation.updateDreamsAndGoals(
+          ['Goal 1', 'Goal 2'],
+          selectionSources: ['custom', 'custom'],
+        );
+
+        final localizations = await AppLocalizations.delegate.load(
+          const Locale('en'),
+        );
+
+        final result = await shareFile(
+          localizations,
+          userInformation.gender,
+          userInformation.name,
+          appInformation,
+          userInformation: userInformation,
+          fileService: fileService,
+        );
+
+        expect(result?.status, ShareResultStatus.success);
+        expect(fileService.callLog, contains('share'));
+        expect(userInformation.dreamsAndGoalsSelectionSources.length, 2);
       },
     );
   });
