@@ -39,7 +39,7 @@ Future<String?> downloadPersonalPlanFile({
       textDirection: appLocale.textDirection,
     );
     if (result != null) {
-      showToast(message: appLocale.finishedDownloading(gender));
+      await showToast(message: appLocale.finishedDownloading(gender));
     }
     return result;
   } catch (error, stackTrace) {
@@ -51,7 +51,7 @@ Future<String?> downloadPersonalPlanFile({
         );
       }
     } catch (_) {}
-    showToast(message: appLocale.downloadFailed(gender));
+    await showToast(message: appLocale.downloadFailed(gender));
     return null;
   }
 }

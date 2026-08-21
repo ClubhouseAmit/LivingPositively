@@ -51,6 +51,7 @@ class _RecordingIncidentLogger implements IncidentLoggerService {
 class _TestFileService implements FileService {
   final List<String> callLog = <String>[];
   String? downloadResult = '/path/to/downloaded/file.pdf';
+  bool throwOnAction = false;
 
   @override
   Future<ShareResult?> share(
@@ -62,6 +63,9 @@ class _TestFileService implements FileService {
     required String mainTitle,
     required String textDirection,
   }) async {
+    if (throwOnAction) {
+      throw StateError('Share failed');
+    }
     callLog.add('share');
     return const ShareResult('success', ShareResultStatus.success);
   }
@@ -75,12 +79,18 @@ class _TestFileService implements FileService {
     required String mainTitle,
     required String textDirection,
   }) async {
+    if (throwOnAction) {
+      throw StateError('Download failed');
+    }
     callLog.add('download');
     return downloadResult;
   }
 
   @override
   Future<bool> shareTextOnly(String message) async {
+    if (throwOnAction) {
+      throw StateError('ShareTextOnly failed');
+    }
     callLog.add('shareTextOnly');
     return true;
   }
@@ -117,6 +127,7 @@ void main() {
 
   const toastChannel = MethodChannel('PonnamKarthik/fluttertoast');
   final List<String> toastCalls = <String>[];
+  bool throwOnToast = false;
   late GetIt locator;
   late _TestFileService fileService;
   late _TestPersistentMemoryService memoryService;
@@ -126,6 +137,7 @@ void main() {
 
   setUp(() async {
     toastCalls.clear();
+    throwOnToast = false;
     locator = GetIt.instance;
     await locator.reset();
 
@@ -138,6 +150,12 @@ void main() {
         .setMockMethodCallHandler(toastChannel, (call) async {
       if (call.method == 'showToast') {
         loggerService.eventOrder.add('showToast');
+        if (throwOnToast) {
+          throw PlatformException(
+            code: 'TOAST_FAILED',
+            message: 'Failed to show toast',
+          );
+        }
         toastCalls.add(call.arguments['msg']?.toString() ?? '');
         return true;
       }
@@ -475,6 +493,127 @@ void main() {
     );
 
     test(
+      'downloadPersonalPlanFile returns null and retains logged error when toast channel throws on failure',
+      () async {
+        memoryService.throwOnWrite = true;
+        throwOnToast = true;
+        userInformation.dreamsAndGoals = ['Goal 1', 'Goal 2'];
+        userInformation.dreamsAndGoalsSelectionSources = ['custom'];
+
+        final localizations = await AppLocalizations.delegate.load(
+          const Locale('en'),
+        );
+
+        final result = await downloadPersonalPlanFile(
+          appLocale: localizations,
+          gender: userInformation.gender,
+          username: userInformation.name,
+          appInformation: appInformation,
+          userInformation: userInformation,
+          fileService: fileService,
+        );
+
+        expect(result, isNull);
+        expect(fileService.callLog, isNot(contains('download')));
+        expect(loggerService.capturedLogs, hasLength(1));
+        expect(
+          loggerService.capturedLogs.first,
+          isA<StateError>().having((e) => e.message, 'message', 'Write failed'),
+        );
+        expect(loggerService.eventOrder, equals(['captureLog', 'showToast']));
+      },
+    );
+
+    test(
+      'downloadPersonalPlanFile returns path and suppresses toast exception when toast channel throws on success',
+      () async {
+        throwOnToast = true;
+        fileService.downloadResult = '/saved/plan.pdf';
+        userInformation.updateDreamsAndGoals(
+          ['Goal 1', 'Goal 2'],
+          selectionSources: ['custom', 'custom'],
+        );
+
+        final localizations = await AppLocalizations.delegate.load(
+          const Locale('en'),
+        );
+
+        final result = await downloadPersonalPlanFile(
+          appLocale: localizations,
+          gender: userInformation.gender,
+          username: userInformation.name,
+          appInformation: appInformation,
+          userInformation: userInformation,
+          fileService: fileService,
+        );
+
+        expect(result, '/saved/plan.pdf');
+        expect(fileService.callLog, contains('download'));
+        expect(loggerService.capturedLogs, isEmpty);
+      },
+    );
+
+    test(
+      'downloadPersonalPlanFile returns null and logs error when FileService is not registered and not injected',
+      () async {
+        await locator.unregister<FileService>();
+
+        final localizations = await AppLocalizations.delegate.load(
+          const Locale('en'),
+        );
+
+        final result = await downloadPersonalPlanFile(
+          appLocale: localizations,
+          gender: userInformation.gender,
+          username: userInformation.name,
+          appInformation: appInformation,
+          userInformation: userInformation,
+          fileService: null,
+        );
+
+        expect(result, isNull);
+        expect(loggerService.capturedLogs, hasLength(1));
+        expect(loggerService.capturedLogs.first, isA<StateError>());
+        expect(loggerService.eventOrder, equals(['captureLog', 'showToast']));
+        expect(toastCalls, contains(localizations.downloadFailed('male')));
+      },
+    );
+
+    test(
+      'downloadPersonalPlanFile catches FileService download failure, logs telemetry, and shows failure toast',
+      () async {
+        fileService.throwOnAction = true;
+        userInformation.updateDreamsAndGoals(
+          ['Goal 1', 'Goal 2'],
+          selectionSources: ['custom', 'custom'],
+        );
+
+        final localizations = await AppLocalizations.delegate.load(
+          const Locale('en'),
+        );
+
+        final result = await downloadPersonalPlanFile(
+          appLocale: localizations,
+          gender: userInformation.gender,
+          username: userInformation.name,
+          appInformation: appInformation,
+          userInformation: userInformation,
+          fileService: fileService,
+        );
+
+        expect(result, isNull);
+        expect(fileService.callLog, isEmpty);
+        expect(loggerService.capturedLogs, hasLength(1));
+        expect(
+          loggerService.capturedLogs.first,
+          isA<StateError>().having((e) => e.message, 'message', 'Download failed'),
+        );
+        expect(loggerService.eventOrder, equals(['captureLog', 'showToast']));
+        expect(toastCalls, contains(localizations.downloadFailed('male')));
+      },
+    );
+
+    test(
       'sharePersonalPlanFile catches preparation persistence failure, logs telemetry, and returns null',
       () async {
         memoryService.throwOnWrite = true;
@@ -534,6 +673,66 @@ void main() {
         expect(
           loggerService.capturedLogs.first,
           isA<StateError>().having((e) => e.message, 'message', 'Write failed'),
+        );
+        expect(loggerService.eventOrder, equals(['captureLog']));
+      },
+    );
+
+    test(
+      'sharePersonalPlanFile returns null and logs error when FileService is not registered and not injected',
+      () async {
+        await locator.unregister<FileService>();
+
+        final localizations = await AppLocalizations.delegate.load(
+          const Locale('en'),
+        );
+
+        final result = await sharePersonalPlanFile(
+          message: 'emergency msg',
+          appLocale: localizations,
+          gender: userInformation.gender,
+          username: userInformation.name,
+          appInformation: appInformation,
+          userInformation: userInformation,
+          fileService: null,
+        );
+
+        expect(result, isNull);
+        expect(loggerService.capturedLogs, hasLength(1));
+        expect(loggerService.capturedLogs.first, isA<StateError>());
+        expect(loggerService.eventOrder, equals(['captureLog']));
+      },
+    );
+
+    test(
+      'sharePersonalPlanFile catches FileService share failure, logs telemetry, and returns null',
+      () async {
+        fileService.throwOnAction = true;
+        userInformation.updateDreamsAndGoals(
+          ['Goal 1', 'Goal 2'],
+          selectionSources: ['custom', 'custom'],
+        );
+
+        final localizations = await AppLocalizations.delegate.load(
+          const Locale('en'),
+        );
+
+        final result = await sharePersonalPlanFile(
+          message: 'emergency msg',
+          appLocale: localizations,
+          gender: userInformation.gender,
+          username: userInformation.name,
+          appInformation: appInformation,
+          userInformation: userInformation,
+          fileService: fileService,
+        );
+
+        expect(result, isNull);
+        expect(fileService.callLog, isEmpty);
+        expect(loggerService.capturedLogs, hasLength(1));
+        expect(
+          loggerService.capturedLogs.first,
+          isA<StateError>().having((e) => e.message, 'message', 'Share failed'),
         );
         expect(loggerService.eventOrder, equals(['captureLog']));
       },
