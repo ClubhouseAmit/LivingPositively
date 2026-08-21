@@ -131,6 +131,7 @@ class NoopFileService implements FileService {
     required String mainTitle,
     required String textDirection,
     PersistentMemoryService? memoryService,
+    Set<String>? approvedPdfHosts,
   }) async {
     downloadCalls++;
     return null;
@@ -146,6 +147,7 @@ class NoopFileService implements FileService {
     required String mainTitle,
     required String textDirection,
     PersistentMemoryService? memoryService,
+    Set<String>? approvedPdfHosts,
   }) async {
     shareCalls++;
     return const ShareResult('noop', ShareResultStatus.success);

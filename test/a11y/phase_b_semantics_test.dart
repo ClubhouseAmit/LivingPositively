@@ -92,6 +92,7 @@ class _StubFileService implements FileService {
     required String mainTitle,
     required String textDirection,
     PersistentMemoryService? memoryService,
+    Set<String>? approvedPdfHosts,
   }) async => const ShareResult('stub', ShareResultStatus.success);
   @override
   Future<String?> download(
@@ -102,6 +103,7 @@ class _StubFileService implements FileService {
     required String mainTitle,
     required String textDirection,
     PersistentMemoryService? memoryService,
+    Set<String>? approvedPdfHosts,
   }) async => null;
   @override
   Future<bool> shareTextOnly(String message) async => true;

@@ -3,6 +3,7 @@ import 'dart:async';
 import 'package:flutter/foundation.dart';
 import 'package:get_it/get_it.dart';
 import 'package:mazilon/global_enums.dart';
+import 'package:mazilon/util/custom_categories_storage.dart';
 import 'package:mazilon/util/dreams_and_goals_selection.dart';
 import 'package:mazilon/util/logger_service.dart';
 import 'package:mazilon/util/persistent_memory_service.dart';
@@ -37,6 +38,7 @@ class UserInformation with ChangeNotifier {
   int darkModeEndHour;
   int darkModeEndMinute;
   Map<String, List<String>> thanks;
+  List<MapEntry<String, String>> customCategories;
   PersistentMemoryService service; // Get the persistent memory service instance
   Future<void> _pendingDreamsAndGoalsSave = Future<void>.value();
   int _dreamsAndGoalsSaveRevision = 0;
@@ -69,11 +71,35 @@ class UserInformation with ChangeNotifier {
     this.safeEnvironment = const [],
     this.dreamsAndGoals = const [],
     this.dreamsAndGoalsSelectionSources = const [],
+    this.customCategories = const [],
     this.disclaimerSigned = false,
     this.loggedIn = false,
     this.userId = '',
     PersistentMemoryService? service,
   }) : service = service ?? GetIt.instance<PersistentMemoryService>();
+
+  /// Hydrates custom categories from [memoryService] (or the default [service]).
+  Future<List<MapEntry<String, String>>> loadCustomCategories({
+    PersistentMemoryService? memoryService,
+  }) async {
+    final s = memoryService ?? service;
+    final loaded = await loadCustomCategoriesFromStorage(memoryService: s);
+    customCategories = List.from(loaded);
+    notifyListeners();
+    return loaded;
+  }
+
+  /// Persists [categories] (or current [customCategories]) into [memoryService] (or the default [service]).
+  Future<void> saveCustomCategories({
+    List<MapEntry<String, String>>? categories,
+    PersistentMemoryService? memoryService,
+  }) async {
+    final toSave = categories ?? customCategories;
+    final s = memoryService ?? service;
+    await saveCustomCategoriesToStorage(toSave, memoryService: s);
+    customCategories = List.from(toSave);
+    notifyListeners();
+  }
 
   /// Clears user state and persists the empty Dreams and Goals snapshot.
   ///
@@ -101,6 +127,7 @@ class UserInformation with ChangeNotifier {
     safeEnvironment = [];
     dreamsAndGoals = [];
     dreamsAndGoalsSelectionSources = [];
+    customCategories = [];
     // An in-flight snapshot cannot be cancelled safely. Queue the empty
     // snapshot behind it so reset is always the final local Dreams state.
     _dreamsAndGoalsSaveRevision++;

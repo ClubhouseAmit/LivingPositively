@@ -276,7 +276,7 @@ void main() {
         ['T1', 'T2', 'T3', 'T4', 'T5', 'T6', 'T7'],
         ['S1', 'S2', 'S3', 'S4', 'S5', 'S6', 'S7'],
         {
-          'firstLinkURL': 'https://example.com/valid',
+          'firstLinkURL': 'https://livepositively.club/valid',
           'secondLinkURL': 'http://untrusted.com/invalid',
         },
         mainTitle: 'Custom Plan',
@@ -290,7 +290,36 @@ void main() {
         ['customGoal'],
         ['Custom Description'],
       ]);
-      expect(result['texts']['text2Link'], 'https://example.com/valid');
+      expect(result['texts']['text2Link'], 'https://livepositively.club/valid');
+      expect(result['texts']['text5Link'], '');
+    });
+
+    test('organizeDataForFile respects custom approvedPdfHosts and port 443', () async {
+      final customMemory = _StrictFakeMemory({
+        'userSelectionPersonalPlan-Distractions': <dynamic>[],
+        'userSelectionPersonalPlan-DifficultEvents': <dynamic>['customEv'],
+        'userSelectionPersonalPlan-FeelBetter': <dynamic>[],
+        'userSelectionPersonalPlan-MakeSafer': <dynamic>[],
+        'PhonePageSavedPhoneNames': <dynamic>[],
+        'PhonePageSavedPhoneNumbers': <dynamic>[],
+        'userSelectionPersonalPlan-SafeEnvironment': <dynamic>['customSafe'],
+        'userSelectionPersonalPlan-DreamsAndGoals': <dynamic>['customGoal'],
+        'customCategoryTitles': <dynamic>[],
+        'customCategoryDescriptions': <dynamic>[],
+      });
+      final svc = FileServiceImpl();
+      final result = await svc.organizeDataForFile(
+        ['T1', 'T2', 'T3', 'T4', 'T5', 'T6', 'T7'],
+        ['S1', 'S2', 'S3', 'S4', 'S5', 'S6', 'S7'],
+        {
+          'firstLinkURL': 'https://tenant.org:443/valid',
+          'secondLinkURL': 'https://tenant.org:8080/invalid-port',
+        },
+        mainTitle: 'Custom Plan',
+        memoryService: customMemory,
+        approvedPdfHosts: const {'tenant.org'},
+      );
+      expect(result['texts']['text2Link'], 'https://tenant.org/valid');
       expect(result['texts']['text5Link'], '');
     });
   });

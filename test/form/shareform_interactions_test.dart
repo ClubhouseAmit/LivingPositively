@@ -19,6 +19,7 @@ import 'package:mazilon/form/shareform.dart';
 import 'package:mazilon/form/wizard_step.dart';
 import 'package:mazilon/global_enums.dart';
 import 'package:mazilon/util/Share/LP_share_alert_dialog.dart';
+import 'package:mazilon/util/custom_categories_storage.dart';
 import 'package:mazilon/util/persistent_memory_service.dart';
 import 'package:mazilon/util/userInformation.dart';
 import 'package:mockito/mockito.dart';
@@ -180,6 +181,7 @@ class _ExportReadingFileService extends NoopFileService {
     required String mainTitle,
     required String textDirection,
     PersistentMemoryService? memoryService,
+    Set<String>? approvedPdfHosts,
   }) async {
     downloadCalls++;
     final storedDreams = await memory.getItem(
@@ -1542,6 +1544,16 @@ void main() {
 
       expect(find.text('Special Goal Category'), findsOneWidget);
       expect(find.text('Special Description'), findsOneWidget);
+    },
+  );
+
+  testWidgets(
+    'ShareForm saveCustomCategories throws StateError when memory service is null',
+    (tester) async {
+      expect(
+        () => saveCustomCategoriesToStorage([], memoryService: null),
+        throwsA(isA<StateError>()),
+      );
     },
   );
 }

@@ -32,7 +32,8 @@ abstract class FileService {
       ShareFileType saveFormat,
       {required String mainTitle,
       required String textDirection,
-      PersistentMemoryService? memoryService});
+      PersistentMemoryService? memoryService,
+      Set<String>? approvedPdfHosts});
   /// Downloads a Personal Plan export with its caller-localized [mainTitle].
   ///
   /// The title is rendered before the sections, including when no sections are
@@ -46,7 +47,8 @@ abstract class FileService {
       ShareFileType saveFormat,
       {required String mainTitle,
       required String textDirection,
-      PersistentMemoryService? memoryService});
+      PersistentMemoryService? memoryService,
+      Set<String>? approvedPdfHosts});
   Future<bool> shareTextOnly(String message);
 }
 
@@ -144,7 +146,8 @@ class FileServiceImpl implements FileService {
   Future<Map<String, dynamic>> organizeDataForFile(List<dynamic> titles,
       List<dynamic> subTitles, Map<String, String> texts,
       {required String mainTitle,
-      PersistentMemoryService? memoryService}) async {
+      PersistentMemoryService? memoryService,
+      Set<String>? approvedPdfHosts}) async {
     // Set the page format to A4
 
     // Load the font for the PDF
@@ -216,14 +219,18 @@ class FileServiceImpl implements FileService {
       realData.add(personalPlanSectionData[i]);
     }
 
+    final hosts = approvedPdfHosts ?? defaultApprovedPdfLinkHosts;
+
     // Retrieve text content for the PDF
     String text1 = texts['firstLine'] ?? '';
     String text2 = texts['firstLinkText'] ?? '';
-    String text2Link = sanitizePdfLinkUrl(texts['firstLinkURL']);
+    String text2Link =
+        sanitizePdfLinkUrl(texts['firstLinkURL'], approvedHosts: hosts);
     String text3 = texts['secondLine'] ?? '';
     String text4 = texts['thirdLine'] ?? '';
     String text5 = texts['secondLinkText'] ?? '';
-    String text5Link = sanitizePdfLinkUrl(texts['secondLinkURL']);
+    String text5Link =
+        sanitizePdfLinkUrl(texts['secondLinkURL'], approvedHosts: hosts);
     String text6 = texts['forthLine'] ?? '';
 
     // Prepare the data to be included in the PDF
@@ -263,11 +270,14 @@ class FileServiceImpl implements FileService {
       ShareFileType saveFormat,
       {required String mainTitle,
       required String textDirection,
-      PersistentMemoryService? memoryService}) async {
+      PersistentMemoryService? memoryService,
+      Set<String>? approvedPdfHosts}) async {
     try {
       // Add the generated widgets to the PDF
       final dataForFile = await organizeDataForFile(titles, subTitles, texts,
-          mainTitle: mainTitle, memoryService: memoryService);
+          mainTitle: mainTitle,
+          memoryService: memoryService,
+          approvedPdfHosts: approvedPdfHosts);
       Map<String, dynamic> file;
       switch (saveFormat) {
         case ShareFileType.PDF:
@@ -278,6 +288,7 @@ class FileServiceImpl implements FileService {
             dataForFile["mainTitle"]!,
             dataForFile["realData"]!,
             textDirection,
+            approvedHosts: approvedPdfHosts ?? defaultApprovedPdfLinkHosts,
           );
           final tempFile = await saveTempPDF(file["file"], file["format"]);
           XFile tempXFile = XFile(tempFile.path);
@@ -390,9 +401,12 @@ class FileServiceImpl implements FileService {
       ShareFileType saveFormat,
       {required String mainTitle,
       required String textDirection,
-      PersistentMemoryService? memoryService}) async {
+      PersistentMemoryService? memoryService,
+      Set<String>? approvedPdfHosts}) async {
     final dataForFile = await organizeDataForFile(titles, subTitles, texts,
-        mainTitle: mainTitle, memoryService: memoryService);
+        mainTitle: mainTitle,
+        memoryService: memoryService,
+        approvedPdfHosts: approvedPdfHosts);
     Map<String, dynamic> file;
     Uint8List data = Uint8List(0);
     switch (saveFormat) {
@@ -404,6 +418,7 @@ class FileServiceImpl implements FileService {
           dataForFile["mainTitle"]!,
           dataForFile["realData"]!,
           textDirection,
+          approvedHosts: approvedPdfHosts ?? defaultApprovedPdfLinkHosts,
         );
         // Save the PDF and share it
 

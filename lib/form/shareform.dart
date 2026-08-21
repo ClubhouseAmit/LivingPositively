@@ -5,7 +5,6 @@ import 'package:flutter_screenutil/flutter_screenutil.dart';
 
 import 'package:get_it/get_it.dart';
 
-import 'package:mazilon/global_enums.dart';
 import 'package:mazilon/file_service.dart';
 import 'package:mazilon/form/formpagetemplate.dart';
 import 'package:mazilon/form/speech_dictation_suffix_action.dart';
@@ -18,15 +17,12 @@ import 'package:mazilon/util/languages_util_functions.dart';
 import 'package:mazilon/util/theme/spacing.dart';
 import 'package:provider/provider.dart';
 import 'package:mazilon/util/styles.dart';
-import 'package:mazilon/util/type_utils.dart';
 
+import 'package:mazilon/util/custom_categories_storage.dart';
 import 'package:mazilon/util/appInformation.dart';
 import 'package:mazilon/util/Share/personal_plan_download.dart';
 import 'package:mazilon/util/userInformation.dart';
 import 'package:mazilon/util/Share/show_share_dialog.dart';
-
-const String _customCategoryTitlesKey = 'customCategoryTitles';
-const String _customCategoryDescriptionsKey = 'customCategoryDescriptions';
 
 /// The result of preparing a Share action that depends on Dreams and Goals.
 ///
@@ -98,24 +94,20 @@ class _ShareFormState extends WizardStepState<ShareForm> {
   int? _editingCustomCategoryIndex;
   int _customCategoryFormGeneration = 0;
 
-  PersistentMemoryService? get _memoryService {
-    if (widget.memoryService != null) {
-      return widget.memoryService;
+  UserInformation? get _userInformation {
+    if (!mounted) return null;
+    try {
+      return Provider.of<UserInformation?>(context, listen: false);
+    } catch (_) {
+      return null;
     }
-    if (mounted) {
-      try {
-        final UserInformation? userInformation =
-            Provider.of<UserInformation?>(context, listen: false);
-        if (userInformation?.service != null) {
-          return userInformation!.service;
-        }
-      } catch (_) {}
-    }
-    if (GetIt.instance.isRegistered<PersistentMemoryService>()) {
-      return GetIt.instance<PersistentMemoryService>();
-    }
-    return null;
   }
+
+  PersistentMemoryService? get _memoryService =>
+      resolvePersistentMemoryService(
+        explicitService: widget.memoryService,
+        userInformation: _userInformation,
+      );
 
   void setHasFilled() {
     unawaited(_setHasFilled());
@@ -164,59 +156,35 @@ class _ShareFormState extends WizardStepState<ShareForm> {
   Future<void> loadCustomCategories([
     PersistentMemoryService? injectedService,
   ]) async {
-    final PersistentMemoryService? service = injectedService ?? _memoryService;
+    final service = injectedService ?? _memoryService;
     if (service == null) {
       return;
     }
-    final titles = TypeUtils.castToStringList(
-      await service.getItem(
-        _customCategoryTitlesKey,
-        PersistentMemoryType.StringList,
-      ),
+    final loaded = await loadCustomCategoriesFromStorage(
+      memoryService: service,
     );
-    final descriptions = TypeUtils.castToStringList(
-      await service.getItem(
-        _customCategoryDescriptionsKey,
-        PersistentMemoryType.StringList,
-      ),
-    );
-    final loadedCategories = <MapEntry<String, String>>[];
-
-    for (var i = 0; i < titles.length && i < descriptions.length; i++) {
-      final title = titles[i].trim();
-      final description = descriptions[i].trim();
-      if (title.isEmpty || description.isEmpty) {
-        continue;
-      }
-      loadedCategories.add(MapEntry(title, description));
-    }
-
     if (!mounted) {
       return;
     }
     setState(() {
       _customCategories
         ..clear()
-        ..addAll(loadedCategories);
+        ..addAll(loaded);
     });
   }
 
   Future<void> saveCustomCategories([
     PersistentMemoryService? injectedService,
   ]) async {
-    final PersistentMemoryService? service = injectedService ?? _memoryService;
+    final service = injectedService ?? _memoryService;
     if (service == null) {
-      return;
+      throw StateError(
+        'Persistent memory service is unavailable to save custom categories.',
+      );
     }
-    await service.setItem(
-      _customCategoryTitlesKey,
-      PersistentMemoryType.StringList,
-      _customCategories.map((category) => category.key).toList(),
-    );
-    await service.setItem(
-      _customCategoryDescriptionsKey,
-      PersistentMemoryType.StringList,
-      _customCategories.map((category) => category.value).toList(),
+    await saveCustomCategoriesToStorage(
+      _customCategories,
+      memoryService: service,
     );
   }
 

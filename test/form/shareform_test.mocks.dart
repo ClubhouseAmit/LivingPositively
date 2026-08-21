@@ -312,6 +312,15 @@ class MockUserInformation extends _i1.Mock implements _i3.UserInformation {
           as Map<String, List<String>>);
 
   @override
+  List<MapEntry<String, String>> get customCategories =>
+      (super.noSuchMethod(
+            Invocation.getter(#customCategories),
+            returnValue: <MapEntry<String, String>>[],
+            returnValueForMissingStub: <MapEntry<String, String>>[],
+          )
+          as List<MapEntry<String, String>>);
+
+  @override
   _i2.PersistentMemoryService get service =>
       (super.noSuchMethod(
             Invocation.getter(#service),
@@ -325,6 +334,15 @@ class MockUserInformation extends _i1.Mock implements _i3.UserInformation {
             ),
           )
           as _i2.PersistentMemoryService);
+
+  @override
+  bool get isDreamsAndGoalsSavePending =>
+      (super.noSuchMethod(
+            Invocation.getter(#isDreamsAndGoalsSavePending),
+            returnValue: false,
+            returnValueForMissingStub: false,
+          )
+          as bool);
 
   @override
   _i5.Future<void> get pendingDreamsAndGoalsSave =>
@@ -501,6 +519,13 @@ class MockUserInformation extends _i1.Mock implements _i3.UserInformation {
   );
 
   @override
+  set customCategories(List<MapEntry<String, String>>? value) =>
+      super.noSuchMethod(
+        Invocation.setter(#customCategories, value),
+        returnValueForMissingStub: null,
+      );
+
+  @override
   set service(_i2.PersistentMemoryService? value) => super.noSuchMethod(
     Invocation.setter(#service, value),
     returnValueForMissingStub: null,
@@ -514,6 +539,39 @@ class MockUserInformation extends _i1.Mock implements _i3.UserInformation {
             returnValueForMissingStub: false,
           )
           as bool);
+
+  @override
+  _i5.Future<List<MapEntry<String, String>>> loadCustomCategories({
+    _i2.PersistentMemoryService? memoryService,
+  }) =>
+      (super.noSuchMethod(
+            Invocation.method(#loadCustomCategories, [], {
+              #memoryService: memoryService,
+            }),
+            returnValue: _i5.Future<List<MapEntry<String, String>>>.value(
+              <MapEntry<String, String>>[],
+            ),
+            returnValueForMissingStub:
+                _i5.Future<List<MapEntry<String, String>>>.value(
+                  <MapEntry<String, String>>[],
+                ),
+          )
+          as _i5.Future<List<MapEntry<String, String>>>);
+
+  @override
+  _i5.Future<void> saveCustomCategories({
+    List<MapEntry<String, String>>? categories,
+    _i2.PersistentMemoryService? memoryService,
+  }) =>
+      (super.noSuchMethod(
+            Invocation.method(#saveCustomCategories, [], {
+              #categories: categories,
+              #memoryService: memoryService,
+            }),
+            returnValue: _i5.Future<void>.value(),
+            returnValueForMissingStub: _i5.Future<void>.value(),
+          )
+          as _i5.Future<void>);
 
   @override
   _i5.Future<void> reset(String? locale) =>
@@ -648,6 +706,51 @@ class MockUserInformation extends _i1.Mock implements _i3.UserInformation {
   _i5.Future<void> repairDreamsAndGoalsSelectionSources() =>
       (super.noSuchMethod(
             Invocation.method(#repairDreamsAndGoalsSelectionSources, []),
+            returnValue: _i5.Future<void>.value(),
+            returnValueForMissingStub: _i5.Future<void>.value(),
+          )
+          as _i5.Future<void>);
+
+  @override
+  _i5.Future<void> saveDreamsAndGoalsWithDisclaimer({
+    required int? revision,
+    required bool? retry,
+  }) =>
+      (super.noSuchMethod(
+            Invocation.method(#saveDreamsAndGoalsWithDisclaimer, [], {
+              #revision: revision,
+              #retry: retry,
+            }),
+            returnValue: _i5.Future<void>.value(),
+            returnValueForMissingStub: _i5.Future<void>.value(),
+          )
+          as _i5.Future<void>);
+
+  @override
+  _i5.Future<void> saveCategorySelection(
+    String? collectionName,
+    List<String>? items, {
+    List<String>? selectionSources,
+    void Function(int)? onDreamsSaveQueued,
+  }) =>
+      (super.noSuchMethod(
+            Invocation.method(
+              #saveCategorySelection,
+              [collectionName, items],
+              {
+                #selectionSources: selectionSources,
+                #onDreamsSaveQueued: onDreamsSaveQueued,
+              },
+            ),
+            returnValue: _i5.Future<void>.value(),
+            returnValueForMissingStub: _i5.Future<void>.value(),
+          )
+          as _i5.Future<void>);
+
+  @override
+  _i5.Future<void> prepareForPersonalPlanExport() =>
+      (super.noSuchMethod(
+            Invocation.method(#prepareForPersonalPlanExport, []),
             returnValue: _i5.Future<void>.value(),
             returnValueForMissingStub: _i5.Future<void>.value(),
           )
@@ -2038,6 +2141,7 @@ class MockFileService extends _i1.Mock implements _i8.FileService {
     required String? mainTitle,
     required String? textDirection,
     _i2.PersistentMemoryService? memoryService,
+    Set<String>? approvedPdfHosts,
   }) =>
       (super.noSuchMethod(
             Invocation.method(
@@ -2047,6 +2151,7 @@ class MockFileService extends _i1.Mock implements _i8.FileService {
                 #mainTitle: mainTitle,
                 #textDirection: textDirection,
                 #memoryService: memoryService,
+                #approvedPdfHosts: approvedPdfHosts,
               },
             ),
             returnValue: _i5.Future<_i9.ShareResult?>.value(),
@@ -2063,6 +2168,7 @@ class MockFileService extends _i1.Mock implements _i8.FileService {
     required String? mainTitle,
     required String? textDirection,
     _i2.PersistentMemoryService? memoryService,
+    Set<String>? approvedPdfHosts,
   }) =>
       (super.noSuchMethod(
             Invocation.method(
@@ -2072,6 +2178,7 @@ class MockFileService extends _i1.Mock implements _i8.FileService {
                 #mainTitle: mainTitle,
                 #textDirection: textDirection,
                 #memoryService: memoryService,
+                #approvedPdfHosts: approvedPdfHosts,
               },
             ),
             returnValue: _i5.Future<String?>.value(),

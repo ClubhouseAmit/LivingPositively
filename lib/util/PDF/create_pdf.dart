@@ -16,26 +16,40 @@ pw.Alignment pdfAlignmentForDirection(String textDirection) =>
 pw.TextAlign pdfTextAlignForDirection(String textDirection) =>
     textDirection == 'rtl' ? pw.TextAlign.right : pw.TextAlign.left;
 
-const Set<String> _approvedPdfLinkHosts = {
+/// Default production domains approved for clickable PDF links.
+const Set<String> defaultApprovedPdfLinkHosts = {
   'livepositively.club',
   'mazilon.com',
-  'example.com',
 };
 
-/// Validates whether [host] belongs to the approved PDF link allow-list.
-bool isApprovedPdfLinkHost(String host) {
+/// Supported keys in [sharePDFtexts] that represent external URL destinations.
+const List<String> supportedPdfLinkUrlKeys = [
+  'firstLinkURL',
+  'secondLinkURL',
+];
+
+/// Validates whether [host] belongs to [approvedHosts] or any subdomain thereof.
+bool isApprovedPdfLinkHost(
+  String host, {
+  Set<String> approvedHosts = defaultApprovedPdfLinkHosts,
+}) {
   final lowerHost = host.toLowerCase();
-  for (final approved in _approvedPdfLinkHosts) {
-    if (lowerHost == approved || lowerHost.endsWith('.$approved')) {
+  for (final approved in approvedHosts) {
+    final lowerApproved = approved.toLowerCase();
+    if (lowerHost == lowerApproved || lowerHost.endsWith('.$lowerApproved')) {
       return true;
     }
   }
   return false;
 }
 
-/// Sanitizes [rawUrl], requiring an HTTPS scheme and an approved host.
+/// Sanitizes [rawUrl], requiring an HTTPS scheme, default HTTPS port (unspecified or 443),
+/// and a host matching [approvedHosts].
 /// Returns the valid trimmed URL, or an empty string if invalid or unapproved.
-String sanitizePdfLinkUrl(String? rawUrl) {
+String sanitizePdfLinkUrl(
+  String? rawUrl, {
+  Set<String> approvedHosts = defaultApprovedPdfLinkHosts,
+}) {
   if (rawUrl == null || rawUrl.trim().isEmpty) {
     return '';
   }
@@ -47,7 +61,10 @@ String sanitizePdfLinkUrl(String? rawUrl) {
     if (uri.host.isEmpty) {
       return '';
     }
-    if (!isApprovedPdfLinkHost(uri.host)) {
+    if (uri.hasPort && uri.port != 443) {
+      return '';
+    }
+    if (!isApprovedPdfLinkHost(uri.host, approvedHosts: approvedHosts)) {
       return '';
     }
     return uri.toString();
@@ -56,14 +73,20 @@ String sanitizePdfLinkUrl(String? rawUrl) {
   }
 }
 
-/// Sanitizes all link URLs within [texts] prior to PDF creation or download.
-Map<String, String> sanitizeSharePdfTexts(Map<String, String> texts) {
+/// Sanitizes all recognized link URLs within [texts] prior to PDF creation or download.
+Map<String, String> sanitizeSharePdfTexts(
+  Map<String, String> texts, {
+  Set<String> approvedHosts = defaultApprovedPdfLinkHosts,
+  List<String> urlKeys = supportedPdfLinkUrlKeys,
+}) {
   final sanitized = Map<String, String>.from(texts);
-  if (sanitized.containsKey('firstLinkURL')) {
-    sanitized['firstLinkURL'] = sanitizePdfLinkUrl(sanitized['firstLinkURL']);
-  }
-  if (sanitized.containsKey('secondLinkURL')) {
-    sanitized['secondLinkURL'] = sanitizePdfLinkUrl(sanitized['secondLinkURL']);
+  for (final key in urlKeys) {
+    if (sanitized.containsKey(key)) {
+      sanitized[key] = sanitizePdfLinkUrl(
+        sanitized[key],
+        approvedHosts: approvedHosts,
+      );
+    }
   }
   return sanitized;
 }
@@ -74,8 +97,9 @@ Future<Map<String, dynamic>> createPDF(
   Map<String, String> texts,
   String mainTitle,
   List<List<String>> data,
-  String textDirection,
-) async {
+  String textDirection, {
+  Set<String> approvedHosts = defaultApprovedPdfLinkHosts,
+}) async {
   final pageFormat = PdfPageFormat.a4;
   final ByteData fontData = await rootBundle.load('assets/fonts/CALIBRI.TTF');
   final ttf = pw.Font.ttf(fontData.buffer.asByteData());
@@ -184,8 +208,14 @@ Future<Map<String, dynamic>> createPDF(
   // Add space before footer
   widgets.add(pw.Expanded(child: pw.SizedBox()));
 
-  final sanitizedLink2 = sanitizePdfLinkUrl(texts["text2Link"]);
-  final sanitizedLink5 = sanitizePdfLinkUrl(texts["text5Link"]);
+  final sanitizedLink2 = sanitizePdfLinkUrl(
+    texts["text2Link"],
+    approvedHosts: approvedHosts,
+  );
+  final sanitizedLink5 = sanitizePdfLinkUrl(
+    texts["text5Link"],
+    approvedHosts: approvedHosts,
+  );
 
   pw.Widget buildLinkWidget(String text, String sanitizedLink) {
     final textWidget = pw.Text(

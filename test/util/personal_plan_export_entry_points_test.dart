@@ -66,6 +66,7 @@ class _TestFileService implements FileService {
     required String mainTitle,
     required String textDirection,
     PersistentMemoryService? memoryService,
+    Set<String>? approvedPdfHosts,
   }) async {
     lastMemoryService = memoryService;
     lastTexts = texts;
@@ -85,6 +86,7 @@ class _TestFileService implements FileService {
     required String mainTitle,
     required String textDirection,
     PersistentMemoryService? memoryService,
+    Set<String>? approvedPdfHosts,
   }) async {
     lastMemoryService = memoryService;
     lastTexts = texts;
@@ -1035,7 +1037,7 @@ void main() {
         );
         appInformation.sharePDFtexts = {
           'firstLine': 'Initial First Line',
-          'firstLinkURL': 'https://example.com/ok',
+          'firstLinkURL': 'https://livepositively.club/ok',
         };
 
         // Hook userInformation preparation to mutate appInformation.sharePDFtexts during await
@@ -1052,13 +1054,13 @@ void main() {
         // Mutate live map while download is running
         appInformation.sharePDFtexts = {
           'firstLine': 'Mutated First Line',
-          'firstLinkURL': 'https://example.com/mutated',
+          'firstLinkURL': 'https://livepositively.club/mutated',
         };
 
         final result = await downloadFuture;
         expect(result, isNotNull);
         expect(fileService.lastTexts?['firstLine'], 'Initial First Line');
-        expect(fileService.lastTexts?['firstLinkURL'], 'https://example.com/ok');
+        expect(fileService.lastTexts?['firstLinkURL'], 'https://livepositively.club/ok');
       },
     );
 
@@ -1110,6 +1112,63 @@ void main() {
           fileService.lastTexts?['secondLinkURL'],
           'https://hebsite.livepositively.club/help',
         );
+      },
+    );
+
+    test(
+      'PDF link sanitization accepts default port 443 and rejects nonstandard ports',
+      () async {
+        final localizations = await AppLocalizations.delegate.load(
+          const Locale('en'),
+        );
+        appInformation.sharePDFtexts = {
+          'firstLinkURL': 'https://livepositively.club:443/secure',
+          'secondLinkURL': 'https://livepositively.club:8080/insecure',
+        };
+
+        await downloadPersonalPlanFile(
+          appLocale: localizations,
+          gender: userInformation.gender,
+          username: userInformation.name,
+          appInformation: appInformation,
+          userInformation: userInformation,
+          fileService: fileService,
+        );
+
+        expect(
+          fileService.lastTexts?['firstLinkURL'],
+          'https://livepositively.club/secure',
+        );
+        expect(fileService.lastTexts?['secondLinkURL'], '');
+      },
+    );
+
+    test(
+      'PDF link sanitization supports configurable injected domain allow-list',
+      () async {
+        final localizations = await AppLocalizations.delegate.load(
+          const Locale('en'),
+        );
+        appInformation.sharePDFtexts = {
+          'firstLinkURL': 'https://tenant.customdomain.org/resources',
+          'secondLinkURL': 'https://livepositively.club/not-allowed-in-custom',
+        };
+
+        await downloadPersonalPlanFile(
+          appLocale: localizations,
+          gender: userInformation.gender,
+          username: userInformation.name,
+          appInformation: appInformation,
+          userInformation: userInformation,
+          fileService: fileService,
+          approvedPdfHosts: const {'tenant.customdomain.org'},
+        );
+
+        expect(
+          fileService.lastTexts?['firstLinkURL'],
+          'https://tenant.customdomain.org/resources',
+        );
+        expect(fileService.lastTexts?['secondLinkURL'], '');
       },
     );
   });

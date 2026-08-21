@@ -80,7 +80,8 @@ void main() {
       when(mockFileServiceImpl.share(any, any, any, any, any,
               mainTitle: anyNamed('mainTitle'),
               textDirection: anyNamed('textDirection'),
-              memoryService: anyNamed('memoryService'))).thenAnswer(
+              memoryService: anyNamed('memoryService'),
+              approvedPdfHosts: anyNamed('approvedPdfHosts'))).thenAnswer(
         ((Invocation invocation) async {
           counterShare = counterShare + 1;
           return const ShareResult('test-success', ShareResultStatus.success);
@@ -89,7 +90,8 @@ void main() {
       when(mockFileServiceImpl.download(any, any, any, any,
               mainTitle: anyNamed('mainTitle'),
               textDirection: anyNamed('textDirection'),
-              memoryService: anyNamed('memoryService'))).thenAnswer(((
+              memoryService: anyNamed('memoryService'),
+              approvedPdfHosts: anyNamed('approvedPdfHosts'))).thenAnswer(((
         Invocation invocation,
       ) async {
         counterDownload = counterDownload + 1;
@@ -184,7 +186,8 @@ void main() {
       when(mockFileServiceImpl.share(any, any, any, any, any,
               mainTitle: anyNamed('mainTitle'),
               textDirection: anyNamed('textDirection'),
-              memoryService: anyNamed('memoryService')))
+              memoryService: anyNamed('memoryService'),
+              approvedPdfHosts: anyNamed('approvedPdfHosts')))
           .thenAnswer((_) async => ShareResult.unavailable);
       await tester.pumpWidget(getPersonalPlanWidgetForTests());
 
@@ -221,7 +224,8 @@ void main() {
         mockFileServiceImpl.download(captureAny, captureAny, any, any,
             mainTitle: anyNamed('mainTitle'),
             textDirection: anyNamed('textDirection'),
-            memoryService: anyNamed('memoryService')),
+            memoryService: anyNamed('memoryService'),
+            approvedPdfHosts: anyNamed('approvedPdfHosts')),
       ).captured;
 
       expect(captured, hasLength(2));

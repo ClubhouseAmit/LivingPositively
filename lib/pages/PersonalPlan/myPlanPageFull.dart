@@ -2,26 +2,20 @@
 
 import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
-import 'package:get_it/get_it.dart';
-
-import 'package:mazilon/global_enums.dart';
 import 'package:mazilon/pages/PersonalPlan/myPlan.dart';
 import 'package:mazilon/util/Form/retrieveInformation.dart';
 import 'package:mazilon/util/LP_extended_state.dart';
 import 'package:mazilon/util/styles.dart';
 import 'package:mazilon/util/appInformation.dart';
 import 'package:mazilon/util/persistent_memory_service.dart';
-import 'package:mazilon/util/type_utils.dart';
 import 'package:provider/provider.dart';
 import 'package:mazilon/form/form.dart';
+import 'package:mazilon/util/custom_categories_storage.dart';
 import 'package:mazilon/util/userInformation.dart';
 
 import 'package:mazilon/util/Form/formPagePhoneModel.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:url_launcher/url_launcher.dart';
-
-const String _customCategoryTitlesKey = 'customCategoryTitles';
-const String _customCategoryDescriptionsKey = 'customCategoryDescriptions';
 
 // This widget displays the user's personalized plan with sections for various topics.
 // It allows the user to view their selected answers and navigate to additional forms or options.
@@ -48,24 +42,20 @@ class _MyPlanPageFullState extends LPExtendedState<MyPlanPageFull> {
   List<String> phoneInformation = []; // User's phone-related information
   final List<MapEntry<String, String>> customCategories = [];
 
-  PersistentMemoryService? get _memoryService {
-    if (widget.memoryService != null) {
-      return widget.memoryService;
+  UserInformation? get _userInformation {
+    if (!mounted) return null;
+    try {
+      return Provider.of<UserInformation?>(context, listen: false);
+    } catch (_) {
+      return null;
     }
-    if (mounted) {
-      try {
-        final UserInformation? userInformation =
-            Provider.of<UserInformation?>(context, listen: false);
-        if (userInformation?.service != null) {
-          return userInformation!.service;
-        }
-      } catch (_) {}
-    }
-    if (GetIt.instance.isRegistered<PersistentMemoryService>()) {
-      return GetIt.instance<PersistentMemoryService>();
-    }
-    return null;
   }
+
+  PersistentMemoryService? get _memoryService =>
+      resolvePersistentMemoryService(
+        explicitService: widget.memoryService,
+        userInformation: _userInformation,
+      );
 
   // Field names for different sections of the personal plan
   List<String> fieldNames = [
@@ -146,28 +136,9 @@ class _MyPlanPageFullState extends LPExtendedState<MyPlanPageFull> {
       return;
     }
 
-    final titles = TypeUtils.castToStringList(
-      await service.getItem(
-        _customCategoryTitlesKey,
-        PersistentMemoryType.StringList,
-      ),
+    final loaded = await loadCustomCategoriesFromStorage(
+      memoryService: service,
     );
-    final descriptions = TypeUtils.castToStringList(
-      await service.getItem(
-        _customCategoryDescriptionsKey,
-        PersistentMemoryType.StringList,
-      ),
-    );
-    final loadedCategories = <MapEntry<String, String>>[];
-
-    for (var i = 0; i < titles.length && i < descriptions.length; i++) {
-      final title = titles[i].trim();
-      final description = descriptions[i].trim();
-      if (title.isEmpty || description.isEmpty) {
-        continue;
-      }
-      loadedCategories.add(MapEntry(title, description));
-    }
 
     if (!mounted) {
       return;
@@ -175,7 +146,7 @@ class _MyPlanPageFullState extends LPExtendedState<MyPlanPageFull> {
     setState(() {
       customCategories
         ..clear()
-        ..addAll(loadedCategories);
+        ..addAll(loaded);
     });
   }
 

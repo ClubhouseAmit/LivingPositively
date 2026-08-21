@@ -43,6 +43,7 @@ Future<ShareResult?> sharePersonalPlanFile({
   required AppInformation appInformation,
   UserInformation? userInformation,
   FileService? fileService,
+  Set<String>? approvedPdfHosts,
 }) async {
   try {
     final exportMetadata = await prepareAndBuildPersonalPlanExportMetadata(
@@ -52,7 +53,10 @@ Future<ShareResult?> sharePersonalPlanFile({
       userInformation: userInformation,
     );
     final service = fileService ?? GetIt.instance<FileService>();
-    final sanitizedTexts = sanitizeSharePdfTexts(appInformation.sharePDFtexts);
+    final sanitizedTexts = sanitizeSharePdfTexts(
+      appInformation.sharePDFtexts,
+      approvedHosts: approvedPdfHosts ?? defaultApprovedPdfLinkHosts,
+    );
     return await service.share(
       message,
       exportMetadata.titles,
@@ -62,6 +66,7 @@ Future<ShareResult?> sharePersonalPlanFile({
       mainTitle: exportMetadata.mainTitle,
       textDirection: appLocale.textDirection,
       memoryService: userInformation?.service,
+      approvedPdfHosts: approvedPdfHosts,
     );
   } catch (error, stackTrace) {
     try {
