@@ -7,6 +7,7 @@ import 'package:flutter/foundation.dart';
 import 'package:get_it/get_it.dart';
 import 'package:mazilon/global_enums.dart';
 import 'package:mazilon/util/PDF/create_pdf.dart';
+import 'package:mazilon/util/file_save_utils.dart';
 import 'package:mazilon/util/logger_service.dart';
 import 'package:mazilon/util/persistent_memory_service.dart';
 import 'package:mazilon/util/type_utils.dart';
@@ -294,18 +295,56 @@ class FileServiceImpl implements FileService {
     }
   }
 
-  static Future<String?> saveAndroid(Uint8List data, String format) async {
+  /// Saves Personal Plan [data] to user-selected device storage on Android.
+  ///
+  /// [data] is the binary content to save, and [format] is the target file extension (e.g. `'pdf'`).
+  ///
+  /// [dialogTitle] is the title displayed on the native save file dialog; defaults to
+  /// `'Please select an output file:'` if omitted or null.
+  /// [fileName] is the suggested default filename; defaults to `'התוכנית שלי.$format'` if omitted or null.
+  ///
+  /// [fileSaver] is an optional injected file saver callback used for testing or custom saver delegation.
+  /// Accepts [String] file paths or [Uri] results (including `file:` and `content:` URIs).
+  ///
+  /// Returns the normalized saved file path or URI string upon success, or `null` if the user
+  /// cancels the save operation or if saving fails.
+  static Future<String?> saveAndroid(
+    Uint8List data,
+    String format, {
+    String? dialogTitle,
+    String? fileName,
+    Future<dynamic> Function({
+      String? dialogTitle,
+      String? fileName,
+      FileType type,
+      String? initialDirectory,
+      Uint8List? bytes,
+      List<String>? allowedExtensions,
+    })? fileSaver,
+  }) async {
     try {
-      // Open a save file dialog to allow the user to select a location to save the PDF
-      String? outputFile = await FilePicker.saveFile(
-        dialogTitle: 'Please select an output file:', // Dialog title
-        fileName: 'התוכנית שלי.$format', // Default file name
-        bytes: data, // PDF data to be saved
-      );
+      final effectiveDialogTitle =
+          dialogTitle ?? 'Please select an output file:';
+      final effectiveFileName = fileName ?? 'התוכנית שלי.$format';
+      final customSaver = fileSaver;
+      final dynamic outputFile;
+      if (customSaver != null) {
+        outputFile = await customSaver(
+          dialogTitle: effectiveDialogTitle,
+          fileName: effectiveFileName,
+          bytes: data,
+        );
+      } else {
+        outputFile = await FilePicker.saveFile(
+          dialogTitle: effectiveDialogTitle,
+          fileName: effectiveFileName,
+          bytes: data,
+        );
+      }
       //If the user cancels the download
       AnalyticsService mixPanelService = GetIt.instance<AnalyticsService>();
       mixPanelService.trackEvent("Plan downloaded Android");
-      return outputFile;
+      return FileSaveUtils.normalizeSavedFileDestination(outputFile);
     } catch (error, stackTrace) {
       IncidentLoggerService loggerService =
           GetIt.instance<IncidentLoggerService>();
