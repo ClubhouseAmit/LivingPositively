@@ -1453,4 +1453,53 @@ void main() {
       );
     },
   );
+
+  testWidgets(
+    'normal successful edit writes each of the three keys exactly once and avoids redundant save on share action',
+    (tester) async {
+      final memory = _DreamsMemoryHarness();
+      final exportFiles = _ExportReadingFileService(memory.service);
+      final locator = GetIt.instance;
+      locator.unregister<PersistentMemoryService>();
+      locator.unregister<FileService>();
+      locator.registerSingleton<PersistentMemoryService>(memory.service);
+      locator.registerSingleton<FileService>(exportFiles);
+      user = UserInformation(service: memory.service)
+        ..gender = 'other'
+        ..localeName = 'en';
+
+      await pumpWithProviders(
+        tester,
+        wizardStepHarness(
+          ShareForm(
+            key: GlobalKey<WizardStepState>(),
+            prev: () {},
+            submit: (_) async {},
+          ),
+        ),
+        userInformation: user,
+        surfaceSize: const Size(1024, 1800),
+      );
+
+      await _openDreamsAndGoalsAndAddOwnGoal(tester);
+      expect(user.dreamsAndGoals, ['Immediate dream']);
+
+      // Assert that inline save wrote each key once
+      expect(memory.completedWritesFor(_dreamsAndGoalsSelectionKey), hasLength(1));
+      expect(memory.completedWritesFor(_dreamsAndGoalsSelectionSourcesKey), hasLength(1));
+      expect(memory.completedWritesFor(_dreamsAndGoalsAddedStringsKey), hasLength(1));
+
+      // Now trigger download action.
+      _pressIconButton(tester, Icons.download);
+      await _flushAsyncAction(tester);
+
+      expect(exportFiles.downloadCalls, 1);
+      // The action must NOT have written the keys a second time since inline save was already durable
+      expect(memory.completedWritesFor(_dreamsAndGoalsSelectionKey), hasLength(1));
+      expect(memory.completedWritesFor(_dreamsAndGoalsSelectionSourcesKey), hasLength(1));
+      expect(memory.completedWritesFor(_dreamsAndGoalsAddedStringsKey), hasLength(1));
+      expect(find.widgetWithText(SnackBarAction, 'Try again'), findsNothing);
+      await tester.pump(const Duration(seconds: 2));
+    },
+  );
 }

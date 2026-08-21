@@ -231,7 +231,7 @@ class _FormPageTemplateState extends WizardStepState<FormPageTemplate> {
     }
 
     if (widget.collectionName == 'PersonalPlan-DreamsAndGoals') {
-      final Future<void> saveFuture = userInfo.saveCategorySelection(
+      final Future<void> dreamsAndGoalsSave = userInfo.saveCategorySelection(
         widget.collectionName,
         selectedItems,
         selectionSources: selectedItemSources,
@@ -242,10 +242,10 @@ class _FormPageTemplateState extends WizardStepState<FormPageTemplate> {
       selectedItemSources = List<String>.from(
         userInfo.dreamsAndGoalsSelectionSources,
       );
-      _pendingDreamsAndGoalsPersistence = saveFuture;
+      _pendingDreamsAndGoalsPersistence = dreamsAndGoalsSave;
       _pendingDreamsAndGoalsPersistenceRevision =
           userInfo.dreamsAndGoalsSaveRevision;
-      await saveFuture;
+      await dreamsAndGoalsSave;
       return;
     }
 

@@ -40,6 +40,10 @@ class UserInformation with ChangeNotifier {
   PersistentMemoryService service; // Get the persistent memory service instance
   Future<void> _pendingDreamsAndGoalsSave = Future<void>.value();
   int _dreamsAndGoalsSaveRevision = 0;
+  int _activeDreamsAndGoalsSavesCount = 0;
+
+  /// Whether a Dreams and Goals persistence operation is currently pending.
+  bool get isDreamsAndGoalsSavePending => _activeDreamsAndGoalsSavesCount > 0;
 
   UserInformation({
     this.location = '',
@@ -257,9 +261,15 @@ class UserInformation with ChangeNotifier {
           dreamsAndGoals,
           dreamsAndGoalsSelectionSources,
         );
+    _activeDreamsAndGoalsSavesCount++;
     final Future<void> nextSave = _pendingDreamsAndGoalsSave
         .catchError((Object _) {})
-        .then((_) => persistDreamsAndGoalsSnapshot(service, snapshot));
+        .then((_) => persistDreamsAndGoalsSnapshot(service, snapshot))
+        .whenComplete(() {
+          if (_activeDreamsAndGoalsSavesCount > 0) {
+            _activeDreamsAndGoalsSavesCount--;
+          }
+        });
     _pendingDreamsAndGoalsSave = nextSave;
     return nextSave;
   }
@@ -373,7 +383,13 @@ class UserInformation with ChangeNotifier {
       case 'PersonalPlan-DreamsAndGoals':
         updateDreamsAndGoals(
           items,
-          selectionSources: selectionSources,
+          selectionSources: selectionSources ??
+              (listEquals(items, dreamsAndGoals)
+                  ? dreamsAndGoalsSelectionSources
+                  : normalizeDreamsAndGoalsSelectionSources(
+                      items,
+                      dreamsAndGoalsSelectionSources,
+                    )),
         );
         final int revision = dreamsAndGoalsSaveRevision;
         onDreamsSaveQueued?.call(revision);
@@ -383,6 +399,11 @@ class UserInformation with ChangeNotifier {
         );
         return;
       default:
+        throw ArgumentError.value(
+          collectionName,
+          'collectionName',
+          'Unsupported Personal Plan category name.',
+        );
     }
     await persistDisclaimerConfirmed();
     await service.setItem(
@@ -400,6 +421,16 @@ class UserInformation with ChangeNotifier {
   /// Awaits all pending saves and repairs Dreams and Goals selection sources
   /// until storage has a stable, normalized snapshot for Personal Plan export.
   Future<void> prepareForPersonalPlanExport() async {
+    final bool needsRepair = !listEquals(
+      dreamsAndGoalsSelectionSources,
+      normalizeDreamsAndGoalsSelectionSources(
+        dreamsAndGoals,
+        dreamsAndGoalsSelectionSources,
+      ),
+    );
+    if (!needsRepair && _activeDreamsAndGoalsSavesCount == 0) {
+      return;
+    }
     while (true) {
       await _pendingDreamsAndGoalsSave;
       final int revisionBeforeRepair = _dreamsAndGoalsSaveRevision;

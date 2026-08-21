@@ -11,7 +11,6 @@ import 'package:mazilon/form/formpagetemplate.dart';
 import 'package:mazilon/form/speech_dictation_suffix_action.dart';
 import 'package:mazilon/form/wizard_step.dart';
 import 'package:mazilon/l10n/app_localizations.dart';
-import 'package:mazilon/util/SignIn/popup_toast.dart';
 import 'package:mazilon/util/async/persistence_retry_snack_bar.dart';
 import 'package:mazilon/util/logger_service.dart';
 import 'package:mazilon/util/persistent_memory_service.dart';
@@ -576,6 +575,7 @@ class _ShareFormState extends WizardStepState<ShareForm> {
     int retryRevision = initialRetryRevision;
     try {
       while (true) {
+        final bool hadInlineStep = _dreamsAndGoalsStepKey.currentState != null;
         await _persistInlineDreamsAndGoals(userInformation, retry: retry);
         retryRevision = userInformation.dreamsAndGoalsSaveRevision;
         await userInformation.pendingDreamsAndGoalsSave;
@@ -585,10 +585,10 @@ class _ShareFormState extends WizardStepState<ShareForm> {
         await userInformation.repairDreamsAndGoalsSelectionSources();
         await userInformation.pendingDreamsAndGoalsSave;
 
-        // A retry has already persisted the current snapshot through
-        // _persistInlineDreamsAndGoals. Repeating it here would enqueue the
-        // same three-key snapshot a second time before the deferred action runs.
+        // If no inline editor persisted this snapshot and repair left the revision
+        // unchanged, queue the save now so in-memory state is durable in storage.
         if (!retry &&
+            !hadInlineStep &&
             userInformation.dreamsAndGoalsSaveRevision ==
                 revisionBeforeRepair) {
           await userInformation.queueDreamsAndGoalsSave();
@@ -924,25 +924,13 @@ class _ShareFormState extends WizardStepState<ShareForm> {
                     onPressed: () {
                       unawaited(
                         _runDreamsAndGoalsAction(userInfoProvider, () async {
-                          final exportMetadata = buildPersonalPlanExportMetadata(
-                            appLocale,
-                            gender,
-                            userInfoProvider.name,
-                          );
-                          final result = await fileService.download(
-                            exportMetadata.titles,
-                            exportMetadata.subTitles,
-                            appInfoProvider.sharePDFtexts,
-                            ShareFileType.PDF,
-                            mainTitle: exportMetadata.mainTitle,
+                          await downloadPersonalPlanFile(
+                            appLocale: appLocale,
+                            gender: gender,
+                            username: userInfoProvider.name,
+                            appInformation: appInfoProvider,
                             textDirection: appLocale.textDirection,
-                          );
-                          if (result == null) {
-                            showToast(message: appLocale.downloadFailed(gender));
-                            return;
-                          }
-                          showToast(
-                            message: appLocale.finishedDownloading(gender),
+                            fileService: fileService,
                           );
                         }),
                       );

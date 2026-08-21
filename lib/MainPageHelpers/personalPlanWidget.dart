@@ -6,7 +6,6 @@ import 'package:mazilon/global_enums.dart';
 import 'package:mazilon/file_service.dart';
 import 'package:mazilon/util/LP_extended_state.dart';
 import 'package:mazilon/util/Share/show_share_dialog.dart';
-import 'package:mazilon/util/SignIn/popup_toast.dart';
 
 import 'package:mazilon/util/personalPlanItem.dart';
 import 'package:mazilon/util/styles.dart';
@@ -253,29 +252,14 @@ class _PersonalPlanWidgetState extends LPExtendedState<PersonalPlanWidget> {
                           ),
                           padding: EdgeInsets.zero,
                           onPressed: () async {
-                            await preparePersonalPlanExport(userInfoProvider);
-                            final exportMetadata =
-                                buildPersonalPlanExportMetadata(
-                                  appLocale,
-                                  gender,
-                                  username,
-                                );
-                            final result = await fileService.download(
-                              exportMetadata.titles,
-                              exportMetadata.subTitles,
-                              appInfoProvider.sharePDFtexts,
-                              ShareFileType.PDF,
-                              mainTitle: exportMetadata.mainTitle,
+                            await downloadPersonalPlanFile(
+                              appLocale: appLocale,
+                              gender: gender,
+                              username: username,
+                              appInformation: appInfoProvider,
                               textDirection: appLocale.textDirection,
-                            );
-                            if (result == null) {
-                              showToast(
-                                message: appLocale.downloadFailed(gender),
-                              );
-                              return;
-                            }
-                            showToast(
-                              message: appLocale.finishedDownloading(gender),
+                              userInformation: userInfoProvider,
+                              fileService: fileService,
                             );
                           },
                           icon: Icon(

@@ -876,4 +876,66 @@ void main() {
       expect(u.darkModeEndMinute, 0);
     });
   });
+
+  group('saveCategorySelection and export preparation', () {
+    test('throws ArgumentError for unsupported category name', () async {
+      final u = buildUser();
+      expect(
+        () => u.saveCategorySelection('UnsupportedCategory', ['Item 1']),
+        throwsA(isA<ArgumentError>()),
+      );
+    });
+
+    test('preserves provenance metadata when selectionSources is omitted for DreamsAndGoals', () async {
+      final u = buildUser();
+      u.updateDreamsAndGoals(
+        ['Write and publish a book', 'Custom Goal B'],
+        selectionSources: ['catalogue:write-and-publish-a-book', 'custom'],
+      );
+
+      // Save with omitted selectionSources
+      await u.saveCategorySelection(
+        'PersonalPlan-DreamsAndGoals',
+        ['Write and publish a book', 'Custom Goal B'],
+      );
+
+      expect(u.dreamsAndGoalsSelectionSources, [
+        'catalogue:write-and-publish-a-book',
+        'custom',
+      ]);
+    });
+
+    test('updates provenance metadata when selectionSources is explicitly provided for DreamsAndGoals', () async {
+      final u = buildUser();
+      u.updateDreamsAndGoals(
+        ['Write and publish a book', 'Custom Goal B'],
+        selectionSources: ['catalogue:write-and-publish-a-book', 'custom'],
+      );
+
+      await u.saveCategorySelection(
+        'PersonalPlan-DreamsAndGoals',
+        ['Write and publish a book', 'Custom Goal B'],
+        selectionSources: ['custom', 'custom'],
+      );
+
+      expect(u.dreamsAndGoalsSelectionSources, [
+        'custom',
+        'custom',
+      ]);
+    });
+
+    test('persists supported standard categories correctly', () async {
+      final u = buildUser();
+      await u.saveCategorySelection(
+        'PersonalPlan-DifficultEvents',
+        ['Event 1', 'Event 2'],
+      );
+
+      expect(u.difficultEvents, ['Event 1', 'Event 2']);
+      expect(
+        fakeService.stored['userSelectionPersonalPlan-DifficultEvents'],
+        ['Event 1', 'Event 2'],
+      );
+    });
+  });
 }
