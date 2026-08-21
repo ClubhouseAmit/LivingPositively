@@ -107,11 +107,12 @@ class PersonalPlanSectionWidget extends StatelessWidget {
     if (value == 'share') {
       showShareDialog(context);
     } else if (value == 'download') {
-      final fileService = GetIt.instance<FileService>();
       final appInfoProvider = Provider.of<AppInformation>(
         context,
         listen: false,
       );
+      await preparePersonalPlanExport(userInfo);
+      final fileService = GetIt.instance<FileService>();
       final exportMetadata = buildPersonalPlanExportMetadata(
         appLocale,
         userInfo.gender,

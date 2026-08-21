@@ -132,6 +132,7 @@ Future<int> _pump(
   WidgetTester tester,
   String collection, {
   UserInformation? user,
+  PersistentMemoryService? persistentMemoryService,
   VoidCallback? onNext,
 }) async {
   await tester.binding.setSurfaceSize(const Size(900, 2200));
@@ -163,6 +164,7 @@ Future<int> _pump(
               },
               prev: () {},
               collectionName: collection,
+              persistentMemoryService: persistentMemoryService,
             ),
           ),
         ),
@@ -1166,5 +1168,60 @@ void main() {
     final after = pm.store['userSelectionPersonalPlan-DifficultEvents'];
     expect(after, isA<List<String>>());
     expect((after as List).length, 1);
+  });
+
+  group('Injectable persistence boundary without global locator mutation', () {
+    testWidgets(
+      'FormPageTemplate uses injected PersistentMemoryService without GetIt registration',
+      (tester) async {
+        final injectedMemoryService = _FakePersistentMemoryService();
+        final user = UserInformation(service: injectedMemoryService)
+          ..gender = 'other';
+
+        await _pump(
+          tester,
+          'PersonalPlan-FeelBetter',
+          user: user,
+          persistentMemoryService: injectedMemoryService,
+        );
+
+        // Add an item via dialog
+        await _addViaDialog(tester, 'New Feel Better Item');
+        await tester.pumpAndSettle();
+
+        expect(
+          injectedMemoryService.store['userSelectionPersonalPlan-FeelBetter'],
+          contains('New Feel Better Item'),
+        );
+      },
+    );
+
+    testWidgets(
+      'FormPageTemplate Dreams and Goals routes through injected UserInformation without GetIt registration',
+      (tester) async {
+        final injectedMemoryService = _FakePersistentMemoryService();
+        final user = UserInformation(service: injectedMemoryService)
+          ..gender = 'other';
+
+        await _pump(
+          tester,
+          'PersonalPlan-DreamsAndGoals',
+          user: user,
+        );
+
+        // Add custom goal via dialog
+        await _addViaDialog(tester, 'Run a Marathon');
+        await tester.pumpAndSettle();
+
+        expect(
+          injectedMemoryService.store['userSelectionPersonalPlan-DreamsAndGoals'],
+          contains('Run a Marathon'),
+        );
+        expect(
+          injectedMemoryService.store['selectionSourcesPersonalPlan-DreamsAndGoals'],
+          contains('custom'),
+        );
+      },
+    );
   });
 }

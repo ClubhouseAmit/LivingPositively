@@ -575,23 +575,32 @@ class _ShareFormState extends WizardStepState<ShareForm> {
   }) async {
     int retryRevision = initialRetryRevision;
     try {
+      while (true) {
         await _persistInlineDreamsAndGoals(userInformation, retry: retry);
-
-      final int revisionBeforeRepair =
-          userInformation.dreamsAndGoalsSaveRevision;
-      retryRevision = revisionBeforeRepair;
-      final Future<void> repair = userInformation
-          .repairDreamsAndGoalsSelectionSources();
-      retryRevision = userInformation.dreamsAndGoalsSaveRevision;
-      await repair;
-
-      // A retry has already persisted the current snapshot through
-      // _persistInlineDreamsAndGoals. Repeating it here would enqueue the
-      // same three-key snapshot a second time before the deferred action runs.
-      if (!retry &&
-          userInformation.dreamsAndGoalsSaveRevision == revisionBeforeRepair) {
         retryRevision = userInformation.dreamsAndGoalsSaveRevision;
-        await userInformation.queueDreamsAndGoalsSave();
+        await userInformation.pendingDreamsAndGoalsSave;
+
+        final int revisionBeforeRepair =
+            userInformation.dreamsAndGoalsSaveRevision;
+        await userInformation.repairDreamsAndGoalsSelectionSources();
+        await userInformation.pendingDreamsAndGoalsSave;
+
+        // A retry has already persisted the current snapshot through
+        // _persistInlineDreamsAndGoals. Repeating it here would enqueue the
+        // same three-key snapshot a second time before the deferred action runs.
+        if (!retry &&
+            userInformation.dreamsAndGoalsSaveRevision ==
+                revisionBeforeRepair) {
+          await userInformation.queueDreamsAndGoalsSave();
+          await userInformation.pendingDreamsAndGoalsSave;
+        }
+
+        final int expectedRevision = userInformation.dreamsAndGoalsSaveRevision;
+        retryRevision = expectedRevision;
+        if (userInformation.dreamsAndGoalsSaveRevision == expectedRevision) {
+          await userInformation.pendingDreamsAndGoalsSave;
+          break;
+        }
       }
       return const _DreamsAndGoalsActionReady();
     } catch (error, stackTrace) {
@@ -620,11 +629,11 @@ class _ShareFormState extends WizardStepState<ShareForm> {
           // selections cannot reach its edit path with unaligned sources.
           await userInformation.repairDreamsAndGoalsSelectionSources();
         }
-            if (mounted) {
-              setState(() {
-                _isEditingDreamsAndGoals = true;
-              });
-            }
+        if (mounted) {
+          setState(() {
+            _isEditingDreamsAndGoals = true;
+          });
+        }
       } catch (error, stackTrace) {
         if (retry) {
           await _captureDreamsAndGoalsFailure(error, stackTrace);

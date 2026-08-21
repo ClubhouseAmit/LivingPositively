@@ -1417,4 +1417,40 @@ void main() {
 
     expect(actionCompleted, isTrue);
   });
+
+  testWidgets(
+    'stabilization loop ensures concurrent Dreams edit persists before primary action finishes',
+    (tester) async {
+      final stepKey = GlobalKey<WizardStepState>();
+      var submitCalls = 0;
+
+      await pumpWithProviders(
+        tester,
+        wizardStepHarness(
+          ShareForm(
+            key: stepKey,
+            prev: () {},
+            submit: (_) {
+              submitCalls++;
+            },
+          ),
+        ),
+        userInformation: user,
+        surfaceSize: const Size(1024, 1800),
+      );
+
+      // Concurrently update dreams and goals to advance save revision while action runs
+      user.updateDreamsAndGoals(['Goal Alpha'], selectionSources: ['custom']);
+
+      await tester.runAsync(() async {
+        await stepKey.currentState!.onPrimaryAction();
+      });
+
+      expect(submitCalls, 1);
+      expect(
+        user.dreamsAndGoals,
+        contains('Goal Alpha'),
+      );
+    },
+  );
 }

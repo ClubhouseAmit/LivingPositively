@@ -103,34 +103,38 @@ class _PhonePageState extends LPExtendedState<PhonePage> {
     AppInformation appInformation,
     String gender,
     String username,
-  ) => _runSosDelivery(() async {
+  ) {
+    final userInfo = Provider.of<UserInformation>(context, listen: false);
     final localizations = appLocale;
     final messenger = ScaffoldMessenger.maybeOf(context);
-    final exportMetadata = buildPersonalPlanExportMetadata(
-      localizations,
-      gender,
-      username,
-    );
-    final shareResult = await GetIt.instance<FileService>().share(
-      localizations.shareEmergencyMessage,
-      exportMetadata.titles,
-      exportMetadata.subTitles,
-      appInformation.sharePDFtexts,
-      ShareFileType.PDF,
-      mainTitle: exportMetadata.mainTitle,
-      textDirection: localizations.textDirection,
-    );
-    if (!mounted) {
-      return;
-    }
-    if (shareResult == null ||
-        shareResult.status == ShareResultStatus.unavailable) {
-      messenger?.hideCurrentSnackBar();
-      messenger?.showSnackBar(
-        SnackBar(content: Text(localizations.personalPlanShareFailed)),
+    return _runSosDelivery(() async {
+      await preparePersonalPlanExport(userInfo);
+      final exportMetadata = buildPersonalPlanExportMetadata(
+        localizations,
+        gender,
+        username,
       );
-    }
-  });
+      final shareResult = await GetIt.instance<FileService>().share(
+        localizations.shareEmergencyMessage,
+        exportMetadata.titles,
+        exportMetadata.subTitles,
+        appInformation.sharePDFtexts,
+        ShareFileType.PDF,
+        mainTitle: exportMetadata.mainTitle,
+        textDirection: localizations.textDirection,
+      );
+      if (!mounted) {
+        return;
+      }
+      if (shareResult == null ||
+          shareResult.status == ShareResultStatus.unavailable) {
+        messenger?.hideCurrentSnackBar();
+        messenger?.showSnackBar(
+          SnackBar(content: Text(localizations.personalPlanShareFailed)),
+        );
+      }
+    });
+  }
 
   Future<void> _runSosDelivery(Future<void> Function() delivery) async {
     if (_isSosDeliveryInProgress || !mounted) {

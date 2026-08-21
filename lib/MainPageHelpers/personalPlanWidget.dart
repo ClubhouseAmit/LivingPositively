@@ -162,6 +162,7 @@ class _PersonalPlanWidgetState extends LPExtendedState<PersonalPlanWidget> {
   Widget _buildPersonalPlanHeader(
     BuildContext context,
     AppInformation appInfoProvider,
+    UserInformation userInfoProvider,
     String gender,
     String username,
   ) {
@@ -252,6 +253,7 @@ class _PersonalPlanWidgetState extends LPExtendedState<PersonalPlanWidget> {
                           ),
                           padding: EdgeInsets.zero,
                           onPressed: () async {
+                            await preparePersonalPlanExport(userInfoProvider);
                             final exportMetadata =
                                 buildPersonalPlanExportMetadata(
                                   appLocale,
@@ -351,7 +353,12 @@ class _PersonalPlanWidgetState extends LPExtendedState<PersonalPlanWidget> {
         child: Column(
           children: [
             _buildPersonalPlanHeader(
-              context, appInfoProvider, gender, userInfoProvider.name),
+              context,
+              appInfoProvider,
+              userInfoProvider,
+              gender,
+              userInfoProvider.name,
+            ),
             LayoutBuilder(
               builder: (context, constraints) {
                 final twoColumn = constraints.maxWidth >= 520;

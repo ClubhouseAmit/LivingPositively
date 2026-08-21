@@ -47,6 +47,7 @@ class FormPageTemplate extends WizardStep {
 
   final String collectionName;
   final bool scrollable;
+  final PersistentMemoryService? persistentMemoryService;
 
   const FormPageTemplate({
     required super.key,
@@ -54,6 +55,7 @@ class FormPageTemplate extends WizardStep {
     required this.prev,
     required this.collectionName,
     this.scrollable = true,
+    this.persistentMemoryService,
   });
 
   @override
@@ -180,16 +182,10 @@ class _FormPageTemplateState extends WizardStepState<FormPageTemplate> {
     required int revision,
     required bool retry,
   }) {
-    final Future<void> dreamsSave = retry
-        ? userInfo.retryDreamsAndGoalsSave(revision)
-        : userInfo.queueDreamsAndGoalsSave();
-    final Future<void> disclaimerSave = Future<void>.sync(
-      userInfo.persistDisclaimerConfirmed,
+    final Future<void> combinedSave = userInfo.saveDreamsAndGoalsWithDisclaimer(
+      revision: revision,
+      retry: retry,
     );
-    final Future<void> combinedSave = Future.wait<void>([
-      dreamsSave,
-      disclaimerSave,
-    ]);
     _pendingDreamsAndGoalsPersistence = combinedSave;
     _pendingDreamsAndGoalsPersistenceRevision =
         userInfo.dreamsAndGoalsSaveRevision;
@@ -200,55 +196,64 @@ class _FormPageTemplateState extends WizardStepState<FormPageTemplate> {
     UserInformation userInfo, {
     void Function(int revision)? onDreamsSaveQueued,
   }) async {
-    PersistentMemoryService service =
-        GetIt.instance<
-          PersistentMemoryService
-        >(); // Get the persistent memory service instance
-
-    switch (widget.collectionName) {
-      case 'PersonalPlan-DifficultEvents':
-        userInfo.updateDifficultEvents([...selectedItems]);
-        break;
-      case 'PersonalPlan-MakeSafer':
-        userInfo.updateMakeSafer([...selectedItems]);
-        break;
-      case 'PersonalPlan-FeelBetter':
-        userInfo.updateFeelBetter([...selectedItems]);
-        break;
-      case 'PersonalPlan-Distractions':
-        userInfo.updateDistractions([...selectedItems]);
-        break;
-      case 'PersonalPlan-SafeEnvironment':
-        userInfo.updateSafeEnvironment([...selectedItems]);
-        break;
-      case 'PersonalPlan-DreamsAndGoals':
-        userInfo.updateDreamsAndGoals(
-          selectedItems,
-          selectionSources: selectedItemSources,
-        );
-        selectedItemSources = List<String>.from(
-          userInfo.dreamsAndGoalsSelectionSources,
-        );
-        final int revision = userInfo.dreamsAndGoalsSaveRevision;
-        onDreamsSaveQueued?.call(revision);
-        await _saveDreamsAndGoalsWithDisclaimer(
-          userInfo,
-          revision: revision,
-          retry: false,
-        );
-        return;
-      default:
+    if (widget.persistentMemoryService != null &&
+        widget.collectionName != 'PersonalPlan-DreamsAndGoals') {
+      switch (widget.collectionName) {
+        case 'PersonalPlan-DifficultEvents':
+          userInfo.updateDifficultEvents([...selectedItems]);
+          break;
+        case 'PersonalPlan-MakeSafer':
+          userInfo.updateMakeSafer([...selectedItems]);
+          break;
+        case 'PersonalPlan-FeelBetter':
+          userInfo.updateFeelBetter([...selectedItems]);
+          break;
+        case 'PersonalPlan-Distractions':
+          userInfo.updateDistractions([...selectedItems]);
+          break;
+        case 'PersonalPlan-SafeEnvironment':
+          userInfo.updateSafeEnvironment([...selectedItems]);
+          break;
+        default:
+      }
+      await userInfo.persistDisclaimerConfirmed();
+      await widget.persistentMemoryService!.setItem(
+        'userSelection${widget.collectionName}',
+        PersistentMemoryType.StringList,
+        [...selectedItems],
+      );
+      await widget.persistentMemoryService!.setItem(
+        'addedStrings${widget.collectionName}',
+        PersistentMemoryType.StringList,
+        [...selectedItems],
+      );
+      return;
     }
-    await userInfo.persistDisclaimerConfirmed();
-    await service.setItem(
-      'userSelection${widget.collectionName}',
-      PersistentMemoryType.StringList,
-      [...selectedItems],
-    );
-    await service.setItem(
-      'addedStrings${widget.collectionName}',
-      PersistentMemoryType.StringList,
-      [...selectedItems],
+
+    if (widget.collectionName == 'PersonalPlan-DreamsAndGoals') {
+      final Future<void> saveFuture = userInfo.saveCategorySelection(
+        widget.collectionName,
+        selectedItems,
+        selectionSources: selectedItemSources,
+        onDreamsSaveQueued: (int revision) {
+          onDreamsSaveQueued?.call(revision);
+        },
+      );
+      selectedItemSources = List<String>.from(
+        userInfo.dreamsAndGoalsSelectionSources,
+      );
+      _pendingDreamsAndGoalsPersistence = saveFuture;
+      _pendingDreamsAndGoalsPersistenceRevision =
+          userInfo.dreamsAndGoalsSaveRevision;
+      await saveFuture;
+      return;
+    }
+
+    await userInfo.saveCategorySelection(
+      widget.collectionName,
+      selectedItems,
+      selectionSources: selectedItemSources,
+      onDreamsSaveQueued: onDreamsSaveQueued,
     );
   }
 

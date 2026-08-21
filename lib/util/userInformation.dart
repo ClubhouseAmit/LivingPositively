@@ -328,6 +328,90 @@ class UserInformation with ChangeNotifier {
     );
   }
 
+  /// Persists Dreams and Goals snapshot combined with the disclaimer confirmation
+  /// using this model's injected storage service.
+  Future<void> saveDreamsAndGoalsWithDisclaimer({
+    required int revision,
+    required bool retry,
+  }) {
+    final Future<void> dreamsSave = retry
+        ? retryDreamsAndGoalsSave(revision)
+        : queueDreamsAndGoalsSave();
+    final Future<void> disclaimerSave = Future<void>.sync(
+      persistDisclaimerConfirmed,
+    );
+    return Future.wait<void>([
+      dreamsSave,
+      disclaimerSave,
+    ]);
+  }
+
+  /// Updates category selections in memory and persists them through this
+  /// model's injected storage service.
+  Future<void> saveCategorySelection(
+    String collectionName,
+    List<String> items, {
+    List<String>? selectionSources,
+    void Function(int revision)? onDreamsSaveQueued,
+  }) async {
+    switch (collectionName) {
+      case 'PersonalPlan-DifficultEvents':
+        updateDifficultEvents([...items]);
+        break;
+      case 'PersonalPlan-MakeSafer':
+        updateMakeSafer([...items]);
+        break;
+      case 'PersonalPlan-FeelBetter':
+        updateFeelBetter([...items]);
+        break;
+      case 'PersonalPlan-Distractions':
+        updateDistractions([...items]);
+        break;
+      case 'PersonalPlan-SafeEnvironment':
+        updateSafeEnvironment([...items]);
+        break;
+      case 'PersonalPlan-DreamsAndGoals':
+        updateDreamsAndGoals(
+          items,
+          selectionSources: selectionSources,
+        );
+        final int revision = dreamsAndGoalsSaveRevision;
+        onDreamsSaveQueued?.call(revision);
+        await saveDreamsAndGoalsWithDisclaimer(
+          revision: revision,
+          retry: false,
+        );
+        return;
+      default:
+    }
+    await persistDisclaimerConfirmed();
+    await service.setItem(
+      'userSelection$collectionName',
+      PersistentMemoryType.StringList,
+      [...items],
+    );
+    await service.setItem(
+      'addedStrings$collectionName',
+      PersistentMemoryType.StringList,
+      [...items],
+    );
+  }
+
+  /// Awaits all pending saves and repairs Dreams and Goals selection sources
+  /// until storage has a stable, normalized snapshot for Personal Plan export.
+  Future<void> prepareForPersonalPlanExport() async {
+    while (true) {
+      await _pendingDreamsAndGoalsSave;
+      final int revisionBeforeRepair = _dreamsAndGoalsSaveRevision;
+      await repairDreamsAndGoalsSelectionSources();
+      await _pendingDreamsAndGoalsSave;
+      if (_dreamsAndGoalsSaveRevision == revisionBeforeRepair) {
+        await _pendingDreamsAndGoalsSave;
+        break;
+      }
+    }
+  }
+
   /// Persists the form completion disclaimer using this model's injected
   /// storage service.
   Future<void> persistDisclaimerConfirmed() {

@@ -24,11 +24,16 @@ Future<ShareResult?> shareFile(
   AppLocalizations appLocale,
   String gender,
   String username,
-  AppInformation appInfoProvider,
-) {
-  final fileService = GetIt.instance<FileService>();
+  AppInformation appInfoProvider, {
+  UserInformation? userInformation,
+  FileService? fileService,
+}) async {
+  if (userInformation != null) {
+    await preparePersonalPlanExport(userInformation);
+  }
+  final service = fileService ?? GetIt.instance<FileService>();
   final exportMetadata = buildPersonalPlanExportMetadata(appLocale, gender, username);
-  return fileService.share(
+  return service.share(
     "",
     exportMetadata.titles,
     exportMetadata.subTitles,
@@ -58,6 +63,8 @@ class _LPShareAlertDialogState extends LPExtendedState<LPShareAlertDialog> {
               gender,
               userInfoProvider.name,
               appInfoProvider,
+              userInformation: userInfoProvider,
+              fileService: fileService,
             );
             if (!context.mounted) {
               return;

@@ -1,4 +1,5 @@
 import 'package:mazilon/l10n/app_localizations.dart';
+import 'package:mazilon/util/userInformation.dart';
 
 class PersonalPlanExportMetadata {
   const PersonalPlanExportMetadata({
@@ -42,4 +43,10 @@ PersonalPlanExportMetadata buildPersonalPlanExportMetadata(
     ],
     mainTitle: mainTitle,
   );
+}
+
+/// Awaits all pending Dreams and Goals persistence writes and repairs selection
+/// sources before a Personal Plan export reads data from local storage.
+Future<void> preparePersonalPlanExport(UserInformation userInformation) {
+  return userInformation.prepareForPersonalPlanExport();
 }
