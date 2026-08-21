@@ -10,6 +10,8 @@ import 'package:mazilon/util/logger_service.dart';
 import 'package:mazilon/util/persistent_memory_service.dart';
 import 'package:mazilon/util/userInformation.dart';
 
+import 'package:mazilon/util/PDF/create_pdf.dart';
+
 @immutable
 class _PersonalPlanDownloadContext {
   final String localeName;
@@ -31,7 +33,7 @@ class _PersonalPlanDownloadContext {
   })  : localeName = appLocale.localeName,
         textDirection = appLocale.textDirection,
         sharePdfTexts = Map<String, String>.unmodifiable(
-          appInformation.sharePDFtexts,
+          sanitizeSharePdfTexts(appInformation.sharePDFtexts),
         ),
         userInformationRevision = userInformation?.dreamsAndGoalsSaveRevision,
         memoryService = userInformation?.service;
@@ -111,9 +113,9 @@ Future<String?> downloadPersonalPlanFile({
     appLocale: appLocale,
     gender: gender,
     username: username,
-    appInformation: appInformation,
-    userInformation: userInformation,
+    sharePdfTexts: contextKey.sharePdfTexts,
     fileService: fileService,
+    userInformation: userInformation,
   );
 
   _activePersonalPlanDownloads[contextKey] = downloadFuture;
@@ -130,7 +132,7 @@ Future<String?> _executeDownloadPersonalPlanFile({
   required AppLocalizations appLocale,
   required String gender,
   required String username,
-  required AppInformation appInformation,
+  required Map<String, String> sharePdfTexts,
   required FileService fileService,
   UserInformation? userInformation,
 }) async {
@@ -144,7 +146,7 @@ Future<String?> _executeDownloadPersonalPlanFile({
     final result = await fileService.download(
       exportMetadata.titles,
       exportMetadata.subTitles,
-      appInformation.sharePDFtexts,
+      sharePdfTexts,
       ShareFileType.PDF,
       mainTitle: exportMetadata.mainTitle,
       textDirection: appLocale.textDirection,

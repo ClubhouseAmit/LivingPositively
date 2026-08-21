@@ -45,6 +45,13 @@ final class _FakeMemory extends ContractPersistentMemoryService {
   }
 }
 
+final class _StrictFakeMemory extends ContractPersistentMemoryService {
+  _StrictFakeMemory(Map<String, dynamic> store) : super(store: store) {
+    onMissingRead = (key, _) =>
+        throw StateError('Unexpected memory read for unconfigured key: $key');
+  }
+}
+
 void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
   const shareChannel = MethodChannel('dev.fluttercommunity.plus/share');
@@ -252,25 +259,39 @@ void main() {
     });
 
     test('uses supplied memoryService override when provided', () async {
-      final customMemory = _FakeMemory({
-        'userSelectionPersonalPlan-DifficultEvents': ['customEv'],
-        'userSelectionPersonalPlan-SafeEnvironment': ['customSafe'],
-        'userSelectionPersonalPlan-DreamsAndGoals': ['customGoal'],
+      final customMemory = _StrictFakeMemory({
+        'userSelectionPersonalPlan-Distractions': <dynamic>[],
+        'userSelectionPersonalPlan-DifficultEvents': <dynamic>['customEv'],
+        'userSelectionPersonalPlan-FeelBetter': <dynamic>[],
+        'userSelectionPersonalPlan-MakeSafer': <dynamic>[],
+        'PhonePageSavedPhoneNames': <dynamic>[],
+        'PhonePageSavedPhoneNumbers': <dynamic>[],
+        'userSelectionPersonalPlan-SafeEnvironment': <dynamic>['customSafe'],
+        'userSelectionPersonalPlan-DreamsAndGoals': <dynamic>['customGoal'],
+        'customCategoryTitles': <dynamic>['Custom Title'],
+        'customCategoryDescriptions': <dynamic>['Custom Description'],
       });
       final svc = FileServiceImpl();
       final result = await svc.organizeDataForFile(
         ['T1', 'T2', 'T3', 'T4', 'T5', 'T6', 'T7'],
         ['S1', 'S2', 'S3', 'S4', 'S5', 'S6', 'S7'],
-        {},
+        {
+          'firstLinkURL': 'https://example.com/valid',
+          'secondLinkURL': 'http://untrusted.com/invalid',
+        },
         mainTitle: 'Custom Plan',
         memoryService: customMemory,
       );
-      expect(result['titles'], ['T2', 'T6', 'T7']);
+      expect(result['titles'], ['T2', 'T6', 'T7', 'Custom Title']);
+      expect(result['subTitles'], ['S2', 'S6', 'S7', '']);
       expect(result['realData'], [
         ['customEv'],
         ['customSafe'],
         ['customGoal'],
+        ['Custom Description'],
       ]);
+      expect(result['texts']['text2Link'], 'https://example.com/valid');
+      expect(result['texts']['text5Link'], '');
     });
   });
 

@@ -322,4 +322,39 @@ void main() {
       expect(tester.takeException(), isNull);
     },
   );
+
+  testWidgets(
+    'MyPlanPageFull loads custom categories from injected memoryService',
+    (tester) async {
+      final memoryService = GetIt.instance<PersistentMemoryService>();
+      await memoryService.setItem(
+        'customCategoryTitles',
+        PersistentMemoryType.StringList,
+        ['Custom Heading'],
+      );
+      await memoryService.setItem(
+        'customCategoryDescriptions',
+        PersistentMemoryType.StringList,
+        ['Custom Detail'],
+      );
+
+      await pumpWithProviders(
+        tester,
+        MyPlanPageFull(
+          phonePageData: _emptyPhonePageData(),
+          hasFilled: true,
+          changeLocale: (_) {},
+          memoryService: memoryService,
+        ),
+        userInformation: userInformation,
+        appInformation: appInformation,
+        surfaceSize: const Size(1024, 2400),
+      );
+      await tester.pumpAndSettle();
+
+      expect(find.text('Custom Heading'), findsOneWidget);
+      expect(find.text('Custom Detail'), findsOneWidget);
+      expect(tester.takeException(), isNull);
+    },
+  );
 }

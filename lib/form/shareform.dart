@@ -61,11 +61,13 @@ final class _DreamsAndGoalsActionFailed
 class ShareForm extends WizardStep {
   final Function prev;
   final FutureOr<void> Function(BuildContext context) submit;
+  final PersistentMemoryService? memoryService;
 
   const ShareForm({
     required super.key,
     required this.prev,
     required this.submit,
+    this.memoryService,
   });
 
   @override
@@ -96,6 +98,25 @@ class _ShareFormState extends WizardStepState<ShareForm> {
   int? _editingCustomCategoryIndex;
   int _customCategoryFormGeneration = 0;
 
+  PersistentMemoryService? get _memoryService {
+    if (widget.memoryService != null) {
+      return widget.memoryService;
+    }
+    if (mounted) {
+      try {
+        final UserInformation? userInformation =
+            Provider.of<UserInformation?>(context, listen: false);
+        if (userInformation?.service != null) {
+          return userInformation!.service;
+        }
+      } catch (_) {}
+    }
+    if (GetIt.instance.isRegistered<PersistentMemoryService>()) {
+      return GetIt.instance<PersistentMemoryService>();
+    }
+    return null;
+  }
+
   void setHasFilled() {
     unawaited(_setHasFilled());
   }
@@ -125,7 +146,11 @@ class _ShareFormState extends WizardStepState<ShareForm> {
     super.initState();
     fileService = GetIt.instance<FileService>();
     setHasFilled();
-    loadCustomCategories();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (mounted) {
+        loadCustomCategories();
+      }
+    });
   }
 
   @override
@@ -136,8 +161,13 @@ class _ShareFormState extends WizardStepState<ShareForm> {
     super.dispose();
   }
 
-  Future<void> loadCustomCategories() async {
-    PersistentMemoryService service = GetIt.instance<PersistentMemoryService>();
+  Future<void> loadCustomCategories([
+    PersistentMemoryService? injectedService,
+  ]) async {
+    final PersistentMemoryService? service = injectedService ?? _memoryService;
+    if (service == null) {
+      return;
+    }
     final titles = TypeUtils.castToStringList(
       await service.getItem(
         _customCategoryTitlesKey,
@@ -171,8 +201,13 @@ class _ShareFormState extends WizardStepState<ShareForm> {
     });
   }
 
-  Future<void> saveCustomCategories() async {
-    PersistentMemoryService service = GetIt.instance<PersistentMemoryService>();
+  Future<void> saveCustomCategories([
+    PersistentMemoryService? injectedService,
+  ]) async {
+    final PersistentMemoryService? service = injectedService ?? _memoryService;
+    if (service == null) {
+      return;
+    }
     await service.setItem(
       _customCategoryTitlesKey,
       PersistentMemoryType.StringList,

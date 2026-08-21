@@ -54,6 +54,7 @@ class _TestFileService implements FileService {
   bool throwOnAction = false;
   Completer<void>? pendingDownloadCompleter;
   PersistentMemoryService? lastMemoryService;
+  Map<String, String>? lastTexts;
 
   @override
   Future<ShareResult?> share(
@@ -67,6 +68,7 @@ class _TestFileService implements FileService {
     PersistentMemoryService? memoryService,
   }) async {
     lastMemoryService = memoryService;
+    lastTexts = texts;
     if (throwOnAction) {
       throw StateError('Share failed');
     }
@@ -85,6 +87,7 @@ class _TestFileService implements FileService {
     PersistentMemoryService? memoryService,
   }) async {
     lastMemoryService = memoryService;
+    lastTexts = texts;
     if (throwOnAction) {
       throw StateError('Download failed');
     }
@@ -1021,6 +1024,92 @@ void main() {
 
         expect(result?.status, ShareResultStatus.success);
         expect(fileService.lastMemoryService, same(customMemory));
+      },
+    );
+
+    test(
+      'downloadPersonalPlanFile uses snapshot of sharePDFtexts taken at start of download even if mutated during preparation',
+      () async {
+        final localizations = await AppLocalizations.delegate.load(
+          const Locale('en'),
+        );
+        appInformation.sharePDFtexts = {
+          'firstLine': 'Initial First Line',
+          'firstLinkURL': 'https://example.com/ok',
+        };
+
+        // Hook userInformation preparation to mutate appInformation.sharePDFtexts during await
+        userInformation.updateDreamsAndGoals(['Goal 1'], selectionSources: ['custom']);
+        final downloadFuture = downloadPersonalPlanFile(
+          appLocale: localizations,
+          gender: userInformation.gender,
+          username: userInformation.name,
+          appInformation: appInformation,
+          userInformation: userInformation,
+          fileService: fileService,
+        );
+
+        // Mutate live map while download is running
+        appInformation.sharePDFtexts = {
+          'firstLine': 'Mutated First Line',
+          'firstLinkURL': 'https://example.com/mutated',
+        };
+
+        final result = await downloadFuture;
+        expect(result, isNotNull);
+        expect(fileService.lastTexts?['firstLine'], 'Initial First Line');
+        expect(fileService.lastTexts?['firstLinkURL'], 'https://example.com/ok');
+      },
+    );
+
+    test(
+      'downloadPersonalPlanFile and sharePersonalPlanFile sanitize untrusted URLs from sharePDFtexts',
+      () async {
+        final localizations = await AppLocalizations.delegate.load(
+          const Locale('en'),
+        );
+        appInformation.sharePDFtexts = {
+          'firstLine': 'First Line',
+          'firstLinkURL': 'https://livepositively.club/valid',
+          'secondLinkURL': 'http://untrusted-http.com',
+        };
+
+        await downloadPersonalPlanFile(
+          appLocale: localizations,
+          gender: userInformation.gender,
+          username: userInformation.name,
+          appInformation: appInformation,
+          userInformation: userInformation,
+          fileService: fileService,
+        );
+
+        expect(
+          fileService.lastTexts?['firstLinkURL'],
+          'https://livepositively.club/valid',
+        );
+        expect(fileService.lastTexts?['secondLinkURL'], '');
+
+        appInformation.sharePDFtexts = {
+          'firstLine': 'First Line',
+          'firstLinkURL': 'javascript:alert(1)',
+          'secondLinkURL': 'https://hebsite.livepositively.club/help',
+        };
+
+        await sharePersonalPlanFile(
+          message: 'msg',
+          appLocale: localizations,
+          gender: userInformation.gender,
+          username: userInformation.name,
+          appInformation: appInformation,
+          userInformation: userInformation,
+          fileService: fileService,
+        );
+
+        expect(fileService.lastTexts?['firstLinkURL'], '');
+        expect(
+          fileService.lastTexts?['secondLinkURL'],
+          'https://hebsite.livepositively.club/help',
+        );
       },
     );
   });

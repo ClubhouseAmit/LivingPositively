@@ -16,6 +16,58 @@ pw.Alignment pdfAlignmentForDirection(String textDirection) =>
 pw.TextAlign pdfTextAlignForDirection(String textDirection) =>
     textDirection == 'rtl' ? pw.TextAlign.right : pw.TextAlign.left;
 
+const Set<String> _approvedPdfLinkHosts = {
+  'livepositively.club',
+  'mazilon.com',
+  'example.com',
+};
+
+/// Validates whether [host] belongs to the approved PDF link allow-list.
+bool isApprovedPdfLinkHost(String host) {
+  final lowerHost = host.toLowerCase();
+  for (final approved in _approvedPdfLinkHosts) {
+    if (lowerHost == approved || lowerHost.endsWith('.$approved')) {
+      return true;
+    }
+  }
+  return false;
+}
+
+/// Sanitizes [rawUrl], requiring an HTTPS scheme and an approved host.
+/// Returns the valid trimmed URL, or an empty string if invalid or unapproved.
+String sanitizePdfLinkUrl(String? rawUrl) {
+  if (rawUrl == null || rawUrl.trim().isEmpty) {
+    return '';
+  }
+  try {
+    final uri = Uri.parse(rawUrl.trim());
+    if (uri.scheme.toLowerCase() != 'https') {
+      return '';
+    }
+    if (uri.host.isEmpty) {
+      return '';
+    }
+    if (!isApprovedPdfLinkHost(uri.host)) {
+      return '';
+    }
+    return uri.toString();
+  } catch (_) {
+    return '';
+  }
+}
+
+/// Sanitizes all link URLs within [texts] prior to PDF creation or download.
+Map<String, String> sanitizeSharePdfTexts(Map<String, String> texts) {
+  final sanitized = Map<String, String>.from(texts);
+  if (sanitized.containsKey('firstLinkURL')) {
+    sanitized['firstLinkURL'] = sanitizePdfLinkUrl(sanitized['firstLinkURL']);
+  }
+  if (sanitized.containsKey('secondLinkURL')) {
+    sanitized['secondLinkURL'] = sanitizePdfLinkUrl(sanitized['secondLinkURL']);
+  }
+  return sanitized;
+}
+
 Future<Map<String, dynamic>> createPDF(
   List<dynamic> titles,
   List<dynamic> subTitles,
@@ -132,6 +184,28 @@ Future<Map<String, dynamic>> createPDF(
   // Add space before footer
   widgets.add(pw.Expanded(child: pw.SizedBox()));
 
+  final sanitizedLink2 = sanitizePdfLinkUrl(texts["text2Link"]);
+  final sanitizedLink5 = sanitizePdfLinkUrl(texts["text5Link"]);
+
+  pw.Widget buildLinkWidget(String text, String sanitizedLink) {
+    final textWidget = pw.Text(
+      text,
+      style: pw.TextStyle(
+        fontSize: 24,
+        font: ttf,
+        color: sanitizedLink.isNotEmpty ? PdfColors.blue : null,
+      ),
+      textAlign: textAlign,
+    );
+    if (sanitizedLink.isNotEmpty) {
+      return pw.UrlLink(
+        destination: sanitizedLink,
+        child: textWidget,
+      );
+    }
+    return textWidget;
+  }
+
   // Add the footer content to the PDF
   widgets.add(
     pw.Column(
@@ -140,7 +214,7 @@ Future<Map<String, dynamic>> createPDF(
         pw.Directionality(
           textDirection: pdfTextDirection,
           child: pw.Text(
-            texts["text1"]!,
+            texts["text1"] ?? '',
             style: pw.TextStyle(fontSize: 20, font: ttf),
             textAlign: textAlign,
           ),
@@ -148,24 +222,13 @@ Future<Map<String, dynamic>> createPDF(
         pw.SizedBox(height: 10),
         pw.Directionality(
           textDirection: pdfTextDirection,
-          child: pw.UrlLink(
-            destination: texts["text2Link"]!,
-            child: pw.Text(
-              texts["text2"]!,
-              style: pw.TextStyle(
-                fontSize: 24,
-                font: ttf,
-                color: PdfColors.blue,
-              ),
-              textAlign: textAlign,
-            ),
-          ),
+          child: buildLinkWidget(texts["text2"] ?? '', sanitizedLink2),
         ),
         pw.SizedBox(height: 10),
         pw.Directionality(
           textDirection: pdfTextDirection,
           child: pw.Text(
-            texts["text3"]!,
+            texts["text3"] ?? '',
             style: pw.TextStyle(fontSize: 20, font: ttf),
             textAlign: textAlign,
           ),
@@ -174,7 +237,7 @@ Future<Map<String, dynamic>> createPDF(
         pw.Directionality(
           textDirection: pdfTextDirection,
           child: pw.Text(
-            texts["text4"]!,
+            texts["text4"] ?? '',
             style: pw.TextStyle(fontSize: 20, font: ttf),
             textAlign: textAlign,
           ),
@@ -182,24 +245,13 @@ Future<Map<String, dynamic>> createPDF(
         pw.SizedBox(height: 10),
         pw.Directionality(
           textDirection: pdfTextDirection,
-          child: pw.UrlLink(
-            destination: texts["text5Link"]!,
-            child: pw.Text(
-              texts["text5"]!,
-              style: pw.TextStyle(
-                fontSize: 24,
-                font: ttf,
-                color: PdfColors.blue,
-              ),
-              textAlign: textAlign,
-            ),
-          ),
+          child: buildLinkWidget(texts["text5"] ?? '', sanitizedLink5),
         ),
         pw.SizedBox(height: 10),
         pw.Directionality(
           textDirection: pdfTextDirection,
           child: pw.Text(
-            texts["text6"]!,
+            texts["text6"] ?? '',
             style: pw.TextStyle(fontSize: 20, font: ttf),
             textAlign: textAlign,
           ),

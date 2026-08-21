@@ -29,12 +29,14 @@ class MyPlanPageFull extends StatefulWidget {
   final PhonePageData phonePageData; // Data related to phone numbers
   final bool hasFilled; // Whether the user has filled out the required forms
   final Function changeLocale;
+  final PersistentMemoryService? memoryService;
 
   const MyPlanPageFull({
     super.key,
     required this.phonePageData,
     required this.hasFilled,
     required this.changeLocale,
+    this.memoryService,
   });
 
   @override
@@ -45,6 +47,25 @@ class _MyPlanPageFullState extends LPExtendedState<MyPlanPageFull> {
   List<List<String>> userAnswers = []; // User's answers for each section
   List<String> phoneInformation = []; // User's phone-related information
   final List<MapEntry<String, String>> customCategories = [];
+
+  PersistentMemoryService? get _memoryService {
+    if (widget.memoryService != null) {
+      return widget.memoryService;
+    }
+    if (mounted) {
+      try {
+        final UserInformation? userInformation =
+            Provider.of<UserInformation?>(context, listen: false);
+        if (userInformation?.service != null) {
+          return userInformation!.service;
+        }
+      } catch (_) {}
+    }
+    if (GetIt.instance.isRegistered<PersistentMemoryService>()) {
+      return GetIt.instance<PersistentMemoryService>();
+    }
+    return null;
+  }
 
   // Field names for different sections of the personal plan
   List<String> fieldNames = [
@@ -110,15 +131,21 @@ class _MyPlanPageFullState extends LPExtendedState<MyPlanPageFull> {
   @override
   initState() {
     super.initState();
-    loadCustomCategories();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (mounted) {
+        loadCustomCategories();
+      }
+    });
   }
 
-  Future<void> loadCustomCategories() async {
-    if (!GetIt.instance.isRegistered<PersistentMemoryService>()) {
+  Future<void> loadCustomCategories([
+    PersistentMemoryService? injectedService,
+  ]) async {
+    final PersistentMemoryService? service = injectedService ?? _memoryService;
+    if (service == null) {
       return;
     }
 
-    PersistentMemoryService service = GetIt.instance<PersistentMemoryService>();
     final titles = TypeUtils.castToStringList(
       await service.getItem(
         _customCategoryTitlesKey,

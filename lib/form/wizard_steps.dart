@@ -7,11 +7,14 @@ import 'package:mazilon/form/shareform.dart';
 import 'package:mazilon/form/wizard_step.dart';
 import 'package:mazilon/util/Form/formPagePhoneModel.dart';
 
+import 'package:mazilon/util/persistent_memory_service.dart';
+
 List<WizardStep> buildWizardSteps({
   required VoidCallback next,
   required VoidCallback prev,
   required PhonePageData phonePageData,
   required FutureOr<void> Function(BuildContext context) submit,
+  PersistentMemoryService? memoryService,
 }) {
   FormPageTemplate planStep(String collectionName) => FormPageTemplate(
     key: GlobalKey<WizardStepState>(debugLabel: collectionName),
@@ -37,6 +40,7 @@ List<WizardStep> buildWizardSteps({
       key: GlobalKey<WizardStepState>(debugLabel: 'share'),
       prev: prev,
       submit: submit,
+      memoryService: memoryService,
     ),
   ];
 }

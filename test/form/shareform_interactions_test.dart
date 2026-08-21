@@ -58,10 +58,16 @@ class _DreamsMemoryHarness {
     List<String> initialSelections = const <String>[],
     List<String> initialSelectionSources = const <String>[],
     List<String> initialCustomItems = const <String>[],
+    List<String> initialCustomCategoryTitles = const <String>[],
+    List<String> initialCustomCategoryDescriptions = const <String>[],
     this.delayFirstSelectionWrite = false,
   }) : _initialSelections = List<String>.from(initialSelections),
        _initialSelectionSources = List<String>.from(initialSelectionSources),
-       _initialCustomItems = List<String>.from(initialCustomItems) {
+       _initialCustomItems = List<String>.from(initialCustomItems),
+       _initialCustomCategoryTitles =
+           List<String>.from(initialCustomCategoryTitles),
+       _initialCustomCategoryDescriptions =
+           List<String>.from(initialCustomCategoryDescriptions) {
     when(service.setItem(any, any, any)).thenAnswer(_setItem);
     when(service.getItem(any, any)).thenAnswer(_getItem);
     when(service.reset()).thenAnswer((_) async {});
@@ -71,6 +77,8 @@ class _DreamsMemoryHarness {
   final List<String> _initialSelections;
   final List<String> _initialSelectionSources;
   final List<String> _initialCustomItems;
+  final List<String> _initialCustomCategoryTitles;
+  final List<String> _initialCustomCategoryDescriptions;
   final Completer<void> _firstSelectionWrite = Completer<void>();
   final List<_MemoryWrite> completedWrites = <_MemoryWrite>[];
   final List<String> readKeys = <String>[];
@@ -116,8 +124,9 @@ class _DreamsMemoryHarness {
     }
     switch (key) {
       case _customCategoryTitlesKey:
+        return _latestStringList(key, _initialCustomCategoryTitles);
       case _customCategoryDescriptionsKey:
-        return <String>[];
+        return _latestStringList(key, _initialCustomCategoryDescriptions);
       case _dreamsAndGoalsSelectionKey:
         return _latestStringList(key, _initialSelections);
       case _dreamsAndGoalsSelectionSourcesKey:
@@ -1501,6 +1510,38 @@ void main() {
       expect(memory.completedWritesFor(_dreamsAndGoalsAddedStringsKey), hasLength(1));
       expect(find.widgetWithText(SnackBarAction, 'Try again'), findsNothing);
       await tester.pump(const Duration(seconds: 2));
+    },
+  );
+
+  testWidgets(
+    'ShareForm loads custom categories using explicit memoryService parameter',
+    (tester) async {
+      final explicitMemory = _DreamsMemoryHarness(
+        initialCustomCategoryTitles: ['Special Goal Category'],
+        initialCustomCategoryDescriptions: ['Special Description'],
+      );
+
+      user = UserInformation()
+        ..gender = 'other'
+        ..localeName = 'en';
+
+      await pumpWithProviders(
+        tester,
+        wizardStepHarness(
+          ShareForm(
+            key: GlobalKey<WizardStepState>(),
+            prev: () {},
+            submit: (_) async {},
+            memoryService: explicitMemory.service,
+          ),
+        ),
+        userInformation: user,
+        surfaceSize: const Size(1024, 1800),
+      );
+      await tester.pumpAndSettle();
+
+      expect(find.text('Special Goal Category'), findsOneWidget);
+      expect(find.text('Special Description'), findsOneWidget);
     },
   );
 }

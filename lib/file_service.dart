@@ -219,11 +219,11 @@ class FileServiceImpl implements FileService {
     // Retrieve text content for the PDF
     String text1 = texts['firstLine'] ?? '';
     String text2 = texts['firstLinkText'] ?? '';
-    String text2Link = texts['firstLinkURL'] ?? '';
+    String text2Link = sanitizePdfLinkUrl(texts['firstLinkURL']);
     String text3 = texts['secondLine'] ?? '';
     String text4 = texts['thirdLine'] ?? '';
     String text5 = texts['secondLinkText'] ?? '';
-    String text5Link = texts['secondLinkURL'] ?? '';
+    String text5Link = sanitizePdfLinkUrl(texts['secondLinkURL']);
     String text6 = texts['forthLine'] ?? '';
 
     // Prepare the data to be included in the PDF

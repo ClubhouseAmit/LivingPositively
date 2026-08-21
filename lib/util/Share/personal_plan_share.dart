@@ -8,6 +8,8 @@ import 'package:mazilon/util/personal_plan_export_metadata.dart';
 import 'package:mazilon/util/userInformation.dart';
 import 'package:share_plus/share_plus.dart';
 
+import 'package:mazilon/util/PDF/create_pdf.dart';
+
 /// Prepares personal plan state by awaiting pending persistence writes when [userInformation]
 /// is provided, and constructs the localized [PersonalPlanExportMetadata].
 Future<PersonalPlanExportMetadata> prepareAndBuildPersonalPlanExportMetadata({
@@ -50,11 +52,12 @@ Future<ShareResult?> sharePersonalPlanFile({
       userInformation: userInformation,
     );
     final service = fileService ?? GetIt.instance<FileService>();
+    final sanitizedTexts = sanitizeSharePdfTexts(appInformation.sharePDFtexts);
     return await service.share(
       message,
       exportMetadata.titles,
       exportMetadata.subTitles,
-      appInformation.sharePDFtexts,
+      sanitizedTexts,
       ShareFileType.PDF,
       mainTitle: exportMetadata.mainTitle,
       textDirection: appLocale.textDirection,
