@@ -14,6 +14,7 @@ import 'package:mazilon/pages/phone.dart';
 import 'package:mazilon/pages/sos_location_service.dart';
 import 'package:mazilon/util/Form/formPagePhoneModel.dart';
 import 'package:mazilon/util/Share/LP_share_alert_dialog.dart';
+import 'package:mazilon/util/Share/personal_plan_download.dart';
 import 'package:mazilon/util/appInformation.dart';
 import 'package:mazilon/util/personal_plan_export_metadata.dart';
 import 'package:mazilon/util/persistent_memory_service.dart';
@@ -68,6 +69,7 @@ base class _TestPersistentMemoryService extends ContractPersistentMemoryService 
 
   final List<String> writeLog = <String>[];
   Completer<void>? pendingWriteCompleter;
+  bool throwOnWrite = false;
 
   @override
   Future<void> setItem(
@@ -75,6 +77,9 @@ base class _TestPersistentMemoryService extends ContractPersistentMemoryService 
     PersistentMemoryType type,
     dynamic value,
   ) async {
+    if (throwOnWrite) {
+      throw StateError('Write failed');
+    }
     if (pendingWriteCompleter != null) {
       await pendingWriteCompleter!.future;
     }
@@ -133,7 +138,7 @@ void main() {
         final saveFuture = userInformation.queueDreamsAndGoalsSave();
 
         // Run preparation helper
-        await preparePersonalPlanExport(userInformation);
+        await userInformation.prepareForPersonalPlanExport();
         await saveFuture;
 
         // Sources must now be aligned
@@ -305,6 +310,63 @@ void main() {
 
         expect(fileService.callLog, contains('share'));
         expect(userInformation.dreamsAndGoalsSelectionSources.length, 2);
+      },
+    );
+
+    test(
+      'downloadPersonalPlanFile catches preparation persistence failure and returns null without uncaught errors',
+      () async {
+        memoryService.throwOnWrite = true;
+        userInformation.updateDreamsAndGoals(
+          ['Goal 1', 'Goal 2'],
+          selectionSources: ['custom', 'custom'],
+        );
+        userInformation.queueDreamsAndGoalsSave();
+
+        final localizations = await AppLocalizations.delegate.load(
+          const Locale('en'),
+        );
+
+        final result = await downloadPersonalPlanFile(
+          appLocale: localizations,
+          gender: userInformation.gender,
+          username: userInformation.name,
+          appInformation: appInformation,
+          textDirection: localizations.textDirection,
+          userInformation: userInformation,
+          fileService: fileService,
+        );
+
+        expect(result, isNull);
+        expect(fileService.callLog, isNot(contains('download')));
+      },
+    );
+
+    test(
+      'LPShareAlertDialog shareFile catches preparation persistence failure and returns null without uncaught errors',
+      () async {
+        memoryService.throwOnWrite = true;
+        userInformation.updateDreamsAndGoals(
+          ['Goal 1', 'Goal 2'],
+          selectionSources: ['custom', 'custom'],
+        );
+        userInformation.queueDreamsAndGoalsSave();
+
+        final localizations = await AppLocalizations.delegate.load(
+          const Locale('en'),
+        );
+
+        final result = await shareFile(
+          localizations,
+          userInformation.gender,
+          userInformation.name,
+          appInformation,
+          userInformation: userInformation,
+          fileService: fileService,
+        );
+
+        expect(result, isNull);
+        expect(fileService.callLog, isNot(contains('share')));
       },
     );
   });

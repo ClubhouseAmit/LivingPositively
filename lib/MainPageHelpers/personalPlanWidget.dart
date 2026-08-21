@@ -12,7 +12,7 @@ import 'package:mazilon/util/styles.dart';
 
 import 'dart:math';
 import 'package:mazilon/util/appInformation.dart';
-import 'package:mazilon/util/personal_plan_export_metadata.dart';
+import 'package:mazilon/util/Share/personal_plan_download.dart';
 import 'package:mazilon/util/userInformation.dart';
 import 'package:provider/provider.dart';
 

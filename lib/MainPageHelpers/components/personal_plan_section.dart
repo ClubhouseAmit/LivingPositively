@@ -3,7 +3,7 @@ import 'package:fluttericon/elusive_icons.dart';
 import 'package:mazilon/l10n/app_localizations.dart';
 import 'package:mazilon/util/appInformation.dart';
 import 'package:mazilon/util/layout/directional_widgets.dart';
-import 'package:mazilon/util/personal_plan_export_metadata.dart';
+import 'package:mazilon/util/Share/personal_plan_download.dart';
 import 'package:mazilon/util/Share/show_share_dialog.dart';
 import 'package:mazilon/util/theme/app_theme.dart';
 import 'package:mazilon/util/theme/spacing.dart';

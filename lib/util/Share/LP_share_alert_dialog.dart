@@ -28,20 +28,28 @@ Future<ShareResult?> shareFile(
   UserInformation? userInformation,
   FileService? fileService,
 }) async {
-  if (userInformation != null) {
-    await preparePersonalPlanExport(userInformation);
+  try {
+    if (userInformation != null) {
+      await userInformation.prepareForPersonalPlanExport();
+    }
+    final service = fileService ?? GetIt.instance<FileService>();
+    final exportMetadata = buildPersonalPlanExportMetadata(
+      appLocale,
+      gender,
+      username,
+    );
+    return await service.share(
+      "",
+      exportMetadata.titles,
+      exportMetadata.subTitles,
+      appInfoProvider.sharePDFtexts,
+      ShareFileType.PDF,
+      mainTitle: exportMetadata.mainTitle,
+      textDirection: appLocale.textDirection,
+    );
+  } catch (error, stackTrace) {
+    return null;
   }
-  final service = fileService ?? GetIt.instance<FileService>();
-  final exportMetadata = buildPersonalPlanExportMetadata(appLocale, gender, username);
-  return service.share(
-    "",
-    exportMetadata.titles,
-    exportMetadata.subTitles,
-    appInfoProvider.sharePDFtexts,
-    ShareFileType.PDF,
-    mainTitle: exportMetadata.mainTitle,
-    textDirection: appLocale.textDirection,
-  );
 }
 
 class _LPShareAlertDialogState extends LPExtendedState<LPShareAlertDialog> {

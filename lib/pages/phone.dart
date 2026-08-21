@@ -108,7 +108,7 @@ class _PhonePageState extends LPExtendedState<PhonePage> {
     final localizations = appLocale;
     final messenger = ScaffoldMessenger.maybeOf(context);
     return _runSosDelivery(() async {
-      await preparePersonalPlanExport(userInfo);
+      await userInfo.prepareForPersonalPlanExport();
       final exportMetadata = buildPersonalPlanExportMetadata(
         localizations,
         gender,

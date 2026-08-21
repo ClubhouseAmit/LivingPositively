@@ -21,7 +21,7 @@ import 'package:mazilon/util/styles.dart';
 import 'package:mazilon/util/type_utils.dart';
 
 import 'package:mazilon/util/appInformation.dart';
-import 'package:mazilon/util/personal_plan_export_metadata.dart';
+import 'package:mazilon/util/Share/personal_plan_download.dart';
 import 'package:mazilon/util/userInformation.dart';
 import 'package:mazilon/util/Share/show_share_dialog.dart';
 
