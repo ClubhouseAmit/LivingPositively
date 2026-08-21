@@ -15,8 +15,9 @@ import 'package:mazilon/pages/sos_location_service.dart';
 import 'package:mazilon/util/Form/formPagePhoneModel.dart';
 import 'package:mazilon/util/Share/LP_share_alert_dialog.dart';
 import 'package:mazilon/util/Share/personal_plan_download.dart';
+import 'package:mazilon/util/Share/personal_plan_share.dart';
 import 'package:mazilon/util/appInformation.dart';
-import 'package:mazilon/util/personal_plan_export_metadata.dart';
+import 'package:mazilon/util/logger_service.dart';
 import 'package:mazilon/util/persistent_memory_service.dart';
 import 'package:mazilon/util/userInformation.dart';
 import 'package:provider/provider.dart';
@@ -25,8 +26,25 @@ import 'package:share_plus/share_plus.dart';
 import '../../test_support/contract_persistent_memory_service.dart';
 import '../helpers/widget_test_scaffold.dart';
 
+class _RecordingIncidentLogger implements IncidentLoggerService {
+  final List<dynamic> capturedLogs = <dynamic>[];
+
+  @override
+  Future<void> initializeSentry(Widget myApp) async {}
+
+  @override
+  Future<void> captureLog(
+    dynamic exception, {
+    StackTrace? stackTrace,
+    dynamic exceptionData,
+  }) async {
+    capturedLogs.add(exception);
+  }
+}
+
 class _TestFileService implements FileService {
   final List<String> callLog = <String>[];
+  String? downloadResult = '/path/to/downloaded/file.pdf';
 
   @override
   Future<ShareResult?> share(
@@ -52,7 +70,7 @@ class _TestFileService implements FileService {
     required String textDirection,
   }) async {
     callLog.add('download');
-    return '/path/to/downloaded/file.pdf';
+    return downloadResult;
   }
 
   @override
@@ -92,25 +110,35 @@ void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
 
   const toastChannel = MethodChannel('PonnamKarthik/fluttertoast');
+  final List<String> toastCalls = <String>[];
   late GetIt locator;
   late _TestFileService fileService;
   late _TestPersistentMemoryService memoryService;
+  late _RecordingIncidentLogger loggerService;
   late AppInformation appInformation;
   late UserInformation userInformation;
 
   setUp(() async {
+    toastCalls.clear();
     TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger
-        .setMockMethodCallHandler(toastChannel, (_) async => true);
+        .setMockMethodCallHandler(toastChannel, (call) async {
+      if (call.method == 'showToast') {
+        toastCalls.add(call.arguments['msg']?.toString() ?? '');
+      }
+      return true;
+    });
 
     locator = GetIt.instance;
     await locator.reset();
 
     fileService = _TestFileService();
     memoryService = _TestPersistentMemoryService();
+    loggerService = _RecordingIncidentLogger();
     appInformation = AppInformation();
 
     locator.registerSingleton<FileService>(fileService);
     locator.registerSingleton<PersistentMemoryService>(memoryService);
+    locator.registerSingleton<IncidentLoggerService>(loggerService);
     locator.registerSingleton<AnalyticsService>(NoopAnalyticsService());
     locator.registerSingleton<SosLocationService>(NoopSosLocationService());
 
@@ -314,7 +342,7 @@ void main() {
     );
 
     test(
-      'downloadPersonalPlanFile catches preparation persistence failure and returns null without uncaught errors',
+      'downloadPersonalPlanFile catches preparation persistence failure, logs telemetry, and shows failure toast',
       () async {
         memoryService.throwOnWrite = true;
         userInformation.updateDreamsAndGoals(
@@ -339,11 +367,73 @@ void main() {
 
         expect(result, isNull);
         expect(fileService.callLog, isNot(contains('download')));
+        expect(loggerService.capturedLogs, isNotEmpty);
+        expect(toastCalls, contains(localizations.downloadFailed('male')));
       },
     );
 
     test(
-      'LPShareAlertDialog shareFile catches preparation persistence failure and returns null without uncaught errors',
+      'downloadPersonalPlanFile returns null without failure toast when user cancels download',
+      () async {
+        fileService.downloadResult = null;
+        userInformation.updateDreamsAndGoals(
+          ['Goal 1', 'Goal 2'],
+          selectionSources: ['custom', 'custom'],
+        );
+
+        final localizations = await AppLocalizations.delegate.load(
+          const Locale('en'),
+        );
+
+        final result = await downloadPersonalPlanFile(
+          appLocale: localizations,
+          gender: userInformation.gender,
+          username: userInformation.name,
+          appInformation: appInformation,
+          textDirection: localizations.textDirection,
+          userInformation: userInformation,
+          fileService: fileService,
+        );
+
+        expect(result, isNull);
+        expect(fileService.callLog, contains('download'));
+        expect(loggerService.capturedLogs, isEmpty);
+        expect(toastCalls, isEmpty);
+      },
+    );
+
+    test(
+      'downloadPersonalPlanFile returns path and shows finished toast on success',
+      () async {
+        fileService.downloadResult = '/saved/plan.pdf';
+        userInformation.updateDreamsAndGoals(
+          ['Goal 1', 'Goal 2'],
+          selectionSources: ['custom', 'custom'],
+        );
+
+        final localizations = await AppLocalizations.delegate.load(
+          const Locale('en'),
+        );
+
+        final result = await downloadPersonalPlanFile(
+          appLocale: localizations,
+          gender: userInformation.gender,
+          username: userInformation.name,
+          appInformation: appInformation,
+          textDirection: localizations.textDirection,
+          userInformation: userInformation,
+          fileService: fileService,
+        );
+
+        expect(result, '/saved/plan.pdf');
+        expect(fileService.callLog, contains('download'));
+        expect(loggerService.capturedLogs, isEmpty);
+        expect(toastCalls, contains(localizations.finishedDownloading('male')));
+      },
+    );
+
+    test(
+      'sharePersonalPlanFile catches preparation persistence failure, logs telemetry, and returns null',
       () async {
         memoryService.throwOnWrite = true;
         userInformation.updateDreamsAndGoals(
@@ -351,6 +441,34 @@ void main() {
           selectionSources: ['custom', 'custom'],
         );
         userInformation.queueDreamsAndGoalsSave();
+
+        final localizations = await AppLocalizations.delegate.load(
+          const Locale('en'),
+        );
+
+        final result = await sharePersonalPlanFile(
+          message: 'emergency msg',
+          appLocale: localizations,
+          gender: userInformation.gender,
+          username: userInformation.name,
+          appInformation: appInformation,
+          userInformation: userInformation,
+          fileService: fileService,
+        );
+
+        expect(result, isNull);
+        expect(fileService.callLog, isNot(contains('share')));
+        expect(loggerService.capturedLogs, isNotEmpty);
+      },
+    );
+
+    test(
+      'LPShareAlertDialog shareFile forwards to sharePersonalPlanFile with empty message',
+      () async {
+        userInformation.updateDreamsAndGoals(
+          ['Goal 1', 'Goal 2'],
+          selectionSources: ['custom', 'custom'],
+        );
 
         final localizations = await AppLocalizations.delegate.load(
           const Locale('en'),
@@ -365,8 +483,9 @@ void main() {
           fileService: fileService,
         );
 
-        expect(result, isNull);
-        expect(fileService.callLog, isNot(contains('share')));
+        expect(result?.status, ShareResultStatus.success);
+        expect(fileService.callLog, contains('share'));
+        expect(loggerService.capturedLogs, isEmpty);
       },
     );
   });
