@@ -718,24 +718,6 @@ abstract class AppLocalizations {
   /// **'{gender,select,male{Add my own personal dream or goal...} female{Add my own personal dream or goal...} other{Add my own personal dream or goal...}}'**
   String dreamsAndGoalsAddOwn(String gender);
 
-  /// No description provided for @dreamsAndGoalsCustomConflictTitle.
-  ///
-  /// In en, this message translates to:
-  /// **'{gender,select,male{Choose one personal dream or goal} female{Choose one personal dream or goal} other{Choose one personal dream or goal}}'**
-  String dreamsAndGoalsCustomConflictTitle(String gender);
-
-  /// No description provided for @dreamsAndGoalsCustomConflictMessage.
-  ///
-  /// In en, this message translates to:
-  /// **'{gender,select,male{Your Personal Plan can save one personal dream or goal. Choose the one you want to keep.} female{Your Personal Plan can save one personal dream or goal. Choose the one you want to keep.} other{Your Personal Plan can save one personal dream or goal. Choose the one you want to keep.}}'**
-  String dreamsAndGoalsCustomConflictMessage(String gender);
-
-  /// No description provided for @dreamsAndGoalsCustomConflictSelect.
-  ///
-  /// In en, this message translates to:
-  /// **'{gender,select,male{Choose a goal} female{Choose a goal} other{Choose a goal}}'**
-  String dreamsAndGoalsCustomConflictSelect(String gender);
-
   /// No description provided for @dreamsAndGoalsListNo0.
   ///
   /// In en, this message translates to:

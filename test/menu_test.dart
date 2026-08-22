@@ -59,6 +59,8 @@ class _FakeFileService implements FileService {
     ShareFileType saveFormat,
     {required String mainTitle,
     required String textDirection,
+    PersistentMemoryService? memoryService,
+    Set<String>? approvedPdfHosts,
   }) async => const ShareResult('fake', ShareResultStatus.success);
   @override
   Future<String?> download(
@@ -68,6 +70,8 @@ class _FakeFileService implements FileService {
     ShareFileType saveFormat,
     {required String mainTitle,
     required String textDirection,
+    PersistentMemoryService? memoryService,
+    Set<String>? approvedPdfHosts,
   }) async =>
       null;
   @override

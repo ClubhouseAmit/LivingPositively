@@ -7,7 +7,6 @@ import 'package:mazilon/EmergencyNumbers.dart';
 import 'package:mazilon/file_service.dart';
 import 'package:mazilon/form/phonePageform.dart';
 import 'package:mazilon/form/wizard_step.dart';
-import 'package:mazilon/global_enums.dart';
 import 'package:mazilon/util/theme/spacing.dart';
 import 'package:mazilon/pages/sos_location_service.dart';
 import 'package:mazilon/util/LP_extended_state.dart';
@@ -16,7 +15,7 @@ import 'package:mazilon/util/appInformation.dart';
 import 'package:provider/provider.dart';
 import 'package:share_plus/share_plus.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
-import 'package:mazilon/util/personal_plan_export_metadata.dart';
+import 'package:mazilon/util/Share/personal_plan_share.dart';
 import 'package:mazilon/util/userInformation.dart';
 import 'package:mazilon/util/styles.dart';
 import 'package:mazilon/util/Form/formPagePhoneModel.dart';
@@ -103,34 +102,31 @@ class _PhonePageState extends LPExtendedState<PhonePage> {
     AppInformation appInformation,
     String gender,
     String username,
-  ) => _runSosDelivery(() async {
+  ) {
+    final userInfo = Provider.of<UserInformation>(context, listen: false);
     final localizations = appLocale;
     final messenger = ScaffoldMessenger.maybeOf(context);
-    final exportMetadata = buildPersonalPlanExportMetadata(
-      localizations,
-      gender,
-      username,
-    );
-    final shareResult = await GetIt.instance<FileService>().share(
-      localizations.shareEmergencyMessage,
-      exportMetadata.titles,
-      exportMetadata.subTitles,
-      appInformation.sharePDFtexts,
-      ShareFileType.PDF,
-      mainTitle: exportMetadata.mainTitle,
-      textDirection: localizations.textDirection,
-    );
-    if (!mounted) {
-      return;
-    }
-    if (shareResult == null ||
-        shareResult.status == ShareResultStatus.unavailable) {
-      messenger?.hideCurrentSnackBar();
-      messenger?.showSnackBar(
-        SnackBar(content: Text(localizations.personalPlanShareFailed)),
+    return _runSosDelivery(() async {
+      final shareResult = await sharePersonalPlanFile(
+        message: localizations.shareEmergencyMessage,
+        appLocale: localizations,
+        gender: gender,
+        username: username,
+        appInformation: appInformation,
+        userInformation: userInfo,
       );
-    }
-  });
+      if (!mounted) {
+        return;
+      }
+      if (shareResult == null ||
+          shareResult.status == ShareResultStatus.unavailable) {
+        messenger?.hideCurrentSnackBar();
+        messenger?.showSnackBar(
+          SnackBar(content: Text(localizations.personalPlanShareFailed)),
+        );
+      }
+    });
+  }
 
   Future<void> _runSosDelivery(Future<void> Function() delivery) async {
     if (_isSosDeliveryInProgress || !mounted) {

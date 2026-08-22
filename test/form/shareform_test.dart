@@ -524,7 +524,7 @@ void main() {
           PersistentMemoryType.StringList,
           ['My description'],
         ),
-      ).called(1);
+      ).called(2);
     },
   );
 

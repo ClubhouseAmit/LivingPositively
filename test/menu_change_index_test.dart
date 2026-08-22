@@ -68,6 +68,8 @@ class _FakeFiles implements FileService {
     fmt, {
     required mainTitle,
     required textDirection,
+    memoryService,
+    approvedPdfHosts,
   }) async => const ShareResult('fake', ShareResultStatus.success);
   @override
   Future<String?> download(
@@ -77,6 +79,8 @@ class _FakeFiles implements FileService {
     fmt, {
     required mainTitle,
     required textDirection,
+    memoryService,
+    approvedPdfHosts,
   }) async => null;
   @override
   Future<bool> shareTextOnly(message) async => true;

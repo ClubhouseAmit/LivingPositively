@@ -30,8 +30,7 @@ base class _FakePersistentMemoryService
   }
 }
 
-final class _DelayedDreamsMemoryService
-    extends _FakePersistentMemoryService {
+final class _DelayedDreamsMemoryService extends _FakePersistentMemoryService {
   _DelayedDreamsMemoryService({this._failFirstEmptySelectionWrite = false}) {
     onPersist = (String key, PersistentMemoryType type, Object value) async {
       if (key != dreamsAndGoalsSelectionStorageKey) {
@@ -197,7 +196,8 @@ void main() {
       expect(notified, 1);
     });
 
-    test('queues an empty Dreams snapshot after a held earlier snapshot',
+    test(
+      'queues an empty Dreams snapshot after a held earlier snapshot',
         () async {
       final delayedService = _DelayedDreamsMemoryService();
       final user = UserInformation(service: delayedService);
@@ -227,7 +227,8 @@ void main() {
         delayedService.stored[dreamsAndGoalsCustomSelectionsStorageKey],
         isEmpty,
       );
-    });
+      },
+    );
 
     test(
       'does not leave a held stale custom snapshot persisted after the reset revision retries',
@@ -238,9 +239,7 @@ void main() {
         final user = UserInformation(service: delayedService);
         user.updateDreamsAndGoals(
           <String>['My custom goal'],
-          selectionSources: const <String>[
-            dreamsAndGoalsCustomSelectionSource,
-          ],
+          selectionSources: const <String>[dreamsAndGoalsCustomSelectionSource],
         );
         final Future<void> oldSave = user.queueDreamsAndGoalsSave();
         await delayedService.firstSelectionWriteStarted.future;
@@ -260,6 +259,7 @@ void main() {
         expect(
           delayedService.writes
               .map((MapEntry<String, dynamic> write) => write.key)
+              .where((key) => key.contains('DreamsAndGoals'))
               .toList(),
           <String>[
             dreamsAndGoalsSelectionStorageKey,
@@ -282,6 +282,7 @@ void main() {
         expect(
           delayedService.writes
               .map((MapEntry<String, dynamic> write) => write.key)
+              .where((key) => key.contains('DreamsAndGoals'))
               .toList(),
           <String>[
             dreamsAndGoalsSelectionStorageKey,
@@ -324,7 +325,18 @@ void main() {
         expect(user.dreamsAndGoals, isEmpty);
         expect(user.dreamsAndGoalsSelectionSources, isEmpty);
         await expectLater(reset, throwsA(isA<StateError>()));
-        expect(failingService.stored, isEmpty);
+        expect(
+          failingService.stored[dreamsAndGoalsSelectionStorageKey],
+          isNull,
+        );
+        expect(
+          failingService.stored[dreamsAndGoalsSelectionSourcesStorageKey],
+          isNull,
+        );
+        expect(
+          failingService.stored[dreamsAndGoalsCustomSelectionsStorageKey],
+          isNull,
+        );
 
         await user.retryDreamsAndGoalsSave(user.dreamsAndGoalsSaveRevision);
 
@@ -396,8 +408,12 @@ void main() {
       expect(fakeService.stored['binary'], isTrue);
     });
 
-    test('background preference writes should contain persistence failures', () async {
-      final user = UserInformation(service: _FailingPersistentMemoryService());
+    test(
+      'background preference writes should contain persistence failures',
+      () async {
+        final user = UserInformation(
+          service: _FailingPersistentMemoryService(),
+        );
 
       user.updateGender('other');
       user.updateNotificationHour(9);
@@ -405,7 +421,8 @@ void main() {
 
       expect(user.gender, 'other');
       expect(user.notificationHour, 9);
-    });
+      },
+    );
 
     test(
       'should hydrate and repair malformed Dreams source metadata through its injected service',
@@ -602,7 +619,7 @@ void main() {
     });
 
     test(
-      'should preserve multiple custom Dreams rows during hydration and repair',
+      'should preserve and persist multiple custom Dreams rows during hydration and repair',
       () async {
         final u = buildUser();
         const List<String> selections = <String>[
@@ -628,179 +645,20 @@ void main() {
 
         expect(u.dreamsAndGoals, selections);
         expect(u.dreamsAndGoalsSelectionSources, sources);
-        expect(u.dreamsAndGoalsCustomSelectionIndexes, const <int>[1, 3]);
-        expect(u.hasDreamsAndGoalsCustomConflict, isTrue);
+        expect(
+          fakeService.stored[dreamsAndGoalsSelectionStorageKey],
+          selections,
+        );
+        expect(
+          fakeService.stored[dreamsAndGoalsSelectionSourcesStorageKey],
+          sources,
+        );
+        expect(
+          fakeService.stored[dreamsAndGoalsCustomSelectionsStorageKey],
+          const <String>['First custom goal', 'Second custom goal'],
+    );
         expect(writesAfterHydration, 3);
         expect(fakeService.writes, hasLength(writesAfterHydration));
-      },
-    );
-
-    test(
-      'should retain a selected non-first catalogue-label custom row and persist its snapshot',
-      () async {
-        final u = buildUser();
-        u.updateDreamsAndGoals(
-          const <String>[
-            'Write and publish a book',
-            'First custom goal',
-            'Learn a new language',
-            'Write and publish a book',
-          ],
-          selectionSources: const <String>[
-            'catalogue:write-and-publish-a-book',
-            dreamsAndGoalsCustomSelectionSource,
-            'catalogue:learn-a-new-language',
-            dreamsAndGoalsCustomSelectionSource,
-          ],
-        );
-        final int revisionBeforeResolution = u.dreamsAndGoalsSaveRevision;
-
-        await u.resolveDreamsAndGoalsCustomConflict(3);
-
-        expect(u.dreamsAndGoals, const <String>[
-          'Write and publish a book',
-          'Learn a new language',
-          'Write and publish a book',
-        ]);
-        expect(u.dreamsAndGoalsSelectionSources, const <String>[
-          'catalogue:write-and-publish-a-book',
-          'catalogue:learn-a-new-language',
-          dreamsAndGoalsCustomSelectionSource,
-        ]);
-        expect(u.dreamsAndGoalsSaveRevision, revisionBeforeResolution + 1);
-        expect(u.dreamsAndGoalsCustomSelectionIndexes, const <int>[2]);
-        expect(u.hasDreamsAndGoalsCustomConflict, isFalse);
-        expect(
-          fakeService.stored[dreamsAndGoalsSelectionStorageKey],
-          u.dreamsAndGoals,
-        );
-        expect(
-          fakeService.stored[dreamsAndGoalsSelectionSourcesStorageKey],
-          u.dreamsAndGoalsSelectionSources,
-        );
-        expect(
-          fakeService.stored[dreamsAndGoalsCustomSelectionsStorageKey],
-          const <String>['Write and publish a book'],
-        );
-      },
-    );
-
-    test(
-      'should keep a selected custom-conflict snapshot gated until retry persists it',
-      () async {
-        final u = UserInformation(service: _FailingPersistentMemoryService())
-          ..updateDreamsAndGoals(
-            const <String>[
-              'Write and publish a book',
-              'First custom goal',
-              'Second custom goal',
-            ],
-            selectionSources: const <String>[
-              'catalogue:write-and-publish-a-book',
-              dreamsAndGoalsCustomSelectionSource,
-              dreamsAndGoalsCustomSelectionSource,
-            ],
-          );
-
-        await expectLater(
-          u.resolveDreamsAndGoalsCustomConflict(2),
-          throwsA(isA<StateError>()),
-        );
-
-        expect(u.dreamsAndGoals, const <String>[
-          'Write and publish a book',
-          'Second custom goal',
-        ]);
-        expect(u.dreamsAndGoalsSelectionSources, const <String>[
-          'catalogue:write-and-publish-a-book',
-          dreamsAndGoalsCustomSelectionSource,
-        ]);
-        expect(u.hasDreamsAndGoalsCustomConflict, isFalse);
-        expect(
-          u.hasPendingDreamsAndGoalsCustomConflictResolution,
-          isTrue,
-        );
-        expect(u.requiresDreamsAndGoalsCustomConflictRecovery, isTrue);
-
-        u.service = fakeService;
-        u.updateDreamsAndGoals(
-          const <String>[
-            'Write and publish a book',
-            'Second custom goal',
-            'Learn a new language',
-          ],
-          selectionSources: const <String>[
-            'catalogue:write-and-publish-a-book',
-            dreamsAndGoalsCustomSelectionSource,
-            'catalogue:learn-a-new-language',
-          ],
-        );
-        expect(
-          u.hasPendingDreamsAndGoalsCustomConflictResolution,
-          isTrue,
-        );
-        await u.retryDreamsAndGoalsCustomConflictResolution();
-
-        expect(
-          u.hasPendingDreamsAndGoalsCustomConflictResolution,
-          isFalse,
-        );
-        expect(u.requiresDreamsAndGoalsCustomConflictRecovery, isFalse);
-        expect(
-          fakeService.stored[dreamsAndGoalsSelectionStorageKey],
-          u.dreamsAndGoals,
-        );
-        expect(
-          fakeService.stored[dreamsAndGoalsSelectionSourcesStorageKey],
-          u.dreamsAndGoalsSelectionSources,
-        );
-        expect(
-          fakeService.stored[dreamsAndGoalsCustomSelectionsStorageKey],
-          const <String>['Second custom goal'],
-        );
-      },
-    );
-
-    test(
-      'should reject an invalid custom-conflict choice without mutating state',
-      () async {
-        final u = buildUser();
-        u.updateDreamsAndGoals(
-          const <String>[
-            'Write and publish a book',
-            'First custom goal',
-            'Second custom goal',
-          ],
-          selectionSources: const <String>[
-            'catalogue:write-and-publish-a-book',
-            dreamsAndGoalsCustomSelectionSource,
-            dreamsAndGoalsCustomSelectionSource,
-          ],
-        );
-        final int revisionBeforeInvalidChoice = u.dreamsAndGoalsSaveRevision;
-        var notifications = 0;
-        u.addListener(() => notifications++);
-
-        for (final int invalidIndex in const <int>[-1, 0]) {
-          await expectLater(
-            u.resolveDreamsAndGoalsCustomConflict(invalidIndex),
-            throwsArgumentError,
-          );
-        }
-
-        expect(u.dreamsAndGoals, const <String>[
-          'Write and publish a book',
-          'First custom goal',
-          'Second custom goal',
-        ]);
-        expect(u.dreamsAndGoalsSelectionSources, const <String>[
-          'catalogue:write-and-publish-a-book',
-          dreamsAndGoalsCustomSelectionSource,
-          dreamsAndGoalsCustomSelectionSource,
-        ]);
-        expect(u.dreamsAndGoalsSaveRevision, revisionBeforeInvalidChoice);
-        expect(notifications, 0);
-        expect(fakeService.writes, isEmpty);
       },
     );
 
@@ -1029,6 +887,68 @@ void main() {
       expect(u.darkModeStartMinute, 0);
       expect(u.darkModeEndHour, 6);
       expect(u.darkModeEndMinute, 0);
+    });
+  });
+
+  group('saveCategorySelection and export preparation', () {
+    test('throws ArgumentError for unsupported category name', () async {
+      final u = buildUser();
+      expect(
+        () => u.saveCategorySelection('UnsupportedCategory', ['Item 1']),
+        throwsA(isA<ArgumentError>()),
+      );
+    });
+
+    test('preserves provenance metadata when selectionSources is omitted for DreamsAndGoals', () async {
+      final u = buildUser();
+      u.updateDreamsAndGoals(
+        ['Write and publish a book', 'Custom Goal B'],
+        selectionSources: ['catalogue:write-and-publish-a-book', 'custom'],
+      );
+
+      // Save with omitted selectionSources
+      await u.saveCategorySelection(
+        'PersonalPlan-DreamsAndGoals',
+        ['Write and publish a book', 'Custom Goal B'],
+      );
+
+      expect(u.dreamsAndGoalsSelectionSources, [
+        'catalogue:write-and-publish-a-book',
+        'custom',
+      ]);
+    });
+
+    test('updates provenance metadata when selectionSources is explicitly provided for DreamsAndGoals', () async {
+      final u = buildUser();
+      u.updateDreamsAndGoals(
+        ['Write and publish a book', 'Custom Goal B'],
+        selectionSources: ['catalogue:write-and-publish-a-book', 'custom'],
+      );
+
+      await u.saveCategorySelection(
+        'PersonalPlan-DreamsAndGoals',
+        ['Write and publish a book', 'Custom Goal B'],
+        selectionSources: ['custom', 'custom'],
+      );
+
+      expect(u.dreamsAndGoalsSelectionSources, [
+        'custom',
+        'custom',
+      ]);
+    });
+
+    test('persists supported standard categories correctly', () async {
+      final u = buildUser();
+      await u.saveCategorySelection(
+        'PersonalPlan-DifficultEvents',
+        ['Event 1', 'Event 2'],
+      );
+
+      expect(u.difficultEvents, ['Event 1', 'Event 2']);
+      expect(
+        fakeService.stored['userSelectionPersonalPlan-DifficultEvents'],
+        ['Event 1', 'Event 2'],
+      );
     });
   });
 }

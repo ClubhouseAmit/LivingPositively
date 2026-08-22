@@ -27,6 +27,8 @@ class _NoopFileService implements FileService {
     ShareFileType saveFormat, {
     required String mainTitle,
     required String textDirection,
+    PersistentMemoryService? memoryService,
+    Set<String>? approvedPdfHosts,
   }) async {
     return 'noop.pdf';
   }
@@ -40,6 +42,8 @@ class _NoopFileService implements FileService {
     ShareFileType saveFormat, {
     required String mainTitle,
     required String textDirection,
+    PersistentMemoryService? memoryService,
+    Set<String>? approvedPdfHosts,
   }) async => const ShareResult('noop', ShareResultStatus.success);
 
   @override

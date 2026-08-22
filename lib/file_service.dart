@@ -7,6 +7,7 @@ import 'package:flutter/foundation.dart';
 import 'package:get_it/get_it.dart';
 import 'package:mazilon/global_enums.dart';
 import 'package:mazilon/util/PDF/create_pdf.dart';
+import 'package:mazilon/util/custom_categories_storage.dart';
 import 'package:mazilon/util/file_save_utils.dart';
 import 'package:mazilon/util/logger_service.dart';
 import 'package:mazilon/util/persistent_memory_service.dart';
@@ -14,14 +15,13 @@ import 'package:mazilon/util/type_utils.dart';
 import 'package:share_plus/share_plus.dart';
 import 'package:mazilon/AnalyticsService.dart';
 
-const String _customCategoryTitlesKey = 'customCategoryTitles';
-const String _customCategoryDescriptionsKey = 'customCategoryDescriptions';
-
 abstract class FileService {
   /// Shares a Personal Plan export with its caller-localized [mainTitle].
   ///
   /// The title is rendered before the sections, including when no sections are
   /// populated. Callers provide a non-empty localized title and [textDirection].
+  /// Optional [memoryService] overrides the persistent memory source used to read
+  /// user plan selections.
   Future<ShareResult?> share(
       String message,
       List<dynamic> titles,
@@ -29,24 +29,32 @@ abstract class FileService {
       Map<String, String> texts,
       ShareFileType saveFormat,
       {required String mainTitle,
-      required String textDirection});
+      required String textDirection,
+      PersistentMemoryService? memoryService,
+      Set<String>? approvedPdfHosts});
   /// Downloads a Personal Plan export with its caller-localized [mainTitle].
   ///
   /// The title is rendered before the sections, including when no sections are
   /// populated. Callers provide a non-empty localized title and [textDirection].
+  /// Optional [memoryService] overrides the persistent memory source used to read
+  /// user plan selections.
   Future<String?> download(
       List<dynamic> titles,
       List<dynamic> subTitles,
       Map<String, String> texts,
       ShareFileType saveFormat,
       {required String mainTitle,
-      required String textDirection});
+      required String textDirection,
+      PersistentMemoryService? memoryService,
+      Set<String>? approvedPdfHosts});
   Future<bool> shareTextOnly(String message);
 }
 
 class FileServiceImpl implements FileService {
-  static Future<Map<String, dynamic>> getPrefsData() async {
-    PersistentMemoryService service =
+  static Future<Map<String, dynamic>> getPrefsData({
+    PersistentMemoryService? memoryService,
+  }) async {
+    PersistentMemoryService service = memoryService ??
         GetIt.instance<
           PersistentMemoryService
         >(); // Get the persistent memory service instance
@@ -82,18 +90,15 @@ class FileServiceImpl implements FileService {
       ),
       'phoneNumbers': service.getItem(
           "PhonePageSavedPhoneNumbers", PersistentMemoryType.StringList),
-      'customCategoryTitles': service.getItem(
-        _customCategoryTitlesKey,
-        PersistentMemoryType.StringList,
-      ),
-      'customCategoryDescriptions': service.getItem(
-        _customCategoryDescriptionsKey,
-        PersistentMemoryType.StringList,
-      ),
     };
+
+    final customCategoriesFuture = loadCustomCategoriesFromStorage(
+      memoryService: service,
+    );
 
     final results = await Future.wait(futures.values);
     final data = Map.fromIterables(futures.keys, results);
+    final customCategories = await customCategoriesFuture;
 
     return {
       'DifficultEvents': TypeUtils.castToStringList(data['difficultEvents']),
@@ -105,9 +110,9 @@ class FileServiceImpl implements FileService {
       'phoneNames': TypeUtils.castToStringList(data['phoneNames']),
       'phoneNumbers': TypeUtils.castToStringList(data['phoneNumbers']),
       'customCategoryTitles':
-          TypeUtils.castToStringList(data['customCategoryTitles']),
+          customCategories.map((category) => category.key).toList(),
       'customCategoryDescriptions':
-          TypeUtils.castToStringList(data['customCategoryDescriptions']),
+          customCategories.map((category) => category.value).toList(),
     };
   }
 
@@ -135,12 +140,14 @@ class FileServiceImpl implements FileService {
 
   Future<Map<String, dynamic>> organizeDataForFile(List<dynamic> titles,
       List<dynamic> subTitles, Map<String, String> texts,
-      {required String mainTitle}) async {
+      {required String mainTitle,
+      PersistentMemoryService? memoryService,
+      Set<String>? approvedPdfHosts}) async {
     // Set the page format to A4
 
     // Load the font for the PDF
     // Create a new PDF document
-    final dataForPDF = await getPrefsData();
+    final dataForPDF = await getPrefsData(memoryService: memoryService);
     // Retrieve user data from SharedPreferences
     List<String> difficultEvents = dataForPDF['DifficultEvents'];
     List<String> makeSafer = dataForPDF['MakeSafer'];
@@ -207,14 +214,18 @@ class FileServiceImpl implements FileService {
       realData.add(personalPlanSectionData[i]);
     }
 
+    final hosts = approvedPdfHosts ?? defaultApprovedPdfLinkHosts;
+
     // Retrieve text content for the PDF
     String text1 = texts['firstLine'] ?? '';
     String text2 = texts['firstLinkText'] ?? '';
-    String text2Link = texts['firstLinkURL'] ?? '';
+    String text2Link =
+        sanitizePdfLinkUrl(texts['firstLinkURL'], approvedHosts: hosts);
     String text3 = texts['secondLine'] ?? '';
     String text4 = texts['thirdLine'] ?? '';
     String text5 = texts['secondLinkText'] ?? '';
-    String text5Link = texts['secondLinkURL'] ?? '';
+    String text5Link =
+        sanitizePdfLinkUrl(texts['secondLinkURL'], approvedHosts: hosts);
     String text6 = texts['forthLine'] ?? '';
 
     // Prepare the data to be included in the PDF
@@ -231,10 +242,12 @@ class FileServiceImpl implements FileService {
         "text1": text1,
         "text2": text2,
         "text2Link": text2Link,
+        "firstLinkURL": text2Link,
         "text3": text3,
         "text4": text4,
         "text5": text5,
         "text5Link": text5Link,
+        "secondLinkURL": text5Link,
         "text6": text6,
       },
     };
@@ -253,11 +266,15 @@ class FileServiceImpl implements FileService {
       Map<String, String> texts,
       ShareFileType saveFormat,
       {required String mainTitle,
-      required String textDirection}) async {
+      required String textDirection,
+      PersistentMemoryService? memoryService,
+      Set<String>? approvedPdfHosts}) async {
     try {
       // Add the generated widgets to the PDF
       final dataForFile = await organizeDataForFile(titles, subTitles, texts,
-          mainTitle: mainTitle);
+          mainTitle: mainTitle,
+          memoryService: memoryService,
+          approvedPdfHosts: approvedPdfHosts);
       Map<String, dynamic> file;
       switch (saveFormat) {
         case ShareFileType.PDF:
@@ -268,6 +285,7 @@ class FileServiceImpl implements FileService {
             dataForFile["mainTitle"]!,
             dataForFile["realData"]!,
             textDirection,
+            approvedHosts: approvedPdfHosts ?? defaultApprovedPdfLinkHosts,
           );
           final tempFile = await saveTempPDF(file["file"], file["format"]);
           XFile tempXFile = XFile(tempFile.path);
@@ -379,9 +397,13 @@ class FileServiceImpl implements FileService {
       Map<String, String> texts,
       ShareFileType saveFormat,
       {required String mainTitle,
-      required String textDirection}) async {
+      required String textDirection,
+      PersistentMemoryService? memoryService,
+      Set<String>? approvedPdfHosts}) async {
     final dataForFile = await organizeDataForFile(titles, subTitles, texts,
-        mainTitle: mainTitle);
+        mainTitle: mainTitle,
+        memoryService: memoryService,
+        approvedPdfHosts: approvedPdfHosts);
     Map<String, dynamic> file;
     Uint8List data = Uint8List(0);
     switch (saveFormat) {
@@ -393,6 +415,7 @@ class FileServiceImpl implements FileService {
           dataForFile["mainTitle"]!,
           dataForFile["realData"]!,
           textDirection,
+          approvedHosts: approvedPdfHosts ?? defaultApprovedPdfLinkHosts,
         );
         // Save the PDF and share it
 

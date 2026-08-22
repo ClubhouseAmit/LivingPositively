@@ -74,18 +74,30 @@ void main() {
         () => mockPersistentMemoryService,
       );
       when(
+        mockPersistentMemoryService.getItem(any, any),
+      ).thenAnswer((_) async => null);
+      when(
+        mockPersistentMemoryService.setItem(any, any, any),
+      ).thenAnswer((_) async {});
+      when(
         mockPersistentMemoryService.getItem(any, PersistentMemoryType.Bool),
       ).thenAnswer((_) async => true);
       getIt.registerLazySingleton<ImagePickerService>(() => imageFactory);
       when(mockFileServiceImpl.share(any, any, any, any, any,
-              mainTitle: anyNamed('mainTitle'), textDirection: anyNamed('textDirection'))).thenAnswer(
+              mainTitle: anyNamed('mainTitle'),
+              textDirection: anyNamed('textDirection'),
+              memoryService: anyNamed('memoryService'),
+              approvedPdfHosts: anyNamed('approvedPdfHosts'))).thenAnswer(
         ((Invocation invocation) async {
           counterShare = counterShare + 1;
           return const ShareResult('test-success', ShareResultStatus.success);
         }),
       );
       when(mockFileServiceImpl.download(any, any, any, any,
-              mainTitle: anyNamed('mainTitle'), textDirection: anyNamed('textDirection'))).thenAnswer(((
+              mainTitle: anyNamed('mainTitle'),
+              textDirection: anyNamed('textDirection'),
+              memoryService: anyNamed('memoryService'),
+              approvedPdfHosts: anyNamed('approvedPdfHosts'))).thenAnswer(((
         Invocation invocation,
       ) async {
         counterDownload = counterDownload + 1;
@@ -101,9 +113,13 @@ void main() {
     });
     Future<void> tapAndSettle(WidgetTester tester, Finder finder) async {
       await tester.ensureVisible(finder);
-      await tester.pumpAndSettle(const Duration(milliseconds: 200));
+      await tester.pumpAndSettle();
       await tester.tap(finder);
-      await tester.pumpAndSettle(const Duration(milliseconds: 200));
+      await tester.pumpAndSettle();
+      await tester.runAsync(() async {
+        await Future<void>.delayed(const Duration(milliseconds: 50));
+      });
+      await tester.pumpAndSettle();
     }
 
     Widget getPersonalPlanWidgetForTests({Locale locale = const Locale('he')}) {
@@ -178,7 +194,10 @@ void main() {
     testWidgets('shows Personal Plan feedback when file sharing is unavailable',
         (WidgetTester tester) async {
       when(mockFileServiceImpl.share(any, any, any, any, any,
-              mainTitle: anyNamed('mainTitle'), textDirection: anyNamed('textDirection')))
+              mainTitle: anyNamed('mainTitle'),
+              textDirection: anyNamed('textDirection'),
+              memoryService: anyNamed('memoryService'),
+              approvedPdfHosts: anyNamed('approvedPdfHosts')))
           .thenAnswer((_) async => ShareResult.unavailable);
       await tester.pumpWidget(getPersonalPlanWidgetForTests());
 
@@ -213,7 +232,10 @@ void main() {
       )!;
       final captured = verify(
         mockFileServiceImpl.download(captureAny, captureAny, any, any,
-            mainTitle: anyNamed('mainTitle'), textDirection: anyNamed('textDirection')),
+            mainTitle: anyNamed('mainTitle'),
+            textDirection: anyNamed('textDirection'),
+            memoryService: anyNamed('memoryService'),
+            approvedPdfHosts: anyNamed('approvedPdfHosts')),
       ).captured;
 
       expect(captured, hasLength(2));

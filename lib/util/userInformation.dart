@@ -3,6 +3,7 @@ import 'dart:async';
 import 'package:flutter/foundation.dart';
 import 'package:get_it/get_it.dart';
 import 'package:mazilon/global_enums.dart';
+import 'package:mazilon/util/custom_categories_storage.dart';
 import 'package:mazilon/util/dreams_and_goals_selection.dart';
 import 'package:mazilon/util/logger_service.dart';
 import 'package:mazilon/util/persistent_memory_service.dart';
@@ -37,10 +38,18 @@ class UserInformation with ChangeNotifier {
   int darkModeEndHour;
   int darkModeEndMinute;
   Map<String, List<String>> thanks;
+  List<MapEntry<String, String>> customCategories;
   PersistentMemoryService service; // Get the persistent memory service instance
   Future<void> _pendingDreamsAndGoalsSave = Future<void>.value();
+  Future<void> _pendingCustomCategoriesSave = Future<void>.value();
   int _dreamsAndGoalsSaveRevision = 0;
-  int? _pendingDreamsAndGoalsCustomConflictResolutionRevision;
+  int _activeDreamsAndGoalsSavesCount = 0;
+
+  /// Whether a Dreams and Goals persistence operation is currently pending.
+  bool get isDreamsAndGoalsSavePending => _activeDreamsAndGoalsSavesCount > 0;
+
+  /// In-flight custom categories persistence future.
+  Future<void> get pendingCustomCategoriesSave => _pendingCustomCategoriesSave;
 
   UserInformation({
     this.location = '',
@@ -66,11 +75,43 @@ class UserInformation with ChangeNotifier {
     this.safeEnvironment = const [],
     this.dreamsAndGoals = const [],
     this.dreamsAndGoalsSelectionSources = const [],
+    this.customCategories = const [],
     this.disclaimerSigned = false,
     this.loggedIn = false,
     this.userId = '',
     PersistentMemoryService? service,
   }) : service = service ?? GetIt.instance<PersistentMemoryService>();
+
+  /// Hydrates custom categories from [memoryService] (or the default [service]).
+  Future<List<MapEntry<String, String>>> loadCustomCategories({
+    PersistentMemoryService? memoryService,
+  }) async {
+    final effectiveMemoryService = memoryService ?? service;
+    final loaded = await loadCustomCategoriesFromStorage(
+      memoryService: effectiveMemoryService,
+    );
+    customCategories = List<MapEntry<String, String>>.unmodifiable(loaded);
+    notifyListeners();
+    return customCategories;
+  }
+
+  /// Persists [categories] (or current [customCategories]) into [memoryService] (or the default [service]).
+  Future<void> saveCustomCategories({
+    List<MapEntry<String, String>>? categories,
+    PersistentMemoryService? memoryService,
+  }) async {
+    final effectiveMemoryService = memoryService ?? service;
+    final toSave = categories ?? customCategories;
+    final sanitized = sanitizeAndFilterCustomCategoryEntries(toSave);
+    final nextSave = saveCustomCategoriesToStorage(
+      sanitized,
+      memoryService: effectiveMemoryService,
+    );
+    _pendingCustomCategoriesSave = nextSave;
+    await nextSave;
+    customCategories = List<MapEntry<String, String>>.unmodifiable(sanitized);
+    notifyListeners();
+  }
 
   /// Clears user state and persists the empty Dreams and Goals snapshot.
   ///
@@ -98,7 +139,7 @@ class UserInformation with ChangeNotifier {
     safeEnvironment = [];
     dreamsAndGoals = [];
     dreamsAndGoalsSelectionSources = [];
-    _pendingDreamsAndGoalsCustomConflictResolutionRevision = null;
+    customCategories = [];
     // An in-flight snapshot cannot be cancelled safely. Queue the empty
     // snapshot behind it so reset is always the final local Dreams state.
     _dreamsAndGoalsSaveRevision++;
@@ -109,7 +150,10 @@ class UserInformation with ChangeNotifier {
     localeName = locale;
 
     notifyListeners();
-    await queueDreamsAndGoalsSave();
+    await Future.wait([
+      queueDreamsAndGoalsSave(),
+      saveCustomCategoriesToStorage(const [], memoryService: service),
+    ]);
   }
 
   /// Observes non-critical legacy writes so a storage failure cannot escape an
@@ -236,14 +280,6 @@ class UserInformation with ChangeNotifier {
     dreamsAndGoals = valueCopy;
     dreamsAndGoalsSelectionSources = sourceCopy;
     _dreamsAndGoalsSaveRevision++;
-    // A conflict choice stays gated until the newest replacement snapshot is
-    // durably written. If another model mutation arrives before that write
-    // succeeds, retry the current state rather than letting the old revision
-    // clear the gate.
-    if (_pendingDreamsAndGoalsCustomConflictResolutionRevision != null) {
-      _pendingDreamsAndGoalsCustomConflictResolutionRevision =
-          _dreamsAndGoalsSaveRevision;
-    }
     notifyListeners();
   }
 
@@ -252,102 +288,6 @@ class UserInformation with ChangeNotifier {
 
   /// Revision captured with a Dreams and Goals persistence snapshot.
   int get dreamsAndGoalsSaveRevision => _dreamsAndGoalsSaveRevision;
-
-  /// Selection-row indexes whose normalized source is explicitly `custom`.
-  ///
-  /// This derives candidates without mutating stored model state, so callers
-  /// should first await [repairDreamsAndGoalsSelectionSources] when they need
-  /// the repaired source list persisted before rendering a recovery choice.
-  List<int> get dreamsAndGoalsCustomSelectionIndexes {
-    final List<String> normalizedSources =
-        normalizeDreamsAndGoalsSelectionSources(
-          dreamsAndGoals,
-          dreamsAndGoalsSelectionSources,
-        );
-    return List<int>.unmodifiable(<int>[
-      for (final (int index, String source) in normalizedSources.indexed)
-        if (source == dreamsAndGoalsCustomSelectionSource) index,
-    ]);
-  }
-
-  /// Whether more than one custom Dreams and Goals row requires user choice.
-  bool get hasDreamsAndGoalsCustomConflict =>
-      dreamsAndGoalsCustomSelectionIndexes.length > 1;
-
-  /// Whether a user-selected custom-goal resolution still needs persistence.
-  ///
-  /// A selected row replaces the conflicting rows in memory immediately so
-  /// the person's explicit choice is never lost. Consumers must keep editing
-  /// and sharing gated while this is true, because the chosen snapshot has not
-  /// yet been saved locally.
-  bool get hasPendingDreamsAndGoalsCustomConflictResolution =>
-      _pendingDreamsAndGoalsCustomConflictResolutionRevision != null;
-
-  /// Whether Dreams and Goals must stay behind the custom-conflict recovery
-  /// gate before it can be edited, exported, or completed.
-  bool get requiresDreamsAndGoalsCustomConflictRecovery =>
-      hasDreamsAndGoalsCustomConflict ||
-      hasPendingDreamsAndGoalsCustomConflictResolution;
-
-  /// Keeps [retainedSelectionIndex]'s custom row and all catalogue rows.
-  ///
-  /// The chosen index must identify a row whose normalized source is `custom`.
-  /// Invalid indexes and catalogue-row choices throw [ArgumentError] before
-  /// changing the model. A valid choice updates the model, then persists the
-  /// queued immutable three-key snapshot before this future completes. If that
-  /// save fails, the selected in-memory snapshot remains available behind
-  /// [hasPendingDreamsAndGoalsCustomConflictResolution] until a retry saves
-  /// the latest revision.
-  ///
-  /// Calling this when there is no multiple-custom conflict is a no-op after
-  /// validating the chosen custom row.
-  Future<void> resolveDreamsAndGoalsCustomConflict(
-    int retainedSelectionIndex,
-  ) async {
-    final List<String> normalizedSources =
-        normalizeDreamsAndGoalsSelectionSources(
-          dreamsAndGoals,
-          dreamsAndGoalsSelectionSources,
-        );
-    if (retainedSelectionIndex < 0 ||
-        retainedSelectionIndex >= normalizedSources.length ||
-        normalizedSources[retainedSelectionIndex] !=
-            dreamsAndGoalsCustomSelectionSource) {
-      throw ArgumentError.value(
-        retainedSelectionIndex,
-        'retainedSelectionIndex',
-        'Must identify a custom Dreams and Goals row.',
-      );
-    }
-
-    final int customSelectionCount = normalizedSources
-        .where(
-          (String source) => source == dreamsAndGoalsCustomSelectionSource,
-        )
-        .length;
-    if (customSelectionCount <= 1) {
-      return;
-    }
-
-    final List<String> retainedSelections = <String>[];
-    final List<String> retainedSources = <String>[];
-    for (final (int index, String selection) in dreamsAndGoals.indexed) {
-      final String source = normalizedSources[index];
-      if (source != dreamsAndGoalsCustomSelectionSource ||
-          index == retainedSelectionIndex) {
-        retainedSelections.add(selection);
-        retainedSources.add(source);
-      }
-    }
-
-    // Mark the next model revision before notifying listeners through
-    // updateDreamsAndGoals. That keeps every consumer behind the recovery
-    // gate from the first frame containing the chosen in-memory snapshot.
-    _pendingDreamsAndGoalsCustomConflictResolutionRevision =
-        _dreamsAndGoalsSaveRevision + 1;
-    updateDreamsAndGoals(retainedSelections, selectionSources: retainedSources);
-    await queueDreamsAndGoalsSave();
-  }
 
   /// Queues an immutable three-key snapshot after any prior Dreams save.
   ///
@@ -363,22 +303,17 @@ class UserInformation with ChangeNotifier {
           dreamsAndGoals,
           dreamsAndGoalsSelectionSources,
         );
-    final int snapshotRevision = _dreamsAndGoalsSaveRevision;
+    _activeDreamsAndGoalsSavesCount++;
     final Future<void> nextSave = _pendingDreamsAndGoalsSave
         .catchError((Object _) {})
-        .then(
-          (_) => persistDreamsAndGoalsSnapshot(service, snapshot),
-        );
-    final Future<void> trackedSave = nextSave.then((_) {
-      if (_pendingDreamsAndGoalsCustomConflictResolutionRevision ==
-              snapshotRevision &&
-          _dreamsAndGoalsSaveRevision == snapshotRevision) {
-        _pendingDreamsAndGoalsCustomConflictResolutionRevision = null;
-        notifyListeners();
-      }
-    });
-    _pendingDreamsAndGoalsSave = trackedSave;
-    return trackedSave;
+        .then((_) => persistDreamsAndGoalsSnapshot(service, snapshot))
+        .whenComplete(() {
+          if (_activeDreamsAndGoalsSavesCount > 0) {
+            _activeDreamsAndGoalsSavesCount--;
+          }
+        });
+    _pendingDreamsAndGoalsSave = nextSave;
+    return nextSave;
   }
 
   /// Retries [revision] only when it is still the current Dreams selection.
@@ -392,25 +327,14 @@ class UserInformation with ChangeNotifier {
     return queueDreamsAndGoalsSave();
   }
 
-  /// Retries the latest chosen custom-conflict snapshot, if one is pending.
-  ///
-  /// The shared save queue clears the pending recovery gate only after the
-  /// current revision's three-key snapshot succeeds.
-  Future<void> retryDreamsAndGoalsCustomConflictResolution() {
-    if (!hasPendingDreamsAndGoalsCustomConflictResolution) {
-      return Future<void>.value();
-    }
-    return retryDreamsAndGoalsSave(_dreamsAndGoalsSaveRevision);
-  }
-
   /// Loads Dreams and Goals state from local storage and repairs stale
   /// provenance metadata through this model's injected storage service.
   ///
   /// The localized [selections] stay in their saved order. Source tokens and
-  /// the custom-only list are normalized into one immutable snapshot; multiple
-  /// explicit custom rows intentionally remain until the user resolves that
-  /// conflict. The three-key snapshot is queued only when either stored
-  /// metadata list differs from the repaired values.
+  /// the custom-only list are normalized into one immutable snapshot. Multiple
+  /// explicit custom rows remain in their original order. The three-key
+  /// snapshot is queued only when either stored metadata list differs from the
+  /// repaired values.
   Future<void> hydrateDreamsAndGoalsFromStorage(
     List<String> selections, {
     required List<String> storedSelectionSources,
@@ -442,9 +366,9 @@ class UserInformation with ChangeNotifier {
   }
 
   /// Repairs in-memory Dreams and Goals sources outside the widget build
-  /// lifecycle without collapsing multiple explicit custom rows. Storage
-  /// hydration should use [hydrateDreamsAndGoalsFromStorage] so it can also
-  /// repair custom metadata.
+  /// lifecycle without altering explicit custom rows. Storage hydration should
+  /// use [hydrateDreamsAndGoalsFromStorage] so it can also repair custom
+  /// metadata.
   Future<void> repairDreamsAndGoalsSelectionSources() {
     return hydrateDreamsAndGoalsFromStorage(
       dreamsAndGoals,
@@ -454,6 +378,114 @@ class UserInformation with ChangeNotifier {
         dreamsAndGoalsSelectionSources,
       ),
     );
+  }
+
+  /// Persists Dreams and Goals snapshot combined with the disclaimer confirmation
+  /// using this model's injected storage service.
+  Future<void> saveDreamsAndGoalsWithDisclaimer({
+    required int revision,
+    required bool retry,
+  }) {
+    final Future<void> dreamsSave = retry
+        ? retryDreamsAndGoalsSave(revision)
+        : queueDreamsAndGoalsSave();
+    final Future<void> disclaimerSave = Future<void>.sync(
+      persistDisclaimerConfirmed,
+    );
+    return Future.wait<void>([
+      dreamsSave,
+      disclaimerSave,
+    ]);
+  }
+
+  /// Updates category selections in memory and persists them through this
+  /// model's injected storage service.
+  Future<void> saveCategorySelection(
+    String collectionName,
+    List<String> items, {
+    List<String>? selectionSources,
+    void Function(int revision)? onDreamsSaveQueued,
+  }) async {
+    switch (collectionName) {
+      case 'PersonalPlan-DifficultEvents':
+        updateDifficultEvents([...items]);
+        break;
+      case 'PersonalPlan-MakeSafer':
+        updateMakeSafer([...items]);
+        break;
+      case 'PersonalPlan-FeelBetter':
+        updateFeelBetter([...items]);
+        break;
+      case 'PersonalPlan-Distractions':
+        updateDistractions([...items]);
+        break;
+      case 'PersonalPlan-SafeEnvironment':
+        updateSafeEnvironment([...items]);
+        break;
+      case 'PersonalPlan-DreamsAndGoals':
+        updateDreamsAndGoals(
+          items,
+          selectionSources: selectionSources ??
+              (listEquals(items, dreamsAndGoals)
+                  ? dreamsAndGoalsSelectionSources
+                  : normalizeDreamsAndGoalsSelectionSources(
+                      items,
+                      dreamsAndGoalsSelectionSources,
+                    )),
+        );
+        final int revision = dreamsAndGoalsSaveRevision;
+        onDreamsSaveQueued?.call(revision);
+        await saveDreamsAndGoalsWithDisclaimer(
+          revision: revision,
+          retry: false,
+        );
+        return;
+      default:
+        throw ArgumentError.value(
+          collectionName,
+          'collectionName',
+          'Unsupported Personal Plan category name.',
+        );
+    }
+    await persistDisclaimerConfirmed();
+    await service.setItem(
+      'userSelection$collectionName',
+      PersistentMemoryType.StringList,
+      [...items],
+    );
+    await service.setItem(
+      'addedStrings$collectionName',
+      PersistentMemoryType.StringList,
+      [...items],
+    );
+  }
+
+  /// Awaits all pending saves and repairs Dreams and Goals selection sources
+  /// until storage has a stable, normalized snapshot for Personal Plan export.
+  Future<void> prepareForPersonalPlanExport() async {
+    await _pendingCustomCategoriesSave;
+    final bool needsRepair = !listEquals(
+      dreamsAndGoalsSelectionSources,
+      normalizeDreamsAndGoalsSelectionSources(
+        dreamsAndGoals,
+        dreamsAndGoalsSelectionSources,
+      ),
+    );
+    if (!needsRepair && _activeDreamsAndGoalsSavesCount == 0) {
+      await _pendingCustomCategoriesSave;
+      return;
+    }
+    while (true) {
+      await _pendingDreamsAndGoalsSave;
+      final int revisionBeforeRepair = _dreamsAndGoalsSaveRevision;
+      await repairDreamsAndGoalsSelectionSources();
+      await _pendingDreamsAndGoalsSave;
+      if (_dreamsAndGoalsSaveRevision == revisionBeforeRepair) {
+        await _pendingDreamsAndGoalsSave;
+        break;
+      }
+    }
+    await _pendingCustomCategoriesSave;
   }
 
   /// Persists the form completion disclaimer using this model's injected

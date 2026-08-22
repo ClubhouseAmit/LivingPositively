@@ -45,6 +45,13 @@ final class _FakeMemory extends ContractPersistentMemoryService {
   }
 }
 
+final class _StrictFakeMemory extends ContractPersistentMemoryService {
+  _StrictFakeMemory(Map<String, dynamic> store) : super(store: store) {
+    onMissingRead = (key, _) =>
+        throw StateError('Unexpected memory read for unconfigured key: $key');
+  }
+}
+
 void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
   const shareChannel = MethodChannel('dev.fluttercommunity.plus/share');
@@ -116,6 +123,15 @@ void main() {
         expect(data['DreamsAndGoals'], isEmpty);
       },
     );
+
+    test('reads from supplied memoryService override instead of GetIt', () async {
+      final customMemory = _FakeMemory({
+        'userSelectionPersonalPlan-DreamsAndGoals': ['customDream'],
+      });
+      final data =
+          await FileServiceImpl.getPrefsData(memoryService: customMemory);
+      expect(data['DreamsAndGoals'], ['customDream']);
+    });
   });
 
   group('FileServiceImpl.filterEmptyData', () {
@@ -240,6 +256,73 @@ void main() {
         ['Mom:111', 'Dad:222'],
         ['safe1'],
       ]);
+    });
+
+    test('uses supplied memoryService override when provided', () async {
+      final customMemory = _StrictFakeMemory({
+        'userSelectionPersonalPlan-Distractions': <dynamic>[],
+        'userSelectionPersonalPlan-DifficultEvents': <dynamic>['customEv'],
+        'userSelectionPersonalPlan-FeelBetter': <dynamic>[],
+        'userSelectionPersonalPlan-MakeSafer': <dynamic>[],
+        'PhonePageSavedPhoneNames': <dynamic>[],
+        'PhonePageSavedPhoneNumbers': <dynamic>[],
+        'userSelectionPersonalPlan-SafeEnvironment': <dynamic>['customSafe'],
+        'userSelectionPersonalPlan-DreamsAndGoals': <dynamic>['customGoal'],
+        'customCategories': null,
+        'customCategoryTitles': <dynamic>['Custom Title'],
+        'customCategoryDescriptions': <dynamic>['Custom Description'],
+      });
+      final svc = FileServiceImpl();
+      final result = await svc.organizeDataForFile(
+        ['T1', 'T2', 'T3', 'T4', 'T5', 'T6', 'T7'],
+        ['S1', 'S2', 'S3', 'S4', 'S5', 'S6', 'S7'],
+        {
+          'firstLinkURL': 'https://livepositively.club/valid',
+          'secondLinkURL': 'http://untrusted.com/invalid',
+        },
+        mainTitle: 'Custom Plan',
+        memoryService: customMemory,
+      );
+      expect(result['titles'], ['T2', 'T6', 'T7', 'Custom Title']);
+      expect(result['subTitles'], ['S2', 'S6', 'S7', '']);
+      expect(result['realData'], [
+        ['customEv'],
+        ['customSafe'],
+        ['customGoal'],
+        ['Custom Description'],
+      ]);
+      expect(result['texts']['text2Link'], 'https://livepositively.club/valid');
+      expect(result['texts']['text5Link'], '');
+    });
+
+    test('organizeDataForFile respects custom approvedPdfHosts and port 443', () async {
+      final customMemory = _StrictFakeMemory({
+        'userSelectionPersonalPlan-Distractions': <dynamic>[],
+        'userSelectionPersonalPlan-DifficultEvents': <dynamic>['customEv'],
+        'userSelectionPersonalPlan-FeelBetter': <dynamic>[],
+        'userSelectionPersonalPlan-MakeSafer': <dynamic>[],
+        'PhonePageSavedPhoneNames': <dynamic>[],
+        'PhonePageSavedPhoneNumbers': <dynamic>[],
+        'userSelectionPersonalPlan-SafeEnvironment': <dynamic>['customSafe'],
+        'userSelectionPersonalPlan-DreamsAndGoals': <dynamic>['customGoal'],
+        'customCategories': null,
+        'customCategoryTitles': <dynamic>[],
+        'customCategoryDescriptions': <dynamic>[],
+      });
+      final svc = FileServiceImpl();
+      final result = await svc.organizeDataForFile(
+        ['T1', 'T2', 'T3', 'T4', 'T5', 'T6', 'T7'],
+        ['S1', 'S2', 'S3', 'S4', 'S5', 'S6', 'S7'],
+        {
+          'firstLinkURL': 'https://tenant.org:443/valid',
+          'secondLinkURL': 'https://tenant.org:8080/invalid-port',
+        },
+        mainTitle: 'Custom Plan',
+        memoryService: customMemory,
+        approvedPdfHosts: const {'tenant.org'},
+      );
+      expect(result['texts']['text2Link'], 'https://tenant.org/valid');
+      expect(result['texts']['text5Link'], '');
     });
   });
 
