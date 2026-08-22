@@ -34,7 +34,11 @@ class _PersonalPlanDownloadContext {
     Set<String>? approvedPdfHosts,
   })  : localeName = appLocale.localeName,
         textDirection = appLocale.textDirection,
-        approvedPdfHosts = approvedPdfHosts ?? defaultApprovedPdfLinkHosts,
+        approvedPdfHosts = Set<String>.unmodifiable(
+          (approvedPdfHosts ?? defaultApprovedPdfLinkHosts).map(
+            (host) => host.trim().toLowerCase(),
+          ),
+        ),
         sharePdfTexts = Map<String, String>.unmodifiable(
           sanitizeSharePdfTexts(
             appInformation.sharePDFtexts,
@@ -77,7 +81,7 @@ class _PersonalPlanDownloadContext {
         userInformationRevision,
         identityHashCode(memoryService),
         identityHashCode(fileService),
-        Object.hashAll(approvedPdfHosts),
+        Object.hashAllUnordered(approvedPdfHosts),
       );
 }
 

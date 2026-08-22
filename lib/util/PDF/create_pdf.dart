@@ -208,12 +208,12 @@ Future<Map<String, dynamic>> createPDF(
   // Add space before footer
   widgets.add(pw.Expanded(child: pw.SizedBox()));
 
-  final sanitizedLink2 = sanitizePdfLinkUrl(
-    texts["text2Link"],
+  final sanitizedFirstLinkUrl = sanitizePdfLinkUrl(
+    texts["firstLinkURL"] ?? texts["text2Link"],
     approvedHosts: approvedHosts,
   );
-  final sanitizedLink5 = sanitizePdfLinkUrl(
-    texts["text5Link"],
+  final sanitizedSecondLinkUrl = sanitizePdfLinkUrl(
+    texts["secondLinkURL"] ?? texts["text5Link"],
     approvedHosts: approvedHosts,
   );
 
@@ -252,7 +252,7 @@ Future<Map<String, dynamic>> createPDF(
         pw.SizedBox(height: 10),
         pw.Directionality(
           textDirection: pdfTextDirection,
-          child: buildLinkWidget(texts["text2"] ?? '', sanitizedLink2),
+          child: buildLinkWidget(texts["text2"] ?? '', sanitizedFirstLinkUrl),
         ),
         pw.SizedBox(height: 10),
         pw.Directionality(
@@ -275,7 +275,7 @@ Future<Map<String, dynamic>> createPDF(
         pw.SizedBox(height: 10),
         pw.Directionality(
           textDirection: pdfTextDirection,
-          child: buildLinkWidget(texts["text5"] ?? '', sanitizedLink5),
+          child: buildLinkWidget(texts["text5"] ?? '', sanitizedSecondLinkUrl),
         ),
         pw.SizedBox(height: 10),
         pw.Directionality(

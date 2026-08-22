@@ -345,6 +345,15 @@ class MockUserInformation extends _i1.Mock implements _i3.UserInformation {
           as bool);
 
   @override
+  _i5.Future<void> get pendingCustomCategoriesSave =>
+      (super.noSuchMethod(
+            Invocation.getter(#pendingCustomCategoriesSave),
+            returnValue: _i5.Future<void>.value(),
+            returnValueForMissingStub: _i5.Future<void>.value(),
+          )
+          as _i5.Future<void>);
+
+  @override
   _i5.Future<void> get pendingDreamsAndGoalsSave =>
       (super.noSuchMethod(
             Invocation.getter(#pendingDreamsAndGoalsSave),

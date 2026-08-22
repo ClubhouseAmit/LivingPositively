@@ -7,15 +7,13 @@ import 'package:flutter/foundation.dart';
 import 'package:get_it/get_it.dart';
 import 'package:mazilon/global_enums.dart';
 import 'package:mazilon/util/PDF/create_pdf.dart';
+import 'package:mazilon/util/custom_categories_storage.dart';
 import 'package:mazilon/util/file_save_utils.dart';
 import 'package:mazilon/util/logger_service.dart';
 import 'package:mazilon/util/persistent_memory_service.dart';
 import 'package:mazilon/util/type_utils.dart';
 import 'package:share_plus/share_plus.dart';
 import 'package:mazilon/AnalyticsService.dart';
-
-const String _customCategoryTitlesKey = 'customCategoryTitles';
-const String _customCategoryDescriptionsKey = 'customCategoryDescriptions';
 
 abstract class FileService {
   /// Shares a Personal Plan export with its caller-localized [mainTitle].
@@ -92,18 +90,15 @@ class FileServiceImpl implements FileService {
       ),
       'phoneNumbers': service.getItem(
           "PhonePageSavedPhoneNumbers", PersistentMemoryType.StringList),
-      'customCategoryTitles': service.getItem(
-        _customCategoryTitlesKey,
-        PersistentMemoryType.StringList,
-      ),
-      'customCategoryDescriptions': service.getItem(
-        _customCategoryDescriptionsKey,
-        PersistentMemoryType.StringList,
-      ),
     };
+
+    final customCategoriesFuture = loadCustomCategoriesFromStorage(
+      memoryService: service,
+    );
 
     final results = await Future.wait(futures.values);
     final data = Map.fromIterables(futures.keys, results);
+    final customCategories = await customCategoriesFuture;
 
     return {
       'DifficultEvents': TypeUtils.castToStringList(data['difficultEvents']),
@@ -115,9 +110,9 @@ class FileServiceImpl implements FileService {
       'phoneNames': TypeUtils.castToStringList(data['phoneNames']),
       'phoneNumbers': TypeUtils.castToStringList(data['phoneNumbers']),
       'customCategoryTitles':
-          TypeUtils.castToStringList(data['customCategoryTitles']),
+          customCategories.map((category) => category.key).toList(),
       'customCategoryDescriptions':
-          TypeUtils.castToStringList(data['customCategoryDescriptions']),
+          customCategories.map((category) => category.value).toList(),
     };
   }
 
@@ -247,10 +242,12 @@ class FileServiceImpl implements FileService {
         "text1": text1,
         "text2": text2,
         "text2Link": text2Link,
+        "firstLinkURL": text2Link,
         "text3": text3,
         "text4": text4,
         "text5": text5,
         "text5Link": text5Link,
+        "secondLinkURL": text5Link,
         "text6": text6,
       },
     };

@@ -1,4 +1,4 @@
-// ignore_for_file: prefer_const_constructors, sort_child_properties_last
+import 'dart:math' as math;
 
 import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
@@ -10,7 +10,6 @@ import 'package:mazilon/util/appInformation.dart';
 import 'package:mazilon/util/persistent_memory_service.dart';
 import 'package:provider/provider.dart';
 import 'package:mazilon/form/form.dart';
-import 'package:mazilon/util/custom_categories_storage.dart';
 import 'package:mazilon/util/userInformation.dart';
 
 import 'package:mazilon/util/Form/formPagePhoneModel.dart';
@@ -34,28 +33,12 @@ class MyPlanPageFull extends StatefulWidget {
   });
 
   @override
-  State<MyPlanPageFull> createState() => _MyPlanPageFullState();
+  _MyPlanPageFullState createState() => _MyPlanPageFullState();
 }
 
 class _MyPlanPageFullState extends LPExtendedState<MyPlanPageFull> {
   List<List<String>> userAnswers = []; // User's answers for each section
   List<String> phoneInformation = []; // User's phone-related information
-  final List<MapEntry<String, String>> customCategories = [];
-
-  UserInformation? get _userInformation {
-    if (!mounted) return null;
-    try {
-      return Provider.of<UserInformation?>(context, listen: false);
-    } catch (_) {
-      return null;
-    }
-  }
-
-  PersistentMemoryService? get _memoryService =>
-      resolvePersistentMemoryService(
-        explicitService: widget.memoryService,
-        userInformation: _userInformation,
-      );
 
   // Field names for different sections of the personal plan
   List<String> fieldNames = [
@@ -79,74 +62,47 @@ class _MyPlanPageFullState extends LPExtendedState<MyPlanPageFull> {
 
   // Retrieve the user's answers for each section and update the state
   void getUserAnswers(
-    userSelectionDistractions,
-    userSelectionDifficultEvents,
-    userSelectionFeelBetter,
-    userSelectionMakeSafer,
-    userSelectionSafeEnvironment,
-    userSelectionDreamsAndGoals,
+    List<String> distractions,
+    List<String> difficultEvents,
+    List<String> feelBetter,
+    List<String> makeSafer,
+    List<String> safeEnvironment,
+    List<String> dreamsAndGoals,
   ) {
-    setState(() {
-      userAnswers = [
-        userSelectionDistractions,
-        userSelectionDifficultEvents,
-        userSelectionFeelBetter,
-        userSelectionMakeSafer,
-        userSelectionSafeEnvironment,
-        userSelectionDreamsAndGoals,
-      ];
-    });
+    userAnswers = [
+      distractions,
+      difficultEvents,
+      feelBetter,
+      makeSafer,
+      safeEnvironment,
+      dreamsAndGoals,
+    ];
   }
 
-  // Combine phone names and numbers into a formatted string and update the state
-  void setPhones(names, numbers) {
-    List<String> temp = [];
-    for (var i = 0; i < names.length && i < numbers.length; i++) {
-      temp.add('${names[i]}:${numbers[i]}');
+  // Combine and format the phone-related information
+  void setPhones(List<String> names, List<String> numbers) {
+    phoneInformation = [];
+    final count = math.min(names.length, numbers.length);
+    for (var i = 0; i < count; i++) {
+      phoneInformation.add('${names[i]}:${numbers[i]}');
     }
-    setState(() {
-      phoneInformation = [...temp];
-    });
   }
 
-  // Launch a URL in the default browser
+  // Opens a specified URL using url_launcher
   void _launchURL(Uri url) async {
-    if (await canLaunchUrl(url)) {
-      await launchUrl(url);
-    } else {
+    if (!await launchUrl(url)) {
       throw 'Could not launch $url';
     }
   }
 
   @override
-  initState() {
+  void initState() {
     super.initState();
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (mounted) {
-        loadCustomCategories();
+        final userInfo = Provider.of<UserInformation>(context, listen: false);
+        userInfo.loadCustomCategories(memoryService: widget.memoryService);
       }
-    });
-  }
-
-  Future<void> loadCustomCategories([
-    PersistentMemoryService? injectedService,
-  ]) async {
-    final PersistentMemoryService? service = injectedService ?? _memoryService;
-    if (service == null) {
-      return;
-    }
-
-    final loaded = await loadCustomCategoriesFromStorage(
-      memoryService: service,
-    );
-
-    if (!mounted) {
-      return;
-    }
-    setState(() {
-      customCategories
-        ..clear()
-        ..addAll(loaded);
     });
   }
 
@@ -261,7 +217,7 @@ class _MyPlanPageFullState extends LPExtendedState<MyPlanPageFull> {
                 subTitle: dreamsAndGoalsInfo["subTitle"] ?? '',
                 answers: userAnswers[5],
               ),
-            ...customCategories.map(
+            ...userInfoProvider.customCategories.map(
               (category) => MyPlanSection(
                 title: category.key,
                 subTitle: '',

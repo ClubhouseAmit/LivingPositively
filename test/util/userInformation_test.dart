@@ -259,6 +259,7 @@ void main() {
         expect(
           delayedService.writes
               .map((MapEntry<String, dynamic> write) => write.key)
+              .where((key) => key.contains('DreamsAndGoals'))
               .toList(),
           <String>[
             dreamsAndGoalsSelectionStorageKey,
@@ -281,6 +282,7 @@ void main() {
         expect(
           delayedService.writes
               .map((MapEntry<String, dynamic> write) => write.key)
+              .where((key) => key.contains('DreamsAndGoals'))
               .toList(),
           <String>[
             dreamsAndGoalsSelectionStorageKey,
@@ -323,7 +325,18 @@ void main() {
         expect(user.dreamsAndGoals, isEmpty);
         expect(user.dreamsAndGoalsSelectionSources, isEmpty);
         await expectLater(reset, throwsA(isA<StateError>()));
-        expect(failingService.stored, isEmpty);
+        expect(
+          failingService.stored[dreamsAndGoalsSelectionStorageKey],
+          isNull,
+        );
+        expect(
+          failingService.stored[dreamsAndGoalsSelectionSourcesStorageKey],
+          isNull,
+        );
+        expect(
+          failingService.stored[dreamsAndGoalsCustomSelectionsStorageKey],
+          isNull,
+        );
 
         await user.retryDreamsAndGoalsSave(user.dreamsAndGoalsSaveRevision);
 

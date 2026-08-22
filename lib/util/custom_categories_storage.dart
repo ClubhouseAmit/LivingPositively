@@ -1,31 +1,12 @@
-import 'package:get_it/get_it.dart';
+import 'dart:convert';
+
 import 'package:mazilon/global_enums.dart';
 import 'package:mazilon/util/persistent_memory_service.dart';
 import 'package:mazilon/util/type_utils.dart';
-import 'package:mazilon/util/userInformation.dart';
 
+const String customCategoriesKey = 'customCategories';
 const String customCategoryTitlesKey = 'customCategoryTitles';
 const String customCategoryDescriptionsKey = 'customCategoryDescriptions';
-
-/// Resolves the effective [PersistentMemoryService] with fallback precedence:
-/// 1. [explicitService] (caller or widget override)
-/// 2. [userInformation.service]
-/// 3. [GetIt] registered instance
-PersistentMemoryService? resolvePersistentMemoryService({
-  PersistentMemoryService? explicitService,
-  UserInformation? userInformation,
-}) {
-  if (explicitService != null) {
-    return explicitService;
-  }
-  if (userInformation != null) {
-    return userInformation.service;
-  }
-  if (GetIt.instance.isRegistered<PersistentMemoryService>()) {
-    return GetIt.instance<PersistentMemoryService>();
-  }
-  return null;
-}
 
 /// Trims and filters pairs of titles and descriptions, discarding empty entries.
 List<MapEntry<String, String>> sanitizeAndFilterCustomCategories(
@@ -61,12 +42,42 @@ List<MapEntry<String, String>> sanitizeAndFilterCustomCategoryEntries(
 }
 
 /// Loads and parses custom category entries from [memoryService].
+///
+/// Attempts to load the atomic single-key JSON snapshot from [customCategoriesKey]
+/// first. If missing or invalid, falls back to loading and pairing the legacy
+/// [customCategoryTitlesKey] and [customCategoryDescriptionsKey] lists.
 Future<List<MapEntry<String, String>>> loadCustomCategoriesFromStorage({
   PersistentMemoryService? memoryService,
 }) async {
   if (memoryService == null) {
     return const <MapEntry<String, String>>[];
   }
+
+  // 1. Try atomic JSON snapshot first
+  final rawJson = await memoryService.getItem(
+    customCategoriesKey,
+    PersistentMemoryType.String,
+  );
+  if (rawJson is String && rawJson.trim().isNotEmpty) {
+    try {
+      final decoded = jsonDecode(rawJson);
+      if (decoded is List) {
+        final result = <MapEntry<String, String>>[];
+        for (final item in decoded) {
+          if (item is Map) {
+            final title = item['title']?.toString() ?? '';
+            final description = item['description']?.toString() ?? '';
+            result.add(MapEntry(title, description));
+          }
+        }
+        return sanitizeAndFilterCustomCategoryEntries(result);
+      }
+    } catch (_) {
+      // Fall through to legacy keys on decode error
+    }
+  }
+
+  // 2. Fallback to separate legacy keys for backward compatibility
   final titles = TypeUtils.castToStringList(
     await memoryService.getItem(
       customCategoryTitlesKey,
@@ -83,6 +94,10 @@ Future<List<MapEntry<String, String>>> loadCustomCategoriesFromStorage({
 }
 
 /// Persists custom category entries into [memoryService].
+///
+/// Persists the atomic JSON snapshot under [customCategoriesKey] and updates the
+/// legacy [customCategoryTitlesKey] and [customCategoryDescriptionsKey] lists
+/// in a single coordinated write.
 /// Throws a [StateError] if [memoryService] is `null`.
 Future<void> saveCustomCategoriesToStorage(
   List<MapEntry<String, String>> categories, {
@@ -94,14 +109,25 @@ Future<void> saveCustomCategoriesToStorage(
     );
   }
   final sanitized = sanitizeAndFilterCustomCategoryEntries(categories);
-  await memoryService.setItem(
-    customCategoryTitlesKey,
-    PersistentMemoryType.StringList,
-    sanitized.map((category) => category.key).toList(),
+  final jsonPayload = jsonEncode(
+    sanitized.map((e) => {'title': e.key, 'description': e.value}).toList(),
   );
-  await memoryService.setItem(
-    customCategoryDescriptionsKey,
-    PersistentMemoryType.StringList,
-    sanitized.map((category) => category.value).toList(),
-  );
+
+  await Future.wait([
+    memoryService.setItem(
+      customCategoriesKey,
+      PersistentMemoryType.String,
+      jsonPayload,
+    ),
+    memoryService.setItem(
+      customCategoryTitlesKey,
+      PersistentMemoryType.StringList,
+      sanitized.map((category) => category.key).toList(),
+    ),
+    memoryService.setItem(
+      customCategoryDescriptionsKey,
+      PersistentMemoryType.StringList,
+      sanitized.map((category) => category.value).toList(),
+    ),
+  ]);
 }

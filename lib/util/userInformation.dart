@@ -41,11 +41,15 @@ class UserInformation with ChangeNotifier {
   List<MapEntry<String, String>> customCategories;
   PersistentMemoryService service; // Get the persistent memory service instance
   Future<void> _pendingDreamsAndGoalsSave = Future<void>.value();
+  Future<void> _pendingCustomCategoriesSave = Future<void>.value();
   int _dreamsAndGoalsSaveRevision = 0;
   int _activeDreamsAndGoalsSavesCount = 0;
 
   /// Whether a Dreams and Goals persistence operation is currently pending.
   bool get isDreamsAndGoalsSavePending => _activeDreamsAndGoalsSavesCount > 0;
+
+  /// In-flight custom categories persistence future.
+  Future<void> get pendingCustomCategoriesSave => _pendingCustomCategoriesSave;
 
   UserInformation({
     this.location = '',
@@ -82,11 +86,13 @@ class UserInformation with ChangeNotifier {
   Future<List<MapEntry<String, String>>> loadCustomCategories({
     PersistentMemoryService? memoryService,
   }) async {
-    final s = memoryService ?? service;
-    final loaded = await loadCustomCategoriesFromStorage(memoryService: s);
-    customCategories = List.from(loaded);
+    final effectiveMemoryService = memoryService ?? service;
+    final loaded = await loadCustomCategoriesFromStorage(
+      memoryService: effectiveMemoryService,
+    );
+    customCategories = List<MapEntry<String, String>>.unmodifiable(loaded);
     notifyListeners();
-    return loaded;
+    return customCategories;
   }
 
   /// Persists [categories] (or current [customCategories]) into [memoryService] (or the default [service]).
@@ -94,10 +100,16 @@ class UserInformation with ChangeNotifier {
     List<MapEntry<String, String>>? categories,
     PersistentMemoryService? memoryService,
   }) async {
+    final effectiveMemoryService = memoryService ?? service;
     final toSave = categories ?? customCategories;
-    final s = memoryService ?? service;
-    await saveCustomCategoriesToStorage(toSave, memoryService: s);
-    customCategories = List.from(toSave);
+    final sanitized = sanitizeAndFilterCustomCategoryEntries(toSave);
+    final nextSave = saveCustomCategoriesToStorage(
+      sanitized,
+      memoryService: effectiveMemoryService,
+    );
+    _pendingCustomCategoriesSave = nextSave;
+    await nextSave;
+    customCategories = List<MapEntry<String, String>>.unmodifiable(sanitized);
     notifyListeners();
   }
 
@@ -138,7 +150,10 @@ class UserInformation with ChangeNotifier {
     localeName = locale;
 
     notifyListeners();
-    await queueDreamsAndGoalsSave();
+    await Future.wait([
+      queueDreamsAndGoalsSave(),
+      saveCustomCategoriesToStorage(const [], memoryService: service),
+    ]);
   }
 
   /// Observes non-critical legacy writes so a storage failure cannot escape an
@@ -448,6 +463,7 @@ class UserInformation with ChangeNotifier {
   /// Awaits all pending saves and repairs Dreams and Goals selection sources
   /// until storage has a stable, normalized snapshot for Personal Plan export.
   Future<void> prepareForPersonalPlanExport() async {
+    await _pendingCustomCategoriesSave;
     final bool needsRepair = !listEquals(
       dreamsAndGoalsSelectionSources,
       normalizeDreamsAndGoalsSelectionSources(
@@ -456,6 +472,7 @@ class UserInformation with ChangeNotifier {
       ),
     );
     if (!needsRepair && _activeDreamsAndGoalsSavesCount == 0) {
+      await _pendingCustomCategoriesSave;
       return;
     }
     while (true) {
@@ -468,6 +485,7 @@ class UserInformation with ChangeNotifier {
         break;
       }
     }
+    await _pendingCustomCategoriesSave;
   }
 
   /// Persists the form completion disclaimer using this model's injected

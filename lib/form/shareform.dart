@@ -18,7 +18,6 @@ import 'package:mazilon/util/theme/spacing.dart';
 import 'package:provider/provider.dart';
 import 'package:mazilon/util/styles.dart';
 
-import 'package:mazilon/util/custom_categories_storage.dart';
 import 'package:mazilon/util/appInformation.dart';
 import 'package:mazilon/util/Share/personal_plan_download.dart';
 import 'package:mazilon/util/userInformation.dart';
@@ -85,7 +84,6 @@ class _ShareFormState extends WizardStepState<ShareForm> {
   final TextEditingController _customCategoryDescriptionController =
       TextEditingController();
   final FocusNode _customCategoryTitleFocusNode = FocusNode();
-  final List<MapEntry<String, String>> _customCategories = [];
   bool _isEditingDreamsAndGoals = false;
   bool _isOpeningDreamsAndGoals = false;
   bool _isRunningDreamsAndGoalsAction = false;
@@ -102,12 +100,6 @@ class _ShareFormState extends WizardStepState<ShareForm> {
       return null;
     }
   }
-
-  PersistentMemoryService? get _memoryService =>
-      resolvePersistentMemoryService(
-        explicitService: widget.memoryService,
-        userInformation: _userInformation,
-      );
 
   void setHasFilled() {
     unawaited(_setHasFilled());
@@ -140,7 +132,9 @@ class _ShareFormState extends WizardStepState<ShareForm> {
     setHasFilled();
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (mounted) {
-        loadCustomCategories();
+        _userInformation?.loadCustomCategories(
+          memoryService: widget.memoryService,
+        );
       }
     });
   }
@@ -153,54 +147,32 @@ class _ShareFormState extends WizardStepState<ShareForm> {
     super.dispose();
   }
 
-  Future<void> loadCustomCategories([
-    PersistentMemoryService? injectedService,
-  ]) async {
-    final service = injectedService ?? _memoryService;
-    if (service == null) {
-      return;
-    }
-    final loaded = await loadCustomCategoriesFromStorage(
-      memoryService: service,
-    );
-    if (!mounted) {
-      return;
-    }
-    setState(() {
-      _customCategories
-        ..clear()
-        ..addAll(loaded);
-    });
-  }
-
-  Future<void> saveCustomCategories([
-    PersistentMemoryService? injectedService,
-  ]) async {
-    final service = injectedService ?? _memoryService;
-    if (service == null) {
-      throw StateError(
-        'Persistent memory service is unavailable to save custom categories.',
-      );
-    }
-    await saveCustomCategoriesToStorage(
-      _customCategories,
-      memoryService: service,
-    );
-  }
-
-  Future<void> _persistCustomCategoriesSafely() async {
+  Future<void> _persistCustomCategoriesSafely(
+    List<MapEntry<String, String>> categories,
+  ) async {
     try {
-      await saveCustomCategories();
+      final userInformation = _userInformation;
+      if (userInformation != null) {
+        await userInformation.saveCustomCategories(
+          categories: categories,
+          memoryService: widget.memoryService,
+        );
+      }
     } catch (error, stackTrace) {
       await _captureDreamsAndGoalsFailure(error, stackTrace);
       if (mounted) {
-        _showCustomCategorySaveFailure();
+        _showCustomCategorySaveFailure(categories);
       }
     }
   }
 
-  void _showCustomCategorySaveFailure() {
-    showPersistenceRetrySnackBar(context, _persistCustomCategoriesSafely);
+  void _showCustomCategorySaveFailure(
+    List<MapEntry<String, String>> categories,
+  ) {
+    showPersistenceRetrySnackBar(
+      context,
+      () => _persistCustomCategoriesSafely(categories),
+    );
   }
 
   List<String> predefinedCategoryTitles() {
@@ -239,7 +211,11 @@ class _ShareFormState extends WizardStepState<ShareForm> {
   }
 
   void editCustomCategory(int index) {
-    final category = _customCategories[index];
+    final categories = _userInformation?.customCategories ?? const [];
+    if (index < 0 || index >= categories.length) {
+      return;
+    }
+    final category = categories[index];
     setState(() {
       _customCategoryTitleController.text = category.key;
       _customCategoryDescriptionController.text = category.value;
@@ -251,12 +227,14 @@ class _ShareFormState extends WizardStepState<ShareForm> {
   }
 
   Future<void> deleteCustomCategory(int index) async {
-    if (index < 0 || index >= _customCategories.length) {
+    final categories = _userInformation?.customCategories ?? const [];
+    if (index < 0 || index >= categories.length) {
       return;
     }
 
+    final updated = List<MapEntry<String, String>>.from(categories)
+      ..removeAt(index);
     setState(() {
-      _customCategories.removeAt(index);
       if (_editingCustomCategoryIndex == index) {
         resetCustomCategoryForm();
         _isAddingCustomCategory = false;
@@ -266,7 +244,7 @@ class _ShareFormState extends WizardStepState<ShareForm> {
       }
     });
 
-    await _persistCustomCategoriesSafely();
+    await _persistCustomCategoriesSafely(updated);
   }
 
   Future<void> saveCustomCategory() async {
@@ -280,20 +258,22 @@ class _ShareFormState extends WizardStepState<ShareForm> {
       return;
     }
 
+    final categories = _userInformation?.customCategories ?? const [];
+    final updated = List<MapEntry<String, String>>.from(categories);
+    final editingIndex = _editingCustomCategoryIndex;
+    if (editingIndex != null &&
+        editingIndex >= 0 &&
+        editingIndex < updated.length) {
+      updated[editingIndex] = MapEntry(title, description);
+    } else {
+      updated.add(MapEntry(title, description));
+    }
     setState(() {
-      final editingIndex = _editingCustomCategoryIndex;
-      if (editingIndex != null &&
-          editingIndex >= 0 &&
-          editingIndex < _customCategories.length) {
-        _customCategories[editingIndex] = MapEntry(title, description);
-      } else {
-        _customCategories.add(MapEntry(title, description));
-      }
       resetCustomCategoryForm();
       _isAddingCustomCategory = false;
     });
 
-    await _persistCustomCategoriesSafely();
+    await _persistCustomCategoriesSafely(updated);
   }
 
   String? _customCategoryValidationError(TextEditingController controller) {
@@ -333,12 +313,13 @@ class _ShareFormState extends WizardStepState<ShareForm> {
       optionsBuilder: (TextEditingValue textEditingValue) {
         final input = textEditingValue.text.trim();
         final options = predefinedCategoryTitles();
+        final categories = _userInformation?.customCategories ?? const [];
         final editingIndex = _editingCustomCategoryIndex;
         final isInitialEditingTitle =
             editingIndex != null &&
             editingIndex >= 0 &&
-            editingIndex < _customCategories.length &&
-            _customCategories[editingIndex].key == input;
+            editingIndex < categories.length &&
+            categories[editingIndex].key == input;
         if (input.isEmpty || isInitialEditingTitle) {
           return options;
         }
@@ -524,9 +505,11 @@ class _ShareFormState extends WizardStepState<ShareForm> {
   }
 
   Widget buildCustomCategoriesSection(BuildContext context, String gender) {
+    final categories =
+        _userInformation?.customCategories ?? const <MapEntry<String, String>>[];
     return Column(
       children: [
-        ..._customCategories.asMap().entries.map(
+        ...categories.asMap().entries.map(
           (entry) => buildCustomCategoryCard(entry.value, entry.key, gender),
         ),
         if (_isAddingCustomCategory) buildCustomCategoryForm(context),
@@ -582,11 +565,13 @@ class _ShareFormState extends WizardStepState<ShareForm> {
         await _persistInlineDreamsAndGoals(userInformation, retry: retry);
         retryRevision = userInformation.dreamsAndGoalsSaveRevision;
         await userInformation.pendingDreamsAndGoalsSave;
+        await userInformation.pendingCustomCategoriesSave;
 
         final int revisionBeforeRepair =
             userInformation.dreamsAndGoalsSaveRevision;
         await userInformation.repairDreamsAndGoalsSelectionSources();
         await userInformation.pendingDreamsAndGoalsSave;
+        await userInformation.pendingCustomCategoriesSave;
 
         // If no inline editor persisted this snapshot and repair left the revision
         // unchanged, queue the save now so in-memory state is durable in storage.
@@ -596,12 +581,14 @@ class _ShareFormState extends WizardStepState<ShareForm> {
                 revisionBeforeRepair) {
           await userInformation.queueDreamsAndGoalsSave();
           await userInformation.pendingDreamsAndGoalsSave;
+          await userInformation.pendingCustomCategoriesSave;
         }
 
         final int expectedRevision = userInformation.dreamsAndGoalsSaveRevision;
         retryRevision = expectedRevision;
         if (userInformation.dreamsAndGoalsSaveRevision == expectedRevision) {
           await userInformation.pendingDreamsAndGoalsSave;
+          await userInformation.pendingCustomCategoriesSave;
           break;
         }
       }

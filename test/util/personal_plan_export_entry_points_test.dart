@@ -1171,5 +1171,52 @@ void main() {
         expect(fileService.lastTexts?['secondLinkURL'], '');
       },
     );
+
+    test(
+      'in-flight mutation of caller approvedPdfHosts set does not strand active downloads',
+      () async {
+        final localizations = await AppLocalizations.delegate.load(
+          const Locale('en'),
+        );
+        appInformation.sharePDFtexts = {
+          'firstLinkURL': 'https://tenant.customdomain.org/resources',
+        };
+
+        final callerHosts = <String>{'tenant.customdomain.org'};
+        final completer = Completer<void>();
+        fileService.pendingDownloadCompleter = completer;
+
+        final downloadFuture = downloadPersonalPlanFile(
+          appLocale: localizations,
+          gender: userInformation.gender,
+          username: userInformation.name,
+          appInformation: appInformation,
+          userInformation: userInformation,
+          fileService: fileService,
+          approvedPdfHosts: callerHosts,
+        );
+
+        // Mutate caller's set reference during in-flight download
+        callerHosts.add('mutated-during-flight.org');
+        callerHosts.remove('tenant.customdomain.org');
+
+        completer.complete();
+        final firstResult = await downloadFuture;
+        expect(firstResult, '/path/to/downloaded/file.pdf');
+
+        // Subsequent download with fresh call completes without interference
+        fileService.pendingDownloadCompleter = null;
+        final secondResult = await downloadPersonalPlanFile(
+          appLocale: localizations,
+          gender: userInformation.gender,
+          username: userInformation.name,
+          appInformation: appInformation,
+          userInformation: userInformation,
+          fileService: fileService,
+          approvedPdfHosts: const {'tenant.customdomain.org'},
+        );
+        expect(secondResult, '/path/to/downloaded/file.pdf');
+      },
+    );
   });
 }

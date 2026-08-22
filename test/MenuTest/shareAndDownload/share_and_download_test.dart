@@ -74,6 +74,12 @@ void main() {
         () => mockPersistentMemoryService,
       );
       when(
+        mockPersistentMemoryService.getItem(any, any),
+      ).thenAnswer((_) async => null);
+      when(
+        mockPersistentMemoryService.setItem(any, any, any),
+      ).thenAnswer((_) async {});
+      when(
         mockPersistentMemoryService.getItem(any, PersistentMemoryType.Bool),
       ).thenAnswer((_) async => true);
       getIt.registerLazySingleton<ImagePickerService>(() => imageFactory);
@@ -107,9 +113,13 @@ void main() {
     });
     Future<void> tapAndSettle(WidgetTester tester, Finder finder) async {
       await tester.ensureVisible(finder);
-      await tester.pumpAndSettle(const Duration(milliseconds: 200));
+      await tester.pumpAndSettle();
       await tester.tap(finder);
-      await tester.pumpAndSettle(const Duration(milliseconds: 200));
+      await tester.pumpAndSettle();
+      await tester.runAsync(() async {
+        await Future<void>.delayed(const Duration(milliseconds: 50));
+      });
+      await tester.pumpAndSettle();
     }
 
     Widget getPersonalPlanWidgetForTests({Locale locale = const Locale('he')}) {

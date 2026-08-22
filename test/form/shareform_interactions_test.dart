@@ -32,6 +32,7 @@ const _dreamsAndGoalsAddedStringsKey =
     'addedStringsPersonalPlan-DreamsAndGoals';
 const _dreamsAndGoalsSelectionSourcesKey =
     'selectionSourcesPersonalPlan-DreamsAndGoals';
+const _customCategoriesKey = 'customCategories';
 const _customCategoryTitlesKey = 'customCategoryTitles';
 const _customCategoryDescriptionsKey = 'customCategoryDescriptions';
 const _dreamsAndGoalsPersistenceKeys = <String>[
@@ -120,6 +121,17 @@ class _DreamsMemoryHarness {
     final PersistentMemoryType type =
         invocation.positionalArguments[1] as PersistentMemoryType;
     readKeys.add(key);
+    if (key == _customCategoriesKey) {
+      if (type != PersistentMemoryType.String) {
+        throw StateError('Unexpected PersistentMemoryService read type: $type');
+      }
+      for (final _MemoryWrite write in completedWrites.reversed) {
+        if (write.key == key && write.type == PersistentMemoryType.String) {
+          return write.value as String?;
+        }
+      }
+      return null;
+    }
     if (type != PersistentMemoryType.StringList) {
       throw StateError('Unexpected PersistentMemoryService read type: $type');
     }

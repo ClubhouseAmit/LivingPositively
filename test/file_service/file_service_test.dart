@@ -268,6 +268,7 @@ void main() {
         'PhonePageSavedPhoneNumbers': <dynamic>[],
         'userSelectionPersonalPlan-SafeEnvironment': <dynamic>['customSafe'],
         'userSelectionPersonalPlan-DreamsAndGoals': <dynamic>['customGoal'],
+        'customCategories': null,
         'customCategoryTitles': <dynamic>['Custom Title'],
         'customCategoryDescriptions': <dynamic>['Custom Description'],
       });
@@ -304,6 +305,7 @@ void main() {
         'PhonePageSavedPhoneNumbers': <dynamic>[],
         'userSelectionPersonalPlan-SafeEnvironment': <dynamic>['customSafe'],
         'userSelectionPersonalPlan-DreamsAndGoals': <dynamic>['customGoal'],
+        'customCategories': null,
         'customCategoryTitles': <dynamic>[],
         'customCategoryDescriptions': <dynamic>[],
       });
