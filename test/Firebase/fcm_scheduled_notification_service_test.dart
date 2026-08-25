@@ -306,7 +306,7 @@ void main() {
       );
 
       expect(registered, isFalse);
-      expect(operations, ['version:0', 'register', 'version:1', 'cancel']);
+      expect(operations, ['version:0', 'register', 'cancel']);
       expect(user.getNotificationPreference('default'), isNull);
     },
   );
@@ -349,12 +349,7 @@ void main() {
       );
 
       expect(registered, isFalse);
-      expect(operations, [
-        'version:0',
-        'register:9:30',
-        'version:1',
-        'register:8:15',
-      ]);
+      expect(operations, ['version:0', 'register:9:30', 'register:8:15']);
       expect(
         user.getNotificationPreference('default')?.toJson(),
         existing.toJson(),
@@ -394,7 +389,7 @@ void main() {
       );
 
       expect(cancelled, isFalse);
-      expect(operations, ['version:0', 'cancel', 'version:1', 'register']);
+      expect(operations, ['version:0', 'cancel', 'register']);
       expect(
         user.getNotificationPreference('default')?.toJson(),
         existing.toJson(),
@@ -1476,7 +1471,7 @@ void main() {
       );
 
       expect(cancelled, isFalse);
-      expect(operations, ['version:0', 'cancel', 'version:1', 'register']);
+      expect(operations, ['version:0', 'cancel', 'register']);
       expect(memory.stored.containsKey('fcmDefaultReminderMigrated'), isFalse);
       expect(user.getNotificationPreference('default'), isNotNull);
     },

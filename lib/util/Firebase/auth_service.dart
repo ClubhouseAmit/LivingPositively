@@ -4,8 +4,16 @@ import 'package:flutter/foundation.dart'
     show TargetPlatform, defaultTargetPlatform, kIsWeb, visibleForTesting;
 import 'package:get_it/get_it.dart';
 import 'package:google_sign_in/google_sign_in.dart';
+import 'package:mazilon/util/Firebase/firebase_options.dart';
+
+typedef GoogleSignInStarter =
+    Future<GoogleSignInAccount?> Function({
+      required String serverClientId,
+      String? clientId,
+    });
 
 class AuthService {
+  static const String _runnerIosBundleId = 'com.clubhouse.livingpositively';
   static const String _googleSignInServerClientId = String.fromEnvironment(
     'GOOGLE_SIGN_IN_SERVER_CLIENT_ID',
     defaultValue: '',
@@ -28,12 +36,33 @@ class AuthService {
   @visibleForTesting
   static String? debugGoogleSignInIosClientIdOverride;
 
+  @visibleForTesting
+  static String? debugFirebaseIosClientIdOverride;
+
+  @visibleForTesting
+  static String? debugFirebaseIosBundleIdOverride;
+
+  @visibleForTesting
+  static GoogleSignInStarter? debugGoogleSignInStarterOverride;
+
   static String get _configuredGoogleSignInServerClientId =>
       (debugGoogleSignInServerClientIdOverride ?? _googleSignInServerClientId)
           .trim();
 
   static String get _configuredGoogleSignInIosClientId =>
       (debugGoogleSignInIosClientIdOverride ?? _googleSignInIosClientId).trim();
+
+  static String get _configuredFirebaseIosClientId =>
+      (debugFirebaseIosClientIdOverride ??
+              DefaultFirebaseOptions.ios.iosClientId ??
+              '')
+          .trim();
+
+  static String get _configuredFirebaseIosBundleId =>
+      (debugFirebaseIosBundleIdOverride ??
+              DefaultFirebaseOptions.ios.iosBundleId ??
+              '')
+          .trim();
 
   static Future<UserCredential> signInWithEmail(String email, String password) {
     return FirebaseAuth.instance.signInWithEmailAndPassword(
@@ -53,12 +82,19 @@ class AuthService {
     final serverClientId = _configuredGoogleSignInServerClientId;
     final iosClientId = _configuredGoogleSignInIosClientId;
     if (!isGoogleSignInAvailable) return null;
-    final googleUser = await GoogleSignIn(
-      clientId: defaultTargetPlatform == TargetPlatform.iOS
-          ? iosClientId
-          : null,
-      serverClientId: serverClientId,
-    ).signIn();
+    final clientId = defaultTargetPlatform == TargetPlatform.iOS
+        ? iosClientId
+        : null;
+    final startGoogleSignIn = debugGoogleSignInStarterOverride;
+    final googleUser = startGoogleSignIn == null
+        ? await GoogleSignIn(
+            clientId: clientId,
+            serverClientId: serverClientId,
+          ).signIn()
+        : await startGoogleSignIn(
+            clientId: clientId,
+            serverClientId: serverClientId,
+          );
     if (googleUser == null) return null;
     final googleAuth = await googleUser.authentication;
     final credential = GoogleAuthProvider.credential(
@@ -84,11 +120,16 @@ class AuthService {
     required bool isWeb,
     required String serverClientId,
     required String iosClientId,
+    required String firebaseIosClientId,
+    required String firebaseIosBundleId,
   }) {
     if (isWeb || serverClientId.trim().isEmpty) return false;
     return switch (platform) {
       TargetPlatform.android => true,
-      TargetPlatform.iOS => iosClientId.trim().isNotEmpty,
+      TargetPlatform.iOS =>
+        iosClientId.trim().isNotEmpty &&
+            iosClientId.trim() == firebaseIosClientId.trim() &&
+            firebaseIosBundleId.trim() == _runnerIosBundleId,
       _ => false,
     };
   }
@@ -105,6 +146,8 @@ class AuthService {
     isWeb: kIsWeb,
     serverClientId: _configuredGoogleSignInServerClientId,
     iosClientId: _configuredGoogleSignInIosClientId,
+    firebaseIosClientId: _configuredFirebaseIosClientId,
+    firebaseIosBundleId: _configuredFirebaseIosBundleId,
   );
 
   static bool get isAppleSignInAvailable => appleSignInAvailableOn(

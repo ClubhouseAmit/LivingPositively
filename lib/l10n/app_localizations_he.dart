@@ -3544,6 +3544,12 @@ class AppLocalizationsHe extends AppLocalizations {
   String get notificationsSetTime => 'הגדרת שעה';
 
   @override
+  String get notificationsDebugPanelEnabled => 'לוח ניפוי התזכורות הופעל';
+
+  @override
+  String get notificationsDebugPanelHidden => 'לוח ניפוי התזכורות הוסתר';
+
+  @override
   String get resetReminderCancellationFailed =>
       'לא ניתן לבטל את התזכורת. הנתונים שלך לא אופסו.';
 

@@ -37,9 +37,11 @@ Before enabling it:
 6. Inject the required Dart defines when building. For example:
 
    ```shell
-   flutter build ipa \
-     --dart-define=GOOGLE_SIGN_IN_SERVER_CLIENT_ID=YOUR_WEB_OAUTH_CLIENT_ID.apps.googleusercontent.com \
-     --dart-define=GOOGLE_SIGN_IN_IOS_CLIENT_ID=YOUR_IOS_CLIENT_ID.apps.googleusercontent.com
+   APPLE_SIGN_IN_ENABLED=true \
+   GOOGLE_SIGN_IN_SERVER_CLIENT_ID=YOUR_WEB_OAUTH_CLIENT_ID.apps.googleusercontent.com \
+   GOOGLE_SIGN_IN_IOS_CLIENT_ID=YOUR_IOS_CLIENT_ID.apps.googleusercontent.com \
+   GOOGLE_SIGN_IN_IOS_REVERSED_CLIENT_ID=com.googleusercontent.apps.YOUR_IOS_CLIENT_ID \
+   ./scripts/build_ios_release.sh
    ```
 
 For the production Android pipeline, set the repository Actions secret named
@@ -82,9 +84,9 @@ Before enabling it:
    flutter build ipa --dart-define=APPLE_SIGN_IN_ENABLED="$APPLE_SIGN_IN_ENABLED"
    ```
 
-The release owner accepts this documented manual iOS release procedure. There
-is no checked-in IPA/archive workflow that can enforce the flag, so each iOS
-release operator must run the guard before archiving. The committed entitlements
+The release owner accepts this documented manual iOS release procedure. The
+checked-in release script enforces the flag and verifies its values match the
+ignored native configuration before archiving. The committed entitlements
 declare both capabilities, but they do not replace Apple Developer,
 provisioning-profile, or Firebase Console configuration. An omitted or false
 flag intentionally hides the Apple button.

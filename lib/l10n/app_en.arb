@@ -2022,6 +2022,8 @@
   "@notificationsSetTime": {
     "description": "Label shown when an enabled reminder has no selected time"
   },
+  "notificationsDebugPanelEnabled": "Reminder debug panel enabled",
+  "notificationsDebugPanelHidden": "Reminder debug panel hidden",
   "resetReminderCancellationFailed": "Couldn't cancel the reminder. Your data has not been reset.",
   "@resetReminderCancellationFailed": {
     "description": "Shown when remote reminder cancellation prevents reset."

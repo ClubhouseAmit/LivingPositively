@@ -3555,6 +3555,12 @@ class AppLocalizationsAr extends AppLocalizations {
   String get notificationsSetTime => 'تعيين الوقت';
 
   @override
+  String get notificationsDebugPanelEnabled => 'تم تفعيل لوحة تصحيح التذكيرات';
+
+  @override
+  String get notificationsDebugPanelHidden => 'تم إخفاء لوحة تصحيح التذكيرات';
+
+  @override
   String get resetReminderCancellationFailed =>
       'تعذر إلغاء التذكير. لم تتم إعادة ضبط بياناتك.';
 

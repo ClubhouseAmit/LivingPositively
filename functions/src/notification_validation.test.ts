@@ -132,7 +132,7 @@ describe("notification validation", () => {
     );
   });
 
-  it("repairs an ordinary corrupt mutation", () => {
+  it("requires a reset fence before repairing a corrupt mutation", () => {
     assert.deepEqual(
       notificationMutationAuthorizationDecision({
         storedVersion: "corrupt",
@@ -141,7 +141,10 @@ describe("notification validation", () => {
         hasActiveDeliveryPermit: false,
         hasEffectiveState: false,
       }),
-      { kind: "apply", nextVersion: 1 },
+      {
+        kind: "conflict",
+        message: "Notification mutation state requires reset",
+      },
     );
   });
 
@@ -171,7 +174,7 @@ describe("notification validation", () => {
     );
   });
 
-  it("deletes the schedule and repairs an ordinary corrupt mutation", async () => {
+  it("does not mutate a corrupt state without a reset fence", async () => {
     const writes: Array<{
       kind: "set" | "delete";
       reference: "state" | "schedule";
@@ -198,12 +201,12 @@ describe("notification validation", () => {
         rejectActiveDeliveryPermit: false,
         operation: { kind: "cancel" },
       }),
-      { kind: "apply", nextVersion: 1 },
+      {
+        kind: "conflict",
+        message: "Notification mutation state requires reset",
+      },
     );
-    assert.deepEqual(writes, [
-      { kind: "delete", reference: "schedule" },
-      { kind: "set", reference: "state", data: { version: 1 } },
-    ]);
+    assert.deepEqual(writes, []);
   });
 
   it("deletes the schedule and writes version one for a corrupt reset", async () => {

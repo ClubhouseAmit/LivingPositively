@@ -84,6 +84,19 @@ export function notificationMutationAuthorizationDecision(
     input.storedVersion,
   );
 
+  // Version 0 is only a recovery fence for a deliberate reset. Letting an
+  // ordinary toggle treat corrupt state as version 0 would allow it to replace
+  // state whose history cannot be verified.
+  if (
+    storedVersionDecision.kind === "repair" &&
+    !input.rejectActiveDeliveryPermit
+  ) {
+    return {
+      kind: "conflict",
+      message: "Notification mutation state requires reset",
+    };
+  }
+
   const currentVersion = storedVersionDecision.kind === "repair"
     ? 0
     : storedVersionDecision.version;

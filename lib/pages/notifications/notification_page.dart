@@ -113,8 +113,8 @@ class _NotificationPageState extends LPExtendedState<NotificationPage>
       SnackBar(
         content: Text(
           unlocked
-              ? 'Reminder debug panel enabled'
-              : 'Reminder debug panel hidden',
+              ? appLocale.notificationsDebugPanelEnabled
+              : appLocale.notificationsDebugPanelHidden,
         ),
         duration: const Duration(seconds: 2),
       ),

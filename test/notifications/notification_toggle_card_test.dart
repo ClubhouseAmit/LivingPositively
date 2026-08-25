@@ -60,7 +60,7 @@ void main() {
     expect(find.text('9:30 AM'), findsOneWidget);
   });
 
-  testWidgets('toggle remains unchanged when the remote mutation fails', (
+  testWidgets('toggle remains unchanged when the remote mutation throws', (
     tester,
   ) async {
     final user = UserInformation(service: _Memory());
@@ -77,7 +77,7 @@ void main() {
               subtitle: 'A supportive message',
               setTimeLabel: 'Set time',
               initialTime: const TimeOfDay(hour: 9, minute: 30),
-              onToggle: (_) async => false,
+              onToggle: (_) async => throw StateError('network failed'),
             ),
           ),
         ),

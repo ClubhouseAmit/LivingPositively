@@ -231,6 +231,7 @@ class FcmScheduledNotificationService {
     required int resetEpoch,
     bool allowUnsupportedPlatform = false,
     bool persistLocalPreference = true,
+    int? expectedMutationVersion,
   }) async {
     if (!allowUnsupportedPlatform && !FcmService.supportsReminderSettings()) {
       return false;
@@ -254,12 +255,14 @@ class FcmScheduledNotificationService {
       );
       if (idToken == null) return false;
       if (resetEpoch != _resetEpoch) return false;
-      final expectedMutationVersion = await _getNotificationMutationVersion(
-        idToken: idToken,
-        typeId: typeId,
-        post: post,
-      );
-      if (expectedMutationVersion == null || resetEpoch != _resetEpoch) {
+      final mutationVersion =
+          expectedMutationVersion ??
+          await _getNotificationMutationVersion(
+            idToken: idToken,
+            typeId: typeId,
+            post: post,
+          );
+      if (mutationVersion == null || resetEpoch != _resetEpoch) {
         return false;
       }
       final response = await (post ?? debugPostOverride ?? http.post)(
@@ -274,11 +277,16 @@ class FcmScheduledNotificationService {
           'minute': minute,
           'locale': locale,
           'gender': gender,
-          'expectedMutationVersion': expectedMutationVersion,
+          'expectedMutationVersion': mutationVersion,
         }),
       ).timeout(_networkTimeout);
 
       if (response.statusCode == 200) {
+        final nextMutationVersion = _successfulMutationVersion(
+          response,
+          mutationVersion,
+        );
+        if (nextMutationVersion == null) return false;
         _log('Notification registered successfully.');
         if (!persistLocalPreference) return true;
         final previousPreference = userInfo.getNotificationPreference(typeId);
@@ -296,11 +304,12 @@ class FcmScheduledNotificationService {
             typeId,
             previousPreference,
           );
-          final compensated = previousPreference == null
+          final compensationVersion = previousPreference == null
               ? await _cancelRemoteNotification(
                   idToken: idToken,
                   typeId: typeId,
                   post: post,
+                  expectedMutationVersion: nextMutationVersion,
                 )
               : await _registerNotification(
                   userInformation: userInfo,
@@ -312,7 +321,11 @@ class FcmScheduledNotificationService {
                   resetEpoch: resetEpoch,
                   allowUnsupportedPlatform: true,
                   persistLocalPreference: false,
+                  expectedMutationVersion: nextMutationVersion,
                 );
+          final compensated = compensationVersion is bool
+              ? compensationVersion
+              : compensationVersion != null;
           if (!compensated) {
             _log('Unable to compensate a notification registration failure.');
           }
@@ -331,18 +344,13 @@ class FcmScheduledNotificationService {
     }
   }
 
-  static Future<bool> _cancelRemoteNotification({
+  static Future<int?> _cancelRemoteNotification({
     required String idToken,
     required String typeId,
     NotificationHttpPost? post,
+    required int expectedMutationVersion,
   }) async {
     try {
-      final expectedMutationVersion = await _getNotificationMutationVersion(
-        idToken: idToken,
-        typeId: typeId,
-        post: post,
-      );
-      if (expectedMutationVersion == null) return false;
       final response = await (post ?? debugPostOverride ?? http.post)(
         Uri.parse('$_functionsBaseUrl/cancelNotification'),
         headers: {
@@ -354,10 +362,12 @@ class FcmScheduledNotificationService {
           'expectedMutationVersion': expectedMutationVersion,
         }),
       ).timeout(_networkTimeout);
-      return response.statusCode == 200;
+      return response.statusCode == 200
+          ? _successfulMutationVersion(response, expectedMutationVersion)
+          : null;
     } catch (error) {
       _log('Unable to compensate a notification registration failure: $error');
-      return false;
+      return null;
     }
   }
 
@@ -545,6 +555,11 @@ class FcmScheduledNotificationService {
       ).timeout(_networkTimeout);
 
       if (response.statusCode == 200) {
+        final nextMutationVersion = _successfulMutationVersion(
+          response,
+          expectedMutationVersion,
+        );
+        if (nextMutationVersion == null) return false;
         _log('Notification cancelled successfully.');
         if (typeId == 'default') {
           final legacyReminderHandled = await _markLegacyDefaultReminderHandled(
@@ -562,6 +577,7 @@ class FcmScheduledNotificationService {
                 resetEpoch: resetEpoch,
                 allowUnsupportedPlatform: true,
                 persistLocalPreference: false,
+                expectedMutationVersion: nextMutationVersion,
               );
               if (!restoredRemotely) {
                 _log(
@@ -593,6 +609,7 @@ class FcmScheduledNotificationService {
               post: post,
               resetEpoch: resetEpoch,
               allowUnsupportedPlatform: true,
+              expectedMutationVersion: nextMutationVersion,
             );
             if (!restoredRemotely) {
               _log('Unable to compensate a notification cancellation failure.');
@@ -693,5 +710,29 @@ class FcmScheduledNotificationService {
       _log('getNotificationMutationVersion error: $e');
       return null;
     }
+  }
+
+  static int? _successfulMutationVersion(
+    http.Response response,
+    int expectedMutationVersion,
+  ) {
+    if (expectedMutationVersion == 9007199254740991) return null;
+    try {
+      final body = jsonDecode(response.body);
+      final mutationVersion = body is Map<String, dynamic>
+          ? body['mutationVersion']
+          : null;
+      if (mutationVersion is int &&
+          mutationVersion == expectedMutationVersion + 1) {
+        return mutationVersion;
+      }
+      if (mutationVersion != null) {
+        _log('Notification mutation returned an unexpected version.');
+        return null;
+      }
+    } catch (_) {
+      // Continue with the known one-step server mutation for a rolling deploy.
+    }
+    return expectedMutationVersion + 1;
   }
 }

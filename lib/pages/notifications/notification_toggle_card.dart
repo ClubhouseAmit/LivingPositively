@@ -62,7 +62,7 @@ class _NotificationToggleCardState extends State<NotificationToggleCard> {
     _syncFromWidget();
   }
 
-  Future<void> setEnabled() async {
+  Future<void> _toggleEnabled() async {
     if (_isMutating) return;
     final requestedValue = !_isEnabled;
     setState(() => _isMutating = true);
@@ -222,7 +222,7 @@ class _NotificationToggleCardState extends State<NotificationToggleCard> {
               ),
             ),
             GestureDetector(
-              onTap: _isMutating ? null : setEnabled,
+              onTap: _isMutating ? null : _toggleEnabled,
               child: AnimatedContainer(
                 duration: Duration(milliseconds: 250),
                 width: 55,

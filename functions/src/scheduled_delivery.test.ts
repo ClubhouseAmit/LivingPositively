@@ -9,6 +9,7 @@ import {
   israelLocalDeliveryCandidates,
   israelLocalDeliveryCandidatesSince,
   isCurrentScheduledNotification,
+  isValidSchedulerCheckpoint,
   routeDevicesByUpdatedAt,
   scheduledNotificationQueryPlan,
   selectScheduledNotificationCandidates,
@@ -40,6 +41,24 @@ describe("scheduled notification delivery", () => {
       cleanupUids: Array.from({ length: 25 }, (_, index) => `stale-${index}`),
       deferredCount: 2,
     });
+  });
+
+  it("ignores malformed scheduler checkpoints", () => {
+    const scheduleMillis = Date.parse("2026-08-05T12:00:00.000Z");
+    assert.equal(
+      isValidSchedulerCheckpoint(scheduleMillis - 60_000, scheduleMillis),
+      true,
+    );
+    assert.equal(isValidSchedulerCheckpoint(-1, scheduleMillis), false);
+    assert.equal(isValidSchedulerCheckpoint(1.5, scheduleMillis), false);
+    assert.equal(
+      isValidSchedulerCheckpoint(Number.MAX_SAFE_INTEGER, scheduleMillis),
+      false,
+    );
+    assert.equal(
+      isValidSchedulerCheckpoint(scheduleMillis + 1, scheduleMillis),
+      false,
+    );
   });
 
   it("deletes a device when its schedules fit exactly in the cleanup batch", () => {

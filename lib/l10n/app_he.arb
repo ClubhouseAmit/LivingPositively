@@ -703,6 +703,8 @@
   "@notificationsSetTime": {
     "description": "תווית שמוצגת כאשר לתזכורת פעילה אין שעה שנבחרה"
   },
+  "notificationsDebugPanelEnabled": "לוח ניפוי התזכורות הופעל",
+  "notificationsDebugPanelHidden": "לוח ניפוי התזכורות הוסתר",
   "resetReminderCancellationFailed": "לא ניתן לבטל את התזכורת. הנתונים שלך לא אופסו.",
   "@resetReminderCancellationFailed": {
     "description": "מוצג כאשר ביטול התזכורת המרוחקת מונע איפוס."

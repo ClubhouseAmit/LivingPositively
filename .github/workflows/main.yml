@@ -416,7 +416,9 @@ jobs:
     # arm64 macOS runners. Allow the first run to finish and populate the
     # DerivedData cache while keeping the job bounded. Leave enough time after
     # the 90-minute test step to save a cold build and upload diagnostics.
-    timeout-minutes: 120
+    # The recorded cold setup is about 42 minutes, so 150 minutes preserves
+    # 18 minutes for post-test forensics and cache persistence.
+    timeout-minutes: 150
     env:
       FIREBASE_OPTIONS_PATH: lib/util/Firebase/firebase_options.dart
       IOS_PODS_CACHE_VERSION: v1
@@ -564,10 +566,21 @@ jobs:
           ) > /dev/null 2>&1 &
           WATCHDOG_PID=$!
 
+          terminate_process_tree() {
+            local pid="$1"
+            local child_pids
+            child_pids=$(pgrep -P "$pid" 2>/dev/null || true)
+            for child_pid in $child_pids; do
+              terminate_process_tree "$child_pid"
+            done
+            kill "$pid" 2>/dev/null || true
+          }
+
           cleanup_ios_diagnostics() {
             kill "$SIM_LOG_PID" 2>/dev/null || true
-            pkill -P "$WATCHDOG_PID" 2>/dev/null || true
-            kill "$WATCHDOG_PID" 2>/dev/null || true
+            wait "$SIM_LOG_PID" 2>/dev/null || true
+            terminate_process_tree "$WATCHDOG_PID"
+            wait "$WATCHDOG_PID" 2>/dev/null || true
           }
           trap cleanup_ios_diagnostics EXIT
 
@@ -628,7 +641,7 @@ jobs:
           exit "$TEST_EXIT"
 
       - name: Collect iOS launch failure forensics
-        if: ${{ !cancelled() && steps.ios-integration-test.outcome == 'failure' }}
+        if: ${{ always() && steps.ios-integration-test.outcome == 'failure' }}
         timeout-minutes: 5
         run: |
           DIAGNOSTICS_DIR="$PWD/ci-ios-diagnostics"
@@ -686,7 +699,7 @@ jobs:
           find ~/Library/Developer/CoreSimulator/Devices/"$DEVICE_ID"/data/Library/Logs/CrashReporter -type f -mtime -1 -exec cp -n {} "$DIAGNOSTICS_DIR/DiagnosticReports/simulator/" \; 2>/dev/null || true
 
       - name: Save Xcode DerivedData
-        if: ${{ !cancelled() && (steps.ios-integration-test.outcome == 'success' || steps.ios-integration-test.outcome == 'failure') && steps.ios-derived-data-cache.outputs.cache-hit != 'true' }}
+        if: ${{ always() && (steps.ios-integration-test.outcome == 'success' || steps.ios-integration-test.outcome == 'failure') && steps.ios-derived-data-cache.outputs.cache-hit != 'true' }}
         uses: actions/cache/save@v5
         with:
           path: ~/Library/Developer/Xcode/DerivedData

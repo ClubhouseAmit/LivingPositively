@@ -35,11 +35,29 @@ const DEVICE_TIMESTAMP_FUTURE_SKEW_MILLIS = 5 * 60_000;
 const DELIVERY_PERMIT_DURATION_MILLIS = 305_000;
 const DELIVERY_SEND_BATCH_SIZE = 25;
 const MAX_STALE_DEVICE_CLEANUPS_PER_INVOCATION = 25;
+const STALE_DEVICE_CLEANUP_BATCH_SIZE = 5;
 const MAX_SCHEDULED_NOTIFICATIONS_PER_STALE_DEVICE_CLEANUP = 25;
 
-// These endpoints still require a Firebase ID token. CORS permits the web app
-// to send that token from its deployed origin; it does not grant access itself.
-const authenticatedClientCors = true;
+// These endpoints still require a Firebase ID token. CORS only permits the
+// deployed web app to send that token; it does not grant access itself.
+// Keep the origin explicit so an accidental browser deployment cannot use an
+// authenticated user's token against these mutation endpoints.
+export function notificationClientCors(
+  configuredOrigin = process.env.NOTIFICATION_CLIENT_ORIGIN,
+): string | false {
+  const origin = configuredOrigin?.trim();
+  if (!origin) return false;
+  try {
+    const parsed = new URL(origin);
+    return parsed.protocol === "https:" && parsed.origin === origin
+      ? origin
+      : false;
+  } catch {
+    return false;
+  }
+}
+
+const authenticatedClientCors = notificationClientCors();
 
 export type IsraelLocalDeliveryCandidate = {
   localDate: string;
@@ -218,6 +236,19 @@ export function shouldAdvanceSchedulerCheckpoint(
   claimFailedCount: number,
 ): boolean {
   return claimFailedCount === 0;
+}
+
+export function isValidSchedulerCheckpoint(
+  value: unknown,
+  scheduleMillis: number,
+): value is number {
+  return (
+    typeof value === "number" &&
+    Number.isSafeInteger(value) &&
+    value >= 0 &&
+    value <= 8_640_000_000_000_000 &&
+    value <= scheduleMillis
+  );
 }
 
 export type DeviceUpdatedAtClassification =
@@ -509,23 +540,31 @@ async function clearFCMToken(uid: string, failedToken: string): Promise<void> {
 // triggered when:
 // 1. user is inactive for 180 days.
 // ---------------------------------------------------------------------------
-async function cleanupInactiveDevice(uid: string): Promise<void> {
+async function cleanupInactiveDevice(
+  uid: string,
+  expectedUpdatedAt: Timestamp,
+): Promise<void> {
   const db = getFirestore();
-  const scheduledSnap = await db
+  const deviceRef = db.collection("devices").doc(uid);
+  const schedules = db
     .collection("scheduled_notifications")
     .where("uid", "==", uid)
-    .limit(MAX_SCHEDULED_NOTIFICATIONS_PER_STALE_DEVICE_CLEANUP + 1)
-    .get();
+    .limit(MAX_SCHEDULED_NOTIFICATIONS_PER_STALE_DEVICE_CLEANUP + 1);
 
-  const batch = db.batch();
-  const cleanupPlan = staleDeviceScheduleCleanupPlan(scheduledSnap.size);
-  for (const doc of scheduledSnap.docs.slice(0, cleanupPlan.scheduleDeletes)) {
-    batch.delete(doc.ref);
-  }
-  if (cleanupPlan.deleteDevice) {
-    batch.delete(db.collection("devices").doc(uid));
-  }
-  await batch.commit();
+  await db.runTransaction(async (transaction) => {
+    const device = await transaction.get(deviceRef);
+    // A foreground launch can refresh this document after pre-fetch. Keeping
+    // all reads and deletes in one transaction protects that fresh schedule.
+    if (!timestampsAreExactlyEqual(device.data()?.updatedAt, expectedUpdatedAt)) {
+      return;
+    }
+    const scheduledSnap = await transaction.get(schedules);
+    const cleanupPlan = staleDeviceScheduleCleanupPlan(scheduledSnap.size);
+    for (const doc of scheduledSnap.docs.slice(0, cleanupPlan.scheduleDeletes)) {
+      transaction.delete(doc.ref);
+    }
+    if (cleanupPlan.deleteDevice) transaction.delete(deviceRef);
+  });
 }
 
 export function staleDeviceScheduleCleanupPlan(scheduleCount: number): {
@@ -673,8 +712,9 @@ export const registerNotification = onRequest(
     const scheduleRef = db
       .collection("scheduled_notifications")
       .doc(`${uid}_${typeId}`);
+    let mutationVersion: number | undefined;
     try {
-      await db.runTransaction(async (transaction) => {
+      mutationVersion = await db.runTransaction(async (transaction) => {
         const scheduleData: Record<string, unknown> = {
           uid,
           typeId,
@@ -698,6 +738,7 @@ export const registerNotification = onRequest(
         if (decision.kind === "conflict") {
           throw new NotificationMutationConflictError(decision.message);
         }
+        return decision.nextVersion;
       });
     } catch (error) {
       if (error instanceof NotificationMutationConflictError) {
@@ -707,7 +748,10 @@ export const registerNotification = onRequest(
       throw error;
     }
 
-    res.send({ success: true });
+    res.send({
+      success: true,
+      ...(mutationVersion === undefined ? {} : { mutationVersion }),
+    });
   },
 );
 
@@ -756,8 +800,9 @@ export const cancelNotification = onRequest(
     const scheduleRef = db
       .collection("scheduled_notifications")
       .doc(`${uid}_${typeId}`);
+    let mutationVersion: number | undefined;
     try {
-      await db.runTransaction(async (transaction) => {
+      mutationVersion = await db.runTransaction(async (transaction) => {
         const decision =
           await executeNotificationMutation<FirebaseFirestore.DocumentReference>(
             transaction,
@@ -772,6 +817,7 @@ export const cancelNotification = onRequest(
         if (decision.kind === "conflict") {
           throw new NotificationMutationConflictError(decision.message);
         }
+        return decision.nextVersion;
       });
     } catch (error) {
       if (error instanceof NotificationMutationConflictError) {
@@ -781,7 +827,10 @@ export const cancelNotification = onRequest(
       throw error;
     }
 
-    res.send({ success: true });
+    res.send({
+      success: true,
+      ...(mutationVersion === undefined ? {} : { mutationVersion }),
+    });
   },
 );
 
@@ -813,7 +862,7 @@ export const processScheduledNotifications = onSchedule(
     const lastProcessedMillis = schedulerState.data()?.lastProcessedMillis;
     const recoveryWindow = schedulerRecoveryWindow(
       scheduleTime,
-      typeof lastProcessedMillis === "number"
+      isValidSchedulerCheckpoint(lastProcessedMillis, scheduleTime.getTime())
         ? new Date(lastProcessedMillis)
         : undefined,
     );
@@ -952,6 +1001,13 @@ export const processScheduledNotifications = onSchedule(
       deviceTimestampRoutes.deliveryEligibleUids,
     );
     const staleDeviceUids = new Set(deviceTimestampRoutes.staleUids);
+    const staleDeviceUpdatedAts = new Map(
+      [...deviceMap.entries()].flatMap(([uid, deviceData]) =>
+        staleDeviceUids.has(uid) && deviceData?.updatedAt instanceof Timestamp
+            ? [[uid, deviceData.updatedAt] as const]
+            : [],
+      ),
+    );
     const malformedDeviceUids = new Set(deviceTimestampRoutes.malformedUids);
 
     // --- Build send list, collecting stale UIDs for deferred cleanup ---
@@ -1152,9 +1208,25 @@ export const processScheduledNotifications = onSchedule(
       cleanupUids: staleUidsToClean,
       deferredCount: staleCleanupDeferred,
     } = staleDeviceCleanupBatch(staleUids);
-    const staleCleanupResults = await Promise.allSettled(
-      staleUidsToClean.map((uid) => cleanupInactiveDevice(uid)),
-    );
+    const staleCleanupResults: PromiseSettledResult<void>[] = [];
+    for (
+      let start = 0;
+      start < staleUidsToClean.length;
+      start += STALE_DEVICE_CLEANUP_BATCH_SIZE
+    ) {
+      staleCleanupResults.push(
+        ...(await Promise.allSettled(
+          staleUidsToClean
+              .slice(start, start + STALE_DEVICE_CLEANUP_BATCH_SIZE)
+              .map((uid) => {
+                const updatedAt = staleDeviceUpdatedAts.get(uid);
+                return updatedAt === undefined
+                    ? Promise.resolve()
+                    : cleanupInactiveDevice(uid, updatedAt);
+              }),
+        )),
+      );
+    }
     const staleDevicesCleaned = staleCleanupResults.filter(
       (result) => result.status === "fulfilled",
     ).length;

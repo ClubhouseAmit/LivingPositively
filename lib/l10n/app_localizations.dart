@@ -2842,6 +2842,18 @@ abstract class AppLocalizations {
   /// **'Set time'**
   String get notificationsSetTime;
 
+  /// No description provided for @notificationsDebugPanelEnabled.
+  ///
+  /// In en, this message translates to:
+  /// **'Reminder debug panel enabled'**
+  String get notificationsDebugPanelEnabled;
+
+  /// No description provided for @notificationsDebugPanelHidden.
+  ///
+  /// In en, this message translates to:
+  /// **'Reminder debug panel hidden'**
+  String get notificationsDebugPanelHidden;
+
   /// Shown when remote reminder cancellation prevents reset.
   ///
   /// In en, this message translates to:

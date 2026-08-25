@@ -16,6 +16,9 @@ class FcmService {
   static bool _isInitialized = false;
   static bool _listenersRegistered = false;
   static Future<void>? _initialization;
+  // This changes only through the test reset hook. It prevents a delayed
+  // platform fake from changing the state of the next test's initialization.
+  static int _testResetGeneration = 0;
 
   @visibleForTesting
   static Future<NotificationSettings> Function()?
@@ -53,6 +56,7 @@ class FcmService {
 
   @visibleForTesting
   static void resetForTesting() {
+    _testResetGeneration++;
     _isInitialized = false;
     _listenersRegistered = false;
     _initialization = null;
@@ -111,7 +115,7 @@ class FcmService {
       await override(notificationId);
       return;
     }
-    if (kIsWeb || defaultTargetPlatform != TargetPlatform.android) return;
+    if (!supportsReminderSettings()) return;
     await _localNotifications.cancel(id: notificationId);
   }
 
@@ -147,7 +151,12 @@ class FcmService {
 
   static Future<bool> requestPermissionAndInitialize() async {
     if (!supportsReminderSettings()) return false;
-    if (_isInitialized) return true;
+    if (_isInitialized) {
+      if (await hasPermission()) return true;
+      // The user can revoke notification permission while the app is in the
+      // background. Do not report a stale successful initialization.
+      _isInitialized = false;
+    }
     final pendingInitialization = _initialization;
     if (pendingInitialization != null) {
       await pendingInitialization;
@@ -159,10 +168,12 @@ class FcmService {
   }
 
   static Future<void> _startInitialization({required bool requestPermission}) {
+    final resetGeneration = _testResetGeneration;
     late final Future<void> initialization;
     initialization =
         _initializeWithReporting(
           requestPermission: requestPermission,
+          resetGeneration: resetGeneration,
         ).whenComplete(() {
           if (identical(_initialization, initialization)) {
             _initialization = null;
@@ -174,12 +185,14 @@ class FcmService {
 
   static Future<void> _initializeWithReporting({
     required bool requestPermission,
+    required int resetGeneration,
   }) async {
     try {
       final platformReady = await _initializeOnce(
         requestPermission: requestPermission,
+        resetGeneration: resetGeneration,
       );
-      if (platformReady) {
+      if (platformReady && resetGeneration == _testResetGeneration) {
         _isInitialized = true;
       }
     } catch (error, stackTrace) {
@@ -187,7 +200,10 @@ class FcmService {
     }
   }
 
-  static Future<bool> _initializeOnce({required bool requestPermission}) async {
+  static Future<bool> _initializeOnce({
+    required bool requestPermission,
+    required int resetGeneration,
+  }) async {
     _log('Initializing...');
     final settings = requestPermission
         ? await _requestPermission()
@@ -199,15 +215,18 @@ class FcmService {
       _log('Permission denied — aborting initialization.');
       return false;
     }
+    if (resetGeneration != _testResetGeneration) return false;
 
     await (debugInitializeLocalNotificationsOverride ??
         _initializeLocalNotifications)();
     _log('Local notifications initialized.');
+    if (resetGeneration != _testResetGeneration) return false;
 
     final tokenResult = await _getTokenWhenPlatformReady();
     if (!tokenResult.isPlatformReady) {
       return false;
     }
+    if (resetGeneration != _testResetGeneration) return false;
     final uid = _currentUserId();
     final token = tokenResult.token;
 
@@ -245,7 +264,7 @@ class FcmService {
   }
 
   static Future<void> _initializeLocalNotifications() async {
-    await _localNotifications.initialize(
+    final initialized = await _localNotifications.initialize(
       settings: const InitializationSettings(
         android: AndroidInitializationSettings('@mipmap/ic_launcher'),
         // Firebase Messaging owns the user-facing permission request above.
@@ -261,6 +280,9 @@ class FcmService {
         ),
       ),
     );
+    if (initialized != true) {
+      throw StateError('Local notification plugin did not initialize.');
+    }
     if (!kIsWeb && defaultTargetPlatform == TargetPlatform.android) {
       final androidPlugin = _localNotifications
           .resolvePlatformSpecificImplementation<

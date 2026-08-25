@@ -50,6 +50,8 @@ void main() {
         isWeb: false,
         serverClientId: 'test-server-client-id.apps.googleusercontent.com',
         iosClientId: '',
+        firebaseIosClientId: '',
+        firebaseIosBundleId: '',
       ),
       isTrue,
     );
@@ -59,6 +61,8 @@ void main() {
         isWeb: false,
         serverClientId: 'test-server-client-id.apps.googleusercontent.com',
         iosClientId: 'test-ios-client-id.apps.googleusercontent.com',
+        firebaseIosClientId: 'test-ios-client-id.apps.googleusercontent.com',
+        firebaseIosBundleId: 'com.clubhouse.livingpositively',
       ),
       isTrue,
     );
@@ -68,6 +72,8 @@ void main() {
         isWeb: false,
         serverClientId: 'test-server-client-id.apps.googleusercontent.com',
         iosClientId: '',
+        firebaseIosClientId: '',
+        firebaseIosBundleId: 'com.clubhouse.livingpositively',
       ),
       isFalse,
     );
@@ -77,6 +83,8 @@ void main() {
         isWeb: false,
         serverClientId: 'test-server-client-id.apps.googleusercontent.com',
         iosClientId: 'test-ios-client-id.apps.googleusercontent.com',
+        firebaseIosClientId: 'test-ios-client-id.apps.googleusercontent.com',
+        firebaseIosBundleId: 'com.clubhouse.livingpositively',
       ),
       isFalse,
     );
@@ -86,6 +94,8 @@ void main() {
         isWeb: true,
         serverClientId: 'test-server-client-id.apps.googleusercontent.com',
         iosClientId: 'test-ios-client-id.apps.googleusercontent.com',
+        firebaseIosClientId: 'test-ios-client-id.apps.googleusercontent.com',
+        firebaseIosBundleId: 'com.clubhouse.livingpositively',
       ),
       isFalse,
     );
@@ -95,6 +105,8 @@ void main() {
         isWeb: false,
         serverClientId: '',
         iosClientId: 'test-ios-client-id.apps.googleusercontent.com',
+        firebaseIosClientId: 'test-ios-client-id.apps.googleusercontent.com',
+        firebaseIosBundleId: 'com.clubhouse.livingpositively',
       ),
       isFalse,
     );
@@ -104,6 +116,19 @@ void main() {
         isWeb: false,
         serverClientId: '   ',
         iosClientId: 'test-ios-client-id.apps.googleusercontent.com',
+        firebaseIosClientId: 'test-ios-client-id.apps.googleusercontent.com',
+        firebaseIosBundleId: 'com.clubhouse.livingpositively',
+      ),
+      isFalse,
+    );
+    expect(
+      AuthService.googleSignInAvailableOn(
+        TargetPlatform.iOS,
+        isWeb: false,
+        serverClientId: 'test-server-client-id.apps.googleusercontent.com',
+        iosClientId: 'test-ios-client-id.apps.googleusercontent.com',
+        firebaseIosClientId: 'different-client.apps.googleusercontent.com',
+        firebaseIosBundleId: 'com.clubhouse.livingpositively',
       ),
       isFalse,
     );
@@ -153,5 +178,38 @@ void main() {
     });
 
     await expectLater(AuthService.signInWithApple(), completion(isNull));
+  });
+
+  test('iOS Google sign-in forwards the configured native client ID', () async {
+    debugDefaultTargetPlatformOverride = TargetPlatform.iOS;
+    AuthService.debugGoogleSignInServerClientIdOverride =
+        'server-client.apps.googleusercontent.com';
+    AuthService.debugGoogleSignInIosClientIdOverride =
+        'ios-client.apps.googleusercontent.com';
+    AuthService.debugFirebaseIosClientIdOverride =
+        'ios-client.apps.googleusercontent.com';
+    AuthService.debugFirebaseIosBundleIdOverride =
+        'com.clubhouse.livingpositively';
+    String? receivedServerClientId;
+    String? receivedIosClientId;
+    AuthService.debugGoogleSignInStarterOverride =
+        ({required serverClientId, clientId}) async {
+          receivedServerClientId = serverClientId;
+          receivedIosClientId = clientId;
+          return null;
+        };
+    addTearDown(() {
+      debugDefaultTargetPlatformOverride = null;
+      AuthService.debugGoogleSignInServerClientIdOverride = null;
+      AuthService.debugGoogleSignInIosClientIdOverride = null;
+      AuthService.debugFirebaseIosClientIdOverride = null;
+      AuthService.debugFirebaseIosBundleIdOverride = null;
+      AuthService.debugGoogleSignInStarterOverride = null;
+    });
+
+    await expectLater(AuthService.signInWithGoogle(), completion(isNull));
+
+    expect(receivedServerClientId, 'server-client.apps.googleusercontent.com');
+    expect(receivedIosClientId, 'ios-client.apps.googleusercontent.com');
   });
 }

@@ -622,6 +622,8 @@
   "@notificationsSetTime": {
     "description": "تسمية تظهر عندما لا يكون للتذكير المفعّل وقت محدد"
   },
+  "notificationsDebugPanelEnabled": "تم تفعيل لوحة تصحيح التذكيرات",
+  "notificationsDebugPanelHidden": "تم إخفاء لوحة تصحيح التذكيرات",
   "resetReminderCancellationFailed": "تعذر إلغاء التذكير. لم تتم إعادة ضبط بياناتك.",
   "resetDataFailed": "تعذرت إعادة ضبط بياناتك. يرجى المحاولة مرة أخرى.",
   "authWelcomeTitle": "أهلاً وسهلاً",

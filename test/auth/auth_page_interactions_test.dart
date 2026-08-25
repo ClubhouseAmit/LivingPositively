@@ -454,6 +454,10 @@ void main() {
         'test-server-client-id.apps.googleusercontent.com';
     AuthService.debugGoogleSignInIosClientIdOverride =
         'test-ios-client-id.apps.googleusercontent.com';
+    AuthService.debugFirebaseIosClientIdOverride =
+        'test-ios-client-id.apps.googleusercontent.com';
+    AuthService.debugFirebaseIosBundleIdOverride =
+        'com.clubhouse.livingpositively';
     try {
       await pumpWithProviders(
         tester,
@@ -474,6 +478,8 @@ void main() {
     } finally {
       AuthService.debugGoogleSignInServerClientIdOverride = null;
       AuthService.debugGoogleSignInIosClientIdOverride = null;
+      AuthService.debugFirebaseIosClientIdOverride = null;
+      AuthService.debugFirebaseIosBundleIdOverride = null;
       debugDefaultTargetPlatformOverride = null;
     }
   });

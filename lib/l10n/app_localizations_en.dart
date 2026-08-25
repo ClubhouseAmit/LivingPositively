@@ -3588,6 +3588,12 @@ class AppLocalizationsEn extends AppLocalizations {
   String get notificationsSetTime => 'Set time';
 
   @override
+  String get notificationsDebugPanelEnabled => 'Reminder debug panel enabled';
+
+  @override
+  String get notificationsDebugPanelHidden => 'Reminder debug panel hidden';
+
+  @override
   String get resetReminderCancellationFailed =>
       'Couldn\'t cancel the reminder. Your data has not been reset.';
 

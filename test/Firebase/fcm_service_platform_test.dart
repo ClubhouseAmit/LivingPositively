@@ -114,6 +114,35 @@ void main() {
     expect(listenerRegistrations, 1);
   });
 
+  test('a reminder action rechecks permission after it was revoked', () async {
+    debugDefaultTargetPlatformOverride = TargetPlatform.android;
+    var permissionRequests = 0;
+    var permissionIsGranted = true;
+    FcmService.debugGetNotificationSettingsOverride = () async =>
+        _notificationSettings(
+          permissionIsGranted
+              ? AuthorizationStatus.authorized
+              : AuthorizationStatus.denied,
+        );
+    FcmService.debugRequestPermissionOverride = () async {
+      permissionRequests++;
+      return _notificationSettings(AuthorizationStatus.denied);
+    };
+    FcmService.debugInitializeLocalNotificationsOverride = () async {};
+    FcmService.debugGetCurrentUserIdOverride = () => null;
+    FcmService.debugGetTokenOverride = () async => 'fcm-token';
+    FcmService.debugRegisterListenersOverride = () {};
+
+    await FcmService.initialize();
+    permissionIsGranted = false;
+
+    await expectLater(
+      FcmService.requestPermissionAndInitialize(),
+      completion(isFalse),
+    );
+    expect(permissionRequests, 1);
+  });
+
   test(
     'a null FCM token remains retryable without duplicate listeners',
     () async {
