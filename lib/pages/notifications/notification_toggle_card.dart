@@ -120,6 +120,11 @@ class _NotificationToggleCardState extends State<NotificationToggleCard> {
 
   @override
   Widget build(BuildContext context) {
+    final scheduleLabelStyle = TextStyle(
+      color: Theme.of(context).colorScheme.primary,
+      fontSize: 12,
+      fontWeight: FontWeight.bold,
+    );
     return Container(
       alignment: Alignment.center,
       width: MediaQuery.of(context).size.width * 0.9,
@@ -191,32 +196,21 @@ class _NotificationToggleCardState extends State<NotificationToggleCard> {
                   if (_isEnabled)
                     GestureDetector(
                       onTap: _isMutating ? null : _selectTime,
-                      child: _selectedTime != null
-                          ? Row(
-                              children: [
-                                Icon(
-                                  Icons.access_time,
-                                  size: 12,
-                                  color: Colors.blue,
-                                ),
-                                Text(
-                                  _selectedTime!.format(context),
-                                  style: TextStyle(
-                                    color: Colors.blue,
-                                    fontSize: 12,
-                                    fontWeight: FontWeight.bold,
-                                  ),
-                                ),
-                              ],
-                            )
-                          : Text(
-                              widget.setTimeLabel,
-                              style: TextStyle(
-                                color: Colors.blue,
-                                fontSize: 12,
-                                fontWeight: FontWeight.bold,
-                              ),
+                      child: Row(
+                        children: [
+                          if (_selectedTime != null)
+                            Icon(
+                              Icons.access_time,
+                              size: 12,
+                              color: scheduleLabelStyle.color,
                             ),
+                          Text(
+                            _selectedTime?.format(context) ??
+                                widget.setTimeLabel,
+                            style: scheduleLabelStyle,
+                          ),
+                        ],
+                      ),
                     ),
                 ],
               ),

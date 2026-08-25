@@ -222,7 +222,7 @@ void main() {
           requestedUrl = url;
           requestedHeaders = headers!;
           requestedBody = body! as String;
-          return http.Response('{}', 200);
+          return http.Response('{"success":true}', 200);
         },
       ),
     );
@@ -266,11 +266,31 @@ void main() {
         post: (url, {headers, body, encoding}) async =>
             url.path.endsWith('/getNotificationMutationVersion')
             ? http.Response('{"mutationVersion":0}', 200)
-            : http.Response('{}', 200),
+            : http.Response('{"success":true}', 200),
       ),
     );
 
     expect(result, isTrue);
+    expect(user.getNotificationPreference('default'), isNull);
+  });
+
+  test('register rejects a malformed successful mutation response', () async {
+    final registered = await _onPlatform(
+      TargetPlatform.android,
+      () => FcmScheduledNotificationService.registerNotification(
+        userInformation: user,
+        typeId: 'default',
+        hour: 9,
+        minute: 30,
+        idTokenProvider: () async => 'token-123',
+        post: (url, {headers, body, encoding}) async =>
+            url.path.endsWith('/getNotificationMutationVersion')
+            ? http.Response('{"mutationVersion":0}', 200)
+            : http.Response('{}', 200),
+      ),
+    );
+
+    expect(registered, isFalse);
     expect(user.getNotificationPreference('default'), isNull);
   });
 
@@ -300,7 +320,7 @@ void main() {
               operations.add('cancel');
             }
             mutationVersion++;
-            return http.Response('{}', 200);
+            return http.Response('{"success":true}', 200);
           },
         ),
       );
@@ -343,7 +363,7 @@ void main() {
               operations.add('cancel');
             }
             mutationVersion++;
-            return http.Response('{}', 200);
+            return http.Response('{"success":true}', 200);
           },
         ),
       );
@@ -383,7 +403,7 @@ void main() {
               operations.add('register');
             }
             mutationVersion++;
-            return http.Response('{}', 200);
+            return http.Response('{"success":true}', 200);
           },
         ),
       );
@@ -482,7 +502,7 @@ void main() {
         post: (url, {headers, body, encoding}) async =>
             url.path.endsWith('/getNotificationMutationVersion')
             ? http.Response('{"mutationVersion":0}', 200)
-            : http.Response('{}', 200),
+            : http.Response('{"success":true}', 200),
       ),
     );
 
@@ -507,7 +527,7 @@ void main() {
         post: (url, {headers, body, encoding}) async =>
             url.path.endsWith('/getNotificationMutationVersion')
             ? http.Response('{"mutationVersion":0}', 200)
-            : http.Response('{}', 200),
+            : http.Response('{"success":true}', 200),
       ),
     );
 
@@ -545,7 +565,7 @@ void main() {
           post: (url, {headers, body, encoding}) async =>
               url.path.endsWith('/getNotificationMutationVersion')
               ? http.Response('{"mutationVersion":0}', 200)
-              : http.Response('{}', 200),
+              : http.Response('{"success":true}', 200),
         );
 
         bool? registrationResult;
@@ -597,7 +617,7 @@ void main() {
           post: (url, {headers, body, encoding}) async =>
               url.path.endsWith('/getNotificationMutationVersion')
               ? http.Response('{"mutationVersion":0}', 200)
-              : http.Response('{}', 200),
+              : http.Response('{"success":true}', 200),
         );
         memory.migrationMarkerRead = null;
         await tester.pump(const Duration(seconds: 5));
@@ -663,7 +683,7 @@ void main() {
         if (expectedMutationVersion is int) {
           remoteMutationVersion++;
         }
-        return http.Response('{}', 200);
+        return http.Response('{"success":true}', 200);
       }
 
       debugDefaultTargetPlatformOverride = TargetPlatform.android;
@@ -724,7 +744,7 @@ void main() {
           minute: 30,
           post: (url, {headers, body, encoding}) async {
             postCalled = true;
-            return http.Response('{}', 200);
+            return http.Response('{"success":true}', 200);
           },
         ),
       );
@@ -754,7 +774,7 @@ void main() {
           },
           post: (url, {headers, body, encoding}) async {
             postCalled = true;
-            return http.Response('{}', 200);
+            return http.Response('{"success":true}', 200);
           },
         ),
       );
@@ -790,7 +810,7 @@ void main() {
           requestPaths.add(url.path);
           return url.path.endsWith('/getNotificationMutationVersion')
               ? http.Response('{"mutationVersion":0}', 200)
-              : http.Response('{}', 200);
+              : http.Response('{"success":true}', 200);
         },
       ),
     );
@@ -823,7 +843,7 @@ void main() {
             }
             postCalls++;
             operations.add('register');
-            return http.Response('{}', 200);
+            return http.Response('{"success":true}', 200);
           },
           legacyNotificationCanceller: (notificationId) async {
             expect(
@@ -844,7 +864,7 @@ void main() {
               return http.Response('{"mutationVersion":0}', 200);
             }
             postCalls++;
-            return http.Response('{}', 200);
+            return http.Response('{"success":true}', 200);
           },
           legacyNotificationCanceller: (notificationId) async {
             operations.add('cancel:$notificationId');
@@ -878,7 +898,7 @@ void main() {
         idTokenProvider: () async => 'token-123',
         post: (url, {headers, body, encoding}) async {
           postCalls++;
-          return http.Response('{}', 200);
+          return http.Response('{"success":true}', 200);
         },
         legacyNotificationCanceller: (notificationId) async {
           cancelledIds.add(notificationId);
@@ -966,7 +986,7 @@ void main() {
               return http.Response('{"mutationVersion":0}', 200);
             }
             postCalls++;
-            return http.Response('{}', 200);
+            return http.Response('{"success":true}', 200);
           },
           legacyNotificationCanceller: (notificationId) async {
             cancelledIds.add(notificationId);
@@ -1025,7 +1045,7 @@ void main() {
           hour: payload['hour'] as int,
           minute: payload['minute'] as int,
         ));
-        return http.Response('{}', 200);
+        return http.Response('{"success":true}', 200);
       }
 
       Future<void> cancelLegacyNotification(int notificationId) async {
@@ -1088,7 +1108,7 @@ void main() {
               return http.Response('{"mutationVersion":0}', 200);
             }
             postCalls++;
-            return http.Response('{}', 200);
+            return http.Response('{"success":true}', 200);
           },
         ),
       );
@@ -1104,7 +1124,7 @@ void main() {
               return http.Response('{"mutationVersion":0}', 200);
             }
             postCalls++;
-            return http.Response('{}', 200);
+            return http.Response('{"success":true}', 200);
           },
         ),
       );
@@ -1160,7 +1180,7 @@ void main() {
               return http.Response('{"mutationVersion":0}', 200);
             }
             registerRequests++;
-            return http.Response('{}', 200);
+            return http.Response('{"success":true}', 200);
           },
         ),
       );
@@ -1189,7 +1209,7 @@ void main() {
               return http.Response('{"mutationVersion":0}', 200);
             }
             cancelRequests++;
-            return http.Response('{}', 200);
+            return http.Response('{"success":true}', 200);
           },
         ),
       );
@@ -1211,7 +1231,7 @@ void main() {
                   return http.Response('{"mutationVersion":1}', 200);
                 }
                 registerRequests++;
-                return http.Response('{}', 200);
+                return http.Response('{"success":true}', 200);
               },
             ),
       );
@@ -1247,7 +1267,7 @@ void main() {
                   return http.Response('{"mutationVersion":0}', 200);
                 }
                 requests.add(url.path);
-                return http.Response('{}', 200);
+                return http.Response('{"success":true}', 200);
               },
             );
         await tester.pump();
@@ -1262,7 +1282,7 @@ void main() {
                   return http.Response('{"mutationVersion":0}', 200);
                 }
                 requests.add(url.path);
-                return http.Response('{}', 200);
+                return http.Response('{"success":true}', 200);
               },
             );
         final migrationMarkerRead = memory.migrationMarkerRead!;
@@ -1279,7 +1299,7 @@ void main() {
   );
 
   testWidgets(
-    'manual cancellation retires the legacy local reminder before marking it',
+    'manual cancellation retires the legacy local reminder after remote success',
     (tester) async {
       user.setNotificationPreference(
         'default',
@@ -1301,20 +1321,20 @@ void main() {
               return http.Response('{"mutationVersion":0}', 200);
             }
             operations.add('remote');
-            return http.Response('{}', 200);
+            return http.Response('{"success":true}', 200);
           },
         ),
       );
 
       expect(cancelled, isTrue);
-      expect(operations, ['local:815', 'remote']);
+      expect(operations, ['remote', 'local:815']);
       expect(memory.stored['fcmDefaultReminderMigrated'], isTrue);
       expect(user.getNotificationPreference('default'), isNull);
     },
   );
 
   testWidgets(
-    'reset cancellation retires the legacy local reminder before marking it',
+    'reset cancellation retires the legacy local reminder after remote success',
     (tester) async {
       user.setNotificationPreference(
         'default',
@@ -1335,13 +1355,13 @@ void main() {
               return http.Response('{"mutationVersion":0}', 200);
             }
             operations.add('remote');
-            return http.Response('{}', 200);
+            return http.Response('{"success":true}', 200);
           },
         ),
       );
 
       expect(cancelled, isTrue);
-      expect(operations, ['local:815', 'remote']);
+      expect(operations, ['remote', 'local:815']);
       expect(memory.stored['fcmDefaultReminderMigrated'], isTrue);
       expect(user.getNotificationPreference('default'), isNull);
     },
@@ -1357,7 +1377,8 @@ void main() {
       await pumpUser(tester);
       FcmService.debugCancelLegacyLocalNotificationOverride =
           (notificationId) async => throw StateError('local cancel failed');
-      var requests = 0;
+      final operations = <String>[];
+      var mutationVersion = 0;
 
       final cancelled = await _onPlatform(
         TargetPlatform.android,
@@ -1366,14 +1387,21 @@ void main() {
           typeId: 'default',
           idTokenProvider: () async => 'token-123',
           post: (url, {headers, body, encoding}) async {
-            requests++;
-            return http.Response('{}', 200);
+            if (url.path.endsWith('/getNotificationMutationVersion')) {
+              operations.add('version:$mutationVersion');
+              return http.Response('{"mutationVersion":$mutationVersion}', 200);
+            }
+            operations.add(
+              url.path.endsWith('/cancelNotification') ? 'cancel' : 'register',
+            );
+            mutationVersion++;
+            return http.Response('{"success":true}', 200);
           },
         ),
       );
 
       expect(cancelled, isFalse);
-      expect(requests, 0);
+      expect(operations, ['version:0', 'cancel', 'register']);
       expect(memory.stored.containsKey('fcmDefaultReminderMigrated'), isFalse);
       expect(user.getNotificationPreference('default'), isNotNull);
     },
@@ -1402,7 +1430,7 @@ void main() {
                   return http.Response('{"mutationVersion":0}', 200);
                 }
                 operations.add('register');
-                return http.Response('{}', 200);
+                return http.Response('{"success":true}', 200);
               },
             );
         await tester.pump();
@@ -1417,7 +1445,7 @@ void main() {
                   return http.Response('{"mutationVersion":0}', 200);
                 }
                 operations.add('remote');
-                return http.Response('{}', 200);
+                return http.Response('{"success":true}', 200);
               },
               legacyNotificationCanceller: (notificationId) async {
                 operations.add('local:$notificationId');
@@ -1429,7 +1457,7 @@ void main() {
 
         expect(await signOutCancellation, isTrue);
         await migration;
-        expect(operations, ['local:815', 'remote']);
+      expect(operations, ['remote', 'local:815']);
         expect(memory.stored['fcmDefaultReminderMigrated'], isTrue);
         expect(user.getNotificationPreference('default'), isNull);
       } finally {
@@ -1464,7 +1492,7 @@ void main() {
               url.path.endsWith('/cancelNotification') ? 'cancel' : 'register',
             );
             mutationVersion++;
-            return http.Response('{}', 200);
+            return http.Response('{"success":true}', 200);
           },
           legacyNotificationCanceller: _ignoreLegacyNotification,
         ),
@@ -1496,7 +1524,7 @@ void main() {
           if (url.path.endsWith('/getNotificationMutationVersion')) {
             return http.Response('{"mutationVersion":0}', 200);
           }
-          return http.Response('{}', 200);
+          return http.Response('{"success":true}', 200);
         },
         legacyNotificationCanceller: _ignoreLegacyNotification,
       ),
@@ -1545,10 +1573,10 @@ void main() {
                   return http.Response('{"mutationVersion":0}', 200);
                 }
                 requests.add(url.path);
-                return http.Response('{}', 200);
+                return http.Response('{"success":true}', 200);
               },
             );
-        cancelResponse.complete(http.Response('{}', 200));
+        cancelResponse.complete(http.Response('{"success":true}', 200));
 
         expect(await cancellation, isTrue);
         await migration;

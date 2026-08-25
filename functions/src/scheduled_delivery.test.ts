@@ -393,7 +393,9 @@ describe("scheduled notification delivery", () => {
           data: () => ({
             hour: 9,
             minute: 0,
-            updatedAt: { toMillis: () => new Date("2026-01-01T07:00:30.000Z").getTime() },
+            updatedAt: Timestamp.fromDate(
+              new Date("2026-01-01T07:00:30.000Z"),
+            ),
           }),
         },
       ],
@@ -413,7 +415,9 @@ describe("scheduled notification delivery", () => {
           data: () => ({
             hour: 9,
             minute: 0,
-            updatedAt: { toMillis: () => new Date("2026-01-01T06:59:30.000Z").getTime() },
+            updatedAt: Timestamp.fromDate(
+              new Date("2026-01-01T06:59:30.000Z"),
+            ),
           }),
         },
       ],
@@ -422,6 +426,26 @@ describe("scheduled notification delivery", () => {
 
     assert.equal(scheduled.length, 1);
     assert.equal(scheduled[0].candidate.intendedTime, "09:00");
+  });
+
+  it("rejects a schedule with a malformed updatedAt value", () => {
+    const candidates = israelLocalDeliveryCandidates(
+      new Date("2026-01-01T08:01:00.000Z"),
+    );
+    const scheduled = selectScheduledNotificationCandidates(
+      [
+        {
+          data: () => ({
+            hour: 9,
+            minute: 0,
+            updatedAt: { seconds: 1_767_254_370, nanoseconds: 0 },
+          }),
+        },
+      ],
+      candidates,
+    );
+
+    assert.deepEqual(scheduled, []);
   });
 
   it("claims a delivery before sending and records the FCM message id", async () => {
@@ -561,21 +585,13 @@ describe("scheduled notification delivery", () => {
   });
 
   it("treats an unchanged legacy schedule as current after an expired unversioned permit", () => {
-    const updatedAt = {
-      seconds: 1_000,
-      nanoseconds: 123_456_789,
-      toMillis: () => 1_000_123,
-    };
+    const updatedAt = new Timestamp(1_000, 123_456_789);
 
     assert.equal(
       isCurrentScheduledNotification(
         { updatedAt },
         {
-          updatedAt: {
-            seconds: 1_000,
-            nanoseconds: 123_456_789,
-            toMillis: () => 1_000_123,
-          },
+          updatedAt: new Timestamp(1_000, 123_456_789),
         },
         {
           deliveryPermitKey: "expired-delivery",
@@ -603,6 +619,19 @@ describe("scheduled notification delivery", () => {
             toMillis: () => 1_000_123,
           },
         },
+        undefined,
+      ),
+      false,
+    );
+  });
+
+  it("does not treat structurally matching timestamp maps as current", () => {
+    const updatedAt = { seconds: 1_000, nanoseconds: 123_456_789 };
+
+    assert.equal(
+      isCurrentScheduledNotification(
+        { updatedAt },
+        { updatedAt: { ...updatedAt } },
         undefined,
       ),
       false,

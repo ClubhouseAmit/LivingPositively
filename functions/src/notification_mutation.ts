@@ -202,6 +202,9 @@ export function notificationMutationStatePath(
   uid: string,
   typeId: string,
 ): string {
+  if (uid.includes("/")) {
+    throw new Error("Notification mutation UID cannot contain a slash");
+  }
   return `notification_mutation_state/${uid}/types/${typeId}`;
 }
 

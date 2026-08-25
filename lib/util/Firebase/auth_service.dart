@@ -27,9 +27,11 @@ class AuthService {
     defaultValue: false,
   );
 
+  /// Test-only override for the Apple Sign-In compile-time flag.
   @visibleForTesting
   static bool? debugAppleSignInEnabledOverride;
 
+  /// Test-only override for the Google server client ID.
   @visibleForTesting
   static String? debugGoogleSignInServerClientIdOverride;
 
@@ -114,6 +116,12 @@ class AuthService {
     return FirebaseAuth.instance.signInWithProvider(appleProvider);
   }
 
+  /// Whether Google Sign-In can be offered for the supplied platform and
+  /// configuration.
+  ///
+  /// Google is unavailable on web and without a server client ID. iOS also
+  /// requires matching configured and Firebase iOS client IDs for this app's
+  /// bundle ID. Unsupported or incomplete configurations return `false`.
   @visibleForTesting
   static bool googleSignInAvailableOn(
     TargetPlatform platform, {
@@ -134,6 +142,10 @@ class AuthService {
     };
   }
 
+  /// Whether Apple Sign-In can be offered for the supplied platform and flag.
+  ///
+  /// Apple is available only in non-web iOS builds with the compile-time
+  /// capability flag enabled. Unsupported configurations return `false`.
   @visibleForTesting
   static bool appleSignInAvailableOn(
     TargetPlatform platform, {
@@ -141,6 +153,9 @@ class AuthService {
     required bool appleSignInEnabled,
   }) => !isWeb && platform == TargetPlatform.iOS && appleSignInEnabled;
 
+  /// Whether the current build can offer Google Sign-In.
+  ///
+  /// Returns `false` when its platform or native configuration is unsupported.
   static bool get isGoogleSignInAvailable => googleSignInAvailableOn(
     defaultTargetPlatform,
     isWeb: kIsWeb,
@@ -150,12 +165,16 @@ class AuthService {
     firebaseIosBundleId: _configuredFirebaseIosBundleId,
   );
 
+  /// Whether the current build can offer Apple Sign-In.
+  ///
+  /// Returns `false` unless this is a capability-enabled iOS build.
   static bool get isAppleSignInAvailable => appleSignInAvailableOn(
     defaultTargetPlatform,
     isWeb: kIsWeb,
     appleSignInEnabled: debugAppleSignInEnabledOverride ?? _appleSignInEnabled,
   );
 
+  /// Whether at least one configured social provider is available to this build.
   static bool get isSocialSignInAvailable =>
       isGoogleSignInAvailable || isAppleSignInAvailable;
 

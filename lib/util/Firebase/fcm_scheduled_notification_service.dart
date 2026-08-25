@@ -77,6 +77,12 @@ class FcmScheduledNotificationService {
     return token;
   }
 
+  /// Migrates an Android legacy local default reminder to the FCM scheduler.
+  ///
+  /// Does nothing when migration is disabled, the platform is unsupported, no
+  /// user state is available, no valid legacy time exists, or migration already
+  /// completed. The serialized operation registers remotely before retiring
+  /// the local alarm; an error leaves the migration marker unset for retry.
   static Future<void> migrateLegacyDefaultReminder({
     BuildContext? context,
     UserInformation? userInformation,
@@ -166,6 +172,8 @@ class FcmScheduledNotificationService {
     return int.parse('${preference.hour}${preference.minute}');
   }
 
+  /// Runs [migrateLegacyDefaultReminder] and reports, rather than propagates,
+  /// any migration failure to the configured incident logger.
   static Future<void> migrateLegacyDefaultReminderWithReporting({
     required UserInformation userInformation,
   }) async {
@@ -189,9 +197,13 @@ class FcmScheduledNotificationService {
     }
   }
 
-  // Registers or updates a scheduled notification for the given type.
-  // hour/minute are Israel local time, exactly as the user selected.
-  // Returns true on success.
+  /// Registers or updates a scheduled notification for [typeId].
+  ///
+  /// The [hour] and [minute] are Israel local time as selected by the user.
+  /// Calls are serialized with cancellation and reset operations. Returns
+  /// `false` for missing user state, unsupported platforms, authentication or
+  /// transport failures, and compensates the remote mutation if local
+  /// preference persistence fails.
   static Future<bool> registerNotification({
     BuildContext? context,
     UserInformation? userInformation,
@@ -388,10 +400,12 @@ class FcmScheduledNotificationService {
     }
   }
 
-  /// Cancels the scheduled notification for the given type.
+  /// Cancels the scheduled notification for [typeId].
   ///
   /// Set [requireNoActiveDeliveryPermit] for actions, such as sign-out, that
-  /// must not complete after the scheduler has claimed a delivery.
+  /// must not complete after the scheduler has claimed a delivery. The call is
+  /// serialized with registration and returns `false` if its remote mutation,
+  /// local persistence, or required compensation cannot complete.
   static Future<bool> cancelNotification({
     BuildContext? context,
     UserInformation? userInformation,
@@ -418,7 +432,10 @@ class FcmScheduledNotificationService {
     );
   }
 
-  /// Restores the remote reminder when local reset fails after cancellation.
+  /// Restores a default reminder after local reset fails following cancellation.
+  ///
+  /// Returns `true` when no prior preference exists or both the remote schedule
+  /// and local preference have been restored. The reset epoch fences stale work.
   static Future<bool> restoreDefaultReminderAfterResetFailure({
     required UserInformation userInformation,
     NotificationPreference? previousPreference,
@@ -443,6 +460,10 @@ class FcmScheduledNotificationService {
     );
   }
 
+  /// Cancels the default reminder before a data reset.
+  ///
+  /// Fences queued migration and refuses cancellation after a claimed delivery.
+  /// Returns `false` and re-enables migration if the cancellation cannot finish.
   static Future<bool> cancelDefaultForReset({
     required UserInformation userInformation,
     Future<String?> Function()? idTokenProvider,
@@ -473,6 +494,10 @@ class FcmScheduledNotificationService {
   }
 
   /// Retires every form of the default reminder before the account signs out.
+  ///
+  /// Fences queued migration and cancellation after a claimed delivery. Returns
+  /// `false` when remote retirement, legacy local retirement, or compensation
+  /// fails, leaving migration eligible for a later retry.
   static Future<bool> cancelDefaultForSignOut({
     required UserInformation userInformation,
     Future<String?> Function()? idTokenProvider,
@@ -522,12 +547,6 @@ class FcmScheduledNotificationService {
         Provider.of<UserInformation>(context!, listen: false);
     final previousPreference = userInfo.getNotificationPreference(typeId);
     try {
-      if (typeId == 'default') {
-        await _cancelLegacyDefaultReminder(
-          userInfo,
-          legacyNotificationCanceller: legacyNotificationCanceller,
-        );
-      }
       final idToken = await (idTokenProvider ?? _getIdToken)().timeout(
         _networkTimeout,
       );
@@ -562,9 +581,18 @@ class FcmScheduledNotificationService {
         if (nextMutationVersion == null) return false;
         _log('Notification cancelled successfully.');
         if (typeId == 'default') {
-          final legacyReminderHandled = await _markLegacyDefaultReminderHandled(
-            userInfo,
-          );
+          var legacyReminderHandled = false;
+          try {
+            await _cancelLegacyDefaultReminder(
+              userInfo,
+              legacyNotificationCanceller: legacyNotificationCanceller,
+            );
+            legacyReminderHandled = await _markLegacyDefaultReminderHandled(
+              userInfo,
+            );
+          } catch (error) {
+            _log('Unable to retire the legacy local reminder: $error');
+          }
           if (!legacyReminderHandled) {
             if (previousPreference != null) {
               final restoredRemotely = await _registerNotification(
@@ -726,13 +754,16 @@ class FcmScheduledNotificationService {
           mutationVersion == expectedMutationVersion + 1) {
         return mutationVersion;
       }
-      if (mutationVersion != null) {
-        _log('Notification mutation returned an unexpected version.');
-        return null;
+      if (body is Map<String, dynamic> &&
+          body.length == 1 &&
+          body['success'] == true) {
+        // Older deployed Functions returned only this explicit success shape.
+        return expectedMutationVersion + 1;
       }
+      _log('Notification mutation returned an unexpected version.');
     } catch (_) {
-      // Continue with the known one-step server mutation for a rolling deploy.
+      _log('Notification mutation returned an invalid body.');
     }
-    return expectedMutationVersion + 1;
+    return null;
   }
 }

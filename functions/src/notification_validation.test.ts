@@ -5,6 +5,7 @@ import {
   hasValidNotificationTypeSchema,
   isValidNotificationLocale,
   isValidNotificationTypeId,
+  isValidNotificationUid,
   normalizeNotificationGender,
 } from "./notification_validation.js";
 import {
@@ -130,6 +131,14 @@ describe("notification validation", () => {
       storedNotificationMutationVersionDecision(7),
       { kind: "use", version: 7 },
     );
+  });
+
+  it("accepts authenticated UIDs that are safe Firestore path segments", () => {
+    assert.equal(isValidNotificationUid("uid-123"), true);
+    assert.equal(isValidNotificationUid(""), false);
+    assert.equal(isValidNotificationUid("."), false);
+    assert.equal(isValidNotificationUid(".."), false);
+    assert.equal(isValidNotificationUid("nested/uid"), false);
   });
 
   it("requires a reset fence before repairing a corrupt mutation", () => {
@@ -406,6 +415,10 @@ describe("notification validation", () => {
     assert.notEqual(
       notificationMutationStatePath("a_b", "c"),
       notificationMutationStatePath("a", "b_c"),
+    );
+    assert.throws(
+      () => notificationMutationStatePath("nested/uid", "default"),
+      /cannot contain a slash/,
     );
   });
 

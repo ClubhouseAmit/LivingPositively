@@ -19,6 +19,7 @@ import {
   hasValidNotificationTypeSchema,
   isValidNotificationLocale,
   isValidNotificationTypeId,
+  isValidNotificationUid,
   normalizeNotificationGender,
 } from "./notification_validation.js";
 import {
@@ -199,14 +200,8 @@ export function selectScheduledNotificationCandidates<
     if (!Number.isInteger(hour) || !Number.isInteger(minute)) return [];
     const candidate = candidatesByTime.get(`${hour}:${minute}`);
     if (!candidate) return [];
-    const updatedAtTimestamp = updatedAt as TimestampLike;
-    if (
-      updatedAt !== null &&
-      typeof updatedAt === "object" &&
-      "toMillis" in updatedAt &&
-      typeof updatedAtTimestamp.toMillis === "function" &&
-      candidate.intendedAt.getTime() < updatedAtTimestamp.toMillis()
-    ) {
+    if (!(updatedAt instanceof Timestamp)) return [];
+    if (candidate.intendedAt.getTime() < updatedAt.toMillis()) {
       return [];
     }
     return [{ doc, candidate }];
@@ -341,33 +336,10 @@ function timestampSecondsAndNanoseconds(
 }
 
 function timestampsAreExactlyEqual(left: unknown, right: unknown): boolean {
-  if (left === null || typeof left !== "object") return false;
-  const leftIsEqual = (left as TimestampLike).isEqual;
-  if (typeof leftIsEqual === "function") {
-    try {
-      return leftIsEqual.call(left, right) === true;
-    } catch {
-      return false;
-    }
-  }
-
-  if (right === null || typeof right !== "object") return false;
-  const rightIsEqual = (right as TimestampLike).isEqual;
-  if (typeof rightIsEqual === "function") {
-    try {
-      return rightIsEqual.call(right, left) === true;
-    } catch {
-      return false;
-    }
-  }
-
-  const leftParts = timestampSecondsAndNanoseconds(left);
-  const rightParts = timestampSecondsAndNanoseconds(right);
   return (
-    leftParts !== undefined &&
-    rightParts !== undefined &&
-    leftParts.seconds === rightParts.seconds &&
-    leftParts.nanoseconds === rightParts.nanoseconds
+    left instanceof Timestamp &&
+    right instanceof Timestamp &&
+    left.isEqual(right)
   );
 }
 
@@ -615,6 +587,10 @@ export const getNotificationMutationVersion = onRequest(
       res.status(401).send("Unauthorized");
       return;
     }
+    if (!isValidNotificationUid(uid)) {
+      res.status(400).send("Invalid authenticated uid");
+      return;
+    }
 
     const typeId = req.body?.typeId;
     if (!isValidNotificationTypeId(typeId)) {
@@ -665,6 +641,10 @@ export const registerNotification = onRequest(
     const uid = await extractAndVerifyUid(req);
     if (!uid) {
       res.status(401).send("Unauthorized");
+      return;
+    }
+    if (!isValidNotificationUid(uid)) {
+      res.status(400).send("Invalid authenticated uid");
       return;
     }
 
@@ -771,6 +751,10 @@ export const cancelNotification = onRequest(
     const uid = await extractAndVerifyUid(req);
     if (!uid) {
       res.status(401).send("Unauthorized");
+      return;
+    }
+    if (!isValidNotificationUid(uid)) {
+      res.status(400).send("Invalid authenticated uid");
       return;
     }
 
@@ -980,7 +964,7 @@ export const processScheduledNotifications = onSchedule(
         scheduledCandidates
           .map(({ doc }) => doc.data().uid)
           .filter(
-            (uid): uid is string => typeof uid === "string" && uid.length > 0,
+          (uid): uid is string => isValidNotificationUid(uid),
           ),
       ),
     ];
@@ -1018,7 +1002,7 @@ export const processScheduledNotifications = onSchedule(
     for (const { doc, candidate } of scheduledCandidates) {
       const { uid, typeId, locale, gender } = doc.data();
       if (
-        typeof uid !== "string" ||
+        !isValidNotificationUid(uid) ||
         !isValidNotificationTypeId(typeId) ||
         !isValidNotificationLocale(locale)
       ) {

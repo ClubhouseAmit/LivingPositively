@@ -440,7 +440,7 @@ void main() {
         (url, {headers, body, encoding}) async =>
             url.path.endsWith('/getNotificationMutationVersion')
             ? http.Response('{"mutationVersion":0}', 200)
-            : http.Response('{}', 200);
+            : http.Response('{"success":true}', 200);
     debugDefaultTargetPlatformOverride = TargetPlatform.windows;
 
     try {
@@ -787,7 +787,7 @@ void main() {
       }
       events.add('cancelNotification');
       cancellationPayload = jsonDecode(body! as String) as Map<String, dynamic>;
-      return http.Response('{}', 200);
+      return http.Response('{"success":true}', 200);
     };
     debugDefaultTargetPlatformOverride = TargetPlatform.windows;
 
@@ -1152,7 +1152,7 @@ void main() {
           if (url.path.endsWith('/getNotificationMutationVersion')) {
             return http.Response('{"mutationVersion":0}', 200);
           }
-          return http.Response('{}', 200);
+          return http.Response('{"success":true}', 200);
         };
     debugDefaultTargetPlatformOverride = TargetPlatform.windows;
     try {
@@ -1251,7 +1251,7 @@ void main() {
           (url, {headers, body, encoding}) async =>
               url.path.endsWith('/getNotificationMutationVersion')
               ? http.Response('{"mutationVersion":0}', 200)
-              : http.Response('{}', 200);
+              : http.Response('{"success":true}', 200);
       debugDefaultTargetPlatformOverride = TargetPlatform.windows;
 
       try {

@@ -336,7 +336,8 @@ void main() {
     'Android hides the social section when Google is not configured',
     (tester) async {
       debugDefaultTargetPlatformOverride = TargetPlatform.android;
-      AuthService.debugGoogleSignInServerClientIdOverride = null;
+      AuthService.debugGoogleSignInServerClientIdOverride = '';
+      AuthService.debugAppleSignInEnabledOverride = false;
       try {
         await pumpWithProviders(
           tester,
@@ -356,6 +357,7 @@ void main() {
         expectNoSocialSection();
       } finally {
         AuthService.debugGoogleSignInServerClientIdOverride = null;
+        AuthService.debugAppleSignInEnabledOverride = null;
         debugDefaultTargetPlatformOverride = null;
       }
     },
@@ -394,7 +396,8 @@ void main() {
     tester,
   ) async {
     debugDefaultTargetPlatformOverride = TargetPlatform.iOS;
-    AuthService.debugAppleSignInEnabledOverride = null;
+    AuthService.debugGoogleSignInServerClientIdOverride = '';
+    AuthService.debugAppleSignInEnabledOverride = false;
     try {
       await pumpWithProviders(
         tester,
@@ -414,6 +417,7 @@ void main() {
       expectNoSocialSection();
     } finally {
       AuthService.debugAppleSignInEnabledOverride = null;
+      AuthService.debugGoogleSignInServerClientIdOverride = null;
       debugDefaultTargetPlatformOverride = null;
     }
   });

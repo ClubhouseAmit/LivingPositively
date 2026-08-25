@@ -28,6 +28,16 @@ export function isValidNotificationTypeId(value: unknown): value is string {
   );
 }
 
+export function isValidNotificationUid(value: unknown): value is string {
+  return (
+    typeof value === "string" &&
+    value.length > 0 &&
+    value !== "." &&
+    value !== ".." &&
+    !value.includes("/")
+  );
+}
+
 export function isValidNotificationLocale(
   value: unknown,
 ): value is NotificationLocale {
