@@ -149,6 +149,24 @@ describe("notification validation", () => {
         storedVersion: "corrupt",
         expectedVersion: { kind: "versioned", version: 0 },
         rejectActiveDeliveryPermit: false,
+        allowsCorruptStateRepair: false,
+        hasActiveDeliveryPermit: false,
+        hasEffectiveState: false,
+      }),
+      {
+        kind: "conflict",
+        message: "Notification mutation state requires reset",
+      },
+    );
+  });
+
+  it("does not let a delivery fence repair corrupt mutation state", () => {
+    assert.deepEqual(
+      notificationMutationAuthorizationDecision({
+        storedVersion: "corrupt",
+        expectedVersion: { kind: "versioned", version: 0 },
+        rejectActiveDeliveryPermit: true,
+        allowsCorruptStateRepair: false,
         hasActiveDeliveryPermit: false,
         hasEffectiveState: false,
       }),
@@ -165,6 +183,7 @@ describe("notification validation", () => {
         storedVersion: "corrupt",
         expectedVersion: { kind: "versioned", version: 0 },
         rejectActiveDeliveryPermit: true,
+        allowsCorruptStateRepair: true,
         hasActiveDeliveryPermit: false,
         hasEffectiveState: false,
       }),
@@ -178,6 +197,7 @@ describe("notification validation", () => {
         storedVersion: "corrupt",
         expectedVersion: { kind: "versioned", version: 0 },
         rejectActiveDeliveryPermit: true,
+        allowsCorruptStateRepair: true,
         hasActiveDeliveryPermit: true,
         hasEffectiveState: true,
       }),
@@ -210,6 +230,7 @@ describe("notification validation", () => {
         scheduleRef: "schedule",
         expectedVersion: { kind: "versioned", version: 0 },
         rejectActiveDeliveryPermit: false,
+        allowsCorruptStateRepair: false,
         operation: { kind: "cancel" },
       }),
       {
@@ -245,6 +266,7 @@ describe("notification validation", () => {
         scheduleRef: "schedule",
         expectedVersion: { kind: "versioned", version: 0 },
         rejectActiveDeliveryPermit: true,
+        allowsCorruptStateRepair: true,
         operation: { kind: "cancel" },
       }),
       { kind: "apply", nextVersion: 1 },
@@ -280,6 +302,7 @@ describe("notification validation", () => {
         scheduleRef: "schedule",
         expectedVersion: { kind: "versioned", version: 0 },
         rejectActiveDeliveryPermit: false,
+        allowsCorruptStateRepair: false,
         operation: {
           kind: "register",
           scheduleData: { uid: "uid", typeId: "default" },
@@ -328,6 +351,7 @@ describe("notification validation", () => {
         scheduleRef: "schedule",
         expectedVersion: { kind: "versioned", version: 0 },
         rejectActiveDeliveryPermit: true,
+        allowsCorruptStateRepair: true,
         operation: { kind: "cancel" },
       }),
       { kind: "conflict", message: "Scheduled delivery is already authorized" },

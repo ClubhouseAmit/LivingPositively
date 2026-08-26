@@ -24,6 +24,7 @@ export type NotificationMutationAuthorizationInput = {
   storedVersion: unknown;
   expectedVersion: ExpectedNotificationMutationVersion;
   rejectActiveDeliveryPermit: boolean;
+  allowsCorruptStateRepair: boolean;
   hasActiveDeliveryPermit: boolean;
   hasEffectiveState: boolean;
 };
@@ -49,6 +50,7 @@ export type NotificationMutationExecutionInput<TReference> = {
   scheduleRef: TReference;
   expectedVersion: ExpectedNotificationMutationVersion;
   rejectActiveDeliveryPermit: boolean;
+  allowsCorruptStateRepair: boolean;
   operation: NotificationMutationOperation;
 };
 
@@ -91,7 +93,7 @@ export function notificationMutationAuthorizationDecision(
   // state whose history cannot be verified.
   if (
     storedVersionDecision.kind === "repair" &&
-    !input.rejectActiveDeliveryPermit
+    !input.allowsCorruptStateRepair
   ) {
     return {
       kind: "conflict",
@@ -134,6 +136,7 @@ export async function executeNotificationMutation<TReference>(
     storedVersion: stateData?.version,
     expectedVersion: input.expectedVersion,
     rejectActiveDeliveryPermit: input.rejectActiveDeliveryPermit,
+    allowsCorruptStateRepair: input.allowsCorruptStateRepair,
     hasActiveDeliveryPermit: hasActiveDeliveryPermit(stateData),
     hasEffectiveState: hasEffectiveNotificationMutationState(stateData),
   });

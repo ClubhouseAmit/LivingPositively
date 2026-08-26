@@ -747,6 +747,7 @@ export const registerNotification = onRequest(
               scheduleRef,
               expectedVersion,
               rejectActiveDeliveryPermit: false,
+              allowsCorruptStateRepair: false,
               operation: { kind: "register", scheduleData },
             },
           );
@@ -846,7 +847,8 @@ export const cancelNotification = onRequest(
               stateRef,
               scheduleRef,
               expectedVersion,
-              rejectActiveDeliveryPermit: resetFence === true,
+              rejectActiveDeliveryPermit: true,
+              allowsCorruptStateRepair: resetFence === true,
               operation: { kind: "cancel" },
             },
           );

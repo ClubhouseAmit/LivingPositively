@@ -852,6 +852,7 @@ void main() {
     final auth = MockFirebaseAuth();
     final firebaseUser = MockUser();
     final events = <String>[];
+    final requestBodies = <Map<String, dynamic>>[];
     var mutationVersion = 0;
     when(auth.currentUser).thenReturn(firebaseUser);
     when(firebaseUser.isAnonymous).thenReturn(false);
@@ -870,15 +871,40 @@ void main() {
     user.userId = 'signed-in-user';
     FcmScheduledNotificationService.debugPostOverride =
         (url, {headers, body, encoding}) async {
+          if (body is! String) {
+            throw StateError('Expected an encoded notification mutation body.');
+          }
+          final requestBody = jsonDecode(body) as Map<String, dynamic>;
+          requestBodies.add(requestBody);
           if (url.path.endsWith('/getNotificationMutationVersion')) {
+            expect(requestBody, {'typeId': 'default'});
             events.add('version:$mutationVersion');
             return http.Response('{"mutationVersion":$mutationVersion}', 200);
           }
-          events.add(
-            url.path.endsWith('/cancelNotification') ? 'cancel' : 'register',
-          );
-          mutationVersion++;
-          return http.Response('{"mutationVersion":$mutationVersion}', 200);
+          if (url.path.endsWith('/cancelNotification')) {
+            expect(requestBody, {
+              'typeId': 'default',
+              'expectedMutationVersion': 0,
+              'resetFence': true,
+            });
+            events.add('cancel');
+            mutationVersion++;
+            return http.Response('{"mutationVersion":$mutationVersion}', 200);
+          }
+          if (url.path.endsWith('/registerNotification')) {
+            expect(requestBody, {
+              'typeId': 'default',
+              'hour': 8,
+              'minute': 15,
+              'locale': 'en',
+              'gender': 'male',
+              'expectedMutationVersion': 1,
+            });
+            events.add('register');
+            mutationVersion++;
+            return http.Response('{"mutationVersion":$mutationVersion}', 200);
+          }
+          throw StateError('Unexpected notification mutation endpoint: $url');
         };
     debugDefaultTargetPlatformOverride = TargetPlatform.windows;
 
@@ -914,6 +940,19 @@ void main() {
         'signOut',
         'version:1',
         'register',
+      ]);
+      expect(requestBodies, [
+        {'typeId': 'default'},
+        {'typeId': 'default', 'expectedMutationVersion': 0, 'resetFence': true},
+        {'typeId': 'default'},
+        {
+          'typeId': 'default',
+          'hour': 8,
+          'minute': 15,
+          'locale': 'en',
+          'gender': 'male',
+          'expectedMutationVersion': 1,
+        },
       ]);
       expect(
         user.getNotificationPreference('default')?.toJson(),
