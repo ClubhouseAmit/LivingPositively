@@ -1,3 +1,5 @@
+import 'dart:math' as math;
+
 import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:get_it/get_it.dart';
@@ -24,9 +26,14 @@ class WellnessTools extends StatefulWidget {
 }
 
 class _WellnessToolsState extends LPExtendedState<WellnessTools> {
+  static const _videoAspectRatio = 16 / 9;
+  static const _videoVerticalPadding = 8.0;
+  static const _maximumPinnedPlayerHeightFactor = 0.55;
+
   var isFullScreen = false;
   var selectedVideoIdIndex = 0;
   var selectedVideoId = '';
+  final ScrollController _scrollController = ScrollController();
   final VideoPlayerPageFactory _videoPlayerPageFactory =
       GetIt.instance<VideoPlayerPageFactory>();
 
@@ -124,6 +131,7 @@ class _WellnessToolsState extends LPExtendedState<WellnessTools> {
 
   @override
   void dispose() {
+    _scrollController.dispose();
     super.dispose();
   }
 
@@ -132,6 +140,17 @@ class _WellnessToolsState extends LPExtendedState<WellnessTools> {
       selectedVideoId = newVideoId;
     });
     debugPrint('Video changed to: $newVideoId');
+  }
+
+  void _selectVideo(int videoIndex) {
+    final videoId = _youtubeId(widget.videoData['videoId']![videoIndex])!;
+    setState(() {
+      selectedVideoIdIndex = videoIndex;
+      selectedVideoId = videoId;
+    });
+    if (_scrollController.hasClients) {
+      _scrollController.jumpTo(0);
+    }
   }
 
   @override
@@ -153,122 +172,153 @@ class _WellnessToolsState extends LPExtendedState<WellnessTools> {
       changeVideo: changeVideo,
       child: SafeArea(
         child: Scaffold(
-          body: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Visibility(
-                visible: !isFullScreen,
-                child: Center(
-                  child: SizedBox(
-                    //color: Colors.white,
-                    height: 130.0,
-                    //margin: EdgeInsets.only(top: 15),
-                    child: Image.asset(
-                      'assets/images/Logo.png',
-                      width: MediaQuery.sizeOf(context).width * 0.4 > 1000
-                          ? 500
-                          : MediaQuery.sizeOf(
-                              context,
-                            ).width, // Adjust as needed
+          body: LayoutBuilder(
+            builder: (context, constraints) {
+              return CustomScrollView(
+                key: const Key('wellnessToolsScrollView'),
+                controller: _scrollController,
+                slivers: [
+                  SliverVisibility(
+                    visible: !isFullScreen,
+                    sliver: SliverToBoxAdapter(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Center(
+                            child: SizedBox(
+                              height: 130.0,
+                              child: Image.asset(
+                                'assets/images/Logo.png',
+                                width:
+                                    MediaQuery.sizeOf(context).width * 0.4 >
+                                        1000
+                                    ? 500
+                                    : MediaQuery.sizeOf(context).width,
+                              ),
+                            ),
+                          ),
+                          Padding(
+                            padding: const EdgeInsets.fromLTRB(
+                              8.0,
+                              10.0,
+                              8,
+                              10,
+                            ),
+                            child: myAutoSizedText(
+                              widget.videoData['videoHeadline']![selectedIndex],
+                              TextStyle(
+                                fontSize: 24.sp,
+                                fontWeight: FontWeight.bold,
+                              ),
+                              appLocale.textDirection == "rtl"
+                                  ? TextAlign.right
+                                  : TextAlign.left,
+                              28,
+                              3,
+                            ),
+                          ),
+                        ],
+                      ),
                     ),
                   ),
-                ),
-              ),
-              Visibility(
-                visible: !isFullScreen,
-                child: Padding(
-                  padding: const EdgeInsets.fromLTRB(8.0, 10.0, 8, 10),
-                  child: myAutoSizedText(
-                    widget.videoData['videoHeadline']![selectedIndex],
-                    TextStyle(fontSize: 24.sp, fontWeight: FontWeight.bold),
-                    appLocale.textDirection == "rtl"
-                        ? TextAlign.right
-                        : TextAlign.left,
-                    28,
-                    3,
+                  PinnedHeaderSliver(
+                    child: SizedBox(
+                      height: isFullScreen
+                          ? constraints.maxHeight
+                          : math.min(
+                              constraints.maxWidth / _videoAspectRatio +
+                                  _videoVerticalPadding * 2,
+                              constraints.maxHeight *
+                                  _maximumPinnedPlayerHeightFactor,
+                            ),
+                      child: ColoredBox(
+                        color: Theme.of(context).scaffoldBackgroundColor,
+                        child: Padding(
+                          padding: isFullScreen
+                              ? EdgeInsets.zero
+                              : const EdgeInsets.symmetric(
+                                  vertical: _videoVerticalPadding,
+                                ),
+                          child: Center(
+                            child: AspectRatio(
+                              aspectRatio: _videoAspectRatio,
+                              child: _videoPlayerPageFactory.create(
+                                onFullScreenChanged: setIsFullScreen,
+                                videoData: widget.videoData,
+                              ),
+                            ),
+                          ),
+                        ),
+                      ),
+                    ),
                   ),
-                ),
-              ),
-              Expanded(
-                child: _videoPlayerPageFactory.create(
-                  onFullScreenChanged: setIsFullScreen,
-                  videoData: widget.videoData,
-                ),
-              ),
-              SizedBox(height: 10),
-              Visibility(
-                visible: !isFullScreen,
-                child: Padding(
-                  padding: const EdgeInsets.fromLTRB(0, 4.0, 4, 20),
-                  child: myAutoSizedText(
-                    widget.videoData['videoDescription']![selectedIndex],
-                    TextStyle(fontSize: 18.sp, fontWeight: FontWeight.normal),
-                    appLocale.textDirection == "rtl"
-                        ? TextAlign.right
-                        : TextAlign.left,
-                    20,
-                    3,
-                  ),
-                ),
-              ),
-              Visibility(
-                visible: !isFullScreen,
-                child: _transcript(
-                  transcript != null && selectedIndex < transcript.length
-                      ? transcript[selectedIndex]
-                      : null,
-                ),
-              ),
-              Visibility(
-                visible: !isFullScreen,
-                child: Padding(
-                  padding: const EdgeInsets.fromLTRB(0, 4.0, 4, 20),
-                  child: myAutoSizedText(
-                    appLocale.moreVideos,
-                    TextStyle(fontSize: 18.sp, fontWeight: FontWeight.bold),
-                    appLocale.textDirection == "rtl"
-                        ? TextAlign.right
-                        : TextAlign.left,
-                    20,
-                    3,
-                  ),
-                ),
-              ),
-              Visibility(
-                visible: !isFullScreen,
-                child: Expanded(
-                  child: ListView.separated(
-                    itemBuilder: (context, index) {
-                      final videoIndex = moreVideoIndexes[index];
-                      var videoId = widget.videoData['videoId']![videoIndex];
-                      var thumbnailUrl = getThumbnailUrl(videoId);
-                      return MoreVideosItem(
-                        videoData: widget.videoData,
-                        index: videoIndex,
-                        thumbnailUrl: thumbnailUrl,
-                        changeVideoIdIndex: () {
-                          return () {
-                            setState(() {
-                              selectedVideoIdIndex = videoIndex;
-                              selectedVideoId = _youtubeId(
-                                widget
-                                    .videoData['videoId']![selectedVideoIdIndex],
-                              )!;
-                              VideoPlayerInheritedWidget.of(
-                                context,
-                              )?.changeVideo(selectedVideoId);
-                            });
-                          };
-                        },
-                      );
-                    },
-                    itemCount: moreVideoIndexes.length,
-                    separatorBuilder: (context, _) =>
-                        const SizedBox(height: 10.0),
-                  ),
-                ),
-              ),
-            ],
+                  if (!isFullScreen)
+                    SliverToBoxAdapter(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          const SizedBox(height: 10),
+                          Padding(
+                            padding: const EdgeInsets.fromLTRB(0, 4.0, 4, 20),
+                            child: myAutoSizedText(
+                              widget
+                                  .videoData['videoDescription']![selectedIndex],
+                              TextStyle(
+                                fontSize: 18.sp,
+                                fontWeight: FontWeight.normal,
+                              ),
+                              appLocale.textDirection == "rtl"
+                                  ? TextAlign.right
+                                  : TextAlign.left,
+                              20,
+                              3,
+                            ),
+                          ),
+                          _transcript(
+                            transcript != null &&
+                                    selectedIndex < transcript.length
+                                ? transcript[selectedIndex]
+                                : null,
+                          ),
+                          Padding(
+                            padding: const EdgeInsets.fromLTRB(0, 4.0, 4, 20),
+                            child: myAutoSizedText(
+                              appLocale.moreVideos,
+                              TextStyle(
+                                fontSize: 18.sp,
+                                fontWeight: FontWeight.bold,
+                              ),
+                              appLocale.textDirection == "rtl"
+                                  ? TextAlign.right
+                                  : TextAlign.left,
+                              20,
+                              3,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  if (!isFullScreen)
+                    SliverList.separated(
+                      itemCount: moreVideoIndexes.length,
+                      itemBuilder: (context, index) {
+                        final videoIndex = moreVideoIndexes[index];
+                        return MoreVideosItem(
+                          videoData: widget.videoData,
+                          index: videoIndex,
+                          thumbnailUrl: getThumbnailUrl(
+                            widget.videoData['videoId']![videoIndex],
+                          ),
+                          changeVideoIdIndex: () {
+                            return () => _selectVideo(videoIndex);
+                          },
+                        );
+                      },
+                      separatorBuilder: (_, _) => const SizedBox(height: 10),
+                    ),
+                ],
+              );
+            },
           ),
         ),
       ),
