@@ -464,10 +464,14 @@ class FcmScheduledNotificationService {
   ///
   /// Fences queued migration and refuses cancellation after a claimed delivery.
   /// Returns `false` and re-enables migration if the cancellation cannot finish.
+  /// When provided, [onRemoteScheduleCancelled] receives the server's schedule
+  /// time after a successful remote cancellation.
   static Future<bool> cancelDefaultForReset({
     required UserInformation userInformation,
     Future<String?> Function()? idTokenProvider,
     NotificationHttpPost? post,
+    void Function(NotificationPreference? remotePreference)?
+    onRemoteScheduleCancelled,
   }) {
     _legacyMigrationDisabled = true;
     _resetEpoch++;
@@ -481,6 +485,7 @@ class FcmScheduledNotificationService {
           post: post,
           resetEpoch: resetEpoch,
           resetFence: true,
+          onRemoteScheduleCancelled: onRemoteScheduleCancelled,
         );
         if (!cancelled) {
           _legacyMigrationDisabled = false;
@@ -498,11 +503,15 @@ class FcmScheduledNotificationService {
   /// Fences queued migration and cancellation after a claimed delivery. Returns
   /// `false` when remote retirement, legacy local retirement, or compensation
   /// fails, leaving migration eligible for a later retry.
+  /// When provided, [onRemoteScheduleCancelled] receives the server's schedule
+  /// time after a successful remote cancellation.
   static Future<bool> cancelDefaultForSignOut({
     required UserInformation userInformation,
     Future<String?> Function()? idTokenProvider,
     NotificationHttpPost? post,
     Future<void> Function(int notificationId)? legacyNotificationCanceller,
+    void Function(NotificationPreference? remotePreference)?
+    onRemoteScheduleCancelled,
   }) {
     _legacyMigrationDisabled = true;
     _resetEpoch++;
@@ -517,6 +526,7 @@ class FcmScheduledNotificationService {
           resetEpoch: resetEpoch,
           resetFence: true,
           legacyNotificationCanceller: legacyNotificationCanceller,
+          onRemoteScheduleCancelled: onRemoteScheduleCancelled,
         );
         if (!cancelled) {
           _legacyMigrationDisabled = false;
@@ -539,6 +549,8 @@ class FcmScheduledNotificationService {
     required int resetEpoch,
     bool resetFence = false,
     Future<void> Function(int notificationId)? legacyNotificationCanceller,
+    void Function(NotificationPreference? remotePreference)?
+    onRemoteScheduleCancelled,
   }) async {
     if (resetEpoch != _resetEpoch) return false;
     _log('Cancelling notification: typeId=$typeId');
@@ -579,6 +591,7 @@ class FcmScheduledNotificationService {
           expectedMutationVersion,
         );
         if (nextMutationVersion == null) return false;
+        onRemoteScheduleCancelled?.call(_cancelledSchedulePreference(response));
         _log('Notification cancelled successfully.');
         if (typeId == 'default') {
           var legacyReminderHandled = false;
@@ -765,5 +778,29 @@ class FcmScheduledNotificationService {
       _log('Notification mutation returned an invalid body.');
     }
     return null;
+  }
+
+  static NotificationPreference? _cancelledSchedulePreference(
+    http.Response response,
+  ) {
+    try {
+      final body = jsonDecode(response.body);
+      if (body is! Map<String, dynamic>) return null;
+      final schedule = body['schedule'];
+      if (schedule is! Map<String, dynamic>) return null;
+      final hour = schedule['hour'];
+      final minute = schedule['minute'];
+      if (hour is! int ||
+          minute is! int ||
+          hour < 0 ||
+          hour > 23 ||
+          minute < 0 ||
+          minute > 59) {
+        return null;
+      }
+      return NotificationPreference(hour: hour, minute: minute);
+    } catch (_) {
+      return null;
+    }
   }
 }

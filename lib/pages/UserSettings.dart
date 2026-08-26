@@ -16,6 +16,7 @@ import 'package:mazilon/util/Form/formPagePhoneModel.dart';
 import 'package:mazilon/pages/FeelGood/image_picker_service_impl.dart';
 import 'package:mazilon/util/LP_extended_state.dart';
 import 'package:mazilon/util/logger_service.dart';
+import 'package:mazilon/util/notification_preference.dart';
 import 'package:mazilon/util/persistent_memory_service.dart';
 import 'package:mazilon/util/theme/font_weight.dart';
 import 'package:mazilon/util/Form/myDropdownMenuEntry.dart';
@@ -523,6 +524,7 @@ class _UserSettingsState extends LPExtendedState<UserSettings> {
     final previousDefaultReminder = userInfo.getNotificationPreference(
       'default',
     );
+    NotificationPreference? cancelledRemoteReminder;
     var remoteReminderCancelled = false;
 
     final firebaseUser = GetIt.instance.isRegistered<FirebaseAuth>()
@@ -533,6 +535,9 @@ class _UserSettingsState extends LPExtendedState<UserSettings> {
         final cancelled =
             await FcmScheduledNotificationService.cancelDefaultForReset(
               userInformation: userInfo,
+              onRemoteScheduleCancelled: (remotePreference) {
+                cancelledRemoteReminder = remotePreference;
+              },
             );
         if (!cancelled) {
           if (mounted) {
@@ -553,7 +558,8 @@ class _UserSettingsState extends LPExtendedState<UserSettings> {
         final reminderRestored =
             await FcmScheduledNotificationService.restoreDefaultReminderAfterResetFailure(
               userInformation: userInfo,
-              previousPreference: previousDefaultReminder,
+              previousPreference:
+                  cancelledRemoteReminder ?? previousDefaultReminder,
             );
         if (!reminderRestored) {
           _reportResetFailure(
@@ -624,11 +630,15 @@ class _UserSettingsState extends LPExtendedState<UserSettings> {
     final previousDefaultReminder = userInfo.getNotificationPreference(
       'default',
     );
+    NotificationPreference? cancelledRemoteReminder;
     var reminderCancelled = false;
     if (firebaseUser != null && !firebaseUser.isAnonymous) {
       final cancelled =
           await FcmScheduledNotificationService.cancelDefaultForSignOut(
             userInformation: userInfo,
+            onRemoteScheduleCancelled: (remotePreference) {
+              cancelledRemoteReminder = remotePreference;
+            },
           );
       if (!cancelled) {
         _reportResetFailure(
@@ -652,7 +662,8 @@ class _UserSettingsState extends LPExtendedState<UserSettings> {
         final reminderRestored =
             await FcmScheduledNotificationService.restoreDefaultReminderAfterResetFailure(
               userInformation: userInfo,
-              previousPreference: previousDefaultReminder,
+              previousPreference:
+                  cancelledRemoteReminder ?? previousDefaultReminder,
             );
         if (!reminderRestored) {
           _reportResetFailure(

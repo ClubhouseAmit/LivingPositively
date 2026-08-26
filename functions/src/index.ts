@@ -137,6 +137,38 @@ function isNotificationMutationRequestBody(
   return value !== null && typeof value === "object" && !Array.isArray(value);
 }
 
+type NotificationScheduleDescriptor = {
+  hour: number;
+  minute: number;
+};
+
+function notificationScheduleDescriptor(
+  schedule: Record<string, unknown> | undefined,
+  uid: string,
+  typeId: string,
+): NotificationScheduleDescriptor | undefined {
+  if (
+    schedule === undefined ||
+    !hasMatchingNotificationScheduleIdentity(schedule, uid, typeId)
+  ) {
+    return undefined;
+  }
+  const { hour, minute } = schedule;
+  if (
+    typeof hour !== "number" ||
+    !Number.isInteger(hour) ||
+    hour < 0 ||
+    hour > 23 ||
+    typeof minute !== "number" ||
+    !Number.isInteger(minute) ||
+    minute < 0 ||
+    minute > 59
+  ) {
+    return undefined;
+  }
+  return { hour, minute };
+}
+
 export function buildNotificationDeliveryKey(
   uid: string,
   typeId: string,
@@ -833,13 +865,29 @@ export const cancelNotification = onRequest(
     const stateRef = notificationMutationStateRef(db, uid, typeId);
     const scheduleRef = notificationScheduleRef(db, uid, typeId);
     const legacyScheduleRef = legacyNotificationScheduleRef(db, uid, typeId);
-    let mutationVersion: number | undefined;
+    let mutationResult: {
+      mutationVersion: number | undefined;
+      schedule?: NotificationScheduleDescriptor;
+    };
     try {
-      mutationVersion = await db.runTransaction(async (transaction) => {
-        const legacySchedule =
+      mutationResult = await db.runTransaction(async (transaction) => {
+        const [currentSchedule, legacySchedule] = await Promise.all([
+          transaction.get(scheduleRef),
           legacyScheduleRef.path === scheduleRef.path
-            ? undefined
-            : await transaction.get(legacyScheduleRef);
+            ? Promise.resolve(undefined)
+            : transaction.get(legacyScheduleRef),
+        ]);
+        const schedule =
+          notificationScheduleDescriptor(
+            currentSchedule.exists ? currentSchedule.data() : undefined,
+            uid,
+            typeId,
+          ) ??
+          notificationScheduleDescriptor(
+            legacySchedule?.exists ? legacySchedule.data() : undefined,
+            uid,
+            typeId,
+          );
         const decision =
           await executeNotificationMutation<FirebaseFirestore.DocumentReference>(
             transaction,
@@ -865,7 +913,7 @@ export const cancelNotification = onRequest(
         ) {
           transaction.delete(legacyScheduleRef);
         }
-        return decision.nextVersion;
+        return { mutationVersion: decision.nextVersion, schedule };
       });
     } catch (error) {
       if (error instanceof NotificationMutationConflictError) {
@@ -877,7 +925,12 @@ export const cancelNotification = onRequest(
 
     res.send({
       success: true,
-      ...(mutationVersion === undefined ? {} : { mutationVersion }),
+      ...(mutationResult.mutationVersion === undefined
+        ? {}
+        : { mutationVersion: mutationResult.mutationVersion }),
+      ...(mutationResult.schedule === undefined
+        ? {}
+        : { schedule: mutationResult.schedule }),
     });
   },
 );
@@ -1032,25 +1085,60 @@ export const processScheduledNotifications = onSchedule(
           ),
       ),
     ];
-    const deviceDocs = await Promise.all(
-      uniqueUids.map((uid) =>
-        getFirestore().collection("devices").doc(uid).get(),
+    const nowMillis = Date.now();
+    const staleDeviceQuery = db
+      .collection("devices")
+      .where(
+        "updatedAt",
+        "<",
+        Timestamp.fromMillis(
+          nowMillis - STALE_TOKEN_DAYS * 86_400_000,
+        ),
+      )
+      .limit(MAX_STALE_DEVICE_CLEANUPS_PER_INVOCATION + 1);
+    const [deviceDocs, independentlyStaleDeviceSnapshot] = await Promise.all([
+      Promise.all(
+        uniqueUids.map((uid) => db.collection("devices").doc(uid).get()),
       ),
-    );
+      staleDeviceQuery.get().catch((error: unknown) => {
+        logger.warn("Unable to query stale devices independently", { error });
+        return undefined;
+      }),
+    ]);
     const deviceMap = new Map(deviceDocs.map((d) => [d.id, d.data()]));
     const deviceTimestampRoutes = routeDevicesByUpdatedAt(
       [...deviceMap.entries()].map(([uid, deviceData]) => ({
         uid,
         updatedAt: deviceData?.updatedAt,
       })),
-      Date.now(),
+      nowMillis,
+    );
+    const independentlyStaleDeviceEntries =
+      independentlyStaleDeviceSnapshot?.docs
+        .filter((doc) => isValidNotificationUid(doc.id))
+        .map((doc) => ({
+          uid: doc.id,
+          updatedAt: doc.data()?.updatedAt,
+        })) ?? [];
+    const independentlyStaleDeviceRoutes = routeDevicesByUpdatedAt(
+      independentlyStaleDeviceEntries,
+      nowMillis,
     );
     const deliveryEligibleUids = new Set(
       deviceTimestampRoutes.deliveryEligibleUids,
     );
-    const staleDeviceUids = new Set(deviceTimestampRoutes.staleUids);
+    const staleDeviceUids = new Set([
+      ...deviceTimestampRoutes.staleUids,
+      ...independentlyStaleDeviceRoutes.staleUids,
+    ]);
+    const allDeviceEntries = new Map([
+      ...deviceMap.entries(),
+      ...(independentlyStaleDeviceSnapshot?.docs ?? [])
+        .filter((doc) => isValidNotificationUid(doc.id))
+        .map((doc) => [doc.id, doc.data()] as const),
+    ]);
     const staleDeviceUpdatedAts = new Map(
-      [...deviceMap.entries()].flatMap(([uid, deviceData]) =>
+      [...allDeviceEntries.entries()].flatMap(([uid, deviceData]) =>
         staleDeviceUids.has(uid) && deviceData?.updatedAt instanceof Timestamp
             ? [[uid, deviceData.updatedAt] as const]
             : [],
@@ -1060,7 +1148,7 @@ export const processScheduledNotifications = onSchedule(
 
     // --- Build send list, collecting stale UIDs for deferred cleanup ---
 
-    const staleUids: string[] = [];
+    const staleUids = [...staleDeviceUids];
     const sendTasks: Array<() => Promise<ScheduledDeliveryResult>> = [];
 
     for (const { doc, candidate } of scheduledCandidates) {
@@ -1076,7 +1164,6 @@ export const processScheduledNotifications = onSchedule(
       const deviceData = deviceMap.get(uid);
 
       if (staleDeviceUids.has(uid)) {
-        staleUids.push(uid);
         continue;
       }
       if (malformedDeviceUids.has(uid)) {

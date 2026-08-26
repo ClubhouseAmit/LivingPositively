@@ -1245,6 +1245,93 @@ void main() {
   );
 
   testWidgets(
+    'remote-only cancellation exposes its schedule for reset compensation',
+    (tester) async {
+      await pumpUser(tester);
+      memory.stored.remove('notificationHour');
+      memory.stored.remove('notificationMinute');
+      const remotePreference = NotificationPreference(hour: 8, minute: 15);
+      NotificationPreference? cancelledRemotePreference;
+      var mutationVersion = 0;
+      var cancelRequests = 0;
+      var registerRequests = 0;
+
+      final cancelled = await _onPlatform(
+        TargetPlatform.windows,
+        () => FcmScheduledNotificationService.cancelDefaultForReset(
+          userInformation: user,
+          idTokenProvider: () async => 'token-123',
+          onRemoteScheduleCancelled: (preference) {
+            cancelledRemotePreference = preference;
+          },
+          post: (url, {headers, body, encoding}) async {
+            if (url.path.endsWith('/getNotificationMutationVersion')) {
+              return http.Response('{"mutationVersion":$mutationVersion}', 200);
+            }
+            if (url.path.endsWith('/cancelNotification')) {
+              cancelRequests++;
+              mutationVersion++;
+              return http.Response(
+                '{"success":true,"mutationVersion":$mutationVersion,'
+                '"schedule":{"hour":8,"minute":15}}',
+                200,
+              );
+            }
+            if (url.path.endsWith('/registerNotification')) {
+              registerRequests++;
+              mutationVersion++;
+              return http.Response(
+                '{"success":true,"mutationVersion":$mutationVersion}',
+                200,
+              );
+            }
+            throw StateError('Unexpected notification endpoint: $url');
+          },
+        ),
+      );
+
+      expect(cancelled, isTrue);
+      expect(cancelRequests, 1);
+      expect(cancelledRemotePreference?.toJson(), remotePreference.toJson());
+      expect(user.getNotificationPreference('default'), isNull);
+
+      final restored = await _onPlatform(
+        TargetPlatform.windows,
+        () =>
+            FcmScheduledNotificationService.restoreDefaultReminderAfterResetFailure(
+              userInformation: user,
+              previousPreference: cancelledRemotePreference,
+              idTokenProvider: () async => 'token-123',
+              post: (url, {headers, body, encoding}) async {
+                if (url.path.endsWith('/getNotificationMutationVersion')) {
+                  return http.Response(
+                    '{"mutationVersion":$mutationVersion}',
+                    200,
+                  );
+                }
+                if (url.path.endsWith('/registerNotification')) {
+                  registerRequests++;
+                  mutationVersion++;
+                  return http.Response(
+                    '{"success":true,"mutationVersion":$mutationVersion}',
+                    200,
+                  );
+                }
+                throw StateError('Unexpected notification endpoint: $url');
+              },
+            ),
+      );
+
+      expect(restored, isTrue);
+      expect(registerRequests, 1);
+      expect(
+        user.getNotificationPreference('default')?.toJson(),
+        remotePreference.toJson(),
+      );
+    },
+  );
+
+  testWidgets(
     'reset cancellation prevents an in-flight migration from registering',
     (tester) async {
       user.setNotificationPreference(
@@ -1457,7 +1544,7 @@ void main() {
 
         expect(await signOutCancellation, isTrue);
         await migration;
-      expect(operations, ['remote', 'local:815']);
+        expect(operations, ['remote', 'local:815']);
         expect(memory.stored['fcmDefaultReminderMigrated'], isTrue);
         expect(user.getNotificationPreference('default'), isNull);
       } finally {
