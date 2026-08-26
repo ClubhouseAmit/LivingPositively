@@ -451,7 +451,7 @@ class _MyAppState extends State<MyApp> with WidgetsBindingObserver {
       localeService.setLocale(locale);
       localeName = localeService.getLocale();
     });
-    service.setItem("localeName", PersistentMemoryType.String, locale);
+    unawaited(_saveLocaleInBackground(service, locale));
     
     final userInfoProvider = Provider.of<UserInformation>(
       context,
@@ -465,6 +465,24 @@ class _MyAppState extends State<MyApp> with WidgetsBindingObserver {
         NotificationsService.updateNotification(userInfoProvider, localizations);
       }
     });
+  }
+
+  Future<void> _saveLocaleInBackground(
+    PersistentMemoryService service,
+    String locale,
+  ) async {
+    try {
+      await service.setItem("localeName", PersistentMemoryType.String, locale);
+    } catch (error, stackTrace) {
+      try {
+        await GetIt.instance<IncidentLoggerService>().captureLog(
+          error,
+          stackTrace: stackTrace,
+        );
+      } catch (_) {
+        // Logging is best effort for this background preference write.
+      }
+    }
   }
 
   ValueNotifier<Widget?> widgetNotifier = ValueNotifier<Widget?>(null);

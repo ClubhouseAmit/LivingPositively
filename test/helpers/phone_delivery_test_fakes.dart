@@ -1,22 +1,13 @@
-import 'package:mazilon/global_enums.dart';
-import 'package:mazilon/util/persistent_memory_service.dart';
 import 'package:url_launcher_platform_interface/link.dart';
 import 'package:url_launcher_platform_interface/url_launcher_platform_interface.dart';
 
-/// No-op persistence used by SOS and emergency-delivery widget tests.
-class FakePersistentMemoryService implements PersistentMemoryService {
-  @override
-  Future<dynamic> getItem(String key, PersistentMemoryType type) async => null;
+import '../../test_support/contract_persistent_memory_service.dart';
 
-  @override
-  Future<void> reset() async {}
-
-  @override
-  Future<void> setItem(
-    String key,
-    PersistentMemoryType type,
-    dynamic value,
-  ) async {}
+/// In-memory persistence used by SOS and emergency-delivery widget tests.
+final class FakePersistentMemoryService extends ContractPersistentMemoryService {
+  FakePersistentMemoryService() {
+    onMissingRead = (_, _) => null;
+  }
 }
 
 /// URL launcher fake that records attempts and can model launch failures.

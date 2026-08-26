@@ -1,54 +1,96 @@
+import 'dart:async';
+
 import 'package:flutter_test/flutter_test.dart';
 import 'package:get_it/get_it.dart';
 import 'package:mazilon/global_enums.dart';
+import 'package:mazilon/l10n/app_localizations_ar.dart';
+import 'package:mazilon/l10n/app_localizations_en.dart';
+import 'package:mazilon/l10n/app_localizations_he.dart';
 import 'package:mazilon/util/Firebase/firebase_functions.dart';
+import 'package:mazilon/util/dreams_and_goals_selection.dart';
 import 'package:mazilon/util/logger_service.dart';
 import 'package:mazilon/util/persistent_memory_service.dart';
 import 'package:mazilon/util/userInformation.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+
+import '../../test_support/contract_persistent_memory_service.dart';
 
 // ---------------------------------------------------------------------------
 // Fakes
 // ---------------------------------------------------------------------------
 
 class _FakeLogger implements IncidentLoggerService {
+  _FakeLogger({this.captureLogGate, this.throwOnCaptureLog = false});
+
+  final Future<void>? captureLogGate;
+  final bool throwOnCaptureLog;
+  final List<dynamic> capturedExceptions = <dynamic>[];
+  final List<StackTrace?> capturedStackTraces = <StackTrace?>[];
+  final Completer<void> captureLogStarted = Completer<void>();
+  final Completer<void> captureLogCompleted = Completer<void>();
+
   @override
   Future<void> initializeSentry(_) async {}
+
   @override
   Future<void> captureLog(
     dynamic exception, {
     StackTrace? stackTrace,
     dynamic exceptionData,
-  }) async {}
+  }) async {
+    capturedExceptions.add(exception);
+    capturedStackTraces.add(stackTrace);
+    if (!captureLogStarted.isCompleted) {
+      captureLogStarted.complete();
+    }
+    try {
+      final Future<void>? gate = captureLogGate;
+      if (gate != null) {
+        await gate;
+      }
+      if (throwOnCaptureLog) {
+        throw StateError('Incident logging failed.');
+      }
+    } finally {
+      if (!captureLogCompleted.isCompleted) {
+        captureLogCompleted.complete();
+      }
+    }
+  }
 }
 
 /// A fake [PersistentMemoryService] backed by an in-memory map.
-class _FakeMemory implements PersistentMemoryService {
-  final Map<String, dynamic> _store;
+final class _FakeMemory extends ContractPersistentMemoryService {
+  bool failDreamsAndGoalsWrites;
 
-  _FakeMemory(this._store);
-
-  @override
-  Future<dynamic> getItem(String key, PersistentMemoryType type) async {
-    return _store[key];
+  _FakeMemory(
+    Map<String, dynamic> store, {
+    this.failDreamsAndGoalsWrites = false,
+  }) : super(store: store) {
+    onMissingRead = (_, _) => null;
+    onPersist = (key, _, _) {
+      if (failDreamsAndGoalsWrites &&
+          _dreamsAndGoalsStorageKeys.contains(key)) {
+        throw StateError('Dreams and Goals storage is unavailable.');
+      }
+    };
   }
-
-  @override
-  Future<void> setItem(
-    String key,
-    PersistentMemoryType type,
-    dynamic value,
-  ) async {}
-
-  @override
-  Future<void> reset() async {}
 }
+
+const Set<String> _dreamsAndGoalsStorageKeys = <String>{
+  dreamsAndGoalsSelectionStorageKey,
+  dreamsAndGoalsSelectionSourcesStorageKey,
+  dreamsAndGoalsCustomSelectionsStorageKey,
+};
 
 // ---------------------------------------------------------------------------
 // Helpers
 // ---------------------------------------------------------------------------
 
-void _registerFakes({required Map<String, dynamic> store}) {
+_FakeMemory _registerFakes({
+  required Map<String, dynamic> store,
+  bool failDreamsAndGoalsWrites = false,
+}) {
   final getIt = GetIt.instance;
   if (getIt.isRegistered<IncidentLoggerService>()) {
     getIt.unregister<IncidentLoggerService>();
@@ -56,8 +98,13 @@ void _registerFakes({required Map<String, dynamic> store}) {
   if (getIt.isRegistered<PersistentMemoryService>()) {
     getIt.unregister<PersistentMemoryService>();
   }
+  final memory = _FakeMemory(
+    store,
+    failDreamsAndGoalsWrites: failDreamsAndGoalsWrites,
+  );
   getIt.registerSingleton<IncidentLoggerService>(_FakeLogger());
-  getIt.registerSingleton<PersistentMemoryService>(_FakeMemory(store));
+  getIt.registerSingleton<PersistentMemoryService>(memory);
+  return memory;
 }
 
 void _unregisterFakes() {
@@ -112,6 +159,7 @@ void main() {
           'userSelectionPersonalPlan-FeelBetter': ['better1'],
           'userSelectionPersonalPlan-Distractions': ['dist1'],
           'userSelectionPersonalPlan-SafeEnvironment': ['safe1'],
+          'userSelectionPersonalPlan-DreamsAndGoals': ['dream1'],
           'positiveTraits': ['brave'],
           'thankYous': ['thanks1'],
           'dates': ['2024-01-01'],
@@ -158,6 +206,7 @@ void main() {
           'userSelectionPersonalPlan-FeelBetter': ['fb1'],
           'userSelectionPersonalPlan-Distractions': ['d1', 'd2'],
           'userSelectionPersonalPlan-SafeEnvironment': ['se1', 'se2'],
+          'userSelectionPersonalPlan-DreamsAndGoals': ['dg1', 'dg2'],
           'positiveTraits': ['kind', 'bold'],
           'thankYous': ['t1', 't2'],
           'dates': ['2024-01-01', '2024-02-01'],
@@ -172,20 +221,215 @@ void main() {
       expect(userInfo.feelBetter, equals(['fb1']));
       expect(userInfo.distractions, equals(['d1', 'd2']));
       expect(userInfo.safeEnvironment, equals(['se1', 'se2']));
+      expect(userInfo.dreamsAndGoals, equals(['dg1', 'dg2']));
       expect(userInfo.positiveTraits, equals(['kind', 'bold']));
       expect(userInfo.thanks['thanks'], equals(['t1', 't2']));
       expect(userInfo.thanks['dates'], equals(['2024-01-01', '2024-02-01']));
     });
   });
 
+  group('loadUserInformation – Dreams and Goals source migration', () {
+    test(
+      'should migrate legacy English, Hebrew, and Arabic labels by id',
+      () async {
+        const englishGoal = 'Write and publish a book';
+        const hebrewGoal = 'לכתוב ולהוציא לאור ספר';
+        const arabicGoal = 'كتابة كتاب ونشره';
+        final store = <String, dynamic>{
+          'userSelectionPersonalPlan-DreamsAndGoals': <String>[
+            englishGoal,
+            hebrewGoal,
+            arabicGoal,
+            'My own goal',
+          ],
+          'addedStringsPersonalPlan-DreamsAndGoals': <String>[
+            englishGoal,
+            hebrewGoal,
+            arabicGoal,
+            'My own goal',
+          ],
+        };
+        _registerFakes(store: store);
+
+        final repairedMetadataStore = <String, dynamic>{};
+        final userInfo = UserInformation(
+          service: _FakeMemory(repairedMetadataStore),
+        );
+        await loadUserInformation(userInfo, 'en');
+
+        const bookSource = 'catalogue:write-and-publish-a-book';
+        expect(userInfo.dreamsAndGoalsSelectionSources, [
+          bookSource,
+          bookSource,
+          bookSource,
+          dreamsAndGoalsCustomSelectionSource,
+        ]);
+        expect(
+          repairedMetadataStore[dreamsAndGoalsSelectionStorageKey],
+          <String>[englishGoal, hebrewGoal, arabicGoal, 'My own goal'],
+        );
+        expect(
+          repairedMetadataStore[dreamsAndGoalsSelectionSourcesStorageKey],
+          <String>[
+            bookSource,
+            bookSource,
+            bookSource,
+            dreamsAndGoalsCustomSelectionSource,
+          ],
+        );
+        expect(
+          repairedMetadataStore[dreamsAndGoalsCustomSelectionsStorageKey],
+          <String>['My own goal'],
+        );
+        expect(
+          store.containsKey(dreamsAndGoalsSelectionSourcesStorageKey),
+          isFalse,
+        );
+      },
+    );
+
+    test('should align all localized catalogue labels with immutable ids', () {
+      final localizedCatalogues = <List<String>>[
+        retrieveDreamsAndGoalsList(AppLocalizationsEn(), 'other'),
+        retrieveDreamsAndGoalsList(AppLocalizationsHe(), 'other'),
+        retrieveDreamsAndGoalsList(AppLocalizationsAr(), 'other'),
+      ];
+      final expectedSources = List<String>.generate(
+        dreamsAndGoalsCatalogueIds.length,
+        dreamsAndGoalsCatalogueSelectionSourceForIndex,
+      );
+
+      for (final catalogue in localizedCatalogues) {
+        expect(catalogue, hasLength(dreamsAndGoalsCatalogueIds.length));
+        expect(
+          normalizeDreamsAndGoalsSelectionSources(catalogue, const <String>[]),
+          expectedSources,
+        );
+      }
+    });
+
+    test(
+      'should repair short, long, malformed, and out-of-range source rows',
+      () {
+        const selections = <String>[
+          'Write and publish a book',
+          'Learn a new language',
+          'A saved own goal',
+        ];
+
+        expect(
+          normalizeDreamsAndGoalsSelectionSources(selections, const <String>[]),
+          [
+            'catalogue:write-and-publish-a-book',
+            'catalogue:learn-a-new-language',
+            dreamsAndGoalsCustomSelectionSource,
+          ],
+        );
+        expect(
+          normalizeDreamsAndGoalsSelectionSources(selections, const <String>[
+            'catalogue:write-and-publish-a-book',
+          ]),
+          [
+            'catalogue:write-and-publish-a-book',
+            'catalogue:learn-a-new-language',
+            dreamsAndGoalsCustomSelectionSource,
+          ],
+        );
+        expect(
+          normalizeDreamsAndGoalsSelectionSources(selections, const <String>[
+            'catalogue:write-and-publish-a-book',
+            'catalogue:not-a-goal',
+            'not-a-source',
+            'custom',
+          ]),
+          [
+            'catalogue:write-and-publish-a-book',
+            'catalogue:learn-a-new-language',
+            dreamsAndGoalsCustomSelectionSource,
+          ],
+        );
+      },
+    );
+
+    test(
+      'should continue startup and retain normalized state when repair fails',
+      () async {
+        final store = <String, dynamic>{
+          dreamsAndGoalsSelectionStorageKey: <String>[
+            'Write and publish a book',
+            'My own goal',
+          ],
+          dreamsAndGoalsSelectionSourcesStorageKey: <String>[],
+          dreamsAndGoalsCustomSelectionsStorageKey: <String>[],
+          'location': 'Haifa',
+          'disclaimerConfirmed': true,
+          'notificationMinute': 45,
+          'notificationHour': 8,
+          'notificationMessage': 'Take a break',
+          'localeName': 'he',
+          'positiveTraits': <String>['Kind'],
+          'thankYous': <String>['Thank you'],
+          'dates': <String>['2026-08-19'],
+        };
+        final memory = _registerFakes(
+          store: store,
+          failDreamsAndGoalsWrites: true,
+        );
+        final logger = GetIt.instance<IncidentLoggerService>() as _FakeLogger;
+        final userInfo = _makeUserInfo();
+
+        await loadUserInformation(userInfo, 'en');
+
+        expect(userInfo.dreamsAndGoals, <String>[
+          'Write and publish a book',
+          'My own goal',
+        ]);
+        expect(userInfo.dreamsAndGoalsSelectionSources, <String>[
+          'catalogue:write-and-publish-a-book',
+          dreamsAndGoalsCustomSelectionSource,
+        ]);
+        expect(userInfo.location, 'Haifa');
+        expect(userInfo.disclaimerSigned, isTrue);
+        expect(userInfo.notificationMinute, 45);
+        expect(userInfo.notificationHour, 8);
+        expect(userInfo.notificationMessage, 'Take a break');
+        expect(userInfo.localeName, 'he');
+        expect(userInfo.positiveTraits, <String>['Kind']);
+        expect(userInfo.thanks, <String, List<String>>{
+          'thanks': <String>['Thank you'],
+          'dates': <String>['2026-08-19'],
+        });
+        expect(logger.capturedExceptions, hasLength(1));
+        expect(logger.capturedExceptions.single, isA<StateError>());
+        expect(logger.capturedStackTraces.single, isNotNull);
+
+        memory.failDreamsAndGoalsWrites = false;
+        await userInfo.retryDreamsAndGoalsSave(
+          userInfo.dreamsAndGoalsSaveRevision,
+        );
+
+        expect(store[dreamsAndGoalsSelectionStorageKey], <String>[
+          'Write and publish a book',
+          'My own goal',
+        ]);
+        expect(store[dreamsAndGoalsSelectionSourcesStorageKey], <String>[
+          'catalogue:write-and-publish-a-book',
+          dreamsAndGoalsCustomSelectionSource,
+        ]);
+        expect(store[dreamsAndGoalsCustomSelectionsStorageKey], <String>[
+          'My own goal',
+        ]);
+      },
+    );
+  });
+
   group('loadUserInformation – empty / null defaults', () {
     test(
-      'uses the default schedule when saved values are absent or invalid',
+      'uses the default schedule when saved values are absent',
       () async {
         _registerFakes(
           store: {
             'darkModePreference': 'scheduled',
-            'darkModeStartHour': 'not-an-int',
           },
         );
 
@@ -201,6 +445,77 @@ void main() {
     );
 
     test(
+      'defaults and logs an invalid typed SharedPreferences value',
+      () async {
+        SharedPreferences.setMockInitialValues({
+          'darkModePreference': 'scheduled',
+          'darkModeStartHour': 'not-an-int',
+        });
+        final logger = _FakeLogger();
+        final memory = SharedPreferencesService();
+        GetIt.instance.registerSingleton<IncidentLoggerService>(logger);
+        GetIt.instance.registerSingleton<PersistentMemoryService>(memory);
+
+        final userInfo = UserInformation(service: memory);
+        await loadUserInformation(userInfo, 'en');
+        await logger.captureLogCompleted.future;
+
+        expect(userInfo.darkModePreference, DarkModePreference.scheduled);
+        expect(userInfo.darkModeStartHour, 22);
+        expect(userInfo.darkModeStartMinute, 0);
+        expect(userInfo.darkModeEndHour, 6);
+        expect(userInfo.darkModeEndMinute, 0);
+        expect(logger.capturedExceptions, hasLength(1));
+        expect(logger.capturedStackTraces.single, isNotNull);
+      },
+    );
+
+    test(
+      'returns a null fallback when logger capture fails for malformed storage',
+      () async {
+        SharedPreferences.setMockInitialValues({
+          'darkModeStartHour': 'not-an-int',
+        });
+        final Completer<void> loggerGate = Completer<void>();
+        final logger = _FakeLogger(
+          captureLogGate: loggerGate.future,
+          throwOnCaptureLog: true,
+        );
+        final memory = SharedPreferencesService();
+        GetIt.instance.registerSingleton<IncidentLoggerService>(logger);
+        GetIt.instance.registerSingleton<PersistentMemoryService>(memory);
+
+        final Future<dynamic> read = memory.getItem(
+          'darkModeStartHour',
+          PersistentMemoryType.Int,
+        );
+        bool readCompleted = false;
+        unawaited(
+          read.then<void>(
+            (_) {
+              readCompleted = true;
+            },
+            onError: (_, _) {
+              readCompleted = true;
+            },
+          ),
+        );
+        await logger.captureLogStarted.future;
+        await Future<void>.microtask(() {});
+        expect(readCompleted, isFalse);
+        expect(logger.captureLogCompleted.isCompleted, isFalse);
+
+        loggerGate.complete();
+        await logger.captureLogCompleted.future;
+
+        expect(await read, isNull);
+        expect(readCompleted, isTrue);
+        expect(logger.capturedExceptions, hasLength(1));
+        expect(logger.capturedStackTraces.single, isNotNull);
+      },
+    );
+
+    test(
       'uses the default schedule with missing SharedPreferences Int values',
       () async {
         SharedPreferences.setMockInitialValues({
@@ -212,6 +527,7 @@ void main() {
 
         final userInfo = UserInformation(service: memory);
         await loadUserInformation(userInfo, 'en');
+        await Future<void>.delayed(Duration.zero);
 
         expect(userInfo.darkModePreference, DarkModePreference.scheduled);
         expect(userInfo.darkModeStartHour, 22);
@@ -247,6 +563,7 @@ void main() {
       expect(userInfo.feelBetter, equals([]));
       expect(userInfo.distractions, equals([]));
       expect(userInfo.safeEnvironment, equals([]));
+      expect(userInfo.dreamsAndGoals, equals([]));
       expect(userInfo.positiveTraits, equals([]));
     });
 

@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:dotted_border/dotted_border.dart';
 import 'package:get_it/get_it.dart';
@@ -8,6 +10,9 @@ import 'package:mazilon/form/wizard_step.dart';
 import 'package:mazilon/l10n/app_localizations.dart';
 import 'package:mazilon/pages/FormAnswer.dart';
 import 'package:mazilon/util/FormAnswer/addFormAnswer.dart';
+import 'package:mazilon/util/async/persistence_retry_snack_bar.dart';
+import 'package:mazilon/util/dreams_and_goals_selection.dart';
+import 'package:mazilon/util/logger_service.dart';
 import 'package:mazilon/util/persistent_memory_service.dart';
 import 'package:mazilon/util/styles.dart';
 import 'package:mazilon/util/theme/app_theme.dart';
@@ -41,12 +46,16 @@ class FormPageTemplate extends WizardStep {
   final Function prev;
 
   final String collectionName;
+  final bool scrollable;
+  final PersistentMemoryService? persistentMemoryService;
 
   const FormPageTemplate({
     required super.key,
     required this.next,
     required this.prev,
     required this.collectionName,
+    this.scrollable = true,
+    this.persistentMemoryService,
   });
 
   @override
@@ -64,6 +73,9 @@ class _FormPageTemplateState extends WizardStepState<FormPageTemplate> {
   int displayedLength = 3;
   List<String> suggestionPool = const [];
   List<String> selectedItems = [];
+  List<String> selectedItemSources = const [];
+  Future<void> _pendingDreamsAndGoalsPersistence = Future<void>.value();
+  int? _pendingDreamsAndGoalsPersistenceRevision;
 
   // Identity for the answer rows. Two answers can hold the same text, so a
   // text-derived key is not identity: after swiping one away, the survivor
@@ -101,11 +113,33 @@ class _FormPageTemplateState extends WizardStepState<FormPageTemplate> {
   }
 
   bool isAlreadySelected(String item) {
+    if (_tracksDreamsAndGoalsSelectionSources) {
+      final index = suggestionPool.indexOf(item);
+      return index >= 0 &&
+          selectedItemSources.contains(
+            dreamsAndGoalsCatalogueSelectionSourceForIndex(index),
+          );
+    }
     return selectedItems.contains(item);
   }
 
+  bool get _tracksDreamsAndGoalsSelectionSources =>
+      widget.collectionName == 'PersonalPlan-DreamsAndGoals';
+
   void editItem(int index, String text) {
-    selectedItems[index] = text.trim();
+    if (index < 0 || index >= selectedItems.length) {
+      return;
+    }
+    final editedItem = text.trim();
+    if (_tracksDreamsAndGoalsSelectionSources &&
+        editedItem != selectedItems[index] &&
+        index < selectedItemSources.length) {
+      final source = selectedItemSources[index];
+      if (source != dreamsAndGoalsCustomSelectionSource) {
+        selectedItemSources[index] = dreamsAndGoalsCustomSelectionSource;
+      }
+    }
+    selectedItems[index] = editedItem;
     setState(() {});
   }
 
@@ -116,12 +150,20 @@ class _FormPageTemplateState extends WizardStepState<FormPageTemplate> {
     // By index, not by value: two answers can hold the same text, and
     // removing by value would delete both.
     selectedItems.removeAt(index);
+    if (_tracksDreamsAndGoalsSelectionSources) {
+      selectedItemSources.removeAt(index);
+    }
 
     setState(() {});
   }
 
-  void addItem(String text) {
+  void addItem(String text, {String? selectionSource}) {
     selectedItems.add(text.trim());
+    if (_tracksDreamsAndGoalsSelectionSources) {
+      selectedItemSources.add(
+        selectionSource ?? dreamsAndGoalsCustomSelectionSource,
+      );
+    }
 
     setState(() {});
   }
@@ -135,48 +177,87 @@ class _FormPageTemplateState extends WizardStepState<FormPageTemplate> {
     });
   }
 
-  Future<void> createSelection(userInfo) async {
-    PersistentMemoryService service =
-        GetIt.instance<
-          PersistentMemoryService
-        >(); // Get the persistent memory service instance
+  Future<void> _saveDreamsAndGoalsWithDisclaimer(
+    UserInformation userInfo, {
+    required int revision,
+    required bool retry,
+  }) {
+    final Future<void> combinedSave = userInfo.saveDreamsAndGoalsWithDisclaimer(
+      revision: revision,
+      retry: retry,
+    );
+    _pendingDreamsAndGoalsPersistence = combinedSave;
+    _pendingDreamsAndGoalsPersistenceRevision =
+        userInfo.dreamsAndGoalsSaveRevision;
+    return combinedSave;
+  }
 
-    switch (widget.collectionName) {
-      case 'PersonalPlan-DifficultEvents':
-        userInfo.updateDifficultEvents([...selectedItems]);
-        break;
-      case 'PersonalPlan-MakeSafer':
-        userInfo.updateMakeSafer([...selectedItems]);
-        break;
-      case 'PersonalPlan-FeelBetter':
-        userInfo.updateFeelBetter([...selectedItems]);
-        break;
-      case 'PersonalPlan-Distractions':
-        userInfo.updateDistractions([...selectedItems]);
-        break;
-      case 'PersonalPlan-SafeEnvironment':
-        userInfo.updateSafeEnvironment([...selectedItems]);
-        break;
-      default:
+  Future<void> createSelection(
+    UserInformation userInfo, {
+    void Function(int revision)? onDreamsSaveQueued,
+  }) async {
+    if (widget.persistentMemoryService != null &&
+        widget.collectionName != 'PersonalPlan-DreamsAndGoals') {
+      switch (widget.collectionName) {
+        case 'PersonalPlan-DifficultEvents':
+          userInfo.updateDifficultEvents([...selectedItems]);
+          break;
+        case 'PersonalPlan-MakeSafer':
+          userInfo.updateMakeSafer([...selectedItems]);
+          break;
+        case 'PersonalPlan-FeelBetter':
+          userInfo.updateFeelBetter([...selectedItems]);
+          break;
+        case 'PersonalPlan-Distractions':
+          userInfo.updateDistractions([...selectedItems]);
+          break;
+        case 'PersonalPlan-SafeEnvironment':
+          userInfo.updateSafeEnvironment([...selectedItems]);
+          break;
+        default:
+      }
+      await userInfo.persistDisclaimerConfirmed();
+      await widget.persistentMemoryService!.setItem(
+        'userSelection${widget.collectionName}',
+        PersistentMemoryType.StringList,
+        [...selectedItems],
+      );
+      await widget.persistentMemoryService!.setItem(
+        'addedStrings${widget.collectionName}',
+        PersistentMemoryType.StringList,
+        [...selectedItems],
+      );
+      return;
     }
-    await service.setItem(
-      "disclaimerConfirmed",
-      PersistentMemoryType.Bool,
-      true,
-    );
-    await service.setItem(
-      'userSelection${widget.collectionName}',
-      PersistentMemoryType.StringList,
-      [...selectedItems],
-    );
-    await service.setItem(
-      'addedStrings${widget.collectionName}',
-      PersistentMemoryType.StringList,
-      [...selectedItems],
+
+    if (widget.collectionName == 'PersonalPlan-DreamsAndGoals') {
+      final Future<void> dreamsAndGoalsSave = userInfo.saveCategorySelection(
+        widget.collectionName,
+        selectedItems,
+        selectionSources: selectedItemSources,
+        onDreamsSaveQueued: (int revision) {
+          onDreamsSaveQueued?.call(revision);
+        },
+      );
+      selectedItemSources = List<String>.from(
+        userInfo.dreamsAndGoalsSelectionSources,
+      );
+      _pendingDreamsAndGoalsPersistence = dreamsAndGoalsSave;
+      _pendingDreamsAndGoalsPersistenceRevision =
+          userInfo.dreamsAndGoalsSaveRevision;
+      await dreamsAndGoalsSave;
+      return;
+    }
+
+    await userInfo.saveCategorySelection(
+      widget.collectionName,
+      selectedItems,
+      selectionSources: selectedItemSources,
+      onDreamsSaveQueued: onDreamsSaveQueued,
     );
   }
 
-  void loadItems(userInfo) {
+  void loadItems(UserInformation userInfo) {
     switch (widget.collectionName) {
       case 'PersonalPlan-DifficultEvents':
         selectedItems = [...userInfo.difficultEvents];
@@ -193,7 +274,69 @@ class _FormPageTemplateState extends WizardStepState<FormPageTemplate> {
       case 'PersonalPlan-SafeEnvironment':
         selectedItems = [...userInfo.safeEnvironment];
         break;
+      case 'PersonalPlan-DreamsAndGoals':
+        selectedItems = [...userInfo.dreamsAndGoals];
+        selectedItemSources = [...userInfo.dreamsAndGoalsSelectionSources];
+        break;
       default:
+    }
+  }
+
+  Future<void> _saveSelectionAfterMutation(UserInformation userInfo) async {
+    int? dreamsSaveRevision;
+    try {
+      await createSelection(
+        userInfo,
+        onDreamsSaveQueued: (int revision) {
+          dreamsSaveRevision = revision;
+        },
+      );
+    } catch (_) {
+      if (!mounted) {
+        return;
+      }
+      _showSaveFailure(() => _retrySelectionSave(userInfo, dreamsSaveRevision));
+    }
+  }
+
+  Future<void> _retrySelectionSave(
+    UserInformation userInfo,
+    int? dreamsSaveRevision,
+  ) async {
+    if (_tracksDreamsAndGoalsSelectionSources && dreamsSaveRevision != null) {
+      await _saveDreamsAndGoalsWithDisclaimer(
+        userInfo,
+        revision: dreamsSaveRevision,
+        retry: true,
+      );
+      return;
+    }
+    await createSelection(userInfo);
+  }
+
+  void _showSaveFailure(Future<void> Function() retry) {
+    showPersistenceRetrySnackBar(context, () => _runSaveRetry(retry));
+  }
+
+  Future<void> _runSaveRetry(Future<void> Function() retry) async {
+    try {
+      await retry();
+    } catch (error, stackTrace) {
+      await _captureRetryFailure(error, stackTrace);
+      if (mounted) {
+        _showSaveFailure(retry);
+      }
+    }
+  }
+
+  Future<void> _captureRetryFailure(Object error, StackTrace stackTrace) async {
+    try {
+      await GetIt.instance<IncidentLoggerService>().captureLog(
+        error,
+        stackTrace: stackTrace,
+      );
+    } catch (_) {
+      // Logging is best effort; it must not hide the retry affordance.
     }
   }
 
@@ -224,19 +367,55 @@ class _FormPageTemplateState extends WizardStepState<FormPageTemplate> {
     );
   }
 
-  /// Figma "Frame 216" — the answered-item rows ("Frame 215") followed by the
-  /// inline "add your own" link ("Frame 171"), which the design aligns to the
-  /// reading start edge rather than centring.
+  Widget _buildAddOwnItem(UserInformation userInfoProvider, String gender) {
+    return Align(
+      alignment: AlignmentDirectional.centerStart,
+      child: LinkButton(
+        () {
+          showDialog(
+            context: context,
+            builder: (context) {
+              return AddFormAnswer(
+                index: selectedItems.length,
+                edit: (int index, String text) {
+                  addItem(
+                    text,
+                    selectionSource: dreamsAndGoalsCustomSelectionSource,
+                  );
+                  unawaited(_saveSelectionAfterMutation(userInfoProvider));
+                },
+                text: '',
+              );
+            },
+          );
+        },
+        Icons.add,
+        _tracksDreamsAndGoalsSelectionSources
+            ? appLocale.dreamsAndGoalsAddOwn(gender)
+            : appLocale.addFormPageTemplateAddOwn(gender),
+        Theme.of(context).colorScheme.primary,
+        designFontSize: 12,
+        iconSize: 12,
+      ),
+    );
+  }
+
+  /// Figma "Frame 216" — the answered-item rows ("Frame 215") and the
+  /// inline "add your own" link ("Frame 171"). Dreams and Goals places the
+  /// link before its selected rows so it stays available as selections grow;
+  /// the other wizard sections retain the existing rows-then-link layout.
   Widget _buildItemsBlock(UserInformation userInfoProvider, String gender) {
+    final addOwnItem = _buildAddOwnItem(userInfoProvider, gender);
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
-      //The design spaces the rows and the "add your own" link uniformly, so
-      //one `spacing` covers both — no trailing-item special case.
+      // The design spaces the rows and the "add your own" link uniformly, so
+      // one `spacing` covers both — no trailing-item special case.
       spacing: _gapWithinBlock,
       children: [
-        //Frame 215 — a plain Column, not a shrink-wrapped ListView: the list
-        //never scrolls on its own, and a ListView would silently inherit
-        //MediaQuery.padding as sliver padding.
+        if (_tracksDreamsAndGoalsSelectionSources) addOwnItem,
+        // Frame 215 — a plain Column, not a shrink-wrapped ListView: the list
+        // never scrolls on its own, and a ListView would silently inherit
+        // MediaQuery.padding as sliver padding.
         for (final (index, item) in selectedItems.indexed)
           FormAnswer(
             key: ValueKey('answer-${rowIds[index]}'),
@@ -244,39 +423,14 @@ class _FormPageTemplateState extends WizardStepState<FormPageTemplate> {
             num: index + 1,
             edit: (int editIndex, String text) {
               editItem(editIndex, text);
-              createSelection(userInfoProvider);
+              unawaited(_saveSelectionAfterMutation(userInfoProvider));
             },
             remove: (int removeIndex) {
               removeItem(removeIndex);
-              createSelection(userInfoProvider);
+              unawaited(_saveSelectionAfterMutation(userInfoProvider));
             },
           ),
-        //Frame 171 — start-aligned, not centred.
-        Align(
-          alignment: AlignmentDirectional.centerStart,
-          child: LinkButton(
-            () {
-              showDialog(
-                context: context,
-                builder: (context) {
-                  return AddFormAnswer(
-                    index: selectedItems.length,
-                    edit: (int index, String text) {
-                      addItem(text);
-                      createSelection(userInfoProvider);
-                    },
-                    text: '',
-                  );
-                },
-              );
-            },
-            Icons.add,
-            appLocale.addFormPageTemplateAddOwn(gender),
-            Theme.of(context).colorScheme.primary,
-            designFontSize: 12,
-            iconSize: 12,
-          ),
-        ),
+        if (!_tracksDreamsAndGoalsSelectionSources) addOwnItem,
       ],
     );
   }
@@ -347,10 +501,14 @@ class _FormPageTemplateState extends WizardStepState<FormPageTemplate> {
     return InkWell(
       key: ValueKey('suggestion-$item'),
       onTap: () {
-        setState(() {
-          addItem(item);
-          createSelection(userInfoProvider);
-        });
+        final index = suggestionPool.indexOf(item);
+        addItem(
+          item,
+          selectionSource: _tracksDreamsAndGoalsSelectionSources
+              ? dreamsAndGoalsCatalogueSelectionSourceForIndex(index)
+              : null,
+        );
+        unawaited(_saveSelectionAfterMutation(userInfoProvider));
       },
       child: DottedBorder(
         options: RoundedRectDottedBorderOptions(
@@ -400,10 +558,72 @@ class _FormPageTemplateState extends WizardStepState<FormPageTemplate> {
     );
     AnalyticsService mixPanelService = GetIt.instance<AnalyticsService>();
     mixPanelService.trackEvent("Plan edited", {'page': widget.collectionName});
-    // Saved before moving on, so the step cannot be left behind with its
-    // answers still in flight.
-    await createSelection(userInfoProvider);
-    widget.next();
+    int? dreamsSaveRevision;
+    try {
+      await createSelection(
+        userInfoProvider,
+        onDreamsSaveQueued: (int revision) {
+          dreamsSaveRevision = revision;
+        },
+      );
+      if (mounted) {
+        widget.next();
+      }
+    } catch (_) {
+      if (mounted) {
+        _showSaveFailure(
+          () => _completePrimaryAction(userInfoProvider, dreamsSaveRevision),
+        );
+      }
+      rethrow;
+    }
+  }
+
+  Future<void> _completePrimaryAction(
+    UserInformation userInfoProvider,
+    int? dreamsSaveRevision,
+  ) async {
+    if (_tracksDreamsAndGoalsSelectionSources && dreamsSaveRevision != null) {
+      await _retrySelectionSave(userInfoProvider, dreamsSaveRevision);
+    } else {
+      await createSelection(userInfoProvider);
+    }
+    if (mounted) {
+      widget.next();
+    }
+  }
+
+  @override
+  Future<void> persistBeforeExit() async {
+    if (!_tracksDreamsAndGoalsSelectionSources) {
+      return;
+    }
+    final UserInformation userInfoProvider = Provider.of<UserInformation>(
+      context,
+      listen: false,
+    );
+    await Future.wait<void>([
+      userInfoProvider.pendingDreamsAndGoalsSave,
+      _pendingDreamsAndGoalsPersistence,
+    ]);
+  }
+
+  @override
+  Future<void> retryPersistBeforeExit() async {
+    if (!_tracksDreamsAndGoalsSelectionSources) {
+      return;
+    }
+    final UserInformation userInfoProvider = Provider.of<UserInformation>(
+      context,
+      listen: false,
+    );
+    await _saveDreamsAndGoalsWithDisclaimer(
+      userInfoProvider,
+      revision:
+          _pendingDreamsAndGoalsPersistenceRevision ??
+          userInfoProvider.dreamsAndGoalsSaveRevision,
+      retry: true,
+    );
   }
 
   @override
@@ -428,22 +648,21 @@ class _FormPageTemplateState extends WizardStepState<FormPageTemplate> {
         .where((item) => !isAlreadySelected(item))
         .toList();
 
-    return SingleChildScrollView(
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.stretch,
-        spacing: _gapBetweenBlocks,
-        children: [
-          _buildTitleBlock(displayInformation),
-          _buildItemsBlock(userInfoProvider, gender),
-          if (availableSuggestions.isNotEmpty ||
-              revealedSuggestions < suggestionPool.length)
-            _buildSuggestionsBlock(
-              displayInformation,
-              availableSuggestions,
-              userInfoProvider,
-            ),
-        ],
-      ),
+    final content = Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      spacing: _gapBetweenBlocks,
+      children: [
+        _buildTitleBlock(displayInformation),
+        _buildItemsBlock(userInfoProvider, gender),
+        if (availableSuggestions.isNotEmpty ||
+            revealedSuggestions < suggestionPool.length)
+          _buildSuggestionsBlock(
+            displayInformation,
+            availableSuggestions,
+            userInfoProvider,
+          ),
+      ],
     );
+    return widget.scrollable ? SingleChildScrollView(child: content) : content;
   }
 }

@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:mazilon/form/speech_dictation_suffix_action.dart';
@@ -31,14 +33,21 @@ class _AddFormState extends LPExtendedState<AddForm> {
   final _formKey = GlobalKey<FormState>();
   final TextEditingController _controller = TextEditingController();
 
-  void _onSubmitForm(UserInformation userInfoProvider) {
+  Future<void> _onSubmitForm(UserInformation userInfoProvider) async {
     if (_formKey.currentState!.validate()) {
-      if (widget.text != '') {
-        widget.edit(_controller.text, widget.index, userInfoProvider);
-      } else {
-        widget.add(_controller.text, userInfoProvider);
+      try {
+        final result = widget.text != ''
+            ? widget.edit(_controller.text, widget.index, userInfoProvider)
+            : widget.add(_controller.text, userInfoProvider);
+        if (result is Future) {
+          await result;
+        }
+        if (mounted) {
+          Navigator.of(context).pop();
+        }
+      } catch (error, stackTrace) {
+        debugPrint('Unable to save add-form item: $error\n$stackTrace');
       }
-      Navigator.of(context).pop();
     }
   }
 
@@ -99,8 +108,9 @@ class _AddFormState extends LPExtendedState<AddForm> {
                             Padding(
                               padding: const EdgeInsets.only(bottom: 8.0),
                               child: TextFormField(
-                                onFieldSubmitted: (_) =>
-                                    _onSubmitForm(userInfoProvider),
+                                onFieldSubmitted: (_) {
+                                  unawaited(_onSubmitForm(userInfoProvider));
+                                },
                                 maxLength:
                                     100, // set the max length of the text field
                                 controller: _controller,
@@ -168,7 +178,9 @@ class _AddFormState extends LPExtendedState<AddForm> {
                       null,
                       30,
                     ),
-                    onPressed: () => {_onSubmitForm(userInfoProvider)},
+                    onPressed: () {
+                      unawaited(_onSubmitForm(userInfoProvider));
+                    },
                   ),
                 ],
               ),

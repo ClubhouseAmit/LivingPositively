@@ -1,5 +1,7 @@
 // ignore_for_file: avoid_print
 
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:get_it/get_it.dart';
 import 'package:mazilon/global_enums.dart';
@@ -143,7 +145,7 @@ class PhonePageData extends ChangeNotifier {
   void reset() {
     savedPhoneNames = [];
     savedPhoneNumbers = [];
-    saveItemsToPrefs();
+    unawaited(_saveItemsToPrefsInBackground());
     notifyListeners();
   }
 
@@ -170,7 +172,7 @@ class PhonePageData extends ChangeNotifier {
       return;
     }
 
-    saveItemsToPrefs();
+    unawaited(_saveItemsToPrefsInBackground());
     notifyListeners();
   }
 
@@ -202,7 +204,7 @@ class PhonePageData extends ChangeNotifier {
     }
     savedPhoneNames.add(phoneName.trim());
     savedPhoneNumbers.add(phoneNumber.trim());
-    saveItemsToPrefs();
+    unawaited(_saveItemsToPrefsInBackground());
     notifyListeners();
     return true;
   }
@@ -213,7 +215,7 @@ class PhonePageData extends ChangeNotifier {
         index < savedPhoneNumbers.length) {
       savedPhoneNames.removeAt(index);
       savedPhoneNumbers.removeAt(index);
-      saveItemsToPrefs();
+      unawaited(_saveItemsToPrefsInBackground());
       notifyListeners();
     }
   }
@@ -248,5 +250,13 @@ class PhonePageData extends ChangeNotifier {
       PersistentMemoryType.StringList,
       savedPhoneNumbers,
     );
+  }
+
+  Future<void> _saveItemsToPrefsInBackground() async {
+    try {
+      await saveItemsToPrefs();
+    } catch (error, stackTrace) {
+      debugPrint('Could not save emergency contacts: $error\n$stackTrace');
+    }
   }
 }

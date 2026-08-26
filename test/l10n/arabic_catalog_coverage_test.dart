@@ -58,6 +58,24 @@ void main() {
     );
   });
 
+  test('Dreams and Goals catalogue has all 34 localized entries', () {
+    final english = _arb('lib/l10n/app_en.arb');
+    final hebrew = _arb('lib/l10n/app_he.arb');
+    final arabic = _arb('lib/l10n/app_ar.arb');
+
+    for (var index = 0; index < 34; index++) {
+      final key = 'dreamsAndGoalsListNo$index';
+      expect(english[key], isNotNull, reason: 'Missing English $key');
+      expect(hebrew[key], isNotNull, reason: 'Missing Hebrew $key');
+      expect(arabic[key], isNotNull, reason: 'Missing Arabic $key');
+    }
+
+    expect(
+      hebrew['dreamsAndGoalsListNo19'],
+      '{gender,select,male{להוציא רשיון נהיגה} female{להוציא רשיון נהיגה} other{להוציא רשיון נהיגה}}',
+    );
+  });
+
   test('Arabic ARB provides approved SOS location-sharing copy', () {
     final arabic = _arb('lib/l10n/app_ar.arb');
 

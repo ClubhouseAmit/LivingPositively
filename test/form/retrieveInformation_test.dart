@@ -1,4 +1,6 @@
 import 'package:flutter_test/flutter_test.dart';
+import 'package:mazilon/l10n/app_localizations_en.dart';
+import 'package:mazilon/util/dreams_and_goals_selection.dart';
 import 'package:mazilon/util/Form/retrieveInformation.dart';
 
 /// Stub that implements every method called by `retrieveInformation` and the
@@ -40,6 +42,10 @@ class _FakeLocalization {
   String safeEnvironmentSubTitle(String g) =>
       _record('safeEnvironmentSubTitle', g);
   String safeEnvironmentHeader(String g) => _record('safeEnvironmentHeader', g);
+
+  String dreamsAndGoalsHeader(String g) => _record('dreamsAndGoalsHeader', g);
+  String dreamsAndGoalsSubTitle(String g) =>
+      _record('dreamsAndGoalsSubTitle', g);
 
   String nextButton(String g) => _record('nextButton', g);
   String showMoreButton(String g) => _record('showMoreButton', g);
@@ -123,6 +129,31 @@ void main() {
       expect(result['subTitle'], 'distractionsSubTitle(male)');
       expect(result['midTitle'], 'distractionsMidTitle(male)');
       expect(result['midSubTitle'], 'distractionsMidSubTitle(male)');
+    });
+
+    test('PersonalPlan-DreamsAndGoals returns all dream and goal suggestions', () {
+      final localization = AppLocalizationsEn();
+      final result = retrieveInformation(
+        'PersonalPlan-DreamsAndGoals',
+        'female',
+        localization,
+      );
+
+      expect(result['header'], localization.dreamsAndGoalsHeader('female'));
+      expect(
+        result['subTitle'],
+        localization.dreamsAndGoalsSubTitle('female'),
+      );
+      expect(result['midTitle'], localization.makeSaferMidTitle('female'));
+      expect(
+        result['midSubTitle'],
+        localization.makeSaferMidSubTitle('female'),
+      );
+      expect(result['list'], hasLength(34));
+      expect(
+        result['list'],
+        retrieveDreamsAndGoalsList(localization, 'female'),
+      );
     });
 
     const safeEnvironmentListGenders = <String, String>{
@@ -214,6 +245,13 @@ void main() {
       expect(list, hasLength(4));
       expect(loc.calls, contains('safeEnvironmentListNo0:male'));
       expect(loc.calls, contains('safeEnvironmentListNo3:male'));
+    });
+
+    test('retrieveDreamsAndGoalsList returns the 34 prescribed entries', () {
+      final list = retrieveDreamsAndGoalsList(AppLocalizationsEn(), 'other');
+      expect(list, hasLength(34));
+      expect(list.first, isNotEmpty);
+      expect(list.last, isNotEmpty);
     });
   });
 }

@@ -47,6 +47,7 @@ void main() {
       'Who are the people who support me, that I can turn to if I am in '
           'distress or thinking about self-harm',
       'What will help me make the situation and environment safer for me',
+      'Dreams, Aspirations, and Goals',
     ]);
     expect(metadata.subTitles, const <String>[
       'Reminders of things that have appeared personally for me in the past',
@@ -58,6 +59,7 @@ void main() {
       'The people who love me and will help me get through the tough moments '
           'are:',
       'Steps I can take to make my situation and environment safer',
+      'Dreams and goals I want to pursue',
     ]);
   });
 
@@ -103,8 +105,8 @@ void main() {
           '',
         );
 
-        expect(metadata.titles, hasLength(6));
-        expect(metadata.subTitles, hasLength(6));
+        expect(metadata.titles, hasLength(7));
+        expect(metadata.subTitles, hasLength(7));
         expect(metadata.titles[4], testCase['phonesHeader']);
         expect(metadata.subTitles[2], testCase['wellnessSubTitle']);
       },
@@ -118,8 +120,8 @@ void main() {
       '',
     );
 
-    expect(metadata.titles, hasLength(6));
-    expect(metadata.subTitles, hasLength(6));
+    expect(metadata.titles, hasLength(7));
+    expect(metadata.subTitles, hasLength(7));
     expect(
       metadata.titles[5],
       'ما الذي سيساعدني على جعل الوضع والبيئة أكثر أمانًا بالنسبة لي',
@@ -128,5 +130,7 @@ void main() {
       metadata.subTitles[5],
       'خطوات يمكنني اتخاذها لجعل وضعي وبيئتي أكثر أمانًا',
     );
+    expect(metadata.titles[6], 'الأحلام والطموحات والأهداف');
+    expect(metadata.subTitles[6], 'أحلام وأهداف أريد تحقيقها');
   });
 }

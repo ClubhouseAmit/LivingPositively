@@ -6,8 +6,9 @@ import 'package:mazilon/AnalyticsService.dart';
 import 'package:mazilon/MainPageHelpers/MainPageList/list_utils.dart';
 import 'package:mazilon/global_enums.dart';
 import 'package:mazilon/util/logger_service.dart';
-import 'package:mazilon/util/persistent_memory_service.dart';
 import 'package:mazilon/util/userInformation.dart';
+
+import '../../test_support/contract_persistent_memory_service.dart';
 
 class _RecordingLogger implements IncidentLoggerService {
   final List<dynamic> logs = [];
@@ -36,14 +37,8 @@ class _FakeAnalytics implements AnalyticsService {
   }
 }
 
-class _FakePersistentMemoryService implements PersistentMemoryService {
-  @override
-  Future<dynamic> getItem(String key, PersistentMemoryType type) async => null;
-  @override
-  Future<void> reset() async {}
-  @override
-  Future<void> setItem(String key, PersistentMemoryType type, value) async {}
-}
+ContractPersistentMemoryService _memory() =>
+    ContractPersistentMemoryService()..onMissingRead = (_, _) => null;
 
 /// Fake localization used by `getLocalizedTextForLists`. Returns a
 /// deterministic value for any method invocation, so we can assert the right
@@ -137,14 +132,14 @@ void main() {
 
   group('getListItems', () {
     test('GratitudeJournal returns todayThankYous parameter', () {
-      final user = UserInformation(service: _FakePersistentMemoryService());
+      final user = UserInformation(service: _memory());
       final out = getListItems(PagesCode.GratitudeJournal, user, ['a', 'b']);
       expect(out, ['a', 'b']);
     });
 
     test('QualitiesList returns userInfo.positiveTraits', () {
       final user = UserInformation(
-        service: _FakePersistentMemoryService(),
+        service: _memory(),
         positiveTraits: const ['kind', 'curious'],
       );
       final out = getListItems(PagesCode.QualitiesList, user, ['ignored']);
@@ -157,7 +152,7 @@ void main() {
       'addThankYou appends to thanks + dates and tracks analytics event',
       () async {
         final user = UserInformation(
-          service: _FakePersistentMemoryService(),
+          service: _memory(),
           thanks: {
             'thanks': <String>['old'],
             'dates': <String>['2000-01-01 – 09:00'],
@@ -191,7 +186,7 @@ void main() {
 
     test('editThankYou replaces text at index without touching dates', () {
       final user = UserInformation(
-        service: _FakePersistentMemoryService(),
+        service: _memory(),
         thanks: {
           'thanks': <String>['a', 'b'],
           'dates': <String>['d1', 'd2'],
@@ -210,7 +205,7 @@ void main() {
 
     test('removeThankYou removes entry at index from both lists', () {
       final user = UserInformation(
-        service: _FakePersistentMemoryService(),
+        service: _memory(),
         thanks: {
           'thanks': <String>['a', 'b'],
           'dates': <String>['d1', 'd2'],
@@ -231,7 +226,7 @@ void main() {
   group('addPositiveTrait / editPositiveTrait / removePositiveTrait', () {
     test('addPositiveTrait appends and tracks analytics', () async {
       final user = UserInformation(
-        service: _FakePersistentMemoryService(),
+        service: _memory(),
         positiveTraits: <String>['kind'],
       );
 
@@ -247,7 +242,7 @@ void main() {
 
     test('editPositiveTrait replaces text at index', () {
       final user = UserInformation(
-        service: _FakePersistentMemoryService(),
+        service: _memory(),
         positiveTraits: <String>['old', 'kind'],
       );
 
@@ -260,7 +255,7 @@ void main() {
 
     test('removePositiveTrait removes entry at index', () {
       final user = UserInformation(
-        service: _FakePersistentMemoryService(),
+        service: _memory(),
         positiveTraits: <String>['a', 'b', 'c'],
       );
 

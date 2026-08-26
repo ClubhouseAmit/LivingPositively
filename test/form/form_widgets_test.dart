@@ -108,7 +108,7 @@ void main() {
           ShareForm(
             key: GlobalKey<WizardStepState>(),
             prev: () {},
-            submit: (_) {},
+            submit: (_) async {},
           ),
         ),
         userInformation: userInformation,

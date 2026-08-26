@@ -1,4 +1,5 @@
 import 'package:mazilon/util/gender.dart';
+import 'package:mazilon/util/dreams_and_goals_selection.dart';
 
 //this function is used in the form pages to get the correct information for each page
 Map<String, dynamic> retrieveInformation(name, gender, textLocalization) {
@@ -61,6 +62,17 @@ Map<String, dynamic> retrieveInformation(name, gender, textLocalization) {
       midTitle = textLocalization.makeSaferMidTitle(gender);
       midSubTitle = textLocalization.makeSaferMidSubTitle(gender);
       list = retrieveSafeEnvironmentList(
+        textLocalization,
+        Gender.fromCode(gender).listKey,
+      );
+
+      break;
+    case 'PersonalPlan-DreamsAndGoals':
+      header = textLocalization.dreamsAndGoalsHeader(gender);
+      subTitle = textLocalization.dreamsAndGoalsSubTitle(gender);
+      midTitle = textLocalization.makeSaferMidTitle(gender);
+      midSubTitle = textLocalization.makeSaferMidSubTitle(gender);
+      list = retrieveDreamsAndGoalsList(
         textLocalization,
         Gender.fromCode(gender).listKey,
       );

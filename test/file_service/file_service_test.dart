@@ -1,3 +1,4 @@
+import 'package:file_picker/file_picker.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:get_it/get_it.dart';
@@ -7,8 +8,11 @@ import 'package:mazilon/global_enums.dart';
 import 'package:mazilon/util/logger_service.dart';
 import 'package:mazilon/util/persistent_memory_service.dart';
 
+import '../../test_support/contract_persistent_memory_service.dart';
+
 class _FakeAnalytics implements AnalyticsService {
   final List<String> events = [];
+  final List<String> sequence = [];
   @override
   Future<void> init() async {}
   @override
@@ -17,6 +21,7 @@ class _FakeAnalytics implements AnalyticsService {
     Map<String, dynamic>? properties,
   ]) async {
     events.add(eventName);
+    sequence.add('analytics:$eventName');
   }
 }
 
@@ -34,26 +39,16 @@ class _FakeLogger implements IncidentLoggerService {
   }
 }
 
-class _FakeMemory implements PersistentMemoryService {
-  final Map<String, dynamic> store;
-  _FakeMemory(this.store);
-  @override
-  Future<dynamic> getItem(String key, PersistentMemoryType type) async {
-    return store[key];
+final class _FakeMemory extends ContractPersistentMemoryService {
+  _FakeMemory(Map<String, dynamic> store) : super(store: store) {
+    onMissingRead = (_, _) => null;
   }
+}
 
-  @override
-  Future<void> reset() async {
-    store.clear();
-  }
-
-  @override
-  Future<void> setItem(
-    String key,
-    PersistentMemoryType type,
-    dynamic value,
-  ) async {
-    store[key] = value;
+final class _StrictFakeMemory extends ContractPersistentMemoryService {
+  _StrictFakeMemory(Map<String, dynamic> store) : super(store: store) {
+    onMissingRead = (key, _) =>
+        throw StateError('Unexpected memory read for unconfigured key: $key');
   }
 }
 
@@ -78,6 +73,7 @@ void main() {
       'userSelectionPersonalPlan-FeelBetter': <dynamic>[],
       'userSelectionPersonalPlan-Distractions': <dynamic>['dist1'],
       'userSelectionPersonalPlan-SafeEnvironment': <dynamic>['safe1'],
+      'userSelectionPersonalPlan-DreamsAndGoals': <dynamic>['dream1'],
       'PhonePageSavedPhoneNames': <dynamic>['Mom', 'Dad'],
       'PhonePageSavedPhoneNumbers': <dynamic>['111', '222'],
       'name': 'Alex',
@@ -112,18 +108,30 @@ void main() {
       expect(data['FeelBetter'], <String>[]);
       expect(data['Distractions'], ['dist1']);
       expect(data['SafeEnvironment'], ['safe1']);
+      expect(data['DreamsAndGoals'], ['dream1']);
       expect(data['phoneNames'], ['Mom', 'Dad']);
       expect(data['phoneNumbers'], ['111', '222']);
     });
 
     test(
-      'safe environment defaults to an empty list for existing plans',
+      'new plan categories default to empty lists for existing plans',
       () async {
         memory.store.remove('userSelectionPersonalPlan-SafeEnvironment');
+        memory.store.remove('userSelectionPersonalPlan-DreamsAndGoals');
         final data = await FileServiceImpl.getPrefsData();
         expect(data['SafeEnvironment'], isEmpty);
+        expect(data['DreamsAndGoals'], isEmpty);
       },
     );
+
+    test('reads from supplied memoryService override instead of GetIt', () async {
+      final customMemory = _FakeMemory({
+        'userSelectionPersonalPlan-DreamsAndGoals': ['customDream'],
+      });
+      final data =
+          await FileServiceImpl.getPrefsData(memoryService: customMemory);
+      expect(data['DreamsAndGoals'], ['customDream']);
+    });
   });
 
   group('FileServiceImpl.filterEmptyData', () {
@@ -178,6 +186,7 @@ void main() {
           'Environmental support',
           'Contacts',
           'Safe Environment',
+          'Dreams and Goals',
         ],
         [
           'symptoms subtitle',
@@ -186,6 +195,7 @@ void main() {
           'support subtitle',
           'contacts subtitle',
           'safe subtitle',
+          'dreams subtitle',
         ],
         {
           'firstLine': 'a',
@@ -200,14 +210,15 @@ void main() {
         mainTitle: 'Personal Plan of Alex',
       );
       expect(result['mainTitle'], 'Personal Plan of Alex');
-      // 'FeelBetter' was empty; the remaining defaults retain their six-wide
-      // order, including Safe Environment after Contacts.
+      // 'FeelBetter' was empty; the remaining defaults retain their order,
+      // with Dreams and Goals appended after Safe Environment.
       expect(result['titles'], [
         'Symptoms',
         'Triggers',
         'Environmental support',
         'Contacts',
         'Safe Environment',
+        'Dreams and Goals',
       ]);
       expect(result['subTitles'], [
         'symptoms subtitle',
@@ -215,7 +226,29 @@ void main() {
         'support subtitle',
         'contacts subtitle',
         'safe subtitle',
+        'dreams subtitle',
       ]);
+      expect(result['realData'], [
+        ['dist1'],
+        ['ev1', 'ev2'],
+        ['safer1'],
+        ['Mom:111', 'Dad:222'],
+        ['safe1'],
+        ['dream1'],
+      ]);
+    });
+
+    test('should omit Dreams data when legacy metadata has six sections', () async {
+      final svc = FileServiceImpl();
+      final result = await svc.organizeDataForFile(
+        ['t1', 't2', 't3', 't4', 't5', 't6'],
+        ['s1', 's2', 's3', 's4', 's5', 's6'],
+        {},
+        mainTitle: 'My Personal Plan',
+      );
+      expect(result['mainTitle'], 'My Personal Plan');
+      expect(result['titles'], ['t1', 't2', 't4', 't5', 't6']);
+      expect(result['subTitles'], ['s1', 's2', 's4', 's5', 's6']);
       expect(result['realData'], [
         ['dist1'],
         ['ev1', 'ev2'],
@@ -225,15 +258,71 @@ void main() {
       ]);
     });
 
-    test('should preserve the supplied localized title', () async {
+    test('uses supplied memoryService override when provided', () async {
+      final customMemory = _StrictFakeMemory({
+        'userSelectionPersonalPlan-Distractions': <dynamic>[],
+        'userSelectionPersonalPlan-DifficultEvents': <dynamic>['customEv'],
+        'userSelectionPersonalPlan-FeelBetter': <dynamic>[],
+        'userSelectionPersonalPlan-MakeSafer': <dynamic>[],
+        'PhonePageSavedPhoneNames': <dynamic>[],
+        'PhonePageSavedPhoneNumbers': <dynamic>[],
+        'userSelectionPersonalPlan-SafeEnvironment': <dynamic>['customSafe'],
+        'userSelectionPersonalPlan-DreamsAndGoals': <dynamic>['customGoal'],
+        'customCategories': null,
+        'customCategoryTitles': <dynamic>['Custom Title'],
+        'customCategoryDescriptions': <dynamic>['Custom Description'],
+      });
       final svc = FileServiceImpl();
       final result = await svc.organizeDataForFile(
-        ['t1', 't2', 't3', 't4', 't5', 't6'],
-        ['s1', 's2', 's3', 's4', 's5', 's6'],
-        {},
-        mainTitle: 'My Personal Plan',
+        ['T1', 'T2', 'T3', 'T4', 'T5', 'T6', 'T7'],
+        ['S1', 'S2', 'S3', 'S4', 'S5', 'S6', 'S7'],
+        {
+          'firstLinkURL': 'https://livepositively.club/valid',
+          'secondLinkURL': 'http://untrusted.com/invalid',
+        },
+        mainTitle: 'Custom Plan',
+        memoryService: customMemory,
       );
-      expect(result['mainTitle'], 'My Personal Plan');
+      expect(result['titles'], ['T2', 'T6', 'T7', 'Custom Title']);
+      expect(result['subTitles'], ['S2', 'S6', 'S7', '']);
+      expect(result['realData'], [
+        ['customEv'],
+        ['customSafe'],
+        ['customGoal'],
+        ['Custom Description'],
+      ]);
+      expect(result['texts']['text2Link'], 'https://livepositively.club/valid');
+      expect(result['texts']['text5Link'], '');
+    });
+
+    test('organizeDataForFile respects custom approvedPdfHosts and port 443', () async {
+      final customMemory = _StrictFakeMemory({
+        'userSelectionPersonalPlan-Distractions': <dynamic>[],
+        'userSelectionPersonalPlan-DifficultEvents': <dynamic>['customEv'],
+        'userSelectionPersonalPlan-FeelBetter': <dynamic>[],
+        'userSelectionPersonalPlan-MakeSafer': <dynamic>[],
+        'PhonePageSavedPhoneNames': <dynamic>[],
+        'PhonePageSavedPhoneNumbers': <dynamic>[],
+        'userSelectionPersonalPlan-SafeEnvironment': <dynamic>['customSafe'],
+        'userSelectionPersonalPlan-DreamsAndGoals': <dynamic>['customGoal'],
+        'customCategories': null,
+        'customCategoryTitles': <dynamic>[],
+        'customCategoryDescriptions': <dynamic>[],
+      });
+      final svc = FileServiceImpl();
+      final result = await svc.organizeDataForFile(
+        ['T1', 'T2', 'T3', 'T4', 'T5', 'T6', 'T7'],
+        ['S1', 'S2', 'S3', 'S4', 'S5', 'S6', 'S7'],
+        {
+          'firstLinkURL': 'https://tenant.org:443/valid',
+          'secondLinkURL': 'https://tenant.org:8080/invalid-port',
+        },
+        mainTitle: 'Custom Plan',
+        memoryService: customMemory,
+        approvedPdfHosts: const {'tenant.org'},
+      );
+      expect(result['texts']['text2Link'], 'https://tenant.org/valid');
+      expect(result['texts']['text5Link'], '');
     });
   });
 
@@ -371,6 +460,168 @@ void main() {
         textDirection: 'ltr',
       );
       expect(out, isNull);
+    });
+  });
+
+  group('FileServiceImpl.saveAndroid', () {
+    test('successful save returning String path captures full payload and verifies saving precedes analytics', () async {
+      final data = Uint8List.fromList([1, 2, 3]);
+      String? capturedDialogTitle;
+      String? capturedFileName;
+      FileType? capturedType;
+      String? capturedInitialDirectory;
+      Uint8List? capturedBytes;
+      List<String>? capturedAllowedExtensions;
+
+      final result = await FileServiceImpl.saveAndroid(
+        data,
+        'pdf',
+        fileSaver: ({
+          String? dialogTitle,
+          String? fileName,
+          FileType type = FileType.any,
+          String? initialDirectory,
+          Uint8List? bytes,
+          List<String>? allowedExtensions,
+        }) async {
+          capturedDialogTitle = dialogTitle;
+          capturedFileName = fileName;
+          capturedType = type;
+          capturedInitialDirectory = initialDirectory;
+          capturedBytes = bytes;
+          capturedAllowedExtensions = allowedExtensions;
+          analytics.sequence.add('saver:saveFile');
+          return '/storage/emulated/0/Download/plan.pdf';
+        },
+      );
+
+      expect(capturedDialogTitle, 'Please select an output file:');
+      expect(capturedFileName, 'התוכנית שלי.pdf');
+      expect(capturedBytes, data);
+      expect(capturedType, FileType.any);
+      expect(capturedInitialDirectory, isNull);
+      expect(capturedAllowedExtensions, isNull);
+      expect(
+        analytics.sequence,
+        ['saver:saveFile', 'analytics:Plan downloaded Android'],
+      );
+      expect(result, '/storage/emulated/0/Download/plan.pdf');
+      expect(analytics.events, ['Plan downloaded Android']);
+      expect(logger.logs, isEmpty);
+    });
+
+    test('successful save with custom dialogTitle and fileName passes them to saver', () async {
+      final data = Uint8List.fromList([1, 2, 3]);
+      String? capturedDialogTitle;
+      String? capturedFileName;
+
+      final result = await FileServiceImpl.saveAndroid(
+        data,
+        'docx',
+        dialogTitle: 'Custom Dialog Title',
+        fileName: 'custom_plan.docx',
+        fileSaver: ({
+          String? dialogTitle,
+          String? fileName,
+          FileType type = FileType.any,
+          String? initialDirectory,
+          Uint8List? bytes,
+          List<String>? allowedExtensions,
+        }) async {
+          capturedDialogTitle = dialogTitle;
+          capturedFileName = fileName;
+          return '/storage/emulated/0/Download/custom_plan.docx';
+        },
+      );
+
+      expect(capturedDialogTitle, 'Custom Dialog Title');
+      expect(capturedFileName, 'custom_plan.docx');
+      expect(result, '/storage/emulated/0/Download/custom_plan.docx');
+    });
+
+    test('successful save returning Uri path returns normalized string path and tracks event', () async {
+      final data = Uint8List.fromList([1, 2, 3]);
+      final result = await FileServiceImpl.saveAndroid(
+        data,
+        'pdf',
+        fileSaver: ({
+          String? dialogTitle,
+          String? fileName,
+          FileType type = FileType.any,
+          String? initialDirectory,
+          Uint8List? bytes,
+          List<String>? allowedExtensions,
+        }) async => Uri.parse('file:///storage/emulated/0/Documents/plan.pdf'),
+      );
+
+      expect(result, '/storage/emulated/0/Documents/plan.pdf');
+      expect(analytics.events, ['Plan downloaded Android']);
+      expect(logger.logs, isEmpty);
+    });
+
+    test('cancellation returning null captures full payload, verifies saving precedes analytics, and returns null', () async {
+      final data = Uint8List.fromList([1, 2, 3]);
+      String? capturedDialogTitle;
+      String? capturedFileName;
+      FileType? capturedType;
+      String? capturedInitialDirectory;
+      Uint8List? capturedBytes;
+      List<String>? capturedAllowedExtensions;
+
+      final result = await FileServiceImpl.saveAndroid(
+        data,
+        'pdf',
+        fileSaver: ({
+          String? dialogTitle,
+          String? fileName,
+          FileType type = FileType.any,
+          String? initialDirectory,
+          Uint8List? bytes,
+          List<String>? allowedExtensions,
+        }) async {
+          capturedDialogTitle = dialogTitle;
+          capturedFileName = fileName;
+          capturedType = type;
+          capturedInitialDirectory = initialDirectory;
+          capturedBytes = bytes;
+          capturedAllowedExtensions = allowedExtensions;
+          analytics.sequence.add('saver:saveFile');
+          return null;
+        },
+      );
+
+      expect(capturedDialogTitle, 'Please select an output file:');
+      expect(capturedFileName, 'התוכנית שלי.pdf');
+      expect(capturedBytes, data);
+      expect(capturedType, FileType.any);
+      expect(capturedInitialDirectory, isNull);
+      expect(capturedAllowedExtensions, isNull);
+      expect(
+        analytics.sequence,
+        ['saver:saveFile', 'analytics:Plan downloaded Android'],
+      );
+      expect(result, isNull);
+      expect(analytics.events, ['Plan downloaded Android']);
+      expect(logger.logs, isEmpty);
+    });
+
+    test('save failure is caught, logged, and returns null', () async {
+      final data = Uint8List.fromList([1, 2, 3]);
+      final result = await FileServiceImpl.saveAndroid(
+        data,
+        'pdf',
+        fileSaver: ({
+          String? dialogTitle,
+          String? fileName,
+          FileType type = FileType.any,
+          String? initialDirectory,
+          Uint8List? bytes,
+          List<String>? allowedExtensions,
+        }) async => throw Exception('Storage permission denied'),
+      );
+
+      expect(result, isNull);
+      expect(logger.logs, isNotEmpty);
     });
   });
 }

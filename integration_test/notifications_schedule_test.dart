@@ -30,12 +30,11 @@ import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:get_it/get_it.dart';
 import 'package:integration_test/integration_test.dart';
-import 'package:mazilon/global_enums.dart';
 import 'package:mazilon/l10n/app_localizations.dart';
 import 'package:mazilon/pages/notifications/notification_service.dart';
 import 'package:mazilon/util/logger_service.dart';
-import 'package:mazilon/util/persistent_memory_service.dart';
 import 'package:mazilon/util/userInformation.dart';
+import '../test_support/contract_persistent_memory_service.dart';
 // ignore: depend_on_referenced_packages
 import 'package:workmanager_android/workmanager_android.dart';
 // ignore: depend_on_referenced_packages
@@ -142,19 +141,10 @@ class _RecordingLogger implements IncidentLoggerService {
   Future<void> initializeSentry(Widget app) async {}
 }
 
-class _NoopPersistentMemoryService implements PersistentMemoryService {
-  @override
-  Future<dynamic> getItem(String key, PersistentMemoryType type) async => null;
-
-  @override
-  Future<void> reset() async {}
-
-  @override
-  Future<void> setItem(
-    String key,
-    PersistentMemoryType type,
-    dynamic value,
-  ) async {}
+final class _NoopPersistentMemoryService extends ContractPersistentMemoryService {
+  _NoopPersistentMemoryService() {
+    onMissingRead = (_, _) => null;
+  }
 }
 
 Future<void> _runWithAndroidTarget(Future<void> Function() body) async {

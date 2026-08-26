@@ -7,6 +7,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:get_it/get_it.dart';
 import 'package:mazilon/AnalyticsService.dart';
 import 'package:mazilon/file_service.dart';
+import 'package:mazilon/form/formpagetemplate.dart';
 import 'package:mazilon/form/speech_dictation_suffix_action.dart';
 import 'package:mazilon/iFx/service_locator.dart';
 import 'package:mazilon/util/appInformation.dart';
@@ -112,7 +113,7 @@ void main() {
             ShareForm(
               key: GlobalKey<WizardStepState>(),
               prev: () {},
-              submit: (context) {},
+              submit: (context) async {},
             ),
           ),
         ),
@@ -189,6 +190,69 @@ void main() {
       ),
     ).called(1);
   });
+
+  testWidgets(
+    'ShareForm edits the shared Dreams and Goals selection without creating a '
+    'generic custom category',
+    (WidgetTester tester) async {
+      await tester.pumpWidget(createTestWidget(locale: const Locale('en')));
+      await tester.pumpAndSettle();
+
+      expect(find.byType(FormPageTemplate), findsNothing);
+      final dreamsToggle = find.byKey(const Key('share-dreams-and-goals-toggle'));
+      await tester.ensureVisible(dreamsToggle);
+      await tester.tap(dreamsToggle);
+      await tester.pumpAndSettle();
+      expect(find.byType(FormPageTemplate), findsOneWidget);
+      final addOwn = find.text('Add my own personal dream or goal...');
+      await tester.ensureVisible(addOwn);
+      await tester.tap(addOwn);
+      await tester.pumpAndSettle();
+
+      await tester.enterText(find.byType(TextFormField), 'My shared dream');
+      await tester.tap(find.text('Save'));
+      await tester.pumpAndSettle();
+      await tester.runAsync(() => Future<void>.delayed(Duration.zero));
+      await tester.pump();
+
+      expect(mockUserInformation.dreamsAndGoals, ['My shared dream']);
+      verify(
+        mockPersistentMemoryService.setItem(
+          'userSelectionPersonalPlan-DreamsAndGoals',
+          PersistentMemoryType.StringList,
+          ['My shared dream'],
+        ),
+      ).called(1);
+      verify(
+        mockPersistentMemoryService.setItem(
+          'addedStringsPersonalPlan-DreamsAndGoals',
+          PersistentMemoryType.StringList,
+          ['My shared dream'],
+        ),
+      ).called(1);
+      verify(
+        mockPersistentMemoryService.setItem(
+          'selectionSourcesPersonalPlan-DreamsAndGoals',
+          PersistentMemoryType.StringList,
+          ['custom'],
+        ),
+      ).called(1);
+      verifyNever(
+        mockPersistentMemoryService.setItem(
+          'customCategoryTitles',
+          PersistentMemoryType.StringList,
+          any,
+        ),
+      );
+      verifyNever(
+        mockPersistentMemoryService.setItem(
+          'customCategoryDescriptions',
+          PersistentMemoryType.StringList,
+          any,
+        ),
+      );
+    },
+  );
 
   testWidgets('ShareForm shows share dialog and generates PDF', (
     WidgetTester tester,
@@ -405,6 +469,64 @@ void main() {
       ),
     ).called(1);
   });
+
+  testWidgets(
+    'should surface custom category persistence failure and retry its latest snapshot',
+    (WidgetTester tester) async {
+      var rejectTitleWrite = true;
+      when(mockPersistentMemoryService.setItem(any, any, any)).thenAnswer((
+        invocation,
+      ) async {
+        if (invocation.positionalArguments[0] == 'customCategoryTitles' &&
+            rejectTitleWrite) {
+          throw StateError('intentional custom category persistence failure');
+        }
+      });
+
+      await tester.pumpWidget(createTestWidget(locale: const Locale('en')));
+      await tester.ensureVisible(find.text('+ Add a custom category'));
+      await tester.tap(find.text('+ Add a custom category'));
+      await tester.pumpAndSettle();
+      await tester.enterText(
+        find.byKey(const Key('custom-category-title-field')),
+        'My category',
+      );
+      await tester.enterText(
+        find.byKey(const Key('custom-category-description-field')),
+        'My description',
+      );
+      await tester.ensureVisible(find.text('Add category'));
+      await tester.tap(find.text('Add category'));
+      await tester.pump();
+
+      expect(find.widgetWithText(SnackBarAction, 'Try again'), findsOneWidget);
+      expect(tester.takeException(), isNull);
+
+      rejectTitleWrite = false;
+      tester
+          .widget<SnackBarAction>(
+            find.widgetWithText(SnackBarAction, 'Try again'),
+          )
+          .onPressed();
+      await tester.pump();
+      await tester.pump();
+
+      verify(
+        mockPersistentMemoryService.setItem(
+          'customCategoryTitles',
+          PersistentMemoryType.StringList,
+          ['My category'],
+        ),
+      ).called(2);
+      verify(
+        mockPersistentMemoryService.setItem(
+          'customCategoryDescriptions',
+          PersistentMemoryType.StringList,
+          ['My description'],
+        ),
+      ).called(2);
+    },
+  );
 
   testWidgets(
     'ShareForm shows title suggestions when adding another category',

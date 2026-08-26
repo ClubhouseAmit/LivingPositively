@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:get_it/get_it.dart';
 import 'package:mazilon/AnalyticsService.dart';
@@ -45,6 +47,29 @@ class _FeelGoodPageState extends LPExtendedState<FeelGood> {
     return imagePaths;
   }
 
+  void _saveImageRotationsInBackground() {
+    final snapshot = Map<String, int>.from(imageRotations);
+    unawaited(_saveImageRotations(snapshot));
+  }
+
+  Future<void> _saveImageRotations(Map<String, int> snapshot) async {
+    try {
+      await pickerService.saveImageRotations(snapshot);
+    } catch (error, stackTrace) {
+      debugPrint('Unable to save image rotations: $error\n$stackTrace');
+      if (GetIt.instance.isRegistered<IncidentLoggerService>()) {
+        try {
+          await GetIt.instance<IncidentLoggerService>().captureLog(
+            error,
+            stackTrace: stackTrace,
+          );
+        } catch (_) {
+          // The failed write has already been observed above.
+        }
+      }
+    }
+  }
+
   void _rotateImage(int index) {
     if (index >= 0 && index < imagePaths.length) {
       final path = imagePaths[index];
@@ -53,7 +78,7 @@ class _FeelGoodPageState extends LPExtendedState<FeelGood> {
       setState(() {
         imageRotations[path] = next;
       });
-      pickerService.saveImageRotations(imageRotations);
+      _saveImageRotationsInBackground();
     }
   }
 
@@ -93,7 +118,7 @@ class _FeelGoodPageState extends LPExtendedState<FeelGood> {
           setState(() {
             imageRotations.remove(path);
           });
-          pickerService.saveImageRotations(imageRotations);
+          _saveImageRotationsInBackground();
         } catch (error, stackTrace) {
           if (GetIt.instance.isRegistered<IncidentLoggerService>()) {
             GetIt.instance<IncidentLoggerService>()

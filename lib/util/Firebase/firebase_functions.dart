@@ -11,6 +11,7 @@ import 'package:firebase_auth/firebase_auth.dart';
 
 import 'package:mazilon/util/SignIn/popup_toast.dart';
 import 'package:mazilon/util/appInformation.dart';
+import 'package:mazilon/util/dreams_and_goals_selection.dart';
 import 'package:mazilon/util/userInformation.dart';
 import 'dart:convert';
 import 'dart:io';
@@ -126,6 +127,18 @@ Future<void> loadUserInformation(
       "userSelectionPersonalPlan-SafeEnvironment",
       PersistentMemoryType.StringList,
     ),
+    'dreamsAndGoals': service.getItem(
+      dreamsAndGoalsSelectionStorageKey,
+      PersistentMemoryType.StringList,
+    ),
+    'dreamsAndGoalsSelectionSources': service.getItem(
+      dreamsAndGoalsSelectionSourcesStorageKey,
+      PersistentMemoryType.StringList,
+    ),
+    'dreamsAndGoalsAddedStrings': service.getItem(
+      dreamsAndGoalsCustomSelectionsStorageKey,
+      PersistentMemoryType.StringList,
+    ),
     'location': service.getItem("location", PersistentMemoryType.String),
     'disclaimerConfirmed': service.getItem(
       "disclaimerConfirmed",
@@ -193,6 +206,33 @@ Future<void> loadUserInformation(
   userInfo.updateSafeEnvironment(
     (TypeUtils.castToStringList(data['safeEnvironment'])),
   );
+  final dreamsAndGoals = TypeUtils.castToStringList(data['dreamsAndGoals']);
+  final storedDreamsAndGoalsSources = TypeUtils.castToStringList(
+    data['dreamsAndGoalsSelectionSources'],
+  );
+  final storedDreamsAndGoalsAddedStrings = TypeUtils.castToStringList(
+    data['dreamsAndGoalsAddedStrings'],
+  );
+  try {
+    await userInfo.hydrateDreamsAndGoalsFromStorage(
+      dreamsAndGoals,
+      storedSelectionSources: storedDreamsAndGoalsSources,
+      storedCustomSelections: storedDreamsAndGoalsAddedStrings,
+    );
+  } catch (error, stackTrace) {
+    // Dreams metadata repair is optional during startup. Preserve the
+    // normalized in-memory state and let its normal retry flow persist it
+    // later, rather than preventing the rest of the user's data from loading.
+    try {
+      await GetIt.instance<IncidentLoggerService>().captureLog(
+        error,
+        stackTrace: stackTrace,
+      );
+    } catch (_) {
+      // Reporting a failed optional repair must not turn it into a startup
+      // failure when logging is unavailable as well.
+    }
+  }
   userInfo.updateLocation(data['location'] ?? "");
   userInfo.updateDisclaimerSigned(data['disclaimerConfirmed'] ?? false);
   userInfo.updateNotificationMinute(data['notificationMinute'] ?? 0);

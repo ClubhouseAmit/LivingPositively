@@ -17,6 +17,7 @@ import 'package:url_launcher_platform_interface/url_launcher_platform_interface.
 
 import 'TestMenu.dart';
 import 'test_data.dart';
+import '../../test_support/contract_persistent_memory_service.dart';
 
 class _FakeAnalyticsService implements AnalyticsService {
   @override
@@ -29,33 +30,14 @@ class _FakeAnalyticsService implements AnalyticsService {
   ]) async {}
 }
 
-class _FakePersistentMemoryService implements PersistentMemoryService {
-  _FakePersistentMemoryService({Map<String, dynamic>? initialValues})
-    : _values = {...?initialValues};
-
-  final Map<String, dynamic> _values;
-
-  @override
-  Future<dynamic> getItem(String key, PersistentMemoryType type) async {
-    if (_values.containsKey(key)) {
-      return _values[key];
-    }
-
-    throw StateError(
-      'Unexpected persistent memory read for key "$key" with type $type',
-    );
-  }
-
-  @override
-  Future<void> reset() async {}
-
-  @override
-  Future<void> setItem(
-    String key,
-    PersistentMemoryType type,
-    dynamic value,
-  ) async {
-    _values[key] = value;
+final class _FakePersistentMemoryService
+    extends ContractPersistentMemoryService {
+  _FakePersistentMemoryService({super.initialValues}) {
+    onMissingRead = (String key, PersistentMemoryType type) {
+      throw StateError(
+        'Unexpected persistent memory read for key "$key" with type $type',
+      );
+    };
   }
 }
 
@@ -69,6 +51,8 @@ class _FakeFileService implements FileService {
     ShareFileType saveFormat,
     {required String mainTitle,
     required String textDirection,
+    PersistentMemoryService? memoryService,
+    Set<String>? approvedPdfHosts,
   }) async => const ShareResult('fake', ShareResultStatus.success);
 
   @override
@@ -79,6 +63,8 @@ class _FakeFileService implements FileService {
     ShareFileType saveFormat,
     {required String mainTitle,
     required String textDirection,
+    PersistentMemoryService? memoryService,
+    Set<String>? approvedPdfHosts,
   }) async {
     return null;
   }
