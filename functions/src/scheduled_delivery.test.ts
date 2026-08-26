@@ -43,6 +43,18 @@ describe("scheduled notification delivery", () => {
     });
   });
 
+  it("uses the complete stale-device count when the UID fetch is capped", () => {
+    const fetchedUids = Array.from(
+      { length: 26 },
+      (_, index) => `stale-${index}`,
+    );
+
+    assert.deepEqual(staleDeviceCleanupBatch(fetchedUids, 100), {
+      cleanupUids: fetchedUids.slice(0, 25),
+      deferredCount: 75,
+    });
+  });
+
   it("ignores malformed scheduler checkpoints", () => {
     const scheduleMillis = Date.parse("2026-08-05T12:00:00.000Z");
     assert.equal(

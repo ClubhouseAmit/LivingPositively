@@ -524,7 +524,7 @@ class _UserSettingsState extends LPExtendedState<UserSettings> {
     final previousDefaultReminder = userInfo.getNotificationPreference(
       'default',
     );
-    NotificationPreference? cancelledRemoteReminder;
+    NotificationPreference? cancelledRemotePreference;
     var remoteReminderCancelled = false;
 
     final firebaseUser = GetIt.instance.isRegistered<FirebaseAuth>()
@@ -536,7 +536,7 @@ class _UserSettingsState extends LPExtendedState<UserSettings> {
             await FcmScheduledNotificationService.cancelDefaultForReset(
               userInformation: userInfo,
               onRemoteScheduleCancelled: (remotePreference) {
-                cancelledRemoteReminder = remotePreference;
+                cancelledRemotePreference = remotePreference;
               },
             );
         if (!cancelled) {
@@ -559,7 +559,7 @@ class _UserSettingsState extends LPExtendedState<UserSettings> {
             await FcmScheduledNotificationService.restoreDefaultReminderAfterResetFailure(
               userInformation: userInfo,
               previousPreference:
-                  cancelledRemoteReminder ?? previousDefaultReminder,
+                  cancelledRemotePreference ?? previousDefaultReminder,
             );
         if (!reminderRestored) {
           _reportResetFailure(
@@ -630,14 +630,14 @@ class _UserSettingsState extends LPExtendedState<UserSettings> {
     final previousDefaultReminder = userInfo.getNotificationPreference(
       'default',
     );
-    NotificationPreference? cancelledRemoteReminder;
+    NotificationPreference? cancelledRemotePreference;
     var reminderCancelled = false;
     if (firebaseUser != null && !firebaseUser.isAnonymous) {
       final cancelled =
           await FcmScheduledNotificationService.cancelDefaultForSignOut(
             userInformation: userInfo,
             onRemoteScheduleCancelled: (remotePreference) {
-              cancelledRemoteReminder = remotePreference;
+              cancelledRemotePreference = remotePreference;
             },
           );
       if (!cancelled) {
@@ -663,7 +663,7 @@ class _UserSettingsState extends LPExtendedState<UserSettings> {
             await FcmScheduledNotificationService.restoreDefaultReminderAfterResetFailure(
               userInformation: userInfo,
               previousPreference:
-                  cancelledRemoteReminder ?? previousDefaultReminder,
+                  cancelledRemotePreference ?? previousDefaultReminder,
             );
         if (!reminderRestored) {
           _reportResetFailure(

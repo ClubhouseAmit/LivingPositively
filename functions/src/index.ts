@@ -611,16 +611,27 @@ export function staleDeviceScheduleCleanupPlan(scheduleCount: number): {
   };
 }
 
-export function staleDeviceCleanupBatch(staleUids: readonly string[]): {
+export function staleDeviceCleanupBatch(
+  staleUids: readonly string[],
+  totalStaleDeviceCount?: number,
+): {
   cleanupUids: string[];
   deferredCount: number;
 } {
   const uniqueUids = [...new Set(staleUids)];
+  const reportedStaleDeviceCount = Math.max(
+    uniqueUids.length,
+    totalStaleDeviceCount ?? uniqueUids.length,
+  );
   return {
     cleanupUids: uniqueUids.slice(0, MAX_STALE_DEVICE_CLEANUPS_PER_INVOCATION),
     deferredCount: Math.max(
       0,
-      uniqueUids.length - MAX_STALE_DEVICE_CLEANUPS_PER_INVOCATION,
+      reportedStaleDeviceCount -
+        Math.min(
+          uniqueUids.length,
+          MAX_STALE_DEVICE_CLEANUPS_PER_INVOCATION,
+        ),
     ),
   };
 }
@@ -1094,16 +1105,30 @@ export const processScheduledNotifications = onSchedule(
         Timestamp.fromMillis(
           nowMillis - STALE_TOKEN_DAYS * 86_400_000,
         ),
-      )
-      .limit(MAX_STALE_DEVICE_CLEANUPS_PER_INVOCATION + 1);
-    const [deviceDocs, independentlyStaleDeviceSnapshot] = await Promise.all([
+      );
+    const [
+      deviceDocs,
+      independentlyStaleDeviceSnapshot,
+      independentlyStaleDeviceCount,
+    ] = await Promise.all([
       Promise.all(
         uniqueUids.map((uid) => db.collection("devices").doc(uid).get()),
       ),
-      staleDeviceQuery.get().catch((error: unknown) => {
-        logger.warn("Unable to query stale devices independently", { error });
-        return undefined;
-      }),
+      staleDeviceQuery
+        .limit(MAX_STALE_DEVICE_CLEANUPS_PER_INVOCATION + 1)
+        .get()
+        .catch((error: unknown) => {
+          logger.warn("Unable to query stale devices independently", { error });
+          return undefined;
+        }),
+      staleDeviceQuery
+        .count()
+        .get()
+        .then((snapshot) => snapshot.data().count)
+        .catch((error: unknown) => {
+          logger.warn("Unable to count stale devices independently", { error });
+          return undefined;
+        }),
     ]);
     const deviceMap = new Map(deviceDocs.map((d) => [d.id, d.data()]));
     const deviceTimestampRoutes = routeDevicesByUpdatedAt(
@@ -1119,6 +1144,7 @@ export const processScheduledNotifications = onSchedule(
         .map((doc) => ({
           uid: doc.id,
           updatedAt: doc.data()?.updatedAt,
+          data: doc.data(),
         })) ?? [];
     const independentlyStaleDeviceRoutes = routeDevicesByUpdatedAt(
       independentlyStaleDeviceEntries,
@@ -1133,9 +1159,10 @@ export const processScheduledNotifications = onSchedule(
     ]);
     const allDeviceEntries = new Map([
       ...deviceMap.entries(),
-      ...(independentlyStaleDeviceSnapshot?.docs ?? [])
-        .filter((doc) => isValidNotificationUid(doc.id))
-        .map((doc) => [doc.id, doc.data()] as const),
+      ...independentlyStaleDeviceEntries.map(({ uid, data }) => [
+        uid,
+        data,
+      ] as const),
     ]);
     const staleDeviceUpdatedAts = new Map(
       [...allDeviceEntries.entries()].flatMap(([uid, deviceData]) =>
@@ -1342,7 +1369,10 @@ export const processScheduledNotifications = onSchedule(
     const {
       cleanupUids: staleUidsToClean,
       deferredCount: staleCleanupDeferred,
-    } = staleDeviceCleanupBatch(staleUids);
+    } = staleDeviceCleanupBatch(
+      staleUids,
+      independentlyStaleDeviceCount,
+    );
     const staleCleanupResults: PromiseSettledResult<void>[] = [];
     for (
       let start = 0;
