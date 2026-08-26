@@ -846,6 +846,90 @@ void main() {
     }
   });
 
+  testWidgets('should restore the reminder when Firebase sign-out fails', (
+    tester,
+  ) async {
+    final auth = MockFirebaseAuth();
+    final firebaseUser = MockUser();
+    final events = <String>[];
+    var mutationVersion = 0;
+    when(auth.currentUser).thenReturn(firebaseUser);
+    when(firebaseUser.isAnonymous).thenReturn(false);
+    when(firebaseUser.getIdToken()).thenAnswer((_) async => 'token-123');
+    when(auth.signOut()).thenAnswer((_) async {
+      events.add('signOut');
+      throw StateError('Firebase sign-out failed');
+    });
+    GetIt.instance.registerSingleton<FirebaseAuth>(auth);
+    await user.setNotificationPreference(
+      'default',
+      const NotificationPreference(hour: 8, minute: 15),
+    );
+    user.loggedIn = true;
+    user.authDecisionMade = true;
+    user.userId = 'signed-in-user';
+    FcmScheduledNotificationService.debugPostOverride =
+        (url, {headers, body, encoding}) async {
+          if (url.path.endsWith('/getNotificationMutationVersion')) {
+            events.add('version:$mutationVersion');
+            return http.Response('{"mutationVersion":$mutationVersion}', 200);
+          }
+          events.add(
+            url.path.endsWith('/cancelNotification') ? 'cancel' : 'register',
+          );
+          mutationVersion++;
+          return http.Response('{"mutationVersion":$mutationVersion}', 200);
+        };
+    debugDefaultTargetPlatformOverride = TargetPlatform.windows;
+
+    try {
+      await pumpWithProviders(
+        tester,
+        UserSettings(
+          username: 'Keep reminder',
+          age: '18-30',
+          gender: 'male',
+          phonePageData: _phone(),
+          changeLocale: (_) {},
+        ),
+        userInformation: user,
+        surfaceSize: const Size(1024, 2800),
+      );
+
+      final signOutButton = find.byKey(const Key('userSettingsSignOutButton'));
+      await tester.ensureVisible(signOutButton);
+      await tester.tap(signOutButton, warnIfMissed: false);
+      await tester.pumpAndSettle();
+      final dialogButtons = find.descendant(
+        of: find.byType(Dialog),
+        matching: find.byType(TextButton),
+      );
+      await tester.tap(dialogButtons.last, warnIfMissed: false);
+      await tester.pumpAndSettle();
+
+      verify(auth.signOut()).called(1);
+      expect(events, [
+        'version:0',
+        'cancel',
+        'signOut',
+        'version:1',
+        'register',
+      ]);
+      expect(
+        user.getNotificationPreference('default')?.toJson(),
+        const NotificationPreference(hour: 8, minute: 15).toJson(),
+      );
+      expect(user.loggedIn, isTrue);
+      expect(user.authDecisionMade, isTrue);
+      expect(user.userId, 'signed-in-user');
+      expect(find.byType(UserSettings), findsOneWidget);
+      expect(find.byType(FirstPage), findsNothing);
+      expect(find.byType(SnackBar), findsOneWidget);
+    } finally {
+      debugDefaultTargetPlatformOverride = null;
+    }
+  });
+
   testWidgets(
     'sign-out keeps the session when the remote reminder cannot be cancelled',
     (tester) async {

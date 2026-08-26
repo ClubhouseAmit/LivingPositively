@@ -621,6 +621,10 @@ class _UserSettingsState extends LPExtendedState<UserSettings> {
     final firebaseUser = GetIt.instance.isRegistered<FirebaseAuth>()
         ? GetIt.instance<FirebaseAuth>().currentUser
         : null;
+    final previousDefaultReminder = userInfo.getNotificationPreference(
+      'default',
+    );
+    var reminderCancelled = false;
     if (firebaseUser != null && !firebaseUser.isAnonymous) {
       final cancelled =
           await FcmScheduledNotificationService.cancelDefaultForSignOut(
@@ -638,11 +642,25 @@ class _UserSettingsState extends LPExtendedState<UserSettings> {
         }
         return false;
       }
+      reminderCancelled = true;
     }
 
     try {
       await AuthService.signOut();
     } catch (error, stackTrace) {
+      if (reminderCancelled) {
+        final reminderRestored =
+            await FcmScheduledNotificationService.restoreDefaultReminderAfterResetFailure(
+              userInformation: userInfo,
+              previousPreference: previousDefaultReminder,
+            );
+        if (!reminderRestored) {
+          _reportResetFailure(
+            StateError('Unable to restore the cancelled reminder.'),
+            StackTrace.current,
+          );
+        }
+      }
       _reportResetFailure(error, stackTrace);
       if (mounted) {
         ScaffoldMessenger.maybeOf(

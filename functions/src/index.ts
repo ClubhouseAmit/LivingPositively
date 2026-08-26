@@ -10,8 +10,10 @@ import { onSchedule } from "firebase-functions/scheduler";
 import {
   executeNotificationMutation,
   hasActiveDeliveryPermit,
+  hasMatchingNotificationScheduleIdentity,
   isNonNegativeNotificationMutationVersion,
   isValidResetFenceMutation,
+  notificationScheduleId,
   notificationMutationStatePath,
   parseExpectedNotificationMutationVersion,
 } from "./notification_mutation.js";
@@ -109,6 +111,30 @@ function notificationMutationStateRef(
   typeId: string,
 ): FirebaseFirestore.DocumentReference {
   return db.doc(notificationMutationStatePath(uid, typeId));
+}
+
+function notificationScheduleRef(
+  db: FirebaseFirestore.Firestore,
+  uid: string,
+  typeId: string,
+): FirebaseFirestore.DocumentReference {
+  return db.collection("scheduled_notifications").doc(
+    notificationScheduleId(uid, typeId),
+  );
+}
+
+function legacyNotificationScheduleRef(
+  db: FirebaseFirestore.Firestore,
+  uid: string,
+  typeId: string,
+): FirebaseFirestore.DocumentReference {
+  return db.collection("scheduled_notifications").doc(`${uid}_${typeId}`);
+}
+
+function isNotificationMutationRequestBody(
+  value: unknown,
+): value is Record<string, unknown> {
+  return value !== null && typeof value === "object" && !Array.isArray(value);
 }
 
 export function buildNotificationDeliveryKey(
@@ -648,6 +674,10 @@ export const registerNotification = onRequest(
       return;
     }
 
+    if (!isNotificationMutationRequestBody(req.body)) {
+      res.status(400).send("Invalid body");
+      return;
+    }
     const { typeId, hour, minute, locale, gender, expectedMutationVersion } =
       req.body;
     const expectedVersion = parseExpectedNotificationMutationVersion(
@@ -656,8 +686,10 @@ export const registerNotification = onRequest(
 
     if (
       !isValidNotificationTypeId(typeId) ||
+      typeof hour !== "number" ||
       !Number.isFinite(hour) ||
       !Number.isInteger(hour) ||
+      typeof minute !== "number" ||
       !Number.isFinite(minute) ||
       !Number.isInteger(minute) ||
       hour < 0 ||
@@ -689,12 +721,15 @@ export const registerNotification = onRequest(
 
     const db = getFirestore();
     const stateRef = notificationMutationStateRef(db, uid, typeId);
-    const scheduleRef = db
-      .collection("scheduled_notifications")
-      .doc(`${uid}_${typeId}`);
+    const scheduleRef = notificationScheduleRef(db, uid, typeId);
+    const legacyScheduleRef = legacyNotificationScheduleRef(db, uid, typeId);
     let mutationVersion: number | undefined;
     try {
       mutationVersion = await db.runTransaction(async (transaction) => {
+        const legacySchedule =
+          legacyScheduleRef.path === scheduleRef.path
+            ? undefined
+            : await transaction.get(legacyScheduleRef);
         const scheduleData: Record<string, unknown> = {
           uid,
           typeId,
@@ -717,6 +752,16 @@ export const registerNotification = onRequest(
           );
         if (decision.kind === "conflict") {
           throw new NotificationMutationConflictError(decision.message);
+        }
+        if (
+          legacySchedule?.exists &&
+          hasMatchingNotificationScheduleIdentity(
+            legacySchedule.data(),
+            uid,
+            typeId,
+          )
+        ) {
+          transaction.delete(legacyScheduleRef);
         }
         return decision.nextVersion;
       });
@@ -758,6 +803,10 @@ export const cancelNotification = onRequest(
       return;
     }
 
+    if (!isNotificationMutationRequestBody(req.body)) {
+      res.status(400).send("Invalid body");
+      return;
+    }
     const { typeId, expectedMutationVersion, resetFence } = req.body;
     if (!isValidNotificationTypeId(typeId)) {
       res.status(400).send("Invalid typeId");
@@ -781,12 +830,15 @@ export const cancelNotification = onRequest(
 
     const db = getFirestore();
     const stateRef = notificationMutationStateRef(db, uid, typeId);
-    const scheduleRef = db
-      .collection("scheduled_notifications")
-      .doc(`${uid}_${typeId}`);
+    const scheduleRef = notificationScheduleRef(db, uid, typeId);
+    const legacyScheduleRef = legacyNotificationScheduleRef(db, uid, typeId);
     let mutationVersion: number | undefined;
     try {
       mutationVersion = await db.runTransaction(async (transaction) => {
+        const legacySchedule =
+          legacyScheduleRef.path === scheduleRef.path
+            ? undefined
+            : await transaction.get(legacyScheduleRef);
         const decision =
           await executeNotificationMutation<FirebaseFirestore.DocumentReference>(
             transaction,
@@ -800,6 +852,16 @@ export const cancelNotification = onRequest(
           );
         if (decision.kind === "conflict") {
           throw new NotificationMutationConflictError(decision.message);
+        }
+        if (
+          legacySchedule?.exists &&
+          hasMatchingNotificationScheduleIdentity(
+            legacySchedule.data(),
+            uid,
+            typeId,
+          )
+        ) {
+          transaction.delete(legacyScheduleRef);
         }
         return decision.nextVersion;
       });

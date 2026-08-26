@@ -1,3 +1,5 @@
+import { Buffer } from "node:buffer";
+
 export type ExpectedNotificationMutationVersion =
   | { kind: "legacy" }
   | { kind: "versioned"; version: number }
@@ -206,6 +208,20 @@ export function notificationMutationStatePath(
     throw new Error("Notification mutation UID cannot contain a slash");
   }
   return `notification_mutation_state/${uid}/types/${typeId}`;
+}
+
+export function notificationScheduleId(uid: string, typeId: string): string {
+  return Buffer.from(JSON.stringify([uid, typeId]), "utf8").toString(
+    "base64url",
+  );
+}
+
+export function hasMatchingNotificationScheduleIdentity(
+  schedule: Record<string, unknown> | undefined,
+  uid: string,
+  typeId: string,
+): boolean {
+  return schedule?.uid === uid && schedule.typeId === typeId;
 }
 
 export function hasActiveDeliveryPermit(

@@ -11,11 +11,13 @@ import {
 import {
   hasActiveDeliveryPermit,
   hasEffectiveNotificationMutationState,
+  hasMatchingNotificationScheduleIdentity,
   isValidResetFenceMutation,
   executeNotificationMutation,
   notificationMutationAuthorizationDecision,
   notificationMutationDecision,
   notificationMutationStatePath,
+  notificationScheduleId,
   parseExpectedNotificationMutationVersion,
   storedNotificationMutationVersionDecision,
 } from "./notification_mutation.js";
@@ -419,6 +421,29 @@ describe("notification validation", () => {
     assert.throws(
       () => notificationMutationStatePath("nested/uid", "default"),
       /cannot contain a slash/,
+    );
+  });
+
+  it("uses unambiguous schedule IDs and only retires matching legacy schedules", () => {
+    assert.notEqual(
+      notificationScheduleId("a_b", "c"),
+      notificationScheduleId("a", "b_c"),
+    );
+    assert.equal(
+      hasMatchingNotificationScheduleIdentity(
+        { uid: "a_b", typeId: "c" },
+        "a_b",
+        "c",
+      ),
+      true,
+    );
+    assert.equal(
+      hasMatchingNotificationScheduleIdentity(
+        { uid: "a_b", typeId: "c" },
+        "a",
+        "b_c",
+      ),
+      false,
     );
   });
 
