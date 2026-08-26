@@ -362,5 +362,75 @@ void main() {
       expect(transcriptWidget.maxLines, isNull);
       expect(transcriptWidget.overflow, isNull);
     });
+
+    testWidgets(
+      'should keep Wellness Tools content reachable when text is enlarged',
+      (tester) async {
+        const transcript =
+            'Transcript line one. Transcript line two. Transcript line three. '
+            'Transcript line four. Transcript line five. Transcript line six. '
+            'Transcript line seven. Transcript line eight.';
+
+        await pumpWithProviders(
+          tester,
+          Builder(
+            builder: (context) => MediaQuery(
+              data: MediaQuery.of(
+                context,
+              ).copyWith(textScaler: TextScaler.linear(2.5)),
+              child: WellnessTools(
+                isFullScreen: false,
+                setBool: (_) {},
+                videoData: const {
+                  'videoId': ['abcdefghijk', 'lmnopqrstuv', 'mnopqrstuvw'],
+                  'videoHeadline': [
+                    'A long wellness video title for enlarged text',
+                    'Another video title',
+                    'A third video title',
+                  ],
+                  'videoDescription': [
+                    'A long wellness video description that must remain '
+                        'reachable while the page is enlarged.',
+                    'Another description',
+                    'A third description',
+                  ],
+                  'videoTranscript': [transcript, '', ''],
+                },
+              ),
+            ),
+          ),
+          locale: const Locale('he'),
+          surfaceSize: const Size(360, 690),
+          ignoreOverflow: false,
+        );
+        await tester.pumpAndSettle();
+
+        expect(tester.takeException(), isNull);
+
+        final pageScrollableFinder = find.byWidgetPredicate(
+          (widget) =>
+              widget is Scrollable &&
+              widget.physics is! NeverScrollableScrollPhysics,
+        );
+        expect(pageScrollableFinder, findsOneWidget);
+        final pageScrollable = tester.state<ScrollableState>(
+          pageScrollableFinder,
+        );
+        expect(pageScrollable.position.maxScrollExtent, greaterThan(0));
+
+        final expansionTile = find.byType(ExpansionTile);
+        await tester.ensureVisible(expansionTile);
+        await tester.tap(expansionTile);
+        await tester.pumpAndSettle();
+        expect(find.text(transcript), findsOneWidget);
+
+        await tester.ensureVisible(find.text(transcript));
+        await tester.ensureVisible(find.byType(MoreVideosItem).last);
+        await tester.pumpAndSettle();
+
+        expect(pageScrollable.position.pixels, greaterThan(0));
+        expect(tester.takeException(), isNull);
+      },
+    );
   });
 }

@@ -162,122 +162,130 @@ class _WellnessToolsState extends LPExtendedState<WellnessTools> {
       changeVideo: changeVideo,
       child: SafeArea(
         child: Scaffold(
-          body: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Visibility(
-                visible: !isFullScreen,
-                child: Center(
-                  child: SizedBox(
-                    //color: Colors.white,
-                    height: 130.0,
-                    //margin: EdgeInsets.only(top: 15),
-                    child: Image.asset(
-                      'assets/images/Logo.png',
-                      width: MediaQuery.sizeOf(context).width * 0.4 > 1000
-                          ? 500
-                          : MediaQuery.sizeOf(
-                              context,
-                            ).width, // Adjust as needed
+          body: Scrollbar(
+            child: SingleChildScrollView(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Visibility(
+                    visible: !isFullScreen,
+                    child: Center(
+                      child: SizedBox(
+                        //color: Colors.white,
+                        height: 130.0,
+                        //margin: EdgeInsets.only(top: 15),
+                        child: Image.asset(
+                          'assets/images/Logo.png',
+                          width: MediaQuery.sizeOf(context).width * 0.4 > 1000
+                              ? 500
+                              : MediaQuery.sizeOf(
+                                  context,
+                                ).width, // Adjust as needed
+                        ),
+                      ),
                     ),
                   ),
-                ),
-              ),
-              Visibility(
-                visible: !isFullScreen,
-                child: Padding(
-                  padding: const EdgeInsets.fromLTRB(8.0, 10.0, 8, 10),
-                  child: myAutoSizedText(
-                    widget.videoData['videoHeadline']![selectedIndex],
-                    TextStyle(fontSize: 24.sp, fontWeight: FontWeight.bold),
-                    appLocale.textDirection == "rtl"
-                        ? TextAlign.right
-                        : TextAlign.left,
-                    28,
-                    3,
+                  Visibility(
+                    visible: !isFullScreen,
+                    child: Padding(
+                      padding: const EdgeInsets.fromLTRB(8.0, 10.0, 8, 10),
+                      child: myAutoSizedText(
+                        widget.videoData['videoHeadline']![selectedIndex],
+                        TextStyle(fontSize: 24.sp, fontWeight: FontWeight.bold),
+                        appLocale.textDirection == "rtl"
+                            ? TextAlign.right
+                            : TextAlign.left,
+                        28,
+                        3,
+                      ),
+                    ),
                   ),
-                ),
-              ),
-              Expanded(
-                child: _videoPlayerPageFactory.create(
-                  onFullScreenChanged: setIsFullScreen,
-                  videoData: widget.videoData,
-                ),
-              ),
-              SizedBox(height: 10),
-              Visibility(
-                visible: !isFullScreen,
-                child: Padding(
-                  padding: const EdgeInsets.fromLTRB(0, 4.0, 4, 20),
-                  child: myAutoSizedText(
-                    widget.videoData['videoDescription']![selectedIndex],
-                    TextStyle(fontSize: 18.sp, fontWeight: FontWeight.normal),
-                    appLocale.textDirection == "rtl"
-                        ? TextAlign.right
-                        : TextAlign.left,
-                    20,
-                    3,
+                  AspectRatio(
+                    aspectRatio: 16 / 9,
+                    child: _videoPlayerPageFactory.create(
+                      onFullScreenChanged: setIsFullScreen,
+                      videoData: widget.videoData,
+                    ),
                   ),
-                ),
-              ),
-              Visibility(
-                visible: !isFullScreen,
-                child: _transcript(
-                  transcript != null && selectedIndex < transcript.length
-                      ? transcript[selectedIndex]
-                      : null,
-                ),
-              ),
-              Visibility(
-                visible: !isFullScreen,
-                child: Padding(
-                  padding: const EdgeInsets.fromLTRB(0, 4.0, 4, 20),
-                  child: myAutoSizedText(
-                    appLocale.moreVideos,
-                    TextStyle(fontSize: 18.sp, fontWeight: FontWeight.bold),
-                    appLocale.textDirection == "rtl"
-                        ? TextAlign.right
-                        : TextAlign.left,
-                    20,
-                    3,
+                  const SizedBox(height: 10),
+                  Visibility(
+                    visible: !isFullScreen,
+                    child: Padding(
+                      padding: const EdgeInsets.fromLTRB(0, 4.0, 4, 20),
+                      child: myAutoSizedText(
+                        widget.videoData['videoDescription']![selectedIndex],
+                        TextStyle(
+                          fontSize: 18.sp,
+                          fontWeight: FontWeight.normal,
+                        ),
+                        appLocale.textDirection == "rtl"
+                            ? TextAlign.right
+                            : TextAlign.left,
+                        20,
+                        3,
+                      ),
+                    ),
                   ),
-                ),
-              ),
-              Visibility(
-                visible: !isFullScreen,
-                child: Expanded(
-                  child: ListView.separated(
-                    itemBuilder: (context, index) {
-                      final videoIndex = moreVideoIndexes[index];
-                      var videoId = widget.videoData['videoId']![videoIndex];
-                      var thumbnailUrl = getThumbnailUrl(videoId);
-                      return MoreVideosItem(
-                        videoData: widget.videoData,
-                        index: videoIndex,
-                        thumbnailUrl: thumbnailUrl,
-                        changeVideoIdIndex: () {
-                          return () {
-                            setState(() {
-                              selectedVideoIdIndex = videoIndex;
-                              selectedVideoId = _youtubeId(
-                                widget
-                                    .videoData['videoId']![selectedVideoIdIndex],
-                              )!;
-                              VideoPlayerInheritedWidget.of(
-                                context,
-                              )?.changeVideo(selectedVideoId);
-                            });
-                          };
-                        },
-                      );
-                    },
-                    itemCount: moreVideoIndexes.length,
-                    separatorBuilder: (context, _) =>
-                        const SizedBox(height: 10.0),
+                  Visibility(
+                    visible: !isFullScreen,
+                    child: _transcript(
+                      transcript != null && selectedIndex < transcript.length
+                          ? transcript[selectedIndex]
+                          : null,
+                    ),
                   ),
-                ),
+                  Visibility(
+                    visible: !isFullScreen,
+                    child: Padding(
+                      padding: const EdgeInsets.fromLTRB(0, 4.0, 4, 20),
+                      child: myAutoSizedText(
+                        appLocale.moreVideos,
+                        TextStyle(fontSize: 18.sp, fontWeight: FontWeight.bold),
+                        appLocale.textDirection == "rtl"
+                            ? TextAlign.right
+                            : TextAlign.left,
+                        20,
+                        3,
+                      ),
+                    ),
+                  ),
+                  Visibility(
+                    visible: !isFullScreen,
+                    child: ListView.separated(
+                      shrinkWrap: true,
+                      physics: const NeverScrollableScrollPhysics(),
+                      itemBuilder: (context, index) {
+                        final videoIndex = moreVideoIndexes[index];
+                        var videoId = widget.videoData['videoId']![videoIndex];
+                        var thumbnailUrl = getThumbnailUrl(videoId);
+                        return MoreVideosItem(
+                          videoData: widget.videoData,
+                          index: videoIndex,
+                          thumbnailUrl: thumbnailUrl,
+                          changeVideoIdIndex: () {
+                            return () {
+                              setState(() {
+                                selectedVideoIdIndex = videoIndex;
+                                selectedVideoId = _youtubeId(
+                                  widget
+                                      .videoData['videoId']![selectedVideoIdIndex],
+                                )!;
+                                VideoPlayerInheritedWidget.of(
+                                  context,
+                                )?.changeVideo(selectedVideoId);
+                              });
+                            };
+                          },
+                        );
+                      },
+                      itemCount: moreVideoIndexes.length,
+                      separatorBuilder: (context, _) =>
+                          const SizedBox(height: 10.0),
+                    ),
+                  ),
+                ],
               ),
-            ],
+            ),
           ),
         ),
       ),

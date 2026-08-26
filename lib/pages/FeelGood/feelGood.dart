@@ -143,47 +143,43 @@ class _FeelGoodPageState extends LPExtendedState<FeelGood> {
             ),
           ),
         ),
-        body: SingleChildScrollView(
-          child: ConstrainedBox(
-            constraints: BoxConstraints(
-              minHeight: MediaQuery.of(context).size.height,
-            ),
-            child: Column(
-              children: [
-                Container(
-                  alignment: Alignment.topCenter,
-                  margin: const EdgeInsets.symmetric(horizontal: 15),
-                  child: myAutoSizedText(
-                    appLocale.feelGoodTitle(gender),
-                    TextStyle(
-                      fontWeight: FontWeight.bold,
-                      // .sp so the heading scales with system text-scale.
-                      fontSize: 30.sp,
+        body: Scrollbar(
+          child: SingleChildScrollView(
+            child: ConstrainedBox(
+              constraints: BoxConstraints(
+                minHeight: MediaQuery.of(context).size.height,
+              ),
+              child: Column(
+                children: [
+                  Container(
+                    alignment: Alignment.topCenter,
+                    margin: const EdgeInsets.symmetric(horizontal: 15),
+                    child: myAutoSizedText(
+                      appLocale.feelGoodTitle(gender),
+                      TextStyle(
+                        fontWeight: FontWeight.bold,
+                        // .sp so the heading scales with system text-scale.
+                        fontSize: 30.sp,
+                      ),
+                      TextAlign.center,
+                      60,
                     ),
-                    TextAlign.center,
-                    60,
                   ),
-                ),
-                const SizedBox(height: 5),
-                Padding(
-                  padding: const EdgeInsets.all(8.0),
-                  child: myAutoSizedText(
-                    appLocale.feelGoodSubTitle(gender),
-                    TextStyle(fontSize: 18.sp),
-                    null,
-                    18,
+                  const SizedBox(height: 5),
+                  Padding(
+                    padding: const EdgeInsets.all(8.0),
+                    child: myAutoSizedText(
+                      appLocale.feelGoodSubTitle(gender),
+                      TextStyle(fontSize: 18.sp),
+                      null,
+                      18,
+                    ),
                   ),
-                ),
-                Padding(
-                  padding: const EdgeInsets.symmetric(horizontal: 8.0),
-                  child: Scrollbar(
-                    //images uploaded from phone grid view:
-                    // Phase E (ADR-005 §Decision step 5): the bare
-                    // FutureBuilder here showed a spinner only while waiting
-                    // and rendered an empty grid on failure with no recovery
-                    // (UX_GAPS.md §3.10). Routed through the shared
-                    // AsyncStateView so loading is screen-reader announced and
-                    // a failed load surfaces a retry affordance.
+                  Padding(
+                    padding: const EdgeInsets.symmetric(horizontal: 8.0),
+                    // Images uploaded from the phone grid view remain
+                    // shrink-wrapped so the page-level scroll view owns all
+                    // vertical scrolling.
                     child: AsyncStateView<List<String>>(
                       future: _loadImagesFuture,
                       onRetry: _retryLoadImages,
@@ -219,8 +215,8 @@ class _FeelGoodPageState extends LPExtendedState<FeelGood> {
                       },
                     ),
                   ),
-                ),
-              ],
+                ],
+              ),
             ),
           ),
         ),
