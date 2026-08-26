@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:get_it/get_it.dart';
-import 'package:mazilon/pages/FeelGood/image_picker_service_impl.dart';
 import 'package:mazilon/pages/WellnessTools/VideoPlayerInheritedWidget.dart';
 import 'package:mazilon/pages/WellnessTools/VideoPlayerPageFactory.dart';
 import 'package:mazilon/pages/WellnessTools/more_videos_item.dart';
@@ -28,7 +27,6 @@ class _WellnessToolsState extends LPExtendedState<WellnessTools> {
   var isFullScreen = false;
   var selectedVideoIdIndex = 0;
   var selectedVideoId = '';
-  final ImagePickerService imageService = GetIt.instance<ImagePickerService>();
   final VideoPlayerPageFactory _videoPlayerPageFactory =
       GetIt.instance<VideoPlayerPageFactory>();
 
@@ -44,10 +42,8 @@ class _WellnessToolsState extends LPExtendedState<WellnessTools> {
     return trimmed.substring(0, 11);
   }
 
-  String getThumbnailUrl(String videoId) {
-    final trimmedVideoId = _youtubeId(videoId);
-    return 'https://img.youtube.com/vi/$trimmedVideoId/0.jpg';
-  }
+  String getThumbnailUrl(String videoId) =>
+      'https://img.youtube.com/vi/${_youtubeId(videoId)}/0.jpg';
 
   bool _hasUsableVideoData() {
     final ids = widget.videoData['videoId'];
@@ -124,11 +120,6 @@ class _WellnessToolsState extends LPExtendedState<WellnessTools> {
       this.isFullScreen = isFullScreen;
     });
     widget.setBool(isFullScreen);
-  }
-
-  @override
-  void initState() {
-    super.initState();
   }
 
   @override
