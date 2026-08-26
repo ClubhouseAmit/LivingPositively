@@ -28,6 +28,7 @@ class _FeelGoodPageState extends LPExtendedState<FeelGood> {
   List<String> imagePaths = [];
   Map<String, int> imageRotations = {};
   late Future<List<String>> _loadImagesFuture;
+  final ScrollController _scrollController = ScrollController();
   AnalyticsService mixPanelService = GetIt.instance<AnalyticsService>();
 
   @override
@@ -95,6 +96,12 @@ class _FeelGoodPageState extends LPExtendedState<FeelGood> {
   }
 
   @override
+  void dispose() {
+    _scrollController.dispose();
+    super.dispose();
+  }
+
+  @override
   Widget build(BuildContext context) {
     final userInfoProvider = Provider.of<UserInformation>(
       context,
@@ -144,7 +151,9 @@ class _FeelGoodPageState extends LPExtendedState<FeelGood> {
           ),
         ),
         body: Scrollbar(
+          controller: _scrollController,
           child: SingleChildScrollView(
+            controller: _scrollController,
             child: ConstrainedBox(
               constraints: BoxConstraints(
                 minHeight: MediaQuery.of(context).size.height,

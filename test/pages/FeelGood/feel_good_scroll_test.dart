@@ -17,7 +17,7 @@ void main() {
       resetTestServices();
     });
 
-    testWidgets('should keep the photo grid reachable when text is enlarged', (
+    testWidgets('should bind the page scrollbar when text is enlarged', (
       tester,
     ) async {
       locators.picker.seededImagePaths.addAll(
@@ -51,6 +51,11 @@ void main() {
       final pageScrollable = tester.state<ScrollableState>(
         pageScrollableFinder,
       );
+      final scrollbar = tester.widget<Scrollbar>(find.byType(Scrollbar));
+      final scrollView = tester.widget<SingleChildScrollView>(
+        find.byType(SingleChildScrollView),
+      );
+      expect(scrollbar.controller, same(scrollView.controller));
       expect(pageScrollable.position.maxScrollExtent, greaterThan(0));
 
       final addImage = find.byType(ImageAddItem);
