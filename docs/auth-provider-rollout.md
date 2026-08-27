@@ -74,15 +74,9 @@ Before enabling it:
    provider console.
 4. Upload the APNs authentication key to Firebase Cloud Messaging for the iOS
    application.
-5. Inject the capability flag when building. For example:
-
-   ```shell
-   if [ "${APPLE_SIGN_IN_ENABLED:-}" != "true" ]; then
-     echo "APPLE_SIGN_IN_ENABLED=true is required for an iOS release" >&2
-     exit 1
-   fi
-   flutter build ipa --dart-define=APPLE_SIGN_IN_ENABLED="$APPLE_SIGN_IN_ENABLED"
-   ```
+5. Set `APPLE_SIGN_IN_ENABLED` explicitly before invoking
+   `scripts/build_ios_release.sh`: `true` enables Apple Sign-In and `false`
+   disables it. The script rejects an unset or invalid value before archiving.
 
 The release owner accepts this documented manual iOS release procedure. The
 checked-in release script enforces the flag and verifies its values match the

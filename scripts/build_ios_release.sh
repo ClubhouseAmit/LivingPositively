@@ -19,7 +19,7 @@ for value_name in \
   require_value "$value_name"
 done
 
-APPLE_SIGN_IN_ENABLED="${APPLE_SIGN_IN_ENABLED:-true}"
+require_value APPLE_SIGN_IN_ENABLED
 [[ "$APPLE_SIGN_IN_ENABLED" == "true" || "$APPLE_SIGN_IN_ENABLED" == "false" ]] || fail "APPLE_SIGN_IN_ENABLED must be true or false"
 
 config_file="ios/Flutter/GoogleSignIn.xcconfig"
