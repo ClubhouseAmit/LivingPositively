@@ -196,39 +196,8 @@ jobs:
             sudo tee /etc/udev/rules.d/99-kvm4all.rules
           sudo udevadm control --reload-rules && sudo udevadm trigger --name-match=kvm
 
-      - name: Install Android emulator package with retries
-        shell: bash
-        run: |
-          set -eu
-          if [[ -z "${ANDROID_HOME:-}" || ! -d "$ANDROID_HOME" ]]; then
-            echo "::error::ANDROID_HOME is not configured on the runner."
-            exit 1
-          fi
-          export PATH="${ANDROID_HOME}/cmdline-tools/latest/bin:${ANDROID_HOME}/platform-tools:${PATH}"
-          if ! command -v sdkmanager >/dev/null 2>&1; then
-            echo "::error::sdkmanager was not found in the Android SDK command-line tools."
-            exit 1
-          fi
-          set +o pipefail
-          yes | sdkmanager --licenses >/dev/null
-          set -o pipefail
-          for attempt in 1 2 3; do
-            echo "Installing Android emulator package (attempt ${attempt}/3)."
-            if sdkmanager --install emulator --channel=0; then
-              echo "Android emulator package is ready."
-              exit 0
-            fi
-            if [[ "$attempt" -lt 3 ]]; then
-              delay=$((attempt * 15))
-              echo "::warning::Android emulator package installation failed; retrying in ${delay}s."
-              sleep "$delay"
-            fi
-          done
-          echo "::error::Android emulator package installation failed after 3 attempts."
-          exit 1
-
       - name: Run integration test shard on Android emulator
-        uses: reactivecircus/android-emulator-runner@v2
+        uses: reactivecircus/android-emulator-runner@a421e43855164a8197daf9d8d40fe71c6996bb0d # v2.38.0
         with:
           api-level: 34
           target: google_apis

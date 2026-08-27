@@ -131,6 +131,15 @@ class _WellnessToolsState extends LPExtendedState<WellnessTools> {
   @override
   void initState() {
     super.initState();
+    isFullScreen = widget.isFullScreen;
+  }
+
+  @override
+  void didUpdateWidget(covariant WellnessTools oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (oldWidget.isFullScreen != widget.isFullScreen) {
+      isFullScreen = widget.isFullScreen;
+    }
   }
 
   @override

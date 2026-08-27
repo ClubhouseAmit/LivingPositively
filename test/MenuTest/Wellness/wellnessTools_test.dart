@@ -402,7 +402,7 @@ void main() {
                 context,
               ).copyWith(textScaler: TextScaler.linear(2.5)),
               child: WellnessTools(
-                isFullScreen: false,
+                isFullScreen: true,
                 setBool: fullscreenChanges.add,
                 videoData: const {
                   'videoId': ['abcdefghijk', 'lmnopqrstuv', 'mnopqrstuvw'],
@@ -429,6 +429,20 @@ void main() {
         await tester.pumpAndSettle();
 
         expect(tester.takeException(), isNull);
+        expect(fullscreenChanges, isEmpty);
+        expect(
+          find.text('A long wellness video title for enlarged text'),
+          findsNothing,
+        );
+        expect(
+          find.text(
+            'A long wellness video description that must remain '
+            'reachable while the page is enlarged.',
+          ),
+          findsNothing,
+        );
+        expect(find.byType(MoreVideosItem), findsNothing);
+        expect(find.byType(ExpansionTile), findsNothing);
 
         final scrollbar = tester.widget<Scrollbar>(find.byType(Scrollbar));
         final scrollView = tester.widget<CustomScrollView>(
@@ -441,6 +455,12 @@ void main() {
         final player = find.byKey(const Key('fake-video-player'));
         final playerSize = tester.getSize(player);
         expect(playerSize.height, closeTo(playerSize.width * 9 / 16, 0.1));
+
+        await tester.tap(
+          find.byKey(const Key('fake-video-player-exit-fullscreen')),
+        );
+        await tester.pumpAndSettle();
+        expect(fullscreenChanges, [false]);
 
         final pageScrollableFinder = find.byWidgetPredicate(
           (widget) =>
@@ -460,14 +480,14 @@ void main() {
           find.byKey(const Key('fake-video-player-enter-fullscreen')),
         );
         await tester.pumpAndSettle();
-        expect(fullscreenChanges, [true]);
+        expect(fullscreenChanges, [false, true]);
         expect(find.byType(MoreVideosItem), findsNothing);
 
         await tester.tap(
           find.byKey(const Key('fake-video-player-exit-fullscreen')),
         );
         await tester.pumpAndSettle();
-        expect(fullscreenChanges, [true, false]);
+        expect(fullscreenChanges, [false, true, false]);
         await tester.scrollUntilVisible(
           find.text('A third video title'),
           300,
@@ -500,6 +520,41 @@ void main() {
 
         expect(pageScrollable.position.pixels, greaterThan(0));
         expect(tester.takeException(), isNull);
+      },
+    );
+
+    testWidgets(
+      'should sync fullscreen state when widget configuration changes',
+      (tester) async {
+        const videoData = {
+          'videoId': ['abcdefghijk'],
+          'videoHeadline': ['Configurable title'],
+          'videoDescription': ['Configurable description'],
+        };
+        const key = ValueKey('wellness-tools');
+
+        await pumpWithProviders(
+          tester,
+          WellnessTools(
+            key: key,
+            isFullScreen: true,
+            setBool: (_) {},
+            videoData: videoData,
+          ),
+        );
+        expect(find.text('Configurable title'), findsNothing);
+        expect(find.byType(MoreVideosItem), findsNothing);
+
+        await pumpWithProviders(
+          tester,
+          WellnessTools(
+            key: key,
+            isFullScreen: false,
+            setBool: (_) {},
+            videoData: videoData,
+          ),
+        );
+        expect(find.text('Configurable title'), findsOneWidget);
       },
     );
   });
