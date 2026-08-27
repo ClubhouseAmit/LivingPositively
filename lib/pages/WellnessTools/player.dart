@@ -25,6 +25,8 @@ class _VideoPlayerPageState extends State<VideoPlayerPage> {
   bool _controllerInitialized = false;
   bool _hasInitialVideo = false;
   bool? _isPlaying;
+  bool _fullscreenSyncScheduled = false;
+  bool? _requestedFullscreen;
   String? _loadedVideoId;
   String? _requestedVideoId;
   String? _pendingVideoId;
@@ -39,9 +41,9 @@ class _VideoPlayerPageState extends State<VideoPlayerPage> {
   }
 
   void _initializeController() {
-    final inheritedVideoId = _youtubeId(
-      VideoPlayerInheritedWidget.of(context)?.videoId ?? '',
-    );
+    final inherited = VideoPlayerInheritedWidget.of(context);
+    final inheritedVideoId = _youtubeId(inherited?.videoId ?? '');
+    final initialFullscreen = inherited?.isFullScreen ?? false;
     final videoIds = widget.videoData['videoId'];
     final initialVideoId =
         inheritedVideoId ??
@@ -64,11 +66,17 @@ class _VideoPlayerPageState extends State<VideoPlayerPage> {
     );
 
     newController.setFullScreenListener(widget.onFullScreenChanged);
+    if (initialFullscreen) {
+      newController.update(
+        fullScreenOption: const FullScreenOption(enabled: true, locked: true),
+      );
+    }
     final subscription = newController.stream.listen(_trackIsPlaying);
     controller = newController;
     _controllerSubscription = subscription;
     _loadedVideoId = initialVideoId;
     _requestedVideoId = initialVideoId;
+    _requestedFullscreen = initialFullscreen;
     _controllerInitialized = true;
     _hasInitialVideo = true;
     unawaited(_cueInitialVideo(newController, initialVideoId));
@@ -189,6 +197,40 @@ class _VideoPlayerPageState extends State<VideoPlayerPage> {
     return _pendingVideoId == videoId && _pendingLoadRequest == request;
   }
 
+  void _syncFullscreenFromInherited() {
+    final inherited = VideoPlayerInheritedWidget.of(context);
+    if (inherited == null) {
+      return;
+    }
+
+    final requestedFullscreen = inherited.isFullScreen;
+    _requestedFullscreen = requestedFullscreen;
+    if (!_controllerInitialized ||
+        controller.value.fullScreenOption.enabled == requestedFullscreen ||
+        _fullscreenSyncScheduled) {
+      return;
+    }
+
+    _fullscreenSyncScheduled = true;
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      _fullscreenSyncScheduled = false;
+      if (!mounted || !_controllerInitialized) {
+        return;
+      }
+
+      final target = _requestedFullscreen;
+      if (target == null ||
+          controller.value.fullScreenOption.enabled == target) {
+        return;
+      }
+      if (target) {
+        controller.enterFullScreen();
+      } else {
+        controller.exitFullScreen();
+      }
+    });
+  }
+
   void _clearPendingLoad(String videoId, int request) {
     if (_isPendingLoad(videoId, request)) {
       _pendingVideoId = null;
@@ -204,6 +246,7 @@ class _VideoPlayerPageState extends State<VideoPlayerPage> {
     super.didChangeDependencies();
     if (!_controllerInitialized) {
       _initializeController();
+      _syncFullscreenFromInherited();
       return;
     }
 
@@ -213,6 +256,7 @@ class _VideoPlayerPageState extends State<VideoPlayerPage> {
     if (normalizedVideoId != null) {
       _requestVideoLoad(normalizedVideoId);
     }
+    _syncFullscreenFromInherited();
   }
 
   @override

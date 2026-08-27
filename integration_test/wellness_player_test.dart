@@ -66,6 +66,7 @@ Widget _harness({
   required Function(bool) onFullScreenChanged,
   String inheritedVideoId = 'dQw4w9WgXcQ',
   List<String>? videoIds,
+  bool isFullScreen = false,
 }) {
   return MaterialApp(
     localizationsDelegates: AppLocalizations.localizationsDelegates,
@@ -74,6 +75,7 @@ Widget _harness({
       body: VideoPlayerInheritedWidget(
         videoId: inheritedVideoId,
         changeVideo: (_) {},
+        isFullScreen: isFullScreen,
         child: VideoPlayerPage(
           onFullScreenChanged: onFullScreenChanged,
           videoData: {
@@ -225,6 +227,51 @@ void main() {
         same(controller),
       );
       expect(find.byType(YoutubePlayer), findsOneWidget);
+    },
+  );
+
+  testWidgets(
+    'synchronizes inherited fullscreen configuration with the controller',
+    (tester) async {
+      const videoId = 'dQw4w9WgXcQ';
+      final fullscreenChanges = <bool>[];
+
+      await tester.pumpWidget(
+        _harness(
+          onFullScreenChanged: fullscreenChanges.add,
+          inheritedVideoId: videoId,
+          isFullScreen: true,
+        ),
+      );
+      await tester.pump(const Duration(milliseconds: 100));
+
+      final state = tester.state(find.byType(VideoPlayerPage)) as dynamic;
+      final YoutubePlayerController controller =
+          state.controller as YoutubePlayerController;
+      expect(controller.value.fullScreenOption.enabled, isTrue);
+      expect(fullscreenChanges, isEmpty);
+
+      await tester.pumpWidget(
+        _harness(
+          onFullScreenChanged: fullscreenChanges.add,
+          inheritedVideoId: videoId,
+          isFullScreen: false,
+        ),
+      );
+      await tester.pump();
+      expect(controller.value.fullScreenOption.enabled, isFalse);
+      expect(fullscreenChanges, [false]);
+
+      await tester.pumpWidget(
+        _harness(
+          onFullScreenChanged: fullscreenChanges.add,
+          inheritedVideoId: videoId,
+          isFullScreen: true,
+        ),
+      );
+      await tester.pump();
+      expect(controller.value.fullScreenOption.enabled, isTrue);
+      expect(fullscreenChanges, [false, true]);
     },
   );
 

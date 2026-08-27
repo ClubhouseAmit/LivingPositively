@@ -4,11 +4,13 @@ import 'package:flutter/material.dart';
 class VideoPlayerInheritedWidget extends InheritedWidget {
   final String videoId;
   final Function(String newVideoId) changeVideo; // Method to change video
+  final bool isFullScreen;
 
   const VideoPlayerInheritedWidget({
     super.key,
     required this.videoId,
     required this.changeVideo,
+    this.isFullScreen = false,
     required super.child,
   });
 
@@ -20,6 +22,7 @@ class VideoPlayerInheritedWidget extends InheritedWidget {
 
   @override
   bool updateShouldNotify(VideoPlayerInheritedWidget oldWidget) {
-    return videoId != oldWidget.videoId; // Notify children when videoId changes
+    return videoId != oldWidget.videoId ||
+        isFullScreen != oldWidget.isFullScreen;
   }
 }

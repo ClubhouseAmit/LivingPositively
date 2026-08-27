@@ -27,6 +27,7 @@ class WellnessTools extends StatefulWidget {
 
 class _WellnessToolsState extends LPExtendedState<WellnessTools> {
   var isFullScreen = false;
+  bool? _pendingFullScreen;
   var selectedVideoIdIndex = 0;
   var selectedVideoId = '';
   final ImagePickerService imageService = GetIt.instance<ImagePickerService>();
@@ -124,6 +125,7 @@ class _WellnessToolsState extends LPExtendedState<WellnessTools> {
   void setIsFullScreen(bool isFullScreen) {
     setState(() {
       this.isFullScreen = isFullScreen;
+      _pendingFullScreen = null;
     });
     widget.setBool(isFullScreen);
   }
@@ -138,7 +140,9 @@ class _WellnessToolsState extends LPExtendedState<WellnessTools> {
   void didUpdateWidget(covariant WellnessTools oldWidget) {
     super.didUpdateWidget(oldWidget);
     if (oldWidget.isFullScreen != widget.isFullScreen) {
-      isFullScreen = widget.isFullScreen;
+      _pendingFullScreen = widget.isFullScreen == isFullScreen
+          ? null
+          : widget.isFullScreen;
     }
   }
 
@@ -175,6 +179,7 @@ class _WellnessToolsState extends LPExtendedState<WellnessTools> {
           ? selectedVideoId
           : _youtubeId(videoIds[selectedIndex])!,
       changeVideo: changeVideo,
+      isFullScreen: _pendingFullScreen ?? isFullScreen,
       child: SafeArea(
         child: Scaffold(
           body: Scrollbar(

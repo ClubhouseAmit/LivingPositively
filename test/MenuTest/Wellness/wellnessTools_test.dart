@@ -13,6 +13,7 @@ import 'package:mazilon/main_menu_dialog.dart';
 import 'package:mazilon/util/Form/formPagePhoneModel.dart';
 
 import 'package:mazilon/pages/WellnessTools/VideoPlayerPageFactory.dart';
+import 'package:mazilon/pages/WellnessTools/VideoPlayerInheritedWidget.dart';
 import 'package:mazilon/pages/WellnessTools/more_videos_item.dart';
 import 'package:mazilon/pages/home.dart';
 import 'package:mazilon/pages/WellnessTools/wellnessTools.dart';
@@ -544,6 +545,14 @@ void main() {
         );
         expect(find.text('Configurable title'), findsNothing);
         expect(find.byType(MoreVideosItem), findsNothing);
+        expect(
+          tester
+              .widget<VideoPlayerInheritedWidget>(
+                find.byType(VideoPlayerInheritedWidget),
+              )
+              .isFullScreen,
+          isTrue,
+        );
 
         await pumpWithProviders(
           tester,
@@ -554,6 +563,20 @@ void main() {
             videoData: videoData,
           ),
         );
+        expect(find.text('Configurable title'), findsNothing);
+        expect(
+          tester
+              .widget<VideoPlayerInheritedWidget>(
+                find.byType(VideoPlayerInheritedWidget),
+              )
+              .isFullScreen,
+          isFalse,
+        );
+
+        await tester.tap(
+          find.byKey(const Key('fake-video-player-exit-fullscreen')),
+        );
+        await tester.pumpAndSettle();
         expect(find.text('Configurable title'), findsOneWidget);
       },
     );
