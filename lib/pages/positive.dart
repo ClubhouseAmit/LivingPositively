@@ -120,13 +120,16 @@ class _PositiveState extends LPExtendedState<Positive> {
             PersistentMemoryService
           >(); // Get the persistent memory service instance
 
-      List<String> positiveTraitsTemp = TypeUtils.castToStringList(
+      final positiveTraitsTemp = TypeUtils.castToStringList(
         await service.getItem(
           "positiveTraits",
           PersistentMemoryType.StringList,
         ),
       );
 
+      if (removeIndex < 0 || removeIndex >= positiveTraitsTemp.length) {
+        return;
+      }
       positiveTraitsTemp.removeAt(removeIndex);
       await service.setItem(
         "positiveTraits",
@@ -141,8 +144,8 @@ class _PositiveState extends LPExtendedState<Positive> {
         focusNodes.removeAt(removeIndex);
         userInfo.updatePositiveTraits(positiveTraits);
       });
-    } catch (error, stackTrace) {
-      debugPrint('Unable to remove positive trait: $error\n$stackTrace');
+    } catch (_) {
+      debugPrint('Unable to remove positive trait.');
     }
   }
 

@@ -102,9 +102,9 @@ reset-fenced cancellation can also repair it. The active-delivery-permit check
 remains authoritative for the reset path, while ordinary cancellation can
 retire a schedule during the short permit window.
 
-- Spring-forward: new registrations reject 02:00–02:59, the Israel-local hour
-  that does not exist on the spring-forward day. Pre-existing schedules in
-  that hour remain best-effort and can be skipped that day.
+- Spring-forward: the scheduler skips the non-existent Israel-local 02:00–02:59
+  occurrence on the transition day. This is accepted best-effort behavior;
+  the same wall-clock time remains valid on every other day.
 - Fall-back: both occurrences share the local-date/time key. The first claim
   may send; the repeated occurrence is suppressed rather than sending twice.
 

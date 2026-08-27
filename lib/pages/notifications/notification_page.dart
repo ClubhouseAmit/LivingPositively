@@ -25,6 +25,7 @@ class NotificationPage extends StatefulWidget {
 class _NotificationPageState extends LPExtendedState<NotificationPage>
     with WidgetsBindingObserver {
   bool? _hasPermission;
+  int _permissionCheckGeneration = 0;
 
   @override
   void initState() {
@@ -46,11 +47,20 @@ class _NotificationPageState extends LPExtendedState<NotificationPage>
   }
 
   Future<void> _checkPermission() async {
+    final generation = ++_permissionCheckGeneration;
     final granted = await FcmService.hasPermission();
-    if (mounted) setState(() => _hasPermission = granted);
+    if (granted) {
+      await FcmService.initialize();
+    }
+    if (!mounted || generation != _permissionCheckGeneration) return;
+    setState(() => _hasPermission = granted);
   }
 
   Future<bool> _onToggle(bool value, UserInformation userInfo) async {
+    if (_hasPermission != true) {
+      _showReminderMutationFailure();
+      return false;
+    }
     try {
       final applied = value
           ? await _enableReminder(userInfo)
@@ -77,12 +87,18 @@ class _NotificationPageState extends LPExtendedState<NotificationPage>
     return FcmScheduledNotificationService.registerNotification(
       context: context,
       typeId: 'default',
-      hour: preference?.hour ?? 8,
-      minute: preference?.minute ?? 30,
+      hour: preference?.hour ?? NotificationToggleCard.defaultReminderTime.hour,
+      minute:
+          preference?.minute ??
+          NotificationToggleCard.defaultReminderTime.minute,
     );
   }
 
   Future<bool> _onPickedTime(TimeOfDay picked) async {
+    if (_hasPermission != true) {
+      _showReminderMutationFailure();
+      return false;
+    }
     try {
       final applied =
           await FcmScheduledNotificationService.registerNotification(
@@ -159,6 +175,14 @@ class _NotificationPageState extends LPExtendedState<NotificationPage>
                         onRequestPermission: _requestReminderPermission,
                       );
                     }
+                    if (_hasPermission == null) {
+                      return const Center(
+                        child: Padding(
+                          padding: EdgeInsets.all(24),
+                          child: CircularProgressIndicator(),
+                        ),
+                      );
+                    }
                     final preference = userInfo.getNotificationPreference(
                       'default',
                     );
@@ -206,8 +230,10 @@ class _NotificationPageState extends LPExtendedState<NotificationPage>
   }
 
   Future<void> _requestReminderPermission() async {
+    final generation = ++_permissionCheckGeneration;
     final granted = await FcmService.requestPermissionAndInitialize();
-    if (mounted) setState(() => _hasPermission = granted);
+    if (!mounted || generation != _permissionCheckGeneration) return;
+    setState(() => _hasPermission = granted);
   }
 }
 

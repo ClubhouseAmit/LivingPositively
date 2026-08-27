@@ -358,22 +358,22 @@ class MockUserInformation extends _i1.Mock implements _i3.UserInformation {
           as bool);
 
   @override
-  _i5.Future<void> get pendingCustomCategoriesSave =>
+  _i6.Future<void> get pendingCustomCategoriesSave =>
       (super.noSuchMethod(
             Invocation.getter(#pendingCustomCategoriesSave),
-            returnValue: _i5.Future<void>.value(),
-            returnValueForMissingStub: _i5.Future<void>.value(),
+            returnValue: _i6.Future<void>.value(),
+            returnValueForMissingStub: _i6.Future<void>.value(),
           )
-          as _i5.Future<void>);
+          as _i6.Future<void>);
 
   @override
-  _i5.Future<void> get pendingDreamsAndGoalsSave =>
+  _i6.Future<void> get pendingDreamsAndGoalsSave =>
       (super.noSuchMethod(
             Invocation.getter(#pendingDreamsAndGoalsSave),
-            returnValue: _i5.Future<void>.value(),
-            returnValueForMissingStub: _i5.Future<void>.value(),
+            returnValue: _i6.Future<void>.value(),
+            returnValueForMissingStub: _i6.Future<void>.value(),
           )
-          as _i5.Future<void>);
+          as _i6.Future<void>);
 
   @override
   int get dreamsAndGoalsSaveRevision =>
@@ -570,25 +570,25 @@ class MockUserInformation extends _i1.Mock implements _i3.UserInformation {
           as bool);
 
   @override
-  _i5.Future<List<MapEntry<String, String>>> loadCustomCategories({
+  _i6.Future<List<MapEntry<String, String>>> loadCustomCategories({
     _i2.PersistentMemoryService? memoryService,
   }) =>
       (super.noSuchMethod(
             Invocation.method(#loadCustomCategories, [], {
               #memoryService: memoryService,
             }),
-            returnValue: _i5.Future<List<MapEntry<String, String>>>.value(
+            returnValue: _i6.Future<List<MapEntry<String, String>>>.value(
               <MapEntry<String, String>>[],
             ),
             returnValueForMissingStub:
-                _i5.Future<List<MapEntry<String, String>>>.value(
+                _i6.Future<List<MapEntry<String, String>>>.value(
                   <MapEntry<String, String>>[],
                 ),
           )
-          as _i5.Future<List<MapEntry<String, String>>>);
+          as _i6.Future<List<MapEntry<String, String>>>);
 
   @override
-  _i5.Future<void> saveCustomCategories({
+  _i6.Future<void> saveCustomCategories({
     List<MapEntry<String, String>>? categories,
     _i2.PersistentMemoryService? memoryService,
   }) =>
@@ -597,19 +597,19 @@ class MockUserInformation extends _i1.Mock implements _i3.UserInformation {
               #categories: categories,
               #memoryService: memoryService,
             }),
-            returnValue: _i5.Future<void>.value(),
-            returnValueForMissingStub: _i5.Future<void>.value(),
+            returnValue: _i6.Future<void>.value(),
+            returnValueForMissingStub: _i6.Future<void>.value(),
           )
-          as _i5.Future<void>);
+          as _i6.Future<void>);
 
   @override
-  _i5.Future<void> reset(String? locale) =>
+  _i6.Future<void> reset(String? locale) =>
       (super.noSuchMethod(
             Invocation.method(#reset, [locale]),
-            returnValue: _i5.Future<void>.value(),
-            returnValueForMissingStub: _i5.Future<void>.value(),
+            returnValue: _i6.Future<void>.value(),
+            returnValueForMissingStub: _i6.Future<void>.value(),
           )
-          as _i5.Future<void>);
+          as _i6.Future<void>);
 
   @override
   void updateGender(String? text) => super.noSuchMethod(
@@ -694,25 +694,25 @@ class MockUserInformation extends _i1.Mock implements _i3.UserInformation {
   );
 
   @override
-  _i5.Future<void> queueDreamsAndGoalsSave() =>
+  _i6.Future<void> queueDreamsAndGoalsSave() =>
       (super.noSuchMethod(
             Invocation.method(#queueDreamsAndGoalsSave, []),
-            returnValue: _i5.Future<void>.value(),
-            returnValueForMissingStub: _i5.Future<void>.value(),
+            returnValue: _i6.Future<void>.value(),
+            returnValueForMissingStub: _i6.Future<void>.value(),
           )
-          as _i5.Future<void>);
+          as _i6.Future<void>);
 
   @override
-  _i5.Future<void> retryDreamsAndGoalsSave(int? revision) =>
+  _i6.Future<void> retryDreamsAndGoalsSave(int? revision) =>
       (super.noSuchMethod(
             Invocation.method(#retryDreamsAndGoalsSave, [revision]),
-            returnValue: _i5.Future<void>.value(),
-            returnValueForMissingStub: _i5.Future<void>.value(),
+            returnValue: _i6.Future<void>.value(),
+            returnValueForMissingStub: _i6.Future<void>.value(),
           )
-          as _i5.Future<void>);
+          as _i6.Future<void>);
 
   @override
-  _i5.Future<void> hydrateDreamsAndGoalsFromStorage(
+  _i6.Future<void> hydrateDreamsAndGoalsFromStorage(
     List<String>? selections, {
     required List<String>? storedSelectionSources,
     required List<String>? storedCustomSelections,
@@ -726,22 +726,22 @@ class MockUserInformation extends _i1.Mock implements _i3.UserInformation {
                 #storedCustomSelections: storedCustomSelections,
               },
             ),
-            returnValue: _i5.Future<void>.value(),
-            returnValueForMissingStub: _i5.Future<void>.value(),
+            returnValue: _i6.Future<void>.value(),
+            returnValueForMissingStub: _i6.Future<void>.value(),
           )
-          as _i5.Future<void>);
+          as _i6.Future<void>);
 
   @override
-  _i5.Future<void> repairDreamsAndGoalsSelectionSources() =>
+  _i6.Future<void> repairDreamsAndGoalsSelectionSources() =>
       (super.noSuchMethod(
             Invocation.method(#repairDreamsAndGoalsSelectionSources, []),
-            returnValue: _i5.Future<void>.value(),
-            returnValueForMissingStub: _i5.Future<void>.value(),
+            returnValue: _i6.Future<void>.value(),
+            returnValueForMissingStub: _i6.Future<void>.value(),
           )
-          as _i5.Future<void>);
+          as _i6.Future<void>);
 
   @override
-  _i5.Future<void> saveDreamsAndGoalsWithDisclaimer({
+  _i6.Future<void> saveDreamsAndGoalsWithDisclaimer({
     required int? revision,
     required bool? retry,
   }) =>
@@ -750,13 +750,13 @@ class MockUserInformation extends _i1.Mock implements _i3.UserInformation {
               #revision: revision,
               #retry: retry,
             }),
-            returnValue: _i5.Future<void>.value(),
-            returnValueForMissingStub: _i5.Future<void>.value(),
+            returnValue: _i6.Future<void>.value(),
+            returnValueForMissingStub: _i6.Future<void>.value(),
           )
-          as _i5.Future<void>);
+          as _i6.Future<void>);
 
   @override
-  _i5.Future<void> saveCategorySelection(
+  _i6.Future<void> saveCategorySelection(
     String? collectionName,
     List<String>? items, {
     List<String>? selectionSources,
@@ -771,37 +771,37 @@ class MockUserInformation extends _i1.Mock implements _i3.UserInformation {
                 #onDreamsSaveQueued: onDreamsSaveQueued,
               },
             ),
-            returnValue: _i5.Future<void>.value(),
-            returnValueForMissingStub: _i5.Future<void>.value(),
+            returnValue: _i6.Future<void>.value(),
+            returnValueForMissingStub: _i6.Future<void>.value(),
           )
-          as _i5.Future<void>);
+          as _i6.Future<void>);
 
   @override
-  _i5.Future<void> prepareForPersonalPlanExport() =>
+  _i6.Future<void> prepareForPersonalPlanExport() =>
       (super.noSuchMethod(
             Invocation.method(#prepareForPersonalPlanExport, []),
-            returnValue: _i5.Future<void>.value(),
-            returnValueForMissingStub: _i5.Future<void>.value(),
+            returnValue: _i6.Future<void>.value(),
+            returnValueForMissingStub: _i6.Future<void>.value(),
           )
-          as _i5.Future<void>);
+          as _i6.Future<void>);
 
   @override
-  _i5.Future<void> persistDisclaimerConfirmed() =>
+  _i6.Future<void> persistDisclaimerConfirmed() =>
       (super.noSuchMethod(
             Invocation.method(#persistDisclaimerConfirmed, []),
-            returnValue: _i5.Future<void>.value(),
-            returnValueForMissingStub: _i5.Future<void>.value(),
+            returnValue: _i6.Future<void>.value(),
+            returnValueForMissingStub: _i6.Future<void>.value(),
           )
-          as _i5.Future<void>);
+          as _i6.Future<void>);
 
   @override
-  _i5.Future<void> persistHasFilled() =>
+  _i6.Future<void> persistHasFilled() =>
       (super.noSuchMethod(
             Invocation.method(#persistHasFilled, []),
-            returnValue: _i5.Future<void>.value(),
-            returnValueForMissingStub: _i5.Future<void>.value(),
+            returnValue: _i6.Future<void>.value(),
+            returnValueForMissingStub: _i6.Future<void>.value(),
           )
-          as _i5.Future<void>);
+          as _i6.Future<void>);
 
   @override
   void updateDisclaimerSigned(bool? value) => super.noSuchMethod(
@@ -850,10 +850,10 @@ class MockUserInformation extends _i1.Mock implements _i3.UserInformation {
   @override
   _i6.Future<void> setNotificationPreference(
     String? typeId,
-    _i5.NotificationPreference? pref,
+    _i5.NotificationPreference? preference,
   ) =>
       (super.noSuchMethod(
-            Invocation.method(#setNotificationPreference, [typeId, pref]),
+            Invocation.method(#setNotificationPreference, [typeId, preference]),
             returnValue: _i6.Future<void>.value(),
             returnValueForMissingStub: _i6.Future<void>.value(),
           )

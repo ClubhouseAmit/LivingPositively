@@ -44,11 +44,7 @@ export function isValidNotificationLocale(
   return value === "he" || value === "ar" || value === "en";
 }
 
-/**
- * Israel's daylight-saving transition skips the local 02:00 hour. Rejecting
- * that wall-clock hour at registration prevents a schedule that cannot be
- * delivered on the spring-forward day.
- */
+/** Validates a wall-clock reminder time before it is persisted. */
 export function isValidNotificationScheduleTime(
   hour: unknown,
   minute: unknown,
@@ -59,7 +55,6 @@ export function isValidNotificationScheduleTime(
     Number.isInteger(hour) &&
     hour >= 0 &&
     hour <= 23 &&
-    hour !== 2 &&
     typeof minute === "number" &&
     Number.isFinite(minute) &&
     Number.isInteger(minute) &&

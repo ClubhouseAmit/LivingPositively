@@ -13,14 +13,14 @@ require_value() {
 }
 
 for value_name in \
-  APPLE_SIGN_IN_ENABLED \
   GOOGLE_SIGN_IN_SERVER_CLIENT_ID \
   GOOGLE_SIGN_IN_IOS_CLIENT_ID \
   GOOGLE_SIGN_IN_IOS_REVERSED_CLIENT_ID; do
   require_value "$value_name"
 done
 
-[[ "$APPLE_SIGN_IN_ENABLED" == "true" ]] || fail "APPLE_SIGN_IN_ENABLED must be true"
+APPLE_SIGN_IN_ENABLED="${APPLE_SIGN_IN_ENABLED:-true}"
+[[ "$APPLE_SIGN_IN_ENABLED" == "true" || "$APPLE_SIGN_IN_ENABLED" == "false" ]] || fail "APPLE_SIGN_IN_ENABLED must be true or false"
 
 config_file="ios/Flutter/GoogleSignIn.xcconfig"
 [[ -f "$config_file" ]] || fail "copy and populate $config_file from GoogleSignIn.xcconfig.example"

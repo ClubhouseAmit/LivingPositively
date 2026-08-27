@@ -4,6 +4,8 @@ import 'package:flutter/material.dart';
 import 'package:mazilon/util/styles.dart';
 
 class NotificationToggleCard extends StatefulWidget {
+  static const TimeOfDay defaultReminderTime = TimeOfDay(hour: 8, minute: 30);
+
   final String emoji;
   final String badgeText;
   final String title;
@@ -83,7 +85,7 @@ class _NotificationToggleCardState extends State<NotificationToggleCard> {
       } else if (applied) {
         _isEnabled = requestedValue;
         if (!requestedValue) {
-          _selectedTime = TimeOfDay(hour: 8, minute: 30);
+          _selectedTime = NotificationToggleCard.defaultReminderTime;
         }
       }
     });

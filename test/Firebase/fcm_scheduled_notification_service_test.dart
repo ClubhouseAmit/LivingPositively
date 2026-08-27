@@ -459,11 +459,20 @@ void main() {
             }
             if (url.path.endsWith('/cancelNotification')) {
               operations.add('cancel');
+              mutationVersion++;
+              return http.Response(
+                '{"success":true,"mutationVersion":$mutationVersion,'
+                '"schedule":{"hour":8,"minute":15}}',
+                200,
+              );
             } else {
               operations.add('register');
             }
             mutationVersion++;
-            return http.Response('{"success":true}', 200);
+            return http.Response(
+              '{"success":true,"mutationVersion":$mutationVersion}',
+              200,
+            );
           },
         ),
       );
@@ -1567,7 +1576,17 @@ void main() {
               url.path.endsWith('/cancelNotification') ? 'cancel' : 'register',
             );
             mutationVersion++;
-            return http.Response('{"success":true}', 200);
+            if (url.path.endsWith('/cancelNotification')) {
+              return http.Response(
+                '{"success":true,"mutationVersion":$mutationVersion,'
+                '"schedule":{"hour":8,"minute":15}}',
+                200,
+              );
+            }
+            return http.Response(
+              '{"success":true,"mutationVersion":$mutationVersion}',
+              200,
+            );
           },
         ),
       );
@@ -1664,7 +1683,17 @@ void main() {
               url.path.endsWith('/cancelNotification') ? 'cancel' : 'register',
             );
             mutationVersion++;
-            return http.Response('{"success":true}', 200);
+            if (url.path.endsWith('/cancelNotification')) {
+              return http.Response(
+                '{"success":true,"mutationVersion":$mutationVersion,'
+                '"schedule":{"hour":8,"minute":15}}',
+                200,
+              );
+            }
+            return http.Response(
+              '{"success":true,"mutationVersion":$mutationVersion}',
+              200,
+            );
           },
           legacyNotificationCanceller: _ignoreLegacyNotification,
         ),

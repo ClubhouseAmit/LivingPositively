@@ -1,5 +1,6 @@
 import 'dart:async';
 
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:get_it/get_it.dart';
 import 'package:mazilon/global_enums.dart';
@@ -16,6 +17,7 @@ import 'package:mockito/mockito.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 import '../../test_support/contract_persistent_memory_service.dart';
+import 'firebase_auth_service_test.mocks.dart';
 
 // ---------------------------------------------------------------------------
 // Fakes
@@ -100,12 +102,18 @@ _FakeMemory _registerFakes({
   if (getIt.isRegistered<PersistentMemoryService>()) {
     getIt.unregister<PersistentMemoryService>();
   }
+  if (getIt.isRegistered<FirebaseAuth>()) {
+    getIt.unregister<FirebaseAuth>();
+  }
   final memory = _FakeMemory(
     store,
     failDreamsAndGoalsWrites: failDreamsAndGoalsWrites,
   );
+  final auth = MockFirebaseAuth();
+  when(auth.currentUser).thenReturn(null);
   getIt.registerSingleton<IncidentLoggerService>(_FakeLogger());
   getIt.registerSingleton<PersistentMemoryService>(memory);
+  getIt.registerSingleton<FirebaseAuth>(auth);
   return memory;
 }
 
@@ -510,9 +518,7 @@ void main() {
         ]);
         expect(userInfo.location, 'Haifa');
         expect(userInfo.disclaimerSigned, isTrue);
-        expect(userInfo.notificationMinute, 45);
-        expect(userInfo.notificationHour, 8);
-        expect(userInfo.notificationMessage, 'Take a break');
+        expect(userInfo.getNotificationPreference('default'), isNull);
         expect(userInfo.localeName, 'he');
         expect(userInfo.positiveTraits, <String>['Kind']);
         expect(userInfo.thanks, <String, List<String>>{
@@ -544,25 +550,18 @@ void main() {
   });
 
   group('loadUserInformation – empty / null defaults', () {
-    test(
-      'uses the default schedule when saved values are absent',
-      () async {
-        _registerFakes(
-          store: {
-            'darkModePreference': 'scheduled',
-          },
-        );
+    test('uses the default schedule when saved values are absent', () async {
+      _registerFakes(store: {'darkModePreference': 'scheduled'});
 
-        final userInfo = _makeUserInfo();
-        await loadUserInformation(userInfo, 'en');
+      final userInfo = _makeUserInfo();
+      await loadUserInformation(userInfo, 'en');
 
-        expect(userInfo.darkModePreference, DarkModePreference.scheduled);
-        expect(userInfo.darkModeStartHour, 22);
-        expect(userInfo.darkModeStartMinute, 0);
-        expect(userInfo.darkModeEndHour, 6);
-        expect(userInfo.darkModeEndMinute, 0);
-      },
-    );
+      expect(userInfo.darkModePreference, DarkModePreference.scheduled);
+      expect(userInfo.darkModeStartHour, 22);
+      expect(userInfo.darkModeStartMinute, 0);
+      expect(userInfo.darkModeEndHour, 6);
+      expect(userInfo.darkModeEndMinute, 0);
+    });
 
     test(
       'defaults and logs an invalid typed SharedPreferences value',

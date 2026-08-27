@@ -161,10 +161,10 @@ describe("notification validation", () => {
     );
   });
 
-  it("rejects Israel's nonexistent spring-forward hour", () => {
+  it("accepts valid wall-clock times", () => {
     assert.equal(isValidNotificationScheduleTime(1, 59), true);
-    assert.equal(isValidNotificationScheduleTime(2, 0), false);
-    assert.equal(isValidNotificationScheduleTime(2, 59), false);
+    assert.equal(isValidNotificationScheduleTime(2, 0), true);
+    assert.equal(isValidNotificationScheduleTime(2, 59), true);
     assert.equal(isValidNotificationScheduleTime(3, 0), true);
     assert.equal(isValidNotificationScheduleTime(24, 0), false);
   });

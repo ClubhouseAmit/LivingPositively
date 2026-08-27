@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:get_it/get_it.dart';
 import 'package:mazilon/global_enums.dart';
 import 'package:mazilon/util/logger_service.dart';
@@ -99,7 +101,7 @@ class SharedPreferencesService implements PersistentMemoryService {
         throw StateError('Persistent memory rejected "$key".');
       }
     } catch (error, stackTrace) {
-      await loggerService.captureLog(error, stackTrace: stackTrace);
+      _recordFailure(loggerService, error, stackTrace);
       rethrow;
     }
   }
@@ -111,11 +113,7 @@ class SharedPreferencesService implements PersistentMemoryService {
     try {
       throw error;
     } catch (error, stackTrace) {
-      try {
-        await loggerService.captureLog(error, stackTrace: stackTrace);
-      } catch (_) {
-        // A logging failure must not mask the rejected write.
-      }
+      _recordFailure(loggerService, error, stackTrace);
       rethrow;
     }
   }
@@ -185,15 +183,23 @@ class SharedPreferencesService implements PersistentMemoryService {
       final SharedPreferences prefs = await SharedPreferences.getInstance();
       final bool cleared = await prefs.clear();
       if (!cleared) {
-        throw StateError('Persistent memory reset was rejected.');
+        throw StateError('Persistent memory clear was rejected.');
       }
     } catch (error, stackTrace) {
-      try {
-        await loggerService.captureLog(error, stackTrace: stackTrace);
-      } catch (_) {
-        // Reset failures must remain visible if incident logging also fails.
-      }
+      _recordFailure(loggerService, error, stackTrace);
       rethrow;
     }
+  }
+
+  void _recordFailure(
+    IncidentLoggerService loggerService,
+    Object error,
+    StackTrace stackTrace,
+  ) {
+    unawaited(
+      loggerService
+          .captureLog(error, stackTrace: stackTrace)
+          .catchError((Object _) {}),
+    );
   }
 }

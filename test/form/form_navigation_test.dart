@@ -201,7 +201,9 @@ Future<FormProgressIndicatorState> _moveToDreamsAndGoals(
     await tester.pumpAndSettle();
   }
   expect(
-    tester.widget<FormPageTemplate>(find.byType(FormPageTemplate)).collectionName,
+    tester
+        .widget<FormPageTemplate>(find.byType(FormPageTemplate))
+        .collectionName,
     'PersonalPlan-DreamsAndGoals',
   );
   return state;
@@ -289,40 +291,41 @@ void main() {
     },
   );
 
-  testWidgets('wizard keeps the seven default categories in the required order', (
-    tester,
-  ) async {
-    await _pumpForm(tester);
-    final state = tester.state<FormProgressIndicatorState>(
-      find.byType(FormProgressIndicator),
-    );
-
-    for (final collectionName in const [
-      'PersonalPlan-Distractions',
-      'PersonalPlan-DifficultEvents',
-      'PersonalPlan-FeelBetter',
-      'PersonalPlan-MakeSafer',
-      'PersonalPlan-SafeEnvironment',
-      'PersonalPlan-DreamsAndGoals',
-    ]) {
-      expect(
-        tester
-            .widget<FormPageTemplate>(find.byType(FormPageTemplate))
-            .collectionName,
-        collectionName,
+  testWidgets(
+    'wizard keeps the seven default categories in the required order',
+    (tester) async {
+      await _pumpForm(tester);
+      final state = tester.state<FormProgressIndicatorState>(
+        find.byType(FormProgressIndicator),
       );
-      state.next();
-      await tester.pumpAndSettle();
-    }
 
-    expect(find.byType(PhonePageForm), findsOneWidget);
-    final contactsContinue = find.byKey(const Key('wizard-primary-action'));
-    await tester.ensureVisible(contactsContinue);
-    await tester.tap(contactsContinue, warnIfMissed: false);
-    await tester.pumpAndSettle();
-    expect(find.byType(FormPageTemplate), findsNothing);
-    expect(find.byType(PhonePageForm), findsNothing);
-  });
+      for (final collectionName in const [
+        'PersonalPlan-Distractions',
+        'PersonalPlan-DifficultEvents',
+        'PersonalPlan-FeelBetter',
+        'PersonalPlan-MakeSafer',
+        'PersonalPlan-SafeEnvironment',
+        'PersonalPlan-DreamsAndGoals',
+      ]) {
+        expect(
+          tester
+              .widget<FormPageTemplate>(find.byType(FormPageTemplate))
+              .collectionName,
+          collectionName,
+        );
+        state.next();
+        await tester.pumpAndSettle();
+      }
+
+      expect(find.byType(PhonePageForm), findsOneWidget);
+      final contactsContinue = find.byKey(const Key('wizard-primary-action'));
+      await tester.ensureVisible(contactsContinue);
+      await tester.tap(contactsContinue, warnIfMissed: false);
+      await tester.pumpAndSettle();
+      expect(find.byType(FormPageTemplate), findsNothing);
+      expect(find.byType(PhonePageForm), findsNothing);
+    },
+  );
 
   testWidgets(
     'tapping the save-and-quit control on the header pushes a Menu route',
@@ -350,7 +353,7 @@ void main() {
     state.updateName('Ada');
     GetIt.instance.unregister<PersistentMemoryService>();
     GetIt.instance.registerSingleton<PersistentMemoryService>(
-      _FailingPersistentMemoryService(),
+      _FailingNameMemoryService(),
     );
 
     await state.submitForm(tester.element(find.byType(FormProgressIndicator)));
@@ -481,32 +484,33 @@ void main() {
       expect(find.byType(Menu), findsOneWidget);
     });
 
-    testWidgets('should wait for a held save before header back changes steps', (
-      tester,
-    ) async {
-      final heldMemory = _HeldDreamsMemoryService();
-      GetIt.instance.unregister<PersistentMemoryService>();
-      GetIt.instance.registerSingleton<PersistentMemoryService>(heldMemory);
-      addTearDown(heldMemory.releaseFirstDreamsSelectionWrite);
+    testWidgets(
+      'should wait for a held save before header back changes steps',
+      (tester) async {
+        final heldMemory = _HeldDreamsMemoryService();
+        GetIt.instance.unregister<PersistentMemoryService>();
+        GetIt.instance.registerSingleton<PersistentMemoryService>(heldMemory);
+        addTearDown(heldMemory.releaseFirstDreamsSelectionWrite);
 
-      await _pumpForm(tester);
-      final state = await _moveToDreamsAndGoals(tester);
+        await _pumpForm(tester);
+        final state = await _moveToDreamsAndGoals(tester);
 
-      final suggestion = tester.widget<InkWell>(
-        find.byKey(const ValueKey('suggestion-Write and publish a book')),
-      );
-      suggestion.onTap!();
-      await heldMemory.firstDreamsSelectionWriteStarted.future;
+        final suggestion = tester.widget<InkWell>(
+          find.byKey(const ValueKey('suggestion-Write and publish a book')),
+        );
+        suggestion.onTap!();
+        await heldMemory.firstDreamsSelectionWriteStarted.future;
 
-      _pressHeaderBack(tester);
-      await _flushAsyncAction(tester);
-      expect(state.currentStep, 5);
+        _pressHeaderBack(tester);
+        await _flushAsyncAction(tester);
+        expect(state.currentStep, 5);
 
-      heldMemory.releaseFirstDreamsSelectionWrite();
-      await _flushAsyncAction(tester);
-      await tester.pumpAndSettle();
-      expect(state.currentStep, 4);
-    });
+        heldMemory.releaseFirstDreamsSelectionWrite();
+        await _flushAsyncAction(tester);
+        await tester.pumpAndSettle();
+        expect(state.currentStep, 4);
+      },
+    );
 
     testWidgets('should wait for a held disclaimer before Save and Quit', (
       tester,
@@ -546,9 +550,7 @@ void main() {
       await _moveToDreamsAndGoals(tester);
       user.updateDreamsAndGoals(
         const <String>['Write and publish a book'],
-        selectionSources: const <String>[
-          'catalogue:write-and-publish-a-book',
-        ],
+        selectionSources: const <String>['catalogue:write-and-publish-a-book'],
       );
       user.queueDreamsAndGoalsSave();
 
@@ -611,70 +613,70 @@ void main() {
       expect(state.currentStep, 6);
     });
 
-    testWidgets('should wait for an inline held disclaimer before Save and Quit', (
-      tester,
-    ) async {
-      final heldMemory = _HeldDisclaimerMemoryService();
-      GetIt.instance.unregister<PersistentMemoryService>();
-      GetIt.instance.registerSingleton<PersistentMemoryService>(heldMemory);
-      addTearDown(heldMemory.releaseDisclaimerWrite);
+    testWidgets(
+      'should wait for an inline held disclaimer before Save and Quit',
+      (tester) async {
+        final heldMemory = _HeldDisclaimerMemoryService();
+        GetIt.instance.unregister<PersistentMemoryService>();
+        GetIt.instance.registerSingleton<PersistentMemoryService>(heldMemory);
+        addTearDown(heldMemory.releaseDisclaimerWrite);
 
-      await _pumpForm(tester);
-      await _moveToShare(tester);
+        await _pumpForm(tester);
+        await _moveToShare(tester);
 
-      final toggle = find.byKey(const Key('share-dreams-and-goals-toggle'));
-      await tester.ensureVisible(toggle);
-      await tester.tap(toggle);
-      await tester.pumpAndSettle();
-      final suggestion = tester.widget<InkWell>(
-        find.byKey(const ValueKey('suggestion-Write and publish a book')),
-      );
-      suggestion.onTap!();
-      await heldMemory.disclaimerWriteStarted.future;
+        final toggle = find.byKey(const Key('share-dreams-and-goals-toggle'));
+        await tester.ensureVisible(toggle);
+        await tester.tap(toggle);
+        await tester.pumpAndSettle();
+        final suggestion = tester.widget<InkWell>(
+          find.byKey(const ValueKey('suggestion-Write and publish a book')),
+        );
+        suggestion.onTap!();
+        await heldMemory.disclaimerWriteStarted.future;
 
-      _pressSaveAndQuit(tester);
-      await _flushAsyncAction(tester);
-      expect(find.byType(Menu), findsNothing);
+        _pressSaveAndQuit(tester);
+        await _flushAsyncAction(tester);
+        expect(find.byType(Menu), findsNothing);
 
-      heldMemory.releaseDisclaimerWrite();
-      await _flushAsyncAction(tester);
-      await tester.pumpAndSettle();
-      expect(find.byType(Menu), findsOneWidget);
-    });
+        heldMemory.releaseDisclaimerWrite();
+        await _flushAsyncAction(tester);
+        await tester.pumpAndSettle();
+        expect(find.byType(Menu), findsOneWidget);
+      },
+    );
 
-    testWidgets('should keep an inline editor mounted until its disclaimer saves', (
-      tester,
-    ) async {
-      final heldMemory = _HeldDisclaimerMemoryService();
-      GetIt.instance.unregister<PersistentMemoryService>();
-      GetIt.instance.registerSingleton<PersistentMemoryService>(heldMemory);
-      addTearDown(heldMemory.releaseDisclaimerWrite);
+    testWidgets(
+      'should keep an inline editor mounted until its disclaimer saves',
+      (tester) async {
+        final heldMemory = _HeldDisclaimerMemoryService();
+        GetIt.instance.unregister<PersistentMemoryService>();
+        GetIt.instance.registerSingleton<PersistentMemoryService>(heldMemory);
+        addTearDown(heldMemory.releaseDisclaimerWrite);
 
-      await _pumpForm(tester);
-      await _moveToShare(tester);
+        await _pumpForm(tester);
+        await _moveToShare(tester);
 
-      final toggle = find.byKey(const Key('share-dreams-and-goals-toggle'));
-      await tester.ensureVisible(toggle);
-      await tester.tap(toggle);
-      await tester.pumpAndSettle();
-      tester
-          .widget<InkWell>(
-            find.byKey(
-              const ValueKey('suggestion-Write and publish a book'),
-            ),
-          )
-          .onTap!();
-      await heldMemory.disclaimerWriteStarted.future;
+        final toggle = find.byKey(const Key('share-dreams-and-goals-toggle'));
+        await tester.ensureVisible(toggle);
+        await tester.tap(toggle);
+        await tester.pumpAndSettle();
+        tester
+            .widget<InkWell>(
+              find.byKey(const ValueKey('suggestion-Write and publish a book')),
+            )
+            .onTap!();
+        await heldMemory.disclaimerWriteStarted.future;
 
-      await tester.tap(toggle);
-      await _flushAsyncAction(tester);
-      expect(find.byType(FormPageTemplate), findsOneWidget);
+        await tester.tap(toggle);
+        await _flushAsyncAction(tester);
+        expect(find.byType(FormPageTemplate), findsOneWidget);
 
-      heldMemory.releaseDisclaimerWrite();
-      await _flushAsyncAction(tester);
-      await tester.pumpAndSettle();
-      expect(find.byType(FormPageTemplate), findsNothing);
-    });
+        heldMemory.releaseDisclaimerWrite();
+        await _flushAsyncAction(tester);
+        await tester.pumpAndSettle();
+        expect(find.byType(FormPageTemplate), findsNothing);
+      },
+    );
 
     testWidgets('should retry a failed inline disclaimer before collapsing', (
       tester,
@@ -692,9 +694,7 @@ void main() {
       await tester.pumpAndSettle();
       tester
           .widget<InkWell>(
-            find.byKey(
-              const ValueKey('suggestion-Write and publish a book'),
-            ),
+            find.byKey(const ValueKey('suggestion-Write and publish a book')),
           )
           .onTap!();
       await _flushAsyncAction(tester);

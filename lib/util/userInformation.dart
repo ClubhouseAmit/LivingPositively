@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:convert';
 
 import 'package:flutter/foundation.dart';
 import 'package:get_it/get_it.dart';
@@ -6,6 +7,7 @@ import 'package:mazilon/global_enums.dart';
 import 'package:mazilon/util/custom_categories_storage.dart';
 import 'package:mazilon/util/dreams_and_goals_selection.dart';
 import 'package:mazilon/util/logger_service.dart';
+import 'package:mazilon/util/notification_preference.dart';
 import 'package:mazilon/util/persistent_memory_service.dart';
 
 enum DarkModePreference { alwaysLight, alwaysDark, scheduled }
@@ -43,6 +45,7 @@ class UserInformation with ChangeNotifier {
   PersistentMemoryService service; // Get the persistent memory service instance
   Future<void> _pendingDreamsAndGoalsSave = Future<void>.value();
   Future<void> _pendingCustomCategoriesSave = Future<void>.value();
+  Future<void>? _notificationPreferencesWrite;
   int _dreamsAndGoalsSaveRevision = 0;
   int _activeDreamsAndGoalsSavesCount = 0;
 
@@ -398,10 +401,7 @@ class UserInformation with ChangeNotifier {
     final Future<void> disclaimerSave = Future<void>.sync(
       persistDisclaimerConfirmed,
     );
-    return Future.wait<void>([
-      dreamsSave,
-      disclaimerSave,
-    ]);
+    return Future.wait<void>([dreamsSave, disclaimerSave]);
   }
 
   /// Updates category selections in memory and persists them through this
@@ -431,7 +431,8 @@ class UserInformation with ChangeNotifier {
       case 'PersonalPlan-DreamsAndGoals':
         updateDreamsAndGoals(
           items,
-          selectionSources: selectionSources ??
+          selectionSources:
+              selectionSources ??
               (listEquals(items, dreamsAndGoals)
                   ? dreamsAndGoalsSelectionSources
                   : normalizeDreamsAndGoalsSelectionSources(
@@ -550,46 +551,24 @@ class UserInformation with ChangeNotifier {
     notifyListeners();
   }
 
-  void updateNotificationHour(int value) {
-    notificationHour = value;
-    unawaited(
-      _saveInBackground(
-        () => service.setItem(
-          'notificationHour',
-          PersistentMemoryType.Int,
-          value,
-        ),
-      ),
-    );
+  NotificationPreference? getNotificationPreference(String typeId) =>
+      notificationPreferences[typeId];
+
+  Future<void> setNotificationPreference(
+    String typeId,
+    NotificationPreference preference,
+  ) {
+    notificationPreferences = {...notificationPreferences, typeId: preference};
+    final write = _saveNotificationPreferences();
     notifyListeners();
     return write;
   }
 
-  void updateNotificationMinute(int value) {
-    notificationMinute = value;
-    unawaited(
-      _saveInBackground(
-        () => service.setItem(
-          'notificationMinute',
-          PersistentMemoryType.Int,
-          value,
-        ),
-      ),
-    );
-    notifyListeners();
-  }
-
-  void updateNotificationMessage(String value) {
-    notificationMessage = value;
-    unawaited(
-      _saveInBackground(
-        () => service.setItem(
-          'notificationMessage',
-          PersistentMemoryType.String,
-          value,
-        ),
-      ),
-    );
+  Future<void> clearNotificationPreference(String typeId) {
+    notificationPreferences = Map<String, NotificationPreference>.from(
+      notificationPreferences,
+    )..remove(typeId);
+    final write = _saveNotificationPreferences();
     notifyListeners();
     return write;
   }

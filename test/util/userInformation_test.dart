@@ -3,6 +3,8 @@ import 'dart:async';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:mazilon/global_enums.dart';
 import 'package:mazilon/util/dreams_and_goals_selection.dart';
+import 'package:mazilon/util/notification_preference.dart';
+import 'package:mazilon/util/persistent_memory_service.dart';
 import 'package:mazilon/util/userInformation.dart';
 
 import '../../test_support/contract_persistent_memory_service.dart';
@@ -74,6 +76,26 @@ final class _FailingPersistentMemoryService
       restoreDurableValue(key);
       throw StateError('Persistent memory failed.');
     };
+  }
+}
+
+final class _ControlledPersistentMemoryService
+    implements PersistentMemoryService {
+  final List<MapEntry<String, dynamic>> writes = <MapEntry<String, dynamic>>[];
+  final List<Completer<void>> pendingWrites = <Completer<void>>[];
+
+  @override
+  Future<dynamic> getItem(String key, PersistentMemoryType type) async => null;
+
+  @override
+  Future<void> reset() async {}
+
+  @override
+  Future<void> setItem(String key, PersistentMemoryType type, dynamic value) {
+    writes.add(MapEntry<String, dynamic>(key, value));
+    final Completer<void> completer = Completer<void>();
+    pendingWrites.add(completer);
+    return completer.future;
   }
 }
 
@@ -197,35 +219,35 @@ void main() {
 
     test(
       'queues an empty Dreams snapshot after a held earlier snapshot',
-        () async {
-      final delayedService = _DelayedDreamsMemoryService();
-      final user = UserInformation(service: delayedService);
-      user.updateDreamsAndGoals(
-        <String>['My custom goal'],
-        selectionSources: const <String>[dreamsAndGoalsCustomSelectionSource],
-      );
-      user.queueDreamsAndGoalsSave();
-      await delayedService.firstSelectionWriteStarted.future;
+      () async {
+        final delayedService = _DelayedDreamsMemoryService();
+        final user = UserInformation(service: delayedService);
+        user.updateDreamsAndGoals(
+          <String>['My custom goal'],
+          selectionSources: const <String>[dreamsAndGoalsCustomSelectionSource],
+        );
+        user.queueDreamsAndGoalsSave();
+        await delayedService.firstSelectionWriteStarted.future;
 
-      final Future<void> reset = user.reset('en');
-      expect(user.dreamsAndGoals, isEmpty);
-      expect(user.dreamsAndGoalsSelectionSources, isEmpty);
+        final Future<void> reset = user.reset('en');
+        expect(user.dreamsAndGoals, isEmpty);
+        expect(user.dreamsAndGoalsSelectionSources, isEmpty);
 
-      delayedService.releaseFirstSelectionWrite();
-      await reset;
+        delayedService.releaseFirstSelectionWrite();
+        await reset;
 
-      expect(
-        delayedService.stored[dreamsAndGoalsSelectionStorageKey],
-        isEmpty,
-      );
-      expect(
-        delayedService.stored[dreamsAndGoalsSelectionSourcesStorageKey],
-        isEmpty,
-      );
-      expect(
-        delayedService.stored[dreamsAndGoalsCustomSelectionsStorageKey],
-        isEmpty,
-      );
+        expect(
+          delayedService.stored[dreamsAndGoalsSelectionStorageKey],
+          isEmpty,
+        );
+        expect(
+          delayedService.stored[dreamsAndGoalsSelectionSourcesStorageKey],
+          isEmpty,
+        );
+        expect(
+          delayedService.stored[dreamsAndGoalsCustomSelectionsStorageKey],
+          isEmpty,
+        );
       },
     );
 
@@ -408,18 +430,25 @@ void main() {
     });
 
     test(
-      'background preference writes should contain persistence failures',
+      'notification preference writes should report persistence failures',
       () async {
         final user = UserInformation(
           service: _FailingPersistentMemoryService(),
         );
 
-      user.updateGender('other');
-      user.updateNotificationHour(9);
-      await Future<void>.delayed(Duration.zero);
+        user.updateGender('other');
+        await Future<void>.delayed(Duration.zero);
 
-      expect(user.gender, 'other');
-      expect(user.notificationHour, 9);
+        await expectLater(
+          user.setNotificationPreference(
+            'default',
+            const NotificationPreference(hour: 9, minute: 0),
+          ),
+          throwsA(isA<StateError>()),
+        );
+
+        expect(user.gender, 'other');
+        expect(user.getNotificationPreference('default')?.hour, 9);
       },
     );
 
@@ -684,7 +713,7 @@ void main() {
         expect(
           fakeService.stored[dreamsAndGoalsCustomSelectionsStorageKey],
           const <String>['First custom goal', 'Second custom goal'],
-    );
+        );
         expect(writesAfterHydration, 3);
         expect(fakeService.writes, hasLength(writesAfterHydration));
       },
@@ -959,56 +988,59 @@ void main() {
       );
     });
 
-    test('preserves provenance metadata when selectionSources is omitted for DreamsAndGoals', () async {
-      final u = buildUser();
-      u.updateDreamsAndGoals(
-        ['Write and publish a book', 'Custom Goal B'],
-        selectionSources: ['catalogue:write-and-publish-a-book', 'custom'],
-      );
+    test(
+      'preserves provenance metadata when selectionSources is omitted for DreamsAndGoals',
+      () async {
+        final u = buildUser();
+        u.updateDreamsAndGoals(
+          ['Write and publish a book', 'Custom Goal B'],
+          selectionSources: ['catalogue:write-and-publish-a-book', 'custom'],
+        );
 
-      // Save with omitted selectionSources
-      await u.saveCategorySelection(
-        'PersonalPlan-DreamsAndGoals',
-        ['Write and publish a book', 'Custom Goal B'],
-      );
+        // Save with omitted selectionSources
+        await u.saveCategorySelection('PersonalPlan-DreamsAndGoals', [
+          'Write and publish a book',
+          'Custom Goal B',
+        ]);
 
-      expect(u.dreamsAndGoalsSelectionSources, [
-        'catalogue:write-and-publish-a-book',
-        'custom',
-      ]);
-    });
+        expect(u.dreamsAndGoalsSelectionSources, [
+          'catalogue:write-and-publish-a-book',
+          'custom',
+        ]);
+      },
+    );
 
-    test('updates provenance metadata when selectionSources is explicitly provided for DreamsAndGoals', () async {
-      final u = buildUser();
-      u.updateDreamsAndGoals(
-        ['Write and publish a book', 'Custom Goal B'],
-        selectionSources: ['catalogue:write-and-publish-a-book', 'custom'],
-      );
+    test(
+      'updates provenance metadata when selectionSources is explicitly provided for DreamsAndGoals',
+      () async {
+        final u = buildUser();
+        u.updateDreamsAndGoals(
+          ['Write and publish a book', 'Custom Goal B'],
+          selectionSources: ['catalogue:write-and-publish-a-book', 'custom'],
+        );
 
-      await u.saveCategorySelection(
-        'PersonalPlan-DreamsAndGoals',
-        ['Write and publish a book', 'Custom Goal B'],
-        selectionSources: ['custom', 'custom'],
-      );
+        await u.saveCategorySelection(
+          'PersonalPlan-DreamsAndGoals',
+          ['Write and publish a book', 'Custom Goal B'],
+          selectionSources: ['custom', 'custom'],
+        );
 
-      expect(u.dreamsAndGoalsSelectionSources, [
-        'custom',
-        'custom',
-      ]);
-    });
+        expect(u.dreamsAndGoalsSelectionSources, ['custom', 'custom']);
+      },
+    );
 
     test('persists supported standard categories correctly', () async {
       final u = buildUser();
-      await u.saveCategorySelection(
-        'PersonalPlan-DifficultEvents',
-        ['Event 1', 'Event 2'],
-      );
+      await u.saveCategorySelection('PersonalPlan-DifficultEvents', [
+        'Event 1',
+        'Event 2',
+      ]);
 
       expect(u.difficultEvents, ['Event 1', 'Event 2']);
-      expect(
-        fakeService.stored['userSelectionPersonalPlan-DifficultEvents'],
-        ['Event 1', 'Event 2'],
-      );
+      expect(fakeService.stored['userSelectionPersonalPlan-DifficultEvents'], [
+        'Event 1',
+        'Event 2',
+      ]);
     });
   });
 }

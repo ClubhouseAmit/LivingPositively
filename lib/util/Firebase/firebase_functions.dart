@@ -262,10 +262,12 @@ Future<void> loadUserInformation(
   }
   userInfo.updateLocation(data['location'] ?? "");
   userInfo.updateDisclaimerSigned(data['disclaimerConfirmed'] ?? false);
-  final prefsJson = data['notificationPreferences'] as String?;
-  if (prefsJson != null && prefsJson.isNotEmpty) {
+  final notificationPreferencesJson =
+      data['notificationPreferences'] as String?;
+  if (notificationPreferencesJson != null &&
+      notificationPreferencesJson.isNotEmpty) {
     try {
-      final decoded = jsonDecode(prefsJson);
+      final decoded = jsonDecode(notificationPreferencesJson);
       if (decoded is! Map<String, dynamic>) {
         throw const FormatException(
           'notificationPreferences must be a JSON object',

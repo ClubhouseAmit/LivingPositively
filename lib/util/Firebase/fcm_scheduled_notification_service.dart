@@ -280,7 +280,11 @@ class FcmScheduledNotificationService {
       'Registering notification: typeId=$typeId, hour=$hour, minute=$minute',
     );
     final userInfo = userInformation;
-    final locale = userInfo.localeName.isNotEmpty ? userInfo.localeName : 'he';
+    final locale = _notificationLocale(userInfo.localeName);
+    if (locale == null) {
+      _log('Unsupported notification locale: ${userInfo.localeName}');
+      return false;
+    }
     final rawGender = userInfo.gender;
     final gender = (rawGender == 'male' || rawGender == 'female')
         ? rawGender
@@ -580,7 +584,6 @@ class FcmScheduledNotificationService {
     if (resetEpoch != _resetEpoch) return false;
     _log('Cancelling notification: typeId=$typeId');
     final userInfo = userInformation;
-    final previousPreference = userInfo.getNotificationPreference(typeId);
     try {
       final idToken = await (idTokenProvider ?? _getIdToken)().timeout(
         _networkTimeout,
@@ -614,7 +617,8 @@ class FcmScheduledNotificationService {
           expectedMutationVersion,
         );
         if (nextMutationVersion == null) return false;
-        onRemoteScheduleCancelled?.call(_cancelledSchedulePreference(response));
+        final cancelledSchedule = _cancelledSchedulePreference(response);
+        onRemoteScheduleCancelled?.call(cancelledSchedule);
         _log('Notification cancelled successfully.');
         if (typeId == 'default') {
           var legacyReminderHandled = false;
@@ -630,12 +634,12 @@ class FcmScheduledNotificationService {
             _log('Unable to retire the legacy local reminder: $error');
           }
           if (!legacyReminderHandled) {
-            if (previousPreference != null) {
+            if (cancelledSchedule != null) {
               final restoredRemotely = await _registerNotification(
                 userInformation: userInfo,
                 typeId: typeId,
-                hour: previousPreference.hour,
-                minute: previousPreference.minute,
+                hour: cancelledSchedule.hour,
+                minute: cancelledSchedule.minute,
                 idTokenProvider: () async => idToken,
                 post: post,
                 resetEpoch: resetEpoch,
@@ -648,6 +652,10 @@ class FcmScheduledNotificationService {
                   'Unable to compensate a failed legacy reminder cancellation.',
                 );
               }
+            } else {
+              _log(
+                'Cannot compensate a cancellation without its remote schedule.',
+              );
             }
             return false;
           }
@@ -658,27 +666,31 @@ class FcmScheduledNotificationService {
               .timeout(_legacyMigrationOperationTimeout);
         } catch (error) {
           _log('Unable to persist cancelled notification: $error');
+          if (cancelledSchedule == null) {
+            _log(
+              'Cannot compensate a cancellation without its remote schedule.',
+            );
+            return false;
+          }
           final restoredLocally = await _restoreLocalNotificationPreference(
             userInfo,
             typeId,
-            previousPreference,
+            cancelledSchedule,
           );
-          if (previousPreference != null) {
-            final restoredRemotely = await _registerNotification(
-              userInformation: userInfo,
-              typeId: typeId,
-              hour: previousPreference.hour,
-              minute: previousPreference.minute,
-              idTokenProvider: () async => idToken,
-              post: post,
-              resetEpoch: resetEpoch,
-              allowUnsupportedPlatform: true,
-              persistLocalPreference: false,
-              expectedMutationVersion: nextMutationVersion,
-            );
-            if (!restoredRemotely) {
-              _log('Unable to compensate a notification cancellation failure.');
-            }
+          final restoredRemotely = await _registerNotification(
+            userInformation: userInfo,
+            typeId: typeId,
+            hour: cancelledSchedule.hour,
+            minute: cancelledSchedule.minute,
+            idTokenProvider: () async => idToken,
+            post: post,
+            resetEpoch: resetEpoch,
+            allowUnsupportedPlatform: true,
+            persistLocalPreference: false,
+            expectedMutationVersion: nextMutationVersion,
+          );
+          if (!restoredRemotely) {
+            _log('Unable to compensate a notification cancellation failure.');
           }
           if (!restoredLocally) {
             _log(
@@ -826,5 +838,14 @@ class FcmScheduledNotificationService {
     } catch (_) {
       return null;
     }
+  }
+
+  static String? _notificationLocale(String rawLocale) {
+    final language = rawLocale.trim().split(RegExp('[-_]')).first.toLowerCase();
+    return switch (language) {
+      'he' || 'ar' || 'en' => language,
+      '' => 'he',
+      _ => null,
+    };
   }
 }

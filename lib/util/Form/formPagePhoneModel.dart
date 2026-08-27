@@ -237,11 +237,8 @@ class PhonePageData extends ChangeNotifier {
   }
 
   Future<void> saveItemsToPrefs() async {
-    PersistentMemoryService service =
-        GetIt.instance<
-          PersistentMemoryService
-        >(); // Get the persistent memory service instance
     try {
+      final service = GetIt.instance<PersistentMemoryService>();
       await service.setItem(
         '${key}SavedPhoneNames',
         PersistentMemoryType.StringList,
@@ -267,15 +264,15 @@ class PhonePageData extends ChangeNotifier {
           // an unhandled zone error.
         }
       }
-      debugPrint('Unable to persist saved phone contacts: $error\n$stackTrace');
+      debugPrint('Unable to persist saved phone contacts.');
     }
   }
 
   Future<void> _saveItemsToPrefsInBackground() async {
     try {
       await saveItemsToPrefs();
-    } catch (error, stackTrace) {
-      debugPrint('Could not save emergency contacts: $error\n$stackTrace');
+    } catch (_) {
+      debugPrint('Unable to persist saved phone contacts.');
     }
   }
 }

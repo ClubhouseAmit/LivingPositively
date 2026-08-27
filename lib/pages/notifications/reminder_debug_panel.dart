@@ -6,8 +6,10 @@ import 'package:flutter/foundation.dart'
     show kIsWeb, defaultTargetPlatform, TargetPlatform;
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:get_it/get_it.dart';
 import 'package:mazilon/pages/notifications/reminder_debug_recorder.dart';
 import 'package:mazilon/util/Firebase/fcm_scheduled_notification_service.dart';
+import 'package:mazilon/util/logger_service.dart';
 import 'package:mazilon/util/userInformation.dart';
 import 'package:permission_handler/permission_handler.dart';
 import 'package:provider/provider.dart';
@@ -78,6 +80,20 @@ class _ReminderDebugPanelState extends State<ReminderDebugPanel> {
         minute: preference.minute,
       );
       await _refresh();
+    } catch (error, stackTrace) {
+      if (GetIt.instance.isRegistered<IncidentLoggerService>()) {
+        try {
+          await GetIt.instance<IncidentLoggerService>().captureLog(
+            error,
+            stackTrace: stackTrace,
+          );
+        } catch (_) {
+          // Preserve the debug action's containment contract if reporting fails.
+        }
+      }
+      if (mounted) {
+        setState(() => _lastError = 'Reminder rescheduling failed.');
+      }
     } finally {
       if (mounted) setState(() => _busy = false);
     }

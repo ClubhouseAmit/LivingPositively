@@ -789,7 +789,7 @@ export const registerNotification = onRequest(
       res
         .status(400)
         .send(
-          "Invalid body: typeId (string), hour (0-23 except 02), minute (0-59), locale (string) required",
+          "Invalid body: typeId (string), hour (0-23), minute (0-59), locale (string) required",
         );
       return;
     }

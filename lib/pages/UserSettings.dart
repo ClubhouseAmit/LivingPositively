@@ -9,6 +9,8 @@ import 'package:mazilon/Locale/locale_service.dart';
 import 'package:mazilon/form/speech_dictation_suffix_action.dart';
 import 'package:mazilon/global_enums.dart';
 import 'package:mazilon/pages/SignIn_Pages/firstPage.dart';
+import 'package:mazilon/util/Firebase/auth_service.dart';
+import 'package:mazilon/util/Firebase/fcm_scheduled_notification_service.dart';
 import 'package:mazilon/util/Share/LP_alert_dialog.dart';
 import 'package:mazilon/util/async/persistence_retry_snack_bar.dart';
 import 'package:mazilon/util/Form/formPagePhoneModel.dart';
@@ -140,11 +142,7 @@ class _UserSettingsState extends LPExtendedState<UserSettings> {
             PersistentMemoryService
           >(); // Get the persistent memory service instance
 
-      await service.setItem(
-        "localeName",
-        PersistentMemoryType.String,
-        locale,
-      );
+      await service.setItem("localeName", PersistentMemoryType.String, locale);
 
       if (!mounted) {
         return;
@@ -533,36 +531,14 @@ class _UserSettingsState extends LPExtendedState<UserSettings> {
     );
   }
 
-  void _runSettingsWrite(Future<void> Function() write) {
-    unawaited(
-      Future<void>.sync(write).catchError((
-        Object error,
-        StackTrace stackTrace,
-      ) {
-        _reportResetFailure(error, stackTrace);
-        if (mounted) {
-          ScaffoldMessenger.maybeOf(
-            context,
-          )?.showSnackBar(SnackBar(content: Text(appLocale.asyncErrorMessage)));
-        }
-      }),
-    );
-  }
-
   // Remove locally persisted data after the server-side reminder state is safe.
   Future<void> resetData(UserInformation userInfo) async {
-    LocaleService localeService = GetIt.instance<LocaleService>();
-    final PersistentMemoryService service = userInfo.service;
-
-    await service.reset(); // Reset the persistent memory service
-    await userInfo.reset(localeService.getLocale());
-    var enteredBeforeValue = await service.getItem(
-      "enteredBefore",
-      PersistentMemoryType.Bool,
-    );
-    var hasFilledValue = await service.getItem(
-      "hasFilled",
-      PersistentMemoryType.Bool,
+    final localeService = GetIt.instance<LocaleService>();
+    // Keep main's injected persistence ownership: the UserInformation instance
+    // owns the storage being reset and later repopulated with its empty state.
+    final service = userInfo.service;
+    final previousDefaultReminder = userInfo.getNotificationPreference(
+      'default',
     );
     NotificationPreference? cancelledRemotePreference;
     var remoteReminderCancelled = false;
@@ -592,7 +568,7 @@ class _UserSettingsState extends LPExtendedState<UserSettings> {
         }
         remoteReminderCancelled = true;
       }
-      await service.reset(); // Reset the persistent memory service
+      await service.reset();
     } catch (error, stackTrace) {
       if (remoteReminderCancelled) {
         final reminderRestored =
@@ -617,15 +593,34 @@ class _UserSettingsState extends LPExtendedState<UserSettings> {
       }
       return;
     }
+
+    // This is intentionally a separate failure boundary. Main's persistence
+    // contract requires the dialog to remain available when the empty state
+    // cannot be saved, so the user can retry the completed storage reset.
+    try {
+      await userInfo.reset(localeService.getLocale());
+    } catch (error, stackTrace) {
+      if (remoteReminderCancelled) {
+        final reminderRestored =
+            await FcmScheduledNotificationService.restoreDefaultReminderAfterResetFailure(
+              userInformation: userInfo,
+              previousPreference:
+                  cancelledRemotePreference ?? previousDefaultReminder,
+            );
+        if (!reminderRestored) {
+          _reportResetFailure(
+            StateError('Unable to restore the cancelled reminder.'),
+            StackTrace.current,
+          );
+        }
+      }
+      _reportResetFailure(error, stackTrace);
+      rethrow;
+    }
     enteredBefore = false;
     hasFilled = false;
-
-    await pickerService.deleteImages();
-
-      runZonedGuarded<void>(
-        () => userInfo.reset(localeService.getLocale()),
-        _reportResetFailure,
-      );
+    try {
+      runZonedGuarded<void>(widget.phonePageData.reset, _reportResetFailure);
 
       runZonedGuarded<void>(() {
         final authenticatedUser = GetIt.instance.isRegistered<FirebaseAuth>()
@@ -1064,13 +1059,6 @@ class _UserSettingsState extends LPExtendedState<UserSettings> {
                                           final navigator = Navigator.of(
                                             context,
                                           );
-                                          final scaffoldMessenger =
-                                              ScaffoldMessenger.maybeOf(
-                                                context,
-                                              );
-                                          final asyncErrorMessage =
-                                              appLocale.asyncErrorMessage;
-
                                           userInfoProvider.updateName(
                                             _namecontroller.text.trim(),
                                           );

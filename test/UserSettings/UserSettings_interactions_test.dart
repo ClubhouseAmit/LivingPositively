@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:convert';
 
 // Drives the previously-uncovered branches of UserSettings:
 //   - resetData via the reset confirmation dialog's "confirm" button —
@@ -12,12 +13,19 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:get_it/get_it.dart';
+import 'package:http/http.dart' as http;
 import 'package:mazilon/global_enums.dart';
+import 'package:mazilon/pages/FeelGood/image_picker_service_impl.dart';
 import 'package:mazilon/pages/SignIn_Pages/firstPage.dart';
 import 'package:mazilon/pages/UserSettings.dart';
 import 'package:mazilon/util/Form/formPagePhoneModel.dart';
+import 'package:mazilon/util/Firebase/fcm_service.dart';
+import 'package:mazilon/util/Firebase/fcm_scheduled_notification_service.dart';
 import 'package:mazilon/util/dreams_and_goals_selection.dart';
+import 'package:mazilon/util/logger_service.dart';
+import 'package:mazilon/util/notification_preference.dart';
 import 'package:mazilon/util/persistent_memory_service.dart';
 import 'package:mazilon/util/userInformation.dart';
 import 'package:mockito/mockito.dart';
@@ -40,6 +48,165 @@ PhonePageData _phone() => PhonePageData(
   phoneDescription: const [],
 );
 
+class _FailingResetImagePickerService extends NoopImagePickerService {
+  @override
+  Future<void> deleteImages() async {
+    throw StateError('image cleanup failed');
+  }
+}
+
+class _PendingResetImagePickerService extends NoopImagePickerService {
+  final Completer<void> completion = Completer<void>();
+  bool deleteStarted = false;
+
+  @override
+  Future<void> deleteImages() {
+    deleteStarted = true;
+    return completion.future;
+  }
+}
+
+class _TrackingResetImagePickerService extends NoopImagePickerService {
+  bool deleteStarted = false;
+
+  @override
+  Future<void> deleteImages() async {
+    deleteStarted = true;
+  }
+}
+
+class _TrackingPhonePageData extends PhonePageData {
+  _TrackingPhonePageData()
+    : super(
+        key: 'trackingPhonePageData',
+        header: 'header',
+        subTitle: 'subTitle',
+        midTitle: 'midTitle',
+        phoneNameTitle: 'phoneNameTitle',
+        phoneNumberTitle: 'phoneNumberTitle',
+        phoneNames: const [],
+        phoneNumbers: const [],
+        savedPhoneNames: const [],
+        savedPhoneNumbers: const [],
+        phoneDescription: const [],
+      );
+
+  bool resetStarted = false;
+
+  @override
+  void reset() {
+    resetStarted = true;
+  }
+}
+
+final class _FailingResetMemoryService extends FakePersistentMemoryService {
+  @override
+  Future<void> reset() {
+    return Future<void>.error(StateError('persistent reset failed'));
+  }
+}
+
+final class _RejectedPhonePersistenceMemoryService
+    extends FakePersistentMemoryService {
+  bool resetCompleted = false;
+
+  @override
+  Future<void> reset() async {
+    await super.reset();
+    resetCompleted = true;
+  }
+
+  @override
+  Future<void> setItem(String key, PersistentMemoryType type, dynamic value) {
+    if (resetCompleted && key.endsWith('SavedPhoneNames')) {
+      return Future<void>.error(StateError('phone persistence failed'));
+    }
+    return super.setItem(key, type, value);
+  }
+}
+
+final class _RejectedAuthPersistenceMemoryService
+    extends FakePersistentMemoryService {
+  bool resetCompleted = false;
+
+  @override
+  Future<void> reset() async {
+    await super.reset();
+    resetCompleted = true;
+  }
+
+  @override
+  Future<void> setItem(String key, PersistentMemoryType type, dynamic value) {
+    if (resetCompleted &&
+        const {'loggedIn', 'authDecisionMade', 'userId'}.contains(key)) {
+      return Future<void>.error(StateError('auth persistence failed'));
+    }
+    return super.setItem(key, type, value);
+  }
+}
+
+final class _PostResetReadFailingMemoryService
+    extends FakePersistentMemoryService {
+  bool resetCompleted = false;
+  bool postResetReadAttempted = false;
+
+  @override
+  Future<void> reset() async {
+    await super.reset();
+    resetCompleted = true;
+  }
+
+  @override
+  Future<dynamic> getItem(String key, PersistentMemoryType type) async {
+    if (resetCompleted) {
+      postResetReadAttempted = true;
+      throw StateError('post-reset persistence read failed');
+    }
+    return super.getItem(key, type);
+  }
+}
+
+class _PendingIncidentLoggerService extends NoopIncidentLoggerService {
+  final Completer<void> completion = Completer<void>();
+  bool captureStarted = false;
+
+  @override
+  Future<void> captureLog(
+    dynamic exception, {
+    StackTrace? stackTrace,
+    dynamic exceptionData,
+  }) async {
+    captureStarted = true;
+    await completion.future;
+  }
+}
+
+class _SynchronouslyFailingIncidentLoggerService
+    extends NoopIncidentLoggerService {
+  @override
+  Future<void> captureLog(
+    dynamic exception, {
+    StackTrace? stackTrace,
+    dynamic exceptionData,
+  }) {
+    throw StateError('synchronous incident logger failure');
+  }
+}
+
+class _AsynchronouslyFailingIncidentLoggerService
+    extends NoopIncidentLoggerService {
+  @override
+  Future<void> captureLog(
+    dynamic exception, {
+    StackTrace? stackTrace,
+    dynamic exceptionData,
+  }) {
+    return Future<void>.error(
+      StateError('asynchronous incident logger failure'),
+    );
+  }
+}
+
 const Key _resetOpenKey = Key('user-settings-reset-open');
 const Key _resetDialogKey = Key('user-settings-reset-dialog');
 const Key _resetCancelKey = Key('user-settings-reset-cancel');
@@ -51,6 +218,11 @@ Future<void> _openResetDialog(WidgetTester tester) async {
   await tester.tap(resetButton, warnIfMissed: false);
   await tester.pumpAndSettle();
   expect(find.byKey(_resetDialogKey), findsOneWidget);
+}
+
+Future<void> _settleReset(WidgetTester tester) async {
+  await tester.runAsync(() => Future<void>.delayed(Duration.zero));
+  await tester.pumpAndSettle();
 }
 
 abstract base class _UserSettingsPersistentMemoryService
@@ -296,7 +468,7 @@ void main() {
       await tester.tap(find.byKey(_resetConfirmKey), warnIfMissed: false);
       await tester.pumpAndSettle();
 
-      expect(find.byType(Dialog), findsOneWidget);
+      expect(find.byKey(_resetDialogKey), findsOneWidget);
       expect(find.byType(FirstPage), findsNothing);
       final retryButton = find.widgetWithText(SnackBarAction, 'Try again');
       expect(retryButton, findsOneWidget);
@@ -352,11 +524,11 @@ void main() {
 
       await tester.tapAt(const Offset(1, 1));
       await tester.pumpAndSettle();
-      expect(find.byType(Dialog), findsOneWidget);
+      expect(find.byKey(_resetDialogKey), findsOneWidget);
 
       await tester.binding.handlePopRoute();
       await tester.pumpAndSettle();
-      expect(find.byType(Dialog), findsOneWidget);
+      expect(find.byKey(_resetDialogKey), findsOneWidget);
 
       await tester.tap(find.byKey(_resetConfirmKey), warnIfMissed: false);
       await tester.pump();
@@ -392,7 +564,7 @@ void main() {
       await tester.tap(find.byKey(_resetCancelKey), warnIfMissed: false);
       await tester.pumpAndSettle();
 
-      expect(find.byType(Dialog), findsNothing);
+      expect(find.byKey(_resetDialogKey), findsNothing);
       expect(find.byType(UserSettings), findsOneWidget);
     },
   );
@@ -431,21 +603,22 @@ void main() {
           surfaceSize: const Size(1024, 2800),
         );
 
-        final resetButton = find.byKey(const Key('userSettingsResetButton'));
+        final resetButton = find.byKey(_resetOpenKey);
         await tester.ensureVisible(resetButton);
         await tester.tap(resetButton, warnIfMissed: false);
         await tester.pumpAndSettle();
 
         var dialogButtons = find.descendant(
-          of: find.byType(Dialog),
+          of: find.byKey(_resetDialogKey),
           matching: find.byType(TextButton),
         );
-        await tester.tap(dialogButtons.last, warnIfMissed: false);
+        expect(dialogButtons, findsNWidgets(2));
+        await tester.tap(find.byKey(_resetConfirmKey), warnIfMissed: false);
         await tester.pumpAndSettle();
 
         expect(find.byType(FirstPage), findsNothing);
         expect(find.byType(UserSettings), findsOneWidget);
-        expect(find.byType(Dialog), findsNothing);
+        expect(find.byKey(_resetDialogKey), findsNothing);
         expect(find.byType(CircularProgressIndicator), findsNothing);
         expect(
           find.text("Couldn't reset your data. Please try again."),
@@ -494,21 +667,24 @@ void main() {
         surfaceSize: const Size(1024, 2800),
       );
 
-      final resetButton = find.byKey(const Key('userSettingsResetButton'));
+      final resetButton = find.byKey(_resetOpenKey);
       await tester.ensureVisible(resetButton);
       await tester.tap(resetButton, warnIfMissed: false);
       await tester.pumpAndSettle();
 
       final dialogButtons = find.descendant(
-        of: find.byType(Dialog),
+        of: find.byKey(_resetDialogKey),
         matching: find.byType(TextButton),
       );
-      await tester.tap(dialogButtons.last, warnIfMissed: false);
+      expect(dialogButtons, findsNWidgets(2));
+      await tester.tap(find.byKey(_resetConfirmKey), warnIfMissed: false);
+      await tester.pumpAndSettle();
+      await tester.runAsync(() => Future<void>.delayed(Duration.zero));
       await tester.pumpAndSettle();
 
       expect(find.byType(FirstPage), findsOneWidget);
       expect(find.byType(UserSettings), findsNothing);
-      expect(find.byType(Dialog), findsNothing);
+      expect(find.byKey(_resetDialogKey), findsNothing);
       expect(
         logger.captured.whereType<StateError>().map((error) => error.message),
         contains('phone persistence failed'),
@@ -558,21 +734,23 @@ void main() {
         surfaceSize: const Size(1024, 2800),
       );
 
-      final resetButton = find.byKey(const Key('userSettingsResetButton'));
+      final resetButton = find.byKey(_resetOpenKey);
       await tester.ensureVisible(resetButton);
       await tester.tap(resetButton, warnIfMissed: false);
       await tester.pumpAndSettle();
 
       final dialogButtons = find.descendant(
-        of: find.byType(Dialog),
+        of: find.byKey(_resetDialogKey),
         matching: find.byType(TextButton),
       );
-      await tester.tap(dialogButtons.last, warnIfMissed: false);
+      expect(dialogButtons, findsNWidgets(2));
+      await tester.tap(find.byKey(_resetConfirmKey), warnIfMissed: false);
       await tester.pumpAndSettle();
+      await _settleReset(tester);
 
       expect(find.byType(FirstPage), findsOneWidget);
       expect(find.byType(UserSettings), findsNothing);
-      expect(find.byType(Dialog), findsNothing);
+      expect(find.byKey(_resetDialogKey), findsNothing);
       expect(user.loggedIn, isTrue);
       expect(user.userId, 'reset-user');
       expect(
@@ -612,23 +790,25 @@ void main() {
         surfaceSize: const Size(1024, 2800),
       );
 
-      final resetButton = find.byKey(const Key('userSettingsResetButton'));
+      final resetButton = find.byKey(_resetOpenKey);
       await tester.ensureVisible(resetButton);
       await tester.tap(resetButton, warnIfMissed: false);
       await tester.pumpAndSettle();
 
       final dialogButtons = find.descendant(
-        of: find.byType(Dialog),
+        of: find.byKey(_resetDialogKey),
         matching: find.byType(TextButton),
       );
-      await tester.tap(dialogButtons.last, warnIfMissed: false);
+      expect(dialogButtons, findsNWidgets(2));
+      await tester.tap(find.byKey(_resetConfirmKey), warnIfMissed: false);
       await tester.pumpAndSettle();
+      await _settleReset(tester);
 
       expect(memory.resetCompleted, isTrue);
       expect(memory.postResetReadAttempted, isFalse);
       expect(find.byType(FirstPage), findsOneWidget);
       expect(find.byType(UserSettings), findsNothing);
-      expect(find.byType(Dialog), findsNothing);
+      expect(find.byKey(_resetDialogKey), findsNothing);
       expect(user.name, isEmpty);
       expect(user.age, isEmpty);
       expect(memory.store, isNot(contains('name')));
@@ -660,29 +840,35 @@ void main() {
         surfaceSize: const Size(1024, 2800),
       );
 
-      final resetButton = find.byKey(const Key('userSettingsResetButton'));
+      final resetButton = find.byKey(_resetOpenKey);
       await tester.ensureVisible(resetButton);
       await tester.tap(resetButton, warnIfMissed: false);
       await tester.pumpAndSettle();
 
       final dialogButtons = find.descendant(
-        of: find.byType(Dialog),
+        of: find.byKey(_resetDialogKey),
         matching: find.byType(TextButton),
       );
-      await tester.tap(dialogButtons.last, warnIfMissed: false);
+      expect(dialogButtons, findsNWidgets(2));
+      await tester.tap(find.byKey(_resetConfirmKey), warnIfMissed: false);
+      await tester.pump();
+      await tester.runAsync(() => Future<void>.delayed(Duration.zero));
       await tester.pump();
 
       expect(picker.deleteStarted, isTrue);
-      expect(find.byType(CircularProgressIndicator), findsOneWidget);
+      expect(
+        tester.widget<TextButton>(find.byKey(_resetConfirmKey)).onPressed,
+        isNull,
+      );
       expect(find.byType(UserSettings), findsOneWidget);
-      expect(find.byType(Dialog), findsOneWidget);
+      expect(find.byKey(_resetDialogKey), findsOneWidget);
       expect(find.byType(FirstPage), findsNothing);
 
       picker.completion.complete();
       await tester.pumpAndSettle();
 
       expect(find.byType(FirstPage), findsOneWidget);
-      expect(find.byType(Dialog), findsNothing);
+      expect(find.byKey(_resetDialogKey), findsNothing);
       expect(find.byType(UserSettings), findsNothing);
     } finally {
       if (!picker.completion.isCompleted) {
@@ -720,20 +906,22 @@ void main() {
         surfaceSize: const Size(1024, 2800),
       );
 
-      final resetButton = find.byKey(const Key('userSettingsResetButton'));
+      final resetButton = find.byKey(_resetOpenKey);
       await tester.ensureVisible(resetButton);
       await tester.tap(resetButton, warnIfMissed: false);
       await tester.pumpAndSettle();
 
       var dialogButtons = find.descendant(
-        of: find.byType(Dialog),
+        of: find.byKey(_resetDialogKey),
         matching: find.byType(TextButton),
       );
-      await tester.tap(dialogButtons.last, warnIfMissed: false);
+      expect(dialogButtons, findsNWidgets(2));
+      await tester.tap(find.byKey(_resetConfirmKey), warnIfMissed: false);
       await tester.pumpAndSettle();
+      await _settleReset(tester);
 
       expect(find.byType(FirstPage), findsOneWidget);
-      expect(find.byType(Dialog), findsNothing);
+      expect(find.byKey(_resetDialogKey), findsNothing);
       expect(find.byType(UserSettings), findsNothing);
       expect(user.name, isEmpty);
       expect(user.age, isEmpty);
@@ -774,21 +962,23 @@ void main() {
         surfaceSize: const Size(1024, 2800),
       );
 
-      final resetButton = find.byKey(const Key('userSettingsResetButton'));
+      final resetButton = find.byKey(_resetOpenKey);
       await tester.ensureVisible(resetButton);
       await tester.tap(resetButton, warnIfMissed: false);
       await tester.pumpAndSettle();
 
       var dialogButtons = find.descendant(
-        of: find.byType(Dialog),
+        of: find.byKey(_resetDialogKey),
         matching: find.byType(TextButton),
       );
-      await tester.tap(dialogButtons.last, warnIfMissed: false);
+      expect(dialogButtons, findsNWidgets(2));
+      await tester.tap(find.byKey(_resetConfirmKey), warnIfMissed: false);
       await tester.pumpAndSettle();
+      await _settleReset(tester);
 
       expect(logger.captureStarted, isTrue);
       expect(find.byType(FirstPage), findsOneWidget);
-      expect(find.byType(Dialog), findsNothing);
+      expect(find.byKey(_resetDialogKey), findsNothing);
       expect(find.byType(UserSettings), findsNothing);
       expect(user.name, isEmpty);
       expect(user.age, isEmpty);
@@ -835,21 +1025,23 @@ void main() {
             surfaceSize: const Size(1024, 2800),
           );
 
-          final resetButton = find.byKey(const Key('userSettingsResetButton'));
+          final resetButton = find.byKey(_resetOpenKey);
           await tester.ensureVisible(resetButton);
           await tester.tap(resetButton, warnIfMissed: false);
           await tester.pumpAndSettle();
 
           final dialogButtons = find.descendant(
-            of: find.byType(Dialog),
+            of: find.byKey(_resetDialogKey),
             matching: find.byType(TextButton),
           );
-          await tester.tap(dialogButtons.last, warnIfMissed: false);
+          expect(dialogButtons, findsNWidgets(2));
+          await tester.tap(find.byKey(_resetConfirmKey), warnIfMissed: false);
           await tester.pumpAndSettle();
+          await _settleReset(tester);
 
           expect(find.byType(FirstPage), findsOneWidget);
           expect(find.byType(UserSettings), findsNothing);
-          expect(find.byType(Dialog), findsNothing);
+          expect(find.byKey(_resetDialogKey), findsNothing);
           expect(tester.takeException(), isNull);
         } finally {
           debugDefaultTargetPlatformOverride = null;
@@ -1152,22 +1344,23 @@ void main() {
           surfaceSize: const Size(1024, 2800),
         );
 
-        final resetButton = find.byKey(const Key('userSettingsResetButton'));
+        final resetButton = find.byKey(_resetOpenKey);
         await tester.ensureVisible(resetButton);
         await tester.tap(resetButton, warnIfMissed: false);
         await tester.pumpAndSettle();
 
         final dialogButtons = find.descendant(
-          of: find.byType(Dialog),
+          of: find.byKey(_resetDialogKey),
           matching: find.byType(TextButton),
         );
-        await tester.tap(dialogButtons.last, warnIfMissed: false);
+        expect(dialogButtons, findsNWidgets(2));
+        await tester.tap(find.byKey(_resetConfirmKey), warnIfMissed: false);
         await tester.pumpAndSettle();
 
         expect(find.byType(UserSettings), findsOneWidget);
         expect(find.byType(FirstPage), findsNothing);
         expect(user.getNotificationPreference('default'), isNotNull);
-        expect(find.byType(Dialog), findsNothing);
+        expect(find.byKey(_resetDialogKey), findsNothing);
         expect(find.byType(SnackBar).hitTestable(), findsOneWidget);
       } finally {
         debugDefaultTargetPlatformOverride = null;
@@ -1201,19 +1394,19 @@ void main() {
           surfaceSize: const Size(1024, 2800),
         );
 
-        final resetButton = find.byKey(const Key('userSettingsResetButton'));
+        final resetButton = find.byKey(_resetOpenKey);
         await tester.ensureVisible(resetButton);
         await tester.tap(resetButton, warnIfMissed: false);
         await tester.pumpAndSettle();
 
         final dialogButtons = find.descendant(
-          of: find.byType(Dialog),
+          of: find.byKey(_resetDialogKey),
           matching: find.byType(TextButton),
         );
-        await tester.tap(dialogButtons.last, warnIfMissed: false);
+        expect(dialogButtons, findsNWidgets(2));
+        await tester.tap(find.byKey(_resetConfirmKey), warnIfMissed: false);
         await tester.pump();
 
-        expect(find.byType(CircularProgressIndicator), findsOneWidget);
         for (final button in tester.widgetList<TextButton>(dialogButtons)) {
           expect(button.onPressed, isNull);
         }
@@ -1257,19 +1450,19 @@ void main() {
           surfaceSize: const Size(1024, 2800),
         );
 
-        final resetButton = find.byKey(const Key('userSettingsResetButton'));
+        final resetButton = find.byKey(_resetOpenKey);
         await tester.ensureVisible(resetButton);
         await tester.tap(resetButton, warnIfMissed: false);
         await tester.pumpAndSettle();
 
         final dialogButtons = find.descendant(
-          of: find.byType(Dialog),
+          of: find.byKey(_resetDialogKey),
           matching: find.byType(TextButton),
         );
-        await tester.tap(dialogButtons.last, warnIfMissed: false);
+        expect(dialogButtons, findsNWidgets(2));
+        await tester.tap(find.byKey(_resetConfirmKey), warnIfMissed: false);
         await tester.pump();
 
-        expect(find.byType(CircularProgressIndicator), findsOneWidget);
         expect(
           tester
               .widgetList<ModalBarrier>(find.byType(ModalBarrier))
@@ -1281,8 +1474,7 @@ void main() {
         await tester.binding.handlePopRoute();
         await tester.pump();
 
-        expect(find.byType(Dialog), findsOneWidget);
-        expect(find.byType(CircularProgressIndicator), findsOneWidget);
+        expect(find.byKey(_resetDialogKey), findsOneWidget);
         verify(firebaseUser.getIdToken()).called(1);
 
         idToken.complete(null);
@@ -1327,21 +1519,22 @@ void main() {
         surfaceSize: const Size(1024, 2800),
       );
 
-      final resetButton = find.byKey(const Key('userSettingsResetButton'));
+      final resetButton = find.byKey(_resetOpenKey);
       await tester.ensureVisible(resetButton);
       await tester.tap(resetButton, warnIfMissed: false);
       await tester.pumpAndSettle();
 
-      final dialogButtons = find.descendant(
-        of: find.byType(Dialog),
-        matching: find.byType(TextButton),
-      );
-      final confirm = tester.widget<TextButton>(dialogButtons.last).onPressed!;
+      final confirm = tester
+          .widget<TextButton>(find.byKey(_resetConfirmKey))
+          .onPressed!;
       confirm();
       confirm();
       await tester.pump();
 
-      expect(find.byType(CircularProgressIndicator), findsOneWidget);
+      expect(
+        tester.widget<TextButton>(find.byKey(_resetConfirmKey)).onPressed,
+        isNull,
+      );
       expect(tokenRequests, 1);
 
       idToken.complete(null);
@@ -1393,16 +1586,18 @@ void main() {
         surfaceSize: const Size(1024, 2800),
       );
 
-      final resetButton = find.byKey(const Key('userSettingsResetButton'));
+      final resetButton = find.byKey(_resetOpenKey);
       await tester.ensureVisible(resetButton);
       await tester.tap(resetButton, warnIfMissed: false);
       await tester.pumpAndSettle();
       final dialogButtons = find.descendant(
-        of: find.byType(Dialog),
+        of: find.byKey(_resetDialogKey),
         matching: find.byType(TextButton),
       );
-      await tester.tap(dialogButtons.last, warnIfMissed: false);
+      expect(dialogButtons, findsNWidgets(2));
+      await tester.tap(find.byKey(_resetConfirmKey), warnIfMissed: false);
       await tester.pumpAndSettle();
+      await _settleReset(tester);
 
       expect(find.byType(FirstPage), findsOneWidget);
       expect(requests, [
@@ -1439,15 +1634,16 @@ void main() {
           surfaceSize: const Size(1024, 2800),
         );
 
-        final resetButton = find.byKey(const Key('userSettingsResetButton'));
+        final resetButton = find.byKey(_resetOpenKey);
         await tester.ensureVisible(resetButton);
         await tester.tap(resetButton, warnIfMissed: false);
         await tester.pumpAndSettle();
         final dialogButtons = find.descendant(
-          of: find.byType(Dialog),
+          of: find.byKey(_resetDialogKey),
           matching: find.byType(TextButton),
         );
-        await tester.tap(dialogButtons.last, warnIfMissed: false);
+        expect(dialogButtons, findsNWidgets(2));
+        await tester.tap(find.byKey(_resetConfirmKey), warnIfMissed: false);
         await tester.pumpAndSettle();
 
         expect(find.byType(UserSettings), findsOneWidget);
@@ -1492,16 +1688,18 @@ void main() {
           surfaceSize: const Size(1024, 2800),
         );
 
-        final resetButton = find.byKey(const Key('userSettingsResetButton'));
+        final resetButton = find.byKey(_resetOpenKey);
         await tester.ensureVisible(resetButton);
         await tester.tap(resetButton, warnIfMissed: false);
         await tester.pumpAndSettle();
         final dialogButtons = find.descendant(
-          of: find.byType(Dialog),
+          of: find.byKey(_resetDialogKey),
           matching: find.byType(TextButton),
         );
-        await tester.tap(dialogButtons.last, warnIfMissed: false);
+        expect(dialogButtons, findsNWidgets(2));
+        await tester.tap(find.byKey(_resetConfirmKey), warnIfMissed: false);
         await tester.pumpAndSettle();
+        await _settleReset(tester);
 
         expect(find.byType(FirstPage), findsOneWidget);
         expect(user.loggedIn, isTrue);
