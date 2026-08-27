@@ -16,6 +16,9 @@
 //   * inherited `isFullScreen` updates — verifies requested targets synchronize
 //     with `controller.value.fullScreenOption`, including coalescing and
 //     disposal before a pending transition
+//   * production `Menu` navigation — exercises the real
+//     Menu → WellnessTools → VideoPlayerPage callback path and verifies the
+//     parent bottom navigation/FAB chrome follows controller fullscreen state
 //   * the `listener` closure — fires when the controller's value changes,
 //     calling onFullScreenChanged + _trackIsPlaying + _logEvent (both
 //     unpaused/paused branches)
@@ -29,7 +32,7 @@
 // We mock the GetIt-provided AnalyticsService so _logEvent's
 // `trackEvent` calls don't reach Mixpanel.
 //
-// The suite currently contains nine widget tests.
+// The suite currently contains ten widget tests.
 //
 // Local-verification note (per ADR-002 hard rule #5): under `flutter test
 // integration_test/wellness_player_test.dart` (no emulator), the YoutubePlayer
@@ -48,9 +51,18 @@ import 'package:get_it/get_it.dart';
 import 'package:integration_test/integration_test.dart';
 import 'package:mazilon/AnalyticsService.dart';
 import 'package:mazilon/l10n/app_localizations.dart';
+import 'package:mazilon/menu.dart';
 import 'package:mazilon/pages/WellnessTools/VideoPlayerInheritedWidget.dart';
+import 'package:mazilon/pages/WellnessTools/VideoPlayerPageFactory.dart';
 import 'package:mazilon/pages/WellnessTools/player.dart';
+import 'package:mazilon/pages/WellnessTools/wellnessTools.dart';
+import 'package:mazilon/util/appInformation.dart';
+import 'package:mazilon/util/userInformation.dart';
 import 'package:youtube_player_flutter/youtube_player_flutter.dart';
+
+import '../test/MenuTest/TestMenu.dart';
+import '../test/MenuTest/test_data.dart';
+import '../test/helpers/widget_test_scaffold.dart';
 
 class _RecordingAnalytics implements AnalyticsService {
   final List<MapEntry<String, Map<String, dynamic>?>> events = [];
@@ -99,8 +111,14 @@ void main() {
 
   setUp(() async {
     await GetIt.instance.reset();
+    registerTestServices(locale: 'en');
+    GetIt.instance.unregister<AnalyticsService>();
     analytics = _RecordingAnalytics();
     GetIt.instance.registerSingleton<AnalyticsService>(analytics);
+    GetIt.instance.unregister<VideoPlayerPageFactory>();
+    GetIt.instance.registerSingleton<VideoPlayerPageFactory>(
+      VideoPlayerPageFactoryImpl(),
+    );
   });
 
   tearDown(() async {
@@ -293,6 +311,107 @@ void main() {
         await tester.pump();
         expect(fullscreenChanges, [false, true]);
         expect(tester.takeException(), isNull);
+      },
+    );
+  });
+
+  group('Menu', () {
+    testWidgets(
+      'should synchronize production fullscreen chrome through Wellness Tools navigation',
+      (tester) async {
+        const videoId = 'dQw4w9WgXcQ';
+        final appInformation = AppInformation();
+        getData(appInformation);
+        appInformation.updateWellnessVideos({
+          'videoId': [videoId],
+          'videoHeadline': ['Fullscreen test video'],
+          'videoDescription': ['Fullscreen test description'],
+          'videoTranscript': [''],
+          'videoLocale': ['en'],
+        });
+        final userInformation = UserInformation(
+          gender: 'male',
+          localeName: 'en',
+        );
+
+        await tester.pumpWidget(
+          getMenuForTests(
+            userInformation,
+            appInformation,
+            locale: const Locale('en'),
+          ),
+        );
+        await tester.pump(const Duration(milliseconds: 100));
+        await tester.tap(find.byKey(const Key('bottomNavSupportTools')));
+        await tester.pump(const Duration(milliseconds: 100));
+
+        expect(find.byType(Menu), findsOneWidget);
+        expect(find.byType(WellnessTools), findsOneWidget);
+        expect(find.byType(VideoPlayerPage), findsOneWidget);
+        final state = tester.state(find.byType(VideoPlayerPage)) as dynamic;
+        final YoutubePlayerController controller =
+            state.controller as YoutubePlayerController;
+        expect(controller.value.fullScreenOption.enabled, isFalse);
+        expect(find.byType(BottomAppBar), findsOneWidget);
+        final normalFab = tester.widget<FloatingActionButton>(
+          find.byType(FloatingActionButton),
+        );
+        expect(normalFab.child, isA<Center>());
+        expect(
+          tester
+              .widget<VideoPlayerInheritedWidget>(
+                find.byType(VideoPlayerInheritedWidget),
+              )
+              .isFullScreen,
+          isFalse,
+        );
+
+        final streamClosed = Completer<void>();
+        controller.stream.listen(null, onDone: streamClosed.complete);
+
+        controller.enterFullScreen();
+        await tester.pump(const Duration(milliseconds: 100));
+        expect(controller.value.fullScreenOption.enabled, isTrue);
+        expect(find.byType(BottomAppBar), findsNothing);
+        final fullscreenFab = tester.widget<FloatingActionButton>(
+          find.byType(FloatingActionButton),
+        );
+        expect(fullscreenFab.child, isA<Icon>());
+        expect((fullscreenFab.child! as Icon).icon, Icons.phone);
+        expect(
+          tester
+              .widget<VideoPlayerInheritedWidget>(
+                find.byType(VideoPlayerInheritedWidget),
+              )
+              .isFullScreen,
+          isTrue,
+        );
+
+        controller.exitFullScreen();
+        await tester.pump(const Duration(milliseconds: 100));
+        expect(controller.value.fullScreenOption.enabled, isFalse);
+        expect(find.byType(BottomAppBar), findsOneWidget);
+        final restoredFab = tester.widget<FloatingActionButton>(
+          find.byType(FloatingActionButton),
+        );
+        expect(restoredFab.child, isA<Center>());
+        expect(
+          tester
+              .widget<VideoPlayerInheritedWidget>(
+                find.byType(VideoPlayerInheritedWidget),
+              )
+              .isFullScreen,
+          isFalse,
+        );
+
+        await tester.pumpWidget(const SizedBox.shrink());
+        await tester.pump();
+        expect(find.byType(VideoPlayerPage), findsNothing);
+        expect(tester.takeException(), isNull);
+        await expectLater(
+          streamClosed.future.timeout(const Duration(seconds: 5)),
+          completes,
+        );
       },
     );
   });
