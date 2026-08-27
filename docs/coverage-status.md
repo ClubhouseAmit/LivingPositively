@@ -687,19 +687,10 @@ untouched.
     accepted the with-DSN happy path stays uncovered and documented this
     as deferred to ADR-003 if Sentry-init observability QA is justified.
 
-- **`integration_test/notifications_schedule_test.dart`** (5 tests). Reuses the
-  channel-mock pattern from `test/notifications/notification_service_initialize_test.dart`
-  (recording `WorkmanagerPlatform`, stubbed `dexterous.com/flutter/local_notifications`,
-  stubbed `flutter_timezone`) but additionally drives:
-  - `scheduleNotification` directly — asserts the `_flutterLocalNotificationsPlugin.zonedSchedule`
-    MethodChannel call is made (both for a "schedule in the past, bump to
-    tomorrow" branch and a "schedule for later today" branch),
-  - `init()` catch branch — channel-throws on `getLocalTimezone` so the
-    `Asia/Jerusalem` fallback runs and the IncidentLogger is invoked,
-  - Android e2e flow — `initializeNotification` → `cancelNotifications` →
-    `scheduleNotification` in sequence, asserting the union of plugin +
-    workmanager calls covers the periodic-worker callback path that the
-    `Workmanager().executeTask` callback would invoke in production.
+- **`integration_test/notifications_schedule_test.dart`** (1 test). Exercises
+  the FCM reminder-support policy directly, asserting that Android and iOS are
+  the supported mobile platforms. Local scheduling, timezone, and Workmanager
+  coverage was retired with the legacy notification service.
 
 #### `scripts/check_integration_coverage.dart` (new gate)
 
