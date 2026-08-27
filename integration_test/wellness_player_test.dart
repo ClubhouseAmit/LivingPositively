@@ -235,12 +235,21 @@ void main() {
     (tester) async {
       const videoId = 'dQw4w9WgXcQ';
       final fullscreenChanges = <bool>[];
+      var configuredFullScreen = true;
+      late void Function(bool) updateFullScreen;
 
       await tester.pumpWidget(
-        _harness(
-          onFullScreenChanged: fullscreenChanges.add,
-          inheritedVideoId: videoId,
-          isFullScreen: true,
+        StatefulBuilder(
+          builder: (_, setState) {
+            updateFullScreen = (bool value) {
+              setState(() => configuredFullScreen = value);
+            };
+            return _harness(
+              onFullScreenChanged: fullscreenChanges.add,
+              inheritedVideoId: videoId,
+              isFullScreen: configuredFullScreen,
+            );
+          },
         ),
       );
       await tester.pump(const Duration(milliseconds: 100));
@@ -251,27 +260,33 @@ void main() {
       expect(controller.value.fullScreenOption.enabled, isTrue);
       expect(fullscreenChanges, isEmpty);
 
-      await tester.pumpWidget(
-        _harness(
-          onFullScreenChanged: fullscreenChanges.add,
-          inheritedVideoId: videoId,
-          isFullScreen: false,
-        ),
-      );
+      updateFullScreen(false);
+      await tester.pump(null, EnginePhase.build);
+      expect(controller.value.fullScreenOption.enabled, isTrue);
+      expect(fullscreenChanges, isEmpty);
+
+      updateFullScreen(true);
+      await tester.pump(null, EnginePhase.build);
+      await tester.pump();
+      expect(controller.value.fullScreenOption.enabled, isTrue);
+      expect(fullscreenChanges, isEmpty);
+
+      updateFullScreen(false);
       await tester.pump();
       expect(controller.value.fullScreenOption.enabled, isFalse);
       expect(fullscreenChanges, [false]);
 
-      await tester.pumpWidget(
-        _harness(
-          onFullScreenChanged: fullscreenChanges.add,
-          inheritedVideoId: videoId,
-          isFullScreen: true,
-        ),
-      );
+      updateFullScreen(true);
       await tester.pump();
       expect(controller.value.fullScreenOption.enabled, isTrue);
       expect(fullscreenChanges, [false, true]);
+
+      updateFullScreen(false);
+      await tester.pump(null, EnginePhase.build);
+      await tester.pumpWidget(const SizedBox.shrink());
+      await tester.pump();
+      expect(fullscreenChanges, [false, true]);
+      expect(tester.takeException(), isNull);
     },
   );
 

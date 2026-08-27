@@ -25,8 +25,8 @@ class _VideoPlayerPageState extends State<VideoPlayerPage> {
   bool _controllerInitialized = false;
   bool _hasInitialVideo = false;
   bool? _isPlaying;
-  bool _fullscreenSyncScheduled = false;
-  bool? _requestedFullscreen;
+  bool _fullScreenSyncScheduled = false;
+  bool? _requestedFullScreen;
   String? _loadedVideoId;
   String? _requestedVideoId;
   String? _pendingVideoId;
@@ -43,7 +43,7 @@ class _VideoPlayerPageState extends State<VideoPlayerPage> {
   void _initializeController() {
     final inherited = VideoPlayerInheritedWidget.of(context);
     final inheritedVideoId = _youtubeId(inherited?.videoId ?? '');
-    final initialFullscreen = inherited?.isFullScreen ?? false;
+    final initialFullScreen = inherited?.isFullScreen ?? false;
     final videoIds = widget.videoData['videoId'];
     final initialVideoId =
         inheritedVideoId ??
@@ -66,7 +66,7 @@ class _VideoPlayerPageState extends State<VideoPlayerPage> {
     );
 
     newController.setFullScreenListener(widget.onFullScreenChanged);
-    if (initialFullscreen) {
+    if (initialFullScreen) {
       newController.update(
         fullScreenOption: const FullScreenOption(enabled: true, locked: true),
       );
@@ -76,7 +76,7 @@ class _VideoPlayerPageState extends State<VideoPlayerPage> {
     _controllerSubscription = subscription;
     _loadedVideoId = initialVideoId;
     _requestedVideoId = initialVideoId;
-    _requestedFullscreen = initialFullscreen;
+    _requestedFullScreen = initialFullScreen;
     _controllerInitialized = true;
     _hasInitialVideo = true;
     unawaited(_cueInitialVideo(newController, initialVideoId));
@@ -197,28 +197,28 @@ class _VideoPlayerPageState extends State<VideoPlayerPage> {
     return _pendingVideoId == videoId && _pendingLoadRequest == request;
   }
 
-  void _syncFullscreenFromInherited() {
+  void _syncFullScreenFromInherited() {
     final inherited = VideoPlayerInheritedWidget.of(context);
     if (inherited == null) {
       return;
     }
 
-    final requestedFullscreen = inherited.isFullScreen;
-    _requestedFullscreen = requestedFullscreen;
+    final requestedFullScreen = inherited.isFullScreen;
+    _requestedFullScreen = requestedFullScreen;
     if (!_controllerInitialized ||
-        controller.value.fullScreenOption.enabled == requestedFullscreen ||
-        _fullscreenSyncScheduled) {
+        controller.value.fullScreenOption.enabled == requestedFullScreen ||
+        _fullScreenSyncScheduled) {
       return;
     }
 
-    _fullscreenSyncScheduled = true;
+    _fullScreenSyncScheduled = true;
     WidgetsBinding.instance.addPostFrameCallback((_) {
-      _fullscreenSyncScheduled = false;
+      _fullScreenSyncScheduled = false;
       if (!mounted || !_controllerInitialized) {
         return;
       }
 
-      final target = _requestedFullscreen;
+      final target = _requestedFullScreen;
       if (target == null ||
           controller.value.fullScreenOption.enabled == target) {
         return;
@@ -246,7 +246,7 @@ class _VideoPlayerPageState extends State<VideoPlayerPage> {
     super.didChangeDependencies();
     if (!_controllerInitialized) {
       _initializeController();
-      _syncFullscreenFromInherited();
+      _syncFullScreenFromInherited();
       return;
     }
 
@@ -256,7 +256,7 @@ class _VideoPlayerPageState extends State<VideoPlayerPage> {
     if (normalizedVideoId != null) {
       _requestVideoLoad(normalizedVideoId);
     }
-    _syncFullscreenFromInherited();
+    _syncFullScreenFromInherited();
   }
 
   @override
