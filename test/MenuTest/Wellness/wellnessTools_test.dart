@@ -475,9 +475,12 @@ void main() {
         );
         expect(find.byType(MoreVideosItem), findsWidgets);
         const expectedVideoIds = ['abcdefghijk', 'lmnopqrstuv', 'mnopqrstuvw'];
-        for (final item in tester.widgetList<MoreVideosItem>(
-          find.byType(MoreVideosItem),
-        )) {
+        const expectedMoreVideoIds = ['lmnopqrstuv', 'mnopqrstuvw'];
+        final moreVideoItems = tester
+            .widgetList<MoreVideosItem>(find.byType(MoreVideosItem))
+            .toList();
+        expect(moreVideoItems, hasLength(expectedMoreVideoIds.length));
+        for (final item in moreVideoItems) {
           expect(item.key, ValueKey<String>(expectedVideoIds[item.index]));
         }
 
