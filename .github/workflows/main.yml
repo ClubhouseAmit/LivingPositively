@@ -209,7 +209,9 @@ jobs:
             echo "::error::sdkmanager was not found in the Android SDK command-line tools."
             exit 1
           fi
+          set +o pipefail
           yes | sdkmanager --licenses >/dev/null
+          set -o pipefail
           for attempt in 1 2 3; do
             echo "Installing Android emulator package (attempt ${attempt}/3)."
             if sdkmanager --install emulator --channel=0; then
