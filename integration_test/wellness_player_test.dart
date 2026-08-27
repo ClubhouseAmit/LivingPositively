@@ -13,6 +13,9 @@
 //   * didChangeDependencies — invokes _initializeController for controller
 //     construction + listener registration, then branches on
 //     VideoPlayerInheritedWidget's videoId
+//   * inherited `isFullScreen` updates — verifies requested targets synchronize
+//     with `controller.value.fullScreenOption`, including coalescing and
+//     disposal before a pending transition
 //   * the `listener` closure — fires when the controller's value changes,
 //     calling onFullScreenChanged + _trackIsPlaying + _logEvent (both
 //     unpaused/paused branches)
@@ -25,6 +28,8 @@
 //
 // We mock the GetIt-provided AnalyticsService so _logEvent's
 // `trackEvent` calls don't reach Mixpanel.
+//
+// The suite currently contains nine widget tests.
 //
 // Local-verification note (per ADR-002 hard rule #5): under `flutter test
 // integration_test/wellness_player_test.dart` (no emulator), the YoutubePlayer
@@ -230,65 +235,67 @@ void main() {
     },
   );
 
-  testWidgets(
-    'synchronizes inherited fullscreen configuration with the controller',
-    (tester) async {
-      const videoId = 'dQw4w9WgXcQ';
-      final fullscreenChanges = <bool>[];
-      var configuredFullScreen = true;
-      late void Function(bool) updateFullScreen;
+  group('VideoPlayerPage', () {
+    testWidgets(
+      'should synchronize inherited fullscreen configuration with the controller',
+      (tester) async {
+        const videoId = 'dQw4w9WgXcQ';
+        final fullscreenChanges = <bool>[];
+        var configuredFullScreen = true;
+        late void Function(bool) updateFullScreen;
 
-      await tester.pumpWidget(
-        StatefulBuilder(
-          builder: (_, setState) {
-            updateFullScreen = (bool value) {
-              setState(() => configuredFullScreen = value);
-            };
-            return _harness(
-              onFullScreenChanged: fullscreenChanges.add,
-              inheritedVideoId: videoId,
-              isFullScreen: configuredFullScreen,
-            );
-          },
-        ),
-      );
-      await tester.pump(const Duration(milliseconds: 100));
+        await tester.pumpWidget(
+          StatefulBuilder(
+            builder: (_, setState) {
+              updateFullScreen = (bool value) {
+                setState(() => configuredFullScreen = value);
+              };
+              return _harness(
+                onFullScreenChanged: fullscreenChanges.add,
+                inheritedVideoId: videoId,
+                isFullScreen: configuredFullScreen,
+              );
+            },
+          ),
+        );
+        await tester.pump(const Duration(milliseconds: 100));
 
-      final state = tester.state(find.byType(VideoPlayerPage)) as dynamic;
-      final YoutubePlayerController controller =
-          state.controller as YoutubePlayerController;
-      expect(controller.value.fullScreenOption.enabled, isTrue);
-      expect(fullscreenChanges, isEmpty);
+        final state = tester.state(find.byType(VideoPlayerPage)) as dynamic;
+        final YoutubePlayerController controller =
+            state.controller as YoutubePlayerController;
+        expect(controller.value.fullScreenOption.enabled, isTrue);
+        expect(fullscreenChanges, isEmpty);
 
-      updateFullScreen(false);
-      await tester.pump(null, EnginePhase.build);
-      expect(controller.value.fullScreenOption.enabled, isTrue);
-      expect(fullscreenChanges, isEmpty);
+        updateFullScreen(false);
+        await tester.pump(null, EnginePhase.build);
+        expect(controller.value.fullScreenOption.enabled, isTrue);
+        expect(fullscreenChanges, isEmpty);
 
-      updateFullScreen(true);
-      await tester.pump(null, EnginePhase.build);
-      await tester.pump();
-      expect(controller.value.fullScreenOption.enabled, isTrue);
-      expect(fullscreenChanges, isEmpty);
+        updateFullScreen(true);
+        await tester.pump(null, EnginePhase.build);
+        await tester.pump();
+        expect(controller.value.fullScreenOption.enabled, isTrue);
+        expect(fullscreenChanges, isEmpty);
 
-      updateFullScreen(false);
-      await tester.pump();
-      expect(controller.value.fullScreenOption.enabled, isFalse);
-      expect(fullscreenChanges, [false]);
+        updateFullScreen(false);
+        await tester.pump();
+        expect(controller.value.fullScreenOption.enabled, isFalse);
+        expect(fullscreenChanges, [false]);
 
-      updateFullScreen(true);
-      await tester.pump();
-      expect(controller.value.fullScreenOption.enabled, isTrue);
-      expect(fullscreenChanges, [false, true]);
+        updateFullScreen(true);
+        await tester.pump();
+        expect(controller.value.fullScreenOption.enabled, isTrue);
+        expect(fullscreenChanges, [false, true]);
 
-      updateFullScreen(false);
-      await tester.pump(null, EnginePhase.build);
-      await tester.pumpWidget(const SizedBox.shrink());
-      await tester.pump();
-      expect(fullscreenChanges, [false, true]);
-      expect(tester.takeException(), isNull);
-    },
-  );
+        updateFullScreen(false);
+        await tester.pump(null, EnginePhase.build);
+        await tester.pumpWidget(const SizedBox.shrink());
+        await tester.pump();
+        expect(fullscreenChanges, [false, true]);
+        expect(tester.takeException(), isNull);
+      },
+    );
+  });
 
   testWidgets(
     'an untagged player error keeps an equivalent selection retryable',

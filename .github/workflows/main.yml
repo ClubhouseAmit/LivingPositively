@@ -51,7 +51,23 @@ jobs:
           flutter-version: "3.44.0"
           cache: true
       - name: Install dependencies
-        run: flutter pub get
+        shell: bash
+        run: |
+          export XDG_CONFIG_HOME="$RUNNER_TEMP/dart-config"
+          mkdir -p "$XDG_CONFIG_HOME"
+          echo "XDG_CONFIG_HOME=$XDG_CONFIG_HOME" >> "$GITHUB_ENV"
+          for attempt in 1 2 3; do
+            echo "Installing Dart dependencies (attempt ${attempt}/3)."
+            if flutter pub get; then
+              exit 0
+            fi
+            if [[ "$attempt" -lt 3 ]]; then
+              delay=$((attempt * 15))
+              echo "::warning::flutter pub get failed; retrying in ${delay}s."
+              sleep "$delay"
+            fi
+          done
+          exit 1
       - name: Run tests with coverage
         run: flutter test --coverage --reporter=expanded
       - name: Snapshot base lcov before dart-define run
@@ -188,7 +204,23 @@ jobs:
           cache: true
 
       - name: Install dependencies
-        run: flutter pub get
+        shell: bash
+        run: |
+          export XDG_CONFIG_HOME="$RUNNER_TEMP/dart-config"
+          mkdir -p "$XDG_CONFIG_HOME"
+          echo "XDG_CONFIG_HOME=$XDG_CONFIG_HOME" >> "$GITHUB_ENV"
+          for attempt in 1 2 3; do
+            echo "Installing Dart dependencies (attempt ${attempt}/3)."
+            if flutter pub get; then
+              exit 0
+            fi
+            if [[ "$attempt" -lt 3 ]]; then
+              delay=$((attempt * 15))
+              echo "::warning::flutter pub get failed; retrying in ${delay}s."
+              sleep "$delay"
+            fi
+          done
+          exit 1
 
       - name: Enable KVM
         run: |
@@ -320,7 +352,23 @@ jobs:
           cache: true
 
       - name: Install dependencies
-        run: flutter pub get
+        shell: bash
+        run: |
+          export XDG_CONFIG_HOME="$RUNNER_TEMP/dart-config"
+          mkdir -p "$XDG_CONFIG_HOME"
+          echo "XDG_CONFIG_HOME=$XDG_CONFIG_HOME" >> "$GITHUB_ENV"
+          for attempt in 1 2 3; do
+            echo "Installing Dart dependencies (attempt ${attempt}/3)."
+            if flutter pub get; then
+              exit 0
+            fi
+            if [[ "$attempt" -lt 3 ]]; then
+              delay=$((attempt * 15))
+              echo "::warning::flutter pub get failed; retrying in ${delay}s."
+              sleep "$delay"
+            fi
+          done
+          exit 1
 
       - name: Download integration coverage shards
         uses: actions/download-artifact@v4
@@ -437,7 +485,23 @@ jobs:
           cache: true
 
       - name: Install dependencies
-        run: flutter pub get
+        shell: bash
+        run: |
+          export XDG_CONFIG_HOME="$RUNNER_TEMP/dart-config"
+          mkdir -p "$XDG_CONFIG_HOME"
+          echo "XDG_CONFIG_HOME=$XDG_CONFIG_HOME" >> "$GITHUB_ENV"
+          for attempt in 1 2 3; do
+            echo "Installing Dart dependencies (attempt ${attempt}/3)."
+            if flutter pub get; then
+              exit 0
+            fi
+            if [[ "$attempt" -lt 3 ]]; then
+              delay=$((attempt * 15))
+              echo "::warning::flutter pub get failed; retrying in ${delay}s."
+              sleep "$delay"
+            fi
+          done
+          exit 1
 
       - name: Capture Xcode version for cache keys
         id: xcode
@@ -664,7 +728,23 @@ jobs:
           cache: true
 
       - name: Install dependencies
-        run: flutter pub get
+        shell: bash
+        run: |
+          export XDG_CONFIG_HOME="$RUNNER_TEMP/dart-config"
+          mkdir -p "$XDG_CONFIG_HOME"
+          echo "XDG_CONFIG_HOME=$XDG_CONFIG_HOME" >> "$GITHUB_ENV"
+          for attempt in 1 2 3; do
+            echo "Installing Dart dependencies (attempt ${attempt}/3)."
+            if flutter pub get; then
+              exit 0
+            fi
+            if [[ "$attempt" -lt 3 ]]; then
+              delay=$((attempt * 15))
+              echo "::warning::flutter pub get failed; retrying in ${delay}s."
+              sleep "$delay"
+            fi
+          done
+          exit 1
 
       - name: Run unit tests on Chrome (telemetry — failures do NOT fail this job)
         # `--platform chrome` compiles the test/ suite via dart2js and runs
@@ -749,7 +829,23 @@ jobs:
           cache: true
 
       - name: Install dependencies
-        run: flutter pub get
+        shell: bash
+        run: |
+          export XDG_CONFIG_HOME="$RUNNER_TEMP/dart-config"
+          mkdir -p "$XDG_CONFIG_HOME"
+          echo "XDG_CONFIG_HOME=$XDG_CONFIG_HOME" >> "$GITHUB_ENV"
+          for attempt in 1 2 3; do
+            echo "Installing Dart dependencies (attempt ${attempt}/3)."
+            if flutter pub get; then
+              exit 0
+            fi
+            if [[ "$attempt" -lt 3 ]]; then
+              delay=$((attempt * 15))
+              echo "::warning::flutter pub get failed; retrying in ${delay}s."
+              sleep "$delay"
+            fi
+          done
+          exit 1
 
       - name: Download unit coverage artifact
         uses: actions/download-artifact@v4
@@ -846,7 +942,23 @@ jobs:
           cache: true
 
       - name: Install dependencies
-        run: flutter pub get
+        shell: bash
+        run: |
+          export XDG_CONFIG_HOME="$RUNNER_TEMP/dart-config"
+          mkdir -p "$XDG_CONFIG_HOME"
+          echo "XDG_CONFIG_HOME=$XDG_CONFIG_HOME" >> "$GITHUB_ENV"
+          for attempt in 1 2 3; do
+            echo "Installing Dart dependencies (attempt ${attempt}/3)."
+            if flutter pub get; then
+              exit 0
+            fi
+            if [[ "$attempt" -lt 3 ]]; then
+              delay=$((attempt * 15))
+              echo "::warning::flutter pub get failed; retrying in ${delay}s."
+              sleep "$delay"
+            fi
+          done
+          exit 1
 
       - name: Get version from pubspec.yaml
         id: get_version
@@ -925,7 +1037,23 @@ jobs:
           cache: true
 
       - name: Install dependencies
-        run: flutter pub get
+        shell: bash
+        run: |
+          export XDG_CONFIG_HOME="$RUNNER_TEMP/dart-config"
+          mkdir -p "$XDG_CONFIG_HOME"
+          echo "XDG_CONFIG_HOME=$XDG_CONFIG_HOME" >> "$GITHUB_ENV"
+          for attempt in 1 2 3; do
+            echo "Installing Dart dependencies (attempt ${attempt}/3)."
+            if flutter pub get; then
+              exit 0
+            fi
+            if [[ "$attempt" -lt 3 ]]; then
+              delay=$((attempt * 15))
+              echo "::warning::flutter pub get failed; retrying in ${delay}s."
+              sleep "$delay"
+            fi
+          done
+          exit 1
 
       - name: Get version from pubspec.yaml
         id: get_version
