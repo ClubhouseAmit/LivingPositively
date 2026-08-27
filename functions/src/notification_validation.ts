@@ -44,6 +44,30 @@ export function isValidNotificationLocale(
   return value === "he" || value === "ar" || value === "en";
 }
 
+/**
+ * Israel's daylight-saving transition skips the local 02:00 hour. Rejecting
+ * that wall-clock hour at registration prevents a schedule that cannot be
+ * delivered on the spring-forward day.
+ */
+export function isValidNotificationScheduleTime(
+  hour: unknown,
+  minute: unknown,
+): boolean {
+  return (
+    typeof hour === "number" &&
+    Number.isFinite(hour) &&
+    Number.isInteger(hour) &&
+    hour >= 0 &&
+    hour <= 23 &&
+    hour !== 2 &&
+    typeof minute === "number" &&
+    Number.isFinite(minute) &&
+    Number.isInteger(minute) &&
+    minute >= 0 &&
+    minute <= 59
+  );
+}
+
 export function normalizeNotificationGender(
   value: unknown,
 ): NotificationGender {

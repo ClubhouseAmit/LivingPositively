@@ -405,11 +405,8 @@ class _MyAppState extends State<MyApp> with WidgetsBindingObserver {
     });
     unawaited(
       Future<void>.sync(
-        () => service.setItem(
-          'localeName',
-          PersistentMemoryType.String,
-          locale,
-        ),
+        () =>
+            service.setItem('localeName', PersistentMemoryType.String, locale),
       ).catchError((Object error, StackTrace stackTrace) {
         if (!GetIt.instance.isRegistered<IncidentLoggerService>()) {
           debugPrint('Locale persistence failed: $error');
@@ -422,7 +419,9 @@ class _MyAppState extends State<MyApp> with WidgetsBindingObserver {
               stackTrace: stackTrace,
             ),
           ).catchError((Object loggerError, StackTrace loggerStackTrace) {
-            debugPrint('Locale persistence failure reporting failed: $loggerError');
+            debugPrint(
+              'Locale persistence failure reporting failed: $loggerError',
+            );
           }),
         );
       }),
@@ -480,11 +479,6 @@ class _MyAppState extends State<MyApp> with WidgetsBindingObserver {
           ])
           .then((_) {
             if (!mounted) return;
-            unawaited(
-              FcmScheduledNotificationService.migrateLegacyDefaultReminderWithReporting(
-                userInformation: userInfoProvider,
-              ),
-            );
             //initialize which widget will run first:
             widgetNotifier.value = FirstPage(
               firsttime: !enteredBefore,

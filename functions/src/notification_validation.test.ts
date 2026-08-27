@@ -4,6 +4,7 @@ import { describe, it } from "node:test";
 import {
   hasValidNotificationTypeSchema,
   isValidNotificationLocale,
+  isValidNotificationScheduleTime,
   isValidNotificationTypeId,
   isValidNotificationUid,
   normalizeNotificationGender,
@@ -157,6 +158,42 @@ describe("notification validation", () => {
         kind: "conflict",
         message: "Notification mutation state requires reset",
       },
+    );
+  });
+
+  it("rejects Israel's nonexistent spring-forward hour", () => {
+    assert.equal(isValidNotificationScheduleTime(1, 59), true);
+    assert.equal(isValidNotificationScheduleTime(2, 0), false);
+    assert.equal(isValidNotificationScheduleTime(2, 59), false);
+    assert.equal(isValidNotificationScheduleTime(3, 0), true);
+    assert.equal(isValidNotificationScheduleTime(24, 0), false);
+  });
+
+  it("lets the authenticated version-zero recovery re-enable a corrupt schedule", () => {
+    assert.deepEqual(
+      notificationMutationAuthorizationDecision({
+        storedVersion: "corrupt",
+        expectedVersion: { kind: "versioned", version: 0 },
+        rejectActiveDeliveryPermit: false,
+        allowsCorruptStateRepair: true,
+        hasActiveDeliveryPermit: false,
+        hasEffectiveState: false,
+      }),
+      { kind: "apply", nextVersion: 1 },
+    );
+  });
+
+  it("lets an ordinary cancellation retire a schedule with an active permit", () => {
+    assert.deepEqual(
+      notificationMutationAuthorizationDecision({
+        storedVersion: 4,
+        expectedVersion: { kind: "versioned", version: 4 },
+        rejectActiveDeliveryPermit: false,
+        allowsCorruptStateRepair: false,
+        hasActiveDeliveryPermit: true,
+        hasEffectiveState: true,
+      }),
+      { kind: "apply", nextVersion: 5 },
     );
   });
 

@@ -141,6 +141,7 @@ class _UserSettingsState extends LPExtendedState<UserSettings> {
 
     await service.setItem("localeName", PersistentMemoryType.String, locale);
 
+    if (!mounted) return;
     setState(() {
       widget.changeLocale(locale);
       userInfoProvider.updateLocaleName(locale);

@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import { describe, it } from "node:test";
 
-import { notificationClientCors } from "./index.js";
+import { notificationClientCors, notificationRequestOptions } from "./index.js";
 
 describe("notification mutation HTTP CORS", () => {
   it("allows only an explicit HTTPS browser origin", () => {
@@ -17,4 +17,12 @@ describe("notification mutation HTTP CORS", () => {
       assert.equal(notificationClientCors(origin), false);
     });
   }
+
+  it("omits the CORS option instead of passing a permissive false value", () => {
+    assert.deepEqual(notificationRequestOptions(undefined), {});
+    assert.deepEqual(notificationRequestOptions("not a URL"), {});
+    assert.deepEqual(notificationRequestOptions("https://living-positively.example"), {
+      cors: "https://living-positively.example",
+    });
+  });
 });

@@ -12,6 +12,7 @@ import {
   isCurrentScheduledNotification,
   isValidSchedulerCheckpoint,
   routeDevicesByUpdatedAt,
+  schedulerRecoveryContinuation,
   scheduledNotificationQueryPlan,
   selectScheduledNotificationCandidates,
   staleDeviceCleanupBatch,
@@ -93,6 +94,32 @@ describe("scheduled notification delivery", () => {
     });
     assert.equal(staleDeviceCleanupOutcome(25), "cleaned");
     assert.equal(staleDeviceCleanupOutcome(26), "deferred");
+  });
+
+  it("resumes a bounded recovery from its durable document cursor", () => {
+    assert.deepEqual(
+      schedulerRecoveryContinuation(
+        {
+          recoveryScheduleTimeMillis: Date.parse("2026-08-05T12:00:00.000Z"),
+          recoveryCursorDocumentId: "uid_default",
+        },
+        Date.parse("2026-08-05T12:01:00.000Z"),
+      ),
+      {
+        scheduleTimeMillis: Date.parse("2026-08-05T12:00:00.000Z"),
+        cursorDocumentId: "uid_default",
+      },
+    );
+    assert.equal(
+      schedulerRecoveryContinuation(
+        {
+          recoveryScheduleTimeMillis: Date.parse("2026-08-05T12:02:00.000Z"),
+          recoveryCursorDocumentId: "uid_default",
+        },
+        Date.parse("2026-08-05T12:01:00.000Z"),
+      ),
+      undefined,
+    );
   });
 
   describe("device timestamp validation", () => {

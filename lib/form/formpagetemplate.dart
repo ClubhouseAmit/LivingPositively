@@ -159,21 +159,28 @@ class _FormPageTemplateState extends WizardStepState<FormPageTemplate> {
         break;
       default:
     }
-    await service.setItem(
-      "disclaimerConfirmed",
-      PersistentMemoryType.Bool,
-      true,
-    );
-    await service.setItem(
-      'userSelection${widget.collectionName}',
-      PersistentMemoryType.StringList,
-      [...selectedItems],
-    );
-    await service.setItem(
-      'addedStrings${widget.collectionName}',
-      PersistentMemoryType.StringList,
-      [...selectedItems],
-    );
+    try {
+      await service.setItem(
+        "disclaimerConfirmed",
+        PersistentMemoryType.Bool,
+        true,
+      );
+      await service.setItem(
+        'userSelection${widget.collectionName}',
+        PersistentMemoryType.StringList,
+        [...selectedItems],
+      );
+      await service.setItem(
+        'addedStrings${widget.collectionName}',
+        PersistentMemoryType.StringList,
+        [...selectedItems],
+      );
+    } catch (error, stackTrace) {
+      // Item editing calls this method without awaiting it. Preserve the
+      // previous best-effort persistence behavior while the storage service
+      // records the failed write.
+      debugPrint('Unable to persist plan selection: $error\n$stackTrace');
+    }
   }
 
   void loadItems(userInfo) {

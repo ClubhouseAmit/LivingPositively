@@ -18,7 +18,11 @@ import 'package:provider/provider.dart';
 class _FakePersistentMemoryService implements PersistentMemoryService {
   static const _migrationKey = 'fcmDefaultReminderMigrated';
   static const _notificationPreferencesKey = 'notificationPreferences';
-  static const _legacyReminderKeys = {'notificationHour', 'notificationMinute'};
+  static const _legacyReminderKeys = {
+    'legacyDefaultReminderEnabled',
+    'notificationHour',
+    'notificationMinute',
+  };
   final Map<String, dynamic> stored = {};
   Completer<dynamic>? migrationMarkerRead;
   Completer<void>? migrationMarkerReadStarted;
@@ -31,7 +35,10 @@ class _FakePersistentMemoryService implements PersistentMemoryService {
   @override
   Future<dynamic> getItem(String key, PersistentMemoryType type) async {
     if (_legacyReminderKeys.contains(key)) {
-      if (type != PersistentMemoryType.Int) {
+      final expectedType = key == 'legacyDefaultReminderEnabled'
+          ? PersistentMemoryType.Bool
+          : PersistentMemoryType.Int;
+      if (type != expectedType) {
         throw StateError('Unexpected persistent-memory type for $key: $type');
       }
       return stored[key];
@@ -138,7 +145,11 @@ void main() {
 
   setUp(() {
     memory = _FakePersistentMemoryService();
-    memory.stored.addAll({'notificationHour': 8, 'notificationMinute': 15});
+    memory.stored.addAll({
+      'legacyDefaultReminderEnabled': true,
+      'notificationHour': 8,
+      'notificationMinute': 15,
+    });
     GetIt.instance.registerSingleton<PersistentMemoryService>(memory);
     user = UserInformation(
       service: memory,
@@ -959,6 +970,31 @@ void main() {
     expect(cancelledIds, isEmpty);
     expect(memory.stored.containsKey('fcmDefaultReminderMigrated'), isFalse);
   });
+
+  testWidgets(
+    'does not migrate ambiguous legacy defaults without an enabled marker',
+    (tester) async {
+      memory.stored.remove('legacyDefaultReminderEnabled');
+      await pumpUser(tester);
+      var postCalls = 0;
+
+      await _onPlatform(
+        TargetPlatform.android,
+        () => FcmScheduledNotificationService.migrateLegacyDefaultReminder(
+          userInformation: user,
+          idTokenProvider: () async => 'token-123',
+          post: (url, {headers, body, encoding}) async {
+            postCalls++;
+            return http.Response('{"success":true}', 200);
+          },
+          legacyNotificationCanceller: _ignoreLegacyNotification,
+        ),
+      );
+
+      expect(postCalls, 0);
+      expect(memory.stored.containsKey('fcmDefaultReminderMigrated'), isFalse);
+    },
+  );
 
   testWidgets('reports a migration-marker read failure without propagating it', (
     tester,

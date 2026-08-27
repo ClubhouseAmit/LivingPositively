@@ -27,6 +27,8 @@ class FcmScheduledNotificationService {
       'https://us-central1-mezilondb.cloudfunctions.net';
   static const String _legacyDefaultReminderMigrationKey =
       'fcmDefaultReminderMigrated';
+  static const String _legacyDefaultReminderEnabledKey =
+      'legacyDefaultReminderEnabled';
   static const Duration _networkTimeout = Duration(seconds: 15);
   static const Duration _legacyMigrationOperationTimeout = Duration(seconds: 5);
   static Future<void>? _operationQueue;
@@ -94,9 +96,10 @@ class FcmScheduledNotificationService {
   /// Migrates an Android legacy local default reminder to the FCM scheduler.
   ///
   /// Does nothing when migration is disabled, the platform is unsupported, no
-  /// user state is available, no valid legacy time exists, or migration already
-  /// completed. The serialized operation registers remotely before retiring
-  /// the local alarm; an error leaves the migration marker unset for retry.
+  /// user state is available, no explicitly enabled legacy reminder exists, no
+  /// valid legacy time exists, or migration already completed. The hour/minute
+  /// values alone are not consent: old installs persist defaults even when the
+  /// local alarm was cancelled.
   static Future<void> migrateLegacyDefaultReminder({
     BuildContext? context,
     UserInformation? userInformation,
@@ -135,7 +138,10 @@ class FcmScheduledNotificationService {
           resetEpoch != _resetEpoch) {
         return;
       }
-      final preference = await _legacyDefaultReminderPreference(memory);
+      final preference = await _legacyDefaultReminderPreference(
+        memory,
+        requiresEnabledMarker: true,
+      );
       if (preference == null) return;
       final legacyNotificationId = _legacyLocalNotificationId(preference);
       final registered = await _registerNotification(
@@ -163,8 +169,15 @@ class FcmScheduledNotificationService {
   }
 
   static Future<NotificationPreference?> _legacyDefaultReminderPreference(
-    PersistentMemoryService memory,
-  ) async {
+    PersistentMemoryService memory, {
+    bool requiresEnabledMarker = false,
+  }) async {
+    if (requiresEnabledMarker) {
+      final legacyReminderEnabled = await memory
+          .getItem(_legacyDefaultReminderEnabledKey, PersistentMemoryType.Bool)
+          .timeout(_legacyMigrationOperationTimeout);
+      if (legacyReminderEnabled != true) return null;
+    }
     final legacyHour = await memory
         .getItem('notificationHour', PersistentMemoryType.Int)
         .timeout(_legacyMigrationOperationTimeout);
@@ -660,6 +673,7 @@ class FcmScheduledNotificationService {
               post: post,
               resetEpoch: resetEpoch,
               allowUnsupportedPlatform: true,
+              persistLocalPreference: false,
               expectedMutationVersion: nextMutationVersion,
             );
             if (!restoredRemotely) {

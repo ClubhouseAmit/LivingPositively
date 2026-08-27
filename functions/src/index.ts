@@ -1,6 +1,11 @@
 import { initializeApp } from "firebase-admin/app";
 import { getAuth } from "firebase-admin/auth";
-import { FieldValue, getFirestore, Timestamp } from "firebase-admin/firestore";
+import {
+  FieldPath,
+  FieldValue,
+  getFirestore,
+  Timestamp,
+} from "firebase-admin/firestore";
 import { getMessaging } from "firebase-admin/messaging";
 import { Buffer } from "node:buffer";
 import { setGlobalOptions } from "firebase-functions";
@@ -20,6 +25,7 @@ import {
 import {
   hasValidNotificationTypeSchema,
   isValidNotificationLocale,
+  isValidNotificationScheduleTime,
   isValidNotificationTypeId,
   isValidNotificationUid,
   normalizeNotificationGender,
@@ -37,6 +43,7 @@ const STALE_TOKEN_DAYS = 180;
 const DEVICE_TIMESTAMP_FUTURE_SKEW_MILLIS = 5 * 60_000;
 const DELIVERY_PERMIT_DURATION_MILLIS = 305_000;
 const DELIVERY_SEND_BATCH_SIZE = 25;
+const MAX_SCHEDULED_NOTIFICATIONS_PER_RECOVERY_PAGE = 250;
 const MAX_STALE_DEVICE_CLEANUPS_PER_INVOCATION = 25;
 const STALE_DEVICE_CLEANUP_BATCH_SIZE = 5;
 const MAX_SCHEDULED_NOTIFICATIONS_PER_STALE_DEVICE_CLEANUP = 25;
@@ -60,7 +67,17 @@ export function notificationClientCors(
   }
 }
 
-const authenticatedClientCors = notificationClientCors();
+export function notificationRequestOptions(
+  configuredOrigin = process.env.NOTIFICATION_CLIENT_ORIGIN,
+): { cors?: string } {
+  const cors = notificationClientCors(configuredOrigin);
+  return cors === false ? {} : { cors };
+}
+
+// Omitting `cors` entirely keeps firebase-functions from installing its CORS
+// middleware. Passing `false` would instead be interpreted by that middleware
+// as permissive browser CORS.
+const authenticatedNotificationRequestOptions = notificationRequestOptions();
 
 export type IsraelLocalDeliveryCandidate = {
   localDate: string;
@@ -303,6 +320,27 @@ export function isValidSchedulerCheckpoint(
     value <= 8_640_000_000_000_000 &&
     value <= scheduleMillis
   );
+}
+
+export type SchedulerRecoveryContinuation = {
+  scheduleTimeMillis: number;
+  cursorDocumentId: string;
+};
+
+export function schedulerRecoveryContinuation(
+  state: Record<string, unknown> | undefined,
+  currentScheduleMillis: number,
+): SchedulerRecoveryContinuation | undefined {
+  const scheduleTimeMillis = state?.recoveryScheduleTimeMillis;
+  const cursorDocumentId = state?.recoveryCursorDocumentId;
+  if (
+    !isValidSchedulerCheckpoint(scheduleTimeMillis, currentScheduleMillis) ||
+    typeof cursorDocumentId !== "string" ||
+    cursorDocumentId.length === 0
+  ) {
+    return undefined;
+  }
+  return { scheduleTimeMillis, cursorDocumentId };
 }
 
 export type DeviceUpdatedAtClassification =
@@ -659,7 +697,7 @@ class NotificationMutationConflictError extends Error {}
 // Body: { typeId: string }
 // ---------------------------------------------------------------------------
 export const getNotificationMutationVersion = onRequest(
-  { cors: authenticatedClientCors },
+  authenticatedNotificationRequestOptions,
   async (req, res) => {
     if (req.method !== "POST") {
       res.status(405).send("Method Not Allowed");
@@ -699,6 +737,7 @@ export const getNotificationMutationVersion = onRequest(
     }
     if (!isNonNegativeNotificationMutationVersion(mutationVersion)) {
       logger.warn("Invalid notification mutation state version", {
+        uid,
         typeId,
         valueType: typeof mutationVersion,
       });
@@ -715,7 +754,7 @@ export const getNotificationMutationVersion = onRequest(
 //         expectedMutationVersion?: non-negative integer }
 // ---------------------------------------------------------------------------
 export const registerNotification = onRequest(
-  { cors: authenticatedClientCors },
+  authenticatedNotificationRequestOptions,
   async (req, res) => {
     if (req.method !== "POST") {
       res.status(405).send("Method Not Allowed");
@@ -744,22 +783,13 @@ export const registerNotification = onRequest(
 
     if (
       !isValidNotificationTypeId(typeId) ||
-      typeof hour !== "number" ||
-      !Number.isFinite(hour) ||
-      !Number.isInteger(hour) ||
-      typeof minute !== "number" ||
-      !Number.isFinite(minute) ||
-      !Number.isInteger(minute) ||
-      hour < 0 ||
-      hour > 23 ||
-      minute < 0 ||
-      minute > 59 ||
+      !isValidNotificationScheduleTime(hour, minute) ||
       !isValidNotificationLocale(locale)
     ) {
       res
         .status(400)
         .send(
-          "Invalid body: typeId (string), hour (0-23), minute (0-59), locale (string) required",
+          "Invalid body: typeId (string), hour (0-23 except 02), minute (0-59), locale (string) required",
         );
       return;
     }
@@ -772,8 +802,8 @@ export const registerNotification = onRequest(
       .collection("notification_types")
       .doc(typeId)
       .get();
-    if (!typeDoc.exists) {
-      res.status(400).send(`Unknown typeId: ${typeId}`);
+    if (!typeDoc.exists || !hasValidNotificationTypeSchema(typeDoc.data())) {
+      res.status(400).send(`Unknown or invalid typeId: ${typeId}`);
       return;
     }
 
@@ -805,7 +835,10 @@ export const registerNotification = onRequest(
               scheduleRef,
               expectedVersion,
               rejectActiveDeliveryPermit: false,
-              allowsCorruptStateRepair: false,
+              // A corrupt version is already unreadable. The authenticated
+              // version read returns the recovery fence (0), so allow this
+              // explicit registration to replace the unusable state.
+              allowsCorruptStateRepair: true,
               operation: { kind: "register", scheduleData },
             },
           );
@@ -845,7 +878,7 @@ export const registerNotification = onRequest(
 //         resetFence?: boolean }
 // ---------------------------------------------------------------------------
 export const cancelNotification = onRequest(
-  { cors: authenticatedClientCors },
+  authenticatedNotificationRequestOptions,
   async (req, res) => {
     if (req.method !== "POST") {
       res.status(405).send("Method Not Allowed");
@@ -921,7 +954,10 @@ export const cancelNotification = onRequest(
               stateRef,
               scheduleRef,
               expectedVersion,
-              rejectActiveDeliveryPermit: true,
+              // Only account reset/sign-out needs the privacy fence. Ordinary
+              // toggle cancellation, including local-write compensation, must
+              // be able to retire a schedule while a delivery permit expires.
+              rejectActiveDeliveryPermit: resetFence === true,
               allowsCorruptStateRepair: resetFence === true,
               operation: { kind: "cancel" },
             },
@@ -986,10 +1022,24 @@ export const processScheduledNotifications = onSchedule(
       .collection("notification_scheduler_state")
       .doc("primary");
     const schedulerState = await schedulerStateRef.get();
-    const lastProcessedMillis = schedulerState.data()?.lastProcessedMillis;
+    const schedulerStateData = schedulerState.data();
+    const recoveryContinuation = schedulerRecoveryContinuation(
+      schedulerStateData,
+      scheduleTime.getTime(),
+    );
+    // Keep a paged recovery window fixed until it completes. Otherwise every
+    // invocation would move the two-hour window forward and permanently lose
+    // the earliest schedules while it works through a large result set.
+    const recoveryScheduleTime = recoveryContinuation === undefined
+      ? scheduleTime
+      : new Date(recoveryContinuation.scheduleTimeMillis);
+    const lastProcessedMillis = schedulerStateData?.lastProcessedMillis;
     const recoveryWindow = schedulerRecoveryWindow(
-      scheduleTime,
-      isValidSchedulerCheckpoint(lastProcessedMillis, scheduleTime.getTime())
+      recoveryScheduleTime,
+      isValidSchedulerCheckpoint(
+        lastProcessedMillis,
+        recoveryScheduleTime.getTime(),
+      )
         ? new Date(lastProcessedMillis)
         : undefined,
     );
@@ -1001,23 +1051,46 @@ export const processScheduledNotifications = onSchedule(
       });
     }
     const deliveryCandidates = israelLocalDeliveryCandidates(
-      scheduleTime,
+      recoveryScheduleTime,
       recoveryWindow.processedCandidateMinutes,
     );
     const scheduledNotifications = db.collection("scheduled_notifications");
     const queryPlan = scheduledNotificationQueryPlan(deliveryCandidates);
-    const snapshot =
-      queryPlan.kind === "exact"
-        ? await scheduledNotifications
-            .where("hour", "==", queryPlan.hour)
-            .where("minute", "==", queryPlan.minute)
-            .get()
-        : await scheduledNotifications
-            .where("hour", "in", queryPlan.hours)
-            .get();
+    let snapshot;
+    let recoveryPageHasMore = false;
+    if (queryPlan.kind === "exact") {
+      snapshot = await scheduledNotifications
+        .where("hour", "==", queryPlan.hour)
+        .where("minute", "==", queryPlan.minute)
+        .get();
+    } else {
+      let recoveryQuery = scheduledNotifications
+        .where("hour", "in", queryPlan.hours)
+        .orderBy(FieldPath.documentId());
+      if (recoveryContinuation !== undefined) {
+        recoveryQuery = recoveryQuery.startAfter(
+          recoveryContinuation.cursorDocumentId,
+        );
+      }
+      snapshot = await recoveryQuery
+        .limit(MAX_SCHEDULED_NOTIFICATIONS_PER_RECOVERY_PAGE + 1)
+        .get();
+      recoveryPageHasMore =
+        snapshot.size > MAX_SCHEDULED_NOTIFICATIONS_PER_RECOVERY_PAGE;
+    }
+    const pageDocs = recoveryPageHasMore
+      ? snapshot.docs.slice(0, MAX_SCHEDULED_NOTIFICATIONS_PER_RECOVERY_PAGE)
+      : snapshot.docs;
+    if (recoveryPageHasMore) {
+      logger.warn("processScheduledNotifications recovery page bounded", {
+        recoveryScheduleTimeMillis: recoveryScheduleTime.getTime(),
+        recoveryCursorDocumentId: recoveryContinuation?.cursorDocumentId,
+        recoveryPageSize: MAX_SCHEDULED_NOTIFICATIONS_PER_RECOVERY_PAGE,
+      });
+    }
 
     const scheduledCandidates = selectScheduledNotificationCandidates(
-      snapshot.docs,
+      pageDocs,
       deliveryCandidates,
     );
 
@@ -1025,16 +1098,66 @@ export const processScheduledNotifications = onSchedule(
       db.runTransaction(async (transaction) => {
         const currentState = await transaction.get(schedulerStateRef);
         const currentMillis = currentState.data()?.lastProcessedMillis;
+        const currentRecovery = schedulerRecoveryContinuation(
+          currentState.data(),
+          scheduleTime.getTime(),
+        );
+        if (
+          currentRecovery !== undefined &&
+          currentRecovery.scheduleTimeMillis !== recoveryScheduleTime.getTime()
+        ) {
+          return;
+        }
         if (
           typeof currentMillis === "number" &&
-          currentMillis >= scheduleTime.getTime()
+          currentMillis >= recoveryScheduleTime.getTime()
         ) {
           return;
         }
         transaction.set(
           schedulerStateRef,
           {
-            lastProcessedMillis: scheduleTime.getTime(),
+            lastProcessedMillis: recoveryScheduleTime.getTime(),
+            recoveryScheduleTimeMillis: FieldValue.delete(),
+            recoveryCursorDocumentId: FieldValue.delete(),
+            updatedAt: FieldValue.serverTimestamp(),
+          },
+          { merge: true },
+        );
+      });
+
+    const advanceSchedulerRecoveryCursor = (cursorDocumentId: string) =>
+      db.runTransaction(async (transaction) => {
+        const currentState = await transaction.get(schedulerStateRef);
+        const currentData = currentState.data();
+        const currentMillis = currentData?.lastProcessedMillis;
+        if (
+          typeof currentMillis === "number" &&
+          currentMillis >= recoveryScheduleTime.getTime()
+        ) {
+          return;
+        }
+        const currentRecovery = schedulerRecoveryContinuation(
+          currentData,
+          scheduleTime.getTime(),
+        );
+        if (
+          currentRecovery !== undefined &&
+          currentRecovery.scheduleTimeMillis !== recoveryScheduleTime.getTime()
+        ) {
+          return;
+        }
+        if (
+          currentRecovery !== undefined &&
+          currentRecovery.cursorDocumentId >= cursorDocumentId
+        ) {
+          return;
+        }
+        transaction.set(
+          schedulerStateRef,
+          {
+            recoveryScheduleTimeMillis: recoveryScheduleTime.getTime(),
+            recoveryCursorDocumentId: cursorDocumentId,
             updatedAt: FieldValue.serverTimestamp(),
           },
           { merge: true },
@@ -1376,7 +1499,15 @@ export const processScheduledNotifications = onSchedule(
 
     // Complete the delivery checkpoint before independent stale-device cleanup.
     if (shouldAdvanceSchedulerCheckpoint(claimFailedCount)) {
-      await advanceSchedulerCheckpoint();
+      if (recoveryPageHasMore) {
+        const cursorDocumentId = pageDocs[pageDocs.length - 1]?.id;
+        if (cursorDocumentId === undefined) {
+          throw new Error("Recovery page did not contain a cursor document");
+        }
+        await advanceSchedulerRecoveryCursor(cursorDocumentId);
+      } else {
+        await advanceSchedulerCheckpoint();
+      }
     }
 
     // --- Stale device cleanup (batched, after the delivery checkpoint) ---

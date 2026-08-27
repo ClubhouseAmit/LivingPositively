@@ -96,13 +96,15 @@ without a mutation version are current only when the selected and re-read
 stored mutation version is not a legacy mutation fence.
 
 If a stored mutation version is malformed, `getNotificationMutationVersion`
-returns zero to the authenticated client only so it can issue the reset-fenced
-repair. Ordinary register and cancel operations remain rejected with a
-controlled conflict; the active-delivery-permit check remains authoritative,
-including during reset-fenced repair.
+returns zero to the authenticated client. A subsequent authenticated register
+replaces the unusable state so a user can re-enable the reminder; a
+reset-fenced cancellation can also repair it. The active-delivery-permit check
+remains authoritative for the reset path, while ordinary cancellation can
+retire a schedule during the short permit window.
 
-- Spring-forward: a configured non-existent Israel-local wall-clock minute is
-  skipped. This is accepted best-effort behavior.
+- Spring-forward: new registrations reject 02:00–02:59, the Israel-local hour
+  that does not exist on the spring-forward day. Pre-existing schedules in
+  that hour remain best-effort and can be skipped that day.
 - Fall-back: both occurrences share the local-date/time key. The first claim
   may send; the repeated occurrence is suppressed rather than sending twice.
 
@@ -118,8 +120,10 @@ has advanced. Each cleanup reads and deletes at most 25 schedules in one
 Firestore batch; it retains the stale device document when further schedules
 remain. UID overflow is reported as deferred and is eligible for a later
 scheduling pass. These bounds prevent stale cleanup from consuming the
-delivery deadline. If a bounded delivery recovery cannot complete, its
-checkpoint remains held for a later invocation.
+delivery deadline. Catch-up queries page at 250 documents using a durable
+document-ID cursor while holding their original recovery window fixed. A later
+invocation resumes after that cursor; only the final page advances the
+checkpoint.
 
 ### Recovery operations note
 
@@ -129,15 +133,16 @@ bounded window. The scheduler summary emits `claimFailed`,
 `recoveryCandidateMinutes`, `requestedRecoveryCandidateMinutes`, and
 `recoveryClamped` as structured Cloud Logging fields. During recovery (two or
 more candidate minutes), Firestore queries every schedule in the affected
-one-to-three local hours and filters the exact candidate minutes in memory. A
-gap beyond the 120-minute lookback drops older intended minutes by design and
-always emits a clamp warning before the scheduler can advance its checkpoint;
-the fields distinguish the requested window from the processed bounded window.
-Read volume still scales with schedules in the queried hours. Production
-monitoring must alert on repeated nonzero `claimFailed` counts and claimed
-records that age without reaching a terminal status. Repeated claim failures
-keep the checkpoint in recovery; aged claimed records identify a send or
-terminal-status update that needs operational investigation.
+one-to-three local hours, pages the query by document ID, and filters the exact
+candidate minutes in memory. A gap beyond the 120-minute lookback drops older
+intended minutes by design and always emits a clamp warning before the
+scheduler can advance its checkpoint; the fields distinguish the requested
+window from the processed bounded window. A bounded page emits a structured
+warning with its fixed recovery time and cursor. Production monitoring must
+alert on repeated nonzero `claimFailed` counts, repeated bounded-page warnings,
+and claimed records that age without reaching a terminal status. Repeated claim
+failures keep the current page in recovery; aged claimed records identify a
+send or terminal-status update that needs operational investigation.
 
 ### Firestore access policy handoff
 
@@ -243,8 +248,8 @@ impossible. Do not assign schedules to guessed identities.
 1. Complete the FCM-04 remote UUID inventory and approved disposition.
 2. Run authenticated emulator, device, and production canaries for
    registration/cancellation, token refresh, delayed delivery, duplicate
-   suppression, failure handling, reset (including an active-send 409), local
-   migration, and DST.
+    suppression, failure handling, reset (including an active-send 409),
+    legacy-reminder retirement, and DST.
 3. Record dependency approval only if required by project governance.
 
 ## Deferred Work

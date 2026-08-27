@@ -3,6 +3,7 @@
 import 'package:flutter/material.dart';
 import 'package:get_it/get_it.dart';
 import 'package:mazilon/global_enums.dart';
+import 'package:mazilon/util/logger_service.dart';
 import 'package:mazilon/util/persistent_memory_service.dart';
 import 'package:mazilon/util/type_utils.dart';
 
@@ -238,15 +239,33 @@ class PhonePageData extends ChangeNotifier {
         GetIt.instance<
           PersistentMemoryService
         >(); // Get the persistent memory service instance
-    await service.setItem(
-      '${key}SavedPhoneNames',
-      PersistentMemoryType.StringList,
-      savedPhoneNames,
-    );
-    await service.setItem(
-      '${key}SavedPhoneNumbers',
-      PersistentMemoryType.StringList,
-      savedPhoneNumbers,
-    );
+    try {
+      await service.setItem(
+        '${key}SavedPhoneNames',
+        PersistentMemoryType.StringList,
+        savedPhoneNames,
+      );
+      await service.setItem(
+        '${key}SavedPhoneNumbers',
+        PersistentMemoryType.StringList,
+        savedPhoneNumbers,
+      );
+    } catch (error, stackTrace) {
+      // These existing synchronous model mutators intentionally update the
+      // in-memory contact list immediately. Keep persistence failures from
+      // escaping their fire-and-forget callers.
+      if (GetIt.instance.isRegistered<IncidentLoggerService>()) {
+        try {
+          await GetIt.instance<IncidentLoggerService>().captureLog(
+            error,
+            stackTrace: stackTrace,
+          );
+        } catch (_) {
+          // A failed reporter must not turn a persistence failure back into
+          // an unhandled zone error.
+        }
+      }
+      debugPrint('Unable to persist saved phone contacts: $error\n$stackTrace');
+    }
   }
 }
