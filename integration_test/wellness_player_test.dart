@@ -18,7 +18,8 @@
 //     disposal before a pending transition
 //   * production `Menu` navigation — exercises the real
 //     Menu → WellnessTools → VideoPlayerPage callback path and verifies the
-//     parent bottom navigation/FAB chrome follows controller fullscreen state
+//     parent bottom navigation/FAB chrome follows controller fullscreen state,
+//     including back-navigation reset and a fresh non-fullscreen visit
 //   * the `listener` closure — fires when the controller's value changes,
 //     calling onFullScreenChanged + _trackIsPlaying + _logEvent (both
 //     unpaused/paused branches)
@@ -52,6 +53,7 @@ import 'package:integration_test/integration_test.dart';
 import 'package:mazilon/AnalyticsService.dart';
 import 'package:mazilon/l10n/app_localizations.dart';
 import 'package:mazilon/menu.dart';
+import 'package:mazilon/pages/home.dart';
 import 'package:mazilon/pages/WellnessTools/VideoPlayerInheritedWidget.dart';
 import 'package:mazilon/pages/WellnessTools/VideoPlayerPageFactory.dart';
 import 'package:mazilon/pages/WellnessTools/player.dart';
@@ -387,14 +389,36 @@ void main() {
           isTrue,
         );
 
-        controller.exitFullScreen();
+        await tester.binding.handlePopRoute();
         await tester.pump(const Duration(milliseconds: 100));
-        expect(controller.value.fullScreenOption.enabled, isFalse);
+        expect(find.byType(Home), findsOneWidget);
+        expect(find.byType(WellnessTools), findsNothing);
+        expect(find.byType(VideoPlayerPage), findsNothing);
         expect(find.byType(BottomAppBar), findsOneWidget);
-        final restoredFab = tester.widget<FloatingActionButton>(
+        final homeFab = tester.widget<FloatingActionButton>(
           find.byType(FloatingActionButton),
         );
-        expect(restoredFab.child, isA<Center>());
+        expect(homeFab.child, isA<Center>());
+        expect(tester.takeException(), isNull);
+        await expectLater(
+          streamClosed.future.timeout(const Duration(seconds: 5)),
+          completes,
+        );
+
+        await tester.tap(find.byKey(const Key('bottomNavSupportTools')));
+        await tester.pump(const Duration(milliseconds: 100));
+        expect(find.byType(WellnessTools), findsOneWidget);
+        expect(find.byType(VideoPlayerPage), findsOneWidget);
+        final reenteredState =
+            tester.state(find.byType(VideoPlayerPage)) as dynamic;
+        final YoutubePlayerController reenteredController =
+            reenteredState.controller as YoutubePlayerController;
+        expect(reenteredController.value.fullScreenOption.enabled, isFalse);
+        expect(find.byType(BottomAppBar), findsOneWidget);
+        final reenteredFab = tester.widget<FloatingActionButton>(
+          find.byType(FloatingActionButton),
+        );
+        expect(reenteredFab.child, isA<Center>());
         expect(
           tester
               .widget<VideoPlayerInheritedWidget>(
@@ -408,10 +432,6 @@ void main() {
         await tester.pump();
         expect(find.byType(VideoPlayerPage), findsNothing);
         expect(tester.takeException(), isNull);
-        await expectLater(
-          streamClosed.future.timeout(const Duration(seconds: 5)),
-          completes,
-        );
       },
     );
   });
