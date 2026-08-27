@@ -7,6 +7,7 @@ import 'package:mazilon/pages/WellnessTools/VideoPlayerPageFactory.dart';
 import 'package:mazilon/pages/WellnessTools/more_videos_item.dart';
 import 'package:mazilon/util/LP_extended_state.dart';
 import 'package:mazilon/util/styles.dart';
+import 'package:mazilon/util/theme/spacing.dart';
 import 'package:youtube_player_flutter/youtube_player_flutter.dart';
 
 class WellnessTools extends StatefulWidget {
@@ -188,7 +189,12 @@ class _WellnessToolsState extends LPExtendedState<WellnessTools> {
                   ),
                   SliverToBoxAdapter(
                     child: Padding(
-                      padding: const EdgeInsets.fromLTRB(8.0, 10.0, 8, 10),
+                      padding: const EdgeInsets.fromLTRB(
+                        AppSpacing.sm,
+                        10.0,
+                        AppSpacing.sm,
+                        10.0,
+                      ),
                       child: myAutoSizedText(
                         widget.videoData['videoHeadline']![selectedIndex],
                         TextStyle(fontSize: 24.sp, fontWeight: FontWeight.bold),
@@ -214,7 +220,12 @@ class _WellnessToolsState extends LPExtendedState<WellnessTools> {
                 if (!isFullScreen) ...[
                   SliverToBoxAdapter(
                     child: Padding(
-                      padding: const EdgeInsets.fromLTRB(0, 4.0, 4, 20),
+                      padding: const EdgeInsets.fromLTRB(
+                        0,
+                        AppSpacing.xs,
+                        AppSpacing.xs,
+                        AppSpacing.xl,
+                      ),
                       child: myAutoSizedText(
                         widget.videoData['videoDescription']![selectedIndex],
                         TextStyle(
@@ -238,7 +249,12 @@ class _WellnessToolsState extends LPExtendedState<WellnessTools> {
                   ),
                   SliverToBoxAdapter(
                     child: Padding(
-                      padding: const EdgeInsets.fromLTRB(0, 4.0, 4, 20),
+                      padding: const EdgeInsets.fromLTRB(
+                        0,
+                        AppSpacing.xs,
+                        AppSpacing.xs,
+                        AppSpacing.xl,
+                      ),
                       child: myAutoSizedText(
                         appLocale.moreVideos,
                         TextStyle(fontSize: 18.sp, fontWeight: FontWeight.bold),
@@ -261,6 +277,7 @@ class _WellnessToolsState extends LPExtendedState<WellnessTools> {
                             widget.videoData['videoId']![videoIndex];
                         final thumbnailUrl = getThumbnailUrl(videoId);
                         return MoreVideosItem(
+                          key: ValueKey(videoId),
                           videoData: widget.videoData,
                           index: videoIndex,
                           thumbnailUrl: thumbnailUrl,

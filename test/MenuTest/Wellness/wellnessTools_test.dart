@@ -474,6 +474,12 @@ void main() {
           scrollable: find.byType(Scrollable),
         );
         expect(find.byType(MoreVideosItem), findsWidgets);
+        const expectedVideoIds = ['abcdefghijk', 'lmnopqrstuv', 'mnopqrstuvw'];
+        for (final item in tester.widgetList<MoreVideosItem>(
+          find.byType(MoreVideosItem),
+        )) {
+          expect(item.key, ValueKey<String>(expectedVideoIds[item.index]));
+        }
 
         final expansionTile = find.byType(ExpansionTile);
         await tester.ensureVisible(expansionTile);
