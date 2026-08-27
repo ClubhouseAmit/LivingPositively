@@ -1,17 +1,13 @@
-// ignore_for_file: prefer_const_constructors, sort_child_properties_last
+import 'dart:math' as math;
 
 import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
-import 'package:get_it/get_it.dart';
-
-import 'package:mazilon/global_enums.dart';
 import 'package:mazilon/pages/PersonalPlan/myPlan.dart';
 import 'package:mazilon/util/Form/retrieveInformation.dart';
 import 'package:mazilon/util/LP_extended_state.dart';
 import 'package:mazilon/util/styles.dart';
 import 'package:mazilon/util/appInformation.dart';
 import 'package:mazilon/util/persistent_memory_service.dart';
-import 'package:mazilon/util/type_utils.dart';
 import 'package:provider/provider.dart';
 import 'package:mazilon/form/form.dart';
 import 'package:mazilon/util/userInformation.dart';
@@ -20,31 +16,29 @@ import 'package:mazilon/util/Form/formPagePhoneModel.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:url_launcher/url_launcher.dart';
 
-const String _customCategoryTitlesKey = 'customCategoryTitles';
-const String _customCategoryDescriptionsKey = 'customCategoryDescriptions';
-
 // This widget displays the user's personalized plan with sections for various topics.
 // It allows the user to view their selected answers and navigate to additional forms or options.
 class MyPlanPageFull extends StatefulWidget {
   final PhonePageData phonePageData; // Data related to phone numbers
   final bool hasFilled; // Whether the user has filled out the required forms
   final Function changeLocale;
+  final PersistentMemoryService? memoryService;
 
   const MyPlanPageFull({
     super.key,
     required this.phonePageData,
     required this.hasFilled,
     required this.changeLocale,
+    this.memoryService,
   });
 
   @override
-  State<MyPlanPageFull> createState() => _MyPlanPageFullState();
+  _MyPlanPageFullState createState() => _MyPlanPageFullState();
 }
 
 class _MyPlanPageFullState extends LPExtendedState<MyPlanPageFull> {
   List<List<String>> userAnswers = []; // User's answers for each section
   List<String> phoneInformation = []; // User's phone-related information
-  final List<MapEntry<String, String>> customCategories = [];
 
   // Field names for different sections of the personal plan
   List<String> fieldNames = [
@@ -53,6 +47,7 @@ class _MyPlanPageFullState extends LPExtendedState<MyPlanPageFull> {
     'PersonalPlan-FeelBetter',
     'PersonalPlan-MakeSafer',
     'PersonalPlan-SafeEnvironment',
+    'PersonalPlan-DreamsAndGoals',
   ];
 
   // Names for the providers managing each section
@@ -62,89 +57,52 @@ class _MyPlanPageFullState extends LPExtendedState<MyPlanPageFull> {
     'feelBetter',
     'makeSafer',
     'safeEnvironment',
+    'dreamsAndGoals',
   ];
 
   // Retrieve the user's answers for each section and update the state
   void getUserAnswers(
-    userSelectionDistractions,
-    userSelectionDifficultEvents,
-    userSelectionFeelBetter,
-    userSelectionMakeSafer,
-    userSelectionSafeEnvironment,
+    List<String> distractions,
+    List<String> difficultEvents,
+    List<String> feelBetter,
+    List<String> makeSafer,
+    List<String> safeEnvironment,
+    List<String> dreamsAndGoals,
   ) {
-    setState(() {
-      userAnswers = [
-        userSelectionDistractions,
-        userSelectionDifficultEvents,
-        userSelectionFeelBetter,
-        userSelectionMakeSafer,
-        userSelectionSafeEnvironment,
-      ];
-    });
+    userAnswers = [
+      distractions,
+      difficultEvents,
+      feelBetter,
+      makeSafer,
+      safeEnvironment,
+      dreamsAndGoals,
+    ];
   }
 
-  // Combine phone names and numbers into a formatted string and update the state
-  void setPhones(names, numbers) {
-    List<String> temp = [];
-    for (var i = 0; i < names.length && i < numbers.length; i++) {
-      temp.add('${names[i]}:${numbers[i]}');
+  // Combine and format the phone-related information
+  void setPhones(List<String> names, List<String> numbers) {
+    phoneInformation = [];
+    final count = math.min(names.length, numbers.length);
+    for (var i = 0; i < count; i++) {
+      phoneInformation.add('${names[i]}:${numbers[i]}');
     }
-    setState(() {
-      phoneInformation = [...temp];
-    });
   }
 
-  // Launch a URL in the default browser
+  // Opens a specified URL using url_launcher
   void _launchURL(Uri url) async {
-    if (await canLaunchUrl(url)) {
-      await launchUrl(url);
-    } else {
+    if (!await launchUrl(url)) {
       throw 'Could not launch $url';
     }
   }
 
   @override
-  initState() {
+  void initState() {
     super.initState();
-    loadCustomCategories();
-  }
-
-  Future<void> loadCustomCategories() async {
-    if (!GetIt.instance.isRegistered<PersistentMemoryService>()) {
-      return;
-    }
-
-    PersistentMemoryService service = GetIt.instance<PersistentMemoryService>();
-    final titles = TypeUtils.castToStringList(
-      await service.getItem(
-        _customCategoryTitlesKey,
-        PersistentMemoryType.StringList,
-      ),
-    );
-    final descriptions = TypeUtils.castToStringList(
-      await service.getItem(
-        _customCategoryDescriptionsKey,
-        PersistentMemoryType.StringList,
-      ),
-    );
-    final loadedCategories = <MapEntry<String, String>>[];
-
-    for (var i = 0; i < titles.length && i < descriptions.length; i++) {
-      final title = titles[i].trim();
-      final description = descriptions[i].trim();
-      if (title.isEmpty || description.isEmpty) {
-        continue;
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (mounted) {
+        final userInfo = Provider.of<UserInformation>(context, listen: false);
+        userInfo.loadCustomCategories(memoryService: widget.memoryService);
       }
-      loadedCategories.add(MapEntry(title, description));
-    }
-
-    if (!mounted) {
-      return;
-    }
-    setState(() {
-      customCategories
-        ..clear()
-        ..addAll(loadedCategories);
     });
   }
 
@@ -168,11 +126,17 @@ class _MyPlanPageFullState extends LPExtendedState<MyPlanPageFull> {
       userInfoProvider.feelBetter,
       userInfoProvider.makeSafer,
       userInfoProvider.safeEnvironment,
+      userInfoProvider.dreamsAndGoals,
     );
 
     final gender = userInfoProvider.gender;
     final safeEnvironmentInfo = retrieveInformation(
       fieldNames[4],
+      userInfoProvider.gender,
+      appLocale,
+    );
+    final dreamsAndGoalsInfo = retrieveInformation(
+      fieldNames[5],
       userInfoProvider.gender,
       appLocale,
     );
@@ -247,7 +211,13 @@ class _MyPlanPageFullState extends LPExtendedState<MyPlanPageFull> {
               subTitle: safeEnvironmentInfo["subTitle"] ?? '',
               answers: userAnswers[4],
             ),
-            ...customCategories.map(
+            if (userAnswers[5].isNotEmpty)
+              MyPlanSection(
+                title: dreamsAndGoalsInfo["header"] ?? '',
+                subTitle: dreamsAndGoalsInfo["subTitle"] ?? '',
+                answers: userAnswers[5],
+              ),
+            ...userInfoProvider.customCategories.map(
               (category) => MyPlanSection(
                 title: category.key,
                 subTitle: '',

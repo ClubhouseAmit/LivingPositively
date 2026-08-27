@@ -6,14 +6,13 @@ import 'package:mazilon/global_enums.dart';
 import 'package:mazilon/file_service.dart';
 import 'package:mazilon/util/LP_extended_state.dart';
 import 'package:mazilon/util/Share/show_share_dialog.dart';
-import 'package:mazilon/util/SignIn/popup_toast.dart';
 
 import 'package:mazilon/util/personalPlanItem.dart';
 import 'package:mazilon/util/styles.dart';
 
 import 'dart:math';
 import 'package:mazilon/util/appInformation.dart';
-import 'package:mazilon/util/personal_plan_export_metadata.dart';
+import 'package:mazilon/util/Share/personal_plan_download.dart';
 import 'package:mazilon/util/userInformation.dart';
 import 'package:provider/provider.dart';
 
@@ -162,6 +161,7 @@ class _PersonalPlanWidgetState extends LPExtendedState<PersonalPlanWidget> {
   Widget _buildPersonalPlanHeader(
     BuildContext context,
     AppInformation appInfoProvider,
+    UserInformation userInfoProvider,
     String gender,
     String username,
   ) {
@@ -252,28 +252,13 @@ class _PersonalPlanWidgetState extends LPExtendedState<PersonalPlanWidget> {
                           ),
                           padding: EdgeInsets.zero,
                           onPressed: () async {
-                            final exportMetadata =
-                                buildPersonalPlanExportMetadata(
-                                  appLocale,
-                                  gender,
-                                  username,
-                                );
-                            final result = await fileService.download(
-                              exportMetadata.titles,
-                              exportMetadata.subTitles,
-                              appInfoProvider.sharePDFtexts,
-                              ShareFileType.PDF,
-                              mainTitle: exportMetadata.mainTitle,
-                              textDirection: appLocale.textDirection,
-                            );
-                            if (result == null) {
-                              showToast(
-                                message: appLocale.downloadFailed(gender),
-                              );
-                              return;
-                            }
-                            showToast(
-                              message: appLocale.finishedDownloading(gender),
+                            await downloadPersonalPlanFile(
+                              appLocale: appLocale,
+                              gender: gender,
+                              username: username,
+                              appInformation: appInfoProvider,
+                              userInformation: userInfoProvider,
+                              fileService: fileService,
                             );
                           },
                           icon: Icon(
@@ -351,7 +336,12 @@ class _PersonalPlanWidgetState extends LPExtendedState<PersonalPlanWidget> {
         child: Column(
           children: [
             _buildPersonalPlanHeader(
-              context, appInfoProvider, gender, userInfoProvider.name),
+              context,
+              appInfoProvider,
+              userInfoProvider,
+              gender,
+              userInfoProvider.name,
+            ),
             LayoutBuilder(
               builder: (context, constraints) {
                 final twoColumn = constraints.maxWidth >= 520;

@@ -1,36 +1,68 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 
 import 'package:get_it/get_it.dart';
 
-import 'package:mazilon/global_enums.dart';
 import 'package:mazilon/file_service.dart';
+import 'package:mazilon/form/formpagetemplate.dart';
 import 'package:mazilon/form/speech_dictation_suffix_action.dart';
 import 'package:mazilon/form/wizard_step.dart';
 import 'package:mazilon/l10n/app_localizations.dart';
-import 'package:mazilon/util/SignIn/popup_toast.dart';
+import 'package:mazilon/util/async/persistence_retry_snack_bar.dart';
+import 'package:mazilon/util/logger_service.dart';
 import 'package:mazilon/util/persistent_memory_service.dart';
 import 'package:mazilon/util/languages_util_functions.dart';
+import 'package:mazilon/util/theme/spacing.dart';
 import 'package:provider/provider.dart';
 import 'package:mazilon/util/styles.dart';
-import 'package:mazilon/util/type_utils.dart';
 
 import 'package:mazilon/util/appInformation.dart';
-import 'package:mazilon/util/personal_plan_export_metadata.dart';
+import 'package:mazilon/util/Share/personal_plan_download.dart';
 import 'package:mazilon/util/userInformation.dart';
 import 'package:mazilon/util/Share/show_share_dialog.dart';
 
-const String _customCategoryTitlesKey = 'customCategoryTitles';
-const String _customCategoryDescriptionsKey = 'customCategoryDescriptions';
+/// The result of preparing a Share action that depends on Dreams and Goals.
+///
+/// The variants make each preparation path explicit so callers cannot run an
+/// action for a newly added, unhandled preparation state.
+sealed class _DreamsAndGoalsActionPreparation {
+  const _DreamsAndGoalsActionPreparation();
+}
+
+final class _DreamsAndGoalsActionReady
+    extends _DreamsAndGoalsActionPreparation {
+  const _DreamsAndGoalsActionReady();
+}
+
+/// A preparation failure with the revision safe to retry.
+///
+/// [retryRevision] is captured before each persistence await so a retry never
+/// replays an older snapshot over a newer edit.
+final class _DreamsAndGoalsActionFailed
+    extends _DreamsAndGoalsActionPreparation {
+  const _DreamsAndGoalsActionFailed(
+    this.retryRevision,
+    this.error,
+    this.stackTrace,
+  );
+
+  final int retryRevision;
+  final Object error;
+  final StackTrace stackTrace;
+}
 
 class ShareForm extends WizardStep {
   final Function prev;
-  final Function submit;
+  final FutureOr<void> Function(BuildContext context) submit;
+  final PersistentMemoryService? memoryService;
 
   const ShareForm({
     required super.key,
     required this.prev,
     required this.submit,
+    this.memoryService,
   });
 
   @override
@@ -44,27 +76,52 @@ class ShareForm extends WizardStep {
 
 class _ShareFormState extends WizardStepState<ShareForm> {
   late FileService fileService;
+  final _dreamsAndGoalsStepKey = GlobalKey<WizardStepState>(
+    debugLabel: 'share-dreams-and-goals',
+  );
   final TextEditingController _customCategoryTitleController =
       TextEditingController();
   final TextEditingController _customCategoryDescriptionController =
       TextEditingController();
   final FocusNode _customCategoryTitleFocusNode = FocusNode();
-  final List<MapEntry<String, String>> _customCategories = [];
+  bool _isEditingDreamsAndGoals = false;
+  bool _isOpeningDreamsAndGoals = false;
+  bool _isRunningDreamsAndGoalsAction = false;
   bool _isAddingCustomCategory = false;
   bool _showCustomCategoryValidation = false;
   int? _editingCustomCategoryIndex;
   int _customCategoryFormGeneration = 0;
 
-  void setHasFilled() async {
-    PersistentMemoryService service =
-        GetIt.instance<
-          PersistentMemoryService
-        >(); // Get the persistent memory service instance
-
+  UserInformation? get _userInformation {
+    if (!mounted) return null;
     try {
-      await service.setItem("hasFilled", PersistentMemoryType.Bool, true);
+      return Provider.of<UserInformation?>(context, listen: false);
+    } catch (_) {
+      return null;
+    }
+  }
+
+  void setHasFilled() {
+    unawaited(_setHasFilled());
+  }
+
+  Future<void> _setHasFilled() async {
+    final UserInformation userInformation = Provider.of<UserInformation>(
+      context,
+      listen: false,
+    );
+    try {
+      await userInformation.persistHasFilled();
     } catch (error, stackTrace) {
-      debugPrint('Unable to persist completed onboarding: $error\n$stackTrace');
+      try {
+        await GetIt.instance<IncidentLoggerService>().captureLog(
+          error,
+          stackTrace: stackTrace,
+        );
+      } catch (_) {
+        // The storage service already attempted its own logging. This
+        // best-effort initialization write must not escape as an async error.
+      }
     }
   }
 
@@ -73,7 +130,13 @@ class _ShareFormState extends WizardStepState<ShareForm> {
     super.initState();
     fileService = GetIt.instance<FileService>();
     setHasFilled();
-    loadCustomCategories();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (mounted) {
+        _userInformation?.loadCustomCategories(
+          memoryService: widget.memoryService,
+        );
+      }
+    });
   }
 
   @override
@@ -84,52 +147,31 @@ class _ShareFormState extends WizardStepState<ShareForm> {
     super.dispose();
   }
 
-  Future<void> loadCustomCategories() async {
-    PersistentMemoryService service = GetIt.instance<PersistentMemoryService>();
-    final titles = TypeUtils.castToStringList(
-      await service.getItem(
-        _customCategoryTitlesKey,
-        PersistentMemoryType.StringList,
-      ),
-    );
-    final descriptions = TypeUtils.castToStringList(
-      await service.getItem(
-        _customCategoryDescriptionsKey,
-        PersistentMemoryType.StringList,
-      ),
-    );
-    final loadedCategories = <MapEntry<String, String>>[];
-
-    for (var i = 0; i < titles.length && i < descriptions.length; i++) {
-      final title = titles[i].trim();
-      final description = descriptions[i].trim();
-      if (title.isEmpty || description.isEmpty) {
-        continue;
+  Future<void> _persistCustomCategoriesSafely(
+    List<MapEntry<String, String>> categories,
+  ) async {
+    try {
+      final userInformation = _userInformation;
+      if (userInformation != null) {
+        await userInformation.saveCustomCategories(
+          categories: categories,
+          memoryService: widget.memoryService,
+        );
       }
-      loadedCategories.add(MapEntry(title, description));
+    } catch (error, stackTrace) {
+      await _captureDreamsAndGoalsFailure(error, stackTrace);
+      if (mounted) {
+        _showCustomCategorySaveFailure(categories);
+      }
     }
-
-    if (!mounted) {
-      return;
-    }
-    setState(() {
-      _customCategories
-        ..clear()
-        ..addAll(loadedCategories);
-    });
   }
 
-  Future<void> saveCustomCategories() async {
-    PersistentMemoryService service = GetIt.instance<PersistentMemoryService>();
-    await service.setItem(
-      _customCategoryTitlesKey,
-      PersistentMemoryType.StringList,
-      _customCategories.map((category) => category.key).toList(),
-    );
-    await service.setItem(
-      _customCategoryDescriptionsKey,
-      PersistentMemoryType.StringList,
-      _customCategories.map((category) => category.value).toList(),
+  void _showCustomCategorySaveFailure(
+    List<MapEntry<String, String>> categories,
+  ) {
+    showPersistenceRetrySnackBar(
+      context,
+      () => _persistCustomCategoriesSafely(categories),
     );
   }
 
@@ -169,7 +211,11 @@ class _ShareFormState extends WizardStepState<ShareForm> {
   }
 
   void editCustomCategory(int index) {
-    final category = _customCategories[index];
+    final categories = _userInformation?.customCategories ?? const [];
+    if (index < 0 || index >= categories.length) {
+      return;
+    }
+    final category = categories[index];
     setState(() {
       _customCategoryTitleController.text = category.key;
       _customCategoryDescriptionController.text = category.value;
@@ -181,12 +227,14 @@ class _ShareFormState extends WizardStepState<ShareForm> {
   }
 
   Future<void> deleteCustomCategory(int index) async {
-    if (index < 0 || index >= _customCategories.length) {
+    final categories = _userInformation?.customCategories ?? const [];
+    if (index < 0 || index >= categories.length) {
       return;
     }
 
+    final updated = List<MapEntry<String, String>>.from(categories)
+      ..removeAt(index);
     setState(() {
-      _customCategories.removeAt(index);
       if (_editingCustomCategoryIndex == index) {
         resetCustomCategoryForm();
         _isAddingCustomCategory = false;
@@ -196,7 +244,7 @@ class _ShareFormState extends WizardStepState<ShareForm> {
       }
     });
 
-    await saveCustomCategories();
+    await _persistCustomCategoriesSafely(updated);
   }
 
   Future<void> saveCustomCategory() async {
@@ -210,20 +258,22 @@ class _ShareFormState extends WizardStepState<ShareForm> {
       return;
     }
 
+    final categories = _userInformation?.customCategories ?? const [];
+    final updated = List<MapEntry<String, String>>.from(categories);
+    final editingIndex = _editingCustomCategoryIndex;
+    if (editingIndex != null &&
+        editingIndex >= 0 &&
+        editingIndex < updated.length) {
+      updated[editingIndex] = MapEntry(title, description);
+    } else {
+      updated.add(MapEntry(title, description));
+    }
     setState(() {
-      final editingIndex = _editingCustomCategoryIndex;
-      if (editingIndex != null &&
-          editingIndex >= 0 &&
-          editingIndex < _customCategories.length) {
-        _customCategories[editingIndex] = MapEntry(title, description);
-      } else {
-        _customCategories.add(MapEntry(title, description));
-      }
       resetCustomCategoryForm();
       _isAddingCustomCategory = false;
     });
 
-    await saveCustomCategories();
+    await _persistCustomCategoriesSafely(updated);
   }
 
   String? _customCategoryValidationError(TextEditingController controller) {
@@ -263,12 +313,13 @@ class _ShareFormState extends WizardStepState<ShareForm> {
       optionsBuilder: (TextEditingValue textEditingValue) {
         final input = textEditingValue.text.trim();
         final options = predefinedCategoryTitles();
+        final categories = _userInformation?.customCategories ?? const [];
         final editingIndex = _editingCustomCategoryIndex;
         final isInitialEditingTitle =
             editingIndex != null &&
             editingIndex >= 0 &&
-            editingIndex < _customCategories.length &&
-            _customCategories[editingIndex].key == input;
+            editingIndex < categories.length &&
+            categories[editingIndex].key == input;
         if (input.isEmpty || isInitialEditingTitle) {
           return options;
         }
@@ -374,7 +425,9 @@ class _ShareFormState extends WizardStepState<ShareForm> {
           ),
           const SizedBox(height: 12),
           TextButton(
-            onPressed: saveCustomCategory,
+            onPressed: () {
+              unawaited(saveCustomCategory());
+            },
             style: primaryButtonStyle(context),
             child: Text(
               appLocale.sharePageSaveCustomCategory,
@@ -430,7 +483,9 @@ class _ShareFormState extends WizardStepState<ShareForm> {
                   key: Key('custom-category-delete-button-$index'),
                   tooltip: appLocale.deleteButton(gender),
                   icon: const Icon(Icons.delete, size: 20),
-                  onPressed: () => deleteCustomCategory(index),
+                  onPressed: () {
+                    unawaited(deleteCustomCategory(index));
+                  },
                 ),
               ],
             ),
@@ -450,9 +505,11 @@ class _ShareFormState extends WizardStepState<ShareForm> {
   }
 
   Widget buildCustomCategoriesSection(BuildContext context, String gender) {
+    final categories =
+        _userInformation?.customCategories ?? const <MapEntry<String, String>>[];
     return Column(
       children: [
-        ..._customCategories.asMap().entries.map(
+        ...categories.asMap().entries.map(
           (entry) => buildCustomCategoryCard(entry.value, entry.key, gender),
         ),
         if (_isAddingCustomCategory) buildCustomCategoryForm(context),
@@ -472,9 +529,308 @@ class _ShareFormState extends WizardStepState<ShareForm> {
     );
   }
 
+  Future<void> _persistInlineDreamsAndGoals(
+    UserInformation userInformation, {
+    bool retry = false,
+  }) {
+    final WizardStepState? inlineStep =
+        _dreamsAndGoalsStepKey.currentState;
+    if (inlineStep != null) {
+      return retry
+          ? inlineStep.retryPersistBeforeExit()
+          : inlineStep.persistBeforeExit();
+    }
+    return retry
+        ? userInformation.retryDreamsAndGoalsSave(
+            userInformation.dreamsAndGoalsSaveRevision,
+          )
+        : userInformation.pendingDreamsAndGoalsSave;
+  }
+
+  /// Prepares Dreams and Goals state for a Share action.
+  ///
+  /// The returned outcome keeps persistence failures separate from the action
+  /// that follows, and records the current revision before each await that can
+  /// fail. A retry therefore replays the latest prepared snapshot rather than
+  /// an earlier state.
+  Future<_DreamsAndGoalsActionPreparation> _prepareDreamsAndGoalsAction(
+    UserInformation userInformation, {
+    required bool retry,
+    required int initialRetryRevision,
+  }) async {
+    int retryRevision = initialRetryRevision;
+    try {
+      while (true) {
+        final bool hadInlineStep = _dreamsAndGoalsStepKey.currentState != null;
+        await _persistInlineDreamsAndGoals(userInformation, retry: retry);
+        retryRevision = userInformation.dreamsAndGoalsSaveRevision;
+        await userInformation.pendingDreamsAndGoalsSave;
+        await userInformation.pendingCustomCategoriesSave;
+
+        final int revisionBeforeRepair =
+            userInformation.dreamsAndGoalsSaveRevision;
+        await userInformation.repairDreamsAndGoalsSelectionSources();
+        await userInformation.pendingDreamsAndGoalsSave;
+        await userInformation.pendingCustomCategoriesSave;
+
+        // If no inline editor persisted this snapshot and repair left the revision
+        // unchanged, queue the save now so in-memory state is durable in storage.
+        if (!retry &&
+            !hadInlineStep &&
+            userInformation.dreamsAndGoalsSaveRevision ==
+                revisionBeforeRepair) {
+          await userInformation.queueDreamsAndGoalsSave();
+          await userInformation.pendingDreamsAndGoalsSave;
+          await userInformation.pendingCustomCategoriesSave;
+        }
+
+        final int expectedRevision = userInformation.dreamsAndGoalsSaveRevision;
+        retryRevision = expectedRevision;
+        if (userInformation.dreamsAndGoalsSaveRevision == expectedRevision) {
+          await userInformation.pendingDreamsAndGoalsSave;
+          await userInformation.pendingCustomCategoriesSave;
+          break;
+        }
+      }
+      return const _DreamsAndGoalsActionReady();
+    } catch (error, stackTrace) {
+      return _DreamsAndGoalsActionFailed(retryRevision, error, stackTrace);
+    }
+  }
+
+  Future<void> _toggleDreamsAndGoals({bool retry = false}) async {
+    final UserInformation userInformation = Provider.of<UserInformation>(
+      context,
+      listen: false,
+    );
+    if (!_isEditingDreamsAndGoals) {
+      if (_isOpeningDreamsAndGoals) {
+        return;
+      }
+      _isOpeningDreamsAndGoals = true;
+      try {
+        if (retry) {
+          await userInformation.retryDreamsAndGoalsSave(
+            userInformation.dreamsAndGoalsSaveRevision,
+          );
+        } else {
+          // The editor requires one source token per selected row. Repair the
+          // model-owned snapshot before mounting FormPageTemplate so legacy
+          // selections cannot reach its edit path with unaligned sources.
+          await userInformation.repairDreamsAndGoalsSelectionSources();
+        }
+        if (mounted) {
+          setState(() {
+            _isEditingDreamsAndGoals = true;
+          });
+        }
+      } catch (error, stackTrace) {
+        if (retry) {
+          await _captureDreamsAndGoalsFailure(error, stackTrace);
+        }
+        if (mounted) {
+          _showDreamsAndGoalsSaveFailure(
+            () => _toggleDreamsAndGoals(retry: true),
+          );
+        }
+      } finally {
+        _isOpeningDreamsAndGoals = false;
+      }
+      return;
+    }
+
+    try {
+      await _persistInlineDreamsAndGoals(userInformation, retry: retry);
+      if (mounted) {
+        setState(() {
+          _isEditingDreamsAndGoals = false;
+        });
+      }
+    } catch (error, stackTrace) {
+      if (retry) {
+        await _captureDreamsAndGoalsFailure(error, stackTrace);
+      }
+      if (mounted) {
+        _showDreamsAndGoalsSaveFailure(
+          () => _toggleDreamsAndGoals(retry: true),
+        );
+      }
+    }
+  }
+
+  Future<void> _runDreamsAndGoalsAction(
+    UserInformation userInformation,
+    FutureOr<void> Function() action,
+  ) => _runGuardedDreamsAndGoalsAction(
+    userInformation,
+    action,
+    retry: false,
+    retryRevision: userInformation.dreamsAndGoalsSaveRevision,
+  );
+
+  Future<void> _retryDreamsAndGoalsAction(
+    UserInformation userInformation,
+    int capturedRevision,
+    FutureOr<void> Function() action,
+  ) => _runGuardedDreamsAndGoalsAction(
+    userInformation,
+    action,
+    retry: true,
+    retryRevision: capturedRevision,
+  );
+
+  /// Runs one Dreams-dependent action at a time for this Share form.
+  ///
+  /// The guard spans preparation, persistence retry UI, and the final action
+  /// so rapid taps cannot duplicate an export or finish.
+  Future<void> _runGuardedDreamsAndGoalsAction(
+    UserInformation userInformation,
+    FutureOr<void> Function() action, {
+    required bool retry,
+    required int retryRevision,
+  }) async {
+    if (_isRunningDreamsAndGoalsAction) {
+      return;
+    }
+    _isRunningDreamsAndGoalsAction = true;
+    try {
+      final _DreamsAndGoalsActionPreparation preparation =
+          await _prepareDreamsAndGoalsAction(
+            userInformation,
+            retry: retry,
+            initialRetryRevision: retryRevision,
+          );
+      switch (preparation) {
+        case _DreamsAndGoalsActionFailed(
+          :final int retryRevision,
+          :final Object error,
+          :final StackTrace stackTrace,
+        ):
+          await _captureDreamsAndGoalsFailure(error, stackTrace);
+          if (mounted) {
+            _showDreamsAndGoalsSaveFailure(
+              () => _retryDreamsAndGoalsAction(
+                userInformation,
+                retryRevision,
+                action,
+              ),
+            );
+          }
+          return;
+        case _DreamsAndGoalsActionReady():
+          if (!retry && mounted) {
+            await action();
+          } else if (retry) {
+            await _runRetriedDreamsAndGoalsAction(action);
+          }
+      }
+    } finally {
+      _isRunningDreamsAndGoalsAction = false;
+    }
+  }
+
+  void _showDreamsAndGoalsSaveFailure(Future<void> Function() retry) {
+    showPersistenceRetrySnackBar(context, retry);
+  }
+
+  Future<void> _runRetriedDreamsAndGoalsAction(
+    FutureOr<void> Function() action,
+  ) async {
+    if (!mounted) {
+      return;
+    }
+    try {
+      await action();
+    } catch (error, stackTrace) {
+      await _captureDreamsAndGoalsFailure(error, stackTrace);
+      FlutterError.reportError(
+        FlutterErrorDetails(
+          exception: error,
+          stack: stackTrace,
+          library: 'ShareForm',
+          context: ErrorDescription('while retrying a Dreams and Goals action'),
+        ),
+      );
+    }
+  }
+
+  Future<void> _captureDreamsAndGoalsFailure(
+    Object error,
+    StackTrace stackTrace,
+  ) async {
+    try {
+      await GetIt.instance<IncidentLoggerService>().captureLog(
+        error,
+        stackTrace: stackTrace,
+      );
+    } catch (_) {
+      // Logging is best effort; it must not hide the retry affordance.
+    }
+  }
+
+  Widget buildDreamsAndGoalsSection(BuildContext context, String gender) {
+    return SizedBox(
+      width: formFieldWidth(context),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          KeyedSubtree(
+            key: const Key('share-dreams-and-goals-toggle'),
+            child: LinkButton(
+              () {
+                unawaited(_toggleDreamsAndGoals());
+              },
+              _isEditingDreamsAndGoals
+                  ? Icons.keyboard_arrow_up
+                  : Icons.keyboard_arrow_down,
+              appLocale.dreamsAndGoalsHeader(gender),
+              Theme.of(context).colorScheme.primary,
+              minHeight: 40,
+            ),
+          ),
+          if (_isEditingDreamsAndGoals) ...[
+            const SizedBox(height: AppSpacing.sm),
+            FormPageTemplate(
+              key: _dreamsAndGoalsStepKey,
+              next: () {},
+              prev: () {},
+              collectionName: 'PersonalPlan-DreamsAndGoals',
+              scrollable: false,
+            ),
+          ],
+        ],
+      ),
+    );
+  }
+
   @override
   Future<void> onPrimaryAction() async {
-    await Future<void>.sync(() => widget.submit(context));
+    final UserInformation userInformation = Provider.of<UserInformation>(
+      context,
+      listen: false,
+    );
+    await _runDreamsAndGoalsAction(
+      userInformation,
+      () => widget.submit(context),
+    );
+  }
+
+  @override
+  Future<void> persistBeforeExit() async {
+    final UserInformation userInformation = Provider.of<UserInformation>(
+      context,
+      listen: false,
+    );
+    await _persistInlineDreamsAndGoals(userInformation);
+  }
+
+  @override
+  Future<void> retryPersistBeforeExit() async {
+    final UserInformation userInformation = Provider.of<UserInformation>(
+      context,
+      listen: false,
+    );
+    await _persistInlineDreamsAndGoals(userInformation, retry: true);
   }
 
   @override
@@ -526,7 +882,14 @@ class _ShareFormState extends WizardStepState<ShareForm> {
                   //share personal plan PDF button:
                   IconButton(
                     onPressed: () {
-                      showShareDialog(context);
+                      unawaited(
+                        _runDreamsAndGoalsAction(userInfoProvider, () async {
+                          if (!mounted) {
+                            return;
+                          }
+                          await showShareDialog(context);
+                        }),
+                      );
                     },
                     style: TextButton.styleFrom(
                       backgroundColor: Colors.transparent,
@@ -548,27 +911,19 @@ class _ShareFormState extends WizardStepState<ShareForm> {
                   ),
                   //download personal plan PDF button:
                   IconButton(
-                    onPressed: () async {
-                      final exportMetadata = buildPersonalPlanExportMetadata(
-                        appLocale,
-                        gender,
-                        userInfoProvider.name,
+                    onPressed: () {
+                      unawaited(
+                        _runDreamsAndGoalsAction(userInfoProvider, () async {
+                          await downloadPersonalPlanFile(
+                            appLocale: appLocale,
+                            gender: gender,
+                            username: userInfoProvider.name,
+                            appInformation: appInfoProvider,
+                            userInformation: userInfoProvider,
+                            fileService: fileService,
+                          );
+                        }),
                       );
-                      var result = await fileService.download(
-                        exportMetadata.titles,
-                        exportMetadata.subTitles,
-                        appInfoProvider.sharePDFtexts,
-                        ShareFileType.PDF,
-                        mainTitle: exportMetadata.mainTitle,
-                        textDirection: appLocale.textDirection,
-                      );
-                      if (result == null) {
-                        // Show him a message
-                        showToast(message: appLocale.downloadFailed(gender));
-                        return;
-                      }
-                      // Show a toast message to the user
-                      showToast(message: appLocale.finishedDownloading(gender));
                     },
 
                     style: TextButton.styleFrom(
@@ -592,7 +947,7 @@ class _ShareFormState extends WizardStepState<ShareForm> {
                 ],
               ),
             ),
-            const SizedBox(height: 30),
+            buildDreamsAndGoalsSection(context, gender),
             buildCustomCategoriesSection(context, gender),
           ],
         ),

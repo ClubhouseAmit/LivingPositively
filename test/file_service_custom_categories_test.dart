@@ -5,40 +5,22 @@ import 'package:mazilon/global_enums.dart';
 import 'package:mazilon/iFx/service_locator.dart';
 import 'package:mazilon/util/persistent_memory_service.dart';
 
-class _MemoryService implements PersistentMemoryService {
-  final Map<String, dynamic> values;
+import '../test_support/contract_persistent_memory_service.dart';
 
-  _MemoryService(this.values);
-
-  @override
-  Future<dynamic> getItem(String key, PersistentMemoryType type) async {
-    if (values.containsKey(key)) {
-      return values[key];
-    }
-    if (type == PersistentMemoryType.StringList) {
-      return <String>[];
-    }
-    if (type == PersistentMemoryType.String) {
-      return '';
-    }
-    if (type == PersistentMemoryType.Bool) {
-      return false;
-    }
-    return null;
-  }
-
-  @override
-  Future<void> reset() async {
-    values.clear();
-  }
-
-  @override
-  Future<void> setItem(
-    String key,
-    PersistentMemoryType type,
-    dynamic value,
-  ) async {
-    values[key] = value;
+final class _MemoryService extends ContractPersistentMemoryService {
+  _MemoryService(Map<String, dynamic> values) : super(store: values) {
+    onMissingRead = (_, PersistentMemoryType type) {
+      if (type == PersistentMemoryType.StringList) {
+        return <String>[];
+      }
+      if (type == PersistentMemoryType.String) {
+        return '';
+      }
+      if (type == PersistentMemoryType.Bool) {
+        return false;
+      }
+      return null;
+    };
   }
 }
 

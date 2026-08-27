@@ -6,6 +6,7 @@ import 'package:get_it/get_it.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:mazilon/AnalyticsService.dart';
 import 'package:mazilon/global_enums.dart';
+import 'package:mazilon/util/file_save_utils.dart';
 import 'package:mazilon/util/logger_service.dart';
 import 'package:mazilon/util/persistent_memory_service.dart';
 import 'package:path_provider/path_provider.dart';
@@ -49,7 +50,7 @@ class ImagePickerServiceImpl implements ImagePickerService {
   final AnalyticsService? analyticsService;
   final IncidentLoggerService? loggerService;
   final PersistentMemoryService? persistentMemoryService;
-  final Future<String?> Function({
+  final Future<dynamic> Function({
     String? dialogTitle,
     String? fileName,
     FileType type,
@@ -63,7 +64,7 @@ class ImagePickerServiceImpl implements ImagePickerService {
     this.analyticsService,
     this.loggerService,
     this.persistentMemoryService,
-    Future<String?> Function({
+    Future<dynamic> Function({
       String? dialogTitle,
       String? fileName,
       FileType type,
@@ -248,6 +249,14 @@ class ImagePickerServiceImpl implements ImagePickerService {
     return Image.network(url);
   }
 
+  /// Normalizes platform-specific save results ([String] or [Uri]) to a destination string.
+  static String? normalizeSavedFileDestination(dynamic result) =>
+      FileSaveUtils.normalizeSavedFileDestination(result);
+
+  /// Backwards-compatible alias for [normalizeSavedFileDestination].
+  static String? normalizeSavedFilePath(dynamic result) =>
+      normalizeSavedFileDestination(result);
+
   @override
   Future<String?> downloadImage(
     String imagePath, {
@@ -263,16 +272,27 @@ class ImagePickerServiceImpl implements ImagePickerService {
       final extension = _extractImageExtension(imagePath);
       final name = fileName ??
           'feel_good_${DateTime.now().millisecondsSinceEpoch}$extension';
-      final saveFile = customFileSaver ?? FilePicker.saveFile;
-      final result = await saveFile(
-        dialogTitle: dialogTitle ?? 'Save image',
-        fileName: name,
-        bytes: bytes,
-      );
-      if (result != null) {
+      final customImageFileSaver = customFileSaver;
+      final String? savedFilePath;
+      if (customImageFileSaver != null) {
+        final dynamic rawResult = await customImageFileSaver(
+          dialogTitle: dialogTitle ?? 'Save image',
+          fileName: name,
+          bytes: bytes,
+        );
+        savedFilePath = normalizeSavedFileDestination(rawResult);
+      } else {
+        final dynamic rawResult = await FilePicker.saveFile(
+          dialogTitle: dialogTitle ?? 'Save image',
+          fileName: name,
+          bytes: bytes,
+        );
+        savedFilePath = normalizeSavedFileDestination(rawResult);
+      }
+      if (savedFilePath != null) {
         await _trackEventSafely("Photo downloaded");
       }
-      return result;
+      return savedFilePath;
     } catch (error, stackTrace) {
       await _effectiveLoggerService?.captureLog(error, stackTrace: stackTrace);
       return null;

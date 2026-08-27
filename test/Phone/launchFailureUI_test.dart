@@ -9,16 +9,16 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:mazilon/global_enums.dart';
 import 'package:mazilon/l10n/app_localizations.dart';
 import 'package:mazilon/util/Phone/emergencyDialogBox.dart';
 import 'package:mazilon/util/Phone/phoneTextAndIcon.dart';
 import 'package:mazilon/util/appInformation.dart';
-import 'package:mazilon/util/persistent_memory_service.dart';
 import 'package:mazilon/util/userInformation.dart';
 import 'package:provider/provider.dart';
 import 'package:url_launcher_platform_interface/link.dart';
 import 'package:url_launcher_platform_interface/url_launcher_platform_interface.dart';
+
+import '../../test_support/contract_persistent_memory_service.dart';
 
 class _FailingUrlLauncherPlatform extends UrlLauncherPlatform {
   String? lastLaunchedUrl;
@@ -77,19 +77,11 @@ class _ThrowingUrlLauncherPlatform extends UrlLauncherPlatform {
   }
 }
 
-class _FakePersistentMemoryService implements PersistentMemoryService {
-  @override
-  Future<dynamic> getItem(String key, PersistentMemoryType type) async => null;
-
-  @override
-  Future<void> reset() async {}
-
-  @override
-  Future<void> setItem(
-    String key,
-    PersistentMemoryType type,
-    dynamic value,
-  ) async {}
+final class _FakePersistentMemoryService
+    extends ContractPersistentMemoryService {
+  _FakePersistentMemoryService() {
+    onMissingRead = (_, _) => null;
+  }
 }
 
 Widget _wrapForPhoneContact(Widget Function(BuildContext) build) {

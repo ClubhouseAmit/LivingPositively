@@ -403,29 +403,8 @@ class _MyAppState extends State<MyApp> with WidgetsBindingObserver {
       localeService.setLocale(locale);
       localeName = localeService.getLocale();
     });
-    unawaited(
-      Future<void>.sync(
-        () =>
-            service.setItem('localeName', PersistentMemoryType.String, locale),
-      ).catchError((Object error, StackTrace stackTrace) {
-        if (!GetIt.instance.isRegistered<IncidentLoggerService>()) {
-          debugPrint('Locale persistence failed: $error');
-          return;
-        }
-        unawaited(
-          Future<void>.sync(
-            () => GetIt.instance<IncidentLoggerService>().captureLog(
-              error,
-              stackTrace: stackTrace,
-            ),
-          ).catchError((Object loggerError, StackTrace loggerStackTrace) {
-            debugPrint(
-              'Locale persistence failure reporting failed: $loggerError',
-            );
-          }),
-        );
-      }),
-    );
+    unawaited(_saveLocaleInBackground(service, locale));
+    
     final userInfoProvider = Provider.of<UserInformation>(
       context,
       listen: false,
@@ -451,6 +430,24 @@ class _MyAppState extends State<MyApp> with WidgetsBindingObserver {
         );
       }
     });
+  }
+
+  Future<void> _saveLocaleInBackground(
+    PersistentMemoryService service,
+    String locale,
+  ) async {
+    try {
+      await service.setItem("localeName", PersistentMemoryType.String, locale);
+    } catch (error, stackTrace) {
+      try {
+        await GetIt.instance<IncidentLoggerService>().captureLog(
+          error,
+          stackTrace: stackTrace,
+        );
+      } catch (_) {
+        // Logging is best effort for this background preference write.
+      }
+    }
   }
 
   ValueNotifier<Widget?> widgetNotifier = ValueNotifier<Widget?>(null);

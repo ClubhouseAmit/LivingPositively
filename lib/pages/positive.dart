@@ -1,4 +1,6 @@
 import 'package:flutter/material.dart';
+import 'dart:async';
+
 import 'package:get_it/get_it.dart';
 import 'package:mazilon/AnalyticsService.dart';
 import 'package:mazilon/global_enums.dart';
@@ -108,34 +110,40 @@ class _PositiveState extends LPExtendedState<Positive> {
   }
 
   //remove the positive trait at the given index
-  void removePositiveTrait(int removeIndex, UserInformation userInfo) async {
-    PersistentMemoryService service =
-        GetIt.instance<
-          PersistentMemoryService
-        >(); // Get the persistent memory service instance
-
-    List<String> positiveTraitsTemp = TypeUtils.castToStringList(
-      await service.getItem("positiveTraits", PersistentMemoryType.StringList),
-    );
-
-    positiveTraitsTemp.removeAt(removeIndex);
-    debugPrint("got here");
+  Future<void> removePositiveTrait(
+    int removeIndex,
+    UserInformation userInfo,
+  ) async {
     try {
+      PersistentMemoryService service =
+          GetIt.instance<
+            PersistentMemoryService
+          >(); // Get the persistent memory service instance
+
+      List<String> positiveTraitsTemp = TypeUtils.castToStringList(
+        await service.getItem(
+          "positiveTraits",
+          PersistentMemoryType.StringList,
+        ),
+      );
+
+      positiveTraitsTemp.removeAt(removeIndex);
       await service.setItem(
         "positiveTraits",
         PersistentMemoryType.StringList,
         positiveTraitsTemp,
       );
+      if (!mounted) {
+        return;
+      }
+      setState(() {
+        positiveTraits = positiveTraitsTemp;
+        focusNodes.removeAt(removeIndex);
+        userInfo.updatePositiveTraits(positiveTraits);
+      });
     } catch (error, stackTrace) {
-      debugPrint('Unable to persist positive traits: $error\n$stackTrace');
-      return;
+      debugPrint('Unable to remove positive trait: $error\n$stackTrace');
     }
-    if (!mounted) return;
-    setState(() {
-      positiveTraits = positiveTraitsTemp;
-      focusNodes.removeAt(removeIndex);
-      userInfo.updatePositiveTraits(positiveTraits);
-    });
   }
 
   //add the given positive trait to the list
@@ -285,7 +293,7 @@ class _PositiveState extends LPExtendedState<Positive> {
                   );
                 },
                 remove: (int index) {
-                  removePositiveTrait(index, userInfoProvider);
+                  unawaited(removePositiveTrait(index, userInfoProvider));
                 },
                 myFocusNode: focusNodes[index],
                 date: "",

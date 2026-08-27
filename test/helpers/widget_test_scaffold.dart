@@ -33,49 +33,29 @@ import 'package:provider/provider.dart';
 import 'package:share_plus/share_plus.dart';
 import 'package:flutter_test/flutter_test.dart';
 
+import '../../test_support/contract_persistent_memory_service.dart';
+
 /// In-memory implementation of [PersistentMemoryService] backed by a [Map].
 ///
 /// Avoids reaching for shared_preferences platform channels in widget tests
 /// while still exercising the real [setItem]/[getItem]/[reset] code paths in
 /// the widgets under test.
-class FakePersistentMemoryService implements PersistentMemoryService {
-  final Map<String, dynamic> store = <String, dynamic>{};
-
-  @override
-  Future<dynamic> getItem(String key, PersistentMemoryType type) async {
-    final value = store[key];
-    if (value != null) return value;
-    switch (type) {
-      case PersistentMemoryType.String:
-        return '';
-      case PersistentMemoryType.Int:
-        return 0;
-      case PersistentMemoryType.Double:
-        return 0.0;
-      case PersistentMemoryType.Bool:
-        return false;
-      case PersistentMemoryType.StringList:
-        return <String>[];
-    }
-  }
-
-  @override
-  Future<void> setItem(
-    String key,
-    PersistentMemoryType type,
-    dynamic value,
-  ) async {
-    if (key.isEmpty || value == null) return;
-    if (type == PersistentMemoryType.StringList) {
-      store[key] = List<String>.from(value as Iterable);
-    } else {
-      store[key] = value;
-    }
-  }
-
-  @override
-  Future<void> reset() async {
-    store.clear();
+base class FakePersistentMemoryService extends ContractPersistentMemoryService {
+  FakePersistentMemoryService() {
+    onMissingRead = (_, PersistentMemoryType type) {
+      switch (type) {
+        case PersistentMemoryType.String:
+          return '';
+        case PersistentMemoryType.Int:
+          return 0;
+        case PersistentMemoryType.Double:
+          return 0.0;
+        case PersistentMemoryType.Bool:
+          return false;
+        case PersistentMemoryType.StringList:
+          return <String>[];
+      }
+    };
   }
 }
 
@@ -90,15 +70,16 @@ class FakePersistentMemoryService implements PersistentMemoryService {
 /// that worse. Gating the one read that drives the branch makes the loading
 /// state stable for as many frames as the assertion needs; completing the gate
 /// then exercises the transition out of it.
-class GatedLocalePersistentMemoryService extends FakePersistentMemoryService {
+final class GatedLocalePersistentMemoryService
+    extends FakePersistentMemoryService {
   final Completer<void> localeGate = Completer<void>();
 
-  @override
-  Future<dynamic> getItem(String key, PersistentMemoryType type) async {
-    if (key == 'localeName') {
-      await localeGate.future;
-    }
-    return super.getItem(key, type);
+  GatedLocalePersistentMemoryService() {
+    onRead = (String key, PersistentMemoryType _) async {
+      if (key == 'localeName') {
+        await localeGate.future;
+      }
+    };
   }
 }
 
@@ -149,6 +130,8 @@ class NoopFileService implements FileService {
     ShareFileType saveFormat, {
     required String mainTitle,
     required String textDirection,
+    PersistentMemoryService? memoryService,
+    Set<String>? approvedPdfHosts,
   }) async {
     downloadCalls++;
     return null;
@@ -163,6 +146,8 @@ class NoopFileService implements FileService {
     ShareFileType saveFormat, {
     required String mainTitle,
     required String textDirection,
+    PersistentMemoryService? memoryService,
+    Set<String>? approvedPdfHosts,
   }) async {
     shareCalls++;
     return const ShareResult('noop', ShareResultStatus.success);

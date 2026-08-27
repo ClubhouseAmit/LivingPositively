@@ -1,10 +1,13 @@
 // ignore_for_file: annotate_overrides
 import 'dart:math' show max;
+import 'dart:async';
 
 import 'package:flutter/material.dart';
 import 'package:get_it/get_it.dart';
 import 'package:mazilon/global_enums.dart';
 import 'package:mazilon/util/LP_extended_state.dart';
+import 'package:mazilon/util/async/persistence_retry_snack_bar.dart';
+import 'package:mazilon/util/logger_service.dart';
 import 'package:mazilon/util/persistent_memory_service.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 
@@ -61,6 +64,7 @@ class FormProgressIndicatorState
     extends LPExtendedState<FormProgressIndicator> {
   int currentStep = 0;
   String name = '';
+  bool _headerNavigationInFlight = false;
 
   void next() {
     setState(() {
@@ -80,7 +84,7 @@ class FormProgressIndicatorState
     });
   }
 
-  Future<void> submitForm(BuildContext _) async {
+  Future<void> submitForm(BuildContext context) async {
     PersistentMemoryService service =
         GetIt.instance<
           PersistentMemoryService
@@ -97,8 +101,7 @@ class FormProgressIndicatorState
       )?.showSnackBar(SnackBar(content: Text(appLocale.asyncErrorMessage)));
       return;
     }
-
-    if (!mounted) return;
+    if (!context.mounted) return;
     navigateToMenu(context);
   }
 
@@ -114,6 +117,58 @@ class FormProgressIndicatorState
       ),
       (Route<dynamic> route) => false,
     );
+  }
+
+  Future<void> _persistThenNavigate(
+    BuildContext context,
+    VoidCallback navigate, {
+    bool retry = false,
+  }) async {
+    if (_headerNavigationInFlight) {
+      return;
+    }
+    _headerNavigationInFlight = true;
+    try {
+      final WizardStepState? stepState =
+          steps[currentStep].stepKey.currentState;
+      if (retry) {
+        await stepState?.retryPersistBeforeExit();
+      } else {
+        await stepState?.persistBeforeExit();
+      }
+      if (mounted) {
+        navigate();
+      }
+    } catch (error, stackTrace) {
+      if (retry) {
+        await _captureHeaderRetryFailure(error, stackTrace);
+      }
+      if (mounted) {
+        _showHeaderPersistenceFailure(
+          () => _persistThenNavigate(context, navigate, retry: true),
+        );
+      }
+    } finally {
+      _headerNavigationInFlight = false;
+    }
+  }
+
+  void _showHeaderPersistenceFailure(Future<void> Function() retry) {
+    showPersistenceRetrySnackBar(context, retry);
+  }
+
+  Future<void> _captureHeaderRetryFailure(
+    Object error,
+    StackTrace stackTrace,
+  ) async {
+    try {
+      await GetIt.instance<IncidentLoggerService>().captureLog(
+        error,
+        stackTrace: stackTrace,
+      );
+    } catch (_) {
+      // Logging is best effort; it must not hide the retry affordance.
+    }
   }
 
   List<WizardStep> steps = [];
@@ -142,7 +197,7 @@ class FormProgressIndicatorState
         if (didPop) {
           return;
         } else {
-          prev();
+          await _persistThenNavigate(context, prev);
         }
       },
       child: Scaffold(
@@ -189,7 +244,7 @@ class FormProgressIndicatorState
                             visualDensity: VisualDensity.compact,
                             icon: const Icon(Icons.arrow_back_ios, size: 20),
                             onPressed: () {
-                              prev();
+                              unawaited(_persistThenNavigate(context, prev));
                             },
                           ),
                         ),
@@ -214,7 +269,12 @@ class FormProgressIndicatorState
                               tapTargetSize: MaterialTapTargetSize.shrinkWrap,
                             ),
                             onPressed: () {
-                              navigateToMenu(context);
+                              unawaited(
+                                _persistThenNavigate(
+                                  context,
+                                  () => navigateToMenu(context),
+                                ),
+                              );
                             },
                             child: myAutoSizedText(
                               appLocale.saveAndQuitButton(gender),

@@ -28,7 +28,8 @@ import 'package:mazilon/AnalyticsService.dart';
 import 'package:mazilon/global_enums.dart';
 import 'package:mazilon/pages/FeelGood/image_picker_service_impl.dart';
 import 'package:mazilon/util/logger_service.dart';
-import 'package:mazilon/util/persistent_memory_service.dart';
+
+import '../../test_support/contract_persistent_memory_service.dart';
 
 class _CapturingLogger implements IncidentLoggerService {
   final List<dynamic> captured = [];
@@ -44,14 +45,17 @@ class _CapturingLogger implements IncidentLoggerService {
   }
 }
 
-class _NoopAnalytics implements AnalyticsService {
+class _CapturingAnalytics implements AnalyticsService {
+  final List<String> events = [];
   @override
   Future<void> init() async {}
   @override
   Future<void> trackEvent(
     String eventName, [
     Map<String, dynamic>? properties,
-  ]) async {}
+  ]) async {
+    events.add(eventName);
+  }
 }
 
 void main() {
@@ -60,12 +64,14 @@ void main() {
   const channel = MethodChannel('plugins.flutter.io/path_provider');
   late Directory tempDir;
   late _CapturingLogger logger;
+  late _CapturingAnalytics analytics;
 
   setUp(() {
     tempDir = Directory.systemTemp.createTempSync('image_picker_test_');
     TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger
         .setMockMethodCallHandler(channel, (call) async => tempDir.path);
     logger = _CapturingLogger();
+    analytics = _CapturingAnalytics();
     final getIt = GetIt.instance;
     if (getIt.isRegistered<IncidentLoggerService>()) {
       getIt.unregister<IncidentLoggerService>();
@@ -74,7 +80,7 @@ void main() {
       getIt.unregister<AnalyticsService>();
     }
     getIt.registerSingleton<IncidentLoggerService>(logger);
-    getIt.registerSingleton<AnalyticsService>(_NoopAnalytics());
+    getIt.registerSingleton<AnalyticsService>(analytics);
   });
 
   tearDown(() async {
@@ -274,16 +280,14 @@ void main() {
     expect(loaded, isEmpty);
   });
 
-  test(
-    'ImagePickerServiceImpl works with injected analytics, logger, and memory without GetIt',
-    () async {
-      final memory = _FakePersistentMemory();
-      final noopAnalytics = _NoopAnalytics();
-      final svc = ImagePickerServiceImpl(
-        persistentMemoryService: memory,
-        analyticsService: noopAnalytics,
-        loggerService: logger,
-      );
+  test('ImagePickerServiceImpl works with injected analytics, logger, and memory without GetIt', () async {
+    final memory = _FakePersistentMemory();
+    final noopAnalytics = _CapturingAnalytics();
+    final svc = ImagePickerServiceImpl(
+      persistentMemoryService: memory,
+      analyticsService: noopAnalytics,
+      loggerService: logger,
+    );
 
       await svc.saveImageRotations({'/path/test.jpg': 2});
       final loaded = await svc.loadImageRotations();
@@ -376,12 +380,97 @@ void main() {
             },
       );
 
-      final result = await svc.downloadImage(sourceFile.path);
-      expect(result, isNotNull);
-      expect(result, contains('saved_feel_good_'));
-      expect(result, endsWith('.png'));
-    },
-  );
+    final result = await svc.downloadImage(sourceFile.path);
+    expect(result, isNotNull);
+    expect(result, contains('saved_feel_good_'));
+    expect(result, endsWith('.png'));
+  });
+
+  test('normalizeSavedFileDestination normalizes null, String, and Uri, rejecting unsupported types', () {
+    expect(ImagePickerServiceImpl.normalizeSavedFileDestination(null), isNull);
+    expect(ImagePickerServiceImpl.normalizeSavedFileDestination(''), isNull);
+    expect(
+      ImagePickerServiceImpl.normalizeSavedFileDestination('/path/to/image.png'),
+      '/path/to/image.png',
+    );
+    expect(
+      ImagePickerServiceImpl.normalizeSavedFileDestination(Uri.parse('file:///storage/emulated/0/Download/image.png')),
+      '/storage/emulated/0/Download/image.png',
+    );
+    expect(
+      ImagePickerServiceImpl.normalizeSavedFileDestination(Uri.parse('content://media/external/images/123')),
+      'content://media/external/images/123',
+    );
+    expect(
+      ImagePickerServiceImpl.normalizeSavedFileDestination(42),
+      isNull,
+    );
+  });
+
+  test('downloadImage handles URI return from customFileSaver and tracks analytics', () async {
+    final sourceFile = File('${tempDir.path}/picture.jpg')
+      ..writeAsBytesSync([1, 2, 3]);
+
+    final svc = ImagePickerServiceImpl(
+      analyticsService: analytics,
+      loggerService: logger,
+      fileSaver: ({
+        String? dialogTitle,
+        String? fileName,
+        FileType type = FileType.any,
+        String? initialDirectory,
+        Uint8List? bytes,
+        List<String>? allowedExtensions,
+      }) async {
+        return Uri.parse('file:///storage/photos/$fileName');
+      },
+    );
+
+    final result = await svc.downloadImage(sourceFile.path);
+    expect(result, startsWith('/storage/photos/feel_good_'));
+    expect(result, endsWith('.jpg'));
+    expect(analytics.events, contains('Photo downloaded'));
+  });
+
+  test('downloadImage returns null without tracking when file saver returns null (cancelled)', () async {
+    final sourceFile = File('${tempDir.path}/picture.jpg')
+      ..writeAsBytesSync([1, 2, 3]);
+
+    final svc = ImagePickerServiceImpl(
+      analyticsService: analytics,
+      loggerService: logger,
+      fileSaver: ({
+        String? dialogTitle,
+        String? fileName,
+        FileType type = FileType.any,
+        String? initialDirectory,
+        Uint8List? bytes,
+        List<String>? allowedExtensions,
+      }) async => null,
+    );
+
+    final result = await svc.downloadImage(sourceFile.path);
+    expect(result, isNull);
+    expect(analytics.events, isEmpty);
+    expect(logger.captured, isEmpty);
+  });
+
+  test('downloadImage with default FilePicker.saveFile catches errors and logs gracefully', () async {
+    final sourceFile = File('${tempDir.path}/picture.jpg')
+      ..writeAsBytesSync([1, 2, 3]);
+
+    // When fileSaver is omitted, default FilePicker.saveFile is invoked.
+    // In unit test environment, the unmocked channel throws MissingPluginException or PlatformException.
+    final svc = ImagePickerServiceImpl(
+      analyticsService: analytics,
+      loggerService: logger,
+    );
+
+    final result = await svc.downloadImage(sourceFile.path);
+    expect(result, isNull);
+    expect(analytics.events, isEmpty);
+    expect(logger.captured, isNotEmpty);
+  });
 }
 
 class _ThrowingLogger implements IncidentLoggerService {
@@ -410,33 +499,17 @@ class _FailingAnalytics implements AnalyticsService {
   }
 }
 
-class _FakePersistentMemory implements PersistentMemoryService {
-  final Map<String, dynamic> _storage = {};
-  Object? setError;
+final class _FakePersistentMemory extends ContractPersistentMemoryService {
+  _FakePersistentMemory() {
+    onMissingRead = (_, _) => null;
+    onSetItemCompleted = (key, type, value) {
+      lastSetKey = key;
+      lastSetType = type;
+      lastSetValue = value;
+    };
+  }
+
   String? lastSetKey;
   PersistentMemoryType? lastSetType;
   dynamic lastSetValue;
-
-  @override
-  Future<dynamic> getItem(String key, PersistentMemoryType type) async {
-    return _storage[key];
-  }
-
-  @override
-  Future<void> setItem(
-    String key,
-    PersistentMemoryType type,
-    dynamic value,
-  ) async {
-    if (setError != null) throw setError!;
-    lastSetKey = key;
-    lastSetType = type;
-    lastSetValue = value;
-    _storage[key] = value;
-  }
-
-  @override
-  Future<void> reset() async {
-    _storage.clear();
-  }
 }

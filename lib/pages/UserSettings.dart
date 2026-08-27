@@ -9,8 +9,8 @@ import 'package:mazilon/Locale/locale_service.dart';
 import 'package:mazilon/form/speech_dictation_suffix_action.dart';
 import 'package:mazilon/global_enums.dart';
 import 'package:mazilon/pages/SignIn_Pages/firstPage.dart';
-import 'package:mazilon/util/Firebase/auth_service.dart';
-import 'package:mazilon/util/Firebase/fcm_scheduled_notification_service.dart';
+import 'package:mazilon/util/Share/LP_alert_dialog.dart';
+import 'package:mazilon/util/async/persistence_retry_snack_bar.dart';
 import 'package:mazilon/util/Form/formPagePhoneModel.dart';
 
 import 'package:mazilon/pages/FeelGood/image_picker_service_impl.dart';
@@ -134,18 +134,39 @@ class _UserSettingsState extends LPExtendedState<UserSettings> {
     String locale,
     UserInformation userInfoProvider,
   ) async {
-    PersistentMemoryService service =
-        GetIt.instance<
-          PersistentMemoryService
-        >(); // Get the persistent memory service instance
+    try {
+      PersistentMemoryService service =
+          GetIt.instance<
+            PersistentMemoryService
+          >(); // Get the persistent memory service instance
 
-    await service.setItem("localeName", PersistentMemoryType.String, locale);
+      await service.setItem(
+        "localeName",
+        PersistentMemoryType.String,
+        locale,
+      );
 
-    if (!mounted) return;
-    setState(() {
-      widget.changeLocale(locale);
-      userInfoProvider.updateLocaleName(locale);
-    });
+      if (!mounted) {
+        return;
+      }
+      setState(() {
+        widget.changeLocale(locale);
+        userInfoProvider.updateLocaleName(locale);
+      });
+    } catch (error, stackTrace) {
+      debugPrint('Could not save settings locale: $error\n$stackTrace');
+    }
+  }
+
+  Future<void> _applyGenderInBackground(
+    Gender gender,
+    UserInformation userInfoProvider,
+  ) async {
+    try {
+      await gender.applyTo(userInfoProvider);
+    } catch (error, stackTrace) {
+      debugPrint('Could not save settings gender: $error\n$stackTrace');
+    }
   }
 
   // -- Design primitives (pen.dev "Settings Screen") -----------------------
@@ -263,28 +284,30 @@ class _UserSettingsState extends LPExtendedState<UserSettings> {
     UserInformation userInfo, {
     required bool isStart,
   }) async {
-    final initialTime = TimeOfDay(
-      hour: isStart ? userInfo.darkModeStartHour : userInfo.darkModeEndHour,
-      minute: isStart
-          ? userInfo.darkModeStartMinute
-          : userInfo.darkModeEndMinute,
-    );
-    final selectedTime = await showTimePicker(
-      context: context,
-      initialTime: initialTime,
-    );
-    if (selectedTime == null || !mounted) {
-      return;
-    }
+    try {
+      final initialTime = TimeOfDay(
+        hour: isStart ? userInfo.darkModeStartHour : userInfo.darkModeEndHour,
+        minute: isStart
+            ? userInfo.darkModeStartMinute
+            : userInfo.darkModeEndMinute,
+      );
+      final selectedTime = await showTimePicker(
+        context: context,
+        initialTime: initialTime,
+      );
+      if (selectedTime == null || !mounted) {
+        return;
+      }
 
-    _runSettingsWrite(
-      () => userInfo.updateDarkModeSettings(
+      await userInfo.updateDarkModeSettings(
         startHour: isStart ? selectedTime.hour : null,
         startMinute: isStart ? selectedTime.minute : null,
         endHour: isStart ? null : selectedTime.hour,
         endMinute: isStart ? null : selectedTime.minute,
-      ),
-    );
+      );
+    } catch (error, stackTrace) {
+      debugPrint('Unable to save dark-mode schedule: $error\n$stackTrace');
+    }
   }
 
   /// One card in the appearance segmented control (design nodes dP4Pe /
@@ -370,10 +393,12 @@ class _UserSettingsState extends LPExtendedState<UserSettings> {
       minute: userInfo.darkModeEndMinute,
     );
 
-    void select(DarkModePreference value) {
-      _runSettingsWrite(
-        () => userInfo.updateDarkModeSettings(preference: value),
-      );
+    Future<void> select(DarkModePreference value) async {
+      try {
+        await userInfo.updateDarkModeSettings(preference: value);
+      } catch (error, stackTrace) {
+        debugPrint('Unable to save dark-mode preference: $error\n$stackTrace');
+      }
     }
 
     return Column(
@@ -395,7 +420,9 @@ class _UserSettingsState extends LPExtendedState<UserSettings> {
               icon: Icons.light_mode_outlined,
               label: appLocale.darkModeAlwaysLight,
               selected: preference == DarkModePreference.alwaysLight,
-              onTap: () => select(DarkModePreference.alwaysLight),
+              onTap: () {
+                unawaited(select(DarkModePreference.alwaysLight));
+              },
             ),
             _modeOption(
               colorScheme,
@@ -403,7 +430,9 @@ class _UserSettingsState extends LPExtendedState<UserSettings> {
               icon: Icons.dark_mode_outlined,
               label: appLocale.darkModeAlwaysDark,
               selected: preference == DarkModePreference.alwaysDark,
-              onTap: () => select(DarkModePreference.alwaysDark),
+              onTap: () {
+                unawaited(select(DarkModePreference.alwaysDark));
+              },
             ),
             _modeOption(
               colorScheme,
@@ -411,7 +440,9 @@ class _UserSettingsState extends LPExtendedState<UserSettings> {
               icon: Icons.schedule_outlined,
               label: appLocale.darkModeSleepPromoting,
               selected: isScheduled,
-              onTap: () => select(DarkModePreference.scheduled),
+              onTap: () {
+                unawaited(select(DarkModePreference.scheduled));
+              },
             ),
           ],
         ),
@@ -429,7 +460,9 @@ class _UserSettingsState extends LPExtendedState<UserSettings> {
                   buttonKey: const Key('darkModeStartTimeButton'),
                   label:
                       '${appLocale.darkModeStartTime}: ${startTime.format(context)}',
-                  onPressed: () => _selectDarkModeTime(userInfo, isStart: true),
+                  onPressed: () {
+                    unawaited(_selectDarkModeTime(userInfo, isStart: true));
+                  },
                 ),
               ),
               Expanded(
@@ -438,8 +471,9 @@ class _UserSettingsState extends LPExtendedState<UserSettings> {
                   buttonKey: const Key('darkModeEndTimeButton'),
                   label:
                       '${appLocale.darkModeEndTime}: ${endTime.format(context)}',
-                  onPressed: () =>
-                      _selectDarkModeTime(userInfo, isStart: false),
+                  onPressed: () {
+                    unawaited(_selectDarkModeTime(userInfo, isStart: false));
+                  },
                 ),
               ),
             ],
@@ -518,12 +552,17 @@ class _UserSettingsState extends LPExtendedState<UserSettings> {
   // Remove locally persisted data after the server-side reminder state is safe.
   Future<void> resetData(UserInformation userInfo) async {
     LocaleService localeService = GetIt.instance<LocaleService>();
-    PersistentMemoryService service =
-        GetIt.instance<
-          PersistentMemoryService
-        >(); // Get the persistent memory service instance
-    final previousDefaultReminder = userInfo.getNotificationPreference(
-      'default',
+    final PersistentMemoryService service = userInfo.service;
+
+    await service.reset(); // Reset the persistent memory service
+    await userInfo.reset(localeService.getLocale());
+    var enteredBeforeValue = await service.getItem(
+      "enteredBefore",
+      PersistentMemoryType.Bool,
+    );
+    var hasFilledValue = await service.getItem(
+      "hasFilled",
+      PersistentMemoryType.Bool,
     );
     NotificationPreference? cancelledRemotePreference;
     var remoteReminderCancelled = false;
@@ -581,8 +620,7 @@ class _UserSettingsState extends LPExtendedState<UserSettings> {
     enteredBefore = false;
     hasFilled = false;
 
-    try {
-      runZonedGuarded<void>(widget.phonePageData.reset, _reportResetFailure);
+    await pickerService.deleteImages();
 
       runZonedGuarded<void>(
         () => userInfo.reset(localeService.getLocale()),
@@ -701,6 +739,19 @@ class _UserSettingsState extends LPExtendedState<UserSettings> {
       (Route<dynamic> route) => false,
     );
     return true;
+  }
+
+  /// Attempts the complete reset flow and reports whether it completed.
+  ///
+  /// The confirmation dialog owns the in-progress state and offers the retry
+  /// affordance when this command returns `false`.
+  Future<bool> _attemptResetAndReturnSuccess(UserInformation userInfo) async {
+    try {
+      await resetData(userInfo);
+      return true;
+    } catch (_) {
+      return false;
+    }
   }
 
   @override
@@ -947,8 +998,8 @@ class _UserSettingsState extends LPExtendedState<UserSettings> {
                                             userInfoProvider.localeName,
                                         onSelected: (newValue) {
                                           if (newValue != null) {
-                                            _runSettingsWrite(
-                                              () => updateLocale(
+                                            unawaited(
+                                              updateLocale(
                                                 languageCode(newValue),
                                                 userInfoProvider,
                                               ),
@@ -1028,28 +1079,13 @@ class _UserSettingsState extends LPExtendedState<UserSettings> {
                                                 ? userInfoProvider.age
                                                 : dropdownValueAge!,
                                           );
-                                          if (selectedGender
-                                              case final selectedGender?) {
-                                            try {
-                                              await selectedGender.applyTo(
+                                          if (selectedGender != null) {
+                                            unawaited(
+                                              _applyGenderInBackground(
+                                                selectedGender!,
                                                 userInfoProvider,
-                                              );
-                                            } catch (error, stackTrace) {
-                                              _reportResetFailure(
-                                                error,
-                                                stackTrace,
-                                              );
-                                              if (mounted) {
-                                                scaffoldMessenger?.showSnackBar(
-                                                  SnackBar(
-                                                    content: Text(
-                                                      asyncErrorMessage,
-                                                    ),
-                                                  ),
-                                                );
-                                              }
-                                              return;
-                                            }
+                                              ),
+                                            );
                                           }
                                           if (!mounted) return;
                                           navigator.pop();
@@ -1182,7 +1218,7 @@ class _UserSettingsState extends LPExtendedState<UserSettings> {
                                       height: _kActionButtonHeight,
                                       child: TextButton(
                                         key: const Key(
-                                          'userSettingsResetButton',
+                                          'user-settings-reset-open',
                                         ),
                                         style: TextButton.styleFrom(
                                           backgroundColor: colorScheme.surface,
@@ -1201,137 +1237,14 @@ class _UserSettingsState extends LPExtendedState<UserSettings> {
                                           showDialog(
                                             context: context,
                                             barrierDismissible: false,
-                                            builder: (dialogContext) {
-                                              var isResetting = false;
-                                              return StatefulBuilder(
-                                                builder: (dialogContext, setDialogState) => PopScope(
-                                                  canPop: !isResetting,
-                                                  child: Dialog(
-                                                    child: SizedBox(
-                                                      width:
-                                                          MediaQuery.of(
-                                                                context,
-                                                              ).size.width >
-                                                              1000
-                                                          ? 800
-                                                          : MediaQuery.of(
-                                                              context,
-                                                            ).size.width,
-                                                      child: SingleChildScrollView(
-                                                        child: Column(
-                                                          children: [
-                                                            const SizedBox(
-                                                              height: 10,
-                                                            ),
-                                                            Text(
-                                                              appLocale
-                                                                  .confirmResetTitle,
-                                                              textAlign:
-                                                                  TextAlign
-                                                                      .center,
-                                                              style: TextStyle(
-                                                                fontWeight:
-                                                                    FontWeight
-                                                                        .bold,
-                                                                fontSize: 18.sp,
-                                                              ),
-                                                            ),
-                                                            Padding(
-                                                              padding:
-                                                                  const EdgeInsets.fromLTRB(
-                                                                    50,
-                                                                    0,
-                                                                    50,
-                                                                    0,
-                                                                  ),
-                                                              child: Row(
-                                                                mainAxisAlignment:
-                                                                    MainAxisAlignment
-                                                                        .spaceBetween,
-                                                                children: <Widget>[
-                                                                  TextButton(
-                                                                    onPressed:
-                                                                        isResetting
-                                                                        ? null
-                                                                        : () => Navigator.of(
-                                                                            dialogContext,
-                                                                          ).pop(),
-                                                                    child: Text(
-                                                                      appLocale
-                                                                          .closeButton(
-                                                                            gender,
-                                                                          ),
-                                                                      style: TextStyle(
-                                                                        fontWeight:
-                                                                            FontWeight.bold,
-                                                                        fontSize:
-                                                                            16.sp,
-                                                                      ),
-                                                                    ),
-                                                                  ),
-                                                                  TextButton(
-                                                                    onPressed:
-                                                                        isResetting
-                                                                        ? null
-                                                                        : () async {
-                                                                            if (isResetting) {
-                                                                              return;
-                                                                            }
-                                                                            setDialogState(
-                                                                              () => isResetting = true,
-                                                                            );
-                                                                            try {
-                                                                              await resetData(
-                                                                                userInfoProvider,
-                                                                              );
-                                                                            } catch (
-                                                                              error,
-                                                                              stackTrace
-                                                                            ) {
-                                                                              _reportResetFailure(
-                                                                                error,
-                                                                                stackTrace,
-                                                                              );
-                                                                            } finally {
-                                                                              if (dialogContext.mounted) {
-                                                                                setDialogState(
-                                                                                  () => isResetting = false,
-                                                                                );
-                                                                              }
-                                                                            }
-                                                                          },
-                                                                    child:
-                                                                        isResetting
-                                                                        ? const SizedBox(
-                                                                            width:
-                                                                                20,
-                                                                            height:
-                                                                                20,
-                                                                            child: CircularProgressIndicator(
-                                                                              strokeWidth: 2,
-                                                                            ),
-                                                                          )
-                                                                        : Text(
-                                                                            appLocale.confirmButton(
-                                                                              gender,
-                                                                            ),
-                                                                            style: TextStyle(
-                                                                              fontWeight: FontWeight.bold,
-                                                                              fontSize: 16.sp,
-                                                                            ),
-                                                                          ),
-                                                                  ),
-                                                                ],
-                                                              ),
-                                                            ),
-                                                          ],
-                                                        ),
+                                            builder: (_) =>
+                                                _ResetConfirmationDialog(
+                                                  gender: gender,
+                                                  onAttemptReset: () =>
+                                                      _attemptResetAndReturnSuccess(
+                                                        userInfoProvider,
                                                       ),
-                                                    ),
-                                                  ),
                                                 ),
-                                              );
-                                            },
                                           );
                                         },
                                         child: Text(
@@ -1357,6 +1270,87 @@ class _UserSettingsState extends LPExtendedState<UserSettings> {
                   },
                 ),
               ),
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+/// Confirmation route for the destructive settings reset flow.
+///
+/// Busy state lives with the route so its actions and system back navigation
+/// stay blocked until the reset attempt either succeeds or exposes a retry.
+class _ResetConfirmationDialog extends StatefulWidget {
+  const _ResetConfirmationDialog({
+    required this.gender,
+    required this.onAttemptReset,
+  });
+
+  final String gender;
+  final Future<bool> Function() onAttemptReset;
+
+  @override
+  State<_ResetConfirmationDialog> createState() =>
+      _ResetConfirmationDialogState();
+}
+
+class _ResetConfirmationDialogState extends State<_ResetConfirmationDialog> {
+  bool _resetInProgress = false;
+
+  Future<void> _attemptReset(BuildContext snackBarContext) async {
+    if (_resetInProgress) {
+      return;
+    }
+
+    setState(() {
+      _resetInProgress = true;
+    });
+    final bool resetSucceeded = await widget.onAttemptReset();
+    if (!mounted || !snackBarContext.mounted || resetSucceeded) {
+      return;
+    }
+
+    setState(() {
+      _resetInProgress = false;
+    });
+    showPersistenceRetrySnackBar(
+      snackBarContext,
+      () => _attemptReset(snackBarContext),
+    );
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final AppLocalizations appLocale = AppLocalizations.of(context)!;
+    return ScaffoldMessenger(
+      child: PopScope(
+        canPop: !_resetInProgress,
+        child: Scaffold(
+          backgroundColor: Colors.transparent,
+          body: Builder(
+            builder: (BuildContext snackBarContext) => LPAlertDialog(
+              key: const Key('user-settings-reset-dialog'),
+              title: appLocale.confirmResetTitle,
+              actions: <Widget>[
+                TextButton(
+                  key: const Key('user-settings-reset-cancel'),
+                  onPressed: _resetInProgress
+                      ? null
+                      : () => Navigator.of(snackBarContext).pop(),
+                  child: Text(appLocale.closeButton(widget.gender)),
+                ),
+                TextButton(
+                  key: const Key('user-settings-reset-confirm'),
+                  onPressed: _resetInProgress
+                      ? null
+                      : () {
+                          unawaited(_attemptReset(snackBarContext));
+                        },
+                  child: Text(appLocale.confirmButton(widget.gender)),
+                ),
+              ],
             ),
           ),
         ),

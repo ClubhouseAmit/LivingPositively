@@ -2,13 +2,11 @@ import 'package:flutter/material.dart';
 import 'package:fluttericon/elusive_icons.dart';
 import 'package:get_it/get_it.dart';
 import 'package:mazilon/file_service.dart';
-import 'package:mazilon/global_enums.dart';
 import 'package:mazilon/l10n/app_localizations.dart';
 import 'package:mazilon/util/appInformation.dart';
 import 'package:mazilon/util/layout/directional_widgets.dart';
-import 'package:mazilon/util/personal_plan_export_metadata.dart';
+import 'package:mazilon/util/Share/personal_plan_download.dart';
 import 'package:mazilon/util/Share/show_share_dialog.dart';
-import 'package:mazilon/util/SignIn/popup_toast.dart';
 import 'package:mazilon/util/theme/app_theme.dart';
 import 'package:mazilon/util/theme/spacing.dart';
 import 'package:mazilon/util/userInformation.dart';
@@ -29,11 +27,15 @@ class PersonalPlanSectionWidget extends StatelessWidget {
   /// Defaults to `true`.
   final bool enableTitleTap;
 
+  /// Optional [FileService] override for sharing and downloading Personal Plan exports.
+  final FileService? fileService;
+
   const PersonalPlanSectionWidget({
     required this.items,
     required this.onSeeAll,
     this.onTitleTap,
     this.enableTitleTap = true,
+    this.fileService,
     super.key,
   });
 
@@ -107,29 +109,19 @@ class PersonalPlanSectionWidget extends StatelessWidget {
     if (value == 'share') {
       showShareDialog(context);
     } else if (value == 'download') {
-      final fileService = GetIt.instance<FileService>();
       final appInfoProvider = Provider.of<AppInformation>(
         context,
         listen: false,
       );
-      final exportMetadata = buildPersonalPlanExportMetadata(
-        appLocale,
-        userInfo.gender,
-        userInfo.name,
+      final service = fileService ?? GetIt.instance<FileService>();
+      await downloadPersonalPlanFile(
+        appLocale: appLocale,
+        gender: userInfo.gender,
+        username: userInfo.name,
+        appInformation: appInfoProvider,
+        userInformation: userInfo,
+        fileService: service,
       );
-      final result = await fileService.download(
-        exportMetadata.titles,
-        exportMetadata.subTitles,
-        appInfoProvider.sharePDFtexts,
-        ShareFileType.PDF,
-        mainTitle: exportMetadata.mainTitle,
-        textDirection: appLocale.textDirection,
-      );
-      if (result == null) {
-        showToast(message: appLocale.downloadFailed(userInfo.gender));
-        return;
-      }
-      showToast(message: appLocale.finishedDownloading(userInfo.gender));
     }
   }
 

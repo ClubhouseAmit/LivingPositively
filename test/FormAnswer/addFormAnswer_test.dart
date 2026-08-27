@@ -4,23 +4,20 @@ import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:get_it/get_it.dart';
 import 'package:mazilon/form/speech_dictation_suffix_action.dart';
-import 'package:mazilon/global_enums.dart';
 import 'package:mazilon/l10n/app_localizations.dart';
 import 'package:mazilon/util/FormAnswer/addFormAnswer.dart';
-import 'package:mazilon/util/persistent_memory_service.dart';
 import 'package:mazilon/util/speech_recognition_service.dart';
 import 'package:mazilon/util/userInformation.dart';
 import 'package:provider/provider.dart';
 
+import '../../test_support/contract_persistent_memory_service.dart';
 import '../helpers/widget_test_scaffold.dart' show NoopSpeechRecognitionService;
 
-class _FakePersistentMemoryService implements PersistentMemoryService {
-  @override
-  Future<dynamic> getItem(String key, PersistentMemoryType type) async => null;
-  @override
-  Future<void> reset() async {}
-  @override
-  Future<void> setItem(String key, PersistentMemoryType type, value) async {}
+final class _FakePersistentMemoryService
+    extends ContractPersistentMemoryService {
+  _FakePersistentMemoryService() {
+    onMissingRead = (_, _) => null;
+  }
 }
 
 Widget _hostDialog({

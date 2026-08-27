@@ -29,6 +29,7 @@ PersonalPlanExportMetadata buildPersonalPlanExportMetadata(
       appLocale.makeSaferHeader(gender),
       appLocale.phonesPageHeader(gender),
       appLocale.safeEnvironmentHeader(gender),
+      appLocale.dreamsAndGoalsHeader(gender),
     ],
     subTitles: [
       appLocale.distractionsSubTitle(gender),
@@ -37,6 +38,7 @@ PersonalPlanExportMetadata buildPersonalPlanExportMetadata(
       appLocale.makeSaferSubTitle(gender),
       appLocale.phonesPageSubTitle(gender),
       appLocale.safeEnvironmentSubTitle(gender),
+      appLocale.dreamsAndGoalsSubTitle(gender),
     ],
     mainTitle: mainTitle,
   );

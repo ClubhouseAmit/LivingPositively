@@ -1,9 +1,8 @@
 import 'dart:async';
-import 'dart:convert';
 
 // Drives the previously-uncovered branches of UserSettings:
-//   - resetData (lines 86-113) via the reset confirmation dialog's "confirm"
-//     button — pushes a FirstPage route
+//   - resetData via the reset confirmation dialog's "confirm" button —
+//     pushes a FirstPage route
 //   - resizeText non-empty branch (lines 136-145) — the "(parenthetical)"
 //     suffix render
 //   - Confirm-button female / nonBinary / notWillingToSay gender branches
@@ -13,22 +12,17 @@ import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:firebase_auth/firebase_auth.dart';
 import 'package:get_it/get_it.dart';
-import 'package:http/http.dart' as http;
 import 'package:mazilon/global_enums.dart';
-import 'package:mazilon/pages/FeelGood/image_picker_service_impl.dart';
 import 'package:mazilon/pages/SignIn_Pages/firstPage.dart';
 import 'package:mazilon/pages/UserSettings.dart';
 import 'package:mazilon/util/Form/formPagePhoneModel.dart';
-import 'package:mazilon/util/Firebase/fcm_service.dart';
-import 'package:mazilon/util/Firebase/fcm_scheduled_notification_service.dart';
-import 'package:mazilon/util/logger_service.dart';
-import 'package:mazilon/util/notification_preference.dart';
+import 'package:mazilon/util/dreams_and_goals_selection.dart';
 import 'package:mazilon/util/persistent_memory_service.dart';
 import 'package:mazilon/util/userInformation.dart';
 import 'package:mockito/mockito.dart';
 
+import '../../test_support/contract_persistent_memory_service.dart';
 import '../helpers/widget_test_scaffold.dart';
 import '../Firebase/firebase_auth_service_test.mocks.dart';
 
@@ -46,161 +40,105 @@ PhonePageData _phone() => PhonePageData(
   phoneDescription: const [],
 );
 
-class _FailingResetImagePickerService extends NoopImagePickerService {
-  @override
-  Future<void> deleteImages() async {
-    throw StateError('image cleanup failed');
+const Key _resetOpenKey = Key('user-settings-reset-open');
+const Key _resetDialogKey = Key('user-settings-reset-dialog');
+const Key _resetCancelKey = Key('user-settings-reset-cancel');
+const Key _resetConfirmKey = Key('user-settings-reset-confirm');
+
+Future<void> _openResetDialog(WidgetTester tester) async {
+  final Finder resetButton = find.byKey(_resetOpenKey);
+  await tester.ensureVisible(resetButton);
+  await tester.tap(resetButton, warnIfMissed: false);
+  await tester.pumpAndSettle();
+  expect(find.byKey(_resetDialogKey), findsOneWidget);
+}
+
+abstract base class _UserSettingsPersistentMemoryService
+    extends ContractPersistentMemoryService {
+  _UserSettingsPersistentMemoryService() {
+    onMissingRead = (_, PersistentMemoryType type) {
+      switch (type) {
+        case PersistentMemoryType.String:
+          return '';
+        case PersistentMemoryType.Int:
+          return 0;
+        case PersistentMemoryType.Double:
+          return 0.0;
+        case PersistentMemoryType.Bool:
+          return false;
+        case PersistentMemoryType.StringList:
+          return <String>[];
+      }
+    };
   }
 }
 
-class _PendingResetImagePickerService extends NoopImagePickerService {
-  final Completer<void> completion = Completer<void>();
-  bool deleteStarted = false;
+final class _FailingOnceDreamsPersistentMemoryService
+    extends _UserSettingsPersistentMemoryService {
+  bool _shouldFailNextWrite = true;
 
-  @override
-  Future<void> deleteImages() {
-    deleteStarted = true;
-    return completion.future;
+  _FailingOnceDreamsPersistentMemoryService() {
+    onPersist = (key, _, _) {
+      if (key == dreamsAndGoalsSelectionStorageKey && _shouldFailNextWrite) {
+        _shouldFailNextWrite = false;
+        throw StateError('Simulated Dreams persistence failure.');
+      }
+    };
   }
 }
 
-class _TrackingResetImagePickerService extends NoopImagePickerService {
-  bool deleteStarted = false;
+final class _DelayedDreamsPersistentMemoryService
+    extends _UserSettingsPersistentMemoryService {
+  final Completer<void> _firstDreamsSelectionWrite = Completer<void>();
+  final Completer<void> firstDreamsSelectionWriteStarted = Completer<void>();
+  int selectionWriteCount = 0;
 
-  @override
-  Future<void> deleteImages() async {
-    deleteStarted = true;
-  }
-}
-
-class _TrackingPhonePageData extends PhonePageData {
-  _TrackingPhonePageData()
-    : super(
-        key: 'trackingPhonePageData',
-        header: 'header',
-        subTitle: 'subTitle',
-        midTitle: 'midTitle',
-        phoneNameTitle: 'phoneNameTitle',
-        phoneNumberTitle: 'phoneNumberTitle',
-        phoneNames: const [],
-        phoneNumbers: const [],
-        savedPhoneNames: const [],
-        savedPhoneNumbers: const [],
-        phoneDescription: const [],
-      );
-
-  bool resetStarted = false;
-
-  @override
-  void reset() {
-    resetStarted = true;
-  }
-}
-
-class _FailingResetMemoryService extends FakePersistentMemoryService {
-  @override
-  Future<void> reset() {
-    return Future<void>.error(StateError('persistent reset failed'));
-  }
-}
-
-class _RejectedPhonePersistenceMemoryService
-    extends FakePersistentMemoryService {
-  bool resetCompleted = false;
-
-  @override
-  Future<void> reset() async {
-    await super.reset();
-    resetCompleted = true;
+  _DelayedDreamsPersistentMemoryService() {
+    onPersist = (key, _, _) async {
+      if (key == dreamsAndGoalsSelectionStorageKey) {
+        selectionWriteCount++;
+        if (selectionWriteCount == 1) {
+          firstDreamsSelectionWriteStarted.complete();
+          await _firstDreamsSelectionWrite.future;
+        }
+      }
+    };
   }
 
-  @override
-  Future<void> setItem(String key, PersistentMemoryType type, dynamic value) {
-    if (resetCompleted && key.endsWith('SavedPhoneNames')) {
-      return Future<void>.error(StateError('phone persistence failed'));
+  void releaseFirstDreamsSelectionWrite() {
+    if (!_firstDreamsSelectionWrite.isCompleted) {
+      _firstDreamsSelectionWrite.complete();
     }
-    return super.setItem(key, type, value);
   }
 }
 
-class _RejectedAuthPersistenceMemoryService
-    extends FakePersistentMemoryService {
-  bool resetCompleted = false;
+final class _RecordingResetPersistentMemoryService
+    extends _UserSettingsPersistentMemoryService {
+  int resetCalls = 0;
 
-  @override
-  Future<void> reset() async {
-    await super.reset();
-    resetCompleted = true;
+  _RecordingResetPersistentMemoryService() {
+    onReset = () {
+      resetCalls++;
+    };
+  }
+}
+
+final class _DelayedResetPersistentMemoryService
+    extends _UserSettingsPersistentMemoryService {
+  final Completer<void> resetStarted = Completer<void>();
+  final Completer<void> _resetGate = Completer<void>();
+
+  _DelayedResetPersistentMemoryService() {
+    onReset = () async {
+      resetStarted.complete();
+      await _resetGate.future;
+    };
   }
 
-  @override
-  Future<void> setItem(String key, PersistentMemoryType type, dynamic value) {
-    if (resetCompleted &&
-        const {'loggedIn', 'authDecisionMade', 'userId'}.contains(key)) {
-      return Future<void>.error(StateError('auth persistence failed'));
+  void releaseReset() {
+    if (!_resetGate.isCompleted) {
+      _resetGate.complete();
     }
-    return super.setItem(key, type, value);
-  }
-}
-
-class _PostResetReadFailingMemoryService extends FakePersistentMemoryService {
-  bool resetCompleted = false;
-  bool postResetReadAttempted = false;
-
-  @override
-  Future<void> reset() async {
-    await super.reset();
-    resetCompleted = true;
-  }
-
-  @override
-  Future<dynamic> getItem(String key, PersistentMemoryType type) async {
-    if (resetCompleted) {
-      postResetReadAttempted = true;
-      throw StateError('post-reset persistence read failed');
-    }
-    return super.getItem(key, type);
-  }
-}
-
-class _PendingIncidentLoggerService extends NoopIncidentLoggerService {
-  final Completer<void> completion = Completer<void>();
-  bool captureStarted = false;
-
-  @override
-  Future<void> captureLog(
-    dynamic exception, {
-    StackTrace? stackTrace,
-    dynamic exceptionData,
-  }) async {
-    captureStarted = true;
-    await completion.future;
-  }
-}
-
-class _SynchronouslyFailingIncidentLoggerService
-    extends NoopIncidentLoggerService {
-  @override
-  Future<void> captureLog(
-    dynamic exception, {
-    StackTrace? stackTrace,
-    dynamic exceptionData,
-  }) {
-    throw StateError('synchronous incident logger failure');
-  }
-}
-
-class _AsynchronouslyFailingIncidentLoggerService
-    extends NoopIncidentLoggerService {
-  @override
-  Future<void> captureLog(
-    dynamic exception, {
-    StackTrace? stackTrace,
-    dynamic exceptionData,
-  }) {
-    return Future<void>.error(
-      StateError('asynchronous incident logger failure'),
-    );
   }
 }
 
@@ -241,22 +179,194 @@ void main() {
         surfaceSize: const Size(1024, 2800),
       );
 
-      final resetButton = find.byKey(const Key('userSettingsResetButton'));
-      await tester.ensureVisible(resetButton);
-      await tester.tap(resetButton, warnIfMissed: false);
+      await _openResetDialog(tester);
+      await tester.tap(find.byKey(_resetConfirmKey), warnIfMissed: false);
       await tester.pumpAndSettle();
-
-      // Now the Dialog is open with two TextButtons: Close + Confirm. Tap the
-      // last one (Confirm) → resetData runs.
-      final dialogButtons = find.descendant(
-        of: find.byType(Dialog),
-        matching: find.byType(TextButton),
-      );
-      expect(dialogButtons, findsNWidgets(2));
-      await tester.tap(dialogButtons.last, warnIfMissed: false);
+      await tester.runAsync(() => Future<void>.delayed(Duration.zero));
       await tester.pumpAndSettle();
 
       // resetData pushes a FirstPage route via pushAndRemoveUntil.
+      expect(find.byType(FirstPage), findsOneWidget);
+    },
+  );
+
+  testWidgets(
+    'reset clears the UserInformation injected storage before navigation',
+    (tester) async {
+      final memory = _RecordingResetPersistentMemoryService()
+        ..store['legacy-profile-name'] = 'Old profile';
+      expect(GetIt.instance<PersistentMemoryService>(), isNot(same(memory)));
+      user = UserInformation(service: memory);
+      user.gender = 'male';
+      user.localeName = 'en';
+
+      await pumpWithProviders(
+        tester,
+        UserSettings(
+          username: 'Injected storage',
+          age: '18-30',
+          gender: 'male',
+          phonePageData: _phone(),
+          changeLocale: (_) {},
+        ),
+        userInformation: user,
+        surfaceSize: const Size(1024, 2800),
+      );
+
+      await _openResetDialog(tester);
+      await tester.tap(find.byKey(_resetConfirmKey), warnIfMissed: false);
+      await tester.pumpAndSettle();
+      await tester.runAsync(() => Future<void>.delayed(Duration.zero));
+      await tester.pumpAndSettle();
+
+      expect(memory.resetCalls, 1);
+      expect(memory.store['legacy-profile-name'], isNull);
+      expect(memory.store[dreamsAndGoalsSelectionStorageKey], <String>[]);
+      expect(find.byType(FirstPage), findsOneWidget);
+    },
+  );
+
+  testWidgets('reset waits for the injected storage clear before navigating', (
+    tester,
+  ) async {
+    final memory = _DelayedResetPersistentMemoryService();
+    user = UserInformation(service: memory);
+    user.gender = 'male';
+    user.localeName = 'en';
+
+    await pumpWithProviders(
+      tester,
+      UserSettings(
+        username: 'Ordered reset',
+        age: '18-30',
+        gender: 'male',
+        phonePageData: _phone(),
+        changeLocale: (_) {},
+      ),
+      userInformation: user,
+      surfaceSize: const Size(1024, 2800),
+    );
+
+    await _openResetDialog(tester);
+    await tester.tap(find.byKey(_resetConfirmKey), warnIfMissed: false);
+    await tester.pump();
+    await memory.resetStarted.future;
+
+    expect(find.byType(FirstPage), findsNothing);
+    expect(
+      tester.widget<TextButton>(find.byKey(_resetConfirmKey)).onPressed,
+      isNull,
+    );
+
+    memory.releaseReset();
+    await tester.pumpAndSettle();
+    await tester.runAsync(() => Future<void>.delayed(Duration.zero));
+    await tester.pumpAndSettle();
+
+    expect(find.byType(FirstPage), findsOneWidget);
+  });
+
+  testWidgets(
+    'reset failure keeps the dialog open and retry navigates only after the '
+    'empty Dreams snapshot saves',
+    (tester) async {
+      final memory = _FailingOnceDreamsPersistentMemoryService();
+      GetIt.instance
+        ..unregister<PersistentMemoryService>()
+        ..registerSingleton<PersistentMemoryService>(memory);
+      user = UserInformation(service: memory);
+      user.gender = 'male';
+      user.localeName = 'en';
+
+      await pumpWithProviders(
+        tester,
+        UserSettings(
+          username: 'Retry Me',
+          age: '18-30',
+          gender: 'male',
+          phonePageData: _phone(),
+          changeLocale: (_) {},
+        ),
+        userInformation: user,
+        surfaceSize: const Size(1024, 2800),
+      );
+
+      await _openResetDialog(tester);
+      await tester.ensureVisible(find.byKey(_resetConfirmKey));
+      await tester.tap(find.byKey(_resetConfirmKey), warnIfMissed: false);
+      await tester.pumpAndSettle();
+
+      expect(find.byType(Dialog), findsOneWidget);
+      expect(find.byType(FirstPage), findsNothing);
+      final retryButton = find.widgetWithText(SnackBarAction, 'Try again');
+      expect(retryButton, findsOneWidget);
+
+      await tester.ensureVisible(retryButton);
+      await tester.tap(retryButton, warnIfMissed: false);
+      await tester.pumpAndSettle();
+      await tester.runAsync(() => Future<void>.delayed(Duration.zero));
+      await tester.pumpAndSettle();
+
+      expect(find.byType(FirstPage), findsOneWidget);
+    },
+  );
+
+  testWidgets(
+    'reset dialog remains recoverable while Dreams persistence is pending',
+    (tester) async {
+      final memory = _DelayedDreamsPersistentMemoryService();
+      GetIt.instance
+        ..unregister<PersistentMemoryService>()
+        ..registerSingleton<PersistentMemoryService>(memory);
+      user = UserInformation(service: memory);
+      user.gender = 'male';
+      user.localeName = 'en';
+
+      await pumpWithProviders(
+        tester,
+        UserSettings(
+          username: 'Single flight',
+          age: '18-30',
+          gender: 'male',
+          phonePageData: _phone(),
+          changeLocale: (_) {},
+        ),
+        userInformation: user,
+        surfaceSize: const Size(1024, 2800),
+      );
+
+      await _openResetDialog(tester);
+      await tester.ensureVisible(find.byKey(_resetConfirmKey));
+      await tester.tap(find.byKey(_resetConfirmKey), warnIfMissed: false);
+      await tester.pump();
+      await memory.firstDreamsSelectionWriteStarted.future;
+
+      final TextButton pendingConfirm = tester.widget<TextButton>(
+        find.byKey(_resetConfirmKey),
+      );
+      expect(pendingConfirm.onPressed, isNull);
+      final TextButton pendingClose = tester.widget<TextButton>(
+        find.byKey(_resetCancelKey),
+      );
+      expect(pendingClose.onPressed, isNull);
+
+      await tester.tapAt(const Offset(1, 1));
+      await tester.pumpAndSettle();
+      expect(find.byType(Dialog), findsOneWidget);
+
+      await tester.binding.handlePopRoute();
+      await tester.pumpAndSettle();
+      expect(find.byType(Dialog), findsOneWidget);
+
+      await tester.tap(find.byKey(_resetConfirmKey), warnIfMissed: false);
+      await tester.pump();
+      expect(memory.selectionWriteCount, 1);
+
+      memory.releaseFirstDreamsSelectionWrite();
+      await tester.pumpAndSettle();
+      await tester.runAsync(() => Future<void>.delayed(Duration.zero));
+      await tester.pumpAndSettle();
+
       expect(find.byType(FirstPage), findsOneWidget);
     },
   );
@@ -277,18 +387,9 @@ void main() {
         surfaceSize: const Size(1024, 2800),
       );
 
-      final resetButton = find.byKey(const Key('userSettingsResetButton'));
-      await tester.ensureVisible(resetButton);
-      await tester.tap(resetButton, warnIfMissed: false);
-      await tester.pumpAndSettle();
+      await _openResetDialog(tester);
 
-      final dialogButtons = find.descendant(
-        of: find.byType(Dialog),
-        matching: find.byType(TextButton),
-      );
-      // First is "Close" — tap it, the dialog should pop without leaving
-      // UserSettings.
-      await tester.tap(dialogButtons.first, warnIfMissed: false);
+      await tester.tap(find.byKey(_resetCancelKey), warnIfMissed: false);
       await tester.pumpAndSettle();
 
       expect(find.byType(Dialog), findsNothing);

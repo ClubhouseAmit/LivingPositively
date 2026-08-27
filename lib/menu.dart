@@ -1,5 +1,7 @@
 //import 'package:mazilon/pages/schedule.dart';
 
+import 'dart:async';
+
 import 'package:auto_size_text/auto_size_text.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
@@ -60,27 +62,27 @@ class _MenuState extends LPExtendedState<Menu> {
   bool isFullScreen = false;
   late Widget currentScreen;
 
-  //Function to set that the users has already opened the app before
-  void loadFirstTime() async {
-    PersistentMemoryService service =
-        GetIt.instance<
-          PersistentMemoryService
-        >(); // Get the persistent memory service instance
-
+  // Marks that the user has already opened the app before.
+  Future<void> markFirstLaunchCompleted() async {
     try {
+      PersistentMemoryService service =
+          GetIt.instance<
+            PersistentMemoryService
+          >(); // Get the persistent memory service instance
+
       await service.setItem("enteredBefore", PersistentMemoryType.Bool, true);
     } catch (error, stackTrace) {
-      debugPrint('Unable to persist first-launch state: $error\n$stackTrace');
+      debugPrint('Could not save first-launch preference: $error\n$stackTrace');
     }
   }
 
-  void testingChange() async {
-    PersistentMemoryService service =
-        GetIt.instance<
-          PersistentMemoryService
-        >(); // Get the persistent memory service instance
-
+  Future<void> testingChange() async {
     try {
+      PersistentMemoryService service =
+          GetIt.instance<
+            PersistentMemoryService
+          >(); // Get the persistent memory service instance
+
       await service.setItem(
         "disclaimerConfirmed",
         PersistentMemoryType.Bool,
@@ -95,7 +97,7 @@ class _MenuState extends LPExtendedState<Menu> {
         debugPrint(location.toString());
       }
     } catch (error, stackTrace) {
-      debugPrint('Unable to persist disclaimer state: $error\n$stackTrace');
+      debugPrint('Could not save menu preferences: $error\n$stackTrace');
     }
   }
 
@@ -282,7 +284,7 @@ class _MenuState extends LPExtendedState<Menu> {
 
   @override
   void initState() {
-    loadFirstTime();
+    unawaited(markFirstLaunchCompleted());
     getVersion();
     super.initState();
     //this is the initial page
@@ -295,7 +297,7 @@ class _MenuState extends LPExtendedState<Menu> {
     final userInformation = Provider.of<UserInformation>(context);
     final appInfoProvider = Provider.of<AppInformation>(context);
     final gender = userInformation.gender;
-    testingChange();
+    unawaited(testingChange());
 
     return PopScope(
       //this is the popscope widget that will handle the back button

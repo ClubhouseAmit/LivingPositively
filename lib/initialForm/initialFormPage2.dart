@@ -61,20 +61,19 @@ class _InitialFormPage2State extends WizardStepState<InitialFormPage2> {
     AppLocalizations l10n,
   ) {
     if (label == null) return;
-    final gender = Gender.fromLabel(label, l10n) ?? Gender.unspecified;
-    unawaited(
-      Future<void>.sync(() => gender.applyTo(user)).catchError((
-        Object error,
-        StackTrace stackTrace,
-      ) {
-        debugPrint('Unable to save gender selection: $error');
-        if (mounted) {
-          ScaffoldMessenger.maybeOf(
-            context,
-          )?.showSnackBar(SnackBar(content: Text(l10n.asyncErrorMessage)));
-        }
-      }),
-    );
+    final Gender gender = Gender.fromLabel(label, l10n) ?? Gender.unspecified;
+    unawaited(_applyGenderInBackground(gender, user));
+  }
+
+  Future<void> _applyGenderInBackground(
+    Gender gender,
+    UserInformation user,
+  ) async {
+    try {
+      await gender.applyTo(user);
+    } catch (error, stackTrace) {
+      debugPrint('Could not save onboarding gender: $error\n$stackTrace');
+    }
   }
 
   /// Field label (Figma nodes 1660:2288 / 2294 / 2300).

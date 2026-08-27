@@ -2,13 +2,12 @@ import 'package:flutter/material.dart';
 import 'package:get_it/get_it.dart';
 import 'package:mazilon/file_service.dart';
 
-import 'package:mazilon/global_enums.dart';
 import 'package:mazilon/l10n/app_localizations.dart';
 import 'package:mazilon/util/LP_extended_state.dart';
 import 'package:mazilon/util/Share/LP_alert_dialog.dart';
 import 'package:mazilon/util/Share/LP_alert_dialog_box_item.dart';
+import 'package:mazilon/util/Share/personal_plan_share.dart';
 import 'package:mazilon/util/appInformation.dart';
-import 'package:mazilon/util/personal_plan_export_metadata.dart';
 import 'package:mazilon/util/userInformation.dart';
 import 'package:provider/provider.dart';
 import 'package:share_plus/share_plus.dart';
@@ -20,22 +19,27 @@ class LPShareAlertDialog extends StatefulWidget {
   State<LPShareAlertDialog> createState() => _LPShareAlertDialogState();
 }
 
+/// Shares the Personal Plan PDF export with an empty message using [sharePersonalPlanFile].
+///
+/// [userInformation] is optional and triggers awaited personal-plan preparation when provided.
+/// [fileService] is an injectable override with a [GetIt] fallback.
+/// Preparation, metadata, or sharing failures are caught, logged, and returned as `null`.
 Future<ShareResult?> shareFile(
   AppLocalizations appLocale,
   String gender,
   String username,
-  AppInformation appInfoProvider,
-) {
-  final fileService = GetIt.instance<FileService>();
-  final exportMetadata = buildPersonalPlanExportMetadata(appLocale, gender, username);
-  return fileService.share(
-    "",
-    exportMetadata.titles,
-    exportMetadata.subTitles,
-    appInfoProvider.sharePDFtexts,
-    ShareFileType.PDF,
-    mainTitle: exportMetadata.mainTitle,
-    textDirection: appLocale.textDirection,
+  AppInformation appInfoProvider, {
+  UserInformation? userInformation,
+  FileService? fileService,
+}) {
+  return sharePersonalPlanFile(
+    message: "",
+    appLocale: appLocale,
+    gender: gender,
+    username: username,
+    appInformation: appInfoProvider,
+    userInformation: userInformation,
+    fileService: fileService,
   );
 }
 
@@ -58,6 +62,8 @@ class _LPShareAlertDialogState extends LPExtendedState<LPShareAlertDialog> {
               gender,
               userInfoProvider.name,
               appInfoProvider,
+              userInformation: userInfoProvider,
+              fileService: fileService,
             );
             if (!context.mounted) {
               return;
