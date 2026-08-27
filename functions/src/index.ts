@@ -93,6 +93,7 @@ type ScheduledDeliveryResult =
   | "alreadyClaimed"
   | "claimFailed"
   | "notCurrent";
+type StaleDeviceCleanupOutcome = "cleaned" | "deferred" | "skipped";
 type TimestampLike = {
   isEqual?(other: unknown): boolean;
   toMillis?(): number;
@@ -551,6 +552,10 @@ export function shouldClearFCMToken(
   return typeof storedToken === "string" && storedToken === failedToken;
 }
 
+export function hasValidFCMToken(value: unknown): value is string {
+  return typeof value === "string" && value.length > 0;
+}
+
 async function clearFCMToken(uid: string, failedToken: string): Promise<void> {
   const db = getFirestore();
   const deviceRef = db.collection("devices").doc(uid);
@@ -573,7 +578,7 @@ async function clearFCMToken(uid: string, failedToken: string): Promise<void> {
 async function cleanupInactiveDevice(
   uid: string,
   expectedUpdatedAt: Timestamp,
-): Promise<void> {
+): Promise<StaleDeviceCleanupOutcome> {
   const db = getFirestore();
   const deviceRef = db.collection("devices").doc(uid);
   const schedules = db
@@ -581,19 +586,21 @@ async function cleanupInactiveDevice(
     .where("uid", "==", uid)
     .limit(MAX_SCHEDULED_NOTIFICATIONS_PER_STALE_DEVICE_CLEANUP + 1);
 
-  await db.runTransaction(async (transaction) => {
+  return db.runTransaction(async (transaction) => {
     const device = await transaction.get(deviceRef);
     // A foreground launch can refresh this document after pre-fetch. Keeping
     // all reads and deletes in one transaction protects that fresh schedule.
     if (!timestampsAreExactlyEqual(device.data()?.updatedAt, expectedUpdatedAt)) {
-      return;
+      return "skipped";
     }
     const scheduledSnap = await transaction.get(schedules);
     const cleanupPlan = staleDeviceScheduleCleanupPlan(scheduledSnap.size);
+    const cleanupOutcome = staleDeviceCleanupOutcome(scheduledSnap.size);
     for (const doc of scheduledSnap.docs.slice(0, cleanupPlan.scheduleDeletes)) {
       transaction.delete(doc.ref);
     }
-    if (cleanupPlan.deleteDevice) transaction.delete(deviceRef);
+    if (cleanupOutcome === "cleaned") transaction.delete(deviceRef);
+    return cleanupOutcome;
   });
 }
 
@@ -609,6 +616,14 @@ export function staleDeviceScheduleCleanupPlan(scheduleCount: number): {
     deleteDevice:
       scheduleCount <= MAX_SCHEDULED_NOTIFICATIONS_PER_STALE_DEVICE_CLEANUP,
   };
+}
+
+export function staleDeviceCleanupOutcome(
+  scheduleCount: number,
+): "cleaned" | "deferred" {
+  return staleDeviceScheduleCleanupPlan(scheduleCount).deleteDevice
+    ? "cleaned"
+    : "deferred";
 }
 
 export function staleDeviceCleanupBatch(
@@ -1199,8 +1214,8 @@ export const processScheduledNotifications = onSchedule(
       }
       if (!deliveryEligibleUids.has(uid)) continue;
 
-      const fcmToken = deviceData?.fcmToken as string | undefined;
-      if (!fcmToken) continue;
+      const fcmToken = deviceData?.fcmToken;
+      if (!hasValidFCMToken(fcmToken)) continue;
 
       const typeData = typeDataMap.get(typeId);
       if (!hasValidNotificationTypeSchema(typeData)) continue;
@@ -1368,12 +1383,13 @@ export const processScheduledNotifications = onSchedule(
 
     const {
       cleanupUids: staleUidsToClean,
-      deferredCount: staleCleanupDeferred,
+      deferredCount: staleCleanupDeferredByBatch,
     } = staleDeviceCleanupBatch(
       staleUids,
       independentlyStaleDeviceCount,
     );
-    const staleCleanupResults: PromiseSettledResult<void>[] = [];
+    const staleCleanupResults:
+      PromiseSettledResult<StaleDeviceCleanupOutcome>[] = [];
     for (
       let start = 0;
       start < staleUidsToClean.length;
@@ -1386,17 +1402,24 @@ export const processScheduledNotifications = onSchedule(
               .map((uid) => {
                 const updatedAt = staleDeviceUpdatedAts.get(uid);
                 return updatedAt === undefined
-                    ? Promise.resolve()
+                    ? Promise.resolve<StaleDeviceCleanupOutcome>("skipped")
                     : cleanupInactiveDevice(uid, updatedAt);
               }),
         )),
       );
     }
     const staleDevicesCleaned = staleCleanupResults.filter(
-      (result) => result.status === "fulfilled",
+      (result) => result.status === "fulfilled" && result.value === "cleaned",
     ).length;
-    const staleCleanupFailedCount =
-      staleCleanupResults.length - staleDevicesCleaned;
+    const staleCleanupFailedCount = staleCleanupResults.filter(
+      (result) => result.status === "rejected",
+    ).length;
+    const staleCleanupDeferred =
+      staleCleanupDeferredByBatch +
+      staleCleanupResults.filter(
+        (result) =>
+          result.status === "fulfilled" && result.value === "deferred",
+      ).length;
 
     logger.info(
       "processScheduledNotifications",

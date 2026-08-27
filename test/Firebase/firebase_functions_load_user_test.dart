@@ -1,3 +1,4 @@
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:get_it/get_it.dart';
 import 'package:mazilon/global_enums.dart';
@@ -6,7 +7,10 @@ import 'package:mazilon/util/logger_service.dart';
 import 'package:mazilon/util/notification_preference.dart';
 import 'package:mazilon/util/persistent_memory_service.dart';
 import 'package:mazilon/util/userInformation.dart';
+import 'package:mockito/mockito.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+
+import 'firebase_auth_service_test.mocks.dart';
 
 // ---------------------------------------------------------------------------
 // Fakes
@@ -57,8 +61,14 @@ void _registerFakes({required Map<String, dynamic> store}) {
   if (getIt.isRegistered<PersistentMemoryService>()) {
     getIt.unregister<PersistentMemoryService>();
   }
+  if (getIt.isRegistered<FirebaseAuth>()) {
+    getIt.unregister<FirebaseAuth>();
+  }
+  final auth = MockFirebaseAuth();
+  when(auth.currentUser).thenReturn(null);
   getIt.registerSingleton<IncidentLoggerService>(_FakeLogger());
   getIt.registerSingleton<PersistentMemoryService>(_FakeMemory(store));
+  getIt.registerSingleton<FirebaseAuth>(auth);
 }
 
 void _unregisterFakes() {
@@ -68,6 +78,9 @@ void _unregisterFakes() {
   }
   if (getIt.isRegistered<IncidentLoggerService>()) {
     getIt.unregister<IncidentLoggerService>();
+  }
+  if (getIt.isRegistered<FirebaseAuth>()) {
+    getIt.unregister<FirebaseAuth>();
   }
 }
 
@@ -119,6 +132,14 @@ void main() {
         },
       );
 
+      final auth = GetIt.instance<FirebaseAuth>() as MockFirebaseAuth;
+      final currentUser = MockUser();
+      when(auth.currentUser).thenReturn(currentUser);
+      when(currentUser.isAnonymous).thenReturn(false);
+      when(currentUser.uid).thenReturn('uid-123');
+      when(currentUser.email).thenReturn('alice@example.com');
+      when(currentUser.displayName).thenReturn('Alice');
+
       final userInfo = _makeUserInfo();
       await loadUserInformation(userInfo, 'en');
 
@@ -138,6 +159,41 @@ void main() {
       expect(userInfo.darkModeEndMinute, equals(15));
       expect(userInfo.localeName, equals('he'));
     });
+
+    test(
+      'requires authentication when a stored signed-in session is gone',
+      () async {
+        _registerFakes(
+          store: {
+            'loggedIn': true,
+            'authDecisionMade': true,
+            'userId': 'stale-uid',
+          },
+        );
+
+        final userInfo = _makeUserInfo();
+        await loadUserInformation(userInfo, 'en');
+
+        expect(userInfo.loggedIn, isFalse);
+        expect(userInfo.authDecisionMade, isFalse);
+        expect(userInfo.userId, isEmpty);
+        expect(userInfo.email, isEmpty);
+        expect(userInfo.displayName, isEmpty);
+      },
+    );
+
+    test(
+      'preserves an explicit guest decision without a Firebase session',
+      () async {
+        _registerFakes(store: {'loggedIn': false, 'authDecisionMade': true});
+
+        final userInfo = _makeUserInfo();
+        await loadUserInformation(userInfo, 'en');
+
+        expect(userInfo.loggedIn, isFalse);
+        expect(userInfo.authDecisionMade, isTrue);
+      },
+    );
 
     test('loads valid notification preferences JSON', () async {
       _registerFakes(

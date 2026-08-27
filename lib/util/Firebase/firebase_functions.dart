@@ -182,19 +182,32 @@ Future<void> loadUserInformation(
   userInfo.updateName(data['name'] ?? '');
   userInfo.updateGender(data['gender'] ?? '');
   userInfo.updateBinary(data['binary'] ?? false);
-  userInfo.updateLoggedIn(data['loggedIn'] ?? false);
-  userInfo.updateAuthDecisionMade(data['authDecisionMade'] ?? false);
   userInfo.updateAge(data['age'] ?? '');
-  userInfo.updateUserId(data['userId'] ?? '');
 
+  User? currentUser;
   try {
-    final currentUser = FirebaseAuth.instance.currentUser;
-    userInfo.updateEmail(currentUser?.email ?? '');
-    userInfo.updateDisplayName(currentUser?.displayName ?? '');
+    final auth = GetIt.instance.isRegistered<FirebaseAuth>()
+        ? GetIt.instance<FirebaseAuth>()
+        : FirebaseAuth.instance;
+    currentUser = auth.currentUser;
   } on FirebaseException {
-    userInfo.updateEmail('');
-    userInfo.updateDisplayName('');
+    // Treat an unavailable Firebase Auth session as signed out. Persisted
+    // authentication flags cannot authorize reminder mutations on their own.
   }
+  final hasAuthenticatedSession =
+      currentUser != null && !currentUser.isAnonymous;
+  final wasPersistedAsSignedIn = data['loggedIn'] == true;
+  final hadMadeGuestDecision =
+      !wasPersistedAsSignedIn && data['authDecisionMade'] == true;
+  userInfo.updateLoggedIn(hasAuthenticatedSession);
+  userInfo.updateAuthDecisionMade(
+    hasAuthenticatedSession || hadMadeGuestDecision,
+  );
+  userInfo.updateUserId(hasAuthenticatedSession ? currentUser.uid : '');
+  userInfo.updateEmail(hasAuthenticatedSession ? currentUser.email ?? '' : '');
+  userInfo.updateDisplayName(
+    hasAuthenticatedSession ? currentUser.displayName ?? '' : '',
+  );
 
   userInfo.updateDifficultEvents(
     (TypeUtils.castToStringList(data['difficultEvents'])),

@@ -120,11 +120,17 @@ class _PositiveState extends LPExtendedState<Positive> {
 
     positiveTraitsTemp.removeAt(removeIndex);
     debugPrint("got here");
-    await service.setItem(
-      "positiveTraits",
-      PersistentMemoryType.StringList,
-      positiveTraitsTemp,
-    );
+    try {
+      await service.setItem(
+        "positiveTraits",
+        PersistentMemoryType.StringList,
+        positiveTraitsTemp,
+      );
+    } catch (error, stackTrace) {
+      debugPrint('Unable to persist positive traits: $error\n$stackTrace');
+      return;
+    }
+    if (!mounted) return;
     setState(() {
       positiveTraits = positiveTraitsTemp;
       focusNodes.removeAt(removeIndex);

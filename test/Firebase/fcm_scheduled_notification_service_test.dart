@@ -248,6 +248,55 @@ void main() {
     );
   });
 
+  testWidgets(
+    'register captures user state before a queued operation outlives its context',
+    (tester) async {
+      await pumpUser(tester);
+      final firstRegistrationStarted = Completer<void>();
+      final firstRegistrationResponse = Completer<http.Response>();
+
+      await _onPlatform(TargetPlatform.android, () async {
+        final firstRegistration =
+            FcmScheduledNotificationService.registerNotification(
+              userInformation: user,
+              typeId: 'first',
+              hour: 9,
+              minute: 30,
+              idTokenProvider: () async => 'token-123',
+              post: (url, {headers, body, encoding}) async {
+                if (url.path.endsWith('/getNotificationMutationVersion')) {
+                  return http.Response('{"mutationVersion":0}', 200);
+                }
+                firstRegistrationStarted.complete();
+                return firstRegistrationResponse.future;
+              },
+            );
+        await firstRegistrationStarted.future;
+
+        final queuedRegistration =
+            FcmScheduledNotificationService.registerNotification(
+              context: serviceContext,
+              typeId: 'second',
+              hour: 10,
+              minute: 0,
+              idTokenProvider: () async => 'token-123',
+              post: (url, {headers, body, encoding}) async =>
+                  url.path.endsWith('/getNotificationMutationVersion')
+                  ? http.Response('{"mutationVersion":0}', 200)
+                  : http.Response('{"success":true}', 200),
+            );
+
+        await tester.pumpWidget(const SizedBox.shrink());
+        firstRegistrationResponse.complete(
+          http.Response('{"success":true}', 200),
+        );
+
+        expect(await firstRegistration, isTrue);
+        expect(await queuedRegistration, isTrue);
+      });
+    },
+  );
+
   testWidgets('cancel removes the saved schedule only after server success', (
     tester,
   ) async {

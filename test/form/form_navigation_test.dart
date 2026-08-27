@@ -6,11 +6,14 @@
 
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:get_it/get_it.dart';
 import 'package:mazilon/form/form.dart';
 import 'package:mazilon/form/formpagetemplate.dart';
 import 'package:mazilon/form/phonePageform.dart';
+import 'package:mazilon/global_enums.dart';
 import 'package:mazilon/menu.dart';
 import 'package:mazilon/util/Form/formPagePhoneModel.dart';
+import 'package:mazilon/util/persistent_memory_service.dart';
 import 'package:mazilon/util/userInformation.dart';
 import 'package:provider/provider.dart';
 
@@ -29,6 +32,18 @@ PhonePageData _phoneData() => PhonePageData(
   savedPhoneNumbers: const <String>[],
   phoneDescription: const <String>[],
 );
+
+class _FailingPersistentMemoryService implements PersistentMemoryService {
+  @override
+  Future<dynamic> getItem(String key, PersistentMemoryType type) async => null;
+
+  @override
+  Future<void> reset() async {}
+
+  @override
+  Future<void> setItem(String key, PersistentMemoryType type, dynamic value) =>
+      Future<void>.error(StateError('disk unavailable'));
+}
 
 Future<void> _pumpForm(WidgetTester tester) async {
   final phoneData = _phoneData();
@@ -121,6 +136,27 @@ void main() {
       expect(find.byType(Menu), findsOneWidget);
     },
   );
+
+  testWidgets('shows an error and remains on the form when name saving fails', (
+    tester,
+  ) async {
+    await _pumpForm(tester);
+    final state = tester.state<FormProgressIndicatorState>(
+      find.byType(FormProgressIndicator),
+    );
+    state.updateName('Ada');
+    GetIt.instance.unregister<PersistentMemoryService>();
+    GetIt.instance.registerSingleton<PersistentMemoryService>(
+      _FailingPersistentMemoryService(),
+    );
+
+    await state.submitForm(tester.element(find.byType(FormProgressIndicator)));
+    await tester.pump();
+
+    expect(find.byType(Menu), findsNothing);
+    expect(find.byType(SnackBar), findsOneWidget);
+    expect(find.text('Something went wrong.'), findsOneWidget);
+  });
 
   testWidgets(
     'advancing currentStep via the ConfirmationButton inside the inner '

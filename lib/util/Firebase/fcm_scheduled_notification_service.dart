@@ -60,6 +60,20 @@ class FcmScheduledNotificationService {
     return operationResult.whenComplete(() => queueRelease);
   }
 
+  static UserInformation? _resolveUserInformation(
+    BuildContext? context,
+    UserInformation? userInformation,
+  ) {
+    if (userInformation != null) return userInformation;
+    if (context == null) return null;
+    try {
+      return Provider.of<UserInformation>(context, listen: false);
+    } catch (error) {
+      _log('Warning: unable to read user state: $error');
+      return null;
+    }
+  }
+
   static Future<String?> _getIdToken() async {
     if (!GetIt.instance.isRegistered<FirebaseAuth>()) {
       _log('Warning: FirebaseAuth is not initialized, cannot get ID token.');
@@ -217,11 +231,12 @@ class FcmScheduledNotificationService {
       _log('Warning: no user state, cannot register a reminder.');
       return Future.value(false);
     }
+    final userInfo = _resolveUserInformation(context, userInformation);
+    if (userInfo == null) return Future.value(false);
     final resetEpoch = _resetEpoch;
     return _enqueue(
       () => _registerNotification(
-        context: context,
-        userInformation: userInformation,
+        userInformation: userInfo,
         typeId: typeId,
         hour: hour,
         minute: minute,
@@ -233,8 +248,7 @@ class FcmScheduledNotificationService {
   }
 
   static Future<bool> _registerNotification({
-    BuildContext? context,
-    UserInformation? userInformation,
+    required UserInformation userInformation,
     required String typeId,
     required int hour,
     required int minute,
@@ -252,9 +266,7 @@ class FcmScheduledNotificationService {
     _log(
       'Registering notification: typeId=$typeId, hour=$hour, minute=$minute',
     );
-    final userInfo =
-        userInformation ??
-        Provider.of<UserInformation>(context!, listen: false);
+    final userInfo = userInformation;
     final locale = userInfo.localeName.isNotEmpty ? userInfo.localeName : 'he';
     final rawGender = userInfo.gender;
     final gender = (rawGender == 'male' || rawGender == 'female')
@@ -418,11 +430,12 @@ class FcmScheduledNotificationService {
       _log('Warning: no user state, cannot cancel a reminder.');
       return Future.value(false);
     }
+    final userInfo = _resolveUserInformation(context, userInformation);
+    if (userInfo == null) return Future.value(false);
     final resetEpoch = _resetEpoch;
     return _enqueue(
       () => _cancelNotification(
-        context: context,
-        userInformation: userInformation,
+        userInformation: userInfo,
         typeId: typeId,
         idTokenProvider: idTokenProvider,
         post: post,
@@ -541,8 +554,7 @@ class FcmScheduledNotificationService {
   }
 
   static Future<bool> _cancelNotification({
-    BuildContext? context,
-    UserInformation? userInformation,
+    required UserInformation userInformation,
     required String typeId,
     Future<String?> Function()? idTokenProvider,
     NotificationHttpPost? post,
@@ -554,9 +566,7 @@ class FcmScheduledNotificationService {
   }) async {
     if (resetEpoch != _resetEpoch) return false;
     _log('Cancelling notification: typeId=$typeId');
-    final userInfo =
-        userInformation ??
-        Provider.of<UserInformation>(context!, listen: false);
+    final userInfo = userInformation;
     final previousPreference = userInfo.getNotificationPreference(typeId);
     try {
       final idToken = await (idTokenProvider ?? _getIdToken)().timeout(

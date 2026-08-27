@@ -61,7 +61,11 @@ class _ShareFormState extends WizardStepState<ShareForm> {
           PersistentMemoryService
         >(); // Get the persistent memory service instance
 
-    await service.setItem("hasFilled", PersistentMemoryType.Bool, true);
+    try {
+      await service.setItem("hasFilled", PersistentMemoryType.Bool, true);
+    } catch (error, stackTrace) {
+      debugPrint('Unable to persist completed onboarding: $error\n$stackTrace');
+    }
   }
 
   @override
@@ -470,7 +474,7 @@ class _ShareFormState extends WizardStepState<ShareForm> {
 
   @override
   Future<void> onPrimaryAction() async {
-    widget.submit(context);
+    await Future<void>.sync(() => widget.submit(context));
   }
 
   @override

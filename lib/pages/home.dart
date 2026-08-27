@@ -99,11 +99,19 @@ class _HomeState extends LPExtendedState<Home> {
             } else {
               PersistentMemoryService service =
                   GetIt.instance<PersistentMemoryService>();
-              await service.setItem(
-                'customReminder',
-                PersistentMemoryType.String,
-                text,
-              );
+              try {
+                await service.setItem(
+                  'customReminder',
+                  PersistentMemoryType.String,
+                  text,
+                );
+              } catch (error, stackTrace) {
+                debugPrint(
+                  'Unable to persist custom reminder: $error\n$stackTrace',
+                );
+                return;
+              }
+              if (!mounted) return;
               setState(() {
                 _customReminder = text;
               });

@@ -67,7 +67,11 @@ class _MenuState extends LPExtendedState<Menu> {
           PersistentMemoryService
         >(); // Get the persistent memory service instance
 
-    await service.setItem("enteredBefore", PersistentMemoryType.Bool, true);
+    try {
+      await service.setItem("enteredBefore", PersistentMemoryType.Bool, true);
+    } catch (error, stackTrace) {
+      debugPrint('Unable to persist first-launch state: $error\n$stackTrace');
+    }
   }
 
   void testingChange() async {
@@ -76,18 +80,22 @@ class _MenuState extends LPExtendedState<Menu> {
           PersistentMemoryService
         >(); // Get the persistent memory service instance
 
-    await service.setItem(
-      "disclaimerConfirmed",
-      PersistentMemoryType.Bool,
-      true,
-    );
-    var location = await service.getItem(
-      "location",
-      PersistentMemoryType.String,
-    );
+    try {
+      await service.setItem(
+        "disclaimerConfirmed",
+        PersistentMemoryType.Bool,
+        true,
+      );
+      var location = await service.getItem(
+        "location",
+        PersistentMemoryType.String,
+      );
 
-    if (location != null && location.toString().isNotEmpty) {
-      debugPrint(location.toString());
+      if (location != null && location.toString().isNotEmpty) {
+        debugPrint(location.toString());
+      }
+    } catch (error, stackTrace) {
+      debugPrint('Unable to persist disclaimer state: $error\n$stackTrace');
     }
   }
 

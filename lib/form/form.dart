@@ -80,16 +80,26 @@ class FormProgressIndicatorState
     });
   }
 
-  void submitForm(mycontext) async {
+  Future<void> submitForm(BuildContext _) async {
     PersistentMemoryService service =
         GetIt.instance<
           PersistentMemoryService
         >(); // Get the persistent memory service instance
 
-    if (name.isNotEmpty) {
-      await service.setItem("name", PersistentMemoryType.String, name);
+    try {
+      if (name.isNotEmpty) {
+        await service.setItem("name", PersistentMemoryType.String, name);
+      }
+    } catch (_) {
+      if (!mounted) return;
+      ScaffoldMessenger.maybeOf(
+        context,
+      )?.showSnackBar(SnackBar(content: Text(appLocale.asyncErrorMessage)));
+      return;
     }
-    navigateToMenu(mycontext);
+
+    if (!mounted) return;
+    navigateToMenu(context);
   }
 
   void navigateToMenu(mycontext) {

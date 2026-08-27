@@ -6,6 +6,7 @@ import {
   buildNotificationDeliveryKey,
   claimAndSendScheduledDelivery,
   classifyDeviceUpdatedAt,
+  hasValidFCMToken,
   israelLocalDeliveryCandidates,
   israelLocalDeliveryCandidatesSince,
   isCurrentScheduledNotification,
@@ -14,6 +15,7 @@ import {
   scheduledNotificationQueryPlan,
   selectScheduledNotificationCandidates,
   staleDeviceCleanupBatch,
+  staleDeviceCleanupOutcome,
   staleDeviceScheduleCleanupPlan,
   shouldClearFCMToken,
   shouldAdvanceSchedulerCheckpoint,
@@ -28,6 +30,13 @@ describe("scheduled notification delivery", () => {
     assert.equal(shouldClearFCMToken("old-token", "old-token"), true);
     assert.equal(shouldClearFCMToken("new-token", "old-token"), false);
     assert.equal(shouldClearFCMToken(undefined, "old-token"), false);
+  });
+
+  it("skips malformed FCM tokens before attempting delivery", () => {
+    assert.equal(hasValidFCMToken("valid-token"), true);
+    assert.equal(hasValidFCMToken(""), false);
+    assert.equal(hasValidFCMToken(123), false);
+    assert.equal(hasValidFCMToken({ token: "invalid" }), false);
   });
 
   it("bounds stale-device cleanup and reports the deferred backlog", () => {
@@ -82,6 +91,8 @@ describe("scheduled notification delivery", () => {
       scheduleDeletes: 25,
       deleteDevice: false,
     });
+    assert.equal(staleDeviceCleanupOutcome(25), "cleaned");
+    assert.equal(staleDeviceCleanupOutcome(26), "deferred");
   });
 
   describe("device timestamp validation", () => {
