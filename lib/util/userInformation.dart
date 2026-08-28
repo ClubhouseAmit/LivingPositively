@@ -45,6 +45,7 @@ class UserInformation with ChangeNotifier {
   PersistentMemoryService service; // Get the persistent memory service instance
   Future<void> _pendingDreamsAndGoalsSave = Future<void>.value();
   Future<void> _pendingCustomCategoriesSave = Future<void>.value();
+  Future<void>? _customCategoriesWriteTail;
   Future<void>? _notificationPreferencesWrite;
   int _dreamsAndGoalsSaveRevision = 0;
   int _customCategoriesSaveRevision = 0;
@@ -93,9 +94,16 @@ class UserInformation with ChangeNotifier {
     PersistentMemoryService? memoryService,
   }) async {
     final effectiveMemoryService = memoryService ?? service;
+    final int revisionAtLoadStart = _customCategoriesSaveRevision;
     final loaded = await loadCustomCategoriesFromStorage(
       memoryService: effectiveMemoryService,
     );
+    // A load begun during initialization may complete after an interactive
+    // save has started. That response reflects the old storage snapshot and
+    // must not replace the newer in-memory categories.
+    if (revisionAtLoadStart != _customCategoriesSaveRevision) {
+      return customCategories;
+    }
     customCategories = List<MapEntry<String, String>>.unmodifiable(loaded);
     notifyListeners();
     return customCategories;
@@ -110,19 +118,30 @@ class UserInformation with ChangeNotifier {
     final toSave = categories ?? customCategories;
     final sanitized = sanitizeAndFilterCustomCategoryEntries(toSave);
     final int revision = ++_customCategoriesSaveRevision;
-    final Future<void> nextSave = _pendingCustomCategoriesSave.then(
-      (_) => saveCustomCategoriesToStorage(
-        sanitized,
-        memoryService: effectiveMemoryService,
-      ),
-    );
-    // The caller still observes this write's error, but exports only need to
-    // wait for outstanding work. Keeping an errored future here would make
-    // every later export fail until another categories save succeeds.
-    _pendingCustomCategoriesSave = nextSave.then<void>(
-      (_) {},
-      onError: (Object _, StackTrace _) {},
-    );
+    final previousWrite = _customCategoriesWriteTail;
+    final Future<void> nextSave = previousWrite == null
+        ? saveCustomCategoriesToStorage(
+            sanitized,
+            memoryService: effectiveMemoryService,
+          )
+        : previousWrite.then(
+            (_) => saveCustomCategoriesToStorage(
+              sanitized,
+              memoryService: effectiveMemoryService,
+            ),
+          );
+    // The caller must observe this write's failure so the UI can offer a
+    // retry. A later write continues after that failure through the safe tail
+    // below, while export preparation explicitly ignores an older
+    // failed tail after it has finished.
+    _pendingCustomCategoriesSave = nextSave;
+    final Future<void> continuedWriteTail = nextSave.catchError((Object _) {});
+    _customCategoriesWriteTail = continuedWriteTail;
+    continuedWriteTail.whenComplete(() {
+      if (identical(_customCategoriesWriteTail, continuedWriteTail)) {
+        _customCategoriesWriteTail = null;
+      }
+    });
     await nextSave;
     if (revision != _customCategoriesSaveRevision) {
       return;
@@ -351,12 +370,10 @@ class UserInformation with ChangeNotifier {
             _activeDreamsAndGoalsSavesCount--;
           }
         });
-    // Keep the queue usable after a failed snapshot. The returned [nextSave]
-    // still reports the failure to its initiating caller.
-    _pendingDreamsAndGoalsSave = nextSave.then<void>(
-      (_) {},
-      onError: (Object _, StackTrace _) {},
-    );
+    // Keep the queue usable after a failed snapshot. A later save continues
+    // through catchError above, while this tail retains the current write's
+    // error for callers that must block navigation and offer a retry.
+    _pendingDreamsAndGoalsSave = nextSave;
     return nextSave;
   }
 
@@ -505,7 +522,7 @@ class UserInformation with ChangeNotifier {
   /// Awaits all pending saves and repairs Dreams and Goals selection sources
   /// until storage has a stable, normalized snapshot for Personal Plan export.
   Future<void> prepareForPersonalPlanExport() async {
-    await _pendingCustomCategoriesSave;
+    await _ignoreCompletedPersistenceFailure(_pendingCustomCategoriesSave);
     final bool needsRepair = !listEquals(
       dreamsAndGoalsSelectionSources,
       normalizeDreamsAndGoalsSelectionSources(
@@ -514,20 +531,28 @@ class UserInformation with ChangeNotifier {
       ),
     );
     if (!needsRepair && _activeDreamsAndGoalsSavesCount == 0) {
-      await _pendingCustomCategoriesSave;
+      await _ignoreCompletedPersistenceFailure(_pendingCustomCategoriesSave);
       return;
     }
     while (true) {
-      await _pendingDreamsAndGoalsSave;
+      await _ignoreCompletedPersistenceFailure(_pendingDreamsAndGoalsSave);
       final int revisionBeforeRepair = _dreamsAndGoalsSaveRevision;
       await repairDreamsAndGoalsSelectionSources();
-      await _pendingDreamsAndGoalsSave;
+      await _ignoreCompletedPersistenceFailure(_pendingDreamsAndGoalsSave);
       if (_dreamsAndGoalsSaveRevision == revisionBeforeRepair) {
-        await _pendingDreamsAndGoalsSave;
+        await _ignoreCompletedPersistenceFailure(_pendingDreamsAndGoalsSave);
         break;
       }
     }
-    await _pendingCustomCategoriesSave;
+    await _ignoreCompletedPersistenceFailure(_pendingCustomCategoriesSave);
+  }
+
+  /// Waits for a prior persistence attempt without replaying its error.
+  ///
+  /// Export preparation can repair or overwrite an older failed snapshot, so
+  /// it must not be permanently blocked by that completed attempt.
+  Future<void> _ignoreCompletedPersistenceFailure(Future<void> pending) {
+    return pending.catchError((Object _) {});
   }
 
   /// Persists the form completion disclaimer using this model's injected

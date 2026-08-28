@@ -600,55 +600,58 @@ void main() {
       },
     );
 
-    testWidgets('repairs the next unmatched legacy number explicitly', (
-      tester,
-    ) async {
-      final phoneData = _makePhonePageData();
+    testWidgets(
+      'retains a short code while pairing an unmatched legacy number',
+      (tester) async {
+        final phoneData = _makePhonePageData();
 
-      await pumpWithProviders(
-        tester,
-        ChangeNotifierProvider<PhonePageData>.value(
-          value: phoneData,
-          child: Scaffold(
-            body: SingleChildScrollView(
-              child: PhonePageList(phonePageData: phoneData),
+        await pumpWithProviders(
+          tester,
+          ChangeNotifierProvider<PhonePageData>.value(
+            value: phoneData,
+            child: Scaffold(
+              body: SingleChildScrollView(
+                child: PhonePageList(phonePageData: phoneData),
+              ),
             ),
           ),
-        ),
-        userInformation: userInformation,
-        surfaceSize: const Size(1024, 2000),
-      );
-      await _settle(tester);
-      phoneData.savedPhoneNames = <String>['Paired contact'];
-      phoneData.savedPhoneNumbers = <String>['111', '222'];
-      phoneData.update();
-      await tester.pumpAndSettle();
+          userInformation: userInformation,
+          surfaceSize: const Size(1024, 2000),
+        );
+        await _settle(tester);
+        phoneData.savedPhoneNames = <String>['Paired contact'];
+        phoneData.savedPhoneNumbers = <String>['111', '222'];
+        phoneData.update();
+        await tester.pumpAndSettle();
 
-      expect(find.byType(TextFormField), findsNWidgets(2));
-      expect(
-        tester
-            .widget<TextFormField>(find.byType(TextFormField).first)
-            .controller!
-            .text,
-        isEmpty,
-      );
-      expect(
-        tester
-            .widget<TextFormField>(find.byType(TextFormField).at(1))
-            .controller!
-            .text,
-        '222',
-      );
+        expect(find.byType(TextFormField), findsNWidgets(2));
+        expect(
+          tester
+              .widget<TextFormField>(find.byType(TextFormField).first)
+              .controller!
+              .text,
+          isEmpty,
+        );
+        expect(
+          tester
+              .widget<TextFormField>(find.byType(TextFormField).at(1))
+              .controller!
+              .text,
+          '222',
+        );
 
-      await tester.enterText(find.byType(TextFormField).first, 'Number only');
-      await tester.tap(find.byIcon(Icons.check));
-      await tester.pumpAndSettle();
+        await tester.enterText(find.byType(TextFormField).first, 'Number only');
+        await tester.tap(find.byIcon(Icons.check));
+        await tester.pumpAndSettle();
 
-      expect(phoneData.savedPhoneNames, ['Paired contact', 'Number only']);
-      expect(phoneData.savedPhoneNumbers, ['111', '+972222']);
-    });
+        expect(phoneData.savedPhoneNames, ['Paired contact', 'Number only']);
+        expect(phoneData.savedPhoneNumbers, ['111', '222']);
+      },
+    );
 
-    testWidgets('editing an existing contact replaces it', (tester) async {
+    testWidgets('editing an existing contact retains its short code', (
+      tester,
+    ) async {
       await services.memory.setItem(
         'phonePageSavedPhoneNames',
         PersistentMemoryType.StringList,
@@ -688,7 +691,7 @@ void main() {
       drainOverflowExceptions(tester);
 
       expect(phoneData.savedPhoneNames, ['Alice updated']);
-      expect(phoneData.savedPhoneNumbers, ['+972222']);
+      expect(phoneData.savedPhoneNumbers, ['222']);
     });
 
     testWidgets('canceling an existing edit restores provider values', (

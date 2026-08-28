@@ -94,6 +94,30 @@ final class _DelayedCustomCategoriesMemoryService
   }
 }
 
+final class _DelayedCustomCategoriesReadMemoryService
+    extends _FakePersistentMemoryService {
+  _DelayedCustomCategoriesReadMemoryService() {
+    onRead = (String key, PersistentMemoryType type) async {
+      if (key != customCategoriesKey || _heldInitialRead) {
+        return;
+      }
+      _heldInitialRead = true;
+      initialReadStarted.complete();
+      await _initialRead.future;
+    };
+  }
+
+  final Completer<void> _initialRead = Completer<void>();
+  final Completer<void> initialReadStarted = Completer<void>();
+  bool _heldInitialRead = false;
+
+  void releaseInitialRead() {
+    if (!_initialRead.isCompleted) {
+      _initialRead.complete();
+    }
+  }
+}
+
 final class _FailingPersistentMemoryService
     extends _FakePersistentMemoryService {
   _FailingPersistentMemoryService() {
@@ -205,6 +229,38 @@ void main() {
       );
 
       await expectLater(user.prepareForPersonalPlanExport(), completes);
+    },
+  );
+
+  test(
+    'does not let an earlier category load overwrite a completed save',
+    () async {
+      final delayedService = _DelayedCustomCategoriesReadMemoryService();
+      final user = UserInformation(service: delayedService);
+      final Future<List<MapEntry<String, String>>> load = user
+          .loadCustomCategories();
+      await delayedService.initialReadStarted.future;
+
+      await user.saveCustomCategories(
+        categories: const <MapEntry<String, String>>[
+          MapEntry<String, String>('New category', 'New description'),
+        ],
+      );
+      delayedService.releaseInitialRead();
+      await load;
+
+      expect(
+        user.customCategories
+            .map((MapEntry<String, String> entry) => entry.key)
+            .toList(),
+        <String>['New category'],
+      );
+      expect(
+        user.customCategories
+            .map((MapEntry<String, String> entry) => entry.value)
+            .toList(),
+        <String>['New description'],
+      );
     },
   );
 
