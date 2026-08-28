@@ -44,6 +44,12 @@ jobs:
         with:
           distribution: "adopt"
           java-version: "17.x"
+          cache: gradle
+          cache-dependency-path: |
+            android/**/*.gradle*
+            android/gradle.properties
+            android/gradle/wrapper/gradle-wrapper.properties
+            pubspec.lock
 
       - name: Set up Flutter
         uses: subosito/flutter-action@v2
@@ -154,6 +160,7 @@ jobs:
     # ADR-010: keep each Android integration entry point in its own runner so
     # repeated native builds cannot exhaust one runner's disk. The downstream
     # integration-test job preserves the required-check and artifact contracts.
+    needs: build-android
     runs-on: ubuntu-latest
     # Bound emulator hangs without changing the coverage or isolation contract.
     timeout-minutes: 45
@@ -196,6 +203,12 @@ jobs:
         with:
           distribution: "adopt"
           java-version: "17.x"
+          cache: gradle
+          cache-dependency-path: |
+            android/**/*.gradle*
+            android/gradle.properties
+            android/gradle/wrapper/gradle-wrapper.properties
+            pubspec.lock
 
       - name: Set up Flutter
         uses: subosito/flutter-action@v2

@@ -116,6 +116,20 @@ Rejected for the initial implementation. Gradle caching remains a
 telemetry-driven follow-up only after shard disk observations demonstrate
 stable headroom; Android virtual device caching is likewise not implemented.
 
+On 2026-08-28, subsequent shard telemetry showed more than 76 GiB of free
+space after an Android integration build, while PR run
+`https://github.com/ClubhouseAmit/LivingPositively/actions/runs/33153726765`
+failed before its test started when Maven Central returned HTTP 429 responses
+for Kotlin Gradle artifacts. This satisfied the telemetry condition for
+adopting Gradle dependency and wrapper caching.
+
+`build-android` now produces the `actions/setup-java` Gradle cache, and each
+`integration-test-shard` waits for that job before restoring the same cache
+key. The cache key covers the Android Gradle build files, wrapper properties,
+`android/gradle.properties`, and `pubspec.lock`. Each shard still receives a
+fresh runner and process. Android virtual devices, emulator state, and project
+build outputs remain excluded from caching.
+
 ### Option D: Delete preinstalled tools or use a larger runner
 
 Removing unrelated SDKs from the hosted image or purchasing a larger runner
