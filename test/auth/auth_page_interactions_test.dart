@@ -45,6 +45,8 @@ void main() {
     await GetIt.instance.reset();
   });
 
+  group('AuthPage', () {
+
   test(
     'AuthService persists user profile through registered Firestore',
     () async {
@@ -632,6 +634,7 @@ void main() {
       AuthService.debugFirebaseIosBundleIdOverride = null;
       debugDefaultTargetPlatformOverride = null;
     }
+  });
   });
 }
 

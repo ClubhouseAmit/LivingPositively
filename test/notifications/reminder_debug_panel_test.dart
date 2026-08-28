@@ -85,6 +85,8 @@ void main() {
     resetTestServices();
   });
 
+  group('ReminderDebugPanel', () {
+
   for (final platform in [TargetPlatform.android, TargetPlatform.iOS]) {
     testWidgets(
       'mobile platform matrix renders FCM diagnostics on ${platform.name}',
@@ -338,5 +340,6 @@ void main() {
       await tester.pumpAndSettle(const Duration(milliseconds: 200));
       expect(find.text('Clear history'), findsOneWidget);
     });
+  });
   });
 }
