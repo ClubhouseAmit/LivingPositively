@@ -116,9 +116,9 @@ void main() {
     await GetIt.instance.reset();
   });
 
-  group('bootstrapApp() return shape', () {
+  group('bootstrapApp', () {
     testWidgets(
-      'returns the same MultiProvider tree shape that pre-extraction main() built',
+      'should initialize Firebase, locators, and deferred FCM in order',
       (tester) async {
         _disposePumpedAppAfterTest(tester);
 
@@ -144,37 +144,52 @@ void main() {
               'bootstrapApp must initialize Firebase and register locators before rendering',
         );
 
-        // Top-level shape: MultiProvider wrapping MyApp. The provider package
-        // does not expose providers/child as public getters, so we verify the
-        // shape by pumping the widget and asserting the resulting tree
-        // contains the MultiProvider + MyApp pair the pre-extraction main()
-        // produced.
-        expect(
-          widget,
-          isA<MultiProvider>(),
-          reason: 'bootstrapApp must return a MultiProvider as its root widget',
-        );
-
         await tester.pumpWidget(widget);
         await tester.pump();
 
         expect(calls, ['firebase', 'locator', 'fcm']);
-
-        expect(
-          find.byType(MultiProvider),
-          findsOneWidget,
-          reason: 'pumped tree must contain the bootstrap MultiProvider',
-        );
-        expect(
-          find.byType(MyApp),
-          findsOneWidget,
-          reason: 'pumped tree must contain MyApp under the MultiProvider',
-        );
       },
     );
 
+    testWidgets('should return a MultiProvider containing MyApp', (
+      tester,
+    ) async {
+      _disposePumpedAppAfterTest(tester);
+
+      final widget = await bootstrapApp(
+        firebaseInitializer: () async {},
+        locatorSetup: () => registerTestServices(locale: 'en'),
+        fcmInitializer: () async {},
+      );
+
+      // Top-level shape: MultiProvider wrapping MyApp. The provider package
+      // does not expose providers/child as public getters, so we verify the
+      // shape by pumping the widget and asserting the resulting tree
+      // contains the MultiProvider + MyApp pair the pre-extraction main()
+      // produced.
+      expect(
+        widget,
+        isA<MultiProvider>(),
+        reason: 'bootstrapApp must return a MultiProvider as its root widget',
+      );
+
+      await tester.pumpWidget(widget);
+      await tester.pump();
+
+      expect(
+        find.byType(MultiProvider),
+        findsOneWidget,
+        reason: 'pumped tree must contain the bootstrap MultiProvider',
+      );
+      expect(
+        find.byType(MyApp),
+        findsOneWidget,
+        reason: 'pumped tree must contain MyApp under the MultiProvider',
+      );
+    });
+
     testWidgets(
-      'renders the first frame when deferred FCM initialization fails',
+      'should render the first frame when deferred FCM initialization fails',
       (tester) async {
         _disposePumpedAppAfterTest(tester);
 
@@ -194,9 +209,9 @@ void main() {
     );
   });
 
-  group('bootstrapApp() pumps a working MyApp tree', () {
+  group('MyApp bootstrap', () {
     testWidgets(
-      'first frame after bootstrapApp shows the CircularProgressIndicator placeholder',
+      'should show the CircularProgressIndicator placeholder in its first frame',
       (tester) async {
         late GatedLocalePersistentMemoryService gatedMemory;
         final widget = await bootstrapApp(
@@ -228,7 +243,7 @@ void main() {
     );
 
     testWidgets(
-      'MyApp settles to FirstPage or Introduction after async bootstrap (spinner is gone)',
+      'should settle to FirstPage or Introduction after async bootstrap',
       (tester) async {
         _disposePumpedAppAfterTest(tester);
 
@@ -282,54 +297,54 @@ void main() {
     );
   });
 
-  group('initializeApp() default branches', () {
-    testWidgets(
-      'initializeApp() with firebaseInitializer override + locatorSetup override completes',
-      (tester) async {
-        var firebaseCalled = false;
-        var locatorCalled = false;
-
-        await initializeApp(
-          firebaseInitializer: () async {
-            firebaseCalled = true;
-          },
-          locatorSetup: () {
-            locatorCalled = true;
-            registerTestServices(locale: 'en');
-          },
-        );
-
-        expect(firebaseCalled, isTrue);
-        expect(locatorCalled, isTrue);
-        // After locator setup our fake should be registered.
-        expect(GetIt.instance.isRegistered<AnalyticsService>(), isTrue);
-        expect(GetIt.instance.isRegistered<LocaleService>(), isTrue);
-      },
-    );
-
-    testWidgets('pending FCM initialization does not delay bootstrapApp', (
+  group('initializeApp', () {
+    testWidgets('should complete with Firebase and locator overrides', (
       tester,
     ) async {
-      final fcmInitialization = Completer<void>();
-      var bootstrapCompleted = false;
+      var firebaseCalled = false;
+      var locatorCalled = false;
 
-      final bootstrap = bootstrapApp(
-        firebaseInitializer: () async {},
-        locatorSetup: () => registerTestServices(locale: 'en'),
-        fcmInitializer: () => fcmInitialization.future,
-      )..then((_) => bootstrapCompleted = true);
-
-      await tester.pump();
-
-      expect(
-        bootstrapCompleted,
-        isTrue,
-        reason: 'FCM is best-effort and must not gate the root widget',
+      await initializeApp(
+        firebaseInitializer: () async {
+          firebaseCalled = true;
+        },
+        locatorSetup: () {
+          locatorCalled = true;
+          registerTestServices(locale: 'en');
+        },
       );
 
-      fcmInitialization.complete();
-      await bootstrap;
+      expect(firebaseCalled, isTrue);
+      expect(locatorCalled, isTrue);
+      // After locator setup our fake should be registered.
+      expect(GetIt.instance.isRegistered<AnalyticsService>(), isTrue);
+      expect(GetIt.instance.isRegistered<LocaleService>(), isTrue);
     });
+
+    testWidgets(
+      'should not let pending FCM initialization delay bootstrapApp',
+      (tester) async {
+        final fcmInitialization = Completer<void>();
+        var bootstrapCompleted = false;
+
+        final bootstrap = bootstrapApp(
+          firebaseInitializer: () async {},
+          locatorSetup: () => registerTestServices(locale: 'en'),
+          fcmInitializer: () => fcmInitialization.future,
+        )..then((_) => bootstrapCompleted = true);
+
+        await tester.pump();
+
+        expect(
+          bootstrapCompleted,
+          isTrue,
+          reason: 'FCM is best-effort and must not gate the root widget',
+        );
+
+        fcmInitialization.complete();
+        await bootstrap;
+      },
+    );
 
     testWidgets('rejected FCM initialization is contained and reported', (
       tester,

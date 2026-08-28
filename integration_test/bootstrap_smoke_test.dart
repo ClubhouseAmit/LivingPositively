@@ -138,9 +138,10 @@ void main() {
     await GetIt.instance.reset();
   });
 
-  testWidgets(
-    'MyApp boots without throwing — initial frame shows CircularProgressIndicator',
-    (tester) async {
+  group('MyApp bootstrap', () {
+    testWidgets('should show CircularProgressIndicator in the initial frame', (
+      tester,
+    ) async {
       final gatedMemory = _installGatedLocaleMemory();
       _disposePumpedAppAfterTest(
         tester,
@@ -173,67 +174,66 @@ void main() {
 
       expect(find.byType(MaterialApp), findsWidgets);
       expect(find.byType(CircularProgressIndicator), findsWidgets);
-    },
-  );
+    });
 
-  testWidgets(
-    'MyApp settles to either FirstPage or Introduction after async bootstrap',
-    (tester) async {
-      _disposePumpedAppAfterTest(tester);
+    testWidgets(
+      'should settle to FirstPage or Introduction after async bootstrap',
+      (tester) async {
+        _disposePumpedAppAfterTest(tester);
 
-      final phonePageData = PhonePageData(
-        key: 'PhonePage',
-        phoneNames: const [],
-        phoneNumbers: const [],
-        header: '',
-        subTitle: '',
-        midTitle: '',
-        phoneNameTitle: '',
-        phoneNumberTitle: '',
-        savedPhoneNames: const [],
-        savedPhoneNumbers: const [],
-        phoneDescription: const [],
-      );
+        final phonePageData = PhonePageData(
+          key: 'PhonePage',
+          phoneNames: const [],
+          phoneNumbers: const [],
+          header: '',
+          subTitle: '',
+          midTitle: '',
+          phoneNameTitle: '',
+          phoneNumberTitle: '',
+          savedPhoneNames: const [],
+          savedPhoneNumbers: const [],
+          phoneDescription: const [],
+        );
 
-      await tester.pumpWidget(_bootstrappedMyApp(phonePageData));
+        await tester.pumpWidget(_bootstrappedMyApp(phonePageData));
 
-      // Drive the build cycle. MyApp's build kicks off a Future.wait of
-      // loadAppInformation / loadUserInformation / setLocale. The first two
-      // ultimately hit FirebaseFirestore.instance and will fail (we are not
-      // initialising Firebase in this test), so the .catchError branch runs
-      // and widgetNotifier.value is set to `Center(child: Introduction())`.
-      //
-      // setLocale completes via the in-memory PersistentMemoryService and
-      // sets localeName='en', triggering the second-pass build (lines 408-430
-      // of main.dart). The route table is built up under that branch.
-      for (int i = 0; i < 10; i++) {
-        await tester.pump(const Duration(milliseconds: 100));
-      }
+        // Drive the build cycle. MyApp's build kicks off a Future.wait of
+        // loadAppInformation / loadUserInformation / setLocale. The first two
+        // ultimately hit FirebaseFirestore.instance and will fail (we are not
+        // initialising Firebase in this test), so the .catchError branch runs
+        // and widgetNotifier.value is set to `Center(child: Introduction())`.
+        //
+        // setLocale completes via the in-memory PersistentMemoryService and
+        // sets localeName='en', triggering the second-pass build (lines 408-430
+        // of main.dart). The route table is built up under that branch.
+        for (int i = 0; i < 10; i++) {
+          await tester.pump(const Duration(milliseconds: 100));
+        }
 
-      // The route table generated under ScreenUtilInit, and either
-      // - the FirstPage branch rendered (success path: hits DisclaimerPage or
-      //   the post-disclaimer entry), OR
-      // - the Introduction fallback rendered (failure path through catchError)
-      //
-      // Either outcome counts as a successful bootstrap smoke per ADR-002 §
-      // Decision #1: "asserts the app boots, the route table generates, and
-      // the first visible page is DisclaimerPage (fresh user) or firstPage
-      // (returning)".
-      final hasFirstPage = find.byType(FirstPage).evaluate().isNotEmpty;
-      final hasIntroduction = find.byType(Introduction).evaluate().isNotEmpty;
-      expect(
-        hasFirstPage || hasIntroduction,
-        isTrue,
-        reason:
-            'After the bounded bootstrap wait, MyApp must expose FirstPage or Introduction instead of treating a spinner as success.',
-      );
-      expect(find.byType(CircularProgressIndicator), findsNothing);
-    },
-  );
+        // The route table generated under ScreenUtilInit, and either
+        // - the FirstPage branch rendered (success path: hits DisclaimerPage or
+        //   the post-disclaimer entry), OR
+        // - the Introduction fallback rendered (failure path through catchError)
+        //
+        // Either outcome counts as a successful bootstrap smoke per ADR-002 §
+        // Decision #1: "asserts the app boots, the route table generates, and
+        // the first visible page is DisclaimerPage (fresh user) or firstPage
+        // (returning)".
+        final hasFirstPage = find.byType(FirstPage).evaluate().isNotEmpty;
+        final hasIntroduction = find.byType(Introduction).evaluate().isNotEmpty;
+        expect(
+          hasFirstPage || hasIntroduction,
+          isTrue,
+          reason:
+              'After the bounded bootstrap wait, MyApp must expose FirstPage or Introduction instead of treating a spinner as success.',
+        );
+        expect(find.byType(CircularProgressIndicator), findsNothing);
+      },
+    );
 
-  testWidgets(
-    'MyApp.changeLocale updates the locale and triggers a re-build cycle',
-    (tester) async {
+    testWidgets('should update the locale and trigger a rebuild cycle', (
+      tester,
+    ) async {
       _disposePumpedAppAfterTest(tester);
 
       final phonePageData = PhonePageData(
@@ -267,12 +267,60 @@ void main() {
 
       final localeService = GetIt.instance<LocaleService>();
       expect(localeService.getLocale(), 'he');
-    },
-  );
+    });
 
-  testWidgets(
-    'didChangeAppLifecycleState (paused/resumed/detached) drives session tracking branches',
-    (tester) async {
+    testWidgets(
+      'should track sessions for paused, resumed, and detached lifecycle states',
+      (tester) async {
+        _disposePumpedAppAfterTest(tester);
+
+        final phonePageData = PhonePageData(
+          key: 'PhonePage',
+          phoneNames: const [],
+          phoneNumbers: const [],
+          header: '',
+          subTitle: '',
+          midTitle: '',
+          phoneNameTitle: '',
+          phoneNumberTitle: '',
+          savedPhoneNames: const [],
+          savedPhoneNumbers: const [],
+          phoneDescription: const [],
+        );
+
+        await tester.pumpWidget(_bootstrappedMyApp(phonePageData));
+        await tester.pump(const Duration(milliseconds: 100));
+
+        final myAppState = tester.state(find.byType(MyApp)) as dynamic;
+        // Lines 229-237 of main.dart — every branch of the AppLifecycleState
+        // switch + nested _startSession / _endSession.
+        myAppState.didChangeAppLifecycleState(AppLifecycleState.resumed);
+        myAppState.didChangeAppLifecycleState(AppLifecycleState.hidden);
+        myAppState.didChangeAppLifecycleState(AppLifecycleState.resumed);
+        myAppState.didChangeAppLifecycleState(AppLifecycleState.detached);
+        await tester.pump();
+
+        final analytics =
+            GetIt.instance<AnalyticsService>() as NoopAnalyticsService;
+        final names = analytics.events.map((e) => e.key).toList();
+        expect(
+          names.where((e) => e == 'Session started').isNotEmpty,
+          isTrue,
+          reason:
+              'lifecycle resumed branch must fire Session started via MixPanelService.trackEvent',
+        );
+        expect(
+          names.where((e) => e == 'Session Ended').isNotEmpty,
+          isTrue,
+          reason:
+              'lifecycle detached/hidden branch must fire Session Ended via MixPanelService.trackEvent',
+        );
+      },
+    );
+
+    testWidgets('should apply an updated dark-mode preference immediately', (
+      tester,
+    ) async {
       _disposePumpedAppAfterTest(tester);
 
       final phonePageData = PhonePageData(
@@ -290,69 +338,24 @@ void main() {
       );
 
       await tester.pumpWidget(_bootstrappedMyApp(phonePageData));
-      await tester.pump(const Duration(milliseconds: 100));
-
-      final myAppState = tester.state(find.byType(MyApp)) as dynamic;
-      // Lines 229-237 of main.dart — every branch of the AppLifecycleState
-      // switch + nested _startSession / _endSession.
-      myAppState.didChangeAppLifecycleState(AppLifecycleState.resumed);
-      myAppState.didChangeAppLifecycleState(AppLifecycleState.hidden);
-      myAppState.didChangeAppLifecycleState(AppLifecycleState.resumed);
-      myAppState.didChangeAppLifecycleState(AppLifecycleState.detached);
       await tester.pump();
 
-      final analytics =
-          GetIt.instance<AnalyticsService>() as NoopAnalyticsService;
-      final names = analytics.events.map((e) => e.key).toList();
+      final materialApp = find.byType(MaterialApp);
       expect(
-        names.where((e) => e == 'Session started').isNotEmpty,
-        isTrue,
-        reason:
-            'lifecycle resumed branch must fire Session started via MixPanelService.trackEvent',
+        tester.widget<MaterialApp>(materialApp).themeMode,
+        ThemeMode.light,
       );
-      expect(
-        names.where((e) => e == 'Session Ended').isNotEmpty,
-        isTrue,
-        reason:
-            'lifecycle detached/hidden branch must fire Session Ended via MixPanelService.trackEvent',
+
+      final userInformation = Provider.of<UserInformation>(
+        tester.element(find.byType(MyApp)),
+        listen: false,
       );
-    },
-  );
+      await userInformation.updateDarkModeSettings(
+        preference: DarkModePreference.alwaysDark,
+      );
+      await tester.pump();
 
-  testWidgets('MyApp applies an updated dark-mode preference immediately', (
-    tester,
-  ) async {
-    _disposePumpedAppAfterTest(tester);
-
-    final phonePageData = PhonePageData(
-      key: 'PhonePage',
-      phoneNames: const [],
-      phoneNumbers: const [],
-      header: '',
-      subTitle: '',
-      midTitle: '',
-      phoneNameTitle: '',
-      phoneNumberTitle: '',
-      savedPhoneNames: const [],
-      savedPhoneNumbers: const [],
-      phoneDescription: const [],
-    );
-
-    await tester.pumpWidget(_bootstrappedMyApp(phonePageData));
-    await tester.pump();
-
-    final materialApp = find.byType(MaterialApp);
-    expect(tester.widget<MaterialApp>(materialApp).themeMode, ThemeMode.light);
-
-    final userInformation = Provider.of<UserInformation>(
-      tester.element(find.byType(MyApp)),
-      listen: false,
-    );
-    await userInformation.updateDarkModeSettings(
-      preference: DarkModePreference.alwaysDark,
-    );
-    await tester.pump();
-
-    expect(tester.widget<MaterialApp>(materialApp).themeMode, ThemeMode.dark);
+      expect(tester.widget<MaterialApp>(materialApp).themeMode, ThemeMode.dark);
+    });
   });
 }

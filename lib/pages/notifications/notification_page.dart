@@ -70,19 +70,14 @@ class _NotificationPageState extends LPExtendedState<NotificationPage>
       _showReminderMutationFailure();
       return false;
     }
-    try {
-      final applied = value
-          ? await _enableReminder(userInfo)
-          : await FcmScheduledNotificationService.cancelNotification(
-              context: context,
-              typeId: 'default',
-            );
-      if (!applied) _showReminderMutationFailure();
-      return applied;
-    } catch (_) {
-      _showReminderMutationFailure();
-      return false;
-    }
+    final applied = value
+        ? await _enableReminder(userInfo)
+        : await FcmScheduledNotificationService.cancelNotification(
+            context: context,
+            typeId: 'default',
+          );
+    if (!applied) _showReminderMutationFailure();
+    return applied;
   }
 
   Future<bool> _enableReminder(UserInformation userInfo) async {
@@ -112,20 +107,14 @@ class _NotificationPageState extends LPExtendedState<NotificationPage>
       _showReminderMutationFailure();
       return false;
     }
-    try {
-      final applied =
-          await FcmScheduledNotificationService.registerNotification(
-            context: context,
-            typeId: 'default',
-            hour: picked.hour,
-            minute: picked.minute,
-          );
-      if (!applied) _showReminderMutationFailure();
-      return applied;
-    } catch (_) {
-      _showReminderMutationFailure();
-      return false;
-    }
+    final applied = await FcmScheduledNotificationService.registerNotification(
+      context: context,
+      typeId: 'default',
+      hour: picked.hour,
+      minute: picked.minute,
+    );
+    if (!applied) _showReminderMutationFailure();
+    return applied;
   }
 
   void _showReminderMutationFailure() {
