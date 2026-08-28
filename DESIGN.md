@@ -191,11 +191,29 @@ ThemeData buildDarkTheme() {
     colorScheme: appDarkColorScheme,
     primaryColor: AppColors.darkPrimary,
     scaffoldBackgroundColor: AppColors.darkPageBackground,
-    bottomAppBarTheme: const BottomAppBarThemeData(color: AppColors.darkNavBackground),
+    bottomAppBarTheme: const BottomAppBarThemeData(
+      color: AppColors.darkNavBackground,
+    ),
+    canvasColor: AppColors.darkSurface,
+    cardColor: AppColors.darkSurfaceContainer,
+    dividerColor: AppColors.darkOnSurface.withValues(alpha: 0.2),
+    appBarTheme: const AppBarTheme(
+      backgroundColor: AppColors.darkNavBackground,
+      foregroundColor: AppColors.darkOnSurface,
+    ),
+    inputDecorationTheme: const InputDecorationTheme(
+      fillColor: AppColors.darkSurfaceContainer,
+      filled: true,
+    ),
     fontFamily: 'Rubix',
   );
 }
 ```
+
+`AppColors.darkLogoOutline` is intentionally not assigned to `ThemeData` or
+`ColorScheme`. `LivingPositivelyLogo` reads it directly because it applies only
+to the dark-mode artwork contour; regular dark-mode text continues to use
+`AppColors.darkOnSurface`.
 
 ---
 
