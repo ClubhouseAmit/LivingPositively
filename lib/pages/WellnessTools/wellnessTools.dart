@@ -193,7 +193,7 @@ class _WellnessToolsState extends LPExtendedState<WellnessTools> {
                     child: Center(
                       child: SizedBox(
                         height: 130.0,
-                        child: LpLogo(
+                        child: LivingPositivelyLogo(
                           width: MediaQuery.sizeOf(context).width * 0.4 > 1000
                               ? 500
                               : MediaQuery.sizeOf(context).width,

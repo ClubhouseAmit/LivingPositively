@@ -28,7 +28,7 @@ class About extends StatelessWidget {
           child: SizedBox(
             height: 130.0,
             // Mazilon Logo in the app bar
-            child: LpLogo(
+            child: LivingPositivelyLogo(
               width: MediaQuery.of(context).size.width * 0.4 > 1000
                   ? 500
                   : MediaQuery.of(context).size.width * 0.2, // Adjust as needed

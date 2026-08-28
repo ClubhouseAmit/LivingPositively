@@ -50,7 +50,7 @@ class _IntroductionState extends LPExtendedState<Introduction>
               const Spacer(flex: 3),
               // Center Logo (LP Butterfly)
               Center(
-                child: LpLogo(
+                child: LivingPositivelyLogo(
                   width: 180.w,
                   fit: BoxFit.contain,
                 ),

@@ -130,6 +130,7 @@ void main() {
       expect(dark.colorScheme.error, AppColors.darkError);
       expect(dark.colorScheme.onError, AppColors.darkOnError);
       expect(dark.colorScheme.outline, AppColors.darkOutline);
+      expect(dark.colorScheme.outlineVariant, AppColors.darkOutline);
       expect(
         dark.colorScheme.surfaceContainerHighest,
         AppColors.darkSurfaceContainer,
@@ -183,6 +184,19 @@ void main() {
               '${background.toARGB32().toRadixString(16)}',
         );
       }
+    });
+
+    test('outlineVariant should meet 3 to 1 non-text contrast', () {
+      final colorScheme = buildDarkTheme().colorScheme;
+
+      expect(colorScheme.outlineVariant, AppColors.darkOutline);
+      expect(
+        _contrastRatio(
+          colorScheme.outlineVariant,
+          colorScheme.surfaceContainerHighest,
+        ),
+        greaterThanOrEqualTo(3),
+      );
     });
 
     test('does not silently fall back to the light palette', () {

@@ -1,8 +1,9 @@
 import 'dart:math' as math;
+import 'dart:typed_data';
 import 'dart:ui' as ui;
 
 import 'package:flutter/material.dart';
-import 'package:flutter/semantics.dart';
+import 'package:flutter/rendering.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:mazilon/util/layout/directional_widgets.dart';
 import 'package:mazilon/util/theme/app_theme.dart';
@@ -293,47 +294,147 @@ void main() {
     });
   });
 
-  group('LpLogo', () {
-    testWidgets('should outline only the LP letters in dark mode', (
-      tester,
-    ) async {
-      await tester.pumpWidget(
-        _logoHarness(theme: buildLightTheme()),
-      );
+  group('LivingPositivelyLogo', () {
+    testWidgets(
+      'should rasterize a lower-region white letter outline only in dark mode',
+      (tester) async {
+        tester.view.devicePixelRatio = 1;
+        tester.view.physicalSize = const Size(500, 500);
+        addTearDown(tester.view.reset);
 
-      expect(find.byType(ColorFiltered), findsNothing);
-      expect(find.byType(Image), findsOneWidget);
+        for (final width in [120.0, 180.0]) {
+          await tester.pumpWidget(
+            _logoHarness(theme: buildLightTheme(), width: width),
+          );
+          await tester.pumpAndSettle();
+          await _precacheLogoAsset(tester);
 
-      await tester.pumpWidget(
-        _logoHarness(theme: buildDarkTheme()),
-      );
-      await tester.pumpAndSettle();
+          expect(find.byType(ColorFiltered), findsNothing);
+          expect(find.byType(Image), findsOneWidget);
+          final lightRaster = (await tester.runAsync(
+            () => _captureLogoRaster(tester),
+          ))!;
 
-      expect(find.byType(ColorFiltered), findsNWidgets(8));
-      expect(find.byType(ClipRect), findsNWidgets(8));
-      expect(find.byType(Image), findsNWidgets(9));
-      final logoSize = tester.getSize(find.byType(Image).last);
-      for (final element in find.byType(ClipRect).evaluate()) {
-        expect((element.renderObject! as RenderBox).size, logoSize);
-      }
-      for (final filtered in tester.widgetList<ColorFiltered>(
-        find.byType(ColorFiltered),
-      )) {
-        expect(
-          filtered.colorFilter,
-          const ColorFilter.mode(Colors.white, BlendMode.srcIn),
-        );
-      }
-    });
+          await tester.pumpWidget(
+            _plainLogoHarness(theme: buildLightTheme(), width: width),
+          );
+          await tester.pumpAndSettle();
+          await _precacheLogoAsset(tester);
+          final plainRaster = (await tester.runAsync(
+            () => _captureLogoRaster(tester),
+          ))!;
+          expect(lightRaster.bytes, orderedEquals(plainRaster.bytes));
+
+          await tester.pumpWidget(
+            _logoHarness(theme: buildDarkTheme(), width: width),
+          );
+          await tester.pumpAndSettle();
+          await _precacheLogoAsset(tester);
+
+          expect(find.byType(ColorFiltered), findsNWidgets(8));
+          expect(find.byType(ClipRect), findsNWidgets(8));
+          expect(find.byType(Image), findsNWidgets(9));
+          for (final filtered in tester.widgetList<ColorFiltered>(
+            find.byType(ColorFiltered),
+          )) {
+            expect(
+              filtered.colorFilter,
+              const ColorFilter.mode(Colors.white, BlendMode.srcIn),
+            );
+          }
+
+          final logoSize = tester.getSize(find.byType(Image).last);
+          final expectedClipTop = logoSize.height * 0.53;
+          for (final clipRect in tester.widgetList<ClipRect>(
+            find.byType(ClipRect),
+          )) {
+            final clip = clipRect.clipper!.getClip(logoSize);
+            expect(clip.top, closeTo(expectedClipTop, 0.001));
+            expect(clip.height, closeTo(logoSize.height * 0.47, 0.001));
+          }
+
+          final darkRaster = (await tester.runAsync(
+            () => _captureLogoRaster(tester),
+          ))!;
+          final preservedEndRow = math.max(
+            0,
+            (darkRaster.height * 0.53).floor() - 2,
+          );
+          expect(
+            lightRaster.matchesRows(
+              darkRaster,
+              startRow: 0,
+              endRow: preservedEndRow,
+            ),
+            isTrue,
+            reason:
+                'Dark-mode outlining must not alter the butterfly or green accent.',
+          );
+          expect(
+            lightRaster.countWhere(
+              startRow: 0,
+              endRow: preservedEndRow,
+              predicate: _isButterflyPixel,
+            ),
+            greaterThan(0),
+          );
+          expect(
+            lightRaster.countWhere(
+              startRow: 0,
+              endRow: preservedEndRow,
+              predicate: _isGreenAccentPixel,
+            ),
+            greaterThan(0),
+          );
+          expect(
+            darkRaster.countNewWhitePixelsComparedTo(
+              lightRaster,
+              startRow: math.max(0, expectedClipTop.floor() - 1),
+            ),
+            greaterThan(0),
+            reason: 'Dark mode must add a white outline around the LP letters.',
+          );
+        }
+      },
+    );
   });
 }
 
-Widget _logoHarness({required ThemeData theme}) {
+const _logoRasterBoundaryKey = Key('livingPositivelyLogoRasterBoundary');
+const _logoHeightFactor = 465 / 540;
+const _logoAssetPath = 'assets/images/Logo.png';
+
+Widget _logoHarness({required ThemeData theme, required double width}) {
   return MaterialApp(
     theme: theme,
-    home: const Scaffold(
+    home: Scaffold(
       body: Center(
-        child: LpLogo(width: 180),
+        child: RepaintBoundary(
+          key: _logoRasterBoundaryKey,
+          child: SizedBox(
+            width: width,
+            height: width * _logoHeightFactor,
+            child: LivingPositivelyLogo(width: width),
+          ),
+        ),
+      ),
+    ),
+  );
+}
+
+Widget _plainLogoHarness({required ThemeData theme, required double width}) {
+  return MaterialApp(
+    theme: theme,
+    home: Scaffold(
+      body: Center(
+        child: RepaintBoundary(
+          key: _logoRasterBoundaryKey,
+          child: SizedBox(
+            width: width,
+            height: width * _logoHeightFactor,
+            child: Image.asset(_logoAssetPath, width: width),
+          ),
+        ),
       ),
     ),
   );
@@ -426,6 +527,128 @@ double _pillDashLength(Size size) {
     }
   }
   return paintedLength;
+}
+
+Future<_LogoRaster> _captureLogoRaster(WidgetTester tester) async {
+  final boundary = tester.renderObject<RenderRepaintBoundary>(
+    find.byKey(_logoRasterBoundaryKey),
+  );
+  final image = await boundary.toImage(pixelRatio: 1);
+  try {
+    final data = await image.toByteData(
+      format: ui.ImageByteFormat.rawStraightRgba,
+    );
+    return _LogoRaster(
+      width: image.width,
+      height: image.height,
+      bytes: Uint8List.fromList(
+        data!.buffer.asUint8List(data.offsetInBytes, data.lengthInBytes),
+      ),
+    );
+  } finally {
+    image.dispose();
+  }
+}
+
+Future<void> _precacheLogoAsset(WidgetTester tester) async {
+  await tester.runAsync(
+    () => precacheImage(
+      const AssetImage(_logoAssetPath),
+      tester.element(find.byType(Scaffold)),
+    ).timeout(const Duration(seconds: 5)),
+  );
+  await tester.pump();
+}
+
+bool _isButterflyPixel(int red, int green, int blue, int alpha) =>
+    alpha > 0 && red > green + 10 && blue > green + 10;
+
+bool _isGreenAccentPixel(int red, int green, int blue, int alpha) =>
+    alpha > 0 && green > red + 10 && green > blue + 10;
+
+final class _LogoRaster {
+  final int width;
+  final int height;
+  final Uint8List bytes;
+
+  const _LogoRaster({
+    required this.width,
+    required this.height,
+    required this.bytes,
+  });
+
+  bool matchesRows(
+    _LogoRaster other, {
+    required int startRow,
+    required int endRow,
+  }) {
+    if (width != other.width || height != other.height) {
+      return false;
+    }
+
+    for (var row = startRow; row < endRow; row++) {
+      final rowStart = row * width * 4;
+      final rowEnd = rowStart + width * 4;
+      for (var offset = rowStart; offset < rowEnd; offset++) {
+        if (bytes[offset] != other.bytes[offset]) {
+          return false;
+        }
+      }
+    }
+    return true;
+  }
+
+  int countWhere({
+    required int startRow,
+    required int endRow,
+    required bool Function(int red, int green, int blue, int alpha) predicate,
+  }) {
+    var count = 0;
+    for (var row = startRow; row < endRow; row++) {
+      for (var column = 0; column < width; column++) {
+        final offset = (row * width + column) * 4;
+        if (predicate(
+          bytes[offset],
+          bytes[offset + 1],
+          bytes[offset + 2],
+          bytes[offset + 3],
+        )) {
+          count++;
+        }
+      }
+    }
+    return count;
+  }
+
+  int countNewWhitePixelsComparedTo(
+    _LogoRaster baseline, {
+    required int startRow,
+  }) {
+    if (width != baseline.width || height != baseline.height) {
+      return 0;
+    }
+
+    var count = 0;
+    for (var row = startRow; row < height; row++) {
+      for (var column = 0; column < width; column++) {
+        final offset = (row * width + column) * 4;
+        final isWhite =
+            bytes[offset] >= 250 &&
+            bytes[offset + 1] >= 250 &&
+            bytes[offset + 2] >= 250 &&
+            bytes[offset + 3] > 0;
+        final baselineIsWhite =
+            baseline.bytes[offset] >= 250 &&
+            baseline.bytes[offset + 1] >= 250 &&
+            baseline.bytes[offset + 2] >= 250 &&
+            baseline.bytes[offset + 3] > 0;
+        if (isWhite && !baselineIsWhite) {
+          count++;
+        }
+      }
+    }
+    return count;
+  }
 }
 
 final class _RasterStats {

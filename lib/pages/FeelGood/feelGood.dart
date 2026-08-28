@@ -142,7 +142,7 @@ class _FeelGoodPageState extends LPExtendedState<FeelGood> {
           child: SafeArea(
             child: SizedBox(
               height: 130.0,
-              child: LpLogo(
+              child: LivingPositivelyLogo(
                 width: MediaQuery.of(context).size.width * 0.4 > 1000
                     ? 500
                     : MediaQuery.of(context).size.width * 0.2,

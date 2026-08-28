@@ -160,6 +160,7 @@ const ColorScheme appDarkColorScheme = ColorScheme.dark(
   error: AppColors.darkError,
   onError: AppColors.darkOnError,
   outline: AppColors.darkOutline,
+  outlineVariant: AppColors.darkOutline,
   surfaceContainerHighest: AppColors.darkSurfaceContainer,
 );
 

@@ -6,7 +6,7 @@ import 'package:mazilon/util/theme/spacing.dart';
 ///
 /// The white outline is confined to the lower `Logo.png` letter region so the
 /// butterfly and green accent preserve their existing artwork.
-class LpLogo extends StatelessWidget {
+final class LivingPositivelyLogo extends StatelessWidget {
   static const _assetPath = 'assets/images/Logo.png';
   static const _letterRegionHeightFactor = 0.47;
   static const _outlineOffsets = [
@@ -24,7 +24,7 @@ class LpLogo extends StatelessWidget {
   final double? height;
   final BoxFit? fit;
 
-  const LpLogo({super.key, this.width, this.height, this.fit});
+  const LivingPositivelyLogo({super.key, this.width, this.height, this.fit});
 
   Image _buildImage() =>
       Image.asset(_assetPath, width: width, height: height, fit: fit);
@@ -45,7 +45,7 @@ class LpLogo extends StatelessWidget {
             offset: offset,
             child: ExcludeSemantics(
               child: ClipRect(
-                clipper: const _LpLetterRegionClipper(),
+                clipper: const _LivingPositivelyLetterRegionClipper(),
                 child: ColorFiltered(
                   colorFilter: const ColorFilter.mode(
                     Colors.white,
@@ -62,19 +62,21 @@ class LpLogo extends StatelessWidget {
   }
 }
 
-class _LpLetterRegionClipper extends CustomClipper<Rect> {
-  const _LpLetterRegionClipper();
+class _LivingPositivelyLetterRegionClipper extends CustomClipper<Rect> {
+  const _LivingPositivelyLetterRegionClipper();
 
   @override
   Rect getClip(Size size) => Rect.fromLTWH(
     0,
-    size.height * (1 - LpLogo._letterRegionHeightFactor),
+    size.height * (1 - LivingPositivelyLogo._letterRegionHeightFactor),
     size.width,
-    size.height * LpLogo._letterRegionHeightFactor,
+    size.height * LivingPositivelyLogo._letterRegionHeightFactor,
   );
 
   @override
-  bool shouldReclip(covariant _LpLetterRegionClipper oldClipper) => false;
+  bool shouldReclip(
+    covariant _LivingPositivelyLetterRegionClipper oldClipper,
+  ) => false;
 }
 
 /// Reusable card container with proper RTL support and Material Design styling
@@ -506,7 +508,7 @@ class _DashedCirclePainter extends CustomPainter {
 ///
 /// [color], [radius], and [strokeWidth] keep each caller's visual variant
 /// explicit while preserving the common dash geometry.
-class DashedRoundedBorderPainter extends CustomPainter {
+final class DashedRoundedBorderPainter extends CustomPainter {
   final Color color;
   final double radius;
   final double strokeWidth;
