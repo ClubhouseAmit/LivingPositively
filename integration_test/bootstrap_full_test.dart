@@ -63,8 +63,17 @@ GatedLocalePersistentMemoryService _installGatedLocaleMemory() {
   return memory;
 }
 
-void _disposePumpedAppAfterTest(WidgetTester tester) {
+void _disposePumpedAppAfterTest(
+  WidgetTester tester, {
+  void Function()? beforeDispose,
+}) {
   addTearDown(() async {
+    // Complete any gated asynchronous bootstrap work while MyApp and its
+    // services are still mounted. This prevents continuations from touching
+    // disposed State or a reset GetIt container.
+    beforeDispose?.call();
+    await tester.pump();
+    await tester.pump();
     await tester.pumpWidget(const SizedBox.shrink());
     await tester.pump();
   });
@@ -198,12 +207,14 @@ void main() {
           },
           fcmInitializer: () async {},
         );
-        addTearDown(() {
-          if (!gatedMemory.localeGate.isCompleted) {
-            gatedMemory.localeGate.complete();
-          }
-        });
-        _disposePumpedAppAfterTest(tester);
+        _disposePumpedAppAfterTest(
+          tester,
+          beforeDispose: () {
+            if (!gatedMemory.localeGate.isCompleted) {
+              gatedMemory.localeGate.complete();
+            }
+          },
+        );
 
         await tester.pumpWidget(widget);
         // First frame: localeName is still '' so MyApp renders the bootstrap
@@ -266,6 +277,7 @@ void main() {
               'regression in the localeName=""→ScreenUtilInit transition, '
               'not a flake.',
         );
+        expect(find.byType(CircularProgressIndicator), findsNothing);
       },
     );
   });

@@ -87,8 +87,16 @@ GatedLocalePersistentMemoryService _installGatedLocaleMemory() {
   return memory;
 }
 
-void _disposePumpedAppAfterTest(WidgetTester tester) {
+void _disposePumpedAppAfterTest(
+  WidgetTester tester, {
+  void Function()? beforeDispose,
+}) {
   addTearDown(() async {
+    // Let gated bootstrap work finish before MyApp is unmounted and the
+    // locator teardown clears the services it may still access.
+    beforeDispose?.call();
+    await tester.pump();
+    await tester.pump();
     await tester.pumpWidget(const SizedBox.shrink());
     await tester.pump();
   });
@@ -134,12 +142,14 @@ void main() {
     'MyApp boots without throwing — initial frame shows CircularProgressIndicator',
     (tester) async {
       final gatedMemory = _installGatedLocaleMemory();
-      addTearDown(() {
-        if (!gatedMemory.localeGate.isCompleted) {
-          gatedMemory.localeGate.complete();
-        }
-      });
-      _disposePumpedAppAfterTest(tester);
+      _disposePumpedAppAfterTest(
+        tester,
+        beforeDispose: () {
+          if (!gatedMemory.localeGate.isCompleted) {
+            gatedMemory.localeGate.complete();
+          }
+        },
+      );
 
       final phonePageData = PhonePageData(
         key: 'PhonePage',
@@ -217,6 +227,7 @@ void main() {
         reason:
             'After the bounded bootstrap wait, MyApp must expose FirstPage or Introduction instead of treating a spinner as success.',
       );
+      expect(find.byType(CircularProgressIndicator), findsNothing);
     },
   );
 

@@ -881,44 +881,50 @@ void main() {
     },
   );
 
-  testWidgets('remote cancellation runs on an unsupported platform', (
-    tester,
-  ) async {
-    user.setNotificationPreference(
-      'default',
-      const NotificationPreference(hour: 8, minute: 15),
-    );
-    await pumpUser(tester);
-    var tokenRequested = false;
-    final requestPaths = <String>[];
+  for (final platform in <TargetPlatform>[
+    TargetPlatform.linux,
+    TargetPlatform.macOS,
+    TargetPlatform.windows,
+  ]) {
+    testWidgets('remote cancellation runs on unsupported ${platform.name}', (
+      tester,
+    ) async {
+      user.setNotificationPreference(
+        'default',
+        const NotificationPreference(hour: 8, minute: 15),
+      );
+      await pumpUser(tester);
+      var tokenRequested = false;
+      final requestPaths = <String>[];
 
-    final result = await _onPlatform(
-      TargetPlatform.windows,
-      () => FcmScheduledNotificationService.cancelNotification(
-        context: serviceContext,
-        typeId: 'default',
-        requireNoActiveDeliveryPermit: true,
-        idTokenProvider: () async {
-          tokenRequested = true;
-          return 'token-123';
-        },
-        post: (url, {headers, body, encoding}) async {
-          requestPaths.add(url.path);
-          return url.path.endsWith('/getNotificationMutationVersion')
-              ? http.Response('{"mutationVersion":0}', 200)
-              : http.Response('{"success":true}', 200);
-        },
-      ),
-    );
+      final result = await _onPlatform(
+        platform,
+        () => FcmScheduledNotificationService.cancelNotification(
+          context: serviceContext,
+          typeId: 'default',
+          requireNoActiveDeliveryPermit: true,
+          idTokenProvider: () async {
+            tokenRequested = true;
+            return 'token-123';
+          },
+          post: (url, {headers, body, encoding}) async {
+            requestPaths.add(url.path);
+            return url.path.endsWith('/getNotificationMutationVersion')
+                ? http.Response('{"mutationVersion":0}', 200)
+                : http.Response('{"success":true}', 200);
+          },
+        ),
+      );
 
-    expect(result, isTrue);
-    expect(tokenRequested, isTrue);
-    expect(requestPaths, [
-      '/getNotificationMutationVersion',
-      '/cancelNotification',
-    ]);
-    expect(user.getNotificationPreference('default'), isNull);
-  });
+      expect(result, isTrue);
+      expect(tokenRequested, isTrue);
+      expect(requestPaths, [
+        '/getNotificationMutationVersion',
+        '/cancelNotification',
+      ]);
+      expect(user.getNotificationPreference('default'), isNull);
+    });
+  }
 
   testWidgets(
     'migrates a persisted legacy reminder, retires it, then marks it once',

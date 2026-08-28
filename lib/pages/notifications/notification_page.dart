@@ -8,6 +8,7 @@ import 'package:mazilon/pages/auth/auth_page.dart';
 import 'package:mazilon/pages/notifications/reminder_debug_panel.dart';
 import 'package:mazilon/pages/notifications/notification_toggle_card.dart';
 import 'package:mazilon/pages/notifications/reminder_debug_recorder.dart';
+import 'package:mazilon/l10n/app_localizations.dart';
 import 'package:mazilon/util/Firebase/fcm_scheduled_notification_service.dart';
 import 'package:mazilon/util/Firebase/fcm_service.dart';
 import 'package:mazilon/util/LP_extended_state.dart';
@@ -262,16 +263,12 @@ class _NotificationPageState extends LPExtendedState<NotificationPage>
   }
 }
 
-class _NotSignedInCard extends StatefulWidget {
+class _NotSignedInCard extends StatelessWidget {
   const _NotSignedInCard();
 
   @override
-  State<_NotSignedInCard> createState() => _NotSignedInCardState();
-}
-
-class _NotSignedInCardState extends LPExtendedState<_NotSignedInCard> {
-  @override
   Widget build(BuildContext context) {
+    final appLocale = AppLocalizations.of(context)!;
     return Container(
       width: double.infinity,
       padding: const EdgeInsets.all(20),
