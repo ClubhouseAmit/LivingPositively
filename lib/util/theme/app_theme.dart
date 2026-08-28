@@ -48,42 +48,41 @@ class AppColors {
   /// Foreground on `error`.
   static const Color onError = Colors.white;
 
-  /// Dark-mode equivalent of the brand lavender. The light value would not
-  /// maintain enough contrast against the dark surface for controls.
-  static const Color darkPrimary = Color(0xFFD7C2FF);
+  /// Warm gold used for primary controls in the sepia dark theme.
+  static const Color darkPrimary = Color(0xFFD8B77A);
 
   /// Foreground colour on [darkPrimary].
-  static const Color darkOnPrimary = Color(0xFF2E1649);
+  static const Color darkOnPrimary = Color(0xFF2A211B);
 
-  /// Dark-mode secondary accent for selected and supporting controls.
-  static const Color darkSecondary = Color(0xFFE8D7FF);
+  /// Muted tan used for selected and supporting dark-mode controls.
+  static const Color darkSecondary = Color(0xFFB9A183);
 
   /// Foreground colour on [darkSecondary].
-  static const Color darkOnSecondary = Color(0xFF2A1941);
+  static const Color darkOnSecondary = Color(0xFF2A211B);
 
   /// Home page background in light mode — warm cream.
   static const Color pageBackground = Color(0xFFF4F0EB);
 
-  /// Home page background in dark mode — warm dark brown.
-  static const Color darkPageBackground = Color(0xFF1C1814);
+  /// Home page background in dark mode — warm sepia brown.
+  static const Color darkPageBackground = Color(0xFF2A211B);
 
-  /// Bottom navbar background in dark mode — visibly lighter warm brown.
-  static const Color darkNavBackground = Color(0xFF4A4440);
+  /// App and navigation chrome in dark mode.
+  static const Color darkNavBackground = Color(0xFF3A2C22);
 
-  /// Default dark scaffold and page surface.
-  static const Color darkSurface = Color(0xFF141218);
+  /// Default dark page surface.
+  static const Color darkSurface = Color(0xFF2A211B);
 
-  /// Elevated dark surface used by cards and input controls.
-  static const Color darkSurfaceContainer = Color(0xFF211F26);
+  /// Elevated sepia surface used by cards and input controls.
+  static const Color darkSurfaceContainer = Color(0xFF574638);
 
   /// Body-text colour on [darkSurface].
-  static const Color darkOnSurface = Color(0xFFE7E0E8);
+  static const Color darkOnSurface = Color(0xFFF6EAD5);
 
   /// Accessible destructive colour for dark mode.
-  static const Color darkError = Color(0xFFFFB4AB);
+  static const Color darkError = Color(0xFFA9574C);
 
   /// Foreground on [darkError].
-  static const Color darkOnError = Color(0xFF690005);
+  static const Color darkOnError = Color(0xFFFFF4E3);
 
   // -- Non-ColorScheme tokens (no semantic slot, kept for legacy parity) --
 
@@ -105,8 +104,8 @@ class AppColors {
   /// Foreground on [darkSuccess].
   static const Color darkOnSuccess = Color(0xFF003913);
 
-  /// Muted text, borders, and dividers in dark mode.
-  static const Color darkOutline = Color(0xFFCBC4D0);
+  /// Accessible outline and small-text accent in dark mode.
+  static const Color darkOutline = Color(0xFFD8B77A);
 
   /// Inactive onboarding progress-dot fill — a lighter, distinct grey from
   /// [neutralDark]. Figma node 1660:2067; no dark-mode treatment designed
@@ -194,7 +193,7 @@ ThemeData buildDarkTheme() {
     cardColor: AppColors.darkSurfaceContainer,
     dividerColor: AppColors.darkOnSurface.withValues(alpha: 0.2),
     appBarTheme: const AppBarTheme(
-      backgroundColor: AppColors.darkSurface,
+      backgroundColor: AppColors.darkNavBackground,
       foregroundColor: AppColors.darkOnSurface,
     ),
     inputDecorationTheme: const InputDecorationTheme(

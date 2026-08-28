@@ -25,6 +25,23 @@ void main() {
       expect(AppColors.onSurface, const Color(0xFF0F2851));
     });
 
+    test('dark tokens should match the approved warm-sepia palette', () {
+      expect(AppColors.darkPageBackground, const Color(0xFF2A211B));
+      expect(AppColors.darkNavBackground, const Color(0xFF3A2C22));
+      expect(AppColors.darkSurface, const Color(0xFF2A211B));
+      expect(AppColors.darkSurfaceContainer, const Color(0xFF574638));
+      expect(AppColors.darkPrimary, const Color(0xFFD8B77A));
+      expect(AppColors.darkOnPrimary, const Color(0xFF2A211B));
+      expect(AppColors.darkSecondary, const Color(0xFFB9A183));
+      expect(AppColors.darkOnSecondary, const Color(0xFF2A211B));
+      expect(AppColors.darkOnSurface, const Color(0xFFF6EAD5));
+      expect(AppColors.darkError, const Color(0xFFA9574C));
+      expect(AppColors.darkOnError, const Color(0xFFFFF4E3));
+      expect(AppColors.darkOutline, const Color(0xFFD8B77A));
+      expect(AppColors.darkSuccess, const Color(0xFF87E990));
+      expect(AppColors.darkOnSuccess, const Color(0xFF003913));
+    });
+
     test('error is Material red 500 (visual parity with Colors.red)', () {
       // Phase D intent is a no-op at the pixel level; the value of
       // `Colors.red` is `0xFFF44336` (Material red 500). Diverging here
@@ -100,11 +117,67 @@ void main() {
       expect(dark.colorScheme, appDarkColorScheme);
       expect(dark.colorScheme.primary, AppColors.darkPrimary);
       expect(dark.colorScheme.onPrimary, AppColors.darkOnPrimary);
+      expect(dark.colorScheme.secondary, AppColors.darkSecondary);
+      expect(dark.colorScheme.onSecondary, AppColors.darkOnSecondary);
+      expect(dark.colorScheme.tertiary, AppColors.darkSuccess);
+      expect(dark.colorScheme.onTertiary, AppColors.darkOnSuccess);
       expect(dark.colorScheme.surface, AppColors.darkSurface);
       expect(dark.colorScheme.onSurface, AppColors.darkOnSurface);
       expect(dark.colorScheme.error, AppColors.darkError);
+      expect(dark.colorScheme.onError, AppColors.darkOnError);
+      expect(dark.colorScheme.outline, AppColors.darkOutline);
+      expect(
+        dark.colorScheme.surfaceContainerHighest,
+        AppColors.darkSurfaceContainer,
+      );
       expect(dark.scaffoldBackgroundColor, AppColors.darkPageBackground);
+      expect(dark.canvasColor, AppColors.darkSurface);
       expect(dark.cardColor, AppColors.darkSurfaceContainer);
+      expect(dark.bottomAppBarTheme.color, AppColors.darkNavBackground);
+      expect(dark.appBarTheme.backgroundColor, AppColors.darkNavBackground);
+      expect(dark.appBarTheme.foregroundColor, AppColors.darkOnSurface);
+      expect(
+        dark.inputDecorationTheme.fillColor,
+        AppColors.darkSurfaceContainer,
+      );
+      expect(dark.inputDecorationTheme.filled, isTrue);
+    });
+
+    test('text pairs should meet 4.5 to 1 contrast', () {
+      final pairs = <(Color, Color)>[
+        (AppColors.darkOnSurface, AppColors.darkSurface),
+        (AppColors.darkOnSurface, AppColors.darkSurfaceContainer),
+        (AppColors.darkOnPrimary, AppColors.darkPrimary),
+        (AppColors.darkOnSecondary, AppColors.darkSecondary),
+        (AppColors.darkOnError, AppColors.darkError),
+        (AppColors.darkOutline, AppColors.darkSurface),
+        (AppColors.darkOutline, AppColors.darkSurfaceContainer),
+      ];
+
+      for (final (foreground, background) in pairs) {
+        expect(
+          _contrastRatio(foreground, background),
+          greaterThanOrEqualTo(4.5),
+          reason:
+              '${foreground.toARGB32().toRadixString(16)} on '
+              '${background.toARGB32().toRadixString(16)}',
+        );
+      }
+    });
+
+    test('green outlines should meet 3 to 1 non-text contrast', () {
+      for (final background in [
+        AppColors.darkPageBackground,
+        AppColors.darkSurfaceContainer,
+      ]) {
+        expect(
+          _contrastRatio(AppColors.darkSuccess, background),
+          greaterThanOrEqualTo(3),
+          reason:
+              '${AppColors.darkSuccess.toARGB32().toRadixString(16)} on '
+              '${background.toARGB32().toRadixString(16)}',
+        );
+      }
     });
 
     test('does not silently fall back to the light palette', () {
@@ -115,4 +188,16 @@ void main() {
       expect(dark.colorScheme.onSurface, isNot(light.colorScheme.onSurface));
     });
   });
+}
+
+double _contrastRatio(Color first, Color second) {
+  final firstLuminance = first.computeLuminance();
+  final secondLuminance = second.computeLuminance();
+  final lighter = firstLuminance > secondLuminance
+      ? firstLuminance
+      : secondLuminance;
+  final darker = firstLuminance > secondLuminance
+      ? secondLuminance
+      : firstLuminance;
+  return (lighter + 0.05) / (darker + 0.05);
 }

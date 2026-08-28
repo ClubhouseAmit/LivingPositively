@@ -319,7 +319,9 @@ class DashedPillAddSlot extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final colorScheme = Theme.of(context).colorScheme;
+    final theme = Theme.of(context);
+    final colorScheme = theme.colorScheme;
+    final isDark = theme.brightness == Brightness.dark;
     return Padding(
       padding: EdgeInsetsDirectional.only(bottom: AppSpacing.sm),
       child: Row(
@@ -327,7 +329,10 @@ class DashedPillAddSlot extends StatelessWidget {
           GestureDetector(
             onTap: onTap,
             child: CustomPaint(
-              painter: _DashedCirclePainter(color: colorScheme.tertiary),
+              painter: _DashedCirclePainter(
+                color: colorScheme.tertiary,
+                strokeWidth: isDark ? 1 : 1.5,
+              ),
               child: SizedBox(
                 width: 36,
                 height: 36,
@@ -338,7 +343,10 @@ class DashedPillAddSlot extends StatelessWidget {
           SizedBox(width: AppSpacing.md),
           Expanded(
             child: CustomPaint(
-              painter: _DashedPillPainter(color: colorScheme.tertiary),
+              painter: _DashedPillPainter(
+                color: colorScheme.tertiary,
+                strokeWidth: isDark ? 1 : 2,
+              ),
               child: Container(
                 padding: EdgeInsetsDirectional.symmetric(
                   horizontal: AppSpacing.md,
@@ -382,13 +390,15 @@ class DashedPillAddSlot extends StatelessWidget {
 
 class _DashedCirclePainter extends CustomPainter {
   final Color color;
-  const _DashedCirclePainter({required this.color});
+  final double strokeWidth;
+
+  const _DashedCirclePainter({required this.color, required this.strokeWidth});
 
   @override
   void paint(Canvas canvas, Size size) {
     final paint = Paint()
       ..color = color
-      ..strokeWidth = 1.5
+      ..strokeWidth = strokeWidth
       ..style = PaintingStyle.stroke;
 
     final center = Offset(size.width / 2, size.height / 2);
@@ -414,18 +424,21 @@ class _DashedCirclePainter extends CustomPainter {
   }
 
   @override
-  bool shouldRepaint(covariant _DashedCirclePainter old) => old.color != color;
+  bool shouldRepaint(covariant _DashedCirclePainter old) =>
+      old.color != color || old.strokeWidth != strokeWidth;
 }
 
 class _DashedPillPainter extends CustomPainter {
   final Color color;
-  const _DashedPillPainter({required this.color});
+  final double strokeWidth;
+
+  const _DashedPillPainter({required this.color, required this.strokeWidth});
 
   @override
   void paint(Canvas canvas, Size size) {
     final paint = Paint()
       ..color = color
-      ..strokeWidth = 2
+      ..strokeWidth = strokeWidth
       ..style = PaintingStyle.stroke;
 
     const radius = 24.0;
@@ -450,5 +463,6 @@ class _DashedPillPainter extends CustomPainter {
   }
 
   @override
-  bool shouldRepaint(covariant _DashedPillPainter old) => old.color != color;
+  bool shouldRepaint(covariant _DashedPillPainter old) =>
+      old.color != color || old.strokeWidth != strokeWidth;
 }
