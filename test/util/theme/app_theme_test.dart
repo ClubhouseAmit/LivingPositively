@@ -35,6 +35,7 @@ void main() {
       expect(AppColors.darkSecondary, const Color(0xFFB9AEA0));
       expect(AppColors.darkOnSecondary, const Color(0xFF2B2A2C));
       expect(AppColors.darkOnSurface, const Color(0xFFF5F0E8));
+      expect(AppColors.darkLogoOutline, const Color(0xFFFFFFFF));
       expect(AppColors.darkError, const Color(0xFFA15857));
       expect(AppColors.darkOnError, const Color(0xFFFFF5F0));
       expect(AppColors.darkOutline, const Color(0xFFD0C1A4));
@@ -170,6 +171,26 @@ void main() {
         );
       }
     });
+
+    test(
+      'dark logo outline should meet 4.5 to 1 contrast on dark surfaces',
+      () {
+        for (final background in [
+          AppColors.darkPageBackground,
+          AppColors.darkNavBackground,
+          AppColors.darkSurface,
+          AppColors.darkSurfaceContainer,
+        ]) {
+          expect(
+            _contrastRatio(AppColors.darkLogoOutline, background),
+            greaterThanOrEqualTo(4.5),
+            reason:
+                '${AppColors.darkLogoOutline.toARGB32().toRadixString(16)} on '
+                '${background.toARGB32().toRadixString(16)}',
+          );
+        }
+      },
+    );
 
     test('green outlines should meet 3 to 1 non-text contrast', () {
       for (final background in [

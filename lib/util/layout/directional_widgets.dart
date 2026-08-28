@@ -1,11 +1,13 @@
 import 'dart:math' as math;
+
 import 'package:flutter/material.dart';
+import 'package:mazilon/util/theme/app_theme.dart';
 import 'package:mazilon/util/theme/spacing.dart';
 
 /// Displays the Living Positively logo with dark-mode letter contrast.
 ///
-/// The white outline is confined to the lower `Logo.png` letter region so the
-/// butterfly and green accent preserve their existing artwork.
+/// The [AppColors.darkLogoOutline] is confined to the lower `Logo.png` letter
+/// region so the butterfly and green accent preserve their existing artwork.
 final class LivingPositivelyLogo extends StatelessWidget {
   static const _assetPath = 'assets/images/Logo.png';
   static const _letterRegionHeightFactor = 0.47;
@@ -48,7 +50,7 @@ final class LivingPositivelyLogo extends StatelessWidget {
                 clipper: const _LivingPositivelyLetterRegionClipper(),
                 child: ColorFiltered(
                   colorFilter: const ColorFilter.mode(
-                    Colors.white,
+                    AppColors.darkLogoOutline,
                     BlendMode.srcIn,
                   ),
                   child: _buildImage(),
@@ -420,7 +422,7 @@ class DashedPillAddSlot extends StatelessWidget {
             child: CustomPaint(
               painter: DashedRoundedBorderPainter(
                 color: colorScheme.tertiary,
-                radius: 24,
+                radius: AppRadii.dashedAddSlot,
                 strokeWidth: 1,
               ),
               child: Container(

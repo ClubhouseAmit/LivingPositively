@@ -140,7 +140,7 @@ class _AddWarningCard extends StatelessWidget {
         child: CustomPaint(
           painter: DashedRoundedBorderPainter(
             color: colorScheme.tertiary,
-            radius: 16,
+            radius: AppRadii.card,
             strokeWidth: 1,
           ),
           child: Padding(

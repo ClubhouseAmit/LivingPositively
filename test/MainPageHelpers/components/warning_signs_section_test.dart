@@ -7,6 +7,7 @@ import 'package:mazilon/MainPageHelpers/components/warning_signs_section.dart';
 import 'package:mazilon/l10n/app_localizations.dart';
 import 'package:mazilon/util/layout/directional_widgets.dart';
 import 'package:mazilon/util/theme/app_theme.dart';
+import 'package:mazilon/util/theme/spacing.dart';
 import 'package:mazilon/util/userInformation.dart';
 import 'package:provider/provider.dart';
 
@@ -54,7 +55,7 @@ void main() {
           final customPaint = tester.widget<CustomPaint>(customPaintFinder);
           final painter = customPaint.painter! as DashedRoundedBorderPainter;
           expect(painter.color, theme.colorScheme.tertiary);
-          expect(painter.radius, 16);
+          expect(painter.radius, AppRadii.card);
           expect(painter.strokeWidth, 1);
 
           final raster = (await tester.runAsync(
@@ -130,7 +131,7 @@ double _warningBorderDashLength(Size size) {
     ..addRRect(
       RRect.fromRectAndRadius(
         Rect.fromLTWH(1, 1, size.width - 2, size.height - 2),
-        const Radius.circular(16),
+        const Radius.circular(AppRadii.card),
       ),
     );
   var paintedLength = 0.0;

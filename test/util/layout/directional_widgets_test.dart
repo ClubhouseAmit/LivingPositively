@@ -7,6 +7,7 @@ import 'package:flutter/rendering.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:mazilon/util/layout/directional_widgets.dart';
 import 'package:mazilon/util/theme/app_theme.dart';
+import 'package:mazilon/util/theme/spacing.dart';
 
 import '../../helpers/widget_test_scaffold.dart';
 
@@ -202,7 +203,7 @@ void main() {
         expect(darkPaints, hasLength(2));
         final darkPillPainter =
             darkPaints[1].painter! as DashedRoundedBorderPainter;
-        expect(darkPillPainter.radius, 24);
+        expect(darkPillPainter.radius, AppRadii.dashedAddSlot);
         expect(darkPillPainter.strokeWidth, 1);
         final darkCircle = (await tester.runAsync(
           () => _rasterize(
@@ -231,7 +232,7 @@ void main() {
         expect(lightPaints, hasLength(2));
         final lightPillPainter =
             lightPaints[1].painter! as DashedRoundedBorderPainter;
-        expect(lightPillPainter.radius, 24);
+        expect(lightPillPainter.radius, AppRadii.dashedAddSlot);
         expect(lightPillPainter.strokeWidth, 1);
         final lightCircle = (await tester.runAsync(
           () => _rasterize(
@@ -339,7 +340,10 @@ void main() {
           )) {
             expect(
               filtered.colorFilter,
-              const ColorFilter.mode(Colors.white, BlendMode.srcIn),
+              const ColorFilter.mode(
+                AppColors.darkLogoOutline,
+                BlendMode.srcIn,
+              ),
             );
           }
 
@@ -517,7 +521,7 @@ double _pillDashLength(Size size) {
     ..addRRect(
       RRect.fromRectAndRadius(
         Rect.fromLTWH(1, 1, size.width - 2, size.height - 2),
-        const Radius.circular(24),
+        const Radius.circular(AppRadii.dashedAddSlot),
       ),
     );
   var paintedLength = 0.0;

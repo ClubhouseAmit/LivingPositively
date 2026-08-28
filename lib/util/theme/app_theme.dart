@@ -80,6 +80,12 @@ class AppColors {
   /// Body-text colour on [darkSurface].
   static const Color darkOnSurface = Color(0xFFF5F0E8);
 
+  /// Pure-white outline for the lower logo letters in dark mode.
+  ///
+  /// This artwork-specific token is deliberately not a [ColorScheme]
+  /// foreground: regular dark-mode text uses [darkOnSurface].
+  static const Color darkLogoOutline = Color(0xFFFFFFFF);
+
   /// Accessible muted-rose destructive colour for dark mode.
   static const Color darkError = Color(0xFFA15857);
 
