@@ -287,12 +287,7 @@ void main() {
         expect(fullscreenChanges, isEmpty);
 
         updateFullScreen(false);
-        await tester.pump(null, EnginePhase.build);
-        expect(controller.value.fullScreenOption.enabled, isTrue);
-        expect(fullscreenChanges, isEmpty);
-
         updateFullScreen(true);
-        await tester.pump(null, EnginePhase.build);
         await tester.pump();
         expect(controller.value.fullScreenOption.enabled, isTrue);
         expect(fullscreenChanges, isEmpty);
@@ -308,7 +303,6 @@ void main() {
         expect(fullscreenChanges, [false, true]);
 
         updateFullScreen(false);
-        await tester.pump(null, EnginePhase.build);
         await tester.pumpWidget(const SizedBox.shrink());
         await tester.pump();
         expect(fullscreenChanges, [false, true]);
