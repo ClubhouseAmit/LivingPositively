@@ -11,6 +11,7 @@ import 'package:get_it/get_it.dart';
 import 'package:mazilon/pages/auth/auth_page.dart';
 import 'package:mazilon/pages/auth/forgot_password_page.dart';
 import 'package:mazilon/util/Firebase/auth_service.dart';
+import 'package:mazilon/util/Firebase/fcm_scheduled_notification_service.dart';
 import 'package:mazilon/util/Firebase/fcm_service.dart';
 import 'package:mazilon/util/userInformation.dart';
 import 'package:mockito/annotations.dart';
@@ -31,6 +32,7 @@ void main() {
   setUp(() {
     registerTestServices(locale: 'en');
     FcmService.resetForTesting();
+    FcmScheduledNotificationService.resetForTesting();
   });
   tearDown(() async {
     AuthService.debugAppleSignInEnabledOverride = null;
@@ -39,6 +41,7 @@ void main() {
     AuthService.debugSignUpWithEmailOverride = null;
     debugDefaultTargetPlatformOverride = null;
     FcmService.resetForTesting();
+    FcmScheduledNotificationService.resetForTesting();
     await GetIt.instance.reset();
   });
 
@@ -177,6 +180,47 @@ void main() {
       debugDefaultTargetPlatformOverride = null;
       if (!tokenRead.isCompleted) tokenRead.complete(null);
     }
+  });
+
+  testWidgets('authentication success should start legacy reminder migration', (
+    tester,
+  ) async {
+    final userInformation = UserInformation();
+    final firebaseUser = MockUser();
+    when(firebaseUser.uid).thenReturn('uid-123');
+    when(firebaseUser.email).thenReturn('person@example.com');
+    when(firebaseUser.displayName).thenReturn('Person');
+    GetIt.instance.registerSingleton<FirebaseFirestore>(
+      FakeFirebaseFirestore(),
+    );
+    final migrationStarted = Completer<UserInformation>();
+    FcmScheduledNotificationService
+        .debugLegacyDefaultReminderMigrationOverride = (user) {
+      migrationStarted.complete(user);
+      return Future<void>.value();
+    };
+
+    await pumpWithProviders(
+      tester,
+      const AuthPage(),
+      userInformation: userInformation,
+      surfaceSize: const Size(1024, 1800),
+    );
+    final loginForm =
+        tester
+                .widgetList(
+                  find.byWidgetPredicate(
+                    (widget) => widget.runtimeType.toString() == '_LoginForm',
+                  ),
+                )
+                .single
+            as dynamic;
+
+    await (loginForm.onSuccess as Future<void> Function(User))(firebaseUser);
+
+    expect(await migrationStarted.future, same(userInformation));
+    expect(userInformation.loggedIn, isTrue);
+    expect(userInformation.authDecisionMade, isTrue);
   });
 
   testWidgets('notification auth pops while its FCM refresh is still pending', (

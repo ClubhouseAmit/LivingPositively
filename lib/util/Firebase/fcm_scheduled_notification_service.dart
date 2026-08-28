@@ -39,11 +39,16 @@ class FcmScheduledNotificationService {
   static NotificationHttpPost? debugPostOverride;
 
   @visibleForTesting
+  static Future<void> Function(UserInformation)?
+  debugLegacyDefaultReminderMigrationOverride;
+
+  @visibleForTesting
   static void resetForTesting() {
     _operationQueue = null;
     _legacyMigrationDisabled = false;
     _resetEpoch = 0;
     debugPostOverride = null;
+    debugLegacyDefaultReminderMigrationOverride = null;
   }
 
   static void _log(String message) =>
@@ -204,6 +209,10 @@ class FcmScheduledNotificationService {
   static Future<void> migrateLegacyDefaultReminderWithReporting({
     required UserInformation userInformation,
   }) async {
+    final migrationOverride = debugLegacyDefaultReminderMigrationOverride;
+    if (migrationOverride != null) {
+      return migrationOverride(userInformation);
+    }
     try {
       await migrateLegacyDefaultReminder(userInformation: userInformation);
     } catch (error, stackTrace) {

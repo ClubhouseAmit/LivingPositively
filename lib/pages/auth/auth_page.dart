@@ -5,6 +5,7 @@ import 'package:flutter/material.dart';
 import 'package:get_it/get_it.dart';
 import 'package:mazilon/pages/auth/forgot_password_page.dart';
 import 'package:mazilon/util/Firebase/auth_service.dart';
+import 'package:mazilon/util/Firebase/fcm_scheduled_notification_service.dart';
 import 'package:mazilon/util/Firebase/fcm_service.dart';
 import 'package:mazilon/util/LP_extended_state.dart';
 import 'package:mazilon/util/logger_service.dart';
@@ -101,6 +102,11 @@ class _AuthPageState extends LPExtendedState<AuthPage> {
     }
 
     unawaited(_persistAuthenticatedUser(user));
+    unawaited(
+      FcmScheduledNotificationService.migrateLegacyDefaultReminderWithReporting(
+        userInformation: userInfo,
+      ),
+    );
     unawaited(FcmService.onUserSignedIn());
   }
 
