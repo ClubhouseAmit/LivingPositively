@@ -9,25 +9,32 @@
 //   - the "WorkManager-backed reminders run on Android only." advisory text
 //   - the static `_permLabel(null)` -> 'n/a' branch
 //
-// The `Reschedule now` button is disabled on non-Android, so tapping it is
-// a no-op (we verify that). The `Open app settings` button calls
-// `openAppSettings()` which goes through permission_handler's platform
-// channel — we stub that channel and verify the call.
+// `Reschedule now` uses the shared FCM scheduling path on both Android and
+// iOS. The test below stubs that boundary and verifies a real tap reaches the
+// version read and registration mutation. The `Open app settings` button
+// calls `openAppSettings()` through permission_handler's platform channel.
 //
-// The `Clear history` and `Reschedule` buttons are wired but are also
-// disabled when there's no history / not Android, so we don't exercise
-// those side effects.
+// `Clear history` is disabled when no history exists, so its side effect is
+// covered only as a safe rebuild in this panel test.
 
+import 'dart:convert';
+
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:get_it/get_it.dart';
+import 'package:http/http.dart' as http;
 import 'package:mazilon/pages/notifications/reminder_debug_panel.dart';
 import 'package:mazilon/util/notification_preference.dart';
 import 'package:mazilon/pages/notifications/reminder_debug_recorder.dart';
+import 'package:mazilon/util/Firebase/fcm_scheduled_notification_service.dart';
 import 'package:mazilon/util/userInformation.dart';
+import 'package:mockito/mockito.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
+import '../Firebase/firebase_auth_service_test.mocks.dart';
 import '../helpers/widget_test_scaffold.dart';
 
 Future<T> _onPlatform<T>(
@@ -56,6 +63,7 @@ void main() {
   );
 
   setUp(() {
+    FcmScheduledNotificationService.resetForTesting();
     SharedPreferences.setMockInitialValues({
       reminderDebugLastFireAtKey: '2025-01-01T12:00:00.000Z',
       reminderDebugLastStatusKey: reminderDebugStatusSuccess,
@@ -71,6 +79,7 @@ void main() {
   });
 
   tearDown(() async {
+    FcmScheduledNotificationService.resetForTesting();
     TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger
         .setMockMethodCallHandler(permissionChannel, null);
     resetTestServices();
@@ -184,15 +193,39 @@ void main() {
     });
   });
 
-  testWidgets('Reschedule button supports an existing FCM schedule on iOS', (
+  testWidgets('Reschedule now registers the existing FCM schedule on iOS', (
     tester,
   ) async {
     await _onIos(() async {
+      final auth = MockFirebaseAuth();
+      final firebaseUser = MockUser();
+      when(auth.currentUser).thenReturn(firebaseUser);
+      when(firebaseUser.isAnonymous).thenReturn(false);
+      when(firebaseUser.getIdToken()).thenAnswer((_) async => 'id-token');
+      GetIt.instance.registerSingleton<FirebaseAuth>(auth);
+
+      final requestPaths = <String>[];
+      Map<String, dynamic>? registrationPayload;
+      FcmScheduledNotificationService.debugPostOverride =
+          (url, {headers, body, encoding}) async {
+            requestPaths.add(url.path);
+            if (url.path.endsWith('/getNotificationMutationVersion')) {
+              return http.Response('{"mutationVersion":0}', 200);
+            }
+            if (url.path.endsWith('/registerNotification')) {
+              registrationPayload =
+                  jsonDecode(body! as String) as Map<String, dynamic>;
+              return http.Response('{"success":true,"mutationVersion":1}', 200);
+            }
+            return http.Response('Unexpected endpoint', 500);
+          };
+
       await pumpWithProviders(
         tester,
         const Scaffold(body: ReminderDebugPanel()),
         userInformation: UserInformation(
           gender: 'male',
+          localeName: 'en',
           notificationPreferences: const {
             'default': NotificationPreference(hour: 9, minute: 0),
           },
@@ -203,17 +236,23 @@ void main() {
       await tester.tap(find.byType(ExpansionTile));
       await tester.pumpAndSettle(const Duration(milliseconds: 400));
 
-      final rescheduleButton = tester.widget<OutlinedButton>(
-        find.ancestor(
-          of: find.text('Reschedule now'),
-          matching: find.byType(OutlinedButton),
-        ),
-      );
-      expect(
-        rescheduleButton.onPressed,
-        isNotNull,
-        reason: 'FCM scheduling is not limited to Android',
-      );
+      await tester.tap(find.text('Reschedule now'), warnIfMissed: false);
+      await tester.pumpAndSettle(const Duration(milliseconds: 400));
+
+      expect(requestPaths, [
+        '/getNotificationMutationVersion',
+        '/registerNotification',
+      ]);
+      expect(registrationPayload, {
+        'typeId': 'default',
+        'hour': 9,
+        'minute': 0,
+        'locale': 'en',
+        'gender': 'male',
+        'expectedMutationVersion': 0,
+      });
+      expect(find.text('Reschedule now'), findsOneWidget);
+      expect(tester.takeException(), isNull);
     });
   });
 
