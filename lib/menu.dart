@@ -167,7 +167,12 @@ class _MenuState extends LPExtendedState<Menu> {
   Future<void> getVersion() async {
     final packageInfo = await PackageInfo.fromPlatform();
     if (!mounted) return;
-    setState(() => version = packageInfo.version);
+    setState(() {
+      version = packageInfo.version;
+      if (current == PagesCode.About) {
+        currentScreen = About(version: version);
+      }
+    });
   }
 
   Map<String, List<String>> _filterVideoByLocal(
@@ -285,9 +290,9 @@ class _MenuState extends LPExtendedState<Menu> {
 
   @override
   void initState() {
-    unawaited(markFirstLaunchCompleted());
-    getVersion();
     super.initState();
+    unawaited(markFirstLaunchCompleted());
+    unawaited(getVersion());
     //this is the initial page
     currentScreen = _buildHomeScreen();
   }

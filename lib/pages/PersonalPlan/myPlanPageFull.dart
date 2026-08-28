@@ -1,13 +1,16 @@
+import 'dart:async';
 import 'dart:math' as math;
 
 import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
+import 'package:get_it/get_it.dart';
 import 'package:mazilon/pages/PersonalPlan/myPlan.dart';
 import 'package:mazilon/util/Form/retrieveInformation.dart';
 import 'package:mazilon/util/LP_extended_state.dart';
 import 'package:mazilon/util/styles.dart';
 import 'package:mazilon/util/appInformation.dart';
 import 'package:mazilon/util/persistent_memory_service.dart';
+import 'package:mazilon/util/logger_service.dart';
 import 'package:provider/provider.dart';
 import 'package:mazilon/form/form.dart';
 import 'package:mazilon/util/userInformation.dart';
@@ -101,9 +104,27 @@ class _MyPlanPageFullState extends LPExtendedState<MyPlanPageFull> {
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (mounted) {
         final userInfo = Provider.of<UserInformation>(context, listen: false);
-        userInfo.loadCustomCategories(memoryService: widget.memoryService);
+        unawaited(_loadCustomCategories(userInfo));
       }
     });
+  }
+
+  Future<void> _loadCustomCategories(UserInformation userInformation) async {
+    try {
+      await userInformation.loadCustomCategories(
+        memoryService: widget.memoryService,
+      );
+    } catch (error, stackTrace) {
+      if (!GetIt.instance.isRegistered<IncidentLoggerService>()) return;
+      try {
+        await GetIt.instance<IncidentLoggerService>().captureLog(
+          error,
+          stackTrace: stackTrace,
+        );
+      } catch (_) {
+        // Loading and diagnostic reporting are both best effort during init.
+      }
+    }
   }
 
   @override

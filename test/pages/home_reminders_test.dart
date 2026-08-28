@@ -41,6 +41,24 @@ final class _DelayedMemoryService extends ContractPersistentMemoryService {
   }
 }
 
+final class _FailingReminderMemoryService
+    extends ContractPersistentMemoryService {
+  _FailingReminderMemoryService() {
+    onMissingRead = (_, PersistentMemoryType type) => switch (type) {
+      PersistentMemoryType.String => '',
+      PersistentMemoryType.Int => 0,
+      PersistentMemoryType.Double => 0.0,
+      PersistentMemoryType.Bool => false,
+      PersistentMemoryType.StringList => <String>[],
+    };
+    onPersist = (String key, PersistentMemoryType type, Object value) {
+      if (key == 'customReminder') {
+        throw StateError('custom reminder persistence failed');
+      }
+    };
+  }
+}
+
 PhonePageData _phoneData() => PhonePageData(
   key: 'phonePageData',
   header: 'header',
@@ -208,7 +226,55 @@ void main() {
         final remindersWidget = tester.widget<RemindersSectionWidget>(
           find.byType(RemindersSectionWidget),
         );
-        expect(remindersWidget.reminders.first.title, equals('Loaded My Custom Reminder'));
+        expect(
+          remindersWidget.reminders.first.title,
+          equals('Loaded My Custom Reminder'),
+        );
+      });
+    },
+  );
+
+  testWidgets(
+    'failed custom reminder persistence keeps the rotating suggestion active',
+    (WidgetTester tester) async {
+      await _onPlatform(TargetPlatform.android, () async {
+        user.gender = 'other';
+        await GetIt.instance.unregister<PersistentMemoryService>();
+        GetIt.instance.registerSingleton<PersistentMemoryService>(
+          _FailingReminderMemoryService(),
+        );
+
+        await pumpWithProviders(
+          tester,
+          Home(
+            phonePageData: _phoneData(),
+            changeCurrentIndex: (BuildContext context, PagesCode code) {},
+            changeLocale: (_) {},
+            openMainMenu: (_) {},
+          ),
+          userInformation: user,
+          surfaceSize: const Size(1024, 2400),
+        );
+        await tester.pumpAndSettle();
+
+        final before = tester
+            .widget<RemindersSectionWidget>(find.byType(RemindersSectionWidget))
+            .reminders
+            .first
+            .title;
+        await tester.tap(find.byTooltip('Edit entry'));
+        await tester.pumpAndSettle();
+        await tester.enterText(find.byType(TextFormField), 'Persist me');
+        await tester.tap(find.widgetWithText(TextButton, 'Save'));
+        await tester.pumpAndSettle();
+
+        final after = tester
+            .widget<RemindersSectionWidget>(find.byType(RemindersSectionWidget))
+            .reminders
+            .first
+            .title;
+        expect(after, before);
+        expect(tester.takeException(), isNull);
       });
     },
   );

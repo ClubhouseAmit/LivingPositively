@@ -45,6 +45,7 @@ class UserInformation with ChangeNotifier {
   PersistentMemoryService service; // Get the persistent memory service instance
   Future<void> _pendingDreamsAndGoalsSave = Future<void>.value();
   Future<void> _pendingCustomCategoriesSave = Future<void>.value();
+  List<MapEntry<String, String>>? _pendingCustomCategoriesSnapshot;
   Future<void>? _customCategoriesWriteTail;
   Future<void>? _notificationPreferencesWrite;
   int _dreamsAndGoalsSaveRevision = 0;
@@ -117,6 +118,8 @@ class UserInformation with ChangeNotifier {
     final effectiveMemoryService = memoryService ?? service;
     final toSave = categories ?? customCategories;
     final sanitized = sanitizeAndFilterCustomCategoryEntries(toSave);
+    _pendingCustomCategoriesSnapshot =
+        List<MapEntry<String, String>>.unmodifiable(sanitized);
     final int revision = ++_customCategoriesSaveRevision;
     final previousWrite = _customCategoriesWriteTail;
     final Future<void> nextSave = previousWrite == null
@@ -522,7 +525,8 @@ class UserInformation with ChangeNotifier {
   /// Awaits all pending saves and repairs Dreams and Goals selection sources
   /// until storage has a stable, normalized snapshot for Personal Plan export.
   Future<void> prepareForPersonalPlanExport() async {
-    await _ignoreCompletedPersistenceFailure(_pendingCustomCategoriesSave);
+    await _awaitOrRetryCustomCategoriesSave();
+    await _awaitOrRetryDreamsAndGoalsSave();
     final bool needsRepair = !listEquals(
       dreamsAndGoalsSelectionSources,
       normalizeDreamsAndGoalsSelectionSources(
@@ -531,28 +535,38 @@ class UserInformation with ChangeNotifier {
       ),
     );
     if (!needsRepair && _activeDreamsAndGoalsSavesCount == 0) {
-      await _ignoreCompletedPersistenceFailure(_pendingCustomCategoriesSave);
       return;
     }
     while (true) {
-      await _ignoreCompletedPersistenceFailure(_pendingDreamsAndGoalsSave);
+      await _awaitOrRetryDreamsAndGoalsSave();
       final int revisionBeforeRepair = _dreamsAndGoalsSaveRevision;
       await repairDreamsAndGoalsSelectionSources();
-      await _ignoreCompletedPersistenceFailure(_pendingDreamsAndGoalsSave);
+      await _awaitOrRetryDreamsAndGoalsSave();
       if (_dreamsAndGoalsSaveRevision == revisionBeforeRepair) {
-        await _ignoreCompletedPersistenceFailure(_pendingDreamsAndGoalsSave);
         break;
       }
     }
-    await _ignoreCompletedPersistenceFailure(_pendingCustomCategoriesSave);
+    await _awaitOrRetryCustomCategoriesSave();
   }
 
-  /// Waits for a prior persistence attempt without replaying its error.
-  ///
-  /// Export preparation can repair or overwrite an older failed snapshot, so
-  /// it must not be permanently blocked by that completed attempt.
-  Future<void> _ignoreCompletedPersistenceFailure(Future<void> pending) {
-    return pending.catchError((Object _) {});
+  Future<void> _awaitOrRetryCustomCategoriesSave() async {
+    try {
+      await _pendingCustomCategoriesSave;
+    } catch (error, stackTrace) {
+      final retrySnapshot = _pendingCustomCategoriesSnapshot;
+      if (retrySnapshot == null) {
+        Error.throwWithStackTrace(error, stackTrace);
+      }
+      await saveCustomCategories(categories: retrySnapshot);
+    }
+  }
+
+  Future<void> _awaitOrRetryDreamsAndGoalsSave() async {
+    try {
+      await _pendingDreamsAndGoalsSave;
+    } catch (_) {
+      await queueDreamsAndGoalsSave();
+    }
   }
 
   /// Persists the form completion disclaimer using this model's injected

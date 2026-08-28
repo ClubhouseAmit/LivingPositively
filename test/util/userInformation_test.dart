@@ -128,6 +128,27 @@ final class _FailingPersistentMemoryService
   }
 }
 
+final class _FailingOncePerExportSnapshotMemoryService
+    extends _FakePersistentMemoryService {
+  _FailingOncePerExportSnapshotMemoryService() {
+    onPersist = (String key, PersistentMemoryType type, Object value) {
+      if (key == customCategoriesKey && _failCustomCategories) {
+        _failCustomCategories = false;
+        restoreDurableValue(key);
+        throw StateError('Custom categories persistence failed.');
+      }
+      if (key == dreamsAndGoalsSelectionStorageKey && _failDreamsAndGoals) {
+        _failDreamsAndGoals = false;
+        restoreDurableValue(key);
+        throw StateError('Dreams and Goals persistence failed.');
+      }
+    };
+  }
+
+  bool _failCustomCategories = true;
+  bool _failDreamsAndGoals = true;
+}
+
 final class _ControlledPersistentMemoryService
     implements PersistentMemoryService {
   final List<MapEntry<String, dynamic>> writes = <MapEntry<String, dynamic>>[];
@@ -206,9 +227,9 @@ void main() {
   });
 
   test(
-    'does not let failed categories or Dreams writes block personal-plan export preparation',
+    'retries failed categories and Dreams writes before personal-plan export',
     () async {
-      final failingService = _FailingPersistentMemoryService();
+      final failingService = _FailingOncePerExportSnapshotMemoryService();
       final user = UserInformation(service: failingService);
 
       await expectLater(
@@ -229,6 +250,36 @@ void main() {
       );
 
       await expectLater(user.prepareForPersonalPlanExport(), completes);
+      expect(
+        failingService.stored[customCategoriesKey],
+        '[{"title":"category","description":"value"}]',
+      );
+      expect(failingService.stored[dreamsAndGoalsSelectionStorageKey], <String>[
+        'A goal',
+      ]);
+    },
+  );
+
+  test(
+    'propagates a repeated snapshot failure instead of exporting stale data',
+    () async {
+      final failingService = _FailingPersistentMemoryService();
+      final user = UserInformation(service: failingService);
+
+      await expectLater(
+        user.saveCustomCategories(
+          categories: const <MapEntry<String, String>>[
+            MapEntry<String, String>('category', 'latest value'),
+          ],
+        ),
+        throwsA(isA<StateError>()),
+      );
+
+      await expectLater(
+        user.prepareForPersonalPlanExport(),
+        throwsA(isA<StateError>()),
+      );
+      expect(failingService.stored[customCategoriesKey], isNull);
     },
   );
 

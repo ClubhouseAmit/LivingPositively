@@ -473,11 +473,12 @@ class _MyAppState extends State<MyApp> with WidgetsBindingObserver {
             setLocale(),
           ])
           .then((_) async {
-            if (!mounted) return;
             if (userInfoProvider.loggedIn) {
               // Interactive sign-in already starts this best-effort local
               // reminder migration. Restored Firebase sessions must take the
-              // same path before the initial page is shown.
+              // same path even if this widget is disposed before startup
+              // finishes. The migration uses the captured model and does not
+              // depend on this State's BuildContext.
               await FcmScheduledNotificationService.migrateLegacyDefaultReminderWithReporting(
                 userInformation: userInfoProvider,
               );

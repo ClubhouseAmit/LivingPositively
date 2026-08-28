@@ -26,10 +26,13 @@ mixin _SocialSignIn<T extends StatefulWidget> on LPExtendedState<T> {
     try {
       final result = await AuthService.signInWithGoogle();
       if (result == null) {
-        if (mounted) _setSocialLoading(false);
         return;
       }
-      if (mounted) await _socialSuccessCallback(result.user!);
+      final user = result.user ?? FirebaseAuth.instance.currentUser;
+      if (user == null) {
+        throw StateError('Google authentication completed without a user.');
+      }
+      await _socialSuccessCallback(user);
     } catch (e) {
       if (mounted) _setSocialError(appLocale.authErrorGeneric);
     } finally {
@@ -43,10 +46,13 @@ mixin _SocialSignIn<T extends StatefulWidget> on LPExtendedState<T> {
     try {
       final result = await AuthService.signInWithApple();
       if (result == null) {
-        if (mounted) _setSocialLoading(false);
         return;
       }
-      if (mounted) await _socialSuccessCallback(result.user!);
+      final user = result.user ?? FirebaseAuth.instance.currentUser;
+      if (user == null) {
+        throw StateError('Apple authentication completed without a user.');
+      }
+      await _socialSuccessCallback(user);
     } catch (e) {
       if (mounted) _setSocialError(appLocale.authErrorGeneric);
     } finally {
@@ -88,14 +94,17 @@ class AuthPage extends StatefulWidget {
 class _AuthPageState extends LPExtendedState<AuthPage> {
   bool _isLoginMode = true;
 
-  Future<void> _onAuthSuccess(User user) async {
-    final userInfo = Provider.of<UserInformation>(context, listen: false);
+  Future<void> _onAuthSuccess(
+    User user,
+    UserInformation userInfo, {
+    required bool fromNotifications,
+  }) async {
     userInfo.updateLoggedIn(true);
     userInfo.updateUserId(user.uid);
     userInfo.updateEmail(user.email ?? '');
     userInfo.updateDisplayName(user.displayName ?? '');
 
-    if (widget.fromNotifications) {
+    if (fromNotifications) {
       if (mounted) Navigator.pop(context);
     } else {
       userInfo.updateAuthDecisionMade(true);
@@ -136,6 +145,8 @@ class _AuthPageState extends LPExtendedState<AuthPage> {
 
   @override
   Widget build(BuildContext context) {
+    final userInfo = Provider.of<UserInformation>(context, listen: false);
+    final fromNotifications = widget.fromNotifications;
     return Scaffold(
       backgroundColor: Theme.of(context).scaffoldBackgroundColor,
       body: SafeArea(
@@ -167,14 +178,22 @@ class _AuthPageState extends LPExtendedState<AuthPage> {
                 child: _isLoginMode
                     ? _LoginForm(
                         key: const ValueKey('login'),
-                        fromNotifications: widget.fromNotifications,
-                        onSuccess: _onAuthSuccess,
+                        fromNotifications: fromNotifications,
+                        onSuccess: (user) => _onAuthSuccess(
+                          user,
+                          userInfo,
+                          fromNotifications: fromNotifications,
+                        ),
                         onSkip: _onSkip,
                       )
                     : _SignupForm(
                         key: const ValueKey('signup'),
-                        fromNotifications: widget.fromNotifications,
-                        onSuccess: _onAuthSuccess,
+                        fromNotifications: fromNotifications,
+                        onSuccess: (user) => _onAuthSuccess(
+                          user,
+                          userInfo,
+                          fromNotifications: fromNotifications,
+                        ),
                         onSkip: _onSkip,
                       ),
               ),
@@ -237,8 +256,11 @@ class _LoginFormState extends LPExtendedState<_LoginForm>
     });
     try {
       final result = await AuthService.signInWithEmail(email, password);
-      final user = result.user ?? FirebaseAuth.instance.currentUser!;
-      if (mounted) await widget.onSuccess(user);
+      final user = result.user ?? FirebaseAuth.instance.currentUser;
+      if (user == null) {
+        throw StateError('Signed-in Firebase account has no user.');
+      }
+      await widget.onSuccess(user);
     } catch (e) {
       if (mounted) {
         setState(
@@ -295,33 +317,10 @@ class _LoginFormState extends LPExtendedState<_LoginForm>
           ),
           const SizedBox(height: 8),
         ],
-        //Sign In Button
-        SizedBox(
-          width: formFieldWidth(context),
-          child: TextButton(
-            onPressed: _isLoading ? null : _submit,
-            style: primaryButtonStyle(context).copyWith(
-              minimumSize: const WidgetStatePropertyAll(Size.fromHeight(50)),
-            ),
-            child: _isLoading
-                ? const SizedBox(
-                    height: 22,
-                    width: 22,
-                    child: CircularProgressIndicator(
-                      strokeWidth: 2,
-                      color: Colors.white,
-                    ),
-                  )
-                : myText(
-                    appLocale.authLoginButton,
-                    TextStyle(
-                      fontSize: 16,
-                      fontWeight: FontWeight.w500,
-                      color: Theme.of(context).colorScheme.onPrimary,
-                    ),
-                    TextAlign.center,
-                  ),
-          ),
+        _AuthSubmitButton(
+          label: appLocale.authLoginButton,
+          isLoading: _isLoading,
+          onPressed: _submit,
         ),
         if (AuthService.isSocialSignInAvailable) ...[
           const SizedBox(height: 24),
@@ -459,7 +458,7 @@ class _SignupFormState extends LPExtendedState<_SignupForm>
       if (user == null) {
         throw StateError('Created Firebase account has no user.');
       }
-      if (mounted) await widget.onSuccess(user);
+      await widget.onSuccess(user);
     } catch (e) {
       if (mounted) {
         setState(
@@ -511,33 +510,10 @@ class _SignupFormState extends LPExtendedState<_SignupForm>
           ),
           const SizedBox(height: 8),
         ],
-        //Sign Up Button
-        SizedBox(
-          width: formFieldWidth(context),
-          child: TextButton(
-            onPressed: _isLoading ? null : _submit,
-            style: primaryButtonStyle(context).copyWith(
-              minimumSize: const WidgetStatePropertyAll(Size.fromHeight(50)),
-            ),
-            child: _isLoading
-                ? const SizedBox(
-                    height: 22,
-                    width: 22,
-                    child: CircularProgressIndicator(
-                      strokeWidth: 2,
-                      color: Colors.white,
-                    ),
-                  )
-                : myText(
-                    appLocale.authSignupButton,
-                    TextStyle(
-                      fontSize: 16,
-                      fontWeight: FontWeight.w500,
-                      color: Theme.of(context).colorScheme.onPrimary,
-                    ),
-                    TextAlign.center,
-                  ),
-          ),
+        _AuthSubmitButton(
+          label: appLocale.authSignupButton,
+          isLoading: _isLoading,
+          onPressed: _submit,
         ),
         if (AuthService.isSocialSignInAvailable) ...[
           const SizedBox(height: 24),
@@ -588,6 +564,49 @@ class _SignupFormState extends LPExtendedState<_SignupForm>
 }
 
 // ─── Shared helpers ───────────────────────────────────────────────────────────
+
+class _AuthSubmitButton extends StatelessWidget {
+  const _AuthSubmitButton({
+    required this.label,
+    required this.isLoading,
+    required this.onPressed,
+  });
+
+  final String label;
+  final bool isLoading;
+  final VoidCallback onPressed;
+
+  @override
+  Widget build(BuildContext context) {
+    return SizedBox(
+      width: formFieldWidth(context),
+      child: TextButton(
+        onPressed: isLoading ? null : onPressed,
+        style: primaryButtonStyle(context).copyWith(
+          minimumSize: const WidgetStatePropertyAll(Size.fromHeight(50)),
+        ),
+        child: isLoading
+            ? const SizedBox(
+                height: 22,
+                width: 22,
+                child: CircularProgressIndicator(
+                  strokeWidth: 2,
+                  color: Colors.white,
+                ),
+              )
+            : myText(
+                label,
+                TextStyle(
+                  fontSize: 16,
+                  fontWeight: FontWeight.w500,
+                  color: Theme.of(context).colorScheme.onPrimary,
+                ),
+                TextAlign.center,
+              ),
+      ),
+    );
+  }
+}
 
 class _ModeToggle extends StatelessWidget {
   final bool isLogin;

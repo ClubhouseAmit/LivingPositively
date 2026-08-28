@@ -1493,16 +1493,24 @@ void main() {
       );
       await pumpUser(tester);
       var localCancellationCalls = 0;
+      final requests = <Map<String, dynamic>>[];
 
       final cancelled = await _onPlatform(
         TargetPlatform.android,
         () => FcmScheduledNotificationService.cancelDefaultForSignOut(
           userInformation: user,
           idTokenProvider: () async => 'token-123',
-          post: (url, {headers, body, encoding}) async =>
-              url.path.endsWith('/getNotificationMutationVersion')
-              ? http.Response('{"mutationVersion":0}', 200)
-              : http.Response('{"success":true,"mutationVersion":1}', 200),
+          post: (url, {headers, body, encoding}) async {
+            final payload = jsonDecode(body! as String) as Map<String, dynamic>;
+            requests.add(<String, dynamic>{'path': url.path, ...payload});
+            if (url.path.endsWith('/getNotificationMutationVersion')) {
+              return http.Response('{"mutationVersion":0}', 200);
+            }
+            if (url.path.endsWith('/cancelNotification')) {
+              return http.Response('{"success":true,"mutationVersion":1}', 200);
+            }
+            throw StateError('Unexpected notification endpoint: $url');
+          },
           legacyNotificationCanceller: (_) async {
             localCancellationCalls++;
           },
@@ -1511,6 +1519,18 @@ void main() {
 
       expect(cancelled, isTrue);
       expect(localCancellationCalls, isZero);
+      expect(requests, <Map<String, dynamic>>[
+        <String, dynamic>{
+          'path': '/getNotificationMutationVersion',
+          'typeId': 'default',
+        },
+        <String, dynamic>{
+          'path': '/cancelNotification',
+          'typeId': 'default',
+          'expectedMutationVersion': 0,
+          'resetFence': true,
+        },
+      ]);
     },
   );
 

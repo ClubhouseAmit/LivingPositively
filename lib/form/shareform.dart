@@ -132,11 +132,21 @@ class _ShareFormState extends WizardStepState<ShareForm> {
     setHasFilled();
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (mounted) {
-        _userInformation?.loadCustomCategories(
-          memoryService: widget.memoryService,
-        );
+        unawaited(_loadCustomCategories());
       }
     });
+  }
+
+  Future<void> _loadCustomCategories() async {
+    final userInformation = _userInformation;
+    if (userInformation == null) return;
+    try {
+      await userInformation.loadCustomCategories(
+        memoryService: widget.memoryService,
+      );
+    } catch (error, stackTrace) {
+      await _captureDreamsAndGoalsFailure(error, stackTrace);
+    }
   }
 
   @override
@@ -506,7 +516,8 @@ class _ShareFormState extends WizardStepState<ShareForm> {
 
   Widget buildCustomCategoriesSection(BuildContext context, String gender) {
     final categories =
-        _userInformation?.customCategories ?? const <MapEntry<String, String>>[];
+        _userInformation?.customCategories ??
+        const <MapEntry<String, String>>[];
     return Column(
       children: [
         ...categories.asMap().entries.map(
@@ -533,8 +544,7 @@ class _ShareFormState extends WizardStepState<ShareForm> {
     UserInformation userInformation, {
     bool retry = false,
   }) {
-    final WizardStepState? inlineStep =
-        _dreamsAndGoalsStepKey.currentState;
+    final WizardStepState? inlineStep = _dreamsAndGoalsStepKey.currentState;
     if (inlineStep != null) {
       return retry
           ? inlineStep.retryPersistBeforeExit()

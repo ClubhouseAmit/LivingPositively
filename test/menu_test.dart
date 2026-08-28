@@ -31,7 +31,7 @@ class _FakeAnalyticsService implements AnalyticsService {
 
 final class _FakePersistentMemoryService
     extends ContractPersistentMemoryService {
-  _FakePersistentMemoryService({super.initialValues}) {
+  _FakePersistentMemoryService({super.initialValues, bool failWrites = false}) {
     onMissingRead = (String _, PersistentMemoryType type) {
       switch (type) {
         case PersistentMemoryType.String:
@@ -46,6 +46,11 @@ final class _FakePersistentMemoryService
           return <String>[];
       }
     };
+    if (failWrites) {
+      onPersist = (String key, PersistentMemoryType type, Object value) {
+        throw StateError('menu persistence failed');
+      };
+    }
   }
 }
 
@@ -56,8 +61,8 @@ class _FakeFileService implements FileService {
     List<dynamic> titles,
     List<dynamic> subTitles,
     Map<String, String> texts,
-    ShareFileType saveFormat,
-    {required String mainTitle,
+    ShareFileType saveFormat, {
+    required String mainTitle,
     required String textDirection,
     PersistentMemoryService? memoryService,
     Set<String>? approvedPdfHosts,
@@ -67,13 +72,12 @@ class _FakeFileService implements FileService {
     List<dynamic> titles,
     List<dynamic> subTitles,
     Map<String, String> texts,
-    ShareFileType saveFormat,
-    {required String mainTitle,
+    ShareFileType saveFormat, {
+    required String mainTitle,
     required String textDirection,
     PersistentMemoryService? memoryService,
     Set<String>? approvedPdfHosts,
-  }) async =>
-      null;
+  }) async => null;
   @override
   Future<bool> shareTextOnly(String message) async => true;
 }
@@ -125,6 +129,30 @@ void main() {
     // Home tab is selected by default
     expect(find.byKey(const Key('bottomNavHome')), findsOneWidget);
   });
+
+  testWidgets(
+    'failed menu initialization writes stay contained and keep Home rendered',
+    (tester) async {
+      await GetIt.instance.unregister<PersistentMemoryService>();
+      GetIt.instance.registerSingleton<PersistentMemoryService>(
+        _FakePersistentMemoryService(
+          initialValues: <String, Object>{
+            'hasFilled': false,
+            'location': '',
+            'phonePageDataSavedPhoneNames': <String>[],
+            'phonePageDataSavedPhoneNumbers': <String>[],
+          },
+          failWrites: true,
+        ),
+      );
+
+      await tester.pumpWidget(getMenuForTests(user, app));
+      await tester.pumpAndSettle();
+
+      expect(find.byKey(const Key('bottomNavHome')), findsOneWidget);
+      expect(tester.takeException(), isNull);
+    },
+  );
 
   testWidgets('tapping SOS swaps to PhonePage', (tester) async {
     await tester.pumpWidget(getMenuForTests(user, app));
