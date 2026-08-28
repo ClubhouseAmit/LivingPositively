@@ -381,10 +381,13 @@ class _PermissionDeniedCardState
             label: Text(appLocale.notificationsEnable),
           ),
           if (!widget.canRequestPermission)
-            TextButton.icon(
-              onPressed: openAppSettings,
-              icon: const Icon(Icons.settings_outlined),
-              label: Text(appLocale.notificationsOpenSettings),
+            LinkButton(
+              openAppSettings,
+              Icons.settings_outlined,
+              appLocale.notificationsOpenSettings,
+              Theme.of(context).colorScheme.primary,
+              designFontSize: 16,
+              minHeight: 44,
             ),
         ],
       ),
