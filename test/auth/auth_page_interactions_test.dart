@@ -335,6 +335,56 @@ void main() {
     verifyNever(user.reload());
   });
 
+  testWidgets('signup should continue when the profile reload fails', (
+    tester,
+  ) async {
+    final userInformation = UserInformation();
+    final user = MockUser();
+    final credential = _MockUserCredential();
+    when(credential.user).thenReturn(user);
+    when(user.uid).thenReturn('uid-456');
+    when(user.email).thenReturn('another@example.com');
+    when(user.displayName).thenReturn(null);
+    when(user.updateDisplayName('Another person')).thenAnswer((_) async {});
+    when(user.reload()).thenThrow(StateError('profile reload failed'));
+    GetIt.instance.registerSingleton<FirebaseFirestore>(
+      FakeFirebaseFirestore(),
+    );
+    AuthService.debugSignUpWithEmailOverride = (email, password) async {
+      expect(email, 'another@example.com');
+      expect(password, 'secret');
+      return credential;
+    };
+
+    await pumpWithProviders(
+      tester,
+      const AuthPage(),
+      userInformation: userInformation,
+      surfaceSize: const Size(1024, 1800),
+    );
+    await tester.tap(find.text('Sign Up'));
+    await tester.pumpAndSettle();
+
+    final fields = find.byType(TextField);
+    await tester.enterText(fields.at(0), 'Another person');
+    await tester.enterText(fields.at(1), 'another@example.com');
+    await tester.enterText(fields.at(2), 'secret');
+    await tester.enterText(fields.at(3), 'secret');
+    tester
+        .widget<ElevatedButton>(
+          find.widgetWithText(ElevatedButton, 'Create Account'),
+        )
+        .onPressed!();
+    await tester.pump();
+    await tester.pump();
+
+    expect(userInformation.loggedIn, isTrue);
+    expect(userInformation.authDecisionMade, isTrue);
+    expect(userInformation.userId, 'uid-456');
+    verify(user.updateDisplayName('Another person')).called(1);
+    verify(user.reload()).called(1);
+  });
+
   testWidgets('forgot-password navigation renders the reset form', (
     tester,
   ) async {
