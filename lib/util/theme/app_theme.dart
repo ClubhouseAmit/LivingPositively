@@ -9,11 +9,13 @@ import 'package:flutter/material.dart';
 /// so the palette was decorative rather than enforced — see
 /// `docs/UX_GAPS.md §1.1, §1.2`.
 ///
-/// `AppColors` is the token layer the audit asked for. The brand-palette
-/// values are preserved exactly (so this PR is visually a no-op) and
-/// re-exposed under semantic names that `ColorScheme` understands. The
-/// nine legacy variables in `styles.dart` now forward to these tokens —
-/// the ADR's mitigation for the large blast radius.
+/// `AppColors` is the token layer the audit asked for. The light brand
+/// palette and explicitly preserved legacy/PDF values are re-exposed under
+/// semantic names that `ColorScheme` understands. The dark primary,
+/// secondary, surface, error, outline, and navigation tokens intentionally
+/// migrate to the warm-sepia palette consumed by [appDarkColorScheme] and
+/// [buildDarkTheme]. The nine legacy variables in `styles.dart` now forward
+/// to these tokens — the ADR's mitigation for the large blast radius.
 class AppColors {
   AppColors._();
 
@@ -48,10 +50,10 @@ class AppColors {
   /// Foreground on `error`.
   static const Color onError = Colors.white;
 
-  /// Warm gold used for primary controls in the sepia dark theme.
+  /// Warm gold used for primary controls in the intentional sepia migration.
   static const Color darkPrimary = Color(0xFFD8B77A);
 
-  /// Foreground colour on [darkPrimary].
+  /// Accessible dark-sepia foreground on [darkPrimary].
   static const Color darkOnPrimary = Color(0xFF2A211B);
 
   /// Muted tan used for selected and supporting dark-mode controls.

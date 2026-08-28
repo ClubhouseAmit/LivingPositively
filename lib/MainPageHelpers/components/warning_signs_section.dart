@@ -138,7 +138,11 @@ class _AddWarningCard extends StatelessWidget {
         width: 160,
         margin: EdgeInsetsDirectional.only(end: AppSpacing.sm),
         child: CustomPaint(
-          painter: _DashedRectPainter(color: colorScheme.tertiary),
+          painter: DashedRoundedBorderPainter(
+            color: colorScheme.tertiary,
+            radius: 16,
+            strokeWidth: 1,
+          ),
           child: Padding(
             padding: EdgeInsets.all(AppSpacing.md),
             child: Column(
@@ -170,40 +174,4 @@ class _AddWarningCard extends StatelessWidget {
       ),
     );
   }
-}
-
-class _DashedRectPainter extends CustomPainter {
-  final Color color;
-  const _DashedRectPainter({required this.color});
-
-  @override
-  void paint(Canvas canvas, Size size) {
-    final paint = Paint()
-      ..color = color
-      ..strokeWidth = 2
-      ..style = PaintingStyle.stroke;
-
-    const radius = 16.0;
-    const dashW = 7.0;
-    const dashG = 5.0;
-
-    final path = Path()
-      ..addRRect(
-        RRect.fromRectAndRadius(
-          Rect.fromLTWH(1, 1, size.width - 2, size.height - 2),
-          const Radius.circular(radius),
-        ),
-      );
-
-    for (final m in path.computeMetrics()) {
-      var d = 0.0;
-      while (d < m.length) {
-        canvas.drawPath(m.extractPath(d, d + dashW), paint);
-        d += dashW + dashG;
-      }
-    }
-  }
-
-  @override
-  bool shouldRepaint(covariant _DashedRectPainter old) => old.color != color;
 }

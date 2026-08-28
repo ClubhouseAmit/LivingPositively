@@ -177,7 +177,7 @@ void main() {
 
   group('DashedPillAddSlot', () {
     testWidgets(
-      'should render one-pixel dark strokes and repaint at the light widths',
+      'should render one-pixel green strokes and repaint when the theme changes',
       (tester) async {
         tester.view.devicePixelRatio = 1;
         tester.view.physicalSize = const Size(400, 120);
@@ -185,24 +185,24 @@ void main() {
 
         var isDark = true;
         late StateSetter setTheme;
-        const sharedGreen = AppColors.darkSuccess;
 
         await tester.pumpWidget(
           StatefulBuilder(
             builder: (context, setState) {
               setTheme = setState;
-              final baseTheme = isDark ? buildDarkTheme() : buildLightTheme();
-              final theme = baseTheme.copyWith(
-                colorScheme: baseTheme.colorScheme.copyWith(
-                  tertiary: sharedGreen,
-                ),
+              return _slotHarness(
+                theme: isDark ? buildDarkTheme() : buildLightTheme(),
               );
-              return _slotHarness(theme: theme);
             },
           ),
         );
 
         final darkPaints = _slotCustomPaints(tester);
+        expect(darkPaints, hasLength(2));
+        final darkPillPainter =
+            darkPaints[1].painter! as DashedRoundedBorderPainter;
+        expect(darkPillPainter.radius, 24);
+        expect(darkPillPainter.strokeWidth, 1);
         final darkCircle = (await tester.runAsync(
           () => _rasterize(
             darkPaints[0].painter!,
@@ -220,13 +220,18 @@ void main() {
 
         expect(darkCircle.effectiveStrokeWidth, closeTo(1, 0.2));
         expect(darkPill.effectiveStrokeWidth, closeTo(1, 0.2));
-        expect(darkCircle.contains(sharedGreen), isTrue);
-        expect(darkPill.contains(sharedGreen), isTrue);
+        expect(darkCircle.contains(AppColors.darkSuccess), isTrue);
+        expect(darkPill.contains(AppColors.darkSuccess), isTrue);
 
         setTheme(() => isDark = false);
         await tester.pump();
 
         final lightPaints = _slotCustomPaints(tester);
+        expect(lightPaints, hasLength(2));
+        final lightPillPainter =
+            lightPaints[1].painter! as DashedRoundedBorderPainter;
+        expect(lightPillPainter.radius, 24);
+        expect(lightPillPainter.strokeWidth, 1);
         final lightCircle = (await tester.runAsync(
           () => _rasterize(
             lightPaints[0].painter!,
@@ -250,10 +255,10 @@ void main() {
           lightPaints[1].painter!.shouldRepaint(darkPaints[1].painter!),
           isTrue,
         );
-        expect(lightCircle.effectiveStrokeWidth, closeTo(1.5, 0.25));
-        expect(lightPill.effectiveStrokeWidth, closeTo(2, 0.25));
-        expect(darkCircle.alphaCoverage, lessThan(lightCircle.alphaCoverage));
-        expect(darkPill.alphaCoverage, lessThan(lightPill.alphaCoverage));
+        expect(lightCircle.effectiveStrokeWidth, closeTo(1, 0.2));
+        expect(lightPill.effectiveStrokeWidth, closeTo(1, 0.2));
+        expect(lightCircle.contains(AppColors.success), isTrue);
+        expect(lightPill.contains(AppColors.success), isTrue);
       },
     );
 

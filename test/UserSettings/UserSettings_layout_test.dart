@@ -120,7 +120,11 @@ void main() {
     testWidgets(
       'layout fits without scrolling when scheduled dark mode is active ($locale)',
       (tester) async {
-        await pumpSettings(tester, locale);
+        await pumpSettings(tester, locale, theme: buildDarkTheme());
+        expect(
+          Theme.of(tester.element(find.byType(UserSettings))).brightness,
+          Brightness.dark,
+        );
 
         await tester.tap(find.byKey(const Key('darkModeScheduledOption')));
         await tester.pumpAndSettle();

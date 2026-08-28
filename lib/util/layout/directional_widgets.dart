@@ -319,9 +319,7 @@ class DashedPillAddSlot extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-    final colorScheme = theme.colorScheme;
-    final isDark = theme.brightness == Brightness.dark;
+    final colorScheme = Theme.of(context).colorScheme;
     return Padding(
       padding: EdgeInsetsDirectional.only(bottom: AppSpacing.sm),
       child: Row(
@@ -331,7 +329,7 @@ class DashedPillAddSlot extends StatelessWidget {
             child: CustomPaint(
               painter: _DashedCirclePainter(
                 color: colorScheme.tertiary,
-                strokeWidth: isDark ? 1 : 1.5,
+                strokeWidth: 1,
               ),
               child: SizedBox(
                 width: 36,
@@ -343,9 +341,10 @@ class DashedPillAddSlot extends StatelessWidget {
           SizedBox(width: AppSpacing.md),
           Expanded(
             child: CustomPaint(
-              painter: _DashedPillPainter(
+              painter: DashedRoundedBorderPainter(
                 color: colorScheme.tertiary,
-                strokeWidth: isDark ? 1 : 2,
+                radius: 24,
+                strokeWidth: 1,
               ),
               child: Container(
                 padding: EdgeInsetsDirectional.symmetric(
@@ -428,11 +427,20 @@ class _DashedCirclePainter extends CustomPainter {
       old.color != color || old.strokeWidth != strokeWidth;
 }
 
-class _DashedPillPainter extends CustomPainter {
+/// Paints the shared rounded dashed border used by add affordances.
+///
+/// [color], [radius], and [strokeWidth] keep each caller's visual variant
+/// explicit while preserving the common dash geometry.
+class DashedRoundedBorderPainter extends CustomPainter {
   final Color color;
+  final double radius;
   final double strokeWidth;
 
-  const _DashedPillPainter({required this.color, required this.strokeWidth});
+  const DashedRoundedBorderPainter({
+    required this.color,
+    required this.radius,
+    required this.strokeWidth,
+  });
 
   @override
   void paint(Canvas canvas, Size size) {
@@ -441,7 +449,6 @@ class _DashedPillPainter extends CustomPainter {
       ..strokeWidth = strokeWidth
       ..style = PaintingStyle.stroke;
 
-    const radius = 24.0;
     const dashW = 7.0;
     const dashG = 5.0;
 
@@ -449,20 +456,22 @@ class _DashedPillPainter extends CustomPainter {
       ..addRRect(
         RRect.fromRectAndRadius(
           Rect.fromLTWH(1, 1, size.width - 2, size.height - 2),
-          const Radius.circular(radius),
+          Radius.circular(radius),
         ),
       );
 
-    for (final m in path.computeMetrics()) {
+    for (final metric in path.computeMetrics()) {
       var d = 0.0;
-      while (d < m.length) {
-        canvas.drawPath(m.extractPath(d, d + dashW), paint);
+      while (d < metric.length) {
+        canvas.drawPath(metric.extractPath(d, d + dashW), paint);
         d += dashW + dashG;
       }
     }
   }
 
   @override
-  bool shouldRepaint(covariant _DashedPillPainter old) =>
-      old.color != color || old.strokeWidth != strokeWidth;
+  bool shouldRepaint(covariant DashedRoundedBorderPainter oldDelegate) =>
+      oldDelegate.color != color ||
+      oldDelegate.radius != radius ||
+      oldDelegate.strokeWidth != strokeWidth;
 }
