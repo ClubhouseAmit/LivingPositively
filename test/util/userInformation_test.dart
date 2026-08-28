@@ -2,6 +2,7 @@ import 'dart:async';
 
 import 'package:flutter_test/flutter_test.dart';
 import 'package:mazilon/global_enums.dart';
+import 'package:mazilon/util/custom_categories_storage.dart';
 import 'package:mazilon/util/dreams_and_goals_selection.dart';
 import 'package:mazilon/util/notification_preference.dart';
 import 'package:mazilon/util/persistent_memory_service.dart';
@@ -65,6 +66,30 @@ final class _DelayedDreamsMemoryService extends _FakePersistentMemoryService {
   void releaseFirstSelectionWrite() {
     if (!_firstSelectionWrite.isCompleted) {
       _firstSelectionWrite.complete();
+    }
+  }
+}
+
+final class _DelayedCustomCategoriesMemoryService
+    extends _FakePersistentMemoryService {
+  _DelayedCustomCategoriesMemoryService() {
+    onPersist = (String key, PersistentMemoryType type, Object value) async {
+      if (key != customCategoriesKey || _heldFirstSnapshot) {
+        return;
+      }
+      _heldFirstSnapshot = true;
+      firstSnapshotWriteStarted.complete();
+      await _firstSnapshotWrite.future;
+    };
+  }
+
+  final Completer<void> _firstSnapshotWrite = Completer<void>();
+  final Completer<void> firstSnapshotWriteStarted = Completer<void>();
+  bool _heldFirstSnapshot = false;
+
+  void releaseFirstSnapshotWrite() {
+    if (!_firstSnapshotWrite.isCompleted) {
+      _firstSnapshotWrite.complete();
     }
   }
 }
@@ -280,6 +305,33 @@ void main() {
           delayedService.stored[dreamsAndGoalsCustomSelectionsStorageKey],
           isEmpty,
         );
+      },
+    );
+
+    test(
+      'queues empty custom categories behind an earlier snapshot during reset',
+      () async {
+        final delayedService = _DelayedCustomCategoriesMemoryService();
+        final user = UserInformation(service: delayedService);
+        final Future<void> oldSave = user.saveCustomCategories(
+          categories: const <MapEntry<String, String>>[
+            MapEntry<String, String>('Old category', 'Old description'),
+          ],
+        );
+        await delayedService.firstSnapshotWriteStarted.future;
+
+        final Future<void> reset = user.reset('en');
+        expect(user.customCategories, isEmpty);
+
+        delayedService.releaseFirstSnapshotWrite();
+        await oldSave;
+        await reset;
+
+        expect(user.customCategories, isEmpty);
+        expect(delayedService.stored[customCategoriesKey], '[]');
+        expect(delayedService.stored[customCategoryTitlesKey], isEmpty);
+        expect(delayedService.stored[customCategoryDescriptionsKey], isEmpty);
+        await expectLater(user.prepareForPersonalPlanExport(), completes);
       },
     );
 

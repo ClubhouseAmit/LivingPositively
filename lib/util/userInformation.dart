@@ -47,6 +47,7 @@ class UserInformation with ChangeNotifier {
   Future<void> _pendingCustomCategoriesSave = Future<void>.value();
   Future<void>? _notificationPreferencesWrite;
   int _dreamsAndGoalsSaveRevision = 0;
+  int _customCategoriesSaveRevision = 0;
   int _activeDreamsAndGoalsSavesCount = 0;
 
   /// Whether a Dreams and Goals persistence operation is currently pending.
@@ -108,9 +109,12 @@ class UserInformation with ChangeNotifier {
     final effectiveMemoryService = memoryService ?? service;
     final toSave = categories ?? customCategories;
     final sanitized = sanitizeAndFilterCustomCategoryEntries(toSave);
-    final nextSave = saveCustomCategoriesToStorage(
-      sanitized,
-      memoryService: effectiveMemoryService,
+    final int revision = ++_customCategoriesSaveRevision;
+    final Future<void> nextSave = _pendingCustomCategoriesSave.then(
+      (_) => saveCustomCategoriesToStorage(
+        sanitized,
+        memoryService: effectiveMemoryService,
+      ),
     );
     // The caller still observes this write's error, but exports only need to
     // wait for outstanding work. Keeping an errored future here would make
@@ -120,8 +124,28 @@ class UserInformation with ChangeNotifier {
       onError: (Object _, StackTrace _) {},
     );
     await nextSave;
+    if (revision != _customCategoriesSaveRevision) {
+      return;
+    }
+    if (_matchesCustomCategories(sanitized)) {
+      return;
+    }
     customCategories = List<MapEntry<String, String>>.unmodifiable(sanitized);
     notifyListeners();
+  }
+
+  bool _matchesCustomCategories(List<MapEntry<String, String>> categories) {
+    if (customCategories.length != categories.length) {
+      return false;
+    }
+    for (var index = 0; index < categories.length; index++) {
+      final MapEntry<String, String> current = customCategories[index];
+      final MapEntry<String, String> candidate = categories[index];
+      if (current.key != candidate.key || current.value != candidate.value) {
+        return false;
+      }
+    }
+    return true;
   }
 
   /// Clears user state and persists the empty Dreams and Goals snapshot.
@@ -150,7 +174,7 @@ class UserInformation with ChangeNotifier {
     dreamsAndGoalsSelectionSources = [];
     customCategories = [];
     // An in-flight snapshot cannot be cancelled safely. Queue the empty
-    // snapshot behind it so reset is always the final local Dreams state.
+    // snapshots behind them so reset is always the final local state.
     _dreamsAndGoalsSaveRevision++;
     loggedIn = false;
     authDecisionMade = false;
@@ -164,7 +188,7 @@ class UserInformation with ChangeNotifier {
     notifyListeners();
     await Future.wait([
       queueDreamsAndGoalsSave(),
-      saveCustomCategoriesToStorage(const [], memoryService: service),
+      saveCustomCategories(categories: const <MapEntry<String, String>>[]),
     ]);
   }
 
