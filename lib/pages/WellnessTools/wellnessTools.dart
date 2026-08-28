@@ -7,6 +7,7 @@ import 'package:mazilon/pages/WellnessTools/VideoPlayerPageFactory.dart';
 import 'package:mazilon/pages/WellnessTools/more_videos_item.dart';
 import 'package:mazilon/util/LP_extended_state.dart';
 import 'package:mazilon/util/styles.dart';
+import 'package:mazilon/util/theme/spacing.dart';
 import 'package:youtube_player_flutter/youtube_player_flutter.dart';
 
 class WellnessTools extends StatefulWidget {
@@ -26,11 +27,13 @@ class WellnessTools extends StatefulWidget {
 
 class _WellnessToolsState extends LPExtendedState<WellnessTools> {
   var isFullScreen = false;
+  bool? _pendingFullScreen;
   var selectedVideoIdIndex = 0;
   var selectedVideoId = '';
   final ImagePickerService imageService = GetIt.instance<ImagePickerService>();
   final VideoPlayerPageFactory _videoPlayerPageFactory =
       GetIt.instance<VideoPlayerPageFactory>();
+  final ScrollController _scrollController = ScrollController();
 
   String? _youtubeId(String videoId) {
     final trimmed = videoId.trim();
@@ -122,6 +125,7 @@ class _WellnessToolsState extends LPExtendedState<WellnessTools> {
   void setIsFullScreen(bool isFullScreen) {
     setState(() {
       this.isFullScreen = isFullScreen;
+      _pendingFullScreen = null;
     });
     widget.setBool(isFullScreen);
   }
@@ -129,10 +133,22 @@ class _WellnessToolsState extends LPExtendedState<WellnessTools> {
   @override
   void initState() {
     super.initState();
+    isFullScreen = widget.isFullScreen;
+  }
+
+  @override
+  void didUpdateWidget(covariant WellnessTools oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (oldWidget.isFullScreen != widget.isFullScreen) {
+      _pendingFullScreen = widget.isFullScreen == isFullScreen
+          ? null
+          : widget.isFullScreen;
+    }
   }
 
   @override
   void dispose() {
+    _scrollController.dispose();
     super.dispose();
   }
 
@@ -154,130 +170,151 @@ class _WellnessToolsState extends LPExtendedState<WellnessTools> {
         : 0;
     final transcript = widget.videoData['videoTranscript'];
     final moreVideoIndexes = _moreVideoIndexes(selectedIndex);
+    final moreVideosChildCount = moreVideoIndexes.isEmpty
+        ? 0
+        : moreVideoIndexes.length * 2 - 1;
 
     return VideoPlayerInheritedWidget(
       videoId: selectedVideoId.isNotEmpty
           ? selectedVideoId
           : _youtubeId(videoIds[selectedIndex])!,
       changeVideo: changeVideo,
+      isFullScreen: _pendingFullScreen ?? isFullScreen,
       child: SafeArea(
         child: Scaffold(
-          body: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Visibility(
-                visible: !isFullScreen,
-                child: Center(
-                  child: SizedBox(
-                    //color: Colors.white,
-                    height: 130.0,
-                    //margin: EdgeInsets.only(top: 15),
-                    child: Image.asset(
-                      'assets/images/Logo.png',
-                      width: MediaQuery.sizeOf(context).width * 0.4 > 1000
-                          ? 500
-                          : MediaQuery.sizeOf(
-                              context,
-                            ).width, // Adjust as needed
+          body: Scrollbar(
+            controller: _scrollController,
+            child: CustomScrollView(
+              controller: _scrollController,
+              slivers: [
+                if (!isFullScreen) ...[
+                  SliverToBoxAdapter(
+                    child: Center(
+                      child: SizedBox(
+                        height: 130.0,
+                        child: Image.asset(
+                          'assets/images/Logo.png',
+                          width: MediaQuery.sizeOf(context).width * 0.4 > 1000
+                              ? 500
+                              : MediaQuery.sizeOf(context).width,
+                        ),
+                      ),
+                    ),
+                  ),
+                  SliverToBoxAdapter(
+                    child: Padding(
+                      padding: const EdgeInsets.fromLTRB(
+                        AppSpacing.sm,
+                        10.0,
+                        AppSpacing.sm,
+                        10.0,
+                      ),
+                      child: myAutoSizedText(
+                        widget.videoData['videoHeadline']![selectedIndex],
+                        TextStyle(fontSize: 24.sp, fontWeight: FontWeight.bold),
+                        appLocale.textDirection == "rtl"
+                            ? TextAlign.right
+                            : TextAlign.left,
+                        28,
+                        3,
+                      ),
+                    ),
+                  ),
+                ],
+                SliverToBoxAdapter(
+                  child: AspectRatio(
+                    aspectRatio: 16 / 9,
+                    child: _videoPlayerPageFactory.create(
+                      onFullScreenChanged: setIsFullScreen,
+                      videoData: widget.videoData,
                     ),
                   ),
                 ),
-              ),
-              Visibility(
-                visible: !isFullScreen,
-                child: Padding(
-                  padding: const EdgeInsets.fromLTRB(8.0, 10.0, 8, 10),
-                  child: myAutoSizedText(
-                    widget.videoData['videoHeadline']![selectedIndex],
-                    TextStyle(fontSize: 24.sp, fontWeight: FontWeight.bold),
-                    appLocale.textDirection == "rtl"
-                        ? TextAlign.right
-                        : TextAlign.left,
-                    28,
-                    3,
+                const SliverToBoxAdapter(child: SizedBox(height: 10)),
+                if (!isFullScreen) ...[
+                  SliverToBoxAdapter(
+                    child: Padding(
+                      padding: const EdgeInsets.fromLTRB(
+                        0,
+                        AppSpacing.xs,
+                        AppSpacing.xs,
+                        AppSpacing.xl,
+                      ),
+                      child: myAutoSizedText(
+                        widget.videoData['videoDescription']![selectedIndex],
+                        TextStyle(
+                          fontSize: 18.sp,
+                          fontWeight: FontWeight.normal,
+                        ),
+                        appLocale.textDirection == "rtl"
+                            ? TextAlign.right
+                            : TextAlign.left,
+                        20,
+                        3,
+                      ),
+                    ),
                   ),
-                ),
-              ),
-              Expanded(
-                child: _videoPlayerPageFactory.create(
-                  onFullScreenChanged: setIsFullScreen,
-                  videoData: widget.videoData,
-                ),
-              ),
-              SizedBox(height: 10),
-              Visibility(
-                visible: !isFullScreen,
-                child: Padding(
-                  padding: const EdgeInsets.fromLTRB(0, 4.0, 4, 20),
-                  child: myAutoSizedText(
-                    widget.videoData['videoDescription']![selectedIndex],
-                    TextStyle(fontSize: 18.sp, fontWeight: FontWeight.normal),
-                    appLocale.textDirection == "rtl"
-                        ? TextAlign.right
-                        : TextAlign.left,
-                    20,
-                    3,
+                  SliverToBoxAdapter(
+                    child: _transcript(
+                      transcript != null && selectedIndex < transcript.length
+                          ? transcript[selectedIndex]
+                          : null,
+                    ),
                   ),
-                ),
-              ),
-              Visibility(
-                visible: !isFullScreen,
-                child: _transcript(
-                  transcript != null && selectedIndex < transcript.length
-                      ? transcript[selectedIndex]
-                      : null,
-                ),
-              ),
-              Visibility(
-                visible: !isFullScreen,
-                child: Padding(
-                  padding: const EdgeInsets.fromLTRB(0, 4.0, 4, 20),
-                  child: myAutoSizedText(
-                    appLocale.moreVideos,
-                    TextStyle(fontSize: 18.sp, fontWeight: FontWeight.bold),
-                    appLocale.textDirection == "rtl"
-                        ? TextAlign.right
-                        : TextAlign.left,
-                    20,
-                    3,
+                  SliverToBoxAdapter(
+                    child: Padding(
+                      padding: const EdgeInsets.fromLTRB(
+                        0,
+                        AppSpacing.xs,
+                        AppSpacing.xs,
+                        AppSpacing.xl,
+                      ),
+                      child: myAutoSizedText(
+                        appLocale.moreVideos,
+                        TextStyle(fontSize: 18.sp, fontWeight: FontWeight.bold),
+                        appLocale.textDirection == "rtl"
+                            ? TextAlign.right
+                            : TextAlign.left,
+                        20,
+                        3,
+                      ),
+                    ),
                   ),
-                ),
-              ),
-              Visibility(
-                visible: !isFullScreen,
-                child: Expanded(
-                  child: ListView.separated(
-                    itemBuilder: (context, index) {
-                      final videoIndex = moreVideoIndexes[index];
-                      var videoId = widget.videoData['videoId']![videoIndex];
-                      var thumbnailUrl = getThumbnailUrl(videoId);
-                      return MoreVideosItem(
-                        videoData: widget.videoData,
-                        index: videoIndex,
-                        thumbnailUrl: thumbnailUrl,
-                        changeVideoIdIndex: () {
-                          return () {
-                            setState(() {
-                              selectedVideoIdIndex = videoIndex;
-                              selectedVideoId = _youtubeId(
-                                widget
-                                    .videoData['videoId']![selectedVideoIdIndex],
-                              )!;
-                              VideoPlayerInheritedWidget.of(
-                                context,
-                              )?.changeVideo(selectedVideoId);
-                            });
-                          };
-                        },
-                      );
-                    },
-                    itemCount: moreVideoIndexes.length,
-                    separatorBuilder: (context, _) =>
-                        const SizedBox(height: 10.0),
-                  ),
-                ),
-              ),
-            ],
+                  if (moreVideosChildCount > 0)
+                    SliverList(
+                      delegate: SliverChildBuilderDelegate((context, index) {
+                        if (index.isOdd) {
+                          return const SizedBox(height: 10.0);
+                        }
+                        final videoIndex = moreVideoIndexes[index ~/ 2];
+                        final videoId =
+                            widget.videoData['videoId']![videoIndex];
+                        final thumbnailUrl = getThumbnailUrl(videoId);
+                        return MoreVideosItem(
+                          key: ValueKey(videoId),
+                          videoData: widget.videoData,
+                          index: videoIndex,
+                          thumbnailUrl: thumbnailUrl,
+                          changeVideoIdIndex: () {
+                            return () {
+                              setState(() {
+                                selectedVideoIdIndex = videoIndex;
+                                selectedVideoId = _youtubeId(
+                                  widget
+                                      .videoData['videoId']![selectedVideoIdIndex],
+                                )!;
+                                VideoPlayerInheritedWidget.of(
+                                  context,
+                                )?.changeVideo(selectedVideoId);
+                              });
+                            };
+                          },
+                        );
+                      }, childCount: moreVideosChildCount),
+                    ),
+                ],
+              ],
+            ),
           ),
         ),
       ),

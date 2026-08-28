@@ -110,6 +110,17 @@ Widget _shareFormHarness({
   );
 }
 
+const Duration _customCategoryUiTimeout = Duration(seconds: 10);
+
+Future<void> _waitForWidget(WidgetTester tester, Finder finder) async {
+  final stopwatch = Stopwatch()..start();
+  while (stopwatch.elapsed < _customCategoryUiTimeout &&
+      finder.evaluate().isEmpty) {
+    await tester.pump(const Duration(milliseconds: 100));
+  }
+  expect(finder, findsOneWidget);
+}
+
 void main() {
   final binding = IntegrationTestWidgetsFlutterBinding.ensureInitialized();
   binding.framePolicy = LiveTestWidgetsFlutterBindingFramePolicy.fullyLive;
@@ -160,8 +171,11 @@ void main() {
       await tester.tap(find.text('הוספת קטגוריה'));
       await tester.pumpAndSettle();
 
-      expect(find.text('כותרת מהאינטגרציה'), findsOneWidget);
-      expect(find.text('טקסט עברי חופשי שנשאר כמו שהוקלד'), findsOneWidget);
+      await _waitForWidget(tester, find.text('כותרת מהאינטגרציה'));
+      await _waitForWidget(
+        tester,
+        find.text('טקסט עברי חופשי שנשאר כמו שהוקלד'),
+      );
 
       await tester.tap(find.text('+ הוספת קטגוריה'));
       await tester.pumpAndSettle();
@@ -183,6 +197,7 @@ void main() {
       await tester.ensureVisible(find.text('הוספת קטגוריה'));
       await tester.tap(find.text('הוספת קטגוריה'));
       await tester.pumpAndSettle();
+      await _waitForWidget(tester, find.text('Integration English title'));
 
       expect(
         await memoryService.getItem(
@@ -207,6 +222,7 @@ void main() {
       );
       await tester.pumpAndSettle();
 
+      await _waitForWidget(tester, find.text('כותרת מהאינטגרציה'));
       await tester.ensureVisible(find.text('כותרת מהאינטגרציה'));
       expect(find.text('כותרת מהאינטגרציה'), findsOneWidget);
       expect(find.text('טקסט עברי חופשי שנשאר כמו שהוקלד'), findsOneWidget);
