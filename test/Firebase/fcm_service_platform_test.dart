@@ -335,7 +335,7 @@ void main() {
     );
 
     test(
-      'should iOS local plugin initialization without a permission request still checks APNs',
+      'should still check APNs when iOS local plugin initialization does not request permission',
       () async {
         debugDefaultTargetPlatformOverride = TargetPlatform.iOS;
         const channel = MethodChannel(
@@ -380,20 +380,33 @@ void main() {
       },
     );
 
-    test('should iOS requests an FCM token after APNs is ready', () async {
+    test('should complete the iOS FCM setup after APNs is ready', () async {
       debugDefaultTargetPlatformOverride = TargetPlatform.iOS;
       var fcmTokenRequests = 0;
-      _configureSuccessfulInitialization(
-        apnsToken: 'apns-token',
-        getToken: () async {
-          fcmTokenRequests++;
-          return 'fcm-token';
-        },
-      );
+      var listenerRegistrations = 0;
+      final savedTokens = <String>[];
+      FcmService.debugGetNotificationSettingsOverride = () async =>
+          _notificationSettings(AuthorizationStatus.authorized);
+      FcmService.debugInitializeLocalNotificationsOverride = () async {};
+      FcmService.debugGetCurrentUserIdOverride = () => 'uid-123';
+      FcmService.debugGetApnsTokenOverride = () async => 'apns-token';
+      FcmService.debugGetTokenOverride = () async {
+        fcmTokenRequests++;
+        return 'fcm-token';
+      };
+      FcmService.debugRegisterListenersOverride = () {
+        listenerRegistrations++;
+      };
+      FcmService.debugSaveTokenOverride = (deviceId, token) async {
+        savedTokens.add('$deviceId:$token');
+        return true;
+      };
 
       await expectLater(FcmService.initialize(), completes);
 
       expect(fcmTokenRequests, 1);
+      expect(listenerRegistrations, 1);
+      expect(savedTokens, ['uid-123:fcm-token']);
     });
 
     test(
