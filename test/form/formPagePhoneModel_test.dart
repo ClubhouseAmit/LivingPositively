@@ -399,6 +399,25 @@ void main() {
   });
 
   group('PhonePageData persistence', () {
+    test('should rethrow an awaited contact persistence failure', () async {
+      final failingMemory = ContractPersistentMemoryService()
+        ..onPersist = (_, _, _) {
+          throw StateError('intentional contact persistence failure');
+        };
+      GetIt.instance.unregister<PersistentMemoryService>();
+      GetIt.instance.registerSingleton<PersistentMemoryService>(failingMemory);
+
+      final phonePageData = _make(key: 'awaitedFailingPersistKey');
+      await Future<void>.delayed(Duration.zero);
+      phonePageData.savedPhoneNames = <String>['A'];
+      phonePageData.savedPhoneNumbers = <String>['111'];
+
+      await expectLater(
+        phonePageData.saveItemsToPrefs(),
+        throwsA(isA<StateError>()),
+      );
+    });
+
     test('should contain background contact persistence failures', () async {
       final failingMemory = ContractPersistentMemoryService()
         ..onPersist = (_, _, _) {

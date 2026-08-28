@@ -197,9 +197,9 @@ class SharedPreferencesService implements PersistentMemoryService {
     StackTrace stackTrace,
   ) {
     unawaited(
-      loggerService
-          .captureLog(error, stackTrace: stackTrace)
-          .catchError((Object _) {}),
+      Future<void>.sync(
+        () => loggerService.captureLog(error, stackTrace: stackTrace),
+      ).catchError((Object _, StackTrace _) {}),
     );
   }
 }

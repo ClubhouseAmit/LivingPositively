@@ -404,7 +404,7 @@ class _MyAppState extends State<MyApp> with WidgetsBindingObserver {
       localeName = localeService.getLocale();
     });
     unawaited(_saveLocaleInBackground(service, locale));
-    
+
     final userInfoProvider = Provider.of<UserInformation>(
       context,
       listen: false,
@@ -418,8 +418,6 @@ class _MyAppState extends State<MyApp> with WidgetsBindingObserver {
         currentContext,
         listen: false,
       );
-      userInfo.updateLocaleName(locale);
-
       final pref = userInfo.getNotificationPreference('default');
       if (pref != null) {
         await FcmScheduledNotificationService.registerNotification(

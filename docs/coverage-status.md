@@ -695,9 +695,10 @@ untouched.
 #### `scripts/check_integration_coverage.dart` (new gate)
 
 Sibling of `scripts/check_coverage.dart`. Reads `coverage/integration.info`
-(separate from `coverage/lcov.info`). Enforces ONLY the four per-file floors
-whose authoritative values are in `scripts/check_integration_coverage.dart`
-(currently 65/60/60/85). Does NOT check global coverage — the unit pipeline
+(separate from `coverage/lcov.info`). Enforces ONLY the three per-file floors
+whose authoritative values are in `scripts/check_integration_coverage.dart`:
+`lib/main.dart` (65), `lib/pages/WellnessTools/player.dart` (60), and
+`lib/util/logger_service.dart` (60). Does NOT check global coverage — the unit pipeline
 owns that. Exits 0 on pass, 1 on per-file miss or missing file, 2 if
 `coverage/integration.info` does not exist (clearly distinguishes a CI
 config error from a coverage regression).

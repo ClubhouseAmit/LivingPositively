@@ -83,9 +83,14 @@ final class _ControlledPersistentMemoryService
     implements PersistentMemoryService {
   final List<MapEntry<String, dynamic>> writes = <MapEntry<String, dynamic>>[];
   final List<Completer<void>> pendingWrites = <Completer<void>>[];
+  final List<({String key, PersistentMemoryType type})> reads =
+      <({String key, PersistentMemoryType type})>[];
 
   @override
-  Future<dynamic> getItem(String key, PersistentMemoryType type) async => null;
+  Future<dynamic> getItem(String key, PersistentMemoryType type) async {
+    reads.add((key: key, type: type));
+    throw StateError('Unexpected persistence read: $key ($type)');
+  }
 
   @override
   Future<void> reset() async {}
@@ -567,6 +572,7 @@ void main() {
         controlledService.writes.last.value,
         '{"default":{"hour":9,"minute":15}}',
       );
+      expect(controlledService.reads, isEmpty);
       controlledService.pendingWrites.last.complete();
     });
 

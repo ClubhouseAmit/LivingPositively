@@ -97,6 +97,20 @@ class _ThrowingLogger implements IncidentLoggerService {
   }
 }
 
+class _SynchronouslyThrowingLogger implements IncidentLoggerService {
+  @override
+  Future<void> initializeSentry(_) async {}
+
+  @override
+  Future<void> captureLog(
+    dynamic exception, {
+    StackTrace? stackTrace,
+    dynamic exceptionData,
+  }) {
+    throw StateError('Incident logging failed synchronously.');
+  }
+}
+
 void _installControlledStore(_ControlledSharedPreferencesStore store) {
   final SharedPreferencesStorePlatform previousStore =
       SharedPreferencesStorePlatform.instance;
@@ -172,6 +186,25 @@ void main() {
       );
       expect(logger.logs, isNotEmpty);
     });
+
+    test(
+      'preserves a persistence error when the logger throws synchronously',
+      () async {
+        GetIt.instance.unregister<IncidentLoggerService>();
+        GetIt.instance.registerSingleton<IncidentLoggerService>(
+          _SynchronouslyThrowingLogger(),
+        );
+
+        await expectLater(
+          SharedPreferencesService().setItem(
+            '',
+            PersistentMemoryType.String,
+            'v',
+          ),
+          throwsA(isA<ArgumentError>()),
+        );
+      },
+    );
 
     test('null value is rejected and logged', () async {
       final s = SharedPreferencesService();

@@ -257,9 +257,9 @@ class PhonePageData extends ChangeNotifier {
         savedPhoneNumbers,
       );
     } catch (error, stackTrace) {
-      // These existing synchronous model mutators intentionally update the
-      // in-memory contact list immediately. Keep persistence failures from
-      // escaping their fire-and-forget callers.
+      // Background mutators use [_saveItemsToPrefsInBackground] to contain
+      // this failure. Awaited callers need the original failure so they do
+      // not advance the form after contact persistence failed.
       if (GetIt.instance.isRegistered<IncidentLoggerService>()) {
         try {
           await GetIt.instance<IncidentLoggerService>().captureLog(
@@ -272,6 +272,7 @@ class PhonePageData extends ChangeNotifier {
         }
       }
       debugPrint('Unable to persist saved phone contacts.');
+      Error.throwWithStackTrace(error, stackTrace);
     }
   }
 
