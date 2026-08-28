@@ -13,7 +13,7 @@ import 'package:flutter/material.dart';
 /// palette and explicitly preserved legacy/PDF values are re-exposed under
 /// semantic names that `ColorScheme` understands. The dark primary,
 /// secondary, surface, error, outline, and navigation tokens intentionally
-/// migrate to the warm-sepia palette consumed by [appDarkColorScheme] and
+/// migrate to the cool taupe palette consumed by [appDarkColorScheme] and
 /// [buildDarkTheme]. The nine legacy variables in `styles.dart` now forward
 /// to these tokens — the ADR's mitigation for the large blast radius.
 class AppColors {
@@ -50,41 +50,41 @@ class AppColors {
   /// Foreground on `error`.
   static const Color onError = Colors.white;
 
-  /// Warm gold used for primary controls in the intentional sepia migration.
-  static const Color darkPrimary = Color(0xFFD8B77A);
+  /// Muted beige used for primary controls in the taupe dark palette.
+  static const Color darkPrimary = Color(0xFFD0C1A4);
 
-  /// Accessible dark-sepia foreground on [darkPrimary].
-  static const Color darkOnPrimary = Color(0xFF2A211B);
+  /// Accessible charcoal-taupe foreground on [darkPrimary].
+  static const Color darkOnPrimary = Color(0xFF2B2A2C);
 
-  /// Muted tan used for selected and supporting dark-mode controls.
-  static const Color darkSecondary = Color(0xFFB9A183);
+  /// Muted greige used for selected and supporting dark-mode controls.
+  static const Color darkSecondary = Color(0xFFB9AEA0);
 
   /// Foreground colour on [darkSecondary].
-  static const Color darkOnSecondary = Color(0xFF2A211B);
+  static const Color darkOnSecondary = Color(0xFF2B2A2C);
 
   /// Home page background in light mode — warm cream.
   static const Color pageBackground = Color(0xFFF4F0EB);
 
-  /// Home page background in dark mode — warm sepia brown.
-  static const Color darkPageBackground = Color(0xFF2A211B);
+  /// Home page background in dark mode — gently warm charcoal taupe.
+  static const Color darkPageBackground = Color(0xFF2D2B2A);
 
-  /// App and navigation chrome in dark mode.
-  static const Color darkNavBackground = Color(0xFF3A2C22);
+  /// App and navigation chrome in dark mode — cool dark taupe.
+  static const Color darkNavBackground = Color(0xFF393739);
 
   /// Default dark page surface.
-  static const Color darkSurface = Color(0xFF2A211B);
+  static const Color darkSurface = Color(0xFF2B2A2C);
 
-  /// Elevated sepia surface used by cards and input controls.
-  static const Color darkSurfaceContainer = Color(0xFF574638);
+  /// Elevated taupe surface used by cards and input controls.
+  static const Color darkSurfaceContainer = Color(0xFF4C494B);
 
   /// Body-text colour on [darkSurface].
-  static const Color darkOnSurface = Color(0xFFF6EAD5);
+  static const Color darkOnSurface = Color(0xFFF5F0E8);
 
-  /// Accessible destructive colour for dark mode.
-  static const Color darkError = Color(0xFFA9574C);
+  /// Accessible muted-rose destructive colour for dark mode.
+  static const Color darkError = Color(0xFFA15857);
 
   /// Foreground on [darkError].
-  static const Color darkOnError = Color(0xFFFFF4E3);
+  static const Color darkOnError = Color(0xFFFFF5F0);
 
   // -- Non-ColorScheme tokens (no semantic slot, kept for legacy parity) --
 
@@ -100,14 +100,14 @@ class AppColors {
   /// Muted text/icon grey. Source: legacy `darkGray`.
   static const Color neutralDark = Color(0xFF9A9EB6);
 
-  /// Success accent that remains legible on the dark surface.
-  static const Color darkSuccess = Color(0xFF87E990);
+  /// Forest-sage success accent that remains legible on the dark surface.
+  static const Color darkSuccess = Color(0xFF74AD82);
 
   /// Foreground on [darkSuccess].
-  static const Color darkOnSuccess = Color(0xFF003913);
+  static const Color darkOnSuccess = Color(0xFF102A1B);
 
-  /// Accessible outline and small-text accent in dark mode.
-  static const Color darkOutline = Color(0xFFD8B77A);
+  /// Accessible beige outline and small-text accent in dark mode.
+  static const Color darkOutline = Color(0xFFD0C1A4);
 
   /// Inactive onboarding progress-dot fill — a lighter, distinct grey from
   /// [neutralDark]. Figma node 1660:2067; no dark-mode treatment designed

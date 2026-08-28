@@ -25,21 +25,25 @@ void main() {
       expect(AppColors.onSurface, const Color(0xFF0F2851));
     });
 
-    test('dark tokens should match the approved warm-sepia palette', () {
-      expect(AppColors.darkPageBackground, const Color(0xFF2A211B));
-      expect(AppColors.darkNavBackground, const Color(0xFF3A2C22));
-      expect(AppColors.darkSurface, const Color(0xFF2A211B));
-      expect(AppColors.darkSurfaceContainer, const Color(0xFF574638));
-      expect(AppColors.darkPrimary, const Color(0xFFD8B77A));
-      expect(AppColors.darkOnPrimary, const Color(0xFF2A211B));
-      expect(AppColors.darkSecondary, const Color(0xFFB9A183));
-      expect(AppColors.darkOnSecondary, const Color(0xFF2A211B));
-      expect(AppColors.darkOnSurface, const Color(0xFFF6EAD5));
-      expect(AppColors.darkError, const Color(0xFFA9574C));
-      expect(AppColors.darkOnError, const Color(0xFFFFF4E3));
-      expect(AppColors.darkOutline, const Color(0xFFD8B77A));
-      expect(AppColors.darkSuccess, const Color(0xFF87E990));
-      expect(AppColors.darkOnSuccess, const Color(0xFF003913));
+    test('dark tokens should match the approved cool-taupe palette', () {
+      expect(AppColors.darkPageBackground, const Color(0xFF2D2B2A));
+      expect(AppColors.darkNavBackground, const Color(0xFF393739));
+      expect(AppColors.darkSurface, const Color(0xFF2B2A2C));
+      expect(AppColors.darkSurfaceContainer, const Color(0xFF4C494B));
+      expect(AppColors.darkPrimary, const Color(0xFFD0C1A4));
+      expect(AppColors.darkOnPrimary, const Color(0xFF2B2A2C));
+      expect(AppColors.darkSecondary, const Color(0xFFB9AEA0));
+      expect(AppColors.darkOnSecondary, const Color(0xFF2B2A2C));
+      expect(AppColors.darkOnSurface, const Color(0xFFF5F0E8));
+      expect(AppColors.darkError, const Color(0xFFA15857));
+      expect(AppColors.darkOnError, const Color(0xFFFFF5F0));
+      expect(AppColors.darkOutline, const Color(0xFFD0C1A4));
+      expect(AppColors.darkSuccess, const Color(0xFF74AD82));
+      expect(AppColors.darkOnSuccess, const Color(0xFF102A1B));
+    });
+
+    test('success preserves the light-mode green', () {
+      expect(AppColors.success, const Color(0xFF01B91E));
     });
 
     test('error is Material red 500 (visual parity with Colors.red)', () {
@@ -150,6 +154,7 @@ void main() {
         (AppColors.darkOnPrimary, AppColors.darkPrimary),
         (AppColors.darkOnSecondary, AppColors.darkSecondary),
         (AppColors.darkOnError, AppColors.darkError),
+        (AppColors.darkOnSuccess, AppColors.darkSuccess),
         (AppColors.darkOutline, AppColors.darkSurface),
         (AppColors.darkOutline, AppColors.darkSurfaceContainer),
       ];
