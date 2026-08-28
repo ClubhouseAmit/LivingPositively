@@ -280,7 +280,12 @@ class FcmService {
         ),
       ),
     );
-    if (initialized != true) {
+    // On iOS, flutter_local_notifications returns false when all permission
+    // requests are disabled. Firebase Messaging owns that prompt above, so
+    // false still means the local-notification plugin configured successfully.
+    if (initialized == null ||
+        (defaultTargetPlatform == TargetPlatform.android &&
+            initialized != true)) {
       throw StateError('Local notification plugin did not initialize.');
     }
     if (!kIsWeb && defaultTargetPlatform == TargetPlatform.android) {

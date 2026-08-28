@@ -324,17 +324,18 @@ void main() {
     );
 
     test(
-      'should iOS local plugin initialization does not request permission',
+      'should iOS local plugin initialization without a permission request still checks APNs',
       () async {
         debugDefaultTargetPlatformOverride = TargetPlatform.iOS;
         const channel = MethodChannel(
           'dexterous.com/flutter/local_notifications',
         );
         MethodCall? initializationCall;
+        var apnsTokenRequests = 0;
         TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger
             .setMockMethodCallHandler(channel, (call) async {
               initializationCall = call;
-              return true;
+              return false;
             });
         addTearDown(
           () => TestDefaultBinaryMessengerBinding
@@ -346,7 +347,10 @@ void main() {
         FcmService.debugRequestPermissionOverride = () async =>
             _notificationSettings(AuthorizationStatus.authorized);
         FcmService.debugGetCurrentUserIdOverride = () => null;
-        FcmService.debugGetApnsTokenOverride = () async => null;
+        FcmService.debugGetApnsTokenOverride = () async {
+          apnsTokenRequests++;
+          return null;
+        };
         FcmService.debugGetTokenOverride = () async => 'unexpected-token';
         FcmService.debugRegisterListenersOverride = () {};
 
@@ -361,6 +365,7 @@ void main() {
         expect(arguments['requestProvisionalPermission'], isFalse);
         expect(arguments['requestCriticalPermission'], isFalse);
         expect(arguments['requestProvidesAppNotificationSettings'], isFalse);
+        expect(apnsTokenRequests, 1);
       },
     );
 
