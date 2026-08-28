@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import 'package:mazilon/util/styles.dart';
+import 'package:mazilon/util/layout/directional_widgets.dart';
 import 'package:mazilon/l10n/app_localizations.dart';
 
 //the about page , it shows the about page text and the logos of the social hub and the clubhouse
@@ -27,8 +28,7 @@ class About extends StatelessWidget {
           child: SizedBox(
             height: 130.0,
             // Mazilon Logo in the app bar
-            child: Image.asset(
-              'assets/images/Logo.png',
+            child: LpLogo(
               width: MediaQuery.of(context).size.width * 0.4 > 1000
                   ? 500
                   : MediaQuery.of(context).size.width * 0.2, // Adjust as needed

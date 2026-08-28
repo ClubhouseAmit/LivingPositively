@@ -2,6 +2,81 @@ import 'dart:math' as math;
 import 'package:flutter/material.dart';
 import 'package:mazilon/util/theme/spacing.dart';
 
+/// Displays the Living Positively logo with dark-mode letter contrast.
+///
+/// The white outline is confined to the lower `Logo.png` letter region so the
+/// butterfly and green accent preserve their existing artwork.
+class LpLogo extends StatelessWidget {
+  static const _assetPath = 'assets/images/Logo.png';
+  static const _letterRegionHeightFactor = 0.47;
+  static const _outlineOffsets = [
+    Offset(-1, -1),
+    Offset(0, -1),
+    Offset(1, -1),
+    Offset(-1, 0),
+    Offset(1, 0),
+    Offset(-1, 1),
+    Offset(0, 1),
+    Offset(1, 1),
+  ];
+
+  final double? width;
+  final double? height;
+  final BoxFit? fit;
+
+  const LpLogo({super.key, this.width, this.height, this.fit});
+
+  Image _buildImage() =>
+      Image.asset(_assetPath, width: width, height: height, fit: fit);
+
+  @override
+  Widget build(BuildContext context) {
+    final logo = _buildImage();
+    if (Theme.of(context).brightness != Brightness.dark) {
+      return logo;
+    }
+
+    return Stack(
+      alignment: Alignment.center,
+      clipBehavior: Clip.none,
+      children: [
+        for (final offset in _outlineOffsets)
+          Transform.translate(
+            offset: offset,
+            child: ExcludeSemantics(
+              child: ClipRect(
+                clipper: const _LpLetterRegionClipper(),
+                child: ColorFiltered(
+                  colorFilter: const ColorFilter.mode(
+                    Colors.white,
+                    BlendMode.srcIn,
+                  ),
+                  child: _buildImage(),
+                ),
+              ),
+            ),
+          ),
+        logo,
+      ],
+    );
+  }
+}
+
+class _LpLetterRegionClipper extends CustomClipper<Rect> {
+  const _LpLetterRegionClipper();
+
+  @override
+  Rect getClip(Size size) => Rect.fromLTWH(
+    0,
+    size.height * (1 - LpLogo._letterRegionHeightFactor),
+    size.width,
+    size.height * LpLogo._letterRegionHeightFactor,
+  );
+
+  @override
+  bool shouldReclip(covariant _LpLetterRegionClipper oldClipper) => false;
+}
+
 /// Reusable card container with proper RTL support and Material Design styling
 class CardContainer extends StatelessWidget {
   final Widget child;

@@ -292,6 +292,51 @@ void main() {
       expect(tester.takeException(), isNull);
     });
   });
+
+  group('LpLogo', () {
+    testWidgets('should outline only the LP letters in dark mode', (
+      tester,
+    ) async {
+      await tester.pumpWidget(
+        _logoHarness(theme: buildLightTheme()),
+      );
+
+      expect(find.byType(ColorFiltered), findsNothing);
+      expect(find.byType(Image), findsOneWidget);
+
+      await tester.pumpWidget(
+        _logoHarness(theme: buildDarkTheme()),
+      );
+      await tester.pumpAndSettle();
+
+      expect(find.byType(ColorFiltered), findsNWidgets(8));
+      expect(find.byType(ClipRect), findsNWidgets(8));
+      expect(find.byType(Image), findsNWidgets(9));
+      final logoSize = tester.getSize(find.byType(Image).last);
+      for (final element in find.byType(ClipRect).evaluate()) {
+        expect((element.renderObject! as RenderBox).size, logoSize);
+      }
+      for (final filtered in tester.widgetList<ColorFiltered>(
+        find.byType(ColorFiltered),
+      )) {
+        expect(
+          filtered.colorFilter,
+          const ColorFilter.mode(Colors.white, BlendMode.srcIn),
+        );
+      }
+    });
+  });
+}
+
+Widget _logoHarness({required ThemeData theme}) {
+  return MaterialApp(
+    theme: theme,
+    home: const Scaffold(
+      body: Center(
+        child: LpLogo(width: 180),
+      ),
+    ),
+  );
 }
 
 Widget _slotHarness({
