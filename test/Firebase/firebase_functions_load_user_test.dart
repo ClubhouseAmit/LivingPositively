@@ -111,6 +111,7 @@ _FakeMemory _registerFakes({
   );
   final auth = MockFirebaseAuth();
   when(auth.currentUser).thenReturn(null);
+  when(auth.authStateChanges()).thenAnswer((_) => Stream<User?>.value(null));
   getIt.registerSingleton<IncidentLoggerService>(_FakeLogger());
   getIt.registerSingleton<PersistentMemoryService>(memory);
   getIt.registerSingleton<FirebaseAuth>(auth);
@@ -226,6 +227,60 @@ void main() {
         expect(userInfo.userId, isEmpty);
         expect(userInfo.email, isEmpty);
         expect(userInfo.displayName, isEmpty);
+      },
+    );
+
+    test(
+      'waits for the initial Firebase Auth restoration before clearing a stored session',
+      () async {
+        _registerFakes(
+          store: {
+            'loggedIn': true,
+            'authDecisionMade': true,
+            'userId': 'restoring-uid',
+          },
+        );
+        final auth = GetIt.instance<FirebaseAuth>() as MockFirebaseAuth;
+        final restoredUser = MockUser();
+        when(auth.currentUser).thenReturn(null);
+        when(
+          auth.authStateChanges(),
+        ).thenAnswer((_) => Stream<User?>.value(restoredUser));
+        when(restoredUser.isAnonymous).thenReturn(false);
+        when(restoredUser.uid).thenReturn('restored-uid');
+        when(restoredUser.email).thenReturn('restored@example.com');
+        when(restoredUser.displayName).thenReturn('Restored');
+
+        final userInfo = _makeUserInfo();
+        await loadUserInformation(userInfo, 'en');
+
+        expect(userInfo.loggedIn, isTrue);
+        expect(userInfo.authDecisionMade, isTrue);
+        expect(userInfo.userId, 'restored-uid');
+      },
+    );
+
+    test(
+      'preserves stored auth evidence when Firebase cannot resolve its initial state',
+      () async {
+        _registerFakes(
+          store: {
+            'loggedIn': true,
+            'authDecisionMade': true,
+            'userId': 'persisted-uid',
+          },
+        );
+        final auth = GetIt.instance<FirebaseAuth>() as MockFirebaseAuth;
+        when(auth.currentUser).thenThrow(
+          FirebaseException(plugin: 'firebase_auth', code: 'unavailable'),
+        );
+
+        final userInfo = _makeUserInfo();
+        await loadUserInformation(userInfo, 'en');
+
+        expect(userInfo.loggedIn, isTrue);
+        expect(userInfo.authDecisionMade, isTrue);
+        expect(userInfo.userId, 'persisted-uid');
       },
     );
 

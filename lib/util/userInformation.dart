@@ -112,7 +112,13 @@ class UserInformation with ChangeNotifier {
       sanitized,
       memoryService: effectiveMemoryService,
     );
-    _pendingCustomCategoriesSave = nextSave;
+    // The caller still observes this write's error, but exports only need to
+    // wait for outstanding work. Keeping an errored future here would make
+    // every later export fail until another categories save succeeds.
+    _pendingCustomCategoriesSave = nextSave.then<void>(
+      (_) {},
+      onError: (Object _, StackTrace _) {},
+    );
     await nextSave;
     customCategories = List<MapEntry<String, String>>.unmodifiable(sanitized);
     notifyListeners();
@@ -321,7 +327,12 @@ class UserInformation with ChangeNotifier {
             _activeDreamsAndGoalsSavesCount--;
           }
         });
-    _pendingDreamsAndGoalsSave = nextSave;
+    // Keep the queue usable after a failed snapshot. The returned [nextSave]
+    // still reports the failure to its initiating caller.
+    _pendingDreamsAndGoalsSave = nextSave.then<void>(
+      (_) {},
+      onError: (Object _, StackTrace _) {},
+    );
     return nextSave;
   }
 

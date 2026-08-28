@@ -131,6 +131,18 @@ class FcmService {
     }
   }
 
+  /// Whether the OS can still present its initial notification prompt.
+  static Future<bool> canRequestPermission() async {
+    try {
+      final settings =
+          await (debugGetNotificationSettingsOverride ??
+              FirebaseMessaging.instance.getNotificationSettings)();
+      return settings.authorizationStatus == AuthorizationStatus.notDetermined;
+    } catch (_) {
+      return false;
+    }
+  }
+
   static Future<void> initialize() {
     if (!supportsReminderSettings()) return Future<void>.value();
     if (_isInitialized) {

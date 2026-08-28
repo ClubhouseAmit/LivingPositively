@@ -3,7 +3,6 @@ on:
   pull_request:
     branches:
       - main
-      - feature/basic-fcm-setup
   push:
     branches:
       - main

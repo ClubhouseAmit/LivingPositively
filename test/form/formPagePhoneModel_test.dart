@@ -208,6 +208,11 @@ void main() {
       }
     });
 
+    test('preserves local emergency and service short codes', () {
+      expect(PhonePageData.canonicalizePhoneNumber('100', '+972'), '100');
+      expect(PhonePageData.canonicalizePhoneNumber('1201', '+972'), '1201');
+    });
+
     test('addItem preserves unmatched legacy entries', () {
       final p = _make();
       p.savedPhoneNames = <String>['Paired', 'Name only'];

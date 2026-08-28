@@ -197,30 +197,45 @@ Future<void> loadUserInformation(
   userInfo.updateBinary(data['binary'] ?? false);
   userInfo.updateAge(data['age'] ?? '');
 
+  final wasPersistedAsSignedIn = data['loggedIn'] == true;
+  final hadMadeGuestDecision =
+      !wasPersistedAsSignedIn && data['authDecisionMade'] == true;
   User? currentUser;
+  var authStateResolved = false;
   try {
     final auth = GetIt.instance.isRegistered<FirebaseAuth>()
         ? GetIt.instance<FirebaseAuth>()
         : FirebaseAuth.instance;
     currentUser = auth.currentUser;
+    // Firebase Auth restores its persisted session asynchronously. A null
+    // currentUser before this first emission is not a completed sign-out.
+    currentUser ??= await auth.authStateChanges().first;
+    authStateResolved = true;
   } on FirebaseException {
-    // Treat an unavailable Firebase Auth session as signed out. Persisted
-    // authentication flags cannot authorize reminder mutations on their own.
+    // Firebase did not provide a completed auth state. Preserve persisted
+    // evidence rather than permanently replacing it with a transient null.
   }
   final hasAuthenticatedSession =
       currentUser != null && !currentUser.isAnonymous;
-  final wasPersistedAsSignedIn = data['loggedIn'] == true;
-  final hadMadeGuestDecision =
-      !wasPersistedAsSignedIn && data['authDecisionMade'] == true;
-  userInfo.updateLoggedIn(hasAuthenticatedSession);
-  userInfo.updateAuthDecisionMade(
-    hasAuthenticatedSession || hadMadeGuestDecision,
-  );
-  userInfo.updateUserId(hasAuthenticatedSession ? currentUser.uid : '');
-  userInfo.updateEmail(hasAuthenticatedSession ? currentUser.email ?? '' : '');
-  userInfo.updateDisplayName(
-    hasAuthenticatedSession ? currentUser.displayName ?? '' : '',
-  );
+  if (authStateResolved) {
+    userInfo.updateLoggedIn(hasAuthenticatedSession);
+    userInfo.updateAuthDecisionMade(
+      hasAuthenticatedSession || hadMadeGuestDecision,
+    );
+    userInfo.updateUserId(hasAuthenticatedSession ? currentUser.uid : '');
+    userInfo.updateEmail(
+      hasAuthenticatedSession ? currentUser.email ?? '' : '',
+    );
+    userInfo.updateDisplayName(
+      hasAuthenticatedSession ? currentUser.displayName ?? '' : '',
+    );
+  } else {
+    userInfo.updateLoggedIn(wasPersistedAsSignedIn);
+    userInfo.updateAuthDecisionMade(
+      wasPersistedAsSignedIn || hadMadeGuestDecision,
+    );
+    userInfo.updateUserId(data['userId'] as String? ?? '');
+  }
 
   userInfo.updateDifficultEvents(
     (TypeUtils.castToStringList(data['difficultEvents'])),

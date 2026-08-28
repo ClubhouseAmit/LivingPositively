@@ -94,8 +94,9 @@ class _HomeState extends LPExtendedState<Home> {
           add: (text, provider) {},
           index: 0,
           edit: (text, idx, provider) async {
-            if (text == currentText && _customReminder != null) {
-              // Submit cannot overwrite the loaded customReminder
+            if (text == currentText) {
+              // Submitting unchanged text must not freeze the rotating
+              // suggestion as a custom reminder.
             } else {
               PersistentMemoryService service =
                   GetIt.instance<PersistentMemoryService>();

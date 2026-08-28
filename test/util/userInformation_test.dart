@@ -151,6 +151,33 @@ void main() {
     });
   });
 
+  test(
+    'does not let failed categories or Dreams writes block personal-plan export preparation',
+    () async {
+      final failingService = _FailingPersistentMemoryService();
+      final user = UserInformation(service: failingService);
+
+      await expectLater(
+        user.saveCustomCategories(
+          categories: <MapEntry<String, String>>[
+            const MapEntry<String, String>('category', 'value'),
+          ],
+        ),
+        throwsA(isA<StateError>()),
+      );
+      user.updateDreamsAndGoals(
+        <String>['A goal'],
+        selectionSources: const <String>[dreamsAndGoalsCustomSelectionSource],
+      );
+      await expectLater(
+        user.queueDreamsAndGoalsSave(),
+        throwsA(isA<StateError>()),
+      );
+
+      await expectLater(user.prepareForPersonalPlanExport(), completes);
+    },
+  );
+
   group('UserInformation.reset', () {
     test('clears all mutable fields and applies provided locale', () async {
       final u = UserInformation(

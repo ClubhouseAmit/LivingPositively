@@ -1059,10 +1059,20 @@ export const processScheduledNotifications = onSchedule(
     let snapshot;
     let recoveryPageHasMore = false;
     if (queryPlan.kind === "exact") {
-      snapshot = await scheduledNotifications
+      let exactQuery = scheduledNotifications
         .where("hour", "==", queryPlan.hour)
         .where("minute", "==", queryPlan.minute)
+        .orderBy(FieldPath.documentId());
+      if (recoveryContinuation !== undefined) {
+        exactQuery = exactQuery.startAfter(
+          recoveryContinuation.cursorDocumentId,
+        );
+      }
+      snapshot = await exactQuery
+        .limit(MAX_SCHEDULED_NOTIFICATIONS_PER_RECOVERY_PAGE + 1)
         .get();
+      recoveryPageHasMore =
+        snapshot.size > MAX_SCHEDULED_NOTIFICATIONS_PER_RECOVERY_PAGE;
     } else {
       let recoveryQuery = scheduledNotifications
         .where("hour", "in", queryPlan.hours)

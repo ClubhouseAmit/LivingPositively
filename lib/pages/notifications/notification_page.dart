@@ -25,6 +25,7 @@ class NotificationPage extends StatefulWidget {
 class _NotificationPageState extends LPExtendedState<NotificationPage>
     with WidgetsBindingObserver {
   bool? _hasPermission;
+  bool _canRequestPermission = false;
   int _permissionCheckGeneration = 0;
 
   @override
@@ -49,15 +50,22 @@ class _NotificationPageState extends LPExtendedState<NotificationPage>
   Future<void> _checkPermission() async {
     final generation = ++_permissionCheckGeneration;
     final granted = await FcmService.hasPermission();
+    final canRequestPermission =
+        !granted && await FcmService.canRequestPermission();
     if (granted) {
       await FcmService.initialize();
     }
     if (!mounted || generation != _permissionCheckGeneration) return;
-    setState(() => _hasPermission = granted);
+    setState(() {
+      _hasPermission = granted;
+      _canRequestPermission = canRequestPermission;
+    });
   }
 
   Future<bool> _onToggle(bool value, UserInformation userInfo) async {
-    if (_hasPermission != true) {
+    // Disabling a reminder is safe and necessary even if notification
+    // permission was later revoked. Only enabling needs a confirmed grant.
+    if (value && _hasPermission != true) {
       _showReminderMutationFailure();
       return false;
     }
@@ -77,7 +85,11 @@ class _NotificationPageState extends LPExtendedState<NotificationPage>
   }
 
   Future<bool> _enableReminder(UserInformation userInfo) async {
-    if (!await FcmService.requestPermissionAndInitialize()) {
+    // Initialization can still be pending on iOS immediately after a user
+    // grants permission because APNs has not supplied its token yet. The
+    // permission result, rather than FCM initialization, controls this UI.
+    await FcmService.requestPermissionAndInitialize();
+    if (!await FcmService.hasPermission()) {
       if (!mounted) return false;
       await _checkPermission();
       return false;
@@ -170,9 +182,19 @@ class _NotificationPageState extends LPExtendedState<NotificationPage>
                     if (!userInfo.loggedIn) {
                       return _NotSignedInCard();
                     }
-                    if (_hasPermission == false) {
+                    final preference = userInfo.getNotificationPreference(
+                      'default',
+                    );
+                    // A schedule that was already registered must remain
+                    // removable after OS permission is revoked. New reminder
+                    // creation stays behind the permission prompt.
+                    if (_hasPermission == false && preference == null) {
                       return _PermissionDeniedCard(
                         onRequestPermission: _requestReminderPermission,
+                        canRequestPermission: _canRequestPermission,
+                        requestPermissionBody: appLocale.notificationPageHeader(
+                          gender,
+                        ),
                       );
                     }
                     if (_hasPermission == null) {
@@ -183,9 +205,6 @@ class _NotificationPageState extends LPExtendedState<NotificationPage>
                         ),
                       );
                     }
-                    final preference = userInfo.getNotificationPreference(
-                      'default',
-                    );
                     return NotificationToggleCard(
                       emoji: "✨",
                       badgeText: "LP",
@@ -231,9 +250,15 @@ class _NotificationPageState extends LPExtendedState<NotificationPage>
 
   Future<void> _requestReminderPermission() async {
     final generation = ++_permissionCheckGeneration;
-    final granted = await FcmService.requestPermissionAndInitialize();
+    await FcmService.requestPermissionAndInitialize();
+    final granted = await FcmService.hasPermission();
+    final canRequestPermission =
+        !granted && await FcmService.canRequestPermission();
     if (!mounted || generation != _permissionCheckGeneration) return;
-    setState(() => _hasPermission = granted);
+    setState(() {
+      _hasPermission = granted;
+      _canRequestPermission = canRequestPermission;
+    });
   }
 }
 
@@ -289,8 +314,14 @@ class _NotSignedInCardState extends LPExtendedState<_NotSignedInCard> {
 
 class _PermissionDeniedCard extends StatefulWidget {
   final Future<void> Function() onRequestPermission;
+  final bool canRequestPermission;
+  final String requestPermissionBody;
 
-  const _PermissionDeniedCard({required this.onRequestPermission});
+  const _PermissionDeniedCard({
+    required this.onRequestPermission,
+    required this.canRequestPermission,
+    required this.requestPermissionBody,
+  });
 
   @override
   State<_PermissionDeniedCard> createState() => _PermissionDeniedCardState();
@@ -329,13 +360,17 @@ class _PermissionDeniedCardState
           ),
           const SizedBox(height: 12),
           Text(
-            appLocale.notificationsPermissionDeniedTitle,
+            widget.canRequestPermission
+                ? appLocale.notificationsEnable
+                : appLocale.notificationsPermissionDeniedTitle,
             style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
             textAlign: TextAlign.center,
           ),
           const SizedBox(height: 6),
           Text(
-            appLocale.notificationsPermissionDeniedBody,
+            widget.canRequestPermission
+                ? widget.requestPermissionBody
+                : appLocale.notificationsPermissionDeniedBody,
             style: const TextStyle(color: Colors.grey, fontSize: 13),
             textAlign: TextAlign.center,
           ),
@@ -345,11 +380,12 @@ class _PermissionDeniedCardState
             icon: const Icon(Icons.notifications_outlined),
             label: Text(appLocale.notificationsEnable),
           ),
-          TextButton.icon(
-            onPressed: openAppSettings,
-            icon: const Icon(Icons.settings_outlined),
-            label: Text(appLocale.notificationsOpenSettings),
-          ),
+          if (!widget.canRequestPermission)
+            TextButton.icon(
+              onPressed: openAppSettings,
+              icon: const Icon(Icons.settings_outlined),
+              label: Text(appLocale.notificationsOpenSettings),
+            ),
         ],
       ),
     );

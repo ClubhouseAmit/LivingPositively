@@ -542,6 +542,7 @@ class _UserSettingsState extends LPExtendedState<UserSettings> {
     );
     NotificationPreference? cancelledRemotePreference;
     var remoteReminderCancelled = false;
+    var resetSucceeded = false;
 
     final firebaseUser = GetIt.instance.isRegistered<FirebaseAuth>()
         ? GetIt.instance<FirebaseAuth>().currentUser
@@ -556,15 +557,7 @@ class _UserSettingsState extends LPExtendedState<UserSettings> {
               },
             );
         if (!cancelled) {
-          if (mounted) {
-            Navigator.of(context).pop();
-            ScaffoldMessenger.maybeOf(context)?.showSnackBar(
-              SnackBar(
-                content: Text(appLocale.resetReminderCancellationFailed),
-              ),
-            );
-          }
-          return;
+          throw StateError('Unable to cancel the reminder before reset.');
         }
         remoteReminderCancelled = true;
       }
@@ -591,7 +584,7 @@ class _UserSettingsState extends LPExtendedState<UserSettings> {
           context,
         )?.showSnackBar(SnackBar(content: Text(appLocale.resetDataFailed)));
       }
-      return;
+      rethrow;
     }
 
     // This is intentionally a separate failure boundary. Main's persistence
@@ -617,6 +610,7 @@ class _UserSettingsState extends LPExtendedState<UserSettings> {
       _reportResetFailure(error, stackTrace);
       rethrow;
     }
+    resetSucceeded = true;
     enteredBefore = false;
     hasFilled = false;
     try {
@@ -641,7 +635,7 @@ class _UserSettingsState extends LPExtendedState<UserSettings> {
         _reportResetFailure(error, stackTrace);
       }
     } finally {
-      if (mounted) {
+      if (resetSucceeded && mounted) {
         Navigator.of(context).pushAndRemoveUntil(
           MaterialPageRoute(
             builder: (context) => FirstPage(

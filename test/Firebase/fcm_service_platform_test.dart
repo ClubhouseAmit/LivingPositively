@@ -36,6 +36,17 @@ void main() {
       },
     );
 
+    test(
+      'should distinguish a requestable notification prompt from denial',
+      () async {
+        FcmService.debugGetNotificationSettingsOverride = () async =>
+            _notificationSettings(AuthorizationStatus.notDetermined);
+
+        expect(await FcmService.hasPermission(), isFalse);
+        expect(await FcmService.canRequestPermission(), isTrue);
+      },
+    );
+
     test('should reminder support matrix includes only Android and iOS', () {
       for (final platform in TargetPlatform.values) {
         expect(

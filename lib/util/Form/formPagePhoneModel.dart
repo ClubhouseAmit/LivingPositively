@@ -113,6 +113,13 @@ class PhonePageData extends ChangeNotifier {
       return null;
     }
 
+    // Emergency and service short codes are dialed locally. Prefixing their
+    // selected country's dial code turns, for example, 100 into +972100.
+    if (!normalized.startsWith('00') &&
+        RegExp(r'^\d{3,6}$').hasMatch(normalized)) {
+      return normalized;
+    }
+
     final internationalNumber = normalized.startsWith('00')
         ? '+${normalized.substring(2)}'
         : normalized;

@@ -25,7 +25,7 @@ mixin _SocialSignIn<T extends StatefulWidget> on LPExtendedState<T> {
     try {
       final result = await AuthService.signInWithGoogle();
       if (result == null) {
-        _setSocialLoading(false);
+        if (mounted) _setSocialLoading(false);
         return;
       }
       if (mounted) await _socialSuccessCallback(result.user!);
@@ -42,7 +42,7 @@ mixin _SocialSignIn<T extends StatefulWidget> on LPExtendedState<T> {
     try {
       final result = await AuthService.signInWithApple();
       if (result == null) {
-        _setSocialLoading(false);
+        if (mounted) _setSocialLoading(false);
         return;
       }
       if (mounted) await _socialSuccessCallback(result.user!);
@@ -421,10 +421,29 @@ class _SignupFormState extends LPExtendedState<_SignupForm>
     try {
       final result = await AuthService.signUpWithEmail(email, password);
       if (_nameController.text.trim().isNotEmpty) {
-        await result.user?.updateDisplayName(_nameController.text.trim());
-        await result.user?.reload();
+        try {
+          await result.user?.updateDisplayName(_nameController.text.trim());
+          await result.user?.reload();
+        } catch (error, stackTrace) {
+          // The Firebase account already exists at this point. A best-effort
+          // profile update must not strand the user at a non-retryable
+          // email-already-in-use sign-up form.
+          if (GetIt.instance.isRegistered<IncidentLoggerService>()) {
+            unawaited(
+              Future<void>.sync(
+                () => GetIt.instance<IncidentLoggerService>().captureLog(
+                  error,
+                  stackTrace: stackTrace,
+                ),
+              ).catchError((Object _, StackTrace _) {}),
+            );
+          }
+        }
       }
-      final user = FirebaseAuth.instance.currentUser!;
+      final user = FirebaseAuth.instance.currentUser ?? result.user;
+      if (user == null) {
+        throw StateError('Created Firebase account has no user.');
+      }
       if (mounted) await widget.onSuccess(user);
     } catch (e) {
       if (mounted) {
