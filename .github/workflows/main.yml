@@ -46,9 +46,11 @@ jobs:
           java-version: "17.x"
           cache: gradle
           cache-dependency-path: |
+            .github/workflows/main.yml
             android/**/*.gradle*
             android/gradle.properties
             android/gradle/wrapper/gradle-wrapper.properties
+            pubspec.yaml
             pubspec.lock
 
       - name: Set up Flutter
@@ -205,9 +207,11 @@ jobs:
           java-version: "17.x"
           cache: gradle
           cache-dependency-path: |
+            .github/workflows/main.yml
             android/**/*.gradle*
             android/gradle.properties
             android/gradle/wrapper/gradle-wrapper.properties
+            pubspec.yaml
             pubspec.lock
 
       - name: Set up Flutter

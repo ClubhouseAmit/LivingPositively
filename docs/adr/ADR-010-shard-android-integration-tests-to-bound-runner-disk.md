@@ -125,10 +125,11 @@ adopting Gradle dependency and wrapper caching.
 
 `build-android` now produces the `actions/setup-java` Gradle cache, and each
 `integration-test-shard` waits for that job before restoring the same cache
-key. The cache key covers the Android Gradle build files, wrapper properties,
-`android/gradle.properties`, and `pubspec.lock`. Each shard still receives a
-fresh runner and process. Android virtual devices, emulator state, and project
-build outputs remain excluded from caching.
+key. The cache key covers the workflow's Java and Flutter selections, Android
+Gradle build files, wrapper properties, `android/gradle.properties`,
+`pubspec.yaml`, and `pubspec.lock`. Each shard still receives a fresh runner
+and process. Android virtual devices, emulator state, and project build outputs
+remain excluded from caching.
 
 ### Option D: Delete preinstalled tools or use a larger runner
 
