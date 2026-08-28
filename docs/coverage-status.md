@@ -699,7 +699,7 @@ Sibling of `scripts/check_coverage.dart`. Reads `coverage/integration.info`
 whose authoritative values are in `scripts/check_integration_coverage.dart`:
 `lib/main.dart` (65), `lib/pages/WellnessTools/player.dart` (60), and
 `lib/util/logger_service.dart` (60). Does NOT check global coverage — the unit pipeline
-owns that. Exits 0 on pass, 1 on per-file miss or missing file, 2 if
+owns that. Exits 0 on pass, 1 on a per-file coverage-floor miss, 2 if
 `coverage/integration.info` does not exist (clearly distinguishes a CI
 config error from a coverage regression).
 

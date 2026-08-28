@@ -36,6 +36,7 @@ void main() {
     AuthService.debugAppleSignInEnabledOverride = null;
     AuthService.debugGoogleSignInServerClientIdOverride = null;
     AuthService.debugGoogleSignInIosClientIdOverride = null;
+    AuthService.debugSignUpWithEmailOverride = null;
     debugDefaultTargetPlatformOverride = null;
     FcmService.resetForTesting();
     await GetIt.instance.reset();
@@ -283,6 +284,57 @@ void main() {
     expect(find.text('Password must be at least 6 characters'), findsOneWidget);
   });
 
+  testWidgets('signup should continue when the display-name update fails', (
+    tester,
+  ) async {
+    final userInformation = UserInformation();
+    final user = MockUser();
+    final credential = _MockUserCredential();
+    when(credential.user).thenReturn(user);
+    when(user.uid).thenReturn('uid-123');
+    when(user.email).thenReturn('person@example.com');
+    when(user.displayName).thenReturn(null);
+    when(
+      user.updateDisplayName('Person'),
+    ).thenThrow(StateError('display-name update failed'));
+    GetIt.instance.registerSingleton<FirebaseFirestore>(
+      FakeFirebaseFirestore(),
+    );
+    AuthService.debugSignUpWithEmailOverride = (email, password) async {
+      expect(email, 'person@example.com');
+      expect(password, 'secret');
+      return credential;
+    };
+
+    await pumpWithProviders(
+      tester,
+      const AuthPage(),
+      userInformation: userInformation,
+      surfaceSize: const Size(1024, 1800),
+    );
+    await tester.tap(find.text('Sign Up'));
+    await tester.pumpAndSettle();
+
+    final fields = find.byType(TextField);
+    await tester.enterText(fields.at(0), 'Person');
+    await tester.enterText(fields.at(1), 'person@example.com');
+    await tester.enterText(fields.at(2), 'secret');
+    await tester.enterText(fields.at(3), 'secret');
+    tester
+        .widget<ElevatedButton>(
+          find.widgetWithText(ElevatedButton, 'Create Account'),
+        )
+        .onPressed!();
+    await tester.pump();
+    await tester.pump();
+
+    expect(userInformation.loggedIn, isTrue);
+    expect(userInformation.authDecisionMade, isTrue);
+    expect(userInformation.userId, 'uid-123');
+    verify(user.updateDisplayName('Person')).called(1);
+    verifyNever(user.reload());
+  });
+
   testWidgets('forgot-password navigation renders the reset form', (
     tester,
   ) async {
@@ -509,6 +561,8 @@ class _NotificationAuthLauncher extends StatelessWidget {
     );
   }
 }
+
+final class _MockUserCredential extends Mock implements UserCredential {}
 
 NotificationSettings _authorizedNotificationSettings() {
   return const NotificationSettings(

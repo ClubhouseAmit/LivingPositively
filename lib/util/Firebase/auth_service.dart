@@ -47,6 +47,10 @@ class AuthService {
   @visibleForTesting
   static GoogleSignInStarter? debugGoogleSignInStarterOverride;
 
+  @visibleForTesting
+  static Future<UserCredential> Function(String email, String password)?
+  debugSignUpWithEmailOverride;
+
   static String get _configuredGoogleSignInServerClientId =>
       (debugGoogleSignInServerClientIdOverride ?? _googleSignInServerClientId)
           .trim();
@@ -74,6 +78,10 @@ class AuthService {
   }
 
   static Future<UserCredential> signUpWithEmail(String email, String password) {
+    final signUpOverride = debugSignUpWithEmailOverride;
+    if (signUpOverride != null) {
+      return signUpOverride(email, password);
+    }
     return FirebaseAuth.instance.createUserWithEmailAndPassword(
       email: email.trim(),
       password: password,
