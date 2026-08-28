@@ -15,6 +15,10 @@ import 'package:mazilon/util/userInformation.dart';
 import 'package:mazilon/global_enums.dart';
 import 'package:provider/provider.dart';
 
+/// Injectable authenticated HTTP boundary used by notification mutations.
+///
+/// Production uses `http.post`; callers use this type only to provide an
+/// equivalent transport in tests or a caller-approved boundary.
 typedef NotificationHttpPost =
     Future<http.Response> Function(
       Uri url, {
@@ -23,6 +27,8 @@ typedef NotificationHttpPost =
       Encoding? encoding,
     });
 
+/// Coordinates authenticated FCM reminder registration, cancellation, and
+/// migration of the old Android device-local reminder.
 class FcmScheduledNotificationService {
   static const String _functionsBaseUrl =
       'https://us-central1-mezilondb.cloudfunctions.net';
@@ -36,13 +42,16 @@ class FcmScheduledNotificationService {
   static bool _legacyMigrationDisabled = false;
   static int _resetEpoch = 0;
 
+  /// Test-only HTTP substitute for all scheduler requests.
   @visibleForTesting
   static NotificationHttpPost? debugPostOverride;
 
+  /// Test-only substitute for legacy-reminder migration reporting.
   @visibleForTesting
   static Future<void> Function(UserInformation)?
   debugLegacyDefaultReminderMigrationOverride;
 
+  /// Clears process-wide scheduler state between isolated tests.
   @visibleForTesting
   static void resetForTesting() {
     _operationQueue = null;
@@ -799,7 +808,14 @@ class FcmScheduledNotificationService {
         false;
     if (migrated == true) return;
 
-    final legacyPreference = await _legacyDefaultReminderPreference(memory);
+    // The legacy notification ID is part of the retired Android scheduler's
+    // persisted contract. Only cancel it when its explicit enabled marker
+    // proves that this device created that legacy alarm; stored time values
+    // alone are also present on installs that never had an active reminder.
+    final legacyPreference = await _legacyDefaultReminderPreference(
+      memory,
+      requiresEnabledMarker: true,
+    );
     if (legacyPreference == null) return;
     await (legacyNotificationCanceller ??
             FcmService.cancelLegacyLocalNotification)(

@@ -1,5 +1,7 @@
 // ignore_for_file: prefer_const_constructors
 
+import 'dart:async';
+
 import 'package:flutter/foundation.dart' show kDebugMode;
 import 'package:flutter/material.dart';
 import 'package:permission_handler/permission_handler.dart';
@@ -103,10 +105,15 @@ class _NotificationPageState extends LPExtendedState<NotificationPage>
   }
 
   Future<bool> _onPickedTime(TimeOfDay picked) async {
-    if (_hasPermission != true) {
+    // The operating-system setting can change while this page stays mounted.
+    // Read it again immediately before a mutation instead of relying on the
+    // last lifecycle check.
+    if (_hasPermission != true || !await FcmService.hasPermission()) {
+      unawaited(_checkPermission());
       _showReminderMutationFailure();
       return false;
     }
+    if (!mounted) return false;
     final applied = await FcmScheduledNotificationService.registerNotification(
       context: context,
       typeId: 'default',
@@ -141,12 +148,6 @@ class _NotificationPageState extends LPExtendedState<NotificationPage>
 
   @override
   Widget build(BuildContext context) {
-    final userInfoProvider = Provider.of<UserInformation>(
-      context,
-      listen: false,
-    );
-
-    final gender = userInfoProvider.gender;
     return Scaffold(
       body: SafeArea(
         child: SingleChildScrollView(
@@ -156,19 +157,23 @@ class _NotificationPageState extends LPExtendedState<NotificationPage>
               crossAxisAlignment: CrossAxisAlignment.start,
               children: <Widget>[
                 SizedBox(height: 100),
-                Container(
-                  alignment: AlignmentDirectional.centerStart,
-                  child: Text(
-                    appLocale.notifications(gender),
-                    style: TextStyle(
-                      color: primaryPurple,
-                      fontSize: 32,
-                      fontWeight: FontWeight.bold,
+                Consumer<UserInformation>(
+                  builder: (context, userInfo, _) => Align(
+                    alignment: AlignmentDirectional.centerStart,
+                    child: myText(
+                      appLocale.notifications(userInfo.gender),
+                      TextStyle(
+                        color: Theme.of(context).colorScheme.primary,
+                        fontSize: 28,
+                        fontWeight: FontWeight.w500,
+                      ),
+                      TextAlign.start,
                     ),
                   ),
                 ),
                 Consumer<UserInformation>(
                   builder: (context, userInfo, _) {
+                    final gender = userInfo.gender;
                     if (!userInfo.loggedIn) {
                       return _NotSignedInCard();
                     }
@@ -214,10 +219,14 @@ class _NotificationPageState extends LPExtendedState<NotificationPage>
                   },
                 ),
                 if (kDebugMode) ...[
-                  GestureDetector(
-                    behavior: HitTestBehavior.opaque,
-                    onLongPress: _toggleDebugUnlock,
-                    child: Text(appLocale.notificationPageHeader(gender)),
+                  Consumer<UserInformation>(
+                    builder: (context, userInfo, _) => GestureDetector(
+                      behavior: HitTestBehavior.opaque,
+                      onLongPress: _toggleDebugUnlock,
+                      child: Text(
+                        appLocale.notificationPageHeader(userInfo.gender),
+                      ),
+                    ),
                   ),
                   ValueListenableBuilder<bool>(
                     valueListenable: reminderDebugPanelUnlocked,

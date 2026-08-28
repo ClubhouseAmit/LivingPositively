@@ -265,6 +265,9 @@ void main() {
       await pumpUser(tester);
       final firstRegistrationStarted = Completer<void>();
       final firstRegistrationResponse = Completer<http.Response>();
+      final secondRegistrationStarted = Completer<void>();
+      final secondRegistrationResponse = Completer<http.Response>();
+      final operationEvents = <String>[];
 
       await _onPlatform(TargetPlatform.android, () async {
         final firstRegistration =
@@ -276,8 +279,10 @@ void main() {
               idTokenProvider: () async => 'token-123',
               post: (url, {headers, body, encoding}) async {
                 if (url.path.endsWith('/getNotificationMutationVersion')) {
+                  operationEvents.add('first version read');
                   return http.Response('{"mutationVersion":0}', 200);
                 }
+                operationEvents.add('first mutation');
                 firstRegistrationStarted.complete();
                 return firstRegistrationResponse.future;
               },
@@ -291,18 +296,38 @@ void main() {
               hour: 10,
               minute: 0,
               idTokenProvider: () async => 'token-123',
-              post: (url, {headers, body, encoding}) async =>
-                  url.path.endsWith('/getNotificationMutationVersion')
-                  ? http.Response('{"mutationVersion":0}', 200)
-                  : http.Response('{"success":true}', 200),
+              post: (url, {headers, body, encoding}) async {
+                if (url.path.endsWith('/getNotificationMutationVersion')) {
+                  operationEvents.add('second version read');
+                  return http.Response('{"mutationVersion":0}', 200);
+                }
+                operationEvents.add('second mutation');
+                secondRegistrationStarted.complete();
+                return secondRegistrationResponse.future;
+              },
             );
+        var queuedRegistrationCompleted = false;
+        queuedRegistration.then((_) => queuedRegistrationCompleted = true);
 
         await tester.pumpWidget(const SizedBox.shrink());
+        expect(operationEvents, ['first version read', 'first mutation']);
+        expect(queuedRegistrationCompleted, isFalse);
         firstRegistrationResponse.complete(
-          http.Response('{"success":true}', 200),
+          http.Response('{"success":true,"mutationVersion":1}', 200),
         );
 
         expect(await firstRegistration, isTrue);
+        await secondRegistrationStarted.future;
+        expect(operationEvents, [
+          'first version read',
+          'first mutation',
+          'second version read',
+          'second mutation',
+        ]);
+        expect(queuedRegistrationCompleted, isFalse);
+        secondRegistrationResponse.complete(
+          http.Response('{"success":true,"mutationVersion":1}', 200),
+        );
         expect(await queuedRegistration, isTrue);
       });
     },
@@ -1455,6 +1480,37 @@ void main() {
         user.getNotificationPreference('default')?.toJson(),
         remotePreference.toJson(),
       );
+    },
+  );
+
+  testWidgets(
+    'sign-out cancellation does not target a legacy local notification without its enabled marker',
+    (tester) async {
+      memory.stored.remove('legacyDefaultReminderEnabled');
+      user.setNotificationPreference(
+        'default',
+        const NotificationPreference(hour: 8, minute: 15),
+      );
+      await pumpUser(tester);
+      var localCancellationCalls = 0;
+
+      final cancelled = await _onPlatform(
+        TargetPlatform.android,
+        () => FcmScheduledNotificationService.cancelDefaultForSignOut(
+          userInformation: user,
+          idTokenProvider: () async => 'token-123',
+          post: (url, {headers, body, encoding}) async =>
+              url.path.endsWith('/getNotificationMutationVersion')
+              ? http.Response('{"mutationVersion":0}', 200)
+              : http.Response('{"success":true,"mutationVersion":1}', 200),
+          legacyNotificationCanceller: (_) async {
+            localCancellationCalls++;
+          },
+        ),
+      );
+
+      expect(cancelled, isTrue);
+      expect(localCancellationCalls, isZero);
     },
   );
 

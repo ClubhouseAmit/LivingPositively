@@ -129,20 +129,20 @@ class _NotificationToggleCardState extends State<NotificationToggleCard> {
     );
     return Container(
       alignment: Alignment.center,
-      width: MediaQuery.of(context).size.width * 0.9,
-      padding: EdgeInsets.all(16),
+      width: double.infinity,
+      padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: primaryPurple.withValues(alpha: 0.1),
-        borderRadius: BorderRadius.circular(20),
-        border: Border.all(color: primaryPurple, width: 1),
+        color: Theme.of(context).colorScheme.surface,
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: Theme.of(context).colorScheme.outline),
       ),
-      child: Container(
-        margin: EdgeInsets.all(5),
+      child: Padding(
+        padding: const EdgeInsets.all(4),
         child: Row(
           mainAxisAlignment: MainAxisAlignment.spaceBetween,
           children: [
             Text(widget.emoji),
-            SizedBox(width: 8),
+            const SizedBox(width: 8),
             Expanded(
               child: Column(
                 mainAxisAlignment: MainAxisAlignment.center,
@@ -151,49 +151,42 @@ class _NotificationToggleCardState extends State<NotificationToggleCard> {
                   Row(
                     children: [
                       Container(
-                        padding: EdgeInsets.fromLTRB(8, 2, 8, 2),
-                        decoration: BoxDecoration(
-                          borderRadius: BorderRadius.circular(15),
-                          gradient: LinearGradient(
-                            begin: Alignment.topLeft,
-                            end: Alignment.bottomRight,
-                            colors: [
-                              primaryPurple,
-                              Color.lerp(primaryPurple, appGreen, 0.15)!,
-                              appGreen,
-                            ],
-                            stops: [0.0, 0.5, 1.0],
-                          ),
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 8,
+                          vertical: 2,
                         ),
-                        child: Text(
+                        decoration: BoxDecoration(
+                          color: Theme.of(context).colorScheme.primary,
+                          borderRadius: BorderRadius.circular(50),
+                        ),
+                        child: myText(
                           widget.badgeText,
-                          style: TextStyle(
-                            color: Colors.white,
-                            fontWeight: FontWeight.bold,
+                          TextStyle(
+                            color: Theme.of(context).colorScheme.onPrimary,
+                            fontWeight: FontWeight.w500,
                           ),
+                          TextAlign.center,
                         ),
                       ),
-                      SizedBox(width: 8),
-                      Text(
+                      const SizedBox(width: 8),
+                      myText(
                         widget.title,
-                        style: TextStyle(
-                          color: Color.fromARGB(255, 119, 78, 230),
-                          fontSize: 16,
-                          fontWeight: FontWeight.bold,
+                        TextStyle(
+                          color: Theme.of(context).colorScheme.onSurface,
+                          fontSize: 18,
+                          fontWeight: FontWeight.w500,
                         ),
+                        TextAlign.start,
                       ),
                     ],
                   ),
-                  SizedBox(
-                    width: 210,
-                    child: Text(
-                      widget.subtitle,
-                      style: TextStyle(
-                        color: primaryPurple,
-                        fontSize: 10,
-                        fontWeight: FontWeight.bold,
-                      ),
+                  myText(
+                    widget.subtitle,
+                    TextStyle(
+                      color: Theme.of(context).colorScheme.onSurfaceVariant,
+                      fontSize: 14,
                     ),
+                    TextAlign.start,
                   ),
                   if (_isEnabled)
                     GestureDetector(
@@ -228,12 +221,14 @@ class _NotificationToggleCardState extends State<NotificationToggleCard> {
                   gradient: _isEnabled
                       ? LinearGradient(
                           colors: [
-                            primaryPurple,
-                            const Color.fromARGB(255, 42, 62, 188),
+                            Theme.of(context).colorScheme.primary,
+                            Theme.of(context).colorScheme.secondary,
                           ],
                         )
                       : null,
-                  color: _isEnabled ? null : Colors.grey.shade300,
+                  color: _isEnabled
+                      ? null
+                      : Theme.of(context).colorScheme.surfaceContainerHighest,
                 ),
                 child: AnimatedAlign(
                   duration: Duration(milliseconds: 250),
@@ -251,7 +246,7 @@ class _NotificationToggleCardState extends State<NotificationToggleCard> {
                           height: 22,
                           margin: EdgeInsets.symmetric(horizontal: 2),
                           decoration: BoxDecoration(
-                            color: Colors.white,
+                            color: Theme.of(context).colorScheme.onPrimary,
                             shape: BoxShape.circle,
                           ),
                         ),

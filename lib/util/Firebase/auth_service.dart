@@ -6,12 +6,17 @@ import 'package:get_it/get_it.dart';
 import 'package:google_sign_in/google_sign_in.dart';
 import 'package:mazilon/util/Firebase/firebase_options.dart';
 
+/// Starts the provider-specific Google authentication flow.
+///
+/// The configured server client ID is always supplied; [clientId] is supplied
+/// only for iOS, where the native client must match Firebase's configuration.
 typedef GoogleSignInStarter =
     Future<GoogleSignInAccount?> Function({
       required String serverClientId,
       String? clientId,
     });
 
+/// Authentication operations and build-time provider availability checks.
 class AuthService {
   static const String _runnerIosBundleId = 'com.clubhouse.livingpositively';
   static const String _googleSignInServerClientId = String.fromEnvironment(
@@ -35,18 +40,23 @@ class AuthService {
   @visibleForTesting
   static String? debugGoogleSignInServerClientIdOverride;
 
+  /// Test-only override for the Google iOS client ID.
   @visibleForTesting
   static String? debugGoogleSignInIosClientIdOverride;
 
+  /// Test-only override for the Firebase iOS OAuth client ID.
   @visibleForTesting
   static String? debugFirebaseIosClientIdOverride;
 
+  /// Test-only override for the Firebase iOS bundle ID.
   @visibleForTesting
   static String? debugFirebaseIosBundleIdOverride;
 
+  /// Test-only substitute for starting the interactive Google flow.
   @visibleForTesting
   static GoogleSignInStarter? debugGoogleSignInStarterOverride;
 
+  /// Test-only substitute for the email account-creation request.
   @visibleForTesting
   static Future<UserCredential> Function(String email, String password)?
   debugSignUpWithEmailOverride;
@@ -70,6 +80,7 @@ class AuthService {
               '')
           .trim();
 
+  /// Signs in an existing email account after normalizing its email address.
   static Future<UserCredential> signInWithEmail(String email, String password) {
     return FirebaseAuth.instance.signInWithEmailAndPassword(
       email: email.trim(),
@@ -77,6 +88,7 @@ class AuthService {
     );
   }
 
+  /// Creates an email account after normalizing its email address.
   static Future<UserCredential> signUpWithEmail(String email, String password) {
     final signUpOverride = debugSignUpWithEmailOverride;
     if (signUpOverride != null) {
@@ -88,6 +100,7 @@ class AuthService {
     );
   }
 
+  /// Starts Google Sign-In, returning `null` when unavailable or cancelled.
   static Future<UserCredential?> signInWithGoogle() async {
     final serverClientId = _configuredGoogleSignInServerClientId;
     final iosClientId = _configuredGoogleSignInIosClientId;
@@ -114,7 +127,9 @@ class AuthService {
     return FirebaseAuth.instance.signInWithCredential(credential);
   }
 
-  // Apple Sign In is only available on iOS.
+  /// Starts Apple Sign-In, returning `null` when it is unavailable.
+  ///
+  /// Apple Sign-In is available only in capability-enabled iOS builds.
   static Future<UserCredential?> signInWithApple() async {
     if (!isAppleSignInAvailable) return null;
 
@@ -186,10 +201,12 @@ class AuthService {
   static bool get isSocialSignInAvailable =>
       isGoogleSignInAvailable || isAppleSignInAvailable;
 
+  /// Sends a password-reset email to the normalized email address.
   static Future<void> sendPasswordReset(String email) {
     return FirebaseAuth.instance.sendPasswordResetEmail(email: email.trim());
   }
 
+  /// Signs out through the registered auth instance, when one is available.
   static Future<void> signOut() {
     if (GetIt.instance.isRegistered<FirebaseAuth>()) {
       return GetIt.instance<FirebaseAuth>().signOut();
@@ -197,8 +214,7 @@ class AuthService {
     return FirebaseAuth.instance.signOut();
   }
 
-  // Called after any successful sign-in to persist the user in Firestore.
-  //Saving the user data in our own managed part of FireStore
+  /// Upserts the signed-in user's profile and last-login timestamp in Firestore.
   static Future<void> saveUserToFirestore(User user) async {
     final docRef = GetIt.instance<FirebaseFirestore>()
         .collection('users')
@@ -218,6 +234,7 @@ class AuthService {
     await docRef.set(data, SetOptions(merge: true));
   }
 
+  /// Maps an authentication error to the localization key shown by the UI.
   static String? localizedError(Object e) {
     if (e is FirebaseAuthException) {
       switch (e.code) {

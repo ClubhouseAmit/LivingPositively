@@ -137,7 +137,7 @@ class _AuthPageState extends LPExtendedState<AuthPage> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: appWhite,
+      backgroundColor: Theme.of(context).scaffoldBackgroundColor,
       body: SafeArea(
         child: SingleChildScrollView(
           padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 16),
@@ -145,14 +145,14 @@ class _AuthPageState extends LPExtendedState<AuthPage> {
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
               const SizedBox(height: 32),
-              Text(
+              myText(
                 appLocale.authWelcomeTitle,
-                style: TextStyle(
-                  fontSize: 32,
-                  fontWeight: FontWeight.bold,
-                  color: primaryPurple,
+                TextStyle(
+                  fontSize: 28,
+                  fontWeight: FontWeight.w500,
+                  color: Theme.of(context).colorScheme.primary,
                 ),
-                textAlign: TextAlign.center,
+                TextAlign.center,
               ),
               const SizedBox(height: 32),
               _ModeToggle(
@@ -271,50 +271,57 @@ class _LoginFormState extends LPExtendedState<_LoginForm>
         ),
         //Forgot Password Page
         Align(
-          alignment: Alignment.centerRight,
+          alignment: AlignmentDirectional.centerEnd,
           child: TextButton(
             onPressed: () => Navigator.push(
               context,
               MaterialPageRoute(builder: (_) => const ForgotPasswordPage()),
             ),
-            child: Text(
+            style: TextButton.styleFrom(
+              foregroundColor: Theme.of(context).colorScheme.primary,
+            ),
+            child: myText(
               appLocale.authForgotPassword,
-              style: TextStyle(color: primaryPurple),
+              TextStyle(color: Theme.of(context).colorScheme.primary),
+              TextAlign.start,
             ),
           ),
         ),
         if (_errorMessage != null) ...[
-          Text(
+          myText(
             _errorMessage!,
-            style: const TextStyle(color: Colors.red),
-            textAlign: TextAlign.center,
+            TextStyle(color: Theme.of(context).colorScheme.error),
+            TextAlign.center,
           ),
           const SizedBox(height: 8),
         ],
         //Sign In Button
-        ElevatedButton(
-          onPressed: _isLoading ? null : _submit,
-          style: ElevatedButton.styleFrom(
-            backgroundColor: primaryPurple,
-            foregroundColor: Colors.white,
-            minimumSize: const Size.fromHeight(50),
-            shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(12),
+        SizedBox(
+          width: formFieldWidth(context),
+          child: TextButton(
+            onPressed: _isLoading ? null : _submit,
+            style: primaryButtonStyle(context).copyWith(
+              minimumSize: const WidgetStatePropertyAll(Size.fromHeight(50)),
             ),
-          ),
-          child: _isLoading
-              ? const SizedBox(
-                  height: 22,
-                  width: 22,
-                  child: CircularProgressIndicator(
-                    strokeWidth: 2,
-                    color: Colors.white,
+            child: _isLoading
+                ? const SizedBox(
+                    height: 22,
+                    width: 22,
+                    child: CircularProgressIndicator(
+                      strokeWidth: 2,
+                      color: Colors.white,
+                    ),
+                  )
+                : myText(
+                    appLocale.authLoginButton,
+                    TextStyle(
+                      fontSize: 16,
+                      fontWeight: FontWeight.w500,
+                      color: Theme.of(context).colorScheme.onPrimary,
+                    ),
+                    TextAlign.center,
                   ),
-                )
-              : Text(
-                  appLocale.authLoginButton,
-                  style: const TextStyle(fontSize: 16),
-                ),
+          ),
         ),
         if (AuthService.isSocialSignInAvailable) ...[
           const SizedBox(height: 24),
@@ -343,17 +350,19 @@ class _LoginFormState extends LPExtendedState<_LoginForm>
         if (!widget.fromNotifications)
           TextButton(
             onPressed: _isLoading ? null : widget.onSkip,
-            child: Text(
+            child: myText(
               appLocale.authSkip,
-              style: TextStyle(color: Colors.grey.shade600),
+              TextStyle(color: Theme.of(context).colorScheme.onSurfaceVariant),
+              TextAlign.center,
             ),
           )
         else
           TextButton(
             onPressed: () => Navigator.pop(context),
-            child: Text(
+            child: myText(
               appLocale.closeButton(''),
-              style: TextStyle(color: Colors.grey.shade600),
+              TextStyle(color: Theme.of(context).colorScheme.onSurfaceVariant),
+              TextAlign.center,
             ),
           ),
         const SizedBox(height: 16),
@@ -495,37 +504,40 @@ class _SignupFormState extends LPExtendedState<_SignupForm>
           obscure: true,
         ),
         if (_errorMessage != null) ...[
-          Text(
+          myText(
             _errorMessage!,
-            style: const TextStyle(color: Colors.red),
-            textAlign: TextAlign.center,
+            TextStyle(color: Theme.of(context).colorScheme.error),
+            TextAlign.center,
           ),
           const SizedBox(height: 8),
         ],
         //Sign Up Button
-        ElevatedButton(
-          onPressed: _isLoading ? null : _submit,
-          style: ElevatedButton.styleFrom(
-            backgroundColor: primaryPurple,
-            foregroundColor: Colors.white,
-            minimumSize: const Size.fromHeight(50),
-            shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(12),
+        SizedBox(
+          width: formFieldWidth(context),
+          child: TextButton(
+            onPressed: _isLoading ? null : _submit,
+            style: primaryButtonStyle(context).copyWith(
+              minimumSize: const WidgetStatePropertyAll(Size.fromHeight(50)),
             ),
-          ),
-          child: _isLoading
-              ? const SizedBox(
-                  height: 22,
-                  width: 22,
-                  child: CircularProgressIndicator(
-                    strokeWidth: 2,
-                    color: Colors.white,
+            child: _isLoading
+                ? const SizedBox(
+                    height: 22,
+                    width: 22,
+                    child: CircularProgressIndicator(
+                      strokeWidth: 2,
+                      color: Colors.white,
+                    ),
+                  )
+                : myText(
+                    appLocale.authSignupButton,
+                    TextStyle(
+                      fontSize: 16,
+                      fontWeight: FontWeight.w500,
+                      color: Theme.of(context).colorScheme.onPrimary,
+                    ),
+                    TextAlign.center,
                   ),
-                )
-              : Text(
-                  appLocale.authSignupButton,
-                  style: const TextStyle(fontSize: 16),
-                ),
+          ),
         ),
         if (AuthService.isSocialSignInAvailable) ...[
           const SizedBox(height: 24),
@@ -554,17 +566,19 @@ class _SignupFormState extends LPExtendedState<_SignupForm>
         if (!widget.fromNotifications)
           TextButton(
             onPressed: _isLoading ? null : widget.onSkip,
-            child: Text(
+            child: myText(
               appLocale.authSkip,
-              style: TextStyle(color: Colors.grey.shade600),
+              TextStyle(color: Theme.of(context).colorScheme.onSurfaceVariant),
+              TextAlign.center,
             ),
           )
         else
           TextButton(
             onPressed: () => Navigator.pop(context),
-            child: Text(
+            child: myText(
               appLocale.closeButton(''),
-              style: TextStyle(color: Colors.grey.shade600),
+              TextStyle(color: Theme.of(context).colorScheme.onSurfaceVariant),
+              TextAlign.center,
             ),
           ),
         const SizedBox(height: 16),
@@ -592,8 +606,8 @@ class _ModeToggle extends StatelessWidget {
   Widget build(BuildContext context) {
     return Container(
       decoration: BoxDecoration(
-        color: Colors.grey.shade200,
-        borderRadius: BorderRadius.circular(12),
+        color: Theme.of(context).colorScheme.surfaceContainerHighest,
+        borderRadius: BorderRadius.circular(20),
       ),
       child: Row(
         children: [
@@ -629,16 +643,20 @@ class _Tab extends StatelessWidget {
           duration: const Duration(milliseconds: 200),
           padding: const EdgeInsets.symmetric(vertical: 12),
           decoration: BoxDecoration(
-            color: selected ? primaryPurple : Colors.transparent,
-            borderRadius: BorderRadius.circular(12),
+            color: selected
+                ? Theme.of(context).colorScheme.primary
+                : Colors.transparent,
+            borderRadius: BorderRadius.circular(20),
           ),
-          child: Text(
+          child: myText(
             label,
-            textAlign: TextAlign.center,
-            style: TextStyle(
-              color: selected ? Colors.white : Colors.grey.shade600,
-              fontWeight: selected ? FontWeight.bold : FontWeight.normal,
+            TextStyle(
+              color: selected
+                  ? Theme.of(context).colorScheme.onPrimary
+                  : Theme.of(context).colorScheme.onSurfaceVariant,
+              fontWeight: selected ? FontWeight.w500 : FontWeight.normal,
             ),
+            TextAlign.center,
           ),
         ),
       ),
@@ -665,17 +683,19 @@ class _AuthField extends StatelessWidget {
   Widget build(BuildContext context) {
     return Column(
       children: [
-        TextField(
-          controller: controller,
-          obscureText: obscure,
-          keyboardType: keyboardType,
-          autocorrect: false,
-          decoration: InputDecoration(
-            labelText: label,
-            border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
-            prefixIcon: Icon(icon),
-            filled: true,
-            fillColor: Colors.white,
+        SizedBox(
+          width: formFieldWidth(context),
+          child: DecoratedBox(
+            decoration: formFieldShadowDecoration(),
+            child: TextField(
+              controller: controller,
+              obscureText: obscure,
+              keyboardType: keyboardType,
+              autocorrect: false,
+              decoration: formFieldInputDecoration(
+                context,
+              ).copyWith(labelText: label, prefixIcon: Icon(icon)),
+            ),
           ),
         ),
         const SizedBox(height: 12),
@@ -692,12 +712,16 @@ class _OrDivider extends StatelessWidget {
   Widget build(BuildContext context) {
     return Row(
       children: [
-        const Expanded(child: Divider()),
+        Expanded(child: Divider(color: Theme.of(context).colorScheme.outline)),
         Padding(
           padding: const EdgeInsets.symmetric(horizontal: 12),
-          child: Text(label, style: const TextStyle(color: Colors.grey)),
+          child: myText(
+            label,
+            TextStyle(color: Theme.of(context).colorScheme.onSurfaceVariant),
+            TextAlign.center,
+          ),
         ),
-        const Expanded(child: Divider()),
+        Expanded(child: Divider(color: Theme.of(context).colorScheme.outline)),
       ],
     );
   }
@@ -722,9 +746,11 @@ class _SocialButton extends StatelessWidget {
       label: Text(label),
       style: OutlinedButton.styleFrom(
         minimumSize: const Size.fromHeight(48),
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-        side: BorderSide(color: Colors.grey.shade300),
-        foregroundColor: Colors.black87,
+        shape: const RoundedRectangleBorder(
+          borderRadius: BorderRadius.all(Radius.circular(20)),
+        ),
+        side: BorderSide(color: Theme.of(context).colorScheme.outline),
+        foregroundColor: Theme.of(context).colorScheme.onSurface,
       ),
     );
   }

@@ -164,9 +164,10 @@ class _MenuState extends LPExtendedState<Menu> {
     });
   }
 
-  void getVersion() async {
-    PackageInfo packageInfo = await PackageInfo.fromPlatform();
-    version = packageInfo.version;
+  Future<void> getVersion() async {
+    final packageInfo = await PackageInfo.fromPlatform();
+    if (!mounted) return;
+    setState(() => version = packageInfo.version);
   }
 
   Map<String, List<String>> _filterVideoByLocal(

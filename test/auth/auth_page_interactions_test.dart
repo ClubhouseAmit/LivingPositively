@@ -296,7 +296,7 @@ void main() {
     );
 
     expect(find.text('Welcome'), findsOneWidget);
-    await tester.tap(find.widgetWithText(ElevatedButton, 'Sign In'));
+    await tester.tap(find.widgetWithText(TextButton, 'Sign In'));
     await tester.pump();
     expect(find.text('Welcome'), findsOneWidget);
 
@@ -365,8 +365,8 @@ void main() {
     await tester.enterText(fields.at(2), 'secret');
     await tester.enterText(fields.at(3), 'secret');
     tester
-        .widget<ElevatedButton>(
-          find.widgetWithText(ElevatedButton, 'Create Account'),
+        .widget<TextButton>(
+          find.widgetWithText(TextButton, 'Create Account'),
         )
         .onPressed!();
     await tester.pump();
@@ -415,8 +415,8 @@ void main() {
     await tester.enterText(fields.at(2), 'secret');
     await tester.enterText(fields.at(3), 'secret');
     tester
-        .widget<ElevatedButton>(
-          find.widgetWithText(ElevatedButton, 'Create Account'),
+        .widget<TextButton>(
+          find.widgetWithText(TextButton, 'Create Account'),
         )
         .onPressed!();
     await tester.pump();
