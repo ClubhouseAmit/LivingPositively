@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:convert';
 
 import 'package:firebase_auth/firebase_auth.dart';
@@ -53,6 +54,27 @@ class FcmScheduledNotificationService {
 
   static void _log(String message) =>
       debugPrint('[FcmScheduledNotificationService] $message');
+
+  static void _reportNotificationFailure(
+    String operation,
+    Object error,
+    StackTrace stackTrace,
+  ) {
+    _log('$operation: $error');
+    if (!GetIt.instance.isRegistered<IncidentLoggerService>()) return;
+    unawaited(
+      Future<void>.sync(
+        () => GetIt.instance<IncidentLoggerService>().captureLog(
+          error,
+          stackTrace: stackTrace,
+        ),
+      ).catchError((Object loggerError, StackTrace loggerStackTrace) {
+        debugPrint(
+          'Scheduled notification failure reporting failed: $loggerError',
+        );
+      }),
+    );
+  }
 
   static Future<T> _enqueue<T>(Future<T> Function() operation) {
     final previousOperation = _operationQueue;
@@ -209,6 +231,9 @@ class FcmScheduledNotificationService {
   static Future<void> migrateLegacyDefaultReminderWithReporting({
     required UserInformation userInformation,
   }) async {
+    // Sign-out fences only the outgoing session. Authentication starts a new
+    // session, so it may inspect the migration marker again.
+    _legacyMigrationDisabled = false;
     final migrationOverride = debugLegacyDefaultReminderMigrationOverride;
     if (migrationOverride != null) {
       return migrationOverride(userInformation);
@@ -347,8 +372,12 @@ class FcmScheduledNotificationService {
                 NotificationPreference(hour: hour, minute: minute),
               )
               .timeout(_legacyMigrationOperationTimeout);
-        } catch (error) {
-          _log('Unable to persist registered notification: $error');
+        } catch (error, stackTrace) {
+          _reportNotificationFailure(
+            'Unable to persist registered notification',
+            error,
+            stackTrace,
+          );
           await _restoreLocalNotificationPreference(
             userInfo,
             typeId,
@@ -388,8 +417,12 @@ class FcmScheduledNotificationService {
         );
         return false;
       }
-    } catch (e) {
-      _log('registerNotification error: $e');
+    } catch (error, stackTrace) {
+      _reportNotificationFailure(
+        'registerNotification error',
+        error,
+        stackTrace,
+      );
       return false;
     }
   }
@@ -415,8 +448,12 @@ class FcmScheduledNotificationService {
       return response.statusCode == 200
           ? _successfulMutationVersion(response, expectedMutationVersion)
           : null;
-    } catch (error) {
-      _log('Unable to compensate a notification registration failure: $error');
+    } catch (error, stackTrace) {
+      _reportNotificationFailure(
+        'Unable to compensate a notification registration failure',
+        error,
+        stackTrace,
+      );
       return null;
     }
   }
@@ -432,8 +469,12 @@ class FcmScheduledNotificationService {
           : userInformation.setNotificationPreference(typeId, preference);
       await write.timeout(_legacyMigrationOperationTimeout);
       return true;
-    } catch (error) {
-      _log('Unable to restore a local notification preference: $error');
+    } catch (error, stackTrace) {
+      _reportNotificationFailure(
+        'Unable to restore a local notification preference',
+        error,
+        stackTrace,
+      );
       return false;
     }
   }
@@ -715,8 +756,8 @@ class FcmScheduledNotificationService {
         );
         return false;
       }
-    } catch (e) {
-      _log('cancelNotification error: $e');
+    } catch (error, stackTrace) {
+      _reportNotificationFailure('cancelNotification error', error, stackTrace);
       return false;
     }
   }
@@ -733,8 +774,12 @@ class FcmScheduledNotificationService {
           )
           .timeout(_legacyMigrationOperationTimeout);
       return true;
-    } catch (error) {
-      _log('Unable to persist legacy reminder cancellation: $error');
+    } catch (error, stackTrace) {
+      _reportNotificationFailure(
+        'Unable to persist legacy reminder cancellation',
+        error,
+        stackTrace,
+      );
       return false;
     }
   }
@@ -792,8 +837,12 @@ class FcmScheduledNotificationService {
       }
       _log('getNotificationMutationVersion returned an invalid body.');
       return null;
-    } catch (e) {
-      _log('getNotificationMutationVersion error: $e');
+    } catch (error, stackTrace) {
+      _reportNotificationFailure(
+        'getNotificationMutationVersion error',
+        error,
+        stackTrace,
+      );
       return null;
     }
   }

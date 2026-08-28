@@ -354,6 +354,33 @@ void main() {
     expect(user.getNotificationPreference('default'), isNull);
   });
 
+  testWidgets(
+    'reports a notification mutation-version lookup failure with its stack trace',
+    (tester) async {
+      final logger = _RecordingIncidentLogger();
+      final exception = StateError('mutation state unavailable');
+      GetIt.instance.registerSingleton<IncidentLoggerService>(logger);
+      await pumpUser(tester);
+
+      final registered = await _onPlatform(
+        TargetPlatform.android,
+        () => FcmScheduledNotificationService.registerNotification(
+          userInformation: user,
+          typeId: 'default',
+          hour: 9,
+          minute: 30,
+          idTokenProvider: () async => 'token-123',
+          post: (url, {headers, body, encoding}) => throw exception,
+        ),
+      );
+
+      expect(registered, isFalse);
+      await tester.pump();
+      expect(logger.capturedError, same(exception));
+      expect(logger.capturedStackTrace, isNotNull);
+    },
+  );
+
   test(
     'register compensates the remote schedule when local preference persistence fails',
     () async {
@@ -1654,6 +1681,50 @@ void main() {
       } finally {
         debugDefaultTargetPlatformOverride = null;
       }
+    },
+  );
+
+  testWidgets(
+    'authenticated migration can run after a successful sign-out fence',
+    (tester) async {
+      user.setNotificationPreference(
+        'default',
+        const NotificationPreference(hour: 8, minute: 15),
+      );
+      await pumpUser(tester);
+      var mutationVersion = 0;
+
+      final cancelled = await _onPlatform(
+        TargetPlatform.android,
+        () => FcmScheduledNotificationService.cancelDefaultForSignOut(
+          userInformation: user,
+          idTokenProvider: () async => 'token-123',
+          post: (url, {headers, body, encoding}) async {
+            if (url.path.endsWith('/getNotificationMutationVersion')) {
+              return http.Response('{"mutationVersion":$mutationVersion}', 200);
+            }
+            mutationVersion++;
+            return http.Response(
+              '{"success":true,"mutationVersion":$mutationVersion,'
+              '"schedule":{"hour":8,"minute":15}}',
+              200,
+            );
+          },
+          legacyNotificationCanceller: _ignoreLegacyNotification,
+        ),
+      );
+      expect(cancelled, isTrue);
+
+      var migrationStarted = false;
+      FcmScheduledNotificationService
+          .debugLegacyDefaultReminderMigrationOverride = (_) async {
+        migrationStarted = true;
+      };
+      await FcmScheduledNotificationService.migrateLegacyDefaultReminderWithReporting(
+        userInformation: user,
+      );
+
+      expect(migrationStarted, isTrue);
     },
   );
 
