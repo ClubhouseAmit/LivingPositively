@@ -203,15 +203,15 @@ class MoodMedicinePdfReportRenderer {
     for (final String paragraph in line.split(RegExp(r'\r\n|\r|\n'))) {
       var remaining = paragraph;
       while (remaining.length > maximumCharactersPerFragment) {
-        final int limit = _safePdfFragmentEnd(
+        final int fragmentEnd = _safePdfFragmentEnd(
           remaining,
           maximumCharactersPerFragment,
         );
         final int breakIndex = remaining.lastIndexOf(
           RegExp(r'[\s\u200B]'),
-          limit - 1,
+          fragmentEnd - 1,
         );
-        final int end = breakIndex > 0 ? breakIndex + 1 : limit;
+        final int end = breakIndex > 0 ? breakIndex + 1 : fragmentEnd;
         yield remaining.substring(0, end);
         remaining = remaining.substring(end);
       }

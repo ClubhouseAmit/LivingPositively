@@ -35,6 +35,8 @@ final class MoodMedicineRecoveryRequiredState extends MoodMedicineViewState {
   const MoodMedicineRecoveryRequiredState({
     required this.failure,
     required this.initialView,
+    this.checkInForm = const MoodMedicineCheckInForm.empty(),
+    this.isCheckInDetailsExpanded = false,
     this.isDiscarding = false,
     this.discardError,
   });
@@ -44,6 +46,12 @@ final class MoodMedicineRecoveryRequiredState extends MoodMedicineViewState {
 
   /// View to show only after the person retries or discards the unreadable key.
   final MoodMedicineInitialView initialView;
+
+  /// In-progress check-in values retained while recovery blocks normal writes.
+  final MoodMedicineCheckInForm checkInForm;
+
+  /// Whether the optional check-in detail controls were expanded before recovery.
+  final bool isCheckInDetailsExpanded;
 
   /// Whether the confirmed feature-only discard write is running.
   final bool isDiscarding;

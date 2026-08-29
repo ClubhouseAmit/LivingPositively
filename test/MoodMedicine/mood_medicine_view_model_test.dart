@@ -25,6 +25,7 @@ final class _Repository implements MoodMedicineRepository {
   bool failNextSave;
   Completer<void>? saveGate;
   MoodMedicineLoadResult? nextMutationResult;
+  MoodMedicineLoadResult? nextDiscardResult;
   int loadCount = 0;
   int saveCount = 0;
   final List<MoodMedicineSnapshot> receivedSnapshots = <MoodMedicineSnapshot>[];
@@ -89,6 +90,12 @@ final class _Repository implements MoodMedicineRepository {
     if (failNextSave) {
       failNextSave = false;
       throw StateError('storage unavailable');
+    }
+    final MoodMedicineLoadResult? override = nextDiscardResult;
+    if (override != null) {
+      nextDiscardResult = null;
+      result = override;
+      return override;
     }
     result = const MoodMedicineLoadedSnapshot(snapshot);
     return result;
@@ -257,6 +264,151 @@ void main() {
 
         expect(viewModel.readyState, isNotNull);
         expect(repository.receivedSnapshots.single.entries, isEmpty);
+        viewModel.dispose();
+      },
+    );
+
+    test(
+      'should retain a full check-in form through unreadable recovery retries and discard failures',
+      () async {
+        const MoodMedicineLoadFailure failure = MoodMedicineLoadFailure(
+          MoodMedicineLoadFailureKind.malformedRecord,
+        );
+        final _Repository repository = _Repository(
+          const MoodMedicineMissingSnapshot(),
+        );
+        final MoodMedicineViewModel viewModel = _viewModel(
+          repository,
+          _ReportExporter(),
+          idGenerator: () => 'entry-1',
+        );
+        await viewModel.load();
+        viewModel.selectMood(4);
+        viewModel.setCheckInDetailsExpanded(true);
+        viewModel.toggleEmotion('calm');
+        viewModel.toggleActivity('music');
+        viewModel.setJournalNote('Draft note');
+        repository.nextMutationResult = const MoodMedicineUnreadableSnapshot(
+          failure,
+        );
+
+        expect(await viewModel.saveCheckIn(), isFalse);
+        MoodMedicineRecoveryRequiredState recovery =
+            viewModel.state as MoodMedicineRecoveryRequiredState;
+        expect(recovery.checkInForm.mood, 4);
+        expect(recovery.checkInForm.emotionIds, <String>{'calm'});
+        expect(recovery.checkInForm.activityIds, <String>{'music'});
+        expect(recovery.checkInForm.journalNote, 'Draft note');
+        expect(recovery.isCheckInDetailsExpanded, isTrue);
+
+        await viewModel.retryLoad();
+        recovery = viewModel.state as MoodMedicineRecoveryRequiredState;
+        expect(recovery.checkInForm.mood, 4);
+        expect(recovery.checkInForm.emotionIds, <String>{'calm'});
+        expect(recovery.checkInForm.activityIds, <String>{'music'});
+        expect(recovery.checkInForm.journalNote, 'Draft note');
+        expect(recovery.isCheckInDetailsExpanded, isTrue);
+
+        final Completer<void> discardGate = Completer<void>();
+        repository.nextDiscardResult = const MoodMedicineUnreadableSnapshot(
+          failure,
+        );
+        repository.saveGate = discardGate;
+        final Future<bool> stillUnreadableDiscard = viewModel
+            .discardUnreadableSnapshot();
+        recovery = viewModel.state as MoodMedicineRecoveryRequiredState;
+        expect(recovery.isDiscarding, isTrue);
+        expect(recovery.checkInForm.mood, 4);
+        expect(recovery.checkInForm.emotionIds, <String>{'calm'});
+        expect(recovery.checkInForm.activityIds, <String>{'music'});
+        expect(recovery.checkInForm.journalNote, 'Draft note');
+        expect(recovery.isCheckInDetailsExpanded, isTrue);
+
+        discardGate.complete();
+        expect(await stillUnreadableDiscard, isFalse);
+        recovery = viewModel.state as MoodMedicineRecoveryRequiredState;
+        expect(recovery.isDiscarding, isFalse);
+        expect(recovery.checkInForm.mood, 4);
+        expect(recovery.checkInForm.emotionIds, <String>{'calm'});
+        expect(recovery.checkInForm.activityIds, <String>{'music'});
+        expect(recovery.checkInForm.journalNote, 'Draft note');
+        expect(recovery.isCheckInDetailsExpanded, isTrue);
+
+        repository.failNextSave = true;
+        expect(await viewModel.discardUnreadableSnapshot(), isFalse);
+        recovery = viewModel.state as MoodMedicineRecoveryRequiredState;
+        expect(recovery.discardError, isNotNull);
+        expect(recovery.checkInForm.mood, 4);
+        expect(recovery.checkInForm.emotionIds, <String>{'calm'});
+        expect(recovery.checkInForm.activityIds, <String>{'music'});
+        expect(recovery.checkInForm.journalNote, 'Draft note');
+        expect(recovery.isCheckInDetailsExpanded, isTrue);
+
+        expect(await viewModel.discardUnreadableSnapshot(), isTrue);
+        final MoodMedicineReadyState ready = viewModel.readyState!;
+        expect(ready.snapshot.entries, isEmpty);
+        expect(ready.checkInForm.mood, 4);
+        expect(ready.checkInForm.emotionIds, <String>{'calm'});
+        expect(ready.checkInForm.activityIds, <String>{'music'});
+        expect(ready.checkInForm.journalNote, 'Draft note');
+        expect(ready.isCheckInDetailsExpanded, isTrue);
+        viewModel.dispose();
+      },
+    );
+
+    test(
+      'should restore a recovered form for a fresh explicitly saved rebased check-in',
+      () async {
+        const MoodMedicineLoadFailure failure = MoodMedicineLoadFailure(
+          MoodMedicineLoadFailureKind.malformedRecord,
+        );
+        final _Repository repository = _Repository(
+          const MoodMedicineMissingSnapshot(),
+        );
+        final MoodMedicineViewModel viewModel = _viewModel(
+          repository,
+          _ReportExporter(),
+          idGenerator: _idSequence(<String>['entry-1', 'entry-2']),
+        );
+        await viewModel.load();
+        viewModel.selectMood(4);
+        viewModel.setCheckInDetailsExpanded(true);
+        viewModel.toggleActivity('music');
+        repository.nextMutationResult = const MoodMedicineUnreadableSnapshot(
+          failure,
+        );
+
+        expect(await viewModel.saveCheckIn(), isFalse);
+        expect(repository.saveCount, 1);
+        repository.result = MoodMedicineLoadedSnapshot(
+          MoodMedicineSnapshot(
+            hiddenDefaultActivityIds: const <String>{'music'},
+            entries: <MoodMedicineEntry>[
+              MoodMedicineEntry(
+                id: 'external-entry',
+                occurredAtUtc: DateTime.utc(2026, 8, 29, 8),
+                localDayKey: '2026-08-29',
+                mood: 2,
+              ),
+            ],
+          ),
+        );
+
+        await viewModel.retryLoad();
+        final MoodMedicineReadyState recovered = viewModel.readyState!;
+        expect(repository.saveCount, 1);
+        expect(recovered.checkInForm.mood, 4);
+        expect(recovered.checkInForm.activityIds, <String>{'music'});
+        expect(recovered.isCheckInDetailsExpanded, isTrue);
+
+        expect(await viewModel.saveCheckIn(), isTrue);
+        final MoodMedicineSnapshot saved = repository.receivedSnapshots.last;
+        expect(repository.saveCount, 2);
+        expect(
+          saved.entries.map((MoodMedicineEntry entry) => entry.id),
+          <String>['external-entry', 'entry-2'],
+        );
+        expect(saved.entries.last.activityIds, isEmpty);
         viewModel.dispose();
       },
     );

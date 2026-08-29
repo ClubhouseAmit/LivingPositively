@@ -10,7 +10,8 @@ export 'mood_medicine_report_delivery_types.dart';
 
 /// Hands a generated report to the appropriate platform mechanism.
 ///
-/// Native platforms share a temporary file. On web, `share_plus` invokes the
+/// Native platforms share a temporary file, except Linux where PDF and PNG
+/// file-report delivery is unavailable. On web, `share_plus` invokes the
 /// browser Web Share API when available and performs its file-download fallback
 /// when it is not. The adapter receives its own byte copy so a caller cannot
 /// mutate a report while a platform handoff is being prepared.

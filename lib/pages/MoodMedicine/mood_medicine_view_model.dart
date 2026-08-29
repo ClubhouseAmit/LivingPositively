@@ -81,7 +81,11 @@ final class MoodMedicineViewModel extends ChangeNotifier {
         currentState.isDiscarding) {
       return;
     }
-    await _load(initialView: currentState.initialView);
+    await _load(
+      initialView: currentState.initialView,
+      checkInForm: currentState.checkInForm,
+      isCheckInDetailsExpanded: currentState.isCheckInDetailsExpanded,
+    );
   }
 
   /// Replaces only the unreadable feature snapshot after UI confirmation.
@@ -101,6 +105,8 @@ final class MoodMedicineViewModel extends ChangeNotifier {
       MoodMedicineRecoveryRequiredState(
         failure: recovery.failure,
         initialView: recovery.initialView,
+        checkInForm: recovery.checkInForm,
+        isCheckInDetailsExpanded: recovery.isCheckInDetailsExpanded,
         isDiscarding: true,
       ),
     );
@@ -112,6 +118,8 @@ final class MoodMedicineViewModel extends ChangeNotifier {
           MoodMedicineRecoveryRequiredState(
             failure: failure,
             initialView: recovery.initialView,
+            checkInForm: recovery.checkInForm,
+            isCheckInDetailsExpanded: recovery.isCheckInDetailsExpanded,
           ),
         );
         return false;
@@ -127,7 +135,12 @@ final class MoodMedicineViewModel extends ChangeNotifier {
       _pendingMutation = null;
       _pendingCheckInIntent = null;
       _setState(
-        _readyState(snapshot: snapshot, selectedView: recovery.initialView),
+        _readyState(
+          snapshot: snapshot,
+          selectedView: recovery.initialView,
+          checkInForm: recovery.checkInForm,
+          isCheckInDetailsExpanded: recovery.isCheckInDetailsExpanded,
+        ),
       );
       return true;
     } catch (error) {
@@ -135,6 +148,8 @@ final class MoodMedicineViewModel extends ChangeNotifier {
         MoodMedicineRecoveryRequiredState(
           failure: recovery.failure,
           initialView: recovery.initialView,
+          checkInForm: recovery.checkInForm,
+          isCheckInDetailsExpanded: recovery.isCheckInDetailsExpanded,
           discardError: error,
         ),
       );
@@ -689,7 +704,11 @@ final class MoodMedicineViewModel extends ChangeNotifier {
     super.dispose();
   }
 
-  Future<void> _load({required MoodMedicineInitialView initialView}) async {
+  Future<void> _load({
+    required MoodMedicineInitialView initialView,
+    MoodMedicineCheckInForm checkInForm = const MoodMedicineCheckInForm.empty(),
+    bool isCheckInDetailsExpanded = false,
+  }) async {
     final int generation = ++_loadGeneration;
     _setState(MoodMedicineLoadingState(initialView: initialView));
     late final MoodMedicineLoadResult result;
@@ -712,10 +731,19 @@ final class MoodMedicineViewModel extends ChangeNotifier {
           _readyState(
             snapshot: const MoodMedicineSnapshot.empty(),
             selectedView: initialView,
+            checkInForm: checkInForm,
+            isCheckInDetailsExpanded: isCheckInDetailsExpanded,
           ),
         );
       case MoodMedicineLoadedSnapshot(:final MoodMedicineSnapshot snapshot):
-        _setState(_readyState(snapshot: snapshot, selectedView: initialView));
+        _setState(
+          _readyState(
+            snapshot: snapshot,
+            selectedView: initialView,
+            checkInForm: checkInForm,
+            isCheckInDetailsExpanded: isCheckInDetailsExpanded,
+          ),
+        );
       case MoodMedicineUnreadableSnapshot(
         :final MoodMedicineLoadFailure failure,
       ):
@@ -723,6 +751,8 @@ final class MoodMedicineViewModel extends ChangeNotifier {
           MoodMedicineRecoveryRequiredState(
             failure: failure,
             initialView: initialView,
+            checkInForm: checkInForm,
+            isCheckInDetailsExpanded: isCheckInDetailsExpanded,
           ),
         );
     }
@@ -963,6 +993,8 @@ final class MoodMedicineViewModel extends ChangeNotifier {
           MoodMedicineRecoveryRequiredState(
             failure: failure,
             initialView: before.selectedView,
+            checkInForm: before.checkInForm,
+            isCheckInDetailsExpanded: before.isCheckInDetailsExpanded,
           ),
         );
         return false;
@@ -1168,7 +1200,7 @@ final class _MoodMedicineCheckInIntent {
           (String activityId) => isSelectableActivity(snapshot, activityId),
         )
         .toList(growable: false);
-    final Map<String, String> customSnapshots = <String, String>{
+    final Map<String, String> customActivityLabelSnapshots = <String, String>{
       for (final String activityId in activityIds)
         if (snapshot.customActivityForId(activityId)
             case final MoodMedicineCustomActivity activity)
@@ -1182,7 +1214,7 @@ final class _MoodMedicineCheckInIntent {
       emotionIds: draft.emotionIds,
       activityIds: activityIds,
       note: draft.note,
-      customActivityLabelSnapshots: customSnapshots,
+      customActivityLabelSnapshots: customActivityLabelSnapshots,
     );
   }
 }
