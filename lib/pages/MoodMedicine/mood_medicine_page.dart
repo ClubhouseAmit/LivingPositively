@@ -1,209 +1,183 @@
 import 'dart:async';
 
 import 'package:flutter/material.dart';
-import 'package:get_it/get_it.dart';
 import 'package:mazilon/l10n/app_localizations.dart';
 import 'package:mazilon/pages/MoodMedicine/mood_medicine_content.dart';
-import 'package:mazilon/pages/MoodMedicine/mood_medicine_controller.dart';
 import 'package:mazilon/pages/MoodMedicine/mood_medicine_insights.dart';
 import 'package:mazilon/pages/MoodMedicine/mood_medicine_models.dart';
-import 'package:mazilon/pages/MoodMedicine/mood_medicine_report_exporter.dart';
-import 'package:mazilon/pages/MoodMedicine/mood_medicine_store.dart';
+import 'package:mazilon/pages/MoodMedicine/mood_medicine_report_delivery_types.dart';
+import 'package:mazilon/pages/MoodMedicine/mood_medicine_report_models.dart';
+import 'package:mazilon/pages/MoodMedicine/mood_medicine_report_preview.dart';
 import 'package:mazilon/pages/MoodMedicine/mood_medicine_trend_chart.dart';
+import 'package:mazilon/pages/MoodMedicine/mood_medicine_view_model.dart';
+import 'package:mazilon/pages/MoodMedicine/mood_medicine_view_state.dart';
 import 'package:mazilon/util/async/persistence_retry_snack_bar.dart';
-import 'package:mazilon/util/persistent_memory_service.dart';
+import 'package:mazilon/util/styles.dart';
+import 'package:mazilon/util/theme/app_theme.dart';
+import 'package:mazilon/util/theme/spacing.dart';
 import 'package:provider/provider.dart';
 import 'package:url_launcher/url_launcher.dart';
 
-/// The first surface shown when Mood Tracker is opened from an app entry point.
-enum MoodMedicineInitialView { checkIn, insights, education }
-
-/// A device-local mood check-in, education, and insights experience.
+/// Device-local mood check-ins, education, and insights.
 ///
-/// This page owns only presentation draft state. The controller owns the
-/// persisted snapshot and preserves a failed write for the existing retry UI.
+/// The page renders [MoodMedicineViewModel] state only. Storage, drafts,
+/// aggregation, historical labels, report inputs, retries, and export state
+/// remain inside the feature-local view model.
 class MoodMedicinePage extends StatefulWidget {
   const MoodMedicinePage({
     super.key,
+    required this.viewModel,
     this.initialView = MoodMedicineInitialView.insights,
-    this.controller,
   });
 
-  final MoodMedicineInitialView initialView;
+  /// Fresh factory-scoped view model composed by Menu or a focused test.
+  final MoodMedicineViewModel viewModel;
 
-  /// Allows focused widget tests to use a memory-backed controller.
-  final MoodMedicineController? controller;
+  /// Feature surface selected after snapshot loading finishes.
+  final MoodMedicineInitialView initialView;
 
   @override
   State<MoodMedicinePage> createState() => _MoodMedicinePageState();
 }
 
 class _MoodMedicinePageState extends State<MoodMedicinePage> {
-  late final MoodMedicineController _controller;
-  late MoodMedicineInitialView _view;
   final TextEditingController _noteController = TextEditingController();
-  final Set<String> _emotionIds = <String>{};
-  final Set<String> _activityIds = <String>{};
-  MoodMedicineInsightRange _range = MoodMedicineInsightRange.week;
-  String? _highlightedActivityId;
-  int? _mood;
-  bool _showCheckInDetails = false;
+  late final StreamSubscription<MoodMedicineUiEffect> _effectSubscription;
+  Locale? _presentationLocale;
 
-  bool get _writesBlocked =>
-      _controller.isSaving || _controller.hasPendingWrite;
+  MoodMedicineViewModel get _viewModel => widget.viewModel;
 
   @override
   void initState() {
     super.initState();
-    _controller =
-        widget.controller ??
-        MoodMedicineController(
-          MoodMedicineStore(GetIt.instance<PersistentMemoryService>()),
-        );
-    _view = widget.initialView;
-    unawaited(_load());
+    _effectSubscription = _viewModel.effects.listen(_handleEffect);
+    if (_viewModel.state is MoodMedicineLoadingState) {
+      unawaited(_loadInitialState());
+    } else {
+      _viewModel.selectView(widget.initialView);
+    }
   }
 
-  Future<void> _load() async {
-    final bool loaded = await _controller.load();
-    if (!mounted || loaded) {
+  Future<void> _loadInitialState() async {
+    await _viewModel.load(initialView: widget.initialView);
+    _applyReportPresentationIfReady();
+  }
+
+  void _applyReportPresentationIfReady() {
+    if (!mounted || _viewModel.readyState == null) {
       return;
     }
-    _showRetry();
+    _viewModel.setReportPresentation(
+      _reportPresentation(AppLocalizations.of(context)!),
+    );
+  }
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    final Locale locale = Localizations.localeOf(context);
+    if (_presentationLocale == locale) {
+      return;
+    }
+    _presentationLocale = locale;
+    _applyReportPresentationIfReady();
   }
 
   @override
   void dispose() {
+    _effectSubscription.cancel();
     _noteController.dispose();
-    if (widget.controller == null) {
-      _controller.dispose();
-    }
+    _viewModel.dispose();
     super.dispose();
   }
 
-  void _showRetry() {
+  void _handleEffect(MoodMedicineUiEffect effect) {
+    if (!mounted) {
+      return;
+    }
+    switch (effect) {
+      case MoodMedicineCheckInSavedEffect():
+        _noteController.clear();
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(
+              AppLocalizations.of(context)!.moodMedicineCheckInSaved,
+            ),
+          ),
+        );
+      case MoodMedicinePersistenceFailedEffect():
+        _showWriteFailure();
+      case MoodMedicineReportDeliveryEffect(:final delivery):
+        if (!delivery.didDeliver &&
+            delivery.status != MoodMedicineReportDeliveryStatus.dismissed) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text(
+                AppLocalizations.of(context)!.moodMedicineExportError,
+              ),
+            ),
+          );
+        }
+      case MoodMedicineReportReadyEffect():
+        // The export sheet explicitly decides whether to view or share it.
+        break;
+    }
+  }
+
+  void _showWriteFailure() {
     if (!mounted) {
       return;
     }
     showPersistenceRetrySnackBar(context, () async {
-      await _controller.retryLastWrite();
-      if (!_controller.isLoaded) {
-        await _load();
+      final bool saved = await _viewModel.retryLastWrite();
+      if (!saved &&
+          mounted &&
+          _viewModel.readyState?.persistence.hasPendingWrite == true) {
+        _showWriteFailure();
       }
     });
   }
 
-  void _showWriteFailure({VoidCallback? onRetrySucceeded}) {
-    if (!mounted) {
-      return;
-    }
-    showPersistenceRetrySnackBar(context, () async {
-      final bool saved = await _controller.retryLastWrite();
-      if (!mounted) {
-        return;
-      }
-      if (saved) {
-        onRetrySucceeded?.call();
-      } else {
-        _showWriteFailure(onRetrySucceeded: onRetrySucceeded);
-      }
-    });
-  }
-
-  /// A page-level SnackBar sits below the activity-manager modal route, so
-  /// close that transient surface before presenting its retry action.
-  void _closeActivityManagerAndShowWriteFailure({
-    VoidCallback? onRetrySucceeded,
-  }) {
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      if (!mounted) {
-        return;
-      }
-      Navigator.of(context).pop();
-      WidgetsBinding.instance.addPostFrameCallback((_) {
-        _showWriteFailure(onRetrySucceeded: onRetrySucceeded);
-      });
-    });
+  Future<void> _retryLoad() async {
+    await _viewModel.retryLoad();
+    _applyReportPresentationIfReady();
   }
 
   List<MoodMedicineActivityContent> _activities(AppLocalizations l10n) =>
       MoodMedicineContent.activities(l10n);
 
-  String _activityLabel(AppLocalizations l10n, String id) {
-    final MoodMedicineCustomActivity? custom = _controller.snapshot
-        .customActivityForId(id);
-    if (custom != null) {
-      return custom.label;
-    }
-    return MoodMedicineContent.activityFor(l10n, id)?.label ?? id;
-  }
-
-  String _entryActivityLabel(
-    AppLocalizations l10n,
-    MoodMedicineEntry entry,
-    String id,
-  ) {
-    return entry.customActivityLabelSnapshots[id] ?? _activityLabel(l10n, id);
-  }
-
-  MoodMedicineEntry? _latestEntryForActivity(
-    String id, {
-    Iterable<String>? dayKeys,
-  }) {
-    final Set<String>? allowedDayKeys = dayKeys?.toSet();
-    MoodMedicineEntry? latest;
-    for (final MoodMedicineEntry entry in _controller.entries) {
-      if (!entry.activityIds.contains(id) ||
-          (allowedDayKeys != null &&
-              !allowedDayKeys.contains(entry.localDayKey))) {
-        continue;
-      }
-      final DateTime? latestTime = latest?.occurredAtUtc;
-      if (latestTime == null || entry.occurredAtUtc.isAfter(latestTime)) {
-        latest = entry;
-      }
-    }
-    return latest;
-  }
-
-  String _activityLabelForDay(
-    AppLocalizations l10n,
-    MoodMedicineDailySummary summary,
-    String id,
-  ) {
-    final MoodMedicineEntry? entry = _latestEntryForActivity(
-      id,
-      dayKeys: <String>[summary.dayKey],
-    );
-    return entry == null
-        ? _activityLabel(l10n, id)
-        : _entryActivityLabel(l10n, entry, id);
-  }
-
-  /// For multi-day labels, use the active custom label when available and
-  /// otherwise the most recent historical snapshot in the selected range.
-  String _rangeActivityLabel(
-    AppLocalizations l10n,
-    String id,
-    Iterable<MoodMedicineDailySummary> summaries,
-  ) {
-    final MoodMedicineCustomActivity? activeCustom = _controller.snapshot
-        .customActivityForId(id);
-    if (activeCustom != null) {
-      return activeCustom.label;
-    }
-    final MoodMedicineActivityContent? defaultActivity =
-        MoodMedicineContent.activityFor(l10n, id);
-    if (defaultActivity != null) {
-      return defaultActivity.label;
-    }
-    final MoodMedicineEntry? entry = _latestEntryForActivity(
-      id,
-      dayKeys: summaries.map(
-        (MoodMedicineDailySummary summary) => summary.dayKey,
+  MoodMedicineReportPresentation _reportPresentation(AppLocalizations l10n) {
+    final List<MoodMedicineActivityContent> activities = _activities(l10n);
+    final Map<String, MoodMedicineReportSource> sources =
+        <String, MoodMedicineReportSource>{
+          for (final MoodMedicineActivityContent activity in activities)
+            activity.sourceUri.toString(): MoodMedicineReportSource(
+              title: activity.sourceLabel,
+              url: activity.sourceUri,
+            ),
+        };
+    return MoodMedicineReportPresentation(
+      title: l10n.moodMedicineExportReportTitle,
+      rangeLabels: _rangeLabels(l10n),
+      labels: MoodMedicineReportLabels(
+        moodLabel: l10n.moodMedicineTrend,
+        activitiesLabel: l10n.moodMedicineActivities,
+        associationsLabel: l10n.moodMedicineAssociation,
+        notesLabel: l10n.moodMedicineIncludeNotes,
+        sourcesLabel: l10n.moodMedicineExportSources,
+        noDataLabel: l10n.moodMedicineNoEntries,
+        withActivityLabel: l10n.moodMedicineWithActivity,
+        withoutActivityLabel: l10n.moodMedicineWithoutActivity,
+        associationDisclaimer: l10n.moodMedicineAssociationNotCausation,
       ),
+      defaultActivityLabels: <String, String>{
+        for (final MoodMedicineActivityContent activity in activities)
+          activity.id: activity.label,
+      },
+      sources: sources.values.toList(growable: false),
+      textDirection: Directionality.of(context),
+      dayLabelFor: (String key) => key,
     );
-    return entry == null ? id : _entryActivityLabel(l10n, entry, id);
   }
 
   Map<String, String> _emotionLabels(AppLocalizations l10n) => <String, String>{
@@ -243,106 +217,217 @@ class _MoodMedicinePageState extends State<MoodMedicinePage> {
     ),
   ];
 
-  void _startCheckIn() {
-    setState(() {
-      _view = MoodMedicineInitialView.checkIn;
-      _showCheckInDetails = _mood != null;
-    });
+  Map<MoodMedicineInsightRange, String> _rangeLabels(AppLocalizations l10n) {
+    return <MoodMedicineInsightRange, String>{
+      MoodMedicineInsightRange.day: l10n.moodMedicineToday,
+      MoodMedicineInsightRange.week: l10n.moodMedicineWeek,
+      MoodMedicineInsightRange.month: l10n.moodMedicineMonth,
+      MoodMedicineInsightRange.year: l10n.moodMedicineYear,
+    };
   }
 
-  Future<void> _saveCheckIn() async {
-    if (_writesBlocked) {
-      return;
-    }
-    final int? mood = _mood;
-    if (mood == null) {
-      setState(() => _showCheckInDetails = false);
-      return;
-    }
-    final bool saved = await _controller.saveCheckIn(
-      MoodMedicineCheckInDraft(
-        mood: mood,
-        emotionIds: _emotionIds,
-        activityIds: _activityIds,
-        note: _noteController.text,
-      ),
-    );
-    if (!mounted) {
-      return;
-    }
-    if (!saved) {
-      _showWriteFailure(onRetrySucceeded: _finishSavedCheckIn);
-      return;
-    }
-    _finishSavedCheckIn();
+  String _rangeLabel(AppLocalizations l10n, MoodMedicineInsightRange range) =>
+      _rangeLabels(l10n)[range]!;
+
+  String _trendSummary(List<MoodMedicineDailySummary> summaries) {
+    return summaries
+        .map(
+          (MoodMedicineDailySummary summary) =>
+              '${summary.dayKey}: ${summary.averageMood.toStringAsFixed(1)}',
+        )
+        .join(', ');
   }
 
-  void _finishSavedCheckIn() {
-    if (!mounted) {
-      return;
-    }
-    setState(() {
-      _mood = null;
-      _emotionIds.clear();
-      _activityIds.clear();
-      _noteController.clear();
-      _showCheckInDetails = false;
-      _view = MoodMedicineInitialView.insights;
-    });
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Text(AppLocalizations.of(context)!.moodMedicineCheckInSaved),
-      ),
-    );
-  }
-
-  Future<void> _runDefaultActivityMutation(
-    Future<bool> Function() mutation, {
-    String? deselectId,
-  }) async {
-    if (_writesBlocked) {
-      return;
-    }
-    final bool saved = await mutation();
-    if (!mounted) {
-      return;
-    }
-    if (!saved) {
-      _closeActivityManagerAndShowWriteFailure(
-        onRetrySucceeded: () {
-          if (deselectId != null && mounted) {
-            setState(() => _activityIds.remove(deselectId));
-          }
-        },
-      );
-      return;
-    }
-    if (deselectId != null) {
-      setState(() => _activityIds.remove(deselectId));
-    }
-  }
-
-  Future<void> _showActivityEditor({
-    MoodMedicineCustomActivity? activity,
-  }) async {
-    if (_writesBlocked) {
-      return;
-    }
+  Future<void> _openActivityManager() async {
     final AppLocalizations l10n = AppLocalizations.of(context)!;
-    await showDialog<void>(
+    await showModalBottomSheet<void>(
+      context: context,
+      isScrollControlled: true,
+      builder: (BuildContext sheetContext) =>
+          ChangeNotifierProvider<MoodMedicineViewModel>.value(
+            value: _viewModel,
+            child: DraggableScrollableSheet(
+              expand: false,
+              initialChildSize: 0.72,
+              maxChildSize: 0.92,
+              builder:
+                  (
+                    BuildContext context,
+                    ScrollController scrollController,
+                  ) => Consumer<MoodMedicineViewModel>(
+                    builder: (_, MoodMedicineViewModel viewModel, _) {
+                      final MoodMedicineReadyState? ready =
+                          viewModel.readyState;
+                      if (ready == null) {
+                        return const SizedBox.shrink();
+                      }
+                      final List<MoodMedicineActivityContent> defaults =
+                          _activities(l10n);
+                      final List<MoodMedicineActivityContent> hidden = defaults
+                          .where(
+                            (MoodMedicineActivityContent item) => ready
+                                .snapshot
+                                .hiddenDefaultActivityIds
+                                .contains(item.id),
+                          )
+                          .toList(growable: false);
+                      final List<MoodMedicineActivityContent> visible = defaults
+                          .where(
+                            (MoodMedicineActivityContent item) => !ready
+                                .snapshot
+                                .hiddenDefaultActivityIds
+                                .contains(item.id),
+                          )
+                          .toList(growable: false);
+                      return SafeArea(
+                        child: ListView(
+                          controller: scrollController,
+                          padding: const EdgeInsets.fromLTRB(20, 12, 20, 32),
+                          children: <Widget>[
+                            Center(
+                              child: Container(
+                                width: 38,
+                                height: 4,
+                                decoration: BoxDecoration(
+                                  color: Theme.of(context).colorScheme.outline,
+                                  borderRadius: BorderRadius.circular(
+                                    AppSpacing.xs,
+                                  ),
+                                ),
+                              ),
+                            ),
+                            const SizedBox(height: AppSpacing.lg),
+                            Text(
+                              l10n.moodMedicineManageActivities,
+                              style: Theme.of(context).textTheme.titleLarge,
+                            ),
+                            const SizedBox(height: AppSpacing.sm),
+                            Text(l10n.moodMedicineActivityHistoryNote),
+                            const SizedBox(height: 18),
+                            _ManagerSection(
+                              title: l10n.moodMedicineDefaultActivities,
+                              children: visible
+                                  .map(
+                                    (MoodMedicineActivityContent item) =>
+                                        ListTile(
+                                          leading: Icon(item.icon),
+                                          title: Text(item.label),
+                                          trailing: TextButton(
+                                            onPressed: ready.writesBlocked
+                                                ? null
+                                                : () => viewModel
+                                                      .hideDefaultActivity(
+                                                        item.id,
+                                                      ),
+                                            child: Text(l10n.moodMedicineHide),
+                                          ),
+                                        ),
+                                  )
+                                  .toList(growable: false),
+                            ),
+                            if (hidden.isNotEmpty) ...<Widget>[
+                              const SizedBox(height: AppSpacing.md),
+                              _ManagerSection(
+                                title: l10n.moodMedicineHiddenActivities,
+                                children: hidden
+                                    .map(
+                                      (MoodMedicineActivityContent item) =>
+                                          ListTile(
+                                            leading: Icon(item.icon),
+                                            title: Text(item.label),
+                                            trailing: TextButton(
+                                              onPressed: ready.writesBlocked
+                                                  ? null
+                                                  : () => viewModel
+                                                        .restoreDefaultActivity(
+                                                          item.id,
+                                                        ),
+                                              child: Text(
+                                                l10n.moodMedicineRestore,
+                                              ),
+                                            ),
+                                          ),
+                                    )
+                                    .toList(growable: false),
+                              ),
+                            ],
+                            const SizedBox(height: AppSpacing.md),
+                            _ManagerSection(
+                              title: l10n.moodMedicineCustomActivities,
+                              children: <Widget>[
+                                if (ready.snapshot.customActivities.isEmpty)
+                                  Padding(
+                                    padding: const EdgeInsets.all(
+                                      AppSpacing.lg,
+                                    ),
+                                    child: Text(
+                                      l10n.moodMedicineNoCustomActivities,
+                                    ),
+                                  ),
+                                ...ready.snapshot.customActivities.map(
+                                  (
+                                    MoodMedicineCustomActivity activity,
+                                  ) => ListTile(
+                                    leading: const Icon(Icons.favorite_outline),
+                                    title: Text(activity.label),
+                                    trailing: Wrap(
+                                      spacing: AppSpacing.xs,
+                                      children: <Widget>[
+                                        IconButton(
+                                          tooltip: l10n.moodMedicineEdit,
+                                          onPressed: ready.writesBlocked
+                                              ? null
+                                              : () => _showActivityEditor(
+                                                  activity: activity,
+                                                ),
+                                          icon: const Icon(Icons.edit_outlined),
+                                        ),
+                                        IconButton(
+                                          tooltip: l10n.moodMedicineDelete,
+                                          onPressed: ready.writesBlocked
+                                              ? null
+                                              : () => _confirmDeleteActivity(
+                                                  activity,
+                                                ),
+                                          icon: const Icon(
+                                            Icons.delete_outline,
+                                          ),
+                                        ),
+                                      ],
+                                    ),
+                                  ),
+                                ),
+                                Align(
+                                  alignment: AlignmentDirectional.centerStart,
+                                  child: FilledButton.icon(
+                                    onPressed: ready.writesBlocked
+                                        ? null
+                                        : _showActivityEditor,
+                                    icon: const Icon(Icons.add),
+                                    label: Text(
+                                      l10n.moodMedicineAddCustomActivity,
+                                    ),
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ],
+                        ),
+                      );
+                    },
+                  ),
+            ),
+          ),
+    );
+  }
+
+  Future<void> _showActivityEditor({MoodMedicineCustomActivity? activity}) {
+    return showDialog<void>(
       context: context,
       builder: (BuildContext dialogContext) => _ActivityEditorDialog(
         activity: activity,
-        l10n: l10n,
-        onSave: (String label) async {
-          if (_writesBlocked) {
-            return false;
-          }
-          return activity == null
-              ? await _controller.addCustomActivity(label) != null
-              : _controller.editCustomActivity(activity.id, label);
-        },
-        onSaveFailed: _closeActivityManagerAndShowWriteFailure,
+        l10n: AppLocalizations.of(context)!,
+        viewModel: _viewModel,
       ),
     );
   }
@@ -350,9 +435,6 @@ class _MoodMedicinePageState extends State<MoodMedicinePage> {
   Future<void> _confirmDeleteActivity(
     MoodMedicineCustomActivity activity,
   ) async {
-    if (_writesBlocked) {
-      return;
-    }
     final AppLocalizations l10n = AppLocalizations.of(context)!;
     final bool? confirmed = await showDialog<bool>(
       context: context,
@@ -375,206 +457,9 @@ class _MoodMedicinePageState extends State<MoodMedicinePage> {
         ],
       ),
     );
-    if (confirmed != true) {
-      return;
+    if (confirmed == true) {
+      await _viewModel.deleteCustomActivity(activity.id);
     }
-    if (_writesBlocked) {
-      return;
-    }
-    final bool saved = await _controller.deleteCustomActivity(activity.id);
-    if (!mounted) {
-      return;
-    }
-    if (!saved) {
-      _closeActivityManagerAndShowWriteFailure(
-        onRetrySucceeded: () {
-          if (mounted) {
-            setState(() => _activityIds.remove(activity.id));
-          }
-        },
-      );
-      return;
-    }
-    setState(() => _activityIds.remove(activity.id));
-  }
-
-  Future<void> _openActivityManager() async {
-    final AppLocalizations l10n = AppLocalizations.of(context)!;
-    await showModalBottomSheet<void>(
-      context: context,
-      isScrollControlled: true,
-      builder: (BuildContext sheetContext) {
-        return ChangeNotifierProvider.value(
-          value: _controller,
-          child: DraggableScrollableSheet(
-            expand: false,
-            initialChildSize: 0.72,
-            maxChildSize: 0.92,
-            builder: (BuildContext context, ScrollController scrollController) {
-              return Consumer<MoodMedicineController>(
-                builder: (_, MoodMedicineController controller, _) {
-                  final List<MoodMedicineActivityContent> defaults =
-                      _activities(l10n);
-                  final List<MoodMedicineActivityContent> hidden = defaults
-                      .where(
-                        (MoodMedicineActivityContent item) => controller
-                            .hiddenDefaultActivityIds
-                            .contains(item.id),
-                      )
-                      .toList(growable: false);
-                  final List<MoodMedicineActivityContent> visible = defaults
-                      .where(
-                        (MoodMedicineActivityContent item) => !controller
-                            .hiddenDefaultActivityIds
-                            .contains(item.id),
-                      )
-                      .toList(growable: false);
-                  return SafeArea(
-                    child: ListView(
-                      controller: scrollController,
-                      padding: const EdgeInsets.fromLTRB(20, 12, 20, 32),
-                      children: <Widget>[
-                        Center(
-                          child: Container(
-                            width: 38,
-                            height: 4,
-                            decoration: BoxDecoration(
-                              color: Theme.of(context).colorScheme.outline,
-                              borderRadius: BorderRadius.circular(4),
-                            ),
-                          ),
-                        ),
-                        const SizedBox(height: 16),
-                        Text(
-                          l10n.moodMedicineManageActivities,
-                          style: Theme.of(context).textTheme.titleLarge,
-                        ),
-                        const SizedBox(height: 8),
-                        Text(l10n.moodMedicineActivityHistoryNote),
-                        const SizedBox(height: 18),
-                        _ManagerSection(
-                          title: l10n.moodMedicineDefaultActivities,
-                          children: visible
-                              .map(
-                                (MoodMedicineActivityContent activity) =>
-                                    ListTile(
-                                      leading: Icon(activity.icon),
-                                      title: Text(activity.label),
-                                      trailing: TextButton(
-                                        onPressed:
-                                            controller.isSaving ||
-                                                controller.hasPendingWrite
-                                            ? null
-                                            : () => _runDefaultActivityMutation(
-                                                () => controller
-                                                    .hideDefaultActivity(
-                                                      activity.id,
-                                                    ),
-                                                deselectId: activity.id,
-                                              ),
-                                        child: Text(l10n.moodMedicineHide),
-                                      ),
-                                    ),
-                              )
-                              .toList(growable: false),
-                        ),
-                        if (hidden.isNotEmpty) ...<Widget>[
-                          const SizedBox(height: 12),
-                          _ManagerSection(
-                            title: l10n.moodMedicineHiddenActivities,
-                            children: hidden
-                                .map(
-                                  (
-                                    MoodMedicineActivityContent activity,
-                                  ) => ListTile(
-                                    leading: Icon(activity.icon),
-                                    title: Text(activity.label),
-                                    trailing: TextButton(
-                                      onPressed:
-                                          controller.isSaving ||
-                                              controller.hasPendingWrite
-                                          ? null
-                                          : () => _runDefaultActivityMutation(
-                                              () => controller
-                                                  .restoreDefaultActivity(
-                                                    activity.id,
-                                                  ),
-                                            ),
-                                      child: Text(l10n.moodMedicineRestore),
-                                    ),
-                                  ),
-                                )
-                                .toList(growable: false),
-                          ),
-                        ],
-                        const SizedBox(height: 12),
-                        _ManagerSection(
-                          title: l10n.moodMedicineCustomActivities,
-                          children: <Widget>[
-                            if (controller.customActivities.isEmpty)
-                              Padding(
-                                padding: const EdgeInsets.all(16),
-                                child: Text(
-                                  l10n.moodMedicineNoCustomActivities,
-                                ),
-                              ),
-                            ...controller.customActivities.map(
-                              (MoodMedicineCustomActivity activity) => ListTile(
-                                leading: const Icon(Icons.favorite_outline),
-                                title: Text(activity.label),
-                                trailing: Wrap(
-                                  spacing: 2,
-                                  children: <Widget>[
-                                    IconButton(
-                                      tooltip: l10n.moodMedicineEdit,
-                                      onPressed:
-                                          controller.isSaving ||
-                                              controller.hasPendingWrite
-                                          ? null
-                                          : () => _showActivityEditor(
-                                              activity: activity,
-                                            ),
-                                      icon: const Icon(Icons.edit_outlined),
-                                    ),
-                                    IconButton(
-                                      tooltip: l10n.moodMedicineDelete,
-                                      onPressed:
-                                          controller.isSaving ||
-                                              controller.hasPendingWrite
-                                          ? null
-                                          : () => _confirmDeleteActivity(
-                                              activity,
-                                            ),
-                                      icon: const Icon(Icons.delete_outline),
-                                    ),
-                                  ],
-                                ),
-                              ),
-                            ),
-                            Align(
-                              alignment: AlignmentDirectional.centerStart,
-                              child: FilledButton.icon(
-                                onPressed:
-                                    controller.isSaving ||
-                                        controller.hasPendingWrite
-                                    ? null
-                                    : () => _showActivityEditor(),
-                                icon: const Icon(Icons.add),
-                                label: Text(l10n.moodMedicineAddCustomActivity),
-                              ),
-                            ),
-                          ],
-                        ),
-                      ],
-                    ),
-                  );
-                },
-              );
-            },
-          ),
-        );
-      },
-    );
   }
 
   Future<void> _openActivityEducation(
@@ -585,7 +470,7 @@ class _MoodMedicinePageState extends State<MoodMedicinePage> {
       context: context,
       builder: (BuildContext sheetContext) => SafeArea(
         child: Padding(
-          padding: const EdgeInsets.all(24),
+          padding: const EdgeInsets.all(AppSpacing.xxl),
           child: Column(
             mainAxisSize: MainAxisSize.min,
             crossAxisAlignment: CrossAxisAlignment.start,
@@ -593,7 +478,7 @@ class _MoodMedicinePageState extends State<MoodMedicinePage> {
               Row(
                 children: <Widget>[
                   Icon(activity.icon),
-                  const SizedBox(width: 10),
+                  const SizedBox(width: AppSpacing.md),
                   Expanded(
                     child: Text(
                       activity.label,
@@ -604,7 +489,7 @@ class _MoodMedicinePageState extends State<MoodMedicinePage> {
               ),
               const SizedBox(height: 14),
               Text(activity.description),
-              const SizedBox(height: 10),
+              const SizedBox(height: AppSpacing.md),
               Text(activity.guidance),
               const SizedBox(height: 14),
               TextButton.icon(
@@ -639,25 +524,23 @@ class _MoodMedicinePageState extends State<MoodMedicinePage> {
     );
   }
 
-  Widget _buildCheckIn(AppLocalizations l10n) {
-    final List<MoodMedicineActivityContent> selectableActivities =
-        <MoodMedicineActivityContent>[
-          ..._activities(l10n).where(
-            (MoodMedicineActivityContent item) =>
-                !_controller.hiddenDefaultActivityIds.contains(item.id),
-          ),
-        ];
-    final Map<String, String> emotionLabels = _emotionLabels(l10n);
+  Widget _buildCheckIn(AppLocalizations l10n, MoodMedicineReadyState ready) {
+    final MoodMedicineCheckInForm form = ready.checkInForm;
     final List<_ActivityChip> activityChips = <_ActivityChip>[
-      ...selectableActivities.map(
-        (MoodMedicineActivityContent activity) => _ActivityChip(
-          id: activity.id,
-          label: activity.label,
-          icon: activity.icon,
-          source: activity,
-        ),
-      ),
-      ..._controller.customActivities.map(
+      ..._activities(l10n)
+          .where(
+            (MoodMedicineActivityContent activity) =>
+                !ready.snapshot.hiddenDefaultActivityIds.contains(activity.id),
+          )
+          .map(
+            (MoodMedicineActivityContent activity) => _ActivityChip(
+              id: activity.id,
+              label: activity.label,
+              icon: activity.icon,
+              source: activity,
+            ),
+          ),
+      ...ready.snapshot.customActivities.map(
         (MoodMedicineCustomActivity activity) => _ActivityChip(
           id: activity.id,
           label: activity.label,
@@ -665,7 +548,6 @@ class _MoodMedicinePageState extends State<MoodMedicinePage> {
         ),
       ),
     ];
-
     return ListView(
       key: const Key('moodMedicineCheckIn'),
       padding: const EdgeInsets.fromLTRB(20, 12, 20, 32),
@@ -676,7 +558,7 @@ class _MoodMedicinePageState extends State<MoodMedicinePage> {
           trailing: IconButton(
             tooltip: l10n.moodMedicineViewInsights,
             onPressed: () =>
-                setState(() => _view = MoodMedicineInitialView.insights),
+                _viewModel.selectView(MoodMedicineInitialView.insights),
             icon: const Icon(Icons.insights_outlined),
           ),
         ),
@@ -689,26 +571,23 @@ class _MoodMedicinePageState extends State<MoodMedicinePage> {
                 l10n.moodMedicineChooseMood,
                 style: Theme.of(context).textTheme.titleMedium,
               ),
-              const SizedBox(height: 12),
+              const SizedBox(height: AppSpacing.md),
               Wrap(
-                spacing: 8,
-                runSpacing: 8,
+                spacing: AppSpacing.sm,
+                runSpacing: AppSpacing.sm,
                 alignment: WrapAlignment.spaceBetween,
                 children: _moodOptions(l10n)
                     .map(
                       (_MoodOption option) => Semantics(
                         button: true,
-                        selected: _mood == option.value,
+                        selected: form.mood == option.value,
                         label: option.label,
                         child: ChoiceChip(
                           key: Key('moodMedicineMood${option.value}'),
-                          selected: _mood == option.value,
-                          onSelected: _writesBlocked
+                          selected: form.mood == option.value,
+                          onSelected: ready.writesBlocked
                               ? null
-                              : (_) => setState(() {
-                                  _mood = option.value;
-                                  _showCheckInDetails = true;
-                                }),
+                              : (_) => _viewModel.selectMood(option.value),
                           avatar: Icon(option.icon),
                           label: Text(option.label),
                         ),
@@ -719,7 +598,7 @@ class _MoodMedicinePageState extends State<MoodMedicinePage> {
             ],
           ),
         ),
-        if (_showCheckInDetails) ...<Widget>[
+        if (ready.isCheckInDetailsExpanded) ...<Widget>[
           const SizedBox(height: 14),
           _FeatureCard(
             child: Column(
@@ -729,26 +608,20 @@ class _MoodMedicinePageState extends State<MoodMedicinePage> {
                   l10n.moodMedicineEmotions,
                   style: Theme.of(context).textTheme.titleMedium,
                 ),
-                const SizedBox(height: 4),
+                const SizedBox(height: AppSpacing.xs),
                 Text(l10n.moodMedicineEmotionsHint),
-                const SizedBox(height: 10),
+                const SizedBox(height: AppSpacing.md),
                 Wrap(
-                  spacing: 8,
-                  runSpacing: 8,
-                  children: emotionLabels.entries
+                  spacing: AppSpacing.sm,
+                  runSpacing: AppSpacing.sm,
+                  children: _emotionLabels(l10n).entries
                       .map(
                         (MapEntry<String, String> item) => FilterChip(
                           key: Key('moodMedicineEmotion${item.key}'),
-                          selected: _emotionIds.contains(item.key),
-                          onSelected: _writesBlocked
+                          selected: form.emotionIds.contains(item.key),
+                          onSelected: ready.writesBlocked
                               ? null
-                              : (bool selected) => setState(() {
-                                  if (selected) {
-                                    _emotionIds.add(item.key);
-                                  } else {
-                                    _emotionIds.remove(item.key);
-                                  }
-                                }),
+                              : (_) => _viewModel.toggleEmotion(item.key),
                           label: Text(item.value),
                         ),
                       )
@@ -771,33 +644,29 @@ class _MoodMedicinePageState extends State<MoodMedicinePage> {
                       ),
                     ),
                     TextButton(
-                      onPressed: _writesBlocked ? null : _openActivityManager,
+                      onPressed: ready.writesBlocked
+                          ? null
+                          : _openActivityManager,
                       child: Text(l10n.moodMedicineManageActivities),
                     ),
                   ],
                 ),
                 Text(l10n.moodMedicineActivitiesHint),
-                const SizedBox(height: 10),
+                const SizedBox(height: AppSpacing.md),
                 if (activityChips.isEmpty)
                   Text(l10n.moodMedicineNoActivitiesSelected)
                 else
                   Wrap(
-                    spacing: 8,
-                    runSpacing: 8,
+                    spacing: AppSpacing.sm,
+                    runSpacing: AppSpacing.sm,
                     children: activityChips
                         .map(
                           (_ActivityChip item) => FilterChip(
                             key: Key('moodMedicineActivity${item.id}'),
-                            selected: _activityIds.contains(item.id),
-                            onSelected: _writesBlocked
+                            selected: form.activityIds.contains(item.id),
+                            onSelected: ready.writesBlocked
                                 ? null
-                                : (bool selected) => setState(() {
-                                    if (selected) {
-                                      _activityIds.add(item.id);
-                                    } else {
-                                      _activityIds.remove(item.id);
-                                    }
-                                  }),
+                                : (_) => _viewModel.toggleActivity(item.id),
                             avatar: Icon(item.icon, size: 18),
                             label: Text(item.label),
                             deleteIcon: item.source == null
@@ -822,20 +691,30 @@ class _MoodMedicinePageState extends State<MoodMedicinePage> {
                   l10n.moodMedicineOptionalNote,
                   style: Theme.of(context).textTheme.titleMedium,
                 ),
-                const SizedBox(height: 8),
-                TextField(
-                  key: const Key('moodMedicineNoteField'),
-                  controller: _noteController,
-                  enabled: !_writesBlocked,
-                  minLines: 3,
-                  maxLines: 6,
-                  textCapitalization: TextCapitalization.sentences,
-                  decoration: InputDecoration(
-                    hintText: l10n.moodMedicineNoteHint,
-                    border: const OutlineInputBorder(),
+                const SizedBox(height: AppSpacing.sm),
+                Align(
+                  alignment: AlignmentDirectional.centerStart,
+                  child: ConstrainedBox(
+                    constraints: BoxConstraints(
+                      maxWidth: formFieldWidth(context),
+                    ),
+                    child: TextField(
+                      key: const Key('moodMedicineNoteField'),
+                      controller: _noteController,
+                      enabled: !ready.writesBlocked,
+                      minLines: 3,
+                      maxLines: 6,
+                      textCapitalization: TextCapitalization.sentences,
+                      onChanged: _viewModel.setJournalNote,
+                      decoration: _moodInputDecoration(
+                        context,
+                        hintText: l10n.moodMedicineNoteHint,
+                        multiline: true,
+                      ),
+                    ),
                   ),
                 ),
-                const SizedBox(height: 8),
+                const SizedBox(height: AppSpacing.sm),
                 Text(
                   l10n.moodMedicineNotePrivacy,
                   style: Theme.of(context).textTheme.bodySmall,
@@ -846,8 +725,10 @@ class _MoodMedicinePageState extends State<MoodMedicinePage> {
           const SizedBox(height: 18),
           FilledButton.icon(
             key: const Key('moodMedicineSaveCheckIn'),
-            onPressed: _writesBlocked ? null : _saveCheckIn,
-            icon: _controller.isSaving
+            onPressed: ready.writesBlocked || !form.canSave
+                ? null
+                : () => _viewModel.saveCheckIn(),
+            icon: ready.persistence.isSaving
                 ? const SizedBox(
                     width: 18,
                     height: 18,
@@ -855,7 +736,7 @@ class _MoodMedicinePageState extends State<MoodMedicinePage> {
                   )
                 : const Icon(Icons.check),
             label: Text(
-              _controller.isSaving
+              ready.persistence.isSaving
                   ? l10n.moodMedicineSaving
                   : l10n.moodMedicineSave,
             ),
@@ -864,9 +745,9 @@ class _MoodMedicinePageState extends State<MoodMedicinePage> {
           const SizedBox(height: 18),
           FilledButton(
             key: const Key('moodMedicineContinueCheckIn'),
-            onPressed: _mood == null
-                ? null
-                : () => setState(() => _showCheckInDetails = true),
+            onPressed: form.canSave
+                ? () => _viewModel.setCheckInDetailsExpanded(true)
+                : null,
             child: Text(l10n.moodMedicineContinue),
           ),
         ],
@@ -874,38 +755,9 @@ class _MoodMedicinePageState extends State<MoodMedicinePage> {
     );
   }
 
-  List<MoodMedicineDailySummary> _summariesForCurrentRange() {
-    return MoodMedicineInsights.summariesForRange(
-      _controller.entries,
-      range: _range,
-      anchor: DateTime.now(),
-    );
-  }
-
-  String _rangeLabel(AppLocalizations l10n) => switch (_range) {
-    MoodMedicineInsightRange.day => l10n.moodMedicineToday,
-    MoodMedicineInsightRange.week => l10n.moodMedicineWeek,
-    MoodMedicineInsightRange.month => l10n.moodMedicineMonth,
-    MoodMedicineInsightRange.year => l10n.moodMedicineYear,
-  };
-
-  String _trendSummary(List<MoodMedicineDailySummary> summaries) {
-    if (summaries.isEmpty) {
-      return '';
-    }
-    return summaries
-        .map(
-          (MoodMedicineDailySummary item) =>
-              '${item.dayKey}: ${item.averageMood.toStringAsFixed(1)}',
-        )
-        .join(', ');
-  }
-
-  Widget _buildInsights(AppLocalizations l10n) {
-    final List<MoodMedicineDailySummary> summaries =
-        _summariesForCurrentRange();
-    final List<MoodMedicineAssociation> associations =
-        MoodMedicineInsights.associations(summaries);
+  Widget _buildInsights(AppLocalizations l10n, MoodMedicineReadyState ready) {
+    final MoodMedicineDashboard dashboard = ready.dashboard;
+    final List<MoodMedicineDailySummary> summaries = dashboard.summaries;
     final List<MoodMedicineTrendPoint> points = summaries
         .map(
           (MoodMedicineDailySummary item) => MoodMedicineTrendPoint(
@@ -928,20 +780,21 @@ class _MoodMedicinePageState extends State<MoodMedicinePage> {
           subtitle: l10n.moodMedicineSubtitle,
           trailing: IconButton(
             tooltip: l10n.moodMedicineQuickCheckIn,
-            onPressed: _startCheckIn,
+            onPressed: () =>
+                _viewModel.selectView(MoodMedicineInitialView.checkIn),
             icon: const Icon(Icons.add_chart_rounded),
           ),
         ),
-        const SizedBox(height: 12),
+        const SizedBox(height: AppSpacing.md),
         Wrap(
-          spacing: 8,
-          runSpacing: 8,
+          spacing: AppSpacing.sm,
+          runSpacing: AppSpacing.sm,
           children: MoodMedicineInsightRange.values
               .map(
                 (MoodMedicineInsightRange range) => ChoiceChip(
-                  label: Text(_rangeName(l10n, range)),
-                  selected: _range == range,
-                  onSelected: (_) => setState(() => _range = range),
+                  label: Text(_rangeLabel(l10n, range)),
+                  selected: ready.selectedRange == range,
+                  onSelected: (_) => _viewModel.selectRange(range),
                 ),
               )
               .toList(growable: false),
@@ -955,45 +808,44 @@ class _MoodMedicinePageState extends State<MoodMedicinePage> {
                 l10n.moodMedicineTrend,
                 style: Theme.of(context).textTheme.titleMedium,
               ),
-              const SizedBox(height: 4),
+              const SizedBox(height: AppSpacing.xs),
               Text(l10n.moodMedicineDailyAverage),
-              const SizedBox(height: 8),
+              const SizedBox(height: AppSpacing.sm),
               MoodMedicineTrendChart(
                 points: points,
                 emptyLabel: l10n.moodMedicineNoEntries,
                 semanticSummary: l10n.moodMedicineTrendSummary(
-                  _rangeLabel(l10n),
+                  _rangeLabel(l10n, ready.selectedRange),
                   _trendSummary(summaries),
                 ),
-                highlightedActivityId: _highlightedActivityId,
+                highlightedActivityId: ready.highlightedActivityId,
               ),
               if (points.length == 1)
                 Padding(
-                  padding: const EdgeInsets.only(top: 8),
+                  padding: const EdgeInsets.only(top: AppSpacing.sm),
                   child: Text(l10n.moodMedicineOneEntry),
                 ),
               if (points.isNotEmpty) ...<Widget>[
-                const SizedBox(height: 8),
+                const SizedBox(height: AppSpacing.sm),
                 Text(
                   l10n.moodMedicineActivitiesOverlay,
                   style: Theme.of(context).textTheme.bodySmall,
                 ),
                 const SizedBox(height: 6),
                 Wrap(
-                  spacing: 8,
-                  runSpacing: 8,
+                  spacing: AppSpacing.sm,
+                  runSpacing: AppSpacing.sm,
                   children: overlayActivityIds
                       .map(
                         (String activityId) => ChoiceChip(
-                          selected: _highlightedActivityId == activityId,
+                          selected: ready.highlightedActivityId == activityId,
                           label: Text(
-                            _rangeActivityLabel(l10n, activityId, summaries),
+                            dashboard.activityLabelForRange(activityId),
                           ),
-                          onSelected: (bool selected) => setState(
-                            () => _highlightedActivityId = selected
-                                ? activityId
-                                : null,
-                          ),
+                          onSelected: (bool selected) =>
+                              _viewModel.setHighlightedActivity(
+                                selected ? activityId : null,
+                              ),
                         ),
                       )
                       .toList(growable: false),
@@ -1011,31 +863,34 @@ class _MoodMedicinePageState extends State<MoodMedicinePage> {
                 l10n.moodMedicineAssociation,
                 style: Theme.of(context).textTheme.titleMedium,
               ),
-              const SizedBox(height: 8),
+              const SizedBox(height: AppSpacing.sm),
               Text(l10n.moodMedicineAssociationExplanation),
-              const SizedBox(height: 10),
-              if (associations.isEmpty)
+              const SizedBox(height: AppSpacing.md),
+              if (dashboard.associations.isEmpty)
                 Text(l10n.moodMedicineAssociationUnavailable)
               else
-                ...associations.map(
-                  (MoodMedicineAssociation item) => Padding(
-                    padding: const EdgeInsets.only(bottom: 10),
+                ...dashboard.associations.map(
+                  (MoodMedicineAssociation association) => Padding(
+                    padding: const EdgeInsets.only(bottom: AppSpacing.md),
                     child: Semantics(
                       label: l10n.moodMedicineAssociationSummary(
-                        _rangeActivityLabel(l10n, item.activityId, summaries),
-                        item.withActivityAverageMood.toStringAsFixed(1),
-                        item.withoutActivityAverageMood.toStringAsFixed(1),
+                        dashboard.activityLabelForRange(association.activityId),
+                        association.withActivityAverageMood.toStringAsFixed(1),
+                        association.withoutActivityAverageMood.toStringAsFixed(
+                          1,
+                        ),
                       ),
                       child: ExcludeSemantics(
                         child: Text(
                           l10n.moodMedicineAssociationSummary(
-                            _rangeActivityLabel(
-                              l10n,
-                              item.activityId,
-                              summaries,
+                            dashboard.activityLabelForRange(
+                              association.activityId,
                             ),
-                            item.withActivityAverageMood.toStringAsFixed(1),
-                            item.withoutActivityAverageMood.toStringAsFixed(1),
+                            association.withActivityAverageMood.toStringAsFixed(
+                              1,
+                            ),
+                            association.withoutActivityAverageMood
+                                .toStringAsFixed(1),
                           ),
                         ),
                       ),
@@ -1051,25 +906,26 @@ class _MoodMedicinePageState extends State<MoodMedicinePage> {
         ),
         const SizedBox(height: 14),
         Wrap(
-          spacing: 10,
-          runSpacing: 10,
+          spacing: AppSpacing.md,
+          runSpacing: AppSpacing.md,
           children: <Widget>[
             FilledButton.icon(
               key: const Key('moodMedicineManualCheckIn'),
-              onPressed: _startCheckIn,
+              onPressed: () =>
+                  _viewModel.selectView(MoodMedicineInitialView.checkIn),
               icon: const Icon(Icons.add),
               label: Text(l10n.moodMedicineQuickCheckIn),
             ),
             OutlinedButton.icon(
               key: const Key('moodMedicineExportButton'),
-              onPressed: () => _showExportSheet(summaries),
+              onPressed: ready.writesBlocked ? null : _showExportSheet,
               icon: const Icon(Icons.ios_share_outlined),
               label: Text(l10n.moodMedicineExport),
             ),
             TextButton.icon(
               key: const Key('moodMedicineEducationButton'),
               onPressed: () =>
-                  setState(() => _view = MoodMedicineInitialView.education),
+                  _viewModel.selectView(MoodMedicineInitialView.education),
               icon: const Icon(Icons.menu_book_outlined),
               label: Text(l10n.moodMedicineEducation),
             ),
@@ -1079,225 +935,215 @@ class _MoodMedicinePageState extends State<MoodMedicinePage> {
     );
   }
 
-  String _rangeName(AppLocalizations l10n, MoodMedicineInsightRange range) {
-    return switch (range) {
-      MoodMedicineInsightRange.day => l10n.moodMedicineToday,
-      MoodMedicineInsightRange.week => l10n.moodMedicineWeek,
-      MoodMedicineInsightRange.month => l10n.moodMedicineMonth,
-      MoodMedicineInsightRange.year => l10n.moodMedicineYear,
-    };
-  }
-
-  Future<void> _showExportSheet(
-    List<MoodMedicineDailySummary> summaries,
-  ) async {
+  Future<void> _showExportSheet() async {
     final AppLocalizations l10n = AppLocalizations.of(context)!;
-    bool includeNotes = false;
-    MoodMedicineReportFormat selectedFormat = MoodMedicineReportFormat.pdf;
-    bool exporting = false;
     await showModalBottomSheet<void>(
       context: context,
       isScrollControlled: true,
-      builder: (BuildContext sheetContext) => StatefulBuilder(
-        builder: (BuildContext context, StateSetter setSheetState) {
-          Future<void> export() async {
-            setSheetState(() => exporting = true);
-            try {
-              final MoodMedicineReportInput report = _buildReportInput(
-                l10n,
-                summaries,
-                includeNotes: includeNotes,
-              );
-              final MoodMedicineReportDelivery delivery =
-                  await MoodMedicineReportExporter().export(
-                    report,
-                    selectedFormat,
-                    shareText: l10n.moodMedicineExportReportTitle,
-                  );
-              if (!sheetContext.mounted) {
-                return;
-              }
-              if (delivery.didDeliver) {
-                Navigator.of(sheetContext).pop();
-              } else {
-                setSheetState(() => exporting = false);
-                ScaffoldMessenger.of(sheetContext).showSnackBar(
-                  SnackBar(content: Text(l10n.moodMedicineExportError)),
-                );
-              }
-            } catch (_) {
-              if (!sheetContext.mounted) {
-                return;
-              }
-              setSheetState(() => exporting = false);
-              ScaffoldMessenger.of(sheetContext).showSnackBar(
-                SnackBar(content: Text(l10n.moodMedicineExportError)),
-              );
-            }
-          }
+      builder: (BuildContext sheetContext) =>
+          ChangeNotifierProvider<MoodMedicineViewModel>.value(
+            value: _viewModel,
+            child: Consumer<MoodMedicineViewModel>(
+              builder:
+                  (BuildContext context, MoodMedicineViewModel viewModel, _) {
+                    final MoodMedicineReadyState? ready = viewModel.readyState;
+                    if (ready == null) {
+                      return const SizedBox.shrink();
+                    }
+                    final MoodMedicineExportState export = ready.export;
 
-          return SafeArea(
-            child: Padding(
-              padding: EdgeInsets.fromLTRB(
-                24,
-                24,
-                24,
-                24 + MediaQuery.viewInsetsOf(context).bottom,
-              ),
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: <Widget>[
-                  Text(
-                    l10n.moodMedicineExport,
-                    style: Theme.of(context).textTheme.titleLarge,
-                  ),
-                  const SizedBox(height: 12),
-                  Text('${l10n.moodMedicineExportRange}: ${_rangeLabel(l10n)}'),
-                  const SizedBox(height: 12),
-                  SegmentedButton<MoodMedicineReportFormat>(
-                    segments: <ButtonSegment<MoodMedicineReportFormat>>[
-                      ButtonSegment<MoodMedicineReportFormat>(
-                        value: MoodMedicineReportFormat.pdf,
-                        label: Text(l10n.moodMedicineExportPdf),
-                        icon: const Icon(Icons.picture_as_pdf_outlined),
-                      ),
-                      ButtonSegment<MoodMedicineReportFormat>(
-                        value: MoodMedicineReportFormat.png,
-                        label: Text(l10n.moodMedicineExportPng),
-                        icon: const Icon(Icons.image_outlined),
-                      ),
-                    ],
-                    selected: <MoodMedicineReportFormat>{selectedFormat},
-                    onSelectionChanged: exporting
-                        ? null
-                        : (Set<MoodMedicineReportFormat> selection) {
-                            setSheetState(
-                              () => selectedFormat = selection.first,
+                    Future<void> buildAndView() async {
+                      final MoodMedicineBuiltReport? report = await viewModel
+                          .buildReport();
+                      if (!sheetContext.mounted) {
+                        return;
+                      }
+                      if (report == null) {
+                        ScaffoldMessenger.of(sheetContext).showSnackBar(
+                          SnackBar(
+                            content: Text(l10n.moodMedicinePreviewError),
+                          ),
+                        );
+                        return;
+                      }
+                      final MoodMedicineReportFormat format =
+                          viewModel.readyState?.export.format ??
+                          MoodMedicineReportFormat.pdf;
+                      await Navigator.of(context).push<void>(
+                        MaterialPageRoute<void>(
+                          builder: (_) => MoodMedicineReportPreviewPage(
+                            report: report,
+                            format: format,
+                            title: format == MoodMedicineReportFormat.pdf
+                                ? l10n.moodMedicinePreviewPdf
+                                : l10n.moodMedicinePreviewPng,
+                            pngPrintGuidance: l10n.moodMedicinePngPrintGuidance,
+                          ),
+                        ),
+                      );
+                    }
+
+                    Future<void> buildAndShare() async {
+                      if (export.report == null) {
+                        final MoodMedicineBuiltReport? report = await viewModel
+                            .buildReport();
+                        if (report == null) {
+                          if (sheetContext.mounted) {
+                            ScaffoldMessenger.of(sheetContext).showSnackBar(
+                              SnackBar(
+                                content: Text(l10n.moodMedicineExportError),
+                              ),
                             );
-                          },
-                  ),
-                  const SizedBox(height: 10),
-                  SwitchListTile.adaptive(
-                    key: const Key('moodMedicineIncludeNotes'),
-                    contentPadding: EdgeInsets.zero,
-                    value: includeNotes,
-                    onChanged: exporting
-                        ? null
-                        : (bool value) =>
-                              setSheetState(() => includeNotes = value),
-                    title: Text(l10n.moodMedicineIncludeNotes),
-                    subtitle: Text(l10n.moodMedicineNotesPrivacy),
-                  ),
-                  if (!includeNotes)
-                    Padding(
-                      padding: const EdgeInsets.only(top: 4),
-                      child: Text(
-                        l10n.moodMedicineNotesExcluded,
-                        style: Theme.of(context).textTheme.bodySmall,
+                          }
+                          return;
+                        }
+                      }
+                      final bool shared = await viewModel.shareBuiltReport(
+                        shareText: l10n.moodMedicineExportReportTitle,
+                      );
+                      if (shared && sheetContext.mounted) {
+                        Navigator.of(sheetContext).pop();
+                      }
+                    }
+
+                    return SafeArea(
+                      child: Padding(
+                        padding: EdgeInsets.fromLTRB(
+                          AppSpacing.xxl,
+                          AppSpacing.xxl,
+                          AppSpacing.xxl,
+                          AppSpacing.xxl +
+                              MediaQuery.viewInsetsOf(context).bottom,
+                        ),
+                        child: Column(
+                          mainAxisSize: MainAxisSize.min,
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: <Widget>[
+                            Text(
+                              l10n.moodMedicineExport,
+                              style: Theme.of(context).textTheme.titleLarge,
+                            ),
+                            const SizedBox(height: AppSpacing.md),
+                            Text(
+                              '${l10n.moodMedicineExportRange}: '
+                              '${_rangeLabel(l10n, ready.selectedRange)}',
+                            ),
+                            const SizedBox(height: AppSpacing.md),
+                            SegmentedButton<MoodMedicineReportFormat>(
+                              segments:
+                                  <ButtonSegment<MoodMedicineReportFormat>>[
+                                    ButtonSegment<MoodMedicineReportFormat>(
+                                      value: MoodMedicineReportFormat.pdf,
+                                      label: Text(l10n.moodMedicineExportPdf),
+                                      icon: const Icon(
+                                        Icons.picture_as_pdf_outlined,
+                                      ),
+                                    ),
+                                    ButtonSegment<MoodMedicineReportFormat>(
+                                      value: MoodMedicineReportFormat.png,
+                                      label: Text(l10n.moodMedicineExportPng),
+                                      icon: const Icon(Icons.image_outlined),
+                                    ),
+                                  ],
+                              selected: <MoodMedicineReportFormat>{
+                                export.format,
+                              },
+                              onSelectionChanged: export.isWorking
+                                  ? null
+                                  : (Set<MoodMedicineReportFormat> selection) =>
+                                        viewModel.setReportOptions(
+                                          format: selection.first,
+                                        ),
+                            ),
+                            if (export.format == MoodMedicineReportFormat.png)
+                              Padding(
+                                padding: const EdgeInsets.only(
+                                  top: AppSpacing.sm,
+                                ),
+                                child: Text(
+                                  l10n.moodMedicinePngPrintGuidance,
+                                  style: Theme.of(context).textTheme.bodySmall,
+                                ),
+                              ),
+                            const SizedBox(height: AppSpacing.sm),
+                            SwitchListTile.adaptive(
+                              key: const Key('moodMedicineIncludeNotes'),
+                              contentPadding: EdgeInsets.zero,
+                              value: export.includeNotes,
+                              onChanged: export.isWorking
+                                  ? null
+                                  : (bool value) => viewModel.setReportOptions(
+                                      includeNotes: value,
+                                    ),
+                              title: Text(l10n.moodMedicineIncludeNotes),
+                              subtitle: Text(l10n.moodMedicineNotesPrivacy),
+                            ),
+                            if (!export.includeNotes)
+                              Padding(
+                                padding: const EdgeInsets.only(
+                                  top: AppSpacing.xs,
+                                ),
+                                child: Text(
+                                  l10n.moodMedicineNotesExcluded,
+                                  style: Theme.of(context).textTheme.bodySmall,
+                                ),
+                              ),
+                            const SizedBox(height: AppSpacing.lg),
+                            Wrap(
+                              spacing: AppSpacing.md,
+                              runSpacing: AppSpacing.sm,
+                              children: <Widget>[
+                                OutlinedButton.icon(
+                                  key: const Key('moodMedicineViewExport'),
+                                  onPressed: export.isWorking
+                                      ? null
+                                      : buildAndView,
+                                  icon:
+                                      export.phase ==
+                                          MoodMedicineExportPhase.building
+                                      ? const SizedBox(
+                                          width: 18,
+                                          height: 18,
+                                          child: CircularProgressIndicator(
+                                            strokeWidth: 2,
+                                          ),
+                                        )
+                                      : const Icon(Icons.visibility_outlined),
+                                  label: Text(l10n.moodMedicineView),
+                                ),
+                                FilledButton.icon(
+                                  key: const Key('moodMedicineStartExport'),
+                                  onPressed: export.isWorking
+                                      ? null
+                                      : buildAndShare,
+                                  icon: export.isWorking
+                                      ? const SizedBox(
+                                          width: 18,
+                                          height: 18,
+                                          child: CircularProgressIndicator(
+                                            strokeWidth: 2,
+                                          ),
+                                        )
+                                      : const Icon(Icons.ios_share_outlined),
+                                  label: Text(
+                                    export.isWorking
+                                        ? l10n.moodMedicinePreparingExport
+                                        : l10n.moodMedicineShare,
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ],
+                        ),
                       ),
-                    ),
-                  const SizedBox(height: 16),
-                  FilledButton.icon(
-                    key: const Key('moodMedicineStartExport'),
-                    onPressed: exporting ? null : export,
-                    icon: exporting
-                        ? const SizedBox(
-                            width: 18,
-                            height: 18,
-                            child: CircularProgressIndicator(strokeWidth: 2),
-                          )
-                        : const Icon(Icons.ios_share_outlined),
-                    label: Text(
-                      exporting
-                          ? l10n.moodMedicinePreparingExport
-                          : l10n.moodMedicineShare,
-                    ),
-                  ),
-                ],
-              ),
+                    );
+                  },
             ),
-          );
-        },
-      ),
+          ),
     );
   }
 
-  MoodMedicineReportInput _buildReportInput(
-    AppLocalizations l10n,
-    List<MoodMedicineDailySummary> summaries, {
-    required bool includeNotes,
-  }) {
-    final List<MoodMedicineReportDay> days = summaries
-        .map((MoodMedicineDailySummary summary) {
-          final List<MoodMedicineEntry> entries = _controller.entries
-              .where(
-                (MoodMedicineEntry entry) =>
-                    entry.localDayKey == summary.dayKey,
-              )
-              .toList(growable: false);
-          return MoodMedicineReportDay(
-            dayLabel: summary.dayKey,
-            moodAverage: summary.averageMood,
-            activities: summary.activityIds
-                .map((String id) => _activityLabelForDay(l10n, summary, id))
-                .toList(growable: false),
-            note: entries
-                .where((MoodMedicineEntry entry) => entry.note != null)
-                .map((MoodMedicineEntry entry) => entry.note!)
-                .join('\n'),
-          );
-        })
-        .toList(growable: false);
-    final List<MoodMedicineAssociation> associations =
-        MoodMedicineInsights.associations(summaries);
-    final Map<String, MoodMedicineActivityContent> sources =
-        <String, MoodMedicineActivityContent>{
-          for (final MoodMedicineActivityContent activity in _activities(l10n))
-            activity.sourceUri.toString(): activity,
-        };
-    return MoodMedicineReportInput(
-      title: l10n.moodMedicineExportReportTitle,
-      dateRangeLabel: _rangeLabel(l10n),
-      labels: MoodMedicineReportLabels(
-        moodLabel: l10n.moodMedicineTrend,
-        activitiesLabel: l10n.moodMedicineActivities,
-        associationsLabel: l10n.moodMedicineAssociation,
-        notesLabel: l10n.moodMedicineIncludeNotes,
-        sourcesLabel: l10n.moodMedicineExportSources,
-        noDataLabel: l10n.moodMedicineNoEntries,
-        withActivityLabel: l10n.moodMedicineWithActivity,
-        withoutActivityLabel: l10n.moodMedicineWithoutActivity,
-        associationDisclaimer: l10n.moodMedicineAssociationNotCausation,
-      ),
-      days: days,
-      associations: associations
-          .map(
-            (MoodMedicineAssociation item) => MoodMedicineReportAssociation(
-              activityLabel: _rangeActivityLabel(
-                l10n,
-                item.activityId,
-                summaries,
-              ),
-              withActivityMoodAverage: item.withActivityAverageMood,
-              withoutActivityMoodAverage: item.withoutActivityAverageMood,
-            ),
-          )
-          .toList(growable: false),
-      sources: sources.values
-          .map(
-            (MoodMedicineActivityContent item) => MoodMedicineReportSource(
-              title: item.sourceLabel,
-              url: item.sourceUri,
-            ),
-          )
-          .toList(growable: false),
-      textDirection: Directionality.of(context),
-      includeNotes: includeNotes,
-    );
-  }
-
-  Widget _buildEducation(AppLocalizations l10n) {
+  Widget _buildEducation(AppLocalizations l10n, MoodMedicineReadyState ready) {
     final List<MoodMedicineDoseContent> doseItems =
         MoodMedicineContent.doseItems(l10n);
     final MoodMedicineActivityContent selfCareSource =
@@ -1315,11 +1161,11 @@ class _MoodMedicinePageState extends State<MoodMedicinePage> {
           trailing: IconButton(
             tooltip: l10n.moodMedicineViewInsights,
             onPressed: () =>
-                setState(() => _view = MoodMedicineInitialView.insights),
+                _viewModel.selectView(MoodMedicineInitialView.insights),
             icon: const Icon(Icons.insights_outlined),
           ),
         ),
-        const SizedBox(height: 16),
+        const SizedBox(height: AppSpacing.lg),
         _FeatureCard(
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
@@ -1328,32 +1174,29 @@ class _MoodMedicinePageState extends State<MoodMedicinePage> {
                 l10n.moodMedicineEducationDoseTitle,
                 style: Theme.of(context).textTheme.titleMedium,
               ),
-              const SizedBox(height: 8),
+              const SizedBox(height: AppSpacing.sm),
               Text(l10n.moodMedicineEducationDoseIntro),
-              const SizedBox(height: 12),
+              const SizedBox(height: AppSpacing.md),
               LayoutBuilder(
                 builder: (BuildContext context, BoxConstraints constraints) {
-                  final bool useOneColumn = constraints.maxWidth < 560;
-                  final double cardWidth = useOneColumn
+                  final bool oneColumn = constraints.maxWidth < 560;
+                  final double width = oneColumn
                       ? constraints.maxWidth
-                      : (constraints.maxWidth - 8) / 2;
+                      : (constraints.maxWidth - AppSpacing.sm) / 2;
                   return Wrap(
                     key: const Key('moodMedicineDoseItems'),
-                    spacing: 8,
-                    runSpacing: 8,
+                    spacing: AppSpacing.sm,
+                    runSpacing: AppSpacing.sm,
                     children: doseItems
                         .map(
                           (MoodMedicineDoseContent item) => SizedBox(
-                            width: cardWidth,
-                            child: DecoratedBox(
-                              decoration: BoxDecoration(
-                                borderRadius: BorderRadius.circular(12),
-                                color: Theme.of(
-                                  context,
-                                ).colorScheme.secondary.withValues(alpha: 0.32),
-                              ),
+                            width: width,
+                            child: _MoodSurface(
+                              color: Theme.of(
+                                context,
+                              ).colorScheme.secondary.withValues(alpha: 0.32),
                               child: Padding(
-                                padding: const EdgeInsets.all(10),
+                                padding: const EdgeInsets.all(AppSpacing.md),
                                 child: Column(
                                   mainAxisSize: MainAxisSize.min,
                                   crossAxisAlignment: CrossAxisAlignment.start,
@@ -1364,7 +1207,7 @@ class _MoodMedicinePageState extends State<MoodMedicinePage> {
                                         context,
                                       ).textTheme.titleSmall,
                                     ),
-                                    const SizedBox(height: 4),
+                                    const SizedBox(height: AppSpacing.xs),
                                     Text(item.description),
                                   ],
                                 ),
@@ -1405,24 +1248,19 @@ class _MoodMedicinePageState extends State<MoodMedicinePage> {
                 l10n.moodMedicineVideoTitle,
                 style: Theme.of(context).textTheme.titleMedium,
               ),
-              const SizedBox(height: 10),
+              const SizedBox(height: AppSpacing.md),
               AspectRatio(
                 aspectRatio: 16 / 9,
-                child: DecoratedBox(
-                  decoration: BoxDecoration(
-                    color: Theme.of(
-                      context,
-                    ).colorScheme.surfaceContainerHighest,
-                    borderRadius: BorderRadius.circular(12),
-                  ),
+                child: _MoodSurface(
+                  color: Theme.of(context).colorScheme.surfaceContainerHighest,
                   child: Center(
                     child: Padding(
-                      padding: const EdgeInsets.all(16),
+                      padding: const EdgeInsets.all(AppSpacing.lg),
                       child: Column(
                         mainAxisAlignment: MainAxisAlignment.center,
                         children: <Widget>[
                           const Icon(Icons.play_circle_outline, size: 42),
-                          const SizedBox(height: 8),
+                          const SizedBox(height: AppSpacing.sm),
                           Text(
                             l10n.moodMedicineVideoPlaceholder,
                             textAlign: TextAlign.center,
@@ -1440,52 +1278,179 @@ class _MoodMedicinePageState extends State<MoodMedicinePage> {
     );
   }
 
-  @override
-  Widget build(BuildContext context) {
-    return ChangeNotifierProvider<MoodMedicineController>.value(
-      value: _controller,
-      child: Consumer<MoodMedicineController>(
-        builder: (BuildContext context, MoodMedicineController controller, _) {
-          final AppLocalizations l10n = AppLocalizations.of(context)!;
-          if (!controller.isLoaded) {
-            return Scaffold(
-              appBar: AppBar(title: Text(l10n.moodMedicineTitle)),
-              body: Center(
-                child: controller.isLoading
-                    ? Semantics(
-                        label: l10n.moodMedicineLoading,
-                        child: const CircularProgressIndicator(),
-                      )
-                    : FilledButton(
-                        onPressed: _load,
+  Widget _buildRecovery(
+    AppLocalizations l10n,
+    MoodMedicineRecoveryRequiredState recovery,
+  ) {
+    return Scaffold(
+      appBar: AppBar(title: Text(l10n.moodMedicineTitle)),
+      body: SafeArea(
+        child: Center(
+          child: ConstrainedBox(
+            constraints: const BoxConstraints(maxWidth: 520),
+            child: Padding(
+              padding: const EdgeInsets.all(AppSpacing.xxl),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: <Widget>[
+                  Text(
+                    l10n.moodMedicineRecoveryTitle,
+                    style: Theme.of(context).textTheme.headlineSmall,
+                  ),
+                  const SizedBox(height: AppSpacing.md),
+                  Text(l10n.moodMedicineRecoveryBody),
+                  if (recovery.discardError != null)
+                    Padding(
+                      padding: const EdgeInsets.only(top: AppSpacing.sm),
+                      child: Text(
+                        l10n.moodMedicineExportError,
+                        style: TextStyle(
+                          color: Theme.of(context).colorScheme.error,
+                        ),
+                      ),
+                    ),
+                  const SizedBox(height: AppSpacing.lg),
+                  Wrap(
+                    spacing: AppSpacing.md,
+                    runSpacing: AppSpacing.sm,
+                    children: <Widget>[
+                      FilledButton(
+                        key: const Key('moodMedicineRecoveryRetry'),
+                        onPressed: recovery.isDiscarding ? null : _retryLoad,
                         child: Text(l10n.moodMedicineRetry),
                       ),
+                      OutlinedButton(
+                        key: const Key('moodMedicineDiscardUnreadable'),
+                        onPressed: recovery.isDiscarding
+                            ? null
+                            : () => _confirmDiscardUnreadable(l10n),
+                        child: Text(l10n.moodMedicineDiscardUnreadable),
+                      ),
+                    ],
+                  ),
+                ],
               ),
-            );
-          }
-          return Scaffold(
-            appBar: AppBar(
-              title: Text(l10n.moodMedicineTitle),
-              actions: <Widget>[
-                IconButton(
-                  tooltip: l10n.moodMedicineQuickCheckIn,
-                  onPressed: _startCheckIn,
-                  icon: const Icon(Icons.add_chart_rounded),
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+
+  Future<void> _confirmDiscardUnreadable(AppLocalizations l10n) async {
+    final bool? confirmed = await showDialog<bool>(
+      context: context,
+      builder: (BuildContext dialogContext) => AlertDialog(
+        title: Text(l10n.moodMedicineDiscardUnreadableTitle),
+        content: Text(l10n.moodMedicineDiscardUnreadableBody),
+        actions: <Widget>[
+          TextButton(
+            onPressed: () => Navigator.of(dialogContext).pop(false),
+            child: Text(l10n.moodMedicineCancel),
+          ),
+          FilledButton(
+            style: FilledButton.styleFrom(
+              backgroundColor: Theme.of(dialogContext).colorScheme.error,
+              foregroundColor: Theme.of(dialogContext).colorScheme.onError,
+            ),
+            onPressed: () => Navigator.of(dialogContext).pop(true),
+            child: Text(l10n.moodMedicineDiscardUnreadable),
+          ),
+        ],
+      ),
+    );
+    if (confirmed == true) {
+      final bool discarded = await _viewModel.discardUnreadableSnapshot();
+      if (discarded) {
+        _applyReportPresentationIfReady();
+      }
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return ChangeNotifierProvider<MoodMedicineViewModel>.value(
+      value: _viewModel,
+      child: Consumer<MoodMedicineViewModel>(
+        builder: (BuildContext context, MoodMedicineViewModel viewModel, _) {
+          final AppLocalizations l10n = AppLocalizations.of(context)!;
+          return switch (viewModel.state) {
+            MoodMedicineLoadingState() => Scaffold(
+              appBar: AppBar(title: Text(l10n.moodMedicineTitle)),
+              body: Center(
+                child: Semantics(
+                  label: l10n.moodMedicineLoading,
+                  child: const CircularProgressIndicator(),
                 ),
-              ],
+              ),
             ),
-            body: SafeArea(
-              child: switch (_view) {
-                MoodMedicineInitialView.checkIn => _buildCheckIn(l10n),
-                MoodMedicineInitialView.insights => _buildInsights(l10n),
-                MoodMedicineInitialView.education => _buildEducation(l10n),
-              },
+            MoodMedicineRecoveryRequiredState recovery => _buildRecovery(
+              l10n,
+              recovery,
             ),
-          );
+            MoodMedicineReadyState ready => Scaffold(
+              appBar: AppBar(
+                title: Text(l10n.moodMedicineTitle),
+                actions: <Widget>[
+                  IconButton(
+                    tooltip: l10n.moodMedicineQuickCheckIn,
+                    onPressed: () =>
+                        _viewModel.selectView(MoodMedicineInitialView.checkIn),
+                    icon: const Icon(Icons.add_chart_rounded),
+                  ),
+                ],
+              ),
+              body: SafeArea(
+                child: switch (ready.selectedView) {
+                  MoodMedicineInitialView.checkIn => _buildCheckIn(l10n, ready),
+                  MoodMedicineInitialView.insights => _buildInsights(
+                    l10n,
+                    ready,
+                  ),
+                  MoodMedicineInitialView.education => _buildEducation(
+                    l10n,
+                    ready,
+                  ),
+                },
+              ),
+            ),
+          };
         },
       ),
     );
   }
+}
+
+InputDecoration _moodInputDecoration(
+  BuildContext context, {
+  required String hintText,
+  bool multiline = false,
+}) {
+  final ThemeData theme = Theme.of(context);
+  final Color outline = theme.brightness == Brightness.dark
+      ? theme.colorScheme.outline
+      : AppColors.neutralLight;
+  final OutlineInputBorder border = OutlineInputBorder(
+    borderRadius: BorderRadius.circular(10),
+    borderSide: BorderSide(color: outline),
+  );
+  return InputDecoration(
+    hintText: hintText,
+    isDense: true,
+    contentPadding: EdgeInsets.symmetric(
+      horizontal: AppSpacing.md,
+      vertical: multiline ? AppSpacing.md : 7,
+    ),
+    border: border,
+    enabledBorder: border,
+    focusedBorder: border.copyWith(
+      borderSide: BorderSide(color: theme.colorScheme.primary, width: 1.5),
+    ),
+    disabledBorder: border.copyWith(
+      borderSide: BorderSide(color: outline.withValues(alpha: 0.65)),
+    ),
+  );
 }
 
 class _MoodOption {
@@ -1500,14 +1465,12 @@ class _ActivityEditorDialog extends StatefulWidget {
   const _ActivityEditorDialog({
     required this.activity,
     required this.l10n,
-    required this.onSave,
-    required this.onSaveFailed,
+    required this.viewModel,
   });
 
   final MoodMedicineCustomActivity? activity;
   final AppLocalizations l10n;
-  final Future<bool> Function(String label) onSave;
-  final VoidCallback onSaveFailed;
+  final MoodMedicineViewModel viewModel;
 
   @override
   State<_ActivityEditorDialog> createState() => _ActivityEditorDialogState();
@@ -1540,7 +1503,12 @@ class _ActivityEditorDialogState extends State<_ActivityEditorDialog> {
     setState(() => _submitting = true);
     final bool saved;
     try {
-      saved = await widget.onSave(label);
+      saved = widget.activity == null
+          ? await widget.viewModel.addCustomActivity(label) != null
+          : await widget.viewModel.editCustomActivity(
+              widget.activity!.id,
+              label,
+            );
     } on ArgumentError {
       if (mounted) {
         setState(() {
@@ -1558,7 +1526,6 @@ class _ActivityEditorDialogState extends State<_ActivityEditorDialog> {
       return;
     }
     Navigator.of(context).pop();
-    widget.onSaveFailed();
   }
 
   @override
@@ -1570,16 +1537,41 @@ class _ActivityEditorDialogState extends State<_ActivityEditorDialog> {
             ? l10n.moodMedicineAddCustomActivity
             : l10n.moodMedicineEditCustomActivity,
       ),
-      content: TextField(
-        controller: _nameController,
-        autofocus: true,
-        textInputAction: TextInputAction.done,
-        decoration: InputDecoration(
-          labelText: l10n.moodMedicineActivityName,
-          hintText: l10n.moodMedicineActivityNameHint,
-          errorText: _validationError,
-        ),
-        onSubmitted: (_) => _save(),
+      content: Column(
+        mainAxisSize: MainAxisSize.min,
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: <Widget>[
+          Text(
+            l10n.moodMedicineActivityName,
+            style: Theme.of(context).textTheme.labelLarge,
+          ),
+          const SizedBox(height: AppSpacing.xs),
+          ConstrainedBox(
+            constraints: BoxConstraints(maxWidth: formFieldWidth(context)),
+            child: SizedBox(
+              height: 40,
+              child: TextField(
+                key: const Key('moodMedicineActivityEditorField'),
+                controller: _nameController,
+                autofocus: true,
+                textInputAction: TextInputAction.done,
+                decoration: _moodInputDecoration(
+                  context,
+                  hintText: l10n.moodMedicineActivityNameHint,
+                ),
+                onSubmitted: (_) => _save(),
+              ),
+            ),
+          ),
+          if (_validationError != null)
+            Padding(
+              padding: const EdgeInsets.only(top: AppSpacing.xs),
+              child: Text(
+                _validationError!,
+                style: TextStyle(color: Theme.of(context).colorScheme.error),
+              ),
+            ),
+        ],
       ),
       actions: <Widget>[
         TextButton(
@@ -1609,6 +1601,29 @@ class _ActivityChip {
   final MoodMedicineActivityContent? source;
 }
 
+class _MoodSurface extends StatelessWidget {
+  const _MoodSurface({required this.child, this.color});
+
+  final Widget child;
+  final Color? color;
+
+  @override
+  Widget build(BuildContext context) {
+    final ThemeData theme = Theme.of(context);
+    final Color outline = theme.brightness == Brightness.dark
+        ? theme.colorScheme.outline
+        : AppColors.neutralLight;
+    return DecoratedBox(
+      decoration: BoxDecoration(
+        color: color ?? theme.colorScheme.surface,
+        borderRadius: BorderRadius.circular(AppRadii.card),
+        border: Border.all(color: outline),
+      ),
+      child: child,
+    );
+  }
+}
+
 class _FeatureCard extends StatelessWidget {
   const _FeatureCard({required this.child});
 
@@ -1616,9 +1631,11 @@ class _FeatureCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Card(
-      clipBehavior: Clip.antiAlias,
-      child: Padding(padding: const EdgeInsets.all(16), child: child),
+    return _MoodSurface(
+      child: Padding(
+        padding: const EdgeInsets.all(AppSpacing.lg),
+        child: child,
+      ),
     );
   }
 }
@@ -1644,7 +1661,7 @@ class _PageHeading extends StatelessWidget {
             crossAxisAlignment: CrossAxisAlignment.start,
             children: <Widget>[
               Text(title, style: Theme.of(context).textTheme.headlineSmall),
-              const SizedBox(height: 4),
+              const SizedBox(height: AppSpacing.xs),
               Text(subtitle),
             ],
           ),
@@ -1663,14 +1680,14 @@ class _ManagerSection extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Card(
+    return _MoodSurface(
       child: Padding(
-        padding: const EdgeInsets.all(12),
+        padding: const EdgeInsets.all(AppSpacing.md),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: <Widget>[
             Text(title, style: Theme.of(context).textTheme.titleMedium),
-            const SizedBox(height: 4),
+            const SizedBox(height: AppSpacing.xs),
             ...children,
           ],
         ),

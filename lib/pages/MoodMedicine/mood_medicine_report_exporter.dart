@@ -9,11 +9,30 @@ export 'mood_medicine_report_delivery.dart'
         MoodMedicineReportDeliveryStatus;
 export 'mood_medicine_report_models.dart';
 
+/// The report boundary used by the Mood Medicine view model.
+///
+/// It separates stable report input/state from renderer and platform-delivery
+/// variations. [build] is suitable for an in-app preview, while [deliver]
+/// keeps sharing on the existing centralized platform path.
+abstract interface class MoodMedicineReportExportService {
+  /// Builds an immutable PDF or PNG report without invoking platform UI.
+  Future<MoodMedicineBuiltReport> build(
+    MoodMedicineReportInput input,
+    MoodMedicineReportFormat format,
+  );
+
+  /// Shares a previously built report through the platform delivery boundary.
+  Future<MoodMedicineReportDelivery> deliver(
+    MoodMedicineBuiltReport report, {
+    String? shareText,
+  });
+}
+
 /// Feature-local report boundary for Mood Tracker and Personal Medicine.
 ///
 /// It accepts a deliberately simple DTO, so storage and dashboard state stay
 /// separate from PDF/PNG rendering and platform sharing.
-class MoodMedicineReportExporter {
+class MoodMedicineReportExporter implements MoodMedicineReportExportService {
   MoodMedicineReportExporter({
     MoodMedicinePdfReportRenderer? pdfRenderer,
     MoodMedicinePngReportRenderer? pngRenderer,
@@ -24,6 +43,7 @@ class MoodMedicineReportExporter {
   final MoodMedicinePngReportRenderer _pngRenderer;
 
   /// Produces report bytes without invoking a platform share or download UI.
+  @override
   Future<MoodMedicineBuiltReport> build(
     MoodMedicineReportInput input,
     MoodMedicineReportFormat format,
@@ -39,6 +59,29 @@ class MoodMedicineReportExporter {
     );
   }
 
+  /// Hands an already-built report to the platform adapter.
+  ///
+  /// [MoodMedicineBuiltReport.bytes] supplies a defensive copy, and the
+  /// delivery boundary makes another copy before passing it to native/web code.
+  @override
+  Future<MoodMedicineReportDelivery> deliver(
+    MoodMedicineBuiltReport report, {
+    String? shareText,
+  }) async {
+    try {
+      return await deliverMoodMedicineReport(
+        bytes: report.bytes,
+        fileName: report.fileName,
+        mimeType: report.mimeType,
+        shareText: shareText,
+      );
+    } catch (_) {
+      return const MoodMedicineReportDelivery(
+        MoodMedicineReportDeliveryStatus.failed,
+      );
+    }
+  }
+
   /// Builds and hands a report to the platform adapter. No [BuildContext] is
   /// required; the caller can decide how to surface the returned status.
   Future<MoodMedicineReportDelivery> export(
@@ -48,12 +91,7 @@ class MoodMedicineReportExporter {
   }) async {
     try {
       final report = await build(input, format);
-      return await deliverMoodMedicineReport(
-        bytes: report.bytes,
-        fileName: report.fileName,
-        mimeType: report.mimeType,
-        shareText: shareText,
-      );
+      return await deliver(report, shareText: shareText);
     } on MoodMedicinePngReportTooLargeException {
       return const MoodMedicineReportDelivery(
         MoodMedicineReportDeliveryStatus.tooLarge,

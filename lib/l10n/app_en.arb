@@ -2200,5 +2200,15 @@
   "moodMedicineSaveFailed": "Your check-in was not saved. Your draft is still here.",
   "moodMedicineLoading": "Loading your mood tracker…",
   "moodMedicineNotMedicalAdvice": "This tool supports self-reflection and is not medical advice, diagnosis, or treatment.",
-  "moodMedicineReportNoNotes": "No personal notes included"
+  "moodMedicineReportNoNotes": "No personal notes included",
+  "moodMedicineView": "View",
+  "moodMedicinePreviewPdf": "PDF preview",
+  "moodMedicinePreviewPng": "Image preview",
+  "moodMedicinePreviewError": "The report preview could not be opened. Please try again.",
+  "moodMedicinePngPrintGuidance": "For reliable printing of long reports, choose PDF.",
+  "moodMedicineRecoveryTitle": "Mood history needs attention",
+  "moodMedicineRecoveryBody": "Your saved Mood Medicine history could not be read. Retry to keep it, or discard only this unreadable history and start a new empty one.",
+  "moodMedicineDiscardUnreadable": "Discard unreadable history",
+  "moodMedicineDiscardUnreadableTitle": "Discard unreadable mood history?",
+  "moodMedicineDiscardUnreadableBody": "This replaces only Mood Medicine history on this device with an empty history. This cannot be undone."
 }

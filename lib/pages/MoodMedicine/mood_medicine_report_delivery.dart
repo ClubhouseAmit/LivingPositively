@@ -12,7 +12,8 @@ export 'mood_medicine_report_delivery_types.dart';
 ///
 /// Native platforms share a temporary file. On web, `share_plus` invokes the
 /// browser Web Share API when available and performs its file-download fallback
-/// when it is not.
+/// when it is not. The adapter receives its own byte copy so a caller cannot
+/// mutate a report while a platform handoff is being prepared.
 Future<MoodMedicineReportDelivery> deliverMoodMedicineReport({
   required Uint8List bytes,
   required String fileName,
@@ -20,7 +21,7 @@ Future<MoodMedicineReportDelivery> deliverMoodMedicineReport({
   String? shareText,
 }) {
   return platform.deliverMoodMedicineReport(
-    bytes: bytes,
+    bytes: Uint8List.fromList(bytes),
     fileName: fileName,
     mimeType: mimeType,
     shareText: shareText,

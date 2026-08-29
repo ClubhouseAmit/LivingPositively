@@ -4352,4 +4352,39 @@ class AppLocalizationsHe extends AppLocalizations {
 
   @override
   String get moodMedicineReportNoNotes => 'לא נכללו הערות אישיות';
+
+  @override
+  String get moodMedicineView => 'צפייה';
+
+  @override
+  String get moodMedicinePreviewPdf => 'תצוגה מקדימה של PDF';
+
+  @override
+  String get moodMedicinePreviewPng => 'תצוגה מקדימה של תמונה';
+
+  @override
+  String get moodMedicinePreviewError =>
+      'לא ניתן היה לפתוח את התצוגה המקדימה של הדוח. אפשר לנסות שוב.';
+
+  @override
+  String get moodMedicinePngPrintGuidance =>
+      'להדפסה אמינה של דוחות ארוכים, כדאי לבחור ב-PDF.';
+
+  @override
+  String get moodMedicineRecoveryTitle => 'היסטוריית מצב הרוח דורשת תשומת לב';
+
+  @override
+  String get moodMedicineRecoveryBody =>
+      'לא ניתן היה לקרוא את היסטוריית הרפואה האישית שנשמרה. אפשר לנסות שוב כדי לשמור עליה, או למחוק רק את ההיסטוריה שאינה קריאה ולהתחיל היסטוריה ריקה.';
+
+  @override
+  String get moodMedicineDiscardUnreadable => 'מחיקת היסטוריה שאינה קריאה';
+
+  @override
+  String get moodMedicineDiscardUnreadableTitle =>
+      'למחוק את היסטוריית מצב הרוח שאינה קריאה?';
+
+  @override
+  String get moodMedicineDiscardUnreadableBody =>
+      'פעולה זו מחליפה רק את היסטוריית הרפואה האישית במכשיר זה בהיסטוריה ריקה. לא ניתן לבטל פעולה זו.';
 }

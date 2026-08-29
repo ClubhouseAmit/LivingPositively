@@ -3,6 +3,7 @@
 // PagesCode branch (lines 91-136 of lib/menu.dart) plus the FAB SOS tap
 // (lines 310-314) and the main-menu dialog open path.
 
+import 'package:flutter/widgets.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:get_it/get_it.dart';
 import 'package:mazilon/AnalyticsService.dart';
@@ -13,7 +14,12 @@ import 'package:mazilon/pages/FeelGood/feelGood.dart';
 import 'package:mazilon/pages/FeelGood/image_picker_service_impl.dart';
 import 'package:mazilon/pages/PersonalPlan/myPlanPageFull.dart';
 import 'package:mazilon/pages/MoodMedicine/mood_medicine_models.dart';
+import 'package:mazilon/pages/MoodMedicine/mood_medicine_page.dart';
+import 'package:mazilon/pages/MoodMedicine/mood_medicine_report_exporter.dart';
+import 'package:mazilon/pages/MoodMedicine/mood_medicine_repository.dart';
 import 'package:mazilon/pages/MoodMedicine/mood_medicine_store.dart';
+import 'package:mazilon/pages/MoodMedicine/mood_medicine_view_model.dart';
+import 'package:mazilon/pages/MoodMedicine/mood_medicine_view_state.dart';
 import 'package:mazilon/pages/about.dart';
 import 'package:mazilon/pages/home.dart';
 import 'package:mazilon/pages/journal.dart';
@@ -130,6 +136,21 @@ void main() {
     getIt.registerLazySingleton<ImagePickerService>(
       () => NoopImagePickerService(),
     );
+    getIt.registerLazySingleton<MoodMedicineStore>(
+      () => MoodMedicineStore(getIt<PersistentMemoryService>()),
+    );
+    getIt.registerLazySingleton<MoodMedicineRepository>(
+      () => getIt<MoodMedicineStore>(),
+    );
+    getIt.registerLazySingleton<MoodMedicineReportExportService>(
+      () => MoodMedicineReportExporter(),
+    );
+    getIt.registerFactory<MoodMedicineViewModel>(
+      () => MoodMedicineViewModel(
+        getIt<MoodMedicineRepository>(),
+        getIt<MoodMedicineReportExportService>(),
+      ),
+    );
     PackageInfo.setMockInitialValues(
       appName: 'Mazilon',
       packageName: 'mazilon',
@@ -195,4 +216,55 @@ void main() {
       expect(find.byType(NotificationPage), findsOneWidget);
     },
   );
+
+  group('MoodMedicine menu branch', () {
+    testWidgets(
+      'should compose a fresh insights page and retain analytics tracking',
+      (WidgetTester tester) async {
+        await drive(tester, PagesCode.MoodMedicinePage);
+        await tester.pumpAndSettle();
+
+        expect(find.byType(MoodMedicinePage), findsOneWidget);
+        expect(analytics.events, contains('Viewed Mood Medicine Insights'));
+      },
+    );
+
+    testWidgets(
+      'should open insights from the Home entry point and track the view',
+      (WidgetTester tester) async {
+        await tester.pumpWidget(getMenuForTests(user, app));
+        await tester.pumpAndSettle();
+
+        final Finder insights = find.byKey(
+          const Key('moodMedicineHomeInsights'),
+        );
+        await tester.ensureVisible(insights);
+        await tester.tap(insights);
+        await tester.pumpAndSettle();
+
+        final MoodMedicinePage page = tester.widget<MoodMedicinePage>(
+          find.byType(MoodMedicinePage),
+        );
+        expect(page.initialView, MoodMedicineInitialView.insights);
+        expect(analytics.events, contains('Viewed Mood Medicine Insights'));
+      },
+    );
+
+    testWidgets('should open check-in from the main-menu quick action', (
+      WidgetTester tester,
+    ) async {
+      await tester.pumpWidget(getMenuForTests(user, app));
+      await tester.pumpAndSettle();
+
+      await tester.tap(find.byKey(const Key('mainMenuButton')));
+      await tester.pumpAndSettle();
+      await tester.tap(find.byKey(const Key('moodMedicineQuickCheckIn')));
+      await tester.pumpAndSettle();
+
+      final MoodMedicinePage page = tester.widget<MoodMedicinePage>(
+        find.byType(MoodMedicinePage),
+      );
+      expect(page.initialView, MoodMedicineInitialView.checkIn);
+    });
+  });
 }

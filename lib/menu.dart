@@ -12,9 +12,9 @@ import 'package:mazilon/global_enums.dart';
 import 'package:mazilon/main_menu_dialog.dart';
 import 'package:mazilon/pages/about.dart';
 import 'package:mazilon/pages/FeelGood/feelGood.dart';
-import 'package:mazilon/pages/MoodMedicine/mood_medicine_models.dart';
 import 'package:mazilon/pages/MoodMedicine/mood_medicine_page.dart';
-import 'package:mazilon/pages/MoodMedicine/mood_medicine_store.dart';
+import 'package:mazilon/pages/MoodMedicine/mood_medicine_view_model.dart';
+import 'package:mazilon/pages/MoodMedicine/mood_medicine_view_state.dart';
 import 'package:mazilon/pages/WellnessTools/wellnessTools.dart';
 import 'package:mazilon/pages/notifications/notification_page.dart';
 import 'package:mazilon/pages/notifications/notification_service.dart';
@@ -161,7 +161,9 @@ class _MenuState extends LPExtendedState<Menu> {
         currentScreen = FeelGood();
       } else if (index == PagesCode.MoodMedicinePage) {
         mixPanelService.trackEvent("Viewed Mood Medicine Insights");
-        currentScreen = const MoodMedicinePage();
+        currentScreen = MoodMedicinePage(
+          viewModel: GetIt.instance<MoodMedicineViewModel>(),
+        );
       } /*else if (index == 9) {
         currentScreen = syncDevicesRealTime(
             collections: widget.collections,
@@ -225,33 +227,33 @@ class _MenuState extends LPExtendedState<Menu> {
   void _showMoodMedicineCheckIn() {
     setState(() {
       current = PagesCode.MoodMedicinePage;
-      currentScreen = const MoodMedicinePage(
+      currentScreen = MoodMedicinePage(
+        viewModel: GetIt.instance<MoodMedicineViewModel>(),
         initialView: MoodMedicineInitialView.checkIn,
       );
     });
   }
 
   Future<void> _openMoodMedicineDailyPromptIfNeeded() async {
-    final MoodMedicineStore store = MoodMedicineStore(
-      GetIt.instance<PersistentMemoryService>(),
-    );
-    MoodMedicineSnapshot snapshot;
-    try {
-      snapshot = await store.load();
-    } catch (_) {
-      // A failed local read must not be treated as an incomplete check-in.
-      // The user can still start one from the explicit menu entry.
-      return;
-    }
+    final MoodMedicineViewModel viewModel =
+        GetIt.instance<MoodMedicineViewModel>();
+    await viewModel.load();
     if (!mounted || current != PagesCode.Home) {
+      viewModel.dispose();
       return;
     }
-    final String today = moodMedicineLocalDayKey(DateTime.now());
-    final bool hasCompletedToday = snapshot.entries.any(
-      (entry) => entry.localDayKey == today,
-    );
-    if (!hasCompletedToday) {
-      _showMoodMedicineCheckIn();
+    if (viewModel.shouldPromptFor(DateTime.now())) {
+      setState(() {
+        current = PagesCode.MoodMedicinePage;
+        currentScreen = MoodMedicinePage(
+          viewModel: viewModel,
+          initialView: MoodMedicineInitialView.checkIn,
+        );
+      });
+    } else {
+      // A recovery state must not open a check-in or write over unreadable
+      // history. The explicit Mood Medicine entry still exposes recovery UI.
+      viewModel.dispose();
     }
   }
 

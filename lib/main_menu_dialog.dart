@@ -73,6 +73,7 @@ List<Widget> buildMainMenuItems({
       ),
     if (onMoodMedicinePressed != null)
       MenuItemButton(
+        key: const Key('moodMedicineQuickCheckIn'),
         leadingIcon: const Icon(Icons.mood_outlined),
         onPressed: () {
           onAnyPressed?.call();

@@ -3865,6 +3865,66 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'No personal notes included'**
   String get moodMedicineReportNoNotes;
+
+  /// No description provided for @moodMedicineView.
+  ///
+  /// In en, this message translates to:
+  /// **'View'**
+  String get moodMedicineView;
+
+  /// No description provided for @moodMedicinePreviewPdf.
+  ///
+  /// In en, this message translates to:
+  /// **'PDF preview'**
+  String get moodMedicinePreviewPdf;
+
+  /// No description provided for @moodMedicinePreviewPng.
+  ///
+  /// In en, this message translates to:
+  /// **'Image preview'**
+  String get moodMedicinePreviewPng;
+
+  /// No description provided for @moodMedicinePreviewError.
+  ///
+  /// In en, this message translates to:
+  /// **'The report preview could not be opened. Please try again.'**
+  String get moodMedicinePreviewError;
+
+  /// No description provided for @moodMedicinePngPrintGuidance.
+  ///
+  /// In en, this message translates to:
+  /// **'For reliable printing of long reports, choose PDF.'**
+  String get moodMedicinePngPrintGuidance;
+
+  /// No description provided for @moodMedicineRecoveryTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Mood history needs attention'**
+  String get moodMedicineRecoveryTitle;
+
+  /// No description provided for @moodMedicineRecoveryBody.
+  ///
+  /// In en, this message translates to:
+  /// **'Your saved Mood Medicine history could not be read. Retry to keep it, or discard only this unreadable history and start a new empty one.'**
+  String get moodMedicineRecoveryBody;
+
+  /// No description provided for @moodMedicineDiscardUnreadable.
+  ///
+  /// In en, this message translates to:
+  /// **'Discard unreadable history'**
+  String get moodMedicineDiscardUnreadable;
+
+  /// No description provided for @moodMedicineDiscardUnreadableTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Discard unreadable mood history?'**
+  String get moodMedicineDiscardUnreadableTitle;
+
+  /// No description provided for @moodMedicineDiscardUnreadableBody.
+  ///
+  /// In en, this message translates to:
+  /// **'This replaces only Mood Medicine history on this device with an empty history. This cannot be undone.'**
+  String get moodMedicineDiscardUnreadableBody;
 }
 
 class _AppLocalizationsDelegate

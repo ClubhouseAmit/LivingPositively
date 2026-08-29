@@ -4359,7 +4359,7 @@ class AppLocalizationsAr extends AppLocalizations {
       'لم يتم حفظ التسجيل. ما زالت مسودتك هنا.';
 
   @override
-  String get moodMedicineLoading => 'جارٍ تحميل متابع المزاج…';
+  String get moodMedicineLoading => 'جارٍ تحميل متتبع المزاج…';
 
   @override
   String get moodMedicineNotMedicalAdvice =>
@@ -4367,4 +4367,40 @@ class AppLocalizationsAr extends AppLocalizations {
 
   @override
   String get moodMedicineReportNoNotes => 'لا توجد ملاحظات شخصية مضمنة';
+
+  @override
+  String get moodMedicineView => 'عرض';
+
+  @override
+  String get moodMedicinePreviewPdf => 'معاينة PDF';
+
+  @override
+  String get moodMedicinePreviewPng => 'معاينة الصورة';
+
+  @override
+  String get moodMedicinePreviewError =>
+      'تعذر فتح معاينة التقرير. يرجى المحاولة مرة أخرى.';
+
+  @override
+  String get moodMedicinePngPrintGuidance =>
+      'لطباعة موثوقة للتقارير الطويلة، اختر PDF.';
+
+  @override
+  String get moodMedicineRecoveryTitle => 'يحتاج سجل المزاج إلى اهتمام';
+
+  @override
+  String get moodMedicineRecoveryBody =>
+      'تعذر قراءة سجل الطب الشخصي المحفوظ. أعد المحاولة للاحتفاظ به، أو تخلّص من هذا السجل غير القابل للقراءة فقط وابدأ بسجل فارغ جديد.';
+
+  @override
+  String get moodMedicineDiscardUnreadable =>
+      'التخلص من السجل غير القابل للقراءة';
+
+  @override
+  String get moodMedicineDiscardUnreadableTitle =>
+      'التخلص من سجل المزاج غير القابل للقراءة؟';
+
+  @override
+  String get moodMedicineDiscardUnreadableBody =>
+      'يستبدل هذا الإجراء سجل الطب الشخصي فقط على هذا الجهاز بسجل فارغ. لا يمكن التراجع عنه.';
 }

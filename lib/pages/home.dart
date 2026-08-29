@@ -205,6 +205,7 @@ class _HomeState extends LPExtendedState<Home> {
                         ),
                       ),
                       TextButton(
+                        key: const Key('moodMedicineHomeInsights'),
                         onPressed: () => widget.changeCurrentIndex(
                           context,
                           PagesCode.MoodMedicinePage,

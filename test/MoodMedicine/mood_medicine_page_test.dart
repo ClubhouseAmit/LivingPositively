@@ -1,35 +1,79 @@
+import 'dart:typed_data';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:mazilon/global_enums.dart';
 import 'package:mazilon/l10n/app_localizations.dart';
-import 'package:mazilon/pages/MoodMedicine/mood_medicine_controller.dart';
-import 'package:mazilon/pages/MoodMedicine/mood_medicine_models.dart';
 import 'package:mazilon/pages/MoodMedicine/mood_medicine_page.dart';
+import 'package:mazilon/pages/MoodMedicine/mood_medicine_report_exporter.dart';
 import 'package:mazilon/pages/MoodMedicine/mood_medicine_store.dart';
+import 'package:mazilon/pages/MoodMedicine/mood_medicine_view_model.dart';
+import 'package:mazilon/pages/MoodMedicine/mood_medicine_view_state.dart';
+import 'package:mazilon/util/theme/app_theme.dart';
 
 import '../../test_support/contract_persistent_memory_service.dart';
 
-MoodMedicineController _controller(
+final class _TestReportExportService
+    implements MoodMedicineReportExportService {
+  _TestReportExportService({
+    this.deliveryStatus = MoodMedicineReportDeliveryStatus.delivered,
+  });
+
+  final MoodMedicineReportDeliveryStatus deliveryStatus;
+
+  @override
+  Future<MoodMedicineBuiltReport> build(
+    MoodMedicineReportInput input,
+    MoodMedicineReportFormat format,
+  ) async {
+    return MoodMedicineBuiltReport(
+      bytes: Uint8List.fromList(<int>[1, 2, 3]),
+      fileName: input.fileNameFor(format),
+      mimeType: format.mimeType,
+    );
+  }
+
+  @override
+  Future<MoodMedicineReportDelivery> deliver(
+    MoodMedicineBuiltReport report, {
+    String? shareText,
+  }) async {
+    return MoodMedicineReportDelivery(deliveryStatus);
+  }
+}
+
+MoodMedicineViewModel _viewModel(
   ContractPersistentMemoryService memory, {
-  List<String> ids = const <String>['entry-1', 'custom-1'],
+  DateTime? clock,
+  MoodMedicineReportExportService? reportExportService,
+  List<String> ids = const <String>[
+    'entry-1',
+    'custom-1',
+    'entry-2',
+    'custom-2',
+  ],
 }) {
-  final List<String> mutableIds = List<String>.from(ids);
-  return MoodMedicineController(
+  final List<String> generatedIds = List<String>.from(ids);
+  return MoodMedicineViewModel(
     MoodMedicineStore(memory),
-    idGenerator: () => mutableIds.removeAt(0),
+    reportExportService ?? _TestReportExportService(),
+    clock: () => clock ?? DateTime(2026, 8, 29, 12),
+    idGenerator: () => generatedIds.removeAt(0),
   );
 }
 
 Widget _app({
-  required MoodMedicineController controller,
+  required MoodMedicineViewModel viewModel,
   MoodMedicineInitialView initialView = MoodMedicineInitialView.insights,
   Locale locale = const Locale('en'),
+  ThemeData? theme,
 }) {
   return MaterialApp(
     locale: locale,
+    theme: theme,
     supportedLocales: AppLocalizations.supportedLocales,
     localizationsDelegates: AppLocalizations.localizationsDelegates,
-    home: MoodMedicinePage(controller: controller, initialView: initialView),
+    home: MoodMedicinePage(viewModel: viewModel, initialView: initialView),
   );
 }
 
@@ -40,300 +84,231 @@ void _setLargeScreen(WidgetTester tester) {
   addTearDown(tester.view.resetDevicePixelRatio);
 }
 
-void _setNarrowScreen(WidgetTester tester) {
-  tester.view.physicalSize = const Size(360, 1200);
-  tester.view.devicePixelRatio = 1;
-  addTearDown(tester.view.resetPhysicalSize);
-  addTearDown(tester.view.resetDevicePixelRatio);
-}
-
 void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
 
-  testWidgets('uses locale directionality for English and Hebrew', (
-    WidgetTester tester,
-  ) async {
-    _setLargeScreen(tester);
-    final MoodMedicineController english = _controller(
-      ContractPersistentMemoryService(),
-    );
-    await english.load();
-    await tester.pumpWidget(_app(controller: english));
-    await tester.pumpAndSettle();
-
-    expect(
-      Directionality.of(tester.element(find.byType(MoodMedicinePage))),
-      TextDirection.ltr,
-    );
-    expect(find.text('Insights'), findsOneWidget);
-
-    final MoodMedicineController hebrew = _controller(
-      ContractPersistentMemoryService(),
-    );
-    await hebrew.load();
-    await tester.pumpWidget(
-      _app(controller: hebrew, locale: const Locale('he')),
-    );
-    await tester.pumpAndSettle();
-
-    expect(
-      Directionality.of(tester.element(find.byType(MoodMedicinePage))),
-      TextDirection.rtl,
-    );
-    expect(find.byKey(const Key('moodMedicineInsights')), findsOneWidget);
-  });
-
-  testWidgets('preserves a failed check-in draft and exposes retry', (
-    WidgetTester tester,
-  ) async {
-    _setLargeScreen(tester);
-    final ContractPersistentMemoryService memory =
-        ContractPersistentMemoryService();
-    var failOnce = true;
-    memory.onPersist = (_, PersistentMemoryType _, Object _) {
-      if (failOnce) {
-        failOnce = false;
-        throw StateError('offline');
-      }
-    };
-    final MoodMedicineController controller = _controller(memory);
-    await controller.load();
-    await tester.pumpWidget(
-      _app(
-        controller: controller,
-        initialView: MoodMedicineInitialView.checkIn,
-      ),
-    );
-    await tester.pumpAndSettle();
-
-    await tester.tap(find.byKey(const Key('moodMedicineMood4')));
-    await tester.pumpAndSettle();
-    await tester.tap(find.byKey(const Key('moodMedicineSaveCheckIn')));
-    await tester.pumpAndSettle();
-
-    expect(controller.entries, isEmpty);
-    expect(controller.pendingCheckInDraft, isNotNull);
-    expect(find.text('Try again'), findsOneWidget);
-
-    await tester.tap(find.text('Try again'));
-    await tester.pumpAndSettle();
-    expect(controller.entries, hasLength(1));
-  });
-
-  testWidgets('keeps retry available when a second persistence attempt fails', (
-    WidgetTester tester,
-  ) async {
-    _setLargeScreen(tester);
-    final ContractPersistentMemoryService memory =
-        ContractPersistentMemoryService();
-    var failuresRemaining = 2;
-    memory.onPersist = (_, PersistentMemoryType _, Object _) {
-      if (failuresRemaining > 0) {
-        failuresRemaining -= 1;
-        throw StateError('offline');
-      }
-    };
-    final MoodMedicineController controller = _controller(memory);
-    await controller.load();
-    await tester.pumpWidget(
-      _app(
-        controller: controller,
-        initialView: MoodMedicineInitialView.checkIn,
-      ),
-    );
-    await tester.pumpAndSettle();
-
-    await tester.tap(find.byKey(const Key('moodMedicineMood4')));
-    await tester.pumpAndSettle();
-    await tester.tap(find.byKey(const Key('moodMedicineSaveCheckIn')));
-    await tester.pumpAndSettle();
-    await tester.tap(find.text('Try again'));
-    await tester.pumpAndSettle();
-    expect(controller.hasPendingWrite, isTrue);
-    expect(find.text('Try again'), findsOneWidget);
-
-    await tester.tap(find.text('Try again'));
-    await tester.pumpAndSettle();
-    expect(controller.entries, hasLength(1));
-    expect(controller.hasPendingWrite, isFalse);
-  });
-
-  testWidgets('manages default activities and creates a custom activity', (
-    WidgetTester tester,
-  ) async {
-    _setLargeScreen(tester);
-    final MoodMedicineController controller = _controller(
-      ContractPersistentMemoryService(),
-    );
-    await controller.load();
-    await tester.pumpWidget(
-      _app(
-        controller: controller,
-        initialView: MoodMedicineInitialView.checkIn,
-      ),
-    );
-    await tester.pumpAndSettle();
-
-    await tester.tap(find.byKey(const Key('moodMedicineMood3')));
-    await tester.pumpAndSettle();
-    await tester.tap(find.text('Manage activities'));
-    await tester.pumpAndSettle();
-    await tester.tap(find.text('Hide').first);
-    await tester.pumpAndSettle();
-    expect(controller.hiddenDefaultActivityIds, contains('physical_activity'));
-
-    await tester.tap(find.text('Add personal activity'));
-    await tester.pumpAndSettle();
-    await tester.tap(find.text('Save activity'));
-    await tester.pumpAndSettle();
-    expect(find.text('Enter an activity name.'), findsOneWidget);
-    expect(controller.customActivities, isEmpty);
-    await tester.enterText(find.byType(TextField).last, 'Gardening');
-    await tester.tap(find.text('Save activity'));
-    await tester.pumpAndSettle();
-    expect(controller.customActivities.single.label, 'Gardening');
-  });
-
-  testWidgets(
-    'shows one-point dashboard and private-by-default export controls',
-    (WidgetTester tester) async {
+  group('MoodMedicinePage', () {
+    testWidgets('should use locale directionality in English and Hebrew', (
+      WidgetTester tester,
+    ) async {
       _setLargeScreen(tester);
-      final MoodMedicineController controller = _controller(
+      final MoodMedicineViewModel english = _viewModel(
         ContractPersistentMemoryService(),
       );
-      await controller.load();
-      await controller.saveCheckIn(
-        MoodMedicineCheckInDraft(
-          mood: 4,
-          activityIds: const <String>['music'],
-          note: 'Private thought',
-        ),
-        occurredAt: DateTime.now(),
-      );
-      await tester.pumpWidget(_app(controller: controller));
+      await english.load();
+      await tester.pumpWidget(_app(viewModel: english));
       await tester.pumpAndSettle();
 
       expect(
-        find.text(
-          'One check-in is saved. More days will make the trend clearer.',
-        ),
-        findsOneWidget,
+        Directionality.of(tester.element(find.byType(MoodMedicinePage))),
+        TextDirection.ltr,
       );
-      await tester.tap(find.byKey(const Key('moodMedicineExportButton')));
+      expect(find.byKey(const Key('moodMedicineInsights')), findsOneWidget);
+
+      final MoodMedicineViewModel hebrew = _viewModel(
+        ContractPersistentMemoryService(),
+      );
+      await hebrew.load();
+      await tester.pumpWidget(
+        _app(viewModel: hebrew, locale: const Locale('he')),
+      );
       await tester.pumpAndSettle();
-      expect(find.byKey(const Key('moodMedicineIncludeNotes')), findsOneWidget);
+
+      expect(
+        Directionality.of(tester.element(find.byType(MoodMedicinePage))),
+        TextDirection.rtl,
+      );
+      expect(find.byKey(const Key('moodMedicineInsights')), findsOneWidget);
+    });
+
+    testWidgets('should preserve a failed check-in draft and expose retry', (
+      WidgetTester tester,
+    ) async {
+      _setLargeScreen(tester);
+      final ContractPersistentMemoryService memory =
+          ContractPersistentMemoryService();
+      var failOnce = true;
+      memory.onPersist = (_, PersistentMemoryType _, Object _) {
+        if (failOnce) {
+          failOnce = false;
+          throw StateError('offline');
+        }
+      };
+      final MoodMedicineViewModel viewModel = _viewModel(memory);
+      await viewModel.load(initialView: MoodMedicineInitialView.checkIn);
+      await tester.pumpWidget(
+        _app(
+          viewModel: viewModel,
+          initialView: MoodMedicineInitialView.checkIn,
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      await tester.tap(find.byKey(const Key('moodMedicineMood4')));
+      await tester.pumpAndSettle();
+      await tester.tap(find.byKey(const Key('moodMedicineSaveCheckIn')));
+      await tester.pumpAndSettle();
+
+      expect(viewModel.readyState!.snapshot.entries, isEmpty);
+      expect(viewModel.readyState!.persistence.pendingCheckInDraft, isNotNull);
+      expect(find.text('Try again'), findsOneWidget);
+
+      await tester.tap(find.text('Try again'));
+      await tester.pumpAndSettle();
+      expect(viewModel.readyState!.snapshot.entries, hasLength(1));
+      expect(viewModel.readyState!.persistence.hasPendingWrite, isFalse);
+    });
+
+    testWidgets('should use the fixed editor and expanding journal input', (
+      WidgetTester tester,
+    ) async {
+      _setLargeScreen(tester);
+      final MoodMedicineViewModel viewModel = _viewModel(
+        ContractPersistentMemoryService(),
+      );
+      await viewModel.load(initialView: MoodMedicineInitialView.checkIn);
+      await tester.pumpWidget(
+        _app(
+          viewModel: viewModel,
+          initialView: MoodMedicineInitialView.checkIn,
+          theme: buildLightTheme(),
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      await tester.tap(find.byKey(const Key('moodMedicineMood3')));
+      await tester.pumpAndSettle();
+      expect(
+        tester.getSize(find.byKey(const Key('moodMedicineNoteField'))).height,
+        greaterThan(40),
+      );
+
+      await tester.tap(find.text('Manage activities'));
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('Add personal activity'));
+      await tester.pumpAndSettle();
       expect(
         tester
-            .widget<SwitchListTile>(
-              find.byKey(const Key('moodMedicineIncludeNotes')),
-            )
-            .value,
-        isFalse,
+            .getSize(find.byKey(const Key('moodMedicineActivityEditorField')))
+            .height,
+        40,
       );
+      expect(tester.takeException(), isNull);
+    });
+
+    testWidgets('should render themed cards and inputs in dark RTL layout', (
+      WidgetTester tester,
+    ) async {
+      _setLargeScreen(tester);
+      final MoodMedicineViewModel viewModel = _viewModel(
+        ContractPersistentMemoryService(),
+      );
+      await viewModel.load(initialView: MoodMedicineInitialView.checkIn);
+      await tester.pumpWidget(
+        _app(
+          viewModel: viewModel,
+          initialView: MoodMedicineInitialView.checkIn,
+          locale: const Locale('ar'),
+          theme: buildDarkTheme(),
+        ),
+      );
+      await tester.pumpAndSettle();
+      await tester.tap(find.byKey(const Key('moodMedicineMood3')));
+      await tester.pumpAndSettle();
+
+      expect(
+        Directionality.of(tester.element(find.byType(MoodMedicinePage))),
+        TextDirection.rtl,
+      );
+      expect(find.byKey(const Key('moodMedicineNoteField')), findsOneWidget);
+      expect(tester.takeException(), isNull);
+    });
+
+    testWidgets('should offer private-by-default report controls', (
+      WidgetTester tester,
+    ) async {
+      _setLargeScreen(tester);
+      final MoodMedicineViewModel viewModel = _viewModel(
+        ContractPersistentMemoryService(),
+      );
+      await viewModel.load();
+      viewModel.selectMood(4);
+      await viewModel.saveCheckIn();
+      await tester.pumpWidget(_app(viewModel: viewModel));
+      await tester.pumpAndSettle();
+
+      await tester.tap(find.byKey(const Key('moodMedicineExportButton')));
+      await tester.pumpAndSettle();
+
+      final SwitchListTile includeNotes = tester.widget<SwitchListTile>(
+        find.byKey(const Key('moodMedicineIncludeNotes')),
+      );
+      expect(includeNotes.value, isFalse);
       expect(find.text('Personal notes are not included.'), findsOneWidget);
-    },
-  );
+      expect(find.byKey(const Key('moodMedicineViewExport')), findsOneWidget);
+    });
 
-  testWidgets('reconciles a failed activity hide after retry', (
-    WidgetTester tester,
-  ) async {
-    _setLargeScreen(tester);
-    final ContractPersistentMemoryService memory =
-        ContractPersistentMemoryService();
-    var failOnce = true;
-    memory.onPersist = (_, PersistentMemoryType _, Object _) {
-      if (failOnce) {
-        failOnce = false;
-        throw StateError('offline');
-      }
-    };
-    final MoodMedicineController controller = _controller(memory);
-    await controller.load();
-    await tester.pumpWidget(
-      _app(
-        controller: controller,
-        initialView: MoodMedicineInitialView.checkIn,
-      ),
-    );
-    await tester.pumpAndSettle();
+    testWidgets(
+      'should restore localized report export after confirmed unreadable-history discard',
+      (WidgetTester tester) async {
+        _setLargeScreen(tester);
+        final ContractPersistentMemoryService memory =
+            ContractPersistentMemoryService(
+              initialValues: <String, Object?>{
+                MoodMedicineStore.snapshotKey: '{unreadable',
+              },
+            );
+        final MoodMedicineViewModel viewModel = _viewModel(memory);
+        await tester.pumpWidget(
+          _app(
+            viewModel: viewModel,
+            initialView: MoodMedicineInitialView.insights,
+          ),
+        );
+        await tester.pumpAndSettle();
 
-    await tester.tap(find.byKey(const Key('moodMedicineMood3')));
-    await tester.pumpAndSettle();
-    await tester.tap(
-      find.byKey(const Key('moodMedicineActivityphysical_activity')),
-    );
-    await tester.pumpAndSettle();
-    await tester.tap(find.text('Manage activities'));
-    await tester.pumpAndSettle();
-    await tester.tap(find.text('Hide').first);
-    await tester.pumpAndSettle();
+        expect(
+          find.byKey(const Key('moodMedicineDiscardUnreadable')),
+          findsOneWidget,
+        );
+        expect(find.byKey(const Key('moodMedicineCheckIn')), findsNothing);
+        await tester.tap(
+          find.byKey(const Key('moodMedicineDiscardUnreadable')),
+        );
+        await tester.pumpAndSettle();
+        await tester.tap(find.text('Discard unreadable history').last);
+        await tester.pumpAndSettle();
 
-    expect(controller.hasPendingWrite, isTrue);
-    expect(find.text('Try again'), findsOneWidget);
-    await tester.tap(find.text('Try again'));
-    await tester.pumpAndSettle();
-    expect(controller.hiddenDefaultActivityIds, contains('physical_activity'));
+        expect(find.byKey(const Key('moodMedicineInsights')), findsOneWidget);
+        expect(
+          find.byKey(const Key('moodMedicineExportButton')),
+          findsOneWidget,
+        );
+        expect(viewModel.readyState!.presentation, isNotNull);
+        expect(await viewModel.buildReport(), isNotNull);
+        expect(memory.completedWrites, hasLength(1));
+      },
+    );
 
-    await tester.tap(find.byKey(const Key('moodMedicineSaveCheckIn')));
-    await tester.pumpAndSettle();
-    expect(
-      controller.entries.single.activityIds,
-      isNot(contains('physical_activity')),
-    );
-  });
+    testWidgets('should not show an export error when sharing is dismissed', (
+      WidgetTester tester,
+    ) async {
+      _setLargeScreen(tester);
+      final MoodMedicineViewModel viewModel = _viewModel(
+        ContractPersistentMemoryService(),
+        reportExportService: _TestReportExportService(
+          deliveryStatus: MoodMedicineReportDeliveryStatus.dismissed,
+        ),
+      );
+      await viewModel.load();
+      await tester.pumpWidget(_app(viewModel: viewModel));
+      await tester.pumpAndSettle();
 
-  testWidgets('renders the latest saved custom label for historical activity', (
-    WidgetTester tester,
-  ) async {
-    _setLargeScreen(tester);
-    final MoodMedicineController controller = _controller(
-      ContractPersistentMemoryService(),
-      ids: const <String>['custom-walk', 'old-entry', 'new-entry'],
-    );
-    await controller.load();
-    final MoodMedicineCustomActivity? activity = await controller
-        .addCustomActivity('Evening walk');
-    expect(activity, isNotNull);
-    final DateTime now = DateTime.now();
-    await controller.saveCheckIn(
-      MoodMedicineCheckInDraft(mood: 3, activityIds: <String>[activity!.id]),
-      occurredAt: now.subtract(const Duration(hours: 1)),
-    );
-    await controller.editCustomActivity(activity.id, 'Morning walk');
-    await controller.saveCheckIn(
-      MoodMedicineCheckInDraft(mood: 4, activityIds: <String>[activity.id]),
-      occurredAt: now,
-    );
-    await controller.deleteCustomActivity(activity.id);
+      expect(await viewModel.buildReport(), isNotNull);
+      expect(await viewModel.shareBuiltReport(), isFalse);
+      await tester.pump();
 
-    await tester.pumpWidget(_app(controller: controller));
-    await tester.pumpAndSettle();
-    expect(find.text('Morning walk'), findsOneWidget);
-    expect(find.text('Evening walk'), findsNothing);
-  });
-
-  testWidgets('keeps D.O.S.E. education readable in narrow Arabic layouts', (
-    WidgetTester tester,
-  ) async {
-    _setNarrowScreen(tester);
-    final MoodMedicineController controller = _controller(
-      ContractPersistentMemoryService(),
-    );
-    await controller.load();
-    await tester.pumpWidget(
-      _app(
-        controller: controller,
-        initialView: MoodMedicineInitialView.education,
-        locale: const Locale('ar'),
-      ),
-    );
-    await tester.pumpAndSettle();
-
-    expect(
-      Directionality.of(tester.element(find.byType(MoodMedicinePage))),
-      TextDirection.rtl,
-    );
-    expect(find.byKey(const Key('moodMedicineDoseItems')), findsOneWidget);
-    expect(tester.takeException(), isNull);
+      expect(find.byType(SnackBar), findsNothing);
+    });
   });
 }

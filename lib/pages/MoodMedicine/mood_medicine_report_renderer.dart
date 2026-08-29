@@ -37,50 +37,112 @@ class MoodMedicinePdfReportRenderer {
         build: (_) => <pw.Widget>[
           pw.Directionality(
             textDirection: textDirection,
-            child: pw.Column(
-              crossAxisAlignment: input.isRtl
-                  ? pw.CrossAxisAlignment.end
-                  : pw.CrossAxisAlignment.start,
-              children: <pw.Widget>[
-                pw.Align(
+            child: _buildPdfHeader(
+              input: input,
+              font: font,
+              alignment: alignment,
+              textAlign: textAlign,
+            ),
+          ),
+          for (final section in nonSourceSections)
+            for (final sectionChunk in _splitSectionForPages(section))
+              pw.Directionality(
+                textDirection: textDirection,
+                child: _buildPdfSection(
+                  section: sectionChunk,
+                  font: font,
                   alignment: alignment,
-                  child: pw.Text(
-                    input.title,
-                    style: pw.TextStyle(font: font, fontSize: 24),
-                    textAlign: textAlign,
-                  ),
+                  textAlign: textAlign,
                 ),
-                pw.SizedBox(height: 8),
-                pw.Align(
-                  alignment: alignment,
-                  child: pw.Text(
-                    input.dateRangeLabel,
-                    style: pw.TextStyle(font: font, fontSize: 12),
-                    textAlign: textAlign,
-                  ),
-                ),
-                pw.SizedBox(height: 20),
-                for (final section in nonSourceSections)
-                  _buildPdfSection(
-                    section: section,
-                    font: font,
-                    alignment: alignment,
-                    textAlign: textAlign,
-                  ),
-                if (input.sources.isNotEmpty)
-                  _buildPdfSources(
-                    input: input,
-                    font: font,
-                    alignment: alignment,
-                    textAlign: textAlign,
-                  ),
-              ],
+              ),
+          if (input.sources.isNotEmpty)
+            pw.Directionality(
+              textDirection: textDirection,
+              child: _buildPdfSources(
+                input: input,
+                font: font,
+                alignment: alignment,
+                textAlign: textAlign,
+              ),
+            ),
+        ],
+      ),
+    );
+    return document.save();
+  }
+
+  pw.Widget _buildPdfHeader({
+    required MoodMedicineReportInput input,
+    required pw.Font font,
+    required pw.Alignment alignment,
+    required pw.TextAlign textAlign,
+  }) {
+    return pw.Container(
+      margin: const pw.EdgeInsets.only(bottom: 20),
+      child: pw.Column(
+        mainAxisSize: pw.MainAxisSize.min,
+        crossAxisAlignment: input.isRtl
+            ? pw.CrossAxisAlignment.end
+            : pw.CrossAxisAlignment.start,
+        children: <pw.Widget>[
+          pw.Align(
+            alignment: alignment,
+            child: pw.Text(
+              _softWrapReportText(input.title),
+              style: pw.TextStyle(font: font, fontSize: 24),
+              textAlign: textAlign,
+            ),
+          ),
+          pw.SizedBox(height: 8),
+          pw.Align(
+            alignment: alignment,
+            child: pw.Text(
+              _softWrapReportText(input.dateRangeLabel),
+              style: pw.TextStyle(font: font, fontSize: 12),
+              textAlign: textAlign,
             ),
           ),
         ],
       ),
     );
-    return document.save();
+  }
+
+  /// Keeps each styled card small enough for [pw.MultiPage] to paginate it.
+  /// A single decorated container cannot itself split across PDF pages.
+  Iterable<MoodMedicineReportSection> _splitSectionForPages(
+    MoodMedicineReportSection section,
+  ) sync* {
+    const int maximumLinesPerCard = 8;
+    final List<String> lines = <String>[
+      for (final line in section.lines) ..._splitPdfLine(line),
+    ];
+    for (var start = 0; start < lines.length; start += maximumLinesPerCard) {
+      final end = start + maximumLinesPerCard > lines.length
+          ? lines.length
+          : start + maximumLinesPerCard;
+      yield MoodMedicineReportSection(
+        heading: section.heading,
+        lines: lines.sublist(start, end),
+      );
+    }
+  }
+
+  /// Limits one unbroken report line to a card-friendly amount of text while
+  /// preserving the visible content and preferring whitespace/soft-wrap marks.
+  Iterable<String> _splitPdfLine(String line) sync* {
+    const int maximumCharactersPerFragment = 240;
+    var remaining = line;
+    while (remaining.length > maximumCharactersPerFragment) {
+      final int limit = maximumCharactersPerFragment;
+      final int breakIndex = remaining.lastIndexOf(
+        RegExp(r'[\s\u200B]'),
+        limit,
+      );
+      final int end = breakIndex > 0 ? breakIndex + 1 : limit;
+      yield remaining.substring(0, end);
+      remaining = remaining.substring(end);
+    }
+    yield remaining;
   }
 
   pw.Widget _buildPdfSection({
@@ -97,12 +159,13 @@ class MoodMedicinePdfReportRenderer {
         borderRadius: pw.BorderRadius.circular(8),
       ),
       child: pw.Column(
+        mainAxisSize: pw.MainAxisSize.min,
         crossAxisAlignment: pw.CrossAxisAlignment.stretch,
         children: <pw.Widget>[
           pw.Align(
             alignment: alignment,
             child: pw.Text(
-              section.heading,
+              _softWrapReportText(section.heading),
               style: pw.TextStyle(font: font, fontSize: 16),
               textAlign: textAlign,
             ),
@@ -112,7 +175,7 @@ class MoodMedicinePdfReportRenderer {
             pw.Padding(
               padding: const pw.EdgeInsets.only(bottom: 4),
               child: pw.Text(
-                line,
+                _softWrapReportText(line),
                 style: pw.TextStyle(font: font, fontSize: 11),
                 textAlign: textAlign,
               ),
@@ -136,12 +199,13 @@ class MoodMedicinePdfReportRenderer {
         borderRadius: pw.BorderRadius.circular(8),
       ),
       child: pw.Column(
+        mainAxisSize: pw.MainAxisSize.min,
         crossAxisAlignment: pw.CrossAxisAlignment.stretch,
         children: <pw.Widget>[
           pw.Align(
             alignment: alignment,
             child: pw.Text(
-              input.labels.sourcesLabel,
+              _softWrapReportText(input.labels.sourcesLabel),
               style: pw.TextStyle(font: font, fontSize: 16),
               textAlign: textAlign,
             ),
@@ -151,16 +215,17 @@ class MoodMedicinePdfReportRenderer {
             pw.Padding(
               padding: const pw.EdgeInsets.only(bottom: 8),
               child: pw.Column(
+                mainAxisSize: pw.MainAxisSize.min,
                 crossAxisAlignment: pw.CrossAxisAlignment.stretch,
                 children: <pw.Widget>[
                   pw.Text(
-                    source.title,
+                    _softWrapReportText(source.title),
                     style: pw.TextStyle(font: font, fontSize: 11),
                     textAlign: textAlign,
                   ),
                   if (source.description?.trim().isNotEmpty ?? false)
                     pw.Text(
-                      source.description!.trim(),
+                      _softWrapReportText(source.description!.trim()),
                       style: pw.TextStyle(font: font, fontSize: 10),
                       textAlign: textAlign,
                     ),
@@ -179,7 +244,7 @@ class MoodMedicinePdfReportRenderer {
   pw.Widget _buildSourceUrl(MoodMedicineReportSource source, pw.Font font) {
     final urlText = source.url.toString();
     final url = pw.Text(
-      urlText,
+      _softWrapReportText(urlText),
       style: pw.TextStyle(font: font, fontSize: 9, color: PdfColors.blue),
       textAlign: pw.TextAlign.left,
     );
@@ -206,8 +271,14 @@ class MoodMedicinePngReportRenderer {
   final double horizontalPadding;
   final int maxImageHeight;
 
+  /// The height/width ratio of a portrait A4 page.
+  static const double a4PortraitAspectRatio = 297 / 210;
+
   Future<Uint8List> render(MoodMedicineReportInput input) async {
-    final textWidth = width - (horizontalPadding * 2);
+    // This small raster buffer keeps antialiased glyphs inside the configured
+    // safe margin when the logical canvas is encoded as a PNG.
+    final contentInset = horizontalPadding + 2;
+    final textWidth = width - (contentInset * 2);
     final lines = _buildLines(input);
     final paragraphs = <_PngParagraph>[
       for (final line in lines)
@@ -220,44 +291,54 @@ class MoodMedicinePngReportRenderer {
           line.bottomSpacing,
         ),
     ];
-    final contentHeight = paragraphs.fold<double>(
-      horizontalPadding,
-      (height, paragraph) =>
-          height + paragraph.paragraph.height + paragraph.bottomSpacing,
-    );
-    final logicalImageHeight = contentHeight < 420 ? 420.0 : contentHeight;
+    final contentHeight =
+        paragraphs.fold<double>(
+          contentInset,
+          (height, paragraph) =>
+              height + paragraph.paragraph.height + paragraph.bottomSpacing,
+        ) +
+        contentInset;
+    final minimumA4PortraitHeight = width * a4PortraitAspectRatio;
+    final logicalImageHeight = contentHeight < minimumA4PortraitHeight
+        ? minimumA4PortraitHeight
+        : contentHeight;
     if (logicalImageHeight > maxImageHeight) {
       throw MoodMedicinePngReportTooLargeException(maxImageHeight);
     }
+    final imageHeight = logicalImageHeight.ceilToDouble();
 
     final recorder = ui.PictureRecorder();
     final canvas = ui.Canvas(recorder);
     canvas.drawRect(
-      ui.Rect.fromLTWH(0, 0, width, logicalImageHeight),
+      ui.Rect.fromLTWH(0, 0, width, imageHeight),
       ui.Paint()..color = const ui.Color(0xfffdfbf7),
     );
 
-    var y = horizontalPadding;
+    canvas.save();
+    canvas.clipRect(
+      ui.Rect.fromLTRB(
+        contentInset,
+        contentInset,
+        width - contentInset,
+        imageHeight - contentInset,
+      ),
+    );
+    var y = contentInset;
     for (final paragraph in paragraphs) {
-      canvas.drawParagraph(
-        paragraph.paragraph,
-        ui.Offset(horizontalPadding, y),
-      );
+      canvas.drawParagraph(paragraph.paragraph, ui.Offset(contentInset, y));
       y += paragraph.paragraph.height + paragraph.bottomSpacing;
     }
+    canvas.restore();
 
     final picture = recorder.endRecording();
-    final image = await picture.toImage(
-      width.ceil(),
-      logicalImageHeight.ceil(),
-    );
+    final image = await picture.toImage(width.ceil(), imageHeight.toInt());
     final byteData = await image.toByteData(format: ui.ImageByteFormat.png);
     image.dispose();
     picture.dispose();
     if (byteData == null) {
       throw StateError('Could not encode the mood medicine PNG report.');
     }
-    return byteData.buffer.asUint8List();
+    return Uint8List.fromList(byteData.buffer.asUint8List());
   }
 
   List<_PngLine> _buildLines(MoodMedicineReportInput input) {
@@ -319,7 +400,7 @@ class MoodMedicinePngReportRenderer {
                   : ui.FontWeight.w400,
             ),
           )
-          ..addText(line.text);
+          ..addText(_softWrapReportText(line.text));
     return builder.build()..layout(ui.ParagraphConstraints(width: textWidth));
   }
 }
@@ -353,4 +434,47 @@ class _PngLine {
   final double bottomSpacing;
   final ui.Color color;
   final bool isHeading;
+}
+
+const String _zeroWidthSpace = '\u200B';
+
+/// Adds invisible opportunities around URL punctuation and inside unusually
+/// long unbroken tokens. This preserves the visible report text while keeping
+/// PDF and PNG content inside their safe horizontal margins in both directions.
+String _softWrapReportText(String text) {
+  const int maximumUnbrokenRun = 28;
+  const Set<int> breakAfterRunes = <int>{
+    0x0023, // #
+    0x0025, // %
+    0x0026, // &
+    0x002d, // -
+    0x002e, // .
+    0x002f, // /
+    0x003a, // :
+    0x003d, // =
+    0x003f, // ?
+    0x005f, // _
+    0x007e, // ~
+  };
+  final StringBuffer buffer = StringBuffer();
+  var unbrokenRunLength = 0;
+
+  for (final int rune in text.runes) {
+    buffer.writeCharCode(rune);
+    if (rune == 0x000a || rune == 0x000d || rune == 0x0020 || rune == 0x0009) {
+      unbrokenRunLength = 0;
+      continue;
+    }
+    if (rune == 0x200b || breakAfterRunes.contains(rune)) {
+      buffer.write(_zeroWidthSpace);
+      unbrokenRunLength = 0;
+      continue;
+    }
+    unbrokenRunLength += 1;
+    if (unbrokenRunLength >= maximumUnbrokenRun) {
+      buffer.write(_zeroWidthSpace);
+      unbrokenRunLength = 0;
+    }
+  }
+  return buffer.toString();
 }

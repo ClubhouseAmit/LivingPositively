@@ -4401,4 +4401,39 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get moodMedicineReportNoNotes => 'No personal notes included';
+
+  @override
+  String get moodMedicineView => 'View';
+
+  @override
+  String get moodMedicinePreviewPdf => 'PDF preview';
+
+  @override
+  String get moodMedicinePreviewPng => 'Image preview';
+
+  @override
+  String get moodMedicinePreviewError =>
+      'The report preview could not be opened. Please try again.';
+
+  @override
+  String get moodMedicinePngPrintGuidance =>
+      'For reliable printing of long reports, choose PDF.';
+
+  @override
+  String get moodMedicineRecoveryTitle => 'Mood history needs attention';
+
+  @override
+  String get moodMedicineRecoveryBody =>
+      'Your saved Mood Medicine history could not be read. Retry to keep it, or discard only this unreadable history and start a new empty one.';
+
+  @override
+  String get moodMedicineDiscardUnreadable => 'Discard unreadable history';
+
+  @override
+  String get moodMedicineDiscardUnreadableTitle =>
+      'Discard unreadable mood history?';
+
+  @override
+  String get moodMedicineDiscardUnreadableBody =>
+      'This replaces only Mood Medicine history on this device with an empty history. This cannot be undone.';
 }

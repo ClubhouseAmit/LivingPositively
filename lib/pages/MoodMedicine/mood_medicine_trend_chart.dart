@@ -41,13 +41,15 @@ class MoodMedicineTrendChart extends StatelessWidget {
     if (points.isEmpty) {
       return Semantics(
         label: emptyLabel,
-        child: SizedBox(
-          height: 190,
-          child: Center(
-            child: Text(
-              emptyLabel,
-              textAlign: TextAlign.center,
-              style: Theme.of(context).textTheme.bodyMedium,
+        child: ExcludeSemantics(
+          child: SizedBox(
+            height: 190,
+            child: Center(
+              child: Text(
+                emptyLabel,
+                textAlign: TextAlign.center,
+                style: Theme.of(context).textTheme.bodyMedium,
+              ),
             ),
           ),
         ),
@@ -67,6 +69,7 @@ class MoodMedicineTrendChart extends StatelessWidget {
               lineColor: colorScheme.primary,
               gridColor: colorScheme.outline.withValues(alpha: 0.25),
               overlayColor: colorScheme.tertiary,
+              pointCenterColor: colorScheme.surface,
               highlightedActivityId: highlightedActivityId,
             ),
           ),
@@ -82,6 +85,7 @@ class _MoodMedicineTrendPainter extends CustomPainter {
     required this.lineColor,
     required this.gridColor,
     required this.overlayColor,
+    required this.pointCenterColor,
     required this.highlightedActivityId,
   });
 
@@ -89,6 +93,7 @@ class _MoodMedicineTrendPainter extends CustomPainter {
   final Color lineColor;
   final Color gridColor;
   final Color overlayColor;
+  final Color pointCenterColor;
   final String? highlightedActivityId;
 
   @override
@@ -153,7 +158,7 @@ class _MoodMedicineTrendPainter extends CustomPainter {
       canvas.drawCircle(
         point,
         math.max(1, isHighlighted ? 3 : 2),
-        Paint()..color = Colors.white,
+        Paint()..color = pointCenterColor,
       );
     }
   }
@@ -164,6 +169,7 @@ class _MoodMedicineTrendPainter extends CustomPainter {
         oldDelegate.lineColor != lineColor ||
         oldDelegate.gridColor != gridColor ||
         oldDelegate.overlayColor != overlayColor ||
+        oldDelegate.pointCenterColor != pointCenterColor ||
         oldDelegate.highlightedActivityId != highlightedActivityId;
   }
 }

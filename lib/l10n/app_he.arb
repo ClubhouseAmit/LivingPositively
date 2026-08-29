@@ -870,6 +870,16 @@
   "moodMedicineLoading": "טוענים את מעקב מצב הרוח…",
   "moodMedicineNotMedicalAdvice": "הכלי מיועד להתבוננות אישית ואינו ייעוץ, אבחון או טיפול רפואי.",
   "moodMedicineReportNoNotes": "לא נכללו הערות אישיות",
+  "moodMedicineView": "צפייה",
+  "moodMedicinePreviewPdf": "תצוגה מקדימה של PDF",
+  "moodMedicinePreviewPng": "תצוגה מקדימה של תמונה",
+  "moodMedicinePreviewError": "לא ניתן היה לפתוח את התצוגה המקדימה של הדוח. אפשר לנסות שוב.",
+  "moodMedicinePngPrintGuidance": "להדפסה אמינה של דוחות ארוכים, כדאי לבחור ב-PDF.",
+  "moodMedicineRecoveryTitle": "היסטוריית מצב הרוח דורשת תשומת לב",
+  "moodMedicineRecoveryBody": "לא ניתן היה לקרוא את היסטוריית הרפואה האישית שנשמרה. אפשר לנסות שוב כדי לשמור עליה, או למחוק רק את ההיסטוריה שאינה קריאה ולהתחיל היסטוריה ריקה.",
+  "moodMedicineDiscardUnreadable": "מחיקת היסטוריה שאינה קריאה",
+  "moodMedicineDiscardUnreadableTitle": "למחוק את היסטוריית מצב הרוח שאינה קריאה?",
+  "moodMedicineDiscardUnreadableBody": "פעולה זו מחליפה רק את היסטוריית הרפואה האישית במכשיר זה בהיסטוריה ריקה. לא ניתן לבטל פעולה זו.",
   "@moodMedicineTrendSummary": {
     "description": "Accessible text summary of a mood trend for a selected period.",
     "placeholders": {

@@ -5,7 +5,11 @@ import 'package:mazilon/AnalyticsService.dart';
 import 'package:mazilon/iFx/service_locator.dart';
 import 'package:mazilon/pages/MoodMedicine/mood_medicine_models.dart';
 import 'package:mazilon/pages/MoodMedicine/mood_medicine_page.dart';
+import 'package:mazilon/pages/MoodMedicine/mood_medicine_report_exporter.dart';
+import 'package:mazilon/pages/MoodMedicine/mood_medicine_repository.dart';
 import 'package:mazilon/pages/MoodMedicine/mood_medicine_store.dart';
+import 'package:mazilon/pages/MoodMedicine/mood_medicine_view_model.dart';
+import 'package:mazilon/pages/MoodMedicine/mood_medicine_view_state.dart';
 import 'package:mazilon/pages/home.dart';
 import 'package:mazilon/util/appInformation.dart';
 import 'package:mazilon/util/persistent_memory_service.dart';
@@ -57,6 +61,21 @@ void main() {
     getIt.registerLazySingleton<AnalyticsService>(
       () => _PromptAnalyticsService(),
     );
+    getIt.registerLazySingleton<MoodMedicineStore>(
+      () => MoodMedicineStore(memory),
+    );
+    getIt.registerLazySingleton<MoodMedicineRepository>(
+      () => getIt<MoodMedicineStore>(),
+    );
+    getIt.registerLazySingleton<MoodMedicineReportExportService>(
+      () => MoodMedicineReportExporter(),
+    );
+    getIt.registerFactory<MoodMedicineViewModel>(
+      () => MoodMedicineViewModel(
+        getIt<MoodMedicineRepository>(),
+        getIt<MoodMedicineReportExportService>(),
+      ),
+    );
     PackageInfo.setMockInitialValues(
       appName: 'Mazilon',
       packageName: 'mazilon',
@@ -86,7 +105,7 @@ void main() {
     );
   }
 
-  group('Menu', () {
+  group('MoodMedicineMenu', () {
     testWidgets(
       'should open the check-in after its first frame when today has no snapshot entry',
       (WidgetTester tester) async {
@@ -139,6 +158,25 @@ void main() {
           find.byType(MoodMedicinePage),
         );
         expect(page.initialView, MoodMedicineInitialView.checkIn);
+      },
+    );
+
+    testWidgets(
+      'should leave Home visible and preserve corrupt history after its first frame',
+      (WidgetTester tester) async {
+        await pumpMenu(tester, snapshot: '{unreadable');
+
+        await tester.pumpAndSettle();
+
+        expect(find.byType(Home), findsOneWidget);
+        expect(find.byType(MoodMedicinePage), findsNothing);
+        expect(
+          memory.completedWrites.where(
+            (write) => write.key == MoodMedicineStore.snapshotKey,
+          ),
+          isEmpty,
+        );
+        expect(memory.store[MoodMedicineStore.snapshotKey], '{unreadable');
       },
     );
   });

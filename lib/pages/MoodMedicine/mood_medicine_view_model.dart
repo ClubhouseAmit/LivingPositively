@@ -1,0 +1,1038 @@
+import 'dart:async';
+
+import 'package:flutter/foundation.dart';
+import 'package:uuid/uuid.dart';
+
+import 'package:mazilon/pages/MoodMedicine/mood_medicine_insights.dart';
+import 'package:mazilon/pages/MoodMedicine/mood_medicine_models.dart';
+import 'package:mazilon/pages/MoodMedicine/mood_medicine_report_exporter.dart';
+import 'package:mazilon/pages/MoodMedicine/mood_medicine_repository.dart';
+import 'package:mazilon/pages/MoodMedicine/mood_medicine_view_state.dart';
+
+/// Feature-local MVVM state holder for Mood Tracker and Personal Medicine.
+///
+/// It owns snapshot loading, recovery, drafts, dashboard aggregation, report
+/// input construction, and platform-neutral export state. The page supplies
+/// localized presentation values but never accesses persistence or renderers.
+final class MoodMedicineViewModel extends ChangeNotifier {
+  /// Creates a fresh page-scoped Mood Medicine view model.
+  MoodMedicineViewModel(
+    this._repository,
+    this._reportExportService, {
+    DateTime Function()? clock,
+    String Function()? idGenerator,
+  }) : _clock = clock ?? DateTime.now,
+       _idGenerator = idGenerator ?? const Uuid().v4;
+
+  final MoodMedicineRepository _repository;
+  final MoodMedicineReportExportService _reportExportService;
+  final DateTime Function() _clock;
+  final String Function() _idGenerator;
+  final StreamController<MoodMedicineUiEffect> _effects =
+      StreamController<MoodMedicineUiEffect>.broadcast();
+
+  MoodMedicineViewState _state = const MoodMedicineLoadingState();
+  MoodMedicineInitialView _initialView = MoodMedicineInitialView.insights;
+  int _loadGeneration = 0;
+  bool _isDisposed = false;
+
+  static const Object _unset = Object();
+
+  /// Current immutable state rendered by the Mood Medicine page.
+  MoodMedicineViewState get state => _state;
+
+  /// Ready state, or null while loading or recovery requires confirmation.
+  MoodMedicineReadyState? get readyState => switch (_state) {
+    MoodMedicineReadyState ready => ready,
+    _ => null,
+  };
+
+  /// One-shot UI effects such as retry snackbars and report preview requests.
+  Stream<MoodMedicineUiEffect> get effects => _effects.stream;
+
+  /// Loads the feature-local snapshot without ever replacing unreadable data.
+  ///
+  /// Repeated calls after a ready or recovery-required result are ignored. A
+  /// malformed or unreadable result enters recovery instead of creating an
+  /// empty snapshot; ordinary writes remain unavailable until retry or discard.
+  Future<void> load({
+    MoodMedicineInitialView initialView = MoodMedicineInitialView.insights,
+  }) async {
+    if (_isDisposed ||
+        _state is MoodMedicineReadyState ||
+        _state is MoodMedicineRecoveryRequiredState ||
+        _state is MoodMedicineLoadingState && _loadGeneration > 0) {
+      return;
+    }
+    await _load(initialView: initialView);
+  }
+
+  /// Retries only the repository read that produced a recovery state.
+  ///
+  /// It has no effect while loading or after disposal. A successful read moves
+  /// to ready state; another unreadable result remains recoverable and writable
+  /// history is still not replaced.
+  Future<void> retryLoad() async {
+    if (_isDisposed || _state is MoodMedicineLoadingState) {
+      return;
+    }
+    await _load(initialView: _initialView);
+  }
+
+  /// Replaces only the unreadable feature snapshot after UI confirmation.
+  ///
+  /// This writes an empty v1 snapshot under the namespaced Mood Medicine key;
+  /// it never calls the global reset contract or changes unrelated data.
+  Future<bool> discardUnreadableSnapshot() async {
+    final MoodMedicineViewState currentState = _state;
+    if (currentState is! MoodMedicineRecoveryRequiredState) {
+      return false;
+    }
+    final MoodMedicineRecoveryRequiredState recovery = currentState;
+    if (recovery.isDiscarding || _isDisposed) {
+      return false;
+    }
+    _setState(
+      MoodMedicineRecoveryRequiredState(
+        failure: recovery.failure,
+        initialView: recovery.initialView,
+        isDiscarding: true,
+      ),
+    );
+    try {
+      await _repository.saveSnapshot(const MoodMedicineSnapshot.empty());
+    } catch (error) {
+      _setState(
+        MoodMedicineRecoveryRequiredState(
+          failure: recovery.failure,
+          initialView: recovery.initialView,
+          discardError: error,
+        ),
+      );
+      return false;
+    }
+    _setState(
+      _readyState(
+        snapshot: const MoodMedicineSnapshot.empty(),
+        selectedView: recovery.initialView,
+      ),
+    );
+    return true;
+  }
+
+  /// Returns true only for loaded, writable history with no entry for [now].
+  ///
+  /// Recovery, loading, and pending writes deliberately suppress automatic
+  /// prompts. Dismissing a prompt never changes this answer.
+  bool shouldPromptFor(DateTime now) {
+    final MoodMedicineReadyState? ready = readyState;
+    return ready != null &&
+        !ready.writesBlocked &&
+        !ready.snapshot.entries.any(
+          (MoodMedicineEntry entry) =>
+              entry.localDayKey == moodMedicineLocalDayKey(now),
+        );
+  }
+
+  /// Selects the top-level surface shown by the page.
+  void selectView(MoodMedicineInitialView view) {
+    final MoodMedicineReadyState? ready = readyState;
+    if (ready == null || ready.selectedView == view) {
+      return;
+    }
+    _setState(_copyReady(ready, selectedView: view));
+  }
+
+  /// Selects the insight interval and recomputes its deterministic dashboard.
+  void selectRange(MoodMedicineInsightRange range) {
+    final MoodMedicineReadyState? ready = readyState;
+    if (ready == null || ready.selectedRange == range) {
+      return;
+    }
+    _setState(
+      _copyReady(
+        ready,
+        selectedRange: range,
+        export: _invalidatedExport(ready.export),
+      ),
+    );
+  }
+
+  /// Supplies localized labels and sources without giving the VM a UI context.
+  ///
+  /// Call this from a dependency-aware page lifecycle method, not every build.
+  void setReportPresentation(MoodMedicineReportPresentation presentation) {
+    final MoodMedicineReadyState? ready = readyState;
+    if (ready == null) {
+      return;
+    }
+    _setState(
+      _copyReady(
+        ready,
+        presentation: presentation,
+        export: _invalidatedExport(ready.export),
+      ),
+    );
+  }
+
+  /// Selects one of the five allowed mood values for the current check-in.
+  void selectMood(int mood) {
+    if (mood < 1 || mood > 5) {
+      throw ArgumentError.value(mood, 'mood', 'Must be from 1 to 5.');
+    }
+    final MoodMedicineReadyState? ready = _writableReadyState();
+    if (ready == null) {
+      return;
+    }
+    _setState(
+      _copyReady(
+        ready,
+        checkInForm: MoodMedicineCheckInForm(
+          mood: mood,
+          emotionIds: ready.checkInForm.emotionIds,
+          activityIds: ready.checkInForm.activityIds,
+          journalNote: ready.checkInForm.journalNote,
+        ),
+        isCheckInDetailsExpanded: true,
+      ),
+    );
+  }
+
+  /// Toggles [emotionId] in the current in-memory check-in form.
+  void toggleEmotion(String emotionId) {
+    final MoodMedicineReadyState? ready = _writableReadyState();
+    final String normalizedId = emotionId.trim();
+    if (ready == null || normalizedId.isEmpty) {
+      return;
+    }
+    final Set<String> emotionIds = <String>{...ready.checkInForm.emotionIds};
+    if (!emotionIds.add(normalizedId)) {
+      emotionIds.remove(normalizedId);
+    }
+    _setState(
+      _copyReady(
+        ready,
+        checkInForm: MoodMedicineCheckInForm(
+          mood: ready.checkInForm.mood,
+          emotionIds: emotionIds,
+          activityIds: ready.checkInForm.activityIds,
+          journalNote: ready.checkInForm.journalNote,
+        ),
+      ),
+    );
+  }
+
+  /// Toggles a default or active custom [activityId] in a future check-in.
+  ///
+  /// Deleted historical ids and unknown ids are intentionally ignored so they
+  /// cannot reach new insights or reports.
+  void toggleActivity(String activityId) {
+    final MoodMedicineReadyState? ready = _writableReadyState();
+    final String normalizedId = activityId.trim();
+    if (ready == null || !_isSelectableActivity(ready.snapshot, normalizedId)) {
+      return;
+    }
+    final Set<String> activityIds = <String>{...ready.checkInForm.activityIds};
+    if (!activityIds.add(normalizedId)) {
+      activityIds.remove(normalizedId);
+    }
+    _setState(
+      _copyReady(
+        ready,
+        checkInForm: MoodMedicineCheckInForm(
+          mood: ready.checkInForm.mood,
+          emotionIds: ready.checkInForm.emotionIds,
+          activityIds: activityIds,
+          journalNote: ready.checkInForm.journalNote,
+        ),
+      ),
+    );
+  }
+
+  /// Stores optional journal text in immutable view state until save succeeds.
+  void setJournalNote(String? value) {
+    final MoodMedicineReadyState? ready = _writableReadyState();
+    if (ready == null) {
+      return;
+    }
+    _setState(
+      _copyReady(
+        ready,
+        checkInForm: MoodMedicineCheckInForm(
+          mood: ready.checkInForm.mood,
+          emotionIds: ready.checkInForm.emotionIds,
+          activityIds: ready.checkInForm.activityIds,
+          journalNote: value,
+        ),
+      ),
+    );
+  }
+
+  /// Expands or collapses optional check-in details without changing the draft.
+  void setCheckInDetailsExpanded(bool value) {
+    final MoodMedicineReadyState? ready = readyState;
+    if (ready == null || ready.isCheckInDetailsExpanded == value) {
+      return;
+    }
+    _setState(_copyReady(ready, isCheckInDetailsExpanded: value));
+  }
+
+  /// Highlights [activityId] on the trend chart, or clears the highlight.
+  void setHighlightedActivity(String? activityId) {
+    final MoodMedicineReadyState? ready = readyState;
+    if (ready == null) {
+      return;
+    }
+    final String? normalizedId = activityId?.trim();
+    _setState(
+      _copyReady(
+        ready,
+        highlightedActivityId: normalizedId == null || normalizedId.isEmpty
+            ? null
+            : normalizedId,
+      ),
+    );
+  }
+
+  /// Saves the selected check-in after filtering to currently selectable ids.
+  ///
+  /// Returns false until a writable snapshot is loaded, while another write is
+  /// pending, when no valid mood is selected, or when persistence fails. A
+  /// failed write keeps the exact snapshot and draft in state for
+  /// [retryLastWrite]; a successful save clears the check-in form.
+  Future<bool> saveCheckIn() async {
+    final MoodMedicineReadyState? ready = _writableReadyState();
+    final MoodMedicineCheckInDraft? sourceDraft = ready?.checkInForm.draft;
+    if (ready == null || sourceDraft == null) {
+      return false;
+    }
+    final List<String> activityIds = sourceDraft.activityIds
+        .where((String id) => _isSelectableActivity(ready.snapshot, id))
+        .toList(growable: false);
+    final MoodMedicineCheckInDraft draft = MoodMedicineCheckInDraft(
+      mood: sourceDraft.mood,
+      emotionIds: sourceDraft.emotionIds,
+      activityIds: activityIds,
+      note: sourceDraft.note,
+    );
+    final DateTime occurredAt = _clock();
+    final Map<String, String> customSnapshots = <String, String>{
+      for (final String activityId in draft.activityIds)
+        if (ready.snapshot.customActivityForId(activityId)
+            case final MoodMedicineCustomActivity activity)
+          activityId: activity.label,
+    };
+    final MoodMedicineEntry entry = MoodMedicineEntry(
+      id: _newId(ready.snapshot),
+      occurredAtUtc: occurredAt.toUtc(),
+      localDayKey: moodMedicineLocalDayKey(occurredAt),
+      mood: draft.mood,
+      emotionIds: draft.emotionIds,
+      activityIds: draft.activityIds,
+      note: draft.note,
+      customActivityLabelSnapshots: customSnapshots,
+    );
+    return _persist(
+      ready,
+      ready.snapshot.copyWith(
+        entries: <MoodMedicineEntry>[...ready.snapshot.entries, entry],
+      ),
+      pendingCheckInDraft: draft,
+    );
+  }
+
+  /// Adds a new active custom activity and returns it after persistence succeeds.
+  ///
+  /// Throws [ArgumentError] for a blank [label]. Returns null when history is
+  /// not writable or persistence fails; in the latter case the pending snapshot
+  /// remains available through [retryLastWrite].
+  Future<MoodMedicineCustomActivity?> addCustomActivity(String label) async {
+    final MoodMedicineReadyState? ready = _writableReadyState();
+    final String normalizedLabel = label.trim();
+    if (ready == null) {
+      return null;
+    }
+    if (normalizedLabel.isEmpty) {
+      throw ArgumentError.value(label, 'label', 'Cannot be empty.');
+    }
+    final MoodMedicineCustomActivity activity = MoodMedicineCustomActivity(
+      id: _newId(ready.snapshot),
+      label: normalizedLabel,
+    );
+    final bool didSave = await _persist(
+      ready,
+      ready.snapshot.copyWith(
+        customActivities: <MoodMedicineCustomActivity>[
+          ...ready.snapshot.customActivities,
+          activity,
+        ],
+      ),
+    );
+    return didSave ? activity : null;
+  }
+
+  /// Renames an active custom activity without changing historical snapshots.
+  ///
+  /// Throws [ArgumentError] for a blank [label]. Returns false when history is
+  /// not writable, [id] is not an active custom activity, or the awaited write
+  /// fails; failed writes retain a retryable snapshot.
+  Future<bool> editCustomActivity(String id, String label) async {
+    final MoodMedicineReadyState? ready = _writableReadyState();
+    final String normalizedLabel = label.trim();
+    if (ready == null) {
+      return false;
+    }
+    if (normalizedLabel.isEmpty) {
+      throw ArgumentError.value(label, 'label', 'Cannot be empty.');
+    }
+    bool found = false;
+    final List<MoodMedicineCustomActivity> updated = ready
+        .snapshot
+        .customActivities
+        .map((MoodMedicineCustomActivity activity) {
+          if (activity.id != id) {
+            return activity;
+          }
+          found = true;
+          return activity.copyWith(label: normalizedLabel);
+        })
+        .toList(growable: false);
+    if (!found) {
+      return false;
+    }
+    return _persist(ready, ready.snapshot.copyWith(customActivities: updated));
+  }
+
+  /// Deletes an active custom activity while retaining labelled history.
+  ///
+  /// Returns false when history is not writable, [id] is unknown, or
+  /// persistence fails. Existing entry label snapshots remain unchanged, and a
+  /// failed deletion is retained for [retryLastWrite].
+  Future<bool> deleteCustomActivity(String id) async {
+    final MoodMedicineReadyState? ready = _writableReadyState();
+    if (ready == null) {
+      return false;
+    }
+    final List<MoodMedicineCustomActivity> updated = ready
+        .snapshot
+        .customActivities
+        .where((MoodMedicineCustomActivity activity) => activity.id != id)
+        .toList(growable: false);
+    if (updated.length == ready.snapshot.customActivities.length) {
+      return false;
+    }
+    return _persist(
+      ready,
+      ready.snapshot.copyWith(customActivities: updated),
+      deselectActivityId: id,
+    );
+  }
+
+  /// Hides one stable default activity from future check-ins.
+  ///
+  /// Throws [ArgumentError] when [activityId] is not a stable default ID.
+  /// Returns false when history is not writable or persistence fails; the
+  /// failed snapshot remains retryable without changing historical entries.
+  Future<bool> hideDefaultActivity(String activityId) async {
+    final MoodMedicineReadyState? ready = _writableReadyState();
+    _ensureDefaultActivityId(activityId);
+    if (ready == null) {
+      return false;
+    }
+    return _persist(
+      ready,
+      ready.snapshot.copyWith(
+        hiddenDefaultActivityIds: <String>{
+          ...ready.snapshot.hiddenDefaultActivityIds,
+          activityId,
+        },
+      ),
+      deselectActivityId: activityId,
+    );
+  }
+
+  /// Restores a hidden stable default activity for future check-ins.
+  ///
+  /// Throws [ArgumentError] when [activityId] is not a stable default ID.
+  /// Returns false when history is not writable or persistence fails; the
+  /// failed snapshot remains retryable without changing historical entries.
+  Future<bool> restoreDefaultActivity(String activityId) async {
+    final MoodMedicineReadyState? ready = _writableReadyState();
+    _ensureDefaultActivityId(activityId);
+    if (ready == null) {
+      return false;
+    }
+    final Set<String> updated = <String>{
+      ...ready.snapshot.hiddenDefaultActivityIds,
+    }..remove(activityId);
+    return _persist(
+      ready,
+      ready.snapshot.copyWith(hiddenDefaultActivityIds: updated),
+    );
+  }
+
+  /// Retries the exact snapshot retained after the latest failed write.
+  ///
+  /// Returns false when there is no loaded retry payload or a write is already
+  /// in progress. A failed retry preserves the same snapshot and draft again;
+  /// a successful retry applies the normal successful-write state transition.
+  Future<bool> retryLastWrite() async {
+    final MoodMedicineReadyState? ready = readyState;
+    final MoodMedicinePersistenceState persistence =
+        ready?.persistence ?? const MoodMedicinePersistenceState();
+    final MoodMedicineSnapshot? failedSnapshot = persistence.failedSnapshot;
+    if (ready == null || failedSnapshot == null || persistence.isSaving) {
+      return false;
+    }
+    return _persist(
+      ready,
+      failedSnapshot,
+      pendingCheckInDraft: persistence.pendingCheckInDraft,
+      isRetry: true,
+    );
+  }
+
+  /// Updates the selected report [format] and private-note opt-in setting.
+  void setReportOptions({
+    MoodMedicineReportFormat? format,
+    bool? includeNotes,
+  }) {
+    final MoodMedicineReadyState? ready = readyState;
+    if (ready == null || ready.export.isWorking) {
+      return;
+    }
+    final MoodMedicineReportFormat nextFormat = format ?? ready.export.format;
+    final bool nextIncludeNotes = includeNotes ?? ready.export.includeNotes;
+    if (nextFormat == ready.export.format &&
+        nextIncludeNotes == ready.export.includeNotes &&
+        ready.export.phase == MoodMedicineExportPhase.idle) {
+      return;
+    }
+    _setState(
+      _copyReady(
+        ready,
+        export: MoodMedicineExportState(
+          format: nextFormat,
+          includeNotes: nextIncludeNotes,
+        ),
+      ),
+    );
+  }
+
+  /// Builds the selected report for a preview without invoking platform UI.
+  Future<MoodMedicineBuiltReport?> buildReport() async {
+    final MoodMedicineReadyState? ready = readyState;
+    if (ready == null || ready.export.isWorking) {
+      return null;
+    }
+    final MoodMedicineReportInput? input = _buildReportInput(ready);
+    if (input == null) {
+      return null;
+    }
+    _setState(
+      _copyReady(
+        ready,
+        export: MoodMedicineExportState(
+          format: ready.export.format,
+          includeNotes: ready.export.includeNotes,
+          phase: MoodMedicineExportPhase.building,
+          input: input,
+        ),
+      ),
+    );
+    try {
+      final MoodMedicineBuiltReport report = await _reportExportService.build(
+        input,
+        ready.export.format,
+      );
+      final MoodMedicineReadyState? current = readyState;
+      if (current == null ||
+          current.export.phase != MoodMedicineExportPhase.building ||
+          !identical(current.export.input, input)) {
+        return null;
+      }
+      _setState(
+        _copyReady(
+          current,
+          export: MoodMedicineExportState(
+            format: current.export.format,
+            includeNotes: current.export.includeNotes,
+            phase: MoodMedicineExportPhase.ready,
+            input: input,
+            report: report,
+          ),
+        ),
+      );
+      _emit(MoodMedicineReportReadyEffect(report));
+      return report;
+    } catch (error) {
+      final MoodMedicineReadyState? current = readyState;
+      if (current != null &&
+          current.export.phase == MoodMedicineExportPhase.building &&
+          identical(current.export.input, input)) {
+        _setState(
+          _copyReady(
+            current,
+            export: MoodMedicineExportState(
+              format: current.export.format,
+              includeNotes: current.export.includeNotes,
+              phase: MoodMedicineExportPhase.failed,
+              input: input,
+              error: error,
+            ),
+          ),
+        );
+      }
+      return null;
+    }
+  }
+
+  /// Hands the most recently built report to the existing share/download path.
+  Future<bool> shareBuiltReport({String? shareText}) async {
+    final MoodMedicineReadyState? ready = readyState;
+    final MoodMedicineBuiltReport? report = ready?.export.report;
+    if (ready == null || report == null || ready.export.isWorking) {
+      return false;
+    }
+    _setState(
+      _copyReady(
+        ready,
+        export: MoodMedicineExportState(
+          format: ready.export.format,
+          includeNotes: ready.export.includeNotes,
+          phase: MoodMedicineExportPhase.delivering,
+          input: ready.export.input,
+          report: report,
+        ),
+      ),
+    );
+    try {
+      final MoodMedicineReportDelivery delivery = await _reportExportService
+          .deliver(report, shareText: shareText);
+      final MoodMedicineReadyState? current = readyState;
+      if (current != null &&
+          current.export.phase == MoodMedicineExportPhase.delivering &&
+          identical(current.export.report, report)) {
+        _setState(
+          _copyReady(
+            current,
+            export: MoodMedicineExportState(
+              format: current.export.format,
+              includeNotes: current.export.includeNotes,
+              phase: MoodMedicineExportPhase.ready,
+              input: current.export.input,
+              report: report,
+            ),
+          ),
+        );
+      }
+      _emit(MoodMedicineReportDeliveryEffect(delivery));
+      return delivery.didDeliver;
+    } catch (error) {
+      final MoodMedicineReadyState? current = readyState;
+      if (current != null &&
+          current.export.phase == MoodMedicineExportPhase.delivering &&
+          identical(current.export.report, report)) {
+        _setState(
+          _copyReady(
+            current,
+            export: MoodMedicineExportState(
+              format: current.export.format,
+              includeNotes: current.export.includeNotes,
+              phase: MoodMedicineExportPhase.failed,
+              input: current.export.input,
+              report: report,
+              error: error,
+            ),
+          ),
+        );
+      }
+      return false;
+    }
+  }
+
+  @override
+  void dispose() {
+    _isDisposed = true;
+    unawaited(_effects.close());
+    super.dispose();
+  }
+
+  Future<void> _load({required MoodMedicineInitialView initialView}) async {
+    _initialView = initialView;
+    final int generation = ++_loadGeneration;
+    _setState(MoodMedicineLoadingState(initialView: initialView));
+    late final MoodMedicineLoadResult result;
+    try {
+      result = await _repository.loadSnapshot();
+    } catch (error) {
+      result = MoodMedicineUnreadableSnapshot(
+        MoodMedicineLoadFailure(
+          MoodMedicineLoadFailureKind.readError,
+          cause: error,
+        ),
+      );
+    }
+    if (_isDisposed || generation != _loadGeneration) {
+      return;
+    }
+    switch (result) {
+      case MoodMedicineMissingSnapshot():
+        _setState(
+          _readyState(
+            snapshot: const MoodMedicineSnapshot.empty(),
+            selectedView: initialView,
+          ),
+        );
+      case MoodMedicineLoadedSnapshot(:final MoodMedicineSnapshot snapshot):
+        _setState(_readyState(snapshot: snapshot, selectedView: initialView));
+      case MoodMedicineUnreadableSnapshot(
+        :final MoodMedicineLoadFailure failure,
+      ):
+        _setState(
+          MoodMedicineRecoveryRequiredState(
+            failure: failure,
+            initialView: initialView,
+          ),
+        );
+    }
+  }
+
+  MoodMedicineReadyState _readyState({
+    required MoodMedicineSnapshot snapshot,
+    required MoodMedicineInitialView selectedView,
+    MoodMedicineInsightRange selectedRange = MoodMedicineInsightRange.week,
+    MoodMedicineCheckInForm checkInForm = const MoodMedicineCheckInForm.empty(),
+    bool isCheckInDetailsExpanded = false,
+    String? highlightedActivityId,
+    MoodMedicineReportPresentation? presentation,
+    MoodMedicinePersistenceState persistence =
+        const MoodMedicinePersistenceState(),
+    MoodMedicineExportState export = const MoodMedicineExportState(),
+  }) {
+    return MoodMedicineReadyState(
+      snapshot: snapshot,
+      selectedView: selectedView,
+      selectedRange: selectedRange,
+      dashboard: _dashboard(
+        snapshot: snapshot,
+        range: selectedRange,
+        presentation: presentation,
+      ),
+      checkInForm: checkInForm,
+      isCheckInDetailsExpanded: isCheckInDetailsExpanded,
+      highlightedActivityId: highlightedActivityId,
+      presentation: presentation,
+      persistence: persistence,
+      export: export,
+    );
+  }
+
+  MoodMedicineReadyState _copyReady(
+    MoodMedicineReadyState current, {
+    MoodMedicineSnapshot? snapshot,
+    MoodMedicineInitialView? selectedView,
+    MoodMedicineInsightRange? selectedRange,
+    MoodMedicineCheckInForm? checkInForm,
+    bool? isCheckInDetailsExpanded,
+    Object? highlightedActivityId = _unset,
+    Object? presentation = _unset,
+    MoodMedicinePersistenceState? persistence,
+    MoodMedicineExportState? export,
+  }) {
+    final MoodMedicineSnapshot nextSnapshot = snapshot ?? current.snapshot;
+    final MoodMedicineInsightRange nextRange =
+        selectedRange ?? current.selectedRange;
+    return _readyState(
+      snapshot: nextSnapshot,
+      selectedView: selectedView ?? current.selectedView,
+      selectedRange: nextRange,
+      checkInForm: checkInForm ?? current.checkInForm,
+      isCheckInDetailsExpanded:
+          isCheckInDetailsExpanded ?? current.isCheckInDetailsExpanded,
+      highlightedActivityId: identical(highlightedActivityId, _unset)
+          ? current.highlightedActivityId
+          : highlightedActivityId as String?,
+      presentation: identical(presentation, _unset)
+          ? current.presentation
+          : presentation as MoodMedicineReportPresentation?,
+      persistence: persistence ?? current.persistence,
+      export: export ?? current.export,
+    );
+  }
+
+  MoodMedicineDashboard _dashboard({
+    required MoodMedicineSnapshot snapshot,
+    required MoodMedicineInsightRange range,
+    required MoodMedicineReportPresentation? presentation,
+  }) {
+    final List<MoodMedicineDailySummary> summaries =
+        MoodMedicineInsights.summariesForRange(
+          snapshot.entries,
+          range: range,
+          anchor: _clock(),
+        );
+    final Set<String> dayKeys = summaries
+        .map((MoodMedicineDailySummary summary) => summary.dayKey)
+        .toSet();
+    final Set<String> activityIds = summaries
+        .expand((MoodMedicineDailySummary summary) => summary.activityIds)
+        .toSet();
+    final Map<String, String> rangeLabels = <String, String>{
+      for (final String activityId in activityIds)
+        activityId: _resolveActivityLabel(
+          snapshot: snapshot,
+          activityId: activityId,
+          dayKeys: dayKeys,
+          presentation: presentation,
+        ),
+    };
+    final Map<String, Map<String, String>> dayLabels =
+        <String, Map<String, String>>{
+          for (final MoodMedicineDailySummary summary in summaries)
+            summary.dayKey: <String, String>{
+              for (final String activityId in summary.activityIds)
+                activityId: _resolveActivityLabel(
+                  snapshot: snapshot,
+                  activityId: activityId,
+                  dayKeys: <String>{summary.dayKey},
+                  presentation: presentation,
+                ),
+            },
+        };
+    return MoodMedicineDashboard(
+      summaries: summaries,
+      associations: MoodMedicineInsights.associations(summaries),
+      rangeActivityLabels: rangeLabels,
+      dayActivityLabels: dayLabels,
+    );
+  }
+
+  String _resolveActivityLabel({
+    required MoodMedicineSnapshot snapshot,
+    required String activityId,
+    required Set<String> dayKeys,
+    required MoodMedicineReportPresentation? presentation,
+  }) {
+    MoodMedicineEntry? latestSnapshotEntry;
+    for (final MoodMedicineEntry entry in snapshot.entries) {
+      if (!dayKeys.contains(entry.localDayKey) ||
+          !entry.activityIds.contains(activityId) ||
+          entry.customActivityLabelSnapshots[activityId] == null) {
+        continue;
+      }
+      final DateTime? latestTime = latestSnapshotEntry?.occurredAtUtc;
+      if (latestTime == null || entry.occurredAtUtc.isAfter(latestTime)) {
+        latestSnapshotEntry = entry;
+      }
+    }
+    final String? historicalLabel =
+        latestSnapshotEntry?.customActivityLabelSnapshots[activityId];
+    if (historicalLabel != null && historicalLabel.isNotEmpty) {
+      return historicalLabel;
+    }
+    final MoodMedicineCustomActivity? activeCustom = snapshot
+        .customActivityForId(activityId);
+    if (activeCustom != null) {
+      return activeCustom.label;
+    }
+    return presentation?.defaultActivityLabels[activityId] ?? activityId;
+  }
+
+  MoodMedicineReportInput? _buildReportInput(MoodMedicineReadyState ready) {
+    final MoodMedicineReportPresentation? presentation = ready.presentation;
+    if (presentation == null) {
+      return null;
+    }
+    final Map<String, List<MoodMedicineEntry>> entriesByDay =
+        <String, List<MoodMedicineEntry>>{};
+    for (final MoodMedicineEntry entry in ready.snapshot.entries) {
+      (entriesByDay[entry.localDayKey] ??= <MoodMedicineEntry>[]).add(entry);
+    }
+    final List<MoodMedicineReportDay> days = ready.dashboard.summaries
+        .map((MoodMedicineDailySummary summary) {
+          final List<MoodMedicineEntry> entries =
+              List<MoodMedicineEntry>.from(
+                entriesByDay[summary.dayKey] ?? const <MoodMedicineEntry>[],
+              )..sort(
+                (MoodMedicineEntry a, MoodMedicineEntry b) =>
+                    a.occurredAtUtc.compareTo(b.occurredAtUtc),
+              );
+          final List<String> activityIds = summary.activityIds.toList()..sort();
+          return MoodMedicineReportDay(
+            dayLabel: presentation.dayLabelFor(summary.dayKey),
+            moodAverage: summary.averageMood,
+            activities: activityIds
+                .map(
+                  (String id) =>
+                      ready.dashboard.activityLabelForDay(summary.dayKey, id),
+                )
+                .toList(growable: false),
+            note: entries
+                .where((MoodMedicineEntry entry) => entry.note != null)
+                .map((MoodMedicineEntry entry) => entry.note!)
+                .join('\n'),
+          );
+        })
+        .toList(growable: false);
+    return MoodMedicineReportInput(
+      title: presentation.title,
+      dateRangeLabel:
+          presentation.rangeLabels[ready.selectedRange] ??
+          ready.selectedRange.name,
+      labels: presentation.labels,
+      days: days,
+      associations: ready.dashboard.associations
+          .map(
+            (MoodMedicineAssociation association) =>
+                MoodMedicineReportAssociation(
+                  activityLabel: ready.dashboard.activityLabelForRange(
+                    association.activityId,
+                  ),
+                  withActivityMoodAverage: association.withActivityAverageMood,
+                  withoutActivityMoodAverage:
+                      association.withoutActivityAverageMood,
+                ),
+          )
+          .toList(growable: false),
+      sources: presentation.sources,
+      textDirection: presentation.textDirection,
+      includeNotes: ready.export.includeNotes,
+      fileNameStem: presentation.fileNameStem,
+    );
+  }
+
+  Future<bool> _persist(
+    MoodMedicineReadyState before,
+    MoodMedicineSnapshot next, {
+    MoodMedicineCheckInDraft? pendingCheckInDraft,
+    String? deselectActivityId,
+    bool isRetry = false,
+  }) async {
+    if (_isDisposed ||
+        before.persistence.isSaving ||
+        (!isRetry && before.persistence.hasPendingWrite)) {
+      return false;
+    }
+    _setState(
+      _copyReady(
+        before,
+        persistence: const MoodMedicinePersistenceState(isSaving: true),
+      ),
+    );
+    try {
+      await _repository.saveSnapshot(next);
+    } catch (error) {
+      final MoodMedicineReadyState current = readyState ?? before;
+      _setState(
+        _copyReady(
+          current,
+          persistence: MoodMedicinePersistenceState(
+            failedSnapshot: next,
+            pendingCheckInDraft: pendingCheckInDraft,
+            error: error,
+          ),
+        ),
+      );
+      _emit(MoodMedicinePersistenceFailedEffect(error));
+      return false;
+    }
+
+    final MoodMedicineReadyState current = readyState ?? before;
+    final bool savedCheckIn = pendingCheckInDraft != null;
+    final MoodMedicineCheckInForm nextForm = savedCheckIn
+        ? const MoodMedicineCheckInForm.empty()
+        : _withoutActivity(current.checkInForm, deselectActivityId);
+    _setState(
+      _readyState(
+        snapshot: next,
+        selectedView: savedCheckIn
+            ? MoodMedicineInitialView.insights
+            : current.selectedView,
+        selectedRange: current.selectedRange,
+        checkInForm: nextForm,
+        isCheckInDetailsExpanded: savedCheckIn
+            ? false
+            : current.isCheckInDetailsExpanded,
+        highlightedActivityId: current.highlightedActivityId,
+        presentation: current.presentation,
+        export: _invalidatedExport(current.export),
+      ),
+    );
+    if (savedCheckIn) {
+      _emit(const MoodMedicineCheckInSavedEffect());
+    }
+    return true;
+  }
+
+  MoodMedicineReadyState? _writableReadyState() {
+    final MoodMedicineReadyState? ready = readyState;
+    return ready == null || ready.writesBlocked ? null : ready;
+  }
+
+  MoodMedicineExportState _invalidatedExport(MoodMedicineExportState current) {
+    return MoodMedicineExportState(
+      format: current.format,
+      includeNotes: current.includeNotes,
+    );
+  }
+
+  bool _isSelectableActivity(MoodMedicineSnapshot snapshot, String id) {
+    return (moodMedicineDefaultActivityIds.contains(id) &&
+            !snapshot.hiddenDefaultActivityIds.contains(id)) ||
+        snapshot.customActivityForId(id) != null;
+  }
+
+  void _ensureDefaultActivityId(String activityId) {
+    if (!moodMedicineDefaultActivityIds.contains(activityId)) {
+      throw ArgumentError.value(
+        activityId,
+        'activityId',
+        'Unknown default activity.',
+      );
+    }
+  }
+
+  String _newId(MoodMedicineSnapshot snapshot) {
+    final String id = _idGenerator().trim();
+    final bool collision =
+        moodMedicineDefaultActivityIds.contains(id) ||
+        snapshot.customActivityForId(id) != null ||
+        snapshot.entries.any((MoodMedicineEntry entry) => entry.id == id);
+    if (id.isEmpty || collision) {
+      throw StateError('Mood Medicine id generation must return a new id.');
+    }
+    return id;
+  }
+
+  MoodMedicineCheckInForm _withoutActivity(
+    MoodMedicineCheckInForm form,
+    String? activityId,
+  ) {
+    if (activityId == null || !form.activityIds.contains(activityId)) {
+      return form;
+    }
+    final Set<String> activityIds = <String>{...form.activityIds}
+      ..remove(activityId);
+    return MoodMedicineCheckInForm(
+      mood: form.mood,
+      emotionIds: form.emotionIds,
+      activityIds: activityIds,
+      journalNote: form.journalNote,
+    );
+  }
+
+  void _setState(MoodMedicineViewState value) {
+    if (_isDisposed) {
+      return;
+    }
+    _state = value;
+    notifyListeners();
+  }
+
+  void _emit(MoodMedicineUiEffect effect) {
+    if (!_isDisposed && !_effects.isClosed) {
+      _effects.add(effect);
+    }
+  }
+}
