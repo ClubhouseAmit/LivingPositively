@@ -14,11 +14,17 @@ import 'package:mazilon/pages/MoodMedicine/mood_medicine_view_state.dart';
 import '../../test_support/contract_persistent_memory_service.dart';
 
 final class _Repository implements MoodMedicineRepository {
-  _Repository(this.result, {this.failNextSave = false, this.saveGate});
+  _Repository(
+    this.result, {
+    this.failNextSave = false,
+    this.saveGate,
+    this.nextMutationResult,
+  });
 
   MoodMedicineLoadResult result;
   bool failNextSave;
   Completer<void>? saveGate;
+  MoodMedicineLoadResult? nextMutationResult;
   int loadCount = 0;
   int saveCount = 0;
   final List<MoodMedicineSnapshot> receivedSnapshots = <MoodMedicineSnapshot>[];
@@ -56,6 +62,12 @@ final class _Repository implements MoodMedicineRepository {
     if (failNextSave) {
       failNextSave = false;
       throw StateError('storage unavailable');
+    }
+    final MoodMedicineLoadResult? override = nextMutationResult;
+    if (override != null) {
+      nextMutationResult = null;
+      result = override;
+      return override;
     }
     result = MoodMedicineLoadedSnapshot(snapshot);
     return result;
@@ -300,6 +312,138 @@ void main() {
         expect(rebased.entries.last.activityIds, isEmpty);
         expect(viewModel.readyState!.snapshot.entries, hasLength(2));
         expect(viewModel.readyState!.checkInForm.mood, isNull);
+        viewModel.dispose();
+      },
+    );
+
+    test(
+      'should treat an exact same-id entry as an idempotent check-in retry',
+      () async {
+        final _Repository repository = _Repository(
+          const MoodMedicineMissingSnapshot(),
+          failNextSave: true,
+        );
+        final MoodMedicineViewModel viewModel = _viewModel(
+          repository,
+          _ReportExporter(),
+          idGenerator: () => 'entry-1',
+        );
+        await viewModel.load();
+        viewModel.selectMood(4);
+        viewModel.toggleEmotion('calm');
+        viewModel.toggleActivity('music');
+        viewModel.setJournalNote('private note');
+
+        final Future<MoodMedicineUiEffect> firstFailure =
+            viewModel.effects.first;
+        expect(await viewModel.saveCheckIn(), isFalse);
+        expect(await firstFailure, isA<MoodMedicinePersistenceFailedEffect>());
+        final MoodMedicineSnapshot committed =
+            repository.receivedSnapshots.single;
+        repository.result = MoodMedicineLoadedSnapshot(committed);
+
+        expect(await viewModel.retryLastWrite(), isTrue);
+        final MoodMedicineSnapshot retryResult =
+            repository.receivedSnapshots.last;
+        expect(retryResult.entries, hasLength(1));
+        expect(retryResult.entries.single.id, 'entry-1');
+        expect(retryResult.entries.single.mood, 4);
+        expect(retryResult.entries.single.emotionIds, <String>['calm']);
+        expect(retryResult.entries.single.activityIds, <String>['music']);
+        expect(retryResult.entries.single.note, 'private note');
+        expect(viewModel.readyState!.checkInForm.mood, isNull);
+        viewModel.dispose();
+      },
+    );
+
+    test(
+      'should retain a differing same-id check-in collision without retrying it',
+      () async {
+        final _Repository repository = _Repository(
+          const MoodMedicineMissingSnapshot(),
+          failNextSave: true,
+        );
+        final MoodMedicineViewModel viewModel = _viewModel(
+          repository,
+          _ReportExporter(),
+          idGenerator: _idSequence(<String>['entry-1', 'entry-2']),
+        );
+        await viewModel.load();
+        viewModel.selectMood(4);
+
+        final Future<MoodMedicineUiEffect> firstFailure =
+            viewModel.effects.first;
+        expect(await viewModel.saveCheckIn(), isFalse);
+        expect(await firstFailure, isA<MoodMedicinePersistenceFailedEffect>());
+        final MoodMedicineEntry intended =
+            repository.receivedSnapshots.single.entries.single;
+        repository.result = MoodMedicineLoadedSnapshot(
+          MoodMedicineSnapshot(
+            entries: <MoodMedicineEntry>[
+              MoodMedicineEntry(
+                id: intended.id,
+                occurredAtUtc: intended.occurredAtUtc,
+                localDayKey: intended.localDayKey,
+                mood: 2,
+              ),
+            ],
+          ),
+        );
+
+        final Future<MoodMedicineUiEffect> collisionFailure =
+            viewModel.effects.first;
+        expect(await viewModel.retryLastWrite(), isFalse);
+        final MoodMedicinePersistenceFailedEffect failure =
+            await collisionFailure as MoodMedicinePersistenceFailedEffect;
+        expect(failure.canRetry, isFalse);
+        final MoodMedicineReadyState collisionState = viewModel.readyState!;
+        expect(collisionState.persistence.hasPendingWrite, isFalse);
+        expect(collisionState.persistence.pendingCheckInDraft, isNull);
+        expect(collisionState.persistence.error, isNotNull);
+        expect(collisionState.checkInForm.mood, 4);
+        expect(collisionState.checkInForm.draft, isNotNull);
+        expect(await viewModel.retryLastWrite(), isFalse);
+
+        expect(await viewModel.saveCheckIn(), isTrue);
+        expect(
+          viewModel.readyState!.snapshot.entries.map(
+            (MoodMedicineEntry entry) => entry.id,
+          ),
+          <String>['entry-1', 'entry-2'],
+        );
+        viewModel.dispose();
+      },
+    );
+
+    test(
+      'should retain the check-in when a loaded mutation result misses it',
+      () async {
+        final _Repository repository = _Repository(
+          const MoodMedicineMissingSnapshot(),
+          nextMutationResult: const MoodMedicineLoadedSnapshot(
+            MoodMedicineSnapshot.empty(),
+          ),
+        );
+        final MoodMedicineViewModel viewModel = _viewModel(
+          repository,
+          _ReportExporter(),
+          idGenerator: () => 'entry-1',
+        );
+        await viewModel.load();
+        viewModel.selectMood(4);
+
+        final Future<MoodMedicineUiEffect> failedEffect =
+            viewModel.effects.first;
+        expect(await viewModel.saveCheckIn(), isFalse);
+        expect(await failedEffect, isA<MoodMedicinePersistenceFailedEffect>());
+        final MoodMedicineReadyState failedState = viewModel.readyState!;
+        expect(failedState.snapshot.entries, isEmpty);
+        expect(failedState.checkInForm.mood, 4);
+        expect(failedState.persistence.hasPendingWrite, isTrue);
+        expect(failedState.persistence.pendingCheckInDraft, isNotNull);
+
+        expect(await viewModel.retryLastWrite(), isTrue);
+        expect(viewModel.readyState!.snapshot.entries.single.id, 'entry-1');
         viewModel.dispose();
       },
     );

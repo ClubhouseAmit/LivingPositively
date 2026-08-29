@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:mazilon/global_enums.dart';
 import 'package:mazilon/l10n/app_localizations.dart';
+import 'package:mazilon/pages/MoodMedicine/mood_medicine_models.dart';
 import 'package:mazilon/pages/MoodMedicine/mood_medicine_page.dart';
 import 'package:mazilon/pages/MoodMedicine/mood_medicine_report_exporter.dart';
 import 'package:mazilon/pages/MoodMedicine/mood_medicine_report_renderer.dart';
@@ -164,6 +165,72 @@ void main() {
       expect(viewModel.readyState!.snapshot.entries, hasLength(1));
       expect(viewModel.readyState!.persistence.hasPendingWrite, isFalse);
     });
+
+    testWidgets(
+      'should retain a check-in collision without rendering a retry action',
+      (WidgetTester tester) async {
+        _setLargeScreen(tester);
+        final ContractPersistentMemoryService memory =
+            ContractPersistentMemoryService();
+        var shouldCreateCollision = true;
+        memory.onPersist = (String key, PersistentMemoryType _, Object value) {
+          if (!shouldCreateCollision || key != MoodMedicineStore.snapshotKey) {
+            return;
+          }
+          shouldCreateCollision = false;
+          final MoodMedicineEntry intended = MoodMedicineSnapshot.decode(
+            value as String,
+          ).entries.single;
+          memory.store[key] = MoodMedicineSnapshot(
+            entries: <MoodMedicineEntry>[
+              MoodMedicineEntry(
+                id: intended.id,
+                occurredAtUtc: intended.occurredAtUtc,
+                localDayKey: intended.localDayKey,
+                mood: 2,
+              ),
+            ],
+          ).encode();
+          throw StateError('offline');
+        };
+        final MoodMedicineViewModel viewModel = _viewModel(
+          memory,
+          ids: const <String>['entry-1', 'entry-2'],
+        );
+        await viewModel.load(initialView: MoodMedicineInitialView.checkIn);
+        await tester.pumpWidget(
+          _app(
+            viewModel: viewModel,
+            initialView: MoodMedicineInitialView.checkIn,
+          ),
+        );
+        await tester.pumpAndSettle();
+
+        await tester.tap(find.byKey(const Key('moodMedicineMood4')));
+        await tester.pumpAndSettle();
+        await tester.tap(find.byKey(const Key('moodMedicineSaveCheckIn')));
+        await tester.pumpAndSettle();
+        expect(find.text('Try again'), findsOneWidget);
+
+        await tester.tap(find.text('Try again'));
+        await tester.pumpAndSettle();
+
+        expect(viewModel.readyState!.checkInForm.draft, isNotNull);
+        expect(viewModel.readyState!.persistence.hasPendingWrite, isFalse);
+        expect(find.byType(SnackBar), findsOneWidget);
+        expect(find.byType(SnackBarAction), findsNothing);
+        expect(find.text('Try again'), findsNothing);
+
+        await tester.tap(find.byKey(const Key('moodMedicineSaveCheckIn')));
+        await tester.pumpAndSettle();
+        expect(
+          viewModel.readyState!.snapshot.entries.map(
+            (MoodMedicineEntry entry) => entry.id,
+          ),
+          <String>['entry-1', 'entry-2'],
+        );
+      },
+    );
 
     testWidgets('should use the fixed editor and expanding journal input', (
       WidgetTester tester,

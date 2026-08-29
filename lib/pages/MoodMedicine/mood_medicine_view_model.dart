@@ -36,6 +36,7 @@ final class MoodMedicineViewModel extends ChangeNotifier {
   int _loadGeneration = 0;
   bool _isDisposed = false;
   MoodMedicineSnapshotMutation? _pendingMutation;
+  _MoodMedicineCheckInIntent? _pendingCheckInIntent;
 
   static const Object _unset = Object();
 
@@ -124,6 +125,7 @@ final class MoodMedicineViewModel extends ChangeNotifier {
         ),
       };
       _pendingMutation = null;
+      _pendingCheckInIntent = null;
       _setState(
         _readyState(snapshot: snapshot, selectedView: recovery.initialView),
       );
@@ -326,43 +328,18 @@ final class MoodMedicineViewModel extends ChangeNotifier {
     if (ready == null || sourceDraft == null) {
       return false;
     }
-    final DateTime occurredAt = _clock();
-    final String entryId = _newId(ready.snapshot);
-    return _persist(ready, (MoodMedicineSnapshot currentSnapshot) {
-      if (currentSnapshot.entries.any(
-        (MoodMedicineEntry entry) => entry.id == entryId,
-      )) {
-        return currentSnapshot;
-      }
-      final List<String> activityIds = sourceDraft.activityIds
-          .where((String id) => _isSelectableActivity(currentSnapshot, id))
-          .toList(growable: false);
-      final MoodMedicineCheckInDraft draft = MoodMedicineCheckInDraft(
-        mood: sourceDraft.mood,
-        emotionIds: sourceDraft.emotionIds,
-        activityIds: activityIds,
-        note: sourceDraft.note,
-      );
-      final Map<String, String> customSnapshots = <String, String>{
-        for (final String activityId in draft.activityIds)
-          if (currentSnapshot.customActivityForId(activityId)
-              case final MoodMedicineCustomActivity activity)
-            activityId: activity.label,
-      };
-      final MoodMedicineEntry entry = MoodMedicineEntry(
-        id: entryId,
-        occurredAtUtc: occurredAt.toUtc(),
-        localDayKey: moodMedicineLocalDayKey(occurredAt),
-        mood: draft.mood,
-        emotionIds: draft.emotionIds,
-        activityIds: draft.activityIds,
-        note: draft.note,
-        customActivityLabelSnapshots: customSnapshots,
-      );
-      return currentSnapshot.copyWith(
-        entries: <MoodMedicineEntry>[...currentSnapshot.entries, entry],
-      );
-    }, pendingCheckInDraft: sourceDraft);
+    final _MoodMedicineCheckInIntent intent = _MoodMedicineCheckInIntent(
+      id: _newId(ready.snapshot),
+      occurredAt: _clock(),
+      draft: sourceDraft,
+      isSelectableActivity: _isSelectableActivity,
+    );
+    return _persist(
+      ready,
+      intent.apply,
+      pendingCheckInDraft: intent.draft,
+      checkInIntent: intent,
+    );
   }
 
   /// Adds a new active custom activity and returns it after persistence succeeds.
@@ -521,6 +498,7 @@ final class MoodMedicineViewModel extends ChangeNotifier {
       ready,
       mutation,
       pendingCheckInDraft: persistence.pendingCheckInDraft,
+      checkInIntent: _pendingCheckInIntent,
       isRetry: true,
     );
   }
@@ -958,6 +936,7 @@ final class MoodMedicineViewModel extends ChangeNotifier {
     MoodMedicineReadyState before,
     MoodMedicineSnapshotMutation mutation, {
     MoodMedicineCheckInDraft? pendingCheckInDraft,
+    _MoodMedicineCheckInIntent? checkInIntent,
     String? deselectActivityId,
     bool isRetry = false,
   }) async {
@@ -979,6 +958,7 @@ final class MoodMedicineViewModel extends ChangeNotifier {
       );
       if (result case MoodMedicineUnreadableSnapshot(:final failure)) {
         _pendingMutation = null;
+        _pendingCheckInIntent = null;
         _setState(
           MoodMedicineRecoveryRequiredState(
             failure: failure,
@@ -997,10 +977,27 @@ final class MoodMedicineViewModel extends ChangeNotifier {
           'Unreadable snapshots return before persistence completion.',
         ),
       };
+      if (checkInIntent != null && !checkInIntent.isCommittedIn(next)) {
+        throw const _MoodMedicineCheckInPostconditionFailure();
+      }
       _pendingMutation = null;
+      _pendingCheckInIntent = null;
+    } on _MoodMedicineCheckInCollision catch (error) {
+      final MoodMedicineReadyState current = readyState ?? before;
+      _pendingMutation = null;
+      _pendingCheckInIntent = null;
+      _setState(
+        _copyReady(
+          current,
+          persistence: MoodMedicinePersistenceState(error: error),
+        ),
+      );
+      _emit(MoodMedicinePersistenceFailedEffect(error, canRetry: false));
+      return false;
     } catch (error) {
       final MoodMedicineReadyState current = readyState ?? before;
       _pendingMutation = mutation;
+      _pendingCheckInIntent = checkInIntent;
       _setState(
         _copyReady(
           current,
@@ -1112,4 +1109,113 @@ final class MoodMedicineViewModel extends ChangeNotifier {
       _effects.add(effect);
     }
   }
+}
+
+/// A single immutable check-in save intent retained across an awaited retry.
+///
+/// The draft, identifier, UTC timestamp, and original local day are captured
+/// once. Its pure mutation is then rebased on the latest persisted snapshot so
+/// visibility and custom labels cannot become stale while a write is queued.
+@immutable
+final class _MoodMedicineCheckInIntent {
+  _MoodMedicineCheckInIntent({
+    required String id,
+    required DateTime occurredAt,
+    required MoodMedicineCheckInDraft draft,
+    required this.isSelectableActivity,
+  }) : id = id.trim(),
+       occurredAtUtc = occurredAt.toUtc(),
+       localDayKey = moodMedicineLocalDayKey(occurredAt),
+       draft = MoodMedicineCheckInDraft(
+         mood: draft.mood,
+         emotionIds: draft.emotionIds,
+         activityIds: draft.activityIds,
+         note: draft.note,
+       );
+
+  final String id;
+  final DateTime occurredAtUtc;
+  final String localDayKey;
+  final MoodMedicineCheckInDraft draft;
+  final bool Function(MoodMedicineSnapshot snapshot, String activityId)
+  isSelectableActivity;
+
+  /// Applies this intent to the latest snapshot without mutating captured data.
+  MoodMedicineSnapshot apply(MoodMedicineSnapshot currentSnapshot) {
+    final MoodMedicineEntry intendedEntry = _entryFor(currentSnapshot);
+    final MoodMedicineEntry? existingEntry = _entryWithId(currentSnapshot, id);
+    if (existingEntry != null) {
+      if (_entriesMatch(existingEntry, intendedEntry)) {
+        return currentSnapshot;
+      }
+      throw const _MoodMedicineCheckInCollision();
+    }
+    return currentSnapshot.copyWith(
+      entries: <MoodMedicineEntry>[...currentSnapshot.entries, intendedEntry],
+    );
+  }
+
+  /// Whether a repository result contains this exact rebased check-in entry.
+  bool isCommittedIn(MoodMedicineSnapshot snapshot) {
+    final MoodMedicineEntry intendedEntry = _entryFor(snapshot);
+    final MoodMedicineEntry? existingEntry = _entryWithId(snapshot, id);
+    return existingEntry != null && _entriesMatch(existingEntry, intendedEntry);
+  }
+
+  MoodMedicineEntry _entryFor(MoodMedicineSnapshot snapshot) {
+    final List<String> activityIds = draft.activityIds
+        .where(
+          (String activityId) => isSelectableActivity(snapshot, activityId),
+        )
+        .toList(growable: false);
+    final Map<String, String> customSnapshots = <String, String>{
+      for (final String activityId in activityIds)
+        if (snapshot.customActivityForId(activityId)
+            case final MoodMedicineCustomActivity activity)
+          activityId: activity.label,
+    };
+    return MoodMedicineEntry(
+      id: id,
+      occurredAtUtc: occurredAtUtc,
+      localDayKey: localDayKey,
+      mood: draft.mood,
+      emotionIds: draft.emotionIds,
+      activityIds: activityIds,
+      note: draft.note,
+      customActivityLabelSnapshots: customSnapshots,
+    );
+  }
+}
+
+MoodMedicineEntry? _entryWithId(MoodMedicineSnapshot snapshot, String id) {
+  for (final MoodMedicineEntry entry in snapshot.entries) {
+    if (entry.id == id) {
+      return entry;
+    }
+  }
+  return null;
+}
+
+bool _entriesMatch(MoodMedicineEntry first, MoodMedicineEntry second) {
+  return first.id == second.id &&
+      first.occurredAtUtc == second.occurredAtUtc &&
+      first.localDayKey == second.localDayKey &&
+      first.mood == second.mood &&
+      listEquals(first.emotionIds, second.emotionIds) &&
+      listEquals(first.activityIds, second.activityIds) &&
+      first.note == second.note &&
+      mapEquals(
+        first.customActivityLabelSnapshots,
+        second.customActivityLabelSnapshots,
+      );
+}
+
+/// A generated check-in id already belongs to different persisted content.
+final class _MoodMedicineCheckInCollision implements Exception {
+  const _MoodMedicineCheckInCollision();
+}
+
+/// A repository claimed success without returning the intended check-in entry.
+final class _MoodMedicineCheckInPostconditionFailure implements Exception {
+  const _MoodMedicineCheckInPostconditionFailure();
 }

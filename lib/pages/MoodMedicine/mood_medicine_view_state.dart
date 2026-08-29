@@ -342,10 +342,16 @@ final class MoodMedicineCheckInSavedEffect extends MoodMedicineUiEffect {
 /// Requests the existing retry snackbar after a persistence write failed.
 final class MoodMedicinePersistenceFailedEffect extends MoodMedicineUiEffect {
   /// Creates a persistence-failed effect for [error].
-  const MoodMedicinePersistenceFailedEffect(this.error);
+  ///
+  /// [canRetry] is false when retrying the original mutation cannot succeed,
+  /// such as a generated check-in id that now belongs to different history.
+  const MoodMedicinePersistenceFailedEffect(this.error, {this.canRetry = true});
 
   /// Error retained in state for an explicit retry.
   final Object error;
+
+  /// Whether the page should offer the existing persistence retry action.
+  final bool canRetry;
 }
 
 /// Announces that a report was built and is ready for the preview page.

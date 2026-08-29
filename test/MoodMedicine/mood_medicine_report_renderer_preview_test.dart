@@ -273,6 +273,44 @@ void main() {
         expect(_pdfPageCount(bytes), greaterThan(1));
       },
     );
+
+    test(
+      'should preserve an emoji across the 240-unit content-plan boundary',
+      () {
+        const MoodMedicinePdfReportRenderer renderer =
+            MoodMedicinePdfReportRenderer();
+        final String title = '${List<String>.filled(239, 'a').join()}😀tail';
+        final MoodMedicinePdfContentPlan contentPlan = renderer
+            .buildContentPlanForTesting(
+              _reportInput(
+                sources: <MoodMedicineReportSource>[
+                  MoodMedicineReportSource(
+                    title: title,
+                    url: Uri.parse('https://example.org/source'),
+                  ),
+                ],
+              ),
+            );
+        final List<String> fragments = contentPlan.cards
+            .expand((MoodMedicinePdfContentCard card) => card.fragments)
+            .where(
+              (MoodMedicinePdfContentFragment fragment) =>
+                  fragment.kind == MoodMedicinePdfContentFragmentKind.title,
+            )
+            .map((MoodMedicinePdfContentFragment fragment) => fragment.text)
+            .toList(growable: false);
+
+        expect(fragments, hasLength(2));
+        expect(fragments.first.length, 239);
+        expect(fragments.last, startsWith('😀'));
+        expect(fragments.join(), title);
+        expect(
+          fragments.every((String fragment) => fragment.length <= 240),
+          isTrue,
+        );
+        expect(fragments.every(_hasValidUtf16SurrogatePairs), isTrue);
+      },
+    );
   });
 
   group('MoodMedicineReportPreviewPage', () {
@@ -437,6 +475,25 @@ String _plannedText(
 
 String _withoutLineBreaks(String text) {
   return text.replaceAll(RegExp(r'\r\n|\r|\n'), '');
+}
+
+bool _hasValidUtf16SurrogatePairs(String text) {
+  for (var index = 0; index < text.length; index += 1) {
+    final int codeUnit = text.codeUnitAt(index);
+    if (codeUnit >= 0xd800 && codeUnit <= 0xdbff) {
+      if (index + 1 >= text.length) {
+        return false;
+      }
+      final int followingCodeUnit = text.codeUnitAt(index + 1);
+      if (followingCodeUnit < 0xdc00 || followingCodeUnit > 0xdfff) {
+        return false;
+      }
+      index += 1;
+    } else if (codeUnit >= 0xdc00 && codeUnit <= 0xdfff) {
+      return false;
+    }
+  }
+  return true;
 }
 
 const MoodMedicineReportLabels _reportLabels = MoodMedicineReportLabels(

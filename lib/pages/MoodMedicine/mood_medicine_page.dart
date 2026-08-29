@@ -105,8 +105,8 @@ class _MoodMedicinePageState extends State<MoodMedicinePage> {
             ),
           ),
         );
-      case MoodMedicinePersistenceFailedEffect():
-        _showWriteFailure();
+      case MoodMedicinePersistenceFailedEffect(:final canRetry):
+        _showWriteFailure(canRetry: canRetry);
       case MoodMedicineReportDeliveryEffect(:final delivery):
         if (!delivery.didDeliver &&
             delivery.status != MoodMedicineReportDeliveryStatus.dismissed) {
@@ -124,8 +124,21 @@ class _MoodMedicinePageState extends State<MoodMedicinePage> {
     }
   }
 
-  void _showWriteFailure() {
+  void _showWriteFailure({required bool canRetry}) {
     if (!mounted) {
+      return;
+    }
+    if (!canRetry) {
+      final ScaffoldMessengerState? messenger = ScaffoldMessenger.maybeOf(
+        context,
+      );
+      final AppLocalizations? l10n = AppLocalizations.of(context);
+      if (messenger == null || l10n == null) {
+        return;
+      }
+      messenger
+        ..hideCurrentSnackBar()
+        ..showSnackBar(SnackBar(content: Text(l10n.asyncErrorMessage)));
       return;
     }
     showPersistenceRetrySnackBar(context, () async {
@@ -133,7 +146,7 @@ class _MoodMedicinePageState extends State<MoodMedicinePage> {
       if (!saved &&
           mounted &&
           _viewModel.readyState?.persistence.hasPendingWrite == true) {
-        _showWriteFailure();
+        _showWriteFailure(canRetry: true);
       }
     });
   }

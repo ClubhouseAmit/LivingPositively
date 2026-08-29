@@ -203,10 +203,13 @@ class MoodMedicinePdfReportRenderer {
     for (final String paragraph in line.split(RegExp(r'\r\n|\r|\n'))) {
       var remaining = paragraph;
       while (remaining.length > maximumCharactersPerFragment) {
-        final int limit = maximumCharactersPerFragment;
+        final int limit = _safePdfFragmentEnd(
+          remaining,
+          maximumCharactersPerFragment,
+        );
         final int breakIndex = remaining.lastIndexOf(
           RegExp(r'[\s\u200B]'),
-          limit,
+          limit - 1,
         );
         final int end = breakIndex > 0 ? breakIndex + 1 : limit;
         yield remaining.substring(0, end);
@@ -214,6 +217,22 @@ class MoodMedicinePdfReportRenderer {
       }
       yield remaining;
     }
+  }
+
+  /// Returns a UTF-16 end offset that never separates one Unicode rune.
+  int _safePdfFragmentEnd(String text, int proposedEnd) {
+    if (proposedEnd >= text.length || proposedEnd == 0) {
+      return proposedEnd;
+    }
+
+    final int precedingCodeUnit = text.codeUnitAt(proposedEnd - 1);
+    final int followingCodeUnit = text.codeUnitAt(proposedEnd);
+    final bool splitsSurrogatePair =
+        precedingCodeUnit >= 0xd800 &&
+        precedingCodeUnit <= 0xdbff &&
+        followingCodeUnit >= 0xdc00 &&
+        followingCodeUnit <= 0xdfff;
+    return splitsSurrogatePair ? proposedEnd - 1 : proposedEnd;
   }
 
   pw.Widget _buildPdfSection({
@@ -331,7 +350,7 @@ const int _maximumPdfSourceFragmentsPerCard = 4;
 
 /// Immutable, bounded PDF content consumed by the production renderer.
 @immutable
-class MoodMedicinePdfContentPlan {
+final class MoodMedicinePdfContentPlan {
   MoodMedicinePdfContentPlan({required List<MoodMedicinePdfContentCard> cards})
     : cards = List<MoodMedicinePdfContentCard>.unmodifiable(cards);
 
@@ -343,7 +362,7 @@ enum MoodMedicinePdfContentCardKind { section, source }
 /// A page-safe PDF card. Section cards have at most eight line fragments;
 /// source cards have at most four source fragments.
 @immutable
-class MoodMedicinePdfContentCard {
+final class MoodMedicinePdfContentCard {
   MoodMedicinePdfContentCard({
     required this.kind,
     required List<MoodMedicinePdfContentFragment> fragments,
@@ -372,7 +391,7 @@ enum MoodMedicinePdfContentFragmentKind { line, title, description, url }
 
 /// A text fragment in a [MoodMedicinePdfContentCard].
 @immutable
-class MoodMedicinePdfContentFragment {
+final class MoodMedicinePdfContentFragment {
   const MoodMedicinePdfContentFragment({
     required this.kind,
     required this.text,
