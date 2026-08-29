@@ -74,6 +74,7 @@ class _MenuState extends LPExtendedState<Menu> {
   String version = "1.0.0";
   bool isFullScreen = false;
   late Widget currentScreen;
+  int _homeSessionGeneration = 0;
 
   // Marks that the user has already opened the app before.
   Future<void> markFirstLaunchCompleted() async {
@@ -230,6 +231,7 @@ class _MenuState extends LPExtendedState<Menu> {
   }
 
   Widget _buildHomeScreen() {
+    _homeSessionGeneration++;
     return Home(
       phonePageData: widget.phonePageData,
       changeCurrentIndex: changeCurrentIndex,
@@ -253,13 +255,17 @@ class _MenuState extends LPExtendedState<Menu> {
     });
   }
 
-  Future<void> _openMoodMedicineDailyPromptIfNeeded() async {
+  Future<void> _openMoodMedicineDailyPromptIfNeeded(
+    int homeSessionGeneration,
+  ) async {
     final MoodMedicineViewModel? viewModel = _createMoodMedicineViewModel();
     if (viewModel == null) {
       return;
     }
     await viewModel.load();
-    if (!mounted || current != PagesCode.Home) {
+    if (!mounted ||
+        current != PagesCode.Home ||
+        homeSessionGeneration != _homeSessionGeneration) {
       viewModel.dispose();
       return;
     }
@@ -368,8 +374,11 @@ class _MenuState extends LPExtendedState<Menu> {
     super.initState();
     //this is the initial page
     currentScreen = _buildHomeScreen();
+    final int initialHomeSessionGeneration = _homeSessionGeneration;
     WidgetsBinding.instance.addPostFrameCallback((_) {
-      unawaited(_openMoodMedicineDailyPromptIfNeeded());
+      unawaited(
+        _openMoodMedicineDailyPromptIfNeeded(initialHomeSessionGeneration),
+      );
     });
   }
 

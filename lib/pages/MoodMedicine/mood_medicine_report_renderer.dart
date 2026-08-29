@@ -1,5 +1,6 @@
 import 'dart:ui' as ui;
 
+import 'package:flutter/foundation.dart' show immutable, visibleForTesting;
 import 'package:flutter/services.dart';
 import 'package:pdf/pdf.dart';
 import 'package:pdf/widgets.dart' as pw;
@@ -24,10 +25,7 @@ class MoodMedicinePdfReportRenderer {
         ? pw.Alignment.centerRight
         : pw.Alignment.centerLeft;
     final textAlign = input.isRtl ? pw.TextAlign.right : pw.TextAlign.left;
-    final sections = input.buildSections();
-    final nonSourceSections = sections
-        .where((section) => section.heading != input.labels.sourcesLabel)
-        .toList(growable: false);
+    final MoodMedicinePdfContentPlan contentPlan = _buildContentPlan(input);
 
     final document = pw.Document();
     document.addPage(
@@ -44,32 +42,122 @@ class MoodMedicinePdfReportRenderer {
               textAlign: textAlign,
             ),
           ),
-          for (final section in nonSourceSections)
-            for (final sectionChunk in _splitSectionForPages(section))
-              pw.Directionality(
-                textDirection: textDirection,
-                child: _buildPdfSection(
-                  section: sectionChunk,
+          for (final MoodMedicinePdfContentCard card in contentPlan.cards)
+            pw.Directionality(
+              textDirection: textDirection,
+              child: switch (card.kind) {
+                MoodMedicinePdfContentCardKind.section => _buildPdfSection(
+                  card: card,
                   font: font,
                   alignment: alignment,
                   textAlign: textAlign,
                 ),
-              ),
-          for (final sourceCard in _splitPdfSources(input))
-            pw.Directionality(
-              textDirection: textDirection,
-              child: _buildPdfSourceCard(
-                card: sourceCard,
-                sourceHeading: input.labels.sourcesLabel,
-                font: font,
-                alignment: alignment,
-                textAlign: textAlign,
-              ),
+                MoodMedicinePdfContentCardKind.source => _buildPdfSourceCard(
+                  card: card,
+                  font: font,
+                  alignment: alignment,
+                  textAlign: textAlign,
+                ),
+              },
             ),
         ],
       ),
     );
     return document.save();
+  }
+
+  /// Exposes the same bounded cards consumed by [render] for renderer tests.
+  @visibleForTesting
+  MoodMedicinePdfContentPlan buildContentPlanForTesting(
+    MoodMedicineReportInput input,
+  ) {
+    return _buildContentPlan(input);
+  }
+
+  MoodMedicinePdfContentPlan _buildContentPlan(MoodMedicineReportInput input) {
+    final List<MoodMedicinePdfContentCard> cards =
+        <MoodMedicinePdfContentCard>[];
+    final Iterable<MoodMedicineReportSection> nonSourceSections = input
+        .buildSections()
+        .where((MoodMedicineReportSection section) {
+          return section.heading != input.labels.sourcesLabel;
+        });
+
+    for (final MoodMedicineReportSection section in nonSourceSections) {
+      final List<String> lines = <String>[
+        for (final String line in section.lines) ..._splitPdfLine(line),
+      ];
+      for (
+        var start = 0;
+        start < lines.length;
+        start += _maximumPdfSectionLinesPerCard
+      ) {
+        final int end = start + _maximumPdfSectionLinesPerCard > lines.length
+            ? lines.length
+            : start + _maximumPdfSectionLinesPerCard;
+        cards.add(
+          MoodMedicinePdfContentCard(
+            kind: MoodMedicinePdfContentCardKind.section,
+            heading: section.heading,
+            fragments: <MoodMedicinePdfContentFragment>[
+              for (final String line in lines.sublist(start, end))
+                MoodMedicinePdfContentFragment(
+                  kind: MoodMedicinePdfContentFragmentKind.line,
+                  text: line,
+                ),
+            ],
+          ),
+        );
+      }
+    }
+
+    var includeSourceHeading = true;
+    for (final MoodMedicineReportSource source in input.sources) {
+      final List<MoodMedicinePdfContentFragment> fragments =
+          <MoodMedicinePdfContentFragment>[
+            for (final String title in _splitPdfLine(source.title))
+              MoodMedicinePdfContentFragment(
+                kind: MoodMedicinePdfContentFragmentKind.title,
+                text: title,
+              ),
+            if (source.description?.trim().isNotEmpty ?? false)
+              for (final String description in _splitPdfLine(
+                source.description!.trim(),
+              ))
+                MoodMedicinePdfContentFragment(
+                  kind: MoodMedicinePdfContentFragmentKind.description,
+                  text: description,
+                ),
+            for (final String url in _splitPdfLine(source.url.toString()))
+              MoodMedicinePdfContentFragment(
+                kind: MoodMedicinePdfContentFragmentKind.url,
+                text: url,
+                urlDestination: source.hasSafeHttpsUrl
+                    ? source.url.toString()
+                    : null,
+              ),
+          ];
+      for (
+        var start = 0;
+        start < fragments.length;
+        start += _maximumPdfSourceFragmentsPerCard
+      ) {
+        final int end =
+            start + _maximumPdfSourceFragmentsPerCard > fragments.length
+            ? fragments.length
+            : start + _maximumPdfSourceFragmentsPerCard;
+        cards.add(
+          MoodMedicinePdfContentCard(
+            kind: MoodMedicinePdfContentCardKind.source,
+            heading: includeSourceHeading ? input.labels.sourcesLabel : null,
+            fragments: fragments.sublist(start, end),
+          ),
+        );
+        includeSourceHeading = false;
+      }
+    }
+
+    return MoodMedicinePdfContentPlan(cards: cards);
   }
 
   pw.Widget _buildPdfHeader({
@@ -108,26 +196,6 @@ class MoodMedicinePdfReportRenderer {
     );
   }
 
-  /// Keeps each styled card small enough for [pw.MultiPage] to paginate it.
-  /// A single decorated container cannot itself split across PDF pages.
-  Iterable<MoodMedicineReportSection> _splitSectionForPages(
-    MoodMedicineReportSection section,
-  ) sync* {
-    const int maximumLinesPerCard = 8;
-    final List<String> lines = <String>[
-      for (final line in section.lines) ..._splitPdfLine(line),
-    ];
-    for (var start = 0; start < lines.length; start += maximumLinesPerCard) {
-      final end = start + maximumLinesPerCard > lines.length
-          ? lines.length
-          : start + maximumLinesPerCard;
-      yield MoodMedicineReportSection(
-        heading: section.heading,
-        lines: lines.sublist(start, end),
-      );
-    }
-  }
-
   /// Limits one unbroken report line to a card-friendly amount of text while
   /// preserving the visible content and preferring whitespace/soft-wrap marks.
   Iterable<String> _splitPdfLine(String line) sync* {
@@ -149,7 +217,7 @@ class MoodMedicinePdfReportRenderer {
   }
 
   pw.Widget _buildPdfSection({
-    required MoodMedicineReportSection section,
+    required MoodMedicinePdfContentCard card,
     required pw.Font font,
     required pw.Alignment alignment,
     required pw.TextAlign textAlign,
@@ -168,17 +236,17 @@ class MoodMedicinePdfReportRenderer {
           pw.Align(
             alignment: alignment,
             child: pw.Text(
-              _softWrapReportText(section.heading),
+              _softWrapReportText(card.heading!),
               style: pw.TextStyle(font: font, fontSize: 16),
               textAlign: textAlign,
             ),
           ),
           pw.SizedBox(height: 6),
-          for (final line in section.lines)
+          for (final MoodMedicinePdfContentFragment fragment in card.fragments)
             pw.Padding(
               padding: const pw.EdgeInsets.only(bottom: 4),
               child: pw.Text(
-                _softWrapReportText(line),
+                _softWrapReportText(fragment.text),
                 style: pw.TextStyle(font: font, fontSize: 11),
                 textAlign: textAlign,
               ),
@@ -188,44 +256,8 @@ class MoodMedicinePdfReportRenderer {
     );
   }
 
-  Iterable<_PdfSourceCard> _splitPdfSources(
-    MoodMedicineReportInput input,
-  ) sync* {
-    const int maximumFragmentsPerCard = 4;
-    var includeSourceHeading = true;
-    for (final MoodMedicineReportSource source in input.sources) {
-      final List<_PdfSourceFragment> fragments = <_PdfSourceFragment>[
-        for (final String title in _splitPdfLine(source.title))
-          _PdfSourceFragment(title, _PdfSourceFragmentKind.title),
-        if (source.description?.trim().isNotEmpty ?? false)
-          for (final String description in _splitPdfLine(
-            source.description!.trim(),
-          ))
-            _PdfSourceFragment(description, _PdfSourceFragmentKind.description),
-        for (final String url in _splitPdfLine(source.url.toString()))
-          _PdfSourceFragment(url, _PdfSourceFragmentKind.url),
-      ];
-      for (
-        var start = 0;
-        start < fragments.length;
-        start += maximumFragmentsPerCard
-      ) {
-        final int end = start + maximumFragmentsPerCard > fragments.length
-            ? fragments.length
-            : start + maximumFragmentsPerCard;
-        yield _PdfSourceCard(
-          source: source,
-          fragments: fragments.sublist(start, end),
-          includeSourceHeading: includeSourceHeading,
-        );
-        includeSourceHeading = false;
-      }
-    }
-  }
-
   pw.Widget _buildPdfSourceCard({
-    required _PdfSourceCard card,
-    required String sourceHeading,
+    required MoodMedicinePdfContentCard card,
     required pw.Font font,
     required pw.Alignment alignment,
     required pw.TextAlign textAlign,
@@ -241,34 +273,35 @@ class MoodMedicinePdfReportRenderer {
         mainAxisSize: pw.MainAxisSize.min,
         crossAxisAlignment: pw.CrossAxisAlignment.stretch,
         children: <pw.Widget>[
-          if (card.includeSourceHeading) ...<pw.Widget>[
+          if (card.heading != null) ...<pw.Widget>[
             pw.Align(
               alignment: alignment,
               child: pw.Text(
-                _softWrapReportText(sourceHeading),
+                _softWrapReportText(card.heading!),
                 style: pw.TextStyle(font: font, fontSize: 16),
                 textAlign: textAlign,
               ),
             ),
             pw.SizedBox(height: 6),
           ],
-          for (final _PdfSourceFragment fragment in card.fragments)
+          for (final MoodMedicinePdfContentFragment fragment in card.fragments)
             pw.Padding(
               padding: const pw.EdgeInsets.only(bottom: 4),
               child: switch (fragment.kind) {
-                _PdfSourceFragmentKind.title => pw.Text(
+                MoodMedicinePdfContentFragmentKind.line ||
+                MoodMedicinePdfContentFragmentKind.title => pw.Text(
                   _softWrapReportText(fragment.text),
                   style: pw.TextStyle(font: font, fontSize: 11),
                   textAlign: textAlign,
                 ),
-                _PdfSourceFragmentKind.description => pw.Text(
+                MoodMedicinePdfContentFragmentKind.description => pw.Text(
                   _softWrapReportText(fragment.text),
                   style: pw.TextStyle(font: font, fontSize: 10),
                   textAlign: textAlign,
                 ),
-                _PdfSourceFragmentKind.url => pw.Directionality(
+                MoodMedicinePdfContentFragmentKind.url => pw.Directionality(
                   textDirection: pw.TextDirection.ltr,
-                  child: _buildSourceUrl(card.source, fragment.text, font),
+                  child: _buildSourceUrl(fragment, font),
                 ),
               },
             ),
@@ -278,42 +311,79 @@ class MoodMedicinePdfReportRenderer {
   }
 
   pw.Widget _buildSourceUrl(
-    MoodMedicineReportSource source,
-    String fragment,
+    MoodMedicinePdfContentFragment fragment,
     pw.Font font,
   ) {
-    final urlText = source.url.toString();
     final url = pw.Text(
-      _softWrapReportText(fragment),
+      _softWrapReportText(fragment.text),
       style: pw.TextStyle(font: font, fontSize: 9, color: PdfColors.blue),
       textAlign: pw.TextAlign.left,
     );
-    if (!source.hasSafeHttpsUrl) {
+    if (fragment.urlDestination == null) {
       return url;
     }
-    return pw.UrlLink(destination: urlText, child: url);
+    return pw.UrlLink(destination: fragment.urlDestination!, child: url);
   }
 }
 
-enum _PdfSourceFragmentKind { title, description, url }
+const int _maximumPdfSectionLinesPerCard = 8;
+const int _maximumPdfSourceFragmentsPerCard = 4;
 
-final class _PdfSourceFragment {
-  const _PdfSourceFragment(this.text, this.kind);
+/// Immutable, bounded PDF content consumed by the production renderer.
+@immutable
+class MoodMedicinePdfContentPlan {
+  MoodMedicinePdfContentPlan({required List<MoodMedicinePdfContentCard> cards})
+    : cards = List<MoodMedicinePdfContentCard>.unmodifiable(cards);
 
-  final String text;
-  final _PdfSourceFragmentKind kind;
+  final List<MoodMedicinePdfContentCard> cards;
 }
 
-final class _PdfSourceCard {
-  const _PdfSourceCard({
-    required this.source,
-    required this.fragments,
-    required this.includeSourceHeading,
+enum MoodMedicinePdfContentCardKind { section, source }
+
+/// A page-safe PDF card. Section cards have at most eight line fragments;
+/// source cards have at most four source fragments.
+@immutable
+class MoodMedicinePdfContentCard {
+  MoodMedicinePdfContentCard({
+    required this.kind,
+    required List<MoodMedicinePdfContentFragment> fragments,
+    this.heading,
+  }) : assert(
+         kind != MoodMedicinePdfContentCardKind.section || heading != null,
+       ),
+       assert(
+         kind != MoodMedicinePdfContentCardKind.section ||
+             fragments.length <= _maximumPdfSectionLinesPerCard,
+       ),
+       assert(
+         kind != MoodMedicinePdfContentCardKind.source ||
+             fragments.length <= _maximumPdfSourceFragmentsPerCard,
+       ),
+       fragments = List<MoodMedicinePdfContentFragment>.unmodifiable(fragments);
+
+  final MoodMedicinePdfContentCardKind kind;
+
+  /// The section heading, or the source heading on the first source card.
+  final String? heading;
+  final List<MoodMedicinePdfContentFragment> fragments;
+}
+
+enum MoodMedicinePdfContentFragmentKind { line, title, description, url }
+
+/// A text fragment in a [MoodMedicinePdfContentCard].
+@immutable
+class MoodMedicinePdfContentFragment {
+  const MoodMedicinePdfContentFragment({
+    required this.kind,
+    required this.text,
+    this.urlDestination,
   });
 
-  final MoodMedicineReportSource source;
-  final List<_PdfSourceFragment> fragments;
-  final bool includeSourceHeading;
+  final MoodMedicinePdfContentFragmentKind kind;
+  final String text;
+
+  /// The full safe HTTPS destination, retained while visible URL text splits.
+  final String? urlDestination;
 }
 
 /// Renders the same report content as a portable PNG without relying on a

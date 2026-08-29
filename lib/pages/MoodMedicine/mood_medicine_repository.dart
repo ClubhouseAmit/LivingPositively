@@ -1,15 +1,37 @@
 import 'package:mazilon/pages/MoodMedicine/mood_medicine_models.dart';
 
+/// A synchronous, pure change applied to the latest feature snapshot.
+///
+/// The repository invokes this only after serializing against earlier Mood
+/// Medicine operations. It must return a new immutable snapshot and must not
+/// perform I/O or mutate captured state.
+typedef MoodMedicineSnapshotMutation =
+    MoodMedicineSnapshot Function(MoodMedicineSnapshot current);
+
 /// Feature-local persistence boundary for Mood Medicine snapshots.
 ///
 /// The repository returns a typed load result so an unreadable history is never
 /// mistaken for an empty one and overwritten by an ordinary check-in.
 abstract interface class MoodMedicineRepository {
-  /// Loads the one atomic Mood Medicine snapshot without mutating storage.
+  /// Loads the one atomic Mood Medicine snapshot after earlier feature writes.
   Future<MoodMedicineLoadResult> loadSnapshot();
 
-  /// Persists [snapshot] as one awaited feature-local write.
-  Future<void> saveSnapshot(MoodMedicineSnapshot snapshot);
+  /// Applies [mutation] to the latest valid snapshot and persists it once.
+  ///
+  /// A missing snapshot is treated as an empty v1 snapshot. An unreadable
+  /// snapshot is returned unchanged so normal feature actions cannot overwrite
+  /// it. A successful mutation always returns [MoodMedicineLoadedSnapshot]
+  /// containing the exact committed snapshot.
+  Future<MoodMedicineLoadResult> mutateSnapshot(
+    MoodMedicineSnapshotMutation mutation,
+  );
+
+  /// Clears history only when the queued, latest value remains unreadable.
+  ///
+  /// If another operation has made the history valid before this confirmed
+  /// recovery action reaches the repository, it returns that value without
+  /// replacing it.
+  Future<MoodMedicineLoadResult> discardUnreadableSnapshot();
 }
 
 /// Typed result of a [MoodMedicineRepository.loadSnapshot] attempt.

@@ -7,8 +7,11 @@ import 'package:mazilon/pages/MoodMedicine/mood_medicine_insights.dart';
 import 'package:mazilon/pages/MoodMedicine/mood_medicine_models.dart';
 import 'package:mazilon/pages/MoodMedicine/mood_medicine_report_exporter.dart';
 import 'package:mazilon/pages/MoodMedicine/mood_medicine_repository.dart';
+import 'package:mazilon/pages/MoodMedicine/mood_medicine_store.dart';
 import 'package:mazilon/pages/MoodMedicine/mood_medicine_view_model.dart';
 import 'package:mazilon/pages/MoodMedicine/mood_medicine_view_state.dart';
+
+import '../../test_support/contract_persistent_memory_service.dart';
 
 final class _Repository implements MoodMedicineRepository {
   _Repository(this.result, {this.failNextSave = false, this.saveGate});
@@ -27,7 +30,22 @@ final class _Repository implements MoodMedicineRepository {
   }
 
   @override
-  Future<void> saveSnapshot(MoodMedicineSnapshot snapshot) async {
+  Future<MoodMedicineLoadResult> mutateSnapshot(
+    MoodMedicineSnapshotMutation mutation,
+  ) async {
+    final MoodMedicineLoadResult currentResult = result;
+    if (currentResult is MoodMedicineUnreadableSnapshot) {
+      return currentResult;
+    }
+    final MoodMedicineSnapshot currentSnapshot = switch (currentResult) {
+      MoodMedicineMissingSnapshot() => const MoodMedicineSnapshot.empty(),
+      MoodMedicineLoadedSnapshot(:final MoodMedicineSnapshot snapshot) =>
+        snapshot,
+      MoodMedicineUnreadableSnapshot() => throw StateError(
+        'Unreadable snapshots return before mutation.',
+      ),
+    };
+    final MoodMedicineSnapshot snapshot = mutation(currentSnapshot);
     saveCount += 1;
     receivedSnapshots.add(snapshot);
     final Completer<void>? pendingSave = saveGate;
@@ -40,6 +58,28 @@ final class _Repository implements MoodMedicineRepository {
       throw StateError('storage unavailable');
     }
     result = MoodMedicineLoadedSnapshot(snapshot);
+    return result;
+  }
+
+  @override
+  Future<MoodMedicineLoadResult> discardUnreadableSnapshot() async {
+    if (result is! MoodMedicineUnreadableSnapshot) {
+      return result;
+    }
+    const MoodMedicineSnapshot snapshot = MoodMedicineSnapshot.empty();
+    saveCount += 1;
+    receivedSnapshots.add(snapshot);
+    final Completer<void>? pendingSave = saveGate;
+    if (pendingSave != null) {
+      await pendingSave.future;
+      saveGate = null;
+    }
+    if (failNextSave) {
+      failNextSave = false;
+      throw StateError('storage unavailable');
+    }
+    result = const MoodMedicineLoadedSnapshot(snapshot);
+    return result;
   }
 }
 
@@ -210,7 +250,7 @@ void main() {
     );
 
     test(
-      'should retain the exact filtered check-in snapshot for retry',
+      'should rebase a filtered check-in mutation on newer history during retry',
       () async {
         final _Repository repository = _Repository(
           const MoodMedicineMissingSnapshot(),
@@ -229,18 +269,135 @@ void main() {
 
         expect(await viewModel.saveCheckIn(), isFalse);
         final MoodMedicineReadyState failed = viewModel.readyState!;
-        final MoodMedicineSnapshot pending = failed.persistence.failedSnapshot!;
-        expect(pending.entries.single.activityIds, <String>['music']);
+        expect(failed.persistence.hasPendingWrite, isTrue);
+        expect(
+          repository.receivedSnapshots.single.entries.single.activityIds,
+          <String>['music'],
+        );
         expect(failed.persistence.pendingCheckInDraft!.note, 'private note');
+
+        repository.result = MoodMedicineLoadedSnapshot(
+          MoodMedicineSnapshot(
+            hiddenDefaultActivityIds: const <String>['music'],
+            entries: <MoodMedicineEntry>[
+              MoodMedicineEntry(
+                id: 'external-entry',
+                occurredAtUtc: DateTime.utc(2026, 8, 29, 8),
+                localDayKey: '2026-08-29',
+                mood: 2,
+              ),
+            ],
+          ),
+        );
 
         expect(await viewModel.retryLastWrite(), isTrue);
         expect(repository.receivedSnapshots, hasLength(2));
+        final MoodMedicineSnapshot rebased = repository.receivedSnapshots.last;
         expect(
-          repository.receivedSnapshots.first.encode(),
-          repository.receivedSnapshots.last.encode(),
+          rebased.entries.map((MoodMedicineEntry entry) => entry.id),
+          <String>['external-entry', 'entry-1'],
         );
-        expect(viewModel.readyState!.snapshot.entries, hasLength(1));
+        expect(rebased.entries.last.activityIds, isEmpty);
+        expect(viewModel.readyState!.snapshot.entries, hasLength(2));
         expect(viewModel.readyState!.checkInForm.mood, isNull);
+        viewModel.dispose();
+      },
+    );
+
+    test(
+      'should preserve two factory view-model writes through one serialized store',
+      () async {
+        // Force a normal storage read to keep returning the older committed
+        // snapshot until the held write completes.
+        final ContractPersistentMemoryService memory =
+            ContractPersistentMemoryService(exposePendingWrites: false);
+        final MoodMedicineStore store = MoodMedicineStore(memory);
+        final MoodMedicineViewModel first = MoodMedicineViewModel(
+          store,
+          _ReportExporter(),
+          clock: () => DateTime(2026, 8, 29, 9),
+          idGenerator: () => 'entry-first',
+        );
+        final MoodMedicineViewModel second = MoodMedicineViewModel(
+          store,
+          _ReportExporter(),
+          clock: () => DateTime(2026, 8, 29, 10),
+          idGenerator: () => 'entry-second',
+        );
+        await Future.wait<void>(<Future<void>>[first.load(), second.load()]);
+        first.selectMood(2);
+        second.selectMood(5);
+
+        final Completer<void> firstWriteStarted = Completer<void>();
+        final Completer<void> allowFirstWrite = Completer<void>();
+        var snapshotWriteCount = 0;
+        memory.onPersist = (String key, _, Object _) async {
+          if (key != MoodMedicineStore.snapshotKey ||
+              snapshotWriteCount++ > 0) {
+            return;
+          }
+          firstWriteStarted.complete();
+          await allowFirstWrite.future;
+        };
+
+        final Future<bool> firstSave = first.saveCheckIn();
+        await firstWriteStarted.future;
+        first.dispose();
+
+        final Future<bool> secondSave = second.saveCheckIn();
+        expect(second.readyState!.persistence.isSaving, isTrue);
+
+        allowFirstWrite.complete();
+        expect(await firstSave, isTrue);
+        expect(await secondSave, isTrue);
+
+        final MoodMedicineLoadResult result = await store.loadSnapshot();
+        final MoodMedicineSnapshot snapshot =
+            (result as MoodMedicineLoadedSnapshot).snapshot;
+        expect(
+          snapshot.entries.map((MoodMedicineEntry entry) => entry.id),
+          <String>['entry-first', 'entry-second'],
+        );
+        expect(memory.completedWrites, hasLength(2));
+        second.dispose();
+      },
+    );
+
+    test(
+      'should not discard a now-valid snapshot after a confirmed recovery',
+      () async {
+        final _Repository repository = _Repository(
+          const MoodMedicineUnreadableSnapshot(
+            MoodMedicineLoadFailure(
+              MoodMedicineLoadFailureKind.malformedRecord,
+            ),
+          ),
+        );
+        final MoodMedicineViewModel viewModel = _viewModel(
+          repository,
+          _ReportExporter(),
+          idGenerator: () => 'unused',
+        );
+        await viewModel.load();
+        repository.result = MoodMedicineLoadedSnapshot(
+          MoodMedicineSnapshot(
+            entries: <MoodMedicineEntry>[
+              MoodMedicineEntry(
+                id: 'recovered-entry',
+                occurredAtUtc: DateTime.utc(2026, 8, 29, 8),
+                localDayKey: '2026-08-29',
+                mood: 4,
+              ),
+            ],
+          ),
+        );
+
+        expect(await viewModel.discardUnreadableSnapshot(), isTrue);
+        expect(repository.saveCount, 0);
+        expect(
+          viewModel.readyState!.snapshot.entries.single.id,
+          'recovered-entry',
+        );
         viewModel.dispose();
       },
     );

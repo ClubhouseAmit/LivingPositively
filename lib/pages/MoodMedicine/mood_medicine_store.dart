@@ -13,14 +13,55 @@ final class MoodMedicineStore implements MoodMedicineRepository {
   static const String snapshotKey = 'mood_medicine.snapshot.v1';
 
   final PersistentMemoryService _memoryService;
+  Future<void> _pendingOperation = Future<void>.value();
 
-  /// Loads the local snapshot without converting invalid data into empty data.
+  /// Loads the local snapshot after earlier Mood Medicine operations complete.
   ///
   /// Only an exact empty string is an absent snapshot. A null value, another
   /// type, parser error, unsupported version, or malformed record requires an
   /// explicit feature-only recovery decision in the view model.
   @override
-  Future<MoodMedicineLoadResult> loadSnapshot() async {
+  Future<MoodMedicineLoadResult> loadSnapshot() {
+    return _enqueue(_readSnapshot);
+  }
+
+  @override
+  Future<MoodMedicineLoadResult> mutateSnapshot(
+    MoodMedicineSnapshotMutation mutation,
+  ) {
+    return _enqueue(() async {
+      final MoodMedicineLoadResult currentResult = await _readSnapshot();
+      if (currentResult is MoodMedicineUnreadableSnapshot) {
+        return currentResult;
+      }
+      final MoodMedicineSnapshot currentSnapshot = switch (currentResult) {
+        MoodMedicineMissingSnapshot() => const MoodMedicineSnapshot.empty(),
+        MoodMedicineLoadedSnapshot(:final MoodMedicineSnapshot snapshot) =>
+          snapshot,
+        MoodMedicineUnreadableSnapshot() => throw StateError(
+          'Unreadable snapshots must return before mutation.',
+        ),
+      };
+      final MoodMedicineSnapshot nextSnapshot = mutation(currentSnapshot);
+      await _writeSnapshot(nextSnapshot);
+      return MoodMedicineLoadedSnapshot(nextSnapshot);
+    });
+  }
+
+  @override
+  Future<MoodMedicineLoadResult> discardUnreadableSnapshot() {
+    return _enqueue(() async {
+      final MoodMedicineLoadResult currentResult = await _readSnapshot();
+      if (currentResult is! MoodMedicineUnreadableSnapshot) {
+        return currentResult;
+      }
+      const MoodMedicineSnapshot empty = MoodMedicineSnapshot.empty();
+      await _writeSnapshot(empty);
+      return const MoodMedicineLoadedSnapshot(empty);
+    });
+  }
+
+  Future<MoodMedicineLoadResult> _readSnapshot() async {
     final dynamic rawValue;
     try {
       rawValue = await _memoryService.getItem(
@@ -72,14 +113,23 @@ final class MoodMedicineStore implements MoodMedicineRepository {
     }
   }
 
-  /// Persists [snapshot] under the feature-only namespaced key.
-  @override
-  Future<void> saveSnapshot(MoodMedicineSnapshot snapshot) {
+  Future<void> _writeSnapshot(MoodMedicineSnapshot snapshot) {
     return _memoryService.setItem(
       snapshotKey,
       PersistentMemoryType.String,
       snapshot.encode(),
     );
+  }
+
+  Future<T> _enqueue<T>(Future<T> Function() operation) {
+    final Future<T> queuedOperation = _pendingOperation.then<T>(
+      (_) => operation(),
+    );
+    _pendingOperation = queuedOperation.then<void>(
+      (_) {},
+      onError: (Object _, StackTrace _) {},
+    );
+    return queuedOperation;
   }
 
   /// Legacy snapshot-only adapter.
@@ -97,9 +147,4 @@ final class MoodMedicineStore implements MoodMedicineRepository {
         throw MoodMedicineUnreadableSnapshotException(failure),
     };
   }
-
-  /// Legacy write adapter retained while existing callers migrate to the
-  /// repository boundary.
-  @Deprecated('Use saveSnapshot.')
-  Future<void> save(MoodMedicineSnapshot snapshot) => saveSnapshot(snapshot);
 }

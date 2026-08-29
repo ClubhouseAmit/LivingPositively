@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/widgets.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:get_it/get_it.dart';
@@ -29,6 +31,49 @@ final class _PromptAnalyticsService implements AnalyticsService {
     String eventName, [
     Map<String, dynamic>? properties,
   ]) async {}
+}
+
+/// Holds the first prompt load while later page-scoped view models remain
+/// independently usable. Returning a captured missing outcome lets the tests
+/// prove Menu rejects the stale prompt by Home-session identity, rather than
+/// accidentally passing because a later read sees the new snapshot.
+final class _PromptRaceRepository implements MoodMedicineRepository {
+  final Completer<MoodMedicineLoadResult> _firstLoad =
+      Completer<MoodMedicineLoadResult>();
+  MoodMedicineSnapshot _snapshot = const MoodMedicineSnapshot.empty();
+  int loadCount = 0;
+
+  MoodMedicineSnapshot get snapshot => _snapshot;
+
+  @override
+  Future<MoodMedicineLoadResult> loadSnapshot() {
+    loadCount++;
+    if (loadCount == 1) {
+      return _firstLoad.future;
+    }
+    return Future<MoodMedicineLoadResult>.value(
+      MoodMedicineLoadedSnapshot(_snapshot),
+    );
+  }
+
+  void completeStalePromptLoad() {
+    _firstLoad.complete(const MoodMedicineMissingSnapshot());
+  }
+
+  @override
+  Future<MoodMedicineLoadResult> mutateSnapshot(
+    MoodMedicineSnapshotMutation mutation,
+  ) async {
+    _snapshot = mutation(_snapshot);
+    return MoodMedicineLoadedSnapshot(_snapshot);
+  }
+
+  @override
+  Future<MoodMedicineLoadResult> discardUnreadableSnapshot() {
+    return Future<MoodMedicineLoadResult>.value(
+      MoodMedicineLoadedSnapshot(_snapshot),
+    );
+  }
 }
 
 String _snapshotWithTodayCheckIn() {
@@ -170,6 +215,85 @@ void main() {
         expect(created, hasLength(1));
         expect(page.viewModel, same(created.single));
         expect(page.initialView, MoodMedicineInitialView.checkIn);
+      },
+    );
+
+    testWidgets(
+      'should keep a returned Home session visible when a stale prompt load completes',
+      (WidgetTester tester) async {
+        final _PromptRaceRepository repository = _PromptRaceRepository();
+
+        await pumpMenu(
+          tester,
+          moodMedicineViewModelFactory: () => MoodMedicineViewModel(
+            repository,
+            getIt<MoodMedicineReportExportService>(),
+          ),
+        );
+        await tester.pump();
+        expect(repository.loadCount, 1);
+
+        await tester.tap(find.byKey(const Key('moodMedicineHomeInsights')));
+        await tester.pumpAndSettle();
+        await tester.tap(find.byKey(const Key('bottomNavHome')));
+        await tester.pumpAndSettle();
+        expect(find.byType(Home), findsOneWidget);
+
+        repository.completeStalePromptLoad();
+        await tester.pumpAndSettle();
+
+        expect(find.byType(Home), findsOneWidget);
+        expect(find.byType(MoodMedicinePage), findsNothing);
+      },
+    );
+
+    testWidgets(
+      'should suppress a stale prompt after a concurrent manual same-day check-in',
+      (WidgetTester tester) async {
+        final _PromptRaceRepository repository = _PromptRaceRepository();
+
+        await pumpMenu(
+          tester,
+          moodMedicineViewModelFactory: () => MoodMedicineViewModel(
+            repository,
+            getIt<MoodMedicineReportExportService>(),
+          ),
+        );
+        await tester.pump();
+        expect(repository.loadCount, 1);
+
+        await tester.tap(find.byKey(const Key('mainMenuButton')));
+        await tester.pumpAndSettle();
+        await tester.tap(find.byKey(const Key('moodMedicineQuickCheckIn')));
+        await tester.pumpAndSettle();
+        expect(find.byType(MoodMedicinePage), findsOneWidget);
+
+        await tester.tap(find.byKey(const Key('moodMedicineMood4')));
+        await tester.pumpAndSettle();
+        final Finder checkInScrollable = find.descendant(
+          of: find.byKey(const Key('moodMedicineCheckIn')),
+          matching: find.byType(Scrollable),
+        );
+        await tester.scrollUntilVisible(
+          find.byKey(const Key('moodMedicineSaveCheckIn')),
+          300,
+          scrollable: checkInScrollable.first,
+        );
+        await tester.drag(checkInScrollable.first, const Offset(0, -240));
+        await tester.pumpAndSettle();
+        await tester.tap(find.byKey(const Key('moodMedicineSaveCheckIn')));
+        await tester.pumpAndSettle();
+        expect(repository.snapshot.entries, hasLength(1));
+
+        await tester.tap(find.byKey(const Key('bottomNavHome')));
+        await tester.pumpAndSettle();
+        expect(find.byType(Home), findsOneWidget);
+
+        repository.completeStalePromptLoad();
+        await tester.pumpAndSettle();
+
+        expect(find.byType(Home), findsOneWidget);
+        expect(find.byType(MoodMedicinePage), findsNothing);
       },
     );
 

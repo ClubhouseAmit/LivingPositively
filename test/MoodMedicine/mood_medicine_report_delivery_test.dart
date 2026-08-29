@@ -1,4 +1,4 @@
-import 'dart:io';
+import 'dart:async';
 import 'dart:typed_data';
 
 import 'package:flutter/widgets.dart';
@@ -78,7 +78,7 @@ void main() {
     });
 
     test(
-      'should exercise IO adapter result mappings and file handoff',
+      'should exercise IO adapter result mappings and byte-backed handoff',
       () async {
         final List<
           (
@@ -106,10 +106,6 @@ void main() {
               MoodMedicineReportDeliveryStatus expectedStatus,
             )
             in cases) {
-          final Directory directory = await Directory.systemTemp.createTemp(
-            'mood_medicine_io_delivery_',
-          );
-          addTearDown(() => directory.delete(recursive: true));
           final _RecordingShare share = _RecordingShare(shareStatus);
 
           final MoodMedicineReportDelivery delivery = await report_io
@@ -118,7 +114,6 @@ void main() {
                 fileName: 'report.pdf',
                 mimeType: 'application/pdf',
                 shareText: '  Mood report  ',
-                temporaryDirectory: () async => directory,
                 share: share.call,
               );
 
@@ -126,45 +121,60 @@ void main() {
           final ShareParams params = share.params!;
           expect(params.text, 'Mood report');
           expect(params.fileNameOverrides, <String>['report.pdf']);
+          final XFile file = params.files!.single;
+          expect(file.mimeType, 'application/pdf');
           expect(share.fileBytes, <int>[1, 2, 3]);
-          expect(await File(share.filePath!).exists(), isFalse);
         }
       },
     );
 
-    test('should map IO preparation and share errors to failed', () async {
+    test(
+      'should keep IO handoff bytes isolated from a caller mutation',
+      () async {
+        final Completer<void> shareStarted = Completer<void>();
+        final Completer<void> allowRead = Completer<void>();
+        final _RecordingShare share = _RecordingShare(
+          ShareResultStatus.success,
+          beforeRead: () async {
+            shareStarted.complete();
+            await allowRead.future;
+          },
+        );
+        final Uint8List source = Uint8List.fromList(<int>[1, 2, 3]);
+
+        final Future<MoodMedicineReportDelivery> deliveryFuture = report_io
+            .deliverMoodMedicineIoReportForTesting(
+              bytes: source,
+              fileName: 'report.pdf',
+              mimeType: 'application/pdf',
+              share: share.call,
+            );
+        await shareStarted.future;
+        source[0] = 9;
+        allowRead.complete();
+
+        final MoodMedicineReportDelivery delivery = await deliveryFuture;
+
+        expect(delivery.status, MoodMedicineReportDeliveryStatus.delivered);
+        expect(share.fileBytes, <int>[1, 2, 3]);
+      },
+    );
+
+    test('should map IO share errors to failed', () async {
       final _RecordingShare share = _RecordingShare(
         ShareResultStatus.success,
         error: StateError('share unavailable'),
       );
-      final Directory directory = await Directory.systemTemp.createTemp(
-        'mood_medicine_io_failure_',
-      );
-      addTearDown(() => directory.delete(recursive: true));
 
       final MoodMedicineReportDelivery shareFailure = await report_io
           .deliverMoodMedicineIoReportForTesting(
             bytes: Uint8List.fromList(<int>[1, 2, 3]),
             fileName: 'report.pdf',
             mimeType: 'application/pdf',
-            temporaryDirectory: () async => directory,
-            share: share.call,
-          );
-      final MoodMedicineReportDelivery preparationFailure = await report_io
-          .deliverMoodMedicineIoReportForTesting(
-            bytes: Uint8List.fromList(<int>[1, 2, 3]),
-            fileName: 'report.pdf',
-            mimeType: 'application/pdf',
-            temporaryDirectory: () => throw StateError('no directory'),
             share: share.call,
           );
 
       expect(shareFailure.status, MoodMedicineReportDeliveryStatus.failed);
-      expect(await File(share.filePath!).exists(), isFalse);
-      expect(
-        preparationFailure.status,
-        MoodMedicineReportDeliveryStatus.failed,
-      );
     });
 
     test(
@@ -239,17 +249,12 @@ void main() {
       await GetIt.instance.reset();
       addTearDown(GetIt.instance.reset);
       GetIt.instance.registerSingleton<IncidentLoggerService>(logger);
-      final Directory directory = await Directory.systemTemp.createTemp(
-        'mood_medicine_io_logging_',
-      );
-      addTearDown(() => directory.delete(recursive: true));
 
       final MoodMedicineReportDelivery delivery = await report_io
           .deliverMoodMedicineIoReportForTesting(
             bytes: Uint8List.fromList(<int>[1, 2, 3]),
             fileName: 'report.pdf',
             mimeType: 'application/pdf',
-            temporaryDirectory: () async => directory,
             share: _RecordingShare(
               ShareResultStatus.success,
               error: StateError('private note https://example.test/source'),
@@ -269,19 +274,19 @@ void main() {
 }
 
 final class _RecordingShare {
-  _RecordingShare(this._status, {this.error});
+  _RecordingShare(this._status, {this.error, this.beforeRead});
 
   final ShareResultStatus _status;
   final Object? error;
+  final Future<void> Function()? beforeRead;
   ShareParams? params;
   Uint8List? fileBytes;
-  String? filePath;
 
   Future<ShareResult> call(ShareParams value) async {
     params = value;
+    await beforeRead?.call();
     if (value.files?.isNotEmpty ?? false) {
       final XFile file = value.files!.single;
-      filePath = file.path;
       fileBytes = Uint8List.fromList(await file.readAsBytes());
     }
     if (error != null) {

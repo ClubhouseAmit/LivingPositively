@@ -207,7 +207,7 @@ final class MoodMedicinePersistenceState {
   /// Creates persistence state for a ready Mood Medicine screen.
   const MoodMedicinePersistenceState({
     this.isSaving = false,
-    this.failedSnapshot,
+    this.hasPendingWrite = false,
     this.pendingCheckInDraft,
     this.error,
   });
@@ -215,17 +215,17 @@ final class MoodMedicinePersistenceState {
   /// Whether a write is currently awaiting the repository.
   final bool isSaving;
 
-  /// Exact snapshot to retry after a failed write.
-  final MoodMedicineSnapshot? failedSnapshot;
+  /// Whether the view model retained a feature-local mutation for retry.
+  ///
+  /// The retry intent is deliberately not a stale full snapshot: the
+  /// repository rebases it on the latest committed history.
+  final bool hasPendingWrite;
 
   /// Check-in draft retained only when the failed write was a check-in.
   final MoodMedicineCheckInDraft? pendingCheckInDraft;
 
   /// Write error shown through the existing retry pattern.
   final Object? error;
-
-  /// Whether [failedSnapshot] needs an explicit retry before another write.
-  bool get hasPendingWrite => failedSnapshot != null;
 }
 
 /// Stages for a locally built report and its explicit platform handoff.

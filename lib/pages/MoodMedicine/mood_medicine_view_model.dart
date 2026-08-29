@@ -35,6 +35,7 @@ final class MoodMedicineViewModel extends ChangeNotifier {
   MoodMedicineViewState _state = const MoodMedicineLoadingState();
   int _loadGeneration = 0;
   bool _isDisposed = false;
+  MoodMedicineSnapshotMutation? _pendingMutation;
 
   static const Object _unset = Object();
 
@@ -103,7 +104,30 @@ final class MoodMedicineViewModel extends ChangeNotifier {
       ),
     );
     try {
-      await _repository.saveSnapshot(const MoodMedicineSnapshot.empty());
+      final MoodMedicineLoadResult result = await _repository
+          .discardUnreadableSnapshot();
+      if (result case MoodMedicineUnreadableSnapshot(:final failure)) {
+        _setState(
+          MoodMedicineRecoveryRequiredState(
+            failure: failure,
+            initialView: recovery.initialView,
+          ),
+        );
+        return false;
+      }
+      final MoodMedicineSnapshot snapshot = switch (result) {
+        MoodMedicineMissingSnapshot() => const MoodMedicineSnapshot.empty(),
+        MoodMedicineLoadedSnapshot(:final MoodMedicineSnapshot snapshot) =>
+          snapshot,
+        MoodMedicineUnreadableSnapshot() => throw StateError(
+          'Unreadable snapshots return before recovery completion.',
+        ),
+      };
+      _pendingMutation = null;
+      _setState(
+        _readyState(snapshot: snapshot, selectedView: recovery.initialView),
+      );
+      return true;
     } catch (error) {
       _setState(
         MoodMedicineRecoveryRequiredState(
@@ -114,13 +138,6 @@ final class MoodMedicineViewModel extends ChangeNotifier {
       );
       return false;
     }
-    _setState(
-      _readyState(
-        snapshot: const MoodMedicineSnapshot.empty(),
-        selectedView: recovery.initialView,
-      ),
-    );
-    return true;
   }
 
   /// Returns true only for loaded, writable history with no entry for [now].
@@ -301,7 +318,7 @@ final class MoodMedicineViewModel extends ChangeNotifier {
   ///
   /// Returns false until a writable snapshot is loaded, while another write is
   /// pending, when no valid mood is selected, or when persistence fails. A
-  /// failed write keeps the exact snapshot and draft in state for
+  /// failed write keeps the original draft and a rebased mutation intent for
   /// [retryLastWrite]; a successful save clears the check-in form.
   Future<bool> saveCheckIn() async {
     final MoodMedicineReadyState? ready = _writableReadyState();
@@ -309,46 +326,50 @@ final class MoodMedicineViewModel extends ChangeNotifier {
     if (ready == null || sourceDraft == null) {
       return false;
     }
-    final List<String> activityIds = sourceDraft.activityIds
-        .where((String id) => _isSelectableActivity(ready.snapshot, id))
-        .toList(growable: false);
-    final MoodMedicineCheckInDraft draft = MoodMedicineCheckInDraft(
-      mood: sourceDraft.mood,
-      emotionIds: sourceDraft.emotionIds,
-      activityIds: activityIds,
-      note: sourceDraft.note,
-    );
     final DateTime occurredAt = _clock();
-    final Map<String, String> customSnapshots = <String, String>{
-      for (final String activityId in draft.activityIds)
-        if (ready.snapshot.customActivityForId(activityId)
-            case final MoodMedicineCustomActivity activity)
-          activityId: activity.label,
-    };
-    final MoodMedicineEntry entry = MoodMedicineEntry(
-      id: _newId(ready.snapshot),
-      occurredAtUtc: occurredAt.toUtc(),
-      localDayKey: moodMedicineLocalDayKey(occurredAt),
-      mood: draft.mood,
-      emotionIds: draft.emotionIds,
-      activityIds: draft.activityIds,
-      note: draft.note,
-      customActivityLabelSnapshots: customSnapshots,
-    );
-    return _persist(
-      ready,
-      ready.snapshot.copyWith(
-        entries: <MoodMedicineEntry>[...ready.snapshot.entries, entry],
-      ),
-      pendingCheckInDraft: draft,
-    );
+    final String entryId = _newId(ready.snapshot);
+    return _persist(ready, (MoodMedicineSnapshot currentSnapshot) {
+      if (currentSnapshot.entries.any(
+        (MoodMedicineEntry entry) => entry.id == entryId,
+      )) {
+        return currentSnapshot;
+      }
+      final List<String> activityIds = sourceDraft.activityIds
+          .where((String id) => _isSelectableActivity(currentSnapshot, id))
+          .toList(growable: false);
+      final MoodMedicineCheckInDraft draft = MoodMedicineCheckInDraft(
+        mood: sourceDraft.mood,
+        emotionIds: sourceDraft.emotionIds,
+        activityIds: activityIds,
+        note: sourceDraft.note,
+      );
+      final Map<String, String> customSnapshots = <String, String>{
+        for (final String activityId in draft.activityIds)
+          if (currentSnapshot.customActivityForId(activityId)
+              case final MoodMedicineCustomActivity activity)
+            activityId: activity.label,
+      };
+      final MoodMedicineEntry entry = MoodMedicineEntry(
+        id: entryId,
+        occurredAtUtc: occurredAt.toUtc(),
+        localDayKey: moodMedicineLocalDayKey(occurredAt),
+        mood: draft.mood,
+        emotionIds: draft.emotionIds,
+        activityIds: draft.activityIds,
+        note: draft.note,
+        customActivityLabelSnapshots: customSnapshots,
+      );
+      return currentSnapshot.copyWith(
+        entries: <MoodMedicineEntry>[...currentSnapshot.entries, entry],
+      );
+    }, pendingCheckInDraft: sourceDraft);
   }
 
   /// Adds a new active custom activity and returns it after persistence succeeds.
   ///
   /// Throws [ArgumentError] for a blank [label]. Returns null when history is
-  /// not writable or persistence fails; in the latter case the pending snapshot
-  /// remains available through [retryLastWrite].
+  /// not writable or persistence fails; in the latter case the pending
+  /// mutation remains available through [retryLastWrite].
   Future<MoodMedicineCustomActivity?> addCustomActivity(String label) async {
     final MoodMedicineReadyState? ready = _writableReadyState();
     final String normalizedLabel = label.trim();
@@ -362,15 +383,19 @@ final class MoodMedicineViewModel extends ChangeNotifier {
       id: _newId(ready.snapshot),
       label: normalizedLabel,
     );
-    final bool didSave = await _persist(
-      ready,
-      ready.snapshot.copyWith(
+    final bool didSave = await _persist(ready, (
+      MoodMedicineSnapshot currentSnapshot,
+    ) {
+      if (currentSnapshot.customActivityForId(activity.id) != null) {
+        return currentSnapshot;
+      }
+      return currentSnapshot.copyWith(
         customActivities: <MoodMedicineCustomActivity>[
-          ...ready.snapshot.customActivities,
+          ...currentSnapshot.customActivities,
           activity,
         ],
-      ),
-    );
+      );
+    });
     return didSave ? activity : null;
   }
 
@@ -378,7 +403,7 @@ final class MoodMedicineViewModel extends ChangeNotifier {
   ///
   /// Throws [ArgumentError] for a blank [label]. Returns false when history is
   /// not writable, [id] is not an active custom activity, or the awaited write
-  /// fails; failed writes retain a retryable snapshot.
+  /// fails; failed writes retain a retryable mutation.
   Future<bool> editCustomActivity(String id, String label) async {
     final MoodMedicineReadyState? ready = _writableReadyState();
     final String normalizedLabel = label.trim();
@@ -388,22 +413,25 @@ final class MoodMedicineViewModel extends ChangeNotifier {
     if (normalizedLabel.isEmpty) {
       throw ArgumentError.value(label, 'label', 'Cannot be empty.');
     }
-    bool found = false;
-    final List<MoodMedicineCustomActivity> updated = ready
-        .snapshot
-        .customActivities
-        .map((MoodMedicineCustomActivity activity) {
-          if (activity.id != id) {
-            return activity;
-          }
-          found = true;
-          return activity.copyWith(label: normalizedLabel);
-        })
-        .toList(growable: false);
-    if (!found) {
+    if (ready.snapshot.customActivityForId(id) == null) {
       return false;
     }
-    return _persist(ready, ready.snapshot.copyWith(customActivities: updated));
+    final bool didSave = await _persist(ready, (
+      MoodMedicineSnapshot currentSnapshot,
+    ) {
+      final List<MoodMedicineCustomActivity> updated = currentSnapshot
+          .customActivities
+          .map((MoodMedicineCustomActivity activity) {
+            if (activity.id != id) {
+              return activity;
+            }
+            return activity.copyWith(label: normalizedLabel);
+          })
+          .toList(growable: false);
+      return currentSnapshot.copyWith(customActivities: updated);
+    });
+    return didSave &&
+        readyState?.snapshot.customActivityForId(id)?.label == normalizedLabel;
   }
 
   /// Deletes an active custom activity while retaining labelled history.
@@ -416,26 +444,26 @@ final class MoodMedicineViewModel extends ChangeNotifier {
     if (ready == null) {
       return false;
     }
-    final List<MoodMedicineCustomActivity> updated = ready
-        .snapshot
-        .customActivities
-        .where((MoodMedicineCustomActivity activity) => activity.id != id)
-        .toList(growable: false);
-    if (updated.length == ready.snapshot.customActivities.length) {
+    if (ready.snapshot.customActivityForId(id) == null) {
       return false;
     }
-    return _persist(
-      ready,
-      ready.snapshot.copyWith(customActivities: updated),
-      deselectActivityId: id,
-    );
+    final bool didSave = await _persist(ready, (
+      MoodMedicineSnapshot currentSnapshot,
+    ) {
+      final List<MoodMedicineCustomActivity> updated = currentSnapshot
+          .customActivities
+          .where((MoodMedicineCustomActivity activity) => activity.id != id)
+          .toList(growable: false);
+      return currentSnapshot.copyWith(customActivities: updated);
+    }, deselectActivityId: id);
+    return didSave && readyState?.snapshot.customActivityForId(id) == null;
   }
 
   /// Hides one stable default activity from future check-ins.
   ///
   /// Throws [ArgumentError] when [activityId] is not a stable default ID.
   /// Returns false when history is not writable or persistence fails; the
-  /// failed snapshot remains retryable without changing historical entries.
+  /// failed mutation remains retryable without changing historical entries.
   Future<bool> hideDefaultActivity(String activityId) async {
     final MoodMedicineReadyState? ready = _writableReadyState();
     _ensureDefaultActivityId(activityId);
@@ -444,9 +472,9 @@ final class MoodMedicineViewModel extends ChangeNotifier {
     }
     return _persist(
       ready,
-      ready.snapshot.copyWith(
+      (MoodMedicineSnapshot currentSnapshot) => currentSnapshot.copyWith(
         hiddenDefaultActivityIds: <String>{
-          ...ready.snapshot.hiddenDefaultActivityIds,
+          ...currentSnapshot.hiddenDefaultActivityIds,
           activityId,
         },
       ),
@@ -458,38 +486,40 @@ final class MoodMedicineViewModel extends ChangeNotifier {
   ///
   /// Throws [ArgumentError] when [activityId] is not a stable default ID.
   /// Returns false when history is not writable or persistence fails; the
-  /// failed snapshot remains retryable without changing historical entries.
+  /// failed mutation remains retryable without changing historical entries.
   Future<bool> restoreDefaultActivity(String activityId) async {
     final MoodMedicineReadyState? ready = _writableReadyState();
     _ensureDefaultActivityId(activityId);
     if (ready == null) {
       return false;
     }
-    final Set<String> updated = <String>{
-      ...ready.snapshot.hiddenDefaultActivityIds,
-    }..remove(activityId);
-    return _persist(
-      ready,
-      ready.snapshot.copyWith(hiddenDefaultActivityIds: updated),
-    );
+    return _persist(ready, (MoodMedicineSnapshot currentSnapshot) {
+      final Set<String> updated = <String>{
+        ...currentSnapshot.hiddenDefaultActivityIds,
+      }..remove(activityId);
+      return currentSnapshot.copyWith(hiddenDefaultActivityIds: updated);
+    });
   }
 
-  /// Retries the exact snapshot retained after the latest failed write.
+  /// Retries the mutation retained after the latest failed write.
   ///
   /// Returns false when there is no loaded retry payload or a write is already
-  /// in progress. A failed retry preserves the same snapshot and draft again;
+  /// in progress. A failed retry preserves the same mutation and draft again;
   /// a successful retry applies the normal successful-write state transition.
   Future<bool> retryLastWrite() async {
     final MoodMedicineReadyState? ready = readyState;
     final MoodMedicinePersistenceState persistence =
         ready?.persistence ?? const MoodMedicinePersistenceState();
-    final MoodMedicineSnapshot? failedSnapshot = persistence.failedSnapshot;
-    if (ready == null || failedSnapshot == null || persistence.isSaving) {
+    final MoodMedicineSnapshotMutation? mutation = _pendingMutation;
+    if (ready == null ||
+        mutation == null ||
+        !persistence.hasPendingWrite ||
+        persistence.isSaving) {
       return false;
     }
     return _persist(
       ready,
-      failedSnapshot,
+      mutation,
       pendingCheckInDraft: persistence.pendingCheckInDraft,
       isRetry: true,
     );
@@ -926,7 +956,7 @@ final class MoodMedicineViewModel extends ChangeNotifier {
 
   Future<bool> _persist(
     MoodMedicineReadyState before,
-    MoodMedicineSnapshot next, {
+    MoodMedicineSnapshotMutation mutation, {
     MoodMedicineCheckInDraft? pendingCheckInDraft,
     String? deselectActivityId,
     bool isRetry = false,
@@ -942,15 +972,40 @@ final class MoodMedicineViewModel extends ChangeNotifier {
         persistence: const MoodMedicinePersistenceState(isSaving: true),
       ),
     );
+    late final MoodMedicineSnapshot next;
     try {
-      await _repository.saveSnapshot(next);
+      final MoodMedicineLoadResult result = await _repository.mutateSnapshot(
+        mutation,
+      );
+      if (result case MoodMedicineUnreadableSnapshot(:final failure)) {
+        _pendingMutation = null;
+        _setState(
+          MoodMedicineRecoveryRequiredState(
+            failure: failure,
+            initialView: before.selectedView,
+          ),
+        );
+        return false;
+      }
+      next = switch (result) {
+        MoodMedicineLoadedSnapshot(:final MoodMedicineSnapshot snapshot) =>
+          snapshot,
+        MoodMedicineMissingSnapshot() => throw StateError(
+          'A completed Mood Medicine mutation must return a snapshot.',
+        ),
+        MoodMedicineUnreadableSnapshot() => throw StateError(
+          'Unreadable snapshots return before persistence completion.',
+        ),
+      };
+      _pendingMutation = null;
     } catch (error) {
       final MoodMedicineReadyState current = readyState ?? before;
+      _pendingMutation = mutation;
       _setState(
         _copyReady(
           current,
           persistence: MoodMedicinePersistenceState(
-            failedSnapshot: next,
+            hasPendingWrite: true,
             pendingCheckInDraft: pendingCheckInDraft,
             error: error,
           ),

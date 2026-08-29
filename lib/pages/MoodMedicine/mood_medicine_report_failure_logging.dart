@@ -2,7 +2,7 @@ import 'package:get_it/get_it.dart';
 import 'package:mazilon/util/logger_service.dart';
 
 /// The bounded report stage that failed without exposing report contents.
-enum MoodMedicineReportFailureStage { render, delivery, deliveryCleanup }
+enum MoodMedicineReportFailureStage { render, delivery }
 
 /// Records a privacy-safe report failure through the existing incident logger.
 ///

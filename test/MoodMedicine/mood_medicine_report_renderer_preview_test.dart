@@ -142,26 +142,131 @@ void main() {
     });
 
     testWidgets(
-      'should bound newline-heavy RTL sections and source cards across pages',
+      'should preserve a bounded RTL content plan when rendering across pages',
       (WidgetTester tester) async {
-        final String multilineNote = List<String>.filled(
-          80,
-          'שורת הערה ארוכה עם תוכן רב לדוח',
-        ).join('\n');
-        final String sourceDescription = List<String>.filled(
+        const MoodMedicinePdfReportRenderer renderer =
+            MoodMedicinePdfReportRenderer();
+        final List<String> noteLines = List<String>.generate(
           24,
-          'מקור חינוכי ארוך עם פירוט נוסף',
-        ).join('\n');
+          (int index) => 'הערה ייחודית $index עם פרטי יומן לדוח',
+        );
+        final List<MoodMedicineReportSource> sources =
+            List<MoodMedicineReportSource>.generate(
+              12,
+              (int index) => MoodMedicineReportSource(
+                title:
+                    'כותרת מקור ייחודית $index\nהמשך כותרת מקור ייחודית $index',
+                description:
+                    'תיאור מקור ייחודי $index\nפרט חינוכי ייחודי $index\n'
+                    'הרחבה חינוכית ייחודית $index',
+                url: Uri.parse(
+                  'https://example.org/source-$index/'
+                  '${List<String>.filled(42, 'segment').join('-')}'
+                  '?marker=unique-url-$index',
+                ),
+              ),
+            );
         final MoodMedicineReportInput report = _reportInput(
           rtl: true,
-          note: multilineNote,
-          sourceDescription: sourceDescription,
-          sourceCount: 24,
+          note: noteLines.join('\n'),
+          sources: sources,
         );
+        final MoodMedicinePdfContentPlan contentPlan = renderer
+            .buildContentPlanForTesting(report);
+
+        final List<MoodMedicinePdfContentCard> noteCards = contentPlan.cards
+            .where(
+              (MoodMedicinePdfContentCard card) =>
+                  card.kind == MoodMedicinePdfContentCardKind.section &&
+                  card.heading == report.labels.notesLabel,
+            )
+            .toList(growable: false);
+        final int firstSourceCardIndex = contentPlan.cards.indexWhere(
+          (MoodMedicinePdfContentCard card) =>
+              card.kind == MoodMedicinePdfContentCardKind.source,
+        );
+
+        expect(noteCards, isNotEmpty);
+        expect(firstSourceCardIndex, greaterThan(0));
+        expect(
+          contentPlan.cards
+              .sublist(0, firstSourceCardIndex)
+              .any(
+                (MoodMedicinePdfContentCard card) =>
+                    card.kind == MoodMedicinePdfContentCardKind.section &&
+                    card.heading == report.labels.notesLabel,
+              ),
+          isTrue,
+        );
+        expect(
+          contentPlan.cards
+              .sublist(firstSourceCardIndex)
+              .any(
+                (MoodMedicinePdfContentCard card) =>
+                    card.kind == MoodMedicinePdfContentCardKind.section &&
+                    card.heading == report.labels.notesLabel,
+              ),
+          isFalse,
+        );
+        expect(
+          contentPlan.cards[firstSourceCardIndex].heading,
+          report.labels.sourcesLabel,
+        );
+
+        for (final MoodMedicinePdfContentCard card in contentPlan.cards) {
+          switch (card.kind) {
+            case MoodMedicinePdfContentCardKind.section:
+              expect(card.fragments.length, lessThanOrEqualTo(8));
+              expect(
+                card.fragments.every(
+                  (MoodMedicinePdfContentFragment fragment) =>
+                      fragment.kind == MoodMedicinePdfContentFragmentKind.line,
+                ),
+                isTrue,
+              );
+            case MoodMedicinePdfContentCardKind.source:
+              expect(card.fragments.length, lessThanOrEqualTo(4));
+              expect(
+                card.fragments.every(
+                  (MoodMedicinePdfContentFragment fragment) =>
+                      fragment.kind != MoodMedicinePdfContentFragmentKind.line,
+                ),
+                isTrue,
+              );
+          }
+        }
+
+        final String noteText = _plannedText(
+          noteCards,
+          MoodMedicinePdfContentFragmentKind.line,
+        );
+        for (final String noteLine in noteLines) {
+          expect(noteText, contains(noteLine));
+        }
+        final String titleText = _plannedText(
+          contentPlan.cards,
+          MoodMedicinePdfContentFragmentKind.title,
+        );
+        final String descriptionText = _plannedText(
+          contentPlan.cards,
+          MoodMedicinePdfContentFragmentKind.description,
+        );
+        final String urlText = _plannedText(
+          contentPlan.cards,
+          MoodMedicinePdfContentFragmentKind.url,
+        );
+        for (final MoodMedicineReportSource source in sources) {
+          expect(titleText, contains(_withoutLineBreaks(source.title)));
+          expect(
+            descriptionText,
+            contains(_withoutLineBreaks(source.description!.trim())),
+          );
+          expect(urlText, contains(source.url.toString()));
+        }
 
         final Uint8List bytes = await _runOutsideFakeAsync(
           tester,
-          () => const MoodMedicinePdfReportRenderer().render(report),
+          () => renderer.render(report),
         );
 
         expect(bytes.sublist(0, 4), <int>[0x25, 0x50, 0x44, 0x46]);
@@ -316,6 +421,24 @@ int _pdfPageCount(Uint8List bytes) {
   return RegExp(r'/Type/Page\b').allMatches(document).length;
 }
 
+String _plannedText(
+  Iterable<MoodMedicinePdfContentCard> cards,
+  MoodMedicinePdfContentFragmentKind kind,
+) {
+  return cards
+      .expand(
+        (MoodMedicinePdfContentCard card) => card.fragments.where(
+          (MoodMedicinePdfContentFragment fragment) => fragment.kind == kind,
+        ),
+      )
+      .map((MoodMedicinePdfContentFragment fragment) => fragment.text)
+      .join();
+}
+
+String _withoutLineBreaks(String text) {
+  return text.replaceAll(RegExp(r'\r\n|\r|\n'), '');
+}
+
 const MoodMedicineReportLabels _reportLabels = MoodMedicineReportLabels(
   moodLabel: 'Mood',
   activitiesLabel: 'Activities',
@@ -335,6 +458,7 @@ MoodMedicineReportInput _reportInput({
   String? note,
   int sourceCount = 1,
   int extraDays = 0,
+  List<MoodMedicineReportSource>? sources,
 }) {
   final List<MoodMedicineReportDay> days = <MoodMedicineReportDay>[
     MoodMedicineReportDay(
@@ -356,13 +480,18 @@ MoodMedicineReportInput _reportInput({
     labels: _reportLabels,
     days: days,
     textDirection: rtl ? ui.TextDirection.rtl : ui.TextDirection.ltr,
-    sources: List<MoodMedicineReportSource>.generate(
-      sourceCount,
-      (int index) => MoodMedicineReportSource(
-        title: rtl ? 'מקור ${index + 1}' : 'Source ${index + 1}',
-        description: sourceDescription,
-        url: Uri.parse(sourceUrl ?? 'https://example.org/source/${index + 1}'),
-      ),
-    ),
+    includeNotes: note != null,
+    sources:
+        sources ??
+        List<MoodMedicineReportSource>.generate(
+          sourceCount,
+          (int index) => MoodMedicineReportSource(
+            title: rtl ? 'מקור ${index + 1}' : 'Source ${index + 1}',
+            description: sourceDescription,
+            url: Uri.parse(
+              sourceUrl ?? 'https://example.org/source/${index + 1}',
+            ),
+          ),
+        ),
   );
 }
