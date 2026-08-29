@@ -3,12 +3,12 @@ import 'dart:convert';
 
 import 'package:flutter_test/flutter_test.dart';
 import 'package:mazilon/global_enums.dart';
-import 'package:mazilon/pages/MoodMedicine/mood_medicine_models.dart';
-import 'package:mazilon/pages/MoodMedicine/mood_medicine_repository.dart';
-import 'package:mazilon/pages/MoodMedicine/mood_medicine_store.dart';
+import 'package:mazilon/features/mood_medicine/data/mood_medicine_models.dart';
+import 'package:mazilon/features/mood_medicine/data/mood_medicine_repository.dart';
+import 'package:mazilon/features/mood_medicine/data/mood_medicine_store.dart';
 import 'package:mazilon/util/persistent_memory_service.dart';
 
-import '../../test_support/contract_persistent_memory_service.dart';
+import '../../../test_support/contract_persistent_memory_service.dart';
 
 final class _ValueMemoryService implements PersistentMemoryService {
   _ValueMemoryService(this.value);

@@ -2,8 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:pdf/pdf.dart';
 import 'package:printing/printing.dart';
 
-import 'mood_medicine_report_delivery_types.dart';
-import 'mood_medicine_report_models.dart';
+import 'package:mazilon/features/mood_medicine/data/mood_medicine_report_delivery_types.dart';
+import 'package:mazilon/features/mood_medicine/data/mood_medicine_report_models.dart';
 
 /// Displays a generated Mood Medicine report without invoking print or share.
 ///

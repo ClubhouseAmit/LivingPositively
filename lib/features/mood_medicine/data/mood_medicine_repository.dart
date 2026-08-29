@@ -1,4 +1,4 @@
-import 'package:mazilon/pages/MoodMedicine/mood_medicine_models.dart';
+import 'package:mazilon/features/mood_medicine/data/mood_medicine_models.dart';
 
 /// A synchronous, pure change applied to the latest feature snapshot.
 ///

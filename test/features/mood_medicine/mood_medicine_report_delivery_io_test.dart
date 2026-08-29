@@ -4,9 +4,9 @@ import 'dart:typed_data';
 import 'package:flutter/widgets.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:get_it/get_it.dart';
-import 'package:mazilon/pages/MoodMedicine/mood_medicine_report_delivery_io.dart'
+import 'package:mazilon/features/mood_medicine/data/mood_medicine_report_delivery_io.dart'
     as report_io;
-import 'package:mazilon/pages/MoodMedicine/mood_medicine_report_delivery_types.dart';
+import 'package:mazilon/features/mood_medicine/data/mood_medicine_report_delivery_types.dart';
 import 'package:mazilon/util/logger_service.dart';
 import 'package:share_plus/share_plus.dart';
 

@@ -1,7 +1,7 @@
 import 'package:flutter/widgets.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:mazilon/l10n/app_localizations.dart';
-import 'package:mazilon/pages/MoodMedicine/mood_medicine_content.dart';
+import 'package:mazilon/features/mood_medicine/ui/mood_medicine_content.dart';
 
 void main() {
   group('MoodMedicineContent', () {

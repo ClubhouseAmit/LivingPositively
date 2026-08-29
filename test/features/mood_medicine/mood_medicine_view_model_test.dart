@@ -3,15 +3,15 @@ import 'dart:typed_data';
 import 'dart:ui' show TextDirection;
 
 import 'package:flutter_test/flutter_test.dart';
-import 'package:mazilon/pages/MoodMedicine/mood_medicine_insights.dart';
-import 'package:mazilon/pages/MoodMedicine/mood_medicine_models.dart';
-import 'package:mazilon/pages/MoodMedicine/mood_medicine_report_exporter.dart';
-import 'package:mazilon/pages/MoodMedicine/mood_medicine_repository.dart';
-import 'package:mazilon/pages/MoodMedicine/mood_medicine_store.dart';
-import 'package:mazilon/pages/MoodMedicine/mood_medicine_view_model.dart';
-import 'package:mazilon/pages/MoodMedicine/mood_medicine_view_state.dart';
+import 'package:mazilon/features/mood_medicine/data/mood_medicine_models.dart';
+import 'package:mazilon/features/mood_medicine/data/mood_medicine_report_exporter.dart';
+import 'package:mazilon/features/mood_medicine/data/mood_medicine_repository.dart';
+import 'package:mazilon/features/mood_medicine/data/mood_medicine_store.dart';
+import 'package:mazilon/features/mood_medicine/ui/mood_medicine_insights.dart';
+import 'package:mazilon/features/mood_medicine/ui/mood_medicine_view_model.dart';
+import 'package:mazilon/features/mood_medicine/ui/mood_medicine_view_state.dart';
 
-import '../../test_support/contract_persistent_memory_service.dart';
+import '../../../test_support/contract_persistent_memory_service.dart';
 
 final class _Repository implements MoodMedicineRepository {
   _Repository(

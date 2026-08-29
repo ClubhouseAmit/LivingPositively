@@ -5,22 +5,22 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:get_it/get_it.dart';
 import 'package:mazilon/AnalyticsService.dart';
 import 'package:mazilon/iFx/service_locator.dart';
-import 'package:mazilon/pages/MoodMedicine/mood_medicine_models.dart';
-import 'package:mazilon/pages/MoodMedicine/mood_medicine_page.dart';
-import 'package:mazilon/pages/MoodMedicine/mood_medicine_report_exporter.dart';
-import 'package:mazilon/pages/MoodMedicine/mood_medicine_repository.dart';
-import 'package:mazilon/pages/MoodMedicine/mood_medicine_store.dart';
-import 'package:mazilon/pages/MoodMedicine/mood_medicine_view_model.dart';
-import 'package:mazilon/pages/MoodMedicine/mood_medicine_view_state.dart';
+import 'package:mazilon/features/mood_medicine/data/mood_medicine_models.dart';
+import 'package:mazilon/features/mood_medicine/data/mood_medicine_report_exporter.dart';
+import 'package:mazilon/features/mood_medicine/data/mood_medicine_repository.dart';
+import 'package:mazilon/features/mood_medicine/data/mood_medicine_store.dart';
+import 'package:mazilon/features/mood_medicine/ui/mood_medicine_page.dart';
+import 'package:mazilon/features/mood_medicine/ui/mood_medicine_view_model.dart';
+import 'package:mazilon/features/mood_medicine/ui/mood_medicine_view_state.dart';
 import 'package:mazilon/pages/home.dart';
 import 'package:mazilon/util/appInformation.dart';
 import 'package:mazilon/util/persistent_memory_service.dart';
 import 'package:mazilon/util/userInformation.dart';
 import 'package:package_info_plus/package_info_plus.dart';
 
-import '../MenuTest/TestMenu.dart';
-import '../MenuTest/test_data.dart';
-import '../../test_support/contract_persistent_memory_service.dart';
+import '../../MenuTest/TestMenu.dart';
+import '../../MenuTest/test_data.dart';
+import '../../../test_support/contract_persistent_memory_service.dart';
 
 final class _PromptAnalyticsService implements AnalyticsService {
   @override

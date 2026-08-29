@@ -5,7 +5,7 @@ import 'dart:io';
 
 import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:mazilon/pages/MoodMedicine/mood_medicine_report_delivery.dart';
+import 'package:mazilon/features/mood_medicine/data/mood_medicine_report_delivery.dart';
 
 void main() {
   TestWidgetsFlutterBinding.ensureInitialized();

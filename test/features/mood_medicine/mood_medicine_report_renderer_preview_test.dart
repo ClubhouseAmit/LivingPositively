@@ -4,10 +4,10 @@ import 'dart:ui' as ui;
 
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:mazilon/pages/MoodMedicine/mood_medicine_report_delivery_types.dart';
-import 'package:mazilon/pages/MoodMedicine/mood_medicine_report_models.dart';
-import 'package:mazilon/pages/MoodMedicine/mood_medicine_report_preview.dart';
-import 'package:mazilon/pages/MoodMedicine/mood_medicine_report_renderer.dart';
+import 'package:mazilon/features/mood_medicine/data/mood_medicine_report_delivery_types.dart';
+import 'package:mazilon/features/mood_medicine/data/mood_medicine_report_models.dart';
+import 'package:mazilon/features/mood_medicine/data/mood_medicine_report_renderer.dart';
+import 'package:mazilon/features/mood_medicine/ui/mood_medicine_report_preview.dart';
 import 'package:printing/printing.dart';
 
 void main() {

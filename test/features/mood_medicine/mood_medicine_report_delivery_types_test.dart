@@ -1,7 +1,7 @@
 import 'dart:typed_data';
 
 import 'package:flutter_test/flutter_test.dart';
-import 'package:mazilon/pages/MoodMedicine/mood_medicine_report_delivery_types.dart';
+import 'package:mazilon/features/mood_medicine/data/mood_medicine_report_delivery_types.dart';
 
 void main() {
   group('MoodMedicineBuiltReport', () {

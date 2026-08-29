@@ -1,6 +1,6 @@
 import 'package:mazilon/global_enums.dart';
-import 'package:mazilon/pages/MoodMedicine/mood_medicine_models.dart';
-import 'package:mazilon/pages/MoodMedicine/mood_medicine_repository.dart';
+import 'package:mazilon/features/mood_medicine/data/mood_medicine_models.dart';
+import 'package:mazilon/features/mood_medicine/data/mood_medicine_repository.dart';
 import 'package:mazilon/util/persistent_memory_service.dart';
 
 /// Feature-local persistence adapter. A Settings reset clears this key through

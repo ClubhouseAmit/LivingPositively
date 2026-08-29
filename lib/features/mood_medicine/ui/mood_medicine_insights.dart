@@ -1,6 +1,6 @@
 import 'dart:collection';
 
-import 'package:mazilon/pages/MoodMedicine/mood_medicine_models.dart';
+import 'package:mazilon/features/mood_medicine/data/mood_medicine_models.dart';
 
 /// The supported calendar intervals for the Mood Medicine dashboard.
 enum MoodMedicineInsightRange { day, week, month, year }

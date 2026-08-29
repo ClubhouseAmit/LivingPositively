@@ -4,8 +4,8 @@ import 'dart:ui' show TextDirection;
 import 'package:flutter/widgets.dart' show Widget;
 import 'package:flutter_test/flutter_test.dart';
 import 'package:get_it/get_it.dart';
-import 'package:mazilon/pages/MoodMedicine/mood_medicine_report_exporter.dart';
-import 'package:mazilon/pages/MoodMedicine/mood_medicine_report_renderer.dart';
+import 'package:mazilon/features/mood_medicine/data/mood_medicine_report_exporter.dart';
+import 'package:mazilon/features/mood_medicine/data/mood_medicine_report_renderer.dart';
 import 'package:mazilon/util/logger_service.dart';
 
 void main() {

@@ -3,11 +3,11 @@ import 'dart:ui' show TextDirection;
 
 import 'package:flutter/foundation.dart';
 
-import 'package:mazilon/pages/MoodMedicine/mood_medicine_insights.dart';
-import 'package:mazilon/pages/MoodMedicine/mood_medicine_models.dart';
-import 'package:mazilon/pages/MoodMedicine/mood_medicine_report_delivery_types.dart';
-import 'package:mazilon/pages/MoodMedicine/mood_medicine_report_models.dart';
-import 'package:mazilon/pages/MoodMedicine/mood_medicine_repository.dart';
+import 'package:mazilon/features/mood_medicine/data/mood_medicine_models.dart';
+import 'package:mazilon/features/mood_medicine/data/mood_medicine_report_delivery_types.dart';
+import 'package:mazilon/features/mood_medicine/data/mood_medicine_report_models.dart';
+import 'package:mazilon/features/mood_medicine/data/mood_medicine_repository.dart';
+import 'package:mazilon/features/mood_medicine/ui/mood_medicine_insights.dart';
 
 /// The first surface selected when a Mood Medicine page is composed.
 enum MoodMedicineInitialView { checkIn, insights, education }

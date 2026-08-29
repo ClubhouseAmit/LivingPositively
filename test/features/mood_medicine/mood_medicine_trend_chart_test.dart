@@ -3,7 +3,7 @@ import 'dart:ui' as ui;
 
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:mazilon/pages/MoodMedicine/mood_medicine_trend_chart.dart';
+import 'package:mazilon/features/mood_medicine/ui/mood_medicine_trend_chart.dart';
 
 const Size _chartSize = Size(300, 190);
 

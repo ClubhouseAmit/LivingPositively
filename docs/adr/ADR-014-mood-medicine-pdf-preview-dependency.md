@@ -21,7 +21,7 @@ The repository collaborator explicitly approves the direct dependency
 `printing: ^5.15.0` for Issue #357.
 
 - Use it only for the display-only `PdfPreview` in
-  `lib/pages/MoodMedicine/mood_medicine_report_preview.dart`.
+  `lib/features/mood_medicine/ui/mood_medicine_report_preview.dart`.
 - Preview a fixed A4 report with printing, sharing, page-format changes,
   orientation changes, debug controls, and dynamic layout disabled.
 - Keep the existing explicit Share action as the sole route to the system
@@ -44,5 +44,5 @@ The repository collaborator explicitly approves the direct dependency
 - Issue #357 — Mood Tracker & Personal Medicine
 - PR #372 — Mood Medicine implementation and review fixes
 - `pubspec.yaml` — approved direct dependency declaration
-- `lib/pages/MoodMedicine/mood_medicine_report_preview.dart` — sole production
+- `lib/features/mood_medicine/ui/mood_medicine_report_preview.dart` — sole production
   `PdfPreview` consumer
