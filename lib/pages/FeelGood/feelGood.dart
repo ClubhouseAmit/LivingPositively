@@ -11,6 +11,7 @@ import 'package:mazilon/pages/FeelGood/image_display_item.dart';
 import 'package:mazilon/pages/FeelGood/image_picker_service_impl.dart';
 import 'package:mazilon/util/LP_extended_state.dart';
 import 'package:mazilon/util/async/async_state_view.dart';
+import 'package:mazilon/util/layout/directional_widgets.dart';
 import 'package:mazilon/util/styles.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:mazilon/util/userInformation.dart';
@@ -141,8 +142,7 @@ class _FeelGoodPageState extends LPExtendedState<FeelGood> {
           child: SafeArea(
             child: SizedBox(
               height: 130.0,
-              child: Image.asset(
-                'assets/images/Logo.png',
+              child: LivingPositivelyLogo(
                 width: MediaQuery.of(context).size.width * 0.4 > 1000
                     ? 500
                     : MediaQuery.of(context).size.width * 0.2,

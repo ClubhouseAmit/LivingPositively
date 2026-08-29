@@ -6,6 +6,7 @@ import 'package:mazilon/pages/WellnessTools/VideoPlayerInheritedWidget.dart';
 import 'package:mazilon/pages/WellnessTools/VideoPlayerPageFactory.dart';
 import 'package:mazilon/pages/WellnessTools/more_videos_item.dart';
 import 'package:mazilon/util/LP_extended_state.dart';
+import 'package:mazilon/util/layout/directional_widgets.dart';
 import 'package:mazilon/util/styles.dart';
 import 'package:mazilon/util/theme/spacing.dart';
 import 'package:youtube_player_flutter/youtube_player_flutter.dart';
@@ -192,8 +193,7 @@ class _WellnessToolsState extends LPExtendedState<WellnessTools> {
                     child: Center(
                       child: SizedBox(
                         height: 130.0,
-                        child: Image.asset(
-                          'assets/images/Logo.png',
+                        child: LivingPositivelyLogo(
                           width: MediaQuery.sizeOf(context).width * 0.4 > 1000
                               ? 500
                               : MediaQuery.sizeOf(context).width,
