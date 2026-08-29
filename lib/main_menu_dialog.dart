@@ -47,6 +47,7 @@ List<Widget> buildMainMenuItems({
   required bool isWeb,
   required VoidCallback onAboutPressed,
   required VoidCallback onNotificationsPressed,
+  VoidCallback? onMoodMedicinePressed,
   VoidCallback? onAnyPressed,
 }) {
   final gender = userInformation.gender;
@@ -69,6 +70,15 @@ List<Widget> buildMainMenuItems({
           onNotificationsPressed();
         },
         child: Text(appLocale.notifications(gender)),
+      ),
+    if (onMoodMedicinePressed != null)
+      MenuItemButton(
+        leadingIcon: const Icon(Icons.mood_outlined),
+        onPressed: () {
+          onAnyPressed?.call();
+          onMoodMedicinePressed();
+        },
+        child: Text(appLocale.moodMedicineQuickCheckIn),
       ),
     MenuItemButton(
       leadingIcon: const Icon(Icons.settings),
@@ -121,6 +131,7 @@ class MainMenuAnchor extends StatelessWidget {
   final bool isWeb;
   final VoidCallback onAboutPressed;
   final VoidCallback onNotificationsPressed;
+  final VoidCallback? onMoodMedicinePressed;
   final Widget? child;
 
   const MainMenuAnchor({
@@ -130,6 +141,7 @@ class MainMenuAnchor extends StatelessWidget {
     required this.changeLocale,
     required this.onAboutPressed,
     required this.onNotificationsPressed,
+    this.onMoodMedicinePressed,
     this.isWeb = kIsWeb,
     this.child,
   });
@@ -191,6 +203,7 @@ class MainMenuAnchor extends StatelessWidget {
         isWeb: isWeb,
         onAboutPressed: onAboutPressed,
         onNotificationsPressed: onNotificationsPressed,
+        onMoodMedicinePressed: onMoodMedicinePressed,
       ),
     );
   }
@@ -206,6 +219,7 @@ void showMainMenuDialog({
   required bool isWeb,
   required VoidCallback onAboutPressed,
   required VoidCallback onNotificationsPressed,
+  VoidCallback? onMoodMedicinePressed,
 }) {
   showDialog(
     context: context,
@@ -236,6 +250,7 @@ void showMainMenuDialog({
                 isWeb: isWeb,
                 onAboutPressed: onAboutPressed,
                 onNotificationsPressed: onNotificationsPressed,
+                onMoodMedicinePressed: onMoodMedicinePressed,
                 onAnyPressed: () {
                   Navigator.of(dialogContext).pop();
                 },

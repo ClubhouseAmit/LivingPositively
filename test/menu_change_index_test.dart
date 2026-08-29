@@ -12,6 +12,8 @@ import 'package:mazilon/iFx/service_locator.dart';
 import 'package:mazilon/pages/FeelGood/feelGood.dart';
 import 'package:mazilon/pages/FeelGood/image_picker_service_impl.dart';
 import 'package:mazilon/pages/PersonalPlan/myPlanPageFull.dart';
+import 'package:mazilon/pages/MoodMedicine/mood_medicine_models.dart';
+import 'package:mazilon/pages/MoodMedicine/mood_medicine_store.dart';
 import 'package:mazilon/pages/about.dart';
 import 'package:mazilon/pages/home.dart';
 import 'package:mazilon/pages/journal.dart';
@@ -47,6 +49,20 @@ final class _FakePersistentMemoryService
       }
     };
   }
+}
+
+String _completedMoodMedicineSnapshot() {
+  final DateTime now = DateTime.now();
+  return MoodMedicineSnapshot(
+    entries: <MoodMedicineEntry>[
+      MoodMedicineEntry(
+        id: 'existing-mood-entry',
+        occurredAtUtc: now.toUtc(),
+        localDayKey: moodMedicineLocalDayKey(now),
+        mood: 3,
+      ),
+    ],
+  ).encode();
 }
 
 class _FakeAnalytics implements AnalyticsService {
@@ -107,6 +123,7 @@ void main() {
           'location': '',
           'phonePageDataSavedPhoneNames': <String>[],
           'phonePageDataSavedPhoneNumbers': <String>[],
+          MoodMedicineStore.snapshotKey: _completedMoodMedicineSnapshot(),
         },
       ),
     );

@@ -26,6 +26,7 @@ class Home extends StatefulWidget {
   final Function(BuildContext, PagesCode) changeCurrentIndex;
   final Function changeLocale;
   final void Function(BuildContext) openMainMenu;
+  final VoidCallback? openMoodMedicineCheckIn;
 
   const Home({
     super.key,
@@ -33,6 +34,7 @@ class Home extends StatefulWidget {
     required this.changeCurrentIndex,
     required this.changeLocale,
     required this.openMainMenu,
+    this.openMoodMedicineCheckIn,
   });
 
   @override
@@ -165,6 +167,7 @@ class _HomeState extends LPExtendedState<Home> {
                       PagesCode.NotificationPage,
                     );
                   },
+                  onMoodMedicinePressed: widget.openMoodMedicineCheckIn,
                 ),
                 onMenuTap: () => widget.openMainMenu(context),
               ),
@@ -176,6 +179,43 @@ class _HomeState extends LPExtendedState<Home> {
                 reminders: reminderItems,
                 onEdit: (index) => _editReminderDialog(context, reminderText),
               ),
+              SizedBox(height: AppSpacing.xl),
+
+              Card(
+                child: Padding(
+                  padding: const EdgeInsets.all(16),
+                  child: Row(
+                    children: [
+                      Icon(
+                        Icons.insights_outlined,
+                        color: Theme.of(context).colorScheme.primary,
+                      ),
+                      const SizedBox(width: 12),
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              appLocale.moodMedicineTitle,
+                              style: Theme.of(context).textTheme.titleMedium,
+                            ),
+                            const SizedBox(height: 4),
+                            Text(appLocale.moodMedicineSubtitle),
+                          ],
+                        ),
+                      ),
+                      TextButton(
+                        onPressed: () => widget.changeCurrentIndex(
+                          context,
+                          PagesCode.MoodMedicinePage,
+                        ),
+                        child: Text(appLocale.moodMedicineViewInsights),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+
               SizedBox(height: AppSpacing.xl),
 
               // My Plan

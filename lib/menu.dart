@@ -12,6 +12,9 @@ import 'package:mazilon/global_enums.dart';
 import 'package:mazilon/main_menu_dialog.dart';
 import 'package:mazilon/pages/about.dart';
 import 'package:mazilon/pages/FeelGood/feelGood.dart';
+import 'package:mazilon/pages/MoodMedicine/mood_medicine_models.dart';
+import 'package:mazilon/pages/MoodMedicine/mood_medicine_page.dart';
+import 'package:mazilon/pages/MoodMedicine/mood_medicine_store.dart';
 import 'package:mazilon/pages/WellnessTools/wellnessTools.dart';
 import 'package:mazilon/pages/notifications/notification_page.dart';
 import 'package:mazilon/pages/notifications/notification_service.dart';
@@ -156,6 +159,9 @@ class _MenuState extends LPExtendedState<Menu> {
         currentScreen = NotificationPage();
       } else if (index == PagesCode.FeelGoodPage) {
         currentScreen = FeelGood();
+      } else if (index == PagesCode.MoodMedicinePage) {
+        mixPanelService.trackEvent("Viewed Mood Medicine Insights");
+        currentScreen = const MoodMedicinePage();
       } /*else if (index == 9) {
         currentScreen = syncDevicesRealTime(
             collections: widget.collections,
@@ -212,7 +218,41 @@ class _MenuState extends LPExtendedState<Menu> {
       changeCurrentIndex: changeCurrentIndex,
       changeLocale: widget.changeLocale,
       openMainMenu: _showMainMenu,
+      openMoodMedicineCheckIn: _showMoodMedicineCheckIn,
     );
+  }
+
+  void _showMoodMedicineCheckIn() {
+    setState(() {
+      current = PagesCode.MoodMedicinePage;
+      currentScreen = const MoodMedicinePage(
+        initialView: MoodMedicineInitialView.checkIn,
+      );
+    });
+  }
+
+  Future<void> _openMoodMedicineDailyPromptIfNeeded() async {
+    final MoodMedicineStore store = MoodMedicineStore(
+      GetIt.instance<PersistentMemoryService>(),
+    );
+    MoodMedicineSnapshot snapshot;
+    try {
+      snapshot = await store.load();
+    } catch (_) {
+      // A failed local read must not be treated as an incomplete check-in.
+      // The user can still start one from the explicit menu entry.
+      return;
+    }
+    if (!mounted || current != PagesCode.Home) {
+      return;
+    }
+    final String today = moodMedicineLocalDayKey(DateTime.now());
+    final bool hasCompletedToday = snapshot.entries.any(
+      (entry) => entry.localDayKey == today,
+    );
+    if (!hasCompletedToday) {
+      _showMoodMedicineCheckIn();
+    }
   }
 
   void _showWellnessTools(AppInformation appInfoProvider) {
@@ -254,6 +294,7 @@ class _MenuState extends LPExtendedState<Menu> {
           current = PagesCode.NotificationPage;
         });
       },
+      onMoodMedicinePressed: _showMoodMedicineCheckIn,
     );
   }
 
@@ -291,6 +332,9 @@ class _MenuState extends LPExtendedState<Menu> {
     super.initState();
     //this is the initial page
     currentScreen = _buildHomeScreen();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      unawaited(_openMoodMedicineDailyPromptIfNeeded());
+    });
   }
 
   @override
