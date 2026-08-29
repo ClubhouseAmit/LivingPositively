@@ -38,6 +38,7 @@ MoodMedicineReportExportService _reportExportService({
   MoodMedicineReportDeliveryStatus deliveryStatus =
       MoodMedicineReportDeliveryStatus.delivered,
   Object? buildError,
+  Object? deliveryError,
 }) {
   final _MockMoodMedicineReportExportService mock =
       _MockMoodMedicineReportExportService();
@@ -61,7 +62,12 @@ MoodMedicineReportExportService _reportExportService({
 
   when(
     () => mock.deliver(any(), shareText: any(named: 'shareText')),
-  ).thenAnswer((_) async => MoodMedicineReportDelivery(deliveryStatus));
+  ).thenAnswer((_) async {
+    if (deliveryError != null) {
+      throw deliveryError;
+    }
+    return MoodMedicineReportDelivery(deliveryStatus);
+  });
   return mock;
 }
 
@@ -887,6 +893,53 @@ void main() {
         expect(memory.completedWrites, hasLength(1));
       },
     );
+
+    for (final bool deliveryThrows in <bool>[false, true]) {
+      testWidgets(
+        'should show a localized export error and keep the sheet open when '
+        'sharing ${deliveryThrows ? 'throws' : 'returns a failed status'}',
+        (WidgetTester tester) async {
+          _setLargeScreen(tester);
+          final MoodMedicineViewModel viewModel = _viewModel(
+            ContractPersistentMemoryService(),
+            reportExportService: _reportExportService(
+              deliveryStatus: MoodMedicineReportDeliveryStatus.failed,
+              deliveryError: deliveryThrows
+                  ? StateError('handoff failed')
+                  : null,
+            ),
+          );
+          await viewModel.load();
+          await tester.pumpWidget(_app(viewModel: viewModel));
+          await tester.pumpAndSettle();
+          final AppLocalizations l10n = AppLocalizations.of(
+            tester.element(find.byType(MoodMedicinePage)),
+          )!;
+
+          await tester.tap(find.byKey(const Key('moodMedicineExportButton')));
+          await tester.pumpAndSettle();
+          final Finder sheet = find.byType(BottomSheet);
+
+          await tester.tap(
+            find.descendant(
+              of: sheet,
+              matching: find.byKey(const Key('moodMedicineStartExport')),
+            ),
+          );
+          await tester.pumpAndSettle();
+
+          expect(find.text(l10n.moodMedicineExportError), findsOneWidget);
+          expect(sheet, findsOneWidget);
+          expect(
+            find.descendant(
+              of: sheet,
+              matching: find.byKey(const Key('moodMedicineStartExport')),
+            ),
+            findsOneWidget,
+          );
+        },
+      );
+    }
 
     testWidgets('should not show an export error when sharing is dismissed', (
       WidgetTester tester,

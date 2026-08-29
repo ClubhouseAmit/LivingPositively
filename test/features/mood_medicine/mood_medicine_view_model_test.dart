@@ -1427,8 +1427,97 @@ void main() {
       },
     );
 
+    test('should keep a dismissed delivery ready without an error', () async {
+      final _ReportExporter exporter = _ReportExporter();
+      const MoodMedicineReportDelivery delivery = MoodMedicineReportDelivery(
+        MoodMedicineReportDeliveryStatus.dismissed,
+      );
+      when(
+        () => exporter.mock.deliver(any(), shareText: any(named: 'shareText')),
+      ).thenAnswer((_) async => delivery);
+      final MoodMedicineViewModel viewModel = _viewModel(
+        _Repository(const MoodMedicineMissingSnapshot()),
+        exporter,
+        idGenerator: () => 'unused',
+      );
+      await viewModel.load();
+      viewModel.setReportPresentation(_presentation());
+      await viewModel.buildReport();
+      final MoodMedicineBuiltReport report =
+          viewModel.readyState!.export.report!;
+      final Future<MoodMedicineReportDeliveryEffect> effect = viewModel.effects
+          .where(
+            (MoodMedicineUiEffect effect) =>
+                effect is MoodMedicineReportDeliveryEffect,
+          )
+          .cast<MoodMedicineReportDeliveryEffect>()
+          .first;
+
+      expect(await viewModel.shareBuiltReport(), isFalse);
+
+      final MoodMedicineExportState export = viewModel.readyState!.export;
+      expect(export.phase, MoodMedicineExportPhase.ready);
+      expect(export.report, same(report));
+      expect(export.error, isNull);
+      expect((await effect).delivery, same(delivery));
+      viewModel.dispose();
+    });
+
+    for (final MoodMedicineReportDeliveryStatus status
+        in <MoodMedicineReportDeliveryStatus>[
+          MoodMedicineReportDeliveryStatus.failed,
+          MoodMedicineReportDeliveryStatus.unavailable,
+          MoodMedicineReportDeliveryStatus.tooLarge,
+        ]) {
+      test(
+        'should reconcile ${status.name} delivery to the failed report state',
+        () async {
+          final _ReportExporter exporter = _ReportExporter();
+          final String? errorMessage =
+              status == MoodMedicineReportDeliveryStatus.failed
+              ? 'delivery failed'
+              : null;
+          final MoodMedicineReportDelivery delivery =
+              MoodMedicineReportDelivery(status, errorMessage: errorMessage);
+          when(
+            () => exporter.mock.deliver(
+              any(),
+              shareText: any(named: 'shareText'),
+            ),
+          ).thenAnswer((_) async => delivery);
+          final MoodMedicineViewModel viewModel = _viewModel(
+            _Repository(const MoodMedicineMissingSnapshot()),
+            exporter,
+            idGenerator: () => 'unused',
+          );
+          await viewModel.load();
+          viewModel.setReportPresentation(_presentation());
+          await viewModel.buildReport();
+          final MoodMedicineBuiltReport report =
+              viewModel.readyState!.export.report!;
+          final Future<MoodMedicineReportDeliveryEffect> effect = viewModel
+              .effects
+              .where(
+                (MoodMedicineUiEffect effect) =>
+                    effect is MoodMedicineReportDeliveryEffect,
+              )
+              .cast<MoodMedicineReportDeliveryEffect>()
+              .first;
+
+          expect(await viewModel.shareBuiltReport(), isFalse);
+
+          final MoodMedicineExportState export = viewModel.readyState!.export;
+          expect(export.phase, MoodMedicineExportPhase.failed);
+          expect(export.report, same(report));
+          expect(export.error, errorMessage ?? status);
+          expect((await effect).delivery, same(delivery));
+          viewModel.dispose();
+        },
+      );
+    }
+
     test(
-      'should reconcile a thrown delivery to the failed report state',
+      'should surface a thrown delivery from the failed report state',
       () async {
         final _ReportExporter exporter = _ReportExporter();
         final StateError deliveryError = StateError('handoff failed');
@@ -1441,15 +1530,19 @@ void main() {
           exporter,
           idGenerator: () => 'unused',
         );
-        final List<MoodMedicineUiEffect> effects = <MoodMedicineUiEffect>[];
-        final StreamSubscription<MoodMedicineUiEffect> subscription = viewModel
-            .effects
-            .listen(effects.add);
         await viewModel.load();
         viewModel.setReportPresentation(_presentation());
         await viewModel.buildReport();
         final MoodMedicineBuiltReport report =
             viewModel.readyState!.export.report!;
+        final Future<MoodMedicineReportDeliveryEffect> effect = viewModel
+            .effects
+            .where(
+              (MoodMedicineUiEffect effect) =>
+                  effect is MoodMedicineReportDeliveryEffect,
+            )
+            .cast<MoodMedicineReportDeliveryEffect>()
+            .first;
 
         expect(await viewModel.shareBuiltReport(), isFalse);
 
@@ -1457,8 +1550,10 @@ void main() {
         expect(export.phase, MoodMedicineExportPhase.failed);
         expect(export.report, same(report));
         expect(export.error, same(deliveryError));
-        expect(effects.whereType<MoodMedicineReportDeliveryEffect>(), isEmpty);
-        await subscription.cancel();
+        expect(
+          (await effect).delivery.status,
+          MoodMedicineReportDeliveryStatus.failed,
+        );
         viewModel.dispose();
       },
     );
@@ -1478,6 +1573,10 @@ void main() {
           exporter,
           idGenerator: () => 'unused',
         );
+        final List<MoodMedicineUiEffect> effects = <MoodMedicineUiEffect>[];
+        final StreamSubscription<MoodMedicineUiEffect> subscription = viewModel
+            .effects
+            .listen(effects.add);
         await viewModel.load();
         viewModel.setReportPresentation(_presentation());
         viewModel.setReportOptions(includeNotes: true);
@@ -1505,6 +1604,8 @@ void main() {
           MoodMedicineExportPhase.idle,
         );
         expect(viewModel.readyState!.export.report, isNull);
+        expect(effects.whereType<MoodMedicineReportDeliveryEffect>(), isEmpty);
+        await subscription.cancel();
         viewModel.dispose();
       },
     );

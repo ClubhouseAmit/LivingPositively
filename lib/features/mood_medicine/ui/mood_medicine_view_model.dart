@@ -812,34 +812,46 @@ final class MoodMedicineViewModel extends ChangeNotifier {
     try {
       final MoodMedicineReportDelivery delivery = await _reportExportService
           .deliver(report, shareText: shareText);
-      _completeReportDelivery(
+      final bool wasApplied = _completeReportDelivery(
         generation: generation,
         report: report,
-        terminalPhase: MoodMedicineExportPhase.ready,
+        delivery: delivery,
       );
-      _emit(MoodMedicineReportDeliveryEffect(delivery));
+      if (wasApplied) {
+        _emit(MoodMedicineReportDeliveryEffect(delivery));
+      }
       return delivery.didDeliver;
     } catch (error) {
-      _completeReportDelivery(
+      const MoodMedicineReportDelivery delivery = MoodMedicineReportDelivery(
+        MoodMedicineReportDeliveryStatus.failed,
+      );
+      final bool wasApplied = _completeReportDelivery(
         generation: generation,
         report: report,
-        terminalPhase: MoodMedicineExportPhase.failed,
+        delivery: delivery,
         error: error,
       );
+      if (wasApplied) {
+        _emit(const MoodMedicineReportDeliveryEffect(delivery));
+      }
       return false;
     }
   }
 
-  void _completeReportDelivery({
+  bool _completeReportDelivery({
     required int generation,
     required MoodMedicineBuiltReport report,
-    required MoodMedicineExportPhase terminalPhase,
+    required MoodMedicineReportDelivery delivery,
     Object? error,
   }) {
-    assert(
-      terminalPhase == MoodMedicineExportPhase.ready ||
-          terminalPhase == MoodMedicineExportPhase.failed,
-    );
+    final MoodMedicineExportPhase terminalPhase = switch (delivery.status) {
+      MoodMedicineReportDeliveryStatus.delivered ||
+      MoodMedicineReportDeliveryStatus.dismissed =>
+        MoodMedicineExportPhase.ready,
+      MoodMedicineReportDeliveryStatus.unavailable ||
+      MoodMedicineReportDeliveryStatus.tooLarge ||
+      MoodMedicineReportDeliveryStatus.failed => MoodMedicineExportPhase.failed,
+    };
     final MoodMedicineReadyState? current = readyState;
     final bool isCurrentDelivery =
         _activeReportDeliveryGeneration == generation;
@@ -849,8 +861,8 @@ final class MoodMedicineViewModel extends ChangeNotifier {
       _activeReportDeliveryGeneration = null;
       _activeReportDeliveryInvalidated = false;
     }
-    if (current == null) {
-      return;
+    if (_isDisposed || current == null) {
+      return false;
     }
     if (wasInvalidated) {
       _setState(
@@ -862,12 +874,12 @@ final class MoodMedicineViewModel extends ChangeNotifier {
           ),
         ),
       );
-      return;
+      return false;
     }
     if (!isCurrentDelivery ||
         current.export.phase != MoodMedicineExportPhase.delivering ||
         !identical(current.export.report, report)) {
-      return;
+      return false;
     }
     _setState(
       _copyReady(
@@ -878,10 +890,13 @@ final class MoodMedicineViewModel extends ChangeNotifier {
           phase: terminalPhase,
           input: current.export.input,
           report: report,
-          error: error,
+          error: terminalPhase == MoodMedicineExportPhase.failed
+              ? error ?? delivery.errorMessage ?? delivery.status
+              : null,
         ),
       ),
     );
+    return true;
   }
 
   @override
