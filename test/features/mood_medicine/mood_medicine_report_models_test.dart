@@ -3,7 +3,6 @@ import 'dart:ui' show TextDirection;
 
 import 'package:flutter/widgets.dart' show Widget;
 import 'package:flutter_test/flutter_test.dart';
-import 'package:get_it/get_it.dart';
 import 'package:mazilon/features/mood_medicine/data/mood_medicine_report_exporter.dart';
 import 'package:mazilon/features/mood_medicine/data/mood_medicine_report_renderer.dart';
 import 'package:mazilon/util/logger_service.dart';
@@ -123,6 +122,7 @@ void main() {
       'should return an explicit non-delivery status for oversized PNG',
       (tester) async {
         final exporter = MoodMedicineReportExporter(
+          incidentLoggerService: const _NoopIncidentLoggerService(),
           pngRenderer: const MoodMedicinePngReportRenderer(maxImageHeight: 1),
         );
 
@@ -139,6 +139,7 @@ void main() {
       'should return a failed outcome when report rendering throws',
       () async {
         final MoodMedicineReportExporter exporter = MoodMedicineReportExporter(
+          incidentLoggerService: const _NoopIncidentLoggerService(),
           pdfRenderer: _ThrowingPdfRenderer(),
         );
 
@@ -153,10 +154,8 @@ void main() {
 
     test('should log renderer failures without report contents', () async {
       final _CapturingLogger logger = _CapturingLogger();
-      await GetIt.instance.reset();
-      addTearDown(GetIt.instance.reset);
-      GetIt.instance.registerSingleton<IncidentLoggerService>(logger);
       final MoodMedicineReportExporter exporter = MoodMedicineReportExporter(
+        incidentLoggerService: logger,
         pdfRenderer: _ThrowingPdfRenderer(),
       );
 
@@ -173,6 +172,21 @@ void main() {
       expect(payload, isNot(contains('https://example.test/source')));
       expect(logger.stackTraces.single, isNotNull);
     });
+
+    test(
+      'should retain renderer failure when incident logging throws',
+      () async {
+        final MoodMedicineReportExporter exporter = MoodMedicineReportExporter(
+          incidentLoggerService: const _ThrowingLogger(),
+          pdfRenderer: _ThrowingPdfRenderer(),
+        );
+
+        await expectLater(
+          exporter.build(input(), MoodMedicineReportFormat.pdf),
+          throwsA(isA<StateError>()),
+        );
+      },
+    );
   });
 
   group('MoodMedicineReportMoodAverage', () {
@@ -242,6 +256,36 @@ final class _CapturingLogger implements IncidentLoggerService {
   }) async {
     logs.add(exception as Object);
     stackTraces.add(stackTrace);
+  }
+
+  @override
+  Future<void> initializeSentry(Widget myApp) async {}
+}
+
+final class _NoopIncidentLoggerService implements IncidentLoggerService {
+  const _NoopIncidentLoggerService();
+
+  @override
+  Future<void> captureLog(
+    dynamic exception, {
+    StackTrace? stackTrace,
+    dynamic exceptionData,
+  }) async {}
+
+  @override
+  Future<void> initializeSentry(Widget myApp) async {}
+}
+
+final class _ThrowingLogger implements IncidentLoggerService {
+  const _ThrowingLogger();
+
+  @override
+  Future<void> captureLog(
+    dynamic exception, {
+    StackTrace? stackTrace,
+    dynamic exceptionData,
+  }) async {
+    throw StateError('telemetry unavailable');
   }
 
   @override

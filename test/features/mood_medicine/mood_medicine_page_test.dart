@@ -12,11 +12,13 @@ import 'package:mazilon/features/mood_medicine/data/mood_medicine_report_exporte
 import 'package:mazilon/features/mood_medicine/data/mood_medicine_report_renderer.dart';
 import 'package:mazilon/features/mood_medicine/data/mood_medicine_source_link_service.dart';
 import 'package:mazilon/features/mood_medicine/data/mood_medicine_store.dart';
+import 'package:mazilon/features/mood_medicine/ui/mood_medicine_content.dart';
 import 'package:mazilon/features/mood_medicine/ui/mood_medicine_page.dart';
 import 'package:mazilon/features/mood_medicine/ui/mood_medicine_view_model.dart';
 import 'package:mazilon/features/mood_medicine/ui/mood_medicine_view_state.dart';
 import 'package:mazilon/util/theme/app_theme.dart';
 
+import '../../helpers/widget_test_scaffold.dart';
 import '../../../test_support/contract_persistent_memory_service.dart';
 
 final class _MockMoodMedicineReportExportService extends Mock
@@ -113,10 +115,18 @@ final class _DelayedReportBuild {
       Completer<MoodMedicineBuiltReport>();
 }
 
-MoodMedicineSourceLinkService _sourceLinkService() {
+_MockMoodMedicineSourceLinkService _sourceLinkService({
+  bool opened = true,
+  Object? error,
+}) {
   final _MockMoodMedicineSourceLinkService mock =
       _MockMoodMedicineSourceLinkService();
-  when(() => mock.openExternal(any())).thenAnswer((_) async => true);
+  when(() => mock.openExternal(any())).thenAnswer((_) async {
+    if (error != null) {
+      throw error;
+    }
+    return opened;
+  });
   return mock;
 }
 
@@ -124,6 +134,7 @@ MoodMedicineViewModel _viewModel(
   ContractPersistentMemoryService memory, {
   DateTime? clock,
   MoodMedicineReportExportService? reportExportService,
+  MoodMedicineSourceLinkService? sourceLinkService,
   List<String> ids = const <String>[
     'entry-1',
     'custom-1',
@@ -135,7 +146,8 @@ MoodMedicineViewModel _viewModel(
   return MoodMedicineViewModel(
     MoodMedicineStore(memory),
     reportExportService ?? _reportExportService(),
-    sourceLinkService: _sourceLinkService(),
+    sourceLinkService: sourceLinkService ?? _sourceLinkService(),
+    incidentLoggerService: NoopIncidentLoggerService(),
     clock: () => clock ?? DateTime(2026, 8, 29, 12),
     idGenerator: () => generatedIds.removeAt(0),
   );
@@ -161,6 +173,75 @@ void _setLargeScreen(WidgetTester tester) {
   tester.view.devicePixelRatio = 1;
   addTearDown(tester.view.resetPhysicalSize);
   addTearDown(tester.view.resetDevicePixelRatio);
+}
+
+enum _SourceEntryPoint { activity, education }
+
+Future<({AppLocalizations l10n, Uri expectedUri})> _openSourceAction(
+  WidgetTester tester, {
+  required MoodMedicineViewModel viewModel,
+  required _SourceEntryPoint entryPoint,
+}) async {
+  final MoodMedicineInitialView initialView = switch (entryPoint) {
+    _SourceEntryPoint.activity => MoodMedicineInitialView.checkIn,
+    _SourceEntryPoint.education => MoodMedicineInitialView.education,
+  };
+  await viewModel.load(initialView: initialView);
+  if (entryPoint == _SourceEntryPoint.activity) {
+    viewModel.selectMood(3);
+  }
+  await tester.pumpWidget(
+    _app(
+      viewModel: viewModel,
+      initialView: initialView,
+      locale: const Locale('he'),
+    ),
+  );
+  await tester.pumpAndSettle();
+
+  final AppLocalizations l10n = AppLocalizations.of(
+    tester.element(find.byType(MoodMedicinePage)),
+  )!;
+  final MoodMedicineActivityContent activity = MoodMedicineContent.activityFor(
+    l10n,
+    entryPoint == _SourceEntryPoint.activity
+        ? MoodMedicineContent.physicalActivityId
+        : MoodMedicineContent.nourishingMealId,
+  )!;
+
+  switch (entryPoint) {
+    case _SourceEntryPoint.activity:
+      final Finder infoButton = find.descendant(
+        of: find.byKey(
+          const Key(
+            'moodMedicineActivity${MoodMedicineContent.physicalActivityId}',
+          ),
+        ),
+        matching: find.byIcon(Icons.info_outline),
+      );
+      await tester.ensureVisible(infoButton);
+      await tester.pumpAndSettle();
+      await tester.tap(infoButton);
+      await tester.pumpAndSettle();
+      final Finder sourceButton = find.byKey(
+        const Key(
+          'moodMedicineActivitySource${MoodMedicineContent.physicalActivityId}',
+        ),
+      );
+      await tester.ensureVisible(sourceButton);
+      await tester.tap(sourceButton);
+      break;
+    case _SourceEntryPoint.education:
+      final Finder sourceButton = find.byKey(
+        const Key('moodMedicineEducationSource'),
+      );
+      await tester.ensureVisible(sourceButton);
+      await tester.pumpAndSettle();
+      await tester.tap(sourceButton);
+      break;
+  }
+  await tester.pumpAndSettle();
+  return (l10n: l10n, expectedUri: activity.sourceUri);
 }
 
 void main() {
@@ -375,6 +456,74 @@ void main() {
       expect(tester.takeException(), isNull);
     });
 
+    for (final _SourceEntryPoint entryPoint in _SourceEntryPoint.values) {
+      testWidgets(
+        'should open the ${entryPoint.name} source without an error',
+        (WidgetTester tester) async {
+          _setLargeScreen(tester);
+          final _MockMoodMedicineSourceLinkService sourceLinkService =
+              _sourceLinkService();
+          final MoodMedicineViewModel viewModel = _viewModel(
+            ContractPersistentMemoryService(),
+            sourceLinkService: sourceLinkService,
+          );
+
+          final (:l10n, :expectedUri) = await _openSourceAction(
+            tester,
+            viewModel: viewModel,
+            entryPoint: entryPoint,
+          );
+
+          verify(() => sourceLinkService.openExternal(expectedUri)).called(1);
+          expect(find.text(l10n.asyncErrorMessage), findsNothing);
+        },
+      );
+
+      testWidgets(
+        'should show localized error when the ${entryPoint.name} source is unavailable',
+        (WidgetTester tester) async {
+          _setLargeScreen(tester);
+          final _MockMoodMedicineSourceLinkService sourceLinkService =
+              _sourceLinkService(opened: false);
+          final MoodMedicineViewModel viewModel = _viewModel(
+            ContractPersistentMemoryService(),
+            sourceLinkService: sourceLinkService,
+          );
+
+          final (:l10n, :expectedUri) = await _openSourceAction(
+            tester,
+            viewModel: viewModel,
+            entryPoint: entryPoint,
+          );
+
+          verify(() => sourceLinkService.openExternal(expectedUri)).called(1);
+          expect(find.text(l10n.asyncErrorMessage), findsOneWidget);
+        },
+      );
+
+      testWidgets(
+        'should show localized error when the ${entryPoint.name} source throws',
+        (WidgetTester tester) async {
+          _setLargeScreen(tester);
+          final _MockMoodMedicineSourceLinkService sourceLinkService =
+              _sourceLinkService(error: StateError('launch failed'));
+          final MoodMedicineViewModel viewModel = _viewModel(
+            ContractPersistentMemoryService(),
+            sourceLinkService: sourceLinkService,
+          );
+
+          final (:l10n, :expectedUri) = await _openSourceAction(
+            tester,
+            viewModel: viewModel,
+            entryPoint: entryPoint,
+          );
+
+          verify(() => sourceLinkService.openExternal(expectedUri)).called(1);
+          expect(find.text(l10n.asyncErrorMessage), findsOneWidget);
+        },
+      );
+    }
+
     testWidgets('should offer private-by-default report controls', (
       WidgetTester tester,
     ) async {
@@ -398,6 +547,87 @@ void main() {
       expect(find.text('Personal notes are not included.'), findsOneWidget);
       expect(find.byKey(const Key('moodMedicineViewExport')), findsOneWidget);
     });
+
+    testWidgets('should reset note consent when the export sheet closes', (
+      WidgetTester tester,
+    ) async {
+      _setLargeScreen(tester);
+      final MoodMedicineViewModel viewModel = _viewModel(
+        ContractPersistentMemoryService(),
+      );
+      await viewModel.load();
+      await tester.pumpWidget(_app(viewModel: viewModel));
+      await tester.pumpAndSettle();
+
+      await tester.tap(find.byKey(const Key('moodMedicineExportButton')));
+      await tester.pumpAndSettle();
+      await tester.tap(find.byKey(const Key('moodMedicineIncludeNotes')));
+      await tester.pumpAndSettle();
+      expect(viewModel.readyState!.export.includeNotes, isTrue);
+
+      Navigator.of(
+        tester.element(find.byKey(const Key('moodMedicineIncludeNotes'))),
+      ).pop();
+      await tester.pumpAndSettle();
+
+      expect(viewModel.readyState!.export.includeNotes, isFalse);
+      await tester.tap(find.byKey(const Key('moodMedicineExportButton')));
+      await tester.pumpAndSettle();
+      expect(
+        tester
+            .widget<SwitchListTile>(
+              find.byKey(const Key('moodMedicineIncludeNotes')),
+            )
+            .value,
+        isFalse,
+      );
+    });
+
+    testWidgets(
+      'should disable the export entry until a dismissed build completes',
+      (WidgetTester tester) async {
+        _setLargeScreen(tester);
+        final _DelayedReportExportService exporter =
+            _DelayedReportExportService();
+        final MoodMedicineViewModel viewModel = _viewModel(
+          ContractPersistentMemoryService(),
+          reportExportService: exporter.mock,
+        );
+        await viewModel.load();
+        await tester.pumpWidget(_app(viewModel: viewModel));
+        await tester.pumpAndSettle();
+
+        await tester.tap(find.byKey(const Key('moodMedicineExportButton')));
+        await tester.pumpAndSettle();
+        await tester.tap(find.byKey(const Key('moodMedicineViewExport')));
+        await tester.pump();
+        expect(exporter.builds, hasLength(1));
+
+        Navigator.of(
+          tester.element(find.byKey(const Key('moodMedicineViewExport'))),
+        ).pop();
+        await tester.pumpAndSettle();
+        expect(
+          tester
+              .widget<OutlinedButton>(
+                find.byKey(const Key('moodMedicineExportButton')),
+              )
+              .onPressed,
+          isNull,
+        );
+
+        exporter.completeBuild(0);
+        await tester.pumpAndSettle();
+        expect(
+          tester
+              .widget<OutlinedButton>(
+                find.byKey(const Key('moodMedicineExportButton')),
+              )
+              .onPressed,
+          isNotNull,
+        );
+      },
+    );
 
     testWidgets(
       'should retry a locale-stale build before opening a report preview',

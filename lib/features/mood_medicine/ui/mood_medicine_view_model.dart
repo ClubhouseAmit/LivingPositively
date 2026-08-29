@@ -10,6 +10,7 @@ import 'package:mazilon/features/mood_medicine/data/mood_medicine_repository.dar
 import 'package:mazilon/features/mood_medicine/data/mood_medicine_source_link_service.dart';
 import 'package:mazilon/features/mood_medicine/ui/mood_medicine_insights.dart';
 import 'package:mazilon/features/mood_medicine/ui/mood_medicine_view_state.dart';
+import 'package:mazilon/util/logger_service.dart';
 
 /// Feature-local MVVM state holder for Mood Tracker and Personal Medicine.
 ///
@@ -22,17 +23,21 @@ final class MoodMedicineViewModel extends ChangeNotifier {
     this._repository,
     this._reportExportService, {
     required MoodMedicineSourceLinkService sourceLinkService,
+    required IncidentLoggerService incidentLoggerService,
     DateTime Function()? clock,
     String Function()? idGenerator,
   }) : // The public injection name intentionally differs from the private field.
        // ignore: prefer_initializing_formals
        _sourceLinkService = sourceLinkService,
+       // ignore: prefer_initializing_formals
+       _incidentLoggerService = incidentLoggerService,
        _clock = clock ?? DateTime.now,
        _idGenerator = idGenerator ?? const Uuid().v4;
 
   final MoodMedicineRepository _repository;
   final MoodMedicineReportExportService _reportExportService;
   final MoodMedicineSourceLinkService _sourceLinkService;
+  final IncidentLoggerService _incidentLoggerService;
   final DateTime Function() _clock;
   final String Function() _idGenerator;
   final StreamController<MoodMedicineUiEffect> _effects =
@@ -44,6 +49,13 @@ final class MoodMedicineViewModel extends ChangeNotifier {
   MoodMedicineSnapshotMutation? _pendingMutation;
   _MoodMedicineCheckInIntent? _pendingCheckInIntent;
   String? _pendingDeselectActivityId;
+  int _nextReportBuildGeneration = 0;
+  int? _activeReportBuildGeneration;
+  _MoodMedicineReportInvalidation _activeReportBuildInvalidation =
+      _MoodMedicineReportInvalidation.none;
+  int _nextReportDeliveryGeneration = 0;
+  int? _activeReportDeliveryGeneration;
+  bool _activeReportDeliveryInvalidated = false;
 
   static const Object _unset = Object();
 
@@ -198,7 +210,10 @@ final class MoodMedicineViewModel extends ChangeNotifier {
       _copyReady(
         ready,
         selectedRange: range,
-        export: _invalidatedExport(ready.export),
+        export: _invalidatedExport(
+          ready.export,
+          reason: _MoodMedicineReportInvalidation.other,
+        ),
       ),
     );
   }
@@ -215,7 +230,10 @@ final class MoodMedicineViewModel extends ChangeNotifier {
       _copyReady(
         ready,
         presentation: presentation,
-        export: _invalidatedExport(ready.export),
+        export: _invalidatedExport(
+          ready.export,
+          reason: _MoodMedicineReportInvalidation.presentation,
+        ),
       ),
     );
   }
@@ -233,7 +251,8 @@ final class MoodMedicineViewModel extends ChangeNotifier {
       if (!opened) {
         _emit(const MoodMedicineSourceOpenFailedEffect());
       }
-    } catch (_) {
+    } catch (error, stackTrace) {
+      await _logSourceOpenFailure(error, stackTrace);
       _emit(const MoodMedicineSourceOpenFailedEffect());
     }
   }
@@ -573,6 +592,28 @@ final class MoodMedicineViewModel extends ChangeNotifier {
     );
   }
 
+  /// Ends the current export sheet's privacy-consent session.
+  ///
+  /// The selected format is retained, but private-note consent and any built
+  /// payload are cleared. In-flight work keeps its busy phase until its own
+  /// completion so reopening the sheet cannot start an overlapping operation.
+  void endReportExportSession() {
+    final MoodMedicineReadyState? ready = readyState;
+    if (ready == null) {
+      return;
+    }
+    _setState(
+      _copyReady(
+        ready,
+        export: _invalidatedExport(
+          ready.export,
+          reason: _MoodMedicineReportInvalidation.other,
+          resetIncludeNotes: true,
+        ),
+      ),
+    );
+  }
+
   /// Builds the selected report for a preview without invoking platform UI.
   ///
   /// A renderer completion is typed so the page retries only if localized
@@ -589,6 +630,9 @@ final class MoodMedicineViewModel extends ChangeNotifier {
       return const MoodMedicineReportBuildCancelledOutcome();
     }
     final MoodMedicineReportFormat format = ready.export.format;
+    final int generation = ++_nextReportBuildGeneration;
+    _activeReportBuildGeneration = generation;
+    _activeReportBuildInvalidation = _MoodMedicineReportInvalidation.none;
     _setState(
       _copyReady(
         ready,
@@ -605,78 +649,142 @@ final class MoodMedicineViewModel extends ChangeNotifier {
         input,
         format,
       );
-      final MoodMedicineReadyState? current = readyState;
-      if (current == null ||
-          current.export.phase != MoodMedicineExportPhase.building ||
-          !identical(current.export.input, input)) {
-        return _invalidatedReportBuildOutcome(current, presentation);
-      }
-      _setState(
-        _copyReady(
-          current,
-          export: MoodMedicineExportState(
-            format: current.export.format,
-            includeNotes: current.export.includeNotes,
-            phase: MoodMedicineExportPhase.ready,
-            input: input,
-            report: report,
-          ),
-        ),
+      return _completeReportBuildSuccess(
+        generation: generation,
+        input: input,
+        report: report,
       );
-      _emit(MoodMedicineReportReadyEffect(report));
-      return MoodMedicineReportBuiltOutcome(report);
-    } on MoodMedicinePngReportTooLargeException {
-      final MoodMedicineReadyState? current = readyState;
-      if (current == null ||
-          current.export.phase != MoodMedicineExportPhase.building ||
-          !identical(current.export.input, input)) {
-        return _invalidatedReportBuildOutcome(current, presentation);
-      }
-      _setState(
-        _copyReady(
-          current,
-          export: MoodMedicineExportState(
-            format: current.export.format,
-            includeNotes: current.export.includeNotes,
-            phase: MoodMedicineExportPhase.failed,
-            input: input,
-            buildFailureKind: MoodMedicineReportBuildFailureKind.pngTooLarge,
-          ),
-        ),
+    } on MoodMedicinePngReportTooLargeException catch (error) {
+      return _completeReportBuildFailure(
+        generation: generation,
+        input: input,
+        error: error,
+        failureKind: MoodMedicineReportBuildFailureKind.pngTooLarge,
       );
-      return const MoodMedicineReportBuildFailedOutcome();
     } catch (error) {
-      final MoodMedicineReadyState? current = readyState;
-      if (current == null ||
-          current.export.phase != MoodMedicineExportPhase.building ||
-          !identical(current.export.input, input)) {
-        return _invalidatedReportBuildOutcome(current, presentation);
-      }
-      _setState(
-        _copyReady(
-          current,
-          export: MoodMedicineExportState(
-            format: current.export.format,
-            includeNotes: current.export.includeNotes,
-            phase: MoodMedicineExportPhase.failed,
-            input: input,
-            error: error,
-            buildFailureKind: MoodMedicineReportBuildFailureKind.renderer,
-          ),
-        ),
+      return _completeReportBuildFailure(
+        generation: generation,
+        input: input,
+        error: error,
+        failureKind: MoodMedicineReportBuildFailureKind.renderer,
       );
-      return const MoodMedicineReportBuildFailedOutcome();
     }
   }
 
-  MoodMedicineReportBuildOutcome _invalidatedReportBuildOutcome(
-    MoodMedicineReadyState? current,
-    MoodMedicineReportPresentation presentation,
-  ) {
-    if (current != null && !identical(current.presentation, presentation)) {
-      return const MoodMedicineReportBuildStalePresentationOutcome();
+  MoodMedicineReportBuildOutcome _completeReportBuildSuccess({
+    required int generation,
+    required MoodMedicineReportInput input,
+    required MoodMedicineBuiltReport report,
+  }) {
+    final MoodMedicineReportBuildOutcome? invalidated =
+        _completeInvalidatedReportBuild(generation);
+    if (invalidated != null) {
+      return invalidated;
     }
-    return const MoodMedicineReportBuildCancelledOutcome();
+    final MoodMedicineReadyState? current = readyState;
+    if (current == null ||
+        current.export.phase != MoodMedicineExportPhase.building ||
+        !identical(current.export.input, input)) {
+      _clearUnexpectedReportBuildFence(current);
+      return const MoodMedicineReportBuildCancelledOutcome();
+    }
+    _setState(
+      _copyReady(
+        current,
+        export: MoodMedicineExportState(
+          format: current.export.format,
+          includeNotes: current.export.includeNotes,
+          phase: MoodMedicineExportPhase.ready,
+          input: input,
+          report: report,
+        ),
+      ),
+    );
+    _emit(MoodMedicineReportReadyEffect(report));
+    return MoodMedicineReportBuiltOutcome(report);
+  }
+
+  MoodMedicineReportBuildOutcome _completeReportBuildFailure({
+    required int generation,
+    required MoodMedicineReportInput input,
+    required Object error,
+    required MoodMedicineReportBuildFailureKind failureKind,
+  }) {
+    final MoodMedicineReportBuildOutcome? invalidated =
+        _completeInvalidatedReportBuild(generation);
+    if (invalidated != null) {
+      return invalidated;
+    }
+    final MoodMedicineReadyState? current = readyState;
+    if (current == null ||
+        current.export.phase != MoodMedicineExportPhase.building ||
+        !identical(current.export.input, input)) {
+      _clearUnexpectedReportBuildFence(current);
+      return const MoodMedicineReportBuildCancelledOutcome();
+    }
+    _setState(
+      _copyReady(
+        current,
+        export: MoodMedicineExportState(
+          format: current.export.format,
+          includeNotes: current.export.includeNotes,
+          phase: MoodMedicineExportPhase.failed,
+          input: input,
+          error: failureKind == MoodMedicineReportBuildFailureKind.renderer
+              ? error
+              : null,
+          buildFailureKind: failureKind,
+        ),
+      ),
+    );
+    return const MoodMedicineReportBuildFailedOutcome();
+  }
+
+  MoodMedicineReportBuildOutcome? _completeInvalidatedReportBuild(
+    int generation,
+  ) {
+    if (_activeReportBuildGeneration != generation) {
+      return const MoodMedicineReportBuildCancelledOutcome();
+    }
+    final _MoodMedicineReportInvalidation invalidation =
+        _activeReportBuildInvalidation;
+    _activeReportBuildGeneration = null;
+    _activeReportBuildInvalidation = _MoodMedicineReportInvalidation.none;
+    if (invalidation == _MoodMedicineReportInvalidation.none) {
+      return null;
+    }
+    final MoodMedicineReadyState? current = readyState;
+    if (current != null &&
+        current.export.phase == MoodMedicineExportPhase.building) {
+      _setState(
+        _copyReady(
+          current,
+          export: MoodMedicineExportState(
+            format: current.export.format,
+            includeNotes: current.export.includeNotes,
+          ),
+        ),
+      );
+    }
+    return invalidation == _MoodMedicineReportInvalidation.presentation
+        ? const MoodMedicineReportBuildStalePresentationOutcome()
+        : const MoodMedicineReportBuildCancelledOutcome();
+  }
+
+  void _clearUnexpectedReportBuildFence(MoodMedicineReadyState? current) {
+    if (current == null ||
+        current.export.phase != MoodMedicineExportPhase.building) {
+      return;
+    }
+    _setState(
+      _copyReady(
+        current,
+        export: MoodMedicineExportState(
+          format: current.export.format,
+          includeNotes: current.export.includeNotes,
+        ),
+      ),
+    );
   }
 
   /// Hands the most recently built report to the existing share/download path.
@@ -686,6 +794,9 @@ final class MoodMedicineViewModel extends ChangeNotifier {
     if (ready == null || report == null || ready.export.isWorking) {
       return false;
     }
+    final int generation = ++_nextReportDeliveryGeneration;
+    _activeReportDeliveryGeneration = generation;
+    _activeReportDeliveryInvalidated = false;
     _setState(
       _copyReady(
         ready,
@@ -702,7 +813,26 @@ final class MoodMedicineViewModel extends ChangeNotifier {
       final MoodMedicineReportDelivery delivery = await _reportExportService
           .deliver(report, shareText: shareText);
       final MoodMedicineReadyState? current = readyState;
-      if (current != null &&
+      final bool isCurrentDelivery =
+          _activeReportDeliveryGeneration == generation;
+      final bool wasInvalidated =
+          isCurrentDelivery && _activeReportDeliveryInvalidated;
+      if (isCurrentDelivery) {
+        _activeReportDeliveryGeneration = null;
+        _activeReportDeliveryInvalidated = false;
+      }
+      if (current != null && wasInvalidated) {
+        _setState(
+          _copyReady(
+            current,
+            export: MoodMedicineExportState(
+              format: current.export.format,
+              includeNotes: current.export.includeNotes,
+            ),
+          ),
+        );
+      } else if (current != null &&
+          isCurrentDelivery &&
           current.export.phase == MoodMedicineExportPhase.delivering &&
           identical(current.export.report, report)) {
         _setState(
@@ -722,7 +852,26 @@ final class MoodMedicineViewModel extends ChangeNotifier {
       return delivery.didDeliver;
     } catch (error) {
       final MoodMedicineReadyState? current = readyState;
-      if (current != null &&
+      final bool isCurrentDelivery =
+          _activeReportDeliveryGeneration == generation;
+      final bool wasInvalidated =
+          isCurrentDelivery && _activeReportDeliveryInvalidated;
+      if (isCurrentDelivery) {
+        _activeReportDeliveryGeneration = null;
+        _activeReportDeliveryInvalidated = false;
+      }
+      if (current != null && wasInvalidated) {
+        _setState(
+          _copyReady(
+            current,
+            export: MoodMedicineExportState(
+              format: current.export.format,
+              includeNotes: current.export.includeNotes,
+            ),
+          ),
+        );
+      } else if (current != null &&
+          isCurrentDelivery &&
           current.export.phase == MoodMedicineExportPhase.delivering &&
           identical(current.export.report, report)) {
         _setState(
@@ -1112,7 +1261,10 @@ final class MoodMedicineViewModel extends ChangeNotifier {
             : current.isCheckInDetailsExpanded,
         highlightedActivityId: current.highlightedActivityId,
         presentation: current.presentation,
-        export: _invalidatedExport(current.export),
+        export: _invalidatedExport(
+          current.export,
+          reason: _MoodMedicineReportInvalidation.other,
+        ),
       ),
     );
     if (savedCheckIn) {
@@ -1126,11 +1278,42 @@ final class MoodMedicineViewModel extends ChangeNotifier {
     return ready == null || ready.writesBlocked ? null : ready;
   }
 
-  MoodMedicineExportState _invalidatedExport(MoodMedicineExportState current) {
+  MoodMedicineExportState _invalidatedExport(
+    MoodMedicineExportState current, {
+    required _MoodMedicineReportInvalidation reason,
+    bool resetIncludeNotes = false,
+  }) {
+    if (current.phase == MoodMedicineExportPhase.building &&
+        _activeReportBuildGeneration != null) {
+      if (reason == _MoodMedicineReportInvalidation.other ||
+          _activeReportBuildInvalidation ==
+              _MoodMedicineReportInvalidation.none) {
+        _activeReportBuildInvalidation = reason;
+      }
+    }
+    if (current.phase == MoodMedicineExportPhase.delivering &&
+        _activeReportDeliveryGeneration != null) {
+      _activeReportDeliveryInvalidated = true;
+    }
     return MoodMedicineExportState(
       format: current.format,
-      includeNotes: current.includeNotes,
+      includeNotes: resetIncludeNotes ? false : current.includeNotes,
+      phase: current.isWorking ? current.phase : MoodMedicineExportPhase.idle,
     );
+  }
+
+  Future<void> _logSourceOpenFailure(
+    Object error,
+    StackTrace stackTrace,
+  ) async {
+    try {
+      await _incidentLoggerService.captureLog(
+        _MoodMedicineSourceOpenFailureLog(error.runtimeType),
+        stackTrace: stackTrace,
+      );
+    } catch (_) {
+      // Incident telemetry must not hide the feature's local recovery UI.
+    }
   }
 
   bool _isSelectableActivity(MoodMedicineSnapshot snapshot, String id) {
@@ -1191,6 +1374,19 @@ final class MoodMedicineViewModel extends ChangeNotifier {
       _effects.add(effect);
     }
   }
+}
+
+enum _MoodMedicineReportInvalidation { none, presentation, other }
+
+/// Sanitized incident payload that intentionally excludes the source URI.
+final class _MoodMedicineSourceOpenFailureLog implements Exception {
+  const _MoodMedicineSourceOpenFailureLog(this.errorType);
+
+  final Type errorType;
+
+  @override
+  String toString() =>
+      'MoodMedicineFailure(stage: sourceOpen, errorType: $errorType)';
 }
 
 /// A single immutable check-in save intent retained across an awaited retry.

@@ -49,7 +49,9 @@ void setupLocator() {
     () => getIt<MoodMedicineStore>(),
   );
   getIt.registerLazySingleton<MoodMedicineReportExporter>(
-    () => MoodMedicineReportExporter(),
+    () => MoodMedicineReportExporter(
+      incidentLoggerService: getIt<IncidentLoggerService>(),
+    ),
   );
   getIt.registerLazySingleton<MoodMedicineReportExportService>(
     () => getIt<MoodMedicineReportExporter>(),
@@ -62,6 +64,7 @@ void setupLocator() {
       getIt<MoodMedicineRepository>(),
       getIt<MoodMedicineReportExportService>(),
       sourceLinkService: getIt<MoodMedicineSourceLinkService>(),
+      incidentLoggerService: getIt<IncidentLoggerService>(),
     ),
   );
 }

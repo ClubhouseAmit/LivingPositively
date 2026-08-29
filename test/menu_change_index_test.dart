@@ -27,6 +27,7 @@ import 'package:mazilon/pages/journal.dart';
 import 'package:mazilon/pages/notifications/notification_page.dart';
 import 'package:mazilon/pages/positive.dart';
 import 'package:mazilon/util/appInformation.dart';
+import 'package:mazilon/util/logger_service.dart';
 import 'package:mazilon/util/persistent_memory_service.dart';
 import 'package:mazilon/util/userInformation.dart';
 import 'package:package_info_plus/package_info_plus.dart';
@@ -122,6 +123,9 @@ void main() {
     await GetIt.instance.reset();
     analytics = _FakeAnalytics();
     getIt.registerLazySingleton<AnalyticsService>(() => analytics);
+    getIt.registerLazySingleton<IncidentLoggerService>(
+      () => NoopIncidentLoggerService(),
+    );
     getIt.registerLazySingleton<FileService>(() => _FakeFiles());
     getIt.registerLazySingleton<PersistentMemoryService>(
       () => _FakePersistentMemoryService(
@@ -144,7 +148,9 @@ void main() {
       () => getIt<MoodMedicineStore>(),
     );
     getIt.registerLazySingleton<MoodMedicineReportExportService>(
-      () => MoodMedicineReportExporter(),
+      () => MoodMedicineReportExporter(
+        incidentLoggerService: getIt<IncidentLoggerService>(),
+      ),
     );
     getIt.registerLazySingleton<MoodMedicineSourceLinkService>(
       () => const UrlLauncherMoodMedicineSourceLinkService(),
@@ -154,6 +160,7 @@ void main() {
         getIt<MoodMedicineRepository>(),
         getIt<MoodMedicineReportExportService>(),
         sourceLinkService: getIt<MoodMedicineSourceLinkService>(),
+        incidentLoggerService: getIt<IncidentLoggerService>(),
       ),
     );
     PackageInfo.setMockInitialValues(
@@ -253,6 +260,7 @@ void main() {
             getIt<MoodMedicineRepository>(),
             getIt<MoodMedicineReportExportService>(),
             sourceLinkService: getIt<MoodMedicineSourceLinkService>(),
+            incidentLoggerService: getIt<IncidentLoggerService>(),
           );
           created.add(viewModel);
           return viewModel;
@@ -320,6 +328,7 @@ void main() {
           getIt<MoodMedicineRepository>(),
           getIt<MoodMedicineReportExportService>(),
           sourceLinkService: getIt<MoodMedicineSourceLinkService>(),
+          incidentLoggerService: getIt<IncidentLoggerService>(),
         );
         created.add(viewModel);
         return viewModel;

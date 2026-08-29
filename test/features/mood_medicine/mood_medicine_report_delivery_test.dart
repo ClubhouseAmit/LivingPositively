@@ -4,8 +4,10 @@ library;
 import 'dart:io';
 
 import 'package:flutter/services.dart';
+import 'package:flutter/widgets.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:mazilon/features/mood_medicine/data/mood_medicine_report_delivery.dart';
+import 'package:mazilon/util/logger_service.dart';
 
 void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
@@ -45,6 +47,7 @@ void main() {
 
           final MoodMedicineReportDelivery delivery =
               await deliverMoodMedicineReport(
+                incidentLoggerService: const _NoopIncidentLoggerService(),
                 bytes: Uint8List.fromList(<int>[1, 2, 3]),
                 fileName: 'mood-report.pdf',
                 mimeType: 'application/pdf',
@@ -96,6 +99,7 @@ void main() {
 
           final MoodMedicineReportDelivery delivery =
               await deliverMoodMedicineReport(
+                incidentLoggerService: const _NoopIncidentLoggerService(),
                 bytes: Uint8List.fromList(<int>[1, 2, 3]),
                 fileName: 'mood-report.pdf',
                 mimeType: 'application/pdf',
@@ -126,4 +130,18 @@ void main() {
       );
     }
   });
+}
+
+final class _NoopIncidentLoggerService implements IncidentLoggerService {
+  const _NoopIncidentLoggerService();
+
+  @override
+  Future<void> captureLog(
+    dynamic exception, {
+    StackTrace? stackTrace,
+    dynamic exceptionData,
+  }) async {}
+
+  @override
+  Future<void> initializeSentry(Widget myApp) async {}
 }

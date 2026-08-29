@@ -1,5 +1,7 @@
 import 'dart:typed_data';
 
+import 'package:mazilon/util/logger_service.dart';
+
 import 'mood_medicine_report_delivery_stub.dart'
     if (dart.library.io) 'mood_medicine_report_delivery_io.dart'
     if (dart.library.js_interop) 'mood_medicine_report_delivery_web.dart'
@@ -16,12 +18,14 @@ export 'mood_medicine_report_delivery_types.dart';
 /// when it is not. The adapter receives its own byte copy so a caller cannot
 /// mutate a report while a platform handoff is being prepared.
 Future<MoodMedicineReportDelivery> deliverMoodMedicineReport({
+  required IncidentLoggerService incidentLoggerService,
   required Uint8List bytes,
   required String fileName,
   required String mimeType,
   String? shareText,
 }) {
   return platform.deliverMoodMedicineReport(
+    incidentLoggerService: incidentLoggerService,
     bytes: Uint8List.fromList(bytes),
     fileName: fileName,
     mimeType: mimeType,

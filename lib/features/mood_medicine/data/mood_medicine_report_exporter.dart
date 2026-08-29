@@ -1,3 +1,5 @@
+import 'package:mazilon/util/logger_service.dart';
+
 import 'mood_medicine_report_delivery.dart';
 import 'mood_medicine_report_failure_logging.dart';
 import 'mood_medicine_report_models.dart';
@@ -35,11 +37,16 @@ abstract interface class MoodMedicineReportExportService {
 /// separate from PDF/PNG rendering and platform sharing.
 class MoodMedicineReportExporter implements MoodMedicineReportExportService {
   MoodMedicineReportExporter({
+    required IncidentLoggerService incidentLoggerService,
     MoodMedicinePdfReportRenderer? pdfRenderer,
     MoodMedicinePngReportRenderer? pngRenderer,
-  }) : _pdfRenderer = pdfRenderer ?? const MoodMedicinePdfReportRenderer(),
+  }) : // The public injection name intentionally differs from the private field.
+       // ignore: prefer_initializing_formals
+       _incidentLoggerService = incidentLoggerService,
+       _pdfRenderer = pdfRenderer ?? const MoodMedicinePdfReportRenderer(),
        _pngRenderer = pngRenderer ?? const MoodMedicinePngReportRenderer();
 
+  final IncidentLoggerService _incidentLoggerService;
   final MoodMedicinePdfReportRenderer _pdfRenderer;
   final MoodMedicinePngReportRenderer _pngRenderer;
 
@@ -63,6 +70,7 @@ class MoodMedicineReportExporter implements MoodMedicineReportExportService {
       rethrow;
     } catch (error, stackTrace) {
       await logMoodMedicineReportFailure(
+        incidentLoggerService: _incidentLoggerService,
         stage: MoodMedicineReportFailureStage.render,
         error: error,
         stackTrace: stackTrace,
@@ -82,6 +90,7 @@ class MoodMedicineReportExporter implements MoodMedicineReportExportService {
   }) async {
     try {
       return await deliverMoodMedicineReport(
+        incidentLoggerService: _incidentLoggerService,
         bytes: report.bytes,
         fileName: report.fileName,
         mimeType: report.mimeType,
@@ -89,6 +98,7 @@ class MoodMedicineReportExporter implements MoodMedicineReportExportService {
       );
     } catch (error, stackTrace) {
       await logMoodMedicineReportFailure(
+        incidentLoggerService: _incidentLoggerService,
         stage: MoodMedicineReportFailureStage.delivery,
         error: error,
         stackTrace: stackTrace,

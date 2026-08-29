@@ -16,12 +16,14 @@ import 'package:mazilon/features/mood_medicine/ui/mood_medicine_view_model.dart'
 import 'package:mazilon/features/mood_medicine/ui/mood_medicine_view_state.dart';
 import 'package:mazilon/pages/home.dart';
 import 'package:mazilon/util/appInformation.dart';
+import 'package:mazilon/util/logger_service.dart';
 import 'package:mazilon/util/persistent_memory_service.dart';
 import 'package:mazilon/util/userInformation.dart';
 import 'package:package_info_plus/package_info_plus.dart';
 
 import '../../MenuTest/TestMenu.dart';
 import '../../MenuTest/test_data.dart';
+import '../../helpers/widget_test_scaffold.dart';
 import '../../../test_support/contract_persistent_memory_service.dart';
 
 final class _PromptAnalyticsService implements AnalyticsService {
@@ -129,6 +131,9 @@ void main() {
     getIt.registerLazySingleton<AnalyticsService>(
       () => _PromptAnalyticsService(),
     );
+    getIt.registerLazySingleton<IncidentLoggerService>(
+      () => NoopIncidentLoggerService(),
+    );
     getIt.registerLazySingleton<MoodMedicineStore>(
       () => MoodMedicineStore(memory),
     );
@@ -136,7 +141,9 @@ void main() {
       () => getIt<MoodMedicineStore>(),
     );
     getIt.registerLazySingleton<MoodMedicineReportExportService>(
-      () => MoodMedicineReportExporter(),
+      () => MoodMedicineReportExporter(
+        incidentLoggerService: getIt<IncidentLoggerService>(),
+      ),
     );
     getIt.registerLazySingleton<MoodMedicineSourceLinkService>(
       _sourceLinkService,
@@ -146,6 +153,7 @@ void main() {
         getIt<MoodMedicineRepository>(),
         getIt<MoodMedicineReportExportService>(),
         sourceLinkService: getIt<MoodMedicineSourceLinkService>(),
+        incidentLoggerService: getIt<IncidentLoggerService>(),
       ),
     );
     PackageInfo.setMockInitialValues(
@@ -230,6 +238,7 @@ void main() {
               getIt<MoodMedicineRepository>(),
               getIt<MoodMedicineReportExportService>(),
               sourceLinkService: getIt<MoodMedicineSourceLinkService>(),
+              incidentLoggerService: getIt<IncidentLoggerService>(),
             );
             created.add(viewModel);
             return viewModel;
@@ -257,6 +266,7 @@ void main() {
             repository.mock,
             getIt<MoodMedicineReportExportService>(),
             sourceLinkService: getIt<MoodMedicineSourceLinkService>(),
+            incidentLoggerService: getIt<IncidentLoggerService>(),
           ),
         );
         await tester.pump();
@@ -287,6 +297,7 @@ void main() {
             repository.mock,
             getIt<MoodMedicineReportExportService>(),
             sourceLinkService: getIt<MoodMedicineSourceLinkService>(),
+            incidentLoggerService: getIt<IncidentLoggerService>(),
           ),
         );
         await tester.pump();

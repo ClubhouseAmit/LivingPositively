@@ -6,12 +6,14 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:mocktail/mocktail.dart';
 import 'package:mazilon/features/mood_medicine/data/mood_medicine_models.dart';
 import 'package:mazilon/features/mood_medicine/data/mood_medicine_report_exporter.dart';
+import 'package:mazilon/features/mood_medicine/data/mood_medicine_report_renderer.dart';
 import 'package:mazilon/features/mood_medicine/data/mood_medicine_repository.dart';
 import 'package:mazilon/features/mood_medicine/data/mood_medicine_source_link_service.dart';
 import 'package:mazilon/features/mood_medicine/data/mood_medicine_store.dart';
 import 'package:mazilon/features/mood_medicine/ui/mood_medicine_insights.dart';
 import 'package:mazilon/features/mood_medicine/ui/mood_medicine_view_model.dart';
 import 'package:mazilon/features/mood_medicine/ui/mood_medicine_view_state.dart';
+import 'package:mazilon/util/logger_service.dart';
 
 import '../../../test_support/contract_persistent_memory_service.dart';
 
@@ -23,6 +25,9 @@ final class _MockMoodMedicineReportExportService extends Mock
 
 final class _MockMoodMedicineSourceLinkService extends Mock
     implements MoodMedicineSourceLinkService {}
+
+final class _MockIncidentLoggerService extends Mock
+    implements IncidentLoggerService {}
 
 final class _FakeMoodMedicineReportInput extends Fake
     implements MoodMedicineReportInput {}
@@ -49,6 +54,26 @@ final class _SourceLinkService {
       _MockMoodMedicineSourceLinkService();
   final bool opens;
   final Object? error;
+}
+
+/// Mutable test state for the incident-logger boundary mock.
+final class _IncidentLogger {
+  _IncidentLogger({this.error}) {
+    when(
+      () => mock.captureLog(any(), stackTrace: any(named: 'stackTrace')),
+    ).thenAnswer((Invocation invocation) async {
+      captured.add(invocation.positionalArguments.single);
+      stackTraces.add(invocation.namedArguments[#stackTrace] as StackTrace?);
+      if (error != null) {
+        throw error!;
+      }
+    });
+  }
+
+  final _MockIncidentLoggerService mock = _MockIncidentLoggerService();
+  final Object? error;
+  final List<Object> captured = <Object>[];
+  final List<StackTrace?> stackTraces = <StackTrace?>[];
 }
 
 /// Mutable test state for a repository-boundary mock.
@@ -213,11 +238,13 @@ MoodMedicineViewModel _viewModel(
   _ReportExporter exporter, {
   required String Function() idGenerator,
   _SourceLinkService? sourceLinkService,
+  _IncidentLogger? incidentLogger,
 }) {
   return MoodMedicineViewModel(
     repository.mock,
     exporter.mock,
     sourceLinkService: (sourceLinkService ?? _SourceLinkService()).mock,
+    incidentLoggerService: (incidentLogger ?? _IncidentLogger()).mock,
     clock: () => DateTime(2026, 8, 29, 9),
     idGenerator: idGenerator,
   );
@@ -265,11 +292,13 @@ void main() {
       'should open an education source without emitting a failure effect',
       () async {
         final _SourceLinkService sourceLinkService = _SourceLinkService();
+        final _IncidentLogger incidentLogger = _IncidentLogger();
         final MoodMedicineViewModel viewModel = _viewModel(
           _Repository(const MoodMedicineMissingSnapshot()),
           _ReportExporter(),
           idGenerator: () => 'unused',
           sourceLinkService: sourceLinkService,
+          incidentLogger: incidentLogger,
         );
         final List<MoodMedicineUiEffect> effects = <MoodMedicineUiEffect>[];
         final StreamSubscription<MoodMedicineUiEffect> subscription = viewModel
@@ -282,6 +311,7 @@ void main() {
 
         verify(() => sourceLinkService.mock.openExternal(source)).called(1);
         expect(effects, isEmpty);
+        expect(incidentLogger.captured, isEmpty);
         await subscription.cancel();
         viewModel.dispose();
       },
@@ -290,11 +320,13 @@ void main() {
     test(
       'should emit a source-open failure effect when the launcher declines',
       () async {
+        final _IncidentLogger incidentLogger = _IncidentLogger();
         final MoodMedicineViewModel viewModel = _viewModel(
           _Repository(const MoodMedicineMissingSnapshot()),
           _ReportExporter(),
           idGenerator: () => 'unused',
           sourceLinkService: _SourceLinkService(opens: false),
+          incidentLogger: incidentLogger,
         );
         final Future<MoodMedicineUiEffect> effect = viewModel.effects.first;
 
@@ -303,6 +335,7 @@ void main() {
         );
 
         expect(await effect, isA<MoodMedicineSourceOpenFailedEffect>());
+        expect(incidentLogger.captured, isEmpty);
         viewModel.dispose();
       },
     );
@@ -310,6 +343,7 @@ void main() {
     test(
       'should emit a source-open failure effect when the launcher throws',
       () async {
+        final _IncidentLogger incidentLogger = _IncidentLogger();
         final MoodMedicineViewModel viewModel = _viewModel(
           _Repository(const MoodMedicineMissingSnapshot()),
           _ReportExporter(),
@@ -317,6 +351,7 @@ void main() {
           sourceLinkService: _SourceLinkService(
             error: StateError('unavailable'),
           ),
+          incidentLogger: incidentLogger,
         );
         final Future<MoodMedicineUiEffect> effect = viewModel.effects.first;
 
@@ -325,6 +360,40 @@ void main() {
         );
 
         expect(await effect, isA<MoodMedicineSourceOpenFailedEffect>());
+        expect(incidentLogger.captured, hasLength(1));
+        final String payload = incidentLogger.captured.single.toString();
+        expect(payload, contains('stage: sourceOpen'));
+        expect(payload, contains('errorType: StateError'));
+        expect(payload, isNot(contains('unavailable')));
+        expect(payload, isNot(contains('example.test')));
+        expect(incidentLogger.stackTraces.single, isNotNull);
+        viewModel.dispose();
+      },
+    );
+
+    test(
+      'should emit a source-open failure effect when incident logging throws',
+      () async {
+        final _IncidentLogger incidentLogger = _IncidentLogger(
+          error: StateError('telemetry unavailable'),
+        );
+        final MoodMedicineViewModel viewModel = _viewModel(
+          _Repository(const MoodMedicineMissingSnapshot()),
+          _ReportExporter(),
+          idGenerator: () => 'unused',
+          sourceLinkService: _SourceLinkService(
+            error: ArgumentError('launcher unavailable'),
+          ),
+          incidentLogger: incidentLogger,
+        );
+        final Future<MoodMedicineUiEffect> effect = viewModel.effects.first;
+
+        await viewModel.openEducationSource(
+          Uri.parse('https://example.test/private-source'),
+        );
+
+        expect(await effect, isA<MoodMedicineSourceOpenFailedEffect>());
+        expect(incidentLogger.captured, hasLength(1));
         viewModel.dispose();
       },
     );
@@ -800,6 +869,7 @@ void main() {
           store,
           firstExporter.mock,
           sourceLinkService: _SourceLinkService().mock,
+          incidentLoggerService: _IncidentLogger().mock,
           clock: () => DateTime(2026, 8, 29, 9),
           idGenerator: () => 'entry-first',
         );
@@ -807,6 +877,7 @@ void main() {
           store,
           secondExporter.mock,
           sourceLinkService: _SourceLinkService().mock,
+          incidentLoggerService: _IncidentLogger().mock,
           clock: () => DateTime(2026, 8, 29, 10),
           idGenerator: () => 'entry-second',
         );
@@ -1022,6 +1093,7 @@ void main() {
           repository.mock,
           exporter.mock,
           sourceLinkService: _SourceLinkService().mock,
+          incidentLoggerService: _IncidentLogger().mock,
           clock: () => DateTime(2026, 8, 29, 9),
           idGenerator: () => 'entry-1',
         );
@@ -1031,6 +1103,15 @@ void main() {
         final Future<MoodMedicineReportBuildOutcome> pending = viewModel
             .buildReport();
         viewModel.setReportPresentation(_presentation());
+        expect(
+          viewModel.readyState!.export.phase,
+          MoodMedicineExportPhase.building,
+        );
+        expect(
+          await viewModel.buildReport(),
+          isA<MoodMedicineReportBuildCancelledOutcome>(),
+        );
+        expect(exporter.buildCount, 1);
         exporter.completeBuild();
 
         expect(
@@ -1038,6 +1119,16 @@ void main() {
           isA<MoodMedicineReportBuildStalePresentationOutcome>(),
         );
         expect(viewModel.readyState!.export.report, isNull);
+        expect(
+          viewModel.readyState!.export.phase,
+          MoodMedicineExportPhase.idle,
+        );
+
+        final Future<MoodMedicineReportBuildOutcome> retry = viewModel
+            .buildReport();
+        expect(exporter.buildCount, 2);
+        exporter.completeBuild();
+        expect(await retry, isA<MoodMedicineReportBuiltOutcome>());
         viewModel.dispose();
       },
     );
@@ -1051,6 +1142,7 @@ void main() {
         repository.mock,
         exporter.mock,
         sourceLinkService: _SourceLinkService().mock,
+        incidentLoggerService: _IncidentLogger().mock,
         clock: () => DateTime(2026, 8, 29, 9),
         idGenerator: () => 'entry-1',
       );
@@ -1064,14 +1156,276 @@ void main() {
         MoodMedicineExportPhase.building,
       );
       viewModel.selectRange(MoodMedicineInsightRange.day);
+      expect(
+        viewModel.readyState!.export.phase,
+        MoodMedicineExportPhase.building,
+      );
+      expect(
+        await viewModel.buildReport(),
+        isA<MoodMedicineReportBuildCancelledOutcome>(),
+      );
+      expect(exporter.buildCount, 1);
       exporter.completeBuild();
 
       expect(await pending, isA<MoodMedicineReportBuildCancelledOutcome>());
       expect(viewModel.readyState!.export.report, isNull);
+      expect(viewModel.readyState!.export.phase, MoodMedicineExportPhase.idle);
       expect(await viewModel.shareBuiltReport(), isFalse);
       expect(exporter.deliveryCount, 0);
+
+      final Future<MoodMedicineReportBuildOutcome> currentBuild = viewModel
+          .buildReport();
+      exporter.completeBuild();
+      expect(await currentBuild, isA<MoodMedicineReportBuiltOutcome>());
       viewModel.dispose();
     });
+
+    test(
+      'should preserve distinct PNG and renderer report failure kinds',
+      () async {
+        final _ReportExporter exporter = _ReportExporter();
+        when(
+          () => exporter.mock.build(any(), any()),
+        ).thenThrow(const MoodMedicinePngReportTooLargeException(12000));
+        final MoodMedicineViewModel viewModel = _viewModel(
+          _Repository(const MoodMedicineMissingSnapshot()),
+          exporter,
+          idGenerator: () => 'unused',
+        );
+        await viewModel.load();
+        viewModel.setReportPresentation(_presentation());
+
+        expect(
+          await viewModel.buildReport(),
+          isA<MoodMedicineReportBuildFailedOutcome>(),
+        );
+        expect(
+          viewModel.readyState!.export.buildFailureKind,
+          MoodMedicineReportBuildFailureKind.pngTooLarge,
+        );
+        expect(viewModel.readyState!.export.error, isNull);
+
+        viewModel.setReportOptions();
+        final StateError rendererError = StateError('renderer failed');
+        when(() => exporter.mock.build(any(), any())).thenThrow(rendererError);
+
+        expect(
+          await viewModel.buildReport(),
+          isA<MoodMedicineReportBuildFailedOutcome>(),
+        );
+        expect(
+          viewModel.readyState!.export.buildFailureKind,
+          MoodMedicineReportBuildFailureKind.renderer,
+        );
+        expect(viewModel.readyState!.export.error, same(rendererError));
+        viewModel.dispose();
+      },
+    );
+
+    test(
+      'should cancel an invalidated renderer failure without exposing stale error state',
+      () async {
+        final _DelayedReportExporter exporter = _DelayedReportExporter();
+        final MoodMedicineViewModel delayedViewModel = MoodMedicineViewModel(
+          _Repository(const MoodMedicineMissingSnapshot()).mock,
+          exporter.mock,
+          sourceLinkService: _SourceLinkService().mock,
+          incidentLoggerService: _IncidentLogger().mock,
+          clock: () => DateTime(2026, 8, 29, 9),
+          idGenerator: () => 'unused',
+        );
+        await delayedViewModel.load();
+        delayedViewModel.setReportPresentation(_presentation());
+
+        final Future<MoodMedicineReportBuildOutcome> pending = delayedViewModel
+            .buildReport();
+        delayedViewModel.selectRange(MoodMedicineInsightRange.day);
+        exporter.failBuild(StateError('stale renderer failure'));
+
+        expect(await pending, isA<MoodMedicineReportBuildCancelledOutcome>());
+        expect(
+          delayedViewModel.readyState!.export.phase,
+          MoodMedicineExportPhase.idle,
+        );
+        expect(delayedViewModel.readyState!.export.error, isNull);
+        expect(delayedViewModel.readyState!.export.buildFailureKind, isNull);
+        delayedViewModel.dispose();
+      },
+    );
+
+    test(
+      'should keep one build active until history invalidation completes',
+      () async {
+        final _Repository repository = _Repository(
+          const MoodMedicineMissingSnapshot(),
+        );
+        final _DelayedReportExporter exporter = _DelayedReportExporter();
+        final MoodMedicineViewModel viewModel = MoodMedicineViewModel(
+          repository.mock,
+          exporter.mock,
+          sourceLinkService: _SourceLinkService().mock,
+          incidentLoggerService: _IncidentLogger().mock,
+          clock: () => DateTime(2026, 8, 29, 9),
+          idGenerator: () => 'entry-1',
+        );
+        await viewModel.load();
+        viewModel.setReportPresentation(_presentation());
+        final Future<MoodMedicineReportBuildOutcome> pending = viewModel
+            .buildReport();
+
+        viewModel.selectMood(4);
+        expect(await viewModel.saveCheckIn(), isTrue);
+        expect(
+          viewModel.readyState!.export.phase,
+          MoodMedicineExportPhase.building,
+        );
+        expect(
+          await viewModel.buildReport(),
+          isA<MoodMedicineReportBuildCancelledOutcome>(),
+        );
+        expect(exporter.buildCount, 1);
+
+        exporter.completeBuild();
+        expect(await pending, isA<MoodMedicineReportBuildCancelledOutcome>());
+        expect(
+          viewModel.readyState!.export.phase,
+          MoodMedicineExportPhase.idle,
+        );
+        viewModel.dispose();
+      },
+    );
+
+    test(
+      'should reset note consent per export session while retaining format',
+      () async {
+        final _ReportExporter exporter = _ReportExporter();
+        final MoodMedicineViewModel viewModel = _viewModel(
+          _Repository(const MoodMedicineMissingSnapshot()),
+          exporter,
+          idGenerator: () => 'unused',
+        );
+        await viewModel.load();
+        viewModel.setReportPresentation(_presentation());
+        viewModel.setReportOptions(
+          format: MoodMedicineReportFormat.png,
+          includeNotes: true,
+        );
+
+        expect(
+          await viewModel.buildReport(),
+          isA<MoodMedicineReportBuiltOutcome>(),
+        );
+        expect(viewModel.readyState!.export.includeNotes, isTrue);
+        expect(exporter.latestInput!.includeNotes, isTrue);
+
+        viewModel.endReportExportSession();
+
+        expect(
+          viewModel.readyState!.export.format,
+          MoodMedicineReportFormat.png,
+        );
+        expect(viewModel.readyState!.export.includeNotes, isFalse);
+        expect(
+          viewModel.readyState!.export.phase,
+          MoodMedicineExportPhase.idle,
+        );
+        expect(viewModel.readyState!.export.input, isNull);
+        expect(viewModel.readyState!.export.report, isNull);
+
+        await viewModel.buildReport();
+        expect(exporter.latestInput!.includeNotes, isFalse);
+        viewModel.dispose();
+      },
+    );
+
+    test(
+      'should retain the build fence when an export session closes in flight',
+      () async {
+        final _DelayedReportExporter exporter = _DelayedReportExporter();
+        final MoodMedicineViewModel viewModel = MoodMedicineViewModel(
+          _Repository(const MoodMedicineMissingSnapshot()).mock,
+          exporter.mock,
+          sourceLinkService: _SourceLinkService().mock,
+          incidentLoggerService: _IncidentLogger().mock,
+          clock: () => DateTime(2026, 8, 29, 9),
+          idGenerator: () => 'unused',
+        );
+        await viewModel.load();
+        viewModel.setReportPresentation(_presentation());
+        viewModel.setReportOptions(includeNotes: true);
+        final Future<MoodMedicineReportBuildOutcome> pending = viewModel
+            .buildReport();
+
+        viewModel.endReportExportSession();
+
+        expect(
+          viewModel.readyState!.export.phase,
+          MoodMedicineExportPhase.building,
+        );
+        expect(viewModel.readyState!.export.includeNotes, isFalse);
+        expect(viewModel.readyState!.export.input, isNull);
+        expect(
+          await viewModel.buildReport(),
+          isA<MoodMedicineReportBuildCancelledOutcome>(),
+        );
+        expect(exporter.buildCount, 1);
+
+        exporter.completeBuild();
+        expect(await pending, isA<MoodMedicineReportBuildCancelledOutcome>());
+        expect(
+          viewModel.readyState!.export.phase,
+          MoodMedicineExportPhase.idle,
+        );
+        expect(viewModel.readyState!.export.report, isNull);
+        viewModel.dispose();
+      },
+    );
+
+    test(
+      'should retain the delivery fence when an export session closes in flight',
+      () async {
+        final _ReportExporter exporter = _ReportExporter();
+        final Completer<MoodMedicineReportDelivery> delivery =
+            Completer<MoodMedicineReportDelivery>();
+        when(
+          () =>
+              exporter.mock.deliver(any(), shareText: any(named: 'shareText')),
+        ).thenAnswer((_) => delivery.future);
+        final MoodMedicineViewModel viewModel = _viewModel(
+          _Repository(const MoodMedicineMissingSnapshot()),
+          exporter,
+          idGenerator: () => 'unused',
+        );
+        await viewModel.load();
+        viewModel.setReportPresentation(_presentation());
+        viewModel.setReportOptions(includeNotes: true);
+        await viewModel.buildReport();
+        final Future<bool> pending = viewModel.shareBuiltReport();
+
+        viewModel.endReportExportSession();
+
+        expect(
+          viewModel.readyState!.export.phase,
+          MoodMedicineExportPhase.delivering,
+        );
+        expect(viewModel.readyState!.export.includeNotes, isFalse);
+        expect(viewModel.readyState!.export.report, isNull);
+        expect(await viewModel.shareBuiltReport(), isFalse);
+
+        delivery.complete(
+          const MoodMedicineReportDelivery(
+            MoodMedicineReportDeliveryStatus.delivered,
+          ),
+        );
+        expect(await pending, isTrue);
+        expect(
+          viewModel.readyState!.export.phase,
+          MoodMedicineExportPhase.idle,
+        );
+        expect(viewModel.readyState!.export.report, isNull);
+        viewModel.dispose();
+      },
+    );
   });
 }
 
@@ -1079,9 +1433,12 @@ void main() {
 final class _DelayedReportExporter {
   _DelayedReportExporter() {
     when(() => mock.build(any(), any())).thenAnswer((Invocation invocation) {
-      _input = invocation.positionalArguments[0] as MoodMedicineReportInput;
-      _format = invocation.positionalArguments[1] as MoodMedicineReportFormat;
-      return _buildCompleter.future;
+      final _PendingReportBuild pending = _PendingReportBuild(
+        invocation.positionalArguments[0] as MoodMedicineReportInput,
+        invocation.positionalArguments[1] as MoodMedicineReportFormat,
+      );
+      pendingBuilds.add(pending);
+      return pending.completer.future;
     });
     when(
       () => mock.deliver(any(), shareText: any(named: 'shareText')),
@@ -1095,23 +1452,39 @@ final class _DelayedReportExporter {
 
   final _MockMoodMedicineReportExportService mock =
       _MockMoodMedicineReportExportService();
-  final Completer<MoodMedicineBuiltReport> _buildCompleter =
-      Completer<MoodMedicineBuiltReport>();
-  MoodMedicineReportInput? _input;
-  MoodMedicineReportFormat? _format;
+  final List<_PendingReportBuild> pendingBuilds = <_PendingReportBuild>[];
   int deliveryCount = 0;
 
+  int get buildCount => pendingBuilds.length;
+
   void completeBuild() {
-    final MoodMedicineReportInput input = _input!;
-    final MoodMedicineReportFormat format = _format!;
-    _buildCompleter.complete(
+    final _PendingReportBuild pending = pendingBuilds.firstWhere(
+      (_PendingReportBuild candidate) => !candidate.completer.isCompleted,
+    );
+    pending.completer.complete(
       MoodMedicineBuiltReport(
         bytes: Uint8List.fromList(<int>[1, 2, 3]),
-        fileName: input.fileNameFor(format),
-        format: format,
+        fileName: pending.input.fileNameFor(pending.format),
+        format: pending.format,
       ),
     );
   }
+
+  void failBuild(Object error) {
+    final _PendingReportBuild pending = pendingBuilds.firstWhere(
+      (_PendingReportBuild candidate) => !candidate.completer.isCompleted,
+    );
+    pending.completer.completeError(error);
+  }
+}
+
+final class _PendingReportBuild {
+  _PendingReportBuild(this.input, this.format);
+
+  final MoodMedicineReportInput input;
+  final MoodMedicineReportFormat format;
+  final Completer<MoodMedicineBuiltReport> completer =
+      Completer<MoodMedicineBuiltReport>();
 }
 
 String Function() _idSequence(List<String> ids) {

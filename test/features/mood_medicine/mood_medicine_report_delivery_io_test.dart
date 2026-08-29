@@ -3,7 +3,6 @@ import 'dart:typed_data';
 
 import 'package:flutter/widgets.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:get_it/get_it.dart';
 import 'package:mazilon/features/mood_medicine/data/mood_medicine_report_delivery_io.dart'
     as report_io;
 import 'package:mazilon/features/mood_medicine/data/mood_medicine_report_delivery_types.dart';
@@ -46,6 +45,7 @@ void main() {
 
         final MoodMedicineReportDelivery delivery = await report_io
             .deliverMoodMedicineIoReportForTesting(
+              incidentLoggerService: const _NoopIncidentLoggerService(),
               bytes: Uint8List.fromList(<int>[1, 2, 3]),
               fileName: 'report.pdf',
               mimeType: 'application/pdf',
@@ -81,6 +81,7 @@ void main() {
 
       final Future<MoodMedicineReportDelivery> deliveryFuture = report_io
           .deliverMoodMedicineIoReportForTesting(
+            incidentLoggerService: const _NoopIncidentLoggerService(),
             bytes: source,
             fileName: 'report.pdf',
             mimeType: 'application/pdf',
@@ -104,6 +105,7 @@ void main() {
 
       final MoodMedicineReportDelivery delivery = await report_io
           .deliverMoodMedicineIoReportForTesting(
+            incidentLoggerService: const _NoopIncidentLoggerService(),
             bytes: Uint8List.fromList(<int>[1, 2, 3]),
             fileName: 'report.pdf',
             mimeType: 'application/pdf',
@@ -115,12 +117,10 @@ void main() {
 
     test('should log a sanitized native delivery failure', () async {
       final _CapturingLogger logger = _CapturingLogger();
-      await GetIt.instance.reset();
-      addTearDown(GetIt.instance.reset);
-      GetIt.instance.registerSingleton<IncidentLoggerService>(logger);
 
       final MoodMedicineReportDelivery delivery = await report_io
           .deliverMoodMedicineIoReportForTesting(
+            incidentLoggerService: logger,
             bytes: Uint8List.fromList(<int>[1, 2, 3]),
             fileName: 'report.pdf',
             mimeType: 'application/pdf',
@@ -138,6 +138,22 @@ void main() {
       expect(payload, isNot(contains('private note')));
       expect(payload, isNot(contains('https://example.test/source')));
       expect(logger.stackTraces.single, isNotNull);
+    });
+
+    test('should retain failed status when incident logging throws', () async {
+      final MoodMedicineReportDelivery delivery = await report_io
+          .deliverMoodMedicineIoReportForTesting(
+            incidentLoggerService: const _ThrowingLogger(),
+            bytes: Uint8List.fromList(<int>[1, 2, 3]),
+            fileName: 'report.pdf',
+            mimeType: 'application/pdf',
+            share: _RecordingShare(
+              ShareResultStatus.success,
+              error: StateError('share unavailable'),
+            ).call,
+          );
+
+      expect(delivery.status, MoodMedicineReportDeliveryStatus.failed);
     });
   });
 }
@@ -177,6 +193,36 @@ final class _CapturingLogger implements IncidentLoggerService {
   }) async {
     logs.add(exception as Object);
     stackTraces.add(stackTrace);
+  }
+
+  @override
+  Future<void> initializeSentry(Widget myApp) async {}
+}
+
+final class _NoopIncidentLoggerService implements IncidentLoggerService {
+  const _NoopIncidentLoggerService();
+
+  @override
+  Future<void> captureLog(
+    dynamic exception, {
+    StackTrace? stackTrace,
+    dynamic exceptionData,
+  }) async {}
+
+  @override
+  Future<void> initializeSentry(Widget myApp) async {}
+}
+
+final class _ThrowingLogger implements IncidentLoggerService {
+  const _ThrowingLogger();
+
+  @override
+  Future<void> captureLog(
+    dynamic exception, {
+    StackTrace? stackTrace,
+    dynamic exceptionData,
+  }) async {
+    throw StateError('telemetry unavailable');
   }
 
   @override

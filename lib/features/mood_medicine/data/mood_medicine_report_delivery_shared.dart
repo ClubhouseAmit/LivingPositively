@@ -1,5 +1,6 @@
 import 'dart:typed_data';
 
+import 'package:mazilon/util/logger_service.dart';
 import 'package:share_plus/share_plus.dart';
 
 import 'mood_medicine_report_delivery_types.dart';
@@ -11,6 +12,7 @@ import 'mood_medicine_report_failure_logging.dart';
 /// their platform availability and fallback policy; byte ownership, plugin
 /// parameters, status mapping, and privacy-safe error handling are identical.
 Future<MoodMedicineReportDelivery> deliverMoodMedicineReportThroughShare({
+  required IncidentLoggerService incidentLoggerService,
   required Uint8List bytes,
   required String fileName,
   required String mimeType,
@@ -39,6 +41,7 @@ Future<MoodMedicineReportDelivery> deliverMoodMedicineReportThroughShare({
     );
   } catch (error, stackTrace) {
     await logMoodMedicineReportFailure(
+      incidentLoggerService: incidentLoggerService,
       stage: MoodMedicineReportFailureStage.delivery,
       error: error,
       stackTrace: stackTrace,

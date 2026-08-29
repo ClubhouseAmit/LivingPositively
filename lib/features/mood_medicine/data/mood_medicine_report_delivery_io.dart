@@ -1,6 +1,7 @@
 import 'dart:io' show Platform;
 
 import 'package:flutter/foundation.dart';
+import 'package:mazilon/util/logger_service.dart';
 import 'package:share_plus/share_plus.dart';
 
 import 'mood_medicine_report_delivery_shared.dart';
@@ -15,6 +16,7 @@ import 'mood_medicine_report_delivery_types.dart';
 /// Linux has no `share_plus` file-report handoff, so it returns [unavailable]
 /// without invoking the plugin.
 Future<MoodMedicineReportDelivery> deliverMoodMedicineReport({
+  required IncidentLoggerService incidentLoggerService,
   required Uint8List bytes,
   required String fileName,
   required String mimeType,
@@ -28,6 +30,7 @@ Future<MoodMedicineReportDelivery> deliverMoodMedicineReport({
     );
   }
   return _deliverMoodMedicineIoReport(
+    incidentLoggerService: incidentLoggerService,
     bytes: bytes,
     fileName: fileName,
     mimeType: mimeType,
@@ -42,6 +45,7 @@ Future<MoodMedicineReportDelivery> deliverMoodMedicineReport({
 /// and maps a successful or unavailable result to a completed feature handoff.
 @visibleForTesting
 Future<MoodMedicineReportDelivery> deliverMoodMedicineIoReportForTesting({
+  required IncidentLoggerService incidentLoggerService,
   required Uint8List bytes,
   required String fileName,
   required String mimeType,
@@ -49,6 +53,7 @@ Future<MoodMedicineReportDelivery> deliverMoodMedicineIoReportForTesting({
   String? shareText,
 }) {
   return _deliverMoodMedicineIoReport(
+    incidentLoggerService: incidentLoggerService,
     bytes: bytes,
     fileName: fileName,
     mimeType: mimeType,
@@ -58,6 +63,7 @@ Future<MoodMedicineReportDelivery> deliverMoodMedicineIoReportForTesting({
 }
 
 Future<MoodMedicineReportDelivery> _deliverMoodMedicineIoReport({
+  required IncidentLoggerService incidentLoggerService,
   required Uint8List bytes,
   required String fileName,
   required String mimeType,
@@ -65,6 +71,7 @@ Future<MoodMedicineReportDelivery> _deliverMoodMedicineIoReport({
   String? shareText,
 }) {
   return deliverMoodMedicineReportThroughShare(
+    incidentLoggerService: incidentLoggerService,
     bytes: bytes,
     fileName: fileName,
     mimeType: mimeType,

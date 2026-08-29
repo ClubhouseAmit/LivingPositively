@@ -529,6 +529,7 @@ class _MoodMedicinePageState extends State<MoodMedicinePage> {
               Text(activity.guidance),
               const SizedBox(height: 14),
               TextButton.icon(
+                key: Key('moodMedicineActivitySource${activity.id}'),
                 onPressed: () =>
                     _viewModel.openEducationSource(activity.sourceUri),
                 icon: const Icon(Icons.open_in_new),
@@ -944,7 +945,9 @@ class _MoodMedicinePageState extends State<MoodMedicinePage> {
             ),
             OutlinedButton.icon(
               key: const Key('moodMedicineExportButton'),
-              onPressed: ready.writesBlocked ? null : _showExportSheet,
+              onPressed: ready.writesBlocked || ready.export.isWorking
+                  ? null
+                  : _showExportSheet,
               icon: const Icon(Icons.ios_share_outlined),
               label: Text(l10n.moodMedicineExport),
             ),
@@ -963,7 +966,7 @@ class _MoodMedicinePageState extends State<MoodMedicinePage> {
 
   Future<void> _showExportSheet() async {
     final AppLocalizations l10n = AppLocalizations.of(context)!;
-    await showModalBottomSheet<void>(
+    final Future<void> sheet = showModalBottomSheet<void>(
       context: context,
       isScrollControlled: true,
       builder: (BuildContext sheetContext) =>
@@ -1208,6 +1211,11 @@ class _MoodMedicinePageState extends State<MoodMedicinePage> {
             ),
           ),
     );
+    try {
+      await sheet;
+    } finally {
+      _viewModel.endReportExportSession();
+    }
   }
 
   Widget _buildEducation(AppLocalizations l10n, MoodMedicineReadyState ready) {
@@ -1288,6 +1296,7 @@ class _MoodMedicinePageState extends State<MoodMedicinePage> {
               ),
               const SizedBox(height: 14),
               TextButton.icon(
+                key: const Key('moodMedicineEducationSource'),
                 onPressed: () =>
                     _viewModel.openEducationSource(selfCareSource.sourceUri),
                 icon: const Icon(Icons.open_in_new),
