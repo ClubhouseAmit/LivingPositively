@@ -16,7 +16,6 @@ import 'package:mazilon/util/styles.dart';
 import 'package:mazilon/util/theme/app_theme.dart';
 import 'package:mazilon/util/theme/spacing.dart';
 import 'package:provider/provider.dart';
-import 'package:url_launcher/url_launcher.dart';
 
 /// Device-local mood check-ins, education, and insights.
 ///
@@ -80,7 +79,11 @@ class _MoodMedicinePageState extends State<MoodMedicinePage> {
       return;
     }
     _presentationLocale = locale;
-    _applyReportPresentationIfReady();
+    WidgetsBinding.instance.addPostFrameCallback((Duration _) {
+      if (mounted && _presentationLocale == locale) {
+        _applyReportPresentationIfReady();
+      }
+    });
   }
 
   @override
@@ -107,6 +110,12 @@ class _MoodMedicinePageState extends State<MoodMedicinePage> {
         );
       case MoodMedicinePersistenceFailedEffect(:final canRetry):
         _showWriteFailure(canRetry: canRetry);
+      case MoodMedicineSourceOpenFailedEffect():
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(AppLocalizations.of(context)!.asyncErrorMessage),
+          ),
+        );
       case MoodMedicineReportDeliveryEffect(:final delivery):
         if (!delivery.didDeliver &&
             delivery.status != MoodMedicineReportDeliveryStatus.dismissed) {
@@ -520,18 +529,8 @@ class _MoodMedicinePageState extends State<MoodMedicinePage> {
               Text(activity.guidance),
               const SizedBox(height: 14),
               TextButton.icon(
-                onPressed: () async {
-                  final bool opened = await launchUrl(
-                    activity.sourceUri,
-                    mode: LaunchMode.externalApplication,
-                    webOnlyWindowName: '_blank',
-                  );
-                  if (!opened && sheetContext.mounted) {
-                    ScaffoldMessenger.of(sheetContext).showSnackBar(
-                      SnackBar(content: Text(l10n.moodMedicineExportError)),
-                    );
-                  }
-                },
+                onPressed: () =>
+                    _viewModel.openEducationSource(activity.sourceUri),
                 icon: const Icon(Icons.open_in_new),
                 label: Text(
                   '${l10n.moodMedicineOpenSource}: ${activity.sourceLabel}',
@@ -979,66 +978,95 @@ class _MoodMedicinePageState extends State<MoodMedicinePage> {
                     }
                     final MoodMedicineExportState export = ready.export;
 
-                    Future<void> buildAndView() async {
-                      final MoodMedicineBuiltReport? report = await viewModel
-                          .buildReport();
-                      if (!sheetContext.mounted) {
-                        return;
+                    Future<MoodMedicineReportBuildOutcome>
+                    buildForCurrentPresentation() async {
+                      while (sheetContext.mounted) {
+                        final MoodMedicineReportBuildOutcome outcome =
+                            await viewModel.buildReport();
+                        if (outcome
+                            is MoodMedicineReportBuildStalePresentationOutcome) {
+                          continue;
+                        }
+                        return outcome;
                       }
-                      if (report == null) {
-                        ScaffoldMessenger.of(sheetContext).showSnackBar(
-                          SnackBar(
-                            content: Text(
-                              _reportBuildFailureMessage(
-                                l10n,
-                                viewModel,
-                                preview: true,
-                              ),
+                      return const MoodMedicineReportBuildCancelledOutcome();
+                    }
+
+                    void showReportBuildFailure({required bool preview}) {
+                      final AppLocalizations currentL10n = AppLocalizations.of(
+                        sheetContext,
+                      )!;
+                      ScaffoldMessenger.of(sheetContext).showSnackBar(
+                        SnackBar(
+                          content: Text(
+                            _reportBuildFailureMessage(
+                              currentL10n,
+                              viewModel,
+                              preview: preview,
                             ),
-                          ),
-                        );
-                        return;
-                      }
-                      final MoodMedicineReportFormat format =
-                          viewModel.readyState?.export.format ??
-                          MoodMedicineReportFormat.pdf;
-                      await Navigator.of(context).push<void>(
-                        MaterialPageRoute<void>(
-                          builder: (_) => MoodMedicineReportPreviewPage(
-                            report: report,
-                            format: format,
-                            title: format == MoodMedicineReportFormat.pdf
-                                ? l10n.moodMedicinePreviewPdf
-                                : l10n.moodMedicinePreviewPng,
-                            pngPrintGuidance: l10n.moodMedicinePngPrintGuidance,
                           ),
                         ),
                       );
                     }
 
-                    Future<void> buildAndShare() async {
-                      if (export.report == null) {
-                        final MoodMedicineBuiltReport? report = await viewModel
-                            .buildReport();
-                        if (report == null) {
-                          if (sheetContext.mounted) {
-                            ScaffoldMessenger.of(sheetContext).showSnackBar(
-                              SnackBar(
-                                content: Text(
-                                  _reportBuildFailureMessage(
-                                    l10n,
-                                    viewModel,
-                                    preview: false,
-                                  ),
-                                ),
+                    Future<void> buildAndView() async {
+                      final MoodMedicineReportBuildOutcome outcome =
+                          await buildForCurrentPresentation();
+                      if (!sheetContext.mounted) {
+                        return;
+                      }
+                      switch (outcome) {
+                        case MoodMedicineReportBuiltOutcome(:final report):
+                          final AppLocalizations currentL10n =
+                              AppLocalizations.of(sheetContext)!;
+                          await Navigator.of(context).push<void>(
+                            MaterialPageRoute<void>(
+                              builder: (_) => MoodMedicineReportPreviewPage(
+                                report: report,
+                                title:
+                                    report.format ==
+                                        MoodMedicineReportFormat.pdf
+                                    ? currentL10n.moodMedicinePreviewPdf
+                                    : currentL10n.moodMedicinePreviewPng,
+                                pngPrintGuidance:
+                                    currentL10n.moodMedicinePngPrintGuidance,
                               ),
-                            );
-                          }
+                            ),
+                          );
+                        case MoodMedicineReportBuildFailedOutcome():
+                          showReportBuildFailure(preview: true);
+                        case MoodMedicineReportBuildCancelledOutcome() ||
+                            MoodMedicineReportBuildStalePresentationOutcome():
+                          return;
+                      }
+                    }
+
+                    Future<void> buildAndShare() async {
+                      if (viewModel.readyState?.export.report == null) {
+                        final MoodMedicineReportBuildOutcome outcome =
+                            await buildForCurrentPresentation();
+                        if (!sheetContext.mounted) {
                           return;
                         }
+                        switch (outcome) {
+                          case MoodMedicineReportBuiltOutcome():
+                            break;
+                          case MoodMedicineReportBuildFailedOutcome():
+                            showReportBuildFailure(preview: false);
+                            return;
+                          case MoodMedicineReportBuildCancelledOutcome() ||
+                              MoodMedicineReportBuildStalePresentationOutcome():
+                            return;
+                        }
                       }
+                      if (!sheetContext.mounted) {
+                        return;
+                      }
+                      final AppLocalizations currentL10n = AppLocalizations.of(
+                        sheetContext,
+                      )!;
                       final bool shared = await viewModel.shareBuiltReport(
-                        shareText: l10n.moodMedicineExportReportTitle,
+                        shareText: currentL10n.moodMedicineExportReportTitle,
                       );
                       if (shared && sheetContext.mounted) {
                         Navigator.of(sheetContext).pop();
@@ -1260,11 +1288,8 @@ class _MoodMedicinePageState extends State<MoodMedicinePage> {
               ),
               const SizedBox(height: 14),
               TextButton.icon(
-                onPressed: () => launchUrl(
-                  selfCareSource.sourceUri,
-                  mode: LaunchMode.externalApplication,
-                  webOnlyWindowName: '_blank',
-                ),
+                onPressed: () =>
+                    _viewModel.openEducationSource(selfCareSource.sourceUri),
                 icon: const Icon(Icons.open_in_new),
                 label: Text(
                   '${l10n.moodMedicineOpenSource}: '

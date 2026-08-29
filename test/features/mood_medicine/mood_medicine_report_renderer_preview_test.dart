@@ -95,6 +95,57 @@ void main() {
   });
 
   group('MoodMedicinePdfReportRenderer', () {
+    test(
+      'should retain content when a source label matches another section',
+      () {
+        const MoodMedicinePdfReportRenderer renderer =
+            MoodMedicinePdfReportRenderer();
+        final MoodMedicineReportInput report = MoodMedicineReportInput(
+          title: 'Mood report',
+          dateRangeLabel: 'This week',
+          labels: const MoodMedicineReportLabels(
+            moodLabel: 'Mood',
+            activitiesLabel: 'Activities',
+            associationsLabel: 'Associations',
+            notesLabel: 'Notes',
+            sourcesLabel: 'Mood',
+            noDataLabel: 'No data',
+            withActivityLabel: 'With activity',
+            withoutActivityLabel: 'Without activity',
+            associationDisclaimer: 'Association does not mean causation.',
+          ),
+          days: <MoodMedicineReportDay>[
+            MoodMedicineReportDay(dayLabel: '2026-08-29', moodAverage: 4),
+          ],
+          sources: <MoodMedicineReportSource>[
+            MoodMedicineReportSource(
+              title: 'Source',
+              url: Uri.parse('https://example.org/source'),
+            ),
+          ],
+        );
+
+        final MoodMedicinePdfContentPlan contentPlan = renderer
+            .buildContentPlanForTesting(report);
+
+        expect(
+          contentPlan.cards.where(
+            (MoodMedicinePdfContentCard card) =>
+                card.kind == MoodMedicinePdfContentCardKind.section &&
+                card.heading == report.labels.moodLabel,
+          ),
+          isNotEmpty,
+        );
+        expect(
+          contentPlan.cards.where(
+            (MoodMedicinePdfContentCard card) =>
+                card.kind == MoodMedicinePdfContentCardKind.source,
+          ),
+          isNotEmpty,
+        );
+      },
+    );
+
     testWidgets('should render normal and empty report documents', (
       WidgetTester tester,
     ) async {
@@ -324,14 +375,13 @@ void main() {
       final MoodMedicineBuiltReport report = MoodMedicineBuiltReport(
         bytes: png,
         fileName: 'report.png',
-        mimeType: 'image/png',
+        format: MoodMedicineReportFormat.png,
       );
 
       await tester.pumpWidget(
         MaterialApp(
           home: MoodMedicineReportPreviewPage(
             report: report,
-            format: MoodMedicineReportFormat.png,
             title: 'Image preview',
             pngPrintGuidance: 'Choose PDF for long reports.',
           ),
@@ -352,14 +402,13 @@ void main() {
           () => const MoodMedicinePdfReportRenderer().render(_reportInput()),
         ),
         fileName: 'report.pdf',
-        mimeType: 'application/pdf',
+        format: MoodMedicineReportFormat.pdf,
       );
 
       await tester.pumpWidget(
         MaterialApp(
           home: MoodMedicineReportPreviewPage(
             report: report,
-            format: MoodMedicineReportFormat.pdf,
             title: 'PDF preview',
           ),
         ),

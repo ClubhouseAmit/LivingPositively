@@ -2,6 +2,7 @@ import 'dart:typed_data';
 
 import 'package:flutter_test/flutter_test.dart';
 import 'package:mazilon/features/mood_medicine/data/mood_medicine_report_delivery_types.dart';
+import 'package:mazilon/features/mood_medicine/data/mood_medicine_report_models.dart';
 
 void main() {
   group('MoodMedicineBuiltReport', () {
@@ -10,7 +11,7 @@ void main() {
       final MoodMedicineBuiltReport report = MoodMedicineBuiltReport(
         bytes: source,
         fileName: 'report.pdf',
-        mimeType: 'application/pdf',
+        format: MoodMedicineReportFormat.pdf,
       );
 
       source[0] = 9;
@@ -18,6 +19,18 @@ void main() {
 
       expect(firstRead, <int>[1, 8, 3]);
       expect(report.bytes, <int>[1, 2, 3]);
+      expect(report.mimeType, 'application/pdf');
+    });
+
+    test('should reject a filename that conflicts with the report format', () {
+      expect(
+        () => MoodMedicineBuiltReport(
+          bytes: Uint8List.fromList(<int>[1, 2, 3]),
+          fileName: 'report.png',
+          format: MoodMedicineReportFormat.pdf,
+        ),
+        throwsArgumentError,
+      );
     });
   });
 

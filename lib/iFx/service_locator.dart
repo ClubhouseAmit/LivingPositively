@@ -4,6 +4,7 @@ import 'package:mazilon/Locale/locale_service.dart';
 import 'package:mazilon/pages/FeelGood/image_picker_service_impl.dart';
 import 'package:mazilon/features/mood_medicine/data/mood_medicine_report_exporter.dart';
 import 'package:mazilon/features/mood_medicine/data/mood_medicine_repository.dart';
+import 'package:mazilon/features/mood_medicine/data/mood_medicine_source_link_service.dart';
 import 'package:mazilon/features/mood_medicine/data/mood_medicine_store.dart';
 import 'package:mazilon/features/mood_medicine/ui/mood_medicine_view_model.dart';
 import 'package:mazilon/pages/WellnessTools/VideoPlayerPageFactory.dart';
@@ -53,10 +54,14 @@ void setupLocator() {
   getIt.registerLazySingleton<MoodMedicineReportExportService>(
     () => getIt<MoodMedicineReportExporter>(),
   );
+  getIt.registerLazySingleton<MoodMedicineSourceLinkService>(
+    () => const UrlLauncherMoodMedicineSourceLinkService(),
+  );
   getIt.registerFactory<MoodMedicineViewModel>(
     () => MoodMedicineViewModel(
       getIt<MoodMedicineRepository>(),
       getIt<MoodMedicineReportExportService>(),
+      sourceLinkService: getIt<MoodMedicineSourceLinkService>(),
     ),
   );
 }

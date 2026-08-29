@@ -42,7 +42,7 @@ void main() {
           activities: <String>['Walk'],
         ),
       ],
-      associations: const <MoodMedicineReportAssociation>[
+      associations: <MoodMedicineReportAssociation>[
         MoodMedicineReportAssociation(
           activityLabel: 'Walk',
           withActivityMoodAverage: 4,
@@ -95,6 +95,17 @@ void main() {
       },
     );
 
+    test('should mark generated source sections structurally', () {
+      final MoodMedicineReportSection sourceSection = input()
+          .buildSections()
+          .singleWhere((MoodMedicineReportSection section) {
+            return section.isSourceSection;
+          });
+
+      expect(sourceSection.heading, labels.sourcesLabel);
+      expect(sourceSection.isSourceSection, isTrue);
+    });
+
     test('should create safe format-specific file names', () {
       final report = input();
 
@@ -124,6 +135,22 @@ void main() {
       },
     );
 
+    test(
+      'should return a failed outcome when report rendering throws',
+      () async {
+        final MoodMedicineReportExporter exporter = MoodMedicineReportExporter(
+          pdfRenderer: _ThrowingPdfRenderer(),
+        );
+
+        final MoodMedicineReportDelivery delivery = await exporter.export(
+          input(),
+          MoodMedicineReportFormat.pdf,
+        );
+
+        expect(delivery.status, MoodMedicineReportDeliveryStatus.failed);
+      },
+    );
+
     test('should log renderer failures without report contents', () async {
       final _CapturingLogger logger = _CapturingLogger();
       await GetIt.instance.reset();
@@ -145,6 +172,53 @@ void main() {
       expect(payload, isNot(contains('private note')));
       expect(payload, isNot(contains('https://example.test/source')));
       expect(logger.stackTraces.single, isNotNull);
+    });
+  });
+
+  group('MoodMedicineReportMoodAverage', () {
+    test('should reject non-finite and out-of-range daily averages', () {
+      for (final double invalidValue in <double>[
+        double.nan,
+        double.infinity,
+        double.negativeInfinity,
+        -0.1,
+        5.1,
+      ]) {
+        expect(
+          () => MoodMedicineReportDay(
+            dayLabel: '2026-08-29',
+            moodAverage: invalidValue,
+          ),
+          throwsArgumentError,
+        );
+      }
+    });
+
+    test('should reject non-finite and out-of-range association averages', () {
+      for (final double invalidValue in <double>[
+        double.nan,
+        double.infinity,
+        double.negativeInfinity,
+        -0.1,
+        5.1,
+      ]) {
+        expect(
+          () => MoodMedicineReportAssociation(
+            activityLabel: 'Walk',
+            withActivityMoodAverage: invalidValue,
+            withoutActivityMoodAverage: 3,
+          ),
+          throwsArgumentError,
+        );
+        expect(
+          () => MoodMedicineReportAssociation(
+            activityLabel: 'Walk',
+            withActivityMoodAverage: 3,
+            withoutActivityMoodAverage: invalidValue,
+          ),
+          throwsArgumentError,
+        );
+      }
     });
   });
 }

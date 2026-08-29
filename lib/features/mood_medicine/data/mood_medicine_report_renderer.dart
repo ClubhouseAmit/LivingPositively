@@ -79,9 +79,7 @@ class MoodMedicinePdfReportRenderer {
         <MoodMedicinePdfContentCard>[];
     final Iterable<MoodMedicineReportSection> nonSourceSections = input
         .buildSections()
-        .where((MoodMedicineReportSection section) {
-          return section.heading != input.labels.sourcesLabel;
-        });
+        .where((MoodMedicineReportSection section) => !section.isSourceSection);
 
     for (final MoodMedicineReportSection section in nonSourceSections) {
       final List<String> lines = <String>[

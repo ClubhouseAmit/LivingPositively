@@ -252,11 +252,9 @@ final class MoodMedicineSnapshot {
          ),
        ),
        customActivities = List<MoodMedicineCustomActivity>.unmodifiable(
-         _deduplicateCustomActivities(customActivities),
+         customActivities,
        ),
-       entries = List<MoodMedicineEntry>.unmodifiable(
-         _deduplicateEntries(entries),
-       ) {
+       entries = List<MoodMedicineEntry>.unmodifiable(entries) {
     if (version != moodMedicineSnapshotVersion) {
       throw ArgumentError.value(
         version,
@@ -401,9 +399,14 @@ final class MoodMedicineSnapshot {
   }
 
   void _validateEntryActivityReferences() {
-    final Set<String> activeCustomIds = customActivities
-        .map((MoodMedicineCustomActivity activity) => activity.id)
-        .toSet();
+    final Set<String> activeCustomIds = <String>{};
+    for (final MoodMedicineCustomActivity activity in customActivities) {
+      if (!activeCustomIds.add(activity.id)) {
+        throw ArgumentError(
+          'Mood Medicine custom activity ids must be unique.',
+        );
+      }
+    }
     final Set<String> entryIds = <String>{};
     for (final MoodMedicineEntry entry in entries) {
       if (!entryIds.add(entry.id)) {
@@ -738,21 +741,3 @@ Map<String, String> _stringMap(Object? value) {
 
 Map<String, String> _normalizeLabelSnapshots(Map<String, String> snapshots) =>
     _stringMap(snapshots);
-
-List<MoodMedicineCustomActivity> _deduplicateCustomActivities(
-  Iterable<MoodMedicineCustomActivity> activities,
-) {
-  final Set<String> ids = <String>{};
-  return activities
-      .where((MoodMedicineCustomActivity activity) => ids.add(activity.id))
-      .toList(growable: false);
-}
-
-List<MoodMedicineEntry> _deduplicateEntries(
-  Iterable<MoodMedicineEntry> entries,
-) {
-  final Set<String> ids = <String>{};
-  return entries
-      .where((MoodMedicineEntry entry) => ids.add(entry.id))
-      .toList(growable: false);
-}

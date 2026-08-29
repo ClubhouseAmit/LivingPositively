@@ -57,7 +57,7 @@ class MoodMedicineReportExporter implements MoodMedicineReportExportService {
       return MoodMedicineBuiltReport(
         bytes: bytes,
         fileName: input.fileNameFor(format),
-        mimeType: format.mimeType,
+        format: format,
       );
     } on MoodMedicinePngReportTooLargeException {
       rethrow;

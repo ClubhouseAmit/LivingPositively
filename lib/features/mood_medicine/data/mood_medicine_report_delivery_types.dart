@@ -1,5 +1,7 @@
 import 'package:flutter/foundation.dart';
 
+import 'mood_medicine_report_models.dart';
+
 /// A completed in-memory report before it is passed to the platform adapter.
 ///
 /// The constructor and [bytes] getter both make a copy. This keeps an export
@@ -10,8 +12,17 @@ class MoodMedicineBuiltReport {
   MoodMedicineBuiltReport({
     required Uint8List bytes,
     required this.fileName,
-    required this.mimeType,
-  }) : _bytes = Uint8List.fromList(bytes);
+    required this.format,
+  }) : _bytes = Uint8List.fromList(bytes) {
+    final String expectedExtension = '.${format.fileExtension}';
+    if (!fileName.toLowerCase().endsWith(expectedExtension)) {
+      throw ArgumentError.value(
+        fileName,
+        'fileName',
+        'must use the $expectedExtension extension for ${format.name}.',
+      );
+    }
+  }
 
   final Uint8List _bytes;
 
@@ -19,7 +30,11 @@ class MoodMedicineBuiltReport {
   Uint8List get bytes => Uint8List.fromList(_bytes);
 
   final String fileName;
-  final String mimeType;
+  final MoodMedicineReportFormat format;
+
+  /// MIME metadata is derived from the immutable report format so it cannot
+  /// disagree with the document bytes or filename.
+  String get mimeType => format.mimeType;
 }
 
 /// The feature-level outcome of a report delivery attempt.

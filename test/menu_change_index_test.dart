@@ -16,6 +16,7 @@ import 'package:mazilon/pages/PersonalPlan/myPlanPageFull.dart';
 import 'package:mazilon/features/mood_medicine/data/mood_medicine_models.dart';
 import 'package:mazilon/features/mood_medicine/data/mood_medicine_report_exporter.dart';
 import 'package:mazilon/features/mood_medicine/data/mood_medicine_repository.dart';
+import 'package:mazilon/features/mood_medicine/data/mood_medicine_source_link_service.dart';
 import 'package:mazilon/features/mood_medicine/data/mood_medicine_store.dart';
 import 'package:mazilon/features/mood_medicine/ui/mood_medicine_page.dart';
 import 'package:mazilon/features/mood_medicine/ui/mood_medicine_view_model.dart';
@@ -145,10 +146,14 @@ void main() {
     getIt.registerLazySingleton<MoodMedicineReportExportService>(
       () => MoodMedicineReportExporter(),
     );
+    getIt.registerLazySingleton<MoodMedicineSourceLinkService>(
+      () => const UrlLauncherMoodMedicineSourceLinkService(),
+    );
     getIt.registerFactory<MoodMedicineViewModel>(
       () => MoodMedicineViewModel(
         getIt<MoodMedicineRepository>(),
         getIt<MoodMedicineReportExportService>(),
+        sourceLinkService: getIt<MoodMedicineSourceLinkService>(),
       ),
     );
     PackageInfo.setMockInitialValues(
@@ -247,6 +252,7 @@ void main() {
           final MoodMedicineViewModel viewModel = MoodMedicineViewModel(
             getIt<MoodMedicineRepository>(),
             getIt<MoodMedicineReportExportService>(),
+            sourceLinkService: getIt<MoodMedicineSourceLinkService>(),
           );
           created.add(viewModel);
           return viewModel;
@@ -313,6 +319,7 @@ void main() {
         final MoodMedicineViewModel viewModel = MoodMedicineViewModel(
           getIt<MoodMedicineRepository>(),
           getIt<MoodMedicineReportExportService>(),
+          sourceLinkService: getIt<MoodMedicineSourceLinkService>(),
         );
         created.add(viewModel);
         return viewModel;

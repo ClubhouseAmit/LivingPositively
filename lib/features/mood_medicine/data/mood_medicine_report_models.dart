@@ -57,10 +57,11 @@ class MoodMedicineReportLabels {
 class MoodMedicineReportDay {
   MoodMedicineReportDay({
     required this.dayLabel,
-    required this.moodAverage,
+    required double moodAverage,
     List<String> activities = const <String>[],
     String? note,
-  }) : activities = List<String>.unmodifiable(
+  }) : moodAverage = _validatedMoodAverage(moodAverage, 'moodAverage'),
+       activities = List<String>.unmodifiable(
          activities.where((activity) => activity.trim().isNotEmpty),
        ),
        note = note?.trim();
@@ -77,11 +78,18 @@ class MoodMedicineReportDay {
 /// A non-causal comparison between days with and without one activity.
 @immutable
 class MoodMedicineReportAssociation {
-  const MoodMedicineReportAssociation({
+  MoodMedicineReportAssociation({
     required this.activityLabel,
-    required this.withActivityMoodAverage,
-    required this.withoutActivityMoodAverage,
-  });
+    required double withActivityMoodAverage,
+    required double withoutActivityMoodAverage,
+  }) : withActivityMoodAverage = _validatedMoodAverage(
+         withActivityMoodAverage,
+         'withActivityMoodAverage',
+       ),
+       withoutActivityMoodAverage = _validatedMoodAverage(
+         withoutActivityMoodAverage,
+         'withoutActivityMoodAverage',
+       );
 
   final String activityLabel;
   final double withActivityMoodAverage;
@@ -111,10 +119,17 @@ class MoodMedicineReportSection {
   MoodMedicineReportSection({
     required this.heading,
     required List<String> lines,
+    this.isSourceSection = false,
   }) : lines = List<String>.unmodifiable(lines);
 
   final String heading;
   final List<String> lines;
+
+  /// Identifies the generated source context independently of localized copy.
+  ///
+  /// Report labels can intentionally coincide in any supported language, so
+  /// renderers must not infer this structural role from [heading].
+  final bool isSourceSection;
 }
 
 /// Narrow data-transfer object consumed by the feature-local report exporter.
@@ -209,6 +224,7 @@ class MoodMedicineReportInput {
         MoodMedicineReportSection(
           heading: labels.sourcesLabel,
           lines: sources.map(_sourceLine).toList(growable: false),
+          isSourceSection: true,
         ),
       );
     }
@@ -261,4 +277,15 @@ class MoodMedicineReportInput {
         ? value.toStringAsFixed(0)
         : value.toStringAsFixed(1);
   }
+}
+
+double _validatedMoodAverage(double value, String parameterName) {
+  if (!value.isFinite || value < 0 || value > 5) {
+    throw ArgumentError.value(
+      value,
+      parameterName,
+      'must be finite and between 0 and 5.',
+    );
+  }
+  return value;
 }

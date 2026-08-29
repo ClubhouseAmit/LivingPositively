@@ -3,11 +3,13 @@ import 'dart:async';
 import 'package:flutter/widgets.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:get_it/get_it.dart';
+import 'package:mocktail/mocktail.dart';
 import 'package:mazilon/AnalyticsService.dart';
 import 'package:mazilon/iFx/service_locator.dart';
 import 'package:mazilon/features/mood_medicine/data/mood_medicine_models.dart';
 import 'package:mazilon/features/mood_medicine/data/mood_medicine_report_exporter.dart';
 import 'package:mazilon/features/mood_medicine/data/mood_medicine_repository.dart';
+import 'package:mazilon/features/mood_medicine/data/mood_medicine_source_link_service.dart';
 import 'package:mazilon/features/mood_medicine/data/mood_medicine_store.dart';
 import 'package:mazilon/features/mood_medicine/ui/mood_medicine_page.dart';
 import 'package:mazilon/features/mood_medicine/ui/mood_medicine_view_model.dart';
@@ -33,11 +35,54 @@ final class _PromptAnalyticsService implements AnalyticsService {
   ]) async {}
 }
 
-/// Holds the first prompt load while later page-scoped view models remain
-/// independently usable. Returning a captured missing outcome lets the tests
-/// prove Menu rejects the stale prompt by Home-session identity, rather than
-/// accidentally passing because a later read sees the new snapshot.
-final class _PromptRaceRepository implements MoodMedicineRepository {
+final class _MockMoodMedicineRepository extends Mock
+    implements MoodMedicineRepository {}
+
+final class _MockMoodMedicineSourceLinkService extends Mock
+    implements MoodMedicineSourceLinkService {}
+
+MoodMedicineSnapshot _fallbackSnapshotMutation(MoodMedicineSnapshot snapshot) {
+  return snapshot;
+}
+
+MoodMedicineSourceLinkService _sourceLinkService() {
+  final _MockMoodMedicineSourceLinkService mock =
+      _MockMoodMedicineSourceLinkService();
+  when(() => mock.openExternal(any())).thenAnswer((_) async => true);
+  return mock;
+}
+
+/// Holds the state for a Mocktail repository boundary mock. Returning a
+/// captured missing outcome lets the tests prove Menu rejects the stale prompt
+/// by Home-session identity, rather than accidentally passing because a later
+/// read sees the new snapshot.
+final class _PromptRaceRepository {
+  _PromptRaceRepository() {
+    when(() => mock.loadSnapshot()).thenAnswer((_) {
+      loadCount++;
+      if (loadCount == 1) {
+        return _firstLoad.future;
+      }
+      return Future<MoodMedicineLoadResult>.value(
+        MoodMedicineLoadedSnapshot(_snapshot),
+      );
+    });
+    when(() => mock.mutateSnapshot(any())).thenAnswer((
+      Invocation invocation,
+    ) async {
+      final MoodMedicineSnapshotMutation mutation =
+          invocation.positionalArguments.single as MoodMedicineSnapshotMutation;
+      _snapshot = mutation(_snapshot);
+      return MoodMedicineLoadedSnapshot(_snapshot);
+    });
+    when(() => mock.discardUnreadableSnapshot()).thenAnswer((_) {
+      return Future<MoodMedicineLoadResult>.value(
+        MoodMedicineLoadedSnapshot(_snapshot),
+      );
+    });
+  }
+
+  final _MockMoodMedicineRepository mock = _MockMoodMedicineRepository();
   final Completer<MoodMedicineLoadResult> _firstLoad =
       Completer<MoodMedicineLoadResult>();
   MoodMedicineSnapshot _snapshot = const MoodMedicineSnapshot.empty();
@@ -45,34 +90,8 @@ final class _PromptRaceRepository implements MoodMedicineRepository {
 
   MoodMedicineSnapshot get snapshot => _snapshot;
 
-  @override
-  Future<MoodMedicineLoadResult> loadSnapshot() {
-    loadCount++;
-    if (loadCount == 1) {
-      return _firstLoad.future;
-    }
-    return Future<MoodMedicineLoadResult>.value(
-      MoodMedicineLoadedSnapshot(_snapshot),
-    );
-  }
-
   void completeStalePromptLoad() {
     _firstLoad.complete(const MoodMedicineMissingSnapshot());
-  }
-
-  @override
-  Future<MoodMedicineLoadResult> mutateSnapshot(
-    MoodMedicineSnapshotMutation mutation,
-  ) async {
-    _snapshot = mutation(_snapshot);
-    return MoodMedicineLoadedSnapshot(_snapshot);
-  }
-
-  @override
-  Future<MoodMedicineLoadResult> discardUnreadableSnapshot() {
-    return Future<MoodMedicineLoadResult>.value(
-      MoodMedicineLoadedSnapshot(_snapshot),
-    );
   }
 }
 
@@ -92,6 +111,10 @@ String _snapshotWithTodayCheckIn() {
 
 void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
+  setUpAll(() {
+    registerFallbackValue(_fallbackSnapshotMutation);
+    registerFallbackValue(Uri.parse('https://example.test'));
+  });
 
   late UserInformation user;
   late AppInformation app;
@@ -115,10 +138,14 @@ void main() {
     getIt.registerLazySingleton<MoodMedicineReportExportService>(
       () => MoodMedicineReportExporter(),
     );
+    getIt.registerLazySingleton<MoodMedicineSourceLinkService>(
+      _sourceLinkService,
+    );
     getIt.registerFactory<MoodMedicineViewModel>(
       () => MoodMedicineViewModel(
         getIt<MoodMedicineRepository>(),
         getIt<MoodMedicineReportExportService>(),
+        sourceLinkService: getIt<MoodMedicineSourceLinkService>(),
       ),
     );
     PackageInfo.setMockInitialValues(
@@ -202,6 +229,7 @@ void main() {
             final MoodMedicineViewModel viewModel = MoodMedicineViewModel(
               getIt<MoodMedicineRepository>(),
               getIt<MoodMedicineReportExportService>(),
+              sourceLinkService: getIt<MoodMedicineSourceLinkService>(),
             );
             created.add(viewModel);
             return viewModel;
@@ -226,8 +254,9 @@ void main() {
         await pumpMenu(
           tester,
           moodMedicineViewModelFactory: () => MoodMedicineViewModel(
-            repository,
+            repository.mock,
             getIt<MoodMedicineReportExportService>(),
+            sourceLinkService: getIt<MoodMedicineSourceLinkService>(),
           ),
         );
         await tester.pump();
@@ -255,8 +284,9 @@ void main() {
         await pumpMenu(
           tester,
           moodMedicineViewModelFactory: () => MoodMedicineViewModel(
-            repository,
+            repository.mock,
             getIt<MoodMedicineReportExportService>(),
+            sourceLinkService: getIt<MoodMedicineSourceLinkService>(),
           ),
         );
         await tester.pump();

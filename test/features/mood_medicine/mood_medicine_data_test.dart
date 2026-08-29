@@ -193,6 +193,62 @@ void main() {
     });
   });
 
+  group('MoodMedicineSnapshot', () {
+    test('should reject duplicate custom activity ids during construction', () {
+      expect(
+        () => MoodMedicineSnapshot(
+          customActivities: <MoodMedicineCustomActivity>[
+            MoodMedicineCustomActivity(id: 'walk', label: 'Walk'),
+            MoodMedicineCustomActivity(id: 'walk', label: 'Evening walk'),
+          ],
+        ),
+        throwsArgumentError,
+      );
+    });
+
+    test('should reject duplicate entry ids during construction', () {
+      expect(
+        () => MoodMedicineSnapshot(
+          entries: <MoodMedicineEntry>[
+            _entry(id: 'entry-1', dayKey: '2026-08-29', mood: 3),
+            _entry(id: 'entry-1', dayKey: '2026-08-30', mood: 4),
+          ],
+        ),
+        throwsArgumentError,
+      );
+    });
+
+    test('should reject duplicate ids supplied through copyWith', () {
+      final MoodMedicineSnapshot snapshot = MoodMedicineSnapshot(
+        customActivities: <MoodMedicineCustomActivity>[
+          MoodMedicineCustomActivity(id: 'walk', label: 'Walk'),
+        ],
+        entries: <MoodMedicineEntry>[
+          _entry(id: 'entry-1', dayKey: '2026-08-29', mood: 3),
+        ],
+      );
+
+      expect(
+        () => snapshot.copyWith(
+          customActivities: <MoodMedicineCustomActivity>[
+            MoodMedicineCustomActivity(id: 'walk', label: 'Walk'),
+            MoodMedicineCustomActivity(id: 'walk', label: 'Evening walk'),
+          ],
+        ),
+        throwsArgumentError,
+      );
+      expect(
+        () => snapshot.copyWith(
+          entries: <MoodMedicineEntry>[
+            _entry(id: 'entry-1', dayKey: '2026-08-29', mood: 3),
+            _entry(id: 'entry-1', dayKey: '2026-08-30', mood: 4),
+          ],
+        ),
+        throwsArgumentError,
+      );
+    });
+  });
+
   group('MoodMedicineInsights', () {
     test(
       'should aggregate multiple check-ins into one daily mean and union',

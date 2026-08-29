@@ -7,6 +7,7 @@ import 'package:mazilon/features/mood_medicine/data/mood_medicine_models.dart';
 import 'package:mazilon/features/mood_medicine/data/mood_medicine_report_exporter.dart';
 import 'package:mazilon/features/mood_medicine/data/mood_medicine_report_renderer.dart';
 import 'package:mazilon/features/mood_medicine/data/mood_medicine_repository.dart';
+import 'package:mazilon/features/mood_medicine/data/mood_medicine_source_link_service.dart';
 import 'package:mazilon/features/mood_medicine/ui/mood_medicine_insights.dart';
 import 'package:mazilon/features/mood_medicine/ui/mood_medicine_view_state.dart';
 
@@ -20,13 +21,18 @@ final class MoodMedicineViewModel extends ChangeNotifier {
   MoodMedicineViewModel(
     this._repository,
     this._reportExportService, {
+    required MoodMedicineSourceLinkService sourceLinkService,
     DateTime Function()? clock,
     String Function()? idGenerator,
-  }) : _clock = clock ?? DateTime.now,
+  }) : // The public injection name intentionally differs from the private field.
+       // ignore: prefer_initializing_formals
+       _sourceLinkService = sourceLinkService,
+       _clock = clock ?? DateTime.now,
        _idGenerator = idGenerator ?? const Uuid().v4;
 
   final MoodMedicineRepository _repository;
   final MoodMedicineReportExportService _reportExportService;
+  final MoodMedicineSourceLinkService _sourceLinkService;
   final DateTime Function() _clock;
   final String Function() _idGenerator;
   final StreamController<MoodMedicineUiEffect> _effects =
@@ -37,6 +43,7 @@ final class MoodMedicineViewModel extends ChangeNotifier {
   bool _isDisposed = false;
   MoodMedicineSnapshotMutation? _pendingMutation;
   _MoodMedicineCheckInIntent? _pendingCheckInIntent;
+  String? _pendingDeselectActivityId;
 
   static const Object _unset = Object();
 
@@ -134,6 +141,7 @@ final class MoodMedicineViewModel extends ChangeNotifier {
       };
       _pendingMutation = null;
       _pendingCheckInIntent = null;
+      _pendingDeselectActivityId = null;
       _setState(
         _readyState(
           snapshot: snapshot,
@@ -210,6 +218,24 @@ final class MoodMedicineViewModel extends ChangeNotifier {
         export: _invalidatedExport(ready.export),
       ),
     );
+  }
+
+  /// Opens a researched education source through the feature data boundary.
+  ///
+  /// The page remains platform-plugin-free. A launcher rejection or exception
+  /// emits the existing generic asynchronous-error presentation effect.
+  Future<void> openEducationSource(Uri source) async {
+    if (_isDisposed) {
+      return;
+    }
+    try {
+      final bool opened = await _sourceLinkService.openExternal(source);
+      if (!opened) {
+        _emit(const MoodMedicineSourceOpenFailedEffect());
+      }
+    } catch (_) {
+      _emit(const MoodMedicineSourceOpenFailedEffect());
+    }
   }
 
   /// Selects one of the five allowed mood values for the current check-in.
@@ -497,7 +523,8 @@ final class MoodMedicineViewModel extends ChangeNotifier {
   ///
   /// Returns false when there is no loaded retry payload or a write is already
   /// in progress. A failed retry preserves the same mutation and draft again;
-  /// a successful retry applies the normal successful-write state transition.
+  /// a successful retry applies the normal successful-write state transition,
+  /// including any activity removal that accompanied a hide or delete.
   Future<bool> retryLastWrite() async {
     final MoodMedicineReadyState? ready = readyState;
     final MoodMedicinePersistenceState persistence =
@@ -514,6 +541,7 @@ final class MoodMedicineViewModel extends ChangeNotifier {
       mutation,
       pendingCheckInDraft: persistence.pendingCheckInDraft,
       checkInIntent: _pendingCheckInIntent,
+      deselectActivityId: _pendingDeselectActivityId,
       isRetry: true,
     );
   }
@@ -546,20 +574,26 @@ final class MoodMedicineViewModel extends ChangeNotifier {
   }
 
   /// Builds the selected report for a preview without invoking platform UI.
-  Future<MoodMedicineBuiltReport?> buildReport() async {
+  ///
+  /// A renderer completion is typed so the page retries only if localized
+  /// presentation changed during rendering. Changes to the selected range,
+  /// report settings, data, or page lifecycle cancel the stale work instead.
+  Future<MoodMedicineReportBuildOutcome> buildReport() async {
     final MoodMedicineReadyState? ready = readyState;
     if (ready == null || ready.export.isWorking) {
-      return null;
+      return const MoodMedicineReportBuildCancelledOutcome();
     }
     final MoodMedicineReportInput? input = _buildReportInput(ready);
-    if (input == null) {
-      return null;
+    final MoodMedicineReportPresentation? presentation = ready.presentation;
+    if (input == null || presentation == null) {
+      return const MoodMedicineReportBuildCancelledOutcome();
     }
+    final MoodMedicineReportFormat format = ready.export.format;
     _setState(
       _copyReady(
         ready,
         export: MoodMedicineExportState(
-          format: ready.export.format,
+          format: format,
           includeNotes: ready.export.includeNotes,
           phase: MoodMedicineExportPhase.building,
           input: input,
@@ -569,13 +603,13 @@ final class MoodMedicineViewModel extends ChangeNotifier {
     try {
       final MoodMedicineBuiltReport report = await _reportExportService.build(
         input,
-        ready.export.format,
+        format,
       );
       final MoodMedicineReadyState? current = readyState;
       if (current == null ||
           current.export.phase != MoodMedicineExportPhase.building ||
           !identical(current.export.input, input)) {
-        return null;
+        return _invalidatedReportBuildOutcome(current, presentation);
       }
       _setState(
         _copyReady(
@@ -590,47 +624,59 @@ final class MoodMedicineViewModel extends ChangeNotifier {
         ),
       );
       _emit(MoodMedicineReportReadyEffect(report));
-      return report;
+      return MoodMedicineReportBuiltOutcome(report);
     } on MoodMedicinePngReportTooLargeException {
       final MoodMedicineReadyState? current = readyState;
-      if (current != null &&
-          current.export.phase == MoodMedicineExportPhase.building &&
-          identical(current.export.input, input)) {
-        _setState(
-          _copyReady(
-            current,
-            export: MoodMedicineExportState(
-              format: current.export.format,
-              includeNotes: current.export.includeNotes,
-              phase: MoodMedicineExportPhase.failed,
-              input: input,
-              buildFailureKind: MoodMedicineReportBuildFailureKind.pngTooLarge,
-            ),
-          ),
-        );
+      if (current == null ||
+          current.export.phase != MoodMedicineExportPhase.building ||
+          !identical(current.export.input, input)) {
+        return _invalidatedReportBuildOutcome(current, presentation);
       }
-      return null;
+      _setState(
+        _copyReady(
+          current,
+          export: MoodMedicineExportState(
+            format: current.export.format,
+            includeNotes: current.export.includeNotes,
+            phase: MoodMedicineExportPhase.failed,
+            input: input,
+            buildFailureKind: MoodMedicineReportBuildFailureKind.pngTooLarge,
+          ),
+        ),
+      );
+      return const MoodMedicineReportBuildFailedOutcome();
     } catch (error) {
       final MoodMedicineReadyState? current = readyState;
-      if (current != null &&
-          current.export.phase == MoodMedicineExportPhase.building &&
-          identical(current.export.input, input)) {
-        _setState(
-          _copyReady(
-            current,
-            export: MoodMedicineExportState(
-              format: current.export.format,
-              includeNotes: current.export.includeNotes,
-              phase: MoodMedicineExportPhase.failed,
-              input: input,
-              error: error,
-              buildFailureKind: MoodMedicineReportBuildFailureKind.renderer,
-            ),
-          ),
-        );
+      if (current == null ||
+          current.export.phase != MoodMedicineExportPhase.building ||
+          !identical(current.export.input, input)) {
+        return _invalidatedReportBuildOutcome(current, presentation);
       }
-      return null;
+      _setState(
+        _copyReady(
+          current,
+          export: MoodMedicineExportState(
+            format: current.export.format,
+            includeNotes: current.export.includeNotes,
+            phase: MoodMedicineExportPhase.failed,
+            input: input,
+            error: error,
+            buildFailureKind: MoodMedicineReportBuildFailureKind.renderer,
+          ),
+        ),
+      );
+      return const MoodMedicineReportBuildFailedOutcome();
     }
+  }
+
+  MoodMedicineReportBuildOutcome _invalidatedReportBuildOutcome(
+    MoodMedicineReadyState? current,
+    MoodMedicineReportPresentation presentation,
+  ) {
+    if (current != null && !identical(current.presentation, presentation)) {
+      return const MoodMedicineReportBuildStalePresentationOutcome();
+    }
+    return const MoodMedicineReportBuildCancelledOutcome();
   }
 
   /// Hands the most recently built report to the existing share/download path.
@@ -989,6 +1035,7 @@ final class MoodMedicineViewModel extends ChangeNotifier {
       if (result case MoodMedicineUnreadableSnapshot(:final failure)) {
         _pendingMutation = null;
         _pendingCheckInIntent = null;
+        _pendingDeselectActivityId = null;
         _setState(
           MoodMedicineRecoveryRequiredState(
             failure: failure,
@@ -1014,10 +1061,12 @@ final class MoodMedicineViewModel extends ChangeNotifier {
       }
       _pendingMutation = null;
       _pendingCheckInIntent = null;
+      _pendingDeselectActivityId = null;
     } on _MoodMedicineCheckInCollision catch (error) {
       final MoodMedicineReadyState current = readyState ?? before;
       _pendingMutation = null;
       _pendingCheckInIntent = null;
+      _pendingDeselectActivityId = null;
       _setState(
         _copyReady(
           current,
@@ -1030,6 +1079,7 @@ final class MoodMedicineViewModel extends ChangeNotifier {
       final MoodMedicineReadyState current = readyState ?? before;
       _pendingMutation = mutation;
       _pendingCheckInIntent = checkInIntent;
+      _pendingDeselectActivityId = deselectActivityId;
       _setState(
         _copyReady(
           current,

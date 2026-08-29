@@ -248,6 +248,47 @@ enum MoodMedicineReportBuildFailureKind {
   renderer,
 }
 
+/// Typed completion from an in-flight report build.
+///
+/// A presentation change is the only stale completion the page retries: it
+/// produces a new localized report. Other state changes deliberately cancel
+/// the old request so it cannot be previewed or delivered for stale data.
+sealed class MoodMedicineReportBuildOutcome {
+  /// Creates a typed report-build completion.
+  const MoodMedicineReportBuildOutcome();
+}
+
+/// A report was built from the current feature state.
+final class MoodMedicineReportBuiltOutcome
+    extends MoodMedicineReportBuildOutcome {
+  /// Creates a successful report-build completion.
+  const MoodMedicineReportBuiltOutcome(this.report);
+
+  /// Immutable report ready for preview or delivery.
+  final MoodMedicineBuiltReport report;
+}
+
+/// The localized report presentation changed while a report was rendering.
+final class MoodMedicineReportBuildStalePresentationOutcome
+    extends MoodMedicineReportBuildOutcome {
+  /// Creates a presentation-stale completion.
+  const MoodMedicineReportBuildStalePresentationOutcome();
+}
+
+/// A non-presentation state change or disposal invalidated a report build.
+final class MoodMedicineReportBuildCancelledOutcome
+    extends MoodMedicineReportBuildOutcome {
+  /// Creates a cancelled report-build completion.
+  const MoodMedicineReportBuildCancelledOutcome();
+}
+
+/// The current renderer failed and left details in [MoodMedicineExportState].
+final class MoodMedicineReportBuildFailedOutcome
+    extends MoodMedicineReportBuildOutcome {
+  /// Creates a failed report-build completion.
+  const MoodMedicineReportBuildFailedOutcome();
+}
+
 /// Immutable report settings, bytes, and delivery state.
 @immutable
 final class MoodMedicineExportState {
@@ -369,6 +410,12 @@ final class MoodMedicineReportReadyEffect extends MoodMedicineUiEffect {
 
   /// Defensively owned bytes to pass to a display-only preview.
   final MoodMedicineBuiltReport report;
+}
+
+/// Requests generic UI feedback when an education source cannot be opened.
+final class MoodMedicineSourceOpenFailedEffect extends MoodMedicineUiEffect {
+  /// Creates a source-open failure effect.
+  const MoodMedicineSourceOpenFailedEffect();
 }
 
 /// Announces the result of an explicit report delivery attempt.

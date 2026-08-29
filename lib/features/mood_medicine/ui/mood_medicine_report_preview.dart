@@ -14,16 +14,13 @@ class MoodMedicineReportPreviewPage extends StatelessWidget {
   const MoodMedicineReportPreviewPage({
     super.key,
     required this.report,
-    required this.format,
     required this.title,
     this.pngPrintGuidance,
   });
 
-  /// The immutable report selected for viewing.
+  /// The immutable report selected for viewing, including its authoritative
+  /// output format.
   final MoodMedicineBuiltReport report;
-
-  /// Determines whether to render a PDF page preview or a zoomable image.
-  final MoodMedicineReportFormat format;
 
   /// Localized app-bar and semantics label supplied by the presentation layer.
   final String title;
@@ -35,7 +32,7 @@ class MoodMedicineReportPreviewPage extends StatelessWidget {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(title: Text(title)),
-      body: switch (format) {
+      body: switch (report.format) {
         MoodMedicineReportFormat.pdf => _PdfReportPreview(
           key: const Key('moodMedicinePdfPreview'),
           report: report,

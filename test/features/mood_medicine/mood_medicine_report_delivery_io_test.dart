@@ -59,6 +59,8 @@ void main() {
         expect(params.title, 'report.pdf');
         expect(params.subject, 'report.pdf');
         expect(params.fileNameOverrides, <String>['report.pdf']);
+        expect(params.downloadFallbackEnabled, isTrue);
+        expect(params.mailToFallbackEnabled, isTrue);
         final XFile file = params.files!.single;
         expect(file.mimeType, 'application/pdf');
         expect(share.fileBytes, <int>[1, 2, 3]);

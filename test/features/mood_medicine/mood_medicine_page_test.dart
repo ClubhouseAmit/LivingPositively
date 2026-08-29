@@ -1,12 +1,16 @@
+import 'dart:async';
+import 'dart:convert';
 import 'dart:typed_data';
 
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:mocktail/mocktail.dart';
 import 'package:mazilon/global_enums.dart';
 import 'package:mazilon/l10n/app_localizations.dart';
 import 'package:mazilon/features/mood_medicine/data/mood_medicine_models.dart';
 import 'package:mazilon/features/mood_medicine/data/mood_medicine_report_exporter.dart';
 import 'package:mazilon/features/mood_medicine/data/mood_medicine_report_renderer.dart';
+import 'package:mazilon/features/mood_medicine/data/mood_medicine_source_link_service.dart';
 import 'package:mazilon/features/mood_medicine/data/mood_medicine_store.dart';
 import 'package:mazilon/features/mood_medicine/ui/mood_medicine_page.dart';
 import 'package:mazilon/features/mood_medicine/ui/mood_medicine_view_model.dart';
@@ -15,38 +19,105 @@ import 'package:mazilon/util/theme/app_theme.dart';
 
 import '../../../test_support/contract_persistent_memory_service.dart';
 
-final class _TestReportExportService
-    implements MoodMedicineReportExportService {
-  _TestReportExportService({
-    this.deliveryStatus = MoodMedicineReportDeliveryStatus.delivered,
-    this.buildError,
-  });
+final class _MockMoodMedicineReportExportService extends Mock
+    implements MoodMedicineReportExportService {}
 
-  final MoodMedicineReportDeliveryStatus deliveryStatus;
-  final Object? buildError;
+final class _MockMoodMedicineSourceLinkService extends Mock
+    implements MoodMedicineSourceLinkService {}
 
-  @override
-  Future<MoodMedicineBuiltReport> build(
-    MoodMedicineReportInput input,
-    MoodMedicineReportFormat format,
+final class _FakeMoodMedicineReportInput extends Fake
+    implements MoodMedicineReportInput {}
+
+final class _FakeMoodMedicineBuiltReport extends Fake
+    implements MoodMedicineBuiltReport {}
+
+MoodMedicineReportExportService _reportExportService({
+  MoodMedicineReportDeliveryStatus deliveryStatus =
+      MoodMedicineReportDeliveryStatus.delivered,
+  Object? buildError,
+}) {
+  final _MockMoodMedicineReportExportService mock =
+      _MockMoodMedicineReportExportService();
+
+  when(() => mock.build(any(), any())).thenAnswer((
+    Invocation invocation,
   ) async {
     if (buildError != null) {
-      throw buildError!;
+      throw buildError;
     }
+    final MoodMedicineReportInput input =
+        invocation.positionalArguments[0] as MoodMedicineReportInput;
+    final MoodMedicineReportFormat format =
+        invocation.positionalArguments[1] as MoodMedicineReportFormat;
     return MoodMedicineBuiltReport(
       bytes: Uint8List.fromList(<int>[1, 2, 3]),
       fileName: input.fileNameFor(format),
-      mimeType: format.mimeType,
+      format: format,
     );
+  });
+
+  when(
+    () => mock.deliver(any(), shareText: any(named: 'shareText')),
+  ).thenAnswer((_) async => MoodMedicineReportDelivery(deliveryStatus));
+  return mock;
+}
+
+/// Holds delayed Mocktail exporter calls while a page's locale changes.
+final class _DelayedReportExportService {
+  _DelayedReportExportService() {
+    when(() => mock.build(any(), any())).thenAnswer((Invocation invocation) {
+      final _DelayedReportBuild build = _DelayedReportBuild(
+        input: invocation.positionalArguments[0] as MoodMedicineReportInput,
+        format: invocation.positionalArguments[1] as MoodMedicineReportFormat,
+      );
+      builds.add(build);
+      return build.completer.future;
+    });
+    when(
+      () => mock.deliver(any(), shareText: any(named: 'shareText')),
+    ).thenAnswer((_) async {
+      deliveryCount += 1;
+      return const MoodMedicineReportDelivery(
+        MoodMedicineReportDeliveryStatus.delivered,
+      );
+    });
   }
 
-  @override
-  Future<MoodMedicineReportDelivery> deliver(
-    MoodMedicineBuiltReport report, {
-    String? shareText,
-  }) async {
-    return MoodMedicineReportDelivery(deliveryStatus);
+  final _MockMoodMedicineReportExportService mock =
+      _MockMoodMedicineReportExportService();
+  final List<_DelayedReportBuild> builds = <_DelayedReportBuild>[];
+  int deliveryCount = 0;
+
+  void completeBuild(int index) {
+    final _DelayedReportBuild build = builds[index];
+    build.completer.complete(
+      MoodMedicineBuiltReport(
+        bytes: Uint8List.fromList(
+          base64Decode(
+            'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAusB9WlDqsoAAAAASUVORK5CYII=',
+          ),
+        ),
+        fileName: build.input.fileNameFor(build.format),
+        format: build.format,
+      ),
+    );
   }
+}
+
+final class _DelayedReportBuild {
+  _DelayedReportBuild({required this.input, required this.format});
+
+  final MoodMedicineReportInput input;
+  final MoodMedicineReportFormat format;
+  final Completer<MoodMedicineBuiltReport> completer =
+      Completer<MoodMedicineBuiltReport>();
+}
+
+MoodMedicineSourceLinkService _sourceLinkService() {
+  final _MockMoodMedicineSourceLinkService mock =
+      _MockMoodMedicineSourceLinkService();
+  when(() => mock.openExternal(any())).thenAnswer((_) async => true);
+  return mock;
 }
 
 MoodMedicineViewModel _viewModel(
@@ -63,7 +134,8 @@ MoodMedicineViewModel _viewModel(
   final List<String> generatedIds = List<String>.from(ids);
   return MoodMedicineViewModel(
     MoodMedicineStore(memory),
-    reportExportService ?? _TestReportExportService(),
+    reportExportService ?? _reportExportService(),
+    sourceLinkService: _sourceLinkService(),
     clock: () => clock ?? DateTime(2026, 8, 29, 12),
     idGenerator: () => generatedIds.removeAt(0),
   );
@@ -93,6 +165,12 @@ void _setLargeScreen(WidgetTester tester) {
 
 void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
+  setUpAll(() {
+    registerFallbackValue(_FakeMoodMedicineReportInput());
+    registerFallbackValue(_FakeMoodMedicineBuiltReport());
+    registerFallbackValue(MoodMedicineReportFormat.pdf);
+    registerFallbackValue(Uri.parse('https://example.test'));
+  });
 
   group('MoodMedicinePage', () {
     testWidgets('should use locale directionality in English and Hebrew', (
@@ -321,13 +399,97 @@ void main() {
       expect(find.byKey(const Key('moodMedicineViewExport')), findsOneWidget);
     });
 
+    testWidgets(
+      'should retry a locale-stale build before opening a report preview',
+      (WidgetTester tester) async {
+        _setLargeScreen(tester);
+        final _DelayedReportExportService exporter =
+            _DelayedReportExportService();
+        final MoodMedicineViewModel viewModel = _viewModel(
+          ContractPersistentMemoryService(),
+          reportExportService: exporter.mock,
+        );
+        await viewModel.load();
+        await tester.pumpWidget(_app(viewModel: viewModel));
+        await tester.pumpAndSettle();
+        final AppLocalizations english = AppLocalizations.of(
+          tester.element(find.byType(MoodMedicinePage)),
+        )!;
+
+        await tester.tap(find.byKey(const Key('moodMedicineExportButton')));
+        await tester.pumpAndSettle();
+        await tester.tap(find.text(english.moodMedicineExportPng));
+        await tester.pumpAndSettle();
+        await tester.tap(find.byKey(const Key('moodMedicineViewExport')));
+        await tester.pump();
+        expect(exporter.builds, hasLength(1));
+        final String initialTitle = exporter.builds.single.input.title;
+
+        await tester.pumpWidget(
+          _app(viewModel: viewModel, locale: const Locale('he')),
+        );
+        await tester.pump();
+        exporter.completeBuild(0);
+        await tester.pump();
+        expect(exporter.builds, hasLength(2));
+        expect(exporter.builds.last.input.title, isNot(initialTitle));
+
+        exporter.completeBuild(1);
+        await tester.pumpAndSettle();
+
+        expect(find.byKey(const Key('moodMedicinePngPreview')), findsOneWidget);
+      },
+    );
+
+    testWidgets('should retry a locale-stale build before sharing a report', (
+      WidgetTester tester,
+    ) async {
+      _setLargeScreen(tester);
+      final _DelayedReportExportService exporter =
+          _DelayedReportExportService();
+      final MoodMedicineViewModel viewModel = _viewModel(
+        ContractPersistentMemoryService(),
+        reportExportService: exporter.mock,
+      );
+      await viewModel.load();
+      await tester.pumpWidget(_app(viewModel: viewModel));
+      await tester.pumpAndSettle();
+      final AppLocalizations english = AppLocalizations.of(
+        tester.element(find.byType(MoodMedicinePage)),
+      )!;
+
+      await tester.tap(find.byKey(const Key('moodMedicineExportButton')));
+      await tester.pumpAndSettle();
+      await tester.tap(find.text(english.moodMedicineExportPng));
+      await tester.pumpAndSettle();
+      await tester.tap(find.byKey(const Key('moodMedicineStartExport')));
+      await tester.pump();
+      expect(exporter.builds, hasLength(1));
+      final String initialTitle = exporter.builds.single.input.title;
+
+      await tester.pumpWidget(
+        _app(viewModel: viewModel, locale: const Locale('he')),
+      );
+      await tester.pump();
+      exporter.completeBuild(0);
+      await tester.pump();
+      expect(exporter.builds, hasLength(2));
+      expect(exporter.builds.last.input.title, isNot(initialTitle));
+
+      exporter.completeBuild(1);
+      await tester.pumpAndSettle();
+
+      expect(exporter.deliveryCount, 1);
+      expect(find.byType(SnackBar), findsNothing);
+    });
+
     testWidgets('should guide PDF use when a PNG preview is too large', (
       WidgetTester tester,
     ) async {
       _setLargeScreen(tester);
       final MoodMedicineViewModel viewModel = _viewModel(
         ContractPersistentMemoryService(),
-        reportExportService: _TestReportExportService(
+        reportExportService: _reportExportService(
           buildError: const MoodMedicinePngReportTooLargeException(100),
         ),
       );
@@ -355,7 +517,7 @@ void main() {
       _setLargeScreen(tester);
       final MoodMedicineViewModel viewModel = _viewModel(
         ContractPersistentMemoryService(),
-        reportExportService: _TestReportExportService(
+        reportExportService: _reportExportService(
           buildError: const MoodMedicinePngReportTooLargeException(100),
         ),
       );
@@ -425,7 +587,7 @@ void main() {
       _setLargeScreen(tester);
       final MoodMedicineViewModel viewModel = _viewModel(
         ContractPersistentMemoryService(),
-        reportExportService: _TestReportExportService(
+        reportExportService: _reportExportService(
           deliveryStatus: MoodMedicineReportDeliveryStatus.dismissed,
         ),
       );
