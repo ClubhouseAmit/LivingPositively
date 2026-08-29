@@ -875,6 +875,7 @@
   "moodMedicinePreviewPng": "תצוגה מקדימה של תמונה",
   "moodMedicinePreviewError": "לא ניתן היה לפתוח את התצוגה המקדימה של הדוח. אפשר לנסות שוב.",
   "moodMedicinePngPrintGuidance": "להדפסה אמינה של דוחות ארוכים, כדאי לבחור ב-PDF.",
+  "moodMedicinePngTooLarge": "דוח ה-PNG הזה גדול מדי. כדאי לבחור ב-PDF לקבלת דוח אמין.",
   "moodMedicineRecoveryTitle": "היסטוריית מצב הרוח דורשת תשומת לב",
   "moodMedicineRecoveryBody": "לא ניתן היה לקרוא את היסטוריית הרפואה האישית שנשמרה. אפשר לנסות שוב כדי לשמור עליה, או למחוק רק את ההיסטוריה שאינה קריאה ולהתחיל היסטוריה ריקה.",
   "moodMedicineDiscardUnreadable": "מחיקת היסטוריה שאינה קריאה",

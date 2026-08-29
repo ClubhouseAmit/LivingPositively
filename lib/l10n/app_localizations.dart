@@ -3896,6 +3896,12 @@ abstract class AppLocalizations {
   /// **'For reliable printing of long reports, choose PDF.'**
   String get moodMedicinePngPrintGuidance;
 
+  /// No description provided for @moodMedicinePngTooLarge.
+  ///
+  /// In en, this message translates to:
+  /// **'This PNG report is too large. Choose PDF for a reliable report.'**
+  String get moodMedicinePngTooLarge;
+
   /// No description provided for @moodMedicineRecoveryTitle.
   ///
   /// In en, this message translates to:

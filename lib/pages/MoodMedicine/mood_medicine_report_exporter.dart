@@ -1,4 +1,5 @@
 import 'mood_medicine_report_delivery.dart';
+import 'mood_medicine_report_failure_logging.dart';
 import 'mood_medicine_report_models.dart';
 import 'mood_medicine_report_renderer.dart';
 
@@ -48,15 +49,26 @@ class MoodMedicineReportExporter implements MoodMedicineReportExportService {
     MoodMedicineReportInput input,
     MoodMedicineReportFormat format,
   ) async {
-    final bytes = switch (format) {
-      MoodMedicineReportFormat.pdf => await _pdfRenderer.render(input),
-      MoodMedicineReportFormat.png => await _pngRenderer.render(input),
-    };
-    return MoodMedicineBuiltReport(
-      bytes: bytes,
-      fileName: input.fileNameFor(format),
-      mimeType: format.mimeType,
-    );
+    try {
+      final bytes = switch (format) {
+        MoodMedicineReportFormat.pdf => await _pdfRenderer.render(input),
+        MoodMedicineReportFormat.png => await _pngRenderer.render(input),
+      };
+      return MoodMedicineBuiltReport(
+        bytes: bytes,
+        fileName: input.fileNameFor(format),
+        mimeType: format.mimeType,
+      );
+    } on MoodMedicinePngReportTooLargeException {
+      rethrow;
+    } catch (error, stackTrace) {
+      await logMoodMedicineReportFailure(
+        stage: MoodMedicineReportFailureStage.render,
+        error: error,
+        stackTrace: stackTrace,
+      );
+      rethrow;
+    }
   }
 
   /// Hands an already-built report to the platform adapter.
@@ -75,7 +87,12 @@ class MoodMedicineReportExporter implements MoodMedicineReportExportService {
         mimeType: report.mimeType,
         shareText: shareText,
       );
-    } catch (_) {
+    } catch (error, stackTrace) {
+      await logMoodMedicineReportFailure(
+        stage: MoodMedicineReportFailureStage.delivery,
+        error: error,
+        stackTrace: stackTrace,
+      );
       return const MoodMedicineReportDelivery(
         MoodMedicineReportDeliveryStatus.failed,
       );

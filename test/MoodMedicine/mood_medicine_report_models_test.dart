@@ -1,8 +1,12 @@
+import 'dart:typed_data';
 import 'dart:ui' show TextDirection;
 
+import 'package:flutter/widgets.dart' show Widget;
 import 'package:flutter_test/flutter_test.dart';
+import 'package:get_it/get_it.dart';
 import 'package:mazilon/pages/MoodMedicine/mood_medicine_report_exporter.dart';
 import 'package:mazilon/pages/MoodMedicine/mood_medicine_report_renderer.dart';
+import 'package:mazilon/util/logger_service.dart';
 
 void main() {
   const labels = MoodMedicineReportLabels(
@@ -119,5 +123,53 @@ void main() {
         expect(delivery.status, MoodMedicineReportDeliveryStatus.tooLarge);
       },
     );
+
+    test('should log renderer failures without report contents', () async {
+      final _CapturingLogger logger = _CapturingLogger();
+      await GetIt.instance.reset();
+      addTearDown(GetIt.instance.reset);
+      GetIt.instance.registerSingleton<IncidentLoggerService>(logger);
+      final MoodMedicineReportExporter exporter = MoodMedicineReportExporter(
+        pdfRenderer: _ThrowingPdfRenderer(),
+      );
+
+      await expectLater(
+        exporter.build(input(), MoodMedicineReportFormat.pdf),
+        throwsA(isA<StateError>()),
+      );
+
+      expect(logger.logs, hasLength(1));
+      final String payload = logger.logs.single.toString();
+      expect(payload, contains('render'));
+      expect(payload, contains('StateError'));
+      expect(payload, isNot(contains('private note')));
+      expect(payload, isNot(contains('https://example.test/source')));
+      expect(logger.stackTraces.single, isNotNull);
+    });
   });
+}
+
+final class _ThrowingPdfRenderer extends MoodMedicinePdfReportRenderer {
+  @override
+  Future<Uint8List> render(MoodMedicineReportInput input) async {
+    throw StateError('private note https://example.test/source');
+  }
+}
+
+final class _CapturingLogger implements IncidentLoggerService {
+  final List<Object> logs = <Object>[];
+  final List<StackTrace?> stackTraces = <StackTrace?>[];
+
+  @override
+  Future<void> captureLog(
+    dynamic exception, {
+    StackTrace? stackTrace,
+    dynamic exceptionData,
+  }) async {
+    logs.add(exception as Object);
+    stackTraces.add(stackTrace);
+  }
+
+  @override
+  Future<void> initializeSentry(Widget myApp) async {}
 }

@@ -94,18 +94,41 @@ void main() {
     await GetIt.instance.reset();
   });
 
-  Future<void> pumpMenu(WidgetTester tester, {String? snapshot}) async {
+  Future<void> pumpMenu(
+    WidgetTester tester, {
+    String? snapshot,
+    MoodMedicineViewModel Function()? moodMedicineViewModelFactory,
+  }) async {
     if (snapshot != null) {
       memory.store[MoodMedicineStore.snapshotKey] = snapshot;
     } else {
       memory.store.remove(MoodMedicineStore.snapshotKey);
     }
     await tester.pumpWidget(
-      getMenuForTests(user, app, locale: const Locale('en')),
+      getMenuForTests(
+        user,
+        app,
+        locale: const Locale('en'),
+        moodMedicineViewModelFactory: moodMedicineViewModelFactory,
+      ),
     );
   }
 
   group('MoodMedicineMenu', () {
+    testWidgets(
+      'should keep an uncomposed Menu stable when Mood Medicine is unavailable',
+      (WidgetTester tester) async {
+        getIt.unregister<MoodMedicineViewModel>();
+
+        await pumpMenu(tester);
+        await tester.pumpAndSettle();
+
+        expect(find.byType(Home), findsOneWidget);
+        expect(find.byType(MoodMedicinePage), findsNothing);
+        expect(tester.takeException(), isNull);
+      },
+    );
+
     testWidgets(
       'should open the check-in after its first frame when today has no snapshot entry',
       (WidgetTester tester) async {
@@ -118,6 +141,34 @@ void main() {
         final MoodMedicinePage page = tester.widget<MoodMedicinePage>(
           find.byType(MoodMedicinePage),
         );
+        expect(page.initialView, MoodMedicineInitialView.checkIn);
+      },
+    );
+
+    testWidgets(
+      'should use an injected factory for the first-frame check-in prompt',
+      (WidgetTester tester) async {
+        getIt.unregister<MoodMedicineViewModel>();
+        final List<MoodMedicineViewModel> created = <MoodMedicineViewModel>[];
+
+        await pumpMenu(
+          tester,
+          moodMedicineViewModelFactory: () {
+            final MoodMedicineViewModel viewModel = MoodMedicineViewModel(
+              getIt<MoodMedicineRepository>(),
+              getIt<MoodMedicineReportExportService>(),
+            );
+            created.add(viewModel);
+            return viewModel;
+          },
+        );
+        await tester.pumpAndSettle();
+
+        final MoodMedicinePage page = tester.widget<MoodMedicinePage>(
+          find.byType(MoodMedicinePage),
+        );
+        expect(created, hasLength(1));
+        expect(page.viewModel, same(created.single));
         expect(page.initialView, MoodMedicineInitialView.checkIn);
       },
     );

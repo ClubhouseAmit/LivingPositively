@@ -1,7 +1,9 @@
 import 'dart:io';
 import 'dart:typed_data';
 
+import 'package:flutter/widgets.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:get_it/get_it.dart';
 import 'package:mazilon/pages/MoodMedicine/mood_medicine_report_delivery_io.dart'
     as report_io;
 import 'package:mazilon/pages/MoodMedicine/mood_medicine_report_delivery_stub.dart'
@@ -10,6 +12,7 @@ import 'package:mazilon/pages/MoodMedicine/mood_medicine_report_delivery_types.d
 import 'package:mazilon/pages/MoodMedicine/mood_medicine_report_delivery_web.dart'
     as report_web;
 import 'package:share_plus/share_plus.dart';
+import 'package:mazilon/util/logger_service.dart';
 
 void main() {
   group('MoodMedicineBuiltReport', () {
@@ -30,25 +33,29 @@ void main() {
   });
 
   group('MoodMedicineReportDelivery', () {
-    test('should map a successful share handoff to delivered', () {
+    test('should map a successful neutral handoff to delivered', () {
       expect(
-        moodMedicineDeliveryForShareResult(ShareResultStatus.success).status,
-        MoodMedicineReportDeliveryStatus.delivered,
-      );
-    });
-
-    test('should map an unavailable share result to delivered', () {
-      expect(
-        moodMedicineDeliveryForShareResult(
-          ShareResultStatus.unavailable,
+        moodMedicineDeliveryForShareHandoffStatus(
+          MoodMedicineShareHandoffStatus.success,
         ).status,
         MoodMedicineReportDeliveryStatus.delivered,
       );
     });
 
-    test('should map an explicit share dismissal to dismissed', () {
+    test('should map an unavailable neutral handoff to delivered', () {
       expect(
-        moodMedicineDeliveryForShareResult(ShareResultStatus.dismissed).status,
+        moodMedicineDeliveryForShareHandoffStatus(
+          MoodMedicineShareHandoffStatus.unavailable,
+        ).status,
+        MoodMedicineReportDeliveryStatus.delivered,
+      );
+    });
+
+    test('should map an explicit neutral dismissal to dismissed', () {
+      expect(
+        moodMedicineDeliveryForShareHandoffStatus(
+          MoodMedicineShareHandoffStatus.dismissed,
+        ).status,
         MoodMedicineReportDeliveryStatus.dismissed,
       );
     });
@@ -119,7 +126,8 @@ void main() {
           final ShareParams params = share.params!;
           expect(params.text, 'Mood report');
           expect(params.fileNameOverrides, <String>['report.pdf']);
-          expect(await params.files!.single.readAsBytes(), <int>[1, 2, 3]);
+          expect(share.fileBytes, <int>[1, 2, 3]);
+          expect(await File(share.filePath!).exists(), isFalse);
         }
       },
     );
@@ -152,6 +160,7 @@ void main() {
           );
 
       expect(shareFailure.status, MoodMedicineReportDeliveryStatus.failed);
+      expect(await File(share.filePath!).exists(), isFalse);
       expect(
         preparationFailure.status,
         MoodMedicineReportDeliveryStatus.failed,
@@ -224,6 +233,38 @@ void main() {
 
       expect(delivery.status, MoodMedicineReportDeliveryStatus.failed);
     });
+
+    test('should log a sanitized native delivery failure', () async {
+      final _CapturingLogger logger = _CapturingLogger();
+      await GetIt.instance.reset();
+      addTearDown(GetIt.instance.reset);
+      GetIt.instance.registerSingleton<IncidentLoggerService>(logger);
+      final Directory directory = await Directory.systemTemp.createTemp(
+        'mood_medicine_io_logging_',
+      );
+      addTearDown(() => directory.delete(recursive: true));
+
+      final MoodMedicineReportDelivery delivery = await report_io
+          .deliverMoodMedicineIoReportForTesting(
+            bytes: Uint8List.fromList(<int>[1, 2, 3]),
+            fileName: 'report.pdf',
+            mimeType: 'application/pdf',
+            temporaryDirectory: () async => directory,
+            share: _RecordingShare(
+              ShareResultStatus.success,
+              error: StateError('private note https://example.test/source'),
+            ).call,
+          );
+
+      expect(delivery.status, MoodMedicineReportDeliveryStatus.failed);
+      expect(logger.logs, hasLength(1));
+      final String payload = logger.logs.single.toString();
+      expect(payload, contains('delivery'));
+      expect(payload, contains('StateError'));
+      expect(payload, isNot(contains('private note')));
+      expect(payload, isNot(contains('https://example.test/source')));
+      expect(logger.stackTraces.single, isNotNull);
+    });
   });
 }
 
@@ -233,12 +274,37 @@ final class _RecordingShare {
   final ShareResultStatus _status;
   final Object? error;
   ShareParams? params;
+  Uint8List? fileBytes;
+  String? filePath;
 
   Future<ShareResult> call(ShareParams value) async {
     params = value;
+    if (value.files?.isNotEmpty ?? false) {
+      final XFile file = value.files!.single;
+      filePath = file.path;
+      fileBytes = Uint8List.fromList(await file.readAsBytes());
+    }
     if (error != null) {
       throw error!;
     }
     return ShareResult('test', _status);
   }
+}
+
+final class _CapturingLogger implements IncidentLoggerService {
+  final List<Object> logs = <Object>[];
+  final List<StackTrace?> stackTraces = <StackTrace?>[];
+
+  @override
+  Future<void> captureLog(
+    dynamic exception, {
+    StackTrace? stackTrace,
+    dynamic exceptionData,
+  }) async {
+    logs.add(exception as Object);
+    stackTraces.add(stackTrace);
+  }
+
+  @override
+  Future<void> initializeSentry(Widget myApp) async {}
 }

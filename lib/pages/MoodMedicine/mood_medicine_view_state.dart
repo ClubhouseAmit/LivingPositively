@@ -231,6 +231,15 @@ final class MoodMedicinePersistenceState {
 /// Stages for a locally built report and its explicit platform handoff.
 enum MoodMedicineExportPhase { idle, building, ready, delivering, failed }
 
+/// The bounded reason a report build could not create a previewable document.
+enum MoodMedicineReportBuildFailureKind {
+  /// A single PNG would exceed the feature's safe canvas limit.
+  pngTooLarge,
+
+  /// The renderer could not produce a report for another reason.
+  renderer,
+}
+
 /// Immutable report settings, bytes, and delivery state.
 @immutable
 final class MoodMedicineExportState {
@@ -242,6 +251,7 @@ final class MoodMedicineExportState {
     this.input,
     this.report,
     this.error,
+    this.buildFailureKind,
   });
 
   /// Binary format selected by the person.
@@ -261,6 +271,9 @@ final class MoodMedicineExportState {
 
   /// Build or delivery error, if any.
   final Object? error;
+
+  /// Typed build failure used for privacy-safe, localized recovery guidance.
+  final MoodMedicineReportBuildFailureKind? buildFailureKind;
 
   /// Whether the page should disable export controls while work is in progress.
   bool get isWorking =>

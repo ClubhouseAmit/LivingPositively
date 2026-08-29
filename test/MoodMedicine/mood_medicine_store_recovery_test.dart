@@ -15,7 +15,10 @@ final class _ValueMemoryService implements PersistentMemoryService {
   final Object? value;
 
   @override
-  Future<dynamic> getItem(String key, PersistentMemoryType type) async => value;
+  Future<dynamic> getItem(String key, PersistentMemoryType type) async {
+    _assertMoodMedicineSnapshotAccess(key, type);
+    return value;
+  }
 
   @override
   Future<void> reset() async {}
@@ -25,7 +28,19 @@ final class _ValueMemoryService implements PersistentMemoryService {
     String key,
     PersistentMemoryType type,
     dynamic value,
-  ) async {}
+  ) async {
+    _assertMoodMedicineSnapshotAccess(key, type);
+  }
+
+  void _assertMoodMedicineSnapshotAccess(
+    String key,
+    PersistentMemoryType type,
+  ) {
+    if (key != MoodMedicineStore.snapshotKey ||
+        type != PersistentMemoryType.String) {
+      throw StateError('Unexpected Mood Medicine persistence access.');
+    }
+  }
 }
 
 String _validSnapshot() {

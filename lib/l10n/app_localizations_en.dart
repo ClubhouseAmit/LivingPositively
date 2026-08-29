@@ -4420,6 +4420,10 @@ class AppLocalizationsEn extends AppLocalizations {
       'For reliable printing of long reports, choose PDF.';
 
   @override
+  String get moodMedicinePngTooLarge =>
+      'This PNG report is too large. Choose PDF for a reliable report.';
+
+  @override
   String get moodMedicineRecoveryTitle => 'Mood history needs attention';
 
   @override

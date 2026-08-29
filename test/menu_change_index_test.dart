@@ -166,8 +166,18 @@ void main() {
     getData(app);
   });
 
-  Future<void> drive(WidgetTester tester, PagesCode code) async {
-    await tester.pumpWidget(getMenuForTests(user, app));
+  Future<void> drive(
+    WidgetTester tester,
+    PagesCode code, {
+    MoodMedicineViewModel Function()? moodMedicineViewModelFactory,
+  }) async {
+    await tester.pumpWidget(
+      getMenuForTests(
+        user,
+        app,
+        moodMedicineViewModelFactory: moodMedicineViewModelFactory,
+      ),
+    );
     await tester.pumpAndSettle();
     final homeWidget = tester.widget<Home>(find.byType(Home));
     final homeContext = tester.element(find.byType(Home));
@@ -230,6 +240,34 @@ void main() {
     );
 
     testWidgets(
+      'should use the injected factory for direct insights navigation',
+      (WidgetTester tester) async {
+        final List<MoodMedicineViewModel> created = <MoodMedicineViewModel>[];
+        MoodMedicineViewModel createViewModel() {
+          final MoodMedicineViewModel viewModel = MoodMedicineViewModel(
+            getIt<MoodMedicineRepository>(),
+            getIt<MoodMedicineReportExportService>(),
+          );
+          created.add(viewModel);
+          return viewModel;
+        }
+
+        await drive(
+          tester,
+          PagesCode.MoodMedicinePage,
+          moodMedicineViewModelFactory: createViewModel,
+        );
+        await tester.pumpAndSettle();
+
+        final MoodMedicinePage page = tester.widget<MoodMedicinePage>(
+          find.byType(MoodMedicinePage),
+        );
+        expect(created, hasLength(2));
+        expect(page.viewModel, same(created.last));
+      },
+    );
+
+    testWidgets(
       'should open insights from the Home entry point and track the view',
       (WidgetTester tester) async {
         await tester.pumpWidget(getMenuForTests(user, app));
@@ -264,6 +302,40 @@ void main() {
       final MoodMedicinePage page = tester.widget<MoodMedicinePage>(
         find.byType(MoodMedicinePage),
       );
+      expect(page.initialView, MoodMedicineInitialView.checkIn);
+    });
+
+    testWidgets('should use the injected factory for quick check-in', (
+      WidgetTester tester,
+    ) async {
+      final List<MoodMedicineViewModel> created = <MoodMedicineViewModel>[];
+      MoodMedicineViewModel createViewModel() {
+        final MoodMedicineViewModel viewModel = MoodMedicineViewModel(
+          getIt<MoodMedicineRepository>(),
+          getIt<MoodMedicineReportExportService>(),
+        );
+        created.add(viewModel);
+        return viewModel;
+      }
+
+      await tester.pumpWidget(
+        getMenuForTests(
+          user,
+          app,
+          moodMedicineViewModelFactory: createViewModel,
+        ),
+      );
+      await tester.pumpAndSettle();
+      await tester.tap(find.byKey(const Key('mainMenuButton')));
+      await tester.pumpAndSettle();
+      await tester.tap(find.byKey(const Key('moodMedicineQuickCheckIn')));
+      await tester.pumpAndSettle();
+
+      final MoodMedicinePage page = tester.widget<MoodMedicinePage>(
+        find.byType(MoodMedicinePage),
+      );
+      expect(created, hasLength(2));
+      expect(page.viewModel, same(created.last));
       expect(page.initialView, MoodMedicineInitialView.checkIn);
     });
   });

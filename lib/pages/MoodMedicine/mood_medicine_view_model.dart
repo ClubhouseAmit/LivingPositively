@@ -6,6 +6,7 @@ import 'package:uuid/uuid.dart';
 import 'package:mazilon/pages/MoodMedicine/mood_medicine_insights.dart';
 import 'package:mazilon/pages/MoodMedicine/mood_medicine_models.dart';
 import 'package:mazilon/pages/MoodMedicine/mood_medicine_report_exporter.dart';
+import 'package:mazilon/pages/MoodMedicine/mood_medicine_report_renderer.dart';
 import 'package:mazilon/pages/MoodMedicine/mood_medicine_repository.dart';
 import 'package:mazilon/pages/MoodMedicine/mood_medicine_view_state.dart';
 
@@ -32,7 +33,6 @@ final class MoodMedicineViewModel extends ChangeNotifier {
       StreamController<MoodMedicineUiEffect>.broadcast();
 
   MoodMedicineViewState _state = const MoodMedicineLoadingState();
-  MoodMedicineInitialView _initialView = MoodMedicineInitialView.insights;
   int _loadGeneration = 0;
   bool _isDisposed = false;
 
@@ -73,10 +73,13 @@ final class MoodMedicineViewModel extends ChangeNotifier {
   /// to ready state; another unreadable result remains recoverable and writable
   /// history is still not replaced.
   Future<void> retryLoad() async {
-    if (_isDisposed || _state is MoodMedicineLoadingState) {
+    final MoodMedicineViewState currentState = _state;
+    if (_isDisposed ||
+        currentState is! MoodMedicineRecoveryRequiredState ||
+        currentState.isDiscarding) {
       return;
     }
-    await _load(initialView: _initialView);
+    await _load(initialView: currentState.initialView);
   }
 
   /// Replaces only the unreadable feature snapshot after UI confirmation.
@@ -565,6 +568,25 @@ final class MoodMedicineViewModel extends ChangeNotifier {
       );
       _emit(MoodMedicineReportReadyEffect(report));
       return report;
+    } on MoodMedicinePngReportTooLargeException {
+      final MoodMedicineReadyState? current = readyState;
+      if (current != null &&
+          current.export.phase == MoodMedicineExportPhase.building &&
+          identical(current.export.input, input)) {
+        _setState(
+          _copyReady(
+            current,
+            export: MoodMedicineExportState(
+              format: current.export.format,
+              includeNotes: current.export.includeNotes,
+              phase: MoodMedicineExportPhase.failed,
+              input: input,
+              buildFailureKind: MoodMedicineReportBuildFailureKind.pngTooLarge,
+            ),
+          ),
+        );
+      }
+      return null;
     } catch (error) {
       final MoodMedicineReadyState? current = readyState;
       if (current != null &&
@@ -579,6 +601,7 @@ final class MoodMedicineViewModel extends ChangeNotifier {
               phase: MoodMedicineExportPhase.failed,
               input: input,
               error: error,
+              buildFailureKind: MoodMedicineReportBuildFailureKind.renderer,
             ),
           ),
         );
@@ -659,7 +682,6 @@ final class MoodMedicineViewModel extends ChangeNotifier {
   }
 
   Future<void> _load({required MoodMedicineInitialView initialView}) async {
-    _initialView = initialView;
     final int generation = ++_loadGeneration;
     _setState(MoodMedicineLoadingState(initialView: initialView));
     late final MoodMedicineLoadResult result;

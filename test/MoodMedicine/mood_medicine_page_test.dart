@@ -6,6 +6,7 @@ import 'package:mazilon/global_enums.dart';
 import 'package:mazilon/l10n/app_localizations.dart';
 import 'package:mazilon/pages/MoodMedicine/mood_medicine_page.dart';
 import 'package:mazilon/pages/MoodMedicine/mood_medicine_report_exporter.dart';
+import 'package:mazilon/pages/MoodMedicine/mood_medicine_report_renderer.dart';
 import 'package:mazilon/pages/MoodMedicine/mood_medicine_store.dart';
 import 'package:mazilon/pages/MoodMedicine/mood_medicine_view_model.dart';
 import 'package:mazilon/pages/MoodMedicine/mood_medicine_view_state.dart';
@@ -17,15 +18,20 @@ final class _TestReportExportService
     implements MoodMedicineReportExportService {
   _TestReportExportService({
     this.deliveryStatus = MoodMedicineReportDeliveryStatus.delivered,
+    this.buildError,
   });
 
   final MoodMedicineReportDeliveryStatus deliveryStatus;
+  final Object? buildError;
 
   @override
   Future<MoodMedicineBuiltReport> build(
     MoodMedicineReportInput input,
     MoodMedicineReportFormat format,
   ) async {
+    if (buildError != null) {
+      throw buildError!;
+    }
     return MoodMedicineBuiltReport(
       bytes: Uint8List.fromList(<int>[1, 2, 3]),
       fileName: input.fileNameFor(format),
@@ -246,6 +252,62 @@ void main() {
       expect(includeNotes.value, isFalse);
       expect(find.text('Personal notes are not included.'), findsOneWidget);
       expect(find.byKey(const Key('moodMedicineViewExport')), findsOneWidget);
+    });
+
+    testWidgets('should guide PDF use when a PNG preview is too large', (
+      WidgetTester tester,
+    ) async {
+      _setLargeScreen(tester);
+      final MoodMedicineViewModel viewModel = _viewModel(
+        ContractPersistentMemoryService(),
+        reportExportService: _TestReportExportService(
+          buildError: const MoodMedicinePngReportTooLargeException(100),
+        ),
+      );
+      await viewModel.load();
+      await tester.pumpWidget(_app(viewModel: viewModel));
+      await tester.pumpAndSettle();
+      final AppLocalizations l10n = AppLocalizations.of(
+        tester.element(find.byType(MoodMedicinePage)),
+      )!;
+
+      await tester.tap(find.byKey(const Key('moodMedicineExportButton')));
+      await tester.pumpAndSettle();
+      await tester.tap(find.text(l10n.moodMedicineExportPng));
+      await tester.pumpAndSettle();
+      await tester.tap(find.byKey(const Key('moodMedicineViewExport')));
+      await tester.pumpAndSettle();
+
+      expect(find.text(l10n.moodMedicinePngTooLarge), findsOneWidget);
+      expect(find.text(l10n.moodMedicinePreviewError), findsNothing);
+    });
+
+    testWidgets('should guide PDF use when a PNG share build is too large', (
+      WidgetTester tester,
+    ) async {
+      _setLargeScreen(tester);
+      final MoodMedicineViewModel viewModel = _viewModel(
+        ContractPersistentMemoryService(),
+        reportExportService: _TestReportExportService(
+          buildError: const MoodMedicinePngReportTooLargeException(100),
+        ),
+      );
+      await viewModel.load();
+      await tester.pumpWidget(_app(viewModel: viewModel));
+      await tester.pumpAndSettle();
+      final AppLocalizations l10n = AppLocalizations.of(
+        tester.element(find.byType(MoodMedicinePage)),
+      )!;
+
+      await tester.tap(find.byKey(const Key('moodMedicineExportButton')));
+      await tester.pumpAndSettle();
+      await tester.tap(find.text(l10n.moodMedicineExportPng));
+      await tester.pumpAndSettle();
+      await tester.tap(find.byKey(const Key('moodMedicineStartExport')));
+      await tester.pumpAndSettle();
+
+      expect(find.text(l10n.moodMedicinePngTooLarge), findsOneWidget);
+      expect(find.text(l10n.moodMedicineExportError), findsNothing);
     });
 
     testWidgets(

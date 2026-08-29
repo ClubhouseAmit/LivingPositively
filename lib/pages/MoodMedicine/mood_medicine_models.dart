@@ -421,6 +421,11 @@ final class MoodMedicineSnapshot {
         }
       }
       for (final String snapshotId in entry.customActivityLabelSnapshots.keys) {
+        if (moodMedicineDefaultActivityIds.contains(snapshotId)) {
+          throw ArgumentError(
+            'Default activities cannot have custom label snapshots.',
+          );
+        }
         if (!entry.activityIds.contains(snapshotId)) {
           throw ArgumentError(
             'Custom activity label snapshots must belong to the entry.',
@@ -585,7 +590,11 @@ List<MoodMedicineEntry> _parseEntries(
     }
 
     final Set<String> activitySet = activityIds.toSet();
-    if (snapshots.keys.any((String id) => !activitySet.contains(id))) {
+    if (snapshots.keys.any(
+      (String id) =>
+          moodMedicineDefaultActivityIds.contains(id) ||
+          !activitySet.contains(id),
+    )) {
       throw const MoodMedicineSnapshotDecodeException(
         MoodMedicineSnapshotDecodeFailure.malformedRecord,
       );

@@ -1,5 +1,4 @@
 import 'package:flutter/foundation.dart';
-import 'package:share_plus/share_plus.dart';
 
 /// A completed in-memory report before it is passed to the platform adapter.
 ///
@@ -25,11 +24,11 @@ class MoodMedicineBuiltReport {
 
 /// The feature-level outcome of a report delivery attempt.
 ///
-/// Native and web adapters map [ShareResultStatus.success] and
-/// [ShareResultStatus.unavailable] to [delivered]: in the latter case
-/// `share_plus` completed the handoff but the platform cannot report the
-/// person's chosen action. [dismissed] maps only an explicit cancellation.
-/// The unsupported-platform stub returns [unavailable] without a handoff.
+/// Native and web adapters map successful and unavailable handoffs to
+/// [delivered]: in the latter case the platform completed the handoff but
+/// cannot report the person's chosen action. [dismissed] maps only an explicit
+/// cancellation. The unsupported-platform stub returns [unavailable] without
+/// a handoff.
 enum MoodMedicineReportDeliveryStatus {
   /// The report reached the native share sheet or browser share/download path.
   delivered,
@@ -60,22 +59,36 @@ class MoodMedicineReportDelivery {
   bool get didDeliver => status == MoodMedicineReportDeliveryStatus.delivered;
 }
 
-/// Maps `share_plus` results to the feature's stable delivery semantics.
+/// Plugin-neutral statuses reported by native and browser share adapters.
+enum MoodMedicineShareHandoffStatus {
+  /// The platform accepted the handoff and reported success.
+  success,
+
+  /// The platform explicitly reported that the person dismissed sharing.
+  dismissed,
+
+  /// The platform completed a handoff without a final user-action result.
+  unavailable,
+}
+
+/// Maps adapter handoff statuses to the feature's stable delivery semantics.
 ///
 /// `unavailable` is intentionally [MoodMedicineReportDeliveryStatus.delivered]
-/// here. `share_plus` uses it when a platform completed a handoff but cannot
-/// determine the final user action, including its browser-download fallback.
-MoodMedicineReportDelivery moodMedicineDeliveryForShareResult(
-  ShareResultStatus status,
+/// here: a platform completed a handoff but cannot determine the final user
+/// action, including a browser-download fallback.
+MoodMedicineReportDelivery moodMedicineDeliveryForShareHandoffStatus(
+  MoodMedicineShareHandoffStatus status,
 ) {
   return switch (status) {
-    ShareResultStatus.dismissed => const MoodMedicineReportDelivery(
-      MoodMedicineReportDeliveryStatus.dismissed,
-    ),
-    ShareResultStatus.success ||
-    ShareResultStatus.unavailable => const MoodMedicineReportDelivery(
-      MoodMedicineReportDeliveryStatus.delivered,
-    ),
+    MoodMedicineShareHandoffStatus.dismissed =>
+      const MoodMedicineReportDelivery(
+        MoodMedicineReportDeliveryStatus.dismissed,
+      ),
+    MoodMedicineShareHandoffStatus.success ||
+    MoodMedicineShareHandoffStatus.unavailable =>
+      const MoodMedicineReportDelivery(
+        MoodMedicineReportDeliveryStatus.delivered,
+      ),
   };
 }
 

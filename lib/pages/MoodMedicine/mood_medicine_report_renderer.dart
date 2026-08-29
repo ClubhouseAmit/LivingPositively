@@ -55,11 +55,12 @@ class MoodMedicinePdfReportRenderer {
                   textAlign: textAlign,
                 ),
               ),
-          if (input.sources.isNotEmpty)
+          for (final sourceCard in _splitPdfSources(input))
             pw.Directionality(
               textDirection: textDirection,
-              child: _buildPdfSources(
-                input: input,
+              child: _buildPdfSourceCard(
+                card: sourceCard,
+                sourceHeading: input.labels.sourcesLabel,
                 font: font,
                 alignment: alignment,
                 textAlign: textAlign,
@@ -131,18 +132,20 @@ class MoodMedicinePdfReportRenderer {
   /// preserving the visible content and preferring whitespace/soft-wrap marks.
   Iterable<String> _splitPdfLine(String line) sync* {
     const int maximumCharactersPerFragment = 240;
-    var remaining = line;
-    while (remaining.length > maximumCharactersPerFragment) {
-      final int limit = maximumCharactersPerFragment;
-      final int breakIndex = remaining.lastIndexOf(
-        RegExp(r'[\s\u200B]'),
-        limit,
-      );
-      final int end = breakIndex > 0 ? breakIndex + 1 : limit;
-      yield remaining.substring(0, end);
-      remaining = remaining.substring(end);
+    for (final String paragraph in line.split(RegExp(r'\r\n|\r|\n'))) {
+      var remaining = paragraph;
+      while (remaining.length > maximumCharactersPerFragment) {
+        final int limit = maximumCharactersPerFragment;
+        final int breakIndex = remaining.lastIndexOf(
+          RegExp(r'[\s\u200B]'),
+          limit,
+        );
+        final int end = breakIndex > 0 ? breakIndex + 1 : limit;
+        yield remaining.substring(0, end);
+        remaining = remaining.substring(end);
+      }
+      yield remaining;
     }
-    yield remaining;
   }
 
   pw.Widget _buildPdfSection({
@@ -185,8 +188,44 @@ class MoodMedicinePdfReportRenderer {
     );
   }
 
-  pw.Widget _buildPdfSources({
-    required MoodMedicineReportInput input,
+  Iterable<_PdfSourceCard> _splitPdfSources(
+    MoodMedicineReportInput input,
+  ) sync* {
+    const int maximumFragmentsPerCard = 4;
+    var includeSourceHeading = true;
+    for (final MoodMedicineReportSource source in input.sources) {
+      final List<_PdfSourceFragment> fragments = <_PdfSourceFragment>[
+        for (final String title in _splitPdfLine(source.title))
+          _PdfSourceFragment(title, _PdfSourceFragmentKind.title),
+        if (source.description?.trim().isNotEmpty ?? false)
+          for (final String description in _splitPdfLine(
+            source.description!.trim(),
+          ))
+            _PdfSourceFragment(description, _PdfSourceFragmentKind.description),
+        for (final String url in _splitPdfLine(source.url.toString()))
+          _PdfSourceFragment(url, _PdfSourceFragmentKind.url),
+      ];
+      for (
+        var start = 0;
+        start < fragments.length;
+        start += maximumFragmentsPerCard
+      ) {
+        final int end = start + maximumFragmentsPerCard > fragments.length
+            ? fragments.length
+            : start + maximumFragmentsPerCard;
+        yield _PdfSourceCard(
+          source: source,
+          fragments: fragments.sublist(start, end),
+          includeSourceHeading: includeSourceHeading,
+        );
+        includeSourceHeading = false;
+      }
+    }
+  }
+
+  pw.Widget _buildPdfSourceCard({
+    required _PdfSourceCard card,
+    required String sourceHeading,
     required pw.Font font,
     required pw.Alignment alignment,
     required pw.TextAlign textAlign,
@@ -202,49 +241,50 @@ class MoodMedicinePdfReportRenderer {
         mainAxisSize: pw.MainAxisSize.min,
         crossAxisAlignment: pw.CrossAxisAlignment.stretch,
         children: <pw.Widget>[
-          pw.Align(
-            alignment: alignment,
-            child: pw.Text(
-              _softWrapReportText(input.labels.sourcesLabel),
-              style: pw.TextStyle(font: font, fontSize: 16),
-              textAlign: textAlign,
-            ),
-          ),
-          pw.SizedBox(height: 6),
-          for (final source in input.sources)
-            pw.Padding(
-              padding: const pw.EdgeInsets.only(bottom: 8),
-              child: pw.Column(
-                mainAxisSize: pw.MainAxisSize.min,
-                crossAxisAlignment: pw.CrossAxisAlignment.stretch,
-                children: <pw.Widget>[
-                  pw.Text(
-                    _softWrapReportText(source.title),
-                    style: pw.TextStyle(font: font, fontSize: 11),
-                    textAlign: textAlign,
-                  ),
-                  if (source.description?.trim().isNotEmpty ?? false)
-                    pw.Text(
-                      _softWrapReportText(source.description!.trim()),
-                      style: pw.TextStyle(font: font, fontSize: 10),
-                      textAlign: textAlign,
-                    ),
-                  pw.Directionality(
-                    textDirection: pw.TextDirection.ltr,
-                    child: _buildSourceUrl(source, font),
-                  ),
-                ],
+          if (card.includeSourceHeading) ...<pw.Widget>[
+            pw.Align(
+              alignment: alignment,
+              child: pw.Text(
+                _softWrapReportText(sourceHeading),
+                style: pw.TextStyle(font: font, fontSize: 16),
+                textAlign: textAlign,
               ),
+            ),
+            pw.SizedBox(height: 6),
+          ],
+          for (final _PdfSourceFragment fragment in card.fragments)
+            pw.Padding(
+              padding: const pw.EdgeInsets.only(bottom: 4),
+              child: switch (fragment.kind) {
+                _PdfSourceFragmentKind.title => pw.Text(
+                  _softWrapReportText(fragment.text),
+                  style: pw.TextStyle(font: font, fontSize: 11),
+                  textAlign: textAlign,
+                ),
+                _PdfSourceFragmentKind.description => pw.Text(
+                  _softWrapReportText(fragment.text),
+                  style: pw.TextStyle(font: font, fontSize: 10),
+                  textAlign: textAlign,
+                ),
+                _PdfSourceFragmentKind.url => pw.Directionality(
+                  textDirection: pw.TextDirection.ltr,
+                  child: _buildSourceUrl(card.source, fragment.text, font),
+                ),
+              },
             ),
         ],
       ),
     );
   }
 
-  pw.Widget _buildSourceUrl(MoodMedicineReportSource source, pw.Font font) {
+  pw.Widget _buildSourceUrl(
+    MoodMedicineReportSource source,
+    String fragment,
+    pw.Font font,
+  ) {
     final urlText = source.url.toString();
     final url = pw.Text(
-      _softWrapReportText(urlText),
+      _softWrapReportText(fragment),
       style: pw.TextStyle(font: font, fontSize: 9, color: PdfColors.blue),
       textAlign: pw.TextAlign.left,
     );
@@ -253,6 +293,27 @@ class MoodMedicinePdfReportRenderer {
     }
     return pw.UrlLink(destination: urlText, child: url);
   }
+}
+
+enum _PdfSourceFragmentKind { title, description, url }
+
+final class _PdfSourceFragment {
+  const _PdfSourceFragment(this.text, this.kind);
+
+  final String text;
+  final _PdfSourceFragmentKind kind;
+}
+
+final class _PdfSourceCard {
+  const _PdfSourceCard({
+    required this.source,
+    required this.fragments,
+    required this.includeSourceHeading,
+  });
+
+  final MoodMedicineReportSource source;
+  final List<_PdfSourceFragment> fragments;
+  final bool includeSourceHeading;
 }
 
 /// Renders the same report content as a portable PNG without relying on a

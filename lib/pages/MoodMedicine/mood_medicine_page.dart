@@ -143,6 +143,20 @@ class _MoodMedicinePageState extends State<MoodMedicinePage> {
     _applyReportPresentationIfReady();
   }
 
+  String _reportBuildFailureMessage(
+    AppLocalizations l10n,
+    MoodMedicineViewModel viewModel, {
+    required bool preview,
+  }) {
+    if (viewModel.readyState?.export.buildFailureKind ==
+        MoodMedicineReportBuildFailureKind.pngTooLarge) {
+      return l10n.moodMedicinePngTooLarge;
+    }
+    return preview
+        ? l10n.moodMedicinePreviewError
+        : l10n.moodMedicineExportError;
+  }
+
   List<MoodMedicineActivityContent> _activities(AppLocalizations l10n) =>
       MoodMedicineContent.activities(l10n);
 
@@ -961,7 +975,13 @@ class _MoodMedicinePageState extends State<MoodMedicinePage> {
                       if (report == null) {
                         ScaffoldMessenger.of(sheetContext).showSnackBar(
                           SnackBar(
-                            content: Text(l10n.moodMedicinePreviewError),
+                            content: Text(
+                              _reportBuildFailureMessage(
+                                l10n,
+                                viewModel,
+                                preview: true,
+                              ),
+                            ),
                           ),
                         );
                         return;
@@ -991,7 +1011,13 @@ class _MoodMedicinePageState extends State<MoodMedicinePage> {
                           if (sheetContext.mounted) {
                             ScaffoldMessenger.of(sheetContext).showSnackBar(
                               SnackBar(
-                                content: Text(l10n.moodMedicineExportError),
+                                content: Text(
+                                  _reportBuildFailureMessage(
+                                    l10n,
+                                    viewModel,
+                                    preview: false,
+                                  ),
+                                ),
                               ),
                             );
                           }

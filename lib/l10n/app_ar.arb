@@ -791,6 +791,7 @@
   "moodMedicinePreviewPng": "معاينة الصورة",
   "moodMedicinePreviewError": "تعذر فتح معاينة التقرير. يرجى المحاولة مرة أخرى.",
   "moodMedicinePngPrintGuidance": "لطباعة موثوقة للتقارير الطويلة، اختر PDF.",
+  "moodMedicinePngTooLarge": "تقرير PNG هذا كبير جدًا. اختر PDF للحصول على تقرير موثوق.",
   "moodMedicineRecoveryTitle": "يحتاج سجل المزاج إلى اهتمام",
   "moodMedicineRecoveryBody": "تعذر قراءة سجل الطب الشخصي المحفوظ. أعد المحاولة للاحتفاظ به، أو تخلّص من هذا السجل غير القابل للقراءة فقط وابدأ بسجل فارغ جديد.",
   "moodMedicineDiscardUnreadable": "التخلص من السجل غير القابل للقراءة",

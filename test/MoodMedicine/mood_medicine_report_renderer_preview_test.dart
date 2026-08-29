@@ -140,6 +140,34 @@ void main() {
       expect(bytes.sublist(0, 4), <int>[0x25, 0x50, 0x44, 0x46]);
       expect(_pdfPageCount(bytes), greaterThan(1));
     });
+
+    testWidgets(
+      'should bound newline-heavy RTL sections and source cards across pages',
+      (WidgetTester tester) async {
+        final String multilineNote = List<String>.filled(
+          80,
+          'שורת הערה ארוכה עם תוכן רב לדוח',
+        ).join('\n');
+        final String sourceDescription = List<String>.filled(
+          24,
+          'מקור חינוכי ארוך עם פירוט נוסף',
+        ).join('\n');
+        final MoodMedicineReportInput report = _reportInput(
+          rtl: true,
+          note: multilineNote,
+          sourceDescription: sourceDescription,
+          sourceCount: 24,
+        );
+
+        final Uint8List bytes = await _runOutsideFakeAsync(
+          tester,
+          () => const MoodMedicinePdfReportRenderer().render(report),
+        );
+
+        expect(bytes.sublist(0, 4), <int>[0x25, 0x50, 0x44, 0x46]);
+        expect(_pdfPageCount(bytes), greaterThan(1));
+      },
+    );
   });
 
   group('MoodMedicineReportPreviewPage', () {
@@ -303,6 +331,9 @@ const MoodMedicineReportLabels _reportLabels = MoodMedicineReportLabels(
 MoodMedicineReportInput _reportInput({
   bool rtl = false,
   String? sourceUrl,
+  String? sourceDescription,
+  String? note,
+  int sourceCount = 1,
   int extraDays = 0,
 }) {
   final List<MoodMedicineReportDay> days = <MoodMedicineReportDay>[
@@ -310,6 +341,7 @@ MoodMedicineReportInput _reportInput({
       dayLabel: '2026-08-29',
       moodAverage: 4,
       activities: <String>['Walk'],
+      note: note,
     ),
     for (int index = 0; index < extraDays; index += 1)
       MoodMedicineReportDay(
@@ -324,11 +356,13 @@ MoodMedicineReportInput _reportInput({
     labels: _reportLabels,
     days: days,
     textDirection: rtl ? ui.TextDirection.rtl : ui.TextDirection.ltr,
-    sources: <MoodMedicineReportSource>[
-      MoodMedicineReportSource(
-        title: 'Source',
-        url: Uri.parse(sourceUrl ?? 'https://example.org/source'),
+    sources: List<MoodMedicineReportSource>.generate(
+      sourceCount,
+      (int index) => MoodMedicineReportSource(
+        title: rtl ? 'מקור ${index + 1}' : 'Source ${index + 1}',
+        description: sourceDescription,
+        url: Uri.parse(sourceUrl ?? 'https://example.org/source/${index + 1}'),
       ),
-    ],
+    ),
   );
 }

@@ -4371,6 +4371,10 @@ class AppLocalizationsHe extends AppLocalizations {
       'להדפסה אמינה של דוחות ארוכים, כדאי לבחור ב-PDF.';
 
   @override
+  String get moodMedicinePngTooLarge =>
+      'דוח ה-PNG הזה גדול מדי. כדאי לבחור ב-PDF לקבלת דוח אמין.';
+
+  @override
   String get moodMedicineRecoveryTitle => 'היסטוריית מצב הרוח דורשת תשומת לב';
 
   @override

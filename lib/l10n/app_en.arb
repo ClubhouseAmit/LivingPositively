@@ -2206,6 +2206,7 @@
   "moodMedicinePreviewPng": "Image preview",
   "moodMedicinePreviewError": "The report preview could not be opened. Please try again.",
   "moodMedicinePngPrintGuidance": "For reliable printing of long reports, choose PDF.",
+  "moodMedicinePngTooLarge": "This PNG report is too large. Choose PDF for a reliable report.",
   "moodMedicineRecoveryTitle": "Mood history needs attention",
   "moodMedicineRecoveryBody": "Your saved Mood Medicine history could not be read. Retry to keep it, or discard only this unreadable history and start a new empty one.",
   "moodMedicineDiscardUnreadable": "Discard unreadable history",

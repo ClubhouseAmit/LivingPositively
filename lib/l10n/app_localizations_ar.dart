@@ -4386,6 +4386,10 @@ class AppLocalizationsAr extends AppLocalizations {
       'لطباعة موثوقة للتقارير الطويلة، اختر PDF.';
 
   @override
+  String get moodMedicinePngTooLarge =>
+      'تقرير PNG هذا كبير جدًا. اختر PDF للحصول على تقرير موثوق.';
+
+  @override
   String get moodMedicineRecoveryTitle => 'يحتاج سجل المزاج إلى اهتمام';
 
   @override

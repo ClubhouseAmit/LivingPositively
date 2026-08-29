@@ -1,6 +1,7 @@
 import 'package:flutter/foundation.dart';
 import 'package:share_plus/share_plus.dart';
 
+import 'mood_medicine_report_failure_logging.dart';
 import 'mood_medicine_report_delivery_types.dart';
 
 /// Opens the browser share handoff with its file-download fallback enabled.
@@ -66,10 +67,27 @@ Future<MoodMedicineReportDelivery> _deliverMoodMedicineWebReport({
         mailToFallbackEnabled: false,
       ),
     );
-    return moodMedicineDeliveryForShareResult(result.status);
-  } catch (_) {
+    return moodMedicineDeliveryForShareHandoffStatus(
+      _handoffStatusForShareResult(result.status),
+    );
+  } catch (error, stackTrace) {
+    await logMoodMedicineReportFailure(
+      stage: MoodMedicineReportFailureStage.delivery,
+      error: error,
+      stackTrace: stackTrace,
+    );
     return const MoodMedicineReportDelivery(
       MoodMedicineReportDeliveryStatus.failed,
     );
   }
+}
+
+MoodMedicineShareHandoffStatus _handoffStatusForShareResult(
+  ShareResultStatus status,
+) {
+  return switch (status) {
+    ShareResultStatus.success => MoodMedicineShareHandoffStatus.success,
+    ShareResultStatus.dismissed => MoodMedicineShareHandoffStatus.dismissed,
+    ShareResultStatus.unavailable => MoodMedicineShareHandoffStatus.unavailable,
+  };
 }

@@ -73,6 +73,69 @@ void main() {
       },
     );
 
+    test(
+      'should reject forged default activity label snapshots without writing',
+      () async {
+        final ContractPersistentMemoryService memory =
+            ContractPersistentMemoryService(
+              initialValues: <String, Object?>{
+                MoodMedicineStore.snapshotKey: jsonEncode(<String, Object>{
+                  'version': moodMedicineSnapshotVersion,
+                  'hiddenDefaultActivityIds': <String>[],
+                  'customActivities': <Object>[],
+                  'entries': <Object>[
+                    <String, Object>{
+                      'id': 'entry-1',
+                      'occurredAtUtc': '2026-08-29T08:00:00Z',
+                      'localDayKey': '2026-08-29',
+                      'mood': 4,
+                      'emotionIds': <String>[],
+                      'activityIds': <String>['physical_activity'],
+                      'customActivityLabelSnapshots': <String, String>{
+                        'physical_activity': 'Forged label',
+                      },
+                    },
+                  ],
+                }),
+              },
+            );
+
+        final MoodMedicineLoadResult result = await MoodMedicineStore(
+          memory,
+        ).loadSnapshot();
+
+        expect(result, isA<MoodMedicineUnreadableSnapshot>());
+        expect(
+          (result as MoodMedicineUnreadableSnapshot).failure.kind,
+          MoodMedicineLoadFailureKind.malformedRecord,
+        );
+        expect(memory.attemptedWrites, isEmpty);
+      },
+    );
+
+    test(
+      'should reject default activity labels during snapshot construction',
+      () {
+        expect(
+          () => MoodMedicineSnapshot(
+            entries: <MoodMedicineEntry>[
+              MoodMedicineEntry(
+                id: 'entry-1',
+                occurredAtUtc: DateTime.utc(2026, 8, 29, 8),
+                localDayKey: '2026-08-29',
+                mood: 4,
+                activityIds: const <String>['physical_activity'],
+                customActivityLabelSnapshots: const <String, String>{
+                  'physical_activity': 'Forged label',
+                },
+              ),
+            ],
+          ),
+          throwsArgumentError,
+        );
+      },
+    );
+
     test('should distinguish malformed and unsupported snapshots', () async {
       final ContractPersistentMemoryService malformed =
           ContractPersistentMemoryService(

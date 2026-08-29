@@ -11,18 +11,30 @@ import 'package:mazilon/pages/MoodMedicine/mood_medicine_view_model.dart';
 import 'package:mazilon/pages/MoodMedicine/mood_medicine_view_state.dart';
 
 final class _Repository implements MoodMedicineRepository {
-  _Repository(this.result, {this.failNextSave = false});
+  _Repository(this.result, {this.failNextSave = false, this.saveGate});
 
   MoodMedicineLoadResult result;
   bool failNextSave;
+  Completer<void>? saveGate;
+  int loadCount = 0;
+  int saveCount = 0;
   final List<MoodMedicineSnapshot> receivedSnapshots = <MoodMedicineSnapshot>[];
 
   @override
-  Future<MoodMedicineLoadResult> loadSnapshot() async => result;
+  Future<MoodMedicineLoadResult> loadSnapshot() async {
+    loadCount += 1;
+    return result;
+  }
 
   @override
   Future<void> saveSnapshot(MoodMedicineSnapshot snapshot) async {
+    saveCount += 1;
     receivedSnapshots.add(snapshot);
+    final Completer<void>? pendingSave = saveGate;
+    if (pendingSave != null) {
+      await pendingSave.future;
+      saveGate = null;
+    }
     if (failNextSave) {
       failNextSave = false;
       throw StateError('storage unavailable');
@@ -106,6 +118,66 @@ MoodMedicineViewModel _viewModel(
 
 void main() {
   group('MoodMedicineViewModel', () {
+    test('should retry loading only while recovery is required', () async {
+      final _Repository repository = _Repository(
+        const MoodMedicineUnreadableSnapshot(
+          MoodMedicineLoadFailure(MoodMedicineLoadFailureKind.malformedRecord),
+        ),
+      );
+      final MoodMedicineViewModel viewModel = _viewModel(
+        repository,
+        _ReportExporter(),
+        idGenerator: () => 'unused',
+      );
+
+      await viewModel.load();
+      expect(viewModel.state, isA<MoodMedicineRecoveryRequiredState>());
+      expect(repository.loadCount, 1);
+
+      repository.result = const MoodMedicineMissingSnapshot();
+      await viewModel.retryLoad();
+      final MoodMedicineViewState readyState = viewModel.state;
+      expect(readyState, isA<MoodMedicineReadyState>());
+      expect(repository.loadCount, 2);
+
+      await viewModel.retryLoad();
+      expect(identical(viewModel.state, readyState), isTrue);
+      expect(repository.loadCount, 2);
+      viewModel.dispose();
+    });
+
+    test(
+      'should block overlapping saves and ready-state retry loads',
+      () async {
+        final Completer<void> saveGate = Completer<void>();
+        final _Repository repository = _Repository(
+          const MoodMedicineMissingSnapshot(),
+          saveGate: saveGate,
+        );
+        final MoodMedicineViewModel viewModel = _viewModel(
+          repository,
+          _ReportExporter(),
+          idGenerator: () => 'entry-1',
+        );
+        await viewModel.load();
+        viewModel.selectMood(4);
+
+        final Future<bool> firstSave = viewModel.saveCheckIn();
+        expect(repository.saveCount, 1);
+        expect(viewModel.readyState!.persistence.isSaving, isTrue);
+
+        await viewModel.retryLoad();
+        expect(repository.loadCount, 1);
+        expect(await viewModel.saveCheckIn(), isFalse);
+        expect(repository.saveCount, 1);
+
+        saveGate.complete();
+        expect(await firstSave, isTrue);
+        expect(viewModel.readyState!.snapshot.entries, hasLength(1));
+        viewModel.dispose();
+      },
+    );
+
     test(
       'should block prompts and writes until unreadable history is discarded',
       () async {
