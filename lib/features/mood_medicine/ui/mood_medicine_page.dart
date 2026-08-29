@@ -965,7 +965,6 @@ class _MoodMedicinePageState extends State<MoodMedicinePage> {
   }
 
   Future<void> _showExportSheet() async {
-    final AppLocalizations l10n = AppLocalizations.of(context)!;
     final Future<void> sheet = showModalBottomSheet<void>(
       context: context,
       isScrollControlled: true,
@@ -975,6 +974,7 @@ class _MoodMedicinePageState extends State<MoodMedicinePage> {
             child: Consumer<MoodMedicineViewModel>(
               builder:
                   (BuildContext context, MoodMedicineViewModel viewModel, _) {
+                    final AppLocalizations l10n = AppLocalizations.of(context)!;
                     final MoodMedicineReadyState? ready = viewModel.readyState;
                     if (ready == null) {
                       return const SizedBox.shrink();

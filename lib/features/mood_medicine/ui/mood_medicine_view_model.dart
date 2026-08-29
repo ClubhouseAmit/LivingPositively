@@ -812,84 +812,76 @@ final class MoodMedicineViewModel extends ChangeNotifier {
     try {
       final MoodMedicineReportDelivery delivery = await _reportExportService
           .deliver(report, shareText: shareText);
-      final MoodMedicineReadyState? current = readyState;
-      final bool isCurrentDelivery =
-          _activeReportDeliveryGeneration == generation;
-      final bool wasInvalidated =
-          isCurrentDelivery && _activeReportDeliveryInvalidated;
-      if (isCurrentDelivery) {
-        _activeReportDeliveryGeneration = null;
-        _activeReportDeliveryInvalidated = false;
-      }
-      if (current != null && wasInvalidated) {
-        _setState(
-          _copyReady(
-            current,
-            export: MoodMedicineExportState(
-              format: current.export.format,
-              includeNotes: current.export.includeNotes,
-            ),
-          ),
-        );
-      } else if (current != null &&
-          isCurrentDelivery &&
-          current.export.phase == MoodMedicineExportPhase.delivering &&
-          identical(current.export.report, report)) {
-        _setState(
-          _copyReady(
-            current,
-            export: MoodMedicineExportState(
-              format: current.export.format,
-              includeNotes: current.export.includeNotes,
-              phase: MoodMedicineExportPhase.ready,
-              input: current.export.input,
-              report: report,
-            ),
-          ),
-        );
-      }
+      _completeReportDelivery(
+        generation: generation,
+        report: report,
+        terminalPhase: MoodMedicineExportPhase.ready,
+      );
       _emit(MoodMedicineReportDeliveryEffect(delivery));
       return delivery.didDeliver;
     } catch (error) {
-      final MoodMedicineReadyState? current = readyState;
-      final bool isCurrentDelivery =
-          _activeReportDeliveryGeneration == generation;
-      final bool wasInvalidated =
-          isCurrentDelivery && _activeReportDeliveryInvalidated;
-      if (isCurrentDelivery) {
-        _activeReportDeliveryGeneration = null;
-        _activeReportDeliveryInvalidated = false;
-      }
-      if (current != null && wasInvalidated) {
-        _setState(
-          _copyReady(
-            current,
-            export: MoodMedicineExportState(
-              format: current.export.format,
-              includeNotes: current.export.includeNotes,
-            ),
-          ),
-        );
-      } else if (current != null &&
-          isCurrentDelivery &&
-          current.export.phase == MoodMedicineExportPhase.delivering &&
-          identical(current.export.report, report)) {
-        _setState(
-          _copyReady(
-            current,
-            export: MoodMedicineExportState(
-              format: current.export.format,
-              includeNotes: current.export.includeNotes,
-              phase: MoodMedicineExportPhase.failed,
-              input: current.export.input,
-              report: report,
-              error: error,
-            ),
-          ),
-        );
-      }
+      _completeReportDelivery(
+        generation: generation,
+        report: report,
+        terminalPhase: MoodMedicineExportPhase.failed,
+        error: error,
+      );
       return false;
     }
+  }
+
+  void _completeReportDelivery({
+    required int generation,
+    required MoodMedicineBuiltReport report,
+    required MoodMedicineExportPhase terminalPhase,
+    Object? error,
+  }) {
+    assert(
+      terminalPhase == MoodMedicineExportPhase.ready ||
+          terminalPhase == MoodMedicineExportPhase.failed,
+    );
+    final MoodMedicineReadyState? current = readyState;
+    final bool isCurrentDelivery =
+        _activeReportDeliveryGeneration == generation;
+    final bool wasInvalidated =
+        isCurrentDelivery && _activeReportDeliveryInvalidated;
+    if (isCurrentDelivery) {
+      _activeReportDeliveryGeneration = null;
+      _activeReportDeliveryInvalidated = false;
+    }
+    if (current == null) {
+      return;
+    }
+    if (wasInvalidated) {
+      _setState(
+        _copyReady(
+          current,
+          export: MoodMedicineExportState(
+            format: current.export.format,
+            includeNotes: current.export.includeNotes,
+          ),
+        ),
+      );
+      return;
+    }
+    if (!isCurrentDelivery ||
+        current.export.phase != MoodMedicineExportPhase.delivering ||
+        !identical(current.export.report, report)) {
+      return;
+    }
+    _setState(
+      _copyReady(
+        current,
+        export: MoodMedicineExportState(
+          format: current.export.format,
+          includeNotes: current.export.includeNotes,
+          phase: terminalPhase,
+          input: current.export.input,
+          report: report,
+          error: error,
+        ),
+      ),
+    );
   }
 
   @override

@@ -343,30 +343,39 @@ void main() {
     test(
       'should emit a source-open failure effect when the launcher throws',
       () async {
+        final StateError launcherError = StateError('private launcher failure');
+        final StackTrace launcherStack = StackTrace.fromString(
+          'source-open-stack',
+        );
+        final _SourceLinkService sourceLinkService = _SourceLinkService();
+        when(
+          () => sourceLinkService.mock.openExternal(any()),
+        ).thenAnswer((_) => Future<bool>.error(launcherError, launcherStack));
         final _IncidentLogger incidentLogger = _IncidentLogger();
         final MoodMedicineViewModel viewModel = _viewModel(
           _Repository(const MoodMedicineMissingSnapshot()),
           _ReportExporter(),
           idGenerator: () => 'unused',
-          sourceLinkService: _SourceLinkService(
-            error: StateError('unavailable'),
-          ),
+          sourceLinkService: sourceLinkService,
           incidentLogger: incidentLogger,
         );
         final Future<MoodMedicineUiEffect> effect = viewModel.effects.first;
 
         await viewModel.openEducationSource(
-          Uri.parse('https://example.test/source'),
+          Uri.parse('https://private.example/source?token=secret'),
         );
 
         expect(await effect, isA<MoodMedicineSourceOpenFailedEffect>());
         expect(incidentLogger.captured, hasLength(1));
         final String payload = incidentLogger.captured.single.toString();
-        expect(payload, contains('stage: sourceOpen'));
-        expect(payload, contains('errorType: StateError'));
-        expect(payload, isNot(contains('unavailable')));
-        expect(payload, isNot(contains('example.test')));
-        expect(incidentLogger.stackTraces.single, isNotNull);
+        expect(
+          payload,
+          'MoodMedicineFailure(stage: sourceOpen, errorType: StateError)',
+        );
+        expect(payload, isNot(contains('private launcher failure')));
+        expect(payload, isNot(contains('private.example')));
+        expect(payload, isNot(contains('token=secret')));
+        expect(incidentLogger.stackTraces.single, same(launcherStack));
         viewModel.dispose();
       },
     );
@@ -1377,6 +1386,79 @@ void main() {
           MoodMedicineExportPhase.idle,
         );
         expect(viewModel.readyState!.export.report, isNull);
+        viewModel.dispose();
+      },
+    );
+
+    test(
+      'should reconcile a successful delivery to the ready report state',
+      () async {
+        final _ReportExporter exporter = _ReportExporter();
+        final MoodMedicineViewModel viewModel = _viewModel(
+          _Repository(const MoodMedicineMissingSnapshot()),
+          exporter,
+          idGenerator: () => 'unused',
+        );
+        await viewModel.load();
+        viewModel.setReportPresentation(_presentation());
+        await viewModel.buildReport();
+        final MoodMedicineBuiltReport report =
+            viewModel.readyState!.export.report!;
+        final Future<MoodMedicineReportDeliveryEffect> effect = viewModel
+            .effects
+            .where(
+              (MoodMedicineUiEffect effect) =>
+                  effect is MoodMedicineReportDeliveryEffect,
+            )
+            .cast<MoodMedicineReportDeliveryEffect>()
+            .first;
+
+        expect(await viewModel.shareBuiltReport(), isTrue);
+
+        final MoodMedicineExportState export = viewModel.readyState!.export;
+        expect(export.phase, MoodMedicineExportPhase.ready);
+        expect(export.report, same(report));
+        expect(export.error, isNull);
+        expect(
+          (await effect).delivery.status,
+          MoodMedicineReportDeliveryStatus.delivered,
+        );
+        viewModel.dispose();
+      },
+    );
+
+    test(
+      'should reconcile a thrown delivery to the failed report state',
+      () async {
+        final _ReportExporter exporter = _ReportExporter();
+        final StateError deliveryError = StateError('handoff failed');
+        when(
+          () =>
+              exporter.mock.deliver(any(), shareText: any(named: 'shareText')),
+        ).thenAnswer((_) async => throw deliveryError);
+        final MoodMedicineViewModel viewModel = _viewModel(
+          _Repository(const MoodMedicineMissingSnapshot()),
+          exporter,
+          idGenerator: () => 'unused',
+        );
+        final List<MoodMedicineUiEffect> effects = <MoodMedicineUiEffect>[];
+        final StreamSubscription<MoodMedicineUiEffect> subscription = viewModel
+            .effects
+            .listen(effects.add);
+        await viewModel.load();
+        viewModel.setReportPresentation(_presentation());
+        await viewModel.buildReport();
+        final MoodMedicineBuiltReport report =
+            viewModel.readyState!.export.report!;
+
+        expect(await viewModel.shareBuiltReport(), isFalse);
+
+        final MoodMedicineExportState export = viewModel.readyState!.export;
+        expect(export.phase, MoodMedicineExportPhase.failed);
+        expect(export.report, same(report));
+        expect(export.error, same(deliveryError));
+        expect(effects.whereType<MoodMedicineReportDeliveryEffect>(), isEmpty);
+        await subscription.cancel();
         viewModel.dispose();
       },
     );

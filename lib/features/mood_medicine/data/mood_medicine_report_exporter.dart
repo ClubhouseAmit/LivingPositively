@@ -36,6 +36,14 @@ abstract interface class MoodMedicineReportExportService {
 /// It accepts a deliberately simple DTO, so storage and dashboard state stay
 /// separate from PDF/PNG rendering and platform sharing.
 class MoodMedicineReportExporter implements MoodMedicineReportExportService {
+  /// Creates an exporter with explicit, best-effort incident telemetry.
+  ///
+  /// [incidentLoggerService] is required for privacy-safe render and delivery
+  /// failure reporting. Telemetry contains only the failure stage, runtime
+  /// error type, and stack trace; report bytes, notes, source URLs, and raw
+  /// error text are never included. Logger failures are swallowed so they do
+  /// not change report outcomes. Production composition supplies the app's
+  /// singleton [IncidentLoggerService] through the service locator.
   MoodMedicineReportExporter({
     required IncidentLoggerService incidentLoggerService,
     MoodMedicinePdfReportRenderer? pdfRenderer,

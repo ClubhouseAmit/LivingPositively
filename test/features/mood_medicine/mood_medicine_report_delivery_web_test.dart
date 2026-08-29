@@ -83,6 +83,12 @@ void main() {
 
     test('should log a sanitized web delivery failure', () async {
       final _CapturingLogger logger = _CapturingLogger();
+      final StateError deliveryError = StateError(
+        'private note https://example.test/source bytes=[4, 5, 6]',
+      );
+      final StackTrace deliveryStackTrace = StackTrace.fromString(
+        'web delivery failure stack',
+      );
 
       final MoodMedicineReportDelivery delivery = await report_web
           .deliverMoodMedicineWebReportForTesting(
@@ -90,20 +96,25 @@ void main() {
             bytes: Uint8List.fromList(<int>[4, 5, 6]),
             fileName: 'report.png',
             mimeType: 'image/png',
-            share: _RecordingShare(
-              ShareResultStatus.success,
-              error: StateError('private note https://example.test/source'),
-            ).call,
+            share: (_) =>
+                Future<ShareResult>.error(deliveryError, deliveryStackTrace),
           );
 
       expect(delivery.status, MoodMedicineReportDeliveryStatus.failed);
       expect(logger.logs, hasLength(1));
       final String payload = logger.logs.single.toString();
-      expect(payload, contains('delivery'));
-      expect(payload, contains('StateError'));
+      expect(
+        payload,
+        'MoodMedicineReportFailure(stage: delivery, errorType: StateError)',
+      );
+      expect(logger.logs.single, isNot(same(deliveryError)));
       expect(payload, isNot(contains('private note')));
       expect(payload, isNot(contains('https://example.test/source')));
-      expect(logger.stackTraces.single, isNotNull);
+      expect(payload, isNot(contains('[4, 5, 6]')));
+      expect(payload, isNot(contains('report.png')));
+      expect(payload, isNot(contains('image/png')));
+      expect(logger.exceptionData, <Object?>[null]);
+      expect(logger.stackTraces.single, same(deliveryStackTrace));
     });
 
     test('should retain failed status when incident logging throws', () async {
@@ -143,6 +154,7 @@ final class _RecordingShare {
 final class _CapturingLogger implements IncidentLoggerService {
   final List<Object> logs = <Object>[];
   final List<StackTrace?> stackTraces = <StackTrace?>[];
+  final List<Object?> exceptionData = <Object?>[];
 
   @override
   Future<void> captureLog(
@@ -152,6 +164,7 @@ final class _CapturingLogger implements IncidentLoggerService {
   }) async {
     logs.add(exception as Object);
     stackTraces.add(stackTrace);
+    this.exceptionData.add(exceptionData);
   }
 
   @override

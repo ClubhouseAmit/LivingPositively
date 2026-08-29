@@ -13,6 +13,7 @@ import 'package:mazilon/features/mood_medicine/data/mood_medicine_report_rendere
 import 'package:mazilon/features/mood_medicine/data/mood_medicine_source_link_service.dart';
 import 'package:mazilon/features/mood_medicine/data/mood_medicine_store.dart';
 import 'package:mazilon/features/mood_medicine/ui/mood_medicine_content.dart';
+import 'package:mazilon/features/mood_medicine/ui/mood_medicine_insights.dart';
 import 'package:mazilon/features/mood_medicine/ui/mood_medicine_page.dart';
 import 'package:mazilon/features/mood_medicine/ui/mood_medicine_view_model.dart';
 import 'package:mazilon/features/mood_medicine/ui/mood_medicine_view_state.dart';
@@ -546,6 +547,82 @@ void main() {
       expect(includeNotes.value, isFalse);
       expect(find.text('Personal notes are not included.'), findsOneWidget);
       expect(find.byKey(const Key('moodMedicineViewExport')), findsOneWidget);
+    });
+
+    testWidgets('should update an open export sheet when locale changes', (
+      WidgetTester tester,
+    ) async {
+      _setLargeScreen(tester);
+      final MoodMedicineViewModel viewModel = _viewModel(
+        ContractPersistentMemoryService(),
+      );
+      await viewModel.load();
+      viewModel.selectRange(MoodMedicineInsightRange.year);
+      await tester.pumpWidget(_app(viewModel: viewModel));
+      await tester.pumpAndSettle();
+
+      final AppLocalizations english = AppLocalizations.of(
+        tester.element(find.byType(MoodMedicinePage)),
+      )!;
+      await tester.tap(find.byKey(const Key('moodMedicineExportButton')));
+      await tester.pumpAndSettle();
+
+      final Finder sheet = find.byType(BottomSheet);
+      await tester.tap(
+        find.descendant(
+          of: sheet,
+          matching: find.text(english.moodMedicineExportPng),
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      List<String> visibleSheetText(AppLocalizations l10n) => <String>[
+        l10n.moodMedicineExport,
+        '${l10n.moodMedicineExportRange}: ${l10n.moodMedicineYear}',
+        l10n.moodMedicineExportPdf,
+        l10n.moodMedicineExportPng,
+        l10n.moodMedicinePngPrintGuidance,
+        l10n.moodMedicineIncludeNotes,
+        l10n.moodMedicineNotesPrivacy,
+        l10n.moodMedicineNotesExcluded,
+        l10n.moodMedicineView,
+        l10n.moodMedicineShare,
+      ];
+      for (final String text in visibleSheetText(english)) {
+        expect(
+          find.descendant(of: sheet, matching: find.text(text)),
+          findsOneWidget,
+        );
+      }
+
+      await tester.pumpWidget(
+        _app(viewModel: viewModel, locale: const Locale('he')),
+      );
+      await tester.pumpAndSettle();
+
+      final AppLocalizations hebrew = AppLocalizations.of(
+        tester.element(find.byType(MoodMedicinePage)),
+      )!;
+      for (final String text in visibleSheetText(hebrew)) {
+        expect(
+          find.descendant(of: sheet, matching: find.text(text)),
+          findsOneWidget,
+        );
+      }
+      for (final String text in visibleSheetText(
+        english,
+      ).where((String text) => !visibleSheetText(hebrew).contains(text))) {
+        expect(
+          find.descendant(of: sheet, matching: find.text(text)),
+          findsNothing,
+        );
+      }
+      expect(
+        Directionality.of(
+          tester.element(find.byKey(const Key('moodMedicineIncludeNotes'))),
+        ),
+        TextDirection.rtl,
+      );
     });
 
     testWidgets('should reset note consent when the export sheet closes', (
