@@ -51,7 +51,7 @@ class AppColors {
   static const Color onError = Colors.white;
 
   /// Muted beige used for primary controls in the taupe dark palette.
-  static const Color darkPrimary = Color(0xFFD0C1A4);
+  static const Color darkPrimary = Color(0xFFD7C2FF);
 
   /// Accessible charcoal-taupe foreground on [darkPrimary].
   static const Color darkOnPrimary = Color(0xFF2B2A2C);
