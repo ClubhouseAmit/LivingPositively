@@ -1,6 +1,7 @@
 import 'dart:async';
 
 import 'package:firebase_auth/firebase_auth.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:get_it/get_it.dart';
 import 'package:mazilon/global_enums.dart';
@@ -283,6 +284,63 @@ void main() {
         expect(userInfo.userId, 'persisted-uid');
       },
     );
+
+    test(
+      'should time out unresolved auth restoration without blocking startup',
+      () async {
+        _registerFakes(
+          store: {
+            'loggedIn': true,
+            'authDecisionMade': true,
+            'userId': 'persisted-uid',
+          },
+        );
+        final auth = GetIt.instance<FirebaseAuth>() as MockFirebaseAuth;
+        final authState = StreamController<User?>();
+        addTearDown(authState.close);
+        when(auth.currentUser).thenReturn(null);
+        when(auth.authStateChanges()).thenAnswer((_) => authState.stream);
+
+        final userInfo = _makeUserInfo();
+        await loadUserInformation(
+          userInfo,
+          'en',
+          authStateTimeout: const Duration(milliseconds: 10),
+        ).timeout(const Duration(seconds: 1));
+
+        expect(userInfo.loggedIn, isTrue);
+        expect(userInfo.authDecisionMade, isTrue);
+        expect(userInfo.userId, 'persisted-uid');
+      },
+    );
+
+    test('should contain non-Firebase auth restoration failures', () async {
+      _registerFakes(
+        store: {
+          'loggedIn': true,
+          'authDecisionMade': true,
+          'userId': 'persisted-uid',
+        },
+      );
+      final auth = GetIt.instance<FirebaseAuth>() as MockFirebaseAuth;
+      final logger = GetIt.instance<IncidentLoggerService>() as _FakeLogger;
+      when(auth.currentUser).thenReturn(null);
+      when(auth.authStateChanges()).thenAnswer(
+        (_) => Stream<User?>.error(
+          MissingPluginException('Firebase Auth is unavailable.'),
+        ),
+      );
+
+      final userInfo = _makeUserInfo();
+      await loadUserInformation(userInfo, 'en');
+      await logger.captureLogCompleted.future;
+
+      expect(userInfo.loggedIn, isTrue);
+      expect(userInfo.authDecisionMade, isTrue);
+      expect(userInfo.userId, 'persisted-uid');
+      expect(logger.capturedExceptions.single, isA<MissingPluginException>());
+      expect(logger.capturedStackTraces.single, isNotNull);
+    });
 
     test(
       'preserves an explicit guest decision without a Firebase session',

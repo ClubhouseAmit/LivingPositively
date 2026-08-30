@@ -1,5 +1,7 @@
 // ignore_for_file: non_constant_identifier_names, avoid_print
 
+import 'dart:async';
+
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:get_it/get_it.dart';
@@ -21,6 +23,19 @@ import 'package:flutter/foundation.dart' show kIsWeb, visibleForTesting;
 import 'package:firebase_core/firebase_core.dart';
 
 int? _storedIntOrNull(Object? value) => value is int ? value : null;
+
+const Duration _initialAuthStateTimeout = Duration(seconds: 5);
+
+void _reportAuthRestorationFailure(Object error, StackTrace stackTrace) {
+  if (!GetIt.instance.isRegistered<IncidentLoggerService>()) return;
+
+  final loggerService = GetIt.instance<IncidentLoggerService>();
+  unawaited(
+    Future<void>.sync(
+      () => loggerService.captureLog(error, stackTrace: stackTrace),
+    ).catchError((_) {}),
+  );
+}
 
 //This is where we handle all of the data fetching for the app
 //be it from the server or from the local storage
@@ -97,8 +112,9 @@ class Warning {
 //use or create functions in userinfo class to update the user information:
 Future<void> loadUserInformation(
   UserInformation userInfo,
-  String locale,
-) async {
+  String locale, {
+  Duration authStateTimeout = _initialAuthStateTimeout,
+}) async {
   PersistentMemoryService service = GetIt.instance<PersistentMemoryService>();
   final futures = <String, Future>{
     'name': service.getItem("name", PersistentMemoryType.String),
@@ -209,11 +225,17 @@ Future<void> loadUserInformation(
     currentUser = auth.currentUser;
     // Firebase Auth restores its persisted session asynchronously. A null
     // currentUser before this first emission is not a completed sign-out.
-    currentUser ??= await auth.authStateChanges().first;
+    currentUser ??= await auth
+        .authStateChanges()
+        .timeout(authStateTimeout)
+        .first;
     authStateResolved = true;
-  } on FirebaseException {
+  } catch (error, stackTrace) {
     // Firebase did not provide a completed auth state. Preserve persisted
     // evidence rather than permanently replacing it with a transient null.
+    if (error is! FirebaseException) {
+      _reportAuthRestorationFailure(error, stackTrace);
+    }
   }
   final hasAuthenticatedSession =
       currentUser != null && !currentUser.isAnonymous;
