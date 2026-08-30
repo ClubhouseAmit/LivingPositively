@@ -30,7 +30,7 @@ void main() {
       expect(AppColors.darkNavBackground, const Color(0xFF393739));
       expect(AppColors.darkSurface, const Color(0xFF2B2A2C));
       expect(AppColors.darkSurfaceContainer, const Color(0xFF4C494B));
-      expect(AppColors.darkPrimary, const Color(0xFFD0C1A4));
+      expect(AppColors.darkPrimary, const Color(0xFFD7C2FF));
       expect(AppColors.darkOnPrimary, const Color(0xFF2B2A2C));
       expect(AppColors.darkSecondary, const Color(0xFFB9AEA0));
       expect(AppColors.darkOnSecondary, const Color(0xFF2B2A2C));
