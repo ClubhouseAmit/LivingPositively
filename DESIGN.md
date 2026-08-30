@@ -5,6 +5,7 @@ version: 1.0.0
 tags: [mental-health, wellness, support, minimal]
 colorTokens:
   primary: "0xFFA688F8"
+  darkPrimary: "0xFFD7C2FF"
   secondary: "0xFFE3C6FF"
   surface: "0xFFFAF8F8"
   onSurface: "0xFF0F2851"
@@ -56,6 +57,7 @@ Metsilon (Mazilon) serves individuals in highly vulnerable or distressed moments
 | Token             | CSS Custom Property     | Value        | Purpose / Description                                  |
 | :---------------- | :---------------------- | :----------- | :----------------------------------------------------- |
 | **Primary**       | `--color-primary`       | `0xFFA688F8` | Calming violet, used as background for primary buttons |
+| **Dark Primary**  | `--color-dark-primary`  | `0xFFD7C2FF` | Pale lavender, used as the background for dark-mode primary buttons |
 | **Secondary**     | `--color-secondary`     | `0xFFE3C6FF` | Highlight soft purple, selected borders/indicators     |
 | **On Surface**    | `--color-on-surface`    | `0xFF0F2851` | Primary body text, titles, dark contrast details       |
 | **Surface**       | `--color-surface`       | `0xFFFAF8F8` | Default scaffold/canvas clean color                    |
