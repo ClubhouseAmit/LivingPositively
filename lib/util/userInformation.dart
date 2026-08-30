@@ -46,6 +46,7 @@ class UserInformation with ChangeNotifier {
   Future<void> _pendingDreamsAndGoalsSave = Future<void>.value();
   Future<void> _pendingCustomCategoriesSave = Future<void>.value();
   List<MapEntry<String, String>>? _pendingCustomCategoriesSnapshot;
+  PersistentMemoryService? _pendingCustomCategoriesMemoryService;
   Future<void>? _customCategoriesWriteTail;
   Future<void>? _notificationPreferencesWrite;
   int _dreamsAndGoalsSaveRevision = 0;
@@ -120,6 +121,7 @@ class UserInformation with ChangeNotifier {
     final sanitized = sanitizeAndFilterCustomCategoryEntries(toSave);
     _pendingCustomCategoriesSnapshot =
         List<MapEntry<String, String>>.unmodifiable(sanitized);
+    _pendingCustomCategoriesMemoryService = effectiveMemoryService;
     final int revision = ++_customCategoriesSaveRevision;
     final previousWrite = _customCategoriesWriteTail;
     final Future<void> nextSave = previousWrite == null
@@ -554,10 +556,14 @@ class UserInformation with ChangeNotifier {
       await _pendingCustomCategoriesSave;
     } catch (error, stackTrace) {
       final retrySnapshot = _pendingCustomCategoriesSnapshot;
-      if (retrySnapshot == null) {
+      final retryMemoryService = _pendingCustomCategoriesMemoryService;
+      if (retrySnapshot == null || retryMemoryService == null) {
         Error.throwWithStackTrace(error, stackTrace);
       }
-      await saveCustomCategories(categories: retrySnapshot);
+      await saveCustomCategories(
+        categories: retrySnapshot,
+        memoryService: retryMemoryService,
+      );
     }
   }
 

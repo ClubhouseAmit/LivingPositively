@@ -768,14 +768,26 @@ class _ShareFormState extends WizardStepState<ShareForm> {
     Object error,
     StackTrace stackTrace,
   ) async {
+    if (!GetIt.instance.isRegistered<IncidentLoggerService>()) {
+      _debugPrintDreamsAndGoalsFailure(error, stackTrace);
+      return;
+    }
     try {
       await GetIt.instance<IncidentLoggerService>().captureLog(
         error,
         stackTrace: stackTrace,
       );
     } catch (_) {
-      // Logging is best effort; it must not hide the retry affordance.
+      _debugPrintDreamsAndGoalsFailure(error, stackTrace);
     }
+  }
+
+  void _debugPrintDreamsAndGoalsFailure(Object error, StackTrace stackTrace) {
+    debugPrint('ShareForm persistence operation failed: $error');
+    debugPrintStack(
+      label: 'ShareForm persistence stack trace:',
+      stackTrace: stackTrace,
+    );
   }
 
   Widget buildDreamsAndGoalsSection(BuildContext context, String gender) {

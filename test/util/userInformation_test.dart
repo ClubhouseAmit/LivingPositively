@@ -261,6 +261,31 @@ void main() {
   );
 
   test(
+    'should retry custom categories through the originally injected storage service',
+    () async {
+      final injectedService = _FailingOncePerExportSnapshotMemoryService();
+      final user = UserInformation(service: fakeService);
+
+      await expectLater(
+        user.saveCustomCategories(
+          categories: const <MapEntry<String, String>>[
+            MapEntry<String, String>('category', 'injected value'),
+          ],
+          memoryService: injectedService,
+        ),
+        throwsA(isA<StateError>()),
+      );
+
+      await expectLater(user.prepareForPersonalPlanExport(), completes);
+      expect(
+        injectedService.stored[customCategoriesKey],
+        '[{"title":"category","description":"injected value"}]',
+      );
+      expect(fakeService.stored[customCategoriesKey], isNull);
+    },
+  );
+
+  test(
     'propagates a repeated snapshot failure instead of exporting stale data',
     () async {
       final failingService = _FailingPersistentMemoryService();

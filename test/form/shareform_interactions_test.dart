@@ -18,6 +18,7 @@ import 'package:mazilon/file_service.dart';
 import 'package:mazilon/form/shareform.dart';
 import 'package:mazilon/form/wizard_step.dart';
 import 'package:mazilon/global_enums.dart';
+import 'package:mazilon/util/logger_service.dart';
 import 'package:mazilon/util/Share/LP_share_alert_dialog.dart';
 import 'package:mazilon/util/custom_categories_storage.dart';
 import 'package:mazilon/util/persistent_memory_service.dart';
@@ -1556,6 +1557,58 @@ void main() {
 
       expect(find.text('Special Goal Category'), findsOneWidget);
       expect(find.text('Special Description'), findsOneWidget);
+    },
+  );
+
+  testWidgets(
+    'should print initialization failures when incident logging is unavailable',
+    (tester) async {
+      final explicitMemory = _MockPersistentMemoryService();
+      when(explicitMemory.getItem(any, any)).thenThrow(
+        StateError('Custom category storage is unavailable.'),
+      );
+      when(explicitMemory.setItem(any, any, any)).thenAnswer((_) async {});
+      when(explicitMemory.reset()).thenAnswer((_) async {});
+      GetIt.instance.unregister<IncidentLoggerService>();
+      final messages = <String>[];
+      final previousDebugPrint = debugPrint;
+      debugPrint = (String? message, {int? wrapWidth}) {
+        if (message != null) messages.add(message);
+      };
+      try {
+        user = UserInformation()
+          ..gender = 'other'
+          ..localeName = 'en';
+
+        await pumpWithProviders(
+          tester,
+          wizardStepHarness(
+            ShareForm(
+              key: GlobalKey<WizardStepState>(),
+              prev: () {},
+              submit: (_) async {},
+              memoryService: explicitMemory,
+            ),
+          ),
+          userInformation: user,
+          surfaceSize: const Size(1024, 1800),
+        );
+        await tester.pumpAndSettle();
+      } finally {
+        debugPrint = previousDebugPrint;
+      }
+
+      expect(
+        messages.join('\n'),
+        contains(
+          'ShareForm persistence operation failed: Bad state: '
+          'Custom category storage is unavailable.',
+        ),
+      );
+      expect(
+        messages.join('\n'),
+        contains('ShareForm persistence stack trace:'),
+      );
     },
   );
 
