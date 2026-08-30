@@ -251,6 +251,16 @@ void main() {
   });
 
   group('MoodMedicineInsights', () {
+    test('should reject a negative omitted count', () {
+      expect(
+        () => MoodMedicineTrendSeries(
+          checkIns: const <MoodMedicineTrendCheckIn>[],
+          omittedCount: -1,
+        ),
+        throwsArgumentError,
+      );
+    });
+
     test(
       'should retain every same-day check-in in chronological range data',
       () {
@@ -438,8 +448,16 @@ void main() {
           hasLength(MoodMedicineInsights.maxYearTrendPoints),
         );
         expect(trendSeries.omittedCount, 2);
-        expect(trendSeries.checkIns.first.id, 'year-2');
-        expect(trendSeries.checkIns.last.id, 'year-1001');
+        expect(
+          trendSeries.checkIns
+              .map((MoodMedicineTrendCheckIn checkIn) => checkIn.id)
+              .toList(growable: false),
+          List<String>.generate(
+            MoodMedicineInsights.maxYearTrendPoints,
+            (int index) => 'year-${index + 2}',
+            growable: false,
+          ),
+        );
       },
     );
 

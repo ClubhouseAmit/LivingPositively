@@ -1,6 +1,7 @@
 import 'dart:async';
 
 import 'package:flutter/material.dart';
+import 'package:intl/intl.dart' as intl;
 import 'package:mazilon/l10n/app_localizations.dart';
 import 'package:mazilon/features/mood_medicine/data/mood_medicine_models.dart';
 import 'package:mazilon/features/mood_medicine/data/mood_medicine_report_delivery_types.dart';
@@ -269,16 +270,28 @@ class _MoodMedicinePageState extends State<MoodMedicinePage> {
     AppLocalizations l10n,
     MoodMedicineTrendSeries trendSeries,
   ) {
-    final String summary = trendSeries.checkIns
+    return trendSeries.checkIns
         .map(
           (MoodMedicineTrendCheckIn checkIn) =>
-              '${checkIn.localDayKey}: ${checkIn.mood}',
+              '${_formatTrendDay(l10n, checkIn.localDayKey)}: ${checkIn.mood}',
         )
         .join(', ');
-    if (trendSeries.omittedCount == 0) {
-      return summary;
+  }
+
+  String _formatTrendDay(AppLocalizations l10n, String dayKey) {
+    final List<String> parts = dayKey.split('-');
+    if (parts.length != 3) {
+      return dayKey;
     }
-    return '$summary ${l10n.moodMedicineTrendOmitted(MoodMedicineInsights.maxYearTrendPoints, trendSeries.omittedCount)}';
+    final int? year = int.tryParse(parts[0]);
+    final int? month = int.tryParse(parts[1]);
+    final int? day = int.tryParse(parts[2]);
+    if (year == null || month == null || day == null) {
+      return dayKey;
+    }
+    return intl.DateFormat.yMMMMd(
+      l10n.localeName,
+    ).format(DateTime(year, month, day));
   }
 
   Future<void> _openActivityManager() async {

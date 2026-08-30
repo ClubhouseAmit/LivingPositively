@@ -4,6 +4,7 @@ import 'dart:typed_data';
 
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:intl/intl.dart' as intl;
 import 'package:mocktail/mocktail.dart';
 import 'package:mazilon/global_enums.dart';
 import 'package:mazilon/l10n/app_localizations.dart';
@@ -342,7 +343,13 @@ void main() {
       );
       expect(chart.points.first.activityIds, <String>{'music'});
       expect(chart.points.last.activityIds, <String>{'social_connection'});
-      expect('2026-08-29'.allMatches(chart.semanticSummary), hasLength(2));
+      expect(chart.semanticSummary, isNot(contains('2026-08-29')));
+      expect(
+        intl.DateFormat.yMMMMd(
+          'en',
+        ).format(DateTime(2026, 8, 29)).allMatches(chart.semanticSummary),
+        hasLength(2),
+      );
       expect(viewModel.readyState!.dashboard.summaries, hasLength(1));
       expect(find.text(l10n.moodMedicineEachCheckIn), findsOneWidget);
       expect(find.text(l10n.moodMedicineOneEntry), findsNothing);
@@ -415,10 +422,82 @@ void main() {
         ),
         findsOneWidget,
       );
+      final MoodMedicineTrendChart chart = tester.widget(
+        find.byType(MoodMedicineTrendChart),
+      );
+      expect(
+        chart.semanticSummary,
+        isNot(
+          contains(
+            l10n.moodMedicineTrendOmitted(
+              MoodMedicineInsights.maxYearTrendPoints,
+              1,
+            ),
+          ),
+        ),
+      );
       expect(
         viewModel.readyState!.dashboard.trendSeries.checkIns,
         hasLength(MoodMedicineInsights.maxYearTrendPoints),
       );
+    });
+
+    testWidgets('should format trend dates for each supported locale', (
+      WidgetTester tester,
+    ) async {
+      _setLargeScreen(tester);
+      final MoodMedicineSnapshot snapshot = MoodMedicineSnapshot(
+        entries: <MoodMedicineEntry>[
+          MoodMedicineEntry(
+            id: 'localized-day',
+            occurredAtUtc: DateTime.utc(2026, 8, 29, 8),
+            localDayKey: '2026-08-29',
+            mood: 4,
+          ),
+        ],
+      );
+      for (final Locale locale in const <Locale>[
+        Locale('en'),
+        Locale('he'),
+        Locale('ar'),
+      ]) {
+        final ContractPersistentMemoryService memory =
+            ContractPersistentMemoryService(
+              initialValues: <String, Object?>{
+                MoodMedicineStore.snapshotKey: snapshot.encode(),
+              },
+            );
+        final MoodMedicineViewModel viewModel = _viewModel(memory);
+        await viewModel.load();
+        await tester.pumpWidget(_app(viewModel: viewModel, locale: locale));
+        await tester.pumpAndSettle();
+
+        final MoodMedicineTrendChart chart = tester.widget(
+          find.byType(MoodMedicineTrendChart),
+        );
+        final String localizedDate = intl.DateFormat.yMMMMd(
+          locale.languageCode,
+        ).format(DateTime(2026, 8, 29));
+        expect(chart.semanticSummary, contains(localizedDate));
+        expect(chart.semanticSummary, isNot(contains('2026-08-29')));
+      }
+    });
+
+    test('should pluralize omitted trend checks in every locale', () async {
+      for (final Locale locale in const <Locale>[
+        Locale('en'),
+        Locale('he'),
+        Locale('ar'),
+      ]) {
+        final AppLocalizations l10n = await AppLocalizations.delegate.load(
+          locale,
+        );
+        final String singular = l10n.moodMedicineTrendOmitted(1000, 1);
+        final String plural = l10n.moodMedicineTrendOmitted(1000, 2);
+        expect(singular, isNot(equals(plural)));
+        expect(singular, isNot(contains('{omitted}')));
+        expect(plural, isNot(contains('{omitted}')));
+      }
     });
 
     testWidgets('should preserve a failed check-in draft and expose retry', (

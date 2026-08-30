@@ -4279,7 +4279,17 @@ class AppLocalizationsAr extends AppLocalizations {
 
   @override
   String moodMedicineTrendOmitted(int limit, int omitted) {
-    return 'يتم عرض أحدث $limit تسجيلات؛ لا يتم عرض $omitted تسجيلات أقدم.';
+    String _temp0 = intl.Intl.pluralLogic(
+      omitted,
+      locale: localeName,
+      other: 'لا يتم عرض # تسجيل أقدم.',
+      many: 'لا يتم عرض # تسجيلاً أقدم.',
+      few: 'لا يتم عرض # تسجيلات أقدم.',
+      two: 'لا يتم عرض تسجيلين أقدمين.',
+      one: 'لا يتم عرض تسجيل أقدم واحد.',
+      zero: 'لا توجد تسجيلات أقدم غير معروضة.',
+    );
+    return 'يتم عرض أحدث $limit تسجيلات؛ $_temp0';
   }
 
   @override

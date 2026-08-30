@@ -4312,7 +4312,13 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String moodMedicineTrendOmitted(int limit, int omitted) {
-    return 'Showing the latest $limit check-ins; $omitted older check-ins are not shown.';
+    String _temp0 = intl.Intl.pluralLogic(
+      omitted,
+      locale: localeName,
+      other: '# older check-ins are not shown.',
+      one: '1 older check-in is not shown.',
+    );
+    return 'Showing the latest $limit check-ins; $_temp0';
   }
 
   @override

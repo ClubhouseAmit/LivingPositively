@@ -26,8 +26,9 @@ final class MoodMedicineTrendCheckIn {
 final class MoodMedicineTrendSeries {
   MoodMedicineTrendSeries({
     required Iterable<MoodMedicineTrendCheckIn> checkIns,
-    this.omittedCount = 0,
-  }) : checkIns = List<MoodMedicineTrendCheckIn>.unmodifiable(checkIns);
+    int omittedCount = 0,
+  }) : omittedCount = _validatedOmittedCount(omittedCount),
+       checkIns = List<MoodMedicineTrendCheckIn>.unmodifiable(checkIns);
 
   final List<MoodMedicineTrendCheckIn> checkIns;
   final int omittedCount;
@@ -93,31 +94,35 @@ abstract final class MoodMedicineInsights {
         : null;
     final List<MoodMedicineTrendCheckIn> checkIns =
         <MoodMedicineTrendCheckIn>[];
+    final List<MoodMedicineEntry> yearHeap = <MoodMedicineEntry>[];
     var omittedCount = 0;
     for (final MoodMedicineEntry entry in entries) {
       if (!_isDayInRange(entry.localDayKey, start: start, end: end)) {
         continue;
       }
-      final MoodMedicineTrendCheckIn checkIn = MoodMedicineTrendCheckIn(
-        id: entry.id,
-        localDayKey: entry.localDayKey,
-        occurredAtUtc: entry.occurredAtUtc,
-        mood: entry.mood,
-        activityIds: entry.activityIds,
-      );
       if (limit == null) {
-        checkIns.add(checkIn);
+        checkIns.add(_trendCheckInFor(entry));
         continue;
       }
-      final int insertionIndex = _trendInsertionIndex(checkIns, checkIn);
-      checkIns.insert(insertionIndex, checkIn);
-      if (checkIns.length > limit) {
-        checkIns.removeAt(0);
+      if (yearHeap.length < limit) {
+        _heapPush(yearHeap, entry);
+      } else if (_compareTrendEntries(entry, yearHeap.first) > 0) {
+        yearHeap[0] = entry;
+        _heapSiftDown(yearHeap, 0);
+        omittedCount += 1;
+      } else {
         omittedCount += 1;
       }
     }
     if (limit == null) {
       checkIns.sort(_compareTrendCheckIns);
+    } else {
+      // The fixed-size min-heap bounds retained history to K entries while
+      // scanning once (O(N log K), with K fixed at 1,000), avoiding the
+      // O(N * K) insertion/shifting cost of an expanding sorted list.
+      checkIns
+        ..addAll(yearHeap.map(_trendCheckInFor))
+        ..sort(_compareTrendCheckIns);
     }
     return MoodMedicineTrendSeries(
       checkIns: checkIns,
@@ -246,21 +251,59 @@ abstract final class MoodMedicineInsights {
     return !day.isBefore(start) && !day.isAfter(end);
   }
 
-  static int _trendInsertionIndex(
-    List<MoodMedicineTrendCheckIn> values,
-    MoodMedicineTrendCheckIn value,
-  ) {
-    var low = 0;
-    var high = values.length;
-    while (low < high) {
-      final int middle = (low + high) ~/ 2;
-      if (_compareTrendCheckIns(values[middle], value) <= 0) {
-        low = middle + 1;
-      } else {
-        high = middle;
+  static MoodMedicineTrendCheckIn _trendCheckInFor(MoodMedicineEntry entry) =>
+      MoodMedicineTrendCheckIn(
+        id: entry.id,
+        localDayKey: entry.localDayKey,
+        occurredAtUtc: entry.occurredAtUtc,
+        mood: entry.mood,
+        activityIds: entry.activityIds,
+      );
+
+  static void _heapPush(List<MoodMedicineEntry> heap, MoodMedicineEntry value) {
+    heap.add(value);
+    var index = heap.length - 1;
+    while (index > 0) {
+      final int parent = (index - 1) ~/ 2;
+      if (_compareTrendEntries(heap[parent], heap[index]) <= 0) {
+        break;
       }
+      final MoodMedicineEntry value = heap[parent];
+      heap[parent] = heap[index];
+      heap[index] = value;
+      index = parent;
     }
-    return low;
+  }
+
+  static void _heapSiftDown(List<MoodMedicineEntry> heap, int index) {
+    while (true) {
+      final int left = index * 2 + 1;
+      if (left >= heap.length) {
+        return;
+      }
+      final int right = left + 1;
+      var smallest = left;
+      if (right < heap.length &&
+          _compareTrendEntries(heap[right], heap[left]) < 0) {
+        smallest = right;
+      }
+      if (_compareTrendEntries(heap[index], heap[smallest]) <= 0) {
+        return;
+      }
+      final MoodMedicineEntry value = heap[index];
+      heap[index] = heap[smallest];
+      heap[smallest] = value;
+      index = smallest;
+    }
+  }
+
+  static int _compareTrendEntries(MoodMedicineEntry a, MoodMedicineEntry b) {
+    final int byTime = a.occurredAtUtc.compareTo(b.occurredAtUtc);
+    if (byTime != 0) {
+      return byTime;
+    }
+    final int byDay = a.localDayKey.compareTo(b.localDayKey);
+    return byDay != 0 ? byDay : a.id.compareTo(b.id);
   }
 
   static int _compareTrendCheckIns(
@@ -280,6 +323,17 @@ abstract final class MoodMedicineInsights {
     return list.fold<double>(0, (double total, double value) => total + value) /
         list.length;
   }
+}
+
+int _validatedOmittedCount(int omittedCount) {
+  if (omittedCount < 0) {
+    throw ArgumentError.value(
+      omittedCount,
+      'omittedCount',
+      'must not be negative',
+    );
+  }
+  return omittedCount;
 }
 
 final class _DailyAccumulator {

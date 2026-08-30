@@ -4265,7 +4265,13 @@ class AppLocalizationsHe extends AppLocalizations {
 
   @override
   String moodMedicineTrendOmitted(int limit, int omitted) {
-    return 'מוצגות $limit הבדיקות האחרונות; $omitted בדיקות ישנות יותר אינן מוצגות.';
+    String _temp0 = intl.Intl.pluralLogic(
+      omitted,
+      locale: localeName,
+      other: '# בדיקות ישנות יותר אינן מוצגות.',
+      one: 'בדיקה ישנה יותר אחת אינה מוצגת.',
+    );
+    return 'מוצגות $limit הבדיקות האחרונות; $_temp0';
   }
 
   @override

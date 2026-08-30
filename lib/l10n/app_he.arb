@@ -844,7 +844,7 @@
   "moodMedicineActivitiesOverlay": "פעילויות בבדיקות האלה",
   "moodMedicineEachCheckIn": "מצב הרוח בכל בדיקה",
   "moodMedicineNoEntries": "עדיין אין בדיקות בטווח הזה.",
-  "moodMedicineTrendOmitted": "מוצגות {limit} הבדיקות האחרונות; {omitted} בדיקות ישנות יותר אינן מוצגות.",
+  "moodMedicineTrendOmitted": "מוצגות {limit} הבדיקות האחרונות; {omitted, plural, =1 {בדיקה ישנה יותר אחת אינה מוצגת.} other {# בדיקות ישנות יותר אינן מוצגות.}}",
   "@moodMedicineTrendOmitted": {
     "placeholders": {
       "limit": {"type": "int"},
