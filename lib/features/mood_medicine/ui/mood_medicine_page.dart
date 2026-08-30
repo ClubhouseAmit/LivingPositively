@@ -278,6 +278,9 @@ class _MoodMedicinePageState extends State<MoodMedicinePage> {
         .join(', ');
   }
 
+  /// UI-only accessibility formatting; the ViewModel keeps [dayKey] as the
+  /// persisted local-day key for filtering and analytics. Parsing is local
+  /// calendar arithmetic, never a UTC conversion.
   String _formatTrendDay(AppLocalizations l10n, String dayKey) {
     final List<String> parts = dayKey.split('-');
     if (parts.length != 3) {

@@ -4282,9 +4282,9 @@ class AppLocalizationsAr extends AppLocalizations {
     String _temp0 = intl.Intl.pluralLogic(
       omitted,
       locale: localeName,
-      other: 'لا يتم عرض # تسجيل أقدم.',
-      many: 'لا يتم عرض # تسجيلاً أقدم.',
-      few: 'لا يتم عرض # تسجيلات أقدم.',
+      other: 'لا يتم عرض $omitted تسجيل أقدم.',
+      many: 'لا يتم عرض $omitted تسجيلاً أقدم.',
+      few: 'لا يتم عرض $omitted تسجيلات أقدم.',
       two: 'لا يتم عرض تسجيلين أقدمين.',
       one: 'لا يتم عرض تسجيل أقدم واحد.',
       zero: 'لا توجد تسجيلات أقدم غير معروضة.',

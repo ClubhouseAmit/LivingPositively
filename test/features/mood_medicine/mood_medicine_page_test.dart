@@ -494,9 +494,41 @@ void main() {
         );
         final String singular = l10n.moodMedicineTrendOmitted(1000, 1);
         final String plural = l10n.moodMedicineTrendOmitted(1000, 2);
-        expect(singular, isNot(equals(plural)));
-        expect(singular, isNot(contains('{omitted}')));
-        expect(plural, isNot(contains('{omitted}')));
+        switch (locale.languageCode) {
+          case 'en':
+            expect(
+              singular,
+              'Showing the latest 1000 check-ins; '
+              '1 older check-in is not shown.',
+            );
+            expect(
+              plural,
+              'Showing the latest 1000 check-ins; '
+              '2 older check-ins are not shown.',
+            );
+          case 'he':
+            expect(
+              singular,
+              'מוצגות 1000 הבדיקות האחרונות; '
+              'בדיקה ישנה יותר אחת אינה מוצגת.',
+            );
+            expect(
+              plural,
+              'מוצגות 1000 הבדיקות האחרונות; '
+              '2 בדיקות ישנות יותר אינן מוצגות.',
+            );
+          case 'ar':
+            expect(
+              singular,
+              'يتم عرض أحدث 1000 تسجيلات؛ '
+              'لا يتم عرض تسجيل أقدم واحد.',
+            );
+            expect(
+              plural,
+              'يتم عرض أحدث 1000 تسجيلات؛ '
+              'لا يتم عرض تسجيلين أقدمين.',
+            );
+        }
       }
     });
 

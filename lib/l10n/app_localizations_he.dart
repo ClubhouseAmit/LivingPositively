@@ -4268,7 +4268,7 @@ class AppLocalizationsHe extends AppLocalizations {
     String _temp0 = intl.Intl.pluralLogic(
       omitted,
       locale: localeName,
-      other: '# בדיקות ישנות יותר אינן מוצגות.',
+      other: '$omitted בדיקות ישנות יותר אינן מוצגות.',
       one: 'בדיקה ישנה יותר אחת אינה מוצגת.',
     );
     return 'מוצגות $limit הבדיקות האחרונות; $_temp0';

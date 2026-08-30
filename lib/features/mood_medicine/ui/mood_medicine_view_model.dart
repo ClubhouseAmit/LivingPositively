@@ -1031,7 +1031,7 @@ final class MoodMedicineViewModel extends ChangeNotifier {
     final DateTime anchor = _clock();
     final MoodMedicineTrendSeries trendSeries =
         MoodMedicineInsights.checkInsForRange(
-          snapshot.entries,
+          snapshot,
           range: range,
           anchor: anchor,
         );

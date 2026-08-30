@@ -3709,7 +3709,7 @@ abstract class AppLocalizations {
   /// Explains the deterministic presentation limit for a large Mood Medicine trend.
   ///
   /// In en, this message translates to:
-  /// **'Showing the latest {limit} check-ins; {omitted, plural, =1 {1 older check-in is not shown.} other {# older check-ins are not shown.}}'**
+  /// **'Showing the latest {limit} check-ins; {omitted, plural, =1 {1 older check-in is not shown.} other {{omitted} older check-ins are not shown.}}'**
   String moodMedicineTrendOmitted(int limit, int omitted);
 
   /// No description provided for @moodMedicineOneEntry.

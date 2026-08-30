@@ -6,7 +6,11 @@ import 'package:mazilon/features/mood_medicine/data/mood_medicine_models.dart';
 enum MoodMedicineInsightRange { day, week, month, year }
 
 /// One persisted check-in presented as an individual mood-trend point.
+///
+/// [activityIds] is copied into an immutable set so chart overlays cannot
+/// mutate persisted activity data.
 final class MoodMedicineTrendCheckIn {
+  /// Creates a trend point, copying [activityIds] into an immutable set.
   MoodMedicineTrendCheckIn({
     required this.id,
     required this.localDayKey,
@@ -22,15 +26,24 @@ final class MoodMedicineTrendCheckIn {
   final Set<String> activityIds;
 }
 
-/// Bounded presentation data for the mood trend.
+/// Presentation data for the mood trend.
+///
+/// [checkIns] is immutable and chronologically ordered. Year-range results
+/// contain at most [MoodMedicineInsights.maxYearTrendPoints] points; when
+/// older points are omitted, [omittedCount] reports their number. Other ranges
+/// remain uncapped. The selected points retain their immutable activity IDs.
 final class MoodMedicineTrendSeries {
+  /// Creates an immutable trend series by copying [checkIns].
   MoodMedicineTrendSeries({
     required Iterable<MoodMedicineTrendCheckIn> checkIns,
     int omittedCount = 0,
   }) : omittedCount = _validatedOmittedCount(omittedCount),
        checkIns = List<MoodMedicineTrendCheckIn>.unmodifiable(checkIns);
 
+  /// Chronological trend points, ordered by timestamp, stored day, then ID.
   final List<MoodMedicineTrendCheckIn> checkIns;
+
+  /// Number of matching older points omitted by the year presentation cap.
   final int omittedCount;
 }
 
@@ -77,12 +90,15 @@ abstract final class MoodMedicineInsights {
 
   /// Returns check-ins in the selected local-day range.
   ///
-  /// Entries are ordered by their actual timestamp so repeated check-ins remain
-  /// distinct and follow the sequence in which they happened. Year ranges are
-  /// bounded to [maxYearTrendPoints] for presentation; persisted history is
-  /// never removed.
+  /// The [snapshot] must be a validated v1 snapshot, which guarantees unique
+  /// entry IDs before this bounded presentation query runs. Entries are ordered
+  /// by UTC timestamp, then stored local day key, then ID, so equal timestamps
+  /// remain deterministic. Repeated check-ins remain distinct. Year ranges are
+  /// bounded to [maxYearTrendPoints] for presentation; [MoodMedicineTrendSeries
+  /// .omittedCount] reports excluded older points and persisted history is never
+  /// removed. Day/week/month ranges are uncapped.
   static MoodMedicineTrendSeries checkInsForRange(
-    Iterable<MoodMedicineEntry> entries, {
+    MoodMedicineSnapshot snapshot, {
     required MoodMedicineInsightRange range,
     required DateTime anchor,
   }) {
@@ -96,7 +112,7 @@ abstract final class MoodMedicineInsights {
         <MoodMedicineTrendCheckIn>[];
     final List<MoodMedicineEntry> yearHeap = <MoodMedicineEntry>[];
     var omittedCount = 0;
-    for (final MoodMedicineEntry entry in entries) {
+    for (final MoodMedicineEntry entry in snapshot.entries) {
       if (!_isDayInRange(entry.localDayKey, start: start, end: end)) {
         continue;
       }
@@ -298,24 +314,28 @@ abstract final class MoodMedicineInsights {
   }
 
   static int _compareTrendEntries(MoodMedicineEntry a, MoodMedicineEntry b) {
-    final int byTime = a.occurredAtUtc.compareTo(b.occurredAtUtc);
-    if (byTime != 0) {
-      return byTime;
-    }
-    final int byDay = a.localDayKey.compareTo(b.localDayKey);
-    return byDay != 0 ? byDay : a.id.compareTo(b.id);
+    return _compareTrendOrder(
+      occurredAtUtcA: a.occurredAtUtc,
+      localDayKeyA: a.localDayKey,
+      idA: a.id,
+      occurredAtUtcB: b.occurredAtUtc,
+      localDayKeyB: b.localDayKey,
+      idB: b.id,
+    );
   }
 
   static int _compareTrendCheckIns(
     MoodMedicineTrendCheckIn a,
     MoodMedicineTrendCheckIn b,
   ) {
-    final int byTime = a.occurredAtUtc.compareTo(b.occurredAtUtc);
-    if (byTime != 0) {
-      return byTime;
-    }
-    final int byDay = a.localDayKey.compareTo(b.localDayKey);
-    return byDay != 0 ? byDay : a.id.compareTo(b.id);
+    return _compareTrendOrder(
+      occurredAtUtcA: a.occurredAtUtc,
+      localDayKeyA: a.localDayKey,
+      idA: a.id,
+      occurredAtUtcB: b.occurredAtUtc,
+      localDayKeyB: b.localDayKey,
+      idB: b.id,
+    );
   }
 
   static double _average(Iterable<double> values) {
@@ -323,6 +343,22 @@ abstract final class MoodMedicineInsights {
     return list.fold<double>(0, (double total, double value) => total + value) /
         list.length;
   }
+}
+
+int _compareTrendOrder({
+  required DateTime occurredAtUtcA,
+  required String localDayKeyA,
+  required String idA,
+  required DateTime occurredAtUtcB,
+  required String localDayKeyB,
+  required String idB,
+}) {
+  final int byTime = occurredAtUtcA.compareTo(occurredAtUtcB);
+  if (byTime != 0) {
+    return byTime;
+  }
+  final int byDay = localDayKeyA.compareTo(localDayKeyB);
+  return byDay != 0 ? byDay : idA.compareTo(idB);
 }
 
 int _validatedOmittedCount(int omittedCount) {

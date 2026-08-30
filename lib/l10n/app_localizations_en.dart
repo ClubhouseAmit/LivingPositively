@@ -4315,7 +4315,7 @@ class AppLocalizationsEn extends AppLocalizations {
     String _temp0 = intl.Intl.pluralLogic(
       omitted,
       locale: localeName,
-      other: '# older check-ins are not shown.',
+      other: '$omitted older check-ins are not shown.',
       one: '1 older check-in is not shown.',
     );
     return 'Showing the latest $limit check-ins; $_temp0';

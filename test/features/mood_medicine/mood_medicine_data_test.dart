@@ -211,8 +211,20 @@ void main() {
       expect(
         () => MoodMedicineSnapshot(
           entries: <MoodMedicineEntry>[
-            _entry(id: 'entry-1', dayKey: '2026-08-29', mood: 3),
-            _entry(id: 'entry-1', dayKey: '2026-08-30', mood: 4),
+            _entry(
+              id: 'entry-1',
+              dayKey: '2026-08-29',
+              mood: 3,
+              occurredAtUtc: DateTime.utc(2026, 8, 29, 12),
+              activityIds: <String>['music'],
+            ),
+            _entry(
+              id: 'entry-1',
+              dayKey: '2026-08-29',
+              mood: 4,
+              occurredAtUtc: DateTime.utc(2026, 8, 29, 12),
+              activityIds: <String>['social_connection'],
+            ),
           ],
         ),
         throwsArgumentError,
@@ -251,6 +263,33 @@ void main() {
   });
 
   group('MoodMedicineInsights', () {
+    test('should reject duplicate ids before year trend filtering', () {
+      expect(
+        () => MoodMedicineInsights.checkInsForRange(
+          MoodMedicineSnapshot(
+            entries: <MoodMedicineEntry>[
+              _entry(
+                id: 'duplicate',
+                dayKey: '2026-01-01',
+                mood: 2,
+                occurredAtUtc: DateTime.utc(2026, 1, 1, 8),
+              ),
+              _entry(
+                id: 'duplicate',
+                dayKey: '2026-01-01',
+                mood: 5,
+                occurredAtUtc: DateTime.utc(2026, 1, 1, 8),
+                activityIds: <String>['music'],
+              ),
+            ],
+          ),
+          range: MoodMedicineInsightRange.year,
+          anchor: DateTime(2026, 12, 31, 12),
+        ),
+        throwsArgumentError,
+      );
+    });
+
     test('should reject a negative omitted count', () {
       expect(
         () => MoodMedicineTrendSeries(
@@ -284,7 +323,7 @@ void main() {
 
         final MoodMedicineTrendSeries trendSeries =
             MoodMedicineInsights.checkInsForRange(
-              entries,
+              MoodMedicineSnapshot(entries: entries),
               range: MoodMedicineInsightRange.week,
               anchor: DateTime(2026, 8, 30, 12),
             );
@@ -372,7 +411,7 @@ void main() {
 
         final MoodMedicineTrendSeries trendSeries =
             MoodMedicineInsights.checkInsForRange(
-              entries,
+              MoodMedicineSnapshot(entries: entries),
               range: MoodMedicineInsightRange.week,
               anchor: DateTime(2026, 8, 30, 12),
             );
@@ -388,26 +427,28 @@ void main() {
       final DateTime occurredAtUtc = DateTime.utc(2026, 8, 27, 12);
       final MoodMedicineTrendSeries trendSeries =
           MoodMedicineInsights.checkInsForRange(
-            <MoodMedicineEntry>[
-              _entry(
-                id: 'z-id',
-                dayKey: '2026-08-26',
-                mood: 3,
-                occurredAtUtc: occurredAtUtc,
-              ),
-              _entry(
-                id: 'b-id',
-                dayKey: '2026-08-25',
-                mood: 4,
-                occurredAtUtc: occurredAtUtc,
-              ),
-              _entry(
-                id: 'a-id',
-                dayKey: '2026-08-25',
-                mood: 2,
-                occurredAtUtc: occurredAtUtc,
-              ),
-            ],
+            MoodMedicineSnapshot(
+              entries: <MoodMedicineEntry>[
+                _entry(
+                  id: 'z-id',
+                  dayKey: '2026-08-26',
+                  mood: 3,
+                  occurredAtUtc: occurredAtUtc,
+                ),
+                _entry(
+                  id: 'b-id',
+                  dayKey: '2026-08-25',
+                  mood: 4,
+                  occurredAtUtc: occurredAtUtc,
+                ),
+                _entry(
+                  id: 'a-id',
+                  dayKey: '2026-08-25',
+                  mood: 2,
+                  occurredAtUtc: occurredAtUtc,
+                ),
+              ],
+            ),
             range: MoodMedicineInsightRange.week,
             anchor: DateTime(2026, 8, 30, 12),
           );
@@ -438,7 +479,7 @@ void main() {
 
         final MoodMedicineTrendSeries trendSeries =
             MoodMedicineInsights.checkInsForRange(
-              entries,
+              MoodMedicineSnapshot(entries: entries),
               range: MoodMedicineInsightRange.year,
               anchor: DateTime(2026, 12, 31, 12),
             );
