@@ -760,7 +760,7 @@
   "moodMedicineActivitiesOverlay": "الأنشطة في هذه التسجيلات",
   "moodMedicineEachCheckIn": "المزاج في كل تسجيل",
   "moodMedicineNoEntries": "لا توجد تسجيلات في هذا النطاق بعد.",
-  "moodMedicineTrendOmitted": "يتم عرض أحدث {limit} تسجيلات؛ {omitted, plural, =0 {لا توجد تسجيلات أقدم غير معروضة.} =1 {لا يتم عرض تسجيل أقدم واحد.} =2 {لا يتم عرض تسجيلين أقدمين.} few {لا يتم عرض {omitted} تسجيلات أقدم.} many {لا يتم عرض {omitted} تسجيلاً أقدم.} other {لا يتم عرض {omitted} تسجيل أقدم.}}",
+  "moodMedicineTrendOmitted": "يتم عرض أحدث {limit} تسجيل؛ {omitted, plural, =0 {لا توجد تسجيلات أقدم غير معروضة.} =1 {لا يتم عرض تسجيل أقدم واحد.} =2 {لا يتم عرض تسجيلين أقدمين.} few {لا يتم عرض {omitted} تسجيلات أقدم.} many {لا يتم عرض {omitted} تسجيلاً أقدم.} other {لا يتم عرض {omitted} تسجيل أقدم.}}",
   "@moodMedicineTrendOmitted": {
     "placeholders": {
       "limit": {"type": "int"},

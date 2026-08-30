@@ -4289,7 +4289,7 @@ class AppLocalizationsAr extends AppLocalizations {
       one: 'لا يتم عرض تسجيل أقدم واحد.',
       zero: 'لا توجد تسجيلات أقدم غير معروضة.',
     );
-    return 'يتم عرض أحدث $limit تسجيلات؛ $_temp0';
+    return 'يتم عرض أحدث $limit تسجيل؛ $_temp0';
   }
 
   @override
