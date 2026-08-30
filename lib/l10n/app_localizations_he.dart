@@ -4255,17 +4255,17 @@ class AppLocalizationsHe extends AppLocalizations {
   }
 
   @override
-  String get moodMedicineActivitiesOverlay => 'פעילויות בימים האלה';
+  String get moodMedicineActivitiesOverlay => 'פעילויות בבדיקות האלה';
 
   @override
-  String get moodMedicineDailyAverage => 'ממוצע מצב רוח יומי';
+  String get moodMedicineEachCheckIn => 'מצב הרוח בכל בדיקה';
 
   @override
   String get moodMedicineNoEntries => 'עדיין אין בדיקות בטווח הזה.';
 
   @override
   String get moodMedicineOneEntry =>
-      'נשמרה בדיקה אחת. עוד ימים יעזרו להבהיר את המגמה.';
+      'נשמרה בדיקה אחת. בדיקות נוספות יעזרו להבהיר את המגמה.';
 
   @override
   String get moodMedicineAssociation => 'קשר עם פעילות';

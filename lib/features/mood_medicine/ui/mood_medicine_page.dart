@@ -265,11 +265,11 @@ class _MoodMedicinePageState extends State<MoodMedicinePage> {
   String _rangeLabel(AppLocalizations l10n, MoodMedicineInsightRange range) =>
       _rangeLabels(l10n)[range]!;
 
-  String _trendSummary(List<MoodMedicineDailySummary> summaries) {
-    return summaries
+  String _trendSummary(List<MoodMedicineTrendCheckIn> checkIns) {
+    return checkIns
         .map(
-          (MoodMedicineDailySummary summary) =>
-              '${summary.dayKey}: ${summary.averageMood.toStringAsFixed(1)}',
+          (MoodMedicineTrendCheckIn checkIn) =>
+              '${checkIn.localDayKey}: ${checkIn.mood}',
         )
         .join(', ');
   }
@@ -784,18 +784,18 @@ class _MoodMedicinePageState extends State<MoodMedicinePage> {
 
   Widget _buildInsights(AppLocalizations l10n, MoodMedicineReadyState ready) {
     final MoodMedicineDashboard dashboard = ready.dashboard;
-    final List<MoodMedicineDailySummary> summaries = dashboard.summaries;
-    final List<MoodMedicineTrendPoint> points = summaries
+    final List<MoodMedicineTrendCheckIn> checkIns = dashboard.trendCheckIns;
+    final List<MoodMedicineTrendPoint> points = checkIns
         .map(
-          (MoodMedicineDailySummary item) => MoodMedicineTrendPoint(
-            label: item.dayKey,
-            mood: item.averageMood,
+          (MoodMedicineTrendCheckIn item) => MoodMedicineTrendPoint(
+            label: item.localDayKey,
+            mood: item.mood.toDouble(),
             activityIds: item.activityIds,
           ),
         )
         .toList(growable: false);
-    final List<String> overlayActivityIds = summaries
-        .expand((MoodMedicineDailySummary item) => item.activityIds)
+    final List<String> overlayActivityIds = checkIns
+        .expand((MoodMedicineTrendCheckIn item) => item.activityIds)
         .toSet()
         .toList(growable: false);
     return ListView(
@@ -836,14 +836,14 @@ class _MoodMedicinePageState extends State<MoodMedicinePage> {
                 style: Theme.of(context).textTheme.titleMedium,
               ),
               const SizedBox(height: AppSpacing.xs),
-              Text(l10n.moodMedicineDailyAverage),
+              Text(l10n.moodMedicineEachCheckIn),
               const SizedBox(height: AppSpacing.sm),
               MoodMedicineTrendChart(
                 points: points,
                 emptyLabel: l10n.moodMedicineNoEntries,
                 semanticSummary: l10n.moodMedicineTrendSummary(
                   _rangeLabel(l10n, ready.selectedRange),
-                  _trendSummary(summaries),
+                  _trendSummary(checkIns),
                 ),
                 highlightedActivityId: ready.highlightedActivityId,
               ),

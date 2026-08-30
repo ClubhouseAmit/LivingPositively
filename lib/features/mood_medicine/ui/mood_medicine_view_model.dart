@@ -1028,11 +1028,18 @@ final class MoodMedicineViewModel extends ChangeNotifier {
     required MoodMedicineInsightRange range,
     required MoodMedicineReportPresentation? presentation,
   }) {
+    final DateTime anchor = _clock();
+    final List<MoodMedicineTrendCheckIn> trendCheckIns =
+        MoodMedicineInsights.checkInsForRange(
+          snapshot.entries,
+          range: range,
+          anchor: anchor,
+        );
     final List<MoodMedicineDailySummary> summaries =
         MoodMedicineInsights.summariesForRange(
           snapshot.entries,
           range: range,
-          anchor: _clock(),
+          anchor: anchor,
         );
     final Set<String> dayKeys = summaries
         .map((MoodMedicineDailySummary summary) => summary.dayKey)
@@ -1063,6 +1070,7 @@ final class MoodMedicineViewModel extends ChangeNotifier {
             },
         };
     return MoodMedicineDashboard(
+      trendCheckIns: trendCheckIns,
       summaries: summaries,
       associations: MoodMedicineInsights.associations(summaries),
       rangeActivityLabels: rangeLabels,

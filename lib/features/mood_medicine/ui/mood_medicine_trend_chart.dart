@@ -2,7 +2,7 @@ import 'dart:math' as math;
 
 import 'package:flutter/material.dart';
 
-/// A local-day aggregate used only to render the Mood Medicine trend.
+/// One check-in used only to render the Mood Medicine trend.
 ///
 /// The storage layer intentionally owns the full check-in record. This small
 /// view model keeps chart rendering independent from persistence details.

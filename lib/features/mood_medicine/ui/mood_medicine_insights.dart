@@ -5,7 +5,24 @@ import 'package:mazilon/features/mood_medicine/data/mood_medicine_models.dart';
 /// The supported calendar intervals for the Mood Medicine dashboard.
 enum MoodMedicineInsightRange { day, week, month, year }
 
-/// Daily data used for a chart point, accessible summary, and associations.
+/// One persisted check-in presented as an individual mood-trend point.
+final class MoodMedicineTrendCheckIn {
+  MoodMedicineTrendCheckIn({
+    required this.id,
+    required this.localDayKey,
+    required this.occurredAtUtc,
+    required this.mood,
+    required Iterable<String> activityIds,
+  }) : activityIds = Set<String>.unmodifiable(activityIds);
+
+  final String id;
+  final String localDayKey;
+  final DateTime occurredAtUtc;
+  final int mood;
+  final Set<String> activityIds;
+}
+
+/// Daily data used for associations and exported reports.
 final class MoodMedicineDailySummary {
   MoodMedicineDailySummary({
     required this.dayKey,
@@ -40,9 +57,47 @@ final class MoodMedicineAssociation {
       withActivityAverageMood - withoutActivityAverageMood;
 }
 
-/// Pure aggregation helpers. They only use stored local day keys, preserving
-/// the user's check-in-day meaning even when a device timezone later changes.
+/// Pure aggregation helpers. Range membership uses stored local day keys,
+/// preserving the user's check-in-day meaning when a timezone later changes.
 abstract final class MoodMedicineInsights {
+  /// Returns every check-in in the selected local-day range.
+  ///
+  /// Entries are ordered by their actual timestamp so repeated check-ins remain
+  /// distinct and follow the sequence in which they happened.
+  static List<MoodMedicineTrendCheckIn> checkInsForRange(
+    Iterable<MoodMedicineEntry> entries, {
+    required MoodMedicineInsightRange range,
+    required DateTime anchor,
+  }) {
+    final DateTime localAnchor = anchor.toLocal();
+    final DateTime start = _rangeStart(range, localAnchor);
+    final DateTime end = _startOfDay(localAnchor);
+    final List<MoodMedicineTrendCheckIn> checkIns = entries
+        .where(
+          (MoodMedicineEntry entry) =>
+              _isDayInRange(entry.localDayKey, start: start, end: end),
+        )
+        .map(
+          (MoodMedicineEntry entry) => MoodMedicineTrendCheckIn(
+            id: entry.id,
+            localDayKey: entry.localDayKey,
+            occurredAtUtc: entry.occurredAtUtc,
+            mood: entry.mood,
+            activityIds: entry.activityIds,
+          ),
+        )
+        .toList(growable: false);
+    checkIns.sort((MoodMedicineTrendCheckIn a, MoodMedicineTrendCheckIn b) {
+      final int byTime = a.occurredAtUtc.compareTo(b.occurredAtUtc);
+      if (byTime != 0) {
+        return byTime;
+      }
+      final int byDay = a.localDayKey.compareTo(b.localDayKey);
+      return byDay != 0 ? byDay : a.id.compareTo(b.id);
+    });
+    return List<MoodMedicineTrendCheckIn>.unmodifiable(checkIns);
+  }
+
   static List<MoodMedicineDailySummary> dailySummaries(
     Iterable<MoodMedicineEntry> entries,
   ) {
@@ -78,8 +133,7 @@ abstract final class MoodMedicineInsights {
     final DateTime end = _startOfDay(localAnchor);
     return dailySummaries(entries)
         .where((MoodMedicineDailySummary summary) {
-          final DateTime day = DateTime.parse(summary.dayKey);
-          return !day.isBefore(start) && !day.isAfter(end);
+          return _isDayInRange(summary.dayKey, start: start, end: end);
         })
         .toList(growable: false);
   }
@@ -155,6 +209,15 @@ abstract final class MoodMedicineInsights {
 
   static DateTime _startOfDay(DateTime value) =>
       DateTime(value.year, value.month, value.day);
+
+  static bool _isDayInRange(
+    String dayKey, {
+    required DateTime start,
+    required DateTime end,
+  }) {
+    final DateTime day = DateTime.parse(dayKey);
+    return !day.isBefore(start) && !day.isAfter(end);
+  }
 
   static double _average(Iterable<double> values) {
     final List<double> list = values.toList(growable: false);

@@ -4302,17 +4302,17 @@ class AppLocalizationsEn extends AppLocalizations {
   }
 
   @override
-  String get moodMedicineActivitiesOverlay => 'Activities on these days';
+  String get moodMedicineActivitiesOverlay => 'Activities in these check-ins';
 
   @override
-  String get moodMedicineDailyAverage => 'Daily mood average';
+  String get moodMedicineEachCheckIn => 'Mood at each check-in';
 
   @override
   String get moodMedicineNoEntries => 'No check-ins in this range yet.';
 
   @override
   String get moodMedicineOneEntry =>
-      'One check-in is saved. More days will make the trend clearer.';
+      'One check-in is saved. More check-ins will make the trend clearer.';
 
   @override
   String get moodMedicineAssociation => 'Activity association';

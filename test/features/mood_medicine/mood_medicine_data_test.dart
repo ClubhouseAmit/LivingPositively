@@ -12,10 +12,11 @@ MoodMedicineEntry _entry({
   required String id,
   required String dayKey,
   required int mood,
+  DateTime? occurredAtUtc,
   Iterable<String> activityIds = const <String>[],
 }) => MoodMedicineEntry(
   id: id,
-  occurredAtUtc: DateTime.parse('${dayKey}T12:00:00Z'),
+  occurredAtUtc: occurredAtUtc ?? DateTime.parse('${dayKey}T12:00:00Z'),
   localDayKey: dayKey,
   mood: mood,
   activityIds: activityIds,
@@ -250,6 +251,56 @@ void main() {
   });
 
   group('MoodMedicineInsights', () {
+    test(
+      'should retain every same-day check-in in chronological range data',
+      () {
+        final List<MoodMedicineEntry> entries = <MoodMedicineEntry>[
+          _entry(
+            id: 'later',
+            dayKey: '2026-08-28',
+            mood: 5,
+            occurredAtUtc: DateTime.utc(2026, 8, 28, 18),
+            activityIds: <String>['social_connection'],
+          ),
+          _entry(id: 'outside-range', dayKey: '2026-08-23', mood: 4),
+          _entry(
+            id: 'earlier',
+            dayKey: '2026-08-28',
+            mood: 1,
+            occurredAtUtc: DateTime.utc(2026, 8, 28, 8),
+            activityIds: <String>['music'],
+          ),
+        ];
+
+        final List<MoodMedicineTrendCheckIn> checkIns =
+            MoodMedicineInsights.checkInsForRange(
+              entries,
+              range: MoodMedicineInsightRange.week,
+              anchor: DateTime(2026, 8, 30, 12),
+            );
+        final List<MoodMedicineDailySummary> summaries =
+            MoodMedicineInsights.summariesForRange(
+              entries,
+              range: MoodMedicineInsightRange.week,
+              anchor: DateTime(2026, 8, 30, 12),
+            );
+
+        expect(
+          checkIns.map((MoodMedicineTrendCheckIn item) => item.id),
+          <String>['earlier', 'later'],
+        );
+        expect(
+          checkIns.map((MoodMedicineTrendCheckIn item) => item.mood),
+          <int>[1, 5],
+        );
+        expect(checkIns.first.activityIds, <String>{'music'});
+        expect(checkIns.last.activityIds, <String>{'social_connection'});
+        expect(summaries, hasLength(1));
+        expect(summaries.single.averageMood, 3);
+        expect(summaries.single.checkInCount, 2);
+      },
+    );
+
     test(
       'should aggregate multiple check-ins into one daily mean and union',
       () {

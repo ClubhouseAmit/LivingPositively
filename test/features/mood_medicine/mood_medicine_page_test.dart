@@ -15,6 +15,7 @@ import 'package:mazilon/features/mood_medicine/data/mood_medicine_store.dart';
 import 'package:mazilon/features/mood_medicine/ui/mood_medicine_content.dart';
 import 'package:mazilon/features/mood_medicine/ui/mood_medicine_insights.dart';
 import 'package:mazilon/features/mood_medicine/ui/mood_medicine_page.dart';
+import 'package:mazilon/features/mood_medicine/ui/mood_medicine_trend_chart.dart';
 import 'package:mazilon/features/mood_medicine/ui/mood_medicine_view_model.dart';
 import 'package:mazilon/features/mood_medicine/ui/mood_medicine_view_state.dart';
 import 'package:mazilon/util/theme/app_theme.dart';
@@ -292,6 +293,59 @@ void main() {
         TextDirection.rtl,
       );
       expect(find.byKey(const Key('moodMedicineInsights')), findsOneWidget);
+    });
+
+    testWidgets('should plot every same-day check-in as a separate point', (
+      WidgetTester tester,
+    ) async {
+      _setLargeScreen(tester);
+      final MoodMedicineSnapshot snapshot = MoodMedicineSnapshot(
+        entries: <MoodMedicineEntry>[
+          MoodMedicineEntry(
+            id: 'later',
+            occurredAtUtc: DateTime.utc(2026, 8, 29, 18),
+            localDayKey: '2026-08-29',
+            mood: 5,
+            activityIds: const <String>['social_connection'],
+          ),
+          MoodMedicineEntry(
+            id: 'earlier',
+            occurredAtUtc: DateTime.utc(2026, 8, 29, 8),
+            localDayKey: '2026-08-29',
+            mood: 1,
+            activityIds: const <String>['music'],
+          ),
+        ],
+      );
+      final ContractPersistentMemoryService memory =
+          ContractPersistentMemoryService(
+            initialValues: <String, Object?>{
+              MoodMedicineStore.snapshotKey: snapshot.encode(),
+            },
+          );
+      final MoodMedicineViewModel viewModel = _viewModel(memory);
+      await viewModel.load();
+
+      await tester.pumpWidget(_app(viewModel: viewModel));
+      await tester.pumpAndSettle();
+
+      final MoodMedicineTrendChart chart = tester.widget(
+        find.byType(MoodMedicineTrendChart),
+      );
+      final AppLocalizations l10n = AppLocalizations.of(
+        tester.element(find.byType(MoodMedicinePage)),
+      )!;
+      expect(chart.points, hasLength(2));
+      expect(
+        chart.points.map((MoodMedicineTrendPoint point) => point.mood),
+        <double>[1, 5],
+      );
+      expect(chart.points.first.activityIds, <String>{'music'});
+      expect(chart.points.last.activityIds, <String>{'social_connection'});
+      expect('2026-08-29'.allMatches(chart.semanticSummary), hasLength(2));
+      expect(viewModel.readyState!.dashboard.summaries, hasLength(1));
+      expect(find.text(l10n.moodMedicineEachCheckIn), findsOneWidget);
+      expect(find.text(l10n.moodMedicineOneEntry), findsNothing);
     });
 
     testWidgets('should preserve a failed check-in draft and expose retry', (

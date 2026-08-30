@@ -4269,17 +4269,17 @@ class AppLocalizationsAr extends AppLocalizations {
   }
 
   @override
-  String get moodMedicineActivitiesOverlay => 'الأنشطة في هذه الأيام';
+  String get moodMedicineActivitiesOverlay => 'الأنشطة في هذه التسجيلات';
 
   @override
-  String get moodMedicineDailyAverage => 'متوسط المزاج اليومي';
+  String get moodMedicineEachCheckIn => 'المزاج في كل تسجيل';
 
   @override
   String get moodMedicineNoEntries => 'لا توجد تسجيلات في هذا النطاق بعد.';
 
   @override
   String get moodMedicineOneEntry =>
-      'تم حفظ تسجيل واحد. ستجعل الأيام الإضافية الاتجاه أوضح.';
+      'تم حفظ تسجيل واحد. ستجعل التسجيلات الإضافية الاتجاه أوضح.';
 
   @override
   String get moodMedicineAssociation => 'ارتباط النشاط';

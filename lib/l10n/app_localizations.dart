@@ -3691,14 +3691,14 @@ abstract class AppLocalizations {
   /// No description provided for @moodMedicineActivitiesOverlay.
   ///
   /// In en, this message translates to:
-  /// **'Activities on these days'**
+  /// **'Activities in these check-ins'**
   String get moodMedicineActivitiesOverlay;
 
-  /// No description provided for @moodMedicineDailyAverage.
+  /// Explains that each saved check-in is plotted separately in the mood trend.
   ///
   /// In en, this message translates to:
-  /// **'Daily mood average'**
-  String get moodMedicineDailyAverage;
+  /// **'Mood at each check-in'**
+  String get moodMedicineEachCheckIn;
 
   /// No description provided for @moodMedicineNoEntries.
   ///
@@ -3709,7 +3709,7 @@ abstract class AppLocalizations {
   /// No description provided for @moodMedicineOneEntry.
   ///
   /// In en, this message translates to:
-  /// **'One check-in is saved. More days will make the trend clearer.'**
+  /// **'One check-in is saved. More check-ins will make the trend clearer.'**
   String get moodMedicineOneEntry;
 
   /// No description provided for @moodMedicineAssociation.

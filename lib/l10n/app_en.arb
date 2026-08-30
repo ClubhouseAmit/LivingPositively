@@ -2164,10 +2164,13 @@
       "summary": {"type": "String"}
     }
   },
-  "moodMedicineActivitiesOverlay": "Activities on these days",
-  "moodMedicineDailyAverage": "Daily mood average",
+  "moodMedicineActivitiesOverlay": "Activities in these check-ins",
+  "moodMedicineEachCheckIn": "Mood at each check-in",
+  "@moodMedicineEachCheckIn": {
+    "description": "Explains that each saved check-in is plotted separately in the mood trend."
+  },
   "moodMedicineNoEntries": "No check-ins in this range yet.",
-  "moodMedicineOneEntry": "One check-in is saved. More days will make the trend clearer.",
+  "moodMedicineOneEntry": "One check-in is saved. More check-ins will make the trend clearer.",
   "moodMedicineAssociation": "Activity association",
   "moodMedicineAssociationExplanation": "This compares daily mood averages on days with an activity and days without it. It shows an association, not a cause.",
   "moodMedicineAssociationUnavailable": "At least three logged days with and three without an activity are needed to show an association.",
