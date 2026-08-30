@@ -4311,6 +4311,11 @@ class AppLocalizationsEn extends AppLocalizations {
   String get moodMedicineNoEntries => 'No check-ins in this range yet.';
 
   @override
+  String moodMedicineTrendOmitted(int limit, int omitted) {
+    return 'Showing the latest $limit check-ins; $omitted older check-ins are not shown.';
+  }
+
+  @override
   String get moodMedicineOneEntry =>
       'One check-in is saved. More check-ins will make the trend clearer.';
 

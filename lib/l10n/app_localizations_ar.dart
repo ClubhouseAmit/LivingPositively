@@ -4278,6 +4278,11 @@ class AppLocalizationsAr extends AppLocalizations {
   String get moodMedicineNoEntries => 'لا توجد تسجيلات في هذا النطاق بعد.';
 
   @override
+  String moodMedicineTrendOmitted(int limit, int omitted) {
+    return 'يتم عرض أحدث $limit تسجيلات؛ لا يتم عرض $omitted تسجيلات أقدم.';
+  }
+
+  @override
   String get moodMedicineOneEntry =>
       'تم حفظ تسجيل واحد. ستجعل التسجيلات الإضافية الاتجاه أوضح.';
 

@@ -1029,7 +1029,7 @@ final class MoodMedicineViewModel extends ChangeNotifier {
     required MoodMedicineReportPresentation? presentation,
   }) {
     final DateTime anchor = _clock();
-    final List<MoodMedicineTrendCheckIn> trendCheckIns =
+    final MoodMedicineTrendSeries trendSeries =
         MoodMedicineInsights.checkInsForRange(
           snapshot.entries,
           range: range,
@@ -1070,7 +1070,7 @@ final class MoodMedicineViewModel extends ChangeNotifier {
             },
         };
     return MoodMedicineDashboard(
-      trendCheckIns: trendCheckIns,
+      trendSeries: trendSeries,
       summaries: summaries,
       associations: MoodMedicineInsights.associations(summaries),
       rangeActivityLabels: rangeLabels,

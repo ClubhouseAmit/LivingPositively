@@ -4264,6 +4264,11 @@ class AppLocalizationsHe extends AppLocalizations {
   String get moodMedicineNoEntries => 'עדיין אין בדיקות בטווח הזה.';
 
   @override
+  String moodMedicineTrendOmitted(int limit, int omitted) {
+    return 'מוצגות $limit הבדיקות האחרונות; $omitted בדיקות ישנות יותר אינן מוצגות.';
+  }
+
+  @override
   String get moodMedicineOneEntry =>
       'נשמרה בדיקה אחת. בדיקות נוספות יעזרו להבהיר את המגמה.';
 

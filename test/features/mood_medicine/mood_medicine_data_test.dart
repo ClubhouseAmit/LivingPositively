@@ -272,7 +272,7 @@ void main() {
           ),
         ];
 
-        final List<MoodMedicineTrendCheckIn> checkIns =
+        final MoodMedicineTrendSeries trendSeries =
             MoodMedicineInsights.checkInsForRange(
               entries,
               range: MoodMedicineInsightRange.week,
@@ -286,15 +286,19 @@ void main() {
             );
 
         expect(
-          checkIns.map((MoodMedicineTrendCheckIn item) => item.id),
+          trendSeries.checkIns.map((MoodMedicineTrendCheckIn item) => item.id),
           <String>['earlier', 'later'],
         );
         expect(
-          checkIns.map((MoodMedicineTrendCheckIn item) => item.mood),
+          trendSeries.checkIns.map(
+            (MoodMedicineTrendCheckIn item) => item.mood,
+          ),
           <int>[1, 5],
         );
-        expect(checkIns.first.activityIds, <String>{'music'});
-        expect(checkIns.last.activityIds, <String>{'social_connection'});
+        expect(trendSeries.checkIns.first.activityIds, <String>{'music'});
+        expect(trendSeries.checkIns.last.activityIds, <String>{
+          'social_connection',
+        });
         expect(summaries, hasLength(1));
         expect(summaries.single.averageMood, 3);
         expect(summaries.single.checkInCount, 2);
@@ -327,6 +331,115 @@ void main() {
           'music',
           'social_connection',
         });
+      },
+    );
+
+    test(
+      'should include only inclusive boundaries and honor stored day keys',
+      () {
+        final List<MoodMedicineEntry> entries = <MoodMedicineEntry>[
+          _entry(
+            id: 'week-start',
+            dayKey: '2026-08-24',
+            mood: 1,
+            occurredAtUtc: DateTime.utc(2026, 8, 24, 8),
+          ),
+          _entry(
+            id: 'anchor-day',
+            dayKey: '2026-08-30',
+            mood: 3,
+            occurredAtUtc: DateTime.utc(2026, 8, 30, 8),
+          ),
+          _entry(id: 'before-week', dayKey: '2026-08-23', mood: 2),
+          _entry(id: 'after-anchor', dayKey: '2026-08-31', mood: 4),
+          _entry(
+            id: 'stored-day',
+            dayKey: '2026-08-30',
+            mood: 5,
+            occurredAtUtc: DateTime.utc(2026, 8, 31, 8),
+          ),
+        ];
+
+        final MoodMedicineTrendSeries trendSeries =
+            MoodMedicineInsights.checkInsForRange(
+              entries,
+              range: MoodMedicineInsightRange.week,
+              anchor: DateTime(2026, 8, 30, 12),
+            );
+
+        expect(
+          trendSeries.checkIns.map((MoodMedicineTrendCheckIn item) => item.id),
+          <String>['week-start', 'anchor-day', 'stored-day'],
+        );
+      },
+    );
+
+    test('should order equal timestamps by stored day and id', () {
+      final DateTime occurredAtUtc = DateTime.utc(2026, 8, 27, 12);
+      final MoodMedicineTrendSeries trendSeries =
+          MoodMedicineInsights.checkInsForRange(
+            <MoodMedicineEntry>[
+              _entry(
+                id: 'z-id',
+                dayKey: '2026-08-26',
+                mood: 3,
+                occurredAtUtc: occurredAtUtc,
+              ),
+              _entry(
+                id: 'b-id',
+                dayKey: '2026-08-25',
+                mood: 4,
+                occurredAtUtc: occurredAtUtc,
+              ),
+              _entry(
+                id: 'a-id',
+                dayKey: '2026-08-25',
+                mood: 2,
+                occurredAtUtc: occurredAtUtc,
+              ),
+            ],
+            range: MoodMedicineInsightRange.week,
+            anchor: DateTime(2026, 8, 30, 12),
+          );
+
+      expect(
+        trendSeries.checkIns.map((MoodMedicineTrendCheckIn item) => item.id),
+        <String>['a-id', 'b-id', 'z-id'],
+      );
+    });
+
+    test(
+      'should bound year trend presentation while retaining latest checks',
+      () {
+        final List<MoodMedicineEntry> entries =
+            List<MoodMedicineEntry>.generate(
+              MoodMedicineInsights.maxYearTrendPoints + 2,
+              (int index) => _entry(
+                id: 'year-$index',
+                dayKey: '2026-01-01',
+                mood: index % 5 + 1,
+                occurredAtUtc: DateTime.utc(
+                  2026,
+                  1,
+                  1,
+                ).add(Duration(hours: index)),
+              ),
+            );
+
+        final MoodMedicineTrendSeries trendSeries =
+            MoodMedicineInsights.checkInsForRange(
+              entries,
+              range: MoodMedicineInsightRange.year,
+              anchor: DateTime(2026, 12, 31, 12),
+            );
+
+        expect(
+          trendSeries.checkIns,
+          hasLength(MoodMedicineInsights.maxYearTrendPoints),
+        );
+        expect(trendSeries.omittedCount, 2);
+        expect(trendSeries.checkIns.first.id, 'year-2');
+        expect(trendSeries.checkIns.last.id, 'year-1001');
       },
     );
 

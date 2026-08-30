@@ -161,16 +161,13 @@ final class MoodMedicineCheckInForm {
 final class MoodMedicineDashboard {
   /// Creates immutable derived insights for the selected range.
   MoodMedicineDashboard({
-    required Iterable<MoodMedicineTrendCheckIn> trendCheckIns,
+    required this.trendSeries,
     required Iterable<MoodMedicineDailySummary> summaries,
     required Iterable<MoodMedicineAssociation> associations,
     Map<String, String> rangeActivityLabels = const <String, String>{},
     Map<String, Map<String, String>> dayActivityLabels =
         const <String, Map<String, String>>{},
-  }) : trendCheckIns = List<MoodMedicineTrendCheckIn>.unmodifiable(
-         trendCheckIns,
-       ),
-       summaries = List<MoodMedicineDailySummary>.unmodifiable(summaries),
+  }) : summaries = List<MoodMedicineDailySummary>.unmodifiable(summaries),
        associations = List<MoodMedicineAssociation>.unmodifiable(associations),
        rangeActivityLabels = UnmodifiableMapView<String, String>(
          Map<String, String>.from(rangeActivityLabels),
@@ -189,8 +186,8 @@ final class MoodMedicineDashboard {
          ),
        );
 
-  /// Individual check-ins rendered as trend points inside the selected range.
-  final List<MoodMedicineTrendCheckIn> trendCheckIns;
+  /// Individual check-ins and bounded presentation metadata for the trend.
+  final MoodMedicineTrendSeries trendSeries;
 
   /// Daily averages and activity unions used by associations and reports.
   final List<MoodMedicineDailySummary> summaries;

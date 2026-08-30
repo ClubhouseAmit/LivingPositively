@@ -22,6 +22,17 @@ final class MoodMedicineTrendCheckIn {
   final Set<String> activityIds;
 }
 
+/// Bounded presentation data for the mood trend.
+final class MoodMedicineTrendSeries {
+  MoodMedicineTrendSeries({
+    required Iterable<MoodMedicineTrendCheckIn> checkIns,
+    this.omittedCount = 0,
+  }) : checkIns = List<MoodMedicineTrendCheckIn>.unmodifiable(checkIns);
+
+  final List<MoodMedicineTrendCheckIn> checkIns;
+  final int omittedCount;
+}
+
 /// Daily data used for associations and exported reports.
 final class MoodMedicineDailySummary {
   MoodMedicineDailySummary({
@@ -60,11 +71,16 @@ final class MoodMedicineAssociation {
 /// Pure aggregation helpers. Range membership uses stored local day keys,
 /// preserving the user's check-in-day meaning when a timezone later changes.
 abstract final class MoodMedicineInsights {
-  /// Returns every check-in in the selected local-day range.
+  /// Maximum number of check-ins presented for a year-range trend.
+  static const int maxYearTrendPoints = 1000;
+
+  /// Returns check-ins in the selected local-day range.
   ///
   /// Entries are ordered by their actual timestamp so repeated check-ins remain
-  /// distinct and follow the sequence in which they happened.
-  static List<MoodMedicineTrendCheckIn> checkInsForRange(
+  /// distinct and follow the sequence in which they happened. Year ranges are
+  /// bounded to [maxYearTrendPoints] for presentation; persisted history is
+  /// never removed.
+  static MoodMedicineTrendSeries checkInsForRange(
     Iterable<MoodMedicineEntry> entries, {
     required MoodMedicineInsightRange range,
     required DateTime anchor,
@@ -72,30 +88,41 @@ abstract final class MoodMedicineInsights {
     final DateTime localAnchor = anchor.toLocal();
     final DateTime start = _rangeStart(range, localAnchor);
     final DateTime end = _startOfDay(localAnchor);
-    final List<MoodMedicineTrendCheckIn> checkIns = entries
-        .where(
-          (MoodMedicineEntry entry) =>
-              _isDayInRange(entry.localDayKey, start: start, end: end),
-        )
-        .map(
-          (MoodMedicineEntry entry) => MoodMedicineTrendCheckIn(
-            id: entry.id,
-            localDayKey: entry.localDayKey,
-            occurredAtUtc: entry.occurredAtUtc,
-            mood: entry.mood,
-            activityIds: entry.activityIds,
-          ),
-        )
-        .toList(growable: false);
-    checkIns.sort((MoodMedicineTrendCheckIn a, MoodMedicineTrendCheckIn b) {
-      final int byTime = a.occurredAtUtc.compareTo(b.occurredAtUtc);
-      if (byTime != 0) {
-        return byTime;
+    final int? limit = range == MoodMedicineInsightRange.year
+        ? maxYearTrendPoints
+        : null;
+    final List<MoodMedicineTrendCheckIn> checkIns =
+        <MoodMedicineTrendCheckIn>[];
+    var omittedCount = 0;
+    for (final MoodMedicineEntry entry in entries) {
+      if (!_isDayInRange(entry.localDayKey, start: start, end: end)) {
+        continue;
       }
-      final int byDay = a.localDayKey.compareTo(b.localDayKey);
-      return byDay != 0 ? byDay : a.id.compareTo(b.id);
-    });
-    return List<MoodMedicineTrendCheckIn>.unmodifiable(checkIns);
+      final MoodMedicineTrendCheckIn checkIn = MoodMedicineTrendCheckIn(
+        id: entry.id,
+        localDayKey: entry.localDayKey,
+        occurredAtUtc: entry.occurredAtUtc,
+        mood: entry.mood,
+        activityIds: entry.activityIds,
+      );
+      if (limit == null) {
+        checkIns.add(checkIn);
+        continue;
+      }
+      final int insertionIndex = _trendInsertionIndex(checkIns, checkIn);
+      checkIns.insert(insertionIndex, checkIn);
+      if (checkIns.length > limit) {
+        checkIns.removeAt(0);
+        omittedCount += 1;
+      }
+    }
+    if (limit == null) {
+      checkIns.sort(_compareTrendCheckIns);
+    }
+    return MoodMedicineTrendSeries(
+      checkIns: checkIns,
+      omittedCount: omittedCount,
+    );
   }
 
   static List<MoodMedicineDailySummary> dailySummaries(
@@ -217,6 +244,35 @@ abstract final class MoodMedicineInsights {
   }) {
     final DateTime day = DateTime.parse(dayKey);
     return !day.isBefore(start) && !day.isAfter(end);
+  }
+
+  static int _trendInsertionIndex(
+    List<MoodMedicineTrendCheckIn> values,
+    MoodMedicineTrendCheckIn value,
+  ) {
+    var low = 0;
+    var high = values.length;
+    while (low < high) {
+      final int middle = (low + high) ~/ 2;
+      if (_compareTrendCheckIns(values[middle], value) <= 0) {
+        low = middle + 1;
+      } else {
+        high = middle;
+      }
+    }
+    return low;
+  }
+
+  static int _compareTrendCheckIns(
+    MoodMedicineTrendCheckIn a,
+    MoodMedicineTrendCheckIn b,
+  ) {
+    final int byTime = a.occurredAtUtc.compareTo(b.occurredAtUtc);
+    if (byTime != 0) {
+      return byTime;
+    }
+    final int byDay = a.localDayKey.compareTo(b.localDayKey);
+    return byDay != 0 ? byDay : a.id.compareTo(b.id);
   }
 
   static double _average(Iterable<double> values) {

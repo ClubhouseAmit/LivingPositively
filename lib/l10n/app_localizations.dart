@@ -3706,6 +3706,12 @@ abstract class AppLocalizations {
   /// **'No check-ins in this range yet.'**
   String get moodMedicineNoEntries;
 
+  /// Explains the deterministic presentation limit for a large Mood Medicine trend.
+  ///
+  /// In en, this message translates to:
+  /// **'Showing the latest {limit} check-ins; {omitted} older check-ins are not shown.'**
+  String moodMedicineTrendOmitted(int limit, int omitted);
+
   /// No description provided for @moodMedicineOneEntry.
   ///
   /// In en, this message translates to:

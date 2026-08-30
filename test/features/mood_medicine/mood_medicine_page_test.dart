@@ -346,6 +346,79 @@ void main() {
       expect(viewModel.readyState!.dashboard.summaries, hasLength(1));
       expect(find.text(l10n.moodMedicineEachCheckIn), findsOneWidget);
       expect(find.text(l10n.moodMedicineOneEntry), findsNothing);
+      expect(find.text(l10n.moodMedicineActivitiesOverlay), findsOneWidget);
+      expect(
+        find.text(
+          MoodMedicineContent.activityFor(
+            l10n,
+            MoodMedicineContent.musicId,
+          )!.label,
+        ),
+        findsOneWidget,
+      );
+      expect(
+        find.text(
+          MoodMedicineContent.activityFor(
+            l10n,
+            MoodMedicineContent.socialConnectionId,
+          )!.label,
+        ),
+        findsOneWidget,
+      );
+    });
+
+    testWidgets('should disclose omitted older checks in a large year trend', (
+      WidgetTester tester,
+    ) async {
+      _setLargeScreen(tester);
+      final MoodMedicineSnapshot snapshot = MoodMedicineSnapshot(
+        entries: List<MoodMedicineEntry>.generate(
+          MoodMedicineInsights.maxYearTrendPoints + 1,
+          (int index) => MoodMedicineEntry(
+            id: 'year-$index',
+            occurredAtUtc: DateTime.utc(
+              2026,
+              8,
+              29,
+            ).add(Duration(minutes: index)),
+            localDayKey: '2026-08-29',
+            mood: index % 5 + 1,
+          ),
+        ),
+      );
+      final ContractPersistentMemoryService memory =
+          ContractPersistentMemoryService(
+            initialValues: <String, Object?>{
+              MoodMedicineStore.snapshotKey: snapshot.encode(),
+            },
+          );
+      final MoodMedicineViewModel viewModel = _viewModel(
+        memory,
+        clock: DateTime(2026, 8, 29, 12),
+      );
+      await viewModel.load();
+
+      await tester.pumpWidget(_app(viewModel: viewModel));
+      await tester.pumpAndSettle();
+      final AppLocalizations l10n = AppLocalizations.of(
+        tester.element(find.byType(MoodMedicinePage)),
+      )!;
+      await tester.tap(find.text(l10n.moodMedicineYear));
+      await tester.pumpAndSettle();
+
+      expect(
+        find.text(
+          l10n.moodMedicineTrendOmitted(
+            MoodMedicineInsights.maxYearTrendPoints,
+            1,
+          ),
+        ),
+        findsOneWidget,
+      );
+      expect(
+        viewModel.readyState!.dashboard.trendSeries.checkIns,
+        hasLength(MoodMedicineInsights.maxYearTrendPoints),
+      );
     });
 
     testWidgets('should preserve a failed check-in draft and expose retry', (

@@ -844,6 +844,13 @@
   "moodMedicineActivitiesOverlay": "פעילויות בבדיקות האלה",
   "moodMedicineEachCheckIn": "מצב הרוח בכל בדיקה",
   "moodMedicineNoEntries": "עדיין אין בדיקות בטווח הזה.",
+  "moodMedicineTrendOmitted": "מוצגות {limit} הבדיקות האחרונות; {omitted} בדיקות ישנות יותר אינן מוצגות.",
+  "@moodMedicineTrendOmitted": {
+    "placeholders": {
+      "limit": {"type": "int"},
+      "omitted": {"type": "int"}
+    }
+  },
   "moodMedicineOneEntry": "נשמרה בדיקה אחת. בדיקות נוספות יעזרו להבהיר את המגמה.",
   "moodMedicineAssociation": "קשר עם פעילות",
   "moodMedicineAssociationExplanation": "ההשוואה היא בין ממוצעי מצב הרוח היומיים בימים עם פעילות ובימים בלעדיה. היא מציגה קשר, לא סיבה.",

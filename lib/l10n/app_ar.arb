@@ -760,6 +760,13 @@
   "moodMedicineActivitiesOverlay": "الأنشطة في هذه التسجيلات",
   "moodMedicineEachCheckIn": "المزاج في كل تسجيل",
   "moodMedicineNoEntries": "لا توجد تسجيلات في هذا النطاق بعد.",
+  "moodMedicineTrendOmitted": "يتم عرض أحدث {limit} تسجيلات؛ لا يتم عرض {omitted} تسجيلات أقدم.",
+  "@moodMedicineTrendOmitted": {
+    "placeholders": {
+      "limit": {"type": "int"},
+      "omitted": {"type": "int"}
+    }
+  },
   "moodMedicineOneEntry": "تم حفظ تسجيل واحد. ستجعل التسجيلات الإضافية الاتجاه أوضح.",
   "moodMedicineAssociation": "ارتباط النشاط",
   "moodMedicineAssociationExplanation": "تقارن هذه الميزة متوسطات المزاج اليومية في الأيام التي تضم النشاط والأيام التي لا تضمه. إنها تعرض ارتباطًا لا سببًا.",

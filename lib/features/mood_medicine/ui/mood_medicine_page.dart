@@ -265,13 +265,20 @@ class _MoodMedicinePageState extends State<MoodMedicinePage> {
   String _rangeLabel(AppLocalizations l10n, MoodMedicineInsightRange range) =>
       _rangeLabels(l10n)[range]!;
 
-  String _trendSummary(List<MoodMedicineTrendCheckIn> checkIns) {
-    return checkIns
+  String _trendSummary(
+    AppLocalizations l10n,
+    MoodMedicineTrendSeries trendSeries,
+  ) {
+    final String summary = trendSeries.checkIns
         .map(
           (MoodMedicineTrendCheckIn checkIn) =>
               '${checkIn.localDayKey}: ${checkIn.mood}',
         )
         .join(', ');
+    if (trendSeries.omittedCount == 0) {
+      return summary;
+    }
+    return '$summary ${l10n.moodMedicineTrendOmitted(MoodMedicineInsights.maxYearTrendPoints, trendSeries.omittedCount)}';
   }
 
   Future<void> _openActivityManager() async {
@@ -784,7 +791,8 @@ class _MoodMedicinePageState extends State<MoodMedicinePage> {
 
   Widget _buildInsights(AppLocalizations l10n, MoodMedicineReadyState ready) {
     final MoodMedicineDashboard dashboard = ready.dashboard;
-    final List<MoodMedicineTrendCheckIn> checkIns = dashboard.trendCheckIns;
+    final MoodMedicineTrendSeries trendSeries = dashboard.trendSeries;
+    final List<MoodMedicineTrendCheckIn> checkIns = trendSeries.checkIns;
     final List<MoodMedicineTrendPoint> points = checkIns
         .map(
           (MoodMedicineTrendCheckIn item) => MoodMedicineTrendPoint(
@@ -843,7 +851,7 @@ class _MoodMedicinePageState extends State<MoodMedicinePage> {
                 emptyLabel: l10n.moodMedicineNoEntries,
                 semanticSummary: l10n.moodMedicineTrendSummary(
                   _rangeLabel(l10n, ready.selectedRange),
-                  _trendSummary(checkIns),
+                  _trendSummary(l10n, trendSeries),
                 ),
                 highlightedActivityId: ready.highlightedActivityId,
               ),
@@ -851,6 +859,17 @@ class _MoodMedicinePageState extends State<MoodMedicinePage> {
                 Padding(
                   padding: const EdgeInsets.only(top: AppSpacing.sm),
                   child: Text(l10n.moodMedicineOneEntry),
+                ),
+              if (trendSeries.omittedCount > 0)
+                Padding(
+                  padding: const EdgeInsets.only(top: AppSpacing.sm),
+                  child: Text(
+                    l10n.moodMedicineTrendOmitted(
+                      MoodMedicineInsights.maxYearTrendPoints,
+                      trendSeries.omittedCount,
+                    ),
+                    style: Theme.of(context).textTheme.bodySmall,
+                  ),
                 ),
               if (points.isNotEmpty) ...<Widget>[
                 const SizedBox(height: AppSpacing.sm),

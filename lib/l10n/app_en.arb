@@ -2170,6 +2170,14 @@
     "description": "Explains that each saved check-in is plotted separately in the mood trend."
   },
   "moodMedicineNoEntries": "No check-ins in this range yet.",
+  "moodMedicineTrendOmitted": "Showing the latest {limit} check-ins; {omitted} older check-ins are not shown.",
+  "@moodMedicineTrendOmitted": {
+    "description": "Explains the deterministic presentation limit for a large Mood Medicine trend.",
+    "placeholders": {
+      "limit": {"type": "int"},
+      "omitted": {"type": "int"}
+    }
+  },
   "moodMedicineOneEntry": "One check-in is saved. More check-ins will make the trend clearer.",
   "moodMedicineAssociation": "Activity association",
   "moodMedicineAssociationExplanation": "This compares daily mood averages on days with an activity and days without it. It shows an association, not a cause.",
