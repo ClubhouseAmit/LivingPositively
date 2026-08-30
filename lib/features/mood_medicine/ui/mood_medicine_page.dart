@@ -1412,7 +1412,7 @@ class _MoodMedicinePageState extends State<MoodMedicinePage> {
                     Padding(
                       padding: const EdgeInsets.only(top: AppSpacing.sm),
                       child: Text(
-                        l10n.moodMedicineExportError,
+                        l10n.asyncErrorMessage,
                         style: TextStyle(
                           color: Theme.of(context).colorScheme.error,
                         ),

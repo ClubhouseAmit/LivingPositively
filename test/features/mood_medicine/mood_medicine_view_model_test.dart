@@ -289,6 +289,34 @@ void main() {
     });
 
     test(
+      'should reuse the dashboard until snapshot or range changes',
+      () async {
+        final MoodMedicineViewModel viewModel = _viewModel(
+          _Repository(const MoodMedicineMissingSnapshot()),
+          _ReportExporter(),
+          idGenerator: () => 'unused',
+        );
+
+        await viewModel.load();
+        final MoodMedicineDashboard initialDashboard =
+            viewModel.readyState!.dashboard;
+
+        viewModel.selectMood(3);
+        expect(
+          identical(viewModel.readyState!.dashboard, initialDashboard),
+          isTrue,
+        );
+
+        viewModel.selectRange(MoodMedicineInsightRange.day);
+        expect(
+          identical(viewModel.readyState!.dashboard, initialDashboard),
+          isFalse,
+        );
+        viewModel.dispose();
+      },
+    );
+
+    test(
       'should open an education source without emitting a failure effect',
       () async {
         final _SourceLinkService sourceLinkService = _SourceLinkService();

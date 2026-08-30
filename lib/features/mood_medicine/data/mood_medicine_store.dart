@@ -100,14 +100,14 @@ final class MoodMedicineStore implements MoodMedicineRepository {
       return MoodMedicineUnreadableSnapshot(
         MoodMedicineLoadFailure(
           moodMedicineLoadFailureKindForDecodeFailure(error.failure),
-          cause: error.cause ?? error,
+          cause: error.runtimeType,
         ),
       );
     } catch (error) {
       return MoodMedicineUnreadableSnapshot(
         MoodMedicineLoadFailure(
           MoodMedicineLoadFailureKind.malformedEnvelope,
-          cause: error,
+          cause: error.runtimeType,
         ),
       );
     }

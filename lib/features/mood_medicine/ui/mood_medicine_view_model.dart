@@ -968,6 +968,7 @@ final class MoodMedicineViewModel extends ChangeNotifier {
     bool isCheckInDetailsExpanded = false,
     String? highlightedActivityId,
     MoodMedicineReportPresentation? presentation,
+    MoodMedicineDashboard? dashboard,
     MoodMedicinePersistenceState persistence =
         const MoodMedicinePersistenceState(),
     MoodMedicineExportState export = const MoodMedicineExportState(),
@@ -976,11 +977,13 @@ final class MoodMedicineViewModel extends ChangeNotifier {
       snapshot: snapshot,
       selectedView: selectedView,
       selectedRange: selectedRange,
-      dashboard: _dashboard(
-        snapshot: snapshot,
-        range: selectedRange,
-        presentation: presentation,
-      ),
+      dashboard:
+          dashboard ??
+          _dashboard(
+            snapshot: snapshot,
+            range: selectedRange,
+            presentation: presentation,
+          ),
       checkInForm: checkInForm,
       isCheckInDetailsExpanded: isCheckInDetailsExpanded,
       highlightedActivityId: highlightedActivityId,
@@ -1005,19 +1008,28 @@ final class MoodMedicineViewModel extends ChangeNotifier {
     final MoodMedicineSnapshot nextSnapshot = snapshot ?? current.snapshot;
     final MoodMedicineInsightRange nextRange =
         selectedRange ?? current.selectedRange;
+    final MoodMedicineReportPresentation? nextPresentation =
+        identical(presentation, _unset)
+        ? current.presentation
+        : presentation as MoodMedicineReportPresentation?;
+    final MoodMedicineDashboard? dashboard =
+        identical(nextSnapshot, current.snapshot) &&
+            nextRange == current.selectedRange &&
+            identical(nextPresentation, current.presentation)
+        ? current.dashboard
+        : null;
     return _readyState(
       snapshot: nextSnapshot,
       selectedView: selectedView ?? current.selectedView,
       selectedRange: nextRange,
+      dashboard: dashboard,
       checkInForm: checkInForm ?? current.checkInForm,
       isCheckInDetailsExpanded:
           isCheckInDetailsExpanded ?? current.isCheckInDetailsExpanded,
       highlightedActivityId: identical(highlightedActivityId, _unset)
           ? current.highlightedActivityId
           : highlightedActivityId as String?,
-      presentation: identical(presentation, _unset)
-          ? current.presentation
-          : presentation as MoodMedicineReportPresentation?,
+      presentation: nextPresentation,
       persistence: persistence ?? current.persistence,
       export: export ?? current.export,
     );

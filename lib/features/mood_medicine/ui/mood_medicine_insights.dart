@@ -247,8 +247,10 @@ abstract final class MoodMedicineInsights {
     final DateTime day = _startOfDay(anchor);
     return switch (range) {
       MoodMedicineInsightRange.day => day,
-      MoodMedicineInsightRange.week => day.subtract(
-        Duration(days: day.weekday - DateTime.monday),
+      MoodMedicineInsightRange.week => DateTime(
+        day.year,
+        day.month,
+        day.day - (day.weekday - DateTime.monday),
       ),
       MoodMedicineInsightRange.month => DateTime(day.year, day.month),
       MoodMedicineInsightRange.year => DateTime(day.year),

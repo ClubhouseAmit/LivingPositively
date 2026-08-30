@@ -720,6 +720,17 @@ void main() {
           );
 
           verify(() => sourceLinkService.openExternal(expectedUri)).called(1);
+          final MoodMedicineActivityContent sourceActivity =
+              MoodMedicineContent.activities(l10n).firstWhere(
+                (MoodMedicineActivityContent activity) =>
+                    activity.sourceUri == expectedUri,
+              );
+          expect(
+            find.text(
+              '${l10n.moodMedicineOpenSource}: ${sourceActivity.sourceLabel}',
+            ),
+            findsOneWidget,
+          );
           expect(find.text(l10n.asyncErrorMessage), findsNothing);
         },
       );
@@ -1129,6 +1140,38 @@ void main() {
         expect(viewModel.readyState!.presentation, isNotNull);
         expect(await viewModel.buildReport(), isNotNull);
         expect(memory.completedWrites, hasLength(1));
+      },
+    );
+
+    testWidgets(
+      'should show the generic async error for a failed history discard',
+      (WidgetTester tester) async {
+        _setLargeScreen(tester);
+        final ContractPersistentMemoryService memory =
+            ContractPersistentMemoryService(
+              initialValues: <String, Object?>{
+                MoodMedicineStore.snapshotKey: '{unreadable',
+              },
+            );
+        memory.onPersist = (_, PersistentMemoryType _, Object _) {
+          throw StateError('history storage failed');
+        };
+        final MoodMedicineViewModel viewModel = _viewModel(memory);
+        await tester.pumpWidget(_app(viewModel: viewModel));
+        await tester.pumpAndSettle();
+        final AppLocalizations l10n = AppLocalizations.of(
+          tester.element(find.byType(MoodMedicinePage)),
+        )!;
+
+        await tester.tap(
+          find.byKey(const Key('moodMedicineDiscardUnreadable')),
+        );
+        await tester.pumpAndSettle();
+        await tester.tap(find.text(l10n.moodMedicineDiscardUnreadable).last);
+        await tester.pumpAndSettle();
+
+        expect(find.text(l10n.asyncErrorMessage), findsOneWidget);
+        expect(find.text(l10n.moodMedicineExportError), findsNothing);
       },
     );
 

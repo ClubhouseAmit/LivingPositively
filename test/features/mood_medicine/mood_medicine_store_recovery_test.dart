@@ -132,6 +132,21 @@ void main() {
       },
     );
 
+    test(
+      'should expose only runtime-type diagnostics for malformed snapshots',
+      () async {
+        final MoodMedicineLoadResult result = await MoodMedicineStore(
+          _ValueMemoryService('{private journal text is not valid json'),
+        ).loadSnapshot();
+
+        final MoodMedicineLoadFailure failure =
+            (result as MoodMedicineUnreadableSnapshot).failure;
+        expect(failure.kind, MoodMedicineLoadFailureKind.malformedEnvelope);
+        expect(failure.cause, MoodMedicineSnapshotDecodeException);
+        expect(failure.cause.toString(), isNot(contains('private journal')));
+      },
+    );
+
     test('should strictly load a complete version-one envelope', () async {
       final MoodMedicineLoadResult result = await MoodMedicineStore(
         _ValueMemoryService(_validSnapshot()),

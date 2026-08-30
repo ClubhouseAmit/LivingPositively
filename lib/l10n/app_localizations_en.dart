@@ -4210,7 +4210,7 @@ class AppLocalizationsEn extends AppLocalizations {
   String get moodMedicineSource => 'Source';
 
   @override
-  String get moodMedicineOpenSource => 'Open source';
+  String get moodMedicineOpenSource => 'Open';
 
   @override
   String get moodMedicineSourceWhoPhysicalActivity => 'WHO: Physical activity';

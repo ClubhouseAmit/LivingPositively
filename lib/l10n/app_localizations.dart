@@ -3529,7 +3529,7 @@ abstract class AppLocalizations {
   /// No description provided for @moodMedicineOpenSource.
   ///
   /// In en, this message translates to:
-  /// **'Open source'**
+  /// **'Open'**
   String get moodMedicineOpenSource;
 
   /// No description provided for @moodMedicineSourceWhoPhysicalActivity.
