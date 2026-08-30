@@ -91,15 +91,15 @@ enum MoodMedicineLoadFailureKind {
 
 /// Safe diagnostic data for [MoodMedicineUnreadableSnapshot].
 final class MoodMedicineLoadFailure {
-  /// Creates a typed failure with an optional underlying [cause].
+  /// Creates a typed failure with an optional privacy-safe exception type.
   const MoodMedicineLoadFailure(this.kind, {this.cause});
 
   /// Category appropriate for localized recovery guidance.
   final MoodMedicineLoadFailureKind kind;
 
-  /// Non-content diagnostic, normally an exception runtime type; never raw
-  /// history or an arbitrary parser error object.
-  final Object? cause;
+  /// Exception runtime type only; never raw history or an arbitrary parser
+  /// error object.
+  final Type? cause;
 }
 
 /// Error thrown by the legacy snapshot-only adapter.
