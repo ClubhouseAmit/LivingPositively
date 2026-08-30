@@ -147,6 +147,27 @@ void main() {
       },
     );
 
+    test(
+      'should sanitize persistence errors without changing their read kind',
+      () async {
+        final ContractPersistentMemoryService memory =
+            ContractPersistentMemoryService();
+        memory.onRead = (String _, PersistentMemoryType _) {
+          throw StateError('private journal text must not escape');
+        };
+
+        final MoodMedicineLoadResult result = await MoodMedicineStore(
+          memory,
+        ).loadSnapshot();
+
+        final MoodMedicineLoadFailure failure =
+            (result as MoodMedicineUnreadableSnapshot).failure;
+        expect(failure.kind, MoodMedicineLoadFailureKind.readError);
+        expect(failure.cause, StateError);
+        expect(failure.cause.toString(), isNot(contains('private journal')));
+      },
+    );
+
     test('should strictly load a complete version-one envelope', () async {
       final MoodMedicineLoadResult result = await MoodMedicineStore(
         _ValueMemoryService(_validSnapshot()),

@@ -14,6 +14,10 @@ typedef MoodMedicineSnapshotMutation =
 /// mistaken for an empty one and overwritten by an ordinary check-in.
 abstract interface class MoodMedicineRepository {
   /// Loads the one atomic Mood Medicine snapshot after earlier feature writes.
+  ///
+  /// Documented malformed-input failures are returned as typed unreadable
+  /// results. Unexpected implementation errors may propagate to the caller's
+  /// error boundary.
   Future<MoodMedicineLoadResult> loadSnapshot();
 
   /// Applies [mutation] to the latest valid snapshot and persists it once.
@@ -93,7 +97,8 @@ final class MoodMedicineLoadFailure {
   /// Category appropriate for localized recovery guidance.
   final MoodMedicineLoadFailureKind kind;
 
-  /// Original error object for logging or test diagnostics, never raw history.
+  /// Non-content diagnostic, normally an exception runtime type; never raw
+  /// history or an arbitrary parser error object.
   final Object? cause;
 }
 

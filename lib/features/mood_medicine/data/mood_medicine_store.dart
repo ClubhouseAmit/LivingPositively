@@ -19,7 +19,9 @@ final class MoodMedicineStore implements MoodMedicineRepository {
   ///
   /// Only an exact empty string is an absent snapshot. A null value, another
   /// type, parser error, unsupported version, or malformed record requires an
-  /// explicit feature-only recovery decision in the view model.
+  /// explicit feature-only recovery decision in the view model. Unexpected
+  /// decoder implementation errors are allowed to reach that caller boundary
+  /// instead of being classified as corrupt history.
   @override
   Future<MoodMedicineLoadResult> loadSnapshot() {
     return _enqueue(_readSnapshot);
@@ -72,7 +74,9 @@ final class MoodMedicineStore implements MoodMedicineRepository {
       return MoodMedicineUnreadableSnapshot(
         MoodMedicineLoadFailure(
           MoodMedicineLoadFailureKind.readError,
-          cause: error,
+          // Keep diagnostics independent of the persisted value or an
+          // arbitrary platform exception message.
+          cause: error.runtimeType,
         ),
       );
     }
@@ -94,19 +98,15 @@ final class MoodMedicineStore implements MoodMedicineRepository {
       );
     }
 
+    // The strict decoder translates documented malformed input into its
+    // typed exception. Unexpected implementation errors must reach the
+    // caller's error boundary instead of being presented as corrupt history.
     try {
       return MoodMedicineLoadedSnapshot(MoodMedicineSnapshot.decode(rawValue));
     } on MoodMedicineSnapshotDecodeException catch (error) {
       return MoodMedicineUnreadableSnapshot(
         MoodMedicineLoadFailure(
           moodMedicineLoadFailureKindForDecodeFailure(error.failure),
-          cause: error.runtimeType,
-        ),
-      );
-    } catch (error) {
-      return MoodMedicineUnreadableSnapshot(
-        MoodMedicineLoadFailure(
-          MoodMedicineLoadFailureKind.malformedEnvelope,
           cause: error.runtimeType,
         ),
       );

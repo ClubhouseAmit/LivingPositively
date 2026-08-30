@@ -423,6 +423,33 @@ void main() {
       },
     );
 
+    test(
+      'should keep the Monday week boundary at local midnight across DST',
+      () {
+        final MoodMedicineTrendSeries trendSeries =
+            MoodMedicineInsights.checkInsForRange(
+              MoodMedicineSnapshot(
+                entries: <MoodMedicineEntry>[
+                  _entry(id: 'week-start', dayKey: '2026-03-23', mood: 4),
+                  _entry(id: 'before-week', dayKey: '2026-03-22', mood: 2),
+                ],
+              ),
+              range: MoodMedicineInsightRange.week,
+              // The week crosses the local spring DST transition in regions
+              // such as Israel; calendar arithmetic must still include its
+              // Monday midnight boundary.
+              anchor: DateTime(2026, 3, 29, 12),
+            );
+
+        expect(
+          trendSeries.checkIns.map(
+            (MoodMedicineTrendCheckIn checkIn) => checkIn.id,
+          ),
+          <String>['week-start'],
+        );
+      },
+    );
+
     test('should order equal timestamps by stored day and id', () {
       final DateTime occurredAtUtc = DateTime.utc(2026, 8, 27, 12);
       final MoodMedicineTrendSeries trendSeries =

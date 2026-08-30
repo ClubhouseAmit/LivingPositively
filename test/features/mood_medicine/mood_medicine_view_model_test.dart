@@ -289,6 +289,35 @@ void main() {
     });
 
     test(
+      'should classify unexpected load errors at the boundary without content',
+      () async {
+        final _Repository repository = _Repository(
+          const MoodMedicineMissingSnapshot(),
+        );
+        when(() => repository.mock.loadSnapshot()).thenAnswer((_) async {
+          throw StateError('private journal text must not escape');
+        });
+        final MoodMedicineViewModel viewModel = _viewModel(
+          repository,
+          _ReportExporter(),
+          idGenerator: () => 'unused',
+        );
+
+        await viewModel.load();
+
+        final MoodMedicineRecoveryRequiredState recovery =
+            viewModel.state as MoodMedicineRecoveryRequiredState;
+        expect(recovery.failure.kind, MoodMedicineLoadFailureKind.readError);
+        expect(recovery.failure.cause, StateError);
+        expect(
+          recovery.failure.cause.toString(),
+          isNot(contains('private journal')),
+        );
+        viewModel.dispose();
+      },
+    );
+
+    test(
       'should reuse the dashboard until snapshot or range changes',
       () async {
         final MoodMedicineViewModel viewModel = _viewModel(
@@ -307,9 +336,14 @@ void main() {
           isTrue,
         );
 
+        expect(await viewModel.saveCheckIn(), isTrue);
+        final MoodMedicineDashboard afterSnapshotMutation =
+            viewModel.readyState!.dashboard;
+        expect(identical(afterSnapshotMutation, initialDashboard), isFalse);
+
         viewModel.selectRange(MoodMedicineInsightRange.day);
         expect(
-          identical(viewModel.readyState!.dashboard, initialDashboard),
+          identical(viewModel.readyState!.dashboard, afterSnapshotMutation),
           isFalse,
         );
         viewModel.dispose();
