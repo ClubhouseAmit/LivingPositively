@@ -26,7 +26,8 @@ void main() {
       expect(find.text('Mood Medicine'), findsOneWidget);
       expect(find.text('Track how you feel'), findsOneWidget);
       expect(find.text('View insights'), findsOneWidget);
-      expect(find.byType(AutoSizeText), findsOneWidget);
+      expect(find.byType(Text), findsNWidgets(3));
+      expect(find.byType(AutoSizeText), findsNothing);
 
       await tester.tap(find.byKey(const Key('moodMedicineHomeInsights')));
       expect(pressed, isTrue);
@@ -125,6 +126,44 @@ void main() {
       );
       expect(tester.takeException(), isNull);
     });
+
+    testWidgets(
+      'should wrap long localized labels without overflow in both layouts',
+      (WidgetTester tester) async {
+        const String longEnglishLabel =
+            'View detailed mood and activity insights for your history';
+        const String longHebrewLabel =
+            'הצגת תובנות מפורטות על מצב הרוח והפעילויות לאורך ההיסטוריה';
+
+        for (final (
+              double width,
+              Locale locale,
+              TextDirection direction,
+              String actionLabel,
+            )
+            in <(double, Locale, TextDirection, String)>[
+              (320, const Locale('en'), TextDirection.ltr, longEnglishLabel),
+              (600, const Locale('he'), TextDirection.rtl, longHebrewLabel),
+            ]) {
+          await tester.pumpWidget(
+            _harness(
+              width: width,
+              locale: locale,
+              direction: direction,
+              title: 'Mood Medicine',
+              subtitle: 'Track how you feel',
+              actionLabel: actionLabel,
+            ),
+          );
+
+          final Finder action = find.byKey(
+            const Key('moodMedicineHomeInsights'),
+          );
+          expect(tester.getBottomRight(action).dx, lessThanOrEqualTo(width));
+          expect(tester.takeException(), isNull);
+        }
+      },
+    );
   });
 }
 

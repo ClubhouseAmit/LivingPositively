@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:mazilon/util/styles.dart';
 import 'package:mazilon/util/theme/spacing.dart';
 
 /// Home entry point for the Mood Medicine insights dashboard.
@@ -41,9 +40,9 @@ final class MoodMedicineHomeInsightsSection extends StatelessWidget {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  myText(title, theme.textTheme.titleMedium, TextAlign.start),
+                  Text(title, style: theme.textTheme.titleMedium),
                   const SizedBox(height: AppSpacing.xs),
-                  myText(subtitle, theme.textTheme.bodyMedium, TextAlign.start),
+                  Text(subtitle, style: theme.textTheme.bodyMedium),
                 ],
               ),
             );
@@ -54,12 +53,10 @@ final class MoodMedicineHomeInsightsSection extends StatelessWidget {
             final Widget action = TextButton(
               key: const Key('moodMedicineHomeInsights'),
               onPressed: isAvailable ? onPressed : null,
-              child: myAutoSizedText(
+              child: Text(
                 actionLabel,
-                theme.textTheme.labelLarge,
-                TextAlign.center,
-                theme.textTheme.labelLarge?.fontSize ?? 14,
-                1,
+                style: theme.textTheme.labelLarge,
+                textAlign: TextAlign.center,
               ),
             );
 
@@ -67,17 +64,33 @@ final class MoodMedicineHomeInsightsSection extends StatelessWidget {
               return Column(
                 crossAxisAlignment: CrossAxisAlignment.stretch,
                 children: [
-                  Row(children: [icon, const SizedBox(width: 12), copy]),
+                  Row(
+                    children: [
+                      icon,
+                      const SizedBox(width: AppSpacing.md),
+                      copy,
+                    ],
+                  ),
                   Align(
                     alignment: AlignmentDirectional.centerEnd,
-                    child: action,
+                    child: ConstrainedBox(
+                      constraints: BoxConstraints(
+                        maxWidth: constraints.maxWidth,
+                      ),
+                      child: action,
+                    ),
                   ),
                 ],
               );
             }
 
             return Row(
-              children: [icon, const SizedBox(width: 12), copy, action],
+              children: [
+                icon,
+                const SizedBox(width: AppSpacing.md),
+                copy,
+                Flexible(child: action),
+              ],
             );
           },
         ),
