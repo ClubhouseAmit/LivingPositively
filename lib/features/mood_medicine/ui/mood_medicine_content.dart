@@ -121,6 +121,16 @@ final class MoodMedicineContent {
           entry.id: entry.color,
       });
 
+  /// Resolves an activity colour from [palette], using [fallback] for custom
+  /// activities that do not have a fixed palette colour.
+  static Color resolveActivityColor(
+    String activityId, {
+    required Map<String, Color> palette,
+    required Color fallback,
+  }) {
+    return palette[activityId] ?? fallback;
+  }
+
   static const Color _dopamineColor = Color(0xFF009933);
   static const Color _oxytocinColor = Color(0xFF993399);
   static const Color _serotoninColor = Color(0xFFFF8642);

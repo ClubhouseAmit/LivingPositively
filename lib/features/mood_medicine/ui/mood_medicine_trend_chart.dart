@@ -1,6 +1,7 @@
 import 'dart:math' as math;
 
 import 'package:flutter/material.dart';
+import 'package:mazilon/features/mood_medicine/ui/mood_medicine_content.dart';
 
 /// One check-in used only to render the Mood Medicine trend.
 ///
@@ -29,6 +30,7 @@ class MoodMedicineTrendChart extends StatelessWidget {
     required this.emptyLabel,
     required this.semanticSummary,
     this.activityColors = const <String, Color>{},
+    this.fallbackActivityColor,
     this.highlightedActivityId,
   });
 
@@ -42,6 +44,10 @@ class MoodMedicineTrendChart extends StatelessWidget {
   /// non-colour representation. IDs not present in this map use the themed
   /// fallback colour, which keeps custom activities visible.
   final Map<String, Color> activityColors;
+
+  /// Theme-aware fallback for custom activities. When omitted, the active
+  /// theme's tertiary colour is used.
+  final Color? fallbackActivityColor;
   final String? highlightedActivityId;
 
   @override
@@ -65,6 +71,8 @@ class MoodMedicineTrendChart extends StatelessWidget {
     }
 
     final colorScheme = Theme.of(context).colorScheme;
+    final Color resolvedFallback =
+        fallbackActivityColor ?? colorScheme.tertiary;
     return Semantics(
       label: semanticSummary,
       child: ExcludeSemantics(
@@ -76,7 +84,7 @@ class MoodMedicineTrendChart extends StatelessWidget {
               points: points,
               lineColor: colorScheme.primary,
               gridColor: colorScheme.outline.withValues(alpha: 0.25),
-              fallbackActivityColor: colorScheme.tertiary,
+              fallbackActivityColor: resolvedFallback,
               pointCenterColor: colorScheme.surface,
               activityColors: activityColors,
               highlightedActivityId: highlightedActivityId,
@@ -134,14 +142,14 @@ class _MoodMedicineTrendPainter extends CustomPainter {
       );
     }
 
-    double xFor(int index) {
+    double xCoordinateForPointIndex(int index) {
       if (points.length == 1) {
         return moodChart.center.dx;
       }
       return moodChart.left + moodChart.width * index / (points.length - 1);
     }
 
-    double yFor(double value) {
+    double yCoordinateForMoodValue(double value) {
       final double normalised = ((value.clamp(1, 5) - 1) / 4).toDouble();
       return moodChart.bottom - moodChart.height * normalised;
     }
@@ -153,12 +161,15 @@ class _MoodMedicineTrendPainter extends CustomPainter {
       right: moodChart.right,
       top: moodChart.bottom + 8,
       height: activityBandHeight - 8,
-      xFor: xFor,
+      xCoordinateForPointIndex: xCoordinateForPointIndex,
     );
 
     final Path linePath = Path();
     for (var index = 0; index < points.length; index++) {
-      final Offset point = Offset(xFor(index), yFor(points[index].mood));
+      final Offset point = Offset(
+        xCoordinateForPointIndex(index),
+        yCoordinateForMoodValue(points[index].mood),
+      );
       if (index == 0) {
         linePath.moveTo(point.dx, point.dy);
       } else {
@@ -181,10 +192,17 @@ class _MoodMedicineTrendPainter extends CustomPainter {
       final bool isHighlighted =
           highlightedActivityId != null &&
           item.activityIds.contains(highlightedActivityId);
-      final Offset point = Offset(xFor(index), yFor(item.mood));
+      final Offset point = Offset(
+        xCoordinateForPointIndex(index),
+        yCoordinateForMoodValue(item.mood),
+      );
       final Color highlightedColor = highlightedActivityId == null
           ? fallbackActivityColor
-          : activityColors[highlightedActivityId] ?? fallbackActivityColor;
+          : MoodMedicineContent.resolveActivityColor(
+              highlightedActivityId!,
+              palette: activityColors,
+              fallback: fallbackActivityColor,
+            );
       canvas.drawCircle(
         point,
         isHighlighted ? 7 : 5,
@@ -220,7 +238,7 @@ class _MoodMedicineTrendPainter extends CustomPainter {
     required double right,
     required double top,
     required double height,
-    required double Function(int index) xFor,
+    required double Function(int index) xCoordinateForPointIndex,
   }) {
     if (activityIds.isEmpty || height <= 0) {
       return;
@@ -246,15 +264,19 @@ class _MoodMedicineTrendPainter extends CustomPainter {
         final bool isDimmed =
             highlightedActivityId != null &&
             highlightedActivityId != activityId;
-        final Color color =
-            (activityColors[activityId] ?? fallbackActivityColor).withValues(
-              alpha: isDimmed ? 0.45 : 1,
-            );
+        final Color color = MoodMedicineContent.resolveActivityColor(
+          activityId,
+          palette: activityColors,
+          fallback: fallbackActivityColor,
+        ).withValues(alpha: isDimmed ? 0.45 : 1);
         final double y = top + laneIndex * (laneHeight + gap);
         canvas.drawRRect(
           RRect.fromRectAndRadius(
             Rect.fromCenter(
-              center: Offset(xFor(pointIndex), y + laneHeight / 2),
+              center: Offset(
+                xCoordinateForPointIndex(pointIndex),
+                y + laneHeight / 2,
+              ),
               width: markerWidth,
               height: laneHeight,
             ),

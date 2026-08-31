@@ -389,6 +389,63 @@ void main() {
       );
     });
 
+    testWidgets(
+      'should share the themed custom activity fallback with the chart',
+      (WidgetTester tester) async {
+        _setLargeScreen(tester);
+        final MoodMedicineSnapshot snapshot = MoodMedicineSnapshot(
+          customActivities: <MoodMedicineCustomActivity>[
+            MoodMedicineCustomActivity(id: 'custom_activity', label: 'Custom'),
+          ],
+          entries: <MoodMedicineEntry>[
+            MoodMedicineEntry(
+              id: 'custom-entry',
+              occurredAtUtc: DateTime.utc(2026, 8, 29, 12),
+              localDayKey: '2026-08-29',
+              mood: 3,
+              activityIds: const <String>['custom_activity'],
+              customActivityLabelSnapshots: const <String, String>{
+                'custom_activity': 'Custom',
+              },
+            ),
+          ],
+        );
+
+        for (final ThemeData theme in <ThemeData>[
+          buildLightTheme(),
+          buildDarkTheme(),
+        ]) {
+          final ContractPersistentMemoryService memory =
+              ContractPersistentMemoryService(
+                initialValues: <String, Object?>{
+                  MoodMedicineStore.snapshotKey: snapshot.encode(),
+                },
+              );
+          final MoodMedicineViewModel viewModel = _viewModel(memory);
+          await viewModel.load();
+          viewModel.setHighlightedActivity('custom_activity');
+          await tester.pumpWidget(_app(viewModel: viewModel, theme: theme));
+          await tester.pumpAndSettle();
+
+          final Color fallback = theme.colorScheme.tertiary;
+          final MoodMedicineTrendChart chart = tester.widget(
+            find.byType(MoodMedicineTrendChart),
+          );
+          expect(chart.fallbackActivityColor, fallback);
+
+          final Finder chip = find.byKey(
+            const Key('moodMedicineOverlaycustom_activity'),
+          );
+          final DecoratedBox swatch = tester.widget<DecoratedBox>(
+            find
+                .descendant(of: chip, matching: find.byType(DecoratedBox))
+                .first,
+          );
+          expect((swatch.decoration as BoxDecoration).color, fallback);
+        }
+      },
+    );
+
     testWidgets('should disclose omitted older checks in a large year trend', (
       WidgetTester tester,
     ) async {

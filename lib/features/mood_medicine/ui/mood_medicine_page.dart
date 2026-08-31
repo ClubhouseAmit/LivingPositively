@@ -826,6 +826,7 @@ class _MoodMedicinePageState extends State<MoodMedicinePage> {
   Widget _buildInsights(AppLocalizations l10n, MoodMedicineReadyState ready) {
     final MoodMedicineDashboard dashboard = ready.dashboard;
     final ThemeData theme = Theme.of(context);
+    final Color activityFallback = theme.colorScheme.tertiary;
     final MoodMedicineTrendSeries trendSeries = dashboard.trendSeries;
     final List<MoodMedicineTrendCheckIn> checkIns = trendSeries.checkIns;
     final List<MoodMedicineTrendPoint> points = checkIns
@@ -889,6 +890,7 @@ class _MoodMedicinePageState extends State<MoodMedicinePage> {
                   _trendSummary(l10n, trendSeries),
                 ),
                 activityColors: MoodMedicineContent.activityColors,
+                fallbackActivityColor: activityFallback,
                 highlightedActivityId: ready.highlightedActivityId,
               ),
               if (points.length == 1)
@@ -920,8 +922,11 @@ class _MoodMedicinePageState extends State<MoodMedicinePage> {
                   children: overlayActivityIds
                       .map((String activityId) {
                         final Color activityColor =
-                            MoodMedicineContent.activityColors[activityId] ??
-                            theme.colorScheme.outline;
+                            MoodMedicineContent.resolveActivityColor(
+                              activityId,
+                              palette: MoodMedicineContent.activityColors,
+                              fallback: activityFallback,
+                            );
                         return ChoiceChip(
                           key: Key('moodMedicineOverlay$activityId'),
                           selected: ready.highlightedActivityId == activityId,

@@ -122,6 +122,34 @@ void main() {
       expect(raster.countColor(_musicColor), greaterThan(0));
     });
 
+    testWidgets(
+      'should use the same fallback for custom activity bands and highlights '
+      'in both themes',
+      (WidgetTester tester) async {
+        for (final ThemeData theme in <ThemeData>[_lightTheme, _darkTheme]) {
+          await _pumpChart(
+            tester,
+            theme: theme,
+            points: const <MoodMedicineTrendPoint>[
+              MoodMedicineTrendPoint(
+                label: 'Mon',
+                mood: 3,
+                activityIds: <String>{'custom'},
+              ),
+            ],
+            highlightedActivityId: 'custom',
+            fallbackActivityColor: theme.colorScheme.tertiary,
+          );
+
+          final _ChartRaster raster = (await tester.runAsync(
+            () => _rasterize(_chartPainter(tester)),
+          ))!;
+          expect(raster.colorAt(155, 75), theme.colorScheme.tertiary);
+          expect(raster.colorAt(150, 164), theme.colorScheme.tertiary);
+        }
+      },
+    );
+
     testWidgets('should use the dark theme surface for point centers', (
       tester,
     ) async {
@@ -173,6 +201,7 @@ Future<void> _pumpChart(
   ThemeData? theme,
   required List<MoodMedicineTrendPoint> points,
   Map<String, Color> activityColors = const <String, Color>{},
+  Color? fallbackActivityColor,
   String? highlightedActivityId,
 }) async {
   final ThemeData selectedTheme = theme ?? _lightTheme;
@@ -192,6 +221,7 @@ Future<void> _pumpChart(
                 emptyLabel: 'No check-ins yet',
                 semanticSummary: 'Mood trend from Mon to Wed',
                 activityColors: activityColors,
+                fallbackActivityColor: fallbackActivityColor,
                 highlightedActivityId: highlightedActivityId,
               ),
             ),

@@ -6,6 +6,7 @@ import 'package:url_launcher_platform_interface/url_launcher_platform_interface.
 final class _FakeUrlLauncherPlatform extends UrlLauncherPlatform {
   String? lastLaunchedUrl;
   bool launchResult = true;
+  Object? launchError;
 
   @override
   LinkDelegate? get linkDelegate => null;
@@ -25,6 +26,9 @@ final class _FakeUrlLauncherPlatform extends UrlLauncherPlatform {
     String? webOnlyWindowName,
   }) async {
     lastLaunchedUrl = url;
+    if (launchError case final Object error) {
+      throw error;
+    }
     return launchResult;
   }
 }
@@ -55,6 +59,36 @@ void main() {
           .openExternal(source);
 
       expect(opened, isTrue);
+      expect(fakePlatform.lastLaunchedUrl, source.toString());
+    });
+
+    test('should return false when HTTPS handoff is rejected', () async {
+      final UrlLauncherPlatform originalPlatform = UrlLauncherPlatform.instance;
+      final _FakeUrlLauncherPlatform fakePlatform = _FakeUrlLauncherPlatform()
+        ..launchResult = false;
+      UrlLauncherPlatform.instance = fakePlatform;
+      addTearDown(() => UrlLauncherPlatform.instance = originalPlatform);
+
+      final Uri source = Uri.parse('https://example.com/source');
+      final bool opened = await const UrlLauncherMoodMedicineSourceLinkService()
+          .openExternal(source);
+
+      expect(opened, isFalse);
+      expect(fakePlatform.lastLaunchedUrl, source.toString());
+    });
+
+    test('should propagate HTTPS platform failures after handoff', () async {
+      final UrlLauncherPlatform originalPlatform = UrlLauncherPlatform.instance;
+      final _FakeUrlLauncherPlatform fakePlatform = _FakeUrlLauncherPlatform()
+        ..launchError = StateError('launcher failed');
+      UrlLauncherPlatform.instance = fakePlatform;
+      addTearDown(() => UrlLauncherPlatform.instance = originalPlatform);
+
+      final Uri source = Uri.parse('https://example.com/source');
+      await expectLater(
+        const UrlLauncherMoodMedicineSourceLinkService().openExternal(source),
+        throwsA(isA<StateError>()),
+      );
       expect(fakePlatform.lastLaunchedUrl, source.toString());
     });
   });

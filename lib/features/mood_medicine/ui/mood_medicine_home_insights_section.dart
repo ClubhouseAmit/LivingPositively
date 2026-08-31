@@ -20,32 +20,52 @@ final class MoodMedicineHomeInsightsSection extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final ThemeData theme = Theme.of(context);
     return Card(
       child: Padding(
         padding: const EdgeInsets.all(16),
-        child: Row(
-          children: [
-            Icon(
+        child: LayoutBuilder(
+          builder: (BuildContext context, BoxConstraints constraints) {
+            final bool stackAction =
+                constraints.maxWidth < 480 ||
+                MediaQuery.textScalerOf(context).scale(1) > 1.2;
+            final Widget icon = Icon(
               Icons.insights_outlined,
-              color: Theme.of(context).colorScheme.primary,
-            ),
-            const SizedBox(width: 12),
-            Expanded(
+              color: theme.colorScheme.primary,
+            );
+            final Widget copy = Expanded(
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Text(title, style: Theme.of(context).textTheme.titleMedium),
+                  Text(title, style: theme.textTheme.titleMedium),
                   const SizedBox(height: 4),
                   Text(subtitle),
                 ],
               ),
-            ),
-            TextButton(
+            );
+            final Widget action = TextButton(
               key: const Key('moodMedicineHomeInsights'),
               onPressed: onPressed,
               child: Text(actionLabel),
-            ),
-          ],
+            );
+
+            if (stackAction) {
+              return Column(
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
+                  Row(children: [icon, const SizedBox(width: 12), copy]),
+                  Align(
+                    alignment: AlignmentDirectional.centerEnd,
+                    child: action,
+                  ),
+                ],
+              );
+            }
+
+            return Row(
+              children: [icon, const SizedBox(width: 12), copy, action],
+            );
+          },
         ),
       ),
     );
