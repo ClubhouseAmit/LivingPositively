@@ -5,7 +5,16 @@ import 'package:mazilon/util/theme/spacing.dart';
 ///
 /// Home supplies the already-localized display strings and navigation callback;
 /// this feature-local section owns only the presentation of the entry point.
+///
+/// The card remains visible when Mood Medicine is unavailable so the feature
+/// stays discoverable, but its action is disabled and the callback is not
+/// invoked in that state.
 final class MoodMedicineHomeInsightsSection extends StatelessWidget {
+  /// Creates the localized Home entry point for Mood Medicine insights.
+  ///
+  /// [onPressed] is required even when [isAvailable] is `false`; it is kept as
+  /// the callback for when the feature becomes available and is never invoked
+  /// while the card is unavailable.
   const MoodMedicineHomeInsightsSection({
     super.key,
     required this.title,
@@ -15,10 +24,24 @@ final class MoodMedicineHomeInsightsSection extends StatelessWidget {
     this.isAvailable = true,
   });
 
+  /// Localized title displayed on the Home insights card.
   final String title;
+
+  /// Localized supporting text displayed below [title].
   final String subtitle;
+
+  /// Localized label for the card's action button.
   final String actionLabel;
+
+  /// Callback used to open Mood Medicine insights when [isAvailable] is true.
+  ///
+  /// This callback must not be invoked when the card is unavailable.
   final VoidCallback onPressed;
+
+  /// Whether the Mood Medicine action is available.
+  ///
+  /// Defaults to `true`. When `false`, the localized card remains visible for
+  /// discoverability while its action button is disabled.
   final bool isAvailable;
 
   @override
