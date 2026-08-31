@@ -79,15 +79,20 @@ void main() {
         final MoodMedicineLoadResult wrongTypeResult = await MoodMedicineStore(
           _ValueMemoryService(42),
         ).loadSnapshot();
+        final MoodMedicineUnreadableSnapshot wrongType =
+            wrongTypeResult as MoodMedicineUnreadableSnapshot;
 
         expect(
           (nullResult as MoodMedicineUnreadableSnapshot).failure.kind,
           MoodMedicineLoadFailureKind.nullValue,
         );
         expect(
-          (wrongTypeResult as MoodMedicineUnreadableSnapshot).failure.kind,
+          wrongType.failure.kind,
           MoodMedicineLoadFailureKind.wrongValueType,
         );
+        final MoodMedicineLoadFailure wrongTypeFailure = wrongType.failure;
+        expect(wrongTypeFailure.valueType, int);
+        expect(wrongTypeFailure.exceptionType, isNull);
       },
     );
 
@@ -142,8 +147,8 @@ void main() {
         final MoodMedicineLoadFailure failure =
             (result as MoodMedicineUnreadableSnapshot).failure;
         expect(failure.kind, MoodMedicineLoadFailureKind.malformedEnvelope);
-        expect(failure.cause, MoodMedicineSnapshotDecodeException);
-        expect(failure.cause.toString(), isNot(contains('private journal')));
+        expect(failure.exceptionType, MoodMedicineSnapshotDecodeException);
+        expect(failure.valueType, isNull);
       },
     );
 
@@ -163,8 +168,8 @@ void main() {
         final MoodMedicineLoadFailure failure =
             (result as MoodMedicineUnreadableSnapshot).failure;
         expect(failure.kind, MoodMedicineLoadFailureKind.readError);
-        expect(failure.cause, StateError);
-        expect(failure.cause.toString(), isNot(contains('private journal')));
+        expect(failure.exceptionType, StateError);
+        expect(failure.valueType, isNull);
       },
     );
 

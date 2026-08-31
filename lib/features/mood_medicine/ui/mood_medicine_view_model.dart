@@ -922,7 +922,7 @@ final class MoodMedicineViewModel extends ChangeNotifier {
           MoodMedicineLoadFailureKind.readError,
           // Do not retain arbitrary exception objects that may include
           // persisted journal content.
-          cause: error.runtimeType,
+          exceptionType: error.runtimeType,
         ),
       );
     }

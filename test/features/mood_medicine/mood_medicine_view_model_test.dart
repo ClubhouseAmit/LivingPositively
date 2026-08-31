@@ -308,9 +308,10 @@ void main() {
         final MoodMedicineRecoveryRequiredState recovery =
             viewModel.state as MoodMedicineRecoveryRequiredState;
         expect(recovery.failure.kind, MoodMedicineLoadFailureKind.readError);
-        expect(recovery.failure.cause, StateError);
+        expect(recovery.failure.exceptionType, StateError);
+        expect(recovery.failure.valueType, isNull);
         expect(
-          recovery.failure.cause.toString(),
+          recovery.failure.exceptionType.toString(),
           isNot(contains('private journal')),
         );
         viewModel.dispose();

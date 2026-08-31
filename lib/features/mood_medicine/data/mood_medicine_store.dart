@@ -76,7 +76,7 @@ final class MoodMedicineStore implements MoodMedicineRepository {
           MoodMedicineLoadFailureKind.readError,
           // Keep diagnostics independent of the persisted value or an
           // arbitrary platform exception message.
-          cause: error.runtimeType,
+          exceptionType: error.runtimeType,
         ),
       );
     }
@@ -93,7 +93,7 @@ final class MoodMedicineStore implements MoodMedicineRepository {
       return MoodMedicineUnreadableSnapshot(
         MoodMedicineLoadFailure(
           MoodMedicineLoadFailureKind.wrongValueType,
-          cause: rawValue.runtimeType,
+          valueType: rawValue.runtimeType,
         ),
       );
     }
@@ -107,7 +107,7 @@ final class MoodMedicineStore implements MoodMedicineRepository {
       return MoodMedicineUnreadableSnapshot(
         MoodMedicineLoadFailure(
           moodMedicineLoadFailureKindForDecodeFailure(error.failure),
-          cause: error.runtimeType,
+          exceptionType: error.runtimeType,
         ),
       );
     }
