@@ -6,6 +6,8 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:mazilon/features/mood_medicine/ui/mood_medicine_trend_chart.dart';
 
 const Size _chartSize = Size(300, 190);
+const Color _walkColor = Color(0xff1875d1);
+const Color _musicColor = Color(0xff0899cc);
 
 void main() {
   group('MoodMedicineTrendChart', () {
@@ -38,7 +40,7 @@ void main() {
       final _ChartRaster raster = (await tester.runAsync(
         () => _rasterize(_chartPainter(tester)),
       ))!;
-      expect(raster.colorAt(150, 92), _lightTheme.colorScheme.surface);
+      expect(raster.colorAt(150, 75), _lightTheme.colorScheme.surface);
     });
 
     testWidgets('should render multiple points and expose the trend summary', (
@@ -65,7 +67,7 @@ void main() {
     });
 
     testWidgets(
-      'should paint highlighted activity points with the overlay color',
+      'should paint highlighted activity points with their activity color',
       (tester) async {
         await _pumpChart(
           tester,
@@ -78,16 +80,47 @@ void main() {
             ),
             MoodMedicineTrendPoint(label: 'Wed', mood: 5),
           ],
+          activityColors: const <String, Color>{'walk': _walkColor},
           highlightedActivityId: 'walk',
         );
 
         final _ChartRaster raster = (await tester.runAsync(
           () => _rasterize(_chartPainter(tester)),
         ))!;
-        expect(raster.colorAt(155, 92), _lightTheme.colorScheme.tertiary);
-        expect(raster.colorAt(150, 92), _lightTheme.colorScheme.surface);
+        expect(raster.colorAt(155, 75), _walkColor);
+        expect(raster.colorAt(150, 75), _lightTheme.colorScheme.surface);
       },
     );
+
+    testWidgets('should paint a colour mark for every logged activity', (
+      tester,
+    ) async {
+      await _pumpChart(
+        tester,
+        points: const <MoodMedicineTrendPoint>[
+          MoodMedicineTrendPoint(
+            label: 'Mon',
+            mood: 2,
+            activityIds: <String>{'walk', 'music'},
+          ),
+          MoodMedicineTrendPoint(
+            label: 'Tue',
+            mood: 4,
+            activityIds: <String>{'music'},
+          ),
+        ],
+        activityColors: const <String, Color>{
+          'walk': _walkColor,
+          'music': _musicColor,
+        },
+      );
+
+      final _ChartRaster raster = (await tester.runAsync(
+        () => _rasterize(_chartPainter(tester)),
+      ))!;
+      expect(raster.countColor(_walkColor), greaterThan(0));
+      expect(raster.countColor(_musicColor), greaterThan(0));
+    });
 
     testWidgets('should use the dark theme surface for point centers', (
       tester,
@@ -103,8 +136,8 @@ void main() {
       final _ChartRaster raster = (await tester.runAsync(
         () => _rasterize(_chartPainter(tester)),
       ))!;
-      expect(raster.colorAt(150, 92), _darkTheme.colorScheme.surface);
-      expect(raster.colorAt(150, 92), isNot(Colors.white));
+      expect(raster.colorAt(150, 75), _darkTheme.colorScheme.surface);
+      expect(raster.colorAt(150, 75), isNot(Colors.white));
     });
   });
 }
@@ -139,6 +172,7 @@ Future<void> _pumpChart(
   WidgetTester tester, {
   ThemeData? theme,
   required List<MoodMedicineTrendPoint> points,
+  Map<String, Color> activityColors = const <String, Color>{},
   String? highlightedActivityId,
 }) async {
   final ThemeData selectedTheme = theme ?? _lightTheme;
@@ -157,6 +191,7 @@ Future<void> _pumpChart(
                 points: points,
                 emptyLabel: 'No check-ins yet',
                 semanticSummary: 'Mood trend from Mon to Wed',
+                activityColors: activityColors,
                 highlightedActivityId: highlightedActivityId,
               ),
             ),
@@ -205,5 +240,21 @@ final class _ChartRaster {
       bytes[index + 1],
       bytes[index + 2],
     );
+  }
+
+  int countColor(Color expected) {
+    var count = 0;
+    final int expectedArgb = expected.toARGB32();
+    for (var index = 0; index < bytes.length; index += 4) {
+      final int actualArgb =
+          (bytes[index + 3] << 24) |
+          (bytes[index] << 16) |
+          (bytes[index + 1] << 8) |
+          bytes[index + 2];
+      if (actualArgb == expectedArgb) {
+        count += 1;
+      }
+    }
+    return count;
   }
 }

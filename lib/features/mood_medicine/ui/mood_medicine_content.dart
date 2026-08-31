@@ -1,10 +1,18 @@
 import 'package:flutter/material.dart';
 import 'package:mazilon/l10n/app_localizations.dart';
 
+final class _MoodMedicineActivityPaletteEntry {
+  const _MoodMedicineActivityPaletteEntry(this.id, this.color);
+
+  final String id;
+  final Color color;
+}
+
 /// Localized educational content for a default Mood Medicine activity.
 final class MoodMedicineActivityContent {
   const MoodMedicineActivityContent({
     required this.id,
+    required this.color,
     required this.label,
     required this.description,
     required this.guidance,
@@ -15,6 +23,12 @@ final class MoodMedicineActivityContent {
 
   /// Stable nonlocalized activity identifier persisted with check-ins.
   final String id;
+
+  /// Feature-local colour cue based on the approved Mood Medicine design.
+  ///
+  /// UI must pair this with the localized [label], rather than conveying an
+  /// activity through colour alone.
+  final Color color;
 
   /// Localized activity label.
   final String label;
@@ -35,12 +49,23 @@ final class MoodMedicineActivityContent {
   final IconData icon;
 }
 
+/// Stable, nonlocalized categories used to colour the D.O.S.E. education card.
+enum MoodMedicineDoseKind { dopamine, oxytocin, serotonin, endorphins }
+
 /// Localized explanatory item in the D.O.S.E. education card.
 final class MoodMedicineDoseContent {
   const MoodMedicineDoseContent({
+    required this.kind,
+    required this.color,
     required this.title,
     required this.description,
   });
+
+  /// Stable category for this D.O.S.E. education item.
+  final MoodMedicineDoseKind kind;
+
+  /// Feature-local colour cue based on the approved Mood Medicine design.
+  final Color color;
 
   /// Localized name of the neurotransmitter or hormone system.
   final String title;
@@ -66,17 +91,40 @@ final class MoodMedicineContent {
   static const String laughterId = 'laughter';
   static const String actsOfKindnessId = 'acts_of_kindness';
 
-  /// Ordered stable IDs for the eight default activities.
-  static const List<String> defaultActivityIds = <String>[
-    physicalActivityId,
-    restorativeSleepId,
-    nourishingMealId,
-    socialConnectionId,
-    daylightNatureId,
-    musicId,
-    laughterId,
-    actsOfKindnessId,
+  /// Ordered default activity IDs and their PDF-derived colour cues.
+  ///
+  /// This palette is the single source for both [defaultActivityIds] and
+  /// [activityColors]. Custom activities deliberately remain outside it: their
+  /// persisted labels remain the accessible identifier and the UI uses its
+  /// themed fallback.
+  static const List<_MoodMedicineActivityPaletteEntry>
+  _activityPalette = <_MoodMedicineActivityPaletteEntry>[
+    _MoodMedicineActivityPaletteEntry(physicalActivityId, Color(0xFF1875D1)),
+    _MoodMedicineActivityPaletteEntry(restorativeSleepId, Color(0xFF993399)),
+    _MoodMedicineActivityPaletteEntry(nourishingMealId, Color(0xFFFFD54E)),
+    _MoodMedicineActivityPaletteEntry(socialConnectionId, Color(0xFFF34235)),
+    _MoodMedicineActivityPaletteEntry(daylightNatureId, Color(0xFF7BB241)),
+    _MoodMedicineActivityPaletteEntry(musicId, Color(0xFF0899CC)),
+    _MoodMedicineActivityPaletteEntry(laughterId, Color(0xFFFF8642)),
+    _MoodMedicineActivityPaletteEntry(actsOfKindnessId, Color(0xFFFE9701)),
   ];
+
+  /// Ordered stable IDs for the eight default activities.
+  static final List<String> defaultActivityIds = List<String>.unmodifiable(
+    _activityPalette.map((entry) => entry.id),
+  );
+
+  /// Colour cues for the eight default activities.
+  static final Map<String, Color> activityColors =
+      Map<String, Color>.unmodifiable(<String, Color>{
+        for (final _MoodMedicineActivityPaletteEntry entry in _activityPalette)
+          entry.id: entry.color,
+      });
+
+  static const Color _dopamineColor = Color(0xFF009933);
+  static const Color _oxytocinColor = Color(0xFF993399);
+  static const Color _serotoninColor = Color(0xFFFF8642);
+  static const Color _endorphinsColor = Color(0xFF0899CC);
 
   static final Uri _whoPhysicalActivityUri = Uri.parse(
     'https://www.who.int/news-room/fact-sheets/detail/physical-activity',
@@ -96,6 +144,7 @@ final class MoodMedicineContent {
     return <MoodMedicineActivityContent>[
       MoodMedicineActivityContent(
         id: physicalActivityId,
+        color: activityColors[physicalActivityId]!,
         label: l10n.moodMedicineActivityPhysicalActivity,
         description: l10n.moodMedicineActivityPhysicalActivityDescription,
         guidance: l10n.moodMedicineActivityPhysicalActivityGuidance,
@@ -105,6 +154,7 @@ final class MoodMedicineContent {
       ),
       MoodMedicineActivityContent(
         id: restorativeSleepId,
+        color: activityColors[restorativeSleepId]!,
         label: l10n.moodMedicineActivityRestorativeSleep,
         description: l10n.moodMedicineActivityRestorativeSleepDescription,
         guidance: l10n.moodMedicineActivityRestorativeSleepGuidance,
@@ -114,6 +164,7 @@ final class MoodMedicineContent {
       ),
       MoodMedicineActivityContent(
         id: nourishingMealId,
+        color: activityColors[nourishingMealId]!,
         label: l10n.moodMedicineActivityNourishingMeal,
         description: l10n.moodMedicineActivityNourishingMealDescription,
         guidance: l10n.moodMedicineActivityNourishingMealGuidance,
@@ -123,6 +174,7 @@ final class MoodMedicineContent {
       ),
       MoodMedicineActivityContent(
         id: socialConnectionId,
+        color: activityColors[socialConnectionId]!,
         label: l10n.moodMedicineActivitySocialConnection,
         description: l10n.moodMedicineActivitySocialConnectionDescription,
         guidance: l10n.moodMedicineActivitySocialConnectionGuidance,
@@ -132,6 +184,7 @@ final class MoodMedicineContent {
       ),
       MoodMedicineActivityContent(
         id: daylightNatureId,
+        color: activityColors[daylightNatureId]!,
         label: l10n.moodMedicineActivityDaylightNature,
         description: l10n.moodMedicineActivityDaylightNatureDescription,
         guidance: l10n.moodMedicineActivityDaylightNatureGuidance,
@@ -141,6 +194,7 @@ final class MoodMedicineContent {
       ),
       MoodMedicineActivityContent(
         id: musicId,
+        color: activityColors[musicId]!,
         label: l10n.moodMedicineActivityMusic,
         description: l10n.moodMedicineActivityMusicDescription,
         guidance: l10n.moodMedicineActivityMusicGuidance,
@@ -150,6 +204,7 @@ final class MoodMedicineContent {
       ),
       MoodMedicineActivityContent(
         id: laughterId,
+        color: activityColors[laughterId]!,
         label: l10n.moodMedicineActivityLaughter,
         description: l10n.moodMedicineActivityLaughterDescription,
         guidance: l10n.moodMedicineActivityLaughterGuidance,
@@ -159,6 +214,7 @@ final class MoodMedicineContent {
       ),
       MoodMedicineActivityContent(
         id: actsOfKindnessId,
+        color: activityColors[actsOfKindnessId]!,
         label: l10n.moodMedicineActivityActsOfKindness,
         description: l10n.moodMedicineActivityActsOfKindnessDescription,
         guidance: l10n.moodMedicineActivityActsOfKindnessGuidance,
@@ -186,18 +242,26 @@ final class MoodMedicineContent {
   static List<MoodMedicineDoseContent> doseItems(AppLocalizations l10n) {
     return <MoodMedicineDoseContent>[
       MoodMedicineDoseContent(
+        kind: MoodMedicineDoseKind.dopamine,
+        color: _dopamineColor,
         title: l10n.moodMedicineDoseDopamine,
         description: l10n.moodMedicineDoseDopamineDescription,
       ),
       MoodMedicineDoseContent(
+        kind: MoodMedicineDoseKind.oxytocin,
+        color: _oxytocinColor,
         title: l10n.moodMedicineDoseOxytocin,
         description: l10n.moodMedicineDoseOxytocinDescription,
       ),
       MoodMedicineDoseContent(
+        kind: MoodMedicineDoseKind.serotonin,
+        color: _serotoninColor,
         title: l10n.moodMedicineDoseSerotonin,
         description: l10n.moodMedicineDoseSerotoninDescription,
       ),
       MoodMedicineDoseContent(
+        kind: MoodMedicineDoseKind.endorphins,
+        color: _endorphinsColor,
         title: l10n.moodMedicineDoseEndorphins,
         description: l10n.moodMedicineDoseEndorphinsDescription,
       ),

@@ -28,12 +28,20 @@ class MoodMedicineTrendChart extends StatelessWidget {
     required this.points,
     required this.emptyLabel,
     required this.semanticSummary,
+    this.activityColors = const <String, Color>{},
     this.highlightedActivityId,
   });
 
   final List<MoodMedicineTrendPoint> points;
   final String emptyLabel;
   final String semanticSummary;
+
+  /// Activity colour cues keyed by stable activity ID.
+  ///
+  /// The visible activity-label chips and [semanticSummary] remain the
+  /// non-colour representation. IDs not present in this map use the themed
+  /// fallback colour, which keeps custom activities visible.
+  final Map<String, Color> activityColors;
   final String? highlightedActivityId;
 
   @override
@@ -68,8 +76,9 @@ class MoodMedicineTrendChart extends StatelessWidget {
               points: points,
               lineColor: colorScheme.primary,
               gridColor: colorScheme.outline.withValues(alpha: 0.25),
-              overlayColor: colorScheme.tertiary,
+              fallbackActivityColor: colorScheme.tertiary,
               pointCenterColor: colorScheme.surface,
+              activityColors: activityColors,
               highlightedActivityId: highlightedActivityId,
             ),
           ),
@@ -84,49 +93,72 @@ class _MoodMedicineTrendPainter extends CustomPainter {
     required this.points,
     required this.lineColor,
     required this.gridColor,
-    required this.overlayColor,
+    required this.fallbackActivityColor,
     required this.pointCenterColor,
+    required this.activityColors,
     required this.highlightedActivityId,
   });
 
   final List<MoodMedicineTrendPoint> points;
   final Color lineColor;
   final Color gridColor;
-  final Color overlayColor;
+  final Color fallbackActivityColor;
   final Color pointCenterColor;
+  final Map<String, Color> activityColors;
   final String? highlightedActivityId;
 
   @override
   void paint(Canvas canvas, Size size) {
-    const padding = EdgeInsets.fromLTRB(12, 12, 12, 18);
-    final chart = padding.deflateRect(Offset.zero & size);
-    if (chart.width <= 0 || chart.height <= 0 || points.isEmpty) {
+    const EdgeInsets padding = EdgeInsets.fromLTRB(12, 12, 12, 8);
+    const double activityBandHeight = 44;
+    final Rect available = padding.deflateRect(Offset.zero & size);
+    final Rect moodChart = Rect.fromLTRB(
+      available.left,
+      available.top,
+      available.right,
+      available.bottom - activityBandHeight,
+    );
+    if (moodChart.width <= 0 || moodChart.height <= 0 || points.isEmpty) {
       return;
     }
 
-    final gridPaint = Paint()
+    final Paint gridPaint = Paint()
       ..color = gridColor
       ..strokeWidth = 1;
     for (var index = 0; index < 5; index++) {
-      final y = chart.top + chart.height * index / 4;
-      canvas.drawLine(Offset(chart.left, y), Offset(chart.right, y), gridPaint);
+      final double y = moodChart.top + moodChart.height * index / 4;
+      canvas.drawLine(
+        Offset(moodChart.left, y),
+        Offset(moodChart.right, y),
+        gridPaint,
+      );
     }
 
     double xFor(int index) {
       if (points.length == 1) {
-        return chart.center.dx;
+        return moodChart.center.dx;
       }
-      return chart.left + chart.width * index / (points.length - 1);
+      return moodChart.left + moodChart.width * index / (points.length - 1);
     }
 
     double yFor(double value) {
-      final normalised = ((value.clamp(1, 5) - 1) / 4).toDouble();
-      return chart.bottom - chart.height * normalised;
+      final double normalised = ((value.clamp(1, 5) - 1) / 4).toDouble();
+      return moodChart.bottom - moodChart.height * normalised;
     }
 
-    final linePath = Path();
+    _paintActivityBand(
+      canvas,
+      activityIds: _orderedActivityIds(),
+      left: moodChart.left,
+      right: moodChart.right,
+      top: moodChart.bottom + 8,
+      height: activityBandHeight - 8,
+      xFor: xFor,
+    );
+
+    final Path linePath = Path();
     for (var index = 0; index < points.length; index++) {
-      final point = Offset(xFor(index), yFor(points[index].mood));
+      final Offset point = Offset(xFor(index), yFor(points[index].mood));
       if (index == 0) {
         linePath.moveTo(point.dx, point.dy);
       } else {
@@ -145,15 +177,18 @@ class _MoodMedicineTrendPainter extends CustomPainter {
     }
 
     for (var index = 0; index < points.length; index++) {
-      final item = points[index];
-      final isHighlighted =
+      final MoodMedicineTrendPoint item = points[index];
+      final bool isHighlighted =
           highlightedActivityId != null &&
           item.activityIds.contains(highlightedActivityId);
-      final point = Offset(xFor(index), yFor(item.mood));
+      final Offset point = Offset(xFor(index), yFor(item.mood));
+      final Color highlightedColor = highlightedActivityId == null
+          ? fallbackActivityColor
+          : activityColors[highlightedActivityId] ?? fallbackActivityColor;
       canvas.drawCircle(
         point,
         isHighlighted ? 7 : 5,
-        Paint()..color = isHighlighted ? overlayColor : lineColor,
+        Paint()..color = isHighlighted ? highlightedColor : lineColor,
       );
       canvas.drawCircle(
         point,
@@ -163,13 +198,82 @@ class _MoodMedicineTrendPainter extends CustomPainter {
     }
   }
 
+  List<String> _orderedActivityIds() {
+    final Set<String> presentIds = points
+        .expand((MoodMedicineTrendPoint point) => point.activityIds)
+        .toSet();
+    final List<String> customIds =
+        presentIds
+            .where((String id) => !activityColors.containsKey(id))
+            .toList()
+          ..sort();
+    return <String>[
+      ...activityColors.keys.where(presentIds.contains),
+      ...customIds,
+    ];
+  }
+
+  void _paintActivityBand(
+    Canvas canvas, {
+    required List<String> activityIds,
+    required double left,
+    required double right,
+    required double top,
+    required double height,
+    required double Function(int index) xFor,
+  }) {
+    if (activityIds.isEmpty || height <= 0) {
+      return;
+    }
+    var gap = 1.0;
+    var laneHeight =
+        (height - gap * (activityIds.length - 1)) / activityIds.length;
+    if (laneHeight < 1) {
+      gap = 0;
+      laneHeight = height / activityIds.length;
+    }
+    final double pointSpacing = points.length < 2
+        ? 8
+        : (right - left) / (points.length - 1);
+    final double markerWidth = math.min(8, math.max(1, pointSpacing * 0.7));
+    for (var pointIndex = 0; pointIndex < points.length; pointIndex++) {
+      final MoodMedicineTrendPoint point = points[pointIndex];
+      for (var laneIndex = 0; laneIndex < activityIds.length; laneIndex++) {
+        final String activityId = activityIds[laneIndex];
+        if (!point.activityIds.contains(activityId)) {
+          continue;
+        }
+        final bool isDimmed =
+            highlightedActivityId != null &&
+            highlightedActivityId != activityId;
+        final Color color =
+            (activityColors[activityId] ?? fallbackActivityColor).withValues(
+              alpha: isDimmed ? 0.45 : 1,
+            );
+        final double y = top + laneIndex * (laneHeight + gap);
+        canvas.drawRRect(
+          RRect.fromRectAndRadius(
+            Rect.fromCenter(
+              center: Offset(xFor(pointIndex), y + laneHeight / 2),
+              width: markerWidth,
+              height: laneHeight,
+            ),
+            const Radius.circular(1),
+          ),
+          Paint()..color = color,
+        );
+      }
+    }
+  }
+
   @override
   bool shouldRepaint(covariant _MoodMedicineTrendPainter oldDelegate) {
     return oldDelegate.points != points ||
         oldDelegate.lineColor != lineColor ||
         oldDelegate.gridColor != gridColor ||
-        oldDelegate.overlayColor != overlayColor ||
+        oldDelegate.fallbackActivityColor != fallbackActivityColor ||
         oldDelegate.pointCenterColor != pointCenterColor ||
+        oldDelegate.activityColors != activityColors ||
         oldDelegate.highlightedActivityId != highlightedActivityId;
   }
 }

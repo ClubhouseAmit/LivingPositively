@@ -44,5 +44,41 @@ void main() {
 
       expect(arabic.moodMedicineLoading, contains('متتبع المزاج'));
     });
+
+    test('should preserve the approved activity and D.O.S.E. colour cues', () {
+      expect(MoodMedicineContent.activityColors, const <String, Color>{
+        MoodMedicineContent.physicalActivityId: Color(0xFF1875D1),
+        MoodMedicineContent.restorativeSleepId: Color(0xFF993399),
+        MoodMedicineContent.nourishingMealId: Color(0xFFFFD54E),
+        MoodMedicineContent.socialConnectionId: Color(0xFFF34235),
+        MoodMedicineContent.daylightNatureId: Color(0xFF7BB241),
+        MoodMedicineContent.musicId: Color(0xFF0899CC),
+        MoodMedicineContent.laughterId: Color(0xFFFF8642),
+        MoodMedicineContent.actsOfKindnessId: Color(0xFFFE9701),
+      });
+
+      final AppLocalizations english = lookupAppLocalizations(
+        const Locale('en'),
+      );
+      expect(
+        MoodMedicineContent.activities(
+          english,
+        ).map((MoodMedicineActivityContent item) => item.color),
+        MoodMedicineContent.defaultActivityIds.map(
+          (String id) => MoodMedicineContent.activityColors[id],
+        ),
+      );
+      expect(
+        MoodMedicineContent.doseItems(
+          english,
+        ).map((MoodMedicineDoseContent item) => (item.kind, item.color)),
+        const <(MoodMedicineDoseKind, Color)>[
+          (MoodMedicineDoseKind.dopamine, Color(0xFF009933)),
+          (MoodMedicineDoseKind.oxytocin, Color(0xFF993399)),
+          (MoodMedicineDoseKind.serotonin, Color(0xFFFF8642)),
+          (MoodMedicineDoseKind.endorphins, Color(0xFF0899CC)),
+        ],
+      );
+    });
   });
 }

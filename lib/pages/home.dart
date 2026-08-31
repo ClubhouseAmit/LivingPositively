@@ -3,6 +3,7 @@ import 'dart:math';
 import 'package:flutter/material.dart';
 import 'package:get_it/get_it.dart';
 import 'package:mazilon/global_enums.dart';
+import 'package:mazilon/features/mood_medicine/ui/mood_medicine_home_insights_section.dart';
 import 'package:mazilon/l10n/app_localizations.dart';
 import 'package:mazilon/util/Form/retrieveInformation.dart';
 import 'package:mazilon/util/Form/formPagePhoneModel.dart';
@@ -181,39 +182,13 @@ class _HomeState extends LPExtendedState<Home> {
               ),
               SizedBox(height: AppSpacing.xl),
 
-              Card(
-                child: Padding(
-                  padding: const EdgeInsets.all(16),
-                  child: Row(
-                    children: [
-                      Icon(
-                        Icons.insights_outlined,
-                        color: Theme.of(context).colorScheme.primary,
-                      ),
-                      const SizedBox(width: 12),
-                      Expanded(
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Text(
-                              appLocale.moodMedicineTitle,
-                              style: Theme.of(context).textTheme.titleMedium,
-                            ),
-                            const SizedBox(height: 4),
-                            Text(appLocale.moodMedicineSubtitle),
-                          ],
-                        ),
-                      ),
-                      TextButton(
-                        key: const Key('moodMedicineHomeInsights'),
-                        onPressed: () => widget.changeCurrentIndex(
-                          context,
-                          PagesCode.MoodMedicinePage,
-                        ),
-                        child: Text(appLocale.moodMedicineViewInsights),
-                      ),
-                    ],
-                  ),
+              MoodMedicineHomeInsightsSection(
+                title: appLocale.moodMedicineTitle,
+                subtitle: appLocale.moodMedicineSubtitle,
+                actionLabel: appLocale.moodMedicineViewInsights,
+                onPressed: () => widget.changeCurrentIndex(
+                  context,
+                  PagesCode.MoodMedicinePage,
                 ),
               ),
 

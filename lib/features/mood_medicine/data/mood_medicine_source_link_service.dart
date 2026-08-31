@@ -8,10 +8,11 @@ import 'package:url_launcher/url_launcher.dart';
 abstract interface class MoodMedicineSourceLinkService {
   /// Opens [source] using the platform's external browser/application.
   ///
-  /// Returns `true` when the platform accepts the handoff and `false` when no
-  /// suitable external application is available. Platform launcher failures
-  /// are surfaced to the caller as exceptions so they can be logged without
-  /// exposing the source URL.
+  /// Non-HTTPS sources are rejected before the platform launcher is invoked.
+  /// Returns `true` when the platform accepts the handoff and `false` when the
+  /// source is rejected or no suitable external application is available.
+  /// Platform launcher failures are surfaced to the caller as exceptions so
+  /// they can be logged without exposing the source URL.
   Future<bool> openExternal(Uri source);
 }
 
@@ -23,6 +24,9 @@ final class UrlLauncherMoodMedicineSourceLinkService
 
   @override
   Future<bool> openExternal(Uri source) {
+    if (source.scheme.toLowerCase() != 'https') {
+      return Future<bool>.value(false);
+    }
     return launchUrl(
       source,
       mode: LaunchMode.externalApplication,

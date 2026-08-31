@@ -536,7 +536,7 @@ class _MoodMedicinePageState extends State<MoodMedicinePage> {
             children: <Widget>[
               Row(
                 children: <Widget>[
-                  Icon(activity.icon),
+                  Icon(activity.icon, color: activity.color),
                   const SizedBox(width: AppSpacing.md),
                   Expanded(
                     child: Text(
@@ -576,6 +576,7 @@ class _MoodMedicinePageState extends State<MoodMedicinePage> {
 
   Widget _buildCheckIn(AppLocalizations l10n, MoodMedicineReadyState ready) {
     final MoodMedicineCheckInForm form = ready.checkInForm;
+    final ThemeData theme = Theme.of(context);
     final List<_ActivityChip> activityChips = <_ActivityChip>[
       ..._activities(l10n)
           .where(
@@ -587,6 +588,7 @@ class _MoodMedicinePageState extends State<MoodMedicinePage> {
               id: activity.id,
               label: activity.label,
               icon: activity.icon,
+              color: activity.color,
               source: activity,
             ),
           ),
@@ -717,7 +719,23 @@ class _MoodMedicinePageState extends State<MoodMedicinePage> {
                             onSelected: ready.writesBlocked
                                 ? null
                                 : (_) => _viewModel.toggleActivity(item.id),
-                            avatar: Icon(item.icon, size: 18),
+                            backgroundColor: item.color?.withValues(
+                              alpha: theme.brightness == Brightness.dark
+                                  ? 0.24
+                                  : 0.12,
+                            ),
+                            selectedColor: item.color?.withValues(
+                              alpha: theme.brightness == Brightness.dark
+                                  ? 0.42
+                                  : 0.24,
+                            ),
+                            avatar: Icon(
+                              item.icon,
+                              size: 18,
+                              color:
+                                  item.color ??
+                                  theme.colorScheme.onSurfaceVariant,
+                            ),
                             label: Text(item.label),
                             deleteIcon: item.source == null
                                 ? null
@@ -807,6 +825,7 @@ class _MoodMedicinePageState extends State<MoodMedicinePage> {
 
   Widget _buildInsights(AppLocalizations l10n, MoodMedicineReadyState ready) {
     final MoodMedicineDashboard dashboard = ready.dashboard;
+    final ThemeData theme = Theme.of(context);
     final MoodMedicineTrendSeries trendSeries = dashboard.trendSeries;
     final List<MoodMedicineTrendCheckIn> checkIns = trendSeries.checkIns;
     final List<MoodMedicineTrendPoint> points = checkIns
@@ -869,6 +888,7 @@ class _MoodMedicinePageState extends State<MoodMedicinePage> {
                   _rangeLabel(l10n, ready.selectedRange),
                   _trendSummary(l10n, trendSeries),
                 ),
+                activityColors: MoodMedicineContent.activityColors,
                 highlightedActivityId: ready.highlightedActivityId,
               ),
               if (points.length == 1)
@@ -898,9 +918,26 @@ class _MoodMedicinePageState extends State<MoodMedicinePage> {
                   spacing: AppSpacing.sm,
                   runSpacing: AppSpacing.sm,
                   children: overlayActivityIds
-                      .map(
-                        (String activityId) => ChoiceChip(
+                      .map((String activityId) {
+                        final Color activityColor =
+                            MoodMedicineContent.activityColors[activityId] ??
+                            theme.colorScheme.outline;
+                        return ChoiceChip(
+                          key: Key('moodMedicineOverlay$activityId'),
                           selected: ready.highlightedActivityId == activityId,
+                          backgroundColor: activityColor.withValues(
+                            alpha: theme.brightness == Brightness.dark
+                                ? 0.24
+                                : 0.12,
+                          ),
+                          selectedColor: activityColor.withValues(
+                            alpha: theme.brightness == Brightness.dark
+                                ? 0.42
+                                : 0.24,
+                          ),
+                          avatar: ExcludeSemantics(
+                            child: _ActivityColorSwatch(color: activityColor),
+                          ),
                           label: Text(
                             dashboard.activityLabelForRange(activityId),
                           ),
@@ -908,8 +945,8 @@ class _MoodMedicinePageState extends State<MoodMedicinePage> {
                               _viewModel.setHighlightedActivity(
                                 selected ? activityId : null,
                               ),
-                        ),
-                      )
+                        );
+                      })
                       .toList(growable: false),
                 ),
               ],
@@ -1302,15 +1339,36 @@ class _MoodMedicinePageState extends State<MoodMedicinePage> {
                           (MoodMedicineDoseContent item) => SizedBox(
                             width: width,
                             child: _MoodSurface(
-                              color: Theme.of(
-                                context,
-                              ).colorScheme.secondary.withValues(alpha: 0.32),
+                              key: Key('moodMedicineDose${item.kind.name}'),
+                              color: item.color.withValues(
+                                alpha:
+                                    Theme.of(context).brightness ==
+                                        Brightness.dark
+                                    ? 0.28
+                                    : 0.14,
+                              ),
+                              borderColor: item.color,
                               child: Padding(
                                 padding: const EdgeInsets.all(AppSpacing.md),
                                 child: Column(
                                   mainAxisSize: MainAxisSize.min,
                                   crossAxisAlignment: CrossAxisAlignment.start,
                                   children: <Widget>[
+                                    ExcludeSemantics(
+                                      child: DecoratedBox(
+                                        decoration: BoxDecoration(
+                                          color: item.color,
+                                          borderRadius: BorderRadius.circular(
+                                            AppRadii.card,
+                                          ),
+                                        ),
+                                        child: const SizedBox(
+                                          width: 36,
+                                          height: 4,
+                                        ),
+                                      ),
+                                    ),
+                                    const SizedBox(height: AppSpacing.sm),
                                     Text(
                                       item.title,
                                       style: Theme.of(
@@ -1700,20 +1758,42 @@ class _ActivityChip {
     required this.id,
     required this.label,
     required this.icon,
+    this.color,
     this.source,
   });
 
   final String id;
   final String label;
   final IconData icon;
+  final Color? color;
   final MoodMedicineActivityContent? source;
 }
 
+class _ActivityColorSwatch extends StatelessWidget {
+  const _ActivityColorSwatch({required this.color});
+
+  final Color color;
+
+  @override
+  Widget build(BuildContext context) {
+    return DecoratedBox(
+      decoration: BoxDecoration(color: color, shape: BoxShape.circle),
+      child: const SizedBox(width: 10, height: 10),
+    );
+  }
+}
+
 class _MoodSurface extends StatelessWidget {
-  const _MoodSurface({required this.child, this.color});
+  const _MoodSurface({
+    super.key,
+    required this.child,
+    this.color,
+    this.borderColor,
+  });
 
   final Widget child;
   final Color? color;
+  final Color? borderColor;
 
   @override
   Widget build(BuildContext context) {
@@ -1725,7 +1805,7 @@ class _MoodSurface extends StatelessWidget {
       decoration: BoxDecoration(
         color: color ?? theme.colorScheme.surface,
         borderRadius: BorderRadius.circular(AppRadii.card),
-        border: Border.all(color: outline),
+        border: Border.all(color: borderColor ?? outline),
       ),
       child: child,
     );

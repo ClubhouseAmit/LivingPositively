@@ -343,6 +343,7 @@ void main() {
       );
       expect(chart.points.first.activityIds, <String>{'music'});
       expect(chart.points.last.activityIds, <String>{'social_connection'});
+      expect(chart.activityColors, MoodMedicineContent.activityColors);
       expect(chart.semanticSummary, isNot(contains('2026-08-29')));
       expect(
         intl.DateFormat.yMMMMd(
@@ -360,6 +361,20 @@ void main() {
             l10n,
             MoodMedicineContent.musicId,
           )!.label,
+        ),
+        findsOneWidget,
+      );
+      expect(
+        find.byKey(
+          const Key('moodMedicineOverlay${MoodMedicineContent.musicId}'),
+        ),
+        findsOneWidget,
+      );
+      expect(
+        find.byKey(
+          const Key(
+            'moodMedicineOverlay${MoodMedicineContent.socialConnectionId}',
+          ),
         ),
         findsOneWidget,
       );
@@ -700,6 +715,79 @@ void main() {
       expect(find.byKey(const Key('moodMedicineNoteField')), findsOneWidget);
       expect(tester.takeException(), isNull);
     });
+
+    testWidgets(
+      'should keep PDF activity and D.O.S.E. colour cues in both themes',
+      (WidgetTester tester) async {
+        _setLargeScreen(tester);
+        final MoodMedicineViewModel checkInViewModel = _viewModel(
+          ContractPersistentMemoryService(),
+        );
+        await checkInViewModel.load(
+          initialView: MoodMedicineInitialView.checkIn,
+        );
+        await tester.pumpWidget(
+          _app(
+            viewModel: checkInViewModel,
+            initialView: MoodMedicineInitialView.checkIn,
+            theme: buildLightTheme(),
+          ),
+        );
+        await tester.pumpAndSettle();
+        await tester.tap(find.byKey(const Key('moodMedicineMood3')));
+        await tester.pumpAndSettle();
+
+        final FilterChip physicalActivityChip = tester.widget<FilterChip>(
+          find.byKey(
+            const Key(
+              'moodMedicineActivity${MoodMedicineContent.physicalActivityId}',
+            ),
+          ),
+        );
+        expect(
+          (physicalActivityChip.avatar! as Icon).color,
+          const Color(0xFF1875D1),
+        );
+
+        final MoodMedicineViewModel educationViewModel = _viewModel(
+          ContractPersistentMemoryService(),
+        );
+        await educationViewModel.load(
+          initialView: MoodMedicineInitialView.education,
+        );
+        await tester.pumpWidget(
+          _app(
+            viewModel: educationViewModel,
+            initialView: MoodMedicineInitialView.education,
+            locale: const Locale('ar'),
+            theme: buildDarkTheme(),
+          ),
+        );
+        await tester.pumpAndSettle();
+
+        expect(
+          Directionality.of(tester.element(find.byType(MoodMedicinePage))),
+          TextDirection.rtl,
+        );
+        final AppLocalizations l10n = AppLocalizations.of(
+          tester.element(find.byType(MoodMedicinePage)),
+        )!;
+        for (final MoodMedicineDoseContent item
+            in MoodMedicineContent.doseItems(l10n)) {
+          final DecoratedBox surface = tester.widget<DecoratedBox>(
+            find
+                .descendant(
+                  of: find.byKey(Key('moodMedicineDose${item.kind.name}')),
+                  matching: find.byType(DecoratedBox),
+                )
+                .first,
+          );
+          final BoxDecoration decoration = surface.decoration as BoxDecoration;
+          expect((decoration.border! as Border).top.color, item.color);
+        }
+        expect(tester.takeException(), isNull);
+      },
+    );
 
     for (final _SourceEntryPoint entryPoint in _SourceEntryPoint.values) {
       testWidgets(
@@ -1138,7 +1226,9 @@ void main() {
           findsOneWidget,
         );
         expect(viewModel.readyState!.presentation, isNotNull);
-        expect(await viewModel.buildReport(), isNotNull);
+        final MoodMedicineReportBuildOutcome outcome = await viewModel
+            .buildReport();
+        expect(outcome, isA<MoodMedicineReportBuiltOutcome>());
         expect(memory.completedWrites, hasLength(1));
       },
     );
@@ -1236,7 +1326,9 @@ void main() {
       await tester.pumpWidget(_app(viewModel: viewModel));
       await tester.pumpAndSettle();
 
-      expect(await viewModel.buildReport(), isNotNull);
+      final MoodMedicineReportBuildOutcome outcome = await viewModel
+          .buildReport();
+      expect(outcome, isA<MoodMedicineReportBuiltOutcome>());
       expect(await viewModel.shareBuiltReport(), isFalse);
       await tester.pump();
 
