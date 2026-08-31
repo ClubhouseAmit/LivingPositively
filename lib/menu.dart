@@ -238,7 +238,13 @@ class _MenuState extends LPExtendedState<Menu> {
       changeLocale: widget.changeLocale,
       openMainMenu: _showMainMenu,
       openMoodMedicineCheckIn: _showMoodMedicineCheckIn,
+      moodMedicineAvailable: _moodMedicineAvailable,
     );
+  }
+
+  bool get _moodMedicineAvailable {
+    return widget.moodMedicineViewModelFactory != null ||
+        GetIt.instance.isRegistered<MoodMedicineViewModel>();
   }
 
   void _showMoodMedicineCheckIn() {

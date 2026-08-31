@@ -28,6 +28,7 @@ class Home extends StatefulWidget {
   final Function changeLocale;
   final void Function(BuildContext) openMainMenu;
   final VoidCallback? openMoodMedicineCheckIn;
+  final bool moodMedicineAvailable;
 
   const Home({
     super.key,
@@ -36,6 +37,7 @@ class Home extends StatefulWidget {
     required this.changeLocale,
     required this.openMainMenu,
     this.openMoodMedicineCheckIn,
+    this.moodMedicineAvailable = true,
   });
 
   @override
@@ -186,6 +188,7 @@ class _HomeState extends LPExtendedState<Home> {
                 title: appLocale.moodMedicineTitle,
                 subtitle: appLocale.moodMedicineSubtitle,
                 actionLabel: appLocale.moodMedicineViewInsights,
+                isAvailable: widget.moodMedicineAvailable,
                 onPressed: () => widget.changeCurrentIndex(
                   context,
                   PagesCode.MoodMedicinePage,

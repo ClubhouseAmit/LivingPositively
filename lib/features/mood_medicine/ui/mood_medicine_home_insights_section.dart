@@ -1,4 +1,6 @@
 import 'package:flutter/material.dart';
+import 'package:mazilon/util/styles.dart';
+import 'package:mazilon/util/theme/spacing.dart';
 
 /// Home entry point for the Mood Medicine insights dashboard.
 ///
@@ -11,22 +13,24 @@ final class MoodMedicineHomeInsightsSection extends StatelessWidget {
     required this.subtitle,
     required this.actionLabel,
     required this.onPressed,
+    this.isAvailable = true,
   });
 
   final String title;
   final String subtitle;
   final String actionLabel;
   final VoidCallback onPressed;
+  final bool isAvailable;
 
   @override
   Widget build(BuildContext context) {
     final ThemeData theme = Theme.of(context);
     return Card(
       child: Padding(
-        padding: const EdgeInsets.all(16),
+        padding: const EdgeInsets.all(AppSpacing.lg),
         child: LayoutBuilder(
           builder: (BuildContext context, BoxConstraints constraints) {
-            final bool stackAction =
+            final bool shouldStackAction =
                 constraints.maxWidth < 480 ||
                 MediaQuery.textScalerOf(context).scale(1) > 1.2;
             final Widget icon = Icon(
@@ -37,19 +41,29 @@ final class MoodMedicineHomeInsightsSection extends StatelessWidget {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Text(title, style: theme.textTheme.titleMedium),
-                  const SizedBox(height: 4),
-                  Text(subtitle),
+                  myText(title, theme.textTheme.titleMedium, TextAlign.start),
+                  const SizedBox(height: AppSpacing.xs),
+                  myText(subtitle, theme.textTheme.bodyMedium, TextAlign.start),
                 ],
               ),
             );
+
+            // This compact text-only CTA intentionally remains a TextButton:
+            // ConfirmationButton is full-width and LinkButton requires an
+            // icon, so neither shared primitive matches this card's design.
             final Widget action = TextButton(
               key: const Key('moodMedicineHomeInsights'),
-              onPressed: onPressed,
-              child: Text(actionLabel),
+              onPressed: isAvailable ? onPressed : null,
+              child: myAutoSizedText(
+                actionLabel,
+                theme.textTheme.labelLarge,
+                TextAlign.center,
+                theme.textTheme.labelLarge?.fontSize ?? 14,
+                1,
+              ),
             );
 
-            if (stackAction) {
+            if (shouldStackAction) {
               return Column(
                 crossAxisAlignment: CrossAxisAlignment.stretch,
                 children: [

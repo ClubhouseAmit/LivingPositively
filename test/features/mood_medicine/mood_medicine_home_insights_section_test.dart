@@ -1,3 +1,4 @@
+import 'package:auto_size_text/auto_size_text.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:mazilon/features/mood_medicine/ui/mood_medicine_home_insights_section.dart';
@@ -25,9 +26,30 @@ void main() {
       expect(find.text('Mood Medicine'), findsOneWidget);
       expect(find.text('Track how you feel'), findsOneWidget);
       expect(find.text('View insights'), findsOneWidget);
+      expect(find.byType(AutoSizeText), findsOneWidget);
 
       await tester.tap(find.byKey(const Key('moodMedicineHomeInsights')));
       expect(pressed, isTrue);
+    });
+
+    testWidgets('should disable the action when Mood Medicine is unavailable', (
+      WidgetTester tester,
+    ) async {
+      await tester.pumpWidget(
+        _harness(
+          width: 600,
+          title: 'Mood Medicine',
+          subtitle: 'Track how you feel',
+          actionLabel: 'View insights',
+          isAvailable: false,
+        ),
+      );
+
+      final TextButton action = tester.widget<TextButton>(
+        find.byKey(const Key('moodMedicineHomeInsights')),
+      );
+      expect(action.onPressed, isNull);
+      expect(tester.takeException(), isNull);
     });
 
     testWidgets(
@@ -114,6 +136,7 @@ Widget _harness({
   required String title,
   required String subtitle,
   required String actionLabel,
+  bool isAvailable = true,
 }) {
   return MaterialApp(
     locale: locale,
@@ -128,6 +151,7 @@ Widget _harness({
               title: title,
               subtitle: subtitle,
               actionLabel: actionLabel,
+              isAvailable: isAvailable,
               onPressed: () {},
             ),
           ),

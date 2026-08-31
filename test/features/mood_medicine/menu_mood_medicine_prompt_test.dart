@@ -1,6 +1,6 @@
 import 'dart:async';
 
-import 'package:flutter/widgets.dart';
+import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:get_it/get_it.dart';
 import 'package:mocktail/mocktail.dart';
@@ -205,6 +205,10 @@ void main() {
 
         expect(find.byType(Home), findsOneWidget);
         expect(find.byType(MoodMedicinePage), findsNothing);
+        final TextButton action = tester.widget<TextButton>(
+          find.byKey(const Key('moodMedicineHomeInsights')),
+        );
+        expect(action.onPressed, isNull);
         expect(tester.takeException(), isNull);
       },
     );
