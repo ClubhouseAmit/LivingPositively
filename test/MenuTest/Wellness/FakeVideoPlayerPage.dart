@@ -13,10 +13,26 @@ class FakeVideoPlayerPage extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    // Simulate a mock video player
-    return Container(
-      color: Colors.grey,
-      child: Center(child: Text('Mock Video Player')),
+    return SizedBox.expand(
+      key: const Key('fake-video-player'),
+      child: ColoredBox(
+        color: Colors.grey,
+        child: Row(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            IconButton(
+              key: const Key('fake-video-player-enter-fullscreen'),
+              onPressed: () => onFullScreenChanged(true),
+              icon: const Icon(Icons.fullscreen),
+            ),
+            IconButton(
+              key: const Key('fake-video-player-exit-fullscreen'),
+              onPressed: () => onFullScreenChanged(false),
+              icon: const Icon(Icons.fullscreen_exit),
+            ),
+          ],
+        ),
+      ),
     );
   }
 }

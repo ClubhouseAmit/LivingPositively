@@ -315,8 +315,11 @@ class _MenuState extends LPExtendedState<Menu> {
           if (current == PagesCode.Home) {
             SystemChannels.platform.invokeMethod('SystemNavigator.pop');
           }
-          changeCurrentIndex(context, PagesCode.Home);
-          currentScreen = _buildHomeScreen();
+          setState(() {
+            current = PagesCode.Home;
+            currentScreen = _buildHomeScreen();
+            isFullScreen = false;
+          });
         }
       },
       child: Scaffold(

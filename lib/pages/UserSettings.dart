@@ -773,7 +773,8 @@ class _UserSettingsState extends LPExtendedState<UserSettings> {
       MediaQuery.sizeOf(context).width,
     );
     final settingsFieldWidth = math.max(0.0, contentWidth - _kContentInsetX);
-    final colorScheme = Theme.of(context).colorScheme;
+    final theme = Theme.of(context);
+    final colorScheme = theme.colorScheme;
     final selectedGenderLabel =
         selectedGender?.label(appLocale) ??
         Gender.of(userInfoProvider).label(appLocale);
@@ -792,7 +793,8 @@ class _UserSettingsState extends LPExtendedState<UserSettings> {
         // Design node F4VwZQ ("Nav Bar"): flat surface, centred 17/600 title,
         // and a circular back chip on the reading-start side.
         appBar: AppBar(
-          backgroundColor: colorScheme.surface,
+          backgroundColor:
+              theme.appBarTheme.backgroundColor ?? colorScheme.surface,
           surfaceTintColor: Colors.transparent,
           elevation: 0,
           // 8 of padding above and below the 36-high back chip, down from the

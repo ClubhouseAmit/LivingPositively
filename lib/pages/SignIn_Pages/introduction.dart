@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:mazilon/util/LP_extended_state.dart';
+import 'package:mazilon/util/layout/directional_widgets.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 
 // Introduction widget serves as an initial loading screen or introduction page.
@@ -49,8 +50,7 @@ class _IntroductionState extends LPExtendedState<Introduction>
               const Spacer(flex: 3),
               // Center Logo (LP Butterfly)
               Center(
-                child: Image.asset(
-                  'assets/images/Logo.png',
+                child: LivingPositivelyLogo(
                   width: 180.w,
                   fit: BoxFit.contain,
                 ),

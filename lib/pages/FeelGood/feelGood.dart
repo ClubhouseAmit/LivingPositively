@@ -11,6 +11,7 @@ import 'package:mazilon/pages/FeelGood/image_display_item.dart';
 import 'package:mazilon/pages/FeelGood/image_picker_service_impl.dart';
 import 'package:mazilon/util/LP_extended_state.dart';
 import 'package:mazilon/util/async/async_state_view.dart';
+import 'package:mazilon/util/layout/directional_widgets.dart';
 import 'package:mazilon/util/styles.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:mazilon/util/userInformation.dart';
@@ -28,6 +29,7 @@ class _FeelGoodPageState extends LPExtendedState<FeelGood> {
   List<String> imagePaths = [];
   Map<String, int> imageRotations = {};
   late Future<List<String>> _loadImagesFuture;
+  final ScrollController _scrollController = ScrollController();
   AnalyticsService mixPanelService = GetIt.instance<AnalyticsService>();
 
   @override
@@ -95,6 +97,12 @@ class _FeelGoodPageState extends LPExtendedState<FeelGood> {
   }
 
   @override
+  void dispose() {
+    _scrollController.dispose();
+    super.dispose();
+  }
+
+  @override
   Widget build(BuildContext context) {
     final userInfoProvider = Provider.of<UserInformation>(
       context,
@@ -134,8 +142,7 @@ class _FeelGoodPageState extends LPExtendedState<FeelGood> {
           child: SafeArea(
             child: SizedBox(
               height: 130.0,
-              child: Image.asset(
-                'assets/images/Logo.png',
+              child: LivingPositivelyLogo(
                 width: MediaQuery.of(context).size.width * 0.4 > 1000
                     ? 500
                     : MediaQuery.of(context).size.width * 0.2,
@@ -143,47 +150,45 @@ class _FeelGoodPageState extends LPExtendedState<FeelGood> {
             ),
           ),
         ),
-        body: SingleChildScrollView(
-          child: ConstrainedBox(
-            constraints: BoxConstraints(
-              minHeight: MediaQuery.of(context).size.height,
-            ),
-            child: Column(
-              children: [
-                Container(
-                  alignment: Alignment.topCenter,
-                  margin: const EdgeInsets.symmetric(horizontal: 15),
-                  child: myAutoSizedText(
-                    appLocale.feelGoodTitle(gender),
-                    TextStyle(
-                      fontWeight: FontWeight.bold,
-                      // .sp so the heading scales with system text-scale.
-                      fontSize: 30.sp,
+        body: Scrollbar(
+          controller: _scrollController,
+          child: SingleChildScrollView(
+            controller: _scrollController,
+            child: ConstrainedBox(
+              constraints: BoxConstraints(
+                minHeight: MediaQuery.of(context).size.height,
+              ),
+              child: Column(
+                children: [
+                  Container(
+                    alignment: Alignment.topCenter,
+                    margin: const EdgeInsets.symmetric(horizontal: 15),
+                    child: myAutoSizedText(
+                      appLocale.feelGoodTitle(gender),
+                      TextStyle(
+                        fontWeight: FontWeight.bold,
+                        // .sp so the heading scales with system text-scale.
+                        fontSize: 30.sp,
+                      ),
+                      TextAlign.center,
+                      60,
                     ),
-                    TextAlign.center,
-                    60,
                   ),
-                ),
-                const SizedBox(height: 5),
-                Padding(
-                  padding: const EdgeInsets.all(8.0),
-                  child: myAutoSizedText(
-                    appLocale.feelGoodSubTitle(gender),
-                    TextStyle(fontSize: 18.sp),
-                    null,
-                    18,
+                  const SizedBox(height: 5),
+                  Padding(
+                    padding: const EdgeInsets.all(8.0),
+                    child: myAutoSizedText(
+                      appLocale.feelGoodSubTitle(gender),
+                      TextStyle(fontSize: 18.sp),
+                      null,
+                      18,
+                    ),
                   ),
-                ),
-                Padding(
-                  padding: const EdgeInsets.symmetric(horizontal: 8.0),
-                  child: Scrollbar(
-                    //images uploaded from phone grid view:
-                    // Phase E (ADR-005 §Decision step 5): the bare
-                    // FutureBuilder here showed a spinner only while waiting
-                    // and rendered an empty grid on failure with no recovery
-                    // (UX_GAPS.md §3.10). Routed through the shared
-                    // AsyncStateView so loading is screen-reader announced and
-                    // a failed load surfaces a retry affordance.
+                  Padding(
+                    padding: const EdgeInsets.symmetric(horizontal: 8.0),
+                    // Images uploaded from the phone grid view remain
+                    // shrink-wrapped so the page-level scroll view owns all
+                    // vertical scrolling.
                     child: AsyncStateView<List<String>>(
                       future: _loadImagesFuture,
                       onRetry: _retryLoadImages,
@@ -219,8 +224,8 @@ class _FeelGoodPageState extends LPExtendedState<FeelGood> {
                       },
                     ),
                   ),
-                ),
-              ],
+                ],
+              ),
             ),
           ),
         ),

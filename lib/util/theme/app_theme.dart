@@ -9,11 +9,13 @@ import 'package:flutter/material.dart';
 /// so the palette was decorative rather than enforced — see
 /// `docs/UX_GAPS.md §1.1, §1.2`.
 ///
-/// `AppColors` is the token layer the audit asked for. The brand-palette
-/// values are preserved exactly (so this PR is visually a no-op) and
-/// re-exposed under semantic names that `ColorScheme` understands. The
-/// nine legacy variables in `styles.dart` now forward to these tokens —
-/// the ADR's mitigation for the large blast radius.
+/// `AppColors` is the token layer the audit asked for. The light brand
+/// palette and explicitly preserved legacy/PDF values are re-exposed under
+/// semantic names that `ColorScheme` understands. The dark primary,
+/// secondary, surface, error, outline, and navigation tokens intentionally
+/// migrate to the cool taupe palette consumed by [appDarkColorScheme] and
+/// [buildDarkTheme]. The nine legacy variables in `styles.dart` now forward
+/// to these tokens — the ADR's mitigation for the large blast radius.
 class AppColors {
   AppColors._();
 
@@ -48,42 +50,47 @@ class AppColors {
   /// Foreground on `error`.
   static const Color onError = Colors.white;
 
-  /// Dark-mode equivalent of the brand lavender. The light value would not
-  /// maintain enough contrast against the dark surface for controls.
+  /// Muted beige used for primary controls in the taupe dark palette.
   static const Color darkPrimary = Color(0xFFD7C2FF);
 
-  /// Foreground colour on [darkPrimary].
-  static const Color darkOnPrimary = Color(0xFF2E1649);
+  /// Accessible charcoal-taupe foreground on [darkPrimary].
+  static const Color darkOnPrimary = Color(0xFF2B2A2C);
 
-  /// Dark-mode secondary accent for selected and supporting controls.
-  static const Color darkSecondary = Color(0xFFE8D7FF);
+  /// Muted greige used for selected and supporting dark-mode controls.
+  static const Color darkSecondary = Color(0xFFB9AEA0);
 
   /// Foreground colour on [darkSecondary].
-  static const Color darkOnSecondary = Color(0xFF2A1941);
+  static const Color darkOnSecondary = Color(0xFF2B2A2C);
 
   /// Home page background in light mode — warm cream.
   static const Color pageBackground = Color(0xFFF4F0EB);
 
-  /// Home page background in dark mode — warm dark brown.
-  static const Color darkPageBackground = Color(0xFF1C1814);
+  /// Home page background in dark mode — gently warm charcoal taupe.
+  static const Color darkPageBackground = Color(0xFF2D2B2A);
 
-  /// Bottom navbar background in dark mode — visibly lighter warm brown.
-  static const Color darkNavBackground = Color(0xFF4A4440);
+  /// App and navigation chrome in dark mode — cool dark taupe.
+  static const Color darkNavBackground = Color(0xFF393739);
 
-  /// Default dark scaffold and page surface.
-  static const Color darkSurface = Color(0xFF141218);
+  /// Default dark page surface.
+  static const Color darkSurface = Color(0xFF2B2A2C);
 
-  /// Elevated dark surface used by cards and input controls.
-  static const Color darkSurfaceContainer = Color(0xFF211F26);
+  /// Elevated taupe surface used by cards and input controls.
+  static const Color darkSurfaceContainer = Color(0xFF4C494B);
 
   /// Body-text colour on [darkSurface].
-  static const Color darkOnSurface = Color(0xFFE7E0E8);
+  static const Color darkOnSurface = Color(0xFFF5F0E8);
 
-  /// Accessible destructive colour for dark mode.
-  static const Color darkError = Color(0xFFFFB4AB);
+  /// Pure-white outline for the lower logo letters in dark mode.
+  ///
+  /// This artwork-specific token is deliberately not a [ColorScheme]
+  /// foreground: regular dark-mode text uses [darkOnSurface].
+  static const Color darkLogoOutline = Color(0xFFFFFFFF);
+
+  /// Accessible muted-rose destructive colour for dark mode.
+  static const Color darkError = Color(0xFFA15857);
 
   /// Foreground on [darkError].
-  static const Color darkOnError = Color(0xFF690005);
+  static const Color darkOnError = Color(0xFFFFF5F0);
 
   // -- Non-ColorScheme tokens (no semantic slot, kept for legacy parity) --
 
@@ -99,14 +106,14 @@ class AppColors {
   /// Muted text/icon grey. Source: legacy `darkGray`.
   static const Color neutralDark = Color(0xFF9A9EB6);
 
-  /// Success accent that remains legible on the dark surface.
-  static const Color darkSuccess = Color(0xFF87E990);
+  /// Forest-sage success accent that remains legible on the dark surface.
+  static const Color darkSuccess = Color(0xFF74AD82);
 
   /// Foreground on [darkSuccess].
-  static const Color darkOnSuccess = Color(0xFF003913);
+  static const Color darkOnSuccess = Color(0xFF102A1B);
 
-  /// Muted text, borders, and dividers in dark mode.
-  static const Color darkOutline = Color(0xFFCBC4D0);
+  /// Accessible beige outline and small-text accent in dark mode.
+  static const Color darkOutline = Color(0xFFD0C1A4);
 
   /// Inactive onboarding progress-dot fill — a lighter, distinct grey from
   /// [neutralDark]. Figma node 1660:2067; no dark-mode treatment designed
@@ -159,6 +166,7 @@ const ColorScheme appDarkColorScheme = ColorScheme.dark(
   error: AppColors.darkError,
   onError: AppColors.darkOnError,
   outline: AppColors.darkOutline,
+  outlineVariant: AppColors.darkOutline,
   surfaceContainerHighest: AppColors.darkSurfaceContainer,
 );
 
@@ -194,7 +202,7 @@ ThemeData buildDarkTheme() {
     cardColor: AppColors.darkSurfaceContainer,
     dividerColor: AppColors.darkOnSurface.withValues(alpha: 0.2),
     appBarTheme: const AppBarTheme(
-      backgroundColor: AppColors.darkSurface,
+      backgroundColor: AppColors.darkNavBackground,
       foregroundColor: AppColors.darkOnSurface,
     ),
     inputDecorationTheme: const InputDecorationTheme(
