@@ -5,6 +5,7 @@ import 'package:flutter/material.dart';
 import 'package:get_it/get_it.dart';
 import 'package:mazilon/AnalyticsService.dart';
 import 'package:mazilon/global_enums.dart';
+import 'package:mazilon/features/mood_medicine/ui/mood_medicine_home_insights_section.dart';
 import 'package:mazilon/l10n/app_localizations.dart';
 import 'package:mazilon/util/Form/retrieveInformation.dart';
 import 'package:mazilon/util/Form/formPagePhoneModel.dart';
@@ -28,6 +29,8 @@ class Home extends StatefulWidget {
   final Function(BuildContext, PagesCode) changeCurrentIndex;
   final Function changeLocale;
   final void Function(BuildContext) openMainMenu;
+  final VoidCallback? openMoodMedicineCheckIn;
+  final bool moodMedicineAvailable;
 
   const Home({
     super.key,
@@ -35,6 +38,8 @@ class Home extends StatefulWidget {
     required this.changeCurrentIndex,
     required this.changeLocale,
     required this.openMainMenu,
+    this.openMoodMedicineCheckIn,
+    this.moodMedicineAvailable = true,
   });
 
   @override
@@ -186,6 +191,7 @@ class _HomeState extends LPExtendedState<Home> {
                       PagesCode.NotificationPage,
                     );
                   },
+                  onMoodMedicinePressed: widget.openMoodMedicineCheckIn,
                 ),
                 onMenuTap: () => widget.openMainMenu(context),
               ),
@@ -200,6 +206,19 @@ class _HomeState extends LPExtendedState<Home> {
                   onEdit: (index) => _editReminderDialog(context, reminderText),
                 ),
               ),
+              SizedBox(height: AppSpacing.xl),
+
+              MoodMedicineHomeInsightsSection(
+                title: appLocale.moodMedicineTitle,
+                subtitle: appLocale.moodMedicineSubtitle,
+                actionLabel: appLocale.moodMedicineViewInsights,
+                isAvailable: widget.moodMedicineAvailable,
+                onPressed: () => widget.changeCurrentIndex(
+                  context,
+                  PagesCode.MoodMedicinePage,
+                ),
+              ),
+
               SizedBox(height: AppSpacing.xl),
 
               // My Plan

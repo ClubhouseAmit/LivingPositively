@@ -11,11 +11,12 @@ import 'package:flutter/material.dart';
 ///
 /// `AppColors` is the token layer the audit asked for. The light brand
 /// palette and explicitly preserved legacy/PDF values are re-exposed under
-/// semantic names that `ColorScheme` understands. The dark primary,
-/// secondary, surface, error, outline, and navigation tokens intentionally
-/// migrate to the cool taupe palette consumed by [appDarkColorScheme] and
-/// [buildDarkTheme]. The nine legacy variables in `styles.dart` now forward
-/// to these tokens — the ADR's mitigation for the large blast radius.
+/// semantic names that `ColorScheme` understands. The dark secondary, surface,
+/// error, outline, and navigation tokens intentionally migrate to the cool
+/// taupe palette consumed by [appDarkColorScheme] and [buildDarkTheme], while
+/// the dark primary retains the approved pale-lavender button background. The
+/// nine legacy variables in `styles.dart` now forward to these tokens — the
+/// ADR's mitigation for the large blast radius.
 class AppColors {
   AppColors._();
 
@@ -50,7 +51,7 @@ class AppColors {
   /// Foreground on `error`.
   static const Color onError = Colors.white;
 
-  /// Muted beige used for primary controls in the taupe dark palette.
+  /// Pale lavender used for primary button backgrounds in dark mode.
   static const Color darkPrimary = Color(0xFFD7C2FF);
 
   /// Accessible charcoal-taupe foreground on [darkPrimary].

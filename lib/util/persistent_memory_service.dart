@@ -24,6 +24,9 @@ abstract class PersistentMemoryService {
   /// A concurrent read can observe implementation-specific visible state and
   /// does not establish that a write completed durably. Callers must not rely
   /// on it to observe either the old or new value during a pending operation.
+  /// Underlying platform read failures propagate to the caller after
+  /// best-effort incident logging. A [TypeError] from a primitive getter is
+  /// retained as the legacy malformed-value fallback and returns `null`.
   Future<dynamic> getItem(String key, PersistentMemoryType type);
 
   /// Clears persisted values after earlier accepted writes complete.
@@ -151,10 +154,16 @@ class SharedPreferencesService implements PersistentMemoryService {
       try {
         await loggerService.captureLog(error, stackTrace: stackTrace);
       } catch (_) {
-        // A logger failure must not turn malformed stored data into a read
-        // failure.
+        // A logger failure must not mask the original persistence read error.
       }
-      return null;
+      if (error is TypeError) {
+        // The legacy service treats a value stored under the wrong primitive
+        // type as malformed data and supplies the same fallback as a missing
+        // value. Other platform/read failures must remain observable to the
+        // feature that needs to distinguish them.
+        return null;
+      }
+      rethrow;
     }
   }
 

@@ -6,6 +6,8 @@ import 'package:mazilon/AnalyticsService.dart';
 import 'package:mazilon/file_service.dart';
 import 'package:mazilon/global_enums.dart';
 import 'package:mazilon/iFx/service_locator.dart';
+import 'package:mazilon/features/mood_medicine/data/mood_medicine_models.dart';
+import 'package:mazilon/features/mood_medicine/data/mood_medicine_store.dart';
 import 'package:mazilon/util/appInformation.dart';
 import 'package:mazilon/util/persistent_memory_service.dart';
 import 'package:mazilon/util/userInformation.dart';
@@ -52,6 +54,20 @@ final class _FakePersistentMemoryService
       };
     }
   }
+}
+
+String _completedMoodMedicineSnapshot() {
+  final DateTime now = DateTime.now();
+  return MoodMedicineSnapshot(
+    entries: <MoodMedicineEntry>[
+      MoodMedicineEntry(
+        id: 'existing-mood-entry',
+        occurredAtUtc: now.toUtc(),
+        localDayKey: moodMedicineLocalDayKey(now),
+        mood: 3,
+      ),
+    ],
+  ).encode();
 }
 
 class _FakeFileService implements FileService {
@@ -101,6 +117,7 @@ void main() {
           'location': '',
           'phonePageDataSavedPhoneNames': <String>[],
           'phonePageDataSavedPhoneNumbers': <String>[],
+          MoodMedicineStore.snapshotKey: _completedMoodMedicineSnapshot(),
         },
       ),
     );

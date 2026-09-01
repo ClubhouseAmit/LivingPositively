@@ -3267,6 +3267,910 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Sign In'**
   String get authNotSignedInButton;
+
+  /// No description provided for @moodMedicineTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Mood Tracker & Personal Medicine'**
+  String get moodMedicineTitle;
+
+  /// No description provided for @moodMedicineSubtitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Notice patterns in your mood and everyday activities.'**
+  String get moodMedicineSubtitle;
+
+  /// No description provided for @moodMedicineQuickCheckIn.
+  ///
+  /// In en, this message translates to:
+  /// **'Quick check-in'**
+  String get moodMedicineQuickCheckIn;
+
+  /// No description provided for @moodMedicineCheckIn.
+  ///
+  /// In en, this message translates to:
+  /// **'Check in'**
+  String get moodMedicineCheckIn;
+
+  /// No description provided for @moodMedicineHowFeel.
+  ///
+  /// In en, this message translates to:
+  /// **'How are you feeling right now?'**
+  String get moodMedicineHowFeel;
+
+  /// No description provided for @moodMedicineChooseMood.
+  ///
+  /// In en, this message translates to:
+  /// **'Choose one mood'**
+  String get moodMedicineChooseMood;
+
+  /// No description provided for @moodMedicineMoodVeryLow.
+  ///
+  /// In en, this message translates to:
+  /// **'Very low'**
+  String get moodMedicineMoodVeryLow;
+
+  /// No description provided for @moodMedicineMoodLow.
+  ///
+  /// In en, this message translates to:
+  /// **'Low'**
+  String get moodMedicineMoodLow;
+
+  /// No description provided for @moodMedicineMoodOkay.
+  ///
+  /// In en, this message translates to:
+  /// **'Okay'**
+  String get moodMedicineMoodOkay;
+
+  /// No description provided for @moodMedicineMoodGood.
+  ///
+  /// In en, this message translates to:
+  /// **'Good'**
+  String get moodMedicineMoodGood;
+
+  /// No description provided for @moodMedicineMoodVeryGood.
+  ///
+  /// In en, this message translates to:
+  /// **'Very good'**
+  String get moodMedicineMoodVeryGood;
+
+  /// No description provided for @moodMedicineEmotions.
+  ///
+  /// In en, this message translates to:
+  /// **'Emotions'**
+  String get moodMedicineEmotions;
+
+  /// No description provided for @moodMedicineEmotionsHint.
+  ///
+  /// In en, this message translates to:
+  /// **'Choose any emotions that fit.'**
+  String get moodMedicineEmotionsHint;
+
+  /// No description provided for @moodMedicineEmotionCalm.
+  ///
+  /// In en, this message translates to:
+  /// **'Calm'**
+  String get moodMedicineEmotionCalm;
+
+  /// No description provided for @moodMedicineEmotionSad.
+  ///
+  /// In en, this message translates to:
+  /// **'Sad'**
+  String get moodMedicineEmotionSad;
+
+  /// No description provided for @moodMedicineEmotionAnxious.
+  ///
+  /// In en, this message translates to:
+  /// **'Anxious'**
+  String get moodMedicineEmotionAnxious;
+
+  /// No description provided for @moodMedicineEmotionIrritated.
+  ///
+  /// In en, this message translates to:
+  /// **'Irritated'**
+  String get moodMedicineEmotionIrritated;
+
+  /// No description provided for @moodMedicineEmotionTired.
+  ///
+  /// In en, this message translates to:
+  /// **'Tired'**
+  String get moodMedicineEmotionTired;
+
+  /// No description provided for @moodMedicineEmotionGrateful.
+  ///
+  /// In en, this message translates to:
+  /// **'Grateful'**
+  String get moodMedicineEmotionGrateful;
+
+  /// No description provided for @moodMedicineEmotionHopeful.
+  ///
+  /// In en, this message translates to:
+  /// **'Hopeful'**
+  String get moodMedicineEmotionHopeful;
+
+  /// No description provided for @moodMedicineEmotionOverwhelmed.
+  ///
+  /// In en, this message translates to:
+  /// **'Overwhelmed'**
+  String get moodMedicineEmotionOverwhelmed;
+
+  /// No description provided for @moodMedicineEmotionLonely.
+  ///
+  /// In en, this message translates to:
+  /// **'Lonely'**
+  String get moodMedicineEmotionLonely;
+
+  /// No description provided for @moodMedicineEmotionEnergized.
+  ///
+  /// In en, this message translates to:
+  /// **'Energized'**
+  String get moodMedicineEmotionEnergized;
+
+  /// No description provided for @moodMedicineOptionalNote.
+  ///
+  /// In en, this message translates to:
+  /// **'Optional note'**
+  String get moodMedicineOptionalNote;
+
+  /// No description provided for @moodMedicineNoteHint.
+  ///
+  /// In en, this message translates to:
+  /// **'What would you like to remember?'**
+  String get moodMedicineNoteHint;
+
+  /// No description provided for @moodMedicineNotePrivacy.
+  ///
+  /// In en, this message translates to:
+  /// **'Notes stay on this device and are excluded from reports unless you choose to include them.'**
+  String get moodMedicineNotePrivacy;
+
+  /// No description provided for @moodMedicineContinue.
+  ///
+  /// In en, this message translates to:
+  /// **'Continue'**
+  String get moodMedicineContinue;
+
+  /// No description provided for @moodMedicineBack.
+  ///
+  /// In en, this message translates to:
+  /// **'Back'**
+  String get moodMedicineBack;
+
+  /// No description provided for @moodMedicineSave.
+  ///
+  /// In en, this message translates to:
+  /// **'Save check-in'**
+  String get moodMedicineSave;
+
+  /// No description provided for @moodMedicineSaving.
+  ///
+  /// In en, this message translates to:
+  /// **'Saving…'**
+  String get moodMedicineSaving;
+
+  /// No description provided for @moodMedicineCancel.
+  ///
+  /// In en, this message translates to:
+  /// **'Cancel'**
+  String get moodMedicineCancel;
+
+  /// No description provided for @moodMedicineClose.
+  ///
+  /// In en, this message translates to:
+  /// **'Close'**
+  String get moodMedicineClose;
+
+  /// No description provided for @moodMedicineCheckInSaved.
+  ///
+  /// In en, this message translates to:
+  /// **'Check-in saved.'**
+  String get moodMedicineCheckInSaved;
+
+  /// No description provided for @moodMedicineCheckInPrompt.
+  ///
+  /// In en, this message translates to:
+  /// **'A quick check-in for today'**
+  String get moodMedicineCheckInPrompt;
+
+  /// No description provided for @moodMedicineCheckInPromptBody.
+  ///
+  /// In en, this message translates to:
+  /// **'You have not saved a mood check-in today. A minute is enough.'**
+  String get moodMedicineCheckInPromptBody;
+
+  /// No description provided for @moodMedicineActivities.
+  ///
+  /// In en, this message translates to:
+  /// **'Activities'**
+  String get moodMedicineActivities;
+
+  /// No description provided for @moodMedicineActivitiesHint.
+  ///
+  /// In en, this message translates to:
+  /// **'Select anything that was part of your day.'**
+  String get moodMedicineActivitiesHint;
+
+  /// No description provided for @moodMedicineManageActivities.
+  ///
+  /// In en, this message translates to:
+  /// **'Manage activities'**
+  String get moodMedicineManageActivities;
+
+  /// No description provided for @moodMedicineDefaultActivities.
+  ///
+  /// In en, this message translates to:
+  /// **'Suggested activities'**
+  String get moodMedicineDefaultActivities;
+
+  /// No description provided for @moodMedicineHiddenActivities.
+  ///
+  /// In en, this message translates to:
+  /// **'Hidden activities'**
+  String get moodMedicineHiddenActivities;
+
+  /// No description provided for @moodMedicineCustomActivities.
+  ///
+  /// In en, this message translates to:
+  /// **'Your activities'**
+  String get moodMedicineCustomActivities;
+
+  /// No description provided for @moodMedicineNoCustomActivities.
+  ///
+  /// In en, this message translates to:
+  /// **'No personal activities yet.'**
+  String get moodMedicineNoCustomActivities;
+
+  /// No description provided for @moodMedicineNoActivitiesSelected.
+  ///
+  /// In en, this message translates to:
+  /// **'No activities selected'**
+  String get moodMedicineNoActivitiesSelected;
+
+  /// No description provided for @moodMedicineHide.
+  ///
+  /// In en, this message translates to:
+  /// **'Hide'**
+  String get moodMedicineHide;
+
+  /// No description provided for @moodMedicineRestore.
+  ///
+  /// In en, this message translates to:
+  /// **'Restore'**
+  String get moodMedicineRestore;
+
+  /// No description provided for @moodMedicineEdit.
+  ///
+  /// In en, this message translates to:
+  /// **'Edit'**
+  String get moodMedicineEdit;
+
+  /// No description provided for @moodMedicineDelete.
+  ///
+  /// In en, this message translates to:
+  /// **'Delete'**
+  String get moodMedicineDelete;
+
+  /// No description provided for @moodMedicineAddCustomActivity.
+  ///
+  /// In en, this message translates to:
+  /// **'Add personal activity'**
+  String get moodMedicineAddCustomActivity;
+
+  /// No description provided for @moodMedicineEditCustomActivity.
+  ///
+  /// In en, this message translates to:
+  /// **'Edit personal activity'**
+  String get moodMedicineEditCustomActivity;
+
+  /// No description provided for @moodMedicineActivityName.
+  ///
+  /// In en, this message translates to:
+  /// **'Activity name'**
+  String get moodMedicineActivityName;
+
+  /// No description provided for @moodMedicineActivityNameHint.
+  ///
+  /// In en, this message translates to:
+  /// **'For example, gardening'**
+  String get moodMedicineActivityNameHint;
+
+  /// No description provided for @moodMedicineActivityNameRequired.
+  ///
+  /// In en, this message translates to:
+  /// **'Enter an activity name.'**
+  String get moodMedicineActivityNameRequired;
+
+  /// No description provided for @moodMedicineSaveActivity.
+  ///
+  /// In en, this message translates to:
+  /// **'Save activity'**
+  String get moodMedicineSaveActivity;
+
+  /// No description provided for @moodMedicineDeleteActivityTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Delete this activity?'**
+  String get moodMedicineDeleteActivityTitle;
+
+  /// No description provided for @moodMedicineDeleteActivityBody.
+  ///
+  /// In en, this message translates to:
+  /// **'It will no longer appear in future check-ins. Past check-ins keep its saved name.'**
+  String get moodMedicineDeleteActivityBody;
+
+  /// No description provided for @moodMedicineDeleteActivityConfirm.
+  ///
+  /// In en, this message translates to:
+  /// **'Delete activity'**
+  String get moodMedicineDeleteActivityConfirm;
+
+  /// No description provided for @moodMedicineActivityHistoryNote.
+  ///
+  /// In en, this message translates to:
+  /// **'Changing or deleting an activity does not change your past check-ins.'**
+  String get moodMedicineActivityHistoryNote;
+
+  /// No description provided for @moodMedicineActivityPhysicalActivity.
+  ///
+  /// In en, this message translates to:
+  /// **'Movement'**
+  String get moodMedicineActivityPhysicalActivity;
+
+  /// No description provided for @moodMedicineActivityPhysicalActivityDescription.
+  ///
+  /// In en, this message translates to:
+  /// **'Log a walk, stretching, sport, active travel, or another movement you enjoy.'**
+  String get moodMedicineActivityPhysicalActivityDescription;
+
+  /// No description provided for @moodMedicineActivityPhysicalActivityGuidance.
+  ///
+  /// In en, this message translates to:
+  /// **'WHO guidance for adults includes 150–300 minutes of moderate activity, or 75–150 minutes of vigorous activity, each week. Any amount of movement is better than none.'**
+  String get moodMedicineActivityPhysicalActivityGuidance;
+
+  /// No description provided for @moodMedicineActivityRestorativeSleep.
+  ///
+  /// In en, this message translates to:
+  /// **'Sleep'**
+  String get moodMedicineActivityRestorativeSleep;
+
+  /// No description provided for @moodMedicineActivityRestorativeSleepDescription.
+  ///
+  /// In en, this message translates to:
+  /// **'Notice a sleep routine, rest, or a night of sleep that felt restorative to you.'**
+  String get moodMedicineActivityRestorativeSleepDescription;
+
+  /// No description provided for @moodMedicineActivityRestorativeSleepGuidance.
+  ///
+  /// In en, this message translates to:
+  /// **'CDC says adults ages 18–60 generally need 7 or more hours of sleep each night; needs change with age.'**
+  String get moodMedicineActivityRestorativeSleepGuidance;
+
+  /// No description provided for @moodMedicineActivityNourishingMeal.
+  ///
+  /// In en, this message translates to:
+  /// **'Nourishing meal'**
+  String get moodMedicineActivityNourishingMeal;
+
+  /// No description provided for @moodMedicineActivityNourishingMealDescription.
+  ///
+  /// In en, this message translates to:
+  /// **'Notice a regular meal, hydration, or another food choice that supported your day.'**
+  String get moodMedicineActivityNourishingMealDescription;
+
+  /// No description provided for @moodMedicineActivityNourishingMealGuidance.
+  ///
+  /// In en, this message translates to:
+  /// **'NIMH includes healthy, regular meals and hydration among everyday self-care ideas.'**
+  String get moodMedicineActivityNourishingMealGuidance;
+
+  /// No description provided for @moodMedicineActivitySocialConnection.
+  ///
+  /// In en, this message translates to:
+  /// **'Social connection'**
+  String get moodMedicineActivitySocialConnection;
+
+  /// No description provided for @moodMedicineActivitySocialConnectionDescription.
+  ///
+  /// In en, this message translates to:
+  /// **'Log a message, call, shared activity, or another meaningful connection.'**
+  String get moodMedicineActivitySocialConnectionDescription;
+
+  /// No description provided for @moodMedicineActivitySocialConnectionGuidance.
+  ///
+  /// In en, this message translates to:
+  /// **'CDC suggests small acts of connection and notes that there is no official dose or guideline for social connection.'**
+  String get moodMedicineActivitySocialConnectionGuidance;
+
+  /// No description provided for @moodMedicineActivityDaylightNature.
+  ///
+  /// In en, this message translates to:
+  /// **'Daylight and nature'**
+  String get moodMedicineActivityDaylightNature;
+
+  /// No description provided for @moodMedicineActivityDaylightNatureDescription.
+  ///
+  /// In en, this message translates to:
+  /// **'Notice time outdoors, daylight, or a moment in nature that mattered to you.'**
+  String get moodMedicineActivityDaylightNatureDescription;
+
+  /// No description provided for @moodMedicineActivityDaylightNatureGuidance.
+  ///
+  /// In en, this message translates to:
+  /// **'NIMH lists spending time in nature among activities that some people enjoy as part of self-care.'**
+  String get moodMedicineActivityDaylightNatureGuidance;
+
+  /// No description provided for @moodMedicineActivityMusic.
+  ///
+  /// In en, this message translates to:
+  /// **'Music'**
+  String get moodMedicineActivityMusic;
+
+  /// No description provided for @moodMedicineActivityMusicDescription.
+  ///
+  /// In en, this message translates to:
+  /// **'Log listening to, playing, or making music if it was part of your day.'**
+  String get moodMedicineActivityMusicDescription;
+
+  /// No description provided for @moodMedicineActivityMusicGuidance.
+  ///
+  /// In en, this message translates to:
+  /// **'NIMH lists listening to music among activities that some people enjoy as part of self-care.'**
+  String get moodMedicineActivityMusicGuidance;
+
+  /// No description provided for @moodMedicineActivityLaughter.
+  ///
+  /// In en, this message translates to:
+  /// **'Laughter'**
+  String get moodMedicineActivityLaughter;
+
+  /// No description provided for @moodMedicineActivityLaughterDescription.
+  ///
+  /// In en, this message translates to:
+  /// **'Log a moment of laughter or lightness that was meaningful to you.'**
+  String get moodMedicineActivityLaughterDescription;
+
+  /// No description provided for @moodMedicineActivityLaughterGuidance.
+  ///
+  /// In en, this message translates to:
+  /// **'This is a personal observation, not a treatment or a promise about how you should feel.'**
+  String get moodMedicineActivityLaughterGuidance;
+
+  /// No description provided for @moodMedicineActivityActsOfKindness.
+  ///
+  /// In en, this message translates to:
+  /// **'Acts of kindness'**
+  String get moodMedicineActivityActsOfKindness;
+
+  /// No description provided for @moodMedicineActivityActsOfKindnessDescription.
+  ///
+  /// In en, this message translates to:
+  /// **'Log a small act of care, giving, or helping that mattered to you.'**
+  String get moodMedicineActivityActsOfKindnessDescription;
+
+  /// No description provided for @moodMedicineActivityActsOfKindnessGuidance.
+  ///
+  /// In en, this message translates to:
+  /// **'Connection can include small acts of giving and receiving; choose what feels appropriate for you.'**
+  String get moodMedicineActivityActsOfKindnessGuidance;
+
+  /// No description provided for @moodMedicineSource.
+  ///
+  /// In en, this message translates to:
+  /// **'Source'**
+  String get moodMedicineSource;
+
+  /// No description provided for @moodMedicineOpenSource.
+  ///
+  /// In en, this message translates to:
+  /// **'Open'**
+  String get moodMedicineOpenSource;
+
+  /// No description provided for @moodMedicineSourceWhoPhysicalActivity.
+  ///
+  /// In en, this message translates to:
+  /// **'WHO: Physical activity'**
+  String get moodMedicineSourceWhoPhysicalActivity;
+
+  /// No description provided for @moodMedicineSourceCdcSleep.
+  ///
+  /// In en, this message translates to:
+  /// **'CDC: About sleep'**
+  String get moodMedicineSourceCdcSleep;
+
+  /// No description provided for @moodMedicineSourceNimhSelfCare.
+  ///
+  /// In en, this message translates to:
+  /// **'NIMH: Caring for your mental health'**
+  String get moodMedicineSourceNimhSelfCare;
+
+  /// No description provided for @moodMedicineSourceCdcConnection.
+  ///
+  /// In en, this message translates to:
+  /// **'CDC: Improving social connectedness'**
+  String get moodMedicineSourceCdcConnection;
+
+  /// No description provided for @moodMedicineEducation.
+  ///
+  /// In en, this message translates to:
+  /// **'Personal medicine'**
+  String get moodMedicineEducation;
+
+  /// No description provided for @moodMedicineEducationDoseTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'D.O.S.E. in context'**
+  String get moodMedicineEducationDoseTitle;
+
+  /// No description provided for @moodMedicineEducationDoseIntro.
+  ///
+  /// In en, this message translates to:
+  /// **'D.O.S.E. is a popular wellbeing shorthand for dopamine, oxytocin, serotonin, and endorphins. It can be a prompt to notice what supports you, not a rule about what your body should do.'**
+  String get moodMedicineEducationDoseIntro;
+
+  /// No description provided for @moodMedicineEducationDisclaimer.
+  ///
+  /// In en, this message translates to:
+  /// **'This education is not medical advice, diagnosis, or treatment. Activities do not reliably or definitively release a particular brain chemical. Speak with a qualified professional about health concerns.'**
+  String get moodMedicineEducationDisclaimer;
+
+  /// No description provided for @moodMedicineDoseDopamine.
+  ///
+  /// In en, this message translates to:
+  /// **'Dopamine'**
+  String get moodMedicineDoseDopamine;
+
+  /// No description provided for @moodMedicineDoseDopamineDescription.
+  ///
+  /// In en, this message translates to:
+  /// **'A neurotransmitter involved in several brain functions, including reward, movement, and motivation.'**
+  String get moodMedicineDoseDopamineDescription;
+
+  /// No description provided for @moodMedicineDoseOxytocin.
+  ///
+  /// In en, this message translates to:
+  /// **'Oxytocin'**
+  String get moodMedicineDoseOxytocin;
+
+  /// No description provided for @moodMedicineDoseOxytocinDescription.
+  ///
+  /// In en, this message translates to:
+  /// **'A hormone and neurotransmitter involved in social bonding and other body functions.'**
+  String get moodMedicineDoseOxytocinDescription;
+
+  /// No description provided for @moodMedicineDoseSerotonin.
+  ///
+  /// In en, this message translates to:
+  /// **'Serotonin'**
+  String get moodMedicineDoseSerotonin;
+
+  /// No description provided for @moodMedicineDoseSerotoninDescription.
+  ///
+  /// In en, this message translates to:
+  /// **'A neurotransmitter involved in many body functions, including mood, sleep, and digestion.'**
+  String get moodMedicineDoseSerotoninDescription;
+
+  /// No description provided for @moodMedicineDoseEndorphins.
+  ///
+  /// In en, this message translates to:
+  /// **'Endorphins'**
+  String get moodMedicineDoseEndorphins;
+
+  /// No description provided for @moodMedicineDoseEndorphinsDescription.
+  ///
+  /// In en, this message translates to:
+  /// **'Naturally occurring opioid peptides involved in pain and stress responses.'**
+  String get moodMedicineDoseEndorphinsDescription;
+
+  /// No description provided for @moodMedicineVideoTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Personal medicine video'**
+  String get moodMedicineVideoTitle;
+
+  /// No description provided for @moodMedicineVideoPlaceholder.
+  ///
+  /// In en, this message translates to:
+  /// **'A short educational video will be available here soon.'**
+  String get moodMedicineVideoPlaceholder;
+
+  /// No description provided for @moodMedicineInsights.
+  ///
+  /// In en, this message translates to:
+  /// **'Insights'**
+  String get moodMedicineInsights;
+
+  /// No description provided for @moodMedicineViewInsights.
+  ///
+  /// In en, this message translates to:
+  /// **'View insights'**
+  String get moodMedicineViewInsights;
+
+  /// No description provided for @moodMedicineToday.
+  ///
+  /// In en, this message translates to:
+  /// **'Today'**
+  String get moodMedicineToday;
+
+  /// No description provided for @moodMedicineWeek.
+  ///
+  /// In en, this message translates to:
+  /// **'Week'**
+  String get moodMedicineWeek;
+
+  /// No description provided for @moodMedicineMonth.
+  ///
+  /// In en, this message translates to:
+  /// **'Month'**
+  String get moodMedicineMonth;
+
+  /// No description provided for @moodMedicineYear.
+  ///
+  /// In en, this message translates to:
+  /// **'Year'**
+  String get moodMedicineYear;
+
+  /// No description provided for @moodMedicineTrend.
+  ///
+  /// In en, this message translates to:
+  /// **'Mood trend'**
+  String get moodMedicineTrend;
+
+  /// Accessible text summary of a mood trend for a selected period.
+  ///
+  /// In en, this message translates to:
+  /// **'Mood trend for {range}: {summary}'**
+  String moodMedicineTrendSummary(String range, String summary);
+
+  /// No description provided for @moodMedicineActivitiesOverlay.
+  ///
+  /// In en, this message translates to:
+  /// **'Activities in these check-ins'**
+  String get moodMedicineActivitiesOverlay;
+
+  /// Explains that each saved check-in is plotted separately in the mood trend.
+  ///
+  /// In en, this message translates to:
+  /// **'Mood at each check-in'**
+  String get moodMedicineEachCheckIn;
+
+  /// No description provided for @moodMedicineNoEntries.
+  ///
+  /// In en, this message translates to:
+  /// **'No check-ins in this range yet.'**
+  String get moodMedicineNoEntries;
+
+  /// Explains the deterministic presentation limit for a large Mood Medicine trend.
+  ///
+  /// In en, this message translates to:
+  /// **'Showing the latest {limit} check-ins; {omitted, plural, =1 {1 older check-in is not shown.} other {{omitted} older check-ins are not shown.}}'**
+  String moodMedicineTrendOmitted(int limit, int omitted);
+
+  /// No description provided for @moodMedicineOneEntry.
+  ///
+  /// In en, this message translates to:
+  /// **'One check-in is saved. More check-ins will make the trend clearer.'**
+  String get moodMedicineOneEntry;
+
+  /// No description provided for @moodMedicineAssociation.
+  ///
+  /// In en, this message translates to:
+  /// **'Activity association'**
+  String get moodMedicineAssociation;
+
+  /// No description provided for @moodMedicineAssociationExplanation.
+  ///
+  /// In en, this message translates to:
+  /// **'This compares daily mood averages on days with an activity and days without it. It shows an association, not a cause.'**
+  String get moodMedicineAssociationExplanation;
+
+  /// No description provided for @moodMedicineAssociationUnavailable.
+  ///
+  /// In en, this message translates to:
+  /// **'At least three logged days with and three without an activity are needed to show an association.'**
+  String get moodMedicineAssociationUnavailable;
+
+  /// Association comparison between daily mood averages.
+  ///
+  /// In en, this message translates to:
+  /// **'On days you logged {activity}, the daily average was {withMood}; on other logged days it was {withoutMood}.'**
+  String moodMedicineAssociationSummary(
+    String activity,
+    String withMood,
+    String withoutMood,
+  );
+
+  /// No description provided for @moodMedicineWithActivity.
+  ///
+  /// In en, this message translates to:
+  /// **'Days with activity'**
+  String get moodMedicineWithActivity;
+
+  /// No description provided for @moodMedicineWithoutActivity.
+  ///
+  /// In en, this message translates to:
+  /// **'Days without activity'**
+  String get moodMedicineWithoutActivity;
+
+  /// No description provided for @moodMedicineAssociationNotCausation.
+  ///
+  /// In en, this message translates to:
+  /// **'Association does not mean causation.'**
+  String get moodMedicineAssociationNotCausation;
+
+  /// No description provided for @moodMedicineExport.
+  ///
+  /// In en, this message translates to:
+  /// **'Export report'**
+  String get moodMedicineExport;
+
+  /// No description provided for @moodMedicineExportReportTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Mood Tracker report'**
+  String get moodMedicineExportReportTitle;
+
+  /// No description provided for @moodMedicineExportRange.
+  ///
+  /// In en, this message translates to:
+  /// **'Date range'**
+  String get moodMedicineExportRange;
+
+  /// No description provided for @moodMedicineExportPdf.
+  ///
+  /// In en, this message translates to:
+  /// **'PDF'**
+  String get moodMedicineExportPdf;
+
+  /// No description provided for @moodMedicineExportPng.
+  ///
+  /// In en, this message translates to:
+  /// **'Image (PNG)'**
+  String get moodMedicineExportPng;
+
+  /// No description provided for @moodMedicineShare.
+  ///
+  /// In en, this message translates to:
+  /// **'Share'**
+  String get moodMedicineShare;
+
+  /// No description provided for @moodMedicineDownload.
+  ///
+  /// In en, this message translates to:
+  /// **'Download'**
+  String get moodMedicineDownload;
+
+  /// No description provided for @moodMedicinePreparingExport.
+  ///
+  /// In en, this message translates to:
+  /// **'Preparing report…'**
+  String get moodMedicinePreparingExport;
+
+  /// No description provided for @moodMedicineIncludeNotes.
+  ///
+  /// In en, this message translates to:
+  /// **'Include personal notes'**
+  String get moodMedicineIncludeNotes;
+
+  /// No description provided for @moodMedicineNotesPrivacy.
+  ///
+  /// In en, this message translates to:
+  /// **'Off by default. Notes can contain sensitive information and are included only when you turn this on.'**
+  String get moodMedicineNotesPrivacy;
+
+  /// No description provided for @moodMedicineNotesExcluded.
+  ///
+  /// In en, this message translates to:
+  /// **'Personal notes are not included.'**
+  String get moodMedicineNotesExcluded;
+
+  /// No description provided for @moodMedicineExportSources.
+  ///
+  /// In en, this message translates to:
+  /// **'Educational sources'**
+  String get moodMedicineExportSources;
+
+  /// No description provided for @moodMedicineExportError.
+  ///
+  /// In en, this message translates to:
+  /// **'The report could not be prepared. Please try again.'**
+  String get moodMedicineExportError;
+
+  /// No description provided for @moodMedicineRetry.
+  ///
+  /// In en, this message translates to:
+  /// **'Retry'**
+  String get moodMedicineRetry;
+
+  /// No description provided for @moodMedicineSaveFailed.
+  ///
+  /// In en, this message translates to:
+  /// **'Your check-in was not saved. Your draft is still here.'**
+  String get moodMedicineSaveFailed;
+
+  /// No description provided for @moodMedicineLoading.
+  ///
+  /// In en, this message translates to:
+  /// **'Loading your mood tracker…'**
+  String get moodMedicineLoading;
+
+  /// No description provided for @moodMedicineNotMedicalAdvice.
+  ///
+  /// In en, this message translates to:
+  /// **'This tool supports self-reflection and is not medical advice, diagnosis, or treatment.'**
+  String get moodMedicineNotMedicalAdvice;
+
+  /// No description provided for @moodMedicineReportNoNotes.
+  ///
+  /// In en, this message translates to:
+  /// **'No personal notes included'**
+  String get moodMedicineReportNoNotes;
+
+  /// No description provided for @moodMedicineView.
+  ///
+  /// In en, this message translates to:
+  /// **'View'**
+  String get moodMedicineView;
+
+  /// No description provided for @moodMedicinePreviewPdf.
+  ///
+  /// In en, this message translates to:
+  /// **'PDF preview'**
+  String get moodMedicinePreviewPdf;
+
+  /// No description provided for @moodMedicinePreviewPng.
+  ///
+  /// In en, this message translates to:
+  /// **'Image preview'**
+  String get moodMedicinePreviewPng;
+
+  /// No description provided for @moodMedicinePreviewError.
+  ///
+  /// In en, this message translates to:
+  /// **'The report preview could not be opened. Please try again.'**
+  String get moodMedicinePreviewError;
+
+  /// No description provided for @moodMedicinePngPrintGuidance.
+  ///
+  /// In en, this message translates to:
+  /// **'For reliable printing of long reports, choose PDF.'**
+  String get moodMedicinePngPrintGuidance;
+
+  /// No description provided for @moodMedicinePngTooLarge.
+  ///
+  /// In en, this message translates to:
+  /// **'This PNG report is too large. Choose PDF for a reliable report.'**
+  String get moodMedicinePngTooLarge;
+
+  /// No description provided for @moodMedicineRecoveryTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Mood history needs attention'**
+  String get moodMedicineRecoveryTitle;
+
+  /// No description provided for @moodMedicineRecoveryBody.
+  ///
+  /// In en, this message translates to:
+  /// **'Your saved Mood Medicine history could not be read. Retry to keep it, or discard only this unreadable history and start a new empty one.'**
+  String get moodMedicineRecoveryBody;
+
+  /// No description provided for @moodMedicineDiscardUnreadable.
+  ///
+  /// In en, this message translates to:
+  /// **'Discard unreadable history'**
+  String get moodMedicineDiscardUnreadable;
+
+  /// No description provided for @moodMedicineDiscardUnreadableTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Discard unreadable mood history?'**
+  String get moodMedicineDiscardUnreadableTitle;
+
+  /// No description provided for @moodMedicineDiscardUnreadableBody.
+  ///
+  /// In en, this message translates to:
+  /// **'This replaces only Mood Medicine history on this device with an empty history. This cannot be undone.'**
+  String get moodMedicineDiscardUnreadableBody;
 }
 
 class _AppLocalizationsDelegate

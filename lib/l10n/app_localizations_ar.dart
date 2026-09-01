@@ -4032,4 +4032,519 @@ class AppLocalizationsAr extends AppLocalizations {
 
   @override
   String get authNotSignedInButton => 'تسجيل الدخول';
+
+  @override
+  String get moodMedicineTitle => 'متابعة المزاج والطب الشخصي';
+
+  @override
+  String get moodMedicineSubtitle => 'لاحظ أنماط مزاجك وأنشطتك اليومية.';
+
+  @override
+  String get moodMedicineQuickCheckIn => 'تسجيل سريع';
+
+  @override
+  String get moodMedicineCheckIn => 'تسجيل';
+
+  @override
+  String get moodMedicineHowFeel => 'كيف تشعر الآن؟';
+
+  @override
+  String get moodMedicineChooseMood => 'اختر مزاجًا واحدًا';
+
+  @override
+  String get moodMedicineMoodVeryLow => 'منخفض جدًا';
+
+  @override
+  String get moodMedicineMoodLow => 'منخفض';
+
+  @override
+  String get moodMedicineMoodOkay => 'مقبول';
+
+  @override
+  String get moodMedicineMoodGood => 'جيد';
+
+  @override
+  String get moodMedicineMoodVeryGood => 'جيد جدًا';
+
+  @override
+  String get moodMedicineEmotions => 'المشاعر';
+
+  @override
+  String get moodMedicineEmotionsHint => 'اختر كل المشاعر التي تناسبك.';
+
+  @override
+  String get moodMedicineEmotionCalm => 'هادئ';
+
+  @override
+  String get moodMedicineEmotionSad => 'حزين';
+
+  @override
+  String get moodMedicineEmotionAnxious => 'قلق';
+
+  @override
+  String get moodMedicineEmotionIrritated => 'منزعج';
+
+  @override
+  String get moodMedicineEmotionTired => 'متعب';
+
+  @override
+  String get moodMedicineEmotionGrateful => 'ممتن';
+
+  @override
+  String get moodMedicineEmotionHopeful => 'متفائل';
+
+  @override
+  String get moodMedicineEmotionOverwhelmed => 'مثقل';
+
+  @override
+  String get moodMedicineEmotionLonely => 'وحيد';
+
+  @override
+  String get moodMedicineEmotionEnergized => 'مفعم بالطاقة';
+
+  @override
+  String get moodMedicineOptionalNote => 'ملاحظة اختيارية';
+
+  @override
+  String get moodMedicineNoteHint => 'ما الذي تريد تذكّره؟';
+
+  @override
+  String get moodMedicineNotePrivacy =>
+      'تبقى الملاحظات على هذا الجهاز ولا تُدرج في التقارير إلا إذا اخترت تضمينها.';
+
+  @override
+  String get moodMedicineContinue => 'متابعة';
+
+  @override
+  String get moodMedicineBack => 'رجوع';
+
+  @override
+  String get moodMedicineSave => 'حفظ التسجيل';
+
+  @override
+  String get moodMedicineSaving => 'جارٍ الحفظ…';
+
+  @override
+  String get moodMedicineCancel => 'إلغاء';
+
+  @override
+  String get moodMedicineClose => 'إغلاق';
+
+  @override
+  String get moodMedicineCheckInSaved => 'تم حفظ التسجيل.';
+
+  @override
+  String get moodMedicineCheckInPrompt => 'تسجيل سريع لليوم';
+
+  @override
+  String get moodMedicineCheckInPromptBody =>
+      'لم تحفظ تسجيلًا للمزاج اليوم بعد. تكفي دقيقة واحدة.';
+
+  @override
+  String get moodMedicineActivities => 'الأنشطة';
+
+  @override
+  String get moodMedicineActivitiesHint => 'اختر أي شيء كان جزءًا من يومك.';
+
+  @override
+  String get moodMedicineManageActivities => 'إدارة الأنشطة';
+
+  @override
+  String get moodMedicineDefaultActivities => 'أنشطة مقترحة';
+
+  @override
+  String get moodMedicineHiddenActivities => 'أنشطة مخفية';
+
+  @override
+  String get moodMedicineCustomActivities => 'أنشطتي';
+
+  @override
+  String get moodMedicineNoCustomActivities => 'لا توجد أنشطة شخصية بعد.';
+
+  @override
+  String get moodMedicineNoActivitiesSelected => 'لم يتم اختيار أنشطة';
+
+  @override
+  String get moodMedicineHide => 'إخفاء';
+
+  @override
+  String get moodMedicineRestore => 'استعادة';
+
+  @override
+  String get moodMedicineEdit => 'تعديل';
+
+  @override
+  String get moodMedicineDelete => 'حذف';
+
+  @override
+  String get moodMedicineAddCustomActivity => 'إضافة نشاط شخصي';
+
+  @override
+  String get moodMedicineEditCustomActivity => 'تعديل نشاط شخصي';
+
+  @override
+  String get moodMedicineActivityName => 'اسم النشاط';
+
+  @override
+  String get moodMedicineActivityNameHint => 'مثال: البستنة';
+
+  @override
+  String get moodMedicineActivityNameRequired => 'أدخل اسمًا للنشاط.';
+
+  @override
+  String get moodMedicineSaveActivity => 'حفظ النشاط';
+
+  @override
+  String get moodMedicineDeleteActivityTitle => 'حذف هذا النشاط؟';
+
+  @override
+  String get moodMedicineDeleteActivityBody =>
+      'لن يظهر في التسجيلات المستقبلية. ستحتفظ التسجيلات السابقة باسمه المحفوظ.';
+
+  @override
+  String get moodMedicineDeleteActivityConfirm => 'حذف النشاط';
+
+  @override
+  String get moodMedicineActivityHistoryNote =>
+      'لا يغيّر تعديل النشاط أو حذفه تسجيلاتك السابقة.';
+
+  @override
+  String get moodMedicineActivityPhysicalActivity => 'الحركة';
+
+  @override
+  String get moodMedicineActivityPhysicalActivityDescription =>
+      'سجّل مشيًا أو تمارين تمدد أو رياضة أو تنقلاً نشطًا أو أي حركة تستمتع بها.';
+
+  @override
+  String get moodMedicineActivityPhysicalActivityGuidance =>
+      'تشمل إرشادات منظمة الصحة العالمية للبالغين 150–300 دقيقة من النشاط المعتدل أو 75–150 دقيقة من النشاط القوي أسبوعيًا. أي قدر من الحركة أفضل من عدمها.';
+
+  @override
+  String get moodMedicineActivityRestorativeSleep => 'النوم';
+
+  @override
+  String get moodMedicineActivityRestorativeSleepDescription =>
+      'لاحظ روتين نوم أو راحة أو ليلة نوم شعرت بأنها متجددة.';
+
+  @override
+  String get moodMedicineActivityRestorativeSleepGuidance =>
+      'تقول مراكز مكافحة الأمراض والوقاية منها إن البالغين بعمر 18–60 يحتاجون عمومًا إلى 7 ساعات أو أكثر من النوم كل ليلة؛ وتختلف الاحتياجات مع العمر.';
+
+  @override
+  String get moodMedicineActivityNourishingMeal => 'وجبة مغذية';
+
+  @override
+  String get moodMedicineActivityNourishingMealDescription =>
+      'لاحظ وجبة منتظمة أو ترطيبًا أو اختيارًا غذائيًا آخر دعم يومك.';
+
+  @override
+  String get moodMedicineActivityNourishingMealGuidance =>
+      'يضم المعهد الوطني للصحة النفسية الوجبات الصحية المنتظمة والترطيب ضمن أفكار الرعاية الذاتية اليومية.';
+
+  @override
+  String get moodMedicineActivitySocialConnection => 'التواصل الاجتماعي';
+
+  @override
+  String get moodMedicineActivitySocialConnectionDescription =>
+      'سجّل رسالة أو مكالمة أو نشاطًا مشتركًا أو تواصلاً ذا معنى.';
+
+  @override
+  String get moodMedicineActivitySocialConnectionGuidance =>
+      'تقترح مراكز مكافحة الأمراض والوقاية منها أفعالًا صغيرة للتواصل وتذكر أنه لا توجد جرعة أو إرشادات رسمية للتواصل الاجتماعي.';
+
+  @override
+  String get moodMedicineActivityDaylightNature => 'ضوء النهار والطبيعة';
+
+  @override
+  String get moodMedicineActivityDaylightNatureDescription =>
+      'لاحظ وقتًا في الخارج أو ضوء النهار أو لحظة في الطبيعة كانت مهمة لك.';
+
+  @override
+  String get moodMedicineActivityDaylightNatureGuidance =>
+      'يذكر المعهد الوطني للصحة النفسية قضاء الوقت في الطبيعة ضمن أنشطة يستمتع بها بعض الناس كجزء من الرعاية الذاتية.';
+
+  @override
+  String get moodMedicineActivityMusic => 'الموسيقى';
+
+  @override
+  String get moodMedicineActivityMusicDescription =>
+      'سجّل الاستماع إلى الموسيقى أو عزفها أو صنعها إذا كانت جزءًا من يومك.';
+
+  @override
+  String get moodMedicineActivityMusicGuidance =>
+      'يذكر المعهد الوطني للصحة النفسية الاستماع إلى الموسيقى ضمن أنشطة يستمتع بها بعض الناس كجزء من الرعاية الذاتية.';
+
+  @override
+  String get moodMedicineActivityLaughter => 'الضحك';
+
+  @override
+  String get moodMedicineActivityLaughterDescription =>
+      'سجّل لحظة ضحك أو خفة كانت ذات معنى لك.';
+
+  @override
+  String get moodMedicineActivityLaughterGuidance =>
+      'هذه ملاحظة شخصية وليست علاجًا أو وعدًا بكيف ينبغي أن تشعر.';
+
+  @override
+  String get moodMedicineActivityActsOfKindness => 'أعمال اللطف';
+
+  @override
+  String get moodMedicineActivityActsOfKindnessDescription =>
+      'سجّل فعلًا صغيرًا من الاهتمام أو العطاء أو المساعدة كان مهمًا لك.';
+
+  @override
+  String get moodMedicineActivityActsOfKindnessGuidance =>
+      'يمكن أن يشمل التواصل أفعالًا صغيرة من العطاء والتلقي؛ اختر ما يناسبك.';
+
+  @override
+  String get moodMedicineSource => 'المصدر';
+
+  @override
+  String get moodMedicineOpenSource => 'فتح المصدر';
+
+  @override
+  String get moodMedicineSourceWhoPhysicalActivity =>
+      'منظمة الصحة العالمية: النشاط البدني';
+
+  @override
+  String get moodMedicineSourceCdcSleep =>
+      'مراكز مكافحة الأمراض والوقاية منها: عن النوم';
+
+  @override
+  String get moodMedicineSourceNimhSelfCare =>
+      'المعهد الوطني للصحة النفسية: العناية بصحتك النفسية';
+
+  @override
+  String get moodMedicineSourceCdcConnection =>
+      'مراكز مكافحة الأمراض والوقاية منها: تحسين التواصل الاجتماعي';
+
+  @override
+  String get moodMedicineEducation => 'الطب الشخصي';
+
+  @override
+  String get moodMedicineEducationDoseTitle => 'D.O.S.E. في سياقه';
+
+  @override
+  String get moodMedicineEducationDoseIntro =>
+      'D.O.S.E. اختصار شائع في سياق العافية للدوبامين والأوكسيتوسين والسيروتونين والإندورفينات. يمكن أن يكون تذكيرًا بملاحظة ما يدعمك، وليس قاعدة لما ينبغي أن يفعله جسمك.';
+
+  @override
+  String get moodMedicineEducationDisclaimer =>
+      'هذا المحتوى ليس نصيحة طبية أو تشخيصًا أو علاجًا. لا تطلق الأنشطة مادة كيميائية محددة في الدماغ بصورة موثوقة أو حتمية. تحدّث مع مختص مؤهل عند وجود مخاوف صحية.';
+
+  @override
+  String get moodMedicineDoseDopamine => 'الدوبامين';
+
+  @override
+  String get moodMedicineDoseDopamineDescription =>
+      'ناقل عصبي يشارك في وظائف دماغية متعددة، منها المكافأة والحركة والدافعية.';
+
+  @override
+  String get moodMedicineDoseOxytocin => 'الأوكسيتوسين';
+
+  @override
+  String get moodMedicineDoseOxytocinDescription =>
+      'هرمون وناقل عصبي يشارك في الترابط الاجتماعي ووظائف جسدية أخرى.';
+
+  @override
+  String get moodMedicineDoseSerotonin => 'السيروتونين';
+
+  @override
+  String get moodMedicineDoseSerotoninDescription =>
+      'ناقل عصبي يشارك في وظائف جسدية كثيرة، منها المزاج والنوم والهضم.';
+
+  @override
+  String get moodMedicineDoseEndorphins => 'الإندورفينات';
+
+  @override
+  String get moodMedicineDoseEndorphinsDescription =>
+      'ببتيدات أفيونية طبيعية تشارك في استجابات الألم والضغط.';
+
+  @override
+  String get moodMedicineVideoTitle => 'فيديو الطب الشخصي';
+
+  @override
+  String get moodMedicineVideoPlaceholder =>
+      'سيتوفر هنا قريبًا فيديو تعليمي قصير.';
+
+  @override
+  String get moodMedicineInsights => 'الرؤى';
+
+  @override
+  String get moodMedicineViewInsights => 'عرض الرؤى';
+
+  @override
+  String get moodMedicineToday => 'اليوم';
+
+  @override
+  String get moodMedicineWeek => 'أسبوع';
+
+  @override
+  String get moodMedicineMonth => 'شهر';
+
+  @override
+  String get moodMedicineYear => 'سنة';
+
+  @override
+  String get moodMedicineTrend => 'اتجاه المزاج';
+
+  @override
+  String moodMedicineTrendSummary(String range, String summary) {
+    return 'اتجاه المزاج للفترة $range: $summary';
+  }
+
+  @override
+  String get moodMedicineActivitiesOverlay => 'الأنشطة في هذه التسجيلات';
+
+  @override
+  String get moodMedicineEachCheckIn => 'المزاج في كل تسجيل';
+
+  @override
+  String get moodMedicineNoEntries => 'لا توجد تسجيلات في هذا النطاق بعد.';
+
+  @override
+  String moodMedicineTrendOmitted(int limit, int omitted) {
+    String _temp0 = intl.Intl.pluralLogic(
+      omitted,
+      locale: localeName,
+      other: 'لا يتم عرض $omitted تسجيل أقدم.',
+      many: 'لا يتم عرض $omitted تسجيلاً أقدم.',
+      few: 'لا يتم عرض $omitted تسجيلات أقدم.',
+      two: 'لا يتم عرض تسجيلين أقدمين.',
+      one: 'لا يتم عرض تسجيل أقدم واحد.',
+      zero: 'لا توجد تسجيلات أقدم غير معروضة.',
+    );
+    return 'يتم عرض أحدث $limit تسجيل؛ $_temp0';
+  }
+
+  @override
+  String get moodMedicineOneEntry =>
+      'تم حفظ تسجيل واحد. ستجعل التسجيلات الإضافية الاتجاه أوضح.';
+
+  @override
+  String get moodMedicineAssociation => 'ارتباط النشاط';
+
+  @override
+  String get moodMedicineAssociationExplanation =>
+      'تقارن هذه الميزة متوسطات المزاج اليومية في الأيام التي تضم النشاط والأيام التي لا تضمه. إنها تعرض ارتباطًا لا سببًا.';
+
+  @override
+  String get moodMedicineAssociationUnavailable =>
+      'يلزم ثلاثة أيام مسجلة على الأقل مع النشاط وثلاثة أيام بدونه لإظهار ارتباط.';
+
+  @override
+  String moodMedicineAssociationSummary(
+    String activity,
+    String withMood,
+    String withoutMood,
+  ) {
+    return 'في الأيام التي سُجل فيها $activity، كان المتوسط اليومي $withMood؛ وفي الأيام المسجلة الأخرى كان $withoutMood.';
+  }
+
+  @override
+  String get moodMedicineWithActivity => 'أيام مع النشاط';
+
+  @override
+  String get moodMedicineWithoutActivity => 'أيام بدون النشاط';
+
+  @override
+  String get moodMedicineAssociationNotCausation => 'الارتباط لا يعني السببية.';
+
+  @override
+  String get moodMedicineExport => 'تصدير التقرير';
+
+  @override
+  String get moodMedicineExportReportTitle => 'تقرير متابعة المزاج';
+
+  @override
+  String get moodMedicineExportRange => 'النطاق الزمني';
+
+  @override
+  String get moodMedicineExportPdf => 'PDF';
+
+  @override
+  String get moodMedicineExportPng => 'صورة (PNG)';
+
+  @override
+  String get moodMedicineShare => 'مشاركة';
+
+  @override
+  String get moodMedicineDownload => 'تنزيل';
+
+  @override
+  String get moodMedicinePreparingExport => 'جارٍ إعداد التقرير…';
+
+  @override
+  String get moodMedicineIncludeNotes => 'تضمين الملاحظات الشخصية';
+
+  @override
+  String get moodMedicineNotesPrivacy =>
+      'يكون هذا الخيار متوقفًا افتراضيًا. قد تحتوي الملاحظات على معلومات حساسة ولا تُدرج إلا عند تشغيله صراحةً.';
+
+  @override
+  String get moodMedicineNotesExcluded => 'لا تُدرج الملاحظات الشخصية.';
+
+  @override
+  String get moodMedicineExportSources => 'المصادر التعليمية';
+
+  @override
+  String get moodMedicineExportError =>
+      'تعذر إعداد التقرير. يرجى المحاولة مرة أخرى.';
+
+  @override
+  String get moodMedicineRetry => 'إعادة المحاولة';
+
+  @override
+  String get moodMedicineSaveFailed =>
+      'لم يتم حفظ التسجيل. ما زالت مسودتك هنا.';
+
+  @override
+  String get moodMedicineLoading => 'جارٍ تحميل متتبع المزاج…';
+
+  @override
+  String get moodMedicineNotMedicalAdvice =>
+      'تدعم هذه الأداة التأمل الذاتي وليست نصيحة طبية أو تشخيصًا أو علاجًا.';
+
+  @override
+  String get moodMedicineReportNoNotes => 'لا توجد ملاحظات شخصية مضمنة';
+
+  @override
+  String get moodMedicineView => 'عرض';
+
+  @override
+  String get moodMedicinePreviewPdf => 'معاينة PDF';
+
+  @override
+  String get moodMedicinePreviewPng => 'معاينة الصورة';
+
+  @override
+  String get moodMedicinePreviewError =>
+      'تعذر فتح معاينة التقرير. يرجى المحاولة مرة أخرى.';
+
+  @override
+  String get moodMedicinePngPrintGuidance =>
+      'لطباعة موثوقة للتقارير الطويلة، اختر PDF.';
+
+  @override
+  String get moodMedicinePngTooLarge =>
+      'تقرير PNG هذا كبير جدًا. اختر PDF للحصول على تقرير موثوق.';
+
+  @override
+  String get moodMedicineRecoveryTitle => 'يحتاج سجل المزاج إلى اهتمام';
+
+  @override
+  String get moodMedicineRecoveryBody =>
+      'تعذر قراءة سجل الطب الشخصي المحفوظ. أعد المحاولة للاحتفاظ به، أو تخلّص من هذا السجل غير القابل للقراءة فقط وابدأ بسجل فارغ جديد.';
+
+  @override
+  String get moodMedicineDiscardUnreadable =>
+      'التخلص من السجل غير القابل للقراءة';
+
+  @override
+  String get moodMedicineDiscardUnreadableTitle =>
+      'التخلص من سجل المزاج غير القابل للقراءة؟';
+
+  @override
+  String get moodMedicineDiscardUnreadableBody =>
+      'يستبدل هذا الإجراء سجل الطب الشخصي فقط على هذا الجهاز بسجل فارغ. لا يمكن التراجع عنه.';
 }

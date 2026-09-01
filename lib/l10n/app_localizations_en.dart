@@ -4062,4 +4062,515 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get authNotSignedInButton => 'Sign In';
+
+  @override
+  String get moodMedicineTitle => 'Mood Tracker & Personal Medicine';
+
+  @override
+  String get moodMedicineSubtitle =>
+      'Notice patterns in your mood and everyday activities.';
+
+  @override
+  String get moodMedicineQuickCheckIn => 'Quick check-in';
+
+  @override
+  String get moodMedicineCheckIn => 'Check in';
+
+  @override
+  String get moodMedicineHowFeel => 'How are you feeling right now?';
+
+  @override
+  String get moodMedicineChooseMood => 'Choose one mood';
+
+  @override
+  String get moodMedicineMoodVeryLow => 'Very low';
+
+  @override
+  String get moodMedicineMoodLow => 'Low';
+
+  @override
+  String get moodMedicineMoodOkay => 'Okay';
+
+  @override
+  String get moodMedicineMoodGood => 'Good';
+
+  @override
+  String get moodMedicineMoodVeryGood => 'Very good';
+
+  @override
+  String get moodMedicineEmotions => 'Emotions';
+
+  @override
+  String get moodMedicineEmotionsHint => 'Choose any emotions that fit.';
+
+  @override
+  String get moodMedicineEmotionCalm => 'Calm';
+
+  @override
+  String get moodMedicineEmotionSad => 'Sad';
+
+  @override
+  String get moodMedicineEmotionAnxious => 'Anxious';
+
+  @override
+  String get moodMedicineEmotionIrritated => 'Irritated';
+
+  @override
+  String get moodMedicineEmotionTired => 'Tired';
+
+  @override
+  String get moodMedicineEmotionGrateful => 'Grateful';
+
+  @override
+  String get moodMedicineEmotionHopeful => 'Hopeful';
+
+  @override
+  String get moodMedicineEmotionOverwhelmed => 'Overwhelmed';
+
+  @override
+  String get moodMedicineEmotionLonely => 'Lonely';
+
+  @override
+  String get moodMedicineEmotionEnergized => 'Energized';
+
+  @override
+  String get moodMedicineOptionalNote => 'Optional note';
+
+  @override
+  String get moodMedicineNoteHint => 'What would you like to remember?';
+
+  @override
+  String get moodMedicineNotePrivacy =>
+      'Notes stay on this device and are excluded from reports unless you choose to include them.';
+
+  @override
+  String get moodMedicineContinue => 'Continue';
+
+  @override
+  String get moodMedicineBack => 'Back';
+
+  @override
+  String get moodMedicineSave => 'Save check-in';
+
+  @override
+  String get moodMedicineSaving => 'Saving…';
+
+  @override
+  String get moodMedicineCancel => 'Cancel';
+
+  @override
+  String get moodMedicineClose => 'Close';
+
+  @override
+  String get moodMedicineCheckInSaved => 'Check-in saved.';
+
+  @override
+  String get moodMedicineCheckInPrompt => 'A quick check-in for today';
+
+  @override
+  String get moodMedicineCheckInPromptBody =>
+      'You have not saved a mood check-in today. A minute is enough.';
+
+  @override
+  String get moodMedicineActivities => 'Activities';
+
+  @override
+  String get moodMedicineActivitiesHint =>
+      'Select anything that was part of your day.';
+
+  @override
+  String get moodMedicineManageActivities => 'Manage activities';
+
+  @override
+  String get moodMedicineDefaultActivities => 'Suggested activities';
+
+  @override
+  String get moodMedicineHiddenActivities => 'Hidden activities';
+
+  @override
+  String get moodMedicineCustomActivities => 'Your activities';
+
+  @override
+  String get moodMedicineNoCustomActivities => 'No personal activities yet.';
+
+  @override
+  String get moodMedicineNoActivitiesSelected => 'No activities selected';
+
+  @override
+  String get moodMedicineHide => 'Hide';
+
+  @override
+  String get moodMedicineRestore => 'Restore';
+
+  @override
+  String get moodMedicineEdit => 'Edit';
+
+  @override
+  String get moodMedicineDelete => 'Delete';
+
+  @override
+  String get moodMedicineAddCustomActivity => 'Add personal activity';
+
+  @override
+  String get moodMedicineEditCustomActivity => 'Edit personal activity';
+
+  @override
+  String get moodMedicineActivityName => 'Activity name';
+
+  @override
+  String get moodMedicineActivityNameHint => 'For example, gardening';
+
+  @override
+  String get moodMedicineActivityNameRequired => 'Enter an activity name.';
+
+  @override
+  String get moodMedicineSaveActivity => 'Save activity';
+
+  @override
+  String get moodMedicineDeleteActivityTitle => 'Delete this activity?';
+
+  @override
+  String get moodMedicineDeleteActivityBody =>
+      'It will no longer appear in future check-ins. Past check-ins keep its saved name.';
+
+  @override
+  String get moodMedicineDeleteActivityConfirm => 'Delete activity';
+
+  @override
+  String get moodMedicineActivityHistoryNote =>
+      'Changing or deleting an activity does not change your past check-ins.';
+
+  @override
+  String get moodMedicineActivityPhysicalActivity => 'Movement';
+
+  @override
+  String get moodMedicineActivityPhysicalActivityDescription =>
+      'Log a walk, stretching, sport, active travel, or another movement you enjoy.';
+
+  @override
+  String get moodMedicineActivityPhysicalActivityGuidance =>
+      'WHO guidance for adults includes 150–300 minutes of moderate activity, or 75–150 minutes of vigorous activity, each week. Any amount of movement is better than none.';
+
+  @override
+  String get moodMedicineActivityRestorativeSleep => 'Sleep';
+
+  @override
+  String get moodMedicineActivityRestorativeSleepDescription =>
+      'Notice a sleep routine, rest, or a night of sleep that felt restorative to you.';
+
+  @override
+  String get moodMedicineActivityRestorativeSleepGuidance =>
+      'CDC says adults ages 18–60 generally need 7 or more hours of sleep each night; needs change with age.';
+
+  @override
+  String get moodMedicineActivityNourishingMeal => 'Nourishing meal';
+
+  @override
+  String get moodMedicineActivityNourishingMealDescription =>
+      'Notice a regular meal, hydration, or another food choice that supported your day.';
+
+  @override
+  String get moodMedicineActivityNourishingMealGuidance =>
+      'NIMH includes healthy, regular meals and hydration among everyday self-care ideas.';
+
+  @override
+  String get moodMedicineActivitySocialConnection => 'Social connection';
+
+  @override
+  String get moodMedicineActivitySocialConnectionDescription =>
+      'Log a message, call, shared activity, or another meaningful connection.';
+
+  @override
+  String get moodMedicineActivitySocialConnectionGuidance =>
+      'CDC suggests small acts of connection and notes that there is no official dose or guideline for social connection.';
+
+  @override
+  String get moodMedicineActivityDaylightNature => 'Daylight and nature';
+
+  @override
+  String get moodMedicineActivityDaylightNatureDescription =>
+      'Notice time outdoors, daylight, or a moment in nature that mattered to you.';
+
+  @override
+  String get moodMedicineActivityDaylightNatureGuidance =>
+      'NIMH lists spending time in nature among activities that some people enjoy as part of self-care.';
+
+  @override
+  String get moodMedicineActivityMusic => 'Music';
+
+  @override
+  String get moodMedicineActivityMusicDescription =>
+      'Log listening to, playing, or making music if it was part of your day.';
+
+  @override
+  String get moodMedicineActivityMusicGuidance =>
+      'NIMH lists listening to music among activities that some people enjoy as part of self-care.';
+
+  @override
+  String get moodMedicineActivityLaughter => 'Laughter';
+
+  @override
+  String get moodMedicineActivityLaughterDescription =>
+      'Log a moment of laughter or lightness that was meaningful to you.';
+
+  @override
+  String get moodMedicineActivityLaughterGuidance =>
+      'This is a personal observation, not a treatment or a promise about how you should feel.';
+
+  @override
+  String get moodMedicineActivityActsOfKindness => 'Acts of kindness';
+
+  @override
+  String get moodMedicineActivityActsOfKindnessDescription =>
+      'Log a small act of care, giving, or helping that mattered to you.';
+
+  @override
+  String get moodMedicineActivityActsOfKindnessGuidance =>
+      'Connection can include small acts of giving and receiving; choose what feels appropriate for you.';
+
+  @override
+  String get moodMedicineSource => 'Source';
+
+  @override
+  String get moodMedicineOpenSource => 'Open';
+
+  @override
+  String get moodMedicineSourceWhoPhysicalActivity => 'WHO: Physical activity';
+
+  @override
+  String get moodMedicineSourceCdcSleep => 'CDC: About sleep';
+
+  @override
+  String get moodMedicineSourceNimhSelfCare =>
+      'NIMH: Caring for your mental health';
+
+  @override
+  String get moodMedicineSourceCdcConnection =>
+      'CDC: Improving social connectedness';
+
+  @override
+  String get moodMedicineEducation => 'Personal medicine';
+
+  @override
+  String get moodMedicineEducationDoseTitle => 'D.O.S.E. in context';
+
+  @override
+  String get moodMedicineEducationDoseIntro =>
+      'D.O.S.E. is a popular wellbeing shorthand for dopamine, oxytocin, serotonin, and endorphins. It can be a prompt to notice what supports you, not a rule about what your body should do.';
+
+  @override
+  String get moodMedicineEducationDisclaimer =>
+      'This education is not medical advice, diagnosis, or treatment. Activities do not reliably or definitively release a particular brain chemical. Speak with a qualified professional about health concerns.';
+
+  @override
+  String get moodMedicineDoseDopamine => 'Dopamine';
+
+  @override
+  String get moodMedicineDoseDopamineDescription =>
+      'A neurotransmitter involved in several brain functions, including reward, movement, and motivation.';
+
+  @override
+  String get moodMedicineDoseOxytocin => 'Oxytocin';
+
+  @override
+  String get moodMedicineDoseOxytocinDescription =>
+      'A hormone and neurotransmitter involved in social bonding and other body functions.';
+
+  @override
+  String get moodMedicineDoseSerotonin => 'Serotonin';
+
+  @override
+  String get moodMedicineDoseSerotoninDescription =>
+      'A neurotransmitter involved in many body functions, including mood, sleep, and digestion.';
+
+  @override
+  String get moodMedicineDoseEndorphins => 'Endorphins';
+
+  @override
+  String get moodMedicineDoseEndorphinsDescription =>
+      'Naturally occurring opioid peptides involved in pain and stress responses.';
+
+  @override
+  String get moodMedicineVideoTitle => 'Personal medicine video';
+
+  @override
+  String get moodMedicineVideoPlaceholder =>
+      'A short educational video will be available here soon.';
+
+  @override
+  String get moodMedicineInsights => 'Insights';
+
+  @override
+  String get moodMedicineViewInsights => 'View insights';
+
+  @override
+  String get moodMedicineToday => 'Today';
+
+  @override
+  String get moodMedicineWeek => 'Week';
+
+  @override
+  String get moodMedicineMonth => 'Month';
+
+  @override
+  String get moodMedicineYear => 'Year';
+
+  @override
+  String get moodMedicineTrend => 'Mood trend';
+
+  @override
+  String moodMedicineTrendSummary(String range, String summary) {
+    return 'Mood trend for $range: $summary';
+  }
+
+  @override
+  String get moodMedicineActivitiesOverlay => 'Activities in these check-ins';
+
+  @override
+  String get moodMedicineEachCheckIn => 'Mood at each check-in';
+
+  @override
+  String get moodMedicineNoEntries => 'No check-ins in this range yet.';
+
+  @override
+  String moodMedicineTrendOmitted(int limit, int omitted) {
+    String _temp0 = intl.Intl.pluralLogic(
+      omitted,
+      locale: localeName,
+      other: '$omitted older check-ins are not shown.',
+      one: '1 older check-in is not shown.',
+    );
+    return 'Showing the latest $limit check-ins; $_temp0';
+  }
+
+  @override
+  String get moodMedicineOneEntry =>
+      'One check-in is saved. More check-ins will make the trend clearer.';
+
+  @override
+  String get moodMedicineAssociation => 'Activity association';
+
+  @override
+  String get moodMedicineAssociationExplanation =>
+      'This compares daily mood averages on days with an activity and days without it. It shows an association, not a cause.';
+
+  @override
+  String get moodMedicineAssociationUnavailable =>
+      'At least three logged days with and three without an activity are needed to show an association.';
+
+  @override
+  String moodMedicineAssociationSummary(
+    String activity,
+    String withMood,
+    String withoutMood,
+  ) {
+    return 'On days you logged $activity, the daily average was $withMood; on other logged days it was $withoutMood.';
+  }
+
+  @override
+  String get moodMedicineWithActivity => 'Days with activity';
+
+  @override
+  String get moodMedicineWithoutActivity => 'Days without activity';
+
+  @override
+  String get moodMedicineAssociationNotCausation =>
+      'Association does not mean causation.';
+
+  @override
+  String get moodMedicineExport => 'Export report';
+
+  @override
+  String get moodMedicineExportReportTitle => 'Mood Tracker report';
+
+  @override
+  String get moodMedicineExportRange => 'Date range';
+
+  @override
+  String get moodMedicineExportPdf => 'PDF';
+
+  @override
+  String get moodMedicineExportPng => 'Image (PNG)';
+
+  @override
+  String get moodMedicineShare => 'Share';
+
+  @override
+  String get moodMedicineDownload => 'Download';
+
+  @override
+  String get moodMedicinePreparingExport => 'Preparing report…';
+
+  @override
+  String get moodMedicineIncludeNotes => 'Include personal notes';
+
+  @override
+  String get moodMedicineNotesPrivacy =>
+      'Off by default. Notes can contain sensitive information and are included only when you turn this on.';
+
+  @override
+  String get moodMedicineNotesExcluded => 'Personal notes are not included.';
+
+  @override
+  String get moodMedicineExportSources => 'Educational sources';
+
+  @override
+  String get moodMedicineExportError =>
+      'The report could not be prepared. Please try again.';
+
+  @override
+  String get moodMedicineRetry => 'Retry';
+
+  @override
+  String get moodMedicineSaveFailed =>
+      'Your check-in was not saved. Your draft is still here.';
+
+  @override
+  String get moodMedicineLoading => 'Loading your mood tracker…';
+
+  @override
+  String get moodMedicineNotMedicalAdvice =>
+      'This tool supports self-reflection and is not medical advice, diagnosis, or treatment.';
+
+  @override
+  String get moodMedicineReportNoNotes => 'No personal notes included';
+
+  @override
+  String get moodMedicineView => 'View';
+
+  @override
+  String get moodMedicinePreviewPdf => 'PDF preview';
+
+  @override
+  String get moodMedicinePreviewPng => 'Image preview';
+
+  @override
+  String get moodMedicinePreviewError =>
+      'The report preview could not be opened. Please try again.';
+
+  @override
+  String get moodMedicinePngPrintGuidance =>
+      'For reliable printing of long reports, choose PDF.';
+
+  @override
+  String get moodMedicinePngTooLarge =>
+      'This PNG report is too large. Choose PDF for a reliable report.';
+
+  @override
+  String get moodMedicineRecoveryTitle => 'Mood history needs attention';
+
+  @override
+  String get moodMedicineRecoveryBody =>
+      'Your saved Mood Medicine history could not be read. Retry to keep it, or discard only this unreadable history and start a new empty one.';
+
+  @override
+  String get moodMedicineDiscardUnreadable => 'Discard unreadable history';
+
+  @override
+  String get moodMedicineDiscardUnreadableTitle =>
+      'Discard unreadable mood history?';
+
+  @override
+  String get moodMedicineDiscardUnreadableBody =>
+      'This replaces only Mood Medicine history on this device with an empty history. This cannot be undone.';
 }

@@ -1,0 +1,21 @@
+{
+  "version": "2.17",
+  "children": [
+    {
+      "type": "frame",
+      "id": "bi8Au",
+      "x": 0,
+      "y": 0,
+      "name": "Frame",
+      "clip": true,
+      "width": 800,
+      "height": 600,
+      "fill": "#FFFFFF",
+      "layout": "none"
+    }
+  ],
+  "imports": {
+    "Q": "pencil:lunaris.lib.pen"
+  },
+  "fileToken": "a8468704-4887-462b-be21-90edff4f45b9"
+}

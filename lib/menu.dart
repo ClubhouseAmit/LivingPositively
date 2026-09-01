@@ -12,6 +12,9 @@ import 'package:mazilon/global_enums.dart';
 import 'package:mazilon/main_menu_dialog.dart';
 import 'package:mazilon/pages/about.dart';
 import 'package:mazilon/pages/FeelGood/feelGood.dart';
+import 'package:mazilon/features/mood_medicine/ui/mood_medicine_page.dart';
+import 'package:mazilon/features/mood_medicine/ui/mood_medicine_view_model.dart';
+import 'package:mazilon/features/mood_medicine/ui/mood_medicine_view_state.dart';
 import 'package:mazilon/pages/WellnessTools/wellnessTools.dart';
 import 'package:mazilon/pages/notifications/notification_page.dart';
 import 'package:mazilon/util/Form/retrieveInformation.dart';
@@ -36,16 +39,25 @@ import 'package:mazilon/util/userInformation.dart';
 import 'package:provider/provider.dart';
 import 'package:mazilon/l10n/app_localizations.dart';
 
+/// Creates a fresh, page-owned Mood Medicine view model.
+///
+/// Production composition resolves the registered GetIt factory. Tests and
+/// lightweight Menu hosts can provide this seam without having to compose the
+/// optional Mood Medicine feature first.
+typedef MoodMedicineViewModelFactory = MoodMedicineViewModel Function();
+
 class Menu extends StatefulWidget {
   final PhonePageData phonePageData;
   final bool hasFilled;
   final Function changeLocale;
+  final MoodMedicineViewModelFactory? moodMedicineViewModelFactory;
 
   const Menu({
     super.key,
     required this.phonePageData,
     required this.hasFilled,
     required this.changeLocale,
+    this.moodMedicineViewModelFactory,
   });
 
   @override
@@ -61,6 +73,7 @@ class _MenuState extends LPExtendedState<Menu> {
   String version = "1.0.0";
   bool isFullScreen = false;
   late Widget currentScreen;
+  int _homeSessionGeneration = 0;
 
   // Marks that the user has already opened the app before.
   Future<void> markFirstLaunchCompleted() async {
@@ -121,6 +134,14 @@ class _MenuState extends LPExtendedState<Menu> {
     );
     AnalyticsService mixPanelService = GetIt.instance<AnalyticsService>();
 
+    final MoodMedicineViewModel? moodMedicineViewModel =
+        index == PagesCode.MoodMedicinePage
+        ? _createMoodMedicineViewModel()
+        : null;
+    if (index == PagesCode.MoodMedicinePage && moodMedicineViewModel == null) {
+      return;
+    }
+
     setState(() {
       current = index;
       //adding pages to menu here:
@@ -154,6 +175,9 @@ class _MenuState extends LPExtendedState<Menu> {
         currentScreen = NotificationPage();
       } else if (index == PagesCode.FeelGoodPage) {
         currentScreen = FeelGood();
+      } else if (index == PagesCode.MoodMedicinePage) {
+        mixPanelService.trackEvent("Viewed Mood Medicine Insights");
+        currentScreen = MoodMedicinePage(viewModel: moodMedicineViewModel!);
       } /*else if (index == 9) {
         currentScreen = syncDevicesRealTime(
             collections: widget.collections,
@@ -211,12 +235,76 @@ class _MenuState extends LPExtendedState<Menu> {
   }
 
   Widget _buildHomeScreen() {
+    _homeSessionGeneration++;
     return Home(
       phonePageData: widget.phonePageData,
       changeCurrentIndex: changeCurrentIndex,
       changeLocale: widget.changeLocale,
       openMainMenu: _showMainMenu,
+      openMoodMedicineCheckIn: _showMoodMedicineCheckIn,
+      moodMedicineAvailable: _moodMedicineAvailable,
     );
+  }
+
+  bool get _moodMedicineAvailable {
+    return widget.moodMedicineViewModelFactory != null ||
+        GetIt.instance.isRegistered<MoodMedicineViewModel>();
+  }
+
+  void _showMoodMedicineCheckIn() {
+    final MoodMedicineViewModel? viewModel = _createMoodMedicineViewModel();
+    if (viewModel == null) {
+      return;
+    }
+    setState(() {
+      current = PagesCode.MoodMedicinePage;
+      currentScreen = MoodMedicinePage(
+        viewModel: viewModel,
+        initialView: MoodMedicineInitialView.checkIn,
+      );
+    });
+  }
+
+  Future<void> _openMoodMedicineDailyPromptIfNeeded(
+    int homeSessionGeneration,
+  ) async {
+    final MoodMedicineViewModel? viewModel = _createMoodMedicineViewModel();
+    if (viewModel == null) {
+      return;
+    }
+    await viewModel.load();
+    if (!mounted ||
+        current != PagesCode.Home ||
+        homeSessionGeneration != _homeSessionGeneration) {
+      viewModel.dispose();
+      return;
+    }
+    if (viewModel.shouldPromptFor(DateTime.now())) {
+      setState(() {
+        current = PagesCode.MoodMedicinePage;
+        currentScreen = MoodMedicinePage(
+          viewModel: viewModel,
+          initialView: MoodMedicineInitialView.checkIn,
+        );
+      });
+    } else {
+      // A recovery state must not open a check-in or write over unreadable
+      // history. The explicit Mood Medicine entry still exposes recovery UI.
+      viewModel.dispose();
+    }
+  }
+
+  MoodMedicineViewModel? _createMoodMedicineViewModel() {
+    final MoodMedicineViewModelFactory? factory =
+        widget.moodMedicineViewModelFactory;
+    if (factory != null) {
+      return factory();
+    }
+    final GetIt locator = GetIt.instance;
+    if (!locator.isRegistered<MoodMedicineViewModel>()) {
+      return null;
+    }
+    return locator<MoodMedicineViewModel>();
   }
 
   void _showWellnessTools(AppInformation appInfoProvider) {
@@ -258,6 +346,7 @@ class _MenuState extends LPExtendedState<Menu> {
           current = PagesCode.NotificationPage;
         });
       },
+      onMoodMedicinePressed: _showMoodMedicineCheckIn,
     );
   }
 
@@ -295,6 +384,12 @@ class _MenuState extends LPExtendedState<Menu> {
     unawaited(getVersion());
     //this is the initial page
     currentScreen = _buildHomeScreen();
+    final int initialHomeSessionGeneration = _homeSessionGeneration;
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      unawaited(
+        _openMoodMedicineDailyPromptIfNeeded(initialHomeSessionGeneration),
+      );
+    });
   }
 
   @override

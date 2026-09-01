@@ -53,7 +53,9 @@ final class ContractPersistentMemoryWrite {
 ///
 /// [store] is the visible cache and remains mutable by reference so tests can
 /// seed or inspect it directly. [durableStore] only changes after a queued
-/// persistence operation succeeds. The default hooks complete immediately;
+/// persistence operation succeeds. By default [store] exposes accepted pending
+/// writes; tests can set [exposePendingWrites] to false to model a reader that
+/// exposes only completed writes. The default hooks complete immediately;
 /// tests can use the hooks to hold, reject, or observe particular operations
 /// without bypassing serialization.
 base class ContractPersistentMemoryService implements PersistentMemoryService {
@@ -64,6 +66,7 @@ base class ContractPersistentMemoryService implements PersistentMemoryService {
   ContractPersistentMemoryService({
     Map<String, dynamic>? store,
     Map<String, Object?>? initialValues,
+    this.exposePendingWrites = true,
   }) : store = store ?? _copyInitialValues(initialValues) {
     if (store != null && initialValues != null) {
       throw ArgumentError.value(
@@ -83,6 +86,12 @@ base class ContractPersistentMemoryService implements PersistentMemoryService {
 
   /// The directly readable, mutable cache used by test callers.
   final Map<String, dynamic> store;
+
+  /// Whether a queued write becomes visible before it completes durably.
+  ///
+  /// The default models an eager cache. False models a storage reader that
+  /// continues to return the previously durable value while a write is held.
+  final bool exposePendingWrites;
 
   final Map<String, Object> _durableStore = <String, Object>{};
   Future<void>? _pendingOperation;
@@ -147,17 +156,22 @@ base class ContractPersistentMemoryService implements PersistentMemoryService {
 
     return _enqueue(() async {
       final Object visibleValue = _copyValue(type, copiedValue);
-      store[key] = visibleValue;
       final ContractPersistentMemoryWrite write = ContractPersistentMemoryWrite(
         key,
         type,
         visibleValue,
       );
       attemptedWrites.add(write);
+      if (exposePendingWrites) {
+        store[key] = visibleValue;
+      }
 
       await onPersist?.call(key, type, write.value);
 
       _durableStore[key] = _copyValue(type, write.value);
+      if (!exposePendingWrites) {
+        store[key] = _copyValue(type, write.value);
+      }
       completedWrites.add(write);
       await onSetItemCompleted?.call(key, type, write.value);
     });
