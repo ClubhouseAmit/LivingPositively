@@ -12,6 +12,15 @@ abstract class AppSpacing {
   static const xxxl = 32.0;
 }
 
+/// Border-radius tokens used by shared layout affordances.
+abstract class AppRadii {
+  /// Standard card radius from the design system.
+  static const card = 16.0;
+
+  /// Fixed dashed add-slot pill radius that preserves its dash cadence.
+  static const dashedAddSlot = 24.0;
+}
+
 /// Semantic spacing shared between onboarding flows (intro and questionnaire).
 abstract class OnboardingGaps {
   /// Section heading to caption (Figma: Frame 223).
@@ -35,4 +44,3 @@ abstract class OnboardingGaps {
   /// Questionnaire wizard: vertical padding around action buttons.
   static const questionnaireAroundActions = AppSpacing.lg;
 }
-

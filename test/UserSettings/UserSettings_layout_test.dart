@@ -56,7 +56,11 @@ void main() {
 
   tearDown(resetTestServices);
 
-  Future<void> pumpSettings(WidgetTester tester, String locale) async {
+  Future<void> pumpSettings(
+    WidgetTester tester,
+    String locale, {
+    ThemeData? theme,
+  }) async {
     services.memory.store.clear();
     final user = UserInformation()
       ..localeName = locale
@@ -74,7 +78,7 @@ void main() {
           ChangeNotifierProvider<AppInformation>.value(value: AppInformation()),
         ],
         child: MaterialApp(
-          theme: buildLightTheme(),
+          theme: theme ?? buildLightTheme(),
           locale: Locale(locale),
           supportedLocales: AppLocalizations.supportedLocales,
           localizationsDelegates: AppLocalizations.localizationsDelegates,
@@ -116,7 +120,11 @@ void main() {
     testWidgets(
       'layout fits without scrolling when scheduled dark mode is active ($locale)',
       (tester) async {
-        await pumpSettings(tester, locale);
+        await pumpSettings(tester, locale, theme: buildDarkTheme());
+        expect(
+          Theme.of(tester.element(find.byType(UserSettings))).brightness,
+          Brightness.dark,
+        );
 
         await tester.tap(find.byKey(const Key('darkModeScheduledOption')));
         await tester.pumpAndSettle();
@@ -154,6 +162,18 @@ void main() {
       expect(button, findsOneWidget, reason: 'no "$label" button');
       expect(tester.getSize(button).height, 44, reason: '"$label" height');
     }
+  });
+
+  testWidgets('app bar should use dark chrome and retain the light fallback', (
+    tester,
+  ) async {
+    await pumpSettings(tester, 'en', theme: buildDarkTheme());
+    var appBar = tester.widget<AppBar>(find.byType(AppBar));
+    expect(appBar.backgroundColor, AppColors.darkNavBackground);
+
+    await pumpSettings(tester, 'en');
+    appBar = tester.widget<AppBar>(find.byType(AppBar));
+    expect(appBar.backgroundColor, AppColors.surface);
   });
 
   testWidgets(

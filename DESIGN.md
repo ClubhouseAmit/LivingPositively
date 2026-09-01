@@ -5,16 +5,19 @@ version: 1.0.0
 tags: [mental-health, wellness, support, minimal]
 colorTokens:
   primary: "0xFFA688F8"
+  darkPrimary: "0xFFD7C2FF"
   secondary: "0xFFE3C6FF"
   surface: "0xFFFAF8F8"
   onSurface: "0xFF0F2851"
   success: "0xFF01B91E"
   error: "0xFFF44336"
+  darkLogoOutline: "0xFFFFFFFF"
 borderRadii:
   button: 20
   card: 16
   input: 10
   badge: 50
+  dashedAddSlot: 24
 shadows:
   sheet: { color: "0x14000000", offset: [0, -11], blur: 28 }
   card: { color: "0x7AF1EDEA", offset: [0, 3], blur: 11 }
@@ -54,6 +57,7 @@ Metsilon (Mazilon) serves individuals in highly vulnerable or distressed moments
 | Token             | CSS Custom Property     | Value        | Purpose / Description                                  |
 | :---------------- | :---------------------- | :----------- | :----------------------------------------------------- |
 | **Primary**       | `--color-primary`       | `0xFFA688F8` | Calming violet, used as background for primary buttons |
+| **Dark Primary**  | `--color-dark-primary`  | `0xFFD7C2FF` | Pale lavender, used as the background for dark-mode primary buttons |
 | **Secondary**     | `--color-secondary`     | `0xFFE3C6FF` | Highlight soft purple, selected borders/indicators     |
 | **On Surface**    | `--color-on-surface`    | `0xFF0F2851` | Primary body text, titles, dark contrast details       |
 | **Surface**       | `--color-surface`       | `0xFFFAF8F8` | Default scaffold/canvas clean color                    |
@@ -64,6 +68,7 @@ Metsilon (Mazilon) serves individuals in highly vulnerable or distressed moments
 | **Background**    | `--color-bg`            | `0xFFF4F0EB` | Light mode screen backdrop tone                        |
 | **Progress Track** | `--color-progress-track` | `0xFFD9D9D9` | Inactive progress-dot fill (no dark-mode value designed yet) |
 | **Suggestion Card Outline** | `--color-suggestion-outline` | `0xFF01B99F` | Dashed border on an unselected onboarding-suggestion card — teal, distinct from Success green (no dark-mode value designed yet) |
+| **Dark Logo Outline** | `--color-dark-logo-outline` | `0xFFFFFFFF` | Pure-white lower-letter outline in the dark-mode logo only; an artwork exception, not a standard text foreground |
 
 ### 2.2 Typography (Font Family: Rubik)
 
@@ -82,6 +87,7 @@ The application uses **Rubik** (referenced as `'Rubix'` in code font mappings).
 
 - **`Radius: 20.0` (Standard Buttons):** Circular rounding for all action buttons.
 - **`Radius: 16.0` (Card Containers):** Standard containers for list items and self-affirmation cards. (A one-off `15.0` variant exists on a single legacy element — treat `16.0` as the token; it accounts for 288 of the 289 card corner radii in the source file.)
+- **`Radius: 24.0` (Dashed Add-Slot Pill):** Fixed corner radius for the shared dashed add-slot pill. Implemented as `AppRadii.dashedAddSlot`; preserves the established corner profile and dash cadence as text scales.
 - **`Radius: 10.0` (Input Fields):** Rounded corners for text fields.
 - **`Radius: 50.0` (Round Badges):** Fully rounded capsule widgets or floating action overlays.
 
@@ -187,11 +193,29 @@ ThemeData buildDarkTheme() {
     colorScheme: appDarkColorScheme,
     primaryColor: AppColors.darkPrimary,
     scaffoldBackgroundColor: AppColors.darkPageBackground,
-    bottomAppBarTheme: const BottomAppBarThemeData(color: AppColors.darkNavBackground),
+    bottomAppBarTheme: const BottomAppBarThemeData(
+      color: AppColors.darkNavBackground,
+    ),
+    canvasColor: AppColors.darkSurface,
+    cardColor: AppColors.darkSurfaceContainer,
+    dividerColor: AppColors.darkOnSurface.withValues(alpha: 0.2),
+    appBarTheme: const AppBarTheme(
+      backgroundColor: AppColors.darkNavBackground,
+      foregroundColor: AppColors.darkOnSurface,
+    ),
+    inputDecorationTheme: const InputDecorationTheme(
+      fillColor: AppColors.darkSurfaceContainer,
+      filled: true,
+    ),
     fontFamily: 'Rubix',
   );
 }
 ```
+
+`AppColors.darkLogoOutline` is intentionally not assigned to `ThemeData` or
+`ColorScheme`. `LivingPositivelyLogo` reads it directly because it applies only
+to the dark-mode artwork contour; regular dark-mode text continues to use
+`AppColors.darkOnSurface`.
 
 ---
 

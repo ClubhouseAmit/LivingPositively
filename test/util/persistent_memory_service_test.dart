@@ -83,6 +83,16 @@ class _ControlledSharedPreferencesStore extends InMemorySharedPreferencesStore {
   }
 }
 
+final class _ThrowingReadSharedPreferencesStore
+    extends InMemorySharedPreferencesStore {
+  _ThrowingReadSharedPreferencesStore(this.error) : super.empty();
+
+  final Object error;
+
+  @override
+  Future<Map<String, Object>> getAll() async => throw error;
+}
+
 class _ThrowingLogger implements IncidentLoggerService {
   @override
   Future<void> initializeSentry(_) async {}
@@ -97,7 +107,7 @@ class _ThrowingLogger implements IncidentLoggerService {
   }
 }
 
-void _installControlledStore(_ControlledSharedPreferencesStore store) {
+void _installControlledStore(SharedPreferencesStorePlatform store) {
   final SharedPreferencesStorePlatform previousStore =
       SharedPreferencesStorePlatform.instance;
   SharedPreferencesStorePlatform.instance = store;
@@ -187,12 +197,26 @@ void main() {
       expect(await s.getItem('missing', PersistentMemoryType.String), '');
     });
 
+    test('should log and rethrow a platform read error', () async {
+      final StateError failure = StateError(
+        'private journal text must not escape',
+      );
+      _installControlledStore(_ThrowingReadSharedPreferencesStore(failure));
+      final SharedPreferencesService service = SharedPreferencesService();
+
+      await expectLater(
+        service.getItem('history', PersistentMemoryType.String),
+        throwsA(same(failure)),
+      );
+      expect(logger.logs, contains(same(failure)));
+    });
+
     test('getItem with no stored value returns null for Int', () async {
       final s = SharedPreferencesService();
       expect(await s.getItem('missing', PersistentMemoryType.Int), isNull);
     });
 
-    test('getItem with a wrong Int type returns null', () async {
+    test('should log and return null for a wrong stored Int type', () async {
       SharedPreferences.setMockInitialValues({'k': 'not-an-int'});
       final s = SharedPreferencesService();
 

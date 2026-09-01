@@ -7,7 +7,9 @@ import 'package:mazilon/pages/WellnessTools/VideoPlayerInheritedWidget.dart';
 import 'package:mazilon/pages/WellnessTools/VideoPlayerPageFactory.dart';
 import 'package:mazilon/pages/WellnessTools/more_videos_item.dart';
 import 'package:mazilon/util/LP_extended_state.dart';
+import 'package:mazilon/util/layout/directional_widgets.dart';
 import 'package:mazilon/util/styles.dart';
+import 'package:mazilon/util/theme/spacing.dart';
 import 'package:youtube_player_flutter/youtube_player_flutter.dart';
 
 class WellnessTools extends StatefulWidget {
@@ -31,11 +33,13 @@ class _WellnessToolsState extends LPExtendedState<WellnessTools> {
   static const _maximumPinnedPlayerHeightFactor = 0.55;
 
   var isFullScreen = false;
+  bool? _pendingFullScreen;
   var selectedVideoIdIndex = 0;
   var selectedVideoId = '';
   final ScrollController _scrollController = ScrollController();
   final VideoPlayerPageFactory _videoPlayerPageFactory =
       GetIt.instance<VideoPlayerPageFactory>();
+  final ScrollController _scrollController = ScrollController();
 
   String? _youtubeId(String videoId) {
     final trimmed = videoId.trim();
@@ -125,8 +129,25 @@ class _WellnessToolsState extends LPExtendedState<WellnessTools> {
   void setIsFullScreen(bool isFullScreen) {
     setState(() {
       this.isFullScreen = isFullScreen;
+      _pendingFullScreen = null;
     });
     widget.setBool(isFullScreen);
+  }
+
+  @override
+  void initState() {
+    super.initState();
+    isFullScreen = widget.isFullScreen;
+  }
+
+  @override
+  void didUpdateWidget(covariant WellnessTools oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (oldWidget.isFullScreen != widget.isFullScreen) {
+      _pendingFullScreen = widget.isFullScreen == isFullScreen
+          ? null
+          : widget.isFullScreen;
+    }
   }
 
   @override
@@ -164,12 +185,16 @@ class _WellnessToolsState extends LPExtendedState<WellnessTools> {
         : 0;
     final transcript = widget.videoData['videoTranscript'];
     final moreVideoIndexes = _moreVideoIndexes(selectedIndex);
+    final moreVideosChildCount = moreVideoIndexes.isEmpty
+        ? 0
+        : moreVideoIndexes.length * 2 - 1;
 
     return VideoPlayerInheritedWidget(
       videoId: selectedVideoId.isNotEmpty
           ? selectedVideoId
           : _youtubeId(videoIds[selectedIndex])!,
       changeVideo: changeVideo,
+      isFullScreen: _pendingFullScreen ?? isFullScreen,
       child: SafeArea(
         child: Scaffold(
           body: LayoutBuilder(

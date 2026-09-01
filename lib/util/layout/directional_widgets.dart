@@ -1,6 +1,85 @@
 import 'dart:math' as math;
+
 import 'package:flutter/material.dart';
+import 'package:mazilon/util/theme/app_theme.dart';
 import 'package:mazilon/util/theme/spacing.dart';
+
+/// Displays the Living Positively logo with dark-mode letter contrast.
+///
+/// The [AppColors.darkLogoOutline] is confined to the lower `Logo.png` letter
+/// region so the butterfly and green accent preserve their existing artwork.
+final class LivingPositivelyLogo extends StatelessWidget {
+  static const _assetPath = 'assets/images/Logo.png';
+  static const _letterRegionHeightFactor = 0.47;
+  static const _outlineOffsets = [
+    Offset(-1, -1),
+    Offset(0, -1),
+    Offset(1, -1),
+    Offset(-1, 0),
+    Offset(1, 0),
+    Offset(-1, 1),
+    Offset(0, 1),
+    Offset(1, 1),
+  ];
+
+  final double? width;
+  final double? height;
+  final BoxFit? fit;
+
+  const LivingPositivelyLogo({super.key, this.width, this.height, this.fit});
+
+  Image _buildImage() =>
+      Image.asset(_assetPath, width: width, height: height, fit: fit);
+
+  @override
+  Widget build(BuildContext context) {
+    final logo = _buildImage();
+    if (Theme.of(context).brightness != Brightness.dark) {
+      return logo;
+    }
+
+    return Stack(
+      alignment: Alignment.center,
+      clipBehavior: Clip.none,
+      children: [
+        for (final offset in _outlineOffsets)
+          Transform.translate(
+            offset: offset,
+            child: ExcludeSemantics(
+              child: ClipRect(
+                clipper: const _LivingPositivelyLetterRegionClipper(),
+                child: ColorFiltered(
+                  colorFilter: const ColorFilter.mode(
+                    AppColors.darkLogoOutline,
+                    BlendMode.srcIn,
+                  ),
+                  child: _buildImage(),
+                ),
+              ),
+            ),
+          ),
+        logo,
+      ],
+    );
+  }
+}
+
+class _LivingPositivelyLetterRegionClipper extends CustomClipper<Rect> {
+  const _LivingPositivelyLetterRegionClipper();
+
+  @override
+  Rect getClip(Size size) => Rect.fromLTWH(
+    0,
+    size.height * (1 - LivingPositivelyLogo._letterRegionHeightFactor),
+    size.width,
+    size.height * LivingPositivelyLogo._letterRegionHeightFactor,
+  );
+
+  @override
+  bool shouldReclip(
+    covariant _LivingPositivelyLetterRegionClipper oldClipper,
+  ) => false;
+}
 
 /// Reusable card container with proper RTL support and Material Design styling
 class CardContainer extends StatelessWidget {
@@ -327,7 +406,10 @@ class DashedPillAddSlot extends StatelessWidget {
           GestureDetector(
             onTap: onTap,
             child: CustomPaint(
-              painter: _DashedCirclePainter(color: colorScheme.tertiary),
+              painter: _DashedCirclePainter(
+                color: colorScheme.tertiary,
+                strokeWidth: 1,
+              ),
               child: SizedBox(
                 width: 36,
                 height: 36,
@@ -338,7 +420,11 @@ class DashedPillAddSlot extends StatelessWidget {
           SizedBox(width: AppSpacing.md),
           Expanded(
             child: CustomPaint(
-              painter: _DashedPillPainter(color: colorScheme.tertiary),
+              painter: DashedRoundedBorderPainter(
+                color: colorScheme.tertiary,
+                radius: AppRadii.dashedAddSlot,
+                strokeWidth: 1,
+              ),
               child: Container(
                 padding: EdgeInsetsDirectional.symmetric(
                   horizontal: AppSpacing.md,
@@ -382,13 +468,15 @@ class DashedPillAddSlot extends StatelessWidget {
 
 class _DashedCirclePainter extends CustomPainter {
   final Color color;
-  const _DashedCirclePainter({required this.color});
+  final double strokeWidth;
+
+  const _DashedCirclePainter({required this.color, required this.strokeWidth});
 
   @override
   void paint(Canvas canvas, Size size) {
     final paint = Paint()
       ..color = color
-      ..strokeWidth = 1.5
+      ..strokeWidth = strokeWidth
       ..style = PaintingStyle.stroke;
 
     final center = Offset(size.width / 2, size.height / 2);
@@ -414,21 +502,32 @@ class _DashedCirclePainter extends CustomPainter {
   }
 
   @override
-  bool shouldRepaint(covariant _DashedCirclePainter old) => old.color != color;
+  bool shouldRepaint(covariant _DashedCirclePainter old) =>
+      old.color != color || old.strokeWidth != strokeWidth;
 }
 
-class _DashedPillPainter extends CustomPainter {
+/// Paints the shared rounded dashed border used by add affordances.
+///
+/// [color], [radius], and [strokeWidth] keep each caller's visual variant
+/// explicit while preserving the common dash geometry.
+final class DashedRoundedBorderPainter extends CustomPainter {
   final Color color;
-  const _DashedPillPainter({required this.color});
+  final double radius;
+  final double strokeWidth;
+
+  const DashedRoundedBorderPainter({
+    required this.color,
+    required this.radius,
+    required this.strokeWidth,
+  });
 
   @override
   void paint(Canvas canvas, Size size) {
     final paint = Paint()
       ..color = color
-      ..strokeWidth = 2
+      ..strokeWidth = strokeWidth
       ..style = PaintingStyle.stroke;
 
-    const radius = 24.0;
     const dashW = 7.0;
     const dashG = 5.0;
 
@@ -436,19 +535,22 @@ class _DashedPillPainter extends CustomPainter {
       ..addRRect(
         RRect.fromRectAndRadius(
           Rect.fromLTWH(1, 1, size.width - 2, size.height - 2),
-          const Radius.circular(radius),
+          Radius.circular(radius),
         ),
       );
 
-    for (final m in path.computeMetrics()) {
+    for (final metric in path.computeMetrics()) {
       var d = 0.0;
-      while (d < m.length) {
-        canvas.drawPath(m.extractPath(d, d + dashW), paint);
+      while (d < metric.length) {
+        canvas.drawPath(metric.extractPath(d, d + dashW), paint);
         d += dashW + dashG;
       }
     }
   }
 
   @override
-  bool shouldRepaint(covariant _DashedPillPainter old) => old.color != color;
+  bool shouldRepaint(covariant DashedRoundedBorderPainter oldDelegate) =>
+      oldDelegate.color != color ||
+      oldDelegate.radius != radius ||
+      oldDelegate.strokeWidth != strokeWidth;
 }
