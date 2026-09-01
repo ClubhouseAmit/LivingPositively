@@ -39,7 +39,6 @@ class _WellnessToolsState extends LPExtendedState<WellnessTools> {
   final ScrollController _scrollController = ScrollController();
   final VideoPlayerPageFactory _videoPlayerPageFactory =
       GetIt.instance<VideoPlayerPageFactory>();
-  final ScrollController _scrollController = ScrollController();
 
   String? _youtubeId(String videoId) {
     final trimmed = videoId.trim();
@@ -185,9 +184,6 @@ class _WellnessToolsState extends LPExtendedState<WellnessTools> {
         : 0;
     final transcript = widget.videoData['videoTranscript'];
     final moreVideoIndexes = _moreVideoIndexes(selectedIndex);
-    final moreVideosChildCount = moreVideoIndexes.isEmpty
-        ? 0
-        : moreVideoIndexes.length * 2 - 1;
 
     return VideoPlayerInheritedWidget(
       videoId: selectedVideoId.isNotEmpty
@@ -212,8 +208,7 @@ class _WellnessToolsState extends LPExtendedState<WellnessTools> {
                           Center(
                             child: SizedBox(
                               height: 130.0,
-                              child: Image.asset(
-                                'assets/images/Logo.png',
+                              child: LivingPositivelyLogo(
                                 width:
                                     MediaQuery.sizeOf(context).width * 0.4 >
                                         1000
@@ -224,10 +219,10 @@ class _WellnessToolsState extends LPExtendedState<WellnessTools> {
                           ),
                           Padding(
                             padding: const EdgeInsets.fromLTRB(
-                              8.0,
+                              AppSpacing.sm,
                               10.0,
-                              8,
-                              10,
+                              AppSpacing.sm,
+                              10.0,
                             ),
                             child: myAutoSizedText(
                               widget.videoData['videoHeadline']![selectedIndex],
@@ -284,7 +279,12 @@ class _WellnessToolsState extends LPExtendedState<WellnessTools> {
                         children: [
                           const SizedBox(height: 10),
                           Padding(
-                            padding: const EdgeInsets.fromLTRB(0, 4.0, 4, 20),
+                            padding: const EdgeInsets.fromLTRB(
+                              0,
+                              AppSpacing.xs,
+                              AppSpacing.xs,
+                              AppSpacing.xl,
+                            ),
                             child: myAutoSizedText(
                               widget
                                   .videoData['videoDescription']![selectedIndex],
@@ -306,7 +306,12 @@ class _WellnessToolsState extends LPExtendedState<WellnessTools> {
                                 : null,
                           ),
                           Padding(
-                            padding: const EdgeInsets.fromLTRB(0, 4.0, 4, 20),
+                            padding: const EdgeInsets.fromLTRB(
+                              0,
+                              AppSpacing.xs,
+                              AppSpacing.xs,
+                              AppSpacing.xl,
+                            ),
                             child: myAutoSizedText(
                               appLocale.moreVideos,
                               TextStyle(
@@ -328,7 +333,10 @@ class _WellnessToolsState extends LPExtendedState<WellnessTools> {
                       itemCount: moreVideoIndexes.length,
                       itemBuilder: (context, index) {
                         final videoIndex = moreVideoIndexes[index];
+                        final videoId =
+                            widget.videoData['videoId']![videoIndex];
                         return MoreVideosItem(
+                          key: ValueKey(videoId),
                           videoData: widget.videoData,
                           index: videoIndex,
                           thumbnailUrl: getThumbnailUrl(
