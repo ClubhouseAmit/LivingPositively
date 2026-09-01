@@ -377,6 +377,15 @@ class _MenuState extends LPExtendedState<Menu> {
     );
   }
 
+  Widget _bottomNavigationSvgIcon(String assetPath, Color color) {
+    return SvgPicture.asset(
+      assetPath,
+      width: 24,
+      height: 24,
+      colorFilter: ColorFilter.mode(color, BlendMode.srcIn),
+    );
+  }
+
   @override
   void initState() {
     super.initState();
@@ -493,11 +502,9 @@ class _MenuState extends LPExtendedState<Menu> {
                           });
                         },
                         selected: current == PagesCode.Home,
-                        iconBuilder: (color) => SvgPicture.asset(
+                        iconBuilder: (color) => _bottomNavigationSvgIcon(
                           'assets/images/home_icons.svg',
-                          width: 24,
-                          height: 24,
-                          colorFilter: ColorFilter.mode(color, BlendMode.srcIn),
+                          color,
                         ),
                         label: appLocale.home(gender),
                       ),
@@ -516,11 +523,9 @@ class _MenuState extends LPExtendedState<Menu> {
                           });
                         },
                         selected: current == PagesCode.FullPlan,
-                        iconBuilder: (color) => SvgPicture.asset(
+                        iconBuilder: (color) => _bottomNavigationSvgIcon(
                           'assets/images/task_icon.svg',
-                          width: 24,
-                          height: 24,
-                          colorFilter: ColorFilter.mode(color, BlendMode.srcIn),
+                          color,
                         ),
                         label: appLocale.personalPlanPageMyPlan(gender),
                       ),
@@ -537,11 +542,9 @@ class _MenuState extends LPExtendedState<Menu> {
                           });
                         },
                         selected: current == PagesCode.FeelGoodPage,
-                        iconBuilder: (color) => SvgPicture.asset(
+                        iconBuilder: (color) => _bottomNavigationSvgIcon(
                           'assets/images/yin_yang_icon.svg',
-                          width: 24,
-                          height: 24,
-                          colorFilter: ColorFilter.mode(color, BlendMode.srcIn),
+                          color,
                         ),
                         label: AppLocalizations.of(
                           context,

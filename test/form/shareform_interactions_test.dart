@@ -24,6 +24,7 @@ import 'package:mazilon/util/custom_categories_storage.dart';
 import 'package:mazilon/util/persistent_memory_service.dart';
 import 'package:mazilon/util/userInformation.dart';
 import 'package:mockito/mockito.dart';
+import 'package:share_plus/share_plus.dart';
 
 import '../helpers/widget_test_scaffold.dart';
 import 'shareform_test.mocks.dart' as shareform_mocks;
@@ -185,6 +186,23 @@ class _ExportReadingFileService extends NoopFileService {
   List<String> dreamsSourcesAtDownload = const [];
   List<String> dreamsCustomItemsAtDownload = const [];
   PersistentMemoryService? receivedMemoryService;
+
+  @override
+  Future<ShareResult?> share(
+    String message,
+    List<dynamic> titles,
+    List<dynamic> subTitles,
+    Map<String, String> texts,
+    ShareFileType saveFormat, {
+    required String mainTitle,
+    required String textDirection,
+    PersistentMemoryService? memoryService,
+    Set<String>? approvedPdfHosts,
+  }) async {
+    shareCalls++;
+    receivedMemoryService = memoryService;
+    return const ShareResult('shared-plan.pdf', ShareResultStatus.success);
+  }
 
   @override
   Future<String?> download(
@@ -386,6 +404,56 @@ void main() {
     expect(exportFiles.downloadCalls, 1);
     expect(exportFiles.receivedMemoryService, same(overrideMemory.service));
     await tester.pump(const Duration(seconds: 2));
+  });
+
+  testWidgets('share should use the ShareForm memory-service override', (
+    tester,
+  ) async {
+    final overrideMemory = _DreamsMemoryHarness();
+    final exportFiles = _ExportReadingFileService(overrideMemory.service);
+    GetIt.instance.unregister<FileService>();
+    GetIt.instance.registerSingleton<FileService>(exportFiles);
+
+    await pumpWithProviders(
+      tester,
+      wizardStepHarness(
+        ShareForm(
+          key: GlobalKey<WizardStepState>(),
+          prev: () {},
+          submit: (_) async {},
+          memoryService: overrideMemory.service,
+        ),
+      ),
+      userInformation: user,
+      surfaceSize: const Size(1024, 1800),
+    );
+
+    await _pressIconButtonInAsyncZone(tester, Icons.share);
+    await _flushAsyncAction(tester);
+    await tester.pumpAndSettle();
+
+    final dialog = tester.widget<LPShareAlertDialog>(
+      find.byType(LPShareAlertDialog),
+    );
+    expect(dialog.memoryService, same(overrideMemory.service));
+
+    final shareFileButton = find.text('Share file of personal plan');
+    await tester.ensureVisible(shareFileButton);
+    final shareButton = tester.widget<TextButton>(
+      find.ancestor(of: shareFileButton, matching: find.byType(TextButton)),
+    );
+    await tester.runAsync(() async {
+      shareButton.onPressed!();
+      for (var attempt = 0;
+          attempt < 20 && exportFiles.shareCalls == 0;
+          attempt++) {
+        await Future<void>.delayed(const Duration(milliseconds: 10));
+      }
+    });
+    await tester.pump();
+
+    expect(exportFiles.shareCalls, 1);
+    expect(exportFiles.receivedMemoryService, same(overrideMemory.service));
   });
 
   group('ShareForm', () {

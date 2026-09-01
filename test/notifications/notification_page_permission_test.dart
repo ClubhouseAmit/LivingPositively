@@ -101,6 +101,30 @@ void main() {
       });
     },
   );
+
+  testWidgets(
+    'NotificationPage should expose remote reminder cancellation when permission is denied',
+    (tester) async {
+      await _onPlatform(TargetPlatform.iOS, () async {
+        FcmService.debugGetNotificationSettingsOverride = () async =>
+            _settings(AuthorizationStatus.denied);
+
+        await pumpWithProviders(
+          tester,
+          const NotificationPage(),
+          userInformation: user,
+        );
+        await tester.pump();
+
+        final cancelLabel = find.text('Cancel current notification');
+        expect(cancelLabel, findsOneWidget);
+        final cancelButton = tester.widget<OutlinedButton>(
+          find.ancestor(of: cancelLabel, matching: find.byType(OutlinedButton)),
+        );
+        expect(cancelButton.onPressed, isNotNull);
+      });
+    },
+  );
 }
 
 Future<T> _onPlatform<T>(

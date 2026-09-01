@@ -187,7 +187,9 @@ class _NotificationPageState extends LPExtendedState<NotificationPage>
                     if (_hasPermission == false && preference == null) {
                       return _PermissionDeniedCard(
                         onRequestPermission: _requestReminderPermission,
+                        onCancelReminder: () => _onToggle(false, userInfo),
                         canRequestPermission: _canRequestPermission,
+                        gender: gender,
                         requestPermissionBody: appLocale.notificationPageHeader(
                           gender,
                         ),
@@ -310,12 +312,16 @@ class _NotSignedInCard extends StatelessWidget {
 
 class _PermissionDeniedCard extends StatefulWidget {
   final Future<void> Function() onRequestPermission;
+  final Future<bool> Function() onCancelReminder;
   final bool canRequestPermission;
+  final String gender;
   final String requestPermissionBody;
 
   const _PermissionDeniedCard({
     required this.onRequestPermission,
+    required this.onCancelReminder,
     required this.canRequestPermission,
+    required this.gender,
     required this.requestPermissionBody,
   });
 
@@ -326,14 +332,25 @@ class _PermissionDeniedCard extends StatefulWidget {
 class _PermissionDeniedCardState
     extends LPExtendedState<_PermissionDeniedCard> {
   bool _requesting = false;
+  bool _cancelling = false;
 
   Future<void> _requestPermission() async {
-    if (_requesting) return;
+    if (_requesting || _cancelling) return;
     setState(() => _requesting = true);
     try {
       await widget.onRequestPermission();
     } finally {
       if (mounted) setState(() => _requesting = false);
+    }
+  }
+
+  Future<void> _cancelReminder() async {
+    if (_requesting || _cancelling) return;
+    setState(() => _cancelling = true);
+    try {
+      await widget.onCancelReminder();
+    } finally {
+      if (mounted) setState(() => _cancelling = false);
     }
   }
 
@@ -372,11 +389,20 @@ class _PermissionDeniedCardState
           ),
           const SizedBox(height: 16),
           ElevatedButton.icon(
-            onPressed: !widget.canRequestPermission || _requesting
+            onPressed:
+                !widget.canRequestPermission || _requesting || _cancelling
                 ? null
                 : _requestPermission,
             icon: const Icon(Icons.notifications_outlined),
             label: Text(appLocale.notificationsEnable),
+          ),
+          const SizedBox(height: 8),
+          OutlinedButton.icon(
+            onPressed: _requesting || _cancelling ? null : _cancelReminder,
+            icon: const Icon(Icons.notifications_off_outlined),
+            label: Text(
+              appLocale.notificationCancelNotification(widget.gender),
+            ),
           ),
           if (!widget.canRequestPermission)
             LinkButton(

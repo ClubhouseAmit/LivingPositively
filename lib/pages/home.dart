@@ -53,7 +53,7 @@ class _HomeState extends LPExtendedState<Home> {
   int _reminderIndex = 0;
   String? _customReminder;
 
-  Future<void> _loadData() async {
+  Future<void> _loadCustomReminder() async {
     final service = GetIt.instance<PersistentMemoryService>();
     final savedReminder =
         await service.getItem('customReminder', PersistentMemoryType.String)
@@ -69,7 +69,7 @@ class _HomeState extends LPExtendedState<Home> {
   @override
   void initState() {
     super.initState();
-    unawaited(_loadData());
+    unawaited(_loadCustomReminder());
     _reminderIndex = Random().nextInt(1000);
   }
 
@@ -200,7 +200,9 @@ class _HomeState extends LPExtendedState<Home> {
 
               // Reminders list
               Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 10),
+                padding: const EdgeInsets.symmetric(
+                  horizontal: HomeGaps.sectionHorizontalInset,
+                ),
                 child: RemindersSectionWidget(
                   reminders: reminderItems,
                   onEdit: (index) => _editReminderDialog(context, reminderText),
@@ -223,7 +225,9 @@ class _HomeState extends LPExtendedState<Home> {
 
               // My Plan
               Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 10),
+                padding: const EdgeInsets.symmetric(
+                  horizontal: HomeGaps.sectionHorizontalInset,
+                ),
                 child: PersonalPlanSectionWidget(
                   items: [
                     ...userInfoProvider.makeSafer,
@@ -239,7 +243,9 @@ class _HomeState extends LPExtendedState<Home> {
               // Quote banner
               if (_showQuote)
                 Padding(
-                  padding: const EdgeInsets.symmetric(horizontal: 10),
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: HomeGaps.sectionHorizontalInset,
+                  ),
                   child: QuoteCardWidget(
                     quote: quote,
                     onClose: () {
@@ -275,7 +281,9 @@ class _HomeState extends LPExtendedState<Home> {
               SizedBox(height: 48),
 
               Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 10),
+                padding: const EdgeInsets.symmetric(
+                  horizontal: HomeGaps.sectionHorizontalInset,
+                ),
                 child: GratitudeSectionWidget(
                   onAddItem: () => widget.changeCurrentIndex(
                     context,
@@ -290,7 +298,9 @@ class _HomeState extends LPExtendedState<Home> {
               SizedBox(height: AppSpacing.xxxl),
               // Positive Virtues
               Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 10),
+                padding: const EdgeInsets.symmetric(
+                  horizontal: HomeGaps.sectionHorizontalInset,
+                ),
                 child: VirtuesSectionWidget(
                   virtues: userInfoProvider.positiveTraits,
                   onAddItem: () => widget.changeCurrentIndex(

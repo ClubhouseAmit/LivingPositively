@@ -8,12 +8,15 @@ import 'package:mazilon/util/Share/LP_alert_dialog.dart';
 import 'package:mazilon/util/Share/LP_alert_dialog_box_item.dart';
 import 'package:mazilon/util/Share/personal_plan_share.dart';
 import 'package:mazilon/util/appInformation.dart';
+import 'package:mazilon/util/persistent_memory_service.dart';
 import 'package:mazilon/util/userInformation.dart';
 import 'package:provider/provider.dart';
 import 'package:share_plus/share_plus.dart';
 
 class LPShareAlertDialog extends StatefulWidget {
-  const LPShareAlertDialog({super.key});
+  const LPShareAlertDialog({super.key, this.memoryService});
+
+  final PersistentMemoryService? memoryService;
 
   @override
   State<LPShareAlertDialog> createState() => _LPShareAlertDialogState();
@@ -31,6 +34,7 @@ Future<ShareResult?> shareFile(
   AppInformation appInfoProvider, {
   UserInformation? userInformation,
   FileService? fileService,
+  PersistentMemoryService? memoryService,
 }) {
   return sharePersonalPlanFile(
     message: "",
@@ -40,6 +44,7 @@ Future<ShareResult?> shareFile(
     appInformation: appInfoProvider,
     userInformation: userInformation,
     fileService: fileService,
+    memoryService: memoryService,
   );
 }
 
@@ -64,15 +69,16 @@ class _LPShareAlertDialogState extends LPExtendedState<LPShareAlertDialog> {
               appInfoProvider,
               userInformation: userInfoProvider,
               fileService: fileService,
+              memoryService: widget.memoryService,
             );
             if (!context.mounted) {
               return;
             }
             if (shareResult == null ||
                 shareResult.status == ShareResultStatus.unavailable) {
-              ScaffoldMessenger.maybeOf(context)?.showSnackBar(
-                SnackBar(content: Text(personalPlanShareFailed)),
-              );
+              ScaffoldMessenger.maybeOf(
+                context,
+              )?.showSnackBar(SnackBar(content: Text(personalPlanShareFailed)));
             }
           },
           buttonText: appLocale.shareFile,

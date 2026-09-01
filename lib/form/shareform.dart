@@ -91,6 +91,7 @@ class _ShareFormState extends WizardStepState<ShareForm> {
   bool _showCustomCategoryValidation = false;
   int? _editingCustomCategoryIndex;
   int _customCategoryFormGeneration = 0;
+  List<MapEntry<String, String>>? _latestCustomCategoriesSnapshot;
 
   UserInformation? get _userInformation {
     if (!mounted) return null;
@@ -160,6 +161,8 @@ class _ShareFormState extends WizardStepState<ShareForm> {
   Future<void> _persistCustomCategoriesSafely(
     List<MapEntry<String, String>> categories,
   ) async {
+    _latestCustomCategoriesSnapshot =
+        List<MapEntry<String, String>>.unmodifiable(categories);
     try {
       final userInformation = _userInformation;
       if (userInformation != null) {
@@ -171,18 +174,19 @@ class _ShareFormState extends WizardStepState<ShareForm> {
     } catch (error, stackTrace) {
       await _captureDreamsAndGoalsFailure(error, stackTrace);
       if (mounted) {
-        _showCustomCategorySaveFailure(categories);
+        _showCustomCategorySaveFailure();
       }
     }
   }
 
-  void _showCustomCategorySaveFailure(
-    List<MapEntry<String, String>> categories,
-  ) {
-    showPersistenceRetrySnackBar(
-      context,
-      () => _persistCustomCategoriesSafely(categories),
-    );
+  void _showCustomCategorySaveFailure() {
+    showPersistenceRetrySnackBar(context, () async {
+      final categories = _latestCustomCategoriesSnapshot;
+      if (categories == null) {
+        return;
+      }
+      await _persistCustomCategoriesSafely(categories);
+    });
   }
 
   List<String> predefinedCategoryTitles() {
@@ -753,14 +757,6 @@ class _ShareFormState extends WizardStepState<ShareForm> {
       await action();
     } catch (error, stackTrace) {
       await _captureDreamsAndGoalsFailure(error, stackTrace);
-      FlutterError.reportError(
-        FlutterErrorDetails(
-          exception: error,
-          stack: stackTrace,
-          library: 'ShareForm',
-          context: ErrorDescription('while retrying a Dreams and Goals action'),
-        ),
-      );
     }
   }
 
@@ -912,7 +908,12 @@ class _ShareFormState extends WizardStepState<ShareForm> {
                           if (!mounted) {
                             return;
                           }
-                          await showShareDialog(context);
+                          await showShareDialog(
+                            context,
+                            memoryService:
+                                widget.memoryService ??
+                                userInfoProvider.service,
+                          );
                         }),
                       );
                     },
@@ -946,7 +947,8 @@ class _ShareFormState extends WizardStepState<ShareForm> {
                             appInformation: appInfoProvider,
                             userInformation: userInfoProvider,
                             memoryService:
-                                widget.memoryService ?? userInfoProvider.service,
+                                widget.memoryService ??
+                                userInfoProvider.service,
                             fileService: fileService,
                           );
                         }),

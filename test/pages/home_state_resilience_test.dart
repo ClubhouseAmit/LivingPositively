@@ -8,6 +8,7 @@ import 'package:mazilon/global_enums.dart';
 import 'package:mazilon/pages/home.dart';
 import 'package:mazilon/util/Form/formPagePhoneModel.dart';
 import 'package:mazilon/util/HomePage/quote_card_widget.dart';
+import 'package:mazilon/util/theme/spacing.dart';
 import 'package:mazilon/util/userInformation.dart';
 
 import '../helpers/widget_test_scaffold.dart';
@@ -111,7 +112,10 @@ void main() {
       matching: find.byWidgetPredicate(
         (widget) =>
             widget is Padding &&
-            widget.padding == const EdgeInsets.symmetric(horizontal: 10),
+            widget.padding ==
+                const EdgeInsets.symmetric(
+                  horizontal: HomeGaps.sectionHorizontalInset,
+                ),
       ),
     );
     expect(gratitudeInsets, findsOneWidget);
@@ -132,8 +136,14 @@ void main() {
       surfaceSize: const Size(1024, 2400),
     );
 
+    final quoteBeforeRefresh = tester
+        .widget<QuoteCardWidget>(find.byType(QuoteCardWidget))
+        .quote;
     tester.widget<QuoteCardWidget>(find.byType(QuoteCardWidget)).onRefresh!();
     await tester.pump();
+    final quoteAfterRefresh = tester
+        .widget<QuoteCardWidget>(find.byType(QuoteCardWidget))
+        .quote;
 
     expect(services.analytics.events, hasLength(1));
     expect(
@@ -142,11 +152,11 @@ void main() {
     );
     expect(
       services.analytics.events.single.value,
-      containsPair('Old Quote', isA<String>()),
+      containsPair('Old Quote', quoteBeforeRefresh),
     );
     expect(
       services.analytics.events.single.value,
-      containsPair('New Quote', isA<String>()),
+      containsPair('New Quote', quoteAfterRefresh),
     );
   });
 
