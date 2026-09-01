@@ -500,7 +500,14 @@ void main() {
       await tester.pump();
 
       expect(find.widgetWithText(SnackBarAction, 'Try again'), findsOneWidget);
-      expect(tester.takeException(), isNull);
+      expect(
+        tester.takeException(),
+        isA<StateError>().having(
+          (StateError error) => error.message,
+          'message',
+          'intentional custom category persistence failure',
+        ),
+      );
 
       rejectTitleWrite = false;
       tester
