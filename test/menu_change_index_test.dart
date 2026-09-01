@@ -3,6 +3,7 @@
 // PagesCode branch (lines 91-136 of lib/menu.dart) plus the FAB SOS tap
 // (lines 310-314) and the main-menu dialog open path.
 
+import 'package:flutter/widgets.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:get_it/get_it.dart';
 import 'package:mazilon/AnalyticsService.dart';
@@ -12,12 +13,21 @@ import 'package:mazilon/iFx/service_locator.dart';
 import 'package:mazilon/pages/FeelGood/feelGood.dart';
 import 'package:mazilon/pages/FeelGood/image_picker_service_impl.dart';
 import 'package:mazilon/pages/PersonalPlan/myPlanPageFull.dart';
+import 'package:mazilon/features/mood_medicine/data/mood_medicine_models.dart';
+import 'package:mazilon/features/mood_medicine/data/mood_medicine_report_exporter.dart';
+import 'package:mazilon/features/mood_medicine/data/mood_medicine_repository.dart';
+import 'package:mazilon/features/mood_medicine/data/mood_medicine_source_link_service.dart';
+import 'package:mazilon/features/mood_medicine/data/mood_medicine_store.dart';
+import 'package:mazilon/features/mood_medicine/ui/mood_medicine_page.dart';
+import 'package:mazilon/features/mood_medicine/ui/mood_medicine_view_model.dart';
+import 'package:mazilon/features/mood_medicine/ui/mood_medicine_view_state.dart';
 import 'package:mazilon/pages/about.dart';
 import 'package:mazilon/pages/home.dart';
 import 'package:mazilon/pages/journal.dart';
 import 'package:mazilon/pages/notifications/notification_page.dart';
 import 'package:mazilon/pages/positive.dart';
 import 'package:mazilon/util/appInformation.dart';
+import 'package:mazilon/util/logger_service.dart';
 import 'package:mazilon/util/persistent_memory_service.dart';
 import 'package:mazilon/util/userInformation.dart';
 import 'package:package_info_plus/package_info_plus.dart';
@@ -47,6 +57,20 @@ final class _FakePersistentMemoryService
       }
     };
   }
+}
+
+String _completedMoodMedicineSnapshot() {
+  final DateTime now = DateTime.now();
+  return MoodMedicineSnapshot(
+    entries: <MoodMedicineEntry>[
+      MoodMedicineEntry(
+        id: 'existing-mood-entry',
+        occurredAtUtc: now.toUtc(),
+        localDayKey: moodMedicineLocalDayKey(now),
+        mood: 3,
+      ),
+    ],
+  ).encode();
 }
 
 class _FakeAnalytics implements AnalyticsService {
@@ -99,6 +123,9 @@ void main() {
     await GetIt.instance.reset();
     analytics = _FakeAnalytics();
     getIt.registerLazySingleton<AnalyticsService>(() => analytics);
+    getIt.registerLazySingleton<IncidentLoggerService>(
+      () => NoopIncidentLoggerService(),
+    );
     getIt.registerLazySingleton<FileService>(() => _FakeFiles());
     getIt.registerLazySingleton<PersistentMemoryService>(
       () => _FakePersistentMemoryService(
@@ -107,11 +134,34 @@ void main() {
           'location': '',
           'phonePageDataSavedPhoneNames': <String>[],
           'phonePageDataSavedPhoneNumbers': <String>[],
+          MoodMedicineStore.snapshotKey: _completedMoodMedicineSnapshot(),
         },
       ),
     );
     getIt.registerLazySingleton<ImagePickerService>(
       () => NoopImagePickerService(),
+    );
+    getIt.registerLazySingleton<MoodMedicineStore>(
+      () => MoodMedicineStore(getIt<PersistentMemoryService>()),
+    );
+    getIt.registerLazySingleton<MoodMedicineRepository>(
+      () => getIt<MoodMedicineStore>(),
+    );
+    getIt.registerLazySingleton<MoodMedicineReportExportService>(
+      () => MoodMedicineReportExporter(
+        incidentLoggerService: getIt<IncidentLoggerService>(),
+      ),
+    );
+    getIt.registerLazySingleton<MoodMedicineSourceLinkService>(
+      () => const UrlLauncherMoodMedicineSourceLinkService(),
+    );
+    getIt.registerFactory<MoodMedicineViewModel>(
+      () => MoodMedicineViewModel(
+        getIt<MoodMedicineRepository>(),
+        getIt<MoodMedicineReportExportService>(),
+        sourceLinkService: getIt<MoodMedicineSourceLinkService>(),
+        incidentLoggerService: getIt<IncidentLoggerService>(),
+      ),
     );
     PackageInfo.setMockInitialValues(
       appName: 'Mazilon',
@@ -128,8 +178,18 @@ void main() {
     getData(app);
   });
 
-  Future<void> drive(WidgetTester tester, PagesCode code) async {
-    await tester.pumpWidget(getMenuForTests(user, app));
+  Future<void> drive(
+    WidgetTester tester,
+    PagesCode code, {
+    MoodMedicineViewModel Function()? moodMedicineViewModelFactory,
+  }) async {
+    await tester.pumpWidget(
+      getMenuForTests(
+        user,
+        app,
+        moodMedicineViewModelFactory: moodMedicineViewModelFactory,
+      ),
+    );
     await tester.pumpAndSettle();
     final homeWidget = tester.widget<Home>(find.byType(Home));
     final homeContext = tester.element(find.byType(Home));
@@ -178,4 +238,121 @@ void main() {
       expect(find.byType(NotificationPage), findsOneWidget);
     },
   );
+
+  group('MoodMedicine menu branch', () {
+    testWidgets(
+      'should compose a fresh insights page and retain analytics tracking',
+      (WidgetTester tester) async {
+        await drive(tester, PagesCode.MoodMedicinePage);
+        await tester.pumpAndSettle();
+
+        expect(find.byType(MoodMedicinePage), findsOneWidget);
+        expect(analytics.events, contains('Viewed Mood Medicine Insights'));
+      },
+    );
+
+    testWidgets(
+      'should use the injected factory for direct insights navigation',
+      (WidgetTester tester) async {
+        final List<MoodMedicineViewModel> created = <MoodMedicineViewModel>[];
+        MoodMedicineViewModel createViewModel() {
+          final MoodMedicineViewModel viewModel = MoodMedicineViewModel(
+            getIt<MoodMedicineRepository>(),
+            getIt<MoodMedicineReportExportService>(),
+            sourceLinkService: getIt<MoodMedicineSourceLinkService>(),
+            incidentLoggerService: getIt<IncidentLoggerService>(),
+          );
+          created.add(viewModel);
+          return viewModel;
+        }
+
+        await drive(
+          tester,
+          PagesCode.MoodMedicinePage,
+          moodMedicineViewModelFactory: createViewModel,
+        );
+        await tester.pumpAndSettle();
+
+        final MoodMedicinePage page = tester.widget<MoodMedicinePage>(
+          find.byType(MoodMedicinePage),
+        );
+        expect(created, hasLength(2));
+        expect(page.viewModel, same(created.last));
+      },
+    );
+
+    testWidgets(
+      'should open insights from the Home entry point and track the view',
+      (WidgetTester tester) async {
+        await tester.pumpWidget(getMenuForTests(user, app));
+        await tester.pumpAndSettle();
+
+        final Finder insights = find.byKey(
+          const Key('moodMedicineHomeInsights'),
+        );
+        await tester.ensureVisible(insights);
+        await tester.tap(insights);
+        await tester.pumpAndSettle();
+
+        final MoodMedicinePage page = tester.widget<MoodMedicinePage>(
+          find.byType(MoodMedicinePage),
+        );
+        expect(page.initialView, MoodMedicineInitialView.insights);
+        expect(analytics.events, contains('Viewed Mood Medicine Insights'));
+      },
+    );
+
+    testWidgets('should open check-in from the main-menu quick action', (
+      WidgetTester tester,
+    ) async {
+      await tester.pumpWidget(getMenuForTests(user, app));
+      await tester.pumpAndSettle();
+
+      await tester.tap(find.byKey(const Key('mainMenuButton')));
+      await tester.pumpAndSettle();
+      await tester.tap(find.byKey(const Key('moodMedicineQuickCheckIn')));
+      await tester.pumpAndSettle();
+
+      final MoodMedicinePage page = tester.widget<MoodMedicinePage>(
+        find.byType(MoodMedicinePage),
+      );
+      expect(page.initialView, MoodMedicineInitialView.checkIn);
+    });
+
+    testWidgets('should use the injected factory for quick check-in', (
+      WidgetTester tester,
+    ) async {
+      final List<MoodMedicineViewModel> created = <MoodMedicineViewModel>[];
+      MoodMedicineViewModel createViewModel() {
+        final MoodMedicineViewModel viewModel = MoodMedicineViewModel(
+          getIt<MoodMedicineRepository>(),
+          getIt<MoodMedicineReportExportService>(),
+          sourceLinkService: getIt<MoodMedicineSourceLinkService>(),
+          incidentLoggerService: getIt<IncidentLoggerService>(),
+        );
+        created.add(viewModel);
+        return viewModel;
+      }
+
+      await tester.pumpWidget(
+        getMenuForTests(
+          user,
+          app,
+          moodMedicineViewModelFactory: createViewModel,
+        ),
+      );
+      await tester.pumpAndSettle();
+      await tester.tap(find.byKey(const Key('mainMenuButton')));
+      await tester.pumpAndSettle();
+      await tester.tap(find.byKey(const Key('moodMedicineQuickCheckIn')));
+      await tester.pumpAndSettle();
+
+      final MoodMedicinePage page = tester.widget<MoodMedicinePage>(
+        find.byType(MoodMedicinePage),
+      );
+      expect(created, hasLength(2));
+      expect(page.viewModel, same(created.last));
+      expect(page.initialView, MoodMedicineInitialView.checkIn);
+    });
+  });
 }

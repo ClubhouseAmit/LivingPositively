@@ -11,6 +11,7 @@ Widget getMenuForTests(
   UserInformation mockUserInformation,
   AppInformation mockAppInformation, {
   Locale locale = const Locale('he'),
+  MoodMedicineViewModelFactory? moodMedicineViewModelFactory,
 }) {
   final phonePageData = PhonePageData(
     key: 'phonePageData',
@@ -42,6 +43,7 @@ Widget getMenuForTests(
           phonePageData: phonePageData,
           changeLocale: (String locale) {},
           hasFilled: false,
+          moodMedicineViewModelFactory: moodMedicineViewModelFactory,
         ),
       ),
     ),

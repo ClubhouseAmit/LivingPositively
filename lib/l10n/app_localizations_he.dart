@@ -3896,4 +3896,510 @@ class AppLocalizationsHe extends AppLocalizations {
   @override
   String get speechDictationPhoneInvalid =>
       'מספר הטלפון שהוכתב אינו תקין עבור המדינה שנבחרה.';
+
+  @override
+  String get moodMedicineTitle => 'מעקב מצב רוח ורפואה אישית';
+
+  @override
+  String get moodMedicineSubtitle =>
+      'לזהות דפוסים במצב הרוח ובפעילויות היומיומיות.';
+
+  @override
+  String get moodMedicineQuickCheckIn => 'בדיקה מהירה';
+
+  @override
+  String get moodMedicineCheckIn => 'בדיקה';
+
+  @override
+  String get moodMedicineHowFeel => 'איך מרגישים עכשיו?';
+
+  @override
+  String get moodMedicineChooseMood => 'לבחור מצב רוח אחד';
+
+  @override
+  String get moodMedicineMoodVeryLow => 'נמוך מאוד';
+
+  @override
+  String get moodMedicineMoodLow => 'נמוך';
+
+  @override
+  String get moodMedicineMoodOkay => 'בסדר';
+
+  @override
+  String get moodMedicineMoodGood => 'טוב';
+
+  @override
+  String get moodMedicineMoodVeryGood => 'טוב מאוד';
+
+  @override
+  String get moodMedicineEmotions => 'רגשות';
+
+  @override
+  String get moodMedicineEmotionsHint => 'אפשר לבחור את כל הרגשות שמתאימים.';
+
+  @override
+  String get moodMedicineEmotionCalm => 'רגוע.ה';
+
+  @override
+  String get moodMedicineEmotionSad => 'עצב';
+
+  @override
+  String get moodMedicineEmotionAnxious => 'חרדה';
+
+  @override
+  String get moodMedicineEmotionIrritated => 'עצבנות';
+
+  @override
+  String get moodMedicineEmotionTired => 'עייפות';
+
+  @override
+  String get moodMedicineEmotionGrateful => 'הכרת תודה';
+
+  @override
+  String get moodMedicineEmotionHopeful => 'תקווה';
+
+  @override
+  String get moodMedicineEmotionOverwhelmed => 'מוצף.ת';
+
+  @override
+  String get moodMedicineEmotionLonely => 'בדידות';
+
+  @override
+  String get moodMedicineEmotionEnergized => 'אנרגטי.ת';
+
+  @override
+  String get moodMedicineOptionalNote => 'הערה אופציונלית';
+
+  @override
+  String get moodMedicineNoteHint => 'מה חשוב לזכור?';
+
+  @override
+  String get moodMedicineNotePrivacy =>
+      'ההערות נשארות במכשיר הזה ולא נכללות בדוחות אלא אם בוחרים לכלול אותן.';
+
+  @override
+  String get moodMedicineContinue => 'המשך';
+
+  @override
+  String get moodMedicineBack => 'חזרה';
+
+  @override
+  String get moodMedicineSave => 'שמירת בדיקה';
+
+  @override
+  String get moodMedicineSaving => 'שומר…';
+
+  @override
+  String get moodMedicineCancel => 'ביטול';
+
+  @override
+  String get moodMedicineClose => 'סגירה';
+
+  @override
+  String get moodMedicineCheckInSaved => 'הבדיקה נשמרה.';
+
+  @override
+  String get moodMedicineCheckInPrompt => 'בדיקה מהירה להיום';
+
+  @override
+  String get moodMedicineCheckInPromptBody =>
+      'עדיין לא נשמרה בדיקת מצב רוח להיום. גם דקה אחת מספיקה.';
+
+  @override
+  String get moodMedicineActivities => 'פעילויות';
+
+  @override
+  String get moodMedicineActivitiesHint => 'אפשר לבחור כל דבר שהיה חלק מהיום.';
+
+  @override
+  String get moodMedicineManageActivities => 'ניהול פעילויות';
+
+  @override
+  String get moodMedicineDefaultActivities => 'פעילויות מוצעות';
+
+  @override
+  String get moodMedicineHiddenActivities => 'פעילויות מוסתרות';
+
+  @override
+  String get moodMedicineCustomActivities => 'הפעילויות שלי';
+
+  @override
+  String get moodMedicineNoCustomActivities => 'עדיין אין פעילויות אישיות.';
+
+  @override
+  String get moodMedicineNoActivitiesSelected => 'לא נבחרו פעילויות';
+
+  @override
+  String get moodMedicineHide => 'הסתרה';
+
+  @override
+  String get moodMedicineRestore => 'שחזור';
+
+  @override
+  String get moodMedicineEdit => 'עריכה';
+
+  @override
+  String get moodMedicineDelete => 'מחיקה';
+
+  @override
+  String get moodMedicineAddCustomActivity => 'הוספת פעילות אישית';
+
+  @override
+  String get moodMedicineEditCustomActivity => 'עריכת פעילות אישית';
+
+  @override
+  String get moodMedicineActivityName => 'שם הפעילות';
+
+  @override
+  String get moodMedicineActivityNameHint => 'לדוגמה, גינון';
+
+  @override
+  String get moodMedicineActivityNameRequired => 'יש להזין שם לפעילות.';
+
+  @override
+  String get moodMedicineSaveActivity => 'שמירת פעילות';
+
+  @override
+  String get moodMedicineDeleteActivityTitle => 'למחוק את הפעילות?';
+
+  @override
+  String get moodMedicineDeleteActivityBody =>
+      'היא לא תופיע בבדיקות עתידיות. בדיקות קודמות ישמרו את השם שנשמר.';
+
+  @override
+  String get moodMedicineDeleteActivityConfirm => 'מחיקת פעילות';
+
+  @override
+  String get moodMedicineActivityHistoryNote =>
+      'שינוי או מחיקה של פעילות לא ישנו בדיקות קודמות.';
+
+  @override
+  String get moodMedicineActivityPhysicalActivity => 'תנועה';
+
+  @override
+  String get moodMedicineActivityPhysicalActivityDescription =>
+      'אפשר לרשום הליכה, מתיחות, ספורט, הגעה פעילה ממקום למקום או כל תנועה שנעימה לך.';
+
+  @override
+  String get moodMedicineActivityPhysicalActivityGuidance =>
+      'הנחיות ארגון הבריאות העולמי למבוגרים כוללות 150–300 דקות של פעילות מתונה או 75–150 דקות של פעילות נמרצת בשבוע. כל כמות של תנועה עדיפה על חוסר תנועה.';
+
+  @override
+  String get moodMedicineActivityRestorativeSleep => 'שינה';
+
+  @override
+  String get moodMedicineActivityRestorativeSleepDescription =>
+      'אפשר לשים לב לשגרת שינה, למנוחה או ללילה של שינה שהרגיש משקם.';
+
+  @override
+  String get moodMedicineActivityRestorativeSleepGuidance =>
+      'לפי ה-CDC, מבוגרים בגיל 18–60 זקוקים בדרך כלל ל-7 שעות שינה או יותר בכל לילה; הצורך משתנה עם הגיל.';
+
+  @override
+  String get moodMedicineActivityNourishingMeal => 'ארוחה מזינה';
+
+  @override
+  String get moodMedicineActivityNourishingMealDescription =>
+      'אפשר לשים לב לארוחה סדירה, לשתייה או לבחירה תזונתית אחרת שתמכה ביום.';
+
+  @override
+  String get moodMedicineActivityNourishingMealGuidance =>
+      'NIMH כולל ארוחות בריאות וסדירות ושתייה מספקת בין רעיונות לטיפול עצמי יומיומי.';
+
+  @override
+  String get moodMedicineActivitySocialConnection => 'קשר חברתי';
+
+  @override
+  String get moodMedicineActivitySocialConnectionDescription =>
+      'אפשר לרשום הודעה, שיחה, פעילות משותפת או קשר משמעותי אחר.';
+
+  @override
+  String get moodMedicineActivitySocialConnectionGuidance =>
+      'ה-CDC מציע מעשים קטנים של חיבור ומציין שאין מינון או הנחיה רשמיים לקשר חברתי.';
+
+  @override
+  String get moodMedicineActivityDaylightNature => 'אור יום וטבע';
+
+  @override
+  String get moodMedicineActivityDaylightNatureDescription =>
+      'אפשר לשים לב לזמן בחוץ, לאור יום או לרגע בטבע שהיה משמעותי.';
+
+  @override
+  String get moodMedicineActivityDaylightNatureGuidance =>
+      'NIMH מציין זמן בטבע בין פעילויות שיש אנשים שנהנים מהן כחלק מטיפול עצמי.';
+
+  @override
+  String get moodMedicineActivityMusic => 'מוזיקה';
+
+  @override
+  String get moodMedicineActivityMusicDescription =>
+      'אפשר לרשום האזנה, נגינה או יצירת מוזיקה אם היא הייתה חלק מהיום.';
+
+  @override
+  String get moodMedicineActivityMusicGuidance =>
+      'NIMH מציין האזנה למוזיקה בין פעילויות שיש אנשים שנהנים מהן כחלק מטיפול עצמי.';
+
+  @override
+  String get moodMedicineActivityLaughter => 'צחוק';
+
+  @override
+  String get moodMedicineActivityLaughterDescription =>
+      'אפשר לרשום רגע של צחוק או קלילות שהיה משמעותי.';
+
+  @override
+  String get moodMedicineActivityLaughterGuidance =>
+      'זוהי תצפית אישית, ולא טיפול או הבטחה לאיך שצריך להרגיש.';
+
+  @override
+  String get moodMedicineActivityActsOfKindness => 'מעשי טוב לב';
+
+  @override
+  String get moodMedicineActivityActsOfKindnessDescription =>
+      'אפשר לרשום מחווה קטנה של אכפתיות, נתינה או עזרה שהייתה משמעותית.';
+
+  @override
+  String get moodMedicineActivityActsOfKindnessGuidance =>
+      'קשר יכול לכלול מעשים קטנים של נתינה וקבלה; כדאי לבחור במה שמתאים.';
+
+  @override
+  String get moodMedicineSource => 'מקור';
+
+  @override
+  String get moodMedicineOpenSource => 'פתיחת מקור';
+
+  @override
+  String get moodMedicineSourceWhoPhysicalActivity => 'WHO: פעילות גופנית';
+
+  @override
+  String get moodMedicineSourceCdcSleep => 'CDC: על שינה';
+
+  @override
+  String get moodMedicineSourceNimhSelfCare => 'NIMH: טיפול בבריאות הנפש';
+
+  @override
+  String get moodMedicineSourceCdcConnection => 'CDC: שיפור הקשר החברתי';
+
+  @override
+  String get moodMedicineEducation => 'רפואה אישית';
+
+  @override
+  String get moodMedicineEducationDoseTitle => 'D.O.S.E. בהקשר';
+
+  @override
+  String get moodMedicineEducationDoseIntro =>
+      'D.O.S.E. הוא קיצור נפוץ בהקשר של רווחה לדופמין, אוקסיטוצין, סרוטונין ואנדורפינים. הוא יכול להזמין תשומת לב למה שתומך בך, ולא לקבוע מה הגוף אמור לעשות.';
+
+  @override
+  String get moodMedicineEducationDisclaimer =>
+      'המידע כאן אינו ייעוץ, אבחון או טיפול רפואי. פעילויות אינן משחררות בהכרח או בוודאות חומר כימי מסוים במוח. במקרה של דאגה בריאותית, כדאי לפנות לאיש.ת מקצוע מוסמך.ת.';
+
+  @override
+  String get moodMedicineDoseDopamine => 'דופמין';
+
+  @override
+  String get moodMedicineDoseDopamineDescription =>
+      'מוליך עצבי המעורב בכמה תפקודי מוח, בהם תגמול, תנועה ומוטיבציה.';
+
+  @override
+  String get moodMedicineDoseOxytocin => 'אוקסיטוצין';
+
+  @override
+  String get moodMedicineDoseOxytocinDescription =>
+      'הורמון ומוליך עצבי המעורב בקשר חברתי ובתפקודי גוף נוספים.';
+
+  @override
+  String get moodMedicineDoseSerotonin => 'סרוטונין';
+
+  @override
+  String get moodMedicineDoseSerotoninDescription =>
+      'מוליך עצבי המעורב בתפקודי גוף רבים, בהם מצב רוח, שינה ועיכול.';
+
+  @override
+  String get moodMedicineDoseEndorphins => 'אנדורפינים';
+
+  @override
+  String get moodMedicineDoseEndorphinsDescription =>
+      'פפטידים אופיואידיים טבעיים המעורבים בתגובות לכאב וללחץ.';
+
+  @override
+  String get moodMedicineVideoTitle => 'סרטון על רפואה אישית';
+
+  @override
+  String get moodMedicineVideoPlaceholder =>
+      'כאן יופיע בקרוב סרטון חינוכי קצר.';
+
+  @override
+  String get moodMedicineInsights => 'תובנות';
+
+  @override
+  String get moodMedicineViewInsights => 'הצגת תובנות';
+
+  @override
+  String get moodMedicineToday => 'היום';
+
+  @override
+  String get moodMedicineWeek => 'שבוע';
+
+  @override
+  String get moodMedicineMonth => 'חודש';
+
+  @override
+  String get moodMedicineYear => 'שנה';
+
+  @override
+  String get moodMedicineTrend => 'מגמת מצב רוח';
+
+  @override
+  String moodMedicineTrendSummary(String range, String summary) {
+    return 'מגמת מצב הרוח עבור $range: $summary';
+  }
+
+  @override
+  String get moodMedicineActivitiesOverlay => 'פעילויות בבדיקות האלה';
+
+  @override
+  String get moodMedicineEachCheckIn => 'מצב הרוח בכל בדיקה';
+
+  @override
+  String get moodMedicineNoEntries => 'עדיין אין בדיקות בטווח הזה.';
+
+  @override
+  String moodMedicineTrendOmitted(int limit, int omitted) {
+    String _temp0 = intl.Intl.pluralLogic(
+      omitted,
+      locale: localeName,
+      other: '$omitted בדיקות ישנות יותר אינן מוצגות.',
+      one: 'בדיקה ישנה יותר אחת אינה מוצגת.',
+    );
+    return 'מוצגות $limit הבדיקות האחרונות; $_temp0';
+  }
+
+  @override
+  String get moodMedicineOneEntry =>
+      'נשמרה בדיקה אחת. בדיקות נוספות יעזרו להבהיר את המגמה.';
+
+  @override
+  String get moodMedicineAssociation => 'קשר עם פעילות';
+
+  @override
+  String get moodMedicineAssociationExplanation =>
+      'ההשוואה היא בין ממוצעי מצב הרוח היומיים בימים עם פעילות ובימים בלעדיה. היא מציגה קשר, לא סיבה.';
+
+  @override
+  String get moodMedicineAssociationUnavailable =>
+      'כדי להציג קשר נדרשים לפחות שלושה ימי דיווח עם הפעילות ושלושה ימים בלעדיה.';
+
+  @override
+  String moodMedicineAssociationSummary(
+    String activity,
+    String withMood,
+    String withoutMood,
+  ) {
+    return 'בימים שבהם נרשמה $activity, הממוצע היומי היה $withMood; בימי דיווח אחרים הוא היה $withoutMood.';
+  }
+
+  @override
+  String get moodMedicineWithActivity => 'ימים עם פעילות';
+
+  @override
+  String get moodMedicineWithoutActivity => 'ימים ללא פעילות';
+
+  @override
+  String get moodMedicineAssociationNotCausation => 'קשר אינו מעיד על סיבתיות.';
+
+  @override
+  String get moodMedicineExport => 'ייצוא דוח';
+
+  @override
+  String get moodMedicineExportReportTitle => 'דוח מעקב מצב רוח';
+
+  @override
+  String get moodMedicineExportRange => 'טווח תאריכים';
+
+  @override
+  String get moodMedicineExportPdf => 'PDF';
+
+  @override
+  String get moodMedicineExportPng => 'תמונה (PNG)';
+
+  @override
+  String get moodMedicineShare => 'שיתוף';
+
+  @override
+  String get moodMedicineDownload => 'הורדה';
+
+  @override
+  String get moodMedicinePreparingExport => 'מכינים דוח…';
+
+  @override
+  String get moodMedicineIncludeNotes => 'לכלול הערות אישיות';
+
+  @override
+  String get moodMedicineNotesPrivacy =>
+      'כבוי כברירת מחדל. הערות עשויות לכלול מידע רגיש ונכללות רק לאחר הפעלה מפורשת.';
+
+  @override
+  String get moodMedicineNotesExcluded => 'הערות אישיות אינן נכללות.';
+
+  @override
+  String get moodMedicineExportSources => 'מקורות חינוכיים';
+
+  @override
+  String get moodMedicineExportError =>
+      'לא ניתן היה להכין את הדוח. אפשר לנסות שוב.';
+
+  @override
+  String get moodMedicineRetry => 'ניסיון חוזר';
+
+  @override
+  String get moodMedicineSaveFailed => 'הבדיקה לא נשמרה. הטיוטה עדיין כאן.';
+
+  @override
+  String get moodMedicineLoading => 'טוענים את מעקב מצב הרוח…';
+
+  @override
+  String get moodMedicineNotMedicalAdvice =>
+      'הכלי מיועד להתבוננות אישית ואינו ייעוץ, אבחון או טיפול רפואי.';
+
+  @override
+  String get moodMedicineReportNoNotes => 'לא נכללו הערות אישיות';
+
+  @override
+  String get moodMedicineView => 'צפייה';
+
+  @override
+  String get moodMedicinePreviewPdf => 'תצוגה מקדימה של PDF';
+
+  @override
+  String get moodMedicinePreviewPng => 'תצוגה מקדימה של תמונה';
+
+  @override
+  String get moodMedicinePreviewError =>
+      'לא ניתן היה לפתוח את התצוגה המקדימה של הדוח. אפשר לנסות שוב.';
+
+  @override
+  String get moodMedicinePngPrintGuidance =>
+      'להדפסה אמינה של דוחות ארוכים, כדאי לבחור ב-PDF.';
+
+  @override
+  String get moodMedicinePngTooLarge =>
+      'דוח ה-PNG הזה גדול מדי. כדאי לבחור ב-PDF לקבלת דוח אמין.';
+
+  @override
+  String get moodMedicineRecoveryTitle => 'היסטוריית מצב הרוח דורשת תשומת לב';
+
+  @override
+  String get moodMedicineRecoveryBody =>
+      'לא ניתן היה לקרוא את היסטוריית הרפואה האישית שנשמרה. אפשר לנסות שוב כדי לשמור עליה, או למחוק רק את ההיסטוריה שאינה קריאה ולהתחיל היסטוריה ריקה.';
+
+  @override
+  String get moodMedicineDiscardUnreadable => 'מחיקת היסטוריה שאינה קריאה';
+
+  @override
+  String get moodMedicineDiscardUnreadableTitle =>
+      'למחוק את היסטוריית מצב הרוח שאינה קריאה?';
+
+  @override
+  String get moodMedicineDiscardUnreadableBody =>
+      'פעולה זו מחליפה רק את היסטוריית הרפואה האישית במכשיר זה בהיסטוריה ריקה. לא ניתן לבטל פעולה זו.';
 }

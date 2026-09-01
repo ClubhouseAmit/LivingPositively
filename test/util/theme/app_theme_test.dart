@@ -25,7 +25,7 @@ void main() {
       expect(AppColors.onSurface, const Color(0xFF0F2851));
     });
 
-    test('dark tokens should match the approved cool-taupe palette', () {
+    test('dark tokens should match the approved palette', () {
       expect(AppColors.darkPageBackground, const Color(0xFF2D2B2A));
       expect(AppColors.darkNavBackground, const Color(0xFF393739));
       expect(AppColors.darkSurface, const Color(0xFF2B2A2C));
@@ -121,6 +121,7 @@ void main() {
       expect(dark.brightness, Brightness.dark);
       expect(dark.colorScheme, appDarkColorScheme);
       expect(dark.colorScheme.primary, AppColors.darkPrimary);
+      expect(dark.primaryColor, AppColors.darkPrimary);
       expect(dark.colorScheme.onPrimary, AppColors.darkOnPrimary);
       expect(dark.colorScheme.secondary, AppColors.darkSecondary);
       expect(dark.colorScheme.onSecondary, AppColors.darkOnSecondary);

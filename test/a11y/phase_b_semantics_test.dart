@@ -22,6 +22,8 @@ import 'package:get_it/get_it.dart';
 import 'package:mazilon/file_service.dart';
 import 'package:mazilon/global_enums.dart';
 import 'package:mazilon/iFx/service_locator.dart';
+import 'package:mazilon/features/mood_medicine/data/mood_medicine_models.dart';
+import 'package:mazilon/features/mood_medicine/data/mood_medicine_store.dart';
 import 'package:mazilon/util/persistent_memory_service.dart';
 import 'package:share_plus/share_plus.dart';
 import 'package:mazilon/util/userInformation.dart';
@@ -60,10 +62,13 @@ class _NoopAnalytics implements AnalyticsService {
 final class _StubPersistentMemoryService
     extends ContractPersistentMemoryService {
   _StubPersistentMemoryService()
-    : super(initialValues: <String, Object?>{
-        'hasFilled': false,
-        'location': '',
-      }) {
+    : super(
+        initialValues: <String, Object?>{
+          'hasFilled': false,
+          'location': '',
+          MoodMedicineStore.snapshotKey: _completedMoodMedicineSnapshot(),
+        },
+      ) {
     onMissingRead = (_, PersistentMemoryType type) {
       switch (type) {
         case PersistentMemoryType.String:
@@ -79,6 +84,20 @@ final class _StubPersistentMemoryService
       }
     };
   }
+}
+
+String _completedMoodMedicineSnapshot() {
+  final DateTime now = DateTime.now();
+  return MoodMedicineSnapshot(
+    entries: <MoodMedicineEntry>[
+      MoodMedicineEntry(
+        id: 'existing-mood-entry',
+        occurredAtUtc: now.toUtc(),
+        localDayKey: moodMedicineLocalDayKey(now),
+        mood: 3,
+      ),
+    ],
+  ).encode();
 }
 
 class _StubFileService implements FileService {
