@@ -11,6 +11,7 @@ import 'package:mazilon/util/logger_service.dart';
 import 'package:mazilon/util/persistent_memory_service.dart';
 import 'package:mazilon/util/notification_preference.dart';
 import 'package:mazilon/util/type_utils.dart';
+import 'package:mazilon/util/Firebase/fcm_service.dart';
 import 'dart:math';
 import 'package:mazilon/util/appInformation.dart';
 import 'package:mazilon/util/dreams_and_goals_selection.dart';
@@ -108,12 +109,17 @@ class Warning {
   Warning({required this.text, required this.warnings});
 }
 
-//upon adding user information, the load function will need to be updated
-//use or create functions in userinfo class to update the user information:
+/// Loads persisted user information after a bounded Firebase Auth restoration.
+///
+/// When `FirebaseAuth.currentUser` is initially null, [authStateTimeout] bounds
+/// the wait for the first `authStateChanges()` event. A timeout or restoration
+/// error keeps authenticated UI disabled without overwriting persisted sign-in
+/// evidence, allowing a later startup to retry restoration safely.
 Future<void> loadUserInformation(
   UserInformation userInfo,
   String locale, {
   Duration authStateTimeout = _initialAuthStateTimeout,
+  Future<void> Function()? onAuthenticatedSessionRestored,
 }) async {
   PersistentMemoryService service = GetIt.instance<PersistentMemoryService>();
   final futures = <String, Future>{
@@ -218,6 +224,7 @@ Future<void> loadUserInformation(
       !wasPersistedAsSignedIn && data['authDecisionMade'] == true;
   User? currentUser;
   var authStateResolved = false;
+  var restoredFromAuthStateChanges = false;
   try {
     final auth = GetIt.instance.isRegistered<FirebaseAuth>()
         ? GetIt.instance<FirebaseAuth>()
@@ -225,10 +232,13 @@ Future<void> loadUserInformation(
     currentUser = auth.currentUser;
     // Firebase Auth restores its persisted session asynchronously. A null
     // currentUser before this first emission is not a completed sign-out.
-    currentUser ??= await auth
-        .authStateChanges()
-        .timeout(authStateTimeout)
-        .first;
+    if (currentUser == null) {
+      currentUser = await auth
+          .authStateChanges()
+          .timeout(authStateTimeout)
+          .first;
+      restoredFromAuthStateChanges = currentUser != null;
+    }
     authStateResolved = true;
   } catch (error, stackTrace) {
     // Firebase did not provide a completed auth state. Preserve persisted
@@ -252,11 +262,25 @@ Future<void> loadUserInformation(
       hasAuthenticatedSession ? currentUser.displayName ?? '' : '',
     );
   } else {
-    userInfo.updateLoggedIn(wasPersistedAsSignedIn);
-    userInfo.updateAuthDecisionMade(
-      wasPersistedAsSignedIn || hadMadeGuestDecision,
+    // Persisted auth values are evidence to retry, not a live authorization.
+    // Assign runtime state directly so privileged UI remains gated without
+    // erasing the stored session evidence through the persisting setters.
+    userInfo.loggedIn = false;
+    userInfo.authDecisionMade = hadMadeGuestDecision;
+    userInfo.userId = '';
+    userInfo.email = '';
+    userInfo.displayName = '';
+  }
+  if (restoredFromAuthStateChanges && hasAuthenticatedSession) {
+    final synchronizeFcmToken =
+        onAuthenticatedSessionRestored ?? FcmService.onUserSignedIn;
+    unawaited(
+      Future<void>.sync(synchronizeFcmToken).catchError(
+        (Object error, StackTrace stackTrace) {
+          _reportAuthRestorationFailure(error, stackTrace);
+        },
+      ),
     );
-    userInfo.updateUserId(data['userId'] as String? ?? '');
   }
 
   userInfo.updateDifficultEvents(

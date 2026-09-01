@@ -31,6 +31,7 @@ class _PersonalPlanDownloadContext {
     required AppInformation appInformation,
     required this.fileService,
     UserInformation? userInformation,
+    PersistentMemoryService? memoryService,
     Set<String>? approvedPdfHosts,
   })  : localeName = appLocale.localeName,
         textDirection = appLocale.textDirection,
@@ -46,7 +47,7 @@ class _PersonalPlanDownloadContext {
           ),
         ),
         userInformationRevision = userInformation?.dreamsAndGoalsSaveRevision,
-        memoryService = userInformation?.service;
+        memoryService = memoryService ?? userInformation?.service;
 
   static int _computeMapHashCode(Map<String, String> map) {
     var hash = 0;
@@ -106,6 +107,7 @@ Future<String?> downloadPersonalPlanFile({
   required AppInformation appInformation,
   required FileService fileService,
   UserInformation? userInformation,
+  PersistentMemoryService? memoryService,
   Set<String>? approvedPdfHosts,
 }) async {
   final contextKey = _PersonalPlanDownloadContext(
@@ -115,6 +117,7 @@ Future<String?> downloadPersonalPlanFile({
     appInformation: appInformation,
     fileService: fileService,
     userInformation: userInformation,
+    memoryService: memoryService,
     approvedPdfHosts: approvedPdfHosts,
   );
 
@@ -130,6 +133,7 @@ Future<String?> downloadPersonalPlanFile({
     sharePdfTexts: contextKey.sharePdfTexts,
     fileService: fileService,
     userInformation: userInformation,
+    memoryService: contextKey.memoryService,
     approvedPdfHosts: contextKey.approvedPdfHosts,
   );
 
@@ -150,6 +154,7 @@ Future<String?> _executeDownloadPersonalPlanFile({
   required Map<String, String> sharePdfTexts,
   required FileService fileService,
   UserInformation? userInformation,
+  PersistentMemoryService? memoryService,
   Set<String>? approvedPdfHosts,
 }) async {
   try {
@@ -166,7 +171,7 @@ Future<String?> _executeDownloadPersonalPlanFile({
       ShareFileType.PDF,
       mainTitle: exportMetadata.mainTitle,
       textDirection: appLocale.textDirection,
-      memoryService: userInformation?.service,
+      memoryService: memoryService ?? userInformation?.service,
       approvedPdfHosts: approvedPdfHosts,
     );
     if (result != null) {

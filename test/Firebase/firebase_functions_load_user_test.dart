@@ -253,18 +253,26 @@ void main() {
         when(restoredUser.displayName).thenReturn('Restored');
 
         final userInfo = _makeUserInfo();
-        await loadUserInformation(userInfo, 'en');
+        var fcmSyncCalls = 0;
+        await loadUserInformation(
+          userInfo,
+          'en',
+          onAuthenticatedSessionRestored: () async {
+            fcmSyncCalls++;
+          },
+        );
 
         expect(userInfo.loggedIn, isTrue);
         expect(userInfo.authDecisionMade, isTrue);
         expect(userInfo.userId, 'restored-uid');
+        expect(fcmSyncCalls, 1);
       },
     );
 
     test(
-      'preserves stored auth evidence when Firebase cannot resolve its initial state',
+      'gates authenticated state without erasing evidence when Firebase fails',
       () async {
-        _registerFakes(
+        final memory = _registerFakes(
           store: {
             'loggedIn': true,
             'authDecisionMade': true,
@@ -279,16 +287,28 @@ void main() {
         final userInfo = _makeUserInfo();
         await loadUserInformation(userInfo, 'en');
 
-        expect(userInfo.loggedIn, isTrue);
-        expect(userInfo.authDecisionMade, isTrue);
-        expect(userInfo.userId, 'persisted-uid');
+        expect(userInfo.loggedIn, isFalse);
+        expect(userInfo.authDecisionMade, isFalse);
+        expect(userInfo.userId, isEmpty);
+        expect(
+          await memory.getItem('loggedIn', PersistentMemoryType.Bool),
+          isTrue,
+        );
+        expect(
+          await memory.getItem('authDecisionMade', PersistentMemoryType.Bool),
+          isTrue,
+        );
+        expect(
+          await memory.getItem('userId', PersistentMemoryType.String),
+          'persisted-uid',
+        );
       },
     );
 
     test(
       'should time out unresolved auth restoration without blocking startup',
       () async {
-        _registerFakes(
+        final memory = _registerFakes(
           store: {
             'loggedIn': true,
             'authDecisionMade': true,
@@ -308,14 +328,22 @@ void main() {
           authStateTimeout: const Duration(milliseconds: 10),
         ).timeout(const Duration(seconds: 1));
 
-        expect(userInfo.loggedIn, isTrue);
-        expect(userInfo.authDecisionMade, isTrue);
-        expect(userInfo.userId, 'persisted-uid');
+        expect(userInfo.loggedIn, isFalse);
+        expect(userInfo.authDecisionMade, isFalse);
+        expect(userInfo.userId, isEmpty);
+        expect(
+          await memory.getItem('loggedIn', PersistentMemoryType.Bool),
+          isTrue,
+        );
+        expect(
+          await memory.getItem('authDecisionMade', PersistentMemoryType.Bool),
+          isTrue,
+        );
       },
     );
 
     test('should contain non-Firebase auth restoration failures', () async {
-      _registerFakes(
+      final memory = _registerFakes(
         store: {
           'loggedIn': true,
           'authDecisionMade': true,
@@ -335,9 +363,13 @@ void main() {
       await loadUserInformation(userInfo, 'en');
       await logger.captureLogCompleted.future;
 
-      expect(userInfo.loggedIn, isTrue);
-      expect(userInfo.authDecisionMade, isTrue);
-      expect(userInfo.userId, 'persisted-uid');
+      expect(userInfo.loggedIn, isFalse);
+      expect(userInfo.authDecisionMade, isFalse);
+      expect(userInfo.userId, isEmpty);
+      expect(
+        await memory.getItem('loggedIn', PersistentMemoryType.Bool),
+        isTrue,
+      );
       expect(logger.capturedExceptions.single, isA<MissingPluginException>());
       expect(logger.capturedStackTraces.single, isNotNull);
     });

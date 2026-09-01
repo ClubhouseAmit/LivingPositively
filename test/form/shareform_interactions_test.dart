@@ -184,6 +184,7 @@ class _ExportReadingFileService extends NoopFileService {
   List<String> dreamsAtDownload = const [];
   List<String> dreamsSourcesAtDownload = const [];
   List<String> dreamsCustomItemsAtDownload = const [];
+  PersistentMemoryService? receivedMemoryService;
 
   @override
   Future<String?> download(
@@ -197,6 +198,7 @@ class _ExportReadingFileService extends NoopFileService {
     Set<String>? approvedPdfHosts,
   }) async {
     downloadCalls++;
+    receivedMemoryService = memoryService;
     final storedDreams = await memory.getItem(
       _dreamsAndGoalsSelectionKey,
       PersistentMemoryType.StringList,
@@ -353,6 +355,36 @@ void main() {
     await _flushAsyncAction(tester);
 
     expect(services.files.downloadCalls, 1);
+    await tester.pump(const Duration(seconds: 2));
+  });
+
+  testWidgets('download should use the ShareForm memory-service override', (
+    tester,
+  ) async {
+    final overrideMemory = _DreamsMemoryHarness();
+    final exportFiles = _ExportReadingFileService(overrideMemory.service);
+    GetIt.instance.unregister<FileService>();
+    GetIt.instance.registerSingleton<FileService>(exportFiles);
+
+    await pumpWithProviders(
+      tester,
+      wizardStepHarness(
+        ShareForm(
+          key: GlobalKey<WizardStepState>(),
+          prev: () {},
+          submit: (_) async {},
+          memoryService: overrideMemory.service,
+        ),
+      ),
+      userInformation: user,
+      surfaceSize: const Size(1024, 1800),
+    );
+
+    await _pressIconButtonInAsyncZone(tester, Icons.download);
+    await _flushAsyncAction(tester);
+
+    expect(exportFiles.downloadCalls, 1);
+    expect(exportFiles.receivedMemoryService, same(overrideMemory.service));
     await tester.pump(const Duration(seconds: 2));
   });
 
@@ -1561,7 +1593,7 @@ void main() {
   );
 
   testWidgets(
-    'should print initialization failures when incident logging is unavailable',
+    'should report initialization failures when incident logging is unavailable',
     (tester) async {
       final explicitMemory = _MockPersistentMemoryService();
       when(explicitMemory.getItem(any, any)).thenThrow(
@@ -1570,11 +1602,9 @@ void main() {
       when(explicitMemory.setItem(any, any, any)).thenAnswer((_) async {});
       when(explicitMemory.reset()).thenAnswer((_) async {});
       GetIt.instance.unregister<IncidentLoggerService>();
-      final messages = <String>[];
-      final previousDebugPrint = debugPrint;
-      debugPrint = (String? message, {int? wrapWidth}) {
-        if (message != null) messages.add(message);
-      };
+      final reportedErrors = <FlutterErrorDetails>[];
+      final previousErrorHandler = FlutterError.onError;
+      FlutterError.onError = reportedErrors.add;
       try {
         user = UserInformation()
           ..gender = 'other'
@@ -1595,19 +1625,16 @@ void main() {
         );
         await tester.pumpAndSettle();
       } finally {
-        debugPrint = previousDebugPrint;
+        FlutterError.onError = previousErrorHandler;
       }
 
+      expect(reportedErrors, hasLength(1));
+      expect(reportedErrors.single.exception, isA<StateError>());
+      expect(reportedErrors.single.stack, isNotNull);
+      expect(reportedErrors.single.library, 'ShareForm');
       expect(
-        messages.join('\n'),
-        contains(
-          'ShareForm persistence operation failed: Bad state: '
-          'Custom category storage is unavailable.',
-        ),
-      );
-      expect(
-        messages.join('\n'),
-        contains('ShareForm persistence stack trace:'),
+        reportedErrors.single.context.toString(),
+        contains('while persisting ShareForm state'),
       );
     },
   );

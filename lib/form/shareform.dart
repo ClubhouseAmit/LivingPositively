@@ -769,7 +769,7 @@ class _ShareFormState extends WizardStepState<ShareForm> {
     StackTrace stackTrace,
   ) async {
     if (!GetIt.instance.isRegistered<IncidentLoggerService>()) {
-      _debugPrintDreamsAndGoalsFailure(error, stackTrace);
+      _reportDreamsAndGoalsFailure(error, stackTrace);
       return;
     }
     try {
@@ -778,15 +778,18 @@ class _ShareFormState extends WizardStepState<ShareForm> {
         stackTrace: stackTrace,
       );
     } catch (_) {
-      _debugPrintDreamsAndGoalsFailure(error, stackTrace);
+      _reportDreamsAndGoalsFailure(error, stackTrace);
     }
   }
 
-  void _debugPrintDreamsAndGoalsFailure(Object error, StackTrace stackTrace) {
-    debugPrint('ShareForm persistence operation failed: $error');
-    debugPrintStack(
-      label: 'ShareForm persistence stack trace:',
-      stackTrace: stackTrace,
+  void _reportDreamsAndGoalsFailure(Object error, StackTrace stackTrace) {
+    FlutterError.reportError(
+      FlutterErrorDetails(
+        exception: error,
+        stack: stackTrace,
+        library: 'ShareForm',
+        context: ErrorDescription('while persisting ShareForm state'),
+      ),
     );
   }
 
@@ -942,6 +945,8 @@ class _ShareFormState extends WizardStepState<ShareForm> {
                             username: userInfoProvider.name,
                             appInformation: appInfoProvider,
                             userInformation: userInfoProvider,
+                            memoryService:
+                                widget.memoryService ?? userInfoProvider.service,
                             fileService: fileService,
                           );
                         }),
