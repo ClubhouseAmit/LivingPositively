@@ -584,6 +584,11 @@ void main() {
 
         final expansionTile = find.byType(ExpansionTile);
         await tester.ensureVisible(expansionTile);
+        await tester.drag(
+          find.byKey(const Key('wellnessToolsScrollView')),
+          Offset(0, playerSize.height),
+        );
+        await tester.pumpAndSettle();
         await tester.tap(expansionTile);
         await tester.pumpAndSettle();
         expect(find.text(transcript), findsOneWidget);

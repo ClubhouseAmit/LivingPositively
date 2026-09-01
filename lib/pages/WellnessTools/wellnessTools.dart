@@ -195,7 +195,9 @@ class _WellnessToolsState extends LPExtendedState<WellnessTools> {
         child: Scaffold(
           body: LayoutBuilder(
             builder: (context, constraints) {
-              return CustomScrollView(
+              return Scrollbar(
+                controller: _scrollController,
+                child: CustomScrollView(
                 key: const Key('wellnessToolsScrollView'),
                 controller: _scrollController,
                 slivers: [
@@ -350,6 +352,7 @@ class _WellnessToolsState extends LPExtendedState<WellnessTools> {
                       separatorBuilder: (_, _) => const SizedBox(height: 10),
                     ),
                 ],
+                ),
               );
             },
           ),
