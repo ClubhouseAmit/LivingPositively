@@ -1,7 +1,9 @@
+import 'dart:async';
 import 'dart:math';
 
 import 'package:flutter/material.dart';
 import 'package:get_it/get_it.dart';
+import 'package:mazilon/AnalyticsService.dart';
 import 'package:mazilon/global_enums.dart';
 import 'package:mazilon/l10n/app_localizations.dart';
 import 'package:mazilon/util/Form/retrieveInformation.dart';
@@ -40,25 +42,19 @@ class Home extends StatefulWidget {
 }
 
 class _HomeState extends LPExtendedState<Home> {
-  bool hasFilled = false;
   bool _showQuote = true;
   int _quoteIndex = 0;
+  String _quoteCandidateKey = '';
   int _reminderIndex = 0;
   String? _customReminder;
 
-  void loadData() async {
-    PersistentMemoryService service = GetIt.instance<PersistentMemoryService>();
-    final hasFilledValue = await service.getItem(
-      'hasFilled',
-      PersistentMemoryType.Bool,
-    );
-    final savedReminder = await service.getItem(
-      'customReminder',
-      PersistentMemoryType.String,
-    );
+  Future<void> _loadData() async {
+    final service = GetIt.instance<PersistentMemoryService>();
+    final savedReminder =
+        await service.getItem('customReminder', PersistentMemoryType.String)
+            as String?;
     if (!mounted) return;
     setState(() {
-      hasFilled = hasFilledValue;
       _customReminder = (savedReminder != null && savedReminder.isNotEmpty)
           ? savedReminder
           : null;
@@ -68,8 +64,32 @@ class _HomeState extends LPExtendedState<Home> {
   @override
   void initState() {
     super.initState();
-    loadData();
+    unawaited(_loadData());
     _reminderIndex = Random().nextInt(1000);
+  }
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    final userInfo = Provider.of<UserInformation>(context);
+    final quotes = retrieveInspirationalQuotes(appLocale, userInfo.gender);
+    final candidateKey = quotes.join('\u0000');
+    if (candidateKey == _quoteCandidateKey) return;
+    _quoteCandidateKey = candidateKey;
+    _quoteIndex = quotes.isEmpty ? 0 : Random().nextInt(quotes.length);
+  }
+
+  void _refreshQuote(List<String> quotes) {
+    if (quotes.isEmpty) return;
+    final previousQuote = quotes[_quoteIndex % quotes.length];
+    setState(() => _quoteIndex = Random().nextInt(quotes.length));
+    final nextQuote = quotes[_quoteIndex % quotes.length];
+    unawaited(
+      GetIt.instance<AnalyticsService>().trackEvent(
+        'Inspirational Quotes Refreshed',
+        {'Old Quote': previousQuote, 'New Quote': nextQuote},
+      ),
+    );
   }
 
   String _getReminder(String gender) {
@@ -173,60 +193,75 @@ class _HomeState extends LPExtendedState<Home> {
               SizedBox(height: AppSpacing.lg),
 
               // Reminders list
-              RemindersSectionWidget(
-                reminders: reminderItems,
-                onEdit: (index) => _editReminderDialog(context, reminderText),
+              Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 10),
+                child: RemindersSectionWidget(
+                  reminders: reminderItems,
+                  onEdit: (index) => _editReminderDialog(context, reminderText),
+                ),
               ),
               SizedBox(height: AppSpacing.xl),
 
               // My Plan
-              PersonalPlanSectionWidget(
-                items: [
-                  ...userInfoProvider.makeSafer,
-                  ...userInfoProvider.feelBetter,
-                ],
-                onSeeAll: () =>
-                    widget.changeCurrentIndex(context, PagesCode.FullPlan),
+              Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 10),
+                child: PersonalPlanSectionWidget(
+                  items: [
+                    ...userInfoProvider.makeSafer,
+                    ...userInfoProvider.feelBetter,
+                  ],
+                  onSeeAll: () =>
+                      widget.changeCurrentIndex(context, PagesCode.FullPlan),
+                ),
               ),
 
               SizedBox(height: AppSpacing.xl),
 
               // Quote banner
               if (_showQuote)
-                QuoteCardWidget(
-                  quote: quote,
-                  onClose: () {
-                    setState(() => _showQuote = false);
-                    ScaffoldMessenger.of(context).clearSnackBars();
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      SnackBar(
-                        behavior: SnackBarBehavior.floating,
-                        showCloseIcon: true,
-                        closeIconColor: Colors.white,
-                        content: Text(
-                          AppLocalizations.of(context)!.quoteDismissedMessage,
+                Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 10),
+                  child: QuoteCardWidget(
+                    quote: quote,
+                    onClose: () {
+                      setState(() => _showQuote = false);
+                      ScaffoldMessenger.of(context).clearSnackBars();
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        SnackBar(
+                          behavior: SnackBarBehavior.floating,
+                          showCloseIcon: true,
+                          closeIconColor: Colors.white,
+                          content: Text(
+                            AppLocalizations.of(context)!.quoteDismissedMessage,
+                          ),
+                          // A SnackBarAction defaults `persist` to true, which
+                          // would keep this message on screen forever.
+                          persist: false,
+                          action: SnackBarAction(
+                            label: AppLocalizations.of(
+                              context,
+                            )!.quoteUndoAction,
+                            onPressed: () {
+                              if (!mounted) return;
+                              setState(() => _showQuote = true);
+                            },
+                          ),
                         ),
-                        // A SnackBarAction defaults `persist` to true, which
-                        // would keep this message on screen forever.
-                        persist: false,
-                        action: SnackBarAction(
-                          label: AppLocalizations.of(context)!.quoteUndoAction,
-                          onPressed: () {
-                            setState(() => _showQuote = true);
-                          },
-                        ),
-                      ),
-                    );
-                  },
-                  onRefresh: () => setState(() => _quoteIndex++),
+                      );
+                    },
+                    onRefresh: () => _refreshQuote(quotes),
+                  ),
                 ),
 
               SizedBox(height: 48),
 
-              GratitudeSectionWidget(
-                onAddItem: () => widget.changeCurrentIndex(
-                  context,
-                  PagesCode.GratitudeJournal,
+              Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 10),
+                child: GratitudeSectionWidget(
+                  onAddItem: () => widget.changeCurrentIndex(
+                    context,
+                    PagesCode.GratitudeJournal,
+                  ),
                 ),
               ),
 
@@ -235,10 +270,15 @@ class _HomeState extends LPExtendedState<Home> {
               // Gratitude
               SizedBox(height: AppSpacing.xxxl),
               // Positive Virtues
-              VirtuesSectionWidget(
-                virtues: userInfoProvider.positiveTraits,
-                onAddItem: () =>
-                    widget.changeCurrentIndex(context, PagesCode.QualitiesList),
+              Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 10),
+                child: VirtuesSectionWidget(
+                  virtues: userInfoProvider.positiveTraits,
+                  onAddItem: () => widget.changeCurrentIndex(
+                    context,
+                    PagesCode.QualitiesList,
+                  ),
+                ),
               ),
               SizedBox(height: AppSpacing.xxl),
             ],

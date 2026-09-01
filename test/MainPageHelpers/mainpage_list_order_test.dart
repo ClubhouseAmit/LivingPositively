@@ -140,6 +140,27 @@ void main() {
     expect(_refreshButton(), findsOneWidget);
   });
 
+  testWidgets('should label the gratitude journal with its full entry count', (
+    tester,
+  ) async {
+    final now = DateTime.now();
+    final yesterday = now.subtract(const Duration(days: 1));
+    final testUser = user(
+      thanks: {
+        'thanks': ['historic', 'today'],
+        'dates': [_date(yesterday, '09:00'), _date(now, '10:00')],
+      },
+    );
+
+    await _pumpListWidget(
+      tester,
+      user: testUser,
+      pageCode: PagesCode.GratitudeJournal,
+    );
+
+    expect(tester.widget<ShowAllButton>(find.byType(ShowAllButton)).count, 2);
+  });
+
   testWidgets(
     'maps reversed qualities edits and deletes to their source rows',
     (tester) async {

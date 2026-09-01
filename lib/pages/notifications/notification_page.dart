@@ -55,14 +55,15 @@ class _NotificationPageState extends LPExtendedState<NotificationPage>
     final granted = await FcmService.hasPermission();
     final canRequestPermission =
         !granted && await FcmService.canRequestPermission();
-    if (granted) {
-      await FcmService.initialize();
-    }
     if (!mounted || generation != _permissionCheckGeneration) return;
     setState(() {
       _hasPermission = granted;
       _canRequestPermission = canRequestPermission;
     });
+    // Permission controls this page. Token/APNs setup is best-effort and may
+    // take much longer while the device is offline, so it must not hold the
+    // permission UI in its loading state.
+    if (granted) unawaited(FcmService.initialize());
   }
 
   Future<bool> _onToggle(bool value, UserInformation userInfo) async {
@@ -371,7 +372,9 @@ class _PermissionDeniedCardState
           ),
           const SizedBox(height: 16),
           ElevatedButton.icon(
-            onPressed: _requesting ? null : _requestPermission,
+            onPressed: !widget.canRequestPermission || _requesting
+                ? null
+                : _requestPermission,
             icon: const Icon(Icons.notifications_outlined),
             label: Text(appLocale.notificationsEnable),
           ),

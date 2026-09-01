@@ -165,7 +165,11 @@ class _DashedListWidgetState extends State<DashedListWidget>
     });
 
     // Drive the fade-in independently of Provider rebuild timing
-    await _fadeInController.forward(from: 0.0);
+    try {
+      await _fadeInController.forward(from: 0.0).orCancel;
+    } on TickerCanceled {
+      return;
+    }
     if (!mounted) return;
     _fadeInController.reset();
     setState(() {
@@ -329,7 +333,9 @@ class _DashedListWidgetState extends State<DashedListWidget>
               style: TextStyle(color: Theme.of(context).colorScheme.primary),
             ),
             icon: Icon(
-              Icons.chevron_right,
+              Directionality.of(context) == TextDirection.rtl
+                  ? Icons.chevron_left
+                  : Icons.chevron_right,
               color: Theme.of(context).colorScheme.primary,
               size: 16,
             ),

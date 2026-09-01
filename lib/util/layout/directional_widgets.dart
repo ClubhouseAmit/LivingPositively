@@ -8,7 +8,7 @@ class CardContainer extends StatelessWidget {
   final EdgeInsetsGeometry? padding;
   final VoidCallback? onTap;
   final Color? backgroundColor;
-  final double? borderRadius;
+  final double borderRadius;
   final bool hasShadow;
 
   const CardContainer({
@@ -52,7 +52,7 @@ class CardContainer extends StatelessWidget {
         padding: padding ?? const EdgeInsets.all(AppSpacing.lg),
         decoration: BoxDecoration(
           color: effectiveBg,
-          borderRadius: BorderRadius.circular(borderRadius!),
+          borderRadius: BorderRadius.circular(borderRadius),
           boxShadow: hasShadow
               ? [
                   BoxShadow(

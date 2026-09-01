@@ -265,7 +265,7 @@ class _MenuState extends LPExtendedState<Menu> {
     required Key key,
     required VoidCallback onPressed,
     required bool selected,
-    required dynamic icon,
+    required Widget Function(Color color) iconBuilder,
     required String label,
   }) {
     return Semantics(
@@ -279,7 +279,7 @@ class _MenuState extends LPExtendedState<Menu> {
         child: ExcludeSemantics(
           child: bottomNavigationItem(
             selected,
-            icon,
+            iconBuilder,
             label,
             textGroup: _bottomNavigationLabelGroup,
           ),
@@ -395,7 +395,12 @@ class _MenuState extends LPExtendedState<Menu> {
                           });
                         },
                         selected: current == PagesCode.Home,
-                        icon: 'assets/images/home_icons.svg',
+                        iconBuilder: (color) => SvgPicture.asset(
+                          'assets/images/home_icons.svg',
+                          width: 24,
+                          height: 24,
+                          colorFilter: ColorFilter.mode(color, BlendMode.srcIn),
+                        ),
                         label: appLocale.home(gender),
                       ),
                     ),
@@ -413,7 +418,12 @@ class _MenuState extends LPExtendedState<Menu> {
                           });
                         },
                         selected: current == PagesCode.FullPlan,
-                        icon: 'assets/images/task_icon.svg',
+                        iconBuilder: (color) => SvgPicture.asset(
+                          'assets/images/task_icon.svg',
+                          width: 24,
+                          height: 24,
+                          colorFilter: ColorFilter.mode(color, BlendMode.srcIn),
+                        ),
                         label: appLocale.personalPlanPageMyPlan(gender),
                       ),
                     ),
@@ -429,7 +439,12 @@ class _MenuState extends LPExtendedState<Menu> {
                           });
                         },
                         selected: current == PagesCode.FeelGoodPage,
-                        icon: 'assets/images/yin_yang_icon.svg',
+                        iconBuilder: (color) => SvgPicture.asset(
+                          'assets/images/yin_yang_icon.svg',
+                          width: 24,
+                          height: 24,
+                          colorFilter: ColorFilter.mode(color, BlendMode.srcIn),
+                        ),
                         label: AppLocalizations.of(
                           context,
                         )!.homePageFeelGood(gender),
@@ -443,7 +458,11 @@ class _MenuState extends LPExtendedState<Menu> {
                           _showWellnessTools(appInfoProvider);
                         },
                         selected: current == PagesCode.WellnessToolsPage,
-                        icon: Icons.local_florist_outlined,
+                        iconBuilder: (color) => Icon(
+                          Icons.local_florist_outlined,
+                          color: color,
+                          size: 24,
+                        ),
                         label: appLocale.homePageWellnessTools(gender),
                       ),
                     ),
