@@ -32,18 +32,34 @@ The parent stops and reaps it immediately when each Flutter attempt returns,
 before FrontBoard retry/reset or post-test diagnostics, with EXIT cleanup as
 a fallback.
 
-The watcher and diagnostic watchdog each own a dedicated Bash process group.
-Cleanup freezes and kills that group, rechecks for live members with a bounded
-retry, and reaps the owner. This includes late-forked/reparented descendants;
-it does not signal the foreground Flutter test or the simulator Runner.
+The watcher, simulator-log stream, and diagnostic watchdog each run inside a
+dedicated Bash process group. Their wrapper leaders remain stopped after normal
+command completion until cleanup, preventing ordinary completion from releasing
+the owned group ID. Cleanup records the actual PID/PGID, parent PID, and start
+time; it refuses to signal missing or mismatched owners. It freezes the group,
+rechecks the stopped leader, sends one kill, polls for live members with a
+bounded wait, and reaps only the owner PID. It does not repeatedly signal a
+retired numeric group ID. This covers late-forked/reparented descendants that
+remain in the owned group, not processes that deliberately leave it.
+
+The EXIT trap attempts all diagnostic cleanups independently, reports cleanup
+failures separately, and preserves its incoming status, including success. If
+watcher cleanup fails between test attempts, no retry or post-test simulator
+action is allowed; an existing test failure is preserved, or a successful test
+becomes an explicit cleanup failure. The foreground Flutter test and simulator
+Runner are not diagnostic cleanup targets. The shell's identity checks are not
+an atomic OS process handle: external SIGKILL/PID reuse between `ps` and `kill`
+remains outside this runner-local ownership guarantee.
 
 The recovery log is included in `ios-integration-diagnostics`. Its shell
 regressions run in `build-android` via
 `bash scripts/tests/recover_ios_vm_service_test.sh`; they check the real log
 predicates with fake simulator commands and no wall-clock sleeps.
 `python3 scripts/tests/recover_ios_vm_service_cli_test.py` also exercises the
-actual child-process entrypoint, exit statuses, full polling budget, late
-recovery, and workflow cleanup during both polling and the grace-period sleep.
+actual child-process entrypoint, exit statuses, full polling budget, and late
+recovery. Its cleanup tests execute the complete production workflow run block
+with fake external tools, retaining real process groups and the actual EXIT
+trap, launch order, retry gate, and status propagation.
 Reassess
 this CI-only workaround when upgrading the pinned Flutter SDK. No runtime
 application behavior or coverage threshold is changed.

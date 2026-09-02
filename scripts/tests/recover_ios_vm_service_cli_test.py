@@ -2,7 +2,7 @@
 
 import os
 from pathlib import Path
-import re
+import signal
 import shutil
 import subprocess
 import tempfile
@@ -117,104 +117,260 @@ sleep() {
                 self.assertEqual(result.returncode, 1, result.stderr)
                 self.assertEqual(len((self.path / "calls").read_text().splitlines()), count)
 
-    def test_should_stop_late_children_even_after_owner_exit_without_signalling_other_jobs(self):
+class WorkflowCleanupTest(unittest.TestCase):
+    def setUp(self):
+        self.directory = tempfile.TemporaryDirectory()
+        self.addCleanup(self.directory.cleanup)
+        self.path = Path(self.directory.name)
         workflow = (ROOT / ".github/workflows/main.yml").read_text()
-        match = re.search(r"^          terminate_process_group\(\) \{\n.*?^          \}$", workflow, re.M | re.S)
-        self.assertIsNotNone(match)
-        cleanup_function = "\n".join(line[10:] for line in match[0].splitlines())
-        owner = self.path / "owner.sh"
-        owner.write_text(r'''
-touch "$TEST_DIRECTORY/owner-ready"
-until [ -f "$TEST_DIRECTORY/spawn" ]; do command sleep 0.01; done
-bash -c 'trap "" TERM; command sleep 60' &
-printf '%s\n' "$!" > "$TEST_DIRECTORY/late-child.pid"
-if [ "$OWNER_EXITS" = true ]; then exit 0; fi
-wait
-''')
-        driver = self.path / "late-child-driver.sh"
-        driver.write_text(cleanup_function + r'''
-set -m
-bash "$TEST_DIRECTORY/owner.sh" &
-owner_pid=$!
-set +m
-command sleep 60 &
-unrelated_pid=$!
-trap 'builtin kill -KILL -- "-$owner_pid" "$unrelated_pid" 2>/dev/null || true; wait "$unrelated_pid" 2>/dev/null || true' EXIT
-until [ -f "$TEST_DIRECTORY/owner-ready" ]; do command sleep 0.01; done
-kill() {
-  if [ "$1" = -STOP ]; then
-    # Fork after cleanup starts, not when the original owner was launched.
-    touch "$TEST_DIRECTORY/spawn"
-    until [ -f "$TEST_DIRECTORY/late-child.pid" ]; do command sleep 0.01; done
-    if [ "$OWNER_EXITS" = true ]; then wait "$owner_pid"; fi
-  fi
-  builtin kill "$@"
-}
-terminate_process_group "$owner_pid" || exit 10
-builtin kill -0 "$unrelated_pid" || exit 11
-''')
-        for owner_exits in ("false", "true"):
-            with self.subTest(owner_exits=owner_exits):
-                for name in ("owner-ready", "spawn", "late-child.pid"):
-                    (self.path / name).unlink(missing_ok=True)
-                self.environment["OWNER_EXITS"] = owner_exits
-                result = subprocess.run(
-                    ["bash", str(driver)], cwd=self.path, env=self.environment,
-                    text=True, capture_output=True, timeout=15,
-                )
-                self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
-                pid = (self.path / "late-child.pid").read_text().strip()
-                status = subprocess.run(["ps", "-o", "stat=", "-p", pid], text=True, capture_output=True)
-                self.assertTrue(not status.stdout.strip() or status.stdout.strip().startswith("Z"), status.stdout)
-
-    def test_should_reap_poll_and_grace_sleepers_before_next_attempt(self):
-        workflow = (ROOT / ".github/workflows/main.yml").read_text()
-        functions = []
-        for name in ("terminate_process_group", "stop_vm_service_recovery", "run_ios_fcm_test"):
-            match = re.search(rf"^          {name}\(\) \{{\n.*?^          \}}$", workflow, re.M | re.S)
-            self.assertIsNotNone(match, name)
-            functions.append("\n".join(line[10:] for line in match[0].splitlines()))
+        # Execute the complete production step, including launch wiring, the
+        # actual EXIT trap, retries, final status, and post-test diagnostics.
+        step = workflow.split("      - name: Run iOS integration test with diagnostics\n", 1)[1]
+        block = step.split("        run: |\n", 1)[1].split("\n      - name:", 1)[0]
+        self.production = "\n".join(line[10:] if line else "" for line in block.splitlines())
+        self.driver = self.path / "driver.sh"
+        self.driver.write_text(self.production)
         scripts = self.path / "scripts"
         scripts.mkdir()
         shutil.copyfile(WATCHER, scripts / WATCHER.name)
-        diagnostics = self.path / "ci-ios-diagnostics"
-        diagnostics.mkdir()
-        (diagnostics / "simulator.log").write_text(ANNOUNCEMENT)
-        driver = self.path / "driver.sh"
-        driver.write_text("\n".join(functions) + r'''
-DEVICE_ID=test-device
+        self.environment_file = self.path / "environment.sh"
+        self.environment_file.write_text(r'''
+record_process() {
+  printf '%s %s\n' "$1" "$BASHPID" >> "$TEST_DIRECTORY/processes"
+}
+sleep() {
+  if [ "$1" = 5 ] && { [ "$SCENARIO" = grace ] || [ "$SCENARIO" = owner-completes ]; }; then
+    until grep -Eq 'Waiting for VM Service|exiting with code' ci-ios-diagnostics/flutter-test-first.log; do command sleep 0.01; done
+    return 0
+  fi
+  if [ "$1" = 4800 ] || [ "$1" = 5 ] || [ "$1" = 120 ]; then
+    record_process "sleep-$1"
+    command sleep 60 &
+    printf 'sleeper %s\n' "$!" >> "$TEST_DIRECTORY/processes"
+    touch "$TEST_DIRECTORY/ready-$1"
+    if [ "$1" = 5 ] && [[ "$SCENARIO" == late-child* ]]; then
+      until [ -f "$TEST_DIRECTORY/spawn-late-child" ]; do command sleep 0.01; done
+      bash -c 'trap "" TERM; command sleep 60' &
+      printf 'late-child %s\n' "$!" >> "$TEST_DIRECTORY/processes"
+      touch "$TEST_DIRECTORY/late-child-ready"
+      if [ "$SCENARIO" = late-child-completes ]; then return 0; fi
+    fi
+    wait "$!"
+  else
+    command sleep "$@"
+  fi
+}
+xcrun() {
+  printf '%s\n' "$*" >> "$TEST_DIRECTORY/simulator-calls"
+  if [ "$2" = spawn ]; then
+    record_process simulator
+    touch "$TEST_DIRECTORY/simulator-ready"
+    command sleep 60 &
+    printf 'simulator-child %s\n' "$!" >> "$TEST_DIRECTORY/processes"
+    wait "$!"
+  fi
+}
+find() { :; }
+ps() {
+  if [ "$1" = -axo ] && [ "$2" = pgid=,stat= ] &&
+     [ "$FAULT" = post-kill ] && [ -f "$TEST_DIRECTORY/watcher-killed" ]; then
+    return 1
+  fi
+  if [ "$1" = -o ] && [ "$2" = pid=,pgid=,ppid=,lstart= ]; then
+    local owner="${@: -1}" identity role
+    if [ "$FAULT" = post-kill ] && [ -f "$TEST_DIRECTORY/watcher-killed" ] &&
+       [ "$owner" = "${VM_RECOVERY_PID:-}" ]; then
+      # Simulate a stale successful identity read after KILL. The retirement
+      # fence must reject this before consulting ps or signalling the ID again.
+      cat "$TEST_DIRECTORY/identity-$owner"
+      return 0
+    fi
+    identity=$(command ps "$@") || return
+    printf '%s\n' "$identity" > "$TEST_DIRECTORY/identity-$owner"
+    role=watcher
+    [ "$owner" != "${SIM_LOG_PID:-}" ] || role=simulator
+    [ "$owner" != "${WATCHDOG_PID:-}" ] || role=watchdog
+    printf '%s %s\n' "$role" "$owner" >> "$TEST_DIRECTORY/owners"
+    if [ -f "$TEST_DIRECTORY/inject-failure" ] && [ "$role" = "$FAILED_ROLE" ]; then
+      case "$FAULT" in
+        missing) return 1 ;;
+        reused) printf '%s different-start-time\n' "$identity"; return ;;
+        pgid) printf '%s %s %s fake-start-time\n' "$owner" "$$" "$$"; return ;;
+      esac
+    fi
+    printf '%s\n' "$identity"
+  else
+    command ps "$@"
+  fi
+}
+kill() {
+  if [ "$1" = -0 ]; then return 0; fi
+  printf '%s\n' "$*" >> "$TEST_DIRECTORY/signals"
+  if [ "$FAULT" = post-kill ] && [ -f "$TEST_DIRECTORY/watcher-killed" ] &&
+     [ "${@: -1}" = "-${VM_RECOVERY_PID:-}" ]; then
+    # A broken retirement fence is observable, but never send a real signal
+    # to the numeric identity after the original process has been killed.
+    return 1
+  fi
+  if [ "$1" = -STOP ] && [[ "$SCENARIO" == late-child* ]] &&
+     [ "${@: -1}" = "-${VM_RECOVERY_PID:-}" ]; then
+    touch "$TEST_DIRECTORY/spawn-late-child"
+    until [ -f "$TEST_DIRECTORY/late-child-ready" ]; do command sleep 0.01; done
+    if [ "$SCENARIO" = late-child-completes ]; then
+      until command ps -o stat= -p "$VM_RECOVERY_PID" | grep -q T; do command sleep 0.01; done
+    fi
+  fi
+  if [ "$1" = -KILL ] && [ -f "$TEST_DIRECTORY/inject-failure" ] &&
+     [ "$FAULT" = kill ] && [ "${@: -1}" = "-${VM_RECOVERY_PID:-}" ]; then
+    return 1
+  fi
+  builtin kill "$@" || return
+  if [ "$1" = -KILL ] && [ "$FAULT" = post-kill ] &&
+     [ "${@: -1}" = "-${VM_RECOVERY_PID:-}" ]; then
+    touch "$TEST_DIRECTORY/watcher-killed"
+  fi
+}
 flutter() {
-  if [ "$SCENARIO" = cleanup-grace ]; then
+  if [ "$1" = devices ]; then return 0; fi
+  record_process flutter
+  printf 'attempt\n' >> "$TEST_DIRECTORY/attempts"
+  until [ -f "$TEST_DIRECTORY/simulator-ready" ] && [ -f "$TEST_DIRECTORY/ready-4800" ]; do command sleep 0.01; done
+  if [ "$SCENARIO" = grace ]; then
     printf '%s\n%s' "$LAUNCH" "$WAITING"
     printf '%s' "$ANNOUNCEMENT" >> ci-ios-diagnostics/simulator.log
+    until [ -f "$TEST_DIRECTORY/ready-120" ]; do command sleep 0.01; done
+  elif [ "$SCENARIO" = owner-completes ]; then
+    printf 'exiting with code 0\n'
+    until command ps -o stat= -p "$VM_RECOVERY_PID" | grep -q T; do command sleep 0.01; done
+  else
+    until [ -f "$TEST_DIRECTORY/ready-5" ]; do command sleep 0.01; done
+    if [ "$SCENARIO" = late-child-completes ]; then printf 'exiting with code 0\n'; fi
   fi
-  until [ -f "$TEST_DIRECTORY/ready" ]; do command sleep 0.01; done
-  printf '%s\n' "$VM_RECOVERY_PID" > "$TEST_DIRECTORY/watcher.pid"
+  touch "$TEST_DIRECTORY/inject-failure"
+  if [ "$SCENARIO" = frontboard ]; then printf 'is unknown to FrontBoard\n'; fi
   return "$FLUTTER_EXIT"
 }
-trap stop_vm_service_recovery EXIT
-run_ios_fcm_test first
-[ "$TEST_EXIT" -eq "$FLUTTER_EXIT" ] || exit 10
-[ -z "$VM_RECOVERY_PID" ] || exit 11
-# Simulate retry/forensics only after the production attempt wrapper reaps.
-printf 'next-attempt\n' > "$TEST_DIRECTORY/next-attempt"
 ''')
-        for scenario, flutter_exit in (("cleanup-poll", "0"), ("cleanup-grace", "1")):
-            with self.subTest(scenario=scenario):
-                for name in ("ready", "watcher.pid", "sleep.pid", "next-attempt"):
-                    (self.path / name).unlink(missing_ok=True)
-                self.environment.update(SCENARIO=scenario, FLUTTER_EXIT=flutter_exit, ANNOUNCEMENT=ANNOUNCEMENT)
+        self.environment = dict(
+            os.environ, BASH_ENV=str(self.environment_file), TEST_DIRECTORY=str(self.path),
+            DEVICE_ID="test-device", SCENARIO="poll", FLUTTER_EXIT="0", FAILED_ROLE="",
+            FAULT="", LAUNCH=LAUNCH, WAITING=WAITING, ANNOUNCEMENT=ANNOUNCEMENT,
+        )
+
+    def run_workflow(self, **environment):
+        self.environment.update(environment)
+        # A real unrelated process is in a different group and never a mock
+        # signal target. Fixture cleanup only targets our recorded child groups.
+        unrelated = subprocess.Popen(["sleep", "60"], start_new_session=True)
+        output = self.path / "output"
+        try:
+            with output.open("w") as stream:
                 result = subprocess.run(
-                    ["bash", str(driver)], cwd=self.path, env=self.environment,
-                    capture_output=True, text=True, timeout=15,
+                    ["bash", "-e", "-o", "pipefail", str(self.driver)],
+                    cwd=self.path, env=self.environment, stdout=stream, stderr=stream, timeout=20,
                 )
-                self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
-                self.assertTrue((self.path / "next-attempt").exists())
-                for name in ("watcher.pid", "sleep.pid"):
-                    pid = (self.path / name).read_text().strip()
-                    status = subprocess.run(["ps", "-o", "stat=", "-p", pid], text=True, capture_output=True)
-                    self.assertTrue(not status.stdout.strip() or status.stdout.strip().startswith("Z"), status.stdout)
-                self.assert_no_simulator_commands()
+            self.assertIsNone(unrelated.poll(), output.read_text())
+            # Capture liveness BEFORE fixture cleanup so a no-op production
+            # cleanup cannot pass because the test's finally block kills it.
+            self.remaining_jobs = {}
+            for line in (self.path / "processes").read_text().splitlines():
+                name, pid = line.split()
+                state = subprocess.run(["ps", "-o", "stat=", "-p", pid], text=True, capture_output=True).stdout.strip()
+                if state and not state.startswith("Z"):
+                    self.remaining_jobs[f"{name}: {pid}"] = state
+            return result.returncode, output.read_text()
+        finally:
+            if (self.path / "owners").exists():
+                for owner in set(int(line.split()[1]) for line in (self.path / "owners").read_text().splitlines()):
+                    try:
+                        os.killpg(owner, signal.SIGKILL)
+                    except ProcessLookupError:
+                        pass
+            unrelated.terminate()
+            unrelated.wait(timeout=5)
+
+    def owners(self):
+        return dict(line.split() for line in (self.path / "owners").read_text().splitlines())
+
+    def assert_jobs_stopped(self):
+        self.assertEqual(self.remaining_jobs, {})
+
+    def test_should_reap_poll_sleepers_and_all_diagnostics_on_success(self):
+        status, output = self.run_workflow()
+        self.assertEqual(status, 0, output)
+        self.assert_jobs_stopped()
+        signals = (self.path / "signals").read_text().splitlines()
+        for owner in self.owners().values():
+            self.assertEqual(signals.count(f"-KILL -- -{owner}"), 1)
+        self.assertTrue((self.path / "ci-ios-diagnostics/post-test.txt").exists())
+
+    def test_should_reap_grace_sleepers_and_preserve_test_failure(self):
+        status, output = self.run_workflow(SCENARIO="grace", FLUTTER_EXIT="42")
+        self.assertEqual(status, 42, output)
+        self.assert_jobs_stopped()
+        self.assertNotIn("simctl terminate", (self.path / "simulator-calls").read_text())
+
+    def test_should_keep_completed_watcher_leader_until_cleanup(self):
+        status, output = self.run_workflow(SCENARIO="owner-completes")
+        self.assertEqual(status, 0, output)
+        self.assert_jobs_stopped()
+
+    def test_should_stop_a_child_forked_after_cleanup_starts(self):
+        status, output = self.run_workflow(SCENARIO="late-child")
+        self.assertEqual(status, 0, output)
+        self.assertTrue((self.path / "late-child-ready").exists())
+        self.assert_jobs_stopped()
+
+    def test_should_stop_a_late_child_after_the_watcher_command_completes(self):
+        status, output = self.run_workflow(SCENARIO="late-child-completes")
+        self.assertEqual(status, 0, output)
+        self.assertTrue((self.path / "late-child-ready").exists())
+        self.assert_jobs_stopped()
+
+    def test_should_reject_unverified_group_without_any_signal_and_clean_other_jobs(self):
+        status, output = self.run_workflow(FAULT="pgid", FAILED_ROLE="watcher", FLUTTER_EXIT="42")
+        self.assertEqual(status, 42, output)
+        owners = self.owners()
+        signals = (self.path / "signals").read_text()
+        self.assertNotIn(f"-- -{owners['watcher']}\n", signals)
+        for role in ("simulator", "watchdog"):
+            self.assertIn(f"-KILL -- -{owners[role]}\n", signals)
+        self.assertFalse((self.path / "ci-ios-diagnostics/post-test.txt").exists())
+
+    def test_should_not_signal_a_reused_owner_identity(self):
+        status, output = self.run_workflow(FAULT="reused", FAILED_ROLE="watcher", FLUTTER_EXIT="17")
+        self.assertEqual(status, 17, output)
+        self.assertNotIn(f"-- -{self.owners()['watcher']}\n", (self.path / "signals").read_text())
+
+    def test_should_preserve_success_when_exit_cleanup_cannot_find_a_diagnostic_owner(self):
+        status, output = self.run_workflow(FAULT="missing", FAILED_ROLE="simulator")
+        self.assertEqual(status, 0, output)
+        self.assertIn("::warning::One or more", output)
+        signals = (self.path / "signals").read_text()
+        self.assertNotIn(f"-- -{self.owners()['simulator']}\n", signals)
+        self.assertIn(f"-KILL -- -{self.owners()['watchdog']}\n", signals)
+
+    def test_should_stop_retry_when_watcher_cleanup_fails_and_preserve_test_status(self):
+        status, output = self.run_workflow(FAULT="kill", FAILED_ROLE="watcher", FLUTTER_EXIT="42", SCENARIO="frontboard")
+        self.assertEqual(status, 42, output)
+        self.assertEqual((self.path / "attempts").read_text().splitlines(), ["attempt"])
+        self.assertNotIn("simctl uninstall", (self.path / "simulator-calls").read_text())
+        signals = (self.path / "signals").read_text()
+        for role in ("simulator", "watchdog"):
+            self.assertIn(f"-KILL -- -{self.owners()[role]}\n", signals)
+
+    def test_should_fail_successful_attempt_when_its_watcher_cannot_be_reaped(self):
+        status, output = self.run_workflow(FAULT="kill", FAILED_ROLE="watcher")
+        self.assertEqual(status, 1, output)
+        self.assertFalse((self.path / "ci-ios-diagnostics/post-test.txt").exists())
+
+    def test_should_never_resignal_retired_group_after_liveness_query_failure(self):
+        status, output = self.run_workflow(FAULT="post-kill", FLUTTER_EXIT="42")
+        self.assertEqual(status, 42, output)
+        signals = (self.path / "signals").read_text().splitlines()
+        owner = self.owners()['watcher']
+        self.assertEqual(signals.count(f"-STOP -- -{owner}"), 1)
+        self.assertEqual(signals.count(f"-KILL -- -{owner}"), 1)
 
 
 if __name__ == "__main__":
