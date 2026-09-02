@@ -64,7 +64,7 @@ class _GratitudeSectionWidgetState
 
   void _refreshHomeSuggestions(UserInformation userInfo, {bool force = false}) {
     final candidates = _eligibleSuggestions(userInfo);
-    final key = candidates.join('\u0000');
+    final key = candidates.join('');
     if (!force && _suggestionsInitialized && key == _suggestionCandidateKey) {
       return;
     }
