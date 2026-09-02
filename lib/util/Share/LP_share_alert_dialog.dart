@@ -26,6 +26,9 @@ class LPShareAlertDialog extends StatefulWidget {
 ///
 /// [userInformation] is optional and triggers awaited personal-plan preparation when provided.
 /// [fileService] is an injectable override with a [GetIt] fallback.
+/// [memoryService] takes precedence over [UserInformation.service] and supplies
+/// the persisted Personal Plan selections and custom categories used for the
+/// PDF. When omitted, [UserInformation.service] is used.
 /// Preparation, metadata, or sharing failures are caught, logged, and returned as `null`.
 Future<ShareResult?> shareFile(
   AppLocalizations appLocale,

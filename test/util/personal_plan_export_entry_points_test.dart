@@ -110,7 +110,8 @@ class _TestFileService implements FileService {
   }
 }
 
-base class _TestPersistentMemoryService extends ContractPersistentMemoryService {
+base class _TestPersistentMemoryService
+    extends ContractPersistentMemoryService {
   _TestPersistentMemoryService() {
     onMissingRead = (_, _) => null;
   }
@@ -162,21 +163,21 @@ void main() {
 
     TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger
         .setMockMethodCallHandler(toastChannel, (call) async {
-      if (call.method == 'showToast') {
-        loggerService.eventOrder.add('showToast');
-        if (throwOnToast) {
-          throw PlatformException(
-            code: 'TOAST_FAILED',
-            message: 'Failed to show toast',
+          if (call.method == 'showToast') {
+            loggerService.eventOrder.add('showToast');
+            if (throwOnToast) {
+              throw PlatformException(
+                code: 'TOAST_FAILED',
+                message: 'Failed to show toast',
+              );
+            }
+            toastCalls.add(call.arguments['msg']?.toString() ?? '');
+            return true;
+          }
+          throw UnsupportedError(
+            'Unexpected method on toastChannel: ${call.method}',
           );
-        }
-        toastCalls.add(call.arguments['msg']?.toString() ?? '');
-        return true;
-      }
-      throw UnsupportedError(
-        'Unexpected method on toastChannel: ${call.method}',
-      );
-    });
+        });
 
     locator.registerSingleton<FileService>(fileService);
     locator.registerSingleton<PersistentMemoryService>(memoryService);
@@ -195,33 +196,30 @@ void main() {
   });
 
   group('preparePersonalPlanExport', () {
-    test(
-      'should await pending saves and repair unaligned sources',
-      () async {
-        // Setup initial unaligned sources (legacy state: 2 selections, 1 source)
-        userInformation.updateDreamsAndGoals(
-          ['Goal 1', 'Goal 2'],
-          selectionSources: ['custom', 'custom'],
-        );
+    test('should await pending saves and repair unaligned sources', () async {
+      // Setup initial unaligned sources (legacy state: 2 selections, 1 source)
+      userInformation.updateDreamsAndGoals(
+        ['Goal 1', 'Goal 2'],
+        selectionSources: ['custom', 'custom'],
+      );
 
-        // Advance revision and start a pending save
-        final saveFuture = userInformation.queueDreamsAndGoalsSave();
+      // Advance revision and start a pending save
+      final saveFuture = userInformation.queueDreamsAndGoalsSave();
 
-        // Run preparation helper
-        await userInformation.prepareForPersonalPlanExport();
-        await saveFuture;
+      // Run preparation helper
+      await userInformation.prepareForPersonalPlanExport();
+      await saveFuture;
 
-        // Sources must now be aligned
-        expect(userInformation.dreamsAndGoalsSelectionSources, [
-          'custom',
-          'custom',
-        ]);
-        expect(
-          memoryService.writeLog,
-          contains('selectionSourcesPersonalPlan-DreamsAndGoals'),
-        );
-      },
-    );
+      // Sources must now be aligned
+      expect(userInformation.dreamsAndGoalsSelectionSources, [
+        'custom',
+        'custom',
+      ]);
+      expect(
+        memoryService.writeLog,
+        contains('selectionSourcesPersonalPlan-DreamsAndGoals'),
+      );
+    });
   });
 
   group('Personal Plan UI entry points', () {
@@ -286,9 +284,7 @@ void main() {
         );
         await tester.pumpAndSettle();
 
-        final menuButton = find.byKey(
-          const Key('personalPlanHeaderMenu'),
-        );
+        final menuButton = find.byKey(const Key('personalPlanHeaderMenu'));
         expect(menuButton, findsOneWidget);
 
         await tester.runAsync(() async {
@@ -397,9 +393,7 @@ void main() {
         final downloadIcon = find.byKey(
           const Key('personalPlanHeaderDownload'),
         );
-        final menuButton = find.byKey(
-          const Key('personalPlanHeaderMenu'),
-        );
+        final menuButton = find.byKey(const Key('personalPlanHeaderMenu'));
         expect(downloadIcon, findsOneWidget);
         expect(menuButton, findsOneWidget);
 
@@ -709,10 +703,13 @@ void main() {
         expect(service1.callLog, ['download']);
         expect(service2.callLog, ['download']);
         expect(loggerService.capturedLogs, isEmpty);
-        expect(toastCalls, containsAll([
-          localizations.finishedDownloading('male'),
-          localizations.finishedDownloading('female'),
-        ]));
+        expect(
+          toastCalls,
+          containsAll([
+            localizations.finishedDownloading('male'),
+            localizations.finishedDownloading('female'),
+          ]),
+        );
       },
     );
 
@@ -811,7 +808,11 @@ void main() {
         expect(loggerService.capturedLogs, hasLength(1));
         expect(
           loggerService.capturedLogs.first,
-          isA<StateError>().having((e) => e.message, 'message', 'Download failed'),
+          isA<StateError>().having(
+            (e) => e.message,
+            'message',
+            'Download failed',
+          ),
         );
         expect(loggerService.eventOrder, equals(['captureLog', 'showToast']));
         expect(toastCalls, contains(localizations.downloadFailed('male')));
@@ -820,6 +821,45 @@ void main() {
   });
 
   group('sharePersonalPlanFile', () {
+    test(
+      'should prepare and read the Personal Plan from the memory override',
+      () async {
+        final alternateMemoryService = _TestPersistentMemoryService();
+        userInformation.updateDreamsAndGoals(
+          ['Latest goal'],
+          selectionSources: ['custom'],
+        );
+        userInformation.customCategories = const [
+          MapEntry<String, String>('Latest category', 'Latest description'),
+        ];
+        final localizations = await AppLocalizations.delegate.load(
+          const Locale('en'),
+        );
+
+        final result = await sharePersonalPlanFile(
+          message: 'emergency msg',
+          appLocale: localizations,
+          gender: userInformation.gender,
+          username: userInformation.name,
+          appInformation: appInformation,
+          userInformation: userInformation,
+          fileService: fileService,
+          memoryService: alternateMemoryService,
+        );
+        final exportedData = await FileServiceImpl.getPrefsData(
+          memoryService: alternateMemoryService,
+        );
+
+        expect(result?.status, ShareResultStatus.success);
+        expect(fileService.lastMemoryService, same(alternateMemoryService));
+        expect(exportedData['DreamsAndGoals'], ['Latest goal']);
+        expect(exportedData['customCategoryTitles'], ['Latest category']);
+        expect(exportedData['customCategoryDescriptions'], [
+          'Latest description',
+        ]);
+      },
+    );
+
     test(
       'should catch preparation persistence failure, log telemetry, and return null',
       () async {
@@ -852,38 +892,35 @@ void main() {
       },
     );
 
-    test(
-      'should return null when logger throws',
-      () async {
-        memoryService.throwOnWrite = true;
-        loggerService.throwOnCapture = true;
-        userInformation.dreamsAndGoals = ['Goal 1', 'Goal 2'];
-        userInformation.dreamsAndGoalsSelectionSources = ['custom'];
+    test('should return null when logger throws', () async {
+      memoryService.throwOnWrite = true;
+      loggerService.throwOnCapture = true;
+      userInformation.dreamsAndGoals = ['Goal 1', 'Goal 2'];
+      userInformation.dreamsAndGoalsSelectionSources = ['custom'];
 
-        final localizations = await AppLocalizations.delegate.load(
-          const Locale('en'),
-        );
+      final localizations = await AppLocalizations.delegate.load(
+        const Locale('en'),
+      );
 
-        final result = await sharePersonalPlanFile(
-          message: 'emergency msg',
-          appLocale: localizations,
-          gender: userInformation.gender,
-          username: userInformation.name,
-          appInformation: appInformation,
-          userInformation: userInformation,
-          fileService: fileService,
-        );
+      final result = await sharePersonalPlanFile(
+        message: 'emergency msg',
+        appLocale: localizations,
+        gender: userInformation.gender,
+        username: userInformation.name,
+        appInformation: appInformation,
+        userInformation: userInformation,
+        fileService: fileService,
+      );
 
-        expect(result, isNull);
-        expect(fileService.callLog, isNot(contains('share')));
-        expect(loggerService.capturedLogs, hasLength(1));
-        expect(
-          loggerService.capturedLogs.first,
-          isA<StateError>().having((e) => e.message, 'message', 'Write failed'),
-        );
-        expect(loggerService.eventOrder, equals(['captureLog']));
-      },
-    );
+      expect(result, isNull);
+      expect(fileService.callLog, isNot(contains('share')));
+      expect(loggerService.capturedLogs, hasLength(1));
+      expect(
+        loggerService.capturedLogs.first,
+        isA<StateError>().having((e) => e.message, 'message', 'Write failed'),
+      );
+      expect(loggerService.eventOrder, equals(['captureLog']));
+    });
 
     test(
       'should return null and log error when FileService is not registered in GetIt and not injected',
@@ -974,32 +1011,29 @@ void main() {
       },
     );
 
-    test(
-      'should await pending saves before sharing',
-      () async {
-        userInformation.updateDreamsAndGoals(
-          ['Goal 1', 'Goal 2'],
-          selectionSources: ['custom', 'custom'],
-        );
+    test('should await pending saves before sharing', () async {
+      userInformation.updateDreamsAndGoals(
+        ['Goal 1', 'Goal 2'],
+        selectionSources: ['custom', 'custom'],
+      );
 
-        final localizations = await AppLocalizations.delegate.load(
-          const Locale('en'),
-        );
+      final localizations = await AppLocalizations.delegate.load(
+        const Locale('en'),
+      );
 
-        final result = await shareFile(
-          localizations,
-          userInformation.gender,
-          userInformation.name,
-          appInformation,
-          userInformation: userInformation,
-          fileService: fileService,
-        );
+      final result = await shareFile(
+        localizations,
+        userInformation.gender,
+        userInformation.name,
+        appInformation,
+        userInformation: userInformation,
+        fileService: fileService,
+      );
 
-        expect(result?.status, ShareResultStatus.success);
-        expect(fileService.callLog, contains('share'));
-        expect(userInformation.dreamsAndGoalsSelectionSources.length, 2);
-      },
-    );
+      expect(result?.status, ShareResultStatus.success);
+      expect(fileService.callLog, contains('share'));
+      expect(userInformation.dreamsAndGoalsSelectionSources.length, 2);
+    });
 
     test(
       'should forward userInformation persistent memory service to FileService share',
@@ -1041,7 +1075,10 @@ void main() {
         };
 
         // Hook userInformation preparation to mutate appInformation.sharePDFtexts during await
-        userInformation.updateDreamsAndGoals(['Goal 1'], selectionSources: ['custom']);
+        userInformation.updateDreamsAndGoals(
+          ['Goal 1'],
+          selectionSources: ['custom'],
+        );
         final downloadFuture = downloadPersonalPlanFile(
           appLocale: localizations,
           gender: userInformation.gender,
@@ -1060,7 +1097,10 @@ void main() {
         final result = await downloadFuture;
         expect(result, isNotNull);
         expect(fileService.lastTexts?['firstLine'], 'Initial First Line');
-        expect(fileService.lastTexts?['firstLinkURL'], 'https://livepositively.club/ok');
+        expect(
+          fileService.lastTexts?['firstLinkURL'],
+          'https://livepositively.club/ok',
+        );
       },
     );
 

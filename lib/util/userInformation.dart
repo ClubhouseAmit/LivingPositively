@@ -524,9 +524,16 @@ class UserInformation with ChangeNotifier {
     );
   }
 
-  /// Awaits all pending saves and repairs Dreams and Goals selection sources
-  /// until storage has a stable, normalized snapshot for Personal Plan export.
-  Future<void> prepareForPersonalPlanExport() async {
+  /// Awaits pending saves and prepares a stable Personal Plan export snapshot.
+  ///
+  /// When [memoryService] is provided, the stabilized Dreams and Goals and
+  /// custom-category data is also written there so export preparation and the
+  /// subsequent export read use the same persistence source.
+  Future<void> prepareForPersonalPlanExport({
+    PersistentMemoryService? memoryService,
+  }) async {
+    final PersistentMemoryService effectiveMemoryService =
+        memoryService ?? service;
     await _awaitOrRetryCustomCategoriesSave();
     await _awaitOrRetryDreamsAndGoalsSave();
     final bool needsRepair = !listEquals(
@@ -537,6 +544,7 @@ class UserInformation with ChangeNotifier {
       ),
     );
     if (!needsRepair && _activeDreamsAndGoalsSavesCount == 0) {
+      await _copyPersonalPlanExportSnapshotIfNeeded(effectiveMemoryService);
       return;
     }
     while (true) {
@@ -549,6 +557,27 @@ class UserInformation with ChangeNotifier {
       }
     }
     await _awaitOrRetryCustomCategoriesSave();
+    await _copyPersonalPlanExportSnapshotIfNeeded(effectiveMemoryService);
+  }
+
+  Future<void> _copyPersonalPlanExportSnapshotIfNeeded(
+    PersistentMemoryService memoryService,
+  ) async {
+    if (identical(memoryService, service)) {
+      return;
+    }
+    final DreamsAndGoalsPersistenceSnapshot dreamsAndGoalsSnapshot =
+        DreamsAndGoalsPersistenceSnapshot.fromSelections(
+          dreamsAndGoals,
+          dreamsAndGoalsSelectionSources,
+        );
+    await Future.wait<void>([
+      persistDreamsAndGoalsSnapshot(memoryService, dreamsAndGoalsSnapshot),
+      saveCustomCategoriesToStorage(
+        customCategories,
+        memoryService: memoryService,
+      ),
+    ]);
   }
 
   Future<void> _awaitOrRetryCustomCategoriesSave() async {

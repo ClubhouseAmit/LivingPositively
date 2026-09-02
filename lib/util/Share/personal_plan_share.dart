@@ -18,9 +18,12 @@ Future<PersonalPlanExportMetadata> prepareAndBuildPersonalPlanExportMetadata({
   required String gender,
   required String username,
   UserInformation? userInformation,
+  PersistentMemoryService? memoryService,
 }) async {
   if (userInformation != null) {
-    await userInformation.prepareForPersonalPlanExport();
+    await userInformation.prepareForPersonalPlanExport(
+      memoryService: memoryService,
+    );
   }
   return buildPersonalPlanExportMetadata(appLocale, gender, username);
 }
@@ -29,6 +32,9 @@ Future<PersonalPlanExportMetadata> prepareAndBuildPersonalPlanExportMetadata({
 ///
 /// When provided, [userInformation] triggers awaited personal-plan preparation.
 /// [fileService] overrides the default [FileService] resolved from [GetIt].
+/// [memoryService] takes precedence over [UserInformation.service]. The selected
+/// service receives the prepared Dreams and Goals and custom-category snapshot
+/// and supplies all persisted Personal Plan data read while generating the PDF.
 ///
 /// Preparation, metadata, or sharing failures are caught, logged via [IncidentLoggerService],
 /// and returned as `null` without throwing uncaught exceptions to callers.
@@ -44,11 +50,14 @@ Future<ShareResult?> sharePersonalPlanFile({
   Set<String>? approvedPdfHosts,
 }) async {
   try {
+    final PersistentMemoryService? effectiveMemoryService =
+        memoryService ?? userInformation?.service;
     final exportMetadata = await prepareAndBuildPersonalPlanExportMetadata(
       appLocale: appLocale,
       gender: gender,
       username: username,
       userInformation: userInformation,
+      memoryService: effectiveMemoryService,
     );
     final service = fileService ?? GetIt.instance<FileService>();
     final sanitizedTexts = sanitizeSharePdfTexts(
@@ -63,7 +72,7 @@ Future<ShareResult?> sharePersonalPlanFile({
       ShareFileType.PDF,
       mainTitle: exportMetadata.mainTitle,
       textDirection: appLocale.textDirection,
-      memoryService: memoryService ?? userInformation?.service,
+      memoryService: effectiveMemoryService,
       approvedPdfHosts: approvedPdfHosts,
     );
   } catch (error, stackTrace) {
