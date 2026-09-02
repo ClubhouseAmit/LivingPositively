@@ -285,7 +285,7 @@ class _HomeState extends LPExtendedState<Home> {
                   horizontal: HomeGaps.sectionHorizontalInset,
                 ),
                 child: GratitudeSectionWidget(
-                  onAddItem: () => widget.changeCurrentIndex(
+                  onOpenSection: () => widget.changeCurrentIndex(
                     context,
                     PagesCode.GratitudeJournal,
                   ),
@@ -303,7 +303,7 @@ class _HomeState extends LPExtendedState<Home> {
                 ),
                 child: VirtuesSectionWidget(
                   virtues: userInfoProvider.positiveTraits,
-                  onAddItem: () => widget.changeCurrentIndex(
+                  onOpenSection: () => widget.changeCurrentIndex(
                     context,
                     PagesCode.QualitiesList,
                   ),

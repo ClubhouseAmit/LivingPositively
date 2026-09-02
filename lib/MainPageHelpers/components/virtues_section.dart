@@ -9,11 +9,11 @@ import 'package:provider/provider.dart';
 
 class VirtuesSectionWidget extends StatefulWidget {
   final List<String> virtues;
-  final VoidCallback onAddItem;
+  final VoidCallback onOpenSection;
 
   const VirtuesSectionWidget({
     required this.virtues,
-    required this.onAddItem,
+    required this.onOpenSection,
     super.key,
   });
 
@@ -106,7 +106,7 @@ class _VirtuesSectionWidgetState extends LPExtendedState<VirtuesSectionWidget> {
       items: reversedVirtues,
       suggestions: _homeSuggestions,
       totalCount: userInfo.positiveTraits.length,
-      onAddItem: widget.onAddItem,
+      onOpenSection: widget.onOpenSection,
       onAddNew: _openTraitDialog,
       onEditItem: (displayIndex) {
         // Map reversed display index → original positiveTraits index

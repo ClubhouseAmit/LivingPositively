@@ -10,9 +10,9 @@ import 'package:mazilon/util/userInformation.dart';
 import 'package:provider/provider.dart';
 
 class GratitudeSectionWidget extends StatefulWidget {
-  final VoidCallback onAddItem;
+  final VoidCallback onOpenSection;
 
-  const GratitudeSectionWidget({required this.onAddItem, super.key});
+  const GratitudeSectionWidget({required this.onOpenSection, super.key});
 
   @override
   State<GratitudeSectionWidget> createState() => _GratitudeSectionWidgetState();
@@ -155,7 +155,7 @@ class _GratitudeSectionWidgetState
       items: todayItems,
       suggestions: _homeSuggestions,
       totalCount: thanks.length,
-      onAddItem: widget.onAddItem,
+      onOpenSection: widget.onOpenSection,
       onAddNew: () => _openThankDialog(userInfo),
       onEditItem: (displayIndex) {
         if (displayIndex < 0 || displayIndex >= sourceIndexes.length) return;

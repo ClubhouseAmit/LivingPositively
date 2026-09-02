@@ -49,6 +49,18 @@ void main() {
     late UserInformation mockUserInformation;
     late AppInformation mockAppInformation;
     late GetIt locator;
+    final scrollingVideoData = {
+      'videoId': List.generate(
+        8,
+        (index) => 'video${(index + 1).toString().padLeft(6, '0')}',
+      ),
+      'videoHeadline': List.generate(8, (index) => 'Video ${index + 1}'),
+      'videoDescription': List.generate(
+        8,
+        (index) => 'Description ${index + 1}',
+      ),
+      'videoTranscript': List.generate(8, (index) => 'Transcript ${index + 1}'),
+    };
 
     setUp(() async {
       locator = GetIt.instance;
@@ -107,6 +119,14 @@ void main() {
       await tester.ensureVisible(finder);
       await tester.pumpAndSettle(const Duration(milliseconds: 200));
       await tester.tap(finder);
+      await tester.pumpAndSettle(const Duration(milliseconds: 200));
+    }
+
+    Future<void> scrollToMoreVideos(WidgetTester tester) async {
+      await tester.drag(
+        find.byKey(const Key('wellnessToolsScrollView')),
+        const Offset(0, -500),
+      );
       await tester.pumpAndSettle(const Duration(milliseconds: 200));
     }
 
@@ -268,11 +288,7 @@ void main() {
 
       await tapAndSettle(tester, find.text('כלי תמיכה'));
       expect(find.byType(FakeVideoPlayerPage), findsOneWidget);
-      await tester.scrollUntilVisible(
-        find.text('v2'),
-        300,
-        scrollable: find.byType(Scrollable),
-      );
+      await scrollToMoreVideos(tester);
       expect(find.byType(MoreVideosItem), findsWidgets);
       expect(find.byKey(const Key("Image")), findsOneWidget);
     });
@@ -296,13 +312,9 @@ void main() {
 
       await tapAndSettle(tester, find.byType(ExpansionTile));
       expect(find.text('v1 transcript'), findsOneWidget);
-      await tester.scrollUntilVisible(
-        find.text('v2'),
-        300,
-        scrollable: find.byType(Scrollable),
-      );
-      expect(find.text('v2'), findsOneWidget);
+      await scrollToMoreVideos(tester);
       expect(find.text("Image"), findsOneWidget);
+      expect(find.text('v2'), findsOneWidget);
     });
     testWidgets('Test change video', (WidgetTester tester) async {
       await tester.pumpWidget(
@@ -310,19 +322,84 @@ void main() {
       );
 
       await tapAndSettle(tester, find.text('כלי תמיכה'));
-      await tester.scrollUntilVisible(
-        find.text('v2'),
-        300,
-        scrollable: find.byType(Scrollable),
-      );
+      await scrollToMoreVideos(tester);
       await tapAndSettle(tester, find.text('v2'));
-      await tester.scrollUntilVisible(
-        find.text('v2d'),
-        -300,
-        scrollable: find.byType(Scrollable),
-      );
-      expect(find.text('v2d'), findsOneWidget);
+      expect(find.text('v2'), findsOneWidget);
       expect(find.text('v1d'), findsNothing);
+      expect(find.text('v2d'), findsOneWidget);
+      expect(find.byType(FakeVideoPlayerPage).hitTestable(), findsOneWidget);
+      await scrollToMoreVideos(tester);
+      expect(find.text("Image"), findsOneWidget);
+      expect(find.text('v1'), findsOneWidget);
+    });
+
+    testWidgets(
+      'should keep the video player visible while more videos expand on scroll',
+      (WidgetTester tester) async {
+        await pumpWithProviders(
+          tester,
+          WellnessTools(
+            isFullScreen: false,
+            setBool: (_) {},
+            videoData: scrollingVideoData,
+          ),
+          surfaceSize: const Size(390, 700),
+        );
+
+        final scrollView = find.byKey(const Key('wellnessToolsScrollView'));
+        final player = find.byType(FakeVideoPlayerPage);
+        final initialPlayerTop = tester.getTopLeft(player).dy;
+        final initialVisibleVideoCount = find
+            .byType(MoreVideosItem)
+            .hitTestable()
+            .evaluate()
+            .length;
+
+        await tester.drag(scrollView, const Offset(0, -600));
+        await tester.pumpAndSettle();
+
+        final scrolledVisibleVideoCount = find
+            .byType(MoreVideosItem)
+            .hitTestable()
+            .evaluate()
+            .length;
+        expect(player.hitTestable(), findsOneWidget);
+        expect(tester.getTopLeft(player).dy, lessThan(initialPlayerTop));
+        expect(
+          scrolledVisibleVideoCount,
+          greaterThan(initialVisibleVideoCount),
+        );
+      },
+    );
+
+    testWidgets('should preserve the player across fullscreen changes', (
+      WidgetTester tester,
+    ) async {
+      await pumpWithProviders(
+        tester,
+        WellnessTools(
+          isFullScreen: false,
+          setBool: (_) {},
+          videoData: scrollingVideoData,
+        ),
+        surfaceSize: const Size(390, 700),
+      );
+
+      final playerFinder = find.byType(FakeVideoPlayerPage);
+      final playerElement = tester.element(playerFinder);
+      final player = tester.widget<FakeVideoPlayerPage>(playerFinder);
+
+      player.onFullScreenChanged(true);
+      await tester.pump();
+
+      expect(tester.element(playerFinder), same(playerElement));
+      expect(find.text('Description 1'), findsNothing);
+
+      player.onFullScreenChanged(false);
+      await tester.pump();
+
+      expect(tester.element(playerFinder), same(playerElement));
+      expect(find.text('Description 1'), findsOneWidget);
     });
 
     testWidgets('shows fallback for malformed or short-id video data', (
@@ -507,6 +584,11 @@ void main() {
 
         final expansionTile = find.byType(ExpansionTile);
         await tester.ensureVisible(expansionTile);
+        await tester.drag(
+          find.byKey(const Key('wellnessToolsScrollView')),
+          Offset(0, playerSize.height),
+        );
+        await tester.pumpAndSettle();
         await tester.tap(expansionTile);
         await tester.pumpAndSettle();
         expect(find.text(transcript), findsOneWidget);

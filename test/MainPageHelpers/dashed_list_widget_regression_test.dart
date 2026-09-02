@@ -30,7 +30,7 @@ void main() {
               items: items,
               suggestions: const ['one', 'two', 'three', 'four', 'five'],
               totalCount: items.length,
-              onAddItem: () {},
+              onOpenSection: () {},
               onAddSuggestion: (suggestion) {
                 setHostState(() => items.insert(0, suggestion));
               },
@@ -72,7 +72,7 @@ void main() {
           items: const [],
           suggestions: const ['אחד'],
           totalCount: 0,
-          onAddItem: () {},
+          onOpenSection: () {},
         ),
       ),
       userInformation: user,
@@ -101,7 +101,7 @@ void main() {
 
     await pumpWithProviders(
       tester,
-      Scaffold(body: GratitudeSectionWidget(onAddItem: () {})),
+      Scaffold(body: GratitudeSectionWidget(onOpenSection: () {})),
       userInformation: user,
     );
 
