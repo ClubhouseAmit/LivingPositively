@@ -200,26 +200,33 @@ class _DashedListWidgetState extends State<DashedListWidget>
         Row(
           mainAxisAlignment: MainAxisAlignment.spaceBetween,
           children: [
-            Row(
-              children: [
-                SvgPicture.asset(
-                  widget.iconAsset,
-                  width: 20,
-                  height: 20,
-                  colorFilter: ColorFilter.mode(
-                    Theme.of(context).colorScheme.onSurface,
-                    BlendMode.srcIn,
-                  ),
+            InkWell(
+              key: const Key('dashedListTitleTapTarget'),
+              onTap: widget.onAddItem,
+              child: ConstrainedBox(
+                constraints: const BoxConstraints(minHeight: 36),
+                child: Row(
+                  children: [
+                    SvgPicture.asset(
+                      widget.iconAsset,
+                      width: 20,
+                      height: 20,
+                      colorFilter: ColorFilter.mode(
+                        Theme.of(context).colorScheme.onSurface,
+                        BlendMode.srcIn,
+                      ),
+                    ),
+                    SizedBox(width: AppSpacing.sm),
+                    Text(
+                      widget.title,
+                      style: Theme.of(context).textTheme.titleLarge?.copyWith(
+                        fontWeight: FontWeight.bold,
+                        fontSize: 18,
+                      ),
+                    ),
+                  ],
                 ),
-                SizedBox(width: AppSpacing.sm),
-                Text(
-                  widget.title,
-                  style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                    fontWeight: FontWeight.bold,
-                    fontSize: 18,
-                  ),
-                ),
-              ],
+              ),
             ),
             IconButton(
               icon: Icon(
