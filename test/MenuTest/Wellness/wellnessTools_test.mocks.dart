@@ -1194,9 +1194,13 @@ class MockUserInformation extends _i1.Mock implements _i14.UserInformation {
           as _i7.Future<void>);
 
   @override
-  _i7.Future<void> prepareForPersonalPlanExport() =>
+  _i7.Future<void> prepareForPersonalPlanExport({
+    _i5.PersistentMemoryService? memoryService,
+  }) =>
       (super.noSuchMethod(
-            Invocation.method(#prepareForPersonalPlanExport, []),
+            Invocation.method(#prepareForPersonalPlanExport, [], {
+              #memoryService: memoryService,
+            }),
             returnValue: _i7.Future<void>.value(),
             returnValueForMissingStub: _i7.Future<void>.value(),
           )
@@ -1267,10 +1271,10 @@ class MockUserInformation extends _i1.Mock implements _i14.UserInformation {
   @override
   _i7.Future<void> setNotificationPreference(
     String? typeId,
-    _i16.NotificationPreference? pref,
+    _i16.NotificationPreference? preference,
   ) =>
       (super.noSuchMethod(
-            Invocation.method(#setNotificationPreference, [typeId, pref]),
+            Invocation.method(#setNotificationPreference, [typeId, preference]),
             returnValue: _i7.Future<void>.value(),
             returnValueForMissingStub: _i7.Future<void>.value(),
           )

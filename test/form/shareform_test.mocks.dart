@@ -780,9 +780,13 @@ class MockUserInformation extends _i1.Mock implements _i3.UserInformation {
           as _i6.Future<void>);
 
   @override
-  _i6.Future<void> prepareForPersonalPlanExport() =>
+  _i6.Future<void> prepareForPersonalPlanExport({
+    _i2.PersistentMemoryService? memoryService,
+  }) =>
       (super.noSuchMethod(
-            Invocation.method(#prepareForPersonalPlanExport, []),
+            Invocation.method(#prepareForPersonalPlanExport, [], {
+              #memoryService: memoryService,
+            }),
             returnValue: _i6.Future<void>.value(),
             returnValueForMissingStub: _i6.Future<void>.value(),
           )
