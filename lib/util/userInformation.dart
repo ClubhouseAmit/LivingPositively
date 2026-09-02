@@ -45,6 +45,8 @@ class UserInformation with ChangeNotifier {
   PersistentMemoryService service; // Get the persistent memory service instance
   Future<void> _pendingDreamsAndGoalsSave = Future<void>.value();
   Future<void> _pendingCustomCategoriesSave = Future<void>.value();
+  final Set<Future<List<MapEntry<String, String>>>>
+  _pendingCustomCategoriesLoads = {};
   List<MapEntry<String, String>>? _pendingCustomCategoriesSnapshot;
   PersistentMemoryService? _pendingCustomCategoriesMemoryService;
   Future<void>? _customCategoriesWriteTail;
@@ -95,7 +97,18 @@ class UserInformation with ChangeNotifier {
   Future<List<MapEntry<String, String>>> loadCustomCategories({
     PersistentMemoryService? memoryService,
   }) async {
-    final effectiveMemoryService = memoryService ?? service;
+    final load = _loadCustomCategories(memoryService ?? service);
+    _pendingCustomCategoriesLoads.add(load);
+    try {
+      return await load;
+    } finally {
+      _pendingCustomCategoriesLoads.remove(load);
+    }
+  }
+
+  Future<List<MapEntry<String, String>>> _loadCustomCategories(
+    PersistentMemoryService effectiveMemoryService,
+  ) async {
     final int revisionAtLoadStart = _customCategoriesSaveRevision;
     final loaded = await loadCustomCategoriesFromStorage(
       memoryService: effectiveMemoryService,
@@ -534,6 +547,11 @@ class UserInformation with ChangeNotifier {
   }) async {
     final PersistentMemoryService effectiveMemoryService =
         memoryService ?? service;
+    // ShareForm hydrates after its first frame. Do not copy an initial empty
+    // category list into an export override while those reads are in flight.
+    while (_pendingCustomCategoriesLoads.isNotEmpty) {
+      await Future.wait(_pendingCustomCategoriesLoads.toList());
+    }
     await _awaitOrRetryCustomCategoriesSave();
     await _awaitOrRetryDreamsAndGoalsSave();
     final bool needsRepair = !listEquals(

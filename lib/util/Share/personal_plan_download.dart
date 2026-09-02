@@ -1,3 +1,5 @@
+import 'dart:convert';
+
 import 'package:flutter/foundation.dart';
 import 'package:get_it/get_it.dart';
 import 'package:mazilon/file_service.dart';
@@ -20,6 +22,8 @@ class _PersonalPlanDownloadContext {
   final String username;
   final Map<String, String> sharePdfTexts;
   final int? userInformationRevision;
+  final Future<void>? customCategoriesSave;
+  final String? customCategoriesSnapshot;
   final PersistentMemoryService? memoryService;
   final FileService fileService;
   final Set<String> approvedPdfHosts;
@@ -47,6 +51,13 @@ class _PersonalPlanDownloadContext {
          ),
        ),
        userInformationRevision = userInformation?.dreamsAndGoalsSaveRevision,
+       customCategoriesSave = userInformation?.pendingCustomCategoriesSave,
+       customCategoriesSnapshot = userInformation == null
+           ? null
+           : jsonEncode([
+               for (final entry in userInformation.customCategories)
+                 [entry.key, entry.value],
+             ]),
        memoryService = memoryService ?? userInformation?.service;
 
   static int _computeMapHashCode(Map<String, String> map) {
@@ -67,6 +78,8 @@ class _PersonalPlanDownloadContext {
         other.username == username &&
         mapEquals(other.sharePdfTexts, sharePdfTexts) &&
         other.userInformationRevision == userInformationRevision &&
+        identical(other.customCategoriesSave, customCategoriesSave) &&
+        other.customCategoriesSnapshot == customCategoriesSnapshot &&
         identical(other.memoryService, memoryService) &&
         identical(other.fileService, fileService) &&
         setEquals(other.approvedPdfHosts, approvedPdfHosts);
@@ -80,6 +93,8 @@ class _PersonalPlanDownloadContext {
     username,
     _computeMapHashCode(sharePdfTexts),
     userInformationRevision,
+    identityHashCode(customCategoriesSave),
+    customCategoriesSnapshot,
     identityHashCode(memoryService),
     identityHashCode(fileService),
     Object.hashAllUnordered(approvedPdfHosts),

@@ -17,6 +17,7 @@ import 'package:mazilon/util/Share/LP_share_alert_dialog.dart';
 import 'package:mazilon/util/Share/personal_plan_download.dart';
 import 'package:mazilon/util/Share/personal_plan_share.dart';
 import 'package:mazilon/util/appInformation.dart';
+import 'package:mazilon/util/custom_categories_storage.dart';
 import 'package:mazilon/util/logger_service.dart';
 import 'package:mazilon/util/persistent_memory_service.dart';
 import 'package:mazilon/util/userInformation.dart';
@@ -53,6 +54,7 @@ class _TestFileService implements FileService {
   String? downloadResult = '/path/to/downloaded/file.pdf';
   bool throwOnAction = false;
   Completer<void>? pendingDownloadCompleter;
+  Future<void> Function(PersistentMemoryService?)? onDownload;
   PersistentMemoryService? lastMemoryService;
   Map<String, String>? lastTexts;
 
@@ -93,6 +95,7 @@ class _TestFileService implements FileService {
     if (throwOnAction) {
       throw StateError('Download failed');
     }
+    await onDownload?.call(memoryService);
     if (pendingDownloadCompleter != null) {
       await pendingDownloadCompleter!.future;
     }
@@ -420,6 +423,90 @@ void main() {
   });
 
   group('downloadPersonalPlanFile', () {
+    for (final edit in ['direct', 'completed save', 'pending save']) {
+      test(
+        'should not coalesce a category-only $edit with an older download',
+        () async {
+          final localizations = await AppLocalizations.delegate.load(
+            const Locale('en'),
+          );
+          final downloadGate = Completer<void>();
+          final saveGate = Completer<void>();
+          final firstRead = Completer<void>();
+          final secondRead = Completer<void>();
+          final snapshots = <List<dynamic>>[];
+          final alternateMemory = _TestPersistentMemoryService();
+          fileService.pendingDownloadCompleter = downloadGate;
+          fileService.onDownload = (memory) async {
+            final data = await FileServiceImpl.getPrefsData(
+              memoryService: memory,
+            );
+            snapshots.add(
+              List<dynamic>.from(data['customCategoryTitles'] as List),
+            );
+            (snapshots.length == 1 ? firstRead : secondRead).complete();
+          };
+          Future<String?> download() => downloadPersonalPlanFile(
+            appLocale: localizations,
+            gender: userInformation.gender,
+            username: userInformation.name,
+            appInformation: appInformation,
+            userInformation: userInformation,
+            fileService: fileService,
+            memoryService: alternateMemory,
+          );
+          await userInformation.saveCustomCategories(
+            categories: const [MapEntry('Old', 'Old description')],
+          );
+          final dreamsRevision = userInformation.dreamsAndGoalsSaveRevision;
+          final first = download();
+          await firstRead.future;
+          Future<void>? save;
+          try {
+            if (edit == 'direct') {
+              userInformation.customCategories = const [
+                MapEntry('New', 'New description'),
+              ];
+            } else {
+              if (edit == 'pending save') {
+                memoryService.onPersist = (_, _, _) => saveGate.future;
+              }
+              save = userInformation.saveCustomCategories(
+                categories: const [MapEntry('New', 'New description')],
+              );
+              if (edit == 'completed save') await save;
+            }
+            final second = download();
+            await Future<void>.delayed(Duration.zero);
+            if (edit == 'pending save') {
+              expect(snapshots, [
+                ['Old'],
+              ]);
+              saveGate.complete();
+              await save;
+            }
+            await secondRead.future.timeout(const Duration(seconds: 2));
+            expect(userInformation.dreamsAndGoalsSaveRevision, dreamsRevision);
+            expect(snapshots, [
+              ['Old'],
+              ['New'],
+            ]);
+            downloadGate.complete();
+            expect(await Future.wait([first, second]), [
+              fileService.downloadResult,
+              fileService.downloadResult,
+            ]);
+            expect(fileService.callLog, ['download', 'download']);
+          } finally {
+            if (!saveGate.isCompleted) saveGate.complete();
+            if (!downloadGate.isCompleted) downloadGate.complete();
+            await save;
+            await first;
+          }
+        },
+      );
+    }
+
     test(
       'should return path, log no errors, and show finished toast on success',
       () async {
@@ -821,6 +908,122 @@ void main() {
   });
 
   group('sharePersonalPlanFile', () {
+    for (final action in ['share', 'download']) {
+      test(
+        'should await category hydration before $action copies to an alternate store',
+        () async {
+          final readStarted = Completer<void>();
+          final readGate = Completer<void>();
+          memoryService.store[customCategoriesKey] =
+              '[{"title":"Saved category","description":"Saved description"}]';
+          memoryService.onRead = (key, type) async {
+            expect(
+              (key, type),
+              (customCategoriesKey, PersistentMemoryType.String),
+            );
+            readStarted.complete();
+            await readGate.future;
+          };
+          final hydration = userInformation.loadCustomCategories();
+          await readStarted.future;
+          final alternateMemory = _TestPersistentMemoryService();
+          final localizations = await AppLocalizations.delegate.load(
+            const Locale('en'),
+          );
+          final Future<Object?> export = action == 'share'
+              ? sharePersonalPlanFile(
+                  message: 'plan',
+                  appLocale: localizations,
+                  gender: userInformation.gender,
+                  username: userInformation.name,
+                  appInformation: appInformation,
+                  userInformation: userInformation,
+                  fileService: fileService,
+                  memoryService: alternateMemory,
+                )
+              : downloadPersonalPlanFile(
+                  appLocale: localizations,
+                  gender: userInformation.gender,
+                  username: userInformation.name,
+                  appInformation: appInformation,
+                  userInformation: userInformation,
+                  fileService: fileService,
+                  memoryService: alternateMemory,
+                );
+          try {
+            await Future<void>.delayed(Duration.zero);
+            expect(alternateMemory.writeLog, isEmpty);
+            expect(fileService.callLog, isEmpty);
+          } finally {
+            readGate.complete();
+          }
+          await hydration;
+          expect(await export, isNotNull);
+          final data = await FileServiceImpl.getPrefsData(
+            memoryService: alternateMemory,
+          );
+          expect(data['customCategoryTitles'], ['Saved category']);
+          expect(data['customCategoryDescriptions'], ['Saved description']);
+          expect(fileService.callLog, [action]);
+        },
+      );
+    }
+
+    for (final failingKey in [
+      'userSelectionPersonalPlan-DreamsAndGoals',
+      customCategoriesKey,
+    ]) {
+      test(
+        'should suppress export after $failingKey copy fails and rewrite both snapshots on retry',
+        () async {
+          final alternateMemory = _TestPersistentMemoryService();
+          final failure = StateError('Alternate snapshot copy failed');
+          alternateMemory.onPersist = (key, _, _) {
+            if (key == failingKey) throw failure;
+          };
+          userInformation.updateDreamsAndGoals(
+            ['Latest goal'],
+            selectionSources: ['custom'],
+          );
+          userInformation.customCategories = const [
+            MapEntry('Latest category', 'Latest description'),
+          ];
+          final localizations = await AppLocalizations.delegate.load(
+            const Locale('en'),
+          );
+          Future<ShareResult?> share() => sharePersonalPlanFile(
+            message: 'plan',
+            appLocale: localizations,
+            gender: userInformation.gender,
+            username: userInformation.name,
+            appInformation: appInformation,
+            userInformation: userInformation,
+            fileService: fileService,
+            memoryService: alternateMemory,
+          );
+          expect(await share(), isNull);
+          expect(fileService.callLog, isEmpty);
+          expect(loggerService.capturedLogs, [same(failure)]);
+          alternateMemory.onPersist = null;
+          alternateMemory.writeLog.clear();
+          expect((await share())?.status, ShareResultStatus.success);
+          expect(
+            alternateMemory.writeLog,
+            containsAll([
+              'userSelectionPersonalPlan-DreamsAndGoals',
+              customCategoriesKey,
+            ]),
+          );
+          final data = await FileServiceImpl.getPrefsData(
+            memoryService: alternateMemory,
+          );
+          expect(data['DreamsAndGoals'], ['Latest goal']);
+          expect(data['customCategoryTitles'], ['Latest category']);
+          expect(fileService.callLog, ['share']);
+        },
+      );
+    }
+
     test(
       'should prepare and read the Personal Plan from the memory override',
       () async {
