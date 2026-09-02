@@ -23,12 +23,23 @@ grace period it checks again that Flutter has not connected and the PID has
 not changed. It preserves Flutter's debug launch arguments and original test
 process. Connected tests, assertion failures, crashes, and missing evidence
 do not qualify for recovery; the original `flutter test` exit status remains
-the gate. The parent step stops the watcher during cleanup.
+the gate. Each Flutter attempt gets a fresh attempt log and a byte offset into
+the simulator stream; announcements before that offset cannot authorize a
+relaunch, even if a PID is reused. Recovery is disabled if the recorded Flutter
+launch arguments differ from the verified debug flags in the script. The watcher polls
+for the full 90-minute parent budget (including the 80–90 minute window).
+The parent stops and reaps it immediately when each Flutter attempt returns,
+before FrontBoard retry/reset or post-test diagnostics, with EXIT cleanup as
+a fallback.
 
 The recovery log is included in `ios-integration-diagnostics`. Its shell
 regressions run in `build-android` via
 `bash scripts/tests/recover_ios_vm_service_test.sh`; they check the real log
-predicates with fake simulator commands and no wall-clock sleeps. Reassess
+predicates with fake simulator commands and no wall-clock sleeps.
+`python3 scripts/tests/recover_ios_vm_service_cli_test.py` also exercises the
+actual child-process entrypoint, exit statuses, full polling budget, late
+recovery, and workflow cleanup during both polling and the grace-period sleep.
+Reassess
 this CI-only workaround when upgrading the pinned Flutter SDK. No runtime
 application behavior or coverage threshold is changed.
 

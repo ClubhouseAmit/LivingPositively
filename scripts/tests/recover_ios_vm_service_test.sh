@@ -34,13 +34,15 @@ reset_case() {
   replace_during_wait=false
   exit_during_wait=false
   failed_command=''
-  printf '%s\n' '[+6460 ms] com.clubhouse.livingpositively: 40050' \
+  simulator_log_offset=0
+  printf '%s\n' '[ ] executing: /usr/bin/arch -arm64e xcrun simctl launch test-device com.clubhouse.livingpositively --enable-dart-profiling --disable-vm-service-publication --enable-checked-mode --verify-entry-points' \
+    '[+6460 ms] com.clubhouse.livingpositively: 40050' \
     '[ ] Waiting for VM Service port to be available...' > "$flutter_log"
   printf '%s\n' '2026-09-02 07:52:56.868 Df Runner[40050:50d58] (Flutter) flutter: The Dart VM service is listening on http://127.0.0.1:61515/token/' > "$simulator_log"
 }
 expect_result() {
   local expected="$1" actual=0
-  recover_ios_vm_service_once test-device "$flutter_log" "$simulator_log" || actual=$?
+  recover_ios_vm_service_once test-device "$flutter_log" "$simulator_log" "$simulator_log_offset" || actual=$?
   [ "$actual" -eq "$expected" ] || { echo "Expected status $expected, got $actual" >&2; exit 1; }
 }
 
@@ -110,4 +112,22 @@ failed_command=launch
 expect_result 1
 [ "${#calls[@]}" -eq 2 ]
 
-echo 'PASS: iOS VM-service recovery (13 scenarios)'
+reset_case
+simulator_log_offset=$(wc -c < "$simulator_log")
+expect_result 2
+[ "${#calls[@]}" -eq 0 ]
+printf '%s\n' 'Runner[40050:50d58] The Dart VM service is listening on http://127.0.0.1:61516/new/' >> "$simulator_log"
+expect_result 0
+[ "${#calls[@]}" -eq 2 ]
+
+reset_case
+printf '%s\n' '[ ] executing: xcrun simctl launch test-device com.clubhouse.livingpositively --disable-service-auth-codes --host-vmservice-port=1234' >> "$flutter_log"
+expect_result 0
+[ "${#calls[@]}" -eq 0 ]
+
+reset_case
+printf '%s\n' 'com.clubhouse.livingpositively: 40050' 'Waiting for VM Service port to be available' > "$flutter_log"
+expect_result 0
+[ "${#calls[@]}" -eq 0 ]
+
+echo 'PASS: iOS VM-service recovery (17 scenarios)'

@@ -106,7 +106,9 @@ jobs:
       - name: Run tests with coverage
         run: flutter test --coverage --reporter=expanded
       - name: Test iOS VM-service recovery guards
-        run: bash scripts/tests/recover_ios_vm_service_test.sh
+        run: |
+          bash scripts/tests/recover_ios_vm_service_test.sh
+          python3 scripts/tests/recover_ios_vm_service_cli_test.py
       - name: Snapshot base lcov before dart-define run
         # The next `flutter test` invocation overwrites coverage/lcov.info;
         # snapshot the full-suite lcov so we can merge the dart-define
@@ -652,17 +654,24 @@ jobs:
             local pid="$1"
             local child_pids
             child_pids=$(pgrep -P "$pid" 2>/dev/null || true)
+            # Stop the owner before its sleep/command so waking a child
+            # cannot resume recovery while cleanup is in progress.
+            kill "$pid" 2>/dev/null || true
             for child_pid in $child_pids; do
               terminate_process_tree "$child_pid"
             done
-            kill "$pid" 2>/dev/null || true
           }
 
-          cleanup_ios_diagnostics() {
+          stop_vm_service_recovery() {
             if [ -n "${VM_RECOVERY_PID:-}" ]; then
               terminate_process_tree "$VM_RECOVERY_PID"
               wait "$VM_RECOVERY_PID" 2>/dev/null || true
+              VM_RECOVERY_PID=''
             fi
+          }
+
+          cleanup_ios_diagnostics() {
+            stop_vm_service_recovery
             kill "$SIM_LOG_PID" 2>/dev/null || true
             wait "$SIM_LOG_PID" 2>/dev/null || true
             terminate_process_tree "$WATCHDOG_PID"
@@ -671,19 +680,25 @@ jobs:
           trap cleanup_ios_diagnostics EXIT
 
           run_ios_fcm_test() {
-            flutter --verbose test integration_test/fcm_initialization_ios_test.dart --no-pub --dart-define=SENTRY_DSN=https://test@dsn.example.local/0 -d "$DEVICE_ID"
+            local attempt_log="ci-ios-diagnostics/flutter-test-$1.log"
+            local simulator_log_offset
+            : > "$attempt_log"
+            simulator_log_offset=$(wc -c < ci-ios-diagnostics/simulator.log | tr -d '[:space:]')
+            # Evidence and watcher lifetime belong to this invocation only.
+            bash scripts/recover_ios_vm_service.sh "$DEVICE_ID" \
+              "$attempt_log" ci-ios-diagnostics/simulator.log "$simulator_log_offset" \
+              >> ci-ios-diagnostics/vm-service-recovery.log 2>&1 &
+            VM_RECOVERY_PID=$!
+            flutter --verbose test integration_test/fcm_initialization_ios_test.dart --no-pub --dart-define=SENTRY_DSN=https://test@dsn.example.local/0 -d "$DEVICE_ID" \
+              2>&1 | tee -a "$attempt_log" ci-ios-diagnostics/flutter-test.log
+            TEST_EXIT=${PIPESTATUS[0]}
+            # Reap before any FrontBoard retry or post-test simulator action.
+            stop_vm_service_recovery
           }
 
-          # A ready VM's one-shot announcement can precede Flutter's log
-          # reader. Recover only that proven pre-test race, at most once.
-          bash scripts/recover_ios_vm_service.sh "$DEVICE_ID" \
-            ci-ios-diagnostics/flutter-test.log ci-ios-diagnostics/simulator.log \
-            > ci-ios-diagnostics/vm-service-recovery.log 2>&1 &
-          VM_RECOVERY_PID=$!
-
+          : > ci-ios-diagnostics/flutter-test.log
           set +e
-          run_ios_fcm_test 2>&1 | tee ci-ios-diagnostics/flutter-test.log
-          TEST_EXIT=${PIPESTATUS[0]}
+          run_ios_fcm_test first
 
           # CoreSimulator can finish installing the bundle before FrontBoard
           # registers it. Retry only that pre-process launch race; application
@@ -703,8 +718,7 @@ jobs:
               if [ "$RESET_EXIT" -eq 0 ]; then
                 sleep 5
                 printf '\n=== retry after FrontBoard registration reset ===\n' | tee -a ci-ios-diagnostics/flutter-test.log
-                run_ios_fcm_test 2>&1 | tee -a ci-ios-diagnostics/flutter-test.log
-                TEST_EXIT=${PIPESTATUS[0]}
+                run_ios_fcm_test retry
               else
                 TEST_EXIT=$RESET_EXIT
               fi
