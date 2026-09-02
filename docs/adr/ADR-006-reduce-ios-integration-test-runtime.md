@@ -5,6 +5,33 @@
 - **Deciders**:
 - **Tags**: ci, ios, flutter, github-actions, coverage, performance
 
+## 2026-09-02 operational update: missed VM-service announcement
+
+The blocking iOS FCM test and existing time limits are unchanged. In
+[run 33601851012](https://github.com/ClubhouseAmit/LivingPositively/actions/runs/33601851012),
+Xcode completed its build, and `simulator.log` recorded Runner's VM service
+at 07:52:56. Flutter's own log reader missed that announcement and waited
+until the 90-minute step timeout. The post-timeout diagnostic relaunch let
+the surviving Flutter process attach and report one passing test, but could
+not reverse the timed-out GitHub check.
+
+`scripts/recover_ios_vm_service.sh` now watches during the test step. It
+relaunches the installed test app at most once, only when Flutter is waiting
+for discovery, the exact Runner PID is still alive, and the independent
+simulator log confirms that PID announced a VM service. After a two-minute
+grace period it checks again that Flutter has not connected and the PID has
+not changed. It preserves Flutter's debug launch arguments and original test
+process. Connected tests, assertion failures, crashes, and missing evidence
+do not qualify for recovery; the original `flutter test` exit status remains
+the gate. The parent step stops the watcher during cleanup.
+
+The recovery log is included in `ios-integration-diagnostics`. Its shell
+regressions run in `build-android` via
+`bash scripts/tests/recover_ios_vm_service_test.sh`; they check the real log
+predicates with fake simulator commands and no wall-clock sleeps. Reassess
+this CI-only workaround when upgrading the pinned Flutter SDK. No runtime
+application behavior or coverage threshold is changed.
+
 ## Context
 
 ADR-005 introduced the `integration-test-ios` GitHub Actions job to cover

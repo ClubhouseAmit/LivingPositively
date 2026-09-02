@@ -105,6 +105,8 @@ jobs:
           exit 1
       - name: Run tests with coverage
         run: flutter test --coverage --reporter=expanded
+      - name: Test iOS VM-service recovery guards
+        run: bash scripts/tests/recover_ios_vm_service_test.sh
       - name: Snapshot base lcov before dart-define run
         # The next `flutter test` invocation overwrites coverage/lcov.info;
         # snapshot the full-suite lcov so we can merge the dart-define
@@ -657,6 +659,10 @@ jobs:
           }
 
           cleanup_ios_diagnostics() {
+            if [ -n "${VM_RECOVERY_PID:-}" ]; then
+              terminate_process_tree "$VM_RECOVERY_PID"
+              wait "$VM_RECOVERY_PID" 2>/dev/null || true
+            fi
             kill "$SIM_LOG_PID" 2>/dev/null || true
             wait "$SIM_LOG_PID" 2>/dev/null || true
             terminate_process_tree "$WATCHDOG_PID"
@@ -667,6 +673,13 @@ jobs:
           run_ios_fcm_test() {
             flutter --verbose test integration_test/fcm_initialization_ios_test.dart --no-pub --dart-define=SENTRY_DSN=https://test@dsn.example.local/0 -d "$DEVICE_ID"
           }
+
+          # A ready VM's one-shot announcement can precede Flutter's log
+          # reader. Recover only that proven pre-test race, at most once.
+          bash scripts/recover_ios_vm_service.sh "$DEVICE_ID" \
+            ci-ios-diagnostics/flutter-test.log ci-ios-diagnostics/simulator.log \
+            > ci-ios-diagnostics/vm-service-recovery.log 2>&1 &
+          VM_RECOVERY_PID=$!
 
           set +e
           run_ios_fcm_test 2>&1 | tee ci-ios-diagnostics/flutter-test.log
