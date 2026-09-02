@@ -89,6 +89,44 @@ void main() {
     );
   });
 
+  testWidgets('should map Gratitude and Virtues title taps to their pages', (
+    tester,
+  ) async {
+    PagesCode? navigatedPage;
+
+    await pumpWithProviders(
+      tester,
+      Home(
+        phonePageData: _phoneData(),
+        changeCurrentIndex: (BuildContext context, PagesCode code) {
+          navigatedPage = code;
+        },
+        changeLocale: (_) {},
+        openMainMenu: (_) {},
+      ),
+      userInformation: user,
+      surfaceSize: const Size(1024, 2400),
+    );
+
+    final gratitudeTitle = find.descendant(
+      of: find.byType(GratitudeSectionWidget),
+      matching: find.byKey(const Key('dashedListTitleTapTarget')),
+    );
+    final virtuesTitle = find.descendant(
+      of: find.byType(VirtuesSectionWidget),
+      matching: find.byKey(const Key('dashedListTitleTapTarget')),
+    );
+
+    await tester.tap(gratitudeTitle);
+    await tester.pump();
+    expect(navigatedPage, PagesCode.GratitudeJournal);
+
+    navigatedPage = null;
+    await tester.tap(virtuesTitle);
+    await tester.pump();
+    expect(navigatedPage, PagesCode.QualitiesList);
+  });
+
   test(
     'home surfaces do not refresh randomized content from build methods',
     () {

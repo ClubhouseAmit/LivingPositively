@@ -14,7 +14,7 @@ class DashedListWidget extends StatefulWidget {
   final List<String> items;
   final List<String> suggestions;
   final int totalCount;
-  final VoidCallback onAddItem;
+  final VoidCallback onOpenSection;
   final VoidCallback? onAddNew;
   final void Function(int index)? onEditItem;
   final void Function(int index)? onRemoveItem;
@@ -27,7 +27,7 @@ class DashedListWidget extends StatefulWidget {
     required this.items,
     required this.suggestions,
     required this.totalCount,
-    required this.onAddItem,
+    required this.onOpenSection,
     this.onAddNew,
     this.onEditItem,
     this.onRemoveItem,
@@ -200,26 +200,33 @@ class _DashedListWidgetState extends State<DashedListWidget>
         Row(
           mainAxisAlignment: MainAxisAlignment.spaceBetween,
           children: [
-            Row(
-              children: [
-                SvgPicture.asset(
-                  widget.iconAsset,
-                  width: 20,
-                  height: 20,
-                  colorFilter: ColorFilter.mode(
-                    Theme.of(context).colorScheme.onSurface,
-                    BlendMode.srcIn,
-                  ),
+            InkWell(
+              key: const Key('dashedListTitleTapTarget'),
+              onTap: widget.onOpenSection,
+              child: ConstrainedBox(
+                constraints: const BoxConstraints(minHeight: 36),
+                child: Row(
+                  children: [
+                    SvgPicture.asset(
+                      widget.iconAsset,
+                      width: 20,
+                      height: 20,
+                      colorFilter: ColorFilter.mode(
+                        Theme.of(context).colorScheme.onSurface,
+                        BlendMode.srcIn,
+                      ),
+                    ),
+                    SizedBox(width: AppSpacing.sm),
+                    Text(
+                      widget.title,
+                      style: Theme.of(context).textTheme.titleLarge?.copyWith(
+                        fontWeight: FontWeight.bold,
+                        fontSize: 18,
+                      ),
+                    ),
+                  ],
                 ),
-                SizedBox(width: AppSpacing.sm),
-                Text(
-                  widget.title,
-                  style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                    fontWeight: FontWeight.bold,
-                    fontSize: 18,
-                  ),
-                ),
-              ],
+              ),
             ),
             IconButton(
               icon: Icon(
@@ -227,7 +234,7 @@ class _DashedListWidgetState extends State<DashedListWidget>
                 color: Theme.of(context).colorScheme.onSurface,
                 size: 22,
               ),
-              onPressed: widget.onAddNew ?? widget.onAddItem,
+              onPressed: widget.onAddNew ?? widget.onOpenSection,
               padding: EdgeInsets.zero,
               constraints: const BoxConstraints(minWidth: 36, minHeight: 36),
             ),
@@ -251,7 +258,7 @@ class _DashedListWidgetState extends State<DashedListWidget>
               text: displayedItems[index],
               onEdit: widget.onEditItem != null
                   ? () => widget.onEditItem!(index)
-                  : widget.onAddNew ?? widget.onAddItem,
+                  : widget.onAddNew ?? widget.onOpenSection,
               onRemove: widget.onRemoveItem != null
                   ? () => widget.onRemoveItem!(index)
                   : null,
@@ -313,7 +320,7 @@ class _DashedListWidgetState extends State<DashedListWidget>
         ] else if (displayedItems.isEmpty) ...[
           DashedPillAddSlot(
             placeholder: appLocale.addItemTooltip,
-            onTap: widget.onAddNew ?? widget.onAddItem,
+            onTap: widget.onAddNew ?? widget.onOpenSection,
           ),
         ],
 
@@ -323,7 +330,7 @@ class _DashedListWidgetState extends State<DashedListWidget>
         Align(
           alignment: AlignmentDirectional.centerEnd,
           child: TextButton.icon(
-            onPressed: widget.onAddItem,
+            onPressed: widget.onOpenSection,
             label: Text(
               '${appLocale.showAll(userInfo.gender)} (${widget.totalCount})',
               style: TextStyle(color: Theme.of(context).colorScheme.primary),
