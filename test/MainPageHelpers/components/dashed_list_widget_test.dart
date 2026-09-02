@@ -20,17 +20,7 @@ void main() {
 
         await pumpWithProviders(
           tester,
-          Scaffold(
-            body: DashedListWidget(
-              title: 'Gratitude Journal',
-              subtitle: 'Notice what went well',
-              iconAsset: 'assets/images/thanks_icon.svg',
-              items: const ['A kind conversation'],
-              suggestions: const [],
-              totalCount: 1,
-              onOpenSection: () => openCount++,
-            ),
-          ),
+          _subject(onOpenSection: () => openCount++),
           surfaceSize: const Size(400, 800),
         );
 
@@ -51,5 +41,63 @@ void main() {
         semanticsHandle.dispose();
       }
     });
+
+    testWidgets('should use onAddNew when the add button is tapped', (
+      tester,
+    ) async {
+      var openCount = 0;
+      var addCount = 0;
+
+      await pumpWithProviders(
+        tester,
+        _subject(onOpenSection: () => openCount++, onAddNew: () => addCount++),
+        surfaceSize: const Size(400, 800),
+      );
+
+      await tester.tap(_addButton());
+      await tester.pump();
+
+      expect(addCount, 1);
+      expect(openCount, 0);
+    });
+
+    testWidgets(
+      'should open the section when the add button has no add callback',
+      (tester) async {
+        var openCount = 0;
+
+        await pumpWithProviders(
+          tester,
+          _subject(onOpenSection: () => openCount++),
+          surfaceSize: const Size(400, 800),
+        );
+
+        await tester.tap(_addButton());
+        await tester.pump();
+
+        expect(openCount, 1);
+      },
+    );
   });
 }
+
+Widget _subject({
+  required VoidCallback onOpenSection,
+  VoidCallback? onAddNew,
+}) => Scaffold(
+  body: DashedListWidget(
+    title: 'Gratitude Journal',
+    subtitle: 'Notice what went well',
+    iconAsset: 'assets/images/thanks_icon.svg',
+    items: const ['A kind conversation'],
+    suggestions: const [],
+    totalCount: 1,
+    onOpenSection: onOpenSection,
+    onAddNew: onAddNew,
+  ),
+);
+
+Finder _addButton() => find.ancestor(
+  of: find.byIcon(Icons.add),
+  matching: find.byType(IconButton),
+);
