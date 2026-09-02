@@ -117,10 +117,60 @@ sleep() {
                 self.assertEqual(result.returncode, 1, result.stderr)
                 self.assertEqual(len((self.path / "calls").read_text().splitlines()), count)
 
+    def test_should_stop_late_children_even_after_owner_exit_without_signalling_other_jobs(self):
+        workflow = (ROOT / ".github/workflows/main.yml").read_text()
+        match = re.search(r"^          terminate_process_group\(\) \{\n.*?^          \}$", workflow, re.M | re.S)
+        self.assertIsNotNone(match)
+        cleanup_function = "\n".join(line[10:] for line in match[0].splitlines())
+        owner = self.path / "owner.sh"
+        owner.write_text(r'''
+touch "$TEST_DIRECTORY/owner-ready"
+until [ -f "$TEST_DIRECTORY/spawn" ]; do command sleep 0.01; done
+bash -c 'trap "" TERM; command sleep 60' &
+printf '%s\n' "$!" > "$TEST_DIRECTORY/late-child.pid"
+if [ "$OWNER_EXITS" = true ]; then exit 0; fi
+wait
+''')
+        driver = self.path / "late-child-driver.sh"
+        driver.write_text(cleanup_function + r'''
+set -m
+bash "$TEST_DIRECTORY/owner.sh" &
+owner_pid=$!
+set +m
+command sleep 60 &
+unrelated_pid=$!
+trap 'builtin kill -KILL -- "-$owner_pid" "$unrelated_pid" 2>/dev/null || true; wait "$unrelated_pid" 2>/dev/null || true' EXIT
+until [ -f "$TEST_DIRECTORY/owner-ready" ]; do command sleep 0.01; done
+kill() {
+  if [ "$1" = -STOP ]; then
+    # Fork after cleanup starts, not when the original owner was launched.
+    touch "$TEST_DIRECTORY/spawn"
+    until [ -f "$TEST_DIRECTORY/late-child.pid" ]; do command sleep 0.01; done
+    if [ "$OWNER_EXITS" = true ]; then wait "$owner_pid"; fi
+  fi
+  builtin kill "$@"
+}
+terminate_process_group "$owner_pid" || exit 10
+builtin kill -0 "$unrelated_pid" || exit 11
+''')
+        for owner_exits in ("false", "true"):
+            with self.subTest(owner_exits=owner_exits):
+                for name in ("owner-ready", "spawn", "late-child.pid"):
+                    (self.path / name).unlink(missing_ok=True)
+                self.environment["OWNER_EXITS"] = owner_exits
+                result = subprocess.run(
+                    ["bash", str(driver)], cwd=self.path, env=self.environment,
+                    text=True, capture_output=True, timeout=15,
+                )
+                self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
+                pid = (self.path / "late-child.pid").read_text().strip()
+                status = subprocess.run(["ps", "-o", "stat=", "-p", pid], text=True, capture_output=True)
+                self.assertTrue(not status.stdout.strip() or status.stdout.strip().startswith("Z"), status.stdout)
+
     def test_should_reap_poll_and_grace_sleepers_before_next_attempt(self):
         workflow = (ROOT / ".github/workflows/main.yml").read_text()
         functions = []
-        for name in ("terminate_process_tree", "stop_vm_service_recovery", "run_ios_fcm_test"):
+        for name in ("terminate_process_group", "stop_vm_service_recovery", "run_ios_fcm_test"):
             match = re.search(rf"^          {name}\(\) \{{\n.*?^          \}}$", workflow, re.M | re.S)
             self.assertIsNotNone(match, name)
             functions.append("\n".join(line[10:] for line in match[0].splitlines()))

@@ -632,6 +632,9 @@ jobs:
             > ci-ios-diagnostics/simulator.log 2>&1 &
           SIM_LOG_PID=$!
 
+          # Give the diagnostic job its own process group, including children
+          # created after cleanup begins. The foreground Flutter job is separate.
+          set -m
           (
             sleep 4800
             {
@@ -649,23 +652,30 @@ jobs:
             find ~/Library/Logs/DiagnosticReports -type f -mtime -1 -exec cp {} ci-ios-diagnostics/DiagnosticReports/ \; 2>/dev/null || true
           ) > /dev/null 2>&1 &
           WATCHDOG_PID=$!
+          set +m
 
-          terminate_process_tree() {
-            local pid="$1"
-            local child_pids
-            child_pids=$(pgrep -P "$pid" 2>/dev/null || true)
-            # Stop the owner before its sleep/command so waking a child
-            # cannot resume recovery while cleanup is in progress.
-            kill "$pid" 2>/dev/null || true
-            for child_pid in $child_pids; do
-              terminate_process_tree "$child_pid"
+          terminate_process_group() {
+            local group_id="$1" live_members attempt
+            [[ "$group_id" =~ ^[1-9][0-9]*$ ]] || return 1
+            # Freeze the owned group before terminating it: a one-time PPID
+            # snapshot misses late forks and descendants reparented on exit.
+            kill -STOP -- "-$group_id" 2>/dev/null || true
+            for ((attempt = 0; attempt < 20; attempt++)); do
+              kill -KILL -- "-$group_id" 2>/dev/null || true
+              live_members=$(ps -axo pgid=,stat= | awk -v group="$group_id" '$1 == group && $2 !~ /^Z/ { print }') || return 1
+              if [ -z "$live_members" ]; then
+                wait "$group_id" 2>/dev/null || true
+                return 0
+              fi
+              sleep 0.1
             done
+            echo '::error::Diagnostic process group did not stop; refusing to continue the test attempt.'
+            return 1
           }
 
           stop_vm_service_recovery() {
             if [ -n "${VM_RECOVERY_PID:-}" ]; then
-              terminate_process_tree "$VM_RECOVERY_PID"
-              wait "$VM_RECOVERY_PID" 2>/dev/null || true
+              terminate_process_group "$VM_RECOVERY_PID" || return 1
               VM_RECOVERY_PID=''
             fi
           }
@@ -674,8 +684,7 @@ jobs:
             stop_vm_service_recovery
             kill "$SIM_LOG_PID" 2>/dev/null || true
             wait "$SIM_LOG_PID" 2>/dev/null || true
-            terminate_process_tree "$WATCHDOG_PID"
-            wait "$WATCHDOG_PID" 2>/dev/null || true
+            terminate_process_group "$WATCHDOG_PID"
           }
           trap cleanup_ios_diagnostics EXIT
 
@@ -685,15 +694,17 @@ jobs:
             : > "$attempt_log"
             simulator_log_offset=$(wc -c < ci-ios-diagnostics/simulator.log | tr -d '[:space:]')
             # Evidence and watcher lifetime belong to this invocation only.
+            set -m
             bash scripts/recover_ios_vm_service.sh "$DEVICE_ID" \
               "$attempt_log" ci-ios-diagnostics/simulator.log "$simulator_log_offset" \
               >> ci-ios-diagnostics/vm-service-recovery.log 2>&1 &
             VM_RECOVERY_PID=$!
+            set +m
             flutter --verbose test integration_test/fcm_initialization_ios_test.dart --no-pub --dart-define=SENTRY_DSN=https://test@dsn.example.local/0 -d "$DEVICE_ID" \
               2>&1 | tee -a "$attempt_log" ci-ios-diagnostics/flutter-test.log
             TEST_EXIT=${PIPESTATUS[0]}
             # Reap before any FrontBoard retry or post-test simulator action.
-            stop_vm_service_recovery
+            stop_vm_service_recovery || exit 1
           }
 
           : > ci-ios-diagnostics/flutter-test.log

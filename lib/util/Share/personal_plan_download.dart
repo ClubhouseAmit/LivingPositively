@@ -22,7 +22,7 @@ class _PersonalPlanDownloadContext {
   final String username;
   final Map<String, String> sharePdfTexts;
   final int? userInformationRevision;
-  final Future<void>? customCategoriesSave;
+  final Future<void>? pendingCustomCategoriesSave;
   final String? customCategoriesSnapshot;
   final PersistentMemoryService? memoryService;
   final FileService fileService;
@@ -51,7 +51,8 @@ class _PersonalPlanDownloadContext {
          ),
        ),
        userInformationRevision = userInformation?.dreamsAndGoalsSaveRevision,
-       customCategoriesSave = userInformation?.pendingCustomCategoriesSave,
+       pendingCustomCategoriesSave =
+           userInformation?.pendingCustomCategoriesSave,
        customCategoriesSnapshot = userInformation == null
            ? null
            : jsonEncode([
@@ -78,7 +79,10 @@ class _PersonalPlanDownloadContext {
         other.username == username &&
         mapEquals(other.sharePdfTexts, sharePdfTexts) &&
         other.userInformationRevision == userInformationRevision &&
-        identical(other.customCategoriesSave, customCategoriesSave) &&
+        identical(
+          other.pendingCustomCategoriesSave,
+          pendingCustomCategoriesSave,
+        ) &&
         other.customCategoriesSnapshot == customCategoriesSnapshot &&
         identical(other.memoryService, memoryService) &&
         identical(other.fileService, fileService) &&
@@ -93,7 +97,7 @@ class _PersonalPlanDownloadContext {
     username,
     _computeMapHashCode(sharePdfTexts),
     userInformationRevision,
-    identityHashCode(customCategoriesSave),
+    identityHashCode(pendingCustomCategoriesSave),
     customCategoriesSnapshot,
     identityHashCode(memoryService),
     identityHashCode(fileService),

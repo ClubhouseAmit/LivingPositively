@@ -32,6 +32,11 @@ The parent stops and reaps it immediately when each Flutter attempt returns,
 before FrontBoard retry/reset or post-test diagnostics, with EXIT cleanup as
 a fallback.
 
+The watcher and diagnostic watchdog each own a dedicated Bash process group.
+Cleanup freezes and kills that group, rechecks for live members with a bounded
+retry, and reaps the owner. This includes late-forked/reparented descendants;
+it does not signal the foreground Flutter test or the simulator Runner.
+
 The recovery log is included in `ios-integration-diagnostics`. Its shell
 regressions run in `build-android` via
 `bash scripts/tests/recover_ios_vm_service_test.sh`; they check the real log
