@@ -25,27 +25,40 @@ Future<PersonalPlanExportSnapshot> preparePersonalPlanExportSnapshot({
       memoryService ??
       userInformation?.service ??
       GetIt.instance<PersistentMemoryService>();
-  final model = identical(source, userInformation?.service)
+  final sourceUserInformation = identical(source, userInformation?.service)
       ? userInformation
       : null;
   for (var attempt = 0; attempt < 8; attempt++) {
-    final categoriesBeforePreparation = model?.pendingCustomCategoriesSave;
-    final dreamsBeforePreparation = model?.pendingDreamsAndGoalsSave;
-    await model?.prepareForPersonalPlanExport(memoryService: source);
+    final categoriesBeforePreparation =
+        sourceUserInformation?.pendingCustomCategoriesSave;
+    final dreamsBeforePreparation =
+        sourceUserInformation?.pendingDreamsAndGoalsSave;
+    await sourceUserInformation?.prepareForPersonalPlanExport(
+      memoryService: source,
+    );
     if (!identical(
           categoriesBeforePreparation,
-          model?.pendingCustomCategoriesSave,
+          sourceUserInformation?.pendingCustomCategoriesSave,
         ) ||
-        !identical(dreamsBeforePreparation, model?.pendingDreamsAndGoalsSave)) {
+        !identical(
+          dreamsBeforePreparation,
+          sourceUserInformation?.pendingDreamsAndGoalsSave,
+        )) {
       continue;
     }
-    final categoriesSave = model?.pendingCustomCategoriesSave;
-    final dreamsSave = model?.pendingDreamsAndGoalsSave;
-    final revision = model?.dreamsAndGoalsSaveRevision;
+    final categoriesSave = sourceUserInformation?.pendingCustomCategoriesSave;
+    final dreamsSave = sourceUserInformation?.pendingDreamsAndGoalsSave;
+    final revision = sourceUserInformation?.dreamsAndGoalsSaveRevision;
     final snapshot = await PersonalPlanExportSnapshot.capture(source);
-    if (identical(categoriesSave, model?.pendingCustomCategoriesSave) &&
-        identical(dreamsSave, model?.pendingDreamsAndGoalsSave) &&
-        revision == model?.dreamsAndGoalsSaveRevision) {
+    if (identical(
+          categoriesSave,
+          sourceUserInformation?.pendingCustomCategoriesSave,
+        ) &&
+        identical(
+          dreamsSave,
+          sourceUserInformation?.pendingDreamsAndGoalsSave,
+        ) &&
+        revision == sourceUserInformation?.dreamsAndGoalsSaveRevision) {
       return snapshot;
     }
   }
@@ -77,7 +90,9 @@ Future<ShareResult?> sharePersonalPlanFile({
 }) async {
   try {
     final hosts = Set<String>.unmodifiable(
-      approvedPdfHosts ?? defaultApprovedPdfLinkHosts,
+      (approvedPdfHosts ?? defaultApprovedPdfLinkHosts).map(
+        (host) => host.trim().toLowerCase(),
+      ),
     );
     final PersistentMemoryService? effectiveMemoryService =
         memoryService ?? userInformation?.service;

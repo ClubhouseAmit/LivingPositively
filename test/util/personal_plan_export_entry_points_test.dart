@@ -30,6 +30,7 @@ import '../helpers/widget_test_scaffold.dart';
 
 class _RecordingIncidentLogger implements IncidentLoggerService {
   final List<dynamic> capturedLogs = <dynamic>[];
+  final List<StackTrace?> capturedStacks = <StackTrace?>[];
   final List<String> eventOrder = <String>[];
   bool throwOnCapture = false;
 
@@ -44,6 +45,7 @@ class _RecordingIncidentLogger implements IncidentLoggerService {
   }) async {
     eventOrder.add('captureLog');
     capturedLogs.add(exception);
+    capturedStacks.add(stackTrace);
     if (throwOnCapture) {
       throw StateError('Telemetry failure');
     }
@@ -60,6 +62,7 @@ class _TestFileService implements FileService {
   PersistentMemoryService? lastMemoryService;
   PersonalPlanExportSnapshot? lastSnapshot;
   Map<String, String>? lastTexts;
+  Set<String>? lastApprovedHosts;
 
   @override
   Future<ShareResult?> share(
@@ -77,6 +80,7 @@ class _TestFileService implements FileService {
     lastMemoryService = memoryService;
     lastSnapshot = snapshot;
     lastTexts = texts;
+    lastApprovedHosts = approvedPdfHosts;
     if (throwOnAction) {
       throw StateError('Share failed');
     }
@@ -100,6 +104,7 @@ class _TestFileService implements FileService {
     lastMemoryService = memoryService;
     lastSnapshot = snapshot;
     lastTexts = texts;
+    lastApprovedHosts = approvedPdfHosts;
     if (throwOnAction) {
       throw StateError('Download failed');
     }
@@ -154,6 +159,7 @@ void main() {
   const toastChannel = MethodChannel('PonnamKarthik/fluttertoast');
   final List<String> toastCalls = <String>[];
   bool throwOnToast = false;
+  bool invalidToastResponse = false;
   late GetIt locator;
   late _TestFileService fileService;
   late _TestPersistentMemoryService memoryService;
@@ -164,6 +170,7 @@ void main() {
   setUp(() async {
     toastCalls.clear();
     throwOnToast = false;
+    invalidToastResponse = false;
     locator = GetIt.instance;
     await locator.reset();
 
@@ -176,6 +183,7 @@ void main() {
         .setMockMethodCallHandler(toastChannel, (call) async {
           if (call.method == 'showToast') {
             loggerService.eventOrder.add('showToast');
+            if (invalidToastResponse) return 'not a boolean';
             if (throwOnToast) {
               throw PlatformException(
                 code: 'TOAST_FAILED',
@@ -716,6 +724,55 @@ void main() {
         expect(loggerService.eventOrder, equals(['captureLog', 'showToast']));
       },
     );
+
+    for (final failurePhase in ['capture', 'render']) {
+      test(
+        'should contain unexpected toast errors after $failurePhase failure',
+        () async {
+          final originalError = StateError('Original $failurePhase failure');
+          final originalStack = StackTrace.current;
+          invalidToastResponse = true;
+          if (failurePhase == 'capture') {
+            memoryService.onRead = (_, _) =>
+                Error.throwWithStackTrace(originalError, originalStack);
+          } else {
+            fileService.onDownload = (_) async =>
+                Error.throwWithStackTrace(originalError, originalStack);
+          }
+          final localizations = await AppLocalizations.delegate.load(
+            const Locale('en'),
+          );
+          final result = await downloadPersonalPlanFile(
+            appLocale: localizations,
+            gender: userInformation.gender,
+            username: userInformation.name,
+            appInformation: appInformation,
+            userInformation: userInformation,
+            fileService: fileService,
+          );
+          expect(result, isNull);
+          expect(loggerService.capturedLogs, [same(originalError)]);
+          expect(loggerService.capturedStacks, [same(originalStack)]);
+          expect(loggerService.eventOrder, ['captureLog', 'showToast']);
+
+          // Failure reporting must also release the in-flight context for retry.
+          memoryService.onRead = null;
+          fileService.onDownload = null;
+          invalidToastResponse = false;
+          expect(
+            await downloadPersonalPlanFile(
+              appLocale: localizations,
+              gender: userInformation.gender,
+              username: userInformation.name,
+              appInformation: appInformation,
+              userInformation: userInformation,
+              fileService: fileService,
+            ),
+            '/path/to/downloaded/file.pdf',
+          );
+        },
+      );
+    }
 
     test(
       'should return null and show failure toast when logger throws',
@@ -1483,6 +1540,99 @@ void main() {
           'https://tenant.customdomain.org/resources',
         );
         expect(fileService.lastTexts?['secondLinkURL'], '');
+      },
+    );
+
+    for (final action in ['download', 'share']) {
+      test('should use canonical approved hosts throughout $action', () async {
+        final localizations = await AppLocalizations.delegate.load(
+          const Locale('en'),
+        );
+        appInformation.sharePDFtexts = {
+          'firstLinkURL': 'https://tenant.customdomain.org/resources',
+          'secondLinkURL':
+              'https://tenant.customdomain.org.attacker.example/blocked',
+        };
+        const hosts = {
+          ' TENANT.CustomDomain.org ',
+          ' tenant.customdomain.org ',
+        };
+        if (action == 'download') {
+          expect(
+            await downloadPersonalPlanFile(
+              appLocale: localizations,
+              gender: userInformation.gender,
+              username: userInformation.name,
+              appInformation: appInformation,
+              userInformation: userInformation,
+              fileService: fileService,
+              approvedPdfHosts: hosts,
+            ),
+            isNotNull,
+          );
+        } else {
+          expect(
+            await sharePersonalPlanFile(
+              message: 'Plan',
+              appLocale: localizations,
+              gender: userInformation.gender,
+              username: userInformation.name,
+              appInformation: appInformation,
+              userInformation: userInformation,
+              fileService: fileService,
+              approvedPdfHosts: hosts,
+            ),
+            isNotNull,
+          );
+        }
+        expect(fileService.lastTexts, {
+          'firstLinkURL': 'https://tenant.customdomain.org/resources',
+          'secondLinkURL': '',
+        });
+        expect(fileService.lastApprovedHosts, {'tenant.customdomain.org'});
+        expect(
+          () => fileService.lastApprovedHosts!.add('attacker.example'),
+          throwsUnsupportedError,
+        );
+      });
+    }
+
+    test(
+      'should coalesce equivalent padded and canonical approved hosts',
+      () async {
+        final localizations = await AppLocalizations.delegate.load(
+          const Locale('en'),
+        );
+        appInformation.sharePDFtexts = {
+          'firstLinkURL': 'https://tenant.customdomain.org/resources',
+        };
+        final release = Completer<void>();
+        fileService.pendingDownloadCompleter = release;
+        final requests = [
+          for (final hosts in [
+            {' TENANT.CustomDomain.org ', ' tenant.customdomain.org '},
+            {'tenant.customdomain.org'},
+          ])
+            downloadPersonalPlanFile(
+              appLocale: localizations,
+              gender: userInformation.gender,
+              username: userInformation.name,
+              appInformation: appInformation,
+              userInformation: userInformation,
+              fileService: fileService,
+              approvedPdfHosts: hosts,
+            ),
+        ];
+        release.complete();
+        expect(await Future.wait(requests), [
+          '/path/to/downloaded/file.pdf',
+          '/path/to/downloaded/file.pdf',
+        ]);
+        expect(fileService.callLog, ['download']);
+        expect(
+          fileService.lastTexts!['firstLinkURL'],
+          'https://tenant.customdomain.org/resources',
+        );
       },
     );
 

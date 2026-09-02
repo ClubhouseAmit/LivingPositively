@@ -42,6 +42,8 @@ class MyPlanPageFull extends StatefulWidget {
 class _MyPlanPageFullState extends LPExtendedState<MyPlanPageFull> {
   List<List<String>> userAnswers = []; // User's answers for each section
   List<String> phoneInformation = []; // User's phone-related information
+  List<MapEntry<String, String>> _alternateCustomCategories = const [];
+  int _customCategoriesLoadGeneration = 0;
 
   // Field names for different sections of the personal plan
   List<String> fieldNames = [
@@ -109,11 +111,32 @@ class _MyPlanPageFullState extends LPExtendedState<MyPlanPageFull> {
     });
   }
 
-  Future<void> _loadCustomCategories(UserInformation userInformation) async {
-    try {
-      await userInformation.loadCustomCategories(
-        memoryService: widget.memoryService,
+  @override
+  void didUpdateWidget(covariant MyPlanPageFull oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (!identical(oldWidget.memoryService, widget.memoryService)) {
+      _alternateCustomCategories = const [];
+      final userInformation = Provider.of<UserInformation>(
+        context,
+        listen: false,
       );
+      unawaited(_loadCustomCategories(userInformation));
+    }
+  }
+
+  Future<void> _loadCustomCategories(UserInformation userInformation) async {
+    final generation = ++_customCategoriesLoadGeneration;
+    final source = widget.memoryService ?? userInformation.service;
+    try {
+      final categories = await userInformation.loadCustomCategories(
+        memoryService: source,
+      );
+      if (!mounted || generation != _customCategoriesLoadGeneration) return;
+      if (!identical(source, userInformation.service)) {
+        setState(() {
+          _alternateCustomCategories = categories;
+        });
+      }
     } catch (error, stackTrace) {
       if (!GetIt.instance.isRegistered<IncidentLoggerService>()) return;
       try {
@@ -135,6 +158,11 @@ class _MyPlanPageFullState extends LPExtendedState<MyPlanPageFull> {
       context,
       listen: true,
     );
+    final customCategories =
+        widget.memoryService != null &&
+            !identical(widget.memoryService, userInfoProvider.service)
+        ? _alternateCustomCategories
+        : userInfoProvider.customCategories;
 
     // Set up phone and answer information based on the user's data
     setPhones(
@@ -238,7 +266,7 @@ class _MyPlanPageFullState extends LPExtendedState<MyPlanPageFull> {
                 subTitle: dreamsAndGoalsInfo["subTitle"] ?? '',
                 answers: userAnswers[5],
               ),
-            ...userInfoProvider.customCategories.map(
+            ...customCategories.map(
               (category) => MyPlanSection(
                 title: category.key,
                 subTitle: '',

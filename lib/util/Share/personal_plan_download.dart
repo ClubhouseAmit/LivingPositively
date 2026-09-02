@@ -34,19 +34,11 @@ class _PersonalPlanDownloadContext {
     required this.fileService,
     required PersonalPlanExportSnapshot snapshot,
     required this.memoryService,
-    Set<String>? approvedPdfHosts,
+    required this.approvedPdfHosts,
   }) : localeName = appLocale.localeName,
        textDirection = appLocale.textDirection,
-       approvedPdfHosts = Set<String>.unmodifiable(
-         (approvedPdfHosts ?? defaultApprovedPdfLinkHosts).map(
-           (host) => host.trim().toLowerCase(),
-         ),
-       ),
        sharePdfTexts = Map<String, String>.unmodifiable(
-         sanitizeSharePdfTexts(
-           sharePdfTexts,
-           approvedHosts: approvedPdfHosts ?? defaultApprovedPdfLinkHosts,
-         ),
+         sanitizeSharePdfTexts(sharePdfTexts, approvedHosts: approvedPdfHosts),
        ),
        snapshotFingerprint = snapshot.fingerprint;
 
@@ -139,8 +131,10 @@ Future<String?> downloadPersonalPlanFile({
   PersistentMemoryService? requestSource;
   try {
     final texts = Map<String, String>.of(appInformation.sharePDFtexts);
-    final hosts = Set<String>.of(
-      approvedPdfHosts ?? defaultApprovedPdfLinkHosts,
+    final hosts = Set<String>.unmodifiable(
+      (approvedPdfHosts ?? defaultApprovedPdfLinkHosts).map(
+        (host) => host.trim().toLowerCase(),
+      ),
     );
     final source =
         memoryService ??
@@ -250,5 +244,9 @@ Future<void> _reportDownloadFailure(
       );
     }
   } catch (_) {}
-  await showToast(message: appLocale.downloadFailed(gender));
+  try {
+    await showToast(message: appLocale.downloadFailed(gender));
+  } catch (_) {
+    // Feedback is best effort; preserve the originating failure and null result.
+  }
 }

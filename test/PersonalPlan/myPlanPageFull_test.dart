@@ -8,6 +8,8 @@
 // We assert the section layout, the conditional "hasFilled" button label
 // branch, and the Hebrew-locale RichText branch.
 
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:get_it/get_it.dart';
@@ -357,4 +359,121 @@ void main() {
       expect(tester.takeException(), isNull);
     },
   );
+
+  group('MyPlanPageFull alternate categories', () {
+    Future<void> pumpPlan(
+      WidgetTester tester,
+      PersistentMemoryService? source,
+    ) => pumpWithProviders(
+      tester,
+      MyPlanPageFull(
+        key: const Key('full-plan'),
+        phonePageData: _emptyPhonePageData(),
+        hasFilled: true,
+        changeLocale: (_) {},
+        memoryService: source,
+      ),
+      userInformation: userInformation,
+      appInformation: appInformation,
+      surfaceSize: const Size(1024, 2400),
+    );
+
+    FakePersistentMemoryService categorySource(String title, String notes) {
+      return FakePersistentMemoryService()
+        ..store['customCategoryTitles'] = <String>[title]
+        ..store['customCategoryDescriptions'] = <String>[notes];
+    }
+
+    testWidgets(
+      'should render alternate categories without replacing default categories',
+      (tester) async {
+        const defaultCategories = [MapEntry('Default title', 'Default notes')];
+        userInformation.customCategories = defaultCategories;
+        final source = categorySource('Alternate title', 'Alternate notes');
+
+        await pumpPlan(tester, source);
+        await tester.pumpAndSettle();
+
+        expect(find.text('Alternate title'), findsOneWidget);
+        expect(find.text('Alternate notes'), findsOneWidget);
+        expect(find.text('Default title'), findsNothing);
+        expect(userInformation.customCategories, same(defaultCategories));
+        expect(source.attemptedWrites, isEmpty);
+        expect(tester.takeException(), isNull);
+      },
+    );
+
+    testWidgets(
+      'should ignore an old source completing after a source change',
+      (tester) async {
+        final oldSource = categorySource('Old title', 'Old notes');
+        final newSource = categorySource('New title', 'New notes');
+        final oldRead = Completer<void>();
+        oldSource.onRead = (key, type) async {
+          if (key == 'customCategoryTitles') await oldRead.future;
+        };
+        addTearDown(() {
+          if (!oldRead.isCompleted) oldRead.complete();
+        });
+
+        await pumpPlan(tester, oldSource);
+        final originalState = tester.state(find.byType(MyPlanPageFull));
+        await pumpPlan(tester, newSource);
+        await tester.pumpAndSettle();
+
+        expect(tester.state(find.byType(MyPlanPageFull)), same(originalState));
+        expect(find.text('New title'), findsOneWidget);
+        oldRead.complete();
+        await tester.pumpAndSettle();
+
+        expect(find.text('New title'), findsOneWidget);
+        expect(find.text('New notes'), findsOneWidget);
+        expect(find.text('Old title'), findsNothing);
+        expect(userInformation.customCategories, isEmpty);
+        expect(tester.takeException(), isNull);
+      },
+    );
+
+    testWidgets(
+      'should return to the default model when the override is removed',
+      (tester) async {
+        await userInformation.saveCustomCategories(
+          categories: const [MapEntry('Default title', 'Default notes')],
+        );
+        final source = categorySource('Alternate title', 'Alternate notes');
+        await pumpPlan(tester, source);
+        await tester.pumpAndSettle();
+        expect(find.text('Alternate title'), findsOneWidget);
+
+        await pumpPlan(tester, null);
+        await tester.pumpAndSettle();
+
+        expect(find.text('Default title'), findsOneWidget);
+        expect(find.text('Default notes'), findsOneWidget);
+        expect(find.text('Alternate title'), findsNothing);
+        expect(tester.takeException(), isNull);
+      },
+    );
+
+    testWidgets('should ignore an alternate load completing after disposal', (
+      tester,
+    ) async {
+      final source = categorySource('Alternate title', 'Alternate notes');
+      final read = Completer<void>();
+      source.onRead = (key, type) async {
+        if (key == 'customCategoryTitles') await read.future;
+      };
+      addTearDown(() {
+        if (!read.isCompleted) read.complete();
+      });
+      await pumpPlan(tester, source);
+      await tester.pumpWidget(const SizedBox());
+
+      read.complete();
+      await tester.pumpAndSettle();
+
+      expect(userInformation.customCategories, isEmpty);
+      expect(tester.takeException(), isNull);
+    });
+  });
 }
