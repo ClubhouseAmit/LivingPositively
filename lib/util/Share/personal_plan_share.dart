@@ -6,26 +6,52 @@ import 'package:mazilon/util/appInformation.dart';
 import 'package:mazilon/util/logger_service.dart';
 import 'package:mazilon/util/persistent_memory_service.dart';
 import 'package:mazilon/util/personal_plan_export_metadata.dart';
+import 'package:mazilon/util/personal_plan_export_snapshot.dart';
 import 'package:mazilon/util/userInformation.dart';
 import 'package:share_plus/share_plus.dart';
 
 import 'package:mazilon/util/PDF/create_pdf.dart';
 
-/// Prepares personal plan state by awaiting pending persistence writes when [userInformation]
-/// is provided, and constructs the localized [PersonalPlanExportMetadata].
-Future<PersonalPlanExportMetadata> prepareAndBuildPersonalPlanExportMetadata({
-  required AppLocalizations appLocale,
-  required String gender,
-  required String username,
+/// Captures one source after its pending model saves finish.
+///
+/// An alternate source never waits on or copies another store's model. Edits
+/// arriving during capture trigger another preparation attempt; later edits
+/// cannot mutate the returned value. Continuous edits fail instead of hanging.
+Future<PersonalPlanExportSnapshot> preparePersonalPlanExportSnapshot({
   UserInformation? userInformation,
   PersistentMemoryService? memoryService,
 }) async {
-  if (userInformation != null) {
-    await userInformation.prepareForPersonalPlanExport(
-      memoryService: memoryService,
-    );
+  final source =
+      memoryService ??
+      userInformation?.service ??
+      GetIt.instance<PersistentMemoryService>();
+  final model = identical(source, userInformation?.service)
+      ? userInformation
+      : null;
+  for (var attempt = 0; attempt < 8; attempt++) {
+    final categoriesBeforePreparation = model?.pendingCustomCategoriesSave;
+    final dreamsBeforePreparation = model?.pendingDreamsAndGoalsSave;
+    await model?.prepareForPersonalPlanExport(memoryService: source);
+    if (!identical(
+          categoriesBeforePreparation,
+          model?.pendingCustomCategoriesSave,
+        ) ||
+        !identical(dreamsBeforePreparation, model?.pendingDreamsAndGoalsSave)) {
+      continue;
+    }
+    final categoriesSave = model?.pendingCustomCategoriesSave;
+    final dreamsSave = model?.pendingDreamsAndGoalsSave;
+    final revision = model?.dreamsAndGoalsSaveRevision;
+    final snapshot = await PersonalPlanExportSnapshot.capture(source);
+    if (identical(categoriesSave, model?.pendingCustomCategoriesSave) &&
+        identical(dreamsSave, model?.pendingDreamsAndGoalsSave) &&
+        revision == model?.dreamsAndGoalsSaveRevision) {
+      return snapshot;
+    }
   }
-  return buildPersonalPlanExportMetadata(appLocale, gender, username);
+  throw StateError(
+    'The Personal Plan kept changing during export preparation.',
+  );
 }
 
 /// Shares the Personal Plan PDF export with the given [message] after stabilizing persistence state.
@@ -33,8 +59,8 @@ Future<PersonalPlanExportMetadata> prepareAndBuildPersonalPlanExportMetadata({
 /// When provided, [userInformation] triggers awaited personal-plan preparation.
 /// [fileService] overrides the default [FileService] resolved from [GetIt].
 /// [memoryService] takes precedence over [UserInformation.service]. The selected
-/// service receives the prepared Dreams and Goals and custom-category snapshot
-/// and supplies all persisted Personal Plan data read while generating the PDF.
+/// service is an independent source. Its data is captured without staging model
+/// values into it. PDF generation consumes only that immutable capture.
 ///
 /// Preparation, metadata, or sharing failures are caught, logged via [IncidentLoggerService],
 /// and returned as `null` without throwing uncaught exceptions to callers.
@@ -50,19 +76,23 @@ Future<ShareResult?> sharePersonalPlanFile({
   Set<String>? approvedPdfHosts,
 }) async {
   try {
+    final hosts = Set<String>.unmodifiable(
+      approvedPdfHosts ?? defaultApprovedPdfLinkHosts,
+    );
     final PersistentMemoryService? effectiveMemoryService =
         memoryService ?? userInformation?.service;
-    final exportMetadata = await prepareAndBuildPersonalPlanExportMetadata(
-      appLocale: appLocale,
-      gender: gender,
-      username: username,
-      userInformation: userInformation,
-      memoryService: effectiveMemoryService,
+    final exportMetadata = buildPersonalPlanExportMetadata(
+      appLocale,
+      gender,
+      username,
     );
     final service = fileService ?? GetIt.instance<FileService>();
-    final sanitizedTexts = sanitizeSharePdfTexts(
-      appInformation.sharePDFtexts,
-      approvedHosts: approvedPdfHosts ?? defaultApprovedPdfLinkHosts,
+    final sanitizedTexts = Map<String, String>.unmodifiable(
+      sanitizeSharePdfTexts(appInformation.sharePDFtexts, approvedHosts: hosts),
+    );
+    final snapshot = await preparePersonalPlanExportSnapshot(
+      userInformation: userInformation,
+      memoryService: effectiveMemoryService,
     );
     return await service.share(
       message,
@@ -73,7 +103,8 @@ Future<ShareResult?> sharePersonalPlanFile({
       mainTitle: exportMetadata.mainTitle,
       textDirection: appLocale.textDirection,
       memoryService: effectiveMemoryService,
-      approvedPdfHosts: approvedPdfHosts,
+      snapshot: snapshot,
+      approvedPdfHosts: hosts,
     );
   } catch (error, stackTrace) {
     try {

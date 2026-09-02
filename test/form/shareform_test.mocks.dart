@@ -6,12 +6,13 @@
 import 'dart:async' as _i6;
 import 'dart:ui' as _i7;
 
-import 'package:mazilon/AnalyticsService.dart' as _i12;
+import 'package:mazilon/AnalyticsService.dart' as _i13;
 import 'package:mazilon/file_service.dart' as _i9;
 import 'package:mazilon/global_enums.dart' as _i11;
 import 'package:mazilon/util/appInformation.dart' as _i8;
 import 'package:mazilon/util/notification_preference.dart' as _i5;
 import 'package:mazilon/util/persistent_memory_service.dart' as _i2;
+import 'package:mazilon/util/personal_plan_export_snapshot.dart' as _i12;
 import 'package:mazilon/util/userInformation.dart' as _i3;
 import 'package:mockito/mockito.dart' as _i1;
 import 'package:mockito/src/dummies.dart' as _i4;
@@ -2206,6 +2207,7 @@ class MockFileService extends _i1.Mock implements _i9.FileService {
     required String? mainTitle,
     required String? textDirection,
     _i2.PersistentMemoryService? memoryService,
+    _i12.PersonalPlanExportSnapshot? snapshot,
     Set<String>? approvedPdfHosts,
   }) =>
       (super.noSuchMethod(
@@ -2216,6 +2218,7 @@ class MockFileService extends _i1.Mock implements _i9.FileService {
                 #mainTitle: mainTitle,
                 #textDirection: textDirection,
                 #memoryService: memoryService,
+                #snapshot: snapshot,
                 #approvedPdfHosts: approvedPdfHosts,
               },
             ),
@@ -2233,6 +2236,7 @@ class MockFileService extends _i1.Mock implements _i9.FileService {
     required String? mainTitle,
     required String? textDirection,
     _i2.PersistentMemoryService? memoryService,
+    _i12.PersonalPlanExportSnapshot? snapshot,
     Set<String>? approvedPdfHosts,
   }) =>
       (super.noSuchMethod(
@@ -2243,6 +2247,7 @@ class MockFileService extends _i1.Mock implements _i9.FileService {
                 #mainTitle: mainTitle,
                 #textDirection: textDirection,
                 #memoryService: memoryService,
+                #snapshot: snapshot,
                 #approvedPdfHosts: approvedPdfHosts,
               },
             ),
@@ -2264,7 +2269,7 @@ class MockFileService extends _i1.Mock implements _i9.FileService {
 /// A class which mocks [AnalyticsService].
 ///
 /// See the documentation for Mockito's code generation for more information.
-class MockAnalyticsService extends _i1.Mock implements _i12.AnalyticsService {
+class MockAnalyticsService extends _i1.Mock implements _i13.AnalyticsService {
   @override
   _i6.Future<void> init() =>
       (super.noSuchMethod(
@@ -2313,6 +2318,21 @@ class MockPersistentMemoryService extends _i1.Mock
             returnValueForMissingStub: _i6.Future<dynamic>.value(),
           )
           as _i6.Future<dynamic>);
+
+  @override
+  _i6.Future<Map<String, Object?>> readSnapshot(
+    Map<String, _i11.PersistentMemoryType>? keys,
+  ) =>
+      (super.noSuchMethod(
+            Invocation.method(#readSnapshot, [keys]),
+            returnValue: _i6.Future<Map<String, Object?>>.value(
+              <String, Object?>{},
+            ),
+            returnValueForMissingStub: _i6.Future<Map<String, Object?>>.value(
+              <String, Object?>{},
+            ),
+          )
+          as _i6.Future<Map<String, Object?>>);
 
   @override
   _i6.Future<void> reset() =>

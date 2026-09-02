@@ -18,6 +18,7 @@ import 'package:image_picker/image_picker.dart';
 import 'package:mazilon/AnalyticsService.dart';
 import 'package:mazilon/Locale/locale_service.dart';
 import 'package:mazilon/file_service.dart';
+import 'package:mazilon/util/personal_plan_export_snapshot.dart';
 import 'package:mazilon/form/wizard_step.dart';
 import 'package:mazilon/global_enums.dart';
 import 'package:mazilon/l10n/app_localizations.dart';
@@ -131,6 +132,7 @@ class NoopFileService implements FileService {
     required String mainTitle,
     required String textDirection,
     PersistentMemoryService? memoryService,
+    PersonalPlanExportSnapshot? snapshot,
     Set<String>? approvedPdfHosts,
   }) async {
     downloadCalls++;
@@ -147,6 +149,7 @@ class NoopFileService implements FileService {
     required String mainTitle,
     required String textDirection,
     PersistentMemoryService? memoryService,
+    PersonalPlanExportSnapshot? snapshot,
     Set<String>? approvedPdfHosts,
   }) async {
     shareCalls++;
@@ -496,7 +499,10 @@ List<dynamic> drainOverflowExceptions(WidgetTester tester) {
 /// tests that exercise one step in isolation don't each repeat the frame.
 Widget wizardStepHarness(WizardStep step) => Scaffold(
   body: Column(
-    children: [Expanded(child: step), WizardActions(step: step)],
+    children: [
+      Expanded(child: step),
+      WizardActions(step: step),
+    ],
   ),
 );
 

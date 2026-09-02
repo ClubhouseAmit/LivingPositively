@@ -8,6 +8,7 @@ import 'package:mazilon/AnalyticsService.dart';
 import 'package:mazilon/MainPageHelpers/components/personal_plan_section.dart';
 import 'package:mazilon/MainPageHelpers/personalPlanWidget.dart';
 import 'package:mazilon/file_service.dart';
+import 'package:mazilon/util/personal_plan_export_snapshot.dart';
 import 'package:mazilon/global_enums.dart';
 import 'package:mazilon/l10n/app_localizations.dart';
 import 'package:mazilon/pages/phone.dart';
@@ -54,8 +55,10 @@ class _TestFileService implements FileService {
   String? downloadResult = '/path/to/downloaded/file.pdf';
   bool throwOnAction = false;
   Completer<void>? pendingDownloadCompleter;
-  Future<void> Function(PersistentMemoryService?)? onDownload;
+  Future<void> Function(PersonalPlanExportSnapshot)? onDownload;
+  Future<void> Function(PersonalPlanExportSnapshot)? onShare;
   PersistentMemoryService? lastMemoryService;
+  PersonalPlanExportSnapshot? lastSnapshot;
   Map<String, String>? lastTexts;
 
   @override
@@ -68,13 +71,16 @@ class _TestFileService implements FileService {
     required String mainTitle,
     required String textDirection,
     PersistentMemoryService? memoryService,
+    PersonalPlanExportSnapshot? snapshot,
     Set<String>? approvedPdfHosts,
   }) async {
     lastMemoryService = memoryService;
+    lastSnapshot = snapshot;
     lastTexts = texts;
     if (throwOnAction) {
       throw StateError('Share failed');
     }
+    await onShare?.call(snapshot!);
     callLog.add('share');
     return const ShareResult('success', ShareResultStatus.success);
   }
@@ -88,14 +94,16 @@ class _TestFileService implements FileService {
     required String mainTitle,
     required String textDirection,
     PersistentMemoryService? memoryService,
+    PersonalPlanExportSnapshot? snapshot,
     Set<String>? approvedPdfHosts,
   }) async {
     lastMemoryService = memoryService;
+    lastSnapshot = snapshot;
     lastTexts = texts;
     if (throwOnAction) {
       throw StateError('Download failed');
     }
-    await onDownload?.call(memoryService);
+    await onDownload?.call(snapshot!);
     if (pendingDownloadCompleter != null) {
       await pendingDownloadCompleter!.future;
     }
@@ -423,7 +431,11 @@ void main() {
   });
 
   group('downloadPersonalPlanFile', () {
-    for (final edit in ['direct', 'completed save', 'pending save']) {
+    for (final edit in [
+      'direct storage write',
+      'completed save',
+      'pending save',
+    ]) {
       test(
         'should not coalesce a category-only $edit with an older download',
         () async {
@@ -435,12 +447,9 @@ void main() {
           final firstRead = Completer<void>();
           final secondRead = Completer<void>();
           final snapshots = <List<dynamic>>[];
-          final alternateMemory = _TestPersistentMemoryService();
           fileService.pendingDownloadCompleter = downloadGate;
-          fileService.onDownload = (memory) async {
-            final data = await FileServiceImpl.getPrefsData(
-              memoryService: memory,
-            );
+          fileService.onDownload = (snapshot) async {
+            final data = snapshot.data;
             snapshots.add(
               List<dynamic>.from(data['customCategoryTitles'] as List),
             );
@@ -453,7 +462,6 @@ void main() {
             appInformation: appInformation,
             userInformation: userInformation,
             fileService: fileService,
-            memoryService: alternateMemory,
           );
           await userInformation.saveCustomCategories(
             categories: const [MapEntry('Old', 'Old description')],
@@ -463,10 +471,10 @@ void main() {
           await firstRead.future;
           Future<void>? save;
           try {
-            if (edit == 'direct') {
-              userInformation.customCategories = const [
+            if (edit == 'direct storage write') {
+              await saveCustomCategoriesToStorage(const [
                 MapEntry('New', 'New description'),
-              ];
+              ], memoryService: memoryService);
             } else {
               if (edit == 'pending save') {
                 memoryService.onPersist = (_, _, _) => saveGate.future;
@@ -910,7 +918,70 @@ void main() {
   group('sharePersonalPlanFile', () {
     for (final action in ['share', 'download']) {
       test(
-        'should await category hydration before $action copies to an alternate store',
+        'should freeze the $action payload before delayed rendering',
+        () async {
+          await userInformation.saveCustomCategories(
+            categories: const [MapEntry('At capture', 'Original notes')],
+          );
+          final captured = Completer<void>();
+          final render = Completer<void>();
+          late PersonalPlanExportSnapshot received;
+          Future<void> delayedRender(
+            PersonalPlanExportSnapshot snapshot,
+          ) async {
+            received = snapshot;
+            captured.complete();
+            await render.future;
+          }
+
+          fileService.onDownload = delayedRender;
+          fileService.onShare = delayedRender;
+          final locale = await AppLocalizations.delegate.load(
+            const Locale('en'),
+          );
+          final Future<Object?> export = action == 'share'
+              ? sharePersonalPlanFile(
+                  message: 'plan',
+                  appLocale: locale,
+                  gender: 'male',
+                  username: 'User',
+                  appInformation: appInformation,
+                  userInformation: userInformation,
+                  fileService: fileService,
+                )
+              : downloadPersonalPlanFile(
+                  appLocale: locale,
+                  gender: 'male',
+                  username: 'User',
+                  appInformation: appInformation,
+                  userInformation: userInformation,
+                  fileService: fileService,
+                );
+          await captured.future;
+          try {
+            await userInformation.saveCustomCategories(
+              categories: const [MapEntry('After capture', 'Changed notes')],
+            );
+            expect(received.data['customCategoryTitles'], ['At capture']);
+            expect(received.data['customCategoryDescriptions'], [
+              'Original notes',
+            ]);
+            expect(
+              userInformation.customCategories.single.key,
+              'After capture',
+            );
+          } finally {
+            render.complete();
+          }
+          expect(await export, isNotNull);
+          expect(fileService.callLog, [action]);
+        },
+      );
+    }
+
+    for (final action in ['share', 'download']) {
+      test(
+        "should $action an independent source during another store's hydration",
         () async {
           final readStarted = Completer<void>();
           final readGate = Completer<void>();
@@ -927,6 +998,8 @@ void main() {
           final hydration = userInformation.loadCustomCategories();
           await readStarted.future;
           final alternateMemory = _TestPersistentMemoryService();
+          alternateMemory.store[customCategoriesKey] =
+              '[{"title":"Independent","description":"Independent description"}]';
           final localizations = await AppLocalizations.delegate.load(
             const Locale('en'),
           );
@@ -953,7 +1026,11 @@ void main() {
           try {
             await Future<void>.delayed(Duration.zero);
             expect(alternateMemory.writeLog, isEmpty);
-            expect(fileService.callLog, isEmpty);
+            expect(await export, isNotNull);
+            expect(fileService.callLog, [action]);
+            expect(fileService.lastSnapshot!.data['customCategoryTitles'], [
+              'Independent',
+            ]);
           } finally {
             readGate.complete();
           }
@@ -962,8 +1039,11 @@ void main() {
           final data = await FileServiceImpl.getPrefsData(
             memoryService: alternateMemory,
           );
-          expect(data['customCategoryTitles'], ['Saved category']);
-          expect(data['customCategoryDescriptions'], ['Saved description']);
+          expect(data['customCategoryTitles'], ['Independent']);
+          expect(data['customCategoryDescriptions'], [
+            'Independent description',
+          ]);
+          expect(alternateMemory.writeLog, isEmpty);
           expect(fileService.callLog, [action]);
         },
       );
@@ -974,20 +1054,15 @@ void main() {
       customCategoriesKey,
     ]) {
       test(
-        'should suppress export after $failingKey copy fails and rewrite both snapshots on retry',
+        'should fail without rendering or writing when $failingKey capture fails',
         () async {
           final alternateMemory = _TestPersistentMemoryService();
-          final failure = StateError('Alternate snapshot copy failed');
-          alternateMemory.onPersist = (key, _, _) {
+          final failure = StateError('Snapshot read failed');
+          alternateMemory.store[customCategoriesKey] =
+              '[{"title":"Independent","description":"Independent description"}]';
+          alternateMemory.onRead = (key, _) {
             if (key == failingKey) throw failure;
           };
-          userInformation.updateDreamsAndGoals(
-            ['Latest goal'],
-            selectionSources: ['custom'],
-          );
-          userInformation.customCategories = const [
-            MapEntry('Latest category', 'Latest description'),
-          ];
           final localizations = await AppLocalizations.delegate.load(
             const Locale('en'),
           );
@@ -1004,30 +1079,27 @@ void main() {
           expect(await share(), isNull);
           expect(fileService.callLog, isEmpty);
           expect(loggerService.capturedLogs, [same(failure)]);
-          alternateMemory.onPersist = null;
-          alternateMemory.writeLog.clear();
+          expect(alternateMemory.writeLog, isEmpty);
+          alternateMemory.onRead = null;
           expect((await share())?.status, ShareResultStatus.success);
-          expect(
-            alternateMemory.writeLog,
-            containsAll([
-              'userSelectionPersonalPlan-DreamsAndGoals',
-              customCategoriesKey,
-            ]),
-          );
-          final data = await FileServiceImpl.getPrefsData(
-            memoryService: alternateMemory,
-          );
-          expect(data['DreamsAndGoals'], ['Latest goal']);
-          expect(data['customCategoryTitles'], ['Latest category']);
+          expect(fileService.lastSnapshot!.data['customCategoryTitles'], [
+            'Independent',
+          ]);
+          expect(alternateMemory.writeLog, isEmpty);
           expect(fileService.callLog, ['share']);
         },
       );
     }
 
     test(
-      'should prepare and read the Personal Plan from the memory override',
+      'should capture the alternate source without copying the current model',
       () async {
         final alternateMemoryService = _TestPersistentMemoryService();
+        alternateMemoryService.store.addAll({
+          'userSelectionPersonalPlan-DreamsAndGoals': ['Independent goal'],
+          customCategoriesKey:
+              '[{"title":"Independent category","description":"Independent description"}]',
+        });
         userInformation.updateDreamsAndGoals(
           ['Latest goal'],
           selectionSources: ['custom'],
@@ -1049,16 +1121,15 @@ void main() {
           fileService: fileService,
           memoryService: alternateMemoryService,
         );
-        final exportedData = await FileServiceImpl.getPrefsData(
-          memoryService: alternateMemoryService,
-        );
+        final exportedData = fileService.lastSnapshot!.data;
+        expect(alternateMemoryService.writeLog, isEmpty);
 
         expect(result?.status, ShareResultStatus.success);
         expect(fileService.lastMemoryService, same(alternateMemoryService));
-        expect(exportedData['DreamsAndGoals'], ['Latest goal']);
-        expect(exportedData['customCategoryTitles'], ['Latest category']);
+        expect(exportedData['DreamsAndGoals'], ['Independent goal']);
+        expect(exportedData['customCategoryTitles'], ['Independent category']);
         expect(exportedData['customCategoryDescriptions'], [
-          'Latest description',
+          'Independent description',
         ]);
       },
     );

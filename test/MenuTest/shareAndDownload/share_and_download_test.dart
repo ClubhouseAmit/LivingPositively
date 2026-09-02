@@ -70,6 +70,9 @@ void main() {
       getIt.registerSingleton<VideoPlayerPageFactory>(mockFactory);
       final imageFactory = MockImagePickerService();
       final mockPersistentMemoryService = MockPersistentMemoryService();
+      when(
+        mockPersistentMemoryService.readSnapshot(any),
+      ).thenAnswer((_) async => <String, Object?>{});
       getIt.registerLazySingleton<PersistentMemoryService>(
         () => mockPersistentMemoryService,
       );
@@ -83,23 +86,36 @@ void main() {
         mockPersistentMemoryService.getItem(any, PersistentMemoryType.Bool),
       ).thenAnswer((_) async => true);
       getIt.registerLazySingleton<ImagePickerService>(() => imageFactory);
-      when(mockFileServiceImpl.share(any, any, any, any, any,
-              mainTitle: anyNamed('mainTitle'),
-              textDirection: anyNamed('textDirection'),
-              memoryService: anyNamed('memoryService'),
-              approvedPdfHosts: anyNamed('approvedPdfHosts'))).thenAnswer(
-        ((Invocation invocation) async {
-          counterShare = counterShare + 1;
-          return const ShareResult('test-success', ShareResultStatus.success);
-        }),
-      );
-      when(mockFileServiceImpl.download(any, any, any, any,
-              mainTitle: anyNamed('mainTitle'),
-              textDirection: anyNamed('textDirection'),
-              memoryService: anyNamed('memoryService'),
-              approvedPdfHosts: anyNamed('approvedPdfHosts'))).thenAnswer(((
-        Invocation invocation,
-      ) async {
+      when(
+        mockFileServiceImpl.share(
+          any,
+          any,
+          any,
+          any,
+          any,
+          mainTitle: anyNamed('mainTitle'),
+          textDirection: anyNamed('textDirection'),
+          memoryService: anyNamed('memoryService'),
+          snapshot: anyNamed('snapshot'),
+          approvedPdfHosts: anyNamed('approvedPdfHosts'),
+        ),
+      ).thenAnswer(((Invocation invocation) async {
+        counterShare = counterShare + 1;
+        return const ShareResult('test-success', ShareResultStatus.success);
+      }));
+      when(
+        mockFileServiceImpl.download(
+          any,
+          any,
+          any,
+          any,
+          mainTitle: anyNamed('mainTitle'),
+          textDirection: anyNamed('textDirection'),
+          memoryService: anyNamed('memoryService'),
+          snapshot: anyNamed('snapshot'),
+          approvedPdfHosts: anyNamed('approvedPdfHosts'),
+        ),
+      ).thenAnswer(((Invocation invocation) async {
         counterDownload = counterDownload + 1;
         return null;
       }));
@@ -191,25 +207,41 @@ void main() {
       expect(counterShare, 1);
     });
 
-    testWidgets('shows Personal Plan feedback when file sharing is unavailable',
-        (WidgetTester tester) async {
-      when(mockFileServiceImpl.share(any, any, any, any, any,
-              mainTitle: anyNamed('mainTitle'),
-              textDirection: anyNamed('textDirection'),
-              memoryService: anyNamed('memoryService'),
-              approvedPdfHosts: anyNamed('approvedPdfHosts')))
-          .thenAnswer((_) async => ShareResult.unavailable);
-      await tester.pumpWidget(getPersonalPlanWidgetForTests());
+    testWidgets(
+      'shows Personal Plan feedback when file sharing is unavailable',
+      (WidgetTester tester) async {
+        when(
+          mockFileServiceImpl.share(
+            any,
+            any,
+            any,
+            any,
+            any,
+            mainTitle: anyNamed('mainTitle'),
+            textDirection: anyNamed('textDirection'),
+            memoryService: anyNamed('memoryService'),
+            snapshot: anyNamed('snapshot'),
+            approvedPdfHosts: anyNamed('approvedPdfHosts'),
+          ),
+        ).thenAnswer((_) async => ShareResult.unavailable);
+        await tester.pumpWidget(getPersonalPlanWidgetForTests());
 
-      await tapAndSettle(tester, find.byKey(const Key('personalPlanHeaderMenu')));
-      await tapAndSettle(tester, find.byKey(const Key('personalPlanHeaderShare')));
-      await tapAndSettle(tester, find.text('שיתוף קובץ של התוכנית האישית'));
+        await tapAndSettle(
+          tester,
+          find.byKey(const Key('personalPlanHeaderMenu')),
+        );
+        await tapAndSettle(
+          tester,
+          find.byKey(const Key('personalPlanHeaderShare')),
+        );
+        await tapAndSettle(tester, find.text('שיתוף קובץ של התוכנית האישית'));
 
-      expect(
-        find.text('לא ניתן היה לשתף את התוכנית האישית שלך. נסו שוב.'),
-        findsOneWidget,
-      );
-    });
+        expect(
+          find.text('לא ניתן היה לשתף את התוכנית האישית שלך. נסו שוב.'),
+          findsOneWidget,
+        );
+      },
+    );
 
     testWidgets('download uses the localized plan headers and subtitles', (
       WidgetTester tester,
@@ -231,11 +263,17 @@ void main() {
         tester.element(find.byType(PersonalPlanSectionWidget)),
       )!;
       final captured = verify(
-        mockFileServiceImpl.download(captureAny, captureAny, any, any,
-            mainTitle: anyNamed('mainTitle'),
-            textDirection: anyNamed('textDirection'),
-            memoryService: anyNamed('memoryService'),
-            approvedPdfHosts: anyNamed('approvedPdfHosts')),
+        mockFileServiceImpl.download(
+          captureAny,
+          captureAny,
+          any,
+          any,
+          mainTitle: anyNamed('mainTitle'),
+          textDirection: anyNamed('textDirection'),
+          memoryService: anyNamed('memoryService'),
+          snapshot: anyNamed('snapshot'),
+          approvedPdfHosts: anyNamed('approvedPdfHosts'),
+        ),
       ).captured;
 
       expect(captured, hasLength(2));

@@ -10,6 +10,11 @@ import 'package:provider/provider.dart';
 
 class _Memory implements PersistentMemoryService {
   @override
+  Future<Map<String, Object?>> readSnapshot(
+    Map<String, PersistentMemoryType> keys,
+  ) => throw StateError('Unexpected export snapshot read in this test.');
+
+  @override
   Future<dynamic> getItem(String key, PersistentMemoryType type) async => null;
 
   @override

@@ -45,8 +45,6 @@ class UserInformation with ChangeNotifier {
   PersistentMemoryService service; // Get the persistent memory service instance
   Future<void> _pendingDreamsAndGoalsSave = Future<void>.value();
   Future<void> _pendingCustomCategoriesSave = Future<void>.value();
-  final Set<Future<List<MapEntry<String, String>>>>
-  _pendingCustomCategoriesLoads = {};
   List<MapEntry<String, String>>? _pendingCustomCategoriesSnapshot;
   PersistentMemoryService? _pendingCustomCategoriesMemoryService;
   Future<void>? _customCategoriesWriteTail;
@@ -93,18 +91,10 @@ class UserInformation with ChangeNotifier {
     PersistentMemoryService? service,
   }) : service = service ?? GetIt.instance<PersistentMemoryService>();
 
-  /// Hydrates custom categories from [memoryService] (or the default [service]).
+  /// Reads categories, publishing them only when reading this model's [service].
   Future<List<MapEntry<String, String>>> loadCustomCategories({
     PersistentMemoryService? memoryService,
-  }) async {
-    final load = _loadCustomCategories(memoryService ?? service);
-    _pendingCustomCategoriesLoads.add(load);
-    try {
-      return await load;
-    } finally {
-      _pendingCustomCategoriesLoads.remove(load);
-    }
-  }
+  }) => _loadCustomCategories(memoryService ?? service);
 
   Future<List<MapEntry<String, String>>> _loadCustomCategories(
     PersistentMemoryService effectiveMemoryService,
@@ -113,6 +103,9 @@ class UserInformation with ChangeNotifier {
     final loaded = await loadCustomCategoriesFromStorage(
       memoryService: effectiveMemoryService,
     );
+    if (!identical(effectiveMemoryService, service)) {
+      return List<MapEntry<String, String>>.unmodifiable(loaded);
+    }
     // A load begun during initialization may complete after an interactive
     // save has started. That response reflects the old storage snapshot and
     // must not replace the newer in-memory categories.
@@ -130,8 +123,22 @@ class UserInformation with ChangeNotifier {
     PersistentMemoryService? memoryService,
   }) async {
     final effectiveMemoryService = memoryService ?? service;
+    if (!identical(effectiveMemoryService, service) && categories == null) {
+      throw ArgumentError(
+        'Saving to an alternate source requires explicit categories.',
+      );
+    }
     final toSave = categories ?? customCategories;
     final sanitized = sanitizeAndFilterCustomCategoryEntries(toSave);
+    if (!identical(effectiveMemoryService, service)) {
+      // An explicit alternate store owns its own data; it must not replace
+      // this model's categories, revisions, or retry state.
+      await saveCustomCategoriesToStorage(
+        sanitized,
+        memoryService: effectiveMemoryService,
+      );
+      return;
+    }
     _pendingCustomCategoriesSnapshot =
         List<MapEntry<String, String>>.unmodifiable(sanitized);
     _pendingCustomCategoriesMemoryService = effectiveMemoryService;
@@ -537,21 +544,16 @@ class UserInformation with ChangeNotifier {
     );
   }
 
-  /// Awaits pending saves and prepares a stable Personal Plan export snapshot.
+  /// Awaits pending model saves for exports from this model's own store.
   ///
-  /// When [memoryService] is provided, the stabilized Dreams and Goals and
-  /// custom-category data is also written there so export preparation and the
-  /// subsequent export read use the same persistence source.
+  /// An alternate [memoryService] is an independent source, never a staging
+  /// destination. Its read barrier handles its writes without using this model.
   Future<void> prepareForPersonalPlanExport({
     PersistentMemoryService? memoryService,
   }) async {
     final PersistentMemoryService effectiveMemoryService =
         memoryService ?? service;
-    // ShareForm hydrates after its first frame. Do not copy an initial empty
-    // category list into an export override while those reads are in flight.
-    while (_pendingCustomCategoriesLoads.isNotEmpty) {
-      await Future.wait(_pendingCustomCategoriesLoads.toList());
-    }
+    if (!identical(effectiveMemoryService, service)) return;
     await _awaitOrRetryCustomCategoriesSave();
     await _awaitOrRetryDreamsAndGoalsSave();
     final bool needsRepair = !listEquals(
@@ -562,40 +564,21 @@ class UserInformation with ChangeNotifier {
       ),
     );
     if (!needsRepair && _activeDreamsAndGoalsSavesCount == 0) {
-      await _copyPersonalPlanExportSnapshotIfNeeded(effectiveMemoryService);
       return;
     }
-    while (true) {
+    for (var attempt = 0; attempt < 8; attempt++) {
       await _awaitOrRetryDreamsAndGoalsSave();
       final int revisionBeforeRepair = _dreamsAndGoalsSaveRevision;
       await repairDreamsAndGoalsSelectionSources();
       await _awaitOrRetryDreamsAndGoalsSave();
       if (_dreamsAndGoalsSaveRevision == revisionBeforeRepair) {
-        break;
+        await _awaitOrRetryCustomCategoriesSave();
+        return;
       }
     }
-    await _awaitOrRetryCustomCategoriesSave();
-    await _copyPersonalPlanExportSnapshotIfNeeded(effectiveMemoryService);
-  }
-
-  Future<void> _copyPersonalPlanExportSnapshotIfNeeded(
-    PersistentMemoryService memoryService,
-  ) async {
-    if (identical(memoryService, service)) {
-      return;
-    }
-    final DreamsAndGoalsPersistenceSnapshot dreamsAndGoalsSnapshot =
-        DreamsAndGoalsPersistenceSnapshot.fromSelections(
-          dreamsAndGoals,
-          dreamsAndGoalsSelectionSources,
-        );
-    await Future.wait<void>([
-      persistDreamsAndGoalsSnapshot(memoryService, dreamsAndGoalsSnapshot),
-      saveCustomCategoriesToStorage(
-        customCategories,
-        memoryService: memoryService,
-      ),
-    ]);
+    throw StateError(
+      'Dreams and Goals kept changing during export preparation.',
+    );
   }
 
   Future<void> _awaitOrRetryCustomCategoriesSave() async {

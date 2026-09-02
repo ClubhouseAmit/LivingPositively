@@ -11,6 +11,7 @@ import 'package:mazilon/form/speech_dictation_suffix_action.dart';
 import 'package:mazilon/form/wizard_step.dart';
 import 'package:mazilon/l10n/app_localizations.dart';
 import 'package:mazilon/util/async/persistence_retry_snack_bar.dart';
+import 'package:mazilon/util/custom_categories_storage.dart';
 import 'package:mazilon/util/logger_service.dart';
 import 'package:mazilon/util/persistent_memory_service.dart';
 import 'package:mazilon/util/languages_util_functions.dart';
@@ -92,6 +93,16 @@ class _ShareFormState extends WizardStepState<ShareForm> {
   int? _editingCustomCategoryIndex;
   int _customCategoryFormGeneration = 0;
   List<MapEntry<String, String>>? _latestCustomCategoriesSnapshot;
+  List<MapEntry<String, String>> _alternateCustomCategories = const [];
+
+  List<MapEntry<String, String>> get _customCategories {
+    final user = _userInformation;
+    if (widget.memoryService != null &&
+        !identical(widget.memoryService, user?.service)) {
+      return _alternateCustomCategories;
+    }
+    return user?.customCategories ?? const [];
+  }
 
   UserInformation? get _userInformation {
     if (!mounted) return null;
@@ -141,10 +152,19 @@ class _ShareFormState extends WizardStepState<ShareForm> {
   Future<void> _loadCustomCategories() async {
     final userInformation = _userInformation;
     if (userInformation == null) return;
+    final source = widget.memoryService;
+    final latestSave = _latestCustomCategoriesSnapshot;
     try {
-      await userInformation.loadCustomCategories(
-        memoryService: widget.memoryService,
+      final loaded = await userInformation.loadCustomCategories(
+        memoryService: source,
       );
+      if (mounted &&
+          source != null &&
+          !identical(source, userInformation.service) &&
+          identical(source, widget.memoryService) &&
+          identical(latestSave, _latestCustomCategoriesSnapshot)) {
+        setState(() => _alternateCustomCategories = loaded);
+      }
     } catch (error, stackTrace) {
       await _captureDreamsAndGoalsFailure(error, stackTrace);
     }
@@ -161,15 +181,25 @@ class _ShareFormState extends WizardStepState<ShareForm> {
   Future<void> _persistCustomCategoriesSafely(
     List<MapEntry<String, String>> categories,
   ) async {
-    _latestCustomCategoriesSnapshot =
-        List<MapEntry<String, String>>.unmodifiable(categories);
+    final snapshot = List<MapEntry<String, String>>.unmodifiable(
+      sanitizeAndFilterCustomCategoryEntries(categories),
+    );
+    _latestCustomCategoriesSnapshot = snapshot;
+    final source = widget.memoryService;
     try {
       final userInformation = _userInformation;
       if (userInformation != null) {
         await userInformation.saveCustomCategories(
-          categories: categories,
-          memoryService: widget.memoryService,
+          categories: snapshot,
+          memoryService: source,
         );
+        if (mounted &&
+            source != null &&
+            !identical(source, userInformation.service) &&
+            identical(source, widget.memoryService) &&
+            identical(snapshot, _latestCustomCategoriesSnapshot)) {
+          setState(() => _alternateCustomCategories = snapshot);
+        }
       }
     } catch (error, stackTrace) {
       await _captureDreamsAndGoalsFailure(error, stackTrace);
@@ -225,7 +255,7 @@ class _ShareFormState extends WizardStepState<ShareForm> {
   }
 
   void editCustomCategory(int index) {
-    final categories = _userInformation?.customCategories ?? const [];
+    final categories = _customCategories;
     if (index < 0 || index >= categories.length) {
       return;
     }
@@ -241,7 +271,7 @@ class _ShareFormState extends WizardStepState<ShareForm> {
   }
 
   Future<void> deleteCustomCategory(int index) async {
-    final categories = _userInformation?.customCategories ?? const [];
+    final categories = _customCategories;
     if (index < 0 || index >= categories.length) {
       return;
     }
@@ -272,7 +302,7 @@ class _ShareFormState extends WizardStepState<ShareForm> {
       return;
     }
 
-    final categories = _userInformation?.customCategories ?? const [];
+    final categories = _customCategories;
     final updated = List<MapEntry<String, String>>.from(categories);
     final editingIndex = _editingCustomCategoryIndex;
     if (editingIndex != null &&
@@ -327,7 +357,7 @@ class _ShareFormState extends WizardStepState<ShareForm> {
       optionsBuilder: (TextEditingValue textEditingValue) {
         final input = textEditingValue.text.trim();
         final options = predefinedCategoryTitles();
-        final categories = _userInformation?.customCategories ?? const [];
+        final categories = _customCategories;
         final editingIndex = _editingCustomCategoryIndex;
         final isInitialEditingTitle =
             editingIndex != null &&
@@ -519,9 +549,7 @@ class _ShareFormState extends WizardStepState<ShareForm> {
   }
 
   Widget buildCustomCategoriesSection(BuildContext context, String gender) {
-    final categories =
-        _userInformation?.customCategories ??
-        const <MapEntry<String, String>>[];
+    final categories = _customCategories;
     return Column(
       children: [
         ...categories.asMap().entries.map(

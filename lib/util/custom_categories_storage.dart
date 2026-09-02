@@ -58,6 +58,36 @@ Future<List<MapEntry<String, String>>> loadCustomCategoriesFromStorage({
     customCategoriesKey,
     PersistentMemoryType.String,
   );
+  final canonical = _parseCanonicalCustomCategories(rawJson);
+  if (canonical != null) return canonical;
+
+  return parseCustomCategoriesSnapshot({
+    customCategoriesKey: rawJson,
+    customCategoryTitlesKey: await memoryService.getItem(
+      customCategoryTitlesKey,
+      PersistentMemoryType.StringList,
+    ),
+    customCategoryDescriptionsKey: await memoryService.getItem(
+      customCategoryDescriptionsKey,
+      PersistentMemoryType.StringList,
+    ),
+  });
+}
+
+/// Parses categories from an already captured set of storage values.
+List<MapEntry<String, String>> parseCustomCategoriesSnapshot(
+  Map<String, Object?> values,
+) {
+  return _parseCanonicalCustomCategories(values[customCategoriesKey]) ??
+      sanitizeAndFilterCustomCategories(
+        TypeUtils.castToStringList(values[customCategoryTitlesKey]),
+        TypeUtils.castToStringList(values[customCategoryDescriptionsKey]),
+      );
+}
+
+List<MapEntry<String, String>>? _parseCanonicalCustomCategories(
+  Object? rawJson,
+) {
   if (rawJson is String && rawJson.trim().isNotEmpty) {
     try {
       final decoded = jsonDecode(rawJson);
@@ -72,25 +102,12 @@ Future<List<MapEntry<String, String>>> loadCustomCategoriesFromStorage({
         }
         return sanitizeAndFilterCustomCategoryEntries(result);
       }
-    } catch (_) {
+    } on FormatException {
       // Fall through to legacy keys on decode error
     }
   }
 
-  // 2. Fallback to separate legacy keys for backward compatibility
-  final titles = TypeUtils.castToStringList(
-    await memoryService.getItem(
-      customCategoryTitlesKey,
-      PersistentMemoryType.StringList,
-    ),
-  );
-  final descriptions = TypeUtils.castToStringList(
-    await memoryService.getItem(
-      customCategoryDescriptionsKey,
-      PersistentMemoryType.StringList,
-    ),
-  );
-  return sanitizeAndFilterCustomCategories(titles, descriptions);
+  return null;
 }
 
 /// Persists custom category entries into [memoryService].

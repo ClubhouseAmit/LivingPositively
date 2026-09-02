@@ -29,6 +29,16 @@ abstract class PersistentMemoryService {
   /// retained as the legacy malformed-value fallback and returns `null`.
   Future<dynamic> getItem(String key, PersistentMemoryType type);
 
+  /// Captures an immutable set of values after earlier accepted writes finish.
+  ///
+  /// No write or reset on this instance may interleave with the capture. A
+  /// failed write to a requested key must fail capture until that key is saved
+  /// successfully (or reset). This is a read barrier, not a multi-key write
+  /// transaction, and does not coordinate separate instances or isolates.
+  Future<Map<String, Object?>> readSnapshot(
+    Map<String, PersistentMemoryType> keys,
+  );
+
   /// Clears persisted values after earlier accepted writes complete.
   ///
   /// Concurrent callers join the active reset, and new writes are rejected
@@ -43,6 +53,8 @@ class SharedPreferencesService implements PersistentMemoryService {
   Future<void> _pendingOperation = Future<void>.value();
   Future<void>? _activeReset;
   bool _resetFenceActive = false;
+  final Map<String, Object> _failedWrites = {};
+  bool _resetFailed = false;
 
   @override
   Future<void> setItem(
@@ -103,7 +115,9 @@ class SharedPreferencesService implements PersistentMemoryService {
       if (!saved) {
         throw StateError('Persistent memory rejected "$key".');
       }
+      _failedWrites.remove(key);
     } catch (error, stackTrace) {
+      _failedWrites[key] = error;
       _recordFailure(loggerService, error, stackTrace);
       rethrow;
     }
@@ -168,6 +182,42 @@ class SharedPreferencesService implements PersistentMemoryService {
   }
 
   @override
+  Future<Map<String, Object?>> readSnapshot(
+    Map<String, PersistentMemoryType> keys,
+  ) async {
+    final requestedKeys = Map<String, PersistentMemoryType>.of(keys);
+    late Map<String, Object?> snapshot;
+    await _enqueue(() async {
+      if (_resetFailed) {
+        throw StateError('Cannot export after an unsuccessful storage reset.');
+      }
+      for (final key in requestedKeys.keys) {
+        if (_failedWrites.containsKey(key)) {
+          throw StateError(
+            'Cannot export after an unsuccessful save of "$key".',
+          );
+        }
+      }
+      final prefs = await SharedPreferences.getInstance();
+      // All getters and defensive copies run synchronously against one cache.
+      // Unlike getItem, malformed values fail capture rather than losing data.
+      snapshot = Map<String, Object?>.unmodifiable({
+        for (final entry in requestedKeys.entries)
+          entry.key: switch (entry.value) {
+            PersistentMemoryType.String => prefs.getString(entry.key),
+            PersistentMemoryType.Int => prefs.getInt(entry.key),
+            PersistentMemoryType.Double => prefs.getDouble(entry.key),
+            PersistentMemoryType.Bool => prefs.getBool(entry.key),
+            PersistentMemoryType.StringList => List<String>.unmodifiable(
+              prefs.getStringList(entry.key) ?? const <String>[],
+            ),
+          },
+      });
+    });
+    return snapshot;
+  }
+
+  @override
   Future<void> reset() async {
     final Future<void>? activeReset = _activeReset;
     if (activeReset != null) {
@@ -194,7 +244,10 @@ class SharedPreferencesService implements PersistentMemoryService {
       if (!cleared) {
         throw StateError('Persistent memory clear was rejected.');
       }
+      _failedWrites.clear();
+      _resetFailed = false;
     } catch (error, stackTrace) {
+      _resetFailed = true;
       _recordFailure(loggerService, error, stackTrace);
       rethrow;
     }

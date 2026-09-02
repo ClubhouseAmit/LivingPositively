@@ -157,6 +157,11 @@ final class _ControlledPersistentMemoryService
       <({String key, PersistentMemoryType type})>[];
 
   @override
+  Future<Map<String, Object?>> readSnapshot(
+    Map<String, PersistentMemoryType> keys,
+  ) => throw StateError('Unexpected export snapshot read in this test.');
+
+  @override
   Future<dynamic> getItem(String key, PersistentMemoryType type) async {
     reads.add((key: key, type: type));
     throw StateError('Unexpected persistence read: $key ($type)');
@@ -261,7 +266,7 @@ void main() {
   );
 
   test(
-    'should retry custom categories through the originally injected storage service',
+    'should not retry another source or replace the default model during export',
     () async {
       final injectedService = _FailingOncePerExportSnapshotMemoryService();
       final user = UserInformation(service: fakeService);
@@ -277,10 +282,8 @@ void main() {
       );
 
       await expectLater(user.prepareForPersonalPlanExport(), completes);
-      expect(
-        injectedService.stored[customCategoriesKey],
-        '[{"title":"category","description":"injected value"}]',
-      );
+      expect(injectedService.stored[customCategoriesKey], isNull);
+      expect(user.customCategories, isEmpty);
       expect(fakeService.stored[customCategoriesKey], isNull);
     },
   );
