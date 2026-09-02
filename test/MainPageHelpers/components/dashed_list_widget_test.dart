@@ -28,7 +28,7 @@ void main() {
               items: const ['A kind conversation'],
               suggestions: const [],
               totalCount: 1,
-              onAddItem: () => openCount++,
+              onOpenSection: () => openCount++,
             ),
           ),
           surfaceSize: const Size(400, 800),

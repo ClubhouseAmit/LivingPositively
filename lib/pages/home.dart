@@ -242,7 +242,7 @@ class _HomeState extends LPExtendedState<Home> {
               SizedBox(height: 48),
 
               GratitudeSectionWidget(
-                onAddItem: () => widget.changeCurrentIndex(
+                onOpenSection: () => widget.changeCurrentIndex(
                   context,
                   PagesCode.GratitudeJournal,
                 ),
@@ -255,7 +255,7 @@ class _HomeState extends LPExtendedState<Home> {
               // Positive Virtues
               VirtuesSectionWidget(
                 virtues: userInfoProvider.positiveTraits,
-                onAddItem: () =>
+                onOpenSection: () =>
                     widget.changeCurrentIndex(context, PagesCode.QualitiesList),
               ),
               SizedBox(height: AppSpacing.xxl),
