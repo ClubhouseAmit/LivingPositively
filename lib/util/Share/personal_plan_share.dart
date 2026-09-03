@@ -5,6 +5,7 @@ import 'package:mazilon/l10n/app_localizations.dart';
 import 'package:mazilon/util/appInformation.dart';
 import 'package:mazilon/util/logger_service.dart';
 import 'package:mazilon/util/personal_plan_export_metadata.dart';
+import 'package:mazilon/util/persistent_memory_service.dart';
 import 'package:mazilon/util/userInformation.dart';
 import 'package:share_plus/share_plus.dart';
 
@@ -21,17 +22,14 @@ Future<PersonalPlanExportMetadata> prepareAndBuildPersonalPlanExportMetadata({
   if (userInformation != null) {
     await userInformation.prepareForPersonalPlanExport();
   }
-  return buildPersonalPlanExportMetadata(
-    appLocale,
-    gender,
-    username,
-  );
+  return buildPersonalPlanExportMetadata(appLocale, gender, username);
 }
 
 /// Shares the Personal Plan PDF export with the given [message] after stabilizing persistence state.
 ///
 /// When provided, [userInformation] triggers awaited personal-plan preparation.
 /// [fileService] overrides the default [FileService] resolved from [GetIt].
+/// [memoryService] overrides the storage source supplied to [FileService].
 ///
 /// Preparation, metadata, or sharing failures are caught, logged via [IncidentLoggerService],
 /// and returned as `null` without throwing uncaught exceptions to callers.
@@ -43,6 +41,7 @@ Future<ShareResult?> sharePersonalPlanFile({
   required AppInformation appInformation,
   UserInformation? userInformation,
   FileService? fileService,
+  PersistentMemoryService? memoryService,
   Set<String>? approvedPdfHosts,
 }) async {
   try {
@@ -65,7 +64,7 @@ Future<ShareResult?> sharePersonalPlanFile({
       ShareFileType.PDF,
       mainTitle: exportMetadata.mainTitle,
       textDirection: appLocale.textDirection,
-      memoryService: userInformation?.service,
+      memoryService: memoryService ?? userInformation?.service,
       approvedPdfHosts: approvedPdfHosts,
     );
   } catch (error, stackTrace) {

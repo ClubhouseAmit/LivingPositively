@@ -31,22 +31,23 @@ class _PersonalPlanDownloadContext {
     required AppInformation appInformation,
     required this.fileService,
     UserInformation? userInformation,
+    PersistentMemoryService? memoryService,
     Set<String>? approvedPdfHosts,
-  })  : localeName = appLocale.localeName,
-        textDirection = appLocale.textDirection,
-        approvedPdfHosts = Set<String>.unmodifiable(
-          (approvedPdfHosts ?? defaultApprovedPdfLinkHosts).map(
-            (host) => host.trim().toLowerCase(),
-          ),
-        ),
-        sharePdfTexts = Map<String, String>.unmodifiable(
-          sanitizeSharePdfTexts(
-            appInformation.sharePDFtexts,
-            approvedHosts: approvedPdfHosts ?? defaultApprovedPdfLinkHosts,
-          ),
-        ),
-        userInformationRevision = userInformation?.dreamsAndGoalsSaveRevision,
-        memoryService = userInformation?.service;
+  }) : localeName = appLocale.localeName,
+       textDirection = appLocale.textDirection,
+       approvedPdfHosts = Set<String>.unmodifiable(
+         (approvedPdfHosts ?? defaultApprovedPdfLinkHosts).map(
+           (host) => host.trim().toLowerCase(),
+         ),
+       ),
+       sharePdfTexts = Map<String, String>.unmodifiable(
+         sanitizeSharePdfTexts(
+           appInformation.sharePDFtexts,
+           approvedHosts: approvedPdfHosts ?? defaultApprovedPdfLinkHosts,
+         ),
+       ),
+       userInformationRevision = userInformation?.dreamsAndGoalsSaveRevision,
+       memoryService = memoryService ?? userInformation?.service;
 
   static int _computeMapHashCode(Map<String, String> map) {
     var hash = 0;
@@ -73,20 +74,20 @@ class _PersonalPlanDownloadContext {
 
   @override
   int get hashCode => Object.hash(
-        localeName,
-        textDirection,
-        gender,
-        username,
-        _computeMapHashCode(sharePdfTexts),
-        userInformationRevision,
-        identityHashCode(memoryService),
-        identityHashCode(fileService),
-        Object.hashAllUnordered(approvedPdfHosts),
-      );
+    localeName,
+    textDirection,
+    gender,
+    username,
+    _computeMapHashCode(sharePdfTexts),
+    userInformationRevision,
+    identityHashCode(memoryService),
+    identityHashCode(fileService),
+    Object.hashAllUnordered(approvedPdfHosts),
+  );
 }
 
 final Map<_PersonalPlanDownloadContext, Future<String?>>
-    _activePersonalPlanDownloads =
+_activePersonalPlanDownloads =
     <_PersonalPlanDownloadContext, Future<String?>>{};
 
 /// Downloads the Personal Plan PDF export after stabilizing persistence state,
@@ -95,6 +96,8 @@ final Map<_PersonalPlanDownloadContext, Future<String?>>
 /// Preparation and download errors are caught, logged via [IncidentLoggerService],
 /// and reported via the [AppLocalizations.downloadFailed] error toast.
 /// User cancellation or unsupported platform outcomes return `null` without an error toast.
+/// When [memoryService] is provided, it overrides the storage source supplied
+/// to [FileService]; otherwise [userInformation]'s service is used.
 ///
 /// Concurrent requests with an identical immutable export context coalesce into a single
 /// in-flight download operation to prevent duplicate file generations and repeated toasts,
@@ -106,6 +109,7 @@ Future<String?> downloadPersonalPlanFile({
   required AppInformation appInformation,
   required FileService fileService,
   UserInformation? userInformation,
+  PersistentMemoryService? memoryService,
   Set<String>? approvedPdfHosts,
 }) async {
   final contextKey = _PersonalPlanDownloadContext(
@@ -115,6 +119,7 @@ Future<String?> downloadPersonalPlanFile({
     appInformation: appInformation,
     fileService: fileService,
     userInformation: userInformation,
+    memoryService: memoryService,
     approvedPdfHosts: approvedPdfHosts,
   );
 
@@ -130,6 +135,7 @@ Future<String?> downloadPersonalPlanFile({
     sharePdfTexts: contextKey.sharePdfTexts,
     fileService: fileService,
     userInformation: userInformation,
+    memoryService: contextKey.memoryService,
     approvedPdfHosts: contextKey.approvedPdfHosts,
   );
 
@@ -150,6 +156,7 @@ Future<String?> _executeDownloadPersonalPlanFile({
   required Map<String, String> sharePdfTexts,
   required FileService fileService,
   UserInformation? userInformation,
+  PersistentMemoryService? memoryService,
   Set<String>? approvedPdfHosts,
 }) async {
   try {
@@ -166,7 +173,7 @@ Future<String?> _executeDownloadPersonalPlanFile({
       ShareFileType.PDF,
       mainTitle: exportMetadata.mainTitle,
       textDirection: appLocale.textDirection,
-      memoryService: userInformation?.service,
+      memoryService: memoryService,
       approvedPdfHosts: approvedPdfHosts,
     );
     if (result != null) {

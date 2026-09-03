@@ -194,6 +194,7 @@ class _ExportReadingFileService extends NoopFileService {
   _ExportReadingFileService(this.memory);
 
   final PersistentMemoryService memory;
+  PersistentMemoryService? memoryServiceAtDownload;
   List<String> dreamsAtDownload = const [];
   List<String> dreamsSourcesAtDownload = const [];
   List<String> dreamsCustomItemsAtDownload = const [];
@@ -210,6 +211,7 @@ class _ExportReadingFileService extends NoopFileService {
     Set<String>? approvedPdfHosts,
   }) async {
     downloadCalls++;
+    memoryServiceAtDownload = memoryService;
     final storedDreams = await memory.getItem(
       _dreamsAndGoalsSelectionKey,
       PersistentMemoryType.StringList,
@@ -344,6 +346,36 @@ void main() {
     await tester.pumpAndSettle();
     expect(find.byType(LPShareAlertDialog), findsOneWidget);
   });
+
+  testWidgets(
+    'ShareForm forwards its explicit memory service to the share dialog',
+    (tester) async {
+      final explicitMemory = _DreamsMemoryHarness();
+
+      await pumpWithProviders(
+        tester,
+        wizardStepHarness(
+          ShareForm(
+            key: GlobalKey<WizardStepState>(),
+            prev: () {},
+            submit: (_) async {},
+            memoryService: explicitMemory.service,
+          ),
+        ),
+        userInformation: user,
+        surfaceSize: const Size(1024, 1800),
+      );
+
+      await _pressIconButtonInAsyncZone(tester, Icons.share);
+      await _flushAsyncAction(tester);
+      await tester.pumpAndSettle();
+
+      final dialog = tester.widget<LPShareAlertDialog>(
+        find.byType(LPShareAlertDialog),
+      );
+      expect(dialog.memoryService, same(explicitMemory.service));
+    },
+  );
 
   testWidgets('tapping the download IconButton invokes FileService.download '
       '(null result → toast)', (tester) async {
@@ -1585,6 +1617,43 @@ void main() {
 
       expect(find.text('Special Goal Category'), findsOneWidget);
       expect(find.text('Special Description'), findsOneWidget);
+    },
+  );
+
+  testWidgets(
+    'ShareForm forwards its explicit memory service to the download export',
+    (tester) async {
+      final userMemory = _DreamsMemoryHarness();
+      final exportMemory = _DreamsMemoryHarness();
+      final exportFiles = _ExportReadingFileService(exportMemory.service);
+      final locator = GetIt.instance;
+      locator.unregister<FileService>();
+      locator.registerSingleton<FileService>(exportFiles);
+      user = UserInformation(service: userMemory.service)
+        ..gender = 'other'
+        ..localeName = 'en';
+
+      await pumpWithProviders(
+        tester,
+        wizardStepHarness(
+          ShareForm(
+            key: GlobalKey<WizardStepState>(),
+            prev: () {},
+            submit: (_) async {},
+            memoryService: exportMemory.service,
+          ),
+        ),
+        userInformation: user,
+        surfaceSize: const Size(1024, 1800),
+      );
+      await tester.pumpAndSettle();
+
+      await _pressIconButtonInAsyncZone(tester, Icons.download);
+      await _flushAsyncAction(tester);
+      await _flushAsyncAction(tester);
+
+      expect(exportFiles.downloadCalls, 1);
+      expect(exportFiles.memoryServiceAtDownload, same(exportMemory.service));
     },
   );
 

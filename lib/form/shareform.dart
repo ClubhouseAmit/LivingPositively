@@ -163,13 +163,6 @@ class _ShareFormState extends WizardStepState<ShareForm> {
     );
   }
 
-  Future<void> _persistCustomCategoriesSafely(
-    List<MapEntry<String, String>> categories, {
-    VoidCallback? onSuccess,
-  }) {
-    return _persistCustomCategoriesWithRetry(categories, onSuccess: onSuccess);
-  }
-
   Future<void> _persistCustomCategoriesWithRetry(
     List<MapEntry<String, String>> categories, {
     VoidCallback? onSuccess,
@@ -241,7 +234,7 @@ class _ShareFormState extends WizardStepState<ShareForm> {
 
     final updated = List<MapEntry<String, String>>.from(categories)
       ..removeAt(index);
-    await _persistCustomCategoriesSafely(
+    await _persistCustomCategoriesWithRetry(
       updated,
       onSuccess: () {
         if (!mounted) return;
@@ -290,7 +283,7 @@ class _ShareFormState extends WizardStepState<ShareForm> {
         } else {
           updated.add(category);
         }
-        await _persistCustomCategoriesSafely(
+        await _persistCustomCategoriesWithRetry(
           updated,
           onSuccess: () {
             if (!mounted) return;
@@ -877,7 +870,10 @@ class _ShareFormState extends WizardStepState<ShareForm> {
                           if (!mounted) {
                             return;
                           }
-                          await showShareDialog(context);
+                          await showShareDialog(
+                            context,
+                            memoryService: widget.memoryService,
+                          );
                         }),
                       );
                     },
@@ -911,6 +907,7 @@ class _ShareFormState extends WizardStepState<ShareForm> {
                             appInformation: appInfoProvider,
                             userInformation: userInfoProvider,
                             fileService: fileService,
+                            memoryService: widget.memoryService,
                           );
                         }),
                       );
