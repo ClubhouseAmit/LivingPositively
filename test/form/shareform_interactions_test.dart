@@ -18,11 +18,13 @@ import 'package:mazilon/file_service.dart';
 import 'package:mazilon/form/shareform.dart';
 import 'package:mazilon/form/wizard_step.dart';
 import 'package:mazilon/global_enums.dart';
+import 'package:mazilon/l10n/app_localizations.dart';
 import 'package:mazilon/util/Share/LP_share_alert_dialog.dart';
 import 'package:mazilon/util/custom_categories_storage.dart';
 import 'package:mazilon/util/persistent_memory_service.dart';
 import 'package:mazilon/util/userInformation.dart';
 import 'package:mockito/mockito.dart';
+import 'package:share_plus/share_plus.dart';
 
 import '../helpers/widget_test_scaffold.dart';
 import 'shareform_test.mocks.dart' as shareform_mocks;
@@ -233,6 +235,24 @@ class _ExportReadingFileService extends NoopFileService {
   }
 }
 
+class _UnavailableShareFileService extends NoopFileService {
+  @override
+  Future<ShareResult?> share(
+    String message,
+    List<dynamic> titles,
+    List<dynamic> subTitles,
+    Map<String, String> texts,
+    ShareFileType saveFormat, {
+    required String mainTitle,
+    required String textDirection,
+    PersistentMemoryService? memoryService,
+    Set<String>? approvedPdfHosts,
+  }) async {
+    shareCalls++;
+    return ShareResult.unavailable;
+  }
+}
+
 Future<void> _openDreamsAndGoalsAndAddOwnGoal(WidgetTester tester) async {
   final dreamsToggle = find.byKey(const Key('share-dreams-and-goals-toggle'));
   await tester.ensureVisible(dreamsToggle);
@@ -374,6 +394,43 @@ void main() {
         find.byType(LPShareAlertDialog),
       );
       expect(dialog.memoryService, same(explicitMemory.service));
+    },
+  );
+
+  testWidgets(
+    'ShareForm shows localized feedback when Personal Plan file sharing is unavailable',
+    (tester) async {
+      final unavailableFiles = _UnavailableShareFileService();
+      final locator = GetIt.instance;
+      locator.unregister<FileService>();
+      locator.registerSingleton<FileService>(unavailableFiles);
+
+      await pumpWithProviders(
+        tester,
+        wizardStepHarness(
+          ShareForm(
+            key: GlobalKey<WizardStepState>(),
+            prev: () {},
+            submit: (_) async {},
+          ),
+        ),
+        userInformation: user,
+        surfaceSize: const Size(1024, 1800),
+      );
+      final localizations = AppLocalizations.of(
+        tester.element(find.byType(ShareForm)),
+      )!;
+
+      await _pressIconButtonInAsyncZone(tester, Icons.share);
+      await _flushAsyncAction(tester);
+      await tester.pumpAndSettle();
+
+      await tester.tap(find.text(localizations.shareFile));
+      await _flushAsyncAction(tester);
+      await tester.pumpAndSettle();
+
+      expect(unavailableFiles.shareCalls, 1);
+      expect(find.text(localizations.personalPlanShareFailed), findsOneWidget);
     },
   );
 
