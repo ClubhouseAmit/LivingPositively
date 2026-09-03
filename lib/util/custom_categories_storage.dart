@@ -4,9 +4,41 @@ import 'package:mazilon/global_enums.dart';
 import 'package:mazilon/util/persistent_memory_service.dart';
 import 'package:mazilon/util/type_utils.dart';
 
+/// Canonical JSON snapshot key for custom categories.
 const String customCategoriesKey = 'customCategories';
+
+/// Legacy title-list key retained for older readers.
 const String customCategoryTitlesKey = 'customCategoryTitles';
+
+/// Legacy description-list key retained for older readers.
 const String customCategoryDescriptionsKey = 'customCategoryDescriptions';
+
+/// Commit marker fencing the two legacy mirror lists.
+const String customCategoriesLegacyCommitKey = 'customCategoriesLegacyCommit';
+
+String _encodeCustomCategories(List<MapEntry<String, String>> categories) =>
+    jsonEncode(
+      categories
+          .map((entry) => {'title': entry.key, 'description': entry.value})
+          .toList(),
+    );
+
+List<MapEntry<String, String>> _decodeCustomCategories(String rawJson) {
+  final decoded = jsonDecode(rawJson);
+  if (decoded is! List) return const [];
+  final entries = <MapEntry<String, String>>[];
+  for (final item in decoded) {
+    if (item is Map) {
+      entries.add(
+        MapEntry(
+          item['title']?.toString() ?? '',
+          item['description']?.toString() ?? '',
+        ),
+      );
+    }
+  }
+  return sanitizeAndFilterCustomCategoryEntries(entries);
+}
 
 /// Trims and filters pairs of titles and descriptions, discarding empty entries.
 List<MapEntry<String, String>> sanitizeAndFilterCustomCategories(
@@ -43,9 +75,11 @@ List<MapEntry<String, String>> sanitizeAndFilterCustomCategoryEntries(
 
 /// Loads and parses custom category entries from [memoryService].
 ///
-/// Attempts to load the atomic single-key JSON snapshot from [customCategoriesKey]
-/// first. If missing or invalid, falls back to loading and pairing the legacy
-/// [customCategoryTitlesKey] and [customCategoryDescriptionsKey] lists.
+/// Attempts to load the canonical single-key JSON snapshot from
+/// [customCategoriesKey] first. If missing or invalid, falls back to the
+/// legacy [customCategoryTitlesKey] and [customCategoryDescriptionsKey] lists.
+/// Once [customCategoriesLegacyCommitKey] exists, the legacy lists are used
+/// only when their normalized content matches that commit marker.
 Future<List<MapEntry<String, String>>> loadCustomCategoriesFromStorage({
   PersistentMemoryService? memoryService,
 }) async {
@@ -60,18 +94,7 @@ Future<List<MapEntry<String, String>>> loadCustomCategoriesFromStorage({
   );
   if (rawJson is String && rawJson.trim().isNotEmpty) {
     try {
-      final decoded = jsonDecode(rawJson);
-      if (decoded is List) {
-        final result = <MapEntry<String, String>>[];
-        for (final item in decoded) {
-          if (item is Map) {
-            final title = item['title']?.toString() ?? '';
-            final description = item['description']?.toString() ?? '';
-            result.add(MapEntry(title, description));
-          }
-        }
-        return sanitizeAndFilterCustomCategoryEntries(result);
-      }
+      return _decodeCustomCategories(rawJson);
     } catch (_) {
       // Fall through to legacy keys on decode error
     }
@@ -90,14 +113,38 @@ Future<List<MapEntry<String, String>>> loadCustomCategoriesFromStorage({
       PersistentMemoryType.StringList,
     ),
   );
-  return sanitizeAndFilterCustomCategories(titles, descriptions);
+  final legacyCategories = sanitizeAndFilterCustomCategories(
+    titles,
+    descriptions,
+  );
+  final rawCommit = await memoryService.getItem(
+    customCategoriesLegacyCommitKey,
+    PersistentMemoryType.String,
+  );
+  if (rawCommit is String && rawCommit.trim().isNotEmpty) {
+    try {
+      final committedCategories = _decodeCustomCategories(rawCommit);
+      if (_encodeCustomCategories(committedCategories) !=
+          _encodeCustomCategories(legacyCategories)) {
+        // A commit marker means this installation has fenced legacy mirrors.
+        // Never pair a partially updated title list with an older description
+        // list when the marker does not match.
+        return const <MapEntry<String, String>>[];
+      }
+    } catch (_) {
+      return const <MapEntry<String, String>>[];
+    }
+  }
+  return legacyCategories;
 }
 
 /// Persists custom category entries into [memoryService].
 ///
-/// Persists the atomic JSON snapshot under [customCategoriesKey] and updates the
-/// legacy [customCategoryTitlesKey] and [customCategoryDescriptionsKey] lists
-/// in a single coordinated write.
+/// Persists the canonical JSON snapshot under [customCategoriesKey], updates
+/// the legacy [customCategoryTitlesKey] and [customCategoryDescriptionsKey]
+/// mirrors, and advances [customCategoriesLegacyCommitKey] last. The final
+/// marker prevents current readers from pairing legacy lists from different
+/// writes after a partial failure.
 /// Throws a [StateError] if [memoryService] is `null`.
 Future<void> saveCustomCategoriesToStorage(
   List<MapEntry<String, String>> categories, {
@@ -109,25 +156,29 @@ Future<void> saveCustomCategoriesToStorage(
     );
   }
   final sanitized = sanitizeAndFilterCustomCategoryEntries(categories);
-  final jsonPayload = jsonEncode(
-    sanitized.map((e) => {'title': e.key, 'description': e.value}).toList(),
-  );
+  final jsonPayload = _encodeCustomCategories(sanitized);
 
-  await Future.wait([
-    memoryService.setItem(
-      customCategoriesKey,
-      PersistentMemoryType.String,
-      jsonPayload,
-    ),
-    memoryService.setItem(
-      customCategoryTitlesKey,
-      PersistentMemoryType.StringList,
-      sanitized.map((category) => category.key).toList(),
-    ),
-    memoryService.setItem(
-      customCategoryDescriptionsKey,
-      PersistentMemoryType.StringList,
-      sanitized.map((category) => category.value).toList(),
-    ),
-  ]);
+  // Write the canonical snapshot first, then the legacy mirrors, and advance
+  // the legacy commit marker last. The marker fences readers that must fall
+  // back to the two legacy lists after a partial or failed mirror write.
+  await memoryService.setItem(
+    customCategoriesKey,
+    PersistentMemoryType.String,
+    jsonPayload,
+  );
+  await memoryService.setItem(
+    customCategoryTitlesKey,
+    PersistentMemoryType.StringList,
+    sanitized.map((category) => category.key).toList(),
+  );
+  await memoryService.setItem(
+    customCategoryDescriptionsKey,
+    PersistentMemoryType.StringList,
+    sanitized.map((category) => category.value).toList(),
+  );
+  await memoryService.setItem(
+    customCategoriesLegacyCommitKey,
+    PersistentMemoryType.String,
+    jsonPayload,
+  );
 }

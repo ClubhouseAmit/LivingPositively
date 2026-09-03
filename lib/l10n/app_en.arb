@@ -212,6 +212,8 @@
     "description": ""
   },
   "sharePageSaveCustomCategory": "Add category",
+  "customCategoryDeleteConfirmation": "Delete this custom category?",
+  "builtInCategoryDeleteConfirmation": "Clear this plan section?",
   "@sharePageSaveCustomCategory": {
     "description": ""
   },

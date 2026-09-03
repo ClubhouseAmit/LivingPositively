@@ -67,6 +67,8 @@
   "sharePageCustomCategoryTitle": "عنوان الفئة",
   "sharePageCustomCategoryDescription": "الوصف",
   "sharePageSaveCustomCategory": "إضافة فئة",
+  "customCategoryDeleteConfirmation": "حذف هذه الفئة المخصصة؟",
+  "builtInCategoryDeleteConfirmation": "مسح هذا القسم من الخطة؟",
   "customCategoryOptionEmpoweringQuotes": "اقتباسات مقوية من المهم أن أتذكرها",
   "customCategoryOptionPastEvents": "أحداث من الماضي للتذكير",
   "customCategoryOptionAboutMe": "أشياء عني من المهم أن نتذكرها",

@@ -1,24 +1,28 @@
-// ignore_for_file: annotate_overrides, prefer_const_constructors, sized_box_for_whitespace
-
 import 'package:flutter/material.dart';
-import 'package:mazilon/util/LP_extended_state.dart';
-import 'package:mazilon/util/styles.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
+import 'package:mazilon/l10n/app_localizations.dart';
+import 'package:mazilon/util/LP_extended_state.dart';
+import 'package:mazilon/util/languages_util_functions.dart';
 
-// MyPlan is a custom widget that displays a title, a subtitle, and a list of answers in a structured format.
-// It is designed to present a section of a user's plan with clear and organized visual elements.
-
+/// A collapsible plan section shared by My Plan and the final Share summary.
+/// Optional controls let a summary route edits or deletions back to the
+/// owning flow without coupling the presentation to storage.
 class MyPlanSection extends StatefulWidget {
-  final String title; // Title of the section being displayed.
-  final String subTitle; // Subtitle providing additional context to the title.
-  final List<String>
-  answers; // List of answers or points to display under the section.
+  final String title;
+  final String subTitle;
+  final List<String> answers;
+  final VoidCallback? onEdit;
+  final VoidCallback? onDelete;
+  final bool initiallyExpanded;
 
   const MyPlanSection({
     super.key,
     required this.title,
     required this.subTitle,
     required this.answers,
+    this.onEdit,
+    this.onDelete,
+    this.initiallyExpanded = true,
   });
 
   @override
@@ -26,95 +30,82 @@ class MyPlanSection extends StatefulWidget {
 }
 
 class _MyPlanSectionState extends LPExtendedState<MyPlanSection> {
-  @override
-  void initState() {
-    super.initState();
+  TextDirection _directionFor(String value) {
+    return getDirectionOfText(value) == 'rtl'
+        ? TextDirection.rtl
+        : TextDirection.ltr;
   }
 
   @override
   Widget build(BuildContext context) {
-    final colorScheme = Theme.of(context).colorScheme;
-    return Container(
-      padding: EdgeInsets.all(10.0),
-      color: Colors
-          .transparent, // The container wraps the entire content and provides padding.
-      child: Column(
+    final colors = Theme.of(context).colorScheme;
+    final localizations = AppLocalizations.of(context)!;
+    return Card(
+      key: ValueKey('plan-section-${widget.title}'),
+      margin: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+      clipBehavior: Clip.antiAlias,
+      child: ExpansionTile(
+        initiallyExpanded: widget.initiallyExpanded,
+        title: Directionality(
+          textDirection: _directionFor(widget.title),
+          child: Text(
+            widget.title,
+            textAlign: TextAlign.center,
+            style: TextStyle(
+              fontSize: 20.sp,
+              fontWeight: FontWeight.bold,
+              color: colors.onSurface,
+            ),
+          ),
+        ),
+        subtitle: widget.subTitle.isEmpty
+            ? null
+            : Directionality(
+                textDirection: _directionFor(widget.subTitle),
+                child: Text(widget.subTitle, textAlign: TextAlign.center),
+              ),
+        trailing: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            if (widget.onEdit != null)
+              IconButton(
+                key: ValueKey('plan-section-edit-${widget.title}'),
+                tooltip: localizations.addFormEdit('other'),
+                onPressed: widget.onEdit,
+                icon: const Icon(Icons.edit),
+              ),
+            if (widget.onDelete != null)
+              IconButton(
+                key: ValueKey('plan-section-delete-${widget.title}'),
+                tooltip: localizations.deleteButton('other'),
+                onPressed: widget.onDelete,
+                icon: const Icon(Icons.delete_outline),
+              ),
+            const Icon(Icons.expand_more),
+          ],
+        ),
         children: [
-          const SizedBox(height: 25),
-          // Displays the title of the plan section.
-          Padding(
-            padding: const EdgeInsets.all(8.0),
-            child: myAutoSizedText(
-              widget.title,
-              TextStyle(
-                fontSize: 20.sp,
-                fontWeight: FontWeight.bold,
-                color: colorScheme.onSurface,
-              ),
-              TextAlign.center,
-              40,
-            ),
-          ),
-          // Displays the subtitle with additional context.
-          Padding(
-            padding: const EdgeInsets.all(8.0),
-            child: myAutoSizedText(
-              widget.subTitle,
-              TextStyle(
-                fontSize: 15.sp,
-                fontWeight: FontWeight.bold,
-                color: colorScheme.outline,
-              ),
-              TextAlign.center,
-              30,
-            ),
-          ),
-          // ListView.builder dynamically generates a list of answers with bullet points.
-          ListView.builder(
-            itemBuilder: (context, index) {
-              widget.answers[index]; // Accesses each answer in the list.
-              return Column(
+          for (final answer in widget.answers)
+            Padding(
+              padding: const EdgeInsetsDirectional.fromSTEB(16, 4, 16, 8),
+              child: Row(
                 children: [
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.start,
-                    children: [
-                      const SizedBox(height: 15, width: 15),
-                      Container(
-                        width: 20,
-                        child: Icon(
-                          Icons.circle,
-                          color: colorScheme.primary,
-                          size: 10,
-                        ), // Bullet point icon.
+                  Icon(Icons.circle, color: colors.primary, size: 8),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: Directionality(
+                      textDirection: _directionFor(answer),
+                      child: Text(
+                        answer,
+                        textAlign: _directionFor(answer) == TextDirection.rtl
+                            ? TextAlign.right
+                            : TextAlign.left,
                       ),
-                      const SizedBox(height: 15, width: 15),
-                      Expanded(
-                        child: myAutoSizedText(
-                          widget.answers[index],
-                          TextStyle(
-                            fontWeight: FontWeight.normal,
-                            fontSize: 12.sp,
-                            color: colorScheme.onSurface,
-                          ),
-                          appLocale.textDirection == "rtl"
-                              ? TextAlign.right
-                              : TextAlign.left,
-                          40,
-                        ),
-                      ),
-                    ],
+                    ),
                   ),
-                  SizedBox(height: 5),
                 ],
-              );
-            },
-            itemCount: widget
-                .answers
-                .length, // Number of items to display in the list.
-            shrinkWrap: true,
-            physics:
-                NeverScrollableScrollPhysics(), // Disables scrolling within this ListView.
-          ),
+              ),
+            ),
         ],
       ),
     );

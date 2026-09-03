@@ -1,5 +1,6 @@
 import 'dart:async';
 
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 
@@ -7,13 +8,13 @@ import 'package:get_it/get_it.dart';
 
 import 'package:mazilon/file_service.dart';
 import 'package:mazilon/form/formpagetemplate.dart';
-import 'package:mazilon/form/speech_dictation_suffix_action.dart';
+import 'package:mazilon/form/custom_category_editor.dart';
+import 'package:mazilon/form/custom_category_options.dart';
 import 'package:mazilon/form/wizard_step.dart';
 import 'package:mazilon/l10n/app_localizations.dart';
 import 'package:mazilon/util/async/persistence_retry_snack_bar.dart';
 import 'package:mazilon/util/logger_service.dart';
 import 'package:mazilon/util/persistent_memory_service.dart';
-import 'package:mazilon/util/languages_util_functions.dart';
 import 'package:mazilon/util/theme/spacing.dart';
 import 'package:provider/provider.dart';
 import 'package:mazilon/util/styles.dart';
@@ -22,6 +23,9 @@ import 'package:mazilon/util/appInformation.dart';
 import 'package:mazilon/util/Share/personal_plan_download.dart';
 import 'package:mazilon/util/userInformation.dart';
 import 'package:mazilon/util/Share/show_share_dialog.dart';
+import 'package:mazilon/util/Form/retrieveInformation.dart';
+import 'package:mazilon/util/dreams_and_goals_selection.dart';
+import 'package:mazilon/pages/PersonalPlan/myPlan.dart';
 
 /// The result of preparing a Share action that depends on Dreams and Goals.
 ///
@@ -57,12 +61,16 @@ class ShareForm extends WizardStep {
   final Function prev;
   final FutureOr<void> Function(BuildContext context) submit;
   final PersistentMemoryService? memoryService;
+  final void Function(int step)? goToStep;
+  final int? shareStepIndex;
 
   const ShareForm({
     required super.key,
     required this.prev,
     required this.submit,
     this.memoryService,
+    this.goToStep,
+    this.shareStepIndex,
   });
 
   @override
@@ -79,23 +87,21 @@ class _ShareFormState extends WizardStepState<ShareForm> {
   final _dreamsAndGoalsStepKey = GlobalKey<WizardStepState>(
     debugLabel: 'share-dreams-and-goals',
   );
-  final TextEditingController _customCategoryTitleController =
-      TextEditingController();
-  final TextEditingController _customCategoryDescriptionController =
-      TextEditingController();
-  final FocusNode _customCategoryTitleFocusNode = FocusNode();
   bool _isEditingDreamsAndGoals = false;
   bool _isOpeningDreamsAndGoals = false;
+  bool _hideDreamsAndGoalsSummaryUntilRepair = false;
   bool _isRunningDreamsAndGoalsAction = false;
   bool _isAddingCustomCategory = false;
-  bool _showCustomCategoryValidation = false;
   int? _editingCustomCategoryIndex;
   int _customCategoryFormGeneration = 0;
 
   UserInformation? get _userInformation {
     if (!mounted) return null;
     try {
-      return Provider.of<UserInformation?>(context, listen: false);
+      // Resolve the same non-null provider that the Share form requires. A
+      // nullable type argument can miss a ChangeNotifierProvider<UserInformation>
+      // at runtime, silently skipping all custom-category mutations.
+      return Provider.of<UserInformation>(context, listen: false);
     } catch (_) {
       return null;
     }
@@ -141,9 +147,6 @@ class _ShareFormState extends WizardStepState<ShareForm> {
 
   @override
   void dispose() {
-    _customCategoryTitleController.dispose();
-    _customCategoryDescriptionController.dispose();
-    _customCategoryTitleFocusNode.dispose();
     super.dispose();
   }
 
@@ -176,29 +179,10 @@ class _ShareFormState extends WizardStepState<ShareForm> {
   }
 
   List<String> predefinedCategoryTitles() {
-    return [
-      appLocale.customCategoryOptionEmpoweringQuotes,
-      appLocale.customCategoryOptionPastEvents,
-      appLocale.customCategoryOptionAboutMe,
-      appLocale.customCategoryOptionCustomInput,
-    ];
-  }
-
-  TextDirection textDirectionFor(String text) {
-    return getDirectionOfText(text) == 'rtl'
-        ? TextDirection.rtl
-        : TextDirection.ltr;
-  }
-
-  TextAlign textAlignFor(String text) {
-    return getDirectionOfText(text) == 'rtl' ? TextAlign.right : TextAlign.left;
+    return localizedCustomCategoryTitles(appLocale);
   }
 
   void resetCustomCategoryForm() {
-    _customCategoryTitleController.clear();
-    _customCategoryDescriptionController.clear();
-    _customCategoryTitleFocusNode.unfocus();
-    _showCustomCategoryValidation = false;
     _editingCustomCategoryIndex = null;
     _customCategoryFormGeneration++;
   }
@@ -215,11 +199,7 @@ class _ShareFormState extends WizardStepState<ShareForm> {
     if (index < 0 || index >= categories.length) {
       return;
     }
-    final category = categories[index];
     setState(() {
-      _customCategoryTitleController.text = category.key;
-      _customCategoryDescriptionController.text = category.value;
-      _showCustomCategoryValidation = false;
       _editingCustomCategoryIndex = index;
       _isAddingCustomCategory = true;
       _customCategoryFormGeneration++;
@@ -229,6 +209,9 @@ class _ShareFormState extends WizardStepState<ShareForm> {
   Future<void> deleteCustomCategory(int index) async {
     final categories = _userInformation?.customCategories ?? const [];
     if (index < 0 || index >= categories.length) {
+      return;
+    }
+    if (!await _confirmDelete(categories[index].key)) {
       return;
     }
 
@@ -247,195 +230,44 @@ class _ShareFormState extends WizardStepState<ShareForm> {
     await _persistCustomCategoriesSafely(updated);
   }
 
-  Future<void> saveCustomCategory() async {
-    final title = _customCategoryTitleController.text.trim();
-    final description = _customCategoryDescriptionController.text.trim();
-
-    if (title.isEmpty || description.isEmpty) {
-      setState(() {
-        _showCustomCategoryValidation = true;
-      });
-      return;
-    }
-
-    final categories = _userInformation?.customCategories ?? const [];
-    final updated = List<MapEntry<String, String>>.from(categories);
-    final editingIndex = _editingCustomCategoryIndex;
-    if (editingIndex != null &&
-        editingIndex >= 0 &&
-        editingIndex < updated.length) {
-      updated[editingIndex] = MapEntry(title, description);
-    } else {
-      updated.add(MapEntry(title, description));
-    }
-    setState(() {
-      resetCustomCategoryForm();
-      _isAddingCustomCategory = false;
-    });
-
-    await _persistCustomCategoriesSafely(updated);
-  }
-
-  String? _customCategoryValidationError(TextEditingController controller) {
-    return _showCustomCategoryValidation && controller.text.trim().isEmpty
-        ? appLocale.validateEmpty
-        : null;
-  }
-
-  void refreshCustomCategoryTitleOptions(
-    TextEditingController textEditingController,
-  ) {
-    final value = textEditingController.value;
-    final offset = value.selection.isValid
-        ? value.selection.baseOffset.clamp(0, value.text.length).toInt()
-        : value.text.length;
-    final nextAffinity = value.selection.affinity == TextAffinity.downstream
-        ? TextAffinity.upstream
-        : TextAffinity.downstream;
-
-    // Nudges RawAutocomplete to rebuild options when tapping unchanged text.
-    textEditingController.value = value.copyWith(
-      selection: TextSelection.collapsed(
-        offset: offset,
-        affinity: nextAffinity,
-      ),
-    );
-  }
-
-  Widget buildCustomCategoryTitleField() {
-    return RawAutocomplete<String>(
-      key: ValueKey(
-        'custom-category-title-autocomplete-$_customCategoryFormGeneration',
-      ),
-      textEditingController: _customCategoryTitleController,
-      focusNode: _customCategoryTitleFocusNode,
-      displayStringForOption: (option) => option,
-      optionsBuilder: (TextEditingValue textEditingValue) {
-        final input = textEditingValue.text.trim();
-        final options = predefinedCategoryTitles();
-        final categories = _userInformation?.customCategories ?? const [];
-        final editingIndex = _editingCustomCategoryIndex;
-        final isInitialEditingTitle =
-            editingIndex != null &&
-            editingIndex >= 0 &&
-            editingIndex < categories.length &&
-            categories[editingIndex].key == input;
-        if (input.isEmpty || isInitialEditingTitle) {
-          return options;
-        }
-        return options.where((option) => option.contains(input));
-      },
-      onSelected: (option) {
-        if (option == appLocale.customCategoryOptionCustomInput) {
-          _customCategoryTitleController.clear();
-          _customCategoryTitleFocusNode.requestFocus();
-        }
-      },
-      fieldViewBuilder:
-          (context, textEditingController, focusNode, onFieldSubmitted) {
-            return TextField(
-              key: const Key('custom-category-title-field'),
-              controller: textEditingController,
-              focusNode: focusNode,
-              textDirection: appLocale.textDirection == 'rtl'
-                  ? TextDirection.rtl
-                  : null,
-              onTap: () =>
-                  refreshCustomCategoryTitleOptions(textEditingController),
-              decoration: InputDecoration(
-                labelText: appLocale.sharePageCustomCategoryTitle,
-                suffixIcon: SpeechDictationSuffixAction.isSupportedPlatform
-                    ? SpeechDictationSuffixAction(
-                        controller: textEditingController,
-                        onTextApplied: (_) => refreshCustomCategoryTitleOptions(
-                          textEditingController,
-                        ),
-                      )
-                    : null,
-                errorText: _customCategoryValidationError(
-                  _customCategoryTitleController,
-                ),
-              ),
-            );
-          },
-      optionsViewBuilder: (context, onSelected, options) {
-        return Align(
-          alignment: Alignment.topLeft,
-          child: Material(
-            elevation: 4,
-            child: ConstrainedBox(
-              constraints: const BoxConstraints(maxHeight: 280, maxWidth: 340),
-              child: SingleChildScrollView(
-                child: Column(
-                  mainAxisSize: MainAxisSize.min,
-                  children: options.map((option) {
-                    return ListTile(
-                      title: Directionality(
-                        textDirection: textDirectionFor(option),
-                        child: Text(option, textAlign: textAlignFor(option)),
-                      ),
-                      onTap: () => onSelected(option),
-                    );
-                  }).toList(),
-                ),
-              ),
-            ),
-          ),
-        );
-      },
-    );
-  }
-
   Widget buildCustomCategoryForm(BuildContext context) {
-    return Container(
-      width: MediaQuery.sizeOf(context).width > 1000
-          ? 600
-          : MediaQuery.sizeOf(context).width * 0.85,
-      padding: const EdgeInsets.all(14),
-      decoration: BoxDecoration(
-        color: Theme.of(context).colorScheme.surfaceContainerHighest,
-        border: Border.all(color: Theme.of(context).colorScheme.primary),
-        borderRadius: BorderRadius.circular(8),
+    final categories = _userInformation?.customCategories ?? const [];
+    final editingIndex = _editingCustomCategoryIndex;
+    final initialCategory =
+        editingIndex != null &&
+            editingIndex >= 0 &&
+            editingIndex < categories.length
+        ? categories[editingIndex]
+        : null;
+    return CustomCategoryEditor(
+      key: ValueKey(
+        'share-custom-category-editor-$_customCategoryFormGeneration',
       ),
-      child: Column(
-        children: [
-          buildCustomCategoryTitleField(),
-          const SizedBox(height: 12),
-          TextField(
-            key: const Key('custom-category-description-field'),
-            controller: _customCategoryDescriptionController,
-            minLines: 3,
-            maxLines: 6,
-            textDirection: appLocale.textDirection == 'rtl'
-                ? TextDirection.rtl
-                : null,
-            decoration: InputDecoration(
-              labelText: appLocale.sharePageCustomCategoryDescription,
-              alignLabelWithHint: true,
-              suffixIcon: SpeechDictationSuffixAction.isSupportedPlatform
-                  ? SpeechDictationSuffixAction(
-                      controller: _customCategoryDescriptionController,
-                    )
-                  : null,
-              border: const OutlineInputBorder(),
-              errorText: _customCategoryValidationError(
-                _customCategoryDescriptionController,
-              ),
-            ),
-          ),
-          const SizedBox(height: 12),
-          TextButton(
-            onPressed: () {
-              unawaited(saveCustomCategory());
-            },
-            style: primaryButtonStyle(context),
-            child: Text(
-              appLocale.sharePageSaveCustomCategory,
-              style: primaryButtonTextStyle(context).copyWith(fontSize: 16.sp),
-            ),
-          ),
-        ],
-      ),
+      initialCategory: initialCategory,
+      predefinedTitles: predefinedCategoryTitles(),
+      optionsViewOpenDirection: OptionsViewOpenDirection.up,
+      saveLabel: appLocale.sharePageSaveCustomCategory,
+      onCancel: () {
+        setState(() {
+          resetCustomCategoryForm();
+          _isAddingCustomCategory = false;
+        });
+      },
+      onSave: (category) async {
+        final updated = List<MapEntry<String, String>>.from(categories);
+        if (editingIndex != null &&
+            editingIndex >= 0 &&
+            editingIndex < updated.length) {
+          updated[editingIndex] = category;
+        } else {
+          updated.add(category);
+        }
+        setState(() {
+          resetCustomCategoryForm();
+          _isAddingCustomCategory = false;
+        });
+        await _persistCustomCategoriesSafely(updated);
+      },
     );
   }
 
@@ -444,74 +276,41 @@ class _ShareFormState extends WizardStepState<ShareForm> {
     int index,
     String gender,
   ) {
-    return Container(
-      width: MediaQuery.sizeOf(context).width > 1000
-          ? 600
-          : MediaQuery.sizeOf(context).width * 0.85,
-      margin: const EdgeInsets.only(bottom: 12),
-      padding: const EdgeInsets.all(14),
-      decoration: BoxDecoration(
-        color: Theme.of(context).colorScheme.surfaceContainerHighest,
-        border: Border.all(color: Theme.of(context).colorScheme.secondary),
-        borderRadius: BorderRadius.circular(8),
-      ),
-      child: Directionality(
-        textDirection: textDirectionFor(category.key),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.stretch,
-          children: [
-            Row(
-              children: [
-                Expanded(
-                  child: Text(
-                    category.key,
-                    style: TextStyle(
-                      fontWeight: FontWeight.bold,
-                      fontSize: 16.sp,
-                      fontFamily: 'Rubix',
-                    ),
-                    textAlign: textAlignFor(category.key),
-                  ),
-                ),
-                IconButton(
-                  key: Key('custom-category-edit-button-$index'),
-                  tooltip: appLocale.addFormEdit(gender),
-                  icon: const Icon(Icons.edit, size: 20),
-                  onPressed: () => editCustomCategory(index),
-                ),
-                IconButton(
-                  key: Key('custom-category-delete-button-$index'),
-                  tooltip: appLocale.deleteButton(gender),
-                  icon: const Icon(Icons.delete, size: 20),
-                  onPressed: () {
-                    unawaited(deleteCustomCategory(index));
-                  },
-                ),
-              ],
-            ),
-            const SizedBox(height: 8),
-            Directionality(
-              textDirection: textDirectionFor(category.value),
-              child: Text(
-                category.value,
-                style: TextStyle(fontSize: 14.sp, fontFamily: 'Rubix'),
-                textAlign: textAlignFor(category.value),
-              ),
-            ),
-          ],
-        ),
-      ),
+    return CustomCategoryCard(
+      category: category,
+      index: index,
+      onEdit: () => editCustomCategory(index),
+      onDelete: () => unawaited(deleteCustomCategory(index)),
     );
   }
 
+  Future<bool> _confirmDelete(String title) async {
+    final localizations = AppLocalizations.of(context)!;
+    return await showDialog<bool>(
+          context: context,
+          builder: (context) => AlertDialog(
+            title: Text(localizations.deleteButton('other')),
+            content: Text(
+              '$title\n\n${localizations.customCategoryDeleteConfirmation}',
+            ),
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.pop(context, false),
+                child: Text(localizations.closeButton('other')),
+              ),
+              FilledButton(
+                onPressed: () => Navigator.pop(context, true),
+                child: Text(localizations.deleteButton('other')),
+              ),
+            ],
+          ),
+        ) ??
+        false;
+  }
+
   Widget buildCustomCategoriesSection(BuildContext context, String gender) {
-    final categories =
-        _userInformation?.customCategories ?? const <MapEntry<String, String>>[];
     return Column(
       children: [
-        ...categories.asMap().entries.map(
-          (entry) => buildCustomCategoryCard(entry.value, entry.key, gender),
-        ),
         if (_isAddingCustomCategory) buildCustomCategoryForm(context),
         if (!_isAddingCustomCategory)
           TextButton(
@@ -529,12 +328,100 @@ class _ShareFormState extends WizardStepState<ShareForm> {
     );
   }
 
+  List<Widget> _buildPlanSummary(
+    BuildContext context,
+    UserInformation userInformation,
+    String gender,
+  ) {
+    final definitions = <({String collection, List<String> answers})>[
+      (
+        collection: 'PersonalPlan-Distractions',
+        answers: userInformation.distractions,
+      ),
+      (
+        collection: 'PersonalPlan-DifficultEvents',
+        answers: userInformation.difficultEvents,
+      ),
+      (
+        collection: 'PersonalPlan-FeelBetter',
+        answers: userInformation.feelBetter,
+      ),
+      (
+        collection: 'PersonalPlan-MakeSafer',
+        answers: userInformation.makeSafer,
+      ),
+      (
+        collection: 'PersonalPlan-SafeEnvironment',
+        answers: userInformation.safeEnvironment,
+      ),
+    ];
+    final result = <Widget>[];
+    for (final definition in definitions) {
+      if (definition.answers.isEmpty) continue;
+      final info = retrieveInformation(
+        definition.collection,
+        gender,
+        appLocale,
+      );
+      final step = definitions.indexOf(definition);
+      result.add(
+        MyPlanSection(
+          key: ValueKey('share-summary-$step'),
+          title: info['header'] ?? '',
+          subTitle: info['subTitle'] ?? '',
+          answers: definition.answers,
+          onEdit: widget.goToStep == null ? null : () => widget.goToStep!(step),
+          onDelete: () =>
+              unawaited(_deleteBuiltInCategory(definition.collection)),
+        ),
+      );
+    }
+    for (final entry in userInformation.customCategories.indexed) {
+      final categoryIndex = entry.$1;
+      result.add(
+        CustomCategoryCard(
+          key: ValueKey('share-summary-custom-$categoryIndex'),
+          category: entry.$2,
+          index: categoryIndex,
+          onEdit: widget.goToStep == null
+              ? () => editCustomCategory(categoryIndex)
+              : () => widget.goToStep!(6 + categoryIndex),
+          onDelete: () => unawaited(deleteCustomCategory(categoryIndex)),
+        ),
+      );
+    }
+    return result;
+  }
+
+  Future<void> _deleteBuiltInCategory(String collectionName) async {
+    final localizations = AppLocalizations.of(context)!;
+    final userInformation = Provider.of<UserInformation>(
+      context,
+      listen: false,
+    );
+    if (!await _confirmDelete(
+      localizations.builtInCategoryDeleteConfirmation,
+    )) {
+      return;
+    }
+    try {
+      await userInformation.saveCategorySelection(collectionName, const []);
+    } catch (error, stackTrace) {
+      await _captureDreamsAndGoalsFailure(error, stackTrace);
+      if (mounted) {
+        showPersistenceRetrySnackBar(
+          context,
+          () => _deleteBuiltInCategory(collectionName),
+        );
+      }
+    }
+  }
+
   Future<void> _persistInlineDreamsAndGoals(
     UserInformation userInformation, {
     bool retry = false,
   }) {
-    final WizardStepState? inlineStep =
-        _dreamsAndGoalsStepKey.currentState;
+    final WizardStepState? inlineStep = _dreamsAndGoalsStepKey.currentState;
     if (inlineStep != null) {
       return retry
           ? inlineStep.retryPersistBeforeExit()
@@ -559,6 +446,11 @@ class _ShareFormState extends WizardStepState<ShareForm> {
     required int initialRetryRevision,
   }) async {
     int retryRevision = initialRetryRevision;
+    if (!_dreamsAndGoalsSourcesAreAligned(userInformation) && mounted) {
+      setState(() {
+        _hideDreamsAndGoalsSummaryUntilRepair = true;
+      });
+    }
     try {
       while (true) {
         final bool hadInlineStep = _dreamsAndGoalsStepKey.currentState != null;
@@ -589,6 +481,11 @@ class _ShareFormState extends WizardStepState<ShareForm> {
         if (userInformation.dreamsAndGoalsSaveRevision == expectedRevision) {
           await userInformation.pendingDreamsAndGoalsSave;
           await userInformation.pendingCustomCategoriesSave;
+          if (mounted) {
+            setState(() {
+              _hideDreamsAndGoalsSummaryUntilRepair = false;
+            });
+          }
           break;
         }
       }
@@ -608,6 +505,11 @@ class _ShareFormState extends WizardStepState<ShareForm> {
         return;
       }
       _isOpeningDreamsAndGoals = true;
+      if (mounted) {
+        setState(() {
+          _hideDreamsAndGoalsSummaryUntilRepair = true;
+        });
+      }
       try {
         if (retry) {
           await userInformation.retryDreamsAndGoalsSave(
@@ -622,6 +524,7 @@ class _ShareFormState extends WizardStepState<ShareForm> {
         if (mounted) {
           setState(() {
             _isEditingDreamsAndGoals = true;
+            _hideDreamsAndGoalsSummaryUntilRepair = false;
           });
         }
       } catch (error, stackTrace) {
@@ -629,6 +532,9 @@ class _ShareFormState extends WizardStepState<ShareForm> {
           await _captureDreamsAndGoalsFailure(error, stackTrace);
         }
         if (mounted) {
+          setState(() {
+            _hideDreamsAndGoalsSummaryUntilRepair = true;
+          });
           _showDreamsAndGoalsSaveFailure(
             () => _toggleDreamsAndGoals(retry: true),
           );
@@ -644,6 +550,7 @@ class _ShareFormState extends WizardStepState<ShareForm> {
       if (mounted) {
         setState(() {
           _isEditingDreamsAndGoals = false;
+          _hideDreamsAndGoalsSummaryUntilRepair = false;
         });
       }
     } catch (error, stackTrace) {
@@ -768,12 +675,53 @@ class _ShareFormState extends WizardStepState<ShareForm> {
     }
   }
 
+  bool _dreamsAndGoalsSourcesAreAligned(UserInformation userInformation) {
+    return listEquals(
+      userInformation.dreamsAndGoalsSelectionSources,
+      normalizeDreamsAndGoalsSelectionSources(
+        userInformation.dreamsAndGoals,
+        userInformation.dreamsAndGoalsSelectionSources,
+      ),
+    );
+  }
+
+  bool _dreamsAndGoalsSummaryIsReady(UserInformation userInformation) {
+    if (_hideDreamsAndGoalsSummaryUntilRepair ||
+        userInformation.dreamsAndGoals.isEmpty) {
+      return false;
+    }
+    return _dreamsAndGoalsSourcesAreAligned(userInformation);
+  }
+
   Widget buildDreamsAndGoalsSection(BuildContext context, String gender) {
+    final userInformation = Provider.of<UserInformation>(
+      context,
+      listen: false,
+    );
+    final dreamsSummaryIsReady = _dreamsAndGoalsSummaryIsReady(userInformation);
+    final dreamsInformation = retrieveInformation(
+      'PersonalPlan-DreamsAndGoals',
+      gender,
+      appLocale,
+    );
     return SizedBox(
       width: formFieldWidth(context),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
+          if (dreamsSummaryIsReady && !_isEditingDreamsAndGoals)
+            MyPlanSection(
+              key: const ValueKey('share-summary-5'),
+              title: dreamsInformation['header'] ?? '',
+              subTitle: dreamsInformation['subTitle'] ?? '',
+              answers: userInformation.dreamsAndGoals,
+              onEdit: widget.goToStep == null
+                  ? () => unawaited(_toggleDreamsAndGoals())
+                  : () => widget.goToStep!(5),
+              onDelete: () => unawaited(
+                _deleteBuiltInCategory('PersonalPlan-DreamsAndGoals'),
+              ),
+            ),
           KeyedSubtree(
             key: const Key('share-dreams-and-goals-toggle'),
             child: LinkButton(
@@ -821,7 +769,10 @@ class _ShareFormState extends WizardStepState<ShareForm> {
       context,
       listen: false,
     );
-    await _persistInlineDreamsAndGoals(userInformation);
+    await Future.wait<void>([
+      _persistInlineDreamsAndGoals(userInformation),
+      userInformation.pendingCustomCategoriesSave,
+    ]);
   }
 
   @override
@@ -830,7 +781,13 @@ class _ShareFormState extends WizardStepState<ShareForm> {
       context,
       listen: false,
     );
-    await _persistInlineDreamsAndGoals(userInformation, retry: true);
+    await Future.wait<void>([
+      _persistInlineDreamsAndGoals(userInformation, retry: true),
+      userInformation.retryCustomCategoriesSave(
+        userInformation.customCategoriesSaveRevision,
+        memoryService: widget.memoryService,
+      ),
+    ]);
   }
 
   @override
@@ -947,6 +904,7 @@ class _ShareFormState extends WizardStepState<ShareForm> {
                 ],
               ),
             ),
+            ..._buildPlanSummary(context, userInfoProvider, gender),
             buildDreamsAndGoalsSection(context, gender),
             buildCustomCategoriesSection(context, gender),
           ],

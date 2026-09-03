@@ -42,7 +42,9 @@ class UserInformation with ChangeNotifier {
   PersistentMemoryService service; // Get the persistent memory service instance
   Future<void> _pendingDreamsAndGoalsSave = Future<void>.value();
   Future<void> _pendingCustomCategoriesSave = Future<void>.value();
+  bool _customCategoriesSaveInProgress = false;
   int _dreamsAndGoalsSaveRevision = 0;
+  int _customCategoriesSaveRevision = 0;
   int _activeDreamsAndGoalsSavesCount = 0;
 
   /// Whether a Dreams and Goals persistence operation is currently pending.
@@ -50,6 +52,9 @@ class UserInformation with ChangeNotifier {
 
   /// In-flight custom categories persistence future.
   Future<void> get pendingCustomCategoriesSave => _pendingCustomCategoriesSave;
+
+  /// Revision of the latest custom-category snapshot held by the model.
+  int get customCategoriesSaveRevision => _customCategoriesSaveRevision;
 
   UserInformation({
     this.location = '',
@@ -83,19 +88,49 @@ class UserInformation with ChangeNotifier {
   }) : service = service ?? GetIt.instance<PersistentMemoryService>();
 
   /// Hydrates custom categories from [memoryService] (or the default [service]).
+  ///
+  /// The read is revision-fenced: a save or reset that happens while storage
+  /// is being read wins over the older snapshot.
   Future<List<MapEntry<String, String>>> loadCustomCategories({
     PersistentMemoryService? memoryService,
   }) async {
     final effectiveMemoryService = memoryService ?? service;
+    final loadRevision = _customCategoriesSaveRevision;
     final loaded = await loadCustomCategoriesFromStorage(
       memoryService: effectiveMemoryService,
     );
-    customCategories = List<MapEntry<String, String>>.unmodifiable(loaded);
-    notifyListeners();
+    hydrateCustomCategoriesIfRevision(loaded, loadRevision);
     return customCategories;
   }
 
-  /// Persists [categories] (or current [customCategories]) into [memoryService] (or the default [service]).
+  /// Applies a storage snapshot without starting another persistence write.
+  /// This is used during application startup and by import/recovery flows.
+  void hydrateCustomCategories(List<MapEntry<String, String>> categories) {
+    customCategories = List<MapEntry<String, String>>.unmodifiable(
+      sanitizeAndFilterCustomCategoryEntries(categories),
+    );
+    notifyListeners();
+  }
+
+  /// Hydrates [categories] only when no newer custom-category mutation has
+  /// happened since [expectedRevision] was captured.
+  ///
+  /// Returns `true` when the snapshot was applied and `false` when it was
+  /// stale. A stale asynchronous read never overwrites a newer save or reset.
+  bool hydrateCustomCategoriesIfRevision(
+    List<MapEntry<String, String>> categories,
+    int expectedRevision,
+  ) {
+    if (expectedRevision != _customCategoriesSaveRevision) {
+      return false;
+    }
+    hydrateCustomCategories(categories);
+    return true;
+  }
+
+  /// Persists [categories] (or current [customCategories]) into [memoryService]
+  /// (or the default [service]). Saves are queued in order and the latest
+  /// revision remains retryable if an earlier mirror write fails.
   Future<void> saveCustomCategories({
     List<MapEntry<String, String>>? categories,
     PersistentMemoryService? memoryService,
@@ -103,14 +138,90 @@ class UserInformation with ChangeNotifier {
     final effectiveMemoryService = memoryService ?? service;
     final toSave = categories ?? customCategories;
     final sanitized = sanitizeAndFilterCustomCategoryEntries(toSave);
-    final nextSave = saveCustomCategoriesToStorage(
+    customCategories = List<MapEntry<String, String>>.unmodifiable(sanitized);
+    _customCategoriesSaveRevision++;
+    notifyListeners();
+
+    final nextSave = _queueCustomCategoriesSave(
       sanitized,
       memoryService: effectiveMemoryService,
     );
-    _pendingCustomCategoriesSave = nextSave;
     await nextSave;
-    customCategories = List<MapEntry<String, String>>.unmodifiable(sanitized);
-    notifyListeners();
+  }
+
+  Future<void> _queueCustomCategoriesSave(
+    List<MapEntry<String, String>> categories, {
+    required PersistentMemoryService memoryService,
+  }) {
+    final snapshot = List<MapEntry<String, String>>.unmodifiable(
+      sanitizeAndFilterCustomCategoryEntries(categories),
+    );
+    if (!_customCategoriesSaveInProgress) {
+      _customCategoriesSaveInProgress = true;
+      final nextSave = _writeCustomCategoriesSnapshot(
+        snapshot,
+        memoryService: memoryService,
+      );
+      _pendingCustomCategoriesSave = nextSave;
+      _markCustomCategoriesSaveFinished(nextSave);
+      return nextSave;
+    }
+
+    // A failed older write must not prevent a newer snapshot from being
+    // attempted. This gives the queue last-write-wins semantics.
+    final nextSave = _pendingCustomCategoriesSave
+        .catchError((Object _) {})
+        .then(
+          (_) => _writeCustomCategoriesSnapshot(
+            snapshot,
+            memoryService: memoryService,
+          ),
+        );
+    _pendingCustomCategoriesSave = nextSave;
+    _markCustomCategoriesSaveFinished(nextSave);
+    return nextSave;
+  }
+
+  void _markCustomCategoriesSaveFinished(Future<void> save) {
+    unawaited(
+      save.then<void>(
+        (_) {
+          if (identical(_pendingCustomCategoriesSave, save)) {
+            _customCategoriesSaveInProgress = false;
+          }
+        },
+        onError: (Object error, StackTrace stackTrace) {
+          if (identical(_pendingCustomCategoriesSave, save)) {
+            _customCategoriesSaveInProgress = false;
+          }
+        },
+      ),
+    );
+  }
+
+  Future<void> _writeCustomCategoriesSnapshot(
+    List<MapEntry<String, String>> categories, {
+    required PersistentMemoryService memoryService,
+  }) async {
+    await saveCustomCategoriesToStorage(
+      categories,
+      memoryService: memoryService,
+    );
+  }
+
+  /// Retries a failed save only when it still represents the current model
+  /// revision. A newer mutation already has its own queued snapshot.
+  Future<void> retryCustomCategoriesSave(
+    int revision, {
+    PersistentMemoryService? memoryService,
+  }) {
+    if (revision != _customCategoriesSaveRevision) {
+      return _pendingCustomCategoriesSave;
+    }
+    return _queueCustomCategoriesSave(
+      customCategories,
+      memoryService: memoryService ?? service,
+    );
   }
 
   /// Clears user state and persists the empty Dreams and Goals snapshot.
@@ -140,6 +251,7 @@ class UserInformation with ChangeNotifier {
     dreamsAndGoals = [];
     dreamsAndGoalsSelectionSources = [];
     customCategories = [];
+    _customCategoriesSaveRevision++;
     // An in-flight snapshot cannot be cancelled safely. Queue the empty
     // snapshot behind it so reset is always the final local Dreams state.
     _dreamsAndGoalsSaveRevision++;
@@ -152,7 +264,7 @@ class UserInformation with ChangeNotifier {
     notifyListeners();
     await Future.wait([
       queueDreamsAndGoalsSave(),
-      saveCustomCategoriesToStorage(const [], memoryService: service),
+      _queueCustomCategoriesSave(const [], memoryService: service),
     ]);
   }
 
@@ -215,7 +327,10 @@ class UserInformation with ChangeNotifier {
     notifyListeners();
   }
 
-  Future<void> updateGenderAndBinary({required String gender, required bool isBinary}) async {
+  Future<void> updateGenderAndBinary({
+    required String gender,
+    required bool isBinary,
+  }) async {
     this.gender = gender;
     binary = isBinary;
     notifyListeners();
@@ -392,10 +507,7 @@ class UserInformation with ChangeNotifier {
     final Future<void> disclaimerSave = Future<void>.sync(
       persistDisclaimerConfirmed,
     );
-    return Future.wait<void>([
-      dreamsSave,
-      disclaimerSave,
-    ]);
+    return Future.wait<void>([dreamsSave, disclaimerSave]);
   }
 
   /// Updates category selections in memory and persists them through this
@@ -425,7 +537,8 @@ class UserInformation with ChangeNotifier {
       case 'PersonalPlan-DreamsAndGoals':
         updateDreamsAndGoals(
           items,
-          selectionSources: selectionSources ??
+          selectionSources:
+              selectionSources ??
               (listEquals(items, dreamsAndGoals)
                   ? dreamsAndGoalsSelectionSources
                   : normalizeDreamsAndGoalsSelectionSources(

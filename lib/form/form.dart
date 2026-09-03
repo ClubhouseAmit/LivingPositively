@@ -49,11 +49,15 @@ double headerSideControlMaxWidth(double screenWidth, int stepCount) => max(
 class FormProgressIndicator extends StatefulWidget {
   final PhonePageData phonePageData;
   final Function changeLocale;
+  final int initialStep;
+  final int? returnStep;
 
   const FormProgressIndicator({
     super.key,
     required this.phonePageData,
     required this.changeLocale,
+    this.initialStep = 0,
+    this.returnStep,
   });
 
   @override
@@ -65,10 +69,23 @@ class FormProgressIndicatorState
   int currentStep = 0;
   String name = '';
   bool _headerNavigationInFlight = false;
+  int? _returnToStep;
+  List<MapEntry<String, String>> _lastCustomCategories = const [];
+  bool _customStepRebuildScheduled = false;
+
+  UserInformation get _userInformation =>
+      Provider.of<UserInformation>(context, listen: false);
+
+  int get shareStepIndex => 8 + _userInformation.customCategories.length;
 
   void next() {
     setState(() {
-      if (currentStep < steps.length - 1) currentStep++;
+      if (_returnToStep != null) {
+        currentStep = _returnToStep!;
+        _returnToStep = null;
+      } else if (currentStep < steps.length - 1) {
+        currentStep++;
+      }
     });
   }
 
@@ -76,6 +93,143 @@ class FormProgressIndicatorState
     setState(() {
       if (currentStep > 0) currentStep--;
     });
+  }
+
+  /// Opens a wizard step from a summary and returns to that summary when the
+  /// edited step's primary action completes.
+  void openStepFromSummary(int step) {
+    if (step < 0 || step >= steps.length) return;
+    setState(() {
+      _returnToStep = shareStepIndex;
+      currentStep = step;
+    });
+  }
+
+  void _rebuildSteps({int? preferredStep}) {
+    if (!mounted) return;
+    final target = preferredStep ?? currentStep;
+    setState(() {
+      steps = _createSteps();
+      currentStep = target.clamp(0, steps.length - 1).toInt();
+    });
+    _lastCustomCategories = _userInformation.customCategories
+        .map((entry) => MapEntry(entry.key, entry.value))
+        .toList(growable: false);
+    _customStepRebuildScheduled = false;
+  }
+
+  void _syncCustomCategorySteps() {
+    final current = _userInformation.customCategories;
+    final changed =
+        current.length != _lastCustomCategories.length ||
+        current.indexed.any(
+          (entry) =>
+              entry.$2.key != _lastCustomCategories[entry.$1].key ||
+              entry.$2.value != _lastCustomCategories[entry.$1].value,
+        );
+    if (!changed || _customStepRebuildScheduled) return;
+    final oldShareStep = 8 + _lastCustomCategories.length;
+    final target = currentStep == oldShareStep
+        ? 8 + current.length
+        : currentStep;
+    _lastCustomCategories = current
+        .map((entry) => MapEntry(entry.key, entry.value))
+        .toList(growable: false);
+    _customStepRebuildScheduled = true;
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (mounted) _rebuildSteps(preferredStep: target);
+    });
+  }
+
+  List<WizardStep> _createSteps() {
+    final userInformation = _userInformation;
+    return buildWizardSteps(
+      next: next,
+      prev: prev,
+      phonePageData: widget.phonePageData,
+      submit: submitForm,
+      memoryService: userInformation.service,
+      customCategories: userInformation.customCategories,
+      onCustomCategorySaved: _saveCustomCategory,
+      onNewCustomCategorySaved: _addCustomCategory,
+      onCustomCategoryDeleted: _deleteCustomCategory,
+      goToStep: openStepFromSummary,
+      shareStepIndex: 8 + userInformation.customCategories.length,
+    );
+  }
+
+  Future<void> _saveCustomCategory(
+    int index,
+    MapEntry<String, String> category,
+  ) async {
+    final userInformation = _userInformation;
+    final categories = List<MapEntry<String, String>>.from(
+      userInformation.customCategories,
+    );
+    if (index < 0 || index >= categories.length) return;
+    categories[index] = category;
+    await userInformation.saveCustomCategories(categories: categories);
+    // Let the current step finish its awaited save and call next() before
+    // replacing the step list. Rebuilding synchronously would dispose the
+    // step state before its primary action could navigate.
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (mounted) _rebuildSteps(preferredStep: currentStep);
+    });
+  }
+
+  Future<void> _addCustomCategory(MapEntry<String, String> category) async {
+    final userInformation = _userInformation;
+    final newIndex = userInformation.customCategories.length;
+    final categories = List<MapEntry<String, String>>.from(
+      userInformation.customCategories,
+    )..add(category);
+    await userInformation.saveCustomCategories(categories: categories);
+    // The new category is inserted before the add step and becomes the
+    // current page immediately after the save completes.
+    _rebuildSteps(preferredStep: 6 + newIndex);
+  }
+
+  Future<void> _deleteCustomCategory(int index) async {
+    final userInformation = _userInformation;
+    final categories = List<MapEntry<String, String>>.from(
+      userInformation.customCategories,
+    );
+    if (index < 0 || index >= categories.length) return;
+    categories.removeAt(index);
+    try {
+      await userInformation.saveCustomCategories(categories: categories);
+    } catch (error, stackTrace) {
+      final failedRevision = userInformation.customCategoriesSaveRevision;
+      await _captureHeaderRetryFailure(error, stackTrace);
+      if (mounted) {
+        showPersistenceRetrySnackBar(context, () async {
+          await _retryDeletedCustomCategory(failedRevision);
+        });
+      }
+      return;
+    }
+    _rebuildSteps(
+      preferredStep: currentStep.clamp(0, steps.length - 2).toInt(),
+    );
+  }
+
+  Future<void> _retryDeletedCustomCategory(int revision) async {
+    try {
+      await _userInformation.retryCustomCategoriesSave(revision);
+      if (mounted) {
+        _rebuildSteps(
+          preferredStep: currentStep.clamp(0, steps.length - 2).toInt(),
+        );
+      }
+    } catch (error, stackTrace) {
+      await _captureHeaderRetryFailure(error, stackTrace);
+      if (mounted) {
+        showPersistenceRetrySnackBar(
+          context,
+          () => _retryDeletedCustomCategory(revision),
+        );
+      }
+    }
   }
 
   void updateName(name) {
@@ -93,6 +247,7 @@ class FormProgressIndicatorState
     if (name.isNotEmpty) {
       await service.setItem("name", PersistentMemoryType.String, name);
     }
+    await _userInformation.pendingCustomCategoriesSave;
     if (!context.mounted) return;
     navigateToMenu(context);
   }
@@ -167,12 +322,24 @@ class FormProgressIndicatorState
   @override
   void initState() {
     super.initState();
-    steps = buildWizardSteps(
-      next: next,
-      prev: prev,
-      phonePageData: widget.phonePageData,
-      submit: submitForm,
-    );
+    _returnToStep = widget.returnStep;
+    steps = _createSteps();
+    _lastCustomCategories = _userInformation.customCategories
+        .map((entry) => MapEntry(entry.key, entry.value))
+        .toList(growable: false);
+    currentStep = widget.initialStep.clamp(0, steps.length - 1).toInt();
+    WidgetsBinding.instance.addPostFrameCallback((_) async {
+      if (!mounted) return;
+      try {
+        await _userInformation.loadCustomCategories(
+          memoryService: _userInformation.service,
+        );
+        _rebuildSteps(preferredStep: currentStep);
+      } catch (_) {
+        // Startup hydration is best effort; the storage queue and Share
+        // screen still provide an explicit retry path for later mutations.
+      }
+    });
   }
 
   @override
@@ -181,6 +348,7 @@ class FormProgressIndicatorState
       context,
       listen: true,
     );
+    _syncCustomCategorySteps();
 
     final gender = userInfoProvider.gender;
     return PopScope(

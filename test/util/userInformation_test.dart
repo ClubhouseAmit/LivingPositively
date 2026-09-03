@@ -1,7 +1,9 @@
 import 'dart:async';
+import 'dart:convert';
 
 import 'package:flutter_test/flutter_test.dart';
 import 'package:mazilon/global_enums.dart';
+import 'package:mazilon/util/custom_categories_storage.dart';
 import 'package:mazilon/util/dreams_and_goals_selection.dart';
 import 'package:mazilon/util/userInformation.dart';
 
@@ -196,37 +198,51 @@ void main() {
       expect(notified, 1);
     });
 
+    test('reset clears custom categories with one notification', () async {
+      final u = UserInformation(
+        service: fakeService,
+        customCategories: const [MapEntry('Old title', 'Old description')],
+      );
+      var notified = 0;
+      u.addListener(() => notified++);
+
+      await u.reset('en');
+
+      expect(u.customCategories, isEmpty);
+      expect(notified, 1);
+    });
+
     test(
       'queues an empty Dreams snapshot after a held earlier snapshot',
-        () async {
-      final delayedService = _DelayedDreamsMemoryService();
-      final user = UserInformation(service: delayedService);
-      user.updateDreamsAndGoals(
-        <String>['My custom goal'],
-        selectionSources: const <String>[dreamsAndGoalsCustomSelectionSource],
-      );
-      user.queueDreamsAndGoalsSave();
-      await delayedService.firstSelectionWriteStarted.future;
+      () async {
+        final delayedService = _DelayedDreamsMemoryService();
+        final user = UserInformation(service: delayedService);
+        user.updateDreamsAndGoals(
+          <String>['My custom goal'],
+          selectionSources: const <String>[dreamsAndGoalsCustomSelectionSource],
+        );
+        user.queueDreamsAndGoalsSave();
+        await delayedService.firstSelectionWriteStarted.future;
 
-      final Future<void> reset = user.reset('en');
-      expect(user.dreamsAndGoals, isEmpty);
-      expect(user.dreamsAndGoalsSelectionSources, isEmpty);
+        final Future<void> reset = user.reset('en');
+        expect(user.dreamsAndGoals, isEmpty);
+        expect(user.dreamsAndGoalsSelectionSources, isEmpty);
 
-      delayedService.releaseFirstSelectionWrite();
-      await reset;
+        delayedService.releaseFirstSelectionWrite();
+        await reset;
 
-      expect(
-        delayedService.stored[dreamsAndGoalsSelectionStorageKey],
-        isEmpty,
-      );
-      expect(
-        delayedService.stored[dreamsAndGoalsSelectionSourcesStorageKey],
-        isEmpty,
-      );
-      expect(
-        delayedService.stored[dreamsAndGoalsCustomSelectionsStorageKey],
-        isEmpty,
-      );
+        expect(
+          delayedService.stored[dreamsAndGoalsSelectionStorageKey],
+          isEmpty,
+        );
+        expect(
+          delayedService.stored[dreamsAndGoalsSelectionSourcesStorageKey],
+          isEmpty,
+        );
+        expect(
+          delayedService.stored[dreamsAndGoalsCustomSelectionsStorageKey],
+          isEmpty,
+        );
       },
     );
 
@@ -356,6 +372,55 @@ void main() {
     );
   });
 
+  test('loadCustomCategories does not hydrate over a newer save', () async {
+    final oldSnapshot = jsonEncode([
+      {'title': 'Old title', 'description': 'Old description'},
+    ]);
+    fakeService.store[customCategoriesKey] = oldSnapshot;
+    final readStarted = Completer<void>();
+    final releaseRead = Completer<void>();
+    fakeService.onRead = (key, _) async {
+      if (key == customCategoriesKey && !readStarted.isCompleted) {
+        readStarted.complete();
+        await releaseRead.future;
+      }
+    };
+    final u = UserInformation(
+      service: fakeService,
+      customCategories: const [
+        MapEntry('Current title', 'Current description'),
+      ],
+    );
+
+    final loading = u.loadCustomCategories();
+    await readStarted.future;
+    await u.saveCustomCategories(
+      categories: const [MapEntry('New title', 'New description')],
+    );
+    releaseRead.complete();
+    await loading;
+
+    expect(u.customCategories, hasLength(1));
+    expect(u.customCategories.single.key, 'New title');
+    expect(u.customCategories.single.value, 'New description');
+  });
+
+  test('revision-aware hydration rejects a stale Firebase snapshot', () async {
+    final u = buildUser();
+    await u.saveCustomCategories(
+      categories: const [MapEntry('New title', 'New description')],
+    );
+
+    final applied = u.hydrateCustomCategoriesIfRevision(const [
+      MapEntry('Old title', 'Old description'),
+    ], u.customCategoriesSaveRevision - 1);
+
+    expect(applied, isFalse);
+    expect(u.customCategories, hasLength(1));
+    expect(u.customCategories.single.key, 'New title');
+    expect(u.customCategories.single.value, 'New description');
+  });
+
   group('update methods that persist', () {
     test(
       'should persist disclaimer and has-filled through its injected service',
@@ -415,12 +480,12 @@ void main() {
           service: _FailingPersistentMemoryService(),
         );
 
-      user.updateGender('other');
-      user.updateNotificationHour(9);
-      await Future<void>.delayed(Duration.zero);
+        user.updateGender('other');
+        user.updateNotificationHour(9);
+        await Future<void>.delayed(Duration.zero);
 
-      expect(user.gender, 'other');
-      expect(user.notificationHour, 9);
+        expect(user.gender, 'other');
+        expect(user.notificationHour, 9);
       },
     );
 
@@ -656,7 +721,7 @@ void main() {
         expect(
           fakeService.stored[dreamsAndGoalsCustomSelectionsStorageKey],
           const <String>['First custom goal', 'Second custom goal'],
-    );
+        );
         expect(writesAfterHydration, 3);
         expect(fakeService.writes, hasLength(writesAfterHydration));
       },
@@ -899,56 +964,59 @@ void main() {
       );
     });
 
-    test('preserves provenance metadata when selectionSources is omitted for DreamsAndGoals', () async {
-      final u = buildUser();
-      u.updateDreamsAndGoals(
-        ['Write and publish a book', 'Custom Goal B'],
-        selectionSources: ['catalogue:write-and-publish-a-book', 'custom'],
-      );
+    test(
+      'preserves provenance metadata when selectionSources is omitted for DreamsAndGoals',
+      () async {
+        final u = buildUser();
+        u.updateDreamsAndGoals(
+          ['Write and publish a book', 'Custom Goal B'],
+          selectionSources: ['catalogue:write-and-publish-a-book', 'custom'],
+        );
 
-      // Save with omitted selectionSources
-      await u.saveCategorySelection(
-        'PersonalPlan-DreamsAndGoals',
-        ['Write and publish a book', 'Custom Goal B'],
-      );
+        // Save with omitted selectionSources
+        await u.saveCategorySelection('PersonalPlan-DreamsAndGoals', [
+          'Write and publish a book',
+          'Custom Goal B',
+        ]);
 
-      expect(u.dreamsAndGoalsSelectionSources, [
-        'catalogue:write-and-publish-a-book',
-        'custom',
-      ]);
-    });
+        expect(u.dreamsAndGoalsSelectionSources, [
+          'catalogue:write-and-publish-a-book',
+          'custom',
+        ]);
+      },
+    );
 
-    test('updates provenance metadata when selectionSources is explicitly provided for DreamsAndGoals', () async {
-      final u = buildUser();
-      u.updateDreamsAndGoals(
-        ['Write and publish a book', 'Custom Goal B'],
-        selectionSources: ['catalogue:write-and-publish-a-book', 'custom'],
-      );
+    test(
+      'updates provenance metadata when selectionSources is explicitly provided for DreamsAndGoals',
+      () async {
+        final u = buildUser();
+        u.updateDreamsAndGoals(
+          ['Write and publish a book', 'Custom Goal B'],
+          selectionSources: ['catalogue:write-and-publish-a-book', 'custom'],
+        );
 
-      await u.saveCategorySelection(
-        'PersonalPlan-DreamsAndGoals',
-        ['Write and publish a book', 'Custom Goal B'],
-        selectionSources: ['custom', 'custom'],
-      );
+        await u.saveCategorySelection(
+          'PersonalPlan-DreamsAndGoals',
+          ['Write and publish a book', 'Custom Goal B'],
+          selectionSources: ['custom', 'custom'],
+        );
 
-      expect(u.dreamsAndGoalsSelectionSources, [
-        'custom',
-        'custom',
-      ]);
-    });
+        expect(u.dreamsAndGoalsSelectionSources, ['custom', 'custom']);
+      },
+    );
 
     test('persists supported standard categories correctly', () async {
       final u = buildUser();
-      await u.saveCategorySelection(
-        'PersonalPlan-DifficultEvents',
-        ['Event 1', 'Event 2'],
-      );
+      await u.saveCategorySelection('PersonalPlan-DifficultEvents', [
+        'Event 1',
+        'Event 2',
+      ]);
 
       expect(u.difficultEvents, ['Event 1', 'Event 2']);
-      expect(
-        fakeService.stored['userSelectionPersonalPlan-DifficultEvents'],
-        ['Event 1', 'Event 2'],
-      );
+      expect(fakeService.stored['userSelectionPersonalPlan-DifficultEvents'], [
+        'Event 1',
+        'Event 2',
+      ]);
     });
   });
 }
