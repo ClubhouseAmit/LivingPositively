@@ -94,6 +94,8 @@ class _ShareFormState extends WizardStepState<ShareForm> {
   int _customCategoryFormGeneration = 0;
   ShareFormCustomCategoriesViewModel? _customCategoriesViewModel;
   UserInformation? _customCategoriesUserInformation;
+  Future<void> _customCategoriesReplacement = Future<void>.value();
+  int _customCategoriesReplacementRevision = 0;
   int _handledCustomCategoriesFailureEventId = 0;
 
   List<MapEntry<String, String>> get _customCategories =>
@@ -153,9 +155,37 @@ class _ShareFormState extends WizardStepState<ShareForm> {
   }
 
   void _replaceCustomCategoriesViewModel(UserInformation userInformation) {
+    final int replacementRevision = ++_customCategoriesReplacementRevision;
     final previousViewModel = _customCategoriesViewModel;
     previousViewModel?.removeListener(_onCustomCategoriesStateChanged);
-    previousViewModel?.dispose();
+    _customCategoriesViewModel = null;
+    _customCategoriesUserInformation = userInformation;
+    _handledCustomCategoriesFailureEventId = 0;
+    ScaffoldMessenger.maybeOf(context)?.hideCurrentSnackBar();
+
+    final previousReplacement = _customCategoriesReplacement;
+    final replacement = _installCustomCategoriesViewModel(
+      userInformation,
+      previousViewModel,
+      previousReplacement,
+      replacementRevision,
+    );
+    _customCategoriesReplacement = replacement;
+    unawaited(replacement);
+  }
+
+  Future<void> _installCustomCategoriesViewModel(
+    UserInformation userInformation,
+    ShareFormCustomCategoriesViewModel? previousViewModel,
+    Future<void> previousReplacement,
+    int replacementRevision,
+  ) async {
+    await previousReplacement;
+    await previousViewModel?.close();
+    if (!mounted ||
+        replacementRevision != _customCategoriesReplacementRevision) {
+      return;
+    }
 
     final incidentLogger = GetIt.instance.isRegistered<IncidentLoggerService>()
         ? GetIt.instance<IncidentLoggerService>()
@@ -165,9 +195,10 @@ class _ShareFormState extends WizardStepState<ShareForm> {
       memoryService: widget.memoryService,
       incidentLogger: incidentLogger,
     );
-    _customCategoriesUserInformation = userInformation;
     _customCategoriesViewModel = viewModel;
+    _handledCustomCategoriesFailureEventId = 0;
     viewModel.addListener(_onCustomCategoriesStateChanged);
+    setState(() {});
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (mounted && identical(viewModel, _customCategoriesViewModel)) {
         unawaited(viewModel.load());
@@ -180,19 +211,23 @@ class _ShareFormState extends WizardStepState<ShareForm> {
       return;
     }
     setState(() {});
-    final state = _customCategoriesViewModel?.state;
+    final viewModel = _customCategoriesViewModel;
+    final state = viewModel?.state;
     if (state case ShareFormCustomCategoriesSaveFailure(
       :final eventId,
     ) when eventId > _handledCustomCategoriesFailureEventId) {
       _handledCustomCategoriesFailureEventId = eventId;
-      _showCustomCategorySaveFailure();
+      _showCustomCategorySaveFailure(viewModel!);
     }
   }
 
   @override
   void dispose() {
-    _customCategoriesViewModel?.removeListener(_onCustomCategoriesStateChanged);
-    _customCategoriesViewModel?.dispose();
+    _customCategoriesReplacementRevision++;
+    final viewModel = _customCategoriesViewModel;
+    viewModel?.removeListener(_onCustomCategoriesStateChanged);
+    viewModel?.dispose();
+    _customCategoriesViewModel = null;
     _customCategoryTitleController.dispose();
     _customCategoryDescriptionController.dispose();
     _customCategoryTitleFocusNode.dispose();
@@ -203,9 +238,14 @@ class _ShareFormState extends WizardStepState<ShareForm> {
     List<MapEntry<String, String>> categories,
   ) => _customCategoriesViewModel?.save(categories) ?? Future<void>.value();
 
-  void _showCustomCategorySaveFailure() {
+  void _showCustomCategorySaveFailure(
+    ShareFormCustomCategoriesViewModel failedViewModel,
+  ) {
     showPersistenceRetrySnackBar(context, () async {
-      await _customCategoriesViewModel?.retryLatestSave();
+      if (!mounted || !identical(failedViewModel, _customCategoriesViewModel)) {
+        return;
+      }
+      await failedViewModel.retryLatestSave();
     });
   }
 

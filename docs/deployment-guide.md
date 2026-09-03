@@ -16,25 +16,26 @@ The authoritative automation is [Build production artifacts](../.github/workflow
 | Component | Pull request targeting `main` | Push/merge to `main` |
 | --- | --- | --- |
 | Notification backend | Node 22 install, tests, production dependency audit | Provision changed notification content and deploy changed Functions to `mezilondb` after the aggregate and Functions checks pass |
-| Android | Signed AAB artifact, unit and emulator checks | AAB published to Google Play **internal testing** after dependent gates and the Functions deployment job pass |
+| Android | Signed AAB artifact, unit and emulator checks | AAB published to Google Play **internal testing** after dependent gates and the notification-backend gate pass |
 | iOS | Simulator FCM integration test | Same test; **no signed IPA or App Store upload** |
 | Web | Development Azure static-site deployment when credentials are available | Production Azure static-site deployment |
 
 Merging is therefore a release action for changed notification content or
 Functions, Android internal testing, and the production website. Android and
-production web wait for the notification-backend release job. Do not merge
-expecting all deployments to wait for a later manual approval unless the
-`firebase-production` environment has required reviewers. Google Play
-production promotion and iOS distribution remain manual.
+production web wait for the notification-backend gate. Only a detected backend
+change enters the protected `firebase-production` environment and requests any
+configured approval; no-op backend plans pass the gate without production
+approval. Google Play production promotion and iOS distribution remain manual.
 
-`notification-backend-release` compares the selected revision with the latest
-earlier successful `main` push, including changes from intervening failed runs.
-Runtime source/configuration changes deploy Functions. Notification ARBs or
-provisioner changes run content provisioning. Test-only, documentation-only,
-and unrelated workflow changes do not release production backend code. Changes
-inside the workflow's marked notification-backend block do trigger a Functions
-deployment. When comparison history is unavailable, both operations run
-conservatively. PRs never receive deployment credentials or execute a release.
+The unprotected notification-backend planning job compares the selected
+revision with the latest earlier successful `main` push, including changes from
+intervening failed runs. Runtime source/configuration changes deploy Functions.
+Notification ARBs or provisioner changes run content provisioning. Test-only,
+documentation-only, and unrelated workflow changes do not release production
+backend code. Changes inside the workflow's marked notification-backend block
+do trigger a Functions deployment. When comparison history is unavailable or
+malformed, both operations run conservatively. PRs never receive deployment
+credentials or execute a release.
 
 The main workflow is serialized. A deployment also rejects a revision if
 `main` has already advanced, preventing an old rerun from rolling Functions
@@ -136,6 +137,9 @@ After completing section 2, configure the GitHub environment
 `firebase-production` under repository Settings → Environments. Restrict its
 deployment branches to `main`. If the release owner requires an approval,
 configure its required reviewers there; the workflow honors environment rules.
+The environment is assigned only to the actual release job after unprotected
+change detection reports that Functions deployment or content provisioning is
+required.
 
 Create/use a dedicated deployment service account in `mezilondb`. Have the IAM
 owner grant the Functions deployment permissions, including permission to act
@@ -165,9 +169,10 @@ to `main`.
 
 Only proceed after section 2 is signed off. CI automatically runs the Admin SDK
 provisioner when one of the notification-content ARBs or provisioner sources
-changed since the last successful main release. The authenticated backend job
-records provisioning success before allowing Android or production web to
-release. A failure stops the job and leaves those dependent releases blocked.
+changed since the last successful main release. The authenticated release job
+records provisioning success before the backend gate allows Android or
+production web to release. A failure stops the gate and leaves those dependent
+releases blocked.
 
 For first-rollout preparation or manual recovery, use an authorized release
 environment with Application Default Credentials. Do not commit credentials or

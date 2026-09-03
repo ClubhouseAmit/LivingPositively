@@ -66,6 +66,7 @@ class _DreamsMemoryHarness {
     List<String> initialCustomCategoryTitles = const <String>[],
     List<String> initialCustomCategoryDescriptions = const <String>[],
     this.delayFirstSelectionWrite = false,
+    this.delayFirstCustomCategoryWrite = false,
   }) : _initialSelections = List<String>.from(initialSelections),
        _initialSelectionSources = List<String>.from(initialSelectionSources),
        _initialCustomItems = List<String>.from(initialCustomItems),
@@ -98,23 +99,40 @@ class _DreamsMemoryHarness {
   final List<String> _initialCustomCategoryTitles;
   final List<String> _initialCustomCategoryDescriptions;
   final Completer<void> _firstSelectionWrite = Completer<void>();
+  final Completer<void> _firstCustomCategoryWrite = Completer<void>();
   final List<_MemoryWrite> completedWrites = <_MemoryWrite>[];
+  final List<String> writeKeys = <String>[];
   final List<String> readKeys = <String>[];
   final bool delayFirstSelectionWrite;
+  final bool delayFirstCustomCategoryWrite;
   bool firstSelectionWriteStarted = false;
+  bool firstCustomCategoryWriteStarted = false;
   bool failSelectionWrite = false;
   bool failAllDreamsWrites = false;
+  bool failCustomCategoryWrites = false;
 
   Future<void> _setItem(Invocation invocation) async {
     final String key = invocation.positionalArguments[0] as String;
     final PersistentMemoryType type =
         invocation.positionalArguments[1] as PersistentMemoryType;
     final dynamic value = invocation.positionalArguments[2];
+    writeKeys.add(key);
     if (key == _dreamsAndGoalsSelectionKey &&
         delayFirstSelectionWrite &&
         !firstSelectionWriteStarted) {
       firstSelectionWriteStarted = true;
       await _firstSelectionWrite.future;
+    }
+    final bool isCustomCategoryKey = <String>{
+      _customCategoriesKey,
+      _customCategoryTitlesKey,
+      _customCategoryDescriptionsKey,
+    }.contains(key);
+    if (isCustomCategoryKey &&
+        delayFirstCustomCategoryWrite &&
+        !firstCustomCategoryWriteStarted) {
+      firstCustomCategoryWriteStarted = true;
+      await _firstCustomCategoryWrite.future;
     }
     final bool isDreamsAndGoalsKey = _dreamsAndGoalsPersistenceKeys.contains(
       key,
@@ -123,12 +141,21 @@ class _DreamsMemoryHarness {
         (isDreamsAndGoalsKey && failAllDreamsWrites)) {
       throw StateError('Dreams persistence failed.');
     }
+    if (isCustomCategoryKey && failCustomCategoryWrites) {
+      throw StateError('Custom-category persistence failed.');
+    }
     completedWrites.add(_MemoryWrite(key, type, value));
   }
 
   void releaseFirstSelectionWrite() {
     if (!_firstSelectionWrite.isCompleted) {
       _firstSelectionWrite.complete();
+    }
+  }
+
+  void releaseFirstCustomCategoryWrite() {
+    if (!_firstCustomCategoryWrite.isCompleted) {
+      _firstCustomCategoryWrite.complete();
     }
   }
 
@@ -307,6 +334,23 @@ Future<void> _flushAsyncAction(WidgetTester tester) async {
   await tester.pump();
   await tester.runAsync(() => Future<void>.delayed(Duration.zero));
   await tester.pump();
+}
+
+Future<void> _editFirstCustomCategory(
+  WidgetTester tester,
+  String description,
+) async {
+  final edit = find.byKey(const Key('custom-category-edit-button-0'));
+  await tester.ensureVisible(edit);
+  await tester.tap(edit);
+  await tester.pumpAndSettle();
+  await tester.enterText(
+    find.byKey(const Key('custom-category-description-field')),
+    description,
+  );
+  final save = find.text('Add category');
+  await tester.ensureVisible(save);
+  await tester.tap(save);
 }
 
 void _seedMultipleCustomDreams(UserInformation user) {
@@ -1714,6 +1758,141 @@ void main() {
         ['Edited alternate notes'],
       );
       expect(user.customCategories, isEmpty);
+    },
+  );
+
+  testWidgets(
+    'ShareForm should drain an in-flight custom-category save before loading a replacement source',
+    (tester) async {
+      final firstMemory = _DreamsMemoryHarness(
+        initialCustomCategoryTitles: ['First source'],
+        initialCustomCategoryDescriptions: ['First description'],
+        delayFirstCustomCategoryWrite: true,
+      );
+      final secondMemory = _DreamsMemoryHarness(
+        initialCustomCategoryTitles: ['Second source'],
+        initialCustomCategoryDescriptions: ['Second description'],
+      );
+      final memorySource = ValueNotifier<PersistentMemoryService>(
+        firstMemory.service,
+      );
+      addTearDown(memorySource.dispose);
+      final shareFormKey = GlobalKey<WizardStepState>();
+
+      await pumpWithProviders(
+        tester,
+        ValueListenableBuilder<PersistentMemoryService>(
+          valueListenable: memorySource,
+          builder: (context, memoryService, child) => wizardStepHarness(
+            ShareForm(
+              key: shareFormKey,
+              prev: () {},
+              submit: (_) async {},
+              memoryService: memoryService,
+            ),
+          ),
+        ),
+        userInformation: user,
+        surfaceSize: const Size(1024, 1800),
+      );
+      await tester.pumpAndSettle();
+
+      await _editFirstCustomCategory(tester, 'Pending first write');
+      await tester.pump();
+      await tester.runAsync(() async {
+        while (!firstMemory.firstCustomCategoryWriteStarted) {
+          await Future<void>.delayed(const Duration(milliseconds: 1));
+        }
+      });
+
+      memorySource.value = secondMemory.service;
+      await tester.pump();
+      await tester.runAsync(() => Future<void>.delayed(Duration.zero));
+      await tester.pump();
+
+      expect(
+        secondMemory.readKeys.where(
+          (key) =>
+              key == _customCategoriesKey ||
+              key == _customCategoryTitlesKey ||
+              key == _customCategoryDescriptionsKey,
+        ),
+        isEmpty,
+      );
+
+      firstMemory.releaseFirstCustomCategoryWrite();
+      await tester.pumpAndSettle();
+
+      expect(find.text('Second source'), findsOneWidget);
+      expect(secondMemory.readKeys, contains(_customCategoriesKey));
+      expect(tester.takeException(), isNull);
+    },
+  );
+
+  testWidgets(
+    'ShareForm should rebase failure events and invalidate retry actions when replacing a source',
+    (tester) async {
+      final firstMemory = _DreamsMemoryHarness(
+        initialCustomCategoryTitles: ['First source'],
+        initialCustomCategoryDescriptions: ['First description'],
+      )..failCustomCategoryWrites = true;
+      final secondMemory = _DreamsMemoryHarness(
+        initialCustomCategoryTitles: ['Second source'],
+        initialCustomCategoryDescriptions: ['Second description'],
+      );
+      final memorySource = ValueNotifier<PersistentMemoryService>(
+        firstMemory.service,
+      );
+      addTearDown(memorySource.dispose);
+      final shareFormKey = GlobalKey<WizardStepState>();
+
+      await pumpWithProviders(
+        tester,
+        ValueListenableBuilder<PersistentMemoryService>(
+          valueListenable: memorySource,
+          builder: (context, memoryService, child) => wizardStepHarness(
+            ShareForm(
+              key: shareFormKey,
+              prev: () {},
+              submit: (_) async {},
+              memoryService: memoryService,
+            ),
+          ),
+        ),
+        userInformation: user,
+        surfaceSize: const Size(1024, 1800),
+      );
+      await tester.pumpAndSettle();
+
+      await _editFirstCustomCategory(tester, 'Failed first write');
+      await tester.pumpAndSettle();
+      final staleRetryAction = tester.widget<SnackBarAction>(
+        find.widgetWithText(SnackBarAction, 'Try again'),
+      );
+
+      memorySource.value = secondMemory.service;
+      await tester.pumpAndSettle();
+      expect(find.text('Second source'), findsOneWidget);
+      expect(find.widgetWithText(SnackBarAction, 'Try again'), findsNothing);
+
+      staleRetryAction.onPressed();
+      await _flushAsyncAction(tester);
+      expect(
+        secondMemory.writeKeys.where(
+          (key) =>
+              key == _customCategoriesKey ||
+              key == _customCategoryTitlesKey ||
+              key == _customCategoryDescriptionsKey,
+        ),
+        isEmpty,
+      );
+
+      secondMemory.failCustomCategoryWrites = true;
+      await _editFirstCustomCategory(tester, 'Failed replacement write');
+      await tester.pumpAndSettle();
+
+      expect(find.widgetWithText(SnackBarAction, 'Try again'), findsOneWidget);
+      expect(tester.takeException(), isNull);
     },
   );
 

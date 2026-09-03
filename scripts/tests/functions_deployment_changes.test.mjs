@@ -141,11 +141,52 @@ test('ignores unrelated workflow changes but detects backend release changes', (
   );
 });
 
+test('fails closed when workflow deployment markers are malformed', (t) => {
+  const currentRepo = repository(t);
+  const currentBaseline = currentRepo.git('rev-parse', 'HEAD');
+  const currentWorkflow = readFileSync(
+    join(currentRepo.workingDirectory, '.github/workflows/main.yml'), 'utf8',
+  );
+  const malformedCurrentSha = currentRepo.commit(
+    '.github/workflows/main.yml', `${currentWorkflow}${workflowStart}\n`,
+  );
+  assert.equal(
+    plan(currentRepo, currentBaseline, malformedCurrentSha).functionsRequired,
+    true,
+  );
+
+  const baselineRepo = repository(t);
+  const validWorkflow = readFileSync(
+    join(baselineRepo.workingDirectory, '.github/workflows/main.yml'), 'utf8',
+  );
+  const malformedBaseline = baselineRepo.commit(
+    '.github/workflows/main.yml', validWorkflow.replace(workflowEnd, ''),
+  );
+  const unchangedMalformedSha = baselineRepo.commit('docs/readme.md');
+  assert.equal(
+    plan(
+      baselineRepo,
+      malformedBaseline,
+      unchangedMalformedSha,
+    ).functionsRequired,
+    true,
+  );
+});
+
 test('detects deleted Functions runtime files', (t) => {
   const repo = repository(t);
   repo.commit('functions/src/obsolete.ts');
   const baseline = repo.git('rev-parse', 'HEAD');
   repo.git('rm', 'functions/src/obsolete.ts');
+  const currentCommitSha = repo.commit('README.md');
+  assert.equal(plan(repo, baseline, currentCommitSha).functionsRequired, true);
+});
+
+test('detects a Functions runtime file renamed outside its source tree', (t) => {
+  const repo = repository(t);
+  repo.commit('functions/src/renamed.ts');
+  const baseline = repo.git('rev-parse', 'HEAD');
+  repo.git('mv', 'functions/src/renamed.ts', 'archived-function.ts');
   const currentCommitSha = repo.commit('README.md');
   assert.equal(plan(repo, baseline, currentCommitSha).functionsRequired, true);
 });
@@ -186,6 +227,19 @@ test('rejects malformed history rather than silently skipping release', () => {
     currentCommitSha: 'a'.repeat(40),
     workingDirectory: '.',
   }), /Invalid workflow history/);
+});
+
+test('fails closed when workflow history contains a malformed entry', (t) => {
+  const repo = repository(t);
+  const currentCommitSha = repo.git('rev-parse', 'HEAD');
+  const result = functionsDeploymentPlan([null], {
+    runNumber: 11,
+    currentCommitSha,
+    workingDirectory: repo.workingDirectory,
+  });
+  assert.equal(result.functionsRequired, true);
+  assert.equal(result.contentRequired, true);
+  assert.match(result.reason, /malformed/);
 });
 
 test('CLI writes outputs consumed by conditional release steps', (t) => {

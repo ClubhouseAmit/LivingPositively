@@ -1116,18 +1116,19 @@ jobs:
           path: coverage/aggregate.info
 
   # BEGIN NOTIFICATION BACKEND RELEASE
-  notification-backend-release:
-    name: Release changed notification backend
+  notification_backend_plan:
+    name: Plan notification backend release
     runs-on: ubuntu-latest
     needs: [coverage-aggregate, functions-test]
     if: github.event_name == 'push' && github.ref == 'refs/heads/main'
-    timeout-minutes: 30
+    timeout-minutes: 10
     permissions:
       contents: read
       actions: read
-    environment: firebase-production
-    env:
-      FIREBASE_PROJECT_ID: mezilondb
+    outputs:
+      required: ${{ steps.changes.outputs.required }}
+      functions_required: ${{ steps.changes.outputs.functions_required }}
+      content_required: ${{ steps.changes.outputs.content_required }}
     steps:
       - name: Checkout tested revision and history
         uses: actions/checkout@v4
@@ -1151,8 +1152,34 @@ jobs:
             > "$RUNNER_TEMP/functions-successful-runs.json"
           node scripts/functions_deployment_changes.mjs "$RUNNER_TEMP/functions-successful-runs.json"
 
+  notification_backend_release:
+    name: Release changed notification backend
+    runs-on: ubuntu-latest
+    needs: [notification_backend_plan]
+    if: >-
+      github.event_name == 'push' &&
+      github.ref == 'refs/heads/main' &&
+      needs.notification_backend_plan.outputs.required == 'true'
+    timeout-minutes: 30
+    permissions:
+      contents: read
+    environment: firebase-production
+    env:
+      FIREBASE_PROJECT_ID: mezilondb
+    steps:
+      - name: Checkout tested revision and history
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          cache: npm
+          cache-dependency-path: functions/package-lock.json
+
       - name: Check deployment credential configuration
-        if: steps.changes.outputs.required == 'true'
         env:
           FIREBASE_SERVICE_ACCOUNT_JSON: ${{ secrets.FIREBASE_SERVICE_ACCOUNT_JSON }}
         run: |
@@ -1162,11 +1189,9 @@ jobs:
           fi
 
       - name: Install Functions dependencies
-        if: steps.changes.outputs.required == 'true'
         run: npm --prefix functions ci
 
       - name: Reject deployment of a superseded main revision
-        if: steps.changes.outputs.required == 'true'
         run: |
           current_main=$(git ls-remote origin refs/heads/main | cut -f1)
           if [ "$current_main" != "$GITHUB_SHA" ]; then
@@ -1175,25 +1200,52 @@ jobs:
           fi
 
       - name: Authenticate Firebase deployment
-        if: steps.changes.outputs.required == 'true'
         uses: google-github-actions/auth@7c6bc770dae815cd3e89ee6cdf493a5fab2cc093 # v3
         with:
           project_id: ${{ env.FIREBASE_PROJECT_ID }}
           credentials_json: ${{ secrets.FIREBASE_SERVICE_ACCOUNT_JSON }}
 
       - name: Provision changed notification content
-        if: steps.changes.outputs.content_required == 'true'
+        if: needs.notification_backend_plan.outputs.content_required == 'true'
         run: npm --prefix functions run provision:notifications -- --project "$FIREBASE_PROJECT_ID"
 
       - name: Install Firebase CLI
-        if: steps.changes.outputs.functions_required == 'true'
+        if: needs.notification_backend_plan.outputs.functions_required == 'true'
         run: npm install --global firebase-tools@15.29.0
 
       - name: Deploy Functions to mezilondb
-        if: steps.changes.outputs.functions_required == 'true'
+        if: needs.notification_backend_plan.outputs.functions_required == 'true'
         # firebase.json builds TypeScript via predeploy. No --force: unexpected
         # function deletions must fail for review instead of being auto-approved.
         run: firebase deploy --only functions --project "$FIREBASE_PROJECT_ID" --non-interactive
+
+  notification_backend_gate:
+    name: Verify notification backend release
+    runs-on: ubuntu-latest
+    needs: [notification_backend_plan, notification_backend_release]
+    if: >-
+      always() &&
+      github.event_name == 'push' &&
+      github.ref == 'refs/heads/main'
+    steps:
+      - name: Verify required backend work completed
+        env:
+          PLAN_RESULT: ${{ needs.notification_backend_plan.result }}
+          RELEASE_REQUIRED: ${{ needs.notification_backend_plan.outputs.required }}
+          RELEASE_RESULT: ${{ needs.notification_backend_release.result }}
+        run: |
+          if [ "$PLAN_RESULT" != "success" ]; then
+            echo "::error::Notification backend change detection did not succeed."
+            exit 1
+          fi
+          if [ "$RELEASE_REQUIRED" = "true" ] && [ "$RELEASE_RESULT" != "success" ]; then
+            echo "::error::Required notification backend release did not succeed."
+            exit 1
+          fi
+          if [ "$RELEASE_REQUIRED" != "true" ] && [ "$RELEASE_RESULT" != "skipped" ]; then
+            echo "::error::Unexpected notification backend release result."
+            exit 1
+          fi
   # END NOTIFICATION BACKEND RELEASE
 
   release-android-internal:
@@ -1205,7 +1257,7 @@ jobs:
         coverage-aggregate,
         functions-test,
         integration-test-ios,
-        notification-backend-release,
+        notification_backend_gate,
       ]
     if: github.event_name == 'push' && github.ref == 'refs/heads/main'
     concurrency:
@@ -1230,7 +1282,7 @@ jobs:
 
   build-web:
     runs-on: ubuntu-latest
-    needs: [notification-backend-release]
+    needs: [notification_backend_gate]
     if: github.ref == 'refs/heads/main'
     env:
       FIREBASE_OPTIONS_PATH: lib/util/Firebase/firebase_options.dart

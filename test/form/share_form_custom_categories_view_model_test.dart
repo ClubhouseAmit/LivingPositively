@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:convert';
 
 import 'package:flutter/widgets.dart';
@@ -20,6 +21,28 @@ final class _RecordingIncidentLogger implements IncidentLoggerService {
     dynamic exceptionData,
   }) async {
     errors.add(exception as Object);
+  }
+
+  @override
+  Future<void> initializeSentry(Widget myApp) async {}
+}
+
+final class _GatedIncidentLogger implements IncidentLoggerService {
+  final Completer<void> firstReportStarted = Completer<void>();
+  final Completer<void> releaseFirstReport = Completer<void>();
+  final List<Object> errors = <Object>[];
+
+  @override
+  Future<void> captureLog(
+    dynamic exception, {
+    StackTrace? stackTrace,
+    dynamic exceptionData,
+  }) async {
+    errors.add(exception as Object);
+    if (errors.length == 1) {
+      firstReportStarted.complete();
+      await releaseFirstReport.future;
+    }
   }
 
   @override
@@ -126,5 +149,71 @@ void main() {
         );
       },
     );
+
+    test(
+      'should keep newer ready state when stale failure reporting finishes',
+      () async {
+        final memory = ContractPersistentMemoryService();
+        final incidentLogger = _GatedIncidentLogger();
+        var rejectOldSnapshot = true;
+        memory.onPersist = (key, type, value) {
+          if (key == customCategoriesKey && rejectOldSnapshot) {
+            throw StateError('old save failed');
+          }
+        };
+        final userInformation = UserInformation(service: memory);
+        final viewModel = ShareFormCustomCategoriesViewModel(
+          userInformation: userInformation,
+          incidentLogger: incidentLogger,
+        );
+        addTearDown(viewModel.dispose);
+
+        final oldSave = viewModel.save(const [MapEntry('Old', 'Failed')]);
+        await incidentLogger.firstReportStarted.future;
+
+        rejectOldSnapshot = false;
+        await viewModel.save(const [MapEntry('New', 'Saved')]);
+        expect(viewModel.state, isA<ShareFormCustomCategoriesReady>());
+        expect(_pairs(viewModel.state.categories), [('New', 'Saved')]);
+
+        incidentLogger.releaseFirstReport.complete();
+        await oldSave;
+
+        expect(incidentLogger.errors, hasLength(1));
+        expect(viewModel.state, isA<ShareFormCustomCategoriesReady>());
+        expect(_pairs(viewModel.state.categories), [('New', 'Saved')]);
+      },
+    );
+
+    test('should drain an accepted save before closing', () async {
+      final saveStarted = Completer<void>();
+      final releaseSave = Completer<void>();
+      final memory = ContractPersistentMemoryService();
+      memory.onPersist = (key, type, value) async {
+        if (key == customCategoriesKey) {
+          saveStarted.complete();
+          await releaseSave.future;
+        }
+      };
+      final userInformation = UserInformation(service: memory);
+      final viewModel = ShareFormCustomCategoriesViewModel(
+        userInformation: userInformation,
+      );
+
+      final save = viewModel.save(const [MapEntry('Pending', 'Snapshot')]);
+      await saveStarted.future;
+      var closeCompleted = false;
+      final close = viewModel.close().then((_) => closeCompleted = true);
+      await Future<void>.delayed(Duration.zero);
+      expect(closeCompleted, isFalse);
+
+      releaseSave.complete();
+      await Future.wait<void>([save, close]);
+      expect(closeCompleted, isTrue);
+
+      final attemptedWriteCount = memory.attemptedWrites.length;
+      await viewModel.save(const [MapEntry('Ignored', 'After close')]);
+      expect(memory.attemptedWrites, hasLength(attemptedWriteCount));
+    });
   });
 }

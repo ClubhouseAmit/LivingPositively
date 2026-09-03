@@ -35,6 +35,9 @@ function runGit(argumentsList, workingDirectory) {
 }
 
 function deploymentWorkflowBlock(source) {
+  const startCount = source.split(deploymentBlockStart).length - 1;
+  const endCount = source.split(deploymentBlockEnd).length - 1;
+  if (startCount !== 1 || endCount !== 1) return undefined;
   const start = source.indexOf(deploymentBlockStart);
   const end = source.indexOf(deploymentBlockEnd);
   if (start < 0 || end < start) return undefined;
@@ -51,7 +54,7 @@ function isFunctionsRuntimeFile(path) {
 
 function changedFiles(baseCommitSha, currentCommitSha, workingDirectory) {
   return runGit([
-    'diff', '--name-only', '--diff-filter=ACDMRTUXB',
+    'diff', '--name-only', '--no-renames', '--diff-filter=ACDMRTUXB',
     baseCommitSha, currentCommitSha,
   ], workingDirectory).split(/\r?\n/).filter(Boolean);
 }
@@ -68,8 +71,28 @@ function workflowDeploymentChanged(baseCommitSha, workingDirectory) {
   const currentWorkflow = readFileSync(
     join(workingDirectory, workflowPath), 'utf8',
   );
-  return deploymentWorkflowBlock(previousWorkflow) !==
-    deploymentWorkflowBlock(currentWorkflow);
+  const previousBlock = deploymentWorkflowBlock(previousWorkflow);
+  const currentBlock = deploymentWorkflowBlock(currentWorkflow);
+  return previousBlock === undefined || currentBlock === undefined ||
+    previousBlock !== currentBlock;
+}
+
+function conservativePlan(reason) {
+  return {
+    functionsRequired: true,
+    contentRequired: true,
+    reason,
+  };
+}
+
+function isValidWorkflowRun(run) {
+  return run !== null && typeof run === 'object' &&
+    typeof run.event === 'string' &&
+    typeof run.head_branch === 'string' &&
+    typeof run.status === 'string' &&
+    (run.conclusion === null || typeof run.conclusion === 'string') &&
+    Number.isSafeInteger(run.run_number) && run.run_number > 0 &&
+    typeof run.head_sha === 'string' && commitPattern.test(run.head_sha);
 }
 
 export function functionsDeploymentPlan(
@@ -81,6 +104,9 @@ export function functionsDeploymentPlan(
       typeof currentCommitSha !== 'string' ||
       !commitPattern.test(currentCommitSha)) {
     throw new Error('Invalid workflow history or current run metadata.');
+  }
+  if (workflowRuns.some((run) => !isValidWorkflowRun(run))) {
+    return conservativePlan('Workflow history contains malformed entries.');
   }
 
   // Comparing only event.before would lose backend changes when that run
@@ -94,11 +120,7 @@ export function functionsDeploymentPlan(
     .sort((left, right) => right.run_number - left.run_number)[0];
 
   if (!baseline) {
-    return {
-      functionsRequired: true,
-      contentRequired: true,
-      reason: 'No previous successful main run.',
-    };
+    return conservativePlan('No previous successful main run.');
   }
 
   const baseCommitSha = baseline.head_sha;
@@ -108,11 +130,9 @@ export function functionsDeploymentPlan(
   );
   if (ancestorCheckResult.error) throw ancestorCheckResult.error;
   if (ancestorCheckResult.status !== 0) {
-    return {
-      functionsRequired: true,
-      contentRequired: true,
-      reason: 'Previous successful revision is not an available ancestor.',
-    };
+    return conservativePlan(
+      'Previous successful revision is not an available ancestor.',
+    );
   }
 
   const paths = changedFiles(
