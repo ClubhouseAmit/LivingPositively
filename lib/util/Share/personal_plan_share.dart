@@ -74,6 +74,8 @@ Future<PersonalPlanExportSnapshot> preparePersonalPlanExportSnapshot({
 /// [memoryService] takes precedence over [UserInformation.service]. The selected
 /// service is an independent source. Its data is captured without staging model
 /// values into it. PDF generation consumes only that immutable capture.
+/// If neither source argument is supplied, this helper leaves data loading to
+/// [FileService] and does not resolve persistence from [GetIt].
 ///
 /// Preparation, metadata, or sharing failures are caught, logged via [IncidentLoggerService],
 /// and returned as `null` without throwing uncaught exceptions to callers.
@@ -105,10 +107,12 @@ Future<ShareResult?> sharePersonalPlanFile({
     final sanitizedTexts = Map<String, String>.unmodifiable(
       sanitizeSharePdfTexts(appInformation.sharePDFtexts, approvedHosts: hosts),
     );
-    final snapshot = await preparePersonalPlanExportSnapshot(
-      userInformation: userInformation,
-      memoryService: effectiveMemoryService,
-    );
+    final snapshot = effectiveMemoryService == null
+        ? null
+        : await preparePersonalPlanExportSnapshot(
+            userInformation: userInformation,
+            memoryService: effectiveMemoryService,
+          );
     return await service.share(
       message,
       exportMetadata.titles,

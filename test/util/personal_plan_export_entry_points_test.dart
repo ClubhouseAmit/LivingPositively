@@ -973,6 +973,96 @@ void main() {
   });
 
   group('sharePersonalPlanFile', () {
+    for (final persistenceRegistered in [false, true]) {
+      test(
+        'should share with only an injected FileService when persistence is '
+        '${persistenceRegistered ? 'registered but unrequested' : 'unregistered'}',
+        () async {
+          await locator.unregister<FileService>();
+          var unexpectedReads = 0;
+          memoryService.onRead = (_, _) {
+            unexpectedReads++;
+            throw StateError('Unrequested persistence read');
+          };
+          if (!persistenceRegistered) {
+            await locator.unregister<PersistentMemoryService>();
+          }
+          final locale = await AppLocalizations.delegate.load(
+            const Locale('en'),
+          );
+
+          final result = await sharePersonalPlanFile(
+            message: 'plan',
+            appLocale: locale,
+            gender: 'male',
+            username: 'User',
+            appInformation: appInformation,
+            fileService: fileService,
+          );
+
+          expect(result?.status, ShareResultStatus.success);
+          expect(fileService.callLog, ['share']);
+          expect(fileService.lastMemoryService, isNull);
+          expect(fileService.lastSnapshot, isNull);
+          expect(unexpectedReads, 0);
+          expect(memoryService.writeLog, isEmpty);
+          expect(loggerService.capturedLogs, isEmpty);
+        },
+      );
+    }
+
+    test(
+      'should use the registered FileService without a requested source',
+      () async {
+        await locator.unregister<PersistentMemoryService>();
+        final locale = await AppLocalizations.delegate.load(const Locale('en'));
+
+        final result = await sharePersonalPlanFile(
+          message: 'plan',
+          appLocale: locale,
+          gender: 'male',
+          username: 'User',
+          appInformation: appInformation,
+        );
+
+        expect(result?.status, ShareResultStatus.success);
+        expect(fileService.callLog, ['share']);
+        expect(fileService.lastMemoryService, isNull);
+        expect(fileService.lastSnapshot, isNull);
+        expect(loggerService.capturedLogs, isEmpty);
+      },
+    );
+
+    test(
+      'should capture an explicitly supplied source without locator persistence',
+      () async {
+        await locator.unregister<PersistentMemoryService>();
+        memoryService.store['userSelectionPersonalPlan-DreamsAndGoals'] = [
+          'Explicit source goal',
+        ];
+        final locale = await AppLocalizations.delegate.load(const Locale('en'));
+
+        final result = await sharePersonalPlanFile(
+          message: 'plan',
+          appLocale: locale,
+          gender: 'male',
+          username: 'User',
+          appInformation: appInformation,
+          fileService: fileService,
+          memoryService: memoryService,
+        );
+
+        expect(result?.status, ShareResultStatus.success);
+        expect(fileService.callLog, ['share']);
+        expect(fileService.lastMemoryService, same(memoryService));
+        expect(fileService.lastSnapshot?.data['DreamsAndGoals'], [
+          'Explicit source goal',
+        ]);
+        expect(memoryService.writeLog, isEmpty);
+        expect(loggerService.capturedLogs, isEmpty);
+      },
+    );
+
     for (final action in ['share', 'download']) {
       test(
         'should freeze the $action payload before delayed rendering',
