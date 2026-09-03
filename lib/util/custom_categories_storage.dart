@@ -25,7 +25,11 @@ String _encodeCustomCategories(List<MapEntry<String, String>> categories) =>
 
 List<MapEntry<String, String>> _decodeCustomCategories(String rawJson) {
   final decoded = jsonDecode(rawJson);
-  if (decoded is! List) return const [];
+  if (decoded is! List) {
+    throw const FormatException(
+      'Custom category snapshot must contain a JSON list.',
+    );
+  }
   final entries = <MapEntry<String, String>>[];
   for (final item in decoded) {
     if (item is Map) {

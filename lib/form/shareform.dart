@@ -150,36 +150,60 @@ class _ShareFormState extends WizardStepState<ShareForm> {
     super.dispose();
   }
 
-  Future<void> _persistCustomCategoriesSafely(
+  Future<void> _persistCustomCategories(
     List<MapEntry<String, String>> categories,
   ) async {
+    final userInformation = _userInformation;
+    if (userInformation == null) {
+      throw StateError('User information is unavailable.');
+    }
+    await userInformation.saveCustomCategories(
+      categories: categories,
+      memoryService: widget.memoryService,
+    );
+  }
+
+  Future<void> _persistCustomCategoriesSafely(
+    List<MapEntry<String, String>> categories, {
+    VoidCallback? onSuccess,
+  }) {
+    return _persistCustomCategoriesWithRetry(categories, onSuccess: onSuccess);
+  }
+
+  Future<void> _persistCustomCategoriesWithRetry(
+    List<MapEntry<String, String>> categories, {
+    VoidCallback? onSuccess,
+  }) async {
     try {
-      final userInformation = _userInformation;
-      if (userInformation != null) {
-        await userInformation.saveCustomCategories(
-          categories: categories,
-          memoryService: widget.memoryService,
-        );
-      }
+      await _persistCustomCategories(categories);
+      if (mounted) onSuccess?.call();
     } catch (error, stackTrace) {
       await _captureDreamsAndGoalsFailure(error, stackTrace);
       if (mounted) {
-        _showCustomCategorySaveFailure(categories);
+        showPersistenceRetrySnackBar(
+          context,
+          () => _retryCustomCategoriesSave(categories, onSuccess: onSuccess),
+        );
       }
     }
   }
 
-  void _showCustomCategorySaveFailure(
-    List<MapEntry<String, String>> categories,
-  ) {
-    showPersistenceRetrySnackBar(
-      context,
-      () => _persistCustomCategoriesSafely(categories),
-    );
-  }
-
-  List<String> predefinedCategoryTitles() {
-    return localizedCustomCategoryTitles(appLocale);
+  Future<void> _retryCustomCategoriesSave(
+    List<MapEntry<String, String>> categories, {
+    VoidCallback? onSuccess,
+  }) async {
+    try {
+      await _persistCustomCategories(categories);
+      if (mounted) onSuccess?.call();
+    } catch (error, stackTrace) {
+      await _captureDreamsAndGoalsFailure(error, stackTrace);
+      if (mounted) {
+        showPersistenceRetrySnackBar(
+          context,
+          () => _retryCustomCategoriesSave(categories, onSuccess: onSuccess),
+        );
+      }
+    }
   }
 
   void resetCustomCategoryForm() {
@@ -217,17 +241,21 @@ class _ShareFormState extends WizardStepState<ShareForm> {
 
     final updated = List<MapEntry<String, String>>.from(categories)
       ..removeAt(index);
-    setState(() {
-      if (_editingCustomCategoryIndex == index) {
-        resetCustomCategoryForm();
-        _isAddingCustomCategory = false;
-      } else if (_editingCustomCategoryIndex != null &&
-          _editingCustomCategoryIndex! > index) {
-        _editingCustomCategoryIndex = _editingCustomCategoryIndex! - 1;
-      }
-    });
-
-    await _persistCustomCategoriesSafely(updated);
+    await _persistCustomCategoriesSafely(
+      updated,
+      onSuccess: () {
+        if (!mounted) return;
+        setState(() {
+          if (_editingCustomCategoryIndex == index) {
+            resetCustomCategoryForm();
+            _isAddingCustomCategory = false;
+          } else if (_editingCustomCategoryIndex != null &&
+              _editingCustomCategoryIndex! > index) {
+            _editingCustomCategoryIndex = _editingCustomCategoryIndex! - 1;
+          }
+        });
+      },
+    );
   }
 
   Widget buildCustomCategoryForm(BuildContext context) {
@@ -244,7 +272,7 @@ class _ShareFormState extends WizardStepState<ShareForm> {
         'share-custom-category-editor-$_customCategoryFormGeneration',
       ),
       initialCategory: initialCategory,
-      predefinedTitles: predefinedCategoryTitles(),
+      predefinedTitles: localizedCustomCategoryTitles(appLocale),
       optionsViewOpenDirection: OptionsViewOpenDirection.up,
       saveLabel: appLocale.sharePageSaveCustomCategory,
       onCancel: () {
@@ -262,11 +290,16 @@ class _ShareFormState extends WizardStepState<ShareForm> {
         } else {
           updated.add(category);
         }
-        setState(() {
-          resetCustomCategoryForm();
-          _isAddingCustomCategory = false;
-        });
-        await _persistCustomCategoriesSafely(updated);
+        await _persistCustomCategoriesSafely(
+          updated,
+          onSuccess: () {
+            if (!mounted) return;
+            setState(() {
+              resetCustomCategoryForm();
+              _isAddingCustomCategory = false;
+            });
+          },
+        );
       },
     );
   }

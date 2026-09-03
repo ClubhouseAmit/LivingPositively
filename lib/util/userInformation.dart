@@ -42,6 +42,7 @@ class UserInformation with ChangeNotifier {
   PersistentMemoryService service; // Get the persistent memory service instance
   Future<void> _pendingDreamsAndGoalsSave = Future<void>.value();
   Future<void> _pendingCustomCategoriesSave = Future<void>.value();
+  List<MapEntry<String, String>> _pendingCustomCategoriesSnapshot = const [];
   bool _customCategoriesSaveInProgress = false;
   int _dreamsAndGoalsSaveRevision = 0;
   int _customCategoriesSaveRevision = 0;
@@ -130,7 +131,8 @@ class UserInformation with ChangeNotifier {
 
   /// Persists [categories] (or current [customCategories]) into [memoryService]
   /// (or the default [service]). Saves are queued in order and the latest
-  /// revision remains retryable if an earlier mirror write fails.
+  /// revision remains retryable if an earlier mirror write fails. The model is
+  /// updated only after the complete queued snapshot succeeds.
   Future<void> saveCustomCategories({
     List<MapEntry<String, String>>? categories,
     PersistentMemoryService? memoryService,
@@ -138,15 +140,19 @@ class UserInformation with ChangeNotifier {
     final effectiveMemoryService = memoryService ?? service;
     final toSave = categories ?? customCategories;
     final sanitized = sanitizeAndFilterCustomCategoryEntries(toSave);
-    customCategories = List<MapEntry<String, String>>.unmodifiable(sanitized);
     _customCategoriesSaveRevision++;
-    notifyListeners();
+    final saveRevision = _customCategoriesSaveRevision;
 
     final nextSave = _queueCustomCategoriesSave(
       sanitized,
       memoryService: effectiveMemoryService,
     );
     await nextSave;
+    if (saveRevision != _customCategoriesSaveRevision) {
+      return;
+    }
+    customCategories = List<MapEntry<String, String>>.unmodifiable(sanitized);
+    notifyListeners();
   }
 
   Future<void> _queueCustomCategoriesSave(
@@ -156,6 +162,7 @@ class UserInformation with ChangeNotifier {
     final snapshot = List<MapEntry<String, String>>.unmodifiable(
       sanitizeAndFilterCustomCategoryEntries(categories),
     );
+    _pendingCustomCategoriesSnapshot = snapshot;
     if (!_customCategoriesSaveInProgress) {
       _customCategoriesSaveInProgress = true;
       final nextSave = _writeCustomCategoriesSnapshot(
@@ -219,9 +226,15 @@ class UserInformation with ChangeNotifier {
       return _pendingCustomCategoriesSave;
     }
     return _queueCustomCategoriesSave(
-      customCategories,
+      _pendingCustomCategoriesSnapshot,
       memoryService: memoryService ?? service,
-    );
+    ).then((_) {
+      if (revision != _customCategoriesSaveRevision) return;
+      customCategories = List<MapEntry<String, String>>.unmodifiable(
+        _pendingCustomCategoriesSnapshot,
+      );
+      notifyListeners();
+    });
   }
 
   /// Clears user state and persists the empty Dreams and Goals snapshot.

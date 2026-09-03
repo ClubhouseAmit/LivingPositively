@@ -46,7 +46,7 @@ class _FakeMemoryService implements PersistentMemoryService {
   final Map<String, dynamic> store;
   final List<_WriteRecord> writes = [];
   final Set<String>? allowedKeys;
-  final String? failKey;
+  String? failKey;
 
   _FakeMemoryService({
     Map<String, dynamic>? initialStore,
@@ -182,6 +182,33 @@ void main() {
         expect(_toPairs(result), [
           ['Legacy Title 1', 'Legacy Desc 1'],
         ]);
+      },
+    );
+
+    test(
+      'falls back to legacy categories for non-list canonical JSON',
+      () async {
+        for (final invalidSnapshot in const ['null', '{}']) {
+          final fake = _FakeMemoryService(
+            initialStore: {
+              customCategoriesKey: invalidSnapshot,
+              customCategoryTitlesKey: ['Legacy title'],
+              customCategoryDescriptionsKey: ['Legacy description'],
+            },
+          );
+
+          final result = await loadCustomCategoriesFromStorage(
+            memoryService: fake,
+          );
+
+          expect(
+            _toPairs(result),
+            [
+              ['Legacy title', 'Legacy description'],
+            ],
+            reason: 'invalid canonical snapshot: $invalidSnapshot',
+          );
+        }
       },
     );
 
@@ -423,6 +450,46 @@ void main() {
         ]);
         expect(user.customCategories.single.key, 'Second');
         expect(user.customCategoriesSaveRevision, 2);
+      },
+    );
+
+    test(
+      'keeps the committed model until a failed category save is retried',
+      () async {
+        final memory = _FakeMemoryService(
+          allowedKeys: {
+            customCategoriesKey,
+            customCategoryTitlesKey,
+            customCategoryDescriptionsKey,
+            customCategoriesLegacyCommitKey,
+          },
+          failKey: customCategoryTitlesKey,
+        );
+        final user = UserInformation(
+          service: memory,
+          customCategories: const [
+            MapEntry('Committed title', 'Committed description'),
+          ],
+        );
+
+        await expectLater(
+          user.saveCustomCategories(
+            categories: const [
+              MapEntry('Pending title', 'Pending description'),
+            ],
+          ),
+          throwsA(isA<StateError>()),
+        );
+        expect(_toPairs(user.customCategories), [
+          ['Committed title', 'Committed description'],
+        ]);
+
+        memory.failKey = null;
+        await user.retryCustomCategoriesSave(user.customCategoriesSaveRevision);
+
+        expect(_toPairs(user.customCategories), [
+          ['Pending title', 'Pending description'],
+        ]);
       },
     );
   });

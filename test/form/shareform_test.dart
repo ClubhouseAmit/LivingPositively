@@ -571,6 +571,17 @@ void main() {
           find.widgetWithText(SnackBarAction, 'Try again'),
           findsOneWidget,
         );
+        expect(find.byKey(const Key('custom-category-editor')), findsOneWidget);
+        expect(
+          tester
+              .widget<TextField>(
+                find.byKey(const Key('custom-category-title-field')),
+              )
+              .controller
+              ?.text,
+          'My category',
+        );
+        expect(mockUserInformation.customCategories, isEmpty);
         expect(tester.takeException(), isNull);
 
         rejectTitleWrite = false;
@@ -586,6 +597,9 @@ void main() {
         );
         await tester.pumpAndSettle();
 
+        expect(find.byKey(const Key('custom-category-editor')), findsNothing);
+        expect(find.text('My category'), findsOneWidget);
+        expect(find.text('My description'), findsOneWidget);
         verify(
           mockPersistentMemoryService.setItem(
             'customCategoryTitles',
