@@ -1182,11 +1182,9 @@ jobs:
       - name: Check deployment credential configuration
         env:
           FIREBASE_SERVICE_ACCOUNT_JSON: ${{ secrets.FIREBASE_SERVICE_ACCOUNT_JSON }}
-        run: |
-          if [ -z "$FIREBASE_SERVICE_ACCOUNT_JSON" ]; then
-            echo "::error::Set FIREBASE_SERVICE_ACCOUNT_JSON in the firebase-production environment after completing docs/deployment-guide.md."
-            exit 1
-          fi
+          FUNCTIONS_RELEASE_REQUIRED: ${{ needs.notification_backend_plan.outputs.functions_required }}
+          NOTIFICATION_MUTATION_FENCE_CLIENT_ROLLOUT_APPROVED: ${{ vars.NOTIFICATION_MUTATION_FENCE_CLIENT_ROLLOUT_APPROVED }}
+        run: node scripts/validate_firebase_deployment_config.mjs
 
       - name: Install Functions dependencies
         run: npm --prefix functions ci

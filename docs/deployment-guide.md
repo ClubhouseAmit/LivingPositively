@@ -81,11 +81,14 @@ ticket. The repository does not verify these external settings for you.
   IDs or changing just the bundle-ID string.
 - [ ] Record whether any already-distributed clients call the remote reminder
   APIs without `expectedMutationVersion`. If so, obtain an approved rollout
-  for compatible clients/minimum versions before deploying the fence: those requests
-  can receive HTTP 409 once mutation state exists. No minimum-client-version
-  deployment gate is implemented in this repository. If this is the first
-  remote-reminder release, record that evidence instead of inventing an old
-  remote-client population.
+  for compatible clients/minimum versions before deploying the fence: those
+  requests can receive HTTP 409 once mutation state exists. If this is the
+  first remote-reminder release, record that evidence instead of inventing an
+  old remote-client population. Only after that evidence is approved, set the
+  protected `firebase-production` environment variable
+  `NOTIFICATION_MUTATION_FENCE_CLIENT_ROLLOUT_APPROVED` to exactly `true`.
+  Functions releases fail closed while this value is unset or has any other
+  value; content-only provisioning does not require it.
 - [ ] Assign an operator to scheduler/error monitoring and confirm the rollback
   procedure before making the scheduled function live.
 
@@ -154,6 +157,14 @@ on `firebase-production`. Do not commit the key, place it in workflow YAML, or
 store it as a repository variable. Restrict access to the environment and rotate
 the key immediately if it is exposed.
 
+The release validates that the secret is parseable service-account JSON for
+`mezilondb` and contains the required identity and private-key fields without
+printing credential contents. A Functions release separately requires the
+protected environment variable
+`NOTIFICATION_MUTATION_FENCE_CLIENT_ROLLOUT_APPROVED=true`; configure it only
+after the compatible-client or first-remote-release evidence in section 2 is
+approved.
+
 The pinned Google authentication action writes an ephemeral credentials file
 for the job and exposes Application Default Credentials to both the Admin SDK
 provisioner and Firebase CLI. The credentials file is removed by the action's
@@ -217,7 +228,8 @@ current exports are `registerNotification`, `cancelNotification`,
 `getNotificationMutationVersion`, and `processScheduledNotifications`.
 The scheduled function runs every minute with a 300-second timeout and 512 MiB
 memory. **Treat deployment as making it live**: there is no repository rollout
-flag that keeps it disabled pending mobile promotion.
+flag that keeps it disabled after deployment. The compatibility gate above is
+therefore a pre-deployment requirement, not a runtime kill switch.
 
 Content provisioning is deliberately part of this protected release job because
 the mobile/web artifacts consume that content. Configure a required reviewer on
