@@ -130,7 +130,7 @@ run evidence, not a green run from an earlier commit.
 
 ## 4. Configure notification backend CI and content provisioning
 
-### One-time Workload Identity Federation setup
+### One-time service-account credential setup
 
 After completing section 2, configure the GitHub environment
 `firebase-production` under repository Settings → Environments. Restrict its
@@ -144,23 +144,22 @@ Firebase documents Cloud Functions Admin and Service Account User for deployment
 the owner must also verify the target project's API, build, and second-generation
 Cloud Run/Scheduler permissions. See [Firebase deployment IAM](https://firebase.google.com/docs/projects/iam/permissions#cloud-functions-for-firebase-permissions).
 
-Create a Google Cloud Workload Identity Pool/provider for GitHub Actions and
-allow only this repository and the `main` branch to impersonate that deployment
-service account. Do not create or upload a long-lived service-account key. Set
-these GitHub environment variables on `firebase-production`:
+Create a JSON key for that dedicated deployment service account and store the
+entire JSON document as the `FIREBASE_SERVICE_ACCOUNT_JSON` environment secret
+on `firebase-production`. Do not commit the key, place it in workflow YAML, or
+store it as a repository variable. Restrict access to the environment and rotate
+the key immediately if it is exposed.
 
-- `GCP_WORKLOAD_IDENTITY_PROVIDER`: the full provider resource name, for example
-  `projects/123456789/locations/global/workloadIdentityPools/github/providers/living-positively`.
-- `FIREBASE_DEPLOY_SERVICE_ACCOUNT`: the deployment service-account email.
+The pinned Google authentication action writes an ephemeral credentials file
+for the job and exposes Application Default Credentials to both the Admin SDK
+provisioner and Firebase CLI. The credentials file is removed by the action's
+post-job cleanup. This follows the CLI's [CI authentication mechanism](https://firebase.google.com/docs/cli#cli-ci-systems).
 
-The pinned Google authentication action exchanges GitHub's short-lived OIDC
-token for temporary Google credentials used by both the Admin SDK provisioner
-and Firebase CLI. This follows the CLI's [CI authentication mechanism](https://firebase.google.com/docs/cli#cli-ci-systems).
-
-Missing or invalid Workload Identity configuration fails a related backend
-release with an explicit setup message; it is not treated as success. Adding
-this workflow does not create IAM resources, configure production rules/TTL,
-or seed Firestore. Complete that setup before the first related merge to `main`.
+A missing or invalid `FIREBASE_SERVICE_ACCOUNT_JSON` secret fails a related
+backend release with an explicit setup message; it is not treated as success.
+Adding this workflow does not create IAM resources, configure production
+rules/TTL, or seed Firestore. Complete that setup before the first related merge
+to `main`.
 
 ### Content provisioning and first rollout
 

@@ -1125,7 +1125,6 @@ jobs:
     permissions:
       contents: read
       actions: read
-      id-token: write
     environment: firebase-production
     env:
       FIREBASE_PROJECT_ID: mezilondb
@@ -1152,14 +1151,13 @@ jobs:
             > "$RUNNER_TEMP/functions-successful-runs.json"
           node scripts/functions_deployment_changes.mjs "$RUNNER_TEMP/functions-successful-runs.json"
 
-      - name: Check Workload Identity configuration
+      - name: Check deployment credential configuration
         if: steps.changes.outputs.required == 'true'
         env:
-          WORKLOAD_IDENTITY_PROVIDER: ${{ vars.GCP_WORKLOAD_IDENTITY_PROVIDER }}
-          DEPLOY_SERVICE_ACCOUNT: ${{ vars.FIREBASE_DEPLOY_SERVICE_ACCOUNT }}
+          FIREBASE_SERVICE_ACCOUNT_JSON: ${{ secrets.FIREBASE_SERVICE_ACCOUNT_JSON }}
         run: |
-          if [ -z "$WORKLOAD_IDENTITY_PROVIDER" ] || [ -z "$DEPLOY_SERVICE_ACCOUNT" ]; then
-            echo "::error::Set GCP_WORKLOAD_IDENTITY_PROVIDER and FIREBASE_DEPLOY_SERVICE_ACCOUNT in the firebase-production environment after completing docs/deployment-guide.md."
+          if [ -z "$FIREBASE_SERVICE_ACCOUNT_JSON" ]; then
+            echo "::error::Set FIREBASE_SERVICE_ACCOUNT_JSON in the firebase-production environment after completing docs/deployment-guide.md."
             exit 1
           fi
 
@@ -1181,8 +1179,7 @@ jobs:
         uses: google-github-actions/auth@7c6bc770dae815cd3e89ee6cdf493a5fab2cc093 # v3
         with:
           project_id: ${{ env.FIREBASE_PROJECT_ID }}
-          workload_identity_provider: ${{ vars.GCP_WORKLOAD_IDENTITY_PROVIDER }}
-          service_account: ${{ vars.FIREBASE_DEPLOY_SERVICE_ACCOUNT }}
+          credentials_json: ${{ secrets.FIREBASE_SERVICE_ACCOUNT_JSON }}
 
       - name: Provision changed notification content
         if: steps.changes.outputs.content_required == 'true'
