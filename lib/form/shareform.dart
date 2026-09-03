@@ -7,11 +7,11 @@ import 'package:get_it/get_it.dart';
 
 import 'package:mazilon/file_service.dart';
 import 'package:mazilon/form/formpagetemplate.dart';
+import 'package:mazilon/form/share_form_custom_categories_view_model.dart';
 import 'package:mazilon/form/speech_dictation_suffix_action.dart';
 import 'package:mazilon/form/wizard_step.dart';
 import 'package:mazilon/l10n/app_localizations.dart';
 import 'package:mazilon/util/async/persistence_retry_snack_bar.dart';
-import 'package:mazilon/util/custom_categories_storage.dart';
 import 'package:mazilon/util/logger_service.dart';
 import 'package:mazilon/util/persistent_memory_service.dart';
 import 'package:mazilon/util/languages_util_functions.dart';
@@ -92,26 +92,12 @@ class _ShareFormState extends WizardStepState<ShareForm> {
   bool _showCustomCategoryValidation = false;
   int? _editingCustomCategoryIndex;
   int _customCategoryFormGeneration = 0;
-  List<MapEntry<String, String>>? _latestCustomCategoriesSnapshot;
-  List<MapEntry<String, String>> _alternateCustomCategories = const [];
+  ShareFormCustomCategoriesViewModel? _customCategoriesViewModel;
+  UserInformation? _customCategoriesUserInformation;
+  int _handledCustomCategoriesFailureEventId = 0;
 
-  List<MapEntry<String, String>> get _customCategories {
-    final user = _userInformation;
-    if (widget.memoryService != null &&
-        !identical(widget.memoryService, user?.service)) {
-      return _alternateCustomCategories;
-    }
-    return user?.customCategories ?? const [];
-  }
-
-  UserInformation? get _userInformation {
-    if (!mounted) return null;
-    try {
-      return Provider.of<UserInformation?>(context, listen: false);
-    } catch (_) {
-      return null;
-    }
-  }
+  List<MapEntry<String, String>> get _customCategories =>
+      _customCategoriesViewModel?.state.categories ?? const [];
 
   void setHasFilled() {
     unawaited(_setHasFilled());
@@ -142,80 +128,84 @@ class _ShareFormState extends WizardStepState<ShareForm> {
     super.initState();
     fileService = GetIt.instance<FileService>();
     setHasFilled();
+  }
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    final userInformation = Provider.of<UserInformation>(
+      context,
+      listen: false,
+    );
+    if (!identical(userInformation, _customCategoriesUserInformation)) {
+      _replaceCustomCategoriesViewModel(userInformation);
+    }
+  }
+
+  @override
+  void didUpdateWidget(covariant ShareForm oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (!identical(oldWidget.memoryService, widget.memoryService)) {
+      _replaceCustomCategoriesViewModel(
+        Provider.of<UserInformation>(context, listen: false),
+      );
+    }
+  }
+
+  void _replaceCustomCategoriesViewModel(UserInformation userInformation) {
+    final previousViewModel = _customCategoriesViewModel;
+    previousViewModel?.removeListener(_onCustomCategoriesStateChanged);
+    previousViewModel?.dispose();
+
+    final incidentLogger = GetIt.instance.isRegistered<IncidentLoggerService>()
+        ? GetIt.instance<IncidentLoggerService>()
+        : null;
+    final viewModel = ShareFormCustomCategoriesViewModel(
+      userInformation: userInformation,
+      memoryService: widget.memoryService,
+      incidentLogger: incidentLogger,
+    );
+    _customCategoriesUserInformation = userInformation;
+    _customCategoriesViewModel = viewModel;
+    viewModel.addListener(_onCustomCategoriesStateChanged);
     WidgetsBinding.instance.addPostFrameCallback((_) {
-      if (mounted) {
-        unawaited(_loadCustomCategories());
+      if (mounted && identical(viewModel, _customCategoriesViewModel)) {
+        unawaited(viewModel.load());
       }
     });
   }
 
-  Future<void> _loadCustomCategories() async {
-    final userInformation = _userInformation;
-    if (userInformation == null) return;
-    final source = widget.memoryService;
-    final latestSave = _latestCustomCategoriesSnapshot;
-    try {
-      final loaded = await userInformation.loadCustomCategories(
-        memoryService: source,
-      );
-      if (mounted &&
-          source != null &&
-          !identical(source, userInformation.service) &&
-          identical(source, widget.memoryService) &&
-          identical(latestSave, _latestCustomCategoriesSnapshot)) {
-        setState(() => _alternateCustomCategories = loaded);
-      }
-    } catch (error, stackTrace) {
-      await _captureDreamsAndGoalsFailure(error, stackTrace);
+  void _onCustomCategoriesStateChanged() {
+    if (!mounted) {
+      return;
+    }
+    setState(() {});
+    final state = _customCategoriesViewModel?.state;
+    if (state case ShareFormCustomCategoriesSaveFailure(
+      :final eventId,
+    ) when eventId > _handledCustomCategoriesFailureEventId) {
+      _handledCustomCategoriesFailureEventId = eventId;
+      _showCustomCategorySaveFailure();
     }
   }
 
   @override
   void dispose() {
+    _customCategoriesViewModel?.removeListener(_onCustomCategoriesStateChanged);
+    _customCategoriesViewModel?.dispose();
     _customCategoryTitleController.dispose();
     _customCategoryDescriptionController.dispose();
     _customCategoryTitleFocusNode.dispose();
     super.dispose();
   }
 
-  Future<void> _persistCustomCategoriesSafely(
+  Future<void> _saveCustomCategories(
     List<MapEntry<String, String>> categories,
-  ) async {
-    final snapshot = List<MapEntry<String, String>>.unmodifiable(
-      sanitizeAndFilterCustomCategoryEntries(categories),
-    );
-    _latestCustomCategoriesSnapshot = snapshot;
-    final source = widget.memoryService;
-    try {
-      final userInformation = _userInformation;
-      if (userInformation != null) {
-        await userInformation.saveCustomCategories(
-          categories: snapshot,
-          memoryService: source,
-        );
-        if (mounted &&
-            source != null &&
-            !identical(source, userInformation.service) &&
-            identical(source, widget.memoryService) &&
-            identical(snapshot, _latestCustomCategoriesSnapshot)) {
-          setState(() => _alternateCustomCategories = snapshot);
-        }
-      }
-    } catch (error, stackTrace) {
-      await _captureDreamsAndGoalsFailure(error, stackTrace);
-      if (mounted) {
-        _showCustomCategorySaveFailure();
-      }
-    }
-  }
+  ) => _customCategoriesViewModel?.save(categories) ?? Future<void>.value();
 
   void _showCustomCategorySaveFailure() {
     showPersistenceRetrySnackBar(context, () async {
-      final categories = _latestCustomCategoriesSnapshot;
-      if (categories == null) {
-        return;
-      }
-      await _persistCustomCategoriesSafely(categories);
+      await _customCategoriesViewModel?.retryLatestSave();
     });
   }
 
@@ -288,7 +278,7 @@ class _ShareFormState extends WizardStepState<ShareForm> {
       }
     });
 
-    await _persistCustomCategoriesSafely(updated);
+    await _saveCustomCategories(updated);
   }
 
   Future<void> saveCustomCategory() async {
@@ -317,7 +307,7 @@ class _ShareFormState extends WizardStepState<ShareForm> {
       _isAddingCustomCategory = false;
     });
 
-    await _persistCustomCategoriesSafely(updated);
+    await _saveCustomCategories(updated);
   }
 
   String? _customCategoryValidationError(TextEditingController controller) {

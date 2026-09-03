@@ -1756,10 +1756,13 @@ void main() {
       expect(reportedErrors, hasLength(1));
       expect(reportedErrors.single.exception, isA<StateError>());
       expect(reportedErrors.single.stack, isNotNull);
-      expect(reportedErrors.single.library, 'ShareForm');
+      expect(
+        reportedErrors.single.library,
+        'ShareFormCustomCategoriesViewModel',
+      );
       expect(
         reportedErrors.single.context.toString(),
-        contains('while persisting ShareForm state'),
+        contains('while persisting custom categories'),
       );
     },
   );

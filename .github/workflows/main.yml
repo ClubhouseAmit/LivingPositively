@@ -1115,15 +1115,17 @@ jobs:
           name: coverage-aggregate-lcov
           path: coverage/aggregate.info
 
-  functions-deploy:
-    name: Deploy changed Cloud Functions
+  # BEGIN NOTIFICATION BACKEND RELEASE
+  notification-backend-release:
+    name: Release changed notification backend
     runs-on: ubuntu-latest
-    needs: [coverage-aggregate, functions-test, unit-test-web-telemetry]
+    needs: [coverage-aggregate, functions-test]
     if: github.event_name == 'push' && github.ref == 'refs/heads/main'
     timeout-minutes: 30
     permissions:
       contents: read
       actions: read
+      id-token: write
     environment: firebase-production
     env:
       FIREBASE_PROJECT_ID: mezilondb
@@ -1150,21 +1152,20 @@ jobs:
             > "$RUNNER_TEMP/functions-successful-runs.json"
           node scripts/functions_deployment_changes.mjs "$RUNNER_TEMP/functions-successful-runs.json"
 
-      - name: Check deployment credential configuration
+      - name: Check Workload Identity configuration
         if: steps.changes.outputs.required == 'true'
         env:
-          FIREBASE_SERVICE_ACCOUNT_JSON: ${{ secrets.FIREBASE_SERVICE_ACCOUNT_JSON }}
+          WORKLOAD_IDENTITY_PROVIDER: ${{ vars.GCP_WORKLOAD_IDENTITY_PROVIDER }}
+          DEPLOY_SERVICE_ACCOUNT: ${{ vars.FIREBASE_DEPLOY_SERVICE_ACCOUNT }}
         run: |
-          if [ -z "$FIREBASE_SERVICE_ACCOUNT_JSON" ]; then
-            echo "::error::Set FIREBASE_SERVICE_ACCOUNT_JSON in the firebase-production environment after completing the deployment prerequisites in docs/deployment-guide.md."
+          if [ -z "$WORKLOAD_IDENTITY_PROVIDER" ] || [ -z "$DEPLOY_SERVICE_ACCOUNT" ]; then
+            echo "::error::Set GCP_WORKLOAD_IDENTITY_PROVIDER and FIREBASE_DEPLOY_SERVICE_ACCOUNT in the firebase-production environment after completing docs/deployment-guide.md."
             exit 1
           fi
 
-      - name: Install Functions dependencies and Firebase CLI
+      - name: Install Functions dependencies
         if: steps.changes.outputs.required == 'true'
-        run: |
-          npm --prefix functions ci
-          npm install --global firebase-tools@15.29.0
+        run: npm --prefix functions ci
 
       - name: Reject deployment of a superseded main revision
         if: steps.changes.outputs.required == 'true'
@@ -1180,13 +1181,23 @@ jobs:
         uses: google-github-actions/auth@7c6bc770dae815cd3e89ee6cdf493a5fab2cc093 # v3
         with:
           project_id: ${{ env.FIREBASE_PROJECT_ID }}
-          credentials_json: ${{ secrets.FIREBASE_SERVICE_ACCOUNT_JSON }}
+          workload_identity_provider: ${{ vars.GCP_WORKLOAD_IDENTITY_PROVIDER }}
+          service_account: ${{ vars.FIREBASE_DEPLOY_SERVICE_ACCOUNT }}
+
+      - name: Provision changed notification content
+        if: steps.changes.outputs.content_required == 'true'
+        run: npm --prefix functions run provision:notifications -- --project "$FIREBASE_PROJECT_ID"
+
+      - name: Install Firebase CLI
+        if: steps.changes.outputs.functions_required == 'true'
+        run: npm install --global firebase-tools@15.29.0
 
       - name: Deploy Functions to mezilondb
-        if: steps.changes.outputs.required == 'true'
+        if: steps.changes.outputs.functions_required == 'true'
         # firebase.json builds TypeScript via predeploy. No --force: unexpected
         # function deletions must fail for review instead of being auto-approved.
         run: firebase deploy --only functions --project "$FIREBASE_PROJECT_ID" --non-interactive
+  # END NOTIFICATION BACKEND RELEASE
 
   release-android-internal:
     name: Release Android to Google Play internal testing
@@ -1197,7 +1208,7 @@ jobs:
         coverage-aggregate,
         functions-test,
         integration-test-ios,
-        functions-deploy,
+        notification-backend-release,
       ]
     if: github.event_name == 'push' && github.ref == 'refs/heads/main'
     concurrency:
@@ -1222,6 +1233,7 @@ jobs:
 
   build-web:
     runs-on: ubuntu-latest
+    needs: [notification-backend-release]
     if: github.ref == 'refs/heads/main'
     env:
       FIREBASE_OPTIONS_PATH: lib/util/Firebase/firebase_options.dart

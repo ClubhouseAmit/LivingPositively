@@ -15,28 +15,32 @@ The authoritative automation is [Build production artifacts](../.github/workflow
 
 | Component | Pull request targeting `main` | Push/merge to `main` |
 | --- | --- | --- |
-| Cloud Functions | Node 22 install, tests, production dependency audit | Deploy related changes to `mezilondb` after aggregate and web telemetry checks pass |
+| Notification backend | Node 22 install, tests, production dependency audit | Provision changed notification content and deploy changed Functions to `mezilondb` after the aggregate and Functions checks pass |
 | Android | Signed AAB artifact, unit and emulator checks | AAB published to Google Play **internal testing** after dependent gates and the Functions deployment job pass |
 | iOS | Simulator FCM integration test | Same test; **no signed IPA or App Store upload** |
 | Web | Development Azure static-site deployment when credentials are available | Production Azure static-site deployment |
 
-Merging is therefore a release action for changed Functions, Android internal
-testing, and the production website. The web jobs currently do not depend on
-the aggregate test gate. Do not merge expecting all deployments to wait for a later manual
-approval. Google Play production promotion and iOS distribution remain manual.
+Merging is therefore a release action for changed notification content or
+Functions, Android internal testing, and the production website. Android and
+production web wait for the notification-backend release job. Do not merge
+expecting all deployments to wait for a later manual approval unless the
+`firebase-production` environment has required reviewers. Google Play
+production promotion and iOS distribution remain manual.
 
-`functions-deploy` watches `functions/**`, `firebase.json`, `.firebaserc`,
-`.github/workflows/main.yml`, and the deployment detector and its tests in
-`scripts/`. It compares with the latest earlier successful `main` push run,
-including changes from intervening failed runs. When history is unavailable,
-it deploys conservatively. Documentation-only/app-only changes skip the deploy
-steps after a successful baseline; the job still succeeds so Android can proceed.
-PRs never receive deployment credentials or execute a deployment.
+`notification-backend-release` compares the selected revision with the latest
+earlier successful `main` push, including changes from intervening failed runs.
+Runtime source/configuration changes deploy Functions. Notification ARBs or
+provisioner changes run content provisioning. Test-only, documentation-only,
+and unrelated workflow changes do not release production backend code. Changes
+inside the workflow's marked notification-backend block do trigger a Functions
+deployment. When comparison history is unavailable, both operations run
+conservatively. PRs never receive deployment credentials or execute a release.
 
 The main workflow is serialized. A deployment also rejects a revision if
 `main` has already advanced, preventing an old rerun from rolling Functions
 back; use the newer main run in that case. Failure to fetch comparison history,
-authenticate, or deploy fails the job and blocks Android internal publishing.
+authenticate, provision, or deploy fails the job and blocks Android internal
+publishing and the production web release.
 
 ## 2. Complete the external prerequisites before rollout
 
@@ -116,15 +120,17 @@ node --test scripts/tests/functions_deployment_changes.test.mjs
 npm --prefix functions audit --omit=dev --audit-level=low
 ```
 
-Also require the selected revision's Android integration, iOS integration,
-web telemetry, and coverage-aggregate checks to pass. Local unit tests do not
-substitute for device/simulator checks. When `coverage-aggregate` fails because
-an upstream job failed, investigate that upstream job before changing coverage.
-Use current run evidence, not a green run from an earlier commit.
+Also review the selected revision's Android integration, iOS integration, web
+telemetry, and coverage-aggregate results. Web telemetry is intentionally
+observational (`continue-on-error`) and does not gate the backend release; the
+aggregate and Functions jobs do. Local unit tests do not substitute for
+device/simulator checks. When `coverage-aggregate` fails because an upstream
+job failed, investigate that upstream job before changing coverage. Use current
+run evidence, not a green run from an earlier commit.
 
-## 4. Configure Functions CI and provision content
+## 4. Configure notification backend CI and content provisioning
 
-### One-time CI credentials
+### One-time Workload Identity Federation setup
 
 After completing section 2, configure the GitHub environment
 `firebase-production` under repository Settings → Environments. Restrict its
@@ -138,25 +144,35 @@ Firebase documents Cloud Functions Admin and Service Account User for deployment
 the owner must also verify the target project's API, build, and second-generation
 Cloud Run/Scheduler permissions. See [Firebase deployment IAM](https://firebase.google.com/docs/projects/iam/permissions#cloud-functions-for-firebase-permissions).
 
-Store its service-account key JSON as the environment secret
-`FIREBASE_SERVICE_ACCOUNT_JSON` (raw JSON, **not base64**). This is separate from
-the Play publishing credential and `FIREBASE_OPTIONS`. Do not commit the key.
-The pinned Google authentication action creates temporary Application Default
-Credentials for the Firebase CLI and removes them after the job. This follows
-the CLI's [CI authentication mechanism](https://firebase.google.com/docs/cli#cli-ci-systems).
+Create a Google Cloud Workload Identity Pool/provider for GitHub Actions and
+allow only this repository and the `main` branch to impersonate that deployment
+service account. Do not create or upload a long-lived service-account key. Set
+these GitHub environment variables on `firebase-production`:
 
-Missing credentials fail related deployments with an explicit setup message;
-they are not treated as a successful release. Adding this workflow does not
-create IAM accounts/keys, configure production rules/TTL, or seed Firestore.
-Complete that setup before the first related merge to `main`.
+- `GCP_WORKLOAD_IDENTITY_PROVIDER`: the full provider resource name, for example
+  `projects/123456789/locations/global/workloadIdentityPools/github/providers/living-positively`.
+- `FIREBASE_DEPLOY_SERVICE_ACCOUNT`: the deployment service-account email.
+
+The pinned Google authentication action exchanges GitHub's short-lived OIDC
+token for temporary Google credentials used by both the Admin SDK provisioner
+and Firebase CLI. This follows the CLI's [CI authentication mechanism](https://firebase.google.com/docs/cli#cli-ci-systems).
+
+Missing or invalid Workload Identity configuration fails a related backend
+release with an explicit setup message; it is not treated as success. Adding
+this workflow does not create IAM resources, configure production rules/TTL,
+or seed Firestore. Complete that setup before the first related merge to `main`.
 
 ### Content provisioning and first rollout
 
-Only proceed after section 2 is signed off. Use an authorized release
-environment with Firebase CLI access and Application Default Credentials for
-the Admin SDK provisioning script; Firebase CLI authentication alone is not
-proof that the provisioning process has credentials. Do not commit credentials
-or paste them into logs.
+Only proceed after section 2 is signed off. CI automatically runs the Admin SDK
+provisioner when one of the notification-content ARBs or provisioner sources
+changed since the last successful main release. The authenticated backend job
+records provisioning success before allowing Android or production web to
+release. A failure stops the job and leaves those dependent releases blocked.
+
+For first-rollout preparation or manual recovery, use an authorized release
+environment with Application Default Credentials. Do not commit credentials or
+paste them into logs.
 
 The following is **Bash syntax**, run from the repository root. Set the project
 explicitly after verifying it matches the intended client; do not rely on the
@@ -181,10 +197,10 @@ for its first run. If a scheduler already operates on these collections, the
 release owner must arrange the maintenance window before provisioning because
 these writes are not atomic.
 
-Once prerequisites and content are ready, merge the tested changes to `main`
-and watch **Deploy changed Cloud Functions** in Build production artifacts.
-CI installs Node 22, the locked Functions dependencies, and Firebase CLI
-`15.29.0`, then runs:
+Once prerequisites are ready, merge the tested changes to `main` and watch
+**Release changed notification backend** in Build production artifacts. When
+runtime inputs changed, CI installs Node 22, the locked Functions dependencies,
+and Firebase CLI `15.29.0`, then runs:
 
 ```sh
 firebase deploy --only functions --project mezilondb --non-interactive
@@ -199,10 +215,12 @@ The scheduled function runs every minute with a 300-second timeout and 512 MiB
 memory. **Treat deployment as making it live**: there is no repository rollout
 flag that keeps it disabled pending mobile promotion.
 
-Content provisioning remains manual because it overwrites/deletes generated
-quote documents. ARB-only changes do not trigger a Functions deployment or
-provisioning. An operator can also use the same Functions deploy command from
-an authenticated release environment when manual recovery is needed.
+Content provisioning is deliberately part of this protected release job because
+the mobile/web artifacts consume that content. Configure a required reviewer on
+the `firebase-production` environment if production writes need an explicit
+human approval. An ARB-only change provisions content without needlessly
+redeploying Functions. An operator can use the same commands from an
+authenticated release environment when manual recovery is needed.
 
 Verify the endpoints match the app's `us-central1` URL, the scheduler job exists,
 and logs show successful queries/content loading before releasing clients.
