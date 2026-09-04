@@ -95,6 +95,36 @@ void main() {
     expect(sections[6].answers, ['Write and publish a book']);
   });
 
+  testWidgets(
+    'should open the Personal Plan info modal from the full-plan app bar',
+    (tester) async {
+      await pumpWithProviders(
+        tester,
+        MyPlanPageFull(
+          phonePageData: _emptyPhonePageData(),
+          hasFilled: true,
+          changeLocale: (_) {},
+        ),
+        userInformation: userInformation,
+        appInformation: appInformation,
+        surfaceSize: const Size(1024, 2400),
+      );
+      await tester.pump();
+
+      await tester.tap(find.byKey(const Key('fullPlanInfoButton')));
+      await tester.pumpAndSettle();
+
+      expect(find.byKey(const Key('personalPlanInfoModal')), findsOneWidget);
+      expect(find.text('Your Personal Plan'), findsOneWidget);
+
+      await tester.tap(find.byKey(const Key('personalPlanInfoCloseButton')));
+      await tester.pumpAndSettle();
+
+      expect(find.byKey(const Key('personalPlanInfoModal')), findsNothing);
+      expect(find.byType(MyPlanSection), findsNWidgets(7));
+    },
+  );
+
   testWidgets('omits Dreams and Goals for a legacy plan with no answers', (
     tester,
   ) async {

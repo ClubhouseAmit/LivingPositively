@@ -3,6 +3,7 @@ import 'package:fluttericon/elusive_icons.dart';
 import 'package:get_it/get_it.dart';
 import 'package:mazilon/file_service.dart';
 import 'package:mazilon/l10n/app_localizations.dart';
+import 'package:mazilon/pages/PersonalPlan/personal_plan_info_modal.dart';
 import 'package:mazilon/util/appInformation.dart';
 import 'package:mazilon/util/layout/directional_widgets.dart';
 import 'package:mazilon/util/Share/personal_plan_download.dart';
@@ -53,39 +54,47 @@ class PersonalPlanSectionWidget extends StatelessWidget {
           leadingIcon: Icons.assignment_outlined,
           subtitle: appLocale.myPlanSubTitle,
           onTitleTap: enableTitleTap ? (onTitleTap ?? onSeeAll) : null,
-          actionWidget: PopupMenuButton<String>(
-            key: const Key('personalPlanHeaderMenu'),
-            icon: Icon(Icons.more_vert, color: AppColors.neutralDark),
-            onSelected: (value) =>
-                _handleMenuSelection(context, value, appLocale, userInfo),
-            itemBuilder: (BuildContext context) => <PopupMenuEntry<String>>[
-              PopupMenuItem<String>(
-                value: 'share',
-                key: const Key('personalPlanHeaderShare'),
-                child: Row(
-                  children: [
-                    Icon(
-                      Elusive.share,
-                      color: Theme.of(context).colorScheme.onSurface,
-                    ),
-                    const SizedBox(width: AppSpacing.sm),
-                    Text(appLocale.sharePlanTooltip),
-                  ],
-                ),
+          actionWidget: Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              const PersonalPlanInfoButton(
+                actionKey: Key('homePersonalPlanInfoButton'),
               ),
-              PopupMenuItem<String>(
-                value: 'download',
-                key: const Key('personalPlanHeaderDownload'),
-                child: Row(
-                  children: [
-                    Icon(
-                      Icons.download,
-                      color: Theme.of(context).colorScheme.onSurface,
+              PopupMenuButton<String>(
+                key: const Key('personalPlanHeaderMenu'),
+                icon: Icon(Icons.more_vert, color: AppColors.neutralDark),
+                onSelected: (value) =>
+                    _handleMenuSelection(context, value, appLocale, userInfo),
+                itemBuilder: (BuildContext context) => <PopupMenuEntry<String>>[
+                  PopupMenuItem<String>(
+                    value: 'share',
+                    key: const Key('personalPlanHeaderShare'),
+                    child: Row(
+                      children: [
+                        Icon(
+                          Elusive.share,
+                          color: Theme.of(context).colorScheme.onSurface,
+                        ),
+                        const SizedBox(width: AppSpacing.sm),
+                        Text(appLocale.sharePlanTooltip),
+                      ],
                     ),
-                    const SizedBox(width: AppSpacing.sm),
-                    Text(appLocale.downloadPlanTooltip),
-                  ],
-                ),
+                  ),
+                  PopupMenuItem<String>(
+                    value: 'download',
+                    key: const Key('personalPlanHeaderDownload'),
+                    child: Row(
+                      children: [
+                        Icon(
+                          Icons.download,
+                          color: Theme.of(context).colorScheme.onSurface,
+                        ),
+                        const SizedBox(width: AppSpacing.sm),
+                        Text(appLocale.downloadPlanTooltip),
+                      ],
+                    ),
+                  ),
+                ],
               ),
             ],
           ),

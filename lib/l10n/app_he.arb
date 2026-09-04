@@ -39,6 +39,21 @@
      "personalPlanPageHasFilled": "{gender,select,male{לעדכון התוכנית} female{לעדכון התוכנית} other{לעדכון התוכנית}}",
      "personalPlanPageDidNotFill": "{gender,select,male{למילוי} female{למילוי} other{למילוי}}",
 
+     "personalPlanInfoTooltip": "מידע על התוכנית האישית",
+     "personalPlanInfoTitle": "התוכנית האישית שלך",
+     "personalPlanInfoVideo": "צפייה בסרטון",
+     "personalPlanInfoReadText": "קריאת הטקסט",
+     "personalPlanInfoClose": "סגירה",
+     "personalPlanInfoIntro": "תוכנית פעולה ורשת ביטחון מותאמת אישית לזיהוי מוקדם ומניעה של רגעי משבר, המבוססת על הכוחות הטבעיים שלך ושל סביבתך.",
+     "personalPlanInfoExplanation": "התוכנית משלבת תובנות של מומחים מניסיון אישי, יחד עם כלים שהוכחו מחקרית ובשטח (SPI ו-RPP). מטרתה היא לסייע בפיתוח מודעות לסימני אזהרה אישיים המעידים על תחילתו או החרפתו של משבר, כדי לאפשר נקיטת פעולה לפני שתיווצר סכנה. בעזרת התוכנית ניתן:",
+     "personalPlanInfoBulletTriggers": "לזהות מראש טריגרים וסימני אזהרה.",
+     "personalPlanInfoBulletSelfSoothing": "לבחור כלים פשוטים להרגעה עצמית.",
+     "personalPlanInfoBulletSupportCircle": "ליצור מעגל תמיכה של אנשים קרובים.",
+     "personalPlanInfoRecommendation": "ההמלצה שלנו: כדאי למלא את התוכנית כעת, מתוך מקום של רוגע, ולשתף אותה בקלות עם אדם אהוב – כדי שתמיד תרגישו עטופים ומוכנים. אפשר למלא את התוכנית באופן עצמאי או בעזרה משותפת, ומומלץ לעדכן אותה מידי פעם, וכמובן לשתף אותה עם מי שמתאים.",
+     "personalPlanInfoFurtherReading": "📖 לקריאה ולהרחבה על המודלים שעליהם מבוססת התוכנית:",
+     "personalPlanInfoSpi": "מודל SPI (Safety Plan Intervention):",
+     "personalPlanInfoRpp": "מודל RPP (Relapse Prevention Plan):",
+
 
 
 

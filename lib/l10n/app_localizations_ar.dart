@@ -278,6 +278,55 @@ class AppLocalizationsAr extends AppLocalizations {
   }
 
   @override
+  String get personalPlanInfoTooltip => 'معلومات عن هذه الخطة الشخصية';
+
+  @override
+  String get personalPlanInfoTitle => 'خطتي الشخصية';
+
+  @override
+  String get personalPlanInfoVideo => 'الفيديو';
+
+  @override
+  String get personalPlanInfoReadText => 'قراءة النص';
+
+  @override
+  String get personalPlanInfoClose => 'إغلاق';
+
+  @override
+  String get personalPlanInfoIntro =>
+      'خطة عمل وشبكة أمان مخصّصتان لك للتعرّف المبكر إلى لحظات الأزمات والوقاية منها، وتستندان إلى نقاط قوتك الطبيعية ونقاط قوة محيطك.';
+
+  @override
+  String get personalPlanInfoExplanation =>
+      'تجمع الخطة بين رؤى خبراء ذوي خبرة معيشة وأدوات ثبتت فعاليتها في البحوث والميدان (SPI وRPP). وتهدف إلى المساعدة في تنمية الوعي بعلامات التحذير الشخصية التي تشير إلى بداية أزمة أو تفاقمها، بما يتيح اتخاذ إجراء قبل نشوء خطر. ومن خلال الخطة يمكن:';
+
+  @override
+  String get personalPlanInfoBulletTriggers =>
+      'التعرّف مسبقًا إلى المحفّزات وعلامات التحذير.';
+
+  @override
+  String get personalPlanInfoBulletSelfSoothing =>
+      'اختيار أدوات بسيطة للتهدئة الذاتية.';
+
+  @override
+  String get personalPlanInfoBulletSupportCircle =>
+      'إنشاء دائرة دعم من أشخاص مقرّبين.';
+
+  @override
+  String get personalPlanInfoRecommendation =>
+      'توصيتنا: من الأفضل ملء الخطة الآن، في حالة من الهدوء، ومشاركتها بسهولة مع شخص عزيز، كي تشعروا دائمًا بأنكم محاطون بالدعم ومستعدون. يمكن ملء الخطة بصورة مستقلة أو بالتعاون مع شخص آخر، ويُوصى بتحديثها من حين إلى آخر، وبالطبع مشاركتها مع من ترونه مناسبًا.';
+
+  @override
+  String get personalPlanInfoFurtherReading =>
+      '📖 للقراءة ولمزيد من التعمّق في النماذج التي تستند إليها الخطة:';
+
+  @override
+  String get personalPlanInfoSpi => 'نموذج SPI (تدخّل خطة السلامة)';
+
+  @override
+  String get personalPlanInfoRpp => 'نموذج RPP (خطة الوقاية من الانتكاس)';
+
+  @override
   String homePagePersonalPlanMainTitle(String gender) {
     String _temp0 = intl.Intl.selectLogic(gender, {
       'male': 'خطتي',

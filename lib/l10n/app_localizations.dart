@@ -280,6 +280,90 @@ abstract class AppLocalizations {
   /// **'{gender,select,male{To fill the plan} female{To fill the plan} other{To fill the plan}}'**
   String personalPlanPageDidNotFill(String gender);
 
+  /// No description provided for @personalPlanInfoTooltip.
+  ///
+  /// In en, this message translates to:
+  /// **'About this Personal Plan'**
+  String get personalPlanInfoTooltip;
+
+  /// No description provided for @personalPlanInfoTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Your Personal Plan'**
+  String get personalPlanInfoTitle;
+
+  /// No description provided for @personalPlanInfoVideo.
+  ///
+  /// In en, this message translates to:
+  /// **'Watch video'**
+  String get personalPlanInfoVideo;
+
+  /// No description provided for @personalPlanInfoReadText.
+  ///
+  /// In en, this message translates to:
+  /// **'Read text'**
+  String get personalPlanInfoReadText;
+
+  /// No description provided for @personalPlanInfoClose.
+  ///
+  /// In en, this message translates to:
+  /// **'Close'**
+  String get personalPlanInfoClose;
+
+  /// No description provided for @personalPlanInfoIntro.
+  ///
+  /// In en, this message translates to:
+  /// **'A personalized action plan and safety net for early detection and prevention of crisis moments, based on your natural strengths and those of your environment.'**
+  String get personalPlanInfoIntro;
+
+  /// No description provided for @personalPlanInfoExplanation.
+  ///
+  /// In en, this message translates to:
+  /// **'The plan combines insights from experts with lived experience, alongside tools proven in research and in the field (SPI and RPP). Its goal is to help develop awareness of personal warning signs indicating the onset or worsening of a crisis, allowing action to be taken before danger arises. With the plan, you can:'**
+  String get personalPlanInfoExplanation;
+
+  /// No description provided for @personalPlanInfoBulletTriggers.
+  ///
+  /// In en, this message translates to:
+  /// **'Identify triggers and warning signs in advance.'**
+  String get personalPlanInfoBulletTriggers;
+
+  /// No description provided for @personalPlanInfoBulletSelfSoothing.
+  ///
+  /// In en, this message translates to:
+  /// **'Choose simple tools for self-soothing.'**
+  String get personalPlanInfoBulletSelfSoothing;
+
+  /// No description provided for @personalPlanInfoBulletSupportCircle.
+  ///
+  /// In en, this message translates to:
+  /// **'Create a support circle of close people.'**
+  String get personalPlanInfoBulletSupportCircle;
+
+  /// No description provided for @personalPlanInfoRecommendation.
+  ///
+  /// In en, this message translates to:
+  /// **'Our recommendation: It is highly recommended to fill out the plan now, from a place of calm, and easily share it with a loved one - so you always feel embraced and prepared. You can fill out the plan independently or with shared help, and it\'s recommended to update it occasionally, and of course share it with whoever is appropriate.'**
+  String get personalPlanInfoRecommendation;
+
+  /// No description provided for @personalPlanInfoFurtherReading.
+  ///
+  /// In en, this message translates to:
+  /// **'📖 For further reading on the models the plan is based on:'**
+  String get personalPlanInfoFurtherReading;
+
+  /// No description provided for @personalPlanInfoSpi.
+  ///
+  /// In en, this message translates to:
+  /// **'SPI Model (Safety Plan Intervention):'**
+  String get personalPlanInfoSpi;
+
+  /// No description provided for @personalPlanInfoRpp.
+  ///
+  /// In en, this message translates to:
+  /// **'RPP Model (Relapse Prevention Plan):'**
+  String get personalPlanInfoRpp;
+
   ///
   ///
   /// In en, this message translates to:

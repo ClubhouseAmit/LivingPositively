@@ -278,6 +278,55 @@ class AppLocalizationsEn extends AppLocalizations {
   }
 
   @override
+  String get personalPlanInfoTooltip => 'About this Personal Plan';
+
+  @override
+  String get personalPlanInfoTitle => 'Your Personal Plan';
+
+  @override
+  String get personalPlanInfoVideo => 'Watch video';
+
+  @override
+  String get personalPlanInfoReadText => 'Read text';
+
+  @override
+  String get personalPlanInfoClose => 'Close';
+
+  @override
+  String get personalPlanInfoIntro =>
+      'A personalized action plan and safety net for early detection and prevention of crisis moments, based on your natural strengths and those of your environment.';
+
+  @override
+  String get personalPlanInfoExplanation =>
+      'The plan combines insights from experts with lived experience, alongside tools proven in research and in the field (SPI and RPP). Its goal is to help develop awareness of personal warning signs indicating the onset or worsening of a crisis, allowing action to be taken before danger arises. With the plan, you can:';
+
+  @override
+  String get personalPlanInfoBulletTriggers =>
+      'Identify triggers and warning signs in advance.';
+
+  @override
+  String get personalPlanInfoBulletSelfSoothing =>
+      'Choose simple tools for self-soothing.';
+
+  @override
+  String get personalPlanInfoBulletSupportCircle =>
+      'Create a support circle of close people.';
+
+  @override
+  String get personalPlanInfoRecommendation =>
+      'Our recommendation: It is highly recommended to fill out the plan now, from a place of calm, and easily share it with a loved one - so you always feel embraced and prepared. You can fill out the plan independently or with shared help, and it\'s recommended to update it occasionally, and of course share it with whoever is appropriate.';
+
+  @override
+  String get personalPlanInfoFurtherReading =>
+      '📖 For further reading on the models the plan is based on:';
+
+  @override
+  String get personalPlanInfoSpi => 'SPI Model (Safety Plan Intervention):';
+
+  @override
+  String get personalPlanInfoRpp => 'RPP Model (Relapse Prevention Plan):';
+
+  @override
   String homePagePersonalPlanMainTitle(String gender) {
     String _temp0 = intl.Intl.selectLogic(gender, {
       'male': 'My Plan',
