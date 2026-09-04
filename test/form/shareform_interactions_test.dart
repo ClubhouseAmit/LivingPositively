@@ -397,43 +397,6 @@ void main() {
     },
   );
 
-  testWidgets(
-    'ShareForm shows localized feedback when Personal Plan file sharing is unavailable',
-    (tester) async {
-      final unavailableFiles = _UnavailableShareFileService();
-      final locator = GetIt.instance;
-      locator.unregister<FileService>();
-      locator.registerSingleton<FileService>(unavailableFiles);
-
-      await pumpWithProviders(
-        tester,
-        wizardStepHarness(
-          ShareForm(
-            key: GlobalKey<WizardStepState>(),
-            prev: () {},
-            submit: (_) async {},
-          ),
-        ),
-        userInformation: user,
-        surfaceSize: const Size(1024, 1800),
-      );
-      final localizations = AppLocalizations.of(
-        tester.element(find.byType(ShareForm)),
-      )!;
-
-      await _pressIconButtonInAsyncZone(tester, Icons.share);
-      await _flushAsyncAction(tester);
-      await tester.pumpAndSettle();
-
-      await tester.tap(find.text(localizations.shareFile));
-      await _flushAsyncAction(tester);
-      await tester.pumpAndSettle();
-
-      expect(unavailableFiles.shareCalls, 1);
-      expect(find.text(localizations.personalPlanShareFailed), findsOneWidget);
-    },
-  );
-
   testWidgets('tapping the download IconButton invokes FileService.download '
       '(null result → toast)', (tester) async {
     await pumpWithProviders(
@@ -459,6 +422,46 @@ void main() {
   });
 
   group('ShareForm', () {
+    testWidgets(
+      'should show localized feedback when Personal Plan file sharing is unavailable',
+      (tester) async {
+        final unavailableFiles = _UnavailableShareFileService();
+        final locator = GetIt.instance;
+        locator.unregister<FileService>();
+        locator.registerSingleton<FileService>(unavailableFiles);
+
+        await pumpWithProviders(
+          tester,
+          wizardStepHarness(
+            ShareForm(
+              key: GlobalKey<WizardStepState>(),
+              prev: () {},
+              submit: (_) async {},
+            ),
+          ),
+          userInformation: user,
+          surfaceSize: const Size(1024, 1800),
+        );
+        final localizations = AppLocalizations.of(
+          tester.element(find.byType(ShareForm)),
+        )!;
+
+        await _pressIconButtonInAsyncZone(tester, Icons.share);
+        await _flushAsyncAction(tester);
+        await tester.pumpAndSettle();
+
+        await tester.tap(find.text(localizations.shareFile));
+        await _flushAsyncAction(tester);
+        await tester.pumpAndSettle();
+
+        expect(unavailableFiles.shareCalls, 1);
+        expect(
+          find.text(localizations.personalPlanShareFailed),
+          findsOneWidget,
+        );
+      },
+    );
+
     testWidgets(
       'should persist has-filled through the injected UserInformation service',
       (tester) async {
