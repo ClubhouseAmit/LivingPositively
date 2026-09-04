@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:mazilon/pages/auth/auth_error_reporting.dart';
 import 'package:mazilon/util/Firebase/auth_service.dart';
 import 'package:mazilon/util/LP_extended_state.dart';
 import 'package:mazilon/util/styles.dart';
@@ -35,9 +36,10 @@ class _ForgotPasswordPageState extends LPExtendedState<ForgotPasswordPage> {
     try {
       await AuthService.sendPasswordReset(email);
       if (mounted) setState(() => _sent = true);
-    } catch (e) {
+    } catch (error, stackTrace) {
+      await reportAuthenticationError(error, stackTrace);
       if (mounted) {
-        final key = AuthService.localizedError(e);
+        final key = AuthService.localizedError(error);
         if (key == 'authErrorUserNotFound') {
           // Keep the reset flow indistinguishable for unknown accounts.
           setState(() => _sent = true);

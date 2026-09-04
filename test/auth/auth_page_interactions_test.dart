@@ -29,8 +29,10 @@ import 'auth_page_interactions_test.mocks.dart';
   MockSpec<DocumentSnapshot<Map<String, dynamic>>>(),
 ])
 void main() {
+  late TestServiceLocators services;
+
   setUp(() {
-    registerTestServices(locale: 'en');
+    services = registerTestServices(locale: 'en');
     FcmService.resetForTesting();
     FcmScheduledNotificationService.resetForTesting();
   });
@@ -38,7 +40,10 @@ void main() {
     AuthService.debugAppleSignInEnabledOverride = null;
     AuthService.debugGoogleSignInServerClientIdOverride = null;
     AuthService.debugGoogleSignInIosClientIdOverride = null;
+    AuthService.debugGoogleSignInStarterOverride = null;
     AuthService.debugSignUpWithEmailOverride = null;
+    AuthService.debugSignInWithEmailOverride = null;
+    AuthService.debugSendPasswordResetOverride = null;
     debugDefaultTargetPlatformOverride = null;
     FcmService.resetForTesting();
     FcmScheduledNotificationService.resetForTesting();
@@ -379,6 +384,16 @@ void main() {
     expect(userInformation.userId, 'uid-123');
     verify(user.updateDisplayName('Person')).called(1);
     verifyNever(user.reload());
+    expect(
+      services.logger.captured,
+      contains(
+        isA<StateError>().having(
+          (error) => error.message,
+          'message',
+          'display-name update failed',
+        ),
+      ),
+    );
   });
 
   testWidgets('signup should continue when the profile reload fails', (
@@ -429,6 +444,145 @@ void main() {
     expect(userInformation.userId, 'uid-456');
     verify(user.updateDisplayName('Another person')).called(1);
     verify(user.reload()).called(1);
+    expect(
+      services.logger.captured,
+      contains(
+        isA<StateError>().having(
+          (error) => error.message,
+          'message',
+          'profile reload failed',
+        ),
+      ),
+    );
+  });
+
+  testWidgets('should report email sign-in failures', (tester) async {
+    AuthService.debugSignInWithEmailOverride = (email, password) async {
+      expect(email, 'person@example.com');
+      expect(password, 'secret');
+      throw FirebaseAuthException(code: 'too-many-requests');
+    };
+
+    await pumpWithProviders(
+      tester,
+      const AuthPage(),
+      surfaceSize: const Size(1024, 1800),
+    );
+
+    final fields = find.byType(TextField);
+    await tester.enterText(fields.at(0), 'person@example.com');
+    await tester.enterText(fields.at(1), 'secret');
+    await tester.tap(find.widgetWithText(TextButton, 'Sign In'));
+    await tester.pumpAndSettle();
+
+    expect(
+      services.logger.captured.single,
+      isA<FirebaseAuthException>().having(
+        (error) => error.code,
+        'code',
+        'too-many-requests',
+      ),
+    );
+    expect(find.text('An error occurred. Please try again.'), findsOneWidget);
+  });
+
+  testWidgets('should report email sign-up failures', (tester) async {
+    AuthService.debugSignUpWithEmailOverride = (email, password) async {
+      expect(email, 'person@example.com');
+      expect(password, 'secret');
+      throw FirebaseAuthException(code: 'email-already-in-use');
+    };
+
+    await pumpWithProviders(
+      tester,
+      const AuthPage(),
+      surfaceSize: const Size(1024, 1800),
+    );
+    await tester.tap(find.text('Sign Up'));
+    await tester.pumpAndSettle();
+
+    final fields = find.byType(TextField);
+    await tester.enterText(fields.at(1), 'person@example.com');
+    await tester.enterText(fields.at(2), 'secret');
+    await tester.enterText(fields.at(3), 'secret');
+    await tester.tap(find.widgetWithText(TextButton, 'Create Account'));
+    await tester.pumpAndSettle();
+
+    expect(
+      services.logger.captured.single,
+      isA<FirebaseAuthException>().having(
+        (error) => error.code,
+        'code',
+        'email-already-in-use',
+      ),
+    );
+    expect(
+      find.text('An account with this email already exists'),
+      findsOneWidget,
+    );
+  });
+
+  testWidgets('should report social sign-in failures', (tester) async {
+    debugDefaultTargetPlatformOverride = TargetPlatform.android;
+    try {
+      AuthService.debugGoogleSignInServerClientIdOverride =
+          'server-client.apps.googleusercontent.com';
+      AuthService.debugGoogleSignInStarterOverride =
+          ({required serverClientId, clientId}) async {
+        throw StateError('google sign-in failed');
+      };
+
+      await pumpWithProviders(
+        tester,
+        const AuthPage(),
+        surfaceSize: const Size(1024, 1800),
+      );
+      await tester.tap(find.text('Continue with Google'));
+      await tester.pumpAndSettle();
+
+      expect(
+        services.logger.captured.single,
+        isA<StateError>().having(
+          (error) => error.message,
+          'message',
+          'google sign-in failed',
+        ),
+      );
+      expect(
+        find.text('An error occurred. Please try again.'),
+        findsOneWidget,
+      );
+    } finally {
+      debugDefaultTargetPlatformOverride = null;
+    }
+  });
+
+  testWidgets('should report password-reset failures', (tester) async {
+    AuthService.debugSendPasswordResetOverride = (email) async {
+      expect(email, 'person@example.com');
+      throw FirebaseAuthException(code: 'too-many-requests');
+    };
+
+    await pumpWithProviders(
+      tester,
+      const AuthPage(),
+      surfaceSize: const Size(1024, 1800),
+    );
+    await tester.tap(find.text('Forgot password?'));
+    await tester.pumpAndSettle();
+    await tester.enterText(find.byType(TextField), 'person@example.com');
+    await tester.tap(find.text('Send Reset Link'));
+    await tester.pumpAndSettle();
+
+    expect(
+      services.logger.captured.single,
+      isA<FirebaseAuthException>().having(
+        (error) => error.code,
+        'code',
+        'too-many-requests',
+      ),
+    );
+    expect(find.text('An error occurred. Please try again.'), findsOneWidget);
   });
 
   testWidgets('forgot-password navigation renders the reset form', (

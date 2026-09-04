@@ -2,13 +2,12 @@ import 'dart:async';
 
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
-import 'package:get_it/get_it.dart';
+import 'package:mazilon/pages/auth/auth_error_reporting.dart';
 import 'package:mazilon/pages/auth/forgot_password_page.dart';
 import 'package:mazilon/util/Firebase/auth_service.dart';
 import 'package:mazilon/util/Firebase/fcm_scheduled_notification_service.dart';
 import 'package:mazilon/util/Firebase/fcm_service.dart';
 import 'package:mazilon/util/LP_extended_state.dart';
-import 'package:mazilon/util/logger_service.dart';
 import 'package:mazilon/util/styles.dart';
 import 'package:mazilon/util/userInformation.dart';
 import 'package:provider/provider.dart';
@@ -20,45 +19,37 @@ mixin _SocialSignIn<T extends StatefulWidget> on LPExtendedState<T> {
   void _setSocialLoading(bool v);
   void _setSocialError(String? msg);
 
-  Future<void> _signInWithGoogle() async {
+  Future<void> _runSocialSignIn(
+    Future<UserCredential?> Function() signIn,
+    String providerName,
+  ) async {
     _setSocialLoading(true);
     _setSocialError(null);
     try {
-      final result = await AuthService.signInWithGoogle();
+      final result = await signIn();
       if (result == null) {
         return;
       }
       final user = result.user ?? FirebaseAuth.instance.currentUser;
       if (user == null) {
-        throw StateError('Google authentication completed without a user.');
+        throw StateError(
+          '$providerName authentication completed without a user.',
+        );
       }
       await _socialSuccessCallback(user);
-    } catch (e) {
+    } catch (error, stackTrace) {
+      await reportAuthenticationError(error, stackTrace);
       if (mounted) _setSocialError(appLocale.authErrorGeneric);
     } finally {
       if (mounted) _setSocialLoading(false);
     }
   }
 
-  Future<void> _signInWithApple() async {
-    _setSocialLoading(true);
-    _setSocialError(null);
-    try {
-      final result = await AuthService.signInWithApple();
-      if (result == null) {
-        return;
-      }
-      final user = result.user ?? FirebaseAuth.instance.currentUser;
-      if (user == null) {
-        throw StateError('Apple authentication completed without a user.');
-      }
-      await _socialSuccessCallback(user);
-    } catch (e) {
-      if (mounted) _setSocialError(appLocale.authErrorGeneric);
-    } finally {
-      if (mounted) _setSocialLoading(false);
-    }
-  }
+  Future<void> _signInWithGoogle() =>
+      _runSocialSignIn(AuthService.signInWithGoogle, 'Google');
+
+  Future<void> _signInWithApple() =>
+      _runSocialSignIn(AuthService.signInWithApple, 'Apple');
 
   String _resolveError(String? key) {
     switch (key) {
@@ -123,18 +114,7 @@ class _AuthPageState extends LPExtendedState<AuthPage> {
     try {
       await AuthService.saveUserToFirestore(user);
     } catch (error, stackTrace) {
-      debugPrint('Authenticated profile persistence failed: $error');
-      if (!GetIt.instance.isRegistered<IncidentLoggerService>()) return;
-      try {
-        await GetIt.instance<IncidentLoggerService>().captureLog(
-          error,
-          stackTrace: stackTrace,
-        );
-      } catch (loggerError) {
-        debugPrint(
-          'Authenticated profile persistence reporting failed: $loggerError',
-        );
-      }
+      await reportAuthenticationError(error, stackTrace);
     }
   }
 
@@ -261,10 +241,12 @@ class _LoginFormState extends LPExtendedState<_LoginForm>
         throw StateError('Signed-in Firebase account has no user.');
       }
       await widget.onSuccess(user);
-    } catch (e) {
+    } catch (error, stackTrace) {
+      await reportAuthenticationError(error, stackTrace);
       if (mounted) {
         setState(
-          () => _errorMessage = _resolveError(AuthService.localizedError(e)),
+          () =>
+              _errorMessage = _resolveError(AuthService.localizedError(error)),
         );
       }
     } finally {
@@ -442,16 +424,7 @@ class _SignupFormState extends LPExtendedState<_SignupForm>
           // The Firebase account already exists at this point. A best-effort
           // profile update must not strand the user at a non-retryable
           // email-already-in-use sign-up form.
-          if (GetIt.instance.isRegistered<IncidentLoggerService>()) {
-            unawaited(
-              Future<void>.sync(
-                () => GetIt.instance<IncidentLoggerService>().captureLog(
-                  error,
-                  stackTrace: stackTrace,
-                ),
-              ).catchError((Object _, StackTrace _) {}),
-            );
-          }
+          await reportAuthenticationError(error, stackTrace);
         }
       }
       final user = result.user ?? FirebaseAuth.instance.currentUser;
@@ -459,10 +432,12 @@ class _SignupFormState extends LPExtendedState<_SignupForm>
         throw StateError('Created Firebase account has no user.');
       }
       await widget.onSuccess(user);
-    } catch (e) {
+    } catch (error, stackTrace) {
+      await reportAuthenticationError(error, stackTrace);
       if (mounted) {
         setState(
-          () => _errorMessage = _resolveError(AuthService.localizedError(e)),
+          () =>
+              _errorMessage = _resolveError(AuthService.localizedError(error)),
         );
       }
     } finally {

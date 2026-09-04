@@ -61,6 +61,15 @@ class AuthService {
   static Future<UserCredential> Function(String email, String password)?
   debugSignUpWithEmailOverride;
 
+  /// Test-only substitute for the email sign-in request.
+  @visibleForTesting
+  static Future<UserCredential> Function(String email, String password)?
+  debugSignInWithEmailOverride;
+
+  /// Test-only substitute for the password-reset request.
+  @visibleForTesting
+  static Future<void> Function(String email)? debugSendPasswordResetOverride;
+
   static String get _configuredGoogleSignInServerClientId =>
       (debugGoogleSignInServerClientIdOverride ?? _googleSignInServerClientId)
           .trim();
@@ -82,6 +91,10 @@ class AuthService {
 
   /// Signs in an existing email account after normalizing its email address.
   static Future<UserCredential> signInWithEmail(String email, String password) {
+    final signInOverride = debugSignInWithEmailOverride;
+    if (signInOverride != null) {
+      return signInOverride(email.trim(), password);
+    }
     return FirebaseAuth.instance.signInWithEmailAndPassword(
       email: email.trim(),
       password: password,
@@ -203,6 +216,10 @@ class AuthService {
 
   /// Sends a password-reset email to the normalized email address.
   static Future<void> sendPasswordReset(String email) {
+    final sendPasswordResetOverride = debugSendPasswordResetOverride;
+    if (sendPasswordResetOverride != null) {
+      return sendPasswordResetOverride(email.trim());
+    }
     return FirebaseAuth.instance.sendPasswordResetEmail(email: email.trim());
   }
 
