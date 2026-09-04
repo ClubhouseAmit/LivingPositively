@@ -2,7 +2,7 @@ import 'dart:async';
 
 import 'package:flutter/material.dart';
 import 'package:mazilon/l10n/app_localizations.dart';
-import 'package:mazilon/util/circular_action_button.dart';
+import 'package:mazilon/util/Phone/phoneTextAndIcon.dart';
 import 'package:mazilon/util/theme/spacing.dart';
 import 'package:url_launcher/url_launcher.dart';
 import 'package:youtube_player_flutter/youtube_player_flutter.dart';
@@ -123,8 +123,21 @@ final class _PersonalPlanInfoModalState extends State<PersonalPlanInfoModal> {
       await controller.pauseVideo();
     } catch (_) {
       // A platform view can be disposed before its pause request is handled.
-    } finally {
+    }
+
+    try {
       await controller.close();
+    } catch (error, stackTrace) {
+      FlutterError.reportError(
+        FlutterErrorDetails(
+          exception: error,
+          stack: stackTrace,
+          library: 'PersonalPlanInfoModal',
+          context: ErrorDescription(
+            'while disposing the Personal Plan video player',
+          ),
+        ),
+      );
     }
   }
 
@@ -275,7 +288,7 @@ final class _PersonalPlanInfoText extends StatelessWidget {
           child: TextButton.icon(
             key: const Key('personalPlanInfoSpiLink'),
             onPressed: () {
-              unawaited(_openExternalLink(_spiUri));
+              unawaited(_openExternalLink(context, _spiUri));
             },
             icon: const Icon(Icons.open_in_new, size: 18),
             label: Text(l10n.personalPlanInfoSpi),
@@ -286,7 +299,7 @@ final class _PersonalPlanInfoText extends StatelessWidget {
           child: TextButton.icon(
             key: const Key('personalPlanInfoRppLink'),
             onPressed: () {
-              unawaited(_openExternalLink(_rppUri));
+              unawaited(_openExternalLink(context, _rppUri));
             },
             icon: const Icon(Icons.open_in_new, size: 18),
             label: Text(l10n.personalPlanInfoRpp),
@@ -321,10 +334,14 @@ final class _PersonalPlanInfoBullet extends StatelessWidget {
   }
 }
 
-Future<void> _openExternalLink(Uri uri) async {
-  await launchUrl(
-    uri,
-    mode: LaunchMode.externalApplication,
-    webOnlyWindowName: '_blank',
-  );
-}
+Future<void> _openExternalLink(BuildContext context, Uri uri) =>
+    launchWithFeedback(
+      context,
+      '',
+      isCallFailure: false,
+      launch: () => launchUrl(
+        uri,
+        mode: LaunchMode.externalApplication,
+        webOnlyWindowName: '_blank',
+      ),
+    );

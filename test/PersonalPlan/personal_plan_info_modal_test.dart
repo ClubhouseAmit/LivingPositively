@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/semantics.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:mazilon/l10n/app_localizations.dart';
 import 'package:mazilon/pages/PersonalPlan/personal_plan_info_modal.dart';
@@ -9,7 +10,14 @@ import 'package:url_launcher_platform_interface/url_launcher_platform_interface.
 import '../helpers/widget_test_scaffold.dart';
 
 final class _RecordingUrlLauncherPlatform extends UrlLauncherPlatform {
+  _RecordingUrlLauncherPlatform({
+    this.launchResult = true,
+    this.shouldThrow = false,
+  });
+
   String? lastLaunchedUrl;
+  final bool launchResult;
+  final bool shouldThrow;
 
   @override
   LinkDelegate? get linkDelegate => null;
@@ -29,7 +37,10 @@ final class _RecordingUrlLauncherPlatform extends UrlLauncherPlatform {
     String? webOnlyWindowName,
   }) async {
     lastLaunchedUrl = url;
-    return true;
+    if (shouldThrow) {
+      throw PlatformException(code: 'launch-failed');
+    }
+    return launchResult;
   }
 }
 
@@ -185,6 +196,90 @@ void main() {
       'preventing-relapse-of-a-mental-illness',
     );
   });
+
+  testWidgets(
+    'should show localized feedback when an SPI resource launch returns false',
+    (tester) async {
+      final UrlLauncherPlatform originalPlatform = UrlLauncherPlatform.instance;
+      final _RecordingUrlLauncherPlatform fakePlatform =
+          _RecordingUrlLauncherPlatform(launchResult: false);
+      UrlLauncherPlatform.instance = fakePlatform;
+      addTearDown(() => UrlLauncherPlatform.instance = originalPlatform);
+
+      await pumpWithProviders(
+        tester,
+        const Scaffold(
+          body: PersonalPlanInfoButton(
+            actionKey: Key('failedSpiPersonalPlanInfoButton'),
+          ),
+        ),
+        surfaceSize: const Size(360, 690),
+      );
+
+      await tester.tap(
+        find.byKey(const Key('failedSpiPersonalPlanInfoButton')),
+      );
+      await tester.pumpAndSettle();
+      final Finder modal = find.byKey(const Key('personalPlanInfoModal'));
+      final AppLocalizations l10n = AppLocalizations.of(tester.element(modal))!;
+      final Finder spiLink = find.byKey(const Key('personalPlanInfoSpiLink'));
+
+      await tester.ensureVisible(spiLink);
+      await tester.tap(spiLink);
+      await tester.pump();
+      await tester.pump(const Duration(milliseconds: 50));
+
+      expect(fakePlatform.lastLaunchedUrl, 'https://suicidesafetyplan.com/');
+      expect(find.byType(SnackBar), findsOneWidget);
+      expect(find.text(l10n.couldNotOpenApp), findsOneWidget);
+      expect(find.byType(SnackBarAction), findsNothing);
+      expect(tester.takeException(), isNull);
+    },
+  );
+
+  testWidgets(
+    'should show localized feedback when an RPP resource launch throws',
+    (tester) async {
+      final UrlLauncherPlatform originalPlatform = UrlLauncherPlatform.instance;
+      final _RecordingUrlLauncherPlatform fakePlatform =
+          _RecordingUrlLauncherPlatform(shouldThrow: true);
+      UrlLauncherPlatform.instance = fakePlatform;
+      addTearDown(() => UrlLauncherPlatform.instance = originalPlatform);
+
+      await pumpWithProviders(
+        tester,
+        const Scaffold(
+          body: PersonalPlanInfoButton(
+            actionKey: Key('throwingRppPersonalPlanInfoButton'),
+          ),
+        ),
+        surfaceSize: const Size(360, 690),
+      );
+
+      await tester.tap(
+        find.byKey(const Key('throwingRppPersonalPlanInfoButton')),
+      );
+      await tester.pumpAndSettle();
+      final Finder modal = find.byKey(const Key('personalPlanInfoModal'));
+      final AppLocalizations l10n = AppLocalizations.of(tester.element(modal))!;
+      final Finder rppLink = find.byKey(const Key('personalPlanInfoRppLink'));
+
+      await tester.ensureVisible(rppLink);
+      await tester.tap(rppLink);
+      await tester.pump();
+      await tester.pump(const Duration(milliseconds: 50));
+
+      expect(
+        fakePlatform.lastLaunchedUrl,
+        'https://www.heretohelp.bc.ca/infosheet/'
+        'preventing-relapse-of-a-mental-illness',
+      );
+      expect(find.byType(SnackBar), findsOneWidget);
+      expect(find.text(l10n.couldNotOpenApp), findsOneWidget);
+      expect(find.byType(SnackBarAction), findsNothing);
+      expect(tester.takeException(), isNull);
+    },
+  );
 
   testWidgets(
     'should preserve RTL direction and a scrollable dialog for Arabic on a small screen',

@@ -188,6 +188,8 @@ jobs:
             test_file: integration_test/logger_init_test.dart
           - id: notifications-schedule
             test_file: integration_test/notifications_schedule_test.dart
+          - id: personal-plan-info-modal
+            test_file: integration_test/personal_plan_info_modal_test.dart
     env:
       FIREBASE_OPTIONS_PATH: lib/util/Firebase/firebase_options.dart
     steps:
