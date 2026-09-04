@@ -278,6 +278,55 @@ class AppLocalizationsHe extends AppLocalizations {
   }
 
   @override
+  String get personalPlanInfoTooltip => 'מידע על התוכנית האישית';
+
+  @override
+  String get personalPlanInfoTitle => 'התוכנית האישית שלך';
+
+  @override
+  String get personalPlanInfoVideo => 'צפייה בסרטון';
+
+  @override
+  String get personalPlanInfoReadText => 'קריאת הטקסט';
+
+  @override
+  String get personalPlanInfoClose => 'סגירה';
+
+  @override
+  String get personalPlanInfoIntro =>
+      'תוכנית פעולה ורשת ביטחון מותאמת אישית לזיהוי מוקדם ומניעה של רגעי משבר, המבוססת על הכוחות הטבעיים שלך ושל סביבתך.';
+
+  @override
+  String get personalPlanInfoExplanation =>
+      'התוכנית משלבת תובנות של מומחים מניסיון אישי, יחד עם כלים שהוכחו מחקרית ובשטח (SPI ו-RPP). מטרתה היא לסייע בפיתוח מודעות לסימני אזהרה אישיים המעידים על תחילתו או החרפתו של משבר, כדי לאפשר נקיטת פעולה לפני שתיווצר סכנה. בעזרת התוכנית ניתן:';
+
+  @override
+  String get personalPlanInfoBulletTriggers =>
+      'לזהות מראש טריגרים וסימני אזהרה.';
+
+  @override
+  String get personalPlanInfoBulletSelfSoothing =>
+      'לבחור כלים פשוטים להרגעה עצמית.';
+
+  @override
+  String get personalPlanInfoBulletSupportCircle =>
+      'ליצור מעגל תמיכה של אנשים קרובים.';
+
+  @override
+  String get personalPlanInfoRecommendation =>
+      'ההמלצה שלנו: כדאי למלא את התוכנית כעת, מתוך מקום של רוגע, ולשתף אותה בקלות עם אדם אהוב – כדי שתמיד תרגישו עטופים ומוכנים. אפשר למלא את התוכנית באופן עצמאי או בעזרה משותפת, ומומלץ לעדכן אותה מדי פעם, וכמובן לשתף אותה עם מי שמתאים.';
+
+  @override
+  String get personalPlanInfoFurtherReading =>
+      '📖 לקריאה ולהרחבה על המודלים שעליהם מבוססת התוכנית:';
+
+  @override
+  String get personalPlanInfoSpi => 'מודל SPI (Safety Plan Intervention):';
+
+  @override
+  String get personalPlanInfoRpp => 'מודל RPP (Relapse Prevention Plan):';
+
+  @override
   String homePagePersonalPlanMainTitle(String gender) {
     String _temp0 = intl.Intl.selectLogic(gender, {
       'male': 'התכנית שלי',

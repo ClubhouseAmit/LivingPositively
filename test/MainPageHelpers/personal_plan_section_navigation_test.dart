@@ -180,6 +180,55 @@ void main() {
       expect(seeAllCount, equals(2));
     });
 
+    testWidgets(
+      'should open the info modal without replacing title navigation or the overflow menu',
+      (tester) async {
+        var seeAllCalled = false;
+        user.localeName = 'en';
+
+        await pumpWithProviders(
+          tester,
+          Scaffold(
+            body: PersonalPlanSectionWidget(
+              items: const ['Item 1'],
+              onSeeAll: () {
+                seeAllCalled = true;
+              },
+            ),
+          ),
+          userInformation: user,
+          locale: const Locale('en'),
+          surfaceSize: const Size(1024, 2400),
+        );
+
+        expect(
+          find.byKey(const Key('personalPlanHeaderTitle')),
+          findsOneWidget,
+        );
+        expect(find.byKey(const Key('personalPlanHeaderMenu')), findsOneWidget);
+
+        await tester.tap(find.byKey(const Key('homePersonalPlanInfoButton')));
+        await tester.pumpAndSettle();
+
+        expect(seeAllCalled, isFalse);
+        expect(find.byKey(const Key('personalPlanInfoModal')), findsOneWidget);
+
+        await tester.tap(find.byKey(const Key('personalPlanInfoCloseButton')));
+        await tester.pumpAndSettle();
+        await tester.tap(find.byKey(const Key('personalPlanHeaderMenu')));
+        await tester.pumpAndSettle();
+
+        expect(
+          find.byKey(const Key('personalPlanHeaderShare')),
+          findsOneWidget,
+        );
+        expect(
+          find.byKey(const Key('personalPlanHeaderDownload')),
+          findsOneWidget,
+        );
+      },
+    );
+
     testWidgets('should disable title tapping and omit button semantics when enableTitleTap is false', (
       tester,
     ) async {
