@@ -481,6 +481,12 @@ class AppLocalizationsHe extends AppLocalizations {
   String get sharePageSaveCustomCategory => 'הוספת קטגוריה';
 
   @override
+  String get customCategoryDeleteConfirmation => 'למחוק את הקטגוריה המותאמת?';
+
+  @override
+  String get builtInCategoryDeleteConfirmation => 'לנקות את החלק הזה בתוכנית?';
+
+  @override
   String get customCategoryOptionEmpoweringQuotes =>
       'משפטים מחזקים שחשוב לי לזכור';
 

@@ -12,6 +12,7 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:mazilon/util/SignIn/popup_toast.dart';
 import 'package:mazilon/util/appInformation.dart';
 import 'package:mazilon/util/dreams_and_goals_selection.dart';
+import 'package:mazilon/util/custom_categories_storage.dart';
 import 'package:mazilon/util/userInformation.dart';
 import 'dart:convert';
 import 'dart:io';
@@ -100,6 +101,7 @@ Future<void> loadUserInformation(
   String locale,
 ) async {
   PersistentMemoryService service = GetIt.instance<PersistentMemoryService>();
+  final customCategoriesLoadRevision = userInfo.customCategoriesSaveRevision;
   final futures = <String, Future>{
     'name': service.getItem("name", PersistentMemoryType.String),
     'gender': service.getItem("gender", PersistentMemoryType.String),
@@ -139,6 +141,7 @@ Future<void> loadUserInformation(
       dreamsAndGoalsCustomSelectionsStorageKey,
       PersistentMemoryType.StringList,
     ),
+    'customCategories': loadCustomCategoriesFromStorage(memoryService: service),
     'location': service.getItem("location", PersistentMemoryType.String),
     'disclaimerConfirmed': service.getItem(
       "disclaimerConfirmed",
@@ -194,6 +197,13 @@ Future<void> loadUserInformation(
   userInfo.updateLoggedIn(data['loggedIn'] ?? false);
   userInfo.updateAge(data['age'] ?? '');
   userInfo.updateUserId(data['userId'] ?? '');
+  final loadedCustomCategories = data['customCategories'];
+  if (loadedCustomCategories is List<MapEntry<String, String>>) {
+    userInfo.hydrateCustomCategoriesIfRevision(
+      loadedCustomCategories,
+      customCategoriesLoadRevision,
+    );
+  }
 
   userInfo.updateDifficultEvents(
     (TypeUtils.castToStringList(data['difficultEvents'])),

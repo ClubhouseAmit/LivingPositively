@@ -177,6 +177,12 @@ void main() {
         find.text('טקסט עברי חופשי שנשאר כמו שהוקלד'),
       );
 
+      // The Android SharedPreferences bridge completes after the frame that
+      // dispatches the save action. Wait for the editor to close before
+      // starting the next add flow, rather than treating its still-visible
+      // entered text as proof that the first category was committed.
+      await _waitForWidget(tester, find.text('+ הוספת קטגוריה'));
+      await tester.ensureVisible(find.text('+ הוספת קטגוריה'));
       await tester.tap(find.text('+ הוספת קטגוריה'));
       await tester.pumpAndSettle();
       await tester.tap(find.byKey(const Key('custom-category-title-field')));

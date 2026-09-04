@@ -482,6 +482,12 @@ class AppLocalizationsAr extends AppLocalizations {
   String get sharePageSaveCustomCategory => 'إضافة فئة';
 
   @override
+  String get customCategoryDeleteConfirmation => 'حذف هذه الفئة المخصصة؟';
+
+  @override
+  String get builtInCategoryDeleteConfirmation => 'مسح هذا القسم من الخطة؟';
+
+  @override
   String get customCategoryOptionEmpoweringQuotes =>
       'اقتباسات مقوية من المهم أن أتذكرها';
 

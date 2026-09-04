@@ -412,6 +412,18 @@ abstract class AppLocalizations {
   /// **'Add category'**
   String get sharePageSaveCustomCategory;
 
+  /// No description provided for @customCategoryDeleteConfirmation.
+  ///
+  /// In en, this message translates to:
+  /// **'Delete this custom category?'**
+  String get customCategoryDeleteConfirmation;
+
+  /// No description provided for @builtInCategoryDeleteConfirmation.
+  ///
+  /// In en, this message translates to:
+  /// **'Clear this plan section?'**
+  String get builtInCategoryDeleteConfirmation;
+
   ///
   ///
   /// In en, this message translates to:

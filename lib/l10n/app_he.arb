@@ -67,6 +67,8 @@
      "sharePageCustomCategoryTitle": "כותרת הקטגוריה",
      "sharePageCustomCategoryDescription": "תיאור",
      "sharePageSaveCustomCategory": "הוספת קטגוריה",
+     "customCategoryDeleteConfirmation": "למחוק את הקטגוריה המותאמת?",
+     "builtInCategoryDeleteConfirmation": "לנקות את החלק הזה בתוכנית?",
      "customCategoryOptionEmpoweringQuotes": "משפטים מחזקים שחשוב לי לזכור",
      "customCategoryOptionPastEvents": "אירועים מהעבר לתזכורת",
      "customCategoryOptionAboutMe": "דברים עלי שחשוב לי שנזכור",

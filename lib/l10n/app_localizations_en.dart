@@ -482,6 +482,12 @@ class AppLocalizationsEn extends AppLocalizations {
   String get sharePageSaveCustomCategory => 'Add category';
 
   @override
+  String get customCategoryDeleteConfirmation => 'Delete this custom category?';
+
+  @override
+  String get builtInCategoryDeleteConfirmation => 'Clear this plan section?';
+
+  @override
   String get customCategoryOptionEmpoweringQuotes =>
       'Empowering quotes important to remember';
 
