@@ -46,10 +46,13 @@ final class _FakeMemoryService implements PersistentMemoryService {
   final List<_WriteRecord> writes = [];
   final Set<String>? allowedKeys;
 
-  _FakeMemoryService({
-    Map<String, dynamic>? initialStore,
-    this.allowedKeys,
-  }) : store = initialStore != null ? Map.from(initialStore) : {};
+  _FakeMemoryService({Map<String, dynamic>? initialStore, this.allowedKeys})
+    : store = initialStore != null ? Map.from(initialStore) : {};
+
+  @override
+  Future<Map<String, Object?>> readSnapshot(
+    Map<String, PersistentMemoryType> keys,
+  ) => throw StateError('Unexpected export snapshot read in this test.');
 
   @override
   Future<dynamic> getItem(String key, PersistentMemoryType type) async {
@@ -111,36 +114,46 @@ void main() {
       },
     );
 
-    test('loadCustomCategoriesFromStorage reads atomic JSON snapshot first', () async {
-      final fake = _FakeMemoryService(
-        initialStore: {
-          customCategoriesKey: jsonEncode([
-            {'title': 'Atomic Title', 'description': 'Atomic Desc'},
-          ]),
-          customCategoryTitlesKey: ['Legacy Title'],
-          customCategoryDescriptionsKey: ['Legacy Desc'],
-        },
-      );
+    test(
+      'loadCustomCategoriesFromStorage reads atomic JSON snapshot first',
+      () async {
+        final fake = _FakeMemoryService(
+          initialStore: {
+            customCategoriesKey: jsonEncode([
+              {'title': 'Atomic Title', 'description': 'Atomic Desc'},
+            ]),
+            customCategoryTitlesKey: ['Legacy Title'],
+            customCategoryDescriptionsKey: ['Legacy Desc'],
+          },
+        );
 
-      final result = await loadCustomCategoriesFromStorage(memoryService: fake);
-      expect(_toPairs(result), [
-        ['Atomic Title', 'Atomic Desc'],
-      ]);
-    });
+        final result = await loadCustomCategoriesFromStorage(
+          memoryService: fake,
+        );
+        expect(_toPairs(result), [
+          ['Atomic Title', 'Atomic Desc'],
+        ]);
+      },
+    );
 
-    test('loadCustomCategoriesFromStorage falls back to legacy separate keys', () async {
-      final fake = _FakeMemoryService(
-        initialStore: {
-          customCategoryTitlesKey: ['Legacy Title 1', '  ', 'Legacy Title 2'],
-          customCategoryDescriptionsKey: ['Legacy Desc 1', 'Desc 2', '  '],
-        },
-      );
+    test(
+      'loadCustomCategoriesFromStorage falls back to legacy separate keys',
+      () async {
+        final fake = _FakeMemoryService(
+          initialStore: {
+            customCategoryTitlesKey: ['Legacy Title 1', '  ', 'Legacy Title 2'],
+            customCategoryDescriptionsKey: ['Legacy Desc 1', 'Desc 2', '  '],
+          },
+        );
 
-      final result = await loadCustomCategoriesFromStorage(memoryService: fake);
-      expect(_toPairs(result), [
-        ['Legacy Title 1', 'Legacy Desc 1'],
-      ]);
-    });
+        final result = await loadCustomCategoriesFromStorage(
+          memoryService: fake,
+        );
+        expect(_toPairs(result), [
+          ['Legacy Title 1', 'Legacy Desc 1'],
+        ]);
+      },
+    );
 
     test(
       'saveCustomCategoriesToStorage saves atomic JSON snapshot and legacy lists with strict assertions',
@@ -153,121 +166,135 @@ void main() {
           },
         );
 
-        await saveCustomCategoriesToStorage(
-          [
-            const MapEntry('  Title 1  ', '  Desc 1  '),
-            const MapEntry('', 'Empty Title'),
-            const MapEntry('Title 2', 'Desc 2'),
-          ],
-          memoryService: fake,
-        );
-
-        expect(fake.writes, containsAll([
-          _WriteRecord(
-            customCategoriesKey,
-            PersistentMemoryType.String,
-            jsonEncode([
-              {'title': 'Title 1', 'description': 'Desc 1'},
-              {'title': 'Title 2', 'description': 'Desc 2'},
-            ]),
-          ),
-          const _WriteRecord(
-            customCategoryTitlesKey,
-            PersistentMemoryType.StringList,
-            ['Title 1', 'Title 2'],
-          ),
-          const _WriteRecord(
-            customCategoryDescriptionsKey,
-            PersistentMemoryType.StringList,
-            ['Desc 1', 'Desc 2'],
-          ),
-        ]));
+        await saveCustomCategoriesToStorage([
+          const MapEntry('  Title 1  ', '  Desc 1  '),
+          const MapEntry('', 'Empty Title'),
+          const MapEntry('Title 2', 'Desc 2'),
+        ], memoryService: fake);
 
         expect(
-          () => saveCustomCategoriesToStorage(
-            [const MapEntry('A', 'B')],
-            memoryService: null,
-          ),
+          fake.writes,
+          containsAll([
+            _WriteRecord(
+              customCategoriesKey,
+              PersistentMemoryType.String,
+              jsonEncode([
+                {'title': 'Title 1', 'description': 'Desc 1'},
+                {'title': 'Title 2', 'description': 'Desc 2'},
+              ]),
+            ),
+            const _WriteRecord(
+              customCategoryTitlesKey,
+              PersistentMemoryType.StringList,
+              ['Title 1', 'Title 2'],
+            ),
+            const _WriteRecord(
+              customCategoryDescriptionsKey,
+              PersistentMemoryType.StringList,
+              ['Desc 1', 'Desc 2'],
+            ),
+          ]),
+        );
+
+        expect(
+          () => saveCustomCategoriesToStorage([
+            const MapEntry('A', 'B'),
+          ], memoryService: null),
           throwsA(isA<StateError>()),
         );
       },
     );
 
-    test('UserInformation loadCustomCategories and saveCustomCategories', () async {
-      final fake = _FakeMemoryService(
-        initialStore: {
-          customCategoryTitlesKey: ['Saved Title'],
-          customCategoryDescriptionsKey: ['Saved Desc'],
-        },
-        allowedKeys: {
-          customCategoriesKey,
-          customCategoryTitlesKey,
-          customCategoryDescriptionsKey,
-        },
-      );
+    test(
+      'UserInformation loadCustomCategories and saveCustomCategories',
+      () async {
+        final fake = _FakeMemoryService(
+          initialStore: {
+            customCategoryTitlesKey: ['Saved Title'],
+            customCategoryDescriptionsKey: ['Saved Desc'],
+          },
+          allowedKeys: {
+            customCategoriesKey,
+            customCategoryTitlesKey,
+            customCategoryDescriptionsKey,
+          },
+        );
 
-      final user = UserInformation(service: fake);
-      final loaded = await user.loadCustomCategories();
-      expect(_toPairs(loaded), [
-        ['Saved Title', 'Saved Desc'],
-      ]);
-      expect(_toPairs(user.customCategories), [
-        ['Saved Title', 'Saved Desc'],
-      ]);
+        final user = UserInformation(service: fake);
+        final loaded = await user.loadCustomCategories();
+        expect(_toPairs(loaded), [
+          ['Saved Title', 'Saved Desc'],
+        ]);
+        expect(_toPairs(user.customCategories), [
+          ['Saved Title', 'Saved Desc'],
+        ]);
 
-      user.customCategories = [
-        const MapEntry('  New Title  ', '  New Desc  '),
-        const MapEntry('', 'Invalid'),
-      ];
-      await user.saveCustomCategories();
+        user.customCategories = [
+          const MapEntry('  New Title  ', '  New Desc  '),
+          const MapEntry('', 'Invalid'),
+        ];
+        await user.saveCustomCategories();
 
-      expect(_toPairs(user.customCategories), [
-        ['New Title', 'New Desc'],
-      ]);
+        expect(_toPairs(user.customCategories), [
+          ['New Title', 'New Desc'],
+        ]);
 
-      expect(fake.writes, containsAll([
-        _WriteRecord(
-          customCategoriesKey,
-          PersistentMemoryType.String,
-          jsonEncode([
-            {'title': 'New Title', 'description': 'New Desc'},
+        expect(
+          fake.writes,
+          containsAll([
+            _WriteRecord(
+              customCategoriesKey,
+              PersistentMemoryType.String,
+              jsonEncode([
+                {'title': 'New Title', 'description': 'New Desc'},
+              ]),
+            ),
+            const _WriteRecord(
+              customCategoryTitlesKey,
+              PersistentMemoryType.StringList,
+              ['New Title'],
+            ),
+            const _WriteRecord(
+              customCategoryDescriptionsKey,
+              PersistentMemoryType.StringList,
+              ['New Desc'],
+            ),
           ]),
-        ),
-        const _WriteRecord(
-          customCategoryTitlesKey,
-          PersistentMemoryType.StringList,
-          ['New Title'],
-        ),
-        const _WriteRecord(
-          customCategoryDescriptionsKey,
-          PersistentMemoryType.StringList,
-          ['New Desc'],
-        ),
-      ]));
-    });
+        );
+      },
+    );
 
-    test('UserInformation.reset clears memory and persists empty custom categories', () async {
-      final fake = _FakeMemoryService(
-        initialStore: {
-          customCategoryTitlesKey: ['Old Title'],
-          customCategoryDescriptionsKey: ['Old Desc'],
-        },
-      );
+    test(
+      'UserInformation.reset clears memory and persists empty custom categories',
+      () async {
+        final fake = _FakeMemoryService(
+          initialStore: {
+            customCategoryTitlesKey: ['Old Title'],
+            customCategoryDescriptionsKey: ['Old Desc'],
+          },
+        );
 
-      final user = UserInformation(service: fake);
-      user.customCategories = [const MapEntry('Title', 'Desc')];
+        final user = UserInformation(service: fake);
+        user.customCategories = [const MapEntry('Title', 'Desc')];
 
-      await user.reset('en');
+        await user.reset('en');
 
-      expect(user.customCategories, isEmpty);
-      expect(
-        await fake.getItem(customCategoryTitlesKey, PersistentMemoryType.StringList),
-        isEmpty,
-      );
-      expect(
-        await fake.getItem(customCategoryDescriptionsKey, PersistentMemoryType.StringList),
-        isEmpty,
-      );
-    });
+        expect(user.customCategories, isEmpty);
+        expect(
+          await fake.getItem(
+            customCategoryTitlesKey,
+            PersistentMemoryType.StringList,
+          ),
+          isEmpty,
+        );
+        expect(
+          await fake.getItem(
+            customCategoryDescriptionsKey,
+            PersistentMemoryType.StringList,
+          ),
+          isEmpty,
+        );
+      },
+    );
   });
 }

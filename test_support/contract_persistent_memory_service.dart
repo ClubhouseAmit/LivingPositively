@@ -97,6 +97,8 @@ base class ContractPersistentMemoryService implements PersistentMemoryService {
   Future<void>? _pendingOperation;
   Future<void>? _activeReset;
   bool _resetFenceActive = false;
+  final Map<String, Object> _failedWrites = {};
+  bool _resetFailed = false;
 
   /// Runs inside the serialized write operation before the write is durable.
   ///
@@ -166,13 +168,19 @@ base class ContractPersistentMemoryService implements PersistentMemoryService {
         store[key] = visibleValue;
       }
 
-      await onPersist?.call(key, type, write.value);
+      try {
+        await onPersist?.call(key, type, write.value);
+      } catch (error) {
+        _failedWrites[key] = error;
+        rethrow;
+      }
 
       _durableStore[key] = _copyValue(type, write.value);
       if (!exposePendingWrites) {
         store[key] = _copyValue(type, write.value);
       }
       completedWrites.add(write);
+      _failedWrites.remove(key);
       await onSetItemCompleted?.call(key, type, write.value);
     });
   }
@@ -196,6 +204,35 @@ base class ContractPersistentMemoryService implements PersistentMemoryService {
   }
 
   @override
+  Future<Map<String, Object?>> readSnapshot(
+    Map<String, PersistentMemoryType> keys,
+  ) async {
+    final requestedKeys = Map<String, PersistentMemoryType>.of(keys);
+    late Map<String, Object?> snapshot;
+    await _enqueue(() async {
+      if (_resetFailed) {
+        throw StateError('Cannot export after an unsuccessful storage reset.');
+      }
+      for (final key in requestedKeys.keys) {
+        if (_failedWrites.containsKey(key)) {
+          throw StateError(
+            'Cannot export after an unsuccessful save of "$key".',
+          );
+        }
+      }
+      final values = <String, Object?>{};
+      for (final entry in requestedKeys.entries) {
+        final Object? value = await getItem(entry.key, entry.value);
+        values[entry.key] = value is List
+            ? List<String>.unmodifiable(value.cast<String>())
+            : value;
+      }
+      snapshot = Map<String, Object?>.unmodifiable(values);
+    });
+    return snapshot;
+  }
+
+  @override
   Future<void> reset() {
     final Future<void>? activeReset = _activeReset;
     if (activeReset != null) {
@@ -207,8 +244,15 @@ base class ContractPersistentMemoryService implements PersistentMemoryService {
     resetOperation =
         _enqueue(() async {
           store.clear();
-          await onReset?.call();
+          try {
+            await onReset?.call();
+          } catch (_) {
+            _resetFailed = true;
+            rethrow;
+          }
           _durableStore.clear();
+          _failedWrites.clear();
+          _resetFailed = false;
         }).whenComplete(() {
           if (identical(_activeReset, resetOperation)) {
             _activeReset = null;

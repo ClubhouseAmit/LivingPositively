@@ -1,16 +1,12 @@
 import 'dart:async';
-import 'dart:math';
 import 'package:mazilon/global_enums.dart';
 import 'package:mazilon/l10n/app_localizations.dart';
 import 'package:flutter/material.dart';
-import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:firebase_core/firebase_core.dart';
 import 'package:get_it/get_it.dart';
 import 'package:mazilon/Locale/locale_service.dart';
 import 'package:mazilon/iFx/service_locator.dart';
 import 'package:mazilon/AnalyticsService.dart';
-import 'package:mazilon/pages/notifications/notification_service.dart';
-import 'package:mazilon/pages/notifications/reminder_debug_recorder.dart';
 import 'package:mazilon/util/logger_service.dart';
 import 'package:mazilon/util/async/async_state_view.dart';
 import 'package:mazilon/util/persistent_memory_service.dart';
@@ -20,17 +16,15 @@ import 'util/Firebase/firebase_options.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:mixpanel_flutter/mixpanel_flutter.dart';
 import '/pages/SignIn_Pages/introduction.dart';
-import 'package:workmanager/workmanager.dart';
 import 'package:mazilon/util/userInformation.dart';
 import 'package:mazilon/util/appInformation.dart';
 import 'package:mazilon/util/Firebase/firebase_functions.dart';
+import 'package:mazilon/util/Firebase/fcm_service.dart';
+import 'package:mazilon/util/Firebase/fcm_scheduled_notification_service.dart';
 import 'package:mazilon/util/Form/formPagePhoneModel.dart';
 import 'package:upgrader/upgrader.dart';
 //testing:
 import 'package:mazilon/pages/SignIn_Pages/firstPage.dart';
-import 'package:sentry/sentry.dart';
-
-const _backgroundWorkerSentryDsn = String.fromEnvironment('SENTRY_DSN');
 
 List<String> checkboxCollectionNames = [
   'PersonalPlan-DifficultEvents',
@@ -39,68 +33,6 @@ List<String> checkboxCollectionNames = [
   'PersonalPlan-Distractions',
   // Add the new table name
 ];
-
-@pragma(
-  'vm:entry-point',
-) // Mandatory if the App is obfuscated or using Flutter 3.1+
-void callbackDispatcher() {
-  Workmanager().executeTask((task, inputData) async {
-    try {
-      if (_backgroundWorkerSentryDsn.isNotEmpty && !Sentry.isEnabled) {
-        await Sentry.init(
-          (options) => options.dsn = _backgroundWorkerSentryDsn,
-        );
-      }
-      if (inputData == null ||
-          !inputData.containsKey("text") ||
-          !inputData.containsKey("timeHour") ||
-          !inputData.containsKey("timeMinute") ||
-          !inputData.containsKey("id")) {
-        throw ArgumentError("Invalid input data for notification");
-      }
-      String bodyText;
-      if (inputData.containsKey("customMessage") &&
-          inputData["customMessage"] != null &&
-          (inputData["customMessage"] as String).isNotEmpty) {
-        bodyText = inputData["customMessage"];
-      } else {
-        int number = Random().nextInt(inputData["text"].length);
-        bodyText = inputData["text"][number];
-      }
-      await NotificationsService.init();
-      await NotificationsService.cancelNotifications(null, cancelWorker: false);
-      TimeOfDay calculatedTime = NotificationsService.calculateTime(
-        inputData["timeHour"],
-        inputData["timeMinute"],
-      ); // Calculate the time for the notification
-      await NotificationsService.scheduleNotification(
-        calculatedTime,
-        inputData["id"],
-        bodyText,
-      );
-      await recordReminderDebugEvent(
-        status: reminderDebugStatusSuccess,
-        task: task,
-      );
-      return true;
-    } catch (error, stackTrace) {
-      try {
-        await Sentry.captureException(
-          error,
-          stackTrace: stackTrace,
-          withScope: (scope) => scope.setContexts('inputData', inputData),
-        );
-      } catch (_) {}
-      await recordReminderDebugEvent(
-        status: reminderDebugStatusFailure,
-        task: task,
-        error: error.toString(),
-      );
-      return false;
-    }
-  });
-}
-
 
 // Phase 10B (ADR-005 § B): `firebaseInitializer` is a dependency-injection
 // seam used only by tests (`integration_test/bootstrap_full_test.dart`).
@@ -120,8 +52,36 @@ Future<void> initializeApp({
   (locatorSetup ?? setupLocator)();
 }
 
+/// Defers best-effort FCM startup until the first frame is visible.
+void _scheduleFcmInitialization(Future<void> Function()? fcmInitializer) {
+  WidgetsBinding.instance.addPostFrameCallback((_) {
+    unawaited(
+      _initializeFcmBestEffort(fcmInitializer ?? FcmService.initialize),
+    );
+  });
+}
+
+Future<void> _initializeFcmBestEffort(
+  Future<void> Function() initializer,
+) async {
+  try {
+    await Future<void>.sync(initializer);
+  } catch (error, stackTrace) {
+    debugPrint('[Bootstrap] FCM initialization failed: $error');
+    if (!GetIt.instance.isRegistered<IncidentLoggerService>()) return;
+    try {
+      await GetIt.instance<IncidentLoggerService>().captureLog(
+        error,
+        stackTrace: stackTrace,
+      );
+    } catch (loggerError) {
+      debugPrint('[Bootstrap] FCM failure reporting failed: $loggerError');
+    }
+  }
+}
+
 /// Test seam for `main()`. Performs platform binding + Firebase init +
-/// service-locator setup + (on non-web) Workmanager init, then returns the
+/// service-locator setup, then returns the
 /// root widget tree. `main()` only adds the `IncidentLoggerService.
 /// initializeSentry(...)` call (which itself calls `runApp`); a test that
 /// calls `bootstrapApp()` directly can pump the returned widget through the
@@ -129,41 +89,29 @@ Future<void> initializeApp({
 ///
 /// Named parameters are dependency-injection seams used by
 /// `integration_test/bootstrap_full_test.dart`. Production callers (`main()`
-/// below) omit them and accept defaults that exactly match the previous
-/// pre-extraction body — behavior-preserving by construction.
+/// below) omit them and accept defaults that exactly match the production
+/// collaborators. FCM initialization starts after the first rendered frame.
 ///
 /// Per ADR-005 § B, this extraction is the **fourth sanctioned production-
 /// code exception** to the no-production-changes guard rail of the coverage
 /// initiative, alongside:
 ///   1. ADR-001 Round 1 — `firestore` named-param injection on 14 helpers
 ///      in `firebase_functions.dart`.
-///   2. ADR-002 PR #266 — `@visibleForTesting
-///      NotificationsService.resetForTest()`.
+///   2. ADR-002 PR #266 — notification-service testability seam.
 ///   3. ADR-004 Round 9 — `firestore` injection extended to 29 more helpers.
 /// All four share the same shape: narrow, mechanical, behaviour-preserving
 /// for production paths.
 Future<Widget> bootstrapApp({
   Future<void> Function()? firebaseInitializer,
   void Function()? locatorSetup,
-  void Function()? workmanagerInitializer,
+  Future<void> Function()? fcmInitializer,
 }) async {
   await initializeApp(
     firebaseInitializer: firebaseInitializer,
     locatorSetup: locatorSetup,
   );
 
-  // Initialize Workmanager only on mobile platforms (not web). Preserves the
-  // fire-and-forget shape of the original `main()` — `Workmanager().initialize`
-  // returns `Future<void>` but is intentionally not awaited so the rest of
-  // bootstrap can proceed in parallel.
-  if (!kIsWeb) {
-    (workmanagerInitializer ??
-        () {
-          Workmanager().initialize(callbackDispatcher);
-        })();
-  }
-
-  return MultiProvider(
+  final app = MultiProvider(
     providers: [
       for (int i = 0; i < checkboxCollectionNames.length; i++)
         // Initialize the checkbox models
@@ -191,6 +139,8 @@ Future<Widget> bootstrapApp({
     ],
     child: MyApp(),
   );
+  _scheduleFcmInitialization(fcmInitializer);
+  return app;
 }
 
 void main() async {
@@ -209,7 +159,8 @@ class MyApp extends StatefulWidget {
 
 class _MyAppState extends State<MyApp> with WidgetsBindingObserver {
   late Mixpanel mixpanel;
-  final GlobalKey<NavigatorState> _navigatorKey = GlobalKey<NavigatorState>();
+  final GlobalKey<NavigatorState> _navigatorKey =
+      GetIt.instance<GlobalKey<NavigatorState>>();
   bool enteredBefore = true;
   String localeName = '';
   bool _initializationStarted = false; // Add this flag
@@ -270,6 +221,7 @@ class _MyAppState extends State<MyApp> with WidgetsBindingObserver {
     if (state == AppLifecycleState.resumed) {
       _startSession(); // App is active
       _refreshThemeSchedule(force: true);
+      FcmService.onAppResumed();
       if (mounted) {
         setState(() {});
       }
@@ -452,17 +404,28 @@ class _MyAppState extends State<MyApp> with WidgetsBindingObserver {
       localeName = localeService.getLocale();
     });
     unawaited(_saveLocaleInBackground(service, locale));
-    
+
     final userInfoProvider = Provider.of<UserInformation>(
       context,
       listen: false,
     );
     userInfoProvider.updateLocaleName(locale);
 
-    // Reschedule notifications so they use the new language
-    AppLocalizations.delegate.load(Locale(locale)).then((localizations) {
-      if (userInfoProvider.notificationMessage.isNotEmpty || userInfoProvider.notificationHour != 12) {
-        NotificationsService.updateNotification(userInfoProvider, localizations);
+    WidgetsBinding.instance.addPostFrameCallback((_) async {
+      final currentContext = _navigatorKey.currentContext;
+      if (currentContext == null) return;
+      final userInfo = Provider.of<UserInformation>(
+        currentContext,
+        listen: false,
+      );
+      final pref = userInfo.getNotificationPreference('default');
+      if (pref != null) {
+        await FcmScheduledNotificationService.registerNotification(
+          context: currentContext,
+          typeId: 'default',
+          hour: pref.hour,
+          minute: pref.minute,
+        );
       }
     });
   }
@@ -509,7 +472,18 @@ class _MyAppState extends State<MyApp> with WidgetsBindingObserver {
             loadUserInformation(userInfoProvider, localeService.getLocale()),
             setLocale(),
           ])
-          .then((_) {
+          .then((_) async {
+            if (userInfoProvider.loggedIn) {
+              // Interactive sign-in already starts this best-effort local
+              // reminder migration. Restored Firebase sessions must take the
+              // same path even if this widget is disposed before startup
+              // finishes. The migration uses the captured model and does not
+              // depend on this State's BuildContext.
+              await FcmScheduledNotificationService.migrateLegacyDefaultReminderWithReporting(
+                userInformation: userInfoProvider,
+              );
+            }
+            if (!mounted) return;
             //initialize which widget will run first:
             widgetNotifier.value = FirstPage(
               firsttime: !enteredBefore,
@@ -532,7 +506,11 @@ class _MyAppState extends State<MyApp> with WidgetsBindingObserver {
                   return Column(
                     mainAxisSize: MainAxisSize.min,
                     children: [
-                      Icon(Icons.error_outline, size: 48, color: Theme.of(context).colorScheme.error),
+                      Icon(
+                        Icons.error_outline,
+                        size: 48,
+                        color: Theme.of(context).colorScheme.error,
+                      ),
                       const SizedBox(height: 16),
                       Text(
                         'An error occurred during startup.\nPlease try restarting the app.',
@@ -545,7 +523,7 @@ class _MyAppState extends State<MyApp> with WidgetsBindingObserver {
                       ),
                     ],
                   );
-                }
+                },
               ),
             );
           });

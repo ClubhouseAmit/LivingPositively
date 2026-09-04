@@ -1,6 +1,7 @@
 import 'dart:async';
 import 'dart:math' as math;
 
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:get_it/get_it.dart';
@@ -8,12 +9,16 @@ import 'package:mazilon/Locale/locale_service.dart';
 import 'package:mazilon/form/speech_dictation_suffix_action.dart';
 import 'package:mazilon/global_enums.dart';
 import 'package:mazilon/pages/SignIn_Pages/firstPage.dart';
+import 'package:mazilon/util/Firebase/auth_service.dart';
+import 'package:mazilon/util/Firebase/fcm_scheduled_notification_service.dart';
 import 'package:mazilon/util/Share/LP_alert_dialog.dart';
 import 'package:mazilon/util/async/persistence_retry_snack_bar.dart';
 import 'package:mazilon/util/Form/formPagePhoneModel.dart';
 
 import 'package:mazilon/pages/FeelGood/image_picker_service_impl.dart';
 import 'package:mazilon/util/LP_extended_state.dart';
+import 'package:mazilon/util/logger_service.dart';
+import 'package:mazilon/util/notification_preference.dart';
 import 'package:mazilon/util/persistent_memory_service.dart';
 import 'package:mazilon/util/theme/font_weight.dart';
 import 'package:mazilon/util/Form/myDropdownMenuEntry.dart';
@@ -137,11 +142,7 @@ class _UserSettingsState extends LPExtendedState<UserSettings> {
             PersistentMemoryService
           >(); // Get the persistent memory service instance
 
-      await service.setItem(
-        "localeName",
-        PersistentMemoryType.String,
-        locale,
-      );
+      await service.setItem("localeName", PersistentMemoryType.String, locale);
 
       if (!mounted) {
         return;
@@ -512,36 +513,209 @@ class _UserSettingsState extends LPExtendedState<UserSettings> {
     );
   }
 
-  //remove log-in data and reset all data that user has filled in the app:
+  void _reportResetFailure(Object error, StackTrace stackTrace) {
+    if (!GetIt.instance.isRegistered<IncidentLoggerService>()) {
+      debugPrint('Reset failed: $error');
+      return;
+    }
+
+    unawaited(
+      Future<void>.sync(
+        () => GetIt.instance<IncidentLoggerService>().captureLog(
+          error,
+          stackTrace: stackTrace,
+        ),
+      ).catchError((Object loggerError, StackTrace loggerStackTrace) {
+        debugPrint('Reset failure reporting failed: $loggerError');
+      }),
+    );
+  }
+
+  // Remove locally persisted data after the server-side reminder state is safe.
   Future<void> resetData(UserInformation userInfo) async {
-    LocaleService localeService = GetIt.instance<LocaleService>();
-    final PersistentMemoryService service = userInfo.service;
-
-    await service.reset(); // Reset the persistent memory service
-    await userInfo.reset(localeService.getLocale());
-    var enteredBeforeValue = await service.getItem(
-      "enteredBefore",
-      PersistentMemoryType.Bool,
+    final localeService = GetIt.instance<LocaleService>();
+    // Keep main's injected persistence ownership: the UserInformation instance
+    // owns the storage being reset and later repopulated with its empty state.
+    final service = userInfo.service;
+    final previousDefaultReminder = userInfo.getNotificationPreference(
+      'default',
     );
-    var hasFilledValue = await service.getItem(
-      "hasFilled",
-      PersistentMemoryType.Bool,
+    NotificationPreference? cancelledRemotePreference;
+    var remoteReminderCancelled = false;
+    var resetSucceeded = false;
+
+    final firebaseUser = GetIt.instance.isRegistered<FirebaseAuth>()
+        ? GetIt.instance<FirebaseAuth>().currentUser
+        : null;
+    try {
+      if (firebaseUser != null && !firebaseUser.isAnonymous) {
+        final cancelled =
+            await FcmScheduledNotificationService.cancelDefaultForReset(
+              userInformation: userInfo,
+              onRemoteScheduleCancelled: (remotePreference) {
+                cancelledRemotePreference = remotePreference;
+              },
+            );
+        if (!cancelled) {
+          throw StateError('Unable to cancel the reminder before reset.');
+        }
+        remoteReminderCancelled = true;
+      }
+      await service.reset();
+    } catch (error, stackTrace) {
+      if (remoteReminderCancelled) {
+        final reminderRestored =
+            await FcmScheduledNotificationService.restoreDefaultReminderAfterResetFailure(
+              userInformation: userInfo,
+              previousPreference:
+                  cancelledRemotePreference ?? previousDefaultReminder,
+            );
+        if (!reminderRestored) {
+          _reportResetFailure(
+            StateError('Unable to restore the cancelled reminder.'),
+            StackTrace.current,
+          );
+        }
+      }
+      _reportResetFailure(error, stackTrace);
+      if (mounted) {
+        Navigator.of(context).pop();
+        ScaffoldMessenger.maybeOf(
+          context,
+        )?.showSnackBar(SnackBar(content: Text(appLocale.resetDataFailed)));
+      }
+      rethrow;
+    }
+
+    // This is intentionally a separate failure boundary. Main's persistence
+    // contract requires the dialog to remain available when the empty state
+    // cannot be saved, so the user can retry the completed storage reset.
+    try {
+      await userInfo.reset(localeService.getLocale());
+    } catch (error, stackTrace) {
+      if (remoteReminderCancelled) {
+        final reminderRestored =
+            await FcmScheduledNotificationService.restoreDefaultReminderAfterResetFailure(
+              userInformation: userInfo,
+              previousPreference:
+                  cancelledRemotePreference ?? previousDefaultReminder,
+            );
+        if (!reminderRestored) {
+          _reportResetFailure(
+            StateError('Unable to restore the cancelled reminder.'),
+            StackTrace.current,
+          );
+        }
+      }
+      _reportResetFailure(error, stackTrace);
+      rethrow;
+    }
+    resetSucceeded = true;
+    enteredBefore = false;
+    hasFilled = false;
+    try {
+      runZonedGuarded<void>(widget.phonePageData.reset, _reportResetFailure);
+
+      runZonedGuarded<void>(() {
+        final authenticatedUser = GetIt.instance.isRegistered<FirebaseAuth>()
+            ? GetIt.instance<FirebaseAuth>().currentUser
+            : null;
+        if (authenticatedUser != null && !authenticatedUser.isAnonymous) {
+          userInfo.updateLoggedIn(true);
+          userInfo.updateAuthDecisionMade(true);
+          userInfo.updateUserId(authenticatedUser.uid);
+          userInfo.updateEmail(authenticatedUser.email ?? '');
+          userInfo.updateDisplayName(authenticatedUser.displayName ?? '');
+        }
+      }, _reportResetFailure);
+
+      try {
+        await Future<void>.sync(pickerService.deleteImages);
+      } catch (error, stackTrace) {
+        _reportResetFailure(error, stackTrace);
+      }
+    } finally {
+      if (resetSucceeded && mounted) {
+        Navigator.of(context).pushAndRemoveUntil(
+          MaterialPageRoute(
+            builder: (context) => FirstPage(
+              phonePageData: widget.phonePageData,
+              firsttime: !enteredBefore,
+              changeLocale: widget.changeLocale,
+              hasFilled: hasFilled,
+            ),
+          ),
+          (Route<dynamic> route) => false,
+        );
+      }
+    }
+  }
+
+  Future<bool> signOut(UserInformation userInfo) async {
+    final firebaseUser = GetIt.instance.isRegistered<FirebaseAuth>()
+        ? GetIt.instance<FirebaseAuth>().currentUser
+        : null;
+    final previousDefaultReminder = userInfo.getNotificationPreference(
+      'default',
     );
-
-    if (!mounted) {
-      return;
+    NotificationPreference? cancelledRemotePreference;
+    var reminderCancelled = false;
+    if (firebaseUser != null && !firebaseUser.isAnonymous) {
+      final cancelled =
+          await FcmScheduledNotificationService.cancelDefaultForSignOut(
+            userInformation: userInfo,
+            onRemoteScheduleCancelled: (remotePreference) {
+              cancelledRemotePreference = remotePreference;
+            },
+          );
+      if (!cancelled) {
+        _reportResetFailure(
+          StateError('Unable to cancel the reminder before sign-out.'),
+          StackTrace.current,
+        );
+        if (mounted) {
+          ScaffoldMessenger.maybeOf(
+            context,
+          )?.showSnackBar(SnackBar(content: Text(appLocale.asyncErrorMessage)));
+        }
+        return false;
+      }
+      reminderCancelled = true;
     }
-    widget.phonePageData.reset();
-    setState(() {
-      enteredBefore = enteredBeforeValue;
-      hasFilled = hasFilledValue;
-    });
 
-    await pickerService.deleteImages();
-
-    if (!mounted) {
-      return;
+    try {
+      await AuthService.signOut();
+    } catch (error, stackTrace) {
+      if (reminderCancelled) {
+        final reminderRestored =
+            await FcmScheduledNotificationService.restoreDefaultReminderAfterResetFailure(
+              userInformation: userInfo,
+              previousPreference:
+                  cancelledRemotePreference ?? previousDefaultReminder,
+            );
+        if (!reminderRestored) {
+          _reportResetFailure(
+            StateError('Unable to restore the cancelled reminder.'),
+            StackTrace.current,
+          );
+        }
+      }
+      _reportResetFailure(error, stackTrace);
+      if (mounted) {
+        ScaffoldMessenger.maybeOf(
+          context,
+        )?.showSnackBar(SnackBar(content: Text(appLocale.asyncErrorMessage)));
+      }
+      return false;
     }
+
+    userInfo.updateLoggedIn(false);
+    userInfo.updateAuthDecisionMade(false);
+    userInfo.updateUserId('');
+    userInfo.updateEmail('');
+    userInfo.updateDisplayName('');
+
+    if (!mounted) return true;
     Navigator.of(context).pushAndRemoveUntil(
       MaterialPageRoute(
         builder: (context) => FirstPage(
@@ -553,6 +727,7 @@ class _UserSettingsState extends LPExtendedState<UserSettings> {
       ),
       (Route<dynamic> route) => false,
     );
+    return true;
   }
 
   /// Attempts the complete reset flow and reports whether it completed.
@@ -601,7 +776,8 @@ class _UserSettingsState extends LPExtendedState<UserSettings> {
     final theme = Theme.of(context);
     final colorScheme = theme.colorScheme;
     final selectedGenderLabel =
-        selectedGender?.label(appLocale) ?? Gender.of(userInfoProvider).label(appLocale);
+        selectedGender?.label(appLocale) ??
+        Gender.of(userInfoProvider).label(appLocale);
     final selectedLocaleName = locales.contains(userInfoProvider.localeName)
         ? localesNames[locales.indexOf(userInfoProvider.localeName)]
         : localesNames.first;
@@ -790,7 +966,10 @@ class _UserSettingsState extends LPExtendedState<UserSettings> {
                                         onSelected: (newValue) {
                                           setState(() {
                                             if (newValue != null) {
-                                              selectedGender = Gender.fromLabel(newValue, appLocale);
+                                              selectedGender = Gender.fromLabel(
+                                                newValue,
+                                                appLocale,
+                                              );
                                             }
                                           });
                                         },
@@ -867,13 +1046,15 @@ class _UserSettingsState extends LPExtendedState<UserSettings> {
                                             ),
                                           ),
                                         ),
-                                        onPressed: () {
+                                        onPressed: () async {
                                           FocusScope.of(context).unfocus();
                                           if (!_settingsFormKey.currentState!
                                               .validate()) {
                                             return;
                                           }
-
+                                          final navigator = Navigator.of(
+                                            context,
+                                          );
                                           userInfoProvider.updateName(
                                             _namecontroller.text.trim(),
                                           );
@@ -890,7 +1071,8 @@ class _UserSettingsState extends LPExtendedState<UserSettings> {
                                               ),
                                             );
                                           }
-                                          Navigator.pop(context);
+                                          if (!mounted) return;
+                                          navigator.pop();
                                         },
                                         child: Text(
                                           appLocale.confirmButton(gender),
@@ -904,6 +1086,118 @@ class _UserSettingsState extends LPExtendedState<UserSettings> {
                                         ),
                                       ),
                                     ),
+                                    if (userInfoProvider.loggedIn)
+                                      SizedBox(
+                                        height: _kActionButtonHeight,
+                                        child: TextButton(
+                                          key: const Key(
+                                            'userSettingsSignOutButton',
+                                          ),
+                                          style: TextButton.styleFrom(
+                                            backgroundColor:
+                                                colorScheme.surface,
+                                            foregroundColor:
+                                                colorScheme.onSurface,
+                                            shape: RoundedRectangleBorder(
+                                              borderRadius:
+                                                  BorderRadius.circular(
+                                                    _kActionButtonRadius,
+                                                  ),
+                                              side: BorderSide(
+                                                color: colorScheme
+                                                    .surfaceContainerHighest,
+                                                width: 1.5,
+                                              ),
+                                            ),
+                                          ),
+                                          onPressed: () {
+                                            showDialog<void>(
+                                              context: context,
+                                              builder: (dialogContext) {
+                                                var isSigningOut = false;
+                                                return StatefulBuilder(
+                                                  builder: (dialogContext, setDialogState) => PopScope(
+                                                    canPop: !isSigningOut,
+                                                    child: AlertDialog(
+                                                      title: Text(
+                                                        appLocale
+                                                            .authSignOutConfirmTitle,
+                                                      ),
+                                                      content: Text(
+                                                        appLocale
+                                                            .authSignOutConfirmBody,
+                                                      ),
+                                                      actions: [
+                                                        TextButton(
+                                                          onPressed:
+                                                              isSigningOut
+                                                              ? null
+                                                              : () => Navigator.of(
+                                                                  dialogContext,
+                                                                ).pop(),
+                                                          child: Text(
+                                                            appLocale
+                                                                .closeButton(
+                                                                  gender,
+                                                                ),
+                                                          ),
+                                                        ),
+                                                        TextButton(
+                                                          onPressed:
+                                                              isSigningOut
+                                                              ? null
+                                                              : () async {
+                                                                  setDialogState(
+                                                                    () =>
+                                                                        isSigningOut =
+                                                                            true,
+                                                                  );
+                                                                  final signedOut =
+                                                                      await signOut(
+                                                                        userInfoProvider,
+                                                                      );
+                                                                  if (!signedOut &&
+                                                                      dialogContext
+                                                                          .mounted) {
+                                                                    setDialogState(
+                                                                      () => isSigningOut =
+                                                                          false,
+                                                                    );
+                                                                  }
+                                                                },
+                                                          child: isSigningOut
+                                                              ? const SizedBox(
+                                                                  width: 20,
+                                                                  height: 20,
+                                                                  child: CircularProgressIndicator(
+                                                                    strokeWidth:
+                                                                        2,
+                                                                  ),
+                                                                )
+                                                              : Text(
+                                                                  appLocale
+                                                                      .authSignOut,
+                                                                ),
+                                                        ),
+                                                      ],
+                                                    ),
+                                                  ),
+                                                );
+                                              },
+                                            );
+                                          },
+                                          child: Text(
+                                            appLocale.authSignOut,
+                                            maxLines: 1,
+                                            overflow: TextOverflow.ellipsis,
+                                            style: TextStyle(
+                                              fontSize: _kActionLabelSize.sp,
+                                              fontWeight:
+                                                  AppFontWeight.semiBold,
+                                            ),
+                                          ),
+                                        ),
+                                      ),
                                     SizedBox(
                                       height: _kActionButtonHeight,
                                       child: TextButton(

@@ -1,15 +1,18 @@
 // ignore_for_file: non_constant_identifier_names, avoid_print
 
+import 'dart:async';
+
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:get_it/get_it.dart';
 import 'package:mazilon/global_enums.dart';
+import 'package:mazilon/util/SignIn/popup_toast.dart';
 import 'package:mazilon/util/logger_service.dart';
 import 'package:mazilon/util/persistent_memory_service.dart';
+import 'package:mazilon/util/notification_preference.dart';
 import 'package:mazilon/util/type_utils.dart';
+import 'package:mazilon/util/Firebase/fcm_service.dart';
 import 'dart:math';
-import 'package:firebase_auth/firebase_auth.dart';
-
-import 'package:mazilon/util/SignIn/popup_toast.dart';
 import 'package:mazilon/util/appInformation.dart';
 import 'package:mazilon/util/dreams_and_goals_selection.dart';
 import 'package:mazilon/util/userInformation.dart';
@@ -21,6 +24,19 @@ import 'package:flutter/foundation.dart' show kIsWeb, visibleForTesting;
 import 'package:firebase_core/firebase_core.dart';
 
 int? _storedIntOrNull(Object? value) => value is int ? value : null;
+
+const Duration _initialAuthStateTimeout = Duration(seconds: 5);
+
+void _reportAuthRestorationFailure(Object error, StackTrace stackTrace) {
+  if (!GetIt.instance.isRegistered<IncidentLoggerService>()) return;
+
+  final loggerService = GetIt.instance<IncidentLoggerService>();
+  unawaited(
+    Future<void>.sync(
+      () => loggerService.captureLog(error, stackTrace: stackTrace),
+    ).catchError((_) {}),
+  );
+}
 
 //This is where we handle all of the data fetching for the app
 //be it from the server or from the local storage
@@ -93,18 +109,28 @@ class Warning {
   Warning({required this.text, required this.warnings});
 }
 
-//upon adding user information, the load function will need to be updated
-//use or create functions in userinfo class to update the user information:
+/// Loads persisted user information after a bounded Firebase Auth restoration.
+///
+/// When `FirebaseAuth.currentUser` is initially null, [authStateTimeout] bounds
+/// the wait for the first `authStateChanges()` event. A timeout or restoration
+/// error keeps authenticated UI disabled without overwriting persisted sign-in
+/// evidence, allowing a later startup to retry restoration safely.
 Future<void> loadUserInformation(
   UserInformation userInfo,
-  String locale,
-) async {
+  String locale, {
+  Duration authStateTimeout = _initialAuthStateTimeout,
+  Future<void> Function()? onAuthenticatedSessionRestored,
+}) async {
   PersistentMemoryService service = GetIt.instance<PersistentMemoryService>();
   final futures = <String, Future>{
     'name': service.getItem("name", PersistentMemoryType.String),
     'gender': service.getItem("gender", PersistentMemoryType.String),
     'binary': service.getItem("binary", PersistentMemoryType.Bool),
     'loggedIn': service.getItem("loggedIn", PersistentMemoryType.Bool),
+    'authDecisionMade': service.getItem(
+      "authDecisionMade",
+      PersistentMemoryType.Bool,
+    ),
     'age': service.getItem("age", PersistentMemoryType.String),
     'userId': service.getItem("userId", PersistentMemoryType.String),
     'difficultEvents': service.getItem(
@@ -144,17 +170,17 @@ Future<void> loadUserInformation(
       "disclaimerConfirmed",
       PersistentMemoryType.Bool,
     ),
-    'notificationMinute': service.getItem(
-      "notificationMinute",
-      PersistentMemoryType.Int,
+    'notificationPreferences': service.getItem(
+      "notificationPreferences",
+      PersistentMemoryType.String,
     ),
     'notificationHour': service.getItem(
       "notificationHour",
       PersistentMemoryType.Int,
     ),
-    'notificationMessage': service.getItem(
-      "notificationMessage",
-      PersistentMemoryType.String,
+    'notificationMinute': service.getItem(
+      "notificationMinute",
+      PersistentMemoryType.Int,
     ),
     'darkModePreference': service.getItem(
       'darkModePreference',
@@ -191,9 +217,71 @@ Future<void> loadUserInformation(
   userInfo.updateName(data['name'] ?? '');
   userInfo.updateGender(data['gender'] ?? '');
   userInfo.updateBinary(data['binary'] ?? false);
-  userInfo.updateLoggedIn(data['loggedIn'] ?? false);
   userInfo.updateAge(data['age'] ?? '');
-  userInfo.updateUserId(data['userId'] ?? '');
+
+  final wasPersistedAsSignedIn = data['loggedIn'] == true;
+  final hadMadeGuestDecision =
+      !wasPersistedAsSignedIn && data['authDecisionMade'] == true;
+  User? currentUser;
+  var authStateResolved = false;
+  var restoredFromAuthStateChanges = false;
+  try {
+    final auth = GetIt.instance.isRegistered<FirebaseAuth>()
+        ? GetIt.instance<FirebaseAuth>()
+        : FirebaseAuth.instance;
+    currentUser = auth.currentUser;
+    // Firebase Auth restores its persisted session asynchronously. A null
+    // currentUser before this first emission is not a completed sign-out.
+    if (currentUser == null) {
+      currentUser = await auth
+          .authStateChanges()
+          .timeout(authStateTimeout)
+          .first;
+      restoredFromAuthStateChanges = currentUser != null;
+    }
+    authStateResolved = true;
+  } catch (error, stackTrace) {
+    // Firebase did not provide a completed auth state. Preserve persisted
+    // evidence rather than permanently replacing it with a transient null.
+    if (error is! FirebaseException) {
+      _reportAuthRestorationFailure(error, stackTrace);
+    }
+  }
+  final hasAuthenticatedSession =
+      currentUser != null && !currentUser.isAnonymous;
+  if (authStateResolved) {
+    userInfo.updateLoggedIn(hasAuthenticatedSession);
+    userInfo.updateAuthDecisionMade(
+      hasAuthenticatedSession || hadMadeGuestDecision,
+    );
+    userInfo.updateUserId(hasAuthenticatedSession ? currentUser.uid : '');
+    userInfo.updateEmail(
+      hasAuthenticatedSession ? currentUser.email ?? '' : '',
+    );
+    userInfo.updateDisplayName(
+      hasAuthenticatedSession ? currentUser.displayName ?? '' : '',
+    );
+  } else {
+    // Persisted auth values are evidence to retry, not a live authorization.
+    // Assign runtime state directly so privileged UI remains gated without
+    // erasing the stored session evidence through the persisting setters.
+    userInfo.loggedIn = false;
+    userInfo.authDecisionMade = hadMadeGuestDecision;
+    userInfo.userId = '';
+    userInfo.email = '';
+    userInfo.displayName = '';
+  }
+  if (restoredFromAuthStateChanges && hasAuthenticatedSession) {
+    final synchronizeFcmToken =
+        onAuthenticatedSessionRestored ?? FcmService.onUserSignedIn;
+    unawaited(
+      Future<void>.sync(synchronizeFcmToken).catchError(
+        (Object error, StackTrace stackTrace) {
+          _reportAuthRestorationFailure(error, stackTrace);
+        },
+      ),
+    );
+  }
 
   userInfo.updateDifficultEvents(
     (TypeUtils.castToStringList(data['difficultEvents'])),
@@ -235,9 +323,36 @@ Future<void> loadUserInformation(
   }
   userInfo.updateLocation(data['location'] ?? "");
   userInfo.updateDisclaimerSigned(data['disclaimerConfirmed'] ?? false);
-  userInfo.updateNotificationMinute(data['notificationMinute'] ?? 0);
-  userInfo.updateNotificationHour(data['notificationHour'] ?? 12);
-  userInfo.updateNotificationMessage(data['notificationMessage'] ?? '');
+  final notificationPreferencesJson =
+      data['notificationPreferences'] as String?;
+  if (notificationPreferencesJson != null &&
+      notificationPreferencesJson.isNotEmpty) {
+    try {
+      final decoded = jsonDecode(notificationPreferencesJson);
+      if (decoded is! Map<String, dynamic>) {
+        throw const FormatException(
+          'notificationPreferences must be a JSON object',
+        );
+      }
+      final parsed = <String, NotificationPreference>{};
+      for (final entry in decoded.entries) {
+        final value = entry.value;
+        if (value is! Map<String, dynamic>) continue;
+        try {
+          parsed[entry.key] = NotificationPreference.fromJson(value);
+        } on FormatException {
+          continue;
+        }
+      }
+      userInfo.notificationPreferences = parsed;
+    } on FormatException {
+      userInfo.notificationPreferences = {};
+    }
+  } else {
+    // Legacy local schedules never created a server-side FCM schedule. Do not
+    // render their stored hour/minute as an enabled reminder.
+    userInfo.notificationPreferences = {};
+  }
   final darkModePreference = UserInformation.parseDarkModePreference(
     data['darkModePreference'] as String?,
   );

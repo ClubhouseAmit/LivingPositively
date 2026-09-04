@@ -1,13 +1,16 @@
+import 'dart:async';
 import 'dart:math' as math;
 
 import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
+import 'package:get_it/get_it.dart';
 import 'package:mazilon/pages/PersonalPlan/myPlan.dart';
 import 'package:mazilon/util/Form/retrieveInformation.dart';
 import 'package:mazilon/util/LP_extended_state.dart';
 import 'package:mazilon/util/styles.dart';
 import 'package:mazilon/util/appInformation.dart';
 import 'package:mazilon/util/persistent_memory_service.dart';
+import 'package:mazilon/util/logger_service.dart';
 import 'package:provider/provider.dart';
 import 'package:mazilon/form/form.dart';
 import 'package:mazilon/util/userInformation.dart';
@@ -39,6 +42,8 @@ class MyPlanPageFull extends StatefulWidget {
 class _MyPlanPageFullState extends LPExtendedState<MyPlanPageFull> {
   List<List<String>> userAnswers = []; // User's answers for each section
   List<String> phoneInformation = []; // User's phone-related information
+  List<MapEntry<String, String>> _alternateCustomCategories = const [];
+  int _customCategoriesLoadGeneration = 0;
 
   // Field names for different sections of the personal plan
   List<String> fieldNames = [
@@ -101,9 +106,48 @@ class _MyPlanPageFullState extends LPExtendedState<MyPlanPageFull> {
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (mounted) {
         final userInfo = Provider.of<UserInformation>(context, listen: false);
-        userInfo.loadCustomCategories(memoryService: widget.memoryService);
+        unawaited(_loadCustomCategories(userInfo));
       }
     });
+  }
+
+  @override
+  void didUpdateWidget(covariant MyPlanPageFull oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (!identical(oldWidget.memoryService, widget.memoryService)) {
+      _alternateCustomCategories = const [];
+      final userInformation = Provider.of<UserInformation>(
+        context,
+        listen: false,
+      );
+      unawaited(_loadCustomCategories(userInformation));
+    }
+  }
+
+  Future<void> _loadCustomCategories(UserInformation userInformation) async {
+    final generation = ++_customCategoriesLoadGeneration;
+    final source = widget.memoryService ?? userInformation.service;
+    try {
+      final categories = await userInformation.loadCustomCategories(
+        memoryService: source,
+      );
+      if (!mounted || generation != _customCategoriesLoadGeneration) return;
+      if (!identical(source, userInformation.service)) {
+        setState(() {
+          _alternateCustomCategories = categories;
+        });
+      }
+    } catch (error, stackTrace) {
+      if (!GetIt.instance.isRegistered<IncidentLoggerService>()) return;
+      try {
+        await GetIt.instance<IncidentLoggerService>().captureLog(
+          error,
+          stackTrace: stackTrace,
+        );
+      } catch (_) {
+        // Loading and diagnostic reporting are both best effort during init.
+      }
+    }
   }
 
   @override
@@ -114,6 +158,11 @@ class _MyPlanPageFullState extends LPExtendedState<MyPlanPageFull> {
       context,
       listen: true,
     );
+    final customCategories =
+        widget.memoryService != null &&
+            !identical(widget.memoryService, userInfoProvider.service)
+        ? _alternateCustomCategories
+        : userInfoProvider.customCategories;
 
     // Set up phone and answer information based on the user's data
     setPhones(
@@ -217,7 +266,7 @@ class _MyPlanPageFullState extends LPExtendedState<MyPlanPageFull> {
                 subTitle: dreamsAndGoalsInfo["subTitle"] ?? '',
                 answers: userAnswers[5],
               ),
-            ...userInfoProvider.customCategories.map(
+            ...customCategories.map(
               (category) => MyPlanSection(
                 title: category.key,
                 subTitle: '',

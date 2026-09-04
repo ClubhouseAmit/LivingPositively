@@ -126,6 +126,7 @@ local.properties
 **/ios/Flutter/Flutter.framework
 **/ios/Flutter/Flutter.podspec
 **/ios/Flutter/Generated.xcconfig
+ios/Flutter/GoogleSignIn.xcconfig
 **/ios/Flutter/ephemeral
 **/ios/Flutter/app.flx
 **/ios/Flutter/app.zip
@@ -165,6 +166,7 @@ linux/flutter/generated_plugins.cmake
 
 # Firebase credentials
 lib/util/Firebase/firebase_options.dart
+gha-creds-*.json
 
 # Coverage
 coverage/

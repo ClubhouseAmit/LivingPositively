@@ -386,6 +386,13 @@ class _PhonePageState extends LPExtendedState<PhonePage> {
       return null;
     }
 
+    // WhatsApp requires an internationally routable number. Do not turn an
+    // emergency or service short code into an unrelated international number.
+    if (!normalized.startsWith('00') &&
+        RegExp(r'^\d{3,6}$').hasMatch(normalized)) {
+      return null;
+    }
+
     final internationalNumber = normalized.startsWith('00')
         ? '+${normalized.substring(2)}'
         : normalized;

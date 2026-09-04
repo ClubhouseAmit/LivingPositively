@@ -67,6 +67,12 @@ Mezilon is a Flutter-based mobile application designed to provide mental health 
 - Incorporates various Flutter packages for enhanced functionality
 
 ## Setup and Configuration
+
+For the version 1.7.0 / PR #273 rollout, start with the
+[deployment guide](docs/deployment-guide.md). It covers release prerequisites,
+Cloud Functions and notification content, Android/iOS/web distribution,
+canary checks, and rollback.
+
 - Requires Flutter SDK and Dart
 - Firebase configuration needed for backend services
 - Specific environment setup required for iOS and Android development

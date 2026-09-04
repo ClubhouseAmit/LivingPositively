@@ -64,7 +64,7 @@ class _GratitudeSectionWidgetState
 
   void _refreshHomeSuggestions(UserInformation userInfo, {bool force = false}) {
     final candidates = _eligibleSuggestions(userInfo);
-    final key = candidates.join('');
+    final key = candidates.join('\u0000');
     if (!force && _suggestionsInitialized && key == _suggestionCandidateKey) {
       return;
     }
@@ -154,7 +154,7 @@ class _GratitudeSectionWidgetState
       iconAsset: 'assets/images/thanks_icon.svg',
       items: todayItems,
       suggestions: _homeSuggestions,
-      totalCount: todayItems.length,
+      totalCount: thanks.length,
       onOpenSection: widget.onOpenSection,
       onAddNew: () => _openThankDialog(userInfo),
       onEditItem: (displayIndex) {

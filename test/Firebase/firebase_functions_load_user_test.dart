@@ -1,5 +1,7 @@
 import 'dart:async';
 
+import 'package:firebase_auth/firebase_auth.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:get_it/get_it.dart';
 import 'package:mazilon/global_enums.dart';
@@ -9,11 +11,14 @@ import 'package:mazilon/l10n/app_localizations_he.dart';
 import 'package:mazilon/util/Firebase/firebase_functions.dart';
 import 'package:mazilon/util/dreams_and_goals_selection.dart';
 import 'package:mazilon/util/logger_service.dart';
+import 'package:mazilon/util/notification_preference.dart';
 import 'package:mazilon/util/persistent_memory_service.dart';
 import 'package:mazilon/util/userInformation.dart';
+import 'package:mockito/mockito.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 import '../../test_support/contract_persistent_memory_service.dart';
+import 'firebase_auth_service_test.mocks.dart';
 
 // ---------------------------------------------------------------------------
 // Fakes
@@ -98,12 +103,19 @@ _FakeMemory _registerFakes({
   if (getIt.isRegistered<PersistentMemoryService>()) {
     getIt.unregister<PersistentMemoryService>();
   }
+  if (getIt.isRegistered<FirebaseAuth>()) {
+    getIt.unregister<FirebaseAuth>();
+  }
   final memory = _FakeMemory(
     store,
     failDreamsAndGoalsWrites: failDreamsAndGoalsWrites,
   );
+  final auth = MockFirebaseAuth();
+  when(auth.currentUser).thenReturn(null);
+  when(auth.authStateChanges()).thenAnswer((_) => Stream<User?>.value(null));
   getIt.registerSingleton<IncidentLoggerService>(_FakeLogger());
   getIt.registerSingleton<PersistentMemoryService>(memory);
+  getIt.registerSingleton<FirebaseAuth>(auth);
   return memory;
 }
 
@@ -114,6 +126,9 @@ void _unregisterFakes() {
   }
   if (getIt.isRegistered<IncidentLoggerService>()) {
     getIt.unregister<IncidentLoggerService>();
+  }
+  if (getIt.isRegistered<FirebaseAuth>()) {
+    getIt.unregister<FirebaseAuth>();
   }
 }
 
@@ -166,6 +181,14 @@ void main() {
         },
       );
 
+      final auth = GetIt.instance<FirebaseAuth>() as MockFirebaseAuth;
+      final currentUser = MockUser();
+      when(auth.currentUser).thenReturn(currentUser);
+      when(currentUser.isAnonymous).thenReturn(false);
+      when(currentUser.uid).thenReturn('uid-123');
+      when(currentUser.email).thenReturn('alice@example.com');
+      when(currentUser.displayName).thenReturn('Alice');
+
       final userInfo = _makeUserInfo();
       await loadUserInformation(userInfo, 'en');
 
@@ -177,8 +200,7 @@ void main() {
       expect(userInfo.userId, equals('uid-123'));
       expect(userInfo.location, equals('TLV'));
       expect(userInfo.disclaimerSigned, isTrue);
-      expect(userInfo.notificationMinute, equals(30));
-      expect(userInfo.notificationHour, equals(9));
+      expect(userInfo.notificationPreferences, isEmpty);
       expect(userInfo.darkModePreference, DarkModePreference.scheduled);
       expect(userInfo.darkModeStartHour, equals(21));
       expect(userInfo.darkModeStartMinute, equals(30));
@@ -186,6 +208,257 @@ void main() {
       expect(userInfo.darkModeEndMinute, equals(15));
       expect(userInfo.localeName, equals('he'));
     });
+
+    test(
+      'requires authentication when a stored signed-in session is gone',
+      () async {
+        _registerFakes(
+          store: {
+            'loggedIn': true,
+            'authDecisionMade': true,
+            'userId': 'stale-uid',
+          },
+        );
+
+        final userInfo = _makeUserInfo();
+        await loadUserInformation(userInfo, 'en');
+
+        expect(userInfo.loggedIn, isFalse);
+        expect(userInfo.authDecisionMade, isFalse);
+        expect(userInfo.userId, isEmpty);
+        expect(userInfo.email, isEmpty);
+        expect(userInfo.displayName, isEmpty);
+      },
+    );
+
+    test(
+      'waits for the initial Firebase Auth restoration before clearing a stored session',
+      () async {
+        _registerFakes(
+          store: {
+            'loggedIn': true,
+            'authDecisionMade': true,
+            'userId': 'restoring-uid',
+          },
+        );
+        final auth = GetIt.instance<FirebaseAuth>() as MockFirebaseAuth;
+        final restoredUser = MockUser();
+        when(auth.currentUser).thenReturn(null);
+        when(
+          auth.authStateChanges(),
+        ).thenAnswer((_) => Stream<User?>.value(restoredUser));
+        when(restoredUser.isAnonymous).thenReturn(false);
+        when(restoredUser.uid).thenReturn('restored-uid');
+        when(restoredUser.email).thenReturn('restored@example.com');
+        when(restoredUser.displayName).thenReturn('Restored');
+
+        final userInfo = _makeUserInfo();
+        var fcmSyncCalls = 0;
+        await loadUserInformation(
+          userInfo,
+          'en',
+          onAuthenticatedSessionRestored: () async {
+            fcmSyncCalls++;
+          },
+        );
+
+        expect(userInfo.loggedIn, isTrue);
+        expect(userInfo.authDecisionMade, isTrue);
+        expect(userInfo.userId, 'restored-uid');
+        expect(fcmSyncCalls, 1);
+      },
+    );
+
+    test(
+      'gates authenticated state without erasing evidence when Firebase fails',
+      () async {
+        final memory = _registerFakes(
+          store: {
+            'loggedIn': true,
+            'authDecisionMade': true,
+            'userId': 'persisted-uid',
+          },
+        );
+        final auth = GetIt.instance<FirebaseAuth>() as MockFirebaseAuth;
+        when(auth.currentUser).thenThrow(
+          FirebaseException(plugin: 'firebase_auth', code: 'unavailable'),
+        );
+
+        final userInfo = _makeUserInfo();
+        await loadUserInformation(userInfo, 'en');
+
+        expect(userInfo.loggedIn, isFalse);
+        expect(userInfo.authDecisionMade, isFalse);
+        expect(userInfo.userId, isEmpty);
+        expect(
+          await memory.getItem('loggedIn', PersistentMemoryType.Bool),
+          isTrue,
+        );
+        expect(
+          await memory.getItem('authDecisionMade', PersistentMemoryType.Bool),
+          isTrue,
+        );
+        expect(
+          await memory.getItem('userId', PersistentMemoryType.String),
+          'persisted-uid',
+        );
+      },
+    );
+
+    test(
+      'should time out unresolved auth restoration without blocking startup',
+      () async {
+        final memory = _registerFakes(
+          store: {
+            'loggedIn': true,
+            'authDecisionMade': true,
+            'userId': 'persisted-uid',
+          },
+        );
+        final auth = GetIt.instance<FirebaseAuth>() as MockFirebaseAuth;
+        final authState = StreamController<User?>();
+        addTearDown(authState.close);
+        when(auth.currentUser).thenReturn(null);
+        when(auth.authStateChanges()).thenAnswer((_) => authState.stream);
+
+        final userInfo = _makeUserInfo();
+        await loadUserInformation(
+          userInfo,
+          'en',
+          authStateTimeout: const Duration(milliseconds: 10),
+        ).timeout(const Duration(seconds: 1));
+
+        expect(userInfo.loggedIn, isFalse);
+        expect(userInfo.authDecisionMade, isFalse);
+        expect(userInfo.userId, isEmpty);
+        expect(
+          await memory.getItem('loggedIn', PersistentMemoryType.Bool),
+          isTrue,
+        );
+        expect(
+          await memory.getItem('authDecisionMade', PersistentMemoryType.Bool),
+          isTrue,
+        );
+      },
+    );
+
+    test('should contain non-Firebase auth restoration failures', () async {
+      final memory = _registerFakes(
+        store: {
+          'loggedIn': true,
+          'authDecisionMade': true,
+          'userId': 'persisted-uid',
+        },
+      );
+      final auth = GetIt.instance<FirebaseAuth>() as MockFirebaseAuth;
+      final logger = GetIt.instance<IncidentLoggerService>() as _FakeLogger;
+      when(auth.currentUser).thenReturn(null);
+      when(auth.authStateChanges()).thenAnswer(
+        (_) => Stream<User?>.error(
+          MissingPluginException('Firebase Auth is unavailable.'),
+        ),
+      );
+
+      final userInfo = _makeUserInfo();
+      await loadUserInformation(userInfo, 'en');
+      await logger.captureLogCompleted.future;
+
+      expect(userInfo.loggedIn, isFalse);
+      expect(userInfo.authDecisionMade, isFalse);
+      expect(userInfo.userId, isEmpty);
+      expect(
+        await memory.getItem('loggedIn', PersistentMemoryType.Bool),
+        isTrue,
+      );
+      expect(logger.capturedExceptions.single, isA<MissingPluginException>());
+      expect(logger.capturedStackTraces.single, isNotNull);
+    });
+
+    test(
+      'preserves an explicit guest decision without a Firebase session',
+      () async {
+        _registerFakes(store: {'loggedIn': false, 'authDecisionMade': true});
+
+        final userInfo = _makeUserInfo();
+        await loadUserInformation(userInfo, 'en');
+
+        expect(userInfo.loggedIn, isFalse);
+        expect(userInfo.authDecisionMade, isTrue);
+      },
+    );
+
+    test('loads valid notification preferences JSON', () async {
+      _registerFakes(
+        store: {
+          'notificationPreferences': '{"default":{"hour":7,"minute":45}}',
+        },
+      );
+
+      final userInfo = _makeUserInfo();
+      await loadUserInformation(userInfo, 'en');
+
+      expect(
+        userInfo.getNotificationPreference('default')?.toJson(),
+        const NotificationPreference(hour: 7, minute: 45).toJson(),
+      );
+    });
+
+    test(
+      'accepts numeric strings and whole JSON doubles in preferences',
+      () async {
+        _registerFakes(
+          store: {
+            'notificationPreferences': '{"default":{"hour":"7","minute":45.0}}',
+          },
+        );
+
+        final userInfo = _makeUserInfo();
+        await loadUserInformation(userInfo, 'en');
+
+        expect(
+          userInfo.getNotificationPreference('default')?.toJson(),
+          const NotificationPreference(hour: 7, minute: 45).toJson(),
+        );
+      },
+    );
+
+    test('keeps valid preferences when another entry is malformed', () async {
+      _registerFakes(
+        store: {
+          'notificationPreferences':
+              '{"morning":{"hour":8,"minute":30},'
+              '"invalidRange":{"hour":99,"minute":15},'
+              '"invalidShape":"not-an-object"}',
+        },
+      );
+
+      final userInfo = _makeUserInfo();
+      await loadUserInformation(userInfo, 'en');
+
+      expect(userInfo.notificationPreferences.keys, ['morning']);
+      expect(
+        userInfo.getNotificationPreference('morning')?.toJson(),
+        const NotificationPreference(hour: 8, minute: 30).toJson(),
+      );
+    });
+
+    test(
+      'does not activate a reminder from legacy time for malformed JSON',
+      () async {
+        _registerFakes(
+          store: {
+            'notificationPreferences': '{not-json',
+            'notificationHour': 6,
+            'notificationMinute': 20,
+          },
+        );
+
+        final userInfo = _makeUserInfo();
+        await loadUserInformation(userInfo, 'en');
+
+        expect(userInfo.notificationPreferences, isEmpty);
+      },
+    );
 
     test('propagates list fields', () async {
       _registerFakes(
@@ -390,9 +663,7 @@ void main() {
         ]);
         expect(userInfo.location, 'Haifa');
         expect(userInfo.disclaimerSigned, isTrue);
-        expect(userInfo.notificationMinute, 45);
-        expect(userInfo.notificationHour, 8);
-        expect(userInfo.notificationMessage, 'Take a break');
+        expect(userInfo.getNotificationPreference('default'), isNull);
         expect(userInfo.localeName, 'he');
         expect(userInfo.positiveTraits, <String>['Kind']);
         expect(userInfo.thanks, <String, List<String>>{
@@ -424,25 +695,18 @@ void main() {
   });
 
   group('loadUserInformation – empty / null defaults', () {
-    test(
-      'uses the default schedule when saved values are absent',
-      () async {
-        _registerFakes(
-          store: {
-            'darkModePreference': 'scheduled',
-          },
-        );
+    test('uses the default schedule when saved values are absent', () async {
+      _registerFakes(store: {'darkModePreference': 'scheduled'});
 
-        final userInfo = _makeUserInfo();
-        await loadUserInformation(userInfo, 'en');
+      final userInfo = _makeUserInfo();
+      await loadUserInformation(userInfo, 'en');
 
-        expect(userInfo.darkModePreference, DarkModePreference.scheduled);
-        expect(userInfo.darkModeStartHour, 22);
-        expect(userInfo.darkModeStartMinute, 0);
-        expect(userInfo.darkModeEndHour, 6);
-        expect(userInfo.darkModeEndMinute, 0);
-      },
-    );
+      expect(userInfo.darkModePreference, DarkModePreference.scheduled);
+      expect(userInfo.darkModeStartHour, 22);
+      expect(userInfo.darkModeStartMinute, 0);
+      expect(userInfo.darkModeEndHour, 6);
+      expect(userInfo.darkModeEndMinute, 0);
+    });
 
     test(
       'defaults and logs an invalid typed SharedPreferences value',
@@ -551,8 +815,7 @@ void main() {
       expect(userInfo.userId, equals(''));
       expect(userInfo.location, equals(''));
       expect(userInfo.disclaimerSigned, isFalse);
-      expect(userInfo.notificationMinute, equals(0));
-      expect(userInfo.notificationHour, equals(12));
+      expect(userInfo.notificationPreferences, isEmpty);
       expect(userInfo.darkModePreference, DarkModePreference.alwaysLight);
       expect(userInfo.darkModeStartHour, equals(22));
       expect(userInfo.darkModeStartMinute, equals(0));

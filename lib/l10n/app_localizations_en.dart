@@ -3942,6 +3942,128 @@ class AppLocalizationsEn extends AppLocalizations {
       'The dictated phone number is not valid for the selected country.';
 
   @override
+  String get notificationsPermissionDeniedTitle => 'Notifications Blocked';
+
+  @override
+  String get notificationsPermissionDeniedBody =>
+      'To receive reminders, allow notifications in your device settings';
+
+  @override
+  String get notificationsOpenSettings => 'Open Settings';
+
+  @override
+  String get notificationsEnable => 'Enable Notifications';
+
+  @override
+  String get notificationsSetTime => 'Set time';
+
+  @override
+  String get notificationsDebugPanelEnabled => 'Reminder debug panel enabled';
+
+  @override
+  String get notificationsDebugPanelHidden => 'Reminder debug panel hidden';
+
+  @override
+  String get resetReminderCancellationFailed =>
+      'Couldn\'t cancel the reminder. Your data has not been reset.';
+
+  @override
+  String get resetDataFailed => 'Couldn\'t reset your data. Please try again.';
+
+  @override
+  String get authWelcomeTitle => 'Welcome';
+
+  @override
+  String get authLoginTab => 'Sign In';
+
+  @override
+  String get authSignupTab => 'Sign Up';
+
+  @override
+  String get authSkip => 'Skip for now';
+
+  @override
+  String get authEmailHint => 'Email address';
+
+  @override
+  String get authPasswordHint => 'Password';
+
+  @override
+  String get authConfirmPasswordHint => 'Confirm password';
+
+  @override
+  String get authNameHint => 'Full name';
+
+  @override
+  String get authLoginButton => 'Sign In';
+
+  @override
+  String get authSignupButton => 'Create Account';
+
+  @override
+  String get authForgotPassword => 'Forgot password?';
+
+  @override
+  String get authOr => 'or';
+
+  @override
+  String get authGoogleButton => 'Continue with Google';
+
+  @override
+  String get authAppleButton => 'Continue with Apple';
+
+  @override
+  String get authErrorInvalidEmail => 'Invalid email address';
+
+  @override
+  String get authErrorWeakPassword => 'Password must be at least 6 characters';
+
+  @override
+  String get authErrorPasswordMismatch => 'Passwords don\'t match';
+
+  @override
+  String get authErrorUserNotFound =>
+      'The email/password combination is incorrect';
+
+  @override
+  String get authErrorEmailInUse => 'An account with this email already exists';
+
+  @override
+  String get authErrorGeneric => 'An error occurred. Please try again.';
+
+  @override
+  String get authForgotPasswordTitle => 'Reset Password';
+
+  @override
+  String get authForgotPasswordHint => 'Enter your email address';
+
+  @override
+  String get authForgotPasswordButton => 'Send Reset Link';
+
+  @override
+  String get authForgotPasswordSuccess => 'Check your email for a reset link';
+
+  @override
+  String get authSignOut => 'Sign Out';
+
+  @override
+  String get authSignOutConfirmTitle => 'Sign Out?';
+
+  @override
+  String get authSignOutConfirmBody =>
+      'You will need to sign in again to access all features.';
+
+  @override
+  String get authNotSignedInTitle => 'Sign In to Enable Notifications';
+
+  @override
+  String get authNotSignedInBody =>
+      'Create an account or sign in to set up daily reminders.';
+
+  @override
+  String get authNotSignedInButton => 'Sign In';
+
+  @override
   String get moodMedicineTitle => 'Mood Tracker & Personal Medicine';
 
   @override

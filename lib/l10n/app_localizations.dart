@@ -3034,6 +3034,240 @@ abstract class AppLocalizations {
   /// **'The dictated phone number is not valid for the selected country.'**
   String get speechDictationPhoneInvalid;
 
+  /// No description provided for @notificationsPermissionDeniedTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Notifications Blocked'**
+  String get notificationsPermissionDeniedTitle;
+
+  /// No description provided for @notificationsPermissionDeniedBody.
+  ///
+  /// In en, this message translates to:
+  /// **'To receive reminders, allow notifications in your device settings'**
+  String get notificationsPermissionDeniedBody;
+
+  /// No description provided for @notificationsOpenSettings.
+  ///
+  /// In en, this message translates to:
+  /// **'Open Settings'**
+  String get notificationsOpenSettings;
+
+  /// Requests notification permission before scheduling reminders
+  ///
+  /// In en, this message translates to:
+  /// **'Enable Notifications'**
+  String get notificationsEnable;
+
+  /// Label shown when an enabled reminder has no selected time
+  ///
+  /// In en, this message translates to:
+  /// **'Set time'**
+  String get notificationsSetTime;
+
+  /// No description provided for @notificationsDebugPanelEnabled.
+  ///
+  /// In en, this message translates to:
+  /// **'Reminder debug panel enabled'**
+  String get notificationsDebugPanelEnabled;
+
+  /// No description provided for @notificationsDebugPanelHidden.
+  ///
+  /// In en, this message translates to:
+  /// **'Reminder debug panel hidden'**
+  String get notificationsDebugPanelHidden;
+
+  /// Shown when remote reminder cancellation prevents reset.
+  ///
+  /// In en, this message translates to:
+  /// **'Couldn\'t cancel the reminder. Your data has not been reset.'**
+  String get resetReminderCancellationFailed;
+
+  /// Shown when local data clearing fails after a reset attempt.
+  ///
+  /// In en, this message translates to:
+  /// **'Couldn\'t reset your data. Please try again.'**
+  String get resetDataFailed;
+
+  /// No description provided for @authWelcomeTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Welcome'**
+  String get authWelcomeTitle;
+
+  /// No description provided for @authLoginTab.
+  ///
+  /// In en, this message translates to:
+  /// **'Sign In'**
+  String get authLoginTab;
+
+  /// No description provided for @authSignupTab.
+  ///
+  /// In en, this message translates to:
+  /// **'Sign Up'**
+  String get authSignupTab;
+
+  /// No description provided for @authSkip.
+  ///
+  /// In en, this message translates to:
+  /// **'Skip for now'**
+  String get authSkip;
+
+  /// No description provided for @authEmailHint.
+  ///
+  /// In en, this message translates to:
+  /// **'Email address'**
+  String get authEmailHint;
+
+  /// No description provided for @authPasswordHint.
+  ///
+  /// In en, this message translates to:
+  /// **'Password'**
+  String get authPasswordHint;
+
+  /// No description provided for @authConfirmPasswordHint.
+  ///
+  /// In en, this message translates to:
+  /// **'Confirm password'**
+  String get authConfirmPasswordHint;
+
+  /// No description provided for @authNameHint.
+  ///
+  /// In en, this message translates to:
+  /// **'Full name'**
+  String get authNameHint;
+
+  /// No description provided for @authLoginButton.
+  ///
+  /// In en, this message translates to:
+  /// **'Sign In'**
+  String get authLoginButton;
+
+  /// No description provided for @authSignupButton.
+  ///
+  /// In en, this message translates to:
+  /// **'Create Account'**
+  String get authSignupButton;
+
+  /// No description provided for @authForgotPassword.
+  ///
+  /// In en, this message translates to:
+  /// **'Forgot password?'**
+  String get authForgotPassword;
+
+  /// No description provided for @authOr.
+  ///
+  /// In en, this message translates to:
+  /// **'or'**
+  String get authOr;
+
+  /// No description provided for @authGoogleButton.
+  ///
+  /// In en, this message translates to:
+  /// **'Continue with Google'**
+  String get authGoogleButton;
+
+  /// No description provided for @authAppleButton.
+  ///
+  /// In en, this message translates to:
+  /// **'Continue with Apple'**
+  String get authAppleButton;
+
+  /// No description provided for @authErrorInvalidEmail.
+  ///
+  /// In en, this message translates to:
+  /// **'Invalid email address'**
+  String get authErrorInvalidEmail;
+
+  /// No description provided for @authErrorWeakPassword.
+  ///
+  /// In en, this message translates to:
+  /// **'Password must be at least 6 characters'**
+  String get authErrorWeakPassword;
+
+  /// No description provided for @authErrorPasswordMismatch.
+  ///
+  /// In en, this message translates to:
+  /// **'Passwords don\'t match'**
+  String get authErrorPasswordMismatch;
+
+  /// No description provided for @authErrorUserNotFound.
+  ///
+  /// In en, this message translates to:
+  /// **'The email/password combination is incorrect'**
+  String get authErrorUserNotFound;
+
+  /// No description provided for @authErrorEmailInUse.
+  ///
+  /// In en, this message translates to:
+  /// **'An account with this email already exists'**
+  String get authErrorEmailInUse;
+
+  /// No description provided for @authErrorGeneric.
+  ///
+  /// In en, this message translates to:
+  /// **'An error occurred. Please try again.'**
+  String get authErrorGeneric;
+
+  /// No description provided for @authForgotPasswordTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Reset Password'**
+  String get authForgotPasswordTitle;
+
+  /// No description provided for @authForgotPasswordHint.
+  ///
+  /// In en, this message translates to:
+  /// **'Enter your email address'**
+  String get authForgotPasswordHint;
+
+  /// No description provided for @authForgotPasswordButton.
+  ///
+  /// In en, this message translates to:
+  /// **'Send Reset Link'**
+  String get authForgotPasswordButton;
+
+  /// No description provided for @authForgotPasswordSuccess.
+  ///
+  /// In en, this message translates to:
+  /// **'Check your email for a reset link'**
+  String get authForgotPasswordSuccess;
+
+  /// No description provided for @authSignOut.
+  ///
+  /// In en, this message translates to:
+  /// **'Sign Out'**
+  String get authSignOut;
+
+  /// No description provided for @authSignOutConfirmTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Sign Out?'**
+  String get authSignOutConfirmTitle;
+
+  /// No description provided for @authSignOutConfirmBody.
+  ///
+  /// In en, this message translates to:
+  /// **'You will need to sign in again to access all features.'**
+  String get authSignOutConfirmBody;
+
+  /// No description provided for @authNotSignedInTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Sign In to Enable Notifications'**
+  String get authNotSignedInTitle;
+
+  /// No description provided for @authNotSignedInBody.
+  ///
+  /// In en, this message translates to:
+  /// **'Create an account or sign in to set up daily reminders.'**
+  String get authNotSignedInBody;
+
+  /// No description provided for @authNotSignedInButton.
+  ///
+  /// In en, this message translates to:
+  /// **'Sign In'**
+  String get authNotSignedInButton;
+
   /// No description provided for @moodMedicineTitle.
   ///
   /// In en, this message translates to:

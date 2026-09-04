@@ -7,6 +7,7 @@ import 'package:get_it/get_it.dart';
 
 import 'package:mazilon/file_service.dart';
 import 'package:mazilon/form/formpagetemplate.dart';
+import 'package:mazilon/form/share_form_custom_categories_view_model.dart';
 import 'package:mazilon/form/speech_dictation_suffix_action.dart';
 import 'package:mazilon/form/wizard_step.dart';
 import 'package:mazilon/l10n/app_localizations.dart';
@@ -91,15 +92,14 @@ class _ShareFormState extends WizardStepState<ShareForm> {
   bool _showCustomCategoryValidation = false;
   int? _editingCustomCategoryIndex;
   int _customCategoryFormGeneration = 0;
+  ShareFormCustomCategoriesViewModel? _customCategoriesViewModel;
+  UserInformation? _customCategoriesUserInformation;
+  Future<void> _customCategoriesReplacement = Future<void>.value();
+  int _customCategoriesReplacementRevision = 0;
+  int _handledCustomCategoriesFailureEventId = 0;
 
-  UserInformation? get _userInformation {
-    if (!mounted) return null;
-    try {
-      return Provider.of<UserInformation?>(context, listen: false);
-    } catch (_) {
-      return null;
-    }
-  }
+  List<MapEntry<String, String>> get _customCategories =>
+      _customCategoriesViewModel?.state.categories ?? const [];
 
   void setHasFilled() {
     unawaited(_setHasFilled());
@@ -130,49 +130,123 @@ class _ShareFormState extends WizardStepState<ShareForm> {
     super.initState();
     fileService = GetIt.instance<FileService>();
     setHasFilled();
+  }
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    final userInformation = Provider.of<UserInformation>(
+      context,
+      listen: false,
+    );
+    if (!identical(userInformation, _customCategoriesUserInformation)) {
+      _replaceCustomCategoriesViewModel(userInformation);
+    }
+  }
+
+  @override
+  void didUpdateWidget(covariant ShareForm oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (!identical(oldWidget.memoryService, widget.memoryService)) {
+      _replaceCustomCategoriesViewModel(
+        Provider.of<UserInformation>(context, listen: false),
+      );
+    }
+  }
+
+  void _replaceCustomCategoriesViewModel(UserInformation userInformation) {
+    final int replacementRevision = ++_customCategoriesReplacementRevision;
+    final previousViewModel = _customCategoriesViewModel;
+    previousViewModel?.removeListener(_onCustomCategoriesStateChanged);
+    _customCategoriesViewModel = null;
+    _customCategoriesUserInformation = userInformation;
+    _handledCustomCategoriesFailureEventId = 0;
+    ScaffoldMessenger.maybeOf(context)?.hideCurrentSnackBar();
+
+    final previousReplacement = _customCategoriesReplacement;
+    final replacement = _installCustomCategoriesViewModel(
+      userInformation,
+      previousViewModel,
+      previousReplacement,
+      replacementRevision,
+    );
+    _customCategoriesReplacement = replacement;
+    unawaited(replacement);
+  }
+
+  Future<void> _installCustomCategoriesViewModel(
+    UserInformation userInformation,
+    ShareFormCustomCategoriesViewModel? previousViewModel,
+    Future<void> previousReplacement,
+    int replacementRevision,
+  ) async {
+    await previousReplacement;
+    await previousViewModel?.close();
+    if (!mounted ||
+        replacementRevision != _customCategoriesReplacementRevision) {
+      return;
+    }
+
+    final incidentLogger = GetIt.instance.isRegistered<IncidentLoggerService>()
+        ? GetIt.instance<IncidentLoggerService>()
+        : null;
+    final viewModel = ShareFormCustomCategoriesViewModel(
+      userInformation: userInformation,
+      memoryService: widget.memoryService,
+      incidentLogger: incidentLogger,
+    );
+    _customCategoriesViewModel = viewModel;
+    _handledCustomCategoriesFailureEventId = 0;
+    viewModel.addListener(_onCustomCategoriesStateChanged);
+    setState(() {});
     WidgetsBinding.instance.addPostFrameCallback((_) {
-      if (mounted) {
-        _userInformation?.loadCustomCategories(
-          memoryService: widget.memoryService,
-        );
+      if (mounted && identical(viewModel, _customCategoriesViewModel)) {
+        unawaited(viewModel.load());
       }
     });
   }
 
+  void _onCustomCategoriesStateChanged() {
+    if (!mounted) {
+      return;
+    }
+    setState(() {});
+    final viewModel = _customCategoriesViewModel;
+    final state = viewModel?.state;
+    if (state case ShareFormCustomCategoriesSaveFailure(
+      :final eventId,
+    ) when eventId > _handledCustomCategoriesFailureEventId) {
+      _handledCustomCategoriesFailureEventId = eventId;
+      _showCustomCategorySaveFailure(viewModel!);
+    }
+  }
+
   @override
   void dispose() {
+    _customCategoriesReplacementRevision++;
+    final viewModel = _customCategoriesViewModel;
+    viewModel?.removeListener(_onCustomCategoriesStateChanged);
+    viewModel?.dispose();
+    _customCategoriesViewModel = null;
     _customCategoryTitleController.dispose();
     _customCategoryDescriptionController.dispose();
     _customCategoryTitleFocusNode.dispose();
     super.dispose();
   }
 
-  Future<void> _persistCustomCategoriesSafely(
+  Future<void> _saveCustomCategories(
     List<MapEntry<String, String>> categories,
-  ) async {
-    try {
-      final userInformation = _userInformation;
-      if (userInformation != null) {
-        await userInformation.saveCustomCategories(
-          categories: categories,
-          memoryService: widget.memoryService,
-        );
-      }
-    } catch (error, stackTrace) {
-      await _captureDreamsAndGoalsFailure(error, stackTrace);
-      if (mounted) {
-        _showCustomCategorySaveFailure(categories);
-      }
-    }
-  }
+  ) => _customCategoriesViewModel?.save(categories) ?? Future<void>.value();
 
   void _showCustomCategorySaveFailure(
-    List<MapEntry<String, String>> categories,
+    ShareFormCustomCategoriesViewModel failedViewModel,
   ) {
-    showPersistenceRetrySnackBar(
-      context,
-      () => _persistCustomCategoriesSafely(categories),
-    );
+    showPersistenceRetrySnackBar(context, () async {
+      if (!mounted || !identical(failedViewModel, _customCategoriesViewModel)) {
+        return;
+      }
+      await failedViewModel.retryLatestSave();
+    });
   }
 
   List<String> predefinedCategoryTitles() {
@@ -211,7 +285,7 @@ class _ShareFormState extends WizardStepState<ShareForm> {
   }
 
   void editCustomCategory(int index) {
-    final categories = _userInformation?.customCategories ?? const [];
+    final categories = _customCategories;
     if (index < 0 || index >= categories.length) {
       return;
     }
@@ -227,7 +301,7 @@ class _ShareFormState extends WizardStepState<ShareForm> {
   }
 
   Future<void> deleteCustomCategory(int index) async {
-    final categories = _userInformation?.customCategories ?? const [];
+    final categories = _customCategories;
     if (index < 0 || index >= categories.length) {
       return;
     }
@@ -244,7 +318,7 @@ class _ShareFormState extends WizardStepState<ShareForm> {
       }
     });
 
-    await _persistCustomCategoriesSafely(updated);
+    await _saveCustomCategories(updated);
   }
 
   Future<void> saveCustomCategory() async {
@@ -258,7 +332,7 @@ class _ShareFormState extends WizardStepState<ShareForm> {
       return;
     }
 
-    final categories = _userInformation?.customCategories ?? const [];
+    final categories = _customCategories;
     final updated = List<MapEntry<String, String>>.from(categories);
     final editingIndex = _editingCustomCategoryIndex;
     if (editingIndex != null &&
@@ -273,7 +347,7 @@ class _ShareFormState extends WizardStepState<ShareForm> {
       _isAddingCustomCategory = false;
     });
 
-    await _persistCustomCategoriesSafely(updated);
+    await _saveCustomCategories(updated);
   }
 
   String? _customCategoryValidationError(TextEditingController controller) {
@@ -313,7 +387,7 @@ class _ShareFormState extends WizardStepState<ShareForm> {
       optionsBuilder: (TextEditingValue textEditingValue) {
         final input = textEditingValue.text.trim();
         final options = predefinedCategoryTitles();
-        final categories = _userInformation?.customCategories ?? const [];
+        final categories = _customCategories;
         final editingIndex = _editingCustomCategoryIndex;
         final isInitialEditingTitle =
             editingIndex != null &&
@@ -505,8 +579,7 @@ class _ShareFormState extends WizardStepState<ShareForm> {
   }
 
   Widget buildCustomCategoriesSection(BuildContext context, String gender) {
-    final categories =
-        _userInformation?.customCategories ?? const <MapEntry<String, String>>[];
+    final categories = _customCategories;
     return Column(
       children: [
         ...categories.asMap().entries.map(
@@ -533,8 +606,7 @@ class _ShareFormState extends WizardStepState<ShareForm> {
     UserInformation userInformation, {
     bool retry = false,
   }) {
-    final WizardStepState? inlineStep =
-        _dreamsAndGoalsStepKey.currentState;
+    final WizardStepState? inlineStep = _dreamsAndGoalsStepKey.currentState;
     if (inlineStep != null) {
       return retry
           ? inlineStep.retryPersistBeforeExit()
@@ -743,14 +815,6 @@ class _ShareFormState extends WizardStepState<ShareForm> {
       await action();
     } catch (error, stackTrace) {
       await _captureDreamsAndGoalsFailure(error, stackTrace);
-      FlutterError.reportError(
-        FlutterErrorDetails(
-          exception: error,
-          stack: stackTrace,
-          library: 'ShareForm',
-          context: ErrorDescription('while retrying a Dreams and Goals action'),
-        ),
-      );
     }
   }
 
@@ -758,14 +822,29 @@ class _ShareFormState extends WizardStepState<ShareForm> {
     Object error,
     StackTrace stackTrace,
   ) async {
+    if (!GetIt.instance.isRegistered<IncidentLoggerService>()) {
+      _reportDreamsAndGoalsFailure(error, stackTrace);
+      return;
+    }
     try {
       await GetIt.instance<IncidentLoggerService>().captureLog(
         error,
         stackTrace: stackTrace,
       );
     } catch (_) {
-      // Logging is best effort; it must not hide the retry affordance.
+      _reportDreamsAndGoalsFailure(error, stackTrace);
     }
+  }
+
+  void _reportDreamsAndGoalsFailure(Object error, StackTrace stackTrace) {
+    FlutterError.reportError(
+      FlutterErrorDetails(
+        exception: error,
+        stack: stackTrace,
+        library: 'ShareForm',
+        context: ErrorDescription('while persisting ShareForm state'),
+      ),
+    );
   }
 
   Widget buildDreamsAndGoalsSection(BuildContext context, String gender) {
@@ -887,7 +966,12 @@ class _ShareFormState extends WizardStepState<ShareForm> {
                           if (!mounted) {
                             return;
                           }
-                          await showShareDialog(context);
+                          await showShareDialog(
+                            context,
+                            memoryService:
+                                widget.memoryService ??
+                                userInfoProvider.service,
+                          );
                         }),
                       );
                     },
@@ -920,6 +1004,9 @@ class _ShareFormState extends WizardStepState<ShareForm> {
                             username: userInfoProvider.name,
                             appInformation: appInfoProvider,
                             userInformation: userInfoProvider,
+                            memoryService:
+                                widget.memoryService ??
+                                userInfoProvider.service,
                             fileService: fileService,
                           );
                         }),

@@ -8,6 +8,8 @@ import 'package:mazilon/util/SignIn/popup_toast.dart';
 import 'package:mazilon/util/appInformation.dart';
 import 'package:mazilon/util/logger_service.dart';
 import 'package:mazilon/util/persistent_memory_service.dart';
+import 'package:mazilon/util/personal_plan_export_metadata.dart';
+import 'package:mazilon/util/personal_plan_export_snapshot.dart';
 import 'package:mazilon/util/userInformation.dart';
 
 import 'package:mazilon/util/PDF/create_pdf.dart';
@@ -19,7 +21,7 @@ class _PersonalPlanDownloadContext {
   final String gender;
   final String username;
   final Map<String, String> sharePdfTexts;
-  final int? userInformationRevision;
+  final String snapshotFingerprint;
   final PersistentMemoryService? memoryService;
   final FileService fileService;
   final Set<String> approvedPdfHosts;
@@ -28,25 +30,17 @@ class _PersonalPlanDownloadContext {
     required AppLocalizations appLocale,
     required this.gender,
     required this.username,
-    required AppInformation appInformation,
+    required Map<String, String> sharePdfTexts,
     required this.fileService,
-    UserInformation? userInformation,
-    Set<String>? approvedPdfHosts,
-  })  : localeName = appLocale.localeName,
-        textDirection = appLocale.textDirection,
-        approvedPdfHosts = Set<String>.unmodifiable(
-          (approvedPdfHosts ?? defaultApprovedPdfLinkHosts).map(
-            (host) => host.trim().toLowerCase(),
-          ),
-        ),
-        sharePdfTexts = Map<String, String>.unmodifiable(
-          sanitizeSharePdfTexts(
-            appInformation.sharePDFtexts,
-            approvedHosts: approvedPdfHosts ?? defaultApprovedPdfLinkHosts,
-          ),
-        ),
-        userInformationRevision = userInformation?.dreamsAndGoalsSaveRevision,
-        memoryService = userInformation?.service;
+    required PersonalPlanExportSnapshot snapshot,
+    required this.memoryService,
+    required this.approvedPdfHosts,
+  }) : localeName = appLocale.localeName,
+       textDirection = appLocale.textDirection,
+       sharePdfTexts = Map<String, String>.unmodifiable(
+         sanitizeSharePdfTexts(sharePdfTexts, approvedHosts: approvedPdfHosts),
+       ),
+       snapshotFingerprint = snapshot.fingerprint;
 
   static int _computeMapHashCode(Map<String, String> map) {
     var hash = 0;
@@ -65,7 +59,7 @@ class _PersonalPlanDownloadContext {
         other.gender == gender &&
         other.username == username &&
         mapEquals(other.sharePdfTexts, sharePdfTexts) &&
-        other.userInformationRevision == userInformationRevision &&
+        other.snapshotFingerprint == snapshotFingerprint &&
         identical(other.memoryService, memoryService) &&
         identical(other.fileService, fileService) &&
         setEquals(other.approvedPdfHosts, approvedPdfHosts);
@@ -73,21 +67,46 @@ class _PersonalPlanDownloadContext {
 
   @override
   int get hashCode => Object.hash(
-        localeName,
-        textDirection,
-        gender,
-        username,
-        _computeMapHashCode(sharePdfTexts),
-        userInformationRevision,
-        identityHashCode(memoryService),
-        identityHashCode(fileService),
-        Object.hashAllUnordered(approvedPdfHosts),
-      );
+    localeName,
+    textDirection,
+    gender,
+    username,
+    _computeMapHashCode(sharePdfTexts),
+    snapshotFingerprint,
+    identityHashCode(memoryService),
+    identityHashCode(fileService),
+    Object.hashAllUnordered(approvedPdfHosts),
+  );
 }
 
 final Map<_PersonalPlanDownloadContext, Future<String?>>
-    _activePersonalPlanDownloads =
+_activePersonalPlanDownloads =
     <_PersonalPlanDownloadContext, Future<String?>>{};
+
+// Retain results while overlapping requests for this source are still capturing
+// their data. Otherwise a fast renderer can finish before the second serialized
+// capture reaches the deduplication check.
+final Map<PersistentMemoryService, int> _pendingSourceCaptures = {};
+final Set<_PersonalPlanDownloadContext> _completedDownloads = {};
+
+void _releaseSourceCapture(PersistentMemoryService source) {
+  final remaining = _pendingSourceCaptures[source]! - 1;
+  if (remaining == 0) {
+    _pendingSourceCaptures.remove(source);
+    _removeCompletedDownloads(source);
+  } else {
+    _pendingSourceCaptures[source] = remaining;
+  }
+}
+
+void _removeCompletedDownloads(PersistentMemoryService source) {
+  if (_pendingSourceCaptures.containsKey(source)) return;
+  _completedDownloads.removeWhere((key) {
+    if (!identical(key.memoryService, source)) return false;
+    _activePersonalPlanDownloads.remove(key);
+    return true;
+  });
+}
 
 /// Downloads the Personal Plan PDF export after stabilizing persistence state,
 /// notifying the user of success or failure through standard toast feedback.
@@ -106,39 +125,70 @@ Future<String?> downloadPersonalPlanFile({
   required AppInformation appInformation,
   required FileService fileService,
   UserInformation? userInformation,
+  PersistentMemoryService? memoryService,
   Set<String>? approvedPdfHosts,
 }) async {
-  final contextKey = _PersonalPlanDownloadContext(
-    appLocale: appLocale,
-    gender: gender,
-    username: username,
-    appInformation: appInformation,
-    fileService: fileService,
-    userInformation: userInformation,
-    approvedPdfHosts: approvedPdfHosts,
-  );
-
-  final existingDownload = _activePersonalPlanDownloads[contextKey];
-  if (existingDownload != null) {
-    return await existingDownload;
-  }
-
-  final downloadFuture = _executeDownloadPersonalPlanFile(
-    appLocale: appLocale,
-    gender: gender,
-    username: username,
-    sharePdfTexts: contextKey.sharePdfTexts,
-    fileService: fileService,
-    userInformation: userInformation,
-    approvedPdfHosts: contextKey.approvedPdfHosts,
-  );
-
-  _activePersonalPlanDownloads[contextKey] = downloadFuture;
+  PersistentMemoryService? requestSource;
   try {
+    final texts = Map<String, String>.of(appInformation.sharePDFtexts);
+    final hosts = Set<String>.unmodifiable(
+      (approvedPdfHosts ?? defaultApprovedPdfLinkHosts).map(
+        (host) => host.trim().toLowerCase(),
+      ),
+    );
+    final source =
+        memoryService ??
+        userInformation?.service ??
+        GetIt.instance<PersistentMemoryService>();
+    requestSource = source;
+    _pendingSourceCaptures[source] = (_pendingSourceCaptures[source] ?? 0) + 1;
+    final snapshot = await preparePersonalPlanExportSnapshot(
+      userInformation: userInformation,
+      memoryService: source,
+    );
+    final contextKey = _PersonalPlanDownloadContext(
+      appLocale: appLocale,
+      gender: gender,
+      username: username,
+      sharePdfTexts: texts,
+      fileService: fileService,
+      snapshot: snapshot,
+      memoryService: source,
+      approvedPdfHosts: hosts,
+    );
+
+    final existingDownload = _activePersonalPlanDownloads[contextKey];
+    if (existingDownload != null) {
+      _releaseSourceCapture(source);
+      requestSource = null;
+      return await existingDownload;
+    }
+
+    final downloadFuture =
+        _executeDownloadPersonalPlanFile(
+          appLocale: appLocale,
+          gender: gender,
+          username: username,
+          sharePdfTexts: contextKey.sharePdfTexts,
+          fileService: fileService,
+          snapshot: snapshot,
+          memoryService: contextKey.memoryService,
+          approvedPdfHosts: contextKey.approvedPdfHosts,
+        ).whenComplete(() {
+          _completedDownloads.add(contextKey);
+          _removeCompletedDownloads(source);
+        });
+
+    _activePersonalPlanDownloads[contextKey] = downloadFuture;
+    _releaseSourceCapture(source);
+    requestSource = null;
     return await downloadFuture;
+  } catch (error, stackTrace) {
+    await _reportDownloadFailure(error, stackTrace, appLocale, gender);
+    return null;
   } finally {
-    if (identical(_activePersonalPlanDownloads[contextKey], downloadFuture)) {
-      _activePersonalPlanDownloads.remove(contextKey);
+    if (requestSource != null) {
+      _releaseSourceCapture(requestSource);
     }
   }
 }
@@ -149,15 +199,15 @@ Future<String?> _executeDownloadPersonalPlanFile({
   required String username,
   required Map<String, String> sharePdfTexts,
   required FileService fileService,
-  UserInformation? userInformation,
+  required PersonalPlanExportSnapshot snapshot,
+  PersistentMemoryService? memoryService,
   Set<String>? approvedPdfHosts,
 }) async {
   try {
-    final exportMetadata = await prepareAndBuildPersonalPlanExportMetadata(
-      appLocale: appLocale,
-      gender: gender,
-      username: username,
-      userInformation: userInformation,
+    final exportMetadata = buildPersonalPlanExportMetadata(
+      appLocale,
+      gender,
+      username,
     );
     final result = await fileService.download(
       exportMetadata.titles,
@@ -166,7 +216,8 @@ Future<String?> _executeDownloadPersonalPlanFile({
       ShareFileType.PDF,
       mainTitle: exportMetadata.mainTitle,
       textDirection: appLocale.textDirection,
-      memoryService: userInformation?.service,
+      memoryService: memoryService,
+      snapshot: snapshot,
       approvedPdfHosts: approvedPdfHosts,
     );
     if (result != null) {
@@ -174,15 +225,28 @@ Future<String?> _executeDownloadPersonalPlanFile({
     }
     return result;
   } catch (error, stackTrace) {
-    try {
-      if (GetIt.instance.isRegistered<IncidentLoggerService>()) {
-        await GetIt.instance<IncidentLoggerService>().captureLog(
-          error,
-          stackTrace: stackTrace,
-        );
-      }
-    } catch (_) {}
-    await showToast(message: appLocale.downloadFailed(gender));
+    await _reportDownloadFailure(error, stackTrace, appLocale, gender);
     return null;
+  }
+}
+
+Future<void> _reportDownloadFailure(
+  Object error,
+  StackTrace stackTrace,
+  AppLocalizations appLocale,
+  String gender,
+) async {
+  try {
+    if (GetIt.instance.isRegistered<IncidentLoggerService>()) {
+      await GetIt.instance<IncidentLoggerService>().captureLog(
+        error,
+        stackTrace: stackTrace,
+      );
+    }
+  } catch (_) {}
+  try {
+    await showToast(message: appLocale.downloadFailed(gender));
+  } catch (_) {
+    // Feedback is best effort; preserve the originating failure and null result.
   }
 }

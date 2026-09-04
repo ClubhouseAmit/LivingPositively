@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:convert';
 
 import 'package:flutter/foundation.dart';
 import 'package:get_it/get_it.dart';
@@ -6,6 +7,7 @@ import 'package:mazilon/global_enums.dart';
 import 'package:mazilon/util/custom_categories_storage.dart';
 import 'package:mazilon/util/dreams_and_goals_selection.dart';
 import 'package:mazilon/util/logger_service.dart';
+import 'package:mazilon/util/notification_preference.dart';
 import 'package:mazilon/util/persistent_memory_service.dart';
 
 enum DarkModePreference { alwaysLight, alwaysDark, scheduled }
@@ -28,10 +30,11 @@ class UserInformation with ChangeNotifier {
   List<String> dreamsAndGoals;
   List<String> dreamsAndGoalsSelectionSources;
   bool loggedIn;
+  bool authDecisionMade;
   String userId;
-  int notificationMinute;
-  int notificationHour;
-  String notificationMessage;
+  String email;
+  String displayName;
+  Map<String, NotificationPreference> notificationPreferences;
   DarkModePreference darkModePreference;
   int darkModeStartHour;
   int darkModeStartMinute;
@@ -42,7 +45,12 @@ class UserInformation with ChangeNotifier {
   PersistentMemoryService service; // Get the persistent memory service instance
   Future<void> _pendingDreamsAndGoalsSave = Future<void>.value();
   Future<void> _pendingCustomCategoriesSave = Future<void>.value();
+  List<MapEntry<String, String>>? _pendingCustomCategoriesSnapshot;
+  PersistentMemoryService? _pendingCustomCategoriesMemoryService;
+  Future<void>? _customCategoriesWriteTail;
+  Future<void>? _notificationPreferencesWrite;
   int _dreamsAndGoalsSaveRevision = 0;
+  int _customCategoriesSaveRevision = 0;
   int _activeDreamsAndGoalsSavesCount = 0;
 
   /// Whether a Dreams and Goals persistence operation is currently pending.
@@ -56,9 +64,7 @@ class UserInformation with ChangeNotifier {
     this.thanks = const <String, List<String>>{},
     this.positiveTraits = const [],
     this.localeName = '',
-    this.notificationHour = 12,
-    this.notificationMinute = 0,
-    this.notificationMessage = '',
+    this.notificationPreferences = const {},
     this.darkModePreference = DarkModePreference.alwaysLight,
     this.darkModeStartHour = 22,
     this.darkModeStartMinute = 0,
@@ -78,18 +84,34 @@ class UserInformation with ChangeNotifier {
     this.customCategories = const [],
     this.disclaimerSigned = false,
     this.loggedIn = false,
+    this.authDecisionMade = false,
     this.userId = '',
+    this.email = '',
+    this.displayName = '',
     PersistentMemoryService? service,
   }) : service = service ?? GetIt.instance<PersistentMemoryService>();
 
-  /// Hydrates custom categories from [memoryService] (or the default [service]).
+  /// Reads categories, publishing them only when reading this model's [service].
   Future<List<MapEntry<String, String>>> loadCustomCategories({
     PersistentMemoryService? memoryService,
-  }) async {
-    final effectiveMemoryService = memoryService ?? service;
+  }) => _loadCustomCategories(memoryService ?? service);
+
+  Future<List<MapEntry<String, String>>> _loadCustomCategories(
+    PersistentMemoryService effectiveMemoryService,
+  ) async {
+    final int revisionAtLoadStart = _customCategoriesSaveRevision;
     final loaded = await loadCustomCategoriesFromStorage(
       memoryService: effectiveMemoryService,
     );
+    if (!identical(effectiveMemoryService, service)) {
+      return List<MapEntry<String, String>>.unmodifiable(loaded);
+    }
+    // A load begun during initialization may complete after an interactive
+    // save has started. That response reflects the old storage snapshot and
+    // must not replace the newer in-memory categories.
+    if (revisionAtLoadStart != _customCategoriesSaveRevision) {
+      return customCategories;
+    }
     customCategories = List<MapEntry<String, String>>.unmodifiable(loaded);
     notifyListeners();
     return customCategories;
@@ -101,16 +123,73 @@ class UserInformation with ChangeNotifier {
     PersistentMemoryService? memoryService,
   }) async {
     final effectiveMemoryService = memoryService ?? service;
+    if (!identical(effectiveMemoryService, service) && categories == null) {
+      throw ArgumentError(
+        'Saving to an alternate source requires explicit categories.',
+      );
+    }
     final toSave = categories ?? customCategories;
     final sanitized = sanitizeAndFilterCustomCategoryEntries(toSave);
-    final nextSave = saveCustomCategoriesToStorage(
-      sanitized,
-      memoryService: effectiveMemoryService,
-    );
+    if (!identical(effectiveMemoryService, service)) {
+      // An explicit alternate store owns its own data; it must not replace
+      // this model's categories, revisions, or retry state.
+      await saveCustomCategoriesToStorage(
+        sanitized,
+        memoryService: effectiveMemoryService,
+      );
+      return;
+    }
+    _pendingCustomCategoriesSnapshot =
+        List<MapEntry<String, String>>.unmodifiable(sanitized);
+    _pendingCustomCategoriesMemoryService = effectiveMemoryService;
+    final int revision = ++_customCategoriesSaveRevision;
+    final previousWrite = _customCategoriesWriteTail;
+    final Future<void> nextSave = previousWrite == null
+        ? saveCustomCategoriesToStorage(
+            sanitized,
+            memoryService: effectiveMemoryService,
+          )
+        : previousWrite.then(
+            (_) => saveCustomCategoriesToStorage(
+              sanitized,
+              memoryService: effectiveMemoryService,
+            ),
+          );
+    // The caller must observe this write's failure so the UI can offer a
+    // retry. A later write continues after that failure through the safe tail
+    // below, while export preparation explicitly ignores an older
+    // failed tail after it has finished.
     _pendingCustomCategoriesSave = nextSave;
+    final Future<void> continuedWriteTail = nextSave.catchError((Object _) {});
+    _customCategoriesWriteTail = continuedWriteTail;
+    continuedWriteTail.whenComplete(() {
+      if (identical(_customCategoriesWriteTail, continuedWriteTail)) {
+        _customCategoriesWriteTail = null;
+      }
+    });
     await nextSave;
+    if (revision != _customCategoriesSaveRevision) {
+      return;
+    }
+    if (_matchesCustomCategories(sanitized)) {
+      return;
+    }
     customCategories = List<MapEntry<String, String>>.unmodifiable(sanitized);
     notifyListeners();
+  }
+
+  bool _matchesCustomCategories(List<MapEntry<String, String>> categories) {
+    if (customCategories.length != categories.length) {
+      return false;
+    }
+    for (var index = 0; index < categories.length; index++) {
+      final MapEntry<String, String> current = customCategories[index];
+      final MapEntry<String, String> candidate = categories[index];
+      if (current.key != candidate.key || current.value != candidate.value) {
+        return false;
+      }
+    }
+    return true;
   }
 
   /// Clears user state and persists the empty Dreams and Goals snapshot.
@@ -119,9 +198,7 @@ class UserInformation with ChangeNotifier {
   /// returned future completes only after the queued Dreams snapshot succeeds.
   Future<void> reset(String locale) async {
     location = '';
-    notificationHour = 12;
-    notificationMinute = 0;
-    notificationMessage = '';
+    notificationPreferences = {};
     darkModePreference = DarkModePreference.alwaysLight;
     darkModeStartHour = 22;
     darkModeStartMinute = 0;
@@ -141,10 +218,13 @@ class UserInformation with ChangeNotifier {
     dreamsAndGoalsSelectionSources = [];
     customCategories = [];
     // An in-flight snapshot cannot be cancelled safely. Queue the empty
-    // snapshot behind it so reset is always the final local Dreams state.
+    // snapshots behind them so reset is always the final local state.
     _dreamsAndGoalsSaveRevision++;
     loggedIn = false;
+    authDecisionMade = false;
     userId = '';
+    email = '';
+    displayName = '';
     thanks = {};
     positiveTraits = [];
     localeName = locale;
@@ -152,7 +232,7 @@ class UserInformation with ChangeNotifier {
     notifyListeners();
     await Future.wait([
       queueDreamsAndGoalsSave(),
-      saveCustomCategoriesToStorage(const [], memoryService: service),
+      saveCustomCategories(categories: const <MapEntry<String, String>>[]),
     ]);
   }
 
@@ -215,7 +295,10 @@ class UserInformation with ChangeNotifier {
     notifyListeners();
   }
 
-  Future<void> updateGenderAndBinary({required String gender, required bool isBinary}) async {
+  Future<void> updateGenderAndBinary({
+    required String gender,
+    required bool isBinary,
+  }) async {
     this.gender = gender;
     binary = isBinary;
     notifyListeners();
@@ -312,6 +395,9 @@ class UserInformation with ChangeNotifier {
             _activeDreamsAndGoalsSavesCount--;
           }
         });
+    // Keep the queue usable after a failed snapshot. A later save continues
+    // through catchError above, while this tail retains the current write's
+    // error for callers that must block navigation and offer a retry.
     _pendingDreamsAndGoalsSave = nextSave;
     return nextSave;
   }
@@ -392,10 +478,7 @@ class UserInformation with ChangeNotifier {
     final Future<void> disclaimerSave = Future<void>.sync(
       persistDisclaimerConfirmed,
     );
-    return Future.wait<void>([
-      dreamsSave,
-      disclaimerSave,
-    ]);
+    return Future.wait<void>([dreamsSave, disclaimerSave]);
   }
 
   /// Updates category selections in memory and persists them through this
@@ -425,7 +508,8 @@ class UserInformation with ChangeNotifier {
       case 'PersonalPlan-DreamsAndGoals':
         updateDreamsAndGoals(
           items,
-          selectionSources: selectionSources ??
+          selectionSources:
+              selectionSources ??
               (listEquals(items, dreamsAndGoals)
                   ? dreamsAndGoalsSelectionSources
                   : normalizeDreamsAndGoalsSelectionSources(
@@ -460,10 +544,18 @@ class UserInformation with ChangeNotifier {
     );
   }
 
-  /// Awaits all pending saves and repairs Dreams and Goals selection sources
-  /// until storage has a stable, normalized snapshot for Personal Plan export.
-  Future<void> prepareForPersonalPlanExport() async {
-    await _pendingCustomCategoriesSave;
+  /// Awaits pending model saves for exports from this model's own store.
+  ///
+  /// An alternate [memoryService] is an independent source, never a staging
+  /// destination. Its read barrier handles its writes without using this model.
+  Future<void> prepareForPersonalPlanExport({
+    PersistentMemoryService? memoryService,
+  }) async {
+    final PersistentMemoryService effectiveMemoryService =
+        memoryService ?? service;
+    if (!identical(effectiveMemoryService, service)) return;
+    await _awaitOrRetryCustomCategoriesSave();
+    await _awaitOrRetryDreamsAndGoalsSave();
     final bool needsRepair = !listEquals(
       dreamsAndGoalsSelectionSources,
       normalizeDreamsAndGoalsSelectionSources(
@@ -472,20 +564,45 @@ class UserInformation with ChangeNotifier {
       ),
     );
     if (!needsRepair && _activeDreamsAndGoalsSavesCount == 0) {
-      await _pendingCustomCategoriesSave;
       return;
     }
-    while (true) {
-      await _pendingDreamsAndGoalsSave;
+    for (var attempt = 0; attempt < 8; attempt++) {
+      await _awaitOrRetryDreamsAndGoalsSave();
       final int revisionBeforeRepair = _dreamsAndGoalsSaveRevision;
       await repairDreamsAndGoalsSelectionSources();
-      await _pendingDreamsAndGoalsSave;
+      await _awaitOrRetryDreamsAndGoalsSave();
       if (_dreamsAndGoalsSaveRevision == revisionBeforeRepair) {
-        await _pendingDreamsAndGoalsSave;
-        break;
+        await _awaitOrRetryCustomCategoriesSave();
+        return;
       }
     }
-    await _pendingCustomCategoriesSave;
+    throw StateError(
+      'Dreams and Goals kept changing during export preparation.',
+    );
+  }
+
+  Future<void> _awaitOrRetryCustomCategoriesSave() async {
+    try {
+      await _pendingCustomCategoriesSave;
+    } catch (error, stackTrace) {
+      final retrySnapshot = _pendingCustomCategoriesSnapshot;
+      final retryMemoryService = _pendingCustomCategoriesMemoryService;
+      if (retrySnapshot == null || retryMemoryService == null) {
+        Error.throwWithStackTrace(error, stackTrace);
+      }
+      await saveCustomCategories(
+        categories: retrySnapshot,
+        memoryService: retryMemoryService,
+      );
+    }
+  }
+
+  Future<void> _awaitOrRetryDreamsAndGoalsSave() async {
+    try {
+      await _pendingDreamsAndGoalsSave;
+    } catch (_) {
+      await queueDreamsAndGoalsSave();
+    }
   }
 
   /// Persists the form completion disclaimer using this model's injected
@@ -511,54 +628,59 @@ class UserInformation with ChangeNotifier {
 
   void updateLoggedIn(bool value) {
     loggedIn = value;
+    _savePersistedValue(
+      () => service.setItem('loggedIn', PersistentMemoryType.Bool, value),
+    );
+    notifyListeners();
+  }
+
+  void updateAuthDecisionMade(bool value) {
+    authDecisionMade = value;
+    _savePersistedValue(
+      () =>
+          service.setItem('authDecisionMade', PersistentMemoryType.Bool, value),
+    );
+    notifyListeners();
+  }
+
+  void updateEmail(String value) {
+    email = value;
+    notifyListeners();
+  }
+
+  void updateDisplayName(String value) {
+    displayName = value;
     notifyListeners();
   }
 
   void updateUserId(String value) {
     userId = value;
-    notifyListeners();
-  }
-
-  void updateNotificationHour(int value) {
-    notificationHour = value;
-    unawaited(
-      _saveInBackground(
-        () => service.setItem(
-          'notificationHour',
-          PersistentMemoryType.Int,
-          value,
-        ),
-      ),
+    _savePersistedValue(
+      () => service.setItem('userId', PersistentMemoryType.String, value),
     );
     notifyListeners();
   }
 
-  void updateNotificationMinute(int value) {
-    notificationMinute = value;
-    unawaited(
-      _saveInBackground(
-        () => service.setItem(
-          'notificationMinute',
-          PersistentMemoryType.Int,
-          value,
-        ),
-      ),
-    );
+  NotificationPreference? getNotificationPreference(String typeId) =>
+      notificationPreferences[typeId];
+
+  Future<void> setNotificationPreference(
+    String typeId,
+    NotificationPreference preference,
+  ) {
+    notificationPreferences = {...notificationPreferences, typeId: preference};
+    final write = _saveNotificationPreferences();
     notifyListeners();
+    return write;
   }
 
-  void updateNotificationMessage(String value) {
-    notificationMessage = value;
-    unawaited(
-      _saveInBackground(
-        () => service.setItem(
-          'notificationMessage',
-          PersistentMemoryType.String,
-          value,
-        ),
-      ),
-    );
+  Future<void> clearNotificationPreference(String typeId) {
+    notificationPreferences = Map<String, NotificationPreference>.from(
+      notificationPreferences,
+    )..remove(typeId);
+    final write = _saveNotificationPreferences();
     notifyListeners();
+    return write;
   }
 
   /// Returns whether the selected dark-mode preference is active at [now].
@@ -740,6 +862,49 @@ class UserInformation with ChangeNotifier {
     return value != null && _isValidMinute(value) ? value : defaultValue;
   }
 
+  Future<void> _saveNotificationPreferences() {
+    final encoded = jsonEncode(
+      notificationPreferences.map(
+        (key, value) => MapEntry(key, value.toJson()),
+      ),
+    );
+    final previousWrite = _notificationPreferencesWrite;
+    final write = previousWrite == null
+        ? service.setItem(
+            'notificationPreferences',
+            PersistentMemoryType.String,
+            encoded,
+          )
+        : previousWrite
+              .catchError((Object _) {
+                // A failed older write must not prevent the latest state from
+                // saving.
+              })
+              .then<void>(
+                (_) => service.setItem(
+                  'notificationPreferences',
+                  PersistentMemoryType.String,
+                  encoded,
+                ),
+              );
+    _notificationPreferencesWrite = write;
+    unawaited(
+      write.then<void>(
+        (_) {
+          if (identical(_notificationPreferencesWrite, write)) {
+            _notificationPreferencesWrite = null;
+          }
+        },
+        onError: (Object _, StackTrace _) {
+          if (identical(_notificationPreferencesWrite, write)) {
+            _notificationPreferencesWrite = null;
+          }
+        },
+      ),
+    );
+    return write;
+  }
+
   void updateLocaleName(String value) {
     localeName = value;
     notifyListeners();
@@ -788,5 +953,35 @@ class UserInformation with ChangeNotifier {
       ),
     );
     notifyListeners();
+  }
+
+  void _savePersistedValue(Future<void> Function() write) {
+    unawaited(
+      Future<void>.sync(write).catchError((
+        Object error,
+        StackTrace stackTrace,
+      ) {
+        _reportPersistenceFailure(error, stackTrace);
+      }),
+    );
+  }
+
+  void _reportPersistenceFailure(Object error, StackTrace stackTrace) {
+    if (!GetIt.instance.isRegistered<IncidentLoggerService>()) {
+      debugPrint('Persistent user state write failed: $error');
+      return;
+    }
+    unawaited(
+      Future<void>.sync(
+        () => GetIt.instance<IncidentLoggerService>().captureLog(
+          error,
+          stackTrace: stackTrace,
+        ),
+      ).catchError((Object loggerError, StackTrace loggerStackTrace) {
+        debugPrint(
+          'Persistent user state failure reporting failed: $loggerError',
+        );
+      }),
+    );
   }
 }

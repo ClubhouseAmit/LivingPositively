@@ -18,11 +18,14 @@ import 'package:mazilon/file_service.dart';
 import 'package:mazilon/form/shareform.dart';
 import 'package:mazilon/form/wizard_step.dart';
 import 'package:mazilon/global_enums.dart';
+import 'package:mazilon/util/logger_service.dart';
 import 'package:mazilon/util/Share/LP_share_alert_dialog.dart';
 import 'package:mazilon/util/custom_categories_storage.dart';
 import 'package:mazilon/util/persistent_memory_service.dart';
+import 'package:mazilon/util/personal_plan_export_snapshot.dart';
 import 'package:mazilon/util/userInformation.dart';
 import 'package:mockito/mockito.dart';
+import 'package:share_plus/share_plus.dart';
 
 import '../helpers/widget_test_scaffold.dart';
 import 'shareform_test.mocks.dart' as shareform_mocks;
@@ -63,15 +66,29 @@ class _DreamsMemoryHarness {
     List<String> initialCustomCategoryTitles = const <String>[],
     List<String> initialCustomCategoryDescriptions = const <String>[],
     this.delayFirstSelectionWrite = false,
+    this.delayFirstCustomCategoryWrite = false,
   }) : _initialSelections = List<String>.from(initialSelections),
        _initialSelectionSources = List<String>.from(initialSelectionSources),
        _initialCustomItems = List<String>.from(initialCustomItems),
-       _initialCustomCategoryTitles =
-           List<String>.from(initialCustomCategoryTitles),
-       _initialCustomCategoryDescriptions =
-           List<String>.from(initialCustomCategoryDescriptions) {
+       _initialCustomCategoryTitles = List<String>.from(
+         initialCustomCategoryTitles,
+       ),
+       _initialCustomCategoryDescriptions = List<String>.from(
+         initialCustomCategoryDescriptions,
+       ) {
     when(service.setItem(any, any, any)).thenAnswer(_setItem);
     when(service.getItem(any, any)).thenAnswer(_getItem);
+    when(service.readSnapshot(any)).thenAnswer((invocation) async {
+      final keys =
+          invocation.positionalArguments.single
+              as Map<String, PersistentMemoryType>;
+      return Map<String, Object?>.unmodifiable({
+        for (final entry in keys.entries)
+          entry.key: await _getItem(
+            Invocation.method(#getItem, [entry.key, entry.value]),
+          ),
+      });
+    });
     when(service.reset()).thenAnswer((_) async {});
   }
 
@@ -82,23 +99,40 @@ class _DreamsMemoryHarness {
   final List<String> _initialCustomCategoryTitles;
   final List<String> _initialCustomCategoryDescriptions;
   final Completer<void> _firstSelectionWrite = Completer<void>();
+  final Completer<void> _firstCustomCategoryWrite = Completer<void>();
   final List<_MemoryWrite> completedWrites = <_MemoryWrite>[];
+  final List<String> writeKeys = <String>[];
   final List<String> readKeys = <String>[];
   final bool delayFirstSelectionWrite;
+  final bool delayFirstCustomCategoryWrite;
   bool firstSelectionWriteStarted = false;
+  bool firstCustomCategoryWriteStarted = false;
   bool failSelectionWrite = false;
   bool failAllDreamsWrites = false;
+  bool failCustomCategoryWrites = false;
 
   Future<void> _setItem(Invocation invocation) async {
     final String key = invocation.positionalArguments[0] as String;
     final PersistentMemoryType type =
         invocation.positionalArguments[1] as PersistentMemoryType;
     final dynamic value = invocation.positionalArguments[2];
+    writeKeys.add(key);
     if (key == _dreamsAndGoalsSelectionKey &&
         delayFirstSelectionWrite &&
         !firstSelectionWriteStarted) {
       firstSelectionWriteStarted = true;
       await _firstSelectionWrite.future;
+    }
+    final bool isCustomCategoryKey = <String>{
+      _customCategoriesKey,
+      _customCategoryTitlesKey,
+      _customCategoryDescriptionsKey,
+    }.contains(key);
+    if (isCustomCategoryKey &&
+        delayFirstCustomCategoryWrite &&
+        !firstCustomCategoryWriteStarted) {
+      firstCustomCategoryWriteStarted = true;
+      await _firstCustomCategoryWrite.future;
     }
     final bool isDreamsAndGoalsKey = _dreamsAndGoalsPersistenceKeys.contains(
       key,
@@ -107,12 +141,21 @@ class _DreamsMemoryHarness {
         (isDreamsAndGoalsKey && failAllDreamsWrites)) {
       throw StateError('Dreams persistence failed.');
     }
+    if (isCustomCategoryKey && failCustomCategoryWrites) {
+      throw StateError('Custom-category persistence failed.');
+    }
     completedWrites.add(_MemoryWrite(key, type, value));
   }
 
   void releaseFirstSelectionWrite() {
     if (!_firstSelectionWrite.isCompleted) {
       _firstSelectionWrite.complete();
+    }
+  }
+
+  void releaseFirstCustomCategoryWrite() {
+    if (!_firstCustomCategoryWrite.isCompleted) {
+      _firstCustomCategoryWrite.complete();
     }
   }
 
@@ -146,6 +189,14 @@ class _DreamsMemoryHarness {
         return _latestStringList(key, _initialSelectionSources);
       case _dreamsAndGoalsAddedStringsKey:
         return _latestStringList(key, _initialCustomItems);
+      case 'userSelectionPersonalPlan-DifficultEvents':
+      case 'userSelectionPersonalPlan-MakeSafer':
+      case 'userSelectionPersonalPlan-FeelBetter':
+      case 'userSelectionPersonalPlan-Distractions':
+      case 'userSelectionPersonalPlan-SafeEnvironment':
+      case 'PhonePageSavedPhoneNames':
+      case 'PhonePageSavedPhoneNumbers':
+        return <String>[];
       default:
         throw StateError('Unexpected PersistentMemoryService read: $key');
     }
@@ -183,6 +234,25 @@ class _ExportReadingFileService extends NoopFileService {
   List<String> dreamsAtDownload = const [];
   List<String> dreamsSourcesAtDownload = const [];
   List<String> dreamsCustomItemsAtDownload = const [];
+  PersistentMemoryService? receivedMemoryService;
+
+  @override
+  Future<ShareResult?> share(
+    String message,
+    List<dynamic> titles,
+    List<dynamic> subTitles,
+    Map<String, String> texts,
+    ShareFileType saveFormat, {
+    required String mainTitle,
+    required String textDirection,
+    PersistentMemoryService? memoryService,
+    PersonalPlanExportSnapshot? snapshot,
+    Set<String>? approvedPdfHosts,
+  }) async {
+    shareCalls++;
+    receivedMemoryService = memoryService;
+    return const ShareResult('shared-plan.pdf', ShareResultStatus.success);
+  }
 
   @override
   Future<String?> download(
@@ -193,13 +263,12 @@ class _ExportReadingFileService extends NoopFileService {
     required String mainTitle,
     required String textDirection,
     PersistentMemoryService? memoryService,
+    PersonalPlanExportSnapshot? snapshot,
     Set<String>? approvedPdfHosts,
   }) async {
     downloadCalls++;
-    final storedDreams = await memory.getItem(
-      _dreamsAndGoalsSelectionKey,
-      PersistentMemoryType.StringList,
-    );
+    receivedMemoryService = memoryService;
+    final storedDreams = snapshot!.data['DreamsAndGoals']!;
     final storedSources = await memory.getItem(
       _dreamsAndGoalsSelectionSourcesKey,
       PersistentMemoryType.StringList,
@@ -265,6 +334,23 @@ Future<void> _flushAsyncAction(WidgetTester tester) async {
   await tester.pump();
   await tester.runAsync(() => Future<void>.delayed(Duration.zero));
   await tester.pump();
+}
+
+Future<void> _editFirstCustomCategory(
+  WidgetTester tester,
+  String description,
+) async {
+  final edit = find.byKey(const Key('custom-category-edit-button-0'));
+  await tester.ensureVisible(edit);
+  await tester.tap(edit);
+  await tester.pumpAndSettle();
+  await tester.enterText(
+    find.byKey(const Key('custom-category-description-field')),
+    description,
+  );
+  final save = find.text('Add category');
+  await tester.ensureVisible(save);
+  await tester.tap(save);
 }
 
 void _seedMultipleCustomDreams(UserInformation user) {
@@ -355,6 +441,88 @@ void main() {
     await tester.pump(const Duration(seconds: 2));
   });
 
+  testWidgets('download should use the ShareForm memory-service override', (
+    tester,
+  ) async {
+    final overrideMemory = _DreamsMemoryHarness();
+    final exportFiles = _ExportReadingFileService(overrideMemory.service);
+    GetIt.instance.unregister<FileService>();
+    GetIt.instance.registerSingleton<FileService>(exportFiles);
+
+    await pumpWithProviders(
+      tester,
+      wizardStepHarness(
+        ShareForm(
+          key: GlobalKey<WizardStepState>(),
+          prev: () {},
+          submit: (_) async {},
+          memoryService: overrideMemory.service,
+        ),
+      ),
+      userInformation: user,
+      surfaceSize: const Size(1024, 1800),
+    );
+
+    await _pressIconButtonInAsyncZone(tester, Icons.download);
+    await _flushAsyncAction(tester);
+
+    expect(exportFiles.downloadCalls, 1);
+    expect(exportFiles.receivedMemoryService, same(overrideMemory.service));
+    await tester.pump(const Duration(seconds: 2));
+  });
+
+  testWidgets('share should use the ShareForm memory-service override', (
+    tester,
+  ) async {
+    final overrideMemory = _DreamsMemoryHarness();
+    final exportFiles = _ExportReadingFileService(overrideMemory.service);
+    GetIt.instance.unregister<FileService>();
+    GetIt.instance.registerSingleton<FileService>(exportFiles);
+
+    await pumpWithProviders(
+      tester,
+      wizardStepHarness(
+        ShareForm(
+          key: GlobalKey<WizardStepState>(),
+          prev: () {},
+          submit: (_) async {},
+          memoryService: overrideMemory.service,
+        ),
+      ),
+      userInformation: user,
+      surfaceSize: const Size(1024, 1800),
+    );
+
+    await _pressIconButtonInAsyncZone(tester, Icons.share);
+    await _flushAsyncAction(tester);
+    await tester.pumpAndSettle();
+
+    final dialog = tester.widget<LPShareAlertDialog>(
+      find.byType(LPShareAlertDialog),
+    );
+    expect(dialog.memoryService, same(overrideMemory.service));
+
+    final shareFileButton = find.text('Share file of personal plan');
+    await tester.ensureVisible(shareFileButton);
+    final shareButton = tester.widget<TextButton>(
+      find.ancestor(of: shareFileButton, matching: find.byType(TextButton)),
+    );
+    await tester.runAsync(() async {
+      shareButton.onPressed!();
+      for (
+        var attempt = 0;
+        attempt < 20 && exportFiles.shareCalls == 0;
+        attempt++
+      ) {
+        await Future<void>.delayed(const Duration(milliseconds: 10));
+      }
+    });
+    await tester.pump();
+
+    expect(exportFiles.shareCalls, 1);
+    expect(exportFiles.receivedMemoryService, same(overrideMemory.service));
+  });
+
   group('ShareForm', () {
     testWidgets(
       'should persist has-filled through the injected UserInformation service',
@@ -428,21 +596,21 @@ void main() {
 
     group('Dreams and Goals', () {
       test('should reject unexpected persistence reads', () async {
-          final memory = _DreamsMemoryHarness();
+        final memory = _DreamsMemoryHarness();
 
-          await expectLater(
-            memory.service.getItem(
-              'unapproved-key',
-              PersistentMemoryType.StringList,
+        await expectLater(
+          memory.service.getItem(
+            'unapproved-key',
+            PersistentMemoryType.StringList,
+          ),
+          throwsA(
+            isA<StateError>().having(
+              (StateError error) => error.message,
+              'message',
+              'Unexpected PersistentMemoryService read: unapproved-key',
             ),
-            throwsA(
-              isA<StateError>().having(
-                (StateError error) => error.message,
-                'message',
-                'Unexpected PersistentMemoryService read: unapproved-key',
-              ),
-            ),
-          );
+          ),
+        );
       });
 
       testWidgets(
@@ -564,36 +732,36 @@ void main() {
       testWidgets('should download and finish with multiple custom Dreams', (
         tester,
       ) async {
-          final memory = _DreamsMemoryHarness();
-          final exportFiles = _ExportReadingFileService(memory.service);
-          final locator = GetIt.instance;
-          locator.unregister<PersistentMemoryService>();
-          locator.unregister<FileService>();
-          locator.registerSingleton<PersistentMemoryService>(memory.service);
-          locator.registerSingleton<FileService>(exportFiles);
-          user = UserInformation(service: memory.service)
-            ..gender = 'other'
-            ..localeName = 'en';
-          _seedMultipleCustomDreams(user);
-          var submitCalls = 0;
+        final memory = _DreamsMemoryHarness();
+        final exportFiles = _ExportReadingFileService(memory.service);
+        final locator = GetIt.instance;
+        locator.unregister<PersistentMemoryService>();
+        locator.unregister<FileService>();
+        locator.registerSingleton<PersistentMemoryService>(memory.service);
+        locator.registerSingleton<FileService>(exportFiles);
+        user = UserInformation(service: memory.service)
+          ..gender = 'other'
+          ..localeName = 'en';
+        _seedMultipleCustomDreams(user);
+        var submitCalls = 0;
         final stepKey = GlobalKey<WizardStepState>();
 
-          await pumpWithProviders(
-            tester,
-            wizardStepHarness(
-              ShareForm(
+        await pumpWithProviders(
+          tester,
+          wizardStepHarness(
+            ShareForm(
               key: stepKey,
-                prev: () {},
-                submit: (_) {
-                  submitCalls++;
-                },
-              ),
+              prev: () {},
+              submit: (_) {
+                submitCalls++;
+              },
             ),
-            userInformation: user,
-            surfaceSize: const Size(1024, 1800),
-          );
+          ),
+          userInformation: user,
+          surfaceSize: const Size(1024, 1800),
+        );
 
-          _pressIconButton(tester, Icons.download);
+        _pressIconButton(tester, Icons.download);
         await _flushAsyncAction(tester);
 
         expect(exportFiles.downloadCalls, 1);
@@ -601,22 +769,22 @@ void main() {
         expect(
           exportFiles.dreamsSourcesAtDownload,
           user.dreamsAndGoalsSelectionSources,
-          );
+        );
         expect(exportFiles.dreamsCustomItemsAtDownload, const <String>[
           'First custom dream',
           'Second custom dream',
         ]);
 
-          _pressWizardPrimaryAction(tester);
+        _pressWizardPrimaryAction(tester);
         for (var attempt = 0; attempt < 10 && submitCalls == 0; attempt++) {
           await _flushAsyncAction(tester);
         }
 
-          expect(submitCalls, 1);
-          expect(
-            memory.completedStringList(_dreamsAndGoalsAddedStringsKey),
+        expect(submitCalls, 1);
+        expect(
+          memory.completedStringList(_dreamsAndGoalsAddedStringsKey),
           const <String>['First custom dream', 'Second custom dream'],
-      );
+        );
         await tester.pump(const Duration(seconds: 2));
       });
 
@@ -706,165 +874,165 @@ void main() {
       testWidgets(
         'should wait for the latest shared dream snapshot before exporting',
         (tester) async {
-      final delayedMemory = _DreamsMemoryHarness(
-        delayFirstSelectionWrite: true,
-      );
-      final exportFiles = _ExportReadingFileService(delayedMemory.service);
-      final locator = GetIt.instance;
-      locator.unregister<PersistentMemoryService>();
-      locator.unregister<FileService>();
+          final delayedMemory = _DreamsMemoryHarness(
+            delayFirstSelectionWrite: true,
+          );
+          final exportFiles = _ExportReadingFileService(delayedMemory.service);
+          final locator = GetIt.instance;
+          locator.unregister<PersistentMemoryService>();
+          locator.unregister<FileService>();
           locator.registerSingleton<PersistentMemoryService>(
             delayedMemory.service,
           );
-      locator.registerSingleton<FileService>(exportFiles);
-      addTearDown(delayedMemory.releaseFirstSelectionWrite);
-      user = UserInformation(service: delayedMemory.service)
-        ..gender = 'other'
-        ..localeName = 'en';
+          locator.registerSingleton<FileService>(exportFiles);
+          addTearDown(delayedMemory.releaseFirstSelectionWrite);
+          user = UserInformation(service: delayedMemory.service)
+            ..gender = 'other'
+            ..localeName = 'en';
 
-      await pumpWithProviders(
-        tester,
-        wizardStepHarness(
-          ShareForm(
-            key: GlobalKey<WizardStepState>(),
-            prev: () {},
-            submit: (_) async {},
-          ),
-        ),
-        userInformation: user,
-        surfaceSize: const Size(1024, 1800),
-      );
+          await pumpWithProviders(
+            tester,
+            wizardStepHarness(
+              ShareForm(
+                key: GlobalKey<WizardStepState>(),
+                prev: () {},
+                submit: (_) async {},
+              ),
+            ),
+            userInformation: user,
+            surfaceSize: const Size(1024, 1800),
+          );
 
-      await _openDreamsAndGoalsAndAddOwnGoal(tester);
-      expect(user.dreamsAndGoals, ['Immediate dream']);
-      expect(delayedMemory.firstSelectionWriteStarted, isTrue);
+          await _openDreamsAndGoalsAndAddOwnGoal(tester);
+          expect(user.dreamsAndGoals, ['Immediate dream']);
+          expect(delayedMemory.firstSelectionWriteStarted, isTrue);
 
-      final suggestion = tester.widget<InkWell>(
-        find.byKey(const ValueKey('suggestion-Write and publish a book')),
-      );
-      suggestion.onTap!();
-      await tester.pump();
+          final suggestion = tester.widget<InkWell>(
+            find.byKey(const ValueKey('suggestion-Write and publish a book')),
+          );
+          suggestion.onTap!();
+          await tester.pump();
 
-      _pressIconButton(tester, Icons.download);
-      await _flushAsyncAction(tester);
-      expect(exportFiles.downloadCalls, 0);
+          _pressIconButton(tester, Icons.download);
+          await _flushAsyncAction(tester);
+          expect(exportFiles.downloadCalls, 0);
 
-      delayedMemory.releaseFirstSelectionWrite();
-      await _flushAsyncAction(tester);
+          delayedMemory.releaseFirstSelectionWrite();
+          await _flushAsyncAction(tester);
 
-      expect(exportFiles.downloadCalls, 1);
-      expect(exportFiles.dreamsAtDownload, [
-        'Immediate dream',
-        'Write and publish a book',
-      ]);
-      expect(
-        delayedMemory.completedStringList(_dreamsAndGoalsAddedStringsKey),
-        ['Immediate dream'],
-      );
-      expect(
+          expect(exportFiles.downloadCalls, 1);
+          expect(exportFiles.dreamsAtDownload, [
+            'Immediate dream',
+            'Write and publish a book',
+          ]);
+          expect(
+            delayedMemory.completedStringList(_dreamsAndGoalsAddedStringsKey),
+            ['Immediate dream'],
+          );
+          expect(
             delayedMemory.completedStringList(
               _dreamsAndGoalsSelectionSourcesKey,
             ),
-        ['custom', 'catalogue:write-and-publish-a-book'],
-      );
-      await tester.pump(const Duration(seconds: 2));
+            ['custom', 'catalogue:write-and-publish-a-book'],
+          );
+          await tester.pump(const Duration(seconds: 2));
         },
       );
 
-    testWidgets(
-      'should serialize one rapid duplicate download while persistence is delayed',
-      (tester) async {
-        final memory = _DreamsMemoryHarness(delayFirstSelectionWrite: true);
-        final exportFiles = _ExportReadingFileService(memory.service);
-        final locator = GetIt.instance;
-        locator.unregister<PersistentMemoryService>();
-        locator.unregister<FileService>();
-        locator.registerSingleton<PersistentMemoryService>(memory.service);
-        locator.registerSingleton<FileService>(exportFiles);
-        addTearDown(memory.releaseFirstSelectionWrite);
-        user = UserInformation(service: memory.service)
-          ..gender = 'other'
-          ..localeName = 'en';
+      testWidgets(
+        'should serialize one rapid duplicate download while persistence is delayed',
+        (tester) async {
+          final memory = _DreamsMemoryHarness(delayFirstSelectionWrite: true);
+          final exportFiles = _ExportReadingFileService(memory.service);
+          final locator = GetIt.instance;
+          locator.unregister<PersistentMemoryService>();
+          locator.unregister<FileService>();
+          locator.registerSingleton<PersistentMemoryService>(memory.service);
+          locator.registerSingleton<FileService>(exportFiles);
+          addTearDown(memory.releaseFirstSelectionWrite);
+          user = UserInformation(service: memory.service)
+            ..gender = 'other'
+            ..localeName = 'en';
 
-        await pumpWithProviders(
-          tester,
-          wizardStepHarness(
-            ShareForm(
-              key: GlobalKey<WizardStepState>(),
-              prev: () {},
-              submit: (_) async {},
+          await pumpWithProviders(
+            tester,
+            wizardStepHarness(
+              ShareForm(
+                key: GlobalKey<WizardStepState>(),
+                prev: () {},
+                submit: (_) async {},
+              ),
             ),
-          ),
-          userInformation: user,
-          surfaceSize: const Size(1024, 1800),
-        );
+            userInformation: user,
+            surfaceSize: const Size(1024, 1800),
+          );
 
-        _pressIconButton(tester, Icons.download);
-        _pressIconButton(tester, Icons.download);
-        await _flushAsyncAction(tester);
+          _pressIconButton(tester, Icons.download);
+          _pressIconButton(tester, Icons.download);
+          await _flushAsyncAction(tester);
 
-        expect(memory.firstSelectionWriteStarted, isTrue);
-        expect(memory.completedDreamsAndGoalsWriteKeys(), isEmpty);
-        expect(exportFiles.downloadCalls, 0);
+          expect(memory.firstSelectionWriteStarted, isTrue);
+          expect(memory.completedDreamsAndGoalsWriteKeys(), isEmpty);
+          expect(exportFiles.downloadCalls, 0);
 
-        memory.releaseFirstSelectionWrite();
-        await _flushAsyncAction(tester);
+          memory.releaseFirstSelectionWrite();
+          await _flushAsyncAction(tester);
 
-        expect(exportFiles.downloadCalls, 1);
-        expect(
-          memory.completedDreamsAndGoalsWriteKeys(),
-          _dreamsAndGoalsPersistenceKeys,
-        );
-        await tester.pump(const Duration(seconds: 2));
-      },
-    );
+          expect(exportFiles.downloadCalls, 1);
+          expect(
+            memory.completedDreamsAndGoalsWriteKeys(),
+            _dreamsAndGoalsPersistenceKeys,
+          );
+          await tester.pump(const Duration(seconds: 2));
+        },
+      );
 
-    testWidgets(
-      'should run one Finish while a previous Finish action is in flight',
-      (tester) async {
-        final Completer<void> finishGate = Completer<void>();
-        final GlobalKey<WizardStepState> stepKey =
-            GlobalKey<WizardStepState>();
-        var submitCalls = 0;
+      testWidgets(
+        'should run one Finish while a previous Finish action is in flight',
+        (tester) async {
+          final Completer<void> finishGate = Completer<void>();
+          final GlobalKey<WizardStepState> stepKey =
+              GlobalKey<WizardStepState>();
+          var submitCalls = 0;
 
-        await pumpWithProviders(
-          tester,
-          wizardStepHarness(
-            ShareForm(
-              key: stepKey,
-              prev: () {},
-              submit: (_) async {
-                submitCalls++;
-                await finishGate.future;
-              },
+          await pumpWithProviders(
+            tester,
+            wizardStepHarness(
+              ShareForm(
+                key: stepKey,
+                prev: () {},
+                submit: (_) async {
+                  submitCalls++;
+                  await finishGate.future;
+                },
+              ),
             ),
-          ),
-          userInformation: user,
-          surfaceSize: const Size(1024, 1800),
-        );
+            userInformation: user,
+            surfaceSize: const Size(1024, 1800),
+          );
 
-        _pressWizardPrimaryAction(tester);
-        for (var attempt = 0; attempt < 10 && submitCalls == 0; attempt++) {
+          _pressWizardPrimaryAction(tester);
+          for (var attempt = 0; attempt < 10 && submitCalls == 0; attempt++) {
+            await _flushAsyncAction(tester);
+          }
+          expect(submitCalls, 1);
+
+          final Future<void> duplicateFinish = stepKey.currentState!
+              .onPrimaryAction();
           await _flushAsyncAction(tester);
-        }
-        expect(submitCalls, 1);
+          expect(submitCalls, 1);
 
-        final Future<void> duplicateFinish = stepKey.currentState!
-            .onPrimaryAction();
-        await _flushAsyncAction(tester);
-        expect(submitCalls, 1);
+          finishGate.complete();
+          await duplicateFinish;
+          await tester.pump();
 
-        finishGate.complete();
-        await duplicateFinish;
-        await tester.pump();
-
-        _pressWizardPrimaryAction(tester);
-        for (var attempt = 0; attempt < 10 && submitCalls == 1; attempt++) {
-          await _flushAsyncAction(tester);
-        }
-        expect(submitCalls, 2);
-      },
-    );
+          _pressWizardPrimaryAction(tester);
+          for (var attempt = 0; attempt < 10 && submitCalls == 1; attempt++) {
+            await _flushAsyncAction(tester);
+          }
+          expect(submitCalls, 2);
+        },
+      );
 
       testWidgets('should serialize rapid multiple-custom downloads', (
         tester,
@@ -913,470 +1081,470 @@ void main() {
         await tester.pump(const Duration(seconds: 2));
       });
 
-    testWidgets(
-      'should repair malformed Dreams metadata before downloading without an extra save',
-      (tester) async {
-        final recordingMemory = _DreamsMemoryHarness(
-          initialSelections: const <String>['Write and publish a book'],
-          initialSelectionSources: const <String>[
-            'catalogue:learn-a-new-language',
-          ],
-          initialCustomItems: const <String>['Stale custom item'],
-        );
+      testWidgets(
+        'should repair malformed Dreams metadata before downloading without an extra save',
+        (tester) async {
+          final recordingMemory = _DreamsMemoryHarness(
+            initialSelections: const <String>['Write and publish a book'],
+            initialSelectionSources: const <String>[
+              'catalogue:learn-a-new-language',
+            ],
+            initialCustomItems: const <String>['Stale custom item'],
+          );
           final exportFiles = _ExportReadingFileService(
             recordingMemory.service,
           );
-        final locator = GetIt.instance;
-        locator.unregister<PersistentMemoryService>();
-        locator.unregister<FileService>();
-        locator.registerSingleton<PersistentMemoryService>(
-          recordingMemory.service,
-        );
-        locator.registerSingleton<FileService>(exportFiles);
-        user = UserInformation(service: recordingMemory.service)
-          ..gender = 'other'
-          ..localeName = 'en'
-          ..dreamsAndGoals = <String>['Write and publish a book']
-          ..dreamsAndGoalsSelectionSources = <String>[
-            'catalogue:learn-a-new-language',
-          ];
-        await pumpWithProviders(
-          tester,
-          wizardStepHarness(
-            ShareForm(
-              key: GlobalKey<WizardStepState>(),
-              prev: () {},
-              submit: (_) async {},
+          final locator = GetIt.instance;
+          locator.unregister<PersistentMemoryService>();
+          locator.unregister<FileService>();
+          locator.registerSingleton<PersistentMemoryService>(
+            recordingMemory.service,
+          );
+          locator.registerSingleton<FileService>(exportFiles);
+          user = UserInformation(service: recordingMemory.service)
+            ..gender = 'other'
+            ..localeName = 'en'
+            ..dreamsAndGoals = <String>['Write and publish a book']
+            ..dreamsAndGoalsSelectionSources = <String>[
+              'catalogue:learn-a-new-language',
+            ];
+          await pumpWithProviders(
+            tester,
+            wizardStepHarness(
+              ShareForm(
+                key: GlobalKey<WizardStepState>(),
+                prev: () {},
+                submit: (_) async {},
+              ),
             ),
-          ),
-          userInformation: user,
-          surfaceSize: const Size(1024, 1800),
-        );
+            userInformation: user,
+            surfaceSize: const Size(1024, 1800),
+          );
 
-        _pressIconButton(tester, Icons.download);
-        await _flushAsyncAction(tester);
+          _pressIconButton(tester, Icons.download);
+          await _flushAsyncAction(tester);
 
-        expect(exportFiles.downloadCalls, 1);
-        expect(exportFiles.dreamsAtDownload, ['Write and publish a book']);
-        expect(exportFiles.dreamsSourcesAtDownload, [
-          'catalogue:write-and-publish-a-book',
-        ]);
-        expect(exportFiles.dreamsCustomItemsAtDownload, isEmpty);
-        expect(
-          recordingMemory.readKeys,
-          containsAll(<String>[
-            _customCategoryTitlesKey,
-            _customCategoryDescriptionsKey,
-            _dreamsAndGoalsSelectionKey,
-            _dreamsAndGoalsSelectionSourcesKey,
-            _dreamsAndGoalsAddedStringsKey,
-          ]),
-        );
-        expect(
-          recordingMemory.completedDreamsAndGoalsWriteKeys(),
-          _dreamsAndGoalsPersistenceKeys,
-        );
-        expect(
-          recordingMemory.completedStringList(_dreamsAndGoalsSelectionKey),
+          expect(exportFiles.downloadCalls, 1);
+          expect(exportFiles.dreamsAtDownload, ['Write and publish a book']);
+          expect(exportFiles.dreamsSourcesAtDownload, [
+            'catalogue:write-and-publish-a-book',
+          ]);
+          expect(exportFiles.dreamsCustomItemsAtDownload, isEmpty);
+          expect(
+            recordingMemory.readKeys,
+            containsAll(<String>[
+              _customCategoryTitlesKey,
+              _customCategoryDescriptionsKey,
+              _dreamsAndGoalsSelectionKey,
+              _dreamsAndGoalsSelectionSourcesKey,
+              _dreamsAndGoalsAddedStringsKey,
+            ]),
+          );
+          expect(
+            recordingMemory.completedDreamsAndGoalsWriteKeys(),
+            _dreamsAndGoalsPersistenceKeys,
+          );
+          expect(
+            recordingMemory.completedStringList(_dreamsAndGoalsSelectionKey),
             ['Write and publish a book'],
-        );
-        expect(
-          recordingMemory.completedStringList(
-            _dreamsAndGoalsSelectionSourcesKey,
-          ),
-          ['catalogue:write-and-publish-a-book'],
-        );
-        expect(
-          recordingMemory.completedStringList(_dreamsAndGoalsAddedStringsKey),
-          isEmpty,
-        );
-        await tester.pump(const Duration(seconds: 2));
-      },
-    );
-
-    testWidgets(
-      'should repair empty legacy sources before mounting and persist an edited row',
-      (tester) async {
-        final memory = _DreamsMemoryHarness(
-          initialSelections: const <String>['Write and publish a book'],
-          delayFirstSelectionWrite: true,
-        );
-        final locator = GetIt.instance;
-        locator.unregister<PersistentMemoryService>();
-        locator.registerSingleton<PersistentMemoryService>(memory.service);
-        addTearDown(memory.releaseFirstSelectionWrite);
-        user = UserInformation(service: memory.service)
-          ..gender = 'other'
-          ..localeName = 'en'
-          ..dreamsAndGoals = <String>['Write and publish a book']
-          ..dreamsAndGoalsSelectionSources = <String>[];
-
-        await pumpWithProviders(
-          tester,
-          wizardStepHarness(
-            ShareForm(
-              key: GlobalKey<WizardStepState>(),
-              prev: () {},
-              submit: (_) async {},
+          );
+          expect(
+            recordingMemory.completedStringList(
+              _dreamsAndGoalsSelectionSourcesKey,
             ),
-          ),
-          userInformation: user,
-          surfaceSize: const Size(1024, 1800),
-        );
+            ['catalogue:write-and-publish-a-book'],
+          );
+          expect(
+            recordingMemory.completedStringList(_dreamsAndGoalsAddedStringsKey),
+            isEmpty,
+          );
+          await tester.pump(const Duration(seconds: 2));
+        },
+      );
 
-        final Finder dreamsToggle = find.byKey(
-          const Key('share-dreams-and-goals-toggle'),
-        );
-        await tester.ensureVisible(dreamsToggle);
-        await tester.tap(dreamsToggle);
-        await tester.pump();
+      testWidgets(
+        'should repair empty legacy sources before mounting and persist an edited row',
+        (tester) async {
+          final memory = _DreamsMemoryHarness(
+            initialSelections: const <String>['Write and publish a book'],
+            delayFirstSelectionWrite: true,
+          );
+          final locator = GetIt.instance;
+          locator.unregister<PersistentMemoryService>();
+          locator.registerSingleton<PersistentMemoryService>(memory.service);
+          addTearDown(memory.releaseFirstSelectionWrite);
+          user = UserInformation(service: memory.service)
+            ..gender = 'other'
+            ..localeName = 'en'
+            ..dreamsAndGoals = <String>['Write and publish a book']
+            ..dreamsAndGoalsSelectionSources = <String>[];
 
-        expect(memory.firstSelectionWriteStarted, isTrue);
-        expect(user.dreamsAndGoalsSelectionSources, <String>[
-          'catalogue:write-and-publish-a-book',
-        ]);
-        expect(find.text('Write and publish a book'), findsNothing);
+          await pumpWithProviders(
+            tester,
+            wizardStepHarness(
+              ShareForm(
+                key: GlobalKey<WizardStepState>(),
+                prev: () {},
+                submit: (_) async {},
+              ),
+            ),
+            userInformation: user,
+            surfaceSize: const Size(1024, 1800),
+          );
 
-        memory.releaseFirstSelectionWrite();
-        await tester.pumpAndSettle();
+          final Finder dreamsToggle = find.byKey(
+            const Key('share-dreams-and-goals-toggle'),
+          );
+          await tester.ensureVisible(dreamsToggle);
+          await tester.tap(dreamsToggle);
+          await tester.pump();
 
-        expect(find.text('Write and publish a book'), findsOneWidget);
-        final Finder selectedDream = find.text('Write and publish a book');
-        await tester.ensureVisible(selectedDream);
-        await tester.tap(selectedDream);
-        await tester.pumpAndSettle();
-        await tester.enterText(
-          find.byType(TextFormField),
-          'My revised own goal',
-        );
-        await tester.tap(find.text('Save'));
-        await tester.pumpAndSettle();
-        await _flushAsyncAction(tester);
+          expect(memory.firstSelectionWriteStarted, isTrue);
+          expect(user.dreamsAndGoalsSelectionSources, <String>[
+            'catalogue:write-and-publish-a-book',
+          ]);
+          expect(find.text('Write and publish a book'), findsNothing);
 
-        expect(tester.takeException(), isNull);
-        expect(user.dreamsAndGoals, <String>['My revised own goal']);
+          memory.releaseFirstSelectionWrite();
+          await tester.pumpAndSettle();
+
+          expect(find.text('Write and publish a book'), findsOneWidget);
+          final Finder selectedDream = find.text('Write and publish a book');
+          await tester.ensureVisible(selectedDream);
+          await tester.tap(selectedDream);
+          await tester.pumpAndSettle();
+          await tester.enterText(
+            find.byType(TextFormField),
+            'My revised own goal',
+          );
+          await tester.tap(find.text('Save'));
+          await tester.pumpAndSettle();
+          await _flushAsyncAction(tester);
+
+          expect(tester.takeException(), isNull);
+          expect(user.dreamsAndGoals, <String>['My revised own goal']);
           expect(user.dreamsAndGoalsSelectionSources, <String>['custom']);
-        expect(
-          memory.completedStringList(_dreamsAndGoalsSelectionKey),
-          <String>['My revised own goal'],
-        );
-        expect(
-          memory.completedStringList(_dreamsAndGoalsSelectionSourcesKey),
-          <String>['custom'],
-        );
-        expect(
-          memory.completedStringList(_dreamsAndGoalsAddedStringsKey),
-          <String>['My revised own goal'],
-        );
-      },
-    );
+          expect(
+            memory.completedStringList(_dreamsAndGoalsSelectionKey),
+            <String>['My revised own goal'],
+          );
+          expect(
+            memory.completedStringList(_dreamsAndGoalsSelectionSourcesKey),
+            <String>['custom'],
+          );
+          expect(
+            memory.completedStringList(_dreamsAndGoalsAddedStringsKey),
+            <String>['My revised own goal'],
+          );
+        },
+      );
 
-    testWidgets(
-      'should ignore a second Dreams toggle while source repair is in flight',
-      (tester) async {
-        final memory = _DreamsMemoryHarness(
-          initialSelections: const <String>['Write and publish a book'],
-          delayFirstSelectionWrite: true,
-        );
-        final locator = GetIt.instance;
-        locator.unregister<PersistentMemoryService>();
-        locator.registerSingleton<PersistentMemoryService>(memory.service);
-        addTearDown(memory.releaseFirstSelectionWrite);
-        user = UserInformation(service: memory.service)
-          ..gender = 'other'
-          ..localeName = 'en'
-          ..dreamsAndGoals = <String>['Write and publish a book']
-          ..dreamsAndGoalsSelectionSources = <String>[];
+      testWidgets(
+        'should ignore a second Dreams toggle while source repair is in flight',
+        (tester) async {
+          final memory = _DreamsMemoryHarness(
+            initialSelections: const <String>['Write and publish a book'],
+            delayFirstSelectionWrite: true,
+          );
+          final locator = GetIt.instance;
+          locator.unregister<PersistentMemoryService>();
+          locator.registerSingleton<PersistentMemoryService>(memory.service);
+          addTearDown(memory.releaseFirstSelectionWrite);
+          user = UserInformation(service: memory.service)
+            ..gender = 'other'
+            ..localeName = 'en'
+            ..dreamsAndGoals = <String>['Write and publish a book']
+            ..dreamsAndGoalsSelectionSources = <String>[];
 
-        await pumpWithProviders(
-          tester,
-          wizardStepHarness(
-            ShareForm(
-              key: GlobalKey<WizardStepState>(),
-              prev: () {},
-              submit: (_) async {},
+          await pumpWithProviders(
+            tester,
+            wizardStepHarness(
+              ShareForm(
+                key: GlobalKey<WizardStepState>(),
+                prev: () {},
+                submit: (_) async {},
+              ),
             ),
-          ),
-          userInformation: user,
-          surfaceSize: const Size(1024, 1800),
-        );
+            userInformation: user,
+            surfaceSize: const Size(1024, 1800),
+          );
 
-        final Finder dreamsToggle = find.byKey(
-          const Key('share-dreams-and-goals-toggle'),
-        );
-        await tester.ensureVisible(dreamsToggle);
-        await tester.tap(dreamsToggle);
-        await tester.pump();
+          final Finder dreamsToggle = find.byKey(
+            const Key('share-dreams-and-goals-toggle'),
+          );
+          await tester.ensureVisible(dreamsToggle);
+          await tester.tap(dreamsToggle);
+          await tester.pump();
 
-        expect(memory.firstSelectionWriteStarted, isTrue);
+          expect(memory.firstSelectionWriteStarted, isTrue);
 
-        await tester.tap(dreamsToggle);
-        await tester.pump();
+          await tester.tap(dreamsToggle);
+          await tester.pump();
 
-        expect(find.text('Write and publish a book'), findsNothing);
+          expect(find.text('Write and publish a book'), findsNothing);
 
-        memory.releaseFirstSelectionWrite();
-        await tester.pumpAndSettle();
+          memory.releaseFirstSelectionWrite();
+          await tester.pumpAndSettle();
 
-        expect(find.text('Write and publish a book'), findsOneWidget);
-      },
-    );
+          expect(find.text('Write and publish a book'), findsOneWidget);
+        },
+      );
 
-    testWidgets(
-      'should keep the Dreams editor closed until failed repair is retried',
-      (tester) async {
-        final memory = _DreamsMemoryHarness(
-          initialSelections: const <String>['Write and publish a book'],
-        )..failSelectionWrite = true;
-        final locator = GetIt.instance;
-        locator.unregister<PersistentMemoryService>();
-        locator.registerSingleton<PersistentMemoryService>(memory.service);
-        user = UserInformation(service: memory.service)
-          ..gender = 'other'
-          ..localeName = 'en'
-          ..dreamsAndGoals = <String>['Write and publish a book']
-          ..dreamsAndGoalsSelectionSources = <String>[];
+      testWidgets(
+        'should keep the Dreams editor closed until failed repair is retried',
+        (tester) async {
+          final memory = _DreamsMemoryHarness(
+            initialSelections: const <String>['Write and publish a book'],
+          )..failSelectionWrite = true;
+          final locator = GetIt.instance;
+          locator.unregister<PersistentMemoryService>();
+          locator.registerSingleton<PersistentMemoryService>(memory.service);
+          user = UserInformation(service: memory.service)
+            ..gender = 'other'
+            ..localeName = 'en'
+            ..dreamsAndGoals = <String>['Write and publish a book']
+            ..dreamsAndGoalsSelectionSources = <String>[];
 
-        await pumpWithProviders(
-          tester,
-          wizardStepHarness(
-            ShareForm(
-              key: GlobalKey<WizardStepState>(),
-              prev: () {},
-              submit: (_) async {},
+          await pumpWithProviders(
+            tester,
+            wizardStepHarness(
+              ShareForm(
+                key: GlobalKey<WizardStepState>(),
+                prev: () {},
+                submit: (_) async {},
+              ),
             ),
-          ),
-          userInformation: user,
-          surfaceSize: const Size(1024, 1800),
-        );
+            userInformation: user,
+            surfaceSize: const Size(1024, 1800),
+          );
 
-        final Finder dreamsToggle = find.byKey(
-          const Key('share-dreams-and-goals-toggle'),
-        );
-        await tester.ensureVisible(dreamsToggle);
-        await tester.tap(dreamsToggle);
-        await _flushAsyncAction(tester);
+          final Finder dreamsToggle = find.byKey(
+            const Key('share-dreams-and-goals-toggle'),
+          );
+          await tester.ensureVisible(dreamsToggle);
+          await tester.tap(dreamsToggle);
+          await _flushAsyncAction(tester);
 
-        expect(find.text('Write and publish a book'), findsNothing);
-        expect(
-          find.widgetWithText(SnackBarAction, 'Try again'),
-          findsOneWidget,
-        );
+          expect(find.text('Write and publish a book'), findsNothing);
+          expect(
+            find.widgetWithText(SnackBarAction, 'Try again'),
+            findsOneWidget,
+          );
 
-        memory.failSelectionWrite = false;
-        tester
-            .widget<SnackBarAction>(
-              find.widgetWithText(SnackBarAction, 'Try again'),
-            )
-            .onPressed();
-        await _flushAsyncAction(tester);
-        await tester.pumpAndSettle();
+          memory.failSelectionWrite = false;
+          tester
+              .widget<SnackBarAction>(
+                find.widgetWithText(SnackBarAction, 'Try again'),
+              )
+              .onPressed();
+          await _flushAsyncAction(tester);
+          await tester.pumpAndSettle();
 
-        expect(user.dreamsAndGoalsSelectionSources, <String>[
-          'catalogue:write-and-publish-a-book',
-        ]);
-        expect(find.text('Write and publish a book'), findsOneWidget);
-      },
-    );
+          expect(user.dreamsAndGoalsSelectionSources, <String>[
+            'catalogue:write-and-publish-a-book',
+          ]);
+          expect(find.text('Write and publish a book'), findsOneWidget);
+        },
+      );
 
       testWidgets(
         'should wait for the latest shared dream snapshot before finishing',
         (tester) async {
-      final delayedMemory = _DreamsMemoryHarness(
-        delayFirstSelectionWrite: true,
-      );
-      final exportFiles = _ExportReadingFileService(delayedMemory.service);
-      List<String>? dreamsAtSubmit;
-      final locator = GetIt.instance;
-      locator.unregister<PersistentMemoryService>();
-      locator.unregister<FileService>();
+          final delayedMemory = _DreamsMemoryHarness(
+            delayFirstSelectionWrite: true,
+          );
+          final exportFiles = _ExportReadingFileService(delayedMemory.service);
+          List<String>? dreamsAtSubmit;
+          final locator = GetIt.instance;
+          locator.unregister<PersistentMemoryService>();
+          locator.unregister<FileService>();
           locator.registerSingleton<PersistentMemoryService>(
             delayedMemory.service,
           );
-      locator.registerSingleton<FileService>(exportFiles);
-      user = UserInformation(service: delayedMemory.service)
-        ..gender = 'other'
-        ..localeName = 'en';
-      addTearDown(delayedMemory.releaseFirstSelectionWrite);
+          locator.registerSingleton<FileService>(exportFiles);
+          user = UserInformation(service: delayedMemory.service)
+            ..gender = 'other'
+            ..localeName = 'en';
+          addTearDown(delayedMemory.releaseFirstSelectionWrite);
 
-      await pumpWithProviders(
-        tester,
-        wizardStepHarness(
-          ShareForm(
-            key: GlobalKey<WizardStepState>(),
-            prev: () {},
-            submit: (_) async {
-              dreamsAtSubmit = delayedMemory.completedStringList(
-                _dreamsAndGoalsSelectionKey,
-              );
-            },
-          ),
-        ),
-        userInformation: user,
-        surfaceSize: const Size(1024, 1800),
-      );
+          await pumpWithProviders(
+            tester,
+            wizardStepHarness(
+              ShareForm(
+                key: GlobalKey<WizardStepState>(),
+                prev: () {},
+                submit: (_) async {
+                  dreamsAtSubmit = delayedMemory.completedStringList(
+                    _dreamsAndGoalsSelectionKey,
+                  );
+                },
+              ),
+            ),
+            userInformation: user,
+            surfaceSize: const Size(1024, 1800),
+          );
 
-      await _openDreamsAndGoalsAndAddOwnGoal(tester);
-      expect(delayedMemory.firstSelectionWriteStarted, isTrue);
+          await _openDreamsAndGoalsAndAddOwnGoal(tester);
+          expect(delayedMemory.firstSelectionWriteStarted, isTrue);
 
-      final suggestion = tester.widget<InkWell>(
-        find.byKey(const ValueKey('suggestion-Write and publish a book')),
-      );
-      suggestion.onTap!();
-      await tester.pump();
+          final suggestion = tester.widget<InkWell>(
+            find.byKey(const ValueKey('suggestion-Write and publish a book')),
+          );
+          suggestion.onTap!();
+          await tester.pump();
 
-      _pressWizardPrimaryAction(tester);
-      await _flushAsyncAction(tester);
-      expect(dreamsAtSubmit, isNull);
+          _pressWizardPrimaryAction(tester);
+          await _flushAsyncAction(tester);
+          expect(dreamsAtSubmit, isNull);
 
-      delayedMemory.releaseFirstSelectionWrite();
-      await _flushAsyncAction(tester);
+          delayedMemory.releaseFirstSelectionWrite();
+          await _flushAsyncAction(tester);
 
-      expect(dreamsAtSubmit, [
-        'Immediate dream',
-        'Write and publish a book',
-      ]);
-      expect(
-        delayedMemory.completedStringList(_dreamsAndGoalsAddedStringsKey),
-        ['Immediate dream'],
-      );
-      expect(
+          expect(dreamsAtSubmit, [
+            'Immediate dream',
+            'Write and publish a book',
+          ]);
+          expect(
+            delayedMemory.completedStringList(_dreamsAndGoalsAddedStringsKey),
+            ['Immediate dream'],
+          );
+          expect(
             delayedMemory.completedStringList(
               _dreamsAndGoalsSelectionSourcesKey,
             ),
-        ['custom', 'catalogue:write-and-publish-a-book'],
-      );
+            ['custom', 'catalogue:write-and-publish-a-book'],
+          );
         },
       );
 
-    testWidgets(
-      'should block download and finish on a save failure until Retry succeeds',
-      (tester) async {
-        final failingMemory = _DreamsMemoryHarness()
-          ..failAllDreamsWrites = true;
-        final exportFiles = _ExportReadingFileService(failingMemory.service);
-        final locator = GetIt.instance;
-        locator.unregister<PersistentMemoryService>();
-        locator.unregister<FileService>();
+      testWidgets(
+        'should block download and finish on a save failure until Retry succeeds',
+        (tester) async {
+          final failingMemory = _DreamsMemoryHarness()
+            ..failAllDreamsWrites = true;
+          final exportFiles = _ExportReadingFileService(failingMemory.service);
+          final locator = GetIt.instance;
+          locator.unregister<PersistentMemoryService>();
+          locator.unregister<FileService>();
           locator.registerSingleton<PersistentMemoryService>(
             failingMemory.service,
           );
-        locator.registerSingleton<FileService>(exportFiles);
-        user = UserInformation(service: failingMemory.service)
-          ..gender = 'other'
-          ..localeName = 'en';
-        var submitCalls = 0;
+          locator.registerSingleton<FileService>(exportFiles);
+          user = UserInformation(service: failingMemory.service)
+            ..gender = 'other'
+            ..localeName = 'en';
+          var submitCalls = 0;
 
-        await pumpWithProviders(
-          tester,
-          wizardStepHarness(
-            ShareForm(
-              key: GlobalKey<WizardStepState>(),
-              prev: () {},
-              submit: (_) async {
-                submitCalls++;
-              },
+          await pumpWithProviders(
+            tester,
+            wizardStepHarness(
+              ShareForm(
+                key: GlobalKey<WizardStepState>(),
+                prev: () {},
+                submit: (_) async {
+                  submitCalls++;
+                },
+              ),
             ),
-          ),
-          userInformation: user,
-          surfaceSize: const Size(1024, 1800),
-        );
+            userInformation: user,
+            surfaceSize: const Size(1024, 1800),
+          );
 
-        _pressIconButton(tester, Icons.download);
-        await _flushAsyncAction(tester);
-        expect(exportFiles.downloadCalls, 0);
-        expect(
-          find.widgetWithText(SnackBarAction, 'Try again'),
-          findsOneWidget,
-        );
-        final int capturedRevision = user.dreamsAndGoalsSaveRevision;
+          _pressIconButton(tester, Icons.download);
+          await _flushAsyncAction(tester);
+          expect(exportFiles.downloadCalls, 0);
+          expect(
+            find.widgetWithText(SnackBarAction, 'Try again'),
+            findsOneWidget,
+          );
+          final int capturedRevision = user.dreamsAndGoalsSaveRevision;
 
-        failingMemory.failAllDreamsWrites = false;
-        tester
-            .widget<SnackBarAction>(
-              find.widgetWithText(SnackBarAction, 'Try again'),
-            )
-            .onPressed();
-        await _flushAsyncAction(tester);
-        expect(exportFiles.downloadCalls, 1);
-        expect(user.dreamsAndGoalsSaveRevision, capturedRevision);
-        for (final key in <String>[
-          _dreamsAndGoalsSelectionKey,
-          _dreamsAndGoalsSelectionSourcesKey,
-          _dreamsAndGoalsAddedStringsKey,
-        ]) {
-          expect(failingMemory.completedWritesFor(key), hasLength(1));
-        }
-        expect(
-          failingMemory.completedDreamsAndGoalsWriteKeys(),
-          _dreamsAndGoalsPersistenceKeys,
-        );
+          failingMemory.failAllDreamsWrites = false;
+          tester
+              .widget<SnackBarAction>(
+                find.widgetWithText(SnackBarAction, 'Try again'),
+              )
+              .onPressed();
+          await _flushAsyncAction(tester);
+          expect(exportFiles.downloadCalls, 1);
+          expect(user.dreamsAndGoalsSaveRevision, capturedRevision);
+          for (final key in <String>[
+            _dreamsAndGoalsSelectionKey,
+            _dreamsAndGoalsSelectionSourcesKey,
+            _dreamsAndGoalsAddedStringsKey,
+          ]) {
+            expect(failingMemory.completedWritesFor(key), hasLength(1));
+          }
+          expect(
+            failingMemory.completedDreamsAndGoalsWriteKeys(),
+            _dreamsAndGoalsPersistenceKeys,
+          );
 
-        failingMemory.failAllDreamsWrites = true;
-        _pressWizardPrimaryAction(tester);
-        await _flushAsyncAction(tester);
-        expect(submitCalls, 0);
-        expect(
-          find.widgetWithText(SnackBarAction, 'Try again'),
-          findsOneWidget,
-        );
+          failingMemory.failAllDreamsWrites = true;
+          _pressWizardPrimaryAction(tester);
+          await _flushAsyncAction(tester);
+          expect(submitCalls, 0);
+          expect(
+            find.widgetWithText(SnackBarAction, 'Try again'),
+            findsOneWidget,
+          );
 
-        failingMemory.failAllDreamsWrites = false;
-        tester
-            .widget<SnackBarAction>(
-              find.widgetWithText(SnackBarAction, 'Try again'),
-            )
-            .onPressed();
-        await _flushAsyncAction(tester);
-        expect(submitCalls, 1);
-        await tester.pump(const Duration(seconds: 2));
-      },
-    );
+          failingMemory.failAllDreamsWrites = false;
+          tester
+              .widget<SnackBarAction>(
+                find.widgetWithText(SnackBarAction, 'Try again'),
+              )
+              .onPressed();
+          await _flushAsyncAction(tester);
+          expect(submitCalls, 1);
+          await tester.pump(const Duration(seconds: 2));
+        },
+      );
 
-    testWidgets(
-      'should log a failed persistence Retry before offering it again',
-      (tester) async {
-        final failingMemory = _DreamsMemoryHarness()
-          ..failSelectionWrite = true;
-        final locator = GetIt.instance;
-        locator.unregister<PersistentMemoryService>();
+      testWidgets(
+        'should log a failed persistence Retry before offering it again',
+        (tester) async {
+          final failingMemory = _DreamsMemoryHarness()
+            ..failSelectionWrite = true;
+          final locator = GetIt.instance;
+          locator.unregister<PersistentMemoryService>();
           locator.registerSingleton<PersistentMemoryService>(
             failingMemory.service,
           );
-        user = UserInformation(service: failingMemory.service)
-          ..gender = 'other'
-          ..localeName = 'en';
+          user = UserInformation(service: failingMemory.service)
+            ..gender = 'other'
+            ..localeName = 'en';
 
-        await pumpWithProviders(
-          tester,
-          wizardStepHarness(
-            ShareForm(
-              key: GlobalKey<WizardStepState>(),
-              prev: () {},
-              submit: (_) {},
+          await pumpWithProviders(
+            tester,
+            wizardStepHarness(
+              ShareForm(
+                key: GlobalKey<WizardStepState>(),
+                prev: () {},
+                submit: (_) {},
+              ),
             ),
-          ),
-          userInformation: user,
-          surfaceSize: const Size(1024, 1800),
-        );
+            userInformation: user,
+            surfaceSize: const Size(1024, 1800),
+          );
 
-        _pressIconButton(tester, Icons.download);
-        await _flushAsyncAction(tester);
-        tester
-            .widget<SnackBarAction>(
-              find.widgetWithText(SnackBarAction, 'Try again'),
-            )
-            .onPressed();
-        await _flushAsyncAction(tester);
+          _pressIconButton(tester, Icons.download);
+          await _flushAsyncAction(tester);
+          tester
+              .widget<SnackBarAction>(
+                find.widgetWithText(SnackBarAction, 'Try again'),
+              )
+              .onPressed();
+          await _flushAsyncAction(tester);
 
-        expect(services.logger.captured, isNotEmpty);
-        expect(services.logger.captured.last, isA<StateError>());
-        expect(
-          find.widgetWithText(SnackBarAction, 'Try again'),
-          findsOneWidget,
-        );
-      },
-    );
+          expect(services.logger.captured, isNotEmpty);
+          expect(services.logger.captured.last, isA<StateError>());
+          expect(
+            find.widgetWithText(SnackBarAction, 'Try again'),
+            findsOneWidget,
+          );
+        },
+      );
     });
   });
 
@@ -1471,10 +1639,7 @@ void main() {
       });
 
       expect(submitCalls, 1);
-      expect(
-        user.dreamsAndGoals,
-        contains('Goal Alpha'),
-      );
+      expect(user.dreamsAndGoals, contains('Goal Alpha'));
     },
   );
 
@@ -1509,9 +1674,18 @@ void main() {
       expect(user.dreamsAndGoals, ['Immediate dream']);
 
       // Assert that inline save wrote each key once
-      expect(memory.completedWritesFor(_dreamsAndGoalsSelectionKey), hasLength(1));
-      expect(memory.completedWritesFor(_dreamsAndGoalsSelectionSourcesKey), hasLength(1));
-      expect(memory.completedWritesFor(_dreamsAndGoalsAddedStringsKey), hasLength(1));
+      expect(
+        memory.completedWritesFor(_dreamsAndGoalsSelectionKey),
+        hasLength(1),
+      );
+      expect(
+        memory.completedWritesFor(_dreamsAndGoalsSelectionSourcesKey),
+        hasLength(1),
+      );
+      expect(
+        memory.completedWritesFor(_dreamsAndGoalsAddedStringsKey),
+        hasLength(1),
+      );
 
       // Now trigger download action.
       _pressIconButton(tester, Icons.download);
@@ -1519,16 +1693,25 @@ void main() {
 
       expect(exportFiles.downloadCalls, 1);
       // The action must NOT have written the keys a second time since inline save was already durable
-      expect(memory.completedWritesFor(_dreamsAndGoalsSelectionKey), hasLength(1));
-      expect(memory.completedWritesFor(_dreamsAndGoalsSelectionSourcesKey), hasLength(1));
-      expect(memory.completedWritesFor(_dreamsAndGoalsAddedStringsKey), hasLength(1));
+      expect(
+        memory.completedWritesFor(_dreamsAndGoalsSelectionKey),
+        hasLength(1),
+      );
+      expect(
+        memory.completedWritesFor(_dreamsAndGoalsSelectionSourcesKey),
+        hasLength(1),
+      );
+      expect(
+        memory.completedWritesFor(_dreamsAndGoalsAddedStringsKey),
+        hasLength(1),
+      );
       expect(find.widgetWithText(SnackBarAction, 'Try again'), findsNothing);
       await tester.pump(const Duration(seconds: 2));
     },
   );
 
   testWidgets(
-    'ShareForm loads custom categories using explicit memoryService parameter',
+    'ShareForm should edit explicit-source categories without changing the default model',
     (tester) async {
       final explicitMemory = _DreamsMemoryHarness(
         initialCustomCategoryTitles: ['Special Goal Category'],
@@ -1556,6 +1739,210 @@ void main() {
 
       expect(find.text('Special Goal Category'), findsOneWidget);
       expect(find.text('Special Description'), findsOneWidget);
+      expect(user.customCategories, isEmpty);
+      final edit = find.byKey(const Key('custom-category-edit-button-0'));
+      await tester.ensureVisible(edit);
+      await tester.tap(edit);
+      await tester.pumpAndSettle();
+      await tester.enterText(
+        find.byKey(const Key('custom-category-description-field')),
+        'Edited alternate notes',
+      );
+      final save = find.text('Add category');
+      await tester.ensureVisible(save);
+      await tester.tap(save);
+      await tester.pumpAndSettle();
+      expect(find.text('Edited alternate notes'), findsOneWidget);
+      expect(
+        explicitMemory.completedStringList(customCategoryDescriptionsKey),
+        ['Edited alternate notes'],
+      );
+      expect(user.customCategories, isEmpty);
+    },
+  );
+
+  testWidgets(
+    'ShareForm should drain an in-flight custom-category save before loading a replacement source',
+    (tester) async {
+      final firstMemory = _DreamsMemoryHarness(
+        initialCustomCategoryTitles: ['First source'],
+        initialCustomCategoryDescriptions: ['First description'],
+        delayFirstCustomCategoryWrite: true,
+      );
+      final secondMemory = _DreamsMemoryHarness(
+        initialCustomCategoryTitles: ['Second source'],
+        initialCustomCategoryDescriptions: ['Second description'],
+      );
+      final memorySource = ValueNotifier<PersistentMemoryService>(
+        firstMemory.service,
+      );
+      addTearDown(memorySource.dispose);
+      final shareFormKey = GlobalKey<WizardStepState>();
+
+      await pumpWithProviders(
+        tester,
+        ValueListenableBuilder<PersistentMemoryService>(
+          valueListenable: memorySource,
+          builder: (context, memoryService, child) => wizardStepHarness(
+            ShareForm(
+              key: shareFormKey,
+              prev: () {},
+              submit: (_) async {},
+              memoryService: memoryService,
+            ),
+          ),
+        ),
+        userInformation: user,
+        surfaceSize: const Size(1024, 1800),
+      );
+      await tester.pumpAndSettle();
+
+      await _editFirstCustomCategory(tester, 'Pending first write');
+      await tester.pump();
+      await tester.runAsync(() async {
+        while (!firstMemory.firstCustomCategoryWriteStarted) {
+          await Future<void>.delayed(const Duration(milliseconds: 1));
+        }
+      });
+
+      memorySource.value = secondMemory.service;
+      await tester.pump();
+      await tester.runAsync(() => Future<void>.delayed(Duration.zero));
+      await tester.pump();
+
+      expect(
+        secondMemory.readKeys.where(
+          (key) =>
+              key == _customCategoriesKey ||
+              key == _customCategoryTitlesKey ||
+              key == _customCategoryDescriptionsKey,
+        ),
+        isEmpty,
+      );
+
+      firstMemory.releaseFirstCustomCategoryWrite();
+      await tester.pumpAndSettle();
+
+      expect(find.text('Second source'), findsOneWidget);
+      expect(secondMemory.readKeys, contains(_customCategoriesKey));
+      expect(tester.takeException(), isNull);
+    },
+  );
+
+  testWidgets(
+    'ShareForm should rebase failure events and invalidate retry actions when replacing a source',
+    (tester) async {
+      final firstMemory = _DreamsMemoryHarness(
+        initialCustomCategoryTitles: ['First source'],
+        initialCustomCategoryDescriptions: ['First description'],
+      )..failCustomCategoryWrites = true;
+      final secondMemory = _DreamsMemoryHarness(
+        initialCustomCategoryTitles: ['Second source'],
+        initialCustomCategoryDescriptions: ['Second description'],
+      );
+      final memorySource = ValueNotifier<PersistentMemoryService>(
+        firstMemory.service,
+      );
+      addTearDown(memorySource.dispose);
+      final shareFormKey = GlobalKey<WizardStepState>();
+
+      await pumpWithProviders(
+        tester,
+        ValueListenableBuilder<PersistentMemoryService>(
+          valueListenable: memorySource,
+          builder: (context, memoryService, child) => wizardStepHarness(
+            ShareForm(
+              key: shareFormKey,
+              prev: () {},
+              submit: (_) async {},
+              memoryService: memoryService,
+            ),
+          ),
+        ),
+        userInformation: user,
+        surfaceSize: const Size(1024, 1800),
+      );
+      await tester.pumpAndSettle();
+
+      await _editFirstCustomCategory(tester, 'Failed first write');
+      await tester.pumpAndSettle();
+      final staleRetryAction = tester.widget<SnackBarAction>(
+        find.widgetWithText(SnackBarAction, 'Try again'),
+      );
+
+      memorySource.value = secondMemory.service;
+      await tester.pumpAndSettle();
+      expect(find.text('Second source'), findsOneWidget);
+      expect(find.widgetWithText(SnackBarAction, 'Try again'), findsNothing);
+
+      staleRetryAction.onPressed();
+      await _flushAsyncAction(tester);
+      expect(
+        secondMemory.writeKeys.where(
+          (key) =>
+              key == _customCategoriesKey ||
+              key == _customCategoryTitlesKey ||
+              key == _customCategoryDescriptionsKey,
+        ),
+        isEmpty,
+      );
+
+      secondMemory.failCustomCategoryWrites = true;
+      await _editFirstCustomCategory(tester, 'Failed replacement write');
+      await tester.pumpAndSettle();
+
+      expect(find.widgetWithText(SnackBarAction, 'Try again'), findsOneWidget);
+      expect(tester.takeException(), isNull);
+    },
+  );
+
+  testWidgets(
+    'should report initialization failures when incident logging is unavailable',
+    (tester) async {
+      final explicitMemory = _MockPersistentMemoryService();
+      when(
+        explicitMemory.getItem(any, any),
+      ).thenThrow(StateError('Custom category storage is unavailable.'));
+      when(explicitMemory.setItem(any, any, any)).thenAnswer((_) async {});
+      when(explicitMemory.reset()).thenAnswer((_) async {});
+      GetIt.instance.unregister<IncidentLoggerService>();
+      final reportedErrors = <FlutterErrorDetails>[];
+      final previousErrorHandler = FlutterError.onError;
+      FlutterError.onError = reportedErrors.add;
+      try {
+        user = UserInformation()
+          ..gender = 'other'
+          ..localeName = 'en';
+
+        await pumpWithProviders(
+          tester,
+          wizardStepHarness(
+            ShareForm(
+              key: GlobalKey<WizardStepState>(),
+              prev: () {},
+              submit: (_) async {},
+              memoryService: explicitMemory,
+            ),
+          ),
+          userInformation: user,
+          surfaceSize: const Size(1024, 1800),
+        );
+        await tester.pumpAndSettle();
+      } finally {
+        FlutterError.onError = previousErrorHandler;
+      }
+
+      expect(reportedErrors, hasLength(1));
+      expect(reportedErrors.single.exception, isA<StateError>());
+      expect(reportedErrors.single.stack, isNotNull);
+      expect(
+        reportedErrors.single.library,
+        'ShareFormCustomCategoriesViewModel',
+      );
+      expect(
+        reportedErrors.single.context.toString(),
+        contains('while persisting custom categories'),
+      );
     },
   );
 

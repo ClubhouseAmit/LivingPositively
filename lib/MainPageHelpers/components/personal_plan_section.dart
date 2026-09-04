@@ -211,7 +211,9 @@ class PersonalPlanSectionWidget extends StatelessWidget {
             ),
           ),
           icon: Icon(
-            Icons.chevron_right,
+            Directionality.of(context) == TextDirection.rtl
+                ? Icons.chevron_left
+                : Icons.chevron_right,
             color: Theme.of(context).colorScheme.primary,
             size: 16,
           ),

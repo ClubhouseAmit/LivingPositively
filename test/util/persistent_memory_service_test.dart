@@ -107,6 +107,20 @@ class _ThrowingLogger implements IncidentLoggerService {
   }
 }
 
+class _SynchronouslyThrowingLogger implements IncidentLoggerService {
+  @override
+  Future<void> initializeSentry(_) async {}
+
+  @override
+  Future<void> captureLog(
+    dynamic exception, {
+    StackTrace? stackTrace,
+    dynamic exceptionData,
+  }) {
+    throw StateError('Incident logging failed synchronously.');
+  }
+}
+
 void _installControlledStore(SharedPreferencesStorePlatform store) {
   final SharedPreferencesStorePlatform previousStore =
       SharedPreferencesStorePlatform.instance;
@@ -134,6 +148,146 @@ void main() {
     if (GetIt.instance.isRegistered<IncidentLoggerService>()) {
       GetIt.instance.unregister<IncidentLoggerService>();
     }
+  });
+
+  group('SharedPreferencesService.readSnapshot', () {
+    test(
+      'should await prior writes and freeze values before later writes',
+      () async {
+        final gate = Completer<_WriteOutcome>();
+        final store = _ControlledSharedPreferencesStore(gate: gate);
+        _installControlledStore(store);
+        final service = SharedPreferencesService();
+        final first = service.setItem('plan', PersistentMemoryType.StringList, [
+          'first',
+        ]);
+        await store.setValueStarted.future;
+        var captured = false;
+        final capture = service
+            .readSnapshot({'plan': PersistentMemoryType.StringList})
+            .then((value) {
+              captured = true;
+              return value;
+            });
+        final second = service.setItem(
+          'plan',
+          PersistentMemoryType.StringList,
+          ['second'],
+        );
+        await Future<void>.delayed(Duration.zero);
+        try {
+          expect(captured, isFalse);
+          expect(store.setValueKeys, ['flutter.plan']);
+        } finally {
+          gate.complete(_WriteOutcome.succeed);
+        }
+        await first;
+        final snapshot = await capture;
+        await second;
+        expect(snapshot, {
+          'plan': ['first'],
+        });
+        expect(await service.getItem('plan', PersistentMemoryType.StringList), [
+          'second',
+        ]);
+        expect(
+          () => (snapshot['plan'] as List).add('change'),
+          throwsUnsupportedError,
+        );
+        expect(() => snapshot.clear(), throwsUnsupportedError);
+      },
+    );
+
+    test(
+      'should reject an eager cached failed write until a successful retry',
+      () async {
+        final outcomes = <String, _WriteOutcome>{
+          'flutter.plan': _WriteOutcome.reject,
+        };
+        _installControlledStore(
+          _ControlledSharedPreferencesStore(outcomesByKey: outcomes),
+        );
+        final service = SharedPreferencesService();
+        await expectLater(
+          service.setItem('plan', PersistentMemoryType.String, 'unsaved'),
+          throwsStateError,
+        );
+        await expectLater(
+          service.readSnapshot({'plan': PersistentMemoryType.String}),
+          throwsStateError,
+        );
+        // An unrelated write does not erase the failed plan save.
+        await service.setItem('other', PersistentMemoryType.Bool, true);
+        await expectLater(
+          service.readSnapshot({'plan': PersistentMemoryType.String}),
+          throwsStateError,
+        );
+        outcomes['flutter.plan'] = _WriteOutcome.succeed;
+        await service.setItem('plan', PersistentMemoryType.String, 'saved');
+        expect(
+          await service.readSnapshot({'plan': PersistentMemoryType.String}),
+          {'plan': 'saved'},
+        );
+      },
+    );
+
+    test('should propagate a read failure and allow a later capture', () async {
+      final failure = StateError('Read failed');
+      _installControlledStore(_ThrowingReadSharedPreferencesStore(failure));
+      final service = SharedPreferencesService();
+      await expectLater(
+        service.readSnapshot({'plan': PersistentMemoryType.String}),
+        throwsA(same(failure)),
+      );
+      SharedPreferences.setMockInitialValues({'plan': 'recovered'});
+      expect(
+        await service.readSnapshot({'plan': PersistentMemoryType.String}),
+        {'plan': 'recovered'},
+      );
+    });
+
+    test(
+      'should reject a malformed field rather than silently omit it',
+      () async {
+        SharedPreferences.setMockInitialValues({'plan': 42});
+        await expectLater(
+          SharedPreferencesService().readSnapshot({
+            'plan': PersistentMemoryType.StringList,
+          }),
+          throwsA(isA<TypeError>()),
+        );
+      },
+    );
+
+    test(
+      'should fail capture after reset fails instead of exporting an empty cache',
+      () async {
+        _installControlledStore(
+          _ControlledSharedPreferencesStore(clearOutcome: _WriteOutcome.reject),
+        );
+        final service = SharedPreferencesService();
+        await service.setItem('plan', PersistentMemoryType.String, 'saved');
+        await expectLater(service.reset(), throwsStateError);
+        await expectLater(
+          service.readSnapshot({'plan': PersistentMemoryType.String}),
+          throwsStateError,
+        );
+      },
+    );
+
+    test(
+      'should capture after an earlier reset without resurrecting values',
+      () async {
+        final service = SharedPreferencesService();
+        await service.setItem('plan', PersistentMemoryType.String, 'old');
+        final reset = service.reset();
+        final snapshot = service.readSnapshot({
+          'plan': PersistentMemoryType.String,
+        });
+        await reset;
+        expect(await snapshot, {'plan': null});
+      },
+    );
   });
 
   group('SharedPreferencesService.setItem / getItem', () {
@@ -182,6 +336,25 @@ void main() {
       );
       expect(logger.logs, isNotEmpty);
     });
+
+    test(
+      'preserves a persistence error when the logger throws synchronously',
+      () async {
+        GetIt.instance.unregister<IncidentLoggerService>();
+        GetIt.instance.registerSingleton<IncidentLoggerService>(
+          _SynchronouslyThrowingLogger(),
+        );
+
+        await expectLater(
+          SharedPreferencesService().setItem(
+            '',
+            PersistentMemoryType.String,
+            'v',
+          ),
+          throwsA(isA<ArgumentError>()),
+        );
+      },
+    );
 
     test('null value is rejected and logged', () async {
       final s = SharedPreferencesService();

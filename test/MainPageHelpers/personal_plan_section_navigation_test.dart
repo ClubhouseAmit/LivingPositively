@@ -63,6 +63,8 @@ void main() {
 
       // Assert localized copy is correctly rendered
       expect(find.text('התוכנית שלי'), findsOneWidget);
+      expect(find.byIcon(Icons.chevron_left), findsOneWidget);
+      expect(find.byIcon(Icons.chevron_right), findsNothing);
 
       // Locate interactive title target via stable key
       final titleHitTarget = find.byKey(const Key('personalPlanHeaderTitle'));
