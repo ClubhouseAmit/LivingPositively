@@ -569,16 +569,47 @@ jobs:
         working-directory: ios
         # --deployment rejects any Podfile/Podfile.lock mutation. Updating the
         # specs index may locate locked podspecs, but cannot change versions.
-        # The CocoaPods CDN (jsDelivr) intermittently drops podspec fetches
-        # mid-resolution, so retry the whole resolution like `flutter pub get`.
+        # The CocoaPods CDN (jsDelivr) keeps failing podspec fetches with
+        # "Error in the HTTP2 framing layer"; CocoaPods talks to the CDN over
+        # libcurl with HTTP/2 and offers no way to downgrade, so plain retries
+        # kept losing the same podspec three times in a row. Instead, mirror
+        # any podspec the CDN refused over HTTP/1.1 into the local trunk cache
+        # (~/.cocoapods/repos/trunk mirrors the CDN paths one-to-one) and let
+        # the next, offline attempt read it from there.
         shell: bash
         run: |
+          pod_log="$RUNNER_TEMP/pod-install.log"
+
+          mirror_failed_podspecs() {
+            local url local_path mirrored=0
+            for url in $(grep -oE 'https://cdn\.jsdelivr\.net/cocoa/[^ ]+\.podspec\.json' "$pod_log" | sort -u); do
+              local_path="$HOME/.cocoapods/repos/trunk/${url#https://cdn.jsdelivr.net/cocoa/}"
+              mkdir -p "$(dirname "$local_path")"
+              if curl --http1.1 --fail --silent --show-error --location --retry 3 "$url" -o "$local_path"; then
+                echo "Mirrored ${url} into the local CocoaPods CDN cache."
+                mirrored=1
+              else
+                rm -f "$local_path"
+              fi
+            done
+            [[ "$mirrored" -eq 1 ]]
+          }
+
           for attempt in 1 2 3; do
             echo "Resolving CocoaPods dependencies (attempt ${attempt}/3)."
-            if pod install --repo-update --deployment; then
+            # Attempt 2 refreshes the specs index in case the restored cache
+            # genuinely lacks a locked podspec. Attempts 1 and 3 stay on the
+            # cache, so attempt 3 picks up anything mirrored below.
+            if [[ "$attempt" -eq 2 ]]; then
+              set -- --repo-update --deployment
+            else
+              set -- --deployment
+            fi
+            if pod install "$@" 2>&1 | tee "$pod_log"; then
               exit 0
             fi
             if [[ "$attempt" -lt 3 ]]; then
+              mirror_failed_podspecs || true
               delay=$((attempt * 15))
               echo "::warning::pod install failed; retrying in ${delay}s."
               sleep "$delay"
