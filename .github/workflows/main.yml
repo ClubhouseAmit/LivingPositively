@@ -569,7 +569,22 @@ jobs:
         working-directory: ios
         # --deployment rejects any Podfile/Podfile.lock mutation. Updating the
         # specs index may locate locked podspecs, but cannot change versions.
-        run: pod install --repo-update --deployment
+        # The CocoaPods CDN (jsDelivr) intermittently drops podspec fetches
+        # mid-resolution, so retry the whole resolution like `flutter pub get`.
+        shell: bash
+        run: |
+          for attempt in 1 2 3; do
+            echo "Resolving CocoaPods dependencies (attempt ${attempt}/3)."
+            if pod install --repo-update --deployment; then
+              exit 0
+            fi
+            if [[ "$attempt" -lt 3 ]]; then
+              delay=$((attempt * 15))
+              echo "::warning::pod install failed; retrying in ${delay}s."
+              sleep "$delay"
+            fi
+          done
+          exit 1
 
       - name: List available iOS simulators
         # Diagnostic: surfaces the runtime + device names available on the
