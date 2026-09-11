@@ -346,7 +346,7 @@ final class SpeechRecognitionServiceImpl implements SpeechRecognitionService {
         localeId: localeId,
         onResult: (result) => _onEngineResult(session.id, result),
       );
-      session.listenRequestSettled = true;
+      session.listenRequestSettled.complete();
       if (session.isDiscarded) {
         return const SpeechRecognitionSessionStartFailure(
           SpeechRecognitionSessionStartFailureKind.startFailed,
@@ -357,6 +357,9 @@ final class SpeechRecognitionServiceImpl implements SpeechRecognitionService {
       }
       return SpeechRecognitionSessionStarted(session.id);
     } catch (_) {
+      if (!session.listenRequestSettled.isCompleted) {
+        session.listenRequestSettled.complete();
+      }
       session.finalResultTimeout?.cancel();
       session.finalResultTimeout = null;
       if (_activeSession?.id == session.id && !session.isDiscarded) {
@@ -428,6 +431,11 @@ final class SpeechRecognitionServiceImpl implements SpeechRecognitionService {
     _ActiveSpeechRecognitionSession session,
   ) async {
     try {
+      // The plugin installs its listen timer after the native reply. Wait for
+      // that setup before cancelling so it cannot outlive this session.
+      if (!session.listenRequestSettled.isCompleted) {
+        await session.listenRequestSettled.future;
+      }
       await _engine.cancel();
       session.cancelRequestSettled = true;
       _completeCancellationWhenQuiescent(session);
@@ -587,7 +595,7 @@ final class SpeechRecognitionServiceImpl implements SpeechRecognitionService {
   Future<void> _completeSession(_ActiveSpeechRecognitionSession session) async {
     if (_activeSession?.id != session.id ||
         session.isDiscarded ||
-        !session.listenRequestSettled) {
+        !session.listenRequestSettled.isCompleted) {
       return;
     }
     session.finalResultTimeout?.cancel();
@@ -710,7 +718,7 @@ final class _ActiveSpeechRecognitionSession {
   final int id;
   final SpeechRecognitionEventCallback onEvent;
   bool isDiscarded = false;
-  bool listenRequestSettled = false;
+  final listenRequestSettled = Completer<void>();
   bool cancelRequestSettled = false;
   bool terminalSignalReceived = false;
   bool hasFinalResult = false;

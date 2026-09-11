@@ -549,6 +549,125 @@ void main() {
       },
     );
 
+    for (final terminalBeforeListenReply in <bool>[true, false]) {
+      testWidgets(
+        'should clean up a cancelled pending listen when terminal status is '
+        '${terminalBeforeListenReply ? 'before' : 'after'} its reply',
+        (tester) async {
+          final listenReply = Completer<void>();
+          native.beforeListenReply = () => listenReply.future;
+          native.cancelReply = Completer<void>();
+          final starting = service.start(
+            localeId: 'en-US',
+            onEvent: events.add,
+          );
+          await tester.pump();
+
+          final cancellation = service.cancel();
+          await tester.pump();
+          await native.result('Discard this partial', isFinal: false);
+          if (terminalBeforeListenReply) {
+            await native.status('notListening');
+            await native.status('done');
+            native.cancelReply!.complete();
+            await tester.pump();
+          }
+          expect(service.hasActiveSession, isTrue);
+          expect(events, isEmpty);
+          expect(
+            await service.start(localeId: 'he-IL', onEvent: (_) {}),
+            isA<SpeechRecognitionSessionStartFailure>(),
+          );
+
+          listenReply.complete();
+          expect(await starting, isA<SpeechRecognitionSessionStartFailure>());
+          await tester.pump();
+          if (!terminalBeforeListenReply) {
+            expect(service.hasActiveSession, isTrue);
+            await native.status('notListening');
+            await native.status('done');
+            native.cancelReply!.complete();
+            await tester.pump();
+          }
+          expect(
+            await cancellation,
+            SpeechRecognitionSessionControlResult.cancelled,
+          );
+          expect(service.hasActiveSession, isFalse);
+          expect(events, isEmpty);
+          expect(native.cancelCalls, 1);
+
+          await tester.pump(const Duration(seconds: 31));
+          expect(native.stopCalls, 0);
+          native.beforeListenReply = null;
+          native.cancelReply = null;
+          expect(
+            await service.start(localeId: 'en-US', onEvent: events.add),
+            isA<SpeechRecognitionSessionStarted>(),
+          );
+          for (var second = 1; second <= 29; second++) {
+            await tester.pump(const Duration(seconds: 1));
+            await native.result('New phrase $second', isFinal: false);
+            expect(native.stopCalls, 0);
+          }
+          await tester.pump(const Duration(seconds: 1));
+          expect(native.stopCalls, 1);
+          await native.result('The new final phrase', isFinal: true);
+          await native.status('notListening');
+          await native.status('done');
+          await tester.pump();
+          expect(service.hasActiveSession, isFalse);
+        },
+      );
+    }
+
+    for (final listenFails in <bool>[false, true]) {
+      testWidgets('should retain timed-out cancellation until a pending listen '
+          '${listenFails ? 'fails' : 'succeeds'} and cleanup settles', (
+        tester,
+      ) async {
+        final listenReply = Completer<void>();
+        native.beforeListenReply = () => listenReply.future;
+        final starting = service.start(localeId: 'en-US', onEvent: events.add);
+        await tester.pump();
+        final cancellation = service.cancel();
+        await native.status('notListening');
+
+        await tester.pump(const Duration(seconds: 2));
+        expect(
+          await cancellation,
+          SpeechRecognitionSessionControlResult.failed,
+        );
+        expect(service.hasActiveSession, isTrue);
+        expect(events, isEmpty);
+        expect(
+          await service.cancel(),
+          SpeechRecognitionSessionControlResult.failed,
+        );
+        expect(native.cancelCalls, 0);
+
+        if (listenFails) {
+          listenReply.completeError(PlatformException(code: 'listen_failed'));
+        } else {
+          listenReply.complete();
+        }
+        expect(await starting, isA<SpeechRecognitionSessionStartFailure>());
+        await tester.pump();
+        expect(native.cancelCalls, 1);
+        expect(service.hasActiveSession, isFalse);
+        expect(
+          events.single,
+          isA<SpeechRecognitionStatusEvent>().having(
+            (event) => event.status,
+            'status',
+            SpeechRecognitionSessionStatus.completed,
+          ),
+        );
+        await tester.pump(const Duration(seconds: 31));
+        expect(native.stopCalls, 0);
+      });
+    }
+
     testWidgets(
       'should keep ongoing speech active until the thirty-second limit',
       (tester) async {
