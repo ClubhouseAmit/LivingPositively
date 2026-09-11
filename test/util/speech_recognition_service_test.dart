@@ -354,7 +354,7 @@ void main() {
 
     test('should retain exclusive ownership when cancellation fails', () async {
       await service.start(localeId: 'en-US', onEvent: (_) {});
-      engine.cancelError = StateError('cancel failed');
+      engine.cancelError = PlatformException(code: 'cancel_failed');
 
       final result = await service.cancel();
 
@@ -375,7 +375,7 @@ void main() {
       () async {
         final events = <SpeechRecognitionSessionEvent>[];
         await service.start(localeId: 'en-US', onEvent: events.add);
-        engine.cancelError = StateError('cancel failed');
+        engine.cancelError = PlatformException(code: 'cancel_failed');
 
         expect(
           await service.cancel(),
@@ -409,7 +409,7 @@ void main() {
       'should release a cancellation when a terminal status precedes its failed reply',
       () async {
         await service.start(localeId: 'en-US', onEvent: (_) {});
-        engine.cancelError = StateError('cancel failed');
+        engine.cancelError = PlatformException(code: 'cancel_failed');
 
         final cancellation = service.cancel();
         engine.emitStatus(SpeechRecognitionEngineStatus.completed);
@@ -418,6 +418,168 @@ void main() {
           await cancellation,
           SpeechRecognitionSessionControlResult.cancelled,
         );
+        expect(service.hasActiveSession, isFalse);
+      },
+    );
+
+    test(
+      'should reject Stop while a final-only session is being discarded',
+      () async {
+        await service.start(localeId: 'en-US', onEvent: (_) {});
+        engine.emitResult(text: 'A final before completion', isFinal: true);
+        engine.cancelCompleter = Completer<void>();
+        final cancellation = service.cancel();
+
+        expect(
+          await service.stop(),
+          SpeechRecognitionSessionControlResult.failed,
+        );
+        expect(engine.stopCalls, 0);
+        expect(engine.cancelCalls, 1);
+
+        engine.cancelCompleter!.complete();
+        expect(
+          await cancellation,
+          SpeechRecognitionSessionControlResult.cancelled,
+        );
+      },
+    );
+
+    for (final terminalBeforeFailure in <bool>[false, true]) {
+      testWidgets(
+        'should report an unexpected cancellation failure with its original '
+        'stack ${terminalBeforeFailure ? 'after' : 'before'} a terminal status',
+        (tester) async {
+          final reports = <FlutterErrorDetails>[];
+          final originalOnError = FlutterError.onError;
+          FlutterError.onError = reports.add;
+          try {
+            final events = <SpeechRecognitionSessionEvent>[];
+            final error = StateError('Unexpected cancellation defect');
+            final stack = StackTrace.fromString('original cancellation stack');
+            await service.start(localeId: 'en-US', onEvent: events.add);
+            engine.cancelCompleter = Completer<void>();
+            final cancellation = service.cancel();
+            if (terminalBeforeFailure) {
+              engine.emitStatus(SpeechRecognitionEngineStatus.notListening);
+            }
+
+            engine.cancelCompleter!.completeError(error, stack);
+            await tester.pump();
+
+            expect(
+              await cancellation,
+              SpeechRecognitionSessionControlResult.failed,
+            );
+            expect(reports, hasLength(1));
+            expect(reports.single.exception, same(error));
+            expect(reports.single.stack, same(stack));
+            if (!terminalBeforeFailure) {
+              expect(service.hasActiveSession, isTrue);
+              expect(events, isEmpty);
+              expect(
+                await service.start(localeId: 'he-IL', onEvent: (_) {}),
+                isA<SpeechRecognitionSessionStartFailure>(),
+              );
+              engine.emitStatus(SpeechRecognitionEngineStatus.notListening);
+              await tester.pump();
+            }
+            expect(service.hasActiveSession, isFalse);
+            expect(
+              events.whereType<SpeechRecognitionStatusEvent>(),
+              hasLength(1),
+            );
+            await tester.pump(const Duration(seconds: 3));
+            expect(reports, hasLength(1));
+            expect(events, hasLength(1));
+          } finally {
+            FlutterError.onError = originalOnError;
+          }
+        },
+      );
+    }
+
+    testWidgets(
+      'should report a late unexpected cleanup failure once after timeout',
+      (tester) async {
+        final reports = <FlutterErrorDetails>[];
+        final originalOnError = FlutterError.onError;
+        FlutterError.onError = reports.add;
+        try {
+          final events = <SpeechRecognitionSessionEvent>[];
+          final error = StateError('Late cancellation defect');
+          final stack = StackTrace.fromString('late cancellation stack');
+          await service.start(localeId: 'en-US', onEvent: events.add);
+          engine.cancelCompleter = Completer<void>();
+          engine.emitResult(text: 'Keep this final', isFinal: true);
+          engine.emitStatus(SpeechRecognitionEngineStatus.completed);
+
+          await tester.pump(const Duration(seconds: 2));
+          expect(events.whereType<SpeechRecognitionErrorEvent>(), hasLength(1));
+          expect(service.hasActiveSession, isTrue);
+          expect(reports, isEmpty);
+
+          engine.cancelCompleter!.completeError(error, stack);
+          await tester.pump();
+          expect(service.hasActiveSession, isFalse);
+          expect(reports, hasLength(1));
+          expect(reports.single.exception, same(error));
+          expect(reports.single.stack, same(stack));
+          expect(events.whereType<SpeechRecognitionErrorEvent>(), hasLength(1));
+          expect(
+            events.whereType<SpeechRecognitionStatusEvent>(),
+            hasLength(1),
+          );
+          await tester.pump(const Duration(seconds: 3));
+          expect(reports, hasLength(1));
+          expect(events, hasLength(3));
+        } finally {
+          FlutterError.onError = originalOnError;
+        }
+      },
+    );
+
+    testWidgets(
+      'should not swallow a callback PlatformException as a native cancel failure',
+      (tester) async {
+        final callbackError = PlatformException(
+          code: 'consumer_callback_failed',
+        );
+        final callbackStack = StackTrace.fromString('consumer callback stack');
+        final uncaughtErrors = <Object>[];
+        final uncaughtStacks = <StackTrace>[];
+        await service.start(
+          localeId: 'en-US',
+          onEvent: (event) {
+            if (event is SpeechRecognitionStatusEvent) {
+              Error.throwWithStackTrace(callbackError, callbackStack);
+            }
+          },
+        );
+        engine.cancelCompleter = Completer<void>();
+        late Future<SpeechRecognitionSessionControlResult> cancellation;
+        runZonedGuarded(
+          () {
+            cancellation = service.cancel();
+          },
+          (error, stack) {
+            uncaughtErrors.add(error);
+            uncaughtStacks.add(stack);
+          },
+        );
+        engine.emitStatus(SpeechRecognitionEngineStatus.notListening);
+        await tester.pump(const Duration(seconds: 2));
+        expect(
+          await cancellation,
+          SpeechRecognitionSessionControlResult.failed,
+        );
+
+        engine.cancelCompleter!.complete();
+        await tester.pump();
+
+        expect(uncaughtErrors, hasLength(1));
+        expect(uncaughtErrors.single, same(callbackError));
+        expect(uncaughtStacks.single, same(callbackStack));
         expect(service.hasActiveSession, isFalse);
       },
     );
@@ -793,8 +955,49 @@ void main() {
       });
     }
 
+    for (final completionFirst in <bool>[false, true]) {
+      testWidgets(
+        'should accept Stop during automatic cleanup after '
+        '${completionFirst ? 'completion then a late final' : 'a final then completion'}',
+        (tester) async {
+          await service.start(localeId: 'en-US', onEvent: events.add);
+          native.cancelReply = Completer<void>();
+          if (completionFirst) {
+            await native.status('doneNoResult');
+            await tester.pump(const Duration(milliseconds: 500));
+          }
+          await native.result('The complete final phrase', isFinal: true);
+          if (!completionFirst) {
+            await native.status('done');
+          }
+          await tester.pump();
+
+          expect(
+            await service.stop(),
+            SpeechRecognitionSessionControlResult.stopped,
+          );
+          expect(native.stopCalls, 0);
+          expect(native.cancelCalls, 1);
+          expect(service.hasActiveSession, isTrue);
+          expect(events.whereType<SpeechRecognitionErrorEvent>(), isEmpty);
+
+          native.cancelReply!.complete();
+          await tester.pump();
+          expect(service.hasActiveSession, isFalse);
+          expect(
+            events.whereType<SpeechRecognitionTranscriptEvent>(),
+            hasLength(1),
+          );
+          expect(
+            events.whereType<SpeechRecognitionStatusEvent>(),
+            hasLength(1),
+          );
+        },
+      );
+    }
+
     testWidgets(
-      'should retain ownership until successful completion cleanup settles',
+      'should report a cleanup timeout while retaining ownership until its late reply',
       (tester) async {
         await service.start(localeId: 'en-US', onEvent: events.add);
         await native.result('The complete final phrase', isFinal: true);
@@ -810,15 +1013,50 @@ void main() {
           await service.start(localeId: 'he-IL', onEvent: (_) {}),
           isA<SpeechRecognitionSessionStartFailure>(),
         );
-        await tester.pump(const Duration(seconds: 2));
+        await tester.pump(const Duration(milliseconds: 1999));
         expect(service.hasActiveSession, isTrue);
         expect(events, hasLength(1));
+
+        await tester.pump(const Duration(milliseconds: 1));
+        expect(service.hasActiveSession, isTrue);
+        expect(events, hasLength(2));
+        expect(
+          events.whereType<SpeechRecognitionErrorEvent>().single.isPermanent,
+          isFalse,
+        );
+        expect(
+          await service.start(localeId: 'he-IL', onEvent: (_) {}),
+          isA<SpeechRecognitionSessionStartFailure>(),
+        );
+        await tester.pump(const Duration(seconds: 1));
+        expect(events.whereType<SpeechRecognitionErrorEvent>(), hasLength(1));
 
         native.cancelReply!.complete();
         await tester.pump();
         expect(service.hasActiveSession, isFalse);
-        expect(events, hasLength(2));
+        expect(events, hasLength(3));
         expect(events.whereType<SpeechRecognitionStatusEvent>(), hasLength(1));
+
+        native.cancelReply = null;
+        final nextEvents = <SpeechRecognitionSessionEvent>[];
+        expect(
+          await service.start(localeId: 'en-US', onEvent: nextEvents.add),
+          isA<SpeechRecognitionSessionStarted>(),
+        );
+        for (var second = 1; second <= 29; second++) {
+          await tester.pump(const Duration(seconds: 1));
+          await native.result('The next phrase $second', isFinal: false);
+          expect(native.stopCalls, 0);
+        }
+        expect(events, hasLength(3));
+        expect(nextEvents.whereType<SpeechRecognitionErrorEvent>(), isEmpty);
+        await tester.pump(const Duration(seconds: 1));
+        expect(native.stopCalls, 1);
+        await native.result('The next final', isFinal: true);
+        await native.status('notListening');
+        await native.status('done');
+        await tester.pump();
+        expect(service.hasActiveSession, isFalse);
       },
     );
 

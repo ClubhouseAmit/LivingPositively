@@ -1,6 +1,7 @@
 import 'dart:async';
 
 import 'package:flutter/foundation.dart';
+import 'package:flutter/services.dart';
 import 'package:speech_to_text/speech_to_text.dart' as speech_to_text;
 
 /// Receives lifecycle, transcript, and error events for one recognition
@@ -378,6 +379,11 @@ final class SpeechRecognitionServiceImpl implements SpeechRecognitionService {
       return SpeechRecognitionSessionControlResult.noActiveSession;
     }
     if (session.isDiscarded) {
+      if (session.hasFinalResult &&
+          session.completionReceived &&
+          _cancellation != null) {
+        return SpeechRecognitionSessionControlResult.stopped;
+      }
       return SpeechRecognitionSessionControlResult.failed;
     }
 
@@ -430,25 +436,53 @@ final class SpeechRecognitionServiceImpl implements SpeechRecognitionService {
   Future<void> _requestCancellation(
     _ActiveSpeechRecognitionSession session,
   ) async {
+    // The plugin installs its listen timer after the native reply. Wait for
+    // that setup before cancelling so it cannot outlive this session.
+    if (!session.listenRequestSettled.isCompleted) {
+      await session.listenRequestSettled.future;
+    }
+
+    var platformCancellationFailed = false;
+    Object? unexpectedError;
+    StackTrace? unexpectedStackTrace;
     try {
-      // The plugin installs its listen timer after the native reply. Wait for
-      // that setup before cancelling so it cannot outlive this session.
-      if (!session.listenRequestSettled.isCompleted) {
-        await session.listenRequestSettled.future;
-      }
       await _engine.cancel();
-      session.cancelRequestSettled = true;
-      _completeCancellationWhenQuiescent(session);
-    } catch (_) {
-      session.cancelRequestSettled = true;
-      if (session.terminalSignalReceived) {
-        _completeCancellationWhenQuiescent(session);
-      } else {
-        _completeCancellation(
-          session,
-          SpeechRecognitionSessionControlResult.failed,
+    } on PlatformException {
+      platformCancellationFailed = true;
+    } catch (error, stackTrace) {
+      unexpectedError = error;
+      unexpectedStackTrace = stackTrace;
+    }
+
+    session.cancelRequestSettled = true;
+    if (unexpectedError != null) {
+      // An implementation failure must remain failed even when terminal
+      // evidence already permits releasing this session's ownership.
+      _completeCancellation(
+        session,
+        SpeechRecognitionSessionControlResult.failed,
+      );
+      try {
+        FlutterError.reportError(
+          FlutterErrorDetails(
+            exception: unexpectedError,
+            stack: unexpectedStackTrace,
+            library: 'SpeechRecognitionService',
+            context: ErrorDescription('while cancelling speech recognition'),
+          ),
         );
+      } finally {
+        _completeCancellationWhenQuiescent(session);
       }
+      return;
+    }
+    if (platformCancellationFailed && !session.terminalSignalReceived) {
+      _completeCancellation(
+        session,
+        SpeechRecognitionSessionControlResult.failed,
+      );
+    } else {
+      _completeCancellationWhenQuiescent(session);
     }
   }
 
@@ -604,6 +638,15 @@ final class SpeechRecognitionServiceImpl implements SpeechRecognitionService {
     // cancellation cleanup and retain ownership until its request settles.
     final result = await cancel();
     if (result != SpeechRecognitionSessionControlResult.cancelled) {
+      if (result == SpeechRecognitionSessionControlResult.failed &&
+          _activeSession?.id == session.id) {
+        session.onEvent(
+          SpeechRecognitionErrorEvent(
+            sessionId: session.id,
+            isPermanent: false,
+          ),
+        );
+      }
       return;
     }
     session.onEvent(

@@ -661,6 +661,138 @@ void main() {
       );
     });
 
+    for (final discardDuringCleanup in <bool>[false, true]) {
+      testWidgets(
+        'should preserve the applied final and show one cleanup timeout error '
+        '${discardDuringCleanup ? 'with' : 'without'} concurrent Discard',
+        (tester) async {
+          final controller = _controllerWithText('Previous value');
+          final engine = _WidgetSpeechRecognitionEngine()
+            ..cancelCompleter = Completer<void>();
+          final service = SpeechRecognitionServiceImpl(engine: engine);
+          final appliedText = <String>[];
+          await _pumpAction(
+            tester,
+            controller: controller,
+            service: service,
+            memory: _FakePersistentMemoryService(
+              initialDisclosureAccepted: true,
+            ),
+            onTextApplied: appliedText.add,
+          );
+          await _startSession(tester, localeId: 'en-US');
+          engine.emitFinal('The final replacement');
+          engine.emitCompleted();
+          await tester.pump();
+          if (discardDuringCleanup) {
+            await tester.tap(find.byKey(const Key('speech-dictation-discard')));
+            await tester.pump();
+          }
+
+          await tester.pump(const Duration(milliseconds: 1999));
+          expect(
+            find.byKey(const Key('speech-dictation-stop')),
+            findsOneWidget,
+          );
+          expect(find.byType(SnackBar), findsNothing);
+          expect(controller.text, 'The final replacement');
+          expect(appliedText, <String>['The final replacement']);
+
+          await tester.pump(const Duration(milliseconds: 1));
+          expect(
+            find.text(
+              'Voice dictation could not be completed. Please try again.',
+            ),
+            findsOneWidget,
+          );
+          expect(
+            find.byKey(const Key('speech-dictation-start')),
+            findsOneWidget,
+          );
+          expect(service.hasActiveSession, isTrue);
+          expect(engine.cancelCalls, 1);
+          expect(controller.text, 'The final replacement');
+          expect(appliedText, <String>['The final replacement']);
+
+          engine.cancelCompleter!.complete();
+          await tester.pump();
+          expect(service.hasActiveSession, isFalse);
+          ScaffoldMessenger.of(
+            tester.element(find.byType(SpeechDictationSuffixAction)),
+          ).hideCurrentSnackBar();
+          await tester.pumpAndSettle();
+          expect(find.byType(SnackBar), findsNothing);
+
+          engine.cancelCompleter = null;
+          await _startSession(tester, localeId: 'en-US');
+          engine.emitFinal('The next replacement');
+          engine.emitCompleted();
+          await tester.pump();
+          expect(controller.text, 'The next replacement');
+          expect(appliedText, <String>[
+            'The final replacement',
+            'The next replacement',
+          ]);
+          expect(
+            find.byKey(const Key('speech-dictation-start')),
+            findsOneWidget,
+          );
+          await tester.pump(const Duration(seconds: 3));
+          expect(find.byType(SnackBar), findsNothing);
+        },
+      );
+    }
+
+    for (final outcome in <String>['success', 'failure', 'exception']) {
+      testWidgets(
+        'should ignore stale awaited cancellation $outcome after another session starts',
+        (tester) async {
+          final controller = _controllerWithText('Previous value');
+          final cancellation = Completer<void>();
+          final service = _FakeSpeechRecognitionService()
+            ..cancelCompleter = cancellation
+            ..cancelResult = outcome == 'failure'
+                ? SpeechRecognitionSessionControlResult.failed
+                : SpeechRecognitionSessionControlResult.cancelled
+            ..cancelError = outcome == 'exception'
+                ? StateError('Old cancellation failed')
+                : null;
+          await _pumpAction(
+            tester,
+            controller: controller,
+            service: service,
+            memory: _FakePersistentMemoryService(
+              initialDisclosureAccepted: true,
+            ),
+          );
+          await _startSession(tester, localeId: 'en-US');
+          await tester.tap(find.byKey(const Key('speech-dictation-discard')));
+          await tester.pump();
+          service.emitCompleted();
+          await tester.pump();
+          await _startSession(tester, localeId: 'en-US');
+
+          cancellation.complete();
+          await tester.pump();
+
+          expect(
+            find.byKey(const Key('speech-dictation-stop')),
+            findsOneWidget,
+          );
+          expect(find.byType(SnackBar), findsNothing);
+          expect(service.hasActiveSession, isTrue);
+          expect(controller.text, 'Previous value');
+          service.emitTranscript('The current final', isFinal: true);
+          await tester.pump();
+          expect(controller.text, 'The current final');
+          expect(
+            find.byKey(const Key('speech-dictation-start')),
+            findsOneWidget,
+          );
+        },
+      );
+    }
+
     testWidgets('should discard a pending final when the field is removed', (
       tester,
     ) async {
@@ -991,11 +1123,13 @@ final class _FakeSpeechRecognitionService implements SpeechRecognitionService {
   int cancelCalls = 0;
   String? startedLocaleId;
   Object? startError;
+  Object? cancelError;
   bool startErrorStartsSession = false;
   Completer<void>? cancelCompleter;
   SpeechRecognitionSessionControlResult cancelResult =
       SpeechRecognitionSessionControlResult.cancelled;
   int? _activeSessionId;
+  int _nextSessionId = 0;
   SpeechRecognitionEventCallback? _onEvent;
 
   @override
@@ -1030,14 +1164,15 @@ final class _FakeSpeechRecognitionService implements SpeechRecognitionService {
       if (startErrorStartsSession) {
         startedLocaleId = localeId;
         _onEvent = onEvent;
-        _activeSessionId = 1;
+        _activeSessionId = ++_nextSessionId;
       }
       throw error;
     }
 
     startedLocaleId = localeId;
     _onEvent = onEvent;
-    _activeSessionId = 1;
+    final sessionId = ++_nextSessionId;
+    _activeSessionId = sessionId;
     final transcript = synchronousFinalTranscript;
     if (transcript != null) {
       onEvent(
@@ -1049,13 +1184,13 @@ final class _FakeSpeechRecognitionService implements SpeechRecognitionService {
       );
       _activeSessionId = null;
       onEvent(
-        const SpeechRecognitionStatusEvent(
-          sessionId: 1,
+        SpeechRecognitionStatusEvent(
+          sessionId: sessionId,
           status: SpeechRecognitionSessionStatus.completed,
         ),
       );
     }
-    return const SpeechRecognitionSessionStarted(1);
+    return SpeechRecognitionSessionStarted(sessionId);
   }
 
   @override
@@ -1070,16 +1205,23 @@ final class _FakeSpeechRecognitionService implements SpeechRecognitionService {
     if (!hasActiveSession) {
       return SpeechRecognitionSessionControlResult.noActiveSession;
     }
+    final sessionId = _activeSessionId;
     cancelCalls++;
     final completer = cancelCompleter;
     if (completer != null) {
       await completer.future;
     }
+    final error = cancelError;
+    if (error != null) {
+      throw error;
+    }
     if (cancelResult == SpeechRecognitionSessionControlResult.failed) {
       return cancelResult;
     }
-    _activeSessionId = null;
-    _onEvent = null;
+    if (_activeSessionId == sessionId) {
+      _activeSessionId = null;
+      _onEvent = null;
+    }
     return cancelResult;
   }
 
@@ -1120,6 +1262,8 @@ final class _FakeSpeechRecognitionService implements SpeechRecognitionService {
 final class _WidgetSpeechRecognitionEngine implements SpeechRecognitionEngine {
   SpeechRecognitionEngineStatusCallback? _onStatus;
   SpeechRecognitionEngineResultCallback? _onResult;
+  Completer<void>? cancelCompleter;
+  int cancelCalls = 0;
 
   @override
   Future<bool> initialize({
@@ -1149,6 +1293,11 @@ final class _WidgetSpeechRecognitionEngine implements SpeechRecognitionEngine {
 
   @override
   Future<void> cancel() async {
+    cancelCalls++;
+    final completer = cancelCompleter;
+    if (completer != null) {
+      await completer.future;
+    }
     emitCompleted();
   }
 
