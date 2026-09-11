@@ -329,7 +329,9 @@ void main() {
         expect(service.cancelCalls, 1);
         expect(service.hasActiveSession, isFalse);
         expect(
-          find.text('Voice dictation could not be completed. Please try again.'),
+          find.text(
+            'Voice dictation could not be completed. Please try again.',
+          ),
           findsOneWidget,
         );
       },
@@ -548,6 +550,9 @@ void main() {
 
       service.emitTranscript('Partial text', isFinal: false);
       await tester.pump();
+      expect(controller.text, 'Keep this value');
+      expect(appliedText, isEmpty);
+      expect(find.byKey(const Key('speech-dictation-stop')), findsOneWidget);
       await tester.tap(find.byKey(const Key('speech-dictation-discard')));
       await _pumpUntilVisible(
         tester,
@@ -558,6 +563,129 @@ void main() {
       expect(appliedText, isEmpty);
       expect(service.cancelCalls, 1);
       expect(find.byKey(const Key('speech-dictation-start')), findsOneWidget);
+    });
+
+    for (final initialValue in <String>['', 'Keep this value']) {
+      testWidgets(
+        'should preserve ${initialValue.isEmpty ? 'an empty' : 'a populated'} '
+        'field and show retry when completion never supplies a final',
+        (tester) async {
+          final controller = _controllerWithText(initialValue);
+          final engine = _WidgetSpeechRecognitionEngine();
+          final service = SpeechRecognitionServiceImpl(engine: engine);
+          final appliedText = <String>[];
+          await _pumpAction(
+            tester,
+            controller: controller,
+            service: service,
+            memory: _FakePersistentMemoryService(
+              initialDisclosureAccepted: true,
+            ),
+            onTextApplied: appliedText.add,
+          );
+          await _startSession(tester, localeId: 'en-US');
+
+          engine.emitCompleted();
+          await tester.pump(const Duration(milliseconds: 1900));
+          expect(
+            find.byKey(const Key('speech-dictation-stop')),
+            findsOneWidget,
+          );
+          expect(controller.text, initialValue);
+          expect(appliedText, isEmpty);
+
+          await tester.pump(const Duration(milliseconds: 100));
+          expect(
+            find.text(
+              'Voice dictation could not be completed. Please try again.',
+            ),
+            findsOneWidget,
+          );
+          expect(
+            find.byKey(const Key('speech-dictation-start')),
+            findsOneWidget,
+          );
+          expect(controller.text, initialValue);
+          expect(appliedText, isEmpty);
+          expect(service.hasActiveSession, isFalse);
+
+          await _startSession(tester, localeId: 'en-US');
+          expect(
+            find.byKey(const Key('speech-dictation-stop')),
+            findsOneWidget,
+          );
+          await tester.tap(find.byKey(const Key('speech-dictation-discard')));
+          await tester.pump();
+        },
+      );
+    }
+
+    testWidgets('should apply a delayed final after completion exactly once', (
+      tester,
+    ) async {
+      final controller = _controllerWithText('Keep until the final arrives');
+      final engine = _WidgetSpeechRecognitionEngine();
+      final service = SpeechRecognitionServiceImpl(engine: engine);
+      final appliedText = <String>[];
+      await _pumpAction(
+        tester,
+        controller: controller,
+        service: service,
+        memory: _FakePersistentMemoryService(initialDisclosureAccepted: true),
+        onTextApplied: appliedText.add,
+      );
+      await _startSession(tester, localeId: 'en-US');
+
+      engine.emitCompleted();
+      await tester.pump(const Duration(milliseconds: 1500));
+      expect(controller.text, 'Keep until the final arrives');
+      expect(appliedText, isEmpty);
+
+      engine.emitFinal('The final dictated replacement');
+      engine.emitCompleted();
+      await _pumpUntilVisible(
+        tester,
+        find.byKey(const Key('speech-dictation-start')),
+      );
+      expect(controller.text, 'The final dictated replacement');
+      expect(appliedText, <String>['The final dictated replacement']);
+      expect(find.byKey(const Key('speech-dictation-start')), findsOneWidget);
+
+      engine.emitFinal('An obsolete duplicate');
+      await tester.pump(const Duration(seconds: 3));
+      expect(controller.text, 'The final dictated replacement');
+      expect(appliedText, <String>['The final dictated replacement']);
+      expect(
+        find.text('Voice dictation could not be completed. Please try again.'),
+        findsNothing,
+      );
+    });
+
+    testWidgets('should discard a pending final when the field is removed', (
+      tester,
+    ) async {
+      final controller = _controllerWithText('Keep this value');
+      final engine = _WidgetSpeechRecognitionEngine();
+      final service = SpeechRecognitionServiceImpl(engine: engine);
+      final appliedText = <String>[];
+      await _pumpAction(
+        tester,
+        controller: controller,
+        service: service,
+        memory: _FakePersistentMemoryService(initialDisclosureAccepted: true),
+        onTextApplied: appliedText.add,
+      );
+      await _startSession(tester, localeId: 'en-US');
+      engine.emitCompleted();
+
+      await tester.pumpWidget(const SizedBox.shrink());
+      engine.emitFinal('Do not apply after removal');
+      await tester.pump(const Duration(seconds: 3));
+
+      expect(controller.text, 'Keep this value');
+      expect(appliedText, isEmpty);
+      expect(service.hasActiveSession, isFalse);
+      expect(tester.takeException(), isNull);
     });
 
     testWidgets(
@@ -986,5 +1114,49 @@ final class _FakeSpeechRecognitionService implements SpeechRecognitionService {
         status: SpeechRecognitionSessionStatus.completed,
       ),
     );
+  }
+}
+
+final class _WidgetSpeechRecognitionEngine implements SpeechRecognitionEngine {
+  SpeechRecognitionEngineStatusCallback? _onStatus;
+  SpeechRecognitionEngineResultCallback? _onResult;
+
+  @override
+  Future<bool> initialize({
+    required SpeechRecognitionEngineStatusCallback onStatus,
+    required SpeechRecognitionEngineErrorCallback onError,
+  }) async {
+    _onStatus = onStatus;
+    return true;
+  }
+
+  @override
+  Future<List<SpeechRecognitionLocale>> locales() async =>
+      const <SpeechRecognitionLocale>[
+        SpeechRecognitionLocale(localeId: 'en-US', name: 'English (US)'),
+      ];
+
+  @override
+  Future<void> listen({
+    required String localeId,
+    required SpeechRecognitionEngineResultCallback onResult,
+  }) async {
+    _onResult = onResult;
+  }
+
+  @override
+  Future<void> stop() async {}
+
+  @override
+  Future<void> cancel() async {
+    emitCompleted();
+  }
+
+  void emitCompleted() {
+    _onStatus?.call(SpeechRecognitionEngineStatus.completed);
+  }
+
+  void emitFinal(String text) {
+    _onResult?.call(SpeechRecognitionEngineResult(text: text, isFinal: true));
   }
 }

@@ -1,5 +1,6 @@
 import 'dart:async';
 
+import 'package:flutter/foundation.dart';
 import 'package:speech_to_text/speech_to_text.dart' as speech_to_text;
 
 /// Receives lifecycle, transcript, and error events for one recognition
@@ -293,6 +294,7 @@ final class SpeechRecognitionServiceImpl implements SpeechRecognitionService {
   int _nextSessionId = 0;
 
   static const _cancellationSettleTimeout = Duration(seconds: 2);
+  static const _finalResultSettleTimeout = Duration(seconds: 2);
 
   @override
   bool get hasActiveSession => _activeSession != null || _cancellation != null;
@@ -344,13 +346,19 @@ final class SpeechRecognitionServiceImpl implements SpeechRecognitionService {
         localeId: localeId,
         onResult: (result) => _onEngineResult(session.id, result),
       );
+      session.listenRequestSettled = true;
       if (session.isDiscarded) {
         return const SpeechRecognitionSessionStartFailure(
           SpeechRecognitionSessionStartFailureKind.startFailed,
         );
       }
+      if (session.hasFinalResult && session.completionReceived) {
+        unawaited(_completeSession(session));
+      }
       return SpeechRecognitionSessionStarted(session.id);
     } catch (_) {
+      session.finalResultTimeout?.cancel();
+      session.finalResultTimeout = null;
       if (_activeSession?.id == session.id && !session.isDiscarded) {
         _activeSession = null;
       }
@@ -391,17 +399,23 @@ final class SpeechRecognitionServiceImpl implements SpeechRecognitionService {
         SpeechRecognitionSessionControlResult.noActiveSession,
       );
     }
+    if (session.isDiscarded && !session.cancelRequestSettled) {
+      return Future<SpeechRecognitionSessionControlResult>.value(
+        SpeechRecognitionSessionControlResult.failed,
+      );
+    }
 
     session.isDiscarded = true;
+    session.finalResultTimeout?.cancel();
+    session.finalResultTimeout = null;
     session.cancelRequestSettled = false;
-    session.terminalSignalReceived = false;
     final completer = Completer<SpeechRecognitionSessionControlResult>();
     _cancellationCompleter = completer;
     _cancellation = completer.future;
     _cancellationTimeout = Timer(_cancellationSettleTimeout, () {
       _completeCancellation(
         session,
-        session.terminalSignalReceived
+        session.cancelRequestSettled && session.terminalSignalReceived
             ? SpeechRecognitionSessionControlResult.cancelled
             : SpeechRecognitionSessionControlResult.failed,
       );
@@ -418,12 +432,15 @@ final class SpeechRecognitionServiceImpl implements SpeechRecognitionService {
       session.cancelRequestSettled = true;
       _completeCancellationWhenQuiescent(session);
     } catch (_) {
-      _completeCancellation(
-        session,
-        session.terminalSignalReceived
-            ? SpeechRecognitionSessionControlResult.cancelled
-            : SpeechRecognitionSessionControlResult.failed,
-      );
+      session.cancelRequestSettled = true;
+      if (session.terminalSignalReceived) {
+        _completeCancellationWhenQuiescent(session);
+      } else {
+        _completeCancellation(
+          session,
+          SpeechRecognitionSessionControlResult.failed,
+        );
+      }
     }
   }
 
@@ -433,9 +450,24 @@ final class SpeechRecognitionServiceImpl implements SpeechRecognitionService {
     if (!session.cancelRequestSettled || !session.terminalSignalReceived) {
       return;
     }
-    _completeCancellation(
-      session,
-      SpeechRecognitionSessionControlResult.cancelled,
+    if (_cancellation != null) {
+      _completeCancellation(
+        session,
+        SpeechRecognitionSessionControlResult.cancelled,
+      );
+      return;
+    }
+    // A timed-out cancellation can settle later. Release its retained
+    // ownership and notify the original UI only after the request settles.
+    if (_activeSession?.id != session.id) {
+      return;
+    }
+    _activeSession = null;
+    session.onEvent(
+      SpeechRecognitionStatusEvent(
+        sessionId: session.id,
+        status: SpeechRecognitionSessionStatus.completed,
+      ),
     );
   }
 
@@ -463,22 +495,7 @@ final class SpeechRecognitionServiceImpl implements SpeechRecognitionService {
     _ActiveSpeechRecognitionSession session,
   ) {
     session.terminalSignalReceived = true;
-    if (_cancellation != null) {
-      _completeCancellationWhenQuiescent(session);
-      return;
-    }
-    // A previous cancellation failed, but a later terminal lifecycle signal
-    // conclusively releases the recognizer and lets its UI clear controls.
-    if (_activeSession?.id != session.id) {
-      return;
-    }
-    _activeSession = null;
-    session.onEvent(
-      SpeechRecognitionStatusEvent(
-        sessionId: session.id,
-        status: SpeechRecognitionSessionStatus.completed,
-      ),
-    );
+    _completeCancellationWhenQuiescent(session);
   }
 
   Future<SpeechRecognitionAvailability> _initialize() async {
@@ -500,6 +517,11 @@ final class SpeechRecognitionServiceImpl implements SpeechRecognitionService {
     if (session == null || session.id != sessionId || session.isDiscarded) {
       return;
     }
+    if (result.isFinal) {
+      session.hasFinalResult = true;
+      session.finalResultTimeout?.cancel();
+      session.finalResultTimeout = null;
+    }
     session.onEvent(
       SpeechRecognitionTranscriptEvent(
         sessionId: session.id,
@@ -507,6 +529,9 @@ final class SpeechRecognitionServiceImpl implements SpeechRecognitionService {
         isFinal: result.isFinal,
       ),
     );
+    if (result.isFinal && session.completionReceived) {
+      unawaited(_completeSession(session));
+    }
   }
 
   void _onEngineStatus(SpeechRecognitionEngineStatus status) {
@@ -514,8 +539,15 @@ final class SpeechRecognitionServiceImpl implements SpeechRecognitionService {
     if (session == null) {
       return;
     }
+    // The plugin can suppress done after a partial result. Retain this
+    // quiescence evidence even when it precedes a cancellation request.
+    if (status == SpeechRecognitionEngineStatus.notListening ||
+        status == SpeechRecognitionEngineStatus.completed) {
+      session.terminalSignalReceived = true;
+    }
     if (session.isDiscarded) {
-      if (status == SpeechRecognitionEngineStatus.completed) {
+      if (status == SpeechRecognitionEngineStatus.completed ||
+          status == SpeechRecognitionEngineStatus.notListening) {
         _recordDiscardedSessionTerminalSignal(session);
       }
       return;
@@ -525,25 +557,51 @@ final class SpeechRecognitionServiceImpl implements SpeechRecognitionService {
       return;
     }
 
-    final sessionStatus = switch (status) {
-      SpeechRecognitionEngineStatus.listening =>
-        SpeechRecognitionSessionStatus.listening,
-      SpeechRecognitionEngineStatus.notListening => throw StateError(
-        'The intermediate not-listening status is ignored above.',
-      ),
-      SpeechRecognitionEngineStatus.completed =>
-        SpeechRecognitionSessionStatus.completed,
-      SpeechRecognitionEngineStatus.unknown => throw StateError(
-        'Unknown engine status is ignored above.',
-      ),
-    };
-    if (sessionStatus == SpeechRecognitionSessionStatus.completed) {
-      _activeSession = null;
+    if (status == SpeechRecognitionEngineStatus.completed) {
+      session.completionReceived = true;
+      if (session.hasFinalResult) {
+        unawaited(_completeSession(session));
+      } else {
+        // Android can report doneNoResult before its final transcript arrives.
+        // Repeated completion callbacks must not extend this bounded wait.
+        session.finalResultTimeout ??= Timer(_finalResultSettleTimeout, () {
+          if (_activeSession?.id != session.id || session.isDiscarded) {
+            return;
+          }
+          session.finalResultTimeout = null;
+          _onEngineError(
+            const SpeechRecognitionEngineError(isPermanent: false),
+          );
+        });
+      }
+      return;
     }
     session.onEvent(
       SpeechRecognitionStatusEvent(
         sessionId: session.id,
-        status: sessionStatus,
+        status: SpeechRecognitionSessionStatus.listening,
+      ),
+    );
+  }
+
+  Future<void> _completeSession(_ActiveSpeechRecognitionSession session) async {
+    if (_activeSession?.id != session.id ||
+        session.isDiscarded ||
+        !session.listenRequestSettled) {
+      return;
+    }
+    session.finalResultTimeout?.cancel();
+    session.finalResultTimeout = null;
+    // Natural completion does not clear the plugin's listen timer. Reuse
+    // cancellation cleanup and retain ownership until its request settles.
+    final result = await cancel();
+    if (result != SpeechRecognitionSessionControlResult.cancelled) {
+      return;
+    }
+    session.onEvent(
+      SpeechRecognitionStatusEvent(
+        sessionId: session.id,
+        status: SpeechRecognitionSessionStatus.completed,
       ),
     );
   }
@@ -612,8 +670,12 @@ final class SpeechToTextRecognitionEngine implements SpeechRecognitionEngine {
       listenOptions: speech_to_text.SpeechListenOptions(
         localeId: localeId,
         listenFor: _shortListenDuration,
-        pauseFor: _shortPauseDuration,
-        partialResults: false,
+        // Android already detects end of speech. The plugin's pause timer
+        // shrinks on rescheduling and can stop continuous speech prematurely.
+        pauseFor: !kIsWeb && defaultTargetPlatform == TargetPlatform.android
+            ? null
+            : _shortPauseDuration,
+        partialResults: true,
         cancelOnError: false,
         listenMode: speech_to_text.ListenMode.dictation,
       ),
@@ -648,6 +710,10 @@ final class _ActiveSpeechRecognitionSession {
   final int id;
   final SpeechRecognitionEventCallback onEvent;
   bool isDiscarded = false;
+  bool listenRequestSettled = false;
   bool cancelRequestSettled = false;
   bool terminalSignalReceived = false;
+  bool hasFinalResult = false;
+  bool completionReceived = false;
+  Timer? finalResultTimeout;
 }

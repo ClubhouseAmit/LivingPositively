@@ -338,3 +338,35 @@ Checks passed:
 Issues found:
 Screenshots/logs:
 ```
+
+## 15. Android Voice Dictation (Issue #139)
+
+Record the app commit/build, device model, Android version, recognition provider,
+and selected dictation language. Test the PR build on an affected physical Android
+device as well as an emulator; passing simulated callback tests alone does not
+complete speech-recognition QA. Use synthetic phrases rather than personal data.
+
+1. Open a field with a microphone action, such as the onboarding name, Settings
+   name, or a Personal Plan text field. Accept the disclosure and microphone
+   permission, then select an installed recognition language.
+2. Speak a sentence continuously for more than three seconds. The field should
+   remain unchanged while recognition is partial, then receive the final sentence
+   once recognition ends. Repeat with an initially empty and a populated field.
+3. Repeat with a longer sentence (10–20 seconds without deliberate pauses). The
+   app should not impose a three- or six-second cutoff. Android may end a session
+   on silence; the app's maximum listening duration remains 30 seconds.
+4. Tap Stop while speaking, including shortly after starting. A final result may
+   take up to two seconds after completion to arrive. Apply it once; if no final
+   text arrives, preserve the field and show the existing retry message.
+5. Start again, speak, and tap Discard. Preserve the old field value and verify
+   that another session can start immediately after cancellation settles. Repeat
+   Discard after Stop and by navigating away from the field before results arrive.
+6. Test silence, denied microphone permission, and an unavailable recognition
+   language when available. Preserve the field and show failure/unavailability
+   feedback. Retry a supported language after a recognition failure.
+7. Check a limited-length field and a phone-number field: existing length and
+   phone validation must still apply to the final transcript.
+
+Record whether text was correct, controls recovered, and retry succeeded for each
+case. Keep #139 open until the affected-device retest passes. Do not record audio
+or add dictated text to application logs or analytics.
