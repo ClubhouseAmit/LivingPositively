@@ -33,6 +33,37 @@ void main() {
       );
     });
 
+    for (final localeId in <String>[
+      'iw',
+      'IW',
+      'iw_IL',
+      'iw-IL',
+      'IW_il',
+      'iW-iL',
+      'he',
+      'HE_il',
+    ]) {
+      test('should recognize Hebrew spoken digits for $localeId', () {
+        expect(
+          normalizeSpokenPhoneNumber(
+            'פלוס תשע שבע שתיים חמש אפס אחד שתיים שלוש ארבע חמש שש שבע',
+            localeId: localeId,
+          ),
+          '+972501234567',
+        );
+      });
+    }
+
+    test(
+      'should not recognize Hebrew words for a non-Hebrew language subtag',
+      () {
+        expect(
+          normalizeSpokenPhoneNumber('אחד שתיים 34', localeId: 'iwr-IL'),
+          '34',
+        );
+      },
+    );
+
     test(
       'should treat Arabic and Hebrew punctuation as spoken-digit separators',
       () {

@@ -1,3 +1,5 @@
+import 'languages_util_functions.dart';
+
 /// Converts a dictated phone-number candidate into ASCII phone characters.
 ///
 /// The function recognizes spoken digits in English, Hebrew, and Arabic for
@@ -45,7 +47,7 @@ final RegExp _tokenSeparators = RegExp(
 );
 
 Map<String, String> _digitWordsFor(String localeId) {
-  final languageCode = localeId.split(RegExp('[-_]')).first.toLowerCase();
+  final languageCode = canonicalLanguageCodeForLocale(localeId);
   return switch (languageCode) {
     'en' => _englishDigitWords,
     'he' => _hebrewDigitWords,

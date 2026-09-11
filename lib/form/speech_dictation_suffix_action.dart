@@ -484,11 +484,12 @@ class _SpeechDictationSuffixActionState
 
   Future<void> _cancelAndFinish() async {
     final service = _speechRecognitionService;
+    final sessionId = _activeSessionId;
     try {
       final result = service == null
           ? SpeechRecognitionSessionControlResult.noActiveSession
           : await service.cancel();
-      if (!mounted) {
+      if (!mounted || _activeSessionId != sessionId) {
         return;
       }
       if (result == SpeechRecognitionSessionControlResult.failed) {
@@ -496,12 +497,12 @@ class _SpeechDictationSuffixActionState
         return;
       }
     } catch (_) {
-      if (mounted) {
+      if (mounted && _activeSessionId == sessionId) {
         _showMessage(AppLocalizations.of(context)!.speechDictationError);
       }
       return;
     }
-    if (mounted) {
+    if (mounted && _activeSessionId == sessionId) {
       _finishSession();
     }
   }

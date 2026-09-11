@@ -3062,9 +3062,9 @@ class AppLocalizationsHe extends AppLocalizations {
   @override
   String feelBetterListNo4(String gender) {
     String _temp0 = intl.Intl.selectLogic(gender, {
-      'male': 'להגיד מתי יש לי פנות להקשיב',
-      'female': 'להגיד מתי יש לי פנות להקשיב',
-      'other': 'להגיד מתי יש לי פנות להקשיב',
+      'male': 'להגיד מתי יש לי יכולת להקשיב',
+      'female': 'להגיד מתי יש לי יכולת להקשיב',
+      'other': 'להגיד מתי יש לי יכולת להקשיב',
     });
     return '$_temp0';
   }

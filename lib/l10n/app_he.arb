@@ -483,7 +483,7 @@
 "feelBetterListNo1":"{gender,select,male{זמן זוגי/חברתי קבוע בשבוע} female{זמן זוגי/חברתי קבוע בשבוע} other{זמן זוגי/חברתי קבוע בשבוע}}",
 "feelBetterListNo2":"{gender,select,male{רשימת חוזקות ומעלות} female{רשימת חוזקות ומעלות} other{רשימת חוזקות ומעלות}}",
 "feelBetterListNo3":"{gender,select,male{יומן הכרת תודה} female{יומן הכרת תודה} other{יומן הכרת תודה}}",
-"feelBetterListNo4":"{gender,select,male{להגיד מתי יש לי פנות להקשיב} female{להגיד מתי יש לי פנות להקשיב} other{להגיד מתי יש לי פנות להקשיב}}",
+"feelBetterListNo4":"{gender,select,male{להגיד מתי יש לי יכולת להקשיב} female{להגיד מתי יש לי יכולת להקשיב} other{להגיד מתי יש לי יכולת להקשיב}}",
 "feelBetterListNo5":"{gender,select,male{להאט ולהשתדל לא להעמיס עלי יותר מידי} female{להאט ולהשתדל לא להעמיס עלי יותר מידי} other{להאט ולהשתדל לא להעמיס עלי יותר מידי}}",
 "feelBetterListNo6":"{gender,select,male{להתנתק ממשימות היום יום וממסכים} female{להתנתק ממשימות היום יום וממסכים} other{להתנתק ממשימות היום יום וממסכים}}",
 "feelBetterListNo7":"{gender,select,male{לראות אור שמש} female{לראות אור שמש} other{לראות אור שמש}}",
