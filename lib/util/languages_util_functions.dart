@@ -1,3 +1,12 @@
+/// Returns the canonical language subtag for locale-based text handling.
+///
+/// Maps the legacy Hebrew alias `iw` to `he`. Keep the original locale ID for
+/// requests to providers that may require their native identifier.
+String canonicalLanguageCodeForLocale(String localeId) {
+  final code = localeId.split(RegExp('[-_]')).first.toLowerCase();
+  return code == 'iw' ? 'he' : code;
+}
+
 String languageName(String code) {
   switch (code) {
     case 'en':

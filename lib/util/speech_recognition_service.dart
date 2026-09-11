@@ -4,6 +4,8 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter/services.dart';
 import 'package:speech_to_text/speech_to_text.dart' as speech_to_text;
 
+import 'languages_util_functions.dart';
+
 /// Receives lifecycle, transcript, and error events for one recognition
 /// session.
 typedef SpeechRecognitionEventCallback =
@@ -717,13 +719,10 @@ final class SpeechToTextRecognitionEngine implements SpeechRecognitionEngine {
       // Android can list only on-device languages even when online recognition
       // supports more. Retain every reported variant and its native identifier.
       final languages = locales
-          .map(
-            (locale) =>
-                locale.localeId.toLowerCase().split(RegExp('[-_]')).first,
-          )
+          .map((locale) => canonicalLanguageCodeForLocale(locale.localeId))
           .toSet();
       return List<SpeechRecognitionLocale>.unmodifiable([
-        if (!languages.contains('he') && !languages.contains('iw'))
+        if (!languages.contains('he'))
           const SpeechRecognitionLocale(
             localeId: 'he-IL',
             name: 'עברית (ישראל)',
