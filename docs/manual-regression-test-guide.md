@@ -346,9 +346,20 @@ and selected dictation language. Test the PR build on an affected physical Andro
 device as well as an emulator; passing simulated callback tests alone does not
 complete speech-recognition QA. Use synthetic phrases rather than personal data.
 
+On the emulator, enable **Extended Controls > Microphone > Virtual microphone
+uses host audio input** before speaking. Enabling this setting resolved the
+reported English dictation failure during emulator testing.
+
 1. Open a field with a microphone action, such as the onboarding name, Settings
    name, or a Personal Plan text field. Accept the disclosure and microphone
-   permission, then select an installed recognition language.
+   permission, then select a dictation language.
+   On Android, verify Hebrew (Israel), `he-IL`, and Arabic (Israel), `ar-IL`, are
+   selectable when the recognizer omits those languages. These fallback choices
+   appear as **עברית (ישראל)** and **العربية (إسرائيل)**. When the recognizer
+   reports Hebrew (`he` or legacy `iw`) or Arabic (`ar`), retain all its regional
+   choices and original identifiers without adding a fallback for that language.
+   These choices may use online recognition; availability in the picker does not
+   guarantee that the recognition provider supports the selected language.
 2. Speak a sentence continuously for more than three seconds. The field should
    remain unchanged while recognition is partial, then receive the final sentence
    once recognition ends. Repeat with an initially empty and a populated field.
@@ -363,7 +374,8 @@ complete speech-recognition QA. Use synthetic phrases rather than personal data.
    Discard after Stop and by navigating away from the field before results arrive.
 6. Test silence, denied microphone permission, and an unavailable recognition
    language when available. Preserve the field and show failure/unavailability
-   feedback. Retry a supported language after a recognition failure.
+   feedback, including for an unsupported Hebrew or Arabic fallback. Retry a
+   supported language after a recognition failure.
 7. Check a limited-length field and a phone-number field: existing length and
    phone validation must still apply to the final transcript.
 

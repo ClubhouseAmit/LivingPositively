@@ -18,7 +18,10 @@ abstract interface class SpeechRecognitionService {
   /// Initializes the recognizer once for the application session.
   Future<SpeechRecognitionAvailability> initialize();
 
-  /// Returns the recognition locales installed on the current device.
+  /// Returns the dictation locales selectable on the current device.
+  ///
+  /// Android choices include online-capable fallbacks that the recognizer may
+  /// not advertise. A selectable locale does not guarantee recognition support.
   Future<SpeechRecognitionLocalesResult> locales();
 
   /// Starts one short recognition session in [localeId].
@@ -58,18 +61,18 @@ enum SpeechRecognitionAvailability {
   unavailable,
 }
 
-/// The result of loading installed recognition locales.
+/// The result of loading selectable dictation locales.
 sealed class SpeechRecognitionLocalesResult {
   const SpeechRecognitionLocalesResult();
 }
 
-/// Installed locales returned by an available recognizer.
+/// Dictation choices returned by an available recognizer.
 final class SpeechRecognitionLocalesAvailable
     extends SpeechRecognitionLocalesResult {
   /// Creates a successful locale lookup.
   const SpeechRecognitionLocalesAvailable(this.locales);
 
-  /// The installed locales that can be selected for the next session.
+  /// The locales that can be selected for the next session.
   final List<SpeechRecognitionLocale> locales;
 }
 
@@ -80,7 +83,7 @@ final class SpeechRecognitionLocalesUnavailable
   const SpeechRecognitionLocalesUnavailable();
 }
 
-/// An installed device or browser recognition locale.
+/// A selectable device or browser dictation locale.
 final class SpeechRecognitionLocale {
   /// Creates a recognition locale.
   const SpeechRecognitionLocale({required this.localeId, required this.name});
@@ -88,7 +91,7 @@ final class SpeechRecognitionLocale {
   /// The recognizer locale identifier passed to [SpeechRecognitionService.start].
   final String localeId;
 
-  /// The recognizer-provided display name for the locale.
+  /// The display name supplied by the recognizer or an app fallback.
   final String name;
 }
 
@@ -213,7 +216,7 @@ abstract interface class SpeechRecognitionEngine {
     required SpeechRecognitionEngineErrorCallback onError,
   });
 
-  /// Returns the locales currently installed by the recognizer.
+  /// Returns selectable dictation locales, including platform-specific fallbacks.
   Future<List<SpeechRecognitionLocale>> locales();
 
   /// Starts a short recognizer session for [localeId].
@@ -701,15 +704,39 @@ final class SpeechToTextRecognitionEngine implements SpeechRecognitionEngine {
 
   @override
   Future<List<SpeechRecognitionLocale>> locales() async {
-    final locales = await _speechToText.locales();
-    return List<SpeechRecognitionLocale>.unmodifiable(
-      locales.map(
-        (locale) => SpeechRecognitionLocale(
-          localeId: locale.localeId,
-          name: locale.name,
-        ),
-      ),
-    );
+    final reportedLocales = await _speechToText.locales();
+    final locales = reportedLocales
+        .map(
+          (locale) => SpeechRecognitionLocale(
+            localeId: locale.localeId,
+            name: locale.name,
+          ),
+        )
+        .toList();
+    if (!kIsWeb && defaultTargetPlatform == TargetPlatform.android) {
+      // Android can list only on-device languages even when online recognition
+      // supports more. Retain every reported variant and its native identifier.
+      final languages = locales
+          .map(
+            (locale) =>
+                locale.localeId.toLowerCase().split(RegExp('[-_]')).first,
+          )
+          .toSet();
+      return List<SpeechRecognitionLocale>.unmodifiable([
+        if (!languages.contains('he') && !languages.contains('iw'))
+          const SpeechRecognitionLocale(
+            localeId: 'he-IL',
+            name: 'עברית (ישראל)',
+          ),
+        if (!languages.contains('ar'))
+          const SpeechRecognitionLocale(
+            localeId: 'ar-IL',
+            name: 'العربية (إسرائيل)',
+          ),
+        ...locales,
+      ]);
+    }
+    return List<SpeechRecognitionLocale>.unmodifiable(locales);
   }
 
   @override
@@ -727,6 +754,7 @@ final class SpeechToTextRecognitionEngine implements SpeechRecognitionEngine {
             ? null
             : _shortPauseDuration,
         partialResults: true,
+        onDevice: false,
         cancelOnError: false,
         listenMode: speech_to_text.ListenMode.dictation,
       ),

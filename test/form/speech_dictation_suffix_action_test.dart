@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:convert';
 
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
@@ -9,6 +10,8 @@ import 'package:mazilon/global_enums.dart';
 import 'package:mazilon/l10n/app_localizations.dart';
 import 'package:mazilon/util/persistent_memory_service.dart';
 import 'package:mazilon/util/speech_recognition_service.dart';
+import 'package:speech_to_text/speech_recognition_result.dart';
+import 'package:speech_to_text/speech_to_text.dart';
 
 import '../../test_support/contract_persistent_memory_service.dart';
 
@@ -31,6 +34,162 @@ void main() {
     tearDown(() {
       SpeechDictationSuffixAction.isFeatureEnabled = originalFeatureFlag;
     });
+
+    group('Android online language choices', () {
+      const channel = MethodChannel('plugin.csdcorp.com/speech_to_text');
+      final messenger =
+          TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger;
+      late SpeechToText plugin;
+      late SpeechRecognitionServiceImpl service;
+      late Map<Object?, Object?> listenArguments;
+
+      Future<void> send(String method, Object arguments) async {
+        await messenger.handlePlatformMessage(
+          channel.name,
+          channel.codec.encodeMethodCall(MethodCall(method, arguments)),
+          (_) {},
+        );
+      }
+
+      setUp(() {
+        listenArguments = <Object?, Object?>{};
+        messenger.setMockMethodCallHandler(channel, (call) async {
+          switch (call.method) {
+            case 'initialize':
+              return true;
+            case 'locales':
+              return <String>['en-US:English (United States)'];
+            case 'listen':
+              listenArguments = call.arguments as Map<Object?, Object?>;
+              return true;
+            case 'cancel':
+              return null;
+            default:
+              throw StateError('Unexpected speech method: ${call.method}');
+          }
+        });
+        plugin = SpeechToText.withMethodChannel();
+        service = SpeechRecognitionServiceImpl(
+          engine: SpeechToTextRecognitionEngine(speechToText: plugin),
+        );
+      });
+
+      tearDown(() {
+        unawaited(plugin.cancel());
+        messenger.setMockMethodCallHandler(channel, null);
+        channel.setMethodCallHandler(null);
+      });
+
+      for (final localeId in <String>['he-IL', 'ar-IL']) {
+        for (final initialValue in <String>['', 'Existing value']) {
+          testWidgets(
+            'should select $localeId and preserve ${initialValue.isEmpty ? 'empty' : 'populated'} input when online recognition rejects it',
+            (tester) async {
+              final controller = _controllerWithText(initialValue);
+              final appliedText = <String>[];
+              await _pumpAction(
+                tester,
+                controller: controller,
+                service: service,
+                memory: _FakePersistentMemoryService(
+                  initialDisclosureAccepted: true,
+                ),
+                onTextApplied: appliedText.add,
+              );
+
+              await tester.tap(find.byKey(const Key('speech-dictation-start')));
+              await _pumpUntilVisible(
+                tester,
+                find.byKey(Key('speech-dictation-locale-$localeId')),
+              );
+              final hebrew = find.byKey(
+                const Key('speech-dictation-locale-he-IL'),
+              );
+              final arabic = find.byKey(
+                const Key('speech-dictation-locale-ar-IL'),
+              );
+              final english = find.byKey(
+                const Key('speech-dictation-locale-en-US'),
+              );
+              expect(hebrew.hitTestable(), findsOneWidget);
+              expect(arabic.hitTestable(), findsOneWidget);
+              expect(find.text('עברית (ישראל)'), findsOneWidget);
+              expect(find.text('العربية (إسرائيل)'), findsOneWidget);
+              expect(
+                tester.getTopLeft(hebrew).dy,
+                lessThan(tester.getTopLeft(arabic).dy),
+              );
+              expect(
+                tester.getTopLeft(arabic).dy,
+                lessThan(tester.getTopLeft(english).dy),
+              );
+
+              await tester.tap(
+                find.byKey(Key('speech-dictation-locale-$localeId')),
+              );
+              await _pumpUntilVisible(
+                tester,
+                find.byKey(const Key('speech-dictation-stop')),
+              );
+              expect(listenArguments['localeId'], localeId);
+              expect(listenArguments['onDevice'], isFalse);
+              expect(
+                find.byKey(const Key('speech-dictation-stop')),
+                findsOneWidget,
+              );
+
+              await send(
+                'textRecognition',
+                jsonEncode(<String, Object>{
+                  'alternates': <Map<String, Object>>[
+                    <String, Object>{
+                      'recognizedWords': 'An incomplete synthetic phrase',
+                      'confidence': 1.0,
+                    },
+                  ],
+                  'resultType': ResultType.partial.value,
+                }),
+              );
+              await tester.pump();
+              expect(controller.text, initialValue);
+              expect(appliedText, isEmpty);
+
+              await send(
+                'notifyError',
+                jsonEncode(<String, Object>{
+                  'errorMsg': 'error_language_not_supported',
+                  'permanent': true,
+                }),
+              );
+              await send('notifyStatus', 'notListening');
+              await tester.pumpAndSettle();
+
+              expect(
+                find.text(
+                  'Voice dictation could not be completed. Please try again.',
+                ),
+                findsOneWidget,
+              );
+              expect(
+                find.byKey(const Key('speech-dictation-start')),
+                findsOneWidget,
+              );
+              expect(
+                find.byKey(const Key('speech-dictation-stop')),
+                findsNothing,
+              );
+              expect(
+                find.byKey(const Key('speech-dictation-discard')),
+                findsNothing,
+              );
+              expect(controller.text, initialValue);
+              expect(appliedText, isEmpty);
+              expect(service.hasActiveSession, isFalse);
+            },
+          );
+        }
+      }
+    }, skip: kIsWeb);
 
     test('should report false when feature flag is disabled', () {
       SpeechDictationSuffixAction.isFeatureEnabled = false;
@@ -377,7 +536,7 @@ void main() {
     );
 
     testWidgets(
-      'should persist disclosure acceptance and show installed languages',
+      'should persist disclosure acceptance and show language choices',
       (tester) async {
         final controller = _controllerWithText('Existing value');
         final service = _FakeSpeechRecognitionService();

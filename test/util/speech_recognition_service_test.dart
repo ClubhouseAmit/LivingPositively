@@ -36,7 +36,7 @@ void main() {
       },
     );
 
-    test('should expose the installed locales after initialization', () async {
+    test('should expose the language choices after initialization', () async {
       engine.availableLocales = const <SpeechRecognitionLocale>[
         SpeechRecognitionLocale(localeId: 'en-US', name: 'English (US)'),
         SpeechRecognitionLocale(localeId: 'he-IL', name: 'Hebrew (Israel)'),
@@ -666,6 +666,184 @@ void main() {
       native.uninstall();
     });
 
+    test('should prepend missing Android online language choices', () async {
+      native.localeNames = <String>[
+        'de-DE:German (Germany)',
+        'en-US:English (United States)',
+      ];
+
+      final result = await service.locales();
+
+      expect(result, isA<SpeechRecognitionLocalesAvailable>());
+      final locales = (result as SpeechRecognitionLocalesAvailable).locales;
+      expect(locales.map((locale) => locale.localeId), <String>[
+        'he-IL',
+        'ar-IL',
+        'en-US',
+        'de-DE',
+      ]);
+      expect(locales.map((locale) => locale.name), <String>[
+        'עברית (ישראל)',
+        'العربية (إسرائيل)',
+        'English (United States)',
+        'German (Germany)',
+      ]);
+      expect(() => locales.clear(), throwsUnsupportedError);
+      expect(native.localeCalls, 1);
+    });
+
+    test(
+      'should offer Android fallbacks after an empty successful lookup',
+      () async {
+        native.localeNames = <String>[];
+
+        final result = await service.locales();
+
+        expect(result, isA<SpeechRecognitionLocalesAvailable>());
+        expect(
+          (result as SpeechRecognitionLocalesAvailable).locales.map(
+            (locale) => locale.localeId,
+          ),
+          <String>['he-IL', 'ar-IL'],
+        );
+      },
+    );
+
+    for (final nativeId in <String>[
+      'he-IL',
+      'iw_IL',
+      'HE_il',
+      'Iw-il',
+      'he',
+      'iw',
+      'ar-IL',
+      'AR_il',
+      'ar-SA',
+      'ar_EG',
+      'ar',
+    ]) {
+      test(
+        'should preserve reported $nativeId without a duplicate language fallback',
+        () async {
+          final isArabic = nativeId.toLowerCase().startsWith('ar');
+          native.localeNames = <String>[
+            '$nativeId:Zulu device language',
+            'en-US:English (United States)',
+          ];
+
+          final result = await service.locales();
+
+          expect(result, isA<SpeechRecognitionLocalesAvailable>());
+          final locales = (result as SpeechRecognitionLocalesAvailable).locales;
+          expect(locales.map((locale) => locale.localeId), <String>[
+            isArabic ? 'he-IL' : 'ar-IL',
+            'en-US',
+            nativeId,
+          ]);
+          expect(locales.last.name, 'Zulu device language');
+        },
+      );
+    }
+
+    test(
+      'should preserve both reported languages and regional options',
+      () async {
+        native.localeNames = <String>[
+          'iw_IL:Hebrew from device',
+          'ar-SA:Arabic (Saudi Arabia)',
+          'ar_EG:Arabic (Egypt)',
+          'en-US:English (United States)',
+        ];
+
+        final result = await service.locales();
+
+        expect(result, isA<SpeechRecognitionLocalesAvailable>());
+        final locales = (result as SpeechRecognitionLocalesAvailable).locales;
+        expect(locales.map((locale) => locale.localeId), <String>[
+          'ar_EG',
+          'ar-SA',
+          'en-US',
+          'iw_IL',
+        ]);
+        expect(locales.map((locale) => locale.name), <String>[
+          'Arabic (Egypt)',
+          'Arabic (Saudi Arabia)',
+          'English (United States)',
+          'Hebrew from device',
+        ]);
+      },
+    );
+
+    for (final platform in TargetPlatform.values) {
+      if (platform == TargetPlatform.android) {
+        continue;
+      }
+      test(
+        'should leave reported language choices unchanged on $platform',
+        () async {
+          debugDefaultTargetPlatformOverride = platform;
+          try {
+            final result = await service.locales();
+
+            expect(result, isA<SpeechRecognitionLocalesAvailable>());
+            final locales =
+                (result as SpeechRecognitionLocalesAvailable).locales;
+            expect(locales.map((locale) => locale.localeId), <String>['en-US']);
+            expect(locales.single.name, 'English (United States)');
+          } finally {
+            debugDefaultTargetPlatformOverride = null;
+          }
+        },
+      );
+    }
+
+    test(
+      'should not offer fallbacks when the native recognizer is unavailable',
+      () async {
+        native.isAvailable = false;
+
+        expect(
+          await service.locales(),
+          isA<SpeechRecognitionLocalesUnavailable>(),
+        );
+        expect(native.localeCalls, 0);
+      },
+    );
+
+    test(
+      'should not offer fallbacks when the native locale lookup fails',
+      () async {
+        native.localeError = PlatformException(code: 'locale_lookup_failed');
+
+        expect(
+          await service.locales(),
+          isA<SpeechRecognitionLocalesUnavailable>(),
+        );
+        expect(native.localeCalls, 1);
+      },
+    );
+
+    for (final localeId in <String>['he-IL', 'ar-IL']) {
+      testWidgets(
+        'should pass selected $localeId unchanged to online recognition',
+        (tester) async {
+          final result = await service.start(
+            localeId: localeId,
+            onEvent: events.add,
+          );
+
+          expect(result, isA<SpeechRecognitionSessionStarted>());
+          expect(native.listenArguments['localeId'], localeId);
+          expect(native.listenArguments['onDevice'], isFalse);
+          expect(native.listenArguments['partialResults'], isTrue);
+          await native.result('A complete synthetic phrase', isFinal: true);
+          await native.status('done');
+          await tester.pump();
+          expect(service.hasActiveSession, isFalse);
+        },
+      );
+    }
+
     testWidgets('should retain the existing pause and listen limits on iOS', (
       tester,
     ) async {
@@ -1249,12 +1427,23 @@ final class _NativeSpeechChannel {
   Completer<void>? cancelReply;
   int stopCalls = 0;
   int cancelCalls = 0;
+  bool isAvailable = true;
+  List<String> localeNames = <String>['en-US:English (United States)'];
+  PlatformException? localeError;
+  int localeCalls = 0;
 
   void install() {
     messenger.setMockMethodCallHandler(channel, (call) async {
       switch (call.method) {
         case 'initialize':
-          return true;
+          return isAvailable;
+        case 'locales':
+          localeCalls++;
+          final error = localeError;
+          if (error != null) {
+            throw error;
+          }
+          return localeNames;
         case 'listen':
           listenArguments = call.arguments as Map<Object?, Object?>;
           await beforeListenReply?.call();
