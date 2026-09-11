@@ -14,10 +14,14 @@
 // assert on widget types and on state recorded back into the shared
 // PhonePageData ChangeNotifier — that's where the value lives.
 
+import 'dart:convert';
+
 import 'package:country_code_picker/country_code_picker.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:get_it/get_it.dart';
 import 'package:mazilon/EmergencyNumbers.dart';
 import 'package:mazilon/global_enums.dart';
 import 'package:mazilon/form/form.dart';
@@ -27,8 +31,11 @@ import 'package:mazilon/form/shareform.dart';
 import 'package:mazilon/form/speech_dictation_suffix_action.dart';
 import 'package:mazilon/form/wizard_step.dart';
 import 'package:mazilon/util/Form/formPagePhoneModel.dart';
+import 'package:mazilon/util/speech_recognition_service.dart';
 import 'package:mazilon/util/userInformation.dart';
 import 'package:provider/provider.dart';
+import 'package:speech_to_text/speech_recognition_result.dart';
+import 'package:speech_to_text/speech_to_text.dart';
 import 'package:url_launcher_platform_interface/link.dart';
 import 'package:url_launcher_platform_interface/url_launcher_platform_interface.dart';
 
@@ -123,6 +130,215 @@ void main() {
   });
 
   group('PhonePageList (real production widget)', () {
+    group('legacy Hebrew dictation', () {
+      const channel = MethodChannel('plugin.csdcorp.com/speech_to_text');
+      final messenger =
+          TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger;
+      late SpeechToText plugin;
+      late SpeechRecognitionServiceImpl speechService;
+      late Map<Object?, Object?> listenArguments;
+      late bool originalFeatureFlag;
+      TargetPlatform? originalPlatform;
+
+      Future<void> send(String method, Object arguments) async {
+        await messenger.handlePlatformMessage(
+          channel.name,
+          channel.codec.encodeMethodCall(MethodCall(method, arguments)),
+          (_) {},
+        );
+      }
+
+      Future<void> sendTranscript(String words, ResultType resultType) => send(
+        'textRecognition',
+        jsonEncode(<String, Object>{
+          'alternates': <Map<String, Object>>[
+            <String, Object>{'recognizedWords': words, 'confidence': 1.0},
+          ],
+          'resultType': resultType.value,
+        }),
+      );
+
+      Future<void> waitForControl(WidgetTester tester, Finder finder) async {
+        for (var attempt = 0; attempt < 100; attempt++) {
+          if (finder.hitTestable().evaluate().isNotEmpty) {
+            return;
+          }
+          await tester.pump(const Duration(milliseconds: 100));
+        }
+        expect(finder.hitTestable(), findsOneWidget);
+      }
+
+      setUp(() async {
+        originalFeatureFlag = SpeechDictationSuffixAction.isFeatureEnabled;
+        originalPlatform = debugDefaultTargetPlatformOverride;
+        SpeechDictationSuffixAction.isFeatureEnabled = true;
+        debugDefaultTargetPlatformOverride = TargetPlatform.android;
+        listenArguments = <Object?, Object?>{};
+        messenger.setMockMethodCallHandler(channel, (call) async {
+          switch (call.method) {
+            case 'initialize':
+              return true;
+            case 'locales':
+              return <String>[
+                'en-US:English (United States)',
+                'iw_IL:עברית (ישראל)',
+              ];
+            case 'listen':
+              listenArguments = call.arguments as Map<Object?, Object?>;
+              return true;
+            case 'cancel':
+              return null;
+            default:
+              throw StateError('Unexpected speech method: ${call.method}');
+          }
+        });
+        plugin = SpeechToText.withMethodChannel();
+        speechService = SpeechRecognitionServiceImpl(
+          engine: SpeechToTextRecognitionEngine(speechToText: plugin),
+        );
+        await GetIt.instance.unregister<SpeechRecognitionService>();
+        GetIt.instance.registerSingleton<SpeechRecognitionService>(
+          speechService,
+        );
+        await services.memory.setItem(
+          'speechDictationDisclosureAccepted',
+          PersistentMemoryType.Bool,
+          true,
+        );
+      });
+
+      tearDown(() async {
+        await plugin.cancel();
+        messenger.setMockMethodCallHandler(channel, null);
+        channel.setMethodCallHandler(null);
+        SpeechDictationSuffixAction.isFeatureEnabled = originalFeatureFlag;
+        debugDefaultTargetPlatformOverride = originalPlatform;
+      });
+
+      for (final initialValue in <String>['', '0543897645']) {
+        testWidgets(
+          'should select iw_IL and replace ${initialValue.isEmpty ? 'empty' : 'populated'} phone input once with valid Hebrew spoken digits',
+          (tester) async {
+            try {
+              userInformation.location = 'IL';
+              final phoneData = _makePhonePageData();
+              await pumpWithProviders(
+                tester,
+                ChangeNotifierProvider<PhonePageData>.value(
+                  value: phoneData,
+                  child: Scaffold(
+                    body: SingleChildScrollView(
+                      child: PhonePageList(phonePageData: phoneData),
+                    ),
+                  ),
+                ),
+                userInformation: userInformation,
+                surfaceSize: const Size(1024, 2000),
+                ignoreOverflow: false,
+              );
+              await tester.pumpAndSettle();
+
+              final addContact = find.byType(TextButton).last;
+              await tester.ensureVisible(addContact);
+              await tester.tap(addContact);
+              await tester.pumpAndSettle();
+              final formFields = find.byType(TextFormField);
+              await tester.enterText(formFields.at(0), 'Synthetic contact');
+              if (initialValue.isNotEmpty) {
+                await tester.enterText(formFields.at(1), initialValue);
+              }
+              final phoneField = tester.widget<TextFormField>(formFields.at(1));
+              final controller = phoneField.controller!;
+              final phoneStart = find.descendant(
+                of: formFields.at(1),
+                matching: find.byKey(const Key('speech-dictation-start')),
+              );
+              await tester.ensureVisible(phoneStart);
+              await tester.tap(phoneStart);
+
+              final hebrewChoice = find.byKey(
+                const Key('speech-dictation-locale-iw_IL'),
+              );
+              await waitForControl(tester, hebrewChoice);
+              expect(find.text('עברית (ישראל)'), findsOneWidget);
+              expect(
+                find.byKey(const Key('speech-dictation-locale-he-IL')),
+                findsNothing,
+              );
+              await tester.tap(hebrewChoice);
+              await waitForControl(
+                tester,
+                find.byKey(const Key('speech-dictation-stop')),
+              );
+              expect(listenArguments['localeId'], 'iw_IL');
+              expect(listenArguments['onDevice'], isFalse);
+
+              final replacements = <String>[];
+              var previousText = controller.text;
+              void recordReplacement() {
+                if (controller.text != previousText) {
+                  replacements.add(controller.text);
+                  previousText = controller.text;
+                }
+              }
+
+              controller.addListener(recordReplacement);
+              await sendTranscript('פלוס תשע שבע', ResultType.partial);
+              await tester.pump();
+              expect(controller.text, initialValue);
+              expect(replacements, isEmpty);
+
+              const spokenNumber =
+                  'פלוס תשע שבע שתיים חמש אפס אחד שתיים שלוש ארבע חמש שש שבע';
+              await sendTranscript(spokenNumber, ResultType.finalResult);
+              await tester.pump();
+              expect(
+                find.text(
+                  'The dictated phone number is not valid for the selected country.',
+                ),
+                findsNothing,
+              );
+              expect(controller.text, '+972501234567');
+              expect(replacements, <String>['+972501234567']);
+
+              await send('notifyStatus', 'done');
+              await tester.pumpAndSettle();
+              await sendTranscript(spokenNumber, ResultType.finalResult);
+              await tester.pump();
+              expect(replacements, <String>['+972501234567']);
+              expect(speechService.hasActiveSession, isFalse);
+              expect(
+                find.byKey(const Key('speech-dictation-stop')),
+                findsNothing,
+              );
+              controller.removeListener(recordReplacement);
+
+              final saveContact = find.byIcon(Icons.check);
+              await tester.ensureVisible(saveContact);
+              await tester.tap(saveContact);
+              await tester.pumpAndSettle();
+              expect(phoneData.savedPhoneNames, <String>['Synthetic contact']);
+              expect(phoneData.savedPhoneNumbers, <String>['+972501234567']);
+              expect(
+                await services.memory.getItem(
+                  'phonePageSavedPhoneNumbers',
+                  PersistentMemoryType.StringList,
+                ),
+                <String>['+972501234567'],
+              );
+            } finally {
+              // Keep native callbacks connected while disposing the active
+              // widget, including when a regression assertion fails early.
+              await tester.pumpWidget(const SizedBox.shrink());
+              await send('notifyStatus', 'notListening');
+              await tester.pump();
+              debugDefaultTargetPlatformOverride = originalPlatform;
+            }
+          },
+        );
+      }
+    }, skip: kIsWeb);
+
     testWidgets('renders the manual-add TextButton with empty data', (
       tester,
     ) async {

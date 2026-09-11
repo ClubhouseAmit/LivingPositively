@@ -185,7 +185,11 @@ void main() {
       await tester.ensureVisible(find.text('+ הוספת קטגוריה'));
       await tester.tap(find.text('+ הוספת קטגוריה'));
       await tester.pumpAndSettle();
-      await tester.tap(find.byKey(const Key('custom-category-title-field')));
+      final titleField = find.byKey(const Key('custom-category-title-field'));
+      await tester.ensureVisible(titleField);
+      await tester.pumpAndSettle();
+      await _waitForWidget(tester, titleField.hitTestable());
+      await tester.tap(titleField);
       await tester.pumpAndSettle();
       expect(find.text('משפטים מחזקים שחשוב לי לזכור'), findsOneWidget);
       expect(find.text('אירועים מהעבר לתזכורת'), findsOneWidget);
