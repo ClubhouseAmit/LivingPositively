@@ -40,11 +40,47 @@ jobs:
         run: npm test
 
       - name: Test Functions deployment change detection
-        run: node --test ../scripts/tests/functions_deployment_changes.test.mjs
+        run: node --test ../scripts/tests/functions_deployment_changes.test.mjs ../scripts/tests/check_firestore_rules_drift.test.mjs
 
       - name: Audit production dependencies
         # Production deployment must remain free of known audit findings.
         run: npm audit --omit=dev --audit-level=low
+
+  firestore-rules-test:
+    name: Firestore security rules
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v7
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v7
+        with:
+          node-version: "22"
+          cache: npm
+          cache-dependency-path: functions/package-lock.json
+
+      # The Firestore emulator is a Java process.
+      - name: Set up JDK
+        uses: actions/setup-java@v5
+        with:
+          distribution: "temurin"
+          java-version: "17.x"
+
+      - name: Install Functions dependencies
+        run: npm --prefix functions ci
+
+      - name: Install Firebase CLI
+        run: npm install --global firebase-tools@15.29.0
+
+      # ADR-015 decision 7: the access policy is verified against the real
+      # rules engine, not asserted in review. Covers deny on get/list/
+      # create/update/delete for every server-only collection, devices
+      # ownership, and that collections predating this branch keep the
+      # unauthenticated read the app relies on at first launch.
+      - name: Verify Firestore rules against the emulator
+        run: npm --prefix functions run test:rules
 
   build-android:
     runs-on: ubuntu-latest
@@ -1189,6 +1225,7 @@ jobs:
       required: ${{ steps.changes.outputs.required }}
       functions_required: ${{ steps.changes.outputs.functions_required }}
       content_required: ${{ steps.changes.outputs.content_required }}
+      rules_required: ${{ steps.changes.outputs.rules_required }}
     steps:
       - name: Checkout tested revision and history
         uses: actions/checkout@v7
@@ -1258,18 +1295,40 @@ jobs:
           fi
 
       - name: Authenticate Firebase deployment
+        id: auth
         uses: google-github-actions/auth@7c6bc770dae815cd3e89ee6cdf493a5fab2cc093 # v3
         with:
           project_id: ${{ env.FIREBASE_PROJECT_ID }}
           credentials_json: ${{ secrets.FIREBASE_SERVICE_ACCOUNT_JSON }}
+          token_format: 'access_token'
+
+      - name: Install Firebase CLI
+        if: >-
+          needs.notification_backend_plan.outputs.functions_required == 'true' ||
+          needs.notification_backend_plan.outputs.rules_required == 'true'
+        run: npm install --global firebase-tools@15.29.0
+
+      # ADR-015 makes rules a hard predecessor. Provisioning and the
+      # scheduler write collections whose access policy this step
+      # establishes, so a failed rules deploy must stop the release before
+      # anything is written under the previous policy.
+      - name: Deploy Firestore rules to mezilondb
+        if: needs.notification_backend_plan.outputs.rules_required == 'true'
+        run: >-
+          firebase deploy --only firestore:rules
+          --project "$FIREBASE_PROJECT_ID" --non-interactive
+
+      # The repository is the single writer for production rules. A mismatch
+      # here means someone edited the ruleset in the console and this
+      # release would silently revert them.
+      - name: Verify deployed rules match the repository
+        env:
+          GOOGLE_ACCESS_TOKEN: ${{ steps.auth.outputs.access_token }}
+        run: node scripts/check_firestore_rules_drift.mjs
 
       - name: Provision changed notification content
         if: needs.notification_backend_plan.outputs.content_required == 'true'
         run: npm --prefix functions run provision:notifications -- --project "$FIREBASE_PROJECT_ID"
-
-      - name: Install Firebase CLI
-        if: needs.notification_backend_plan.outputs.functions_required == 'true'
-        run: npm install --global firebase-tools@15.29.0
 
       - name: Deploy Functions to mezilondb
         if: needs.notification_backend_plan.outputs.functions_required == 'true'

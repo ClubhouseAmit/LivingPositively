@@ -261,7 +261,47 @@ test('CLI writes outputs consumed by conditional release steps', (t) => {
   } });
   assert.equal(
     readFileSync(outputPath, 'utf8'),
-    'required=true\nfunctions_required=true\ncontent_required=true\n',
+    'required=true\nfunctions_required=true\ncontent_required=true\nrules_required=true\n',
   );
   assert.match(output, /Backend release required: true/);
+});
+
+test('requires a rules deploy when firestore.rules changes', (t) => {
+  const repo = repository(t);
+  const baseline = repo.git('rev-parse', 'HEAD');
+  const currentCommitSha = repo.commit('firestore.rules');
+  const result = plan(repo, baseline, currentCommitSha);
+  assert.equal(result.rulesRequired, true);
+  // Rules deploy independently of the Functions bundle.
+  assert.equal(result.functionsRequired, false);
+  assert.equal(result.contentRequired, false);
+});
+
+test('requires both a rules and a Functions deploy for firebase.json', (t) => {
+  const repo = repository(t);
+  const baseline = repo.git('rev-parse', 'HEAD');
+  const currentCommitSha = repo.commit('firebase.json');
+  const result = plan(repo, baseline, currentCommitSha);
+  // firebase.json carries both the rules target and the Functions config.
+  assert.equal(result.rulesRequired, true);
+  assert.equal(result.functionsRequired, true);
+});
+
+test('does not require a rules deploy for unrelated changes', (t) => {
+  const repo = repository(t);
+  const baseline = repo.git('rev-parse', 'HEAD');
+  const currentCommitSha = repo.commit('docs/readme.md');
+  assert.equal(plan(repo, baseline, currentCommitSha).rulesRequired, false);
+});
+
+test('deploys rules conservatively when no baseline run exists', (t) => {
+  const repo = repository(t);
+  const currentCommitSha = repo.commit('docs/readme.md');
+  const result = functionsDeploymentPlan([], {
+    workingDirectory: repo.workingDirectory,
+    runNumber: 11,
+    currentCommitSha,
+  });
+  // Without a comparison point the plan must not assume rules are current.
+  assert.equal(result.rulesRequired, true);
 });

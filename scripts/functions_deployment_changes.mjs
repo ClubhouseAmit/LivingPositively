@@ -12,6 +12,9 @@ const directlyDeployedFiles = new Set([
   'functions/.gcloudignore',
   'functions/.gitignore',
 ]);
+const firestoreRulesFiles = new Set([
+  'firestore.rules',
+]);
 const notificationContentFiles = new Set([
   'lib/l10n/app_he.arb',
   'lib/l10n/app_ar.arb',
@@ -83,6 +86,7 @@ function conservativePlan(reason) {
   return {
     functionsRequired: true,
     contentRequired: true,
+    rulesRequired: true,
     reason,
   };
 }
@@ -142,6 +146,8 @@ export function functionsDeploymentPlan(
   );
   const contentRequired = paths.some((path) =>
     notificationContentFiles.has(path));
+  const rulesRequired = paths.some((path) =>
+    firestoreRulesFiles.has(path) || path === 'firebase.json');
   const functionsRequired = paths.some((path) =>
     directlyDeployedFiles.has(path) || isFunctionsRuntimeFile(path)) ||
     workflowDeploymentChanged(baseCommitSha, workingDirectory);
@@ -149,6 +155,7 @@ export function functionsDeploymentPlan(
   return {
     functionsRequired,
     contentRequired,
+    rulesRequired,
     reason: `Compared backend inputs with successful revision ${baseCommitSha}.`,
   };
 }
@@ -160,14 +167,17 @@ if (process.argv[1] && import.meta.url === pathToFileURL(process.argv[1]).href) 
     currentCommitSha: process.env.GITHUB_SHA,
     workingDirectory: process.cwd(),
   });
-  const releaseRequired = plan.functionsRequired || plan.contentRequired;
+  const releaseRequired =
+    plan.functionsRequired || plan.contentRequired || plan.rulesRequired;
   appendFileSync(process.env.GITHUB_OUTPUT,
     `required=${releaseRequired}\n` +
     `functions_required=${plan.functionsRequired}\n` +
-    `content_required=${plan.contentRequired}\n`);
+    `content_required=${plan.contentRequired}\n` +
+    `rules_required=${plan.rulesRequired}\n`);
   console.log(
     `Backend release required: ${releaseRequired}; ` +
-    `Functions: ${plan.functionsRequired}; content: ${plan.contentRequired}. ` +
+    `Functions: ${plan.functionsRequired}; content: ${plan.contentRequired}; ` +
+    `rules: ${plan.rulesRequired}. ` +
     plan.reason,
   );
 }
