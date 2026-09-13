@@ -22,6 +22,24 @@ const GENERATED_QUOTE_COLLECTIONS: Record<NotificationLocale, string> = {
   en: "quotes_en",
 };
 
+/**
+ * True when a verified ID token was minted by Firebase Anonymous
+ * Authentication. Reminders are a non-anonymous-only feature (FCM-05), and
+ * security rules cannot express that: the notification collections deny all
+ * direct client access, so the check has to happen here. The Flutter client
+ * refuses to fetch a token for an anonymous user, but a client-side check is
+ * a policy, not a control -- the endpoint is reachable directly.
+ * See docs/adr/ADR-015 decision 5.
+ */
+export function isAnonymousSignIn(decodedToken: unknown): boolean {
+  if (decodedToken === null || typeof decodedToken !== "object") return false;
+  const firebaseClaim = (decodedToken as Record<string, unknown>).firebase;
+  if (firebaseClaim === null || typeof firebaseClaim !== "object") return false;
+  const provider =
+    (firebaseClaim as Record<string, unknown>).sign_in_provider;
+  return provider === "anonymous";
+}
+
 export function isValidNotificationTypeId(value: unknown): value is string {
   return (
     typeof value === "string" && NOTIFICATION_TYPE_ID_PATTERN.test(value)

@@ -3,6 +3,7 @@ import { describe, it } from "node:test";
 
 import {
   hasValidNotificationTypeSchema,
+  isAnonymousSignIn,
   isValidNotificationLocale,
   isValidNotificationScheduleTime,
   isValidNotificationTypeId,
@@ -527,6 +528,42 @@ describe("notification validation", () => {
         },
         1_000,
       ),
+      false,
+    );
+  });
+});
+
+describe("isAnonymousSignIn", () => {
+  it("rejects a token minted by anonymous sign-in", () => {
+    assert.equal(
+      isAnonymousSignIn({ uid: "u1", firebase: { sign_in_provider: "anonymous" } }),
+      true,
+    );
+  });
+
+  it("accepts tokens from real identity providers", () => {
+    for (const provider of ["google.com", "apple.com", "password"]) {
+      assert.equal(
+        isAnonymousSignIn({ uid: "u1", firebase: { sign_in_provider: provider } }),
+        false,
+        `expected ${provider} to be treated as non-anonymous`,
+      );
+    }
+  });
+
+  it("does not treat a malformed or absent claim as anonymous", () => {
+    // Fail open here is correct: a token without the claim is not evidence
+    // of anonymity, and verifyIdToken has already established authenticity.
+    for (const value of [null, undefined, {}, { firebase: null },
+      { firebase: "anonymous" }, { firebase: { sign_in_provider: 42 } },
+      "anonymous", 0]) {
+      assert.equal(isAnonymousSignIn(value), false);
+    }
+  });
+
+  it("is not fooled by a lookalike provider name", () => {
+    assert.equal(
+      isAnonymousSignIn({ firebase: { sign_in_provider: "anonymous.com" } }),
       false,
     );
   });

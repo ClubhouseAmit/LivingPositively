@@ -24,6 +24,7 @@ import {
 } from "./notification_mutation.js";
 import {
   hasValidNotificationTypeSchema,
+  isAnonymousSignIn,
   isValidNotificationLocale,
   isValidNotificationScheduleTime,
   isValidNotificationTypeId,
@@ -567,6 +568,9 @@ async function extractAndVerifyUid(req: Request): Promise<string | null> {
   if (!idToken) return null;
   try {
     const decoded = await getAuth().verifyIdToken(idToken);
+    // Anonymous users cannot own reminders. Rules cannot express this, and
+    // the client-side gate is bypassable by calling the endpoint directly.
+    if (isAnonymousSignIn(decoded)) return null;
     return decoded.uid;
   } catch {
     return null;
