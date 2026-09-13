@@ -9,7 +9,8 @@
     "shell": "npm run build && firebase functions:shell",
     "start": "npm run shell",
     "deploy": "firebase deploy --only functions",
-    "logs": "firebase functions:log"
+    "logs": "firebase functions:log",
+    "test:rules": "npm run build && firebase emulators:exec --only firestore --project mazilon-rules-test --config ../firebase.json \"node --test lib/firestore_rules.test.js\""
   },
   "engines": {
     "node": "22"
@@ -24,6 +25,7 @@
     "uuid": "^11.1.1"
   },
   "devDependencies": {
+    "@firebase/rules-unit-testing": "^5.0.2",
     "@typescript-eslint/eslint-plugin": "^5.12.0",
     "@typescript-eslint/parser": "^5.12.0",
     "typescript": "^6.0.0"
