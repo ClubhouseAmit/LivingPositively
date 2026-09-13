@@ -1,8 +1,8 @@
 # ADR-015: Firestore Access Policy for FCM Notification Collections
 
-- **Status**: proposed
+- **Status**: accepted
 - **Date**: 2026-09-13
-- **Deciders**: <!-- repository collaborator -->
+- **Deciders**: Dekel (repository owner)
 - **Tags**: firestore, security-rules, notifications, fcm, privacy, devices, ci
 
 ## Context
@@ -106,6 +106,7 @@ the unconditional root wildcard:
 ```rules
 function serverOnlyCollection(collectionId) {
   return collectionId in [
+    "devices",
     "scheduled_notifications",
     "notification_deliveries",
     "notification_scheduler_state",
@@ -233,9 +234,27 @@ match /devices/{uid} {
 }
 ```
 
-Verification adds: an owner write to `devices/{uid}` succeeds; a write to
-another user's document is denied; and unauthenticated `get`, `list`,
-`create`, `update`, and `delete` against `devices` are all denied.
+`devices` is *also* added to the denylist in decision 3. Deleting the
+wildcard alone would close public write but leave public **read** intact,
+because the general catch-all still grants `allow read` to any collection it
+does not exclude — the enumeration of every UID and push token would survive.
+Denylisting the collection removes that blanket grant, and OR-semantics then
+leave the owner-scoped rule above as the only grant on `devices`. The two
+changes are one decision: the wildcard goes, the collection is excluded from
+the catch-all, and ownership becomes the sole path in.
+
+`devices` is itself new on this branch — `fcm_service.dart` is absent from
+`main` — so constraint 1 applies to it and constraint 2 does not.
+
+A consequence worth stating: Rowy admins lose console read/write on `devices`
+and on every denylisted collection, since the catch-all was what granted it.
+That is intended for a collection holding push tokens, and it is the same
+access loss already accepted for the notification collections.
+
+Verification adds: an owner write to `devices/{uid}` succeeds; an owner read
+of their own document succeeds; a read or write of another user's document is
+denied; and unauthenticated `get`, `list`, `create`, `update`, and `delete`
+against `devices` are all denied.
 
 ### Explicitly out of scope
 
@@ -346,3 +365,9 @@ server. They are new, constraint 1 applies, and they are server-only.
   the collection name from `notification_types.quotesCollections[locale]` and
   a new locale would otherwise land outside the denylist. Decision 2 reworded
   away from a literal count, which the prefix match makes open-ended.
+- **2026-09-13** — Accepted, and decision 8 refined during implementation.
+  Deleting the `devices` wildcard closes public write but not public read,
+  because the general catch-all still grants read to any collection it does
+  not exclude. `devices` is therefore added to the denylist as well, leaving
+  the owner-scoped rule as the only grant. Noted the resulting loss of Rowy
+  console access to `devices`.
