@@ -661,8 +661,22 @@ final class BreathingViewModel extends ChangeNotifier {
           if (!_active || _result?.id != pending.id) {
             return;
           }
+          final savedIndex = snapshot.sessions.indexWhere(
+            (session) => session.id == pending.id,
+          );
+          if (savedIndex < 0 ||
+              snapshot.sessions[savedIndex].revision < pending.revision) {
+            _error = const BreathingStorageException();
+            break;
+          }
+          final saved = snapshot.sessions[savedIndex];
           _setHistory(snapshot.sessions);
-          _savedResultRevision = pending.revision;
+          // Retries can return an already newer stored record. Adopt it unless
+          // another local rating has advanced beyond that authoritative value.
+          if (saved.revision >= _result!.revision) {
+            _result = saved;
+          }
+          _savedResultRevision = saved.revision;
           _error = null;
         } catch (error) {
           if (!_active || _result?.id != pending.id) {

@@ -446,6 +446,160 @@ void main() {
     );
 
     test(
+      'should adopt a newer authoritative result returned by a retry',
+      () async {
+        await harness.start(rating: 8);
+        harness.sessionFailure = true;
+        model.end();
+        await model.retryResultSave();
+        final authoritative = model.result!.copyWith(
+          stressAfter: 4,
+          revision: 3,
+        );
+        when(() => harness.repository.saveSession(any())).thenAnswer((_) async {
+          return harness.commit(authoritative);
+        });
+
+        await model.retryResultSave();
+
+        expect(model.result, same(authoritative));
+        expect(model.history.single, same(authoritative));
+        expect(model.hasUnsavedResult, isFalse);
+        expect(model.error, isNull);
+        when(() => harness.repository.saveSession(any())).thenAnswer((
+          invocation,
+        ) async {
+          return harness.commit(
+            invocation.positionalArguments.single as BreathingSession,
+          );
+        });
+        await model.updateAfterRating(2);
+        expect(model.result!.revision, 4);
+        expect(model.history.single.stressAfter, 2);
+      },
+    );
+
+    test('should reconcile an equal-revision authoritative rating', () async {
+      await harness.start();
+      model.end();
+      await model.retryResultSave();
+      final authoritative = model.result!.copyWith(stressAfter: 6, revision: 1);
+      when(() => harness.repository.saveSession(any())).thenAnswer((_) async {
+        return harness.commit(authoritative);
+      });
+
+      await model.updateAfterRating(3);
+
+      expect(model.result, same(authoritative));
+      expect(model.result!.stressAfter, 6);
+      expect(model.history.single.stressAfter, 6);
+      expect(model.hasUnsavedResult, isFalse);
+      expect(model.returnToLanding(), isTrue);
+    });
+
+    test(
+      'should retain a newer local rating after an older successful response',
+      () async {
+        await harness.start();
+        final completion = Completer<BreathingSnapshot>();
+        final latest = Completer<BreathingSnapshot>();
+        when(() => harness.repository.saveSession(any())).thenAnswer((
+          invocation,
+        ) {
+          final session =
+              invocation.positionalArguments.single as BreathingSession;
+          harness.writes.add(session);
+          return harness.writes.length == 1 ? completion.future : latest.future;
+        });
+        model.end();
+        await Future<void>.delayed(Duration.zero);
+        final ratingSave = model.updateAfterRating(3);
+        completion.complete(harness.commit(harness.writes.first));
+        await Future<void>.delayed(Duration.zero);
+
+        expect(harness.writes.map((session) => session.revision), [0, 1]);
+        expect(model.result!.stressAfter, 3);
+        expect(model.result!.revision, 1);
+        expect(model.hasUnsavedResult, isTrue);
+        expect(model.returnToLanding(), isFalse);
+        latest.complete(harness.commit(harness.writes.last));
+        await ratingSave;
+        expect(model.result!.stressAfter, 3);
+        expect(model.history.single.stressAfter, 3);
+        expect(model.hasUnsavedResult, isFalse);
+      },
+    );
+
+    test(
+      'should stop and retain a newer local rating when the response omits its record',
+      () async {
+        await harness.start();
+        final missing = Completer<BreathingSnapshot>();
+        when(() => harness.repository.saveSession(any())).thenAnswer((
+          invocation,
+        ) {
+          harness.writes.add(
+            invocation.positionalArguments.single as BreathingSession,
+          );
+          return missing.future;
+        });
+        model.end();
+        await Future<void>.delayed(Duration.zero);
+        final ratingSave = model.updateAfterRating(4);
+        missing.complete(const BreathingSnapshot.empty());
+        await ratingSave;
+
+        expect(harness.writes, hasLength(1));
+        expect(model.result!.stressAfter, 4);
+        expect(model.hasUnsavedResult, isTrue);
+        expect(model.error, isA<BreathingStorageException>());
+        expect(model.returnToLanding(), isFalse);
+        expect(model.history, isEmpty);
+        when(() => harness.repository.saveSession(any())).thenAnswer((
+          invocation,
+        ) async {
+          return harness.commit(
+            invocation.positionalArguments.single as BreathingSession,
+          );
+        });
+        await model.retryResultSave();
+        expect(model.hasUnsavedResult, isFalse);
+        expect(model.history.single.id, model.result!.id);
+      },
+    );
+
+    test(
+      'should keep a rating retryable when the returned revision is older',
+      () async {
+        await harness.start();
+        model.end();
+        await model.retryResultSave();
+        final previous = harness.snapshot;
+        when(
+          () => harness.repository.saveSession(any()),
+        ).thenAnswer((_) async => previous);
+
+        await model.updateAfterRating(4);
+
+        expect(model.result!.revision, 1);
+        expect(model.result!.stressAfter, 4);
+        expect(model.hasUnsavedResult, isTrue);
+        expect(model.error, isA<BreathingStorageException>());
+        expect(model.returnToLanding(), isFalse);
+        when(() => harness.repository.saveSession(any())).thenAnswer((
+          invocation,
+        ) async {
+          return harness.commit(
+            invocation.positionalArguments.single as BreathingSession,
+          );
+        });
+        await model.retryResultSave();
+        expect(model.hasUnsavedResult, isFalse);
+        expect(model.history.single.stressAfter, 4);
+      },
+    );
+
+    test(
       'should retry a synchronous storage failure instead of retaining a completed future',
       () async {
         await harness.start();
