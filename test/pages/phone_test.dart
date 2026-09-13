@@ -7,6 +7,7 @@ import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:get_it/get_it.dart';
 import 'package:mazilon/file_service.dart';
+import 'package:mazilon/util/personal_plan_export_snapshot.dart';
 import 'package:mazilon/form/phonePageform.dart';
 import 'package:mazilon/global_enums.dart';
 import 'package:mazilon/l10n/app_localizations.dart';
@@ -76,6 +77,7 @@ class RecordingFileService implements FileService {
     required String mainTitle,
     required String textDirection,
     PersistentMemoryService? memoryService,
+    PersonalPlanExportSnapshot? snapshot,
     Set<String>? approvedPdfHosts,
   }) async => null;
 
@@ -89,6 +91,7 @@ class RecordingFileService implements FileService {
     required String mainTitle,
     required String textDirection,
     PersistentMemoryService? memoryService,
+    PersonalPlanExportSnapshot? snapshot,
     Set<String>? approvedPdfHosts,
   }) async {
     shareCalls.add(
@@ -1196,7 +1199,9 @@ void main() {
         'should show localized Personal Plan feedback when sharing returns ${failureResult?.status ?? 'null'}',
         (tester) async {
           final locationService = FakeSosLocationService();
-          final fileService = RecordingFileService(planShareResult: failureResult);
+          final fileService = RecordingFileService(
+            planShareResult: failureResult,
+          );
           await _runPhonePageTest(
             locationService,
             fileService,

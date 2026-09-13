@@ -126,6 +126,7 @@ local.properties
 **/ios/Flutter/Flutter.framework
 **/ios/Flutter/Flutter.podspec
 **/ios/Flutter/Generated.xcconfig
+ios/Flutter/GoogleSignIn.xcconfig
 **/ios/Flutter/ephemeral
 **/ios/Flutter/app.flx
 **/ios/Flutter/app.zip
@@ -165,6 +166,22 @@ linux/flutter/generated_plugins.cmake
 
 # Firebase credentials
 lib/util/Firebase/firebase_options.dart
+gha-creds-*.json
+# Service-account and signing keys. This repository is public: credential
+# material must never be committed. Deployment credentials belong in GitHub
+# Actions secrets (FIREBASE_SERVICE_ACCOUNT_JSON), and console-issued keys
+# stay in the Firebase and Apple developer consoles.
+*service-account*.json
+*serviceaccount*.json
+*-firebase-adminsdk-*.json
+*credentials*.json
+gcloud-*.json
+*-key.json
+*-keys.json
+# Apple push (APNs) and signing keys
+*.p8
+*.p12
+*.pem
 
 # Coverage
 coverage/

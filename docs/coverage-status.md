@@ -687,27 +687,19 @@ untouched.
     accepted the with-DSN happy path stays uncovered and documented this
     as deferred to ADR-003 if Sentry-init observability QA is justified.
 
-- **`integration_test/notifications_schedule_test.dart`** (5 tests). Reuses the
-  channel-mock pattern from `test/notifications/notification_service_initialize_test.dart`
-  (recording `WorkmanagerPlatform`, stubbed `dexterous.com/flutter/local_notifications`,
-  stubbed `flutter_timezone`) but additionally drives:
-  - `scheduleNotification` directly — asserts the `_flutterLocalNotificationsPlugin.zonedSchedule`
-    MethodChannel call is made (both for a "schedule in the past, bump to
-    tomorrow" branch and a "schedule for later today" branch),
-  - `init()` catch branch — channel-throws on `getLocalTimezone` so the
-    `Asia/Jerusalem` fallback runs and the IncidentLogger is invoked,
-  - Android e2e flow — `initializeNotification` → `cancelNotifications` →
-    `scheduleNotification` in sequence, asserting the union of plugin +
-    workmanager calls covers the periodic-worker callback path that the
-    `Workmanager().executeTask` callback would invoke in production.
+- **`integration_test/notifications_schedule_test.dart`** (1 test). Exercises
+  the FCM reminder-support policy directly, asserting that Android and iOS are
+  the supported mobile platforms. Local scheduling, timezone, and Workmanager
+  coverage was retired with the legacy notification service.
 
 #### `scripts/check_integration_coverage.dart` (new gate)
 
 Sibling of `scripts/check_coverage.dart`. Reads `coverage/integration.info`
-(separate from `coverage/lcov.info`). Enforces ONLY the four per-file floors
-whose authoritative values are in `scripts/check_integration_coverage.dart`
-(currently 65/60/60/85). Does NOT check global coverage — the unit pipeline
-owns that. Exits 0 on pass, 1 on per-file miss or missing file, 2 if
+(separate from `coverage/lcov.info`). Enforces ONLY the three per-file floors
+whose authoritative values are in `scripts/check_integration_coverage.dart`:
+`lib/main.dart` (65), `lib/pages/WellnessTools/player.dart` (60), and
+`lib/util/logger_service.dart` (60). Does NOT check global coverage — the unit pipeline
+owns that. Exits 0 on pass, 1 on a per-file coverage-floor miss, 2 if
 `coverage/integration.info` does not exist (clearly distinguishes a CI
 config error from a coverage regression).
 
@@ -1264,6 +1256,13 @@ no skipped tests, analyzer clean) — all four held without iteration.
 
 ## Round 10 — Phase 10 ADR-005 execution (macOS-runner iOS coverage, bootstrapApp extraction, web test gate)
 
+> **Current-state update (2026-08-05):** The Round 10 iOS coverage design below
+> is historical. The active `integration-test-ios` job is now blocking and runs
+> `integration_test/fcm_initialization_ios_test.dart` without collecting lcov.
+> The retired iOS-only coverage suite, its checker, its lcov input, and its
+> artifact have been removed. Unit plus Android integration lcov remain the
+> aggregate coverage inputs.
+
 Generated: 2026-05-25 — executes the three sub-decisions adopted in
 [`docs/adr/ADR-005-phase-10-macos-runner-ios-and-web-coverage.md`](adr/ADR-005-phase-10-macos-runner-ios-and-web-coverage.md).
 This round is anchored on the constraint shift that open-source macOS
@@ -1296,10 +1295,10 @@ first telemetry runs surface their failure modes — tracked in the
 
 ### What landed
 
-#### PR 10A — iOS notification paths via macOS-14 runner (ADR-005 § A)
+#### PR 10A — Retired iOS notification coverage design (ADR-005 § A)
 
-- **`integration_test/notifications_schedule_ios_test.dart`** (~250 LOC,
-  9 testWidgets in 5 groups). Mirrors the Android sibling but exercises
+- **The retired iOS-only coverage suite** (~250 LOC, 9 testWidgets in 5
+  groups). It mirrored the Android sibling but exercised
   iOS-specific arms on a real iOS Simulator under
   `IntegrationTestWidgetsFlutterBinding`:
   - `supportsReminderSettings()` returns false on real iOS binding (no
@@ -1322,9 +1321,9 @@ first telemetry runs surface their failure modes — tracked in the
   - Explicitly skips `cancelNotifications(null, cancelWorker: true)` —
     Workmanager has no iOS implementation; documented in the file
     header.
-- **`scripts/check_ios_integration_coverage.dart`** (new gate). Sibling
-  of `check_integration_coverage.dart`. Reads `coverage/integration_ios.info`
-  produced by the new `integration-test-ios` CI job, enforces a 60%
+- **The retired iOS coverage checker** was a sibling of
+  `check_integration_coverage.dart`. It read the former iOS lcov input and
+  enforced a 60%
   per-file floor on `lib/pages/notifications/notification_service.dart`
   under the iOS invocation alone. Floor sized below the expected ~70-80%
   to absorb iOS surface differences vs Android (no Workmanager arm).

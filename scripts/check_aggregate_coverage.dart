@@ -1,7 +1,6 @@
 // Aggregate coverage gate for Mazilon (ADR-003 Phase 8, ratcheted by
 // ADR-004 Phase 9; iOS input added under ADR-005 § A, Phase 10A; iOS input
-// REMOVED under ADR-006 when integration-test-ios was downgraded to
-// telemetry).
+// removed under ADR-006 and the 2026-08-05 iOS workflow supersession).
 //
 // Reads TWO pre-merged lcov inputs:
 //   coverage/lcov.info            — produced by the build-android job (unit
@@ -10,13 +9,9 @@
 //   coverage/integration.info     — produced by the integration-test job
 //                                   (ADR-002)
 //
-// ADR-006 §"Quality gate shape": coverage/integration_ios.info is NO
-// LONGER a required input. The iOS job is non-blocking telemetry, so its
-// artifact may be absent or stale. Adding an input to a max-hit-count
-// union can only RAISE coverage, so removing iOS cannot lower the 89%
-// floor's safety margin. To re-promote: add _iosIntegrationLcovPath to
-// the required-input list AND re-add integration-test-ios to
-// coverage-aggregate.needs in .github/workflows/main.yml.
+// The blocking iOS simulator job intentionally does not collect coverage.
+// coverage/integration_ios.info and its former checker/artifact were removed
+// on 2026-08-05, so this gate remains the unit + Android integration union.
 //
 // Merges them via parseLcovInputs (max hit-count per line, same semantics as
 // scripts/merge_lcov.dart) and enforces a single GLOBAL floor on the union
@@ -58,12 +53,11 @@
 //     Floor = 91.84% − 3.0 pt headroom ≈ 88.84% → rounded to 89%
 //     The 3 pt cushion matches every prior ratchet step.
 //
-//   ADR-005 § A (Phase 10A) — iOS input added without ratchet:
+//   ADR-005 § A (Phase 10A) — historical iOS input, added without ratchet:
 //     The iOS integration lcov can only raise the union's hit-count (max
 //     per line), never lower it, so the existing 89% floor stays safe and
 //     the headroom only grows. A future ratchet to track the iOS-inclusive
-//     baseline is deferred until the iOS suite covers more than the single
-//     notifications_schedule_ios_test.dart file.
+//     baseline was not ratcheted before that iOS coverage input was retired.
 
 import 'dart:io';
 
@@ -71,7 +65,7 @@ import '_lcov_parser.dart';
 
 const _unitLcovPath = 'coverage/lcov.info';
 const _integrationLcovPath = 'coverage/integration.info';
-// _iosIntegrationLcovPath retired under ADR-006 — see header comment.
+// _iosIntegrationLcovPath retired — see header comment.
 
 const double _aggregateFloor = 89.0; // ADR-004 (Phase 9 ratchet)
 

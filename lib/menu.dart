@@ -17,13 +17,12 @@ import 'package:mazilon/features/mood_medicine/ui/mood_medicine_view_model.dart'
 import 'package:mazilon/features/mood_medicine/ui/mood_medicine_view_state.dart';
 import 'package:mazilon/pages/WellnessTools/wellnessTools.dart';
 import 'package:mazilon/pages/notifications/notification_page.dart';
-import 'package:mazilon/pages/notifications/notification_service.dart';
 import 'package:mazilon/util/Form/retrieveInformation.dart';
 import 'package:mazilon/util/gender.dart';
 import 'package:flutter/services.dart';
 import 'package:mazilon/util/LP_extended_state.dart';
 import 'package:mazilon/util/persistent_memory_service.dart';
-
+import "package:mazilon/util/Firebase/fcm_service.dart";
 import 'package:mazilon/pages/home.dart';
 import 'package:mazilon/pages/journal.dart';
 import 'package:mazilon/pages/phone.dart';
@@ -124,17 +123,16 @@ class _MenuState extends LPExtendedState<Menu> {
 
   //Function to change the current displayed page in the "home"
   void changeCurrentIndex(BuildContext context, PagesCode index) {
+    if (index == PagesCode.NotificationPage &&
+        !FcmService.supportsReminderSettings()) {
+      return;
+    }
     final appLocale = AppLocalizations.of(context)!;
     final userInformation = Provider.of<UserInformation>(
       context,
       listen: false,
     );
     AnalyticsService mixPanelService = GetIt.instance<AnalyticsService>();
-
-    if (index == PagesCode.NotificationPage &&
-        !NotificationsService.supportsReminderSettings()) {
-      return;
-    }
 
     final MoodMedicineViewModel? moodMedicineViewModel =
         index == PagesCode.MoodMedicinePage
@@ -190,9 +188,15 @@ class _MenuState extends LPExtendedState<Menu> {
     });
   }
 
-  void getVersion() async {
-    PackageInfo packageInfo = await PackageInfo.fromPlatform();
-    version = packageInfo.version;
+  Future<void> getVersion() async {
+    final packageInfo = await PackageInfo.fromPlatform();
+    if (!mounted) return;
+    setState(() {
+      version = packageInfo.version;
+      if (current == PagesCode.About) {
+        currentScreen = About(version: version);
+      }
+    });
   }
 
   Map<String, List<String>> _filterVideoByLocal(
@@ -334,7 +338,7 @@ class _MenuState extends LPExtendedState<Menu> {
         });
       },
       onNotificationsPressed: () {
-        if (!NotificationsService.supportsReminderSettings()) {
+        if (!FcmService.supportsReminderSettings()) {
           return;
         }
         setState(() {
@@ -350,7 +354,7 @@ class _MenuState extends LPExtendedState<Menu> {
     required Key key,
     required VoidCallback onPressed,
     required bool selected,
-    required dynamic icon,
+    required Widget Function(Color color) iconBuilder,
     required String label,
   }) {
     return Semantics(
@@ -364,7 +368,7 @@ class _MenuState extends LPExtendedState<Menu> {
         child: ExcludeSemantics(
           child: bottomNavigationItem(
             selected,
-            icon,
+            iconBuilder,
             label,
             textGroup: _bottomNavigationLabelGroup,
           ),
@@ -373,11 +377,20 @@ class _MenuState extends LPExtendedState<Menu> {
     );
   }
 
+  Widget _bottomNavigationSvgIcon(String assetPath, Color color) {
+    return SvgPicture.asset(
+      assetPath,
+      width: 24,
+      height: 24,
+      colorFilter: ColorFilter.mode(color, BlendMode.srcIn),
+    );
+  }
+
   @override
   void initState() {
-    unawaited(markFirstLaunchCompleted());
-    getVersion();
     super.initState();
+    unawaited(markFirstLaunchCompleted());
+    unawaited(getVersion());
     //this is the initial page
     currentScreen = _buildHomeScreen();
     final int initialHomeSessionGeneration = _homeSessionGeneration;
@@ -489,7 +502,10 @@ class _MenuState extends LPExtendedState<Menu> {
                           });
                         },
                         selected: current == PagesCode.Home,
-                        icon: 'assets/images/home_icons.svg',
+                        iconBuilder: (color) => _bottomNavigationSvgIcon(
+                          'assets/images/home_icons.svg',
+                          color,
+                        ),
                         label: appLocale.home(gender),
                       ),
                     ),
@@ -507,7 +523,10 @@ class _MenuState extends LPExtendedState<Menu> {
                           });
                         },
                         selected: current == PagesCode.FullPlan,
-                        icon: 'assets/images/task_icon.svg',
+                        iconBuilder: (color) => _bottomNavigationSvgIcon(
+                          'assets/images/task_icon.svg',
+                          color,
+                        ),
                         label: appLocale.personalPlanPageMyPlan(gender),
                       ),
                     ),
@@ -523,7 +542,10 @@ class _MenuState extends LPExtendedState<Menu> {
                           });
                         },
                         selected: current == PagesCode.FeelGoodPage,
-                        icon: 'assets/images/yin_yang_icon.svg',
+                        iconBuilder: (color) => _bottomNavigationSvgIcon(
+                          'assets/images/yin_yang_icon.svg',
+                          color,
+                        ),
                         label: AppLocalizations.of(
                           context,
                         )!.homePageFeelGood(gender),
@@ -537,7 +559,11 @@ class _MenuState extends LPExtendedState<Menu> {
                           _showWellnessTools(appInfoProvider);
                         },
                         selected: current == PagesCode.WellnessToolsPage,
-                        icon: Icons.local_florist_outlined,
+                        iconBuilder: (color) => Icon(
+                          Icons.local_florist_outlined,
+                          color: color,
+                          size: 24,
+                        ),
                         label: appLocale.homePageWellnessTools(gender),
                       ),
                     ),

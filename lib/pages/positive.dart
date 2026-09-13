@@ -6,6 +6,7 @@ import 'package:mazilon/AnalyticsService.dart';
 import 'package:mazilon/global_enums.dart';
 import 'package:mazilon/util/Form/retrieveInformation.dart';
 import 'package:mazilon/util/LP_extended_state.dart';
+import 'package:mazilon/util/logger_service.dart';
 import 'package:mazilon/util/persistent_memory_service.dart';
 import 'package:mazilon/util/type_utils.dart';
 import 'package:keyboard_dismisser/keyboard_dismisser.dart';
@@ -114,36 +115,66 @@ class _PositiveState extends LPExtendedState<Positive> {
     int removeIndex,
     UserInformation userInfo,
   ) async {
+    late final List<String> positiveTraitsTemp;
     try {
-      PersistentMemoryService service =
+      final PersistentMemoryService service =
           GetIt.instance<
             PersistentMemoryService
           >(); // Get the persistent memory service instance
 
-      List<String> positiveTraitsTemp = TypeUtils.castToStringList(
+      positiveTraitsTemp = TypeUtils.castToStringList(
         await service.getItem(
           "positiveTraits",
           PersistentMemoryType.StringList,
         ),
       );
 
+      if (removeIndex < 0 || removeIndex >= positiveTraitsTemp.length) {
+        return;
+      }
       positiveTraitsTemp.removeAt(removeIndex);
       await service.setItem(
         "positiveTraits",
         PersistentMemoryType.StringList,
         positiveTraitsTemp,
       );
-      if (!mounted) {
-        return;
-      }
-      setState(() {
-        positiveTraits = positiveTraitsTemp;
-        focusNodes.removeAt(removeIndex);
-        userInfo.updatePositiveTraits(positiveTraits);
-      });
     } catch (error, stackTrace) {
-      debugPrint('Unable to remove positive trait: $error\n$stackTrace');
+      await _reportPositiveTraitPersistenceFailure(error, stackTrace);
+      return;
     }
+    if (!mounted) {
+      return;
+    }
+    setState(() {
+      positiveTraits = positiveTraitsTemp;
+      _syncFocusNodes(positiveTraits.length);
+      userInfo.updatePositiveTraits(positiveTraits);
+    });
+  }
+
+  Future<void> _reportPositiveTraitPersistenceFailure(
+    Object error,
+    StackTrace stackTrace,
+  ) async {
+    if (GetIt.instance.isRegistered<IncidentLoggerService>()) {
+      try {
+        await GetIt.instance<IncidentLoggerService>().captureLog(
+          error,
+          stackTrace: stackTrace,
+        );
+        return;
+      } catch (_) {
+        // Fall through so telemetry failure does not hide the original error.
+      }
+    }
+    FlutterError.reportError(
+      FlutterErrorDetails(
+        exception: error,
+        stack: stackTrace,
+        library: 'positive traits',
+        context: ErrorDescription('while removing a positive trait'),
+      ),
+    );
   }
 
   //add the given positive trait to the list

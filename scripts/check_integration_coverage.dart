@@ -18,7 +18,6 @@
 //     'lib/main.dart': 65.0,                                         // ADR-005 § B (was 50.0 under ADR-002)
 //     'lib/pages/WellnessTools/player.dart': 60.0,                   // ADR-002
 //     'lib/util/logger_service.dart': 60.0,                          // ADR-002
-//     'lib/pages/notifications/notification_service.dart': 85.0,     // ADR-002
 //   };
 //
 // Exit codes:
@@ -37,15 +36,12 @@ import '_lcov_parser.dart';
 // covered MyApp; the full test additionally exercises the lines that
 // build the widget tree (the MultiProvider construction + the optional
 // dependency-injection branches) plus the extracted `initializeApp` body.
-// callbackDispatcher (lines 42-89) stays uncovered — foreground integration
-// tests cannot trigger a Workmanager background entry-point. The 65% floor
-// is set below the expected ~75% so the gate tolerates incidental drift
-// from new lines added to MyApp in future feature work.
+// The 65% floor is set below the expected ~75% so the gate tolerates
+// incidental drift from new lines added to MyApp in future feature work.
 const _floors = <String, double>{
   'lib/main.dart': 65.0,
   'lib/pages/WellnessTools/player.dart': 60.0,
   'lib/util/logger_service.dart': 60.0,
-  'lib/pages/notifications/notification_service.dart': 85.0,
 };
 
 void main(List<String> args) {

@@ -7,11 +7,10 @@ import 'package:flutter/foundation.dart';
 import 'package:get_it/get_it.dart';
 import 'package:mazilon/global_enums.dart';
 import 'package:mazilon/util/PDF/create_pdf.dart';
-import 'package:mazilon/util/custom_categories_storage.dart';
+import 'package:mazilon/util/personal_plan_export_snapshot.dart';
 import 'package:mazilon/util/file_save_utils.dart';
 import 'package:mazilon/util/logger_service.dart';
 import 'package:mazilon/util/persistent_memory_service.dart';
-import 'package:mazilon/util/type_utils.dart';
 import 'package:share_plus/share_plus.dart';
 import 'package:mazilon/AnalyticsService.dart';
 
@@ -21,99 +20,51 @@ abstract class FileService {
   /// The title is rendered before the sections, including when no sections are
   /// populated. Callers provide a non-empty localized title and [textDirection].
   /// Optional [memoryService] overrides the persistent memory source used to read
-  /// user plan selections.
+  /// user plan selections when [snapshot] is absent. When supplied, [snapshot]
+  /// is the sole data source and storage is not read again.
   Future<ShareResult?> share(
-      String message,
-      List<dynamic> titles,
-      List<dynamic> subTitles,
-      Map<String, String> texts,
-      ShareFileType saveFormat,
-      {required String mainTitle,
-      required String textDirection,
-      PersistentMemoryService? memoryService,
-      Set<String>? approvedPdfHosts});
+    String message,
+    List<dynamic> titles,
+    List<dynamic> subTitles,
+    Map<String, String> texts,
+    ShareFileType saveFormat, {
+    required String mainTitle,
+    required String textDirection,
+    PersistentMemoryService? memoryService,
+    PersonalPlanExportSnapshot? snapshot,
+    Set<String>? approvedPdfHosts,
+  });
+
   /// Downloads a Personal Plan export with its caller-localized [mainTitle].
   ///
   /// The title is rendered before the sections, including when no sections are
   /// populated. Callers provide a non-empty localized title and [textDirection].
   /// Optional [memoryService] overrides the persistent memory source used to read
-  /// user plan selections.
+  /// user plan selections when [snapshot] is absent. When supplied, [snapshot]
+  /// is the sole data source and storage is not read again.
   Future<String?> download(
-      List<dynamic> titles,
-      List<dynamic> subTitles,
-      Map<String, String> texts,
-      ShareFileType saveFormat,
-      {required String mainTitle,
-      required String textDirection,
-      PersistentMemoryService? memoryService,
-      Set<String>? approvedPdfHosts});
+    List<dynamic> titles,
+    List<dynamic> subTitles,
+    Map<String, String> texts,
+    ShareFileType saveFormat, {
+    required String mainTitle,
+    required String textDirection,
+    PersistentMemoryService? memoryService,
+    PersonalPlanExportSnapshot? snapshot,
+    Set<String>? approvedPdfHosts,
+  });
   Future<bool> shareTextOnly(String message);
 }
 
 class FileServiceImpl implements FileService {
+  /// Captures plan data once; callers needing model-save retries prepare first.
   static Future<Map<String, dynamic>> getPrefsData({
     PersistentMemoryService? memoryService,
   }) async {
-    PersistentMemoryService service = memoryService ??
-        GetIt.instance<
-          PersistentMemoryService
-        >(); // Get the persistent memory service instance
-
-    final futures = <String, Future>{
-      'difficultEvents': service.getItem(
-        "userSelectionPersonalPlan-DifficultEvents",
-        PersistentMemoryType.StringList,
-      ),
-      'makeSafer': service.getItem(
-        "userSelectionPersonalPlan-MakeSafer",
-        PersistentMemoryType.StringList,
-      ),
-      'feelBetter': service.getItem(
-        "userSelectionPersonalPlan-FeelBetter",
-        PersistentMemoryType.StringList,
-      ),
-      'distractions': service.getItem(
-        "userSelectionPersonalPlan-Distractions",
-        PersistentMemoryType.StringList,
-      ),
-      'safeEnvironment': service.getItem(
-        "userSelectionPersonalPlan-SafeEnvironment",
-        PersistentMemoryType.StringList,
-      ),
-      'dreamsAndGoals': service.getItem(
-        "userSelectionPersonalPlan-DreamsAndGoals",
-        PersistentMemoryType.StringList,
-      ),
-      'phoneNames': service.getItem(
-        "PhonePageSavedPhoneNames",
-        PersistentMemoryType.StringList,
-      ),
-      'phoneNumbers': service.getItem(
-          "PhonePageSavedPhoneNumbers", PersistentMemoryType.StringList),
-    };
-
-    final customCategoriesFuture = loadCustomCategoriesFromStorage(
-      memoryService: service,
+    final snapshot = await PersonalPlanExportSnapshot.capture(
+      memoryService ?? GetIt.instance<PersistentMemoryService>(),
     );
-
-    final results = await Future.wait(futures.values);
-    final data = Map.fromIterables(futures.keys, results);
-    final customCategories = await customCategoriesFuture;
-
-    return {
-      'DifficultEvents': TypeUtils.castToStringList(data['difficultEvents']),
-      'MakeSafer': TypeUtils.castToStringList(data['makeSafer']),
-      'FeelBetter': TypeUtils.castToStringList(data['feelBetter']),
-      'Distractions': TypeUtils.castToStringList(data['distractions']),
-      'SafeEnvironment': TypeUtils.castToStringList(data['safeEnvironment']),
-      'DreamsAndGoals': TypeUtils.castToStringList(data['dreamsAndGoals']),
-      'phoneNames': TypeUtils.castToStringList(data['phoneNames']),
-      'phoneNumbers': TypeUtils.castToStringList(data['phoneNumbers']),
-      'customCategoryTitles':
-          customCategories.map((category) => category.key).toList(),
-      'customCategoryDescriptions':
-          customCategories.map((category) => category.value).toList(),
-    };
+    return snapshot.data;
   }
 
   static List<List<String>> filterEmptyData(List<List<String>> data) {
@@ -138,16 +89,21 @@ class FileServiceImpl implements FileService {
     return formattedText;
   }
 
-  Future<Map<String, dynamic>> organizeDataForFile(List<dynamic> titles,
-      List<dynamic> subTitles, Map<String, String> texts,
-      {required String mainTitle,
-      PersistentMemoryService? memoryService,
-      Set<String>? approvedPdfHosts}) async {
+  Future<Map<String, dynamic>> organizeDataForFile(
+    List<dynamic> titles,
+    List<dynamic> subTitles,
+    Map<String, String> texts, {
+    required String mainTitle,
+    PersistentMemoryService? memoryService,
+    PersonalPlanExportSnapshot? snapshot,
+    Set<String>? approvedPdfHosts,
+  }) async {
     // Set the page format to A4
 
     // Load the font for the PDF
     // Create a new PDF document
-    final dataForPDF = await getPrefsData(memoryService: memoryService);
+    final dataForPDF =
+        snapshot?.data ?? await getPrefsData(memoryService: memoryService);
     // Retrieve user data from SharedPreferences
     List<String> difficultEvents = dataForPDF['DifficultEvents'];
     List<String> makeSafer = dataForPDF['MakeSafer'];
@@ -219,13 +175,17 @@ class FileServiceImpl implements FileService {
     // Retrieve text content for the PDF
     String text1 = texts['firstLine'] ?? '';
     String text2 = texts['firstLinkText'] ?? '';
-    String text2Link =
-        sanitizePdfLinkUrl(texts['firstLinkURL'], approvedHosts: hosts);
+    String text2Link = sanitizePdfLinkUrl(
+      texts['firstLinkURL'],
+      approvedHosts: hosts,
+    );
     String text3 = texts['secondLine'] ?? '';
     String text4 = texts['thirdLine'] ?? '';
     String text5 = texts['secondLinkText'] ?? '';
-    String text5Link =
-        sanitizePdfLinkUrl(texts['secondLinkURL'], approvedHosts: hosts);
+    String text5Link = sanitizePdfLinkUrl(
+      texts['secondLinkURL'],
+      approvedHosts: hosts,
+    );
     String text6 = texts['forthLine'] ?? '';
 
     // Prepare the data to be included in the PDF
@@ -260,21 +220,28 @@ class FileServiceImpl implements FileService {
 
   @override
   Future<ShareResult?> share(
-      String message,
-      List<dynamic> titles,
-      List<dynamic> subTitles,
-      Map<String, String> texts,
-      ShareFileType saveFormat,
-      {required String mainTitle,
-      required String textDirection,
-      PersistentMemoryService? memoryService,
-      Set<String>? approvedPdfHosts}) async {
+    String message,
+    List<dynamic> titles,
+    List<dynamic> subTitles,
+    Map<String, String> texts,
+    ShareFileType saveFormat, {
+    required String mainTitle,
+    required String textDirection,
+    PersistentMemoryService? memoryService,
+    PersonalPlanExportSnapshot? snapshot,
+    Set<String>? approvedPdfHosts,
+  }) async {
     try {
       // Add the generated widgets to the PDF
-      final dataForFile = await organizeDataForFile(titles, subTitles, texts,
-          mainTitle: mainTitle,
-          memoryService: memoryService,
-          approvedPdfHosts: approvedPdfHosts);
+      final dataForFile = await organizeDataForFile(
+        titles,
+        subTitles,
+        texts,
+        mainTitle: mainTitle,
+        memoryService: memoryService,
+        snapshot: snapshot,
+        approvedPdfHosts: approvedPdfHosts,
+      );
       Map<String, dynamic> file;
       switch (saveFormat) {
         case ShareFileType.PDF:
@@ -290,10 +257,12 @@ class FileServiceImpl implements FileService {
           final tempFile = await saveTempPDF(file["file"], file["format"]);
           XFile tempXFile = XFile(tempFile.path);
 
-          final shareResult = await SharePlus.instance.share(ShareParams(
-              files: [tempXFile], text: checkEmptyMessage(message)));
+          final shareResult = await SharePlus.instance.share(
+            ShareParams(files: [tempXFile], text: checkEmptyMessage(message)),
+          );
           if (shareResult.status == ShareResultStatus.success) {
-            AnalyticsService mixPanelService = GetIt.instance<AnalyticsService>();
+            AnalyticsService mixPanelService =
+                GetIt.instance<AnalyticsService>();
             mixPanelService.trackEvent("Plan shared");
           }
           return shareResult;
@@ -305,10 +274,7 @@ class FileServiceImpl implements FileService {
     } catch (error, stackTrace) {
       IncidentLoggerService loggerService =
           GetIt.instance<IncidentLoggerService>();
-      await loggerService.captureLog(
-        error,
-        stackTrace: stackTrace,
-      );
+      await loggerService.captureLog(error, stackTrace: stackTrace);
       return null;
     }
   }
@@ -338,7 +304,8 @@ class FileServiceImpl implements FileService {
       String? initialDirectory,
       Uint8List? bytes,
       List<String>? allowedExtensions,
-    })? fileSaver,
+    })?
+    fileSaver,
   }) async {
     try {
       final effectiveDialogTitle =
@@ -392,18 +359,25 @@ class FileServiceImpl implements FileService {
 
   @override
   Future<String?> download(
-      List<dynamic> titles,
-      List<dynamic> subTitles,
-      Map<String, String> texts,
-      ShareFileType saveFormat,
-      {required String mainTitle,
-      required String textDirection,
-      PersistentMemoryService? memoryService,
-      Set<String>? approvedPdfHosts}) async {
-    final dataForFile = await organizeDataForFile(titles, subTitles, texts,
-        mainTitle: mainTitle,
-        memoryService: memoryService,
-        approvedPdfHosts: approvedPdfHosts);
+    List<dynamic> titles,
+    List<dynamic> subTitles,
+    Map<String, String> texts,
+    ShareFileType saveFormat, {
+    required String mainTitle,
+    required String textDirection,
+    PersistentMemoryService? memoryService,
+    PersonalPlanExportSnapshot? snapshot,
+    Set<String>? approvedPdfHosts,
+  }) async {
+    final dataForFile = await organizeDataForFile(
+      titles,
+      subTitles,
+      texts,
+      mainTitle: mainTitle,
+      memoryService: memoryService,
+      snapshot: snapshot,
+      approvedPdfHosts: approvedPdfHosts,
+    );
     Map<String, dynamic> file;
     Uint8List data = Uint8List(0);
     switch (saveFormat) {

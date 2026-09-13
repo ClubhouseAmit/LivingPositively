@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:get_it/get_it.dart';
 import 'package:mazilon/global_enums.dart';
 import 'package:mazilon/util/logger_service.dart';
@@ -27,6 +29,17 @@ abstract class PersistentMemoryService {
   /// retained as the legacy malformed-value fallback and returns `null`.
   Future<dynamic> getItem(String key, PersistentMemoryType type);
 
+  /// Captures an immutable set of values after earlier accepted writes finish.
+  ///
+  /// No write or reset on this instance may interleave with the capture. The
+  /// persisted cache is refreshed before reading so an earlier rejected write
+  /// cannot leak an uncommitted value or prevent later captures. This is a read
+  /// barrier, not a multi-key write transaction, and does not coordinate
+  /// separate instances or isolates.
+  Future<Map<String, Object?>> readSnapshot(
+    Map<String, PersistentMemoryType> keys,
+  );
+
   /// Clears persisted values after earlier accepted writes complete.
   ///
   /// Concurrent callers join the active reset, and new writes are rejected
@@ -41,6 +54,7 @@ class SharedPreferencesService implements PersistentMemoryService {
   Future<void> _pendingOperation = Future<void>.value();
   Future<void>? _activeReset;
   bool _resetFenceActive = false;
+  bool _resetFailed = false;
 
   @override
   Future<void> setItem(
@@ -102,7 +116,7 @@ class SharedPreferencesService implements PersistentMemoryService {
         throw StateError('Persistent memory rejected "$key".');
       }
     } catch (error, stackTrace) {
-      await loggerService.captureLog(error, stackTrace: stackTrace);
+      _recordFailure(loggerService, error, stackTrace);
       rethrow;
     }
   }
@@ -114,11 +128,7 @@ class SharedPreferencesService implements PersistentMemoryService {
     try {
       throw error;
     } catch (error, stackTrace) {
-      try {
-        await loggerService.captureLog(error, stackTrace: stackTrace);
-      } catch (_) {
-        // A logging failure must not mask the rejected write.
-      }
+      _recordFailure(loggerService, error, stackTrace);
       rethrow;
     }
   }
@@ -170,6 +180,36 @@ class SharedPreferencesService implements PersistentMemoryService {
   }
 
   @override
+  Future<Map<String, Object?>> readSnapshot(
+    Map<String, PersistentMemoryType> keys,
+  ) async {
+    final requestedKeys = Map<String, PersistentMemoryType>.of(keys);
+    late Map<String, Object?> snapshot;
+    await _enqueue(() async {
+      if (_resetFailed) {
+        throw StateError('Cannot export after an unsuccessful storage reset.');
+      }
+      final prefs = await SharedPreferences.getInstance();
+      await prefs.reload();
+      // All getters and defensive copies run synchronously against one cache.
+      // Unlike getItem, malformed values fail capture rather than losing data.
+      snapshot = Map<String, Object?>.unmodifiable({
+        for (final entry in requestedKeys.entries)
+          entry.key: switch (entry.value) {
+            PersistentMemoryType.String => prefs.getString(entry.key),
+            PersistentMemoryType.Int => prefs.getInt(entry.key),
+            PersistentMemoryType.Double => prefs.getDouble(entry.key),
+            PersistentMemoryType.Bool => prefs.getBool(entry.key),
+            PersistentMemoryType.StringList => List<String>.unmodifiable(
+              prefs.getStringList(entry.key) ?? const <String>[],
+            ),
+          },
+      });
+    });
+    return snapshot;
+  }
+
+  @override
   Future<void> reset() async {
     final Future<void>? activeReset = _activeReset;
     if (activeReset != null) {
@@ -194,15 +234,25 @@ class SharedPreferencesService implements PersistentMemoryService {
       final SharedPreferences prefs = await SharedPreferences.getInstance();
       final bool cleared = await prefs.clear();
       if (!cleared) {
-        throw StateError('Persistent memory reset was rejected.');
+        throw StateError('Persistent memory clear was rejected.');
       }
+      _resetFailed = false;
     } catch (error, stackTrace) {
-      try {
-        await loggerService.captureLog(error, stackTrace: stackTrace);
-      } catch (_) {
-        // Reset failures must remain visible if incident logging also fails.
-      }
+      _resetFailed = true;
+      _recordFailure(loggerService, error, stackTrace);
       rethrow;
     }
+  }
+
+  void _recordFailure(
+    IncidentLoggerService loggerService,
+    Object error,
+    StackTrace stackTrace,
+  ) {
+    unawaited(
+      Future<void>.sync(
+        () => loggerService.captureLog(error, stackTrace: stackTrace),
+      ).catchError((Object _, StackTrace _) {}),
+    );
   }
 }

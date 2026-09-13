@@ -7,6 +7,8 @@ import 'package:mazilon/MainPageHelpers/components/virtues_section.dart';
 import 'package:mazilon/global_enums.dart';
 import 'package:mazilon/pages/home.dart';
 import 'package:mazilon/util/Form/formPagePhoneModel.dart';
+import 'package:mazilon/util/HomePage/quote_card_widget.dart';
+import 'package:mazilon/util/theme/spacing.dart';
 import 'package:mazilon/util/userInformation.dart';
 
 import '../helpers/widget_test_scaffold.dart';
@@ -29,9 +31,10 @@ void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
 
   late UserInformation user;
+  late TestServiceLocators services;
 
   setUp(() {
-    registerTestServices(locale: 'en');
+    services = registerTestServices(locale: 'en');
     user = UserInformation();
     user.gender = 'other';
     user.localeName = 'en';
@@ -86,6 +89,74 @@ void main() {
     expect(
       tester.getTopLeft(find.byType(GratitudeSectionWidget)).dy,
       lessThan(tester.getTopLeft(find.byType(VirtuesSectionWidget)).dy),
+    );
+  });
+
+  testWidgets('Home should retain horizontal insets for its content cards', (
+    tester,
+  ) async {
+    await pumpWithProviders(
+      tester,
+      Home(
+        phonePageData: _phoneData(),
+        changeCurrentIndex: (BuildContext context, PagesCode code) {},
+        changeLocale: (_) {},
+        openMainMenu: (_) {},
+      ),
+      userInformation: user,
+      surfaceSize: const Size(1024, 2400),
+    );
+
+    final gratitudeInsets = find.ancestor(
+      of: find.byType(GratitudeSectionWidget),
+      matching: find.byWidgetPredicate(
+        (widget) =>
+            widget is Padding &&
+            widget.padding ==
+                const EdgeInsets.symmetric(
+                  horizontal: HomeGaps.sectionHorizontalInset,
+                ),
+      ),
+    );
+    expect(gratitudeInsets, findsOneWidget);
+  });
+
+  testWidgets('Home should report inspirational quote refresh analytics', (
+    tester,
+  ) async {
+    await pumpWithProviders(
+      tester,
+      Home(
+        phonePageData: _phoneData(),
+        changeCurrentIndex: (BuildContext context, PagesCode code) {},
+        changeLocale: (_) {},
+        openMainMenu: (_) {},
+      ),
+      userInformation: user,
+      surfaceSize: const Size(1024, 2400),
+    );
+
+    final quoteBeforeRefresh = tester
+        .widget<QuoteCardWidget>(find.byType(QuoteCardWidget))
+        .quote;
+    tester.widget<QuoteCardWidget>(find.byType(QuoteCardWidget)).onRefresh!();
+    await tester.pump();
+    final quoteAfterRefresh = tester
+        .widget<QuoteCardWidget>(find.byType(QuoteCardWidget))
+        .quote;
+
+    expect(services.analytics.events, hasLength(1));
+    expect(
+      services.analytics.events.single.key,
+      'Inspirational Quotes Refreshed',
+    );
+    expect(
+      services.analytics.events.single.value,
+      containsPair('Old Quote', quoteBeforeRefresh),
+    );
+    expect(
+      services.analytics.events.single.value,
+      containsPair('New Quote', quoteAfterRefresh),
     );
   });
 

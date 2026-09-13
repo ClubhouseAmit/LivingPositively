@@ -375,6 +375,27 @@ void main() {
     },
   );
 
+  testWidgets('shows an error and remains on the form when name saving fails', (
+    tester,
+  ) async {
+    await _pumpForm(tester);
+    final state = tester.state<FormProgressIndicatorState>(
+      find.byType(FormProgressIndicator),
+    );
+    state.updateName('Ada');
+    GetIt.instance.unregister<PersistentMemoryService>();
+    GetIt.instance.registerSingleton<PersistentMemoryService>(
+      _FailingNameMemoryService(),
+    );
+
+    await state.submitForm(tester.element(find.byType(FormProgressIndicator)));
+    await tester.pump();
+
+    expect(find.byType(Menu), findsNothing);
+    expect(find.byType(SnackBar), findsOneWidget);
+    expect(find.text('Something went wrong.'), findsOneWidget);
+  });
+
   testWidgets(
     'should not navigate when the submit caller context is disposed',
     (tester) async {

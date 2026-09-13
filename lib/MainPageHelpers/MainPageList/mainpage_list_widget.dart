@@ -463,7 +463,9 @@ class _ListWidgetState extends LPExtendedState<ListWidget> {
             ShowAllButton(
               onTabTapped: widget.onTabTapped,
               pageCode: widget.pageCode,
-              count: listItems.length,
+              count: widget.pageCode == PagesCode.GratitudeJournal
+                  ? thanks.length
+                  : userInfoProvider.positiveTraits.length,
             ),
             // Suggestions (always up to 3)
             for (final suggestion in _homeSuggestions)

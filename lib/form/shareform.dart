@@ -1,6 +1,5 @@
 import 'dart:async';
 
-import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 
@@ -8,6 +7,7 @@ import 'package:get_it/get_it.dart';
 
 import 'package:mazilon/file_service.dart';
 import 'package:mazilon/form/formpagetemplate.dart';
+import 'package:mazilon/form/share_form_custom_categories_view_model.dart';
 import 'package:mazilon/form/custom_category_editor.dart';
 import 'package:mazilon/form/custom_category_options.dart';
 import 'package:mazilon/form/wizard_step.dart';
@@ -24,7 +24,6 @@ import 'package:mazilon/util/Share/personal_plan_download.dart';
 import 'package:mazilon/util/userInformation.dart';
 import 'package:mazilon/util/Share/show_share_dialog.dart';
 import 'package:mazilon/util/Form/retrieveInformation.dart';
-import 'package:mazilon/util/dreams_and_goals_selection.dart';
 import 'package:mazilon/pages/PersonalPlan/myPlan.dart';
 
 /// The result of preparing a Share action that depends on Dreams and Goals.
@@ -94,18 +93,16 @@ class _ShareFormState extends WizardStepState<ShareForm> {
   bool _isAddingCustomCategory = false;
   int? _editingCustomCategoryIndex;
   int _customCategoryFormGeneration = 0;
+  ShareFormCustomCategoriesViewModel? _customCategoriesViewModel;
+  UserInformation? _customCategoriesUserInformation;
+  Future<void> _customCategoriesReplacement = Future<void>.value();
+  int _customCategoriesReplacementRevision = 0;
+  int _handledCustomCategoriesFailureEventId = 0;
+  int _customCategorySaveRevision = 0;
+  ({int revision, VoidCallback? onSuccess})? _customCategorySaveContinuation;
 
-  UserInformation? get _userInformation {
-    if (!mounted) return null;
-    try {
-      // Resolve the same non-null provider that the Share form requires. A
-      // nullable type argument can miss a ChangeNotifierProvider<UserInformation>
-      // at runtime, silently skipping all custom-category mutations.
-      return Provider.of<UserInformation>(context, listen: false);
-    } catch (_) {
-      return null;
-    }
-  }
+  List<MapEntry<String, String>> get _customCategories =>
+      _customCategoriesViewModel?.state.categories ?? const [];
 
   void setHasFilled() {
     unawaited(_setHasFilled());
@@ -136,67 +133,176 @@ class _ShareFormState extends WizardStepState<ShareForm> {
     super.initState();
     fileService = GetIt.instance<FileService>();
     setHasFilled();
+  }
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    final userInformation = Provider.of<UserInformation>(
+      context,
+      listen: false,
+    );
+    if (!identical(userInformation, _customCategoriesUserInformation)) {
+      _replaceCustomCategoriesViewModel(userInformation);
+    }
+  }
+
+  @override
+  void didUpdateWidget(covariant ShareForm oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (!identical(oldWidget.memoryService, widget.memoryService)) {
+      _replaceCustomCategoriesViewModel(
+        Provider.of<UserInformation>(context, listen: false),
+      );
+    }
+  }
+
+  void _replaceCustomCategoriesViewModel(UserInformation userInformation) {
+    resetCustomCategoryForm();
+    _isAddingCustomCategory = false;
+    final int replacementRevision = ++_customCategoriesReplacementRevision;
+    final previousViewModel = _customCategoriesViewModel;
+    previousViewModel?.removeListener(_onCustomCategoriesStateChanged);
+    _customCategoriesViewModel = null;
+    _customCategoriesUserInformation = userInformation;
+    _handledCustomCategoriesFailureEventId = 0;
+    _customCategorySaveRevision++;
+    _customCategorySaveContinuation = null;
     WidgetsBinding.instance.addPostFrameCallback((_) {
-      if (mounted) {
-        _userInformation?.loadCustomCategories(
-          memoryService: widget.memoryService,
-        );
+      if (mounted &&
+          replacementRevision == _customCategoriesReplacementRevision) {
+        ScaffoldMessenger.maybeOf(context)?.hideCurrentSnackBar();
+      }
+    });
+
+    final previousReplacement = _customCategoriesReplacement;
+    final replacement = _installCustomCategoriesViewModel(
+      userInformation,
+      previousViewModel,
+      previousReplacement,
+      replacementRevision,
+    );
+    _customCategoriesReplacement = replacement;
+    unawaited(replacement);
+  }
+
+  Future<void> _installCustomCategoriesViewModel(
+    UserInformation userInformation,
+    ShareFormCustomCategoriesViewModel? previousViewModel,
+    Future<void> previousReplacement,
+    int replacementRevision,
+  ) async {
+    await previousReplacement;
+    await previousViewModel?.close();
+    if (!mounted ||
+        replacementRevision != _customCategoriesReplacementRevision) {
+      return;
+    }
+
+    final incidentLogger = GetIt.instance.isRegistered<IncidentLoggerService>()
+        ? GetIt.instance<IncidentLoggerService>()
+        : null;
+    final viewModel = ShareFormCustomCategoriesViewModel(
+      userInformation: userInformation,
+      memoryService: widget.memoryService,
+      incidentLogger: incidentLogger,
+    );
+    _customCategoriesViewModel = viewModel;
+    _handledCustomCategoriesFailureEventId = 0;
+    viewModel.addListener(_onCustomCategoriesStateChanged);
+    setState(() {});
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (mounted && identical(viewModel, _customCategoriesViewModel)) {
+        unawaited(viewModel.load());
       }
     });
   }
 
+  void _onCustomCategoriesStateChanged() {
+    if (!mounted) {
+      return;
+    }
+    setState(() {});
+    final viewModel = _customCategoriesViewModel;
+    final state = viewModel?.state;
+    if (state is ShareFormCustomCategoriesReady) {
+      final continuation = _customCategorySaveContinuation;
+      if (continuation != null &&
+          continuation.revision == _customCategorySaveRevision) {
+        _customCategorySaveContinuation = null;
+        continuation.onSuccess?.call();
+      }
+      return;
+    }
+    if (state case ShareFormCustomCategoriesSaveFailure(
+      :final eventId,
+    ) when eventId > _handledCustomCategoriesFailureEventId) {
+      if (_isRunningDreamsAndGoalsAction) {
+        return;
+      }
+      _handledCustomCategoriesFailureEventId = eventId;
+      _showCustomCategorySaveFailure(viewModel!);
+    }
+  }
+
   @override
   void dispose() {
+    _customCategoriesReplacementRevision++;
+    final viewModel = _customCategoriesViewModel;
+    viewModel?.removeListener(_onCustomCategoriesStateChanged);
+    viewModel?.dispose();
+    _customCategoriesViewModel = null;
     super.dispose();
   }
 
-  Future<void> _persistCustomCategories(
+  Future<void> _saveCustomCategories(
     List<MapEntry<String, String>> categories,
   ) async {
-    final userInformation = _userInformation;
-    if (userInformation == null) {
-      throw StateError('User information is unavailable.');
+    if (_customCategoriesViewModel == null) {
+      await _customCategoriesReplacement;
     }
-    await userInformation.saveCustomCategories(
-      categories: categories,
-      memoryService: widget.memoryService,
-    );
+    final viewModel = _customCategoriesViewModel;
+    if (viewModel == null) {
+      throw StateError('Custom categories are not ready to save.');
+    }
+    await viewModel.save(categories);
   }
 
   Future<void> _persistCustomCategoriesWithRetry(
     List<MapEntry<String, String>> categories, {
     VoidCallback? onSuccess,
   }) async {
+    final revision = ++_customCategorySaveRevision;
+    final continuation = (revision: revision, onSuccess: onSuccess);
+    _customCategorySaveContinuation = continuation;
     try {
-      await _persistCustomCategories(categories);
-      if (mounted) onSuccess?.call();
+      await _saveCustomCategories(categories);
     } catch (error, stackTrace) {
+      if (_customCategorySaveContinuation?.revision == revision) {
+        _customCategorySaveContinuation = null;
+      }
       await _captureDreamsAndGoalsFailure(error, stackTrace);
-      if (mounted) {
+      if (mounted && revision == _customCategorySaveRevision) {
         showPersistenceRetrySnackBar(
           context,
-          () => _retryCustomCategoriesSave(categories, onSuccess: onSuccess),
+          () => _persistCustomCategoriesWithRetry(
+            categories,
+            onSuccess: onSuccess,
+          ),
         );
       }
     }
   }
 
-  Future<void> _retryCustomCategoriesSave(
-    List<MapEntry<String, String>> categories, {
-    VoidCallback? onSuccess,
-  }) async {
-    try {
-      await _persistCustomCategories(categories);
-      if (mounted) onSuccess?.call();
-    } catch (error, stackTrace) {
-      await _captureDreamsAndGoalsFailure(error, stackTrace);
-      if (mounted) {
-        showPersistenceRetrySnackBar(
-          context,
-          () => _retryCustomCategoriesSave(categories, onSuccess: onSuccess),
-        );
+  void _showCustomCategorySaveFailure(
+    ShareFormCustomCategoriesViewModel failedViewModel,
+  ) {
+    showPersistenceRetrySnackBar(context, () async {
+      if (!mounted || !identical(failedViewModel, _customCategoriesViewModel)) {
+        return;
       }
-    }
+      await failedViewModel.retryLatestSave();
+    });
   }
 
   void resetCustomCategoryForm() {
@@ -212,7 +318,7 @@ class _ShareFormState extends WizardStepState<ShareForm> {
   }
 
   void editCustomCategory(int index) {
-    final categories = _userInformation?.customCategories ?? const [];
+    final categories = _customCategories;
     if (index < 0 || index >= categories.length) {
       return;
     }
@@ -224,7 +330,7 @@ class _ShareFormState extends WizardStepState<ShareForm> {
   }
 
   Future<void> deleteCustomCategory(int index) async {
-    final categories = _userInformation?.customCategories ?? const [];
+    final categories = _customCategories;
     if (index < 0 || index >= categories.length) {
       return;
     }
@@ -252,7 +358,7 @@ class _ShareFormState extends WizardStepState<ShareForm> {
   }
 
   Widget buildCustomCategoryForm(BuildContext context) {
-    final categories = _userInformation?.customCategories ?? const [];
+    final categories = _customCategories;
     final editingIndex = _editingCustomCategoryIndex;
     final initialCategory =
         editingIndex != null &&
@@ -402,7 +508,7 @@ class _ShareFormState extends WizardStepState<ShareForm> {
         ),
       );
     }
-    for (final entry in userInformation.customCategories.indexed) {
+    for (final entry in _customCategories.indexed) {
       final categoryIndex = entry.$1;
       result.add(
         CustomCategoryCard(
@@ -460,6 +566,19 @@ class _ShareFormState extends WizardStepState<ShareForm> {
         : userInformation.pendingDreamsAndGoalsSave;
   }
 
+  Future<void> _prepareCustomCategories({bool retry = false}) async {
+    if (_customCategoriesViewModel == null) {
+      await _customCategoriesReplacement;
+    }
+    final viewModel = _customCategoriesViewModel;
+    if (viewModel == null ||
+        !await viewModel.prepareForAction(retry: retry) ||
+        !mounted ||
+        !identical(viewModel, _customCategoriesViewModel)) {
+      throw StateError('Custom categories are not ready for this action.');
+    }
+  }
+
   /// Prepares Dreams and Goals state for a Share action.
   ///
   /// The returned outcome keeps persistence failures separate from the action
@@ -472,24 +591,25 @@ class _ShareFormState extends WizardStepState<ShareForm> {
     required int initialRetryRevision,
   }) async {
     int retryRevision = initialRetryRevision;
-    if (!_dreamsAndGoalsSourcesAreAligned(userInformation) && mounted) {
+    if (!userInformation.dreamsAndGoalsSourcesAreAligned && mounted) {
       setState(() {
         _hideDreamsAndGoalsSummaryUntilRepair = true;
       });
     }
     try {
+      await _prepareCustomCategories(retry: retry);
       while (true) {
         final bool hadInlineStep = _dreamsAndGoalsStepKey.currentState != null;
         await _persistInlineDreamsAndGoals(userInformation, retry: retry);
         retryRevision = userInformation.dreamsAndGoalsSaveRevision;
         await userInformation.pendingDreamsAndGoalsSave;
-        await userInformation.pendingCustomCategoriesSave;
+        await _prepareCustomCategories();
 
         final int revisionBeforeRepair =
             userInformation.dreamsAndGoalsSaveRevision;
         await userInformation.repairDreamsAndGoalsSelectionSources();
         await userInformation.pendingDreamsAndGoalsSave;
-        await userInformation.pendingCustomCategoriesSave;
+        await _prepareCustomCategories();
 
         // If no inline editor persisted this snapshot and repair left the revision
         // unchanged, queue the save now so in-memory state is durable in storage.
@@ -499,14 +619,14 @@ class _ShareFormState extends WizardStepState<ShareForm> {
                 revisionBeforeRepair) {
           await userInformation.queueDreamsAndGoalsSave();
           await userInformation.pendingDreamsAndGoalsSave;
-          await userInformation.pendingCustomCategoriesSave;
+          await _prepareCustomCategories();
         }
 
         final int expectedRevision = userInformation.dreamsAndGoalsSaveRevision;
         retryRevision = expectedRevision;
         if (userInformation.dreamsAndGoalsSaveRevision == expectedRevision) {
           await userInformation.pendingDreamsAndGoalsSave;
-          await userInformation.pendingCustomCategoriesSave;
+          await _prepareCustomCategories();
           if (mounted) {
             setState(() {
               _hideDreamsAndGoalsSummaryUntilRepair = false;
@@ -625,6 +745,11 @@ class _ShareFormState extends WizardStepState<ShareForm> {
     if (_isRunningDreamsAndGoalsAction) {
       return;
     }
+    // The guarded action owns recovery for any save that was already pending
+    // when it started. Do not let that save's UI continuation replace the
+    // action retry or run later after the action has recovered persistence.
+    _customCategorySaveRevision++;
+    _customCategorySaveContinuation = null;
     _isRunningDreamsAndGoalsAction = true;
     try {
       final _DreamsAndGoalsActionPreparation preparation =
@@ -659,6 +784,9 @@ class _ShareFormState extends WizardStepState<ShareForm> {
       }
     } finally {
       _isRunningDreamsAndGoalsAction = false;
+      if (mounted) {
+        _onCustomCategoriesStateChanged();
+      }
     }
   }
 
@@ -676,14 +804,6 @@ class _ShareFormState extends WizardStepState<ShareForm> {
       await action();
     } catch (error, stackTrace) {
       await _captureDreamsAndGoalsFailure(error, stackTrace);
-      FlutterError.reportError(
-        FlutterErrorDetails(
-          exception: error,
-          stack: stackTrace,
-          library: 'ShareForm',
-          context: ErrorDescription('while retrying a Dreams and Goals action'),
-        ),
-      );
     }
   }
 
@@ -691,22 +811,27 @@ class _ShareFormState extends WizardStepState<ShareForm> {
     Object error,
     StackTrace stackTrace,
   ) async {
+    if (!GetIt.instance.isRegistered<IncidentLoggerService>()) {
+      _reportDreamsAndGoalsFailure(error, stackTrace);
+      return;
+    }
     try {
       await GetIt.instance<IncidentLoggerService>().captureLog(
         error,
         stackTrace: stackTrace,
       );
     } catch (_) {
-      // Logging is best effort; it must not hide the retry affordance.
+      _reportDreamsAndGoalsFailure(error, stackTrace);
     }
   }
 
-  bool _dreamsAndGoalsSourcesAreAligned(UserInformation userInformation) {
-    return listEquals(
-      userInformation.dreamsAndGoalsSelectionSources,
-      normalizeDreamsAndGoalsSelectionSources(
-        userInformation.dreamsAndGoals,
-        userInformation.dreamsAndGoalsSelectionSources,
+  void _reportDreamsAndGoalsFailure(Object error, StackTrace stackTrace) {
+    FlutterError.reportError(
+      FlutterErrorDetails(
+        exception: error,
+        stack: stackTrace,
+        library: 'ShareForm',
+        context: ErrorDescription('while persisting ShareForm state'),
       ),
     );
   }
@@ -716,7 +841,7 @@ class _ShareFormState extends WizardStepState<ShareForm> {
         userInformation.dreamsAndGoals.isEmpty) {
       return false;
     }
-    return _dreamsAndGoalsSourcesAreAligned(userInformation);
+    return userInformation.dreamsAndGoalsSourcesAreAligned;
   }
 
   Widget buildDreamsAndGoalsSection(BuildContext context, String gender) {
@@ -797,7 +922,7 @@ class _ShareFormState extends WizardStepState<ShareForm> {
     );
     await Future.wait<void>([
       _persistInlineDreamsAndGoals(userInformation),
-      userInformation.pendingCustomCategoriesSave,
+      _prepareCustomCategories(),
     ]);
   }
 
@@ -809,10 +934,7 @@ class _ShareFormState extends WizardStepState<ShareForm> {
     );
     await Future.wait<void>([
       _persistInlineDreamsAndGoals(userInformation, retry: true),
-      userInformation.retryCustomCategoriesSave(
-        userInformation.customCategoriesSaveRevision,
-        memoryService: widget.memoryService,
-      ),
+      _prepareCustomCategories(retry: true),
     ]);
   }
 
@@ -872,7 +994,9 @@ class _ShareFormState extends WizardStepState<ShareForm> {
                           }
                           await showShareDialog(
                             context,
-                            memoryService: widget.memoryService,
+                            memoryService:
+                                widget.memoryService ??
+                                userInfoProvider.service,
                           );
                         }),
                       );
@@ -906,8 +1030,10 @@ class _ShareFormState extends WizardStepState<ShareForm> {
                             username: userInfoProvider.name,
                             appInformation: appInfoProvider,
                             userInformation: userInfoProvider,
+                            memoryService:
+                                widget.memoryService ??
+                                userInfoProvider.service,
                             fileService: fileService,
-                            memoryService: widget.memoryService,
                           );
                         }),
                       );

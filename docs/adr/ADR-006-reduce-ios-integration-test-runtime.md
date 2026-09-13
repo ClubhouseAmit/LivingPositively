@@ -5,6 +5,65 @@
 - **Deciders**:
 - **Tags**: ci, ios, flutter, github-actions, coverage, performance
 
+## 2026-09-02 operational update: missed VM-service announcement
+
+The blocking iOS FCM test and existing time limits are unchanged. In
+[run 33601851012](https://github.com/ClubhouseAmit/LivingPositively/actions/runs/33601851012),
+Xcode completed its build, and `simulator.log` recorded Runner's VM service
+at 07:52:56. Flutter's own log reader missed that announcement and waited
+until the 90-minute step timeout. The post-timeout diagnostic relaunch let
+the surviving Flutter process attach and report one passing test, but could
+not reverse the timed-out GitHub check.
+
+`scripts/recover_ios_vm_service.sh` now watches during the test step. It
+relaunches the installed test app at most once, only when Flutter is waiting
+for discovery, the exact Runner PID is still alive, and the independent
+simulator log confirms that PID announced a VM service. After a two-minute
+grace period it checks again that Flutter has not connected and the PID has
+not changed. It preserves Flutter's debug launch arguments and original test
+process. Connected tests, assertion failures, crashes, and missing evidence
+do not qualify for recovery; the original `flutter test` exit status remains
+the gate. Each Flutter attempt gets a fresh attempt log and a byte offset into
+the simulator stream; announcements before that offset cannot authorize a
+relaunch, even if a PID is reused. Recovery is disabled if the recorded Flutter
+launch arguments differ from the verified debug flags in the script. The watcher polls
+for the full 90-minute parent budget (including the 80–90 minute window).
+The parent stops and reaps it immediately when each Flutter attempt returns,
+before FrontBoard retry/reset or post-test diagnostics, with EXIT cleanup as
+a fallback.
+
+The watcher, simulator-log stream, and diagnostic watchdog each run inside a
+dedicated Bash process group. Their wrapper leaders remain stopped after normal
+command completion until cleanup, preventing ordinary completion from releasing
+the owned group ID. Cleanup records the actual PID/PGID, parent PID, and start
+time; it refuses to signal missing or mismatched owners. It freezes the group,
+rechecks the stopped leader, sends one kill, polls for live members with a
+bounded wait, and reaps only the owner PID. It does not repeatedly signal a
+retired numeric group ID. This covers late-forked/reparented descendants that
+remain in the owned group, not processes that deliberately leave it.
+
+The EXIT trap attempts all diagnostic cleanups independently, reports cleanup
+failures separately, and preserves its incoming status, including success. If
+watcher cleanup fails between test attempts, no retry or post-test simulator
+action is allowed; an existing test failure is preserved, or a successful test
+becomes an explicit cleanup failure. The foreground Flutter test and simulator
+Runner are not diagnostic cleanup targets. The shell's identity checks are not
+an atomic OS process handle: external SIGKILL/PID reuse between `ps` and `kill`
+remains outside this runner-local ownership guarantee.
+
+The recovery log is included in `ios-integration-diagnostics`. Its shell
+regressions run in `build-android` via
+`bash scripts/tests/recover_ios_vm_service_test.sh`; they check the real log
+predicates with fake simulator commands and no wall-clock sleeps.
+`python3 scripts/tests/recover_ios_vm_service_cli_test.py` also exercises the
+actual child-process entrypoint, exit statuses, full polling budget, and late
+recovery. Its cleanup tests execute the complete production workflow run block
+with fake external tools, retaining real process groups and the actual EXIT
+trap, launch order, retry gate, and status propagation.
+Reassess
+this CI-only workaround when upgrading the pinned Flutter SDK. No runtime
+application behavior or coverage threshold is changed.
+
 ## Context
 
 ADR-005 introduced the `integration-test-ios` GitHub Actions job to cover
@@ -97,6 +156,11 @@ to unit/widget tests where possible.
 
 ### Quality gate shape: downgrade `integration-test-ios` to telemetry
 
+> **Superseded on 2026-08-05:** `integration-test-ios` is now a blocking
+> simulator test of `integration_test/notifications_schedule_test.dart`. It no
+> longer collects or uploads iOS lcov, and the former iOS-only test and checker
+> were removed. The decision text below is retained as historical context.
+
 Effective with this ADR, `integration-test-ios` is **non-blocking telemetry**:
 
 1. The `flutter test` step and the per-file iOS coverage floor step both run
@@ -106,9 +170,10 @@ Effective with this ADR, `integration-test-ios` is **non-blocking telemetry**:
    `coverage/integration_ios.info` is no longer merged into the aggregate.
    `scripts/check_aggregate_coverage.dart` no longer treats the iOS lcov as a
    required input.
-3. Artifacts (`coverage-integration-ios-lcov`, `ios-podfile-lock`) continue to
-   upload on `if: always()` so PR reviewers retain the iOS coverage trace and
-   the generated `Podfile.lock` needed for the deferred commit follow-up.
+3. At the time of this decision, `coverage-integration-ios-lcov` and
+   `ios-podfile-lock` continued to upload on `if: always()`. Under the
+   2026-08-05 supersession, the coverage artifact was removed; the current job
+   retains the Podfile lockfile and diagnostic artifacts only.
 
 Telemetry is still explicitly time-bounded. The job has a 60-minute ceiling,
 the simulator boot wait has a 10-minute ceiling, and the `flutter test` step

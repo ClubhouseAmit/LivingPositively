@@ -9,14 +9,28 @@
 
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:get_it/get_it.dart';
 import 'package:mazilon/global_enums.dart';
 import 'package:mazilon/pages/positive.dart';
 import 'package:mazilon/pages/thankYou.dart';
 import 'package:mazilon/util/Thanks/AddForm.dart';
 import 'package:mazilon/util/Traits/positiveTraitItemSug.dart';
 import 'package:mazilon/util/userInformation.dart';
+import 'package:mazilon/util/persistent_memory_service.dart';
 
 import '../helpers/widget_test_scaffold.dart';
+
+final class _FailingPositiveTraitsMemoryService
+    extends FakePersistentMemoryService {
+  _FailingPositiveTraitsMemoryService() {
+    store['positiveTraits'] = <String>['Kind', 'Brave'];
+    onPersist = (String key, PersistentMemoryType type, Object value) {
+      if (key == 'positiveTraits') {
+        throw StateError('positive traits persistence failed');
+      }
+    };
+  }
+}
 
 Future<void> _advancePastInitDelayAndDismiss(WidgetTester tester) async {
   await tester.pump(const Duration(seconds: 11));
@@ -127,6 +141,44 @@ void main() {
       expect(user.positiveTraits.length, 1);
 
       await _advancePastInitDelayAndDismiss(tester);
+    },
+  );
+
+  testWidgets(
+    'failed trait deletion keeps the rendered and provider state unchanged',
+    (tester) async {
+      user.updatePositiveTraits(<String>['Kind', 'Brave']);
+      await memory.setItem(
+        'positiveTraits',
+        PersistentMemoryType.StringList,
+        <String>['Kind', 'Brave'],
+      );
+      await GetIt.instance.unregister<PersistentMemoryService>();
+      GetIt.instance.registerSingleton<PersistentMemoryService>(
+        _FailingPositiveTraitsMemoryService(),
+      );
+
+      await pumpWithProviders(
+        tester,
+        const Positive(),
+        userInformation: user,
+        surfaceSize: const Size(1024, 2400),
+      );
+
+      final trashButton = find
+          .ancestor(
+            of: find.byIcon(Icons.delete).first,
+            matching: find.byType(MaterialButton),
+          )
+          .first;
+      await tester.tap(trashButton, warnIfMissed: false);
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('Delete'), warnIfMissed: false);
+      await tester.pumpAndSettle();
+
+      expect(user.positiveTraits, <String>['Kind', 'Brave']);
+      expect(find.byType(ThankYou), findsNWidgets(2));
+      expect(tester.takeException(), isNull);
     },
   );
 

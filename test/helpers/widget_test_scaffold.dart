@@ -18,6 +18,7 @@ import 'package:image_picker/image_picker.dart';
 import 'package:mazilon/AnalyticsService.dart';
 import 'package:mazilon/Locale/locale_service.dart';
 import 'package:mazilon/file_service.dart';
+import 'package:mazilon/util/personal_plan_export_snapshot.dart';
 import 'package:mazilon/form/wizard_step.dart';
 import 'package:mazilon/global_enums.dart';
 import 'package:mazilon/l10n/app_localizations.dart';
@@ -131,6 +132,7 @@ class NoopFileService implements FileService {
     required String mainTitle,
     required String textDirection,
     PersistentMemoryService? memoryService,
+    PersonalPlanExportSnapshot? snapshot,
     Set<String>? approvedPdfHosts,
   }) async {
     downloadCalls++;
@@ -147,6 +149,7 @@ class NoopFileService implements FileService {
     required String mainTitle,
     required String textDirection,
     PersistentMemoryService? memoryService,
+    PersonalPlanExportSnapshot? snapshot,
     Set<String>? approvedPdfHosts,
   }) async {
     shareCalls++;
@@ -343,6 +346,9 @@ TestServiceLocators registerTestServices({String locale = 'en'}) {
   if (getIt.isRegistered<VideoPlayerPageFactory>()) {
     getIt.unregister<VideoPlayerPageFactory>();
   }
+  if (getIt.isRegistered<GlobalKey<NavigatorState>>()) {
+    getIt.unregister<GlobalKey<NavigatorState>>();
+  }
   if (getIt.isRegistered<SosLocationService>()) {
     getIt.unregister<SosLocationService>();
   }
@@ -367,6 +373,9 @@ TestServiceLocators registerTestServices({String locale = 'en'}) {
   getIt.registerSingleton<ImagePickerService>(picker);
   getIt.registerSingleton<LocaleService>(localeService);
   getIt.registerSingleton<VideoPlayerPageFactory>(videoFactory);
+  getIt.registerLazySingleton<GlobalKey<NavigatorState>>(
+    () => GlobalKey<NavigatorState>(),
+  );
   getIt.registerSingleton<SosLocationService>(sosLocationService);
   getIt.registerSingleton<SpeechRecognitionService>(speechRecognitionService);
 
@@ -490,7 +499,10 @@ List<dynamic> drainOverflowExceptions(WidgetTester tester) {
 /// tests that exercise one step in isolation don't each repeat the frame.
 Widget wizardStepHarness(WizardStep step) => Scaffold(
   body: Column(
-    children: [Expanded(child: step), WizardActions(step: step)],
+    children: [
+      Expanded(child: step),
+      WizardActions(step: step),
+    ],
   ),
 );
 

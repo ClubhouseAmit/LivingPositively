@@ -5,6 +5,7 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:get_it/get_it.dart';
 import 'package:mazilon/global_enums.dart';
+import 'package:mazilon/util/logger_service.dart';
 import 'package:mazilon/util/persistent_memory_service.dart';
 import 'package:mazilon/util/type_utils.dart';
 
@@ -110,6 +111,13 @@ class PhonePageData extends ChangeNotifier {
     final normalized = normalizeDialablePhoneNumber(value);
     if (normalized == null) {
       return null;
+    }
+
+    // Emergency and service short codes are dialed locally. Prefixing their
+    // selected country's dial code turns, for example, 100 into +972100.
+    if (!normalized.startsWith('00') &&
+        RegExp(r'^\d{3,6}$').hasMatch(normalized)) {
+      return normalized;
     }
 
     final internationalNumber = normalized.startsWith('00')
@@ -236,27 +244,43 @@ class PhonePageData extends ChangeNotifier {
   }
 
   Future<void> saveItemsToPrefs() async {
-    PersistentMemoryService service =
-        GetIt.instance<
-          PersistentMemoryService
-        >(); // Get the persistent memory service instance
-    await service.setItem(
-      '${key}SavedPhoneNames',
-      PersistentMemoryType.StringList,
-      savedPhoneNames,
-    );
-    await service.setItem(
-      '${key}SavedPhoneNumbers',
-      PersistentMemoryType.StringList,
-      savedPhoneNumbers,
-    );
+    try {
+      final service = GetIt.instance<PersistentMemoryService>();
+      await service.setItem(
+        '${key}SavedPhoneNames',
+        PersistentMemoryType.StringList,
+        savedPhoneNames,
+      );
+      await service.setItem(
+        '${key}SavedPhoneNumbers',
+        PersistentMemoryType.StringList,
+        savedPhoneNumbers,
+      );
+    } catch (error, stackTrace) {
+      // Background mutators use [_saveItemsToPrefsInBackground] to contain
+      // this failure. Awaited callers need the original failure so they do
+      // not advance the form after contact persistence failed.
+      if (GetIt.instance.isRegistered<IncidentLoggerService>()) {
+        try {
+          await GetIt.instance<IncidentLoggerService>().captureLog(
+            error,
+            stackTrace: stackTrace,
+          );
+        } catch (_) {
+          // A failed reporter must not turn a persistence failure back into
+          // an unhandled zone error.
+        }
+      }
+      debugPrint('Unable to persist saved phone contacts.');
+      Error.throwWithStackTrace(error, stackTrace);
+    }
   }
 
   Future<void> _saveItemsToPrefsInBackground() async {
     try {
       await saveItemsToPrefs();
-    } catch (error, stackTrace) {
-      debugPrint('Could not save emergency contacts: $error\n$stackTrace');
+    } catch (_) {
+      debugPrint('Unable to persist saved phone contacts.');
     }
   }
 }
