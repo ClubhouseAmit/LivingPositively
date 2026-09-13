@@ -23,6 +23,11 @@ as the baseline for this decision.
 | `notification_deliveries/{deliveryKey}` | `base64url(JSON([uid, type, date, time]))` | per-user delivery claim |
 | `notification_scheduler_state/primary` | singleton | scheduler checkpoint |
 | `notification_types/{typeId}` | type identifier | notification type configuration |
+| `quotes_he`, `quotes_ar`, `quotes_en` | `inspirationalQuotesNo<N>` | notification body content |
+
+The `quotes_*` collections are new here for the same reason as the rest: the
+retired Android scheduler composed notifications locally, so the quote text
+lived in the client. Moving delivery to FCM moved the content server-side.
 
 None of these are referenced on `main`. No Flutter client code reads any of
 them: every client interaction goes through the authenticated HTTPS Cloud
@@ -91,7 +96,7 @@ document `get`s.
 `firestore.rules` is registered in `firebase.json` and deployed by CI. Console
 edits are drift and are surfaced as a failing check, not silently overwritten.
 
-**2. All five new collections are server-only.** No client, authenticated or
+**2. Every collection this branch introduces is server-only.** No client, authenticated or
 not, reads or writes them directly. Admin SDK access from Cloud Functions is
 unaffected because it bypasses rules.
 
@@ -106,7 +111,7 @@ function serverOnlyCollection(collectionId) {
     "notification_scheduler_state",
     "notification_mutation_state",
     "notification_types"
-  ];
+  ] || collectionId.matches("quotes_.*");
 }
 
 match /{collectionId}/{document=**} {
@@ -158,6 +163,16 @@ implemented," which is accurate for the client and not for the server.
 Constraint 3 is an application authorization rule; constraints 1 and 4 are
 data access rules. They belong at different layers on purpose — but both
 layers have to actually exist.
+
+The structural collections are named explicitly because they are fixed by the
+schema. The quote collections are matched by prefix because their names are
+**data-driven**: the scheduler resolves them from
+`notification_types.quotesCollections[locale]` (`functions/src/index.ts:1360`),
+so adding a locale creates a new collection without any code change here. A
+literal list would silently leave `quotes_ru` world-readable the day someone
+adds Russian content. `matches()` is a full match in Firestore rules, and the
+pattern fails closed: a future `quotes_*` collection is denied until someone
+deliberately decides otherwise.
 
 **6. The denylist is collection-scoped, not type-scoped.** New notification
 types and user-defined custom reminders are new *documents* in the same
@@ -283,18 +298,15 @@ production today.
 - CI gains a rules deployment path, which makes the repository the single
   writer for production authorization policy.
 
-## Open question for the deciders
+## Resolved questions
 
-`quotes_he`, `quotes_ar`, and `quotes_en` are written by
-`provision:notifications` and read only by the scheduler; no client code reads
-them. They are new to the *codebase* on this branch, but the provisioning
-contract's rule that it must not delete non-generated documents implies the
-collections already hold Rowy-managed content in production, which would make
-them pre-existing *data* under constraint 2.
-
-This ADR leaves them on their current policy. Confirm that reading: if those
-collections are in fact new in production, they should be added to the
-denylist as server-only.
+**Are `quotes_*` pre-existing data?** No. An earlier draft inferred from the
+provisioning contract's refusal to delete non-generated documents that these
+collections already held Rowy-managed content, which would have made them
+pre-existing under constraint 2. That inference was wrong. The retired Android
+scheduler composed notifications on the device, so quote content was local;
+the collections exist only because FCM delivery moved composition to the
+server. They are new, constraint 1 applies, and they are server-only.
 
 ## Links
 
@@ -326,3 +338,11 @@ denylist as server-only.
   Revised in place rather than as a superseding record because the ADR has not
   been accepted by any decider; the original text remains in git history at
   `3060c3a`.
+- **2026-09-13** — `quotes_*` open question resolved by the repository owner:
+  the collections are new on this branch, because the retired Android
+  scheduler composed notifications locally and the quote content moved
+  server-side only when FCM took over delivery. Added to the denylist as a
+  prefix match rather than three literal names, since the scheduler resolves
+  the collection name from `notification_types.quotesCollections[locale]` and
+  a new locale would otherwise land outside the denylist. Decision 2 reworded
+  away from a literal count, which the prefix match makes open-ended.
