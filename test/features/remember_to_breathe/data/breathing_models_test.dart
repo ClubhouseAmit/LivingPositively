@@ -158,7 +158,7 @@ void main() {
         '[]',
         '{}',
         jsonEncode({...good, 'version': 2}),
-        jsonEncode({...good, 'version': 1.0}),
+        jsonEncode({...good, 'version': 1.5}),
         jsonEncode({...good, 'settings': null}),
         jsonEncode({...good, 'sessions': null}),
         jsonEncode({
@@ -181,7 +181,7 @@ void main() {
         {'showCircle': 1},
         {'showText': null},
         {'personalPhotoBase64': 7},
-        {'inhaleMicroseconds': 3000000.0},
+        {'inhaleMicroseconds': 3000000.5},
         {'exhaleMicroseconds': 10000000},
       ]) {
         expect(

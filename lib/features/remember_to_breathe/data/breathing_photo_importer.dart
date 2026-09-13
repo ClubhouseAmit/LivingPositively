@@ -1,8 +1,8 @@
 import 'dart:convert';
 import 'dart:math' as math;
-import 'dart:typed_data';
 import 'dart:ui' as ui;
 
+import 'package:flutter/foundation.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:mazilon/pages/FeelGood/image_picker_service_impl.dart';
 
@@ -49,8 +49,8 @@ class BreathingPhotoImporter {
       ui.ImageDescriptor? descriptor;
       try {
         descriptor = await ui.ImageDescriptor.encoded(buffer);
-        if (descriptor.width > maximumDimension ||
-            descriptor.height > maximumDimension) {
+        final size = await _intrinsicSize(descriptor);
+        if (size.width > maximumDimension || size.height > maximumDimension) {
           throw const BreathingPhotoException();
         }
         final codec = await descriptor.instantiateCodec();
@@ -72,6 +72,25 @@ class BreathingPhotoImporter {
       rethrow;
     } catch (_) {
       throw const BreathingPhotoException();
+    }
+  }
+
+  static Future<({int width, int height})> _intrinsicSize(
+    ui.ImageDescriptor descriptor,
+  ) async {
+    if (!kIsWeb) {
+      return (width: descriptor.width, height: descriptor.height);
+    }
+    // Encoded descriptor dimension getters are unsupported on Flutter web.
+    // Decode only the first frame to inspect its dimensions before resizing.
+    final codec = await descriptor.instantiateCodec();
+    ui.Image? image;
+    try {
+      image = (await codec.getNextFrame()).image;
+      return (width: image.width, height: image.height);
+    } finally {
+      image?.dispose();
+      codec.dispose();
     }
   }
 
@@ -104,13 +123,14 @@ class BreathingPhotoImporter {
     ui.ImageDescriptor? descriptor;
     try {
       descriptor = await ui.ImageDescriptor.encoded(buffer);
-      final longestEdge = math.max(descriptor.width, descriptor.height);
+      final size = await _intrinsicSize(descriptor);
+      final longestEdge = math.max(size.width, size.height);
       var targetEdge = math.min(maximumDimension, longestEdge);
       while (true) {
         final scale = targetEdge / longestEdge;
         final codec = await descriptor.instantiateCodec(
-          targetWidth: math.max(1, (descriptor.width * scale).round()),
-          targetHeight: math.max(1, (descriptor.height * scale).round()),
+          targetWidth: math.max(1, (size.width * scale).round()),
+          targetHeight: math.max(1, (size.height * scale).round()),
         );
         ui.Image? image;
         try {

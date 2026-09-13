@@ -148,6 +148,26 @@ void main() {
       }
     });
 
+    test('should bound portrait and one-pixel-wide image dimensions', () async {
+      for (final dimensions in [
+        (width: 800, height: 1600, outputWidth: 384, outputHeight: 768),
+        (width: 1, height: 1600, outputWidth: 1, outputHeight: 768),
+      ]) {
+        pickedBytes(await _png(dimensions.width, dimensions.height));
+        final output = (await importer.pickPhoto())!;
+        await BreathingPhotoImporter.validatePhoto(output);
+        final codec = await ui.instantiateImageCodec(base64Decode(output));
+        final image = (await codec.getNextFrame()).image;
+        try {
+          expect(image.width, dimensions.outputWidth);
+          expect(image.height, dimensions.outputHeight);
+        } finally {
+          image.dispose();
+          codec.dispose();
+        }
+      }
+    });
+
     test(
       'should reduce noisy PNGs again until output is within 512 KiB',
       () async {
