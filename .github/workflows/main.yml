@@ -190,6 +190,8 @@ jobs:
             test_file: integration_test/notifications_schedule_test.dart
           - id: personal-plan-info-modal
             test_file: integration_test/personal_plan_info_modal_test.dart
+          - id: remember-to-breathe
+            test_file: integration_test/remember_to_breathe_test.dart
     env:
       FIREBASE_OPTIONS_PATH: lib/util/Firebase/firebase_options.dart
     steps:
@@ -460,7 +462,7 @@ jobs:
     # iOS coverage no longer applies.
     #
     # The job continues to:
-    #   1. Run `notifications_schedule_ios_test.dart` on the iOS simulator.
+    #   1. Run notifications and breathing persistence on the iOS simulator.
     #   2. Compute per-file lcov for the iOS arms of NotificationsService.
     #   3. Evaluate scripts/check_ios_integration_coverage.dart (60% floor
     #      on lib/pages/notifications/notification_service.dart) as
@@ -587,8 +589,9 @@ jobs:
         # 3. SENTRY_DSN dart-define is a synthetic test value — Sentry's
         #    native SDK never reaches the network because the channel is
         #    mocked inside the test setUp. Symmetric with the Android job.
-        # 4. We run ONLY `notifications_schedule_ios_test.dart` here, not the
-        #    whole `integration_test/` directory. The other integration tests
+        # 4. Run the iOS notification test and platform-neutral breathing
+        #    persistence test, not the whole `integration_test/` directory.
+        #    The other integration tests
         #    (bootstrap_smoke, wellness_player, logger_init,
         #    notifications_schedule) are Android-targeted and have no value
         #    on iOS. Running them on iOS would either pass tautologically
@@ -645,7 +648,7 @@ jobs:
           trap cleanup_ios_diagnostics EXIT
 
           set +e
-          flutter --verbose test integration_test/notifications_schedule_ios_test.dart --no-pub --coverage --coverage-path coverage/integration_ios.info --dart-define=SENTRY_DSN=https://test@dsn.example.local/0 -d "$DEVICE_ID" 2>&1 | tee ci-ios-diagnostics/flutter-test.log
+          flutter --verbose test integration_test/notifications_schedule_ios_test.dart integration_test/remember_to_breathe_test.dart --no-pub --coverage --coverage-path coverage/integration_ios.info --dart-define=SENTRY_DSN=https://test@dsn.example.local/0 -d "$DEVICE_ID" 2>&1 | tee ci-ios-diagnostics/flutter-test.log
           TEST_EXIT=${PIPESTATUS[0]}
           set -e
 
@@ -779,6 +782,18 @@ jobs:
         continue-on-error: true
         run: |
           flutter test --platform chrome --coverage --dart-define=SENTRY_DSN=https://test@dsn.example.local/0
+
+      - name: Run breathing browser flows and image codecs (telemetry)
+        # These tests are self-contained so Flutter's browser bundler does not
+        # need the top-level test_support imports used by legacy test helpers.
+        # Keep feature results visible even when the full web suite cannot load.
+        continue-on-error: true
+        run: >-
+          flutter test --platform chrome
+          test/features/remember_to_breathe/ui/breathing_browser_flow_test.dart
+          test/features/remember_to_breathe/ui/breathing_view_model_test.dart
+          test/features/remember_to_breathe/data/breathing_photo_importer_test.dart
+          test/features/remember_to_breathe/data/breathing_models_test.dart
 
       - name: Upload web coverage report (telemetry — may be missing or stale)
         if: always()

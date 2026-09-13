@@ -834,5 +834,107 @@
       "withMood": {"type": "String"},
       "withoutMood": {"type": "String"}
     }
-  }
+  },
+  "breathingTitle": "تذكّر أن تتنفّس",
+  "breathingIntro": "خذوا لحظة لأنفسكم مع ثماني دورات تنفّس هادئة.",
+  "breathingGuidance": "في المرّات الأولى، يُنصح بالتدرّب أثناء الاستلقاء أو الجلوس براحة. ضعوا يدًا برفق على البطن وأخرى على الصدر، ولاحظوا كيف ترتفع اليد على البطن مع الشهيق وتنخفض مع الزفير.",
+  "breathingCredits": "استُوحي تمرين «تذكّر أن تتنفّس» من تطبيق Breathe2Relax التابع لـ T2 / وزارة الدفاع الأمريكية. يستند التمرين إلى بروتوكولات بحثية لتنظيم استجابات الجسم، إلى جانب رؤى وإرشادات خبراء من واقع التجربة في مجال الصحة النفسية والتأهيل، لتعزيز المرونة النفسية في تطبيق Living Positively.",
+  "breathingInfo": "حول التمرين",
+  "breathingExplanation": "في التنفّس السطحي يتحرّك الجزء العلوي من الصدر غالبًا. في التنفّس الحجابي، تنفّسوا برفق عبر الأنف ودعوا البطن يرتفع مع الشهيق ويهبط مع الزفير. اختاروا إيقاعًا مريحًا. يمكنكم التوقّف مؤقّتًا أو إنهاء التمرين متى شئتم.",
+  "breathingQuickStart": "بدء سريع",
+  "breathingCustomize": "تخصيص",
+  "breathingHistory": "سجلّ التمارين",
+  "breathingBasic": "تمرين أساسي",
+  "breathingBox": "التنفّس المربّع",
+  "breathingCustom": "تمرين مخصّص",
+  "breathingStart": "بدء التمرين المختار",
+  "breathingSkip": "تخطّي",
+  "breathingNext": "التالي",
+  "breathingSave": "حفظ الإعدادات",
+  "breathingBack": "رجوع",
+  "breathingStep": "الخطوة {step} من 3",
+  "@breathingStep": {
+    "placeholders": {
+      "step": {
+        "type": "int"
+      }
+    }
+  },
+  "breathingBackground": "اختيار خلفية",
+  "breathingForest": "غابة",
+  "breathingMountains": "جبال",
+  "breathingCosmos": "فضاء",
+  "breathingBeach": "شاطئ",
+  "breathingFlowers": "زهور",
+  "breathingSunset": "غروب",
+  "breathingHouse": "منزل بسيط",
+  "breathingMonastery": "دير",
+  "breathingPersonal": "صورتي",
+  "breathingChoosePhoto": "اختيار صورة شخصية",
+  "breathingPhotoLocal": "تُحفظ نسخة مصغّرة من صورة واحدة على هذا الجهاز فقط، ولا تُرفع إلى أي خادم.",
+  "breathingInhaleDuration": "مدّة الشهيق",
+  "breathingExhaleDuration": "مدّة الزفير",
+  "breathingInhale": "شهيق",
+  "breathingExhale": "زفير",
+  "breathingHold": "احبسوا النفس",
+  "breathingMeasure": "اضغطوا باستمرار للقياس",
+  "breathingMeasureHint": "اتركوا الزر عند انتهاء النفس. اختاروا بين 3 و9 ثوانٍ، أو استخدموا زرّي الناقص والزائد.",
+  "breathingSeconds": "{seconds} ثانية",
+  "@breathingSeconds": {
+    "placeholders": {
+      "seconds": {
+        "type": "String"
+      }
+    }
+  },
+  "breathingDecrease": "تقليل المدّة ثانية واحدة",
+  "breathingIncrease": "زيادة المدّة ثانية واحدة",
+  "breathingPreMessage": "لنطمئن على شعوركم الآن. هذا التمرين دعوة للاسترخاء وإبطاء الإيقاع.",
+  "breathingStressQuestion": "ما مستوى التوتّر الذي تشعرون به؟ (1–10)",
+  "breathingNoRating": "لم يُسجّل",
+  "breathingBefore": "قبل",
+  "breathingAfter": "بعد",
+  "breathingCompleteMessage": "أحسنتم. منحتم جسمكم ونفسكم لحظة من الهدوء والاسترخاء وإبطاء الإيقاع. كلّ تمرين كهذا يقوّيكم.",
+  "breathingStoppedMessage": "كلّ نفس واعٍ أخذتموه هو مكسب لكم. من الجيّد أنكم أصغيتم إلى جسمكم وتوقّفتم عندما شعرتم أنّ ذلك مناسب. يمكنكم العودة إلى التمرين متى شئتم.",
+  "breathingPause": "توقّف مؤقّت",
+  "breathingPaused": "التمرين متوقّف مؤقّتًا",
+  "breathingContinue": "متابعة",
+  "breathingRestart": "البدء من جديد",
+  "breathingEnd": "إنهاء التمرين",
+  "breathingDone": "تمّ",
+  "breathingShowCircle": "إظهار دائرة التنفّس",
+  "breathingHideCircle": "إخفاء دائرة التنفّس",
+  "breathingShowText": "إظهار نصّ الإرشادات",
+  "breathingHideText": "إخفاء نصّ الإرشادات",
+  "breathingShowControls": "إظهار أدوات التحكّم",
+  "breathingHideControls": "إخفاء أدوات التحكّم",
+  "breathingCycle": "الدورة {cycle} من 8",
+  "@breathingCycle": {
+    "placeholders": {
+      "cycle": {
+        "type": "int"
+      }
+    }
+  },
+  "breathingCompletedCycles": "الدورات المكتملة: {cycles} من 8",
+  "@breathingCompletedCycles": {
+    "placeholders": {
+      "cycles": {
+        "type": "int"
+      }
+    }
+  },
+  "breathingLoading": "جارٍ تحميل التمرين…",
+  "breathingRetry": "إعادة المحاولة",
+  "breathingSaveFailed": "لم تُحفظ التغييرات. يمكنكم إعادة المحاولة قبل المغادرة.",
+  "breathingError": "تعذّر إكمال الإجراء. ما زال اختياركم السابق محفوظًا.",
+  "breathingRecoveryTitle": "يحتاج سجلّ التمارين إلى الانتباه",
+  "breathingRecoveryBody": "تعذّرت قراءة بيانات التمرين المحفوظة. أعيدوا المحاولة للاحتفاظ بها، أو اختاروا حذف بيانات التنفّس غير القابلة للقراءة فقط.",
+  "breathingDiscard": "حذف بيانات التنفّس غير القابلة للقراءة",
+  "breathingDiscardConfirm": "سيؤدّي هذا إلى حذف إعدادات التنفّس والصورة والسجلّ غير القابلة للقراءة على هذا الجهاز. لا يمكن التراجع عن ذلك.",
+  "breathingCancel": "إلغاء",
+  "breathingLeaveWithoutSaving": "المغادرة دون حفظ",
+  "breathingHistoryEmpty": "ستظهر تمارينكم هنا.",
+  "breathingCompleted": "مكتمل",
+  "breathingStopped": "انتهى مبكّرًا"
 }

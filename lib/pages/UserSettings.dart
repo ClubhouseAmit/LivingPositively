@@ -2,6 +2,7 @@ import 'dart:async';
 import 'dart:math' as math;
 
 import 'package:flutter/material.dart';
+import 'package:mazilon/features/remember_to_breathe/data/breathing_store.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:get_it/get_it.dart';
 import 'package:mazilon/Locale/locale_service.dart';
@@ -517,6 +518,11 @@ class _UserSettingsState extends LPExtendedState<UserSettings> {
     LocaleService localeService = GetIt.instance<LocaleService>();
     final PersistentMemoryService service = userInfo.service;
 
+    // Cancel feature operations that have not reached the memory queue yet,
+    // so a delayed photo/history write cannot restore data after this reset.
+    if (GetIt.instance.isRegistered<BreathingStore>()) {
+      GetIt.instance<BreathingStore>().invalidatePendingWrites();
+    }
     await service.reset(); // Reset the persistent memory service
     await userInfo.reset(localeService.getLocale());
     var enteredBeforeValue = await service.getItem(

@@ -28,6 +28,7 @@ class Home extends StatefulWidget {
   final Function changeLocale;
   final void Function(BuildContext) openMainMenu;
   final VoidCallback? openMoodMedicineCheckIn;
+  final VoidCallback? openBreathing;
   final bool moodMedicineAvailable;
 
   const Home({
@@ -37,6 +38,7 @@ class Home extends StatefulWidget {
     required this.changeLocale,
     required this.openMainMenu,
     this.openMoodMedicineCheckIn,
+    this.openBreathing,
     this.moodMedicineAvailable = true,
   });
 
@@ -171,6 +173,7 @@ class _HomeState extends LPExtendedState<Home> {
                     );
                   },
                   onMoodMedicinePressed: widget.openMoodMedicineCheckIn,
+                  onBreathingPressed: widget.openBreathing,
                 ),
                 onMenuTap: () => widget.openMainMenu(context),
               ),

@@ -4033,6 +4033,450 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'This replaces only Mood Medicine history on this device with an empty history. This cannot be undone.'**
   String get moodMedicineDiscardUnreadableBody;
+
+  /// No description provided for @breathingTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Remember to Breathe'**
+  String get breathingTitle;
+
+  /// No description provided for @breathingIntro.
+  ///
+  /// In en, this message translates to:
+  /// **'Take a moment for yourself with eight gentle breathing cycles.'**
+  String get breathingIntro;
+
+  /// No description provided for @breathingGuidance.
+  ///
+  /// In en, this message translates to:
+  /// **'For the first few times, it is highly recommended to practice lying down or sitting comfortably. Gently place one hand on your stomach and the other on your chest, and feel how the hand on your stomach rises on the inhale and sinks on the exhale.'**
+  String get breathingGuidance;
+
+  /// No description provided for @breathingCredits.
+  ///
+  /// In en, this message translates to:
+  /// **'The \'Remember to Breathe\' practice was inspired by the Breathe2Relax app by T2 / US Department of Defense. The feature relies on research protocols for physiological regulation, combined with insights and guidance from lived-experience experts in mental health and rehabilitation, to strengthen mental resilience in the Living Positively app.'**
+  String get breathingCredits;
+
+  /// No description provided for @breathingInfo.
+  ///
+  /// In en, this message translates to:
+  /// **'About this practice'**
+  String get breathingInfo;
+
+  /// No description provided for @breathingExplanation.
+  ///
+  /// In en, this message translates to:
+  /// **'Shallow breathing often moves the upper chest. With diaphragmatic breathing, breathe gently through your nose and allow your belly to rise as you inhale and settle as you exhale. Choose a comfortable pace. You can pause or stop whenever you wish.'**
+  String get breathingExplanation;
+
+  /// No description provided for @breathingQuickStart.
+  ///
+  /// In en, this message translates to:
+  /// **'Quick start'**
+  String get breathingQuickStart;
+
+  /// No description provided for @breathingCustomize.
+  ///
+  /// In en, this message translates to:
+  /// **'Customize'**
+  String get breathingCustomize;
+
+  /// No description provided for @breathingHistory.
+  ///
+  /// In en, this message translates to:
+  /// **'Practice history'**
+  String get breathingHistory;
+
+  /// No description provided for @breathingBasic.
+  ///
+  /// In en, this message translates to:
+  /// **'Basic practice'**
+  String get breathingBasic;
+
+  /// No description provided for @breathingBox.
+  ///
+  /// In en, this message translates to:
+  /// **'Box breathing'**
+  String get breathingBox;
+
+  /// No description provided for @breathingCustom.
+  ///
+  /// In en, this message translates to:
+  /// **'Custom practice'**
+  String get breathingCustom;
+
+  /// No description provided for @breathingStart.
+  ///
+  /// In en, this message translates to:
+  /// **'Start selected practice'**
+  String get breathingStart;
+
+  /// No description provided for @breathingSkip.
+  ///
+  /// In en, this message translates to:
+  /// **'Skip'**
+  String get breathingSkip;
+
+  /// No description provided for @breathingNext.
+  ///
+  /// In en, this message translates to:
+  /// **'Next'**
+  String get breathingNext;
+
+  /// No description provided for @breathingSave.
+  ///
+  /// In en, this message translates to:
+  /// **'Save settings'**
+  String get breathingSave;
+
+  /// No description provided for @breathingBack.
+  ///
+  /// In en, this message translates to:
+  /// **'Back'**
+  String get breathingBack;
+
+  /// No description provided for @breathingStep.
+  ///
+  /// In en, this message translates to:
+  /// **'Step {step} of 3'**
+  String breathingStep(int step);
+
+  /// No description provided for @breathingBackground.
+  ///
+  /// In en, this message translates to:
+  /// **'Choose a background'**
+  String get breathingBackground;
+
+  /// No description provided for @breathingForest.
+  ///
+  /// In en, this message translates to:
+  /// **'Forest'**
+  String get breathingForest;
+
+  /// No description provided for @breathingMountains.
+  ///
+  /// In en, this message translates to:
+  /// **'Mountains'**
+  String get breathingMountains;
+
+  /// No description provided for @breathingCosmos.
+  ///
+  /// In en, this message translates to:
+  /// **'Cosmos'**
+  String get breathingCosmos;
+
+  /// No description provided for @breathingBeach.
+  ///
+  /// In en, this message translates to:
+  /// **'Beach'**
+  String get breathingBeach;
+
+  /// No description provided for @breathingFlowers.
+  ///
+  /// In en, this message translates to:
+  /// **'Flowers'**
+  String get breathingFlowers;
+
+  /// No description provided for @breathingSunset.
+  ///
+  /// In en, this message translates to:
+  /// **'Sunset'**
+  String get breathingSunset;
+
+  /// No description provided for @breathingHouse.
+  ///
+  /// In en, this message translates to:
+  /// **'Minimalist house'**
+  String get breathingHouse;
+
+  /// No description provided for @breathingMonastery.
+  ///
+  /// In en, this message translates to:
+  /// **'Monastery'**
+  String get breathingMonastery;
+
+  /// No description provided for @breathingPersonal.
+  ///
+  /// In en, this message translates to:
+  /// **'My photo'**
+  String get breathingPersonal;
+
+  /// No description provided for @breathingChoosePhoto.
+  ///
+  /// In en, this message translates to:
+  /// **'Choose a personal photo'**
+  String get breathingChoosePhoto;
+
+  /// No description provided for @breathingPhotoLocal.
+  ///
+  /// In en, this message translates to:
+  /// **'One resized photo is remembered on this device. It is never uploaded.'**
+  String get breathingPhotoLocal;
+
+  /// No description provided for @breathingInhaleDuration.
+  ///
+  /// In en, this message translates to:
+  /// **'Inhale duration'**
+  String get breathingInhaleDuration;
+
+  /// No description provided for @breathingExhaleDuration.
+  ///
+  /// In en, this message translates to:
+  /// **'Exhale duration'**
+  String get breathingExhaleDuration;
+
+  /// No description provided for @breathingInhale.
+  ///
+  /// In en, this message translates to:
+  /// **'Breathe in'**
+  String get breathingInhale;
+
+  /// No description provided for @breathingExhale.
+  ///
+  /// In en, this message translates to:
+  /// **'Breathe out'**
+  String get breathingExhale;
+
+  /// No description provided for @breathingHold.
+  ///
+  /// In en, this message translates to:
+  /// **'Hold'**
+  String get breathingHold;
+
+  /// No description provided for @breathingMeasure.
+  ///
+  /// In en, this message translates to:
+  /// **'Press and hold to measure'**
+  String get breathingMeasure;
+
+  /// No description provided for @breathingMeasureHint.
+  ///
+  /// In en, this message translates to:
+  /// **'Release when your breath ends. Choose 3-9 seconds, or use the minus and plus buttons.'**
+  String get breathingMeasureHint;
+
+  /// No description provided for @breathingSeconds.
+  ///
+  /// In en, this message translates to:
+  /// **'{seconds} seconds'**
+  String breathingSeconds(String seconds);
+
+  /// No description provided for @breathingDecrease.
+  ///
+  /// In en, this message translates to:
+  /// **'Decrease duration by one second'**
+  String get breathingDecrease;
+
+  /// No description provided for @breathingIncrease.
+  ///
+  /// In en, this message translates to:
+  /// **'Increase duration by one second'**
+  String get breathingIncrease;
+
+  /// No description provided for @breathingPreMessage.
+  ///
+  /// In en, this message translates to:
+  /// **'Let\'s check how you\'re doing right now. This practice is an invitation to relax and slow down.'**
+  String get breathingPreMessage;
+
+  /// No description provided for @breathingStressQuestion.
+  ///
+  /// In en, this message translates to:
+  /// **'How much stress do you feel? (1-10)'**
+  String get breathingStressQuestion;
+
+  /// No description provided for @breathingNoRating.
+  ///
+  /// In en, this message translates to:
+  /// **'Not recorded'**
+  String get breathingNoRating;
+
+  /// No description provided for @breathingBefore.
+  ///
+  /// In en, this message translates to:
+  /// **'Before'**
+  String get breathingBefore;
+
+  /// No description provided for @breathingAfter.
+  ///
+  /// In en, this message translates to:
+  /// **'After'**
+  String get breathingAfter;
+
+  /// No description provided for @breathingCompleteMessage.
+  ///
+  /// In en, this message translates to:
+  /// **'Well done. You gave your body and mind a moment of peace, relaxation, and slowing down. Every practice like this strengthens you.'**
+  String get breathingCompleteMessage;
+
+  /// No description provided for @breathingStoppedMessage.
+  ///
+  /// In en, this message translates to:
+  /// **'Every conscious breath you took is pure profit for you. It\'s excellent that you listened to your body and stopped when it felt right. You can come back and practice again anytime you want.'**
+  String get breathingStoppedMessage;
+
+  /// No description provided for @breathingPause.
+  ///
+  /// In en, this message translates to:
+  /// **'Pause'**
+  String get breathingPause;
+
+  /// No description provided for @breathingPaused.
+  ///
+  /// In en, this message translates to:
+  /// **'Practice paused'**
+  String get breathingPaused;
+
+  /// No description provided for @breathingContinue.
+  ///
+  /// In en, this message translates to:
+  /// **'Continue'**
+  String get breathingContinue;
+
+  /// No description provided for @breathingRestart.
+  ///
+  /// In en, this message translates to:
+  /// **'Restart'**
+  String get breathingRestart;
+
+  /// No description provided for @breathingEnd.
+  ///
+  /// In en, this message translates to:
+  /// **'End practice'**
+  String get breathingEnd;
+
+  /// No description provided for @breathingDone.
+  ///
+  /// In en, this message translates to:
+  /// **'Done'**
+  String get breathingDone;
+
+  /// No description provided for @breathingShowCircle.
+  ///
+  /// In en, this message translates to:
+  /// **'Show breathing circle'**
+  String get breathingShowCircle;
+
+  /// No description provided for @breathingHideCircle.
+  ///
+  /// In en, this message translates to:
+  /// **'Hide breathing circle'**
+  String get breathingHideCircle;
+
+  /// No description provided for @breathingShowText.
+  ///
+  /// In en, this message translates to:
+  /// **'Show guidance text'**
+  String get breathingShowText;
+
+  /// No description provided for @breathingHideText.
+  ///
+  /// In en, this message translates to:
+  /// **'Hide guidance text'**
+  String get breathingHideText;
+
+  /// No description provided for @breathingShowControls.
+  ///
+  /// In en, this message translates to:
+  /// **'Show controls'**
+  String get breathingShowControls;
+
+  /// No description provided for @breathingHideControls.
+  ///
+  /// In en, this message translates to:
+  /// **'Hide controls'**
+  String get breathingHideControls;
+
+  /// No description provided for @breathingCycle.
+  ///
+  /// In en, this message translates to:
+  /// **'Cycle {cycle} of 8'**
+  String breathingCycle(int cycle);
+
+  /// No description provided for @breathingCompletedCycles.
+  ///
+  /// In en, this message translates to:
+  /// **'Completed cycles: {cycles} of 8'**
+  String breathingCompletedCycles(int cycles);
+
+  /// No description provided for @breathingLoading.
+  ///
+  /// In en, this message translates to:
+  /// **'Loading your practice...'**
+  String get breathingLoading;
+
+  /// No description provided for @breathingRetry.
+  ///
+  /// In en, this message translates to:
+  /// **'Retry'**
+  String get breathingRetry;
+
+  /// No description provided for @breathingSaveFailed.
+  ///
+  /// In en, this message translates to:
+  /// **'Your changes have not been saved. You can retry before leaving.'**
+  String get breathingSaveFailed;
+
+  /// No description provided for @breathingError.
+  ///
+  /// In en, this message translates to:
+  /// **'This action could not be completed. Your previous selection is still here.'**
+  String get breathingError;
+
+  /// No description provided for @breathingRecoveryTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Practice history needs attention'**
+  String get breathingRecoveryTitle;
+
+  /// No description provided for @breathingRecoveryBody.
+  ///
+  /// In en, this message translates to:
+  /// **'Your saved practice data could not be read. Retry to keep it, or explicitly discard only unreadable breathing data.'**
+  String get breathingRecoveryBody;
+
+  /// No description provided for @breathingDiscard.
+  ///
+  /// In en, this message translates to:
+  /// **'Discard unreadable breathing data'**
+  String get breathingDiscard;
+
+  /// No description provided for @breathingDiscardConfirm.
+  ///
+  /// In en, this message translates to:
+  /// **'This removes unreadable breathing settings, photo, and history on this device. It cannot be undone.'**
+  String get breathingDiscardConfirm;
+
+  /// No description provided for @breathingCancel.
+  ///
+  /// In en, this message translates to:
+  /// **'Cancel'**
+  String get breathingCancel;
+
+  /// No description provided for @breathingLeaveWithoutSaving.
+  ///
+  /// In en, this message translates to:
+  /// **'Leave without saving'**
+  String get breathingLeaveWithoutSaving;
+
+  /// No description provided for @breathingHistoryEmpty.
+  ///
+  /// In en, this message translates to:
+  /// **'Your practice history will appear here.'**
+  String get breathingHistoryEmpty;
+
+  /// No description provided for @breathingCompleted.
+  ///
+  /// In en, this message translates to:
+  /// **'Completed'**
+  String get breathingCompleted;
+
+  /// No description provided for @breathingStopped.
+  ///
+  /// In en, this message translates to:
+  /// **'Ended early'**
+  String get breathingStopped;
 }
 
 class _AppLocalizationsDelegate

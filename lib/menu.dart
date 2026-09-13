@@ -15,6 +15,8 @@ import 'package:mazilon/pages/FeelGood/feelGood.dart';
 import 'package:mazilon/features/mood_medicine/ui/mood_medicine_page.dart';
 import 'package:mazilon/features/mood_medicine/ui/mood_medicine_view_model.dart';
 import 'package:mazilon/features/mood_medicine/ui/mood_medicine_view_state.dart';
+import 'package:mazilon/features/remember_to_breathe/ui/breathing_page.dart';
+import 'package:mazilon/features/remember_to_breathe/ui/breathing_view_model.dart';
 import 'package:mazilon/pages/WellnessTools/wellnessTools.dart';
 import 'package:mazilon/pages/notifications/notification_page.dart';
 import 'package:mazilon/pages/notifications/notification_service.dart';
@@ -47,11 +49,15 @@ import 'package:mazilon/l10n/app_localizations.dart';
 /// optional Mood Medicine feature first.
 typedef MoodMedicineViewModelFactory = MoodMedicineViewModel Function();
 
+/// Creates a model owned by one breathing page visit.
+typedef BreathingViewModelFactory = BreathingViewModel Function();
+
 class Menu extends StatefulWidget {
   final PhonePageData phonePageData;
   final bool hasFilled;
   final Function changeLocale;
   final MoodMedicineViewModelFactory? moodMedicineViewModelFactory;
+  final BreathingViewModelFactory? breathingViewModelFactory;
 
   const Menu({
     super.key,
@@ -59,6 +65,7 @@ class Menu extends StatefulWidget {
     required this.hasFilled,
     required this.changeLocale,
     this.moodMedicineViewModelFactory,
+    this.breathingViewModelFactory,
   });
 
   @override
@@ -75,6 +82,64 @@ class _MenuState extends LPExtendedState<Menu> {
   bool isFullScreen = false;
   late Widget currentScreen;
   int _homeSessionGeneration = 0;
+  BreathingViewModel? _breathingModel;
+  VoidCallback? _breathingListener;
+
+  bool get _breathingAvailable =>
+      widget.breathingViewModelFactory != null ||
+      GetIt.instance.isRegistered<BreathingViewModel>();
+
+  void _showBreathing() {
+    if (!_breathingAvailable) return;
+    _detachBreathing();
+    final model =
+        widget.breathingViewModelFactory?.call() ??
+        GetIt.instance<BreathingViewModel>();
+    _breathingModel = model;
+    void listen() {
+      if (!mounted ||
+          !identical(_breathingModel, model) ||
+          current != PagesCode.BreathingPage ||
+          isFullScreen == model.requiresFullscreen) {
+        return;
+      }
+      // Loading can notify while the child is mounting. Guard both ownership
+      // and route again after the frame, especially after an SOS departure.
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (mounted &&
+            identical(_breathingModel, model) &&
+            current == PagesCode.BreathingPage &&
+            isFullScreen != model.requiresFullscreen) {
+          setState(() => isFullScreen = model.requiresFullscreen);
+        }
+      });
+    }
+
+    _breathingListener = listen;
+    model.addListener(listen);
+    setState(() {
+      current = PagesCode.BreathingPage;
+      isFullScreen = false;
+      currentScreen = BreathingPage(key: ObjectKey(model), viewModel: model);
+    });
+  }
+
+  void _detachBreathing({bool emergency = false}) {
+    final model = _breathingModel;
+    final listener = _breathingListener;
+    _breathingModel = null;
+    _breathingListener = null;
+    if (model != null && listener != null) model.removeListener(listener);
+    if (emergency) model?.departForEmergency();
+    // The page retains disposal ownership; queued callbacks now fail identity
+    // checks and cannot change another page's fullscreen state.
+  }
+
+  @override
+  void dispose() {
+    _detachBreathing();
+    super.dispose();
+  }
 
   // Marks that the user has already opened the app before.
   Future<void> markFirstLaunchCompleted() async {
@@ -124,6 +189,10 @@ class _MenuState extends LPExtendedState<Menu> {
 
   //Function to change the current displayed page in the "home"
   void changeCurrentIndex(BuildContext context, PagesCode index) {
+    if (index == PagesCode.BreathingPage) {
+      _showBreathing();
+      return;
+    }
     final appLocale = AppLocalizations.of(context)!;
     final userInformation = Provider.of<UserInformation>(
       context,
@@ -144,8 +213,10 @@ class _MenuState extends LPExtendedState<Menu> {
       return;
     }
 
+    _detachBreathing(emergency: index == PagesCode.EmergencyPhones);
     setState(() {
       current = index;
+      isFullScreen = false;
       //adding pages to menu here:
 
       if (index == PagesCode.FullPlan) {
@@ -238,6 +309,7 @@ class _MenuState extends LPExtendedState<Menu> {
       changeLocale: widget.changeLocale,
       openMainMenu: _showMainMenu,
       openMoodMedicineCheckIn: _showMoodMedicineCheckIn,
+      openBreathing: _breathingAvailable ? _showBreathing : null,
       moodMedicineAvailable: _moodMedicineAvailable,
     );
   }
@@ -252,6 +324,7 @@ class _MenuState extends LPExtendedState<Menu> {
     if (viewModel == null) {
       return;
     }
+    _detachBreathing();
     setState(() {
       current = PagesCode.MoodMedicinePage;
       currentScreen = MoodMedicinePage(
@@ -304,6 +377,7 @@ class _MenuState extends LPExtendedState<Menu> {
   }
 
   void _showWellnessTools(AppInformation appInfoProvider) {
+    _detachBreathing();
     setState(() {
       currentScreen = WellnessTools(
         isFullScreen: isFullScreen,
@@ -328,6 +402,7 @@ class _MenuState extends LPExtendedState<Menu> {
       changeLocale: widget.changeLocale,
       isWeb: kIsWeb,
       onAboutPressed: () {
+        _detachBreathing();
         setState(() {
           currentScreen = About(version: version);
           current = PagesCode.About;
@@ -337,12 +412,14 @@ class _MenuState extends LPExtendedState<Menu> {
         if (!NotificationsService.supportsReminderSettings()) {
           return;
         }
+        _detachBreathing();
         setState(() {
           currentScreen = NotificationPage();
           current = PagesCode.NotificationPage;
         });
       },
       onMoodMedicinePressed: _showMoodMedicineCheckIn,
+      onBreathingPressed: _breathingAvailable ? _showBreathing : null,
     );
   }
 
@@ -403,6 +480,11 @@ class _MenuState extends LPExtendedState<Menu> {
         if (didPop) {
           return;
         } else {
+          if (current == PagesCode.BreathingPage &&
+              _breathingModel?.handleBack() == false) {
+            return;
+          }
+          _detachBreathing();
           if (current == PagesCode.Home) {
             SystemChannels.platform.invokeMethod('SystemNavigator.pop');
           }
@@ -448,6 +530,7 @@ class _MenuState extends LPExtendedState<Menu> {
                     ),
                   ),
             onPressed: () {
+              _detachBreathing(emergency: true);
               setState(() {
                 currentScreen = PhonePage(
                   phonePageData: widget.phonePageData,
@@ -483,6 +566,7 @@ class _MenuState extends LPExtendedState<Menu> {
                       child: _bottomNavigationButton(
                         key: const Key('bottomNavHome'),
                         onPressed: () {
+                          _detachBreathing();
                           setState(() {
                             currentScreen = _buildHomeScreen();
                             current = PagesCode.Home;
@@ -497,6 +581,7 @@ class _MenuState extends LPExtendedState<Menu> {
                       child: _bottomNavigationButton(
                         key: const Key('bottomNavMyPlan'),
                         onPressed: () {
+                          _detachBreathing();
                           setState(() {
                             currentScreen = MyPlanPageFull(
                               phonePageData: widget.phonePageData,
@@ -516,6 +601,7 @@ class _MenuState extends LPExtendedState<Menu> {
                       child: _bottomNavigationButton(
                         key: const Key('bottomNavFeelGood'),
                         onPressed: () {
+                          _detachBreathing();
                           setState(() {
                             mixPanelService.trackEvent("Viewed Feel Good Page");
                             currentScreen = FeelGood();

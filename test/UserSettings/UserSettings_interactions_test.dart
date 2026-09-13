@@ -12,6 +12,9 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:get_it/get_it.dart';
+import 'package:mazilon/features/remember_to_breathe/data/breathing_models.dart';
+import 'package:mazilon/features/remember_to_breathe/data/breathing_repository.dart';
+import 'package:mazilon/features/remember_to_breathe/data/breathing_store.dart';
 import 'package:mazilon/global_enums.dart';
 import 'package:mazilon/pages/SignIn_Pages/firstPage.dart';
 import 'package:mazilon/pages/UserSettings.dart';
@@ -153,6 +156,82 @@ void main() {
 
   tearDown(() {
     resetTestServices();
+  });
+
+  group('UserSettings breathing reset', () {
+    testWidgets(
+      'should invalidate a delayed breathing write before confirmed reset',
+      (tester) async {
+        final memory = _RecordingResetPersistentMemoryService();
+        final breathing = BreathingStore(memory);
+        GetIt.instance
+          ..unregister<PersistentMemoryService>()
+          ..registerSingleton<PersistentMemoryService>(memory)
+          ..registerSingleton<BreathingStore>(breathing);
+        user = UserInformation(service: memory)
+          ..gender = 'male'
+          ..localeName = 'en';
+        final attempt = BreathingSession(
+          id: 'before-reset',
+          startedAt: DateTime.utc(2026, 9, 13),
+          endedAt: DateTime.utc(2026, 9, 13, 0, 1),
+          pattern: BreathingPattern.basic,
+          completedCycles: 8,
+        );
+        await breathing.saveSession(attempt);
+        await pumpWithProviders(
+          tester,
+          UserSettings(
+            username: 'Reset breathing history',
+            age: '18-30',
+            gender: 'male',
+            phonePageData: _phone(),
+            changeLocale: (_) {},
+          ),
+          userInformation: user,
+          surfaceSize: const Size(1024, 2800),
+        );
+
+        final readStarted = Completer<void>();
+        final releaseRead = Completer<void>();
+        memory.onRead = (key, _) async {
+          if (key == BreathingStore.snapshotKey) {
+            readStarted.complete();
+            await releaseRead.future;
+          }
+        };
+        // This save has not reached memory's write queue, so memory.reset alone
+        // cannot fence it. The actual Settings reset hook must invalidate it.
+        final pending = breathing.saveSession(
+          attempt.copyWith(stressAfter: 3, revision: 1),
+        );
+        final rejected = expectLater(
+          pending,
+          throwsA(
+            isA<BreathingStorageException>().having(
+              (error) => error.canDiscard,
+              'canDiscard',
+              false,
+            ),
+          ),
+        );
+        await readStarted.future;
+        await _openResetDialog(tester);
+        await tester.tap(find.byKey(_resetConfirmKey));
+        await tester.pumpAndSettle();
+        await tester.runAsync(() => Future<void>.delayed(Duration.zero));
+        await tester.pumpAndSettle();
+        expect(memory.resetCalls, 1);
+        expect(find.byType(FirstPage), findsOneWidget);
+        expect(memory.store.containsKey(BreathingStore.snapshotKey), isFalse);
+
+        releaseRead.complete();
+        await rejected;
+        memory.onRead = null;
+        expect((await breathing.load()).sessions, isEmpty);
+        expect(memory.store.containsKey(BreathingStore.snapshotKey), isFalse);
+      },
+    );
   });
 
   testWidgets(
