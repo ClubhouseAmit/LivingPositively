@@ -31,13 +31,37 @@ service cloud.firestore {
 		// ---------------------------------------------------------
 		// Rowy rules end
 		// ---------------------------------------------------------
-		// Allow all users to read all documents
-		match /{document=**} {
-			allow read: if true;
-			allow write: if hasAnyRole(["ADMIN", "OWNER"]);
+		// Collections owned entirely by the notification backend. Clients never
+		// read or write them directly: every client interaction goes through the
+		// authenticated Cloud Functions, which use the Admin SDK and bypass these
+		// rules. See docs/adr/ADR-015-firestore-access-policy-fcm-notification-
+		// collections.md.
+		//
+		// The exclusion lives in the catch-all's own condition because Firestore
+		// OR-combines every matching rule: a narrower "allow read, write: if false"
+		// block cannot revoke a grant made here, it can only sit beside it.
+		//
+		// quotes_* is matched by prefix rather than listed literally because the
+		// scheduler resolves the collection name from
+		// notification_types.quotesCollections[locale]; a new locale must not land
+		// outside this list.
+		function serverOnlyCollection(collectionId) {
+			return collectionId in [
+				"devices",
+				"scheduled_notifications",
+				"notification_deliveries",
+				"notification_scheduler_state",
+				"notification_mutation_state",
+				"notification_types"
+			] || collectionId.matches("quotes_.*");
 		}
-		match /devices/{document=**} {
-			allow read, write: if true;
+		// Allow all users to read all documents, except the server-only
+		// collections above. devices/{uid} keeps its owner-scoped rule below,
+		// which is now the only grant on that collection.
+		match /{collectionId}/{document=**} {
+			allow read: if !serverOnlyCollection(collectionId);
+			allow write: if hasAnyRole(["ADMIN", "OWNER"]) &&
+				!serverOnlyCollection(collectionId);
 		}
 		// Rowy: Allow signed in users to read Rowy configuration and admins to write
 		match /_rowy_/{docId} {
