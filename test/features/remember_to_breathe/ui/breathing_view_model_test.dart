@@ -416,6 +416,113 @@ void main() {
     );
 
     test(
+      'should pause on Back then end the paused attempt exactly once',
+      () async {
+        await harness.start(rating: 7);
+        harness.advance(const Duration(seconds: 17));
+
+        expect(model.handleBack(), isFalse);
+        expect(model.screen, BreathingScreen.practice);
+        expect(model.isPaused, isTrue);
+        expect(model.completedCycles, 2);
+        expect(model.phaseProgress, closeTo(2 / 3, 0.0001));
+        expect(harness.writes, isEmpty);
+        harness.advance(const Duration(minutes: 5));
+
+        expect(model.handleBack(), isFalse);
+        expect(model.screen, BreathingScreen.result);
+        final result = model.result!;
+        expect(result.id, 'attempt-1');
+        expect(result.pattern, BreathingPattern.basic);
+        expect(result.completedCycles, 2);
+        expect(result.isComplete, isFalse);
+        expect(result.stressBefore, 7);
+        expect(result.stressAfter, isNull);
+        expect(result.startedAt, harness.wallTime);
+        expect(result.endedAt, harness.wallTime.add(harness.elapsed));
+
+        // Another Back cannot finish again or bypass the pending save.
+        expect(model.handleBack(), isFalse);
+        expect(model.screen, BreathingScreen.result);
+        harness.advance(const Duration(hours: 1));
+        model.resume();
+        model.end();
+        expect(model.result, same(result));
+        expect(model.completedCycles, 2);
+        expect(model.phaseProgress, 0);
+        await model.retryResultSave();
+        expect(harness.writes, [result]);
+        expect(model.history.single, same(result));
+        expect(model.hasUnsavedResult, isFalse);
+
+        expect(model.handleBack(), isFalse);
+        expect(model.screen, BreathingScreen.landing);
+        expect(harness.writes, hasLength(1));
+      },
+    );
+
+    test(
+      'should guard a paused Back result through a stalled and failed save',
+      () async {
+        await harness.start(rating: 4);
+        harness.advance(const Duration(seconds: 8));
+        model.handleAppInactive();
+        final blocked = Completer<BreathingSnapshot>();
+        when(() => harness.repository.saveSession(any())).thenAnswer((
+          invocation,
+        ) {
+          harness.writes.add(
+            invocation.positionalArguments.single as BreathingSession,
+          );
+          return blocked.future;
+        });
+
+        expect(model.handleBack(), isFalse);
+        expect(model.screen, BreathingScreen.result);
+        final saving = model.retryResultSave();
+        await Future<void>.delayed(Duration.zero);
+        final result = model.result!;
+        expect(result.completedCycles, 1);
+        expect(result.stressBefore, 4);
+        expect(model.isSaving, isTrue);
+        expect(model.hasUnsavedResult, isTrue);
+        expect(model.handleBack(), isFalse);
+        expect(model.returnToLanding(), isFalse);
+        model.leaveWithoutSaving();
+        harness.advance(const Duration(hours: 1));
+        model.resume();
+        expect(model.screen, BreathingScreen.result);
+        expect(model.result, same(result));
+        expect(model.completedCycles, 1);
+        expect(harness.writes, [result]);
+
+        blocked.completeError(const BreathingStorageException());
+        await saving;
+        expect(model.isSaving, isFalse);
+        expect(model.error, isA<BreathingStorageException>());
+        expect(model.hasUnsavedResult, isTrue);
+        expect(model.handleBack(), isFalse);
+        expect(model.screen, BreathingScreen.result);
+        expect(harness.writes, [result]);
+
+        when(() => harness.repository.saveSession(any())).thenAnswer((
+          invocation,
+        ) async {
+          final session =
+              invocation.positionalArguments.single as BreathingSession;
+          harness.writes.add(session);
+          return harness.commit(session);
+        });
+        await model.retryResultSave();
+        expect(harness.writes, [result, result]);
+        expect(model.history.single, same(result));
+        expect(model.hasUnsavedResult, isFalse);
+        expect(model.handleBack(), isFalse);
+        expect(model.screen, BreathingScreen.landing);
+      },
+    );
+
+    test(
       'should restart with new identity, unchanged settings and pre-rating',
       () async {
         await harness.start(pattern: BreathingPattern.custom, rating: 7);

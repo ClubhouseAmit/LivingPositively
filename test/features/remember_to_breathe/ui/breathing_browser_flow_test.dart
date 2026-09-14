@@ -309,6 +309,39 @@ void main() {
       expect(tester.takeException(), isNull);
     });
 
+    testWidgets('should end paused Hebrew practice through the back button', (
+      tester,
+    ) async {
+      var elapsed = Duration.zero;
+      final model = await _pumpProgressPage(
+        tester,
+        elapsed: () => elapsed,
+        locale: 'he',
+      );
+      await _tap(tester, 'breathingQuickStart');
+      await _tap(tester, 'breathingBefore8');
+      await _tap(tester, 'breathingStartRated');
+      elapsed = const Duration(seconds: 7);
+      model.refresh();
+      await tester.pump();
+      await _tap(tester, 'breathingBack');
+      expect(model.isPaused, isTrue);
+      elapsed += const Duration(minutes: 1);
+      model.refresh();
+      await _tap(tester, 'breathingBack');
+      await tester.pumpAndSettle();
+      expect(model.screen, BreathingScreen.result);
+      final saved = (await BreathingStore(
+        SharedPreferencesService(),
+      ).load()).sessions.single;
+      expect(saved.completedCycles, 1);
+      expect(saved.stressBefore, 8);
+      expect(saved.stressAfter, isNull);
+      await _tap(tester, 'breathingDone');
+      expect(model.screen, BreathingScreen.landing);
+      expect(tester.takeException(), isNull);
+    });
+
     for (final locale in ['en', 'he', 'ar']) {
       testWidgets(
         'should complete $locale customization, practice and history',
@@ -352,6 +385,28 @@ void main() {
             locale == 'en' ? TextDirection.ltr : TextDirection.rtl,
           );
           expect(find.text(strings.breathingTitle), findsOneWidget);
+
+          final quickStartIcon = find.descendant(
+            of: find.byKey(const Key('breathingQuickStart')),
+            matching: find.byIcon(Icons.play_arrow),
+          );
+          expect(
+            tester.getCenter(quickStartIcon).dx,
+            lessThan(
+              tester.getTopLeft(find.text(strings.breathingQuickStart)).dx,
+            ),
+          );
+          final iconGlyph = tester.renderObject<RenderBox>(
+            find.descendant(
+              of: quickStartIcon,
+              matching: find.byType(RichText),
+            ),
+          );
+          // Check the painted glyph's direction, not just the widget setting.
+          expect(
+            iconGlyph.getTransformTo(null).entry(0, 0),
+            locale == 'en' ? greaterThan(0) : lessThan(0),
+          );
 
           await _tap(tester, 'breathingCustomize');
           await _tap(tester, 'breathingBackgroundbeach');

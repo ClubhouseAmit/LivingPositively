@@ -2,7 +2,7 @@ import 'dart:async';
 
 import 'package:flutter/material.dart';
 import 'package:flutter/gestures.dart';
-import 'package:intl/intl.dart';
+import 'package:intl/intl.dart' show DateFormat;
 import 'package:mazilon/features/remember_to_breathe/data/breathing_models.dart';
 import 'package:mazilon/features/remember_to_breathe/ui/breathing_view_model.dart';
 import 'package:mazilon/features/remember_to_breathe/ui/breathing_view_state.dart';
@@ -158,7 +158,13 @@ class _BreathingPageState extends State<BreathingPage>
     FilledButton.icon(
       key: const Key('breathingQuickStart'),
       onPressed: _model.quickStart,
-      icon: const Icon(Icons.play_arrow),
+      iconAlignment: Directionality.of(context) == TextDirection.rtl
+          ? IconAlignment.end
+          : IconAlignment.start,
+      icon: Transform.flip(
+        flipX: Directionality.of(context) == TextDirection.rtl,
+        child: const Icon(Icons.play_arrow),
+      ),
       label: Text(_strings.breathingQuickStart),
     ),
     Wrap(

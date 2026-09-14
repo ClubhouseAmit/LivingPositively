@@ -15,8 +15,8 @@ per-file coverage floors. ADR-003 added the downstream blocking
 `coverage-aggregate` job, which consumes the canonical
 `coverage/integration.info` artifact and merges it with unit coverage.
 
-The Android job currently passes seven integration-test entry points to one
-`flutter test` invocation:
+Before sharding in July 2026, the Android job passed seven integration-test
+entry points to one `flutter test` invocation:
 
 1. `integration_test/custom_categories_e2e_test.dart`
 2. `integration_test/dark_mode_settings_test.dart`
@@ -26,7 +26,7 @@ The Android job currently passes seven integration-test entry points to one
 6. `integration_test/logger_init_test.dart`
 7. `integration_test/notifications_schedule_test.dart`
 
-Together they contain 25 `testWidgets` cases. Flutter builds and installs a
+Together they contained 25 `testWidgets` cases. Flutter builds and installs a
 separate Android debug application for each entry point. A successful run on
 2026-07-21 showed six `assembleDebug` executions in the same runner workspace.
 
@@ -56,7 +56,7 @@ floors, artifact contracts, and required-check semantics.
 
 Any resource optimization must preserve all of the following:
 
-- All seven existing Android integration files and all 25 test cases execute.
+- All nine current Android integration files and every test case execute.
 - Every test file runs in its own application process, preserving the current
   isolation boundary for plugin state, static state, method-channel mocks,
   Sentry lifecycle, and binding configuration.
@@ -96,9 +96,9 @@ for proving that unrelated test modules can safely share global state.
 Run each file separately, preserve its coverage output, remove native build
 outputs, and rebuild the next file.
 
-This keeps process isolation and can lower workspace growth, but retains seven
-native builds. It materially increases runtime, requires cleanup inside an
-already resource-constrained runner, and does not bound growth in Gradle,
+This keeps process isolation and can lower workspace growth, but retains one
+native build per entry point. It materially increases runtime, requires cleanup
+inside an already resource-constrained runner, and does not bound growth in Gradle,
 Android SDK, emulator, Flutter, or tool caches. Coverage files would also need
 additional orchestration before every cleanup.
 
@@ -147,7 +147,7 @@ fallback if a single Android build no longer fits a standard runner.
 
 Run one existing integration-test file per matrix shard. Each shard receives a
 fresh runner, starts the same emulator, executes the same command-line flags,
-and uploads a uniquely named LCOV artifact. A downstream job merges the seven
+and uploads a uniquely named LCOV artifact. A downstream job merges the nine
 LCOV files with the existing `scripts/merge_lcov.dart`, applies the unchanged
 integration coverage gate, and publishes the canonical artifact expected by
 ADR-003.
@@ -165,8 +165,12 @@ test file per shard and a downstream canonical `integration-test` gate.
 ### Shard job
 
 Introduce an `integration-test-shard` matrix job with one explicit entry for
-each of the seven Android integration files. Each matrix entry has a stable,
+each of the nine Android integration files. Each matrix entry has a stable,
 filesystem-safe identifier and its existing file path.
+
+The current matrix includes the seven files from the historical baseline above
+plus `integration_test/personal_plan_info_modal_test.dart` and
+`integration_test/remember_to_breathe_test.dart`.
 
 Every shard must:
 
@@ -189,7 +193,7 @@ Every shard must:
 
 The matrix may cap parallelism for operational reasons, but parallelism must
 not alter shard contents or gate semantics. The initial cap is three concurrent
-shards to avoid starting seven emulators simultaneously while still completing
+shards to avoid starting nine emulators simultaneously while still completing
 the suite in three waves. Each shard has a 45-minute timeout to bound emulator
 hangs without weakening the test or coverage contract.
 
@@ -253,7 +257,7 @@ failure into the required check.
 
 When both prerequisites succeed, `integration-test`:
 
-1. downloads all seven shard coverage artifacts;
+1. downloads all nine shard coverage artifacts;
 2. derives expected LCOV names from the matrix `id` entries and verifies that
    exactly those inputs are present;
 3. merges them into `coverage/integration.info` with
@@ -328,7 +332,7 @@ verified, the merge discovers the approved `coverage/shards/*.info` inputs.
 ### Positive
 
 - Peak workspace demand on each Android runner is bounded to one native test
-  build instead of seven.
+  build instead of nine.
 - All current test assertions and per-file process-isolation boundaries remain
   intact.
 - Existing coverage scripts and downstream artifact contracts are reused.
@@ -346,7 +350,7 @@ verified, the merge discovers the approved `coverage/shards/*.info` inputs.
 
 ### Negative
 
-- Seven runners repeat checkout, dependency setup, emulator boot, and the first
+- Nine runners repeat checkout, dependency setup, emulator boot, and the first
   native build. Total compute consumption increases substantially even though
   wall-clock time can decrease through parallelism.
 - Superseded pull-request workflows are not cancelled wholesale. Non-emulator
@@ -362,7 +366,7 @@ verified, the merge discovers the approved `coverage/shards/*.info` inputs.
   the bound must be revisited if healthy shards approach it.
 - A post-test disk warning below 2 GiB does not fail the shard, but provides a
   stable machine-emitted signal for runner-capacity review.
-- The workflow gains a matrix-to-merge handoff and seven intermediate artifacts.
+- The workflow gains a matrix-to-merge handoff and nine intermediate artifacts.
 - Workflow parsing couples the inventory checks to the matrix's checked-in YAML
   shape, but avoids a second maintained list of IDs or test paths.
 - Firebase configuration is materialized in more runner instances. Each shard
@@ -378,20 +382,20 @@ verified, the merge discovers the approved `coverage/shards/*.info` inputs.
 - Individual shard check names become visible in addition to the canonical
   required `integration-test` check.
 - The job remains sensitive to emulator and hosted-runner availability, but a
-  single runner no longer accumulates seven builds.
+  single runner no longer accumulates nine builds.
 
 ## Verification and acceptance criteria
 
 The implementation is accepted only when a pull-request workflow run proves:
 
-1. Seven matrix shards start, one for each existing Android integration file.
-2. All 25 existing tests pass without editing their assertions.
+1. Nine matrix shards start, one for each current Android integration file.
+2. Every test in all nine files passes without editing its assertions.
 3. Each shard log contains one integration entry point and no second
    `assembleDebug` for another entry point.
 4. Every shard reports numeric post-test available MiB; capacity below
    2,097,152 KB emits `::warning::` without failing solely for low headroom,
    and no shard reaches `No space left on device`.
-5. Seven uniquely named shard LCOV artifacts are produced.
+5. Nine uniquely named shard LCOV artifacts are produced.
 6. The canonical `integration-test` job fails if any shard or the independent
    inventory job is unsuccessful.
 7. The canonical merge produces `coverage/integration.info`.
@@ -444,7 +448,8 @@ mean the standard runner no longer provides adequate headroom.
 The change is workflow-only and reversible:
 
 1. remove the matrix shard job;
-2. restore the seven-file `flutter test` invocation inside `integration-test`;
+2. restore a single `flutter test` invocation containing all nine current files
+   inside `integration-test`;
 3. keep the canonical artifact name, coverage path, scripts, floors, and
    `coverage-aggregate` dependency unchanged.
 

@@ -754,7 +754,11 @@ final class BreathingViewModel extends ChangeNotifier {
     }
     switch (_screen) {
       case BreathingScreen.practice:
-        pause();
+        if (_isPaused) {
+          end();
+        } else {
+          pause();
+        }
         return false;
       case BreathingScreen.customize:
         previousCustomizationStep();

@@ -426,7 +426,10 @@ void main() {
       await _tap(tester, 'breathingSkipRating');
       harness.memory.onPersist = (_, _, _) => throw StateError('full');
       await _tap(tester, 'breathingPause');
-      await _tap(tester, 'breathingEnd');
+      await _tap(tester, 'breathingBack');
+      expect(harness.model.screen, BreathingScreen.result);
+      await _tap(tester, 'breathingBack');
+      expect(harness.model.screen, BreathingScreen.result);
       await _tap(tester, 'breathingLeaveWithoutSaving');
       expect(harness.model.screen, BreathingScreen.landing);
       expect((await harness.store.load()).sessions, hasLength(1));
