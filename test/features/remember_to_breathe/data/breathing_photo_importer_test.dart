@@ -495,6 +495,29 @@ void main() {
     });
 
     test(
+      'should reject oversized retained PNGs before creating an image',
+      () async {
+        final oversized = await _png(2048, 2048);
+        expect(oversized.length, lessThan(512 * 1024));
+        final previousOnCreate = ui.Image.onCreate;
+        var imagesCreated = 0;
+        ui.Image.onCreate = (image) {
+          imagesCreated++;
+          previousOnCreate?.call(image);
+        };
+        try {
+          await expectLater(
+            BreathingPhotoImporter.validatePhoto(base64Encode(oversized)),
+            throwsA(isA<BreathingPhotoException>()),
+          );
+          expect(imagesCreated, 0);
+        } finally {
+          ui.Image.onCreate = previousOnCreate;
+        }
+      },
+    );
+
+    test(
       'should validate actual retained pixels and reject malformed or oversized PNGs',
       () async {
         await BreathingPhotoImporter.validatePhoto(
@@ -504,6 +527,18 @@ void main() {
           'bad base64',
           base64Encode([0, 1, 2]),
           base64Encode([137, 80, 78, 71, 13, 10, 26, 10]),
+          base64Encode(
+            Uint8List.fromList(await _png(20, 10))
+              ..[12] = 0, // The first chunk must be IHDR.
+          ),
+          base64Encode(
+            Uint8List.fromList(await _png(20, 10))
+              ..[11] = 12, // IHDR must contain exactly 13 bytes.
+          ),
+          base64Encode(
+            Uint8List.fromList(await _png(20, 10))
+              ..[19] = 0, // Zero width is invalid even before codec validation.
+          ),
           base64Encode(await _png(769, 100)),
           base64Encode(await _png(768, 768, noisy: true)),
         ]) {

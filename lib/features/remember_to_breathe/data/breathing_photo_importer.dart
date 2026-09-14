@@ -1,7 +1,7 @@
 import 'dart:async';
 import 'dart:convert';
 import 'dart:math' as math;
-import 'dart:typed_data' show BytesBuilder;
+import 'dart:typed_data' show ByteData, BytesBuilder;
 import 'dart:ui' as ui;
 
 import 'package:flutter/foundation.dart';
@@ -45,8 +45,22 @@ class BreathingPhotoImporter {
       final bytes = base64Decode(encoded);
       const signature = [137, 80, 78, 71, 13, 10, 26, 10];
       if (bytes.length > maximumOutputBytes ||
-          bytes.length < 8 ||
+          bytes.length < 33 ||
           !Iterable<int>.generate(8).every((i) => bytes[i] == signature[i])) {
+        throw const BreathingPhotoException();
+      }
+      // PNG requires a 13-byte IHDR as its first chunk. Check dimensions before
+      // a web codec can materialize an oversized, highly compressed frame.
+      final header = ByteData.sublistView(bytes);
+      if (header.getUint32(8) != 13 || header.getUint32(12) != 0x49484452) {
+        throw const BreathingPhotoException();
+      }
+      final width = header.getUint32(16);
+      final height = header.getUint32(20);
+      if (width == 0 ||
+          height == 0 ||
+          width > maximumDimension ||
+          height > maximumDimension) {
         throw const BreathingPhotoException();
       }
       final buffer = await ui.ImmutableBuffer.fromUint8List(bytes);

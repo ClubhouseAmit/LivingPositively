@@ -51,6 +51,12 @@ page state notifications are reserved for discrete changes. Holds and hidden
 circles remain timed without animation notifications. This feature-local
 progress listener leaves shared services and the snapshot schema unchanged.
 
+Retained PNGs have their IHDR dimensions checked before codec creation, followed
+by pixel decoding to verify the content. The 20 MiB acquisition limit bounds
+encoded source bytes; 768 pixels and 512 KiB bound retained output. Flutter
+3.44's web codec decodes source pixels before resizing, including through its
+size-callback API, so these limits do not cap browser decoder working memory.
+
 ## Consequences
 
 The feature works offline after installation and its data participates in app
