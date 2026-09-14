@@ -25,15 +25,15 @@ Before enabling it:
    Firebase project and configure the OAuth consent screen.
 4. For iOS, register `com.clubhouse.livingpositively` as an iOS app in the
    Firebase project, enable Google in Firebase Authentication, and download
-   its current `GoogleService-Info.plist`. The checked-in FlutterFire options
-   identify `com.example.mezilon`, so regenerate the local Firebase options
-   from the newly registered iOS app before building.
-5. For iOS, copy
-   `ios/Flutter/GoogleSignIn.xcconfig.example` to the ignored
-   `ios/Flutter/GoogleSignIn.xcconfig` and fill its three values from the
-   registered iOS app: `CLIENT_ID`, `REVERSED_CLIENT_ID`, and the Web OAuth
-   client ID. The native plist uses those values for `GIDClientID`,
-   `GIDServerClientID`, and the required URL callback scheme.
+   its current `GoogleService-Info.plist`. Confirm the FlutterFire options
+   identify that production Firebase app before building.
+5. For iOS, configure `GOOGLE_SIGN_IN_SERVER_CLIENT_ID`,
+   `GOOGLE_SIGN_IN_IOS_CLIENT_ID`, and
+   `GOOGLE_SIGN_IN_IOS_REVERSED_CLIENT_ID` in the release environment. Run
+   `bash scripts/prepare_ios_google_sign_in_config.sh` as a Codemagic pre-build
+   step. It validates the values and generates the ignored
+   `ios/Flutter/GoogleSignIn.xcconfig`; the native plist uses that file for
+   `GIDClientID`, `GIDServerClientID`, and the required URL callback scheme.
 6. Inject the required Dart defines when building. For example:
 
    ```shell

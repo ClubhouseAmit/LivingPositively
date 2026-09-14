@@ -277,9 +277,10 @@ through internal testing. Promote to wider distribution only after section 7.
 
 Follow [the provider setup](auth-provider-rollout.md), including the correct
 Firebase iOS app, OAuth callback scheme, provisioning profiles, and APNs key.
-Populate the ignored `ios/Flutter/GoogleSignIn.xcconfig` from its
-[example](../ios/Flutter/GoogleSignIn.xcconfig.example). Verify native and Dart
-Google client IDs match the production Firebase app.
+Configure the three Google values as environment variables in the release
+environment. Run `bash scripts/prepare_ios_google_sign_in_config.sh` as a
+Codemagic pre-build step; it validates those values and generates the ignored native
+`ios/Flutter/GoogleSignIn.xcconfig` file.
 
 Set the three Google variables and `APPLE_SIGN_IN_ENABLED` in your release
 environment, then run from the repository root:
@@ -288,10 +289,13 @@ environment, then run from the repository root:
 ./scripts/build_ios_release.sh
 ```
 
-The [script](../scripts/build_ios_release.sh) requires
+The [script](../scripts/build_ios_release.sh) runs the iOS Google Sign-In
+pre-build step, requires
 `GOOGLE_SIGN_IN_SERVER_CLIENT_ID`, `GOOGLE_SIGN_IN_IOS_CLIENT_ID`, and
-`GOOGLE_SIGN_IN_IOS_REVERSED_CLIENT_ID`, checks them against the native config,
-and passes the two client IDs to Dart. `APPLE_SIGN_IN_ENABLED` must be explicit
+`GOOGLE_SIGN_IN_IOS_REVERSED_CLIENT_ID`, generates the native config, and passes
+the two client IDs to Dart. In Codemagic, configure the corresponding
+`--dart-define` values separately; the pre-build script does not set Dart
+defines. `APPLE_SIGN_IN_ENABLED` must be explicit
 `true` or `false`; there is no default and no true-only enforcement. Choose the
 value through the release owner's provider decision, not as a workaround for
 missing setup. Google configuration is required even when Apple is disabled.
