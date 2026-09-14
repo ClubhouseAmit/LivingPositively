@@ -55,6 +55,11 @@ class _FakeMemoryService implements PersistentMemoryService {
   }) : store = initialStore != null ? Map.from(initialStore) : {};
 
   @override
+  Future<Map<String, Object?>> readSnapshot(
+    Map<String, PersistentMemoryType> keys,
+  ) => throw StateError('Unexpected export snapshot read in this test.');
+
+  @override
   Future<dynamic> getItem(String key, PersistentMemoryType type) async {
     return store[key];
   }

@@ -5,6 +5,7 @@ import 'package:get_it/get_it.dart';
 import 'package:integration_test/integration_test.dart';
 import 'package:mazilon/AnalyticsService.dart';
 import 'package:mazilon/file_service.dart';
+import 'package:mazilon/util/personal_plan_export_snapshot.dart';
 import 'package:mazilon/form/shareform.dart';
 import 'package:mazilon/form/wizard_step.dart';
 import 'package:mazilon/global_enums.dart';
@@ -28,6 +29,7 @@ class _NoopFileService implements FileService {
     required String mainTitle,
     required String textDirection,
     PersistentMemoryService? memoryService,
+    PersonalPlanExportSnapshot? snapshot,
     Set<String>? approvedPdfHosts,
   }) async {
     return 'noop.pdf';
@@ -43,6 +45,7 @@ class _NoopFileService implements FileService {
     required String mainTitle,
     required String textDirection,
     PersistentMemoryService? memoryService,
+    PersonalPlanExportSnapshot? snapshot,
     Set<String>? approvedPdfHosts,
   }) async => const ShareResult('noop', ShareResultStatus.success);
 
@@ -121,6 +124,34 @@ Future<void> _waitForWidget(WidgetTester tester, Finder finder) async {
   expect(finder, findsOneWidget);
 }
 
+/// Taps [target] until [expected] shows up, or [_customCategoryUiTimeout]
+/// elapses.
+///
+/// The emulator runs this suite fully live, so a tap can be dispatched while
+/// the freshly rebuilt editor is still animating into place and land on
+/// whatever is momentarily on top instead of the field. Retrying the real tap
+/// keeps the assertion on production behaviour rather than driving focus
+/// programmatically.
+Future<void> _tapUntilVisible(
+  WidgetTester tester,
+  Finder target,
+  Finder expected,
+) async {
+  final stopwatch = Stopwatch()..start();
+  while (true) {
+    await tester.ensureVisible(target);
+    await tester.pumpAndSettle();
+    await tester.tap(target, warnIfMissed: false);
+    await tester.pumpAndSettle();
+    if (expected.evaluate().isNotEmpty ||
+        stopwatch.elapsed >= _customCategoryUiTimeout) {
+      break;
+    }
+    await tester.pump(const Duration(milliseconds: 100));
+  }
+  expect(expected, findsOneWidget);
+}
+
 void main() {
   final binding = IntegrationTestWidgetsFlutterBinding.ensureInitialized();
   binding.framePolicy = LiveTestWidgetsFlutterBindingFramePolicy.fullyLive;
@@ -185,13 +216,15 @@ void main() {
       await tester.ensureVisible(find.text('+ הוספת קטגוריה'));
       await tester.tap(find.text('+ הוספת קטגוריה'));
       await tester.pumpAndSettle();
-      final titleField = find.byKey(const Key('custom-category-title-field'));
-      await tester.ensureVisible(titleField);
-      await tester.pumpAndSettle();
-      await _waitForWidget(tester, titleField.hitTestable());
-      await tester.tap(titleField);
-      await tester.pumpAndSettle();
-      expect(find.text('משפטים מחזקים שחשוב לי לזכור'), findsOneWidget);
+      await _waitForWidget(
+        tester,
+        find.byKey(const Key('custom-category-editor')),
+      );
+      await _tapUntilVisible(
+        tester,
+        find.byKey(const Key('custom-category-title-field')),
+        find.text('משפטים מחזקים שחשוב לי לזכור'),
+      );
       expect(find.text('אירועים מהעבר לתזכורת'), findsOneWidget);
       expect(find.text('דברים עלי שחשוב לי שנזכור'), findsOneWidget);
       expect(find.text('אפשרות לכתוב משהו מקורי משלי'), findsOneWidget);
