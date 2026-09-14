@@ -66,7 +66,8 @@ jobs:
         uses: actions/setup-java@v5
         with:
           distribution: "temurin"
-          java-version: "17.x"
+          # firebase-tools v15 requires Java 21+ to run the Firestore emulator.
+          java-version: "21.x"
 
       - name: Install Functions dependencies
         run: npm --prefix functions ci
