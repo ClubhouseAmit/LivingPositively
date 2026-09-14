@@ -18,6 +18,8 @@ concurrency:
 jobs:
   build-android:
     runs-on: ubuntu-latest
+    outputs:
+      coverage-artifact-id: ${{ steps.upload-coverage.outputs.artifact-id }}
     env:
       KEYSTORE_PATH: android/app/
       KEYSTORE_FILE: Maztzilonkey.jks
@@ -77,7 +79,10 @@ jobs:
           done
           exit 1
       - name: Run tests with coverage
-        run: flutter test --coverage --reporter=expanded
+        # A tracked historical lcov.info must never stand in for this run.
+        run: |
+          rm -f coverage/lcov.info coverage/lcov.base.info coverage/lcov.token.info
+          flutter test --coverage --reporter=expanded
       - name: Snapshot base lcov before dart-define run
         # The next `flutter test` invocation overwrites coverage/lcov.info;
         # snapshot the full-suite lcov so we can merge the dart-define
@@ -101,11 +106,15 @@ jobs:
       - name: Enforce coverage gate
         run: dart run scripts/check_coverage.dart
       - name: Upload coverage report
-        if: always()
+        id: upload-coverage
+        # Publish canonical inputs only after the tests and gate succeed.
+        if: success()
         uses: actions/upload-artifact@v4
         with:
           name: coverage-lcov
           path: coverage/lcov.info
+          if-no-files-found: error
+          overwrite: true
 
       - name: Get version from pubspec.yaml
         id: get_version
@@ -291,12 +300,13 @@ jobs:
           fi
 
       - name: Upload integration coverage shard
-        if: always()
+        if: success()
         uses: actions/upload-artifact@v4
         with:
           name: coverage-integration-shard-${{ matrix.id }}
           path: coverage/shards/${{ matrix.id }}.info
-          if-no-files-found: warn
+          if-no-files-found: error
+          overwrite: true
 
   integration-test-inventory:
     # Run test discovery beside the emulator shards so matrix drift fails
@@ -342,6 +352,8 @@ jobs:
     if: ${{ always() }}
     runs-on: ubuntu-latest
     timeout-minutes: 15
+    outputs:
+      coverage-artifact-id: ${{ steps.upload-coverage.outputs.artifact-id }}
     steps:
       - name: Require successful integration-test prerequisites
         shell: bash
@@ -432,11 +444,14 @@ jobs:
         run: dart run scripts/check_integration_coverage.dart
 
       - name: Upload integration coverage report
-        if: always()
+        id: upload-coverage
+        if: success()
         uses: actions/upload-artifact@v4
         with:
           name: coverage-integration-lcov
           path: coverage/integration.info
+          if-no-files-found: error
+          overwrite: true
 
   integration-test-ios:
     # Phase 10A (ADR-005 § A) ORIGINALLY made this a required input to the
@@ -807,7 +822,7 @@ jobs:
 
   coverage-aggregate:
     # Phase 8 (ADR-003): aggregate coverage gate — merges unit lcov and
-    # integration lcov, enforces 85% global floor on the union.
+    # integration lcov, enforces the ADR-004 89% global floor on the union.
     #
     # `if: ${{ always() }}` + explicit dependency-result check (first step
     # below) is deliberate: with bare `needs:` alone, GitHub Actions skips
@@ -838,6 +853,9 @@ jobs:
         # `result` outputs explicitly rather than relying on `needs:` to
         # skip — see job-level comment above for why a skipped required
         # check is unsafe under branch protection.
+        env:
+          UNIT_COVERAGE_ARTIFACT_ID: ${{ needs.build-android.outputs.coverage-artifact-id }}
+          INTEGRATION_COVERAGE_ARTIFACT_ID: ${{ needs.integration-test.outputs.coverage-artifact-id }}
         run: |
           build_result="${{ needs.build-android.result }}"
           intg_result="${{ needs.integration-test.result }}"
@@ -849,6 +867,11 @@ jobs:
           fi
           if [ "$intg_result" != "success" ]; then
             echo "::error::Upstream job integration-test did not succeed (result=$intg_result); cannot compute aggregate coverage." >&2
+            exit 1
+          fi
+          # Empty artifact-ids would download every artifact instead.
+          if [ -z "$UNIT_COVERAGE_ARTIFACT_ID" ] || [ -z "$INTEGRATION_COVERAGE_ARTIFACT_ID" ]; then
+            echo "::error::Successful upstream jobs must provide their coverage artifact IDs." >&2
             exit 1
           fi
           echo "All upstream jobs succeeded — proceeding with aggregate merge."
@@ -882,15 +905,20 @@ jobs:
           exit 1
 
       - name: Download unit coverage artifact
+        # A rerun must consume its successful producers' exact artifacts,
+        # not an older attempt's same-name upload. Publishers also overwrite
+        # prior artifacts so v4's latest-by-name listing cannot hide this ID.
         uses: actions/download-artifact@v4
         with:
-          name: coverage-lcov
+          artifact-ids: ${{ needs.build-android.outputs.coverage-artifact-id }}
+          merge-multiple: true
           path: coverage
 
       - name: Download integration coverage artifact
         uses: actions/download-artifact@v4
         with:
-          name: coverage-integration-lcov
+          artifact-ids: ${{ needs.integration-test.outputs.coverage-artifact-id }}
+          merge-multiple: true
           path: coverage
 
       - name: Merge unit and Android-integration lcov files

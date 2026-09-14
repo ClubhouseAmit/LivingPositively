@@ -179,9 +179,8 @@ Every shard must:
    - a unique `--coverage-path`
    - the existing synthetic `SENTRY_DSN`
    - explicit `-d emulator-5554`
-5. Upload its uniquely named LCOV artifact on `if: always()`, warning when the
-   file is absent so the canonical inventory remains the hard completeness
-   gate.
+5. Upload its uniquely named LCOV artifact only after success, replacing an
+   earlier attempt's artifact and failing if the expected file is absent.
 6. Record filesystem capacity before and after the test using `df -h` so peak
    resource regressions remain diagnosable.
 7. Parse post-test capacity with portable `df -Pk .`, report available MiB,
@@ -263,9 +262,9 @@ When both prerequisites succeed, `integration-test`:
 5. uploads `coverage/integration.info` as the unchanged
    `coverage-integration-lcov` artifact.
 
-Shard uploads use `if-no-files-found: warn` so upload diagnostics do not
-duplicate gate ownership. Missing coverage still fails the workflow at the
-canonical exact-inventory check before any merge or coverage-floor evaluation.
+Shard uploads use `if-no-files-found: error`; missing coverage fails at its
+producer. The canonical prerequisite and exact-inventory checks still reject
+unsuccessful shards or an incomplete downloaded set before merging.
 
 `scripts/merge_lcov.dart` already combines line hits using maximum-hit
 semantics. The merged result therefore represents whether each production line
@@ -290,6 +289,33 @@ The following remain unchanged:
 - The aggregate global floor remains unchanged.
 - The Android internal-release job remains downstream of
   `coverage-aggregate`.
+
+### Coverage artifacts across reruns
+
+PR #389 run [34793310633, attempt 2](https://github.com/ClubhouseAmit/LivingPositively/actions/runs/34793310633/attempts/2)
+exposed an artifact lifecycle failure. The cancelled first attempt uploaded
+the tracked historical `coverage/lcov.info` through `if: always()`. A successful
+retry published fresh coverage under the same artifact name, but the aggregate
+job's name-based lookup selected the stale artifact. Artifact IDs did not
+follow creation-time order. Replaying those exact inputs reproduced
+8,733 / 17,870 = 48.87%; using the successful retry's unit coverage with the
+same integration input produced 13,874 / 15,021 = 92.36%.
+
+The variable concern is artifact identity across cancellations and retries.
+Unit, shard, and canonical integration coverage now publish only after
+success, require their output files, and use `overwrite: true` to replace
+earlier same-name uploads. Unit generation removes the historical coverage
+file and intermediate snapshots before testing. Canonical producers expose
+the uploaded artifact IDs as job outputs; the aggregate job requires both IDs
+and downloads them with `merge-multiple: true` to preserve the existing paths.
+The nonempty-ID check prevents the download action's empty-input fallback.
+Overwrite remains necessary because download-artifact v4 deduplicates artifact
+names before filtering IDs. See the official [upload action inputs](https://github.com/actions/upload-artifact/blob/v4/action.yml)
+and [download implementation](https://github.com/actions/download-artifact/blob/v4/src/download-artifact.ts).
+
+Artifact names, LCOV parsing, test isolation, the 85% unit floor, and the 89%
+aggregate floor remain unchanged. Diagnostic aggregate and non-blocking
+telemetry uploads retain their existing behavior.
 
 The matrix is the sole maintained source for shard IDs and Android test paths.
 Adding or removing an entry point changes its test file and matrix entry; the
@@ -375,8 +401,8 @@ The implementation is accepted only when a pull-request workflow run proves:
 10. Branch protection continues to require the canonical `integration-test`
     and `coverage-aggregate` checks; matrix checks need not be individually
     configured as required checks.
-11. Each shard is bounded by `timeout-minutes: 45`; a missing shard LCOV emits
-    an upload warning and then fails the canonical exact-inventory check.
+11. Each shard is bounded by `timeout-minutes: 45`; a missing shard LCOV fails
+    its upload and the canonical prerequisite check.
 12. `main` push workflows share the repository-local literal group
     `main-release-pipeline` with `cancel-in-progress: false` and `queue: max`,
     and serialize before build-number generation even if the workflow is
