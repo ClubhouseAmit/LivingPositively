@@ -59,7 +59,7 @@ class DefaultFirebaseOptions {
 
   static const FirebaseOptions android = FirebaseOptions(
     apiKey: 'AIzaSyApA4kbqIF6RhP7gGM8MjI42vv3AhB_WQw',
-    appId: '1:37967917693:android:961969071caf3fdefaf714',
+    appId: '1:37967917693:android:e4e96bf355e8cff9faf714',
     messagingSenderId: '37967917693',
     projectId: 'mezilondb',
     storageBucket: 'mezilondb.appspot.com',
@@ -67,13 +67,13 @@ class DefaultFirebaseOptions {
 
   static const FirebaseOptions ios = FirebaseOptions(
     apiKey: 'AIzaSyCXwIIsZpoafJNcIKpDrfYZpyVjSgD04VU',
-    appId: '1:37967917693:ios:a5eb6e7c6ecc3313faf714',
+    appId: '1:37967917693:ios:88e13cae59c4020cfaf714',
     messagingSenderId: '37967917693',
     projectId: 'mezilondb',
     storageBucket: 'mezilondb.appspot.com',
     iosClientId:
-        '37967917693-hpl8lgbco59fmeaohv3i5m79nl698sf2.apps.googleusercontent.com',
-    iosBundleId: 'com.example.mezilon',
+        '37967917693-nrtrbdehdnrbhhegfe69mosgj2lm9sjf.apps.googleusercontent.com',
+    iosBundleId: 'com.clubhouse.livingpositively',
   );
 
   static const FirebaseOptions macos = FirebaseOptions(
