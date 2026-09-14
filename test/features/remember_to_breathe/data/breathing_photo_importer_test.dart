@@ -6,13 +6,38 @@ import 'dart:ui' as ui;
 
 import 'package:flutter_test/flutter_test.dart';
 import 'package:image_picker/image_picker.dart';
+import 'package:mazilon/features/remember_to_breathe/data/breathing_models.dart';
 import 'package:mazilon/features/remember_to_breathe/data/breathing_photo_importer.dart';
+import 'package:mazilon/features/remember_to_breathe/data/breathing_repository.dart';
+import 'package:mazilon/features/remember_to_breathe/ui/breathing_view_model.dart';
 import 'package:mazilon/pages/FeelGood/image_picker_service_impl.dart';
 import 'package:mocktail/mocktail.dart';
 
 class _Picker extends Mock implements ImagePickerService {}
 
 class _File extends Mock implements XFile {}
+
+class _Repository extends Mock implements BreathingRepository {}
+
+class _DataFile extends XFile {
+  _DataFile(super.bytes, {int? declaredLength})
+    : super.fromData(length: declaredLength);
+
+  final List<(int?, int?)> ranges = [];
+  bool readAllBytes = false;
+
+  @override
+  Stream<Uint8List> openRead([int? start, int? end]) {
+    ranges.add((start, end));
+    return super.openRead(start, end);
+  }
+
+  @override
+  Future<Uint8List> readAsBytes() {
+    readAllBytes = true;
+    throw StateError('Unbounded acquisition is forbidden.');
+  }
+}
 
 void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
@@ -33,7 +58,9 @@ void main() {
 
     void pickedBytes(Uint8List bytes) {
       when(file.length).thenAnswer((_) async => bytes.length);
-      when(file.readAsBytes).thenAnswer((_) async => bytes);
+      when(
+        () => file.openRead(0, 20 * 1024 * 1024 + 1),
+      ).thenAnswer((_) => Stream.value(bytes));
     }
 
     test(
@@ -46,6 +73,8 @@ void main() {
         verifyNever(file.length);
         verifyNever(file.readAsBytes);
         verifyNoMoreInteractions(file);
+        verify(() => picker.pickImage(source: ImageSource.gallery)).called(1);
+        verifyNoMoreInteractions(picker);
       },
     );
 
@@ -62,15 +91,55 @@ void main() {
         ),
       );
       verifyNever(file.readAsBytes);
+      verifyNever(() => file.openRead(any(), any()));
     });
 
     test(
-      'should reject a source that grows between size check and reading',
+      'should reject negative length metadata without opening the file',
       () async {
-        when(file.length).thenAnswer((_) async => 10);
+        when(file.length).thenAnswer((_) async => -1);
+        await expectLater(
+          importer.pickPhoto(),
+          throwsA(isA<BreathingPhotoException>()),
+        );
+        verifyNever(() => file.openRead(any(), any()));
+        verifyNever(file.readAsBytes);
+      },
+    );
+
+    test(
+      'should import a real short in-memory file using only bounded ranges',
+      () async {
+        final png = await _png(20, 10);
+        final selected = _DataFile(png);
         when(
-          file.readAsBytes,
-        ).thenAnswer((_) async => Uint8List(20 * 1024 * 1024 + 1));
+          () => picker.pickImage(source: ImageSource.gallery),
+        ).thenAnswer((_) async => selected);
+
+        final result = (await importer.pickPhoto())!;
+        await BreathingPhotoImporter.validatePhoto(result);
+        expect(selected.ranges.first, (0, 20 * 1024 * 1024 + 1));
+        expect(selected.ranges.length, inInclusiveRange(1, 2));
+        if (selected.ranges.length == 2) {
+          expect(selected.ranges.last, (0, png.length));
+        }
+        expect(selected.readAllBytes, isFalse);
+        verify(() => picker.pickImage(source: ImageSource.gallery)).called(1);
+        verifyNoMoreInteractions(picker);
+      },
+    );
+
+    test(
+      'should detect a real oversized file with understated metadata',
+      () async {
+        final selected = _DataFile(
+          Uint8List(20 * 1024 * 1024 + 1),
+          declaredLength: 1,
+        );
+        when(
+          () => picker.pickImage(source: ImageSource.gallery),
+        ).thenAnswer((_) async => selected);
+
         await expectLater(
           importer.pickPhoto(),
           throwsA(
@@ -81,6 +150,209 @@ void main() {
             ),
           ),
         );
+        expect(selected.ranges, [(0, 20 * 1024 * 1024 + 1)]);
+        expect(selected.readAllBytes, isFalse);
+      },
+    );
+
+    test(
+      'should accept exactly twenty MiB before normalizing its first frame',
+      () async {
+        final png = await _png(20, 10);
+        final bytes = Uint8List(20 * 1024 * 1024)..setRange(0, png.length, png);
+        final selected = _DataFile(bytes);
+        when(
+          () => picker.pickImage(source: ImageSource.gallery),
+        ).thenAnswer((_) async => selected);
+
+        final result = (await importer.pickPhoto())!;
+        await BreathingPhotoImporter.validatePhoto(result);
+        expect(base64Decode(result).length, lessThanOrEqualTo(512 * 1024));
+        expect(selected.readAllBytes, isFalse);
+      },
+    );
+
+    test(
+      'should reject a source that grows between size check and reading',
+      () async {
+        when(file.length).thenAnswer((_) async => 10);
+        var cancelled = false;
+        var readPastLimit = false;
+        Stream<Uint8List> growingSource() async* {
+          try {
+            final block = Uint8List(64 * 1024);
+            for (var index = 0; index < 320; index++) {
+              yield block;
+            }
+            yield Uint8List(1);
+            readPastLimit = true;
+            yield Uint8List(64 * 1024);
+          } finally {
+            cancelled = true;
+          }
+        }
+
+        when(
+          () => file.openRead(0, 20 * 1024 * 1024 + 1),
+        ).thenAnswer((_) => growingSource());
+        await expectLater(
+          importer.pickPhoto(),
+          throwsA(
+            isA<BreathingPhotoException>().having(
+              (error) => error.tooLarge,
+              'tooLarge',
+              true,
+            ),
+          ),
+        );
+        expect(cancelled, isTrue);
+        expect(readPastLimit, isFalse);
+        verify(() => file.openRead(0, 20 * 1024 * 1024 + 1)).called(1);
+        verifyNever(file.readAsBytes);
+      },
+    );
+
+    test(
+      'should retry a pre-data range error only once at the checked length',
+      () async {
+        when(file.length).thenAnswer((_) async => 10);
+        when(
+          () => file.openRead(0, 20 * 1024 * 1024 + 1),
+        ).thenAnswer((_) => Stream.error(RangeError('Invalid end.')));
+        when(
+          () => file.openRead(0, 10),
+        ).thenAnswer((_) => Stream.error(RangeError('Still invalid.')));
+
+        await expectLater(
+          importer.pickPhoto(),
+          throwsA(isA<BreathingPhotoException>()),
+        );
+        verify(file.length).called(1);
+        verify(() => file.openRead(0, 20 * 1024 * 1024 + 1)).called(1);
+        verify(() => file.openRead(0, 10)).called(1);
+        verifyNoMoreInteractions(file);
+      },
+    );
+
+    test('should not retry a range error after even an empty chunk', () async {
+      when(file.length).thenAnswer((_) async => 10);
+      var cancelled = false;
+      Stream<Uint8List> source() async* {
+        try {
+          yield Uint8List(0);
+          throw RangeError('Later failure.');
+        } finally {
+          cancelled = true;
+        }
+      }
+
+      when(
+        () => file.openRead(0, 20 * 1024 * 1024 + 1),
+      ).thenAnswer((_) => source());
+
+      await expectLater(
+        importer.pickPhoto(),
+        throwsA(isA<BreathingPhotoException>()),
+      );
+      expect(cancelled, isTrue);
+      verify(file.length).called(1);
+      verify(() => file.openRead(0, 20 * 1024 * 1024 + 1)).called(1);
+      verifyNoMoreInteractions(file);
+    });
+
+    test(
+      'should preserve an oversized-read failure when cancellation also fails',
+      () async {
+        when(file.length).thenAnswer((_) async => 10);
+        var cancelled = false;
+        final source = StreamController<Uint8List>();
+        source.onListen = () => source.add(Uint8List(20 * 1024 * 1024 + 1));
+        source.onCancel = () {
+          cancelled = true;
+          throw StateError('Cleanup failure.');
+        };
+        addTearDown(source.close);
+        when(
+          () => file.openRead(0, 20 * 1024 * 1024 + 1),
+        ).thenAnswer((_) => source.stream);
+
+        await expectLater(
+          importer.pickPhoto(),
+          throwsA(
+            isA<BreathingPhotoException>().having(
+              (error) => error.tooLarge,
+              'tooLarge',
+              true,
+            ),
+          ),
+        );
+        expect(cancelled, isTrue);
+        verifyNever(file.readAsBytes);
+      },
+    );
+
+    test(
+      'should preserve the previous photo after cancellation or failed reading until replacement',
+      () async {
+        final previous = base64Encode(await _png(20, 10));
+        final repository = _Repository();
+        when(repository.load).thenAnswer(
+          (_) async => BreathingSnapshot(
+            settings: BreathingSettings(
+              background: BreathingBackground.personal,
+              personalPhotoBase64: previous,
+            ),
+            sessions: const [],
+          ),
+        );
+        final model = BreathingViewModel(repository, photoImporter: importer);
+        addTearDown(model.dispose);
+        await model.load();
+        model.openCustomization();
+        when(
+          () => picker.pickImage(source: ImageSource.gallery),
+        ).thenAnswer((_) async => null);
+        await model.importPhoto();
+        expect(model.error, isNull);
+        expect(model.draftSettings.personalPhotoBase64, previous);
+        expect(model.settings.personalPhotoBase64, previous);
+        when(
+          () => picker.pickImage(source: ImageSource.gallery),
+        ).thenAnswer((_) async => file);
+        when(file.length).thenAnswer((_) async => 10);
+        var cancelled = false;
+        Stream<Uint8List> source() async* {
+          try {
+            yield Uint8List.fromList([1, 2]);
+            throw StateError('Private source became unavailable.');
+          } finally {
+            cancelled = true;
+          }
+        }
+
+        when(
+          () => file.openRead(0, 20 * 1024 * 1024 + 1),
+        ).thenAnswer((_) => source());
+
+        await model.importPhoto();
+        expect(cancelled, isTrue);
+        expect(model.error, isA<BreathingPhotoException>());
+        expect(model.draftSettings.personalPhotoBase64, previous);
+        expect(model.settings.personalPhotoBase64, previous);
+
+        pickedBytes(await _png(30, 20));
+        await model.importPhoto();
+        expect(model.error, isNull);
+        expect(model.draftSettings.personalPhotoBase64, isNot(previous));
+        await BreathingPhotoImporter.validatePhoto(
+          model.draftSettings.personalPhotoBase64!,
+        );
+        expect(model.settings.personalPhotoBase64, previous);
+        verify(repository.load).called(1);
+        verifyNoMoreInteractions(repository);
+        verify(() => picker.pickImage(source: ImageSource.gallery)).called(3);
+        verifyNoMoreInteractions(picker);
+        verifyNever(file.readAsBytes);
       },
     );
 
@@ -131,6 +403,9 @@ void main() {
           image.dispose();
           codec.dispose();
         }
+        verify(() => picker.pickImage(source: ImageSource.gallery)).called(1);
+        verifyNoMoreInteractions(picker);
+        verifyNever(file.readAsBytes);
       },
     );
 

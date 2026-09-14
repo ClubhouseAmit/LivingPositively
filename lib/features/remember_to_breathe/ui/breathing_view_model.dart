@@ -35,6 +35,7 @@ final class BreathingViewModel extends ChangeNotifier {
   final DateTime Function() _now;
   final String Function() _sessionId;
   final Stopwatch _stopwatch = Stopwatch();
+  final ChangeNotifier _progressChanges = ChangeNotifier();
   Timer? _timer;
   bool _disposed = false;
   bool _departed = false;
@@ -74,6 +75,11 @@ final class BreathingViewModel extends ChangeNotifier {
   Duration get _elapsed => _injectedElapsed?.call() ?? _stopwatch.elapsed;
 
   BreathingScreen get screen => _screen;
+
+  /// Intra-phase animation and measurement updates for narrowly scoped views.
+  /// Discrete state changes, including phase boundaries, notify this model.
+  Listenable get progressChanges => _progressChanges;
+
   bool get isReady => _isReady;
   bool get isLoading => _isLoading;
   bool get isSaving => _isSavingSettings || _isSavingResult;
@@ -476,11 +482,15 @@ final class BreathingViewModel extends ChangeNotifier {
       return;
     }
     if (isMeasuring) {
-      _measuredDuration = _elapsed - _measurementStarted;
+      final measuredDuration = _elapsed - _measurementStarted;
+      if (measuredDuration == _measuredDuration) {
+        return;
+      }
+      _measuredDuration = measuredDuration;
       if (_measuredDuration >= const Duration(seconds: 9)) {
         finishDurationMeasurement();
       } else {
-        _notify();
+        _notifyProgress();
       }
       return;
     }
@@ -490,9 +500,11 @@ final class BreathingViewModel extends ChangeNotifier {
     final elapsed = _elapsed;
     final delta = elapsed - _lastRefresh;
     _lastRefresh = elapsed;
-    if (delta.isNegative) {
+    if (delta <= Duration.zero) {
       return;
     }
+    final previousPhase = _phase;
+    final previousCycles = _completedCycles;
     _phaseElapsed += delta;
     while (_phaseElapsed >= _phaseDuration) {
       _phaseElapsed -= _phaseDuration;
@@ -502,7 +514,12 @@ final class BreathingViewModel extends ChangeNotifier {
       }
       _phaseDuration = _durationFor(_phase);
     }
-    _notify();
+    if (_phase != previousPhase || _completedCycles != previousCycles) {
+      _notify();
+    } else if (_settings.showCircle &&
+        (_phase == BreathingPhase.inhale || _phase == BreathingPhase.exhale)) {
+      _notifyProgress();
+    }
   }
 
   bool _advancePhase() {
@@ -828,11 +845,18 @@ final class BreathingViewModel extends ChangeNotifier {
     }
   }
 
+  void _notifyProgress() {
+    if (_active) {
+      _progressChanges.notifyListeners();
+    }
+  }
+
   @override
   void dispose() {
     _disposed = true;
     _timer?.cancel();
     _stopwatch.stop();
+    _progressChanges.dispose();
     super.dispose();
   }
 }

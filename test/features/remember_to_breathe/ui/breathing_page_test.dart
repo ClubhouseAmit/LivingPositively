@@ -403,11 +403,23 @@ void main() {
       await _tap(tester, 'breathingSkipRating');
       await harness.advance(tester, const Duration(seconds: 48));
       expect(find.byKey(const Key('breathingRetrySave')), findsOneWidget);
+      expect(
+        tester
+            .widget<FilledButton>(find.byKey(const Key('breathingDone')))
+            .onPressed,
+        isNull,
+      );
       await _tap(tester, 'breathingDone');
       expect(harness.model.screen, BreathingScreen.result);
       await _tap(tester, 'breathingAfter4');
       harness.memory.onPersist = null;
       await _tap(tester, 'breathingRetrySave');
+      expect(
+        tester
+            .widget<FilledButton>(find.byKey(const Key('breathingDone')))
+            .onPressed,
+        isNotNull,
+      );
       await _tap(tester, 'breathingDone');
       expect((await harness.store.load()).sessions.single.stressAfter, 4);
       await _tap(tester, 'breathingQuickStart');

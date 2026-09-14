@@ -4597,8 +4597,25 @@ class AppLocalizationsAr extends AppLocalizations {
       'اتركوا الزر عند انتهاء النفس. اختاروا بين 3 و9 ثوانٍ، أو استخدموا زرّي الناقص والزائد.';
 
   @override
-  String breathingSeconds(String seconds) {
-    return '$seconds ثانية';
+  String breathingSeconds(num seconds) {
+    final intl.NumberFormat secondsNumberFormat =
+        intl.NumberFormat.decimalPatternDigits(
+          locale: localeName,
+          decimalDigits: 1,
+        );
+    final String secondsString = secondsNumberFormat.format(seconds);
+
+    String _temp0 = intl.Intl.pluralLogic(
+      seconds,
+      locale: localeName,
+      other: '$secondsString ثانية',
+      many: '$secondsString ثانية',
+      few: '$secondsString ثوانٍ',
+      two: '$secondsString ثانيتان',
+      one: '$secondsString ثانية',
+      zero: '$secondsString ثانية',
+    );
+    return '$_temp0';
   }
 
   @override

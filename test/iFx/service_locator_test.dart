@@ -15,13 +15,16 @@ import 'package:mazilon/pages/sos_location_service.dart';
 import 'package:mazilon/util/logger_service.dart';
 import 'package:mazilon/util/persistent_memory_service.dart';
 import 'package:mazilon/util/speech_recognition_service.dart';
+import 'package:mazilon/util/userInformation.dart';
 import 'package:mocktail/mocktail.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 class _BreathingRepository extends Mock implements BreathingRepository {}
 
 class _BreathingPhotoImporter extends Mock implements BreathingPhotoImporter {}
 
 void main() {
+  TestWidgetsFlutterBinding.ensureInitialized();
   group('setupLocator', () {
     setUp(() async {
       await GetIt.instance.reset();
@@ -110,6 +113,39 @@ void main() {
         same(GetIt.instance<BreathingPhotoImporter>()),
       );
     });
+
+    test(
+      'should share the default user reset target with breathing storage',
+      () async {
+        SharedPreferences.setMockInitialValues({});
+        setupLocator();
+        final user = UserInformation();
+        addTearDown(user.dispose);
+        final repository = GetIt.instance<BreathingRepository>();
+        expect(user.service, same(GetIt.instance<PersistentMemoryService>()));
+        await repository.saveSettings(const BreathingSettings(showText: false));
+        await repository.saveSession(
+          BreathingSession(
+            id: 'production-composition',
+            startedAt: DateTime.utc(2026),
+            endedAt: DateTime.utc(2026, 1, 1, 0, 1),
+            pattern: BreathingPattern.basic,
+            completedCycles: 8,
+          ),
+        );
+        final saved = await repository.load();
+        expect(saved.settings.showText, isFalse);
+        expect(saved.sessions.single.id, 'production-composition');
+
+        // Use the same invalidation/reset sequence as confirmed app-data reset.
+        GetIt.instance<BreathingStore>().invalidatePendingWrites();
+        await user.service.reset();
+        final reset = await repository.load();
+        expect(reset.settings.showText, isTrue);
+        expect(reset.sessions, isEmpty);
+        expect((await SharedPreferences.getInstance()).getKeys(), isEmpty);
+      },
+    );
 
     test(
       'should create page-owned breathing models using registered collaborators',

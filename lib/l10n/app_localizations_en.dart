@@ -4627,8 +4627,15 @@ class AppLocalizationsEn extends AppLocalizations {
       'Release when your breath ends. Choose 3-9 seconds, or use the minus and plus buttons.';
 
   @override
-  String breathingSeconds(String seconds) {
-    return '$seconds seconds';
+  String breathingSeconds(num seconds) {
+    final intl.NumberFormat secondsNumberFormat =
+        intl.NumberFormat.decimalPatternDigits(
+          locale: localeName,
+          decimalDigits: 1,
+        );
+    final String secondsString = secondsNumberFormat.format(seconds);
+
+    return '$secondsString seconds';
   }
 
   @override

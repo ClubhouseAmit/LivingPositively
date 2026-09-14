@@ -2287,7 +2287,11 @@
   "@breathingSeconds": {
     "placeholders": {
       "seconds": {
-        "type": "String"
+        "type": "num",
+        "format": "decimalPatternDigits",
+        "optionalParameters": {
+          "decimalDigits": 1
+        }
       }
     }
   },

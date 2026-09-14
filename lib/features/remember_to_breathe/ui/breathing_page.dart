@@ -335,21 +335,23 @@ class _BreathingPageState extends State<BreathingPage>
   );
 
   Widget _durationStep(bool inhale) {
-    final duration = _model.isMeasuring
-        ? _model.measuredDuration
-        : inhale
-        ? _model.draftSettings.inhaleDuration
-        : _model.draftSettings.exhaleDuration;
     return Column(
       children: [
-        BreathingDurationButtons(
-          duration: duration,
-          label: inhale
-              ? _strings.breathingInhaleDuration
-              : _strings.breathingExhaleDuration,
-          onAdjust: (delta) =>
-              _model.adjustDuration(inhale: inhale, delta: delta),
-          keyPrefix: inhale ? 'breathingInhale' : 'breathingExhale',
+        AnimatedBuilder(
+          animation: _model.progressChanges,
+          builder: (context, _) => BreathingDurationButtons(
+            duration: _model.isMeasuring
+                ? _model.measuredDuration
+                : inhale
+                ? _model.draftSettings.inhaleDuration
+                : _model.draftSettings.exhaleDuration,
+            label: inhale
+                ? _strings.breathingInhaleDuration
+                : _strings.breathingExhaleDuration,
+            onAdjust: (delta) =>
+                _model.adjustDuration(inhale: inhale, delta: delta),
+            keyPrefix: inhale ? 'breathingInhale' : 'breathingExhale',
+          ),
         ),
         const SizedBox(height: AppSpacing.lg),
         Text(_strings.breathingMeasureHint),
@@ -446,7 +448,9 @@ class _BreathingPageState extends State<BreathingPage>
         ],
         FilledButton(
           key: const Key('breathingDone'),
-          onPressed: _model.isSaving ? null : () => _model.returnToLanding(),
+          onPressed: _model.isSaving || _model.hasUnsavedResult
+              ? null
+              : () => _model.returnToLanding(),
           child: Text(_strings.breathingDone),
         ),
         if (_model.hasUnsavedResult && !_model.isSaving)
@@ -474,12 +478,6 @@ class _BreathingPageState extends State<BreathingPage>
 
   Widget _practice() {
     final phase = _model.phase;
-    final expansion = switch (phase) {
-      BreathingPhase.inhale => _model.phaseProgress,
-      BreathingPhase.exhale => 1 - _model.phaseProgress,
-      BreathingPhase.holdInhale => 1.0,
-      BreathingPhase.holdExhale => 0.0,
-    };
     final phaseLabel = switch (phase) {
       BreathingPhase.inhale => _strings.breathingInhale,
       BreathingPhase.exhale => _strings.breathingExhale,
@@ -551,9 +549,22 @@ class _BreathingPageState extends State<BreathingPage>
                           width: 200,
                           height: 200,
                           child: Center(
-                            child: Transform.scale(
-                              key: const Key('breathingCircle'),
-                              scale: 0.45 + 0.55 * expansion,
+                            child: AnimatedBuilder(
+                              animation: _model.progressChanges,
+                              builder: (context, child) {
+                                final expansion = switch (_model.phase) {
+                                  BreathingPhase.inhale => _model.phaseProgress,
+                                  BreathingPhase.exhale =>
+                                    1 - _model.phaseProgress,
+                                  BreathingPhase.holdInhale => 1.0,
+                                  BreathingPhase.holdExhale => 0.0,
+                                };
+                                return Transform.scale(
+                                  key: const Key('breathingCircle'),
+                                  scale: 0.45 + 0.55 * expansion,
+                                  child: child,
+                                );
+                              },
                               child: DecoratedBox(
                                 decoration: BoxDecoration(
                                   shape: BoxShape.circle,

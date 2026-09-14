@@ -1,6 +1,10 @@
 import 'breathing_models.dart';
 
 /// Persistence operations shared by all page instances of breathing practice.
+///
+/// The production store supplements synchronous model/schema checks with
+/// asynchronous image-codec validation. Unreadable photos preserve the saved
+/// snapshot for explicit recovery; invalid replacements never overwrite it.
 abstract interface class BreathingRepository {
   Future<BreathingSnapshot> load();
   Future<BreathingSnapshot> saveSettings(BreathingSettings settings);

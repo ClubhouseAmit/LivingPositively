@@ -121,6 +121,162 @@ void main() {
     });
     tearDown(() => model.dispose());
 
+    group('progress notifications', () {
+      test(
+        'should separate animation samples from phase and cycle changes',
+        () async {
+          await harness.start();
+          var stateChanges = 0;
+          var progressChanges = 0;
+          model.addListener(() => stateChanges++);
+          model.progressChanges.addListener(() => progressChanges++);
+
+          for (var tick = 0; tick < 30; tick++) {
+            harness.advance(const Duration(milliseconds: 33));
+          }
+          expect(model.phaseProgress, closeTo(0.33, 0.0001));
+          expect(stateChanges, 0);
+          expect(progressChanges, 30);
+          model.refresh();
+          expect(stateChanges, 0);
+          expect(progressChanges, 30);
+
+          harness.advance(const Duration(milliseconds: 2010));
+          expect(model.phase, BreathingPhase.exhale);
+          expect(stateChanges, 1);
+          expect(progressChanges, 30);
+          harness.advance(const Duration(seconds: 3));
+          expect(model.completedCycles, 1);
+          expect(stateChanges, 2);
+          // A delayed sample can finish a whole cycle and return to the same phase.
+          harness.advance(const Duration(seconds: 6));
+          expect(model.phase, BreathingPhase.inhale);
+          expect(model.completedCycles, 2);
+          expect(stateChanges, 3);
+        },
+      );
+
+      test(
+        'should keep box holds quiet while preserving phase boundaries',
+        () async {
+          await harness.start(pattern: BreathingPattern.box);
+          harness.advance(const Duration(seconds: 4));
+          var stateChanges = 0;
+          var progressChanges = 0;
+          model.addListener(() => stateChanges++);
+          model.progressChanges.addListener(() => progressChanges++);
+          for (var tick = 0; tick < 30; tick++) {
+            harness.advance(const Duration(milliseconds: 33));
+          }
+          expect(model.phase, BreathingPhase.holdInhale);
+          expect(stateChanges, 0);
+          expect(progressChanges, 0);
+          harness.advance(const Duration(milliseconds: 3010));
+          expect(model.phase, BreathingPhase.exhale);
+          expect(stateChanges, 1);
+          harness.advance(const Duration(milliseconds: 33));
+          expect(progressChanges, 1);
+          harness.advance(const Duration(milliseconds: 3967));
+          expect(model.phase, BreathingPhase.holdExhale);
+          expect(stateChanges, 2);
+          harness.advance(const Duration(seconds: 1));
+          expect(progressChanges, 1);
+          expect(stateChanges, 2);
+        },
+      );
+
+      test(
+        'should advance hidden cues without animation notifications',
+        () async {
+          await harness.start();
+          model.toggleCircle();
+          model.toggleText();
+          var stateChanges = 0;
+          var progressChanges = 0;
+          model.addListener(() => stateChanges++);
+          model.progressChanges.addListener(() => progressChanges++);
+          harness.advance(const Duration(seconds: 1));
+          expect(model.phaseProgress, closeTo(1 / 3, 0.0001));
+          expect(stateChanges, 0);
+          expect(progressChanges, 0);
+          harness.advance(const Duration(seconds: 2));
+          expect(model.phase, BreathingPhase.exhale);
+          expect(stateChanges, 1);
+          expect(progressChanges, 0);
+          model.toggleCircle();
+          expect(stateChanges, 2);
+          harness.advance(const Duration(milliseconds: 33));
+          expect(progressChanges, 1);
+        },
+      );
+
+      test(
+        'should separate measurement samples from start, cancel and cap',
+        () async {
+          await model.load();
+          model.openCustomization();
+          await model.nextCustomizationStep();
+          var stateChanges = 0;
+          var progressChanges = 0;
+          model.addListener(() => stateChanges++);
+          model.progressChanges.addListener(() => progressChanges++);
+          model.beginDurationMeasurement(inhale: true);
+          expect(stateChanges, 1);
+          model.refresh();
+          expect(progressChanges, 0);
+          for (var tick = 0; tick < 30; tick++) {
+            harness.advance(const Duration(milliseconds: 33));
+          }
+          expect(model.measuredDuration, const Duration(milliseconds: 990));
+          expect(stateChanges, 1);
+          expect(progressChanges, 30);
+          model.handleAppInactive();
+          expect(model.isMeasuring, isFalse);
+          expect(
+            model.draftSettings.inhaleDuration,
+            const Duration(seconds: 3),
+          );
+          expect(stateChanges, 2);
+          harness.advance(const Duration(seconds: 1));
+          expect(progressChanges, 30);
+
+          model.beginDurationMeasurement(inhale: true);
+          harness.advance(const Duration(seconds: 9));
+          expect(model.isMeasuring, isFalse);
+          expect(
+            model.draftSettings.inhaleDuration,
+            const Duration(seconds: 9),
+          );
+          expect(stateChanges, 4);
+          expect(progressChanges, 30);
+          model.refresh();
+          expect(stateChanges, 4);
+          expect(progressChanges, 30);
+        },
+      );
+
+      test(
+        'should stop progress on inactivity until explicit resume',
+        () async {
+          await harness.start();
+          harness.advance(const Duration(seconds: 1));
+          var stateChanges = 0;
+          var progressChanges = 0;
+          model.addListener(() => stateChanges++);
+          model.progressChanges.addListener(() => progressChanges++);
+          model.handleAppInactive();
+          harness.advance(const Duration(seconds: 30));
+          expect(model.phaseProgress, closeTo(1 / 3, 0.0001));
+          expect(stateChanges, 1);
+          expect(progressChanges, 0);
+          model.resume();
+          harness.advance(const Duration(milliseconds: 33));
+          expect(stateChanges, 2);
+          expect(progressChanges, 1);
+        },
+      );
+    });
+
     test(
       'should load defaults, expose immutable history and quick start basic',
       () async {
@@ -636,7 +792,9 @@ void main() {
           return blocked.future;
         });
         var notifications = 0;
+        var progressNotifications = 0;
         model.addListener(() => notifications++);
+        model.progressChanges.addListener(() => progressNotifications++);
         model.departForEmergency();
         expect(notifications, 0);
         expect(harness.writes.single.completedCycles, 1);
@@ -646,6 +804,7 @@ void main() {
         blocked.completeError(const BreathingStorageException());
         await Future<void>.delayed(Duration.zero);
         expect(notifications, 0);
+        expect(progressNotifications, 0);
       },
     );
 
@@ -665,12 +824,15 @@ void main() {
       when(harness.repository.load).thenAnswer((_) => loaded.future);
       final load = model.load();
       var notifications = 0;
+      var progressNotifications = 0;
       model.addListener(() => notifications++);
+      model.progressChanges.addListener(() => progressNotifications++);
       model.dispose();
       loaded.complete(const BreathingSnapshot.empty());
       await load;
       model.refresh();
       expect(notifications, 0);
+      expect(progressNotifications, 0);
       // Replace the disposed instance for shared cleanup.
       harness = _Harness();
       model = harness.model;

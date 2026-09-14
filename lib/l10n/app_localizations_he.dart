@@ -4578,15 +4578,22 @@ class AppLocalizationsHe extends AppLocalizations {
       'שחררו עם סיום הנשימה. בחרו בין 3 ל־9 שניות, או השתמשו בכפתורי המינוס והפלוס.';
 
   @override
-  String breathingSeconds(String seconds) {
-    return '$seconds שניות';
+  String breathingSeconds(num seconds) {
+    final intl.NumberFormat secondsNumberFormat =
+        intl.NumberFormat.decimalPatternDigits(
+          locale: localeName,
+          decimalDigits: 1,
+        );
+    final String secondsString = secondsNumberFormat.format(seconds);
+
+    return '$secondsString שניות';
   }
 
   @override
-  String get breathingDecrease => 'קיצור המשך בשנייה';
+  String get breathingDecrease => 'קיצור משך הנשימה בשנייה';
 
   @override
-  String get breathingIncrease => 'הארכת המשך בשנייה';
+  String get breathingIncrease => 'הארכת משך הנשימה בשנייה';
 
   @override
   String get breathingPreMessage =>

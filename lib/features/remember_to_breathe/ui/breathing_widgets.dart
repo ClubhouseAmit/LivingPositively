@@ -185,7 +185,10 @@ class BreathingDurationButtons extends StatelessWidget {
             Flexible(
               child: Text(
                 strings.breathingSeconds(
-                  (duration.inMilliseconds / 1000).toStringAsFixed(1),
+                  // Select the plural using the same precision shown on screen.
+                  num.parse(
+                    (duration.inMilliseconds / 1000).toStringAsFixed(1),
+                  ),
                 ),
                 textAlign: TextAlign.center,
                 style: Theme.of(context).textTheme.bodyMedium,

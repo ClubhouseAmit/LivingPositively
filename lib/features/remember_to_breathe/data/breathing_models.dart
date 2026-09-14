@@ -41,6 +41,9 @@ final class BreathingSettings {
   final bool showText;
 
   /// Changes supplied preferences, retaining the personal photo by default.
+  ///
+  /// Null means retain the existing value. Selecting a preset keeps the photo
+  /// available for later reuse; app-data reset removes the retained snapshot.
   BreathingSettings copyWith({
     Duration? inhaleDuration,
     Duration? exhaleDuration,
@@ -61,6 +64,8 @@ final class BreathingSettings {
     return settings;
   }
 
+  // Synchronous schema validation checks size, base64 and the PNG signature.
+  // The store additionally decodes the image before accepting reads or writes.
   void _validate() {
     for (final duration in [inhaleDuration, exhaleDuration]) {
       if (duration < const Duration(seconds: 3) ||
@@ -167,6 +172,10 @@ final class BreathingSession {
   bool get isComplete => completedCycles == 8;
 
   /// Updates rating or completion details without changing the attempt ID.
+  ///
+  /// Null means retain the existing value, including either optional rating.
+  /// Clearing a rating requires a replacement session with a newer revision;
+  /// the view model's updateAfterRating(null) operation handles that explicitly.
   BreathingSession copyWith({
     DateTime? endedAt,
     int? completedCycles,

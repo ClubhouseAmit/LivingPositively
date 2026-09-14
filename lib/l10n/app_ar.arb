@@ -879,11 +879,15 @@
   "breathingHold": "احبسوا النفس",
   "breathingMeasure": "اضغطوا باستمرار للقياس",
   "breathingMeasureHint": "اتركوا الزر عند انتهاء النفس. اختاروا بين 3 و9 ثوانٍ، أو استخدموا زرّي الناقص والزائد.",
-  "breathingSeconds": "{seconds} ثانية",
+  "breathingSeconds": "{seconds, plural, zero{{seconds} ثانية} one{{seconds} ثانية} two{{seconds} ثانيتان} few{{seconds} ثوانٍ} many{{seconds} ثانية} other{{seconds} ثانية}}",
   "@breathingSeconds": {
     "placeholders": {
       "seconds": {
-        "type": "String"
+        "type": "num",
+        "format": "decimalPatternDigits",
+        "optionalParameters": {
+          "decimalDigits": 1
+        }
       }
     }
   },

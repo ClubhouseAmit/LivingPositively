@@ -4260,7 +4260,7 @@ abstract class AppLocalizations {
   ///
   /// In en, this message translates to:
   /// **'{seconds} seconds'**
-  String breathingSeconds(String seconds);
+  String breathingSeconds(num seconds);
 
   /// No description provided for @breathingDecrease.
   ///

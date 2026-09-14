@@ -37,11 +37,19 @@ images while explicitly deferring voice guidance, audio/music, and video.
 - Bundle eight CC0 backgrounds with provenance in the asset manifest. Use the
   unchanged image picker's gallery operation, not Feel Good's gallery manifest.
   Retain one normalized local PNG (at most 768 pixels on its longest edge and
-  512 KiB), replacing the previous photo. Reject input larger than 20 MiB before
-  reading. Store image bytes, never temporary paths or browser blob URLs.
+  512 KiB), replacing the previous photo. Reject declared input sizes larger
+  than 20 MiB before reading. Acquire through a bounded stream, rejecting excess
+  chunks before accumulation. The installed native in-memory picker file needs one bounded
+  retry at its checked length if it rejects the initial range before any data.
+  Store image bytes, never temporary paths or browser blob URLs.
 - Preserve the issue's exact Hebrew passages and provide English/Arabic keys.
   Do not send photos or stress data to analytics, cloud storage, or device sync.
   No dependencies or platform permissions are added.
+
+Animation samples notify only the circle and duration-measurement controls;
+page state notifications are reserved for discrete changes. Holds and hidden
+circles remain timed without animation notifications. This feature-local
+progress listener leaves shared services and the snapshot schema unchanged.
 
 ## Consequences
 

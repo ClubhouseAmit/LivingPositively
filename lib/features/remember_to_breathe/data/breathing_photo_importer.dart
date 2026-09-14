@@ -1,5 +1,7 @@
+import 'dart:async';
 import 'dart:convert';
 import 'dart:math' as math;
+import 'dart:typed_data' show BytesBuilder;
 import 'dart:ui' as ui;
 
 import 'package:flutter/foundation.dart';
@@ -20,6 +22,8 @@ final class BreathingPhotoException implements Exception {
 ///
 /// This component performs no persistence. Its caller commits the new photo
 /// only after import succeeds, preserving the previous selection on failure.
+/// The existing picker contract still lives in the legacy Feel Good module;
+/// breathing uses only its gallery pick, never its media or persistence APIs.
 class BreathingPhotoImporter {
   BreathingPhotoImporter(this._picker);
 
@@ -102,10 +106,14 @@ class BreathingPhotoImporter {
         return null;
       }
       // Check before loading bytes; do not decode an oversized source.
-      if (await file.length() > maximumInputBytes) {
+      final declaredLength = await file.length();
+      if (declaredLength < 0) {
+        throw const BreathingPhotoException();
+      }
+      if (declaredLength > maximumInputBytes) {
         throw const BreathingPhotoException(tooLarge: true);
       }
-      final bytes = await file.readAsBytes();
+      final bytes = await _readBounded(file, declaredLength);
       if (bytes.length > maximumInputBytes) {
         // The source could have changed between querying its size and reading.
         throw const BreathingPhotoException(tooLarge: true);
@@ -115,6 +123,54 @@ class BreathingPhotoImporter {
       rethrow;
     } catch (_) {
       throw const BreathingPhotoException();
+    }
+  }
+
+  Future<Uint8List> _readBounded(XFile file, int declaredLength) async {
+    // Web converts the requested Blob slice as one allocation. An explicit
+    // end also bounds a native file that grows after the metadata check.
+    var end = maximumInputBytes + 1;
+    var retriedShortData = false;
+    while (true) {
+      final bytes = BytesBuilder(copy: false);
+      StreamIterator<Uint8List>? chunks;
+      var receivedChunk = false;
+      var readFailed = false;
+      try {
+        chunks = StreamIterator(file.openRead(0, end));
+        while (await chunks.moveNext()) {
+          receivedChunk = true;
+          final chunk = chunks.current;
+          if (chunk.length > maximumInputBytes - bytes.length) {
+            throw const BreathingPhotoException(tooLarge: true);
+          }
+          bytes.add(chunk);
+        }
+        return bytes.takeBytes();
+      } on RangeError {
+        readFailed = true;
+        // cross_file's native fromData reader uses sublist and rejects an end
+        // beyond its bytes. Retry only that pre-data case, once, still bounded.
+        if (retriedShortData || receivedChunk) {
+          rethrow;
+        }
+        retriedShortData = true;
+        end = declaredLength;
+      } catch (_) {
+        readFailed = true;
+        rethrow;
+      } finally {
+        if (chunks != null) {
+          try {
+            await chunks.cancel();
+          } catch (_) {
+            // Cleanup must not replace the original failure (notably tooLarge).
+            if (!readFailed) {
+              rethrow;
+            }
+          }
+        }
+      }
     }
   }
 

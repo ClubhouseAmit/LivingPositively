@@ -968,12 +968,16 @@
   "@breathingSeconds": {
     "placeholders": {
       "seconds": {
-        "type": "String"
+        "type": "num",
+        "format": "decimalPatternDigits",
+        "optionalParameters": {
+          "decimalDigits": 1
+        }
       }
     }
   },
-  "breathingDecrease": "קיצור המשך בשנייה",
-  "breathingIncrease": "הארכת המשך בשנייה",
+  "breathingDecrease": "קיצור משך הנשימה בשנייה",
+  "breathingIncrease": "הארכת משך הנשימה בשנייה",
   "breathingPreMessage": "בואו נבדוק מה שלומכם ברגע זה. התרגול הוא הזמנה להירגע ולהאט את הקצב.",
   "breathingStressQuestion": "מה רמת הלחץ כרגע? (1–10)",
   "breathingNoRating": "לא נרשם",

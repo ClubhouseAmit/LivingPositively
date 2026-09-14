@@ -50,6 +50,11 @@ import 'package:mazilon/l10n/app_localizations.dart';
 typedef MoodMedicineViewModelFactory = MoodMedicineViewModel Function();
 
 /// Creates a model owned by one breathing page visit.
+///
+/// Production resolves the GetIt factory and its singleton breathing store.
+/// That store uses the same registered PersistentMemoryService as the default
+/// UserInformation, so confirmed app-data reset clears breathing data too.
+/// Custom factories for tests or hosts own their persistence/reset composition.
 typedef BreathingViewModelFactory = BreathingViewModel Function();
 
 class Menu extends StatefulWidget {
