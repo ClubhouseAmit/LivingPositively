@@ -4602,4 +4602,264 @@ class AppLocalizationsAr extends AppLocalizations {
   @override
   String get moodMedicineDiscardUnreadableBody =>
       'يستبدل هذا الإجراء سجل الطب الشخصي فقط على هذا الجهاز بسجل فارغ. لا يمكن التراجع عنه.';
+
+  @override
+  String get breathingTitle => 'تذكّر أن تتنفّس';
+
+  @override
+  String get breathingIntro => 'خذوا لحظة لأنفسكم مع ثماني دورات تنفّس هادئة.';
+
+  @override
+  String get breathingGuidance =>
+      'في المرّات الأولى، يُنصح بالتدرّب أثناء الاستلقاء أو الجلوس براحة. ضعوا يدًا برفق على البطن وأخرى على الصدر، ولاحظوا كيف ترتفع اليد على البطن مع الشهيق وتنخفض مع الزفير.';
+
+  @override
+  String get breathingCredits =>
+      'استُوحي تمرين «تذكّر أن تتنفّس» من تطبيق Breathe2Relax التابع لـ T2 / وزارة الدفاع الأمريكية. يستند التمرين إلى بروتوكولات بحثية لتنظيم استجابات الجسم، إلى جانب رؤى وإرشادات خبراء من واقع التجربة في مجال الصحة النفسية والتأهيل، لتعزيز المرونة النفسية في تطبيق Living Positively.';
+
+  @override
+  String get breathingInfo => 'حول التمرين';
+
+  @override
+  String get breathingExplanation =>
+      'في التنفّس السطحي يتحرّك الجزء العلوي من الصدر غالبًا. في التنفّس الحجابي، تنفّسوا برفق عبر الأنف ودعوا البطن يرتفع مع الشهيق ويهبط مع الزفير. اختاروا إيقاعًا مريحًا. يمكنكم التوقّف مؤقّتًا أو إنهاء التمرين متى شئتم.';
+
+  @override
+  String get breathingQuickStart => 'بدء سريع';
+
+  @override
+  String get breathingCustomize => 'تخصيص';
+
+  @override
+  String get breathingHistory => 'سجلّ التمارين';
+
+  @override
+  String get breathingBasic => 'تمرين أساسي';
+
+  @override
+  String get breathingBox => 'التنفّس المربّع';
+
+  @override
+  String get breathingCustom => 'تمرين مخصّص';
+
+  @override
+  String get breathingStart => 'بدء التمرين المختار';
+
+  @override
+  String get breathingSkip => 'تخطّي';
+
+  @override
+  String get breathingNext => 'التالي';
+
+  @override
+  String get breathingSave => 'حفظ الإعدادات';
+
+  @override
+  String get breathingBack => 'رجوع';
+
+  @override
+  String breathingStep(int step) {
+    return 'الخطوة $step من 3';
+  }
+
+  @override
+  String get breathingBackground => 'اختيار خلفية';
+
+  @override
+  String get breathingForest => 'غابة';
+
+  @override
+  String get breathingMountains => 'جبال';
+
+  @override
+  String get breathingCosmos => 'فضاء';
+
+  @override
+  String get breathingBeach => 'شاطئ';
+
+  @override
+  String get breathingFlowers => 'زهور';
+
+  @override
+  String get breathingSunset => 'غروب';
+
+  @override
+  String get breathingHouse => 'منزل بسيط';
+
+  @override
+  String get breathingMonastery => 'دير';
+
+  @override
+  String get breathingPersonal => 'صورتي';
+
+  @override
+  String get breathingChoosePhoto => 'اختيار صورة شخصية';
+
+  @override
+  String get breathingPhotoLocal =>
+      'تُحفظ نسخة مصغّرة من صورة واحدة على هذا الجهاز فقط، ولا تُرفع إلى أي خادم.';
+
+  @override
+  String get breathingInhaleDuration => 'مدّة الشهيق';
+
+  @override
+  String get breathingExhaleDuration => 'مدّة الزفير';
+
+  @override
+  String get breathingInhale => 'شهيق';
+
+  @override
+  String get breathingExhale => 'زفير';
+
+  @override
+  String get breathingHold => 'احبسوا النفس';
+
+  @override
+  String get breathingMeasure => 'اضغطوا باستمرار للقياس';
+
+  @override
+  String get breathingMeasureHint =>
+      'اتركوا الزر عند انتهاء النفس. اختاروا بين 3 و9 ثوانٍ، أو استخدموا زرّي الناقص والزائد.';
+
+  @override
+  String breathingSeconds(num seconds) {
+    final intl.NumberFormat secondsNumberFormat =
+        intl.NumberFormat.decimalPatternDigits(
+          locale: localeName,
+          decimalDigits: 1,
+        );
+    final String secondsString = secondsNumberFormat.format(seconds);
+
+    String _temp0 = intl.Intl.pluralLogic(
+      seconds,
+      locale: localeName,
+      other: '$secondsString ثانية',
+      many: '$secondsString ثانية',
+      few: '$secondsString ثوانٍ',
+      two: '$secondsString ثانيتان',
+      one: '$secondsString ثانية',
+      zero: '$secondsString ثانية',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get breathingDecrease => 'تقليل المدّة ثانية واحدة';
+
+  @override
+  String get breathingIncrease => 'زيادة المدّة ثانية واحدة';
+
+  @override
+  String get breathingPreMessage =>
+      'لنطمئن على شعوركم الآن. هذا التمرين دعوة للاسترخاء وإبطاء الإيقاع.';
+
+  @override
+  String get breathingStressQuestion =>
+      'ما مستوى التوتّر الذي تشعرون به؟ (1–10)';
+
+  @override
+  String get breathingNoRating => 'لم يُسجّل';
+
+  @override
+  String get breathingBefore => 'قبل';
+
+  @override
+  String get breathingAfter => 'بعد';
+
+  @override
+  String get breathingCompleteMessage =>
+      'أحسنتم. منحتم جسمكم ونفسكم لحظة من الهدوء والاسترخاء وإبطاء الإيقاع. كلّ تمرين كهذا يقوّيكم.';
+
+  @override
+  String get breathingStoppedMessage =>
+      'كلّ نفس واعٍ أخذتموه هو مكسب لكم. من الجيّد أنكم أصغيتم إلى جسمكم وتوقّفتم عندما شعرتم أنّ ذلك مناسب. يمكنكم العودة إلى التمرين متى شئتم.';
+
+  @override
+  String get breathingPause => 'توقّف مؤقّت';
+
+  @override
+  String get breathingPaused => 'التمرين متوقّف مؤقّتًا';
+
+  @override
+  String get breathingContinue => 'متابعة';
+
+  @override
+  String get breathingRestart => 'البدء من جديد';
+
+  @override
+  String get breathingEnd => 'إنهاء التمرين';
+
+  @override
+  String get breathingDone => 'تمّ';
+
+  @override
+  String get breathingShowCircle => 'إظهار دائرة التنفّس';
+
+  @override
+  String get breathingHideCircle => 'إخفاء دائرة التنفّس';
+
+  @override
+  String get breathingShowText => 'إظهار نصّ الإرشادات';
+
+  @override
+  String get breathingHideText => 'إخفاء نصّ الإرشادات';
+
+  @override
+  String get breathingShowControls => 'إظهار أدوات التحكّم';
+
+  @override
+  String get breathingHideControls => 'إخفاء أدوات التحكّم';
+
+  @override
+  String breathingCycle(int cycle) {
+    return 'الدورة $cycle من 8';
+  }
+
+  @override
+  String breathingCompletedCycles(int cycles) {
+    return 'الدورات المكتملة: $cycles من 8';
+  }
+
+  @override
+  String get breathingLoading => 'جارٍ تحميل التمرين…';
+
+  @override
+  String get breathingRetry => 'إعادة المحاولة';
+
+  @override
+  String get breathingSaveFailed =>
+      'لم تُحفظ التغييرات. يمكنكم إعادة المحاولة قبل المغادرة.';
+
+  @override
+  String get breathingError =>
+      'تعذّر إكمال الإجراء. ما زال اختياركم السابق محفوظًا.';
+
+  @override
+  String get breathingRecoveryTitle => 'يحتاج سجلّ التمارين إلى الانتباه';
+
+  @override
+  String get breathingRecoveryBody =>
+      'تعذّرت قراءة بيانات التمرين المحفوظة. أعيدوا المحاولة للاحتفاظ بها، أو اختاروا حذف بيانات التنفّس غير القابلة للقراءة فقط.';
+
+  @override
+  String get breathingDiscard => 'حذف بيانات التنفّس غير القابلة للقراءة';
+
+  @override
+  String get breathingDiscardConfirm =>
+      'سيؤدّي هذا إلى حذف إعدادات التنفّس والصورة والسجلّ غير القابلة للقراءة على هذا الجهاز. لا يمكن التراجع عن ذلك.';
+
+  @override
+  String get breathingCancel => 'إلغاء';
+
+  @override
+  String get breathingLeaveWithoutSaving => 'المغادرة دون حفظ';
+
+  @override
+  String get breathingHistoryEmpty => 'ستظهر تمارينكم هنا.';
+
+  @override
+  String get breathingCompleted => 'مكتمل';
+
+  @override
+  String get breathingStopped => 'انتهى مبكّرًا';
 }

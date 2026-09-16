@@ -120,6 +120,7 @@ flutter:
 
   assets:
     - assets/images/
+    - assets/images/breathing/
     - assets/fonts/
 
   fonts:

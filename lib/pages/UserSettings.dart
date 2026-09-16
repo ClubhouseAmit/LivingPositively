@@ -6,6 +6,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:get_it/get_it.dart';
 import 'package:mazilon/Locale/locale_service.dart';
+import 'package:mazilon/features/remember_to_breathe/data/breathing_store.dart';
 import 'package:mazilon/form/speech_dictation_suffix_action.dart';
 import 'package:mazilon/global_enums.dart';
 import 'package:mazilon/pages/SignIn_Pages/firstPage.dart';
@@ -537,6 +538,10 @@ class _UserSettingsState extends LPExtendedState<UserSettings> {
     // Keep main's injected persistence ownership: the UserInformation instance
     // owns the storage being reset and later repopulated with its empty state.
     final service = userInfo.service;
+    // A queued feature write must not repopulate storage after a reset.
+    if (GetIt.instance.isRegistered<BreathingStore>()) {
+      GetIt.instance<BreathingStore>().invalidatePendingWrites();
+    }
     final previousDefaultReminder = userInfo.getNotificationPreference(
       'default',
     );

@@ -4577,4 +4577,253 @@ class AppLocalizationsHe extends AppLocalizations {
   @override
   String get moodMedicineDiscardUnreadableBody =>
       'פעולה זו מחליפה רק את היסטוריית הרפואה האישית במכשיר זה בהיסטוריה ריקה. לא ניתן לבטל פעולה זו.';
+
+  @override
+  String get breathingTitle => 'לזכור לנשום';
+
+  @override
+  String get breathingIntro =>
+      'עצרו לרגע. שמונה מעגלי נשימה בקצב נעים, בזמן שמתאים לכם.';
+
+  @override
+  String get breathingGuidance =>
+      'בפעמים הראשונות, מומלץ מאוד לתרגל בשכיבה או בישיבה נינוחה. הניחו בעדינות יד אחת על הבטן ויד שנייה על החזה, והרגישו כיצד היד שעל הבטן עולה בשאיפה ושוקעת בנשיפה.';
+
+  @override
+  String get breathingCredits =>
+      'התרגול \'לזכור לנשום\' פותח בהשראת אפליקציית Breathe2Relax מבית ה-T2 / משרד הביטחון האמריקאי (US Department of Defense). הפיצ\'ר נשען על פרוטוקולים מחקריים לוויסות המערכת הפיזיולוגית, בשילוב תובנות וליווי של מומחים מניסיון אישי בשטח בתחום בריאות הנפש והשיקום, לחיזוק החוסן הנפשי באפליקציית Living Positively.';
+
+  @override
+  String get breathingInfo => 'על התרגול';
+
+  @override
+  String get breathingExplanation =>
+      'בנשימה שטוחה החלק העליון של החזה נע לעיתים יותר. בנשימה סרעפתית מכניסים אוויר בעדינות דרך האף ונותנים לבטן להתרחב בשאיפה ולשקוע בנשיפה. בחרו קצב נוח. אפשר להשהות או לעצור בכל זמן שתרצו.';
+
+  @override
+  String get breathingQuickStart => 'התחל תרגול מהיר';
+
+  @override
+  String get breathingCustomize => 'התאמה אישית';
+
+  @override
+  String get breathingHistory => 'יומן תרגולים';
+
+  @override
+  String get breathingBasic => 'תרגול בסיסי';
+
+  @override
+  String get breathingBox => 'נשימה מרובעת';
+
+  @override
+  String get breathingCustom => 'תרגול מותאם אישית';
+
+  @override
+  String get breathingStart => 'התחלת התרגול הנבחר';
+
+  @override
+  String get breathingSkip => 'דלג';
+
+  @override
+  String get breathingNext => 'הבא';
+
+  @override
+  String get breathingSave => 'שמירת ההגדרות';
+
+  @override
+  String get breathingBack => 'חזרה';
+
+  @override
+  String breathingStep(int step) {
+    return 'שלב $step מתוך 3';
+  }
+
+  @override
+  String get breathingBackground => 'בחירת רקע';
+
+  @override
+  String get breathingForest => 'יער';
+
+  @override
+  String get breathingMountains => 'הרים';
+
+  @override
+  String get breathingCosmos => 'קוסמוס';
+
+  @override
+  String get breathingBeach => 'חוף ים';
+
+  @override
+  String get breathingFlowers => 'פרחים';
+
+  @override
+  String get breathingSunset => 'שקיעה';
+
+  @override
+  String get breathingHouse => 'בית מינימליסטי';
+
+  @override
+  String get breathingMonastery => 'מנזר';
+
+  @override
+  String get breathingPersonal => 'התמונה שלי';
+
+  @override
+  String get breathingChoosePhoto => 'בחירת תמונה אישית';
+
+  @override
+  String get breathingPhotoLocal =>
+      'עותק מוקטן של תמונה אחת נשמר במכשיר בלבד, ללא העלאה לשרת.';
+
+  @override
+  String get breathingInhaleDuration => 'משך שאיפה';
+
+  @override
+  String get breathingExhaleDuration => 'משך נשיפה';
+
+  @override
+  String get breathingInhale => 'להכניס אוויר';
+
+  @override
+  String get breathingExhale => 'להוציא אוויר';
+
+  @override
+  String get breathingHold => 'להשהות';
+
+  @override
+  String get breathingMeasure => 'לחצו והחזיקו למדידה';
+
+  @override
+  String get breathingMeasureHint =>
+      'שחררו עם סיום הנשימה. בחרו בין 3 ל־9 שניות, או השתמשו בכפתורי המינוס והפלוס.';
+
+  @override
+  String breathingSeconds(num seconds) {
+    final intl.NumberFormat secondsNumberFormat =
+        intl.NumberFormat.decimalPatternDigits(
+          locale: localeName,
+          decimalDigits: 1,
+        );
+    final String secondsString = secondsNumberFormat.format(seconds);
+
+    return '$secondsString שניות';
+  }
+
+  @override
+  String get breathingDecrease => 'קיצור משך הנשימה בשנייה';
+
+  @override
+  String get breathingIncrease => 'הארכת משך הנשימה בשנייה';
+
+  @override
+  String get breathingPreMessage =>
+      'בואו נבדוק מה שלומכם ברגע זה. התרגול הוא הזמנה להירגע ולהאט את הקצב.';
+
+  @override
+  String get breathingStressQuestion => 'מה רמת הלחץ כרגע? (1–10)';
+
+  @override
+  String get breathingNoRating => 'לא נרשם';
+
+  @override
+  String get breathingBefore => 'לפני';
+
+  @override
+  String get breathingAfter => 'אחרי';
+
+  @override
+  String get breathingCompleteMessage =>
+      'כל הכבוד. הענקתם לגוף ולנפש רגע של שקט, הרגעה והאטת הקצב. כל תרגול כזה מחזק אתכם.';
+
+  @override
+  String get breathingStoppedMessage =>
+      'כל נשימה מודעת שלקחתם היא רווח נקי עבורכם. מצוין שהקשבתם לגוף ועצרתם כשזה הרגיש נכון. אפשר לחזור ולתרגל שוב בכל זמן שתרצו.';
+
+  @override
+  String get breathingPause => 'השהיה';
+
+  @override
+  String get breathingPaused => 'התרגול מושהה';
+
+  @override
+  String get breathingContinue => 'המשך';
+
+  @override
+  String get breathingRestart => 'התחל מחדש';
+
+  @override
+  String get breathingEnd => 'סיום תרגול';
+
+  @override
+  String get breathingDone => 'סיום';
+
+  @override
+  String get breathingShowCircle => 'הצגת מעגל הנשימה';
+
+  @override
+  String get breathingHideCircle => 'הסתרת מעגל הנשימה';
+
+  @override
+  String get breathingShowText => 'הצגת הנחיות הטקסט';
+
+  @override
+  String get breathingHideText => 'הסתרת הנחיות הטקסט';
+
+  @override
+  String get breathingShowControls => 'הצגת כפתורי השליטה';
+
+  @override
+  String get breathingHideControls => 'הסתרת כפתורי השליטה';
+
+  @override
+  String breathingCycle(int cycle) {
+    return 'מעגל $cycle מתוך 8';
+  }
+
+  @override
+  String breathingCompletedCycles(int cycles) {
+    return 'מעגלים שהושלמו: $cycles מתוך 8';
+  }
+
+  @override
+  String get breathingLoading => 'טוען את התרגול…';
+
+  @override
+  String get breathingRetry => 'ניסיון נוסף';
+
+  @override
+  String get breathingSaveFailed =>
+      'השינויים טרם נשמרו. אפשר לנסות שוב לפני היציאה.';
+
+  @override
+  String get breathingError => 'לא ניתן להשלים את הפעולה. הבחירה הקודמת נשמרה.';
+
+  @override
+  String get breathingRecoveryTitle => 'נדרשת בדיקה של יומן התרגולים';
+
+  @override
+  String get breathingRecoveryBody =>
+      'לא ניתן לקרוא את נתוני התרגול השמורים. נסו שוב כדי לשמור עליהם, או בחרו למחוק רק את נתוני הנשימה שאינם ניתנים לקריאה.';
+
+  @override
+  String get breathingDiscard => 'מחיקת נתוני נשימה שאינם ניתנים לקריאה';
+
+  @override
+  String get breathingDiscardConfirm =>
+      'פעולה זו מוחקת מהמכשיר הגדרות נשימה, תמונה ויומן שאינם ניתנים לקריאה. לא ניתן לבטל אותה.';
+
+  @override
+  String get breathingCancel => 'ביטול';
+
+  @override
+  String get breathingLeaveWithoutSaving => 'יציאה ללא שמירה';
+
+  @override
+  String get breathingHistoryEmpty => 'התרגולים שלכם יופיעו כאן.';
+
+  @override
+  String get breathingCompleted => 'הושלם';
+
+  @override
+  String get breathingStopped => 'הסתיים מוקדם';
 }

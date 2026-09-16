@@ -17,6 +17,10 @@ import 'package:mazilon/util/speech_recognition_service.dart';
 
 import 'package:mazilon/file_service.dart';
 import 'package:mazilon/util/persistent_memory_service.dart';
+import 'package:mazilon/features/remember_to_breathe/data/breathing_photo_importer.dart';
+import 'package:mazilon/features/remember_to_breathe/data/breathing_repository.dart';
+import 'package:mazilon/features/remember_to_breathe/data/breathing_store.dart';
+import 'package:mazilon/features/remember_to_breathe/ui/breathing_view_model.dart';
 
 // Initialize GetIt instance
 final getIt = GetIt.instance;
@@ -75,6 +79,21 @@ void setupLocator() {
       getIt<MoodMedicineReportExportService>(),
       sourceLinkService: getIt<MoodMedicineSourceLinkService>(),
       incidentLoggerService: getIt<IncidentLoggerService>(),
+    ),
+  );
+  getIt.registerLazySingleton<BreathingStore>(
+    () => BreathingStore(getIt<PersistentMemoryService>()),
+  );
+  getIt.registerLazySingleton<BreathingRepository>(
+    () => getIt<BreathingStore>(),
+  );
+  getIt.registerLazySingleton<BreathingPhotoImporter>(
+    () => BreathingPhotoImporter(getIt<ImagePickerService>()),
+  );
+  getIt.registerFactory<BreathingViewModel>(
+    () => BreathingViewModel(
+      getIt<BreathingRepository>(),
+      photoImporter: getIt<BreathingPhotoImporter>(),
     ),
   );
 }

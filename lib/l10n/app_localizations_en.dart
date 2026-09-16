@@ -4628,4 +4628,254 @@ class AppLocalizationsEn extends AppLocalizations {
   @override
   String get moodMedicineDiscardUnreadableBody =>
       'This replaces only Mood Medicine history on this device with an empty history. This cannot be undone.';
+
+  @override
+  String get breathingTitle => 'Remember to Breathe';
+
+  @override
+  String get breathingIntro =>
+      'Take a moment for yourself with eight gentle breathing cycles.';
+
+  @override
+  String get breathingGuidance =>
+      'For the first few times, it is highly recommended to practice lying down or sitting comfortably. Gently place one hand on your stomach and the other on your chest, and feel how the hand on your stomach rises on the inhale and sinks on the exhale.';
+
+  @override
+  String get breathingCredits =>
+      'The \'Remember to Breathe\' practice was inspired by the Breathe2Relax app by T2 / US Department of Defense. The feature relies on research protocols for physiological regulation, combined with insights and guidance from lived-experience experts in mental health and rehabilitation, to strengthen mental resilience in the Living Positively app.';
+
+  @override
+  String get breathingInfo => 'About this practice';
+
+  @override
+  String get breathingExplanation =>
+      'Shallow breathing often moves the upper chest. With diaphragmatic breathing, breathe gently through your nose and allow your belly to rise as you inhale and settle as you exhale. Choose a comfortable pace. You can pause or stop whenever you wish.';
+
+  @override
+  String get breathingQuickStart => 'Quick start';
+
+  @override
+  String get breathingCustomize => 'Customize';
+
+  @override
+  String get breathingHistory => 'Practice history';
+
+  @override
+  String get breathingBasic => 'Basic practice';
+
+  @override
+  String get breathingBox => 'Box breathing';
+
+  @override
+  String get breathingCustom => 'Custom practice';
+
+  @override
+  String get breathingStart => 'Start selected practice';
+
+  @override
+  String get breathingSkip => 'Skip';
+
+  @override
+  String get breathingNext => 'Next';
+
+  @override
+  String get breathingSave => 'Save settings';
+
+  @override
+  String get breathingBack => 'Back';
+
+  @override
+  String breathingStep(int step) {
+    return 'Step $step of 3';
+  }
+
+  @override
+  String get breathingBackground => 'Choose a background';
+
+  @override
+  String get breathingForest => 'Forest';
+
+  @override
+  String get breathingMountains => 'Mountains';
+
+  @override
+  String get breathingCosmos => 'Cosmos';
+
+  @override
+  String get breathingBeach => 'Beach';
+
+  @override
+  String get breathingFlowers => 'Flowers';
+
+  @override
+  String get breathingSunset => 'Sunset';
+
+  @override
+  String get breathingHouse => 'Minimalist house';
+
+  @override
+  String get breathingMonastery => 'Monastery';
+
+  @override
+  String get breathingPersonal => 'My photo';
+
+  @override
+  String get breathingChoosePhoto => 'Choose a personal photo';
+
+  @override
+  String get breathingPhotoLocal =>
+      'One resized photo is remembered on this device. It is never uploaded.';
+
+  @override
+  String get breathingInhaleDuration => 'Inhale duration';
+
+  @override
+  String get breathingExhaleDuration => 'Exhale duration';
+
+  @override
+  String get breathingInhale => 'Breathe in';
+
+  @override
+  String get breathingExhale => 'Breathe out';
+
+  @override
+  String get breathingHold => 'Hold';
+
+  @override
+  String get breathingMeasure => 'Press and hold to measure';
+
+  @override
+  String get breathingMeasureHint =>
+      'Release when your breath ends. Choose 3-9 seconds, or use the minus and plus buttons.';
+
+  @override
+  String breathingSeconds(num seconds) {
+    final intl.NumberFormat secondsNumberFormat =
+        intl.NumberFormat.decimalPatternDigits(
+          locale: localeName,
+          decimalDigits: 1,
+        );
+    final String secondsString = secondsNumberFormat.format(seconds);
+
+    return '$secondsString seconds';
+  }
+
+  @override
+  String get breathingDecrease => 'Decrease duration by one second';
+
+  @override
+  String get breathingIncrease => 'Increase duration by one second';
+
+  @override
+  String get breathingPreMessage =>
+      'Let\'s check how you\'re doing right now. This practice is an invitation to relax and slow down.';
+
+  @override
+  String get breathingStressQuestion => 'How much stress do you feel? (1-10)';
+
+  @override
+  String get breathingNoRating => 'Not recorded';
+
+  @override
+  String get breathingBefore => 'Before';
+
+  @override
+  String get breathingAfter => 'After';
+
+  @override
+  String get breathingCompleteMessage =>
+      'Well done. You gave your body and mind a moment of peace, relaxation, and slowing down. Every practice like this strengthens you.';
+
+  @override
+  String get breathingStoppedMessage =>
+      'Every conscious breath you took is pure profit for you. It\'s excellent that you listened to your body and stopped when it felt right. You can come back and practice again anytime you want.';
+
+  @override
+  String get breathingPause => 'Pause';
+
+  @override
+  String get breathingPaused => 'Practice paused';
+
+  @override
+  String get breathingContinue => 'Continue';
+
+  @override
+  String get breathingRestart => 'Restart';
+
+  @override
+  String get breathingEnd => 'End practice';
+
+  @override
+  String get breathingDone => 'Done';
+
+  @override
+  String get breathingShowCircle => 'Show breathing circle';
+
+  @override
+  String get breathingHideCircle => 'Hide breathing circle';
+
+  @override
+  String get breathingShowText => 'Show guidance text';
+
+  @override
+  String get breathingHideText => 'Hide guidance text';
+
+  @override
+  String get breathingShowControls => 'Show controls';
+
+  @override
+  String get breathingHideControls => 'Hide controls';
+
+  @override
+  String breathingCycle(int cycle) {
+    return 'Cycle $cycle of 8';
+  }
+
+  @override
+  String breathingCompletedCycles(int cycles) {
+    return 'Completed cycles: $cycles of 8';
+  }
+
+  @override
+  String get breathingLoading => 'Loading your practice...';
+
+  @override
+  String get breathingRetry => 'Retry';
+
+  @override
+  String get breathingSaveFailed =>
+      'Your changes have not been saved. You can retry before leaving.';
+
+  @override
+  String get breathingError =>
+      'This action could not be completed. Your previous selection is still here.';
+
+  @override
+  String get breathingRecoveryTitle => 'Practice history needs attention';
+
+  @override
+  String get breathingRecoveryBody =>
+      'Your saved practice data could not be read. Retry to keep it, or explicitly discard only unreadable breathing data.';
+
+  @override
+  String get breathingDiscard => 'Discard unreadable breathing data';
+
+  @override
+  String get breathingDiscardConfirm =>
+      'This removes unreadable breathing settings, photo, and history on this device. It cannot be undone.';
+
+  @override
+  String get breathingCancel => 'Cancel';
+
+  @override
+  String get breathingLeaveWithoutSaving => 'Leave without saving';
+
+  @override
+  String get breathingHistoryEmpty => 'Your practice history will appear here.';
+
+  @override
+  String get breathingCompleted => 'Completed';
+
+  @override
+  String get breathingStopped => 'Ended early';
 }
