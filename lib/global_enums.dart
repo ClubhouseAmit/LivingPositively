@@ -17,6 +17,7 @@ enum PagesCode {
   FeelGoodPage,
   WellnessToolsPage,
   MoodMedicinePage,
+  BreathingPage,
 }
 
 enum PersistentMemoryType { String, Int, Double, Bool, StringList }

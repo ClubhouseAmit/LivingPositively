@@ -1,0 +1,106 @@
+[
+  {
+    "id": "forest",
+    "file": "forest.jpg",
+    "author": "SpessiG",
+    "source": "https://commons.wikimedia.org/wiki/File:Landscape_of_a_wild_forest.jpg",
+    "license": "CC0 1.0",
+    "licenseUrl": "https://creativecommons.org/publicdomain/zero/1.0/",
+    "dimensions": [
+      960,
+      640
+    ],
+    "modifications": "None locally. Wikimedia files use source-served resized JPEG thumbnails; Public Domain Pictures files use the free JPEG download."
+  },
+  {
+    "id": "mountains",
+    "file": "mountains.jpg",
+    "author": "Albert van Gent / StockyPics",
+    "source": "https://commons.wikimedia.org/wiki/File:Mountain_landscape_(21827581301).jpg",
+    "license": "CC0 1.0",
+    "licenseUrl": "https://creativecommons.org/publicdomain/zero/1.0/",
+    "dimensions": [
+      500,
+      667
+    ],
+    "modifications": "None locally. Wikimedia files use source-served resized JPEG thumbnails; Public Domain Pictures files use the free JPEG download."
+  },
+  {
+    "id": "cosmos",
+    "file": "cosmos.jpg",
+    "author": "YagnKambariya",
+    "source": "https://commons.wikimedia.org/wiki/File:Milky_way_galaxy.jpg",
+    "license": "CC0 1.0",
+    "licenseUrl": "https://creativecommons.org/publicdomain/zero/1.0/",
+    "dimensions": [
+      500,
+      888
+    ],
+    "modifications": "None locally. Wikimedia files use source-served resized JPEG thumbnails; Public Domain Pictures files use the free JPEG download."
+  },
+  {
+    "id": "beach",
+    "file": "beach.jpg",
+    "author": "Bernard Spragg",
+    "source": "https://commons.wikimedia.org/wiki/File:On_the_beach_Moeraki.NZ_(12474760975).jpg",
+    "license": "CC0 1.0",
+    "licenseUrl": "https://creativecommons.org/publicdomain/zero/1.0/",
+    "dimensions": [
+      960,
+      578
+    ],
+    "modifications": "None locally. Wikimedia files use source-served resized JPEG thumbnails; Public Domain Pictures files use the free JPEG download."
+  },
+  {
+    "id": "flowers",
+    "file": "flowers.jpg",
+    "author": "Jean Beaufort",
+    "source": "https://www.publicdomainpictures.net/en/view-image.php?image=298900&picture=flower-close-up",
+    "license": "CC0 1.0",
+    "licenseUrl": "https://creativecommons.org/publicdomain/zero/1.0/",
+    "dimensions": [
+      1920,
+      1279
+    ],
+    "modifications": "None locally. Wikimedia files use source-served resized JPEG thumbnails; Public Domain Pictures files use the free JPEG download."
+  },
+  {
+    "id": "sunset",
+    "file": "sunset.jpg",
+    "author": "Rammya kannan",
+    "source": "https://commons.wikimedia.org/wiki/File:Sunset_247.jpg",
+    "license": "CC0 1.0",
+    "licenseUrl": "https://creativecommons.org/publicdomain/zero/1.0/",
+    "dimensions": [
+      330,
+      657
+    ],
+    "modifications": "None locally. Wikimedia files use source-served resized JPEG thumbnails; Public Domain Pictures files use the free JPEG download."
+  },
+  {
+    "id": "house",
+    "file": "house.jpg",
+    "author": "Maria Alvedro",
+    "source": "https://www.publicdomainpictures.net/en/view-image.php?image=751337&picture=minimalist-house-in-sand-gardens",
+    "license": "CC0 1.0",
+    "licenseUrl": "https://creativecommons.org/publicdomain/zero/1.0/",
+    "dimensions": [
+      1920,
+      1097
+    ],
+    "modifications": "None locally. Wikimedia files use source-served resized JPEG thumbnails; Public Domain Pictures files use the free JPEG download."
+  },
+  {
+    "id": "monastery",
+    "file": "monastery.jpg",
+    "author": "LoMit",
+    "source": "https://commons.wikimedia.org/wiki/File:Camaldolese_monastery_complex_in_Warsaw_-_02-2026.jpg",
+    "license": "CC0 1.0",
+    "licenseUrl": "https://creativecommons.org/publicdomain/zero/1.0/",
+    "dimensions": [
+      960,
+      640
+    ],
+    "modifications": "None locally. Wikimedia files use source-served resized JPEG thumbnails; Public Domain Pictures files use the free JPEG download."
+  }
+]

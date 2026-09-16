@@ -48,6 +48,7 @@ List<Widget> buildMainMenuItems({
   required VoidCallback onAboutPressed,
   required VoidCallback onNotificationsPressed,
   VoidCallback? onMoodMedicinePressed,
+  VoidCallback? onBreathingPressed,
   VoidCallback? onAnyPressed,
 }) {
   final gender = userInformation.gender;
@@ -70,6 +71,16 @@ List<Widget> buildMainMenuItems({
           onNotificationsPressed();
         },
         child: Text(appLocale.notifications(gender)),
+      ),
+    if (onBreathingPressed != null)
+      MenuItemButton(
+        key: const Key('mainMenuBreathing'),
+        leadingIcon: const Icon(Icons.air),
+        onPressed: () {
+          onAnyPressed?.call();
+          onBreathingPressed();
+        },
+        child: Text(appLocale.breathingTitle),
       ),
     if (onMoodMedicinePressed != null)
       MenuItemButton(
@@ -133,6 +144,7 @@ class MainMenuAnchor extends StatelessWidget {
   final VoidCallback onAboutPressed;
   final VoidCallback onNotificationsPressed;
   final VoidCallback? onMoodMedicinePressed;
+  final VoidCallback? onBreathingPressed;
   final Widget? child;
 
   const MainMenuAnchor({
@@ -143,6 +155,7 @@ class MainMenuAnchor extends StatelessWidget {
     required this.onAboutPressed,
     required this.onNotificationsPressed,
     this.onMoodMedicinePressed,
+    this.onBreathingPressed,
     this.isWeb = kIsWeb,
     this.child,
   });
@@ -205,6 +218,7 @@ class MainMenuAnchor extends StatelessWidget {
         onAboutPressed: onAboutPressed,
         onNotificationsPressed: onNotificationsPressed,
         onMoodMedicinePressed: onMoodMedicinePressed,
+        onBreathingPressed: onBreathingPressed,
       ),
     );
   }
@@ -221,6 +235,7 @@ void showMainMenuDialog({
   required VoidCallback onAboutPressed,
   required VoidCallback onNotificationsPressed,
   VoidCallback? onMoodMedicinePressed,
+  VoidCallback? onBreathingPressed,
 }) {
   showDialog(
     context: context,
@@ -252,6 +267,7 @@ void showMainMenuDialog({
                 onAboutPressed: onAboutPressed,
                 onNotificationsPressed: onNotificationsPressed,
                 onMoodMedicinePressed: onMoodMedicinePressed,
+                onBreathingPressed: onBreathingPressed,
                 onAnyPressed: () {
                   Navigator.of(dialogContext).pop();
                 },

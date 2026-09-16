@@ -919,5 +919,111 @@
       "withMood": {"type": "String"},
       "withoutMood": {"type": "String"}
     }
-  }
+  },
+  "breathingTitle": "לזכור לנשום",
+  "breathingIntro": "עצרו לרגע. שמונה מעגלי נשימה בקצב נעים, בזמן שמתאים לכם.",
+  "breathingGuidance": "בפעמים הראשונות, מומלץ מאוד לתרגל בשכיבה או בישיבה נינוחה. הניחו בעדינות יד אחת על הבטן ויד שנייה על החזה, והרגישו כיצד היד שעל הבטן עולה בשאיפה ושוקעת בנשיפה.",
+  "breathingCredits": "התרגול 'לזכור לנשום' פותח בהשראת אפליקציית Breathe2Relax מבית ה-T2 / משרד הביטחון האמריקאי (US Department of Defense). הפיצ'ר נשען על פרוטוקולים מחקריים לוויסות המערכת הפיזיולוגית, בשילוב תובנות וליווי של מומחים מניסיון אישי בשטח בתחום בריאות הנפש והשיקום, לחיזוק החוסן הנפשי באפליקציית Living Positively.",
+  "breathingInfo": "על התרגול",
+  "breathingExplanation": "בנשימה שטוחה החלק העליון של החזה נע לעיתים יותר. בנשימה סרעפתית מכניסים אוויר בעדינות דרך האף ונותנים לבטן להתרחב בשאיפה ולשקוע בנשיפה. בחרו קצב נוח. אפשר להשהות או לעצור בכל זמן שתרצו.",
+  "breathingQuickStart": "התחל תרגול מהיר",
+  "breathingCustomize": "התאמה אישית",
+  "breathingHistory": "יומן תרגולים",
+  "breathingBasic": "תרגול בסיסי",
+  "breathingBox": "נשימה מרובעת",
+  "breathingCustom": "תרגול מותאם אישית",
+  "breathingStart": "התחלת התרגול הנבחר",
+  "breathingSkip": "דלג",
+  "breathingNext": "הבא",
+  "breathingSave": "שמירת ההגדרות",
+  "breathingBack": "חזרה",
+  "breathingStep": "שלב {step} מתוך 3",
+  "@breathingStep": {
+    "placeholders": {
+      "step": {
+        "type": "int"
+      }
+    }
+  },
+  "breathingBackground": "בחירת רקע",
+  "breathingForest": "יער",
+  "breathingMountains": "הרים",
+  "breathingCosmos": "קוסמוס",
+  "breathingBeach": "חוף ים",
+  "breathingFlowers": "פרחים",
+  "breathingSunset": "שקיעה",
+  "breathingHouse": "בית מינימליסטי",
+  "breathingMonastery": "מנזר",
+  "breathingPersonal": "התמונה שלי",
+  "breathingChoosePhoto": "בחירת תמונה אישית",
+  "breathingPhotoLocal": "עותק מוקטן של תמונה אחת נשמר במכשיר בלבד, ללא העלאה לשרת.",
+  "breathingInhaleDuration": "משך שאיפה",
+  "breathingExhaleDuration": "משך נשיפה",
+  "breathingInhale": "להכניס אוויר",
+  "breathingExhale": "להוציא אוויר",
+  "breathingHold": "להשהות",
+  "breathingMeasure": "לחצו והחזיקו למדידה",
+  "breathingMeasureHint": "שחררו עם סיום הנשימה. בחרו בין 3 ל־9 שניות, או השתמשו בכפתורי המינוס והפלוס.",
+  "breathingSeconds": "{seconds} שניות",
+  "@breathingSeconds": {
+    "placeholders": {
+      "seconds": {
+        "type": "num",
+        "format": "decimalPatternDigits",
+        "optionalParameters": {
+          "decimalDigits": 1
+        }
+      }
+    }
+  },
+  "breathingDecrease": "קיצור משך הנשימה בשנייה",
+  "breathingIncrease": "הארכת משך הנשימה בשנייה",
+  "breathingPreMessage": "בואו נבדוק מה שלומכם ברגע זה. התרגול הוא הזמנה להירגע ולהאט את הקצב.",
+  "breathingStressQuestion": "מה רמת הלחץ כרגע? (1–10)",
+  "breathingNoRating": "לא נרשם",
+  "breathingBefore": "לפני",
+  "breathingAfter": "אחרי",
+  "breathingCompleteMessage": "כל הכבוד. הענקתם לגוף ולנפש רגע של שקט, הרגעה והאטת הקצב. כל תרגול כזה מחזק אתכם.",
+  "breathingStoppedMessage": "כל נשימה מודעת שלקחתם היא רווח נקי עבורכם. מצוין שהקשבתם לגוף ועצרתם כשזה הרגיש נכון. אפשר לחזור ולתרגל שוב בכל זמן שתרצו.",
+  "breathingPause": "השהיה",
+  "breathingPaused": "התרגול מושהה",
+  "breathingContinue": "המשך",
+  "breathingRestart": "התחל מחדש",
+  "breathingEnd": "סיום תרגול",
+  "breathingDone": "סיום",
+  "breathingShowCircle": "הצגת מעגל הנשימה",
+  "breathingHideCircle": "הסתרת מעגל הנשימה",
+  "breathingShowText": "הצגת הנחיות הטקסט",
+  "breathingHideText": "הסתרת הנחיות הטקסט",
+  "breathingShowControls": "הצגת כפתורי השליטה",
+  "breathingHideControls": "הסתרת כפתורי השליטה",
+  "breathingCycle": "מעגל {cycle} מתוך 8",
+  "@breathingCycle": {
+    "placeholders": {
+      "cycle": {
+        "type": "int"
+      }
+    }
+  },
+  "breathingCompletedCycles": "מעגלים שהושלמו: {cycles} מתוך 8",
+  "@breathingCompletedCycles": {
+    "placeholders": {
+      "cycles": {
+        "type": "int"
+      }
+    }
+  },
+  "breathingLoading": "טוען את התרגול…",
+  "breathingRetry": "ניסיון נוסף",
+  "breathingSaveFailed": "השינויים טרם נשמרו. אפשר לנסות שוב לפני היציאה.",
+  "breathingError": "לא ניתן להשלים את הפעולה. הבחירה הקודמת נשמרה.",
+  "breathingRecoveryTitle": "נדרשת בדיקה של יומן התרגולים",
+  "breathingRecoveryBody": "לא ניתן לקרוא את נתוני התרגול השמורים. נסו שוב כדי לשמור עליהם, או בחרו למחוק רק את נתוני הנשימה שאינם ניתנים לקריאה.",
+  "breathingDiscard": "מחיקת נתוני נשימה שאינם ניתנים לקריאה",
+  "breathingDiscardConfirm": "פעולה זו מוחקת מהמכשיר הגדרות נשימה, תמונה ויומן שאינם ניתנים לקריאה. לא ניתן לבטל אותה.",
+  "breathingCancel": "ביטול",
+  "breathingLeaveWithoutSaving": "יציאה ללא שמירה",
+  "breathingHistoryEmpty": "התרגולים שלכם יופיעו כאן.",
+  "breathingCompleted": "הושלם",
+  "breathingStopped": "הסתיים מוקדם"
 }
