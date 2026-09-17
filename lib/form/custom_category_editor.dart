@@ -298,7 +298,6 @@ class CustomCategoryEditorState extends State<CustomCategoryEditor> {
             decoration: InputDecoration(
               labelText: localizations.sharePageCustomCategoryDescription,
               alignLabelWithHint: true,
-              border: const OutlineInputBorder(),
               errorText: _errorFor(descriptionController),
               suffixIcon: SpeechDictationSuffixAction.isSupportedPlatform
                   ? SpeechDictationSuffixAction(

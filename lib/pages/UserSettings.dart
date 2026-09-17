@@ -16,6 +16,7 @@ import 'package:mazilon/util/Form/formPagePhoneModel.dart';
 import 'package:mazilon/pages/FeelGood/image_picker_service_impl.dart';
 import 'package:mazilon/util/LP_extended_state.dart';
 import 'package:mazilon/util/persistent_memory_service.dart';
+import 'package:mazilon/util/theme/app_theme.dart';
 import 'package:mazilon/util/theme/font_weight.dart';
 import 'package:mazilon/util/Form/myDropdownMenuEntry.dart';
 import 'package:mazilon/util/gender.dart';
@@ -33,9 +34,9 @@ import 'package:mazilon/l10n/app_localizations.dart';
 // DESIGN.md, per the user's instruction to use the brand primary for the
 // action button.
 //
-// Note: the design's corner radii (12 for fields, 14 for buttons) are
-// narrower than DESIGN.md's 20/16/10 tokens. The design's values are used
-// here because implementing this screen is the request; see the summary.
+// Note: fields follow DESIGN.md's input tokens (radius 10, 1px outline) via
+// the app-wide `inputDecorationTheme`, not the design's 12. The action
+// buttons keep the design's 14 radius, narrower than DESIGN.md's 20.
 
 /// Gap between the screen's top-level sections.
 const double _kSectionGap = 8;
@@ -52,15 +53,16 @@ const double _kContentMaxWidth = 393;
 /// Gap between a field's label and its control.
 const double _kLabelToField = 4;
 
-/// Height of a text/dropdown field.
-const double _kFieldHeight = 42;
+/// Height of a text/dropdown field — DESIGN.md §3.4.
+const double _kFieldHeight = 40;
 
 /// Corner radius shared by fields, the appearance cards, and the divider-less
-/// containers on this screen.
-const double _kFieldRadius = 12;
+/// containers on this screen. The app's input token, so the non-input controls
+/// here sit on the same profile as the fields.
+const double _kFieldRadius = kInputRadius;
 
 /// Inside horizontal padding of a field.
-const double _kFieldPaddingX = 16;
+const double _kFieldPaddingX = kInputPaddingX;
 
 /// Field label size (`Label` in the design's Form Field component).
 const double _kLabelSize = 13;
@@ -81,14 +83,6 @@ const double _kModeTitleToOptions = 6;
 const double _kActionButtonHeight = 44;
 const double _kActionButtonRadius = 14;
 const double _kActionLabelSize = 16;
-
-/// Fields carry no visible outline in this design — the fill alone separates
-/// them from the page. Focus and error states still need a border, so those
-/// are the only ones drawn.
-const OutlineInputBorder _kFieldBorder = OutlineInputBorder(
-  borderRadius: BorderRadius.all(Radius.circular(_kFieldRadius)),
-  borderSide: BorderSide.none,
-);
 
 class UserSettings extends StatefulWidget {
   final String username;
@@ -138,11 +132,7 @@ class _UserSettingsState extends LPExtendedState<UserSettings> {
             PersistentMemoryService
           >(); // Get the persistent memory service instance
 
-      await service.setItem(
-        "localeName",
-        PersistentMemoryType.String,
-        locale,
-      );
+      await service.setItem("localeName", PersistentMemoryType.String, locale);
 
       if (!mounted) {
         return;
@@ -182,43 +172,35 @@ class _UserSettingsState extends LPExtendedState<UserSettings> {
     color: colorScheme.onSurface,
   );
 
-  BoxDecoration _fieldDecoration(ColorScheme colorScheme) => BoxDecoration(
-    color: colorScheme.surfaceContainerHighest,
-    borderRadius: BorderRadius.circular(_kFieldRadius),
-  );
+  /// The country picker draws its own container rather than going through
+  /// `InputDecoration`, so it restates what the input theme gives the other
+  /// fields: the same radius and 1px outline, and the same fill (none in
+  /// light mode, the elevated surface in dark).
+  BoxDecoration _fieldDecoration(ThemeData theme) {
+    final InputDecorationThemeData inputs = theme.inputDecorationTheme;
+    return BoxDecoration(
+      color: inputs.filled ? inputs.fillColor : null,
+      borderRadius: BorderRadius.circular(_kFieldRadius),
+      border: Border.fromBorderSide(
+        inputs.enabledBorder?.borderSide ?? BorderSide.none,
+      ),
+    );
+  }
 
-  InputDecorationTheme _fieldInputTheme(ColorScheme colorScheme) =>
-      InputDecorationTheme(
-        filled: true,
-        fillColor: colorScheme.surfaceContainerHighest,
-        isDense: true,
-        // Tight, not a floor: `DropdownMenu` hands its trailing chevron to the
-        // decorator as an `IconButton` suffix, whose 48 minimum tap target
-        // would otherwise make every dropdown taller than the name field.
-        // Bounding both the decorator and the suffix keeps all five controls
-        // on exactly the same height.
+  /// The screen's five controls share one exact height, which the app-wide
+  /// `inputDecorationTheme` deliberately leaves free (multi-line fields
+  /// elsewhere have to grow). Everything else — fill, radius, borders — comes
+  /// from the theme.
+  ///
+  /// `suffixIconConstraints` is the other addition: `DropdownMenu` hands its
+  /// chevron to the decorator as an `IconButton`, whose 48 minimum tap target
+  /// would otherwise make every dropdown taller than the name field.
+  InputDecorationThemeData _fieldInputTheme(BuildContext context) =>
+      Theme.of(context).inputDecorationTheme.copyWith(
         constraints: const BoxConstraints.tightFor(height: _kFieldHeight),
         suffixIconConstraints: const BoxConstraints.tightFor(
           width: 32,
           height: _kFieldHeight,
-        ),
-        contentPadding: const EdgeInsets.symmetric(
-          horizontal: _kFieldPaddingX,
-          vertical: 10,
-        ),
-        border: _kFieldBorder,
-        enabledBorder: _kFieldBorder,
-        focusedBorder: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(_kFieldRadius),
-          borderSide: BorderSide(color: colorScheme.primary, width: 1.5),
-        ),
-        errorBorder: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(_kFieldRadius),
-          borderSide: BorderSide(color: colorScheme.error, width: 1.5),
-        ),
-        focusedErrorBorder: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(_kFieldRadius),
-          borderSide: BorderSide(color: colorScheme.error, width: 1.5),
         ),
       );
 
@@ -255,7 +237,7 @@ class _UserSettingsState extends LPExtendedState<UserSettings> {
       width: width,
       initialSelection: initialSelection,
       textStyle: _valueStyle(colorScheme),
-      inputDecorationTheme: _fieldInputTheme(colorScheme),
+      inputDecorationTheme: _fieldInputTheme(context),
       trailingIcon: Icon(
         Icons.keyboard_arrow_down,
         size: 20,
@@ -513,6 +495,47 @@ class _UserSettingsState extends LPExtendedState<UserSettings> {
     );
   }
 
+  /// The two bottom actions. Same 44-high pill; only the fill and the
+  /// optional outline differ. The label takes its colour from the button's
+  /// `foregroundColor` rather than restating it.
+  ///
+  /// Not `ConfirmationButton`/`ResetButton` from `styles.dart`: those are
+  /// radius-20 and route their label through the deprecated
+  /// `myAutoSizedText`, which paints at its `maxFontSize` here.
+  Widget _actionButton({
+    Key? buttonKey,
+    required Color background,
+    required Color foreground,
+    required String label,
+    required VoidCallback onPressed,
+    BorderSide side = BorderSide.none,
+  }) {
+    return SizedBox(
+      height: _kActionButtonHeight,
+      child: TextButton(
+        key: buttonKey,
+        onPressed: onPressed,
+        style: TextButton.styleFrom(
+          backgroundColor: background,
+          foregroundColor: foreground,
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(_kActionButtonRadius),
+            side: side,
+          ),
+        ),
+        child: Text(
+          label,
+          maxLines: 1,
+          overflow: TextOverflow.ellipsis,
+          style: TextStyle(
+            fontSize: _kActionLabelSize.sp,
+            fontWeight: AppFontWeight.semiBold,
+          ),
+        ),
+      ),
+    );
+  }
+
   //remove log-in data and reset all data that user has filled in the app:
   Future<void> resetData(UserInformation userInfo) async {
     LocaleService localeService = GetIt.instance<LocaleService>();
@@ -607,7 +630,8 @@ class _UserSettingsState extends LPExtendedState<UserSettings> {
     final theme = Theme.of(context);
     final colorScheme = theme.colorScheme;
     final selectedGenderLabel =
-        selectedGender?.label(appLocale) ?? Gender.of(userInfoProvider).label(appLocale);
+        selectedGender?.label(appLocale) ??
+        Gender.of(userInfoProvider).label(appLocale);
     final selectedLocaleName = locales.contains(userInfoProvider.localeName)
         ? localesNames[locales.indexOf(userInfoProvider.localeName)]
         : localesNames.first;
@@ -697,14 +721,12 @@ class _UserSettingsState extends LPExtendedState<UserSettings> {
                                         controller: _namecontroller,
                                         style: _valueStyle(colorScheme),
                                         decoration: InputDecoration(
-                                          filled: true,
-                                          fillColor: colorScheme
-                                              .surfaceContainerHighest,
-                                          isDense: true,
-                                          constraints:
-                                              const BoxConstraints.tightFor(
-                                                height: _kFieldHeight,
-                                              ),
+                                          // No height constraint here: a fixed
+                                          // one would squeeze the border to
+                                          // fit the required-field error text.
+                                          // Unlike the dropdown chevron, the
+                                          // dictation button keeps its
+                                          // natural width.
                                           suffixIconConstraints:
                                               const BoxConstraints(
                                                 minHeight: _kFieldHeight,
@@ -717,42 +739,6 @@ class _UserSettingsState extends LPExtendedState<UserSettings> {
                                                   controller: _namecontroller,
                                                 )
                                               : null,
-                                          contentPadding:
-                                              const EdgeInsets.symmetric(
-                                                horizontal: _kFieldPaddingX,
-                                                vertical: 10,
-                                              ),
-                                          border: _kFieldBorder,
-                                          enabledBorder: _kFieldBorder,
-                                          focusedBorder: OutlineInputBorder(
-                                            borderRadius: BorderRadius.circular(
-                                              _kFieldRadius,
-                                            ),
-                                            borderSide: BorderSide(
-                                              color: colorScheme.primary,
-                                              width: 1.5,
-                                            ),
-                                          ),
-                                          errorBorder: OutlineInputBorder(
-                                            borderRadius: BorderRadius.circular(
-                                              _kFieldRadius,
-                                            ),
-                                            borderSide: BorderSide(
-                                              color: colorScheme.error,
-                                              width: 1.5,
-                                            ),
-                                          ),
-                                          focusedErrorBorder:
-                                              OutlineInputBorder(
-                                                borderRadius:
-                                                    BorderRadius.circular(
-                                                      _kFieldRadius,
-                                                    ),
-                                                borderSide: BorderSide(
-                                                  color: colorScheme.error,
-                                                  width: 1.5,
-                                                ),
-                                              ),
                                         ),
                                         validator: (text) {
                                           if ((text ?? '').trim().isEmpty) {
@@ -796,7 +782,10 @@ class _UserSettingsState extends LPExtendedState<UserSettings> {
                                         onSelected: (newValue) {
                                           setState(() {
                                             if (newValue != null) {
-                                              selectedGender = Gender.fromLabel(newValue, appLocale);
+                                              selectedGender = Gender.fromLabel(
+                                                newValue,
+                                                appLocale,
+                                              );
                                             }
                                           });
                                         },
@@ -833,9 +822,7 @@ class _UserSettingsState extends LPExtendedState<UserSettings> {
                                           .locationDisclaimer(gender),
                                       labelStyle: _labelStyle(colorScheme),
                                       labelGap: _kLabelToField,
-                                      fieldDecoration: _fieldDecoration(
-                                        colorScheme,
-                                      ),
+                                      fieldDecoration: _fieldDecoration(theme),
                                       fieldHeight: _kFieldHeight,
                                       helpButtonSize: 20,
                                     ),
@@ -860,100 +847,63 @@ class _UserSettingsState extends LPExtendedState<UserSettings> {
                                   spacing: _kSectionGap,
                                   children: [
                                     _divider(colorScheme),
-                                    SizedBox(
-                                      height: _kActionButtonHeight,
-                                      child: TextButton(
-                                        style: TextButton.styleFrom(
-                                          backgroundColor: colorScheme.primary,
-                                          foregroundColor:
-                                              colorScheme.onPrimary,
-                                          shape: RoundedRectangleBorder(
-                                            borderRadius: BorderRadius.circular(
-                                              _kActionButtonRadius,
-                                            ),
-                                          ),
-                                        ),
-                                        onPressed: () {
-                                          FocusScope.of(context).unfocus();
-                                          if (!_settingsFormKey.currentState!
-                                              .validate()) {
-                                            return;
-                                          }
+                                    _actionButton(
+                                      background: colorScheme.primary,
+                                      foreground: colorScheme.onPrimary,
+                                      label: appLocale.confirmButton(gender),
+                                      onPressed: () {
+                                        FocusScope.of(context).unfocus();
+                                        if (!_settingsFormKey.currentState!
+                                            .validate()) {
+                                          return;
+                                        }
 
-                                          userInfoProvider.updateName(
-                                            _namecontroller.text.trim(),
+                                        userInfoProvider.updateName(
+                                          _namecontroller.text.trim(),
+                                        );
+                                        userInfoProvider.updateAge(
+                                          dropdownValueAge == ""
+                                              ? userInfoProvider.age
+                                              : dropdownValueAge!,
+                                        );
+                                        if (selectedGender != null) {
+                                          unawaited(
+                                            _applyGenderInBackground(
+                                              selectedGender!,
+                                              userInfoProvider,
+                                            ),
                                           );
-                                          userInfoProvider.updateAge(
-                                            dropdownValueAge == ""
-                                                ? userInfoProvider.age
-                                                : dropdownValueAge!,
-                                          );
-                                          if (selectedGender != null) {
-                                            unawaited(
-                                              _applyGenderInBackground(
-                                                selectedGender!,
-                                                userInfoProvider,
-                                              ),
-                                            );
-                                          }
-                                          Navigator.pop(context);
-                                        },
-                                        child: Text(
-                                          appLocale.confirmButton(gender),
-                                          maxLines: 1,
-                                          overflow: TextOverflow.ellipsis,
-                                          style: TextStyle(
-                                            fontSize: _kActionLabelSize.sp,
-                                            fontWeight: AppFontWeight.semiBold,
-                                            color: colorScheme.onPrimary,
-                                          ),
-                                        ),
-                                      ),
+                                        }
+                                        Navigator.pop(context);
+                                      },
                                     ),
-                                    SizedBox(
-                                      height: _kActionButtonHeight,
-                                      child: TextButton(
-                                        key: const Key(
-                                          'user-settings-reset-open',
-                                        ),
-                                        style: TextButton.styleFrom(
-                                          backgroundColor: colorScheme.surface,
-                                          foregroundColor: colorScheme.error,
-                                          shape: RoundedRectangleBorder(
-                                            borderRadius: BorderRadius.circular(
-                                              _kActionButtonRadius,
-                                            ),
-                                            side: BorderSide(
-                                              color: colorScheme.error,
-                                              width: 1.5,
-                                            ),
-                                          ),
-                                        ),
-                                        onPressed: () {
-                                          showDialog(
-                                            context: context,
-                                            barrierDismissible: false,
-                                            builder: (_) =>
-                                                _ResetConfirmationDialog(
-                                                  gender: gender,
-                                                  onAttemptReset: () =>
-                                                      _attemptResetAndReturnSuccess(
-                                                        userInfoProvider,
-                                                      ),
-                                                ),
-                                          );
-                                        },
-                                        child: Text(
-                                          appLocale.userSettingsReset(gender),
-                                          maxLines: 1,
-                                          overflow: TextOverflow.ellipsis,
-                                          style: TextStyle(
-                                            fontSize: _kActionLabelSize.sp,
-                                            fontWeight: AppFontWeight.semiBold,
-                                            color: colorScheme.error,
-                                          ),
-                                        ),
+                                    _actionButton(
+                                      buttonKey: const Key(
+                                        'user-settings-reset-open',
                                       ),
+                                      background: colorScheme.surface,
+                                      foreground: colorScheme.error,
+                                      side: BorderSide(
+                                        color: colorScheme.error,
+                                        width: 1.5,
+                                      ),
+                                      label: appLocale.userSettingsReset(
+                                        gender,
+                                      ),
+                                      onPressed: () {
+                                        showDialog(
+                                          context: context,
+                                          barrierDismissible: false,
+                                          builder: (_) =>
+                                              _ResetConfirmationDialog(
+                                                gender: gender,
+                                                onAttemptReset: () =>
+                                                    _attemptResetAndReturnSuccess(
+                                                      userInfoProvider,
+                                                    ),
+                                              ),
+                                        );
+                                      },
                                     ),
                                   ],
                                 ),

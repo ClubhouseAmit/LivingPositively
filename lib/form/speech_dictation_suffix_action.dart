@@ -61,8 +61,8 @@ class SpeechDictationSuffixAction extends StatefulWidget {
   /// Feature flag controlling whether speech dictation UI is enabled.
   ///
   /// Set to `true` to show the dictation action across its explicit form field
-  /// callers. Form fields that do not integrate this action (such as the
-  /// sign-in `FormContainer`) remain unaffected.
+  /// callers. Form fields that do not integrate this action remain
+  /// unaffected.
   static bool isFeatureEnabled = true;
 
   /// Whether the current platform has an exposed dictation control.

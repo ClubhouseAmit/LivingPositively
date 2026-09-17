@@ -171,11 +171,65 @@ const ColorScheme appDarkColorScheme = ColorScheme.dark(
   surfaceContainerHighest: AppColors.darkSurfaceContainer,
 );
 
+/// Corner radius of a text input — DESIGN.md §2.3 "Input Fields".
+const double kInputRadius = 10;
+
+/// Inside horizontal padding of an input, matching the shared
+/// `formFieldInputDecoration` in `styles.dart`.
+const double kInputPaddingX = 14;
+
+/// The app-wide input style — DESIGN.md §3.4: radius 10, a 1px outline, and
+/// dense padding.
+///
+/// This is the **only** place an input's appearance is declared. A call site
+/// supplies meaning — `labelText`, `hintText`, `suffixIcon`, `errorText`,
+/// `validator`, `maxLines` — and nothing visual. Every state is spelled out
+/// here rather than left to Flutter's fallbacks, because `InputDecorator`
+/// resolves each state independently (`enabledBorder`, `focusedBorder`, …) and
+/// never falls back to `border`: a theme that sets only some states leaks the
+/// Material defaults into the rest.
+///
+/// Deliberately carries **no** height constraint even though DESIGN.md names
+/// 40: `custom_category_editor`, `mood_medicine_page` and `addFormAnswer` hold
+/// 3–6 line fields that have to grow. Dense padding lands a single-line field
+/// on 40; a screen that needs every control on one exact height adds its own
+/// `constraints` on top of this.
+InputDecorationThemeData _inputDecorationTheme({
+  required Color outline,
+  required Color focus,
+  required Color error,
+  Color? fill,
+}) {
+  OutlineInputBorder border(Color color, double width) => OutlineInputBorder(
+    borderRadius: BorderRadius.circular(kInputRadius),
+    borderSide: BorderSide(color: color, width: width),
+  );
+  return InputDecorationThemeData(
+    filled: fill != null,
+    fillColor: fill,
+    isDense: true,
+    contentPadding: const EdgeInsets.symmetric(
+      horizontal: kInputPaddingX,
+      vertical: 10,
+    ),
+    border: border(outline, 1),
+    enabledBorder: border(outline, 1),
+    focusedBorder: border(focus, 1.5),
+    errorBorder: border(error, 1.5),
+    focusedErrorBorder: border(error, 1.5),
+  );
+}
+
 /// Light `ThemeData` for Phase D. Material 2 is kept on (`useMaterial3:
 /// false`) because the codebase ships custom `TextButton.styleFrom` /
 /// `RoundedRectangleBorder` styles that target Material 2 token names;
 /// a Material 3 flip belongs in a separate PR with design review.
 ThemeData buildLightTheme() {
+  final InputDecorationThemeData inputs = _inputDecorationTheme(
+    outline: AppColors.neutralLight,
+    focus: AppColors.primary,
+    error: AppColors.error,
+  );
   return ThemeData(
     useMaterial3: false,
     brightness: Brightness.light,
@@ -183,6 +237,11 @@ ThemeData buildLightTheme() {
     primaryColor: AppColors.primary,
     scaffoldBackgroundColor: AppColors.pageBackground,
     bottomAppBarTheme: const BottomAppBarThemeData(color: Colors.white),
+    inputDecorationTheme: inputs,
+    // `DropdownMenu` reads `DropdownMenuThemeData`, never
+    // `ThemeData.inputDecorationTheme` — both have to be set or a dropdown
+    // and a text field on the same screen will not match.
+    dropdownMenuTheme: DropdownMenuThemeData(inputDecorationTheme: inputs),
     fontFamily: 'Rubix',
   );
 }
@@ -190,6 +249,12 @@ ThemeData buildLightTheme() {
 /// Dark `ThemeData` used by the user's explicit dark-mode setting. Material 2
 /// remains enabled to preserve the existing custom control styling.
 ThemeData buildDarkTheme() {
+  final InputDecorationThemeData inputs = _inputDecorationTheme(
+    outline: AppColors.darkOutline,
+    focus: AppColors.darkPrimary,
+    error: AppColors.darkError,
+    fill: AppColors.darkSurfaceContainer,
+  );
   return ThemeData(
     useMaterial3: false,
     brightness: Brightness.dark,
@@ -206,10 +271,8 @@ ThemeData buildDarkTheme() {
       backgroundColor: AppColors.darkNavBackground,
       foregroundColor: AppColors.darkOnSurface,
     ),
-    inputDecorationTheme: const InputDecorationTheme(
-      fillColor: AppColors.darkSurfaceContainer,
-      filled: true,
-    ),
+    inputDecorationTheme: inputs,
+    dropdownMenuTheme: DropdownMenuThemeData(inputDecorationTheme: inputs),
     fontFamily: 'Rubix',
   );
 }

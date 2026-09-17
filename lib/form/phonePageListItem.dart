@@ -368,7 +368,10 @@ class _PhonePageListState extends LPExtendedState<PhonePageList> {
                 padding: EdgeInsets.all(returnSizedBox(context, 10)),
                 child: Text(
                   name,
-                  style: TextStyle(fontWeight: FontWeight.normal, fontSize: 14.sp),
+                  style: TextStyle(
+                    fontWeight: FontWeight.normal,
+                    fontSize: 14.sp,
+                  ),
                 ),
               ),
             ),
@@ -410,7 +413,6 @@ class _PhonePageListState extends LPExtendedState<PhonePageList> {
                 final nameField = TextFormField(
                   controller: nameController,
                   decoration: InputDecoration(
-                    border: const OutlineInputBorder(),
                     labelText: appLocale.phonesPageName(gender),
                     suffixIcon: SpeechDictationSuffixAction.isSupportedPlatform
                         ? SpeechDictationSuffixAction(
@@ -428,7 +430,6 @@ class _PhonePageListState extends LPExtendedState<PhonePageList> {
                     textDirection: TextDirection.ltr,
                     textAlign: TextAlign.left,
                     decoration: InputDecoration(
-                      border: const OutlineInputBorder(),
                       labelText: appLocale.phonesPagePhone(gender),
                       suffixIcon:
                           SpeechDictationSuffixAction.isSupportedPlatform

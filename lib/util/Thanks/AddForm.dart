@@ -125,13 +125,6 @@ class _AddFormState extends LPExtendedState<AddForm> {
                                           maxLength: 100,
                                         )
                                       : null,
-                                  contentPadding: EdgeInsets.only(right: 1.0),
-                                  labelStyle: TextStyle(
-                                    fontWeight: FontWeight.normal,
-                                    fontFamily: 'Rubix',
-                                    height: 0,
-                                    fontSize: 20,
-                                  ),
                                 ),
                                 validator: (value) {
                                   // validate the text field

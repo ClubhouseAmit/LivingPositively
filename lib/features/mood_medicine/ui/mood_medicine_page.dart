@@ -774,10 +774,8 @@ class _MoodMedicinePageState extends State<MoodMedicinePage> {
                       maxLines: 6,
                       textCapitalization: TextCapitalization.sentences,
                       onChanged: _viewModel.setJournalNote,
-                      decoration: _moodInputDecoration(
-                        context,
+                      decoration: InputDecoration(
                         hintText: l10n.moodMedicineNoteHint,
-                        multiline: true,
                       ),
                     ),
                   ),
@@ -1593,37 +1591,6 @@ class _MoodMedicinePageState extends State<MoodMedicinePage> {
   }
 }
 
-InputDecoration _moodInputDecoration(
-  BuildContext context, {
-  required String hintText,
-  bool multiline = false,
-}) {
-  final ThemeData theme = Theme.of(context);
-  final Color outline = theme.brightness == Brightness.dark
-      ? theme.colorScheme.outline
-      : AppColors.neutralLight;
-  final OutlineInputBorder border = OutlineInputBorder(
-    borderRadius: BorderRadius.circular(10),
-    borderSide: BorderSide(color: outline),
-  );
-  return InputDecoration(
-    hintText: hintText,
-    isDense: true,
-    contentPadding: EdgeInsets.symmetric(
-      horizontal: AppSpacing.md,
-      vertical: multiline ? AppSpacing.md : 7,
-    ),
-    border: border,
-    enabledBorder: border,
-    focusedBorder: border.copyWith(
-      borderSide: BorderSide(color: theme.colorScheme.primary, width: 1.5),
-    ),
-    disabledBorder: border.copyWith(
-      borderSide: BorderSide(color: outline.withValues(alpha: 0.65)),
-    ),
-  );
-}
-
 class _MoodOption {
   const _MoodOption(this.value, this.icon, this.label);
 
@@ -1719,19 +1686,15 @@ class _ActivityEditorDialogState extends State<_ActivityEditorDialog> {
           const SizedBox(height: AppSpacing.xs),
           ConstrainedBox(
             constraints: BoxConstraints(maxWidth: formFieldWidth(context)),
-            child: SizedBox(
-              height: 40,
-              child: TextField(
-                key: const Key('moodMedicineActivityEditorField'),
-                controller: _nameController,
-                autofocus: true,
-                textInputAction: TextInputAction.done,
-                decoration: _moodInputDecoration(
-                  context,
-                  hintText: l10n.moodMedicineActivityNameHint,
-                ),
-                onSubmitted: (_) => _save(),
+            child: TextField(
+              key: const Key('moodMedicineActivityEditorField'),
+              controller: _nameController,
+              autofocus: true,
+              textInputAction: TextInputAction.done,
+              decoration: InputDecoration(
+                hintText: l10n.moodMedicineActivityNameHint,
               ),
+              onSubmitted: (_) => _save(),
             ),
           ),
           if (_validationError != null)

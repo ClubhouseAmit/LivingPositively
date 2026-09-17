@@ -83,19 +83,7 @@ class _AddFormAnswerState extends LPExtendedState<AddFormAnswer> {
                                 maxLength: 100,
                               )
                             : null,
-                        contentPadding: const EdgeInsetsDirectional.only(
-                          end: 8.0,
-                        ),
-                        labelStyle: TextStyle(
-                          fontWeight: FontWeight.normal,
-                          height: 0,
-                          fontSize: 30.sp > 40 ? 40 : 30.sp,
-                        ), // Set label style
                       ),
-                      style: TextStyle(
-                        fontWeight: FontWeight.normal,
-                        fontSize: 18.sp > 30 ? 30 : 18.sp,
-                      ), // Set text field style
                       validator: (value) {
                         if (value == null || value.trim().isEmpty) {
                           return appLocale

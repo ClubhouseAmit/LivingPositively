@@ -150,26 +150,6 @@ class _SetNotificationWidgetState
                                   userInfoProvider.updateNotificationMessage,
                             )
                           : null,
-                      hintStyle: TextStyle(
-                        color: colorScheme.onSurface.withValues(alpha: 0.5),
-                      ),
-                      contentPadding: const EdgeInsets.symmetric(
-                        horizontal: 16,
-                        vertical: 12,
-                      ),
-                      filled: true,
-                      fillColor: colorScheme.surfaceContainerHighest,
-                      border: OutlineInputBorder(
-                        borderRadius: BorderRadius.circular(16),
-                        borderSide: BorderSide(color: colorScheme.outline),
-                      ),
-                      focusedBorder: OutlineInputBorder(
-                        borderRadius: BorderRadius.circular(16),
-                        borderSide: BorderSide(
-                          color: colorScheme.primary,
-                          width: 2,
-                        ),
-                      ),
                     ),
                   ),
                 ),
