@@ -2,6 +2,7 @@ import 'dart:async';
 
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
+import 'package:get_it/get_it.dart';
 import 'package:mazilon/pages/auth/auth_error_reporting.dart';
 import 'package:mazilon/pages/auth/forgot_password_page.dart';
 import 'package:mazilon/util/Firebase/auth_service.dart';
@@ -35,7 +36,7 @@ mixin _SocialSignIn<T extends StatefulWidget> on LPExtendedState<T> {
       if (result == null) {
         return;
       }
-      final user = result.user ?? FirebaseAuth.instance.currentUser;
+      final user = result.user ?? GetIt.instance<FirebaseAuth>().currentUser;
       if (user == null) {
         throw StateError(
           '$providerName authentication completed without a user.',
@@ -244,7 +245,7 @@ class _LoginFormState extends LPExtendedState<_LoginForm>
     });
     try {
       final result = await AuthService.signInWithEmail(email, password);
-      final user = result.user ?? FirebaseAuth.instance.currentUser;
+      final user = result.user ?? GetIt.instance<FirebaseAuth>().currentUser;
       if (user == null) {
         throw StateError('Signed-in Firebase account has no user.');
       }
@@ -435,7 +436,7 @@ class _SignupFormState extends LPExtendedState<_SignupForm>
           await reportAuthenticationError(error, stackTrace);
         }
       }
-      final user = result.user ?? FirebaseAuth.instance.currentUser;
+      final user = result.user ?? GetIt.instance<FirebaseAuth>().currentUser;
       if (user == null) {
         throw StateError('Created Firebase account has no user.');
       }

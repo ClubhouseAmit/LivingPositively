@@ -70,6 +70,10 @@ class AuthService {
   @visibleForTesting
   static Future<void> Function(String email)? debugSendPasswordResetOverride;
 
+  static FirebaseAuth get _auth => GetIt.instance.isRegistered<FirebaseAuth>()
+      ? GetIt.instance<FirebaseAuth>()
+      : FirebaseAuth.instance;
+
   static String get _configuredGoogleSignInServerClientId =>
       (debugGoogleSignInServerClientIdOverride ?? _googleSignInServerClientId)
           .trim();
@@ -95,7 +99,7 @@ class AuthService {
     if (signInOverride != null) {
       return signInOverride(email.trim(), password);
     }
-    return FirebaseAuth.instance.signInWithEmailAndPassword(
+    return _auth.signInWithEmailAndPassword(
       email: email.trim(),
       password: password,
     );
@@ -107,7 +111,7 @@ class AuthService {
     if (signUpOverride != null) {
       return signUpOverride(email, password);
     }
-    return FirebaseAuth.instance.createUserWithEmailAndPassword(
+    return _auth.createUserWithEmailAndPassword(
       email: email.trim(),
       password: password,
     );
@@ -137,7 +141,7 @@ class AuthService {
       accessToken: googleAuth.accessToken,
       idToken: googleAuth.idToken,
     );
-    return FirebaseAuth.instance.signInWithCredential(credential);
+    return _auth.signInWithCredential(credential);
   }
 
   /// Starts Apple Sign-In, returning `null` when it is unavailable.
@@ -149,7 +153,7 @@ class AuthService {
     final appleProvider = AppleAuthProvider()
       ..addScope('email')
       ..addScope('name');
-    return FirebaseAuth.instance.signInWithProvider(appleProvider);
+    return _auth.signInWithProvider(appleProvider);
   }
 
   /// Whether Google Sign-In can be offered for the supplied platform and
@@ -220,15 +224,12 @@ class AuthService {
     if (sendPasswordResetOverride != null) {
       return sendPasswordResetOverride(email.trim());
     }
-    return FirebaseAuth.instance.sendPasswordResetEmail(email: email.trim());
+    return _auth.sendPasswordResetEmail(email: email.trim());
   }
 
   /// Signs out through the registered auth instance, when one is available.
   static Future<void> signOut() {
-    if (GetIt.instance.isRegistered<FirebaseAuth>()) {
-      return GetIt.instance<FirebaseAuth>().signOut();
-    }
-    return FirebaseAuth.instance.signOut();
+    return _auth.signOut();
   }
 
   /// Upserts the signed-in user's profile and last-login timestamp in Firestore.

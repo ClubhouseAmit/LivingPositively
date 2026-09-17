@@ -140,9 +140,11 @@ Future<void> _tapUntilVisible(
   final stopwatch = Stopwatch()..start();
   while (true) {
     await tester.ensureVisible(target);
-    await tester.pumpAndSettle();
+    await tester.pump(const Duration(milliseconds: 100));
     await tester.tap(target, warnIfMissed: false);
-    await tester.pumpAndSettle();
+    // A live integration binding can keep scheduling animation frames. Use
+    // bounded pumps so this helper's deadline remains authoritative.
+    await tester.pump(const Duration(milliseconds: 100));
     if (expected.evaluate().isNotEmpty ||
         stopwatch.elapsed >= _customCategoryUiTimeout) {
       break;

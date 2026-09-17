@@ -28,21 +28,25 @@ initializeApp({ projectId });
 const firestore = getFirestore();
 const documents = buildNotificationSeed(arbByLocale);
 
-void provisionNotificationContent(documents, {
-  async setDocument(document): Promise<void> {
-    await firestore
-      .collection(document.collection)
-      .doc(document.id)
-      .set(document.data);
-  },
-  async listDocumentIds(collection): Promise<string[]> {
-    return (await firestore.collection(collection).listDocuments()).map(
-      (document) => document.id,
-    );
-  },
-  async deleteDocument(collection, id): Promise<void> {
-    await firestore.collection(collection).doc(id).delete();
-  },
+// Seed content in one transaction: a failed provision leaves the previously
+// released type/quote revision intact instead of exposing a partial revision.
+void firestore.runTransaction(async (transaction) => {
+  await provisionNotificationContent(documents, {
+    async setDocument(document): Promise<void> {
+      transaction.set(
+        firestore.collection(document.collection).doc(document.id),
+        document.data,
+      );
+    },
+    async listDocumentIds(collection): Promise<string[]> {
+      return (await transaction.get(firestore.collection(collection))).docs.map(
+        (document) => document.id,
+      );
+    },
+    async deleteDocument(collection, id): Promise<void> {
+      transaction.delete(firestore.collection(collection).doc(id));
+    },
+  });
 })
   .then(() => {
     console.log(`Provisioned ${documents.length} notification documents.`);

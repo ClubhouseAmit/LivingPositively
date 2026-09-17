@@ -277,28 +277,33 @@ through internal testing. Promote to wider distribution only after section 7.
 
 Follow [the provider setup](auth-provider-rollout.md), including the correct
 Firebase iOS app, OAuth callback scheme, provisioning profiles, and APNs key.
-Configure the three Google values as environment variables in the release
-environment. Run `bash scripts/prepare_ios_google_sign_in_config.sh` as a
-Codemagic pre-build step; it validates those values and generates the ignored native
-`ios/Flutter/GoogleSignIn.xcconfig` file.
+For Google Sign-In, configure the server Web OAuth client ID, iOS OAuth client
+ID, and reversed iOS client ID as environment variables. Set
+`GOOGLE_SIGN_IN_WEB_CLIENT_ID` to the same verified **Web** OAuth client ID as
+`GOOGLE_SIGN_IN_SERVER_CLIENT_ID`. Run
+`bash scripts/prepare_ios_google_sign_in_config.sh` as a Codemagic pre-build
+step; it validates this one environment-owned identity and generates the
+ignored native `ios/Flutter/GoogleSignIn.xcconfig` file. An Apple-only build
+sets none of the Google variables; the step removes any stale generated file.
 
-Set the three Google variables and `APPLE_SIGN_IN_ENABLED` in your release
-environment, then run from the repository root:
+Set `APPLE_SIGN_IN_ENABLED` and, when Google is enabled, all four Google
+variables in the release environment, then run from the repository root:
 
 ```bash
 ./scripts/build_ios_release.sh
 ```
 
 The [script](../scripts/build_ios_release.sh) runs the iOS Google Sign-In
-pre-build step, requires
-`GOOGLE_SIGN_IN_SERVER_CLIENT_ID`, `GOOGLE_SIGN_IN_IOS_CLIENT_ID`, and
-`GOOGLE_SIGN_IN_IOS_REVERSED_CLIENT_ID`, generates the native config, and passes
-the two client IDs to Dart. In Codemagic, configure the corresponding
-`--dart-define` values separately; the pre-build script does not set Dart
-defines. `APPLE_SIGN_IN_ENABLED` must be explicit
+pre-build step, requires one complete Google identity when enabled, generates
+the native config, and passes the same environment values to Dart. In
+Codemagic, pass `GOOGLE_SIGN_IN_SERVER_CLIENT_ID` and
+`GOOGLE_SIGN_IN_IOS_CLIENT_ID` as Dart defines from those exact environment
+variables; do not duplicate literal client IDs in the build command.
+`APPLE_SIGN_IN_ENABLED` must be explicit
 `true` or `false`; there is no default and no true-only enforcement. Choose the
 value through the release owner's provider decision, not as a workaround for
-missing setup. Google configuration is required even when Apple is disabled.
+missing setup. Google configuration is optional, but partial configuration is
+rejected before archiving.
 
 Before archiving, assign a new release build number in the approved release
 configuration/pubspec. Unlike Android CI, this script does not supply a build

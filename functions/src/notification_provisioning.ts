@@ -224,10 +224,6 @@ export async function provisionNotificationContent(
   documents: SeedDocument[],
   writer: SeedWriter,
 ): Promise<void> {
-  for (const document of documents) {
-    await writer.setDocument(document);
-  }
-
   const seededQuoteIdsByCollection = new Map<string, Set<string>>();
   for (const document of documents) {
     if (!document.collection.startsWith("quotes_")) continue;
@@ -239,11 +235,26 @@ export async function provisionNotificationContent(
     seededIds.add(document.id);
   }
 
+  // Firestore transactions require every read before the first write. Compute
+  // obsolete generated quotes first; callers that are not transactional retain
+  // the same final content contract.
+  const staleQuoteIdsByCollection = new Map<string, string[]>();
   for (const [collection, seededIds] of seededQuoteIdsByCollection) {
-    for (const id of await writer.listDocumentIds(collection)) {
-      if (QUOTE_KEY_PATTERN.test(id) && !seededIds.has(id)) {
-        await writer.deleteDocument(collection, id);
-      }
+    staleQuoteIdsByCollection.set(
+      collection,
+      (await writer.listDocumentIds(collection)).filter(
+        (id) => QUOTE_KEY_PATTERN.test(id) && !seededIds.has(id),
+      ),
+    );
+  }
+
+  for (const document of documents) {
+    await writer.setDocument(document);
+  }
+
+  for (const [collection, staleIds] of staleQuoteIdsByCollection) {
+    for (const id of staleIds) {
+      await writer.deleteDocument(collection, id);
     }
   }
 }

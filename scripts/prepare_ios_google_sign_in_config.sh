@@ -16,15 +16,34 @@ is_google_client_id() {
   [[ "$1" =~ ^[A-Za-z0-9._-]+\.apps\.googleusercontent\.com$ ]]
 }
 
-for value_name in \
-  GOOGLE_SIGN_IN_SERVER_CLIENT_ID \
-  GOOGLE_SIGN_IN_IOS_CLIENT_ID \
-  GOOGLE_SIGN_IN_IOS_REVERSED_CLIENT_ID; do
+google_value_names=(
+  GOOGLE_SIGN_IN_SERVER_CLIENT_ID
+  GOOGLE_SIGN_IN_IOS_CLIENT_ID
+  GOOGLE_SIGN_IN_IOS_REVERSED_CLIENT_ID
+  GOOGLE_SIGN_IN_WEB_CLIENT_ID
+)
+configured_google_values=0
+for value_name in "${google_value_names[@]}"; do
+  value="${!value_name:-}"
+  [[ -n "${value//[[:space:]]/}" ]] && ((configured_google_values += 1))
+done
+
+# An Apple-only archive must not inherit a generated configuration from an
+# earlier build. Google is either configured as one complete identity or off.
+if [[ "$configured_google_values" -eq 0 ]]; then
+  rm -f ios/Flutter/GoogleSignIn.xcconfig
+  printf '%s\n' 'Google Sign-In is not configured; no native config generated.'
+  exit 0
+fi
+
+for value_name in "${google_value_names[@]}"; do
   require_value "$value_name"
 done
 
 is_google_client_id "$GOOGLE_SIGN_IN_SERVER_CLIENT_ID" || fail "GOOGLE_SIGN_IN_SERVER_CLIENT_ID must be a Google OAuth client ID"
 is_google_client_id "$GOOGLE_SIGN_IN_IOS_CLIENT_ID" || fail "GOOGLE_SIGN_IN_IOS_CLIENT_ID must be a Google OAuth client ID"
+is_google_client_id "$GOOGLE_SIGN_IN_WEB_CLIENT_ID" || fail "GOOGLE_SIGN_IN_WEB_CLIENT_ID must be a Google OAuth client ID"
+[[ "$GOOGLE_SIGN_IN_SERVER_CLIENT_ID" == "$GOOGLE_SIGN_IN_WEB_CLIENT_ID" ]] || fail "GOOGLE_SIGN_IN_SERVER_CLIENT_ID must equal the verified Web OAuth client ID"
 
 expected_reversed_client_id="com.googleusercontent.apps.${GOOGLE_SIGN_IN_IOS_CLIENT_ID%.apps.googleusercontent.com}"
 [[ "$GOOGLE_SIGN_IN_IOS_REVERSED_CLIENT_ID" == "$expected_reversed_client_id" ]] || fail "GOOGLE_SIGN_IN_IOS_REVERSED_CLIENT_ID must match GOOGLE_SIGN_IN_IOS_CLIENT_ID"

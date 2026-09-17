@@ -17,7 +17,12 @@ require_value APPLE_SIGN_IN_ENABLED
 
 bash scripts/prepare_ios_google_sign_in_config.sh
 
-flutter build ipa \
-  --dart-define=APPLE_SIGN_IN_ENABLED="$APPLE_SIGN_IN_ENABLED" \
-  --dart-define=GOOGLE_SIGN_IN_SERVER_CLIENT_ID="$GOOGLE_SIGN_IN_SERVER_CLIENT_ID" \
-  --dart-define=GOOGLE_SIGN_IN_IOS_CLIENT_ID="$GOOGLE_SIGN_IN_IOS_CLIENT_ID"
+dart_defines=(--dart-define=APPLE_SIGN_IN_ENABLED="$APPLE_SIGN_IN_ENABLED")
+if [[ -n "${GOOGLE_SIGN_IN_SERVER_CLIENT_ID:-}" ]]; then
+  dart_defines+=(
+    --dart-define=GOOGLE_SIGN_IN_SERVER_CLIENT_ID="$GOOGLE_SIGN_IN_SERVER_CLIENT_ID"
+    --dart-define=GOOGLE_SIGN_IN_IOS_CLIENT_ID="$GOOGLE_SIGN_IN_IOS_CLIENT_ID"
+  )
+fi
+
+flutter build ipa "${dart_defines[@]}"

@@ -136,30 +136,21 @@ that cannot change an outcome are removed from the design rather than kept as
 documentation, because their presence implies a protection the engine does not
 provide. The denylist condition is the sole mechanism.
 
-**5. Anonymity cannot be enforced in rules, and is not currently enforced on
-the server either.** Rules deny all direct client access uniformly, so they
+**5. Anonymity cannot be enforced in rules, and is enforced on the server.** Rules deny all direct client access uniformly, so they
 cannot express "non-anonymous users may set reminders." That check exists
-today only in the Flutter client:
+in the Flutter client as an early UX guard:
 `fcm_scheduled_notification_service.dart:123` refuses to fetch an ID token
 when `user.isAnonymous`.
 
 A client-side check is a policy, not a control. `extractAndVerifyUid`
-(`functions/src/index.ts:565`) calls `verifyIdToken` and returns
-`decoded.uid` without inspecting `decoded.firebase.sign_in_provider`, so any
-caller holding a valid anonymous ID token can register a reminder by calling
-the endpoint directly. Enforcing constraint 3 requires a server-side check:
+(`functions/src/index.ts`) calls `verifyIdToken` and rejects a token whose
+`firebase.sign_in_provider` is `anonymous` before any notification endpoint
+receives the UID. This shared check protects registration, cancellation, and
+mutation-version reads from direct endpoint calls.
 
 ```ts
 if (decoded.firebase?.sign_in_provider === "anonymous") return null;
 ```
-
-This is recorded as required work, not as an existing property. Whether it is
-presently exploitable depends on whether Anonymous sign-in is enabled in the
-`mezilondb` console, which is not observable from this repository; if it is
-enabled, the Web API key shipped in the client is sufficient to mint such a
-token. The FCM-05 entry in
-`docs/plans/2026-07-31-pr-273-fcm-remaining-work.md` marks this "decided and
-implemented," which is accurate for the client and not for the server.
 
 Constraint 3 is an application authorization rule; constraints 1 and 4 are
 data access rules. They belong at different layers on purpose — but both
@@ -179,7 +170,7 @@ deliberately decides otherwise.
 types and user-defined custom reminders are new *documents* in the same
 collections and inherit the deny with no rules change, satisfying constraint
 5. Introducing a new server-only *collection* does require a denylist entry,
-so CI enforces that: a check fails when `functions/src` references a Firestore
+so CI enforces that: a Functions CI check fails when non-test `functions/src` references a Firestore
 collection that appears in neither the denylist nor an allowlist of
 intentionally client-readable collections.
 
@@ -307,8 +298,6 @@ production today.
 - The database remains world-readable outside the denylisted collections.
   This record does not improve that, and that catch-all is precisely what
   makes the denylist necessary rather than optional.
-- Constraint 3 is left enforced only in the client until the decision-5
-  server check ships. The gap is recorded rather than closed by this record.
 
 ### Neutral
 
@@ -371,3 +360,7 @@ server. They are new, constraint 1 applies, and they are server-only.
   not exclude. `devices` is therefore added to the denylist as well, leaving
   the owner-scoped rule as the only grant. Noted the resulting loss of Rowy
   console access to `devices`.
+- **2026-09-17** — Decision 5 updated after the shared Functions token
+  verifier began rejecting Firebase Anonymous Authentication. Decision 6 now
+  names the CI collection-policy check that enforces classification of
+  non-test Functions collection references.

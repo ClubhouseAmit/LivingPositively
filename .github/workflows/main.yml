@@ -24,10 +24,10 @@ jobs:
         working-directory: functions
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v7
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
 
       - name: Set up Node.js
-        uses: actions/setup-node@v7
+        uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
         with:
           node-version: "22"
           cache: npm
@@ -40,7 +40,16 @@ jobs:
         run: npm test
 
       - name: Test Functions deployment change detection
-        run: node --test ../scripts/tests/functions_deployment_changes.test.mjs ../scripts/tests/check_firestore_rules_drift.test.mjs
+        run: >-
+          node --test ../scripts/tests/functions_deployment_changes.test.mjs
+          ../scripts/tests/check_firestore_rules_drift.test.mjs
+          ../scripts/tests/check_firestore_collection_policy.test.mjs
+
+      - name: Test iOS Google Sign-In pre-build configuration
+        run: bash ../scripts/tests/prepare_ios_google_sign_in_config_test.sh
+
+      - name: Verify Firestore collection policy coverage
+        run: node ../scripts/check_firestore_collection_policy.mjs
 
       - name: Audit production dependencies
         # Production deployment must remain free of known audit findings.
@@ -52,10 +61,10 @@ jobs:
     timeout-minutes: 15
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v7
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
 
       - name: Set up Node.js
-        uses: actions/setup-node@v7
+        uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
         with:
           node-version: "22"
           cache: npm
@@ -63,7 +72,7 @@ jobs:
 
       # The Firestore emulator is a Java process.
       - name: Set up JDK
-        uses: actions/setup-java@v5
+        uses: actions/setup-java@b6effb05e454b25005698d916606bdc6ffcbf961 # v5.0.0
         with:
           distribution: "temurin"
           # firebase-tools v15 requires Java 21+ to run the Firestore emulator.
@@ -94,7 +103,7 @@ jobs:
       AAB_PATH: build/app/outputs/bundle/release/app-release.aab
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v7
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
 
       - name: Write key store file for release signing
         env:
@@ -109,7 +118,7 @@ jobs:
           printf '%s' "$FIREBASE_OPTIONS" | base64 --decode > "${{ env.FIREBASE_OPTIONS_PATH }}"
 
       - name: Set up JDK
-        uses: actions/setup-java@v5
+        uses: actions/setup-java@b6effb05e454b25005698d916606bdc6ffcbf961 # v5.0.0
         with:
           distribution: "temurin"
           java-version: "17.x"
@@ -123,7 +132,7 @@ jobs:
             pubspec.lock
 
       - name: Set up Flutter
-        uses: subosito/flutter-action@v2
+        uses: subosito/flutter-action@1a449444c387b1966244ae4d4f8c696479add0b2 # v2.21.0
         with:
           flutter-version: "3.44.0"
           cache: true
@@ -179,7 +188,7 @@ jobs:
       - name: Upload coverage report
         id: upload-coverage
         if: success()
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
         with:
           name: coverage-lcov
           path: coverage/lcov.info
@@ -229,7 +238,7 @@ jobs:
             --dart-define=GOOGLE_SIGN_IN_SERVER_CLIENT_ID="$GOOGLE_SIGN_IN_SERVER_CLIENT_ID"
 
       - name: Upload App Bundle
-        uses: actions/upload-artifact@v7
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.0
         with:
           name: app-release
           path: ${{ env.AAB_PATH }}
@@ -279,7 +288,7 @@ jobs:
       FIREBASE_OPTIONS_PATH: lib/util/Firebase/firebase_options.dart
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v7
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
 
       - name: Write firebase options file
         env:
@@ -288,7 +297,7 @@ jobs:
           printf '%s' "$FIREBASE_OPTIONS" | base64 --decode > "${{ env.FIREBASE_OPTIONS_PATH }}"
 
       - name: Set up JDK
-        uses: actions/setup-java@v5
+        uses: actions/setup-java@b6effb05e454b25005698d916606bdc6ffcbf961 # v5.0.0
         with:
           distribution: "temurin"
           java-version: "17.x"
@@ -302,7 +311,7 @@ jobs:
             pubspec.lock
 
       - name: Set up Flutter
-        uses: subosito/flutter-action@v2
+        uses: subosito/flutter-action@1a449444c387b1966244ae4d4f8c696479add0b2 # v2.21.0
         with:
           flutter-version: "3.44.0"
           cache: true
@@ -375,7 +384,7 @@ jobs:
 
       - name: Upload integration coverage shard
         if: always()
-        uses: actions/upload-artifact@v7
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.0
         with:
           name: coverage-integration-shard-${{ matrix.id }}
           path: coverage/shards/${{ matrix.id }}.info
@@ -388,7 +397,7 @@ jobs:
     timeout-minutes: 5
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v7
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
 
       - name: Verify Android integration matrix matches test files
         shell: bash
@@ -449,10 +458,10 @@ jobs:
           fi
 
       - name: Checkout repository
-        uses: actions/checkout@v7
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
 
       - name: Set up Flutter
-        uses: subosito/flutter-action@v2
+        uses: subosito/flutter-action@1a449444c387b1966244ae4d4f8c696479add0b2 # v2.21.0
         with:
           flutter-version: "3.44.0"
           cache: true
@@ -477,7 +486,7 @@ jobs:
           exit 1
 
       - name: Download integration coverage shards
-        uses: actions/download-artifact@v8
+        uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8.0.1
         with:
           pattern: coverage-integration-shard-*
           merge-multiple: true
@@ -519,7 +528,7 @@ jobs:
       - name: Upload integration coverage report
         id: upload-coverage
         if: success()
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
         with:
           name: coverage-integration-lcov
           path: coverage/integration.info
@@ -553,7 +562,7 @@ jobs:
       FLUTTER_SWIFT_PACKAGE_MANAGER: "false"
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v7
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
 
       - name: Write firebase options file
         env:
@@ -562,7 +571,7 @@ jobs:
           printf '%s' "$FIREBASE_OPTIONS" | base64 --decode > "${{ env.FIREBASE_OPTIONS_PATH }}"
 
       - name: Set up Flutter
-        uses: subosito/flutter-action@v2
+        uses: subosito/flutter-action@1a449444c387b1966244ae4d4f8c696479add0b2 # v2.21.0
         with:
           flutter-version: "3.44.0"
           cache: true
@@ -594,7 +603,7 @@ jobs:
           echo "cache_key=$XCODE_CACHE_KEY" >> "$GITHUB_OUTPUT"
 
       - name: Cache CocoaPods
-        uses: actions/cache@v5
+        uses: actions/cache@caa296126883cff596d87d8935842f9db880ef25 # v5.1.0
         with:
           path: |
             ios/Pods
@@ -606,7 +615,7 @@ jobs:
 
       - name: Cache Xcode DerivedData
         id: ios-derived-data-cache
-        uses: actions/cache/restore@v5
+        uses: actions/cache/restore@caa296126883cff596d87d8935842f9db880ef25 # v5.1.0
         with:
           path: ~/Library/Developer/Xcode/DerivedData
           key: ${{ runner.os }}-${{ runner.arch }}-${{ steps.xcode.outputs.cache_key }}-ios-deriveddata-${{ env.IOS_DERIVED_DATA_CACHE_VERSION }}-${{ hashFiles('pubspec.lock', 'ios/Podfile', 'ios/Podfile.lock', '.flutter-plugins-dependencies', 'ios/Runner.xcodeproj/project.pbxproj', 'ios/Runner.xcworkspace/contents.xcworkspacedata') }}
@@ -629,6 +638,7 @@ jobs:
         shell: bash
         run: |
           pod_log="$RUNNER_TEMP/pod-install.log"
+          : > "$pod_log"
 
           mirror_failed_podspecs() {
             local url local_path mirrored=0
@@ -655,10 +665,13 @@ jobs:
             else
               set -- --deployment
             fi
-            if pod install "$@" 2>&1 | tee "$pod_log"; then
+            if pod install "$@" 2>&1 | tee -a "$pod_log"; then
               exit 0
             fi
             if [[ "$attempt" -lt 3 ]]; then
+              # A partial Pods tree must never become input to the next
+              # attempt. Podfile.lock remains the immutable dependency graph.
+              rm -rf Pods
               mirror_failed_podspecs || true
               delay=$((attempt * 15))
               echo "::warning::pod install failed; retrying in ${delay}s."
@@ -989,14 +1002,14 @@ jobs:
 
       - name: Save Xcode DerivedData
         if: ${{ always() && (steps.ios-integration-test.outcome == 'success' || steps.ios-integration-test.outcome == 'failure') && steps.ios-derived-data-cache.outputs.cache-hit != 'true' }}
-        uses: actions/cache/save@v5
+        uses: actions/cache/save@caa296126883cff596d87d8935842f9db880ef25 # v5.1.0
         with:
           path: ~/Library/Developer/Xcode/DerivedData
           key: ${{ steps.ios-derived-data-cache.outputs.cache-primary-key }}
 
       - name: Upload iOS integration diagnostics
         if: always()
-        uses: actions/upload-artifact@v7
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.0
         with:
           name: ios-integration-diagnostics
           path: ci-ios-diagnostics
@@ -1004,7 +1017,7 @@ jobs:
 
       - name: Upload iOS Podfile lockfile
         if: always()
-        uses: actions/upload-artifact@v7
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.0
         with:
           name: ios-podfile-lock
           path: ios/Podfile.lock
@@ -1041,7 +1054,7 @@ jobs:
       FIREBASE_OPTIONS_PATH: lib/util/Firebase/firebase_options.dart
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v7
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
 
       - name: Write firebase options file
         env:
@@ -1050,7 +1063,7 @@ jobs:
           printf '%s' "$FIREBASE_OPTIONS" | base64 --decode > "${{ env.FIREBASE_OPTIONS_PATH }}"
 
       - name: Set up Flutter
-        uses: subosito/flutter-action@v2
+        uses: subosito/flutter-action@1a449444c387b1966244ae4d4f8c696479add0b2 # v2.21.0
         with:
           flutter-version: "3.44.0"
           cache: true
@@ -1091,7 +1104,7 @@ jobs:
 
       - name: Upload web coverage report (telemetry — may be missing or stale)
         if: always()
-        uses: actions/upload-artifact@v7
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.0
         with:
           name: coverage-web-lcov
           path: coverage/lcov.info
@@ -1159,10 +1172,10 @@ jobs:
           echo "All upstream jobs succeeded — proceeding with aggregate merge."
 
       - name: Checkout repository
-        uses: actions/checkout@v7
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
 
       - name: Set up Flutter
-        uses: subosito/flutter-action@v2
+        uses: subosito/flutter-action@1a449444c387b1966244ae4d4f8c696479add0b2 # v2.21.0
         with:
           flutter-version: "3.44.0"
           cache: true
@@ -1187,14 +1200,14 @@ jobs:
           exit 1
 
       - name: Download unit coverage artifact
-        uses: actions/download-artifact@v4
+        uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4.3.0
         with:
           artifact-ids: ${{ needs.build-android.outputs.coverage-artifact-id }}
           merge-multiple: true
           path: coverage
 
       - name: Download integration coverage artifact
-        uses: actions/download-artifact@v4
+        uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4.3.0
         with:
           artifact-ids: ${{ needs.integration-test.outputs.coverage-artifact-id }}
           merge-multiple: true
@@ -1226,7 +1239,7 @@ jobs:
 
       - name: Upload aggregate coverage report
         if: always()
-        uses: actions/upload-artifact@v7
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.0
         with:
           name: coverage-aggregate-lcov
           path: coverage/aggregate.info
@@ -1248,12 +1261,12 @@ jobs:
       rules_required: ${{ steps.changes.outputs.rules_required }}
     steps:
       - name: Checkout tested revision and history
-        uses: actions/checkout@v7
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           fetch-depth: 0
 
       - name: Set up Node.js
-        uses: actions/setup-node@v7
+        uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
         with:
           node-version: "22"
           cache: npm
@@ -1403,7 +1416,7 @@ jobs:
       queue: max
     steps:
       - name: Download App Bundle
-        uses: actions/download-artifact@v8
+        uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8.0.1
         with:
           name: app-release
           path: build/app/outputs/bundle/release
@@ -1426,7 +1439,7 @@ jobs:
       WEB_BUILD_PATH: build/web
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v7
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
 
       - name: Write firebase options file
         env:
@@ -1435,7 +1448,7 @@ jobs:
           printf '%s' "$FIREBASE_OPTIONS" | base64 --decode > "${{ env.FIREBASE_OPTIONS_PATH }}"
 
       - name: Set up Flutter
-        uses: subosito/flutter-action@v2
+        uses: subosito/flutter-action@1a449444c387b1966244ae4d4f8c696479add0b2 # v2.21.0
         with:
           flutter-version: "3.44.0"
           cache: true
@@ -1495,13 +1508,13 @@ jobs:
             --dart-define=SENTRY_DSN="$SENTRY_DSN"
 
       - name: Upload Web Build Artifact
-        uses: actions/upload-artifact@v7
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.0
         with:
           name: web-build
           path: ${{ env.WEB_BUILD_PATH }}
 
       - name: Deploy to Azure Storage Static Website
-        uses: azure/cli@v3
+        uses: azure/cli@bd09fd31a7fc217371c078f503fb6e264472c289 # v3.0.0
         with:
           inlineScript: |
             az storage blob upload-batch \
@@ -1521,7 +1534,7 @@ jobs:
       WEB_BUILD_PATH: build/web
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v7
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
 
       - name: Write firebase options file
         env:
@@ -1530,7 +1543,7 @@ jobs:
           printf '%s' "$FIREBASE_OPTIONS" | base64 --decode > "${{ env.FIREBASE_OPTIONS_PATH }}"
 
       - name: Set up Flutter
-        uses: subosito/flutter-action@v2
+        uses: subosito/flutter-action@1a449444c387b1966244ae4d4f8c696479add0b2 # v2.21.0
         with:
           flutter-version: "3.44.0"
           cache: true
@@ -1590,13 +1603,13 @@ jobs:
             --dart-define=SENTRY_DSN="$SENTRY_DSN"
 
       - name: Upload Web Build Artifact
-        uses: actions/upload-artifact@v7
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.0
         with:
           name: web-build-dev
           path: ${{ env.WEB_BUILD_PATH }}
 
       - name: Deploy to Azure Storage Static Website
-        uses: azure/cli@v3
+        uses: azure/cli@bd09fd31a7fc217371c078f503fb6e264472c289 # v3.0.0
         with:
           inlineScript: |
             az storage blob upload-batch \

@@ -10,6 +10,7 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:get_it/get_it.dart';
+import 'package:mazilon/util/Firebase/auth_service.dart';
 import 'package:mazilon/util/Firebase/firebase_functions.dart';
 import 'package:mazilon/util/logger_service.dart';
 import 'package:mockito/annotations.dart';
@@ -199,6 +200,34 @@ void main() {
             GetIt.instance<IncidentLoggerService>()
                 as NoopIncidentLoggerService;
         expect(logger.captured, isNotEmpty);
+      },
+    );
+  });
+
+  group('AuthService', () {
+    test(
+      'should use the registered FirebaseAuth instance for email sign-in',
+      () async {
+        GetIt.instance.registerSingleton<FirebaseAuth>(auth);
+        when(
+          auth.signInWithEmailAndPassword(
+            email: anyNamed('email'),
+            password: anyNamed('password'),
+          ),
+        ).thenAnswer((_) async => credential);
+
+        final result = await AuthService.signInWithEmail(
+          ' person@example.com ',
+          'password123',
+        );
+
+        expect(result, same(credential));
+        verify(
+          auth.signInWithEmailAndPassword(
+            email: 'person@example.com',
+            password: 'password123',
+          ),
+        ).called(1);
       },
     );
   });
