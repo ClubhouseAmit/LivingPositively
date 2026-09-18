@@ -8,6 +8,7 @@ import 'package:mazilon/global_enums.dart';
 import 'package:mazilon/l10n/app_localizations.dart';
 import 'package:mazilon/util/persistent_memory_service.dart';
 import 'package:mazilon/util/speech_recognition_service.dart';
+import 'package:mazilon/util/theme/spacing.dart';
 
 /// Converts a final transcript before it replaces an input value.
 typedef SpeechTranscriptTransformer =
@@ -17,9 +18,7 @@ typedef SpeechTranscriptTransformer =
 typedef SpeechTranscriptValidator = bool Function(String transcript);
 
 /// A text-field suffix action that provides short, explicit dictation.
-///
-/// The action owns only the transient recognition UI. Existing forms retain
-/// ownership of their controllers, validation, and persistence callbacks.
+/// Existing forms retain ownership of controllers, validation, and storage.
 class SpeechDictationSuffixAction extends StatefulWidget {
   /// Creates a suffix action for [controller].
   const SpeechDictationSuffixAction({
@@ -59,10 +58,7 @@ class SpeechDictationSuffixAction extends StatefulWidget {
   final PersistentMemoryService? persistentMemoryService;
 
   /// Feature flag controlling whether speech dictation UI is enabled.
-  ///
-  /// Set to `true` to show the dictation action across its explicit form field
-  /// callers. Form fields that do not integrate this action remain
-  /// unaffected.
+  /// Set to `true` to show the action across its explicit form field callers.
   static bool isFeatureEnabled = true;
 
   /// Whether the current platform has an exposed dictation control.
@@ -149,7 +145,7 @@ class _SpeechDictationSuffixActionState
         width: 48,
         height: 48,
         child: Padding(
-          padding: EdgeInsets.all(12),
+          padding: EdgeInsets.all(AppSpacing.md),
           child: CircularProgressIndicator(strokeWidth: 2),
         ),
       );
@@ -217,67 +213,7 @@ class _SpeechDictationSuffixActionState
       _isStarting = true;
     });
     try {
-      if (!await _ensureDisclosure(appLocale)) {
-        return;
-      }
-      if (!mounted) {
-        return;
-      }
-      final availability = await service.initialize();
-      if (!mounted) {
-        return;
-      }
-      if (availability != SpeechRecognitionAvailability.available) {
-        _showMessage(appLocale.speechDictationUnavailable);
-        return;
-      }
-
-      final localeResult = await service.locales();
-      if (!mounted) {
-        return;
-      }
-      if (localeResult is! SpeechRecognitionLocalesAvailable ||
-          localeResult.locales.isEmpty) {
-        _showMessage(appLocale.speechDictationUnavailable);
-        return;
-      }
-
-      final locale = await _chooseLocale(localeResult.locales, appLocale);
-      if (!mounted || locale == null) {
-        return;
-      }
-      _activeLocaleId = locale.localeId;
-      _hasHandledFinalTranscript = false;
-      _awaitingSessionStart = true;
-      final startResult = await service.start(
-        localeId: locale.localeId,
-        onEvent: _handleSessionEvent,
-      );
-      _awaitingSessionStart = false;
-      if (!mounted) {
-        _pendingSessionEvents.clear();
-        if (startResult is SpeechRecognitionSessionStarted) {
-          await service.cancel();
-        }
-        return;
-      }
-      if (startResult is SpeechRecognitionSessionStarted) {
-        setState(() {
-          _activeSessionId = startResult.sessionId;
-        });
-        _drainPendingSessionEvents(startResult.sessionId);
-        return;
-      }
-
-      _pendingSessionEvents.clear();
-      _activeLocaleId = null;
-      _showMessage(
-        startResult is SpeechRecognitionSessionStartFailure &&
-                startResult.kind ==
-                    SpeechRecognitionSessionStartFailureKind.unavailable
-            ? appLocale.speechDictationUnavailable
-            : appLocale.speechDictationError,
-      );
+      await _prepareAndStart(service, appLocale);
     } on PlatformException {
       await _cancelPendingStart(service);
       if (mounted) {
@@ -298,6 +234,68 @@ class _SpeechDictationSuffixActionState
         });
       }
     }
+  }
+
+  Future<void> _prepareAndStart(
+    SpeechRecognitionService service,
+    AppLocalizations appLocale,
+  ) async {
+    if (!await _ensureDisclosure(appLocale) || !mounted) return;
+    final availability = await service.initialize();
+    if (!mounted) return;
+    if (availability != SpeechRecognitionAvailability.available) {
+      _showMessage(appLocale.speechDictationUnavailable);
+      return;
+    }
+
+    final localeResult = await service.locales();
+    if (!mounted) return;
+    if (localeResult is! SpeechRecognitionLocalesAvailable ||
+        localeResult.locales.isEmpty) {
+      _showMessage(appLocale.speechDictationUnavailable);
+      return;
+    }
+
+    final locale = await _chooseLocale(localeResult.locales, appLocale);
+    if (!mounted || locale == null) return;
+    _activeLocaleId = locale.localeId;
+    _hasHandledFinalTranscript = false;
+    _awaitingSessionStart = true;
+    final startResult = await service.start(
+      localeId: locale.localeId,
+      onEvent: _handleSessionEvent,
+    );
+    _awaitingSessionStart = false;
+    await _handleStartResult(service, startResult, appLocale);
+  }
+
+  Future<void> _handleStartResult(
+    SpeechRecognitionService service,
+    SpeechRecognitionSessionStartResult startResult,
+    AppLocalizations appLocale,
+  ) async {
+    if (!mounted) {
+      _pendingSessionEvents.clear();
+      if (startResult is SpeechRecognitionSessionStarted) {
+        await service.cancel();
+      }
+      return;
+    }
+    if (startResult is SpeechRecognitionSessionStarted) {
+      setState(() => _activeSessionId = startResult.sessionId);
+      _drainPendingSessionEvents(startResult.sessionId);
+      return;
+    }
+
+    _pendingSessionEvents.clear();
+    _activeLocaleId = null;
+    _showMessage(
+      startResult is SpeechRecognitionSessionStartFailure &&
+              startResult.kind ==
+                  SpeechRecognitionSessionStartFailureKind.unavailable
+          ? appLocale.speechDictationUnavailable
+          : appLocale.speechDictationError,
+    );
   }
 
   Future<void> _cancelPendingStart(SpeechRecognitionService service) async {

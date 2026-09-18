@@ -1,6 +1,4 @@
 import 'dart:async';
-import 'dart:math' as math;
-
 import 'package:flutter/foundation.dart';
 import 'package:get_it/get_it.dart';
 import 'package:mazilon/global_enums.dart';
@@ -11,7 +9,6 @@ import 'package:mazilon/util/persistent_memory_service.dart';
 
 enum DarkModePreference { alwaysLight, alwaysDark, scheduled }
 
-//this it the user's information class, with it we store and display it across the app
 class UserInformation with ChangeNotifier {
   String localeName;
   String gender;
@@ -175,8 +172,7 @@ class UserInformation with ChangeNotifier {
       return nextSave;
     }
 
-    // A failed older write must not prevent a newer snapshot from being
-    // attempted. This gives the queue last-write-wins semantics.
+    // Keep a newer snapshot runnable after an older write fails.
     final nextSave = _pendingCustomCategoriesSave
         .catchError((Object _) {})
         .then(
@@ -887,12 +883,8 @@ class UserInformation with ChangeNotifier {
   }
 
   void updateThanks(Map<String, List<String>> value) {
-    final rawThanks = List<String>.from(value['thanks'] ?? const <String>[]);
-    final rawDates = List<String>.from(value['dates'] ?? const <String>[]);
-    // parallel lists must stay the same length so indexing never RangeErrors
-    final minLength = math.min(rawThanks.length, rawDates.length);
-    final savedThanks = rawThanks.sublist(0, minLength);
-    final savedDates = rawDates.sublist(0, minLength);
+    final savedThanks = List<String>.from(value['thanks'] ?? const <String>[]);
+    final savedDates = List<String>.from(value['dates'] ?? const <String>[]);
     thanks = {'thanks': savedThanks, 'dates': savedDates};
     unawaited(
       _saveInBackground(() async {

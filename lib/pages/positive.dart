@@ -17,6 +17,7 @@ import 'package:mazilon/util/Thanks/AddForm.dart';
 import 'package:provider/provider.dart';
 import 'package:mazilon/util/userInformation.dart';
 import 'package:mazilon/l10n/app_localizations.dart';
+import 'package:mazilon/util/theme/spacing.dart';
 
 // positive traits page, where the user can add/edit/remove positive traits
 // the user can also see suggestions for positive traits and refresh them
@@ -180,17 +181,116 @@ class _PositiveState extends LPExtendedState<Positive> {
     );
   }
 
-  //build the positive traits page
+  Widget _header(
+    AppLocalizations appLocale,
+    String gender,
+    UserInformation userInfo,
+    ColorScheme colorScheme,
+  ) {
+    return Column(
+      children: [
+        Row(
+          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+          children: [
+            Expanded(
+              child: myAutoSizedText(
+                appLocale.homePageTraitsMainTitle(gender),
+                TextStyle(fontWeight: FontWeight.bold, fontSize: 30.sp),
+                null,
+                60,
+              ),
+            ),
+            IconButton(
+              onPressed: () => editNotification(
+                '',
+                0,
+                appLocale.trait,
+                userInfo,
+              ),
+              icon: Icon(Icons.add, size: 50, color: colorScheme.primary),
+            ),
+          ],
+        ),
+        Padding(
+          padding: const EdgeInsets.symmetric(horizontal: AppSpacing.md),
+          child: myAutoSizedText(
+            appLocale.homePageTraitsSecondaryTitle(gender),
+            TextStyle(
+              color: colorScheme.outline,
+              fontSize: 16.sp,
+              fontWeight: FontWeight.bold,
+            ),
+            TextAlign.start,
+            30,
+            3,
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _traitList(
+    AppLocalizations appLocale,
+    UserInformation userInfo,
+    ColorScheme colorScheme,
+  ) {
+    return ListView.builder(
+      shrinkWrap: true,
+      physics: const NeverScrollableScrollPhysics(),
+      itemCount: positiveTraits.length,
+      itemBuilder: (context, index) => ThankYou(
+        text: positiveTraits[index],
+        number: index + 1,
+        edit: (String text, int index) {
+          editNotification(text, index, appLocale.trait, userInfo);
+        },
+        remove: (int index) {
+          unawaited(removePositiveTrait(index, userInfo));
+        },
+        date: '',
+        color: colorScheme.primary,
+      ),
+    );
+  }
+
+  List<Widget> _suggestions(AppLocalizations appLocale, String gender) {
+    final fullList = retrieveTraitsList(
+      appLocale,
+      gender.isEmpty ? 'other' : gender,
+    );
+    return [
+      if (sug1.isNotEmpty)
+        PositiveTraitItemSug(
+          stopShowing: 0,
+          add: addPositiveTrait,
+          inputText: sug1,
+          fullSuggestionList: fullList,
+        ),
+      if (sug2.isNotEmpty && sug1 != sug2)
+        PositiveTraitItemSug(
+          stopShowing: 2,
+          add: addPositiveTrait,
+          inputText: sug2,
+          fullSuggestionList: fullList,
+        ),
+      if (sug3.isNotEmpty && sug1 != sug3)
+        PositiveTraitItemSug(
+          stopShowing: 3,
+          add: addPositiveTrait,
+          inputText: sug3,
+          fullSuggestionList: fullList,
+        ),
+    ];
+  }
+
   @override
   Widget build(BuildContext context) {
-    //get the app information and user information providers
-
     final userInfoProvider = Provider.of<UserInformation>(
       context,
       listen: false,
     );
     final gender = userInfoProvider.gender;
-    final appLocale = AppLocalizations.of(context);
+    final appLocale = AppLocalizations.of(context)!;
     final colorScheme = Theme.of(context).colorScheme;
     return KeyboardDismisser(
       gestures: const [GestureType.onTap, GestureType.onPanUpdateAnyDirection],
@@ -198,86 +298,16 @@ class _PositiveState extends LPExtendedState<Positive> {
         backgroundColor: colorScheme.surface,
         body: ListView(
           children: [
-            Column(
-              children: [
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                  children: [
-                    Expanded(
-                      child: myAutoSizedText(
-                        appLocale!.homePageTraitsMainTitle(gender),
-                        TextStyle(fontWeight: FontWeight.bold, fontSize: 30.sp),
-                        null,
-                        60,
-                      ),
-                    ),
-                    //add button
-                    IconButton(
-                      onPressed: () {
-                        editNotification(
-                          "",
-                          0,
-                          appLocale.trait,
-                          userInfoProvider,
-                        );
-                      },
-                      icon: Icon(
-                        Icons.add,
-                        size: 50.0,
-                        color: colorScheme.primary,
-                      ),
-                    ),
-                  ],
-                ),
-                Row(
-                  children: [
-                    //sub title
-                    Expanded(
-                      child: Padding(
-                        padding: const EdgeInsets.fromLTRB(10, 0, 10, 0),
-                        child: myAutoSizedText(
-                          appLocale.homePageTraitsSecondaryTitle(gender),
-                          TextStyle(
-                            color: colorScheme.outline,
-                            fontSize: 16.sp,
-                            fontWeight: FontWeight.bold,
-                          ),
-                          TextAlign.start,
-                          30,
-                          3,
-                        ),
-                      ),
-                    ),
-                  ],
-                ),
-              ],
-            ),
-            //list of positive traits
-            ListView.builder(
-              shrinkWrap: true,
-              physics: const NeverScrollableScrollPhysics(),
-              itemCount: positiveTraits.length,
-              itemBuilder: (context, index) => ThankYou(
-                text: positiveTraits[index],
-                number: (index + 1),
-                edit: (String text, int index) {
-                  editNotification(
-                    text,
-                    index,
-                    appLocale.trait,
-                    userInfoProvider,
-                  );
-                },
-                remove: (int index) {
-                  unawaited(removePositiveTrait(index, userInfoProvider));
-                },
-                date: "",
-                color: colorScheme.primary,
-              ),
-            ),
+            _header(appLocale, gender, userInfoProvider, colorScheme),
+            _traitList(appLocale, userInfoProvider, colorScheme),
             positiveTraits.isEmpty
                 ? Padding(
-                    padding: const EdgeInsets.fromLTRB(24, 8, 24, 16),
+                    padding: const EdgeInsets.fromLTRB(
+                      AppSpacing.xxl,
+                      AppSpacing.sm,
+                      AppSpacing.xxl,
+                      AppSpacing.lg,
+                    ),
                     child: myAutoSizedText(
                       appLocale.positiveEmptyGuidance,
                       TextStyle(
@@ -291,58 +321,25 @@ class _PositiveState extends LPExtendedState<Positive> {
                   )
                 : Divider(
                     color: colorScheme.outline,
-                    indent: 30,
-                    endIndent: 30,
+                    indent: AppSpacing.xxxl,
+                    endIndent: AppSpacing.xxxl,
                   ),
-            //suggestions
-            if (sug1.isNotEmpty)
-              PositiveTraitItemSug(
-                stopShowing: 0,
-                add: addPositiveTrait,
-                inputText: sug1,
-                fullSuggestionList: retrieveTraitsList(
-                  appLocale,
-                  gender == "" ? "other" : gender,
-                ),
-              ),
-            if (sug2.isNotEmpty && sug1 != sug2)
-              PositiveTraitItemSug(
-                stopShowing: 2,
-                add: addPositiveTrait,
-                inputText: sug2,
-                fullSuggestionList: retrieveTraitsList(
-                  appLocale,
-                  gender == "" ? "other" : gender,
-                ),
-              ),
-            if (sug3.isNotEmpty && sug1 != sug3)
-              PositiveTraitItemSug(
-                stopShowing: 3,
-                add: addPositiveTrait,
-                inputText: sug3,
-                fullSuggestionList: retrieveTraitsList(
-                  appLocale,
-                  gender == "" ? "other" : gender,
-                ),
-              ),
-            //refresh button
+            ..._suggestions(appLocale, gender),
             TextButton(
-              onPressed: () async {
-                String gender = userInfoProvider.gender;
+              onPressed: () {
+                final currentGender = userInfoProvider.gender;
                 setState(() {
                   _refreshSuggestions(
                     retrieveTraitsList(
                       appLocale,
-                      gender == '' ? 'other' : gender,
+                      currentGender.isEmpty ? 'other' : currentGender,
                     ),
                   );
                 });
               },
-              //refresh button
               child: Row(
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: <Widget>[
-                  //refresh button text
                   Text(
                     appLocale.otherSuggestions(gender),
                     style: TextStyle(
@@ -350,7 +347,7 @@ class _PositiveState extends LPExtendedState<Positive> {
                       color: colorScheme.tertiary,
                     ),
                   ),
-                  const SizedBox(width: 1.0),
+                  const SizedBox(width: AppSpacing.xs),
                   Icon(
                     Icons.refresh, //refresh icon
                     color: colorScheme.tertiary, //refresh icon color
@@ -358,7 +355,7 @@ class _PositiveState extends LPExtendedState<Positive> {
                 ],
               ),
             ),
-            const SizedBox(height: 30),
+            const SizedBox(height: AppSpacing.xxxl),
           ],
         ),
       ),

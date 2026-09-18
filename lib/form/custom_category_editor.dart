@@ -7,6 +7,9 @@ import 'package:mazilon/l10n/app_localizations.dart';
 import 'package:mazilon/util/async/persistence_retry_snack_bar.dart';
 import 'package:mazilon/util/languages_util_functions.dart';
 import 'package:mazilon/util/styles.dart';
+import 'package:mazilon/util/theme/spacing.dart';
+
+export 'custom_category_card.dart';
 
 /// The shared editor used by the wizard and the Share/My Plan summaries.
 ///
@@ -191,6 +194,44 @@ class CustomCategoryEditorState extends State<CustomCategoryEditor> {
     }
   }
 
+  Widget _actionRow(AppLocalizations localizations) {
+    return Row(
+      children: [
+        if (widget.onCancel != null)
+          Expanded(
+            child: TextButton(
+              onPressed: saving ? null : widget.onCancel,
+              child: Text(
+                widget.cancelLabel ?? localizations.closeButton('other'),
+              ),
+            ),
+          ),
+        if (widget.showDelete && widget.onDelete != null)
+          IconButton(
+            key: const Key('custom-category-editor-delete-button'),
+            tooltip: localizations.deleteButton('other'),
+            onPressed: saving ? null : () => unawaited(_runDelete()),
+            icon: const Icon(Icons.delete_outline),
+          ),
+        Expanded(
+          child: TextButton(
+            key: const Key('custom-category-editor-save-button'),
+            onPressed: saving ? null : () => unawaited(save()),
+            style: primaryButtonStyle(context),
+            child: Text(
+              saving
+                  ? '…'
+                  : widget.saveLabel ?? localizations.saveButton('other'),
+              style: primaryButtonTextStyle(
+                context,
+              ).copyWith(fontSize: 16.sp),
+            ),
+          ),
+        ),
+      ],
+    );
+  }
+
   Widget _titleField() {
     return RawAutocomplete<String>(
       key: const Key('custom-category-title-autocomplete'),
@@ -275,17 +316,17 @@ class CustomCategoryEditorState extends State<CustomCategoryEditor> {
     return Container(
       key: const Key('custom-category-editor'),
       width: width,
-      padding: const EdgeInsets.all(14),
+      padding: const EdgeInsets.all(AppSpacing.lg),
       decoration: BoxDecoration(
         color: Theme.of(context).colorScheme.surfaceContainerHighest,
         border: Border.all(color: Theme.of(context).colorScheme.primary),
-        borderRadius: BorderRadius.circular(12),
+        borderRadius: BorderRadius.circular(AppRadii.card),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
           _titleField(),
-          const SizedBox(height: 12),
+          const SizedBox(height: AppSpacing.md),
           TextField(
             key: const Key('custom-category-description-field'),
             controller: descriptionController,
@@ -307,137 +348,10 @@ class CustomCategoryEditorState extends State<CustomCategoryEditor> {
             ),
           ),
           if (widget.onCancel != null || widget.showDelete) ...[
-            const SizedBox(height: 12),
-            Row(
-              children: [
-                if (widget.onCancel != null)
-                  Expanded(
-                    child: TextButton(
-                      onPressed: saving ? null : widget.onCancel,
-                      child: Text(
-                        widget.cancelLabel ??
-                            localizations.closeButton('other'),
-                      ),
-                    ),
-                  ),
-                if (widget.showDelete && widget.onDelete != null)
-                  IconButton(
-                    key: const Key('custom-category-editor-delete-button'),
-                    tooltip: localizations.deleteButton('other'),
-                    onPressed: saving ? null : () => unawaited(_runDelete()),
-                    icon: const Icon(Icons.delete_outline),
-                  ),
-                Expanded(
-                  child: TextButton(
-                    key: const Key('custom-category-editor-save-button'),
-                    onPressed: saving ? null : () => unawaited(save()),
-                    style: primaryButtonStyle(context),
-                    child: Text(
-                      saving
-                          ? '…'
-                          : widget.saveLabel ??
-                                localizations.saveButton('other'),
-                      style: primaryButtonTextStyle(
-                        context,
-                      ).copyWith(fontSize: 16.sp),
-                    ),
-                  ),
-                ),
-              ],
-            ),
+            const SizedBox(height: AppSpacing.md),
+            _actionRow(localizations),
           ],
         ],
-      ),
-    );
-  }
-}
-
-/// Consistent summary card for a custom category.
-class CustomCategoryCard extends StatelessWidget {
-  /// Title and description rendered by the card.
-  final MapEntry<String, String> category;
-
-  /// Stable position used for widget keys and callback routing.
-  final int index;
-
-  /// Optional edit action for the category.
-  final VoidCallback? onEdit;
-
-  /// Optional asynchronous deletion boundary supplied by the parent.
-  final VoidCallback? onDelete;
-
-  const CustomCategoryCard({
-    super.key,
-    required this.category,
-    required this.index,
-    this.onEdit,
-    this.onDelete,
-  });
-
-  TextDirection _directionFor(String value) {
-    return getDirectionOfText(value) == 'rtl'
-        ? TextDirection.rtl
-        : TextDirection.ltr;
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    final localizations = AppLocalizations.of(context)!;
-    final direction = _directionFor(category.key);
-    final alignment = direction == TextDirection.rtl
-        ? TextAlign.right
-        : TextAlign.left;
-    return Card(
-      key: ValueKey('custom-category-card-$index'),
-      margin: const EdgeInsets.only(bottom: 12),
-      child: Padding(
-        padding: const EdgeInsets.all(14),
-        child: Directionality(
-          textDirection: direction,
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.stretch,
-            children: [
-              Row(
-                children: [
-                  Expanded(
-                    child: Text(
-                      category.key,
-                      textAlign: alignment,
-                      style: TextStyle(
-                        fontWeight: FontWeight.bold,
-                        fontSize: 16.sp,
-                      ),
-                    ),
-                  ),
-                  if (onEdit != null)
-                    IconButton(
-                      key: Key('custom-category-edit-button-$index'),
-                      tooltip: localizations.addFormEdit('other'),
-                      onPressed: onEdit,
-                      icon: const Icon(Icons.edit, size: 20),
-                    ),
-                  if (onDelete != null)
-                    IconButton(
-                      key: Key('custom-category-delete-button-$index'),
-                      tooltip: localizations.deleteButton('other'),
-                      onPressed: onDelete,
-                      icon: const Icon(Icons.delete, size: 20),
-                    ),
-                ],
-              ),
-              const SizedBox(height: 8),
-              Directionality(
-                textDirection: _directionFor(category.value),
-                child: Text(
-                  category.value,
-                  textAlign: _directionFor(category.value) == TextDirection.rtl
-                      ? TextAlign.right
-                      : TextAlign.left,
-                ),
-              ),
-            ],
-          ),
-        ),
       ),
     );
   }

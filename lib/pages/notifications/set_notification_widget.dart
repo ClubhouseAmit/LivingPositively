@@ -9,6 +9,7 @@ import 'package:mazilon/pages/notifications/time_picker.dart';
 import 'package:mazilon/util/Form/retrieveInformation.dart';
 import 'package:mazilon/util/LP_extended_state.dart';
 import 'package:mazilon/util/theme/app_theme.dart';
+import 'package:mazilon/util/theme/spacing.dart';
 
 import 'package:mazilon/util/userInformation.dart';
 import 'package:provider/provider.dart';
@@ -84,6 +85,89 @@ class _SetNotificationWidgetState
     super.dispose();
   }
 
+  Widget _customMessageField(
+    UserInformation userInfo,
+    ColorScheme colorScheme,
+  ) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: AppSpacing.md),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            appLocale.notificationCustomMessageLabel,
+            style: TextStyle(
+              fontWeight: FontWeight.bold,
+              fontSize: 16,
+              color: colorScheme.onSurface,
+            ),
+          ),
+          const SizedBox(height: AppSpacing.sm),
+          Material(
+            type: MaterialType.transparency,
+            child: TextField(
+              key: const Key('custom-reminder-message-field'),
+              controller: _messageController,
+              textDirection: appLocale.textDirection == 'rtl'
+                  ? TextDirection.rtl
+                  : null,
+              onChanged: userInfo.updateNotificationMessage,
+              decoration: InputDecoration(
+                hintText: appLocale.notificationCustomMessageHint,
+                suffixIcon: SpeechDictationSuffixAction.isSupportedPlatform
+                    ? SpeechDictationSuffixAction(
+                        controller: _messageController,
+                        onTextApplied: userInfo.updateNotificationMessage,
+                      )
+                    : null,
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _notificationButton({
+    required String label,
+    required VoidCallback onPressed,
+    required Color foreground,
+    required BoxDecoration decoration,
+    FontWeight? fontWeight,
+  }) {
+    return DecoratedBox(
+      decoration: decoration,
+      child: SizedBox(
+        width: double.infinity,
+        child: TextButton(
+          onPressed: onPressed,
+          child: Text(
+            label,
+            textAlign: TextAlign.center,
+            style: TextStyle(color: foreground, fontWeight: fontWeight),
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _debugPanel(ColorScheme colorScheme) {
+    return ValueListenableBuilder<bool>(
+      valueListenable: reminderDebugPanelUnlocked,
+      builder: (context, unlocked, _) {
+        if (!kDebugMode && !unlocked) return const SizedBox.shrink();
+        return Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            const SizedBox(height: AppSpacing.xxl),
+            Divider(color: colorScheme.outline, height: AppSpacing.xs),
+            ReminderDebugPanel(),
+          ],
+        );
+      },
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     final userInfoProvider = Provider.of<UserInformation>(context);
@@ -93,9 +177,6 @@ class _SetNotificationWidgetState
 
     final quotes = retrieveInspirationalQuotes(appLocale, gender);
 
-    final customMessageLabel = appLocale.notificationCustomMessageLabel;
-    final customMessageHint = appLocale.notificationCustomMessageHint;
-
     return Material(
       type: MaterialType.transparency,
       child: Column(
@@ -103,126 +184,55 @@ class _SetNotificationWidgetState
         children: <Widget>[
           Divider(
             color: colorScheme.outline,
-            height: 5, // Adjust the height as needed
+            height: AppSpacing.xs,
           ),
           TimePicker(
             setTime: setTime,
             currentHour: _currentHour,
             currentMinute: _currentMinute,
           ),
-          SizedBox(width: 15),
+          const SizedBox(width: AppSpacing.lg),
           Divider(
             color: colorScheme.outline,
-            height: 5, // Adjust the height as needed
+            height: AppSpacing.xs,
           ),
-          Padding(
-            padding: const EdgeInsets.symmetric(vertical: 12.0),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  customMessageLabel,
-                  style: TextStyle(
-                    fontWeight: FontWeight.bold,
-                    fontSize: 16,
-                    color: colorScheme.onSurface,
-                  ),
-                ),
-                const SizedBox(height: 8),
-                Material(
-                  type: MaterialType.transparency,
-                  child: TextField(
-                    key: const Key('custom-reminder-message-field'),
-                    controller: _messageController,
-                    textDirection: appLocale.textDirection == 'rtl'
-                        ? TextDirection.rtl
-                        : null,
-                    onChanged: (val) {
-                      userInfoProvider.updateNotificationMessage(val);
-                    },
-                    decoration: InputDecoration(
-                      hintText: customMessageHint,
-                      suffixIcon:
-                          SpeechDictationSuffixAction.isSupportedPlatform
-                          ? SpeechDictationSuffixAction(
-                              controller: _messageController,
-                              onTextApplied:
-                                  userInfoProvider.updateNotificationMessage,
-                            )
-                          : null,
-                    ),
-                  ),
-                ),
-              ],
-            ),
-          ),
-          SizedBox(height: 15),
+          _customMessageField(userInfoProvider, colorScheme),
+          const SizedBox(height: AppSpacing.lg),
           Center(
-            child: Container(
-              width: double.infinity,
+            child: _notificationButton(
+              label: appLocale.notificationSetTimeText(gender),
+              foreground: colorScheme.onPrimary,
               decoration: BoxDecoration(
                 color: colorScheme.primary,
-                borderRadius: BorderRadius.circular(16),
+                borderRadius: BorderRadius.circular(AppRadii.card),
               ),
-              child: TextButton(
-                onPressed: () => {
-                  initializeNotification(
-                    quotes,
-                    userInfoProvider,
-                    appLocale.notifyOnscheduledNotification,
-                    appLocale,
-                  ),
-                },
-                child: Text(
-                  appLocale.notificationSetTimeText(gender),
-                  textAlign: TextAlign.center,
-                  style: TextStyle(color: colorScheme.onPrimary),
-                ),
+              onPressed: () => initializeNotification(
+                quotes,
+                userInfoProvider,
+                appLocale.notifyOnscheduledNotification,
+                appLocale,
               ),
             ),
           ),
-          SizedBox(height: 25),
+          const SizedBox(height: AppSpacing.xxl),
           Center(
-            child: Container(
-              width: double.infinity,
+            child: _notificationButton(
+              label: appLocale.notificationCancelNotification(gender),
+              foreground: AppColors.neutralDark,
+              fontWeight: FontWeight.w600,
               decoration: BoxDecoration(
                 color: Colors.transparent,
                 border: Border.all(color: AppColors.neutralDark, width: 1.5),
-                borderRadius: BorderRadius.circular(16),
+                borderRadius: BorderRadius.circular(AppRadii.card),
               ),
-              child: TextButton(
-                onPressed: () => {
-                  NotificationsService.cancelNotifications(
-                    null,
-                    cancelWorker: true,
-                  ),
-                },
-                child: Text(
-                  appLocale.notificationCancelNotification(gender),
-                  textAlign: TextAlign.center,
-                  style: TextStyle(
-                    color: AppColors.neutralDark,
-                    fontWeight: FontWeight.w600,
-                  ),
-                ),
+              onPressed: () => NotificationsService.cancelNotifications(
+                null,
+                cancelWorker: true,
               ),
             ),
           ),
           if (NotificationsService.supportsReminderSettings())
-            ValueListenableBuilder<bool>(
-              valueListenable: reminderDebugPanelUnlocked,
-              builder: (context, unlocked, _) {
-                if (!kDebugMode && !unlocked) return const SizedBox.shrink();
-                return Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    SizedBox(height: 25),
-                    Divider(color: colorScheme.outline, height: 5),
-                    ReminderDebugPanel(),
-                  ],
-                );
-              },
-            ),
+            _debugPanel(colorScheme),
         ],
       ),
     );

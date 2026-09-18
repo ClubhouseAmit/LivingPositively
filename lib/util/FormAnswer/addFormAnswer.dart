@@ -5,6 +5,7 @@ import 'package:mazilon/util/styles.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:mazilon/util/userInformation.dart';
 import 'package:provider/provider.dart';
+import 'package:mazilon/util/theme/spacing.dart';
 
 class AddFormAnswer extends StatefulWidget {
   final int index; // The index of the item being edited
@@ -37,6 +38,76 @@ class _AddFormAnswerState extends LPExtendedState<AddFormAnswer> {
     _controller.text = widget.text; // Set initial text in the controller
   }
 
+  Widget _formField(String gender) {
+    return Form(
+      key: _formKey,
+      child: SingleChildScrollView(
+        child: Padding(
+          padding: const EdgeInsets.only(bottom: AppSpacing.sm),
+          child: TextFormField(
+            maxLines: null,
+            controller: _controller,
+            autofocus: true,
+            maxLength: 100,
+            decoration: InputDecoration(
+              labelText: appLocale.addFormEdit(gender),
+              suffixIcon: SpeechDictationSuffixAction.isSupportedPlatform
+                  ? SpeechDictationSuffixAction(
+                      controller: _controller,
+                      maxLength: 100,
+                    )
+                  : null,
+            ),
+            validator: (value) {
+              if (value == null || value.trim().isEmpty) {
+                return appLocale.validateEmpty;
+              }
+              return null;
+            },
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _actionLabel(String label, [Color? color]) {
+    return myAutoSizedText(
+      label,
+      TextStyle(fontWeight: FontWeight.bold, fontSize: 20.sp, color: color),
+      null,
+      30,
+    );
+  }
+
+  Widget _actions(String gender) {
+    return Row(
+      children: <Widget>[
+        if (widget.onDelete != null)
+          TextButton(
+            onPressed: widget.onDelete,
+            child: _actionLabel(
+              appLocale.deleteButton(gender),
+              Theme.of(context).colorScheme.error,
+            ),
+          ),
+        const Spacer(),
+        TextButton(
+          onPressed: () => Navigator.of(context).pop(),
+          child: _actionLabel(appLocale.closeButton(gender)),
+        ),
+        TextButton(
+          onPressed: () {
+            if (_formKey.currentState!.validate()) {
+              widget.edit(widget.index, _controller.text);
+              Navigator.of(context).pop();
+            }
+          },
+          child: _actionLabel(appLocale.saveButton(gender)),
+        ),
+      ],
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     final userInfoProvider = Provider.of<UserInformation>(
@@ -58,98 +129,11 @@ class _AddFormAnswerState extends LPExtendedState<AddFormAnswer> {
                   100, // Adjust height based on screen size
         child: Column(
           children: [
-            SizedBox(height: 20.h),
+            SizedBox(height: AppSpacing.xl.h),
             Expanded(
-              child: Form(
-                key: _formKey, // Associate the form with the key
-                child: SingleChildScrollView(
-                  child: Padding(
-                    padding: const EdgeInsets.only(bottom: 8.0),
-                    child: TextFormField(
-                      maxLines: null, // Allow multiple lines in the text field
-                      controller:
-                          _controller, // Associate the controller with the text field
-                      autofocus:
-                          true, // Automatically focus on the text field when the dialog is opened
-                      maxLength: 100, // Set maximum length of text
-                      decoration: InputDecoration(
-                        labelText: appLocale.addFormEdit(
-                          gender,
-                        ), // Set label text dynamically based on user gender
-                        suffixIcon:
-                            SpeechDictationSuffixAction.isSupportedPlatform
-                            ? SpeechDictationSuffixAction(
-                                controller: _controller,
-                                maxLength: 100,
-                              )
-                            : null,
-                      ),
-                      validator: (value) {
-                        if (value == null || value.trim().isEmpty) {
-                          return appLocale
-                              .validateEmpty; // Validate that the field is not empty
-                        }
-                        return null;
-                      },
-                    ),
-                  ),
-                ),
-              ),
+              child: _formField(gender),
             ),
-            Row(
-              children: <Widget>[
-                if (widget.onDelete != null)
-                  TextButton(
-                    onPressed: widget.onDelete,
-                    child: myAutoSizedText(
-                      appLocale.deleteButton(gender),
-                      TextStyle(
-                        fontWeight: FontWeight.bold,
-                        fontSize: 20.sp,
-                        color: Theme.of(context).colorScheme.error,
-                      ),
-                      null,
-                      30,
-                    ),
-                  ),
-                const Spacer(),
-                TextButton(
-                  child: myAutoSizedText(
-                    appLocale.closeButton(
-                      gender,
-                    ), // Set cancel button text dynamically based on user gender
-                    TextStyle(fontWeight: FontWeight.bold, fontSize: 20.sp),
-                    null,
-                    30,
-                  ),
-                  onPressed: () {
-                    Navigator.of(context).pop(); // Close the dialog on cancel
-                  },
-                ),
-                TextButton(
-                  child: myAutoSizedText(
-                    appLocale.saveButton(
-                      gender,
-                    ), // Set save button text dynamically based on user gender
-                    TextStyle(fontWeight: FontWeight.bold, fontSize: 20.sp),
-                    null,
-                    30,
-                  ),
-                  onPressed: () {
-                    if (_formKey.currentState!.validate()) {
-                      widget.edit(
-                        widget.index,
-                        _controller
-                            .text, // Call the edit function with the new text
-                      );
-                      Navigator.of(
-                        context,
-                      ).pop(); // Close the dialog after saving
-                    }
-                  },
-                ),
-              ],
-            ),
+            _actions(gender),
           ],
         ),
       ),

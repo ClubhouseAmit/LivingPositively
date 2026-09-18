@@ -1,0 +1,156 @@
+name: Android integration shards
+
+# Called by .github/workflows/main.yml.
+#
+# THE MATRIX BELOW IS PARSED BY TWO GATES. `_android-inventory.yml` awk's
+# the `test_file:` entries and `_android-coverage.yml` awk's the `- id:`
+# entries, both anchored on `^  integration-test-shard:$` IN THIS FILE. If you
+# rename this file or that job id, update the awk in both of those files or the
+# drift checks silently stop checking anything.
+on:
+  workflow_call:
+
+permissions:
+  contents: read
+
+jobs:
+  integration-test-shard:
+    name: integration-test-shard (${{ matrix.id }})
+    # ADR-010: keep each Android integration entry point in its own runner so
+    # repeated native builds cannot exhaust one runner's disk. The downstream
+    # integration-test job preserves the required-check and artifact contracts.
+    runs-on: ubuntu-latest
+    # Bound emulator hangs without changing the coverage or isolation contract.
+    timeout-minutes: 45
+    concurrency:
+      group: ${{ format('{0}-{1}-{2}', github.workflow, github.ref, matrix.id) }}
+      cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+    strategy:
+      fail-fast: false
+      max-parallel: 3
+      matrix:
+        include:
+          - id: custom-categories
+            test_file: integration_test/custom_categories_e2e_test.dart
+          - id: dark-mode-settings
+            test_file: integration_test/dark_mode_settings_test.dart
+          - id: bootstrap-smoke
+            test_file: integration_test/bootstrap_smoke_test.dart
+          - id: bootstrap-full
+            test_file: integration_test/bootstrap_full_test.dart
+          - id: wellness-player
+            test_file: integration_test/wellness_player_test.dart
+          - id: logger-init
+            test_file: integration_test/logger_init_test.dart
+          - id: notifications-schedule
+            test_file: integration_test/notifications_schedule_test.dart
+          - id: personal-plan-info-modal
+            test_file: integration_test/personal_plan_info_modal_test.dart
+          - id: remember-to-breathe
+            test_file: integration_test/remember_to_breathe_test.dart
+    env:
+      FIREBASE_OPTIONS_PATH: lib/util/Firebase/firebase_options.dart
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Write firebase options file
+        env:
+          FIREBASE_OPTIONS: ${{ secrets.FIREBASE_OPTIONS }}
+        run: |
+          printf '%s' "$FIREBASE_OPTIONS" | base64 --decode > "${{ env.FIREBASE_OPTIONS_PATH }}"
+
+      - name: Set up JDK
+        uses: actions/setup-java@v5
+        with:
+          distribution: "adopt"
+          java-version: "17.x"
+          cache: gradle
+          cache-dependency-path: |
+            .github/workflows/_android-shard.yml
+            android/**/*.gradle*
+            android/gradle.properties
+            android/gradle/wrapper/gradle-wrapper.properties
+            pubspec.yaml
+            pubspec.lock
+
+      - name: Set up Flutter
+        uses: subosito/flutter-action@v2
+        with:
+          flutter-version: "3.44.0"
+          cache: true
+
+      - name: Install dependencies
+        shell: bash
+        run: |
+          export XDG_CONFIG_HOME="$RUNNER_TEMP/dart-config"
+          mkdir -p "$XDG_CONFIG_HOME"
+          echo "XDG_CONFIG_HOME=$XDG_CONFIG_HOME" >> "$GITHUB_ENV"
+          for attempt in 1 2 3; do
+            echo "Installing Dart dependencies (attempt ${attempt}/3)."
+            if flutter pub get; then
+              exit 0
+            fi
+            if [[ "$attempt" -lt 3 ]]; then
+              delay=$((attempt * 15))
+              echo "::warning::flutter pub get failed; retrying in ${delay}s."
+              sleep "$delay"
+            fi
+          done
+          exit 1
+
+      - name: Enable KVM
+        run: |
+          echo 'KERNEL=="kvm", GROUP="kvm", MODE="0666"' | \
+            sudo tee /etc/udev/rules.d/99-kvm4all.rules
+          sudo udevadm control --reload-rules && sudo udevadm trigger --name-match=kvm
+
+      - name: Run integration test shard on Android emulator
+        uses: reactivecircus/android-emulator-runner@a421e43855164a8197daf9d8d40fe71c6996bb0d # v2.38.0
+        with:
+          api-level: 34
+          target: google_apis
+          arch: x86_64
+          profile: pixel_6
+          # The synthetic, non-routable SENTRY_DSN exercises logger
+          # initialization; native Sentry channels are mocked, so no network
+          # traffic leaves the runner. The explicit device keeps the test on
+          # the emulator shown by `flutter devices`. The iOS-only notifications
+          # entry point is excluded because integration-test-ios owns it.
+          # `>-` is load-bearing: android-emulator-runner executes each non-empty
+          # line in a separate `sh -c`; the test exit code must stay in one
+          # folded command through the post-test disk diagnostic and final exit.
+          script: >-
+            mkdir -p coverage/shards;
+            flutter devices;
+            echo "Filesystem capacity before integration test shard:";
+            df -h;
+            flutter test "${{ matrix.test_file }}" --coverage --coverage-path "coverage/shards/${{ matrix.id }}.info" --dart-define=SENTRY_DSN=https://test@dsn.example.local/0 -d emulator-5554;
+            test_exit_code=$?;
+            echo "Filesystem capacity after integration test shard:";
+            df -h;
+            exit "$test_exit_code"
+
+      - name: Assert post-test disk headroom
+        if: always()
+        shell: bash
+        run: |
+          available_kb=$(df -Pk . | awk 'NR == 2 { print $4 }')
+          if [[ ! "$available_kb" =~ ^[0-9]+$ ]]; then
+            echo "::error::Could not parse available disk space from df -Pk." >&2
+            exit 1
+          fi
+          available_mib=$((available_kb / 1024))
+          echo "Post-test disk available: ${available_mib} MiB (${available_kb} KB)"
+          if (( available_kb < 2097152 )); then
+            echo "::warning::Post-test disk headroom is below 2 GiB (${available_mib} MiB available)."
+          fi
+
+      - name: Upload integration coverage shard
+        if: success()
+        uses: actions/upload-artifact@v4
+        with:
+          name: coverage-integration-shard-${{ matrix.id }}
+          path: coverage/shards/${{ matrix.id }}.info
+          if-no-files-found: error
+          overwrite: true

@@ -18,6 +18,7 @@ import 'package:mazilon/util/LP_extended_state.dart';
 import 'package:mazilon/util/persistent_memory_service.dart';
 import 'package:mazilon/util/theme/app_theme.dart';
 import 'package:mazilon/util/theme/font_weight.dart';
+import 'package:mazilon/util/theme/spacing.dart';
 import 'package:mazilon/util/Form/myDropdownMenuEntry.dart';
 import 'package:mazilon/util/gender.dart';
 import 'package:mazilon/util/userInformation.dart';
@@ -40,8 +41,6 @@ import 'package:mazilon/l10n/app_localizations.dart';
 
 /// Gap between the screen's top-level sections.
 const double _kSectionGap = 8;
-
-/// Inset around the content stack: 0 top, 20 sides, 12 bottom.
 
 /// Horizontal inset the content stack gives up on each side.
 const double _kContentInsetX = 40;
@@ -312,7 +311,7 @@ class _UserSettingsState extends LPExtendedState<UserSettings> {
           borderRadius: BorderRadius.circular(_kFieldRadius),
           child: Container(
             height: _kModeOptionHeight,
-            padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 6),
+            padding: const EdgeInsets.all(AppSpacing.sm),
             decoration: BoxDecoration(
               // The design tints the selected card with a light wash of its
               // accent; deriving it from `primary` keeps that relationship in
@@ -373,14 +372,6 @@ class _UserSettingsState extends LPExtendedState<UserSettings> {
       minute: userInfo.darkModeEndMinute,
     );
 
-    Future<void> select(DarkModePreference value) async {
-      try {
-        await userInfo.updateDarkModeSettings(preference: value);
-      } catch (error, stackTrace) {
-        debugPrint('Unable to save dark-mode preference: $error\n$stackTrace');
-      }
-    }
-
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       mainAxisSize: MainAxisSize.min,
@@ -391,41 +382,7 @@ class _UserSettingsState extends LPExtendedState<UserSettings> {
           style: _labelStyle(colorScheme),
           textAlign: TextAlign.start,
         ),
-        Row(
-          spacing: _kModeOptionGap,
-          children: [
-            _modeOption(
-              colorScheme,
-              optionKey: const Key('darkModeAlwaysLightOption'),
-              icon: Icons.light_mode_outlined,
-              label: appLocale.darkModeAlwaysLight,
-              selected: preference == DarkModePreference.alwaysLight,
-              onTap: () {
-                unawaited(select(DarkModePreference.alwaysLight));
-              },
-            ),
-            _modeOption(
-              colorScheme,
-              optionKey: const Key('darkModeAlwaysDarkOption'),
-              icon: Icons.dark_mode_outlined,
-              label: appLocale.darkModeAlwaysDark,
-              selected: preference == DarkModePreference.alwaysDark,
-              onTap: () {
-                unawaited(select(DarkModePreference.alwaysDark));
-              },
-            ),
-            _modeOption(
-              colorScheme,
-              optionKey: const Key('darkModeScheduledOption'),
-              icon: Icons.schedule_outlined,
-              label: appLocale.darkModeSleepPromoting,
-              selected: isScheduled,
-              onTap: () {
-                unawaited(select(DarkModePreference.scheduled));
-              },
-            ),
-          ],
-        ),
+        _darkModeOptions(userInfo, colorScheme, preference),
         Visibility(
           visible: isScheduled,
           maintainSize: true,
@@ -460,6 +417,75 @@ class _UserSettingsState extends LPExtendedState<UserSettings> {
           ),
         ),
       ],
+    );
+  }
+
+  Future<void> _selectDarkModePreference(
+    UserInformation userInfo,
+    DarkModePreference value,
+  ) async {
+    try {
+      await userInfo.updateDarkModeSettings(preference: value);
+    } catch (error, stackTrace) {
+      debugPrint('Unable to save dark-mode preference: $error\n$stackTrace');
+    }
+  }
+
+  Widget _darkModeOptions(
+    UserInformation userInfo,
+    ColorScheme colorScheme,
+    DarkModePreference preference,
+  ) {
+    return Row(
+      spacing: _kModeOptionGap,
+      children: [
+        _darkModeOption(
+          userInfo,
+          colorScheme,
+          preference,
+          key: const Key('darkModeAlwaysLightOption'),
+          icon: Icons.light_mode_outlined,
+          label: appLocale.darkModeAlwaysLight,
+          value: DarkModePreference.alwaysLight,
+        ),
+        _darkModeOption(
+          userInfo,
+          colorScheme,
+          preference,
+          key: const Key('darkModeAlwaysDarkOption'),
+          icon: Icons.dark_mode_outlined,
+          label: appLocale.darkModeAlwaysDark,
+          value: DarkModePreference.alwaysDark,
+        ),
+        _darkModeOption(
+          userInfo,
+          colorScheme,
+          preference,
+          key: const Key('darkModeScheduledOption'),
+          icon: Icons.schedule_outlined,
+          label: appLocale.darkModeSleepPromoting,
+          value: DarkModePreference.scheduled,
+        ),
+      ],
+    );
+  }
+
+  Widget _darkModeOption(
+    UserInformation userInfo,
+    ColorScheme colorScheme,
+    DarkModePreference preference, {
+    required Key key,
+    required IconData icon,
+    required String label,
+    required DarkModePreference value,
+  }) {
+    return _modeOption(
+      colorScheme,
+      optionKey: key,
+      icon: icon,
+      label: label,
+      selected: preference == value,
+      onTap: () => unawaited(_selectDarkModePreference(userInfo, value)),
     );
   }
 
@@ -612,308 +638,331 @@ class _UserSettingsState extends LPExtendedState<UserSettings> {
     _namecontroller.dispose();
   }
 
+  PreferredSizeWidget _settingsAppBar(
+    ThemeData theme,
+    ColorScheme colorScheme,
+    String gender,
+    bool canPop,
+  ) {
+    return AppBar(
+      backgroundColor: theme.appBarTheme.backgroundColor ?? colorScheme.surface,
+      surfaceTintColor: Colors.transparent,
+      elevation: 0,
+      toolbarHeight: 40,
+      centerTitle: true,
+      automaticallyImplyLeading: false,
+      leading: canPop
+          ? Center(
+              child: SizedBox.square(
+                dimension: AppSpacing.xxxl,
+                child: Material(
+                  color: colorScheme.surfaceContainerHighest,
+                  shape: const CircleBorder(),
+                  clipBehavior: Clip.antiAlias,
+                  child: InkWell(
+                    onTap: () => Navigator.of(context).maybePop(),
+                    child: Icon(
+                      Icons.chevron_left,
+                      size: 20,
+                      color: colorScheme.onSurface,
+                    ),
+                  ),
+                ),
+              ),
+            )
+          : null,
+      title: Text(
+        appLocale.userSettingsTitle(gender),
+        style: TextStyle(
+          fontSize: 17.sp,
+          fontWeight: AppFontWeight.semiBold,
+          color: colorScheme.onSurface,
+        ),
+      ),
+    );
+  }
+
+  Widget _nameSetting(ColorScheme colorScheme, String gender) {
+    return _field(
+      colorScheme,
+      appLocale.userSettingsName(gender),
+      TextFormField(
+        controller: _namecontroller,
+        style: _valueStyle(colorScheme),
+        decoration: InputDecoration(
+          suffixIconConstraints: const BoxConstraints(
+            minHeight: _kFieldHeight,
+            maxHeight: _kFieldHeight,
+          ),
+          suffixIcon: SpeechDictationSuffixAction.isSupportedPlatform
+              ? SpeechDictationSuffixAction(controller: _namecontroller)
+              : null,
+        ),
+        validator: (text) {
+          if ((text ?? '').trim().isEmpty) {
+            return appLocale.nameRequiredError;
+          }
+          return null;
+        },
+      ),
+    );
+  }
+
+  Widget _ageSetting(
+    ColorScheme colorScheme,
+    String gender,
+    double fieldWidth,
+  ) {
+    return _field(
+      colorScheme,
+      appLocale.userSettingsAge(gender),
+      _dropdown(
+        colorScheme,
+        fieldWidth,
+        initialSelection: dropdownValueAge,
+        options: ages,
+        isSelected: (age) => dropdownValueAge == age,
+        onSelected: (newValue) {
+          if (newValue != null) setState(() => dropdownValueAge = newValue);
+        },
+      ),
+    );
+  }
+
+  Widget _genderSetting(
+    UserInformation userInfo,
+    ColorScheme colorScheme,
+    String gender,
+    String selectedLabel,
+    double fieldWidth,
+  ) {
+    return _field(
+      colorScheme,
+      appLocale.userSettingsGender(gender),
+      _dropdown(
+        colorScheme,
+        fieldWidth,
+        initialSelection: selectedLabel,
+        options: genders,
+        isSelected: (option) => selectedLabel == option,
+        onSelected: (newValue) {
+          if (newValue != null) {
+            setState(
+              () => selectedGender = Gender.fromLabel(newValue, appLocale),
+            );
+          }
+        },
+      ),
+    );
+  }
+
+  Widget _languageSetting(
+    UserInformation userInfo,
+    ColorScheme colorScheme,
+    String gender,
+    String selectedLocaleName,
+    double fieldWidth,
+  ) {
+    return _field(
+      colorScheme,
+      appLocale.selectLanguage(gender),
+      _dropdown(
+        colorScheme,
+        fieldWidth,
+        initialSelection: selectedLocaleName,
+        options: localesNames,
+        isSelected: (locale) => languageCode(locale) == userInfo.localeName,
+        onSelected: (newValue) {
+          if (newValue != null) {
+            unawaited(updateLocale(languageCode(newValue), userInfo));
+          }
+        },
+      ),
+    );
+  }
+
+  Widget _profileSettings(
+    UserInformation userInfo,
+    ThemeData theme,
+    ColorScheme colorScheme,
+    String gender,
+    String selectedGenderLabel,
+    String selectedLocaleName,
+    double fieldWidth,
+  ) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: AppSpacing.xl),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        spacing: _kSectionGap,
+        children: [
+          _nameSetting(colorScheme, gender),
+          _ageSetting(colorScheme, gender, fieldWidth),
+          _genderSetting(
+            userInfo,
+            colorScheme,
+            gender,
+            selectedGenderLabel,
+            fieldWidth,
+          ),
+          _languageSetting(
+            userInfo,
+            colorScheme,
+            gender,
+            selectedLocaleName,
+            fieldWidth,
+          ),
+          _divider(colorScheme),
+          CountrySelectorWidget(
+            text: appLocale.locationSelect(gender),
+            disclaimerText: appLocale.locationDisclaimer(gender),
+            labelStyle: _labelStyle(colorScheme),
+            labelGap: _kLabelToField,
+            fieldDecoration: _fieldDecoration(theme),
+            fieldHeight: _kFieldHeight,
+            helpButtonSize: 20,
+          ),
+          _divider(colorScheme),
+          _buildDarkModeSettings(userInfo, colorScheme),
+        ],
+      ),
+    );
+  }
+
+  void _saveSettings(UserInformation userInfo) {
+    FocusScope.of(context).unfocus();
+    if (!_settingsFormKey.currentState!.validate()) return;
+    userInfo
+      ..updateName(_namecontroller.text.trim())
+      ..updateAge(dropdownValueAge == '' ? userInfo.age : dropdownValueAge!);
+    if (selectedGender != null) {
+      unawaited(_applyGenderInBackground(selectedGender!, userInfo));
+    }
+    Navigator.pop(context);
+  }
+
+  Widget _actionSection(
+    UserInformation userInfo,
+    ColorScheme colorScheme,
+    String gender,
+  ) {
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(
+        AppSpacing.xl,
+        AppSpacing.xs,
+        AppSpacing.xl,
+        AppSpacing.md,
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        spacing: _kSectionGap,
+        children: [
+          _divider(colorScheme),
+          _actionButton(
+            background: colorScheme.primary,
+            foreground: colorScheme.onPrimary,
+            label: appLocale.confirmButton(gender),
+            onPressed: () => _saveSettings(userInfo),
+          ),
+          _actionButton(
+            buttonKey: const Key('user-settings-reset-open'),
+            background: colorScheme.surface,
+            foreground: colorScheme.error,
+            side: BorderSide(color: colorScheme.error, width: 1.5),
+            label: appLocale.userSettingsReset(gender),
+            onPressed: () => showDialog<void>(
+              context: context,
+              barrierDismissible: false,
+              builder: (_) => _ResetConfirmationDialog(
+                gender: gender,
+                onAttemptReset: () => _attemptResetAndReturnSuccess(userInfo),
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _settingsContent(
+    UserInformation userInfo,
+    ThemeData theme,
+    ColorScheme colorScheme,
+    String gender,
+    String selectedGenderLabel,
+    String selectedLocaleName,
+    double fieldWidth,
+  ) {
+    return LayoutBuilder(
+      builder: (context, constraints) => SingleChildScrollView(
+        child: ConstrainedBox(
+          constraints: BoxConstraints(minHeight: constraints.maxHeight),
+          child: IntrinsicHeight(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                const SizedBox(height: AppSpacing.lg),
+                const Spacer(),
+                _profileSettings(
+                  userInfo,
+                  theme,
+                  colorScheme,
+                  gender,
+                  selectedGenderLabel,
+                  selectedLocaleName,
+                  fieldWidth,
+                ),
+                _actionSection(userInfo, colorScheme, gender),
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
-    // final appLocale = AppLocalizations.of(context);
-
     genders = Gender.labels(appLocale);
-    final userInfoProvider = Provider.of<UserInformation>(context);
-
-    final gender = userInfoProvider.gender;
-    // The content stack is phone-width (or narrower) and gives up 20 on each
-    // side; the controls inside get whatever is left.
+    final userInfo = Provider.of<UserInformation>(context);
+    final gender = userInfo.gender;
     final contentWidth = math.min(
       _kContentMaxWidth,
       MediaQuery.sizeOf(context).width,
     );
-    final settingsFieldWidth = math.max(0.0, contentWidth - _kContentInsetX);
+    final fieldWidth = math.max(0.0, contentWidth - _kContentInsetX);
     final theme = Theme.of(context);
     final colorScheme = theme.colorScheme;
     final selectedGenderLabel =
         selectedGender?.label(appLocale) ??
-        Gender.of(userInfoProvider).label(appLocale);
-    final selectedLocaleName = locales.contains(userInfoProvider.localeName)
-        ? localesNames[locales.indexOf(userInfoProvider.localeName)]
+        Gender.of(userInfo).label(appLocale);
+    final selectedLocaleName = locales.contains(userInfo.localeName)
+        ? localesNames[locales.indexOf(userInfo.localeName)]
         : localesNames.first;
-
-    final canPop = Navigator.of(context).canPop();
-
     return GestureDetector(
-      onTap: () {
-        FocusScope.of(context).unfocus();
-      },
+      onTap: () => FocusScope.of(context).unfocus(),
       child: Scaffold(
         backgroundColor: colorScheme.surface,
-        // Design node F4VwZQ ("Nav Bar"): flat surface, centred 17/600 title,
-        // and a circular back chip on the reading-start side.
-        appBar: AppBar(
-          backgroundColor:
-              theme.appBarTheme.backgroundColor ?? colorScheme.surface,
-          surfaceTintColor: Colors.transparent,
-          elevation: 0,
-          // 8 of padding above and below the 36-high back chip, down from the
-          // design's 12, to buy back another 8 of body height.
-          toolbarHeight: 40,
-          centerTitle: true,
-          automaticallyImplyLeading: false,
-          leading: canPop
-              ? Center(
-                  child: SizedBox.square(
-                    dimension: 36,
-                    child: Material(
-                      color: colorScheme.surfaceContainerHighest,
-                      shape: const CircleBorder(),
-                      clipBehavior: Clip.antiAlias,
-                      child: InkWell(
-                        onTap: () => Navigator.of(context).maybePop(),
-                        child: Icon(
-                          Icons.chevron_left,
-                          size: 20,
-                          color: colorScheme.onSurface,
-                        ),
-                      ),
-                    ),
-                  ),
-                )
-              : null,
-          title: Text(
-            appLocale.userSettingsTitle(gender),
-            style: TextStyle(
-              fontSize: 17.sp,
-              fontWeight: AppFontWeight.semiBold,
-              color: colorScheme.onSurface,
-            ),
-          ),
+        appBar: _settingsAppBar(
+          theme,
+          colorScheme,
+          gender,
+          Navigator.of(context).canPop(),
         ),
-        // Design node Ye170 ("Content"): vertical layout with flex vertical justification.
         body: SafeArea(
           child: Center(
             child: SizedBox(
               width: contentWidth,
               child: Form(
                 key: _settingsFormKey,
-                child: LayoutBuilder(
-                  builder: (context, constraints) {
-                    return SingleChildScrollView(
-                      child: Container(
-                        constraints: BoxConstraints(
-                          minHeight: constraints.maxHeight,
-                        ),
-                        child: IntrinsicHeight(
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.stretch,
-                            children: [
-                              const SizedBox(height: 16),
-                              const Spacer(),
-                              Padding(
-                                padding: const EdgeInsets.symmetric(
-                                  horizontal: 20,
-                                ),
-                                child: Column(
-                                  crossAxisAlignment:
-                                      CrossAxisAlignment.stretch,
-                                  spacing: _kSectionGap,
-                                  children: [
-                                    _field(
-                                      colorScheme,
-                                      appLocale.userSettingsName(gender),
-                                      TextFormField(
-                                        controller: _namecontroller,
-                                        style: _valueStyle(colorScheme),
-                                        decoration: InputDecoration(
-                                          // No height constraint here: a fixed
-                                          // one would squeeze the border to
-                                          // fit the required-field error text.
-                                          // Unlike the dropdown chevron, the
-                                          // dictation button keeps its
-                                          // natural width.
-                                          suffixIconConstraints:
-                                              const BoxConstraints(
-                                                minHeight: _kFieldHeight,
-                                                maxHeight: _kFieldHeight,
-                                              ),
-                                          suffixIcon:
-                                              SpeechDictationSuffixAction
-                                                  .isSupportedPlatform
-                                              ? SpeechDictationSuffixAction(
-                                                  controller: _namecontroller,
-                                                )
-                                              : null,
-                                        ),
-                                        validator: (text) {
-                                          if ((text ?? '').trim().isEmpty) {
-                                            return appLocale.nameRequiredError;
-                                          }
-                                          return null;
-                                        },
-                                      ),
-                                    ),
-                                    //AGE:
-                                    _field(
-                                      colorScheme,
-                                      appLocale.userSettingsAge(gender),
-                                      _dropdown(
-                                        colorScheme,
-                                        settingsFieldWidth,
-                                        initialSelection: dropdownValueAge,
-                                        options: ages,
-                                        isSelected: (age) =>
-                                            dropdownValueAge == age,
-                                        onSelected: (newValue) {
-                                          setState(() {
-                                            if (newValue != null) {
-                                              dropdownValueAge = newValue;
-                                            }
-                                          });
-                                        },
-                                      ),
-                                    ),
-                                    //GENDER:
-                                    _field(
-                                      colorScheme,
-                                      appLocale.userSettingsGender(gender),
-                                      _dropdown(
-                                        colorScheme,
-                                        settingsFieldWidth,
-                                        initialSelection: selectedGenderLabel,
-                                        options: genders,
-                                        isSelected: (option) =>
-                                            selectedGenderLabel == option,
-                                        onSelected: (newValue) {
-                                          setState(() {
-                                            if (newValue != null) {
-                                              selectedGender = Gender.fromLabel(
-                                                newValue,
-                                                appLocale,
-                                              );
-                                            }
-                                          });
-                                        },
-                                      ),
-                                    ),
-                                    //LANGUAGE:
-                                    _field(
-                                      colorScheme,
-                                      appLocale.selectLanguage(gender),
-                                      _dropdown(
-                                        colorScheme,
-                                        settingsFieldWidth,
-                                        initialSelection: selectedLocaleName,
-                                        options: localesNames,
-                                        isSelected: (locale) =>
-                                            languageCode(locale) ==
-                                            userInfoProvider.localeName,
-                                        onSelected: (newValue) {
-                                          if (newValue != null) {
-                                            unawaited(
-                                              updateLocale(
-                                                languageCode(newValue),
-                                                userInfoProvider,
-                                              ),
-                                            );
-                                          }
-                                        },
-                                      ),
-                                    ),
-                                    _divider(colorScheme),
-                                    CountrySelectorWidget(
-                                      text: appLocale.locationSelect(gender),
-                                      disclaimerText: appLocale
-                                          .locationDisclaimer(gender),
-                                      labelStyle: _labelStyle(colorScheme),
-                                      labelGap: _kLabelToField,
-                                      fieldDecoration: _fieldDecoration(theme),
-                                      fieldHeight: _kFieldHeight,
-                                      helpButtonSize: 20,
-                                    ),
-                                    _divider(colorScheme),
-                                    _buildDarkModeSettings(
-                                      userInfoProvider,
-                                      colorScheme,
-                                    ),
-                                  ],
-                                ),
-                              ),
-                              Padding(
-                                padding: const EdgeInsets.fromLTRB(
-                                  20,
-                                  4,
-                                  20,
-                                  12,
-                                ),
-                                child: Column(
-                                  crossAxisAlignment:
-                                      CrossAxisAlignment.stretch,
-                                  spacing: _kSectionGap,
-                                  children: [
-                                    _divider(colorScheme),
-                                    _actionButton(
-                                      background: colorScheme.primary,
-                                      foreground: colorScheme.onPrimary,
-                                      label: appLocale.confirmButton(gender),
-                                      onPressed: () {
-                                        FocusScope.of(context).unfocus();
-                                        if (!_settingsFormKey.currentState!
-                                            .validate()) {
-                                          return;
-                                        }
-
-                                        userInfoProvider.updateName(
-                                          _namecontroller.text.trim(),
-                                        );
-                                        userInfoProvider.updateAge(
-                                          dropdownValueAge == ""
-                                              ? userInfoProvider.age
-                                              : dropdownValueAge!,
-                                        );
-                                        if (selectedGender != null) {
-                                          unawaited(
-                                            _applyGenderInBackground(
-                                              selectedGender!,
-                                              userInfoProvider,
-                                            ),
-                                          );
-                                        }
-                                        Navigator.pop(context);
-                                      },
-                                    ),
-                                    _actionButton(
-                                      buttonKey: const Key(
-                                        'user-settings-reset-open',
-                                      ),
-                                      background: colorScheme.surface,
-                                      foreground: colorScheme.error,
-                                      side: BorderSide(
-                                        color: colorScheme.error,
-                                        width: 1.5,
-                                      ),
-                                      label: appLocale.userSettingsReset(
-                                        gender,
-                                      ),
-                                      onPressed: () {
-                                        showDialog(
-                                          context: context,
-                                          barrierDismissible: false,
-                                          builder: (_) =>
-                                              _ResetConfirmationDialog(
-                                                gender: gender,
-                                                onAttemptReset: () =>
-                                                    _attemptResetAndReturnSuccess(
-                                                      userInfoProvider,
-                                                    ),
-                                              ),
-                                        );
-                                      },
-                                    ),
-                                  ],
-                                ),
-                              ),
-                            ],
-                          ),
-                        ),
-                      ),
-                    );
-                  },
+                child: _settingsContent(
+                  userInfo,
+                  theme,
+                  colorScheme,
+                  gender,
+                  selectedGenderLabel,
+                  selectedLocaleName,
+                  fieldWidth,
                 ),
               ),
             ),

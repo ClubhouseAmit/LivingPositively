@@ -77,7 +77,10 @@ class _JournalState extends LPExtendedState<Journal> {
     );
     thankYousTemp.removeAt(removeIndex);
     datesTemp.removeAt(removeIndex);
-    userInfoProvider.updateThanks({'thanks': thankYousTemp, 'dates': datesTemp});
+    userInfoProvider.updateThanks({
+      'thanks': thankYousTemp,
+      'dates': datesTemp,
+    });
   }
 
   /// Adds [thankYou] to the list of thank you notes.
@@ -92,7 +95,10 @@ class _JournalState extends LPExtendedState<Journal> {
     final now = DateTime.now();
     final formattedDate = DateFormat('yyyy-MM-dd – kk:mm').format(now);
     datesTemp.add(formattedDate);
-    userInfoProvider.updateThanks({'thanks': thankYousTemp, 'dates': datesTemp});
+    userInfoProvider.updateThanks({
+      'thanks': thankYousTemp,
+      'dates': datesTemp,
+    });
 
     // Show the popup after adding the first thank you note (every time you
     // enter the journal page).
@@ -156,6 +162,105 @@ class _JournalState extends LPExtendedState<Journal> {
     );
   }
 
+  Widget _header(String gender, ColorScheme colorScheme) {
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(
+        0,
+        AppSpacing.xxxl,
+        AppSpacing.xl,
+        AppSpacing.xl,
+      ),
+      child: Column(
+        children: [
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              Expanded(
+                child: Padding(
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: AppSpacing.md,
+                  ),
+                  child: Text(
+                    appLocale.homePageThanksMainTitle(gender),
+                    style: Theme.of(context).textTheme.headlineLarge,
+                    textAlign: TextAlign.center,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                  ),
+                ),
+              ),
+              IconButton(
+                onPressed: () => editThanks(appLocale.thanks),
+                tooltip: appLocale.addItemTooltip,
+                icon: Icon(
+                  Icons.add,
+                  size: 50,
+                  color: colorScheme.primary,
+                ),
+              ),
+            ],
+          ),
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: AppSpacing.md),
+            child: Align(
+              alignment: AlignmentDirectional.centerStart,
+              child: Text(
+                appLocale.homePageThanksSecondaryTitle(gender),
+                style: Theme.of(
+                  context,
+                ).textTheme.labelLarge?.copyWith(color: colorScheme.outline),
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _thankYouList(
+    List<String> thankYous,
+    List<String> dates,
+    UserInformation userInfo,
+    ColorScheme colorScheme,
+  ) {
+    return ListView.builder(
+      shrinkWrap: true,
+      physics: const NeverScrollableScrollPhysics(),
+      itemBuilder: (context, index) {
+        final reversedIndex = thankYous.length - 1 - index;
+        return ThankYou(
+          text: thankYous[reversedIndex],
+          number: thankYous.length - index,
+          edit: (String text, int index) {
+            editThanks(appLocale.thanks, text, index);
+          },
+          remove: (int index) => removeThankYou(index, userInfo),
+          date: dates[reversedIndex],
+          color: colorScheme.onSurface,
+        );
+      },
+      itemCount: thankYous.length,
+    );
+  }
+
+  Widget _emptyState(ColorScheme colorScheme) {
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(
+        AppSpacing.xxl,
+        AppSpacing.sm,
+        AppSpacing.xxl,
+        AppSpacing.lg,
+      ),
+      child: Text(
+        appLocale.journalEmptyGuidance,
+        style: Theme.of(
+          context,
+        ).textTheme.bodyLarge?.copyWith(color: colorScheme.outline),
+        textAlign: TextAlign.center,
+      ),
+    );
+  }
+
   /// Builds the journal page.
   @override
   Widget build(BuildContext context) {
@@ -179,103 +284,15 @@ class _JournalState extends LPExtendedState<Journal> {
         backgroundColor: colorScheme.surface,
         body: ListView(
           children: [
-            Padding(
-              padding: const EdgeInsets.fromLTRB(
-                0,
-                40,
-                AppSpacing.xl,
-                AppSpacing.xl,
-              ),
-              child: Column(
-                children: [
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                    children: [
-                      Expanded(
-                        child: Padding(
-                          padding: const EdgeInsets.fromLTRB(10, 0, 10, 0),
-                          child: Text(
-                            appLocale.homePageThanksMainTitle(gender),
-                            style: Theme.of(context).textTheme.headlineLarge,
-                            textAlign: TextAlign.center,
-                            maxLines: 1,
-                            overflow: TextOverflow.ellipsis,
-                          ),
-                        ),
-                      ),
-
-                      //the add button to add a new thank you note
-                      IconButton(
-                        //when the button is pressed, open the popup with empty text field to write a new thank you note
-                        onPressed: () {
-                          editThanks(appLocale.thanks);
-                        },
-                        tooltip: appLocale.addItemTooltip,
-                        icon: Icon(
-                          Icons.add,
-                          size: 50.0,
-                          color: colorScheme.primary,
-                        ),
-                      ),
-                    ],
-                  ),
-                  Row(
-                    children: [
-                      //the subtitle of the journal page
-                      Expanded(
-                        child: Padding(
-                          padding: const EdgeInsets.fromLTRB(10, 0, 10, 0),
-                          child: Text(
-                            appLocale.homePageThanksSecondaryTitle(gender),
-                            style: Theme.of(context).textTheme.labelLarge
-                                ?.copyWith(color: colorScheme.outline),
-                          ),
-                        ),
-                      ),
-                    ],
-                  ),
-                ],
-              ),
-            ),
+            _header(gender, colorScheme),
             //the list of thank you notes, newest first
-            ListView.builder(
-              shrinkWrap: true,
-              physics: const NeverScrollableScrollPhysics(),
-              itemBuilder: (context, index) {
-                final reversedIndex = thankYous.length - 1 - index;
-                return ThankYou(
-                  text: thankYous[reversedIndex],
-                  number: thankYous.length - index,
-                  edit: (String text, int index) {
-                    editThanks(appLocale.thanks, text, index);
-                  },
-                  remove: (int index) => removeThankYou(index, userInfoProvider),
-                  date: dates[reversedIndex],
-                  color: colorScheme.onSurface,
-                );
-              },
-              itemCount: thankYous.length,
-            ),
+            _thankYouList(thankYous, dates, userInfoProvider, colorScheme),
             thankYous.isEmpty
-                ? Padding(
-                    padding: const EdgeInsets.fromLTRB(
-                      AppSpacing.xxl,
-                      AppSpacing.sm,
-                      AppSpacing.xxl,
-                      AppSpacing.lg,
-                    ),
-                    child: Text(
-                      appLocale.journalEmptyGuidance,
-                      style: Theme.of(
-                        context,
-                      ).textTheme.bodyLarge?.copyWith(color: colorScheme.outline),
-                      textAlign: TextAlign.center,
-                    ),
-                  )
+                ? _emptyState(colorScheme)
                 : Divider(
                     color: colorScheme.outline,
-                    indent: 30,
-                    endIndent: 30,
+                    indent: AppSpacing.xxxl,
+                    endIndent: AppSpacing.xxxl,
                   ),
             //the suggested thank you notes
             for (var i = 0; i < suggestions.length; i++)
@@ -300,19 +317,22 @@ class _JournalState extends LPExtendedState<Journal> {
                   Flexible(
                     child: Text(
                       appLocale.otherSuggestions(gender),
-                      style: Theme.of(
-                        context,
-                      ).textTheme.labelLarge?.copyWith(color: colorScheme.tertiary),
+                      style:
+                          Theme.of(
+                            context,
+                          ).textTheme.labelLarge?.copyWith(
+                            color: colorScheme.tertiary,
+                          ),
                       maxLines: 1,
                       overflow: TextOverflow.ellipsis,
                     ),
                   ),
-                  const SizedBox(width: 1.0),
+                  const SizedBox(width: AppSpacing.xs),
                   Icon(Icons.refresh, color: colorScheme.tertiary),
                 ],
               ),
             ),
-            const SizedBox(height: 30),
+            const SizedBox(height: AppSpacing.xxxl),
           ],
         ),
       ),
