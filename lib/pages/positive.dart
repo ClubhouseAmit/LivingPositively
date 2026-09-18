@@ -32,24 +32,12 @@ class Positive extends StatefulWidget {
 
 class _PositiveState extends LPExtendedState<Positive> {
   List<String> positiveTraits = []; //list of positive traits
-  List<FocusNode> focusNodes = []; //list of focus nodes
-
-  FocusNode myFocusNode = FocusNode(); //focus node
   String positiveTraitsMainTitle = ''; //main title
   String positiveTraitsSubTitle = ''; //sub title
   String sug1 = ''; //suggestion 1
   String sug2 = ''; //suggestion 2
   String sug3 = ''; //suggestion 3
   List<String> positiveSuggestionList = []; //list of suggestions
-
-  void _syncFocusNodes(int count) {
-    while (focusNodes.length < count) {
-      focusNodes.add(FocusNode());
-    }
-    while (focusNodes.length > count) {
-      focusNodes.removeLast().dispose();
-    }
-  }
 
   void _refreshSuggestions(List<String> sourceSuggestions) {
     final tempPositiveSuggestionList = List<String>.from(sourceSuggestions);
@@ -89,7 +77,6 @@ class _PositiveState extends LPExtendedState<Positive> {
       listen: true,
     );
     positiveTraits = List<String>.from(userInfoProvider.positiveTraits);
-    _syncFocusNodes(positiveTraits.length);
     String gender = userInfoProvider.gender;
     _refreshSuggestions(
       retrieveTraitsList(appLocale, gender == "" ? "other" : gender),
@@ -138,7 +125,6 @@ class _PositiveState extends LPExtendedState<Positive> {
       }
       setState(() {
         positiveTraits = positiveTraitsTemp;
-        focusNodes.removeAt(removeIndex);
         userInfo.updatePositiveTraits(positiveTraits);
       });
     } catch (error, stackTrace) {
@@ -157,7 +143,6 @@ class _PositiveState extends LPExtendedState<Positive> {
     setState(() {
       userInfoProvider.updatePositiveTraits(positivetraitsTemp);
       positiveTraits = positivetraitsTemp;
-      focusNodes.add(FocusNode());
     });
     AnalyticsService mixPanelService = GetIt.instance<AnalyticsService>();
     mixPanelService.trackEvent("Item added to Qualities List");
@@ -172,15 +157,6 @@ class _PositiveState extends LPExtendedState<Positive> {
   void didChangeDependencies() {
     super.didChangeDependencies();
     loadData(context);
-  }
-
-  @override
-  void dispose() {
-    for (final focusNode in focusNodes) {
-      focusNode.dispose();
-    }
-    myFocusNode.dispose();
-    super.dispose();
   }
 
   //the function we call when we want to add/edit a positive trait,(it opens a popup with a text field and a save button)
@@ -295,7 +271,6 @@ class _PositiveState extends LPExtendedState<Positive> {
                 remove: (int index) {
                   unawaited(removePositiveTrait(index, userInfoProvider));
                 },
-                myFocusNode: focusNodes[index],
                 date: "",
                 color: colorScheme.primary,
               ),

@@ -13,7 +13,6 @@ class ThankYou extends StatefulWidget {
   final int number; // the number of the thank you/trait
   final Function edit; // the function to edit the thank you/trait
   final Function remove; // the function to remove the thank you/trait
-  final FocusNode myFocusNode; // the focus node of the thank you/trait
   final String date; // the date of the thank you/trait
   final Color color; // the color of the thank you/trait text
   const ThankYou({
@@ -22,7 +21,6 @@ class ThankYou extends StatefulWidget {
     required this.number,
     required this.edit,
     required this.remove,
-    required this.myFocusNode,
     required this.date,
     required this.color,
   });
@@ -32,6 +30,7 @@ class ThankYou extends StatefulWidget {
 
 class _ThankYouState extends State<ThankYou> {
   bool editable = false;
+  final _focusNode = FocusNode();
 
   Future<void> _confirmDelete(
     AppLocalizations? locale,
@@ -72,9 +71,15 @@ class _ThankYouState extends State<ThankYou> {
   void initState() {
     editable = widget.text.isEmpty;
     if (editable) {
-      widget.myFocusNode.requestFocus();
+      _focusNode.requestFocus();
     }
     super.initState();
+  }
+
+  @override
+  void dispose() {
+    _focusNode.dispose();
+    super.dispose();
   }
 
   // build the thank you widget

@@ -43,9 +43,19 @@ Agents must, before producing output:
 - run `graphify query "<the task or feature>"` (or invoke the `graphify` skill) against `graphify-out/graph.json` to find existing code, patterns, and dependents relevant to the task
 - treat the result as ground truth for "what already exists" — do not invent structure the graph shows already exists elsewhere
 
-If `graphify-out/graph.json` is missing, or is stale relative to files the task touches, the agent must run `graphify --update` first. If graphify itself is unavailable, the agent must stop and tell a human rather than proceed uninformed.
+If `graphify-out/graph.json` is missing, or is stale relative to files the task touches, the agent must run `graphify --update` first — **except** as narrowed below. If graphify itself is unavailable (the tool is not installed or is broken), the agent must stop and tell a human rather than proceed uninformed.
 
-This is how Section 3.1's "understand the problem" and Section 6.3's "match existing convention" get enforced in practice — graphify is the mechanism, not an optional nicety.
+**Scope carve-out:** the rebuild mandate applies to design, architecture, and multi-file work, where a wrong "what exists" answer propagates into structure. It does not apply to a single-file review or read-only lookup: query the existing graph as-is, note in the output if it may be stale, and proceed. Do not block a small task on a full-corpus rebuild.
+
+**Environment carve-out:** "must run `graphify --update`" presumes write access to the repo. An agent running in a read-only sandbox (no write access to the working tree) must not attempt `--update` — it will fail on the `graphify-out/` writes the rebuild needs, and that failure is not the "graphify unavailable" stop condition above. In that case: query whatever graph already exists, note the staleness/no-write limitation in the output, and continue. Only stop for a human if no graph exists at all AND the task is design/architecture-scoped (see scope carve-out).
+
+This is how Section 3.1's "understand the problem" and Section 6.3's "match existing convention" get enforced in practice — graphify is the mechanism, not an optional nicety, but the mechanism must not block work it cannot perform.
+
+---
+
+## 2B. Mandatory Pre-Work Step: Consult Dart/Flutter Style Skills
+
+Before writing or reviewing any Dart/Flutter code, an agent must load the `effective-dart` and `dart-3-updates` skills and follow this repo's documented conventions (naming, `final`/`const`, type annotations, records vs. classes) rather than defaulting to generic Dart habits.
 
 ---
 

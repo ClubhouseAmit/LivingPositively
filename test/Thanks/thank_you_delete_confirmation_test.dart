@@ -41,7 +41,6 @@ class _RebindingThankYouHostState extends State<_RebindingThankYouHost> {
         remove: (int index) {
           removedIndex = index;
         },
-        myFocusNode: focusNode,
         date: '',
         color: primaryPurple,
       ),

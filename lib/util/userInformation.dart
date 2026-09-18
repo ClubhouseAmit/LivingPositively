@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:math' as math;
 
 import 'package:flutter/foundation.dart';
 import 'package:get_it/get_it.dart';
@@ -886,8 +887,12 @@ class UserInformation with ChangeNotifier {
   }
 
   void updateThanks(Map<String, List<String>> value) {
-    final savedThanks = List<String>.from(value['thanks'] ?? const <String>[]);
-    final savedDates = List<String>.from(value['dates'] ?? const <String>[]);
+    final rawThanks = List<String>.from(value['thanks'] ?? const <String>[]);
+    final rawDates = List<String>.from(value['dates'] ?? const <String>[]);
+    // parallel lists must stay the same length so indexing never RangeErrors
+    final minLength = math.min(rawThanks.length, rawDates.length);
+    final savedThanks = rawThanks.sublist(0, minLength);
+    final savedDates = rawDates.sublist(0, minLength);
     thanks = {'thanks': savedThanks, 'dates': savedDates};
     unawaited(
       _saveInBackground(() async {
