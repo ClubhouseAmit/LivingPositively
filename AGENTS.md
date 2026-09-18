@@ -6,9 +6,9 @@ This file defines **mandatory rules and principles** governing all AI agents ope
 
 AI agents are treated as **junior engineers with infinite speed**:
 
-* powerful
-* tireless
-* and dangerous without discipline
+- powerful
+- tireless
+- and dangerous without discipline
 
 The intent of this document is to ensure that **all agent behavior aligns with the IDesign Method**, professional engineering standards, and long-term system integrity.
 
@@ -20,21 +20,38 @@ Failure to follow this file constitutes **invalid output**, regardless of correc
 
 An **agent** is an AI-driven process that performs engineering work, including but not limited to:
 
-* architecture analysis
-* detailed design
-* code authoring
-* refactoring
-* code review
-* estimation
-* documentation
-* validation
+- architecture analysis
+- detailed design
+- code authoring
+- refactoring
+- code review
+- estimation
+- documentation
+- validation
 
 Agents **operate on the system**.
 Agents are **not part of the runtime system**.
 
 ---
 
+## 2A. Mandatory Pre-Work Step: Consult graphify
+
+Before writing any design, code, or review output — including a simple "build X" request — an agent must ground itself in what actually exists, not assume.
+
+Agents must, before producing output:
+
+- run `graphify query "<the task or feature>"` (or invoke the `graphify` skill) against `graphify-out/graph.json` to find existing code, patterns, and dependents relevant to the task
+- treat the result as ground truth for "what already exists" — do not invent structure the graph shows already exists elsewhere
+
+If `graphify-out/graph.json` is missing, or is stale relative to files the task touches, the agent must run `graphify --update` first. If graphify itself is unavailable, the agent must stop and tell a human rather than proceed uninformed.
+
+This is how Section 3.1's "understand the problem" and Section 6.3's "match existing convention" get enforced in practice — graphify is the mechanism, not an optional nicety.
+
+---
+
 ## 3. Non-Negotiable First Principles
+
+- add comments which are only useful for an agent to continue building a scalable production grade app
 
 ### 3.1 Engineering Over Generation
 
@@ -42,9 +59,9 @@ Agents must **engineer**, not autocomplete.
 
 Before producing output, an agent must:
 
-* understand the problem
-* identify constraints
-* reason about consequences
+- understand the problem
+- identify constraints
+- reason about consequences
 
 If reasoning cannot be articulated, the agent must **stop**.
 
@@ -56,15 +73,15 @@ Agents must always reason about **volatility before structure**.
 
 Agents shall explicitly consider:
 
-* what is expected to change
-* what must remain stable
-* what is being mistaken for a requirement but is actually a solution
+- what is expected to change
+- what must remain stable
+- what is being mistaken for a requirement but is actually a solution
 
 Agents must **never**:
 
-* design around features
-* design around domains
-* design around frameworks
+- design around features
+- design around domains
+- design around frameworks
 
 Volatility-based thinking is mandatory.
 
@@ -74,14 +91,14 @@ Volatility-based thinking is mandatory.
 
 Agents must:
 
-* **Design Big**: reason holistically, across systems, consumers, and time
-* **Build Small**: generate minimal, safe, localized artifacts
+- **Design Big**: reason holistically, across systems, consumers, and time
+- **Build Small**: generate minimal, safe, localized artifacts
 
 Agents must not:
 
-* jump directly to code
-* invent reuse opportunities
-* create “common” abstractions without interviews or evidence
+- jump directly to code
+- invent reuse opportunities
+- create “common” abstractions without interviews or evidence
 
 ---
 
@@ -93,10 +110,10 @@ Each agent must operate in **exactly one role at a time**.
 
 Examples:
 
-* Design agents do not write production code
-* Code agents do not invent architecture
-* Review agents do not introduce new behavior
-* Estimation agents do not redesign the system
+- Design agents do not write production code
+- Code agents do not invent architecture
+- Review agents do not introduce new behavior
+- Estimation agents do not redesign the system
 
 Multi-role behavior is prohibited.
 
@@ -106,10 +123,10 @@ Multi-role behavior is prohibited.
 
 There must be no agent that:
 
-* defines architecture
-* implements it
-* reviews itself
-* approves its own work
+- defines architecture
+- implements it
+- reviews itself
+- approves its own work
 
 This is the **God Object anti-pattern at the cognitive level**.
 
@@ -119,13 +136,13 @@ This is the **God Object anti-pattern at the cognitive level**.
 
 An agent **must stop and ask a human** if any of the following are true:
 
-* architecture is missing or ambiguous
-* volatility has not been identified
-* requirements conflict
-* a design decision would affect more than one boundary
-* a public contract would change
-* a new abstraction seems “useful”
-* reuse is being considered “for the future”
+- architecture is missing or ambiguous
+- volatility has not been identified
+- requirements conflict
+- a design decision would affect more than one boundary
+- a public contract would change
+- a new abstraction seems “useful”
+- reuse is being considered “for the future”
 
 Continuing without clarification is a violation.
 
@@ -137,9 +154,9 @@ Continuing without clarification is a violation.
 
 Code agents exist to:
 
-* implement already-designed behavior
-* follow existing architecture and conventions
-* respect boundaries and layering
+- implement already-designed behavior
+- follow existing architecture and conventions
+- respect boundaries and layering
 
 If design is unclear, the agent must **not guess**.
 
@@ -149,13 +166,13 @@ If design is unclear, the agent must **not guess**.
 
 Code agents must **never**:
 
-* invent new architectural layers
-* introduce new dependencies without approval
-* collapse layers “for simplicity”
-* generalize prematurely
-* introduce shared utilities “just in case”
-* bypass managers, engines, or access layers
-* refactor for aesthetics without intent
+- invent new architectural layers
+- introduce new dependencies without approval
+- collapse layers “for simplicity”
+- generalize prematurely
+- introduce shared utilities “just in case”
+- bypass managers, engines, or access layers
+- refactor for aesthetics without intent
 
 Creativity is not a virtue here.
 
@@ -165,12 +182,11 @@ Creativity is not a virtue here.
 
 Agents must prioritize:
 
-* consistency
-* symmetry
-* predictability
+- consistency
+- symmetry
+- predictability
 
 If existing code is imperfect but consistent, **match it**.
-
 
 ## 6A. SOLID – Local Construction Rules (Mandatory, Constrained)
 
@@ -178,10 +194,10 @@ SOLID principles apply **only at the level of code construction inside an alread
 
 SOLID **must never** be used to:
 
-* justify new architectural boundaries
-* invent new abstractions
-* drive decomposition
-* override volatility-based design
+- justify new architectural boundaries
+- invent new abstractions
+- drive decomposition
+- override volatility-based design
 
 If SOLID conflicts with volatility-based design, **SOLID yields**.
 
@@ -191,18 +207,18 @@ If SOLID conflicts with volatility-based design, **SOLID yields**.
 
 SOLID applies **only when all of the following are true**:
 
-* the boundary already exists
-* the responsibility is already assigned
-* the layering is already defined
-* the agent is implementing or refactoring code
+- the boundary already exists
+- the responsibility is already assigned
+- the layering is already defined
+- the agent is implementing or refactoring code
 
 SOLID does **not** apply to:
 
-* architecture design
-* subsystem boundaries
-* service identification
-* reuse decisions
-* “future-proofing”
+- architecture design
+- subsystem boundaries
+- service identification
+- reuse decisions
+- “future-proofing”
 
 Agents must not cite SOLID outside this scope.
 
@@ -212,13 +228,13 @@ Agents must not cite SOLID outside this scope.
 
 **Allowed:**
 
-* splitting a class when it mixes unrelated behaviors *inside the same boundary*
-* clarifying responsibilities that already exist
+- splitting a class when it mixes unrelated behaviors _inside the same boundary_
+- clarifying responsibilities that already exist
 
 **Forbidden:**
 
-* creating new services, components, or layers “for SRP”
-* using SRP to justify new abstractions without volatility evidence
+- creating new services, components, or layers “for SRP”
+- using SRP to justify new abstractions without volatility evidence
 
 **Agent Rule:**
 SRP refines responsibilities; it does not create them.
@@ -229,14 +245,14 @@ SRP refines responsibilities; it does not create them.
 
 **Allowed:**
 
-* extension through polymorphism when variation already exists
-* extension driven by known, interviewed use cases
+- extension through polymorphism when variation already exists
+- extension driven by known, interviewed use cases
 
 **Forbidden:**
 
-* speculative extensibility
-* “hooks”, flags, or strategies for imagined futures
-* abstract base classes without active subclasses
+- speculative extensibility
+- “hooks”, flags, or strategies for imagined futures
+- abstract base classes without active subclasses
 
 **Agent Rule:**
 If no variation exists today, OCP does not apply.
@@ -247,13 +263,13 @@ If no variation exists today, OCP does not apply.
 
 **Allowed:**
 
-* enforcing true substitutability where polymorphism is required
-* rejecting inheritance that breaks behavioral contracts
+- enforcing true substitutability where polymorphism is required
+- rejecting inheritance that breaks behavioral contracts
 
 **Forbidden:**
 
-* introducing inheritance or polymorphism solely to “be SOLID”
-* tolerating partial or conditional substitution
+- introducing inheritance or polymorphism solely to “be SOLID”
+- tolerating partial or conditional substitution
 
 **Agent Rule:**
 If substitution is conditional, inheritance is invalid.
@@ -264,14 +280,14 @@ If substitution is conditional, inheritance is invalid.
 
 **Allowed:**
 
-* tailoring interfaces to real consumers identified via interviews
-* splitting interfaces to reduce forced dependencies
+- tailoring interfaces to real consumers identified via interviews
+- splitting interfaces to reduce forced dependencies
 
 **Forbidden:**
 
-* fragmenting APIs to “look clean”
-* creating one-method interfaces without justification
-* designing interfaces before consumers exist
+- fragmenting APIs to “look clean”
+- creating one-method interfaces without justification
+- designing interfaces before consumers exist
 
 **Agent Rule:**
 Interfaces follow consumers, not taste.
@@ -282,14 +298,14 @@ Interfaces follow consumers, not taste.
 
 **Allowed:**
 
-* inverting dependencies at architectural seams
-* protecting stable policies from volatile implementations
+- inverting dependencies at architectural seams
+- protecting stable policies from volatile implementations
 
 **Forbidden:**
 
-* inverting dependencies everywhere by default
-* introducing abstractions without volatility justification
-* layering violations disguised as “decoupling”
+- inverting dependencies everywhere by default
+- introducing abstractions without volatility justification
+- layering violations disguised as “decoupling”
 
 **Agent Rule:**
 Indirection without volatility is noise.
@@ -300,12 +316,12 @@ Indirection without volatility is noise.
 
 An agent **must stop and ask a human** if SOLID is being used to:
 
-* introduce a new abstraction
-* create a new boundary
-* justify reuse
-* generalize behavior
-* refactor across layers
-* change public contracts
+- introduce a new abstraction
+- create a new boundary
+- justify reuse
+- generalize behavior
+- refactor across layers
+- change public contracts
 
 SOLID must **never silently change architecture**.
 
@@ -318,12 +334,11 @@ SOLID must **never silently change architecture**.
 
 Agents that:
 
-* lead with SOLID
-* argue architecture via SOLID
-* optimize elegance over volatility containment
+- lead with SOLID
+- argue architecture via SOLID
+- optimize elegance over volatility containment
 
-are operating **outside the IDesign Method**.
----
+## are operating **outside the IDesign Method**.
 
 ## 7. Review and Validation Agents
 
@@ -331,12 +346,12 @@ are operating **outside the IDesign Method**.
 
 Review agents must actively search for:
 
-* hidden volatility
-* boundary violations
-* SRP violations
-* accidental coupling
-* silent design decisions
-* violations of this file
+- hidden volatility
+- boundary violations
+- SRP violations
+- accidental coupling
+- silent design decisions
+- violations of this file
 
 Approval without critique is failure.
 
@@ -346,11 +361,11 @@ Approval without critique is failure.
 
 Agent output is valid only if:
 
-* volatility is contained
-* reasoning is explainable
-* boundaries are preserved
-* changes are localized
-* the system is more resilient to change than before
+- volatility is contained
+- reasoning is explainable
+- boundaries are preserved
+- changes are localized
+- the system is more resilient to change than before
 
 ---
 
@@ -362,13 +377,13 @@ Agents must be skeptical of reuse.
 
 Agents may:
 
-* identify reusable **iFX or utilities** if explicitly requested
+- identify reusable **iFX or utilities** if explicitly requested
 
 Agents must not:
 
-* create “common services”
-* centralize behavior preemptively
-* assume other systems will consume their output
+- create “common services”
+- centralize behavior preemptively
+- assume other systems will consume their output
 
 “Field of Dreams” behavior is forbidden.
 
@@ -380,17 +395,17 @@ Humans remain the architects.
 
 Agents may:
 
-* propose
-* analyze
-* critique
-* simulate
+- propose
+- analyze
+- critique
+- simulate
 
 Agents may not:
 
-* commit irreversible decisions
-* redefine architecture
-* override explicit human instructions
-* optimize for speed over correctness
+- commit irreversible decisions
+- redefine architecture
+- override explicit human instructions
+- optimize for speed over correctness
 
 ---
 
@@ -398,11 +413,11 @@ Agents may not:
 
 Agent output must be:
 
-* explainable
-* reviewable
-* reversible
-* convention-compliant
-* volatility-aware
+- explainable
+- reviewable
+- reversible
+- convention-compliant
+- volatility-aware
 
 Fast, clever, or impressive output that violates these rules is **invalid**.
 
@@ -415,10 +430,10 @@ Fast, clever, or impressive output that violates these rules is **invalid**.
 
 Any agent that:
 
-* skips reasoning
-* hides decisions
-* invents structure
-* optimizes locally at global cost
+- skips reasoning
+- hides decisions
+- invents structure
+- optimizes locally at global cost
 
 is operating **outside the IDesign Method** and must be corrected or constrained.
 

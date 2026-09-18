@@ -7,10 +7,9 @@ import 'package:mazilon/util/Form/retrieveInformation.dart';
 import 'package:mazilon/util/LP_extended_state.dart';
 import 'package:mazilon/util/userInformation.dart';
 import 'package:keyboard_dismisser/keyboard_dismisser.dart';
-import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:mazilon/pages/thankYou.dart';
 import 'package:mazilon/util/Thanks/thanksItemSug.dart';
-import 'package:mazilon/util/styles.dart';
+import 'package:mazilon/util/theme/spacing.dart';
 import 'package:mazilon/util/Thanks/AddForm.dart';
 import 'package:provider/provider.dart';
 import 'package:intl/intl.dart' as intl;
@@ -196,7 +195,7 @@ class _JournalState extends LPExtendedState<Journal> {
         'dates': datesTemp,
       });
       thankYous = thankyousTemp;
-      focusNodes.removeAt(removeIndex);
+      focusNodes.removeAt(removeIndex).dispose();
       dates = datesTemp;
     });
   }
@@ -250,14 +249,14 @@ class _JournalState extends LPExtendedState<Journal> {
             title: const Text(''),
             content: Text(
               appLocale.homePageThankyouPopup(gender),
-              style: TextStyle(fontWeight: FontWeight.normal, fontSize: 15.sp),
+              style: Theme.of(context).textTheme.bodyLarge,
               textAlign: TextAlign.center,
             ),
             actions: <Widget>[
               TextButton(
                 child: Text(
                   appLocale.confirmButton(gender),
-                  style: TextStyle(fontWeight: FontWeight.normal),
+                  style: Theme.of(context).textTheme.labelLarge,
                 ),
                 onPressed: () {
                   Navigator.of(context).pop();
@@ -330,22 +329,27 @@ class _JournalState extends LPExtendedState<Journal> {
             controller: _journalScrollController,
             children: [
               Padding(
-                padding: const EdgeInsets.fromLTRB(0, 40, 20, 20),
+                padding: const EdgeInsets.fromLTRB(
+                  0,
+                  40,
+                  AppSpacing.xl,
+                  AppSpacing.xl,
+                ),
                 child: Column(
                   children: [
                     Row(
                       mainAxisAlignment: MainAxisAlignment.spaceBetween,
                       children: [
-                        Padding(
-                          padding: const EdgeInsets.fromLTRB(10, 0, 10, 0),
-                          child: myAutoSizedText(
-                            appLocale.homePageThanksMainTitle(gender),
-                            TextStyle(
-                              fontWeight: FontWeight.bold,
-                              fontSize: 30.sp,
+                        Expanded(
+                          child: Padding(
+                            padding: const EdgeInsets.fromLTRB(10, 0, 10, 0),
+                            child: Text(
+                              appLocale.homePageThanksMainTitle(gender),
+                              style: Theme.of(context).textTheme.headlineLarge,
+                              textAlign: TextAlign.center,
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
                             ),
-                            null,
-                            60,
                           ),
                         ),
 
@@ -382,17 +386,14 @@ class _JournalState extends LPExtendedState<Journal> {
                     Row(
                       children: [
                         //the subtitle of the journal page
-                        Padding(
-                          padding: const EdgeInsets.fromLTRB(10, 0, 10, 0),
-                          child: myAutoSizedText(
-                            appLocale.homePageThanksSecondaryTitle(gender),
-                            TextStyle(
-                              color: colorScheme.outline,
-                              fontSize: 16.sp,
-                              fontWeight: FontWeight.bold,
+                        Expanded(
+                          child: Padding(
+                            padding: const EdgeInsets.fromLTRB(10, 0, 10, 0),
+                            child: Text(
+                              appLocale.homePageThanksSecondaryTitle(gender),
+                              style: Theme.of(context).textTheme.labelLarge
+                                  ?.copyWith(color: colorScheme.outline),
                             ),
-                            null,
-                            30,
                           ),
                         ),
                       ],
@@ -420,16 +421,18 @@ class _JournalState extends LPExtendedState<Journal> {
               ),
               thankYous.isEmpty
                   ? Padding(
-                      padding: const EdgeInsets.fromLTRB(24, 8, 24, 16),
-                      child: myAutoSizedText(
+                      padding: const EdgeInsets.fromLTRB(
+                        AppSpacing.xxl,
+                        AppSpacing.sm,
+                        AppSpacing.xxl,
+                        AppSpacing.lg,
+                      ),
+                      child: Text(
                         appLocale.journalEmptyGuidance,
-                        TextStyle(
+                        style: Theme.of(context).textTheme.bodyLarge?.copyWith(
                           color: colorScheme.outline,
-                          fontSize: 16.sp,
-                          fontWeight: FontWeight.normal,
                         ),
-                        TextAlign.center,
-                        40,
+                        textAlign: TextAlign.center,
                       ),
                     )
                   : Divider(
@@ -479,11 +482,14 @@ class _JournalState extends LPExtendedState<Journal> {
                 child: Row(
                   mainAxisAlignment: MainAxisAlignment.center,
                   children: <Widget>[
-                    Text(
-                      appLocale.otherSuggestions(gender),
-                      style: TextStyle(
-                        fontWeight: FontWeight.bold,
-                        color: colorScheme.tertiary,
+                    Flexible(
+                      child: Text(
+                        appLocale.otherSuggestions(gender),
+                        style: Theme.of(context).textTheme.labelLarge?.copyWith(
+                          color: colorScheme.tertiary,
+                        ),
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
                       ),
                     ),
                     const SizedBox(width: 1.0),

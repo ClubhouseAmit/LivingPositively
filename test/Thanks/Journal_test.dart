@@ -43,6 +43,44 @@ void main() {
   });
 
   group('Journal (real production widget)', () {
+    testWidgets(
+      'keeps header actions on-screen with scaled text and an empty journal',
+      (tester) async {
+        const surfaceSize = Size(320, 800);
+
+        await pumpWithProviders(
+          tester,
+          Builder(
+            builder: (context) => MediaQuery(
+              data: MediaQuery.of(
+                context,
+              ).copyWith(textScaler: const TextScaler.linear(2)),
+              child: const Journal(fullSuggestionList: []),
+            ),
+          ),
+          userInformation: userInformation,
+          surfaceSize: surfaceSize,
+          ignoreOverflow: false,
+        );
+
+        final addButton = find.byTooltip('Add');
+        final scrollButton = find.byKey(_scrollToBottomKey);
+
+        expect(tester.takeException(), isNull);
+        expect(find.byType(ThankYou), findsNothing);
+        expect(addButton, findsOneWidget);
+        expect(scrollButton, findsOneWidget);
+        expect(addButton.hitTestable(), findsOneWidget);
+        expect(scrollButton.hitTestable(), findsOneWidget);
+
+        for (final button in [addButton, scrollButton]) {
+          final bounds = tester.getRect(button);
+          expect(bounds.left, greaterThanOrEqualTo(0));
+          expect(bounds.right, lessThanOrEqualTo(surfaceSize.width));
+        }
+      },
+    );
+
     testWidgets('renders empty journal with suggestions and add icon', (
       tester,
     ) async {

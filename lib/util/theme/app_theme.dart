@@ -171,6 +171,79 @@ const ColorScheme appDarkColorScheme = ColorScheme.dark(
   surfaceContainerHighest: AppColors.darkSurfaceContainer,
 );
 
+/// Typography tokens — DESIGN.md §2.2. Extends `ThemeData.textTheme` rather
+/// than a bespoke style class, so call sites read `Theme.of(context)
+/// .textTheme.headlineLarge` the same way every other Material widget already
+/// does, instead of each screen re-declaring its own `fontSize`/`fontWeight`.
+/// That per-call-site duplication is how #359's button-cutoff bug happened:
+/// an undeclared, unchecked `30.sp`/bold with nothing to catch it drifting
+/// from the design.
+///
+/// Deliberately no `.sp` here: `.sp` re-scales for device *width*, which is
+/// a different axis from the OS accessibility text-size the user actually
+/// controls. Every `Text` already honours `MediaQuery.textScaler`
+/// automatically regardless of the declared `fontSize` — stacking `.sp` on
+/// top of that is the same double-scaling failure mode `AutoSizeText` hit in
+/// this same fix (`designs/issue-338-audit.md`), one level further out.
+///
+/// No `color` set on any style: color stays with `ColorScheme`
+/// (`AppColors`), unchanged from how call sites already source it.
+///
+/// No `fontFamily` set on any style either, for the same reason: `ThemeData`
+/// already applies its own `fontFamily: 'Rubix'` argument to the base
+/// `Typography` text theme before merging this one on top, so repeating
+/// `fontFamily: 'Rubix'` on every entry here would be pure duplication.
+const TextTheme _appTextTheme = TextTheme(
+  // Screen title headers.
+  headlineLarge: TextStyle(
+    fontSize: 28,
+    fontWeight: FontWeight.w500,
+    height: 36.4 / 28,
+  ),
+  // Section title headers.
+  headlineMedium: TextStyle(
+    fontSize: 24,
+    fontWeight: FontWeight.w500,
+    height: 24.6 / 24,
+  ),
+  // Highlight text inside cards.
+  titleLarge: TextStyle(
+    fontSize: 18,
+    fontWeight: FontWeight.w500,
+    height: 30.0 / 18,
+  ),
+  // Textfield inputs.
+  titleSmall: TextStyle(
+    fontSize: 14,
+    fontWeight: FontWeight.w500,
+    height: 17.0 / 14,
+  ),
+  // Buttons, highlights.
+  labelLarge: TextStyle(
+    fontSize: 16,
+    fontWeight: FontWeight.w500,
+    height: 19.0 / 16,
+  ),
+  // Standard paragraphs.
+  bodyLarge: TextStyle(
+    fontSize: 16,
+    fontWeight: FontWeight.w400,
+    height: 19.0 / 16,
+  ),
+  // Muted hints.
+  bodySmall: TextStyle(
+    fontSize: 14,
+    fontWeight: FontWeight.w400,
+    height: 32.0 / 14,
+  ),
+  // Helper labels.
+  labelSmall: TextStyle(
+    fontSize: 10,
+    fontWeight: FontWeight.w400,
+    height: 13.5 / 10,
+  ),
+);
+
 /// Corner radius of a text input — DESIGN.md §2.3 "Input Fields".
 const double kInputRadius = 10;
 
@@ -237,6 +310,7 @@ ThemeData buildLightTheme() {
     primaryColor: AppColors.primary,
     scaffoldBackgroundColor: AppColors.pageBackground,
     bottomAppBarTheme: const BottomAppBarThemeData(color: Colors.white),
+    textTheme: _appTextTheme,
     inputDecorationTheme: inputs,
     // `DropdownMenu` reads `DropdownMenuThemeData`, never
     // `ThemeData.inputDecorationTheme` — both have to be set or a dropdown
@@ -271,6 +345,7 @@ ThemeData buildDarkTheme() {
       backgroundColor: AppColors.darkNavBackground,
       foregroundColor: AppColors.darkOnSurface,
     ),
+    textTheme: _appTextTheme,
     inputDecorationTheme: inputs,
     dropdownMenuTheme: DropdownMenuThemeData(inputDecorationTheme: inputs),
     fontFamily: 'Rubix',
