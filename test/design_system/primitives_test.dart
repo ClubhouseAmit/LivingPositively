@@ -1,5 +1,6 @@
 import 'package:flutter/widgets.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:mazilon/design_system/primitives/app_button.dart';
 import 'package:mazilon/design_system/primitives/app_glass.dart';
 import 'package:mazilon/design_system/primitives/app_surface.dart';
 import 'package:mazilon/design_system/primitives/app_text.dart';
@@ -53,5 +54,52 @@ void main() {
 
     expect(find.byType(BackdropFilter), findsOneWidget);
     expect(find.byKey(const Key('leaf')), findsOneWidget);
+  });
+
+  testWidgets('AppButton fires onPressed with no Material ancestor', (
+    tester,
+  ) async {
+    int taps = 0;
+    await tester.pumpWidget(
+      _withoutMaterial(
+        AppButton(label: 'Go', onPressed: () => taps++),
+      ),
+    );
+
+    await tester.tap(find.text('Go'));
+    expect(taps, 1);
+  });
+
+  testWidgets('AppButton disabled (onPressed: null) ignores taps', (
+    tester,
+  ) async {
+    await tester.pumpWidget(
+      _withoutMaterial(const AppButton(label: 'Go', onPressed: null)),
+    );
+
+    await tester.tap(find.text('Go'));
+    // No exception, no crash: a null onPressed must not be invoked.
+
+    final Semantics semantics = tester.widget(
+      find.ancestor(of: find.text('Go'), matching: find.byType(Semantics)).first,
+    );
+    expect(semantics.properties.enabled, isFalse);
+  });
+
+  testWidgets('AppButton dips opacity while pressed', (tester) async {
+    await tester.pumpWidget(
+      _withoutMaterial(AppButton(label: 'Go', onPressed: () {})),
+    );
+
+    final TestGesture gesture = await tester.startGesture(
+      tester.getCenter(find.text('Go')),
+    );
+    await tester.pump();
+    final AnimatedOpacity pressed = tester.widget(
+      find.byType(AnimatedOpacity),
+    );
+    expect(pressed.opacity, lessThan(1));
+
+    await gesture.up();
   });
 }

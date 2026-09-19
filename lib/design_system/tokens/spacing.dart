@@ -19,6 +19,12 @@ abstract class AppRadii {
   /// Standard card radius from the design system.
   static const card = 16.0;
 
+  /// Standard action-button radius. DESIGN.md §2.3 documents this as
+  /// "Standard Buttons", but until `AppButton` (design-system step 3) no
+  /// named token existed for it — `primaryButtonStyle`/`destructiveButtonStyle`
+  /// hardcoded this same radius directly on their `RoundedRectangleBorder`.
+  static const button = 20.0;
+
   /// Fixed dashed add-slot pill radius that preserves its dash cadence.
   static const dashedAddSlot = 24.0;
 }
