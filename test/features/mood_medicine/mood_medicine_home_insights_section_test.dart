@@ -1,6 +1,7 @@
 import 'package:auto_size_text/auto_size_text.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:mazilon/design_system/primitives/app_surface.dart';
 import 'package:mazilon/features/mood_medicine/ui/mood_medicine_home_insights_section.dart';
 
 void main() {
@@ -22,7 +23,8 @@ void main() {
         ),
       );
 
-      expect(find.byType(Card), findsOneWidget);
+      expect(find.byType(Card), findsNothing);
+      expect(find.byType(AppSurface), findsOneWidget);
       expect(find.text('Mood Medicine'), findsOneWidget);
       expect(find.text('Track how you feel'), findsOneWidget);
       expect(find.text('View insights'), findsOneWidget);
