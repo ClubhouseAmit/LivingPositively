@@ -740,7 +740,7 @@ void main() {
         tester
             .getSize(find.byKey(const Key('moodMedicineActivityEditorField')))
             .height,
-        36,
+        40,
       );
       expect(tester.takeException(), isNull);
     });

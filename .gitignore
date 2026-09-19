@@ -223,8 +223,3 @@ ruvector.db
 # APM dependencies
 apm_modules/
 .playwright-mcp/
-
-# graphify local state (machine-specific paths + extraction cache)
-graphify-out/cache/
-graphify-out/.graphify_python
-graphify-out/.graphify_root
