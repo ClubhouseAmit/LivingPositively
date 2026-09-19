@@ -100,7 +100,7 @@ jobs:
           echo "cache_key=$XCODE_CACHE_KEY" >> "$GITHUB_OUTPUT"
 
       - name: Cache CocoaPods
-        uses: actions/cache@v5
+        uses: actions/cache@v6
         with:
           path: |
             ios/Pods
@@ -111,7 +111,7 @@ jobs:
             ${{ runner.os }}-${{ runner.arch }}-${{ steps.xcode.outputs.cache_key }}-ios-pods-${{ env.IOS_PODS_CACHE_VERSION }}-
 
       - name: Cache Xcode DerivedData
-        uses: actions/cache@v5
+        uses: actions/cache@v6
         with:
           path: ~/Library/Developer/Xcode/DerivedData
           key: ${{ runner.os }}-${{ runner.arch }}-${{ steps.xcode.outputs.cache_key }}-ios-deriveddata-${{ env.IOS_DERIVED_DATA_CACHE_VERSION }}-${{ hashFiles('pubspec.lock', 'ios/Podfile', 'ios/Podfile.lock', '.flutter-plugins-dependencies', 'ios/Runner.xcodeproj/project.pbxproj', 'ios/Runner.xcworkspace/contents.xcworkspacedata') }}
