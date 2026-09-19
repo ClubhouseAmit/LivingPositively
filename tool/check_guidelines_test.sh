@@ -340,6 +340,26 @@ class C {
 }
 DART
 
+# --- 0.13 shell pages do not own an AppBar ------------------------------------
+# About is assigned to currentScreen in lib/menu.dart. ReportPreview is not.
+expect 1 "0.13 a shell page setting appBar: is rejected" <<'DART'
+class About {
+  Widget build(c) => Scaffold(appBar: AppBar(title: Text('x')));
+}
+DART
+
+expect 0 "0.13 a shell page with no appBar: is fine" <<'DART'
+class About {
+  Widget build(c) => const Text('x');
+}
+DART
+
+expect 0 "0.13 a pushed route keeps its AppBar" <<'DART'
+class ReportPreview {
+  Widget build(c) => Scaffold(appBar: AppBar(title: Text('x')));
+}
+DART
+
 
 echo
 echo "check_guidelines_test: $pass passed, $fail failed"

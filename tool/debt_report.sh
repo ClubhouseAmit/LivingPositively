@@ -36,7 +36,7 @@ baselined_rules=$(grep -cE '^ +[a-z0-9_]+: ignore' "$AO" 2>/dev/null)
 strict_off=$(grep -cE '^ +strict-[a-z-]+: false' "$AO" 2>/dev/null)
 
 # Section 0: count per rule from the checker itself.
-s0_raw=$(./tool/check_guidelines.sh --all 2>/dev/null | grep -oE 'AGENTS\.md 0\.[0-9]' | sort | uniq -c || true)
+s0_raw=$(./tool/check_guidelines.sh --all 2>/dev/null | grep -oE 'AGENTS\.md 0\.[0-9]+' | sort | uniq -c || true)
 s0_total=$(echo "$s0_raw" | awk '{s+=$1} END{print s+0}')
 
 suppressions=$(grep -rnE '// *ignore(_for_file)?:' lib --include='*.dart' 2>/dev/null | grep -vc '/l10n/' || echo 0)

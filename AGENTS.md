@@ -28,6 +28,7 @@ ever disagree, the script is right and this table is stale.
 | 0.10 | **A new file under `lib/` goes in `lib/features/<name>/{data,ui}`.** `pages/`, `util/`, `MainPageHelpers/`, `form/`, `initialForm/` and the `lib/` root are frozen. | Four competing layouts is why one feature lives in four directories. See 0.10a. |
 | 0.11 | **Layers point one way.** `data/` must not import a widget library. `ui/` must not import a file from `data/` other than `*_models`, `*_types`, `*_repository`. | A view model that reaches around its repository grows until nobody can test it. |
 | 0.12 | **In `features/*/ui/`, use the design-system component, not the Material widget it replaces.** No bare `TextButton(`/`Card(` — use `AppButton`/`AppCard` (`lib/design_system/`). Extends only as new primitives ship; this is not a blanket Material ban. | A component built to fix drift (§0.10a) is worthless if new screens keep reaching past it for the widget underneath. |
+| 0.13 | **A `currentScreen` widget does not set `appBar:`.** The class list is read from `lib/menu.dart`, not restated. A route opened with `Navigator.push` keeps its bar. | `menu.dart` already owns the scaffold. A second `AppBar` is a nested scaffold. Existing bars park by count. |
 
 ### 0.5a What the words mean
 
@@ -43,8 +44,11 @@ The script decides, not your reading of the table. Where you need to know:
   `EdgeInsets*`, `BorderRadius.circular/all`, and `Radius.circular`. Other
   widgets that take a number (`Positioned`, `Container(margin:)`) are not yet
   checked; use tokens there anyway.
-- **Scope** — 0.2 applies to `lib/` only. 0.1/0.3/0.4/0.5 apply to any `.dart`
-  file you point the script at.
+- **"currentScreen widget"** — a class assigned with `currentScreen = Name(`
+  in `lib/menu.dart`. The script reads that file each run; a page reached
+  only through a helper is not on the list.
+- **Scope** — 0.2 applies to `lib/` only. 0.1/0.3/0.4/0.5/0.13 apply to any
+  `.dart` file you point the script at.
 
 **The script is a text heuristic, not a Dart parser.** `tool/check_guidelines.sh`
 documents its known gaps at the top, and `tool/check_guidelines_test.sh` is the

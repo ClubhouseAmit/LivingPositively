@@ -90,6 +90,27 @@ offenders() {
 }
 bad_re=""; allow_re=""
 
+# 0.13 — shell pages are the body of menu.dart's one Scaffold. The class list
+# is whatever `currentScreen = Name(` assigns today, so a new shell page is
+# covered without editing this script. A Navigator.push route is not on that
+# list and keeps its AppBar.
+# ponytail: misses a page reached only through a helper (`currentScreen =
+# _buildHome()`). Put the widget's name on the assignment if that starts
+# hiding bars.
+if [ ! -f lib/menu.dart ]; then
+  echo "check_guidelines: lib/menu.dart missing — cannot tell which pages are shell bodies [AGENTS.md 0.13]" >&2
+  exit 2
+fi
+SHELL_CLASSES=()
+while IFS= read -r name; do
+  [ -n "$name" ] && SHELL_CLASSES+=("$name")
+done < <(grep -oE 'currentScreen[[:space:]]*=[[:space:]]*[A-Z][A-Za-z0-9_]*' lib/menu.dart \
+         | sed -E 's/.*[[:space:]]//' | sort -u)
+if [ "${#SHELL_CLASSES[@]}" -eq 0 ]; then
+  echo "check_guidelines: no currentScreen widgets in lib/menu.dart — the 0.13 pattern broke" >&2
+  exit 2
+fi
+
 for f in "${FILES[@]:-}"; do
   [ -n "$f" ] && [ -f "$f" ] || continue
   scanned=$((scanned + 1))
@@ -178,6 +199,32 @@ for f in "${FILES[@]:-}"; do
     done
     fail=1
   fi
+  # 0.13 shell pages do not own an AppBar ---------------------------------------
+  # Ratchet by count, same as 0.11. The bars already on About, FeelGood,
+  # MyPlanPageFull and MoodMedicinePage stay parked until one of them grows.
+  shell_page=0
+  for name in "${SHELL_CLASSES[@]}"; do
+    if grep -qE "^(final |base |abstract |sealed )*class ${name}\\b" "$f"; then
+      shell_page=1
+      break
+    fi
+  done
+  if [ "$shell_page" -eq 1 ]; then
+    now=$(grep -cE 'appBar:' "$f" || true)
+    now=${now:-0}
+    if [ "$now" -gt 0 ]; then
+      mb=$(git merge-base "$BASE_REF" HEAD 2>/dev/null || echo "")
+      was=0
+      if [ -n "$mb" ]; then
+        was=$(git show "$mb:$f" 2>/dev/null | grep -cE 'appBar:' || true)
+      fi
+      was=${was:-0}
+      if [ "$now" -gt "$was" ]; then
+        note "$f: $now appBar(s) on a shell page, was $was at $BASE_REF — a currentScreen widget does not set appBar: [AGENTS.md 0.13]"
+      fi
+    fi
+  fi
+
   # --- path-based rules -------------------------------------------------------
   # Normalise to a lib-relative path so the same patterns match a repo file
   # (lib/pages/x.dart) and a test fixture (/tmp/xxx/lib/pages/x.dart).

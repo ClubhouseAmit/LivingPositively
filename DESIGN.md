@@ -116,27 +116,29 @@ Describe and construct layout features using these reusable primitives instead o
 
 ### 3.1 Text Wrappers
 
-For font **size and weight**, use a §2.2 token via `Theme.of(context).textTheme.<slot>` — do not hand-write `fontSize`/`fontWeight`. `myText(content, style, align)` and `myAutoSizedText(content, style, align, maxFontSize, [maxLines = 20])` still apply the Rubik font family for one-off text that doesn't fit a token, but `myAutoSizedText` is `@Deprecated` (`lib/util/styles.dart:252`) — its `maxFontSize` argument silently overrides `style.fontSize` whenever `maxLines` is left unbounded, which is how #359's off-screen-button bug happened. Prefer a plain `Text`/`myText` at a §2.2 size over reaching for it.
+`AppText` (`lib/design_system/primitives/app_text.dart`) is the preferred way to render tokenized text. Import it with `import 'package:mazilon/design_system/primitives/app_text.dart';` and select the matching `AppTextStyle` token, for example: `AppText('label', style: AppTextStyle.bodyLarge)`.
+
+For the remaining ~6 DESIGN.md text categories that do not yet have named `AppTextStyle` tokens, use a §2.2 token via `Theme.of(context).textTheme.<slot>` with a plain `Text`, or use `myText(content, style, align)` to apply the Rubik font family for one-off text. Do not hand-write `fontSize`/`fontWeight`. `myAutoSizedText(content, style, align, maxFontSize, [maxLines = 20])` still applies the Rubik font family for one-off text that doesn't fit a token, but `myAutoSizedText` is `@Deprecated` (`lib/util/styles.dart:252`) — its `maxFontSize` argument silently overrides `style.fontSize` whenever `maxLines` is left unbounded, which is how #359's off-screen-button bug happened. Prefer a plain `Text`/`myText` at a §2.2 size over reaching for it.
 
 ### 3.2 Action Buttons
 
 - **Primary Confirmation Button:**
-  Use `ConfirmationButton(context, function, text, style)`.
-  _Flutter implementation details:_ TextButton with background color `AppColors.primary`, foreground color `AppColors.onPrimary`, border radius 20, containing `myAutoSizedText`.
+  Prefer `AppButton` (`lib/design_system/primitives/app_button.dart`) with the `primary` variant: `AppButton(label: 'Confirm', onPressed: onConfirm, variant: AppButtonVariant.primary)`.
 - **Secondary / Reset / Cancel Button:**
-  Use `CancelButton` or `ResetButton`.
-  _Flutter details:_ TextButton with background color `AppColors.error`, foreground `AppColors.onError`, border radius 20, containing `myAutoSizedText`.
+  Prefer `AppButton` with the `destructive` variant: `AppButton(label: 'Cancel', onPressed: onCancel, variant: AppButtonVariant.destructive)`.
+- **Legacy Primary / Reset / Cancel Widgets:**
+  `ConfirmationButton(context, function, text, style)`, `CancelButton`, and `ResetButton` remain for existing call sites, but `AppButton` replaces them for new work. `AppButton` defaults to full width; set `fullWidth: false` when the surrounding layout owns the width.
 - **Generic Icon Button:**
-  Use `myTextButton(function, icon, color, {tooltip})`.
+  `AppButton` has no icon variant yet. Continue to use `myTextButton(function, icon, color, {tooltip})` for this role.
 - **Inline Text Link (tertiary action):**
-  Use `LinkButton(function, icon, label, color, {designFontSize, iconSize, gap, minHeight})`.
+  `AppButton` has no link variant yet. Continue to use `LinkButton(function, icon, label, color, {designFontSize, iconSize, gap, minHeight})` for this role.
   Coloured text with a leading icon and no button chrome — for tertiary
   actions such as "add your own" or "other suggestions". The icon is the
   first child so `Directionality` mirrors it to the reading-start side.
   _Note:_ padding and the minimum tap target are reset so the control matches
   the design's 32px text box; Material's default 48px minimum would inflate
   surrounding spacing. That is a deliberate trade against the 48px
-  touch-target guideline — use `ConfirmationButton`/`myTextButton` where a
+  touch-target guideline — use `AppButton`/`myTextButton` where a
   full-size target matters.
 
 ### 3.3 Cards & List Items
