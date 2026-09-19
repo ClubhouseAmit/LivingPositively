@@ -1,0 +1,314 @@
+name: "Web (parked)"
+
+# LEGACY / UNMAINTAINED — parked, not deleted.
+#
+# These jobs used to live commented-out inside main.yml. They are kept here as
+# real YAML instead so actionlint checks them and re-enabling is a trigger
+# change, not 290 lines of un-commenting.
+#
+# They NEVER run on push or pull_request — `workflow_dispatch` means a human
+# starts them from the Actions tab. To bring web back into CI, move the job
+# you want into main.yml's caller graph (or add push/pull_request here).
+#
+# Before re-enabling, read:
+#   - docs/coverage-status.md § "Still deferred (post Phase 10)"
+#   - ADR-005 § C  (unit-test-web-telemetry was never a gate)
+# and confirm these secrets still exist: AZURE_WEB_STORAGE_ACCOUNT,
+# AZURE_WEB_STORAGE_KEY, AZURE_DEV_WEB_STORAGE_ACCOUNT, AZURE_DEV_WEB_STORAGE_KEY.
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  unit-test-web-telemetry:
+    # Phase 10C (ADR-005 § C): TELEMETRY-ONLY web-test job — NOT YET A GATE.
+    #
+    # This job exists to surface the failure modes of running the unit
+    # suite under `flutter test --platform chrome`. Once those failures
+    # are triaged and the suite is green under Chrome, this job will be
+    # renamed to `unit-test-web`, lose `continue-on-error: true` and the
+    # `if: always()` upload, gain a real gate step (e.g. a
+    # `scripts/check_web_coverage.dart`), and be wired into the
+    # `coverage-aggregate` job's `needs:` list so its lcov merges into
+    # the aggregate floor.
+    #
+    # Until that flip happens, this job is **deliberately green-on-failure**:
+    #   1. `continue-on-error: true` on the test step makes a `flutter test`
+    #      crash report job-success.
+    #   2. The job is NOT in `coverage-aggregate`'s `needs:` list, so a
+    #      missing/empty `coverage/lcov.info` cannot block the aggregate.
+    #
+    # This is intentional. Adding web to the aggregate before the suite is
+    # green would either skip-on-failure (unsafe under branch protection)
+    # or block all PRs on web flakes. The job's value during this phase is
+    # the `coverage-web-lcov` artifact + the test-step log, both of which
+    # PR reviewers can inspect to file triage issues.
+    #
+    # Tracking issue: see § "Still deferred (post Phase 10)" in
+    # docs/coverage-status.md.
+    runs-on: ubuntu-latest
+    env:
+      FIREBASE_OPTIONS_PATH: lib/util/Firebase/firebase_options.dart
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Write firebase options file
+        env:
+          FIREBASE_OPTIONS: ${{ secrets.FIREBASE_OPTIONS }}
+        run: |
+          printf '%s' "$FIREBASE_OPTIONS" | base64 --decode > "${{ env.FIREBASE_OPTIONS_PATH }}"
+
+      - name: Set up Flutter
+        uses: subosito/flutter-action@v2
+        with:
+          flutter-version: "3.44.0"
+          cache: true
+
+      - name: Install dependencies
+        shell: bash
+        run: |
+          export XDG_CONFIG_HOME="$RUNNER_TEMP/dart-config"
+          mkdir -p "$XDG_CONFIG_HOME"
+          echo "XDG_CONFIG_HOME=$XDG_CONFIG_HOME" >> "$GITHUB_ENV"
+          for attempt in 1 2 3; do
+            echo "Installing Dart dependencies (attempt ${attempt}/3)."
+            if flutter pub get; then
+              exit 0
+            fi
+            if [[ "$attempt" -lt 3 ]]; then
+              delay=$((attempt * 15))
+              echo "::warning::flutter pub get failed; retrying in ${delay}s."
+              sleep "$delay"
+            fi
+          done
+          exit 1
+
+      - name: Run unit tests on Chrome (telemetry — failures do NOT fail this job)
+        # `--platform chrome` compiles the test/ suite via dart2js and runs
+        # under headless Chrome. SENTRY_DSN dart-define is the same synthetic
+        # value the other jobs use; the AnalyticsService dart-define-merge
+        # variant (Phase 6 / ADR-001) is NOT re-run here — that file is
+        # already covered by the Android unit job's lcov.
+        #
+        # `continue-on-error: true` is INTENTIONAL during the triage phase
+        # (see job-level comment). Do not remove it without also wiring
+        # this job into coverage-aggregate's needs: list and adding a real
+        # gate step below.
+        continue-on-error: true
+        run: |
+          flutter test --platform chrome --coverage --dart-define=SENTRY_DSN=https://test@dsn.example.local/0
+
+      - name: Run breathing browser flows and image codecs (telemetry)
+        # These tests are self-contained so Flutter's browser bundler does not
+        # need the top-level test_support imports used by legacy test helpers.
+        # Keep feature results visible even when the full web suite cannot load.
+        continue-on-error: true
+        run: >-
+          flutter test --platform chrome
+          test/features/remember_to_breathe/ui/breathing_browser_flow_test.dart
+          test/features/remember_to_breathe/ui/breathing_view_model_test.dart
+          test/features/remember_to_breathe/data/breathing_photo_importer_test.dart
+          test/features/remember_to_breathe/data/breathing_models_test.dart
+
+      - name: Upload web coverage report (telemetry — may be missing or stale)
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: coverage-web-lcov
+          path: coverage/lcov.info
+          # Do not fail the upload if the file is missing (it will be when
+          # `flutter test --platform chrome` crashes before emitting lcov).
+          if-no-files-found: warn
+
+  build-web:
+    runs-on: ubuntu-latest
+    if: github.ref == 'refs/heads/main'
+    env:
+      FIREBASE_OPTIONS_PATH: lib/util/Firebase/firebase_options.dart
+      WEB_BUILD_PATH: build/web
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Write firebase options file
+        env:
+          FIREBASE_OPTIONS: ${{ secrets.FIREBASE_OPTIONS }}
+        run: |
+          printf '%s' "$FIREBASE_OPTIONS" | base64 --decode > "${{ env.FIREBASE_OPTIONS_PATH }}"
+
+      - name: Set up Flutter
+        uses: subosito/flutter-action@v2
+        with:
+          flutter-version: "3.44.0"
+          cache: true
+
+      - name: Install dependencies
+        shell: bash
+        run: |
+          export XDG_CONFIG_HOME="$RUNNER_TEMP/dart-config"
+          mkdir -p "$XDG_CONFIG_HOME"
+          echo "XDG_CONFIG_HOME=$XDG_CONFIG_HOME" >> "$GITHUB_ENV"
+          for attempt in 1 2 3; do
+            echo "Installing Dart dependencies (attempt ${attempt}/3)."
+            if flutter pub get; then
+              exit 0
+            fi
+            if [[ "$attempt" -lt 3 ]]; then
+              delay=$((attempt * 15))
+              echo "::warning::flutter pub get failed; retrying in ${delay}s."
+              sleep "$delay"
+            fi
+          done
+          exit 1
+
+      - name: Get version from pubspec.yaml
+        id: get_version
+        run: |
+          VERSION_LINE=$(grep '^version: ' pubspec.yaml)
+          VERSION_STRING=${VERSION_LINE#version: }
+          echo "VERSION_STRING=$VERSION_STRING" >> $GITHUB_ENV
+
+      - name: Parse version components
+        run: |
+          VERSION_NO_BUILD="${VERSION_STRING%%+*}"
+          echo "VERSION_NO_BUILD=$VERSION_NO_BUILD" >> $GITHUB_ENV
+
+      - name: Get short commit hash
+        run: |
+          COMMIT_HASH=$(git rev-parse --short HEAD)
+          echo "COMMIT_HASH=$COMMIT_HASH" >> $GITHUB_ENV
+
+      - name: Set build name and number
+        run: |
+          BUILD_NAME="${VERSION_NO_BUILD}+${COMMIT_HASH}"
+          BUILD_NUMBER="${GITHUB_RUN_NUMBER}"
+          echo "BUILD_NAME=$BUILD_NAME" >> $GITHUB_ENV
+          echo "BUILD_NUMBER=$BUILD_NUMBER" >> $GITHUB_ENV
+
+      - name: Build Web App
+        env:
+          MIXPANEL_PROJECT_TOKEN: ${{ secrets.MIXPANEL_PROJECT_TOKEN }}
+          SENTRY_DSN: ${{ secrets.SENTRY_DSN }}
+        run: |
+          flutter build web --release \
+            --build-name="${BUILD_NAME}" \
+            --build-number="${BUILD_NUMBER}" \
+            --dart-define=MIXPANEL_PROJECT_TOKEN="$MIXPANEL_PROJECT_TOKEN" \
+            --dart-define=SENTRY_DSN="$SENTRY_DSN"
+
+      - name: Upload Web Build Artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: web-build
+          path: ${{ env.WEB_BUILD_PATH }}
+
+      - name: Deploy to Azure Storage Static Website
+        uses: azure/cli@v2
+        with:
+          inlineScript: |
+            az storage blob upload-batch \
+              --account-name ${{ secrets.AZURE_WEB_STORAGE_ACCOUNT }} \
+              --account-key ${{ secrets.AZURE_WEB_STORAGE_KEY }} \
+              --destination '$web' \
+              --source build/web \
+              --overwrite
+  build-dev-web:
+    runs-on: ubuntu-latest
+    if: github.ref != 'refs/heads/main'
+    concurrency:
+      group: dev-web-${{ github.ref }}
+      cancel-in-progress: false
+    env:
+      FIREBASE_OPTIONS_PATH: lib/util/Firebase/firebase_options.dart
+      WEB_BUILD_PATH: build/web
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Write firebase options file
+        env:
+          FIREBASE_OPTIONS: ${{ secrets.FIREBASE_OPTIONS }}
+        run: |
+          printf '%s' "$FIREBASE_OPTIONS" | base64 --decode > "${{ env.FIREBASE_OPTIONS_PATH }}"
+
+      - name: Set up Flutter
+        uses: subosito/flutter-action@v2
+        with:
+          flutter-version: "3.44.0"
+          cache: true
+
+      - name: Install dependencies
+        shell: bash
+        run: |
+          export XDG_CONFIG_HOME="$RUNNER_TEMP/dart-config"
+          mkdir -p "$XDG_CONFIG_HOME"
+          echo "XDG_CONFIG_HOME=$XDG_CONFIG_HOME" >> "$GITHUB_ENV"
+          for attempt in 1 2 3; do
+            echo "Installing Dart dependencies (attempt ${attempt}/3)."
+            if flutter pub get; then
+              exit 0
+            fi
+            if [[ "$attempt" -lt 3 ]]; then
+              delay=$((attempt * 15))
+              echo "::warning::flutter pub get failed; retrying in ${delay}s."
+              sleep "$delay"
+            fi
+          done
+          exit 1
+
+      - name: Get version from pubspec.yaml
+        id: get_version
+        run: |
+          VERSION_LINE=$(grep '^version: ' pubspec.yaml)
+          VERSION_STRING=${VERSION_LINE#version: }
+          echo "VERSION_STRING=$VERSION_STRING" >> $GITHUB_ENV
+
+      - name: Parse version components
+        run: |
+          VERSION_NO_BUILD="${VERSION_STRING%%+*}"
+          echo "VERSION_NO_BUILD=$VERSION_NO_BUILD" >> $GITHUB_ENV
+
+      - name: Get short commit hash
+        run: |
+          COMMIT_HASH=$(git rev-parse --short HEAD)
+          echo "COMMIT_HASH=$COMMIT_HASH" >> $GITHUB_ENV
+
+      - name: Set build name and number
+        run: |
+          BUILD_NAME="${VERSION_NO_BUILD}+${COMMIT_HASH}"
+          BUILD_NUMBER="${GITHUB_RUN_NUMBER}"
+          echo "BUILD_NAME=$BUILD_NAME" >> $GITHUB_ENV
+          echo "BUILD_NUMBER=$BUILD_NUMBER" >> $GITHUB_ENV
+
+      - name: Build Web App
+        env:
+          MIXPANEL_PROJECT_TOKEN: ${{ secrets.MIXPANEL_PROJECT_TOKEN }}
+          SENTRY_DSN: ${{ secrets.SENTRY_DSN }}
+        run: |
+          flutter build web --release \
+            --build-name="${BUILD_NAME}" \
+            --build-number="${BUILD_NUMBER}" \
+            --dart-define=MIXPANEL_PROJECT_TOKEN="$MIXPANEL_PROJECT_TOKEN" \
+            --dart-define=SENTRY_DSN="$SENTRY_DSN"
+
+      - name: Upload Web Build Artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: web-build-dev
+          path: ${{ env.WEB_BUILD_PATH }}
+
+      - name: Deploy to Azure Storage Static Website
+        uses: azure/cli@v2
+        with:
+          inlineScript: |
+            az storage blob upload-batch \
+              --account-name ${{ secrets.AZURE_DEV_WEB_STORAGE_ACCOUNT }} \
+              --account-key ${{ secrets.AZURE_DEV_WEB_STORAGE_KEY }} \
+              --destination '$web' \
+              --source build/web \
+              --overwrite
+

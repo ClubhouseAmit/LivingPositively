@@ -1,0 +1,46 @@
+name: Firestore security rules
+
+# Called by .github/workflows/main.yml. Needs no secrets.
+on:
+  workflow_call:
+
+permissions:
+  contents: read
+
+jobs:
+  firestore-rules-test:
+    name: Firestore security rules
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+
+      - name: Set up Node.js
+        uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+        with:
+          node-version: "22"
+          cache: npm
+          cache-dependency-path: functions/package-lock.json
+
+      # The Firestore emulator is a Java process.
+      - name: Set up JDK
+        uses: actions/setup-java@b6effb05e454b25005698d916606bdc6ffcbf961 # v5.0.0
+        with:
+          distribution: "temurin"
+          # firebase-tools v15 requires Java 21+ to run the Firestore emulator.
+          java-version: "21.x"
+
+      - name: Install Functions dependencies
+        run: npm --prefix functions ci
+
+      - name: Install Firebase CLI
+        run: npm install --global firebase-tools@15.29.0
+
+      # ADR-015 decision 7: the access policy is verified against the real
+      # rules engine, not asserted in review. Covers deny on get/list/
+      # create/update/delete for every server-only collection, devices
+      # ownership, and that collections predating this branch keep the
+      # unauthenticated read the app relies on at first launch.
+      - name: Verify Firestore rules against the emulator
+        run: npm --prefix functions run test:rules

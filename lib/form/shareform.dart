@@ -961,6 +961,7 @@ class _ShareFormState extends WizardStepState<ShareForm> {
             ),
             Text(
               appLocale.sharePageSubTitle(gender),
+              textAlign: TextAlign.center,
               style: TextStyle(
                 fontWeight: FontWeight.normal,
                 fontSize: 16.sp,
@@ -972,6 +973,7 @@ class _ShareFormState extends WizardStepState<ShareForm> {
               width: MediaQuery.sizeOf(context).width * 0.8,
               child: Text(
                 appLocale.sharePageMidTitle(gender),
+                textAlign: TextAlign.center,
                 style: TextStyle(
                   fontWeight: FontWeight.normal,
                   fontSize: 16.sp,

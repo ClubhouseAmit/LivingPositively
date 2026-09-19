@@ -10,6 +10,9 @@ import 'package:mazilon/util/styles.dart';
 import 'package:mazilon/util/userInformation.dart';
 import 'package:mazilon/util/spoken_phone_number_normalizer.dart';
 import 'package:provider/provider.dart';
+import 'package:mazilon/util/theme/spacing.dart';
+
+part 'phone_page_editing_row.dart';
 
 class PhonePageList extends StatefulWidget {
   final PhonePageData phonePageData;
@@ -341,7 +344,9 @@ class _PhonePageListState extends LPExtendedState<PhonePageList> {
       _dialCodeFor(_countryCodeForStoredNumber(number, fallbackCountryCode)),
     );
     return Padding(
-      padding: EdgeInsets.all(returnSizedBox(context, 8)),
+      padding: EdgeInsets.all(
+        returnSizedBox(context, AppSpacing.sm.toInt()),
+      ),
       child: Row(
         children: [
           circularActionButton(
@@ -361,14 +366,19 @@ class _PhonePageListState extends LPExtendedState<PhonePageList> {
               );
             },
           ),
-          const SizedBox(width: 10),
+          const SizedBox(width: AppSpacing.md),
           Expanded(
             child: Card(
               child: Padding(
-                padding: EdgeInsets.all(returnSizedBox(context, 10)),
+                padding: EdgeInsets.all(
+                  returnSizedBox(context, AppSpacing.md.toInt()),
+                ),
                 child: Text(
                   name,
-                  style: TextStyle(fontWeight: FontWeight.normal, fontSize: 14.sp),
+                  style: TextStyle(
+                    fontWeight: FontWeight.normal,
+                    fontSize: 14.sp,
+                  ),
                 ),
               ),
             ),
@@ -399,145 +409,25 @@ class _PhonePageListState extends LPExtendedState<PhonePageList> {
     required ValueChanged<String> onCountryChanged,
     VoidCallback? onDelete,
   }) {
-    return Padding(
-      padding: EdgeInsets.all(returnSizedBox(context, 8)),
-      child: Form(
-        key: formKey,
-        child: Column(
-          children: [
-            LayoutBuilder(
-              builder: (context, constraints) {
-                final nameField = TextFormField(
-                  controller: nameController,
-                  decoration: InputDecoration(
-                    border: const OutlineInputBorder(),
-                    labelText: appLocale.phonesPageName(gender),
-                    suffixIcon: SpeechDictationSuffixAction.isSupportedPlatform
-                        ? SpeechDictationSuffixAction(
-                            controller: nameController,
-                          )
-                        : null,
-                  ),
-                  validator: _validateName,
-                );
-                final numberField = Directionality(
-                  textDirection: TextDirection.ltr,
-                  child: TextFormField(
-                    controller: numberController,
-                    keyboardType: TextInputType.phone,
-                    textDirection: TextDirection.ltr,
-                    textAlign: TextAlign.left,
-                    decoration: InputDecoration(
-                      border: const OutlineInputBorder(),
-                      labelText: appLocale.phonesPagePhone(gender),
-                      suffixIcon:
-                          SpeechDictationSuffixAction.isSupportedPlatform
-                          ? SpeechDictationSuffixAction(
-                              controller: numberController,
-                              isPhoneNumber: true,
-                              transcriptTransformer: (transcript, localeId) =>
-                                  normalizeSpokenPhoneNumber(
-                                    transcript,
-                                    localeId: localeId,
-                                  ),
-                              replacementValidator: (transcript) =>
-                                  PhonePageData.canonicalizePhoneNumber(
-                                    transcript,
-                                    _dialCodeFor(countryCode),
-                                  ) !=
-                                  null,
-                            )
-                          : null,
-                    ),
-                    validator: (value) => _validateNumber(value, countryCode),
-                  ),
-                );
-                final phoneField = Row(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Semantics(
-                      label: appLocale.contactPhoneCountryCodeHint,
-                      child: SizedBox(
-                        width: 112,
-                        child: CountryCodePicker(
-                          key: ValueKey(countryPickerKey),
-                          initialSelection: countryCode,
-                          countryFilter: countryPickerCodes,
-                          showFlag: false,
-                          showDropDownButton: true,
-                          padding: EdgeInsets.zero,
-                          onChanged: (selectedCountry) {
-                            final selectedCode = selectedCountry.code;
-                            if (selectedCode != null) {
-                              onCountryChanged(selectedCode);
-                            }
-                          },
-                        ),
-                      ),
-                    ),
-                    const SizedBox(width: 8),
-                    Expanded(child: numberField),
-                  ],
-                );
-                final helper = Padding(
-                  padding: const EdgeInsetsDirectional.only(top: 4),
-                  child: Text(
-                    appLocale.contactPhoneCountryCodeHint,
-                    textAlign: TextAlign.start,
-                    style: Theme.of(context).textTheme.bodySmall,
-                  ),
-                );
-                if (constraints.maxWidth < 520) {
-                  return Column(
-                    crossAxisAlignment: CrossAxisAlignment.stretch,
-                    children: [
-                      nameField,
-                      const SizedBox(height: 8),
-                      phoneField,
-                      helper,
-                    ],
-                  );
-                }
-                return Column(
-                  crossAxisAlignment: CrossAxisAlignment.stretch,
-                  children: [
-                    Row(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Expanded(child: nameField),
-                        const SizedBox(width: 8),
-                        Expanded(flex: 2, child: phoneField),
-                      ],
-                    ),
-                    helper,
-                  ],
-                );
-              },
-            ),
-            Row(
-              mainAxisAlignment: MainAxisAlignment.end,
-              children: [
-                IconButton(
-                  tooltip: appLocale.contactSaveTooltip,
-                  icon: Icon(Icons.check, size: returnSizedBox(context, 32)),
-                  onPressed: onSave,
-                ),
-                IconButton(
-                  tooltip: appLocale.contactCancelTooltip,
-                  icon: Icon(Icons.close, size: returnSizedBox(context, 32)),
-                  onPressed: onCancel,
-                ),
-                if (onDelete != null)
-                  IconButton(
-                    tooltip: appLocale.contactDeleteTooltip,
-                    icon: Icon(Icons.delete, size: returnSizedBox(context, 32)),
-                    onPressed: onDelete,
-                  ),
-              ],
-            ),
-          ],
-        ),
-      ),
+    return _PhoneEditingRow(
+      formKey: formKey,
+      nameController: nameController,
+      numberController: numberController,
+      countryCode: countryCode,
+      countryPickerKey: countryPickerKey,
+      nameLabel: appLocale.phonesPageName(gender),
+      phoneLabel: appLocale.phonesPagePhone(gender),
+      countryCodeHint: appLocale.contactPhoneCountryCodeHint,
+      saveTooltip: appLocale.contactSaveTooltip,
+      cancelTooltip: appLocale.contactCancelTooltip,
+      deleteTooltip: appLocale.contactDeleteTooltip,
+      validateName: _validateName,
+      validateNumber: (value) => _validateNumber(value, countryCode),
+      dialCode: _dialCodeFor(countryCode),
+      onSave: onSave,
+      onCancel: onCancel,
+      onCountryChanged: onCountryChanged,
+      onDelete: onDelete,
     );
   }
 
@@ -596,7 +486,7 @@ class _PhonePageListState extends LPExtendedState<PhonePageList> {
             },
           ),
         if (entryCount == contactCount) ...[
-          const SizedBox(width: 10),
+          const SizedBox(width: AppSpacing.md),
           TextButton(
             onPressed: () => _startDraft(profileCountryCode),
             style: TextButton.styleFrom(
@@ -604,9 +494,9 @@ class _PhonePageListState extends LPExtendedState<PhonePageList> {
                 context,
               ).colorScheme.surfaceContainerHighest,
               shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(12),
+                borderRadius: BorderRadius.circular(AppRadii.card),
               ),
-              padding: const EdgeInsets.all(6),
+              padding: const EdgeInsets.all(AppSpacing.sm),
             ),
             child: Text(
               appLocale.phonesPageManualTitle(gender),

@@ -74,14 +74,21 @@ Metsilon (Mazilon) serves individuals in highly vulnerable or distressed moments
 
 The application uses **Rubik** (referenced as `'Rubix'` in code font mappings).
 
-- **Heading Large:** `fontSize: 28.0`, `fontWeight: FontWeight.w500` (Medium), `lineHeight: 36.4px` — Screen title headers.
-- **Heading Medium:** `fontSize: 24.0`, `fontWeight: FontWeight.w500` (Medium), `lineHeight: 24.6px` — Section title headers.
-- **Card Title:** `fontSize: 18.0`, `fontWeight: FontWeight.w500` (Medium), `lineHeight: 30.0px` — Highlight text inside cards.
-- **Body Bold:** `fontSize: 16.0`, `fontWeight: FontWeight.w500` (Medium), `lineHeight: 19.0px` — Buttons, highlights.
-- **Body Regular:** `fontSize: 16.0`, `fontWeight: FontWeight.w400` (Regular), `lineHeight: 19.0px` — Standard paragraphs.
-- **Input Label:** `fontSize: 14.0`, `fontWeight: FontWeight.w500` (Medium), `lineHeight: 17.0px` — Textfield inputs.
-- **Body Small:** `fontSize: 14.0`, `fontWeight: FontWeight.w400` (Regular), `lineHeight: 32.0px` — Muted hints.
-- **Micro Detail:** `fontSize: 10.0`, `fontWeight: FontWeight.w400` (Regular), `lineHeight: 13.5px` — Helper labels.
+Defined in `lib/util/theme/app_theme.dart` as `_appTextTheme`, wired onto
+`ThemeData.textTheme` in both `buildLightTheme()` and `buildDarkTheme()`. Call
+sites use `Theme.of(context).textTheme.<slot>` — do not declare `fontSize`
+directly on a screen. No `.sp`: these sizes are the literal design values;
+device-independent scaling is `MediaQuery.textScaler`'s job, not a second
+scaling system stacked on top (see the code doc comment for why).
+
+- **Heading Large** (`textTheme.headlineLarge`): `fontSize: 28.0`, `fontWeight: FontWeight.w500` (Medium), `lineHeight: 36.4px` — Screen title headers.
+- **Heading Medium** (`textTheme.headlineMedium`): `fontSize: 24.0`, `fontWeight: FontWeight.w500` (Medium), `lineHeight: 24.6px` — Section title headers.
+- **Card Title** (`textTheme.titleLarge`): `fontSize: 18.0`, `fontWeight: FontWeight.w500` (Medium), `lineHeight: 30.0px` — Highlight text inside cards.
+- **Body Bold** (`textTheme.labelLarge`): `fontSize: 16.0`, `fontWeight: FontWeight.w500` (Medium), `lineHeight: 19.0px` — Buttons, highlights.
+- **Body Regular** (`textTheme.bodyLarge`): `fontSize: 16.0`, `fontWeight: FontWeight.w400` (Regular), `lineHeight: 19.0px` — Standard paragraphs.
+- **Input Label** (`textTheme.titleSmall`): `fontSize: 14.0`, `fontWeight: FontWeight.w500` (Medium), `lineHeight: 17.0px` — Textfield inputs.
+- **Body Small** (`textTheme.bodySmall`): `fontSize: 14.0`, `fontWeight: FontWeight.w400` (Regular), `lineHeight: 32.0px` — Muted hints.
+- **Micro Detail** (`textTheme.labelSmall`): `fontSize: 10.0`, `fontWeight: FontWeight.w400` (Regular), `lineHeight: 13.5px` — Helper labels.
 
 ### 2.3 Border Radii
 
@@ -109,10 +116,7 @@ Describe and construct layout features using these reusable primitives instead o
 
 ### 3.1 Text Wrappers
 
-Ensure all raw text is styled using these helper widgets to correctly apply the Rubik font:
-
-- **Standard Text:** `myText(content, style, align)`
-- **Auto-Sized Text:** `myAutoSizedText(content, style, align, maxFontSize, [maxLines = 20])`
+For font **size and weight**, use a §2.2 token via `Theme.of(context).textTheme.<slot>` — do not hand-write `fontSize`/`fontWeight`. `myText(content, style, align)` and `myAutoSizedText(content, style, align, maxFontSize, [maxLines = 20])` still apply the Rubik font family for one-off text that doesn't fit a token, but `myAutoSizedText` is `@Deprecated` (`lib/util/styles.dart:252`) — its `maxFontSize` argument silently overrides `style.fontSize` whenever `maxLines` is left unbounded, which is how #359's off-screen-button bug happened. Prefer a plain `Text`/`myText` at a §2.2 size over reaching for it.
 
 ### 3.2 Action Buttons
 

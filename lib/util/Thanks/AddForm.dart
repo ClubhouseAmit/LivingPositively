@@ -7,6 +7,7 @@ import 'package:mazilon/util/LP_extended_state.dart';
 import 'package:mazilon/util/styles.dart';
 import 'package:mazilon/util/userInformation.dart'; //
 import 'package:provider/provider.dart'; //
+import 'package:mazilon/util/theme/spacing.dart';
 
 //
 
@@ -63,6 +64,64 @@ class _AddFormState extends LPExtendedState<AddForm> {
     _controller.dispose();
   }
 
+  Widget _form(UserInformation userInfo) {
+    return Padding(
+      padding: const EdgeInsets.all(AppSpacing.sm),
+      child: Form(
+        key: _formKey,
+        child: Padding(
+          padding: const EdgeInsets.only(bottom: AppSpacing.sm),
+          child: TextFormField(
+            onFieldSubmitted: (_) => unawaited(_onSubmitForm(userInfo)),
+            maxLength: 100,
+            controller: _controller,
+            autofocus: true,
+            decoration: InputDecoration(
+              labelText: widget.formTitle,
+              suffixIcon: SpeechDictationSuffixAction.isSupportedPlatform
+                  ? SpeechDictationSuffixAction(
+                      controller: _controller,
+                      maxLength: 100,
+                    )
+                  : null,
+            ),
+            validator: (value) {
+              if (value == null || value.isEmpty) {
+                return appLocale.validateEmpty;
+              }
+              return null;
+            },
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _actionLabel(String label) {
+    return myAutoSizedText(
+      label,
+      TextStyle(fontWeight: FontWeight.bold, fontSize: 20.sp),
+      null,
+      30,
+    );
+  }
+
+  Widget _actions(UserInformation userInfo, String gender) {
+    return Row(
+      mainAxisAlignment: MainAxisAlignment.end,
+      children: <Widget>[
+        TextButton(
+          onPressed: () => Navigator.of(context).pop(),
+          child: _actionLabel(appLocale.closeButton(gender)),
+        ),
+        TextButton(
+          onPressed: () => unawaited(_onSubmitForm(userInfo)),
+          child: _actionLabel(appLocale.saveButton(gender)),
+        ),
+      ],
+    );
+  }
+
   // build the add form widget
   @override
   Widget build(BuildContext context) {
@@ -84,7 +143,7 @@ class _AddFormState extends LPExtendedState<AddForm> {
           // Wrap Column with SingleChildScrollView
           child: Column(
             children: [
-              SizedBox(height: 10),
+              const SizedBox(height: AppSpacing.md),
               // text on the top of the form
               myAutoSizedText(
                 appLocale.newTraitOrThanks(widget.formTitle),
@@ -95,95 +154,8 @@ class _AddFormState extends LPExtendedState<AddForm> {
                 null,
                 40,
               ),
-              Padding(
-                padding: const EdgeInsets.all(8.0),
-                child: Form(
-                  key: _formKey,
-                  child: Column(
-                    children: [
-                      SingleChildScrollView(
-                        child: Column(
-                          children: <Widget>[
-                            // the text field
-                            Padding(
-                              padding: const EdgeInsets.only(bottom: 8.0),
-                              child: TextFormField(
-                                onFieldSubmitted: (_) {
-                                  unawaited(_onSubmitForm(userInfoProvider));
-                                },
-                                maxLength:
-                                    100, // set the max length of the text field
-                                controller: _controller,
-                                autofocus: true,
-                                decoration: InputDecoration(
-                                  labelText: widget.formTitle,
-                                  suffixIcon:
-                                      SpeechDictationSuffixAction
-                                          .isSupportedPlatform
-                                      ? SpeechDictationSuffixAction(
-                                          controller: _controller,
-                                          maxLength: 100,
-                                        )
-                                      : null,
-                                  contentPadding: EdgeInsets.only(right: 1.0),
-                                  labelStyle: TextStyle(
-                                    fontWeight: FontWeight.normal,
-                                    fontFamily: 'Rubix',
-                                    height: 0,
-                                    fontSize: 20,
-                                  ),
-                                ),
-                                validator: (value) {
-                                  // validate the text field
-                                  if (value == null || value.isEmpty) {
-                                    return appLocale.validateEmpty;
-                                  }
-                                  return null;
-                                },
-                              ),
-                            ),
-                          ],
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-              ),
-              Row(
-                mainAxisAlignment: MainAxisAlignment.end,
-                children: <Widget>[
-                  // the close button
-                  TextButton(
-                    child: myAutoSizedText(
-                      appLocale.closeButton(gender),
-                      TextStyle(
-                        fontWeight: FontWeight.bold,
-                        fontSize: 20.sp, // button text size
-                      ),
-                      null,
-                      30,
-                    ),
-                    onPressed: () {
-                      Navigator.of(context).pop();
-                    },
-                  ),
-                  // the save button
-                  TextButton(
-                    child: myAutoSizedText(
-                      appLocale.saveButton(gender),
-                      TextStyle(
-                        fontWeight: FontWeight.bold,
-                        fontSize: 20.sp, // button text size
-                      ),
-                      null,
-                      30,
-                    ),
-                    onPressed: () {
-                      unawaited(_onSubmitForm(userInfoProvider));
-                    },
-                  ),
-                ],
-              ),
+              _form(userInfoProvider),
+              _actions(userInfoProvider, gender),
             ],
           ),
         ),

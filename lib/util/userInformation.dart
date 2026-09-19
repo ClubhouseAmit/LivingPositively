@@ -12,7 +12,6 @@ import 'package:mazilon/util/persistent_memory_service.dart';
 
 enum DarkModePreference { alwaysLight, alwaysDark, scheduled }
 
-//this it the user's information class, with it we store and display it across the app
 class UserInformation with ChangeNotifier {
   String localeName;
   String gender;
