@@ -102,6 +102,11 @@ dev_dependencies:
   # package. See that file for information about deactivating specific lint
   # rules and activating additional ones.
   flutter_lints: ^6.0.0
+
+  # NOTE: solid_lints (AST-based method-length / magic-number / widget-returning
+  # rules) cannot be installed on Flutter 3.44.9 — flutter_test pins meta 1.18.0
+  # and every analyzer >=13.1 requires meta ^1.18.3. Revisit after the next
+  # Flutter SDK upgrade; see AGENTS.md 0.9.
   fake_cloud_firestore: ^4.1.1
   very_good_analysis: ^10.3.0
 

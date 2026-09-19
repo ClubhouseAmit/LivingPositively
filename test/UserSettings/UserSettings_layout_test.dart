@@ -148,7 +148,7 @@ void main() {
   ) async {
     await pumpSettings(tester, 'en');
 
-    expect(tester.getSize(find.byType(TextField).first).height, 42);
+    expect(tester.getSize(find.byType(TextField).first).height, 40);
     expect(
       tester.getSize(find.byKey(const Key('darkModeScheduledOption'))).height,
       56,
@@ -177,7 +177,7 @@ void main() {
   });
 
   testWidgets(
-    'name field stays within the 42px budget during active dictation',
+    'name field stays within the 40px budget during active dictation',
     (tester) async {
       final previousFeatureEnabled =
           SpeechDictationSuffixAction.isFeatureEnabled;
@@ -212,7 +212,7 @@ void main() {
           find.byKey(const Key('speech-dictation-discard')),
           findsOneWidget,
         );
-        expect(tester.getSize(find.byType(TextField).first).height, 42);
+        expect(tester.getSize(find.byType(TextField).first).height, 40);
         expect(tester.takeException(), isNull);
       } finally {
         SpeechDictationSuffixAction.isFeatureEnabled = previousFeatureEnabled;

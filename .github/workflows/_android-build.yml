@@ -1,0 +1,172 @@
+name: Build Android
+
+# Called by .github/workflows/main.yml.
+#
+# Runs on BOTH pull_request and push. The unit-test + coverage half runs
+# always; the release-signing half is gated to push-on-main so PR-authored
+# code never executes on a runner holding the production keystore (and so
+# fork PRs, which receive no secrets, do not fail on a base64 decode).
+on:
+  workflow_call:
+    outputs:
+      coverage-artifact-id:
+        description: Artifact ID of the unit-test lcov report (coverage-lcov).
+        value: ${{ jobs.build-android.outputs.coverage-artifact-id }}
+
+permissions:
+  contents: read
+
+jobs:
+  build-android:
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+    outputs:
+      coverage-artifact-id: ${{ steps.upload-coverage.outputs.artifact-id }}
+    env:
+      KEYSTORE_PATH: android/app/
+      KEYSTORE_FILE: Maztzilonkey.jks
+      FIREBASE_OPTIONS_PATH: lib/util/Firebase/firebase_options.dart
+      AAB_PATH: build/app/outputs/bundle/release/app-release.aab
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Write key store file for release signing
+        if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+        env:
+          APPSIGNINGKEY: ${{ secrets.APPSIGNINGKEY }}
+        run: |
+          printf '%s' "$APPSIGNINGKEY" | base64 --decode > "${{ env.KEYSTORE_PATH }}${{ env.KEYSTORE_FILE }}"
+
+      - name: Write firebase options file
+        env:
+          FIREBASE_OPTIONS: ${{ secrets.FIREBASE_OPTIONS }}
+        run: |
+          printf '%s' "$FIREBASE_OPTIONS" | base64 --decode > "${{ env.FIREBASE_OPTIONS_PATH }}"
+
+      - name: Set up JDK
+        uses: actions/setup-java@v5
+        with:
+          distribution: "adopt"
+          java-version: "17.x"
+          cache: gradle
+          cache-dependency-path: |
+            .github/workflows/_android-build.yml
+            android/**/*.gradle*
+            android/gradle.properties
+            android/gradle/wrapper/gradle-wrapper.properties
+            pubspec.yaml
+            pubspec.lock
+
+      - name: Set up Flutter
+        uses: subosito/flutter-action@v2
+        with:
+          flutter-version: "3.44.0"
+          cache: true
+      - name: Install dependencies
+        shell: bash
+        run: |
+          export XDG_CONFIG_HOME="$RUNNER_TEMP/dart-config"
+          mkdir -p "$XDG_CONFIG_HOME"
+          echo "XDG_CONFIG_HOME=$XDG_CONFIG_HOME" >> "$GITHUB_ENV"
+          for attempt in 1 2 3; do
+            echo "Installing Dart dependencies (attempt ${attempt}/3)."
+            if flutter pub get; then
+              exit 0
+            fi
+            if [[ "$attempt" -lt 3 ]]; then
+              delay=$((attempt * 15))
+              echo "::warning::flutter pub get failed; retrying in ${delay}s."
+              sleep "$delay"
+            fi
+          done
+          exit 1
+      - name: Run tests with coverage
+        # A tracked historical lcov.info must never stand in for this run.
+        run: |
+          rm -f coverage/lcov.info coverage/lcov.base.info coverage/lcov.token.info
+          flutter test --coverage --reporter=expanded
+      - name: Snapshot base lcov before dart-define run
+        # The next `flutter test` invocation overwrites coverage/lcov.info;
+        # snapshot the full-suite lcov so we can merge the dart-define
+        # variant on top of it via scripts/merge_lcov.dart. See
+        # docs/adr/ADR-001-phase-6-test-coverage-integration-tests.md.
+        run: cp coverage/lcov.info coverage/lcov.base.info
+      - name: Run AnalyticsService tests with MIXPANEL_PROJECT_TOKEN dart-define
+        # Phase 6 (ADR-001): MixPanelService.init / trackEvent post-init
+        # branches are gated on a non-empty
+        # String.fromEnvironment('MIXPANEL_PROJECT_TOKEN'). This second test
+        # invocation exercises only the AnalyticsService token-present
+        # branches with the env var set; the standard suite already covered
+        # the empty-token short-circuit branches in the run above.
+        run: |
+          flutter test --coverage \
+            --dart-define=MIXPANEL_PROJECT_TOKEN=test-token \
+            test/AnalyticsService/MixPanelService_token_test.dart
+          cp coverage/lcov.info coverage/lcov.token.info
+      - name: Merge lcov artifacts
+        run: dart run scripts/merge_lcov.dart coverage/lcov.info coverage/lcov.base.info coverage/lcov.token.info
+      - name: Enforce coverage gate
+        run: dart run scripts/check_coverage.dart
+      - name: Upload coverage report
+        id: upload-coverage
+        # Publish canonical inputs only after the tests and gate succeed.
+        if: success()
+        uses: actions/upload-artifact@v4
+        with:
+          name: coverage-lcov
+          path: coverage/lcov.info
+          if-no-files-found: error
+          overwrite: true
+
+      - name: Get version from pubspec.yaml
+        id: get_version
+        run: |
+          VERSION_LINE=$(grep '^version: ' pubspec.yaml)
+          VERSION_STRING=${VERSION_LINE#version: }
+          echo "VERSION_STRING=$VERSION_STRING" >> $GITHUB_ENV
+
+      - name: Parse version components
+        run: |
+          VERSION_NO_BUILD="${VERSION_STRING%%+*}"
+          echo "VERSION_NO_BUILD=$VERSION_NO_BUILD" >> $GITHUB_ENV
+      - name: Get short commit hash
+        run: |
+          COMMIT_HASH=$(git rev-parse --short HEAD)
+          echo "COMMIT_HASH=$COMMIT_HASH" >> $GITHUB_ENV
+
+      - name: Set build name and number
+        run: |
+          BUILD_NAME="${VERSION_NO_BUILD}+${COMMIT_HASH}"
+          BUILD_NUMBER="${GITHUB_RUN_NUMBER}"
+          echo "BUILD_NAME=$BUILD_NAME" >> $GITHUB_ENV
+          echo "BUILD_NUMBER=$BUILD_NUMBER" >> $GITHUB_ENV
+
+      - name: Build App Bundle
+        if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+        env:
+          APPSIGNINGKEYPASSWORD: ${{ secrets.APPSIGNINGKEYPASSWORD }}
+          APPSIGNINGKEYSTOREPASSWORD: ${{ secrets.APPSIGNINGKEYSTOREPASSWORD }}
+          MIXPANEL_PROJECT_TOKEN: ${{ secrets.MIXPANEL_PROJECT_TOKEN }}
+          SENTRY_DSN: ${{ secrets.SENTRY_DSN }}
+        run: |
+          flutter build appbundle --release \
+            --build-name="${BUILD_NAME}" \
+            --build-number="${BUILD_NUMBER}" \
+            --dart-define=MIXPANEL_PROJECT_TOKEN="$MIXPANEL_PROJECT_TOKEN" \
+            --dart-define=SENTRY_DSN="$SENTRY_DSN"
+
+      - name: Upload App Bundle
+        if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+        uses: actions/upload-artifact@v4
+        with:
+          name: app-release
+          path: ${{ env.AAB_PATH }}
+
+      # - name: Build APK
+      #   run: flutter build apk --release
+      # - name: Upload APK
+      #   uses: actions/upload-artifact@v3
+      #   with:
+      #     name: app-release-apk
+      #     path: ${{ env.APK_PATH }}

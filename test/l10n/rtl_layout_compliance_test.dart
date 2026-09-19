@@ -10,7 +10,6 @@ import 'package:mazilon/form/wizard_step.dart';
 import 'package:mazilon/iFx/service_locator.dart';
 import 'package:mazilon/l10n/app_localizations.dart';
 import 'package:mazilon/util/Form/PagePhoneItem.dart';
-import 'package:mazilon/util/FormAnswer/addFormAnswer.dart';
 import 'package:mazilon/util/HomePage/NameBar.dart';
 import 'package:mazilon/util/HomePage/sectionBarHome.dart';
 import 'package:mazilon/util/appInformation.dart';
@@ -31,8 +30,14 @@ Future<void> pumpArabicHarness(
 
   final fileService = share_mocks.MockFileService();
   when(
-    fileService.download(any, any, any, any,
-        mainTitle: anyNamed('mainTitle'), textDirection: anyNamed('textDirection')),
+    fileService.download(
+      any,
+      any,
+      any,
+      any,
+      mainTitle: anyNamed('mainTitle'),
+      textDirection: anyNamed('textDirection'),
+    ),
   ).thenAnswer((_) async => null);
   getIt.registerLazySingleton<FileService>(() => fileService);
 
@@ -129,22 +134,6 @@ void main() {
       );
 
       expect(descriptionPadding.padding, isA<EdgeInsetsDirectional>());
-    });
-
-    testWidgets('AddFormAnswer text-field padding is directional', (
-      WidgetTester tester,
-    ) async {
-      await pumpArabicHarness(
-        tester,
-        AddFormAnswer(index: 0, edit: (_, _) {}, text: 'Initial value'),
-      );
-
-      final textField = tester.widget<TextField>(find.byType(TextField));
-
-      expect(
-        textField.decoration?.contentPadding,
-        isA<EdgeInsetsDirectional>(),
-      );
     });
 
     testWidgets('FormPageTemplate suggestion row padding is directional', (

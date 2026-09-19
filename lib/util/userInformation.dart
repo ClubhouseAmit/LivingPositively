@@ -1,5 +1,4 @@
 import 'dart:async';
-
 import 'package:flutter/foundation.dart';
 import 'package:get_it/get_it.dart';
 import 'package:mazilon/global_enums.dart';
@@ -10,7 +9,6 @@ import 'package:mazilon/util/persistent_memory_service.dart';
 
 enum DarkModePreference { alwaysLight, alwaysDark, scheduled }
 
-//this it the user's information class, with it we store and display it across the app
 class UserInformation with ChangeNotifier {
   String localeName;
   String gender;
@@ -174,8 +172,7 @@ class UserInformation with ChangeNotifier {
       return nextSave;
     }
 
-    // A failed older write must not prevent a newer snapshot from being
-    // attempted. This gives the queue last-write-wins semantics.
+    // Keep a newer snapshot runnable after an older write fails.
     final nextSave = _pendingCustomCategoriesSave
         .catchError((Object _) {})
         .then(

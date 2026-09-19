@@ -1,0 +1,55 @@
+name: Android integration inventory
+
+# Called by .github/workflows/main.yml. Needs no secrets.
+#
+# Fails when the shard matrix in _android-shard.yml drifts from the test
+# files actually on disk — a new integration_test/*_test.dart that nobody added
+# to the matrix would otherwise never run and nobody would notice.
+on:
+  workflow_call:
+
+permissions:
+  contents: read
+
+jobs:
+  integration-test-inventory:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Verify Android integration matrix matches test files
+        shell: bash
+        run: |
+          mapfile -t declared < <(
+            awk '
+              /^  integration-test-shard:$/ { in_shard = 1; next }
+              in_shard && /^  [[:alnum:]_-]+:$/ { exit }
+              in_shard && /^[[:space:]]+test_file:[[:space:]]*/ {
+                sub(/^[[:space:]]*test_file:[[:space:]]*/, "")
+                print
+              }
+            ' .github/workflows/_android-shard.yml | sort
+          )
+          mapfile -t discovered < <(
+            find integration_test -type f -name '*_test.dart' ! -name '*_ios_test.dart' -printf '%p\n' | sort
+          )
+
+          printf 'Declared Android integration matrix files:\n'
+          printf '  %s\n' "${declared[@]}"
+          printf 'Discovered non-iOS integration test files:\n'
+          printf '  %s\n' "${discovered[@]}"
+
+          # A rename of _android-shard.yml would make `declared` empty and
+          # this check vacuous, so assert it found something at all.
+          if [[ "${#declared[@]}" -eq 0 ]]; then
+            echo "::error::Parsed zero shards from .github/workflows/_android-shard.yml — the awk anchor or the file name is stale." >&2
+            exit 1
+          fi
+
+          if [[ "${#declared[@]}" -ne "${#discovered[@]}" ]] || \
+             [[ "$(printf '%s\n' "${declared[@]}")" != "$(printf '%s\n' "${discovered[@]}")" ]]; then
+            echo "::error::Declared Android integration matrix files do not match discovered non-iOS integration tests." >&2
+            exit 1
+          fi

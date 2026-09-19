@@ -1,27 +1,110 @@
 # This file configures the analyzer, which statically analyzes Dart code to
 # check for errors, warnings, and lints.
 #
-# The issues identified by the analyzer are surfaced in the UI of Dart-enabled
-# IDEs (https://dart.dev/tools#ides-and-editors). The analyzer can also be
-# invoked from the command line by running `flutter analyze`.
-
-# The following line activates a set of recommended lints for Flutter apps,
-# packages, and plugins designed to encourage good coding practices.
-include: package:flutter_lints/flutter.yaml
+# Very Good Analysis — a stricter curated rule set than flutter_lints, which it
+# supersedes (it already contains the Flutter and recommended Dart lints).
+#
+# Pinned to the VERSIONED options file on purpose: `analysis_options.yaml` in
+# that package tracks the latest rule set, so a routine `pub upgrade` would
+# silently turn new lints on across the repo. Bump this path deliberately.
+include: package:very_good_analysis/analysis_options.10.3.0.yaml
 
 analyzer:
+  language:
+    # VGA turns these on. On this codebase they surface ~600 ERROR-severity
+    # findings (argument_type_not_assignable, invalid_assignment, ...), which
+    # would make `flutter analyze` red on day one and hide every new problem
+    # behind old ones. Off for now; this is the single biggest piece of lint
+    # debt left, and reclaiming it is worth its own task.
+    strict-casts: false
+    strict-raw-types: false
+    strict-inference: false
+
   errors:
-    # Legacy naming and inference debt is intentionally baselined here to keep
-    # analyzer cleanup behavior-only. Renaming these files and APIs is broad
-    # churn and should be handled as a separate, reviewed refactor.
+    # ---------------------------------------------------------------------
+    # BASELINE — not a style opinion, a ratchet.
+    #
+    # Every rule below already has violations in the existing codebase (8,844
+    # of them across 71 rules when VGA was switched on). They are ignored so
+    # that `flutter analyze` stays green and any NEW violation of the ~130
+    # other VGA rules fails loudly instead of drowning in old noise.
+    #
+    # This list is DEBT, not permission. Delete a line, fix what it surfaces,
+    # commit. Do not add a line to make a new violation go away — that is the
+    # one move this baseline exists to prevent. Regenerate honestly with:
+    #   flutter analyze | grep -E '^\s+(info|warning) .' | sed -E 's/.*. //'
+    # ---------------------------------------------------------------------
+    always_declare_return_types: ignore
+    always_put_required_named_parameters_first: ignore
+    always_use_package_imports: ignore
+    avoid_bool_literals_in_conditional_expressions: ignore
+    avoid_catches_without_on_clauses: ignore
+    avoid_catching_errors: ignore
+    avoid_dynamic_calls: ignore
+    avoid_equals_and_hash_code_on_mutable_classes: ignore
+    avoid_escaping_inner_quotes: ignore
+    avoid_field_initializers_in_const_classes: ignore
+    avoid_positional_boolean_parameters: ignore
+    avoid_redundant_argument_values: ignore
+    avoid_slow_async_io: ignore
+    avoid_types_on_closure_parameters: ignore
     avoid_unnecessary_containers: ignore
+    avoid_void_async: ignore
+    cancel_subscriptions: ignore
+    cascade_invocations: ignore
+    cast_nullable_to_non_nullable: ignore
+    combinators_ordering: ignore
+    comment_references: ignore
     constant_identifier_names: ignore
     depend_on_referenced_packages: ignore
+    deprecated_member_use_from_same_package: ignore
+    directives_ordering: ignore
+    discarded_futures: ignore
+    document_ignores: ignore
+    eol_at_end_of_file: ignore
     file_names: ignore
+    flutter_style_todos: ignore
+    join_return_with_assignment: ignore
+    leading_newlines_in_multiline_strings: ignore
     library_prefixes: ignore
     library_private_types_in_public_api: ignore
+    lines_longer_than_80_chars: ignore
+    missing_whitespace_between_adjacent_strings: ignore
+    no_adjacent_strings_in_list: ignore
+    no_default_cases: ignore
+    no_literal_bool_comparisons: ignore
     non_constant_identifier_names: ignore
+    noop_primitive_operations: ignore
+    omit_local_variable_types: ignore
+    one_member_abstracts: ignore
+    only_throw_errors: ignore
+    parameter_assignments: ignore
+    prefer_asserts_with_message: ignore
+    prefer_const_constructors: ignore
+    prefer_const_declarations: ignore
+    prefer_const_literals_to_create_immutables: ignore
+    prefer_final_in_for_each: ignore
+    prefer_final_locals: ignore
+    prefer_if_elements_to_conditional_expressions: ignore
+    prefer_int_literals: ignore
+    prefer_single_quotes: ignore
+    public_member_api_docs: ignore
+    sort_constructors_first: ignore
+    sort_pub_dependencies: ignore
+    specify_nonobvious_property_types: ignore
     strict_top_level_inference: ignore
+    type_annotate_public_apis: ignore
+    unawaited_futures: ignore
+    unnecessary_await_in_return: ignore
+    unnecessary_breaks: ignore
+    unnecessary_ignore: ignore
+    unnecessary_lambdas: ignore
+    unnecessary_null_checks: ignore
+    unnecessary_parenthesis: ignore
+    unnecessary_raw_strings: ignore
+    use_late_for_private_fields_and_variables: ignore
+    use_named_constants: ignore
+    use_raw_strings: ignore
   exclude:
     - build/**
     - android/**
@@ -30,21 +113,12 @@ analyzer:
     - windows/**
     - macos/**
     - linux/**
+    - lib/l10n/app_localizations*.dart
 
 linter:
-  # The lint rules applied to this project can be customized in the
-  # section below to disable rules from the `package:flutter_lints/flutter.yaml`
-  # included above or to enable additional rules. A list of all available lints
-  # and their documentation is published at https://dart.dev/lints.
-  #
-  # Instead of disabling a lint rule for the entire project in the
-  # section below, it can also be suppressed for a single line of code
-  # or a specific dart file by using the `// ignore: name_of_lint` and
-  # `// ignore_for_file: name_of_lint` syntax on the line or in the file
-  # producing the lint.
   rules:
-    # avoid_print: false  # Uncomment to disable the `avoid_print` rule
-    # prefer_single_quotes: true  # Uncomment to enable the `prefer_single_quotes` rule
+    # Rules are inherited from very_good_analysis above. Add an override here
+    # only with a comment saying why this project disagrees with VGA.
 
 # Additional information about this file can be found at
 # https://dart.dev/guides/language/analysis-options

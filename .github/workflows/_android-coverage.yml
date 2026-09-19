@@ -1,0 +1,143 @@
+name: Android integration coverage gate
+
+# Called by .github/workflows/main.yml. Needs no secrets.
+#
+# Phase 7 (ADR-002) required-check contract, implemented as the canonical
+# ADR-010 merge and per-file coverage gate for the Android shard matrix.
+#
+# The caller runs this with `if: always()` and hands in the upstream results,
+# because a called workflow cannot read the caller's `needs` context. The first
+# step below fails fast on a bad result, so this job's status is always one of
+# {success, failure} and never "skipped" — a skipped required check can be read
+# as success by branch protection.
+on:
+  workflow_call:
+    inputs:
+      shard-result:
+        description: result of the integration-test-shard matrix in the caller.
+        required: true
+        type: string
+      inventory-result:
+        description: result of integration-test-inventory in the caller.
+        required: true
+        type: string
+    outputs:
+      coverage-artifact-id:
+        description: Artifact ID of the merged Android integration lcov.
+        value: ${{ jobs.integration-test.outputs.coverage-artifact-id }}
+
+permissions:
+  contents: read
+
+jobs:
+  integration-test:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    outputs:
+      coverage-artifact-id: ${{ steps.upload-coverage.outputs.artifact-id }}
+    steps:
+      - name: Require successful integration-test prerequisites
+        shell: bash
+        env:
+          SHARD_RESULT: ${{ inputs.shard-result }}
+          INVENTORY_RESULT: ${{ inputs.inventory-result }}
+        run: |
+          echo "integration-test-shard result: $SHARD_RESULT"
+          echo "integration-test-inventory result: $INVENTORY_RESULT"
+          prerequisite_failed=0
+          if [[ "$SHARD_RESULT" != "success" ]]; then
+            echo "::error::Upstream integration-test-shard matrix did not succeed (result=$SHARD_RESULT)." >&2
+            prerequisite_failed=1
+          fi
+          if [[ "$INVENTORY_RESULT" != "success" ]]; then
+            echo "::error::Upstream integration-test-inventory did not succeed (result=$INVENTORY_RESULT)." >&2
+            prerequisite_failed=1
+          fi
+          if [[ "$prerequisite_failed" -ne 0 ]]; then
+            exit 1
+          fi
+
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Flutter
+        uses: subosito/flutter-action@v2
+        with:
+          flutter-version: "3.44.0"
+          cache: true
+
+      - name: Install dependencies
+        shell: bash
+        run: |
+          export XDG_CONFIG_HOME="$RUNNER_TEMP/dart-config"
+          mkdir -p "$XDG_CONFIG_HOME"
+          echo "XDG_CONFIG_HOME=$XDG_CONFIG_HOME" >> "$GITHUB_ENV"
+          for attempt in 1 2 3; do
+            echo "Installing Dart dependencies (attempt ${attempt}/3)."
+            if flutter pub get; then
+              exit 0
+            fi
+            if [[ "$attempt" -lt 3 ]]; then
+              delay=$((attempt * 15))
+              echo "::warning::flutter pub get failed; retrying in ${delay}s."
+              sleep "$delay"
+            fi
+          done
+          exit 1
+
+      - name: Download integration coverage shards
+        uses: actions/download-artifact@v4
+        with:
+          pattern: coverage-integration-shard-*
+          merge-multiple: true
+          path: coverage/shards
+
+      - name: Verify integration coverage shard inventory
+        shell: bash
+        run: |
+          mkdir -p coverage/shards
+          mapfile -t expected_sorted < <(
+            awk '
+              /^  integration-test-shard:$/ { in_shard = 1; next }
+              in_shard && /^  [[:alnum:]_-]+:$/ { exit }
+              in_shard && /^[[:space:]]+-[[:space:]]+id:[[:space:]]*/ {
+                sub(/^[[:space:]]+-[[:space:]]+id:[[:space:]]*/, "")
+                print $0 ".info"
+              }
+            ' .github/workflows/_android-shard.yml | sort
+          )
+          mapfile -t actual_sorted < <(find coverage/shards -maxdepth 1 -type f -printf '%f\n' | sort)
+
+          printf 'Expected coverage shards:\n'
+          printf '  %s\n' "${expected_sorted[@]}"
+          printf 'Downloaded coverage shards:\n'
+          printf '  %s\n' "${actual_sorted[@]}"
+
+          # A rename of _android-shard.yml would make `expected_sorted`
+          # empty; assert it parsed something rather than comparing two voids.
+          if [[ "${#expected_sorted[@]}" -eq 0 ]]; then
+            echo "::error::Parsed zero shard ids from .github/workflows/_android-shard.yml — the awk anchor or the file name is stale." >&2
+            exit 1
+          fi
+
+          if [[ "${#actual_sorted[@]}" -ne "${#expected_sorted[@]}" ]] || \
+             [[ "$(printf '%s\n' "${actual_sorted[@]}")" != "$(printf '%s\n' "${expected_sorted[@]}")" ]]; then
+            echo "::error::Downloaded integration coverage shard set does not match the declared expected inventory." >&2
+            exit 1
+          fi
+
+      - name: Merge integration coverage shards
+        run: dart run scripts/merge_lcov.dart coverage/integration.info coverage/shards/*.info
+
+      - name: Enforce integration-test per-file coverage floors
+        run: dart run scripts/check_integration_coverage.dart
+
+      - name: Upload integration coverage report
+        id: upload-coverage
+        if: success()
+        uses: actions/upload-artifact@v4
+        with:
+          name: coverage-integration-lcov
+          path: coverage/integration.info
+          if-no-files-found: error
+          overwrite: true
