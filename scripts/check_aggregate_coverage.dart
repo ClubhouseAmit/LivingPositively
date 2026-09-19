@@ -79,7 +79,7 @@ const _excludePatterns = <String>[
   r'lib/l10n/app_localizations.*\.dart$',
   r'lib/l10n/l10n\.dart$',
   r'lib/util/Firebase/firebase_options\.dart$',
-  r'lib/global_enums\.dart$',
+  r'lib/util/async/global_enums\.dart$',
 ];
 
 void main(List<String> args) {

@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:mazilon/pages/FeelGood/feelGood.dart';
-import 'package:mazilon/pages/FeelGood/image_display_item.dart';
+import 'package:mazilon/pages/feel_good_page.dart';
+import 'package:mazilon/features/feel_good/ui/image_display_item.dart';
 
 import '../../helpers/widget_test_scaffold.dart';
 

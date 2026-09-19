@@ -268,7 +268,11 @@ rm -f "$probe"
 [ "$got" -eq 1 ] && pass=$((pass+1)) || { fail=$((fail+1)); echo "FAIL: default mode must see an UNCOMMITTED file (want 1, got $got)"; }
 
 # --- 0.10 where new code goes -------------------------------------------------
-expect_at 1 "new file in a frozen tree is rejected" "pages/new_thing.dart" <<'DART'
+expect_at 1 "a feature folder under pages/ is rejected" "pages/FeelGood/x.dart" <<'DART'
+class C {}
+DART
+
+expect_at 0 "a flat page file is fine" "pages/x_page.dart" <<'DART'
 class C {}
 DART
 
@@ -276,12 +280,25 @@ expect_at 1 "new loose file at lib/ root is rejected" "new_thing.dart" <<'DART'
 class C {}
 DART
 
-expect_at 0 "new file in a feature is fine" "features/x/ui/x_page.dart" <<'DART'
+expect_at 0 "new file in a feature is fine" "features/x/ui/x_widgets.dart" <<'DART'
 class C {}
 DART
 
-expect_at 0 "new shared theme file is fine" "util/theme/new_tokens.dart" <<'DART'
+expect_at 0 "new shared async infra file is fine" "util/async/new_helper.dart" <<'DART'
 class C {}
+DART
+
+# --- 0.14 util/ is infra, not widgets -----------------------------------------
+expect_at 1 "a widget class in util/async is rejected" "util/async/bad_widget.dart" <<'DART'
+class BadChip extends StatelessWidget {}
+DART
+
+expect_at 1 "a private widget in util/async is rejected" "util/async/bad_chip.dart" <<'DART'
+class _BadChip extends StatelessWidget {}
+DART
+
+expect_at 0 "a ChangeNotifier in util/async is fine" "util/async/ok_model.dart" <<'DART'
+class PhonePageData extends ChangeNotifier {}
 DART
 
 # --- 0.11 layer direction -----------------------------------------------------
@@ -318,15 +335,15 @@ class C {
 }
 DART
 
-expect_at 1 "a new bare Card( in ui/ is rejected" "features/x/ui/x_page.dart" <<'DART'
+expect_at 0 "Card( in ui/ is the design-system widget" "features/x/ui/x_page.dart" <<'DART'
 class C {
   Widget build(c) => Card(child: const Text('Go'));
 }
 DART
 
-expect_at 0 "AppButton/AppCard in ui/ are fine" "features/x/ui/x_page.dart" <<'DART'
+expect_at 0 "Button/Card in ui/ are fine" "features/x/ui/x_page.dart" <<'DART'
 class C {
-  Widget build(c) => AppCard(child: AppButton(label: 'Go', onPressed: () {}));
+  Widget build(c) => Card(child: Button(label: 'Go', onPressed: () {}));
 }
 DART
 
@@ -337,6 +354,36 @@ DART
 expect_at 0 "the legacy myTextButton helper is not a bare TextButton(" "features/x/ui/x_page.dart" <<'DART'
 class C {
   Widget build(c) => myTextButton(() {}, Icons.close, Colors.red);
+}
+DART
+
+# --- rename follow: a git mv is not a new file --------------------------------
+# 0.2/0.5/0.12 would treat a new path as greenfield and reject parked debt.
+# CHECK_ORIGIN is the test hook for origin_for(); production uses git rename.
+{
+  long=lib/features/zz_rename/ui/moved_long.dart
+  mkdir -p "$(dirname "$long")"
+  : > "$long"
+  i=0; while [ "$i" -lt 401 ]; do echo "int n$i = $i;" >> "$long"; i=$((i+1)); done
+  "$CHECK" "$long" >/dev/null 2>&1
+  got=$?
+  [ "$got" -eq 1 ] && pass=$((pass+1)) || { fail=$((fail+1)); echo "FAIL: new 401-line file is rejected (want 1, got $got)"; }
+  CHECK_ORIGIN=lib/pages/UserSettings.dart "$CHECK" "$long" >/dev/null 2>&1
+  got=$?
+  [ "$got" -eq 0 ] && pass=$((pass+1)) || { fail=$((fail+1)); echo "FAIL: renamed 401-line file is parked (want 0, got $got)"; }
+  rm -rf lib/features/zz_rename
+}
+
+# parked: same-or-fewer public widgets as the origin file at main
+CHECK_ORIGIN=lib/util/Phone/EmergencyPhones.dart expect_at 0 "renamed 2-widget file is parked" "features/x/ui/x_page.dart" <<'DART'
+class A extends StatelessWidget {}
+class B extends StatelessWidget {}
+DART
+
+# parked: same-or-fewer TextButton count as the origin file at main
+CHECK_ORIGIN=lib/pages/journal.dart expect_at 0 "renamed TextButton in ui/ is parked" "features/x/ui/x_page.dart" <<'DART'
+class C {
+  Widget build(c) => TextButton(onPressed: () {}, child: const Text('Go'));
 }
 DART
 

@@ -1,5 +1,5 @@
 import 'package:flutter_test/flutter_test.dart';
-import 'package:mazilon/AnalyticsService.dart';
+import 'package:mazilon/util/async/analytics_service.dart';
 
 void main() {
   group('MixPanelService (no token)', () {

@@ -1,6 +1,6 @@
 import 'package:flutter/foundation.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:mazilon/pages/notifications/notification_service.dart';
+import 'package:mazilon/features/notifications/data/notification_repository.dart';
 
 void main() {
   group('NotificationsService.supportsReminderSettings', () {

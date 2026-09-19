@@ -1,8 +1,8 @@
-import 'package:flutter/material.dart';
-import 'package:mazilon/design_system/primitives/app_card.dart';
-import 'package:mazilon/design_system/primitives/app_text.dart';
+import 'package:flutter/material.dart' hide Card, Text;
+import 'package:mazilon/design_system/widgets/card.dart';
+import 'package:mazilon/design_system/widgets/text.dart';
 import 'package:mazilon/design_system/tokens/colors.dart';
-import 'package:mazilon/util/theme/spacing.dart';
+import 'package:mazilon/design_system/tokens/spacing.dart';
 
 /// Home entry point for the Mood Medicine insights dashboard.
 ///
@@ -13,14 +13,14 @@ import 'package:mazilon/util/theme/spacing.dart';
 /// stays discoverable, but its action is disabled and the callback is not
 /// invoked in that state.
 ///
-/// Design-system proof (step 4): the card is now `AppCard`, not `Card` —
-/// this widget is exactly the one from the screenshot that started the
-/// design-system work, where a bare `Card()` rendered Material 3's default
-/// radius/elevation instead of `AppRadii.card`/`AppShadows.card`. The action
-/// button stays a plain `TextButton`, unmigrated: it's a compact text-only
-/// CTA with no button chrome, and `AppButton` is a filled button — the same
-/// mismatch this file's own comment already noted against `ConfirmationButton`
-/// and `LinkButton`. Forcing it into `AppButton` would be the wrong fix.
+/// Design-system proof (step 4): this is `design_system/widgets` `Card`
+/// (Material's `Card` is hidden at the import). A bare Material `Card()`
+/// used to render Material 3's default radius/elevation instead of
+/// `AppRadii.card`/`AppShadows.card`. The action button stays a plain
+/// `TextButton`, unmigrated: it's a compact text-only CTA with no button
+/// chrome, and `Button` is a filled button — the same mismatch this file's
+/// own comment already noted against `ConfirmationButton` and `LinkButton`.
+/// Forcing it into `Button` would be the wrong fix.
 final class MoodMedicineHomeInsightsSection extends StatelessWidget {
   /// Creates the localized Home entry point for Mood Medicine insights.
   ///
@@ -58,8 +58,7 @@ final class MoodMedicineHomeInsightsSection extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final ThemeData theme = Theme.of(context);
-    return AppCard(
+    return Card(
       child: LayoutBuilder(
         builder: (BuildContext context, BoxConstraints constraints) {
           final bool shouldStackAction =
@@ -73,22 +72,22 @@ final class MoodMedicineHomeInsightsSection extends StatelessWidget {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                AppText(title, style: AppTextStyle.titleLarge),
+                Text(title, style: AppTextStyle.titleLarge),
                 const SizedBox(height: AppSpacing.xs),
-                AppText(subtitle, style: AppTextStyle.bodySmall),
+                Text(subtitle, style: AppTextStyle.bodySmall),
               ],
             ),
           );
 
           // This compact text-only CTA intentionally remains a TextButton:
-          // AppButton is a filled button and LinkButton requires an icon, so
+          // Button is a filled button and LinkButton requires an icon, so
           // neither shared primitive matches this card's design.
           final Widget action = TextButton(
             key: const Key('moodMedicineHomeInsights'),
             onPressed: isAvailable ? onPressed : null,
             child: Text(
               actionLabel,
-              style: theme.textTheme.labelLarge,
+              style: AppTextStyle.labelLarge,
               textAlign: TextAlign.center,
             ),
           );

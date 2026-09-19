@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:mazilon/util/disclaimerLanguageSelect.dart';
+import 'package:mazilon/features/shell/ui/disclaimerLanguageSelect.dart';
 
 void main() {
   testWidgets('Language selector follows the language guidelines', (

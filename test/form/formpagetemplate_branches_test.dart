@@ -10,16 +10,16 @@ import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:get_it/get_it.dart';
-import 'package:mazilon/form/formpagetemplate.dart';
-import 'package:mazilon/form/wizard_step.dart';
+import 'package:mazilon/features/personal_plan/ui/form_page_template/form_page_template.dart';
+import 'package:mazilon/features/wizard/ui/wizard_step.dart';
 import 'package:mazilon/l10n/app_localizations.dart';
 import 'package:mazilon/util/appInformation.dart';
-import 'package:mazilon/util/persistent_memory_service.dart';
+import 'package:mazilon/util/async/persistent_memory_service.dart';
 import 'package:mazilon/util/userInformation.dart';
 import 'package:mockito/mockito.dart';
 import 'package:provider/provider.dart';
 
-import 'package:mazilon/AnalyticsService.dart';
+import 'package:mazilon/util/async/analytics_service.dart';
 
 import '../MenuTest/shareAndDownload/share_and_download_test.mocks.dart'
     as ShareMocks;

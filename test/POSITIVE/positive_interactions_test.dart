@@ -9,11 +9,11 @@
 
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:mazilon/global_enums.dart';
-import 'package:mazilon/pages/positive.dart';
-import 'package:mazilon/pages/thankYou.dart';
-import 'package:mazilon/util/Thanks/AddForm.dart';
-import 'package:mazilon/util/Traits/positiveTraitItemSug.dart';
+import 'package:mazilon/util/async/global_enums.dart';
+import 'package:mazilon/pages/positive_page.dart';
+import 'package:mazilon/features/journal/ui/thank_you.dart';
+import 'package:mazilon/features/journal/ui/AddForm.dart';
+import 'package:mazilon/features/positive/ui/positiveTraitItemSug.dart';
 import 'package:mazilon/util/userInformation.dart';
 
 import '../helpers/widget_test_scaffold.dart';

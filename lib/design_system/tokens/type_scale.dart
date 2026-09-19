@@ -5,9 +5,9 @@ import 'font_weight.dart';
 /// Named type-scale tokens, matching DESIGN.md §2.2's eight named styles.
 ///
 /// These are the same values as `_appTextTheme` in
-/// `lib/util/theme/app_theme.dart` (Rubik/'Rubix', §2.2's font sizes and line
+/// `lib/util/async/app_theme.dart` (Rubik/'Rubix', §2.2's font sizes and line
 /// heights), reproduced here as standalone `TextStyle`s with `fontFamily`
-/// baked in — `AppText` (step 2) has no `ThemeData` to inherit a font family
+/// baked in — `Text` (step 2) has no `ThemeData` to inherit a font family
 /// from, since it never sits under a `Theme.of(context)` read.
 ///
 /// `ThemeData.textTheme` in `app_theme.dart` is unaffected and still owns

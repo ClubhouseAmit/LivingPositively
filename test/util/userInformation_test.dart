@@ -2,9 +2,9 @@ import 'dart:async';
 import 'dart:convert';
 
 import 'package:flutter_test/flutter_test.dart';
-import 'package:mazilon/global_enums.dart';
-import 'package:mazilon/util/custom_categories_storage.dart';
-import 'package:mazilon/util/dreams_and_goals_selection.dart';
+import 'package:mazilon/util/async/global_enums.dart';
+import 'package:mazilon/features/personal_plan/data/custom_categories_storage.dart';
+import 'package:mazilon/features/personal_plan/data/dreams_and_goals_models.dart';
 import 'package:mazilon/util/userInformation.dart';
 
 import '../../test_support/contract_persistent_memory_service.dart';

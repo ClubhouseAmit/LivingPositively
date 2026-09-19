@@ -4,7 +4,7 @@ import 'dart:typed_data';
 import 'package:flutter/material.dart';
 import 'package:mazilon/features/remember_to_breathe/data/breathing_models.dart';
 import 'package:mazilon/l10n/app_localizations.dart';
-import 'package:mazilon/util/theme/spacing.dart';
+import 'package:mazilon/design_system/tokens/spacing.dart';
 
 /// Localized labels for the bundled and personal breathing backgrounds.
 String breathingBackgroundLabel(

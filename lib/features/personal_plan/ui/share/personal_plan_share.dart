@@ -1,0 +1,81 @@
+import 'package:get_it/get_it.dart';
+import 'package:mazilon/util/async/file_service.dart';
+import 'package:mazilon/util/async/global_enums.dart';
+import 'package:mazilon/l10n/app_localizations.dart';
+import 'package:mazilon/util/appInformation.dart';
+import 'package:mazilon/util/async/logger_service.dart';
+import 'package:mazilon/features/personal_plan/ui/share/personal_plan_export_metadata.dart';
+import 'package:mazilon/util/async/persistent_memory_service.dart';
+import 'package:mazilon/util/userInformation.dart';
+import 'package:share_plus/share_plus.dart';
+
+import 'package:mazilon/util/async/create_pdf.dart';
+
+/// Prepares personal plan state by awaiting pending persistence writes when [userInformation]
+/// is provided, and constructs the localized [PersonalPlanExportMetadata].
+Future<PersonalPlanExportMetadata> prepareAndBuildPersonalPlanExportMetadata({
+  required AppLocalizations appLocale,
+  required String gender,
+  required String username,
+  UserInformation? userInformation,
+}) async {
+  if (userInformation != null) {
+    await userInformation.prepareForPersonalPlanExport();
+  }
+  return buildPersonalPlanExportMetadata(appLocale, gender, username);
+}
+
+/// Shares the Personal Plan PDF export with the given [message] after stabilizing persistence state.
+///
+/// When provided, [userInformation] triggers awaited personal-plan preparation.
+/// [fileService] overrides the default [FileService] resolved from [GetIt].
+/// [memoryService] overrides the storage source supplied to [FileService].
+///
+/// Preparation, metadata, or sharing failures are caught, logged via [IncidentLoggerService],
+/// and returned as `null` without throwing uncaught exceptions to callers.
+Future<ShareResult?> sharePersonalPlanFile({
+  required String message,
+  required AppLocalizations appLocale,
+  required String gender,
+  required String username,
+  required AppInformation appInformation,
+  UserInformation? userInformation,
+  FileService? fileService,
+  PersistentMemoryService? memoryService,
+  Set<String>? approvedPdfHosts,
+}) async {
+  try {
+    final exportMetadata = await prepareAndBuildPersonalPlanExportMetadata(
+      appLocale: appLocale,
+      gender: gender,
+      username: username,
+      userInformation: userInformation,
+    );
+    final service = fileService ?? GetIt.instance<FileService>();
+    final sanitizedTexts = sanitizeSharePdfTexts(
+      appInformation.sharePDFtexts,
+      approvedHosts: approvedPdfHosts ?? defaultApprovedPdfLinkHosts,
+    );
+    return await service.share(
+      message,
+      exportMetadata.titles,
+      exportMetadata.subTitles,
+      sanitizedTexts,
+      ShareFileType.PDF,
+      mainTitle: exportMetadata.mainTitle,
+      textDirection: appLocale.textDirection,
+      memoryService: memoryService ?? userInformation?.service,
+      approvedPdfHosts: approvedPdfHosts,
+    );
+  } catch (error, stackTrace) {
+    try {
+      if (GetIt.instance.isRegistered<IncidentLoggerService>()) {
+        await GetIt.instance<IncidentLoggerService>().captureLog(
+          error,
+          stackTrace: stackTrace,
+        );
+      }
+    } catch (_) {}
+    return null;
+  }
+}

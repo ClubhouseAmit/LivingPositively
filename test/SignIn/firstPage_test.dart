@@ -10,11 +10,11 @@
 
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:mazilon/disclaimerPage.dart';
-import 'package:mazilon/initialForm/form.dart';
+import 'package:mazilon/pages/disclaimer_page.dart';
+import 'package:mazilon/pages/onboarding_page.dart';
 import 'package:mazilon/menu.dart';
-import 'package:mazilon/pages/SignIn_Pages/firstPage.dart';
-import 'package:mazilon/util/Form/formPagePhoneModel.dart';
+import 'package:mazilon/pages/first_page.dart';
+import 'package:mazilon/features/personal_plan/data/phone_models.dart';
 import 'package:mazilon/util/userInformation.dart';
 
 import '../helpers/widget_test_scaffold.dart';

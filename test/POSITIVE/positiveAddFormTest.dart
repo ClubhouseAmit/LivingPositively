@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:mazilon/util/styles.dart';
+import 'package:mazilon/features/shell/ui/styles.dart';
 
 class AddForm extends StatefulWidget {
   final Function add;

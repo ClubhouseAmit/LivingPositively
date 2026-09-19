@@ -5,9 +5,9 @@ import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:mazilon/MainPageHelpers/personalPlanWidget.dart';
-import 'package:mazilon/global_enums.dart';
-import 'package:mazilon/util/personalPlanItem.dart';
+import 'package:mazilon/features/personal_plan/ui/personal_plan_widget.dart';
+import 'package:mazilon/util/async/global_enums.dart';
+import 'package:mazilon/features/personal_plan/ui/personalPlanItem.dart';
 
 import '../helpers/widget_test_scaffold.dart';
 

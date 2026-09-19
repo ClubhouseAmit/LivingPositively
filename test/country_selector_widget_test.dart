@@ -3,10 +3,10 @@ import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:country_code_picker/country_code_picker.dart';
 import 'package:get_it/get_it.dart';
-import 'package:mazilon/initialForm/CountrySelectorWidget.dart';
+import 'package:mazilon/features/onboarding/ui/country_selector.dart';
 import 'package:mazilon/l10n/app_localizations.dart';
-import 'package:mazilon/util/persistent_memory_service.dart';
-import 'package:mazilon/util/theme/app_theme.dart';
+import 'package:mazilon/util/async/persistent_memory_service.dart';
+import 'package:mazilon/util/async/app_theme.dart';
 import 'package:mazilon/util/userInformation.dart';
 import 'package:provider/provider.dart';
 

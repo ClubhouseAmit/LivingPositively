@@ -1,9 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_contacts/flutter_contacts.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:mazilon/form/phonePageform.dart';
-import 'package:mazilon/form/wizard_step.dart';
-import 'package:mazilon/util/Form/formPagePhoneModel.dart';
+import 'package:mazilon/features/personal_plan/ui/phone_page/form.dart';
+import 'package:mazilon/features/wizard/ui/wizard_step.dart';
+import 'package:mazilon/features/personal_plan/data/phone_models.dart';
 import 'package:mazilon/util/userInformation.dart';
 import 'package:provider/provider.dart';
 

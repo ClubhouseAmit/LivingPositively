@@ -5,6 +5,10 @@
 /// as step 1 of the design-system extraction — this file had no Material
 /// import to begin with.
 abstract class AppSpacing {
+  /// 1dp rule — dividers. Off the 4dp scale on purpose: a 4dp rule
+  /// reads as a bar, not a separator.
+  static const hairline = 1.0;
+
   static const xs = 4.0;
   static const sm = 8.0;
   static const md = 12.0;
@@ -12,6 +16,9 @@ abstract class AppSpacing {
   static const xl = 20.0;
   static const xxl = 24.0;
   static const xxxl = 32.0;
+
+  /// Text-field height. DESIGN.md §3.4.
+  static const input = 40.0;
 }
 
 /// Border-radius tokens used by shared layout affordances.
@@ -20,13 +27,20 @@ abstract class AppRadii {
   static const card = 16.0;
 
   /// Standard action-button radius. DESIGN.md §2.3 documents this as
-  /// "Standard Buttons", but until `AppButton` (design-system step 3) no
+  /// "Standard Buttons", but until `Button` (design-system step 3) no
   /// named token existed for it — `primaryButtonStyle`/`destructiveButtonStyle`
   /// hardcoded this same radius directly on their `RoundedRectangleBorder`.
   static const button = 20.0;
 
   /// Fixed dashed add-slot pill radius that preserves its dash cadence.
   static const dashedAddSlot = 24.0;
+
+  /// Fully rounded capsule — badges, progress track, switch track.
+  /// DESIGN.md §2.3 "Round Badges".
+  static const badge = 50.0;
+
+  /// Text-field corners. DESIGN.md §2.3 "Input Fields".
+  static const input = 10.0;
 }
 
 /// Semantic spacing shared between onboarding flows (intro and questionnaire).

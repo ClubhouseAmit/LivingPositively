@@ -1,4 +1,4 @@
-part of 'mood_medicine_page.dart';
+part of 'package:mazilon/pages/mood_medicine_page.dart';
 
 Future<MoodMedicineReportBuildOutcome> _buildForCurrentPresentation(
   BuildContext sheetContext,

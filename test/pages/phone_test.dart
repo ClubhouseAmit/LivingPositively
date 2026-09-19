@@ -6,16 +6,16 @@ import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:get_it/get_it.dart';
-import 'package:mazilon/file_service.dart';
-import 'package:mazilon/form/phonePageform.dart';
-import 'package:mazilon/global_enums.dart';
+import 'package:mazilon/util/async/file_service.dart';
+import 'package:mazilon/features/personal_plan/ui/phone_page/form.dart';
+import 'package:mazilon/util/async/global_enums.dart';
 import 'package:mazilon/l10n/app_localizations.dart';
-import 'package:mazilon/pages/phone.dart';
-import 'package:mazilon/pages/sos_location_service.dart';
-import 'package:mazilon/util/Form/formPagePhoneModel.dart';
+import 'package:mazilon/pages/phone_page.dart';
+import 'package:mazilon/features/phone/data/sos_location_service.dart';
+import 'package:mazilon/features/personal_plan/data/phone_models.dart';
 import 'package:mazilon/util/appInformation.dart';
-import 'package:mazilon/util/personal_plan_export_metadata.dart';
-import 'package:mazilon/util/persistent_memory_service.dart';
+import 'package:mazilon/features/personal_plan/ui/share/personal_plan_export_metadata.dart';
+import 'package:mazilon/util/async/persistent_memory_service.dart';
 import 'package:mazilon/util/userInformation.dart';
 import 'package:provider/provider.dart';
 import 'package:share_plus/share_plus.dart';
@@ -1196,7 +1196,9 @@ void main() {
         'should show localized Personal Plan feedback when sharing returns ${failureResult?.status ?? 'null'}',
         (tester) async {
           final locationService = FakeSosLocationService();
-          final fileService = RecordingFileService(planShareResult: failureResult);
+          final fileService = RecordingFileService(
+            planShareResult: failureResult,
+          );
           await _runPhonePageTest(
             locationService,
             fileService,

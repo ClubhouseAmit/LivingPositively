@@ -6,7 +6,7 @@ import 'dart:ui' as ui;
 
 import 'package:flutter/foundation.dart';
 import 'package:image_picker/image_picker.dart';
-import 'package:mazilon/pages/FeelGood/image_picker_service_impl.dart';
+import 'package:mazilon/features/feel_good/data/image_picker_repository.dart'; // TODO: 0.11 inject via feel_good repository
 
 /// A safe photo-import failure that never includes a path or media contents.
 final class BreathingPhotoException implements Exception {

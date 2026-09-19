@@ -11,15 +11,15 @@ import 'package:shared_preferences/shared_preferences.dart';
 import 'package:mazilon/features/remember_to_breathe/data/breathing_models.dart';
 import 'package:mazilon/features/remember_to_breathe/data/breathing_photo_importer.dart';
 import 'package:mazilon/features/remember_to_breathe/data/breathing_store.dart';
-import 'package:mazilon/features/remember_to_breathe/ui/breathing_page.dart';
+import 'package:mazilon/pages/breathing_page.dart';
 import 'package:mazilon/features/remember_to_breathe/ui/breathing_view_model.dart';
 import 'package:mazilon/features/remember_to_breathe/ui/breathing_view_state.dart';
 import 'package:mazilon/features/remember_to_breathe/ui/breathing_widgets.dart';
 import 'package:mazilon/l10n/app_localizations.dart';
-import 'package:mazilon/pages/FeelGood/image_picker_service_impl.dart';
-import 'package:mazilon/util/logger_service.dart';
-import 'package:mazilon/util/persistent_memory_service.dart';
-import 'package:mazilon/util/theme/app_theme.dart';
+import 'package:mazilon/features/feel_good/data/image_picker_repository.dart';
+import 'package:mazilon/util/async/logger_service.dart';
+import 'package:mazilon/util/async/persistent_memory_service.dart';
+import 'package:mazilon/util/async/app_theme.dart';
 
 class _Picker extends Mock implements ImagePickerService {}
 

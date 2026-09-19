@@ -12,10 +12,10 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:mazilon/pages/notifications/notification_page.dart';
-import 'package:mazilon/pages/notifications/reminder_debug_recorder.dart'
+import 'package:mazilon/pages/notification_page.dart';
+import 'package:mazilon/features/notifications/ui/reminder_debug_recorder.dart'
     show reminderDebugPanelUnlocked, reminderDebugPanelUnlockedKey;
-import 'package:mazilon/pages/notifications/set_notification_widget.dart';
+import 'package:mazilon/features/notifications/ui/set_notification_widget.dart';
 import 'package:mazilon/util/userInformation.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:workmanager_platform_interface/workmanager_platform_interface.dart';

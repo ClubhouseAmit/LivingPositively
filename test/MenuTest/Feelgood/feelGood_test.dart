@@ -2,20 +2,20 @@ import 'package:flutter/material.dart';
 
 import 'package:flutter_test/flutter_test.dart';
 import 'package:get_it/get_it.dart';
-import 'package:mazilon/AnalyticsService.dart';
-import 'package:mazilon/global_enums.dart';
-import 'package:mazilon/pages/FeelGood/add_Image_item.dart';
-import 'package:mazilon/pages/FeelGood/feelGood.dart';
-import 'package:mazilon/pages/FeelGood/image_display_item.dart';
+import 'package:mazilon/util/async/analytics_service.dart';
+import 'package:mazilon/util/async/global_enums.dart';
+import 'package:mazilon/features/feel_good/ui/add_image_item.dart';
+import 'package:mazilon/pages/feel_good_page.dart';
+import 'package:mazilon/features/feel_good/ui/image_display_item.dart';
 
-import 'package:mazilon/pages/FeelGood/image_picker_service_impl.dart';
-import 'package:mazilon/iFx/service_locator.dart';
+import 'package:mazilon/features/feel_good/data/image_picker_repository.dart';
+import 'package:mazilon/util/async/service_locator.dart';
 
-import 'package:mazilon/pages/WellnessTools/VideoPlayerPageFactory.dart';
+import 'package:mazilon/features/wellness_tools/ui/video_player_page_factory.dart';
 
-import 'package:mazilon/pages/home.dart';
-import 'package:mazilon/file_service.dart';
-import 'package:mazilon/util/persistent_memory_service.dart';
+import 'package:mazilon/pages/home_page.dart';
+import 'package:mazilon/util/async/file_service.dart';
+import 'package:mazilon/util/async/persistent_memory_service.dart';
 import 'package:mazilon/util/userInformation.dart';
 import 'package:mazilon/util/appInformation.dart';
 import 'package:mockito/annotations.dart';

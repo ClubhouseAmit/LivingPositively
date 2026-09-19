@@ -29,11 +29,11 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:mazilon/form/speech_dictation_suffix_action.dart';
+import 'package:mazilon/features/speech_dictation/ui/suffix_action.dart';
 import 'package:mazilon/l10n/app_localizations.dart';
 import 'package:workmanager/workmanager.dart' show Workmanager;
-import 'package:mazilon/pages/notifications/set_notification_widget.dart';
-import 'package:mazilon/pages/notifications/time_picker.dart';
+import 'package:mazilon/features/notifications/ui/set_notification_widget.dart';
+import 'package:mazilon/features/notifications/ui/time_picker.dart';
 import 'package:mazilon/util/userInformation.dart';
 import 'package:workmanager_platform_interface/workmanager_platform_interface.dart';
 

@@ -2,14 +2,14 @@ import 'package:flutter/painting.dart' show Color;
 
 /// Brand colour tokens.
 ///
-/// Relocated verbatim from `lib/util/theme/app_theme.dart` (Phase D, ADR-005
+/// Relocated verbatim from `lib/util/async/app_theme.dart` (Phase D, ADR-005
 /// §Decision step 4) as step 1 of the design-system extraction: same values,
 /// same names, moved so the design system owns zero `material.dart` imports.
 /// The two `Colors.white`/`Colors.black` references from that file are
 /// replaced with their raw hex here for the same reason — `Colors` is a
 /// Material class.
 ///
-/// `lib/util/theme/app_theme.dart` still owns turning these into a
+/// `lib/util/async/app_theme.dart` still owns turning these into a
 /// `ColorScheme`/`ThemeData` for `MaterialApp` — that construction is
 /// genuinely Material and belongs there, not here.
 class AppColors {
@@ -33,7 +33,7 @@ class AppColors {
   /// Source: legacy `appWhite` / `backgroundGray` (same hex).
   static const Color surface = Color(0xFFFAF8F8);
 
-  /// Pure white — `AppCard`'s default background.
+  /// Pure white — `Card`'s default background.
   static const Color white = Color(0xFFFFFFFF);
 
   /// Body-text colour on `surface`.

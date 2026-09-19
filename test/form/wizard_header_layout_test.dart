@@ -5,11 +5,11 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:mazilon/form/form.dart';
+import 'package:mazilon/pages/personal_plan_editor_page.dart';
 import 'package:mazilon/l10n/app_localizations.dart';
-import 'package:mazilon/util/Form/formPagePhoneModel.dart';
+import 'package:mazilon/features/personal_plan/data/phone_models.dart';
 import 'package:mazilon/util/appInformation.dart';
-import 'package:mazilon/util/theme/app_theme.dart';
+import 'package:mazilon/util/async/app_theme.dart';
 import 'package:mazilon/util/userInformation.dart';
 import 'package:provider/provider.dart';
 
@@ -97,7 +97,7 @@ void main() {
       drainOverflowExceptions(tester);
 
       final dots = _dotsBounds(tester);
-      for (final element in find.byType(TextButton).evaluate()) {
+      for (final element in find.byType(InkWell).evaluate()) {
         final rect = tester.getRect(find.byWidget(element.widget));
         if (rect.top > 80) {
           continue; // header band only

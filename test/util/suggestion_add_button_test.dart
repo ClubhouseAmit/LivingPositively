@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:mazilon/util/suggestion_add_button.dart';
+import 'package:mazilon/features/shell/ui/suggestion_add_button.dart';
 
 void main() {
   for (final testCase in <({String? label, String expectedLabel})>[

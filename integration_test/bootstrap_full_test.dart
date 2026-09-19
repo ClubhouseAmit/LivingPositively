@@ -42,12 +42,12 @@ import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:get_it/get_it.dart';
 import 'package:integration_test/integration_test.dart';
-import 'package:mazilon/AnalyticsService.dart';
-import 'package:mazilon/Locale/locale_service.dart';
+import 'package:mazilon/util/async/analytics_service.dart';
+import 'package:mazilon/util/async/locale_service.dart';
 import 'package:mazilon/main.dart' show MyApp, bootstrapApp, initializeApp;
-import 'package:mazilon/pages/SignIn_Pages/firstPage.dart';
-import 'package:mazilon/pages/SignIn_Pages/introduction.dart';
-import 'package:mazilon/util/persistent_memory_service.dart';
+import 'package:mazilon/pages/first_page.dart';
+import 'package:mazilon/pages/introduction_page.dart';
+import 'package:mazilon/util/async/persistent_memory_service.dart';
 import 'package:provider/provider.dart';
 import 'package:workmanager/workmanager.dart';
 

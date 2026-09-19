@@ -15,19 +15,20 @@ import 'package:flutter/services.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:get_it/get_it.dart';
 import 'package:image_picker/image_picker.dart';
-import 'package:mazilon/AnalyticsService.dart';
-import 'package:mazilon/Locale/locale_service.dart';
-import 'package:mazilon/file_service.dart';
-import 'package:mazilon/form/wizard_step.dart';
-import 'package:mazilon/global_enums.dart';
+import 'package:mazilon/util/async/analytics_service.dart';
+import 'package:mazilon/util/async/locale_service.dart';
+import 'package:mazilon/util/async/file_service.dart';
+import 'package:mazilon/features/wizard/ui/wizard_actions.dart';
+import 'package:mazilon/features/wizard/ui/wizard_step.dart';
+import 'package:mazilon/util/async/global_enums.dart';
 import 'package:mazilon/l10n/app_localizations.dart';
-import 'package:mazilon/pages/FeelGood/image_picker_service_impl.dart';
-import 'package:mazilon/pages/WellnessTools/VideoPlayerPageFactory.dart';
-import 'package:mazilon/pages/sos_location_service.dart';
+import 'package:mazilon/features/feel_good/data/image_picker_repository.dart';
+import 'package:mazilon/features/wellness_tools/ui/video_player_page_factory.dart';
+import 'package:mazilon/features/phone/data/sos_location_service.dart';
 import 'package:mazilon/util/appInformation.dart';
-import 'package:mazilon/util/logger_service.dart';
-import 'package:mazilon/util/persistent_memory_service.dart';
-import 'package:mazilon/util/speech_recognition_service.dart';
+import 'package:mazilon/util/async/logger_service.dart';
+import 'package:mazilon/util/async/persistent_memory_service.dart';
+import 'package:mazilon/util/async/speech_recognition_service.dart';
 import 'package:mazilon/util/userInformation.dart';
 import 'package:provider/provider.dart';
 import 'package:share_plus/share_plus.dart';
@@ -490,7 +491,10 @@ List<dynamic> drainOverflowExceptions(WidgetTester tester) {
 /// tests that exercise one step in isolation don't each repeat the frame.
 Widget wizardStepHarness(WizardStep step) => Scaffold(
   body: Column(
-    children: [Expanded(child: step), WizardActions(step: step)],
+    children: [
+      Expanded(child: step),
+      WizardActions(step: step),
+    ],
   ),
 );
 

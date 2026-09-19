@@ -1,6 +1,6 @@
 import 'dart:typed_data';
 
-import 'package:mazilon/util/logger_service.dart';
+import 'package:mazilon/util/async/logger_service.dart';
 
 import 'mood_medicine_report_delivery_types.dart';
 

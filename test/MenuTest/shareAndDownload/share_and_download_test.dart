@@ -4,19 +4,19 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:share_plus/share_plus.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:get_it/get_it.dart';
-import 'package:mazilon/AnalyticsService.dart';
-import 'package:mazilon/MainPageHelpers/components/personal_plan_section.dart';
-import 'package:mazilon/global_enums.dart';
+import 'package:mazilon/util/async/analytics_service.dart';
+import 'package:mazilon/features/personal_plan/ui/personal_plan_section.dart';
+import 'package:mazilon/util/async/global_enums.dart';
 
-import 'package:mazilon/iFx/service_locator.dart';
+import 'package:mazilon/util/async/service_locator.dart';
 
-import 'package:mazilon/pages/FeelGood/image_picker_service_impl.dart';
-import 'package:mazilon/pages/WellnessTools/VideoPlayerPageFactory.dart';
+import 'package:mazilon/features/feel_good/data/image_picker_repository.dart';
+import 'package:mazilon/features/wellness_tools/ui/video_player_page_factory.dart';
 
-import 'package:mazilon/file_service.dart';
+import 'package:mazilon/util/async/file_service.dart';
 import 'package:mazilon/l10n/app_localizations.dart';
-import 'package:mazilon/util/Share/LP_share_alert_dialog.dart';
-import 'package:mazilon/util/persistent_memory_service.dart';
+import 'package:mazilon/features/personal_plan/ui/share/LP_share_alert_dialog.dart';
+import 'package:mazilon/util/async/persistent_memory_service.dart';
 
 import 'package:mazilon/util/userInformation.dart';
 import 'package:mazilon/util/appInformation.dart';

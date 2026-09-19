@@ -3,7 +3,7 @@ import 'package:mazilon/l10n/app_localizations.dart';
 import 'package:mazilon/l10n/app_localizations_ar.dart';
 import 'package:mazilon/l10n/app_localizations_en.dart';
 import 'package:mazilon/l10n/app_localizations_he.dart';
-import 'package:mazilon/util/personal_plan_export_metadata.dart';
+import 'package:mazilon/features/personal_plan/ui/share/personal_plan_export_metadata.dart';
 
 void main() {
   final titleCases = <({AppLocalizations locale, String username, String title})>[

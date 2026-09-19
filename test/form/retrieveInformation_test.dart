@@ -1,7 +1,7 @@
 import 'package:flutter_test/flutter_test.dart';
 import 'package:mazilon/l10n/app_localizations_en.dart';
-import 'package:mazilon/util/dreams_and_goals_selection.dart';
-import 'package:mazilon/util/Form/retrieveInformation.dart';
+import 'package:mazilon/features/personal_plan/data/dreams_and_goals_models.dart';
+import 'package:mazilon/features/personal_plan/ui/retrieveInformation.dart';
 
 /// Stub that implements every method called by `retrieveInformation` and the
 /// related `retrieve*List` helpers. Each method records the call and returns a

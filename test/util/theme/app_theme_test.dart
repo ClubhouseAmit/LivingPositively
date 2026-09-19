@@ -8,8 +8,8 @@
 
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:mazilon/util/styles.dart';
-import 'package:mazilon/util/theme/app_theme.dart';
+import 'package:mazilon/features/shell/ui/styles.dart';
+import 'package:mazilon/util/async/app_theme.dart';
 
 void main() {
   group('AppColors semantic tokens', () {

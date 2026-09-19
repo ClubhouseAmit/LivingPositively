@@ -1,5 +1,5 @@
 import 'package:flutter_test/flutter_test.dart';
-import 'package:mazilon/pages/notifications/reminder_debug_recorder.dart';
+import 'package:mazilon/features/notifications/ui/reminder_debug_recorder.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 void main() {

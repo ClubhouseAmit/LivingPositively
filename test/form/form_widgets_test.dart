@@ -18,20 +18,21 @@ import 'dart:convert';
 
 import 'package:country_code_picker/country_code_picker.dart';
 import 'package:flutter/foundation.dart';
-import 'package:flutter/material.dart';
+import 'package:flutter/material.dart' hide Card;
 import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:get_it/get_it.dart';
-import 'package:mazilon/EmergencyNumbers.dart';
-import 'package:mazilon/global_enums.dart';
-import 'package:mazilon/form/form.dart';
-import 'package:mazilon/form/phonePageform.dart';
-import 'package:mazilon/form/phonePageListItem.dart';
-import 'package:mazilon/form/shareform.dart';
-import 'package:mazilon/form/speech_dictation_suffix_action.dart';
-import 'package:mazilon/form/wizard_step.dart';
-import 'package:mazilon/util/Form/formPagePhoneModel.dart';
-import 'package:mazilon/util/speech_recognition_service.dart';
+import 'package:mazilon/design_system/widgets/card.dart';
+import 'package:mazilon/features/phone/ui/emergency_numbers.dart';
+import 'package:mazilon/util/async/global_enums.dart';
+import 'package:mazilon/pages/personal_plan_editor_page.dart';
+import 'package:mazilon/features/personal_plan/ui/phone_page/form.dart';
+import 'package:mazilon/features/personal_plan/ui/phone_page/list.dart';
+import 'package:mazilon/features/personal_plan/ui/share_form/share_form.dart';
+import 'package:mazilon/features/speech_dictation/ui/suffix_action.dart';
+import 'package:mazilon/features/wizard/ui/wizard_step.dart';
+import 'package:mazilon/features/personal_plan/data/phone_models.dart';
+import 'package:mazilon/util/async/speech_recognition_service.dart';
 import 'package:mazilon/util/userInformation.dart';
 import 'package:provider/provider.dart';
 import 'package:speech_to_text/speech_recognition_result.dart';
@@ -238,7 +239,7 @@ void main() {
               );
               await tester.pumpAndSettle();
 
-              final addContact = find.byType(TextButton).last;
+              final addContact = find.byKey(const Key('phone-manual-add'));
               await tester.ensureVisible(addContact);
               await tester.tap(addContact);
               await tester.pumpAndSettle();
@@ -360,8 +361,7 @@ void main() {
       await _settle(tester);
 
       expect(find.byType(PhonePageList), findsOneWidget);
-      // The manual-add row is the bottom TextButton.
-      expect(find.byType(TextButton), findsWidgets);
+      expect(find.byKey(const Key('phone-manual-add')), findsOneWidget);
     });
 
     testWidgets(
@@ -390,7 +390,7 @@ void main() {
         drainOverflowExceptions(tester);
 
         final beforeNames = List<String>.from(phoneData.savedPhoneNames);
-        final manualAdd = find.byType(TextButton).last;
+        final manualAdd = find.byKey(const Key('phone-manual-add'));
         await tester.tap(manualAdd, warnIfMissed: false);
         await tester.pump();
         drainOverflowExceptions(tester);
@@ -433,7 +433,10 @@ void main() {
           await tester.pump(const Duration(milliseconds: 50));
           drainOverflowExceptions(tester);
 
-          await tester.tap(find.byType(TextButton).last, warnIfMissed: false);
+          await tester.tap(
+            find.byKey(const Key('phone-manual-add')),
+            warnIfMissed: false,
+          );
           await tester.pump();
           drainOverflowExceptions(tester);
 
@@ -488,7 +491,10 @@ void main() {
           await tester.pump(const Duration(milliseconds: 50));
           drainOverflowExceptions(tester);
 
-          await tester.tap(find.byType(TextButton).last, warnIfMissed: false);
+          await tester.tap(
+            find.byKey(const Key('phone-manual-add')),
+            warnIfMissed: false,
+          );
           await tester.pump();
           drainOverflowExceptions(tester);
 
@@ -548,7 +554,10 @@ void main() {
       await tester.pump(const Duration(milliseconds: 50));
       drainOverflowExceptions(tester);
 
-      await tester.tap(find.byType(TextButton).last, warnIfMissed: false);
+      await tester.tap(
+        find.byKey(const Key('phone-manual-add')),
+        warnIfMissed: false,
+      );
       await tester.pump();
       await tester.enterText(find.byType(TextFormField).at(0), 'Alice');
       await tester.enterText(find.byType(TextFormField).at(1), '050 123 4567');
@@ -581,7 +590,10 @@ void main() {
         );
         await _settle(tester);
 
-        await tester.tap(find.byType(TextButton).last, warnIfMissed: false);
+        await tester.tap(
+          find.byKey(const Key('phone-manual-add')),
+          warnIfMissed: false,
+        );
         await tester.pump();
 
         final pickerFinder = find.byKey(
@@ -629,7 +641,10 @@ void main() {
       );
       await _settle(tester);
 
-      await tester.tap(find.byType(TextButton).last, warnIfMissed: false);
+      await tester.tap(
+        find.byKey(const Key('phone-manual-add')),
+        warnIfMissed: false,
+      );
       await tester.pump();
 
       final pickerFinder = find.byKey(
@@ -686,7 +701,10 @@ void main() {
       );
       await _settle(tester);
 
-      await tester.tap(find.byType(TextButton).last, warnIfMissed: false);
+      await tester.tap(
+        find.byKey(const Key('phone-manual-add')),
+        warnIfMissed: false,
+      );
       await tester.pump();
 
       expect(
@@ -721,7 +739,10 @@ void main() {
       );
       await _settle(tester);
 
-      await tester.tap(find.byType(TextButton).last, warnIfMissed: false);
+      await tester.tap(
+        find.byKey(const Key('phone-manual-add')),
+        warnIfMissed: false,
+      );
       await tester.pump();
       await tester.enterText(find.byType(TextFormField).at(0), 'Alice');
       await tester.enterText(find.byType(TextFormField).at(1), '+972543897645');
@@ -752,7 +773,10 @@ void main() {
       );
       await _settle(tester);
 
-      await tester.tap(find.byType(TextButton).last, warnIfMissed: false);
+      await tester.tap(
+        find.byKey(const Key('phone-manual-add')),
+        warnIfMissed: false,
+      );
       await tester.pump();
       await tester.enterText(find.byType(TextFormField).at(0), 'Alice');
       await tester.enterText(
@@ -1048,7 +1072,6 @@ void main() {
       );
       await _settle(tester);
 
-      // Card is the production widget used to display a phone entry.
       expect(find.byType(Card), findsWidgets);
       final callAlice = find.byTooltip('Call Alice');
       final callBob = find.byTooltip('Call Bob');
@@ -1158,7 +1181,7 @@ void main() {
         expect(infoIcon.semanticLabel, 'Contact storage information');
         // Next/import buttons render — exact tap is platform-channel
         // sensitive (FlutterContacts), so we only assert presence here.
-        expect(find.byType(TextButton), findsWidgets);
+        expect(find.byKey(const Key('wizard-primary-action')), findsOneWidget);
         expect(nextCalled, isFalse);
       },
     );

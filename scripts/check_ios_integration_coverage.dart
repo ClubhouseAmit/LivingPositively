@@ -32,7 +32,7 @@ import 'dart:io';
 import '_lcov_parser.dart';
 
 const _floors = <String, double>{
-  'lib/pages/notifications/notification_service.dart': 60.0,
+  'lib/features/notifications/data/notification_repository.dart': 60.0,
 };
 
 void main(List<String> args) {

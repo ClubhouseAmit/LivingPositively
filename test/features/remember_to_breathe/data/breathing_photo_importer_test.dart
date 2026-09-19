@@ -10,7 +10,7 @@ import 'package:mazilon/features/remember_to_breathe/data/breathing_models.dart'
 import 'package:mazilon/features/remember_to_breathe/data/breathing_photo_importer.dart';
 import 'package:mazilon/features/remember_to_breathe/data/breathing_repository.dart';
 import 'package:mazilon/features/remember_to_breathe/ui/breathing_view_model.dart';
-import 'package:mazilon/pages/FeelGood/image_picker_service_impl.dart';
+import 'package:mazilon/features/feel_good/data/image_picker_repository.dart';
 import 'package:mocktail/mocktail.dart';
 
 class _Picker extends Mock implements ImagePickerService {}

@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:mazilon/util/Form/myDropdownMenuEntry.dart';
+import 'package:mazilon/features/shell/ui/myDropdownMenuEntry.dart';
 
 void main() {
   testWidgets('buildDropdownMenuEntry produces a typed DropdownMenuEntry', (

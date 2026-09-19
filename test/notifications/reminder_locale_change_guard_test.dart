@@ -1,8 +1,8 @@
 import 'package:flutter_test/flutter_test.dart';
 import 'package:mazilon/main.dart';
-import 'package:mazilon/global_enums.dart';
+import 'package:mazilon/util/async/global_enums.dart';
 import 'package:mazilon/util/userInformation.dart';
-import 'package:mazilon/util/Form/formPagePhoneModel.dart';
+import 'package:mazilon/features/personal_plan/data/phone_models.dart';
 import 'package:flutter/foundation.dart';
 import 'package:provider/provider.dart';
 
