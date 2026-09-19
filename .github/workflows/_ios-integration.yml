@@ -241,7 +241,7 @@ jobs:
 
       - name: Upload iOS integration diagnostics
         if: always()
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: ios-integration-diagnostics
           path: ci-ios-diagnostics
@@ -249,7 +249,7 @@ jobs:
 
       - name: Upload iOS Podfile lockfile
         if: always()
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: ios-podfile-lock
           path: ios/Podfile.lock
@@ -266,7 +266,7 @@ jobs:
 
       - name: Upload iOS integration coverage report
         if: always()
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: coverage-integration-ios-lcov
           path: coverage/integration_ios.info
