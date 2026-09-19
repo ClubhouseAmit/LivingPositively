@@ -311,6 +311,35 @@ import 'package:mazilon/features/x/data/x_repository.dart';
 class C {}
 DART
 
+# --- 0.12 use the design-system component --------------------------------
+expect_at 1 "a new bare TextButton( in ui/ is rejected" "features/x/ui/x_page.dart" <<'DART'
+class C {
+  Widget build(c) => TextButton(onPressed: () {}, child: const Text('Go'));
+}
+DART
+
+expect_at 1 "a new bare Card( in ui/ is rejected" "features/x/ui/x_page.dart" <<'DART'
+class C {
+  Widget build(c) => Card(child: const Text('Go'));
+}
+DART
+
+expect_at 0 "AppButton/AppCard in ui/ are fine" "features/x/ui/x_page.dart" <<'DART'
+class C {
+  Widget build(c) => AppCard(child: AppButton(label: 'Go', onPressed: () {}));
+}
+DART
+
+expect_at 0 "a private _FeatureCard class is not a bare Card(" "features/x/ui/x_page.dart" <<'DART'
+class _FeatureCard extends StatelessWidget {}
+DART
+
+expect_at 0 "the legacy myTextButton helper is not a bare TextButton(" "features/x/ui/x_page.dart" <<'DART'
+class C {
+  Widget build(c) => myTextButton(() {}, Icons.close, Colors.red);
+}
+DART
+
 
 echo
 echo "check_guidelines_test: $pass passed, $fail failed"

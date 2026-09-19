@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:mazilon/design_system/primitives/app_surface.dart';
+import 'package:mazilon/design_system/primitives/app_card.dart';
 import 'package:mazilon/design_system/primitives/app_text.dart';
 import 'package:mazilon/design_system/tokens/colors.dart';
 import 'package:mazilon/util/theme/spacing.dart';
@@ -13,7 +13,7 @@ import 'package:mazilon/util/theme/spacing.dart';
 /// stays discoverable, but its action is disabled and the callback is not
 /// invoked in that state.
 ///
-/// Design-system proof (step 4): the card is now `AppSurface`, not `Card` —
+/// Design-system proof (step 4): the card is now `AppCard`, not `Card` —
 /// this widget is exactly the one from the screenshot that started the
 /// design-system work, where a bare `Card()` rendered Material 3's default
 /// radius/elevation instead of `AppRadii.card`/`AppShadows.card`. The action
@@ -59,7 +59,7 @@ final class MoodMedicineHomeInsightsSection extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final ThemeData theme = Theme.of(context);
-    return AppSurface(
+    return AppCard(
       child: LayoutBuilder(
         builder: (BuildContext context, BoxConstraints constraints) {
           final bool shouldStackAction =

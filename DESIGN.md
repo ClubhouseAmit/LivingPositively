@@ -141,6 +141,15 @@ For font **size and weight**, use a §2.2 token via `Theme.of(context).textTheme
 
 ### 3.3 Cards & List Items
 
+Implemented by `AppCard` (`lib/design_system/primitives/app_card.dart`), the
+design system's platform-agnostic card primitive — use it instead of Material's
+`Card` or a hand-rolled `Container`.
+
+- **Default Card:**
+  `AppCard`'s own default: background `AppColors.white`, radius `AppRadii.card`
+  (16.0), padding `AppSpacing.lg` (16.0), shadow `AppShadows.card`. Updated
+  2026-09-19 from `AppColors.surface` to `AppColors.white` — a deliberate
+  design change, not a legacy value.
 - **Default Muted Card:**
   A container with background `AppColors.surface`, rounded corners 15.0, padding 16.0, and a thin border `Border.all(color: AppColors.neutralLight)`.
 - **Active Selection Card:**

@@ -33,6 +33,9 @@ class AppColors {
   /// Source: legacy `appWhite` / `backgroundGray` (same hex).
   static const Color surface = Color(0xFFFAF8F8);
 
+  /// Pure white — `AppCard`'s default background.
+  static const Color white = Color(0xFFFFFFFF);
+
   /// Body-text colour on `surface`.
   /// Source: legacy `appBlue` (the dark navy used for headings/text).
   static const Color onSurface = Color(0xFF0F2851);

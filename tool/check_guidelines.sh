@@ -234,6 +234,36 @@ for f in "${FILES[@]:-}"; do
     fi
   fi
 
+  # 0.12 use the design-system component, not the Material widget it replaces -
+  # Scoped to features/*/ui/ only: that's where 0.10 lets new UI code land,
+  # and the only place these two components exist to be reached for.
+  # TextButton/Card are named specifically because design_system/ has a
+  # drop-in replacement for exactly those two today (AppButton, AppCard) —
+  # this is not a blanket Material ban. Extend the list only as new
+  # primitives ship; banning a widget with no replacement just blocks work.
+  # Ratchet by count, same as 0.11.
+  bad_re=""; allow_re=""; why=""
+  case "$rel" in
+    features/*/ui/*)
+      # The word-boundary group is why this doesn't also flag myTextButton(
+      # (DESIGN.md's legacy icon-button helper) or a MoodMedicineCard class —
+      # both have a non-boundary character immediately before the match.
+      bad_re='(^|[^A-Za-z0-9_.])(TextButton|Card)\('
+      why="use AppButton/AppCard (design_system/) instead" ;;
+  esac
+  if [ -n "$bad_re" ]; then
+    now=$(offenders < "$f" | wc -l | tr -d ' ')
+    if [ "${now:-0}" -gt 0 ]; then
+      mb=$(git merge-base "$BASE_REF" HEAD 2>/dev/null || echo "")
+      was=0
+      [ -n "$mb" ] && was=$(git show "$mb:$f" 2>/dev/null | offenders | wc -l | tr -d ' ')
+      was=${was:-0}
+      if [ "$now" -gt "$was" ]; then
+        note "$f: $now new Material-widget call(s), was $was at $BASE_REF — $why [AGENTS.md 0.12]"
+      fi
+    fi
+  fi
+
   fi
 done
 

@@ -1,8 +1,8 @@
 import 'package:flutter/widgets.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:mazilon/design_system/primitives/app_button.dart';
+import 'package:mazilon/design_system/primitives/app_card.dart';
 import 'package:mazilon/design_system/primitives/app_glass.dart';
-import 'package:mazilon/design_system/primitives/app_surface.dart';
 import 'package:mazilon/design_system/primitives/app_text.dart';
 import 'package:mazilon/design_system/tokens/type_scale.dart';
 
@@ -35,11 +35,11 @@ void main() {
     expect(rendered.style!.fontFamily, 'Rubix');
   });
 
-  testWidgets('AppSurface renders its child with no Material ancestor', (
+  testWidgets('AppCard renders its child with no Material ancestor', (
     tester,
   ) async {
     await tester.pumpWidget(
-      _withoutMaterial(const AppSurface(child: SizedBox(key: Key('leaf')))),
+      _withoutMaterial(const AppCard(child: SizedBox(key: Key('leaf')))),
     );
 
     expect(find.byKey(const Key('leaf')), findsOneWidget);

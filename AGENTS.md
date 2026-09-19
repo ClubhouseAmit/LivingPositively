@@ -27,6 +27,7 @@ ever disagree, the script is right and this table is stale.
 | 0.5 | **No raw number in a spacing/radius slot.** Use `AppSpacing.*`, `AppRadii.*`, or theme. `0` is allowed. | Not even a number that equals a token's value: nobody can tell `20` from `AppSpacing.xl` by reading it. |
 | 0.10 | **A new file under `lib/` goes in `lib/features/<name>/{data,ui}`.** `pages/`, `util/`, `MainPageHelpers/`, `form/`, `initialForm/` and the `lib/` root are frozen. | Four competing layouts is why one feature lives in four directories. See 0.10a. |
 | 0.11 | **Layers point one way.** `data/` must not import a widget library. `ui/` must not import a file from `data/` other than `*_models`, `*_types`, `*_repository`. | A view model that reaches around its repository grows until nobody can test it. |
+| 0.12 | **In `features/*/ui/`, use the design-system component, not the Material widget it replaces.** No bare `TextButton(`/`Card(` — use `AppButton`/`AppCard` (`lib/design_system/`). Extends only as new primitives ship; this is not a blanket Material ban. | A component built to fix drift (§0.10a) is worthless if new screens keep reaching past it for the widget underneath. |
 
 ### 0.5a What the words mean
 
@@ -83,6 +84,11 @@ Deviations from the skill, which is written for a greenfield app:
 - Genuine cross-feature infrastructure stays in `lib/util/{theme,layout,async}/`
   and the loose service files beside them. Everything else in `lib/util/` is
   feature UI in the wrong place — read it, do not extend it.
+- `lib/design_system/` is the platform-agnostic component layer: `tokens/`
+  (colors, spacing, radii, shadows, type scale) and `primitives/` (`AppText`,
+  `AppCard`, `AppGlass`, `AppButton`). Nothing in it imports Material or
+  Cupertino — a future re-skin touches these implementations, never a feature's
+  call sites. Use these over a raw `Text`/`Card`/`TextButton` in `ui/`; see 0.12.
 
 **Frozen trees.** `lib/pages/`, `lib/util/`, `lib/MainPageHelpers/`, `lib/form/`,
 `lib/initialForm/`, and loose files at the `lib/` root predate feature-first

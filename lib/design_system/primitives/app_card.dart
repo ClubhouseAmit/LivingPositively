@@ -4,7 +4,7 @@ import 'package:mazilon/design_system/tokens/colors.dart';
 import 'package:mazilon/design_system/tokens/shadows.dart';
 import 'package:mazilon/design_system/tokens/spacing.dart';
 
-/// Design-system surface primitive — the replacement for reaching for
+/// Design-system card primitive — the replacement for reaching for
 /// Material's `Card` or a hand-rolled `Container` with inline decoration.
 ///
 /// Built on `DecoratedBox` (from `widgets.dart`), not `Card`: `Card` carries
@@ -13,14 +13,15 @@ import 'package:mazilon/design_system/tokens/spacing.dart';
 /// (12) and elevation, not this design system's `AppRadii.card` (16) and
 /// `AppShadows.card`.
 ///
-/// Every argument defaults to the standard card token; pass an override only
-/// for a documented exception (see DESIGN.md §3.3's "Active Selection Card").
-class AppSurface extends StatelessWidget {
-  const AppSurface({
+/// Defaults to `AppColors.white`, `AppRadii.card`, `AppShadows.card` — see
+/// DESIGN.md §3.3. Pass an override only for a documented exception (see
+/// DESIGN.md §3.3's "Active Selection Card").
+class AppCard extends StatelessWidget {
+  const AppCard({
     super.key,
     required this.child,
     this.padding = const EdgeInsets.all(AppSpacing.lg),
-    this.color = AppColors.surface,
+    this.color = AppColors.white,
     this.radius = AppRadii.card,
     this.shadow = AppShadows.card,
     this.border,
