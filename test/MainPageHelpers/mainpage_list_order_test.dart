@@ -1,15 +1,15 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:mazilon/MainPageHelpers/MainPageList/mainpage_list_body_widget.dart';
-import 'package:mazilon/MainPageHelpers/MainPageList/mainpage_list_item_number_widget.dart';
-import 'package:mazilon/MainPageHelpers/MainPageList/mainpage_list_item_widget.dart';
-import 'package:mazilon/MainPageHelpers/MainPageList/mainpage_list_widget.dart';
-import 'package:mazilon/MainPageHelpers/show_all_button.dart';
-import 'package:mazilon/global_enums.dart';
-import 'package:mazilon/util/Thanks/AddForm.dart';
-import 'package:mazilon/util/Thanks/thanksItemSug.dart';
-import 'package:mazilon/util/Traits/positiveTraitItemSug.dart';
-import 'package:mazilon/util/suggestion_add_button.dart';
+import 'package:mazilon/features/home/ui/list/mainpage_list_body_widget.dart';
+import 'package:mazilon/features/home/ui/list/mainpage_list_item_number_widget.dart';
+import 'package:mazilon/features/home/ui/list/mainpage_list_item_widget.dart';
+import 'package:mazilon/features/home/ui/list/mainpage_list_widget.dart';
+import 'package:mazilon/features/home/ui/show_all_button.dart';
+import 'package:mazilon/util/async/global_enums.dart';
+import 'package:mazilon/features/journal/ui/AddForm.dart';
+import 'package:mazilon/features/journal/ui/thanksItemSug.dart';
+import 'package:mazilon/features/positive/ui/positiveTraitItemSug.dart';
+import 'package:mazilon/features/shell/ui/suggestion_add_button.dart';
 import 'package:mazilon/util/userInformation.dart';
 
 import '../helpers/widget_test_scaffold.dart';

@@ -5,9 +5,9 @@
 
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:mazilon/pages/journal.dart';
-import 'package:mazilon/pages/thankYou.dart';
-import 'package:mazilon/util/Thanks/AddForm.dart';
+import 'package:mazilon/pages/journal_page.dart';
+import 'package:mazilon/features/journal/ui/thank_you.dart';
+import 'package:mazilon/features/journal/ui/AddForm.dart';
 import 'package:mazilon/util/userInformation.dart';
 
 import '../helpers/widget_test_scaffold.dart';

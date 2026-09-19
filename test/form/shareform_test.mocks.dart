@@ -6,11 +6,11 @@
 import 'dart:async' as _i5;
 import 'dart:ui' as _i6;
 
-import 'package:mazilon/AnalyticsService.dart' as _i11;
-import 'package:mazilon/file_service.dart' as _i8;
-import 'package:mazilon/global_enums.dart' as _i10;
+import 'package:mazilon/util/async/analytics_service.dart' as _i11;
+import 'package:mazilon/util/async/file_service.dart' as _i8;
+import 'package:mazilon/util/async/global_enums.dart' as _i10;
 import 'package:mazilon/util/appInformation.dart' as _i7;
-import 'package:mazilon/util/persistent_memory_service.dart' as _i2;
+import 'package:mazilon/util/async/persistent_memory_service.dart' as _i2;
 import 'package:mazilon/util/userInformation.dart' as _i3;
 import 'package:mockito/mockito.dart' as _i1;
 import 'package:mockito/src/dummies.dart' as _i4;

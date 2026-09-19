@@ -3,7 +3,7 @@ import 'package:flutter/semantics.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:mazilon/l10n/app_localizations.dart';
-import 'package:mazilon/pages/PersonalPlan/personal_plan_info_modal.dart';
+import 'package:mazilon/features/personal_plan/ui/personal_plan_info_button.dart';
 import 'package:url_launcher_platform_interface/link.dart';
 import 'package:url_launcher_platform_interface/url_launcher_platform_interface.dart';
 

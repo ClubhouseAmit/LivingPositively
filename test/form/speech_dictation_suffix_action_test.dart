@@ -5,11 +5,11 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:mazilon/form/speech_dictation_suffix_action.dart';
-import 'package:mazilon/global_enums.dart';
+import 'package:mazilon/features/speech_dictation/ui/suffix_action.dart';
+import 'package:mazilon/util/async/global_enums.dart';
 import 'package:mazilon/l10n/app_localizations.dart';
-import 'package:mazilon/util/persistent_memory_service.dart';
-import 'package:mazilon/util/speech_recognition_service.dart';
+import 'package:mazilon/util/async/persistent_memory_service.dart';
+import 'package:mazilon/util/async/speech_recognition_service.dart';
 import 'package:speech_to_text/speech_recognition_result.dart';
 import 'package:speech_to_text/speech_to_text.dart';
 

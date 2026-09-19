@@ -15,12 +15,12 @@ import 'package:get_it/get_it.dart';
 import 'package:mazilon/features/remember_to_breathe/data/breathing_models.dart';
 import 'package:mazilon/features/remember_to_breathe/data/breathing_repository.dart';
 import 'package:mazilon/features/remember_to_breathe/data/breathing_store.dart';
-import 'package:mazilon/global_enums.dart';
-import 'package:mazilon/pages/SignIn_Pages/firstPage.dart';
-import 'package:mazilon/pages/UserSettings.dart';
-import 'package:mazilon/util/Form/formPagePhoneModel.dart';
-import 'package:mazilon/util/dreams_and_goals_selection.dart';
-import 'package:mazilon/util/persistent_memory_service.dart';
+import 'package:mazilon/util/async/global_enums.dart';
+import 'package:mazilon/pages/first_page.dart';
+import 'package:mazilon/pages/user_settings_page.dart';
+import 'package:mazilon/features/personal_plan/data/phone_models.dart';
+import 'package:mazilon/features/personal_plan/data/dreams_and_goals_models.dart';
+import 'package:mazilon/util/async/persistent_memory_service.dart';
 import 'package:mazilon/util/userInformation.dart';
 
 import '../../test_support/contract_persistent_memory_service.dart';

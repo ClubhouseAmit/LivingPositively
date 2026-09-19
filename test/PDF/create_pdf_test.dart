@@ -1,5 +1,5 @@
 import 'package:flutter_test/flutter_test.dart';
-import 'package:mazilon/util/PDF/create_pdf.dart';
+import 'package:mazilon/util/async/create_pdf.dart';
 import 'package:pdf/widgets.dart' as pw;
 
 void main() {

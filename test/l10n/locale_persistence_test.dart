@@ -1,7 +1,7 @@
 import 'package:flutter_test/flutter_test.dart';
 import 'package:get_it/get_it.dart';
 import 'package:mazilon/util/Firebase/firebase_functions.dart';
-import 'package:mazilon/util/persistent_memory_service.dart';
+import 'package:mazilon/util/async/persistent_memory_service.dart';
 import 'package:mazilon/util/userInformation.dart';
 
 import '../../test_support/contract_persistent_memory_service.dart';

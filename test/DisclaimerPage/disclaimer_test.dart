@@ -1,4 +1,4 @@
-// Widget tests for the REAL DisclaimerPage in lib/disclaimerPage.dart.
+// Widget tests for the REAL DisclaimerPage in lib/pages/disclaimer_page.dart.
 //
 // The previous version of this file imported a stub copy of DisclaimerPage
 // from the test directory. That stub had a different constructor and a
@@ -11,10 +11,10 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:get_it/get_it.dart';
-import 'package:mazilon/disclaimerPage.dart';
-import 'package:mazilon/global_enums.dart';
-import 'package:mazilon/util/disclaimerLanguageSelect.dart';
-import 'package:mazilon/util/persistent_memory_service.dart';
+import 'package:mazilon/pages/disclaimer_page.dart';
+import 'package:mazilon/util/async/global_enums.dart';
+import 'package:mazilon/features/shell/ui/disclaimerLanguageSelect.dart';
+import 'package:mazilon/util/async/persistent_memory_service.dart';
 import 'package:mazilon/util/userInformation.dart';
 import 'package:provider/provider.dart';
 

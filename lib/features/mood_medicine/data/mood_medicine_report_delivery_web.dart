@@ -1,5 +1,5 @@
 import 'package:flutter/foundation.dart';
-import 'package:mazilon/util/logger_service.dart';
+import 'package:mazilon/util/async/logger_service.dart';
 import 'package:share_plus/share_plus.dart';
 
 import 'mood_medicine_report_delivery_shared.dart';

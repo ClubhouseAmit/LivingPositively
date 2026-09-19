@@ -1,8 +1,8 @@
 import 'package:flutter_test/flutter_test.dart';
 import 'package:get_it/get_it.dart';
-import 'package:mazilon/util/Form/formPagePhoneModel.dart';
-import 'package:mazilon/util/logger_service.dart';
-import 'package:mazilon/util/persistent_memory_service.dart';
+import 'package:mazilon/features/personal_plan/data/phone_models.dart';
+import 'package:mazilon/util/async/logger_service.dart';
+import 'package:mazilon/util/async/persistent_memory_service.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 import '../../test_support/contract_persistent_memory_service.dart';

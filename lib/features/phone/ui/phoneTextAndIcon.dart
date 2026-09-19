@@ -1,0 +1,260 @@
+import 'package:flutter/foundation.dart'
+    show TargetPlatform, defaultTargetPlatform, kIsWeb;
+import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
+import 'package:flutter_screenutil/flutter_screenutil.dart';
+import 'package:mazilon/l10n/app_localizations.dart';
+import 'package:mazilon/features/shell/ui/circular_action_button.dart';
+import 'package:mazilon/features/shell/ui/styles.dart';
+import 'package:url_launcher/url_launcher.dart';
+
+export 'package:mazilon/features/shell/ui/circular_action_button.dart'
+    show circularActionButton;
+
+Widget phoneContact(
+  String phone,
+  String contact, {
+  Future<bool> Function()? launch,
+}) {
+  return Row(
+    children: <Widget>[
+      // Builder gives us a context that's inside the surrounding Scaffold's
+      // subtree, so ScaffoldMessenger.maybeOf works in the tap callback.
+      Builder(
+        builder: (innerContext) {
+          final locale = AppLocalizations.of(innerContext);
+          final tooltip = locale?.callContactTooltip(contact) ?? contact;
+          // Tooltip wires `message` into both the visible long-press hint
+          // and the Semantics label, so TalkBack/VoiceOver announce
+          // "Call <contact> button" instead of an unlabeled icon. The 48dp
+          // SizedBox is the minimum Material tap target — the CircleAvatar
+          // (radius 20 → 40dp visual) keeps the same look but the hit area
+          // grows to the WCAG-recommended size (UX_GAPS §1.6).
+          return circularActionButton(
+            innerContext,
+            tooltip: tooltip,
+            icon: Icons.phone,
+            onTap: () {
+              launchWithFeedback(
+                innerContext,
+                phone,
+                isCallFailure: true,
+                launch: launch ?? () => dialPhone(phone),
+              );
+            },
+          );
+        },
+      ),
+      const SizedBox(width: 10.0), // adjust as needed
+      Expanded(
+        child: Card(
+          child: Padding(
+            padding: const EdgeInsets.all(10.0),
+            child: myAutoSizedText(
+              contact,
+              TextStyle(fontWeight: FontWeight.normal, fontSize: 20.sp),
+              null,
+              30,
+            ), // present the contacts from myContacts list
+          ),
+        ),
+      ),
+    ],
+  );
+}
+
+/// Captures `ScaffoldMessenger` and `AppLocalizations` from [context]
+/// *before* awaiting [launch], then routes a failed launch to
+/// [showLaunchFailureSnackBar]. Centralizing the capture-before-await
+/// pattern keeps the invariant in one place — callers can't accidentally
+/// reach for a stale context after an `await` (the bug that motivated
+/// ADR-005 §A.1).
+///
+/// "Failure" covers both a `false` return value AND a thrown exception
+/// (e.g. `PlatformException` for unsupported schemes, `ArgumentError`
+/// for malformed URIs) from `url_launcher` — both paths reach the user
+/// as the same recoverable snackbar.
+///
+/// [number] is the value offered to the snackbar's "Copy number" action;
+/// pass an empty string for launches that have no number worth copying
+/// (e.g. opening a web link).
+Future<void> launchWithFeedback(
+  BuildContext context,
+  String number, {
+  required bool isCallFailure,
+  required Future<bool> Function() launch,
+}) async {
+  final messenger = ScaffoldMessenger.maybeOf(context);
+  final locale = AppLocalizations.of(context);
+  bool ok;
+  try {
+    ok = await launch();
+  } catch (error, stackTrace) {
+    debugPrint('launchWithFeedback caught $error\n$stackTrace');
+    ok = false;
+  }
+  if (!ok) {
+    showLaunchFailureSnackBar(
+      messenger,
+      locale,
+      number,
+      isCallFailure: isCallFailure,
+    );
+  }
+}
+
+/// Shows a snackbar describing a [launchUrl] failure, with an optional
+/// "Copy number" action that writes [number] to the clipboard. The
+/// [messenger] and [appLocale] must be captured before the async gap so we
+/// avoid the `context.mounted` race after a dialog closes.
+///
+/// Used by both [phoneContact] (personal emergency contacts) and
+/// `EmergencyDialogBox` (system emergency numbers). See ADR-005 §A.1.
+void showLaunchFailureSnackBar(
+  ScaffoldMessengerState? messenger,
+  AppLocalizations? appLocale,
+  String number, {
+  required bool isCallFailure,
+}) {
+  if (messenger == null || appLocale == null) return;
+  HapticFeedback.heavyImpact();
+  messenger.hideCurrentSnackBar();
+  messenger.showSnackBar(
+    SnackBar(
+      content: Text(
+        isCallFailure
+            ? appLocale.callFailedMessage(number)
+            : appLocale.couldNotOpenApp,
+      ),
+      action: number.isEmpty
+          ? null
+          : SnackBarAction(
+              label: appLocale.copyNumberAction,
+              onPressed: () async {
+                await Clipboard.setData(ClipboardData(text: number));
+                messenger.hideCurrentSnackBar();
+                messenger.showSnackBar(
+                  SnackBar(
+                    content: Text(appLocale.numberCopiedToast),
+                    duration: const Duration(seconds: 2),
+                  ),
+                );
+              },
+            ),
+      duration: const Duration(seconds: 6),
+    ),
+  );
+}
+
+/// Wraps `launchUrl` so the four public action helpers share one
+/// "launch + log on false + return launched" shape.
+///
+/// [mode] is forwarded to `launchUrl`; pass `LaunchMode.externalApplication`
+/// for app handoffs (WhatsApp, browser). The default
+/// `LaunchMode.platformDefault` matches `launchUrl(uri)`'s historical
+/// behavior for `tel:` and `sms:`.
+Future<bool> _launchUriWithLogging(
+  Uri uri, {
+  LaunchMode mode = LaunchMode.platformDefault,
+}) async {
+  final launched = await launchUrl(uri, mode: mode);
+  if (!launched) {
+    debugPrint('Could not launch $uri');
+  }
+  return launched;
+}
+
+Future<bool> dialPhone(String number) =>
+    _launchUriWithLogging(_dialPhoneUri(number));
+
+Uri _dialPhoneUri(String number) {
+  final trimmedNumber = number.trim();
+  if (defaultTargetPlatform == TargetPlatform.android &&
+      RegExp(r'^\d{4}$').hasMatch(trimmedNumber)) {
+    return Uri.parse('tel:${Uri.encodeComponent('$trimmedNumber ')}');
+  }
+  return Uri.parse('tel:$trimmedNumber');
+}
+
+String? _normalizeWhatsAppRecipient(String number) {
+  final compact = number.trim().replaceAll(RegExp(r'[\s().-]'), '');
+  final digits = compact.startsWith('+') ? compact.substring(1) : compact;
+  if (!RegExp(r'^[1-9]\d{7,14}$').hasMatch(digits)) {
+    return null;
+  }
+  return digits;
+}
+
+Future<bool> openWhatsApp(String number, {String body = ''}) {
+  final recipient = _normalizeWhatsAppRecipient(number);
+  if (recipient == null) {
+    debugPrint('Could not launch WhatsApp because the recipient is invalid.');
+    return Future.value(false);
+  }
+  final trimmedBody = body.trim();
+  final uri = trimmedBody.isEmpty
+      ? Uri.parse('https://wa.me/$recipient')
+      : Uri.https('wa.me', '/$recipient', {'text': trimmedBody});
+  return _launchUriWithLogging(uri, mode: LaunchMode.externalApplication);
+}
+
+Future<bool> openSite(String url) =>
+    _launchUriWithLogging(Uri.parse(url), mode: LaunchMode.externalApplication);
+
+const _smsComposeChannel = MethodChannel('com.matzilon.mezilon/sms_compose');
+
+Future<bool> openTextMessage(String number, {String body = ''}) async {
+  final trimmedBody = body.trim();
+  if (!kIsWeb &&
+      (defaultTargetPlatform == TargetPlatform.android ||
+          defaultTargetPlatform == TargetPlatform.iOS)) {
+    final composed = await _smsComposeChannel.invokeMethod<bool>('composeSms', {
+      'number': number,
+      'body': trimmedBody,
+    });
+    if (composed != true) {
+      debugPrint('Could not compose SMS for $number');
+    }
+    return composed ?? false;
+  }
+
+  final uri = trimmedBody.isEmpty
+      ? Uri(scheme: 'sms', path: number)
+      : Uri(
+          scheme: 'sms',
+          path: number,
+          query: 'body=${Uri.encodeComponent(trimmedBody)}',
+        );
+  return _launchUriWithLogging(uri);
+}
+
+Widget getTextIconWidget(String text, Function onClick, IconData icon) {
+  return Builder(
+    builder: (context) => SizedBox(
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          Flexible(
+            child: Text(
+              text,
+              style: TextStyle(
+                fontWeight: FontWeight.normal,
+                fontSize: 18.sp > 35 ? 35 : 20.sp,
+              ),
+            ),
+          ),
+          SizedBox(width: 5.0),
+          circularActionButton(
+            context,
+            tooltip: text,
+            icon: icon,
+            onTap: () {
+              onClick();
+            },
+          ),
+          SizedBox(width: 10.0),
+        ],
+      ),
+    ),
+  );
+}

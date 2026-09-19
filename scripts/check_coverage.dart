@@ -18,7 +18,7 @@ const _excludePatterns = <String>[
   r'lib/l10n/app_localizations.*\.dart$',
   r'lib/l10n/l10n\.dart$',
   r'lib/util/Firebase/firebase_options\.dart$',
-  r'lib/global_enums\.dart$',
+  r'lib/util/async/global_enums\.dart$',
 ];
 
 // Tier 1: safety/auth/persistence-critical files. Each file must be >= 50%
@@ -30,11 +30,11 @@ const _excludePatterns = <String>[
 // rest to integration tests.
 const _tier1 = <String>{
   'lib/util/Firebase/firebase_functions.dart',
-  'lib/util/persistent_memory_service.dart',
-  'lib/disclaimerPage.dart',
-  'lib/file_service.dart',
-  'lib/util/PDF/create_pdf.dart',
-  'lib/Locale/locale_service.dart',
+  'lib/util/async/persistent_memory_service.dart',
+  'lib/pages/disclaimer_page.dart',
+  'lib/util/async/file_service.dart',
+  'lib/util/async/create_pdf.dart',
+  'lib/util/async/locale_service.dart',
 };
 
 // Tier 2: large or complex pages with high blast radius.
@@ -50,24 +50,24 @@ const _tier1 = <String>{
 // existing Mockito-based suites; the same rename also unblocked
 // form/formpagetemplate.dart and form/shareform.dart.
 const _tier2 = <String>{
-  'lib/pages/UserSettings.dart',
-  'lib/pages/journal.dart',
-  'lib/pages/PersonalPlan/myPlan.dart',
-  'lib/pages/positive.dart',
-  'lib/pages/PersonalPlan/myPlanPageFull.dart',
-  'lib/form/form.dart',
-  'lib/form/phonePageform.dart',
-  'lib/form/phonePageListItem.dart',
-  'lib/form/shareform.dart',
-  'lib/form/formpagetemplate.dart',
-  'lib/pages/notifications/set_notification_widget.dart',
-  'lib/pages/notifications/reminder_debug_panel.dart',
-  'lib/pages/notifications/reminder_debug_recorder.dart',
-  'lib/pages/notifications/time_picker.dart',
-  'lib/initialForm/form.dart',
-  'lib/initialForm/initialFormPage1.dart',
-  'lib/initialForm/initialFormPage2.dart',
-  'lib/initialForm/toFormPage.dart',
+  'lib/pages/user_settings_page.dart',
+  'lib/pages/journal_page.dart',
+  'lib/features/personal_plan/ui/my_plan_section.dart',
+  'lib/pages/positive_page.dart',
+  'lib/pages/my_plan_page.dart',
+  'lib/pages/personal_plan_editor_page.dart',
+  'lib/features/personal_plan/ui/phone_page/form.dart',
+  'lib/features/personal_plan/ui/phone_page/list.dart',
+  'lib/features/personal_plan/ui/share_form/share_form.dart',
+  'lib/features/personal_plan/ui/form_page_template/form_page_template.dart',
+  'lib/features/notifications/ui/set_notification_widget.dart',
+  'lib/features/notifications/ui/reminder_debug_panel.dart',
+  'lib/features/notifications/ui/reminder_debug_recorder.dart',
+  'lib/features/notifications/ui/time_picker.dart',
+  'lib/pages/onboarding_page.dart',
+  'lib/features/onboarding/ui/initial_form_page1.dart',
+  'lib/features/onboarding/ui/initial_form_page2.dart',
+  'lib/features/onboarding/ui/to_form_page.dart',
 };
 
 const double _globalThreshold = 85.0; // ~89.3% as of round 9 (ADR-004)
@@ -75,7 +75,7 @@ const double _tier1Threshold = 50.0;
 const double _tier2Threshold = 40.0;
 
 // Per-file floors that exist to make ADR-001's hybrid Phase-6 mechanism
-// load-bearing. `lib/AnalyticsService.dart` reaches ~90% only because the
+// load-bearing. `lib/util/async/analytics_service.dart` reaches ~90% only because the
 // CI workflow re-runs MixPanelService_token_test.dart with
 // `--dart-define=MIXPANEL_PROJECT_TOKEN=test-token` and merges the lcov
 // output. If that step is ever removed, or merge_lcov.dart silently fails,
@@ -84,7 +84,7 @@ const double _tier2Threshold = 40.0;
 // would land unnoticed. The floor sits below the achieved 90.9% with a
 // small cushion for future trivial-line drift.
 const _perFileFloors = <String, double>{
-  'lib/AnalyticsService.dart': 85.0,
+  'lib/util/async/analytics_service.dart': 85.0,
 };
 
 void main(List<String> args) {

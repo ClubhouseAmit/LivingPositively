@@ -2,14 +2,14 @@ import 'dart:async';
 
 import 'package:flutter_test/flutter_test.dart';
 import 'package:get_it/get_it.dart';
-import 'package:mazilon/global_enums.dart';
+import 'package:mazilon/util/async/global_enums.dart';
 import 'package:mazilon/l10n/app_localizations_ar.dart';
 import 'package:mazilon/l10n/app_localizations_en.dart';
 import 'package:mazilon/l10n/app_localizations_he.dart';
 import 'package:mazilon/util/Firebase/firebase_functions.dart';
-import 'package:mazilon/util/dreams_and_goals_selection.dart';
-import 'package:mazilon/util/logger_service.dart';
-import 'package:mazilon/util/persistent_memory_service.dart';
+import 'package:mazilon/features/personal_plan/data/dreams_and_goals_models.dart';
+import 'package:mazilon/util/async/logger_service.dart';
+import 'package:mazilon/util/async/persistent_memory_service.dart';
 import 'package:mazilon/util/userInformation.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 

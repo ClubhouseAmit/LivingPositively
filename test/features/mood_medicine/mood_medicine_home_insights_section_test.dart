@@ -1,6 +1,7 @@
 import 'package:auto_size_text/auto_size_text.dart';
-import 'package:flutter/material.dart';
+import 'package:flutter/material.dart' hide Card;
 import 'package:flutter_test/flutter_test.dart';
+import 'package:mazilon/design_system/widgets/card.dart';
 import 'package:mazilon/features/mood_medicine/ui/mood_medicine_home_insights_section.dart';
 
 void main() {

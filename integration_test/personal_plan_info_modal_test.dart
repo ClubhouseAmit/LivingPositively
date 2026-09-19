@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:integration_test/integration_test.dart';
 import 'package:mazilon/l10n/app_localizations.dart';
-import 'package:mazilon/pages/PersonalPlan/personal_plan_info_modal.dart';
+import 'package:mazilon/features/personal_plan/ui/personal_plan_info_button.dart';
 import 'package:youtube_player_flutter/youtube_player_flutter.dart';
 
 Future<void> _waitForNativeWebView(

@@ -12,8 +12,8 @@
 
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:mazilon/pages/FormAnswer.dart';
-import 'package:mazilon/util/FormAnswer/addFormAnswer.dart';
+import 'package:mazilon/features/personal_plan/ui/form_answer.dart';
+import 'package:mazilon/features/personal_plan/ui/addFormAnswer.dart';
 import 'package:mazilon/util/userInformation.dart';
 
 import '../helpers/widget_test_scaffold.dart';

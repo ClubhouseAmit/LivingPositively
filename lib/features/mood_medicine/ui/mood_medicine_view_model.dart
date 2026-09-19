@@ -4,13 +4,13 @@ import 'package:flutter/foundation.dart';
 import 'package:uuid/uuid.dart';
 
 import 'package:mazilon/features/mood_medicine/data/mood_medicine_models.dart';
-import 'package:mazilon/features/mood_medicine/data/mood_medicine_report_exporter.dart';
+import 'package:mazilon/features/mood_medicine/data/mood_medicine_report_exporter.dart'; // TODO: 0.11 go through mood_medicine_repository
 import 'package:mazilon/features/mood_medicine/data/mood_medicine_report_renderer.dart';
 import 'package:mazilon/features/mood_medicine/data/mood_medicine_repository.dart';
 import 'package:mazilon/features/mood_medicine/data/mood_medicine_source_link_service.dart';
 import 'package:mazilon/features/mood_medicine/ui/mood_medicine_insights.dart';
 import 'package:mazilon/features/mood_medicine/ui/mood_medicine_view_state.dart';
-import 'package:mazilon/util/logger_service.dart';
+import 'package:mazilon/util/async/logger_service.dart';
 
 /// Feature-local MVVM state holder for Mood Tracker and Personal Medicine.
 ///

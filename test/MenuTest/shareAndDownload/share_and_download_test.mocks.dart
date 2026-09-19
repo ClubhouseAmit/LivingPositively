@@ -10,14 +10,14 @@ import 'dart:ui' as _i12;
 import 'package:flutter/foundation.dart' as _i4;
 import 'package:flutter/material.dart' as _i3;
 import 'package:image_picker/image_picker.dart' as _i17;
-import 'package:mazilon/AnalyticsService.dart' as _i18;
-import 'package:mazilon/file_service.dart' as _i6;
-import 'package:mazilon/global_enums.dart' as _i9;
-import 'package:mazilon/pages/FeelGood/image_picker_service_impl.dart' as _i16;
-import 'package:mazilon/pages/WellnessTools/VideoPlayerPageFactory.dart'
+import 'package:mazilon/util/async/analytics_service.dart' as _i18;
+import 'package:mazilon/util/async/file_service.dart' as _i6;
+import 'package:mazilon/util/async/global_enums.dart' as _i9;
+import 'package:mazilon/features/feel_good/data/image_picker_repository.dart' as _i16;
+import 'package:mazilon/features/wellness_tools/ui/video_player_page_factory.dart'
     as _i15;
 import 'package:mazilon/util/appInformation.dart' as _i13;
-import 'package:mazilon/util/persistent_memory_service.dart' as _i2;
+import 'package:mazilon/util/async/persistent_memory_service.dart' as _i2;
 import 'package:mazilon/util/userInformation.dart' as _i10;
 import 'package:mockito/mockito.dart' as _i1;
 import 'package:mockito/src/dummies.dart' as _i11;

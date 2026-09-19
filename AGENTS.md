@@ -25,6 +25,11 @@ ever disagree, the script is right and this table is stale.
 | 0.3 | **A method is ≤ 80 lines** — `build` methods included. | A 250-line method is not a method, it is a file that forgot to be one. |
 | 0.4 | **No function defined inside a builder callback.** Hoist it to a method or a widget. | Closures nested inside two builders are unreadable and untestable. |
 | 0.5 | **No raw number in a spacing/radius slot.** Use `AppSpacing.*`, `AppRadii.*`, or theme. `0` is allowed. | Not even a number that equals a token's value: nobody can tell `20` from `AppSpacing.xl` by reading it. |
+| 0.10 | **A top-level page goes in `lib/pages/*.dart`.** Feature internals go in `lib/features/<name>/{data,ui}` — not the page. `pages/<folder>/`, `util/`, `MainPageHelpers/`, `form/`, `initialForm/` and the `lib/` root stay frozen. | A page that lives inside its feature, or a feature folder under `pages/`, is how one concern ends up in four directories. See 0.10a. |
+| 0.11 | **Layers point one way.** `data/` must not import a widget library. `ui/` must not import a file from `data/` other than `*_models`, `*_types`, `*_repository`. | A view model that reaches around its repository grows until nobody can test it. |
+| 0.12 | **In `features/*/ui/`, use the design-system widget, not the Material widget it replaces.** No bare `TextButton(` — use `Button` (`lib/design_system/widgets/`). `Card`/`Text`/`Dialog` in ui/ are the design-system widgets; hide Flutter's names at the import. Extends only as new widgets ship; this is not a blanket Material ban. | A component built to fix drift (§0.10a) is worthless if new screens keep reaching past it for the widget underneath. |
+| 0.13 | **A `currentScreen` widget does not set `appBar:`.** The class list is read from `lib/menu.dart`, not restated. A route opened with `Navigator.push` keeps its bar. | `menu.dart` already owns the scaffold. A second `AppBar` is a nested scaffold. Existing bars park by count. |
+| 0.14 | **No widget class under `lib/util/`.** No `StatelessWidget` / `StatefulWidget` / `State<`. | Util is infra. A widget there is a feature in the wrong tree. |
 
 ### 0.5a What the words mean
 
@@ -40,8 +45,11 @@ The script decides, not your reading of the table. Where you need to know:
   `EdgeInsets*`, `BorderRadius.circular/all`, and `Radius.circular`. Other
   widgets that take a number (`Positioned`, `Container(margin:)`) are not yet
   checked; use tokens there anyway.
-- **Scope** — 0.2 applies to `lib/` only. 0.1/0.3/0.4/0.5 apply to any `.dart`
-  file you point the script at.
+- **"currentScreen widget"** — a class assigned with `currentScreen = Name(`
+  in `lib/menu.dart`. The script reads that file each run; a page reached
+  only through a helper is not on the list.
+- **Scope** — 0.2 applies to `lib/` only. 0.1/0.3/0.4/0.5/0.13 apply to any
+  `.dart` file you point the script at. 0.14 applies to `lib/util/`.
 
 **The script is a text heuristic, not a Dart parser.** `tool/check_guidelines.sh`
 documents its known gaps at the top, and `tool/check_guidelines_test.sh` is the
@@ -57,6 +65,62 @@ oldest date from 2024 — long before any agent touched this repo. Section 6.3
 below says "if existing code is imperfect but consistent, match it." That rule
 is about *naming, idiom, and structure*, and it stops where section 0 starts.
 Do not cite 6.3 to justify a raw literal or a 200-line method.
+
+### 0.10a Where new code goes
+
+The layout itself is specified in `.claude/skills/architecture-feature-first/SKILL.md`.
+**Load that skill before creating any file.** This section does not restate it —
+it states only what the skill cannot know about this repo.
+
+`lib/features/remember_to_breathe/` is the reference for feature internals
+(`data/` + `ui/` widgets). The screen itself lives in `lib/pages/`. Copy that
+split, not `mood_medicine`'s old all-in-`ui/` page. App layout
+(`lib/menu.dart`, `lib/main_menu_dialog.dart`) stays at the `lib/` root —
+it is not a feature.
+
+```
+lib/pages/<name>_page.dart          # top-level screen only — no subfolders
+lib/features/<name>/
+├── data/    models, repository, store, and that feature's services
+└── ui/      <name>_view_model.dart, <name>_view_state.dart, widgets/
+```
+
+**This repo is feature-first for data (LeanCode / VGV), not Flutter Compass.**
+A service or repository lives in `lib/features/<name>/data/`. Do not create
+`lib/data/`, `lib/data/services/`, `lib/services/`, `lib/core/`, or
+`lib/shared/`. Compass groups those by type because it treats services as
+shared across features; here a feature owns its data layer. Two valid homes
+means the next agent guesses.
+
+Deviations from the skill, which is written for a greenfield app:
+
+- Use `ui/`, not `presentation/`. Use `domain/`, not `logic/`.
+- Genuine cross-feature infrastructure (file I/O, analytics, GetIt, locale,
+  logger, speech recognition, persistent memory, `ThemeData`) stays in
+  `lib/util/async/`. That tree may import Flutter for `ThemeData` or
+  `runApp`. It must not define a widget (`0.14`). Tokens live in
+  `lib/design_system/tokens/`, not `util/theme/`. Shared UI lives in a
+  feature: `wizard`, `speech_dictation`, `shell` (app chrome), or the
+  feature that owns the screen. A feature API wrapper or a widget cannot
+  live in `util/`. Everything else in `lib/util/` is leftover — read it,
+  do not extend it.
+- `lib/design_system/` is the platform-agnostic component layer: `tokens/`
+  (colors, spacing, radii, shadows, type scale) and `widgets/` (`Text`,
+  `Card`, `Glass`, `Button`). Nothing in it imports Material or
+  Cupertino — a future re-skin touches these implementations, never a feature's
+  call sites. Use these over a raw Material `Text`/`Card`/`TextButton` in
+  `ui/`; see 0.12. Import `design_system/widgets/` and hide Flutter's names.
+
+**Frozen trees.** `lib/pages/` is flat: one `*.dart` file per top-level
+screen. A subdirectory under `pages/` is a feature in the wrong place.
+`lib/util/`, `lib/MainPageHelpers/`, `lib/form/`, `lib/initialForm/`, and
+loose files at the `lib/` root still predate feature-first organisation.
+Editing a leftover file is fine. Adding to a frozen tree is 0.10. Section
+6.3 tells you to match surrounding structure — it stops here, exactly as
+it stops at 0.5.
+
+Move a leftover legacy folder into `lib/features/` only as part of a ticket
+that already touches it, never as a standalone refactor PR.
 
 ### 0.7 Stop conditions you can actually detect
 
@@ -188,6 +252,9 @@ note the limitation, continue. Stop for a human only if no graph exists at all
 Before writing or reviewing Dart/Flutter, load the `effective-dart` and
 `dart-3-updates` skills and follow this repo's conventions rather than generic
 Dart habits.
+
+Before creating any **new file**, also load `architecture-feature-first`. Where it
+and section 0.10a disagree, 0.10a wins — it knows this repo, the skill does not.
 
 ---
 
@@ -340,6 +407,13 @@ Reuse is an outcome, not a goal. Identify reusable utilities only if explicitly
 requested. Do not create "common services", centralize behavior preemptively, or
 assume other systems will consume the output. "Field of Dreams" behavior is
 forbidden.
+
+**This bans creating shared code, not finding it.** Before you write a helper,
+search for one: `lib/util/` and the existing features are the two places to look,
+and 2A's graphify query is how to look. `lib/features/mood_medicine/` shipped its
+own PDF direction helpers, its own share-sheet stack, and a copy of another
+feature's write queue, all of which already existed. Writing a second copy is not
+neutral — it is the cost this section exists to avoid, pointed the other way.
 
 ---
 

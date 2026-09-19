@@ -80,9 +80,92 @@ fail=0
 scanned=0
 note() { echo "$1"; fail=1; }
 
+# Offending import lines on stdin, per the bad_re/allow_re pair set by 0.11.
+offenders() {
+  if [ -n "$allow_re" ]; then
+    grep -nE "$bad_re" | grep -vE "$allow_re"
+  else
+    grep -nE "$bad_re"
+  fi
+}
+bad_re=""; allow_re=""
+
+# Merge-base counterpart of a path. Follows a git rename so a folder move
+# does not look like a new file. CHECK_ORIGIN overrides (the test suite).
+mb=$(git merge-base "$BASE_REF" HEAD 2>/dev/null || echo "")
+origin_for() {
+  local f="$1"
+  if [ -n "${CHECK_ORIGIN:-}" ]; then
+    printf '%s\n' "$CHECK_ORIGIN"
+    return
+  fi
+  if [ -n "$mb" ] && git cat-file -e "$mb:$f" 2>/dev/null; then
+    printf '%s\n' "$f"
+    return
+  fi
+  {
+    [ -n "$mb" ] && git diff --name-status -M --diff-filter=R "$mb" --
+    git diff --name-status -M --diff-filter=R --cached --
+    git diff --name-status -M --diff-filter=R --
+  } 2>/dev/null | awk -F '\t' -v dest="$f" '
+    $1 ~ /^R/ && $NF == dest { print $2; exit }
+  '
+}
+
+# 0.3 method-length scan. File on stdin; $1 is the path printed in messages.
+method_offenders() {
+  awk -v lim="$MAX_METHOD_LINES" -v file="$1" '
+    !open && /^  [A-Za-z_@~].*\{[ \t]*$/            { open=1; kind="{"; start=NR; sig=$0; next }
+    !open && /^  \) *(async|async\*|sync\*)? *\{$/  { open=1; kind="{"; start=NR; sig="(wrapped signature)"; next }
+    !open && /^  [A-Za-z_@~].*=>[ \t]*$/            { open=1; kind="=>"; start=NR; sig=$0; next }
+    !open && /^  [A-Za-z_@~].*=> *[A-Za-z_].*\($/   { open=1; kind="=>"; start=NR; sig=$0; next }
+    open && kind=="{"  && /^  \}$/    { n=NR-start+1; if (n>lim)
+        printf "%s:%d: method is %d lines (max %d):%s [AGENTS.md 0.3]\n", file,start,n,lim,substr(sig,1,55)
+        open=0; next }
+    open && kind=="{"  && /^  \};?$/  { open=0; next }
+    open && kind=="{"  && /^  \}\);?$/ { open=0; next }
+    open && kind=="=>" && /;[ \t]*$/  { n=NR-start+1; if (n>lim)
+        printf "%s:%d: expression-bodied member is %d lines (max %d):%s [AGENTS.md 0.3]\n", file,start,n,lim,substr(sig,1,55)
+        open=0; next }
+    END { if (open) printf "%s:%d: UNCLOSED member — checker could not parse past here [AGENTS.md 0.3]\n", file, start }
+  '
+}
+
+# Count-ratchet against the origin at merge-base. A rename, or an
+# import-only edit of an existing file, parks the count that was already
+# there. Brand-new files (no origin) still fail on sight.
+# grew_vs_origin <now> <was> → 0 if parked.
+grew_vs_origin() {
+  local now="$1" was="$2"
+  [ -z "$origin" ] || [ "$now" -gt "$was" ]
+}
+
+# 0.13 — shell pages are the body of menu.dart's one Scaffold. The class list
+# is whatever `currentScreen = Name(` assigns today, so a new shell page is
+# covered without editing this script. A Navigator.push route is not on that
+# list and keeps its AppBar.
+# ponytail: misses a page reached only through a helper (`currentScreen =
+# _buildHome()`). Put the widget's name on the assignment if that starts
+# hiding bars.
+MENU_FILE=lib/menu.dart
+if [ ! -f "$MENU_FILE" ]; then
+  echo "check_guidelines: $MENU_FILE missing — cannot tell which pages are shell bodies [AGENTS.md 0.13]" >&2
+  exit 2
+fi
+SHELL_CLASSES=()
+while IFS= read -r name; do
+  [ -n "$name" ] && SHELL_CLASSES+=("$name")
+done < <(grep -oE 'currentScreen[[:space:]]*=[[:space:]]*[A-Z][A-Za-z0-9_]*' "$MENU_FILE" \
+         | sed -E 's/.*[[:space:]]//' | sort -u)
+if [ "${#SHELL_CLASSES[@]}" -eq 0 ]; then
+  echo "check_guidelines: no currentScreen widgets in $MENU_FILE — the 0.13 pattern broke" >&2
+  exit 2
+fi
+
 for f in "${FILES[@]:-}"; do
   [ -n "$f" ] && [ -f "$f" ] || continue
   scanned=$((scanned + 1))
+  origin=$(origin_for "$f")
 
   # 0.1 one screen per file ----------------------------------------------------
   # Counts PUBLIC widget classes only. A private _FooState pairs with its public
@@ -90,7 +173,13 @@ for f in "${FILES[@]:-}"; do
   # are the idiomatic way to break a screen up — they are the fix, not the bug.
   screens=$(grep -cE '^(final |base |abstract |sealed )*class [A-Z][A-Za-z0-9_]* extends (StatelessWidget|StatefulWidget|ConsumerWidget|ConsumerStatefulWidget)' "$f")
   if [ "$screens" -gt 1 ]; then
-    note "$f: $screens public widget classes in one file (max 1) [AGENTS.md 0.1]"
+    was=0
+    [ -n "$mb" ] && [ -n "$origin" ] && \
+      was=$(git show "$mb:$origin" 2>/dev/null | grep -cE '^(final |base |abstract |sealed )*class [A-Z][A-Za-z0-9_]* extends (StatelessWidget|StatefulWidget|ConsumerWidget|ConsumerStatefulWidget)')
+    was=${was:-0}
+    if grew_vs_origin "$screens" "$was"; then
+      note "$f: $screens public widget classes in one file (max 1) [AGENTS.md 0.1]"
+    fi
   fi
 
   # 0.2 file length ------------------------------------------------------------
@@ -99,9 +188,9 @@ for f in "${FILES[@]:-}"; do
   case "$f" in lib/*)
     lines=$(wc -l < "$f" | tr -d ' ')
     if [ "$lines" -gt "$MAX_FILE_LINES" ]; then
-      mb=$(git merge-base "$BASE_REF" HEAD 2>/dev/null || echo "")
       base=0
-      [ -n "$mb" ] && base=$(git show "$mb:$f" 2>/dev/null | wc -l | tr -d ' ')
+      [ -n "$mb" ] && [ -n "$origin" ] && \
+        base=$(git show "$mb:$origin" 2>/dev/null | wc -l | tr -d ' ')
       base=${base:-0}
       if [ "$base" -eq 0 ]; then
         note "$f: new file is $lines lines (max $MAX_FILE_LINES) [AGENTS.md 0.2]"
@@ -114,27 +203,16 @@ for f in "${FILES[@]:-}"; do
   # 0.3 method length ----------------------------------------------------------
   # Brace-bodied members, plus expression-bodied (=>) members, which are the
   # obvious way to launder a 300-line build method past a brace-only scan.
-  out=$(awk -v lim="$MAX_METHOD_LINES" -v file="$f" '
-    # brace-bodied: signature at 2-space indent ending in {, or a wrapped
-    # signature whose continuation closes with ") ... {"
-    !open && /^  [A-Za-z_@~].*\{[ \t]*$/            { open=1; kind="{"; start=NR; sig=$0; next }
-    !open && /^  \) *(async|async\*|sync\*)? *\{$/  { open=1; kind="{"; start=NR; sig="(wrapped signature)"; next }
-    # expression-bodied: "=> ... ;" possibly spanning many lines
-    !open && /^  [A-Za-z_@~].*=>[ \t]*$/            { open=1; kind="=>"; start=NR; sig=$0; next }
-    !open && /^  [A-Za-z_@~].*=> *[A-Za-z_].*\($/   { open=1; kind="=>"; start=NR; sig=$0; next }
-    open && kind=="{"  && /^  \}$/    { n=NR-start+1; if (n>lim)
-        printf "%s:%d: method is %d lines (max %d):%s [AGENTS.md 0.3]\n", file,start,n,lim,substr(sig,1,55)
-        open=0; next }
-    open && kind=="{"  && /^  \};?$/  { open=0; next }   # map/list field, not a method
-    # An expression body ends at the FIRST line terminated by ";", at ANY
-    # indent. Requiring indent 2 left "=>\n      value;" open forever, which
-    # silently disabled every later check in the file.
-    open && kind=="=>" && /;[ \t]*$/  { n=NR-start+1; if (n>lim)
-        printf "%s:%d: expression-bodied member is %d lines (max %d):%s [AGENTS.md 0.3]\n", file,start,n,lim,substr(sig,1,55)
-        open=0; next }
-    END { if (open) printf "%s:%d: UNCLOSED member — checker could not parse past here [AGENTS.md 0.3]\n", file, start }
-  ' "$f")
-  [ -n "$out" ] && { echo "$out"; fail=1; }
+  # A rename parks the count that already existed at the old path.
+  out=$(method_offenders "$f" < "$f")
+  now_n=$(printf '%s\n' "$out" | grep -c . || true)
+  was_n=0
+  if [ -n "$origin" ] && [ -n "$mb" ]; then
+    was_n=$(git show "$mb:$origin" 2>/dev/null | method_offenders "$f" | grep -c . || true)
+  fi
+  if [ -n "$out" ] && grew_vs_origin "$now_n" "$was_n"; then
+    echo "$out"; fail=1
+  fi
 
   # 0.4 functions defined inside a callback ------------------------------------
   # Any local function declared at depth: return type may be a custom type or
@@ -144,10 +222,19 @@ for f in "${FILES[@]:-}"; do
   deep=$(grep -nE "^ {$MAX_CLOSURE_INDENT,}([A-Za-z_][A-Za-z0-9_<>,? ]*\s+)?[a-z_][A-Za-z0-9_]*\([^()]*\) *(async|async\*|sync\*)? *\{ *$" "$f" \
          | grep -vE '\b(if|for|while|switch|catch|return|else|case|do|try|setState)\b' || true)
   if [ -n "$deep" ]; then
-    echo "$deep" | while IFS= read -r l; do
-      echo "$f:${l%%:*}: function defined inside a callback — hoist it [AGENTS.md 0.4]"
-    done
-    fail=1
+    now_n=$(printf '%s\n' "$deep" | grep -c . || true)
+    was_n=0
+    if [ -n "$origin" ] && [ -n "$mb" ]; then
+      was_n=$(git show "$mb:$origin" 2>/dev/null | grep -nE "^ {$MAX_CLOSURE_INDENT,}([A-Za-z_][A-Za-z0-9_<>,? ]*\s+)?[a-z_][A-Za-z0-9_]*\([^()]*\) *(async|async\*|sync\*)? *\{ *$" \
+        | grep -vE '\b(if|for|while|switch|catch|return|else|case|do|try|setState)\b' \
+        | grep -c . || true)
+    fi
+    if grew_vs_origin "$now_n" "$was_n"; then
+      echo "$deep" | while IFS= read -r l; do
+        echo "$f:${l%%:*}: function defined inside a callback — hoist it [AGENTS.md 0.4]"
+      done
+      fail=1
+    fi
   fi
 
   # 0.5 raw numbers where a token belongs --------------------------------------
@@ -157,10 +244,139 @@ for f in "${FILES[@]:-}"; do
   lits=$(grep -nE 'SizedBox(\.square)?\((width|height|dimension): *-?[0-9]|EdgeInsets(Directional)?\.(all|only|symmetric|fromLTRB|fromSTEB)\([^)]*-?[0-9]|BorderRadius\.(circular|all)\( *-?[0-9]|Radius\.circular\( *-?[0-9]' "$f" \
          | grep -vE '\((width|height|dimension): *0(\.0)?[,)]' || true)
   if [ -n "$lits" ]; then
-    echo "$lits" | while IFS= read -r l; do
-      echo "$f:${l%%:*}: raw number where an AppSpacing/AppRadii token belongs [AGENTS.md 0.5]"
-    done
-    fail=1
+    now_n=$(printf '%s\n' "$lits" | grep -c . || true)
+    was_n=0
+    if [ -n "$origin" ] && [ -n "$mb" ]; then
+      was_n=$(git show "$mb:$origin" 2>/dev/null | grep -nE 'SizedBox(\.square)?\((width|height|dimension): *-?[0-9]|EdgeInsets(Directional)?\.(all|only|symmetric|fromLTRB|fromSTEB)\([^)]*-?[0-9]|BorderRadius\.(circular|all)\( *-?[0-9]|Radius\.circular\( *-?[0-9]' \
+        | grep -vE '\((width|height|dimension): *0(\.0)?[,)]' \
+        | grep -c . || true)
+    fi
+    if grew_vs_origin "$now_n" "$was_n"; then
+      echo "$lits" | while IFS= read -r l; do
+        echo "$f:${l%%:*}: raw number where an AppSpacing/AppRadii token belongs [AGENTS.md 0.5]"
+      done
+      fail=1
+    fi
+  fi
+  # 0.13 shell pages do not own an AppBar ---------------------------------------
+  # Ratchet by count, same as 0.11. The bars already on About, FeelGood,
+  # MyPlanPageFull and MoodMedicinePage stay parked until one of them grows.
+  shell_page=0
+  for name in "${SHELL_CLASSES[@]}"; do
+    if grep -qE "^(final |base |abstract |sealed )*class ${name}\\b" "$f"; then
+      shell_page=1
+      break
+    fi
+  done
+  if [ "$shell_page" -eq 1 ]; then
+    now=$(grep -cE 'appBar:' "$f" || true)
+    now=${now:-0}
+    if [ "$now" -gt 0 ]; then
+      was=0
+      if [ -n "$mb" ] && [ -n "$origin" ]; then
+        was=$(git show "$mb:$origin" 2>/dev/null | grep -cE 'appBar:' || true)
+      fi
+      was=${was:-0}
+      if [ "$now" -gt "$was" ]; then
+        note "$f: $now appBar(s) on a shell page, was $was at $BASE_REF — a currentScreen widget does not set appBar: [AGENTS.md 0.13]"
+      fi
+    fi
+  fi
+
+  # --- path-based rules -------------------------------------------------------
+  # Normalise to a lib-relative path so the same patterns match a repo file
+  # (lib/pages/x.dart) and a test fixture (/tmp/xxx/lib/pages/x.dart).
+  rel="${f##*/lib/}"
+  [ "$rel" = "$f" ] && rel="${f#lib/}"
+  if [ "$rel" != "$f" ]; then
+
+  # 0.10 where new code goes ---------------------------------------------------
+  # Pages are flat files. Feature internals are features/<name>/{data,ui}.
+  # A subdirectory under pages/ is a feature in the wrong place. Other
+  # frozen trees predate feature-first organisation. Ratchet — only a file
+  # with no version at the merge base is judged, so existing files stay legal.
+  frozen=0
+  case "$rel" in
+    pages/*/*)                                                                 frozen=1 ;;
+    features/*|pages/*.dart|util/async/*|l10n/*|iFx/*|Locale/*) ;;
+    pages/*|util/*|MainPageHelpers/*|form/*|initialForm/*)                     frozen=1 ;;
+    */*)                                                                       ;;
+    *)                                                                         frozen=1 ;;
+  esac
+  if [ "$frozen" -eq 1 ]; then
+    if [ -z "$mb" ] || ! git show "$mb:$f" >/dev/null 2>&1; then
+      note "$f: new file in a frozen tree — pages go in lib/pages/*.dart, internals in lib/features/<name>/{data,ui} [AGENTS.md 0.10]"
+    fi
+  fi
+
+  # 0.14 util/ is infra — no Flutter widget classes ---------------------------
+  case "$rel" in
+    util/*)
+      if grep -qE '^(abstract |base |final |sealed )?class [_A-Z][A-Za-z0-9_]*.* extends (StatelessWidget|StatefulWidget|ConsumerWidget|ConsumerStatefulWidget|State<)' "$f"; then
+        note "$f: widget class in util/ — widgets go in features/<name>/ui/ [AGENTS.md 0.14]"
+      fi
+      ;;
+  esac
+
+  # 0.11 layer direction -------------------------------------------------------
+  # Two directions, both greppable:
+  #   data/ must not import a widget library — a renderer is not persistence.
+  #   ui/   must not import a data-layer SERVICE. Models, types and the
+  #         repository are the feature's public data surface; everything else in
+  #         data/ is reached THROUGH the repository, never around it.
+  # Ratchet by count against the merge base, so the existing violations park and
+  # only a new one fails.
+  bad_re=""; allow_re=""; why=""
+  case "$rel" in
+    features/*/data/*)
+      bad_re='^import .*(package:flutter/(material|widgets|cupertino)\.dart|package:pdf/widgets\.dart)'
+      why="data/ imports a widget library — rendering belongs in ui/" ;;
+    features/*/ui/*)
+      bad_re='^import .*features/[a-z0-9_]+/data/'
+      allow_re='(_models|_types|_repository)\.dart'
+      why="ui/ imports a data-layer service — go through the repository" ;;
+  esac
+  if [ -n "$bad_re" ]; then
+    now=$(offenders < "$f" | wc -l | tr -d ' ')
+    if [ "${now:-0}" -gt 0 ]; then
+      was=0
+      [ -n "$mb" ] && [ -n "$origin" ] && \
+        was=$(git show "$mb:$origin" 2>/dev/null | offenders | wc -l | tr -d ' ')
+      was=${was:-0}
+      if [ "$now" -gt "$was" ]; then
+        note "$f: $now layer violation(s), was $was at $BASE_REF — $why [AGENTS.md 0.11]"
+      fi
+    fi
+  fi
+
+  # 0.12 use the design-system widget, not the Material widget it replaces -
+  # Scoped to features/*/ui/ only: that's where 0.10 lets new UI code land.
+  # Card/Text/Dialog are our widgets now, so they cannot be banned by name.
+  # TextButton is named because design_system/widgets has Button — this is
+  # not a blanket Material ban. Extend the list only as new widgets ship;
+  # banning a widget with no replacement just blocks work.
+  # Ratchet by count, same as 0.11.
+  bad_re=""; allow_re=""; why=""
+  case "$rel" in
+    features/*/ui/*)
+      # The word-boundary group is why this doesn't also flag myTextButton(
+      # (DESIGN.md's legacy icon-button helper).
+      bad_re='(^|[^A-Za-z0-9_.])TextButton\('
+      why="use Button (design_system/widgets/) instead" ;;
+  esac
+  if [ -n "$bad_re" ]; then
+    now=$(offenders < "$f" | wc -l | tr -d ' ')
+    if [ "${now:-0}" -gt 0 ]; then
+      was=0
+      [ -n "$mb" ] && [ -n "$origin" ] && \
+        was=$(git show "$mb:$origin" 2>/dev/null | offenders | wc -l | tr -d ' ')
+      was=${was:-0}
+      if [ "$now" -gt "$was" ]; then
+        note "$f: $now new Material-widget call(s), was $was at $BASE_REF — $why [AGENTS.md 0.12]"
+      fi
+    fi
+  fi
+
   fi
 done
 

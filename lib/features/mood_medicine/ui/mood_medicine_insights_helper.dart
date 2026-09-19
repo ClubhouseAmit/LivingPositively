@@ -1,4 +1,4 @@
-part of 'mood_medicine_page.dart';
+part of 'package:mazilon/pages/mood_medicine_page.dart';
 
 Widget buildMoodMedicineInsights(
   _MoodMedicinePageState state,
@@ -37,11 +37,13 @@ Widget buildMoodMedicineInsights(
       _PageHeading(
         title: l10n.moodMedicineInsights,
         subtitle: l10n.moodMedicineSubtitle,
-        trailing: IconButton(
-          tooltip: l10n.moodMedicineQuickCheckIn,
-          onPressed: () =>
-              viewModel.selectView(MoodMedicineInitialView.checkIn),
-          icon: const Icon(Icons.add_chart_rounded),
+        trailing: Button(
+          key: const Key('moodMedicineManualCheckIn'),
+          label: l10n.moodMedicineQuickCheckIn,
+          fullWidth: false,
+          onPressed: ready.writesBlocked
+              ? null
+              : () => unawaited(state._openCheckInSheet()),
         ),
       ),
       const SizedBox(height: AppSpacing.md),
@@ -201,13 +203,6 @@ Widget buildMoodMedicineInsights(
         spacing: AppSpacing.md,
         runSpacing: AppSpacing.md,
         children: <Widget>[
-          FilledButton.icon(
-            key: const Key('moodMedicineManualCheckIn'),
-            onPressed: () =>
-                viewModel.selectView(MoodMedicineInitialView.checkIn),
-            icon: const Icon(Icons.add),
-            label: Text(l10n.moodMedicineQuickCheckIn),
-          ),
           OutlinedButton.icon(
             key: const Key('moodMedicineExportButton'),
             onPressed: ready.writesBlocked || ready.export.isWorking

@@ -74,7 +74,7 @@ Metsilon (Mazilon) serves individuals in highly vulnerable or distressed moments
 
 The application uses **Rubik** (referenced as `'Rubix'` in code font mappings).
 
-Defined in `lib/util/theme/app_theme.dart` as `_appTextTheme`, wired onto
+Defined in `lib/util/async/app_theme.dart` as `_appTextTheme`, wired onto
 `ThemeData.textTheme` in both `buildLightTheme()` and `buildDarkTheme()`. Call
 sites use `Theme.of(context).textTheme.<slot>` — do not declare `fontSize`
 directly on a screen. No `.sp`: these sizes are the literal design values;
@@ -100,7 +100,7 @@ scaling system stacked on top (see the code doc comment for why).
 
 ### 2.4 Shadows & Elevation
 
-Defined in `lib/util/theme/shadows.dart` as `AppShadows`.
+Defined in `lib/design_system/tokens/shadows.dart` as `AppShadows`.
 
 - **Bottom Nav / Bottom Sheets** (`AppShadows.sheet`): `color: 0x14000000`, `offset: (0, -11)`, `blurRadius: 28`.
 - **Default Card** (`AppShadows.card`): `color: 0x7AF1EDEA`, `offset: (0, 3)`, `blurRadius: 11`. Also used by form-field containers and raised buttons. Matches Figma effect style `2`.
@@ -116,35 +116,53 @@ Describe and construct layout features using these reusable primitives instead o
 
 ### 3.1 Text Wrappers
 
-For font **size and weight**, use a §2.2 token via `Theme.of(context).textTheme.<slot>` — do not hand-write `fontSize`/`fontWeight`. `myText(content, style, align)` and `myAutoSizedText(content, style, align, maxFontSize, [maxLines = 20])` still apply the Rubik font family for one-off text that doesn't fit a token, but `myAutoSizedText` is `@Deprecated` (`lib/util/styles.dart:252`) — its `maxFontSize` argument silently overrides `style.fontSize` whenever `maxLines` is left unbounded, which is how #359's off-screen-button bug happened. Prefer a plain `Text`/`myText` at a §2.2 size over reaching for it.
+`Text` (`lib/design_system/widgets/text.dart`) is the preferred way to render tokenized text. Import it with `import 'package:mazilon/design_system/widgets/text.dart';`, hide Flutter's `Text` at the widgets/material import, and select the matching `AppTextStyle` token, for example: `Text('label', style: AppTextStyle.bodyLarge)`.
+
+For the remaining ~6 DESIGN.md text categories that do not yet have named `AppTextStyle` tokens, use a §2.2 token via `Theme.of(context).textTheme.<slot>` with Flutter's `Text` (prefix the Flutter import), or use `myText(content, style, align)` to apply the Rubik font family for one-off text. Do not hand-write `fontSize`/`fontWeight`. `myAutoSizedText(content, style, align, maxFontSize, [maxLines = 20])` still applies the Rubik font family for one-off text that doesn't fit a token, but `myAutoSizedText` is `@Deprecated` (`lib/util/styles.dart:252`) — its `maxFontSize` argument silently overrides `style.fontSize` whenever `maxLines` is left unbounded, which is how #359's off-screen-button bug happened. Prefer Flutter's `Text`/`myText` at a §2.2 size over reaching for it.
 
 ### 3.2 Action Buttons
 
 - **Primary Confirmation Button:**
-  Use `ConfirmationButton(context, function, text, style)`.
-  _Flutter implementation details:_ TextButton with background color `AppColors.primary`, foreground color `AppColors.onPrimary`, border radius 20, containing `myAutoSizedText`.
+  Prefer `Button` (`lib/design_system/widgets/button.dart`) with the `primary` variant: `Button(label: 'Confirm', onPressed: onConfirm, variant: ButtonVariant.primary)`.
 - **Secondary / Reset / Cancel Button:**
-  Use `CancelButton` or `ResetButton`.
-  _Flutter details:_ TextButton with background color `AppColors.error`, foreground `AppColors.onError`, border radius 20, containing `myAutoSizedText`.
+  Prefer `Button` with the `destructive` variant: `Button(label: 'Cancel', onPressed: onCancel, variant: ButtonVariant.destructive)`.
+- **Legacy Primary / Reset / Cancel Widgets:**
+  `ConfirmationButton(context, function, text, style)`, `CancelButton`, and `ResetButton` remain for existing call sites, but `Button` replaces them for new work. `Button` defaults to full width; set `fullWidth: false` when the surrounding layout owns the width.
 - **Generic Icon Button:**
-  Use `myTextButton(function, icon, color, {tooltip})`.
+  `Button` has no icon variant yet. Continue to use `myTextButton(function, icon, color, {tooltip})` for this role.
 - **Inline Text Link (tertiary action):**
-  Use `LinkButton(function, icon, label, color, {designFontSize, iconSize, gap, minHeight})`.
+  `Button` has no link variant yet. Continue to use `LinkButton(function, icon, label, color, {designFontSize, iconSize, gap, minHeight})` for this role.
   Coloured text with a leading icon and no button chrome — for tertiary
   actions such as "add your own" or "other suggestions". The icon is the
   first child so `Directionality` mirrors it to the reading-start side.
   _Note:_ padding and the minimum tap target are reset so the control matches
   the design's 32px text box; Material's default 48px minimum would inflate
   surrounding spacing. That is a deliberate trade against the 48px
-  touch-target guideline — use `ConfirmationButton`/`myTextButton` where a
+  touch-target guideline — use `Button`/`myTextButton` where a
   full-size target matters.
 
 ### 3.3 Cards & List Items
 
+Implemented by `Card` (`lib/design_system/widgets/card.dart`), the
+design system's platform-agnostic card — use it instead of Material's
+`Card` (hide Material's name at the import) or a hand-rolled `Container`.
+
+- **Default Card:**
+  `Card`'s own default: background `AppColors.white`, radius `AppRadii.card`
+  (16.0), padding `AppSpacing.lg` (16.0), shadow `AppShadows.card`. Updated
+  2026-09-19 from `AppColors.surface` to `AppColors.white` — a deliberate
+  design change, not a legacy value.
 - **Default Muted Card:**
   A container with background `AppColors.surface`, rounded corners 15.0, padding 16.0, and a thin border `Border.all(color: AppColors.neutralLight)`.
 - **Active Selection Card:**
   A container with background `AppColors.surface`, rounded corners 15.0, padding 16.0, highlighted border `Border.all(color: AppColors.secondary, width: 2.0)`, and drop shadow `0x990F2851` (offset (0,4), blur 12).
+
+### 3.3a Sheets
+
+`Sheet` (`lib/design_system/widgets/sheet.dart`) is a bottom panel: top
+corners `AppRadii.card`, padding `AppSpacing.lg`, shadow `AppShadows.sheet`.
+Present it with `showSheet(context: context, sheet: Sheet(child: …))`.
+Hide Flutter's names at the import if the file also uses Material.
 
 ### 3.4 Input Fields / Text Fields
 
@@ -175,7 +193,7 @@ For font **size and weight**, use a §2.2 token via `Theme.of(context).textTheme
 
 ## 4. Theme Integration Code
 
-The theme is wired in `lib/util/theme/app_theme.dart`.
+The theme is wired in `lib/util/async/app_theme.dart`.
 
 ```dart
 ThemeData buildLightTheme() {

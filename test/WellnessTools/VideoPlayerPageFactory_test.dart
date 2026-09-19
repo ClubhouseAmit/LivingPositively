@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:mazilon/pages/WellnessTools/VideoPlayerPageFactory.dart';
-import 'package:mazilon/pages/WellnessTools/player.dart';
+import 'package:mazilon/features/wellness_tools/ui/video_player_page_factory.dart';
+import 'package:mazilon/features/wellness_tools/ui/player.dart';
 
 import '../helpers/widget_test_scaffold.dart';
 

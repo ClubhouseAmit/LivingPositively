@@ -1,5 +1,5 @@
 // Phase 7 (ADR-002): integration test for SentryServiceImpl
-// (`lib/util/logger_service.dart`).
+// (`lib/util/async/logger_service.dart`).
 //
 // The unit suite (`test/util/logger_service_test.dart`) already covers the
 // `Sentry.isEnabled == false` paths through captureLog. Under `flutter test`
@@ -27,7 +27,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:integration_test/integration_test.dart';
-import 'package:mazilon/util/logger_service.dart';
+import 'package:mazilon/util/async/logger_service.dart';
 // ignore: depend_on_referenced_packages
 import 'package:sentry/sentry.dart';
 

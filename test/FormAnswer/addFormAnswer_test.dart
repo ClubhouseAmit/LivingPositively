@@ -3,10 +3,10 @@ import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:get_it/get_it.dart';
-import 'package:mazilon/form/speech_dictation_suffix_action.dart';
+import 'package:mazilon/features/speech_dictation/ui/suffix_action.dart';
 import 'package:mazilon/l10n/app_localizations.dart';
-import 'package:mazilon/util/FormAnswer/addFormAnswer.dart';
-import 'package:mazilon/util/speech_recognition_service.dart';
+import 'package:mazilon/features/personal_plan/ui/addFormAnswer.dart';
+import 'package:mazilon/util/async/speech_recognition_service.dart';
 import 'package:mazilon/util/userInformation.dart';
 import 'package:provider/provider.dart';
 

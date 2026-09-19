@@ -2,11 +2,11 @@ import 'dart:io';
 
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:mazilon/MainPageHelpers/components/gratitude_section.dart';
-import 'package:mazilon/MainPageHelpers/components/virtues_section.dart';
-import 'package:mazilon/global_enums.dart';
-import 'package:mazilon/pages/home.dart';
-import 'package:mazilon/util/Form/formPagePhoneModel.dart';
+import 'package:mazilon/features/journal/ui/gratitude_section.dart';
+import 'package:mazilon/features/positive/ui/virtues_section.dart';
+import 'package:mazilon/util/async/global_enums.dart';
+import 'package:mazilon/pages/home_page.dart';
+import 'package:mazilon/features/personal_plan/data/phone_models.dart';
 import 'package:mazilon/util/userInformation.dart';
 
 import '../helpers/widget_test_scaffold.dart';
@@ -130,9 +130,11 @@ void main() {
   test(
     'home surfaces do not refresh randomized content from build methods',
     () {
-      final homeSource = File('lib/pages/home.dart').readAsStringSync();
+      final homeSource = File(
+        'lib/pages/home_page.dart',
+      ).readAsStringSync();
       final personalPlanSource = File(
-        'lib/MainPageHelpers/personalPlanWidget.dart',
+        'lib/features/personal_plan/ui/personal_plan_widget.dart',
       ).readAsStringSync();
       final homeBuildPreamble = homeSource.substring(
         homeSource.indexOf('Widget build(BuildContext context)'),

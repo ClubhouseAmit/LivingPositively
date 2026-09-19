@@ -1,5 +1,5 @@
 import 'package:flutter_test/flutter_test.dart';
-import 'package:mazilon/util/spoken_phone_number_normalizer.dart';
+import 'package:mazilon/features/personal_plan/ui/phone_page/spoken_phone_number_normalizer.dart';
 
 void main() {
   group('normalizeSpokenPhoneNumber', () {

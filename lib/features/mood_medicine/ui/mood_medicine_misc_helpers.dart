@@ -1,4 +1,4 @@
-part of 'mood_medicine_page.dart';
+part of 'package:mazilon/pages/mood_medicine_page.dart';
 
 Future<void> buildMoodMedicineActivityManager(
   _MoodMedicinePageState state,
@@ -82,8 +82,8 @@ Future<void> buildMoodMedicineActivityManager(
                                       ListTile(
                                         leading: Icon(item.icon),
                                         title: Text(item.label),
-                                        trailing: TextButton(
-                                          onPressed: ready.writesBlocked
+                                        trailing: GestureDetector(
+                                          onTap: ready.writesBlocked
                                               ? null
                                               : () => viewModel
                                                     .hideDefaultActivity(
@@ -105,8 +105,8 @@ Future<void> buildMoodMedicineActivityManager(
                                         ListTile(
                                           leading: Icon(item.icon),
                                           title: Text(item.label),
-                                          trailing: TextButton(
-                                            onPressed: ready.writesBlocked
+                                          trailing: GestureDetector(
+                                            onTap: ready.writesBlocked
                                                 ? null
                                                 : () => viewModel
                                                       .restoreDefaultActivity(

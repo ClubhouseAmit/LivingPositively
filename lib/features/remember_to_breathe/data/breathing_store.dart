@@ -1,5 +1,5 @@
-import 'package:mazilon/global_enums.dart';
-import 'package:mazilon/util/persistent_memory_service.dart';
+import 'package:mazilon/util/async/global_enums.dart';
+import 'package:mazilon/util/async/persistent_memory_service.dart';
 
 import 'breathing_models.dart';
 import 'breathing_photo_importer.dart';

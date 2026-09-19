@@ -2,17 +2,17 @@
 
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:get_it/get_it.dart';
-import 'package:mazilon/global_enums.dart';
-import 'package:mazilon/util/logger_service.dart';
-import 'package:mazilon/util/persistent_memory_service.dart';
+import 'package:mazilon/util/async/global_enums.dart';
+import 'package:mazilon/util/async/logger_service.dart';
+import 'package:mazilon/util/async/persistent_memory_service.dart';
 import 'package:mazilon/util/type_utils.dart';
 import 'dart:math';
 import 'package:firebase_auth/firebase_auth.dart';
 
-import 'package:mazilon/util/SignIn/popup_toast.dart';
+import 'package:mazilon/features/shell/ui/popup_toast.dart';
 import 'package:mazilon/util/appInformation.dart';
-import 'package:mazilon/util/dreams_and_goals_selection.dart';
-import 'package:mazilon/util/custom_categories_storage.dart';
+import 'package:mazilon/features/personal_plan/data/dreams_and_goals_models.dart';
+import 'package:mazilon/features/personal_plan/data/custom_categories_storage.dart';
 import 'package:mazilon/util/userInformation.dart';
 import 'dart:convert';
 import 'dart:io';

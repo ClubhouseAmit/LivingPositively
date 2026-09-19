@@ -1,8 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:mazilon/MainPageHelpers/components/dashed_list_widget.dart';
-import 'package:mazilon/MainPageHelpers/components/gratitude_section.dart';
-import 'package:mazilon/util/Thanks/AddForm.dart';
+import 'package:mazilon/features/home/ui/dashed_list_widget.dart';
+import 'package:mazilon/features/journal/ui/gratitude_section.dart';
+import 'package:mazilon/features/journal/ui/AddForm.dart';
 import 'package:mazilon/util/userInformation.dart';
 
 import '../../helpers/widget_test_scaffold.dart';

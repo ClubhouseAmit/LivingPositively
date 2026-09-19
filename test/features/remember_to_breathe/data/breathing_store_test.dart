@@ -6,8 +6,8 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:mazilon/features/remember_to_breathe/data/breathing_models.dart';
 import 'package:mazilon/features/remember_to_breathe/data/breathing_repository.dart';
 import 'package:mazilon/features/remember_to_breathe/data/breathing_store.dart';
-import 'package:mazilon/global_enums.dart';
-import 'package:mazilon/util/persistent_memory_service.dart';
+import 'package:mazilon/util/async/global_enums.dart';
+import 'package:mazilon/util/async/persistent_memory_service.dart';
 
 import '../../../../test_support/contract_persistent_memory_service.dart';
 

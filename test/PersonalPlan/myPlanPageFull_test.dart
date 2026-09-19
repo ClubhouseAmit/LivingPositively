@@ -11,12 +11,12 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:get_it/get_it.dart';
-import 'package:mazilon/global_enums.dart';
-import 'package:mazilon/pages/PersonalPlan/myPlan.dart';
-import 'package:mazilon/pages/PersonalPlan/myPlanPageFull.dart';
-import 'package:mazilon/util/Form/formPagePhoneModel.dart';
+import 'package:mazilon/util/async/global_enums.dart';
+import 'package:mazilon/features/personal_plan/ui/my_plan_section.dart';
+import 'package:mazilon/pages/my_plan_page.dart';
+import 'package:mazilon/features/personal_plan/data/phone_models.dart';
 import 'package:mazilon/util/appInformation.dart';
-import 'package:mazilon/util/persistent_memory_service.dart';
+import 'package:mazilon/util/async/persistent_memory_service.dart';
 import 'package:mazilon/util/userInformation.dart';
 
 import '../helpers/widget_test_scaffold.dart';

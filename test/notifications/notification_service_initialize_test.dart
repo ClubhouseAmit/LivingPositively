@@ -19,7 +19,7 @@ import 'package:flutter/services.dart';
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:mazilon/l10n/app_localizations.dart';
-import 'package:mazilon/pages/notifications/notification_service.dart';
+import 'package:mazilon/features/notifications/data/notification_repository.dart';
 import 'package:workmanager/workmanager.dart' show Workmanager;
 import 'package:workmanager_platform_interface/workmanager_platform_interface.dart';
 

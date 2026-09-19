@@ -6,7 +6,7 @@ import 'package:flutter_test/flutter_test.dart';
 import '../steps_widget.dart'; // Import your widget file
 import '../text_widget.dart';
 import '../phone_widget.dart';
-import 'package:mazilon/util/HomePage/quote_card_widget.dart';
+import 'package:mazilon/features/home/ui/quote_card_widget.dart';
 import 'package:mazilon/l10n/app_localizations.dart';
 import '../list.dart';
 import '../thanksItemSugtest.dart';

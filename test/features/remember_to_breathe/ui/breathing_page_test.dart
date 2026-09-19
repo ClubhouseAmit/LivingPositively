@@ -3,11 +3,11 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:mazilon/features/remember_to_breathe/data/breathing_models.dart';
 import 'package:mazilon/features/remember_to_breathe/data/breathing_photo_importer.dart';
 import 'package:mazilon/features/remember_to_breathe/data/breathing_store.dart';
-import 'package:mazilon/features/remember_to_breathe/ui/breathing_page.dart';
+import 'package:mazilon/pages/breathing_page.dart';
 import 'package:mazilon/features/remember_to_breathe/ui/breathing_view_model.dart';
 import 'package:mazilon/features/remember_to_breathe/ui/breathing_view_state.dart';
 import 'package:mazilon/l10n/app_localizations.dart';
-import 'package:mazilon/util/theme/app_theme.dart';
+import 'package:mazilon/util/async/app_theme.dart';
 
 import '../../../helpers/widget_test_scaffold.dart';
 import '../../../../test_support/contract_persistent_memory_service.dart';

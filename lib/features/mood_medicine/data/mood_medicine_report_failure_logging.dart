@@ -1,4 +1,4 @@
-import 'package:mazilon/util/logger_service.dart';
+import 'package:mazilon/util/async/logger_service.dart';
 
 /// The bounded report stage that failed without exposing report contents.
 enum MoodMedicineReportFailureStage { render, delivery }

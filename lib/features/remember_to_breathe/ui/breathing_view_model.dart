@@ -5,7 +5,7 @@ import 'package:flutter/foundation.dart';
 import 'package:uuid/uuid.dart';
 
 import 'package:mazilon/features/remember_to_breathe/data/breathing_models.dart';
-import 'package:mazilon/features/remember_to_breathe/data/breathing_photo_importer.dart';
+import 'package:mazilon/features/remember_to_breathe/data/breathing_photo_importer.dart'; // TODO: 0.11 go through breathing_repository
 import 'package:mazilon/features/remember_to_breathe/data/breathing_repository.dart';
 import 'package:mazilon/features/remember_to_breathe/ui/breathing_view_state.dart';
 

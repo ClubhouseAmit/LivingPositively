@@ -1,7 +1,7 @@
 import 'dart:async';
 
-import 'package:mazilon/global_enums.dart';
-import 'package:mazilon/util/persistent_memory_service.dart';
+import 'package:mazilon/util/async/global_enums.dart';
+import 'package:mazilon/util/async/persistent_memory_service.dart';
 
 /// Runs before a queued write becomes durable in
 /// [ContractPersistentMemoryService].

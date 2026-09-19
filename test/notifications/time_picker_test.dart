@@ -1,7 +1,7 @@
 // ignore_for_file: prefer_const_constructors
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:mazilon/pages/notifications/time_picker.dart';
+import 'package:mazilon/features/notifications/ui/time_picker.dart';
 
 void main() {
   testWidgets('TimePicker renders two NumberPickers and triggers setTime', (

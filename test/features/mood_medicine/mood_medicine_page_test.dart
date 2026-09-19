@@ -6,7 +6,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:intl/intl.dart' as intl;
 import 'package:mocktail/mocktail.dart';
-import 'package:mazilon/global_enums.dart';
+import 'package:mazilon/util/async/global_enums.dart';
 import 'package:mazilon/l10n/app_localizations.dart';
 import 'package:mazilon/features/mood_medicine/data/mood_medicine_models.dart';
 import 'package:mazilon/features/mood_medicine/data/mood_medicine_report_exporter.dart';
@@ -15,11 +15,11 @@ import 'package:mazilon/features/mood_medicine/data/mood_medicine_source_link_se
 import 'package:mazilon/features/mood_medicine/data/mood_medicine_store.dart';
 import 'package:mazilon/features/mood_medicine/ui/mood_medicine_content.dart';
 import 'package:mazilon/features/mood_medicine/ui/mood_medicine_insights.dart';
-import 'package:mazilon/features/mood_medicine/ui/mood_medicine_page.dart';
+import 'package:mazilon/pages/mood_medicine_page.dart';
 import 'package:mazilon/features/mood_medicine/ui/mood_medicine_trend_chart.dart';
 import 'package:mazilon/features/mood_medicine/ui/mood_medicine_view_model.dart';
 import 'package:mazilon/features/mood_medicine/ui/mood_medicine_view_state.dart';
-import 'package:mazilon/util/theme/app_theme.dart';
+import 'package:mazilon/util/async/app_theme.dart';
 
 import '../../helpers/widget_test_scaffold.dart';
 import '../../../test_support/contract_persistent_memory_service.dart';
