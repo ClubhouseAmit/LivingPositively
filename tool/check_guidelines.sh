@@ -80,6 +80,16 @@ fail=0
 scanned=0
 note() { echo "$1"; fail=1; }
 
+# Offending import lines on stdin, per the bad_re/allow_re pair set by 0.11.
+offenders() {
+  if [ -n "$allow_re" ]; then
+    grep -nE "$bad_re" | grep -vE "$allow_re"
+  else
+    grep -nE "$bad_re"
+  fi
+}
+bad_re=""; allow_re=""
+
 for f in "${FILES[@]:-}"; do
   [ -n "$f" ] && [ -f "$f" ] || continue
   scanned=$((scanned + 1))
@@ -161,6 +171,63 @@ for f in "${FILES[@]:-}"; do
       echo "$f:${l%%:*}: raw number where an AppSpacing/AppRadii token belongs [AGENTS.md 0.5]"
     done
     fail=1
+  fi
+  # --- path-based rules -------------------------------------------------------
+  # Normalise to a lib-relative path so the same patterns match a repo file
+  # (lib/pages/x.dart) and a test fixture (/tmp/xxx/lib/pages/x.dart).
+  rel="${f##*/lib/}"
+  [ "$rel" = "$f" ] && rel="${f#lib/}"
+  if [ "$rel" != "$f" ]; then
+
+  # 0.10 where new code goes ---------------------------------------------------
+  # The frozen trees predate feature-first organisation. They are debt, not a
+  # template: editing them is fine, adding to them is not. Ratchet — only a file
+  # with no version at the merge base is judged, so existing files stay legal.
+  frozen=0
+  case "$rel" in
+    features/*|util/theme/*|util/layout/*|util/async/*|l10n/*|iFx/*|Locale/*) ;;
+    pages/*|util/*|MainPageHelpers/*|form/*|initialForm/*)                     frozen=1 ;;
+    */*)                                                                       ;;
+    *)                                                                         frozen=1 ;;
+  esac
+  if [ "$frozen" -eq 1 ]; then
+    mb=$(git merge-base "$BASE_REF" HEAD 2>/dev/null || echo "")
+    if [ -z "$mb" ] || ! git show "$mb:$f" >/dev/null 2>&1; then
+      note "$f: new file in a frozen tree — new work goes in lib/features/<name>/{data,ui} [AGENTS.md 0.10]"
+    fi
+  fi
+
+  # 0.11 layer direction -------------------------------------------------------
+  # Two directions, both greppable:
+  #   data/ must not import a widget library — a renderer is not persistence.
+  #   ui/   must not import a data-layer SERVICE. Models, types and the
+  #         repository are the feature's public data surface; everything else in
+  #         data/ is reached THROUGH the repository, never around it.
+  # Ratchet by count against the merge base, so the existing violations park and
+  # only a new one fails.
+  bad_re=""; allow_re=""; why=""
+  case "$rel" in
+    features/*/data/*)
+      bad_re='^import .*(package:flutter/(material|widgets|cupertino)\.dart|package:pdf/widgets\.dart)'
+      why="data/ imports a widget library — rendering belongs in ui/" ;;
+    features/*/ui/*)
+      bad_re='^import .*features/[a-z0-9_]+/data/'
+      allow_re='(_models|_types|_repository)\.dart'
+      why="ui/ imports a data-layer service — go through the repository" ;;
+  esac
+  if [ -n "$bad_re" ]; then
+    now=$(offenders < "$f" | wc -l | tr -d ' ')
+    if [ "${now:-0}" -gt 0 ]; then
+      mb=$(git merge-base "$BASE_REF" HEAD 2>/dev/null || echo "")
+      was=0
+      [ -n "$mb" ] && was=$(git show "$mb:$f" 2>/dev/null | offenders | wc -l | tr -d ' ')
+      was=${was:-0}
+      if [ "$now" -gt "$was" ]; then
+        note "$f: $now layer violation(s), was $was at $BASE_REF — $why [AGENTS.md 0.11]"
+      fi
+    fi
+  fi
+
   fi
 done
 

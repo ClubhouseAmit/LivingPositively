@@ -28,6 +28,22 @@ expect() {
   fi
 }
 
+# expect_at <want-exit> <name> <lib-relative path> — for the path-based rules
+# (0.10 placement, 0.11 layer direction). The fixture is planted under a fake
+# lib/ tree so the checker's path patterns match exactly as they do in the repo.
+expect_at() {
+  local want=$1 name=$2 file="$TMP/fixture/lib/$3"
+  mkdir -p "$(dirname "$file")"
+  cat > "$file"
+  "$CHECK" "$file" >/dev/null 2>&1
+  local got=$?
+  if [ "$got" -eq "$want" ]; then
+    pass=$((pass+1))
+  else
+    fail=$((fail+1)); echo "FAIL: $name (want exit $want, got $got)"
+  fi
+}
+
 # --- must PASS (exit 0): compliant code ---------------------------------------
 expect 0 "tokens and a short method" <<'DART'
 class AScreen extends StatelessWidget {
@@ -164,6 +180,51 @@ DART
 got=$?
 rm -f "$probe"
 [ "$got" -eq 1 ] && pass=$((pass+1)) || { fail=$((fail+1)); echo "FAIL: default mode must see an UNCOMMITTED file (want 1, got $got)"; }
+
+# --- 0.10 where new code goes -------------------------------------------------
+expect_at 1 "new file in a frozen tree is rejected" "pages/new_thing.dart" <<'DART'
+class C {}
+DART
+
+expect_at 1 "new loose file at lib/ root is rejected" "new_thing.dart" <<'DART'
+class C {}
+DART
+
+expect_at 0 "new file in a feature is fine" "features/x/ui/x_page.dart" <<'DART'
+class C {}
+DART
+
+expect_at 0 "new shared theme file is fine" "util/theme/new_tokens.dart" <<'DART'
+class C {}
+DART
+
+# --- 0.11 layer direction -----------------------------------------------------
+expect_at 1 "data/ importing a widget library is rejected" "features/x/data/x_renderer.dart" <<'DART'
+import 'package:flutter/material.dart';
+class C {}
+DART
+
+expect_at 1 "data/ importing pdf widgets is rejected" "features/x/data/x_report.dart" <<'DART'
+import 'package:pdf/widgets.dart' as pw;
+class C {}
+DART
+
+expect_at 0 "data/ importing foundation is fine" "features/x/data/x_store.dart" <<'DART'
+import 'package:flutter/foundation.dart';
+class C {}
+DART
+
+expect_at 1 "ui/ importing a data service is rejected" "features/x/ui/x_view_model.dart" <<'DART'
+import 'package:mazilon/features/x/data/x_source_link_service.dart';
+class C {}
+DART
+
+expect_at 0 "ui/ importing models and the repository is fine" "features/x/ui/x_page.dart" <<'DART'
+import 'package:mazilon/features/x/data/x_models.dart';
+import 'package:mazilon/features/x/data/x_repository.dart';
+class C {}
+DART
+
 
 echo
 echo "check_guidelines_test: $pass passed, $fail failed"

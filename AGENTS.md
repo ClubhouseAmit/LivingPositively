@@ -25,6 +25,8 @@ ever disagree, the script is right and this table is stale.
 | 0.3 | **A method is ≤ 80 lines** — `build` methods included. | A 250-line method is not a method, it is a file that forgot to be one. |
 | 0.4 | **No function defined inside a builder callback.** Hoist it to a method or a widget. | Closures nested inside two builders are unreadable and untestable. |
 | 0.5 | **No raw number in a spacing/radius slot.** Use `AppSpacing.*`, `AppRadii.*`, or theme. `0` is allowed. | Not even a number that equals a token's value: nobody can tell `20` from `AppSpacing.xl` by reading it. |
+| 0.10 | **A new file under `lib/` goes in `lib/features/<name>/{data,ui}`.** `pages/`, `util/`, `MainPageHelpers/`, `form/`, `initialForm/` and the `lib/` root are frozen. | Four competing layouts is why one feature lives in four directories. See 0.10a. |
+| 0.11 | **Layers point one way.** `data/` must not import a widget library. `ui/` must not import a file from `data/` other than `*_models`, `*_types`, `*_repository`. | A view model that reaches around its repository grows until nobody can test it. |
 
 ### 0.5a What the words mean
 
@@ -57,6 +59,38 @@ oldest date from 2024 — long before any agent touched this repo. Section 6.3
 below says "if existing code is imperfect but consistent, match it." That rule
 is about *naming, idiom, and structure*, and it stops where section 0 starts.
 Do not cite 6.3 to justify a raw literal or a 200-line method.
+
+### 0.10a Where new code goes
+
+The layout itself is specified in `.claude/skills/architecture-feature-first/SKILL.md`.
+**Load that skill before creating any file.** This section does not restate it —
+it states only what the skill cannot know about this repo.
+
+`lib/features/remember_to_breathe/` is the reference implementation. Copy its
+shape, not `mood_medicine`'s.
+
+```
+lib/features/<name>/
+├── data/    <name>_models.dart, <name>_repository.dart, <name>_store.dart, services
+└── ui/      <name>_page.dart, <name>_view_model.dart, <name>_view_state.dart, widgets/
+```
+
+Deviations from the skill, which is written for a greenfield app:
+
+- Use `ui/`, not `presentation/`. Use `domain/`, not `logic/`.
+- There is **no** top-level `data/`, `core/` or `shared/`. Data lives only inside
+  its feature. Two valid homes for a repository means the next agent guesses.
+- Genuine cross-feature infrastructure stays in `lib/util/{theme,layout,async}/`
+  and the loose service files beside them. Everything else in `lib/util/` is
+  feature UI in the wrong place — read it, do not extend it.
+
+**Frozen trees.** `lib/pages/`, `lib/util/`, `lib/MainPageHelpers/`, `lib/form/`,
+`lib/initialForm/`, and loose files at the `lib/` root predate feature-first
+organisation. Editing them is fine. Adding to them is 0.10. Section 6.3 tells you
+to match surrounding structure — it stops here, exactly as it stops at 0.5.
+
+Move a legacy folder into `lib/features/` only as part of a ticket that already
+touches it, never as a standalone refactor PR.
 
 ### 0.7 Stop conditions you can actually detect
 
@@ -188,6 +222,9 @@ note the limitation, continue. Stop for a human only if no graph exists at all
 Before writing or reviewing Dart/Flutter, load the `effective-dart` and
 `dart-3-updates` skills and follow this repo's conventions rather than generic
 Dart habits.
+
+Before creating any **new file**, also load `architecture-feature-first`. Where it
+and section 0.10a disagree, 0.10a wins — it knows this repo, the skill does not.
 
 ---
 
@@ -340,6 +377,13 @@ Reuse is an outcome, not a goal. Identify reusable utilities only if explicitly
 requested. Do not create "common services", centralize behavior preemptively, or
 assume other systems will consume the output. "Field of Dreams" behavior is
 forbidden.
+
+**This bans creating shared code, not finding it.** Before you write a helper,
+search for one: `lib/util/` and the existing features are the two places to look,
+and 2A's graphify query is how to look. `lib/features/mood_medicine/` shipped its
+own PDF direction helpers, its own share-sheet stack, and a copy of another
+feature's write queue, all of which already existed. Writing a second copy is not
+neutral — it is the cost this section exists to avoid, pointed the other way.
 
 ---
 
