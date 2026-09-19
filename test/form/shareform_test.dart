@@ -12,6 +12,7 @@ import 'package:mazilon/form/speech_dictation_suffix_action.dart';
 import 'package:mazilon/iFx/service_locator.dart';
 import 'package:mazilon/util/appInformation.dart';
 import 'package:mazilon/global_enums.dart';
+import 'package:mazilon/util/logger_service.dart';
 import 'package:mazilon/util/persistent_memory_service.dart';
 import 'package:mazilon/util/speech_recognition_service.dart';
 import 'package:mazilon/util/userInformation.dart';
@@ -27,6 +28,24 @@ import 'package:mazilon/util/custom_categories_storage.dart';
 import '../helpers/widget_test_scaffold.dart'
     show NoopSpeechRecognitionService, wizardStepHarness;
 import 'shareform_test.mocks.dart';
+
+final class _RecordingIncidentLogger implements IncidentLoggerService {
+  final List<Object> errors = <Object>[];
+
+  @override
+  Future<void> captureLog(
+    dynamic exception, {
+    StackTrace? stackTrace,
+    dynamic exceptionData,
+  }) async {
+    if (exception != null) {
+      errors.add(exception as Object);
+    }
+  }
+
+  @override
+  Future<void> initializeSentry(Widget myApp) async {}
+}
 
 const _shareFormStorageKeys = <String>{
   'hasFilled',
@@ -67,6 +86,7 @@ void main() {
   late UserInformation mockUserInformation;
   late AppInformation mockAppInformation;
   late MockPersistentMemoryService mockPersistentMemoryService;
+  late _RecordingIncidentLogger incidentLogger;
   late GetIt locator;
 
   setUp(() async {
@@ -114,6 +134,8 @@ void main() {
     getIt.registerLazySingleton<AnalyticsService>(() => mockAnalytics);
     final mockFileServiceImpl = MockFileService();
     getIt.registerLazySingleton<FileService>(() => mockFileServiceImpl);
+    incidentLogger = _RecordingIncidentLogger();
+    getIt.registerSingleton<IncidentLoggerService>(incidentLogger);
   });
   tearDown(() async {
     final locator = GetIt.instance;
@@ -519,6 +541,99 @@ void main() {
         ),
       ).called(1);
     });
+
+    testWidgets(
+      'should retry only the latest category after an intervening successful edit',
+      (WidgetTester tester) async {
+        var rejectTitleWrite = true;
+        when(mockPersistentMemoryService.setItem(any, any, any)).thenAnswer((
+          invocation,
+        ) async {
+          final key = invocation.positionalArguments[0] as String;
+          if (!_isShareFormStorageKey(key)) {
+            throw StateError('Unexpected ShareForm persistence key: $key');
+          }
+          if (key == 'customCategoryTitles' && rejectTitleWrite) {
+            throw StateError('intentional custom category persistence failure');
+          }
+        });
+
+        await tester.pumpWidget(createTestWidget(locale: const Locale('en')));
+        await tester.ensureVisible(find.text('+ Add a custom category'));
+        await tester.tap(find.text('+ Add a custom category'));
+        await tester.pumpAndSettle();
+        await tester.enterText(
+          find.byKey(const Key('custom-category-title-field')),
+          'My category',
+        );
+        await tester.enterText(
+          find.byKey(const Key('custom-category-description-field')),
+          'My description',
+        );
+        await tester.ensureVisible(find.text('Add category'));
+        await tester.tap(find.text('Add category'));
+        await tester.pumpAndSettle();
+
+        expect(
+          find.widgetWithText(SnackBarAction, 'Try again'),
+          findsOneWidget,
+        );
+        expect(
+          incidentLogger.errors,
+          contains(
+            isA<StateError>().having(
+              (StateError error) => error.message,
+              'message',
+              'intentional custom category persistence failure',
+            ),
+          ),
+        );
+        expect(tester.takeException(), isNull);
+
+        final retryAction = tester.widget<SnackBarAction>(
+          find.widgetWithText(SnackBarAction, 'Try again'),
+        );
+        rejectTitleWrite = false;
+        await tester.enterText(
+          find.byKey(const Key('custom-category-title-field')),
+          'Latest category',
+        );
+        await tester.enterText(
+          find.byKey(const Key('custom-category-description-field')),
+          'Latest description',
+        );
+        await tester.ensureVisible(find.text('Add category'));
+        await tester.tap(find.text('Add category'));
+        await tester.pumpAndSettle();
+
+        retryAction.onPressed();
+        await tester.pump();
+        await tester.pump();
+
+        verify(
+          mockPersistentMemoryService.setItem(
+            'customCategoryTitles',
+            PersistentMemoryType.StringList,
+            ['My category'],
+          ),
+        ).called(1);
+        verify(
+          mockPersistentMemoryService.setItem(
+            'customCategoryTitles',
+            PersistentMemoryType.StringList,
+            ['Latest category'],
+          ),
+        ).called(2);
+        verify(
+          mockPersistentMemoryService.setItem(
+            'customCategoryDescriptions',
+            PersistentMemoryType.StringList,
+            ['Latest description'],
+          ),
+        ).called(2);
+        expect(tester.takeException(), isNull);
+      },
+    );
 
     testWidgets(
       'should surface custom category persistence failure and retry its latest snapshot',

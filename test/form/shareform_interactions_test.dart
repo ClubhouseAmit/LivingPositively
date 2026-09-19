@@ -18,10 +18,12 @@ import 'package:mazilon/file_service.dart';
 import 'package:mazilon/form/shareform.dart';
 import 'package:mazilon/form/wizard_step.dart';
 import 'package:mazilon/global_enums.dart';
+import 'package:mazilon/util/logger_service.dart';
 import 'package:mazilon/l10n/app_localizations.dart';
 import 'package:mazilon/util/Share/LP_share_alert_dialog.dart';
 import 'package:mazilon/util/custom_categories_storage.dart';
 import 'package:mazilon/util/persistent_memory_service.dart';
+import 'package:mazilon/util/personal_plan_export_snapshot.dart';
 import 'package:mazilon/util/userInformation.dart';
 import 'package:mockito/mockito.dart';
 import 'package:share_plus/share_plus.dart';
@@ -66,6 +68,7 @@ class _DreamsMemoryHarness {
     List<String> initialCustomCategoryTitles = const <String>[],
     List<String> initialCustomCategoryDescriptions = const <String>[],
     this.delayFirstSelectionWrite = false,
+    this.delayFirstCustomCategoryWrite = false,
   }) : _initialSelections = List<String>.from(initialSelections),
        _initialSelectionSources = List<String>.from(initialSelectionSources),
        _initialCustomItems = List<String>.from(initialCustomItems),
@@ -77,6 +80,17 @@ class _DreamsMemoryHarness {
        ) {
     when(service.setItem(any, any, any)).thenAnswer(_setItem);
     when(service.getItem(any, any)).thenAnswer(_getItem);
+    when(service.readSnapshot(any)).thenAnswer((invocation) async {
+      final keys =
+          invocation.positionalArguments.single
+              as Map<String, PersistentMemoryType>;
+      return Map<String, Object?>.unmodifiable({
+        for (final entry in keys.entries)
+          entry.key: await _getItem(
+            Invocation.method(#getItem, [entry.key, entry.value]),
+          ),
+      });
+    });
     when(service.reset()).thenAnswer((_) async {});
   }
 
@@ -87,23 +101,40 @@ class _DreamsMemoryHarness {
   final List<String> _initialCustomCategoryTitles;
   final List<String> _initialCustomCategoryDescriptions;
   final Completer<void> _firstSelectionWrite = Completer<void>();
+  final Completer<void> _firstCustomCategoryWrite = Completer<void>();
   final List<_MemoryWrite> completedWrites = <_MemoryWrite>[];
+  final List<String> writeKeys = <String>[];
   final List<String> readKeys = <String>[];
   final bool delayFirstSelectionWrite;
+  final bool delayFirstCustomCategoryWrite;
   bool firstSelectionWriteStarted = false;
+  bool firstCustomCategoryWriteStarted = false;
   bool failSelectionWrite = false;
   bool failAllDreamsWrites = false;
+  bool failCustomCategoryWrites = false;
 
   Future<void> _setItem(Invocation invocation) async {
     final String key = invocation.positionalArguments[0] as String;
     final PersistentMemoryType type =
         invocation.positionalArguments[1] as PersistentMemoryType;
     final dynamic value = invocation.positionalArguments[2];
+    writeKeys.add(key);
     if (key == _dreamsAndGoalsSelectionKey &&
         delayFirstSelectionWrite &&
         !firstSelectionWriteStarted) {
       firstSelectionWriteStarted = true;
       await _firstSelectionWrite.future;
+    }
+    final bool isCustomCategoryKey = <String>{
+      _customCategoriesKey,
+      _customCategoryTitlesKey,
+      _customCategoryDescriptionsKey,
+    }.contains(key);
+    if (isCustomCategoryKey &&
+        delayFirstCustomCategoryWrite &&
+        !firstCustomCategoryWriteStarted) {
+      firstCustomCategoryWriteStarted = true;
+      await _firstCustomCategoryWrite.future;
     }
     final bool isDreamsAndGoalsKey = _dreamsAndGoalsPersistenceKeys.contains(
       key,
@@ -112,12 +143,21 @@ class _DreamsMemoryHarness {
         (isDreamsAndGoalsKey && failAllDreamsWrites)) {
       throw StateError('Dreams persistence failed.');
     }
+    if (isCustomCategoryKey && failCustomCategoryWrites) {
+      throw StateError('Custom-category persistence failed.');
+    }
     completedWrites.add(_MemoryWrite(key, type, value));
   }
 
   void releaseFirstSelectionWrite() {
     if (!_firstSelectionWrite.isCompleted) {
       _firstSelectionWrite.complete();
+    }
+  }
+
+  void releaseFirstCustomCategoryWrite() {
+    if (!_firstCustomCategoryWrite.isCompleted) {
+      _firstCustomCategoryWrite.complete();
     }
   }
 
@@ -162,6 +202,14 @@ class _DreamsMemoryHarness {
         return _latestStringList(key, _initialSelectionSources);
       case _dreamsAndGoalsAddedStringsKey:
         return _latestStringList(key, _initialCustomItems);
+      case 'userSelectionPersonalPlan-DifficultEvents':
+      case 'userSelectionPersonalPlan-MakeSafer':
+      case 'userSelectionPersonalPlan-FeelBetter':
+      case 'userSelectionPersonalPlan-Distractions':
+      case 'userSelectionPersonalPlan-SafeEnvironment':
+      case 'PhonePageSavedPhoneNames':
+      case 'PhonePageSavedPhoneNumbers':
+        return <String>[];
       default:
         throw StateError('Unexpected PersistentMemoryService read: $key');
     }
@@ -200,6 +248,25 @@ class _ExportReadingFileService extends NoopFileService {
   List<String> dreamsAtDownload = const [];
   List<String> dreamsSourcesAtDownload = const [];
   List<String> dreamsCustomItemsAtDownload = const [];
+  PersistentMemoryService? receivedMemoryService;
+
+  @override
+  Future<ShareResult?> share(
+    String message,
+    List<dynamic> titles,
+    List<dynamic> subTitles,
+    Map<String, String> texts,
+    ShareFileType saveFormat, {
+    required String mainTitle,
+    required String textDirection,
+    PersistentMemoryService? memoryService,
+    PersonalPlanExportSnapshot? snapshot,
+    Set<String>? approvedPdfHosts,
+  }) async {
+    shareCalls++;
+    receivedMemoryService = memoryService;
+    return const ShareResult('shared-plan.pdf', ShareResultStatus.success);
+  }
 
   @override
   Future<String?> download(
@@ -210,14 +277,13 @@ class _ExportReadingFileService extends NoopFileService {
     required String mainTitle,
     required String textDirection,
     PersistentMemoryService? memoryService,
+    PersonalPlanExportSnapshot? snapshot,
     Set<String>? approvedPdfHosts,
   }) async {
     downloadCalls++;
+    receivedMemoryService = memoryService;
+    final storedDreams = snapshot!.data['DreamsAndGoals']!;
     memoryServiceAtDownload = memoryService;
-    final storedDreams = await memory.getItem(
-      _dreamsAndGoalsSelectionKey,
-      PersistentMemoryType.StringList,
-    );
     final storedSources = await memory.getItem(
       _dreamsAndGoalsSelectionSourcesKey,
       PersistentMemoryType.StringList,
@@ -246,6 +312,7 @@ class _UnavailableShareFileService extends NoopFileService {
     required String mainTitle,
     required String textDirection,
     PersistentMemoryService? memoryService,
+    PersonalPlanExportSnapshot? snapshot,
     Set<String>? approvedPdfHosts,
   }) async {
     shareCalls++;
@@ -303,6 +370,23 @@ Future<void> _flushAsyncAction(WidgetTester tester) async {
   await tester.pump();
 }
 
+Future<void> _editFirstCustomCategory(
+  WidgetTester tester,
+  String description,
+) async {
+  final edit = find.byKey(const Key('custom-category-edit-button-0'));
+  await tester.ensureVisible(edit);
+  await tester.tap(edit);
+  await tester.pumpAndSettle();
+  await tester.enterText(
+    find.byKey(const Key('custom-category-description-field')),
+    description,
+  );
+  final save = find.text('Add category');
+  await tester.ensureVisible(save);
+  await tester.tap(save);
+}
+
 void _seedMultipleCustomDreams(UserInformation user) {
   user.updateDreamsAndGoals(
     const <String>[
@@ -341,6 +425,67 @@ void main() {
         .setMockMethodCallHandler(toastChannel, null);
     resetTestServices();
   });
+
+  for (final alternate in [false, true]) {
+    testWidgets(
+      'should retry category persistence before primary submission (alternate: $alternate)',
+      (tester) async {
+        final memory = _DreamsMemoryHarness(
+          initialCustomCategoryTitles: ['Category'],
+          initialCustomCategoryDescriptions: ['Notes'],
+        )..failCustomCategoryWrites = true;
+        if (!alternate) {
+          user = UserInformation(service: memory.service)
+            ..gender = 'other'
+            ..localeName = 'en';
+        }
+        var submissions = 0;
+        await pumpWithProviders(
+          tester,
+          wizardStepHarness(
+            ShareForm(
+              key: GlobalKey<WizardStepState>(),
+              prev: () {},
+              submit: (_) async {
+                submissions++;
+              },
+              memoryService: alternate ? memory.service : null,
+            ),
+          ),
+          userInformation: user,
+          surfaceSize: const Size(1024, 1800),
+        );
+        await tester.pumpAndSettle();
+        await _editFirstCustomCategory(tester, 'Latest notes');
+        await tester.pumpAndSettle();
+        _pressWizardPrimaryAction(tester);
+        await _flushAsyncAction(tester);
+        await tester.pumpAndSettle();
+        expect(submissions, 0);
+        tester
+            .widget<SnackBarAction>(
+              find.widgetWithText(SnackBarAction, 'Try again'),
+            )
+            .onPressed();
+        await _flushAsyncAction(tester);
+        await tester.pumpAndSettle();
+        expect(submissions, 0);
+        memory.failCustomCategoryWrites = false;
+        tester
+            .widget<SnackBarAction>(
+              find.widgetWithText(SnackBarAction, 'Try again'),
+            )
+            .onPressed();
+        await _flushAsyncAction(tester);
+        await tester.pumpAndSettle();
+        expect(submissions, 1);
+        expect(memory.completedStringList(customCategoryDescriptionsKey), [
+          'Latest notes',
+        ]);
+        expect(tester.takeException(), isNull);
+      },
+    );
+  }
 
   testWidgets('tapping the share IconButton opens the share dialog', (
     tester,
@@ -419,6 +564,88 @@ void main() {
 
     expect(services.files.downloadCalls, 1);
     await tester.pump(const Duration(seconds: 2));
+  });
+
+  testWidgets('download should use the ShareForm memory-service override', (
+    tester,
+  ) async {
+    final overrideMemory = _DreamsMemoryHarness();
+    final exportFiles = _ExportReadingFileService(overrideMemory.service);
+    GetIt.instance.unregister<FileService>();
+    GetIt.instance.registerSingleton<FileService>(exportFiles);
+
+    await pumpWithProviders(
+      tester,
+      wizardStepHarness(
+        ShareForm(
+          key: GlobalKey<WizardStepState>(),
+          prev: () {},
+          submit: (_) async {},
+          memoryService: overrideMemory.service,
+        ),
+      ),
+      userInformation: user,
+      surfaceSize: const Size(1024, 1800),
+    );
+
+    await _pressIconButtonInAsyncZone(tester, Icons.download);
+    await _flushAsyncAction(tester);
+
+    expect(exportFiles.downloadCalls, 1);
+    expect(exportFiles.receivedMemoryService, same(overrideMemory.service));
+    await tester.pump(const Duration(seconds: 2));
+  });
+
+  testWidgets('share should use the ShareForm memory-service override', (
+    tester,
+  ) async {
+    final overrideMemory = _DreamsMemoryHarness();
+    final exportFiles = _ExportReadingFileService(overrideMemory.service);
+    GetIt.instance.unregister<FileService>();
+    GetIt.instance.registerSingleton<FileService>(exportFiles);
+
+    await pumpWithProviders(
+      tester,
+      wizardStepHarness(
+        ShareForm(
+          key: GlobalKey<WizardStepState>(),
+          prev: () {},
+          submit: (_) async {},
+          memoryService: overrideMemory.service,
+        ),
+      ),
+      userInformation: user,
+      surfaceSize: const Size(1024, 1800),
+    );
+
+    await _pressIconButtonInAsyncZone(tester, Icons.share);
+    await _flushAsyncAction(tester);
+    await tester.pumpAndSettle();
+
+    final dialog = tester.widget<LPShareAlertDialog>(
+      find.byType(LPShareAlertDialog),
+    );
+    expect(dialog.memoryService, same(overrideMemory.service));
+
+    final shareFileButton = find.text('Share file of personal plan');
+    await tester.ensureVisible(shareFileButton);
+    final shareButton = tester.widget<TextButton>(
+      find.ancestor(of: shareFileButton, matching: find.byType(TextButton)),
+    );
+    await tester.runAsync(() async {
+      shareButton.onPressed!();
+      for (
+        var attempt = 0;
+        attempt < 20 && exportFiles.shareCalls == 0;
+        attempt++
+      ) {
+        await Future<void>.delayed(const Duration(milliseconds: 10));
+      }
+    });
+    await tester.pump();
+
+    expect(exportFiles.shareCalls, 1);
+    expect(exportFiles.receivedMemoryService, same(overrideMemory.service));
   });
 
   group('ShareForm', () {
@@ -1649,7 +1876,7 @@ void main() {
   );
 
   testWidgets(
-    'ShareForm loads custom categories using explicit memoryService parameter',
+    'ShareForm should edit explicit-source categories without changing the default model',
     (tester) async {
       final explicitMemory = _DreamsMemoryHarness(
         initialCustomCategoryTitles: ['Special Goal Category'],
@@ -1677,6 +1904,210 @@ void main() {
 
       expect(find.text('Special Goal Category'), findsOneWidget);
       expect(find.text('Special Description'), findsOneWidget);
+      expect(user.customCategories, isEmpty);
+      final edit = find.byKey(const Key('custom-category-edit-button-0'));
+      await tester.ensureVisible(edit);
+      await tester.tap(edit);
+      await tester.pumpAndSettle();
+      await tester.enterText(
+        find.byKey(const Key('custom-category-description-field')),
+        'Edited alternate notes',
+      );
+      final save = find.text('Add category');
+      await tester.ensureVisible(save);
+      await tester.tap(save);
+      await tester.pumpAndSettle();
+      expect(find.text('Edited alternate notes'), findsOneWidget);
+      expect(
+        explicitMemory.completedStringList(customCategoryDescriptionsKey),
+        ['Edited alternate notes'],
+      );
+      expect(user.customCategories, isEmpty);
+    },
+  );
+
+  testWidgets(
+    'ShareForm should drain an in-flight custom-category save before loading a replacement source',
+    (tester) async {
+      final firstMemory = _DreamsMemoryHarness(
+        initialCustomCategoryTitles: ['First source'],
+        initialCustomCategoryDescriptions: ['First description'],
+        delayFirstCustomCategoryWrite: true,
+      );
+      final secondMemory = _DreamsMemoryHarness(
+        initialCustomCategoryTitles: ['Second source'],
+        initialCustomCategoryDescriptions: ['Second description'],
+      );
+      final memorySource = ValueNotifier<PersistentMemoryService>(
+        firstMemory.service,
+      );
+      addTearDown(memorySource.dispose);
+      final shareFormKey = GlobalKey<WizardStepState>();
+
+      await pumpWithProviders(
+        tester,
+        ValueListenableBuilder<PersistentMemoryService>(
+          valueListenable: memorySource,
+          builder: (context, memoryService, child) => wizardStepHarness(
+            ShareForm(
+              key: shareFormKey,
+              prev: () {},
+              submit: (_) async {},
+              memoryService: memoryService,
+            ),
+          ),
+        ),
+        userInformation: user,
+        surfaceSize: const Size(1024, 1800),
+      );
+      await tester.pumpAndSettle();
+
+      await _editFirstCustomCategory(tester, 'Pending first write');
+      await tester.pump();
+      await tester.runAsync(() async {
+        while (!firstMemory.firstCustomCategoryWriteStarted) {
+          await Future<void>.delayed(const Duration(milliseconds: 1));
+        }
+      });
+
+      memorySource.value = secondMemory.service;
+      await tester.pump();
+      await tester.runAsync(() => Future<void>.delayed(Duration.zero));
+      await tester.pump();
+
+      expect(
+        secondMemory.readKeys.where(
+          (key) =>
+              key == _customCategoriesKey ||
+              key == _customCategoryTitlesKey ||
+              key == _customCategoryDescriptionsKey,
+        ),
+        isEmpty,
+      );
+
+      firstMemory.releaseFirstCustomCategoryWrite();
+      await tester.pumpAndSettle();
+
+      expect(find.text('Second source'), findsOneWidget);
+      expect(secondMemory.readKeys, contains(_customCategoriesKey));
+      expect(tester.takeException(), isNull);
+    },
+  );
+
+  testWidgets(
+    'ShareForm should rebase failure events and invalidate retry actions when replacing a source',
+    (tester) async {
+      final firstMemory = _DreamsMemoryHarness(
+        initialCustomCategoryTitles: ['First source'],
+        initialCustomCategoryDescriptions: ['First description'],
+      )..failCustomCategoryWrites = true;
+      final secondMemory = _DreamsMemoryHarness(
+        initialCustomCategoryTitles: ['Second source'],
+        initialCustomCategoryDescriptions: ['Second description'],
+      );
+      final memorySource = ValueNotifier<PersistentMemoryService>(
+        firstMemory.service,
+      );
+      addTearDown(memorySource.dispose);
+      final shareFormKey = GlobalKey<WizardStepState>();
+
+      await pumpWithProviders(
+        tester,
+        ValueListenableBuilder<PersistentMemoryService>(
+          valueListenable: memorySource,
+          builder: (context, memoryService, child) => wizardStepHarness(
+            ShareForm(
+              key: shareFormKey,
+              prev: () {},
+              submit: (_) async {},
+              memoryService: memoryService,
+            ),
+          ),
+        ),
+        userInformation: user,
+        surfaceSize: const Size(1024, 1800),
+      );
+      await tester.pumpAndSettle();
+
+      await _editFirstCustomCategory(tester, 'Failed first write');
+      await tester.pumpAndSettle();
+      final staleRetryAction = tester.widget<SnackBarAction>(
+        find.widgetWithText(SnackBarAction, 'Try again'),
+      );
+
+      memorySource.value = secondMemory.service;
+      await tester.pumpAndSettle();
+      expect(find.text('Second source'), findsOneWidget);
+      expect(find.widgetWithText(SnackBarAction, 'Try again'), findsNothing);
+
+      staleRetryAction.onPressed();
+      await _flushAsyncAction(tester);
+      expect(
+        secondMemory.writeKeys.where(
+          (key) =>
+              key == _customCategoriesKey ||
+              key == _customCategoryTitlesKey ||
+              key == _customCategoryDescriptionsKey,
+        ),
+        isEmpty,
+      );
+
+      secondMemory.failCustomCategoryWrites = true;
+      await _editFirstCustomCategory(tester, 'Failed replacement write');
+      await tester.pumpAndSettle();
+
+      expect(find.widgetWithText(SnackBarAction, 'Try again'), findsOneWidget);
+      expect(tester.takeException(), isNull);
+    },
+  );
+
+  testWidgets(
+    'should report initialization failures when incident logging is unavailable',
+    (tester) async {
+      final explicitMemory = _MockPersistentMemoryService();
+      when(
+        explicitMemory.getItem(any, any),
+      ).thenThrow(StateError('Custom category storage is unavailable.'));
+      when(explicitMemory.setItem(any, any, any)).thenAnswer((_) async {});
+      when(explicitMemory.reset()).thenAnswer((_) async {});
+      GetIt.instance.unregister<IncidentLoggerService>();
+      final reportedErrors = <FlutterErrorDetails>[];
+      final previousErrorHandler = FlutterError.onError;
+      FlutterError.onError = reportedErrors.add;
+      try {
+        user = UserInformation()
+          ..gender = 'other'
+          ..localeName = 'en';
+
+        await pumpWithProviders(
+          tester,
+          wizardStepHarness(
+            ShareForm(
+              key: GlobalKey<WizardStepState>(),
+              prev: () {},
+              submit: (_) async {},
+              memoryService: explicitMemory,
+            ),
+          ),
+          userInformation: user,
+          surfaceSize: const Size(1024, 1800),
+        );
+        await tester.pumpAndSettle();
+      } finally {
+        FlutterError.onError = previousErrorHandler;
+      }
+
+      expect(reportedErrors, hasLength(1));
+      expect(reportedErrors.single.exception, isA<StateError>());
+      expect(reportedErrors.single.stack, isNotNull);
+      expect(
+        reportedErrors.single.library,
+        'ShareFormCustomCategoriesViewModel',
+      );
+      expect(
+        reportedErrors.single.context.toString(),
+        contains('while persisting custom categories'),
+      );
     },
   );
 
@@ -1708,12 +2139,22 @@ void main() {
       );
       await tester.pumpAndSettle();
 
-      await _pressIconButtonInAsyncZone(tester, Icons.download);
-      await _flushAsyncAction(tester);
-      await _flushAsyncAction(tester);
+      await tester.ensureVisible(find.byIcon(Icons.download));
+      await tester.tap(find.byIcon(Icons.download));
+      await tester.pumpAndSettle();
 
+      expect(find.byType(SnackBar), findsNothing);
+      expect(userMemory.writeKeys, contains(_dreamsAndGoalsSelectionKey));
+      expect(
+        (locator<IncidentLoggerService>() as NoopIncidentLoggerService)
+            .captured,
+        isEmpty,
+      );
+      expect(exportMemory.readKeys, contains('PhonePageSavedPhoneNames'));
       expect(exportFiles.downloadCalls, 1);
       expect(exportFiles.memoryServiceAtDownload, same(exportMemory.service));
+      await tester.pump(const Duration(seconds: 2));
+      expect(tester.takeException(), isNull);
     },
   );
 

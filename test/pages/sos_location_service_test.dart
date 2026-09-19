@@ -325,10 +325,19 @@ void main() {
       });
     }
 
-    for (final error in <Object>[
-      TimeoutException('position timed out'),
-      StateError('position failed'),
-    ]) {
+    test('should not report an expected position timeout', () async {
+      final geolocator = RecordingGeolocatorPlatform(
+        positionError: TimeoutException('position timed out'),
+      );
+      final logger = RecordingIncidentLoggerService();
+
+      final result = await _lookupOnNativeTarget(geolocator, logger);
+
+      _expectUnavailable(result);
+      expect(logger.captureCalls, 0);
+    });
+
+    for (final error in <Object>[StateError('position failed')]) {
       test(
         'should log structured diagnostics when the position lookup throws $error',
         () async {

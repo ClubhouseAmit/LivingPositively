@@ -96,50 +96,62 @@ Future<List<MapEntry<String, String>>> loadCustomCategoriesFromStorage({
     customCategoriesKey,
     PersistentMemoryType.String,
   );
+  final canonical = _parseCanonicalCustomCategories(rawJson);
+  if (canonical != null) return canonical;
+
+  return parseCustomCategoriesSnapshot({
+    customCategoriesKey: rawJson,
+    customCategoryTitlesKey: await memoryService.getItem(
+      customCategoryTitlesKey,
+      PersistentMemoryType.StringList,
+    ),
+    customCategoryDescriptionsKey: await memoryService.getItem(
+      customCategoryDescriptionsKey,
+      PersistentMemoryType.StringList,
+    ),
+    customCategoriesLegacyCommitKey: await memoryService.getItem(
+      customCategoriesLegacyCommitKey,
+      PersistentMemoryType.String,
+    ),
+  });
+}
+
+/// Parses categories from an already captured set of storage values.
+List<MapEntry<String, String>> parseCustomCategoriesSnapshot(
+  Map<String, Object?> values,
+) {
+  final canonical = _parseCanonicalCustomCategories(
+    values[customCategoriesKey],
+  );
+  if (canonical != null) return canonical;
+  final legacyCategories = sanitizeAndFilterCustomCategories(
+    TypeUtils.castToStringList(values[customCategoryTitlesKey]),
+    TypeUtils.castToStringList(values[customCategoryDescriptionsKey]),
+  );
+  final rawCommit = values[customCategoriesLegacyCommitKey];
+  if (rawCommit is String && rawCommit.trim().isNotEmpty) {
+    final committed = _parseCanonicalCustomCategories(rawCommit);
+    if (committed == null ||
+        _encodeCustomCategories(committed) !=
+            _encodeCustomCategories(legacyCategories)) {
+      return const [];
+    }
+  }
+  return legacyCategories;
+}
+
+List<MapEntry<String, String>>? _parseCanonicalCustomCategories(
+  Object? rawJson,
+) {
   if (rawJson is String && rawJson.trim().isNotEmpty) {
     try {
       return _decodeCustomCategories(rawJson);
-    } catch (_) {
+    } on FormatException {
       // Fall through to legacy keys on decode error
     }
   }
 
-  // 2. Fallback to separate legacy keys for backward compatibility
-  final titles = TypeUtils.castToStringList(
-    await memoryService.getItem(
-      customCategoryTitlesKey,
-      PersistentMemoryType.StringList,
-    ),
-  );
-  final descriptions = TypeUtils.castToStringList(
-    await memoryService.getItem(
-      customCategoryDescriptionsKey,
-      PersistentMemoryType.StringList,
-    ),
-  );
-  final legacyCategories = sanitizeAndFilterCustomCategories(
-    titles,
-    descriptions,
-  );
-  final rawCommit = await memoryService.getItem(
-    customCategoriesLegacyCommitKey,
-    PersistentMemoryType.String,
-  );
-  if (rawCommit is String && rawCommit.trim().isNotEmpty) {
-    try {
-      final committedCategories = _decodeCustomCategories(rawCommit);
-      if (_encodeCustomCategories(committedCategories) !=
-          _encodeCustomCategories(legacyCategories)) {
-        // A commit marker means this installation has fenced legacy mirrors.
-        // Never pair a partially updated title list with an older description
-        // list when the marker does not match.
-        return const <MapEntry<String, String>>[];
-      }
-    } catch (_) {
-      return const <MapEntry<String, String>>[];
-    }
-  }
-  return legacyCategories;
+  return null;
 }
 
 /// Persists custom category entries into [memoryService].

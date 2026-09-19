@@ -21,6 +21,12 @@ abstract class AppRadii {
   static const dashedAddSlot = 24.0;
 }
 
+/// Semantic spacing for the Home screen's full-width content sections.
+abstract class HomeGaps {
+  /// Preserves the established inset shared by Home cards and lists.
+  static const sectionHorizontalInset = 10.0;
+}
+
 /// Semantic spacing shared between onboarding flows (intro and questionnaire).
 abstract class OnboardingGaps {
   /// Section heading to caption (Figma: Frame 223).
