@@ -136,6 +136,12 @@ for f in "${FILES[@]:-}"; do
         printf "%s:%d: method is %d lines (max %d):%s [AGENTS.md 0.3]\n", file,start,n,lim,substr(sig,1,55)
         open=0; next }
     open && kind=="{"  && /^  \};?$/  { open=0; next }   # map/list field, not a method
+    # A named-parameter-list constructor — `Foo({` opens the PARAMETER list,
+    # not a body, and closes as `});`. Previously unrecognized: the "open"
+    # state never cleared, so the checker kept scanning until some unrelated
+    # later `^  }$` closed it, misreporting an ordinary constructor as a
+    # 100+ line method. Same category as the map/list carve-out above.
+    open && kind=="{"  && /^  \}\);?$/ { open=0; next }
     # An expression body ends at the FIRST line terminated by ";", at ANY
     # indent. Requiring indent 2 left "=>\n      value;" open forever, which
     # silently disabled every later check in the file.
