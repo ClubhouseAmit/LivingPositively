@@ -23,6 +23,7 @@ import 'package:mazilon/features/personal_plan/data/phone_models.dart';
 import 'package:mazilon/features/phone/ui/EmergencyPhones.dart';
 
 enum _SosDeliveryOption { app, contact, map }
+
 enum _SosContactDeliveryOption { sms, whatsApp }
 
 class PhonePage extends StatefulWidget {
@@ -382,24 +383,23 @@ class _PhonePageState extends LPExtendedState<PhonePage> {
 
   String? _whatsAppNumber(String number) {
     final normalized = PhonePageData.normalizeDialablePhoneNumber(number);
-    if (normalized == null) {
+    // Keep emergency and service short codes out of international routing.
+    if (normalized == null ||
+        (!normalized.startsWith('00') &&
+            RegExp(r'^\d{3,6}$').hasMatch(normalized))) {
       return null;
     }
-
     final internationalNumber = normalized.startsWith('00')
         ? '+${normalized.substring(2)}'
         : normalized;
     if (internationalNumber.startsWith('+')) {
       return _internationalWhatsAppNumber(internationalNumber);
     }
-
     final countryCode = Provider.of<UserInformation>(
       context,
       listen: false,
     ).location.trim().toUpperCase();
-    if (!countryPickerCodes.contains(countryCode)) {
-      return null;
-    }
+    if (!countryPickerCodes.contains(countryCode)) return null;
     final dialCode = CountryCode.tryFromCountryCode(countryCode)?.dialCode;
     if (dialCode == null) {
       return null;

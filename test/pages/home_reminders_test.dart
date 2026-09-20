@@ -41,6 +41,24 @@ final class _DelayedMemoryService extends ContractPersistentMemoryService {
   }
 }
 
+final class _FailingReminderMemoryService
+    extends ContractPersistentMemoryService {
+  _FailingReminderMemoryService() {
+    onMissingRead = (_, PersistentMemoryType type) => switch (type) {
+      PersistentMemoryType.String => '',
+      PersistentMemoryType.Int => 0,
+      PersistentMemoryType.Double => 0.0,
+      PersistentMemoryType.Bool => false,
+      PersistentMemoryType.StringList => <String>[],
+    };
+    onPersist = (String key, PersistentMemoryType type, Object value) {
+      if (key == 'customReminder') {
+        throw StateError('custom reminder persistence failed');
+      }
+    };
+  }
+}
+
 PhonePageData _phoneData() => PhonePageData(
   key: 'phonePageData',
   header: 'header',
@@ -76,8 +94,6 @@ void main() {
     registerTestServices(locale: 'en');
     user = UserInformation();
     user.localeName = 'en';
-    user.notificationHour = 14;
-    user.notificationMinute = 30;
   });
 
   tearDown(() {
@@ -92,7 +108,6 @@ void main() {
 
         for (final gender in genders) {
           user.gender = gender;
-
           await pumpWithProviders(
             tester,
             Home(
@@ -220,13 +235,14 @@ void main() {
   );
 
   testWidgets(
-    'Saving an edited reminder updates the customReminder in PersistentMemoryService',
+    'failed custom reminder persistence keeps the rotating suggestion active',
     (WidgetTester tester) async {
       await _onPlatform(TargetPlatform.android, () async {
-        user.gender = 'male';
-
-        final locators = registerTestServices(locale: 'en');
-        final memory = locators.memory;
+        user.gender = 'other';
+        await GetIt.instance.unregister<PersistentMemoryService>();
+        GetIt.instance.registerSingleton<PersistentMemoryService>(
+          _FailingReminderMemoryService(),
+        );
 
         await pumpWithProviders(
           tester,
@@ -239,50 +255,26 @@ void main() {
           userInformation: user,
           surfaceSize: const Size(1024, 2400),
         );
-
         await tester.pumpAndSettle();
 
-        final editButtonFinder = find.descendant(
-          of: find.byType(RemindersSectionWidget),
-          matching: find.byTooltip('Edit entry'),
-        );
-        expect(editButtonFinder, findsOneWidget);
-
-        await tester.tap(editButtonFinder);
+        final before = tester
+            .widget<RemindersSectionWidget>(find.byType(RemindersSectionWidget))
+            .reminders
+            .first
+            .title;
+        await tester.tap(find.byTooltip('Edit entry'));
+        await tester.pumpAndSettle();
+        await tester.enterText(find.byType(TextFormField), 'Persist me');
+        await tester.tap(find.widgetWithText(TextButton, 'Save'));
         await tester.pumpAndSettle();
 
-        expect(find.byType(AddForm), findsOneWidget);
-
-        // Type a new custom reminder
-        final textFieldFinder = find.byType(TextFormField);
-        expect(textFieldFinder, findsOneWidget);
-        await tester.enterText(textFieldFinder, 'My New Saved Reminder');
-        await tester.pumpAndSettle();
-
-        // Tap Save
-        final saveButtonFinder = find.widgetWithText(TextButton, 'Save');
-        expect(saveButtonFinder, findsOneWidget);
-        await tester.tap(saveButtonFinder);
-        await tester.pumpAndSettle();
-
-        // Dialog should be gone
-        expect(find.byType(AddForm), findsNothing);
-
-        // Check widget state
-        final remindersWidget = tester.widget<RemindersSectionWidget>(
-          find.byType(RemindersSectionWidget),
-        );
-        expect(
-          remindersWidget.reminders.first.title,
-          equals('My New Saved Reminder'),
-        );
-
-        // Check persistent memory
-        final savedVal = await memory.getItem(
-          'customReminder',
-          PersistentMemoryType.String,
-        );
-        expect(savedVal, equals('My New Saved Reminder'));
+        final after = tester
+            .widget<RemindersSectionWidget>(find.byType(RemindersSectionWidget))
+            .reminders
+            .first
+            .title;
+        expect(after, before);
+        expect(tester.takeException(), isNull);
       });
     },
   );

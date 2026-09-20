@@ -453,7 +453,6 @@ class _ListWidgetState extends LPExtendedState<ListWidget> {
               // the subheader of the section bar
               subHeader: pageData['secondaryTitle'] ?? "",
             ),
-            // gap between the section bar and the trait list
             const SizedBox(height: 10),
             ListBodyWidget(
               listItems: listItems,
@@ -463,9 +462,10 @@ class _ListWidgetState extends LPExtendedState<ListWidget> {
             ShowAllButton(
               onTabTapped: widget.onTabTapped,
               pageCode: widget.pageCode,
-              count: listItems.length,
+              count: widget.pageCode == PagesCode.GratitudeJournal
+                  ? thanks.length
+                  : userInfoProvider.positiveTraits.length,
             ),
-            // Suggestions (always up to 3)
             for (final suggestion in _homeSuggestions)
               buildSuggestion(suggestion, gender),
             TextButton(

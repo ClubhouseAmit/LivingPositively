@@ -83,6 +83,18 @@ void main() {
     expect(phonePageData.savedPhoneNumbers, <String>['+972543897645']);
   });
 
+  testWidgets('preserves an imported Israeli emergency short code', (
+    tester,
+  ) async {
+    final phonePageData = _phonePageData();
+    userInformation.location = 'IL';
+    await _pumpPhoneForm(tester, phonePageData, userInformation);
+
+    _importContact(tester, _contact('1201'));
+
+    expect(phonePageData.savedPhoneNumbers, <String>['1201']);
+  });
+
   testWidgets('imports a US local number with the profile country code', (
     tester,
   ) async {

@@ -1,6 +1,6 @@
 part of 'share_form.dart';
 
-mixin _ShareFormCategories on WizardStepState<ShareForm> {
+mixin _ShareFormCategories on _ShareFormCustomCategoriesController {
   late FileService fileService;
   final _dreamsAndGoalsStepKey = GlobalKey<WizardStepState>(
     debugLabel: 'share-dreams-and-goals',
@@ -8,69 +8,12 @@ mixin _ShareFormCategories on WizardStepState<ShareForm> {
   bool _isEditingDreamsAndGoals = false;
   bool _isOpeningDreamsAndGoals = false;
   bool _hideDreamsAndGoalsSummaryUntilRepair = false;
-  bool _isRunningDreamsAndGoalsAction = false;
+  @override
   bool _isAddingCustomCategory = false;
   int? _editingCustomCategoryIndex;
   int _customCategoryFormGeneration = 0;
 
-  UserInformation? get _userInformation {
-    if (!mounted) return null;
-    try {
-      return Provider.of<UserInformation>(context, listen: false);
-    } catch (_) {
-      return null;
-    }
-  }
-
-  Future<void> _persistCustomCategories(
-    List<MapEntry<String, String>> categories,
-  ) async {
-    final userInformation = _userInformation;
-    if (userInformation == null) {
-      throw StateError('User information is unavailable.');
-    }
-    await userInformation.saveCustomCategories(
-      categories: categories,
-      memoryService: widget.memoryService,
-    );
-  }
-
-  Future<void> _persistCustomCategoriesWithRetry(
-    List<MapEntry<String, String>> categories, {
-    VoidCallback? onSuccess,
-  }) async {
-    try {
-      await _persistCustomCategories(categories);
-      if (mounted) onSuccess?.call();
-    } catch (error, stackTrace) {
-      await _captureDreamsAndGoalsFailure(error, stackTrace);
-      if (mounted) {
-        showPersistenceRetrySnackBar(
-          context,
-          () => _retryCustomCategoriesSave(categories, onSuccess: onSuccess),
-        );
-      }
-    }
-  }
-
-  Future<void> _retryCustomCategoriesSave(
-    List<MapEntry<String, String>> categories, {
-    VoidCallback? onSuccess,
-  }) async {
-    try {
-      await _persistCustomCategories(categories);
-      if (mounted) onSuccess?.call();
-    } catch (error, stackTrace) {
-      await _captureDreamsAndGoalsFailure(error, stackTrace);
-      if (mounted) {
-        showPersistenceRetrySnackBar(
-          context,
-          () => _retryCustomCategoriesSave(categories, onSuccess: onSuccess),
-        );
-      }
-    }
-  }
-
+  @override
   void resetCustomCategoryForm() {
     _editingCustomCategoryIndex = null;
     _customCategoryFormGeneration++;
@@ -84,7 +27,7 @@ mixin _ShareFormCategories on WizardStepState<ShareForm> {
   }
 
   void editCustomCategory(int index) {
-    final categories = _userInformation?.customCategories ?? const [];
+    final categories = _customCategories;
     if (index < 0 || index >= categories.length) {
       return;
     }
@@ -96,7 +39,7 @@ mixin _ShareFormCategories on WizardStepState<ShareForm> {
   }
 
   Future<void> deleteCustomCategory(int index) async {
-    final categories = _userInformation?.customCategories ?? const [];
+    final categories = _customCategories;
     if (index < 0 || index >= categories.length) {
       return;
     }
@@ -124,7 +67,7 @@ mixin _ShareFormCategories on WizardStepState<ShareForm> {
   }
 
   Widget buildCustomCategoryForm(BuildContext context) {
-    final categories = _userInformation?.customCategories ?? const [];
+    final categories = _customCategories;
     final editingIndex = _editingCustomCategoryIndex;
     final initialCategory =
         editingIndex != null &&
@@ -203,20 +146,6 @@ mixin _ShareFormCategories on WizardStepState<ShareForm> {
           () => _deleteBuiltInCategory(collectionName),
         );
       }
-    }
-  }
-
-  Future<void> _captureDreamsAndGoalsFailure(
-    Object error,
-    StackTrace stackTrace,
-  ) async {
-    try {
-      await GetIt.instance<IncidentLoggerService>().captureLog(
-        error,
-        stackTrace: stackTrace,
-      );
-    } catch (_) {
-      // Logging is best effort; it must not hide the retry affordance.
     }
   }
 
@@ -312,7 +241,7 @@ mixin _ShareFormCategories on WizardStepState<ShareForm> {
         ),
       );
     }
-    for (final entry in userInformation.customCategories.indexed) {
+    for (final entry in _customCategories.indexed) {
       final categoryIndex = entry.$1;
       result.add(
         CustomCategoryCard(

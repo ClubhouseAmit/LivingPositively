@@ -8,6 +8,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:get_it/get_it.dart';
 import 'package:mazilon/util/async/analytics_service.dart';
 import 'package:mazilon/util/async/file_service.dart';
+import 'package:mazilon/features/personal_plan/data/personal_plan_export_snapshot.dart';
 import 'package:mazilon/util/async/global_enums.dart';
 import 'package:mazilon/util/async/service_locator.dart';
 import 'package:mazilon/pages/feel_good_page.dart';
@@ -93,6 +94,7 @@ class _FakeFiles implements FileService {
     required mainTitle,
     required textDirection,
     memoryService,
+    PersonalPlanExportSnapshot? snapshot,
     approvedPdfHosts,
   }) async => const ShareResult('fake', ShareResultStatus.success);
   @override
@@ -104,6 +106,7 @@ class _FakeFiles implements FileService {
     required mainTitle,
     required textDirection,
     memoryService,
+    PersonalPlanExportSnapshot? snapshot,
     approvedPdfHosts,
   }) async => null;
   @override

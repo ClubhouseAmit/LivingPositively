@@ -1,0 +1,77 @@
+name: Notification backend quality
+
+on:
+  workflow_call:
+
+permissions:
+  contents: read
+
+jobs:
+  functions-test:
+    name: Cloud Functions tests and production audit
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    defaults:
+      run:
+        working-directory: functions
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+
+      - name: Set up Node.js
+        uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+        with:
+          node-version: "22"
+          cache: npm
+          cache-dependency-path: functions/package-lock.json
+
+      - name: Install Functions dependencies
+        run: npm ci
+
+      - name: Run Functions tests
+        run: npm test
+
+      - name: Test backend deployment guards
+        run: >-
+          node --test ../scripts/tests/functions_deployment_changes.test.mjs
+          ../scripts/tests/check_firestore_rules_drift.test.mjs
+          ../scripts/tests/check_firestore_collection_policy.test.mjs
+
+      - name: Test iOS Google Sign-In pre-build configuration
+        run: bash ../scripts/tests/prepare_ios_google_sign_in_config_test.sh
+
+      - name: Verify Firestore collection policy coverage
+        run: node ../scripts/check_firestore_collection_policy.mjs
+
+      - name: Audit production dependencies
+        run: npm audit --omit=dev --audit-level=low
+
+  firestore-rules-test:
+    name: Firestore security rules
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+
+      - name: Set up Node.js
+        uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+        with:
+          node-version: "22"
+          cache: npm
+          cache-dependency-path: functions/package-lock.json
+
+      - name: Set up JDK
+        uses: actions/setup-java@b6effb05e454b25005698d916606bdc6ffcbf961 # v5.0.0
+        with:
+          distribution: temurin
+          java-version: "21.x"
+
+      - name: Install Functions dependencies
+        run: npm --prefix functions ci
+
+      - name: Install Firebase CLI
+        run: npm install --global firebase-tools@15.29.0
+
+      - name: Verify Firestore rules against the emulator
+        run: npm --prefix functions run test:rules

@@ -11,6 +11,7 @@ import 'package:mazilon/features/personal_plan/ui/form_page_template/form_page_t
 import 'package:mazilon/features/personal_plan/ui/custom_category/card.dart';
 import 'package:mazilon/features/personal_plan/ui/custom_category/editor.dart';
 import 'package:mazilon/features/personal_plan/ui/custom_category/options.dart';
+import 'package:mazilon/features/personal_plan/ui/custom_category/share_form_custom_categories_view_model.dart';
 import 'package:mazilon/features/wizard/ui/wizard_step.dart';
 import 'package:mazilon/l10n/app_localizations.dart';
 import 'package:mazilon/features/shell/ui/persistence_retry_snack_bar.dart';
@@ -29,6 +30,7 @@ import 'package:mazilon/features/personal_plan/data/dreams_and_goals_models.dart
 import 'package:mazilon/features/personal_plan/ui/my_plan_section.dart';
 
 part 'categories.dart';
+part 'custom_categories_controller.dart';
 part 'dreams.dart';
 part 'export.dart';
 
@@ -65,7 +67,11 @@ class ShareForm extends WizardStep {
 }
 
 class _ShareFormState extends WizardStepState<ShareForm>
-    with _ShareFormCategories, _ShareFormDreams, _ShareFormExport {
+    with
+        _ShareFormCustomCategoriesController,
+        _ShareFormCategories,
+        _ShareFormDreams,
+        _ShareFormExport {
   void setHasFilled() {
     unawaited(_setHasFilled());
   }
@@ -95,17 +101,37 @@ class _ShareFormState extends WizardStepState<ShareForm>
     super.initState();
     fileService = GetIt.instance<FileService>();
     setHasFilled();
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      if (mounted) {
-        _userInformation?.loadCustomCategories(
-          memoryService: widget.memoryService,
-        );
-      }
-    });
+  }
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    final userInformation = Provider.of<UserInformation>(
+      context,
+      listen: false,
+    );
+    if (!identical(userInformation, _customCategoriesUserInformation)) {
+      _replaceCustomCategoriesViewModel(userInformation);
+    }
+  }
+
+  @override
+  void didUpdateWidget(covariant ShareForm oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (!identical(oldWidget.memoryService, widget.memoryService)) {
+      _replaceCustomCategoriesViewModel(
+        Provider.of<UserInformation>(context, listen: false),
+      );
+    }
   }
 
   @override
   void dispose() {
+    _customCategoriesReplacementRevision++;
+    final viewModel = _customCategoriesViewModel;
+    viewModel?.removeListener(_onCustomCategoriesStateChanged);
+    viewModel?.dispose();
+    _customCategoriesViewModel = null;
     super.dispose();
   }
 
@@ -129,7 +155,7 @@ class _ShareFormState extends WizardStepState<ShareForm>
     );
     await Future.wait<void>([
       _persistInlineDreamsAndGoals(userInformation),
-      userInformation.pendingCustomCategoriesSave,
+      _prepareCustomCategories(),
     ]);
   }
 
@@ -141,10 +167,7 @@ class _ShareFormState extends WizardStepState<ShareForm>
     );
     await Future.wait<void>([
       _persistInlineDreamsAndGoals(userInformation, retry: true),
-      userInformation.retryCustomCategoriesSave(
-        userInformation.customCategoriesSaveRevision,
-        memoryService: widget.memoryService,
-      ),
+      _prepareCustomCategories(retry: true),
     ]);
   }
 

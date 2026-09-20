@@ -6,14 +6,13 @@ import 'package:flutter/foundation.dart'
     show kIsWeb, defaultTargetPlatform, TargetPlatform;
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
-import 'package:mazilon/l10n/app_localizations.dart';
+import 'package:get_it/get_it.dart';
+import 'package:mazilon/features/notifications/data/reminder_debug_models.dart';
 import 'package:mazilon/features/notifications/data/notification_repository.dart';
-import 'package:mazilon/features/notifications/ui/reminder_debug_recorder.dart';
-import 'package:mazilon/features/personal_plan/ui/retrieveInformation.dart';
+import 'package:mazilon/util/async/logger_service.dart';
 import 'package:mazilon/util/userInformation.dart';
 import 'package:permission_handler/permission_handler.dart';
 import 'package:provider/provider.dart';
-import 'package:shared_preferences/shared_preferences.dart';
 
 class ReminderDebugPanel extends StatefulWidget {
   const ReminderDebugPanel({super.key});
@@ -44,8 +43,10 @@ class _ReminderDebugPanelState extends State<ReminderDebugPanel> {
 
   Future<void> _refresh() async {
     setState(() => _loading = true);
-    final prefs = await SharedPreferences.getInstance();
-    await prefs.reload();
+    final userInfo = context.read<UserInformation>();
+    final snapshot = await NotificationRepository.forService(
+      userInfo.service,
+    ).readDebugSnapshot();
     PermissionStatus? notif;
     PermissionStatus? battery;
     if (_isAndroid) {
@@ -54,12 +55,11 @@ class _ReminderDebugPanelState extends State<ReminderDebugPanel> {
     }
     if (!mounted) return;
     setState(() {
-      _lastFireAt = prefs.getString(reminderDebugLastFireAtKey);
-      _lastStatus = prefs.getString(reminderDebugLastStatusKey);
-      _lastError = prefs.getString(reminderDebugLastErrorKey);
-      _lastTask = prefs.getString(reminderDebugLastTaskKey);
-      _recentEvents =
-          prefs.getStringList(reminderDebugRecentEventsKey) ?? const [];
+      _lastFireAt = snapshot.lastFireAt;
+      _lastStatus = snapshot.lastStatus;
+      _lastError = snapshot.lastError;
+      _lastTask = snapshot.lastTask;
+      _recentEvents = snapshot.recentEvents;
       _notificationStatus = notif;
       _batteryOptStatus = battery;
       _loading = false;
@@ -71,25 +71,34 @@ class _ReminderDebugPanelState extends State<ReminderDebugPanel> {
     setState(() => _busy = true);
     try {
       final userInfo = context.read<UserInformation>();
-      final appLocale = AppLocalizations.of(context);
-      if (appLocale == null) return;
-      final quotes = retrieveInspirationalQuotes(appLocale, userInfo.gender);
-      await NotificationsService.initializeNotification(
-        quotes,
-        userInfo.notificationHour,
-        userInfo.notificationMinute,
-        appLocale.notifyOnscheduledNotification,
-        appLocale,
-        customMessage: userInfo.notificationMessage,
-      );
+      await NotificationRepository.forService(
+        userInfo.service,
+      ).rescheduleDefaultReminder(userInfo);
       await _refresh();
+    } catch (error, stackTrace) {
+      if (GetIt.instance.isRegistered<IncidentLoggerService>()) {
+        try {
+          await GetIt.instance<IncidentLoggerService>().captureLog(
+            error,
+            stackTrace: stackTrace,
+          );
+        } catch (_) {
+          // Preserve the debug action's containment contract if reporting fails.
+        }
+      }
+      if (mounted) {
+        setState(() => _lastError = 'Reminder rescheduling failed.');
+      }
     } finally {
       if (mounted) setState(() => _busy = false);
     }
   }
 
   Future<void> _clearHistory() async {
-    await clearReminderDebugEvents();
+    final userInfo = context.read<UserInformation>();
+    await NotificationRepository.forService(
+      userInfo.service,
+    ).clearDebugHistory();
     await _refresh();
   }
 
@@ -120,8 +129,13 @@ class _ReminderDebugPanelState extends State<ReminderDebugPanel> {
   @override
   Widget build(BuildContext context) {
     final userInfo = context.watch<UserInformation>();
-    final scheduledTime =
-        '${userInfo.notificationHour.toString().padLeft(2, '0')}:${userInfo.notificationMinute.toString().padLeft(2, '0')}';
+    final preference = NotificationRepository.forService(
+      userInfo.service,
+    ).getPreference('default');
+    final scheduledTime = preference == null
+        ? 'Not scheduled'
+        : '${preference.hour.toString().padLeft(2, '0')}:'
+              '${preference.minute.toString().padLeft(2, '0')}';
 
     return Theme(
       data: Theme.of(context).copyWith(dividerColor: Colors.transparent),
@@ -167,14 +181,13 @@ class _ReminderDebugPanelState extends State<ReminderDebugPanel> {
             _permLabel(_batteryOptStatus),
             valueColor: _permColor(_batteryOptStatus),
           ),
-          if (!_isAndroid)
-            const Padding(
-              padding: EdgeInsets.only(top: 4),
-              child: Text(
-                'WorkManager-backed reminders run on Android only.',
-                style: TextStyle(fontSize: 11, fontStyle: FontStyle.italic),
-              ),
+          const Padding(
+            padding: EdgeInsets.only(top: 4),
+            child: Text(
+              'FCM reminders are delivered through cloud messaging.',
+              style: TextStyle(fontSize: 11, fontStyle: FontStyle.italic),
             ),
+          ),
           const SizedBox(height: 10),
           Wrap(
             spacing: 8,
@@ -185,7 +198,7 @@ class _ReminderDebugPanelState extends State<ReminderDebugPanel> {
                 child: const Text('Refresh'),
               ),
               OutlinedButton(
-                onPressed: (_busy || !_isAndroid) ? null : _reschedule,
+                onPressed: (_busy || preference == null) ? null : _reschedule,
                 child: const Text('Reschedule now'),
               ),
               OutlinedButton(
