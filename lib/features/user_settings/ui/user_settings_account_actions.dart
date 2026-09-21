@@ -66,7 +66,6 @@ class UserSettingsAccountActions {
     final previousReminder = notificationRepository.getPreference('default');
     NotificationPreference? cancelledReminder;
     var remoteReminderCancelled = false;
-    invalidatePendingWrites();
     try {
       final user = AuthService.registeredUser;
       if (user != null && !user.isAnonymous) {
@@ -79,6 +78,7 @@ class UserSettingsAccountActions {
           throw StateError('Unable to cancel the reminder before reset.');
         }
       }
+      invalidatePendingWrites();
       await userInfo.service.reset();
       await userInfo.reset(localeService.getLocale());
     } catch (error, stackTrace) {
