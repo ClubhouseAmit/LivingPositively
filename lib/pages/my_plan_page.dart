@@ -39,9 +39,6 @@ class MyPlanPageFull extends StatefulWidget {
 }
 
 class _MyPlanPageFullState extends LPExtendedState<MyPlanPageFull> {
-  List<List<String>> userAnswers = []; // User's answers for each section
-  List<String> phoneInformation = []; // User's phone-related information
-
   // Field names for different sections of the personal plan
   List<String> fieldNames = [
     'PersonalPlan-Distractions',
@@ -61,34 +58,6 @@ class _MyPlanPageFullState extends LPExtendedState<MyPlanPageFull> {
     'safeEnvironment',
     'dreamsAndGoals',
   ];
-
-  // Retrieve the user's answers for each section and update the state
-  void getUserAnswers(
-    List<String> distractions,
-    List<String> difficultEvents,
-    List<String> feelBetter,
-    List<String> makeSafer,
-    List<String> safeEnvironment,
-    List<String> dreamsAndGoals,
-  ) {
-    userAnswers = [
-      distractions,
-      difficultEvents,
-      feelBetter,
-      makeSafer,
-      safeEnvironment,
-      dreamsAndGoals,
-    ];
-  }
-
-  // Combine and format the phone-related information
-  void setPhones(List<String> names, List<String> numbers) {
-    phoneInformation = [];
-    final count = math.min(names.length, numbers.length);
-    for (var i = 0; i < count; i++) {
-      phoneInformation.add('${names[i]}:${numbers[i]}');
-    }
-  }
 
   // Opens a specified URL using url_launcher
   void _launchURL(Uri url) async {
@@ -114,19 +83,6 @@ class _MyPlanPageFullState extends LPExtendedState<MyPlanPageFull> {
     final userInfoProvider = Provider.of<UserInformation>(
       context,
       listen: true,
-    );
-
-    setPhones(
-      widget.phonePageData.savedPhoneNames,
-      widget.phonePageData.savedPhoneNumbers,
-    );
-    getUserAnswers(
-      userInfoProvider.distractions,
-      userInfoProvider.difficultEvents,
-      userInfoProvider.feelBetter,
-      userInfoProvider.makeSafer,
-      userInfoProvider.safeEnvironment,
-      userInfoProvider.dreamsAndGoals,
     );
 
     final gender = userInfoProvider.gender;
@@ -202,6 +158,24 @@ class _MyPlanPageFullState extends LPExtendedState<MyPlanPageFull> {
   }
 
   List<Widget> _planSections(UserInformation userInfo, String gender) {
+    final phoneNames = widget.phonePageData.savedPhoneNames;
+    final phoneNumbers = widget.phonePageData.savedPhoneNumbers;
+    final phoneCount = math.min(
+      phoneNames.length,
+      phoneNumbers.length,
+    );
+    final phoneInformation = <String>[];
+    for (var index = 0; index < phoneCount; index++) {
+      phoneInformation.add('${phoneNames[index]}:${phoneNumbers[index]}');
+    }
+    final userAnswers = [
+      userInfo.distractions,
+      userInfo.difficultEvents,
+      userInfo.feelBetter,
+      userInfo.makeSafer,
+      userInfo.safeEnvironment,
+      userInfo.dreamsAndGoals,
+    ];
     final safeEnvironmentInfo = retrieveInformation(
       fieldNames[4],
       gender,
