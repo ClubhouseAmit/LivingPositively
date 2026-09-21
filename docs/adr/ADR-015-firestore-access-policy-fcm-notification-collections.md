@@ -269,6 +269,12 @@ denied. This intentionally replaces the prior public-profile baseline; it
 does not delete fields from existing documents, but it makes them inaccessible
 to every non-owner client as soon as the rules are deployed.
 
+The rule deliberately does not grant a recursive `/users/{uid}/...` subtree.
+The shipped FCM design stores tokens at `/devices/{uid}`; earlier planning
+diagrams that showed `/users/{uid}/fcmTokens/{tokenId}` are superseded and have
+no current client or backend consumer. A future nested user-data feature needs
+its own owner-scoped rule and decision rather than inheriting access implicitly.
+
 ### Explicitly out of scope
 
 The imported baseline also grants unauthenticated read of every document:
@@ -389,4 +395,6 @@ server. They are new, constraint 1 applies, and they are server-only.
 - **2026-09-21** â€” The owner approved owner-only access to `/users/{uid}`.
   Decision 9 supersedes the former public-read baseline for account profiles;
   the emulator suite now proves owner access and rejects anonymous, cross-user,
-  and collection-enumeration reads.
+  and collection-enumeration reads. The retired nested FCM-token path is
+  documented as intentionally inaccessible and covered by owner and anonymous
+  get/list/write denial tests.

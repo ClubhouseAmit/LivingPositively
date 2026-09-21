@@ -57,7 +57,9 @@ service cloud.firestore {
 		}
 		// Allow public reads only for public content. `users` contains account
 		// profile data and is excluded here so its owner-scoped rule below is
-		// the only client grant, just as devices/{uid} is.
+		// the only client grant, just as devices/{uid} is. Do not add a recursive
+		// users rule: current FCM tokens live at devices/{uid}; the obsolete
+		// users/{uid}/fcmTokens design has no client or backend consumer.
 		match /{collectionId}/{document=**} {
 			allow read: if !serverOnlyCollection(collectionId) &&
 				collectionId != "users";

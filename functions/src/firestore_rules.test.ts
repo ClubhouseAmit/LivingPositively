@@ -262,6 +262,26 @@ describe("users profile ownership", () => {
     await assertFails(getDoc(doc(db, `users/${ALICE}`)));
     await assertFails(getDocs(collection(db, "users")));
   });
+
+  it("denies the retired nested FCM token path even to its profile owner", async () => {
+    await seed(`users/${ALICE}/fcmTokens/token`, {
+      token: "not-a-current-path",
+    });
+    const alice = testEnv.authenticatedContext(ALICE).firestore();
+    const anonymous = testEnv.unauthenticatedContext().firestore();
+
+    await assertFails(getDoc(doc(alice, `users/${ALICE}/fcmTokens/token`)));
+    await assertFails(getDocs(collection(alice, `users/${ALICE}/fcmTokens`)));
+    await assertFails(
+      setDoc(doc(alice, `users/${ALICE}/fcmTokens/token`), {
+        token: "not-a-current-path",
+      }),
+    );
+    await assertFails(getDoc(doc(anonymous, `users/${ALICE}/fcmTokens/token`)));
+    await assertFails(
+      getDocs(collection(anonymous, `users/${ALICE}/fcmTokens`)),
+    );
+  });
 });
 
 describe("denylist coverage", () => {
