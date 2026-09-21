@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart' hide Text;
 import 'package:mazilon/design_system/tokens/spacing.dart';
+import 'package:mazilon/design_system/widgets/button.dart';
 import 'package:mazilon/design_system/widgets/text.dart';
 import 'package:mazilon/l10n/app_localizations.dart';
 import 'package:mazilon/pages/auth_page.dart';
@@ -35,15 +36,14 @@ class NotificationSignedOutCard extends StatelessWidget {
             textAlign: TextAlign.center,
           ),
           const SizedBox(height: AppSpacing.lg),
-          ElevatedButton.icon(
+          Button(
             onPressed: () => Navigator.push(
               context,
               MaterialPageRoute<void>(
                 builder: (_) => const AuthPage(fromNotifications: true),
               ),
             ),
-            icon: const Icon(Icons.login_outlined),
-            label: Text(locale.authNotSignedInButton),
+            label: locale.authNotSignedInButton,
           ),
         ],
       ),

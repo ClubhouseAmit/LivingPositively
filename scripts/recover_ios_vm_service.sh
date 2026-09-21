@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 
-# CI-only workaround for Flutter 3.44's simulator log-reader startup race.
+# CI-only workaround for the iOS simulator log-reader startup race.
 # Return 2 while waiting, 0 when finished, and 1 on a failed recovery. The
 # caller still requires the original flutter test process to report success.
 ios_frontboard_retry_has_headroom() {

@@ -4,6 +4,7 @@ import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:mazilon/design_system/widgets/button.dart';
 import 'package:mazilon/pages/notification_page.dart';
 import 'package:mazilon/features/notifications/ui/notification_toggle_card.dart';
 import 'package:mazilon/features/notifications/data/fcm_service.dart';
@@ -94,9 +95,7 @@ void main() {
         );
         await tester.pump();
 
-        final enableButton = tester.widget<ElevatedButton>(
-          find.byType(ElevatedButton),
-        );
+        final enableButton = tester.widget<Button>(find.byType(Button).first);
         expect(enableButton.onPressed, isNull);
       });
     },
@@ -118,8 +117,12 @@ void main() {
 
         final cancelLabel = find.text('Cancel current notification');
         expect(cancelLabel, findsOneWidget);
-        final cancelButton = tester.widget<OutlinedButton>(
-          find.ancestor(of: cancelLabel, matching: find.byType(OutlinedButton)),
+        final cancelButton = tester.widget<Button>(
+          find.byWidgetPredicate(
+            (widget) =>
+                widget is Button &&
+                widget.label == 'Cancel current notification',
+          ),
         );
         expect(cancelButton.onPressed, isNotNull);
       });

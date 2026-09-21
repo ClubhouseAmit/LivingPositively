@@ -2,6 +2,7 @@ import 'package:flutter/material.dart' hide Text;
 import 'package:permission_handler/permission_handler.dart';
 
 import 'package:mazilon/design_system/tokens/spacing.dart';
+import 'package:mazilon/design_system/widgets/button.dart';
 import 'package:mazilon/design_system/widgets/text.dart';
 import 'package:mazilon/features/shell/ui/LP_extended_state.dart';
 import 'package:mazilon/features/shell/ui/styles.dart';
@@ -95,18 +96,17 @@ class _NotificationPermissionDeniedCardState
 
   Widget _buildActions(BuildContext context) => Column(
     children: [
-      ElevatedButton.icon(
+      Button(
         onPressed: !widget.canRequestPermission || _requesting || _cancelling
             ? null
             : _requestPermission,
-        icon: const Icon(Icons.notifications_outlined),
-        label: Text(appLocale.notificationsEnable),
+        label: appLocale.notificationsEnable,
       ),
       const SizedBox(height: AppSpacing.sm),
-      OutlinedButton.icon(
+      Button(
         onPressed: _requesting || _cancelling ? null : _cancelReminder,
-        icon: const Icon(Icons.notifications_off_outlined),
-        label: Text(appLocale.notificationCancelNotification(widget.gender)),
+        label: appLocale.notificationCancelNotification(widget.gender),
+        variant: ButtonVariant.secondary,
       ),
       if (!widget.canRequestPermission)
         LinkButton(
