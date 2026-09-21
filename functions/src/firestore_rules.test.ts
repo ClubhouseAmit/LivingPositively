@@ -36,19 +36,18 @@ const SERVER_ONLY_COLLECTIONS = [
   "quotes_ru",
 ];
 
-// Collections that existed before this branch. Constraint 2 requires their
-// effective policy to be unchanged, so these assert the baseline behaviour
-// still holds.
+// Public content that existed before this branch. These assert the remaining
+// baseline policy still holds after account profiles became owner-only.
 const PUBLICLY_READABLE_COLLECTIONS = [
   "SyncPages",
   "VersionManager",
   "feelGoodPageTitles",
   "ShareTexts",
-  "users",
 ];
 
 const ALICE = "alice-uid";
 const BOB = "bob-uid";
+const CHARLIE = "charlie-uid";
 
 let testEnv: RulesTestEnvironment;
 
@@ -215,12 +214,53 @@ describe("pre-existing collections keep their baseline policy", () => {
 
     await assertFails(setDoc(doc(db, "SyncPages/page"), { value: 1 }));
   });
+});
 
-  it("still lets a user write only their own users document", async () => {
+describe("users profile ownership", () => {
+  it("lets a signed-in user read and write only their own profile", async () => {
     const alice = testEnv.authenticatedContext(ALICE).firestore();
 
     await assertSucceeds(setDoc(doc(alice, `users/${ALICE}`), { name: "a" }));
+    await assertSucceeds(getDoc(doc(alice, `users/${ALICE}`)));
+    await assertSucceeds(
+      updateDoc(doc(alice, `users/${ALICE}`), { name: "b" }),
+    );
+    await assertSucceeds(deleteDoc(doc(alice, `users/${ALICE}`)));
     await assertFails(setDoc(doc(alice, `users/${BOB}`), { name: "b" }));
+  });
+
+  it("denies another signed-in user profile reads and enumeration", async () => {
+    await seed(`users/${BOB}`, { email: "bob@example.com" });
+    const alice = testEnv.authenticatedContext(ALICE).firestore();
+
+    await assertFails(getDoc(doc(alice, `users/${BOB}`)));
+    await assertFails(getDocs(collection(alice, "users")));
+  });
+
+  it("denies ADMIN and OWNER roles cross-user profile writes", async () => {
+    await seed(`users/${BOB}`, { email: "bob@example.com" });
+
+    for (const role of ["ADMIN", "OWNER"]) {
+      const db = testEnv
+        .authenticatedContext(ALICE, { roles: [role] })
+        .firestore();
+
+      await assertFails(
+        setDoc(doc(db, `users/${CHARLIE}`), { name: "created" }),
+      );
+      await assertFails(
+        updateDoc(doc(db, `users/${BOB}`), { name: "changed" }),
+      );
+      await assertFails(deleteDoc(doc(db, `users/${BOB}`)));
+    }
+  });
+
+  it("denies unauthenticated profile reads and enumeration", async () => {
+    await seed(`users/${ALICE}`, { email: "alice@example.com" });
+    const db = testEnv.unauthenticatedContext().firestore();
+
+    await assertFails(getDoc(doc(db, `users/${ALICE}`)));
+    await assertFails(getDocs(collection(db, "users")));
   });
 });
 

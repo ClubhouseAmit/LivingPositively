@@ -247,6 +247,28 @@ of their own document succeeds; a read or write of another user's document is
 denied; and unauthenticated `get`, `list`, `create`, `update`, and `delete`
 against `devices` are all denied.
 
+**9. User profiles are owner-only.** The owner approved narrowing the
+pre-existing `/users/{uid}` public-read policy because it stores account email
+and display-name fields. The catch-all excludes `users`, since Firestore
+OR-combines matching grants; the explicit rule is therefore the sole client
+grant:
+
+```rules
+match /{collectionId}/{document=**} {
+  allow read: if !serverOnlyCollection(collectionId) &&
+    collectionId != "users";
+}
+
+match /users/{userId} {
+  allow get, write: if request.auth != null && request.auth.uid == userId;
+}
+```
+
+Direct profile enumeration, unauthenticated reads, and cross-user reads are
+denied. This intentionally replaces the prior public-profile baseline; it
+does not delete fields from existing documents, but it makes them inaccessible
+to every non-owner client as soon as the rules are deployed.
+
 ### Explicitly out of scope
 
 The imported baseline also grants unauthenticated read of every document:
@@ -364,3 +386,7 @@ server. They are new, constraint 1 applies, and they are server-only.
   verifier began rejecting Firebase Anonymous Authentication. Decision 6 now
   names the CI collection-policy check that enforces classification of
   non-test Functions collection references.
+- **2026-09-21** â€” The owner approved owner-only access to `/users/{uid}`.
+  Decision 9 supersedes the former public-read baseline for account profiles;
+  the emulator suite now proves owner access and rejects anonymous, cross-user,
+  and collection-enumeration reads.

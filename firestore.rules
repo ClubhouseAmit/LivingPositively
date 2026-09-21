@@ -55,13 +55,14 @@ service cloud.firestore {
 				"notification_types"
 			] || collectionId.matches("quotes_.*");
 		}
-		// Allow all users to read all documents, except the server-only
-		// collections above. devices/{uid} keeps its owner-scoped rule below,
-		// which is now the only grant on that collection.
+		// Allow public reads only for public content. `users` contains account
+		// profile data and is excluded here so its owner-scoped rule below is
+		// the only client grant, just as devices/{uid} is.
 		match /{collectionId}/{document=**} {
-			allow read: if !serverOnlyCollection(collectionId);
+			allow read: if !serverOnlyCollection(collectionId) &&
+				collectionId != "users";
 			allow write: if hasAnyRole(["ADMIN", "OWNER"]) &&
-				!serverOnlyCollection(collectionId);
+				!serverOnlyCollection(collectionId) && collectionId != "users";
 		}
 		// Rowy: Allow signed in users to read Rowy configuration and admins to write
 		match /_rowy_/{docId} {
@@ -90,7 +91,7 @@ service cloud.firestore {
 			return request.auth != null && request.auth.token.roles.hasAny(roles);
 		}
 match /users/{userId} {
-  allow read: if true;
+  allow get: if request.auth != null && request.auth.uid == userId;
   allow write: if request.auth != null && request.auth.uid == userId;
 }
 // Device table — each user can only write their own doc
