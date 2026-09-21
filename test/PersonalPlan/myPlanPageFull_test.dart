@@ -282,10 +282,10 @@ void main() {
     await tester.pump();
     drainOverflowExceptions(tester);
 
-    // setPhones formats entries as 'name:number' and stores them in
-    // phoneInformation, which is then passed to a MyPlanSection. We assert
-    // the section was constructed (rather than match on the exact text,
-    // which can be hidden by AutoSizeText/ellipsis depending on layout).
+    // Phone entries are formatted as 'name:number' and passed to a
+    // MyPlanSection. Assert the section was constructed instead of matching
+    // exact text, which can be hidden by AutoSizeText/ellipsis depending on
+    // layout.
     expect(find.byType(MyPlanSection), findsWidgets);
   });
 
