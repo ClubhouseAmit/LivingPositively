@@ -73,7 +73,7 @@ class _SignupFormState extends LPExtendedState<_SignupForm>
           await reportAuthenticationError(error, stackTrace);
         }
       }
-      final user = result.user ?? GetIt.instance<FirebaseAuth>().currentUser;
+      final user = result.user ?? AuthService.currentUser;
       if (user == null) {
         throw StateError('Created Firebase account has no user.');
       }

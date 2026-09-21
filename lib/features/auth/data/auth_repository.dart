@@ -10,11 +10,10 @@ import 'package:mazilon/util/Firebase/firebase_options.dart';
 ///
 /// The configured server client ID is always supplied; [clientId] is supplied
 /// only for iOS, where the native client must match Firebase's configuration.
-typedef GoogleSignInStarter =
-    Future<GoogleSignInAccount?> Function({
-      required String serverClientId,
-      String? clientId,
-    });
+typedef GoogleSignInStarter = Future<GoogleSignInAccount?> Function({
+  required String serverClientId,
+  String? clientId,
+});
 
 /// Authentication operations and build-time provider availability checks.
 class AuthService {
@@ -236,6 +235,9 @@ class AuthService {
   static User? get registeredUser => GetIt.instance.isRegistered<FirebaseAuth>()
       ? GetIt.instance<FirebaseAuth>().currentUser
       : null;
+
+  /// The active Firebase session, using the initialized auth instance when set.
+  static User? get currentUser => _auth.currentUser;
 
   /// Upserts the signed-in user's profile and last-login timestamp in Firestore.
   static Future<void> saveUserToFirestore(User user) async {

@@ -49,7 +49,7 @@ class _LoginFormState extends LPExtendedState<_LoginForm>
     });
     try {
       final result = await AuthService.signInWithEmail(email, password);
-      final user = result.user ?? GetIt.instance<FirebaseAuth>().currentUser;
+      final user = result.user ?? AuthService.currentUser;
       if (user == null) {
         throw StateError('Signed-in Firebase account has no user.');
       }

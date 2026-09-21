@@ -2,7 +2,6 @@ import 'dart:async';
 
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
-import 'package:get_it/get_it.dart';
 import 'package:mazilon/features/auth/ui/auth_error_reporting.dart';
 import 'package:mazilon/pages/forgot_password_page.dart';
 import 'package:mazilon/features/auth/data/auth_repository.dart';
@@ -43,7 +42,7 @@ mixin _SocialSignIn<T extends StatefulWidget> on LPExtendedState<T> {
       if (result == null) {
         return;
       }
-      final user = result.user ?? GetIt.instance<FirebaseAuth>().currentUser;
+      final user = result.user ?? AuthService.currentUser;
       if (user == null) {
         throw StateError(
           '$providerName authentication completed without a user.',
