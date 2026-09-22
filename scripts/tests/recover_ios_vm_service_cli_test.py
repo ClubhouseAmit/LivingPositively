@@ -143,7 +143,7 @@ sleep() {
     until grep -Eq 'Waiting for VM Service|exiting with code' ci-ios-diagnostics/flutter-test-first.log; do command sleep 0.01; done
     return 0
   fi
-  if [ "$1" = 4800 ] || [ "$1" = 5 ] || [ "$1" = 120 ]; then
+  if [ "$1" = 2400 ] || [ "$1" = 5 ] || [ "$1" = 120 ]; then
     record_process "sleep-$1"
     command sleep 60 &
     printf 'sleeper %s\n' "$!" >> "$TEST_DIRECTORY/processes"
@@ -234,7 +234,7 @@ flutter() {
   if [ "$1" = devices ]; then return 0; fi
   record_process flutter
   printf 'attempt\n' >> "$TEST_DIRECTORY/attempts"
-  until [ -f "$TEST_DIRECTORY/simulator-ready" ] && [ -f "$TEST_DIRECTORY/ready-4800" ]; do command sleep 0.01; done
+  until [ -f "$TEST_DIRECTORY/simulator-ready" ] && [ -f "$TEST_DIRECTORY/ready-2400" ]; do command sleep 0.01; done
   if [ "$SCENARIO" = grace ]; then
     printf '%s\n%s' "$LAUNCH" "$WAITING"
     printf '%s' "$ANNOUNCEMENT" >> ci-ios-diagnostics/simulator.log
