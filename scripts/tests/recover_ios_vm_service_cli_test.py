@@ -122,7 +122,7 @@ class WorkflowCleanupTest(unittest.TestCase):
         self.directory = tempfile.TemporaryDirectory()
         self.addCleanup(self.directory.cleanup)
         self.path = Path(self.directory.name)
-        workflow = (ROOT / ".github/workflows/main.yml").read_text()
+        workflow = (ROOT / ".github/workflows/_ios-integration.yml").read_text()
         # Execute the complete production step, including launch wiring, the
         # actual EXIT trap, retries, final status, and post-test diagnostics.
         step = workflow.split("      - name: Run iOS integration test with diagnostics\n", 1)[1]
